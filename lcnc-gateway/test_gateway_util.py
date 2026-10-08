@@ -3116,6 +3116,48 @@ class TestLineAttribution(unittest.TestCase):
         self.assertEqual(bad, [1, 2, 3])
 
 
+class TestPositionWriteLines(unittest.TestCase):
+    """What the main file may write FROM the machine's position (Codex R95
+    VP-I53): after an unseen tool change such a value is the preview's
+    guess; an explicit one is not — and only the text tells them apart."""
+
+    def test_each_kind(self):
+        text = "\n".join([
+            "G21 G90",                 # 1
+            "G92 Z10",                 # 2 all
+            "G92.1",                   # 3 explicit
+            "g10 l2 p1 z30",           # 4 explicit
+            "G10 L2 P2 Z[#5422-1]",    # 5 fixture 2, from an expression
+            "G10 L20 P2 Z10",          # 6 fixture 2
+            "G10 L20 P0 X0",           # 7 active
+            "G10 L20 X0",              # 8 active (no P)
+            "G10 L20 P#1 X0",          # 9 all (dynamic P)
+            "G10 L10 P3 Z0",           # 10 all (tool table from the position)
+            "G10 L1 P3 Z42",           # 11 explicit
+            "G10 L#2 P1 X0",           # 12 all (dynamic L)
+            "G28.1",                   # 13 all
+            "G30.1 (store)",           # 14 all
+            "G52 X10",                 # 15 explicit
+            "G52 X#<_x>",              # 16 all
+            "(G92 Z10 in a comment)",  # 17 nothing
+            "G0 X10 ; G10 L20 P1 X0",  # 18 nothing
+            "G1 X1 F100",              # 19 nothing
+            "/G92 X0",                 # 20 all (a block-delete line may run)
+            "G1 0 L2 0 P1 X0",         # 21 fixture 1 — LinuxCNC reads G10 L20
+        ])
+        out, ordered = gateway_util.position_write_lines(text)
+        self.assertTrue(ordered)
+        self.assertEqual(out, {2: "all", 3: "explicit", 4: "explicit", 5: 2, 6: 2, 7: "active", 8: "active",
+                               9: "all", 10: "all", 11: "explicit", 12: "all", 13: "all", 14: "all",
+                               15: "explicit", 16: "all", 20: "all", 21: 1})
+
+    def test_order_is_lost_with_o_words_or_m98(self):
+        for text in ("o100 repeat [2]\nG92 Z0\no100 endrepeat\n", "o<sub> call\n", "M98 P100\n", "M098 P1\n"):
+            self.assertFalse(gateway_util.position_write_lines(text)[1], text)
+        for text in ("(go to the corner)\nG0 X0\n", "G0 X0 ; o100 call\n", "#<_o> = 1\nG0 X#<_o>\n", "M9\n"):
+            self.assertTrue(gateway_util.position_write_lines(text)[1], text)
+
+
 class TestWcsRewriteTargets(unittest.TestCase):
     """The value comparison in wcs_event_rewritten cannot see a G10 L2 that
     writes the SAME numbers the var row already holds — the corpus programs

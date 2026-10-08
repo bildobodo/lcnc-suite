@@ -215,6 +215,64 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
             self.assertEqual(r["rapid_ustart"][-1], 0, case)
             self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5, msg=case)
 
+    def test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown(self):
+        # Codex R95 VP-I53: G92 / G10 L20 after the unseen change are
+        # computed from the preview's guess — an absolute move does not repair
+        # them, a fixture switched to later carries them. Every later move
+        # stays unknown, untimed, and the payload names the line.
+        for case in ("r95_g92_from_stale", "r95_l20_from_stale", "r95_l20_inactive",
+                     "r95_l20_inactive_comment", "r95_l20_inactive_hidden",
+                     "r95_g28_1_from_stale", "r95_g28_1_hidden", "r95_g30_1_from_stale"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+            self.assertEqual(r["stale_offset_lines"], [4], case)
+            self.assertIsNone(r["stale_offset_untracked"], case)
+        # An L20 on an INACTIVE fixture takes effect at the switch to it: the
+        # move before the switch, positioned in G54, is known again.
+        r = probe("r95_l20_inactive")
+        self.assertEqual(r["rapid_lines"], [2, 5, 7, 7, 8])
+        self.assertEqual(r["rapid_ustart"], [1, 1, 0, 1, 1])
+
+    def test_an_explicit_offset_a_reset_or_an_earlier_one_stays_known(self):
+        # The text tells an explicit G10 L2 from an L20 (no canon call does):
+        # Codex's control keeps its known move; G92.1 is an explicit zero; a
+        # G92 BEFORE the change came from a known position.
+        for case in ("r95_l2_constant", "r95_g92_1_from_stale", "r95_g92_before_change"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_ustart"][-1], 0, case)
+            self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5, msg=case)
+            self.assertIsNone(r["stale_offset_lines"], case)
+        # Codex's position controls: no unseen change, nothing unknown
+        for case in ("r95_g92_from_stale_position_control", "r95_l20_from_stale_position_control",
+                     "r95_l20_inactive_position_control"):
+            r = probe(case)
+            self.assertEqual(r["rapid_ustart"][1:], [0] * (len(r["rapid_ustart"]) - 1), case)
+            self.assertIsNone(r["stale_offset_lines"], case)
+
+    def test_lines_out_of_text_order_fall_back_to_the_callbacks_and_say_so(self):
+        # An o-word loop: the text's order is not the run's. A G92 still
+        # reports itself and keeps the rest unknown; the payload says what is
+        # not tracked (an inactive fixture's write, a store, in a sub).
+        r = probe("r95_oword_g92")
+        self.assertEqual(r["rapid_ustart"][-1], 1)
+        self.assertEqual(r["stale_offset_lines"], [6])
+        self.assertIs(r["stale_offset_untracked"], True)
+        # A G92 in a called subroutine FILE: only its callback reports it, and
+        # its line number is the sub file's — named 0 ("no main-file line"),
+        # never the main file's line of that number.
+        r = probe("r95_sub_g92")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["rapid_ustart"][-1], 1)
+        self.assertEqual(r["stale_offset_lines"], [0])
+        self.assertIs(r["stale_offset_untracked"], True)
+        r = probe("r95_oword_no_write")
+        self.assertEqual(r["rapid_ustart"][-1], 0)
+        self.assertIsNone(r["stale_offset_lines"])
+        self.assertIs(r["stale_offset_untracked"], True)
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.

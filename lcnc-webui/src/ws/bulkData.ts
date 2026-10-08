@@ -423,6 +423,12 @@ export interface ViewerGcode {
   // Executed tool changes as [line, tool] in execution order (canon M6 only
   // — a preview-skipped M600 remap contributes none, same as the stats).
   tool_change_lines?: [number, number][];
+  /** Lines that set an offset or a stored position from the unknown
+   *  position after a tool change (Codex R95 VP-I53); absent = none. */
+  stale_offset_lines?: number[];
+  /** Offsets set from that position are not tracked (o-words / M98 in the
+   *  main file, or its text unreadable); absent = tracked. */
+  stale_offset_untracked?: boolean;
   // P4.1: source-line → point-index range map, built off-thread by previewWorker
   // (Maps survive structured clone) so ThreeViewer skips the O(points) build.
   feedLineIndex?: LineIndex;

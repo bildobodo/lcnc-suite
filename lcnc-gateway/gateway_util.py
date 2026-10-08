@@ -2294,6 +2294,90 @@ _P_WORD_RE = re.compile(r"P(\d+|#|\[)")
 _NAMED_PARAM_RE = re.compile(r"#<[^>]*>")
 
 
+#: Candidate lines for position_write_lines: a settings or store word.
+#: LinuxCNC reads `G1 0` as G10 (spaces count nowhere): the candidate
+#: allows them; the decision is taken on the line without whitespace.
+_POSWRITE_CANDIDATE_RE = re.compile(r"G[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8\s*\.\s*1|3\s*0\s*\.\s*1)", re.I)
+_STORE_RE = re.compile(r"G0*(?:28|30)\.1(?![\d.])")
+_G92_RE = re.compile(r"G0*92(?![\d.])")
+_G92X_RE = re.compile(r"G0*92\.[123](?![\d.])")
+_G52_RE = re.compile(r"G0*52(?![\d.])")
+#: An o-word (`o100 …`, `o<name> …`) or M98/M99: the main file's lines no
+#: longer run in text order (calls, loops, branches).
+_FLOW_RE = re.compile(r"O[\d<#\[]|M0*9[89](?![\d.])")
+_FLOW_CANDIDATE_RE = re.compile(r"O\s*[\d<#\[]|M\s*0*9\s*[89]", re.I)
+
+
+def position_write_lines(text):
+    """What the MAIN file's lines may write FROM THE MACHINE'S POSITION, for
+    the preview's unknown-position rule (gcode_canon `stale`, Codex R95
+    VP-I53): ({1-based line: target}, ordered).
+
+    After a tool change at a position the preview cannot see, an offset, a
+    tool offset or a stored position computed from the position is the
+    preview's guess for good — an absolute move repairs the program
+    coordinate, never such a value. No canon call tells an L2 (explicit
+    values) from an L20 (from the position), and an L20 on an inactive
+    fixture or a G28.1 makes no call at all, so the text decides. target:
+      "explicit"  a settings line whose values do not depend on the position
+                  (G10 L1 / L2 and G52 with literal values, G92.1/.2/.3);
+      int n       G10 L20 Pn / L2 Pn with an expression — fixture n (1 = G54);
+      "active"    the same with P0, no P or a P the text cannot settle;
+      "all"       G92, G28.1, G30.1, G10 L10 / L11 (tool table from the
+                  position), a dynamic L, an expression in G1 L1 / G52.
+    `ordered` is False when the main file has o-words or M98/M99: its lines
+    then do not run in text order, and a caller must not take the text's
+    order for the run's. Comments are stripped, named parameters and o-word
+    names neutralised; a block-delete line counts (it may run). Pure."""
+    out = {}
+    t = text or ""
+    flow = False
+    line_no, pos, done = 1, 0, 0
+    for m in _POSWRITE_CANDIDATE_RE.finditer(t):
+        line_no += t.count("\n", pos, m.start())
+        pos = m.start()
+        if line_no == done:
+            continue
+        done = line_no
+        ls = t.rfind("\n", 0, pos) + 1
+        le = t.find("\n", pos)
+        raw = t[ls:(len(t) if le < 0 else le)]
+        line = strip_gcode_comments(raw)
+        s = _OWORD_NAME_RE.sub("O0", _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line))).upper()
+        expr = "#" in s or "[" in s
+        if _STORE_RE.search(s) or _G92_RE.search(s):
+            out[line_no] = "all"
+        elif _G92X_RE.search(s):
+            out[line_no] = "explicit"
+        elif _G52_RE.search(s):
+            out[line_no] = "all" if expr else "explicit"
+        elif _G10_WORD_RE.search(s):
+            lw = _L_WORD_RE.search(s)
+            l_no = int(lw.group(1)) if lw and lw.group(1).isdigit() else None
+            pw = _P_WORD_RE.search(s)
+            p_no = int(pw.group(1)) if pw and pw.group(1).isdigit() else None
+            if lw is None:
+                out[line_no] = "explicit"        # no L: writes nothing (an error)
+            elif l_no is None or l_no in (10, 11):
+                out[line_no] = "all"
+            elif l_no in (1, 2) and not expr:
+                out[line_no] = "explicit"
+            elif l_no == 1:
+                out[line_no] = "all"
+            elif l_no in (2, 20):
+                out[line_no] = p_no if p_no else ("all" if pw is not None and p_no is None else "active")
+            else:
+                out[line_no] = "all"
+    for m in _FLOW_CANDIDATE_RE.finditer(t):
+        ls = t.rfind("\n", 0, m.start()) + 1
+        le = t.find("\n", m.start())
+        line = strip_gcode_comments(t[ls:(len(t) if le < 0 else le)])
+        if _FLOW_RE.search(_NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line)).upper()):
+            flow = True
+            break
+    return out, not flow
+
+
 def wcs_rewrite_targets(text):
     """Fixtures the PROGRAM TEXT writes: (explicit_indices, writes_active).
 

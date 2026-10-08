@@ -82,7 +82,7 @@ from gateway_util import (
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
-    rotary_word_lines, first_rotary_commands, seq_boundary_indices,
+    rotary_word_lines, first_rotary_commands, seq_boundary_indices, position_write_lines,
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
@@ -232,6 +232,15 @@ def parse(ctx: dict) -> dict:
             canon.tool_change_axes = tuple(range(9))
             print(f"TOOL_CHANGE_POSITION has {len(_tcp)} values (3, 6 or 9 expected) — "
                   "every axis taken as unknown after an M6", file=sys.stderr, flush=True)
+        # What the main file may write FROM the position (Codex R95 VP-I53):
+        # after such an M6 only the text tells an explicit G10 L2 from an
+        # L20, and sees the writes no canon call reports. Unreadable text:
+        # the canon falls back to its callbacks, and the note says so.
+        try:
+            with open(filename, "r", errors="replace") as f:
+                canon.write_lines, canon.writes_ordered = position_write_lines(f.read())
+        except OSError as e:
+            _trace.emit_exc("gcode.write_scan_failed", e)
     # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
     # machine runs every move before the program's own G43/G49 under its
     # inherited modal G43, so the interpreter starts there too — read ONCE
@@ -1282,6 +1291,14 @@ def parse(ctx: dict) -> dict:
               "feed_tcum": feed_tcum_bin, "rapid_tcum": rapid_tcum_bin,
               "rapid_rate": rapid_vel, "rot_rapid_rate": rot_rapid_vel,
               "tool_change_lines": [[int(l), int(t)] for l, t in canon.tool_change_events],
+              # Lines that wrote an offset or a stored position while the
+              # position was unknown after a tool change (Codex R95 VP-I53):
+              # the axes stay unknown to the end; the check's note names it.
+              **({"stale_offset_lines": list(canon.stale_offset_lines)} if canon.stale_offset_lines else {}),
+              # ...and a program whose writes the text cannot place (o-words,
+              # M98, an unreadable file): the note says they are not tracked.
+              **({"stale_offset_untracked": True}
+                 if canon.ever_stale and (canon.write_lines is None or not canon.writes_ordered) else {}),
               "rapid": rapid_bin, "stats": stats, "bounds": bounds,
               "motion_bounds": motion_bounds,
               "violations": violations, "violations_total": violations_total,

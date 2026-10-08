@@ -62,9 +62,33 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # cycle under G98 never re-establishes its plane's normal axis: it
     # retracts to max(the height before the cycle, R) — the real, unknown
     # height when that lies above R, whatever the preview believes
-    # (interp_cycles `if (old_cc < r) … clear_cc = old_cc`). Always
-    # REASSIGNED (frozenset): the class value is the shared default.
+    # (interp_cycles `if (old_cc < r) … clear_cc = old_cc`). An OFFSET, a
+    # tool offset or a stored position written FROM the position while an
+    # axis is stale (G92, G10 L20 / L10 / L11, G28.1, G30.1) is the preview's
+    # guess for good: an absolute move repairs the program coordinate, never
+    # such a value, so those axes stay stale to the program's end
+    # (`_frame_unknown`; Codex R95 VP-I53). No canon call tells an L20 from
+    # an explicit L2, and an L20 on an inactive fixture or a G28.1 makes no
+    # call at all, nor does the state show them reliably (a following G90
+    # overwrites the block's non-modal code before any next_line sees it —
+    # measured), so the MAIN file's text decides (`write_lines`, from
+    # gateway_util.position_write_lines, set by the worker with a tool change
+    # position): at each next_line the lines run since the last one. An
+    # inactive fixture's write takes effect at the switch to it
+    # (`_reg_unknown`). A write the text does not cover — another file's
+    # line, or a main file whose lines do not run in text order
+    # (`writes_ordered`) — is taken from the active registers' callbacks,
+    # conservatively. The lines go to the check's note (`stale_offset_lines`).
+    # Always REASSIGNED (frozenset / tuple / dict): the class values are the
+    # shared defaults.
     stale = frozenset()
+    _frame_unknown = frozenset()
+    stale_offset_lines = ()
+    write_lines = None
+    writes_ordered = True
+    ever_stale = False
+    _reg_unknown = {}
+    _pending_offset_lines = ()
     _block_start = None
     _CYCLES = frozenset((730, 810, 820, 830, 840, 850, 860, 870, 880, 890))
     _PLANE_NORMAL = {170: 2, 180: 1, 190: 0, 171: 8, 181: 7, 191: 6}
@@ -230,16 +254,31 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # axes whose program coordinate it ENDED away from where it
             # began (but a G98 cycle's normal axis), G91 none. Slot 0 is the
             # sequence NUMBER — line 910 is no G91, line 810 no G81.
+            prev = int(self.lineno or 0)
+            stale_in_block = self.stale
+            gs = tuple(getattr(st, "gcodes", None) or ())
             if self._block_start is not None:
-                g = tuple(getattr(st, "gcodes", None) or ())[1:]
+                g = gs[1:]
                 if 910 not in g:
                     keep = frozenset()
                     if 980 in g and not self._CYCLES.isdisjoint(g):
                         keep = frozenset(self._PLANE_NORMAL[c] for c in g if c in self._PLANE_NORMAL)
                     p0, p1 = self._program(self._block_start), self._program(self.lo)
                     self.stale = self.stale - frozenset(
-                        i for i in self.stale - keep if abs(p1[i] - p0[i]) > 1e-9)
+                        i for i in self.stale - keep - self._frame_unknown if abs(p1[i] - p0[i]) > 1e-9)
                 self._block_start = None
+            # The writes on the lines run since the previous next_line: the
+            # previous line's own under the stale set of its block (a group-0
+            # word runs before the block's motion), the lines without a canon
+            # call after it under the set its end left.
+            n = int(st.sequence_number or 0)
+            if self.write_lines and prev >= 1 and n > prev:
+                for line in range(prev, n):
+                    t = self.write_lines.get(line)
+                    if t is not None and t != "explicit":
+                        axes = stale_in_block if line == prev else self.stale
+                        if axes:
+                            self._position_write(line, t, axes)
         if (st.sequence_number or 0) < 0 and (self.lineno or 0) >= 1:
             # A motion the interpreter makes itself inside the current block —
             # an M6's quill-up or G30 move (TOOL_CHANGE_QUILL_UP /
@@ -304,7 +343,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def change_tool(self, idx):
         StatMixin.change_tool(self, idx)
         if self.tool_change_moves and self._program_line():
-            self.stale = frozenset(self.tool_change_axes)
+            self.stale = frozenset(self.tool_change_axes) | self._frame_unknown
+            self.ever_stale = True
         self.tool_changes += 1
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
@@ -366,15 +406,60 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.seq += 1
         return self.seq
 
+    def _position_write(self, line, target, axes):
+        """A value written from the position while `axes` are stale: the
+        active frame's (or every fixture's) axes stay stale to the end; an
+        inactive fixture's wait for the switch to it."""
+        idx = getattr(self, "g5x_index", None)
+        if target in ("all", "active") or target == idx:
+            self._frame_unknown = self._frame_unknown | axes
+            self.stale = self.stale | axes
+            # named once a move runs in it (a reset at M2 is no cause)
+            if line not in self.stale_offset_lines + self._pending_offset_lines:
+                self._pending_offset_lines = self._pending_offset_lines + (line,)
+        else:
+            had = self._reg_unknown.get(target)
+            self._reg_unknown = {**self._reg_unknown,
+                                 target: ((had[0] | axes) if had else axes, had[1] if had else line)}
+
+    def _write_not_covered(self):
+        """An active register written (a callback) where the main file's
+        text cannot speak for the line: no text, or lines that do not run in
+        text order (another file's line may carry any number). With ordered
+        text every line is the main file's, and a callback on a line the text
+        does not list as a write is a reset or a re-selection (M2, `G54`)."""
+        if not (self.stale and self._program_line()):
+            return False
+        return self.write_lines is None or not self.writes_ordered
+
     # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
     # change what wcs_basis() returns — flag, then let the parent assign.
     def set_g5x_offset(self, *args, **kw):
         self._wcs_dirty = True
-        return super().set_g5x_offset(*args, **kw)
+        before = getattr(self, "g5x_index", None)
+        r = super().set_g5x_offset(*args, **kw)
+        idx = getattr(self, "g5x_index", None)
+        if self._program_line():
+            if idx != before and idx in self._reg_unknown:
+                axes, line = self._reg_unknown[idx]
+                self._position_write(line, "all", axes)   # its offsets were the guess
+            elif idx == before and self._write_not_covered():
+                self._position_write(self._backstop_line(), "all", self.stale)
+        return r
 
     def set_g92_offset(self, *args, **kw):
         self._wcs_dirty = True
-        return super().set_g92_offset(*args, **kw)
+        r = super().set_g92_offset(*args, **kw)
+        if self._write_not_covered():
+            self._position_write(self._backstop_line(), "all", self.stale)
+        return r
+
+    def _backstop_line(self):
+        """The line a callback-caught write is named by: the main file's
+        line when its text lists a write there, else 0 — the number may be
+        another file's, and a note must not name the wrong main-file line."""
+        n = int(self.lineno or 0)
+        return n if self.write_lines and n in self.write_lines else 0
 
     def set_xy_rotation(self, *args, **kw):
         self._wcs_dirty = True
@@ -409,6 +494,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             seq = self._next_seq()
             self.rapid.append((self.lineno, end, end, (self.xo, self.yo, self.zo), seq))
             self.unknown_start.append(seq)
+            if self._pending_offset_lines:
+                self.stale_offset_lines = self.stale_offset_lines + self._pending_offset_lines
+                self._pending_offset_lines = ()
         if self._block_start is None:
             self._block_start = self.lo
         self.lo = end

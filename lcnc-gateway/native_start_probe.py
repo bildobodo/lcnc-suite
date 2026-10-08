@@ -136,6 +136,34 @@ CASES = {
     # Own: G76 returns X to its drive line — the start, a stale one — while
     # Z ends at its commanded depth: the end decides, not "moved in the block".
     "r94_g76_returns_x": ("G21 G90 G18\nG0 X0 Y0 Z40\nM6\nS500 M3\nG0 Y3\nG76 P1.5 Z-10 I-1 J0.2 K1\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 10 0 30"}),
+    # Codex R95 VP-I53: an offset written from the unknown position after
+    # the change (G92, G10 L20 on the active and on an inactive fixture)
+    # stays wrong — an absolute move does not repair it; L2 is explicit, but
+    # no canon call tells it from an L20 (kept unknown, conservatively); the
+    # position controls reach the tool change position by a visible move.
+    "r95_g92_from_stale": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_l20_from_stale": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_l20_inactive": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_l2_constant": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 Z30\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_g92_from_stale_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_l20_from_stale_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG10 L20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_l20_inactive_position_control": ("G21 G90\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\nG10 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    # Own: a comment line after the G10 (its code still reaches the next
+    # line), the stored positions G28.1 / G30.1, an offset written BEFORE the
+    # change (known), G92.1 (an explicit zero), a G90 after the write (it
+    # hides the block's code from the state — the text still sees it), and
+    # a main file with an o-word loop (text order lost: callbacks + the note).
+    "r95_l20_inactive_comment": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 Z10\n(the setup sheet)\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_g28_1_from_stale": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG28.1\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_g30_1_from_stale": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG30.1\nG0 X10 Y5 Z15\nG30\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_g92_before_change": ("G21 G90\nG0 X0 Y0 Z40\nG92 Z10\nM6\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_g92_1_from_stale": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG92.1\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_l20_inactive_hidden": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 Z10\nG90\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_g28_1_hidden": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG28.1\nG90\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_oword_g92": ("G21 G90\nG0 X0 Y0 Z40\no100 repeat [1]\nM6\no100 endrepeat\nG92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r95_sub_g92": ("G21 G90\nG0 X0 Y0 Z40\nM6\no<setz> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                    {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"setz.ngc": "o<setz> sub\nG92 Z10\no<setz> endsub\nM2\n"}}),
+    "r95_oword_no_write": ("G21 G90\nG0 X0 Y0 Z40\no100 repeat [1]\nM6\no100 endrepeat\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     # Own: a fixture switch to a ROTATED fixture is a rotation change too.
     "r94_fixture_rotated_after_partial": ("G21 G90\nG10 L2 P2 R45\nG0 X0 Y0 Z40\nM6\nG0 X10 Z15\nG55\nG0 Y5 Z20\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 0"}),
     "r94_fixture_rotated_complete": ("G21 G90\nG10 L2 P2 R45\nG0 X0 Y0 Z40\nM6\nG0 X10 Z15\nG55\nG0 X10 Y5 Z20\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 0"}),
@@ -275,6 +303,8 @@ print(json.dumps({
     "rapid_lines": u("rapid_lines", "<u4"), "rapid_seq": u("rapid_seq", "<u4"),
     "rapid_tcum": u("rapid_tcum", "<f4"), "rapid_brk": u("rapid_brk", "<u1"),
     "rapid_ustart": u("rapid_ustart", "<u1"), "feed_seq": u("feed_seq", "<u4"),
+    "stale_offset_lines": out.get("stale_offset_lines"),
+    "stale_offset_untracked": out.get("stale_offset_untracked"),
     "feed_tcum": u("feed_tcum", "<f4"),
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},
     "digest_without_start": __import__("hashlib").sha256(

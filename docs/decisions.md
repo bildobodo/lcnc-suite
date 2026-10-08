@@ -8603,3 +8603,27 @@ from a stale position (G92, G10 L20 on a stale axis) is wrong in the
 preview, and the positions in its frame read as known — the canon sees the
 new offset, never whether it came from an L2 or an L20.
 
+## 2026-10-08 — An offset set from an unknown position stays unknown (Codex R95 VP-I53)
+
+After a tool change at a position the preview cannot see, an offset computed
+FROM the position — `G92`, `G10 L20` (and L10 / L11 into the tool table),
+a stored `G28.1` / `G30.1` — is the preview's guess for good: Codex's G92
+case computed Z30 from the guessed Z40 where the machine has Z20, and the
+following absolute `G0 X10 Y5 Z15` made the next move "known" — swept 10 mm
+too high, a false hit on L6; an L20 on the inactive G55 carried the same
+error into the switch three lines later. Those axes now stay stale to the
+program's end. The first attempt read the state's non-modal slot (G10 = 100,
+G92 = 920) at the next `next_line`; measured natively, a following `G90`
+(no canon call) overwrites it before any `next_line` sees it, and a `G28.1`
+gets no `next_line` of its own. No canon call tells an L20 from an explicit
+L2 either. So the main file's TEXT decides (`position_write_lines`): it sees
+the call-less writes, their lines and the L word — Codex's explicit
+`G10 L2 P1 Z30` control keeps its known move and its real finding. Where the
+text cannot speak (o-words or M98 in the main file: lines out of text order;
+a write inside a sub file), the callbacks of the active registers catch
+G92 and the active fixture conservatively, named by a main-file line only
+when the text lists a write there; the payload says what stays untracked
+(an inactive fixture's write, a store inside a sub or loop), and the note
+says it. A cause line is named once a move runs after it (M2 resets the
+offsets through the same callbacks). Per-axis precision past the first such
+write was dropped: one stale axis makes every move unknown already.

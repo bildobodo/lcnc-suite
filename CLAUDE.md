@@ -1022,10 +1022,33 @@ fixture, both through `set_xy_rotation` — while X or Y is stale makes both
 stale: the new program X holds the unknown old Y (R94 D). Nothing is
 re-established inside a block; an axis commanded to the value the preview
 already believes cannot be told from one left out and stays stale; no
-relabel is inserted in front of an unknown start. NOT followed (a named
-limit): an offset register written FROM a stale position — `G92`, `G10 L20`
-on a stale axis — is wrong in the preview, and positions in its frame later
-read as known (the canon cannot tell an L20 from an L2). The
+relabel is inserted in front of an unknown start. An OFFSET, a tool offset
+or a stored position written FROM the position while an axis is stale (`G92`,
+`G10 L20` / L10 / L11, `G28.1`, `G30.1`) is the preview's guess for good —
+an absolute move repairs the program coordinate, never such a value — so
+those axes stay stale to the program's end (`_frame_unknown`; Codex R95
+VP-I53). No canon call tells an L20 from an explicit `G10 L2` (kept known:
+its values do not depend on the position), an L20 on an inactive fixture and
+a `G28.1` make no call at all, and the state's non-modal slot is overwritten
+by a following `G90` before any `next_line` sees it (measured), so the MAIN
+file's text decides (`gateway_util.position_write_lines`: every line as
+explicit / fixture n / active / all; the worker hands it to the canon only
+with a tool change position): at each `next_line` the canon takes the lines
+run since the last one — the previous line under its block's stale set, the
+call-less lines after it under the set its end left. An inactive fixture's
+write takes effect at the switch to it (`_reg_unknown`). Where the text
+cannot speak — no text, or a main file with o-words / M98, whose lines do
+not run in text order — the active registers' callbacks (`set_g92_offset`,
+`set_g5x_offset` at an unchanged index) catch a write conservatively, named
+by its main-file line only when the text lists a write there (else 0: the
+number may be a sub file's); with ordered text a callback on a non-write line
+is a reset (M2, a re-selected `G54`) and ignored. A cause line is named once
+a move runs after it (`stale_offset_lines` on the wire); the payload says
+`stale_offset_untracked` when the text cannot place the writes, and the
+note says "not checked to the program's end: the offset set from that
+position at L4 stays unknown whatever is positioned after (L5, L6)" (+ "; in
+subroutines and loops only G92 and the active fixture's offsets are
+tracked"). The
 interpreter's own quill-up / G30 moves at an M6 are canon traverses and
 recorded — they arrive as line −1, which the canon keeps on the M6's line
 (`next_line`; a −1 ended every such parse in an OverflowError on the wire's
@@ -1038,11 +1061,13 @@ the worker (`collisions.viewer.spec`). Tests: `test_tool_change_motion_worker.py
 before an arc, after an unknown start; M6 in place, at G30, at a tool change
 position; every motion kind after it, partial and G91 re-establishment,
 the block's end, G98 / G99 in G17 and G18, G76, a later rotation and a
-rotated fixture, line numbers 810 / 910),
+rotated fixture, line numbers 810 / 910; offsets from the unknown position:
+G92, L20 active / inactive, hidden by a `G90` or a comment, G28.1 / G30.1, an
+explicit L2, G92.1, an o-word loop, a G92 in a sub file),
 `toolChangePayloads.test.ts` (the native payloads, `scripts/gen_tool_change_payloads.py`,
 through the client's decode, track and sweep, the track handed over as the
 page does (`wcs` = its epochs: without them a rotated move is swept
-unrotated) — red on the previous worker's payloads), `collision.test.ts` (an obstacle only in the middle of the move
+unrotated) — red on the previous worker's payloads; the note's offset line handed over by the page: `collisions.viewer.spec`), `collision.test.ts` (an obstacle only in the middle of the move
 after the relabel is found; an unknown start is said). Not yet followed: a
 preview-skipped M600's own motion (plan step 3). The preview goldens change
 for every program with a G43 (the live gate; regenerate at the next suite
