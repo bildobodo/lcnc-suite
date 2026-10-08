@@ -1,0 +1,35 @@
+{
+  "basis_results": {
+    "second_chunk_error": [
+      true,
+      false
+    ],
+    "cancel_after_first_chunk": "CancelledError"
+  },
+  "native": {
+    "replacement_only": {
+      "error": null,
+      "last_rapid": [
+        -100.0,
+        0.0,
+        -10.0
+      ]
+    },
+    "old_probe_then_replacement": {
+      "error": null,
+      "last_rapid": [
+        -100.0,
+        -15.0,
+        -10.0
+      ]
+    },
+    "replacement_with_explicit_predicted_results": {
+      "error": null,
+      "last_rapid": [
+        100.0,
+        -90.0,
+        -10.0
+      ]
+    }
+  }
+}

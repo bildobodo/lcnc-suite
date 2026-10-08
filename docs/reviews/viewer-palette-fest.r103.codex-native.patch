@@ -1,0 +1,11 @@
+--- native_start_probe.py
++++ r103.native.py
+@@ -253,6 +253,8 @@
+     for _z in ("10", "10.005", "20"):
+         CASES[f"{_name}@{_z}"] = (_prog, "mm", float(_z), (430,), {})
+ 
++CASES.update({'replacement_only': ('G21 G90 G49\nG0 Z-85\nG53 G1 Z-90 F100\nG53 G1 Z-87\nG53 G1 Z-90\nG53 G1 Z-87\nG53 G0 Z0\nG43\no100 if [#5070 EQ 1]\nG0 X100\no100 else\nG0 X-100\no100 endif\nG0 Y#5063\nM2\n', 'mm', 0.0, (490,), {}), 'old_probe_then_replacement': ('G21 G90 G49\nG0 Z0\nG38.3 Z-15 F100\nG21 G90 G49\nG0 Z-85\nG53 G1 Z-90 F100\nG53 G1 Z-87\nG53 G1 Z-90\nG53 G1 Z-87\nG53 G0 Z0\nG43\no100 if [#5070 EQ 1]\nG0 X100\no100 else\nG0 X-100\no100 endif\nG0 Y#5063\nM2\n', 'mm', 0.0, (490,), {}), 'replacement_with_explicit_predicted_results': ('G21 G90 G49\nG0 Z-85\nG53 G1 Z-90 F100\nG53 G1 Z-87\nG53 G1 Z-90\nG53 G1 Z-87\nG53 G0 Z0\n#5063=-90\n#5070=1\nG43\no100 if [#5070 EQ 1]\nG0 X100\no100 else\nG0 X-100\no100 endif\nG0 Y#5063\nM2\n', 'mm', 0.0, (490,), {})})
++
+ program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
+ inch = units == "in"
+ ini = work / "machine.ini"
