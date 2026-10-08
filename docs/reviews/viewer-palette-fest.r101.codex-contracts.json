@@ -1,0 +1,112 @@
+[
+  {
+    "case": "257 components",
+    "componentBoxes": 1,
+    "representatives": 257,
+    "inside": "inside"
+  },
+  {
+    "case": "open directions",
+    "known": "inside",
+    "skipped": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": "outer: surface not closed — a part wholly inside it is not found",
+      "notes": [
+        "outer: surface not closed — a part wholly inside it is not found"
+      ],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.12450099999999509,
+      "sweepMs": 4.744778000000011,
+      "truncated": null
+    }
+  },
+  {
+    "case": "note unions",
+    "shard": [
+      "open model",
+      "uncertain A L2",
+      "uncertain B L3",
+      "unknown start L4"
+    ],
+    "entry": [
+      "open model",
+      "uncertain A L2",
+      "uncertain B L3"
+    ]
+  },
+  {
+    "case": "nested clearance",
+    "values": [
+      {
+        "x": -65,
+        "dist": 4.5,
+        "bound": 4.5,
+        "analytic": 4.5
+      },
+      {
+        "x": -60,
+        "dist": 0,
+        "bound": 0,
+        "analytic": 0
+      },
+      {
+        "x": -55,
+        "dist": 4.5,
+        "bound": 4.5,
+        "analytic": 4.5
+      },
+      {
+        "x": -40,
+        "dist": 19.5,
+        "bound": 19.5,
+        "analytic": 19.5
+      },
+      {
+        "x": -20,
+        "dist": "Infinity",
+        "bound": 20,
+        "analytic": 39.5
+      },
+      {
+        "x": 0,
+        "dist": "Infinity",
+        "bound": 20,
+        "analytic": 59.5
+      },
+      {
+        "x": 20,
+        "dist": "Infinity",
+        "bound": 20,
+        "analytic": 39.5
+      },
+      {
+        "x": 40,
+        "dist": 19.5,
+        "bound": 19.5,
+        "analytic": 19.5
+      },
+      {
+        "x": 55,
+        "dist": 4.5,
+        "bound": 4.5,
+        "analytic": 4.5
+      },
+      {
+        "x": 60,
+        "dist": 0,
+        "bound": 0,
+        "analytic": 0
+      },
+      {
+        "x": 65,
+        "dist": 4.5,
+        "bound": 4.5,
+        "analytic": 4.5
+      }
+    ]
+  }
+]

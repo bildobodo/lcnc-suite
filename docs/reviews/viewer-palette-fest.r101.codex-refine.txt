@@ -1,0 +1,33 @@
+
+ RUN  v4.1.8 /tmp/codex-r101-oqls9rbo/archive/lcnc-webui
+
+ ❯ src/viewer/r101.refine.test.ts (2 tests | 1 failed) 39ms
+   × a positional unknown found only during refinement remains named 8ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r101.refine.test.ts > a positional unknown found only during refinement remains named
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r101.refine.test.ts:88:135
+     86|  expect(undecidable.every((c:any)=>c.stage==="refine")).toBe(true);
+     87|  expect(result.hits[0]!.cum).toBeLessThan(19);
+     88|  expect(result.notes?.some(n=>n.includes("inside check undecidable") &…
+       |                                                                                                                                       ^
+     89| });
+     90|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  18:41:29
+   Duration  231ms (transform 108ms, setup 0ms, import 145ms, tests 39ms, environment 0ms)
+

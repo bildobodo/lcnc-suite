@@ -1,0 +1,11 @@
+--- src/viewer/collision.ts
++++ src/viewer/r101.noCert.ts
+@@ -2250,7 +2250,7 @@
+           const A = bodies[ai]!, B = bodies[bi]!;
+           let d: number;
+           let v: InsideVerdict | null = null;
+-          const inCert = inClear[pi]! > 0 && s - inQ[pi]! < inClear[pi]! / Math.max(pairV[pi]!, 1e-9);
++          const inCert = false; // R101 control: query the surfaces and rays every time.
+           if (inCert) {
+             d = 0;   // still inside: no surface crossing since it was measured
+           } else if (prof) {

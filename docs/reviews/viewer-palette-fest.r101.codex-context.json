@@ -1,0 +1,178 @@
+{
+  "review": "R101",
+  "base": "c5f22dad",
+  "product_commit": "71724fc4adfdf264e94579bae58aea4788f5c02c",
+  "request_head": "334b3d15daef3af50944f617663c7ea87ad07fd7",
+  "archive": "/tmp/codex-r101-oqls9rbo/archive",
+  "byte_equal_files": 856,
+  "byte_equal_by_root": {
+    "examples": 74,
+    "lcnc-gateway": 87,
+    "lcnc-webui": 429,
+    "scripts": 177,
+    "test-fixtures": 89
+  },
+  "isolation_changes": {
+    "lcnc-webui/tsconfig.app.json": {
+      "before": "baca90b0053acbc6912214580d03c5fe4800f8211caafe4a04b599f2b15c6fb3",
+      "after": "5c1d1b4d88aef97c8d4cc14192b50bf430613fb78a71ec1f9fa89b8c6bc96dbe"
+    },
+    "lcnc-webui/tsconfig.node.json": {
+      "before": "0c8fdeba3c134b510ec23c69bcaef8155a47c98d848f2f1d4a9350f218a315ca",
+      "after": "51da94dbeee87bd35e4382a483fdc64f63ed705b9f08cfac6998c4e2dfcd4fea"
+    },
+    "lcnc-webui/tsconfig.test.json": {
+      "before": "01fb4d8a68aa98c2087df62d2a8d91d2b7feb278ac36b4732b6d464eaf482856",
+      "after": "fb21eb64f72784ed90fd8b189174837f7fec7d721dab679d0f7141211b29193f"
+    },
+    "lcnc-webui/vite.config.ts": {
+      "before": "6a0c6e15508b6ccaab73472105c86b28d271977ba267a198f1d49443b2df3e29",
+      "after": "52631fbdab4b7f1872a82cd0b0ffb4acedbbd66264b8255b130824ec949e05e8"
+    }
+  },
+  "hydrated_lfs_verified": [
+    "examples/sim_config/machine-5axis-xyzac/a_bearing_pedestals.stl",
+    "examples/sim_config/machine-5axis-xyzac/a_bearing_rings.stl",
+    "examples/sim_config/machine-5axis-xyzac/a_drive_covers.stl",
+    "examples/sim_config/machine-5axis-xyzac/a_trunnion_shafts.stl",
+    "examples/sim_config/machine-5axis-xyzac/a_yoke_casting.stl",
+    "examples/sim_config/machine-5axis-xyzac/c_bearing_lip.stl",
+    "examples/sim_config/machine-5axis-xyzac/c_faceplate.stl",
+    "examples/sim_config/machine-5axis-xyzac/chip_pan.stl",
+    "examples/sim_config/machine-5axis-xyzac/column_foot.stl",
+    "examples/sim_config/machine-5axis-xyzac/fixture_blank.stl",
+    "examples/sim_config/machine-5axis-xyzac/levelling_feet.stl",
+    "examples/sim_config/machine-5axis-xyzac/machine_bed.stl",
+    "examples/sim_config/machine-5axis-xyzac/rear_column.stl",
+    "examples/sim_config/machine-5axis-xyzac/spindle_cartridge.stl",
+    "examples/sim_config/machine-5axis-xyzac/spindle_head.stl",
+    "examples/sim_config/machine-5axis-xyzac/spindle_motor_cover.stl",
+    "examples/sim_config/machine-5axis-xyzac/spindle_nose.stl",
+    "examples/sim_config/machine-5axis-xyzac/x_guide_blocks.stl",
+    "examples/sim_config/machine-5axis-xyzac/x_guide_endcaps.stl",
+    "examples/sim_config/machine-5axis-xyzac/x_guide_rails.stl",
+    "examples/sim_config/machine-5axis-xyzac/x_saddle.stl",
+    "examples/sim_config/machine-5axis-xyzac/y_guide_blocks.stl",
+    "examples/sim_config/machine-5axis-xyzac/y_guide_endcaps.stl",
+    "examples/sim_config/machine-5axis-xyzac/y_guide_rails.stl",
+    "examples/sim_config/machine-5axis-xyzac/y_rail_seats.stl",
+    "examples/sim_config/machine-5axis-xyzac/y_saddle.stl",
+    "examples/sim_config/machine-5axis-xyzac/z_guide_blocks.stl",
+    "examples/sim_config/machine-5axis-xyzac/z_guide_endcaps.stl",
+    "examples/sim_config/machine-5axis-xyzac/z_guide_rails.stl",
+    "examples/sim_config/machine-5axis-xyzac/z_slide.stl",
+    "examples/sim_config/machine-xyzacb-gantry/a_bearing_ring.stl",
+    "examples/sim_config/machine-xyzacb-gantry/a_drive_cover.stl",
+    "examples/sim_config/machine-xyzacb-gantry/a_faceplate.stl",
+    "examples/sim_config/machine-xyzacb-gantry/a_headstock.stl",
+    "examples/sim_config/machine-xyzacb-gantry/b_head.stl",
+    "examples/sim_config/machine-xyzacb-gantry/b_joint_ring.stl",
+    "examples/sim_config/machine-xyzacb-gantry/bed.stl",
+    "examples/sim_config/machine-xyzacb-gantry/bridge_rear_panel.stl",
+    "examples/sim_config/machine-xyzacb-gantry/c_head.stl",
+    "examples/sim_config/machine-xyzacb-gantry/c_mount_ring.stl",
+    "examples/sim_config/machine-xyzacb-gantry/chip_tray.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/x_guide_blocks.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/x_guide_endcaps.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/x_guide_rails.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/y_guide_blocks.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/y_guide_endcaps.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/y_guide_rails.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/z_guide_blocks.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/z_guide_endcaps.stl",
+    "examples/sim_config/machine-xyzacb-gantry/collision/z_guide_rails.stl",
+    "examples/sim_config/machine-xyzacb-gantry/fixture_plate.stl",
+    "examples/sim_config/machine-xyzacb-gantry/fixture_ribs.stl",
+    "examples/sim_config/machine-xyzacb-gantry/leveling_pads.stl",
+    "examples/sim_config/machine-xyzacb-gantry/spindle_nose.stl",
+    "examples/sim_config/machine-xyzacb-gantry/work_piece.stl",
+    "examples/sim_config/machine-xyzacb-gantry/x_bridge_casting.stl",
+    "examples/sim_config/machine-xyzacb-gantry/x_drive_housings.stl",
+    "examples/sim_config/machine-xyzacb-gantry/x_guide_blocks.stl",
+    "examples/sim_config/machine-xyzacb-gantry/x_guide_endcaps.stl",
+    "examples/sim_config/machine-xyzacb-gantry/x_guide_rails.stl",
+    "examples/sim_config/machine-xyzacb-gantry/x_saddle_plates.stl",
+    "examples/sim_config/machine-xyzacb-gantry/x_side_walls.stl",
+    "examples/sim_config/machine-xyzacb-gantry/y_carriage.stl",
+    "examples/sim_config/machine-xyzacb-gantry/y_guide_blocks.stl",
+    "examples/sim_config/machine-xyzacb-gantry/y_guide_endcaps.stl",
+    "examples/sim_config/machine-xyzacb-gantry/y_guide_rails.stl",
+    "examples/sim_config/machine-xyzacb-gantry/z_guide_blocks.stl",
+    "examples/sim_config/machine-xyzacb-gantry/z_guide_endcaps.stl",
+    "examples/sim_config/machine-xyzacb-gantry/z_guide_rails.stl",
+    "examples/sim_config/machine-xyzacb-gantry/z_ram.stl",
+    "examples/sim_config/machine-xyzacb-gantry/z_top_motor.stl",
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/a_trunnion.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/base_drives.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/base_frame.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/base_spindle.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/c_base.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/c_platter.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/c_platter_marks.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/knee.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/saddle.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzac/table.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/b_spindle.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/bed.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/c_head.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/column.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/console.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/platter.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/platter_marks.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/ram.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/table_base.stl",
+    "scripts/test_fixtures/legacy_sim/machine-xyzacb-trsrn/work_piece.stl"
+  ],
+  "previous_evidence": {
+    "r93": {
+      "files": 47,
+      "unchanged": true
+    },
+    "r94": {
+      "files": 52,
+      "unchanged": true
+    },
+    "r95": {
+      "files": 66,
+      "unchanged": true
+    },
+    "r96": {
+      "files": 91,
+      "unchanged": true
+    },
+    "r97": {
+      "files": 120,
+      "unchanged": true
+    },
+    "r98": {
+      "files": 142,
+      "unchanged": true
+    },
+    "r99": {
+      "files": 168,
+      "unchanged": true
+    },
+    "r100": {
+      "files": 199,
+      "unchanged": true
+    }
+  },
+  "machine_commands": false,
+  "live_ports_accessed": false,
+  "mock": null,
+  "browser_runs": [],
+  "priority": "nice 19",
+  "workers": 1,
+  "repo_tests": 160,
+  "own_tests": {
+    "pass": 10,
+    "fail": 3
+  },
+  "build": "PASS",
+  "certificate_controls": "separate copies of collision.ts, changed one expression each, exact diffs retained; original collision.ts unchanged",
+  "notes": "No performance conclusion from tiny analytic fixtures; haus and full Offline-Gate not rerun."
+}
