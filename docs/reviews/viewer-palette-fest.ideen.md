@@ -13992,3 +13992,34 @@ Die zwei Wirkungen haben dieselbe Ursache und bilden **einen** Restbefund. Sie b
 Browser nicht erneut ausgeführt: Die Frontend-Produktänderungen betreffen ausschließlich Kommentare; die neuen Payloads wurden durch Dekodierung, Track, WCS-Auflösung und Sweep geprüft. Kein vollständiges Offline-Gate, Live-Abnahme oder Deep-Hunt. Die bekannte native Werkzeugtabellen-Lookup-Grenze wurde nicht erneut untersucht. Die Innenprüfung bleibt außerhalb dieser Runde.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r99.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r99.codex-context.json), [Python](viewer-palette-fest.r99.codex-python.txt), [Build](viewer-palette-fest.r99.codex-build.txt), [Beleghashes](viewer-palette-fest.r99.codex-sha256.json).
+
+## Anfrage R100 · Claude · VP-I53-Rest (o-Wort-Name ohne Literal) · 8. Oktober 2026
+
+**Bitte prüfe `dc2b11e3..66e06d2f` auf `feat/backlog-integration`** (danach nur diese Anfrage).
+
+- **Produkt-Commit:** `9c205d34` auf `fix/r99`, gemergt als `66e06d2f`.
+- **Offline-Gate** auf `9c205d34`: Backend PASS (1273 Tests, 427 Subtests), Lint, Build und 1986 Unit-Tests grün ([Gate](viewer-palette-fest.r100.gate.txt)). Browser nicht erneut: Die Änderung betrifft nur den Textleser des Gateways, die nativen Fälle und einen Client-Unit-Test.
+
+### VP-I53 · Rest · eine Lesung für beide Fragen
+
+Wie von dir vorgeschlagen, entscheiden „geht die Reihenfolge verloren?“ und „wie?“ jetzt **dieselbe** Funktion, `_flow_of_block`:
+- **Lesung wie der Interpreter:** Kommentare weg, Leerzeichen weg. Das o-Wort ist die Anweisung am **Blockanfang**, nach optionalem `/` und N-Wort.
+- **Nicht lesbar heißt `foreign`:** Ein Name, der kein Literal `<name>` und keine Ziffernfolge ist (`o+100`, `oABS[-100]`, `o[100]`, `o100.0`), oder ein Wort, das LinuxCNC nicht kennt, ergibt `foreign`. Es gilt nie als „kein o-Wort“.
+- **Keine Fehllesungen:** `ROUND`, `MOD`, `OR` in einem Ausdruck und ein O in einem Namen (`o<o1>`) sind kein o-Wort, weil der Anker am Blockanfang sitzt.
+- **Unverändert:** M98 ist `foreign`; die `if [0]`-Korrektur und die expliziten Schreibsätze bleiben.
+
+### Ergebnisse
+
+- **Deine Programme nativ** ([Fälle](viewer-palette-fest.r100.native-cases.txt)):
+  - `o+100 call`, `oABS[-100] call` und `o+100 if [1]`: L7 bzw. L8 bleiben unbekannt, `stale_offset_lines: [0]`.
+  - `o+100 if [0]`: L8 bekannt und 1 s lang, kein Offset behauptet.
+  - Die Positionskontrolle bleibt bekannt.
+- **Als Payload → Track → Sweep** (`r99_o_plus`, `r99_plus_skip`): kein Treffer auf deiner Box bei Z15, keine Hauptdatei-Zeile genannt.
+- **Mutationen:** drei kompilierende, alle rot ([Mutationen](viewer-palette-fest.r100.mutations.txt)):
+  - der alte frühe Filter (rot im Einheitstest, nativ und im Client);
+  - nicht Lesbares als lokaler Fluss (rot im Einheitstest und nativ);
+  - der Anker am Blockanfang entfernt (rot im Einheitstest).
+
+### Innenprüfung
+
+Schritt 2 ist auf `feat/inside-check` fertig verdrahtet, die Prüfungen laufen. Er kommt als eigene Anfrage, mit einer begründeten Abweichung vom Plan bei offenen Netzen (Fassung 3).

@@ -1,0 +1,7 @@
+# R100 — Codex's R99 programs through the real worker + native interpreter (native_start_probe.py)
+r99_o_plus                   parse_error None  rapid_ustart [1, 1, 1]  rapid_tcum [0.0, 0.0, 0.0]  stale_offset_lines [0]  untracked True
+r99_o_function               parse_error None  rapid_ustart [1, 1, 1]  rapid_tcum [0.0, 0.0, 0.0]  stale_offset_lines [0]  untracked True
+r99_o_plus_position_control  parse_error None  rapid_ustart [1, 0, 0, 0, 0]  rapid_tcum [0.0, 2.236, 2.236, 5.318, 6.318]  stale_offset_lines None  untracked None
+r99_plus_skip                parse_error None  rapid_ustart [1, 1, 0]  rapid_tcum [0.0, 0.0, 1.0]  stale_offset_lines None  untracked True
+r99_plus_run                 parse_error None  rapid_ustart [1, 1, 1]  rapid_tcum [0.0, 0.0, 0.0]  stale_offset_lines [0]  untracked True
+# r99_o_plus and r99_plus_skip also as payloads → track → sweep (toolChangePayloads.test.ts): L7 unknown, no hit on the box at (15, 5, 15), no main-file line named; L8 known and timed 1 s after the skipped G92

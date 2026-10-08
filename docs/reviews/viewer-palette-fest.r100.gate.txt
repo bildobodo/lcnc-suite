@@ -1,0 +1,7 @@
+# R100 — offline gate on fix/r99 9c205d34: backend and frontend; the browser not rerun
+PASS backend, 5axis-model, audit-css, review-handshake
+backend: 1273 passed, 427 subtests passed in 48.25s
+frontend lint / build / unit: lint exit 0, build exit 0, unit exit 0 — Tests  1986 passed (1986)
+browser: not rerun — the change touches the gateway's text reader, the native
+probe cases and a client unit test only; the last full browser run is R98's
+gate R21 (312 + 98 + 10 + 71 = 491) on ae99ec4d.

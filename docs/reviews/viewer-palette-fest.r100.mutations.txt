@@ -1,0 +1,22 @@
+# R100 — compiling mutations of gateway_util.py, each restored from a byte copy (cmp verified)
+
+RED    MR1 the old early filter (O before a digit, <, # or [ only) (parses: True)
+       1 failed, 5 passed, 414 deselected in 0.32s
+       - test_gateway_util.py::TestPositionWriteLines::test_order_is_lost_with_o_words_numbers_with_a_call_into_another_file
+RED    MR2 an o-word it cannot read taken as local flow (parses: True)
+       1 failed, 5 passed, 414 deselected in 0.32s
+       - test_gateway_util.py::TestPositionWriteLines::test_order_is_lost_with_o_words_numbers_with_a_call_into_another_file
+RED    MR3 an O anywhere in the block read as an o-word (parses: True)
+       1 failed, 5 passed, 414 deselected in 0.32s
+       - test_gateway_util.py::TestPositionWriteLines::test_order_is_lost_with_o_words_numbers_with_a_call_into_another_file
+
+# native test test_an_o_word_whose_name_is_no_literal_is_read_as_one
+MR1 native: 1 failed, 22 deselected in 0.08s ['E           AssertionError: 0 != 1 : r99_o_plus']
+MR2 native: 1 failed, 22 deselected in 0.07s ['E           AssertionError: 0 != 1 : r99_o_plus']
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+AssertionError: expected +0 to be 1 // Object.is equality
+      Tests  1 failed | 15 skipped (16)
+
+# client: payloads regenerated under MR1 (r99_o_plus, r99_plus_skip) → toolChangePayloads.test.ts -t R99
+RED    1 failed: expected +0 to be 1 (r99_o_plus: track.ustart at L7 — L7 known again)
+restored: gateway_util.py and both payloads cmp-identical; a regeneration from the restored code is byte-identical
