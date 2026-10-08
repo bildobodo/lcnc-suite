@@ -1,9 +1,9 @@
 # Innenprüfung — ein Körper ganz in einem anderen
 
-**Plan, Fassung 2 · 8. Oktober 2026 · Kollisionsplan Schritt 2 (Operator 2026-10-06/07).**
+**Plan, Fassung 3 · 8. Oktober 2026 · Kollisionsplan Schritt 2 (Operator 2026-10-06/07).**
 - Fassung 1 ging mit R96 zur Planprüfung an Codex.
-- Fassung 2 nimmt VP96-01 bis 03 und die Antworten auf die drei Fragen auf (Antworttabelle am Ende).
-- Noch kein Code.
+- Fassung 2 nimmt VP96-01 bis 03 und die Antworten auf die drei Fragen auf (Antworttabelle am Ende); Codex hat sie in R97 angenommen.
+- Fassung 3 weicht bei offenen Netzen begründet ab (Abschnitt „Fassung 3“), erkannt beim Einbau von Schritt 2.
 
 ## Befund
 
@@ -88,6 +88,28 @@ Die frühen Antworten von `pairDistance` (`:807–823`) vertragen sich mit der I
 - Echtes Modell: die Endkappen-Stellung aus haus.ngc auf XYZAC (Payload im Scratchpad, nicht eingecheckt: Operator-Daten).
 
 **7. Kosten** erst nach der Korrektheit gemessen, am haus-Payload mit `profile`. Prüfungen fallen nur an den vier Stellen oben an; im Dauerkontakt berührender Oberflächen entfallen sie. Ganz drin kostet jede EXPLORE-Probe Komponenten × Strahl(e); die Endkappen haben 16 Komponenten.
+
+## Fassung 3 · Offene Netze werden einmal benannt, nicht bei jeder Abfrage gefragt
+
+**Abweichung von Fassung 2, Punkt 1 und 4** (beim Einbau von Schritt 2 erkannt, 8. Oktober 2026).
+
+„Unentscheidbar“ hat zwei Ursachen mit verschiedenem Charakter:
+
+- **Alle Strahlen degeneriert:** eine Eigenschaft der Stellung. Eine spätere Stellung entscheidet die Frage in aller Regel. Hier gilt Fassung 2 unverändert: kein Freiraumzertifikat, erneute Frage im EXPLORE-Takt, kein statischer Ausschluss, die Strecke bleibt dauerhaft benannt.
+- **Der umgebende Körper ist nicht geschlossen:** eine Eigenschaft des Netzes. Er hat in **keiner** Stellung ein Inneres. Eine erneute Frage entscheidet sie nie.
+
+**Warum die Abfrage-Regel für offene Netze nichts gewinnt:**
+- Das Freiraumzertifikat begrenzt Oberflächenkreuzungen: (d − Marge) / V. Es gilt unabhängig davon, ob ein Körper innen liegt.
+- Der Innen-Zustand ändert sich nur über eine Oberflächenberührung, und die findet der Sweep.
+- Ohne Zertifikat liefe jedes Paar mit einem offenen Körper dauerhaft im EXPLORE-Takt, ohne je eine Antwort zu bekommen. Auf dem 3-Achs-Standardmodell betrifft das jedes Paar mit `frame`, `x_axis` oder `y_axis`.
+
+**Regel ab Fassung 3:**
+- Ein offener Körper wird als umgebender Körper **nicht gefragt**.
+- Er wird **einmal pro Modell** in `uncertified` benannt: „frame, x_axis, y_axis: surface not closed — a part wholly inside them is not found“ (`CollisionModel.open`, `geometryNote`).
+- Seine Paare behalten die Garantie der Oberflächen.
+- Ein statischer Ausschluss entsteht für sie wie bisher nur aus der Oberflächenberührung, nie aus einer Innenlage.
+
+Die Gegenrichtung bleibt geprüft: Ein geschlossener Körper in einem offenen wird gegen den geschlossenen gefragt, falls umgekehrt.
 
 ## Reihenfolge (Codex R96)
 

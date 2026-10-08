@@ -17,7 +17,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { transformToPartFrame, type PartFrameMachine } from "./partFrame";
 import {
-  buildCollisionModel, sweepCollisions,
+  buildCollisionModel, geometryNote, sweepCollisions,
   type CollisionBody, type CollisionMachine,
 } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
@@ -327,8 +327,8 @@ describe("machine-xyzacb-trsrn envelope acceptance", () => {
 
   it("working envelope has zero self-collisions; static contacts are the designed bearings only", { timeout: 300_000 }, () => {
     const track = envelopeTrack(ENVELOPE);
-    const r = sweepCollisions(buildCollisionModel(machine, bodies), track, WCS0,
-                              { margin: 2, maxSamples: 400_000 });
+    const model = buildCollisionModel(machine, bodies);
+    const r = sweepCollisions(model, track, WCS0, { margin: 2, maxSamples: 400_000 });
 
     const staticPairs = r.staticContacts.map(c => [c.a, c.b].sort().join("/"));
     for (const p of staticPairs) {
@@ -339,7 +339,11 @@ describe("machine-xyzacb-trsrn envelope acceptance", () => {
     // A coarsened sweep is a sample, not a proof — the assertion above would
     // be vacuous under one.
     expect(r.coarsened).toBe(false);
-    expect(r.uncertified).toBeNull();
+    // certified but for what this legacy model's meshes cannot promise: two
+    // surfaces are not closed, so a part wholly inside them is not found
+    // (collision-inside.plan.md Fassung 3) — named once for the model
+    expect(model.open).toEqual(["column", "b_spindle"]);
+    expect(r.uncertified).toBe(geometryNote(model));
   });
 
   it("stays certified and inside budget through TCP and plane segments", { timeout: 300_000 }, () => {
@@ -365,9 +369,9 @@ describe("machine-xyzacb-trsrn envelope acceptance", () => {
       [200, -300, -400, 40, 30, 60],
       [250, -350, -450, 40, 30, 60],
     ], [0, 0, 1, 1, 1, 2, 2]);
-    const r = sweepCollisions(buildCollisionModel(machine, bodies), track, WCS0,
-                              { margin: 2, maxSamples: 400_000 });
-    expect(r.uncertified).toBeNull();
+    const model = buildCollisionModel(machine, bodies);
+    const r = sweepCollisions(model, track, WCS0, { margin: 2, maxSamples: 400_000 });
+    expect(r.uncertified).toBe(geometryNote(model));   // the kins route resolved: nothing but the model's open surfaces
     expect(r.coarsened).toBe(false);
     expect(r.pairCount).toBeGreaterThan(0);
   });
