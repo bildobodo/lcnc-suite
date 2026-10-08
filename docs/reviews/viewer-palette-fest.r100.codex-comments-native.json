@@ -1,0 +1,186 @@
+{
+  "r100_trailing_comment": {
+    "scan": [
+      {
+        "2": "explicit"
+      },
+      "foreign"
+    ],
+    "stale_offset_lines": [
+      0
+    ],
+    "stale_offset_untracked": true,
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        40.0
+      ],
+      [
+        10.0,
+        5.0,
+        15.0
+      ],
+      [
+        20.0,
+        5.0,
+        15.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      6,
+      7
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "feed_tcum": [],
+    "feed_lines": [],
+    "feed_brk": null,
+    "feed_ustart": null,
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "741100449f3f2acd085895630f3d4deebf109a9786814a93611829ca09b4419c"
+  },
+  "r100_commented_call": {
+    "scan": [
+      {
+        "2": "explicit"
+      },
+      "ordered"
+    ],
+    "stale_offset_lines": null,
+    "stale_offset_untracked": null,
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        40.0
+      ],
+      [
+        10.0,
+        5.0,
+        15.0
+      ],
+      [
+        20.0,
+        5.0,
+        15.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      6,
+      7
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0,
+      1.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "feed_tcum": [],
+    "feed_lines": [],
+    "feed_brk": null,
+    "feed_ustart": null,
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "de741b60f32d242c952b875b51b411b0aeaa6c64ee772ed6d70ce46e44cd8473"
+  }
+}

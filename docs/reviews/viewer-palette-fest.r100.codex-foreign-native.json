@@ -1,0 +1,297 @@
+{
+  "r98_foreign_collision_plain": {
+    "scan": [
+      {
+        "2": "explicit"
+      },
+      "foreign"
+    ],
+    "stale_offset_lines": [
+      0
+    ],
+    "stale_offset_untracked": true,
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        40.0
+      ],
+      [
+        10.0,
+        5.0,
+        15.0
+      ],
+      [
+        20.0,
+        5.0,
+        15.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      6,
+      7
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "feed_tcum": [],
+    "feed_lines": [],
+    "feed_brk": null,
+    "feed_ustart": null,
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "eb4b11d0fdde63ccbe5ad1fc7e4bcf63f09a7e355e7ec63ac624fc3bb6a7f49b"
+  },
+  "r98_foreign_collision_spaced": {
+    "scan": [
+      {
+        "2": "explicit"
+      },
+      "foreign"
+    ],
+    "stale_offset_lines": [
+      0
+    ],
+    "stale_offset_untracked": true,
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        40.0
+      ],
+      [
+        10.0,
+        5.0,
+        15.0
+      ],
+      [
+        20.0,
+        5.0,
+        15.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      6,
+      7
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "feed_tcum": [],
+    "feed_lines": [],
+    "feed_brk": null,
+    "feed_ustart": null,
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "a2a573fde295d1c5bde2812d4ee8f19d6edb4012cfcae90c223e7f4e961e803d"
+  },
+  "r98_foreign_collision_position_control": {
+    "scan": [
+      {
+        "2": "explicit"
+      },
+      "foreign"
+    ],
+    "stale_offset_lines": null,
+    "stale_offset_untracked": null,
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        40.0
+      ],
+      [
+        0.0,
+        20.0,
+        30.0
+      ],
+      [
+        0.0,
+        20.0,
+        40.0
+      ],
+      [
+        10.0,
+        5.0,
+        15.0
+      ],
+      [
+        20.0,
+        5.0,
+        15.0
+      ]
+    ],
+    "tlo_events": null,
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4,
+      6,
+      6,
+      7
+    ],
+    "rapid_seq": [
+      2,
+      4,
+      5,
+      6,
+      8
+    ],
+    "rapid_tcum": [
+      0.0,
+      2.2360680103302,
+      2.2360680103302,
+      5.318274974822998,
+      6.318274974822998
+    ],
+    "rapid_brk": [
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "rapid_ustart": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "feed_seq": [],
+    "feed_tcum": [],
+    "feed_lines": [],
+    "feed_brk": null,
+    "feed_ustart": null,
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "f5dd66ec510e0dc534fc2e78a30fe8a25d74763202e8d38f698260b1c8708ced"
+  }
+}

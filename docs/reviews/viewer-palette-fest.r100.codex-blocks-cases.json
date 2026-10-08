@@ -1,0 +1,133 @@
+{
+  "r100_n_literal": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nN 5 0 o<touch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r100_delete_n_literal": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\n/N0050 o<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r100_n_computed": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nN50 oABS[-100] call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ],
+  "r100_delete_n_computed": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\n/N0050 o+100 call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"
+      }
+    }
+  ],
+  "r100_comment_name": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no<to(comment)uch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r100_leading_comment": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\n(setup) o<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r100_middle_comment": [
+    "G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\nN50 (setup) o<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r100_inline_write": [
+    "N10 O100 sub\nN20 G92 Z40\nN30 O100 endsub\nN40 G21 G90\nN50 G0 X0 Y0 Z40\nN60 M6\nN70 O100 call\nN80 G0 X10 Y5 Z15\nN90 G0 X20\nN100 M2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r100_inline_explicit": [
+    "N10 O100 sub\nN20 G10 L2 P1 Z30\nN30 O100 endsub\nN40 G21 G90\nN50 G0 X0 Y0 Z40\nN60 M6\nN70 O100 call\nN80 G0 X10 Y5 Z15\nN90 G0 X20\nN100 M2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r100_delete_n_skip": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\n/N40 O100 if [0]\nG92 Z40\n/N60 O100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ]
+}
