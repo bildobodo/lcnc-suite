@@ -295,6 +295,28 @@ CASES.update({
     "m600_no_prepos": _m600({3108: 1}),
     # T2 is 6 mm across: 50 % of it, towards X+
     "m600_diameter": _m600({3111: 5, 3112: 50, 3013: 1}),
+    # the gateway's word that the toolsetter values are unknown: nothing from
+    # the routine's start on
+    "m600_basis_unknown": _m600(ctx={"toolsetter_unpredictable": "toolsetter_unknown"}),
+    # a move past Z max (50) after the call: a violation where the measurement
+    # is predicted, no verdict where it is not
+    "m600_known_then_high": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60 Z200\nM2\n"),
+    "m600_unknown_then_high": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60 Z200\nM2\n",
+                                    tools=[(1, 10), (2, 0)]),
+    # a G92 after the stop: every axis is unknown already, for the probe's
+    # reason — no offset line of its own
+    "m600_unknown_then_g92": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG92 Z5\nG0 X70\nM2\n",
+                                   tools=[(1, 10), (2, 0)]),
+    # the canon's pairing rule on a synthetic call: the marker pairs with the
+    # FIRST G43 of the call only, and one left open dies with the call
+    "toollen_pairing": ("G21 G90\nG0 X0 Y0 Z0\no<tl_pair> call\nG43 H2\nG0 X5\no<tl_open> call\nG43 H1\nG0 X6\nM2\n",
+                        "mm", 0.0, (490,), {"subs": {
+                            "tl_pair.ngc": "o<tl_pair> sub\n(WEBUI_SUB=tl_pair)\n(WEBUI_TOOLLEN_TABLE)\n"
+                                           "T2 M6\nG43 H2\nG0 X1\nG43 H1\nG0 X2\n(WEBUI_SUB_END)\no<tl_pair> endsub\nM2\n",
+                            "tl_open.ngc": "o<tl_open> sub\n(WEBUI_SUB=tl_open)\n(WEBUI_TOOLLEN_TABLE)\n"
+                                           "G0 X3\n(WEBUI_SUB_END)\no<tl_open> endsub\nM2\n"}}),
+    # a G43 after the call is no table-length claim of the routine's
+    "m600_g43_after": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG43 H2\nG0 X60 Y60\nM2\n"),
     "m600_t0": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT0 M600\nG0 X60 Y60\nM2\n"),
     # Codex VP103-01: the program reads the probe result after the call, in
     # G54 Z10 and G92 Z−5; earlier results must not count
@@ -435,6 +457,7 @@ if len(sys.argv) > 2:
         f.write(__import__("msgspec").msgpack.encode(out))
 print(json.dumps({
     "mmap_unchanged": _mmap_unchanged,
+    "probe_unpredicted": out.get("probe_unpredicted"), "toollen_table": out.get("toollen_table"),
     "feed_lines": u("feed_lines", "<u4"), "tool_change_lines": out.get("tool_change_lines"),
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
     "tlo_events": out.get("tlo_events"), "violations": out.get("violations"),

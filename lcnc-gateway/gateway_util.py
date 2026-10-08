@@ -3975,6 +3975,31 @@ _SUB_MARKER = re.compile(r"^\s*WEBUI_SUB\s*=\s*([^)]+?)\s*$", re.IGNORECASE)
 _SUB_END_MARKER = re.compile(r"^\s*WEBUI_SUB_END\s*$", re.IGNORECASE)
 
 
+# M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R104):
+# the bundled tool_touch_off.ngc's preview branch says where it stops
+# predicting, `(WEBUI_PROBE_UNPREDICTED=<reason>)` at the probe's start, and
+# that the length its G10 / G43 apply is the table's, `(WEBUI_TOOLLEN_TABLE)`.
+# Both only in the preview (#<_task> EQ 0), on the comment channel like the
+# sub-span markers. The reasons the routine writes, and the gateway's own
+# for a toolsetter whose values the preview cannot know.
+PROBE_UNPREDICTED_REASONS = ("length", "setter_z", "travel", "feed", "retract", "slow_limit",
+                             "toolsetter_unknown", "toolsetter_not_set_up")
+_PROBE_UNPREDICTED_MARKER = re.compile(r"^\s*WEBUI_PROBE_UNPREDICTED\s*=\s*([a-z_]+)\s*$", re.IGNORECASE)
+_TOOLLEN_TABLE_MARKER = re.compile(r"^\s*WEBUI_TOOLLEN_TABLE\s*$", re.IGNORECASE)
+
+
+def parse_m600_marker(text):
+    """Comment text -> ("unpredicted", reason) / ("table", None) / None.
+    A reason the list does not know stays a reason (lower case): a newer
+    routine's word is still a stop, never a prediction. Pure."""
+    m = _PROBE_UNPREDICTED_MARKER.match(text or "")
+    if m:
+        return ("unpredicted", m.group(1).lower())
+    if _TOOLLEN_TABLE_MARKER.match(text or ""):
+        return ("table", None)
+    return None
+
+
 def classify_motion_lines(source_text):
     """Per-line motion classification of the MAIN program (W2 P6).
 

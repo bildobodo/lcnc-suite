@@ -11,7 +11,7 @@ from typing import Dict, List
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
 
 from gateway_util import (
-    parse_kinstype_marker, parse_twpframe_marker, parse_sub_marker,
+    parse_kinstype_marker, parse_twpframe_marker, parse_sub_marker, parse_m600_marker,
 )
 
 
@@ -92,6 +92,25 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     _reg_unknown = {}
     _pending_offset_lines = ()
     _block_start = None
+    # M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R104):
+    # the bundled tool_touch_off.ngc runs in the preview. Where its probe
+    # cannot be predicted it stops at the probe's start with
+    # `(WEBUI_PROBE_UNPREDICTED=<reason>)`: the machine's probe may trip
+    # anywhere on its travel, the length it measures and the offset the
+    # routine applies are unknown, so from there EVERY axis is unknown to the
+    # program's end — `_frame_unknown`, which no move re-establishes (the
+    # state table's rows from the probe's start on). The worker says so
+    # (`toolsetter_unpredictable`) where the toolsetter's values are unknown:
+    # then from the routine's start. `probe_events` [(seq, tool, reason)].
+    # `(WEBUI_TOOLLEN_TABLE)` before the routine's G10 / G43 says the length
+    # they apply is the TABLE's (assumed): paired with the next G43 of the
+    # same call only — any sub marker before it (the call's end) discards it.
+    # `toollen_events` [(seq, tool, zo)].
+    probe_events = ()
+    toollen_events = ()
+    toolsetter_unpredictable = None
+    _probe_unknown = False
+    _toollen_open = False
     _CYCLES = frozenset((730, 810, 820, 830, 840, 850, 860, 870, 880, 890))
     _PLANE_NORMAL = {170: 2, 180: 1, 190: 0, 171: 8, 181: 7, 191: 6}
 
@@ -348,6 +367,27 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         sub = parse_sub_marker(text)
         if sub is not None:
             self.sub_events.append((self.seq, sub[1], sub[2]))
+            self._toollen_open = False
+            if sub[0] == "start" and sub[1] == "tool_touch_off" and self.toolsetter_unpredictable:
+                self._mark_probe_unknown(self.toolsetter_unpredictable)
+            return
+        mark = parse_m600_marker(text)
+        if mark is not None and self._program_line():
+            if mark[0] == "unpredicted":
+                self._mark_probe_unknown(mark[1])
+            elif not self._probe_unknown:
+                self._toollen_open = True
+
+    def _mark_probe_unknown(self, reason):
+        """From here every axis is unknown to the program's end."""
+        self.probe_events = self.probe_events + ((self.seq, self.cur_tool, reason),)
+        self._toollen_open = False
+        if not self._probe_unknown:
+            self._probe_unknown = True
+            every = frozenset(range(9))
+            self._frame_unknown = every
+            self.stale = every
+            self._pending_offset_lines = ()
     def message(self, _): pass
     def check_abort(self): pass
     def user_defined_function(self, i, p, q): pass
@@ -393,6 +433,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if self._program_line():
             self.tlo_events.append((self.seq, xo, yo, zo, self.cur_tool))
             self.offset_events.append(self.seq)
+            if self._toollen_open:
+                self._toollen_open = False
+                self.toollen_events = self.toollen_events + ((self.seq, self.cur_tool, zo),)
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at
@@ -422,7 +465,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def _position_write(self, line, target, axes):
         """A value written from the position while `axes` are stale: the
         active frame's (or every fixture's) axes stay stale to the end; an
-        inactive fixture's wait for the switch to it."""
+        inactive fixture's wait for the switch to it. After an unpredicted
+        probe every axis already is, for its own reason (probe_events)."""
+        if self._probe_unknown:
+            return
         idx = getattr(self, "g5x_index", None)
         if target in ("all", "active") or target == idx:
             self._frame_unknown = self._frame_unknown | axes

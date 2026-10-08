@@ -60,6 +60,11 @@ class TestPredictedMeasurement(unittest.TestCase):
         self.assertEqual(path(r)[-1][2], (60, 60, -100))
         # one tool change, to T2
         self.assertEqual([t for _, t in r["tool_change_lines"]], [2])
+        # the length the routine's G43 applied is the table's — said with that
+        # G43's own row; nothing stopped
+        g43 = [row for row in r["tlo_events"] if row[3] != 0]
+        self.assertEqual(r["toollen_table"], [[g43[-1][0], 2, 80.0]])
+        self.assertIsNone(r["probe_unpredicted"])
 
     def test_the_probe_moves_take_the_probe_feeds(self):
         r = probe("m600_known")
@@ -122,6 +127,33 @@ class TestPredictedMeasurement(unittest.TestCase):
         self.assertEqual([t for _, t in r["tool_change_lines"]], [0])
         self.assertEqual(feeds_at(r, 10, 10), [])
         self.assertEqual({row[4] for row in r["tlo_events"]}, {0})
+        self.assertIsNone(r["toollen_table"], "no table-length claim without the routine's marker")
+        self.assertIsNone(r["probe_unpredicted"])
+
+    def test_only_the_routines_own_g43_carries_the_table_length(self):
+        # the program's G43 H2 after the call applies 80 too — its own, no claim
+        r = probe("m600_g43_after")
+        self._clean(r)
+        g43 = [row for row in r["tlo_events"] if row[3] != 0]
+        self.assertEqual(len(g43), 2)
+        self.assertEqual(r["toollen_table"], [[g43[0][0], 2, 80.0]])
+
+    def test_the_limits_after_a_predicted_measurement_are_checked(self):
+        r = probe("m600_known_then_high")
+        self.assertEqual([(v["line"], v["axis"], v["value"]) for v in r["violations"]], [(4, "Z", 280.0)])
+
+
+class TestTableLengthPairing(unittest.TestCase):
+
+    def test_the_marker_pairs_with_the_first_g43_of_its_call_only(self):
+        # tl_pair: the marker, T2 M6, G43 H2 (paired), G43 H1 (not); tl_open:
+        # a marker its call never pairs — the main file's G43 H1 after it is
+        # no claim either
+        r = probe("toollen_pairing")
+        self.assertIsNone(r["parse_error"])
+        g43 = [row for row in r["tlo_events"] if row[3] != 0]
+        self.assertEqual([(row[3], row[4]) for row in g43], [(80.0, 2), (10.0, 2), (80.0, 2), (10.0, 2)])
+        self.assertEqual(r["toollen_table"], [[g43[0][0], 2, 80.0]])
 
 
 class TestUnpredictedMeasurement(unittest.TestCase):
@@ -131,17 +163,17 @@ class TestUnpredictedMeasurement(unittest.TestCase):
     the start point (everything after it is unknown: the canon's job)."""
 
     CASES = (
-        ("m600_length_unknown", -30),   # no table length: the start is −180 + 150
-        ("m600_setter_above", 95),      # #3102 = 10 (the start itself is past Z max 50)
-        ("m600_trip_outside", -95),     # Codex R102: a 1 mm travel from −95
-        ("m600_clamp_out", -95),        # Z limit −101: the travel clamped to 4 mm
-        ("m600_slow_limit", -95),       # Z limit −102.5: the slow probe would end at −103
-        ("m600_retract_zero", -95),
-        ("m600_feed_zero", -95),
+        ("m600_length_unknown", -30, "length"),     # no table length: the start is −180 + 150
+        ("m600_setter_above", 95, "setter_z"),      # #3102 = 10 (the start itself is past Z max 50)
+        ("m600_trip_outside", -95, "travel"),       # Codex R102: a 1 mm travel from −95
+        ("m600_clamp_out", -95, "travel"),          # Z limit −101: the travel clamped to 4 mm
+        ("m600_slow_limit", -95, "slow_limit"),     # Z limit −102.5: the slow probe would end at −103
+        ("m600_retract_zero", -95, "retract"),
+        ("m600_feed_zero", -95, "feed"),
     )
 
     def test_the_preview_stops_at_the_probe_start(self):
-        for case, start in self.CASES:
+        for case, start, reason in self.CASES:
             with self.subTest(case=case):
                 r = probe(case)
                 self.assertIsNone(r["parse_error"])
@@ -150,6 +182,39 @@ class TestUnpredictedMeasurement(unittest.TestCase):
                 self.assertEqual([row for row in tool_rows(r, 2) if row[3] != 0], [], "no G43 with a length")
                 self.assertEqual(path(r)[-1][2], (60, 60, start))
                 self.assertEqual([t for _, t in r["tool_change_lines"]], [2])
+                self.assertIsNone(r["toollen_table"])
+                # the stop is at the probe start's own point; every point after
+                # it is an unknown-start endpoint (rapid stream, zero length)
+                ev = path(r)
+                start_seq = next(q for q, k, p, _ in ev if k == "F" and p == (10, 10, start))
+                self.assertEqual(r["probe_unpredicted"], [[start_seq, 2, reason]])
+                ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
+                after = [(q, k) for q, k, _, _ in ev if q > start_seq]
+                self.assertTrue(after)
+                self.assertEqual({(k, ustart.get(q)) for q, k in after}, {("R", 1)})
+
+    def test_nothing_is_limit_checked_after_the_stop(self):
+        # the same Z200 move as test_the_limits_after_a_predicted_measurement_are_checked
+        r = probe("m600_unknown_then_high")
+        self.assertEqual(r["probe_unpredicted"][0][2], "length")
+        self.assertEqual(r["violations"], [])
+        self.assertEqual(r["rapid_outside"][-1], 0)
+
+    def test_an_offset_written_after_the_stop_is_no_cause_of_its_own(self):
+        r = probe("m600_unknown_then_g92")
+        self.assertEqual(r["probe_unpredicted"][0][2], "length")
+        self.assertIsNone(r["stale_offset_lines"])
+
+    def test_unknown_toolsetter_values_stop_at_the_routine_start(self):
+        # the gateway's word (package 1): the values the routine would read are
+        # unknown — the routine runs, but every point of it is unknown
+        r = probe("m600_basis_unknown")
+        self.assertIsNone(r["parse_error"])
+        ev = path(r)
+        self.assertEqual(r["probe_unpredicted"], [[ev[0][0], -1, "toolsetter_unknown"]])
+        ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
+        self.assertEqual({(k, ustart.get(q)) for q, k, _, _ in ev[1:]}, {("R", 1)})
+        self.assertIsNone(r["toollen_table"])
 
     def test_a_start_past_the_z_limit_is_a_limit_violation(self):
         r = probe("m600_setter_above")

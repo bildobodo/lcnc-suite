@@ -220,6 +220,10 @@ def parse(ctx: dict) -> dict:
         print("__PIN_UNSUPPORTED__\trandom toolchanger", file=sys.stderr, flush=True)
         sys.exit(PIN_UNSUPPORTED_EXIT)
     canon = PreviewCanon(s, random_tc)
+    # M600 (docs/reviews/m600-preview.plan.md): the gateway's word that the
+    # toolsetter values the routine would read are not known — then nothing
+    # is predicted from the routine's start (gcode_canon.probe_events).
+    canon.toolsetter_unpredictable = ctx.get("toolsetter_unpredictable") or None
     # The controller's own motion at an M6 (gcode_canon.tool_change_moves):
     # only a tool change position makes the move after it start where no
     # parse can know — on the axes it names (X Y Z [A B C [U V W]]).
@@ -516,9 +520,11 @@ def parse(ctx: dict) -> dict:
         # seqs (inserted relabel vertices at odd seqs resolve consistently).
         canon.sub_events = [(_ev[0] * 2,) + tuple(_ev[1:])
                             for _ev in canon.sub_events]
-        # TLO/tool events (schema 8) re-key the same way.
+        # TLO/tool events (schema 8) re-key the same way, and the M600 ones.
         canon.tlo_events = [(_ev[0] * 2,) + tuple(_ev[1:])
                             for _ev in canon.tlo_events]
+        canon.probe_events = tuple((_ev[0] * 2,) + tuple(_ev[1:]) for _ev in canon.probe_events)
+        canon.toollen_events = tuple((_ev[0] * 2,) + tuple(_ev[1:]) for _ev in canon.toollen_events)
         if relabel_seqs or flips_unresolved or flips_carry_spans:
             print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
@@ -541,6 +547,16 @@ def parse(ctx: dict) -> dict:
     _any_world = bool(feed_world and any(feed_world)) or bool(rapid_world and any(rapid_world))
     feed_out = [0] * len(canon.feed)
     rapid_out = [0] * len(canon.rapid)
+    # After an unpredicted probe (or a routine whose toolsetter values are
+    # unknown) every position is unknown in the machine frame — the offset
+    # the routine applies is what the probe measures: no limit verdict from
+    # there on, neither a record nor a flag (`probe_unpredicted` says so).
+    _limit_cut = canon.probe_events[0][0] if canon.probe_events else None
+    if _limit_cut is not None:
+        _cut_f = {i for i, t in enumerate(canon.feed) if t[5] > _limit_cut}
+        _cut_r = {i for i, t in enumerate(canon.rapid) if t[4] > _limit_cut}
+    else:
+        _cut_f = _cut_r = frozenset()
     if axis_limits:
         def _identity_segs():
             # Unknown-start segments yield a PARTIAL start (W3 P1 +
@@ -551,11 +567,11 @@ def parse(ctx: dict) -> dict:
             # Relabel connectors (relabel_seqs → wire `brk`) are skipped
             # outright: the machine does not move at a kins/epoch flip.
             for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
-                if not (feed_world and feed_world[_i]):
+                if not (feed_world and feed_world[_i]) and _i not in _cut_f:
                     yield _lineno, _start, _end, _tlo
             for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
-                if _seq in relabel_seqs:
-                    continue  # kins/epoch RELABEL connector — a coordinate re-expression, not motion
+                if _seq in relabel_seqs or _i in _cut_r:
+                    continue  # a kins/epoch RELABEL connector (a re-expression, not motion), or past the cut
                 if not (rapid_world and rapid_world[_i]):
                     yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
         violations, violations_total = check_limit_violations(
@@ -564,9 +580,9 @@ def parse(ctx: dict) -> dict:
         # the viewer paints — same segments, same window, no attribution —
         # aligned 1:1 with canon.feed / canon.rapid; reduced onto the kept
         # vertices after decimation below. Relabel connectors stay 0.
-        _fi_idx = [i for i in range(len(canon.feed)) if not (feed_world and feed_world[i])]
+        _fi_idx = [i for i in range(len(canon.feed)) if not (feed_world and feed_world[i]) and i not in _cut_f]
         _ri_idx = [i for i, t in enumerate(canon.rapid)
-                   if t[4] not in relabel_seqs and not (rapid_world and rapid_world[i])]
+                   if t[4] not in relabel_seqs and not (rapid_world and rapid_world[i]) and i not in _cut_r]
         _f_flags = segment_outside_flags(
             [(canon.feed[i][0], canon.feed[i][1], canon.feed[i][2], canon.feed[i][4]) for i in _fi_idx],
             axis_limits, unit_scale)
@@ -589,12 +605,12 @@ def parse(ctx: dict) -> dict:
 
             def _trsrn_segs():
                 for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
-                    if feed_world and feed_world[_i]:
+                    if feed_world and feed_world[_i] and _i not in _cut_f:
                         _fi = _f_frame[_i]
                         yield (_lineno, _start, _end, _tlo, feed_types[_i],
                                _frames[_fi] if _fi is not None else None)
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
-                    if _seq in relabel_seqs:
+                    if _seq in relabel_seqs or _i in _cut_r:
                         continue  # relabel connector, not motion (see _identity_segs)
                     if rapid_world and rapid_world[_i]:
                         _fi = _r_frame[_i]
@@ -603,9 +619,9 @@ def parse(ctx: dict) -> dict:
                                _frames[_fi] if _fi is not None else None)
             w_records, w_total, world_unchecked = check_limit_violations_trsrn(
                 _trsrn_segs(), axis_limits, kins_cfg, unit_scale)
-            _tf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i]]
+            _tf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i] and i not in _cut_f]
             _tr_idx = [i for i, t in enumerate(canon.rapid)
-                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i]]
+                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i] and i not in _cut_r]
             _t_flags = trsrn_segment_outside_flags(list(_trsrn_segs()), axis_limits, kins_cfg, unit_scale)
             for k, i in enumerate(_tf_idx + _tr_idx):
                 if k < len(_t_flags) and _t_flags[k]:
@@ -622,18 +638,18 @@ def parse(ctx: dict) -> dict:
             # nonlinear; endpoint checks miss the phase-0 -22.36 class).
             def _world_segs():
                 for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
-                    if feed_world and feed_world[_i]:
+                    if feed_world and feed_world[_i] and _i not in _cut_f:
                         yield _lineno, _start, _end, _tlo
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
-                    if _seq in relabel_seqs:
+                    if _seq in relabel_seqs or _i in _cut_r:
                         continue  # relabel connector, not motion (see _identity_segs)
                     if rapid_world and rapid_world[_i]:
                         yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
             w_records, w_total = check_limit_violations_world(
                 _world_segs(), axis_limits, kins_cfg, unit_scale)
-            _wf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i]]
+            _wf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i] and i not in _cut_f]
             _wr_idx = [i for i, t in enumerate(canon.rapid)
-                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i]]
+                       if t[4] not in relabel_seqs and rapid_world and rapid_world[i] and i not in _cut_r]
             _w_flags = world_segment_outside_flags(list(_world_segs()), axis_limits, kins_cfg, unit_scale)
             if _w_flags is not None:
                 for k, i in enumerate(_wf_idx + _wr_idx):
@@ -1291,6 +1307,15 @@ def parse(ctx: dict) -> dict:
               "feed_tcum": feed_tcum_bin, "rapid_tcum": rapid_tcum_bin,
               "rapid_rate": rapid_vel, "rot_rapid_rate": rot_rapid_vel,
               "tool_change_lines": [[int(l), int(t)] for l, t in canon.tool_change_events],
+              # M600 (docs/reviews/m600-preview.plan.md): where the routine
+              # stopped predicting — [seq, tool, reason]; from the first one on
+              # every point is an unknown-start endpoint and nothing is
+              # limit-checked — and where its G43 applied the TABLE's length
+              # (assumed, never measured) — [seq, tool, length].
+              **({"probe_unpredicted": [[int(q), int(t), str(r)] for q, t, r in canon.probe_events]}
+                 if canon.probe_events else {}),
+              **({"toollen_table": [[int(q), int(t), float(z) * unit_scale] for q, t, z in canon.toollen_events]}
+                 if canon.toollen_events else {}),
               # Lines that wrote an offset or a stored position while the
               # position was unknown after a tool change (Codex R95 VP-I53):
               # the axes stay unknown to the end; the check's note names it.

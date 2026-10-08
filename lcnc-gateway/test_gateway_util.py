@@ -8,6 +8,7 @@ against the real canon skip when the LinuxCNC rs274 package is unavailable.
 
 import math
 import os
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -1997,6 +1998,28 @@ class TestLineTrustMachinery(unittest.TestCase):
                          ("end", None, None))
         self.assertIsNone(gateway_util.parse_sub_marker("WEBUI_KINSTYPE=2"))
         self.assertIsNone(gateway_util.parse_sub_marker("plain comment"))
+
+    def test_parse_m600_marker(self):
+        # the bundled tool_touch_off.ngc's preview markers (M600 in the preview)
+        p = gateway_util.parse_m600_marker
+        for reason in ("length", "setter_z", "travel", "feed", "retract", "slow_limit"):
+            self.assertEqual(p(f"WEBUI_PROBE_UNPREDICTED={reason}"), ("unpredicted", reason))
+        self.assertEqual(p(" webui_probe_unpredicted = Travel "), ("unpredicted", "travel"))
+        # a word the list does not know is still a stop
+        self.assertEqual(p("WEBUI_PROBE_UNPREDICTED=newer_reason"), ("unpredicted", "newer_reason"))
+        self.assertEqual(p("WEBUI_TOOLLEN_TABLE"), ("table", None))
+        self.assertEqual(p(" WEBUI_TOOLLEN_TABLE "), ("table", None))
+        self.assertIsNone(p("WEBUI_PROBE_UNPREDICTED="))
+        self.assertIsNone(p("WEBUI_TOOLLEN_TABLE=5"))
+        self.assertIsNone(p("WEBUI_SUB=tool_touch_off"))
+        self.assertIsNone(p("Slow Probe Rule, if Slow Probe FR is set to 0, Slow Probe is Bypassed"))
+        # every reason the routine writes is one the list names
+        routine = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "subroutines",
+                               "tool_length_probe", "tool_touch_off.ngc")
+        with open(routine, encoding="utf-8") as f:
+            written = set(re.findall(r"WEBUI_PROBE_UNPREDICTED=([a-z_]+)", f.read()))
+        self.assertTrue(written)
+        self.assertLessEqual(written, set(gateway_util.PROBE_UNPREDICTED_REASONS))
 
 
 class TestSegmentOutsideFlags(unittest.TestCase):
