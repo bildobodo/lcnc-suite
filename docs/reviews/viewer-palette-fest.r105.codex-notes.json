@@ -1,0 +1,42 @@
+{
+  "stops": [
+    [
+      42,
+      2,
+      "travel"
+    ]
+  ],
+  "lengths": [
+    [
+      22,
+      2,
+      80
+    ]
+  ],
+  "rows": [
+    {
+      "key": "T3",
+      "kind": "tool",
+      "line": 3,
+      "lineLabel": "L3",
+      "cum": 1,
+      "cumEnd": 1,
+      "what": "Tool change → T2",
+      "note": "measurement not predicted: T2's table length does not trip within the probe's travel",
+      "rapid": null,
+      "at": "00:01"
+    },
+    {
+      "key": "T6",
+      "kind": "tool",
+      "line": 6,
+      "lineLabel": "L6",
+      "cum": 2,
+      "cumEnd": 2,
+      "what": "Tool change → T2",
+      "note": "measurement not predicted: T2's table length does not trip within the probe's travel",
+      "rapid": null,
+      "at": "00:02"
+    }
+  ]
+}

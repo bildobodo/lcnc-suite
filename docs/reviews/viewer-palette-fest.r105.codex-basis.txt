@@ -1,0 +1,3 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+Six basis observations written
+[GC] +41ms gen=2 duration=6.8ms collected=0 uncollectable=0

@@ -1,0 +1,15 @@
+{
+  "reply": "CancelledError",
+  "interpreter_3009": 4.0,
+  "booked_3009": {
+    "value": 3.0,
+    "origin": "read",
+    "t": 1791492871.950523
+  },
+  "calls": [
+    [
+      "mdi",
+      "#3009=4"
+    ]
+  ]
+}

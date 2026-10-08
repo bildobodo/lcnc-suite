@@ -14521,3 +14521,81 @@ Die installierte Sim-Konfiguration verlinkt `subroutines` auf den Live-Baum. Ein
 - Die Restprüfung im Lauf bleibt ein eigenes Folgepaket.
 - **Offen beim Operator:** ein M600-Programm im Sim-Parity-Korpus live. Die Sim läuft nicht.
 - Die Vorschau-Goldens ändern sich für M600-Programme bei der nächsten Suite-Pause.
+
+## Review R105 · Codex · M600-Umsetzung · 8. Oktober 2026
+
+**Ergebnis: `findings`. Fünf Befunde offen (VP-I59–VP-I63). Die Umsetzung ist noch nicht abgenommen.**
+
+Geprüft: `9e6c9cb5..461c39d5`, Anfrage/Archiv `644db8e3`, gegen den in R104 angenommenen Plan Fassung 3. **458 gezielte Backend-Tests, 211 Client-Tests und Produktionsbuild grün.** Eigene native und schichtübergreifende Gegenproben zeigen dennoch die folgenden Lücken. Kein Produktcode geändert; keine Live-Ports oder Maschinenbefehle verwendet.
+
+### VP-I59 · P1 · Gültige Parameterzuweisungen behalten eine veraltete Bestätigung
+
+`gateway_util.py:4680–4697`, insbesondere die beiden regulären Ausdrücke, erkennen nur einen Teil gültiger Zuweisungen. `toolsetter_assigned_keys` liefert für `##1=4` nach `#1=3009`, `#3 0 0 9=4`, `#+3009=4` und `#3009.0=4` jeweils **die leere Menge**. Danach lässt `_ts_mark_assumed` die bisherige Basis unverändert `confirmed`.
+
+**Nativ belegt:** Alle vier Programme sind gültig und fahren anschließend mit `G0 X#3009` nach **X4**. Die Buchführungssonde startet dagegen mit #3009=3/`read`; diese Bestätigung bleibt bei allen vier Schreibweisen erhalten. Die gewöhnliche Schreibweise `#3009=4` und der bereits erkannte Ausdruck `#[3000+9]=4` invalidieren als Kontrollen korrekt. Ein späterer M600-Parse patcht dadurch einen veralteten Wert als bestätigt ein; auch das automatische Rücklesen sieht keinen Anlass zur Korrektur.
+
+**Erforderlich:** Zuweisungsziele nach der NC-Zahl-/Whitespace-Semantik lesen. Bei indirekten oder nicht eindeutig verstandenen Zielen den relevanten Parametersatz konservativ invalidieren. Aus einer nicht erkannten Zuweisung darf kein Nachweis „schreibt nichts“ folgen. Das ist der konkrete Umsetzungshinweis 2 aus R104.
+
+[Native Programme](viewer-palette-fest.r105.codex-native-cases.json), [native Ergebnisse](viewer-palette-fest.r105.codex-native.json), [Buchführungssonde](viewer-palette-fest.r105.codex-basis.py), [Ergebnisse](viewer-palette-fest.r105.codex-basis.json). Ausdrücke als Zahlenwerte sind auch Teil der [LinuxCNC-Syntax](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html).
+
+### VP-I60 · P1 · Die Buchführung verliert Schreibzugriffe bei einem Startpfad und bei Abbruch
+
+Zwei unabhängig reproduzierte Fälle desselben Übernahmevertrags:
+
+- **Direkter `auto_run` ohne `pre_tool`, `safe_z` oder Entry:** `gateway.py:4802–4804` sendet AUTO_RUN, ruft danach aber keine Invalidierung auf. Im realen Handler mit Fake-Binding startet das an Textfingerabdruck/Version gebundene Programm ab Zeile 2; sein folgender Satz `#3009=4` ist sogar im veröffentlichten Schreibsatz `[3009]` bekannt. Die Herkunft bleibt `read`. Die Kontrollstarts `cycle_start` und `auto_step` machen denselben Schlüssel `assumed`.
+- **Abbruch nach bereits gesendetem MDI:** Die Invalidierung in `gateway.py:4327–4329` steht erst *nach* dem await. Die Sonde lässt den Interpreter-Double `#3009=4` ausführen, blockiert den Befehls-Thread anschließend und bricht den Handler ab. `_cmd_blocking` wartet korrekt auf das Thread-Ende und propagiert `CancelledError`; die Buchung wird übersprungen. Ergebnis: **Interpreter 4, weiterhin bestätigt 3/`read`**. Die chunkweise Absicherung in `_apply_probe_vars` deckt diesen gewöhnlichen MDI-Pfad nicht ab.
+
+**Erforderlich:** Mögliche Parameterschreiber auf allen Startwegen und auch bei unsicherem/abgebrochenem Abschluss erfassen. Die Invalidierung an das mögliche Senden binden, nicht ausschließlich an die normale Rückkehr des Handlers. Abgelehnte, sicher ungesendete Befehle dürfen ihre bisherige Basis behalten. Entsprechende Wächter auch für Makro-, RFL- und AUTO-Start verwenden, damit dieselbe await-Lücke dort nicht bestehen bleibt.
+
+[Startpfadsonde](viewer-palette-fest.r105.codex-startpaths.py), [Befehle und Herkunft](viewer-palette-fest.r105.codex-startpaths.json), [Abbruchsonde](viewer-palette-fest.r105.codex-cancel.py), [Interpreter gegen Buchführung](viewer-palette-fest.r105.codex-cancel.json).
+
+### VP-I61 · P1 · Fremde M600-Remaps werden bei üblichen Schreibweisen wieder vollständig vorhergesagt
+
+`gateway_util.py:4026–4034` und `gcode_parse_worker.py:240–247`: Die Fremd-Remap wird richtig erkannt, aber ihre Begrenzung wird erst aktiviert, wenn der Hauptdatei-Regex einen Aufruf findet. `T2M600`, `T2 M+600`, `T2 M[600]` sowie ein `M600` in einer per `o<child> call` aufgerufenen Datei erzeugen keine Aufrufzeile. Der konservative `foreign`-Modus wird im letzten Fall gar nicht erst ausgewertet.
+
+**Fünf native Fälle, gleiche fremde Remap:** Die Kontrolle `T2 M600` erzeugt den erwarteten `foreign_remap`-Stopp. Die vier Varianten laufen ebenfalls fehlerfrei durch den nativen Interpreter, liefern aber **kein `probe_unpredicted`**. Die Bewegung der fremden Routine und die Folgefahrt werden damit wieder als bestimmter Verlauf ausgegeben, obwohl Abschnitt 4 ausdrücklich die Auslassung bis Programmende verlangt.
+
+**Erforderlich:** Die Erkennung darf keine Leerzeichen zwischen NC-Wörtern voraussetzen; Zahlen/Ausdrücke und Aufrufe außerhalb des gelesenen Haupttextes müssen entweder nachgewiesen aufgelöst oder konservativ unbekannt behandelt werden. Ein leerer Regex-Treffersatz beweist hier keine Abwesenheit der Remap. Die normale gebündelte Routine weiter als positive Kontrolle erhalten.
+
+[Alle Programme und die fremde Unterdatei](viewer-palette-fest.r105.codex-native-cases.json), [Payload-Beobachtungen](viewer-palette-fest.r105.codex-native.json), [zusammengefasste Prüfungen](viewer-palette-fest.r105.codex-checks.json).
+
+### VP-I62 · P1 · Die Sim-Anfahrt stellt einen bereits unbekannten Programmabschnitt wieder als Fahrt her
+
+`viewer/scrubTrack.ts:978–995` löscht für die angehängte erste Zielposition sowohl `ustart` als auch das neue `unpredicted`-Flag. Der Kommentar setzt voraus, dass jede Entry-Fahrt vor der Messung liegt. Beginnt M600 jedoch **vor dem ersten gezeichneten Punkt**, ist dieser Punkt bereits ein unbekannter Endpunkt *nach* der Messung.
+
+**Native Datei:** `G21 G90`, `T2 M600`, `G0 X60 Y60 Z-100`, `G0 X70`, `M2`, mit unbekannter Toolsetter-Basis. Der Worker liefert korrekt Stopp bei seq 0 und zwei unbekannte Endpunkte. Der Basistrack hat `[1,1]` für beide Unbekannt-Flags, Zeit `[0,0]` und keine Kollisionen.
+
+Nach dem echten `buildEntryTrack`-Aufruf wie beim Eintritt in den Sim-Modus (Startgelenke `[0,0,0]`) werden daraus Flags `[0,0,1]`, **13,1149 s** und ein **Kollisionsbefund an L3** gegen einen Würfel bei `(30,30,−50)`. Diese Anfahrt ist nicht bekannt: M600 hätte bereits Position, Werkzeug und Offset verändert. Der Hinweis behauptet zugleich weiterhin, danach werde nichts geprüft.
+
+**Erforderlich:** Eine Entry-Fahrt nur zu einem als Ziel bekannten ersten Programmpunkt bilden. `unpredicted` darf nicht wie das bloße Fehlen einer Anfahrtsposition aufgehoben werden. Ist der erste Punkt bereits nach dem Stopp, bleibt auch dieser Teil ungeprüft und ohne bestimmte Dauer. Wächter durch nativen Payload → Decode → **Entry** → Sweep, zusätzlich zur vorhandenen Prüfung ohne Entry.
+
+[Native Eingabe/Payload](viewer-palette-fest.r105.codex-unknown_first.msgpack), [Client-Sonde](viewer-palette-fest.r105.codex-client.test.ts), [vollständiger Vorher-/Nachher-Vergleich](viewer-palette-fest.r105.codex-entry.json).
+
+### VP-I63 · P2 · Ein späterer Messfehler überschreibt den Hinweis einer früheren erfolgreichen Messung
+
+`viewer/probeStop.ts:62–75` reduziert die Ereignisse auf `Map<tool, note>`; `viewer/simRows.ts:99` hängt dieselbe Notiz an jede Wechselzeile dieses Werkzeugs. Die im Payload vorhandene Sequenz wird nach ihrer Validierung verworfen. So geht die im Plan verlangte Bindung an den jeweiligen Aufruf im Client verloren.
+
+**Gegenprobe:** T2 M600 an L3 wird mit 80 mm vorhergesagt. Danach setzt das Programm `#3007=1`; T2 M600 an L6 ist wegen des zu kurzen Tastwegs nicht vorhergesagt. Der native Payload unterscheidet korrekt `toollen_table=[22,2,80]` und Stopp `[42,2,"travel"]`. Die Zeilenbildung zeigt trotzdem **an beiden Zeilen** „measurement not predicted …“. Umgekehrt würde eine spätere erfolgreiche M600-Notiz auch an einen früheren gewöhnlichen M6 derselben Werkzeugnummer angehängt.
+
+**Erforderlich:** Herkunft und Nicht-Vorhersage an das konkrete Ereignis/Vorkommen binden. Wo keine verlässliche Zuordnung zur Zeile möglich ist, den Sachverhalt allgemein benennen statt ihn allen Zeilen derselben Werkzeugnummer zuzuweisen. Wächter: dasselbe Werkzeug mehrfach, Erfolg vor unbekannter Messung und gewöhnlicher M6 vor M600.
+
+[Native Ereignisse und angezeigte Zeilen](viewer-palette-fest.r105.codex-notes.json), [Sonde](viewer-palette-fest.r105.codex-client.test.ts).
+
+### Bewertung der fünf angefragten Abweichungen
+
+1. **„Nie gespeichert“ statt WebUI-Setup-Schalter:** angenommen. Entscheidend ist die nachweisbare Interpreterbasis. Fehlende *einzelne* Schlüssel bleiben dabei `unknown`; bestätigte Nullwerte sind keine erfolgreiche Messung.
+2. **Zusätzliche Vorschub- und Slow-Limit-Bedingung:** angenommen. Sie begrenzen die Erfolgsannahme; der Maschinenpfad wird nicht geändert. Die zugehörigen nativen Wächter sind grün.
+3. **Unbekannte Länge bei jedem Programm-M6:** angenommen. Die Trennung unbekannter Werkzeugpaare von weiterhin prüfbaren Maschinenpaaren ist richtig; die bestehende Grenze für das vor dem ersten M6 geladene Werkzeug ist ausdrücklich keine neu vollständige Körperprüfung.
+4. **Fremder MDI-/Makroaufruf invalidiert die gesamte Basis:** angenommen. Die konservative Regel muss allerdings auch den Varianten aus VP-I59–VP-I61 standhalten.
+5. **Automatisches stationäres Rücklesen:** bereits vom Plan autorisiert, in dieser Form angenommen. Lock-Reihenfolge, Inode-Prüfung und abbruchsicherer Dateithread sind vorhanden. Die fehlenden Nachweise unten bleiben offen.
+
+Der Task-Pfadvergleich ist belastbarer als ein Textfilter: Die Kontrollstruktur-Wächter sind grün und die gespeicherte Alt-Routine ist bytegleich mit dem Basiscommit. Die nativen Erfolgspfade einschließlich Kantentaster, WCS/G92, langsamer/ausgelassener zweiter Probe, T0 und M601 sind ebenfalls grün. Die chunkweise Buchung und die eingefrorene Parse-Basis sind grundsätzlich die vereinbarte Lösung.
+
+### Noch ausstehende Abnahmen und Prüfgrenzen
+
+- **Nativer Rücklesebeleg:** Planzeile 60 und R104 verlangen ihn ausdrücklich. R105 liefert dafür einen Quelltextverweis und einen Double. Die Tests bestätigen die Gateway-Sequenz unter dieser Annahme, ersetzen aber nicht den angekündigten nativen Nachweis, dass der bestätigte Synch die vorhandenen #3xxx-Werte aus dem Interpreter in eine neue Datei schreibt. Vor vollständigem Agreement nachreichen, einschließlich abweichendem Datei-/Interpreterwert.
+- **Live-M600 im Sim-Parity-Korpus:** laut Anfrage offen; von mir nicht gestartet. Bleibt vor der vollständigen Paketabnahme erforderlich. Kein Grund, den Operator für die bereits reproduzierten Codekorrekturen einzuschalten.
+- **WRAPPED_ROTARY:** die benannte fehlende Normalisierung wurde hier nicht geprüft und ist keine allgemeine Freigabe dieser Konfigurationen. Die sonstigen benannten Grenzen (externe Schreiber, separate Restprüfung im Lauf) bleiben bestehen.
+- Eigene Prüfungen: **458 Backend + 211 Client**, **12 native Gegenprogramme**, zwei Client-Beobachtungsproben, Buchführungs-/Start-/Abbruchsonden, **Build PASS**. Kein erneutes Gesamtgate oder Browser-/Live-Lauf. Die grünen Gegenproben bestätigen beobachtete Fehler; sie sind keine Soll-Abnahme. Die Sandbox-Timeranpassung und anfänglichen Harness-Probleme sind dokumentiert.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r105.codex-checks.md), [Backend](viewer-palette-fest.r105.codex-backend-final.txt), [Client-Repositorytests](viewer-palette-fest.r105.codex-unit.txt), [Build](viewer-palette-fest.r105.codex-build.txt), [Archiv/Isolation](viewer-palette-fest.r105.codex-context.json), [Beleghashes](viewer-palette-fest.r105.codex-sha256.json).

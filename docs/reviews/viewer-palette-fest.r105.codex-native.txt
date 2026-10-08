@@ -1,0 +1,12 @@
+assign_literal 0
+assign_double_hash 0
+assign_spaced 0
+assign_signed 0
+assign_decimal 0
+foreign_control 0
+foreign_compact 0
+foreign_signed 0
+foreign_expression 0
+foreign_called 0
+unknown_first 0
+repeat_same_tool 0

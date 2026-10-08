@@ -1,0 +1,14 @@
+{
+  "native_cases": 12,
+  "native_parses_without_error": true,
+  "native_tool_mmap_unchanged": true,
+  "assignments_all_reach_x4": true,
+  "foreign_control_has_stop": true,
+  "foreign_variants_missing_stop": [
+    "foreign_compact",
+    "foreign_signed",
+    "foreign_expression",
+    "foreign_called"
+  ],
+  "task_path_fixture_matches_base": true
+}
