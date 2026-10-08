@@ -1,0 +1,305 @@
+{
+  "r98_foreign_collision_spaced": {
+    "lines": [
+      3,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      1,
+      0
+    ],
+    "brk": [
+      1,
+      1,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      15,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetUntracked": true,
+    "obstacle": [
+      15,
+      5,
+      15
+    ],
+    "result": {
+      "hits": [
+        {
+          "line": 7,
+          "cum": 0.45004638671875,
+          "cumEnd": 0.550009765625,
+          "a": "head",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              0.45004638671875,
+              0.550009765625
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 25,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L6); in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.2528369999999995,
+      "sweepMs": 16.035205999999988,
+      "truncated": null
+    }
+  },
+  "r98_foreign_collision_plain": {
+    "lines": [
+      3,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1
+    ],
+    "brk": [
+      1,
+      1,
+      1
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      15,
+      0,
+      0,
+      0
+    ],
+    "staleOffsetLines": [
+      2
+    ],
+    "staleOffsetUntracked": true,
+    "obstacle": [
+      15,
+      5,
+      15
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L2 stays unknown whatever is positioned after (L6, L7); in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.2595010000000002,
+      "sweepMs": 0.07216599999998152,
+      "truncated": null
+    }
+  },
+  "r98_foreign_collision_position_control": {
+    "lines": [
+      3,
+      4,
+      6,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      0,
+      20,
+      30,
+      0,
+      20,
+      40,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      2.2360680103302,
+      2.2360680103302,
+      5.318274974822998,
+      6.318274974822998
+    ],
+    "ustart": [
+      1,
+      0,
+      0,
+      0,
+      0
+    ],
+    "brk": [
+      1,
+      0,
+      1,
+      0,
+      0
+    ],
+    "wcsEvents": [
+      {
+        "seq": 0,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "seq": 4,
+        "idx": 1,
+        "rotationDeg": 0,
+        "rewritten": true,
+        "g5x": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "g92": [
+          0,
+          0,
+          -10,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "endMachine": [
+      20,
+      5,
+      5,
+      0,
+      0,
+      0
+    ],
+    "obstacle": [
+      15,
+      5,
+      15
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 12,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.1573759999999993,
+      "sweepMs": 0.5742520000000013,
+      "truncated": null
+    }
+  }
+}

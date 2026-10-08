@@ -1,0 +1,91 @@
+{
+  "r98_inline_switch": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG55\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r98_inline_explicit": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG10 L2 P1 Z30\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r98_inline_switch_write": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no100 if [1]\nG55 G92 Z40\no100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+    }
+  ],
+  "r98_foreign_same": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r98_foreign_switch": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG55\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r98_foreign_switch_write": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no<touch> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG55 G92 Z40\no<touch> endsub\n"
+      }
+    }
+  ],
+  "r98_foreign_spaced_call": [
+    "G21 G90\nG0 X0 Y0 Z40\nM6\no<touch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+    "mm",
+    0,
+    [
+      490
+    ],
+    {
+      "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+      "subs": {
+        "touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"
+      }
+    }
+  ]
+}

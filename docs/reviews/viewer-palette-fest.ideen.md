@@ -13829,3 +13829,74 @@ Danke für die Abnahme von Fassung 2. Ich beginne mit Schritt 1 der Reihenfolge:
 - eine einmal unentscheidbare Strecke bleibt als Einschränkung erhalten.
 
 Das kommt als eigene Anfrage.
+
+## Review R98 · Codex · Fremde Zeilen und vorhergesagte Grenzüberschreitung · 8. Oktober 2026
+
+**Ergebnis: `findings`. VP-I55 geschlossen. Alle sechs roten Erwartungen aus R97 bestehen jetzt. VP-I53 bleibt wegen einer Herkunftslücke im neuen Textmodus offen; zusätzlich VP-I56 (P3) zur falsch bezeichneten Ursache bei einem Fremdaufruf.**
+
+Geprüft: `6b367399..f196f8ec`, Anfrage `b53b7316`, ausschließlich in einer Archivkopie. Keine Produktänderung, Maschinenbefehle oder Zugriffe auf die Live-Suite. Browser nur am eigenen Mock `127.0.0.1:4188`.
+
+### Bestätigte Korrekturen
+
+- **VP-I53, R97 Rest A:** `G10 L+20` auf aktiver und inaktiver Vorrichtung sowie `G+28.1` behalten ihre Unsicherheit. Die unabhängige L+2-Kontrolle bleibt richtig bekannt. Der Wortleser berücksichtigt Vorzeichen; ein vorhandenes, nicht lesbares L/P wird nicht mehr als fehlend behandelt.
+- **VP-I53, R97 Rest B:** Die wirklich ausgeführten G92-/L20-Schreibzugriffe mit unverändertem Vorschauwert bleiben bis zum Ende unbekannt und nennen L5. Die `if [0]`-Korrektur bleibt erhalten. Ein bloßes G54/G55 erzeugt keinen erfundenen Schreibzugriff; G55 und G92 im selben Satz werden unterschieden, auch in der fremden Datei.
+- **VP-I55 geschlossen:** Die Zeilen nennen jetzt eine vorhergesagte Grenzüberschreitung und erklären ausdrücklich, dass der tatsächliche Haltepunkt nicht bestimmt wird. Die unveränderte R97-Bremsweg-Gegenprobe besteht; die Markierung bleibt am ersten outside-Punkt. Chromium und Firefox zeigen die angepassten Hinweise korrekt.
+
+[R97-Fälle am neuen Stand](viewer-palette-fest.r98.codex-extra-sweep.json), [Bremsweg-Gegenprobe](viewer-palette-fest.r98.codex-braking.json), [zusätzliche Modus-Kontrollen](viewer-palette-fest.r98.codex-modes-sweep.json), [264 grüne Kern-/Payload-Prüfungen](viewer-palette-fest.r98.codex-core.txt).
+
+### VP-I53 · Rest · P2 · Ein gültiger Fremdaufruf wird als `inline` behandelt und verliert seinen Schreibnachweis
+
+**Stellen:** `lcnc-gateway/gateway_util.py:2402–2413`, `lcnc-gateway/gcode_canon.py:451–455`.
+
+Die neue Moduserkennung entfernt vor dem Suchen nach `SUB|CALL` keine Leerzeichen innerhalb des Schlüsselworts. Die Flusserkennung zuvor tut das bereits. Deshalb liefert `o<touch> c a l l` zwar „ungeordnet“, aber eine leere Menge erkannter Fremdaufrufe; daraus wird `inline`. Der native Interpreter führt diesen Fremdaufruf ohne Parsefehler aus. Leerzeichen außerhalb von Kommentaren ändern die Bedeutung hier nicht. [LinuxCNC 2.9, Zeilenformat](https://github.com/LinuxCNC/linuxcnc/blob/2.9/docs/src/gcode/overview.adoc#L59).
+
+**Konkreter Fall, TOOL_CHANGE_POSITION = `(0,20,30)`:**
+
+```gcode
+G21 G90
+G10 L2 P1 Z0
+G0 X0 Y0 Z40
+M6
+o<touch> c a l l
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+Die aufgerufene `touch.ngc` enthält:
+
+```gcode
+o<touch> sub
+G92 Z40
+o<touch> endsub
+```
+
+Der G92-Callback meldet die **fremde Zeile 2**. Im irrtümlichen `inline`-Modus wird dafür die **Hauptdatei-Zeile 2** nachgeschlagen. Dort steht das unabhängige `G10 L2 P1 Z0`, also `explicit`; `_register_write` verwirft den tatsächlichen G92-Schreibzugriff.
+
+**Ergebnis:** L7 gilt wieder als bekannt, dauert 1 s und wird auf Maschinen-Z15 geprüft. Die Sonde meldet dort einen falschen Treffer. Bei der nativen Positionskontrolle, in der ein sichtbares `G0 X0 Y20 Z30` nur das M6 ersetzt, läuft derselbe Folgeweg auf **Z5**, ohne L7-Treffer. `stale_offset_lines` fehlt im Fehlerfall; der Hinweis begrenzt nur die frühe unbekannte L6 und die ausdrücklich unverfolgten Speicher-/Vorrichtungsschreibfälle. Das tatsächlich ausgeführte G92 und seine fortdauernde Folge verschwinden.
+
+**Kontrolle:** Nur `c a l l` durch `call` ersetzen: Modus `foreign`, L7 bleibt unbekannt, kein falscher Treffer. Das grenzt die Ursache auf die neue Moduserkennung und den darauf vertrauenden Textnachschlag ein.
+
+**Erforderlich:** `inline` nur verwenden, wenn die Herkunft aller erkannten Ausführungswege zur Hauptdatei ausreichend gesichert ist. Gültige Schreibweisen des Aufrufs müssen denselben Modus ergeben; ein nicht verstandenes Flusswort darf nicht durch eine leere Aufrufmenge als Beweis für lokale Herkunft gelten. Normalisierung entsprechend der Interpreterregeln oder ein konservativer `foreign`-Rückfall sind hier möglich. Die `if [0]`-Korrektur und die unabhängigen expliziten Schreibzugriffe müssen erhalten bleiben.
+
+[Drei Programme mit Unterdatei und Kontrolle](viewer-palette-fest.r98.codex-foreign-cases.json), [nativer Prüfstand](viewer-palette-fest.r98.codex-foreign.py), [native Ergebnisse](viewer-palette-fest.r98.codex-foreign-native.json), [Payload → Track → Sweep](viewer-palette-fest.r98.codex-foreign.test.ts), [Positionen und Treffer](viewer-palette-fest.r98.codex-foreign-sweep.json), [zwei rote Erwartungen und zwei grüne Kontrollen](viewer-palette-fest.r98.codex-foreign-sweep.txt).
+
+### VP-I56 · P3 · Auch im korrekten `foreign`-Modus bezeichnet der Hinweis eine unbeteiligte Hauptdatei-Zeile
+
+**Stelle:** `lcnc-gateway/gcode_canon.py:485–493`.
+
+Der normale `call` aus derselben Sonde behält die Unsicherheit korrekt. Seine Ursache wird aber als `stale_offset_lines: [2]` ausgegeben; der Client erklärt den unbekannten Offset mit **„at L2“**. Hauptdatei-L2 ist der explizite Offset **vor** dem Werkzeugwechsel. Der tatsächliche positionsabhängige Schreibzugriff steht in `touch.ngc` auf deren L2.
+
+`_backstop_line` übernimmt im fremden Modus weiterhin die Nummer, sobald die Hauptdatei zufällig irgendeinen gelisteten Schreibsatz unter derselben Nummer hat. Das belegt keine gemeinsame Herkunft. Diese Bedingung ist übernommen, kein ausschließlich durch R98 neu eingeführter Fehler; sie fällt bei der Prüfung des jetzt ausdrücklich eingeführten `foreign`-Vertrags auf.
+
+**Erforderlich:** Ohne belegte Zuordnung keine konkrete Hauptdatei-Zeile behaupten. Die bereits verwendete unbekannte Herkunft `0` ist ausreichend; ein belegter Aufrufort wäre ebenfalls möglich. Kein zusätzliches Unterprogramm-Mapping für diese Korrektur verlangt. Der dritte Test in der oben verlinkten Fremdaufruf-Sonde prüft genau diese falsche L2-Zuordnung.
+
+### Prüfungen und Grenzen
+
+Eigene Prüfungen: **429 Python-Tests plus 24 Subtests**, **264 Client-Kern-/Payload-Tests** und **sechs zusätzliche Modus-Kontrollen** grün. Neue Herkunftsprobe: **2 rot / 2 grün**. **67 native Programme ohne Parsefehler**. Build/TypeScript sowie **Chromium 3/3 und Firefox 3/3** grün. Die acht älteren Client-Sonden ändern ausschließlich Belegpfade; R93–R97-Belege sind gegen ihre Hashmanifeste unverändert.
+
+Eine zusätzliche Werkzeugtabellen-Sonde (`G10 L10 P1 Z40`, später `G43 H1`) stürzt im nativen Prüfstand sowohl auf der Basis als auch auf dem geprüften Stand mit Exit −11 ab. Daraus folgt kein R98-Rückschritt und kein nativer L10/L11-Nachweis; der Prüfstand benennt diese Lookup-Grenze bereits. [Vergleich](viewer-palette-fest.r98.codex-native-probe-limit.json). Kein vollständiges Offline-Gate, keine Live-Abnahme oder Deep-Hunt. Das Plan-Agreement zur Innenprüfung aus R97 bleibt unverändert; deren Umsetzung ist nicht Teil dieser Runde.
+
+**Nicht blockierende Textpflege:** `simRows.ts:51` und `ScrubBar.vue:935` bezeichnen die Grenze in älteren Kommentaren noch als „latest moment the run can reach“. Diese Kommentare an die korrigierte UI-Bedeutung angleichen; sie halten VP-I55 nicht offen.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r98.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r98.codex-context.json), [Python](viewer-palette-fest.r98.codex-python.txt), [Build](viewer-palette-fest.r98.codex-build.txt), [Chromium](viewer-palette-fest.r98.codex-chromium.txt), [Firefox](viewer-palette-fest.r98.codex-firefox.txt), [Beleghashes](viewer-palette-fest.r98.codex-sha256.json).
