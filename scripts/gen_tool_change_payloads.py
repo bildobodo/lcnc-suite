@@ -20,7 +20,8 @@ ROOT = Path(__file__).resolve().parent.parent
 GATEWAY = ROOT / "lcnc-gateway"
 OUT = ROOT / "scripts/test_fixtures/tool_change_payloads"
 CASES = ("g43_mid", "g43_g1_block", "r92_m6_feed", "r92_m6_feed_then_rapid", "r92_m6_arc",
-         "r92_m6_g43_feed", "m6_tc_position", "m6_tc_partial", "m6_in_place", "r92_m6_quill_g30")
+         "r92_m6_g43_feed", "m6_tc_position", "m6_tc_partial", "m6_in_place", "r92_m6_quill_g30",
+         "r93_inline_g91_cycle", "r93_rotated_partial", "r93_g90_same_block")
 
 
 def main():

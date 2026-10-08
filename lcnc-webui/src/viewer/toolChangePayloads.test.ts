@@ -86,6 +86,21 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
     expect(track.ustart![2]).toBe(0);
     expect(track.cum[2]! - track.cum[1]!).toBeCloseTo(0.5, 5);
   });
+  it("the mode a block runs in, and a rotated frame, decide what is known again (Codex R93)", () => {
+    // A G91 drilling cycle in the block after the change: every one of its
+    // moves and the G91 move after it unknown, the lines named once each.
+    let r = sweep("r93_inline_g91_cycle");
+    expect(r.result.uncertified).toMatch(/^5 moves after a tool change run .*\(L4, L6\)$/);
+    for (let i = 1; i < r.track.count; i++) expect(r.track.cum[i]).toBe(r.track.cum[i - 1]);
+    // G10 L2 R45, then `X10 Z15`: Y was never commanded — L7 stays unknown.
+    r = sweep("r93_rotated_partial");
+    expect(r.result.uncertified).toMatch(/^2 moves after a tool change run .*\(L6, L7\)$/);
+    // `G90 G0 X10 Y5 Z15` after a G91 move: the next move is known and timed.
+    r = sweep("r93_g90_same_block");
+    expect(r.result.uncertified).toMatch(/^2 moves after a tool change run .*\(L5, L6\)$/);
+    expect(r.track.ustart![3]).toBe(0);
+    expect(r.track.cum[3]! - r.track.cum[2]!).toBeCloseTo(1, 5);
+  });
   it("an M6 that moves nothing, and the interpreter's own quill-up and G30 moves, stay known", () => {
     for (const name of ["m6_in_place", "r92_m6_quill_g30"]) {
       const { result, track } = sweep(name);

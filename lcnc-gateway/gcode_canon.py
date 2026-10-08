@@ -48,12 +48,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # are computed from the old position. While any axis is stale, every
     # motion — traverse, feed, probe, tap or arc — is recorded as a
     # zero-length unknown-start endpoint at its end: no invented path, no
-    # duration, the sweep names it. An ABSOLUTE move re-establishes the axes
-    # it moves; under G91 none (next_line). Always REASSIGNED (frozenset):
-    # the class value is the shared default.
+    # duration, the sweep names it. A block re-establishes the axes whose
+    # PROGRAM coordinate its motions moved (`_program`: a rotated frame turns
+    # an X move into a machine X and Y change — Codex R93 VP-I51 B) — only
+    # once the block has run and only if it ran ABSOLUTE: the distance mode a
+    # block runs in shows at the NEXT line (the state arrives before its
+    # block), so nothing is re-established inside a block (a G91 G81 in one
+    # block recorded its feed and retract as known — R93 A) and a G90 G0 X Y Z
+    # makes the next block known. Always REASSIGNED (frozenset): the class
+    # value is the shared default.
     stale = frozenset()
-    _settled_in_block = frozenset()
-    _incremental = False
+    _block_moved = frozenset()
 
     """Lightweight canon that collects feed/rapid polylines for 3D preview."""
 
@@ -210,15 +215,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def next_line(self, st):
         self.state = st
-        # The distance mode BEFORE this block (the state arrives before it
-        # runs). A block that switched to G91 shows here only at the NEXT
-        # line: the axes it re-established go stale again, in time for the
-        # next block's moves.
-        incremental = 910 in (getattr(st, "gcodes", None) or ())
-        if incremental and self._settled_in_block:
-            self.stale = self.stale | self._settled_in_block
-        self._settled_in_block = frozenset()
-        self._incremental = incremental
+        if (st.sequence_number or 0) >= 0 or (self.lineno or 0) < 1:
+            # A new block: the one that ran before it ran in the distance
+            # mode this state shows — absolute (G90, not 910) re-establishes
+            # the stale axes its motions moved, G91 none.
+            if self._block_moved:
+                if 910 not in (getattr(st, "gcodes", None) or ()):
+                    self.stale = self.stale - self._block_moved
+                self._block_moved = frozenset()
         if (st.sequence_number or 0) < 0 and (self.lineno or 0) >= 1:
             # A motion the interpreter makes itself inside the current block —
             # an M6's quill-up or G30 move (TOOL_CHANGE_QUILL_UP /
@@ -359,18 +363,33 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self._wcs_dirty = True
         return super().set_xy_rotation(*args, **kw)
 
+    def _program(self, p):
+        """A translated point back in the PROGRAM frame of the offsets in
+        effect now — rotate_and_translate inverted (rs274.interpret: + G92,
+        rotate by the XY rotation, + G5x). `lo` is the machine-frame point
+        (less the tool offset, which tool_offset re-expresses), so this is
+        the interpreter's own program position for it."""
+        x, y, z, a, b, c, u, v, w = (p[i] - getattr(self, "g5x_offset_" + s, 0.0)
+                                     for i, s in enumerate(self._WCS_SUFFIXES))
+        if getattr(self, "rotation_xy", 0):
+            x, y = (x * self.rotation_cos + y * self.rotation_sin,
+                    -x * self.rotation_sin + y * self.rotation_cos)
+        q = (x, y, z, a, b, c, u, v, w)
+        return tuple(q[i] - getattr(self, "g92_offset_" + s, 0.0) for i, s in enumerate(self._WCS_SUFFIXES))
+
     def _unknown_move(self, end):
         """A motion from a position with a stale axis: its end as a
         zero-length unknown-start endpoint (rapid stream, like the program's
-        own first move), and the axes an absolute move re-establishes."""
+        own first move); the stale axes whose PROGRAM coordinate it moved are
+        noted for the block (re-established at the next line if the block ran
+        absolute)."""
         if self._program_line():
             seq = self._next_seq()
             self.rapid.append((self.lineno, end, end, (self.xo, self.yo, self.zo), seq))
             self.unknown_start.append(seq)
-        if not self._incremental:
-            moved = frozenset(i for i in self.stale if abs(end[i] - self.lo[i]) > 1e-12)
-            self.stale = self.stale - moved
-            self._settled_in_block = self._settled_in_block | moved
+        p0, p1 = self._program(self.lo), self._program(end)
+        self._block_moved = self._block_moved | frozenset(
+            i for i in self.stale if abs(p1[i] - p0[i]) > 1e-9)
         self.lo = end
 
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
