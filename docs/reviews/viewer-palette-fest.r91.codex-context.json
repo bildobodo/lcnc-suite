@@ -1,0 +1,24 @@
+{
+  "request_head": "e6f2d198c4b38c52505076c1b86be1e47ca046de",
+  "review_base": "3da407b1",
+  "review_product_head": "385052e5c5314bb4751039332af87d481d5f6aa9",
+  "archive": "/tmp/codex-r91-7ofau2i2/archive",
+  "frontend_files_equal": 425,
+  "frontend_differences": [
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "changed_product_paths": [
+    "CLAUDE.md",
+    "docs/decisions.md",
+    "lcnc-webui/e2e/collisions.viewer.spec.ts",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts",
+    "lcnc-webui/src/viewer/collisionWorker.ts"
+  ],
+  "live_status_before": "",
+  "review_before_sha256": "27cdb0eeb795f49789b621096d6933875d09dab66c6a2dff879d634918f4ca6b",
+  "unchanged_r90_evidence_files": 37,
+  "inherited_probe_only_change": "hardwareConcurrency:3 -> hardwareConcurrency:4"
+}

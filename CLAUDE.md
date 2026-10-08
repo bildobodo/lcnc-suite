@@ -1220,8 +1220,11 @@ moves what was in flight to this core WITH the owner's state (VP-I48/I49):
 a running sweep starts again with its pauses, a cancelled one is
 acknowledged, a parked one (or one whose stop is unanswered) computes
 nothing — the owner keeps or gets the shards' sweep as the parked result and
-a continue starts it from the beginning — and the side run on shard 0 runs
-again here; the coordinator handles the sub-worker's error event
+a continue starts it from the beginning; with nothing swept yet to hand
+over, the stop is answered as an error at once (Codex R91: a run started
+for it waited under a hidden pause, the stop unanswered) — and the side run
+on shard 0 runs again here; a shard that ends at its sample backstop counts
+in the progress with what it swept, never as done (R91); the coordinator handles the sub-worker's error event
 (`preventDefault`): unhandled, Chromium and Firefox pass it on to the page's
 `onerror`, which drops the sweep (measured). "No side run on a shard" is
 `null`, never an id (−1 is the owner's first side id, VP-I50). The sample

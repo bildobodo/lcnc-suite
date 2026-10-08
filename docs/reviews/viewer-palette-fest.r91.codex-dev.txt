@@ -1,0 +1,19 @@
+[2m[WebServer] [22m(node:3837163) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:3837181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3837181) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/r91.codex-dev.spec.ts:4:37 › Vite source worker loads its children and answers a side request (188ms)
+  ✓  2 [chromium] › e2e/r91.codex-dev.spec.ts:4:37 › native child failure reruns main and pending side without escaping to the page (137ms)
+(node:3837287) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3837287) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 [firefox] › e2e/r91.codex-dev.spec.ts:4:37 › Vite source worker loads its children and answers a side request (750ms)
+  ✓  4 [firefox] › e2e/r91.codex-dev.spec.ts:4:37 › native child failure reruns main and pending side without escaping to the page (373ms)
+
+  4 passed (2.7s)

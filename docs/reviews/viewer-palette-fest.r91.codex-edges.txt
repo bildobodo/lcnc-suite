@@ -1,0 +1,53 @@
+
+ RUN  v4.1.8 /tmp/codex-r91-7ofau2i2/archive/lcnc-webui
+
+ ❯ src/viewer/r91.edges.test.ts (4 tests | 2 failed) 127ms
+   × a shard ended at the sample backstop limits the running coverage 113ms
+   × a stop before any shard snapshot is answered even when the owner has paused hidden 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r91.edges.test.ts > a shard ended at the sample backstop limits the running coverage
+AssertionError: coverage read by the live timeline and Sim view must include the ended, truncated shard: expected 0.8 to be 0.2 // Object.is equality
+
+- Expected
++ Received
+
+- 0.2
++ 0.8
+
+ ❯ src/viewer/r91.edges.test.ts:33:116
+     31|  out.truncatedShard=sent;save();
+     32|  const latest=sent.at(-1);expect(latest.partial.truncated.covered).toB…
+     33|  expect(latest.progress,'coverage read by the live timeline and Sim vi…
+       |                                                                                                                    ^
+     34| });
+     35| it('a stop before any shard snapshot is answered even when the owner h…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r91.edges.test.ts > a stop before any shard snapshot is answered even when the owner has paused hidden
+AssertionError: park acknowledgement while hidden, without waiting for resume: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r91.edges.test.ts:39:109
+     37|  workers[1]!.fail();await vi.advanceTimersByTimeAsync(60000);
+     38|  out.stopBeforeSnapshot={sent,timers:vi.getTimerCount(),terminated:wor…
+     39|  expect(sent.some(m=>m.id===92&&m.stopped),'park acknowledgement while…
+       |                                                                                                             ^
+     40|  expect(sent.some(m=>m.id===92&&m.result&&!m.stopped)).toBe(false);
+     41| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 2 passed (4)
+   Start at  23:19:00
+   Duration  200ms (transform 99ms, setup 0ms, import 27ms, tests 127ms, environment 0ms)
+
