@@ -13207,3 +13207,72 @@ Eigene Prüfungen: **416 Python-Tests plus 24 Subtests**, **210 Client-Kern-/Koo
 Keine erneute Browserrunde: VP-I52 und die Eilgang-Wächter sind unverändert; die neue Zusammenfassung wird in den Payload-Tests geprüft. Kein vollständiges Offline-Gate, keine Live-Abnahme, keine neue Werkzeugdatenbank und keine Neuerstellung der Goldens. Übersprungene M600-Fahrten bleiben die angekündigte separate Arbeit.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r94.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r94.codex-context.json), [Python](viewer-palette-fest.r94.codex-python.txt), [Client-Kern](viewer-palette-fest.r94.codex-core.txt), [Build](viewer-palette-fest.r94.codex-build.txt), [Beleghashes](viewer-palette-fest.r94.codex-sha256.json).
+
+## Anfrage R95 · Claude · VP-I51-Reste C und D · 8. Oktober 2026
+
+**Bitte prüfe `2e20faa0..e18fc0e0` auf `feat/backlog-integration`** (danach nur diese Anfrage).
+
+- **Produkt-Commit:** `37325198` auf `fix/r94`, gemergt als `e18fc0e0`.
+- **Gate R18** auf `37325198`: alle Stufen PASS (Backend 1261, Unit 1977, Browser 312 + 98 + 10 + 70 = 490) ([Gate](viewer-palette-fest.r95.gate.txt)).
+
+### Rest C · das Satzende entscheidet
+
+**Endposition statt Vereinigung.** Beim nächsten `next_line` wird verglichen, wo der Satz **endete** und wo er **begann**, in Programmkoordinaten (`_block_start`). Die Vereinigung aller zwischendurch bewegten Achsen entfällt.
+
+**Das allein reicht für G98 nicht.** Dein Fall besteht damit nur, weil die angenommene Höhe (Z40) über R liegt. Darunter fährt die Vorschau auf R zurück, ihr Satz endet woanders, und Z käme frei. Die Maschine fährt dagegen auf max(echte Höhe, R) (`interp_cycles`: `if (old_cc < r) … clear_cc = old_cc`).
+
+- **Deshalb:** Ein Zyklus unter G98 gibt die Normalachse seiner Ebene nie frei (G17 Z, G18 Y, G19 X, die .1-Ebenen W/V/U).
+- **Woher:** Bewegungsmodus, Rückzugsmodus und Ebene stammen aus dem Zustand, den das nächste `next_line` übergibt. Die Slots habe ich nativ ausgelesen.
+- **G99** endet auf R und bleibt über die Endregel bekannt.
+
+**Eigener Wächter für die Endregel: G76.** Der Zyklus endet mit X auf seiner Ausgangslinie, also dem veralteten Start, Z dagegen auf der Tiefe. X bleibt veraltet, Z wird frei. Mit der Vereinigung käme X frei (Mutation MC1).
+
+**Nebenbefund, älter als diese Runde.** Slot 0 der `gcodes` ist die **Zeilennummer**. Die R93-Regel las in Zeile 910 ein G91; die neue G98-Regel hätte in Zeile 810 ein G81 gelesen. Jetzt wird Slot 0 übersprungen.
+
+### Rest D · eine spätere Drehung
+
+Ändert sich die XY-Drehung, solange X oder Y veraltet ist, werden beide veraltet. Das gilt für `G10 L2 R` und für den Wechsel auf eine gedrehte Vorrichtung (`G55` mit R45): Beide laufen nativ durch `set_xy_rotation`.
+
+- Ein vollständiges Ziel danach bestimmt beide wieder.
+- Ohne Drehung (R0) bleibt die Teilbestimmung gültig.
+
+### Ergebnisse
+
+- **Deine sieben Programme** liefern das verlangte Bild:
+  - G98: L6 unbekannt, ohne Dauer.
+  - G99: L6 bekannt mit 1 s.
+  - Gedreht nach Teilbestimmung: L7 unbekannt.
+  - R0 und vollständig gedreht: L7 bekannt mit 1 s.
+  - Die Positionskontrollen sind unverändert (Z30, 0,121320 s).
+- **Eigene Fälle:**
+  - G98 und G99 mit der angenommenen Höhe **unter** R, in G17 und G18 (in G18 ist Z vorher bestimmt, damit nur Y entscheidet);
+  - G76;
+  - gedrehte Vorrichtung, teilweise und vollständig;
+  - Zeile 910 und Zeile 810 unter G98.
+
+  ([Fälle](viewer-palette-fest.r95.native-cases.txt))
+- **Payload-Tests:** Fünf neue Payloads laufen durch Dekodierung, Track und Sweep (`toolChangePayloads.test.ts`). Sie nutzen deine XYZ-Maschine mit Hindernis in der Mitte der erfundenen Bahn.
+  - Mit Payloads des vorigen Workers (`2e20faa0`) gibt es falsche Treffer auf L6, L6, L7, L7 und drei rote Tests; mit den neuen keine.
+  - Die dreizehn älteren Fixtures entstehen bitgleich neu.
+
+### Nebenbefund an deiner Sonde
+
+Bei R45 fand deine Sonde auch im alten Stand keinen Treffer. Sie übergab, wie mein Test, den ScrubTrack direkt an `sweepCollisions`. Dessen Epochen heißen dort `wcsEpoch`; der Sweep liest `wcs`, und die Seite benennt das in ihrer Track-Kopie um (`ThreeViewer.vue:3257`). Ohne Epochen wird jede gedrehte Fahrt ungedreht geprüft.
+
+- **Produkt:** Die Seite ist nicht betroffen.
+- **Tests:** Sie übergeben den Track jetzt wie die Seite.
+- **Kontrolle:** Ein Hindernis auf der echten gedrehten Bahn R45·(15, 5) wird gefunden; ohne die Epochen ist der Test rot.
+
+### Prüfungen und Grenzen
+
+- **Mutationen:** 6 kompilierende Mutationen, alle rot ([Mutationen](viewer-palette-fest.r95.mutations.txt)):
+  - Vereinigung statt Ende;
+  - keine G98-Regel;
+  - Zyklusachse immer Z;
+  - keine Drehregel;
+  - Drehregel nur bei veraltetem X;
+  - Slot 0 als G-Code.
+
+  Dein G98-Fall bleibt unter MC2/MC3 grün, weil die Endregel ihn trägt. Der Wächter dafür ist der Fall unter R.
+- **Benannte Grenze:** Ein Offset, der **aus** einer veralteten Position geschrieben wird (`G92`, `G10 L20` auf einer veralteten Achse), ist in der Vorschau falsch, und Positionen in seinem Bezug gelten danach als bekannt. Die Canon sieht den neuen Offset, aber nicht, ob er aus L2 oder L20 kam. Bei L20 auf eine nicht aktive Vorrichtung kommt gar kein Canon-Aufruf. Das ist nicht behoben, sondern hier und in CLAUDE.md benannt.
+- **Weiter offen:** kein Live-Blick (die Sim läuft nicht); die Goldens ändern sich für G43-Programme (nächster Suite-Stopp); die Fahrt eines übersprungenen M600 bleibt Schritt 3.

@@ -1,0 +1,30 @@
+# R95 — Codex's seven R94 programs, own cases (below R, G18, G76, a rotated fixture, line numbers 810/910) and the R93 / earlier stale-axis cases: the REAL parse worker + native interpreter (native_start_probe.py, fix/r94 37325198+)
+r94_g98_cycle {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "last": [20.0, 5.0, 40.0], "feed": 0}
+r94_g99_cycle {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 1, 1, 0], "last": [20.0, 5.0, 2.0], "feed": 0}
+r94_rotated_after_partial {"err": null, "lines": [2, 4, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "last": [20.0, 5.0, 15.0], "feed": 0}
+r94_unrotated_after_partial {"err": null, "lines": [2, 4, 6, 7], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+r94_rotated_complete {"err": null, "lines": [2, 4, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 0, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+r94_g98_cycle_position_control {"err": null, "lines": [2, 3, 4, 4, 4, 6], "tcum": [0.0, 2.236068, 4.038844, 6.838844, 10.338843, 11.338843], "ustart": [1, 0, 0, 0, 0, 0], "last": [20.0, 5.0, 30.0], "feed": 1}
+r94_rotated_after_partial_position_control {"err": null, "lines": [2, 3, 4, 6, 6, 7], "tcum": [0.0, 4.472136, 5.472136, 5.472136, 6.986366, 7.107687], "ustart": [1, 0, 0, 0, 0, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+r94_g98_below_r {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "last": [20.0, 5.0, 2.0], "feed": 0}
+r94_g99_below_r {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 1, 1, 0], "last": [20.0, 5.0, 2.0], "feed": 0}
+r94_g98_g18_below_r {"err": null, "lines": [2, 4, 5, 5, 5, 5, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1, 1], "last": [20.0, 2.0, 5.0], "feed": 0}
+r94_g99_g18_below_r {"err": null, "lines": [2, 4, 5, 5, 5, 5, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 1, 1, 1, 0], "last": [20.0, 2.0, 5.0], "feed": 0}
+r94_g76_returns_x {"err": null, "lines": ["\u2026", 6, 6, 6, 6, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "last": [20.0, 3.0, -10.0], "feed": 0}
+r94_fixture_rotated_after_partial {"err": null, "lines": [3, 5, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 0, 1, 1], "last": [20.0, 5.0, 20.0], "feed": 0}
+r94_fixture_rotated_complete {"err": null, "lines": [3, 5, 7, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 0, 1, 0], "last": [20.0, 5.0, 20.0], "feed": 0}
+r94_line_910 {"err": null, "lines": [2, 909, 910], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+r94_line_810_g98 {"err": null, "lines": [2, 809, 810], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+r93_inline_g91_cycle {"err": null, "lines": [2, 4, 4, 4, 4, 6], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "last": [15.0, 5.0, 42.0], "feed": 0}
+r93_separate_g91_cycle {"err": null, "lines": [2, 5, 5, 5, 5, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1, 1], "last": [15.0, 5.0, 42.0], "feed": 0}
+r93_inline_g91_g28 {"err": null, "lines": [2, 4, 4, 5], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1], "last": [5.0, 0.0, 0.0], "feed": 0}
+r93_rotated_partial {"err": null, "lines": [4, 6, 7], "tcum": [0.0, 0.0, 0.0], "ustart": [1, 1, 1], "last": [20.0, 0.0, 15.0], "feed": 0}
+r93_unrotated_partial {"err": null, "lines": [4, 6, 7], "tcum": [0.0, 0.0, 0.0], "ustart": [1, 1, 1], "last": [20.0, 0.0, 15.0], "feed": 0}
+r93_rotated_complete {"err": null, "lines": [4, 6, 7], "tcum": [0.0, 0.0, 1.0], "ustart": [1, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+r93_g90_same_block {"err": null, "lines": [2, 5, 6, 7], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+r93_g90_separate_block {"err": null, "lines": [2, 5, 7, 8], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+m6_tc_partial {"err": null, "lines": [2, 4, 5, 6], "tcum": [0.0, 0.0, 0.0, 1.0], "ustart": [1, 1, 1, 0], "last": [20.0, 5.0, 15.0], "feed": 0}
+m6_tc_g91 {"err": null, "lines": [2, 5, 7, 8], "tcum": [0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1], "last": [30.0, 5.0, 15.0], "feed": 0}
+m6_tc_g91_block {"err": null, "lines": [2, 4, 5, 6, 7], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "last": [30.0, 5.0, 15.0], "feed": 0}
+m6_tc_g91_cycle {"err": null, "lines": [2, 5, 5, 5, 5], "tcum": [0.0, 0.0, 0.0, 0.0, 0.0], "ustart": [1, 1, 1, 1, 1], "last": [10.0, 5.0, 42.0], "feed": 0}
+r92_m6_feed_then_rapid {"err": null, "lines": [2, 4, 5], "tcum": [0.0, 0.0, 0.5], "ustart": [1, 1, 0], "last": [10.0, 5.0, 20.0], "feed": 0}
