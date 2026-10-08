@@ -483,14 +483,15 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         return r
 
     def _backstop_line(self):
-        """The line a callback-caught write is named by: with ordered text
-        every line is the main file's; without, the main file's line only
-        when its text lists a write there, else 0 — the number may be another
-        file's, and a note must not name the wrong main-file line."""
+        """The line a callback-caught write is named by: where every number is
+        the main file's (ordered or inline text) its line, else 0 — with a
+        call into another file a number may be that file's, and a main-file
+        write listed under the same number proves no shared origin (Codex R98
+        VP-I56): a note must not name the wrong main-file line."""
         n = int(self.lineno or 0)
         if self.write_lines is not None and self.write_mode in ("ordered", "inline"):
             return n
-        return n if self.write_lines and n in self.write_lines else 0
+        return 0
 
     def set_xy_rotation(self, *args, **kw):
         self._wcs_dirty = True

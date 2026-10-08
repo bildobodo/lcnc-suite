@@ -8671,6 +8671,22 @@ revised in the same round (Fassung 2: three-valued decision, one
 non-degenerate ray, an exact local-box point filter, the winding number as
 the independent check).
 
+## 2026-10-08 — A call is a call however it is spelled; a foreign write names no main-file line (Codex R98)
+
+The text mode read `SUB` / `CALL` in the text with its whitespace, so
+`o<touch> c a l l` — a call LinuxCNC runs (whitespace counts nowhere outside
+a comment) — found no call, and the file was `inline`: the sub file's G92 on
+ITS line 2 met the main file's explicit `G10 L2` on line 2 and was dropped,
+the move after it counted as known and Codex's box on the preview's Z15 path
+read as a hit the machine (at Z5) never makes. The o-words are now read
+without whitespace, and anything the reader does not understand — a computed
+name (`o[#1]`), a word LinuxCNC does not know — is `foreign`: an empty set of
+calls it could read is no proof of none. And in `foreign` mode a
+callback's number was named as a main-file line whenever the main file
+listed a write under that number; that proves no shared origin, so a
+foreign write is named 0 ("an offset set from that position"), as an
+unlisted one always was (VP-I56). VP-I55 closed in the same round.
+
 ## 2026-10-08 — The controller's report is the evidence; a crossing is no stop (Codex R97)
 
 Two rests of the offset rule. A sign is part of a LinuxCNC number

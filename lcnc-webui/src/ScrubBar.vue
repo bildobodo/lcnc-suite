@@ -932,8 +932,9 @@ function targetsOf(kind: SimRowKind): FindingTarget[] {
   return kind === "limit" ? violationTargets.value : kind === "clash" ? hitTargets.value : toolTargets.value;
 }
 /** The first point of the displayed track a move ends beyond the joint
- *  window at — the latest moment the run can reach (simRows markLimitStop;
- *  Codex R96 VP-I55). Null without the gateway's flags. */
+ *  window at — the first predicted limit crossing, not where the run stops
+ *  (simRows markLimitStop; Codex R96/R97 VP-I55). Null without the
+ *  gateway's flags. */
 const limitStop = computed(() => limitStopOf(track.value));
 const rowsNow = computed(() => buildSimRows({
   clash: hitTargets.value, limit: violationTargets.value, tool: toolTargets.value,

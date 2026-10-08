@@ -2340,8 +2340,10 @@ def position_write_lines(text):
     whose every called subroutine is defined in this file: the numbers are
     this file's, but a gap between two of them proves nothing ran (a branch
     not taken, Codex R96 VP-I54); "foreign" — a call into another file (an
-    `o<name> call` without its `sub` here) or M98: a number may be another
-    file's. Comments are stripped, named parameters and o-word
+    `o<name> call` without its `sub` here), M98, or an o-word it cannot read
+    (a computed name, a word LinuxCNC does not know — Codex R98): a number
+    may be another file's. O-words are read without whitespace, as the
+    interpreter reads them (`o<touch> c a l l` is a call). Comments are stripped, named parameters and o-word
     names neutralised; a block-delete line counts (it may run). Pure."""
     out = {}
     t = text or ""
@@ -2399,22 +2401,44 @@ def position_write_lines(text):
             break
     if not flow:
         return out, "ordered"
-    defined, called = set(), set()
-    bare = _strip_all_comments(t).upper()
-    for m in _OWORD_SUB_CALL_RE.finditer(bare):
-        (defined if m.group(2) == "SUB" else called).add(re.sub(r"\s+", "", m.group(1)))
-    foreign = bool(called - defined) or bool(_M98_RE.search(bare))
-    return out, ("foreign" if foreign else "inline")
+    # Every o-word read the interpreter's way — whitespace counts nowhere
+    # outside a comment (`o<touch> c a l l` is a call, Codex R98): "inline"
+    # only when each one is understood and each call's subroutine is defined
+    # here; a computed name, a word it does not know or an M98 is "foreign"
+    # (an empty set of calls it could read is no proof of none).
+    defined, called, foreign = set(), set(), False
+    for raw in t.splitlines():
+        s = _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", strip_gcode_comments(raw))).upper()
+        if _M98_RE.search(s):
+            foreign = True
+        pos = 0
+        while not foreign:
+            m = _OWORD_START_RE.search(s, pos)
+            if not m:
+                break
+            w = _OWORD_WORD_RE.match(s, m.start())
+            if not w or w.group(2) not in _OWORD_KEYWORDS:
+                foreign = True
+                break
+            if w.group(2) == "SUB":
+                defined.add(w.group(1))
+            elif w.group(2) == "CALL":
+                called.add(w.group(1))
+            pos = w.end()
+        if foreign:
+            break
+    return out, ("foreign" if foreign or called - defined else "inline")
 
 
-#: An o-word's name and its keyword (`o<name> sub`, `O100 CALL`) — comments
-#: stripped first by the caller's text, so a call in a comment never counts.
-_OWORD_SUB_CALL_RE = re.compile(r"O\s*(<[^>]*>|\d+)\s*(SUB|CALL)\b")
-_M98_RE = re.compile(r"M\s*0*9\s*8(?![\d.])")
-
-
-def _strip_all_comments(text):
-    return "\n".join(strip_gcode_comments(l) for l in text.splitlines())
+#: Where an o-word begins in a block without whitespace, comments and named
+#: parameters (an O before a digit, `<`, `#` or `[` — ROUND, MOD, OR, XOR
+#: never put one there), its literal name and keyword (`O<TOUCH>CALL`,
+#: `O100IF`), and the keywords LinuxCNC knows (O-codes, 2.9).
+_OWORD_START_RE = re.compile(r"O(?=[\d<#\[])")
+_OWORD_WORD_RE = re.compile(r"O(<[^>]*>|\d+)([A-Z]*)")
+_OWORD_KEYWORDS = frozenset(("SUB", "ENDSUB", "RETURN", "CALL", "DO", "WHILE", "ENDWHILE", "IF", "ELSEIF",
+                             "ELSE", "ENDIF", "BREAK", "CONTINUE", "REPEAT", "ENDREPEAT"))
+_M98_RE = re.compile(r"M0*98(?![\d.])")
 
 
 def wcs_rewrite_targets(text):

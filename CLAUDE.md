@@ -1043,7 +1043,10 @@ block's stale set, the call-less lines after it under the set its end left),
 are the file's, but a gap proves nothing ran — an `if [0]` branch, R96
 VP-I54 — so only the line that had its own `next_line` counts, as having
 run), `foreign` (a call into another file, or M98: a number may be that
-file's — no text). An inactive fixture's write takes effect at the switch to
+file's — no text). The o-words are read the interpreter's way — whitespace
+counts nowhere outside a comment (`o<touch> c a l l` is a call, Codex R98) —
+and an o-word with a computed name or a word it does not know is `foreign`
+too: a set of calls it could not read is no proof of none. An inactive fixture's write takes effect at the switch to
 it (`_reg_unknown`). Behind the text, the active registers' callbacks
 (`set_g92_offset`, `set_g5x_offset` at an unchanged index) report a write
 as an EVENT — never judged by its value: a `G92 Z40` at a believed Z40
@@ -1051,8 +1054,8 @@ computes the old offset again (R97); re-selecting the active fixture makes no
 call at all (measured), and a switch's own G92 re-apply is the switch's. A
 reported write counts unless this file's text says the line is explicit, or,
 in text order, lists it for its own scan; named by its line where the
-numbers are the file's, else by the line only if the text lists a write
-there (else 0). A cause line is named once
+numbers are the file's, else 0 — a main-file write listed under the same
+number proves no shared origin (R98 VP-I56). A cause line is named once
 a move runs after it (`stale_offset_lines` on the wire); the payload says
 `stale_offset_untracked` when the text cannot place every write (inline,
 foreign, unreadable), and the note says "not checked to the program's end:

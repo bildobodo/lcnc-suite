@@ -213,6 +213,19 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       expect(r.result.hits).toHaveLength(0);
       expect(r.result.uncertified).toMatch(/the offset set from that position at L5 stays unknown/);
     });
+    it("a call into another file is one however it is spelled, and its write names no main-file line (Codex R98)", () => {
+      // `o<touch> c a l l` runs touch.ngc's G92 Z40 at the believed Z40: L7
+      // stays unknown — Codex's box on the preview's Z15 path is not hit —
+      // and the G92 (the sub file's line 2) is named by no main-file line,
+      // never by the main file's explicit G10 L2 on line 2 (VP-I56).
+      for (const name of ["r98_foreign_plain", "r98_foreign_spaced"]) {
+        const r = sweepXYZ(name, [15, 5, 15]);
+        expect(r.track.ustart![r.last], name).toBe(1);
+        expect(r.result.hits, name).toHaveLength(0);
+        expect(r.result.uncertified, name).toMatch(/not checked to the program's end: an offset set from that position stays unknown whatever is positioned after \(L6, L7\); in subroutines/);
+        expect(r.result.uncertified, name).not.toMatch(/at L2\b/);
+      }
+    });
     it("a rotation after X alone was known keeps the next move unknown; a full target makes it known", () => {
       let r = sweepXYZ("r94_rotated_after_partial", [6.0355339059, 13.1066017178, 15]);
       expect(r.result.uncertified).toMatch(/^3 moves after a tool change run .*\(L4, L6, L7\)$/);
