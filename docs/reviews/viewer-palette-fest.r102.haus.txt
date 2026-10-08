@@ -1,0 +1,5 @@
+# R102 — haus.ngc (the operator's program, not committed) on the XYZAC model, every pair, node sweep, one worker
+fix/r101:  ms 590457 samples 1371002 trackEnd 15960.302734375 timeBased true records 200 onsets 84 covered 90.35 
+before:    ms 587845 samples 1371002 trackEnd 15960.302734375 timeBased true records 200 onsets 84 covered 90.35 
+onset intervals by pair (both): onset intervals by pair [["column_foot/y_guide_blocks",1],["column_foot/y_guide_endcaps",1],["column_foot/y_saddle",1],["rear_column/a_bearing_pedestals",1],["rear_column/a_bearing_rings",2],["rear_column/a_drive_covers",20],["rear_column/a_trunnion_shafts",26],["rear_column/a_yoke_casting",1],["rear_column/c_bearing_lip",14],["rear_column/c_faceplate",16],["rear_column/y_saddle",1]]
+findings, records, notes: identical
