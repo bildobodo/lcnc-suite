@@ -220,6 +220,10 @@ def parse(ctx: dict) -> dict:
         print("__PIN_UNSUPPORTED__\trandom toolchanger", file=sys.stderr, flush=True)
         sys.exit(PIN_UNSUPPORTED_EXIT)
     canon = PreviewCanon(s, random_tc)
+    # The controller's own motion at an M6 (gcode_canon.tool_change_moves):
+    # only a tool change position makes the move after it start where no
+    # parse can know.
+    canon.tool_change_moves = bool((ini.find("EMCIO", "TOOL_CHANGE_POSITION") or "").strip())
     # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
     # machine runs every move before the program's own G43/G49 under its
     # inherited modal G43, so the interpreter starts there too — read ONCE
@@ -456,7 +460,7 @@ def parse(ctx: dict) -> dict:
                 print(f"kins seeded from live pin: type={live_kins_type} "
                       f"frame={'yes' if canon.kins_frames and canon.kins_frames[0][0] == -1 else 'no'}",
                       file=sys.stderr, flush=True)
-    if kins_active or len(canon.wcs_events) > 1:
+    if kins_active or len(canon.wcs_events) > 1 or canon.offset_events:
         # Flip relabels (W8 phantom jump + review P2): a switchkins flip
         # relabels the frame at a stationary pose but the offline interp
         # never resyncs, so the first post-flip canon segment starts at the
@@ -480,6 +484,9 @@ def parse(ctx: dict) -> dict:
             canon.kins_frames if kins_active else [],
             canon.wcs_events, kins_cfg, unit_scale,
             ustart_seqs=set(canon.unknown_start),
+            # G43 / G49 / G43.1 on a program line: the machine stands, the
+            # next move starts at the pose re-expressed in the new frame.
+            offset_seqs=set(canon.offset_events),
             # Fifth input: the initcode pose is expressed under the LIVE
             # parse-time kins — the k=0 correction converts FROM it.
             start_type=(live_kins_type if (kins_active and

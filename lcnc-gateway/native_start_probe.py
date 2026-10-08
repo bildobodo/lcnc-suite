@@ -65,6 +65,35 @@ CASES = {
     "no_prefix_80": ("G21 G90\nG49\nG0 X0 Y0 Z40\nG1 X10 Z45 F100\nM2\n", "mm", 80.0, (430,), {}),
     # inch machine: Z max 1.2 in, start 0.5 in → Z1 runs at 1.5 in
     "inch": ("G20 G90\nG0 X0 Y0 Z0.5\nG1 Z1 F10\nM2\n", "in", 0.5, (430,), {}),
+    # The move after a G43 / an M6 (operator 2026-10-07, haus.ngc L18
+    # `G43 Z15. H13`: 0 s, swept at its end only). Started under G49. The
+    # offset change is a G43.1 — the same tool_offset callback as a G43 H —
+    # because this harness has no tool database: an H or a T other than the
+    # seeded spindle tool is a lookup the native interpreter crashes on. The
+    # move after it starts where the machine stands — tip Z40 under no
+    # offset is Z30 under Z10 — and runs to Z15.
+    "g43_mid": ("G21 G90\nG0 X0 Y0 Z40\nG0 X10\nG43.1 Z10\nG0 Z15\nG1 Z5 F100\nM2\n", "mm", 0.0, (490,), {}),
+    # An M6 the controller moves nothing at (no TOOL_CHANGE_POSITION): the
+    # next move starts where the machine stands. (A bare M6: the spindle
+    # tool, no lookup — see above.)
+    "m6_in_place": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,), {}),
+    # ...and one it moves the machine at: the next move's start is unknown.
+    "m6_tc_position": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,),
+                       {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    # Codex R91 on R92: the G43 in the block of the move (G43 without H takes
+    # the spindle tool, T1 Z10 — no lookup), with a feed, before an arc, and
+    # alone at the end.
+    "g43_g0_block": ("G21 G90\nG0 X0 Y0 Z40\nG0 X10\nG43 G0 Z15\nM2\n", "mm", 0.0, (490,), {}),
+    "g43_g1_block": ("G21 G90\nG0 X0 Y0 Z40\nG0 X10\nG43 G1 Z5 F100\nM2\n", "mm", 0.0, (490,), {}),
+    "g43_arc": ("G21 G90\nG0 X0 Y0 Z40\nG43\nG2 X10 Y0 I5 J0 F100\nM2\n", "mm", 0.0, (490,), {}),
+    "g43_alone": ("G21 G90\nG0 X0 Y0 Z40\nG43\nM2\n", "mm", 0.0, (490,), {}),
+    # An unknown start does not become known through a G43 after it.
+    "m6_tc_then_g43": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG43\nG0 X10 Z15\nM2\n", "mm", 0.0, (490,),
+                       {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
+    # The interpreter's own G30 move at an M6 (TOOL_CHANGE_AT_G30) is a canon
+    # traverse: recorded, and the move after the change starts there.
+    "m6_at_g30": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,),
+                  {"emcio": "TOOL_CHANGE_AT_G30 = 1"}),
 }
 
 # Verify pairs (plan Fassungen 4–6): the same program at two start offsets;
@@ -98,6 +127,7 @@ PARAMETER_FILE = machine.var
 SUBROUTINE_PATH = {work}
 [EMCIO]
 TOOL_TABLE = tool.tbl
+{extra.get("emcio", "")}
 [AXIS_X]
 MIN_LIMIT = -500
 MAX_LIMIT = 500
@@ -160,6 +190,11 @@ for ln in err.getvalue().splitlines():
         meta = json.loads(ln.split("\t", 1)[1])
 
 
+def u(key, dtype):
+    b = out.get(key)
+    return np.frombuffer(b, dtype=dtype).tolist() if isinstance(b, bytes) else b
+
+
 def pts(key):
     b = out.get(key)
     return np.frombuffer(b, dtype=np.float32).reshape(-1, 3).tolist() if isinstance(b, bytes) else b
@@ -179,6 +214,10 @@ print(json.dumps({
     "rapid_outside": list(out.get("rapid_outside") or b"") if "rapid_outside" in out else None,
     "start_known": out.get("start_known"), "tlo_start": out.get("tlo_start"),
     "start_reason": out.get("start_reason"),
+    "rapid_lines": u("rapid_lines", "<u4"), "rapid_seq": u("rapid_seq", "<u4"),
+    "rapid_tcum": u("rapid_tcum", "<f4"), "rapid_brk": u("rapid_brk", "<u1"),
+    "rapid_ustart": u("rapid_ustart", "<u1"), "feed_seq": u("feed_seq", "<u4"),
+    "feed_tcum": u("feed_tcum", "<f4"),
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},
     "digest_without_start": __import__("hashlib").sha256(
         __import__("msgspec").msgpack.encode(comparable)).hexdigest(),

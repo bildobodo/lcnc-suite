@@ -8492,3 +8492,44 @@ Tests: `collisionWorker.test.ts` drives the coordinator through fake
 sub-workers (Codex's probe extended): every case of the four findings, the
 fall back from each owner state, the pacing, the kept bodies; each of 12
 compiling mutations turns its case red.
+
+## 2026-10-08 — The move after a G43 is a real move; an M6 only where the controller moves
+
+Operator, live look at haus.ngc on the XYZAC sim: the limit row of L18
+(`G43 Z15. H13`) stood in the Sim tab's list after L19's collision, and the
+L18 move did not show. The payload: L18 took 0 s — L17's end and L19's start
+at one instant, the rows tied, a float rounding put the collision first. The
+cause was older than the list: the preview canon kept axis' convention and
+set `first_move` at every G43 / G49 and M6, so the move after it was a
+zero-length unknown-start endpoint (`rapid_ustart`), which the client folds
+into `brk` — and the collision sweep treats every `brk` as a stationary
+relabel. Every approach after a tool change or a G43 was checked at its end
+only, never along its path: exactly the class of move the check exists for.
+
+A G43 moves nothing. The canon already re-expressed its position in the new
+offset's frame (glcanon does the same); it no longer marks the next move
+unknown, notes the event (`offset_events`), and `insert_flip_relabels`
+inserts a relabel vertex at every such event — the epoch-flip shape: the
+pose where the machine stands, in the new frame (`brk`, zero motion), then
+the real move from it, timed, limit-checked and swept. Per EVENT, not per
+changed value: a value test inserted a vertex at a start of 10.005 and none
+at 10, the VP-I20 verify then called two parses of heavy_test's shape
+different at every measuring scatter (`test_start_tlo_worker` caught it).
+Before, a FEED or an ARC after a G43 ran from the previous point in the old
+frame — a phantom of the offset's size along the whole feed; the relabel
+ends that too (Codex R91's note on R92).
+
+An M6 moves the machine unseen only where task's CHANGE_TOOL does it —
+[EMCIO] TOOL_CHANGE_POSITION; there the next start stays unknown. The
+interpreter's own quill-up and G30 moves (TOOL_CHANGE_QUILL_UP,
+TOOL_CHANGE_AT_G30) are canon traverses before CHANGE_TOOL and are recorded;
+they arrive as line −1, and a −1 in the wire's uint32 line arrays ended every
+such parse in an OverflowError — the canon now keeps the block's line. The
+shipped sims have neither setting, so their M6 moves nothing. What stays
+unknown is said: the sweep's `uncertified` names every unknown start after
+the program's own, with its lines — the page used to leave `ustart` out of
+the track it hands the worker (a browser test pins it). A preview-skipped
+M600's own motion is plan step 3.
+
+The preview goldens change for every program with a G43 — a live gate;
+regenerated at the next suite stop.

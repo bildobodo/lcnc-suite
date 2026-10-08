@@ -2672,6 +2672,7 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
         c.sub_events = []
         c.unknown_start = []
         c.tlo_events = []
+        c.offset_events = []
         c.cur_tool = -1
         c.rotation_xy = 0.0
         c.xo = c.yo = c.zo = 0.0
@@ -2821,7 +2822,12 @@ class TestTloEvents(unittest.TestCase):
         c.tool_offset(0, 0, 1, 0, 0, 0, 0, 0, 0)
         self.assertEqual(c.tlo_events[0][4], -1)
 
-    def test_post_g43_traverse_is_ustart_and_carries_the_new_tlo(self):
+    def test_post_g43_traverse_is_a_real_move_from_the_relabeled_pose(self):
+        # A G43 moves nothing (operator 2026-10-07, haus.ngc L18): the move
+        # after it starts at `lo` re-expressed in the new frame — a real
+        # tuple, no unknown start — and the event is noted for the relabel
+        # vertex (insert_flip_relabels). It used to be a zero-length
+        # unknown-start endpoint: 0 s, swept at its end only.
         c, ns = self._canon()
         self._prog(c, ns, 1)
         c.straight_feed(1, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 1
@@ -2831,11 +2837,26 @@ class TestTloEvents(unittest.TestCase):
         # the property the carry-retire closure rests on (pinned against the
         # real interpreter by the canon fixture).
         self.assertAlmostEqual(c.lo[2] + c.zo, c.feed[0][2][2] + 0.0, places=9)
+        self.assertEqual(c.offset_events, [1])                # after seq 1
         self._prog(c, ns, 3)
-        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)      # seq 2, ustart
-        self.assertEqual(c.unknown_start, [2])
+        c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)      # seq 2, a real move
+        self.assertEqual(c.unknown_start, [])
         self.assertEqual(c.rapid[0][3], (0, 0, 22))
-        self.assertEqual(c.rapid[0][1], c.rapid[0][2])      # zero-length
+        self.assertEqual(c.rapid[0][1], (1, 0, -22, 0, 0, 0, 0, 0, 0))   # where the machine stands
+        self.assertEqual(c.rapid[0][2], (5, 0, 0, 0, 0, 0, 0, 0, 0))
+
+    def test_an_m6_unknown_start_follows_the_controller_s_motion(self):
+        for moves, ustart in ((True, [2]), (False, [])):
+            c, ns = self._canon()
+            c.tool_change_moves = moves
+            self._prog(c, ns, 1)
+            c.straight_feed(1, 0, 0, 0, 0, 0, 0, 0, 0)      # seq 1
+            self._prog(c, ns, 2)
+            c.change_tool(3)
+            self._prog(c, ns, 3)
+            c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)  # seq 2
+            self.assertEqual(c.unknown_start, ustart, f"tool_change_moves={moves}")
+            self.assertEqual(c.offset_events, [], "an M6 is no offset event")
 
 class TestFindUnmarkedSubs(unittest.TestCase):
     """W3 P5 advisory: external o-calls whose sub files carry no WEBUI_SUB

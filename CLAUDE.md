@@ -984,7 +984,33 @@ first-move ENDPOINT (`rapid_ustart` — the canon records suppressed
 first moves as zero-length unknown-start rapids instead of dropping
 them; ustart unions into brk client-side, and the entry move supersedes
 the unknown approach), so the sim reproduces the run's real multi-stage
-approach. The sweep
+approach. A G43 / G49 / G43.1 is NO unknown start (operator 2026-10-07,
+haus.ngc L18 `G43 Z15. H13`: the move after every G43 was a zero-length
+unknown-start endpoint — 0 s on the timeline, its limit row tied with the
+next line's collision, swept at its end only): the machine stands, the
+canon re-expresses `lo` in the new offset's frame (it always did) and no
+longer sets `first_move` (`gcode_canon.tool_offset`), and every such
+program-line event (`canon.offset_events`) gets a RELABEL vertex in
+`insert_flip_relabels` like an epoch flip — whatever its value, so the
+payload's structure never depends on the start offset (the VP-I20 verify
+compares parses at two starts) — then the next move, traverse, feed or arc,
+is recorded from it: timed, limit-checked, swept along its path. An M6 is
+an unknown start only where the CONTROLLER moves at it unseen: [EMCIO]
+TOOL_CHANGE_POSITION (`canon.tool_change_moves`, from the INI); the
+interpreter's own quill-up / G30 moves at an M6 are canon traverses and
+recorded — they arrive as line −1, which the canon keeps on the M6's line
+(`next_line`; a −1 ended every such parse in an OverflowError on the wire's
+uint32 lines). Every unknown start after the program's own is NAMED in the
+sweep's `uncertified` ("N moves after a tool change start where the preview
+cannot know — checked at the end only (L…)") — the page hands `ustart` to
+the worker (`collisions.viewer.spec`). Tests: `test_tool_change_motion_worker.py`
+(the real worker + native interpreter: G43 alone, in the block of a G0 / G1,
+before an arc, after an unknown start; M6 in place, at G30, at a tool change
+position), `collision.test.ts` (an obstacle only in the middle of the move
+after the relabel is found; an unknown start is said). Not yet followed: a
+preview-skipped M600's own motion (plan step 3). The preview goldens change
+for every program with a G43 (the live gate; regenerate at the next suite
+stop). The sweep
 keeps itself current with NO manual trigger: auto-runs on program load
 (base track — marks appear before sim is entered), on sim entry (entry
 track, fresh position = fresh baseline), and on WCS/tool changes while

@@ -2,7 +2,7 @@ import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
-import { simLine, simShow, simStepBtn } from "./simTab";
+import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 
 // COLLISION jumps on the real 5-axis model (examples/sim_config/machine-
@@ -72,6 +72,29 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
   // L7 runs along X; the plunge (L6) and the retract (L8) are along Z — a
   // point in the top view
   expect(Math.abs(move.dx), "L7's own move, along X").toBeGreaterThan(0.95);
+  await ctl({ op: "reset" });
+});
+
+// A move whose start no parse can know (a tool change the controller moves
+// at, [EMCIO] TOOL_CHANGE_POSITION — wire rapid_ustart after the program's
+// own start) is checked at its end only, and the check SAYS so (2026-10-08).
+// The page must hand the flags to the worker — the unit test drives the
+// sweep directly and cannot see that (the copy for the worker left them out).
+test("a move whose start no parse can know is named in the check", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await prepare(page, context, { file: "/ustart.ngc", version: 2310, lines: [1, 2, 6], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -150], [20, 0, -150]],
+    extra: { feed_seq: [1, 2, 4], rapid: [[10, 0, -150]], rapid_lines: [4], rapid_seq: [3],
+             rapid_outside: new Uint8Array(1), rapid_ustart: new Uint8Array([1]) } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getCollisionSummary!()?.uncertified ?? null),
+                    { timeout: 60_000 })
+    .toBe("1 move after a tool change start where the preview cannot know — checked at the end only (L4)");
+  await openSimTab(page);
+  const item = page.locator(".simPanel .simSummary .sumItem").first();
+  await expect(item.locator('span[title^="Not certified"]'), "the marker").toHaveCount(1);
+  await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("after a tool change start where the preview cannot know");
+  await page.keyboard.press("Tab");   // light dismiss without Escape (E-Stop)
   await ctl({ op: "reset" });
 });
 
