@@ -13132,3 +13132,78 @@ Ergebnisse:
   - Freigabe unabhängig vom Modus,
   - nie freigeben.
 - **Grenze:** Ein Bogen gibt seine Achsen über seinen Endpunkt frei, ebenfalls in Programmkoordinaten. Ein Gewindebohrzyklus endet am Start und gibt nichts frei.
+
+## Review R94 · Codex · Satzende und Programmkoordinaten · 8. Oktober 2026
+
+**Ergebnis: `findings`. Die acht R93-Programme bestehen jetzt mit unveränderten Erwartungen. VP-I51 bleibt als P2 offen: „im Satz bewegt“ belegt nicht die bekannte Endposition, und die Kenntnis einzelner Programmkoordinaten wird bei einer späteren Drehung nicht neu bewertet.**
+
+Geprüft: `1083235b..3cc603cb`, Anfrage `b970fc1f`, in einer Archivkopie. Keine Produktänderung, Maschinenbefehle oder Netzwerkzugriffe.
+
+### R93-Reste A/B im bisherigen Umfang behoben
+
+Die Entscheidung am nächsten `next_line` behebt die Modusverzögerung: `G91 G81` im selben Satz bleibt durchgehend unbekannt und ohne erfundene Fahrdauer; ebenso die Rückkehrstrecke von `G91 G28`. `G90 G0 X10 Y5 Z15` stellt die Folgefahrt wieder her, unabhängig davon, ob G90 im selben oder im vorherigen Satz steht. Der Vergleich in Programmkoordinaten behebt den R45-Fall mit ausgelassenem Y; das vollständige XYZ-Ziel erlaubt weiterhin die nächste bekannte Fahrt.
+
+Die eigenen **acht R93-Payload-Proben bestehen 8/8**, ohne angepasste Erwartungen. Auch die sieben älteren Payload-Kontrollen bestehen. Das Deduplizieren der Zeilennummern im Hinweis ist korrekt: Die Bewegungsanzahl bleibt erhalten, der G91-Zyklus nennt jetzt L4/L6 jeweils einmal.
+
+[Übernommene Sonde](viewer-palette-fest.r94.codex-recovery.test.ts), [native R93-Ergebnisse](viewer-palette-fest.r94.codex-r93-native.json), [Track und Sweep](viewer-palette-fest.r94.codex-recovery.json), [gemeinsamer Testlauf](viewer-palette-fest.r94.codex-core.txt).
+
+### VP-I51 · Rest C · G98 kehrt auf eine veraltete Höhe zurück, gibt Z aber frei
+
+**Stellen:** `lcnc-gateway/gcode_canon.py:222–225` und `:390–393`.
+
+`_block_moved` sammelt jede im Satz irgendwann geänderte Achse. Bei einem absoluten Bohrzyklus mit G98 bewegt sich Z zwar zum R-Niveau und zum Bohrgrund, kehrt am Ende aber zur anfänglichen Höhe zurück. Wenn diese nach M6 noch veraltet war, ist sie durch die Zwischenbewegungen nicht bekannt geworden. Trotzdem wird Z beim nächsten `next_line` freigegeben.
+
+**Nativer Gegenfall, `TOOL_CHANGE_POSITION = 0 20 30`:**
+
+```gcode
+G21 G90 G98
+G0 X0 Y0 Z40
+M6
+G81 X10 Y5 Z-5 R2 F100
+G80
+G0 X20
+M2
+```
+
+Der Zyklus wird korrekt als unbekannt geführt. Seine letzte Canon-Position liegt jedoch wieder bei **Z40**, dem Stand vor dem ungesehenen Werkzeugwechsel. Danach bekommt L6 **`ustart = 0` und 1 s**; sie läuft im Payload von `(10,5,40)` nach `(20,5,40)`. Der Kollisionshinweis nennt nur L4 und schließt diese Folgefahrt nicht mehr ein.
+
+Die echte Payload-Kette bis `sweepCollisions` findet dadurch einen **falschen Treffer auf L6** an einer Box bei `(15,5,40)`. Eine native Positionskontrolle ersetzt nur das unsichtbare M6 durch ein explizites `G0 X0 Y20 Z30` auf derselben Zeile. Bei gleichem Folgeprogramm kehrt G98 dann auf **Z30** zurück; die Folgefahrt hat dort keinen Treffer. Das belegt die veraltete Höhe ohne Maschinenzugriff. Die G99-Variante ist eine weitere grüne Kontrolle: Sie endet am bekannten absoluten R2 und darf die nächste Fahrt wieder prüfen.
+
+**Erforderlich:** Am Satzende muss die **Endposition** bestimmt sein. Die Vereinigung aller zwischenzeitlich bewegten Achsen genügt dafür nicht. Eine Rückkehr zu einem gespeicherten, weiterhin unbekannten Ausgangswert darf diesen nicht bestätigen. Bitte G98 als roten Wächter und G99 als positive Kontrolle aufnehmen.
+
+### VP-I51 · Rest D · Eine spätere Drehung überträgt Unsicherheit auf bereits freigegebene Koordinaten
+
+**Stellen:** `lcnc-gateway/gcode_canon.py:362–378`, `:390–393`, Freigabe `:222–225`.
+
+`stale` bezeichnet nun Programmkoordinaten, bleibt aber beim Wechsel ihrer Orientierung unverändert. Ein in der bisherigen Orientierung bekanntes X ist nach einer Drehung nicht notwendigerweise bekannt: Das neue Programm-X enthält auch das noch unbekannte alte Y. Die richtige Rücktransformation der Punkte allein aktualisiert diese Information nicht.
+
+**Nativer Gegenfall, `TOOL_CHANGE_POSITION = 0 20 0`:**
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M6
+G0 X10
+G10 L2 P1 R45
+G0 Y5 Z15
+G0 X20
+M2
+```
+
+Nach L4 ist X im alten Bezug bekannt, Y/Z bleiben veraltet. L5 dreht den Bezug. L6 setzt zwar Y/Z absolut, lässt aber das **neue** Programm-X aus. Dennoch werden die letzten `stale`-Einträge gelöscht und L7 erhält **`ustart = 0` sowie 1,292893 s**. Der Hinweis nennt L4 und L6, L7 nicht mehr.
+
+Die native Positionskontrolle ersetzt wiederum nur M6 durch das sichtbare Erreichen der INI-Wechselposition. Danach ist das bei L6 ausgelassene Programm-X **21,213203 statt 7,071068**; die Folgefahrt nach X20 dauert **0,121320 s statt 1,292893 s**. Es handelt sich also um eine andere Strecke, nicht nur um ein fehlendes Warnwort. Der Fehler bleibt nach Dekodierung, WCS-Auflösung und Track-Aufbau erhalten.
+
+**Grüne Kontrollen:** Bei R0 darf die getrennte Bestimmung von X und anschließend Y/Z gelten. Bei R45 stellt ein vollständiges `G0 X10 Y5 Z15` im neuen Bezug die Position wieder her. Beide haben eine bekannte Folgefahrt mit 1 s.
+
+**Erforderlich:** Kenntnis/Unsicherheit muss zum aktuellen Bezug gehören. Wenn eine Drehung eine unbekannte Komponente in eine bisher bekannte Koordinate einmischt, darf deren frühere Freigabe nicht unverändert gelten. Eine konservative erneute Kennzeichnung betroffener Koordinaten ist ausreichend, solange vollständige absolute Ziele sie anschließend wieder bestimmen können.
+
+[Sieben neue Programme einschließlich Positionskontrollen](viewer-palette-fest.r94.codex-edges-cases.json), [nativer Prüfstand](viewer-palette-fest.r94.codex-edges.py), [native Ergebnisse](viewer-palette-fest.r94.codex-edges-native.json), [Payload → Track → Sweep](viewer-palette-fest.r94.codex-edges.test.ts), [zwei rote Fälle und fünf grüne Kontrollen](viewer-palette-fest.r94.codex-edges-sweep.txt), [vollständige Ergebnisse](viewer-palette-fest.r94.codex-edges-sweep.json).
+
+### Prüfungen und Grenzen
+
+Eigene Prüfungen: **416 Python-Tests plus 24 Subtests**, **210 Client-Kern-/Koordinator-/Payload-Tests**, Build/TypeScript grün. Alle **26 eigenen nativen Programme** laufen ohne Parsefehler; die neue Zusatzsonde ist **2 rot / 5 grün**. Die alten R93-Belege sind gegen ihr Hashmanifest unverändert.
+
+Keine erneute Browserrunde: VP-I52 und die Eilgang-Wächter sind unverändert; die neue Zusammenfassung wird in den Payload-Tests geprüft. Kein vollständiges Offline-Gate, keine Live-Abnahme, keine neue Werkzeugdatenbank und keine Neuerstellung der Goldens. Übersprungene M600-Fahrten bleiben die angekündigte separate Arbeit.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r94.codex-checks.md), [Stand und Isolation](viewer-palette-fest.r94.codex-context.json), [Python](viewer-palette-fest.r94.codex-python.txt), [Client-Kern](viewer-palette-fest.r94.codex-core.txt), [Build](viewer-palette-fest.r94.codex-build.txt), [Beleghashes](viewer-palette-fest.r94.codex-sha256.json).

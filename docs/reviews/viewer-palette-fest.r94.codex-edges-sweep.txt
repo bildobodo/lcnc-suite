@@ -1,0 +1,35 @@
+
+ RUN  v4.1.8 /tmp/codex-r94-cnzsibv4/archive/lcnc-webui
+
+ ❯ src/viewer/r94.edges.test.ts (7 tests | 2 failed) 28ms
+   × r94_g98_cycle: the following move still starts from an unknown coordinate 23ms
+   × r94_rotated_after_partial: the following move still starts from an unknown coordinate 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r94.edges.test.ts > r94_g98_cycle: the following move still starts from an unknown coordinate
+ FAIL  src/viewer/r94.edges.test.ts > r94_rotated_after_partial: the following move still starts from an unknown coordinate
+AssertionError: G98 restores the stale initial height; a new rotation mixes in stale Y: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r94.edges.test.ts:43:102
+     41|   it(name+': the following move still starts from an unknown coordinat…
+     42|     const r = inspect(name);
+     43|     expect(r.ustart.at(-1),'G98 restores the stale initial height; a n…
+       |                                                                                                      ^
+     44|     expect(r.cum.at(-1),'no time assigned to an unconfirmed path').toB…
+     45|     expect(r.result.hits,'no collision on the unconfirmed following pa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 5 passed (7)
+   Start at  11:52:23
+   Duration  226ms (transform 111ms, setup 0ms, import 151ms, tests 28ms, environment 0ms)
+

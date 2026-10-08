@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r94-cnzsibv4/archive/lcnc-webui
+
+
+ Test Files  7 passed (7)
+      Tests  210 passed (210)
+   Start at  11:50:26
+   Duration  1.78s (transform 187ms, setup 0ms, import 365ms, tests 1.11s, environment 0ms)
+
