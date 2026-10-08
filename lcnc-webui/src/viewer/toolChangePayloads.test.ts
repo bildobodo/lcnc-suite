@@ -226,6 +226,20 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
         expect(r.result.uncertified, name).not.toMatch(/at L2\b/);
       }
     });
+    it("an o-word whose name is no literal is read as one, never as no o-word (Codex R99)", () => {
+      // `o+100 call` runs 100.ngc's G92 Z40: L7 stays unknown, no hit on
+      // Codex's box at the preview's Z15, the write named by no main-file line.
+      let r = sweepXYZ("r99_o_plus", [15, 5, 15]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(/an offset set from that position stays unknown whatever is positioned after \(L6, L7\); in subroutines/);
+      // `o+100 if [0]` skips its G92: L8 is known and timed again, no offset
+      // line claimed (the range scan never ran over the skipped line)
+      r = sweepXYZ("r99_plus_skip", [100, 100, 100]);
+      expect(r.track.ustart![r.last]).toBe(0);
+      expect(r.track.cum[r.last]! - r.track.cum[r.last - 1]!).toBeCloseTo(1, 5);
+      expect(r.result.uncertified).toMatch(/not checked until the position is known again \(L7\); in subroutines/);
+    });
     it("a rotation after X alone was known keeps the next move unknown; a full target makes it known", () => {
       let r = sweepXYZ("r94_rotated_after_partial", [6.0355339059, 13.1066017178, 15]);
       expect(r.result.uncertified).toMatch(/^3 moves after a tool change run .*\(L4, L6, L7\)$/);

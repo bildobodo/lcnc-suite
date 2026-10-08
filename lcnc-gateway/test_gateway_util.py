@@ -3233,9 +3233,18 @@ class TestPositionWriteLines(unittest.TestCase):
         # Codex R98: whitespace counts nowhere outside a comment — a spaced
         # call is a call; a name or word it cannot read is no proof of none
         for text in ("o<touch> c a l l\n", "O 1 0 0 C A L L\n", "o<to uch> sub\no<to uch> endsub\no<touch> c a l l\no<other> call\n",
-                     "o[#1] call\n", "o#1 call\n", "o100 frobnicate\n", "o100\n", "M 9 8 P100\n",
+                     "o[#1] call\n", "o#1 call\n", "o100 frobnicate\n", "o100\n", "M 9 8 P100\n", "M 0 9 8 P100\n",
                      "o100 if [1]\no<x> c a l l\no100 endif\n"):
             self.assertEqual(mode(text), "foreign", text)
+        # Codex R99: an o-word is the statement at the block's start — a name
+        # that is no literal (a sign, a function, an expression, a decimal)
+        # must not pass the early reading as "no o-word"
+        for text in ("o+100 call\n", "oABS[-100] call\n", "o[100] call\n", "o100.0 call\n",
+                     "o+100 if [0]\nG92 Z40\no+100 endif\n", "N10 o100 call\n", "/o<x> call\n",
+                     "(set up) o<x> call\n", "N10 O-1 sub\nN20 O-1 endsub\n"):
+            self.assertEqual(mode(text), "foreign", text)
+        for text in ("N10 o100 sub\nN20 o100 endsub\nN30 o100 call\n", "/ o100 if [1]\n/ o100 endif\n"):
+            self.assertEqual(mode(text), "inline", text)
         for text in ("o<to uch> s u b\nG92 Z0\no<touch> e n d s u b\no<touch> c a l l\n",
                      "o<o1> sub\no<o1> endsub\no<o1> call\n",                   # an O inside a name
                      "O100 IF [ROUND[#1] OR [#2 MOD 3] XOR 1]\nG92 Z0\nO100 ENDIF\n",   # O in operators
@@ -3245,7 +3254,7 @@ class TestPositionWriteLines(unittest.TestCase):
                      "o<r> sub\no103 if [1]\no103 return\no103 endif\no104 do\no104 break\no104 continue\no104 while [0]\no<r> endsub\no<r> call\n"):
             self.assertEqual(mode(text), "inline", text)
         for text in ("(go to the corner)\nG0 X0\n", "G0 X0 ; o100 call\n", "#<_o> = 1\nG0 X#<_o>\n", "M9\n",
-                     "(o<sub> call)\nG0 X0\n"):
+                     "(o<sub> call)\nG0 X0\n", "G1 X[ROUND[#1]] Y[#2 MOD 3] F[1 OR 0]\n", "M90\nM980\n"):
             self.assertEqual(mode(text), "ordered", text)
 
 

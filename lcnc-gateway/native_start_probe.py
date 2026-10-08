@@ -206,6 +206,17 @@ CASES = {
                            {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"}}),
     "r98_foreign_spaced_position_control": ("G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no<touch> c a l l\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
                                             {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"touch.ngc": "o<touch> sub\nG92 Z40\no<touch> endsub\n"}}),
+    # Codex R99 VP-I53 rest: an o-word name that is no literal (a sign, a
+    # function) — the same sub file `100.ngc` runs natively; and the R97
+    # branch with `o+100` numbers (L5 never runs / runs).
+    "r99_o_plus": ("G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\no+100 call\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                   {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"}}),
+    "r99_o_function": ("G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nM6\noABS[-100] call\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                       {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"}}),
+    "r99_o_plus_position_control": ("G21 G90\nG10 L2 P1 Z0\nG0 X0 Y0 Z40\nG0 X0 Y20 Z30\no+100 call\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                                    {"emcio": "TOOL_CHANGE_POSITION = 0 20 30", "subs": {"100.ngc": "o100 sub\nG92 Z40\no100 endsub\n"}}),
+    "r99_plus_skip": ("G21 G90\nG0 X0 Y0 Z40\nM6\no+100 if [0]\nG92 Z40\no+100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r99_plus_run": ("G21 G90\nG0 X0 Y0 Z40\nM6\no+100 if [1]\nG92 Z40\no+100 endif\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r95_oword_no_write": ("G21 G90\nG0 X0 Y0 Z40\no100 repeat [1]\nM6\no100 endrepeat\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     # Own: a fixture switch to a ROTATED fixture is a rotation change too.
     "r94_fixture_rotated_after_partial": ("G21 G90\nG10 L2 P2 R45\nG0 X0 Y0 Z40\nM6\nG0 X10 Z15\nG55\nG0 Y5 Z20\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 0"}),

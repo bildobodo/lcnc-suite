@@ -289,6 +289,25 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         self.assertEqual(r["rapid_ustart"][-1], 0)
         self.assertIsNone(r["stale_offset_lines"])
 
+    def test_an_o_word_whose_name_is_no_literal_is_read_as_one(self):
+        # Codex R99 VP-I53 rest: `o+100 call` / `oABS[-100] call` run
+        # 100.ngc natively — its G92 keeps L7 unknown, named 0 (never the
+        # main file's explicit L2); `o+100 if [0]` skips its G92 (L8 known,
+        # timed), `o+100 if [1]` runs it (L8 unknown).
+        for case in ("r99_o_plus", "r99_o_function", "r99_plus_run"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(r["stale_offset_lines"], [0], case)
+            self.assertIs(r["stale_offset_untracked"], True, case)
+        r = probe("r99_plus_skip")
+        self.assertEqual(r["rapid_ustart"][-1], 0)
+        self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
+        self.assertIsNone(r["stale_offset_lines"])
+        r = probe("r99_o_plus_position_control")
+        self.assertEqual(r["rapid_ustart"][-1], 0)
+        self.assertIsNone(r["stale_offset_lines"])
+
     def test_any_spelling_of_a_write_is_seen(self):
         # Codex R96 VP-I53 rest: G92.0, G10.0, G28.10 are the same codes; a
         # G word the text cannot settle (G[90+2]) counts as a write. An
