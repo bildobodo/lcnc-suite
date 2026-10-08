@@ -1104,7 +1104,7 @@ export function* sweepCollisionsIter(
         : named.length ? `not checked to the program's end: the offset${named.length === 1 ? "" : "s"} set from that position at ${list(named)} `
             + `stay${named.length === 1 ? "s" : ""} unknown whatever is positioned after (${list(at)})`
         : `not checked to the program's end: an offset set from that position stays unknown whatever is positioned after (${list(at)})`)
-      + (opts.staleOffsetUntracked ? "; in subroutines and loops only G92 and the active fixture's offsets are tracked" : "");
+      + (opts.staleOffsetUntracked ? "; in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked" : "");
   }
   let fellBack = false;
   if (track.mode && !abortedInit) {

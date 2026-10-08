@@ -75,17 +75,19 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # gateway_util.position_write_lines, set by the worker with a tool change
     # position): at each next_line the lines run since the last one. An
     # inactive fixture's write takes effect at the switch to it
-    # (`_reg_unknown`). A write the text does not cover — another file's
-    # line, or a main file whose lines do not run in text order
-    # (`writes_ordered`) — is taken from the active registers' callbacks,
-    # conservatively. The lines go to the check's note (`stale_offset_lines`).
+    # (`_reg_unknown`). Out of text order (`write_mode` inline / foreign) the
+    # text speaks only for lines known to have run, and the active
+    # registers' callbacks report every write as an EVENT (Codex R97: a value
+    # computed equal is no proof of none). The lines go to the check's note
+    # (`stale_offset_lines`).
     # Always REASSIGNED (frozenset / tuple / dict): the class values are the
     # shared defaults.
     stale = frozenset()
     _frame_unknown = frozenset()
     stale_offset_lines = ()
     write_lines = None
-    writes_ordered = True
+    write_mode = "ordered"          # gateway_util.position_write_lines: ordered | inline | foreign
+    _switch_g92_line = None
     ever_stale = False
     _reg_unknown = {}
     _pending_offset_lines = ()
@@ -271,12 +273,20 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # previous line's own under the stale set of its block (a group-0
             # word runs before the block's motion), the lines without a canon
             # call after it under the set its end left.
+            # In text order the call-less lines between the two ran too. With
+            # o-words a gap proves nothing ran (a branch not taken — Codex R96
+            # VP-I54): only the line that had its own next_line is known to
+            # have run (inline subs keep this file's numbers); with a call
+            # into another file a number may be that file's — callbacks only.
             n = int(st.sequence_number or 0)
-            # Only where the lines run in text order: with o-words a gap
-            # between two line numbers proves nothing ran (a branch not
-            # taken — Codex R96 VP-I54); there the callbacks speak alone.
-            if self.write_lines and self.writes_ordered and prev >= 1 and n > prev:
-                for line in range(prev, n):
+            if self.write_lines and prev >= 1 and n != prev:
+                if self.write_mode == "ordered" and n > prev:
+                    lines = range(prev, n)
+                elif self.write_mode == "inline":
+                    lines = (prev,)
+                else:
+                    lines = ()
+                for line in lines:
                     t = self.write_lines.get(line)
                     if t is not None and t != "explicit":
                         axes = stale_in_block if line == prev else self.stale
@@ -425,45 +435,51 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self._reg_unknown = {**self._reg_unknown,
                                  target: ((had[0] | axes) if had else axes, had[1] if had else line)}
 
-    def _write_not_covered(self, changed):
-        """An active register written (a callback) that the main file's
-        text does not account for. Without ordered text (no text; o-words or
-        M98 — another file's line may carry any number) every change counts.
-        With ordered text a line the text lists is its business (explicit or
-        handled at the next line); an unlisted line that CHANGED the register
-        is a write the scan did not recognise (Codex R96: a spelling or an
-        expression it cannot settle) — "not found" is no proof of none.
-        Unchanged values are a re-selection (`G54`) or a reset to the same."""
-        if not (self.stale and self._program_line() and changed):
-            return False
-        if self.write_lines is None or not self.writes_ordered:
-            return True
-        return int(self.lineno or 0) not in self.write_lines
+    def _register_write(self):
+        """The controller reports a write of an active register (a callback:
+        G92 / G52, a G10 on the active fixture, a reset at M2). The EVENT is
+        the evidence, never the value — a G92 Z40 at a believed Z40 computes
+        the old offset again (Codex R97); re-selecting the active fixture
+        makes no call at all (measured). Where this file's text speaks for
+        the line, an explicit write is no cause, and in text order a listed
+        one is the scan's (taken at the next line); everything else counts:
+        a line the scan missed ("not found" is no proof of none), a listed
+        line out of text order, any line of another file."""
+        if not (self.stale and self._program_line()):
+            return
+        n = int(self.lineno or 0)
+        if self.write_lines is not None and self.write_mode in ("ordered", "inline"):
+            t = self.write_lines.get(n)
+            if t == "explicit" or (t is not None and self.write_mode == "ordered"):
+                return
+        self._position_write(self._backstop_line(), "all", self.stale)
 
     # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
     # change what wcs_basis() returns — flag, then let the parent assign.
-    def _register(self, kind):
-        return tuple(getattr(self, f"{kind}_offset_" + a, None) for a in "xyzabcuvw")
-
     def set_g5x_offset(self, *args, **kw):
         self._wcs_dirty = True
-        before, vals = getattr(self, "g5x_index", None), self._register("g5x")
+        before = getattr(self, "g5x_index", None)
         r = super().set_g5x_offset(*args, **kw)
         idx = getattr(self, "g5x_index", None)
         if self._program_line():
-            if idx != before and idx in self._reg_unknown:
-                axes, line = self._reg_unknown[idx]
-                self._position_write(line, "all", axes)   # its offsets were the guess
-            elif idx == before and self._write_not_covered(self._register("g5x") != vals):
-                self._position_write(self._backstop_line(), "all", self.stale)
+            if idx != before:
+                # a switch reads the table (and re-applies G92 next: that call
+                # is the switch's, not a write)
+                self._switch_g92_line = self.lineno
+                if idx in self._reg_unknown:
+                    axes, line = self._reg_unknown[idx]
+                    self._position_write(line, "all", axes)   # its offsets were the guess
+            else:
+                self._register_write()
         return r
 
     def set_g92_offset(self, *args, **kw):
         self._wcs_dirty = True
-        vals = self._register("g92")
         r = super().set_g92_offset(*args, **kw)
-        if self._write_not_covered(self._register("g92") != vals):
-            self._position_write(self._backstop_line(), "all", self.stale)
+        if self._switch_g92_line is not None and self._switch_g92_line == self.lineno:
+            self._switch_g92_line = None
+        else:
+            self._register_write()
         return r
 
     def _backstop_line(self):
@@ -472,7 +488,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         when its text lists a write there, else 0 — the number may be another
         file's, and a note must not name the wrong main-file line."""
         n = int(self.lineno or 0)
-        if self.write_lines is not None and self.writes_ordered:
+        if self.write_lines is not None and self.write_mode in ("ordered", "inline"):
             return n
         return n if self.write_lines and n in self.write_lines else 0
 

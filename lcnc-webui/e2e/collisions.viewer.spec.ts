@@ -115,7 +115,7 @@ test("an offset set from the unknown position is named, to the program's end", a
                     { timeout: 60_000 })
     .toBe("1 move after a tool change runs from a position the preview cannot know — not checked to the program's end: "
       + "the offset set from that position at L3 stays unknown whatever is positioned after (L4); "
-      + "in subroutines and loops only G92 and the active fixture's offsets are tracked");
+      + "in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked");
   await ctl({ op: "reset" });
 });
 

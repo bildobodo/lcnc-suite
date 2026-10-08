@@ -2297,10 +2297,10 @@ _NAMED_PARAM_RE = re.compile(r"#<[^>]*>")
 #: Candidate lines for position_write_lines: a settings or store word.
 #: LinuxCNC reads `G1 0` as G10 (spaces count nowhere): the candidate
 #: allows them; the decision is taken on the line without whitespace.
-_POSWRITE_CANDIDATE_RE = re.compile(r"G[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8|3\s*0|[\[#])", re.I)
+_POSWRITE_CANDIDATE_RE = re.compile(r"G[\s+]*[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8|3\s*0|[\[#])", re.I)
 #: A word's value as LinuxCNC reads it — a number in any spelling (`92`,
 #: `092`, `92.0`, `28.10`), or `[` / `#` for one the text cannot settle.
-_NUM = r"(?:([\[#])|(\d+\.?\d*|\.\d+))"
+_NUM = r"(?:([\[#])|([+-]?(?:\d+\.?\d*|\.\d+)))"   # LinuxCNC numbers take a sign (Codex R97)
 _G_WORDS_RE = re.compile(r"G" + _NUM)
 _L_NUM_RE = re.compile(r"L" + _NUM)
 _P_NUM_RE = re.compile(r"P" + _NUM)
@@ -2335,9 +2335,13 @@ def position_write_lines(text):
       "active"    the same with P0, no P or a P the text cannot settle;
       "all"       G92, G28.1, G30.1, G10 L10 / L11 (tool table from the
                   position), a dynamic L, an expression in G1 L1 / G52.
-    `ordered` is False when the main file has o-words or M98/M99: its lines
-    then do not run in text order, and a caller must not take the text's
-    order for the run's. Comments are stripped, named parameters and o-word
+    `mode` says what the line numbers a canon sees mean: "ordered" — no
+    o-words, no M98/M99: the lines run in text order; "inline" — o-words
+    whose every called subroutine is defined in this file: the numbers are
+    this file's, but a gap between two of them proves nothing ran (a branch
+    not taken, Codex R96 VP-I54); "foreign" — a call into another file (an
+    `o<name> call` without its `sub` here) or M98: a number may be another
+    file's. Comments are stripped, named parameters and o-word
     names neutralised; a block-delete line counts (it may run). Pure."""
     out = {}
     t = text or ""
@@ -2372,7 +2376,9 @@ def position_write_lines(text):
             l_no = l10 // 10 if l10 is not None and l10 % 10 == 0 else None
             p_no = p10 // 10 if p10 is not None and p10 % 10 == 0 else None
             if lw is None:
-                out[line_no] = "explicit"        # no L: writes nothing (an error)
+                # no L word it can read: none at all writes nothing (an error);
+                # one it cannot read is no proof of none (Codex R97)
+                out[line_no] = "all" if "L" in s else "explicit"
             elif l_no is None or l_no in (10, 11):
                 out[line_no] = "all"
             elif l_no in (1, 2) and not expr:
@@ -2380,7 +2386,7 @@ def position_write_lines(text):
             elif l_no == 1:
                 out[line_no] = "all"
             elif l_no in (2, 20):
-                out[line_no] = ("all" if pw is not None and p_no is None else
+                out[line_no] = ("all" if (pw is not None and p_no is None) or (pw is None and "P" in s) else
                                 p_no if p_no else "active")
             else:
                 out[line_no] = "all"
@@ -2391,7 +2397,24 @@ def position_write_lines(text):
         if _FLOW_RE.search(_NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line)).upper()):
             flow = True
             break
-    return out, not flow
+    if not flow:
+        return out, "ordered"
+    defined, called = set(), set()
+    bare = _strip_all_comments(t).upper()
+    for m in _OWORD_SUB_CALL_RE.finditer(bare):
+        (defined if m.group(2) == "SUB" else called).add(re.sub(r"\s+", "", m.group(1)))
+    foreign = bool(called - defined) or bool(_M98_RE.search(bare))
+    return out, ("foreign" if foreign else "inline")
+
+
+#: An o-word's name and its keyword (`o<name> sub`, `O100 CALL`) — comments
+#: stripped first by the caller's text, so a call in a comment never counts.
+_OWORD_SUB_CALL_RE = re.compile(r"O\s*(<[^>]*>|\d+)\s*(SUB|CALL)\b")
+_M98_RE = re.compile(r"M\s*0*9\s*8(?![\d.])")
+
+
+def _strip_all_comments(text):
+    return "\n".join(strip_gcode_comments(l) for l in text.splitlines())
 
 
 def wcs_rewrite_targets(text):
