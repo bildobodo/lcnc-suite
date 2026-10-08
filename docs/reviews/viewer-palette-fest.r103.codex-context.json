@@ -1,0 +1,32 @@
+{
+  "review": "R103",
+  "base": "4d8faefd",
+  "plan_head": "e897dfc96acf0e33bc7edbfbde1dccb473bdc2a1",
+  "request_head": "b9b26a61423243e5caf6c03b955391ecc1d0fea0",
+  "plan_sha256": "1308ed80e9ceb6b44b38ab21278869e34eff0a9554d953cf899ec8240f10827d",
+  "scope": "plan only, Fassung 2",
+  "changed_files": [
+    "docs/reviews/m600-preview.plan.md",
+    "docs/reviews/viewer-palette-fest.ideen.md"
+  ],
+  "archive": "/tmp/codex-r103-rzc6zaju/archive",
+  "byte_equal_files": 175,
+  "hydrated_lfs_verified": [
+    "lcnc-gateway/machine/frame.stl",
+    "lcnc-gateway/machine/x_axis.stl",
+    "lcnc-gateway/machine/y_axis.stl",
+    "lcnc-gateway/machine/z_axis.stl"
+  ],
+  "product_edits": false,
+  "live_ports_accessed": false,
+  "machine_commands": false,
+  "browser_runs": [],
+  "build": null,
+  "gate": null,
+  "counterexamples": {
+    "partial_mdi_transfer": 2,
+    "native_probe_result_state": 3
+  },
+  "priority": "nice 19",
+  "r102_evidence_verified": 29
+}

@@ -14330,3 +14330,65 @@ Danke für die Abnahme der Innenprüfung (R102). Fassung 2 nimmt VP102-01 bis 05
   - Im Lauf zeigt sie „table updated“ bzw. „applied offset“, nie „measured“ ohne Nachweis.
   - Marker zählen nur mit dem G43 desselben Aufrufs.
 - **Restprüfung im Lauf (VP102-05):** Sie wird ein eigenes Folgepaket.
+
+## Review R103 · Codex · M600-Plan Fassung 2 · 8. Oktober 2026
+
+**Ergebnis: `findings`. VP102-02, VP102-04 und die Ausgliederung gemäß VP102-05 sind auf Planebene angenommen. VP102-01 und VP102-03 haben je einen Rest; neu VP103-01 zu den Probe-Ergebnissen des erfolgreichen Ersatzpfads.**
+
+Geprüft: `4d8faefd..e897dfc9`, Anfrage `b9b26a61`. Nur Planänderungen, keine M600-Implementierung. Die in R102 abgenommene Innenprüfung wird nicht erneut geöffnet. Belege und kleine Gegenproben entstanden ausschließlich in einer Archivkopie; keine Maschinenbefehle oder Live-Suite-Zugriffe.
+
+### VP102-01 · Rest · P1 · „Letzte vollständige Übernahme oder Boot-Datei“ deckt den tatsächlichen Parameterstand nicht ab
+
+Die vollständige Parametertabelle, die Trennung von gespeichert/übernommen sowie Cache-Version und eingefrorene Mittellauf-Basis sind angenommen. **Die neue Herkunftszusage in Planzeilen 49–52 ist noch zu stark:** Der aktuelle Interpreterstand besteht nicht zwingend aus dem letzten vollständig erfolgreichen `_apply_probe_vars`-Aufruf oder der Startdatei.
+
+**Konkreter bestehender Pfad:** `_apply_probe_vars` (`gateway.py:3855–3912`) teilt die Übernahme auf mehrere MDI-Befehle auf. Ist der erste erfolgreich und der zweite fehlerhaft, meldet die Gesamtoperation `mdi_set=false`, obwohl die ersten Werte bereits übernommen sind. Bei Abbruch/Timeout besteht dasselbe Zuordnungsproblem; ein fehlgeschlagener Gesamtaufruf rollt frühere Chunks nicht zurück.
+
+Die isolierte Sonde führt die **unveränderte Funktion** mit ersetzten Abhängigkeiten aus: Vorher #3004=200, nach dem erfolgreichen ersten Chunk #3004=300. #3115 bleibt nach Fehler im zweiten Chunk 0, während die vorher geschriebene Datei schon 3 enthält. Ergebnis `(file_saved=true, mdi_set=false)`. Die Abbruchvariante endet mit `CancelledError` und demselben teilweise neuen Stand. Weder die alte Gesamtbasis noch die neue Datei stimmen mit dem Interpreter überein. [Sonde](viewer-palette-fest.r103.codex-probes.py), [beide Abläufe](viewer-palette-fest.r103.codex-basis.json).
+
+Außerdem braucht die behauptete Boot-Herkunft eine tatsächliche Aufnahme zum richtigen Zeitpunkt: Ein später gestartetes beziehungsweise neu gestartetes Gateway kennt eine beim LinuxCNC-Start gelesene Datei nicht allein dadurch, dass es dieselbe Datei jetzt liest. Ein früherer NC-/MDI-Schreibzugriff auf #3009 oder G30 verändert ebenfalls den nächsten Anfangszustand. Programmeigene Zuweisungen *innerhalb der neu geparsten Datei* korrekt zu interpretieren löst diese Vorgeschichte nicht.
+
+**Erforderliche Planergänzung:** Herkunft und Gültigkeit mitführen, einschließlich **teilweise übernommen / nicht mehr nachweisbar**. Bestätigte Teilübernahmen dürfen schlüsselweise gebucht werden; nach zweifelhaftem Abschluss muss mindestens die betroffene Basis unbekannt werden. Regeln für Gateway-Neustart, nachträgliches Anbinden und andere Parameter-Schreiber festlegen. Ohne verifizierten Anfangssnapshot beziehungsweise ausreichend frisches Rücklesen eine Dateibasis als **Annahme** benennen oder M600 ungeprüft lassen; nicht als „as LinuxCNC read them at start“ ausgeben. Für die erste Fassung ist diese konservative Grenze ausreichend; sie verlangt keine allgemeine Überwachung beliebigen NC-Codes und keine zusätzlichen Maschinen-Schreibzugriffe.
+
+**Wächter:** zwei Chunks, zweiter Fehler; Abbruch nach erster Bestätigung; Gateway-Neustart bei laufender LinuxCNC-Instanz; zwischenzeitliche Änderung eines relevanten Parameters. Die eingefrorene Basis eines bestehenden Parses bleibt davon getrennt.
+
+### VP102-03 · Rest · P1 · Unbekannt ab Probenbeginn oder erst am programmierten Endpunkt?
+
+Die Trennung von Maschinenposition und Werkzeugkörper ab M6 sowie der konservative Verzicht auf Wiederzulassung bis Programmende sind angenommen. **Planzeile 66 und Tabellenzeile 75 widersprechen sich aber bei der Abdeckungsgrenze.** Der Text zeichnet „bekannte Wege bis zum Ende des Tastsegments“ und nennt erst danach die Einschränkung; die Tabelle fordert bereits ab der nicht vorhergesagten Probe „nichts“ geprüft.
+
+Bei unbekannter Länge kann der Taster vor dem programmierten Endpunkt auslösen. Beispiel: Start-Z −50, programmiertes Ende −100, tatsächlicher Kontakt −70. Die Strecke −70 bis −100 ist keine bekannte Fahrt. Sie als solche zu zeichnen, zeitlich zu bewerten oder dort einen bestimmten Kontakt zu melden, wäre eine neue erfundene Aussage. Nur beim **begründet vorhergesagten Ausbleiben einer Auslösung** ist der volle Suchweg ein bestimmter Verlauf unter den Modellannahmen. Die vier Ausschlussgründe in Abschnitt 3 beweisen das nicht alle.
+
+**Erforderlich:** Für die erste Fassung konsequent die Tabelle wählen: bekannte Positionierung bis zum **Start** der nicht vorhergesagten Probe; ab diesem G38-Segment keine bestimmte Weg-/Zeit-/Kollisionsaussage, mit Grund. Eine optionale Darstellung des vollen Suchbereichs müsste als mögliche Hülle erkennbar getrennt sein und dürfte keine Prüfung des tatsächlichen Verlaufs behaupten. Es genügt, diesen Zusatz zunächst wegzulassen. Die Auslassung muss im Payload, Track und Sweep an derselben Grenze beginnen.
+
+**Wächter:** unbekannte Länge, Kontakt vor dem programmierten Ende, Hindernis erst hinter dem möglichen Kontakt; daneben der bereits verlangte Fall mit bekanntem L und zu kurzem Tastweg. So bleibt die Abdeckung vor G38 erhalten, ohne die unbekannte Probe als voll durchlaufene Fahrt auszugeben.
+
+### VP103-01 · P1 · Auch der erfolgreiche Vorschaupfad muss die Probe-Ergebnisse fortschreiben
+
+**Planzeile 64** legt ausdrücklich fest, dass die Ersatzfahrt keine Probe-Parameter setzt. Das umgeht zwar die Längenberechnung durch `new_tool_length_offset=L`, lässt aber die für nachfolgenden NC-Code sichtbaren Ergebnisse **#5061–#5069 und #5070** auf alten Werten. Erfolgreiches G38 aktualisiert diese Werte; die Kontaktkoordinaten gehören zum Arbeitsrahmen zum Tastzeitpunkt. [LinuxCNC-Dokumentation](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g38).
+
+**Native Gegenprobe des geplanten Prinzips, kein vorweggebautes M600:** Ersatzfahrten zu Z−90 und zurück, danach G43. Anschließend entscheidet ein `o100 if [#5070 EQ 1]` zwischen X+100 und X−100; eine weitere Fahrt verwendet Y=`#5063`.
+
+| Variante | Tatsächlich geparster Folgeweg |
+|---|---|
+| Ersatzfahrten ohne Probe-Ergebnisfortschreibung | X−100, Y0 |
+| Dasselbe nach einem früheren Offline-Probe-Endpunkt Z−15 | X−100, Y−15 |
+| Kontrolle mit angenommenem Erfolg `#5070=1`, `#5063=−90` | X+100, Y−90 |
+
+Die Ersatzfahrt allein führt also in den Fehlerzweig beziehungsweise verwendet die alte Kontaktposition, obwohl der Plan den erfolgreichen Tabellenlängen-Fall annimmt. G43 korrigiert das nicht. [Native Eingaben](viewer-palette-fest.r103.codex-native-cases.json), [Ergebnisse](viewer-palette-fest.r103.codex-native.json).
+
+**Erforderlich:** Im reinen Vorschauzweig auch die zum angenommenen Ereignis gehörenden Probe-Ergebnisse definieren: alle betreffenden Achskoordinaten am Auslösepunkt **vor dem Rückzug** im damaligen Arbeitsrahmen und Erfolgsstatus. Schnelle Probe allein bei `slowFeed=0`, sonst letzte langsame Probe; Kantentaster und Offsets berücksichtigen. Das ist weiterhin ein *angenommenes Vorschauergebnis*, kein Nachweis einer realen Messung und kein Grund für die UI-Bezeichnung „measured“. Falls diese Nachbildung bewusst aus dem Umfang fällt, müssen davon abhängige Folgeausdrücke als unbekannt behandelt werden; alte Werte dürfen keinen angeblich geprüften Folgeweg bestimmen.
+
+**Wächter:** die Verzweigung oben, vorheriges abweichendes Probe-Ergebnis, WCS/G92 und Kantentaster. Der native Kontrollfall bestätigt, dass die beiden dort verwendeten Ergebnisparameter im isolierten Vorschau-Interpreter explizit gesetzt werden können; er ersetzt noch nicht den vollständigen Koordinatenvertrag.
+
+### Angenommen und Hinweise für die Umsetzung
+
+- **VP102-02:** Die vier Bedingungen einschließlich nichtpositiver Tasterreferenz, tatsächlichem gekapptem Tastsegment und optionaler langsamer Probe schließen den ursprünglichen erfolgreichen Scheinpfad. Der verbleibende Widerspruch für den ausgeschlossenen Fall ist oben unter VP102-03 zusammengefasst. `#3005=0` ist laut Abschnitt 3 ein gültiger Fall mit einer Probe; in der Testliste nicht als verletzte Bedingung behandeln.
+- **VP102-04:** „from the table (assumed)“, „table updated“ und „applied offset“ sowie Bindung des Markers an denselben Aufruf sind angenommen. T0/RFL-Rücksprung und fremdes späteres G43 schließen keinen offenen Marker ab.
+- **VP102-05:** Die Ausgliederung ist angenommen. Keine Restprüfung im Lauf in diesem Paket; der separate spätere Plan braucht eine eigene Abnahme.
+- **M6 und Zustandszeilen:** „Position bekannt (G53-Fahrten)“ gilt nur, soweit die vorhandenen Regeln das belegen. Bei `TOOL_CHANGE_POSITION` bleiben die bisherigen unbekannten Anfangsachsen erhalten; eine absolute G53-Fahrt stellt ihren Endzustand wieder her, nicht rückwirkend ihren Anfang. Diese bestehenden Regeln aus VP-I51 nicht durch die vereinfachte Tabelle überschreiben.
+- Gemeinsame gebündelte Routine, unveränderter Maschinenpfad und konservative Behandlung fremder Remaps bleiben die richtige Umfangsgrenze. Der Pfadvergleich muss den neuen `_task=1`-Pfad einschließlich seiner Kontrollstruktur mit dem alten vergleichen; das bloße Entfernen von Text zwischen einzelnen Markern genügt bei verschachtelten Zweigen nicht als Beweis.
+
+### Prüfungen und Grenzen
+
+Reine Planprüfung, zusätzlich **zwei isolierte Fehlerverlaufsproben und drei native Beobachtungsproben**, alle Beobachtungserwartungen bestätigt. Keine Produktänderung, keine Implementierungsabnahme, kein erneutes Gate/Build/Browser/Live-Test. R102-Belege unverändert. Die Befunde sind Präzisierungen des geplanten Verhaltens; die Probe setzt keine künftige Implementierung voraus.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r103.codex-checks.md), [Protokoll](viewer-palette-fest.r103.codex-probes.txt), [Isolation/Kontext](viewer-palette-fest.r103.codex-context.json), [Beleghashes](viewer-palette-fest.r103.codex-sha256.json).
