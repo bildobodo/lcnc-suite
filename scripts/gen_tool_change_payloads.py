@@ -7,7 +7,7 @@ case, synthetic STAT — no running LinuxCNC, no machine command), encoded as
 the gateway publishes it. lcnc-webui/src/viewer/toolChangePayloads.test.ts
 decodes them through the client's own path and sweeps them: the payload →
 track → collision layer the moves after a G43 / an M6 must hold in
-(operator 2026-10-07, haus.ngc L18; Codex R92–R94 VP-I51).
+(operator 2026-10-07, haus.ngc L18; Codex R92–R95 VP-I51 / VP-I53).
 
     lcnc-gateway/.venv/bin/python scripts/gen_tool_change_payloads.py
 """
@@ -23,7 +23,8 @@ CASES = ("g43_mid", "g43_g1_block", "r92_m6_feed", "r92_m6_feed_then_rapid", "r9
          "r92_m6_g43_feed", "m6_tc_position", "m6_tc_partial", "m6_in_place", "r92_m6_quill_g30",
          "r93_inline_g91_cycle", "r93_rotated_partial", "r93_g90_same_block",
          "r94_g98_cycle", "r94_g98_below_r", "r94_rotated_after_partial", "r94_rotated_complete",
-         "r94_g76_returns_x")
+         "r94_g76_returns_x",
+         "r95_g92_from_stale", "r95_l20_inactive_hidden", "r95_l2_constant", "r95_oword_g92", "r95_sub_g92")
 
 
 def main():

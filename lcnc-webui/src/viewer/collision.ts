@@ -252,6 +252,13 @@ export interface CollisionOptions {
   /** The loaded tool number — what a segment before the first M6 row
    *  (or a payload without the channel) runs with. */
   liveTool?: number | null;
+  /** Lines that set an offset or a stored position FROM the position after
+   *  an unseen tool change (payload `stale_offset_lines`, Codex R95 VP-I53):
+   *  every move from there on is unchecked to the end — the note says why. */
+  staleOffsetLines?: number[];
+  /** The program's offsets set from that position are not tracked (its
+   *  lines do not run in text order — subroutines, loops): the note says so. */
+  staleOffsetUntracked?: boolean;
   /** Diagnostics (2026-09-13): when set, the sweep allocates and fills
    *  per-pair distance-query counts and milliseconds, indexed like
    *  `model.pairs` — the tool for finding which pairs a slow sweep spends its
@@ -1081,12 +1088,23 @@ export function* sweepCollisionsIter(
   // R92 VP-I51; a G43 is no such move, gcode_canon.tool_offset).
   const unknownStarts: number[] = [];
   if (track.ustart) for (let i = 1; i < n; i++) if (track.ustart[i]) unknownStarts.push(track.lines[i]!);
+  // An offset or a stored position set FROM that position is the preview's
+  // guess for good — an absolute move does not repair it, a later fixture
+  // may carry it — so from its line on nothing is checked to the end, and
+  // the note says so instead of promising a recovery (Codex R95 VP-I53).
   if (unknownStarts.length) {
     const k = unknownStarts.length;
     const at = [...new Set(unknownStarts)];   // a cycle is several moves on one line
+    const list = (ls: number[]) => `${ls.slice(0, 3).map(l => "L" + l).join(", ")}${ls.length > 3 ? " …" : ""}`;
+    // 0 = a write the parse caught without a main-file line to name
+    const off = opts.staleOffsetLines ?? [], named = off.filter(l => l > 0);
     uncertified = (uncertified ? uncertified + "; " : "")
       + `${k} move${k === 1 ? "" : "s"} after a tool change run${k === 1 ? "s" : ""} from a position the preview cannot know — `
-      + `not checked until the position is known again (${at.slice(0, 3).map(l => "L" + l).join(", ")}${at.length > 3 ? " …" : ""})`;
+      + (!off.length ? `not checked until the position is known again (${list(at)})`
+        : named.length ? `not checked to the program's end: the offset${named.length === 1 ? "" : "s"} set from that position at ${list(named)} `
+            + `stay${named.length === 1 ? "s" : ""} unknown whatever is positioned after (${list(at)})`
+        : `not checked to the program's end: an offset set from that position stays unknown whatever is positioned after (${list(at)})`)
+      + (opts.staleOffsetUntracked ? "; in subroutines and loops only G92 and the active fixture's offsets are tracked" : "");
   }
   let fellBack = false;
   if (track.mode && !abortedInit) {

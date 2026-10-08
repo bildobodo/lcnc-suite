@@ -129,7 +129,9 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
         { id: "fixed", group: "table", positions: small(), translate: obstacle },
         { id: "head", group: "head", positions: small() },
       ]), swept(track), wcs, { margin: 0.1, tloEvents: d.tloEvents,
-        epochTerms: d.wcsEvents?.length ? epochTermsFor(d.wcsEvents, wcs, undefined) : undefined });
+        epochTerms: d.wcsEvents?.length ? epochTermsFor(d.wcsEvents, wcs, undefined) : undefined,
+        // as the page hands them over (ThreeViewer's sweep options)
+        staleOffsetLines: raw.stale_offset_lines, staleOffsetUntracked: raw.stale_offset_untracked });
       return { result, track, last: track.count - 1 };
     }
     it("a G98 cycle returns to the stale height: the next move named, never swept along a guessed path", () => {
@@ -148,6 +150,40 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       expect(result.uncertified).toMatch(/^23 moves after a tool change run .*\(L5, L6, L7\)$/);
       expect(track.ustart![last]).toBe(1);
       expect(result.hits).toHaveLength(0);
+    });
+    it("an offset set from the unknown position keeps every later move unknown, and the note says why (Codex R95)", () => {
+      // G92 Z10 after the change: the preview's offset is Z30 (from its
+      // guessed Z40), the machine's Z20 — L6 would be swept at Z45 against
+      // a box the machine never reaches (Codex's obstacle). The absolute L5
+      // repairs no offset: L6 stays unknown, the note names L4.
+      const END = /not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after/;
+      let r = sweepXYZ("r95_g92_from_stale", [15, 5, 45]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(END);
+      // G10 L20 P2 hidden by a G90 (no canon call sees it): it takes effect
+      // at G55 — L9 (X20→X30 at Z25, G55's guessed Z30) stays unknown.
+      r = sweepXYZ("r95_l20_inactive_hidden", [25, 5, 55]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(END);
+      // An explicit G10 L2 P1 Z30 does not depend on the position: L6 is
+      // known, and the box on its real path (Z15 + 30) is a real finding.
+      r = sweepXYZ("r95_l2_constant", [15, 5, 45]);
+      expect(r.track.ustart![r.last]).toBe(0);
+      expect(r.result.hits.some(h => h.line === 6)).toBe(true);
+      expect(r.result.uncertified).toMatch(/not checked until the position is known again/);
+      // A main file with an o-word loop: the text's order is lost — the G92
+      // still reports itself, and the note says what is not tracked.
+      r = sweepXYZ("r95_oword_g92", [15, 5, 45]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.uncertified).toMatch(/at L6 stays unknown .*; in subroutines and loops only G92 and the active fixture's offsets are tracked$/);
+      // A G92 in a called subroutine file: caught by its callback, its line
+      // the sub file's — the note names none rather than a wrong one.
+      r = sweepXYZ("r95_sub_g92", [15, 5, 45]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(/not checked to the program's end: an offset set from that position stays unknown whatever is positioned after \(L5, L6\); in subroutines/);
     });
     it("a rotation after X alone was known keeps the next move unknown; a full target makes it known", () => {
       let r = sweepXYZ("r94_rotated_after_partial", [6.0355339059, 13.1066017178, 15]);

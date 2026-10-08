@@ -3293,6 +3293,10 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
       // fallback.
       toolDims: _programToolDims(),
       liveTool: _pv.toolNum,
+      // An offset set from the unknown position after a tool change: the
+      // note names its line (Codex R95 VP-I53). Plain arrays, clone fine.
+      staleOffsetLines: viewerGcode.value?.stale_offset_lines?.slice(),
+      staleOffsetUntracked: viewerGcode.value?.stale_offset_untracked,
     },
   };
   return { msg, transfer, modelKey, bodies: bodies.length };

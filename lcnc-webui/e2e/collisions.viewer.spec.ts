@@ -100,6 +100,25 @@ test("a move whose start no parse can know is named in the check", async ({ page
   await ctl({ op: "reset" });
 });
 
+// An offset set from that unknown position (Codex R95 VP-I53): the parse
+// keeps every later move unknown and names the line; the page must hand the
+// line and the "not tracked" flag to the worker, or the note would promise a
+// recovery that never comes.
+test("an offset set from the unknown position is named, to the program's end", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await prepare(page, context, { file: "/ustart-offset.ngc", version: 2311, lines: [1, 2, 6], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -150], [20, 0, -150]],
+    extra: { feed_seq: [1, 2, 4], rapid: [[10, 0, -150]], rapid_lines: [4], rapid_seq: [3],
+             rapid_outside: new Uint8Array(1), rapid_ustart: new Uint8Array([1]),
+             stale_offset_lines: [3], stale_offset_untracked: true } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCollisionSummary?.()?.uncertified ?? null),
+                    { timeout: 60_000 })
+    .toBe("1 move after a tool change runs from a position the preview cannot know — not checked to the program's end: "
+      + "the offset set from that position at L3 stays unknown whatever is positioned after (L4); "
+      + "in subroutines and loops only G92 and the active fixture's offsets are tracked");
+  await ctl({ op: "reset" });
+});
+
 // The parallel sweep (operator 2026-10-07): with cores to spare the worker
 // splits the model's pairs over sub-workers of its own and merges their
 // results; the page sees one sweep. Its equality with the single sweep is

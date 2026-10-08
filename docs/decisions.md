@@ -8601,5 +8601,50 @@ unrotated; the tests now hand it over the page's way, with a hit on the
 rotated path as the control. Not followed, named: an offset register written
 from a stale position (G92, G10 L20 on a stale axis) is wrong in the
 preview, and the positions in its frame read as known — the canon sees the
-new offset, never whether it came from an L2 or an L20.
+new offset, never whether it came from an L2 or an L20. (Followed since R95:
+the main file's text tells them apart — the entry below.)
 
+## 2026-10-08 — The run stops at the first soft limit at the latest
+
+The operator's extreme test (haus.ngc on the XYZAC sim, Y −477 against a
+−200 window, over 200 000 limit records) lists collisions in poses no
+machine reaches, and the operator agreed to mark them, the check running on.
+Where the machine stops was read from LinuxCNC 2.9's `command.c`, not
+assumed: the motion module checks a move's END when the move is QUEUED
+(`EMCMOT_SET_LINE` / `SET_CIRCLE`: `inRange` → "move on line N would exceed
+joint J's limit", `tpAbort` of what is running). With readahead the machine
+therefore halts BEFORE the violating move — where, no preview knows — so the
+claim is "at the latest": the first limit row of the Sim tab says "the run
+stops here at the latest", every row that starts after it says "after the
+limit stop at L…". One rule for every kind (a limit row or a tool change past
+the stop is as unreached as a collision); strictly after: a row AT the
+violating move's start — a contact in the pose the move before reached, a
+tool change before it — is not claimed unreached. The rows stay listed and the sweep
+runs on. Narrow, "Rapid" / "Feed" now stands before the note, so a long note
+never cuts the move off the line. The summary count and the timeline marks
+are unchanged — a presentation the operator decides from renders.
+
+## 2026-10-08 — An offset set from an unknown position stays unknown (Codex R95 VP-I53)
+
+After a tool change at a position the preview cannot see, an offset computed
+FROM the position — `G92`, `G10 L20` (and L10 / L11 into the tool table),
+a stored `G28.1` / `G30.1` — is the preview's guess for good: Codex's G92
+case computed Z30 from the guessed Z40 where the machine has Z20, and the
+following absolute `G0 X10 Y5 Z15` made the next move "known" — swept 10 mm
+too high, a false hit on L6; an L20 on the inactive G55 carried the same
+error into the switch three lines later. Those axes now stay stale to the
+program's end. The first attempt read the state's non-modal slot (G10 = 100,
+G92 = 920) at the next `next_line`; measured natively, a following `G90`
+(no canon call) overwrites it before any `next_line` sees it, and a `G28.1`
+gets no `next_line` of its own. No canon call tells an L20 from an explicit
+L2 either. So the main file's TEXT decides (`position_write_lines`): it sees
+the call-less writes, their lines and the L word — Codex's explicit
+`G10 L2 P1 Z30` control keeps its known move and its real finding. Where the
+text cannot speak (o-words or M98 in the main file: lines out of text order;
+a write inside a sub file), the callbacks of the active registers catch
+G92 and the active fixture conservatively, named by a main-file line only
+when the text lists a write there; the payload says what stays untracked
+(an inactive fixture's write, a store inside a sub or loop), and the note
+says it. A cause line is named once a move runs after it (M2 resets the
+offsets through the same callbacks). Per-axis precision past the first such
+write was dropped: one stale axis makes every move unknown already.
