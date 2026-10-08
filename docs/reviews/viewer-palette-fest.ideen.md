@@ -14128,3 +14128,59 @@ Eine Innenlage kann sich nur über eine Oberflächenkreuzung ändern. Sie gilt a
 ### Offen (nicht Teil dieser Runde)
 
 Kollisionsplan Schritt 3 (M600 in der Vorschau) und die Zeilenzuordnung von Einsätzen.
+
+## Review R101 · Codex · Innenprüfung und Innenzertifikat · 8. Oktober 2026
+
+**Ergebnis: `findings`. Fassung 3 für offene Netze ausdrücklich angenommen. Die Umsetzung hat zwei offene Befunde: VP-I57 (Geschwindigkeitsschranke/Zertifikat) und VP-I58 (Unsicherheit bei der Verfeinerung).**
+
+Geprüft: `c5f22dad..71724fc4`, Anfrage `334b3d15`, in einer Archivkopie. Keine Produktänderungen oder Zugriffe auf die Live-Suite. VP-I53, VP-I55 und VP-I56 bleiben geschlossen; M600 und die getrennt benannte Zeilenzuordnung sind nicht Teil dieser Runde.
+
+### VP-I57 · P1 · Die Abweichung von der Verbindungsgeraden ist keine Geschwindigkeitsschranke
+
+**Betroffen:** `collision.ts:2172–2182` und der neue Innenzertifikat-Verbraucher `:2253–2255`; Vertrag und Berechnung von `jointBulge` in `kins.ts:66–102`.
+
+Die Innenlage bis zur nächsten Oberflächenkreuzung zu zertifizieren ist grundsätzlich richtig. **Das eingesetzte V begrenzt unter Welt-Kinematik aber nicht die dafür benötigte Geschwindigkeit.** `jointBulge` liefert die maximale Abweichung vom linearen Verlauf zwischen den Abschnittsenden. `(|Ende − Anfang| + bulge) / Abschnittslänge` ist deshalb noch keine Schranke der lokalen Ableitung. Gerade bei gleichen Endwerten um ein Extremum ist der Unterschied erheblich.
+
+**Kleine analytische Gegenprobe, ohne gemockte Geometrie oder Kinematik:** XYZAC-TCP mit konstantem Programm-X1000, Y=Z=A=0, C von −11,25° nach +11,25°. Das betrachtete Paar hängt relativ zueinander nur am X-Gelenk. Dessen Position ist `x(C) = 1000 cos(C)`. Ein 1-mm-Würfel liegt anfangs in einem 20-mm-Würfel mit Mittelpunkt X980,785280; die Ruhestellung ist frei, also kein statischer Ausschluss.
+
+- Beide Gelenk-Endwerte sind gleich. Der Code berechnet `bulge = 19,276571 mm` und **V = 0,856736 mm/Grad**. Die tatsächliche maximale Geschwindigkeit im Abschnitt beträgt **3,404968 mm/Grad**.
+- Nach 5° und 10° Weg liegt der kleine Würfel vollständig außerhalb. Das Innenzertifikat behauptet dort noch **5,216318 bzw. 0,932635 mm** Restabstand und setzt `d = 0`, ohne die Geometrie zu fragen.
+- Analytisch bestehen zwei Kontaktintervalle: **[0; 3,680273]** und **[18,819727; 22,5]** auf der Winkel-Wegachse. Das Produkt liefert nur **[0; 10]**, mit `uncertified: null`, ohne Abbruch oder Vergröberung.
+- Eine ansonsten identische Modulkopie mit ausschließlich deaktiviertem Innenzertifikat beendet das erste Intervall korrekt bei **3,680054**. Die falsche Verlängerung auf 10 ist damit dem neuen Zertifikat zugeordnet.
+- Der **fehlende Rückkontakt** tritt auch ohne Innenzertifikat auf: Er zeigt zusätzlich die Wirkung derselben schon vorher vorhandenen V-Berechnung auf Freiraumzertifikate. Eine separate Kontrollkopie mit `4 × bulge` als Ableitungsbudget findet bei **aktivem** Innenzertifikat beide analytischen Intervalle korrekt. Das ist ein Ursachennachweis, keine Änderung am Produkt und keine pauschale Freigabe dieser Ein-Zeilen-Korrektur für jede Kinematik.
+
+**Erforderlich:** Für beide Zertifikate eine tatsächlich lokale Geschwindigkeitsschranke beziehungsweise einen korrekt konsumierten Bewegungsbetrag verwenden und den Vertrag von `jointBulge` dazu passend trennen/ergänzen. Die maximale Abweichung von der Verbindungsgeraden darf nicht proportional zur verstrichenen Teilstrecke als maximaler Weg ausgegeben werden. Die Gegenprobe muss erstes Kontaktende **und** Rückkontakt prüfen; Welt-Kinematik und Übergabe der Restbudgets über Abschnittsgrenzen gehören in den Wächter. Der bereits vorhandene Ursprung der gemeinsamen Schranke ändert nichts daran, dass ihre neue Verwendung hier falsche Innenkontakte zertifiziert.
+
+[Sonde mit fünf Erwartungen](viewer-palette-fest.r101.codex-bulge.test.ts), [Stellungen, Zahlen und drei Ergebnisse](viewer-palette-fest.r101.codex-bulge.json), [2 rot / 3 grün](viewer-palette-fest.r101.codex-bulge-final.txt), [Kontrolle ohne Zertifikat](viewer-palette-fest.r101.codex-noCert.patch), [Kontrolle mit Ableitungsbudget](viewer-palette-fest.r101.codex-speedBound.patch).
+
+### VP-I58 · P2 · Nur bei der Verfeinerung unentscheidbare Innenlagen bleiben ohne Hinweis
+
+**Betroffen:** `collision.ts:1829–1830`, `contactAtDist`, sowie die Erzeugung von `insideNotes` beim Ergebnisbau.
+
+Das Prädikat macht aus `undecidable` unmittelbar `true`. Das konservative Erweitern des Kontaktintervalls entspricht dem Plan; **die dabei festgestellte Unsicherheit geht jedoch verloren**. Nur Basislinie, Hauptschleife und Nachabtastung tragen sie in `undecSpans` ein. Entsteht die erste unentscheidbare Antwort beim Rückwärtsgehen oder Bisektieren, bleibt `uncertified` leer. Das verletzt den in R97 ausdrücklich festgehaltenen Vertrag, eine einmal unentscheidbare Strecke dauerhaft zu benennen.
+
+**Gegenprobe:** Ein 1-mm-Würfel fährt in einem geschlossenen Hohlkörper mit 40-mm-Innenraum von X0 nach X20. Der normale Kontrolllauf findet Kontakt ab **19,500464**. Wie in `collisionInside.test.ts` wird nur der Strahlentscheid ersetzt: Für einen Stellvertreterpunkt mit **18 < x < 19,5** lautet er `undecidable`, sonst entscheidet die echte Funktion. Das Mock kennt den Aufrufer nicht. Das Protokoll bestätigt sechs unentscheidbare Abfragen ausschließlich aus der Verfeinerung.
+
+Das Intervall wächst auf **[17,500342; 20]**, aber `notes: []` und `uncertified: null` bleiben unverändert. Der Nutzer erhält somit einen scheinbar entschieden bestimmten Kontaktbereich, obwohl dessen Anfang wegen eines unentscheidbaren Innenentscheids vorgezogen wurde.
+
+**Erforderlich:** Auch Verfeinerungsantworten mit Paar und betroffener Zeile/Strecke sammeln und dauerhaft in den Ergebnishinweisen erhalten, einschließlich Snapshot-/Memo-, Shard- und Einfahrtpfad. Dabei nicht einfach den zeitgeordneten `undecided`-Zustand der laufenden Vorwärtssuche aus einer rückwärts laufenden Verfeinerung verändern. Die bestehende konservative Intervallerweiterung kann bleiben.
+
+[Sonde](viewer-palette-fest.r101.codex-refine.test.ts), [Positionen und Ergebnis](viewer-palette-fest.r101.codex-refine.json), [1 rot / 1 grün](viewer-palette-fest.r101.codex-refine.txt).
+
+### Antworten auf die drei Prüffragen
+
+1. **Fassung 3: angenommen.** Eine bekannte Netzeigenschaft einmal dauerhaft pro Modell zu benennen ist sinnvoll; wiederholte Strahlen können den fehlenden Netzabschluss nicht reparieren. Die Oberflächenprüfung darf mit ihren Zertifikaten weiterlaufen, solange der ausgelassene Innenfall sichtbar eingeschränkt bleibt. Eigene Probe: offener Container, keine erfundene Innenkollision, keine statische Innenausnahme, Modellhinweis vorhanden. Die Gegenrichtung bleibt korrekt erhalten: Ein offener Körper **in einem geschlossenen Container** darf weiterhin als innen erkannt werden. Den Satz „nie ein statischer Ausschluss aus Innenlage“ entsprechend auf die ausgelassene Richtung beziehen. Auch die [libigl-Dokumentation](https://libigl.github.io/tutorial/#generalized-winding-number) unterscheidet geschlossene Netze von offenen beziehungsweise nicht mannigfaltigen Netzen, für die Innen/Außen zusätzliche Annahmen benötigt.
+2. **Oberflächenabstand: als Zertifikatsbasis geeignet; V: in der vorgelegten Form nicht allgemein geeignet.** Kugel- und Komponentenboxantworten sind untere Schranken. `Infinity` darf nur als nachgewiesener Horizontabstand, hier 20, konsumiert werden; das macht der Code. Die Repository-Abstandstests und eine eigene analytische Boxprobe bestehen, auch bei tiefem Einschluss jenseits des Horizonts. Der offene Punkt ist die Bewegungsseite, VP-I57. Die geometrische Begründung des Innenzertifikats selbst muss nicht verworfen werden.
+3. **Fragepunkte:** Basislinie/Ruhe, Sprung, Werkzeugwechsel, Trennungsentscheidung und Nachabtastung sind verdrahtet. Die Verfeinerung fragt ebenfalls, verliert aber ihre unentscheidbare Antwort gemäß VP-I58. Die Zusammenführung bereits vorhandener Hinweise über Shards und Einfahrt besteht; sie kann einen am Ursprung verlorenen Hinweis nicht wiederherstellen.
+
+Zusätzlich bestätigt: **257 Komponenten** behalten alle Stellvertreterpunkte, obwohl die Komponentenboxen auf eine Gesamtbox zurückfallen. Einzel-/Shard-Läufe und Snapshot-Weiterlauf bestehen mit Innenlagen. Bei linearen und rotatorischen Identitätsbahnen über je 90 Abschnitte sind Ergebnisse mit und ohne Innenzertifikat gleich. Die analytischen Hohlkörperfälle und das Windungszahl-Orakel bestehen innerhalb des vereinbarten Paritätsvertrags.
+
+[Zusätzliche Vertragsproben](viewer-palette-fest.r101.codex-contracts.test.ts), [Ergebnisse](viewer-palette-fest.r101.codex-contracts.json), [Zertifikat-Vergleiche](viewer-palette-fest.r101.codex-certificate.test.ts), [deren Ergebnisse](viewer-palette-fest.r101.codex-certificate.json).
+
+### Prüfungen und Grenzen
+
+**160 Repository-Prüfungen grün**, einschließlich fünf Orakelprüfungen auf den mitgelieferten Modellen; **Build/TypeScript grün**. Eigene Sonden: **10 grün / 3 rot**, zu den beiden Befunden oben. Die reproduzierbare gemeinsame Ausführung ergibt dieselbe Verteilung. R93–R100-Belege gegen ihre Hashmanifeste unverändert.
+
+Kein vollständiges Offline-Gate, erneuter Browserlauf, Deep-Hunt oder Live-Abnahme. Keine Backendänderung in diesem Umfang. Die haus-Kostenmessung ist Claudes vorgelegter Beleg; ich habe sie ohne das außerhalb des Repos liegende Programm nicht wiederholt. Die Laufzeiten der kleinen eigenen Vergleichsfälle dienen ausdrücklich keiner Performanceaussage. Ein korrektes Ergebnis ist Voraussetzung für die Kostenabnahme; der bestandene Gate-Orakellauf ersetzt die rote analytische TCP-Gegenprobe nicht.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r101.codex-checks.md), [Wiederholungswerkzeug](viewer-palette-fest.r101.codex-reproduce.py), [Kontext und Isolation](viewer-palette-fest.r101.codex-context.json), [Kernprüfungen](viewer-palette-fest.r101.codex-core.txt), [Orakel](viewer-palette-fest.r101.codex-oracle.txt), [gemeinsamer Sondenlauf](viewer-palette-fest.r101.codex-rerun.txt), [Build](viewer-palette-fest.r101.codex-build.txt), [Beleghashes](viewer-palette-fest.r101.codex-sha256.json).

@@ -1,0 +1,159 @@
+{
+  "x0": 980.7852804032304,
+  "exit": 3.680272591280805,
+  "expectedIntervals": [
+    [
+      0,
+      3.680272591280805
+    ],
+    [
+      18.819727408719196,
+      22.5
+    ]
+  ],
+  "V": 0.8567364931501178,
+  "bulge": 19.27657109587765,
+  "maxActualSpeed": 3.4049684579574198,
+  "positions": [
+    {
+      "s": 0,
+      "C": -11.25,
+      "x": 980.7852804032304,
+      "inside": "inside",
+      "clearanceLeftClaimed": 9.5
+    },
+    {
+      "s": 3.680272591280805,
+      "C": -7.569727408719195,
+      "x": 991.2852804032304,
+      "inside": "outside",
+      "clearanceLeftClaimed": 6.346976166309586
+    },
+    {
+      "s": 5,
+      "C": -6.25,
+      "x": 994.0563382223196,
+      "inside": "outside",
+      "clearanceLeftClaimed": 5.216317534249411
+    },
+    {
+      "s": 10,
+      "C": -1.25,
+      "x": 999.7620270799091,
+      "inside": "outside",
+      "clearanceLeftClaimed": 0.932635068498822
+    },
+    {
+      "s": 11.25,
+      "C": 0,
+      "x": 1000,
+      "inside": "outside",
+      "clearanceLeftClaimed": -0.13828554793882475
+    },
+    {
+      "s": 18.819727408719196,
+      "C": 7.569727408719196,
+      "x": 991.2852804032304,
+      "inside": "outside",
+      "clearanceLeftClaimed": -6.6235472621872375
+    },
+    {
+      "s": 22.5,
+      "C": 11.25,
+      "x": 980.7852804032304,
+      "inside": "inside",
+      "clearanceLeftClaimed": -9.77657109587765
+    }
+  ],
+  "with": {
+    "hits": [
+      {
+        "line": 2,
+        "cum": 0,
+        "cumEnd": 10,
+        "a": "inner",
+        "b": "outer",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            0,
+            10
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 25,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 1.5177590000000123,
+    "sweepMs": 9.500183000000007,
+    "truncated": null
+  },
+  "without": {
+    "hits": [
+      {
+        "line": 2,
+        "cum": 0,
+        "cumEnd": 3.6800537109374996,
+        "a": "inner",
+        "b": "outer",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            0,
+            3.6800537109374996
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 26,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.5985029999999938,
+    "sweepMs": 15.207093000000015,
+    "truncated": null
+  },
+  "derivativeBoundControl": {
+    "hits": [
+      {
+        "line": 2,
+        "cum": 0,
+        "cumEnd": 22.5,
+        "a": "inner",
+        "b": "outer",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            0,
+            3.6800537109374996
+          ],
+          [
+            18.819780616263213,
+            22.5
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 33,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.29541900000000965,
+    "sweepMs": 8.852678999999995,
+    "truncated": null
+  }
+}

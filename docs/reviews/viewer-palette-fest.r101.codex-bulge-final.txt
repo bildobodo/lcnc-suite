@@ -1,0 +1,46 @@
+
+ RUN  v4.1.8 /tmp/codex-r101-oqls9rbo/archive/lcnc-webui
+
+ ❯ src/viewer/r101.bulge.test.ts (5 tests | 2 failed) 4ms
+   × the inside certificate must not extend the first interval past the real exit 1ms
+   × the shared speed bound must not miss the return into the box 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r101.bulge.test.ts > the inside certificate must not extend the first interval past the real exit
+AssertionError: expected 10 to be close to 3.680272591280805, received difference is 6.319727408719195, but expected 0.005
+ ❯ src/viewer/r101.bulge.test.ts:36:44
+     34| });
+     35| it("the inside certificate must not extend the first interval past the…
+     36|  expect(r.with.hits[0]!.intervals![0]![1]).toBeCloseTo(r.exit,2);
+       |                                            ^
+     37| });
+     38| it("the shared speed bound must not miss the return into the box",()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r101.bulge.test.ts > the shared speed bound must not miss the return into the box
+AssertionError: expected [ [ +0, 10 ] ] to have a length of 2 but got 1
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ src/viewer/r101.bulge.test.ts:39:36
+     37| });
+     38| it("the shared speed bound must not miss the return into the box",()=>{
+     39|  expect(r.with.hits[0]!.intervals).toHaveLength(2);
+       |                                    ^
+     40| });
+     41| it("derivative-bound control recovers both analytic intervals, certifi…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 3 passed (5)
+   Start at  18:47:08
+   Duration  271ms (transform 138ms, setup 0ms, import 217ms, tests 4ms, environment 0ms)
+

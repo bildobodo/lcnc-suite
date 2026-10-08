@@ -1,0 +1,23 @@
+{
+  "viewer-palette-fest.r101.codex-core.txt": "005a5ceb21dcaff2763b832e70d72d236bd7f1c6df1ca4face3faea056a7c971",
+  "viewer-palette-fest.r101.codex-oracle.txt": "f8ad37a11f30d1bbb30127727f32a63f2b9c3dfbd6492698a4cde77eef2bbc1a",
+  "viewer-palette-fest.r101.codex-refine.json": "6209ecbc119ec53e11071471d35fec598d5a19a5f5f157b4eda83d2ff4c520b7",
+  "viewer-palette-fest.r101.codex-refine.txt": "71ed32f5eb4a9fc14185fbfbc41ddb6facec08ea110755f8c52a6864d5fa1ffe",
+  "viewer-palette-fest.r101.codex-refine.test.ts": "96bea49f0bface9207f919b3ebbdfc591e9762e91995cd4b2ff59fbc42670e04",
+  "viewer-palette-fest.r101.codex-contracts.json": "5c0199f3e1022e1f8f83e20c218607741ca930a8804ad0daf1c26a1d5663a505",
+  "viewer-palette-fest.r101.codex-contracts.test.ts": "3fc8cd08685ada69788505c1b55d08fdac2c641b89774597bff0f360320d51c5",
+  "viewer-palette-fest.r101.codex-certificate.json": "ce6532d6ac4a71eacf986340c127c1e82c25b588c0647bea3c6e292071ddd87e",
+  "viewer-palette-fest.r101.codex-certificate.test.ts": "6b8b338fb690a4e9576caa237dc3443998ec6f92f6b28d3b25fcd42dbea0cf3d",
+  "viewer-palette-fest.r101.codex-bulge.json": "63b3fd29b5f004f17df4bcc0276c1816734f75deb1f1c4d51e20e90827929015",
+  "viewer-palette-fest.r101.codex-bulge.test.ts": "19ca4426ef4dbcaecfb36df5b993e675555e7aec6519b81ec29affd1c37663a4",
+  "viewer-palette-fest.r101.codex-bulge-final.txt": "e6e45218a20e8666e7c0b96e822dd8c816a27aaccd4c92f6788744f947476028",
+  "viewer-palette-fest.r101.codex-own.txt": "a45992de20587cc5c964d00ca7b93082c0038e0798cbec5b6ac2980bc6561623",
+  "viewer-palette-fest.r101.codex-build.txt": "87e0ed8bee304108eb31a6667c3cb704e0ffcd77ada3ceb0ba2b8806b348dd47",
+  "viewer-palette-fest.r101.codex-noCert.patch": "09a58dc50906076efac1c26264d45117ae80fda9bdd8057d082c9ff056da56fe",
+  "viewer-palette-fest.r101.codex-speedBound.patch": "f8eb063f7fc43e4e25bd6d8d8652c897980abe90e66518c7488fb8ae2bbb2589",
+  "viewer-palette-fest.r101.codex-checks.md": "344107d704ba1882706daa2d7fd85c0f6c2fad447d5c9d72243deb48048d460c",
+  "viewer-palette-fest.r101.codex-context.json": "9c872ffcd147bdb2023f5c32174969b095113ec62aab82f3c4061edc1840ea48",
+  "viewer-palette-fest.r101.codex-isolation.patch": "c68b9f3b7303fbd73f2ef67ac0b7c5eef27d21df37f78300c68d4ef72bbb5149",
+  "viewer-palette-fest.r101.codex-reproduce.py": "49d9aea96a94c997ca2fe61176f3e4ef128e8c30d204682efac47f0791041c3a",
+  "viewer-palette-fest.r101.codex-rerun.txt": "442c0b2cacc20a206c7dd93d0d144a783f5fc818c2a40923542db1e7a758e748"
+}

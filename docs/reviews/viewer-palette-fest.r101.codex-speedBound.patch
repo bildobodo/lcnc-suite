@@ -1,0 +1,11 @@
+--- src/viewer/collision.ts
++++ src/viewer/r101.speedBound.ts
+@@ -2169,7 +2169,7 @@
+         for (let di = 0; di < list.length; di++) {
+           const pd = list[di]!;
+           const dJ = Math.abs((jv1[pd.dof.joint] ?? 0) - (jv0[pd.dof.joint] ?? 0));
+-          if (!pd.dof.rotate) trans += dJ + (jointBulge[pd.dof.joint] ?? 0);
++          if (!pd.dof.rotate) trans += dJ + 4 * (jointBulge[pd.dof.joint] ?? 0); // R101 derivative-bound control
+           else {
+             const lever = Math.max(rotLever[pi]![di]!, leverFor(pd, A), leverFor(pd, B));
+             rotRadLever += (dJ * Math.PI / 180) * (lever + trans);
