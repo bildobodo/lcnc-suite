@@ -1,0 +1,33 @@
+# R97 — compiling mutations, each restored from a byte copy
+
+## VP-I53 rest / VP-I54 (fix/r96): gateway_util.py / gcode_canon.py against test_tool_change_motion_worker.py + test_start_tlo_worker.py + test_gateway_util.py
+RED    MN1 decimals in a G word unrecognised (the old literal match)
+       3 failed, 425 passed, 24 subtests passed in 4.83s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_any_spelling_of_a_write_is_seen
+       - test_gateway_util.py::TestPositionWriteLines::test_each_kind
+RED    MN2 a G word the text cannot settle read as no write
+       1 failed, 427 passed, 24 subtests passed in 5.04s
+       - test_gateway_util.py::TestPositionWriteLines::test_each_kind
+RED    MN3 no backstop with ordered text
+       1 failed, 427 passed, 24 subtests passed in 5.06s
+       - test_gateway_util.py::TestOffsetWriteBackstop::test_an_unlisted_change_is_a_write
+RED    MN4 the text range scanned out of text order too (VP-I54)
+       1 failed, 427 passed, 24 subtests passed in 4.96s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_branch_that_never_runs_writes_nothing
+RED    MN5 an unchanged register counts as a write
+       3 failed, 425 passed, 24 subtests passed in 4.78s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_later_rotation_makes_a_known_x_or_y_unknown_again
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+       - test_gateway_util.py::TestOffsetWriteBackstop::test_no_change_a_listed_line_or_a_switch_is_not
+RED    MN6 an ordered backstop write named 0
+       1 failed, 427 passed, 24 subtests passed in 5.09s
+       - test_gateway_util.py::TestOffsetWriteBackstop::test_an_unlisted_change_is_a_write
+
+## VP-I55 (fix/r96): simRows.ts against simRows.test.ts + toolChangePayloads.test.ts (vue-tsc per mutation)
+RED   ML1 the boundary is the limit row's start (R95's rule) | vue-tsc exit 0 | Tests  2 failed | 16 passed (18)
+RED   ML2 a row AT the boundary counts as after it | vue-tsc exit 0 | Tests  1 failed | 17 passed (18) (green before a row at the boundary was in the test — added)
+RED   ML3 the last flagged point instead of the first | vue-tsc exit 0 | Tests  1 failed | 17 passed (18)
+RED   ML4 no flags: marked from the first limit row anyway | vue-tsc exit 0 | Tests  1 failed | 17 passed (18)
+
+## sim-panel.viewer.spec on fix/r96 (the boundary from the flags; the L20 row "in this line"): 14 passed
