@@ -38,7 +38,8 @@ import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
-import { m600ToolNotes, parseProbeStops, probeStopTitle } from "./viewer/probeStop";
+import { m600ToolNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
+import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
 
@@ -1006,6 +1007,8 @@ watchEffect(() => {
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };
   simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;
+  const ts = confirmedToolsetter();
+  simView.basis = toolsetterBasisLine(viewerGcode.value?.toolsetter_basis, ts.ok ? toolsetterVarMap(ts.values) : null);
   simView.jumpReason = hitNavReason.value;
 });
 const releaseSim = claimSimActions({

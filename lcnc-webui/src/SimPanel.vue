@@ -84,7 +84,8 @@ const sumHelp = computed(() => {
     const lines = count("limit");
     return `${total} limit violations, a line and an axis each. The parse sends the first ${records}; the list shows their ${lines} line${lines === 1 ? "" : "s"}.`;
   }
-  return "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes.";
+  return "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes."
+    + (simView.basis ? ` ${simView.basis}.` : "");
 });
 const sumTool = computed(() => {
   const n = count("tool");

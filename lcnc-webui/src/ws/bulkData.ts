@@ -437,6 +437,12 @@ export interface ViewerGcode {
   /** Where the routine's G43 applied the TABLE's length — [seq, tool,
    *  length] (machine units): an assumption, never a measurement. */
   toollen_table?: [number, number, number][];
+  /** The toolsetter basis the routine was read with (plan section 2):
+   *  `state` confirmed / assumed / unknown / not_set_up, the latest
+   *  confirmation's `origin` (applied / read) and `t` (epoch s), the values
+   *  read (var number → value), `routine` = the program runs the routine. */
+  toolsetter_basis?: { state?: string; origin?: string; t?: number; version?: number; routine?: boolean;
+                       values?: Record<string, number | null>; unknown?: number[]; assumed?: number[] };
   /** Lines that set an offset or a stored position from the unknown
    *  position after a tool change (Codex R95 VP-I53); absent = none. */
   stale_offset_lines?: number[];

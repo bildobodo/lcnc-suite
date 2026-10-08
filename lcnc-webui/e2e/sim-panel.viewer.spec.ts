@@ -497,6 +497,15 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await expect(page.locator(".helpPopover:popover-open"), "a tap: the cap in words").toHaveText(said);
 });
 
+test("a predicted measurement: the summary's \"?\" says where the toolsetter values come from", async ({ page, context }) => {
+  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS, toollen_table: [[12, 5, 65.04]],
+    toolsetter_basis: { state: "assumed", routine: true, values: { "3009": 3 } } })));
+  const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
+  await help.click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText(
+    "Toolsetter values assumed from the parameter file — not verified.");
+});
+
 // M600 in the preview (docs/reviews/m600-preview.plan.md): a tool measurement
 // the preview cannot predict bounds every verdict — the summary and its "?"
 // say so, the time says there is more, and a tool-change row says where its

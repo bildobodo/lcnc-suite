@@ -2,7 +2,8 @@
 // the preview cannot predict (payload `probe_unpredicted`) and for a length
 // the routine took from the table (`toollen_table`).
 import { describe, expect, it } from "vitest";
-import { firstProbeStopSeq, m600ToolNotes, parseProbeStops, probeStopTitle, probeStopWhy } from "./probeStop";
+import { firstProbeStopSeq, m600ToolNotes, parseProbeStops, probeStopTitle, probeStopWhy, toolsetterBasisLine } from "./probeStop";
+import { fmtClock } from "../format";
 import { buildSimRows } from "./simRows";
 
 describe("probe stops", () => {
@@ -52,4 +53,26 @@ describe("probe stops", () => {
       ["Tool change → T5", ""],
     ]);
   });
+
+  it("says where the toolsetter values come from, and when the Settings hold others", () => {
+    const t = 1760000000;
+    const base = { routine: true, t, values: { "3009": 3, "3102": -180 } };
+    expect(toolsetterBasisLine({ ...base, state: "confirmed", origin: "applied" }))
+      .toBe(`Toolsetter values taken over ${fmtClock(t * 1000)}`);
+    expect(toolsetterBasisLine({ ...base, state: "confirmed", origin: "read" }))
+      .toBe(`Toolsetter values read ${fmtClock(t * 1000)}`);
+    expect(toolsetterBasisLine({ ...base, state: "assumed" }))
+      .toBe("Toolsetter values assumed from the parameter file — not verified");
+    // unknown / never stored: the stop says it
+    expect(toolsetterBasisLine({ ...base, state: "unknown" })).toBeNull();
+    expect(toolsetterBasisLine({ ...base, state: "confirmed", routine: false })).toBeNull();
+    expect(toolsetterBasisLine(undefined)).toBeNull();
+    // the confirmed Settings section holds another value: the next
+    // measurement the WebUI starts takes it over
+    expect(toolsetterBasisLine({ ...base, state: "confirmed", origin: "read" }, { "3009": 3, "3102": -170 }))
+      .toBe(`Toolsetter values read ${fmtClock(t * 1000)}. Settings has newer values — the next measurement the WebUI starts takes them over`);
+    expect(toolsetterBasisLine({ ...base, state: "confirmed", origin: "read" }, { "3009": 3, "3102": -180 }))
+      .toBe(`Toolsetter values read ${fmtClock(t * 1000)}`);
+  });
 });
+

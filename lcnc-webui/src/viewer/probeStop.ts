@@ -7,7 +7,7 @@
 // every position is unknown to the program's end — no path, no time, no
 // collision or limit check. Pure: the sweep's note, the Simulation tab and
 // the stats dialog read the same words.
-import { fmtQty } from "../format";
+import { fmtClock, fmtQty } from "../format";
 
 export interface ProbeStop { seq: number; tool: number; reason: string }
 
@@ -73,4 +73,32 @@ export function m600ToolNotes(stops: readonly ProbeStop[], toollen: unknown, uni
     }
   }
   return out;
+}
+
+/** The toolsetter basis the routine was predicted with (payload
+ *  `toolsetter_basis`, plan section 2): where its values are known from, in
+ *  words, and whether the Settings section holds others (`settings`: var
+ *  number → value, the confirmed section's toolsetterVarMap) — the next
+ *  measurement the WebUI starts takes those over. Null when the program does
+ *  not run the routine or the payload says nothing; unknown / never stored
+ *  is the stop's to say. */
+export function toolsetterBasisLine(basis: unknown, settings?: Readonly<Record<string, number>> | null): string | null {
+  if (!basis || typeof basis !== "object") return null;
+  const b = basis as { state?: string; origin?: string; t?: number; routine?: boolean; values?: Record<string, number | null> };
+  if (!b.routine) return null;
+  let line: string | null = null;
+  if (b.state === "confirmed") {
+    const at = typeof b.t === "number" ? ` ${fmtClock(b.t * 1000)}` : "";
+    line = `Toolsetter values ${b.origin === "read" ? "read" : "taken over"}${at}`;
+  } else if (b.state === "assumed") {
+    line = "Toolsetter values assumed from the parameter file — not verified";
+  }
+  if (line && settings && b.values) {
+    const newer = Object.entries(settings).some(([k, v]) => {
+      const u = b.values![k];
+      return typeof v === "number" && Number.isFinite(v) && (typeof u !== "number" || Math.abs(u - v) > 1e-6);
+    });
+    if (newer) line += ". Settings has newer values — the next measurement the WebUI starts takes them over";
+  }
+  return line;
 }

@@ -1349,7 +1349,9 @@ def parse(ctx: dict) -> dict:
                  if canon.toollen_events else {}),
               # the toolsetter basis the routine was read with (state, origin,
               # time, the values) — present when the gateway sent one
-              **({"toolsetter_basis": _ts_used} if _ts_used else {}),
+              **({"toolsetter_basis": {**_ts_used, "routine": any(_ev[1] == "tool_touch_off"
+                                                                   for _ev in canon.sub_events)}}
+                 if _ts_used else {}),
               # Lines that wrote an offset or a stored position while the
               # position was unknown after a tool change (Codex R95 VP-I53):
               # the axes stay unknown to the end; the check's note names it.
