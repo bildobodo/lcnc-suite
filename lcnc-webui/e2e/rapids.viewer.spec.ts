@@ -133,11 +133,15 @@ test("a finding shows its own move of a hidden layer — not the layer", async (
   await simShow(page, "limit");
   const next = simStepBtn(page, "Next limit violation");
   await expect(page.locator(".simPanel [data-sim-row]").first()).toBeVisible({ timeout: 15_000 });
-  await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
   const role = (r: string) => page.evaluate(x => window.__viewerDiag!.projectRole!(x), r);
+  // The path drawn first, THEN the view from the top: set before the path was
+  // built, the view could still be framed back to the default and the
+  // longest rapid read 0.92 along X (2 of 30 runs, 2026-10-08).
   await expect.poll(async () => (await role("rapid"))?.length ?? 0).toBeGreaterThan(0);
+  await page.evaluate(() => window.__viewerDiag!.setViewDirection!([0, 0, 1]));
+  await expect.poll(async () => Math.abs((await role("rapid"))?.dx ?? 0),
+                    { message: "with every rapid shown the longest runs along X" }).toBeGreaterThan(0.95);
   const all = (await role("rapid"))!;
-  expect(Math.abs(all.dx), "with every rapid shown the longest runs along X").toBeGreaterThan(0.95);
 
   // Rapids off, jump to the finding on line 14 (the second finding in order).
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { viewer: { layers: { rapids: false } } } } });
