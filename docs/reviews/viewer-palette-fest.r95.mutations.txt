@@ -1,0 +1,35 @@
+# R95 — compiling mutations of the R94 rules (fix/r94), against test_tool_change_motion_worker.py + test_start_tlo_worker.py + test_gateway_util.py; restored from a byte copy
+RED    MC1 the union of axes moved in the block (R93's rule) instead of the end
+       1 failed, 418 passed, 24 subtests passed in 3.63s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_block_re_establishes_an_axis_only_by_where_it_ends
+RED    MC2 no G98 clause
+       1 failed, 418 passed, 24 subtests passed in 3.36s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_block_re_establishes_an_axis_only_by_where_it_ends
+RED    MC3 the cycle axis always Z
+       1 failed, 418 passed, 24 subtests passed in 3.45s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_block_re_establishes_an_axis_only_by_where_it_ends
+RED    MC4 no rotation rule
+       1 failed, 418 passed, 24 subtests passed in 3.45s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_later_rotation_makes_a_known_x_or_y_unknown_again
+RED    MC5 rotation rule only for a stale X
+       1 failed, 418 passed, 24 subtests passed in 3.43s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_later_rotation_makes_a_known_x_or_y_unknown_again
+RED    MC6 slot 0 (the line number) read as a G code
+       1 failed, 418 passed, 24 subtests passed in 3.66s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_the_line_number_is_no_g_code
+
+# which assertion: MC1 fails the G76 case — (rapid_lines, ustart, tcum) of the last move (7, 0, 2.0) != (7, 1, 0.0); MC2 / MC3 fail the G98 below-R cases (Codex's own G98 case stays green under both: its believed height lies above R, the end rule alone keeps Z)
+
+# toolChangePayloads.test.ts on payloads the PREVIOUS worker (feat/backlog-integration 2e20faa0, the R93 rule) writes for the five R94 programs: 3 failed | 6 passed (every R94 test); on the fixtures: 9 passed. The thirteen earlier fixtures regenerate bit-identical.
+# the same payloads swept on Codex R94's XYZ machine with an obstacle in the middle of the path a stale start invents (the track handed over the page's way, wcs = its epochs):
+PRIOR r94_g98_cycle hits [6] last ustart 0
+PRIOR r94_g98_below_r hits [6] last ustart 0
+PRIOR r94_g76_returns_x hits [7] last ustart 0
+PRIOR r94_rotated_after_partial hits [7] last ustart 0
+PRIOR r94_rotated_complete hits [7] last ustart 0
+NEW   r94_g98_cycle hits [] last ustart 1
+NEW   r94_g98_below_r hits [] last ustart 1
+NEW   r94_g76_returns_x hits [] last ustart 1
+NEW   r94_rotated_after_partial hits [] last ustart 1
+NEW   r94_rotated_complete hits [7] last ustart 0
+# (r94_rotated_complete: the obstacle on its REAL rotated path R45·(15, 5) — found in both, the control; without the epochs in the track copy the test is red: the move is swept unrotated)
