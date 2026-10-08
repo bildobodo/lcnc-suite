@@ -4,7 +4,7 @@ import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
   buildCollisionModel, sweepCollisions, withoutArealessFacets, poseModel, pairDistance, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
-  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, mergeContiguousIntervals, componentBoxes } from "./collision";
+  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, type CollisionHit, mergeContiguousIntervals, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
@@ -1805,6 +1805,154 @@ describe("facets without area (Codex R86 VP-I46)", () => {
     expect(model.damaged).toEqual(["damaged"]);
     expect(model.bodies.map(b => b.id)).toEqual(["damaged", "plate"]);
     const r = sweepCollisions(model, track([[0, 0, 0], [5, 0, 0]]), WCS0, { margin: 2 });
-    expect(r.uncertified).toBe("damaged: facets with coordinates that are not numbers — partly checked");
+    // single facets close no surface: a part inside them is not found either
+    expect(r.uncertified).toBe("damaged: facets with coordinates that are not numbers — partly checked; "
+      + "damaged, plate: surface not closed — a part wholly inside them is not found");
+  });
+});
+
+describe("a body wholly inside another (the inside check, collision-inside.plan.md)", () => {
+  // A 1 mm cube on an X-driven head against a 60 mm post on the table: in
+  // through the post's face (contact from X = 30.5), wholly inside — at the
+  // post's centre the surfaces lie 29.5 apart, past the query's 20 mm
+  // horizon — and out again. A distance alone reads the inside as clear.
+  const machine = (headX = 0): CollisionMachine => ({
+    groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root", translate: [headX, 0, 0] }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"],
+  });
+  const post = (positions = boxPositions(60)): CollisionBody => ({ id: "post", group: "table", positions });
+  const nub: CollisionBody = { id: "nub", group: "head", positions: boxPositions(1) };
+  const xs = (points: number[]): ScrubTrack => track(points.map(x => [x, 0, 0]));
+  const iv = (h: CollisionHit) => h.intervals!.map(([a, b]) => [Number(a.toFixed(2)), Number(b.toFixed(2))]);
+
+  it("in, wholly inside and out: one contact, from the surface crossing in to the crossing out", () => {
+    const r = sweepCollisions(buildCollisionModel(machine(), [post(), nub]), xs([60, 0, 60]), WCS0, { margin: 0.1 });
+    const onsets = r.hits.filter(h => h.continuation === undefined);
+    expect(onsets.map(h => h.line)).toEqual([2]);
+    const l3 = r.hits.find(h => h.line === 3)!;
+    expect(l3.continuation).toBe(2);
+    // refined at the surfaces: in at X 30.5 (cum 29.5), out at X 30.5 (90.5)
+    expect(iv(onsets[0]!)).toEqual([[29.5, 60]]);
+    expect(iv(l3)).toEqual([[60, 90.5]]);
+    expect(r.uncertified).toBeNull();
+  });
+
+  it("starting inside, clear at rest: a crash from the first line to the crossing out", () => {
+    // The head's base at X 40: at rest the cube sits clear of the post; the
+    // program starts with it at the post's centre.
+    const r = sweepCollisions(buildCollisionModel(machine(40), [post(), nub]), xs([-40, 0]), WCS0, { margin: 0.1 });
+    expect(r.staticContacts).toEqual([]);
+    expect(r.hits.map(h => [h.line, h.continuation])).toEqual([[2, undefined]]);
+    expect(iv(r.hits[0]!)).toEqual([[0, 30.5]]);
+  });
+
+  it("inside at the first pose and at rest: a static contact, never a finding", () => {
+    const r = sweepCollisions(buildCollisionModel(machine(), [post(), nub]), xs([0, 2]), WCS0, { margin: 0.1 });
+    expect(r.staticContacts.map(c => [c.a, c.b].sort().join("|"))).toEqual(["nub|post"]);
+    expect(r.hits).toEqual([]);
+  });
+
+  it("a jump into the inside (a relabel break) is asked at once", () => {
+    // X 100 → 95 under the first epoch, then the second epoch (X − 95) puts
+    // the cube at the post's centre with no move between: the break's
+    // segment has no length, and the first query after it must ask.
+    const t = { ...track([[100, 0, 0], [95, 0, 0], [95, 0, 0], [96, 0, 0]]),
+                wcs: new Uint32Array([0, 0, 1, 1]), brk: new Uint8Array([0, 0, 1, 0]) };
+    const zero = { ox: 0, oy: 0, oz: 0, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 };
+    const epochTerms = [zero, { ...zero, ox: -95 }];
+    const r = sweepCollisions(buildCollisionModel(machine(), [post(), nub]), t, WCS0, { margin: 0.1, epochTerms });
+    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([4]);
+  });
+
+  it("a tool change that swallows a pin is a contact at once", () => {
+    // PLUNGE's tool tip at Z 5; a 0.5 mm pin 3 off the axis at Z 7: clear of
+    // the Ø2 tool (1.75 apart), wholly inside the Ø12 one after the change —
+    // the tool pair's first query after the change must ask.
+    const m = buildCollisionModel(PLUNGE, [
+      { id: "pin", group: "table", positions: boxPositions(0.5), translate: [3, 0, 7] },
+      { id: "tool", group: "head", positions: toolCylinderPositions(2, 4), tool: true },
+    ]);
+    const t = track([[0, 0, -45], [0, 1, -45], [0, 2, -45]], undefined, [1, 2, 3]);
+    t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, 0]);
+    t.tloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }];
+    const r = sweepCollisions(m, t, WCS0, {
+      margin: 0.1, tloEvents: t.tloEvents, liveTool: 1,
+      toolDims: { 1: { diam: 2, len: 4 }, 2: { diam: 12, len: 4 } },
+    });
+    expect(r.hits.filter(h => h.continuation === undefined).map(h => [h.line, h.a])).toEqual([[3, "tool"]]);
+  });
+
+  it("through a wall inside one contact stride, across a line: the re-sampled stretch is asked too", () => {
+    // A 3 mm wall: the cube is wholly inside it for 2 mm, less than the
+    // contact cadence (5 mm). Found inside at the start of line 3 (X 0), the
+    // next query (X −5) finds it out, and the stretch between is re-sampled
+    // (VP-I45) — every sample there a separation decision: inside is still
+    // the contact, so line 3 continues line 2's.
+    const g = new THREE.BoxGeometry(3, 60, 60).toNonIndexed();
+    const wall = new Float32Array(g.getAttribute("position").array as Float32Array);
+    g.dispose();
+    const r = sweepCollisions(buildCollisionModel(machine(), [post(wall), nub]), xs([10, 0, -10]), WCS0, { margin: 0.1 });
+    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2]);
+    expect(r.hits.find(h => h.line === 3)?.continuation).toBe(2);
+  });
+
+  it("an inside answer holds only while no surface crossing can have come — used up line by line", () => {
+    // The cube starts 10 off the post's centre (surfaces 19.5 apart, inside
+    // the horizon) and leaves in 2 mm lines. The answer certified at the
+    // start must be used up by each line's travel: kept whole per line, it
+    // would outlast the crossing out (X 29.5) and the contact would never end.
+    const pts = Array.from({ length: 21 }, (_, i) => -30 + 2 * i);   // the cube at 10 … 50
+    const r = sweepCollisions(buildCollisionModel(machine(40), [post(), nub]), xs(pts), WCS0, { margin: 0.1 });
+    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2]);
+    // in contact to the crossing out: the cube at 30.5 (cum 20.5), on line 12
+    expect(Math.max(...r.hits.map(h => h.line))).toBe(12);
+    expect(Math.max(...r.hits.flatMap(h => h.intervals!.map(iv => iv[1])))).toBeCloseTo(20.5, 2);
+  });
+
+  it("an inside answer does not cross a jump", () => {
+    // Inside under the first epoch, then a relabel puts the cube 100 away:
+    // the line after the break is clear, whatever was certified before it.
+    const t = { ...track([[0, 0, 0], [5, 0, 0], [5, 0, 0], [6, 0, 0]]),
+                wcs: new Uint32Array([0, 0, 1, 1]), brk: new Uint8Array([0, 0, 1, 0]) };
+    const zero = { ox: 0, oy: 0, oz: 0, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 };
+    const r = sweepCollisions(buildCollisionModel(machine(40), [post(), nub]), t, WCS0,
+                              { margin: 0.1, epochTerms: [{ ...zero, ox: -40 }, { ...zero, ox: 60 }] });
+    expect(r.hits.map(h => h.line)).toEqual([2]);
+  });
+
+  it("parked and continued (the worker's snapshots), an inside contact ends as the uninterrupted sweep", () => {
+    // In through the face, wholly inside and out again in 0.5 mm lines (240
+    // segments: a checkpoint every 16): a snapshot at every checkpoint
+    // refines copies — posing the model, asking the rays — while the sweep
+    // is suspended; continuing must end exactly as the sweep without them.
+    const pts: number[] = [];
+    for (let x = 60; x > 0; x -= 0.5) pts.push(x);
+    for (let x = 0; x <= 60; x += 0.5) pts.push(x);
+    const model = buildCollisionModel(machine(), [post(), nub]);
+    const sync = sweepCollisions(model, xs(pts), WCS0, { margin: 0.1 });
+    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const it = sweepCollisionsIter(model, xs(pts), WCS0, { margin: 0.1, snapshot: snap });
+    let r = it.next(), parks = 0;
+    while (!r.done) { snap.take!("stopped"); snap.peek!(); parks++; r = it.next(); }
+    expect(parks).toBeGreaterThan(10);
+    const full = r.value as CollisionResult;
+    const shape = (x: CollisionResult) => x.hits.map(h => [h.line, h.continuation, h.intervals?.map(iv => iv.map(v => +v.toFixed(3)))]);
+    expect(shape(full)).toEqual(shape(sync));
+    expect([full.samples, full.notes]).toEqual([sync.samples, sync.notes]);
+    expect(sync.hits.filter(h => h.continuation === undefined)).toHaveLength(1);
+  });
+
+  it("a container whose surface is not closed is named once for the model and keeps the surface's guarantee", () => {
+    // The post without one facet: no inside to decide. The sweep sees the
+    // two surface crossings as two contacts (the surface's reading), asks
+    // nothing it can never answer (no undecidable stretch — no contact
+    // cadence for good on the 3-axis model's frame), and says what it cannot
+    // find.
+    const m = buildCollisionModel(machine(), [post(boxPositions(60).slice(0, -9)), nub]);
+    expect(m.open).toEqual(["post"]);
+    const r = sweepCollisions(m, xs([60, 0, 60]), WCS0, { margin: 0.1 });
+    expect(r.notes).toEqual(["post: surface not closed — a part wholly inside it is not found"]);
+    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2, 3]);
   });
 });

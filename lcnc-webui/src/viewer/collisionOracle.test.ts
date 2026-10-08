@@ -15,14 +15,16 @@
 // collisionBounds.test.ts proves and the library's bounded query — a search
 // tool, not an independent proof (Codex R86); the stepping, the certificates,
 // the in-margin cadence, the records and their refinement are what it
-// checks. A body wholly inside another reads as clear to both (surface
-// distance) — the inside check is its own step of the plan.
+// checks. A body wholly inside another is a touch too (collision-inside.plan.md
+// §5): its truth is the winding number (collisionFixtures.insideTruth — no
+// BVH, no rays, apart from the product's way), and every case also sweeps a
+// track through a pose where one body lies wholly inside another.
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { sweepCollisions, type CollisionHit } from "./collision";
-import { CONTACT, MARGIN, MIN_ADV, loadShippedModel, randomTrack, rng, shippedCases, trackTruth, type FixtureFiles } from "./collisionFixtures";
+import { geometryNote, sweepCollisions, type CollisionHit, type CollisionTrack } from "./collision";
+import { CONTACT, MARGIN, MIN_ADV, insideAt, insidePose, insideTrack, insideTruth, loadShippedModel, randomTrack, rng, shippedCases, trackTruth, type FixtureFiles } from "./collisionFixtures";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const TOL = 0.01;           // interval boundaries are bisected to 1e-3
@@ -47,6 +49,7 @@ const FILES: FixtureFiles = {
 };
 const CASES = shippedCases(FILES);
 
+const insideCases: string[] = [];
 describe("the sweep against a brute-force oracle", () => {
   for (const c of CASES) {
     it(`${c.name}: every touch and every in-margin pose the oracle finds is reported, every report is real`, { timeout: TIMEOUT_MS }, () => {
@@ -54,14 +57,28 @@ describe("the sweep against a brute-force oracle", () => {
       const t0 = performance.now();
       const seed = Number(process.env.COLLISION_HUNT_SEED) || (DEEP ? 20261007 + c.name.length : c.seed ?? 20261007 + c.name.length);
       const rand = rng(seed);
-      let touches = 0, nears = 0, onsets = 0, narrow = 0;
-      for (let ti = 0; ti < (DEEP ? c.tracks : 1); ti++) {
-        const track = randomTrack(c, rand, DEEP ? c.segments : 3, DEEP ? 0.6 : 0.25);
+      let touches = 0, nears = 0, onsets = 0, narrow = 0, insides = 0;
+      const tracks: Array<{ track: CollisionTrack; where: string }> = [];
+      for (let ti = 0; ti < (DEEP ? c.tracks : 1); ti++)
+        tracks.push({ track: randomTrack(c, rand, DEEP ? c.segments : 3, DEEP ? 0.6 : 0.25), where: `${c.name} track ${ti}` });
+      // A body wholly inside another: a pose the winding number finds, and a
+      // short track from it (`insideTrack`).
+      // The gate takes the case's recorded pose (a case without one has none
+      // to find: the 3-axis model's search costs 73 s for nothing); a hunt
+      // searches afresh.
+      const found = DEEP ? insidePose(model, c, rand, 4000) : c.inside ? insideAt(model, c, c.inside) : null;
+      if (!DEEP && c.inside && !found) expect.fail(`${c.name}: the recorded inside pose has no body inside another any more — search again (COLLISION_HUNT=deep)`);
+      if (found) {
+        tracks.push({ track: insideTrack(c, found.at, rand), where: `${c.name} inside track (${found.a} in ${found.b})` });
+        insideCases.push(c.name);
+      }
+      for (const { track, where } of tracks) {
         const r = sweepCollisions(model, track, WCS0, { margin: MARGIN });
         const { poseAt, below, runWide, WIDE } = trackTruth(model, c, track);
-        const where = `${c.name} track ${ti}`;
         expect(r.truncated, `${where}: swept whole`).toBeNull();
-        expect(r.uncertified, `${where}: certified`).toBeNull();
+        // certified but for what the model itself cannot promise (a surface
+        // that is not closed has no inside — named once for the model)
+        expect(r.uncertified, `${where}: certified`).toBe(geometryNote(model));
         expect(r.hits.length, `${where}: under the record cap — the comparison is complete`).toBeLessThan(200);
         // The main walk's question per pair, answered again only when the
         // pair's RELATIVE pose changed: the same two meshes in the same
@@ -69,6 +86,8 @@ describe("the sweep against a brute-force oracle", () => {
         // linear move leaves most pairs' relative pose as it was).
         const lastRel = model.pairs.map(() => new Float64Array(16).fill(NaN));
         const lastAns: Array<number | null> = model.pairs.map(() => null);
+        const lastInRel = model.pairs.map(() => new Float64Array(16).fill(NaN));
+        const lastIn: Array<boolean | null> = model.pairs.map(() => null);
         const relNow = new THREE.Matrix4();
         const belowMargin = (pi: number): number | null => {
           const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
@@ -79,6 +98,19 @@ describe("the sweep against a brute-force oracle", () => {
           if (same) return lastAns[pi]!;
           prev.set(e);
           return (lastAns[pi] = below(A, B, MARGIN));
+        };
+        // Wholly inside (either way round), by the winding number — asked
+        // where the surfaces are apart; null where it cannot tell.
+        const insideNow = (pi: number): boolean | null => {
+          const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
+          relNow.copy(A.world).invert().multiply(B.world);
+          const e = relNow.elements, prev = lastInRel[pi]!;
+          let same = true;
+          for (let k = 0; k < 16 && same; k++) same = Math.abs(e[k]! - prev[k]!) <= 1e-9;
+          if (same) return lastIn[pi]!;
+          prev.set(e);
+          const ab = insideTruth(A, B), ba = insideTruth(B, A);
+          return (lastIn[pi] = ab === true || ba === true ? true : ab === null || ba === null ? null : false);
         };
         const ids = (pi: number) => [model.bodies[model.pairs[pi]![0]]!.id, model.bodies[model.pairs[pi]![1]]!.id].sort().join("/");
         const staticPairs = new Set(r.staticContacts.map(sc => [sc.a, sc.b].sort().join("/")));
@@ -102,13 +134,15 @@ describe("the sweep against a brute-force oracle", () => {
           for (let pi = 0; pi < model.pairs.length; pi++) {
             if (exempt(pi)) continue;
             const d = belowMargin(pi);
-            if (d === null) continue;
+            const inside = d === null || d > CONTACT ? insideNow(pi) === true : false;
+            if (d === null && !inside) continue;
             const recs = byPair.get(ids(pi)) ?? [];
-            const what = `${where} s ${s.toFixed(2)} (L${line}) ${ids(pi)} true ${d.toFixed(4)}`;
-            if (d <= CONTACT) {
+            const what = `${where} s ${s.toFixed(2)} (L${line}) ${ids(pi)} true ${inside ? "inside" : d!.toFixed(4)}`;
+            if (inside || d! <= CONTACT) {
               touches++;
+              if (inside) insides++;
               if (!inInterval(recs, s)) {
-                if (runWide(pi, s, CONTACT * 10)) expect.fail(`${what}: a touch wider than ${WIDE} of path outside every contact interval — ${JSON.stringify(recs.map(h => [h.line, h.dist, h.intervals]))}`);
+                if (runWide(pi, s, CONTACT * 10, true)) expect.fail(`${what}: a touch wider than ${WIDE} of path outside every contact interval — ${JSON.stringify(recs.map(h => [h.line, h.dist, h.intervals]))}`);
                 narrow++;
                 poseAt(s);
               }
@@ -131,8 +165,9 @@ describe("the sweep against a brute-force oracle", () => {
             for (const [a] of h.intervals) {
               poseAt(a);
               const d = below(A, B, MARGIN);
-              expect(d, `${where} L${h.line} ${h.a}/${h.b}: touches at its onset ${a.toFixed(3)}`).not.toBeNull();
-              expect(d!, `${where} L${h.line} ${h.a}/${h.b}: touches at its onset ${a.toFixed(3)}`).toBeLessThanOrEqual(1e-3);
+              // a touch, or wholly inside (a contact from the track's start)
+              const real = (d !== null && d <= 1e-3) || insideTruth(A, B) === true || insideTruth(B, A) === true;
+              expect(real, `${where} L${h.line} ${h.a}/${h.b}: touches or lies inside at its onset ${a.toFixed(3)} (distance ${d})`).toBe(true);
               onsets++;
             }
           } else {
@@ -145,7 +180,7 @@ describe("the sweep against a brute-force oracle", () => {
       }
       // COLLISION_HUNT_LOG=<file>: what each case reached, for a hunt's record.
       if (process.env.COLLISION_HUNT_LOG) fs.appendFileSync(process.env.COLLISION_HUNT_LOG,
-        `${c.name} seed ${seed}: ${touches} touching, ${nears} near, ${onsets} onsets, ${narrow} narrow runs, ${((performance.now() - t0) / 1000).toFixed(0)} s\n`);
+        `${c.name} seed ${seed}: ${touches} touching (${insides} inside), ${nears} near, ${onsets} onsets, ${narrow} narrow runs, ${((performance.now() - t0) / 1000).toFixed(0)} s\n`);
       // The gate's seeds were chosen to reach contact; a hunt must reach
       // what matters too: touches, near poses, onsets.
       expect(touches, `${c.name}: touching poses`).toBeGreaterThan(0);
@@ -157,4 +192,8 @@ describe("the sweep against a brute-force oracle", () => {
       }
     });
   }
+  it("the inside tracks reach a body wholly inside another", () => {
+    // The search must find one somewhere, or the inside truth checks nothing.
+    expect(insideCases.length, "cases with an inside track").toBeGreaterThan(0);
+  });
 });

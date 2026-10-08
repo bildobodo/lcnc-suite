@@ -9,7 +9,7 @@
 // reported (union by pair). Hit cums of the base result shift by the entry
 // segment's length (`shift` = the entry track's cum at the first point) so
 // every cum lives on the ENTRY track's axis. Pure.
-import type { CollisionHit, CollisionResult } from "./collision";
+import { unitedNotes, type CollisionHit, type CollisionResult } from "./collision";
 
 export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, shift: number, baseLen: number): CollisionResult {
   const shifted: CollisionHit[] = base.hits.map(h => ({
@@ -70,7 +70,8 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     staticContacts,
     samples: entry.samples + base.samples,
     coarsened: entry.coarsened || base.coarsened,
-    uncertified: entry.uncertified ?? base.uncertified,
+    // Both sweeps' statements: the entry move's never hide the program's.
+    ...unitedNotes([entry, base]),
     pairCount: base.pairCount,
     pairsPrescreened: base.pairsPrescreened,
     bvhMs: entry.bvhMs + base.bvhMs,

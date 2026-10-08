@@ -1236,7 +1236,40 @@ with none is not checked and every result's `uncertified` names it
 number is checked on the rest and named "partly checked" (`model.damaged`,
 `geometryNote`). With no moving pair left, the Simulation tab says "Not
 checked" with the marker instead of "No moving pairs" (R87). The shipped
-models have none. The sweep is a
+models have none. A body WHOLLY INSIDE another (collision-inside.plan.md,
+Codex R96/R97, Fassung 3; operator 2026-10-07: haus.ngc's y_guide_endcaps in
+the column foot, untinted) has its surfaces apart, so a distance alone reads
+it clear. `insideCheck.ts` decides one vertex per component (`meshClosure`)
+three-valued — inside / outside / undecidable — by the first non-degenerate
+of six fixed rays (a hit near an edge or vertex, a grazing one or two at one
+distance make a ray degenerate) after an exact exclusion (the point outside
+every LOCAL component box of the container); the winding number is the
+independent check. Between two surface contacts the answer cannot change,
+so the sweep asks (`pairInside`) only where it is not known: the baseline
+(the first pose; the rest pose for a candidate), the first query after a
+break or a tool change (`needInside`), every separation decision (a pair
+whose last query touched — Infinity past the horizon included — and every
+re-sampled point after a touch), and a pair whose last answer was
+undecidable; the refinement's predicate is touching OR inside OR
+undecidable. Inside is a touch (distance 0) with a certificate of its own:
+the answer can change only through a surface crossing, so it holds until
+the surfaces' distance at that query (beyond the horizon: the horizon) is
+used up at the pair's speed bound — carried across chunks like a clearance,
+dropped at a break or a tool change (`inClear` / `inQ`): a long inside
+contact owes a sample per line, and those need no query (haus.ngc's end caps
+in the column foot: 268 s → 3.3 s for that pair, the same records). Undecidable
+gives no record, no
+separation, no clearance certificate (asked again at the contact cadence),
+never a static exclusion, and its stretch stays named ("inside check
+undecidable for A ↔ B (L5–L9)"). A container whose surface is NOT CLOSED is
+not asked — it has no inside at any pose, asking again never decides it —
+but named once per model (`CollisionModel.open`, `geometryNote`: the 3-axis
+model's frame, x_axis, y_axis); its pairs keep the surface's guarantee.
+`CollisionResult.notes` are the statements `uncertified` joins, and the shard
+and entry merges unite them (`unitedNotes` — shard 0's note alone lost the
+other shards' pairs). Tests: insideCheck.test.ts, collision.test.ts ("a body
+wholly inside another"), collisionInside.test.ts (undecidable, the rays
+mocked), the oracle (below); 18 mutations red. The sweep is a
 resumable iterator (`sweepCollisionsIter`, checkpoints every 16 segments /
 512 samples and every 8 ms of clock) with an optional WALL-CLOCK budget
 (`maxMs`, sync API + tests only — the worker runs sweeps OPEN-ENDED since
@@ -1397,7 +1430,10 @@ force over every triangle pair — `triDistance.ts`, written apart from the
 library), the sweep itself by `collisionOracle.test.ts` (random tracks on
 the shipped models, identity / TCP / TWP TCP, stepped every 0.5 of the
 sweep's parameter: every touch and in-margin pose reported unless narrower
-than MIN_ADV, every reported onset a real touch).
+than MIN_ADV, every reported onset a real touch; a body wholly inside another
+is a touch by the winding number — `collisionFixtures.insideTruth`, no BVH, no
+rays — and each case also sweeps a short track from a recorded pose where one
+is, `Case.inside`, which a hunt searches afresh).
 Baseline subtraction keeps it quiet: pairs inside the margin at the
 program's FIRST pose AND at the model's REST pose (every joint at zero —
 the designed pose the machine-model tests require to be self-collision-

@@ -14,7 +14,7 @@
 // (the minimum over the samples taken) and a refined boundary (bisected to
 // 1e-3) may differ in the last digits. sweepShards.test.ts holds the merged
 // result to the single sweep under exactly that relation.
-import { MAX_HITS, type CollisionHit, type CollisionResult } from "./collision";
+import { MAX_HITS, unitedNotes, type CollisionHit, type CollisionResult } from "./collision";
 export { assignPairs } from "./pairAssign";
 
 /** One result from the shards' results — what a single sweep over the union
@@ -39,8 +39,10 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
     staticContacts: results.flatMap(r => r.staticContacts),
     samples: results.reduce((s, r) => s + r.samples, 0),
     coarsened: results.some(r => r.coarsened),
-    // Every shard sweeps the same model along the same track: the same note.
-    uncertified: first.uncertified,
+    // The same model along the same track gives every shard the same
+    // statements — but a pair's own (an undecidable inside check) only the
+    // shard that sweeps it: their union.
+    ...unitedNotes(results),
     pairCount: first.pairCount,
     pairsPrescreened: results.reduce((s, r) => s + r.pairsPrescreened, 0),
     bvhMs: Math.max(...results.map(r => r.bvhMs)),

@@ -11,7 +11,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { MAX_HITS, sweepCollisions, type CollisionHit, type CollisionResult } from "./collision";
-import { CONTACT, MARGIN, loadShippedModel, randomTrack, rng, shippedCases, trackTruth, type FixtureFiles } from "./collisionFixtures";
+import { CONTACT, MARGIN, insideTrack, loadShippedModel, randomTrack, rng, shippedCases, trackTruth, type FixtureFiles } from "./collisionFixtures";
 import { assignPairs, mergeShardResults } from "./sweepShards";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -72,7 +72,11 @@ describe("the merged shards against the single sweep", () => {
   for (const c of CASES) {
     it(`${c.name}: the same per-pair findings with 2, 3 and a random split`, { timeout: 600_000 }, () => {
       const { model } = loadShippedModel(c, FILES);
-      const track = randomTrack(c, rng(c.seed ?? 20261007 + c.name.length), 3, 0.25);
+      // the random track, and a track from the case's pose where a body lies
+      // wholly inside another (the inside check's state is per pair too)
+      const tracks = [randomTrack(c, rng(c.seed ?? 20261007 + c.name.length), 3, 0.25)];
+      if (c.inside) tracks.push(insideTrack(c, c.inside, rng(5)));
+      for (const [ti, track] of tracks.entries()) {
       const single = sweepCollisions(model, track, WCS0, { margin: MARGIN });
       expect(single.hits.length, "under the cap — the comparison is complete").toBeLessThan(MAX_HITS);
       const truth = trackTruth(model, c, track);
@@ -90,7 +94,7 @@ describe("the merged shards against the single sweep", () => {
       ];
       for (const [name, run] of splits) {
         const merged = mergeShardResults(run());
-        const where = `${c.name}, ${name}`;
+        const where = `${c.name}${ti ? " inside track" : ""}, ${name}`;
         expect(merged.uncertified, where).toBe(single.uncertified);
         expect(merged.truncated, where).toBeNull();
         expect([merged.pairCount, merged.pairsPrescreened], `${where}: pairs and prescreen`).toEqual([single.pairCount, single.pairsPrescreened]);
@@ -99,7 +103,7 @@ describe("the merged shards against the single sweep", () => {
         const A = byKey(single), B = byKey(merged);
         // A record only one run has, or a touch only one run calls a touch:
         // the truth must show a run no wider than MIN_ADV there.
-        const narrow = (h: CollisionHit, touch: boolean) => !truth.runWide(pairIndex.get([h.a, h.b].sort().join("/"))!, h.cum, touch ? CONTACT * 10 : MARGIN);
+        const narrow = (h: CollisionHit, touch: boolean) => !truth.runWide(pairIndex.get([h.a, h.b].sort().join("/"))!, h.cum, touch ? CONTACT * 10 : MARGIN, touch);
         for (const [k, h] of A) if (!B.has(k)) expect(narrow(h, h.dist <= CONTACT), `${where}: ${k} only in the single sweep`).toBe(true);
         for (const [k, h] of B) if (!A.has(k)) expect(narrow(h, h.dist <= CONTACT), `${where}: ${k} only in the merged shards`).toBe(true);
         for (const [k, a] of A) {
@@ -115,6 +119,7 @@ describe("the merged shards against the single sweep", () => {
           for (const [s] of a.intervals ?? []) expect(inside(s, b.intervals), `${where}: ${k} contact from ${s} in the merged shards`).toBe(true);
           for (const [s] of b.intervals ?? []) expect(inside(s, a.intervals), `${where}: ${k} contact from ${s} in the single sweep`).toBe(true);
         }
+      }
       }
     });
   }

@@ -9,6 +9,7 @@ import {
   boxLowerBound, buildCollisionModel, partCollides, partCollisionFile, poseModel, toolCylinderPositions,
   type BuiltBody, type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionTrack,
 } from "./collision";
+import { windingNumber } from "./insideCheck";
 import { kinsForSegment, type KinsSpec } from "./kins";
 
 /** The sweep's constants the truth is held to (collision.ts: margin 2 by
@@ -55,6 +56,11 @@ export interface Case {
   /** The gate's seed: one whose short track reaches contact (searched with
    *  COLLISION_HUNT_SEED; a hunt runs the case's own). */
   seed?: number;
+  /** The gate's pose (X Y Z A B C) where a body lies wholly inside another,
+   *  found by `insidePose` (seed 20261008; a hunt searches afresh); the gate
+   *  requires it to still be one. None on the 3-axis model: its large bodies
+   *  are open (no inside) and 4000 tries found no closed one inside another. */
+  inside?: number[];
 }
 
 export function shippedCases(files: FixtureFiles): Case[] {
@@ -68,11 +74,14 @@ export function shippedCases(files: FixtureFiles): Case[] {
     yRotAxis: trsrn["y-rot-axis"]!, zRotAxis: trsrn["z-rot-axis"]!, nutAngle: trsrn["nut-angle"]! } };
   return [
     { name: "XYZAC identity", dir: "examples/sim_config/machine-5axis-xyzac", axes: ["X", "Y", "Z", "A", "C"], kins: XYZAC_KINS, mode: 0,
-      box: { X: [-300, 300], Y: [-500, 250], Z: [-450, 0], A: [-110, 60], C: [-180, 180] }, tracks: 6, segments: 6 },
+      box: { X: [-300, 300], Y: [-500, 250], Z: [-450, 0], A: [-110, 60], C: [-180, 180] }, tracks: 6, segments: 6,
+      inside: [528.81, -125.611, -647.118, -124.611, 0, 173.43] },   // the tool in a bearing pedestal
     { name: "XYZAC TCP", dir: "examples/sim_config/machine-5axis-xyzac", axes: ["X", "Y", "Z", "A", "C"], kins: XYZAC_KINS, mode: 1,
-      box: { X: [-200, 200], Y: [-200, 200], Z: [-150, 150], A: [-100, 50], C: [-180, 180] }, tracks: 6, segments: 6, seed: 12 },
+      box: { X: [-200, 200], Y: [-200, 200], Z: [-150, 150], A: [-100, 50], C: [-180, 180] }, tracks: 6, segments: 6, seed: 12,
+      inside: [-314.504, -153.307, -79.714, 95.143, 0, 333.666] },   // the Y guide's end caps in the column foot
     { name: "TWP gantry TCP", dir: "examples/sim_config/machine-xyzacb-gantry", axes: ["X", "Y", "Z", "A", "B", "C"], kins: TRSRN_KINS, mode: 1,
-      box: { X: [-1400, 1400], Y: [-1200, 1200], Z: [-1300, 0], A: [-180, 180], B: [-90, 90], C: [-180, 180] }, tracks: 4, segments: 5, seed: 13 },
+      box: { X: [-1400, 1400], Y: [-1200, 1200], Z: [-1300, 0], A: [-180, 180], B: [-90, 90], C: [-180, 180] }, tracks: 4, segments: 5, seed: 13,
+      inside: [707.775, -933.21, 124.174, -121.228, -52.977, 36.067] },   // the B joint ring in the bed
     { name: "3 axis", dir: "lcnc-gateway/machine", axes: ["X", "Y", "Z"],
       box: { X: [-50, 750], Y: [-50, 750], Z: [-280, 30] }, tracks: 4, segments: 6, seed: 22 },
   ];
@@ -112,6 +121,12 @@ export function randomTrack(c: Case, rand: () => number, segments: number, reach
     }
     pts.push(p);
   }
+  return trackOf(c, pts, rand);
+}
+
+/** A track through the given points (X Y Z A B C each), its moves rapid or
+ *  feed at random; its cum is the sweep's distance parameter. */
+export function trackOf(c: Case, pts: number[][], rand: () => number): CollisionTrack {
   const n = pts.length;
   const pos = new Float32Array(n * 3), abc = new Float32Array(n * 3), cum = new Float32Array(n);
   for (let i = 0; i < n; i++) { pos.set(pts[i]!.slice(0, 3), i * 3); abc.set(pts[i]!.slice(3), i * 3); }
@@ -173,9 +188,14 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
   // holds the sweep to MIN_ADV itself, not to a grid's slack
   // (Codex R86: 0.75 let a 1.25-wide miss of the same kind look narrow).
   const WIDE = MIN_ADV + 1e-3;
-  const runWide = (pi: number, s: number, e: number): boolean => {
+  // `alsoInside`: a pose wholly inside (either way round, the winding
+  // number) belongs to the run too — the run of a contact the surfaces enter.
+  const runWide = (pi: number, s: number, e: number, alsoInside = false): boolean => {
     const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
-    const inside = (x: number) => { poseAt(x); return below(A, B, e) !== null; };
+    const inside = (x: number) => {
+      poseAt(x);
+      return below(A, B, e) !== null || (alsoInside && (insideTruth(A, B) === true || insideTruth(B, A) === true));
+    };
     const end = track.cum[track.count - 1]!;
     const edge = (dir: 1 | -1): number => {
       let x = s;
@@ -194,4 +214,85 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
     return edge(1) - edge(-1) > WIDE;
   };
   return { poseAt, below, runWide, WIDE };
+}
+
+const _itInv = new THREE.Matrix4(), _itRel = new THREE.Matrix4(), _itP = new THREE.Vector3();
+/** The oracle's own inside truth (collision-inside.plan.md §5): does a
+ *  component of A lie wholly inside B at the current pose? B's winding
+ *  number about one vertex of the component (insideCheck.windingNumber —
+ *  solid angles over every triangle, no BVH, no rays), meaningful only where
+ *  the surfaces are apart (the caller's distance) and only for a closed B
+ *  (an open surface has no inside; the product names it instead). Null where
+ *  the winding number cannot tell (|w − round(w)| ≥ 0.25: a vertex on B's
+ *  surface). B's local box excludes exactly. Inside = an odd winding number,
+ *  the parity a ray counts — a nested shell either way round reads alike. */
+export function insideTruth(A: BuiltBody, B: BuiltBody): boolean | null {
+  if (!B.insideClosed) return false;
+  _itInv.copy(B.world).invert();
+  _itRel.multiplyMatrices(_itInv, A.world);
+  const box = B.geom.boundingBox!;
+  const pos = B.geom.attributes.position!.array as Float32Array;
+  let unknown = false;
+  for (let i = 0; i + 2 < A.insideReps.length; i += 3) {
+    _itP.set(A.insideReps[i]!, A.insideReps[i + 1]!, A.insideReps[i + 2]!).applyMatrix4(_itRel);
+    if (!box.containsPoint(_itP)) continue;
+    const w = windingNumber(pos, _itP);
+    if (Math.abs(w - Math.round(w)) >= 0.25) { unknown = true; continue; }
+    if (Math.round(w) % 2 !== 0) return true;
+  }
+  return unknown ? null : false;
+}
+
+/** Pose the model at one point of the case's program space (X Y Z A B C),
+ *  the sweep's way (the case's kins, program = machine coordinates). */
+export function poseWorld(model: CollisionModel, c: Case, p: number[]): void {
+  const joints: (number | null)[] = new Array(c.axes.length).fill(0);
+  kinsForSegment(c.axes, c.kins, c.mode ?? null, null, undefined, "oracle").inverse(p.slice(0, 6), joints);
+  poseModel(model, joints.map(v => v ?? 0));
+}
+
+/** A pose where a body lies wholly inside another with the surfaces apart —
+ *  searched at random in the case's box widened by half on every side (the
+ *  haus.ngc end caps sat far outside the travel), `tries` poses at most;
+ *  null when none was found. */
+export function insidePose(model: CollisionModel, c: Case, rand: () => number, tries: number):
+    { at: number[]; a: string; b: string } | null {
+  const L = ["X", "Y", "Z", "A", "B", "C"];
+  for (let k = 0; k < tries; k++) {
+    const at = L.map(l => { const b = c.box[l]; if (!b) return 0; const w = b[1] - b[0]; return b[0] - w / 2 + rand() * w * 2; });
+    const found = insideAt(model, c, at);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** A short track from a pose where a body lies wholly inside another —
+ *  starting inside (the baseline's question), then two moves of up to 2 % of
+ *  the box that may leave it (the separation decisions). */
+export function insideTrack(c: Case, at: number[], rand: () => number): CollisionTrack {
+  const L = ["X", "Y", "Z", "A", "B", "C"];
+  const near = (p: number[]) => p.map((v, j) => { const b = c.box[L[j]!]; return b ? v + (rand() - 0.5) * (b[1] - b[0]) * 0.04 : v; });
+  const p1 = near(at);
+  return trackOf(c, [at, p1, near(p1)], rand);
+}
+
+/** The first pair at `at` with a body wholly inside the other and the
+ *  surfaces apart; null when there is none. */
+export function insideAt(model: CollisionModel, c: Case, at: number[]): { at: number[]; a: string; b: string } | null {
+  const t1 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 }, t2 = { point: new THREE.Vector3(), distance: 0, faceIndex: -1 };
+  const inv = new THREE.Matrix4(), rel = new THREE.Matrix4();
+  poseWorld(model, c, at);
+  for (const [ai, bi] of model.pairs) {
+    const A = model.bodies[ai]!, B = model.bodies[bi]!;
+    if (A.worldCenter.distanceTo(B.worldCenter) > A.radius + B.radius) continue;
+    for (const [P, Q] of [[A, B], [B, A]] as const) {
+      if (insideTruth(P, Q) !== true) continue;
+      // the surfaces apart: no triangle pair within 10 × CONTACT
+      inv.copy(Q.world).invert(); rel.multiplyMatrices(inv, P.world);
+      const hit = Q.bvh.closestPointToGeometry(P.geom, rel, t1, t2, 0, CONTACT * 10);
+      if (hit && t1.distance <= CONTACT * 10) continue;
+      return { at, a: P.id, b: Q.id };
+    }
+  }
+  return null;
 }

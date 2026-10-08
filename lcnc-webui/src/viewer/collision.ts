@@ -58,6 +58,7 @@ import { EVENT_NONE } from "./eventIndex";
 import { kinsForSegment, makeKins, worldModeForSpec, type KinsModel, type KinsSpec } from "./kins";
 import { installBoxDistanceFix } from "./bvhBoxDistance";
 import { assignPairs } from "./pairAssign";
+import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./insideCheck";
 
 // Every bounded closest-point query prunes by the library's box-to-box
 // distance, which came out too large (bvhBoxDistance.ts): corrected before
@@ -297,6 +298,11 @@ export interface CollisionResult {
    *  trivkins machine, wrong for the machine that declared otherwise. Null
    *  means the sweep is certified. Unchecked is not clear. */
   uncertified: string | null;
+  /** The statements `uncertified` joins ("; "), one each — what a merge of
+   *  results (the shards, the entry move over the program) unites, so no
+   *  result's statement is lost behind another's (`unitedNotes`). Absent on
+   *  a result built elsewhere: its `uncertified` counts as one statement. */
+  notes?: string[];
   pairCount: number;
   /** Pairs the whole-program reach prescreen dropped before the sweep:
    *  provably beyond the margin at every pose the sweep would evaluate
@@ -315,6 +321,16 @@ export interface CollisionResult {
   /** How many workers swept it (the parallel sweep, sweepShards.ts); absent
    *  = one. */
   shards?: number;
+}
+
+/** The statements of several results, each once, in order — and the
+ *  `uncertified` they make. */
+export function unitedNotes(results: readonly CollisionResult[]): { notes: string[]; uncertified: string | null } {
+  const notes: string[] = [];
+  for (const r of results) {
+    for (const n of r.notes ?? (r.uncertified ? [r.uncertified] : [])) if (!notes.includes(n)) notes.push(n);
+  }
+  return { notes, uncertified: notes.length ? notes.join("; ") : null };
 }
 
 /** Driver-side stop/continue (2026-09-12). The iterator installs `take` once
@@ -407,6 +423,12 @@ export interface BuiltBody {
    *  distance never exceeds the true one. Capped at MAX_COMPS: a soup of
    *  unshared triangles collapses to the whole-mesh box (still valid). */
   comps: Float32Array;
+  /** The inside check's data (insideCheck.ts, collision-inside.plan.md):
+   *  one LOCAL vertex per connected component, and whether every component
+   *  is a closed surface — a body that is not has no inside to decide
+   *  (VP96-03). */
+  insideReps: Float32Array;
+  insideClosed: boolean;
   world: THREE.Matrix4;          // scratch, updated per sample
   worldCenter: THREE.Vector3;    // scratch
 }
@@ -547,10 +569,12 @@ interface PathDof {
  *  the resident model then reported the wrong tool's contacts. */
 export interface ToolVariant {
   geom: THREE.BufferGeometry; bvh: MeshBVH; center: THREE.Vector3; radius: number; extent: number; comps: Float32Array;
+  insideReps: Float32Array; insideClosed: boolean;
 }
 
 function toolVariantOf(b: BuiltBody): ToolVariant {
-  return { geom: b.geom, bvh: b.bvh, center: b.center, radius: b.radius, extent: b.extent, comps: b.comps };
+  return { geom: b.geom, bvh: b.bvh, center: b.center, radius: b.radius, extent: b.extent, comps: b.comps,
+           insideReps: b.insideReps, insideClosed: b.insideClosed };
 }
 
 /** Install `v` on the model's tool body unless it already wears it. The
@@ -563,6 +587,7 @@ export function installToolVariant(model: CollisionModel, v: ToolVariant): boole
   const tb = model.bodies[model.toolBodyIdx]!;
   if (tb.geom === v.geom) return false;
   tb.geom = v.geom; tb.bvh = v.bvh; tb.center = v.center; tb.radius = v.radius; tb.extent = v.extent; tb.comps = v.comps;
+  tb.insideReps = v.insideReps; tb.insideClosed = v.insideClosed;
   return true;
 }
 
@@ -601,6 +626,11 @@ export interface CollisionModel {
   /** Bodies that lost facets with a coordinate that is not finite (R87):
    *  their remaining surface is checked, the result says "partly checked". */
   damaged: string[];
+  /** Bodies whose surface is not closed (an edge without its reverse, or one
+   *  repeated in one direction — insideCheck.meshClosure): they have no
+   *  inside to decide, so a part wholly inside them is not found — every
+   *  sweep's `uncertified` names them (collision-inside.plan.md Fassung 3). */
+  open: string[];
   bvhMs: number;
 }
 
@@ -641,6 +671,7 @@ export function geometryNote(model: CollisionModel): string | null {
   if (model.unusable.length) notes.push(`${model.unusable.join(", ")}: no facet with area — not checked`);
   const partly = model.damaged.filter(id => !model.unusable.includes(id));
   if (partly.length) notes.push(`${partly.join(", ")}: facets with coordinates that are not numbers — partly checked`);
+  if (model.open.length) notes.push(`${model.open.join(", ")}: surface not closed — a part wholly inside ${model.open.length === 1 ? "it" : "them"} is not found`);
   return notes.length ? notes.join("; ") : null;
 }
 
@@ -653,6 +684,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   const bodies: BuiltBody[] = [];
   const unusable: string[] = [];
   const damaged: string[] = [];
+  const open: string[] = [];
   const _e = new THREE.Euler();
   const _size = new THREE.Vector3();
   for (const def of bodyDefs) {
@@ -683,6 +715,8 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     geom.computeBoundingBox();
     const extent = geom.boundingBox!.getSize(_size).length();
     const comps = componentBoxes(scaled);
+    const closure = meshClosure(scaled);
+    if (!closure.closed) open.push(def.id);
     const localMat = new THREE.Matrix4();
     if (def.rotate) _e.set(def.rotate[0] ?? 0, def.rotate[1] ?? 0, def.rotate[2] ?? 0);
     else _e.set(0, 0, 0);
@@ -695,6 +729,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
     bodies.push({
       id: def.id, nodeIdx, side, bvh, geom, localMat,
       center: sphere.center.clone(), radius: sphere.radius, extent, comps,
+      insideReps: closure.repVerts, insideClosed: closure.closed,
       world: new THREE.Matrix4(), worldCenter: new THREE.Vector3(),
     });
   }
@@ -756,7 +791,7 @@ export function buildCollisionModel(machine: CollisionMachine, bodyDefs: Collisi
   }
   const toolBodyIdx = bodies.findIndex(b => isToolBody(b) || b.id === "tool");
   const baseTool = toolBodyIdx >= 0 ? toolVariantOf(bodies[toolBodyIdx]!) : null;
-  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, unusable, damaged, bvhMs: performance.now() - t0 };
+  return { nodes, bodies, toolBodyIdx, baseTool, pairs, pairDofs, pairCutting, pairTool, pairLca, machine, unusable, damaged, open, bvhMs: performance.now() - t0 };
 }
 
 // Distance lower bound from the two bodies' component boxes, `rel` mapping
@@ -821,6 +856,43 @@ export function pairDistance(A: BuiltBody, B: BuiltBody, maxT: number, margin: n
   // (three-mesh-bvh 0.9.14; live haus.ngc 2026-10-06: 291 returned at a
   // true 82, the certificate jumped 230 mm past the yoke's onset).
   return res && _pdT1.distance <= maxT ? _pdT1.distance : Infinity;
+}
+
+const _ipP = new THREE.Vector3();
+const _ipInv = new THREE.Matrix4();
+const _ipRel = new THREE.Matrix4();
+
+/**
+ * Does a component of one POSED body lie inside the other (insideCheck.ts,
+ * collision-inside.plan.md)? Valid only when their surfaces do not touch
+ * (the caller's d > CONTACT_EPS): then every component is wholly inside or
+ * wholly outside, and one local vertex each decides. A vertex outside every
+ * local component box of the other body is outside (the exact exclusion,
+ * VP96-01). "undecidable" = every ray degenerate (VP96-02/03) — a property
+ * of the pose, which a later pose may decide. A container whose surface is
+ * not closed is NOT asked (Fassung 3): it has no inside at any pose, asking
+ * again never decides it, so it is named once for the model
+ * (`CollisionModel.open`, geometryNote) and its pairs keep the surface's
+ * guarantee alone.
+ */
+export function pairInside(A: BuiltBody, B: BuiltBody): InsideVerdict {
+  let undecided = false;
+  for (let k = 0; k < 2; k++) {
+    const P = k === 0 ? A : B, Q = k === 0 ? B : A;
+    if (!Q.insideClosed) continue;
+    _ipInv.copy(Q.world).invert();
+    _ipRel.multiplyMatrices(_ipInv, P.world);
+    const r = P.insideReps;
+    const qb = Q.geom.boundingBox!;
+    for (let i = 0; i + 2 < r.length; i += 3) {
+      _ipP.set(r[i]!, r[i + 1]!, r[i + 2]!).applyMatrix4(_ipRel);
+      if (!qb.containsPoint(_ipP) || !inLocalBoxes(_ipP, Q.comps)) continue;
+      const v = pointInside(Q.bvh, Q.geom, _ipP, Q.extent);
+      if (v === "inside") return "inside";
+      if (v === "undecidable") undecided = true;
+    }
+  }
+  return undecided ? "undecidable" : "outside";
 }
 
 /** Pose every node and body at `jointVals` (joint order; no tool offset) —
@@ -1025,9 +1097,11 @@ export function* sweepCollisionsIter(
       (geom as any).boundsTree = bvh;
       geom.computeBoundingSphere();
       geom.computeBoundingBox();
+      const vpos = geom.getAttribute("position").array as Float32Array;
+      const vclo = meshClosure(vpos);
       toolVariants.set(tn, { geom, bvh, center: geom.boundingSphere!.center.clone(), radius: geom.boundingSphere!.radius,
                              extent: geom.boundingBox!.getSize(new THREE.Vector3()).length(),
-                             comps: componentBoxes(geom.getAttribute("position").array as Float32Array) });
+                             comps: componentBoxes(vpos), insideReps: vclo.repVerts, insideClosed: vclo.closed });
     }
   }
   const applyTool = (tn: number | null) => {
@@ -1078,7 +1152,11 @@ export function* sweepCollisionsIter(
   // Report it instead of assuming it: unchecked is not clear.
   const tFrames = track.frames;
   let vertModel: KinsModel[] | null = null;
-  let uncertified: string | null = geometryNote(model);
+  // What this sweep cannot promise, one statement each (CollisionResult.notes).
+  const noteParts: string[] = [];
+  const geoNote = geometryNote(model);
+  if (geoNote) noteParts.push(geoNote);
+  const notesOf = (parts: string[]) => ({ uncertified: parts.length ? parts.join("; ") : null, notes: parts.slice() });
   // A move whose START no parse can know (an unknown-start point after the
   // first — the program's own start is the entry move's): the controller
   // moved the machine at a tool change ([EMCIO] TOOL_CHANGE_POSITION) where
@@ -1098,13 +1176,12 @@ export function* sweepCollisionsIter(
     const list = (ls: number[]) => `${ls.slice(0, 3).map(l => "L" + l).join(", ")}${ls.length > 3 ? " …" : ""}`;
     // 0 = a write the parse caught without a main-file line to name
     const off = opts.staleOffsetLines ?? [], named = off.filter(l => l > 0);
-    uncertified = (uncertified ? uncertified + "; " : "")
-      + `${k} move${k === 1 ? "" : "s"} after a tool change run${k === 1 ? "s" : ""} from a position the preview cannot know — `
+    noteParts.push(`${k} move${k === 1 ? "" : "s"} after a tool change run${k === 1 ? "s" : ""} from a position the preview cannot know — `
       + (!off.length ? `not checked until the position is known again (${list(at)})`
         : named.length ? `not checked to the program's end: the offset${named.length === 1 ? "" : "s"} set from that position at ${list(named)} `
             + `stay${named.length === 1 ? "s" : ""} unknown whatever is positioned after (${list(at)})`
         : `not checked to the program's end: an offset set from that position stays unknown whatever is positioned after (${list(at)})`)
-      + (opts.staleOffsetUntracked ? "; in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked" : "");
+      + (opts.staleOffsetUntracked ? "; in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked" : ""));
   }
   let fellBack = false;
   if (track.mode && !abortedInit) {
@@ -1133,10 +1210,9 @@ export function* sweepCollisionsIter(
       vm[i] = cur;
       if (world && !fellBack && cur.type === "trivkins") {
         fellBack = true;
-        uncertified = (uncertified ? uncertified + "; " : "")
-          + `non-identity segments fell back to trivkins (declared `
+        noteParts.push(`non-identity segments fell back to trivkins (declared `
           + `${machine.kins?.type ?? "unknown"}) — poses and clearance bounds `
-          + `are identity approximations`;
+          + `are identity approximations`);
       }
     }
     if (!abortedInit) vertModel = vm;
@@ -1144,7 +1220,7 @@ export function* sweepCollisionsIter(
   if (abortedInit) {
     // Nothing posed, nothing queried (same contract as the prescreen abort).
     restoreBaseTool(model);
-    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified,
+    return { hits: [], staticContacts: [], samples: 0, coarsened: false, ...notesOf(noteParts),
              pairCount: model.pairs.length, pairsPrescreened: 0, bvhMs: model.bvhMs,
              sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
@@ -1349,7 +1425,7 @@ export function* sweepCollisionsIter(
     // Nothing posed, nothing queried, no certificate or contact state to
     // report; the driver discards a cancelled sweep's value anyway.
     restoreBaseTool(model);
-    return { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified,
+    return { hits: [], staticContacts: [], samples: 0, coarsened: false, ...notesOf(noteParts),
              pairCount: pairs.length, pairsPrescreened, bvhMs: model.bvhMs,
              sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
@@ -1389,6 +1465,37 @@ export function* sweepCollisionsIter(
   // Where a pair's last TOUCHING query was (NaN: none yet) — the start of the
   // stretch re-sampled when it is next found not touching (VP-I45).
   const lastTouch = new Float64Array(pairs.length).fill(NaN);
+  // The inside check (collision-inside.plan.md, pairInside): a query that
+  // finds the surfaces apart proves the pair apart only where it is known not
+  // to lie wholly inside the other. Between two surface contacts the answer
+  // cannot change (in and out only through a touch, which the sweep finds),
+  // so it is ASKED only where it is not known: the baseline, the first query
+  // after a jump (`needInside`: a break, a tool or offset change), a pair
+  // whose last query touched (a separation decision — `inContact &&
+  // touching`, the beyond-horizon Infinity included) and a pair whose last
+  // answer was undecidable. "inside" counts as a touch (distance 0);
+  // "undecidable" gives no record, no separation and no clearance
+  // certificate, and its stretch is named for good (`undecSpans`, VP96-03).
+  const undecided = new Uint8Array(pairs.length);
+  const needInside = new Uint8Array(pairs.length);
+  const undecSpans = new Map<number, Array<[number, number]>>();   // per pair: [first, last] line of each undecidable stretch
+  const askInside = (pi: number): boolean =>
+    (inContact[pi] === 1 && touching[pi] === 1) || undecided[pi] === 1 || needInside[pi] === 1;
+  const insideOf = (pi: number): InsideVerdict => {
+    const [ai, bi] = pairs[pi]!;
+    return pairInside(bodies[ai]!, bodies[bi]!);
+  };
+  // The state after a query in TIME order: an undecidable answer opens or
+  // extends its pair's stretch, anything else (a decided answer, a touch, a
+  // pair not asked — known outside) ends it.
+  const markInside = (pi: number, v: InsideVerdict | null, line: number) => {
+    if (v !== "undecidable") { undecided[pi] = 0; return; }
+    let spans = undecSpans.get(pi);
+    if (!spans) undecSpans.set(pi, spans = []);
+    if (undecided[pi] && spans.length) spans[spans.length - 1]![1] = line;
+    else spans.push([line, line]);
+    undecided[pi] = 1;
+  };
   const staticContacts: CollisionResult["staticContacts"] = [];
   // Contact from the program's first point: an ONSET on the first line the
   // sweep's first sample records; later lines' records are continuations.
@@ -1417,10 +1524,17 @@ export function* sweepCollisionsIter(
   const candidates: number[] = [];   // machine pairs inside the margin at the first pose
   const firstDist = new Float64Array(pairs.length);
   const nearFirst = new Uint8Array(pairs.length);   // inside the margin at the first pose (shard costs)
+  const firstLine = track.lines[firstSeg] ?? 0;
   for (let pi = 0; pi < pairs.length; pi++) {
     if (unreachable[pi]) continue;   // provably beyond the margin everywhere (prescreen)
     const [ai, bi] = pairs[pi]!;
-    const dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin);
+    let dist = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin);
+    if (dist > opts.margin) {
+      // Surfaces apart: wholly inside is a contact the distance cannot see.
+      const v = insideOf(pi);
+      if (v === "inside") dist = 0;
+      else markInside(pi, v, firstLine);
+    }
     if (dist <= opts.margin) {
       nearFirst[pi] = 1;
       if (pairCutting[pi]) {
@@ -1437,7 +1551,15 @@ export function* sweepCollisionsIter(
     poseRest();
     for (const pi of candidates) {
       const [ai, bi] = pairs[pi]!;
-      if (pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin) <= opts.margin) {
+      // At rest too: touching or wholly inside — decided, never undecidable
+      // (VP96-03: no static exclusion on an answer nobody has).
+      let rest = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin) <= opts.margin;
+      if (!rest) {
+        const v = insideOf(pi);
+        rest = v === "inside";
+        if (v === "undecidable") markInside(pi, v, firstLine);
+      }
+      if (rest) {
         staticExcluded[pi] = 1;   // touching at rest too: a slide, a bearing, a mount
         staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist: firstDist[pi]! });
       } else {
@@ -1463,7 +1585,11 @@ export function* sweepCollisionsIter(
       cost[pi] = skipPair[pi] ? 0 : nearFirst[pi] ? 10 + tris(bodies[ai]!) + tris(bodies[bi]!) : 1;
     }
     const mine = assignPairs(cost, opts.shard.of)[opts.shard.index]!;
-    for (let pi = 0; pi < pairs.length; pi++) if (!mine[pi]) skipPair[pi] = 1;
+    for (let pi = 0; pi < pairs.length; pi++) {
+      if (mine[pi]) continue;
+      skipPair[pi] = 1;
+      undecSpans.delete(pi);   // the baseline's answer for another shard's pair is that shard's to report
+    }
     if (opts.shard.index !== 0) { staticContacts.length = 0; pairsPrescreened = 0; }
   }
 
@@ -1617,6 +1743,14 @@ export function* sweepCollisionsIter(
   // summed piecewise over the chunks the pair skipped.
   const clear = new Float64Array(pairs.length);   // clearance left since the last query
   const sQ = new Float64Array(pairs.length);      // path parameter of that query (or chunk start)
+  // An INSIDE answer's certificate (inside check, plan step 5): the answer
+  // can only change through a surface crossing, and none can happen before
+  // the surfaces' distance is used up at the pair's speed bound — carried
+  // like `clear` (the distance at `inQ`, re-expressed in each chunk's V).
+  // Until then the pair's samples (a long inside contact owes one per line)
+  // need neither the distance query nor the rays. 0 = no certificate.
+  const inClear = new Float64Array(pairs.length);
+  const inQ = new Float64Array(pairs.length);
   const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (per-line contact marks)
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
   const jv0: number[] = new Array(jointVals.length).fill(0);
@@ -1689,13 +1823,18 @@ export function* sweepCollisionsIter(
     return dcum[lo]!;
   };
   const back = Math.max(MIN_ADV, EXPLORE / 4);
+  // The refinement's predicate: touching OR wholly inside — and undecidable
+  // counts as contact (the interval grows, it never shrinks over an answer
+  // nobody has). Its boundaries are where the surfaces cross.
+  const contactAtDist = (s: number, pi: number): boolean =>
+    distAtCum(s, pi) <= CONTACT_EPS || insideOf(pi) !== "outside";
   // Bisect a contact boundary between a known in-contact cum and a known
   // clear cum (either order); returns the refined in-contact-side cum.
   const bisectBoundary = (contactCum: number, clearCum: number, pi: number): number => {
     let c = contactCum, x = clearCum;
     for (let it = 0; it < 24 && Math.abs(x - c) > 1e-3; it++) {
       const mid = (c + x) / 2;
-      if (distAtCum(mid, pi) <= CONTACT_EPS) c = mid;
+      if (contactAtDist(mid, pi)) c = mid;
       else x = mid;
     }
     return c;
@@ -1715,6 +1854,18 @@ export function* sweepCollisionsIter(
   // second and every later snapshot (and the final result) reuse them.
   // Values are DIST cum (captured before the track-cum conversion below).
   const refined = new Map<string, { sig: string; cum: number; cumEnd: number; intervals: Array<[number, number]>; carried: boolean }>();
+  // One statement per pair whose inside check was undecidable, its stretches
+  // by line (three, then "…") — per pair, so the shards' statements unite.
+  const insideNotes = (): string[] => {
+    const at = (spans: Array<[number, number]>) =>
+      spans.slice(0, 3).map(([a, b]) => (a === b ? `L${a}` : `L${a}–L${b}`)).join(", ") + (spans.length > 3 ? " …" : "");
+    return [...undecSpans.entries()]
+      .sort((x, y) => x[1][0]![0] - y[1][0]![0] || x[0] - y[0])
+      .map(([pi, spans]) => {
+        const [ai, bi] = pairs[pi]!;
+        return `inside check undecidable for ${bodies[ai]!.id} ↔ ${bodies[bi]!.id} (${at(spans)}) — a part wholly inside the other is not found there`;
+      });
+  };
   const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean, refine: boolean): CollisionResult => {
     // The REPORTED set first — onsets first when the cap bites: a long
     // penetration's continuation records must never evict a genuinely
@@ -1782,7 +1933,7 @@ export function* sweepCollisionsIter(
         let hi = cs, lo = hi, guard = 0, bracketed = false;
         while (guard++ < 128 && lo > efloor) {
           lo = Math.max(efloor, lo - back);
-          if (distAtCum(lo, h.pi) > CONTACT_EPS) { bracketed = true; break; }
+          if (!contactAtDist(lo, h.pi)) { bracketed = true; break; }
           hi = lo;  // still in contact — earliest known contact moves back
         }
         const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
@@ -1794,7 +1945,7 @@ export function* sweepCollisionsIter(
         let exitBracketed = false;
         while (guard++ < 128 && ehi < eceil) {
           ehi = Math.min(eceil, ehi + back);
-          if (distAtCum(ehi, h.pi) > CONTACT_EPS) { exitBracketed = true; break; }
+          if (!contactAtDist(ehi, h.pi)) { exitBracketed = true; break; }
           elo = ehi;
         }
         const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
@@ -1864,7 +2015,7 @@ export function* sweepCollisionsIter(
       staticContacts,
       samples: done,
       coarsened,
-      uncertified,
+      ...notesOf([...noteParts, ...insideNotes()]),
       pairCount: pairs.length,
       pairsPrescreened,
       bvhMs: model.bvhMs,
@@ -1953,7 +2104,8 @@ export function* sweepCollisionsIter(
     if (toolBoundary || breakBoundary) {
       for (let pi = 0; pi < pairs.length; pi++) {
         if (skipPair[pi]) continue;
-        if (breakBoundary || pairTool[pi]) clear[pi] = 0;
+        // No continuous motion here: what was outside may be inside after it.
+        if (breakBoundary || pairTool[pi]) { clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0; }
       }
     }
     prevTool = segTool; prevTlo = segTlo;
@@ -2097,13 +2249,30 @@ export function* sweepCollisionsIter(
           const [ai, bi] = pairs[pi]!;
           const A = bodies[ai]!, B = bodies[bi]!;
           let d: number;
-          if (prof) {
+          let v: InsideVerdict | null = null;
+          const inCert = inClear[pi]! > 0 && s - inQ[pi]! < inClear[pi]! / Math.max(pairV[pi]!, 1e-9);
+          if (inCert) {
+            d = 0;   // still inside: no surface crossing since it was measured
+          } else if (prof) {
             const tq = clock();
             d = pairDistance(A, B, HORIZON, opts.margin);
+            if (d > CONTACT_EPS && askInside(pi)) v = pairInside(A, B);
             prof.ms![pi] = prof.ms![pi]! + (clock() - tq);
             prof.queries![pi] = prof.queries![pi]! + 1;
           } else {
             d = pairDistance(A, B, HORIZON, opts.margin);
+            // Decided at THIS sample's pose, before the re-sampling below
+            // moves the model (it poses it back for the pairs after this one).
+            if (d > CONTACT_EPS && askInside(pi)) v = pairInside(A, B);
+          }
+          needInside[pi] = 0;
+          const unknownInside = v === "undecidable";
+          if (v === "inside") {
+            inClear[pi] = d === Infinity ? HORIZON : Math.min(d, HORIZON);   // a lower bound of the surfaces' distance
+            inQ[pi] = s;
+            d = 0;
+          } else if (!inCert) {
+            inClear[pi] = 0;
           }
           // VP-I45 (Codex R86/R87): a touching pair re-probes every EXPLORE,
           // and inside that stride the contact can end, the pair separate and
@@ -2127,14 +2296,30 @@ export function* sweepCollisionsIter(
           if (resample) {
             for (let x = lastTouch[pi]! + MIN_ADV; x < s - 1e-9; x += MIN_ADV) {
               done++;
-              const dx = distAtCum(x, pi, HORIZON);
+              let dx = distAtCum(x, pi, HORIZON);
               const seg = segAtDist(x);
+              // Every sample of the stretch is a separation decision.
+              const vx = dx > CONTACT_EPS ? insideOf(pi) : null;
+              markInside(pi, vx, track.lines[seg]!);
+              if (vx === "inside") dx = 0;
+              else if (vx === "undecidable") dx = Math.min(dx, opts.margin * 2);
               noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx);
             }
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
-          noteQuery(pi, s, line, isRapid, d);
-          if (d <= opts.margin) {
+          markInside(pi, v, line);
+          // Undecidable: a record only for what the surfaces show (inside the
+          // margin), never a separation (at most 2 × margin).
+          noteQuery(pi, s, line, isRapid, unknownInside ? Math.min(d, opts.margin * 2) : d);
+          if (unknownInside) {
+            // No clearance certificate: asked again at the contact cadence
+            // until a pose decides it.
+            clear[pi] = 0;
+            touching[pi] = 0;
+            sSafe[pi] = s + EXPLORE;
+            sQ[pi] = s;
+            qLine[pi] = line;
+          } else if (d <= opts.margin) {
             if (d > CONTACT_EPS) {
               // Inside the margin but not touching: the distance certifies
               // that the pair cannot TOUCH before s + d/V. The fixed EXPLORE
@@ -2178,7 +2363,12 @@ export function* sweepCollisionsIter(
       // Chunk done: what this chunk could have consumed of each carried
       // clearance since its last query (or since the chunk start).
       for (let pi = 0; pi < pairs.length; pi++) {
-        if (skipPair[pi] || (inContact[pi] && touching[pi])) continue;
+        if (skipPair[pi]) continue;
+        if (inClear[pi]! > 0) {
+          inClear[pi] = inClear[pi]! - pairV[pi]! * (s1 - inQ[pi]!);
+          inQ[pi] = s1;
+        }
+        if (inContact[pi] && touching[pi]) continue;
         clear[pi] = clear[pi]! - pairV[pi]! * (s1 - sQ[pi]!);
       }
     }

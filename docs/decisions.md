@@ -8725,3 +8725,40 @@ proven stop — the controller decelerates after the abort (tp.c), at least
 limit crossing — where the run stops is not determined" and "after the first
 limit crossing at L…"; the boundary itself is unchanged. The inside-check
 plan (Fassung 2) was accepted in the same round.
+
+## 2026-10-08 — A body wholly inside another is a contact (inside check, step 2)
+
+The sweep measured surface distances, so a body wholly inside another read
+as clear — the operator saw it live (haus.ngc on XYZAC far outside the
+travel: the Y guide's end caps in the column foot, untinted). Plan
+`docs/reviews/collision-inside.plan.md` (Fassung 2 accepted by Codex R97,
+Fassung 3 below). `insideCheck.ts` answers three-valued — inside, outside,
+undecidable — by one non-degenerate ray of six fixed directions per
+component vertex, after the exact local-box exclusion; the winding number
+is the independent check in the tests and the oracle.
+
+Between two surface contacts the answer cannot change, so the sweep asks
+only where it is not known: the baseline (first pose; the rest pose for a
+candidate — touching or inside there too is a static neighbour), the first
+query after a break or a tool change, every separation decision (the next
+query of a touching pair, beyond the horizon too, and every re-sampled
+point after a touch), and a pair whose last answer was undecidable. Inside
+counts as a touch; the refinement's predicate is touching or inside or
+undecidable. Undecidable gives no record, no separation, no clearance
+certificate and no static exclusion, and its stretch stays named.
+
+Fassung 3 (a deviation found while wiring it): a container whose surface is
+not closed has no inside at any pose, so asking again never decides it —
+it would only hold every pair with the 3-axis model's frame at the contact
+cadence for good. It is named once per model ("surface not closed — a part
+wholly inside it is not found") and its pairs keep the surface's guarantee;
+only ray-degenerate undecidability gets the plan's treatment. The result's
+statements (`notes`) are united by the shard and the entry merges — shard
+0's note alone dropped the other shards' pairs, and the entry move's note
+hid the program's.
+
+The oracle now counts a pose wholly inside (by the winding number) as a
+touch and sweeps a short track from a recorded inside pose per case; the
+gate's random XYZAC track already ran through the operator's end-cap pose.
+Cost: the oracle file 51 → 83 s (its winding numbers on the inside tracks);
+the sweep's own cost is step 5.
