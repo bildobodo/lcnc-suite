@@ -1,0 +1,425 @@
+{
+  "r93_inline_g91_cycle": {
+    "lines": [
+      2,
+      4,
+      4,
+      4,
+      4,
+      6
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      0,
+      0,
+      42,
+      10,
+      5,
+      42,
+      10,
+      5,
+      37,
+      10,
+      5,
+      42,
+      15,
+      5,
+      42
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "rapid": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "5 moves after a tool change run from a position the preview cannot know — not checked until the position is known again (L4, L6)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.2708829999999978,
+      "sweepMs": 0.5645870000000031,
+      "truncated": null
+    }
+  },
+  "r93_separate_g91_cycle": {
+    "lines": [
+      2,
+      5,
+      5,
+      5,
+      5,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      0,
+      0,
+      42,
+      10,
+      5,
+      42,
+      10,
+      5,
+      37,
+      10,
+      5,
+      42,
+      15,
+      5,
+      42
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "rapid": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "5 moves after a tool change run from a position the preview cannot know — not checked until the position is known again (L5, L7)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.3419189999999901,
+      "sweepMs": 0.07416700000000276,
+      "truncated": null
+    }
+  },
+  "r93_rotated_partial": {
+    "lines": [
+      4,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      0,
+      15,
+      20,
+      0,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1
+    ],
+    "rapid": [
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked until the position is known again (L6, L7)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.2578760000000102,
+      "sweepMs": 0.16604300000000194,
+      "truncated": null
+    }
+  },
+  "r93_unrotated_partial": {
+    "lines": [
+      4,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      0,
+      15,
+      20,
+      0,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1
+    ],
+    "rapid": [
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked until the position is known again (L6, L7)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.22533500000000117,
+      "sweepMs": 0.06487500000000068,
+      "truncated": null
+    }
+  },
+  "r93_rotated_complete": {
+    "lines": [
+      4,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      1,
+      0
+    ],
+    "rapid": [
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L6)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.45571099999999376,
+      "sweepMs": 0.18275100000001032,
+      "truncated": null
+    }
+  },
+  "r93_g90_same_block": {
+    "lines": [
+      2,
+      5,
+      6,
+      7
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      1,
+      2,
+      43,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "rapid": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked until the position is known again (L5, L6)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.1743760000000094,
+      "sweepMs": 0.07295900000001154,
+      "truncated": null
+    }
+  },
+  "r93_g90_separate_block": {
+    "lines": [
+      2,
+      5,
+      7,
+      8
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      1,
+      2,
+      43,
+      10,
+      5,
+      15,
+      20,
+      5,
+      15
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "ustart": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "rapid": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": "2 moves after a tool change run from a position the preview cannot know — not checked until the position is known again (L5, L7)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.17287599999998804,
+      "sweepMs": 0.0942929999999933,
+      "truncated": null
+    }
+  },
+  "r93_inline_g91_g28": {
+    "lines": [
+      2,
+      4,
+      4,
+      5
+    ],
+    "pos": [
+      0,
+      0,
+      40,
+      10,
+      5,
+      35,
+      0,
+      0,
+      0,
+      5,
+      0,
+      0
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "rapid": [
+      1,
+      1,
+      1,
+      1
+    ],
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": "3 moves after a tool change run from a position the preview cannot know — not checked until the position is known again (L4, L5)",
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.16937599999999975,
+      "sweepMs": 0.03383399999999881,
+      "truncated": null
+    }
+  }
+}

@@ -1,0 +1,42 @@
+--- a/lcnc-webui/tsconfig.app.json
++++ b/lcnc-webui/tsconfig.app.json
+@@ -1,7 +1,7 @@
+ {
+   "extends": "@vue/tsconfig/tsconfig.dom.json",
+   "compilerOptions": {
+-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
++    "tsBuildInfoFile": "../r94-ts-cache/tsconfig.app.tsbuildinfo",
+     "types": ["vite/client"],
+ 
+     /* Linting */
+--- a/lcnc-webui/tsconfig.node.json
++++ b/lcnc-webui/tsconfig.node.json
+@@ -1,6 +1,6 @@
+ {
+   "compilerOptions": {
+-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
++    "tsBuildInfoFile": "../r94-ts-cache/tsconfig.node.tsbuildinfo",
+     "target": "ES2023",
+     "lib": ["ES2023"],
+     "module": "ESNext",
+--- a/lcnc-webui/tsconfig.test.json
++++ b/lcnc-webui/tsconfig.test.json
+@@ -8,7 +8,7 @@
+   // src/tsconfigCoverage.test.ts keeps this list and tsconfig.app.json's
+   // exclude list in step and refuses stale entries.
+   "compilerOptions": {
+-    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
++    "tsBuildInfoFile": "../r94-ts-cache/tsconfig.test.tsbuildinfo",
+     "target": "ES2023",
+     "lib": ["ES2023", "DOM", "DOM.Iterable"],
+     "module": "ESNext",
+--- a/lcnc-webui/vite.config.ts
++++ b/lcnc-webui/vite.config.ts
+@@ -4,6 +4,7 @@
+ 
+ // https://vite.dev/config/
+ export default defineConfig({
++  cacheDir: "../r94-vite-cache",
+   // httpRestartPing: dev only — Vite's restart ping over HTTP, so it cannot
+   // hold the browser's one-connecting-WebSocket-per-IP slot the gateway socket
+   // needs after a suite restart (see viteHttpRestartPing.ts).
