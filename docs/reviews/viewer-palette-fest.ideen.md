@@ -14407,3 +14407,35 @@ Reine Planprüfung, zusätzlich **zwei isolierte Fehlerverlaufsproben und drei n
 - **VP102-03 Rest:** Die Auslassung beginnt am **Start** des nicht vorhergesagten Tastsegments, gleich in Payload, Track und Sweep. Eine Suchhülle wird nicht gezeichnet.
 - **VP103-01:** Am Auslösepunkt, vor dem Rückzug, setzt der Vorschauzweig `#5061`–`#5069` aus `#5420`–`#5428` und `#5070 = 1`. Die langsame Probe überschreibt das. Nativ nachgeprüft: Die Parameter lassen sich im Vorschau-Interpreter setzen, und `#5420`–`#5422` liefern die Position im Arbeitsrahmen mit G54-Versatz.
 - **Hinweise:** übernommen. VP-I51-Regeln bei `TOOL_CHANGE_POSITION`, Pfadvergleich als Kontrollstruktur, `#3005 = 0` als gültiger Fall.
+
+## Review R104 · Codex · M600-Plan Fassung 3 angenommen · 8. Oktober 2026
+
+**Ergebnis: `agreement` für den Plan. VP102-01, VP102-03 und VP103-01 sind auf Planebene geschlossen. Fassung 3 kann in den vier genannten Paketen umgesetzt werden; Implementierungsreview und Live-Parität folgen danach.**
+
+Geprüft: `3059001d..5903b870`, Anfrage `9dff8814`. Nur Plan/Dokumentation geändert. Die übrigen Planentscheidungen aus R103 sowie die in R102 abgenommene Innenprüfung bleiben angenommen. Die ausgegliederte Restprüfung im Lauf gehört weiterhin nicht zu diesem Agreement.
+
+### Die drei offenen Punkte sind geschlossen
+
+| Punkt | Bewertung |
+|---|---|
+| **VP102-01 · Parameterbasis** | Herkunft und Gültigkeit je Schlüssel lösen den Rest aus R103: bestätigte Chunks bleiben `applied`, zweifelhafte Teilübernahmen werden `unknown`; nach Gateway-Neustart oder spätem Anbinden gibt es ohne Beleg nur `assumed`. Ein unklarer Gesamtaufruf kann damit nicht mehr die alte oder neue Gesamtbasis als übernommen ausgeben. Bestätigtes Rücklesen nach dem bestehenden G30-Vertrag ist als Weg zu `read` geeignet. Die benannte Annahme bei fehlender Bestätigung und das Auslassen bei `unknown` sind akzeptiert. |
+| **VP102-03 · Abdeckungsgrenze** | Text, Tabelle und Prüfungen beginnen die Auslassung jetzt am **Start** der nicht vorhergesagten Probe. Keine volle Suchfahrt, keine bestimmte Dauer und keine Kollisionen auf einem erfundenen Folgeweg. Bekannte Maschinenpositionierung davor bleibt prüfbar; unbekannte Werkzeugpaare sind bereits ab M6 benannt ausgeschlossen. Die bestehenden unbekannten Startachsen nach M6 werden ausdrücklich erhalten. |
+| **VP103-01 · Probe-Ergebnisse** | #5061–#5069 aus #5420–#5428 am angenommenen Auslösepunkt **vor** dem Rückzug und #5070=1 schließen den veralteten Ergebniszustand. Die langsame Probe überschreibt, bei ausgelassener langsamer Probe bleibt die schnelle maßgeblich. Das bleibt eine Vorschauannahme und wird nicht als reale Messung bezeichnet. |
+
+Den Probe-Koordinatentransfer habe ich unabhängig mit dem nativen Offline-Parser geprüft: **sieben Fälle grün**, darunter vorheriges abweichendes Probe-Ergebnis, G54, G54+G92, um 90° gedrehtes WCS, zweite Ergebnisfortschreibung und A=25°. Bei Maschinenpunkt `(20, 30, −90)` entstehen beispielsweise `(15, 23, −100)` mit G54 `(5, 7, 10)` und `(14, 21, −103)` mit zusätzlichem G92-Versatz `(1, 2, 3)`. Nach Rückzug und anschließendem G43 bleiben die gespeicherten Kontaktwerte erhalten; #5070 ist 1. Das entspricht dem Arbeitsrahmen-Vertrag der [LinuxCNC-Probe-Ergebnisse](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g38).
+
+[Native Sonden](viewer-palette-fest.r104.codex-native.py), [Programme](viewer-palette-fest.r104.codex-native-cases.json), [Erwartungen und Ergebnisse](viewer-palette-fest.r104.codex-native-checks.json), [vollständige Payload-Beobachtungen](viewer-palette-fest.r104.codex-native.json).
+
+### Hinweise für die Implementierungsprüfung
+
+Diese Punkte konkretisieren die übernommenen Verträge; sie verlangen keine zusätzliche Planrunde:
+
+1. **Den ganzen G30-Lesevertrag übernehmen.** In `gateway.py:8224ff` bedeutet er neben RCS_DONE und neuem Inode auch `_cmd_lock` **und** `_var_file_lock` über Synchronisation und Snapshot, zusammengehöriges `fstat`/Lesen, vorhandene endliche Werte und bis zum Ende geschützte Dateithreads. Fehlende #3xxx-Zeilen dürfen nicht als 0 oder als bestätigt gelten. Den im Plan angekündigten nativen `save_parameters`-Nachweis tatsächlich liefern. Bis dahin oder bei Fehlschlag gilt der geplante unbestätigte Zustand.
+2. **Textscan konservativ einsetzen.** Bei indirekten Zuweisungen, nicht eindeutig auflösbaren Parametern oder nicht analysierbaren Aufrufen darf aus „kein einfacher Treffer“ kein weiterhin bestätigter Schlüssel folgen. Dann den relevanten Satz breiter invalidieren. Externe Schreiber sind durch Gateway-Sperren nicht erfasst; eine lokale Bestätigung ist kein dauerhafter Nachweis, dass kein anderer Schreiber eingegriffen hat. Diese Grenze mit der Herkunft benennen, ohne eine allgemeine NC-Überwachung einzubauen.
+3. **Snapshot und Ereignisgrenzen erhalten.** Werte, Herkunft und Version gemeinsam an den Parse binden; aktuelle Rücklesewerte nicht in einen angehefteten älteren Parse mischen. Probe-Ergebnisse in einem folgenden Satz nach Erreichen des angenommenen Punktes und vor dem Rückzug aufnehmen. Der Maschinenpfadvergleich muss die Kontrollstruktur berücksichtigen; die echte Routine, Kantentaster-/RFL-/T0-Fälle und Payload → Track → Sweep bleiben die vorgesehenen Implementierungswächter.
+
+### Prüfungen und Grenzen
+
+Reine Planprüfung mit sieben nativen Prämissenproben in einer Archivkopie. Keine M600-Implementierung vorweggenommen, kein Build-/Gate-/Browser-/Live-Lauf und kein `task_plan_synch` an der laufenden Instanz. Synthetischer Status, eigene temporäre Dateien, Maschinenbefehle im nativen Prüfwerkzeug verboten. Die anfänglichen Auslesefehler der Sonde durch Bezugspunkte, Nullbewegungen und kollineare Punkte sind im Prüfaufbau offengelegt; die erwarteten Koordinaten wurden nicht angepasst. Produktcode und bisherige Belege unverändert.
+
+[Prüfaufbau und Wiederholung](viewer-palette-fest.r104.codex-checks.md), [Protokoll](viewer-palette-fest.r104.codex-native.txt), [Isolation/Kontext](viewer-palette-fest.r104.codex-context.json), [Beleghashes](viewer-palette-fest.r104.codex-sha256.json).

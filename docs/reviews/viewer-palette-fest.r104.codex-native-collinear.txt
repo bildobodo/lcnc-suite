@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/tmp/codex-r104-ekild8df/archive/evidence/viewer-palette-fest.r104.codex-native.py", line 47, in <module>
+    coords=point('G0 X#5061 Y#5062 Z#5063');abc=point('G0 X[1+#5064] Y#5065 Z#5066');uvw=point('G0 X[2+#5067] Y#5068 Z#5069');success=point('G0 X#5070 Y0 Z0')
+                                                                                         ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/codex-r104-ekild8df/archive/evidence/viewer-palette-fest.r104.codex-native.py", line 45, in point
+    assert found,(name,line,found)
+           ^^^^^
+AssertionError: ('rotary_a', 26, [])
