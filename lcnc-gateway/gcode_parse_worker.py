@@ -78,6 +78,7 @@ from gateway_util import (
     kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
     attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
+    read_var_snapshot, TOOLSETTER_BASIS_KEYS,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
@@ -223,7 +224,13 @@ def parse(ctx: dict) -> dict:
     # M600 (docs/reviews/m600-preview.plan.md): the gateway's word that the
     # toolsetter values the routine would read are not known — then nothing
     # is predicted from the routine's start (gcode_canon.probe_events).
-    canon.toolsetter_unpredictable = ctx.get("toolsetter_unpredictable") or None
+    # The toolsetter BASIS the gateway booked (plan section 2): the values the
+    # interpreter took over or a confirmed read showed, patched into the
+    # parameter copy below; why the routine cannot be predicted (unknown or
+    # never stored values), else None.
+    _ts = ctx.get("toolsetter") or {}
+    _ts_used = None
+    canon.toolsetter_unpredictable = ctx.get("toolsetter_unpredictable") or _ts.get("unpredictable") or None
     # The controller's own motion at an M6 (gcode_canon.tool_change_moves):
     # only a tool change position makes the move after it start where no
     # parse can know — on the axes it names (X Y Z [A B C [U V W]]).
@@ -281,8 +288,17 @@ def parse(ctx: dict) -> dict:
         if param_text is not None:
             with open(temp_param, "w", encoding="utf-8") as f:
                 f.write(param_text)
-        apply_var_patches(temp_param, var_patches)
+        apply_var_patches(temp_param, {**var_patches, **(_ts.get("patches") or {})})
         canon.parameter_file = temp_param
+        # The values the routine reads in THIS parse (the payload says which
+        # basis it was predicted from: the client compares them with the
+        # Settings section — "Settings has newer values").
+        if _ts:
+            try:
+                _, _tsv = read_var_snapshot(temp_param, [str(k) for k in TOOLSETTER_BASIS_KEYS])
+                _ts_used = {**(_ts.get("view") or {}), "version": _ts.get("version"), "values": _tsv}
+            except OSError as e:
+                _trace.emit_exc("gcode.toolsetter_values_unread", e)
         # Fixture rows as the machine holds them at parse time (the temp copy
         # was just patched with the live table) — the baseline that exposes a
         # program REWRITING its fixtures via G10 L2 (review P2, `rewritten`
@@ -292,6 +308,12 @@ def parse(ctx: dict) -> dict:
 
         unitcode = "G%d" % (20 + (s.linear_units == 1))
         initcodes = [unitcode, "G90"]
+        if canon.toolsetter_unpredictable:
+            # The toolsetter values are not vouched for: the routine's preview
+            # branch returns at once (tool_touch_off.ngc -0-), the canon names
+            # it from the routine's start — never a parse error from values
+            # the machine may not hold.
+            initcodes.append("#<_webui_toolsetter_stop> = 1")
         # Rotary position sync (schema 5): seed the preview interp's rotary
         # pose from the LIVE machine — the same sync task performs at run
         # start. Without it every uncommanded axis sits at program-zero of
@@ -1317,6 +1339,9 @@ def parse(ctx: dict) -> dict:
                  if canon.probe_events else {}),
               **({"toollen_table": [[int(q), int(t), float(z) * unit_scale] for q, t, z in canon.toollen_events]}
                  if canon.toollen_events else {}),
+              # the toolsetter basis the routine was read with (state, origin,
+              # time, the values) — present when the gateway sent one
+              **({"toolsetter_basis": _ts_used} if _ts_used else {}),
               # Lines that wrote an offset or a stored position while the
               # position was unknown after a tool change (Codex R95 VP-I53):
               # the axes stay unknown to the end; the check's note names it.

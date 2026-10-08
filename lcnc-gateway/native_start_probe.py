@@ -270,8 +270,10 @@ _M600_PROG = "G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60\nM2\n"
 
 
 def _m600(var=None, prog=_M600_PROG, **extra):
+    # var={} (an empty dict): the parameter file holds no toolsetter key
     return (prog, "mm", 0.0, (490,), {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=m600",
-                                     "bundled": _M600_SUBS, "var": {**_TS_VARS, **(var or {})},
+                                     "bundled": _M600_SUBS,
+                                     "var": {} if var == {} else {**_TS_VARS, **(var or {})},
                                      **extra})
 
 
@@ -306,6 +308,16 @@ CASES.update({
     # the gateway's word that the toolsetter values are unknown: nothing from
     # the routine's start on
     "m600_basis_unknown": _m600(ctx={"toolsetter_unpredictable": "toolsetter_unknown"}),
+    # the gateway's basis (plan section 2): confirmed values patched over a
+    # parameter file whose own lines differ (the gateway wrote them, the
+    # interpreter never took them) — the preview reads the booked ones
+    "m600_basis_patched": _m600({3102: -150, 3007: 1}, ctx={"toolsetter": {
+        "version": 3, "patches": {"3102": "-180.000000", "3007": "60.000000", "3116": "0.000000"},
+        "unpredictable": None, "view": {"state": "confirmed", "unknown": [], "assumed": [], "origin": "applied", "t": 5.0}}}),
+    # the file lacks every key and no basis says otherwise: never stored
+    "m600_not_set_up": _m600(var={}, ctx={"toolsetter": {
+        "version": 1, "patches": {"3116": "0.000000"}, "unpredictable": "toolsetter_not_set_up",
+        "view": {"state": "not_set_up", "unknown": [], "assumed": []}}}),
     # a move past Z max (50) after the call: a violation where the measurement
     # is predicted, no verdict where it is not
     "m600_known_then_high": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60 Y60 Z200\nM2\n"),
@@ -467,6 +479,7 @@ print(json.dumps({
     "mmap_unchanged": _mmap_unchanged,
     "probe_unpredicted": out.get("probe_unpredicted"), "toollen_table": out.get("toollen_table"),
     "feed_sub": u("feed_sub", "<u1"), "rapid_sub": u("rapid_sub", "<u1"), "sub_names": out.get("sub_names"),
+    "toolsetter_basis": out.get("toolsetter_basis"),
     "feed_lines": u("feed_lines", "<u4"), "tool_change_lines": out.get("tool_change_lines"),
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
     "tlo_events": out.get("tlo_events"), "violations": out.get("violations"),

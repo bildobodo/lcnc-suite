@@ -236,6 +236,30 @@ class TestUnpredictedMeasurement(unittest.TestCase):
         self.assertEqual(r["violations"], [])
         self.assertEqual(r["rapid_outside"][-1], 0)
 
+    def test_the_booked_basis_wins_over_the_parameter_file(self):
+        # the file says −150 / a 1 mm travel (written by the gateway, never
+        # taken over); the basis the interpreter holds says −180 / 60: the
+        # routine is predicted with the booked values, and says which
+        r = probe("m600_basis_patched")
+        self.assertIsNone(r["parse_error"])
+        self.assertIsNone(r["probe_unpredicted"])
+        self.assertEqual(feeds_at(r, 10, 10)[:6], [0, -95, -100, -97, -100, -97])
+        b = r["toolsetter_basis"]
+        self.assertEqual((b["state"], b["origin"], b["version"]), ("confirmed", "applied", 3))
+        self.assertEqual((b["values"]["3102"], b["values"]["3007"], b["values"]["3009"]), (-180.0, 60.0, 3.0))
+
+    def test_values_never_stored_run_nothing_of_the_routine(self):
+        # zeros would end the parse ("zero feed rate") — the machine may hold
+        # other values: the routine returns at once, named from its start
+        r = probe("m600_not_set_up")
+        self.assertIsNone(r["parse_error"])
+        ev = path(r)
+        self.assertEqual(r["probe_unpredicted"], [[ev[0][0], -1, "toolsetter_not_set_up"]])
+        self.assertEqual(r["tool_change_lines"], [])
+        self.assertEqual(r["toolsetter_basis"]["state"], "not_set_up")
+        ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
+        self.assertEqual({(k, ustart.get(q)) for q, k, _, _ in ev[1:]}, {("R", 1)})
+
     def test_an_offset_written_after_the_stop_is_no_cause_of_its_own(self):
         r = probe("m600_unknown_then_g92")
         self.assertEqual(r["probe_unpredicted"][0][2], "length")
@@ -243,7 +267,7 @@ class TestUnpredictedMeasurement(unittest.TestCase):
 
     def test_unknown_toolsetter_values_stop_at_the_routine_start(self):
         # the gateway's word (package 1): the values the routine would read are
-        # unknown — the routine runs, but every point of it is unknown
+        # unknown — the routine returns at once (-0-), every later point unknown
         r = probe("m600_basis_unknown")
         self.assertIsNone(r["parse_error"])
         ev = path(r)

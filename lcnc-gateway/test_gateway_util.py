@@ -4534,3 +4534,67 @@ class TestModeSwitchIgnoredMessage(unittest.TestCase):
                          "LinuxCNC kept MANUAL (asked for AUTO): a jog is active — release it; "
                          "the machine is off; not all joints are homed")
 
+
+
+class TestToolsetterBasis(unittest.TestCase):
+    """M600 in the preview, plan section 2: the values the routine reads are
+    the interpreter's — booked per key with where they are known from."""
+
+    KEYS = gateway_util.TOOLSETTER_BASIS_KEYS
+
+    def basis(self, origin="read", **over):
+        b = {k: {"value": float(k), "origin": origin, "t": 100.0} for k in self.KEYS}
+        for k, e in over.items():
+            b[int(k[1:])] = e
+        return b
+
+    def test_assigned_keys(self):
+        f = gateway_util.toolsetter_assigned_keys
+        self.assertEqual(f("G21\n#3009 = 4\n#3100=10 (#3101=1)\n#1 = #3102\nM2\n"), frozenset({3009, 3100}))
+        self.assertEqual(f("#3009=#3009+1 ; #3010 = 5\n"), frozenset({3009}))
+        self.assertEqual(f("T2 M600\nG0 X1\n"), frozenset())
+        self.assertEqual(f("#5221 = 3\n#3116 = 0\n"), frozenset(), "not toolsetter keys")
+        self.assertIsNone(f("#[3000 + 9] = 4\n"), "indirect: any")
+        self.assertIsNone(f("o<other> call\n"), "a call into another file: any")
+        self.assertIsNone(f("M98 P100\n"))
+        # a sub this text defines is read with it
+        self.assertEqual(f("o100 sub\n#3007 = 2\no100 endsub\no100 call\nM2\n"), frozenset({3007}))
+
+    def test_view(self):
+        v = gateway_util.toolsetter_basis_view
+        self.assertEqual(v(self.basis()), {"state": "confirmed", "unknown": [], "assumed": [], "origin": "read", "t": 100.0})
+        b = self.basis(k3009={"value": 3.0, "origin": "applied", "t": 200.0})
+        self.assertEqual((v(b)["origin"], v(b)["t"]), ("applied", 200.0), "the latest confirmation")
+        self.assertEqual(v(self.basis(k3009={"value": 3.0, "origin": "assumed", "t": 0}))["state"], "assumed")
+        u = v(self.basis(k3009={"value": 3.0, "origin": "unknown", "t": 0}, k3010={"value": None, "origin": "read", "t": 0}))
+        self.assertEqual((u["state"], u["unknown"]), ("unknown", [3009, 3010]))
+        self.assertEqual(v({k: {"value": None, "origin": "assumed", "t": 0} for k in self.KEYS})["state"], "not_set_up")
+        self.assertEqual(v({})["state"], "not_set_up")
+
+    def test_ctx(self):
+        c = gateway_util.toolsetter_ctx(self.basis(k3009={"value": 3.0, "origin": "assumed", "t": 0}), 7)
+        self.assertEqual(c["version"], 7)
+        self.assertNotIn("3009", c["patches"], "an assumed key keeps the file's value")
+        self.assertEqual(c["patches"]["3100"], "3100.000000")
+        self.assertEqual(c["patches"]["3116"], "0.000000")
+        self.assertIsNone(c["unpredictable"])
+        self.assertEqual(gateway_util.toolsetter_ctx(self.basis(k3009={"value": None, "origin": "unknown", "t": 0}), 1)["unpredictable"],
+                         "toolsetter_unknown")
+        self.assertEqual(gateway_util.toolsetter_ctx({}, 1)["unpredictable"], "toolsetter_not_set_up")
+
+
+class TestApplyVarPatchesOrder(unittest.TestCase):
+
+    def test_a_missing_parameter_goes_in_order(self):
+        # LinuxCNC reads the file ascending only: a key appended after the
+        # 52xx rows refused the whole parse
+        from gcode_canon import apply_var_patches
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "m.var")
+            with open(p, "w") as f:
+                f.write("3004\t1\n5161\t0\n5221\t2\n")
+            apply_var_patches(p, {"5221": "9", "3100": "10", "3116": "0", "6000": "1", "31": "5"})
+            with open(p) as f:
+                rows = [line.split() for line in f]
+            self.assertEqual([r[0] for r in rows], ["31", "3004", "3100", "3116", "5161", "5221", "6000"])
+            self.assertEqual(dict(rows)["5221"], "9")

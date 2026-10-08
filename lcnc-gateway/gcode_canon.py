@@ -700,9 +700,28 @@ def apply_var_patches(path: str, patches: Dict[str, str]) -> None:
                     seen.add(parts[0])
                 else:
                     lines.append(line)
-        for pnum, val in patches.items():
-            if pnum not in seen:
-                lines.append(f"{pnum}\t{val}\n")
+        # A parameter the file lacks goes IN ORDER: LinuxCNC reads the file
+        # ascending only ("Parameter file out of order" — a toolsetter key
+        # appended after the 52xx fixture rows refused the whole parse).
+        add = sorted((int(p), p) for p in patches if p not in seen)
+        if add:
+            def _num(line):
+                parts = line.split()
+                try:
+                    return int(parts[0]) if len(parts) >= 2 else None
+                except ValueError:
+                    return None
+            out: List[str] = []
+            ai = 0
+            for line in lines:
+                n = _num(line)
+                while ai < len(add) and n is not None and add[ai][0] < n:
+                    out.append(f"{add[ai][1]}\t{patches[add[ai][1]]}\n")
+                    ai += 1
+                out.append(line if line.endswith("\n") else line + "\n")
+            for _, p in add[ai:]:
+                out.append(f"{p}\t{patches[p]}\n")
+            lines = out
         with open(path, "w") as f:
             f.writelines(lines)
     except Exception as e:

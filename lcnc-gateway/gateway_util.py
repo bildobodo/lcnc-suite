@@ -4601,6 +4601,82 @@ def read_var_snapshot(path: str, keys) -> Tuple[int, Dict[str, Optional[float]]]
     return ino, values
 
 
+# ---- The toolsetter basis (M600 in the preview, plan section 2, Codex R102–R104) ----
+# The values the bundled tool_touch_off.ngc reads are the INTERPRETER's: a
+# value saved in the parameter file is not one the interpreter took over
+# (VP102-01). The gateway books, per key, the value and where it is known
+# from: `applied` (a chunk of _apply_probe_vars that carried it ended
+# RCS_DONE), `read` (a confirmed read: task_plan_synch RCS_DONE and a new
+# inode — save_parameters writes every line of the file from the
+# interpreter, rs274ngc_pre.cc), `assumed` (the file's value, unconfirmed in
+# this process: at start, or after an MDI line or a program that may write
+# it) and `unknown` (a chunk that carried it failed, was cut short or timed
+# out — the take-over is no transaction). A value of None: the file has no
+# line for it.
+TOOLSETTER_BASIS_KEYS = (3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014) + tuple(range(3100, 3116))
+TOOLSETTER_ORIGINS = ("applied", "read", "assumed", "unknown")
+
+
+def toolsetter_assigned_keys(text) -> Optional[frozenset]:
+    """The toolsetter keys a program or an MDI line may write: every literal
+    `#3009 = …` outside comments. None when it may write any — an indirect
+    `#[…] =`, or a call into another file whose text is not read (an o-word
+    of no sub this text defines, M98: position_write_lines' `foreign`). Pure."""
+    _, mode = position_write_lines(text or "")
+    if mode == "foreign":
+        return None
+    keys = set()
+    for raw in (text or "").splitlines():
+        src = strip_gcode_comments(raw)
+        if re.search(r"#\s*\[[^\]]*\]\s*=", src):
+            return None
+        for m in re.finditer(r"#\s*(\d+)\s*=", src):
+            k = int(m.group(1))
+            if k in TOOLSETTER_BASIS_KEYS:
+                keys.add(k)
+    return frozenset(keys)
+
+
+def toolsetter_basis_view(basis: dict) -> dict:
+    """The basis in one word for the preview and the UI: `confirmed` (every
+    key applied or read — `origin` and `t` of the latest confirmation),
+    `assumed` (some key only from the file), `unknown` (some key's value is
+    not known), `not_set_up` (the file holds none of them: never stored).
+    `basis` maps a key to {"value", "origin", "t"}. Pure."""
+    entries = [basis.get(k) for k in TOOLSETTER_BASIS_KEYS]
+    missing = [k for k, e in zip(TOOLSETTER_BASIS_KEYS, entries) if e is None or e.get("value") is None]
+    unknown = [k for k, e in zip(TOOLSETTER_BASIS_KEYS, entries) if e is not None and e.get("origin") == "unknown"]
+    assumed = [k for k, e in zip(TOOLSETTER_BASIS_KEYS, entries) if e is not None and e.get("origin") == "assumed"]
+    confirmed = [e for e in entries if e is not None and e.get("origin") in ("applied", "read")]
+    if len(missing) == len(TOOLSETTER_BASIS_KEYS):
+        state = "not_set_up"
+    elif unknown or missing:
+        state = "unknown"
+    elif assumed:
+        state = "assumed"
+    else:
+        state = "confirmed"
+    latest = max(confirmed, key=lambda e: e.get("t") or 0, default=None)
+    return {"state": state, "unknown": sorted(set(unknown) | set(missing)) if state == "unknown" else [],
+            "assumed": assumed,
+            **({"origin": latest.get("origin"), "t": latest.get("t")} if latest else {})}
+
+
+def toolsetter_ctx(basis: dict, version: int) -> dict:
+    """The parse ctx's `toolsetter`: the confirmed values as parameter-file
+    patches (an assumed key keeps the file's value; #3116 is 0 — every start
+    from idle clears it first, _start_guard), the reason the preview cannot
+    predict the routine (`toolsetter_unknown` / `toolsetter_not_set_up`, else
+    None), the view and the version. Pure."""
+    view = toolsetter_basis_view(basis)
+    patches = {str(k): f"{e['value']:.6f}" for k, e in basis.items()
+               if k in TOOLSETTER_BASIS_KEYS and e.get("value") is not None
+               and e.get("origin") in ("applied", "read")}
+    patches["3116"] = f"{0:.6f}"
+    unpred = {"unknown": "toolsetter_unknown", "not_set_up": "toolsetter_not_set_up"}.get(view["state"])
+    return {"version": int(version), "patches": patches, "unpredictable": unpred, "view": view}
+
+
 def g30_window_refusal(values: Dict[str, float], letters, limits) -> Optional[str]:
     """None when every value is a configured axis inside its window, else the
     refusal (≤ 60 chars). `limits` = read_axis_limits(): AXIS_<L>, else

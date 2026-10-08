@@ -382,12 +382,16 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
     expect(pairs(sweepM600("m600_length_unknown", [10, 10, -15], 80).result)).toEqual(["cutter×fixed", "fixed×spindle"]);
   });
 
-  it("unknown toolsetter values: nothing from the routine's start is checked, its moves named at the M600 line", () => {
-    const { result, track } = sweepM600("m600_basis_unknown", [10, 10, -15], 80);
+  it("unknown toolsetter values: the routine is not run in the preview, nothing from its start is checked", () => {
+    // the gateway cannot vouch for the values the routine reads: it returns at
+    // once (tool_touch_off.ngc -0-) — no tool change, no move of its own —
+    // and the program goes on from an unknown position
+    const { raw, result, track } = sweepM600("m600_basis_unknown", [10, 10, -15], 80);
     expect(result.hits).toHaveLength(0);
-    const note = (result.notes ?? []).find(n => n.startsWith("Tool measurement not predicted"));
-    expect(note).toMatch(/^Tool measurement not predicted \(the toolsetter values are not confirmed\) — \d+ moves after it not checked to the program's end \(L3, L4\)$/);
-    for (let i = 2; i < track.count; i++) expect(track.cum[i]).toBe(track.cum[1]);
+    expect(raw.tool_change_lines).toEqual([]);
+    expect(result.notes).toContain(
+      "Tool measurement not predicted (the toolsetter values are not confirmed) — 1 move after it not checked to the program's end (L4)");
+    for (let i = 1; i < track.count; i++) expect(track.cum[i]).toBe(track.cum[0]);
   });
 
   it("a move past the limit after the stop is no finding, and takes no time", () => {

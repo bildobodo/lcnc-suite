@@ -15,6 +15,17 @@
 o<tool_touch_off> sub
 (WEBUI_SUB=tool_touch_off) ;lcnc-suite: preview sub-span marker, silent in task
 
+;-0- lcnc-suite preview: the gateway cannot vouch for the toolsetter values the
+;routine would read (not confirmed, or never stored - its worker sets
+;#<_webui_toolsetter_stop>): nothing of the routine is predicted, the preview
+;names it from here (gcode_canon toolsetter_unpredictable).
+o<506> if [#<_task> EQ 0]
+  o<507> if [EXISTS[#<_webui_toolsetter_stop>]]
+    (WEBUI_SUB_END) ;lcnc-suite: a return skips the endsub's marker - the span ends here too
+    o<tool_touch_off> return
+  o<507> endif
+o<506> endif
+
 ;lcnc-suite: the routine runs in the preview too (#<_task> EQ 0, Codex R102-R104).
 ;Its positioning is the same code in both. What a preview cannot reproduce is
 ;guarded by #<_task>: the two probes (o<520>/o<530> move to the trip point the
