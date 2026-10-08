@@ -1,0 +1,13 @@
+# R98 — gate R21 on fix/r97 ae99ec4d: every offline stage, the browser in four runs
+PASS backend (48.24s)
+PASS 5axis-model (0.72s)
+PASS audit-css (1.0s)
+PASS review-handshake (4.55s)
+PASS: /tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/gate-R21-backend/report.json
+backend: 1271 passed, 427 subtests passed in 48.01s
+frontend lint / build / unit: frontend-lint exit 0 frontend-build exit 0 frontend-test exit 0  — Tests  1984 passed (1984)
+browser A (--project=serial-guards): 312 passed (17.9m)
+browser serial-layout --no-deps: 98 passed (10.7m)
+browser serial-visual --no-deps: 10 passed (28.5s)
+browser serial-viewer --no-deps: 71 passed (6.1m)
+312 + 98 + 10 + 71 = 491

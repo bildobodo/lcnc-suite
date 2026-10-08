@@ -1,0 +1,37 @@
+# R98 — compiling mutations, each restored from a byte copy
+
+## VP-I53 rest (fix/r97): gateway_util.py / gcode_canon.py against test_tool_change_motion_worker.py + test_start_tlo_worker.py + test_gateway_util.py
+RED    MP1 numbers without a sign
+       2 failed, 427 passed, 24 subtests passed in 5.14s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_sign_and_a_value_computed_equal_hide_no_write
+       - test_gateway_util.py::TestPositionWriteLines::test_each_kind
+RED    MP2 an unreadable L word read as none
+       1 failed, 428 passed, 24 subtests passed in 5.76s
+       - test_gateway_util.py::TestPositionWriteLines::test_each_kind
+RED    MP3 a G92 that computes the old value ignored (the value test)
+       2 failed, 427 passed, 24 subtests passed in 5.83s
+       - test_gateway_util.py::TestOffsetWriteBackstop::test_a_reported_write_counts_whatever_its_value
+       - test_gateway_util.py::TestOffsetWriteBackstop::test_an_explicit_line_a_listed_line_in_order_or_a_switch_is_not
+RED    MP4 no observed line read out of text order (inline as foreign)
+       1 failed, 428 passed, 24 subtests passed in 5.78s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_sign_and_a_value_computed_equal_hide_no_write
+RED    MP5 a switch's G92 re-apply counted as a write
+       4 failed, 425 passed, 24 subtests passed in 4.90s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_later_rotation_makes_a_known_x_or_y_unknown_again
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_a_sign_and_a_value_computed_equal_hide_no_write
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_an_offset_set_from_the_unknown_position_keeps_the_rest_unknown
+       - test_gateway_util.py::TestOffsetWriteBackstop::test_an_explicit_line_a_listed_line_in_order_or_a_switch_is_not
+RED    MP6 a call into another file read as inline
+       2 failed, 427 passed, 24 subtests passed in 5.75s
+       - test_tool_change_motion_worker.py::TestUnknownStartAfterAToolChange::test_lines_out_of_text_order_fall_back_to_the_callbacks_and_say_so
+       - test_gateway_util.py::TestPositionWriteLines::test_order_is_lost_with_o_words_numbers_with_a_call_into_another_file
+(MP3 is red in the unit test alone: in the native branch case the inline layer reads the observed G92 line too — two guards)
+
+## toolChangePayloads.test.ts on payloads the PREVIOUS worker (feat/backlog-integration 6b367399) writes for r97_l_plus_active / r97_branch_same_g92: the R97 test fails (last move ustart 0); on the fixtures: 14 passed. The twenty-six earlier fixtures regenerate bit-identical.
+# swept on Codex's XYZ machine with Codex's obstacles (the track handed over the page's way):
+PRIOR r97_l_plus_active hits [6] last ustart 0
+PRIOR r97_branch_same_g92 hits [8] last ustart 0
+NEW   r97_l_plus_active hits [] last ustart 1
+NEW   r97_branch_same_g92 hits [] last ustart 1
+
+## VP-I55 wording: simRows.test.ts + toolChangePayloads.test.ts (the braking arc: no note claims a stop); sim-panel.viewer.spec + collisions.viewer.spec on fix/r97: 29 passed
