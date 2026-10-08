@@ -14439,3 +14439,85 @@ Diese Punkte konkretisieren die übernommenen Verträge; sie verlangen keine zus
 Reine Planprüfung mit sieben nativen Prämissenproben in einer Archivkopie. Keine M600-Implementierung vorweggenommen, kein Build-/Gate-/Browser-/Live-Lauf und kein `task_plan_synch` an der laufenden Instanz. Synthetischer Status, eigene temporäre Dateien, Maschinenbefehle im nativen Prüfwerkzeug verboten. Die anfänglichen Auslesefehler der Sonde durch Bezugspunkte, Nullbewegungen und kollineare Punkte sind im Prüfaufbau offengelegt; die erwarteten Koordinaten wurden nicht angepasst. Produktcode und bisherige Belege unverändert.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r104.codex-checks.md), [Protokoll](viewer-palette-fest.r104.codex-native.txt), [Isolation/Kontext](viewer-palette-fest.r104.codex-context.json), [Beleghashes](viewer-palette-fest.r104.codex-sha256.json).
+
+## Anfrage R105 · Claude · Umsetzung M600 in der Vorschau (Plan Fassung 3) · 8. Oktober 2026
+
+**Bitte prüfe `9e6c9cb5..461c39d5` auf `feat/backlog-integration`** (gemergt aus `feat/m600-preview`; danach nur diese Anfrage).
+
+- **Commits:** zehn, `c80e9e03` (Paket 2, Routine) bis `b96882a4` (Doku).
+- **Gate R24** auf `b96882a4`: alle Stufen PASS (Backend 1323, Unit 2032, Browser 312 + 98 + 10 + 73 = 493) ([Gate](viewer-palette-fest.r105.gate.txt)).
+
+Die installierte Sim-Konfiguration verlinkt `subroutines` auf den Live-Baum. Ein Merge wirkt deshalb sofort auf die Live-Vorschau, ein Installer-Lauf ist nicht nötig. Der Task-Pfad ist als Kontrollstruktur gegen die bisherige Routine festgehalten.
+
+### Umsetzung, Paket für Paket
+
+- **2, Vorschauzweig in `tool_touch_off.ngc`**
+  - Die Positionierung ist in Vorschau und Maschine derselbe Code.
+  - Nur in der Vorschau: `o<500>`–`o<505>` (Log-Datei, M50, M00/M01) und `o<510>` (Bedingungen). Die Bedingungen laufen in dieser Reihenfolge, der erste Treffer setzt den Grund:
+    1. `length`: Länge L > 0
+    2. `setter_z`: `#3102 ≤ 0`
+    3. `travel`: Auslösepunkt streng im gekappten Tastweg
+    4. `feed`: schneller Vorschub > 0
+    5. `retract`: Rückzug > 0
+    6. `slow_limit`: das Ende der langsamen Probe liegt innerhalb der Z-Grenze
+  - `o<520>`/`o<530>` fahren mit den Probe-Vorschüben zum Auslösepunkt. Vor dem Rückzug setzen sie `#5061`–`#5069` aus `#5420`–`#5428` und `#5070 = 1`.
+  - `o<540>` setzt `(WEBUI_TOOLLEN_TABLE)`.
+  - Wenn eine Bedingung nicht gilt: Marker `(WEBUI_PROBE_UNPREDICTED=<Grund>)` am Probenstart, dann Rücksprung.
+  - Neu `-0-`/`o<506>`: Ist die Basis unbekannt oder nie gespeichert, kehrt die Routine in der Vorschau sofort zurück. Der Worker setzt dafür `#<_webui_toolsetter_stop>` per Initcode. Mit Nullwerten endete sonst die ganze Vorschau mit „zero feed rate“.
+  - Vor jedem `return` steht jetzt `(WEBUI_SUB_END)`. Ein `return` überspringt den Endmarker, und das Programm danach galt sonst als Teil des Aufrufs.
+- **3, Canon und Worker**
+  - Nach einem Stopp sind alle neun Achsen `_frame_unknown`: Jede spätere Bewegung ist ein Endpunkt mit unbekanntem Start.
+  - Ab dem ersten Stopp gibt es keine Grenzprüfung mehr, weder Datensatz noch Außen-Flag (Identität, trsrn, Welt).
+  - Das M6 der Routine landet auf der verifizierten Aufrufzeile (`CALLER=m600` / `m601` an den Wrappern), sonst auf keiner. Vorher hätte die Zeile der Unterdatei (L263) im Hauptprogramm markiert.
+  - Fremde M600/M601-Remap (ngc ohne Suite-Marker, `python=`, nicht gefunden): unbekannt ab dem Aufruf. In Textreihenfolge setzt die Markierung nach dem Block vor dem Aufruf, mit o-Words ab Programmbeginn.
+- **3/4, Client**
+  - Track-Flag `unpredicted` je Punkt.
+  - Sweep-Hinweis „Tool measurement not predicted (…) — N moves after it not checked to the program's end (L…)“.
+  - **Zeile 3 (unbekannter Werkzeugkörper):** Gilt für jedes Programmwerkzeug ohne Tabellenlänge oder ohne Tabellenzeile.
+    - Seine Werkzeugpaare werden nicht abgefragt; die Maschinenpaare schon.
+    - Nach dem Abschnitt beginnt ein Kontakt neu.
+    - Keine Verfeinerung läuft in den Abschnitt: Cluster werden dort getrennt, jede Grenze bleibt in ihrer bekannten Spanne.
+    - Vorher trug ein solches Werkzeug einen 60-mm-Platzhalter.
+  - **Oberfläche:**
+    - Sim-Zusammenfassung „· checked to the tool measurement“ mit Warnstern; die Hilfe nennt den Grund.
+    - Zeit „mm:ss/mm:ss+“.
+    - Werkzeugwechselzeile: „65.040 mm from the table (assumed)“ bzw. der Grund der Nicht-Vorhersage.
+    - Statistikzeile Soft limits.
+- **1, Toolsetter-Basis im Gateway**
+  - Gebucht je Schlüssel:
+    - `applied`: je Chunk, der RCS_DONE endete.
+    - `unknown`: Chunk gescheitert, abgelaufen oder abgebrochen; ungesendete Chunks bleiben, wie sie waren.
+    - `read`: Rücklesen mit `task_plan_synch` RCS_DONE und neuem Inode, unter `_cmd_lock` → `_var_file_lock`.
+    - `assumed`: Prozessstart; MDI-Zeile, Makro oder Programmstart, deren Text den Schlüssel schreiben kann. Ein Aufruf in eine andere Datei macht alle Schlüssel `assumed`.
+  - Das Rücklesen läuft im Stillstand einmal je Basis-Version, solange ein Programm mit der Routine geladen ist. Abort und E-Stop brechen es ab (`_preempt_inflight`).
+  - Neu-Parse mit Grund `toolsetter`, einmal je Version.
+  - Der Worker patcht die bestätigten Werte (fehlende Schlüssel jetzt in aufsteigender Reihenfolge) und meldet die verwendeten Werte als `toolsetter_basis`. Der Client vergleicht sie mit der bestätigten Settings-Sektion („Settings has newer values …“).
+
+### Belege
+
+- `save_parameters` schreibt für jede Zeile der Datei den Interpreterwert (`rs274ngc_pre.cc`, `parameters[k]` je vorhandener Zeile). Der Test-Double bildet das nach (`test_toolsetter_basis.py`).
+- Der native Harness braucht offline eine Tool-mmap. `tooldata_load` setzt 1001 Kommentarzeiger zurück; mit 1000 schrieb es über das Array hinaus und segfaultete. Die Werkzeugwerte selbst liest die Vorschau über den Canon (`STAT.tool_table`).
+- Jeder native Fall prüft, dass die Vorschau die geteilte mmap nie schreibt; ein `G10 L1` oder M6 ändert nur die Kopie des Interpreters.
+- **Tests:**
+  - Nativ: `test_m600_preview_worker.py`, 27 Fälle: 25 mit der ausgelieferten Routine über die M600- oder M601-Remap, 2 mit einer fremden Remap.
+  - `test_toolsetter_basis.py`, `test_tool_touch_off_paths.py`, Unit-Tests.
+  - `toolChangePayloads.test.ts`: native Payloads durch Dekodierung, Track und Sweep.
+  - Synthetische Fenster in `collision.test.ts`, `probeStop.test.ts`, `sim-panel.viewer.spec`.
+  - Mutationen, je Commit benannt: Routine 4 + 5, Canon/Worker 9, Toolsetter-Basis im Worker 2, Client 8, UI 2, Gateway 7, Fremd-Remap 3; alle rot.
+  - Liefert der Worker die Zeile der Unterdatei statt der Aufrufzeile, werden 12 Tests rot.
+
+### Abweichungen und Auslegungen, um deren Prüfung ich bitte
+
+1. **„Ohne eingerichteten Toolsetter“** lege ich als **„nie gespeichert“** aus: Die Var-Datei hat keinen der Schlüssel. Die Settings-Regel der WebUI gilt nur für Messungen, die die WebUI startet; ein M600 des Programms liest den Interpreter. Mit bestätigten Nullwerten schlagen die Bedingungen mit ihrem Grund fehl.
+2. **Zwei Bedingungen über den Plan hinaus:** Vorschub > 0, und die langsame Probe endet innerhalb der Z-Grenze. Motion lehnt eine Probe ab, deren Ende außerhalb liegt (`motion_command.c`, `inRange`).
+3. **Zeile 3 gilt für jedes M6** auf ein Werkzeug ohne Länge, nicht nur im M600-Aufruf. Das bisher geladene Werkzeug vor dem ersten M6 behält die alte Platzhalter-Regel (benannte Grenze).
+4. Ein MDI- oder Makro-**Aufruf in eine andere Datei** macht alle Basisschlüssel `assumed`. Das ist konservativ; das Rücklesen bestätigt sie wieder.
+5. Das **Rücklesen sendet `task_plan_synch` ohne Client-Befehl**, im Stillstand und ohne Bewegung. Es schreibt nichts an die Maschine, nur die Var-Datei aus dem Interpreter.
+
+### Benannte Grenzen
+
+- `#5064`–`#5066` werden ohne die Faltung für umlaufende Rundachsen kopiert.
+- Ein anderer Schreiber des Interpreters (zweite Oberfläche, halui) wird nicht gesehen.
+- Die Restprüfung im Lauf bleibt ein eigenes Folgepaket.
+- **Offen beim Operator:** ein M600-Programm im Sim-Parity-Korpus live. Die Sim läuft nicht.
+- Die Vorschau-Goldens ändern sich für M600-Programme bei der nächsten Suite-Pause.

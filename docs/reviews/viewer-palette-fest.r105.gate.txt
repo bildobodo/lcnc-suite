@@ -1,0 +1,9 @@
+# R105 — gate R24 on feat/m600-preview b96882a4: every offline stage, the browser in four runs
+PASS backend, 5axis-model, audit-css, review-handshake
+backend: 1323 passed, 438 subtests passed in 50.46s
+frontend lint / build / unit: lint exit 0, build exit 0, unit exit 0 — Tests  2032 passed (2032)
+browser A (--project=serial-guards): 312 passed (17.4m)
+browser serial-layout --no-deps: 98 passed (10.9m)
+browser serial-visual --no-deps: 10 passed (29.2s)
+browser serial-viewer --no-deps: 73 passed (6.2m)
+312 + 98 + 10 + 73 = 493
