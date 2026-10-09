@@ -15551,3 +15551,71 @@ Die Fassung hat vier Pakete:
 Offen gebe ich zur Prüfung:
 - die Annahme τ = 10 Einheiten als obere Grenze der Bahnabweichung;
 - die Festlegung des Lauf-Prüfstands auf den Live-Zustand beim Laufstart.
+
+## Review R113 · Codex · Restprüfung im Lauf, Plan Fassung 2 · 9. Oktober 2026
+
+**Ergebnis: `findings`. VP112-04 bis VP112-07 auf Planebene geschlossen. VP112-01, VP112-02 und VP112-03 haben noch die unten beschriebenen Reste.** Die vier Pakete, der feste `CheckBasis`, die dauerhaft veröffentlichte Herkunft und der Startparameter auf dem Basistrack sind eine geeignete Struktur; die Umsetzung bleibt bis zur Klärung der drei Verträge offen.
+
+Geprüft: `86563fff..50013713`, [Plan Fassung 2](restpruefung-lauf.plan.md). **Drei isolierte Client-Proben PASS**: zwei Kontrollen bestätigen die neue Kandidatenregel, eine Gegenprobe zeigt die verbleibende Lücke bei unbekannten Strecken. Zusätzlich reine Quellfunktionen und ausdrücklich als solche bezeichnete Protokoll-Gegenmodelle geprüft. Kein Produktcode geändert, keine Live-Ports oder Maschinenbefehle.
+
+### VP112-01 · P1 · Rest: Der erste empfangene Laufstatus ist nicht der Zustand vor dem Start
+
+**Paket 1b, Zeile 48; zweite offene Frage in der Anfrage.** Die Client-Regel „bei neuer `run_id` den Live-Zustand festhalten“ friert einen Zustand zuverlässig ein, aber möglicherweise den falschen. Command-Dispatch und Statusübertragung sind getrennt: `cycle_start` sendet AUTO mit `wait=None` (`gateway.py:4976–4983`); `_cmd_blocking` schreibt den Befehl auf dem Thread, ohne vor dessen Ausführung einen Startzustand an den Client zu liefern (`3126–3161`). Der Status wird periodisch übertragen. Ein früher G92-/G43.1-Satz kann bereits wirken, wenn der Client zum ersten Mal die neue Laufkennung sieht. Ein Client, der erst während des Laufs verbindet, hat denselben Fehler systematisch.
+
+**Zulässige Gegenfolge:** Start mit G92=0 → Programm setzt G92=100 → erster empfangener Status trägt neue Laufkennung und G92=100. Der geplante Lauf-Prüfstand enthält dann 100, obwohl die eingefrorene Vorschau weiterhin von 0 ausgeht. Dies ist ein Protokoll-Gegenmodell, kein durchgeführter Maschinenlauf. Die Leerlauf-Drift-Kanten verhindern diese Reihenfolge nicht. Sie garantieren auch nicht, dass ein noch ausstehender Idle-Parse vor einem Start bereits veröffentlicht wurde. `pinned_ctx()` nimmt ausdrücklich die veröffentlichte Basis (`bulk_pipeline.py:430–460`), nicht den später vom Client gesehenen Zustand.
+
+**Erforderliche Planänderung:** Die Startbasis vor der Ausführung beim Gateway erfassen beziehungsweise eine bereits verifizierte Parse-/Startbasis dort an genau diesen Start binden. `run_id` und dieser unveränderliche `run_basis` müssen gemeinsam erhalten bleiben und im Status auch für später verbindende Clients verfügbar sein. Der Client übernimmt diese Herkunft; er rekonstruiert den Anfang nicht aus dem ersten laufenden Live-Frame. Die Basis des angehefteten Parses muss nachweislich dazu passen. Fehlt der Nachweis oder war sie beim Start noch ungeklärt, bleibt die Laufzuordnung unbekannt und es entsteht kein als gültig ausgegebener Restauftrag.
+
+Das betrifft die Gültigkeit der Vorschau, nicht eine neue Freigabebedingung für Maschinenbefehle. Startversuch/fehlgeschlagenen Start und Pause/Fortsetzen im Vertrag auseinanderhalten.
+
+**Wächter:** erster beobachteter AUTO-Status erst nach frühem G92/G43.1 beziehungsweise M6; neuer Client mitten im Lauf; Start vor Abschluss einer Idle-Basisprüfung; abgelehnter Start; Pause/Fortsetzen. Snapshot und tatsächlich verwendeter Parse-Start müssen übereinstimmen, nicht nur die Zahlenwerte eines nachträglich eingefrorenen Status.
+
+### VP112-02 · P1 · Rest: `published_origin` nennt den ursprünglichen Lauf und dessen Startbasis noch nicht
+
+**Paket 1a/3a, Zeilen 24–31 und 81–88.** Die dauerhafte Zuordnung von Grund, Datei, Source, Tabelle und Version löst den Transient-Latch aus R112. In der aufgezählten Herkunft fehlen aber **der Lauf, für den der angeheftete Parse begonnen wurde, und die verwendete Startbasis**. Die Bedingung `aktuelle run_id == Lauf-Prüfstand.run_id` vergleicht zwei aktuelle Client-Eingänge miteinander; sie vergleicht keinen davon mit der Herkunft des Payloads. Die nachträglich erzeugte Auftragstupel-Bindung repariert eine falsch zugelassene Publikation nicht.
+
+**Gegenfolge:** Angehefteter Parse in Lauf 1 mit Basis A beginnt → Lauf 1 endet, alter Restauftrag verfällt → Lauf 2 derselben Datei/Source mit Basis B beginnt → der alte Parse veröffentlicht erst jetzt. Alle vier Bedingungen aus 3a sind wahr: `pinned`, `midrun:`, Datei/Source passend, Interpreter läuft, aktuelle Laufkennung passt zum neuen Lauf-Prüfstand. Dennoch stammt die Vorschau aus A/Lauf 1. Das im Beleg ausgeführte Plan-Gegenmodell zeigt genau diese Annahme. Die genannten Verfallsregeln für einen bereits bestehenden Restauftrag verbieten diese spätere Neuzulassung noch nicht.
+
+**Erforderliche Planänderung:** Beim Anlegen des Parse-Auftrags dessen ursprüngliche Lauf-/Gateway-Epoche und Startbasis-Identität erfassen und bis zur Veröffentlichung erhalten; im Client gegen den gültigen Lauf-Prüfstand prüfen. Nicht erst beim Publizieren mit dem dann aktuellen `run_id` versehen. Alternativ kann das Gateway jede Publikation nach Wechsel dieses Kontexts ausdrücklich verwerfen; auch dafür braucht es die Bindung des ursprünglichen Auftrags. Eine verifizierte neue Werkzeugbasis kann heute ohne neue Payload-Version erscheinen (`bulk_pipeline.py:820–831`); deshalb die **Basisrevision** ebenfalls eindeutig berücksichtigen, nicht nur Datei/Version.
+
+Ein früherer Mittellauf-Payload darf nach Reconnect oder Neustart nicht allein wegen `pinned=true` wieder zum Ergebnis des aktuellen Laufs werden. Gleichzeitige Übermittlung von `preview_origin` und Status ist richtig, ersetzt aber nicht deren inhaltliche Zusammengehörigkeit.
+
+**Wächter:** lange verzögerter Parse aus Lauf 1 nach Start von Lauf 2; gleiche Datei/Source mit anderer Startbasis; alte Publikation beim späteren Verbinden; Basis-Verifizierung ohne Versionswechsel; überholte Teil- und Endantworten. Das abgelehnte Gegenmodell muss **vor dem Start eines neuen Rest-Sweeps** scheitern.
+
+### VP112-03 · P1 · Rest: Unbekannt ist nicht ausgeschlossen; τ ist bisher nur ein Suchradius
+
+**Paket 3b, Zeilen 97–105; erste offene Frage in der Anfrage.** Die früheste statt der nächstgelegenen bekannten Strecke behebt den R112-Parallelweg-Fall: Die positive Kontrolle beginnt wieder bei Punkt 0 und findet den Befund. Nicht tragfähig ist noch die Regel, unbekannte Strecken aus der Kandidatenmenge zu entfernen und beim Vorhandensein eines späteren bekannten Treffers dessen Anfang als Untergrenze zu nehmen.
+
+**Neue Gegenprobe:** Track `(0,0) → (100,0) → (100,20) → (0,20) → (0,0)`. Die erste Fahrt hat einen unbekannten Start (`ustart`/`brk`); die Maschine kann noch auf diesem unbekannten Weg sein, beobachtete Pose `(1,0)`. Bei τ=10 ist nur das letzte **bekannte** Segment nahe genug. Die Planregel wählt daher Segment 4 / Startpunkt 3 und keinen Ganz-Track-Rückfall. Das Hindernis auf der noch bevorstehenden bekannten Fahrt bei **(100,10)** wird abgeschnitten. Der vollständige Sweep findet es an L3 und benennt die unbekannte erste Fahrt; der ausgewählte spätere Prüfbereich enthält es nicht. [Eingaben, Kandidaten und echte Sweep-Ergebnisse](viewer-palette-fest.r113.codex-unknown-floor.json).
+
+**Erforderlich, Teil A:** Nicht lokalisierbare Vorkommen vor einem bekannten Kandidaten dürfen ohne weiteren Nachweis nicht als erledigt gelten. Sie sind keine geometrisch prüfbaren Fahrten, bleiben aber eine **Sperre gegen das Vorschieben der Untergrenze**. Eine einfache erste Fassung darf bei solcher Mehrdeutigkeit die vollständige bekannte Vorschau prüfen und die Laufzuordnung als unbekannt bezeichnen. Alternativ die Grenze vor dem frühesten nicht ausgeschlossenen Vorkommen halten; unbekannte Strecken bleiben dabei ausdrücklich ungeprüft. Entscheidend ist der Mischfall „unbekanntes mögliches Vorkommen **und** späterer bekannter Treffer“, nicht nur „keine Kandidaten“.
+
+**τ=10 als bewiesene Obergrenze: nein.** `RUN_ESCAPE_D2` ist ein Anzeigeschwellwert. Der angeführte Parity-Gate misst eine andere Aussage: `path_deviation` sucht für jeden Punkt das nächstgelegene Segment der ganzen anderen Bahn, ohne Vorkommens-/Reihenfolgezuordnung, im Gelenkraum (`scripts/sim_parity.py:87–130`). Die Projektion verwendet Maschinen-/Programmterme je Kandidat; die Zahl aus dem Gate ist damit auch nicht ohne Koordinatenraumvertrag übertragbar.
+
+**Kontrolle:** Eine geschlossene Polylinie und ihre umgekehrte Traversierung ergeben mit der Originalfunktion bidirektional **Abstand 0**, obwohl die gleich indizierten Zwischenpunkte über 100 Einheiten auseinanderliegen. Das ist kein Fehler des deklarierten geometrischen Gates, zeigt aber, dass seine grünen 0,5–1,5-Toleranzen keine Grenze der Abweichung vom **zu diesem Ausführungsvorkommen gehörenden** Segment beweisen. Ein guter späterer Treffer erkennt auch eine verletzte τ-Annahme nicht zuverlässig. [Paritätskontrolle](viewer-palette-fest.r113.codex-plan-checks.json).
+
+**Erforderlich, Teil B:** Geltungsbereich, Metrik/Einheiten und Herkunft einer für das jeweilige Programm/Modell verwendbaren Abweichungsgrenze festlegen. Ohne solchen Nachweis darf τ=10 die Anzeige/Kandidatensuche unterstützen, aber keine Strecken als sicher bereits passiert ausschließen. Für die erste Fassung ist dann die benannte Vollprüfung der bekannten Vorschau ein tragfähiger Rückfall. Eine bloß im Plan benannte Annahme genügt nicht für die derzeitige Aussage „konservative Grenze“ im allgemeinen Fall.
+
+**Wächter:** neue Mischfall-Probe; echter Ganz-Track-Rückfall ohne Kandidaten; allseits bekannte Parallelwege als grüne Kontrolle; verletzte Grenze mit zufällig gutem späterem Treffer; fehlende/abweichende Kinematik-/TLO-/WCS-Basis. „Rest ab L…“ darf erst erscheinen, wenn die dafür erforderliche Zuordnung trägt.
+
+### Auf Planebene angenommen
+
+| Befund | Entscheidung |
+|---|---|
+| **VP112-04** | **Geschlossen.** Programmbasis und Grenzkontakt getrennt, `from` auf dem Basistrack, Schneidpaare am Schnitt ausdrücklich sichtbar, keine übernommenen Zertifikate, Abdeckung ab Start einschließlich Sonderfällen. Die konkrete Umsetzung und Shard-Zusammenführung sind danach zu prüfen. |
+| **VP112-05** | **Geschlossen.** „Werkzeugtabelle aktualisiert“ statt Messbehauptung ist richtig. Kleine Textpräzisierung unten. |
+| **VP112-06** | **Geschlossen auf Planebene.** Begrenzte Parallelität, Arbeitsscheiben, Ersetzen statt Warteschlange, Dekodierpause und getrennte Messaufbauten mit Zielen sind festgelegt. Das ist ein Abnahmeauftrag, noch kein Leistungs- oder Live-Nachweis. |
+| **VP112-07** | **Geschlossen auf Planebene.** Gültige programmierte Drehbewegungen parken den Rest nicht; Jog-/IDLE-Kontrolle und Kamera-/Tab-Pausen bleiben vorgesehen. Die gültige Laufbasis hängt an VP112-01/-02. |
+
+Zwei Umsetzungshinweise ohne zusätzlichen Befund:
+
+- **Zeile 131 präzisieren:** „Ohne erkannte Tabellenänderung kein neuer Restauftrag.“ Gleiche gemessene Werte können bei neuem Datei-mtime durchaus `midrun:table_mtime` auslösen; die Originalfunktion bestätigt das in der [Kontrolle](viewer-palette-fest.r113.codex-plan-checks.json). Ob eine reale Messung stattgefunden hat, folgt weiterhin nicht daraus.
+- **Lastbudget auch für die Bereichssuche:** `run-pos` darf je Statusbild die Pose liefern; die vollständige Kandidatensuche nur bei einer tatsächlichen Planung und budgetiert beziehungsweise im Worker ausführen. Eine neue Vollsuche über den Track auf jedem Statusframe würde den bereits dokumentierten Playhead-Lastfehler wieder einführen. Die zwei Sub-Worker bleiben eine Obergrenze zusätzlich zu den bestehenden Kern-/Speichergrenzen.
+
+### Prüfaufbau und Grenzen
+
+Die Sonde setzt die vorgeschlagene `restFloor`-Regel als klar bezeichnete Referenz um; diese Funktion und `from` existieren noch nicht im Produkt. Der selektierte bekannte Bereich wird für den Gegenbeleg über `sliceTrack` an den echten Sweep gegeben. Seine erste Pose ist hier frei: Die alte statische Basisausnahme aus R112 verursacht den neuen Gegenfall nicht. Daraus folgt keine Aussage gegen den angenommenen neuen Grenzkontaktvertrag.
+
+Die beiden Ablaufbeispiele sind Protokoll-Gegenmodelle, keine behaupteten Live-Reproduktionen. Die Python-Prüfung lädt ausschließlich zwei reine Funktionen per AST; kein Gateway wird gestartet. Die R112-Belege bleiben unverändert. Kein Gesamtgate, Build, Browserlauf oder nativer Parse wiederholt. Die separaten M600-Live-Nachweise aus R111 bleiben offen.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r113.codex-checks.md), [Client-Sonde](viewer-palette-fest.r113.codex-client.test.ts), [Client-Protokoll](viewer-palette-fest.r113.codex-client.txt), [Parallelweg-Kontrolle](viewer-palette-fest.r113.codex-known-control.json), [Kein-Kandidat-Kontrolle](viewer-palette-fest.r113.codex-offpath-control.json), [Protokoll-/Paritäts-Sonde](viewer-palette-fest.r113.codex-plan-checks.py), [Ergebnisse](viewer-palette-fest.r113.codex-plan-checks.json), [Protokoll](viewer-palette-fest.r113.codex-plan-checks.txt), [Quellstellen](viewer-palette-fest.r113.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r113.codex-context.json), [Beleghashes](viewer-palette-fest.r113.codex-sha256.json).

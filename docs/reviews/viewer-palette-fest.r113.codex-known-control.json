@@ -1,0 +1,97 @@
+{
+  "points": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      10,
+      0,
+      0
+    ],
+    [
+      10,
+      10,
+      0
+    ],
+    [
+      0,
+      10,
+      0
+    ],
+    [
+      0,
+      0.1,
+      0
+    ],
+    [
+      10,
+      0.1,
+      0
+    ]
+  ],
+  "machine": [
+    1,
+    0.1,
+    0,
+    0,
+    0,
+    0
+  ],
+  "floor": {
+    "candidates": [
+      {
+        "seg": 1,
+        "dist2": 0.010000000000000002
+      },
+      {
+        "seg": 2,
+        "dist2": 81
+      },
+      {
+        "seg": 3,
+        "dist2": 98.01
+      },
+      {
+        "seg": 4,
+        "dist2": 1
+      },
+      {
+        "seg": 5,
+        "dist2": 2.220446032706701e-18
+      }
+    ],
+    "from": 0,
+    "fallback": false
+  },
+  "rest": {
+    "hits": [
+      {
+        "line": 3,
+        "cum": 14.5004638671875,
+        "cumEnd": 15.500097656249999,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            14.5004638671875,
+            15.500097656249999
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 38,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.2696630000000084,
+    "sweepMs": 6.2561330000000055,
+    "truncated": null
+  }
+}

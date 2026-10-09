@@ -1,0 +1,9 @@
+{
+  "head": "5001371310a9a1aea87cf30167480e2fc4236898",
+  "archive": "/tmp/codex-r113-e__wq7df",
+  "live_tree": "/home/cnc/lcnc-suite",
+  "review_prefix_bytes": 1079382,
+  "review_prefix_sha256": "b559d33b721666dd7ba356ae7dc9be2805f6ecfa5d3d5923f9b15f9de45b581a",
+  "no_live_ports": true,
+  "product_edits": false
+}

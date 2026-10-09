@@ -1,0 +1,196 @@
+{
+  "scope": "Plan reference models and exact pure source functions, no implemented R113 code or live execution",
+  "parity": {
+    "path_a": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        100.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        100.0,
+        20.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        20.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "path_b": [
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        20.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        100.0,
+        20.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        100.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "a_to_b_max_p99": [
+      0.0,
+      0.0
+    ],
+    "b_to_a_max_p99": [
+      0.0,
+      0.0
+    ],
+    "same_index_distances": [
+      0.0,
+      101.9803902718557,
+      0.0,
+      101.9803902718557,
+      0.0
+    ],
+    "conclusion": "Geometric set agreement alone proves no occurrence-aligned bound; this is a limitation of using the gate as a rest-floor premise, not a bug report against its declared path-only contract."
+  },
+  "same_value_table": {
+    "meta": {
+      "table_mtime": 100.0,
+      "tlos": [
+        [
+          1,
+          0,
+          0,
+          20,
+          6
+        ]
+      ],
+      "loaded_tool": 1
+    },
+    "unchanged_timestamp": null,
+    "rewritten_timestamp": "table_mtime"
+  },
+  "start_snapshot_countermodel": {
+    "events": [
+      "gateway sends AUTO under start basis",
+      "program changes G92 before next status frame",
+      "client receives run_id 1 together with already changed live state"
+    ],
+    "actual_start": {
+      "g92": [
+        0,
+        0,
+        0
+      ],
+      "tool": 1,
+      "run_id": 1
+    },
+    "first_client_frame": {
+      "g92": [
+        100,
+        0,
+        0
+      ],
+      "tool": 1,
+      "run_id": 1
+    },
+    "planned_capture": {
+      "g92": [
+        100,
+        0,
+        0
+      ],
+      "tool": 1,
+      "run_id": 1
+    }
+  },
+  "origin_countermodel": {
+    "events": [
+      "pinned parse starts in run 1, basis A",
+      "run 1 ends; old rest job is invalidated",
+      "run 2 starts same file/source, basis B",
+      "old parse publishes after run 2 started"
+    ],
+    "origin": {
+      "version": 18,
+      "file": "/nc/a.ngc",
+      "source": "same-content-hash",
+      "reason": "midrun:table_mtime",
+      "pinned": true,
+      "table": {
+        "mtime": 101,
+        "rows": "table-B"
+      }
+    },
+    "actual_origin_not_on_wire": {
+      "run_id": 1,
+      "start_basis": "A"
+    },
+    "current_status": {
+      "file": "/nc/a.ngc",
+      "source": "same-content-hash",
+      "run_id": 2,
+      "running": true
+    },
+    "run_basis": {
+      "run_id": 2,
+      "start_basis": "B"
+    },
+    "plan_3a_conditions": {
+      "pinned_midrun": true,
+      "same_file_and_source": true,
+      "running": true,
+      "same_run_as_client_basis": true
+    },
+    "planned_acceptance": true
+  }
+}
