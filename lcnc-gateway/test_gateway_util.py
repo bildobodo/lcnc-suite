@@ -2037,6 +2037,13 @@ class TestLineTrustMachinery(unittest.TestCase):
         self.assertEqual(f(events, subs, {0: 3}), [[2, 1], [3, 2], [7, 3]])
         self.assertEqual(f(events, subs, {}), [[2, 1], [7, 3]])
         self.assertEqual(f([(5, 1, 0)], [], {}), [[5, 1]])
+        # Codex R107: one outside every marked span takes the main-file line
+        # the interpreter ran — an unmarked remap body's M6 carries ITS file's
+        # line — else its own; inside a span the span's decision holds
+        self.assertEqual(f([(2, 5, 0, 7)], [], {}), [[7, 5]])
+        self.assertEqual(f([(2, 5, 0, None)], [], {}), [[2, 5]])
+        self.assertEqual(f([(263, 2, 2, 3)], subs, {0: 3}), [[3, 2]])
+        self.assertEqual(f([(263, 2, 2, 3)], subs, {}), [], "a span without a line: none")
 
 
 class TestSegmentOutsideFlags(unittest.TestCase):
@@ -2479,11 +2486,12 @@ class TestResolveSubfile(unittest.TestCase):
 
 
 class TestCallerAttribution(unittest.TestCase):
-    """W4 call-site line attribution: unique-site text scan, verified
-    against the comment-stripped main file — anything short of a unique
-    match degrades to chip-only display, never a guessed line. (A
-    positional canon signal was disproven empirically: the interpreter
-    never fires next_line for o-call/remap trigger lines.)"""
+    """W4 call-site line attribution: the interpreter's own word on the
+    main-file line it ran (Codex R107 — next_line fires for no o-call or
+    remap trigger line, but `interpreter.this` names the calling frames),
+    cross-checked by the unique-site text scan; without it the text scan
+    alone — anything short of a unique match degrades to chip-only
+    display, never a guessed line."""
 
     MAIN = "\n".join([
         "g69",                        # 1  remap trigger (CALLER=g69)
@@ -2550,6 +2558,103 @@ class TestCallerAttribution(unittest.TestCase):
         self.assertEqual(f(ev, "T2 M600\nM6000\n")[0], {0: 1})
         self.assertEqual(f([(5, "g533remap", "g53.3"), (9, None, None)], "G53.3 X1\nG53.36\n")[0], {0: 1})
 
+    def test_the_interpreter_s_line_first_the_text_its_cross_check(self):
+        # Codex R107: a start event carries the main-file line the
+        # interpreter ran (4th element); it decides, per occurrence — two
+        # sites, each its own line — and a unique text claim must agree
+        f = gateway_util.attribute_sub_callers
+        two = "T2 M600\nG0 X1\nT3 M600\n"
+        ev = [(2, "m600", "m600", 1), (4, None, None, None), (6, "m600", "m600", 3), (8, None, None, None)]
+        self.assertEqual(f(ev, two)[0], {0: 1, 2: 3})
+        one = "G0 X1\nT2 M600\n"
+        self.assertEqual(f([(2, "m600", "m600", 2)], one)[0], {0: 2})
+        notes = []
+        got, unattributed = f([(2, "m600", "m600", 5)], one, None, notes)
+        self.assertEqual((got, unattributed), ({}, ["m600"]), "the text names L2, the interpreter L5: none")
+        self.assertEqual(len(notes), 1)
+        # without the interpreter's word the text rule stands
+        self.assertEqual(f([(2, "m600", "m600", None)], one)[0], {0: 2})
+        self.assertEqual(f([(2, "m600", "m600")], one)[0], {0: 2})
+
+    def test_a_remap_body_that_runs_the_marker_is_a_maybe_site(self):
+        # Codex R107: M200's body runs `o<m600> call` — a span of m600 may be
+        # M200's; the one M600 site (after M2) proves nothing
+        with tempfile.TemporaryDirectory() as d:
+            for name, text in (("wrapper", "o<wrapper> sub\no<m600> call\no<wrapper> endsub\n"),
+                               ("m600", "o<m600> sub\n(WEBUI_SUB=m600 CALLER=m600)\n(WEBUI_SUB_END)\no<m600> endsub\n"),
+                               ("plain", "o<plain> sub\nG0 X1\no<plain> endsub\n")):
+                with open(os.path.join(d, name + ".ngc"), "w") as fh:
+                    fh.write(text)
+            env = gateway_util.RemapEnv(["M600 modalgroup=6 ngc=m600", "M200 modalgroup=10 ngc=wrapper",
+                                         "M201 modalgroup=10 ngc=plain"], [d])
+            text = "G21\nT2 M200\nG0 X60\nM2\nT2 M600\n"
+            ev = [(2, "m600", "m600", None), (4, None, None, None)]
+            f = gateway_util.attribute_sub_callers
+            self.assertEqual(f(ev, text)[0], {0: 5}, "the text alone: the one site")
+            self.assertEqual(f(ev, text, env)[0], {}, "M200 may run it")
+            self.assertEqual(f(ev, text.replace("M200", "M201"), env)[0], {0: 5}, "a body that runs no marker")
+            self.assertEqual(f(ev, text, gateway_util.RemapEnv.unknown())[0], {}, "remaps not known: any line")
+            # the interpreter's word: L2, where M200 ran
+            self.assertEqual(f([(2, "m600", "m600", 2), (4, None, None, None)], text, env)[0], {0: 2})
+
+    @unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
+    def test_canon_main_line_and_the_foreign_gate(self):
+        # Codex R107: the canon reads the interpreter's own state (here a
+        # double of `interpreter.this`): its line in the main file, else the
+        # line the deepest main-file frame called from — a byte offset, in a
+        # CRLF file with a UTF-8 comment
+        import types
+        import gcode_canon
+        ns = types.SimpleNamespace
+        raw = b"G21\r\nG0 X1\r\n(\xc3\xa4)\r\nM200\r\nG0 X2\r\n"
+        with tempfile.TemporaryDirectory() as d:
+            main = os.path.join(d, "p.ngc")
+            with open(main, "wb") as fh:
+                fh.write(raw)
+            c = object.__new__(gcode_canon.PreviewCanon)
+            c.seq, c.lineno, c.cur_tool, c.sub_events = 0, 2, -1, []
+            c.set_main_file(main)
+            state = {"now": ns(filename=main, sequence_number=2, call_level=0, remap_level=0)}
+            c.interp = lambda: state["now"]
+            self.assertEqual(c.main_line(), 2)
+            self.assertEqual(c.remaps_running(), ())
+            pos = len(b"G21\r\nG0 X1\r\n(\xc3\xa4)\r\nM200\r\n")
+            body = lambda *names: ns(
+                filename=os.path.join(d, "w.ngc"), sequence_number=2, call_level=len(names),
+                remap_level=len(names), blocks=[ns(executing_remap=None)] + [ns(executing_remap=ns(name=n)) for n in names],
+                sub_context=[ns(filename=main, position=pos)] + [ns(filename=os.path.join(d, "w.ngc"), position=9)] * len(names))
+            state["now"] = body("M200")
+            self.assertEqual(c.main_line(), 4)
+            self.assertEqual(c.remaps_running(), ("m200",))
+            # a foreign M600 the text never named: the remap stack says it runs
+            c.foreign_codes = frozenset({"m600"})
+            c._foreign_gate()
+            self.assertFalse(c._probe_unknown)
+            state["now"] = body("M200", "M600")
+            c._foreign_gate()
+            self.assertTrue(c._probe_unknown)
+            self.assertEqual([e[2] for e in c.probe_events], ["foreign_remap"])
+            # the text's first possible line, in main-file lines
+            c2 = object.__new__(gcode_canon.PreviewCanon)
+            c2.seq, c2.lineno, c2.cur_tool, c2.sub_events = 0, 2, -1, []
+            c2.set_main_file(main)
+            c2.interp = lambda: state["now"]
+            c2.foreign_codes, c2.foreign_m600_lines = frozenset({"m600"}), frozenset({4})
+            state["now"] = ns(filename=main, sequence_number=2, call_level=0, remap_level=0)
+            c2._foreign_gate()
+            self.assertFalse(c2._probe_unknown)
+            state["now"] = body("M200")
+            c2._foreign_gate()
+            self.assertTrue(c2._probe_unknown, "M200's line may call it")
+            # without the interpreter's word: from the first program callback
+            c3 = object.__new__(gcode_canon.PreviewCanon)
+            c3.seq, c3.lineno, c3.cur_tool, c3.sub_events = 0, 2, -1, []
+            c3.set_main_file(main)
+            c3.interp = lambda: None
+            c3.foreign_codes, c3.foreign_m600_lines = frozenset({"m600"}), frozenset({4})
+            c3._foreign_gate()
+            self.assertTrue(c3._probe_unknown)
+
     def test_zero_sites_yield_no_claim(self):
         # A sub never invoked from the main text (e.g. called by another
         # sub the canon didn't mark): no claim.
@@ -2595,8 +2700,9 @@ class TestCallerAttribution(unittest.TestCase):
         c.comment("WEBUI_SUB=g533remap CALLER=g53.3")
         c.comment("WEBUI_SUB_END")
         c.comment("WEBUI_SUB=square")
+        # no main file: the interpreter's line is not known (main None)
         self.assertEqual(c.sub_events, [
-            (0, "g533remap", "g53.3"), (0, None, None), (0, "square", None)])
+            (0, "g533remap", "g53.3", None), (0, None, None, None), (0, "square", None, None)])
 
 
 class TestRefusalPayload(unittest.TestCase):
@@ -4672,6 +4778,25 @@ class TestRemapEnv(unittest.TestCase):
         self.assertEqual(gateway_util.toolsetter_assigned_keys("G0 X1\nM201\n", env), frozenset({3004}))
         self.assertEqual(gateway_util.toolsetter_assigned_keys("G0 X1\n", env), frozenset())
 
+    def test_the_span_markers_a_body_may_run(self):
+        # Codex R107 VP-I63: a span of m600 may come from any code whose body
+        # runs m600.ngc — by its remap or by `o<m600> call`
+        self.body("m600", "o<m600> sub\n(WEBUI_SUB=m600 CALLER=m600)\no<tt> call\n(WEBUI_SUB_END)\no<m600> endsub\n")
+        self.body("tt", "o<tt> sub\n(WEBUI_SUB=tool_touch_off)\n(WEBUI_SUB_END)\no<tt> endsub\n")
+        self.body("wrapper", "o<wrapper> sub\nG0 X1\no<m600> call\no<wrapper> endsub\n")
+        self.body("plain", "o<plain> sub\nG0 X1\no<plain> endsub\n")
+        env = self.env("M600 modalgroup=6 ngc=m600", "M200 modalgroup=10 ngc=wrapper",
+                       "M201 modalgroup=10 ngc=plain", "M202 modalgroup=10 python=x", "M203 ngc=missing")
+        self.assertEqual(env.marks(("M", 600)), frozenset({"m600", "tool_touch_off"}))
+        self.assertEqual(env.marks(("M", 200)), frozenset({"m600", "tool_touch_off"}))
+        self.assertEqual(env.marks(("M", 201)), frozenset())
+        self.assertIsNone(env.marks(("M", 202)), "opaque: any")
+        self.assertIsNone(env.marks(("M", 203)), "missing: any")
+        self.assertEqual(env.marks(("M", 999)), frozenset(), "not remapped")
+        self.assertIsNone(gateway_util.RemapEnv.unknown().marks(("M", 600)))
+        # the effect keeps its two answers
+        self.assertEqual(env.effect(("M", 200)), (frozenset(), frozenset({("M", 200)})))
+
     def test_a_cycle_is_the_whole_closure_whichever_code_is_asked_first(self):
         # A → B → A: B asked after A must not lose A's write (a memo of B taken
         # while A was in progress would have)
@@ -4812,6 +4937,45 @@ class TestNearLiterals(unittest.TestCase):
             self.assertTrue(env._may_matter(flat(line)), line)
         self.assertFalse(env._may_matter(flat("G1 X10.5 Y2 F1200")))
 
+    @staticmethod
+    def lit(code, scale):
+        return str(code // scale) if code % scale == 0 else f"{code / scale:g}"
+
+    def test_a_sign_run_before_the_value_is_a_candidate(self):
+        # Codex R107 VP-I64: read_real_value reads a sign before a value that
+        # is no number as a unary sign, recursively — `G-[-10]` and `G--10`
+        # are G10 (natively). Exact through signs alone; an expression, a
+        # parameter or a function stays a value the text does not settle
+        for code in (100, 281, 301, 520, 920, 921, 922, 923):
+            lit = self.lit(code, 10)
+            for pre in ("--", "- - ", "-+-", "+--", "+ - -", "++"):
+                with self.subTest(code=code, exact=pre):
+                    line = "G" + pre + lit + " X1 L20 P1"
+                    self.assertTrue(gateway_util._POSWRITE_CANDIDATE_RE.search(line), line)
+                    got, _ = gateway_util.position_write_lines("G0 X0\n" + line + "\n")
+                    self.assertIn(2, got, line)
+            for form in ("-[-%s]", "- [ -%s ]", "--[%s]", "+-[-%s]", "-#1", "- #<g>", "-ABS[-%s]"):
+                form = form.replace("%s", lit)
+                with self.subTest(code=code, form=form):
+                    line = "G" + form + " X1"
+                    self.assertTrue(gateway_util._POSWRITE_CANDIDATE_RE.search(line), line)
+                    self.assertTrue(gateway_util._G10_CANDIDATE_RE.search(line), line)
+                    got, _ = gateway_util.position_write_lines("G0 X0\n" + line + "\n")
+                    self.assertEqual(got.get(2), "all", line)
+        # the reader: signs alone are exact; `G-+10` is −10 (refused natively)
+        self.assertEqual(gateway_util.nc_block("G--10 X1")[0], [("G", 10.0), ("X", 1.0)])
+        self.assertEqual(gateway_util.nc_block("G-+-28.1")[0], [("G", 28.1)])
+        self.assertEqual(gateway_util.nc_block("G-+10")[0], [("G", -10.0)])
+        self.assertEqual(gateway_util.nc_block("G-[-10]")[0], [("G", None)])
+        self.assertEqual(gateway_util.nc_block("G-#1")[0], [("G", None)])
+        # a G10 behind signs: its fixture, or "cannot tell" for an open G / L
+        f = gateway_util.wcs_rewrite_targets
+        self.assertEqual(f("G--10 L2 P3 X5\n"), ({3}, False))
+        self.assertEqual(f("G10 L--20 P--2 X5\n"), ({2}, False))
+        self.assertEqual(f("G-[-10] L2 P3 X5\n"), (set(), True))
+        self.assertEqual(f("G - # 1 L2 P3 X5\n"), (set(), True))
+        self.assertEqual(f("G10 L-[-2] P3 X5\n"), (set(), True))
+
     def test_a_g10_write_in_every_near_form(self):
         f = gateway_util.wcs_rewrite_targets
         self.assertEqual(f("G9.99999 L2 P1 X5\n"), ({1}, False))
@@ -4905,12 +5069,10 @@ class TestForeignM600(unittest.TestCase):
             self.assertEqual(f(suite, [d1, d2]), frozenset({"m600"}))
             self.assertEqual(f([], [d1]), frozenset(), "no remap: none")
 
-    def test_the_call_lines_and_what_runs_next(self):
+    def test_the_call_lines(self):
         text = "G21\n(M600 in a comment)\nT2 M600\n\n; nothing\nG0 X1 M0601\nM6000\nM2\n"
         self.assertEqual(gateway_util.m_code_lines(text, {"m600", "m601"}), frozenset({3, 6}))
         self.assertEqual(gateway_util.m_code_lines(text, {"m601"}), frozenset({6}))
-        nb = gateway_util.next_block_lines(text)
-        self.assertEqual((nb[1], nb[3], nb[4], nb[6]), (3, 6, 6, 7))
 
 
 class TestApplyVarPatchesOrder(unittest.TestCase):

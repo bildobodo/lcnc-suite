@@ -144,14 +144,14 @@ class TestPredictedMeasurement(unittest.TestCase):
         self.assertEqual(r["tool_change_lines"], [[3, 2]])
         self.assertEqual(path(r)[-1][2], (60, 60, -80))
 
-    def test_a_routine_called_from_two_lines_names_no_line(self):
-        # T2 (80 mm) then T1 (10 mm: trip at −170): both predicted; the two
-        # M6 have no unique call site — no line, rather than a sub's
+    def test_a_routine_called_from_two_lines_names_each_call(self):
+        # T2 (80 mm) then T1 (10 mm: trip at −170): both predicted; the
+        # interpreter names the line each call ran from (Codex R107) — never
+        # the sub's own line, never one line for both
         r = probe("m600_twice")
         self._clean(r)
-        self.assertEqual(r["tool_change_lines"], [])
-        # nor a call line for either length: no row carries them (VP-I63)
-        self.assertEqual([(t, z, ln) for _, t, z, ln in r["toollen_table"]], [(2, 80.0, 0), (1, 10.0, 0)])
+        self.assertEqual(r["tool_change_lines"], [[3, 2], [5, 1]])
+        self.assertEqual([(t, z, ln) for _, t, z, ln in r["toollen_table"]], [(2, 80.0, 3), (1, 10.0, 5)])
         self.assertIn(-170, feeds_at(r, 10, 10))
 
     def test_only_the_routines_own_g43_carries_the_table_length(self):
@@ -168,6 +168,29 @@ class TestPredictedMeasurement(unittest.TestCase):
 
 
 class TestForeignRemap(unittest.TestCase):
+
+    def test_the_boundary_is_the_first_main_line_that_may_call_it(self):
+        # Codex R107: the interpreter names the remap when it runs; the text
+        # adds what the run may do where the preview does not. A body that
+        # moves nothing the preview sees: from the next main line on (L4); a
+        # call in a body's branch the preview does not take (#5399 is the
+        # run's input): from M200's line on; moves before M200 stay known —
+        # and M200's own body's move before its call (X57) is unknown too:
+        # the call may come first where the text cannot say
+        for case in ("foreign_silent_body", "foreign_in_branch"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            ev = path(r)
+            own = next(q for q, k, p, ln in ev if p == (50.0, 50.0, -100.0))
+            self.assertEqual(r["probe_unpredicted"], [[own, -1, "foreign_remap", 0]], case)
+            self.assertEqual(r["rapid_ustart"], [1, 1], case)
+        r = probe("foreign_remap_late")
+        ev = path(r)
+        x55 = next(q for q, k, p, ln in ev if p == (55.0, 50.0, -100.0))
+        self.assertEqual(r["probe_unpredicted"], [[x55, -1, "foreign_remap", 0]])
+        ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
+        self.assertEqual(ustart[x55], 0, "the main program's move before M200 is known")
+        self.assertEqual({ustart.get(q) for q, *_ in ev if q > x55}, {1})
 
     def test_a_foreign_m600_is_not_predicted_from_the_block_before_it(self):
         # `REMAP=M600 ngc=othertc` (no suite marker): what the call does is
@@ -315,7 +338,8 @@ if __name__ == "__main__":
 class TestCallLines(unittest.TestCase):
     """A measurement's call line (the rows' 4th element) is the verified one
     or 0 — never another call's (Codex R105 VP-I63 and the call-site reading
-    found with VP-I61)."""
+    found with VP-I61). Since Codex R107 the interpreter names it
+    (gcode_canon.main_line): each call its own line, per occurrence."""
 
     def test_a_compact_call_is_its_line(self):
         r = probe("m600_compact")
@@ -323,34 +347,54 @@ class TestCallLines(unittest.TestCase):
         self.assertEqual(r["tool_change_lines"], [[3, 2]])
         self.assertEqual([row[3] for row in r["toollen_table"]], [3])
 
-    def test_two_call_sites_name_no_line_never_both_on_one(self):
+    def test_two_call_sites_each_get_their_line_never_both_on_one(self):
         # `T2M600` (L3) beside `T1 M600` (L5): the regex saw L5 only and put
         # BOTH calls there
         r = probe("m600_compact_pair")
         self.assertIsNone(r["parse_error"])
-        self.assertEqual(r["tool_change_lines"], [])
-        self.assertEqual([(row[1], row[3]) for row in r["toollen_table"]], [(2, 0), (1, 0)])
+        self.assertEqual(r["tool_change_lines"], [[3, 2], [5, 1]])
+        self.assertEqual([(row[1], row[3]) for row in r["toollen_table"]], [(2, 3), (1, 5)])
 
     def test_a_near_literal_is_a_site_too(self):
         # Codex R106: M599.99999 reads as 600 — a filter on the digits "600"
         # missed it and put both calls on L5
         r = probe("m600_near_pair")
         self.assertIsNone(r["parse_error"])
-        self.assertEqual(r["tool_change_lines"], [])
-        self.assertEqual([(row[1], row[3]) for row in r["toollen_table"]], [(2, 0), (1, 0)])
+        self.assertEqual(r["tool_change_lines"], [[3, 2], [5, 1]])
+        self.assertEqual([(row[1], row[3]) for row in r["toollen_table"]], [(2, 3), (1, 5)])
         r = probe("m600_near_single")
         self.assertEqual(r["tool_change_lines"], [[3, 2]])
         self.assertEqual([row[3] for row in r["toollen_table"]], [3])
 
     def test_the_same_tool_twice_keeps_each_measurement_apart(self):
-        # predicted at the first call, not at the second (a 1 mm travel): two
-        # events of T2, in order; neither call site is unique — no line, so
-        # the client names both in general instead of one note on both rows
+        # predicted at the first call (L3), not at the second (L6, a 1 mm
+        # travel): two events of T2, in order, each on its own call's row —
+        # never one note on both
         r = probe("m600_repeat")
         self.assertIsNone(r["parse_error"])
-        self.assertEqual([(row[1], row[2], row[3]) for row in r["toollen_table"]], [(2, 80.0, 0)])
-        self.assertEqual([(row[1], row[2], row[3]) for row in r["probe_unpredicted"]], [(2, "travel", 0)])
+        self.assertEqual(r["tool_change_lines"], [[3, 2], [6, 2]])
+        self.assertEqual([(row[1], row[2], row[3]) for row in r["toollen_table"]], [(2, 80.0, 3)])
+        self.assertEqual([(row[1], row[2], row[3]) for row in r["probe_unpredicted"]], [(2, "travel", 6)])
         self.assertLess(r["toollen_table"][0][0], r["probe_unpredicted"][0][0])
+
+    def test_the_interpreter_names_the_line_it_runs(self):
+        # Codex R107 (its `sequence_named_body`): M200's body runs
+        # `o<m600> call` — the measurement is L3's, never the T2 M600 after
+        # M2 (L6) that the text alone saw as the one site
+        r = probe("m600_via_other_remap")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["tool_change_lines"], [[3, 2]])
+        self.assertEqual([row[3] for row in r["toollen_table"]], [3])
+        # the line of the deepest frame running the main file: a called
+        # file's call (L3), a loop's line each time (L5 twice), an inline
+        # sub's own line (L2), an M98 sub's (L7), and a `%` file with CRLF
+        # and a UTF-8 comment — a frame's position is a byte offset (L5)
+        for case, lines in (("m600_ext_call", [3]), ("m600_loop", [5, 5]), ("m600_inline_sub", [2]),
+                            ("m600_m98", [7]), ("m600_pct_crlf", [5])):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["tool_change_lines"], [[ln, 2] for ln in lines], case)
+            self.assertEqual([row[3] for row in r["toollen_table"]], lines, case)
 
 
 class TestRemapBodies(unittest.TestCase):
@@ -364,16 +408,24 @@ class TestRemapBodies(unittest.TestCase):
         self.assertEqual(r["toolsetter_meta"]["writes"], [3009])
 
     def test_a_foreign_m600_inside_another_remap_is_not_predicted(self):
-        # VP-I61 rest: M200 → wrapper `T2 M600` → the foreign othertc; the
-        # program's own first move (L2) is known, nothing from M200 on
+        # VP-I61 rest (Codex R107's case verbatim): M200 → wrapper `T2 M600`
+        # → the foreign othertc, whose `G53 G0 Z0` sits on ITS line 2 after
+        # the main program's line 2 — the interpreter fires no next_line
+        # there. Judged by the points, never by their line numbers: the
+        # program's own move to (50, 50, −100) is the last known point; the
+        # body's (50, 50, 0) is an unknown-start endpoint with no time, and
+        # so is everything after it
         r = probe("foreign_remap_nested")
         self.assertIsNone(r["parse_error"])
         self.assertEqual([row[2] for row in r["probe_unpredicted"]], ["foreign_remap"])
         ev = path(r)
-        g0 = max(q for q, k, p, ln in ev if ln == 2)
-        self.assertEqual(r["probe_unpredicted"][0][0], g0, "from the end of the block before M200")
+        own = next(q for q, k, p, ln in ev if p == (50.0, 50.0, -100.0))
+        body = next(q for q, k, p, ln in ev if p == (50.0, 50.0, 0.0))
+        self.assertEqual(r["probe_unpredicted"][0][0], own, "the stop before the body's first move")
         ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
-        self.assertEqual({ustart.get(q) for q, *_ in ev if q > g0}, {1})
+        self.assertEqual({ustart.get(q) for q, *_ in ev if q > own}, {1})
+        self.assertGreater(body, own)
+        self.assertEqual(set(r["rapid_tcum"]), {0.0}, "no time for the body's move")
 
     def test_an_m_whose_value_is_open_is_no_m98_without_a_p_word(self):
         # RemapEnv.word_keys: such an M reaches only remapped M codes
@@ -415,7 +467,8 @@ class TestNcSpellings(unittest.TestCase):
         from gateway_util import RemapEnv, toolsetter_assigned_keys
         def f(text):
             return toolsetter_assigned_keys(text, RemapEnv([], []))
-        any_ = {"double_hash", "named_indirect", "expression", "function", "unbracketed_sum", "negative_target"}
+        any_ = {"double_hash", "named_indirect", "expression", "function", "unbracketed_sum", "negative_target",
+                "minus_bracket_target"}
         for name, text in self.SPELL["assign"].items():
             with self.subTest(name=name):
                 want = None if name in any_ else ({3009, 3010} if name == "two" else {3009})

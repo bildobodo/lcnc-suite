@@ -151,6 +151,48 @@ CASES = {
     # Codex R97 VP-I53 rest: a sign on a number; a write the preview computes
     # equal to the old value inside a branch that runs (G92 Z40 at a believed
     # Z40) — the event is the evidence; G54 again inside a branch, no call.
+    # Codex R107 VP-I64: a sign before an expression or a parameter —
+    # `G-[-10]` is G10, `G-[-28.1]` G28.1 (natively); the controls spell
+    # the codes plainly; `G--10` reads as 10 (a unary sign before a number)
+    "r107_inactive_negative": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG-[-10] L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n",
+                               "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r107_inactive_plain": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n",
+                            "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r107_inactive_double_minus": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG--10 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\n"
+                                   "G0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r107_inactive_param": ("G21 G90\nG0 X0 Y0 Z40\nM6\n#1=-10\nG-#1 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\n"
+                            "G0 X30\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r107_store_negative": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG-[-28.1]\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n",
+                            "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    "r107_store_plain": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG28.1\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n",
+                         "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    # the refusals: a negative G code (`G-ABS[-10]`, `G-10`)
+    "r107_negative_function": ("G21 G90\nG0 X5 Y0 Z0\nG-ABS[-10] L2 P1 X5\nG0 X11\nM2\n", "mm", 0.0, (490,), {}),
+    "r107_negative_literal": ("G21 G90\nG0 X5 Y0 Z0\nG-10 L2 P1 X5\nG0 X11\nM2\n", "mm", 0.0, (490,), {}),
+    # Codex R107 (the root of VP-I61, in the position-write walk): a remap
+    # body numbered past a main line made the walk take that line as run
+    # before it ran — with the body's M6 after it, the L20 of L5 from the
+    # unknown position was never counted
+    # a remap body's G92 (its line 2) from the unknown position — the main
+    # file's line 2 is an explicit G10 L2: by number it was taken for that
+    # line's and never counted
+    "r107_body_g92_numbered_like_explicit": ("G21 G90\nG10 L2 P1 X0\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+                                             "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+                                                                 "rs274ngc": "REMAP=M200 modalgroup=10 ngc=bodyg92",
+                                                                 "subs": {"bodyg92.ngc": "o<bodyg92> sub\nG92 Z10\no<bodyg92> endsub\nM2\n"}}),
+    # a write that runs BEFORE a remap body in its block (G28.1 at the
+    # settings step, a motion-group G remap after it) while XYZ are unknown;
+    # the body's absolute move makes them known again, its next block runs
+    # with none unknown — the write counts under the stale set it ran with
+    "r107_write_before_body": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG28.1 G88.1\nG28\nG0 X20\nM2\n",
+                               "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+                                                   "rs274ngc": "REMAP=G88.1 modalgroup=1 ngc=g881",
+                                                   "subs": {"g881.ngc": "o<g881> sub\nG0 X1 Y2 Z3\nG0 X4\no<g881> endsub\nM2\n"}}),
+    "r107_body_numbers_walk": ("G21 G90\nG0 X0 Y0 Z40\nM200\n\nG10 L20 P2 X0\nG55 G0 X10 Y5 Z15\nG0 X20\nM2\n",
+                               "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+                                                   "rs274ngc": "REMAP=M200 modalgroup=10 ngc=bodyrun",
+                                                   "subs": {"bodyrun.ngc": "o<bodyrun> sub\n(1)\n(2)\n(3)\n(4)\n(5)\n(6)\n"
+                                                                           "(seven)\nM6\no<bodyrun> endsub\nM2\n"}}),
     "r97_l_plus_active": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L+20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r97_l_plain_active": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P1 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r97_g_plus_active": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG+92 Z10\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
@@ -376,6 +418,41 @@ CASES.update({
     # a G43 after the call is no table-length claim of the routine's
     "m600_g43_after": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG43 H2\nG0 X60 Y60\nM2\n"),
     "m600_t0": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT0 M600\nG0 X60 Y60\nM2\n"),
+    # Codex R107: the interpreter names the main-file line it runs
+    # (gcode_canon.main_line) — a call from another remap's body (Codex's
+    # `sequence_named_body`: M200 → `o<m600> call`, a T2 M600 after M2 never
+    # runs), from a called file, a loop, an inline sub, an M98 sub, and a `%`
+    # file with CRLF and a UTF-8 comment (a frame's position is a byte offset)
+    "m600_via_other_remap": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M200\nG0 X60\nM2\nT2 M600\n",
+                                  rs274ngc="REMAP=M600 modalgroup=6 ngc=m600\nREMAP=M200 modalgroup=10 ngc=wrapper",
+                                  subs={"wrapper.ngc": "o<wrapper> sub\no<m600> call\no<wrapper> endsub\nM2\n"}),
+    "m600_ext_call": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\no<ext> call\nG0 X60\nM2\n",
+                           subs={"ext.ngc": "o<ext> sub\nT2 M600\no<ext> endsub\nM2\n"}),
+    "m600_loop": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\n#1=0\no10 while [#1 LT 2]\nT2 M600\nG0 X60\n"
+                            "#1=[#1+1]\no10 endwhile\nM2\n"),
+    "m600_inline_sub": _m600(prog="o<s> sub\nT2 M600\no<s> endsub\nG21 G90\nG0 X50 Y50 Z-100\no<s> call\n"
+                                  "G0 X60\nM2\n"),
+    "m600_m98": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nM98 P100\nG0 X60\nM2\nO100\nT2 M600\nM99\n"),
+    "m600_pct_crlf": _m600(prog="%\r\n(\u00e4\u00f6\u00fc \u00fcn\u00efc\u00f6d\u00e9)\r\nG21 G90\r\n"
+                                "G0 X50 Y50 Z-100\r\nT2 M600\r\nG0 X60\r\nM2\r\n%\r\n"),
+    # a foreign M600 whose body moves nothing the preview sees: the next main
+    # line is the boundary (text order); one called in a body's branch the
+    # preview does not take — the run may (#5399 is a run's input)
+    "foreign_silent_body": ("G21 G90\nG0 X50 Y50 Z-100\nM600\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                            {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+                             "subs": {"othertc.ngc": "o<othertc> sub\n#1=5\no<othertc> endsub\nM2\n"}}),
+    "foreign_in_branch": ("G21 G90\nG0 X50 Y50 Z-100\nM200\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                          {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc\nREMAP=M200 modalgroup=10 ngc=wrapper",
+                           "subs": {"othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\nM2\n",
+                                    "wrapper.ngc": "o<wrapper> sub\no1 if [#5399 EQ 1]\nM600\no1 endif\n"
+                                                   "o<wrapper> endsub\nM2\n"}}),
+    # Codex R107: a foreign M600 called from a body numbered like the main
+    # line before it (no next_line at all) — and later: a main line with
+    # motion first, the body's G53 move at its line 2
+    "foreign_remap_late": ("G21 G90\nG0 X50 Y50 Z-100\nG0 X55\n\nM200\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                           {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc\nREMAP=M200 modalgroup=10 ngc=wrapper",
+                            "subs": {"othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\nM2\n",
+                                     "wrapper.ngc": "o<wrapper> sub\nG0 X57\nM600\no<wrapper> endsub\nM2\n"}}),
     # Codex VP103-01: the program reads the probe result after the call, in
     # G54 Z10 and G92 Z−5; earlier results must not count
     "m600_result": _m600(ctx={"var_patches": {**{str(b + j): "0" for b in range(5220, 5381, 20)
