@@ -188,6 +188,30 @@ CASES = {
                                "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
                                                    "rs274ngc": "REMAP=G88.1 modalgroup=1 ngc=g881",
                                                    "subs": {"g881.ngc": "o<g881> sub\nG0 X1 Y2 Z3\nG0 X4\no<g881> endsub\nM2\n"}}),
+    # Codex R108 VP-I65: an explicit write and a remap in ONE block — the
+    # body's G92 from the unknown position is a write the line does not show;
+    # the same on two lines, M200 alone, and a listed write that is not the
+    # body's (an inactive fixture's L20 beside M200: the body's G92 hits the
+    # active frame)
+    "r108_explicit_and_remap": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+                                "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+                                                    "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+                                                    "subs": {"writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\nM2\n"}}),
+    "r108_explicit_then_remap": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+                                 "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+                                                     "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+                                                     "subs": {"writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\nM2\n"}}),
+    "r108_remap_alone": ("G21 G90\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+                         "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+                                             "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+                                             "subs": {"writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\nM2\n"}}),
+    "r108_listed_and_remap": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+                              "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+                                                  "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+                                                  "subs": {"writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\nM2\n"}}),
+    # the controls: the main text's own explicit write stays no cause
+    "r108_explicit_alone": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+                            "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
     "r107_body_numbers_walk": ("G21 G90\nG0 X0 Y0 Z40\nM200\n\nG10 L20 P2 X0\nG55 G0 X10 Y5 Z15\nG0 X20\nM2\n",
                                "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
                                                    "rs274ngc": "REMAP=M200 modalgroup=10 ngc=bodyrun",
