@@ -730,6 +730,54 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertEqual(seen, [], "nothing was written")
         self.assertEqual(gateway._run_basis["state"], "unsent")
 
+    def test_a_start_whose_capture_fails_names_no_start_and_still_goes_out(self):
+        # Codex R116 VP-I67: a poll that failed in the capture returned None
+        # and left the last run's verified basis standing for the new start —
+        # a later pinned parse bound to run A. Now a new, UNVERIFIED basis;
+        # the AUTO command goes out all the same.
+        import inspect
+        import unittest.mock
+        _cmd, seen = self._run_basis_setup()
+        self._idle_auto()
+        ctx = {"file": self.prog, "g5x_index": 1}
+        with unittest.mock.patch.object(gateway._bulk, "start_ctx", lambda f: dict(ctx)), \
+                unittest.mock.patch.object(gateway._bulk, "run_start_check", lambda *a, **k: (True, None)):
+            self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        run_a = gateway._run_basis
+        self.assertTrue(run_a["verified"])
+        self.assertIs(gateway._run_for_pin(self.prog), run_a)
+        poll = gateway.STAT.poll
+        self.addCleanup(lambda: setattr(gateway.STAT, "poll", poll))
+
+        def failing_poll():
+            if inspect.stack()[1].function == "_begin_run_basis":
+                raise RuntimeError("status channel gone")
+        for name, patch in (
+                ("the poll", lambda: setattr(gateway.STAT, "poll", failing_poll)),
+                ("a step after it", lambda: setattr(gateway._bulk, "start_ctx", lambda f: 1 / 0))):
+            with self.subTest(name):
+                self._idle_auto()
+                seen.clear()
+                before = gateway._run_seq
+                saved_ctx = gateway._bulk.start_ctx
+                try:
+                    patch()
+                    r = self._send({"cmd": "cycle_start"})
+                finally:
+                    gateway.STAT.poll = poll
+                    gateway._bulk.start_ctx = saved_ctx
+                self.assertTrue(r["ok"], r)
+                self.assertEqual([s[0] for s in seen], [linuxcnc.AUTO_RUN], "the start went out")
+                rb = gateway._run_basis
+                self.assertIsNot(rb, run_a)
+                self.assertEqual(rb["run_id"], before + 1)
+                self.assertEqual(rb["state"], "sent")
+                self.assertFalse(rb["verified"])
+                self.assertTrue(rb["why"])
+                self.assertIsNone(rb["ctx"])
+                self.assertIsNone(gateway._run_for_pin(self.prog), "no parse binds to run A")
+                self.assertNotIn("ctx", gateway._run_basis_status())
+
     def test_a_paused_step_and_a_resume_continue_the_run(self):
         _cmd, seen = self._run_basis_setup()
         self._idle_auto()

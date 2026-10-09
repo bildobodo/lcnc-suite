@@ -3137,27 +3137,55 @@ def _start_snapshot(stat) -> Dict[str, Any]:
                                          getattr(stat, "actual_position", None))}
 
 
+def _unverified_run_basis(why: str) -> Dict[str, Any]:
+    """A new run basis that names NO start (Codex R116 VP-I67): the start's
+    capture failed, so whatever ran before can no longer stand for this
+    start — a pinned parse binds to nothing (`_run_for_pin` needs verified),
+    and the client admits no check during the run. The start itself goes
+    out as before: the machine never waits for the preview."""
+    global _run_basis, _run_seq
+    _run_seq += 1
+    try:
+        file = _status_runtime.program.loaded
+    except Exception:  # noqa: BLE001 - the name only labels the record
+        file = None
+    rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": None, "version": None,
+          "ctx": None, "ctx_digest": None, "tool_basis_rev": _bulk.tool_basis_rev,
+          "start": None, "verified": False, "why": why}
+    _run_basis = rb
+    _trace.emit("run_basis.start", run_id=_run_seq, verified=False, why=why,
+                file=os.path.basename(file or ""))
+    return rb
+
+
 async def _begin_run_basis() -> Optional[Dict[str, Any]]:
     """A new run basis when the interpreter is idle NOW (a fresh poll): an
     AUTO step in a paused program continues the run. Returns the record the
-    sending thread marks sent / unsent, or None (no new run)."""
+    sending thread marks sent / unsent, or None (no new run). A capture that
+    fails — the poll, or any step after it — gives a new UNVERIFIED basis,
+    never the last run's left standing (Codex R116 VP-I67)."""
     global _run_basis, _run_seq
     try:
         STAT.poll()
-    except Exception as e:  # noqa: BLE001 - no poll, no verified start
+    except Exception as e:  # noqa: BLE001 - no poll: unknown whether this starts a run
         _trace.emit_exc("run_basis.poll_failed", e)
-        return None
+        return _unverified_run_basis("controller status not read")
     if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
         return None
-    file = _status_runtime.program.loaded
-    source = await asyncio.to_thread(program_source, file) if file else None
-    ctx = _bulk.start_ctx(file) if file else None
-    ok, why = _bulk.run_start_check(file, STAT, source, open_drift=_ts_open_drift())
+    try:
+        file = _status_runtime.program.loaded
+        source = await asyncio.to_thread(program_source, file) if file else None
+        ctx = _bulk.start_ctx(file) if file else None
+        ok, why = _bulk.run_start_check(file, STAT, source, open_drift=_ts_open_drift())
+        start = _start_snapshot(STAT)
+    except Exception as e:  # noqa: BLE001 - the start goes out; it names no start
+        _trace.emit_exc("run_basis.capture_failed", e)
+        return _unverified_run_basis("start not captured")
     _run_seq += 1
     rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": source,
           "version": _bulk.preview_version if _bulk.last_file == file else None,
           "ctx": ctx, "ctx_digest": _bulk_mod.ctx_digest(ctx), "tool_basis_rev": _bulk.tool_basis_rev,
-          "start": _start_snapshot(STAT), "verified": bool(ok and ctx is not None),
+          "start": start, "verified": bool(ok and ctx is not None),
           "why": why if not ok else (None if ctx is not None else "no published start")}
     _run_basis = rb
     _trace.emit("run_basis.start", run_id=_run_seq, verified=rb["verified"], why=rb["why"],
