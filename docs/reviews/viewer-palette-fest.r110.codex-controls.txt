@@ -1,0 +1,6 @@
+g43_first_line4 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': [[0, 0.0, 0.0, 10.0, -1]]}
+g43_percent_first_line4 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': [[0, 0.0, 0.0, 10.0, -1]]}
+tc_g92_first_line4 0 {'parse_error': None, 'stale_offset_lines': [1], 'rapid_ustart': [1, 1], 'rapid_tcum': [0.0, 0.0], 'tlo_events': [[0, 0.0, 0.0, 0.0, 0]]}
+tc_g92_percent_first_line4 0 {'parse_error': None, 'stale_offset_lines': [2], 'rapid_ustart': [1, 1], 'rapid_tcum': [0.0, 0.0], 'tlo_events': [[0, 0.0, 0.0, 0.0, 0]]}
+g43_first_after_move 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 0, 0], 'rapid_tcum': [0.0, 0.0, 5.0, 6.0], 'tlo_events': [[2, 0.0, 0.0, 10.0, -1]]}
+tc_g92_first_after_move 0 {'parse_error': None, 'stale_offset_lines': [2], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0], 'tlo_events': [[2, 0.0, 0.0, 0.0, 0]]}

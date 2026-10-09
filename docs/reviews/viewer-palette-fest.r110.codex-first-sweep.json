@@ -1,0 +1,134 @@
+[
+  {
+    "name": "tc_g92_first",
+    "ustart": [
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      3
+    ],
+    "cum": [
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 3,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": []
+  },
+  {
+    "name": "tc_g92_g21_first",
+    "ustart": [
+      1,
+      0
+    ],
+    "lines": [
+      3,
+      4
+    ],
+    "cum": [
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 4,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": []
+  },
+  {
+    "name": "tc_g92_percent_first",
+    "ustart": [
+      1,
+      0
+    ],
+    "lines": [
+      3,
+      4
+    ],
+    "cum": [
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 4,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": []
+  },
+  {
+    "name": "tc_g92_percent_g21_first",
+    "ustart": [
+      1,
+      0
+    ],
+    "lines": [
+      4,
+      5
+    ],
+    "cum": [
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 5,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": []
+  }
+]

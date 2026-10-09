@@ -1,0 +1,1166 @@
+{
+  "g43_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        3
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "f25cc9bd28790aaf6afe5a6463b647c9c2289ad668fad23cd7a60ab10252201c"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 0.0, 40.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 3], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"f25cc9bd28790aaf6afe5a6463b647c9c2289ad668fad23cd7a60ab10252201c\"}\n",
+    "stderr": ""
+  },
+  "tc_g92_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          1,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        3
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "3548ea5e10886589db6f415abc610e193b8d5e04c51bd4515cde23eebb92b016"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[1, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 3], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"3548ea5e10886589db6f415abc610e193b8d5e04c51bd4515cde23eebb92b016\"}\n",
+    "stderr": ""
+  },
+  "g43_g21_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        3,
+        4
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "4cc58a09b1b4016ae54fb3522fba39ee4fa2eb5666f33e512bf42b73bea00670"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 0.0, 40.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [3, 4], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"4cc58a09b1b4016ae54fb3522fba39ee4fa2eb5666f33e512bf42b73bea00670\"}\n",
+    "stderr": ""
+  },
+  "tc_g92_g21_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          2,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        3,
+        4
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "a460d4ff7fc8e3212fa65ab987644098f2c34be6fb5d725ed77beb7cb471953a"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[2, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [3, 4], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"a460d4ff7fc8e3212fa65ab987644098f2c34be6fb5d725ed77beb7cb471953a\"}\n",
+    "stderr": ""
+  },
+  "g43_percent_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        3,
+        4
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "5bdf43c180151a122f659a0c1b7596b029d1018c60e2f85588cd2d6e987dd112"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 0.0, 40.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [3, 4], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"5bdf43c180151a122f659a0c1b7596b029d1018c60e2f85588cd2d6e987dd112\"}\n",
+    "stderr": ""
+  },
+  "tc_g92_percent_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          2,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        3,
+        4
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "c2fe338c0d11d6e15fd8bf76e7a7349f9176d5fb79c74417c6fa57e09e7c8a0b"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[2, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [3, 4], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"c2fe338c0d11d6e15fd8bf76e7a7349f9176d5fb79c74417c6fa57e09e7c8a0b\"}\n",
+    "stderr": ""
+  },
+  "g43_percent_g21_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          40.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        4,
+        5
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "5f993d5cfe939b965bee21fa164803528fe115d34d1305fc06236ab4c1589b9b"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 0.0, 40.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [4, 5], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"5f993d5cfe939b965bee21fa164803528fe115d34d1305fc06236ab4c1589b9b\"}\n",
+    "stderr": ""
+  },
+  "tc_g92_percent_g21_first": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": null,
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        4,
+        5
+      ],
+      "rapid_seq": [
+        1,
+        2
+      ],
+      "rapid_tcum": [
+        0.0,
+        1.0
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "ef916493edc5e436a16b300bdf847a57311f757b80751a33598211b5f9b2bac6"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[3, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": null, \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [4, 5], \"rapid_seq\": [1, 2], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"ef916493edc5e436a16b300bdf847a57311f757b80751a33598211b5f9b2bac6\"}\n",
+    "stderr": ""
+  },
+  "inline_python": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          6,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        5,
+        8,
+        8,
+        9
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": [
+        7
+      ],
+      "stale_offset_untracked": true,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "46344f24c1f3a5b8218a10be7dc82a30a1a055d620237f8ee2337809f6955de5"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[6, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 5.0, 15.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": [[2, 0.0, 0.0, 0.0, 0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [5, 8, 8, 9], \"rapid_seq\": [2, 3, 4, 6], \"rapid_tcum\": [0.0, 0.0, 0.0, 0.0], \"rapid_brk\": [0, 1, 0, 0], \"rapid_ustart\": [1, 0, 1, 1], \"feed_seq\": [], \"stale_offset_lines\": [7], \"stale_offset_untracked\": true, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"46344f24c1f3a5b8218a10be7dc82a30a1a055d620237f8ee2337809f6955de5\"}\n",
+    "stderr": ""
+  },
+  "inline_python_line4": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          6,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        5,
+        8,
+        8,
+        9
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": [
+        7
+      ],
+      "stale_offset_untracked": true,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "46344f24c1f3a5b8218a10be7dc82a30a1a055d620237f8ee2337809f6955de5"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[6, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 5.0, 15.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": [[2, 0.0, 0.0, 0.0, 0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [5, 8, 8, 9], \"rapid_seq\": [2, 3, 4, 6], \"rapid_tcum\": [0.0, 0.0, 0.0, 0.0], \"rapid_brk\": [0, 1, 0, 0], \"rapid_ustart\": [1, 0, 1, 1], \"feed_seq\": [], \"stale_offset_lines\": [7], \"stale_offset_untracked\": true, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"46344f24c1f3a5b8218a10be7dc82a30a1a055d620237f8ee2337809f6955de5\"}\n",
+    "stderr": ""
+  },
+  "foreign_python": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        5,
+        5,
+        6
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": [
+        0
+      ],
+      "stale_offset_untracked": true,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "658d911bd66fac02f96a1cc0b65b5cadaf2156e120cb4a545fa196a9de276e20"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[3, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 5.0, 15.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": [[2, 0.0, 0.0, 0.0, 0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 5, 5, 6], \"rapid_seq\": [2, 3, 4, 6], \"rapid_tcum\": [0.0, 0.0, 0.0, 0.0], \"rapid_brk\": [0, 1, 0, 0], \"rapid_ustart\": [1, 0, 1, 1], \"feed_seq\": [], \"stale_offset_lines\": [0], \"stale_offset_untracked\": true, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"658d911bd66fac02f96a1cc0b65b5cadaf2156e120cb4a545fa196a9de276e20\"}\n",
+    "stderr": ""
+  },
+  "m98_python": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        5,
+        5,
+        6
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        1,
+        1
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": [
+        0
+      ],
+      "stale_offset_untracked": true,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "2a23aeacea3454e1fc0eadea9ceded4a09a4d6370bb189d078bf7073415117e8"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[3, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 5.0, 15.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": [[2, 0.0, 0.0, 0.0, 0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 5, 5, 6], \"rapid_seq\": [2, 3, 4, 6], \"rapid_tcum\": [0.0, 0.0, 0.0, 0.0], \"rapid_brk\": [0, 1, 0, 0], \"rapid_ustart\": [1, 0, 1, 1], \"feed_seq\": [], \"stale_offset_lines\": [0], \"stale_offset_untracked\": true, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"2a23aeacea3454e1fc0eadea9ceded4a09a4d6370bb189d078bf7073415117e8\"}\n",
+    "stderr": ""
+  }
+}

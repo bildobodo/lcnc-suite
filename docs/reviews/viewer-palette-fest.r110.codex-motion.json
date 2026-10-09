@@ -1,0 +1,375 @@
+{
+  "python_m6_g30_zero": {
+    "returncode": 1,
+    "data": null,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/tmp/codex-r110-zps9xr0e/evidence/native.py\", line 17, in <module>\n    exec(compile(src, str(here/'native_start_probe.py'), 'exec'), {'__name__':'__main__', '__file__':str(here/'native_start_probe.py')})\n    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/native_start_probe.py\", line 629, in <module>\n    _mmap_unchanged = (work / \".tool.mmap\").read_bytes() == _mmap\n              ^^^^^^^^^^^^^^^^^\n  File \"/tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/gcode_parse_worker.py\", line 1213, in parse\n    rapid_lines_bin = np.asarray(rapid_lines, dtype=\"<u4\").tobytes() if rapid_lines else b\"\"\n                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nOverflowError: Python integer -1 out of bounds for uint32\n"
+  },
+  "python_m6_g30_line4": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          10.0,
+          0.0,
+          0.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        4,
+        4,
+        5
+      ],
+      "rapid_seq": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "rapid_tcum": [
+        0.0,
+        4.123105525970459,
+        5.704244613647461,
+        6.704244613647461
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "351dcd27a14f99f6e85f2cf43c2fb51bcf5c73210f4409ed37ead97d12d37e17"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[3, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [10.0, 0.0, 0.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": [[2, 0.0, 0.0, 0.0, 0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 4, 4, 5], \"rapid_seq\": [1, 2, 3, 4], \"rapid_tcum\": [0.0, 4.123105525970459, 5.704244613647461, 6.704244613647461], \"rapid_brk\": null, \"rapid_ustart\": [1, 0, 0, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"351dcd27a14f99f6e85f2cf43c2fb51bcf5c73210f4409ed37ead97d12d37e17\"}\n",
+    "stderr": ""
+  },
+  "python_m6_quill_zero": {
+    "returncode": 1,
+    "data": null,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/tmp/codex-r110-zps9xr0e/evidence/native.py\", line 17, in <module>\n    exec(compile(src, str(here/'native_start_probe.py'), 'exec'), {'__name__':'__main__', '__file__':str(here/'native_start_probe.py')})\n    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/native_start_probe.py\", line 629, in <module>\n    _mmap_unchanged = (work / \".tool.mmap\").read_bytes() == _mmap\n              ^^^^^^^^^^^^^^^^^\n  File \"/tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/gcode_parse_worker.py\", line 1213, in parse\n    rapid_lines_bin = np.asarray(rapid_lines, dtype=\"<u4\").tobytes() if rapid_lines else b\"\"\n                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nOverflowError: Python integer -1 out of bounds for uint32\n"
+  },
+  "python_m6_quill_line4": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        4,
+        4,
+        5
+      ],
+      "rapid_seq": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "rapid_tcum": [
+        0.0,
+        4.0,
+        5.870828628540039,
+        6.870828628540039
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0,
+        0,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "031a454479f722be4c4d3a44f43ba942011e7ef1f96fa9d9217a34e7a4915842"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[3, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [0.0, 0.0, 0.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": [[2, 0.0, 0.0, 0.0, 0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 4, 4, 5], \"rapid_seq\": [1, 2, 3, 4], \"rapid_tcum\": [0.0, 4.0, 5.870828628540039, 6.870828628540039], \"rapid_brk\": null, \"rapid_ustart\": [1, 0, 0, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"031a454479f722be4c4d3a44f43ba942011e7ef1f96fa9d9217a34e7a4915842\"}\n",
+    "stderr": ""
+  },
+  "python_m6_both_zero": {
+    "returncode": 1,
+    "data": null,
+    "stdout": "",
+    "stderr": "Traceback (most recent call last):\n  File \"/tmp/codex-r110-zps9xr0e/evidence/native.py\", line 17, in <module>\n    exec(compile(src, str(here/'native_start_probe.py'), 'exec'), {'__name__':'__main__', '__file__':str(here/'native_start_probe.py')})\n    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/native_start_probe.py\", line 629, in <module>\n    _mmap_unchanged = (work / \".tool.mmap\").read_bytes() == _mmap\n              ^^^^^^^^^^^^^^^^^\n  File \"/tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/gcode_parse_worker.py\", line 1213, in parse\n    rapid_lines_bin = np.asarray(rapid_lines, dtype=\"<u4\").tobytes() if rapid_lines else b\"\"\n                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\nOverflowError: Python integer -1 out of bounds for uint32\n"
+  },
+  "python_m6_both_line4": {
+    "returncode": 0,
+    "data": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": null
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          40.0
+        ],
+        [
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          10.0,
+          0.0,
+          0.0
+        ],
+        [
+          10.0,
+          5.0,
+          15.0
+        ],
+        [
+          20.0,
+          5.0,
+          15.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          3,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        4,
+        4,
+        4,
+        5
+      ],
+      "rapid_seq": [
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "rapid_tcum": [
+        0.0,
+        4.0,
+        5.0,
+        6.581138610839844,
+        7.581138610839844
+      ],
+      "rapid_brk": null,
+      "rapid_ustart": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "e8332776a52e71e2a30f4907672b1f91932189a35be23551eaa1eb3f69995021"
+    },
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [[3, 0]], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 40.0], [0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], \"tlo_events\": [[3, 0.0, 0.0, 0.0, 0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 4, 4, 4, 5], \"rapid_seq\": [1, 2, 3, 4, 5], \"rapid_tcum\": [0.0, 4.0, 5.0, 6.581138610839844, 7.581138610839844], \"rapid_brk\": null, \"rapid_ustart\": [1, 0, 0, 0, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"e8332776a52e71e2a30f4907672b1f91932189a35be23551eaa1eb3f69995021\"}\n",
+    "stderr": ""
+  }
+}

@@ -1,0 +1,1015 @@
+{
+  "g43_first": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "tool_offset",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 1,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-edw8ifor/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 0,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 2,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 2,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-edw8ifor/program.ngc",
+        "sequence_number": 2,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 3,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 3,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-edw8ifor/program.ngc",
+        "sequence_number": 3,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-edw8ifor/program.ngc",
+        "sequence_number": 4,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "tc_g92_first": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "change_tool",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 1,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-t_ae9y9q/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 0,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 1,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-t_ae9y9q/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 0,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 2,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 2,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-t_ae9y9q/program.ngc",
+        "sequence_number": 2,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 3,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 3,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-t_ae9y9q/program.ngc",
+        "sequence_number": 3,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-t_ae9y9q/program.ngc",
+        "sequence_number": 4,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "g43_percent_first": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "tool_offset",
+        "canon_line": 0,
+        "init": true,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 2,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-ojnjz2on/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 2,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 3,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 3,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-ojnjz2on/program.ngc",
+        "sequence_number": 3,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-ojnjz2on/program.ngc",
+        "sequence_number": 4,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 5,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 5,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-ojnjz2on/program.ngc",
+        "sequence_number": 5,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "tc_g92_percent_first": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "change_tool",
+        "canon_line": 0,
+        "init": true,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 2,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-cu4p0l46/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 2,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": true,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 2,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-cu4p0l46/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 2,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 3,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 3,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-cu4p0l46/program.ngc",
+        "sequence_number": 3,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-cu4p0l46/program.ngc",
+        "sequence_number": 4,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 5,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 5,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-cu4p0l46/program.ngc",
+        "sequence_number": 5,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "g43_first_line4": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "tool_offset",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 1,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-gltpculo/program.ngc",
+        "sequence_number": 4,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 0,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 2,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 2,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-gltpculo/program.ngc",
+        "sequence_number": 2,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 3,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 3,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-gltpculo/program.ngc",
+        "sequence_number": 3,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-gltpculo/program.ngc",
+        "sequence_number": 4,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "tc_g92_first_line4": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "change_tool",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 1,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-u3fa0j73/program.ngc",
+        "sequence_number": 4,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 0,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 1,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-u3fa0j73/program.ngc",
+        "sequence_number": 4,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 0,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 2,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 2,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-u3fa0j73/program.ngc",
+        "sequence_number": 2,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 3,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 3,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-u3fa0j73/program.ngc",
+        "sequence_number": 3,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-u3fa0j73/program.ngc",
+        "sequence_number": 4,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "inline_python": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "inline",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 5,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 5,
+        "in_main": true,
+        "write_mode": "inline",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-r22wwg23/program.ngc",
+        "sequence_number": 5,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "change_tool",
+        "canon_line": 6,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 6,
+        "in_main": true,
+        "write_mode": "inline",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-r22wwg23/program.ngc",
+        "sequence_number": 6,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 7,
+        "in_main": false,
+        "write_mode": "inline",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-r22wwg23/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 19,
+        "frames": [
+          {
+            "filename": "/tmp/start-probe-r22wwg23/program.ngc",
+            "position": 90
+          },
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 8,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 8,
+        "in_main": true,
+        "write_mode": "inline",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-r22wwg23/program.ngc",
+        "sequence_number": 8,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 9,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 9,
+        "in_main": true,
+        "write_mode": "inline",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-r22wwg23/program.ngc",
+        "sequence_number": 9,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 10,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 10,
+        "in_main": true,
+        "write_mode": "inline",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-r22wwg23/program.ngc",
+        "sequence_number": 10,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "python_explicit_separate_blocks": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": false,
+        "program": false,
+        "stale": [],
+        "main_line": 0,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 2,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 2,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-8uewu4q3/program.ngc",
+        "sequence_number": 2,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "change_tool",
+        "canon_line": 3,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [],
+        "main_line": 3,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-8uewu4q3/program.ngc",
+        "sequence_number": 3,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 4,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-8uewu4q3/program.ngc",
+        "sequence_number": 4,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 0,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 5,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-8uewu4q3/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "offset": 37,
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 6,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 6,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-8uewu4q3/program.ngc",
+        "sequence_number": 6,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "straight_traverse",
+        "canon_line": 7,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 7,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-8uewu4q3/program.ngc",
+        "sequence_number": 7,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      },
+      {
+        "callback": "_register_write",
+        "canon_line": 8,
+        "init": false,
+        "started": true,
+        "program": true,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 8,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-8uewu4q3/program.ngc",
+        "sequence_number": 8,
+        "remaps": [],
+        "offset": null,
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  }
+}

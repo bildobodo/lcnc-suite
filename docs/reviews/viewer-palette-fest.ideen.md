@@ -15262,3 +15262,88 @@ Der Lauf über die Positionsschreib-Zeilen überspringt einen Callback, für den
 - Der native Rücklesebeleg und M600 im Live-Parity-Korpus brauchen ein laufendes LinuxCNC; die Antwort des Operators steht aus.
 - Unverändert: WRAPPED_ROTARY und die Restprüfung während eines Laufs. Die Punktzeilen aus der Interpreterherkunft bleiben ein eigener Plan.
 - Die TWP-Remaps geben bei Bewegungen und Offsets `lineno()` mit. Ohne Nummer laufen dort nur Kommentare und M68, die der Canon unabhängig von der Programmphase verarbeitet. Die TWP-Goldens kann ich ohne laufende Sim nicht prüfen; sie stehen ohnehin beim nächsten Suite-Halt an.
+
+## Review R110 · Codex · Python-Remaps und Programmphase · 9. Oktober 2026
+
+**Ergebnis: `findings`. Alle acht Python-Gegenfälle aus R109 sind korrigiert. VP-I65 bleibt P2 am Programmanfang: Ein erster Python-Remap ohne Zeilenargument wird weiterhin als Initialisierung behandelt. Zusätzlich VP-I66 (P2), ein bereits bestehender Parseabbruch bei M6-Rückzugsfahrten aus einem solchen Remap.**
+
+Geprüft: `5516a941..77528891`, Archiv/Anfrage `964dc313`, Produktfix `be2a4b24`. **500 gezielte Backend-Tests und 118 Client-Repositorytests PASS**. Die 18 R109-Eingaben unverändert wiederholt; insgesamt 42 native Eingaben, neun Basisvergleiche, acht reine Beobachtungsläufe und fünf Client-Prüfungen. Keine Produktänderung, keine Live-Ports, kein HAL oder Maschinenbefehl.
+
+### Bestätigte Korrektur
+
+- Alle vier R109-Formen mit und ohne Zeilenargument bleiben jetzt unbekannt: kombinierter expliziter Satz, getrennte Sätze, Remap allein und kombinierter inaktiver L20-Satz. **L4/L5 stammen aus dem Auslöser**, auch wenn Python selbst Zeile 4 übergibt. Kein Befund am Würfel `(15,5,45)`, keine Dauer.
+- Die NGC-Fälle bleiben korrigiert; explizite Haupttext-Schreibzugriffe allein und in einer Inline-Sub bleiben benutzbar. Zusätzliche Python-Aufrufe aus Inline-/Fremd-/M98-Subs verlieren die Unsicherheit nicht mehr.
+- Die neuen Regeln für Herkunft 0 in `attribute_sub_callers`, `main_file_tool_changes` und der Fremd-Remap-Grenze bestehen die gezielten Repositorytests. Der konservative Verzicht auf eine präzise Marke bei unbekannter Herkunft ist angenommen.
+
+[Wiederholung der 18 Eingaben](viewer-palette-fest.r110.codex-replay.json), [korrigierte Fälle bis zum Sweep](viewer-palette-fest.r110.codex-fixed-sweep.json), [sichere explizite Kontrollfahrten](viewer-palette-fest.r110.codex-explicit-sweep.json).
+
+### VP-I65-Rest · P2 · Der erste echte Python-Remap setzt den Programmbeginn nicht
+
+`gcode_canon.py:331–338` / `:517–527`: `_program_started` wird erst bei einem **positiven Canon-Callback** gesetzt. Eine tatsächlich gelesene Programmzeile muss aber noch keinen solchen Callback auslösen. Beginnt das Programm mit einem Python-Remap, bleibt dessen `execute(...)` ohne Zeilenargument bei 0; auch ein vorangestelltes `G21 G90` beseitigt das nicht.
+
+**Native Gegenprobe:** dieselbe private Python-Konfiguration und `TOOL_CHANGE_POSITION=0 20 30` wie in R109. Hauptprogramm:
+
+```gcode
+M200
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+Python-Rumpf:
+
+```python
+from interpreter import INTERP_OK
+
+def writer(self, **words):
+    self.execute("M6")
+    self.execute("G92 Z10")
+    return INTERP_OK
+```
+
+Gemessen beim tatsächlichen `change_tool` und `_register_write`: **M200 aktiv, Hauptzeile 1 bekannt**, aber `canon_line=0`, `_program_started=False`, `_program_line()==False`. Der Werkzeugwechsel markiert seine unbekannte Position nicht; anschließend erhält der daraus berechnete G92 keinen fortdauernden Unsicherheitshinweis.
+
+**Ergebnis:** `stale_offset_lines=None`, letzte Fahrt bekannt, **1 s**, im Client ein Kollisionsbefund an **L3** gegen `(15,5,5)`, **keinerlei Unsicherheitshinweis**. Der Würfel liegt auf der vom Vorschau-G92 berechneten Bahn; die wirkliche nach M6 gesetzte Position ist gerade nicht bekannt. Mit `%`-Rahmen und/oder vorangestelltem `G21 G90` tritt dasselbe auf. Im Prozentfall bleibt zusätzlich `_in_init=True`, obwohl der Interpreter den Programmaufruf an L2 beziehungsweise L3 nennt.
+
+**Kontrollen:** Mit `execute(..., 4)` bei beiden Befehlen bleiben dieselben Programme korrekt unbekannt, 0 s, kein Befund, Hinweis L1 beziehungsweise L2. Eine vorherige Bewegung `G0 X0 Y0 Z0` genügt ebenfalls, damit der bisherige Fix greift. Der entscheidende Unterschied ist damit der erste positive Callback, nicht die Herkunft oder Wirkung des Programms.
+
+**Auch der in R110 ausdrücklich ergänzte G43-Fall hat diese Lücke:** Erster M200 mit allein `self.execute("G43.1 Z10")`, danach `G0 X0 Y0 Z40` / `G0 X10`. `tlo_events` bleibt leer. Im Client wird der Würfel bei **Welt-Z40** getroffen, der bei **Z50** nicht. Mit Zeilenargument oder vorheriger Bewegung ist die TLO-Zeile Z10 vorhanden und das Ergebnis korrekt umgekehrt. Geprüft mit und ohne Prozentrahmen.
+
+**Erforderlich:** Den Eintritt in das echte Programm auch vor dessen erstem positiven Canon-Callback vom Initialisierungscode unterscheiden, einschließlich des Prozentfalls. Der Interpreter kennt den aktiven Remap und seine Haupt-Aufrufzeile bereits. Diese Information muss die Phase rechtzeitig bestimmen, bevor Werkzeugwechsel, Offset oder Bewegung verarbeitet werden; den Startzustand dabei weiterhin vor dem ersten Programmbefehl erfassen. Wächter für einen ersten Python-Remap mit/ohne `%`, reine Modalsätze davor, M6/G92 sowie G43, neben den unveränderten Init-/Startzustandskontrollen.
+
+Das Startproblem besteht auch am Basiscommit `5516a941`; es ist ein **Rest der korrigierten Programmphasen-Abgrenzung**, keine neu eingeführte Regression.
+
+[Native Programme und Ergebnisse](viewer-palette-fest.r110.codex-extra.json), [funktionierende Kontrollen](viewer-palette-fest.r110.codex-controls.json), [beobachtete Programmphase](viewer-palette-fest.r110.codex-trace.json), [M6/G92 bis zum Sweep](viewer-palette-fest.r110.codex-first-sweep.json), [Kontrollen bis zum Sweep](viewer-palette-fest.r110.codex-first-control-sweep.json), [G43 an beiden Welthöhen](viewer-palette-fest.r110.codex-g43-sweep.json).
+
+### VP-I66 · P2 · Zusätzlich gefunden: M6-Rückzugsfahrt aus Python bricht die Vorschau ab
+
+**Bereits am Basisstand vorhanden; separat zu VP-I65 behandeln.** `gcode_canon.py:509–516` übernimmt die negative interne Bewegungsnummer nur dann nicht, wenn die vorherige Canon-Zeile positiv war. Bei `self.execute("M6")` ist sie jedoch 0. Mit `TOOL_CHANGE_AT_G30=1`, `TOOL_CHANGE_QUILL_UP=1` oder beiden Optionen gelangt deshalb **−1** in `rapid_lines`. `gcode_parse_worker.py:1213` bricht bei der `uint32`-Umwandlung ab:
+
+```text
+OverflowError: Python integer -1 out of bounds for uint32
+```
+
+Reproduziert nach einer gewöhnlichen Anfangsbewegung, also unabhängig vom gerade beschriebenen Startproblem:
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M200
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+M200 führt nur `self.execute("M6")` aus. Alle drei Varianten enden **ohne Vorschau-Payload**; mit `self.execute("M6", 4)` gelingen sie und die internen Rückzugsfahrten sind enthalten. Dieselben drei Exceptions treten unverändert am Basiscommit auf. Die bestehenden Wächter für ein direkt geschriebenes M6 decken diesen Aufrufpfad nicht ab.
+
+**Korrekturziel:** Auch die interne −1-Bewegung eines Python-M6 an ihren auslösenden Programmbefehl binden beziehungsweise mit gültiger unbekannter Herkunft führen, die reale Bewegung erhalten und keine negative Nummer in das unsigned Payload schreiben. Nicht durch pauschales Verwerfen der Rückzugsfahrt umgehen.
+
+[Alle sechs M6-Proben samt Tracebacks/Kontrollen](viewer-palette-fest.r110.codex-motion.json), [Basisvergleiche](viewer-palette-fest.r110.codex-baseline.json), [sämtliche Eingaben](viewer-palette-fest.r110.codex-native-cases.json).
+
+### Prüfgrenzen
+
+39 der 42 nativen Eingaben erzeugen gültige Ergebnisse; die anderen drei sind die dokumentierten Overflow-Gegenproben. Die fünf grünen eigenen Client-Tests enthalten zwei **Beobachtungen des Fehlverhaltens**, keine pauschale Soll-Abnahme. Das anfänglich falsch vor der G92-Verschiebung platzierte Testhindernis wurde ausschließlich in der Sonde auf Welt-Z5 korrigiert; Details und erstes Log sind im Prüfaufbau erhalten.
+
+Kein Gesamtgate, Browserlauf oder Build wiederholt. Nativer Synch-/Rücklesebeleg, M600-Live-Parität und TWP-Goldens bleiben offen; keine Sim gestartet. WRAPPED_ROTARY, Restprüfung während eines Laufs und die allgemeine Punktzeilen-Zuordnung unverändert separat.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r110.codex-checks.md), [Backend](viewer-palette-fest.r110.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r110.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r110.codex-client.txt), [Client-Sonde](viewer-palette-fest.r110.codex-client.test.ts), [Archiv/Isolation](viewer-palette-fest.r110.codex-context.json), [Beleghashes](viewer-palette-fest.r110.codex-sha256.json).

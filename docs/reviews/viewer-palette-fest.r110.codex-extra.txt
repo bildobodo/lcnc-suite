@@ -1,0 +1,12 @@
+g43_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': []}
+tc_g92_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': [[1, 0]]}
+g43_g21_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': []}
+tc_g92_g21_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': [[2, 0]]}
+g43_percent_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': []}
+tc_g92_percent_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': [[2, 0]]}
+g43_percent_g21_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': []}
+tc_g92_percent_g21_first 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0], 'rapid_tcum': [0.0, 1.0], 'tlo_events': None, 'tool_change_lines': [[3, 0]]}
+inline_python 0 {'parse_error': None, 'stale_offset_lines': [7], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0], 'tlo_events': [[2, 0.0, 0.0, 0.0, 0]], 'tool_change_lines': [[6, 0]]}
+inline_python_line4 0 {'parse_error': None, 'stale_offset_lines': [7], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0], 'tlo_events': [[2, 0.0, 0.0, 0.0, 0]], 'tool_change_lines': [[6, 0]]}
+foreign_python 0 {'parse_error': None, 'stale_offset_lines': [0], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0], 'tlo_events': [[2, 0.0, 0.0, 0.0, 0]], 'tool_change_lines': [[3, 0]]}
+m98_python 0 {'parse_error': None, 'stale_offset_lines': [0], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0], 'tlo_events': [[2, 0.0, 0.0, 0.0, 0]], 'tool_change_lines': [[3, 0]]}
