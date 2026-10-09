@@ -1,0 +1,99 @@
+{
+  "h": 1,
+  "full": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 52,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.5576230000000066,
+      "sweepMs": 16.930402000000015,
+      "truncated": null
+    },
+    "distanceAtCut": 0
+  },
+  "prefix": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 6,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.4324579999999969,
+      "sweepMs": 1.1225829999999917,
+      "truncated": null
+    },
+    "distanceAtCut": 0
+  },
+  "suffix": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 28,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.2705410000000086,
+      "sweepMs": 4.061037999999996,
+      "truncated": null
+    },
+    "distanceAtCut": 0
+  },
+  "syntheticBoundary": {
+    "hits": [
+      {
+        "line": 9,
+        "cum": 0,
+        "cumEnd": 0,
+        "a": "cutter",
+        "b": "stock",
+        "dist": 0,
+        "rapid": false,
+        "boundary": true
+      }
+    ],
+    "staticContacts": [],
+    "samples": 28,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.2705410000000086,
+    "sweepMs": 4.061037999999996,
+    "truncated": null
+  },
+  "entryMergeAnalogy": {
+    "hits": [
+      {
+        "line": 9,
+        "cum": 43,
+        "cumEnd": 43,
+        "a": "cutter",
+        "b": "stock",
+        "dist": 0,
+        "rapid": false,
+        "boundary": true
+      }
+    ],
+    "staticContacts": [],
+    "samples": 34,
+    "coarsened": false,
+    "notes": [],
+    "uncertified": null,
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.7029990000000055,
+    "sweepMs": 5.183620999999988,
+    "truncated": null
+  }
+}

@@ -1,0 +1,2332 @@
+[
+  {
+    "file": "docs/reviews/restpruefung-lauf.plan.md",
+    "sha256": "b4be4a45cd2286dbff2010d16c040e29dcceefb144a472da93bde0e4bdc2786c",
+    "excerpts": [
+      {
+        "start": 25,
+        "end": 150,
+        "lines": [
+          {
+            "line": 25,
+            "text": "### 1a · Gateway: `run_basis`, erfasst vor dem Start"
+          },
+          {
+            "line": 26,
+            "text": ""
+          },
+          {
+            "line": 27,
+            "text": "In `_cmd_blocking` legt das Gateway für `kind == \"auto\"` mit `AUTO_RUN` oder `AUTO_STEP` aus dem Stillstand einen neuen `run_basis` an. Das geschieht an derselben Stelle wie die Toolsetter-Basis-Buchung, **bevor** der Befehl geschrieben wird. `AUTO_RESUME` legt keinen an; Pause und Fortsetzen behalten ihn."
+          },
+          {
+            "line": 28,
+            "text": ""
+          },
+          {
+            "line": 29,
+            "text": "Inhalt:"
+          },
+          {
+            "line": 30,
+            "text": "- `run_id`: ein Zähler."
+          },
+          {
+            "line": 31,
+            "text": "- `state`: `sent`, sobald der Befehl geschrieben ist; `unsent`, wenn das Schreiben scheiterte, dann ist es kein Lauf."
+          },
+          {
+            "line": 32,
+            "text": "- `file`, `source`, `version`: geladene Datei, Fingerabdruck und veröffentlichte Version zu diesem Zeitpunkt."
+          },
+          {
+            "line": 33,
+            "text": "- `ctx_digest`: Fingerabdruck des veröffentlichten Parse-Kontexts mit seiner Startbasis (Fixture, WCS-Patches, Werkzeugbasis, Rotary-Seed, Kins)."
+          },
+          {
+            "line": 34,
+            "text": "- `tool_basis_rev`: ein Zähler, den jede Änderung von `BulkPipeline.tool_basis` erhöht, auch die bestätigte ohne neue Version (`reparse_verified_same`)."
+          },
+          {
+            "line": 35,
+            "text": "- `start`: der Steuerungszustand aus dem letzten Poll vor dem Schreiben: Fixture-Index, G5x, G92, Rotation, Werkzeug, angewandter Offset."
+          },
+          {
+            "line": 36,
+            "text": "- `verified`: nur wahr, wenn alles zutrifft:"
+          },
+          {
+            "line": 37,
+            "text": "  - eine veröffentlichte Vorschau genau dieser Datei und `source`;"
+          },
+          {
+            "line": 38,
+            "text": "  - kein Parse läuft oder steht an;"
+          },
+          {
+            "line": 39,
+            "text": "  - kein Drift-Grund ist offen;"
+          },
+          {
+            "line": 40,
+            "text": "  - `tool_basis` passt zum angewandten Offset;"
+          },
+          {
+            "line": 41,
+            "text": "  - `start` passt zur Startbasis des veröffentlichten Kontexts."
+          },
+          {
+            "line": 42,
+            "text": ""
+          },
+          {
+            "line": 43,
+            "text": "  Was sich nicht prüfen lässt, macht `verified` falsch."
+          },
+          {
+            "line": 44,
+            "text": ""
+          },
+          {
+            "line": 45,
+            "text": "Der Status trägt `run_basis` bis zum nächsten Start. Ein später verbindender Client hat ihn damit auch. Für die Freigabe von Maschinenbefehlen ändert sich nichts: Er betrifft nur die Gültigkeit der Vorschau."
+          },
+          {
+            "line": 46,
+            "text": ""
+          },
+          {
+            "line": 47,
+            "text": "### 1b · Gateway: Herkunft jeder Veröffentlichung"
+          },
+          {
+            "line": 48,
+            "text": ""
+          },
+          {
+            "line": 49,
+            "text": "- Beim **Planen** eines eingefrorenen Parses (`schedule_refresh(..., pinned=True)`) hält `BulkPipeline` `for_run = (run_id, ctx_digest, tool_basis_rev)` des dann gültigen `run_basis` fest. Fehlt ein verifizierter `run_basis`, ist `for_run` leer."
+          },
+          {
+            "line": 50,
+            "text": "- `published_origin` jeder Veröffentlichung enthält: `version`, vollen Pfad, `source`, `reason`, `pinned`, `for_run`, Tabellenstand (Zeit, Zeilen-Fingerabdruck) und `tool_basis_rev`."
+          },
+          {
+            "line": 51,
+            "text": "- Er geht mit `viewer_gcode_ready` hinaus und als `preview_origin` in jedem Status-Envelope."
+          },
+          {
+            "line": 52,
+            "text": "- Ein eingefrorener Parse aus Lauf 1, der erst in Lauf 2 veröffentlicht, trägt `for_run` von Lauf 1. Der Client lehnt ihn ab, bevor ein Sweep entsteht."
+          },
+          {
+            "line": 53,
+            "text": ""
+          },
+          {
+            "line": 54,
+            "text": "### 1c · Client: Prüfstand und Ergebniszustände"
+          },
+          {
+            "line": 55,
+            "text": ""
+          },
+          {
+            "line": 56,
+            "text": "Wie Fassung 2: Jede Prüfung bekommt einen **unveränderlichen Prüfstand** (`CheckBasis`), aus dem `_colBuildRequest` den Auftrag baut, nie aus `_pv`."
+          },
+          {
+            "line": 57,
+            "text": "- **Im Stillstand:** der Live-Zustand bei Prüfbeginn."
+          },
+          {
+            "line": 58,
+            "text": "- **Im Lauf:** `run_basis.start` des laufenden Laufs, ausdrücklich nicht der erste beobachtete Laufstatus. Dazu Track, Ereignisse und Tabelle des zugelassenen Payloads."
+          },
+          {
+            "line": 59,
+            "text": ""
+          },
+          {
+            "line": 60,
+            "text": "Ergebniszustände (reine Funktion `checkState`):"
+          },
+          {
+            "line": 61,
+            "text": "- **aktuell**;"
+          },
+          {
+            "line": 62,
+            "text": "- **im Lauf geprüft**: `vorn` / `vorn fertig` / `ganz fertig`;"
+          },
+          {
+            "line": 63,
+            "text": "- **bisherige Vorschau**: benannt, ohne die Farben, Zähler und Sprünge der aktuellen;"
+          },
+          {
+            "line": 64,
+            "text": "- **keins.**"
+          },
+          {
+            "line": 65,
+            "text": ""
+          },
+          {
+            "line": 66,
+            "text": "## Paket 2 · Was der Lauf selbst ändert, löscht keine Befunde"
+          },
+          {
+            "line": 67,
+            "text": ""
+          },
+          {
+            "line": 68,
+            "text": "Unverändert aus Fassung 2, jetzt mit der Lauf-Basis aus 1a. Solange ein Lauf mit `run_basis.state == sent` läuft, lösen Live-Änderungen der Punkt-1-Eingänge kein `_colOnInputChange` aus; das Ergebnis bleibt mit seinem Prüfstand stehen. Bei IDLE gilt die heutige Regel."
+          },
+          {
+            "line": 69,
+            "text": ""
+          },
+          {
+            "line": 70,
+            "text": "**Wächter**, zusätzlich zu Fassung 2 (Pose, Werkzeugwahl und Gültigkeit statt nur „sichtbar“):"
+          },
+          {
+            "line": 71,
+            "text": "- der erste beobachtete AUTO-Status kommt erst nach einem frühen G92, G43.1 oder M6: der Prüfstand bleibt `run_basis.start`;"
+          },
+          {
+            "line": 72,
+            "text": "- ein Client verbindet mitten im Lauf;"
+          },
+          {
+            "line": 73,
+            "text": "- abgelehnter Start (`unsent`, oder der Interpreter bleibt IDLE): kein Lauf;"
+          },
+          {
+            "line": 74,
+            "text": "- Pause und Fortsetzen: derselbe Lauf."
+          },
+          {
+            "line": 75,
+            "text": ""
+          },
+          {
+            "line": 76,
+            "text": "## Paket 3 · Prüfung im Lauf: vorn zuerst, dann der Anfang"
+          },
+          {
+            "line": 77,
+            "text": ""
+          },
+          {
+            "line": 78,
+            "text": "### 3a · Zulassung, vor jedem Sweep"
+          },
+          {
+            "line": 79,
+            "text": ""
+          },
+          {
+            "line": 80,
+            "text": "Ein Lauf-Auftrag entsteht nur, wenn alles zutrifft:"
+          },
+          {
+            "line": 81,
+            "text": "- der angezeigte Payload hat `preview_origin.pinned`;"
+          },
+          {
+            "line": 82,
+            "text": "- seine Version ist die angezeigte;"
+          },
+          {
+            "line": 83,
+            "text": "- `for_run` gleicht dem `run_basis` des laufenden Laufs in `run_id`, `ctx_digest` und `tool_basis_rev`;"
+          },
+          {
+            "line": 84,
+            "text": "- `run_basis.verified` ist wahr;"
+          },
+          {
+            "line": 85,
+            "text": "- der Interpreter läuft."
+          },
+          {
+            "line": 86,
+            "text": ""
+          },
+          {
+            "line": 87,
+            "text": "Sonst gibt es keinen Lauf-Auftrag, die bisherige Vorschau bleibt benannt stehen, und bei IDLE folgt die volle Prüfung (MR-I03)."
+          },
+          {
+            "line": 88,
+            "text": ""
+          },
+          {
+            "line": 89,
+            "text": "Bindung, Verfall und IDLE-Abbruch wie Fassung 2:"
+          },
+          {
+            "line": 90,
+            "text": "- Ein Auftrag ist an `(version, run_id, Generation)` gebunden."
+          },
+          {
+            "line": 91,
+            "text": "- Neue Veröffentlichung, Basisrevision, Reload, Abbruch, Laufende und Reconnect verwerfen ihn."
+          },
+          {
+            "line": 92,
+            "text": "- IDLE bricht ihn sofort ab und startet die volle Prüfung."
+          },
+          {
+            "line": 93,
+            "text": ""
+          },
+          {
+            "line": 94,
+            "text": "**Wächter:**"
+          },
+          {
+            "line": 95,
+            "text": "- ein lange verzögerter eingefrorener Parse aus Lauf 1 nach dem Start von Lauf 2;"
+          },
+          {
+            "line": 96,
+            "text": "- gleiche Datei und `source` mit anderer Startbasis;"
+          },
+          {
+            "line": 97,
+            "text": "- eine alte Veröffentlichung beim späteren Verbinden;"
+          },
+          {
+            "line": 98,
+            "text": "- eine Basisbestätigung ohne Versionswechsel;"
+          },
+          {
+            "line": 99,
+            "text": "- überholte Teil- und Endantworten."
+          },
+          {
+            "line": 100,
+            "text": ""
+          },
+          {
+            "line": 101,
+            "text": "Jeder dieser Fälle scheitert, **bevor** ein Sweep startet."
+          },
+          {
+            "line": 102,
+            "text": ""
+          },
+          {
+            "line": 103,
+            "text": "### 3b · Reihenfolge statt Ausschluss"
+          },
+          {
+            "line": 104,
+            "text": ""
+          },
+          {
+            "line": 105,
+            "text": "- Der **Hinweis** `h` ist der Segmentanfang (`index − 1`) der angezeigten Laufposition (`runWatcher`), gelesen einmal beim Planen; `runWatcher` rechnet ihn ohnehin."
+          },
+          {
+            "line": 106,
+            "text": "- Ohne angehängte Position ist `h = 0`, dann ist es die volle Prüfung in normaler Reihenfolge."
+          },
+          {
+            "line": 107,
+            "text": "- Eine Kandidatensuche pro Statusbild gibt es nicht (Lasthinweis R113)."
+          },
+          {
+            "line": 108,
+            "text": "- **Phase 1** prüft `[h, Ende]`, **Phase 2** `[0, h)`. Danach ist das ganze Programm geprüft."
+          },
+          {
+            "line": 109,
+            "text": "- Der Hinweis schließt nichts aus. Er darf falsch sein: früher, später, auf einem anderen Durchgang. Ein falscher Hinweis kostet nur Zeit, bis der Befund vor der Maschine erscheint, nie den Befund."
+          },
+          {
+            "line": 110,
+            "text": "- Unbekannte Strecken bleiben unbekannt wie in jeder vollen Prüfung."
+          },
+          {
+            "line": 111,
+            "text": "- τ entscheidet nichts mehr."
+          },
+          {
+            "line": 112,
+            "text": ""
+          },
+          {
+            "line": 113,
+            "text": "### 3c · Sweep über einen Bereich, die Naht bei `h`"
+          },
+          {
+            "line": 114,
+            "text": ""
+          },
+          {
+            "line": 115,
+            "text": "- **`CollisionOptions.range = {from, to}`** auf dem **Basis-Track**:"
+          },
+          {
+            "line": 116,
+            "text": "  - Programmbasis (erste Pose, Ruhelage) und statische Ausschlüsse wie im vollen Sweep;"
+          },
+          {
+            "line": 117,
+            "text": "  - `from` beginnt mit frischen Zertifikaten;"
+          },
+          {
+            "line": 118,
+            "text": "  - `to` endet am Segmentanfang `to`."
+          },
+          {
+            "line": 119,
+            "text": "- **Phase 1, Start bei `h > 0`:** Jedes nicht ausgeschlossene Paar in Kontakt (berührt oder ganz innen) ist ein **Grenzkontakt**, auch ein Schneidpaar, wie in Fassung 2 angenommen. Er wird benannt: „Kontakt bei Prüfbeginn — Herkunft wird noch geprüft“."
+          },
+          {
+            "line": 120,
+            "text": "- **Phase 2** läuft vom Programmanfang wie der volle Sweep und endet bei `h`."
+          },
+          {
+            "line": 121,
+            "text": "- **Die Naht:** Am Ende von Phase 2 steht derselbe Punkt `h`. Ein Paar in Kontakt dort gehört zu Phase 2s Kontakt. Der Grenzkontakt wird dessen Fortsetzung: ein Kontakt, ein Befund, Beginnzeile aus Phase 2. Das ist dieselbe Regel wie bei der Anfahrt in `sweepMerge` („ein Kontakt, von beiden gesehen, zählt einmal“)."
+          },
+          {
+            "line": 122,
+            "text": "- Ist Phase 2 noch nicht fertig, bleibt der Grenzkontakt benannt stehen."
+          },
+          {
+            "line": 123,
+            "text": "- **Abdeckung** ist `[h, Ende] ∪ [0, h)` auf der Basisachse. Teilantworten, Parken und Shard-Abbruch halten das je Phase."
+          },
+          {
+            "line": 124,
+            "text": "- Ein Bereich der Länge null oder ein Bereich nur aus unbekannten Strecken ist ein eigener benannter Zustand."
+          },
+          {
+            "line": 125,
+            "text": ""
+          },
+          {
+            "line": 126,
+            "text": "**Wächter:**"
+          },
+          {
+            "line": 127,
+            "text": "- Zwei Phasen gegen den vollen Sweep auf den ausgelieferten Modellen. Wie bei `sweepShards.test`: Ein Befund oder eine Berührung in nur einem Lauf muss eine Strecke von höchstens `MIN_ADV` sein. Dazu ein zufälliges `h`."
+          },
+          {
+            "line": 128,
+            "text": "- Codex' Wiederkontaktfall (R112), Codex' Mischfall (R113) mit `h` hinter dem Hindernis: der Befund kommt in Phase 2."
+          },
+          {
+            "line": 129,
+            "text": "- Ein im Eilgang begonnener Schneidkontakt an `h`: Naht zu Phase 2s Beginn."
+          },
+          {
+            "line": 130,
+            "text": "- Ein ganz eingeschlossener Körper an `h`."
+          },
+          {
+            "line": 131,
+            "text": "- Unentscheidbarer Innenstatus an `h`."
+          },
+          {
+            "line": 132,
+            "text": "- Abdeckung bei Teilantwort, Parken, Shard-Abbruch."
+          },
+          {
+            "line": 133,
+            "text": ""
+          },
+          {
+            "line": 134,
+            "text": "### 3d · Bezeichnung"
+          },
+          {
+            "line": 135,
+            "text": ""
+          },
+          {
+            "line": 136,
+            "text": "- „Prüfung im Lauf · Werkzeugtabelle aktualisiert“."
+          },
+          {
+            "line": 137,
+            "text": "- Phase 1: „vorn ab L… geprüft“, dann „ganz geprüft“."
+          },
+          {
+            "line": 138,
+            "text": "- Nie „gemessen“."
+          },
+          {
+            "line": 139,
+            "text": "- Ohne erkannte Tabellenänderung kein neuer Lauf-Auftrag. Eine neue Dateizeit mit gleichen Werten kann einen auslösen (R113); das ist eine Tabellenänderung, kein Messnachweis."
+          },
+          {
+            "line": 140,
+            "text": ""
+          },
+          {
+            "line": 141,
+            "text": "## Paket 4 · Last, Drehachsen, Anzeige"
+          },
+          {
+            "line": 142,
+            "text": ""
+          },
+          {
+            "line": 143,
+            "text": "Wie Fassung 2, von Codex auf Planebene angenommen:"
+          },
+          {
+            "line": 144,
+            "text": "- höchstens zwei Sub-Worker, 20-ms-Scheiben, ersetzen statt anstellen, Pause beim Dekodieren;"
+          },
+          {
+            "line": 145,
+            "text": "- Messprotokoll mit Zielen, getrennte Messaufbauten, keine Rechtzeitigkeitszusage;"
+          },
+          {
+            "line": 146,
+            "text": "- Drehachsen im Lauf parken nicht, Jog und IDLE schon."
+          },
+          {
+            "line": 147,
+            "text": ""
+          },
+          {
+            "line": 148,
+            "text": "Dazu kommt:"
+          },
+          {
+            "line": 149,
+            "text": "- `run-pos` liefert je Statusbild nur die Pose für die Anzeige;"
+          },
+          {
+            "line": 150,
+            "text": "- der Hinweis wird beim Planen einmal gelesen."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/gateway.py",
+    "sha256": "9f81935610606e0bf51c1fee09aeb7a0b208852bc399714714b1e6a663b057af",
+    "excerpts": [
+      {
+        "start": 1638,
+        "end": 1671,
+        "lines": [
+          {
+            "line": 1638,
+            "text": "                    # Leave _bulk.last_mtime as-is; next tick re-checks."
+          },
+          {
+            "line": 1639,
+            "text": "                    _cur_mtime = _bulk.last_mtime"
+          },
+          {
+            "line": 1640,
+            "text": "            else:"
+          },
+          {
+            "line": 1641,
+            "text": "                _cur_mtime = None"
+          },
+          {
+            "line": 1642,
+            "text": "            file_changed = bool(st.active_file) and ("
+          },
+          {
+            "line": 1643,
+            "text": "                st.active_file != _bulk.last_file or _cur_mtime != _bulk.last_mtime"
+          },
+          {
+            "line": 1644,
+            "text": "            )"
+          },
+          {
+            "line": 1645,
+            "text": "            # reparse_pending: an operator Reparse that arrived during an"
+          },
+          {
+            "line": 1646,
+            "text": "            # in-flight parse (or any Reparse — the flag is the request,"
+          },
+          {
+            "line": 1647,
+            "text": "            # the cache keys are no longer cleared for it)."
+          },
+          {
+            "line": 1648,
+            "text": "            _now = time.monotonic()"
+          },
+          {
+            "line": 1649,
+            "text": "            _bulk.rotary_hold = rotary_hold_update(_bulk.rotary_hold, st.rotary_abc, _now)"
+          },
+          {
+            "line": 1650,
+            "text": "            _fe = preview_file_edge_action("
+          },
+          {
+            "line": 1651,
+            "text": "                file_changed, _bulk.reparse_pending, _bulk.refresh_running,"
+          },
+          {
+            "line": 1652,
+            "text": "                _bulk.inflight, st.active_file, _cur_mtime)"
+          },
+          {
+            "line": 1653,
+            "text": "            if _fe == \"schedule\" and not rotary_hold_settled(_bulk.rotary_hold, st.rotary_abc, _now):"
+          },
+          {
+            "line": 1654,
+            "text": "                # A parse spawned mid-jog seeds the moving pose and is doomed"
+          },
+          {
+            "line": 1655,
+            "text": "                # on the next tick (inflight_doomed_reason below): the START"
+          },
+          {
+            "line": 1656,
+            "text": "                # waits for the rotary pose to hold still for 1 s. Linear"
+          },
+          {
+            "line": 1657,
+            "text": "                # motion never defers — the payload does not depend on XYZ."
+          },
+          {
+            "line": 1658,
+            "text": "                if not _bulk.reparse_wait_noted:"
+          },
+          {
+            "line": 1659,
+            "text": "                    _bulk.reparse_wait_noted = True"
+          },
+          {
+            "line": 1660,
+            "text": "                    _trace.emit(\"gcode.parse_waits_for_settle\", live=st.rotary_abc)"
+          },
+          {
+            "line": 1661,
+            "text": "                _fe = None"
+          },
+          {
+            "line": 1662,
+            "text": "            if _fe is not None:"
+          },
+          {
+            "line": 1663,
+            "text": "                if _fe == \"schedule\":"
+          },
+          {
+            "line": 1664,
+            "text": "                    _bulk.reparse_wait_noted = False"
+          },
+          {
+            "line": 1665,
+            "text": "                    _bulk.schedule_refresh("
+          },
+          {
+            "line": 1666,
+            "text": "                        st.active_file,"
+          },
+          {
+            "line": 1667,
+            "text": "                        _bulk.reparse_pending_reason or (\"file\" if file_changed else \"reparse\"),"
+          },
+          {
+            "line": 1668,
+            "text": "                        _spawn_preview_task)"
+          },
+          {
+            "line": 1669,
+            "text": "                else:"
+          },
+          {
+            "line": 1670,
+            "text": "                    # The running parse is for another file/mtime, or the"
+          },
+          {
+            "line": 1671,
+            "text": "                    # operator asked for a fresh one: its result is stale"
+          }
+        ]
+      },
+      {
+        "start": 1760,
+        "end": 1778,
+        "lines": [
+          {
+            "line": 1760,
+            "text": "                _bulk.tlo_check_ts = time.monotonic()"
+          },
+          {
+            "line": 1761,
+            "text": "                _mdrift = None"
+          },
+          {
+            "line": 1762,
+            "text": "                if _bulk.published_tlo is not None:"
+          },
+          {
+            "line": 1763,
+            "text": "                    _tt_cur, _rows = _tool_table_now(_bulk.published_tlo)"
+          },
+          {
+            "line": 1764,
+            "text": "                    _mdrift = evaluate_tlo_drift("
+          },
+          {
+            "line": 1765,
+            "text": "                        _bulk.published_tlo, _tt_cur, None,"
+          },
+          {
+            "line": 1766,
+            "text": "                        table_rows=_rows, table_only=True)"
+          },
+          {
+            "line": 1767,
+            "text": "                _mact, _mwhy = midrun_table_action("
+          },
+          {
+            "line": 1768,
+            "text": "                    _mdrift,"
+          },
+          {
+            "line": 1769,
+            "text": "                    bool(_bulk.published_ctx) and _bulk.published_ctx.get(\"file\") == st.active_file,"
+          },
+          {
+            "line": 1770,
+            "text": "                    bool(_bulk.published_params) and _bulk.published_params.get(\"text\") is not None,"
+          },
+          {
+            "line": 1771,
+            "text": "                    _bulk.pin_unsupported)"
+          },
+          {
+            "line": 1772,
+            "text": "                if _mact == \"pinned\":"
+          },
+          {
+            "line": 1773,
+            "text": "                    _trace.emit(\"gcode.reparse_table_midrun\", reason=_mdrift,"
+          },
+          {
+            "line": 1774,
+            "text": "                                tool=st.tool_number)"
+          },
+          {
+            "line": 1775,
+            "text": "                    _bulk.schedule_refresh(st.active_file, \"midrun:\" + _mdrift,"
+          },
+          {
+            "line": 1776,
+            "text": "                                           _spawn_preview_task, pinned=True)"
+          },
+          {
+            "line": 1777,
+            "text": "                elif _mact == \"stale\":"
+          },
+          {
+            "line": 1778,
+            "text": "                    # No faithful re-parse before idle: the viewer keeps the"
+          }
+        ]
+      },
+      {
+        "start": 3126,
+        "end": 3161,
+        "lines": [
+          {
+            "line": 3126,
+            "text": "    \"\"\""
+          },
+          {
+            "line": 3127,
+            "text": "    cancel = threading.Event()"
+          },
+          {
+            "line": 3128,
+            "text": "    kind = _start_kind(cmd_fn, args)"
+          },
+          {
+            "line": 3129,
+            "text": "    if kind:"
+          },
+          {
+            "line": 3130,
+            "text": "        # A start may write the toolsetter's values (M600 plan section 2,"
+          },
+          {
+            "line": 3131,
+            "text": "        # Codex R105 VP-I60): booked here — every MDI line and every AUTO"
+          },
+          {
+            "line": 3132,
+            "text": "        # run / step / resume passes this one place — and BEFORE the command"
+          },
+          {
+            "line": 3133,
+            "text": "        # can reach the interpreter, so neither a cancel nor a timeout after"
+          },
+          {
+            "line": 3134,
+            "text": "        # the write skips it (it was booked after the await, on four of five"
+          },
+          {
+            "line": 3135,
+            "text": "        # paths). A command that never went out costs only a confirmation."
+          },
+          {
+            "line": 3136,
+            "text": "        _ts_mark_assumed(toolsetter_assigned_keys(args[0] if args else \"\", _remap_env())"
+          },
+          {
+            "line": 3137,
+            "text": "                         if kind == \"mdi\" else _ts_program_writes())"
+          },
+          {
+            "line": 3138,
+            "text": "    if claim is None and kind:"
+          },
+          {
+            "line": 3139,
+            "text": "        async with _get_source_lock():"
+          },
+          {
+            "line": 3140,
+            "text": "            claim = _StartClaim(kind)"
+          },
+          {
+            "line": 3141,
+            "text": "            _source_claims.append(claim)"
+          },
+          {
+            "line": 3142,
+            "text": ""
+          },
+          {
+            "line": 3143,
+            "text": "    def _run():"
+          },
+          {
+            "line": 3144,
+            "text": "        try:"
+          },
+          {
+            "line": 3145,
+            "text": "            cmd_fn(*args)"
+          },
+          {
+            "line": 3146,
+            "text": "        except BaseException:"
+          },
+          {
+            "line": 3147,
+            "text": "            if claim is not None:"
+          },
+          {
+            "line": 3148,
+            "text": "                claim.state = \"unsent\"   # nothing reached the controller"
+          },
+          {
+            "line": 3149,
+            "text": "            raise"
+          },
+          {
+            "line": 3150,
+            "text": "        if claim is not None:"
+          },
+          {
+            "line": 3151,
+            "text": "            claim.serial = getattr(CMD, \"serial\", None)"
+          },
+          {
+            "line": 3152,
+            "text": "            claim.sent_t = time.monotonic()"
+          },
+          {
+            "line": 3153,
+            "text": "            claim.state = \"sent\""
+          },
+          {
+            "line": 3154,
+            "text": "        if wait is None:"
+          },
+          {
+            "line": 3155,
+            "text": "            return 0"
+          },
+          {
+            "line": 3156,
+            "text": "        deadline = time.monotonic() + float(wait)"
+          },
+          {
+            "line": 3157,
+            "text": "        while True:"
+          },
+          {
+            "line": 3158,
+            "text": "            remaining = deadline - time.monotonic()"
+          },
+          {
+            "line": 3159,
+            "text": "            if remaining <= 0:"
+          },
+          {
+            "line": 3160,
+            "text": "                return -1"
+          },
+          {
+            "line": 3161,
+            "text": "            rc = CMD.wait_complete(min(_CMD_WAIT_SLICE, remaining))"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/bulk_pipeline.py",
+    "sha256": "07d95ed15b0c80eff1583fdb67941379c233070534a7b85e6557e206afd35836",
+    "excerpts": [
+      {
+        "start": 430,
+        "end": 460,
+        "lines": [
+          {
+            "line": 430,
+            "text": "    def pinned_ctx(self, filepath: str) -> Optional[dict]:"
+          },
+          {
+            "line": 431,
+            "text": "        \"\"\"The worker ctx for a PINNED re-parse of `filepath`: the published"
+          },
+          {
+            "line": 432,
+            "text": "        parse's ctx (fixture index, WCS var patches, kins type/frame), its"
+          },
+          {
+            "line": 433,
+            "text": "        parameter basis (`param_text` + `g92_offset`, Codex R40 MR-I02), its"
+          },
+          {
+            "line": 434,
+            "text": "        rotary seed (`rotary_pose`, the golden override hook) and its tool"
+          },
+          {
+            "line": 435,
+            "text": "        seed (applied offset + loaded tool; the worker puts that tool in the"
+          },
+          {
+            "line": 436,
+            "text": "        interpreter's spindle pocket, MR-I01), niced. Read live: the tool"
+          },
+          {
+            "line": 437,
+            "text": "        TABLE — the reason for the parse — and the operator's run options"
+          },
+          {
+            "line": 438,
+            "text": "        (block delete) and the configuration (units, axis mask, limits). None"
+          },
+          {
+            "line": 439,
+            "text": "        when nothing, or no parameter basis, is published for this file.\"\"\""
+          },
+          {
+            "line": 440,
+            "text": "        base = self.published_ctx"
+          },
+          {
+            "line": 441,
+            "text": "        params = self.published_params"
+          },
+          {
+            "line": 442,
+            "text": "        if not base or base.get(\"file\") != filepath or not params or params.get(\"text\") is None:"
+          },
+          {
+            "line": 443,
+            "text": "            return None"
+          },
+          {
+            "line": 444,
+            "text": "        ctx = dict(base)"
+          },
+          {
+            "line": 445,
+            "text": "        ctx[\"param_text\"] = params[\"text\"]"
+          },
+          {
+            "line": 446,
+            "text": "        ctx[\"g92_offset\"] = params.get(\"g92\")"
+          },
+          {
+            "line": 447,
+            "text": "        if self.published_rotary_seed:"
+          },
+          {
+            "line": 448,
+            "text": "            ctx[\"rotary_pose\"] = dict(self.published_rotary_seed)"
+          },
+          {
+            "line": 449,
+            "text": "        tlo = self.published_tlo or {}"
+          },
+          {
+            "line": 450,
+            "text": "        # The START tool state of the run (VP-I20) — the published payload's"
+          },
+          {
+            "line": 451,
+            "text": "        # tool basis (its own start, or the live start a verify confirmed"
+          },
+          {
+            "line": 452,
+            "text": "        # since: the start this run began with), never its reported live"
+          },
+          {
+            "line": 453,
+            "text": "        # offset. None (an older worker's meta, an unknown start) → the"
+          },
+          {
+            "line": 454,
+            "text": "        # pinned parse is unknown too."
+          },
+          {
+            "line": 455,
+            "text": "        basis = self.tool_basis or {}"
+          },
+          {
+            "line": 456,
+            "text": "        ctx[\"seed_tool\"] = {\"applied_tlo\": basis.get(\"xyz\"),"
+          },
+          {
+            "line": 457,
+            "text": "                            \"start_mode\": basis.get(\"mode\"),"
+          },
+          {
+            "line": 458,
+            "text": "                            \"loaded_tool\": tlo.get(\"loaded_tool\")}"
+          },
+          {
+            "line": 459,
+            "text": "        ctx[\"nice\"] = self.PINNED_NICE"
+          },
+          {
+            "line": 460,
+            "text": "        return ctx"
+          }
+        ]
+      },
+      {
+        "start": 568,
+        "end": 612,
+        "lines": [
+          {
+            "line": 568,
+            "text": "        # program hashes in ~0.2 s, the GIL released."
+          },
+          {
+            "line": 569,
+            "text": "        _source_at_parse = await asyncio.to_thread(program_source, filepath)"
+          },
+          {
+            "line": 570,
+            "text": "        try:"
+          },
+          {
+            "line": 571,
+            "text": "            stat = self._get_stat()"
+          },
+          {
+            "line": 572,
+            "text": "            ini_path = getattr(stat, \"ini_filename\", None) if stat is not None else None"
+          },
+          {
+            "line": 573,
+            "text": "            if not ini_path:"
+          },
+          {
+            "line": 574,
+            "text": "                # Was a bare return: indistinguishable in the trace from"
+          },
+          {
+            "line": 575,
+            "text": "                # \"never scheduled\" — the class of silent no-op a hang"
+          },
+          {
+            "line": 576,
+            "text": "                # report cannot be triaged against."
+          },
+          {
+            "line": 577,
+            "text": "                _trace.emit(\"gcode.refresh_skipped\", level=\"warn\", file=filepath,"
+          },
+          {
+            "line": 578,
+            "text": "                            reason=\"no-stat\" if stat is None else \"no-ini\")"
+          },
+          {
+            "line": 579,
+            "text": "                return"
+          },
+          {
+            "line": 580,
+            "text": "            if pinned:"
+          },
+          {
+            "line": 581,
+            "text": "                ctx = self.pinned_ctx(filepath)"
+          },
+          {
+            "line": 582,
+            "text": "                if ctx is None:"
+          },
+          {
+            "line": 583,
+            "text": "                    _trace.emit(\"gcode.refresh_skipped\", level=\"warn\", file=filepath,"
+          },
+          {
+            "line": 584,
+            "text": "                                reason=\"no-published-ctx\")"
+          },
+          {
+            "line": 585,
+            "text": "                    return"
+          },
+          {
+            "line": 586,
+            "text": "                active_idx = ctx.get(\"g5x_index\")"
+          },
+          {
+            "line": 587,
+            "text": "                _live_kt, _live_kf = ctx.get(\"kins_type\"), ctx.get(\"kins_frame\")"
+          },
+          {
+            "line": 588,
+            "text": "            else:"
+          },
+          {
+            "line": 589,
+            "text": "                active_idx = getattr(stat, \"g5x_index\", None) if stat is not None else None"
+          },
+          {
+            "line": 590,
+            "text": "                patches = self._build_wcs_rotation_patches()"
+          },
+          {
+            "line": 591,
+            "text": "                _live_kt, _live_kf = self._get_live_kins()"
+          },
+          {
+            "line": 592,
+            "text": "                ctx = {"
+          },
+          {
+            "line": 593,
+            "text": "                    \"file\": filepath,"
+          },
+          {
+            "line": 594,
+            "text": "                    \"ini_path\": ini_path,"
+          },
+          {
+            "line": 595,
+            "text": "                    \"units\": self._get_machine_units(),"
+          },
+          {
+            "line": 596,
+            "text": "                    \"var_patches\": patches,"
+          },
+          {
+            "line": 597,
+            "text": "                    \"g5x_index\": active_idx if isinstance(active_idx, int) else 1,"
+          },
+          {
+            "line": 598,
+            "text": "                    # Fifth freshness input: live switchkins type + plane frame"
+          },
+          {
+            "line": 599,
+            "text": "                    # (None on untracked configs — worker seeds nothing)."
+          },
+          {
+            "line": 600,
+            "text": "                    \"kins_type\": _live_kt,"
+          },
+          {
+            "line": 601,
+            "text": "                    \"kins_frame\": _live_kf,"
+          },
+          {
+            "line": 602,
+            "text": "                }"
+          },
+          {
+            "line": 603,
+            "text": "                # The toolsetter values the routine reads (a pinned parse"
+          },
+          {
+            "line": 604,
+            "text": "                # keeps the published ctx's: the basis it ran with)."
+          },
+          {
+            "line": 605,
+            "text": "                _ts_ctx = self._get_toolsetter_ctx()"
+          },
+          {
+            "line": 606,
+            "text": "                if _ts_ctx:"
+          },
+          {
+            "line": 607,
+            "text": "                    ctx[\"toolsetter\"] = _ts_ctx"
+          },
+          {
+            "line": 608,
+            "text": "            # VERIFY (VP-I20, plan Fassungen 4–6): the start tool state moved"
+          },
+          {
+            "line": 609,
+            "text": "            # since the publish. Parse at the actual offset as always, and let"
+          },
+          {
+            "line": 610,
+            "text": "            # the worker compare its payload with the published one — when"
+          },
+          {
+            "line": 611,
+            "text": "            # every consumer would get the same inputs (the published payload"
+          },
+          {
+            "line": 612,
+            "text": "            # normalised to the new start), nothing is published: no version"
+          }
+        ]
+      },
+      {
+        "start": 867,
+        "end": 881,
+        "lines": [
+          {
+            "line": 867,
+            "text": "            # variant that was practically never served."
+          },
+          {
+            "line": 868,
+            "text": "            self.preview_bytes = None if preview_bytes_gz is not None else stdout"
+          },
+          {
+            "line": 869,
+            "text": "            self.preview_bytes_gz = preview_bytes_gz"
+          },
+          {
+            "line": 870,
+            "text": "            self.published_schema = worker_schema"
+          },
+          {
+            "line": 871,
+            "text": "            self.published_tlo = worker_tlo"
+          },
+          {
+            "line": 872,
+            "text": "            self.tool_basis = self.basis_of(worker_tlo)"
+          },
+          {
+            "line": 873,
+            "text": "            self.published_rotary_seed = worker_rotary_seed"
+          },
+          {
+            "line": 874,
+            "text": "            self.published_rotary_cmd = worker_rotary_cmd"
+          },
+          {
+            "line": 875,
+            "text": "            self.published_limits = worker_limits"
+          },
+          {
+            "line": 876,
+            "text": "            self.published_kins_seed = worker_kins_seed"
+          },
+          {
+            "line": 877,
+            "text": "            self.published_wcs_off = worker_wcs_off"
+          },
+          {
+            "line": 878,
+            "text": "            self.published_ctx = ctx"
+          },
+          {
+            "line": 879,
+            "text": "            self.table_stale = None"
+          },
+          {
+            "line": 880,
+            "text": "            self.published_params = worker_params if isinstance(worker_params, dict) else None"
+          },
+          {
+            "line": 881,
+            "text": "            self.published_toolsetter = worker_toolsetter if isinstance(worker_toolsetter, dict) else None"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/gateway_util.py",
+    "sha256": "66e3b50cffa862c1e7151479338d2761ae83f3ba41c2d720bfba1f74cbf2bc5b",
+    "excerpts": [
+      {
+        "start": 449,
+        "end": 462,
+        "lines": [
+          {
+            "line": 449,
+            "text": "def program_source(path) -> Optional[str]:"
+          },
+          {
+            "line": 450,
+            "text": "    \"\"\"A program text's identity: the sha256 of its bytes, or None when it"
+          },
+          {
+            "line": 451,
+            "text": "    cannot be read (Codex R17 XZ-07). What a publication was parsed from,"
+          },
+          {
+            "line": 452,
+            "text": "    what GET /gcode served and what Run from line is bound to — a content"
+          },
+          {
+            "line": 453,
+            "text": "    fingerprint, not a stat: timestamps can be preserved, and a write inside"
+          },
+          {
+            "line": 454,
+            "text": "    one kernel tick keeps mtime and ctime.\"\"\""
+          },
+          {
+            "line": 455,
+            "text": "    if not path:"
+          },
+          {
+            "line": 456,
+            "text": "        return None"
+          },
+          {
+            "line": 457,
+            "text": "    try:"
+          },
+          {
+            "line": 458,
+            "text": "        with open(path, \"rb\") as f:"
+          },
+          {
+            "line": 459,
+            "text": "            return hashlib.file_digest(f, \"sha256\").hexdigest()"
+          },
+          {
+            "line": 460,
+            "text": "    except OSError:"
+          },
+          {
+            "line": 461,
+            "text": "        return None"
+          },
+          {
+            "line": 462,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "start": 2054,
+        "end": 2081,
+        "lines": [
+          {
+            "line": 2054,
+            "text": "def preview_file_edge_action(file_changed, reparse_pending, refresh_running, inflight,"
+          },
+          {
+            "line": 2055,
+            "text": "                             active_file, cur_mtime):"
+          },
+          {
+            "line": 2056,
+            "text": "    \"\"\"What the poll loop's file/reparse edge does this tick (pure)."
+          },
+          {
+            "line": 2057,
+            "text": ""
+          },
+          {
+            "line": 2058,
+            "text": "    Returns \"schedule\" (start a parse now), \"cancel:file\" (the running"
+          },
+          {
+            "line": 2059,
+            "text": "    parse is for another file or mtime — supersede it), \"cancel:reparse\""
+          },
+          {
+            "line": 2060,
+            "text": "    (an operator Reparse arrived during a parse — supersede it), or None"
+          },
+          {
+            "line": 2061,
+            "text": "    (nothing to do: no edge, or the running parse IS this file+mtime and"
+          },
+          {
+            "line": 2062,
+            "text": "    must be left to finish)."
+          },
+          {
+            "line": 2063,
+            "text": ""
+          },
+          {
+            "line": 2064,
+            "text": "    The last case is the 2026-09-05 live catch: `file_changed` stays true"
+          },
+          {
+            "line": 2065,
+            "text": "    until the parse PUBLISHES (last_file/last_mtime move at publish), so a"
+          },
+          {
+            "line": 2066,
+            "text": "    branch that cancelled whenever a parse was running killed every load"
+          },
+          {
+            "line": 2067,
+            "text": "    parse ~33 ms after its spawn, forever — the first supersede wave never"
+          },
+          {
+            "line": 2068,
+            "text": "    delivered a preview on the acceptance run.\"\"\""
+          },
+          {
+            "line": 2069,
+            "text": "    if not active_file:"
+          },
+          {
+            "line": 2070,
+            "text": "        return None"
+          },
+          {
+            "line": 2071,
+            "text": "    if not (file_changed or reparse_pending):"
+          },
+          {
+            "line": 2072,
+            "text": "        return None"
+          },
+          {
+            "line": 2073,
+            "text": "    if not refresh_running:"
+          },
+          {
+            "line": 2074,
+            "text": "        return \"schedule\""
+          },
+          {
+            "line": 2075,
+            "text": "    inf = inflight or {}"
+          },
+          {
+            "line": 2076,
+            "text": "    same = inf.get(\"file\") == active_file and inf.get(\"mtime\") == cur_mtime"
+          },
+          {
+            "line": 2077,
+            "text": "    if file_changed and not same:"
+          },
+          {
+            "line": 2078,
+            "text": "        return \"cancel:file\""
+          },
+          {
+            "line": 2079,
+            "text": "    if reparse_pending and not file_changed:"
+          },
+          {
+            "line": 2080,
+            "text": "        return \"cancel:reparse\""
+          },
+          {
+            "line": 2081,
+            "text": "    return None"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/collision.ts",
+    "sha256": "58f0bad7e45ce321aeef78abfc6039a4c10b5b41041723f9002e2f381baa017e",
+    "excerpts": [
+      {
+        "start": 1496,
+        "end": 1518,
+        "lines": [
+          {
+            "line": 1496,
+            "text": "  // Baseline pass (first pose): pairs already inside the margin here are"
+          },
+          {
+            "line": 1497,
+            "text": "  // mechanical-joint proximity (slides, bearings, trunnion mounts). Reported"
+          },
+          {
+            "line": 1498,
+            "text": "  // once, excluded from the sweep. CUTTING pairs are never baseline-excluded"
+          },
+          {
+            "line": 1499,
+            "text": "  // (a tool parked on the work is normal) — they instead seed the in-contact"
+          },
+          {
+            "line": 1500,
+            "text": "  // state for onset tracking. TOOL pairs are never excluded either: contact"
+          },
+          {
+            "line": 1501,
+            "text": "  // here is an ONSET on the first line (see the header) — the seeded latch"
+          },
+          {
+            "line": 1502,
+            "text": "  // makes the sweep's first sample record it and the following lines'"
+          },
+          {
+            "line": 1503,
+            "text": "  // records continuations of it."
+          },
+          {
+            "line": 1504,
+            "text": "  // The onset belongs to the first segment WITH length: a zero-length"
+          },
+          {
+            "line": 1505,
+            "text": "  // unknown-start rapid (schema 6) carries no sample."
+          },
+          {
+            "line": 1506,
+            "text": "  let firstSeg = 1;"
+          },
+          {
+            "line": 1507,
+            "text": "  while (firstSeg < n - 1 && dcum[firstSeg]! - dcum[firstSeg - 1]! <= 1e-9) firstSeg++;"
+          },
+          {
+            "line": 1508,
+            "text": "  const staticExcluded = new Uint8Array(pairs.length);"
+          },
+          {
+            "line": 1509,
+            "text": "  const inContact = new Uint8Array(pairs.length);"
+          },
+          {
+            "line": 1510,
+            "text": "  const onsetRapid = new Uint8Array(pairs.length);"
+          },
+          {
+            "line": 1511,
+            "text": "  // The line a pair's CURRENT contact began on (-1 = not in contact) — the"
+          },
+          {
+            "line": 1512,
+            "text": "  // same latch the cutting semantics use for onsetRapid, now read by the"
+          },
+          {
+            "line": 1513,
+            "text": "  // non-cutting branch too: a record minted on a later line while the pair"
+          },
+          {
+            "line": 1514,
+            "text": "  // never separated is a CONTINUATION, not a new clash."
+          },
+          {
+            "line": 1515,
+            "text": "  const onsetLine = new Int32Array(pairs.length).fill(-1);"
+          },
+          {
+            "line": 1516,
+            "text": "  // A pair in contact (inContact) whose LAST query found it touching"
+          },
+          {
+            "line": 1517,
+            "text": "  // (d ≤ CONTACT_EPS): it keeps the EXPLORE cadence. One that was not"
+          },
+          {
+            "line": 1518,
+            "text": "  // touching carries a clearance certificate like a clear pair — see the"
+          }
+        ]
+      },
+      {
+        "start": 1593,
+        "end": 1607,
+        "lines": [
+          {
+            "line": 1593,
+            "text": "    }"
+          },
+          {
+            "line": 1594,
+            "text": "    if (dist <= opts.margin) {"
+          },
+          {
+            "line": 1595,
+            "text": "      nearFirst[pi] = 1;"
+          },
+          {
+            "line": 1596,
+            "text": "      if (pairCutting[pi]) {"
+          },
+          {
+            "line": 1597,
+            "text": "        inContact[pi] = 1;  // engaged from the start — a later retract is benign"
+          },
+          {
+            "line": 1598,
+            "text": "      } else if (pairTool[pi]) {"
+          },
+          {
+            "line": 1599,
+            "text": "        seedOnset(pi);"
+          },
+          {
+            "line": 1600,
+            "text": "      } else {"
+          },
+          {
+            "line": 1601,
+            "text": "        candidates.push(pi);"
+          },
+          {
+            "line": 1602,
+            "text": "        firstDist[pi] = dist;"
+          },
+          {
+            "line": 1603,
+            "text": "      }"
+          },
+          {
+            "line": 1604,
+            "text": "    }"
+          },
+          {
+            "line": 1605,
+            "text": "  }"
+          },
+          {
+            "line": 1606,
+            "text": "  if (candidates.length) {"
+          },
+          {
+            "line": 1607,
+            "text": "    poseRest();"
+          }
+        ]
+      },
+      {
+        "start": 1683,
+        "end": 1721,
+        "lines": [
+          {
+            "line": 1683,
+            "text": "  // One query's answer for a pair's CONTACT STATE and records — the main"
+          },
+          {
+            "line": 1684,
+            "text": "  // loop's and the re-sampling's after a touch (VP-I45, R87): the onset"
+          },
+          {
+            "line": 1685,
+            "text": "  // (with the re-entry promotion), the record under the cutting rule, a"
+          },
+          {
+            "line": 1686,
+            "text": "  // verified separation past 2 × margin. The main loop then sets the pair's"
+          },
+          {
+            "line": 1687,
+            "text": "  // certificates; the re-sampling sets none."
+          },
+          {
+            "line": 1688,
+            "text": "  const noteQuery = (pi: number, s: number, line: number, isRapid: boolean, d: number) => {"
+          },
+          {
+            "line": 1689,
+            "text": "    if (d <= opts.margin) {"
+          },
+          {
+            "line": 1690,
+            "text": "      if (!inContact[pi]) {"
+          },
+          {
+            "line": 1691,
+            "text": "        inContact[pi] = 1;"
+          },
+          {
+            "line": 1692,
+            "text": "        onsetRapid[pi] = isRapid ? 1 : 0;"
+          },
+          {
+            "line": 1693,
+            "text": "        onsetLine[pi] = line;"
+          },
+          {
+            "line": 1694,
+            "text": "        // Re-entry promotion: a genuine onset on a line whose record"
+          },
+          {
+            "line": 1695,
+            "text": "        // was minted as a continuation (contact carried in, separated,"
+          },
+          {
+            "line": 1696,
+            "text": "        // came back on the same line) is a real clash — never hidden."
+          },
+          {
+            "line": 1697,
+            "text": "        // Its carried-in part stays the earlier onset's contact"
+          },
+          {
+            "line": 1698,
+            "text": "        // (carriedFrom → `carried` after refinement, Codex R34 VP-I09)."
+          },
+          {
+            "line": 1699,
+            "text": "        const ex = worst.get(keyFor(line, pi));"
+          },
+          {
+            "line": 1700,
+            "text": "        if (ex && ex.continuation !== undefined) {"
+          },
+          {
+            "line": 1701,
+            "text": "          ex.carriedFrom = ex.continuation;"
+          },
+          {
+            "line": 1702,
+            "text": "          delete ex.continuation;"
+          },
+          {
+            "line": 1703,
+            "text": "        }"
+          },
+          {
+            "line": 1704,
+            "text": "      }"
+          },
+          {
+            "line": 1705,
+            "text": "      if (pairCutting[pi]) {"
+          },
+          {
+            "line": 1706,
+            "text": "        // Cutting pair (the cutter × a stock body): feed contact is"
+          },
+          {
+            "line": 1707,
+            "text": "        // MACHINING — never reported. A contact whose ONSET fell in a"
+          },
+          {
+            "line": 1708,
+            "text": "        // rapid is the gouge class and reports for that rapid; a"
+          },
+          {
+            "line": 1709,
+            "text": "        // retract leaving contact begun on a feed (or present from"
+          },
+          {
+            "line": 1710,
+            "text": "        // the program start) is benign."
+          },
+          {
+            "line": 1711,
+            "text": "        if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d);"
+          },
+          {
+            "line": 1712,
+            "text": "      } else {"
+          },
+          {
+            "line": 1713,
+            "text": "        recordHit(line, s, isRapid, pi, d);"
+          },
+          {
+            "line": 1714,
+            "text": "      }"
+          },
+          {
+            "line": 1715,
+            "text": "    } else if (inContact[pi] && d > opts.margin * 2) {"
+          },
+          {
+            "line": 1716,
+            "text": "      inContact[pi] = 0;"
+          },
+          {
+            "line": 1717,
+            "text": "      onsetRapid[pi] = 0;"
+          },
+          {
+            "line": 1718,
+            "text": "      onsetLine[pi] = -1;  // verified separation: the next touch is a new onset"
+          },
+          {
+            "line": 1719,
+            "text": "    }"
+          },
+          {
+            "line": 1720,
+            "text": "  };"
+          },
+          {
+            "line": 1721,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "start": 2200,
+        "end": 2235,
+        "lines": [
+          {
+            "line": 2200,
+            "text": "    // a carried clearance was measured with the PREVIOUS segment's tool"
+          },
+          {
+            "line": 2201,
+            "text": "    // body. A different program tool swaps the cylinder; a different tool"
+          },
+          {
+            "line": 2202,
+            "text": "    // offset shifts the body by −TLO in the tool node. Either invalidates"
+          },
+          {
+            "line": 2203,
+            "text": "    // every tool pair's certificate: their clearance is zeroed so the"
+          },
+          {
+            "line": 2204,
+            "text": "    // chunk-start block re-queries them at this segment's start, and pairs"
+          },
+          {
+            "line": 2205,
+            "text": "    // in contact are forced to re-query too (a swap to a thinner tool is a"
+          },
+          {
+            "line": 2206,
+            "text": "    // separation the d > 2·margin rule then verifies; a swap to a fatter"
+          },
+          {
+            "line": 2207,
+            "text": "    // one is contact it measures — onset state is never guessed). Kins/WCS"
+          },
+          {
+            "line": 2208,
+            "text": "    // relabels (brk vertices) are zero-width and stationary, not a"
+          },
+          {
+            "line": 2209,
+            "text": "    // discontinuity of this kind; non-tool pairs are unaffected."
+          },
+          {
+            "line": 2210,
+            "text": "    const segTool = toolFor(i), segTlo = tloFor(i);"
+          },
+          {
+            "line": 2211,
+            "text": "    const toolBoundary = segTool !== prevTool"
+          },
+          {
+            "line": 2212,
+            "text": "      || segTlo[0] !== prevTlo[0] || segTlo[1] !== prevTlo[1] || segTlo[2] !== prevTlo[2];"
+          },
+          {
+            "line": 2213,
+            "text": "    const breakBoundary = pendingBreak;"
+          },
+          {
+            "line": 2214,
+            "text": "    pendingBreak = false;"
+          },
+          {
+            "line": 2215,
+            "text": "    if (toolBoundary || breakBoundary) {"
+          },
+          {
+            "line": 2216,
+            "text": "      for (let pi = 0; pi < pairs.length; pi++) {"
+          },
+          {
+            "line": 2217,
+            "text": "        if (skipPair[pi]) continue;"
+          },
+          {
+            "line": 2218,
+            "text": "        // No continuous motion here: what was outside may be inside after it."
+          },
+          {
+            "line": 2219,
+            "text": "        if (breakBoundary || pairTool[pi]) { clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0; }"
+          },
+          {
+            "line": 2220,
+            "text": "      }"
+          },
+          {
+            "line": 2221,
+            "text": "    }"
+          },
+          {
+            "line": 2222,
+            "text": "    prevTool = segTool; prevTlo = segTlo;"
+          },
+          {
+            "line": 2223,
+            "text": "    // The tool's body unknown here: its pairs are not checked. Out of such a"
+          },
+          {
+            "line": 2224,
+            "text": "    // stretch, a contact of the tool does not carry across it — a touch from"
+          },
+          {
+            "line": 2225,
+            "text": "    // here on is a new onset, never the stretch's continuation."
+          },
+          {
+            "line": 2226,
+            "text": "    const segUnknown = segUnk?.[i] === 1;"
+          },
+          {
+            "line": 2227,
+            "text": "    if (prevUnknown && !segUnknown) {"
+          },
+          {
+            "line": 2228,
+            "text": "      for (let pi = 0; pi < pairs.length; pi++) {"
+          },
+          {
+            "line": 2229,
+            "text": "        if (!pairTool[pi]) continue;"
+          },
+          {
+            "line": 2230,
+            "text": "        inContact[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0;"
+          },
+          {
+            "line": 2231,
+            "text": "      }"
+          },
+          {
+            "line": 2232,
+            "text": "    }"
+          },
+          {
+            "line": 2233,
+            "text": "    prevUnknown = segUnknown;"
+          },
+          {
+            "line": 2234,
+            "text": "    const j = i * 3, k = j - 3;"
+          },
+          {
+            "line": 2235,
+            "text": "    const dA = Math.abs(track.abc[j]! - track.abc[k]!);"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/collision.test.ts",
+    "sha256": "da7c313d0376f7edeac5cd44cd624b6ef43dafc497c4d3f289387fa4f8702bfc",
+    "excerpts": [
+      {
+        "start": 568,
+        "end": 592,
+        "lines": [
+          {
+            "line": 568,
+            "text": "  it(\"cutting semantics: feed contact with an EXPLICIT stock body is machining; rapid onset is a gouge\", () => {"
+          },
+          {
+            "line": 569,
+            "text": "    // Only a body flagged `stock` is cuttable — machine parts never are"
+          },
+          {
+            "line": 570,
+            "text": "    // (without stock, the tool may touch nothing). On a FEED into stock:"
+          },
+          {
+            "line": 571,
+            "text": "    // cutting — no report. On a RAPID whose onset enters contact: gouge,"
+          },
+          {
+            "line": 572,
+            "text": "    // reported. A retract rapid leaving feed-begun contact stays benign."
+          },
+          {
+            "line": 573,
+            "text": "    const bodies: CollisionBody[] = ["
+          },
+          {
+            "line": 574,
+            "text": "      { id: \"stock\", group: \"platter\", positions: boxPositions(10), stock: true },"
+          },
+          {
+            "line": 575,
+            "text": "      { id: \"spindle\", group: \"head\", positions: boxPositions(10), tool: true },"
+          },
+          {
+            "line": 576,
+            "text": "    ];"
+          },
+          {
+            "line": 577,
+            "text": "    const model = buildCollisionModel(PLUNGE, bodies);"
+          },
+          {
+            "line": 578,
+            "text": "    // Feed plunge into the stock, feed retract: pure cutting."
+          },
+          {
+            "line": 579,
+            "text": "    let r = sweepCollisions(model, track("
+          },
+          {
+            "line": 580,
+            "text": "      [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 0]), WCS0, { margin: 2 });"
+          },
+          {
+            "line": 581,
+            "text": "    expect(r.hits).toEqual([]);"
+          },
+          {
+            "line": 582,
+            "text": "    expect(r.staticContacts).toEqual([]);   // cutting pairs never go static"
+          },
+          {
+            "line": 583,
+            "text": "    // Same plunge as a RAPID: onset in rapid → gouge."
+          },
+          {
+            "line": 584,
+            "text": "    r = sweepCollisions(model, track("
+          },
+          {
+            "line": 585,
+            "text": "      [[0, 0, 0], [0, 0, -43]], undefined, [7, 8], [0, 1]), WCS0, { margin: 2 });"
+          },
+          {
+            "line": 586,
+            "text": "    expect(r.hits).toHaveLength(1);"
+          },
+          {
+            "line": 587,
+            "text": "    expect(r.hits[0]!.rapid).toBe(true);"
+          },
+          {
+            "line": 588,
+            "text": "    // Feed plunge, then RAPID retract out of contact: benign (onset was feed)."
+          },
+          {
+            "line": 589,
+            "text": "    r = sweepCollisions(model, track("
+          },
+          {
+            "line": 590,
+            "text": "      [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 1]), WCS0, { margin: 2 });"
+          },
+          {
+            "line": 591,
+            "text": "    expect(r.hits).toEqual([]);"
+          },
+          {
+            "line": 592,
+            "text": "  });"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/sweepMerge.ts",
+    "sha256": "c16e055dbbd9714fbdd21959de4dd0ba64421baf7e4c50e6f4f89b0e2cc3b67b",
+    "excerpts": [
+      {
+        "start": 16,
+        "end": 60,
+        "lines": [
+          {
+            "line": 16,
+            "text": "    ...h,"
+          },
+          {
+            "line": 17,
+            "text": "    cum: h.cum + shift,"
+          },
+          {
+            "line": 18,
+            "text": "    cumEnd: h.cumEnd + shift,"
+          },
+          {
+            "line": 19,
+            "text": "    intervals: h.intervals?.map(iv => [iv[0] + shift, iv[1] + shift] as [number, number]),"
+          },
+          {
+            "line": 20,
+            "text": "    ...(h.spanCumEnd !== undefined ? { spanCumEnd: h.spanCumEnd + shift } : {}),"
+          },
+          {
+            "line": 21,
+            "text": "  }));"
+          },
+          {
+            "line": 22,
+            "text": "  // ONE contact seen by both sweeps (operator-caught 2026-09-12 as \"two"
+          },
+          {
+            "line": 23,
+            "text": "  // clashes\"): an entry onset still in contact at the entry's end and a base"
+          },
+          {
+            "line": 24,
+            "text": "  // onset for the same pair from the program's first point (the base seeds"
+          },
+          {
+            "line": 25,
+            "text": "  // a pair clear at rest but touching at the first pose) are the same"
+          },
+          {
+            "line": 26,
+            "text": "  // contact. The entry record stays the onset and takes the base's span; the"
+          },
+          {
+            "line": 27,
+            "text": "  // base's first-line record becomes its continuation (line 0 = the entry"
+          },
+          {
+            "line": 28,
+            "text": "  // move), so the count reads one clash while every line keeps its record"
+          },
+          {
+            "line": 29,
+            "text": "  // for the tint and the code-panel marks. A base record that separates and"
+          },
+          {
+            "line": 30,
+            "text": "  // comes back keeps its re-entries (`carried`, below)."
+          },
+          {
+            "line": 31,
+            "text": "  const CONTACT = 1e-3;"
+          },
+          {
+            "line": 32,
+            "text": "  const tol = 1e-3 * Math.max(1, shift);"
+          },
+          {
+            "line": 33,
+            "text": "  // Marked as the entry move's own (Codex R33 VP-I07): its records carry"
+          },
+          {
+            "line": 34,
+            "text": "  // the program's first line, so line + pair alone named a program contact"
+          },
+          {
+            "line": 35,
+            "text": "  // on that line and pair too."
+          },
+          {
+            "line": 36,
+            "text": "  const entryHits: CollisionHit[] = entry.hits.map(h => ({ ...h, entry: true }));"
+          },
+          {
+            "line": 37,
+            "text": "  for (const e of entryHits) {"
+          },
+          {
+            "line": 38,
+            "text": "    if (e.continuation !== undefined || e.dist > CONTACT || e.cumEnd < shift - tol) continue;"
+          },
+          {
+            "line": 39,
+            "text": "    const bi = shifted.findIndex(b => b.continuation === undefined && b.dist <= CONTACT"
+          },
+          {
+            "line": 40,
+            "text": "      && b.a === e.a && b.b === e.b && b.cum - shift <= tol);"
+          },
+          {
+            "line": 41,
+            "text": "    if (bi < 0) continue;"
+          },
+          {
+            "line": 42,
+            "text": "    const b = shifted[bi]!;"
+          },
+          {
+            "line": 43,
+            "text": "    const ivs = b.intervals;"
+          },
+          {
+            "line": 44,
+            "text": "    if (ivs && ivs.length > 1) {"
+          },
+          {
+            "line": 45,
+            "text": "      // The contact SEPARATES on the base's first line and comes back"
+          },
+          {
+            "line": 46,
+            "text": "      // (Codex R34 VP-I09): only its first interval continues the entry's"
+          },
+          {
+            "line": 47,
+            "text": "      // contact — the entry onset spans to its end — and the re-entries stay"
+          },
+          {
+            "line": 48,
+            "text": "      // the program's findings under their own keys."
+          },
+          {
+            "line": 49,
+            "text": "      if (ivs[0]![1] > e.cumEnd) e.spanCumEnd = ivs[0]![1];"
+          },
+          {
+            "line": 50,
+            "text": "      e.spanEndLine = b.line;"
+          },
+          {
+            "line": 51,
+            "text": "      shifted[bi] = { ...b, carried: true };"
+          },
+          {
+            "line": 52,
+            "text": "      continue;"
+          },
+          {
+            "line": 53,
+            "text": "    }"
+          },
+          {
+            "line": 54,
+            "text": "    const end = b.spanCumEnd ?? b.cumEnd;"
+          },
+          {
+            "line": 55,
+            "text": "    if (end > e.cumEnd) e.spanCumEnd = end;"
+          },
+          {
+            "line": 56,
+            "text": "    e.spanEndLine = b.spanEndLine ?? b.line;"
+          },
+          {
+            "line": 57,
+            "text": "    shifted[bi] = { ...b, continuation: e.line };"
+          },
+          {
+            "line": 58,
+            "text": "  }"
+          },
+          {
+            "line": 59,
+            "text": "  const hits = [...entryHits, ...shifted].sort((x, y) => x.cum - y.cum);"
+          },
+          {
+            "line": 60,
+            "text": "  const seen = new Set<string>();"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/sweepShards.test.ts",
+    "sha256": "00ec20820d549159824d7a8ae297e9e417bf2eb5b4d16135e6c2c1cb92eb32f3",
+    "excerpts": [
+      {
+        "start": 1,
+        "end": 10,
+        "lines": [
+          {
+            "line": 1,
+            "text": "// The parallel sweep's partition and merge (sweepShards.ts) — and the merged"
+          },
+          {
+            "line": 2,
+            "text": "// result held to the single sweep on the shipped models. The relation is not"
+          },
+          {
+            "line": 3,
+            "text": "// byte equality: a shard steps to the nearest certificate expiry over ITS"
+          },
+          {
+            "line": 4,
+            "text": "// pairs, so a pair is sampled at other points than in the single sweep. What"
+          },
+          {
+            "line": 5,
+            "text": "// must agree is what the sweep promises per pair: the same static contacts"
+          },
+          {
+            "line": 6,
+            "text": "// and prescreen (pair-local, at the same poses), the same records — a record"
+          },
+          {
+            "line": 7,
+            "text": "// one run has and the other lacks only for a run no wider than MIN_ADV, the"
+          },
+          {
+            "line": 8,
+            "text": "// truth decides — and every contact interval's start inside the other's"
+          },
+          {
+            "line": 9,
+            "text": "// intervals within the bisection's tolerance, both ways."
+          },
+          {
+            "line": 10,
+            "text": "import * as fs from \"node:fs\";"
+          }
+        ]
+      },
+      {
+        "start": 123,
+        "end": 126,
+        "lines": [
+          {
+            "line": 123,
+            "text": "      }"
+          },
+          {
+            "line": 124,
+            "text": "    });"
+          },
+          {
+            "line": 125,
+            "text": "  }"
+          },
+          {
+            "line": 126,
+            "text": "});"
+          }
+        ]
+      }
+    ]
+  }
+]

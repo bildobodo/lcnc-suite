@@ -1,0 +1,183 @@
+{
+  "h": 1,
+  "full": {
+    "result": {
+      "hits": [
+        {
+          "line": 8,
+          "cum": 40,
+          "cumEnd": 43,
+          "a": "cutter",
+          "b": "stock",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              40,
+              43
+            ]
+          ],
+          "spanCumEnd": 48,
+          "spanEndLine": 11
+        },
+        {
+          "line": 10,
+          "cum": 44,
+          "cumEnd": 45,
+          "a": "cutter",
+          "b": "stock",
+          "dist": 0,
+          "rapid": true,
+          "continuation": 8,
+          "intervals": [
+            [
+              44,
+              45
+            ]
+          ]
+        },
+        {
+          "line": 11,
+          "cum": 45,
+          "cumEnd": 48,
+          "a": "cutter",
+          "b": "stock",
+          "dist": 0,
+          "rapid": true,
+          "continuation": 8,
+          "intervals": [
+            [
+              45,
+              48
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 37,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.26079099999998334,
+      "sweepMs": 8.61615900000001,
+      "truncated": null
+    },
+    "distanceAtCut": 0
+  },
+  "prefix": {
+    "result": {
+      "hits": [
+        {
+          "line": 8,
+          "cum": 40,
+          "cumEnd": 43,
+          "a": "cutter",
+          "b": "stock",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              40,
+              43
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 6,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.48433299999999235,
+      "sweepMs": 2.8432900000000245,
+      "truncated": null
+    },
+    "distanceAtCut": 0
+  },
+  "suffix": {
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 50,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.30404100000004064,
+      "sweepMs": 2.2560399999999845,
+      "truncated": null
+    },
+    "distanceAtCut": 0
+  },
+  "syntheticBoundary": {
+    "hits": [
+      {
+        "line": 9,
+        "cum": 0,
+        "cumEnd": 0,
+        "a": "cutter",
+        "b": "stock",
+        "dist": 0,
+        "rapid": false,
+        "boundary": true
+      }
+    ],
+    "staticContacts": [],
+    "samples": 50,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.30404100000004064,
+    "sweepMs": 2.2560399999999845,
+    "truncated": null
+  },
+  "entryMergeAnalogy": {
+    "hits": [
+      {
+        "line": 8,
+        "cum": 40,
+        "cumEnd": 43,
+        "a": "cutter",
+        "b": "stock",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            40,
+            43
+          ]
+        ],
+        "entry": true,
+        "spanEndLine": 9
+      },
+      {
+        "line": 9,
+        "cum": 43,
+        "cumEnd": 43,
+        "a": "cutter",
+        "b": "stock",
+        "dist": 0,
+        "rapid": false,
+        "boundary": true,
+        "continuation": 8
+      }
+    ],
+    "staticContacts": [],
+    "samples": 56,
+    "coarsened": false,
+    "notes": [],
+    "uncertified": null,
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.788374000000033,
+    "sweepMs": 5.099330000000009,
+    "truncated": null
+  }
+}
