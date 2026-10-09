@@ -15394,3 +15394,35 @@ Eine Zeile −1 öffnet nie einen Block und wird nie zur Zeile, unabhängig von 
 
 - Der native Rücklesebeleg, M600 im Live-Parity-Korpus und die TWP-Goldens brauchen ein laufendes LinuxCNC; die Antwort des Operators steht aus.
 - Unverändert: WRAPPED_ROTARY, die Restprüfung während eines Laufs, die Punktzeilen-Zuordnung als eigener Plan, und die nicht nativ erreichbare 0-Absicherung im Lauf (R110).
+
+## Review R111 · Codex · VP-I65/VP-I66 · 9. Oktober 2026
+
+**Ergebnis: `agreement` für diese Nachprüfung. VP-I65 und VP-I66 geschlossen; keine neuen Befunde im geprüften Umfang.** Die separaten Live-Nachweise des Gesamtpakets bleiben offen.
+
+Geprüft: `22b715c6..50f074c2`, Archiv/Anfrage `88f2e81b`, Produktfix `11363b62`. **503 gezielte Backend-Tests, 120 Client-Repositorytests und sieben eigene Client-Sollprüfungen PASS.** Alle 42 R110-Eingaben unverändert wiederholt; mit 21 zusätzlichen Kontrollen insgesamt **63 native Eingaben ohne Parsefehler oder Exception**. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle.
+
+### VP-I65 geschlossen
+
+Die vier Startvarianten aus R110 — ohne Präfix, mit `G21 G90`, `%`, `%` plus Modalsatz — erhalten jetzt rechtzeitig die Programmphase. M6/G92 bleibt vollständig unbekannt, **0 s**, Hinweis **L1/L2/L2/L3**, kein Befund am Würfel `(15,5,5)`. Die zuvor funktionierenden Zeilenargument-/Vorbewegungs-Kontrollen und die R109-Fälle bleiben korrekt.
+
+G43.1 Z10 als erster Python-Befehl liefert nun auch ohne Zeilenargument seine TLO-Zeile. Im Client verschwindet der falsche Treffer bei **Welt-Z40**; der erwartete Treffer bei **Z50** ist vorhanden. Die Prüfung vor der Callback-Wirkung und das Ende der Prozent-Init-Phase sind damit in den Gegenfällen bestätigt.
+
+**Startbasis zusätzlich geprüft:** G92, G10 L2 mit verschobener/gedrehter Fixture und G43.1 als erster direkter Befehl versus erster Python-Remap; jeweils mit/ohne `%`, Rotationssync und geerbtem G43 Z10. Alle sechs Paare haben denselben bereinigten Payload-Digest und denselben `tlo_start`. Erste Python-Bewegungen erzeugen keine zusätzliche Init-Spur. Ein fremder Python-M600 am Programmanfang bleibt ab **seq 0** ausgelassen; auch die simulierte Anfahrt bleibt gesperrt.
+
+Die Annahme für `_phase` ist im geprüften Worker-/Interpreterpfad tragfähig: Die bekannten Initialisierungscodes und die tatsächlichen Programm-Remaps bleiben getrennt. Daraus folgt keine pauschale Freigabe anderer Interpreter-Versionen oder weiterer Init-Befehle; bei einer Erweiterung der Initcodes ist diese Grenze erneut zu prüfen.
+
+[Unveränderte R110-Proben](viewer-palette-fest.r111.codex-replay.json), [Startfälle bis zum Sweep](viewer-palette-fest.r111.codex-first-sweep.json), [Kontrollfälle](viewer-palette-fest.r111.codex-first-control-sweep.json), [G43 an beiden Welthöhen](viewer-palette-fest.r111.codex-g43-sweep.json), [sechs Startbasis-Vergleiche](viewer-palette-fest.r111.codex-basis-parity.json), [zusätzliche native Eingaben](viewer-palette-fest.r111.codex-extra.json), [Fremd-Remap samt Anfahrt](viewer-palette-fest.r111.codex-foreign-sweep.json).
+
+### VP-I66 geschlossen
+
+Alle drei zuvor abbrechenden Varianten — G30, Quill-up und beide — erzeugen jetzt eine vollständige Vorschau. **Geometrie, Dauer und Unknown-Start-Flags stimmen mit den funktionierenden Zeilenargument-Kontrollen überein.** Die Fahrten nach `(0,0,0)` beziehungsweise `(10,0,0)` aus den unveränderten R110-Eingaben bleiben erhalten; negative Zeilen gelangen nicht mehr in das Payload.
+
+Die Herkunft **0** ist als unbekannte Quellzeile akzeptiert. Zusätzlich zur Track-Prüfung liegen Hindernisse auf den Rückzugswegen: Sie werden im Sweep tatsächlich gefunden, auch an Zeile 0. Der Fix löst den Abbruch somit ohne Verwerfen oder Überspringen der realen Rückzugsfahrten. Die allgemeine Zuordnung aller Punktzeilen bleibt wie vereinbart separat.
+
+[Rückzugsgeometrie, Dauer und Kollisionsbefunde](viewer-palette-fest.r111.codex-m6-sweep.json), [alle Eingaben](viewer-palette-fest.r111.codex-native-cases.json), [Client-Sonde](viewer-palette-fest.r111.codex-client.test.ts).
+
+### Geltungsbereich und offene Nachweise
+
+Dies ist das **Implementierungs-Agreement für die Korrekturen VP-I65/VP-I66 am geprüften Stand**, keine pauschale Merge-/Live-Freigabe des Gesamtpakets. Nativer Synch-/Rücklesebeleg, M600 im Live-Parity-Korpus und TWP-Goldens bleiben offen; keine Sim gestartet. WRAPPED_ROTARY, die separate Restprüfung im Lauf und die Punktzeilen-Zuordnung unverändert außerhalb dieser Runde. Kein erneutes Gesamtgate, Browserlauf oder Build.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r111.codex-checks.md), [Backend](viewer-palette-fest.r111.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r111.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r111.codex-client.txt), [Archiv/Isolation](viewer-palette-fest.r111.codex-context.json), [Beleghashes](viewer-palette-fest.r111.codex-sha256.json).

@@ -1,0 +1,26 @@
+{
+  "head": "88f2e81b65e43c162ad3aaa4762c969cab9e7a1a",
+  "scope": "22b715c6..50f074c2",
+  "root": "/tmp/codex-r111-fg60nqgi",
+  "lfs_materialized": 0,
+  "live_review_sha256": "2445bb67859e66f71610851c7f8a3aca38ee80c1e073ea5804a178c7fde146f2",
+  "same_git_blob_files": 4179,
+  "verified_lfs_files": 95,
+  "product_changes": [],
+  "live_head_at_finish": "88f2e81b65e43c162ad3aaa4762c969cab9e7a1a",
+  "live_status_before_evidence": "",
+  "no_live_ports_or_machine_commands": true,
+  "nice": 19,
+  "vitest_workers": 1,
+  "tests": {
+    "backend": 503,
+    "client_repository": 120,
+    "native_inputs": 63,
+    "native_completed": 63,
+    "native_exceptions": [],
+    "r110_inputs_unchanged": 42,
+    "first_command_basis_pairs": 6,
+    "own_client_tests": 7
+  },
+  "build": "not repeated; product change Python only"
+}
