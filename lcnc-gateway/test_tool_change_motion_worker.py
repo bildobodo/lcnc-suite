@@ -448,6 +448,49 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         self.assertIsNone(r["parse_error"])
         self.assertEqual([row[3] for row in r["tlo_events"]], [10.0])
 
+    def test_a_program_opening_with_a_python_remap_has_begun(self):
+        # Codex R110 VP-I65 rest: the program's first command is the Python
+        # remap, its execute() numbered 0 — before any positive callback, in
+        # a plain file, after modal lines only, and in a `%` file (where the
+        # init phase would never have ended). The interpreter's word starts
+        # the program: the M6 makes XYZ unknown, the G92 from there is named
+        # by M200's line, nothing after it is timed or swept; the G43.1 is the
+        # program's offset (its row, the move after it timed)
+        for frame, line in (("plain", 1), ("modal", 2), ("percent", 2), ("percent_modal", 3)):
+            r = probe(f"r110_first_tc_g92_{frame}")
+            self.assertIsNone(r["parse_error"], frame)
+            self.assertEqual(r["stale_offset_lines"], [line], frame)
+            self.assertEqual(set(r["rapid_ustart"]), {1}, frame)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, frame)
+            r = probe(f"r110_first_g43_{frame}")
+            self.assertIsNone(r["parse_error"], frame)
+            self.assertEqual([row[3] for row in r["tlo_events"]], [10.0], frame)
+            self.assertEqual(r["rapid_ustart"][-1], 0, frame)
+            self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
+
+    def test_the_start_state_is_taken_before_a_python_remap_s_first_command(self):
+        # the program-start basis (gcode_canon._begin_program) — a Python
+        # remap's G92 first is the very program a plain G92 first is
+        a, b = probe("r110_first_g92_python"), probe("r110_first_g92_plain")
+        self.assertIsNone(a["parse_error"])
+        self.assertEqual(a["digest_without_stats"], b["digest_without_stats"])
+
+    def test_a_python_m6_s_own_tool_change_moves_are_kept(self):
+        # Codex R110 VP-I66: execute("M6") is numbered 0, the interpreter's
+        # quill-up / G30 moves −1 — the −1 reached the wire's uint32 lines and
+        # every such parse ended without a payload. They stay the block's:
+        # line 0 (the remap's), never −1, timed
+        for name, extra in (("g30", [(10.0, 20.0, 30.0)]), ("quill", [(0.0, 0.0, 0.0)]),
+                            ("both", [(0.0, 0.0, 0.0), (10.0, 20.0, 30.0)])):
+            r = probe(f"r110_py_m6_{name}")
+            self.assertIsNone(r["parse_error"], name)
+            self.assertGreaterEqual(min(r["rapid_lines"]), 0, name)
+            pts = [tuple(round(v, 6) for v in p) for p in r["rapid"]]
+            self.assertEqual(pts[1:1 + len(extra)], extra, name)
+            self.assertEqual(r["rapid_lines"][1:1 + len(extra)], [0] * len(extra), name)
+            t = r["rapid_tcum"]
+            self.assertTrue(all(b > a for a, b in zip(t[1:], t[2:])), name)
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.

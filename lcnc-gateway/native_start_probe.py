@@ -226,6 +226,40 @@ CASES = {
                           ("remap_alone", "G21 G90\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n"),
                           ("listed_and_remap", "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n"),
                           ("explicit_alone", "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nG0 X10 Y5 Z15\nG0 X20\nM2\n"))},
+    # Codex R110 VP-I65 rest: a program OPENING with the Python remap — the
+    # program's start is before its first positive callback (plain, `%`,
+    # after modal lines only); its M6 + G92 and its G43.1
+    **{f"r110_first_{what}_{frame}": (wrap(prog), "mm", 0.0, (490,), {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {"toplevel.py": "import remap\n",
+                 "remap.py": "from interpreter import INTERP_OK\n\ndef writer(self, **words):\n" + body
+                             + "    return INTERP_OK\n"}})
+       for what, prog, body in (("tc_g92", "M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+                                 "    self.execute('M6')\n    self.execute('G92 Z10')\n"),
+                                ("g43", "M200\nG0 X0 Y0 Z40\nG0 X10\nM2\n", "    self.execute('G43.1 Z10')\n"))
+       for frame, wrap in (("plain", lambda p: p), ("modal", lambda p: "G21 G90\n" + p),
+                           ("percent", lambda p: "%\n" + p + "%\n"),
+                           ("percent_modal", lambda p: "%\nG21 G90\n" + p + "%\n"))},
+    # the start state is taken before the program's first command: a Python
+    # remap's G92 first is the same program as a G92 first
+    "r110_first_g92_python": ("M200\nG0 X0 Y0 Z0\nG0 X10\nM2\n", "mm", 0.0, (490,), {
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {"toplevel.py": "import remap\n",
+                 "remap.py": "from interpreter import INTERP_OK\n\ndef writer(self, **words):\n"
+                             "    self.execute('G92 Z10')\n    return INTERP_OK\n"}}),
+    "r110_first_g92_plain": ("G92 Z10\nG0 X0 Y0 Z0\nG0 X10\nM2\n", "mm", 0.0, (490,), {}),
+    # Codex R110 VP-I66: a Python remap's execute("M6") (line 0) with the
+    # interpreter's own tool-change moves (line −1): kept, at a line of the
+    # program — never −1 on the wire
+    **{f"r110_py_m6_{name}": ("G21 G90\nG0 X0 Y0 Z40\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n", "mm", 0.0, (490,), {
+        "emcio": emcio, "var": {5181: 10, 5182: 20, 5183: 30},
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {"toplevel.py": "import remap\n",
+                 "remap.py": "from interpreter import INTERP_OK\n\ndef writer(self, **words):\n"
+                             "    self.execute('M6')\n    return INTERP_OK\n"}})
+       for name, emcio in (("g30", "TOOL_CHANGE_AT_G30 = 1"), ("quill", "TOOL_CHANGE_QUILL_UP = 1"),
+                           ("both", "TOOL_CHANGE_AT_G30 = 1\nTOOL_CHANGE_QUILL_UP = 1"))},
     # a Python remap's G43.1 without a line number is the program's tool
     # offset (a row), not the initcodes'
     "r109_py_g43": ("G21 G90\nG0 X0 Y0 Z40\nM200\nG0 X10 Z30\nM2\n", "mm", 0.0, (490,), {
@@ -674,4 +708,7 @@ print(json.dumps({
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},
     "digest_without_start": __import__("hashlib").sha256(
         __import__("msgspec").msgpack.encode(comparable)).hexdigest(),
+    # the same without the stats (a program's text size is in them)
+    "digest_without_stats": __import__("hashlib").sha256(__import__("msgspec").msgpack.encode(
+        {k: v for k, v in comparable.items() if k != "stats"})).hexdigest(),
 }))

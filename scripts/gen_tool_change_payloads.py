@@ -38,7 +38,10 @@ CASES = ("g43_mid", "g43_g1_block", "r92_m6_feed", "r92_m6_feed_then_rapid", "r9
          # Codex R108: an explicit write and a remap whose body writes G92 in one block
          "r108_explicit_and_remap",
          # Codex R109: the same with a Python remap whose execute() passes no line
-         "r109_py_explicit_and_remap")
+         "r109_py_explicit_and_remap",
+         # Codex R110: a program opening with the Python remap; a Python M6's
+         # own tool-change moves
+         "r110_first_tc_g92_percent", "r110_py_m6_both")
 
 
 def main():

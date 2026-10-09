@@ -1210,7 +1210,11 @@ interpreter's word: no remap level and the main file — a PYTHON remap keeps
 the main file's name, its execute() passes a number of its own or 0, Codex
 R109; it is named by its trigger, the controlling block's byte offset
 `blocks[1].offset`, and a callback numbered 0 after the program began is the
-program's, never the initcodes'); named by its line where the
+program's, never the initcodes' — the program begins at its first positive
+line or at the first callback the interpreter shows inside a remap, before
+anything it applies, the start state taken there: a program OPENING with a
+Python remap, Codex R110; the initcodes run with the file already open and
+trigger no remap); named by its line where the
 numbers are the file's, else 0 — a main-file write listed under the same
 number proves no shared origin (R98 VP-I56). A cause line is named once
 a move runs after it (`stale_offset_lines` on the wire); the payload says
@@ -1222,7 +1226,7 @@ G30.1) and fixture writes in called files are not tracked"). The
 interpreter's own quill-up / G30 moves at an M6 are canon traverses and
 recorded — they arrive as line −1, which the canon keeps on the M6's line
 (`next_line`; a −1 ended every such parse in an OverflowError on the wire's
-uint32 lines). Every unknown start after the program's own is NAMED in the
+uint32 lines; a Python remap's `execute("M6")` numbered 0 too — its −1 moves keep line 0, Codex R110 VP-I66). Every unknown start after the program's own is NAMED in the
 sweep's `uncertified` ("N moves after a tool change run from a position
 the preview cannot know — not checked until the position is known again
 (L…)") — the page hands `ustart` to
