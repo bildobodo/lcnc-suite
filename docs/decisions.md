@@ -9082,3 +9082,25 @@ the other way out (PLAN_SYNCH is taken in MANUAL), but it changes the mode the
 operator sees. The test double now refuses PLAN_SYNCH in ON + AUTO like
 LinuxCNC (`test_g30._Task`), 5 mutations red.
 
+
+## 2026-10-09 — An M6 names its tool by the tool's row; the number is the row's id
+
+Found on the live M600 run (XYZAC sim): the run check's note read "T37 has no
+length in the table … T43 has no length …" for a program that loads T1 and T7.
+LinuxCNC's interpreter hands the preview canon the tool's ROW in the tool table
+(CHANGE_TOOL(slot); `rs274.interpret.StatMixin.change_tool` moves that row to
+the spindle pocket), and `gcode_canon.change_tool` booked the row as the tool
+number: in `tool_change_events` (the tool-change marks), `tlo_events` (the tool
+the sweep wears per segment), `tools_used` (which rows `parse_tlos` ships) and
+the M600 events. The two coincide only in a table listing T1, T2 … in order —
+every native test table did. The XYZAC sim's table carries the example library
+(T1001 …) ahead of T1 since 2026-09-29: from then on every program tool on that
+profile was a number the table does not hold — no row, no length, no diameter —
+and since the M600 package (2026-10-08) the sweep skipped such a tool's own
+pairs (named as uncertified, "*"); before it the client fell back to the live
+tool. The number is now the spindle row's id after StatMixin's change.
+`native_start_probe` builds the table in any order (`m6_row_not_number`,
+`m600_row_not_number`), and the canon unit tests run StatMixin's own
+change_tool on a table instead of bypassing it. The preview goldens change
+where a golden's table is not in order (regenerated at the next suite stop).
+

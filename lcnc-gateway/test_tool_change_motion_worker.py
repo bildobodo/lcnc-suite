@@ -89,6 +89,23 @@ class TestToolOffsetMove(unittest.TestCase):
         self.assertEqual(r["rapid_tcum"], [0.0, 0.0])
 
 
+class TestToolNumberIsTheRowsId(unittest.TestCase):
+    """An M6 names its tool to the canon by the tool's ROW in the table
+    (CHANGE_TOOL(slot)); the number is that row's id. With a library tool
+    ahead of T1 (the XYZAC sim's table, live 2026-10-09) every T1 read as 37:
+    the tool changes, the offset rows and the tool rows the sweep wears named
+    tools the table does not hold, and their own contacts went unchecked."""
+
+    def test_the_program_tools_carry_their_numbers(self):
+        r = probe("m6_row_not_number")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["tool_change_lines"], [[3, 7], [6, 1]])
+        self.assertEqual([e[4] for e in r["tlo_events"]], [7, 7, 1, 1])
+        rows = {t[0]: t for t in r["parse_tlos"]}
+        self.assertEqual(sorted(rows), [1, 7], "the rows of the tools the program loads")
+        self.assertEqual((rows[7][3], rows[1][3]), (66.0, 10.0))
+
+
 class TestUnknownStartAfterAToolChange(unittest.TestCase):
     """Codex R92 VP-I51: after an M6 at a tool change position the preview
     interpreter computes every left-out axis, an arc's centre and every G91

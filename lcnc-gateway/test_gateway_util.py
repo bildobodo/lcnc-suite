@@ -3008,17 +3008,16 @@ class TestTloEvents(unittest.TestCase):
     the fresh-boot 22.000 gate catch). Seq convention = the other channels."""
 
     def _canon(self):
-        import gcode_canon
-        from unittest import mock
         c, ns = TestCanonFirstMoveRearm._canon(self)
         c.feedrate = 1.0
         c.tools_used = set()
         c.tool_changes = 0
         c.tool_change_events = []
-        # change_tool defers to StatMixin (needs a live stat object) — bypass.
-        p = mock.patch.object(gcode_canon.StatMixin, "change_tool", lambda self, idx: None)
-        p.start()
-        self.addCleanup(p.stop)
+        # change_tool runs StatMixin's own (the row moves to the spindle
+        # pocket) on a table whose row n holds Tn, so a row is its number
+        # here; TestToolNumberIsTheRowsId (native) holds a table where not
+        c.random = False
+        c.tools = [(-1,) + (0.0,) * 12 + (0,)] + [(n,) + (0.0,) * 12 + (0,) for n in range(1, 11)]
         return c, ns
 
     def _prog(self, c, ns, lineno):

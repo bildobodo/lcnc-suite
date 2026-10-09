@@ -626,8 +626,15 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def dwell(self, _): pass
 
     def change_tool(self, idx):
+        """An M6. LinuxCNC names the tool by its ROW in the tool table
+        (CHANGE_TOOL(slot); StatMixin moves that row to the spindle pocket),
+        never by its number: the two coincide only in a table that lists T1,
+        T2 … in order. The number is the row's id — a library tool ahead of
+        T1 made every T1 a 37 (XYZAC sim, live 2026-10-09), and the program's
+        tools had no length or diameter on the client."""
         self._enter()
         StatMixin.change_tool(self, idx)
+        tool = int(self.tools[0][0]) if idx else 0
         if self.tool_change_moves and self._program_line():
             self.stale = frozenset(self.tool_change_axes) | self._frame_unknown
             self.ever_stale = True
@@ -635,12 +642,12 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
         # preview-skipped contributes none — same honesty rule as the stats).
-        self.tool_change_events.append((self.lineno, idx, len(self.sub_events), self.main_line()))
-        if idx > 0:
-            self.tools_used.add(idx)
-        self.cur_tool = idx
+        self.tool_change_events.append((self.lineno, tool, len(self.sub_events), self.main_line()))
+        if tool > 0:
+            self.tools_used.add(tool)
+        self.cur_tool = tool
         if self._program_line():
-            self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
+            self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, tool))
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
         self._enter()

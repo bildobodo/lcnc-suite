@@ -513,7 +513,7 @@ constant rigid offset whenever the spindle chain is tilted (operator-
 caught: 12.58 mm at the TWP hold); ONE live offset for the whole track
 posed every post-G43 joint a tool length high on a fresh boot (the corpus
 gate's 22.000 catch). The sweep and the scrub marker also wear the tool the
-program has active per segment (`parse_tlos` rows carry diameter). Settings → 3D Viewer → "Path on part" (default) vs
+program has active per segment (`parse_tlos` rows carry diameter). An M6 names its tool to the canon by the tool's ROW in the table (LinuxCNC's CHANGE_TOOL(slot)); the number is that row's id (`gcode_canon.change_tool`) — with a library tool ahead of T1 (the XYZAC sim's table) every T1 used to read as 37 and the program's tools had no length or diameter on the client (live 2026-10-09; `TestToolNumberIsTheRowsId`). Settings → 3D Viewer → "Path on part" (default) vs
 "Programmed XYZ". The transform re-runs on live WCS changes (debounced —
 part-frame vertices depend on pivot-vs-work-origin). Machine-limit
 overflow + bounds boxes stay in programmed/machine space (the correct
