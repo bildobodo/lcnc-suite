@@ -1,0 +1,32 @@
+# R117 — gate on feat/run-check bb95061a (the R116 fixes), every offline stage, the browser in four runs (traces off: / had 1.3 GB free)
+PASS backend, 5axis-model, audit-css, review-handshake
+backend: 1388 passed, 2435 subtests passed in 56.05s
+frontend lint / build / unit: lint exit 0, build exit 0, unit exit 0 — Tests  2075 passed (2075)
+browser A (--project=serial-guards): 312 passed (15.3m)
+browser serial-layout --no-deps: 98 passed (8.2m)
+browser serial-visual --no-deps: 10 passed (25.3s)
+browser serial-viewer --no-deps: 84 passed (6.4m)   (82 at R116 + the two new guards)
+312 + 98 + 10 + 84 = 504
+
+Mutations (each built with vue-tsc -b + vite, then collisionMarks.test.ts and the two new
+collisions.viewer.spec tests "asks for the bodies" / "keeps its own limits"; sources restored
+byte-for-byte from a copy after each):
+M1 retry without the run           (VP-I70)  unit 2 passed   browser 1 failed
+M2 retry loses keepShown           (VP-I70)  unit 2 passed   browser 1 failed
+M3 retry loses gen                 (VP-I70)  unit 2 passed   browser 1 failed
+M4 retry loses range               (VP-I70)  unit 2 passed   browser 1 failed
+M5 caveat hidden while busy        (VP-I68)  unit 2 passed   browser 1 failed
+M6 band to the end                 (VP-I68)  unit 2 passed   browser 1 failed
+M7 "Still checking"                (VP-I68)  unit 2 passed   browser 1 failed
+M8 verdict without the stop        (VP-I68)  unit 2 passed   browser 1 failed
+M9 detail wording of a range       (VP-I68)  unit 2 passed   browser 1 failed
+M10 three contacts only            (VP-I69)  unit 2 passed   browser 1 failed
+M11 code title not provisional     (VP-I69)  unit 2 passed   browser 1 failed
+M12 marks drop boundary            (VP-I69)  unit 1 failed   browser 1 failed
+M13 marks: the last record wins    (VP-I69)  unit 1 failed   browser 1 failed
+M14 marks: the first record wins   (VP-I69)  unit 1 failed   browser 2 passed  (the sweep's L7 order puts the own record first; the unit test holds both orders)
+M15 provisional lines not named    (VP-I69)  unit 2 passed   browser 1 failed
+M16 cutting contact not named      (VP-I69)  unit 2 passed   browser 1 failed
+Gateway (VP-I67), test_command_dispatch -k "capture_fails or paused_step":
+  poll failure returns None again (the old basis stays)       1 failed, 2 passed
+  capture failure returns None again (the old basis stays)    1 failed, 2 passed
