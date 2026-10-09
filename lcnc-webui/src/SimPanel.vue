@@ -78,15 +78,18 @@ const sumLimit = computed(() => {
  *  Capped: the total, what the parse sent, the lines the list shows. */
 const sumHelp = computed(() => {
   // the stop first: it bounds all three
-  if (simView.stop) return `${simView.stop}: from there no path, no time, no collision or limit check.`;
+  if (simView.stop) return `${simView.stop}: from there no path, no time, no collision or limit check.${unbound.value}`;
   const { total, records } = simView.limits;
   if (total != null && total > records) {
     const lines = count("limit");
     return `${total} limit violations, a line and an axis each. The parse sends the first ${records}; the list shows their ${lines} line${lines === 1 ? "" : "s"}.`;
   }
   return "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes."
-    + (simView.basis ? ` ${simView.basis}.` : "");
+    + (simView.basis ? ` ${simView.basis}.` : "") + unbound.value;
 });
+/** Measurements no row can carry (their call line is not verified): the
+ *  stats' "Tool Lengths" row lists them (Codex R105 VP-I63). */
+const unbound = computed(() => (simView.unboundMeasurements ? " Tool lengths: Program Stats." : ""));
 const sumTool = computed(() => {
   const n = count("tool");
   return { name: n ? `${n} tool change${n === 1 ? "" : "s"}` : "No tool changes", short: String(n), muted: !n };

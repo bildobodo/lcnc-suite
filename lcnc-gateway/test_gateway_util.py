@@ -2530,6 +2530,26 @@ class TestCallerAttribution(unittest.TestCase):
         self.assertEqual(got, {})
         self.assertEqual(unattributed, ["other"])
 
+    def test_a_site_in_any_spelling_and_a_maybe_site(self):
+        # Codex R105 (found with VP-I61): sites are read the interpreter's
+        # way. `T2M600` and `N5 o <square> c a l l` are sites; the regex saw
+        # neither — beside one other site it claimed THAT line for every call
+        ev = [(2, "m600", "m600"), (4, None, None)]
+        f = gateway_util.attribute_sub_callers
+        self.assertEqual(f(ev, "G0 X1\nT2M600\nG0 X2\n")[0], {0: 2})
+        self.assertEqual(f(ev, "T2M600\nT3 M600\n")[0], {}, "two sites: no claim, never the spaced one")
+        self.assertEqual(f([(2, "square", None), (4, None, None)], "G0 X1\nN5 o <square> c a l l\n")[0], {0: 2})
+        self.assertEqual(f([(5, "g533remap", "g53.3"), (9, None, None)], "G0G53.3 X1\nG1 X2\n")[0], {0: 1})
+        # a line that MAY call it (a value the text does not settle, an o-word
+        # or M98 it cannot read) leaves the one certain site unclaimed
+        self.assertEqual(f(ev, "T2 M600\nT3 M[600]\n")[0], {})
+        self.assertEqual(f(ev, "T2 M600\nT3 M#1\n")[0], {})
+        self.assertEqual(f(ev, "T2 M600\no[1] call\n")[0], {})
+        self.assertEqual(f(ev, "T2 M600\nM98 P1\n")[0], {})
+        # an M600.5 or M6000 is no site; G53.36 is no G53.3
+        self.assertEqual(f(ev, "T2 M600\nM6000\n")[0], {0: 1})
+        self.assertEqual(f([(5, "g533remap", "g53.3"), (9, None, None)], "G53.3 X1\nG53.36\n")[0], {0: 1})
+
     def test_zero_sites_yield_no_claim(self):
         # A sub never invoked from the main text (e.g. called by another
         # sub the canon didn't mark): no claim.
@@ -2975,6 +2995,9 @@ class TestFindUnmarkedSubs(unittest.TestCase):
         src = "g0 x0\no<square> call\no<square> call\nM2\n"
         self.assertEqual(
             gateway_util.find_unmarked_subs(src, [self.dir]), ["square"])
+        # a call in any spelling the interpreter takes (Codex R105: one reading)
+        self.assertEqual(
+            gateway_util.find_unmarked_subs("N5 o <square> c a l l\nM2\n", [self.dir]), ["square"])
 
     def test_marked_sub_and_in_file_sub_are_quiet(self):
         self._write("square.ngc",
@@ -4536,6 +4559,65 @@ class TestModeSwitchIgnoredMessage(unittest.TestCase):
 
 
 
+class TestShippedRemapsWriteNoBasisKey(unittest.TestCase):
+    """A remapped code runs a body the text scan never reads
+    (toolsetter_assigned_keys sees `T2 M600`, not m600.ngc): the bodies the
+    shipped configs remap — and every file they call — write no toolsetter
+    basis key, so the scan of the code's line stays true for them. A foreign
+    remap body that writes one is a named limit (R105 reply). The probe_basic
+    routines that DO write them run by `o<…> call`: a call into another file,
+    every key assumed."""
+
+    KEY_RE = re.compile(r"\b(300[4-9]|301[0-4]|310[0-9]|311[0-5])\b")
+
+    def test_every_remap_body_and_its_calls(self):
+        import glob
+        root = os.path.normpath(os.path.join(os.path.dirname(__file__), ".."))
+        cfg = os.path.join(root, "examples", "sim_config")
+        by_name = {}
+        for f in glob.glob(os.path.join(cfg, "**", "*.ngc"), recursive=True) + \
+                glob.glob(os.path.join(root, "subroutines", "**", "*.ngc"), recursive=True):
+            by_name.setdefault(os.path.basename(f)[:-4].lower(), []).append(f)
+        bodies, python = set(), set()
+        for ini in glob.glob(os.path.join(cfg, "*.ini")):
+            for m in re.finditer(r"^\s*REMAP\s*=.*?\b(ngc|python)\s*=\s*(\S+)", open(ini).read(), re.M | re.I):
+                (bodies if m.group(1).lower() == "ngc" else python).add(m.group(2).lower())
+        self.assertIn("m600", bodies)
+        seen, todo = set(), sorted(bodies)
+        while todo:
+            name = todo.pop()
+            if name in seen:
+                continue
+            seen.add(name)
+            self.assertIn(name, by_name, f"the remap body / call {name}.ngc is shipped")
+            for f in by_name[name]:
+                for i, raw in enumerate(open(f, errors="replace").read().splitlines()):
+                    kind, called = gateway_util._flow_of_block(raw)
+                    if kind == "call":
+                        todo.append(called.strip("<>").lower())
+                    if kind == "foreign":
+                        # the routine's spindle stop `M#<spindle_stop_m>` (#3107:
+                        # M5 or M500) — an M the reader takes as a possible M98;
+                        # never an o-word it cannot read or a literal M98
+                        b = gateway_util.nc_block(raw)
+                        self.assertIsNotNone(b, f"{f}:{i + 1}")
+                        self.assertFalse(b[2], f"{f}:{i + 1}")
+                        self.assertEqual([v for w, v in b[0] if w == "M"], [None], f"{f}:{i + 1}")
+                    if "=" in raw:
+                        b = gateway_util.nc_block(raw)
+                        self.assertIsNotNone(b, f"{f}:{i + 1}")
+                        for t in b[1]:
+                            self.assertIsNotNone(t, f"{f}:{i + 1} a target the text does not settle")
+                            if t != "name":
+                                self.assertNotIn(gateway_util.nc_int(t), gateway_util.TOOLSETTER_BASIS_KEYS,
+                                                 f"{f}:{i + 1}: {raw.strip()}")
+        self.assertIn("tool_touch_off", seen, "M600's body calls the routine")
+        # the python remaps (TWP): no basis key number anywhere in their source
+        self.assertTrue(python)
+        for f in glob.glob(os.path.join(cfg, "twp", "python", "*.py")):
+            self.assertIsNone(self.KEY_RE.search(open(f).read()), f)
+
+
 class TestToolsetterBasis(unittest.TestCase):
     """M600 in the preview, plan section 2: the values the routine reads are
     the interpreter's — booked per key with where they are known from."""
@@ -4551,7 +4633,17 @@ class TestToolsetterBasis(unittest.TestCase):
     def test_assigned_keys(self):
         f = gateway_util.toolsetter_assigned_keys
         self.assertEqual(f("G21\n#3009 = 4\n#3100=10 (#3101=1)\n#1 = #3102\nM2\n"), frozenset({3009, 3100}))
-        self.assertEqual(f("#3009=#3009+1 ; #3010 = 5\n"), frozenset({3009}))
+        self.assertEqual(f("#3009=[#3009+1] ; #3010 = 5\n"), frozenset({3009}))
+        # a line the interpreter refuses ("Bad character '+' used", natively:
+        # test_m600_preview_worker TestNcSpellings) is no proof of "writes nothing"
+        self.assertIsNone(f("#3009=#3009+1\n"))
+        # Codex R105 VP-I59: settings in every spelling the interpreter takes
+        self.assertEqual(f("#3 0 0 9=4\n#+3010=1\n#3100.0=2\nN5#03101=3\n"), frozenset({3009, 3010, 3100, 3101}))
+        self.assertIsNone(f("#1=3009\n##1=4\n"), "a target the text does not settle: any")
+        self.assertIsNone(f("#<_k>=3009\n##<_k>=4\n"))
+        self.assertIsNone(f("#ABS[-3009]=4\n"))
+        self.assertEqual(f("#<_tool>=3009\n(#3009=1)\n"), frozenset(), "a named target, a comment: none")
+        self.assertIsNone(f("M[98]\n"), "an M word that may be M98: a call into another file")
         self.assertEqual(f("T2 M600\nG0 X1\n"), frozenset())
         self.assertEqual(f("#5221 = 3\n#3116 = 0\n"), frozenset(), "not toolsetter keys")
         self.assertIsNone(f("#[3000 + 9] = 4\n"), "indirect: any")

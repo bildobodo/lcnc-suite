@@ -12,12 +12,12 @@ import * as THREE from "three";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { describe, expect, it } from "vitest";
 import { decodePreviewStreams } from "../previewDecode";
-import { buildScrubTrack } from "./scrubTrack";
+import { buildEntryTrack, buildScrubTrack } from "./scrubTrack";
 import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
 import { epochTermsFor } from "./wcsEpochs";
 import { buildSimRows, limitStopOf } from "./simRows";
 import { unknownProgramTools } from "./tloEvents";
-import { parseProbeStops } from "./probeStop";
+import { m600Events, m600ToolNotes, parseProbeStops } from "./probeStop";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/tool_change_payloads");
 const MACHINE: CollisionMachine = {
@@ -399,5 +399,45 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
     expect(raw.violations).toEqual([]);
     expect(track.unpredicted![last]).toBe(1);
     expect(track.cum[last]).toBe(track.cum[last - 1]);
+  });
+
+  // Codex R105 VP-I62: the routine before the program's first drawn point
+  // (unknown values): that point is already after the stop — the sim's entry
+  // move from the live position must not make it a timed, swept rapid.
+  it("no entry move to a first point after the stop", () => {
+    const entry = (name: string) => {
+      const { raw, track } = load(name);
+      const wcs = { g5x: [], g92: [], rotationDeg: 0, tool: raw.tlo_start } as any;
+      return { track, entry: buildEntryTrack(track, [0, 0, 0], ["X", "Y", "Z"], wcs, undefined, undefined, 0,
+                                             { linear: raw.rapid_rate, rotary: raw.rot_rapid_rate }) };
+    };
+    const { track, entry: e } = entry("m600_unknown_first");
+    expect(Array.from(track.unpredicted!.subarray(0, track.count))).toEqual(new Array(track.count).fill(1));
+    expect(e).toBeNull();
+    // swept as the page does without an entry: Codex's box on the entry's
+    // line is no finding, and the program takes no time
+    const { result } = sweepM600("m600_unknown_first", [30, 30, -50], 80);
+    expect(result.hits).toHaveLength(0);
+    expect(track.cum[track.count - 1]).toBe(track.cum[0]);
+    // positive control: a first point before the routine gets its entry move
+    const known = entry("m600_known");
+    expect(known.entry).not.toBeNull();
+    expect(known.entry!.count).toBe(known.track.count + 1);
+  });
+
+  // Codex R105 VP-I63: a note belongs to its call. The native events carry
+  // the verified call line: the only M600 line (L3) for m600_known; none
+  // where two lines call the routine — then no row takes either note.
+  it("binds a measurement's note to its own call, natively", () => {
+    const notesOf = (name: string) => {
+      const { raw } = load(name);
+      return m600ToolNotes(m600Events(parseProbeStops(raw.probe_unpredicted), raw.toollen_table, "mm"));
+    };
+    const known = notesOf("m600_known");
+    expect([...known.byLine]).toEqual([[3, { tool: 2, note: "80.000 mm from the table (assumed)" }]]);
+    expect(known.unbound).toEqual([]);
+    const rep = notesOf("m600_repeat");
+    expect(rep.byLine.size).toBe(0);
+    expect(rep.unbound.map(e => [e.tool, e.length])).toEqual([[2, 80], [2, null]]);
   });
 });

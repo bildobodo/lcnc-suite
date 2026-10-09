@@ -38,7 +38,7 @@ import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
-import { m600ToolNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
+import { m600Events, m600ToolNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
@@ -449,6 +449,10 @@ function onScrubInput() {
 // `probe_unpredicted`): from there the positions — and so the time — are
 // unknown; the total is the time to it, "+" says there is more.
 const probeStops = computed(() => parseProbeStops(viewerGcode.value?.probe_unpredicted));
+// Each measurement of the routine, bound to its call's row where the call
+// line is verified (Codex R105 VP-I63); the rest is named in general.
+const m600Notes = computed(() => m600ToolNotes(
+  m600Events(probeStops.value, viewerGcode.value?.toollen_table, linearUnit.value)));
 // Position readout: elapsed/total time on a time-based track, percent on
 // the distance fallback.
 const posLabel = computed(() => {
@@ -949,7 +953,7 @@ const rowsNow = computed(() => buildSimRows({
   violations: violations.value ?? [], unit: linearUnit.value,
   timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
   stop: limitStop.value,
-  toolNotes: m600ToolNotes(probeStops.value, viewerGcode.value?.toollen_table, linearUnit.value),
+  toolNotes: m600Notes.value.byLine,
 }));
 watch(rowsNow, r => { simRows.value = r; }, { immediate: true });
 // Per frame while playing, but it only CHANGES where the playhead passes a
@@ -1007,6 +1011,7 @@ watchEffect(() => {
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };
   simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;
+  simView.unboundMeasurements = m600Notes.value.unbound.length;
   const ts = confirmedToolsetter();
   simView.basis = toolsetterBasisLine(viewerGcode.value?.toolsetter_basis, ts.ok ? toolsetterVarMap(ts.values) : null);
   simView.jumpReason = hitNavReason.value;

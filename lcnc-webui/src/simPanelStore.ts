@@ -47,6 +47,9 @@ export const simView = reactive({
   /** Where the toolsetter values the routine was predicted with come from
    *  (probeStop.toolsetterBasisLine), null without the routine. */
   basis: null as string | null,
+  /** Tool measurements whose call line is not verified: their notes stand
+   *  in Program Stats, never on every row of the tool (Codex R105 VP-I63). */
+  unboundMeasurements: 0,
   /** Why a row cannot be shown now (the machine is on), else undefined. */
   jumpReason: undefined as string | undefined,
   /** Playback speed, ×0.1 … ×100 in fixed steps. */

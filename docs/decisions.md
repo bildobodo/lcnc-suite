@@ -8820,3 +8820,40 @@ offline (libtooldata wants 1001 comment pointers); a return skipped the
 routine's sub-span end marker and the program after an early return was
 taken for the call; the routine's M6 carried the sub file's line onto the
 timeline; a program tool without a table length was swept as a 60 mm stub.
+
+## 2026-10-09 — What a text may write or call is read the interpreter's way, by one reader (Codex R105, VP-I59 to VP-I63)
+
+R105 found the M600 preview's scanners asking regexes that assumed spaces
+between words and a literal number: `##1=4`, `#3 0 0 9=4`, `#+3009=4`,
+`#3009.0=4` were "writes nothing" and kept a confirmed toolsetter basis that
+the interpreter no longer held (VP-I59); `T2M600`, `M+600`, `M[600]` and an
+M600 in a called file left a foreign remap predicted (VP-I61); and the
+caller-site scan, the same class, missed `T2M600` and with one other M600
+line put BOTH calls on that line. One reader now serves all of them
+(`gateway_util.nc_block_norm`, interp_read.cc read_items: comments out,
+whitespace nowhere, a value a number with a sign, `[…]`, a parameter or a
+function, a setting `#target=value`), and every value the text does not
+settle, or a line it cannot read, counts as a possible yes. Which spellings
+LinuxCNC takes is measured natively, never recalled
+(`scripts/test_fixtures/nc_spellings.json`: it takes all of the above and
+`#3009.00001`, `#ABS[-3009]`, `-#1`; it refuses `#3009=#3009+1` and
+`#-3009`). A foreign M600 is unknown from the program's start whenever the
+program calls another file, which may run it. The shipped remap bodies, and
+every file they call, write no basis key — pinned; a foreign remap's body
+stays a named limit, like another writer of the interpreter.
+
+The basis is booked in `_cmd_blocking` before the command can go out — every
+MDI line and AUTO run / step / resume passes it — so neither a cancel after
+the write nor a start path that forgot it (the direct run from a line)
+leaves a stale confirmation (VP-I60). A command that never went out costs
+only a confirmation.
+
+A first drawn point after an unpredicted measurement gets no entry move: the
+run's position, tool and offset there are not known (VP-I62). A measurement's
+note belongs to its CALL: the events carry the verified call line, a row
+shows the note of its own line and tool only, and the rest — no verified
+line, or a line whose runs differ — is named in general (Program Stats'
+"Tool Lengths", a count in the Sim summary). A program with several M600
+lines therefore shows its lengths in Program Stats, not on the rows, until
+the call lines can be verified (VP-I63; the positional rule that would do it
+is proposed in R106, not built).

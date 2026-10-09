@@ -64,7 +64,9 @@ class TestPredictedMeasurement(unittest.TestCase):
         # the length the routine's G43 applied is the table's — said with that
         # G43's own row; nothing stopped
         g43 = [row for row in r["tlo_events"] if row[3] != 0]
-        self.assertEqual(r["toollen_table"], [[g43[-1][0], 2, 80.0]])
+        # …and with its call line, verified (the only M600 line): the note
+        # goes on that call's row (Codex R105 VP-I63)
+        self.assertEqual(r["toollen_table"], [[g43[-1][0], 2, 80.0, 3]])
         self.assertIsNone(r["probe_unpredicted"])
 
     def test_the_probe_moves_take_the_probe_feeds(self):
@@ -148,7 +150,8 @@ class TestPredictedMeasurement(unittest.TestCase):
         r = probe("m600_twice")
         self._clean(r)
         self.assertEqual(r["tool_change_lines"], [])
-        self.assertEqual([(t, z) for _, t, z in r["toollen_table"]], [(2, 80.0), (1, 10.0)])
+        # nor a call line for either length: no row carries them (VP-I63)
+        self.assertEqual([(t, z, ln) for _, t, z, ln in r["toollen_table"]], [(2, 80.0, 0), (1, 10.0, 0)])
         self.assertIn(-170, feeds_at(r, 10, 10))
 
     def test_only_the_routines_own_g43_carries_the_table_length(self):
@@ -157,7 +160,7 @@ class TestPredictedMeasurement(unittest.TestCase):
         self._clean(r)
         g43 = [row for row in r["tlo_events"] if row[3] != 0]
         self.assertEqual(len(g43), 2)
-        self.assertEqual(r["toollen_table"], [[g43[0][0], 2, 80.0]])
+        self.assertEqual(r["toollen_table"], [[g43[0][0], 2, 80.0, 3]])
 
     def test_the_limits_after_a_predicted_measurement_are_checked(self):
         r = probe("m600_known_then_high")
@@ -174,7 +177,7 @@ class TestForeignRemap(unittest.TestCase):
         self.assertIsNone(r["parse_error"])
         ev = path(r)
         g1 = next(q for q, k, p, ln in ev if k == "F" and ln == 3)
-        self.assertEqual(r["probe_unpredicted"], [[g1, -1, "foreign_remap"]])
+        self.assertEqual(r["probe_unpredicted"], [[g1, -1, "foreign_remap", 0]])
         ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
         self.assertEqual({(k, ustart.get(q)) for q, k, _, _ in ev if q > g1}, {("R", 1)})
 
@@ -213,7 +216,7 @@ class TestTableLengthPairing(unittest.TestCase):
         self.assertIsNone(r["parse_error"])
         g43 = [row for row in r["tlo_events"] if row[3] != 0]
         self.assertEqual([(row[3], row[4]) for row in g43], [(80.0, 2), (10.0, 2), (80.0, 2), (10.0, 2)])
-        self.assertEqual(r["toollen_table"], [[g43[0][0], 2, 80.0]])
+        self.assertEqual(r["toollen_table"], [[g43[0][0], 2, 80.0, 3]])
 
 
 class TestUnpredictedMeasurement(unittest.TestCase):
@@ -247,7 +250,7 @@ class TestUnpredictedMeasurement(unittest.TestCase):
                 # it is an unknown-start endpoint (rapid stream, zero length)
                 ev = path(r)
                 start_seq = next(q for q, k, p, _ in ev if k == "F" and p == (10, 10, start))
-                self.assertEqual(r["probe_unpredicted"], [[start_seq, 2, reason]])
+                self.assertEqual(r["probe_unpredicted"], [[start_seq, 2, reason, 3]])
                 ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
                 after = [(q, k) for q, k, _, _ in ev if q > start_seq]
                 self.assertTrue(after)
@@ -278,7 +281,7 @@ class TestUnpredictedMeasurement(unittest.TestCase):
         r = probe("m600_not_set_up")
         self.assertIsNone(r["parse_error"])
         ev = path(r)
-        self.assertEqual(r["probe_unpredicted"], [[ev[0][0], -1, "toolsetter_not_set_up"]])
+        self.assertEqual(r["probe_unpredicted"], [[ev[0][0], -1, "toolsetter_not_set_up", 3]])
         self.assertEqual(r["tool_change_lines"], [])
         self.assertEqual(r["toolsetter_basis"]["state"], "not_set_up")
         ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
@@ -295,7 +298,7 @@ class TestUnpredictedMeasurement(unittest.TestCase):
         r = probe("m600_basis_unknown")
         self.assertIsNone(r["parse_error"])
         ev = path(r)
-        self.assertEqual(r["probe_unpredicted"], [[ev[0][0], -1, "toolsetter_unknown"]])
+        self.assertEqual(r["probe_unpredicted"], [[ev[0][0], -1, "toolsetter_unknown", 3]])
         ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
         self.assertEqual({(k, ustart.get(q)) for q, k, _, _ in ev[1:]}, {("R", 1)})
         self.assertIsNone(r["toollen_table"])
@@ -307,3 +310,85 @@ class TestUnpredictedMeasurement(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestCallLines(unittest.TestCase):
+    """A measurement's call line (the rows' 4th element) is the verified one
+    or 0 — never another call's (Codex R105 VP-I63 and the call-site reading
+    found with VP-I61)."""
+
+    def test_a_compact_call_is_its_line(self):
+        r = probe("m600_compact")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["tool_change_lines"], [[3, 2]])
+        self.assertEqual([row[3] for row in r["toollen_table"]], [3])
+
+    def test_two_call_sites_name_no_line_never_both_on_one(self):
+        # `T2M600` (L3) beside `T1 M600` (L5): the regex saw L5 only and put
+        # BOTH calls there
+        r = probe("m600_compact_pair")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["tool_change_lines"], [])
+        self.assertEqual([(row[1], row[3]) for row in r["toollen_table"]], [(2, 0), (1, 0)])
+
+    def test_the_same_tool_twice_keeps_each_measurement_apart(self):
+        # predicted at the first call, not at the second (a 1 mm travel): two
+        # events of T2, in order; neither call site is unique — no line, so
+        # the client names both in general instead of one note on both rows
+        r = probe("m600_repeat")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual([(row[1], row[2], row[3]) for row in r["toollen_table"]], [(2, 80.0, 0)])
+        self.assertEqual([(row[1], row[2], row[3]) for row in r["probe_unpredicted"]], [(2, "travel", 0)])
+        self.assertLess(r["toollen_table"][0][0], r["probe_unpredicted"][0][0])
+
+
+class TestNcSpellings(unittest.TestCase):
+    """Which spellings the interpreter takes (scripts/test_fixtures/
+    nc_spellings.json, run natively): the word reader the scanners share
+    (gateway_util.nc_block_norm) never reads one it takes as "not that"
+    (Codex R105 VP-I59, VP-I61)."""
+
+    import json as _json, os as _os
+    SPELL = _json.loads(open(_os.path.join(_os.path.dirname(__file__), "..", "scripts", "test_fixtures",
+                                           "nc_spellings.json")).read())
+
+    def test_every_setting_the_interpreter_takes_is_seen(self):
+        from gateway_util import toolsetter_assigned_keys
+        taken = {}
+        for name, text in self.SPELL["assign"].items():
+            with self.subTest(name=name):
+                r = probe("assign_" + name)
+                if r["parse_error"]:
+                    taken[name] = None
+                    continue
+                # `G0 X#3009` after it: 4 = the setting wrote #3009 (3 before)
+                wrote = r["rapid"][-1][0] == 4.0
+                taken[name] = wrote
+                keys = toolsetter_assigned_keys(text)
+                if wrote:
+                    self.assertTrue(keys is None or 3009 in keys, f"{text!r} writes #3009, read as {keys}")
+        # the interpreter's answers, pinned: every spelling here writes #3009
+        # but these two, which it refuses (expressions need brackets; no
+        # negative parameter)
+        self.assertEqual({n for n, w in taken.items() if w is None}, {"unbracketed_sum", "negative_target"})
+        self.assertEqual({n for n, w in taken.items() if w is False}, set())
+
+    def test_literal_targets_are_read_exactly_and_the_rest_as_any(self):
+        from gateway_util import toolsetter_assigned_keys as f
+        any_ = {"double_hash", "named_indirect", "expression", "function", "unbracketed_sum", "negative_target"}
+        for name, text in self.SPELL["assign"].items():
+            with self.subTest(name=name):
+                want = None if name in any_ else ({3009, 3010} if name == "two" else {3009})
+                self.assertEqual(f(text), None if want is None else frozenset(want))
+
+    def test_every_m_word_the_interpreter_takes_names_the_foreign_remap(self):
+        from gateway_util import m_code_lines
+        for name, text in self.SPELL["mword"].items():
+            with self.subTest(name=name):
+                r = probe("mword_" + name)
+                self.assertIsNone(r["parse_error"], f"{text!r}")
+                self.assertEqual([row[2] for row in r["probe_unpredicted"] or ()], ["foreign_remap"], f"{text!r}")
+                if name != "called":
+                    # its line (L4, after the call's set-up line where there is one)
+                    self.assertIn(3 + text.count("\n") + 1, m_code_lines(
+                        "G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\n" + text + "\n", {"m600"}))

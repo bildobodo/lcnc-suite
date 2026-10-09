@@ -101,11 +101,12 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # program's end — `_frame_unknown`, which no move re-establishes (the
     # state table's rows from the probe's start on). The worker says so
     # (`toolsetter_unpredictable`) where the toolsetter's values are unknown:
-    # then from the routine's start. `probe_events` [(seq, tool, reason)].
+    # then from the routine's start. `probe_events` [(seq, tool, reason, k)],
+    # k = the sub-span markers seen (gateway_util.main_file_event_lines).
     # `(WEBUI_TOOLLEN_TABLE)` before the routine's G10 / G43 says the length
     # they apply is the TABLE's (assumed): paired with the next G43 of the
     # same call only — any sub marker before it (the call's end) discards it.
-    # `toollen_events` [(seq, tool, zo)].
+    # `toollen_events` [(seq, tool, zo, k)].
     probe_events = ()
     toollen_events = ()
     toolsetter_unpredictable = None
@@ -401,7 +402,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def _mark_probe_unknown(self, reason):
         """From here every axis is unknown to the program's end."""
-        self.probe_events = self.probe_events + ((self.seq, self.cur_tool, reason),)
+        self.probe_events = self.probe_events + ((self.seq, self.cur_tool, reason, len(self.sub_events)),)
         self._toollen_open = False
         if not self._probe_unknown:
             self._probe_unknown = True
@@ -456,7 +457,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self.offset_events.append(self.seq)
             if self._toollen_open:
                 self._toollen_open = False
-                self.toollen_events = self.toollen_events + ((self.seq, self.cur_tool, zo),)
+                self.toollen_events = self.toollen_events + ((self.seq, self.cur_tool, zo, len(self.sub_events)),)
 
     # rotate_and_translate keeps straight moves in the same translated frame
     # gcode.arc_to_segments produces for arcs; WCS offsets subtract once at

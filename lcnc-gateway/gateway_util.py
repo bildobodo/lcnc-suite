@@ -2312,10 +2312,133 @@ def _word_value(m):
     if m is None or m.group(1):
         return None
     return int(round(float(m.group(2)) * 10))
-#: Lines that may hold an o-word or M98/M99 (the main file's lines then no
-#: longer run in text order: calls, loops, branches) — `_flow_of_block`
-#: decides on the line without comments and whitespace.
-_FLOW_CANDIDATE_RE = re.compile(r"O|M[\s0]*9\s*[89]", re.I)
+
+
+# ── ONE reader of a block's words, the interpreter's way (Codex R105 VP-I59,
+# VP-I61; interp_read.cc read_items): comments out, whitespace counting
+# nowhere, upper case. A word is a letter and a real value
+# (read_real_value): a number with an optional sign, `[expr]`, a parameter
+# (`#n`, `##n`, `#<name>`), a unary function (`ABS[…]`, `ATAN[…]/[…]`), or a
+# sign before any of them; a parameter setting is `#target=value`. The
+# scanners asking "does this line say M600 / write #3009 / call o<x>" read
+# it here, and every value the text does not settle — or a block the reader
+# cannot read — is a possible yes: an empty set of matches is no proof of
+# none. Which spellings the interpreter takes is pinned natively
+# (test_m600_preview_worker TestNcSpellings), never recalled.
+_NC_FUNCS = ("EXISTS", "ACOS", "ASIN", "ATAN", "ROUND", "SQRT", "ABS", "COS", "EXP",
+             "FIX", "FUP", "SIN", "TAN", "LN")
+_NC_NUMBER_RE = re.compile(r"[+-]?(?:\d+\.?\d*|\.\d+)")
+_NC_NAME_RE = re.compile(r"<[^<>]*>")
+_NC_INNER_BRACKET_RE = re.compile(r"\[[^\[\]]*\]")
+
+
+def nc_norm(raw) -> str:
+    """One block as the interpreter reads it: comments out, no whitespace,
+    upper case. Pure."""
+    return "".join(strip_gcode_comments(raw or "").split()).upper()
+
+
+def nc_int(v) -> Optional[int]:
+    """read_integer_value's rounding: within 1e-4 of an integer, else None
+    (the interpreter refuses the block)."""
+    n = math.floor(v)
+    d = v - n
+    if d > 0.9999:
+        return int(n) + 1
+    return int(n) if d <= 0.0001 else None
+
+
+def nc_g10(v) -> Optional[int]:
+    """read_g's reading: the value ×10 within 1e-3 of an integer (G53.3 =
+    533), else None."""
+    x = v * 10.0
+    n = math.floor(x)
+    d = x - n
+    if d > 0.999:
+        return int(n) + 1
+    return int(n) if d <= 0.001 else None
+
+
+def _nc_value(s, i):
+    """(end, number) of the real value at s[i] of a flattened block; the
+    number None for a value the text does not settle. ValueError where the
+    reading fails."""
+    if i >= len(s):
+        raise ValueError(i)
+    c = s[i]
+    if c == "@":
+        return i + 1, None
+    if c == "#":
+        if s.startswith("<>", i + 1):
+            return i + 3, None
+        return _nc_value(s, i + 1)[0], None
+    if c in "+-" and i + 1 < len(s) and not (s[i + 1].isdigit() or s[i + 1] == "."):
+        return _nc_value(s, i + 1)[0], None
+    if c.isalpha():
+        for f in _NC_FUNCS:
+            if s.startswith(f + "@", i):
+                j = i + len(f) + 1
+                if f == "ATAN" and s.startswith("/@", j):
+                    j += 2
+                return j, None
+        raise ValueError(i)
+    m = _NC_NUMBER_RE.match(s, i)
+    if not m:
+        raise ValueError(i)
+    return m.end(), float(m.group())
+
+
+def nc_block_norm(s):
+    """The reading of one normalised block (nc_norm): (words, settings,
+    oword) — words [(letter, number|None)], the parameter settings' targets
+    [number | None (not settled by the text) | "name" (`#<…>`)], oword True
+    when the block is an o-word statement (its words are `_flow_of_block`'s).
+    None when the block cannot be read. Pure."""
+    if s in ("", "%"):
+        return [], [], False
+    f = _NC_NAME_RE.sub("<>", s)
+    while "[" in f:
+        g = _NC_INNER_BRACKET_RE.sub("@", f)
+        if g == f:
+            return None
+        f = g
+    if "]" in f or "<" in f.replace("<>", "") or ">" in f.replace("<>", ""):
+        return None
+    i = 1 if f.startswith("/") else 0
+    words, sets = [], []
+    try:
+        while i < len(f):
+            c = f[i]
+            if c == "O":
+                return words, sets, True
+            if c == "#":
+                if f.startswith("<>", i + 1):
+                    j, tgt = i + 3, "name"
+                else:
+                    j, tgt = _nc_value(f, i + 1)
+                if j >= len(f) or f[j] != "=":
+                    return None
+                i = _nc_value(f, j + 1)[0]
+                sets.append(tgt)
+            elif "A" <= c <= "Z":
+                i, v = _nc_value(f, i + 1)
+                words.append((c, v))
+            else:
+                return None
+    except ValueError:
+        return None
+    return words, sets, False
+
+
+def nc_block(raw):
+    """nc_block_norm of one raw line. Pure."""
+    return nc_block_norm(nc_norm(raw))
+
+
+#: Lines that may hold an o-word or an M98 / M99 — in any spelling of the M
+#: word's value (`M[98]`, `M#1`) — after which the main file's lines no
+#: longer run in text order: `_flow_of_block` decides on the line read.
+_FLOW_CANDIDATE_RE = re.compile(r"[OM]", re.I)
 
 
 def position_write_lines(text):
@@ -2434,9 +2557,15 @@ def _flow_of_block(raw):
     M98, or an o-word whose name is no literal `<name>` or digit string (a
     sign, a function, an expression, a decimal: `o+100`, `oABS[-100]`,
     `o[100]`, `o100.0`, Codex R99) or whose word LinuxCNC does not know."""
-    s = _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", strip_gcode_comments(raw))).upper()
-    if _M98_RE.search(s):
-        return "foreign", None
+    return _flow_of_norm(nc_norm(raw))
+
+
+def _flow_of_norm(n):
+    """_flow_of_block on a block nc_norm read. An M word is read by
+    nc_block_norm: M98 in any spelling is a call into another file, and so
+    is an M word whose value the text does not settle (`M[98]`, `M#1`) or a
+    block with an M the reader cannot read (Codex R105 VP-I61)."""
+    s = _NAMED_PARAM_RE.sub("#0", n)
     m = _OWORD_BLOCK_RE.match(s)
     if m:
         w = _OWORD_NAME_KW_RE.match(s, m.end())
@@ -2444,8 +2573,15 @@ def _flow_of_block(raw):
             return "foreign", None
         kw = w.group(2)
         return ("sub" if kw == "SUB" else "call" if kw == "CALL" else "local"), w.group(1)
-    if _M99_RE.search(s):
-        return "local", None
+    if "M" in n:
+        b = nc_block_norm(n)
+        if b is None:
+            return "foreign", None
+        ms = [v for letter, v in b[0] if letter == "M"]
+        if any(v is None or nc_int(v) == 98 for v in ms):
+            return "foreign", None
+        if any(nc_int(v) == 99 for v in ms):
+            return "local", None
     return "none", None
 
 
@@ -2456,8 +2592,6 @@ _OWORD_BLOCK_RE = re.compile(r"/?(?:N\d*(?:\.\d*)?)?O")
 _OWORD_NAME_KW_RE = re.compile(r"(<[^>]*>|\d+)([A-Z]+)")
 _OWORD_KEYWORDS = frozenset(("SUB", "ENDSUB", "RETURN", "CALL", "DO", "WHILE", "ENDWHILE", "IF", "ELSEIF",
                              "ELSE", "ENDIF", "BREAK", "CONTINUE", "REPEAT", "ENDREPEAT"))
-_M98_RE = re.compile(r"M0*98(?![\d.])")
-_M99_RE = re.compile(r"M0*99(?![\d.])")
 
 
 def wcs_rewrite_targets(text):
@@ -4024,14 +4158,29 @@ def foreign_m600_codes(remap_lines, search_dirs, max_read=65536) -> frozenset:
 
 
 def m_code_lines(source_text, codes) -> frozenset:
-    """The main file's lines (1-based) whose block carries one of `codes`
-    ("m600" …) as an M word, comments out. Pure."""
-    nums = "|".join(re.escape(c[1:].lstrip("0") or "0") for c in codes or () if c.lower().startswith("m"))
-    if not nums:
+    """The main file's lines (1-based) whose block MAY carry one of `codes`
+    ("m600" …) as an M word, read by nc_block_norm: in any spelling
+    (`T2M600`, `M+600`, `M0600.0`), and every M word whose value the text
+    does not settle (`M[600]`, `M#1`) or a block with an M the reader cannot
+    read — a regex that found none proved nothing (Codex R105 VP-I61).
+    Pure."""
+    want = set()
+    for c in codes or ():
+        if c.lower().startswith("m") and c[1:].isdigit():
+            want.add(int(c[1:]))
+    if not want:
         return frozenset()
-    rx = re.compile(r"(?:^|[^a-z0-9.])m\s*0*(?:" + nums + r")(?![0-9.])", re.IGNORECASE)
-    return frozenset(i + 1 for i, raw in enumerate((source_text or "").splitlines())
-                     if rx.search(strip_gcode_comments(raw)))
+    out = set()
+    for i, raw in enumerate((source_text or "").splitlines()):
+        if "m" not in raw and "M" not in raw:
+            continue
+        n = nc_norm(raw)
+        if "M" not in n:
+            continue
+        b = nc_block_norm(n)
+        if b is None or any(letter == "M" and (v is None or nc_int(v) in want) for letter, v in b[0]):
+            out.add(i + 1)
+    return frozenset(out)
 
 
 def next_block_lines(source_text) -> dict:
@@ -4305,15 +4454,44 @@ def resolve_sub_indices(seqs, sub_events, name_index):
     return out
 
 
-def _caller_site_re(name, caller_token):
-    """Regex matching a comment-stripped MAIN-file line that invokes sub
-    `name`: its `o<name> call` statement, or the marker-declared CALLER
-    token (word-guarded so `g53.3` never matches `g53.36` and `g69` never
-    matches `g69.1`). Pure."""
-    pats = [r"^\s*o<" + re.escape(name) + r">\s*call\b"]
-    if caller_token:
-        pats.append(r"(?<![a-z0-9_.])" + re.escape(caller_token) + r"(?![0-9.])")
-    return re.compile("|".join(pats), re.IGNORECASE)
+def _caller_site(n, name, caller_token):
+    """Does the MAIN-file block `n` (nc_norm) invoke sub `name`: "site" —
+    its `o<name> call` statement, or the marker-declared CALLER token as a
+    word in any spelling (`T2M600`, `G 53.3`; `g53.3` never `g53.36`, `g69`
+    never `g69.1`) —, "maybe" — an o-word or an M98 the reader cannot settle,
+    a value of the token's letter it cannot settle, a block it cannot read —
+    else None. Codex R105 (found with VP-I61): the regex this replaces
+    missed `T2M600`, and with one other M600 line it put BOTH calls on that
+    line. Pure."""
+    if "O" in n or "M" in n:
+        kind, oname = _flow_of_norm(n)
+        if kind == "call" and oname and oname.strip("<>").lower() == name.lower():
+            return "site"
+        if kind == "foreign":
+            return "maybe"
+    if not caller_token:
+        return None
+    letter = caller_token[0].upper()
+    try:
+        val = float(caller_token[1:])
+    except ValueError:
+        return None
+    if letter not in n:
+        return None
+    if str(int(val)) not in n and "[" not in n and "#" not in n:
+        return None
+    b = nc_block_norm(n)
+    if b is None:
+        return "maybe"
+    want = nc_g10(val) if letter == "G" else nc_int(val)
+    for w, v in b[0]:
+        if w != letter:
+            continue
+        if v is None:
+            return "maybe"
+        if (nc_g10(v) if letter == "G" else nc_int(v)) == want:
+            return "site"
+    return None
 
 
 def attribute_sub_callers(sub_events, source_text):
@@ -4330,8 +4508,9 @@ def attribute_sub_callers(sub_events, source_text):
     degrades to the sub-name chip there, never a guessed line.
 
     Rule: UNIQUE-site text scan only. A main-file line attributes iff it
-    is the ONLY comment-stripped line invoking the sub (`o<name> call`, or
-    the marker-declared CALLER token); zero or several sites yield no
+    is the ONLY line invoking the sub (`o<name> call`, or the
+    marker-declared CALLER token — `_caller_site`, read the interpreter's
+    way) and no other line MAY invoke it; zero or several sites yield no
     claim. No positional signal exists to disambiguate multiple sites —
     the interpreter fires next_line only for plainly-executed blocks,
     never for the o-call/remap trigger lines themselves (verified
@@ -4339,7 +4518,7 @@ def attribute_sub_callers(sub_events, source_text):
     their caller line lives in the OUTER sub's file, the very collision
     this machinery exists to avoid. Pure.
     """
-    lines = [strip_gcode_comments(ln) for ln in (source_text or "").splitlines()]
+    lines = None
     out = {}
     unattributed = []
     site_cache = {}
@@ -4352,9 +4531,16 @@ def attribute_sub_callers(sub_events, source_text):
         if depth == 0:
             key = (name, ev[2])
             if key not in site_cache:
-                rx = _caller_site_re(name, ev[2])
-                hits = [i + 1 for i, ln in enumerate(lines) if rx.search(ln)]
-                site_cache[key] = hits[0] if len(hits) == 1 else None
+                if lines is None:
+                    lines = [nc_norm(ln) for ln in (source_text or "").splitlines()]
+                hits, maybe = [], False
+                for i, n in enumerate(lines):
+                    k = _caller_site(n, name, ev[2])
+                    if k == "site":
+                        hits.append(i + 1)
+                    elif k == "maybe":
+                        maybe = True
+                site_cache[key] = hits[0] if len(hits) == 1 and not maybe else None
             line = site_cache[key]
             if line is not None:
                 out[idx] = line
@@ -4469,9 +4655,27 @@ def main_file_tool_changes(events, sub_events, caller_by_event):
     scan still finds the M600 line, toolChangeScan.ts). Pure.
     """
     out = []
+    at = main_file_event_lines([k for _, _, k in events], sub_events, caller_by_event)
+    for (line, tool, _k), call in zip(events, at):
+        if call is None:
+            out.append([int(line), int(tool)])
+        elif call > 0:
+            out.append([int(call), int(tool)])
+    return out
+
+
+def main_file_event_lines(ks, sub_events, caller_by_event):
+    """Per canon event, in execution order, recorded with k = how many
+    sub-span markers had been seen: None outside every marked span (the
+    event's own line holds), else the OUTERMOST span's verified call line —
+    0 when it is not verified (attribute_sub_callers). The M600 preview's
+    tool changes and its measurement events read it, so a note lands on the
+    call it belongs to, never on every line of the same tool (Codex R105
+    VP-I63). Pure."""
+    out = []
     stack = []
     ei = 0
-    for line, tool, k in events:
+    for k in ks:
         while ei < min(k, len(sub_events)):
             ev = sub_events[ei]
             if ev[1] is None:
@@ -4480,15 +4684,10 @@ def main_file_tool_changes(events, sub_events, caller_by_event):
             else:
                 stack.append(caller_by_event.get(ei, 0))
             ei += 1
-        if not stack:
-            out.append([int(line), int(tool)])
-        elif stack[0] > 0:
-            out.append([int(stack[0]), int(tool)])
+        out.append(int(stack[0]) if stack else None)
     return out
 
 
-_OCALL_RE = re.compile(r"^\s*o<([a-z0-9_.\-]+)>\s*call\b", re.IGNORECASE | re.MULTILINE)
-_OSUB_RE = re.compile(r"^\s*o<([a-z0-9_.\-]+)>\s*sub\b", re.IGNORECASE | re.MULTILINE)
 
 
 def find_unmarked_subs(source_text, search_dirs, max_read=65536):
@@ -4511,11 +4710,18 @@ def find_unmarked_subs(source_text, search_dirs, max_read=65536):
 
     Returns the unmarked names in first-call order, deduped.
     """
-    in_file = {m.group(1).lower() for m in _OSUB_RE.finditer(source_text)}
+    # the o-words read the interpreter's way (_flow_of_block: `N5 o <x> call`
+    # is a call too), one reading with the call sites (Codex R105)
+    in_file, calls = set(), []
+    for raw in (source_text or "").splitlines():
+        if "o" not in raw and "O" not in raw:
+            continue
+        kind, name = _flow_of_block(raw)
+        if kind in ("sub", "call") and name and name.startswith("<"):
+            (in_file.add if kind == "sub" else calls.append)(name.strip("<>").lower())
     out = []
     seen = set()
-    for m in _OCALL_RE.finditer(source_text):
-        name = m.group(1).lower()
+    for name in calls:
         if name in in_file or name in seen:
             continue
         seen.add(name)
@@ -4678,20 +4884,34 @@ TOOLSETTER_ORIGINS = ("applied", "read", "assumed", "unknown")
 
 
 def toolsetter_assigned_keys(text) -> Optional[frozenset]:
-    """The toolsetter keys a program or an MDI line may write: every literal
-    `#3009 = …` outside comments. None when it may write any — an indirect
-    `#[…] =`, or a call into another file whose text is not read (an o-word
-    of no sub this text defines, M98: position_write_lines' `foreign`). Pure."""
+    """The toolsetter keys a program or an MDI line may write: every
+    parameter setting's target read the interpreter's way (nc_block_norm —
+    `#3 0 0 9=`, `#+3009=`, `#3009.0=` are #3009). None when it may write
+    any: a target the text does not settle (`##1=`, `#[3000+9]=`,
+    `#ABS[…]=`), one the interpreter would refuse, a block with a `=` the
+    reader cannot read, or a call into another file whose text is not read
+    (an o-word of no sub this text defines, M98: position_write_lines'
+    `foreign`). A setting it did not recognise never proves "writes
+    nothing" (Codex R105 VP-I59). Pure."""
     _, mode = position_write_lines(text or "")
     if mode == "foreign":
         return None
     keys = set()
     for raw in (text or "").splitlines():
-        src = strip_gcode_comments(raw)
-        if re.search(r"#\s*\[[^\]]*\]\s*=", src):
+        if "=" not in raw:
+            continue
+        n = nc_norm(raw)
+        if "=" not in n:
+            continue
+        b = nc_block_norm(n)
+        if b is None:
             return None
-        for m in re.finditer(r"#\s*(\d+)\s*=", src):
-            k = int(m.group(1))
+        for tgt in b[1]:
+            if tgt == "name":
+                continue
+            k = None if tgt is None else nc_int(tgt)
+            if k is None or k < 0:
+                return None
             if k in TOOLSETTER_BASIS_KEYS:
                 keys.add(k)
     return frozenset(keys)

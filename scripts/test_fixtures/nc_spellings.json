@@ -1,0 +1,42 @@
+{
+  "_comment": "Codex R105 VP-I59 / VP-I61: spellings of a parameter setting and of an M word, run through LinuxCNC's native interpreter (native_start_probe.py assign_* / mword_*). The interpreter decides which it takes; gateway_util's word reader (nc_block_norm) is held to its answers (test_m600_preview_worker TestNcSpellings).",
+  "assign": {
+    "literal": "#3009=4",
+    "spaced_eq": "#3009 = 4",
+    "spaced": "#3 0 0 9=4",
+    "tab": "#3009\t=\t4",
+    "signed": "#+3009=4",
+    "decimal": "#3009.0=4",
+    "near": "#3009.00001=4",
+    "leading_zero": "#03009=4",
+    "double_hash": "#1=3009\n##1=4",
+    "named_indirect": "#<_k>=3009\n##<_k>=4",
+    "expression": "#[3000+9]=4",
+    "function": "#ABS[-3009]=4",
+    "two": "#3010=5 #3009=4",
+    "numbered": "N10 #3009=4",
+    "comment_after": "#3009=4 (#3010=5)",
+    "unbracketed_sum": "#3009=#3009+1",
+    "bracketed_sum": "#3009=[#3009+1]",
+    "negative_target": "#-3009=4",
+    "minus_param": "#1=-4\n#3009=-#1",
+    "lower": "#3009=4 g0 x1"
+  },
+  "mword": {
+    "control": "T2 M600",
+    "compact": "T2M600",
+    "signed": "T2 M+600",
+    "expression": "T2 M[600]",
+    "decimal": "T2 M600.0",
+    "near": "T2 M600.00001",
+    "leading_zero": "T2 M0600",
+    "spaced": "T2 M6 0 0",
+    "param": "#1=600\nT2 M#1",
+    "named": "#<_tc>=600\nT2 M#<_tc>",
+    "numbered": "N10T2M600",
+    "product": "T2 M[300*2]",
+    "function": "T2 MABS[-600]",
+    "lower": "t2 m600",
+    "called": "o<child> call"
+  }
+}
