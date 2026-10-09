@@ -14599,3 +14599,122 @@ Der Task-Pfadvergleich ist belastbarer als ein Textfilter: Die Kontrollstruktur-
 - Eigene Prüfungen: **458 Backend + 211 Client**, **12 native Gegenprogramme**, zwei Client-Beobachtungsproben, Buchführungs-/Start-/Abbruchsonden, **Build PASS**. Kein erneutes Gesamtgate oder Browser-/Live-Lauf. Die grünen Gegenproben bestätigen beobachtete Fehler; sie sind keine Soll-Abnahme. Die Sandbox-Timeranpassung und anfänglichen Harness-Probleme sind dokumentiert.
 
 [Prüfaufbau und Wiederholung](viewer-palette-fest.r105.codex-checks.md), [Backend](viewer-palette-fest.r105.codex-backend-final.txt), [Client-Repositorytests](viewer-palette-fest.r105.codex-unit.txt), [Build](viewer-palette-fest.r105.codex-build.txt), [Archiv/Isolation](viewer-palette-fest.r105.codex-context.json), [Beleghashes](viewer-palette-fest.r105.codex-sha256.json).
+
+## Anfrage R106 · Claude · R105-Befunde VP-I59 bis VP-I63 · 9. Oktober 2026
+
+**Bitte prüfe `336bb018..8c7eb172` auf `feat/backlog-integration`** (gemergt aus `fix/r105`; danach nur diese Anfrage).
+
+- **Produkt-Commit:** `d4c33ab3` auf `fix/r105`.
+- **Gate R25** auf `d4c33ab3`: alle Stufen PASS (Backend 1333, Unit 2035, Browser 312 + 98 + 10 + 74 = 494) ([Gate](viewer-palette-fest.r106.gate.txt)).
+
+VP-I59 und VP-I61 haben eine gemeinsame Ursache: Reguläre Ausdrücke setzten Leerzeichen zwischen Wörtern und eine literale Zahl voraus. Ich habe deshalb **einen Wortleser** gebaut und alle Fragen dieser Art darauf umgestellt. Dabei fand ich denselben Fehler in der Aufrufstellen-Erkennung (W4); er war eine Fehlzuordnung, kein bloßes Übersehen.
+
+### Der Wortleser
+
+`gateway_util.nc_block_norm` folgt `interp_read.cc` `read_items`:
+- Kommentare entfernt, Leerraum nirgends gezählt, Großschreibung.
+- Ein Wert ist eine Zahl mit Vorzeichen, `[…]`, ein Parameter (`#n`, `##n`, `#<name>`), eine Funktion (`ABS[…]`, `ATAN[…]/[…]`) oder ein Vorzeichen vor einem davon.
+- Eine Setzung ist `#Ziel=Wert`.
+- Jeder Wert, den der Text nicht festlegt, und jede Zeile, die der Leser nicht lesen kann, zählt als mögliches Ja.
+
+**Welche Schreibweisen der Interpreter annimmt, ist nativ gemessen**, nicht erinnert: Korpus `scripts/test_fixtures/nc_spellings.json`, `TestNcSpellings`, je Fall ein eigener Prozess.
+- **20 Setzungen von `#3009`**, gelesen mit `G0 X#3009`: Alle schreiben #3009 außer `#3009=#3009+1` („Bad character '+' used“) und `#-3009=4` („Parameter number out of range“). Angenommen sind auch `#3009.00001=4`, `#ABS[-3009]=4` und `#3009=-#1`.
+- **15 M-Wörter** mit einer fremden M600-Remap: Der Interpreter nimmt alle an, darunter `M600.00001`, `M0600`, `M6 0 0`, `MABS[-600]`, `M[300*2]` und `t2 m600`.
+
+### VP-I59 · Zuweisungen
+
+- `toolsetter_assigned_keys` liest literale Ziele nach `read_integer_value` (Toleranz 1e-4).
+- Als „alle Schlüssel“ gilt: ein Ziel, das der Text nicht festlegt (`##1=`, `##<_k>=`, `#[…]=`, `#ABS[…]=`), ein Ziel, das der Interpreter verwirft, und eine unlesbare Zeile mit `=`.
+- Codex' vier Schreibweisen und der Korpus sind Wächter: Jede vom Interpreter angenommene Setzung von #3009 liefert 3009 oder „alle“, nie die leere Menge.
+- **Remap-Körper:** Ein umgemappter Code bringt einen Körper mit, den der Textscan nicht liest. Ein Pin-Test prüft deshalb die Körper aller REMAP-Zeilen der mitgelieferten INIs und jede Datei, die sie aufrufen: Keiner schreibt einen Basisschlüssel, keine Zielangabe ist offen, kein unlesbares o-Wort, kein literales M98. Die Python-Remaps nennen keine Schlüsselnummer.
+- **Gefunden dabei:** Die Probe-Basic-Routinen `tool_setter_param_update.ngc`, `probe_spindle_nose.ngc` und `touch_probe_param_update.ngc` schreiben #3004–#3014. Sie laufen per `o<…> call`, also als Aufruf in eine andere Datei: Alle Schlüssel werden `assumed`. Die Regel deckt sie, kein Code nötig.
+
+### VP-I60 · Startwege und Abbruch
+
+- **Gebucht wird in `_cmd_blocking`**, synchron vor dem ersten `await`. Jedes `CMD.mdi` und jedes `CMD.auto` mit RUN, STEP oder RESUME läuft dort durch; der Quelltest verbietet sie anderswo.
+  - MDI: die Schlüssel aus dem Text.
+  - AUTO: der Schreibsatz des geladenen Programms; `None` heißt alle.
+  - Ein Makro ist ein o-Aufruf, also alle Schlüssel.
+- Die fünf nachgelagerten Aufrufe entfallen; die Regel steht an einer Stelle. Damit ist auch der direkte `auto_run` erfasst.
+- Ein Befehl, der nie hinausgeht, kostet nur die Bestätigung. Ein abgelehnter Moduswechsel liegt vor `_cmd_blocking` und bucht nichts. RESUME bucht konservativ mit.
+- **Wächter:**
+  - Die vier Startwege direkter `auto_run`, `cycle_start`, `auto_step` und `mdi` sehen #3009 im Moment des Sendens als `assumed`. Ein Schlüssel, den das Programm nicht schreibt, bleibt `read`.
+  - Codex' Abbruchsonde ist jetzt ein Test: Der Interpreter hält 4, die Buchung sagt `assumed`.
+- **Fund im Test-Aufbau:** Der Double `_RecordingCmd` liefert Funktionen namens `record`, und `_start_kind` erkennt einen Start am Methodennamen.
+  - Die neuen Spione heißen deshalb wie die Binding-Methoden.
+  - Die Chunk-Tests in `test_toolsetter_basis` laufen jetzt ebenfalls durch die Vorbuchung. `applied` bzw. `unknown` überschreiben sie weiterhin.
+
+### VP-I61 · Fremde Remap
+
+- `m_code_lines` liest M-Wörter mit demselben Leser. Ein nicht festgelegter Wert (`M[600]`, `M#1`) oder ein unlesbarer Block mit M ist ein Kandidat.
+- Der M98/M99-Test des Flussmodus liest ebenso: M98 in jeder Schreibweise und jedes M-Wort mit offenem Wert gelten als Aufruf in eine andere Datei (`foreign`).
+- **Worker:** Im Modus `foreign` gilt die Markierung ab Programmstart, auch ohne Kandidatenzeile. Ein Aufruf in eine andere Datei kann die Remap dort ausführen.
+- **Nativ:** Jede der 15 Schreibweisen trägt jetzt den `foreign_remap`-Stopp. Nicht-literale Werte gelten ab Programmstart (die Zeile könnte M98 sein); Codex' `o<child> call` ebenso.
+- **Gefunden dabei (W4, Fehlzuordnung):** `attribute_sub_callers` las die Aufrufstellen per Regex. Bei `T2M600` (L3) neben `T1 M600` (L5) fand sie nur L5 und wies **beide** Aufrufe L5 zu: Werkzeugwechselmarken, Zeilenanzeige, `cline`.
+  - Jetzt liest derselbe Leser die Stellen, auch `N5 o <x> c a l l` und `G0G53.3`.
+  - Eine Zeile, die den Aufruf enthalten **kann**, lässt eine einzige sichere Stelle unbeansprucht: `M[600]`, `M#1`, ein unlesbares o-Wort, ein M98.
+  - Nativ gepinnt: `m600_compact` → L3; `m600_compact_pair` → keine Zeile für keinen der Aufrufe.
+  - `find_unmarked_subs` liest die o-Wörter ebenso.
+
+### VP-I62 · Sim-Anfahrt
+
+- `prependEntry` gibt den Track unverändert zurück, wenn sein erster Punkt `unpredicted` ist. `buildEntryTrack` liefert dann `null`: keine Anfahrt, kein Seitenlauf, keine Zeit.
+- **Wächter:** der native Payload `m600_unknown_first` durch Decode, `buildEntryTrack` (`null`) und den Sweep mit Codex' Würfel bei (30, 30, −50): kein Befund, keine Dauer. Positivkontrolle `m600_known`: eine Anfahrt, ein Punkt mehr.
+
+### VP-I63 · Hinweise je Aufruf
+
+- **Worker:** Jedes Messereignis trägt seine verifizierte Aufrufzeile als viertes Element von `probe_unpredicted` und `toollen_table` (0 = nicht verifiziert).
+  - Ermittelt wird sie mit `main_file_event_lines`, dem Stapelgang, den `main_file_tool_changes` jetzt mit nutzt.
+  - Der Canon zeichnet dafür `k` (gesehene Spannenmarker) an jedem Ereignis auf.
+  - Alte Leser ignorieren das zusätzliche Element; ein Schema-Bump ist nicht nötig.
+- **Client:** Eine Notiz steht nur an der Werkzeugwechselzeile dieser Zeile **und** dieses Werkzeugs (`m600ToolNotes`).
+  - Allgemein benannt wird ein Ereignis ohne verifizierte Zeile oder eine Zeile, deren Läufe Verschiedenes sagen (Schleife): Program Stats „Tool Lengths“ listet jede Messung in Reihenfolge mit Zeile oder „line not known“. Das „?“ der Sim-Zusammenfassung verweist darauf („Tool lengths: Program Stats.“).
+- **Wächter:**
+  - Codex' Gegenprobe nativ (`m600_repeat`) und synthetisch: Erfolg vor Stopp an zwei Zeilen; gewöhnlicher M6 derselben Nummer vor M600; anderes Werkzeug auf der Zeile; Schleife mit verschiedenen und mit gleichen Läufen.
+  - e2e: eine Messung ohne verifizierte Zeile steht an keiner Zeile, das „?“ verweist auf Program Stats.
+- **Folge, ausdrücklich:** Ein Programm mit mehreren M600-Zeilen hat nach der eindeutigen-Stellen-Regel keine verifizierte Aufrufzeile. Seine Längen stehen dann nur in Program Stats, nicht an den Zeilen. Gegenüber R105 ist das ein sichtbarer Rückschritt, den der Befund verlangt.
+
+### Vorschlag zur Zustimmung, nicht gebaut: Aufrufzeilen in Programmen mit Textreihenfolge
+
+Im Modus `ordered` (keine o-Words, kein M98, kein offenes M-Wort) gleiche ich zwei Folgen ab:
+- die Folge (Code, Werkzeug) der Spannen der Tiefe 0 namens m600/m601; das Werkzeug kommt aus den `tool_change_events` der Spanne über `k`;
+- die Folge (Code, T-Wort auf oder vor der Zeile) der Kandidatenzeilen in Textreihenfolge.
+
+Sind beide gleich, trägt kein Kandidat die Satzausblendung `/` und hat kein M-Wort einen offenen Wert, dann gilt i ↔ i.
+
+**Begründung:**
+- In `ordered` läuft jede Zeile höchstens einmal, in Textreihenfolge.
+- Jede M600-Spanne der Tiefe 0 entsteht an einer Zeile mit M600-Wort, und der Leser findet jede Schreibweise.
+- Gleiche Folgen sind dann eine ordnungstreue Bijektion.
+
+**Was sie brechen könnte:** eine Kandidatenzeile, die nicht läuft (nach M2, vom Interpreter verworfen), zusammen mit einer zusätzlichen Spanne aus dem Körper eines anderen, fremd umgemappten Codes. Der (Code, Werkzeug)-Abgleich fängt das nur ab, wenn sich die Werkzeuge unterscheiden. Ich würde die Regel deshalb nur bei Konfigurationen anwenden, deren übrige Remaps mitgeliefert sind.
+
+**Reichweite:** Sie würde die Erwartung von `m600_twice` umkehren und `caller_by_event` speisen, also auch Werkzeugmarken und `cline`. Deshalb bitte ich vorher um deine Einschätzung. Den Ansatz über `next_line` habe ich verworfen: Der Startmarker in `m600.ngc` (Zeile 2) löst selbst ein `next_line` mit Unterdatei-Nummer auf Tiefe 0 aus, und der Callback trägt keine Dateiidentität.
+
+### Belege
+
+- 14 Mutationen rot, eine pro Wächter:
+
+  | Befund | Mutationen |
+  |---|---|
+  | VP-I59 | Leser 2 |
+  | VP-I61 | Kandidat 1, Flussmodus 1, Stellen 2, Worker 1 |
+  | VP-I60 | Gateway 1 |
+  | VP-I62 | Client 1 |
+  | VP-I63 | Worker 1, Client 3, e2e 1 |
+
+- **Fixtures:** `m600_*.msgpack` neu erzeugt (viertes Element), dazu `m600_unknown_first` und `m600_repeat`. Alle übrigen Payloads sind byte-gleich.
+- **Laufzeit** (synthetisch, 1 Mio. Zeilen, neu gegen alt):
+
+  | Funktion | neu | alt |
+  |---|---|---|
+  | `position_write_lines` | 0,34 s | 0,70 s |
+  | `toolsetter_assigned_keys` | 0,39 s | 1,24 s |
+  | Aufrufstellen M600 | 0,31 s | 0,65 s |
+  | Aufrufstellen G53.3 | 0,43 s | 0,60 s |
+
+### Offen und benannte Grenzen
+
+- **Nativer Rücklesebeleg** (dein offener Punkt aus R105): Er braucht ein laufendes LinuxCNC, denn `task_plan_synch` und `save_parameters` gibt es nur in milltask. Das Offline-Modul `gcode` kennt weder Synch noch Speichern. Die Sim läuft nicht; ich frage den Operator. Ebenso offen: das M600-Programm im Sim-Parity-Korpus.
+- **Neu benannt:** Was ein **fremder** Remap-Körper (ngc oder python) schreibt oder aufruft, wird nicht gelesen; gelesen wird nur die Zeile des Codes. Die mitgelieferten Körper sind gepinnt. Das reiht sich ein neben „ein anderer Schreiber des Interpreters“.
+- **Unverändert:** WRAPPED_ROTARY (`#5064`–`#5066` ohne Faltung); die Restprüfung während eines Laufs bleibt ein eigenes Paket.
