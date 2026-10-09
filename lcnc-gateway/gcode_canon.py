@@ -379,6 +379,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 return self._byte_line(int(c.position))
         return None
 
+    def _in_main_file(self):
+        """Does this callback come from the MAIN file's own text (a line of
+        it, an inline or M98 sub's too)? None without the interpreter's
+        word."""
+        if self.main_file is None:
+            return None
+        t = self.interp()
+        if t is None:
+            return None
+        return self._is_main(t.filename)
+
     def remaps_running(self):
         """The remapped codes the interpreter runs now, lower case, outermost
         first ("m200", "m600"); () without its word."""
@@ -658,13 +669,18 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         the old offset again (Codex R97); re-selecting the active fixture
         makes no call at all (measured). Where this file's text speaks for
         the line, an explicit write is no cause, and in text order a listed
-        one is the scan's (taken at the next line); everything else counts:
-        a line the scan missed ("not found" is no proof of none), a listed
-        line out of text order, any line of another file."""
+        one is the scan's (taken at the next line) — but only a write OF that
+        text: a remap body's or a called file's callback is a write the line
+        does not show, named by the main line, never excused by it (Codex
+        R108 VP-I65: `G10 L2 P1 X0 M200`, the body's G92 from the unknown
+        position). Everything else counts: a line the scan missed ("not
+        found" is no proof of none), a listed line out of text order, any
+        line of another file."""
         if not (self.stale and self._program_line()):
             return
         n = self._write_line()
-        if self.write_lines is not None and self.write_mode in ("ordered", "inline"):
+        if (self.write_lines is not None and self.write_mode in ("ordered", "inline")
+                and self._in_main_file() is not False):
             t = self.write_lines.get(n)
             if t == "explicit" or (t is not None and self.write_mode == "ordered"):
                 return

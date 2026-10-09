@@ -1202,7 +1202,11 @@ as an EVENT — never judged by its value: a `G92 Z40` at a believed Z40
 computes the old offset again (R97); re-selecting the active fixture makes no
 call at all (measured), and a switch's own G92 re-apply is the switch's. A
 reported write counts unless this file's text says the line is explicit, or,
-in text order, lists it for its own scan; named by its line where the
+in text order, lists it for its own scan — and the text speaks only for a
+write of its OWN: a remap body's or a called file's callback is named by the
+main line it ran in, never excused by it (Codex R108 VP-I65: `G10 L2 P1 X0
+M200`, the body's G92 from the unknown position; `_in_main_file`, the
+interpreter's word); named by its line where the
 numbers are the file's, else 0 — a main-file write listed under the same
 number proves no shared origin (R98 VP-I56). A cause line is named once
 a move runs after it (`stale_offset_lines` on the wire); the payload says

@@ -402,6 +402,26 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         self.assertEqual(r["stale_offset_lines"], [4])
         self.assertEqual(r["rapid_ustart"][-2:], [1, 1])
 
+    def test_a_main_line_never_excuses_its_remap_body_s_write(self):
+        # Codex R108 VP-I65: the explicit G10 L2 of `G10 L2 P1 X0 M200` is no
+        # cause, but M200's body runs a G92 from the unknown position — a
+        # write the line does not show. Named by the line, never excused by
+        # it: in one block (L4), on two lines (L5), M200 alone (L4), and
+        # beside a LISTED write that is not the body's (an inactive
+        # fixture's L20 — the body's G92 hits the active frame)
+        for case, line in (("r108_explicit_and_remap", 4), ("r108_explicit_then_remap", 5),
+                           ("r108_remap_alone", 4), ("r108_listed_and_remap", 4)):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["stale_offset_lines"], [line], case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+        # the control: the main text's own explicit write stays no cause
+        r = probe("r108_explicit_alone")
+        self.assertIsNone(r["stale_offset_lines"])
+        self.assertEqual(r["rapid_ustart"][-1], 0)
+        self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.

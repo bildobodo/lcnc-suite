@@ -8946,3 +8946,14 @@ number as unary, recursively: `G-[-10]` and `G--10` are G10, and `G-[-28.1]`
 is G28.1. The prefilters now let any run of signs through, and the reader
 reads signs exactly. A negative G code is refused natively ("Negative g code
 used").
+
+R108 accepted the interpreter's state as the primary source and closed
+VP-I61, VP-I63 and VP-I64. It found one more case (VP-I65). The text excused a
+callback-caught write when the line it ran in was an explicit write. That
+holds for the line's OWN write, never for its remap body's: in
+`G10 L2 P1 X0 M200`, M200's G92 from the unknown position was swallowed.
+Codex: "a tool mark needs the call line; excusing a write does not". The
+canon now asks the interpreter whether the callback comes from the main
+file's own text (`_in_main_file`). Only then can the text excuse it, as an
+explicit write or one listed for the walk. A body's write is named by the
+main line and counts.

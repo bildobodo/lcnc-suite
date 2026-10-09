@@ -244,6 +244,16 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       expect(r.result.hits).toHaveLength(0);
       expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
     });
+    it("a main line never excuses its remap body's write (Codex R108 VP-I65)", () => {
+      // `G10 L2 P1 X0 M200`: the explicit G10 is no cause, M200's body runs
+      // G92 Z10 from the unknown position — L6 stays unknown, no false hit
+      // on Codex's box at the preview's Z45 path, L4 named
+      const r = sweepXYZ("r108_explicit_and_remap", [15, 5, 45]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.track.cum[r.last]).toBe(r.track.cum[0]);
+      expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
+    });
     it("an o-word whose name is no literal is read as one, never as no o-word (Codex R99)", () => {
       // `o+100 call` runs 100.ngc's G92 Z40: L7 stays unknown, no hit on
       // Codex's box at the preview's Z15, the write named by no main-file line.
