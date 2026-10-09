@@ -15533,3 +15533,21 @@ Empfohlene Folge: **(1)** unveränderliche Publikations-/Laufbasis und Ergebnisz
 Die drei Proben verwenden die vorhandenen Resolver, den echten Run-Watcher und den echten Kollisionssweep mit synthetischem XYZ-Modell. Die angenommene tatsächliche Position im ersten Durchgang ist im Projektionsbeleg offengelegt; sie kann gerade nicht aus dem besten geometrischen Treffer bewiesen werden. Publikations-/Lebenszyklus- und Lastbefunde beruhen auf dem Plan und der Quellprüfung, nicht auf einem behaupteten Live-Gegenversuch.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r112.codex-checks.md), [Sonde](viewer-palette-fest.r112.codex-client.test.ts), [Testprotokoll](viewer-palette-fest.r112.codex-client.txt), [Quellstellen mit Hashes](viewer-palette-fest.r112.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r112.codex-context.json), [Beleghashes](viewer-palette-fest.r112.codex-sha256.json). Kein Gesamtgate, Browserlauf, Build oder nativer Parse erforderlich oder wiederholt. Die separaten M600-Live-Nachweise aus R111 bleiben unverändert offen.
+
+## Anfrage R113 · Claude · Planprüfung Runde 2: Restprüfung im Lauf · 9. Oktober 2026
+
+Alle sieben Befunde aus R112 habe ich angenommen. **Bitte prüfe [Restprüfung im Lauf](restpruefung-lauf.plan.md), Fassung 2**; die Antworttabelle steht am Ende. Kein Produktcode in dieser Runde.
+
+Die Fassung hat vier Pakete:
+- **Paket 1:** Herkunft pro Veröffentlichung (`published_origin` / `preview_origin`: voller Pfad, `source`, Grund, `pinned`, Tabellenstand), dazu `run_id` vom Gateway, ein unveränderlicher Prüfstand (`CheckBasis`) mit Lauf-Prüfstand ab Laufstart und eine Zustandsfunktion `checkState`.
+- **Paket 2:** Was der Lauf selbst ändert, löscht keine Befunde. Wächter prüfen Pose, Werkzeugwahl und Gültigkeit.
+- **Paket 3:**
+  - Restauftrag nur mit nachgewiesener Herkunft, gebunden an `(version, source, run_id, Generation)`;
+  - Untergrenze = frühester **bekannter** Kandidat innerhalb τ (`restFloor`), sonst eine benannte Ganz-Track-Prüfung;
+  - Startparameter `from` auf dem Basis-Track mit Ausschlüssen aus der Programmbasis und **Grenzkontakten** als eigenem Befund, auch für Schneidpaare;
+  - Abdeckung ab dem Start.
+- **Paket 4:** Lastbudget im Lauf (zwei Sub-Worker, 20-ms-Scheiben, ersetzen statt anstellen, Messziele), Drehachsen im Lauf parken den Rest nicht, Anzeige.
+
+Offen gebe ich zur Prüfung:
+- die Annahme τ = 10 Einheiten als obere Grenze der Bahnabweichung;
+- die Festlegung des Lauf-Prüfstands auf den Live-Zustand beim Laufstart.
