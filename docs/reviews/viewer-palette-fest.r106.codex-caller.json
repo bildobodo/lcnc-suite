@@ -1,0 +1,29 @@
+{
+  "events": [
+    {
+      "seq": 22,
+      "tool": 2,
+      "line": 5,
+      "length": 80,
+      "note": "80.000 mm from the table (assumed)"
+    },
+    {
+      "seq": 50,
+      "tool": 1,
+      "line": 5,
+      "length": 10,
+      "note": "10.000 mm from the table (assumed)"
+    }
+  ],
+  "stats": "T2 80.000 mm (L5), T1 10.000 mm (L5)",
+  "tool_change_lines": [
+    [
+      5,
+      2
+    ],
+    [
+      5,
+      1
+    ]
+  ]
+}
