@@ -3548,7 +3548,8 @@ function _startRunCheck(): boolean {
   collisionRun.value = { version: g.publishedVersion!, runId: rb.runId, gen, basis,
     phase: from != null ? "provisional" : "full", fromIndex: from,
     // the line the operator sees there: inside a called file its call line
-    fromLine: from != null ? displayLineForPoint(track, from + 1, true).line : null };
+    // (a point nothing vouches for keeps its own number, collision.ts noteLine)
+    fromLine: from != null ? displayLineForPoint(track, from + 1, true).line ?? track.lines[from + 1] ?? null : null };
   if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
   emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from });
   _colRunLog.push(from != null ? `start provisional ${from}` : "start full");
