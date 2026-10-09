@@ -300,6 +300,115 @@ test("a sweep held off by a run starts once the machine is idle, without another
   await ctl({ op: "reset" });
 });
 
+// ---- Plan „Prüfung im Lauf“ 1c / 2 (Codex R112–R115) ----
+// L7 traverses into the A yoke (as above): a program with findings.
+const RUN_FEED = [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]];
+const Z9 = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+/** The envelope's run_basis as the gateway sends it once the start was
+ *  written (scripts/test_fixtures/run_check_wire.json). */
+const runEnv = (file: string, over: Record<string, unknown> = {}) => ({ run_basis: {
+  run_id: 7, state: "sent", file, source: "s", version: 4101, ctx_digest: "d", tool_basis_rev: 1,
+  start: { g5x_index: 1, g5x_offset: Z9, g92_offset: Z9, rotation_xy: 0, wcs_table: null, tool_number: 0,
+           tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: Z9 },
+  verified: true, why: null, ...over } });
+const basisOf = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionBasis!());
+const g92z = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
+
+async function runReady(page: Page, context: BrowserContext, file: string, version: number) {
+  await prepare(page, context, { file, version, feed: RUN_FEED, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0] });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  await expect(clashRows(page).first(), "the program's collisions, swept at load").toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
+  const found = await hitCount(page);
+  expect(found).toBeGreaterThan(0);
+  return found;
+}
+
+test("what the run changes itself keeps the findings; its end re-checks on the state then (plan „Prüfung im Lauf“ 2)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const file = "/runkeep.ngc";
+  const found = await runReady(page, context, file, 4101);
+  const before = await basisOf(page);
+  expect(before?.kind).toBe("idle");
+  await ctl({ op: "quiet", on: true });
+  // the first AUTO frame the client sees already carries the program's early
+  // G92 and its M6 (the gateway wrote the start before; R113)
+  await ctl({ op: "status_delta", envelope: runEnv(file), data: { interp_state: 2, task_mode: 2,
+    g92_offset: g92z(5), tool_number: 3, tool_diameter: 10, tool_length: 50 } });
+  await page.waitForTimeout(800);   // past the 400 ms auto timer
+  expect(await hitCount(page), "the findings stay").toBe(found);
+  expect(await sweepDone(page), "no check began").toBe(true);
+  expect(await basisOf(page)).toEqual(before);
+  // pause and resume: the same run — its changes keep the findings too
+  await ctl({ op: "status_delta", data: { interp_state: 3 } });
+  await ctl({ op: "status_delta", data: { interp_state: 2, g92_offset: g92z(6) } });
+  await page.waitForTimeout(800);
+  expect(await hitCount(page)).toBe(found);
+  expect(await basisOf(page)).toEqual(before);
+  // the run ends: the state now is not the kept result's basis — the next
+  // start begins from here, so it is checked on it
+  await ctl({ op: "status_delta", data: { interp_state: 1, current_vel: 0 } });
+  await expect.poll(async () => (await basisOf(page))?.g92[2], { timeout: 10_000 }).toBe(6);
+  expect((await basisOf(page))?.kind).toBe("idle");
+  expect((await basisOf(page))?.toolLen).toBe(50);
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// No run: a start that was not written (unsent), and an MDI after a run (the
+// run_basis stays until the next start) — their changes are the operator's,
+// and the findings go at once as before.
+for (const [name, over, mode] of [
+  ["a start that was not written", { state: "unsent" }, 2],
+  ["an MDI after a run", {}, 3],
+] as const) {
+  test(`${name} is no run: a change clears the findings (plan „Prüfung im Lauf“ 2)`, async ({ page, context }) => {
+    test.setTimeout(90_000);
+    const file = "/norun.ngc";
+    await runReady(page, context, file, 4111);
+    await ctl({ op: "quiet", on: true });
+    await ctl({ op: "status_delta", envelope: runEnv(file, over), data: { interp_state: 2, task_mode: mode,
+      g92_offset: g92z(5) } });
+    await expect(clashRows(page), "cleared — not the program's change").toHaveCount(0);
+    await ctl({ op: "status_delta", data: { interp_state: 1, task_mode: 1 } });
+    await expect.poll(async () => (await basisOf(page))?.g92[2], { timeout: 10_000 }).toBe(5);
+    await ctl({ op: "quiet", on: false });
+    await ctl({ op: "reset" });
+  });
+}
+
+// Plan 1c: a preview the run published (its tool table changed) is not the
+// one the findings were swept on — the earlier verdict is NAMED, without its
+// rows, marks or count, until the displayed preview is checked (at idle).
+test("a preview published in the run names the earlier verdict only, until it is checked at idle (plan „Prüfung im Lauf“ 1c)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const file = "/runprev.ngc";
+  const found = await runReady(page, context, file, 4121);
+  await ctl({ op: "quiet", on: true });
+  await ctl({ op: "status_delta", envelope: runEnv(file), data: { interp_state: 2, task_mode: 2, motion_line: 6 } });
+  // the run is on screen before the publication (status frames are folded per
+  // animation frame; a real mid-run parse publishes seconds into the run)
+  await expect(simLine(page)).toHaveText(/L6|off path/);
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 4122, file } });
+  await expect(clashRows(page), "no rows of the earlier preview").toHaveCount(0);
+  const summary = page.locator(".simSummary .sumItem").first();
+  await expect(summary).toHaveAttribute("aria-label", `Earlier preview: ${found} collision${found === 1 ? "" : "s"}`);
+  await expect(page.locator(".simPanel .checkRow")).toContainText("Not checked yet");
+  const previous = () => page.evaluate(() => window.__viewerDiag!.getCollisionPrevious!());
+  expect(await previous()).toEqual({ collisions: found, complete: true, version: 4121 });
+  await page.waitForTimeout(800);
+  await expect(clashRows(page)).toHaveCount(0);
+  // idle: the displayed preview is checked; the earlier verdict goes
+  await ctl({ op: "status_delta", envelope: runEnv(file), data: { interp_state: 1, task_mode: 1, motion_line: 0 } });
+  await expect(clashRows(page).first()).toBeVisible({ timeout: 30_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
+  await expect(summary).not.toHaveAttribute("aria-label", /Earlier preview/);
+  expect(await previous(), "a check of the displayed preview ends the earlier verdict").toBeNull();
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
 // Codex R41 MR-I04: when no faithful re-parse can follow a tool-table change
 // during a run (a random tool changer the worker refuses to pin, or no
 // published start state), the gateway marks the payload's table stale until

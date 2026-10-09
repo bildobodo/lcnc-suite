@@ -12,7 +12,8 @@ import {
   handleStatusError, handleStatusMessage, latency, lcncError,
   markMessagesRead, mergeStatusPatch, messages, networkLatency, noteBulkData,
   noteFrameSample, noteHeartbeatSent, notePong, pushMessage,
-  previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewToolBasis,
+  previewOrigin, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewToolBasis,
+  runBasis,
   endPreviewBasisPending,
   readerStale, rebaseStatusDelta, resetOnClose, resetTimingStats, safetyChainIncomplete,
   safetyTrip, status, timingStats, unreadCount,
@@ -222,6 +223,27 @@ describe("preview_refresh sync (re-parse in flight)", () => {
     expect(previewTableStale.value).toBe(first);
     handleStatusMessage({ type: "status", data: {} });
     expect(previewTableStale.value).toBeNull();
+  });
+
+  it("mirrors preview_origin and run_basis, the same object while the value stands (plan „Prüfung im Lauf“ 1a/1b)", () => {
+    const origin = { version: 3, file: "/p.ngc", source: "s", reason: "file", pinned: false, for_run: null,
+      table: { mtime: 5, rows: "r" }, tool_basis_rev: 1, tool_basis_rev_now: 1 };
+    const rb = { run_id: 2, state: "sent", file: "/p.ngc", source: "s", version: 3, ctx_digest: "d",
+      tool_basis_rev: 1, start: null, verified: false, why: "x" };
+    handleStatusMessage({ type: "status", data: {}, preview_origin: origin, run_basis: rb });
+    const o1 = previewOrigin.value, r1 = runBasis.value;
+    expect(o1?.version).toBe(3);
+    expect(r1?.runId).toBe(2);
+    handleStatusMessage({ type: "status", data: {}, preview_origin: { ...origin }, run_basis: { ...rb } });
+    expect(previewOrigin.value).toBe(o1);
+    expect(runBasis.value).toBe(r1);
+    handleStatusMessage({ type: "status", data: {}, preview_origin: { ...origin, tool_basis_rev_now: 2 },
+      run_basis: { ...rb, state: "unsent" } });
+    expect(previewOrigin.value?.toolBasisRevNow).toBe(2);
+    expect(runBasis.value?.state).toBe("unsent");
+    handleStatusMessage({ type: "status", data: {} });
+    expect(previewOrigin.value).toBeNull();
+    expect(runBasis.value).toBeNull();
   });
 
   it("previewRefreshPct: elapsed over expected, capped at 97 % (only the publish completes it), 0 without an expectation", () => {

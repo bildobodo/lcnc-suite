@@ -15,7 +15,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
@@ -24,7 +24,9 @@ import { toolOffsetState } from "./viewer/toolOffsetState";
 import { buildPointMarker, posePointMarker, POINT_MARKER, type PointMarker } from "./viewer/pointMarker";
 import { fetchG30, type G30Response } from "./lcncApi";
 import { g30Confirmed } from "./g30Shared";
-import { INTERP_IDLE } from "./lcnc";
+import { INTERP_IDLE, TASK_MODE_AUTO } from "./lcnc";
+import { runInProgress } from "./runBasis";
+import { basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
@@ -49,6 +51,7 @@ import { clashTintBodies } from "./viewer/clashTint";
 import { mergeEntryResult } from "./viewer/sweepMerge";
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
+import { clashTargets } from "./viewer/clashTargets";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -2245,6 +2248,11 @@ async function buildFromInit(init: ViewerInit) {
             onsets: r.hits.filter(h => h.continuation === undefined).map(h => h.line),
             uncertified: r.uncertified } : null;
         },
+        // The basis the last main sweep was built from (plan „Prüfung im
+        // Lauf“ 1c): kind, run, the inputs it read.
+        getCollisionBasis: () => (_colBasis ? JSON.parse(JSON.stringify(_colBasis)) : null),
+        // The earlier preview's verdict, kept named while a run goes on (1c).
+        getCollisionPrevious: () => (collisionPrevious.value ? { ...collisionPrevious.value } : null),
         // The result's `uncertified` note alone (Codex R87 VP-I46: a body
         // left out must stay visible whatever else the result says).
         setCollisionNote: (note: string | null) => {
@@ -2585,21 +2593,21 @@ function applyState(init: ViewerInit, st: ViewerState) {
   let changed = false;
   if (_numArrChanged(_pv.jointPos, st.joint_pos)) { _pv.jointPos = st.joint_pos ? [...st.joint_pos] : null; changed = true; }
   if (_numArrChanged(_pv.machinePos, st.machine_pos)) { _pv.machinePos = st.machine_pos ? [...st.machine_pos] : null; changed = true; }
-  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
-  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(st); }
+  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(st); }
   // tool_offset is a transform input (joint-space math is G43-inclusive) only
   // for a payload without a known start: a seeded one resolves to its tool
   // basis, which moves with a re-decode at the verified basis (VP-I20) —
   // the live offset then only moves the markers (the machine's own state).
   if (_numArrChanged(_pv.toolOffset, st.tool_offset)) {
     _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _markerDirty = true;
-    if (!viewerGcode.value?.toolBasis) { _pfScheduleWcsRefresh(); _colOnInputChange(); }
+    if (!viewerGcode.value?.toolBasis) { _pfScheduleWcsRefresh(); _colOnInputChange(st); }
   }
   if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }
-  if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }
-  if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }
+  if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(st); }
+  if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(st); }
   if ((st.tool_table_z ?? null) !== _pv.toolTableZ) { _pv.toolTableZ = st.tool_table_z ?? null; changed = true; }
-  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }
+  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(st); }
   // Fixture-table edits (review P2): only the rows the payload's
   // non-rewritten epochs actually RE-ADD participate in the change key
   // (W2 P5 — wcs_frames ships on every modern payload, so keying on the
@@ -2611,7 +2619,7 @@ function applyState(init: ViewerInit, st: ViewerState) {
       _pv.wcsTableKey = tk;
       _pv.wcsTable = (st.wcs_table as WcsTableRow[] | undefined) ?? null;
       changed = true;
-      _pfScheduleWcsRefresh(); _colOnInputChange();
+      _pfScheduleWcsRefresh(); _colOnInputChange(st);
     }
   }
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
@@ -2892,6 +2900,10 @@ let _colSettleTimer: ReturnType<typeof setTimeout> | undefined;
 const collisionBusy = ref(false);
 const collisionProgress = ref(0);
 const collisionResult = ref<CollisionResult | null>(null);
+// The verdict of the preview shown before the one displayed now, kept NAMED
+// while a run goes on (plan „Prüfung im Lauf“ 1c): no marks, counts or jumps
+// of the current preview — only the line that says what it was.
+const collisionPrevious = shallowRef<{ collisions: number; complete: boolean; version: number | null } | null>(null);
 // The exact track the current result was swept on — hit cums are only
 // meaningful against it (shallowRef: tracks hold Maps + typed arrays).
 const collisionTrack = shallowRef<ScrubTrack | null>(null);
@@ -3203,11 +3215,39 @@ function _colOnVisibility() {
 // Identity of the collision model the worker keeps resident: the loaded
 // parts (id, file, group, placement, stock flag), the unit scale and the
 // tool body dims. Bodies are re-sent only when it changes.
-function _colModelKey(init: ViewerInit): string {
+function _colModelKey(init: ViewerInit, basis: CheckBasis): string {
   const parts = (init.parts ?? [])
     .filter(p => partCollides(p) && !!getCachedGeometry(p.id))
     .map(p => [p.id, p.file, p.collision ?? null, p.group ?? "root", p.translate ?? null, (p as any).rotate ?? null, p.stock ? 1 : 0]);
-  return JSON.stringify([parts, _unitScale, _toolVisual(_pv.toolDiam, _pv.toolLen)]);
+  return JSON.stringify([parts, _unitScale, _toolVisual(basis.toolDiam, basis.toolLen)]);
+}
+
+// ---- The check basis (plan „Prüfung im Lauf“ 1c, Codex R112–R115) ----
+// Every sweep is built from ONE snapshot of what it reads besides the
+// payload — fixture terms, fixture table, the tool before the program's
+// first tool event — never from `_pv` at the time a field is read. Idle:
+// the live state when the check begins; in a run: the run's start as the
+// gateway took it before the start was written (run_basis.start).
+/** The live check inputs — what an idle check reads. */
+function _liveCheckBasis(): CheckBasis {
+  return basisFromLive(_pv, viewerGcode.value?.toolBasis ?? null);
+}
+/** A run in progress as the status frame `st` shows it (plan 2). */
+function _runInProgress(st: any): boolean {
+  return runInProgress(runBasis.value, st?.task_mode, st?.interp_state, TASK_MODE_AUTO, INTERP_IDLE);
+}
+/** The basis a check begun NOW is built from. */
+function _checkBasisNow(): CheckBasis {
+  if (_runInProgress(status.value?.data)) {
+    const b = basisFromRun(runBasis.value, viewerGcode.value?.toolBasis ?? null);
+    if (b) return b;
+  }
+  return _liveCheckBasis();
+}
+/** The basis of the main sweep posted last — its result's. */
+let _colBasis: CheckBasis | null = null;
+function _colWcs(basis: CheckBasis): PartFrameWcs {
+  return { g5x: basis.g5x, g92: basis.g92, rotationDeg: basis.rotationXy, tool: basis.toolOffset };
 }
 
 /** The worker request for one sweep of `track`. Bodies (copies of every
@@ -3218,10 +3258,10 @@ function _colModelKey(init: ViewerInit): string {
  *  (`__viewerDiag.setCollisionShards`): undefined = as many as the worker
  *  chooses. */
 let _colMaxShards: number | undefined;
-function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
+function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: CheckBasis) {
   const init = viewerInit.value;
   if (!init) return null;
-  const modelKey = _colModelKey(init);
+  const modelKey = _colModelKey(init, basis);
   const sendBodies = !_colWorker || _colModelSent !== modelKey;
   const bodies: CollisionBody[] = [];
   let skipped = 0;
@@ -3284,9 +3324,9 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
     // build (min length + shank sink into the holder). Using the raw tool
     // length made the collision body SHORTER than the tool on screen: the
     // model visibly touched while the sweep saw clearance.
-    tool: _toolVisual(_pv.toolDiam, _pv.toolLen),
+    tool: _toolVisual(basis.toolDiam, basis.toolLen),
     track: trackCopy,
-    wcs: _pfWcs(),
+    wcs: _colWcs(basis),
     side: side || undefined,   // beside the main sweep (entry segment)
     maxShards: _colMaxShards,
     options: {
@@ -3295,14 +3335,14 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean) {
       // segment's program coords through ITS epoch's basis. Built here
       // (live status is main-thread state); plain JSON, clones fine.
       epochTerms: track.wcsEvents?.length
-        ? epochTermsFor(track.wcsEvents, _pfWcs(), _pv.wcsTable ?? undefined)
+        ? epochTermsFor(track.wcsEvents, _colWcs(basis), basis.wcsTable ?? undefined)
         : undefined,
       tloEvents: track.tloEvents,
       // Per-program-tool bodies (schema 8): the sweep swaps the tool
       // cylinder to each segment's tool; the live tool is the pre-first-M6
       // fallback.
       toolDims: _programToolDims(),
-      liveTool: _pv.toolNum,
+      liveTool: basis.toolNum,
       // An offset set from the unknown position after a tool change: the
       // note names its line (Codex R95 VP-I53). Plain arrays, clone fine.
       staleOffsetLines: viewerGcode.value?.stale_offset_lines?.slice(),
@@ -3326,8 +3366,11 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
   if (!track || collisionBusy.value) return;
   const id = ++_colReqId;
-  const req = _colBuildRequest(track, id, false);
+  const basis = _checkBasisNow();
+  const req = _colBuildRequest(track, id, false, basis);
   if (!req) return;
+  _colBasis = basis;
+  collisionPrevious.value = null;   // a check of the displayed preview begins
   _colPendingTrack = track;
   collisionBusy.value = true;
   _colStopPending = false;
@@ -3360,7 +3403,9 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
  *  or the main run's state. */
 function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, shift: number, retried = false) {
   const id = -(++_colSideSeq);
-  const req = _colBuildRequest(toRaw(slice) as ScrubTrack, id, true);
+  // sim entry: the machine is off and idle — the live state, which is the
+  // base result's basis (a change since cleared it, _colOnInputChange)
+  const req = _colBuildRequest(toRaw(slice) as ScrubTrack, id, true, _liveCheckBasis());
   if (!req) return;
   if (_colSide && _colWorker) _colWorker.postMessage({ cancel: _colSide.id });
   _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now() };
@@ -3399,6 +3444,11 @@ function _colScheduleAuto() {
   }, 400);
 }
 watch(() => status.value?.data?.interp_state, (st, prev) => {
+  // The run ended: a result it kept (plan 2) whose basis is not the state
+  // now is re-checked — the next start begins from here.
+  if (st === INTERP_IDLE && prev != null && prev !== INTERP_IDLE && _colBasis
+      && (collisionResult.value || collisionBusy.value || collisionResumable.value)
+      && !sameCheckInputs(_colBasis, _liveCheckBasis())) _colOnInputChange();
   if (st === INTERP_IDLE && _colHeldByRun) _colScheduleAuto();
   // back to idle: the interpreter synched its parameters — G30 may have moved
   if (st === INTERP_IDLE && prev != null && prev !== INTERP_IDLE) refreshG30();
@@ -3407,7 +3457,12 @@ watch(() => status.value?.data?.interp_state, (st, prev) => {
 // Live WCS or tool dims changed: current results are stale — clear them
 // honestly and re-run (debounced; touch-off sequences change several
 // values in quick succession).
-function _colOnInputChange() {
+function _colOnInputChange(st?: any) {
+  // A run in progress changes these itself (an early G92, its M6): the
+  // result stays with the basis it was built from (plan „Prüfung im Lauf“
+  // 2) — decided on the SAME status frame as the change; the end of the
+  // run compares that basis with the state then (the interp watcher).
+  if (st && _runInProgress(st)) return;
   if (!collisionResult.value && !collisionBusy.value && !collisionEntry.value && !_colSide) return;
   cancelCollisionCheck();
   collisionResult.value = null;
@@ -3433,7 +3488,14 @@ watch(previewBasisPending, (pending) => {
 });
 
 // A new program (or unload) invalidates results — never show stale clashes.
-watch(viewerGcode, () => {
+// A preview published DURING a run (the mid-run table parse): the earlier
+// preview's verdict stays NAMED, without its marks, counts or jumps (plan 1c
+// „bisherige Vorschau“), until a check of the displayed preview begins.
+watch(viewerGcode, (g, old) => {
+  const prev = collisionResult.value;
+  collisionPrevious.value = prev && g && old && g.file === old.file && _runInProgress(status.value?.data)
+    ? { collisions: clashTargets(prev.hits).length, complete: !prev.truncated, version: old.publishedVersion ?? null }
+    : (g && old && g.file === old.file ? collisionPrevious.value : null);
   cancelCollisionCheck();
   collisionResult.value = null;
   collisionTrack.value = null;
@@ -4913,6 +4975,7 @@ defineExpose({
       :collisionPartial="collisionPartial"
       :collisionPartialTrack="collisionPartialTrack"
       :collisionEntryResult="collisionEntryResult"
+      :collisionPrevious="collisionPrevious"
       @check-entry="runEntryCheck"
       @pose="onScrubPose"
       @finding="onFinding"

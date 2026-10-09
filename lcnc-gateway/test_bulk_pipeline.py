@@ -914,6 +914,19 @@ class TestRunBinding(unittest.TestCase):
                                                      pinned=True, run=self.run))
             self.assertEqual(self.b.published_origin["for_run"]["run_id"], 1)
 
+    def test_the_origin_on_the_wire_has_the_fixtures_keys(self):
+        # the client reads scripts/test_fixtures/run_check_wire.json
+        wire = json.loads(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts",
+                                            "test_fixtures", "run_check_wire.json")).read())["preview_origin"]
+        self._load()
+        self.run = self._run()
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                 pinned=True, run=self.run))
+        o = self.b.preview_origin_status()
+        self.assertEqual(set(o), set(wire))
+        self.assertEqual(set(o["for_run"]), set(wire["for_run"]))
+        self.assertEqual(set(o["table"]), set(wire["table"]))
+
     def test_the_tool_basis_revision_counts_changes_only(self):
         rev0 = self.b.tool_basis_rev
         self._load()

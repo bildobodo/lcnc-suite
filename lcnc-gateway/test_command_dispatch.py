@@ -789,6 +789,20 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertFalse(gateway._run_basis["verified"])
         self.assertIsNone(gateway._run_for_pin(self.prog))
 
+    def test_the_run_basis_on_the_wire_has_the_fixtures_keys(self):
+        # scripts/test_fixtures/run_check_wire.json is what the client reads
+        # (runBasis.test.ts, checkBasis.test.ts): the gateway's run_basis has
+        # exactly its keys, its start too
+        import json
+        wire = json.loads((Path(__file__).resolve().parent.parent / "scripts" / "test_fixtures"
+                           / "run_check_wire.json").read_text())["run_basis"]
+        self._run_basis_setup()
+        self._idle_auto()
+        self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        status = gateway._run_basis_status()
+        self.assertEqual(set(status), set(wire))
+        self.assertEqual(set(status["start"]), set(wire["start"]))
+
     def test_the_start_snapshot_reads_like_the_status(self):
         # a run's check reads run_basis.start where an idle check reads the
         # live status: the same fields, the same derivation

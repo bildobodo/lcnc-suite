@@ -56,7 +56,8 @@ const speed = computed({
 const sumClash = computed(() => {
   const sw = simView.sweep, n = count("clash");
   return {
-    name: sw ? sw.verdict + (sw.caveat ? " (not certified)" : "") : "Collisions not checked",
+    name: sw ? sw.verdict + (sw.caveat ? " (not certified)" : "")
+      : simView.previous ? `Earlier preview: ${simView.previous}` : "Collisions not checked",
     short: !sw || sw.state === "nopairs" ? NO_VALUE : `${n}${sw.state === "done" ? "" : "…"}`,
     tone: sw?.tone ?? "muted",
   };
@@ -257,8 +258,10 @@ function onRootKey(e: KeyboardEvent) {
           </div>
           <span class="mono checkPct">{{ fmtPct(simView.sweep.frac) }}</span>
         </template>
-        <span v-else class="text-muted">Not checked</span>
-        <HelpIcon label="Collision check">{{ simView.sweep?.detail || "Tool and machine parts checked against each other along the program." }}</HelpIcon>
+        <span v-else class="text-muted">{{ simView.previous ? "Not checked yet" : "Not checked" }}</span>
+        <HelpIcon label="Collision check">{{ simView.sweep?.detail || (simView.previous
+          ? "The run published a new preview (tool table changed). The earlier verdict is named only; this one is checked at run end."
+          : "Tool and machine parts checked against each other along the program.") }}</HelpIcon>
       </div>
       <!-- ONE summary line, always there: nothing under it moves with the
            check's result. Narrow: the glyph and the number. -->
@@ -267,7 +270,7 @@ function onRootKey(e: KeyboardEvent) {
           <span class="sumItem row-tight" role="img" :aria-label="sumClash.name" :title="sumClash.name">
             <X class="sumGlyph clash" :size="12" :stroke-width="3" aria-hidden="true" />
             <span v-if="simView.sweep" class="checkVerdict sumWide" :class="simView.sweep.tone === 'danger' ? 'sumKind clash' : `text-${simView.sweep.tone}`">{{ simView.sweep.verdict }}</span>
-            <span v-else class="sumWide text-muted">Collisions not checked</span>
+            <span v-else class="sumWide text-muted">{{ sumClash.name }}</span>
             <span class="sumShort mono" :class="sumClash.tone === 'danger' ? 'sumKind clash' : `text-${sumClash.tone}`">{{ sumClash.short }}</span>
             <span v-if="simView.sweep?.caveat" class="text-warn" title="Not certified — see the collision check help">*</span>
           </span>

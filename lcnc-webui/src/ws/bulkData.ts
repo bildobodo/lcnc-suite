@@ -286,6 +286,10 @@ export function limitViolationText(v: LimitViolation, unit: string): string {
 }
 
 export interface ViewerGcode {
+  /** The publication this payload is — viewer_gcode_ready's version,
+   *  stamped on arrival (plan „Prüfung im Lauf“ 3a: a run check admits only
+   *  the displayed version). Absent on the empty-state path. */
+  publishedVersion?: number;
   file?: string | null;
   // Wire-format generation stamp (P1) — gateway_util.PREVIEW_SCHEMA at parse
   // time. The gateway cache keys payloads on file+mtime only, so a gateway
@@ -791,6 +795,7 @@ function _ensurePreviewWorker(): Worker {
     // letting Vue deep-proxy them would wrap the typed arrays in a Proxy, which
     // breaks/slows THREE.BufferAttribute's GPU upload. Consumers only react to
     // the ref reassignment, not deep mutation, so raw is correct here.
+    if (m.gcode) m.gcode.publishedVersion = m.version;
     viewerGcode.value = m.gcode ? markRaw(m.gcode) : null;
     _previewErr.value = null;
     if (m.basisKey !== undefined) {

@@ -34,6 +34,11 @@ interface ViewerDiag {
   setCollisionNote?: (note: string | null) => boolean;
   setCollisionShards?: (n: number | null) => void;
   getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[]; uncertified: string | null } | null;
+  /** The basis the last main sweep was built from (plan „Prüfung im Lauf“ 1c). */
+  getCollisionBasis?: () => { kind: "idle" | "run"; runId: number | null; g5x: number[]; g92: number[];
+    rotationXy: number; toolOffset: number[]; toolNum: number | null; toolDiam: number | null;
+    toolLen: number | null } | null;
+  getCollisionPrevious?: () => { collisions: number; complete: boolean; version: number | null } | null;
   getLabels?: () => { total: number; laidOut: number };
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
   // cue), width and opacity; the longest visible segment of a role on screen.

@@ -7,12 +7,14 @@
 // the handlers here; consumers keep importing the refs from "./lcncWs" via
 // the barrel re-export.
 //
-// Leaf module: imports vue + the lcnc constants leaf only; never imports
-// lcncWs or its ws/ peers. All reassigned scalars (rAF buffer, RTT anchors,
-// dedupe sentinels) are private by design (A1 rule) — cross-module access is
-// function-call only (noteHeartbeatSent/notePong/...), never shared state.
+// Leaf module: imports vue + the lcnc constants and runBasis parsing leaves
+// only; never imports lcncWs or its ws/ peers. All reassigned scalars (rAF
+// buffer, RTT anchors, dedupe sentinels) are private by design (A1 rule) —
+// cross-module access is function-call only (noteHeartbeatSent/notePong/...),
+// never shared state.
 import { computed, ref, shallowRef } from "vue";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
+import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
 
 export interface LcncMessage {
   id: number;
@@ -106,6 +108,16 @@ export const previewToolBasis = ref<{ file: string; version: number; xyz: number
 // never an older one or a worker error. While set, the preview counts as
 // being refreshed (previewRefresh, reason "tool_offset").
 export const previewBasisPending = ref(false);
+// Where the published preview comes from (plan „Prüfung im Lauf“ 1b): its
+// version, file, text, reason, whether it was a pinned mid-run parse and the
+// run it belongs to. Rides every status frame while a preview is published.
+export const previewOrigin = ref<PreviewOrigin | null>(null);
+// The run's basis (plan 1a), taken by the gateway before the start was
+// written; rides every frame until the next start — a client connecting
+// mid-run has it too.
+export const runBasis = ref<RunBasis | null>(null);
+let _previewOriginKey = "";
+let _runBasisKey = "";
 let _frameHadRefresh = false;
 /** bulkData: the view shows the requested basis (or needs none). */
 export function endPreviewBasisPending(): void {
@@ -491,6 +503,18 @@ export function handleStatusMessage(msg: any): void {
   } else if (previewRefresh.value !== null) {
     previewRefresh.value = null;
     _syncPreviewRefreshTimer();
+  }
+  // preview_origin / run_basis: reassigned only when the value changes (a
+  // watcher keyed on them must not fire 30 times a second).
+  const poKey = msg.preview_origin ? JSON.stringify(msg.preview_origin) : "";
+  if (poKey !== _previewOriginKey) {
+    _previewOriginKey = poKey;
+    previewOrigin.value = parsePreviewOrigin(msg.preview_origin);
+  }
+  const rbKey = msg.run_basis ? JSON.stringify(msg.run_basis) : "";
+  if (rbKey !== _runBasisKey) {
+    _runBasisKey = rbKey;
+    runBasis.value = parseRunBasis(msg.run_basis);
   }
   const ts = msg.preview_table_stale;
   if (ts && typeof ts === "object") {

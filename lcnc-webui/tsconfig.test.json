@@ -60,6 +60,7 @@
     "src/viteHttpRestartPing.test.ts",
     "src/viteProxyCoverage.test.ts",
     "src/macroHeader.test.ts",
+    "src/viewer/checkBasis.test.ts",
     "scripts/simDump.ts",
     "e2e/**/*.ts"
   ]

@@ -74,6 +74,9 @@ const props = defineProps<{
    *  it continues by itself once the pose settles. */
   collisionStopped: { covered: number; reason: "motion" } | null;
   collisionResumable: boolean;
+  /** The verdict of the preview shown before the one displayed now, kept
+   *  while a run goes on (plan „Prüfung im Lauf“ 1c): named, nothing more. */
+  collisionPrevious?: { collisions: number; complete: boolean; version: number | null } | null;
 }>();
 
 const emit = defineEmits<{
@@ -1008,6 +1011,10 @@ watchEffect(() => {
   simView.lineTitle = lineTitle.value;
   simView.time = posText.value;
   simView.sweep = sweepView.value;
+  const prev = props.collisionPrevious;
+  simView.previous = prev && !sweepView.value
+    ? `${prev.collisions ? `${prev.collisions} collision${prev.collisions === 1 ? "" : "s"}` : "Clear"}${prev.complete ? "" : " so far"}`
+    : null;
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };
   simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;

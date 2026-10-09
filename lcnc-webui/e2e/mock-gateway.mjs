@@ -206,10 +206,16 @@ let refuseWs = false;
 // fields, answered with the command's own req_id (toolsetter-setup.spec:
 // set_probe_vars with mdi_set true / false / refused).
 let replies = {};
+// Envelope keys the real gateway sends with EVERY status frame (top level,
+// beside `data`): run_basis, preview_origin (plan „Prüfung im Lauf“ 1a/1b).
+// A key set once rides every frame after — full and delta — until a spec
+// sets it null or resets; the client drops a key a frame lacks.
+let envelope = {};
+const withEnvelope = (frame) => ({ ...frame, ...envelope });
 
 wss.on("connection", (ws) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
-  ws.send(JSON.stringify(state));
+  ws.send(JSON.stringify(withEnvelope(state)));
   ws.send(JSON.stringify(activeViewerInit));
   ws.on("message", (buf) => {
     let msg = null;
@@ -232,7 +238,7 @@ wss.on("connection", (ws) => {
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
     else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [] }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
-    if (!quiet) ws.send(JSON.stringify(state)); // answer everything -> stay connected & armed
+    if (!quiet) ws.send(JSON.stringify(withEnvelope(state))); // answer everything -> stay connected & armed
   });
 });
 
@@ -246,12 +252,16 @@ ctlWss.on("connection", (ws) => {
     let m;
     try { m = JSON.parse(String(buf)); } catch { ws.send(JSON.stringify({ ok: false, error: "bad json" })); return; }
     if (m.op === "status_delta") {
-      Object.assign(state.data, m.data);
+      Object.assign(state.data, m.data ?? {});
       if (typeof m.armed === "boolean") state.armed = m.armed;
       // Geometry is an envelope field in the real gateway, not a data member.
       if ("tool_meta" in m) state.tool_meta = m.tool_meta;
-      broadcast({ type: "status_delta", armed: state.armed, data: m.data,
-        ...("tool_meta" in m ? { tool_meta: m.tool_meta } : {}) });
+      // {envelope: {key: value | null}} — persistent top-level keys (above)
+      for (const [k, v] of Object.entries(m.envelope ?? {})) {
+        if (v === null) delete envelope[k]; else envelope[k] = v;
+      }
+      broadcast(withEnvelope({ type: "status_delta", armed: state.armed, data: m.data ?? {},
+        ...("tool_meta" in m ? { tool_meta: m.tool_meta } : {}) }));
     } else if (m.op === "quiet") {
       quiet = m.on === true;
     } else if (m.op === "reset") {
@@ -268,6 +278,7 @@ ctlWss.on("connection", (ws) => {
       quiet = false;
       refuseWs = false;
       replies = {};
+      envelope = {};
       activeViewerInit = VIEWER_INIT;
       state.armed = PRISTINE.armed;
       state.data = structuredClone(PRISTINE.data);
@@ -276,7 +287,7 @@ ctlWss.on("connection", (ws) => {
       hellos.length = 0;   // lifecycle.spec asserts on hello COUNTS
       cmds.length = 0;
       broadcast(initFrame());
-      broadcast(state);
+      broadcast(withEnvelope(state));
     } else if (m.op === "setAxes") {
       // WS-D 9-axis fixture: re-ship viewer_init with the given axis letters
       // and size every per-axis status field to match, so every axis-driven
@@ -297,7 +308,7 @@ ctlWss.on("connection", (ws) => {
           ["r", 0],
         ]));
       broadcast(initFrame());
-      broadcast(state);
+      broadcast(withEnvelope(state));
     } else if (m.op === "setIncrements") {
       // The INI's jog increments (operator P7: the step group is a row only
       // with few, short options, else a select) — viewer_init.ini_config.
