@@ -335,6 +335,22 @@ CASES.update({
     # both calls on the other line)
     "m600_compact": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2M600\nG0 X60 Y60\nM2\n"),
     "m600_compact_pair": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2M600\nG0 X60\nT1 M600\nG0 X70\nM2\n"),
+    # Codex R106: a literal that reads as 600 needs no "600" (M599.99999):
+    # beside T1 M600 neither call is unique; alone it is the site
+    "m600_near_pair": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M599.99999\nG0 X60\nT1 M600\nG0 X70\nM2\n"),
+    "m600_near_single": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M599.99999\nG0 X60\nM2\n"),
+    # Codex R106, the rests of VP-I59 / VP-I61: a remap whose body writes
+    # #3009, and one whose body calls a foreign M600 — the text says M200
+    "remap_write": ("G21 G90\nG0 X0 Y0 Z0\nM200\nG0 X#3009\nM2\n", "mm", 0.0, (490,),
+                    {"var": {3009: 3}, "rs274ngc": "REMAP=M200 modalgroup=10 ngc=setter_write",
+                     "subs": {"setter_write.ngc": "o<setter_write> sub\n#3009=4\no<setter_write> endsub\nM2\n"}}),
+    "foreign_remap_nested": ("G21 G90\nG0 X50 Y50 Z-100\nM200\nG0 X60 Y60\nM2\n", "mm", 0.0, (490,),
+                             {"rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc\nREMAP=M200 modalgroup=10 ngc=wrapper",
+                              "subs": {"othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\nM2\n",
+                                       "wrapper.ngc": "o<wrapper> sub\nT2 M600\no<wrapper> endsub\nM2\n"}}),
+    # an M whose value the text does not settle is no M98 without a P word:
+    # the interpreter refuses it (RemapEnv.word_keys relies on it)
+    "m98_param_no_p": ("G21 G90\n#1=98\nM#1\nG0 X1 Y0 Z0\nM2\n", "mm", 0.0, (490,), {}),
     # Codex R105 VP-I63: the same tool measured twice — predicted, then (#3007
     # = 1) not; VP-I62: the routine before the first drawn point, unknown
     "m600_repeat": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60\n#3007=1\nT2 M600\nG0 X70\nM2\n"),
@@ -490,9 +506,12 @@ with contextlib.redirect_stderr(err):
 # in it changes the interpreter's own copy only)
 _mmap_unchanged = (work / ".tool.mmap").read_bytes() == _mmap
 meta = {}
+ts_meta = None
 for ln in err.getvalue().splitlines():
     if ln.startswith("__TLO__"):
         meta = json.loads(ln.split("\t", 1)[1])
+    elif ln.startswith("__TOOLSETTER__"):
+        ts_meta = json.loads(ln.split("\t", 1)[1])
 
 
 def u(key, dtype):
@@ -515,7 +534,7 @@ print(json.dumps({
     "mmap_unchanged": _mmap_unchanged,
     "probe_unpredicted": out.get("probe_unpredicted"), "toollen_table": out.get("toollen_table"),
     "feed_sub": u("feed_sub", "<u1"), "rapid_sub": u("rapid_sub", "<u1"), "sub_names": out.get("sub_names"),
-    "toolsetter_basis": out.get("toolsetter_basis"),
+    "toolsetter_basis": out.get("toolsetter_basis"), "toolsetter_meta": ts_meta,
     "feed_lines": u("feed_lines", "<u4"), "tool_change_lines": out.get("tool_change_lines"),
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
     "tlo_events": out.get("tlo_events"), "violations": out.get("violations"),

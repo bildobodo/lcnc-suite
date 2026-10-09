@@ -20,7 +20,8 @@
     "bracketed_sum": "#3009=[#3009+1]",
     "negative_target": "#-3009=4",
     "minus_param": "#1=-4\n#3009=-#1",
-    "lower": "#3009=4 g0 x1"
+    "lower": "#3009=4 g0 x1",
+    "near_below": "#3008.99999=4"
   },
   "mword": {
     "control": "T2 M600",
@@ -37,6 +38,7 @@
     "product": "T2 M[300*2]",
     "function": "T2 MABS[-600]",
     "lower": "t2 m600",
-    "called": "o<child> call"
+    "called": "o<child> call",
+    "near_below": "T2 M599.99999"
   }
 }

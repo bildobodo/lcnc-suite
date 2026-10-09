@@ -940,12 +940,29 @@ sites of `attribute_sub_callers` (`T2M600`, `N5 o <x> c a l l`; a line that
 MAY call it leaves a single site unclaimed — the regex missed `T2M600` and
 put two calls on the other line, found with VP-I61). Which spellings the
 interpreter takes is pinned natively (`scripts/test_fixtures/nc_spellings.json`,
-`TestNcSpellings`); the shipped remap bodies and every file they call write
-no basis key (`TestShippedRemapsWriteNoBasisKey`). Named limits:
+`TestNcSpellings`): a literal reads as a code within 1e-4 (`M599.99999` is
+M600, `G91.99999` is G92, `L1.99999` is L2), so every text PREFILTER that
+skips a line by its digits accepts the code's integer part or the one below
+(`_near_int_parts`, `_POSWRITE_CANDIDATE_RE`, `_G10_CANDIDATE_RE` — proven over
+the near forms by `TestNearLiterals`), and `position_write_lines` /
+`wcs_rewrite_targets` decide on the reader's words (`GABS[92]` is G92, `G10
+L+20 P1` writes G54). A remapped code runs a body the line does not show
+(Codex R106): `RemapEnv` (the configured REMAPs, read per MDI by the gateway
+and per parse by the worker) answers per code what its body may write and
+which remaps it may invoke — every file of the body's name on the path (INI
+folder, PROGRAM_PREFIX, SUBROUTINE_PATH), followed through its o-calls and
+remapped words; `python=` / `prolog=` / `epilog=`, a missing or unreadable
+body, an M98, an unsettled target are "any"; an M whose value the text does
+not settle reaches every remapped M (without a P word it is no M98 — the
+interpreter refuses that, natively). `toolsetter_assigned_keys` adds the body
+writes; the worker's foreign-M600 candidates add every line that may reach
+it through another remap (`remap_reach_lines`); an INI the gateway cannot read
+makes every line a writer. The shipped configs: M600 writes no basis key on
+the 3-axis and XYZAC profiles; on the TWP profile `M#<spindle_stop_m>` may be
+one of its python remaps, so every M600 start books the basis assumed until
+the read-back (`TestShippedRemapsWriteNoBasisKey`). Named limits:
 `#5064`–`#5066` are copied without the wrapped-rotary fold; another writer of
-the interpreter (a second GUI, halui) is not seen, nor what a FOREIGN remap
-body (ngc or python) writes or calls (a remapped code's line is read, its
-body is not); a mid-run measurement's
+the interpreter (a second GUI, halui) is not seen; a mid-run measurement's
 rest check is its own later plan. Tests: `test_m600_preview_worker.py`
 (native, `native_start_probe.py` with the shipped routine and a tool data
 mmap — libtooldata needs 1001 comment pointers — and a check that the

@@ -84,6 +84,7 @@ from gateway_util import (
     PREVIEW_SCHEMA,
     evaluate_tlo_drift, evaluate_start_drift,
     TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys, toolsetter_basis_view, toolsetter_ctx,
+    RemapEnv, resolve_subroutine_dirs,
     evaluate_rotary_drift, drift_gate_open, inflight_stale_reason, preview_file_edge_action,
     midrun_table_gate_open, midrun_table_action,
     rotary_drift_settled,
@@ -3132,7 +3133,7 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         # can reach the interpreter, so neither a cancel nor a timeout after
         # the write skips it (it was booked after the await, on four of five
         # paths). A command that never went out costs only a confirmation.
-        _ts_mark_assumed(toolsetter_assigned_keys(args[0] if args else "")
+        _ts_mark_assumed(toolsetter_assigned_keys(args[0] if args else "", _remap_env())
                          if kind == "mdi" else _ts_program_writes())
     if claim is None and kind:
         async with _get_source_lock():
@@ -3934,6 +3935,25 @@ def _ts_mark_assumed(keys) -> None:
     ks = list(TOOLSETTER_BASIS_KEYS) if keys is None else [k for k in keys if k in TOOLSETTER_BASIS_KEYS]
     if ks:
         _ts_book(_ts_file_values(ks), "assumed")
+
+
+def _remap_env() -> RemapEnv:
+    """The configured REMAPs, read now (Codex R106: what a remapped code's
+    body may write — an M200 writing #3009 left a confirmed basis). The INI
+    folder (milltask's), PROGRAM_PREFIX and SUBROUTINE_PATH; every file of a
+    body's name. No INI read: unknown — every line may write anything."""
+    try:
+        path = getattr(STAT, "ini_filename", None) if STAT else None
+        if not path:
+            raise FileNotFoundError("no INI file in the status")
+        ini = linuxcnc.ini(path)
+        dirs = ([os.path.dirname(os.path.abspath(path))]
+                + resolve_subroutine_dirs(ini.find("DISPLAY", "PROGRAM_PREFIX"), path)
+                + resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"), path))
+        return RemapEnv(ini.findall("RS274NGC", "REMAP") or [], dirs)
+    except Exception as e:  # noqa: BLE001 - unread: every line may write anything
+        _trace.emit("toolsetter.remaps_unread", level="warn", exc=type(e).__name__, msg=str(e))
+        return RemapEnv.unknown()
 
 
 def _ts_program_writes():

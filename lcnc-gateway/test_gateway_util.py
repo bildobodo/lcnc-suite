@@ -4617,6 +4617,210 @@ class TestShippedRemapsWriteNoBasisKey(unittest.TestCase):
         for f in glob.glob(os.path.join(cfg, "twp", "python", "*.py")):
             self.assertIsNone(self.KEY_RE.search(open(f).read()), f)
 
+    def test_what_each_shipped_config_says_m600_may_write(self):
+        # RemapEnv on each shipped INI (Codex R106): M600 writes no basis key
+        # where every remap its routine may reach is an ngc body — on the TWP
+        # config `M#<spindle_stop_m>` (an M whose value the routine reads) may
+        # be one of its python remaps (M530, M469, M535): any key, a named
+        # consequence (every M600 start books the basis assumed; the read-back
+        # confirms it again)
+        import glob
+        cfg = os.path.normpath(os.path.join(os.path.dirname(__file__), "..", "examples", "sim_config"))
+        want = {"lcnc_suite_sim_3axis_xyz.ini": frozenset(), "lcnc_suite_sim_5axis_xyzac.ini": frozenset(),
+                "lcnc_suite_sim_6axis_twp_xyzabc.ini": None}
+        seen = set()
+        for ini in sorted(glob.glob(os.path.join(cfg, "*.ini"))):
+            name = os.path.basename(ini)
+            if name not in want:
+                continue
+            seen.add(name)
+            t = open(ini).read()
+            remaps = [m.group(1) for m in re.finditer(r"^\s*REMAP\s*=\s*(.+)$", t, re.M)]
+            pre = re.search(r"^\s*PROGRAM_PREFIX\s*=\s*(.+)$", t, re.M).group(1)
+            sub = re.search(r"^\s*SUBROUTINE_PATH\s*=\s*(.+)$", t, re.M).group(1)
+            env = gateway_util.RemapEnv(remaps, [cfg] + gateway_util.resolve_subroutine_dirs(pre, ini)
+                                        + gateway_util.resolve_subroutine_dirs(sub, ini))
+            with self.subTest(ini=name):
+                self.assertEqual(env.effect(("M", 600))[0], want[name])
+                self.assertEqual(gateway_util.toolsetter_assigned_keys("T2 M600\n", env), want[name])
+        self.assertEqual(seen, set(want))
+
+
+class TestRemapEnv(unittest.TestCase):
+    """What a remapped code's body may write or invoke (Codex R106, the rests
+    of VP-I59 / VP-I61): read, never assumed."""
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.addCleanup(self._td.cleanup)
+        self.d = self._td.name
+
+    def body(self, name, text, d=None):
+        with open(os.path.join(d or self.d, name + ".ngc"), "w") as f:
+            f.write(text)
+
+    def env(self, *lines, dirs=None):
+        return gateway_util.RemapEnv(list(lines), dirs or [self.d])
+
+    def test_a_body_its_calls_and_its_remaps_are_followed(self):
+        self.body("w1", "o<w1> sub\n#3009=4\no<helper> call\nM201\no<w1> endsub\n")
+        self.body("helper", "o<helper> sub\n#3 1 0 2 = 1\no<helper> endsub\n")
+        self.body("w2", "o<w2> sub\n#+3004=1\no<w2> endsub\n")
+        env = self.env("M200 modalgroup=10 ngc=w1", "M201 modalgroup=10 ngc=w2")
+        self.assertEqual(env.effect(("M", 200)), (frozenset({3009, 3102, 3004}), frozenset({("M", 200), ("M", 201)})))
+        self.assertEqual(gateway_util.toolsetter_assigned_keys("T2 M200\n", env), frozenset({3009, 3102, 3004}))
+        self.assertEqual(gateway_util.toolsetter_assigned_keys("G0 X1\nM201\n", env), frozenset({3004}))
+        self.assertEqual(gateway_util.toolsetter_assigned_keys("G0 X1\n", env), frozenset())
+
+    def test_a_cycle_is_the_whole_closure_whichever_code_is_asked_first(self):
+        # A → B → A: B asked after A must not lose A's write (a memo of B taken
+        # while A was in progress would have)
+        self.body("a", "o<a> sub\n#3009=1\nM201\no<a> endsub\n")
+        self.body("b", "o<b> sub\n#3010=1\nM200\no<b> endsub\n")
+        for first in ((("M", 200)), (("M", 201))):
+            env = self.env("M200 ngc=a", "M201 ngc=b")
+            env.effect(first)
+            for key in (("M", 200), ("M", 201)):
+                self.assertEqual(env.effect(key)[0], frozenset({3009, 3010}), (first, key))
+
+    def test_what_cannot_be_read_is_any(self):
+        self.body("ok", "o<ok> sub\nG0 X1\no<ok> endsub\n")
+        any_ = (None, None)
+        cases = {
+            "python": ("M200 modalgroup=10 python=thing", None),
+            "prolog": ("M200 modalgroup=10 prolog=setup ngc=ok", None),
+            "epilog": ("M200 ngc=ok epilog=finish", None),
+            "missing": ("M200 ngc=nowhere", None),
+        }
+        for why, (line, _) in cases.items():
+            with self.subTest(why=why):
+                self.assertEqual(self.env(line).effect(("M", 200)), any_)
+        for why, text in {"unsettled target": "#[3000+9]=1", "M98": "M98 P100", "unreadable o-word": "o[1] call",
+                          "an o-call no file answers": "o<ghost> call", "a numbered sub elsewhere": "o100 call",
+                          "a setting it cannot read": "#3009=1.2.3",
+                          "a remapped code on a line it cannot read": "M200 X1.2.3"}.items():
+            with self.subTest(why=why):
+                self.body("w", "o<w> sub\n" + text + "\no<w> endsub\n")
+                self.assertEqual(self.env("M200 ngc=w").effect(("M", 200)), any_)
+        self.assertEqual(gateway_util.RemapEnv.unknown().effect(("M", 200)), any_)
+        self.assertIsNone(gateway_util.toolsetter_assigned_keys("G0 X1\n", gateway_util.RemapEnv.unknown()))
+
+    def test_every_file_of_the_name_must_pass(self):
+        # the first hit on LinuxCNC's path need not be reproduced: a second
+        # file of the name that writes counts too
+        d2 = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, d2, True)
+        self.body("w", "o<w> sub\nG0 X1\no<w> endsub\n")
+        self.body("w", "o<w> sub\n#3009=1\no<w> endsub\n", d=d2)
+        self.assertEqual(self.env("M200 ngc=w", dirs=[self.d, d2]).effect(("M", 200))[0], frozenset({3009}))
+
+    def test_an_open_value_reaches_every_remap_of_its_letter(self):
+        self.body("w", "o<w> sub\n#3009=1\no<w> endsub\n")
+        self.body("ok", "o<ok> sub\nG0 X1\no<ok> endsub\n")
+        env = self.env("M200 ngc=w", "M201 ngc=ok", "G68.2 ngc=ok")
+        # M#1 without a P word cannot be an M98 (the interpreter refuses it,
+        # natively): every remapped M; with a P word: anything
+        self.assertEqual(gateway_util.toolsetter_assigned_keys("M#1\n", env), None,
+                         "an open M is a possible M98 in the main text (the flow mode)")
+        self.body("t", "o<t> sub\nM#<stop>\no<t> endsub\n")
+        e2 = self.env("M200 ngc=w", "M300 ngc=t")
+        self.assertEqual(e2.effect(("M", 300)), (frozenset({3009}), frozenset({("M", 200), ("M", 300)})))
+        self.body("t", "o<t> sub\nM#<stop> P100\no<t> endsub\n")
+        self.assertEqual(self.env("M200 ngc=w", "M300 ngc=t").effect(("M", 300)), (None, None))
+        # a G code by read_g's ×10: G68.2 is ("G", 682), G68.20000001 too
+        self.assertEqual(env.word_keys("G", 68.20000001, False), [("G", 682)])
+        # a remap of a whole letter: every word of it
+        e3 = self.env("T ngc=w")
+        self.assertEqual(gateway_util.toolsetter_assigned_keys("T5 M6\n", e3), frozenset({3009}))
+
+    def test_remap_reach_lines(self):
+        # Codex R106 VP-I61 rest: M200's body calls a foreign M600
+        self.body("wrapper", "o<wrapper> sub\nT2 M600\no<wrapper> endsub\n")
+        self.body("other", "o<other> sub\nG0 X1\no<other> endsub\n")
+        env = self.env("M600 ngc=othertc", "M200 ngc=wrapper", "M201 ngc=other", "M202 python=x")
+        main = "G0 X1\nM200\nM201\nM202\nT2 M600\nM#1\nG0 X1.2.3\n"
+        self.assertEqual(gateway_util.remap_reach_lines(main, env, {("M", 600)}), frozenset({2, 4, 6, 7}))
+
+
+class TestNearLiterals(unittest.TestCase):
+    """A literal reads as a code within 1e-4 (read_integer_value, read_g):
+    M599.99999 is M600, G91.99999 is G92 (natively, Codex R106). The text
+    prefilters that skip a line for its digits must pass every such form —
+    proven here over the near values and the spellings the interpreter takes
+    (leading zeros, a sign, whitespace)."""
+
+    @staticmethod
+    def near(code, scale):
+        """Decimal spellings of values reading as `code` (scale 1: an integer
+        code, 10: a G code ×10)."""
+        out = set()
+        for k in range(-9, 10):
+            v = code / scale + k * 1e-5
+            n = gateway_util.nc_g10(v) if scale == 10 else gateway_util.nc_int(v)
+            if n != code:
+                continue
+            for txt in (f"{v:.5f}", f"{v:.6f}".rstrip("0"), f"0{v:.5f}", f"+{v:.5f}"):
+                out.add(txt)
+                out.add(" ".join(txt))
+        if code % scale == 0:
+            out |= {str(code // scale), "0" + str(code // scale)}
+        return out
+
+    def test_the_position_write_candidates_pass_every_near_form(self):
+        # the writes (G10 L20, G28.1, G30.1, G52, G92 and G92.1–.3); G28 / G30
+        # move, they write nothing
+        for code in (100, 281, 301, 520, 920, 921, 922, 923):
+            for form in self.near(code, 10):
+                with self.subTest(code=code, form=form):
+                    line = "G" + form + " X1 L20 P1"
+                    self.assertTrue(gateway_util._POSWRITE_CANDIDATE_RE.search(line), line)
+                    got, _ = gateway_util.position_write_lines("G0 X0\n" + line + "\n")
+                    self.assertIn(2, got, line)
+
+    def test_a_value_that_is_no_literal_is_a_candidate(self):
+        # `[…]`, a parameter, a function: the reader cannot settle them, the
+        # prefilter must not drop them (GABS[92] is G92)
+        for form in ("[90+2]", "#1", "#<g>", "ABS[92]", "abs [92]", "+[92]", "0ROUND[92.1]"):
+            with self.subTest(form=form):
+                line = "G" + form + " X1"
+                self.assertTrue(gateway_util._POSWRITE_CANDIDATE_RE.search(line), line)
+                self.assertTrue(gateway_util._G10_CANDIDATE_RE.search(line), line)
+                got, _ = gateway_util.position_write_lines("G0 X0\n" + line + "\n")
+                self.assertEqual(got.get(2), "all", line)
+        self.assertEqual(gateway_util.wcs_rewrite_targets("GABS[10] L2 P1 X5\n"), (set(), True))
+        for form in self.near(100, 10):
+            with self.subTest(g10=form):
+                self.assertEqual(gateway_util.wcs_rewrite_targets("G" + form + " L2 P3 X5\n"), ({3}, False))
+
+    def test_the_call_sites_pass_every_near_form(self):
+        for token, code, scale in (("m600", 600, 1), ("g53.3", 533, 10), ("m428", 428, 1)):
+            for form in self.near(code, scale):
+                with self.subTest(token=token, form=form):
+                    line = token[0].upper() + form
+                    self.assertEqual(gateway_util._caller_site(gateway_util.nc_norm(line), "x", token), "site", line)
+
+    def test_the_remap_prefilter_passes_every_near_form(self):
+        # RemapEnv._may_matter: a word of a remapped code in any near form or
+        # with a value that is no literal, an M98, a setting, an o-word
+        env = gateway_util.RemapEnv(["M200 ngc=a", "G53.3 ngc=b", "T ngc=c"], [])
+        flat = lambda x: "".join(x.split()).upper()
+        for letter, code, scale in (("M", 200, 1), ("G", 533, 10), ("M", 98, 1)):
+            for form in self.near(code, scale) | {"[200]", "#1", "ABS[200]"}:
+                with self.subTest(letter=letter, form=form):
+                    self.assertTrue(env._may_matter(flat("X1 " + letter + form)), letter + form)
+        for line in ("T5", "t 5 m6", "#3009=1", "o<x> call", "O100 SUB"):
+            self.assertTrue(env._may_matter(flat(line)), line)
+        self.assertFalse(env._may_matter(flat("G1 X10.5 Y2 F1200")))
+
+    def test_a_g10_write_in_every_near_form(self):
+        f = gateway_util.wcs_rewrite_targets
+        self.assertEqual(f("G9.99999 L2 P1 X5\n"), ({1}, False))
+        self.assertEqual(f("G10 L1.99999 P2 X5\n"), ({2}, False))
+        self.assertEqual(f("G10 L+20 P+3 X5\n"), ({3}, False))
+        self.assertEqual(f("G10 L1 P2 X5\n"), (set(), False), "L1 is the tool table")
+        self.assertEqual(f("G[5+5] L2 P1\n"), (set(), True), "a G the text does not settle: cannot tell")
+        self.assertEqual(f("G10 L2 P1.2.3\n"), (set(), True), "a line it cannot read: cannot tell")
+
 
 class TestToolsetterBasis(unittest.TestCase):
     """M600 in the preview, plan section 2: the values the routine reads are
@@ -4631,7 +4835,10 @@ class TestToolsetterBasis(unittest.TestCase):
         return b
 
     def test_assigned_keys(self):
-        f = gateway_util.toolsetter_assigned_keys
+        none = gateway_util.RemapEnv([], [])
+
+        def f(text):
+            return gateway_util.toolsetter_assigned_keys(text, none)
         self.assertEqual(f("G21\n#3009 = 4\n#3100=10 (#3101=1)\n#1 = #3102\nM2\n"), frozenset({3009, 3100}))
         self.assertEqual(f("#3009=[#3009+1] ; #3010 = 5\n"), frozenset({3009}))
         # a line the interpreter refuses ("Bad character '+' used", natively:
