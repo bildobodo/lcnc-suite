@@ -1,0 +1,2280 @@
+[
+  {
+    "file": "docs/reviews/restpruefung-lauf.plan.md",
+    "sha256": "7c0487a2bb29a53123743870f0b5c9ba54fcfa798de88fa4a66e83f5462377b6",
+    "excerpts": [
+      {
+        "start": 20,
+        "end": 150,
+        "lines": [
+          {
+            "line": 20,
+            "text": "## Paket 1 · Herkunft der Veröffentlichung, Lauf-Kennung, fester Prüfstand"
+          },
+          {
+            "line": 21,
+            "text": ""
+          },
+          {
+            "line": 22,
+            "text": "### 1a · Gateway"
+          },
+          {
+            "line": 23,
+            "text": ""
+          },
+          {
+            "line": 24,
+            "text": "- **Herkunft pro Veröffentlichung.** `BulkPipeline` führt pro veröffentlichter Version `published_origin`:"
+          },
+          {
+            "line": 25,
+            "text": "  - `version`, voller Pfad `file`, `source` (der vorhandene Fingerabdruck `published_source`);"
+          },
+          {
+            "line": 26,
+            "text": "  - `reason`: der geplante Parse-Grund, etwa `file_changed`, `tool_offset`, `midrun:table_mtime`;"
+          },
+          {
+            "line": 27,
+            "text": "  - `pinned` (bool);"
+          },
+          {
+            "line": 28,
+            "text": "  - `table`: Tabellenzeit und Zeilen-Fingerabdruck, mit denen der Parse lief."
+          },
+          {
+            "line": 29,
+            "text": "  - Sie geht mit `viewer_gcode_ready` hinaus und als `preview_origin` in jedem Status-Envelope. Damit hat auch ein Client, der nach der Veröffentlichung verbindet, die Herkunft."
+          },
+          {
+            "line": 30,
+            "text": "  - Klein, kein Dekodieren des Payloads."
+          },
+          {
+            "line": 31,
+            "text": "- **Lauf-Kennung.** `run_id` im Status ist ein Zähler, den das Gateway erhöht, wenn ein AUTO-Lauf aus dem Stillstand startet. Das betrifft `cycle_start`, `auto_run` (auch Run from line) und den ersten `auto_step`, dieselbe Stelle wie die Basis-Buchung in `_cmd_blocking`. Ein Fortsetzen nach einer Pause behält sie."
+          },
+          {
+            "line": 32,
+            "text": "- **Wächter (pytest):** Herkunft nach jeder Art Parse, `pinned` nur beim eingefrorenen Parse. `preview_origin` stimmt nach einer zweiten Veröffentlichung, nach einem fehlgeschlagenen Mittellauf-Parse mit späterer anderer Veröffentlichung und bei gleichen Basenames in verschiedenen Ordnern. Bei `run_id`: Start, Pause und Fortsetzen, Ende und schneller Neustart derselben Datei."
+          },
+          {
+            "line": 33,
+            "text": ""
+          },
+          {
+            "line": 34,
+            "text": "### 1b · Client: der Prüfstand einer Prüfung"
+          },
+          {
+            "line": 35,
+            "text": ""
+          },
+          {
+            "line": 36,
+            "text": "Jede Prüfung bekommt beim Planen einen **unveränderlichen Prüfstand** (`CheckBasis`). Aus ihm, nie aus `_pv`, baut `_colBuildRequest` den Auftrag."
+          },
+          {
+            "line": 37,
+            "text": ""
+          },
+          {
+            "line": 38,
+            "text": "Inhalt des Prüfstands:"
+          },
+          {
+            "line": 39,
+            "text": "- Track samt Herkunft (`version`, `source`);"
+          },
+          {
+            "line": 40,
+            "text": "- Start-WCS: Fixture, G5x-Werte, die genutzten Tabellenzeilen, G92, Rotation;"
+          },
+          {
+            "line": 41,
+            "text": "- Werkzeugbasis des Payloads;"
+          },
+          {
+            "line": 42,
+            "text": "- **geerbtes Werkzeug**: Nummer, Durchmesser, Länge, also das bei Prüfbeginn geladene;"
+          },
+          {
+            "line": 43,
+            "text": "- Werkzeugdaten des Parses (`parse_tlos`);"
+          },
+          {
+            "line": 44,
+            "text": "- Modell- und Kinematikbasis (`modelKey`, Kins-Spec)."
+          },
+          {
+            "line": 45,
+            "text": ""
+          },
+          {
+            "line": 46,
+            "text": "Regeln:"
+          },
+          {
+            "line": 47,
+            "text": "- **Prüfung im Stillstand:** Der Prüfstand ist der Live-Zustand bei Prüfbeginn, wie heute."
+          },
+          {
+            "line": 48,
+            "text": "- **Lauf-Prüfstand:** Beim Laufstart (neue `run_id`) hält der Client den Live-Zustand fest. Wegen der Leerlauf-Drift-Kanten ist das der Startzustand, von dem auch die eingefrorene Neu-Analyse ausgeht."
+          },
+          {
+            "line": 49,
+            "text": "- **Jede Prüfung im Lauf** nimmt die Start-WCS und das geerbte Werkzeug aus dem Lauf-Prüfstand, Track, Ereignisse und Tabelle aus dem neuen Payload. Den inzwischen geladenen Werkzeugzustand nimmt sie nie."
+          },
+          {
+            "line": 50,
+            "text": "- **Anzeige:** Jedes Ergebnis trägt seinen Prüfstand. Die Anzeige nennt ihn, wo er nicht der aktuelle ist."
+          },
+          {
+            "line": 51,
+            "text": ""
+          },
+          {
+            "line": 52,
+            "text": "### 1c · Ergebniszustände"
+          },
+          {
+            "line": 53,
+            "text": ""
+          },
+          {
+            "line": 54,
+            "text": "Ein Ergebnis ist immer genau in einem Zustand:"
+          },
+          {
+            "line": 55,
+            "text": "- **aktuell:** voll geprüft auf dem angezeigten Payload und gültigem Prüfstand;"
+          },
+          {
+            "line": 56,
+            "text": "- **Rest:** geprüft ab einer Grenze, Zustände „wartet / prüft / teilweise / fertig“;"
+          },
+          {
+            "line": 57,
+            "text": "- **bisherige Vorschau:** älterer Payload oder älterer Prüfstand, ausdrücklich so benannt, ohne Farben, Zähler und „nächster Befund“ der aktuellen;"
+          },
+          {
+            "line": 58,
+            "text": "- **keins.**"
+          },
+          {
+            "line": 59,
+            "text": ""
+          },
+          {
+            "line": 60,
+            "text": "Der Wechsel zwischen den Zuständen ist eine reine Funktion (`checkState`) mit Unit-Tests."
+          },
+          {
+            "line": 61,
+            "text": ""
+          },
+          {
+            "line": 62,
+            "text": "## Paket 2 · Was der Lauf selbst ändert, löscht keine Befunde (A)"
+          },
+          {
+            "line": 63,
+            "text": ""
+          },
+          {
+            "line": 64,
+            "text": "Läuft ein Programm (`run_id` gesetzt, AUTO, nicht IDLE), lösen Live-Änderungen der Punkt-1-Eingänge kein `_colOnInputChange` aus."
+          },
+          {
+            "line": 65,
+            "text": "- Das Ergebnis bleibt mit seinem Prüfstand stehen."
+          },
+          {
+            "line": 66,
+            "text": "- Im Lauf ändert sie nur das Programm selbst, das der Payload abbildet: MDI, Antasten und Werkzeug-Editor sind im Lauf gesperrt."
+          },
+          {
+            "line": 67,
+            "text": "- Eine Tabellenänderung führt über Paket 3 zu einem neuen Payload."
+          },
+          {
+            "line": 68,
+            "text": "- Bei IDLE gilt die heutige Regel: Weicht der Live-Zustand vom Prüfstand ab, wird das Ergebnis gelöscht und neu geprüft."
+          },
+          {
+            "line": 69,
+            "text": ""
+          },
+          {
+            "line": 70,
+            "text": "**Wächter** (e2e; geprüft werden Pose, Werkzeugwahl und Gültigkeit, nicht nur „noch sichtbar“):"
+          },
+          {
+            "line": 71,
+            "text": "- M6 mit anderem Startwerkzeug und anderer Geometrie vor dem ersten M6;"
+          },
+          {
+            "line": 72,
+            "text": "- G10 L2 und G92 nach einer schon genutzten Epoche;"
+          },
+          {
+            "line": 73,
+            "text": "- dieselben Änderungen im Stillstand: gelöscht und neu geprüft (Kontrolle);"
+          },
+          {
+            "line": 74,
+            "text": "- Restauftrag und Ganz-Track-Prüfung nach diesen Änderungen: Pose und Werkzeug aus dem Lauf-Prüfstand;"
+          },
+          {
+            "line": 75,
+            "text": "- fehlende Start- oder Ereignisbasis: kein aktuelles Ergebnis."
+          },
+          {
+            "line": 76,
+            "text": ""
+          },
+          {
+            "line": 77,
+            "text": "## Paket 3 · Der Rest ab einer konservativen Grenze (B)"
+          },
+          {
+            "line": 78,
+            "text": ""
+          },
+          {
+            "line": 79,
+            "text": "### 3a · Auslöser, Bindung, Lebenszyklus"
+          },
+          {
+            "line": 80,
+            "text": ""
+          },
+          {
+            "line": 81,
+            "text": "- **Ein Restauftrag entsteht**, wenn alles zusammentrifft:"
+          },
+          {
+            "line": 82,
+            "text": "  - der angezeigte Payload hat `preview_origin.pinned` und einen `midrun:`-Grund;"
+          },
+          {
+            "line": 83,
+            "text": "  - er gehört zur geladenen Datei (voller Pfad und `source`);"
+          },
+          {
+            "line": 84,
+            "text": "  - der Interpreter läuft;"
+          },
+          {
+            "line": 85,
+            "text": "  - die `run_id` ist die des Lauf-Prüfstands."
+          },
+          {
+            "line": 86,
+            "text": "- **Ohne nachgewiesene Herkunft** gibt es keinen Restauftrag. Raten ist ausgeschlossen. Es bleibt bei der bisherigen Vorschau und der vollen Prüfung bei IDLE."
+          },
+          {
+            "line": 87,
+            "text": "- **Bindung:** Ein Restauftrag ist an `(version, source, run_id, Generation)` gebunden. Position, Teilantworten und Endantwort werden gegen genau diese Bindung geprüft."
+          },
+          {
+            "line": 88,
+            "text": "- **Verfall:** Neue Veröffentlichung, Reload, Abbruch, Laufende, Reconnect und ein neuer Prüfstand verwerfen ihn ausdrücklich. Eine neue Planung bekommt eine neue Generation."
+          },
+          {
+            "line": 89,
+            "text": "- **IDLE** bricht ihn sofort ab und startet die volle Prüfung (MR-I03). Sie wartet nie auf das Ende eines Rests."
+          },
+          {
+            "line": 90,
+            "text": "- Die Grenze eines laufenden Auftrags wandert nicht mit dem Fortschritt der Maschine."
+          },
+          {
+            "line": 91,
+            "text": ""
+          },
+          {
+            "line": 92,
+            "text": "### 3b · Die Grenze: früheste nicht ausgeschlossene Stelle"
+          },
+          {
+            "line": 93,
+            "text": ""
+          },
+          {
+            "line": 94,
+            "text": "`ScrubBar` meldet ThreeViewer je Statusbild (neues Emit `run-pos`): Trackversion, Pose als Maschinenpose samt den WCS-, TLO- und Kinematik-Termen, mit denen sie beobachtet wurde, und Beobachtungszeit. Die angezeigte Position (`runWatcher`) bleibt davon getrennt."
+          },
+          {
+            "line": 95,
+            "text": ""
+          },
+          {
+            "line": 96,
+            "text": "Die **Untergrenze** rechnet eine neue reine Funktion `restFloor(track, pose, terms, τ)`:"
+          },
+          {
+            "line": 97,
+            "text": "- **Kandidaten:** alle **bekannten** Segmente des Tracks, deren Abstand zur Pose höchstens τ beträgt. Unbekannte Strecken (`ustart`, nicht vorhergesagt, `brk`) sind keine Kandidaten."
+          },
+          {
+            "line": 98,
+            "text": "- **Grenze:** Anfangspunkt des **frühesten** Kandidaten (Segment `i` → Punkt `i − 1`). Ein Schnitt mitten im Segment schließt dessen ganzen Rest ein."
+          },
+          {
+            "line": 99,
+            "text": "- **Ein zusammenhängendes Kandidatenstück:** „Rest ab L…“."
+          },
+          {
+            "line": 100,
+            "text": "- **Mehrere getrennte:** „Rest ab dem frühesten möglichen Abschnitt (L…)“. Bereits passierte Befunde können dann bleiben, der Umfang wird genannt."
+          },
+          {
+            "line": 101,
+            "text": "- **Kein Kandidat:** „Laufzuordnung unbekannt“, dann eine benannte **Ganz-Track-Prüfung der Vorschau**, ohne Anspruch auf die Laufposition."
+          },
+          {
+            "line": 102,
+            "text": "- **τ** ist das Gate des Run-Watchers (10 Einheiten, `RUN_ESCAPE_D2`). Benannte Annahme: Die Maschine weicht von der vorhergesagten Bahn weniger als τ ab. Der Sim-Parity-Gate misst diese Abweichung, Toleranzen 0,5–1,5."
+          },
+          {
+            "line": 103,
+            "text": "- `motion_line` schränkt nicht ein."
+          },
+          {
+            "line": 104,
+            "text": ""
+          },
+          {
+            "line": 105,
+            "text": "**Wächter (Unit):** Codex' Parallelweg-Probe (die Grenze liegt auf dem ersten Stück), identische wiederholte Durchgänge, ein Fenstertreffer auf einem späteren Vorkommen, ein neu geparster Track, ein Schnitt mitten im Segment, eine Pose in einer unbekannten Strecke, keine Kandidaten."
+          },
+          {
+            "line": 106,
+            "text": ""
+          },
+          {
+            "line": 107,
+            "text": "### 3c · Sweep ab einem Startparameter, Grenzkontakte"
+          },
+          {
+            "line": 108,
+            "text": ""
+          },
+          {
+            "line": 109,
+            "text": "`CollisionOptions.from = { seg }` auf dem **Basis-Track**, ohne `sliceTrack`:"
+          },
+          {
+            "line": 110,
+            "text": ""
+          },
+          {
+            "line": 111,
+            "text": "- **Programmbasis wie bisher:** Erste Pose und Ruhelage des Programms entscheiden die statischen und strukturellen Ausschlüsse. Am Start entsteht kein neuer Ausschluss. Codex' Wiederkontaktfall bleibt damit gemeldet."
+          },
+          {
+            "line": 112,
+            "text": "- **Grenzkontakt:** An der Pose des Startpunkts gilt jedes nicht ausgeschlossene Paar in Kontakt, das berührt oder ganz innen liegt, als **Grenzkontakt**. Das betrifft Maschinen-, Werkzeug- und Schneidpaare gleichermaßen. Ein Grenzkontakt ist ein eigener Befund (`boundary: true`) auf der ersten Zeile des Rests: „Kontakt am Prüfbeginn — wo er begann, ist nicht neu geprüft“. Er zählt getrennt von den Kollisionen. Ein Schneidpaar wird dort nicht still als „eingerastet“ behandelt. Ein unentscheidbarer Innenstatus am Start wird benannt wie heute."
+          },
+          {
+            "line": 113,
+            "text": "- **Keine Zertifikate** aus einer anderen Prüfung: Abstands-, Innen- und Freiraumzertifikate beginnen am Start neu."
+          },
+          {
+            "line": 114,
+            "text": "- **Abdeckung:** Ein Rest deckt `[Start, Ende]`, nie `[0, Ende]`. `covered` und `truncated` beziehen sich auf die Basisachse ab dem Start. Ein fertiger Rest färbt den Präfix nicht als geprüft. Ein Rest der Länge null oder einer nur aus unbekannten Strecken ist ein eigener benannter Zustand."
+          },
+          {
+            "line": 115,
+            "text": "- **Treffer** liegen schon in Basis-cums; eine Verschiebung entfällt."
+          },
+          {
+            "line": 116,
+            "text": "- Teilantworten, Parken und Shard-Abbruch behalten diesen Abdeckungsvertrag (`mergeShardResults`)."
+          },
+          {
+            "line": 117,
+            "text": ""
+          },
+          {
+            "line": 118,
+            "text": "**Wächter (Unit und Worker):**"
+          },
+          {
+            "line": 119,
+            "text": "- Codex' Wiederkontaktfall: Voll- und Restergebnis enthalten den zweiten Kontakt."
+          },
+          {
+            "line": 120,
+            "text": "- Ein im Eilgang begonnener Schneidkontakt erscheint am Start als Grenzkontakt."
+          },
+          {
+            "line": 121,
+            "text": "- Ein am Start ganz eingeschlossener Körper wird erkannt."
+          },
+          {
+            "line": 122,
+            "text": "- Ein unentscheidbarer Innenstatus am Start wird benannt."
+          },
+          {
+            "line": 123,
+            "text": "- Eine neue Werkzeuggeometrie übernimmt keinen alten Kontaktzustand."
+          },
+          {
+            "line": 124,
+            "text": "- Abdeckung bei Teilantwort, Parken und Shard-Abbruch."
+          },
+          {
+            "line": 125,
+            "text": "- Rest der Länge null und ein Rest nur aus unbekannten Strecken."
+          },
+          {
+            "line": 126,
+            "text": ""
+          },
+          {
+            "line": 127,
+            "text": "### 3d · Bezeichnung"
+          },
+          {
+            "line": 128,
+            "text": ""
+          },
+          {
+            "line": 129,
+            "text": "„Restprüfung · Werkzeugtabelle aktualisiert“ mit eigenem Fortschritt und Abschnitt (ab L…), nie „gemessen“. Grund: Der Auslöser ist eine Tabellenänderung, kein Messnachweis (VP102-04)."
+          },
+          {
+            "line": 130,
+            "text": ""
+          },
+          {
+            "line": 131,
+            "text": "Benannte Grenze: Eine Messung auf denselben Wert ändert die Tabelle nicht und löst keinen Rest aus. Das bisherige Ergebnis gilt dann weiter, weil sich seine Basis nicht geändert hat."
+          },
+          {
+            "line": 132,
+            "text": ""
+          },
+          {
+            "line": 133,
+            "text": "## Paket 4 · Last, Drehachsen, Anzeige"
+          },
+          {
+            "line": 134,
+            "text": ""
+          },
+          {
+            "line": 135,
+            "text": "- **Lastbudget im Lauf:**"
+          },
+          {
+            "line": 136,
+            "text": "  - Ein Restauftrag nutzt höchstens **zwei** Sub-Worker statt `Kerne − 2`."
+          },
+          {
+            "line": 137,
+            "text": "  - Er läuft mit kürzeren Arbeitsscheiben, 20 statt 40 ms."
+          },
+          {
+            "line": 138,
+            "text": "  - Ein neuerer Auftrag ersetzt den älteren; es gibt keine Warteschlange."
+          },
+          {
+            "line": 139,
+            "text": "  - Während ein Payload dekodiert wird, pausiert der Restauftrag."
+          },
+          {
+            "line": 140,
+            "text": "  - **Messprotokoll** mit festen Zielen, vor jeder Erhöhung: Statusbild-Verarbeitung p95 < 50 ms, Herzschlag-Abstand p99 < 300 ms, keine wachsende Job- oder Speicherwarteschlange bei schnellem Basiswechsel."
+          },
+          {
+            "line": 141,
+            "text": "  - Geteilter Maschinen-PC und getrennter Browser-PC werden getrennt gemessen."
+          },
+          {
+            "line": 142,
+            "text": "  - Der gemeinsame Lasttest mit LinuxCNC ist ein späterer Live-Nachweis."
+          },
+          {
+            "line": 143,
+            "text": "  - Die Oberfläche verspricht keine rechtzeitige Warnung, sie nennt, wie weit geprüft ist."
+          },
+          {
+            "line": 144,
+            "text": "- **Drehachsen:** Im Lauf mit gültigem Lauf-Prüfstand parkt eine Bewegung von A, B oder C den Restauftrag nicht. Die Bewegung ist im Track modelliert. Kamera- und Tab-Pausen bleiben. Jog und IDLE parken wie bisher."
+          },
+          {
+            "line": 145,
+            "text": "  - **Wächter:** XYZAC-Programm mit fortlaufendem A/C: der Rest bleibt aktiv und liefert Teilantworten. Dieselbe Positionsänderung im Jog oder Stillstand parkt (Kontrolle)."
+          },
+          {
+            "line": 146,
+            "text": "- **Anzeige:**"
+          },
+          {
+            "line": 147,
+            "text": "  - Die Zusammenfassung im Sim-Tab nennt den Ergebniszustand (1c) und beim Rest den Abschnitt."
+          },
+          {
+            "line": 148,
+            "text": "  - Das Timeline-Band beginnt beim Start."
+          },
+          {
+            "line": 149,
+            "text": "  - Befunde hinter der Grenze gehören nicht zum Restergebnis."
+          },
+          {
+            "line": 150,
+            "text": "  - Die bisherige Vorschau steht nur getrennt und benannt da."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/gateway.py",
+    "sha256": "9f81935610606e0bf51c1fee09aeb7a0b208852bc399714714b1e6a663b057af",
+    "excerpts": [
+      {
+        "start": 261,
+        "end": 261,
+        "lines": [
+          {
+            "line": 261,
+            "text": "POLL_HZ = 30  # status update rate"
+          }
+        ]
+      },
+      {
+        "start": 1707,
+        "end": 1728,
+        "lines": [
+          {
+            "line": 1707,
+            "text": "                _bulk.refresh_running"
+          },
+          {
+            "line": 1708,
+            "text": "                and _bulk.inflight is not None"
+          },
+          {
+            "line": 1709,
+            "text": "                and bool(st.active_file)"
+          },
+          {
+            "line": 1710,
+            "text": "                and drift_gate_open("
+          },
+          {
+            "line": 1711,
+            "text": "                    st.active_file, False, True,"
+          },
+          {
+            "line": 1712,
+            "text": "                    st.interp_state == linuxcnc.INTERP_IDLE, st.current_vel,"
+          },
+          {
+            "line": 1713,
+            "text": "                    time.monotonic() - _bulk.tlo_check_ts)"
+          },
+          {
+            "line": 1714,
+            "text": "            ):"
+          },
+          {
+            "line": 1715,
+            "text": "                _bulk.tlo_check_ts = time.monotonic()"
+          },
+          {
+            "line": 1716,
+            "text": "                _wflat = wcs_offset_flat_from_table(st.wcs_table, st.g92_offset)"
+          },
+          {
+            "line": 1717,
+            "text": "                _stale = inflight_stale_reason("
+          },
+          {
+            "line": 1718,
+            "text": "                    _bulk.inflight, st.rotary_abc, _bulk.rotary_check_prev,"
+          },
+          {
+            "line": 1719,
+            "text": "                    st.kins_type, _live_kins_frame_of(st), _wflat,"
+          },
+          {
+            "line": 1720,
+            "text": "                    _bulk.wcsoff_check_prev, live_start=_bulk.live_start(st))"
+          },
+          {
+            "line": 1721,
+            "text": "                _bulk.rotary_check_prev = st.rotary_abc"
+          },
+          {
+            "line": 1722,
+            "text": "                _bulk.wcsoff_check_prev = _wflat"
+          },
+          {
+            "line": 1723,
+            "text": "                if _stale:"
+          },
+          {
+            "line": 1724,
+            "text": "                    _bulk.reparse_pending = True"
+          },
+          {
+            "line": 1725,
+            "text": "                    _bulk.reparse_pending_reason = _stale"
+          },
+          {
+            "line": 1726,
+            "text": "                    _bulk.cancel_inflight(_stale)"
+          },
+          {
+            "line": 1727,
+            "text": "            elif ("
+          },
+          {
+            "line": 1728,
+            "text": "                # Schema edge (P1): the published payload's wire-format stamp"
+          }
+        ]
+      },
+      {
+        "start": 3103,
+        "end": 3109,
+        "lines": [
+          {
+            "line": 3103,
+            "text": "async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional[\"_StartClaim\"] = None) -> int:"
+          },
+          {
+            "line": 3104,
+            "text": "    \"\"\"Run a blocking CMD.* call + optional wait_complete() on a worker thread."
+          },
+          {
+            "line": 3105,
+            "text": ""
+          },
+          {
+            "line": 3106,
+            "text": "    Every `CMD.* + wait_complete()` pair must go through here. Returns"
+          },
+          {
+            "line": 3107,
+            "text": "    wait_complete()'s int result — linuxcnc.RCS_DONE (1) on success,"
+          },
+          {
+            "line": 3108,
+            "text": "    linuxcnc.RCS_ERROR (3) when the command was rejected, -1 on timeout,"
+          },
+          {
+            "line": 3109,
+            "text": "    _RC_WAIT_CANCELLED (-2) when the wait was abandoned on cancel — or 0"
+          }
+        ]
+      },
+      {
+        "start": 3126,
+        "end": 3161,
+        "lines": [
+          {
+            "line": 3126,
+            "text": "    \"\"\""
+          },
+          {
+            "line": 3127,
+            "text": "    cancel = threading.Event()"
+          },
+          {
+            "line": 3128,
+            "text": "    kind = _start_kind(cmd_fn, args)"
+          },
+          {
+            "line": 3129,
+            "text": "    if kind:"
+          },
+          {
+            "line": 3130,
+            "text": "        # A start may write the toolsetter's values (M600 plan section 2,"
+          },
+          {
+            "line": 3131,
+            "text": "        # Codex R105 VP-I60): booked here — every MDI line and every AUTO"
+          },
+          {
+            "line": 3132,
+            "text": "        # run / step / resume passes this one place — and BEFORE the command"
+          },
+          {
+            "line": 3133,
+            "text": "        # can reach the interpreter, so neither a cancel nor a timeout after"
+          },
+          {
+            "line": 3134,
+            "text": "        # the write skips it (it was booked after the await, on four of five"
+          },
+          {
+            "line": 3135,
+            "text": "        # paths). A command that never went out costs only a confirmation."
+          },
+          {
+            "line": 3136,
+            "text": "        _ts_mark_assumed(toolsetter_assigned_keys(args[0] if args else \"\", _remap_env())"
+          },
+          {
+            "line": 3137,
+            "text": "                         if kind == \"mdi\" else _ts_program_writes())"
+          },
+          {
+            "line": 3138,
+            "text": "    if claim is None and kind:"
+          },
+          {
+            "line": 3139,
+            "text": "        async with _get_source_lock():"
+          },
+          {
+            "line": 3140,
+            "text": "            claim = _StartClaim(kind)"
+          },
+          {
+            "line": 3141,
+            "text": "            _source_claims.append(claim)"
+          },
+          {
+            "line": 3142,
+            "text": ""
+          },
+          {
+            "line": 3143,
+            "text": "    def _run():"
+          },
+          {
+            "line": 3144,
+            "text": "        try:"
+          },
+          {
+            "line": 3145,
+            "text": "            cmd_fn(*args)"
+          },
+          {
+            "line": 3146,
+            "text": "        except BaseException:"
+          },
+          {
+            "line": 3147,
+            "text": "            if claim is not None:"
+          },
+          {
+            "line": 3148,
+            "text": "                claim.state = \"unsent\"   # nothing reached the controller"
+          },
+          {
+            "line": 3149,
+            "text": "            raise"
+          },
+          {
+            "line": 3150,
+            "text": "        if claim is not None:"
+          },
+          {
+            "line": 3151,
+            "text": "            claim.serial = getattr(CMD, \"serial\", None)"
+          },
+          {
+            "line": 3152,
+            "text": "            claim.sent_t = time.monotonic()"
+          },
+          {
+            "line": 3153,
+            "text": "            claim.state = \"sent\""
+          },
+          {
+            "line": 3154,
+            "text": "        if wait is None:"
+          },
+          {
+            "line": 3155,
+            "text": "            return 0"
+          },
+          {
+            "line": 3156,
+            "text": "        deadline = time.monotonic() + float(wait)"
+          },
+          {
+            "line": 3157,
+            "text": "        while True:"
+          },
+          {
+            "line": 3158,
+            "text": "            remaining = deadline - time.monotonic()"
+          },
+          {
+            "line": 3159,
+            "text": "            if remaining <= 0:"
+          },
+          {
+            "line": 3160,
+            "text": "                return -1"
+          },
+          {
+            "line": 3161,
+            "text": "            rc = CMD.wait_complete(min(_CMD_WAIT_SLICE, remaining))"
+          }
+        ]
+      },
+      {
+        "start": 4976,
+        "end": 4983,
+        "lines": [
+          {
+            "line": 4976,
+            "text": "        if cmd == \"cycle_start\":"
+          },
+          {
+            "line": 4977,
+            "text": "            require_armed(armed)"
+          },
+          {
+            "line": 4978,
+            "text": "            refused = await _start_guard(armed)"
+          },
+          {
+            "line": 4979,
+            "text": "            if refused:"
+          },
+          {
+            "line": 4980,
+            "text": "                return refused"
+          },
+          {
+            "line": 4981,
+            "text": "            await set_mode(linuxcnc.MODE_AUTO)"
+          },
+          {
+            "line": 4982,
+            "text": "            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None)  # Start from beginning"
+          },
+          {
+            "line": 4983,
+            "text": "            return {\"ok\": True}"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/bulk_pipeline.py",
+    "sha256": "07d95ed15b0c80eff1583fdb67941379c233070534a7b85e6557e206afd35836",
+    "excerpts": [
+      {
+        "start": 270,
+        "end": 291,
+        "lines": [
+          {
+            "line": 270,
+            "text": "    def tool_basis_status(self) -> Optional[dict]:"
+          },
+          {
+            "line": 271,
+            "text": "        \"\"\"The status wire's `preview_tool_basis` (VP-I20): the verified tool"
+          },
+          {
+            "line": 272,
+            "text": "        basis, bound to the published file + version, while it differs from"
+          },
+          {
+            "line": 273,
+            "text": "        the payload's own `tlo_start` — absent otherwise (the client then"
+          },
+          {
+            "line": 274,
+            "text": "        resolves to `tlo_start`).\"\"\""
+          },
+          {
+            "line": 275,
+            "text": "        tlo = self.published_tlo or {}"
+          },
+          {
+            "line": 276,
+            "text": "        b = self.tool_basis"
+          },
+          {
+            "line": 277,
+            "text": "        if not b or not self.preview_available() or not tlo.get(\"start_known\"):"
+          },
+          {
+            "line": 278,
+            "text": "            return None"
+          },
+          {
+            "line": 279,
+            "text": "        if b.get(\"xyz\") == tlo.get(\"tlo_start\") and b.get(\"mode\") == tlo.get(\"start_mode\"):"
+          },
+          {
+            "line": 280,
+            "text": "            return None"
+          },
+          {
+            "line": 281,
+            "text": "        return {\"file\": self.last_file, \"version\": self.preview_version,"
+          },
+          {
+            "line": 282,
+            "text": "                \"xyz\": list(b[\"xyz\"]), \"mode\": b.get(\"mode\")}"
+          },
+          {
+            "line": 283,
+            "text": ""
+          },
+          {
+            "line": 284,
+            "text": "    def live_start(self, stat=None) -> Optional[dict]:"
+          },
+          {
+            "line": 285,
+            "text": "        \"\"\"The live start tool state (start_tlo_seed of the live STAT), or"
+          },
+          {
+            "line": 286,
+            "text": "        None without a status.\"\"\""
+          },
+          {
+            "line": 287,
+            "text": "        stat = stat if stat is not None else self._get_stat()"
+          },
+          {
+            "line": 288,
+            "text": "        if stat is None:"
+          },
+          {
+            "line": 289,
+            "text": "            return None"
+          },
+          {
+            "line": 290,
+            "text": "        return start_tlo_seed(getattr(stat, \"tool_offset\", None), getattr(stat, \"gcodes\", None),"
+          },
+          {
+            "line": 291,
+            "text": "                              getattr(stat, \"axis_mask\", 0))"
+          }
+        ]
+      },
+      {
+        "start": 430,
+        "end": 460,
+        "lines": [
+          {
+            "line": 430,
+            "text": "    def pinned_ctx(self, filepath: str) -> Optional[dict]:"
+          },
+          {
+            "line": 431,
+            "text": "        \"\"\"The worker ctx for a PINNED re-parse of `filepath`: the published"
+          },
+          {
+            "line": 432,
+            "text": "        parse's ctx (fixture index, WCS var patches, kins type/frame), its"
+          },
+          {
+            "line": 433,
+            "text": "        parameter basis (`param_text` + `g92_offset`, Codex R40 MR-I02), its"
+          },
+          {
+            "line": 434,
+            "text": "        rotary seed (`rotary_pose`, the golden override hook) and its tool"
+          },
+          {
+            "line": 435,
+            "text": "        seed (applied offset + loaded tool; the worker puts that tool in the"
+          },
+          {
+            "line": 436,
+            "text": "        interpreter's spindle pocket, MR-I01), niced. Read live: the tool"
+          },
+          {
+            "line": 437,
+            "text": "        TABLE — the reason for the parse — and the operator's run options"
+          },
+          {
+            "line": 438,
+            "text": "        (block delete) and the configuration (units, axis mask, limits). None"
+          },
+          {
+            "line": 439,
+            "text": "        when nothing, or no parameter basis, is published for this file.\"\"\""
+          },
+          {
+            "line": 440,
+            "text": "        base = self.published_ctx"
+          },
+          {
+            "line": 441,
+            "text": "        params = self.published_params"
+          },
+          {
+            "line": 442,
+            "text": "        if not base or base.get(\"file\") != filepath or not params or params.get(\"text\") is None:"
+          },
+          {
+            "line": 443,
+            "text": "            return None"
+          },
+          {
+            "line": 444,
+            "text": "        ctx = dict(base)"
+          },
+          {
+            "line": 445,
+            "text": "        ctx[\"param_text\"] = params[\"text\"]"
+          },
+          {
+            "line": 446,
+            "text": "        ctx[\"g92_offset\"] = params.get(\"g92\")"
+          },
+          {
+            "line": 447,
+            "text": "        if self.published_rotary_seed:"
+          },
+          {
+            "line": 448,
+            "text": "            ctx[\"rotary_pose\"] = dict(self.published_rotary_seed)"
+          },
+          {
+            "line": 449,
+            "text": "        tlo = self.published_tlo or {}"
+          },
+          {
+            "line": 450,
+            "text": "        # The START tool state of the run (VP-I20) — the published payload's"
+          },
+          {
+            "line": 451,
+            "text": "        # tool basis (its own start, or the live start a verify confirmed"
+          },
+          {
+            "line": 452,
+            "text": "        # since: the start this run began with), never its reported live"
+          },
+          {
+            "line": 453,
+            "text": "        # offset. None (an older worker's meta, an unknown start) → the"
+          },
+          {
+            "line": 454,
+            "text": "        # pinned parse is unknown too."
+          },
+          {
+            "line": 455,
+            "text": "        basis = self.tool_basis or {}"
+          },
+          {
+            "line": 456,
+            "text": "        ctx[\"seed_tool\"] = {\"applied_tlo\": basis.get(\"xyz\"),"
+          },
+          {
+            "line": 457,
+            "text": "                            \"start_mode\": basis.get(\"mode\"),"
+          },
+          {
+            "line": 458,
+            "text": "                            \"loaded_tool\": tlo.get(\"loaded_tool\")}"
+          },
+          {
+            "line": 459,
+            "text": "        ctx[\"nice\"] = self.PINNED_NICE"
+          },
+          {
+            "line": 460,
+            "text": "        return ctx"
+          }
+        ]
+      },
+      {
+        "start": 568,
+        "end": 589,
+        "lines": [
+          {
+            "line": 568,
+            "text": "        # program hashes in ~0.2 s, the GIL released."
+          },
+          {
+            "line": 569,
+            "text": "        _source_at_parse = await asyncio.to_thread(program_source, filepath)"
+          },
+          {
+            "line": 570,
+            "text": "        try:"
+          },
+          {
+            "line": 571,
+            "text": "            stat = self._get_stat()"
+          },
+          {
+            "line": 572,
+            "text": "            ini_path = getattr(stat, \"ini_filename\", None) if stat is not None else None"
+          },
+          {
+            "line": 573,
+            "text": "            if not ini_path:"
+          },
+          {
+            "line": 574,
+            "text": "                # Was a bare return: indistinguishable in the trace from"
+          },
+          {
+            "line": 575,
+            "text": "                # \"never scheduled\" — the class of silent no-op a hang"
+          },
+          {
+            "line": 576,
+            "text": "                # report cannot be triaged against."
+          },
+          {
+            "line": 577,
+            "text": "                _trace.emit(\"gcode.refresh_skipped\", level=\"warn\", file=filepath,"
+          },
+          {
+            "line": 578,
+            "text": "                            reason=\"no-stat\" if stat is None else \"no-ini\")"
+          },
+          {
+            "line": 579,
+            "text": "                return"
+          },
+          {
+            "line": 580,
+            "text": "            if pinned:"
+          },
+          {
+            "line": 581,
+            "text": "                ctx = self.pinned_ctx(filepath)"
+          },
+          {
+            "line": 582,
+            "text": "                if ctx is None:"
+          },
+          {
+            "line": 583,
+            "text": "                    _trace.emit(\"gcode.refresh_skipped\", level=\"warn\", file=filepath,"
+          },
+          {
+            "line": 584,
+            "text": "                                reason=\"no-published-ctx\")"
+          },
+          {
+            "line": 585,
+            "text": "                    return"
+          },
+          {
+            "line": 586,
+            "text": "                active_idx = ctx.get(\"g5x_index\")"
+          },
+          {
+            "line": 587,
+            "text": "                _live_kt, _live_kf = ctx.get(\"kins_type\"), ctx.get(\"kins_frame\")"
+          },
+          {
+            "line": 588,
+            "text": "            else:"
+          },
+          {
+            "line": 589,
+            "text": "                active_idx = getattr(stat, \"g5x_index\", None) if stat is not None else None"
+          }
+        ]
+      },
+      {
+        "start": 634,
+        "end": 650,
+        "lines": [
+          {
+            "line": 634,
+            "text": "                _seed_rot = rotary_seed_values(getattr(stat, \"axis_mask\", 0) or 0,"
+          },
+          {
+            "line": 635,
+            "text": "                                               getattr(stat, \"actual_position\", None))"
+          },
+          {
+            "line": 636,
+            "text": "                _seed_wcs = self._get_wcs_off_flat()"
+          },
+          {
+            "line": 637,
+            "text": "            self.cancel_reason = None"
+          },
+          {
+            "line": 638,
+            "text": "            self.inflight = {"
+          },
+          {
+            "line": 639,
+            "text": "                \"file\": filepath, \"mtime\": _mtime_at_parse, \"reason\": reason,"
+          },
+          {
+            "line": 640,
+            "text": "                \"t0\": time.monotonic(), \"started_ms\": int(time.time() * 1000),"
+          },
+          {
+            "line": 641,
+            "text": "                \"expected_ms\": expected_ms,"
+          },
+          {
+            "line": 642,
+            "text": "                \"rotary_seed\": _seed_rot,"
+          },
+          {
+            "line": 643,
+            "text": "                \"kins_seed\": {\"type\": _live_kt, \"frame\": _live_kf},"
+          },
+          {
+            "line": 644,
+            "text": "                \"wcs_off\": _seed_wcs,"
+          },
+          {
+            "line": 645,
+            "text": "                # the start tool state the worker will seed (VP-I20) — a G43"
+          },
+          {
+            "line": 646,
+            "text": "                # by hand while it runs stales it (inflight_stale_reason)"
+          },
+          {
+            "line": 647,
+            "text": "                \"tlo_seed\": None if pinned else self.live_start(stat),"
+          },
+          {
+            "line": 648,
+            "text": "                **({\"pinned\": True} if pinned else {}),"
+          },
+          {
+            "line": 649,
+            "text": "                **({\"verify\": True} if _verify_path else {}),"
+          },
+          {
+            "line": 650,
+            "text": "            }"
+          }
+        ]
+      },
+      {
+        "start": 820,
+        "end": 831,
+        "lines": [
+          {
+            "line": 820,
+            "text": "            if worker_same and not stdout:"
+          },
+          {
+            "line": 821,
+            "text": "                # Verified at the actual offset: the published payload stays;"
+          },
+          {
+            "line": 822,
+            "text": "                # only its tool basis moves to the start the worker seeded."
+          },
+          {
+            "line": 823,
+            "text": "                if self.basis_of(worker_tlo) is not None:"
+          },
+          {
+            "line": 824,
+            "text": "                    self.tool_basis = self.basis_of(worker_tlo)"
+          },
+          {
+            "line": 825,
+            "text": "                    _trace.emit(\"gcode.reparse_verified_same\", file=os.path.basename(filepath),"
+          },
+          {
+            "line": 826,
+            "text": "                                basis=self.tool_basis, version=self.preview_version,"
+          },
+          {
+            "line": 827,
+            "text": "                                total_ms=round((time.monotonic() - t_start) * 1000, 1))"
+          },
+          {
+            "line": 828,
+            "text": "                else:"
+          },
+          {
+            "line": 829,
+            "text": "                    _trace.emit(\"gcode.verify_same_without_start\", level=\"warn\","
+          },
+          {
+            "line": 830,
+            "text": "                                file=os.path.basename(filepath))"
+          },
+          {
+            "line": 831,
+            "text": "                return"
+          }
+        ]
+      },
+      {
+        "start": 867,
+        "end": 885,
+        "lines": [
+          {
+            "line": 867,
+            "text": "            # variant that was practically never served."
+          },
+          {
+            "line": 868,
+            "text": "            self.preview_bytes = None if preview_bytes_gz is not None else stdout"
+          },
+          {
+            "line": 869,
+            "text": "            self.preview_bytes_gz = preview_bytes_gz"
+          },
+          {
+            "line": 870,
+            "text": "            self.published_schema = worker_schema"
+          },
+          {
+            "line": 871,
+            "text": "            self.published_tlo = worker_tlo"
+          },
+          {
+            "line": 872,
+            "text": "            self.tool_basis = self.basis_of(worker_tlo)"
+          },
+          {
+            "line": 873,
+            "text": "            self.published_rotary_seed = worker_rotary_seed"
+          },
+          {
+            "line": 874,
+            "text": "            self.published_rotary_cmd = worker_rotary_cmd"
+          },
+          {
+            "line": 875,
+            "text": "            self.published_limits = worker_limits"
+          },
+          {
+            "line": 876,
+            "text": "            self.published_kins_seed = worker_kins_seed"
+          },
+          {
+            "line": 877,
+            "text": "            self.published_wcs_off = worker_wcs_off"
+          },
+          {
+            "line": 878,
+            "text": "            self.published_ctx = ctx"
+          },
+          {
+            "line": 879,
+            "text": "            self.table_stale = None"
+          },
+          {
+            "line": 880,
+            "text": "            self.published_params = worker_params if isinstance(worker_params, dict) else None"
+          },
+          {
+            "line": 881,
+            "text": "            self.published_toolsetter = worker_toolsetter if isinstance(worker_toolsetter, dict) else None"
+          },
+          {
+            "line": 882,
+            "text": "            self.preview_version += 1"
+          },
+          {
+            "line": 883,
+            "text": "            self.last_file = filepath"
+          },
+          {
+            "line": 884,
+            "text": "            self.last_mtime = _mtime_at_parse"
+          },
+          {
+            "line": 885,
+            "text": "            if not pinned:"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/gateway_util.py",
+    "sha256": "66e3b50cffa862c1e7151479338d2761ae83f3ba41c2d720bfba1f74cbf2bc5b",
+    "excerpts": [
+      {
+        "start": 2216,
+        "end": 2244,
+        "lines": [
+          {
+            "line": 2216,
+            "text": "    `meta` is the worker's parse-time snapshot {\"table_mtime\": float|None,"
+          },
+          {
+            "line": 2217,
+            "text": "    \"tlos\": [[tool, xo, yo, zo(, diameter)], ...], \"loaded_tool\": int}."
+          },
+          {
+            "line": 2218,
+            "text": "    Returns the reason string or None. The CALLER owns idle-gating and"
+          },
+          {
+            "line": 2219,
+            "text": "    debounce. Pure."
+          },
+          {
+            "line": 2220,
+            "text": "    \"\"\""
+          },
+          {
+            "line": 2221,
+            "text": "    if not meta:"
+          },
+          {
+            "line": 2222,
+            "text": "        return None"
+          },
+          {
+            "line": 2223,
+            "text": "    m0 = meta.get(\"table_mtime\")"
+          },
+          {
+            "line": 2224,
+            "text": "    if m0 is not None and cur_mtime is not None and cur_mtime != m0:"
+          },
+          {
+            "line": 2225,
+            "text": "        return \"table_mtime\""
+          },
+          {
+            "line": 2226,
+            "text": "    if not table_only:"
+          },
+          {
+            "line": 2227,
+            "text": "        loaded_then = meta.get(\"loaded_tool\")"
+          },
+          {
+            "line": 2228,
+            "text": "        if (loaded_then is not None and tool_number is not None"
+          },
+          {
+            "line": 2229,
+            "text": "                and int(loaded_then) != int(tool_number)):"
+          },
+          {
+            "line": 2230,
+            "text": "            return \"tool_loaded\""
+          },
+          {
+            "line": 2231,
+            "text": "    if table_rows:"
+          },
+          {
+            "line": 2232,
+            "text": "        live = {}"
+          },
+          {
+            "line": 2233,
+            "text": "        for tid, z in table_rows:"
+          },
+          {
+            "line": 2234,
+            "text": "            try:"
+          },
+          {
+            "line": 2235,
+            "text": "                live.setdefault(int(tid), float(z))"
+          },
+          {
+            "line": 2236,
+            "text": "            except (TypeError, ValueError):"
+          },
+          {
+            "line": 2237,
+            "text": "                continue"
+          },
+          {
+            "line": 2238,
+            "text": "        for row in meta.get(\"tlos\") or []:"
+          },
+          {
+            "line": 2239,
+            "text": "            if not row:"
+          },
+          {
+            "line": 2240,
+            "text": "                continue"
+          },
+          {
+            "line": 2241,
+            "text": "            lz = live.get(int(row[0]))"
+          },
+          {
+            "line": 2242,
+            "text": "            if lz is not None and abs(float(row[3]) - lz) > eps:"
+          },
+          {
+            "line": 2243,
+            "text": "                return \"table_row\""
+          },
+          {
+            "line": 2244,
+            "text": "    return None"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/scrubTrack.ts",
+    "sha256": "33f83dadd9608f3f0a4df73648928544d36cbfea0be95629ef6aa7e138cd8440",
+    "excerpts": [
+      {
+        "start": 702,
+        "end": 734,
+        "lines": [
+          {
+            "line": 702,
+            "text": " *  only — no WCS peel). The projection converts machine → program PER"
+          },
+          {
+            "line": 703,
+            "text": " *  CANDIDATE SEGMENT (each has its own epoch terms), so the two halves of"
+          },
+          {
+            "line": 704,
+            "text": " *  machineJointsToProgram are split here. Uses the LIVE tool offset on"
+          },
+          {
+            "line": 705,
+            "text": " *  purpose (schema 8 changes nothing here): the run playhead inverts the"
+          },
+          {
+            "line": 706,
+            "text": " *  machine's PHYSICAL joints under its ACTUAL G43 state at that instant —"
+          },
+          {
+            "line": 707,
+            "text": " *  the track's per-segment offsets are the parse-time prediction of that"
+          },
+          {
+            "line": 708,
+            "text": " *  same state, not a substitute for it. */"
+          },
+          {
+            "line": 709,
+            "text": "export function machineFromJoints("
+          },
+          {
+            "line": 710,
+            "text": "  joints: ArrayLike<number>, axes: string[], wcs: PartFrameWcs,"
+          },
+          {
+            "line": 711,
+            "text": "  kins?: KinsSpec, kinstype?: number | null, frame?: readonly number[] | null,"
+          },
+          {
+            "line": 712,
+            "text": "): [number, number, number, number, number, number] {"
+          },
+          {
+            "line": 713,
+            "text": "  const m: [number, number, number, number, number, number] = [0, 0, 0, 0, 0, 0];"
+          },
+          {
+            "line": 714,
+            "text": "  const model = kinsForSegment(axes, kins, kinstype ?? null, frame,"
+          },
+          {
+            "line": 715,
+            "text": "                               wcs.tool?.[2] || undefined, \"run playhead\");"
+          },
+          {
+            "line": 716,
+            "text": "  model.forward(joints, m);"
+          },
+          {
+            "line": 717,
+            "text": "  return m;"
+          },
+          {
+            "line": 718,
+            "text": "}"
+          },
+          {
+            "line": 719,
+            "text": ""
+          },
+          {
+            "line": 720,
+            "text": "export interface TrackProjection {"
+          },
+          {
+            "line": 721,
+            "text": "  /** Scrub parameter of the closest on-track point. */"
+          },
+          {
+            "line": 722,
+            "text": "  cum: number;"
+          },
+          {
+            "line": 723,
+            "text": "  /** Upper track index of the segment it falls in. */"
+          },
+          {
+            "line": 724,
+            "text": "  index: number;"
+          },
+          {
+            "line": 725,
+            "text": "  /** Squared 6D residual (units/degrees, 1° ≙ 1 unit). */"
+          },
+          {
+            "line": 726,
+            "text": "  dist2: number;"
+          },
+          {
+            "line": 727,
+            "text": "}"
+          },
+          {
+            "line": 728,
+            "text": ""
+          },
+          {
+            "line": 729,
+            "text": "/** Project a live MACHINE pose onto the track (review P3 — the positional"
+          },
+          {
+            "line": 730,
+            "text": " *  run playhead): best point-to-segment match in 6D (1° ≙ 1 unit) over the"
+          },
+          {
+            "line": 731,
+            "text": " *  segments whose cum range intersects `win` (null = the whole track)."
+          },
+          {
+            "line": 732,
+            "text": " *  motion_line is NOT consulted — sub/remap-relative line numbers collide"
+          },
+          {
+            "line": 733,
+            "text": " *  with the main file's, which is exactly what parked the old highlight on"
+          },
+          {
+            "line": 734,
+            "text": " *  wrong lines. The machine pose converts to program space per candidate"
+          }
+        ]
+      },
+      {
+        "start": 794,
+        "end": 814,
+        "lines": [
+          {
+            "line": 794,
+            "text": "    const off = (e >= 0 && e < nE ? e + 1 : 0) * 6;"
+          },
+          {
+            "line": 795,
+            "text": "    const j = i * 3, k = j - 3;"
+          },
+          {
+            "line": 796,
+            "text": "    const ax = t.pos[k]!, ay = t.pos[k + 1]!, az = t.pos[k + 2]!;"
+          },
+          {
+            "line": 797,
+            "text": "    const aa = t.abc[k]!, ab = t.abc[k + 1]!, ac = t.abc[k + 2]!;"
+          },
+          {
+            "line": 798,
+            "text": "    const dx = t.pos[j]! - ax, dy = t.pos[j + 1]! - ay, dz = t.pos[j + 2]! - az;"
+          },
+          {
+            "line": 799,
+            "text": "    const da = t.abc[j]! - aa, db = t.abc[j + 1]! - ab, dc = t.abc[j + 2]! - ac;"
+          },
+          {
+            "line": 800,
+            "text": "    const len2 = dx * dx + dy * dy + dz * dz + da * da + db * db + dc * dc;"
+          },
+          {
+            "line": 801,
+            "text": "    const rx = pFlat[off]! - ax, ry = pFlat[off + 1]! - ay, rz = pFlat[off + 2]! - az;"
+          },
+          {
+            "line": 802,
+            "text": "    const ra = pFlat[off + 3]! - aa, rb = pFlat[off + 4]! - ab, rc = pFlat[off + 5]! - ac;"
+          },
+          {
+            "line": 803,
+            "text": "    const u = len2 > 0"
+          },
+          {
+            "line": 804,
+            "text": "      ? Math.min(1, Math.max(0, (rx * dx + ry * dy + rz * dz + ra * da + rb * db + rc * dc) / len2))"
+          },
+          {
+            "line": 805,
+            "text": "      : 0;"
+          },
+          {
+            "line": 806,
+            "text": "    const ex = rx - u * dx, ey = ry - u * dy, ez = rz - u * dz;"
+          },
+          {
+            "line": 807,
+            "text": "    const ea = ra - u * da, eb = rb - u * db, ec = rc - u * dc;"
+          },
+          {
+            "line": 808,
+            "text": "    const d2 = ex * ex + ey * ey + ez * ez + ea * ea + eb * eb + ec * ec;"
+          },
+          {
+            "line": 809,
+            "text": "    if (d2 < (best?.dist2 ?? Infinity)) {"
+          },
+          {
+            "line": 810,
+            "text": "      best = { cum: t.cum[i - 1]! + u * (t.cum[i]! - t.cum[i - 1]!), index: i, dist2: d2 };"
+          },
+          {
+            "line": 811,
+            "text": "    }"
+          },
+          {
+            "line": 812,
+            "text": "  }"
+          },
+          {
+            "line": 813,
+            "text": "  return best;"
+          },
+          {
+            "line": 814,
+            "text": "}"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/runWatcher.ts",
+    "sha256": "a38846dad5b0c964c7857e13769f3e44ea388beef0d9346d4f673af622810b19",
+    "excerpts": [
+      {
+        "start": 64,
+        "end": 75,
+        "lines": [
+          {
+            "line": 64,
+            "text": "export const REPROBE_MS = 1000;"
+          },
+          {
+            "line": 65,
+            "text": "/** Strided coarse scan probes at most this many segments. */"
+          },
+          {
+            "line": 66,
+            "text": "export const STRIDE_TARGET = 4096;"
+          },
+          {
+            "line": 67,
+            "text": ""
+          },
+          {
+            "line": 68,
+            "text": "type Project = typeof projectOntoTrack;"
+          },
+          {
+            "line": 69,
+            "text": ""
+          },
+          {
+            "line": 70,
+            "text": "export interface RunWatcher {"
+          },
+          {
+            "line": 71,
+            "text": "  update(inp: RunWatcherInput): RunWatcherOutput;"
+          },
+          {
+            "line": 72,
+            "text": "  reset(): void;"
+          },
+          {
+            "line": 73,
+            "text": "  readonly phase: RunWatcherPhase;"
+          },
+          {
+            "line": 74,
+            "text": "}"
+          },
+          {
+            "line": 75,
+            "text": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "scripts/sim_parity.py",
+    "sha256": "ea87c45c65d4a79a00ddeebe3e87dfea5b1edbbf8eedfb9f555c5a54bcec7fec",
+    "excerpts": [
+      {
+        "start": 2,
+        "end": 22,
+        "lines": [
+          {
+            "line": 2,
+            "text": "\"\"\"Sim-vs-actual trajectory gate (W6)."
+          },
+          {
+            "line": 3,
+            "text": ""
+          },
+          {
+            "line": 4,
+            "text": "The operator's acceptance standard: the trajectory the 3D SIM would pose"
+          },
+          {
+            "line": 5,
+            "text": "the machine along and the trajectory the REAL run produces must match,"
+          },
+          {
+            "line": 6,
+            "text": "over a corpus of test programs — \"before that it's not proven correct.\""
+          },
+          {
+            "line": 7,
+            "text": ""
+          },
+          {
+            "line": 8,
+            "text": "Per run:"
+          },
+          {
+            "line": 9,
+            "text": "  1. load the program, wait for the RUNNING GATEWAY's cached payload to"
+          },
+          {
+            "line": 10,
+            "text": "     settle (idle drift edges included — their correctness is part of"
+          },
+          {
+            "line": 11,
+            "text": "     what's under test), and save those bytes: the payload the sim would"
+          },
+          {
+            "line": 12,
+            "text": "     actually play right before Cycle Start;"
+          },
+          {
+            "line": 13,
+            "text": "  2. capture the real run (twp_parity.sample_run — sim configs only,"
+          },
+          {
+            "line": 14,
+            "text": "     machine on + homed, refuses otherwise) with its W6 context header;"
+          },
+          {
+            "line": 15,
+            "text": "  3. replay the payload through the ACTUAL client code"
+          },
+          {
+            "line": 16,
+            "text": "     (lcnc-webui/scripts/simDump.ts via the installed Vite module runner);"
+          },
+          {
+            "line": 17,
+            "text": "  4. compare joint-space PATHS bidirectionally (deg ≙ mm): truth samples"
+          },
+          {
+            "line": 18,
+            "text": "     against the sim polyline AND sim samples against the truth polyline"
+          },
+          {
+            "line": 19,
+            "text": "     — one direction alone misses an excursion the other path never"
+          },
+          {
+            "line": 20,
+            "text": "     makes (the arc-vs-plunge class). Wall-clock is never compared: the"
+          },
+          {
+            "line": 21,
+            "text": "     sim runs the estimate axis by design; corner rounding within the"
+          },
+          {
+            "line": 22,
+            "text": "     program's G64 blend budget is why tolerance is per-program."
+          }
+        ]
+      },
+      {
+        "start": 87,
+        "end": 130,
+        "lines": [
+          {
+            "line": 87,
+            "text": "def path_deviation(A, B):"
+          },
+          {
+            "line": 88,
+            "text": "    \"\"\"Nearest-segment distance from each sample of A to polyline B, in"
+          },
+          {
+            "line": 89,
+            "text": "    6D joint space (degrees ≙ mm — the suite's convention). Returns"
+          },
+          {
+            "line": 90,
+            "text": "    (max, p99). Pure.\"\"\""
+          },
+          {
+            "line": 91,
+            "text": "    if len(A) == 0 or len(B) == 0:"
+          },
+          {
+            "line": 92,
+            "text": "        return float(\"inf\"), float(\"inf\")"
+          },
+          {
+            "line": 93,
+            "text": "    if len(B) == 1:"
+          },
+          {
+            "line": 94,
+            "text": "        d = np.sqrt(((A - B[0]) ** 2).sum(1))"
+          },
+          {
+            "line": 95,
+            "text": "        return float(d.max()), float(np.percentile(d, 99))"
+          },
+          {
+            "line": 96,
+            "text": "    P0, P1 = B[:-1], B[1:]"
+          },
+          {
+            "line": 97,
+            "text": "    D = P1 - P0"
+          },
+          {
+            "line": 98,
+            "text": "    L2 = (D * D).sum(1)"
+          },
+          {
+            "line": 99,
+            "text": "    L2[L2 == 0] = 1.0"
+          },
+          {
+            "line": 100,
+            "text": "    best = np.empty(len(A))"
+          },
+          {
+            "line": 101,
+            "text": "    for i, p in enumerate(A):"
+          },
+          {
+            "line": 102,
+            "text": "        t = np.clip(((p - P0) * D).sum(1) / L2, 0.0, 1.0)"
+          },
+          {
+            "line": 103,
+            "text": "        proj = P0 + t[:, None] * D"
+          },
+          {
+            "line": 104,
+            "text": "        best[i] = ((p - proj) ** 2).sum(1).min()"
+          },
+          {
+            "line": 105,
+            "text": "    best = np.sqrt(best)"
+          },
+          {
+            "line": 106,
+            "text": "    return float(best.max()), float(np.percentile(best, 99))"
+          },
+          {
+            "line": 107,
+            "text": ""
+          },
+          {
+            "line": 108,
+            "text": ""
+          },
+          {
+            "line": 109,
+            "text": "def compare_files(truth_path, sim_path, tol):"
+          },
+          {
+            "line": 110,
+            "text": "    \"\"\"Bidirectional gate on one run. Returns (ok, report_str).\"\"\""
+          },
+          {
+            "line": 111,
+            "text": "    T = load_truth_joints(truth_path)"
+          },
+          {
+            "line": 112,
+            "text": "    S, nulls = load_sim_joints(sim_path)"
+          },
+          {
+            "line": 113,
+            "text": "    if T.size == 0 or S.size == 0:"
+          },
+          {
+            "line": 114,
+            "text": "        return False, \"empty trajectory (truth or sim) — nothing to certify\""
+          },
+          {
+            "line": 115,
+            "text": "    if T.shape[1] != S.shape[1]:"
+          },
+          {
+            "line": 116,
+            "text": "        # Never narrow silently: a sim that shipped 3-column joints on a"
+          },
+          {
+            "line": 117,
+            "text": "        # 6-joint machine would otherwise be compared on XYZ alone and pass"
+          },
+          {
+            "line": 118,
+            "text": "        # with a whole rotary channel unchecked."
+          },
+          {
+            "line": 119,
+            "text": "        return False, (f\"joint width mismatch: truth {T.shape[1]} vs sim \""
+          },
+          {
+            "line": 120,
+            "text": "                       f\"{S.shape[1]} columns — refusing to certify\")"
+          },
+          {
+            "line": 121,
+            "text": "    t2s_max, t2s_p99 = path_deviation(T, S)"
+          },
+          {
+            "line": 122,
+            "text": "    s2t_max, s2t_p99 = path_deviation(S, T)"
+          },
+          {
+            "line": 123,
+            "text": "    ok = t2s_max <= tol and s2t_max <= tol"
+          },
+          {
+            "line": 124,
+            "text": "    rep = (f\"truth→sim max {t2s_max:.3f} p99 {t2s_p99:.3f} | \""
+          },
+          {
+            "line": 125,
+            "text": "           f\"sim→truth max {s2t_max:.3f} p99 {s2t_p99:.3f} | tol {tol}\")"
+          },
+          {
+            "line": 126,
+            "text": "    if nulls:"
+          },
+          {
+            "line": 127,
+            "text": "        frac = nulls / max(1, nulls + len(S))"
+          },
+          {
+            "line": 128,
+            "text": "        rep += f\" | {nulls} sim samples with null joints (UNCHECKED)\""
+          },
+          {
+            "line": 129,
+            "text": "        if frac > 0.05:"
+          },
+          {
+            "line": 130,
+            "text": "            ok = False"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "scripts/parity_corpus/twp.json",
+    "sha256": "7ae1ffe41b542b44a87a3860b57d969e1af994edc66a26cd5f4b937672356b4b",
+    "excerpts": [
+      {
+        "start": 1,
+        "end": 41,
+        "lines": [
+          {
+            "line": 1,
+            "text": "{"
+          },
+          {
+            "line": 2,
+            "text": "  \"ini\": \"~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_twp.ini\","
+          },
+          {
+            "line": 3,
+            "text": "  \"programs\": ["
+          },
+          {
+            "line": 4,
+            "text": "    {"
+          },
+          {
+            "line": 5,
+            "text": "      \"file\": \"~/linuxcnc/nc_files/twp_simple_example.ngc\","
+          },
+          {
+            "line": 6,
+            "text": "      \"runs\": 2,"
+          },
+          {
+            "line": 7,
+            "text": "      \"tol\": 0.5,"
+          },
+          {
+            "line": 8,
+            "text": "      \"note\": \"runs BACK-TO-BACK: run 2 starts with the rotaries parked tilted (';g69' restores nothing) \\u2014 passes only if the gateway's rotary-drift reparse refreshed the cached payload between runs (the arc-vs-plunge class).\""
+          },
+          {
+            "line": 9,
+            "text": "    },"
+          },
+          {
+            "line": 10,
+            "text": "    {"
+          },
+          {
+            "line": 11,
+            "text": "      \"file\": \"twp_a_tilt.ngc\","
+          },
+          {
+            "line": 12,
+            "text": "      \"runs\": 2,"
+          },
+          {
+            "line": 13,
+            "text": "      \"tol\": 0.5,"
+          },
+          {
+            "line": 14,
+            "text": "      \"note\": \"the WORK-side A table moves 20 deg between g68.2 and g53.3 \\u2014 the table-aware composition must orient to the moved face (a wrong sign is off by 2*dA = 40 deg). Run 2 starts from the previous run's parked pose.\""
+          },
+          {
+            "line": 15,
+            "text": "    },"
+          },
+          {
+            "line": 16,
+            "text": "    {"
+          },
+          {
+            "line": 17,
+            "text": "      \"file\": \"parity_linear.ngc\","
+          },
+          {
+            "line": 18,
+            "text": "      \"runs\": 1,"
+          },
+          {
+            "line": 19,
+            "text": "      \"tol\": 0.5,"
+          },
+          {
+            "line": 20,
+            "text": "      \"note\": \"pure linear + arc, rotaries uncommanded (stay at whatever pose the previous entry left them in \\u2014 the seed must carry it).\""
+          },
+          {
+            "line": 21,
+            "text": "    },"
+          },
+          {
+            "line": 22,
+            "text": "    {"
+          },
+          {
+            "line": 23,
+            "text": "      \"file\": \"twp_g69_tail.ngc\","
+          },
+          {
+            "line": 24,
+            "text": "      \"runs\": 2,"
+          },
+          {
+            "line": 25,
+            "text": "      \"tol\": 0.5,"
+          },
+          {
+            "line": 26,
+            "text": "      \"note\": \"motion after g69: the relabel must carry forward per axis, not just patch the segment start (was a 897mm phantom). Run 2 also starts parked in identity.\""
+          },
+          {
+            "line": 27,
+            "text": "    },"
+          },
+          {
+            "line": 28,
+            "text": "    {"
+          },
+          {
+            "line": 29,
+            "text": "      \"file\": \"twp_a_define_tilted.ngc\","
+          },
+          {
+            "line": 30,
+            "text": "      \"runs\": 2,"
+          },
+          {
+            "line": 31,
+            "text": "      \"tol\": 0.5,"
+          },
+          {
+            "line": 32,
+            "text": "      \"note\": \"the plane is DEFINED at a tilted table (A20 before g68.2). Pins table-relative storage: g68.2's P-branches change meaning with zero code change, so nothing else can catch a regression here. Stub the table mapping and this reports ~19.3 deg.\""
+          },
+          {
+            "line": 33,
+            "text": "    },"
+          },
+          {
+            "line": 34,
+            "text": "    {"
+          },
+          {
+            "line": 35,
+            "text": "      \"file\": \"twp_g683_tilted.ngc\","
+          },
+          {
+            "line": 36,
+            "text": "      \"runs\": 2,"
+          },
+          {
+            "line": 37,
+            "text": "      \"tol\": 1.5,"
+          },
+          {
+            "line": 38,
+            "text": "      \"note\": \"G68.3 (live-spindle definition) at a TILTED table: the origin words are a VECTOR and must convert rotation-only. The plane invariants (normal + G59 ORIGIN rotated back through the mode-2 frame) are what this program exists for and gate at 0.5; the point-path bug reports origin_err ~776 mm with normal_err ~0. Joint parity tol is 1.5 here, not 0.5: both runs show a localized ~1.07 mm spike (p99 <= 0.05) on the initial head-posing rapids (lines 16-17) where the sim's parse-time rotary seed differs from the pose the run actually started from \\u2014 the rotary-seed freshness class, not the plane. Open item in decisions.md.\""
+          },
+          {
+            "line": 39,
+            "text": "    }"
+          },
+          {
+            "line": 40,
+            "text": "  ]"
+          },
+          {
+            "line": 41,
+            "text": "}"
+          }
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,46 @@
+{
+  "viewer-palette-fest.r113.codex-checks.md": {
+    "sha256": "c63aa45e3984365edf0b3b47f2a8ea33f6e90236a1b210cb5ae2aa9c15c81c3f",
+    "bytes": 4510
+  },
+  "viewer-palette-fest.r113.codex-client.test.ts": {
+    "sha256": "573d43da416edbbda1933ad432b93695d8659dcfa53c4d42df55d02b54d91a8a",
+    "bytes": 3878
+  },
+  "viewer-palette-fest.r113.codex-client.txt": {
+    "sha256": "d979192b2c8ef89099f3bea8f7bde529ab5d9bf5a0bb72b9d7c08b687d457cda",
+    "bytes": 218
+  },
+  "viewer-palette-fest.r113.codex-context.json": {
+    "sha256": "bb9c31782863158317d2875a2de7e94bc71aeeb4442332797d7651560c3421e0",
+    "bytes": 316
+  },
+  "viewer-palette-fest.r113.codex-known-control.json": {
+    "sha256": "82dacf2f5f828bc447a24cd7ade052cb36b31f04cb42b53305bd589d2d3c5a2d",
+    "bytes": 1318
+  },
+  "viewer-palette-fest.r113.codex-offpath-control.json": {
+    "sha256": "fef81e82d4c07931f7788a19810832e594ad0ae520b71fa80f5742900c9cd16c",
+    "bytes": 144
+  },
+  "viewer-palette-fest.r113.codex-plan-checks.json": {
+    "sha256": "c7b036956a161c52b668bb7c0bf4e06aecb64a04543e0c9b8a10a6fecac20e07",
+    "bytes": 3428
+  },
+  "viewer-palette-fest.r113.codex-plan-checks.py": {
+    "sha256": "384ec9bfc792cc262761b4e5a9da5a49ffa3bd9127db689e25bec88947d14f45",
+    "bytes": 3936
+  },
+  "viewer-palette-fest.r113.codex-plan-checks.txt": {
+    "sha256": "6aaae403fe72c963fb170602216bc36a5a87171988d7dce86f962f377361de54",
+    "bytes": 86
+  },
+  "viewer-palette-fest.r113.codex-sources.json": {
+    "sha256": "862d87044a1f81822f3e8d6a2730f770e9a5aa85e28345e77bd9dc12afaa952f",
+    "bytes": 72280
+  },
+  "viewer-palette-fest.r113.codex-unknown-floor.json": {
+    "sha256": "8a7c118062d4dd319779f02147bcbe151c28bc8bf4c42b023a7b155c64ec5a32",
+    "bytes": 1689
+  }
+}
