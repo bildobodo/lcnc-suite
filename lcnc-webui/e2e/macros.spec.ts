@@ -530,9 +530,13 @@ test("a tap on a row selects it for Run; its name is one Tab stop whose keys sel
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await ctl({ op: "clearCmds" });
   await expect(page.getByTitle("Keyboard shortcuts active", { exact: true })).toBeVisible();
-  await page.keyboard.down("ArrowDown");
-  await expect.poll(jogs, { message: "control: ArrowDown on the bare page jogs" }).toContain("jog_cont");
-  await page.keyboard.up("ArrowDown");
+  // pressed until it jogs: the binding is live once the settings frame is
+  // applied — the title shows from the defaults too
+  await expect.poll(async () => {
+    await page.keyboard.down("ArrowDown");
+    await page.keyboard.up("ArrowDown");
+    return jogs();
+  }, { message: "control: ArrowDown on the bare page jogs" }).toContain("jog_cont");
   await page.keyboard.down("ArrowDown");   // release any jog the control left
   await page.keyboard.up("ArrowDown");
   await page.locator(".macrosTab .rowPick[tabindex='0']").focus();

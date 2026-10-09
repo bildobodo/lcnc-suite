@@ -79,8 +79,12 @@ test.afterEach(async () => {
 test("positive control: Space on the bare page sends cycle_start", async ({ page }) => {
   await openReady(page);
   await focusBody(page);
-  await page.keyboard.press(" ");
-  await expect.poll(recordedCmds).toContain("cycle_start");
+  // pressed until it starts: the settings and permissions frames apply a
+  // render later (a single press before that was lost under load, 2026-10-09)
+  await expect.poll(async () => {
+    await page.keyboard.press(" ");
+    return recordedCmds();
+  }).toContain("cycle_start");
 });
 
 test("number keypad open: Space/Backspace send nothing, Escape sends exactly estop", async ({ page }) => {
