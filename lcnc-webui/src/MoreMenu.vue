@@ -63,7 +63,8 @@ function items(): HTMLElement[] {
 function position() {
   const t = trigger();
   const p = pop.value;
-  if (!t || !p || !p.matches(":popover-open")) return;
+  if (!p || !p.matches(":popover-open")) return;
+  if (!t) { p.style.visibility = ""; return; }
   p.style.left = "0px";
   p.style.top = "0px";
   p.style.maxHeight = "";
@@ -76,11 +77,16 @@ function position() {
   p.style.top = `${at.top / z}px`;
   p.style.left = `${at.left / z}px`;
   p.style.maxHeight = at.maxHeight === null ? "" : `${at.maxHeight / z}px`;
+  p.style.visibility = "";   // placed: shown
 }
 
 function onBeforeToggle(e: Event) {
   open.value = (e as ToggleEvent).newState === "open";
   if (open.value) {
+    // Laid out but not shown until it is placed: reopened after a resize or a
+    // zoom it showed for a frame at its last place (the macros.spec gate
+    // read it there, 2026-10-09).
+    if (pop.value) pop.value.style.visibility = "hidden";
     const byKeyboard = !!trigger()?.matches(":focus-visible");
     requestAnimationFrame(() => {
       position();
