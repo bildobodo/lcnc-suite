@@ -1,0 +1,77 @@
+{
+  "stops": [
+    [
+      42,
+      2,
+      "travel",
+      0
+    ]
+  ],
+  "lengths": [
+    [
+      22,
+      2,
+      80,
+      0
+    ]
+  ],
+  "events": [
+    {
+      "seq": 22,
+      "tool": 2,
+      "line": 0,
+      "length": 80,
+      "note": "80.000 mm from the table (assumed)"
+    },
+    {
+      "seq": 42,
+      "tool": 2,
+      "line": 0,
+      "length": null,
+      "note": "measurement not predicted: T2's table length does not trip within the probe's travel"
+    }
+  ],
+  "unbound": [
+    {
+      "seq": 22,
+      "tool": 2,
+      "line": 0,
+      "length": 80,
+      "note": "80.000 mm from the table (assumed)"
+    },
+    {
+      "seq": 42,
+      "tool": 2,
+      "line": 0,
+      "length": null,
+      "note": "measurement not predicted: T2's table length does not trip within the probe's travel"
+    }
+  ],
+  "stats": "T2 80.000 mm (line not known), T2 not predicted (line not known)",
+  "rows": [
+    {
+      "key": "T3",
+      "kind": "tool",
+      "line": 3,
+      "lineLabel": "L3",
+      "cum": 1,
+      "cumEnd": 1,
+      "what": "Tool change → T2",
+      "note": "",
+      "rapid": null,
+      "at": "00:01"
+    },
+    {
+      "key": "T6",
+      "kind": "tool",
+      "line": 6,
+      "lineLabel": "L6",
+      "cum": 2,
+      "cumEnd": 2,
+      "what": "Tool change → T2",
+      "note": "",
+      "rapid": null,
+      "at": "00:02"
+    }
+  ]
+}

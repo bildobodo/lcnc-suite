@@ -1,0 +1,56 @@
+{
+  "native_cases": 12,
+  "native_parses_without_error": true,
+  "native_tool_mmap_unchanged": true,
+  "assignments_all_reach_x4": true,
+  "foreign_control_has_stop": true,
+  "foreign_variants_missing_stop": [],
+  "task_path_fixture_matches_base": true,
+  "additional_valid_native_programs": [
+    "near_call_pair",
+    "near_call_single",
+    "remap_write",
+    "foreign_remap_nested"
+  ],
+  "additional_rejected_negative_controls": [
+    "inline_if_assignment",
+    "inline_endif_assignment"
+  ],
+  "remap_write_native_x": 4.0,
+  "nested_foreign_stop": null,
+  "near_integer_call_lines": [
+    [
+      5,
+      2
+    ],
+    [
+      5,
+      1
+    ]
+  ],
+  "entry": null,
+  "remap_basis": {
+    "before": {
+      "value": 3.0,
+      "origin": "read",
+      "t": 1791508260.8722277
+    },
+    "reply": {
+      "ok": true
+    },
+    "interpreter_3009": 4.0,
+    "booked_3009": {
+      "value": 3.0,
+      "origin": "read",
+      "t": 1791508260.8722277
+    },
+    "basis_state": "confirmed",
+    "read_back_due": false,
+    "calls": [
+      [
+        "mdi",
+        "M200"
+      ]
+    ]
+  }
+}

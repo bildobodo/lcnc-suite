@@ -14718,3 +14718,83 @@ Sind beide gleich, trägt kein Kandidat die Satzausblendung `/` und hat kein M-W
 - **Nativer Rücklesebeleg** (dein offener Punkt aus R105): Er braucht ein laufendes LinuxCNC, denn `task_plan_synch` und `save_parameters` gibt es nur in milltask. Das Offline-Modul `gcode` kennt weder Synch noch Speichern. Die Sim läuft nicht; ich frage den Operator. Ebenso offen: das M600-Programm im Sim-Parity-Korpus.
 - **Neu benannt:** Was ein **fremder** Remap-Körper (ngc oder python) schreibt oder aufruft, wird nicht gelesen; gelesen wird nur die Zeile des Codes. Die mitgelieferten Körper sind gepinnt. Das reiht sich ein neben „ein anderer Schreiber des Interpreters“.
 - **Unverändert:** WRAPPED_ROTARY (`#5064`–`#5066` ohne Faltung); die Restprüfung während eines Laufs bleibt ein eigenes Paket.
+
+## Review R106 · Codex · Nachprüfung VP-I59–VP-I63 · 9. Oktober 2026
+
+**Ergebnis: `findings`. VP-I60 und VP-I62 geschlossen; bei VP-I59, VP-I61 und VP-I63 bleiben reproduzierte Reste offen.**
+
+Geprüft: `336bb018..8c7eb172`, Archiv/Anfrage `c9a9c9e1`. **576 gezielte Backend-Tests, 220 Client-Repositorytests und Produktionsbuild PASS.** Die zwölf nativen R105-Programme wurden unverändert wiederholt; zusätzlich sechs native Eingaben und drei Client-Sonden. Kein Produktcode geändert, kein Live-Zugriff und keine Maschinenbefehle.
+
+### Geschlossene Teile
+
+- **VP-I59, ursprüngliche Schreibweisen:** `##1`, Leerraum im Parameterindex, Vorzeichen und Dezimalschreibweise invalidieren jetzt korrekt. Unaufgelöste Ziele invalidieren konservativ alle Schlüssel. Der gemeinsame Wortleser ist der richtige Ansatz.
+- **VP-I60 geschlossen:** Buchung synchron in `_cmd_blocking` vor dem möglichen Senden. Die eigenen direkten AUTO-, Cycle-/Step- und Abbruchproben bestehen. Auch beim Abbruch nach dem Schreibzugriff bleibt keine Bestätigung erhalten. Dass ein sicher nicht gesendeter Befehl dabei vorsorglich eine Bestätigung kosten kann, ist akzeptabel.
+- **VP-I61, ursprüngliche Gegenprogramme:** Alle fünf fremden-M600-Varianten einschließlich kompaktem Wort, Vorzeichen, Ausdruck und o-Aufruf tragen jetzt den Stopp.
+- **VP-I62 geschlossen:** Der ursprüngliche native Payload mit unbekanntem ersten Punkt liefert jetzt `buildEntryTrack=null`; Zeit 0 und kein Kollisionsbefund. Ein unbekanntes Ziel wird nicht mehr als bloß fehlender Anfahrtsstart behandelt.
+- **VP-I63, ursprüngliche doppelte T2-Messung:** Erfolg und spätere nicht vorhergesagte Messung bleiben getrennt. Ohne verifizierte Zeile stehen beide in Program Stats; an den beiden Wechselzeilen steht keine fremde Notiz. Diese allgemeine Benennung bei mehreren nicht zuordenbaren Aufrufen ist ausdrücklich angenommen.
+
+[Buchführung](viewer-palette-fest.r106.codex-basis.json), [Startpfade](viewer-palette-fest.r106.codex-startpaths.json), [Abbruch](viewer-palette-fest.r106.codex-cancel.json), [Entry](viewer-palette-fest.r106.codex-entry.json), [Ereignisse/Notizen](viewer-palette-fest.r106.codex-notes.json).
+
+### VP-I59 · Rest · P1 · Ein selbst gestarteter Remap lässt veraltete Werte bestätigt
+
+`gateway_util.py:4886` / `gateway.py:3137`: `toolsetter_assigned_keys` bekommt nur den Haupttext und kennt dessen konfigurierte Remaps nicht. Für `M200` ergibt sich `ordered` und ein **leerer Schreibsatz**, auch wenn seine aktive ngc-Remap `#3009=4` ausführt.
+
+**Nativ:** Eigene INI mit `REMAP=M200 modalgroup=10 ngc=setter_write`; Körper `o<setter_write> sub`, `#3009=4`, `o<setter_write> endsub`. Das Hauptprogramm beginnt mit #3009=3 in der privaten Var-Datei, führt M200 und danach `G0 X#3009` aus. Kein Parsefehler, Endpunkt **X4**, Scanner trotzdem `[]`.
+
+**Buchführung:** Derselbe Schreibzugriff über den echten MDI-Handler und einen Task-Double, dessen M200-Körper die nativ belegte Zuweisung nachbildet: `ok=true`, Interpreter 4, Buchung **3/`read`**, Gesamtzustand **`confirmed`**. Selbst mit geladenem M600-Programm liefert `_ts_read_back_due` **false**. Der zentrale Sendepunkt funktioniert, erhält aber den falschen leeren Schreibsatz.
+
+**Die neu vorgeschlagene Grenze „fremder Remap-Körper wie ein anderer Schreiber“ nehme ich so nicht an.** Dies ist ein vom Gateway selbst gesendeter Befehl in einer bekannten Remap-Konfiguration. Man muss seinen beliebigen Körper nicht auswerten, darf dessen unbekannte Wirkung aber nicht als „schreibt nichts“ verbuchen. Die Tests der mitgelieferten Dateien beweisen keine Eigenschaften einer anderen aktiv aufgelösten Remap.
+
+**Erforderlich:** Die tatsächlich konfigurierte Remap-Umgebung in die Zulassung des leeren Schreibsatzes einbeziehen. Bei nicht nachgewiesener Wirkung vor dem Senden konservativ invalidieren; alternativ nur nachweisbar unveränderte, geprüfte Körper als schreibfrei behandeln. Das muss für MDI und AUTO gelten. Eine Textgrenze ist zulässig, eine weiter angezeigte Bestätigung darüber hinaus nicht.
+
+[Native Konfiguration/Eingaben](viewer-palette-fest.r106.codex-native-cases.json), [native Ergebnisse, `remap_write`](viewer-palette-fest.r106.codex-extra-native.json), [Handler-Sonde](viewer-palette-fest.r106.codex-remap-basis.py), [Interpreter/Buchung/Rücklesen](viewer-palette-fest.r106.codex-remap-basis.json).
+
+### VP-I61 · Rest · P1 · Fremdes M600 innerhalb einer weiteren Remap wird wieder vorhergesagt
+
+`gcode_parse_worker.py:238–256`: Der Worker kennt die fremde M600-Definition. Die Entscheidung, ob sie überhaupt aufgerufen werden kann, folgt aber weiter nur M600-Kandidaten im Haupttext und dem textbasierten `foreign`-Modus.
+
+**Native Gegenprobe `foreign_remap_nested`:** Die INI enthält `M600 → othertc` und `M200 → wrapper`. `wrapper.ngc` ruft `T2 M600`; die fremde `othertc.ngc` fährt `G53 G0 Z0`. Der Haupttext fährt zunächst nach `(50,50,−100)`, ruft **M200** und fährt dann nach `(60,60)`.
+
+Der native Interpreter nimmt alles an. Payload: **`probe_unpredicted=null`**, bestimmte Bewegung nach `(50,50,0)`, anschließend `(60,60,0)`, kumulierte Zeit **11,4142 s**. Haupttextmodus `ordered`: keine der beiden neuen Schutzbedingungen greift. Damit wird genau der im Plan ausgeschlossene fremde Mess-/Wechselrumpf samt Folgebewegung wieder als bekannt ausgegeben.
+
+**Erforderlich:** Ein aktiver, nicht geprüfter Remap kann selbst ein Aufruf außerhalb des gelesenen Haupttextes sein. Die Aufrufumgebung konservativ berücksichtigen, auch wenn dessen M-Wert literal ist. Wo der erste mögliche Eintritt nicht nachgewiesen werden kann, ab Programmstart unbekannt wie beim fremden o-Aufruf. Der dokumentierte Verzicht auf Körperanalyse darf nicht die Auslassungsregel aus Planabschnitt 4 aufheben.
+
+[Remaps und Hauptprogramm](viewer-palette-fest.r106.codex-native-cases.json), [native Ergebnisse, `foreign_remap_nested`](viewer-palette-fest.r106.codex-extra-native.json), [Payload](viewer-palette-fest.r106.codex-foreign_remap_nested.msgpack).
+
+### VP-I63 / W4 · Rest · P2 · Früher Zahlenfilter bestätigt weiterhin die falsche Aufrufzeile
+
+`gateway_util.py:4481–4482`: `_caller_site` verwirft einen Block vor dem gemeinsamen Zahlenleser, wenn die Zeichenfolge `str(int(val))` darin fehlt. Ein numerisch gültiges M600-Wort muss die Zeichenfolge **600** aber nicht enthalten.
+
+**Native Gegenprobe:**
+
+```gcode
+G21 G90
+G0 X50 Y50 Z-100
+T2 M599.99999
+G0 X60
+T1 M600
+G0 X70
+M2
+```
+
+Der Interpreter akzeptiert beide Aufrufe; der neue `nc_int` würde den ersten ebenfalls als 600 lesen. Der vorgeschaltete Textfilter übersieht jedoch L3 und macht L5 zur vermeintlich einzigen Stelle. Ergebnis **`tool_change_lines=[[5,2],[5,1]]`**, Tabellenereignisse **`[22,2,80,5]`** und **`[50,1,10,5]`**. Der Client zeigt entsprechend **„T2 80.000 mm (L5), T1 10.000 mm (L5)“**, obwohl T2 zu L3 gehört. Es ist also weiterhin eine falsche positive Zuordnung, nicht nur eine fehlende Zeile.
+
+**Erforderlich:** Den verlustbehafteten Zahlen-Textfilter entfernen oder seinen Ausschluss nach der tatsächlichen Wortsemantik beweisen. Die Rundungsrichtungen im gemeinsamen Korpus prüfen, gerade neben einer zweiten gewöhnlich geschriebenen Aufrufstelle. Bis zu einer belastbaren Mehrfachzuordnung müssen in diesem Beispiel beide Aufrufe ohne bestätigte Zeile bleiben.
+
+[Native Ergebnisse, `near_call_pair` und Einzelkontrolle](viewer-palette-fest.r106.codex-extra-native.json), [Client-Ereignisse/Stats](viewer-palette-fest.r106.codex-caller.json), [Client-Sonde](viewer-palette-fest.r106.codex-client.test.ts).
+
+### Zum vorgeschlagenen Sequenzabgleich
+
+**Als begrenzte Folgerunde sinnvoll; die beschriebene Regel ist noch keine allgemeine Freigabe.** Der Rückfall auf „line not known“ ist bereits akzeptiert und soll bei jeder nicht belegten Voraussetzung erhalten bleiben.
+
+Für den vorgeschlagenen Beweis fehlen zwei gesicherte Voraussetzungen: Der Textscanner muss **alle** Kandidaten finden (siehe Zahlenfilter oben), und jede beobachtete äußere Spanne muss tatsächlich aus genau dieser Kandidatenmenge stammen. `ordered` beschreibt nur den gelesenen Haupttext und beweist Letzteres nicht. Gleiche Listen aus Code/Werkzeug beweisen für sich keine Herkunft.
+
+Die Einschränkung auf mitgelieferte übrige Remaps kann das lösen, **wenn sie zur Laufzeit anhand der tatsächlich aufgelösten Konfiguration/Körper nachgewiesen wird**, einschließlich aufgerufener Unterdateien und zusätzlicher Python-/Prolog-/Epilog-Wirkung. Ein bekannter Name oder ein Marker allein genügt nicht. Bei abweichender, fehlender oder nicht lesbarer Definition bleibt die Zuordnung unbestätigt. Erforderliche Gegenkontrolle ist der bereits von dir genannte Fall: zusätzlicher Aufruf aus einer anderen Remap plus nicht ausgeführter gleichartiger Kandidat hinter M2; außerdem Satzausblendung und Abbruch vor einem Kandidaten. Werkzeugidentität ist eine zusätzliche Konsistenzprüfung, kein Ersatz für diesen Herkunftsnachweis.
+
+### Offene Abnahmen und Prüfgrenzen
+
+Die in R105 genannten **nativen Synch-/Rücklesebelege** mit unterschiedlichen Datei-/Interpreterwerten sowie **M600 im Live-Sim-Parity-Korpus** bleiben offen. Die Erläuterung, warum das reine Offline-Modul den milltask-Nachweis nicht liefern kann, ist richtig; sie ersetzt ihn nicht. Keine Sim für dieses Review gestartet. WRAPPED_ROTARY und die separate Restprüfung im Lauf sind unverändert begrenzt.
+
+Die beiden zusätzlichen O-Wort/Zuweisungs-Eingaben wurden vom nativen Interpreter verworfen und sind ausdrücklich **keine Befunde**. Kein erneutes Gesamtgate oder Browserlauf. Die grünen Beobachtungstests zu den Restfehlern bestätigen deren Reproduktion, nicht deren Sollverhalten.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r106.codex-checks.md), [Backend](viewer-palette-fest.r106.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r106.codex-unit.txt), [eigene Client-Sonden](viewer-palette-fest.r106.codex-client.txt), [Build](viewer-palette-fest.r106.codex-build.txt), [Archiv/Isolation](viewer-palette-fest.r106.codex-context.json), [Beleghashes](viewer-palette-fest.r106.codex-sha256.json).
