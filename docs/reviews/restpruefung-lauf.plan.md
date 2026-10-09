@@ -1,6 +1,6 @@
 # Prüfung im Lauf — erst vorläufig ab der Maschine, dann vollständig, nach einer Tabellenänderung
 
-**Fassung 4 · 9. Oktober 2026 · Kollisionsplan Schritt 3, letzter Teil** (Operator 2026-10-06: „nach der ECHTEN Messung im Lauf den Rest des Programms ab der aktuellen Position neu prüfen“).
+**Fassung 4 (angenommen, Codex R115) · 9. Oktober 2026 · Kollisionsplan Schritt 3, letzter Teil** (Operator 2026-10-06: „nach der ECHTEN Messung im Lauf den Rest des Programms ab der aktuellen Position neu prüfen“).
 
 - Fassung 1: Codex R112, sieben Befunde.
 - Fassung 2: R113, VP112-04 bis 07 auf Planebene geschlossen.
@@ -67,7 +67,7 @@ Wie Fassung 2: Jede Prüfung bekommt einen **unveränderlichen Prüfstand** (`Ch
 
 Ergebniszustände (reine Funktion `checkState`):
 - **aktuell**;
-- **im Lauf geprüft**: `vorn` / `vorn fertig` / `ganz fertig`;
+- **im Lauf geprüft**: `vorläufig ab L…` (die vorläufige Prüfung, 3b) und danach der vollständige Stand, wenn die vollständige Prüfung fertig ist (3c/3d);
 - **bisherige Vorschau**: benannt, ohne die Farben, Zähler und Sprünge der aktuellen;
 - **keins.**
 
@@ -110,7 +110,7 @@ Bindung, Verfall und IDLE-Abbruch wie Fassung 2:
 - eine Basisbestätigung ohne Versionswechsel;
 - überholte Teil- und Endantworten.
 
-Jeder dieser Fälle scheitert, **bevor** ein Sweep startet.
+Jede **ungültige** Variante scheitert, **bevor** ein Sweep startet. Der korrigierte Fall A → B → Parse aus A wird zugelassen; ein Parse mit B-Kontext unter A-Etikett scheitert.
 
 ### 3b · Erst vorläufig ab dem Hinweis, dann vollständig
 
