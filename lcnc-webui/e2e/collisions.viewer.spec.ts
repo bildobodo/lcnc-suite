@@ -454,6 +454,10 @@ test("a parse made for the run is checked during it: provisional from the machin
   const label = page.locator(".simPanel .checkRow .sub");
   await expect(label).toHaveText("Run check · tool table updated");
   await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /· checked in full$/);
+  // a finished worker alone is no full check: uncertified, it says so (R115)
+  await page.evaluate(() => window.__viewerDiag!.setCollisionNote!("a body was left out"));
+  await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /· checked to the end \(not certified\)$/);
+  await page.evaluate(() => window.__viewerDiag!.setCollisionNote!(null));
   const b = await basisOf(page);
   expect(b?.kind, "built from the run's start").toBe("run");
   expect(b?.runId).toBe(9);

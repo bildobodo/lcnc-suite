@@ -1022,9 +1022,21 @@ const sweepView = computed<SimSweepView | null>(() => {
       return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
         verdict: n ? `${found} so far` : "No collision so far" };
     }
-    if (r && !r.truncated) {
+    // "checked in full" only for a full sweep that is neither cut short nor
+    // uncertified — a finished worker alone is no full check (Codex R115)
+    if (r && !r.truncated && !r.range) {
       return { state: "done", frac: 1, label, tone: n ? "danger" : "ok", caveat, detail: runDetail,
-        verdict: `${n ? found : "Clear"} · checked in full` };
+        verdict: `${n ? found : "Clear"} · ${caveat ? "checked to the end" : "checked in full"}` };
+    }
+    if (r?.range) {
+      // a provisional result with no full check behind it: still provisional
+      return { state: "partial", frac: sweptFrac.value, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
+        verdict: `${n ? found : "No collision"} from ${from} (provisional)` };
+    }
+    if (r?.truncated) {
+      const cov = props.collisionStopped && props.collisionResumable ? props.collisionStopped.covered : r.truncated.covered;
+      return { state: "partial", frac: sweptFrac.value, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
+        verdict: n ? `${found} in ${pctOf(cov)} swept` : `No collision in ${pctOf(cov)} swept` };
     }
   }
   if (props.collisionBusy) {
