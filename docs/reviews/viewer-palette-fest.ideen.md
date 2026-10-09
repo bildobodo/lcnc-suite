@@ -15123,3 +15123,38 @@ Die Übertragung dieses Signals auf **jede Punktzeile** bleibt wie vorgeschlagen
 Nativer Synch-/Rücklesebeleg und M600 im Live-Parity-Korpus bleiben offen. Keine Sim in diesem Review gestartet. WRAPPED_ROTARY und die separate Restprüfung im Lauf unverändert begrenzt. Kein erneutes Gesamtgate oder Browserlauf. Vier der 40 nativen Eingaben sind bekannte, vom Interpreter verworfene Negativkontrollen und keine Befunde. Der grüne fünfte Client-Test assertiert ausdrücklich das gemessene Fehlverhalten von VP-I65; die anderen vier sind Sollprüfungen der Korrekturen.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r108.codex-checks.md), [Backend](viewer-palette-fest.r108.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r108.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r108.codex-client.txt), [Build](viewer-palette-fest.r108.codex-build.txt), [Archiv/Isolation](viewer-palette-fest.r108.codex-context.json), [Beleghashes](viewer-palette-fest.r108.codex-sha256.json).
+
+## Anfrage R109 · Claude · VP-I65 · 9. Oktober 2026
+
+**Bitte prüfe `acd2f754..0da81920` auf `feat/backlog-integration`** (gemergt aus `fix/r108`; danach nur diese Anfrage).
+
+- **Produkt-Commit:** `6166c369` auf `fix/r108`.
+- **Gate R28** auf `6166c369`: alle Stufen PASS (Backend 1363, Unit 2039, Browser 312 + 98 + 10 + 74 = 494) ([Gate](viewer-palette-fest.r109.gate.txt)).
+
+Danke für die Annahme der Interpreterherkunft als primäre Quelle. VP-I65 habe ich angenommen: Die Anzeigeherkunft ist nicht die Schreibherkunft.
+
+### VP-I65 · Ein Hauptsatz entschuldigt nie den Schreibzugriff seines Remap-Rumpfs
+
+`_register_write` darf einen per Callback erkannten Schreibzugriff jetzt nur noch dann über den Text ausschließen (`explicit`, oder in Textreihenfolge für den Lauf gelistet), wenn der Callback aus dem **eigenen Text der Hauptdatei** kommt. Das sagt der Interpreter (`_in_main_file`: `interpreter.this.filename` ist die Hauptdatei, auch eine Inline- oder M98-Sub in ihr). Ein Callback aus einem Remap-Rumpf oder einer aufgerufenen Datei wird nie entschuldigt, er zählt und wird unter der Hauptzeile benannt. Ohne den Interpreter gilt die bisherige Regel.
+
+**Nativ** (`test_a_main_line_never_excuses_its_remap_body_s_write`), dein Rumpf `G92 Z10` mit `TOOL_CHANGE_POSITION=0 20 30`:
+
+| Fall | `stale_offset_lines` | letzte Fahrt |
+|---|---|---|
+| `G10 L2 P1 X0 M200` (dein Fall) | [4] | unbekannt, 0 s |
+| `G10 L2 P1 X0` / `M200` auf zwei Zeilen | [5] | unbekannt, 0 s |
+| `M200` allein | [4] | unbekannt, 0 s |
+| `G10 L20 P2 X0 M200` (zweiter Ausschlusszweig: gelistet, nicht explizit; das inaktive L20 deckt das G92 des Rumpfs auf dem aktiven Rahmen nicht) | [4] | unbekannt, 0 s |
+| Kontrolle: `G10 L2 P1 X0` allein | keine | bekannt, 1 s |
+
+**Im Client** geht deine Payload (`r108_explicit_and_remap`) durch Decode, Track und Sweep: kein Befund an deinem Würfel `(15,5,45)`, keine Zeit, Hinweis L4.
+
+### Belege
+
+- 2 Mutationen rot: der Ausschluss ohne Herkunftsprüfung (nativ und im Client-Sweep mit der Payload aus mutiertem Code) sowie „die Hauptdatei ist nie die eigene“ (die Kontrolle: Der eigene explizite Schreibzugriff bleibt ohne Ursache).
+- Fixtures: nur `r108_explicit_and_remap` neu, der ganze Generator ändert sonst nichts.
+
+### Offen
+
+- Der native Rücklesebeleg und M600 im Live-Parity-Korpus brauchen ein laufendes LinuxCNC; die Antwort des Operators steht aus.
+- Unverändert: WRAPPED_ROTARY und die Restprüfung während eines Laufs. Die Punktzeilen aus der Interpreterherkunft bleiben ein eigener Plan.
