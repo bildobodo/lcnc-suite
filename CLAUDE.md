@@ -861,13 +861,63 @@ parse is never doomed by the (program's) rotary motion; a second
 measurement during it is picked up by one follow-up parse (the worker reads
 the table's file time BEFORE its STAT read). After the run the idle edge
 re-parses for the table and the spindle tool (the program's M6:
-`tool_loaded`), and VERIFIES a changed start tool state (below). The browser: a publish during a run clears the collision findings and
-the sweep, held while the interpreter runs, starts once it is idle again
-(`_colHeldByRun`, MR-I03). Traces `gcode.reparse_table_midrun`,
+`tool_loaded`), and VERIFIES a changed start tool state (below). The browser: a publish during a run clears the collision findings (the earlier verdict stays named); a pinned parse made for the run is checked during it ("Check during a run" below), anything else is held while the interpreter runs and starts once it is idle again (`_colHeldByRun`, MR-I03). Traces `gcode.reparse_table_midrun`,
 `pinned: true` on `spawn_start` / `publish`, `gcode.pinned_unsupported`;
 banner reason "tool measured (program running)". Tests: `native_pinned_probe.py`
 (the real worker + native interpreter, synthetic STAT) behind
 `test_pinned_worker.py`.
+
+**Check during a run (collision plan step 3, last part; plan
+`docs/reviews/restpruefung-lauf.plan.md` Fassung 4, Codex R112–R115)**: a
+mid-run tool-table re-parse is CHECKED during the run — first provisionally
+from the machine's line, then in full — instead of waiting for idle. Gateway:
+`_cmd_blocking` takes a `run_basis` for AUTO_RUN / a first AUTO_STEP from idle
+BEFORE the write (a fresh poll; a paused step and a resume continue the run):
+`run_id`, state sending → sent / unsent (a failed or cancelled write is no
+run), file, source, version, `start` (the status's own fields:
+`status_runtime.spindle_tool_dims`, the fixture table copied), the published
+start context copied whole (server-side only) with its `ctx_digest`,
+`tool_basis_rev` and `verified` — `BulkPipeline.run_start_check` compares the
+controller now with the published start (fixture and table, G92, kins, rotary
+seed, tool start) and evaluates every drift edge without debounce (tool table,
+WCS snapshot, soft-limit window, the toolsetter book `_ts_open_drift`); what
+cannot be compared is not verified. A pinned parse during a verified, sent run
+of the program is built from the run's context (`_run_for_pin`), never from a
+publication made since (R114), and names the run (`for_run`) only when the
+built context has the run's digest, checked again at the publish with the
+run's text and the pipeline's basis revision. `tool_basis_rev` counts every
+change of the tool basis (a verify without a new version too). Every
+publication says where it comes from (`published_origin`: version, file,
+source, reason, pinned, for_run, the table read, basis revision) on
+`viewer_gcode_ready` and as `preview_origin` in every status envelope, the run
+basis (without its context) as `run_basis`; both keys are pinned on both sides
+by `scripts/test_fixtures/run_check_wire.json`. Client: statusStore mirrors
+both (`runBasis.ts` parses them); every sweep is built from ONE `CheckBasis`
+(`viewer/checkBasis.ts` — idle the live state at the check's start, in a run
+`run_basis.start`, never the first run frame seen); while a run is in progress
+(run_basis sent, AUTO, the interpreter busy — judged on the same status frame
+as the change) the program's own G92 / G43.1 / M6 keep the findings, and at
+the run's end a kept result whose basis is not the state now is re-checked. A
+preview published in a run that is not admitted names the earlier verdict
+only ("Earlier preview: 2 collisions"). `admitRunCheck` (pure) admits a check
+during the run only for the pinned parse made for exactly this run (version on
+screen, file and text the run's, for_run = the run's id / digest / basis
+revision, the basis not moved since, the start verified, the run going on). It
+runs the RANGE sweep (`CollisionOptions.range`, see "Collision sweep") from
+the run watcher's attached segment start (`viewer/runPlayhead.ts`, read once
+when planning), shows it ("Run check · tool table updated", "… from L7
+(provisional)", the band from the start, the boundary contacts in the "?"),
+then the full sweep from 0 on the same basis replaces it ("· checked in full";
+never "measured"). A new publication, another basis revision, another run, a
+lost connection and idle discard it; idle starts the full check. Load: during
+a run at most two workers and 20 ms slices (`sliceMs`), a decoding payload
+holds the sweep (`previewDecoding`, worker hold "decode"), the run's own
+rotary motion parks nothing. Owed: the measurement protocol (status frame p95
+< 50 ms, heartbeat gap p99 < 300 ms on the machine PC and a separate browser
+PC) and the live M600 run need a running LinuxCNC. Tests:
+`test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
+`checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
+`collisions.viewer.spec` (plan 1c–4).
 
 **M600 in the preview (collision plan step 3, Codex R102–R104, plan
 `docs/reviews/m600-preview.plan.md` Fassung 3)**: the bundled
@@ -1317,6 +1367,26 @@ also had the LIVE pose as its only baseline, so a program that starts in
 contact reported a continuation record per line (200 capped hits at 3 %)
 and every park refined thousands of them — refinement is now bounded to
 the reported set (MAX_HITS, onsets first) and skipped on a driver abort.
+
+**Range sweep (plan „Prüfung im Lauf“ 3b)**: `CollisionOptions.range =
+{from}` sweeps from track point `from` on with the PROGRAM's baseline (first
+pose and rest pose decide the static exclusions — a baseline at the range
+start would take a pair touching there and at rest for a mount, VP112-04),
+the first pose's seeds cleared and every pair queried afresh at the first
+segment with length after it. A pair inside the margin there (cutting pairs
+too) is a BOUNDARY contact (`result.boundaryContacts`): begun before the
+range, its onset and kind are the full check's; its records carry `boundary`
+in a key space of their own (a separation and a re-entry on the same line is
+a collision of its own), count nowhere (clashTargets, the cap) and end with a
+verified separation; a cutting boundary contact is taken as feed-begun and
+records nothing. Nothing before the start is swept, refined (the refinement
+floor) or reported; progress and a park's coverage count from it;
+`result.range` names the start, `empty` a range with nothing of positive
+length. The shard merge carries the range and unites the shards' boundary
+contacts. `collisionRangeOracle.test.ts` holds it to the brute-force oracle
+on the shipped models (completeness after the start, every interval real, the
+boundary set = the pairs inside the margin at the start, nothing before, the
+program's statics).
 
 **Collision sweep (offline dry run, stage 3)**: the scrub bar's Check
 button sweeps the machine model through the scrub track off-thread

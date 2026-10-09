@@ -9004,3 +9004,38 @@ positive line. Behind 0 they put −1 on the wire's uint32 lines, and the
 parse ended without a payload. A −1 now never opens a block and never
 becomes a line: the moves keep the block's line 0 and are recorded and
 timed.
+
+## 2026-10-09 — A tool table changed during a run is checked during it: provisional from the machine's line, then in full (plan „Prüfung im Lauf“ Fassung 4, Codex R112–R115)
+
+The operator asked (2026-10-06) for the rest of the program to be checked
+again after a real measurement during the run, from where the machine is.
+Until now the mid-run table re-parse muted the path, cleared the findings and
+held every check until idle (MR-I03).
+
+**What decides that a result belongs to the run.** A client cannot
+reconstruct a run's start from the first frame it sees: an early G92 or
+G43.1 may already have run, and a client connecting mid-run saw nothing. So
+the gateway takes the run's basis BEFORE it writes the start (`run_basis`),
+from a fresh poll, with the published start context copied whole, and says
+whether the published preview IS that start (`verified`, a direct comparison
+plus every drift edge evaluated now). A pinned parse during the run is built
+from that context — a publication made since (R114: an ordinary B of the same
+text) would otherwise lend its context to A's label — and carries `for_run`
+only when the built context is that one, checked again at the publish. The
+client admits a check during the run only for exactly such a payload; every
+other case waits for idle, before any sweep.
+
+**No seam.** The run position is a hint, not a bound (R113): a provisional
+sweep from it (`CollisionOptions.range`) shows what lies ahead first, and the
+full sweep from the program's start replaces it when done — no result is
+stitched from two parts. The price is `[h, end]` swept twice. The range
+sweep keeps the program's baseline (VP112-04); pairs in contact at its start
+are boundary contacts, not collisions — their kind is the full check's (the
+cutting cases of R114 are pinned).
+
+**Named, not built.** The boundary contacts and their provisional follow-up
+lines are said in the check's "?" with their lines, not as list rows: a
+fourth row kind would ripple through the Sim tab's filter, counts and
+navigation. The measurement protocol with its targets and the live M600 run
+need a running LinuxCNC.
+
