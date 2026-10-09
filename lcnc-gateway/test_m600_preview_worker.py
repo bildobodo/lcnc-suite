@@ -69,6 +69,15 @@ class TestPredictedMeasurement(unittest.TestCase):
         self.assertEqual(r["toollen_table"], [[g43[-1][0], 2, 80.0, 3]])
         self.assertIsNone(r["probe_unpredicted"])
 
+    def test_the_measured_tool_is_named_by_its_number_not_its_row(self):
+        # a library tool ahead of T1 and T2: T2 is the table's third row
+        r = probe("m600_row_not_number")
+        self._clean(r)
+        self.assertEqual(r["tool_change_lines"], [[3, 2]])
+        self.assertEqual([row[1] for row in r["toollen_table"]], [2])
+        self.assertAlmostEqual(tool_rows(r, 2)[-1][3], 80.0, places=9)
+        self.assertIn(2, [t[0] for t in r["parse_tlos"]])
+
     def test_the_probe_moves_take_the_probe_feeds(self):
         r = probe("m600_known")
         pts = [(s, p) for s, k, p, _ in path(r) if k == "F"]

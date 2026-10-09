@@ -81,6 +81,11 @@ CASES = {
     # next move starts where the machine stands. (A bare M6: the spindle
     # tool, no lookup — see above.)
     "m6_in_place": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,), {}),
+    # An M6 names the tool's ROW to the canon (CHANGE_TOOL(slot)), and a row
+    # is no tool number once the table is not T1, T2 … in order — a library
+    # tool ahead of T1 (the XYZAC sim's table, live 2026-10-09: T1 read as 37)
+    "m6_row_not_number": ("G21 G90\nG0 X0 Y0 Z-100\nT7 M6\nG43\nG0 X10\nT1 M6\nG43\nG0 X20\nM2\n",
+                          "mm", 0.0, (490,), {"tools": [(1001, 30), (1, 10), (7, 66)]}),
     # ...and one it moves the machine at: the next move's start is unknown.
     "m6_tc_position": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10 Y5\nM2\n", "mm", 0.0, (490,),
                        {"emcio": "TOOL_CHANGE_POSITION = 0 0 0"}),
@@ -400,6 +405,9 @@ def _m600(var=None, prog=_M600_PROG, **extra):
 
 CASES.update({
     "m600_known": _m600(),
+    # the tool's row is not its number: a library tool ahead of T1 and T2
+    # (the XYZAC sim's table, measured live 2026-10-09)
+    "m600_row_not_number": _m600(tools=[(1001, 30), (1, 10), (2, 80)]),
     "m600_length_unknown": _m600(tools=[(1, 10), (2, 0)]),
     "m600_setter_above": _m600({3102: 10}),
     # Codex R102: a 1 mm travel from −95 never reaches −100
@@ -693,7 +701,7 @@ print(json.dumps({
     "toolsetter_basis": out.get("toolsetter_basis"), "toolsetter_meta": ts_meta,
     "feed_lines": u("feed_lines", "<u4"), "tool_change_lines": out.get("tool_change_lines"),
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
-    "tlo_events": out.get("tlo_events"), "violations": out.get("violations"),
+    "tlo_events": out.get("tlo_events"), "parse_tlos": out.get("parse_tlos"), "violations": out.get("violations"),
     "violations_total": out.get("violations_total"), "violations_reason": out.get("violations_reason"),
     "feed_outside": list(out.get("feed_outside") or b"") if "feed_outside" in out else None,
     "rapid_outside": list(out.get("rapid_outside") or b"") if "rapid_outside" in out else None,
