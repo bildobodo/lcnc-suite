@@ -1,0 +1,32 @@
+{
+  "nested": {
+    "stop": [
+      [
+        1,
+        -1,
+        "foreign_remap",
+        0
+      ]
+    ],
+    "cum": [
+      0,
+      0,
+      0
+    ],
+    "ustart": [
+      1,
+      1,
+      1
+    ],
+    "unpredicted": [
+      0,
+      1,
+      1
+    ],
+    "hits": [],
+    "notes": [
+      "Tool measurement not predicted (the tool change remap is not the suite's routine) — 2 moves after it not checked to the program's end (L2, L4)"
+    ]
+  },
+  "entry": null
+}

@@ -1,0 +1,28 @@
+{
+  "head": "429f64edce3e177f41755889ae5431d495f09665",
+  "review_scope": "b1761b51..67fbcf8e",
+  "archive_commit": "429f64ed",
+  "root": "/tmp/codex-r108-nsubpv33",
+  "same_git_blob_files": 3944,
+  "verified_lfs_files": 95,
+  "archive_cache_config_changes": [
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.node.json",
+    "lcnc-webui/tsconfig.test.json",
+    "lcnc-webui/vite.config.ts"
+  ],
+  "other_product_changes": [],
+  "live_head_at_finish": "429f64edce3e177f41755889ae5431d495f09665",
+  "live_status_before_evidence": "",
+  "no_live_ports_or_machine_commands": true,
+  "nice": 19,
+  "vitest_workers": 1,
+  "tests": {
+    "backend": 628,
+    "client_repository": 117,
+    "native_inputs": 40,
+    "baseline_native_inputs": 3,
+    "own_client_observations": 5
+  },
+  "build": "PASS"
+}

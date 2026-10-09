@@ -1,0 +1,3 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+Reproduced: native-backed M200 task double changes 3009, dispatch invalidates the old basis and requests read-back
+[GC] +60ms gen=2 duration=11.9ms collected=20 uncollectable=0

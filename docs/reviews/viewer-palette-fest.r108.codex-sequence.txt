@@ -1,0 +1,2 @@
+{"returncode": 0, "main_mode": "ordered", "candidate_lines": [6], "other_remap_effect": {"writes": [], "reaches": [["M", 200], ["M", 600]]}, "other_remap_reaches_m600": true}
+error None events [[22, 2, 80.0, 3]]

@@ -15069,3 +15069,57 @@ Die eigenen Schreibzugriffe einer Hauptzeile zählen jetzt unter jeder Stale-Men
 - Unverändert: WRAPPED_ROTARY und die Restprüfung während eines Laufs.
 - **Möglicher Folgeschritt, nicht gebaut:** Dasselbe Signal könnte jedem **Punkt** seine Hauptzeile geben und die Vertrauensmaschine aus W2 P6 ersetzen. Das wäre ein eigener Plan.
 - **Frage:** Trägst du den Interpreterzustand als primäre Quelle mit Textgegenprobe? Die Alternative wäre, ihn nur als Gegenprobe zur Textregel zu nutzen.
+
+## Review R108 · Codex · Interpreterherkunft und R107-Korrekturen · 9. Oktober 2026
+
+**Ergebnis: `findings`. VP-I61, VP-I63 und VP-I64 geschlossen. Neu VP-I65 (P2): Die zusätzliche Zuordnung von Schreibzugriffen verliert bei einem kombinierten Hauptsatz die Unsicherheit eines Remap-Schreibzugriffs.**
+
+Geprüft: `b1761b51..67fbcf8e`, Archiv/Anfrage `429f64ed`. **628 gezielte Backend-Tests, 117 Client-Repositorytests und Produktionsbuild PASS.** Die 32 eigenen R107-Eingaben unverändert wiederholt, acht neue native Kontroll-/Gegenprogramme, drei Vergleiche mit dem Basiscommit und fünf Client-Prüfungen. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle.
+
+### Geschlossene Befunde
+
+- **VP-I61:** In `foreign_remap_nested` liegt der Stopp nun bei seq **1**, am Punkt vor dem Eintritt. Der Rumpfpunkt und die Folgefahrt sind unbekannt; Zeit `[0,0,0]`, kein Befund am Würfel `(50,50,−50)`. Eigene Kontrollen mit fremdem M600 als erstem Aufruf, auch in einer Prozentdatei, beginnen bei seq 0 und bleiben ohne Zeit. Die punktgebundene Referenz des neuen Repository-Wächters behebt auch dessen bisherige falsche Hauptzeilenannahme.
+- **VP-I63:** `sequence_named_body` erhält **L3**, nicht die nie ausgeführte L6. Mehrere M600-Vorkommen erhalten ihre jeweiligen Zeilen; die Nah-Zahlen-Kontrolle ergibt L3/L5. Eigene N100/N200/…-Sätze und der Aufruf aus einer Inline-Sub bestätigen die physischen Hauptdateizeilen. Die neue Markerprüfung berücksichtigt zudem den Fremdursprung beim Rückfall auf den Text.
+- **VP-I64:** `G-[-10]` und `G-[-28.1]` behalten in den unveränderten Gegenprogrammen den Hinweis L4. Die Folgefahrten bleiben ohne Zeit und ohne Kollisionsbefund. Die Vorzeichenfolgen werden jetzt vor dem gemeinsamen Leser nicht mehr ausgesondert.
+
+[Fremd-Remap bis zum Sweep](viewer-palette-fest.r108.codex-coverage.json), [negative G-Ausdrücke bis zum Sweep](viewer-palette-fest.r108.codex-negative-sweep.json), [Aufrufzeile im Client](viewer-palette-fest.r108.codex-sequence-client.json), [mehrere Aufrufvorkommen](viewer-palette-fest.r108.codex-caller.json), [zusätzliche native Kontrollen](viewer-palette-fest.r108.codex-new-cases.json).
+
+### VP-I65 · P2 · Ein expliziter Hauptsatz unterdrückt die unbekannte Wirkung seines Remap-Rumpfs
+
+`gcode_canon.py:654–671` / `:713–718`: `_register_write` liest nun die **aufrufende Hauptzeile**. Steht dort ein vom Text als `explicit` eingestufter Schreibzugriff, wird der Callback verworfen. Dieser Nachweis gilt aber nur für den Schreibzugriff im Haupttext, nicht für weitere Zugriffe im aufgerufenen Rumpf.
+
+**Native Gegenprobe:** `TOOL_CHANGE_POSITION=0 20 30`, `REMAP=M200 modalgroup=10 ngc=writer`. Der Körper enthält `o<writer> sub`, `G92 Z10`, `o<writer> endsub`. Hauptprogramm:
+
+```gcode
+G21 G90
+G0 X0 Y0 Z40
+M6
+G10 L2 P1 X0 M200
+G0 X10 Y5 Z15
+G0 X20
+M2
+```
+
+Nach M6 ist die tatsächliche Position unbekannt. `G10 L2 P1 X0` schreibt einen expliziten Wert; **G92 Z10 im Rumpf** berechnet dagegen einen Offset aus dieser unbekannten Position. Beide gehören für die Anzeige zu L4. Daraus folgt nicht, dass beide denselben expliziten Schreibvertrag haben.
+
+**Ergebnis am neuen Stand:** kein `stale_offset_lines`, die letzte Fahrt wird wieder bekannt, **1 s** und **Kollisionsbefund an L6** gegen einen Würfel bei `(15,5,45)`. Der Hinweis nennt nur die unmittelbar auf M6 folgende Bewegung als ungeprüft und erklärt anschließend die Position wieder für bekannt.
+
+**Kontrollen:** Werden `G10 L2 P1 X0` und `M200` auf zwei Zeilen verteilt, liefert derselbe Rumpf korrekt Hinweis L5, keine Dauer und keinen Befund. M200 allein liefert entsprechend L4. Am Basiscommit **`b1761b51`** bleiben alle drei Varianten dauerhaft unbekannt; dort ist nur die Hinweiszeile noch die Rumpfzeile 2. Der Verlust der Einschränkung im kombinierten Satz ist somit ein Rückschritt dieser Änderung.
+
+**Erforderlich:** Anzeigeherkunft und konkrete Schreibherkunft getrennt führen. Ein `explicit`- oder „bereits vom Text erfasst“-Ausschluss darf einen Rumpf-Callback nur dann überspringen, wenn nachgewiesen genau dieser Schreibzugriff gemeint ist. Andernfalls den Rumpfzugriff konservativ berücksichtigen und unter der bekannten Hauptzeile benennen. Wächter für denselben Hauptsatz sowie getrennte Sätze; zusätzlich dieselbe Abgrenzung bei einem gelisteten, nicht expliziten Haupttext-Schreibzugriff prüfen, damit auch der zweite Ausschlusszweig keinen Rumpfzugriff verschluckt.
+
+[Programme und private Remap](viewer-palette-fest.r108.codex-native-cases.json), [neue native Ergebnisse](viewer-palette-fest.r108.codex-new-cases.json), [identische Eingaben am Basiscommit](viewer-palette-fest.r108.codex-baseline.json), [Dauer, Hinweise und Kollisionsbefund im Client](viewer-palette-fest.r108.codex-same-block-sweep.json), [Sonde](viewer-palette-fest.r108.codex-client.test.ts).
+
+### Antwort zur primären Quelle
+
+**Ja: Den Interpreterzustand als primäre Quelle für die tatsächlich ausgeführte Aufrufherkunft trage ich mit; der Text bleibt Gegenprobe und konservative Ergänzung.** Das direkte Vorkommenssignal ist besser begründet als der zuvor erwogene Listenabgleich. Die nativen Prüfungen stützen das hier für die verwendete Interpreter-Version. Der Verzicht auf die Sequenzregel ist angenommen.
+
+Dabei muss der vollständige Kontext bis zur jeweiligen Entscheidung erhalten bleiben: Für eine Werkzeugmarke genügt die Haupt-Aufrufzeile; für den Ausschluss eines Schreibzugriffs genügt sie gerade nicht (VP-I65). Ebenso bleibt die Textanalyse für einen möglichen, im Vorschauzweig nicht genommenen fremden M600-Aufruf erforderlich. Bei widersprüchlicher oder fehlender Herkunft keine präzise Zeile beziehungsweise bekannte Bewegung behaupten. Die vorgesehenen Widerspruchsmeldungen und der konservative Beginn der Auslassung beim Ausfall des Interpreterzugangs sind hierfür die richtige Richtung.
+
+Die Übertragung dieses Signals auf **jede Punktzeile** bleibt wie vorgeschlagen eine eigene Planrunde; sie ist nicht Teil dieser Abnahme.
+
+### Offene Paketnachweise und Prüfgrenzen
+
+Nativer Synch-/Rücklesebeleg und M600 im Live-Parity-Korpus bleiben offen. Keine Sim in diesem Review gestartet. WRAPPED_ROTARY und die separate Restprüfung im Lauf unverändert begrenzt. Kein erneutes Gesamtgate oder Browserlauf. Vier der 40 nativen Eingaben sind bekannte, vom Interpreter verworfene Negativkontrollen und keine Befunde. Der grüne fünfte Client-Test assertiert ausdrücklich das gemessene Fehlverhalten von VP-I65; die anderen vier sind Sollprüfungen der Korrekturen.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r108.codex-checks.md), [Backend](viewer-palette-fest.r108.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r108.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r108.codex-client.txt), [Build](viewer-palette-fest.r108.codex-build.txt), [Archiv/Isolation](viewer-palette-fest.r108.codex-context.json), [Beleghashes](viewer-palette-fest.r108.codex-sha256.json).
