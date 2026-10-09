@@ -1,0 +1,446 @@
+[
+  {
+    "name": "explicit_same_block",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "explicit_separate_blocks",
+    "stale": [
+      5
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      6,
+      6,
+      7
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L5 stays unknown whatever is positioned after (L6, L7)"
+    ]
+  },
+  {
+    "name": "remap_only",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "listed_same_block",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "python_explicit_same_block",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "python_explicit_separate_blocks",
+    "stale": [
+      5
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      6,
+      6,
+      7
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L5 stays unknown whatever is positioned after (L6, L7)"
+    ]
+  },
+  {
+    "name": "python_remap_only",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "python_listed_same_block",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "python_line4_explicit_same_block",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "python_line4_explicit_separate_blocks",
+    "stale": [
+      5
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      6,
+      6,
+      7
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L5 stays unknown whatever is positioned after (L6, L7)"
+    ]
+  },
+  {
+    "name": "python_line4_remap_only",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  },
+  {
+    "name": "python_line4_listed_same_block",
+    "stale": [
+      4
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6)"
+    ]
+  }
+]

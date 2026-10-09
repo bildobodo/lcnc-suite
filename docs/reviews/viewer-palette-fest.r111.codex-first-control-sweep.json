@@ -1,0 +1,101 @@
+[
+  {
+    "name": "tc_g92_first_line4",
+    "stale": [
+      1
+    ],
+    "tlo": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      1
+    ],
+    "lines": [
+      2,
+      3
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked to the program's end: the offset set from that position at L1 stays unknown whatever is positioned after (L3)"
+    ]
+  },
+  {
+    "name": "tc_g92_percent_first_line4",
+    "stale": [
+      2
+    ],
+    "tlo": [
+      [
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      1
+    ],
+    "lines": [
+      3,
+      4
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked to the program's end: the offset set from that position at L2 stays unknown whatever is positioned after (L4)"
+    ]
+  },
+  {
+    "name": "tc_g92_first_after_move",
+    "stale": [
+      2
+    ],
+    "tlo": [
+      [
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "ustart": [
+      1,
+      0,
+      1,
+      1
+    ],
+    "lines": [
+      1,
+      3,
+      3,
+      4
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "2 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L2 stays unknown whatever is positioned after (L3, L4)"
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r111-fg60nqgi/archive/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  120 passed (120)
+   Start at  13:43:54
+   Duration  819ms (transform 271ms, setup 0ms, import 464ms, tests 151ms, environment 0ms)
+

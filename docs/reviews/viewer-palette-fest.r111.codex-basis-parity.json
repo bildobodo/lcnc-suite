@@ -1,0 +1,38 @@
+{
+  "basis_g92_plain": {
+    "plain_digest": "97ce377c4d6023dfcb6d47b9d110d21a206b8f3002d6cbdfecfded29ef52179d",
+    "python_digest": "97ce377c4d6023dfcb6d47b9d110d21a206b8f3002d6cbdfecfded29ef52179d",
+    "equal": true,
+    "same_start": true
+  },
+  "basis_g92_percent": {
+    "plain_digest": "05f84d68d9ea57f073309efaf6f35f273c3b53dd46b676497b910303e9e43514",
+    "python_digest": "05f84d68d9ea57f073309efaf6f35f273c3b53dd46b676497b910303e9e43514",
+    "equal": true,
+    "same_start": true
+  },
+  "basis_g10_plain": {
+    "plain_digest": "b7d5db68e7cbaab8b13ed43f7ba4ffea3b7acb36e606b224e11e553b879987fd",
+    "python_digest": "b7d5db68e7cbaab8b13ed43f7ba4ffea3b7acb36e606b224e11e553b879987fd",
+    "equal": true,
+    "same_start": true
+  },
+  "basis_g10_percent": {
+    "plain_digest": "6dfc0304e50751958083ff5ca21f9590bcd9dab7d18d61208008461de266de9a",
+    "python_digest": "6dfc0304e50751958083ff5ca21f9590bcd9dab7d18d61208008461de266de9a",
+    "equal": true,
+    "same_start": true
+  },
+  "basis_g43_plain": {
+    "plain_digest": "4ebfedd902a95e062dbb6fa11102114d55a9b8667a6be5959edfeeddcff68707",
+    "python_digest": "4ebfedd902a95e062dbb6fa11102114d55a9b8667a6be5959edfeeddcff68707",
+    "equal": true,
+    "same_start": true
+  },
+  "basis_g43_percent": {
+    "plain_digest": "19f33746f6b5fea55aa7f81721c052a06b7fb703e408259b810435ddf670dad2",
+    "python_digest": "19f33746f6b5fea55aa7f81721c052a06b7fb703e408259b810435ddf670dad2",
+    "equal": true,
+    "same_start": true
+  }
+}

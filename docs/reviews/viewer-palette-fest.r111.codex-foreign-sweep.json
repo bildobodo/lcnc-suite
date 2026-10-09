@@ -1,0 +1,58 @@
+[
+  {
+    "name": "foreign_first_plain",
+    "ustart": [
+      1,
+      1
+    ],
+    "lines": [
+      0,
+      2
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "Tool measurement not predicted (the tool change remap is not the suite's routine) — 1 move after it not checked to the program's end (L2)"
+    ],
+    "stop": [
+      [
+        0,
+        -1,
+        "foreign_remap",
+        0
+      ]
+    ],
+    "entry": null
+  },
+  {
+    "name": "foreign_first_percent",
+    "ustart": [
+      1,
+      1
+    ],
+    "lines": [
+      0,
+      3
+    ],
+    "cum": [
+      0,
+      0
+    ],
+    "hits": [],
+    "notes": [
+      "Tool measurement not predicted (the tool change remap is not the suite's routine) — 1 move after it not checked to the program's end (L3)"
+    ],
+    "stop": [
+      [
+        0,
+        -1,
+        "foreign_remap",
+        0
+      ]
+    ],
+    "entry": null
+  }
+]
