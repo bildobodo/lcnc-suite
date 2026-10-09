@@ -4113,9 +4113,9 @@ def _toolsetter_parse_ctx() -> dict:
 async def _ts_read_back(file: str) -> None:
     """A confirmed read of the toolsetter values (the G30 contract): the
     interpreter writes every line of the parameter file from its own values
-    at task_plan_synch (rs274ngc_pre.cc save_parameters), a NEW inode proves
-    the fresh file (a failed write keeps it). Nothing is written to the
-    machine. Under _cmd_lock then _var_file_lock; an abort cancels it
+    at a synch (_synch_interp_params; rs274ngc_pre.cc save_parameters), a
+    NEW inode proves the fresh file (a failed write keeps it). Nothing is
+    written to the machine. Under _cmd_lock then _var_file_lock; an abort cancels it
     (_preempt_inflight). A failure leaves the basis as it was, said."""
     path = _resolve_var_file_path()
     keys = [str(k) for k in TOOLSETTER_BASIS_KEYS]
@@ -4126,9 +4126,9 @@ async def _ts_read_back(file: str) -> None:
         async with _get_cmd_lock():
             async with _get_var_file_lock():
                 ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
-                rc = await _cmd_blocking(CMD.task_plan_synch, wait=5)
+                rc, how = await _synch_interp_params()
                 if rc != getattr(linuxcnc, "RCS_DONE", 1):
-                    _trace.emit("toolsetter.read_back_failed", level="warn", why="not synched", rc=rc)
+                    _trace.emit("toolsetter.read_back_failed", level="warn", why="not synched", rc=rc, how=how)
                     return
                 ino1, vals = await _var_file_thread(read_var_snapshot, path, keys)
     except OSError as e:
@@ -8542,6 +8542,36 @@ async def _halshow_loop() -> None:
 # rename leaves the inode — and synch still answers RCS_DONE).
 
 
+async def _synch_interp_params() -> Tuple[Optional[int], str]:
+    """Make the interpreter write the parameter file from its own values
+    (Interp::synch → save_parameters), the way LinuxCNC takes it in the mode
+    the task is in: (rc, how) — rc None when nothing was sent, `how` the
+    command or why not. Caller holds _cmd_lock.
+
+    Machine ON in AUTO with the interpreter idle — where every loaded
+    program leaves the task — refuses EMC_TASK_PLAN_SYNCH ("can't do that
+    … in auto mode with the interpreter idle", emctaskmain.cc, an operator
+    error; measured live 2026-10-09: every confirmed read failed there).
+    There the switch to AUTO itself synchs (emcTaskSetMode AUTO:
+    emcTaskAbort + emcTaskPlanSynch), the operator's mode unchanged. That
+    re-entry is honoured with the interpreter BUSY too and would abort the
+    program, so it is sent only on a fresh poll that shows it idle; and task
+    ignores it while a jog runs (also allowed in AUTO idle), so only with
+    the jog pin read false. In every other state and mode LinuxCNC takes
+    task_plan_synch."""
+    STAT.poll()
+    if (safe_get("task_state", None) == linuxcnc.STATE_ON
+            and safe_get("task_mode", None) == linuxcnc.MODE_AUTO):
+        if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
+            return None, "interpreter not idle"
+        if _reader_is_stale() or _reader_get("jog_active") is None:
+            return None, "jog state unknown"
+        if _reader_get("jog_active"):
+            return None, "jog active"
+        return await _cmd_blocking(CMD.mode, linuxcnc.MODE_AUTO, wait=5), "auto re-entry"
+    return await _cmd_blocking(CMD.task_plan_synch, wait=5), "task_plan_synch"
+
+
 class _G30Unconfirmed(Exception):
     """A G30 read or write whose outcome is not proven; the reply says so."""
 
@@ -8576,16 +8606,17 @@ def _g30_wrapped() -> set:
 
 
 async def _g30_synch_read(path: str, keys: List[str]) -> Dict[str, float]:
-    """task_plan_synch, then ONE snapshot of the fresh file. Raises
-    _G30Unconfirmed unless synch answered RCS_DONE AND the file's inode
+    """A synch (_synch_interp_params), then ONE snapshot of the fresh file.
+    Raises _G30Unconfirmed unless synch answered RCS_DONE AND the file's inode
     changed AND every key holds a finite value. Caller holds _cmd_lock and
     _var_file_lock."""
     try:
         ino0, _ = await _var_file_thread(read_var_snapshot, path, keys)
     except OSError:
         raise _G30Unconfirmed("G30 not confirmed — parameter file unreadable")
-    rc = await _cmd_blocking(CMD.task_plan_synch, wait=5)
+    rc, how = await _synch_interp_params()
     if rc != getattr(linuxcnc, "RCS_DONE", 1):
+        _trace.emit("g30.not_synched", level="warn", rc=rc, how=how)
         raise _G30Unconfirmed("G30 not confirmed — LinuxCNC did not synch")
     try:
         ino1, values = await _var_file_thread(read_var_snapshot, path, keys)
@@ -8738,7 +8769,7 @@ def _preempt_inflight(by: str, from_client: int) -> int:
     if rfl is not None and not rfl.done():
         rfl.cancel()
         _trace.emit("rfl.cancelled", level="warn", by=by, from_client=from_client)
-    # ...and the toolsetter read-back (a task_plan_synch under _cmd_lock)
+    # ...and the toolsetter read-back (a synch under _cmd_lock)
     ts = _ts_readback_task
     if ts is not None and not ts.done():
         ts.cancel()

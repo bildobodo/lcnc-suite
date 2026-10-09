@@ -9057,3 +9057,28 @@ asked for the bodies got a whole-track check of no run, and the run check
 stayed "provisional" for good; the retry is the same request now. The browser
 guards reach the worker through a tap on `window.Worker` (needBodies on
 demand, a held full result, fields over the provisional result).
+
+
+## 2026-10-09 — A confirmed read synchs the way LinuxCNC takes it in AUTO (first live run of the read-back)
+
+The first live run of the toolsetter read-back (`scripts/toolsetter_readback_check.py`
+on the XYZAC sim) failed at its first row: the gateway's confirmed read sends
+`task_plan_synch`, and LinuxCNC refuses it with the machine ON in AUTO —
+"can't do that (EMC_TASK_PLAN_SYNCH) in auto mode with the interpreter idle"
+(emctaskmain.cc, ON / AUTO / IDLE accepts no PLAN_SYNCH), an operator error in
+the message center. A loaded program leaves the task exactly there, so the
+read-back the M600 preview relies on never confirmed anything, and Probing ›
+Toolsetter's G30 Read / Save failed the same way after a program load ("G30 not
+confirmed — LinuxCNC did not synch"; the G30 contract was verified in MDI on
+2026-09-28). Both reads now synch through `_synch_interp_params`: in ON + AUTO
+the switch to AUTO itself — emcTaskSetMode AUTO runs emcTaskAbort and
+emcTaskPlanSynch, the mode the operator sees unchanged, the plan closed and
+reopened at the next run as after any abort. SET_MODE AUTO is honoured with the
+interpreter BUSY and would abort a running program, so it is sent only on a
+fresh poll that shows the interpreter idle, and task ignores it during a jog
+(which AUTO idle allows), so only with the jog pin read false; otherwise
+nothing is sent and the read says it was not confirmed. A MANUAL switch was
+the other way out (PLAN_SYNCH is taken in MANUAL), but it changes the mode the
+operator sees. The test double now refuses PLAN_SYNCH in ON + AUTO like
+LinuxCNC (`test_g30._Task`), 5 mutations red.
+
