@@ -1,0 +1,317 @@
+{
+  "explicit_same_block": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "explicit_separate_blocks": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "remap_only": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "listed_same_block": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "explicit_alone": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "python_explicit_same_block": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10')\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_explicit_separate_blocks": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10')\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_remap_only": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10')\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_listed_same_block": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10')\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_explicit_alone": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10')\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_line4_explicit_same_block": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10', 4)\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_line4_explicit_separate_blocks": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10', 4)\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_line4_remap_only": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10', 4)\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "python_line4_listed_same_block": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {
+          "toplevel.py": "import remap\n",
+          "remap.py": "from interpreter import INTERP_OK\nimport json\ndef writer(self, **words):\n    def tell(phase):\n        print('PYREMAP '+json.dumps({'phase':phase, 'filename':self.filename, 'line':self.sequence_number, 'call_level':self.call_level, 'remap_level':self.remap_level}))\n    tell('before G92')\n    self.execute('G92 Z10', 4)\n    tell('after G92')\n    return INTERP_OK\n"
+        }
+      }
+    ]
+  },
+  "inline_explicit": {
+    "tuple": [
+      "o<safe> sub\nG10 L2 P1 X0\no<safe> endsub\nG21 G90\nG0 X0 Y0 Z40\nM6\no<safe> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "inline_g92": {
+    "tuple": [
+      "o<unsafe> sub\nG92 Z10\no<unsafe> endsub\nG21 G90\nG0 X0 Y0 Z40\nM6\no<unsafe> call\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "m98_explicit": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nM98 P100\nG0 X10 Y5 Z15\nG0 X20\nM2\no100\nG10 L2 P1 X0\nM99\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "m98_g92": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nM98 P100\nG0 X10 Y5 Z15\nG0 X20\nM2\no100\nG92 Z10\nM99\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  }
+}

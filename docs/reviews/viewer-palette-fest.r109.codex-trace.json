@@ -1,0 +1,252 @@
+{
+  "explicit_same_block": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "canon_line": 0,
+        "init": false,
+        "stale": [],
+        "main_line": null,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "frames": []
+      },
+      {
+        "canon_line": 2,
+        "init": false,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 4,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-zggufekz/writer.ngc",
+        "sequence_number": 2,
+        "remaps": [
+          "m200"
+        ],
+        "frames": [
+          {
+            "filename": "/tmp/start-probe-zggufekz/program.ngc",
+            "position": 42
+          }
+        ]
+      },
+      {
+        "canon_line": 7,
+        "init": false,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 7,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-zggufekz/program.ngc",
+        "sequence_number": 7,
+        "remaps": [],
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "python_explicit_same_block": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "canon_line": 0,
+        "init": false,
+        "stale": [],
+        "main_line": null,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "frames": []
+      },
+      {
+        "canon_line": 0,
+        "init": false,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 0,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-mzrf9s35/program.ngc",
+        "sequence_number": 0,
+        "remaps": [
+          "m200"
+        ],
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "canon_line": 7,
+        "init": false,
+        "stale": [],
+        "main_line": 7,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-mzrf9s35/program.ngc",
+        "sequence_number": 7,
+        "remaps": [],
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "python_line4_explicit_same_block": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "canon_line": 0,
+        "init": false,
+        "stale": [],
+        "main_line": null,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "frames": []
+      },
+      {
+        "canon_line": 4,
+        "init": false,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-3gq2b1b9/program.ngc",
+        "sequence_number": 4,
+        "remaps": [
+          "m200"
+        ],
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "canon_line": 7,
+        "init": false,
+        "stale": [],
+        "main_line": 7,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {
+          "4": "explicit"
+        },
+        "filename": "/tmp/start-probe-3gq2b1b9/program.ngc",
+        "sequence_number": 7,
+        "remaps": [],
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  },
+  "python_line4_remap_only": {
+    "data_identical_to_untraced": true,
+    "trace": [
+      {
+        "canon_line": 0,
+        "init": false,
+        "stale": [],
+        "main_line": null,
+        "in_main": false,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "",
+        "sequence_number": 0,
+        "remaps": [],
+        "frames": []
+      },
+      {
+        "canon_line": 4,
+        "init": false,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 4,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-ouz9v7nl/program.ngc",
+        "sequence_number": 4,
+        "remaps": [
+          "m200"
+        ],
+        "frames": [
+          {
+            "filename": "",
+            "position": 0
+          }
+        ]
+      },
+      {
+        "canon_line": 7,
+        "init": false,
+        "stale": [
+          0,
+          1,
+          2
+        ],
+        "main_line": 7,
+        "in_main": true,
+        "write_mode": "ordered",
+        "write_lines": {},
+        "filename": "/tmp/start-probe-ouz9v7nl/program.ngc",
+        "sequence_number": 7,
+        "remaps": [],
+        "frames": []
+      }
+    ],
+    "stderr": ""
+  }
+}

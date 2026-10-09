@@ -1,0 +1,5 @@
+explicit_same_block None [1, 0, 1, 0] [0.0, 0.0, 0.0, 1.0]
+python_explicit_same_block None [1, 0, 1, 0] [0.0, 0.0, 0.0, 1.0]
+python_line4_explicit_same_block None [1, 0, 1, 0] [0.0, 0.0, 0.0, 1.0]
+python_line4_remap_only [4] [1, 0, 1, 1] [0.0, 0.0, 0.0, 0.0]
+m98_explicit [0] [1, 1, 1] [0.0, 0.0, 0.0]

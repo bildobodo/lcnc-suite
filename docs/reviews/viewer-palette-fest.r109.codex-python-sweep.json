@@ -1,0 +1,289 @@
+[
+  {
+    "name": "python_explicit_same_block",
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 6,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)"
+    ]
+  },
+  {
+    "name": "python_explicit_separate_blocks",
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      6,
+      6,
+      7
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 7,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L6)"
+    ]
+  },
+  {
+    "name": "python_remap_only",
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 6,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)"
+    ]
+  },
+  {
+    "name": "python_listed_same_block",
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 6,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)"
+    ]
+  },
+  {
+    "name": "python_line4_explicit_same_block",
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 6,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)"
+    ]
+  },
+  {
+    "name": "python_line4_explicit_separate_blocks",
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      6,
+      6,
+      7
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 7,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L6)"
+    ]
+  },
+  {
+    "name": "python_line4_listed_same_block",
+    "ustart": [
+      1,
+      0,
+      1,
+      0
+    ],
+    "lines": [
+      2,
+      5,
+      5,
+      6
+    ],
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 6,
+        "cum": 0.45004638671875,
+        "cumEnd": 0.550009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            0.45004638671875,
+            0.550009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L5)"
+    ]
+  }
+]
