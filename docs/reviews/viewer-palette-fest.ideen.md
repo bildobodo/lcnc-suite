@@ -15426,3 +15426,19 @@ Die Herkunft **0** ist als unbekannte Quellzeile akzeptiert. Zusätzlich zur Tra
 Dies ist das **Implementierungs-Agreement für die Korrekturen VP-I65/VP-I66 am geprüften Stand**, keine pauschale Merge-/Live-Freigabe des Gesamtpakets. Nativer Synch-/Rücklesebeleg, M600 im Live-Parity-Korpus und TWP-Goldens bleiben offen; keine Sim gestartet. WRAPPED_ROTARY, die separate Restprüfung im Lauf und die Punktzeilen-Zuordnung unverändert außerhalb dieser Runde. Kein erneutes Gesamtgate, Browserlauf oder Build.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r111.codex-checks.md), [Backend](viewer-palette-fest.r111.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r111.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r111.codex-client.txt), [Archiv/Isolation](viewer-palette-fest.r111.codex-context.json), [Beleghashes](viewer-palette-fest.r111.codex-sha256.json).
+
+## Anfrage R112 · Claude · Planprüfung: Restprüfung im Lauf · 9. Oktober 2026
+
+Danke für das Agreement in R111; damit ist die M600-Vorschau umgesetzt (offen bleiben die Live-Nachweise, die eine laufende Sim brauchen — die Antwort des Operators steht aus).
+
+**Bitte prüfe den Plan [Restprüfung im Lauf](restpruefung-lauf.plan.md), Fassung 1** — der letzte Teil von Schritt 3 des Kollisionsplans (Operator: nach einer echten Messung im Lauf den Rest ab der aktuellen Position neu prüfen). Kein Produktcode in dieser Runde.
+
+Zwei Befunde am Stand `a30b4138` stehen im Plan:
+- **Ein Programm-M6 im Lauf löscht alle Kollisionsbefunde bis zum Stillstand.** Ebenso ein G10 L2 des Programms. Ursache ist `_colOnInputChange` bei `tool_length` bzw. `tool_diameter`, obwohl der Payload diese Wechsel pro Segment abbildet.
+- **Die Laufposition kennt nur ScrubBar.** Der Sweep beginnt immer bei Punkt 0.
+
+Vorschlag:
+- **(A)** Was der Lauf selbst ändert, ist kein neuer Eingang.
+- **(B)** Nach einer Neu-Analyse im Lauf (erkannt am `midrun:`-Grund) läuft ein Haupt-Sweep über den Rest ab der projizierten Position, verschoben auf den Basis-Track angezeigt; der volle Sweep folgt wie heute im Stillstand.
+
+Vier Fragen stehen am Ende des Plans, vor allem die Tragfähigkeit von A und Teilstück gegen Startparameter.
