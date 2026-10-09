@@ -1,0 +1,36 @@
+
+ RUN  v4.1.8 /tmp/codex-r117-l2qvz9hs/lcnc-webui
+
+ ✓ src/viewer/collisionWorker.test.ts > how many shards > leaves two cores to the page and the browser 225ms
+ ✓ src/viewer/collisionWorker.test.ts > a partial is every shard's latest word (VP-I47) > a finished shard's findings show at once, and stay while the others run 3ms
+ ✓ src/viewer/collisionWorker.test.ts > a partial is every shard's latest word (VP-I47) > a shard not heard from counts as swept 0, and the partial names the whole pool 1ms
+ ✓ src/viewer/collisionWorker.test.ts > a partial is every shard's latest word (VP-I47) > a shard stopped at its sample backstop counts with what it swept 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a partial is every shard's latest word (VP-I47) > shard partials go out at most every PEEK_MS; the next progress carries a held one 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a partial is every shard's latest word (VP-I47) > after continue a parked shard's snapshot stays in the view until it says more 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > is handled where it happens — it never reaches the page's onerror 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a running sweep starts again on this core and answers 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > the side request on shard 0 is answered 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a side request cancelled before is acknowledged, not run 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a hidden-tab pause holds the run here until resume 6ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a decode pause holds the run here until its own resume — apart from the hidden-tab hold (plan „Prüfung im Lauf“ 4) 7ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a decode pause released while the pool ran holds nothing after the fall back 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a request's slice length reaches the shards 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a parked sweep computes nothing until continue — then from the beginning 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a parked sweep is cancelled with an acknowledgement 1ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > an unanswered stop gets what the shards swept as the parked result 1ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > an unanswered stop with nothing swept yet is answered at once as the end — paused or not 2ms
+ ✓ src/viewer/collisionWorker.test.ts > a failing sub-worker (VP-I48, VP-I49) > a cancelled sweep is acknowledged, not run again 1ms
+ ✓ src/viewer/collisionWorker.test.ts > the regular flow > stop, continue, finish and a shard's error reach the owner 1ms
+ ✓ src/viewer/collisionWorker.test.ts > the regular flow > the bodies kept for the shards never wear a tool a local run added 4ms
+ ✓ src/viewer/collisionWorker.test.ts > the side id −1 (VP-I50) > the first local side request can be cancelled 2ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > from a clear point: what the full sweep finds after it, nothing before it 68ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > from inside a contact: a boundary contact, not a collision; its records are provisional until it separates 12ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > a range starting inside a line: its records begin at the start, never at the line's start 19ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > a boundary contact that separates and comes back on its line: the re-entry is a collision of its own 24ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > cutting — feed in, cut, rapid out: the provisional check names a boundary contact, the full check reports nothing (R114) 6ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > cutting — rapid in, feed, rapid out without separating: the full check reports the gouge, the provisional one names the contact it cannot classify (R114) 6ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > static exclusions are the program's, never the range start's (VP112-04) 3ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > the first pose's seeds do not reach the range: a contact at the start is queried there, a boundary contact 9ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > a body wholly inside another at the start is a boundary contact 7ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > a range with nothing of positive length after its start is said, never clear 1ms
+ ✓ src/viewer/collisionRange.test.ts > the range sweep (plan „Prüfung im Lauf“ 3b) > progress and a parked sweep's coverage are counted from the start 4ms

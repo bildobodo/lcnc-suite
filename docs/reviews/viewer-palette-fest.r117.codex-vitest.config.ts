@@ -1,0 +1,1 @@
+import { defineConfig } from 'vitest/config'; export default defineConfig({cacheDir:'../r117-vitest-cache',test:{environment:'node',maxWorkers:1,fileParallelism:false,testTimeout:120000,include:['src/**/*.test.ts']}});

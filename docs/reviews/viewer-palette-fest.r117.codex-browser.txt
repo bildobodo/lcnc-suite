@@ -1,0 +1,22 @@
+[2m[WebServer] [22mnode:events:497
+[2m[WebServer] [22m      throw er; // Unhandled 'error' event
+[2m[WebServer] [22m      ^
+[2m[WebServer] [22m
+[2m[WebServer] [22mError: listen EPERM: operation not permitted 127.0.0.1:4188
+[2m[WebServer] [22m[90m    at Server.setupListenHandle [as _listen2] (node:net:1919:21)[39m
+[2m[WebServer] [22m[90m    at listenInCluster (node:net:1998:12)[39m
+[2m[WebServer] [22m[90m    at node:net:2207:7[39m
+[2m[WebServer] [22m[90m    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)[39m
+[2m[WebServer] [22mEmitted 'error' event on Server instance at:
+[2m[WebServer] [22m[90m    at emitErrorNT (node:net:1977:8)[39m
+[2m[WebServer] [22m[90m    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)[39m {
+[2m[WebServer] [22m  code: [32m'EPERM'[39m,
+[2m[WebServer] [22m  errno: [33m-1[39m,
+[2m[WebServer] [22m  syscall: [32m'listen'[39m,
+[2m[WebServer] [22m  address: [32m'127.0.0.1'[39m,
+[2m[WebServer] [22m  port: [33m4188[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m
+[2m[WebServer] [22mNode.js v22.23.2
+Error: Process from config.webServer was not able to start. Exit code: 1
+

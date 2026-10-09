@@ -1,0 +1,30 @@
+{
+  "result": {
+    "hits": [],
+    "staticContacts": [],
+    "samples": 1,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.40108699999996134,
+    "sweepMs": 0.1810850000000528,
+    "truncated": {
+      "covered": 0.5,
+      "reason": "time"
+    },
+    "range": {
+      "fromCum": 45,
+      "fromLine": 3
+    },
+    "boundaryContacts": []
+  },
+  "fullCheckProgress": 0.1,
+  "displayedBand": [
+    0.5,
+    0.5
+  ],
+  "actualCoverageEnd": 0.5,
+  "caveat": "Clearance guarantee not certified for this sweep: stopped at 50 % of the program (time) — the rest is unchecked"
+}

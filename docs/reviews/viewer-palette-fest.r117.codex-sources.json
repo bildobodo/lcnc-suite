@@ -1,0 +1,60 @@
+{
+  "head": "3dc563d3a94f9250a4f3afe9e1186f5c95ddccb0",
+  "sources": [
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "4e79ac79de279c19e7c2f26da91c34410cf8cdedae935ccb9a743f47d48a38f7",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-gateway/test_command_dispatch.py",
+      "sha256": "5005d64996b072967981236518621c6e77714790eb3586196156d4c40054e874",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "0b797920edcd14048d40af664c6e57fa1c6ba5cdaf6cc9c09c7664c3b5497d8f",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/ScrubBar.vue",
+      "sha256": "978895c02f79802f74ec2428bf934aed2e9b9b95d8acb52b35e70292c0132f0e",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/GcodePanel.vue",
+      "sha256": "3a7826826574d4c2bfc28b5d18af1113ffc213e252f78a78c55c58d3688af84f",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.ts",
+      "sha256": "b93a472dd67da82e94e7a29a6de862729bea3d88d48617ad9768273293b97a89",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionMarks.ts",
+      "sha256": "d9381aafff01a8157b2f5e0826f9950ad20d623f3588a6d1f1ce9834581f2d6c",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionMarks.test.ts",
+      "sha256": "d6ff8c84c47ec36db508df1fb21248dbc80a6096dfb8993f708e530e99b7b31a",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/HelpIcon.vue",
+      "sha256": "d54f90d3ec8dfaa09a8934f025da9fadd62a5be3a6e30f375b3e2b4ec0487034",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/helpPlacement.ts",
+      "sha256": "d8e31512aec4f75ac152ca44248a5dcdd70e2d07d82a6b4b04db0251dad7c0bc",
+      "archive_matches_reviewed_commit": true
+    },
+    {
+      "path": "lcnc-webui/src/style.css",
+      "sha256": "c6ac877a91eed3d7fa4d8f42185911279e01006164510c5f9b3ffea38d934c34",
+      "archive_matches_reviewed_commit": true
+    }
+  ]
+}

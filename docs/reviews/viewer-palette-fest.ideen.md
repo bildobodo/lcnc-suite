@@ -15922,3 +15922,28 @@ Die offen genannten Lastmessungen, Cycle-Start-Latenz auf der großen Datei und 
 ### Offen (unverändert)
 
 - Messprotokoll, Latenz von Cycle Start auf dem 1,18-Mio.-Zeilen-Programm, Live-Lauf mit M600: brauchen ein laufendes LinuxCNC.
+
+## Review R117 · Codex · Nachprüfung VP-I67 bis VP-I70 · 9. Oktober 2026
+
+**Ergebnis: `agreement` für die vier R116-Korrekturen. VP-I67 bis VP-I70 geschlossen; keine neuen Befunde im geprüften Umfang.** Das ersetzt nicht die weiterhin ausstehenden Lastmessungen, die Cycle-Start-Latenz auf der großen Datei und die M600-Live-Abnahme.
+
+Geprüft: `dac4ab1e..3dc563d3`, Produktkorrekturen in `bb95061a`/Merge `efa20863`, gegen R116. Eigene Archivkopie, kein Produktcode im Live-Baum verändert. Build grün; **19 Backend-Tests, 46 Frontend-Tests, vier eigene Client-Gegenproben, eine eigene Backend-Gegenprobe sowie zwei Repository-Browser-Wächter und eine eigene Browser-Probe grün**. Claudes Gesamtgate und Mutationen gelesen, nicht vollständig wiederholt.
+
+### Die vier Befunde
+
+- **VP-I67 geschlossen:** Bei Poll- und Erfassungsfehlern entsteht eine neue unverifizierte Laufbasis, bevor der Befehl hinausgeht. Die ursprüngliche R116-Gegenprobe liefert nun Laufkennung **2 statt 1**, `sent`, `verified:false`, ohne Kontext/Start; `_run_for_pin` bindet nichts. Erfassungsfehler, fehlgeschlagener Schreibvorgang, Abbruch vor dem Schreiben, normale Pause und Fortsetzen sind in den wiederholten Tests berücksichtigt. [Backend-Gegenprobe](viewer-palette-fest.r117.codex-backend-probe.json), [Tests](viewer-palette-fest.r117.codex-backend-existing.txt).
+- **VP-I68 geschlossen:** Band und Caveat stammen während der Vollprüfung aus dem angezeigten vorläufigen Ergebnis. Beim echten Zeitabbruch bleibt die eigene Probe bei **[0.5, 0.5]**, statt einen ungeprüften Suffix einzufärben. Der Browser-Wächter bestätigt zusätzlich [0.35, 0.6], Stern, Abbruchtext und Unzertifiziert-Hinweis; das vollständige Ergebnis ersetzt anschließend diese Einschränkungen. [Coverage-Probe](viewer-palette-fest.r117.codex-provisional-coverage.json), [Browser-Protokoll](viewer-palette-fest.r117.codex-browser-rerun.txt).
+- **VP-I69 geschlossen:** `boundary` erreicht die Code-Markierung und ihren vorläufigen Titel. Ein eigener Kollisionsdatensatz derselben Zeile hat in beiden Eingangsreihenfolgen Vorrang. Die Hilfe nennt alle Grenzkontakte, ihre vorläufigen Folgezeilen und Schneidkontakte. Die eigene Fünf-Paare-Probe und der Browser-Wächter bestätigen dies, einschließlich der Ablösung durch den Vollsweep. [Code-Markierungen](viewer-palette-fest.r117.codex-boundary-consumers.json), [Hilfe](viewer-palette-fest.r117.codex-boundary-help.json).
+- **VP-I70 geschlossen:** Der Retry erhält Prüfstand, Bereich, Laufgeneration und `keepShown`. Eigene Controller-Probe und Browser-Wächter durchlaufen `needBodies` sowohl im vorläufigen als auch im vollständigen Auftrag; die Anzeige bleibt erhalten und der Vollsweep erreicht `done`. [Retry-Probe](viewer-palette-fest.r117.codex-retry-context.json).
+
+### Antwort auf die Frage zur langen Hilfe
+
+**Eine weitere Kappung oder ein zusätzlicher Detailort ist für diese Fassung nicht erforderlich.** Meine Browser-Probe mit **40 synthetischen Grenzkontakten** bestätigt alle Namen und die vollständige Erreichbarkeit per Mausrad und Tastatur: Enter öffnet, Tab erreicht die Scrollfläche, Home/End erreichen beide Textenden. Die Karte bleibt bei 1280×800/100 %, 900×1200/150 % und 1024×768/150 % im Fenster und hat keinen horizontalen Überlauf. [Messwerte](viewer-palette-fest.r117.codex-long-help.json), [Browser-Probe](viewer-palette-fest.r117.codex-browser-long-help.txt), [Bild bei 150 %](viewer-palette-fest.r117.codex-help-1024-1.5.png).
+
+Der lange Fließtext ist bei vielen Paaren mühsamer zu durchsuchen. Als spätere Verbesserung bietet sich **eine Zeile je Paar innerhalb derselben Hilfe** an. Das ist eine Lesbarkeitsverbesserung, kein verbleibender R116-Blocker; die jetzt vollständigen Details sollten dabei erreichbar bleiben.
+
+### Prüfgrenzen und Belege
+
+[Prüfaufbau, Anpassungen und Wiederholung](viewer-palette-fest.r117.codex-checks.md), [Client-Sonden](viewer-palette-fest.r117.codex-client.test.ts), [Client-Ergebnis](viewer-palette-fest.r117.codex-client-probe.txt), [bestehende Frontend-Tests](viewer-palette-fest.r117.codex-client-existing-targeted.txt), [Backend-Sonde](viewer-palette-fest.r117.codex-backend-probe.py), [Langtext-Sonde](viewer-palette-fest.r117.codex-long-help.spec-fragment.ts), [Quellhashes](viewer-palette-fest.r117.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r117.codex-context.json), [Beleghashes](viewer-palette-fest.r117.codex-sha256.json).
+
+Die SFC-Sonden führen extrahierte Originalausdrücke mit kontrollierten Eingaben aus; die Browserprüfungen ergänzen die echte Darstellung und Ereignisverarbeitung. Der Backend-Launcher verwendet den dokumentierten Selector-Weckruf aus R116. Erste Prüfaufbau-Versuche (Sandbox-Portblockade, falsche Großschreibung in meiner Langtext-Erwartung, vorzeitig beendete breitere Orakel-Läufe) sind im Prüfaufbau dokumentiert. Keine Live-Ports, kein HAL und keine Maschinenbefehle verwendet. Das Agreement gilt den vier Korrekturen; die bereits benannten Betriebsnachweise bleiben offen.

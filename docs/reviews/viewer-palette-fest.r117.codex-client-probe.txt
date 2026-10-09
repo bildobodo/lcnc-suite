@@ -1,0 +1,13 @@
+
+ RUN  v4.1.8 /tmp/codex-r117-l2qvz9hs/lcnc-webui
+
+ ✓ src/viewer/r117.codex.test.ts > a real boundary contact retains its provisional G-code mark 115ms
+ ✓ src/viewer/r117.codex.test.ts > a timed-out provisional sweep keeps its actual coverage and caveat while the full sweep runs 28ms
+ ✓ src/viewer/r117.codex.test.ts > the boundary detail exposes all contacts including cutting and following lines 6ms
+ ✓ src/viewer/r117.codex.test.ts > needBodies keeps the basis, range, generation and retained result through both phases 54ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  20:14:25
+   Duration  656ms (transform 186ms, setup 0ms, import 404ms, tests 205ms, environment 0ms)
+
