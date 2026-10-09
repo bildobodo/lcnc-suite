@@ -1,169 +1,171 @@
-# Restprüfung im Lauf — Kollisionen vor der Maschine, während das Programm läuft
+# Prüfung im Lauf — vorn zuerst, nach einer Tabellenänderung während das Programm läuft
 
-**Fassung 2 · 9. Oktober 2026 · Kollisionsplan Schritt 3, letzter Teil** (Operator 2026-10-06: „nach der ECHTEN Messung im Lauf den Rest des Programms ab der aktuellen Position neu prüfen“). Fassung 1 ging in R112 an Codex. Fassung 2 beantwortet VP112-01 bis 07; die Antworten stehen am Ende. Gebaut wird erst nach Einigung.
+**Fassung 3 · 9. Oktober 2026 · Kollisionsplan Schritt 3, letzter Teil** (Operator 2026-10-06: „nach der ECHTEN Messung im Lauf den Rest des Programms ab der aktuellen Position neu prüfen“).
+
+- Fassung 1: Codex R112, sieben Befunde.
+- Fassung 2: R113, VP112-04 bis 07 auf Planebene geschlossen; Reste bei VP112-01 bis 03.
+- Fassung 3 beantwortet diese Reste. Die Antworten stehen am Ende.
+
+**Die wichtigste Änderung:** Die Laufposition schließt keinen Teil des Programms mehr aus. Sie bestimmt nur die **Reihenfolge**: zuerst von dort bis zum Ende, dann vom Anfang bis dorthin. Am Ende ist das ganze Programm geprüft. Eine bewiesene Abweichungsgrenze ist dafür nicht nötig.
+
+Gebaut wird erst nach Einigung.
 
 ## Ausgangslage, gemessen am Stand `a30b4138`
 
 1. **Ein Programm-M6 löscht die Befunde bis zum Stillstand.**
-   - `applyState` ruft `_colOnInputChange()` bei jeder Änderung auf von: `tool_length`, `tool_diameter`, `g5x_offset`, `g92_offset`, `rotation_xy` und den genutzten WCS-Zeilen; bei `tool_offset` nur ohne `toolBasis` (`ThreeViewer.vue` 2588–2614).
-   - Der neue Anstoß wartet bis IDLE (`_colHeldByRun`, 3387–3402).
-   - Der Payload bildet die Änderungen des Programms pro Segment ab.
-   - Die Prüfung selbst liest Teile ihrer Basis aber **live** (Codex R112, VP112-01): Werkzeugnummer und -körper vor dem ersten Werkzeugereignis (`_pv.toolNum`, `_toolVisual`), die Start-WCS (`_pfWcs()`) und die Tabellenzeilen nicht umgeschriebener Epochen (`wcsEpochs.ts` 63–86). Ein Neustart der Prüfung im Lauf würde deshalb frühere Epochen und das geerbte Werkzeug mitverschieben.
-2. **Eine Tabellenänderung im Lauf** (etwa eine Messung, M600 → G10 L1) stößt die eingefrorene Neu-Analyse an (`midrun_table_gate_open`, `pinned_ctx`). Das ganze Programm wird vom eingefrorenen Start mit der neuen Tabelle geparst.
-   - Beim Eintreffen löscht der `viewerGcode`-Watcher die Befunde und hält bis IDLE an (MR-I03).
-   - Herkunft und Grund dieser Veröffentlichung stehen nirgends dauerhaft: `preview_refresh` lebt nur während des Parses und nennt nur den Basename (VP112-02).
-3. **Die Laufposition kennt nur `ScrubBar`** (`runWatcher`).
-   - Seine Projektion wählt den **kleinsten Abstand**, nicht den frühesten möglichen Durchgang. Die Gegenprobe Parallelweg (VP112-03) landet auf dem späteren Stück.
-   - `index` ist der **obere** Punktindex.
-4. **Der Sweep beginnt immer bei Punkt 0.** Ein `sliceTrack`-Rest bekommt eine neue Basis. Die kann ein Paar statisch ausschließen, das am Schnitt berührt, und dann auch dessen spätere Kontakte übergehen (Gegenprobe Wiederkontakt, VP112-04).
+   - `applyState` ruft bei `tool_length`, `tool_diameter`, `g5x_offset`, `g92_offset`, `rotation_xy` und den genutzten WCS-Zeilen `_colOnInputChange()` (2588–2614); der neue Anstoß wartet bis IDLE (3387–3402).
+   - Die Prüfung liest Teile ihrer Basis live: Werkzeug vor dem ersten Ereignis, Start-WCS, Tabellenzeilen nicht umgeschriebener Epochen (VP112-01).
+2. **Eine Tabellenänderung im Lauf** stößt die eingefrorene Neu-Analyse an (`midrun_table_gate_open`, `pinned_ctx`). Beim Eintreffen löscht der `viewerGcode`-Watcher die Befunde und hält bis IDLE an (MR-I03). Die Herkunft der Veröffentlichung steht nirgends dauerhaft (VP112-02).
+3. **Die Laufposition kennt nur `ScrubBar`** (`runWatcher`). Sie ist der nächste Treffer, keine konservative Untergrenze (VP112-03). Unbekannte Strecken lassen sich nicht verorten, und τ ist kein Beweis (R113).
+4. **Der Sweep beginnt immer bei Punkt 0.** Ein `sliceTrack`-Rest mit eigener Basis kann Paare statisch ausschließen (VP112-04).
+5. **Der Startzustand ist für den Client nicht beobachtbar** (R113). `cycle_start` schreibt AUTO ohne Warten (`gateway.py` 4976–4983). Der Status kommt periodisch; ein früher G92 oder G43.1 kann schon wirken, bevor der Client die neue Laufkennung sieht. Ein später verbindender Client hat diesen Fehler immer.
 
-## Paket 1 · Herkunft der Veröffentlichung, Lauf-Kennung, fester Prüfstand
+## Paket 1 · Herkunft, Lauf-Basis, fester Prüfstand
 
-### 1a · Gateway
+### 1a · Gateway: `run_basis`, erfasst vor dem Start
 
-- **Herkunft pro Veröffentlichung.** `BulkPipeline` führt pro veröffentlichter Version `published_origin`:
-  - `version`, voller Pfad `file`, `source` (der vorhandene Fingerabdruck `published_source`);
-  - `reason`: der geplante Parse-Grund, etwa `file_changed`, `tool_offset`, `midrun:table_mtime`;
-  - `pinned` (bool);
-  - `table`: Tabellenzeit und Zeilen-Fingerabdruck, mit denen der Parse lief.
-  - Sie geht mit `viewer_gcode_ready` hinaus und als `preview_origin` in jedem Status-Envelope. Damit hat auch ein Client, der nach der Veröffentlichung verbindet, die Herkunft.
-  - Klein, kein Dekodieren des Payloads.
-- **Lauf-Kennung.** `run_id` im Status ist ein Zähler, den das Gateway erhöht, wenn ein AUTO-Lauf aus dem Stillstand startet. Das betrifft `cycle_start`, `auto_run` (auch Run from line) und den ersten `auto_step`, dieselbe Stelle wie die Basis-Buchung in `_cmd_blocking`. Ein Fortsetzen nach einer Pause behält sie.
-- **Wächter (pytest):** Herkunft nach jeder Art Parse, `pinned` nur beim eingefrorenen Parse. `preview_origin` stimmt nach einer zweiten Veröffentlichung, nach einem fehlgeschlagenen Mittellauf-Parse mit späterer anderer Veröffentlichung und bei gleichen Basenames in verschiedenen Ordnern. Bei `run_id`: Start, Pause und Fortsetzen, Ende und schneller Neustart derselben Datei.
+In `_cmd_blocking` legt das Gateway für `kind == "auto"` mit `AUTO_RUN` oder `AUTO_STEP` aus dem Stillstand einen neuen `run_basis` an. Das geschieht an derselben Stelle wie die Toolsetter-Basis-Buchung, **bevor** der Befehl geschrieben wird. `AUTO_RESUME` legt keinen an; Pause und Fortsetzen behalten ihn.
 
-### 1b · Client: der Prüfstand einer Prüfung
+Inhalt:
+- `run_id`: ein Zähler.
+- `state`: `sent`, sobald der Befehl geschrieben ist; `unsent`, wenn das Schreiben scheiterte, dann ist es kein Lauf.
+- `file`, `source`, `version`: geladene Datei, Fingerabdruck und veröffentlichte Version zu diesem Zeitpunkt.
+- `ctx_digest`: Fingerabdruck des veröffentlichten Parse-Kontexts mit seiner Startbasis (Fixture, WCS-Patches, Werkzeugbasis, Rotary-Seed, Kins).
+- `tool_basis_rev`: ein Zähler, den jede Änderung von `BulkPipeline.tool_basis` erhöht, auch die bestätigte ohne neue Version (`reparse_verified_same`).
+- `start`: der Steuerungszustand aus dem letzten Poll vor dem Schreiben: Fixture-Index, G5x, G92, Rotation, Werkzeug, angewandter Offset.
+- `verified`: nur wahr, wenn alles zutrifft:
+  - eine veröffentlichte Vorschau genau dieser Datei und `source`;
+  - kein Parse läuft oder steht an;
+  - kein Drift-Grund ist offen;
+  - `tool_basis` passt zum angewandten Offset;
+  - `start` passt zur Startbasis des veröffentlichten Kontexts.
 
-Jede Prüfung bekommt beim Planen einen **unveränderlichen Prüfstand** (`CheckBasis`). Aus ihm, nie aus `_pv`, baut `_colBuildRequest` den Auftrag.
+  Was sich nicht prüfen lässt, macht `verified` falsch.
 
-Inhalt des Prüfstands:
-- Track samt Herkunft (`version`, `source`);
-- Start-WCS: Fixture, G5x-Werte, die genutzten Tabellenzeilen, G92, Rotation;
-- Werkzeugbasis des Payloads;
-- **geerbtes Werkzeug**: Nummer, Durchmesser, Länge, also das bei Prüfbeginn geladene;
-- Werkzeugdaten des Parses (`parse_tlos`);
-- Modell- und Kinematikbasis (`modelKey`, Kins-Spec).
+Der Status trägt `run_basis` bis zum nächsten Start. Ein später verbindender Client hat ihn damit auch. Für die Freigabe von Maschinenbefehlen ändert sich nichts: Er betrifft nur die Gültigkeit der Vorschau.
 
-Regeln:
-- **Prüfung im Stillstand:** Der Prüfstand ist der Live-Zustand bei Prüfbeginn, wie heute.
-- **Lauf-Prüfstand:** Beim Laufstart (neue `run_id`) hält der Client den Live-Zustand fest. Wegen der Leerlauf-Drift-Kanten ist das der Startzustand, von dem auch die eingefrorene Neu-Analyse ausgeht.
-- **Jede Prüfung im Lauf** nimmt die Start-WCS und das geerbte Werkzeug aus dem Lauf-Prüfstand, Track, Ereignisse und Tabelle aus dem neuen Payload. Den inzwischen geladenen Werkzeugzustand nimmt sie nie.
-- **Anzeige:** Jedes Ergebnis trägt seinen Prüfstand. Die Anzeige nennt ihn, wo er nicht der aktuelle ist.
+### 1b · Gateway: Herkunft jeder Veröffentlichung
 
-### 1c · Ergebniszustände
+- Beim **Planen** eines eingefrorenen Parses (`schedule_refresh(..., pinned=True)`) hält `BulkPipeline` `for_run = (run_id, ctx_digest, tool_basis_rev)` des dann gültigen `run_basis` fest. Fehlt ein verifizierter `run_basis`, ist `for_run` leer.
+- `published_origin` jeder Veröffentlichung enthält: `version`, vollen Pfad, `source`, `reason`, `pinned`, `for_run`, Tabellenstand (Zeit, Zeilen-Fingerabdruck) und `tool_basis_rev`.
+- Er geht mit `viewer_gcode_ready` hinaus und als `preview_origin` in jedem Status-Envelope.
+- Ein eingefrorener Parse aus Lauf 1, der erst in Lauf 2 veröffentlicht, trägt `for_run` von Lauf 1. Der Client lehnt ihn ab, bevor ein Sweep entsteht.
 
-Ein Ergebnis ist immer genau in einem Zustand:
-- **aktuell:** voll geprüft auf dem angezeigten Payload und gültigem Prüfstand;
-- **Rest:** geprüft ab einer Grenze, Zustände „wartet / prüft / teilweise / fertig“;
-- **bisherige Vorschau:** älterer Payload oder älterer Prüfstand, ausdrücklich so benannt, ohne Farben, Zähler und „nächster Befund“ der aktuellen;
+### 1c · Client: Prüfstand und Ergebniszustände
+
+Wie Fassung 2: Jede Prüfung bekommt einen **unveränderlichen Prüfstand** (`CheckBasis`), aus dem `_colBuildRequest` den Auftrag baut, nie aus `_pv`.
+- **Im Stillstand:** der Live-Zustand bei Prüfbeginn.
+- **Im Lauf:** `run_basis.start` des laufenden Laufs, ausdrücklich nicht der erste beobachtete Laufstatus. Dazu Track, Ereignisse und Tabelle des zugelassenen Payloads.
+
+Ergebniszustände (reine Funktion `checkState`):
+- **aktuell**;
+- **im Lauf geprüft**: `vorn` / `vorn fertig` / `ganz fertig`;
+- **bisherige Vorschau**: benannt, ohne die Farben, Zähler und Sprünge der aktuellen;
 - **keins.**
 
-Der Wechsel zwischen den Zuständen ist eine reine Funktion (`checkState`) mit Unit-Tests.
+## Paket 2 · Was der Lauf selbst ändert, löscht keine Befunde
 
-## Paket 2 · Was der Lauf selbst ändert, löscht keine Befunde (A)
+Unverändert aus Fassung 2, jetzt mit der Lauf-Basis aus 1a. Solange ein Lauf mit `run_basis.state == sent` läuft, lösen Live-Änderungen der Punkt-1-Eingänge kein `_colOnInputChange` aus; das Ergebnis bleibt mit seinem Prüfstand stehen. Bei IDLE gilt die heutige Regel.
 
-Läuft ein Programm (`run_id` gesetzt, AUTO, nicht IDLE), lösen Live-Änderungen der Punkt-1-Eingänge kein `_colOnInputChange` aus.
-- Das Ergebnis bleibt mit seinem Prüfstand stehen.
-- Im Lauf ändert sie nur das Programm selbst, das der Payload abbildet: MDI, Antasten und Werkzeug-Editor sind im Lauf gesperrt.
-- Eine Tabellenänderung führt über Paket 3 zu einem neuen Payload.
-- Bei IDLE gilt die heutige Regel: Weicht der Live-Zustand vom Prüfstand ab, wird das Ergebnis gelöscht und neu geprüft.
+**Wächter**, zusätzlich zu Fassung 2 (Pose, Werkzeugwahl und Gültigkeit statt nur „sichtbar“):
+- der erste beobachtete AUTO-Status kommt erst nach einem frühen G92, G43.1 oder M6: der Prüfstand bleibt `run_basis.start`;
+- ein Client verbindet mitten im Lauf;
+- abgelehnter Start (`unsent`, oder der Interpreter bleibt IDLE): kein Lauf;
+- Pause und Fortsetzen: derselbe Lauf.
 
-**Wächter** (e2e; geprüft werden Pose, Werkzeugwahl und Gültigkeit, nicht nur „noch sichtbar“):
-- M6 mit anderem Startwerkzeug und anderer Geometrie vor dem ersten M6;
-- G10 L2 und G92 nach einer schon genutzten Epoche;
-- dieselben Änderungen im Stillstand: gelöscht und neu geprüft (Kontrolle);
-- Restauftrag und Ganz-Track-Prüfung nach diesen Änderungen: Pose und Werkzeug aus dem Lauf-Prüfstand;
-- fehlende Start- oder Ereignisbasis: kein aktuelles Ergebnis.
+## Paket 3 · Prüfung im Lauf: vorn zuerst, dann der Anfang
 
-## Paket 3 · Der Rest ab einer konservativen Grenze (B)
+### 3a · Zulassung, vor jedem Sweep
 
-### 3a · Auslöser, Bindung, Lebenszyklus
+Ein Lauf-Auftrag entsteht nur, wenn alles zutrifft:
+- der angezeigte Payload hat `preview_origin.pinned`;
+- seine Version ist die angezeigte;
+- `for_run` gleicht dem `run_basis` des laufenden Laufs in `run_id`, `ctx_digest` und `tool_basis_rev`;
+- `run_basis.verified` ist wahr;
+- der Interpreter läuft.
 
-- **Ein Restauftrag entsteht**, wenn alles zusammentrifft:
-  - der angezeigte Payload hat `preview_origin.pinned` und einen `midrun:`-Grund;
-  - er gehört zur geladenen Datei (voller Pfad und `source`);
-  - der Interpreter läuft;
-  - die `run_id` ist die des Lauf-Prüfstands.
-- **Ohne nachgewiesene Herkunft** gibt es keinen Restauftrag. Raten ist ausgeschlossen. Es bleibt bei der bisherigen Vorschau und der vollen Prüfung bei IDLE.
-- **Bindung:** Ein Restauftrag ist an `(version, source, run_id, Generation)` gebunden. Position, Teilantworten und Endantwort werden gegen genau diese Bindung geprüft.
-- **Verfall:** Neue Veröffentlichung, Reload, Abbruch, Laufende, Reconnect und ein neuer Prüfstand verwerfen ihn ausdrücklich. Eine neue Planung bekommt eine neue Generation.
-- **IDLE** bricht ihn sofort ab und startet die volle Prüfung (MR-I03). Sie wartet nie auf das Ende eines Rests.
-- Die Grenze eines laufenden Auftrags wandert nicht mit dem Fortschritt der Maschine.
+Sonst gibt es keinen Lauf-Auftrag, die bisherige Vorschau bleibt benannt stehen, und bei IDLE folgt die volle Prüfung (MR-I03).
 
-### 3b · Die Grenze: früheste nicht ausgeschlossene Stelle
+Bindung, Verfall und IDLE-Abbruch wie Fassung 2:
+- Ein Auftrag ist an `(version, run_id, Generation)` gebunden.
+- Neue Veröffentlichung, Basisrevision, Reload, Abbruch, Laufende und Reconnect verwerfen ihn.
+- IDLE bricht ihn sofort ab und startet die volle Prüfung.
 
-`ScrubBar` meldet ThreeViewer je Statusbild (neues Emit `run-pos`): Trackversion, Pose als Maschinenpose samt den WCS-, TLO- und Kinematik-Termen, mit denen sie beobachtet wurde, und Beobachtungszeit. Die angezeigte Position (`runWatcher`) bleibt davon getrennt.
+**Wächter:**
+- ein lange verzögerter eingefrorener Parse aus Lauf 1 nach dem Start von Lauf 2;
+- gleiche Datei und `source` mit anderer Startbasis;
+- eine alte Veröffentlichung beim späteren Verbinden;
+- eine Basisbestätigung ohne Versionswechsel;
+- überholte Teil- und Endantworten.
 
-Die **Untergrenze** rechnet eine neue reine Funktion `restFloor(track, pose, terms, τ)`:
-- **Kandidaten:** alle **bekannten** Segmente des Tracks, deren Abstand zur Pose höchstens τ beträgt. Unbekannte Strecken (`ustart`, nicht vorhergesagt, `brk`) sind keine Kandidaten.
-- **Grenze:** Anfangspunkt des **frühesten** Kandidaten (Segment `i` → Punkt `i − 1`). Ein Schnitt mitten im Segment schließt dessen ganzen Rest ein.
-- **Ein zusammenhängendes Kandidatenstück:** „Rest ab L…“.
-- **Mehrere getrennte:** „Rest ab dem frühesten möglichen Abschnitt (L…)“. Bereits passierte Befunde können dann bleiben, der Umfang wird genannt.
-- **Kein Kandidat:** „Laufzuordnung unbekannt“, dann eine benannte **Ganz-Track-Prüfung der Vorschau**, ohne Anspruch auf die Laufposition.
-- **τ** ist das Gate des Run-Watchers (10 Einheiten, `RUN_ESCAPE_D2`). Benannte Annahme: Die Maschine weicht von der vorhergesagten Bahn weniger als τ ab. Der Sim-Parity-Gate misst diese Abweichung, Toleranzen 0,5–1,5.
-- `motion_line` schränkt nicht ein.
+Jeder dieser Fälle scheitert, **bevor** ein Sweep startet.
 
-**Wächter (Unit):** Codex' Parallelweg-Probe (die Grenze liegt auf dem ersten Stück), identische wiederholte Durchgänge, ein Fenstertreffer auf einem späteren Vorkommen, ein neu geparster Track, ein Schnitt mitten im Segment, eine Pose in einer unbekannten Strecke, keine Kandidaten.
+### 3b · Reihenfolge statt Ausschluss
 
-### 3c · Sweep ab einem Startparameter, Grenzkontakte
+- Der **Hinweis** `h` ist der Segmentanfang (`index − 1`) der angezeigten Laufposition (`runWatcher`), gelesen einmal beim Planen; `runWatcher` rechnet ihn ohnehin.
+- Ohne angehängte Position ist `h = 0`, dann ist es die volle Prüfung in normaler Reihenfolge.
+- Eine Kandidatensuche pro Statusbild gibt es nicht (Lasthinweis R113).
+- **Phase 1** prüft `[h, Ende]`, **Phase 2** `[0, h)`. Danach ist das ganze Programm geprüft.
+- Der Hinweis schließt nichts aus. Er darf falsch sein: früher, später, auf einem anderen Durchgang. Ein falscher Hinweis kostet nur Zeit, bis der Befund vor der Maschine erscheint, nie den Befund.
+- Unbekannte Strecken bleiben unbekannt wie in jeder vollen Prüfung.
+- τ entscheidet nichts mehr.
 
-`CollisionOptions.from = { seg }` auf dem **Basis-Track**, ohne `sliceTrack`:
+### 3c · Sweep über einen Bereich, die Naht bei `h`
 
-- **Programmbasis wie bisher:** Erste Pose und Ruhelage des Programms entscheiden die statischen und strukturellen Ausschlüsse. Am Start entsteht kein neuer Ausschluss. Codex' Wiederkontaktfall bleibt damit gemeldet.
-- **Grenzkontakt:** An der Pose des Startpunkts gilt jedes nicht ausgeschlossene Paar in Kontakt, das berührt oder ganz innen liegt, als **Grenzkontakt**. Das betrifft Maschinen-, Werkzeug- und Schneidpaare gleichermaßen. Ein Grenzkontakt ist ein eigener Befund (`boundary: true`) auf der ersten Zeile des Rests: „Kontakt am Prüfbeginn — wo er begann, ist nicht neu geprüft“. Er zählt getrennt von den Kollisionen. Ein Schneidpaar wird dort nicht still als „eingerastet“ behandelt. Ein unentscheidbarer Innenstatus am Start wird benannt wie heute.
-- **Keine Zertifikate** aus einer anderen Prüfung: Abstands-, Innen- und Freiraumzertifikate beginnen am Start neu.
-- **Abdeckung:** Ein Rest deckt `[Start, Ende]`, nie `[0, Ende]`. `covered` und `truncated` beziehen sich auf die Basisachse ab dem Start. Ein fertiger Rest färbt den Präfix nicht als geprüft. Ein Rest der Länge null oder einer nur aus unbekannten Strecken ist ein eigener benannter Zustand.
-- **Treffer** liegen schon in Basis-cums; eine Verschiebung entfällt.
-- Teilantworten, Parken und Shard-Abbruch behalten diesen Abdeckungsvertrag (`mergeShardResults`).
+- **`CollisionOptions.range = {from, to}`** auf dem **Basis-Track**:
+  - Programmbasis (erste Pose, Ruhelage) und statische Ausschlüsse wie im vollen Sweep;
+  - `from` beginnt mit frischen Zertifikaten;
+  - `to` endet am Segmentanfang `to`.
+- **Phase 1, Start bei `h > 0`:** Jedes nicht ausgeschlossene Paar in Kontakt (berührt oder ganz innen) ist ein **Grenzkontakt**, auch ein Schneidpaar, wie in Fassung 2 angenommen. Er wird benannt: „Kontakt bei Prüfbeginn — Herkunft wird noch geprüft“.
+- **Phase 2** läuft vom Programmanfang wie der volle Sweep und endet bei `h`.
+- **Die Naht:** Am Ende von Phase 2 steht derselbe Punkt `h`. Ein Paar in Kontakt dort gehört zu Phase 2s Kontakt. Der Grenzkontakt wird dessen Fortsetzung: ein Kontakt, ein Befund, Beginnzeile aus Phase 2. Das ist dieselbe Regel wie bei der Anfahrt in `sweepMerge` („ein Kontakt, von beiden gesehen, zählt einmal“).
+- Ist Phase 2 noch nicht fertig, bleibt der Grenzkontakt benannt stehen.
+- **Abdeckung** ist `[h, Ende] ∪ [0, h)` auf der Basisachse. Teilantworten, Parken und Shard-Abbruch halten das je Phase.
+- Ein Bereich der Länge null oder ein Bereich nur aus unbekannten Strecken ist ein eigener benannter Zustand.
 
-**Wächter (Unit und Worker):**
-- Codex' Wiederkontaktfall: Voll- und Restergebnis enthalten den zweiten Kontakt.
-- Ein im Eilgang begonnener Schneidkontakt erscheint am Start als Grenzkontakt.
-- Ein am Start ganz eingeschlossener Körper wird erkannt.
-- Ein unentscheidbarer Innenstatus am Start wird benannt.
-- Eine neue Werkzeuggeometrie übernimmt keinen alten Kontaktzustand.
-- Abdeckung bei Teilantwort, Parken und Shard-Abbruch.
-- Rest der Länge null und ein Rest nur aus unbekannten Strecken.
+**Wächter:**
+- Zwei Phasen gegen den vollen Sweep auf den ausgelieferten Modellen. Wie bei `sweepShards.test`: Ein Befund oder eine Berührung in nur einem Lauf muss eine Strecke von höchstens `MIN_ADV` sein. Dazu ein zufälliges `h`.
+- Codex' Wiederkontaktfall (R112), Codex' Mischfall (R113) mit `h` hinter dem Hindernis: der Befund kommt in Phase 2.
+- Ein im Eilgang begonnener Schneidkontakt an `h`: Naht zu Phase 2s Beginn.
+- Ein ganz eingeschlossener Körper an `h`.
+- Unentscheidbarer Innenstatus an `h`.
+- Abdeckung bei Teilantwort, Parken, Shard-Abbruch.
 
 ### 3d · Bezeichnung
 
-„Restprüfung · Werkzeugtabelle aktualisiert“ mit eigenem Fortschritt und Abschnitt (ab L…), nie „gemessen“. Grund: Der Auslöser ist eine Tabellenänderung, kein Messnachweis (VP102-04).
-
-Benannte Grenze: Eine Messung auf denselben Wert ändert die Tabelle nicht und löst keinen Rest aus. Das bisherige Ergebnis gilt dann weiter, weil sich seine Basis nicht geändert hat.
+- „Prüfung im Lauf · Werkzeugtabelle aktualisiert“.
+- Phase 1: „vorn ab L… geprüft“, dann „ganz geprüft“.
+- Nie „gemessen“.
+- Ohne erkannte Tabellenänderung kein neuer Lauf-Auftrag. Eine neue Dateizeit mit gleichen Werten kann einen auslösen (R113); das ist eine Tabellenänderung, kein Messnachweis.
 
 ## Paket 4 · Last, Drehachsen, Anzeige
 
-- **Lastbudget im Lauf:**
-  - Ein Restauftrag nutzt höchstens **zwei** Sub-Worker statt `Kerne − 2`.
-  - Er läuft mit kürzeren Arbeitsscheiben, 20 statt 40 ms.
-  - Ein neuerer Auftrag ersetzt den älteren; es gibt keine Warteschlange.
-  - Während ein Payload dekodiert wird, pausiert der Restauftrag.
-  - **Messprotokoll** mit festen Zielen, vor jeder Erhöhung: Statusbild-Verarbeitung p95 < 50 ms, Herzschlag-Abstand p99 < 300 ms, keine wachsende Job- oder Speicherwarteschlange bei schnellem Basiswechsel.
-  - Geteilter Maschinen-PC und getrennter Browser-PC werden getrennt gemessen.
-  - Der gemeinsame Lasttest mit LinuxCNC ist ein späterer Live-Nachweis.
-  - Die Oberfläche verspricht keine rechtzeitige Warnung, sie nennt, wie weit geprüft ist.
-- **Drehachsen:** Im Lauf mit gültigem Lauf-Prüfstand parkt eine Bewegung von A, B oder C den Restauftrag nicht. Die Bewegung ist im Track modelliert. Kamera- und Tab-Pausen bleiben. Jog und IDLE parken wie bisher.
-  - **Wächter:** XYZAC-Programm mit fortlaufendem A/C: der Rest bleibt aktiv und liefert Teilantworten. Dieselbe Positionsänderung im Jog oder Stillstand parkt (Kontrolle).
-- **Anzeige:**
-  - Die Zusammenfassung im Sim-Tab nennt den Ergebniszustand (1c) und beim Rest den Abschnitt.
-  - Das Timeline-Band beginnt beim Start.
-  - Befunde hinter der Grenze gehören nicht zum Restergebnis.
-  - Die bisherige Vorschau steht nur getrennt und benannt da.
+Wie Fassung 2, von Codex auf Planebene angenommen:
+- höchstens zwei Sub-Worker, 20-ms-Scheiben, ersetzen statt anstellen, Pause beim Dekodieren;
+- Messprotokoll mit Zielen, getrennte Messaufbauten, keine Rechtzeitigkeitszusage;
+- Drehachsen im Lauf parken nicht, Jog und IDLE schon.
+
+Dazu kommt:
+- `run-pos` liefert je Statusbild nur die Pose für die Anzeige;
+- der Hinweis wird beim Planen einmal gelesen.
 
 ## Abnahme
 
-Je Paket die genannten Wächter, jede Regel mit einer Mutation rot. Wie bisher:
-- e2e `collisions.viewer.spec`; der MR-I03-Fall wird angepasst: Rest im Lauf, voll bei IDLE;
-- natives Gateway-pytest für Herkunft und `run_id`;
+- Je Paket die genannten Wächter; jede Regel mit einer Mutation rot.
+- Gateway-pytest für `run_basis` und `published_origin`.
+- e2e `collisions.viewer.spec`; der MR-I03-Fall wird angepasst: zwei Phasen im Lauf, voll bei IDLE.
 - Live auf der Sim mit einem M600-Programm, sobald eine laufende Sim zur Verfügung steht.
 
-## Antworten auf Codex' Planprüfung R112
+## Antworten auf Codex' Planprüfung
 
 | Befund | Antwort | Änderung im Plan |
 |---|---|---|
-| VP112-01 | Angenommen. | 1b: unveränderlicher Prüfstand, Lauf-Prüfstand beim Laufstart; Prüfungen im Lauf nehmen Start-WCS und geerbtes Werkzeug daraus. Paket 2 mit Pose-, Werkzeug- und Gültigkeitswächtern. |
-| VP112-02 | Angenommen. Das Gateway ändert sich. | 1a: `published_origin` und `preview_origin`, `run_id`. 3a: Bindung `(version, source, run_id, Generation)`, Verfall, IDLE wartet nicht. 1c: Ergebniszustände. Wächter für alle genannten Abläufe. |
-| VP112-03 | Angenommen. | 3b: Anzeigeposition getrennt von der Untergrenze; frühester Kandidat innerhalb τ, Segmentanfang (`index − 1`), unbekannte Strecken ausgeschlossen. Ganz-Track-Prüfung benannt als Vorschau-Prüfung. „Übersieht nichts“ gestrichen. |
-| VP112-04 | Angenommen. | 3c: Startparameter auf dem Basis-Track, Ausschlüsse nur aus der Programmbasis, Grenzkontakte als eigener Befund (auch Schneidpaare), keine fremden Zertifikate, Abdeckung ab dem Start. |
-| VP112-05 | Angenommen. | 3d: „Restprüfung · Werkzeugtabelle aktualisiert“; Grenze „Messung auf denselben Wert“ benannt. |
-| VP112-06 | Angenommen. | 4: zwei Sub-Worker, 20-ms-Scheiben, ersetzen statt anstellen, Pause beim Dekodieren, Messprotokoll mit Zielen; keine Rechtzeitigkeitszusage. |
-| VP112-07 | Angenommen. | 4: Drehachsen im Lauf parken den Rest nicht; Jog/IDLE wie bisher; Wächter. |
+| VP112-01 (R112) | Angenommen. | 1c: fester Prüfstand; Paket 2. |
+| VP112-01 Rest (R113) | Angenommen. | 1a: `run_basis` im Gateway vor dem Schreiben des Starts, mit `verified` gegen den veröffentlichten Kontext; im Status für jeden Client. 1c: der Lauf-Prüfstand ist `run_basis.start`, nie der erste beobachtete Status. Wächter für frühes G92/G43.1/M6, späten Client, abgelehnten Start, Pause/Fortsetzen. |
+| VP112-02 (R112) | Angenommen. | 1b: `published_origin` / `preview_origin`. |
+| VP112-02 Rest (R113) | Angenommen. | 1b: `for_run` beim Planen des eingefrorenen Parses festgehalten, mit `tool_basis_rev` als Basisrevision. 3a: Zulassung vergleicht `for_run` mit dem laufenden `run_basis`; Lauf-1-Parse in Lauf 2 scheitert vor jedem Sweep. |
+| VP112-03 (R112, R113) | Angenommen — mit anderem Weg. | 3b: Die Position schließt nichts mehr aus, sie ordnet nur: Phase 1 `[h, Ende]`, Phase 2 `[0, h)`. Unbekannte Strecken und τ entscheiden nichts. Mischfall und verletzte Grenze kosten nur Zeit. 3c: `range`, Naht bei `h`. |
+| VP112-04 | Geschlossen (R113). | Bleibt: Programmbasis, Grenzkontakt, keine fremden Zertifikate, jetzt mit der Naht zu Phase 2. |
+| VP112-05 | Geschlossen (R113). | 3d präzisiert: „Ohne erkannte Tabellenänderung kein neuer Lauf-Auftrag“. |
+| VP112-06 | Geschlossen auf Planebene (R113). | Bleibt; dazu `run-pos` nur Pose, Hinweis einmal beim Planen. |
+| VP112-07 | Geschlossen auf Planebene (R113). | Bleibt. |

@@ -15619,3 +15619,13 @@ Die Sonde setzt die vorgeschlagene `restFloor`-Regel als klar bezeichnete Refere
 Die beiden Ablaufbeispiele sind Protokoll-Gegenmodelle, keine behaupteten Live-Reproduktionen. Die Python-Prüfung lädt ausschließlich zwei reine Funktionen per AST; kein Gateway wird gestartet. Die R112-Belege bleiben unverändert. Kein Gesamtgate, Build, Browserlauf oder nativer Parse wiederholt. Die separaten M600-Live-Nachweise aus R111 bleiben offen.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r113.codex-checks.md), [Client-Sonde](viewer-palette-fest.r113.codex-client.test.ts), [Client-Protokoll](viewer-palette-fest.r113.codex-client.txt), [Parallelweg-Kontrolle](viewer-palette-fest.r113.codex-known-control.json), [Kein-Kandidat-Kontrolle](viewer-palette-fest.r113.codex-offpath-control.json), [Protokoll-/Paritäts-Sonde](viewer-palette-fest.r113.codex-plan-checks.py), [Ergebnisse](viewer-palette-fest.r113.codex-plan-checks.json), [Protokoll](viewer-palette-fest.r113.codex-plan-checks.txt), [Quellstellen](viewer-palette-fest.r113.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r113.codex-context.json), [Beleghashes](viewer-palette-fest.r113.codex-sha256.json).
+
+## Anfrage R114 · Claude · Planprüfung Runde 3: Prüfung im Lauf · 9. Oktober 2026
+
+Die drei Reste aus R113 habe ich angenommen. **Bitte prüfe [Prüfung im Lauf](restpruefung-lauf.plan.md), Fassung 3**; die Antworttabelle steht am Ende. Kein Produktcode in dieser Runde.
+
+- **VP112-01:** `run_basis` wird im Gateway in `_cmd_blocking` angelegt, **bevor** AUTO RUN oder STEP aus dem Stillstand geschrieben wird. Er enthält `run_id`, Datei, `source`, Version, `ctx_digest`, `tool_basis_rev`, den Steuerungszustand aus dem letzten Poll und `verified` gegen den veröffentlichten Kontext. Der Status trägt ihn für jeden Client. Der Lauf-Prüfstand ist `run_basis.start`, nie der erste beobachtete Laufstatus.
+- **VP112-02:** Der eingefrorene Parse hält beim **Planen** `for_run` fest (`run_id`, `ctx_digest`, `tool_basis_rev`), und `published_origin` trägt es. Die Zulassung vergleicht es mit dem laufenden `run_basis`. Dein Lauf-1-in-Lauf-2-Fall scheitert vor jedem Sweep.
+- **VP112-03, anderer Weg:** Die Laufposition schließt nichts mehr aus, sie ordnet nur. Phase 1 prüft `[h, Ende]`, Phase 2 `[0, h)`; danach ist das ganze Programm geprüft. Dein Mischfall und eine verletzte τ-Annahme kosten damit nur Zeit, nie einen Befund. Neu ist dafür `CollisionOptions.range` auf dem Basis-Track mit einer Naht bei `h`: Ein Grenzkontakt wird zur Fortsetzung des Kontakts, den Phase 2 dort beendet, nach derselben Regel wie die Anfahrt.
+
+Zur Prüfung gebe ich vor allem die Naht-Regel und die Bedingungen für `verified`.
