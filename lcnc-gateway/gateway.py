@@ -68,6 +68,7 @@ from gateway_util import (
     LOAD_RECORD_NAME,
     canonical_path,
     program_source,
+    rotary_seed_values,
     SUBFILE_NAME_RE,
     resolve_subfile,
     kins_mode_commands,
@@ -887,6 +888,8 @@ _bulk = _bulk_mod.BulkPipeline(
         _wcs_cache, getattr(STAT, "g92_offset", None)),
     # the toolsetter values the routine reads (M600 plan, section 2)
     get_toolsetter_ctx=lambda: _toolsetter_parse_ctx(),
+    # the run in progress (plan „Prüfung im Lauf“ 1a)
+    get_run_basis=lambda: _run_basis,
 )
 
 
@@ -1773,7 +1776,8 @@ async def _status_poller():
                     _trace.emit("gcode.reparse_table_midrun", reason=_mdrift,
                                 tool=st.tool_number)
                     _bulk.schedule_refresh(st.active_file, "midrun:" + _mdrift,
-                                           _spawn_preview_task, pinned=True)
+                                           _spawn_preview_task, pinned=True,
+                                           run=_run_for_pin(st.active_file))
                 elif _mact == "stale":
                     # No faithful re-parse before idle: the viewer keeps the
                     # path muted and says why (MR-I04).
@@ -3100,6 +3104,100 @@ def _source_write_refusal() -> Optional[str]:
     return None
 
 
+# ---- The run basis (plan „Prüfung im Lauf“ 1a/1b, Codex R112–R115) ----
+# Taken HERE, before an AUTO run or a first step from idle is written: the
+# controller's state from a fresh poll, the published parse's start context
+# copied whole, and whether the one is the other (`verified`). A client
+# never reconstructs a run's start from the first frame it sees — an early
+# G92 / G43.1 may already have run (R113). A pinned parse during the run is
+# built from `ctx` (bulk_pipeline), so its origin can name this run.
+# Server-side: `ctx`; on the wire: everything else (_run_basis_status).
+_run_basis: Optional[Dict[str, Any]] = None
+_run_seq = 0
+
+
+def _start_snapshot(stat) -> Dict[str, Any]:
+    """The controller's start state the client's check basis needs: the
+    fixture and its offsets, G92, the XY rotation, the tool in the spindle
+    with its table row (diameter, length), the applied offset, the rotary
+    pose. From one poll."""
+    def vec(name):
+        v = getattr(stat, name, None)
+        return [float(x) for x in v] if v is not None else None
+    tool = getattr(stat, "tool_in_spindle", None)
+    row = None
+    for t in getattr(stat, "tool_table", None) or ():
+        if tool not in (None, 0, -1) and getattr(t, "id", None) == tool:
+            row = {"diameter": float(getattr(t, "diameter", 0.0)), "zoffset": float(getattr(t, "zoffset", 0.0))}
+            break
+    return {"g5x_index": getattr(stat, "g5x_index", None), "g5x_offset": vec("g5x_offset"),
+            "g92_offset": vec("g92_offset"), "rotation_xy": getattr(stat, "rotation_xy", None),
+            "tool": tool, "tool_row": row, "tool_offset": vec("tool_offset"),
+            "rotary": rotary_seed_values(getattr(stat, "axis_mask", 0) or 0,
+                                         getattr(stat, "actual_position", None))}
+
+
+async def _begin_run_basis() -> Optional[Dict[str, Any]]:
+    """A new run basis when the interpreter is idle NOW (a fresh poll): an
+    AUTO step in a paused program continues the run. Returns the record the
+    sending thread marks sent / unsent, or None (no new run)."""
+    global _run_basis, _run_seq
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no verified start
+        _trace.emit_exc("run_basis.poll_failed", e)
+        return None
+    if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
+        return None
+    file = _status_runtime.program.loaded
+    source = await asyncio.to_thread(program_source, file) if file else None
+    ctx = _bulk.start_ctx(file) if file else None
+    ok, why = _bulk.run_start_check(file, STAT, source, open_drift=_ts_open_drift())
+    _run_seq += 1
+    rb = {"run_id": _run_seq, "state": "sending", "file": file, "source": source,
+          "version": _bulk.preview_version if _bulk.last_file == file else None,
+          "ctx": ctx, "ctx_digest": _bulk_mod.ctx_digest(ctx), "tool_basis_rev": _bulk.tool_basis_rev,
+          "start": _start_snapshot(STAT), "verified": bool(ok and ctx is not None),
+          "why": why if not ok else (None if ctx is not None else "no published start")}
+    _run_basis = rb
+    _trace.emit("run_basis.start", run_id=_run_seq, verified=rb["verified"], why=rb["why"],
+                file=os.path.basename(file or ""))
+    return rb
+
+
+def _ts_open_drift() -> Optional[str]:
+    """The toolsetter edge for a run's start (plan 1a): the published parse
+    read other toolsetter values than the book holds now, and the program
+    runs the routine — whether or not a re-parse was asked for already
+    (_ts_drift_reason asks once per version; a start is verified only on the
+    values it will run with)."""
+    pts = _bulk.published_toolsetter
+    if not pts or not pts.get("routine"):
+        return None
+    pv = ((_bulk.published_ctx or {}).get("toolsetter") or {}).get("version")
+    return None if pv == _ts_basis_version else "toolsetter"
+
+
+def _run_basis_status() -> Optional[Dict[str, Any]]:
+    """The status wire's `run_basis`: the run's basis without its parse
+    context (that stays here)."""
+    rb = _run_basis
+    if rb is None:
+        return None
+    return {k: v for k, v in rb.items() if k != "ctx"}
+
+
+def _run_for_pin(file: Optional[str]) -> Optional[Dict[str, Any]]:
+    """The run a pinned parse of `file` belongs to: the run basis when it is
+    verified, sent and of that program — else None (the parse is no run's)."""
+    rb = _run_basis
+    if rb is None or not rb.get("verified") or rb.get("state") != "sent" or not file:
+        return None
+    if canonical_path(rb.get("file") or "") != canonical_path(file):
+        return None
+    return rb
+
+
 async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None) -> int:
     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
 
@@ -3135,10 +3233,19 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         # paths). A command that never went out costs only a confirmation.
         _ts_mark_assumed(toolsetter_assigned_keys(args[0] if args else "", _remap_env())
                          if kind == "mdi" else _ts_program_writes())
-    if claim is None and kind:
-        async with _get_source_lock():
-            claim = _StartClaim(kind)
-            _source_claims.append(claim)
+    run_basis = None
+    if kind == "auto" and args and args[0] in (getattr(linuxcnc, "AUTO_RUN", None),
+                                               getattr(linuxcnc, "AUTO_STEP", None)):
+        run_basis = await _begin_run_basis()
+    try:
+        if claim is None and kind:
+            async with _get_source_lock():
+                claim = _StartClaim(kind)
+                _source_claims.append(claim)
+    except BaseException:
+        if run_basis is not None:
+            run_basis["state"] = "unsent"   # cancelled before the write: no run
+        raise
 
     def _run():
         try:
@@ -3146,7 +3253,11 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         except BaseException:
             if claim is not None:
                 claim.state = "unsent"   # nothing reached the controller
+            if run_basis is not None:
+                run_basis["state"] = "unsent"   # no run
             raise
+        if run_basis is not None:
+            run_basis["state"] = "sent"
         if claim is not None:
             claim.serial = getattr(CMD, "serial", None)
             claim.sent_t = time.monotonic()
@@ -8838,6 +8949,7 @@ async def ws_endpoint(ws: WebSocket):
                         "type": "viewer_gcode_ready",
                         "version": _bulk.preview_version,
                         "file": initial_file,
+                        "origin": _bulk.preview_origin_status(),
                     })
                     _gcode_path = "cache-hit-sent"
                 elif _bulk.schedule_refresh(initial_file, "connect", _spawn_preview_task):
@@ -9004,6 +9116,8 @@ async def ws_endpoint(ws: WebSocket):
                         preview_refresh=_bulk.preview_refresh_status(),
                         preview_table_stale=_bulk.table_stale,
                         preview_tool_basis=_bulk.tool_basis_status(),
+                        preview_origin=_bulk.preview_origin_status(),
+                        run_basis=_run_basis_status(),
                         config_warning=(
                             {
                                 "reason": (_config_warning_reason or _units_fallback_reason
@@ -9167,6 +9281,7 @@ async def ws_endpoint(ws: WebSocket):
                                     "type": "viewer_gcode_ready",
                                     "version": _bulk.preview_version,
                                     "file": pending.get("file"),
+                                    "origin": _bulk.preview_origin_status(),
                                 })
                             except RuntimeError:
                                 pass  # safe-silent: WS closed between iteration start and send

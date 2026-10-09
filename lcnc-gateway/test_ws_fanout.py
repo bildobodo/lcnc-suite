@@ -41,6 +41,17 @@ class TestBuildStatusEnvelope(unittest.TestCase):
         self.assertEqual(build_status_envelope(**self.BASE, preview_table_stale=mark)["preview_table_stale"], mark)
         self.assertNotIn("preview_table_stale", build_status_envelope(**self.BASE))
 
+    def test_preview_origin_and_run_basis_ride_while_present(self):
+        # plan „Prüfung im Lauf“ 1a/1b: a client connecting late has both
+        origin = {"version": 3, "for_run": None}
+        rb = {"run_id": 2, "state": "sent"}
+        msg = build_status_envelope(**self.BASE, preview_origin=origin, run_basis=rb)
+        self.assertEqual(msg["preview_origin"], origin)
+        self.assertEqual(msg["run_basis"], rb)
+        msg = build_status_envelope(**self.BASE)
+        self.assertNotIn("preview_origin", msg)
+        self.assertNotIn("run_basis", msg)
+
     def test_preview_refresh_rides_only_while_a_parse_runs(self):
         pr = {"reason": "drift", "file": "a.ngc", "expected_ms": 1234,
               "started_ms": 1, "queued": False, "superseded": 0}
