@@ -733,14 +733,19 @@ class TestRunBinding(unittest.TestCase):
                b'"loaded_tool": 1, "start_known": true, "tlo_start": [0.0, 0.0, 41.5], '
                b'"start_mode": 430, "start_reason": null}\n')
 
+        self.pinned_start = None
+
         def worker(ctx_bytes, timeout):
             import msgspec
             ctx = msgspec.msgpack.decode(ctx_bytes)
             self.sent.append((ctx, timeout))
             if ctx.get("nice") and self.on_pinned:
                 self.on_pinned()
+            t = tlo
+            if ctx.get("nice") and self.pinned_start:
+                t = t.replace(b'"tlo_start": [0.0, 0.0, 41.5]', b'"tlo_start": [0.0, 0.0, ' + self.pinned_start + b']')
             return (0, b"x" * 8, b'__SCHEMA__\t8\n__ABCSEED__\t{"A": 0.0, "C": 0.0}\n'
-                    + tlo + self.params_line)
+                    + t + self.params_line)
         self.b._run_gcode_worker_blocking = worker
 
     def tearDown(self):
@@ -891,6 +896,16 @@ class TestRunBinding(unittest.TestCase):
                                                          pinned=True, run=run))
                 self.on_pinned = None
                 self.assertIsNone(self.b.published_origin["for_run"])
+        with self.subTest("the parse's own start moved the basis"):
+            open(self.ngc, "w").write("G0 X1\nM2\n")
+            self._load()
+            self.run = self._run()
+            self.pinned_start = b"41.6"
+            asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                     pinned=True, run=self.run))
+            self.pinned_start = None
+            self.assertNotEqual(self.b.tool_basis_rev, self.run["tool_basis_rev"])
+            self.assertIsNone(self.b.published_origin["for_run"])
         with self.subTest("the control: the same run"):
             open(self.ngc, "w").write("G0 X1\nM2\n")
             self._load()

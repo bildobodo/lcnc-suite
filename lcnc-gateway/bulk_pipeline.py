@@ -1021,7 +1021,9 @@ class BulkPipeline:
                 cur = self._get_run_basis() or {}
                 if (cur.get("run_id"), cur.get("ctx_digest"), cur.get("tool_basis_rev")) != (
                         for_run["run_id"], for_run["ctx_digest"], for_run["tool_basis_rev"]) or (
-                        self.published_source is None or self.published_source != run_source):
+                        self.published_source is None or self.published_source != run_source) or (
+                        # this parse's own start moved the basis: not the run's start
+                        self.tool_basis_rev != for_run["tool_basis_rev"]):
                     _trace.emit("gcode.run_binding_lost", level="warn", file=filepath,
                                 run_id=for_run["run_id"], now=cur.get("run_id"))
                     for_run = None
