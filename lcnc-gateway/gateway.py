@@ -3117,22 +3117,22 @@ _run_seq = 0
 
 
 def _start_snapshot(stat) -> Dict[str, Any]:
-    """The controller's start state the client's check basis needs: the
-    fixture and its offsets, G92, the XY rotation, the tool in the spindle
-    with its table row (diameter, length), the applied offset, the rotary
-    pose. From one poll."""
+    """The controller's start state the client's check basis needs, in the
+    status's own fields and derivations (a run's check reads it where an
+    idle check reads the live status): the fixture and its offsets, G92,
+    the XY rotation, the fixture table, the tool in the spindle with its
+    dims, the applied offset, the rotary pose. From one poll."""
     def vec(name):
         v = getattr(stat, name, None)
         return [float(x) for x in v] if v is not None else None
     tool = getattr(stat, "tool_in_spindle", None)
-    row = None
-    for t in getattr(stat, "tool_table", None) or ():
-        if tool not in (None, 0, -1) and getattr(t, "id", None) == tool:
-            row = {"diameter": float(getattr(t, "diameter", 0.0)), "zoffset": float(getattr(t, "zoffset", 0.0))}
-            break
+    diameter, length, table_z = _status_runtime_mod.spindle_tool_dims(
+        tool, getattr(stat, "tool_table", None), getattr(stat, "tool_offset", None))
     return {"g5x_index": getattr(stat, "g5x_index", None), "g5x_offset": vec("g5x_offset"),
             "g92_offset": vec("g92_offset"), "rotation_xy": getattr(stat, "rotation_xy", None),
-            "tool": tool, "tool_row": row, "tool_offset": vec("tool_offset"),
+            "wcs_table": [row.copy() for row in _wcs_cache],
+            "tool_number": tool, "tool_diameter": diameter, "tool_length": length,
+            "tool_table_z": table_z, "tool_offset": vec("tool_offset"),
             "rotary": rotary_seed_values(getattr(stat, "axis_mask", 0) or 0,
                                          getattr(stat, "actual_position", None))}
 

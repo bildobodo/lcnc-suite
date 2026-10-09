@@ -789,6 +789,28 @@ class TestHandlerExecution(unittest.TestCase):
         self.assertFalse(gateway._run_basis["verified"])
         self.assertIsNone(gateway._run_for_pin(self.prog))
 
+    def test_the_start_snapshot_reads_like_the_status(self):
+        # a run's check reads run_basis.start where an idle check reads the
+        # live status: the same fields, the same derivation
+        from types import SimpleNamespace as NS
+        st = NS(tool_in_spindle=13, tool_table=[NS(id=13, zoffset=-48.2, diameter=8.0)],
+                tool_offset=(0.0, 0.0, -48.2) + (0.0,) * 6, g5x_index=2,
+                g5x_offset=(1.0,) * 9, g92_offset=(0.0,) * 9, rotation_xy=15.0,
+                axis_mask=0b101111, actual_position=[0.0] * 3 + [10.0, 0.0, 20.0] + [0.0] * 3)
+        snap = gateway._start_snapshot(st)
+        self.assertEqual((snap["tool_number"], snap["tool_diameter"], snap["tool_length"],
+                          snap["tool_table_z"]), (13, 8.0, 48.2, -48.2))
+        self.assertEqual(snap["rotation_xy"], 15.0)
+        self.assertEqual(snap["rotary"], {"A": 10.0, "C": 20.0})
+        self.assertEqual(snap["wcs_table"], [r.copy() for r in gateway._wcs_cache])
+        snap["wcs_table"][0]["x"] = 12345.0
+        self.assertNotEqual(gateway._wcs_cache[0].get("x"), 12345.0, "a copy")
+        # no table row: the length from the applied offset, as the status does
+        st.tool_table = []
+        snap = gateway._start_snapshot(st)
+        self.assertEqual((snap["tool_diameter"], snap["tool_length"], snap["tool_table_z"]),
+                         (None, 48.2, None))
+
     def test_the_toolsetter_book_is_an_open_edge_at_the_start(self):
         saved = (gateway._bulk.published_toolsetter, gateway._bulk.published_ctx,
                  gateway._ts_basis_version)
