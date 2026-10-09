@@ -212,6 +212,27 @@ CASES = {
     # the controls: the main text's own explicit write stays no cause
     "r108_explicit_alone": ("G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
                             "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30"}),
+    # Codex R109 VP-I65 rest: the same with a PYTHON remap — its execute()
+    # keeps the main file's name, with a line number of its own (4) or 0
+    **{f"r109_py{'_line4' if arg else ''}_{name}": (prog, "mm", 0.0, (490,), {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=writer\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {"toplevel.py": "import remap\n",
+                 "remap.py": "from interpreter import INTERP_OK\n\ndef writer(self, **words):\n"
+                             f"    self.execute('G92 Z10'{', 4' if arg else ''})\n    return INTERP_OK\n"}})
+       for arg in (False, True)
+       for name, prog in (("explicit_and_remap", "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n"),
+                          ("explicit_then_remap", "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n"),
+                          ("remap_alone", "G21 G90\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n"),
+                          ("listed_and_remap", "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n"),
+                          ("explicit_alone", "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nG0 X10 Y5 Z15\nG0 X20\nM2\n"))},
+    # a Python remap's G43.1 without a line number is the program's tool
+    # offset (a row), not the initcodes'
+    "r109_py_g43": ("G21 G90\nG0 X0 Y0 Z40\nM200\nG0 X10 Z30\nM2\n", "mm", 0.0, (490,), {
+        "rs274ngc": "REMAP=M200 modalgroup=10 python=offset\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+        "subs": {"toplevel.py": "import remap\n",
+                 "remap.py": "from interpreter import INTERP_OK\n\ndef offset(self, **words):\n"
+                             "    self.execute('G43.1 Z10')\n    return INTERP_OK\n"}}),
     "r107_body_numbers_walk": ("G21 G90\nG0 X0 Y0 Z40\nM200\n\nG10 L20 P2 X0\nG55 G0 X10 Y5 Z15\nG0 X20\nM2\n",
                                "mm", 0.0, (490,), {"emcio": "TOOL_CHANGE_POSITION = 0 20 30",
                                                    "rs274ngc": "REMAP=M200 modalgroup=10 ngc=bodyrun",
@@ -512,7 +533,7 @@ ANGULAR_UNITS = degree
 [RS274NGC]
 PARAMETER_FILE = machine.var
 SUBROUTINE_PATH = {work}
-{extra.get("rs274ngc", "")}
+{extra.get("rs274ngc", "").replace("{work}", str(work))}
 [EMCIO]
 TOOL_TABLE = tool.tbl
 {extra.get("emcio", "")}

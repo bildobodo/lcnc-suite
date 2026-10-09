@@ -422,6 +422,32 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         self.assertEqual(r["rapid_ustart"][-1], 0)
         self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
 
+    def test_a_python_remap_s_write_is_never_the_main_text_s(self):
+        # Codex R109 VP-I65 rest: a Python remap keeps the main file's name
+        # and its execute() passes a line number of its own (4) or none (0) —
+        # neither makes its G92 the main text's. Named by the trigger's line
+        # (its block's byte offset), never by the number the body passed:
+        # two lines name L5 whatever the body says
+        for arg in ("", "_line4"):
+            for case, line in (("explicit_and_remap", 4), ("explicit_then_remap", 5),
+                               ("remap_alone", 4), ("listed_and_remap", 4)):
+                name = f"r109_py{arg}_{case}"
+                r = probe(name)
+                self.assertIsNone(r["parse_error"], name)
+                self.assertEqual(r["stale_offset_lines"], [line], name)
+                self.assertEqual(r["rapid_ustart"][-1], 1, name)
+                self.assertEqual(set(r["rapid_tcum"]), {0.0}, name)
+            r = probe(f"r109_py{arg}_explicit_alone")
+            self.assertIsNone(r["stale_offset_lines"])
+            self.assertEqual(r["rapid_ustart"][-1], 0)
+
+    def test_a_python_remap_s_tool_offset_is_the_program_s(self):
+        # its G43.1 without a line number arrives as line 0 — the program's
+        # offset all the same (a row), never the initcodes'
+        r = probe("r109_py_g43")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual([row[3] for row in r["tlo_events"]], [10.0])
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.

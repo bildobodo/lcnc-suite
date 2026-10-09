@@ -36,7 +36,9 @@ CASES = ("g43_mid", "g43_g1_block", "r92_m6_feed", "r92_m6_feed_then_rapid", "r9
          # routine run by another remap's body, a sign before the G10 / G28.1
          "foreign_remap_nested", "m600_via_other_remap", "r107_inactive_negative", "r107_store_negative",
          # Codex R108: an explicit write and a remap whose body writes G92 in one block
-         "r108_explicit_and_remap")
+         "r108_explicit_and_remap",
+         # Codex R109: the same with a Python remap whose execute() passes no line
+         "r109_py_explicit_and_remap")
 
 
 def main():

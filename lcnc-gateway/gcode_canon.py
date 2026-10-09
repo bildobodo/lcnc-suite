@@ -328,9 +328,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     _pct_line_seen = False
     _in_init = False
 
+    _program_started = False
+
     def _program_line(self):
-        """Is the current callback from a PROGRAM line (not the initcodes)?"""
-        return (self.lineno or 0) >= 1 and not self._in_init
+        """Is the current callback from the PROGRAM (not the initcodes)? A line
+        number ≥ 1 — or, once the program has begun, any: a Python remap's
+        `self.execute(...)` without a line number arrives as line 0 (Codex
+        R109 VP-I65; the initcodes run before the first program line)."""
+        return not self._in_init and ((self.lineno or 0) >= 1 or self._program_started)
 
     def set_main_file(self, path):
         """The main program, for main_line (the worker)."""
@@ -364,20 +369,30 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         its current line where the main file runs (an inline or M98 sub's own
         line too), else the line the deepest frame of the main file called
         from: a remap trigger, an o-call or M98 line (measured natively,
-        Codex R107). None before the program, outside a parse or without the
-        interpreter's word."""
+        Codex R107); in a remap of the main file whose code keeps its file (a
+        Python remap) the trigger's line (R109). None outside a parse or
+        without the interpreter's word; 0 where it names no main-file line
+        (the initcodes, a Python remap triggered in another file)."""
         if self.main_file is None:
             return None
         t = self.interp()
         if t is None:
             return None
-        if self._is_main(t.filename):
+        if int(t.remap_level) == 0 and self._is_main(t.filename):
             return int(t.sequence_number)
         for k in range(int(t.call_level) - 1, -1, -1):
             c = t.sub_context[k]
             if self._is_main(c.filename):
                 return self._byte_line(int(c.position))
-        return None
+        if int(t.remap_level) >= 1 and self._is_main(t.filename):
+            # A Python remap keeps the file it was triggered in and records no
+            # frame of it (filename "", position 0); its sequence number is
+            # whatever its execute() passed, or 0 (Codex R109). The remap's
+            # controlling block — the trigger — carries its byte offset in
+            # that file (measured: `blocks[1].offset`, the outermost one).
+            line = self._byte_line(int(t.blocks[1].offset) + 1)
+            return line if line is not None else 0
+        return 0
 
     def _in_main_file(self):
         """Does this callback come from the MAIN file's own text (a line of
@@ -388,7 +403,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         t = self.interp()
         if t is None:
             return None
-        return self._is_main(t.filename)
+        # a remap's own code — NGC or Python, whose file stays the one it was
+        # triggered in — is never the main text's (Codex R109)
+        return int(t.remap_level) == 0 and self._is_main(t.filename)
 
     def remaps_running(self):
         """The remapped codes the interpreter runs now, lower case, outermost
@@ -422,7 +439,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if self._foreign_first is None:
             self._foreign_first = min(lines)
         m = self.main_line()
-        if m is None or m >= self._foreign_first:
+        if m is None or m == 0 or m >= self._foreign_first:
             self._mark_probe_unknown("foreign_remap")
 
     def next_line(self, st):
@@ -467,10 +484,16 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 if m is not None:
                     seen = self._walk_stale | stale_in_block
                     prev, stale_in_block = self._walk_line, seen
-                    if m != prev:
+                    if m >= 1 and m != prev:
                         self._walk_line, self._walk_stale = m, frozenset()
                     else:
+                        # the same line still runs — or the interpreter names
+                        # none (0): nothing is known to have run since (a
+                        # guard: no native path found — an o-call or an NGC
+                        # remap from a Python remap's execute() is refused,
+                        # "call stack underrun", Codex R109)
                         self._walk_stale = seen
+                        m = prev
                     n = m
             if self.write_lines and prev >= 1 and n != prev:
                 if self.write_mode == "ordered" and n > prev:
@@ -500,6 +523,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 self._in_init = True
             else:
                 self._in_init = False          # program from here on, for good
+                self._program_started = True
         self._foreign_gate()
         # PROGRAM-START basis: the offsets in effect after the gateway's
         # initcodes (which force the machine's ACTIVE WCS) and before the

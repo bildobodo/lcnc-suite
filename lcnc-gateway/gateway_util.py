@@ -4847,7 +4847,9 @@ def attribute_sub_callers(sub_events, source_text, env=None, notes=None):
             line = site_cache[key]
             main = ev[3] if len(ev) > 3 else None
             if main is not None:
-                if line is not None and line != main:
+                if main <= 0:
+                    line = None          # the interpreter names no main-file line
+                elif line is not None and line != main:
                     if notes is not None:
                         notes.append(f"{name}: the interpreter ran L{main}, the text names L{line}")
                     line = None
@@ -5002,7 +5004,9 @@ def main_file_tool_changes(events, sub_events, caller_by_event):
         line, tool = ev[0], ev[1]
         main = ev[3] if len(ev) > 3 else None
         if call is None:
-            out.append([int(main if main is not None else line), int(tool)])
+            at_line = int(main if main is not None else line)
+            if at_line > 0:          # 0: the interpreter names no main-file line
+                out.append([at_line, int(tool)])
         elif call > 0:
             out.append([int(call), int(tool)])
     return out

@@ -8957,3 +8957,27 @@ canon now asks the interpreter whether the callback comes from the main
 file's own text (`_in_main_file`). Only then can the text excuse it, as an
 explicit write or one listed for the walk. A body's write is named by the
 main line and counts.
+
+R109 found the same rule missing for PYTHON remaps (VP-I65 rest). A Python
+remap keeps the main file's name and records no frame of it. Its
+`self.execute(…)` passes a line number of its own, or none, which arrives as
+line 0. With a number it passed for a main text's own write and was excused
+by the main line's text; with 0 it was taken for the initcodes and dropped.
+Both lost the body's G92 from the unknown position.
+
+The changes:
+- Program phase: a callback counts as the program's once the program has
+  begun, whatever its number. The initcodes run before the first program
+  line.
+- Own text: only a callback at remap level 0 in the main file is the main
+  text's own.
+- Naming: a Python remap's trigger line comes from its controlling block's
+  byte offset (`blocks[1].offset`, measured), never from the number its body
+  passed.
+- No line named: where the interpreter names no main-file line, there is no
+  call line, no tool-change mark, and no text boundary taken as passed.
+
+The walk's guard for that case has no native path. An o-call or an NGC remap
+from a Python remap's execute() is refused natively ("call stack underrun").
+A side effect, intended: a Python remap's own G43 without a line number now
+gives its tool-offset row.
