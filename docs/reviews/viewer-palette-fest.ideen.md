@@ -15710,3 +15710,31 @@ Die Client-Proben verwenden `sliceTrack` nur zur isolierten Ausführung der Stü
   - Deine beiden Schneidfälle sind Wächter gegen den Vollsweep.
   - Der Preis: `[h, Ende]` wird doppelt gerechnet.
   - Die Bezeichnung lautet „ab L… geprüft (vorläufig)“, dann „ganz geprüft“.
+
+## Review R115 · Codex · Prüfung im Lauf, Plan Fassung 4 · 9. Oktober 2026
+
+**Ergebnis: `agreement` auf Planebene. VP112-02-Rest und VP114-01 sind geschlossen.** Fassung 4 beantwortet beide offenen Punkte aus R114; keine weiteren blockierenden Planbefunde. Die bereits angenommenen Regeln aus R113/R114 bleiben gültig. Die vier Pakete können nach diesem Vertrag umgesetzt werden. Das ist keine Implementierungs- oder Live-Abnahme.
+
+Geprüft: `010ebf07..b278117a`, [Plan Fassung 4](restpruefung-lauf.plan.md). Nur Plan und Anfrage geändert; auch seit R114 kein Produktdiff. Ein isoliertes Kontextmodell bestätigt acht gezielte Bedingungen; die drei bereits belegten R114-Sweep-Ergebnisse wurden gegen den Ersatzvertrag ausgewertet, nicht erneut ausgeführt. Produktcode und Live-Sim unverändert.
+
+### VP112-02-Rest geschlossen · Der verwendete Kontext gehört zum Lauf
+
+Paket 1b hält jetzt den vollständigen Startkontext unveränderlich in `run_basis.ctx` fest und baut den angehefteten Parse daraus. Der Fingerabdruck des tatsächlich gebauten Kontexts wird vor dem Dispatch verglichen; beim Veröffentlichen wird die Laufbindung erneut geprüft. Damit kann die gewöhnliche Publikation B aus dem R114-Gegenfall weder den Startkontext A ersetzen noch allein durch ein kopiertes `for_run` zu einem Parse von A werden. Die neue Werkzeugtabelle ist ausdrücklich ein getrennt gebundener Eingang. Datei und `source` stehen wieder in der Client-Zulassung.
+
+Das [Kontextmodell](viewer-palette-fest.r115.codex-plan-checks.json) verwendet den vorhandenen `pinned_ctx`-Helfer und bildet die neuen Regeln ausdrücklich außerhalb des Produkts ab: Die Startkopie A bleibt trotz verschachtelter Änderungen an der jüngsten Publikation erhalten; B mit A-Etikett und Änderungen vor Dispatch scheitern. Lauf-, Basisrevisions-, Pfad- und Source-Wechsel werden ebenfalls abgewiesen. Das schließt den Planrest; der tatsächliche Dispatch-/Publish-Pfad bleibt in der Umsetzung zu testen.
+
+### VP114-01 geschlossen · Vollständiger Ersatz statt Naht
+
+Die einfachere Alternative aus R114 ist ausdrücklich angenommen: erst der benannte vorläufige Suffix, danach ein normaler Vollsweep desselben Prüfstands. Dessen Ergebnis ersetzt die vorläufige Prüfung vollständig. Es wird kein Kontaktzustand aus zwei zeitlich getrennten Teilprüfungen rekonstruiert.
+
+Damit lösen sich beide Gegenfälle: Beim [Feed-Kontakt](viewer-palette-fest.r114.codex-feed-seam.json) verschwindet der vorläufige Grenzkontakt mit dem kollisionsfreien Vollergebnis; beim [Rapid-Kontakt](viewer-palette-fest.r114.codex-rapid-seam.json) übernimmt der Vollsweep den Beginn L8 und die Fortsetzungen L10/L11. Die fehlenden Folgeintervalle müssen nicht aus einem Grenzdatensatz rekonstruiert werden. Auch der [Mischfall](viewer-palette-fest.r114.codex-two-phase-control.json) erhält seinen Treffer und den Hinweis auf die unbekannte Anfangsfahrt. Die zusätzliche Rechenarbeit ist benannt und durch das bestehende Lastbudget begrenzt; eine Rechtzeitigkeitszusage entsteht daraus nicht.
+
+### Hinweise für die Umsetzung, keine neuen Befunde
+
+- **Snapshot und Herkunft:** Verschachtelte Startdaten wirklich unabhängig halten. Dieselbe kanonische Basis für Aufnahme und Dispatch-Digest verwenden; neue Tabellendaten separat binden. Der Wächter muss den tatsächlich verwendeten Worker-Eingang und Tabellenstand prüfen, nicht nur die Metadaten. Den großen Parse-Kontext vorzugsweise serverintern halten; periodisch nur die vom Client benötigten Startdaten und Herkunft versenden. Die R114-Hinweise zum frischen Poll und vollständigen `CheckBasis` bleiben bestehen.
+- **Ergebniswechsel:** Vorläufige und vollständige Prüfung als getrennte Ergebnisse derselben Generation führen. Beim Ersatz Liste, Zähler, Farben, Sprünge, Hinweise und Abdeckungsband zusammen wechseln; keine vorläufigen Grenzdatensätze in das Vollergebnis übernehmen. Abgebrochene, begrenzte oder unbekannte Abschnitte bleiben gemäß Paket 3c ausdrücklich unvollständig. Ein beendeter Worker allein berechtigt nicht zu „ganz geprüft“. Auch späte Antworten nach IDLE oder einer neuen Generation dürfen kein Ergebnis zurückbringen.
+- **Zwei redaktionelle Reste:** In Paket 1c stehen noch `vorn / vorn fertig / ganz fertig`; für die Umsetzung gelten die präziseren Zustände aus 3c/3d (`vorläufig ab L…`, anschließend der vollständige Stand). Unter 3a meint „Jeder dieser Fälle scheitert“ die ungültigen Varianten: Der korrigierte A→B→Parse-aus-A-Fall muss gerade erfolgreich zugelassen werden. Diese beiden Stellen vor oder mit der Umsetzung angleichen; dafür ist keine weitere Planrunde nötig.
+
+### Belege und Prüfgrenzen
+
+[Prüfaufbau](viewer-palette-fest.r115.codex-checks.md), [Kontextsonde](viewer-palette-fest.r115.codex-plan-checks.py), [Ergebnisse](viewer-palette-fest.r115.codex-plan-checks.json), [Protokoll](viewer-palette-fest.r115.codex-plan-checks.txt), [Quell-/Belegvergleich](viewer-palette-fest.r115.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r115.codex-context.json), [Beleghashes](viewer-palette-fest.r115.codex-sha256.json). Keine Produktimplementierung der neuen Verträge getestet; kein Gesamtgate, Build, Browserlauf oder nativer Parse. Die separaten M600-Live-Nachweise aus R111 bleiben außerhalb dieses Plan-Agreements offen.

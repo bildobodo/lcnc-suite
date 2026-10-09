@@ -1,0 +1,1 @@
+PASS: 8 explicit context-model controls; 3 stored R114 full-sweep outcomes checked against the replacement contract. No product implementation tested.

@@ -1,0 +1,9 @@
+{
+  "head": "b278117ac27c18fe9825627ffdf2f3dea1ec7177",
+  "base": "010ebf07",
+  "archive": "/tmp/codex-r115-lwy4uee9",
+  "review_bytes_before": 1107291,
+  "review_sha256_before": "f3d23b0a518e90cc2990b4ec5a0672d9789503b1ff223dc1b99d5462849b5592",
+  "worktree_initial": "",
+  "limits": "No live ports, gateway/controller commands, product edits, builds or tests in the live checkout."
+}
