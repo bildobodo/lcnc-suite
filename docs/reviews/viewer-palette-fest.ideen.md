@@ -15442,3 +15442,94 @@ Vorschlag:
 - **(B)** Nach einer Neu-Analyse im Lauf (erkannt am `midrun:`-Grund) läuft ein Haupt-Sweep über den Rest ab der projizierten Position, verschoben auf den Basis-Track angezeigt; der volle Sweep folgt wie heute im Stillstand.
 
 Vier Fragen stehen am Ende des Plans, vor allem die Tragfähigkeit von A und Teilstück gegen Startparameter.
+
+## Review R112 · Codex · Plan Restprüfung im Lauf · 9. Oktober 2026
+
+**Ergebnis: `findings`. Fassung 1 noch nicht zur Umsetzung angenommen; sieben Planbefunde VP112-01–07.** Das Ziel und die Verwendung des pausierbaren Haupt-Sweeps sind sinnvoll. Das reine Unterdrücken der Invalidierung, das Datei-Merkzeichen und ein unverändert neu gestarteter Teilstück-Sweep erfüllen den bereits vereinbarten Vertrag aus **VP102-05** jedoch noch nicht.
+
+Geprüft: `a30b4138..680eb426`, [Plan Fassung 1](restpruefung-lauf.plan.md). Drei isolierte Gegenproben am Archivstand **680eb426** bestätigen Probleme mit Live-Basis, Positionszuordnung und statischer Ausnahme. **3/3 PASS als Beobachtungen dieser Gegenfälle**, keine Implementierungsabnahme. Kein Produktcode geändert, keine Live-Ports oder Maschinenbefehle.
+
+### VP112-01 · P1 · A braucht eine tatsächlich gebundene Prüfbasis, nicht nur unterdrückte Invalidierungen
+
+**Plan A, Zeilen 16–20.** Erwartete, im Payload modellierte M6-/Offsetwechsel sollen die Befunde nicht löschen: dieses Ziel ist richtig. Aus „AUTO und nicht IDLE“ folgt aber weder die Übereinstimmung aller Live-Eingänge mit der Vorschau noch das Einfrieren der Eingänge.
+
+`_colBuildRequest` liest weiterhin `_pv.toolNum`, `_toolVisual(_pv.toolDiam, _pv.toolLen)`, `_pfWcs()` und die Live-WCS-Tabelle (`ThreeViewer.vue:3289–3311`). `_programToolDims()` deckt nur die im Payload benannten Werkzeuge ab; vor einem Werkzeugereignis beziehungsweise bei einem Ereignis mit geerbter Werkzeugnummer entscheidet `toolForIndex` anhand von `liveTool`. Nicht umgeschriebene WCS-Epochen verwenden bewusst die Live-Tabellenzeile und das Live-G92 (`wcsEpochs.ts:63–86`).
+
+**Gegenprobe:** Derselbe Track mit G54 vor und nach einem programmierten G10 L2 liefert anfangs X-Basen **[0, 100]**. Nach der Live-Änderung von G54 auf X100 liefern dieselben Resolver **[100, 100]**: Auch die frühere Epoche wandert. Das geerbte Werkzeug wird ohne neues TLO-Ereignis aus T1 zu T2, wenn `liveTool` wechselt. Das ist insbesondere beim neuen Restauftrag und beim vorgeschlagenen Volltrack-Rückfall relevant; die bloße Beibehaltung des alten Resultats behebt es nicht. [Resolver-Probe](viewer-palette-fest.r112.codex-basis.json).
+
+**Im Plan festlegen:** Ein unveränderlicher Lauf-/Prüfsnapshot umfasst Track/Publikation, Start-WCS und genutzte Tabellenzeilen, G92/Rotation, Werkzeugbasis, geerbte Werkzeugnummer/-geometrie, Parse-Tabelle und Modell-/Kinematikbasis. Der Restauftrag verwendet die passende neue Parse-Tabelle und deren Ereignisse, aber nicht unbemerkt den inzwischen geladenen Werkzeugzustand als ursprünglichen Startzustand. Auch die Darstellung muss erkennen lassen, auf welcher Basis Befunde liegen. Erwartete Programmereignisse dürfen Befunde erhalten; bei abweichender oder unbekannter Basis darf der alte Stand höchstens ausdrücklich als bisherige Vorschau stehen bleiben, nicht als aktuell bestätigte Restprüfung.
+
+**Wächter ergänzen:** M6 mit anderem Startwerkzeug und Geometrie vor dem ersten M6; G10 L2/G92 nach bereits genutzter Epoche; Restauftrag und Volltrack-Rückfall nach diesen Änderungen; fehlende Start-/Ereignisbasis. Nicht nur „Befund ist noch sichtbar“, sondern die unveränderte beziehungsweise korrekt neu gebundene Pose, Werkzeugwahl und Prüfgültigkeit prüfen.
+
+### VP112-02 · P1 · Ein flüchtiges `midrun:`-Merkzeichen bindet weder Publikation noch Auftrag an den Lauf
+
+**Plan B.1/B.3 und C, Zeilen 24–33/47.** `preview_refresh_status()` existiert nur während des Parses und nennt lediglich den **Datei-Basename** (`bulk_pipeline.py:533–544`). Die fertige Publikation erhöht ihre Version getrennt davon; Grund und `pinned` werden nicht als Herkunft des fertigen Payloads mitgegeben. Wer während des Parses nicht verbunden war oder keinen entsprechenden Statusframe sah, kann den Grund nicht rekonstruieren. Umgekehrt benennt ein gesehenes Merkzeichen nach einem gescheiterten oder überholten Parse nicht automatisch die nächste Publikation dieser Datei. Ein anderer Mittellauf-Payload ist auch heute nicht grundsätzlich ausgeschlossen: Der `schema`-Reparse-Zweig ist nicht auf IDLE begrenzt (`gateway.py:1730–1742`).
+
+Zusätzlich fehlt der verlangte Ergebnisvertrag für **zweite Tabellenänderung, verzögerte Dekodierung, Laufende/Abbruch und denselben Dateipfad im nächsten Lauf**. Eine Dateigleichheit oder ein Worker-Auftragszähler allein beschreibt diese Zusammenhänge nicht. Das neue `run-pos` muss ebenfalls zu genau dem Track gehören, dessen Index abgeschnitten wird.
+
+**Im Plan festlegen:** Herkunft des fertigen Parses an dessen Publikationsversion binden: tatsächliche Datei-/Quellidentität, eingefrorene Ausgangsbasis, neue Tabellenbasis und Parse-Grund. Dafür die vorhandenen Versions-/Quellmetadaten erweitern beziehungsweise eindeutig verknüpfen; ein dauerhaft zugeordnetes kleines Metadatum genügt, kein erneutes Dekodieren des großen Payloads im Gateway. „Gateway unverändert“ ist mit dem vorgeschlagenen sicheren Herkunftsnachweis nicht vereinbar. Falls der Nachweis fehlt, keine Zuordnung zur Messung beziehungsweise zum Lauf erraten.
+
+Der Restauftrag erhält außerdem die gültige Verbindungs-/Laufgeneration und einen festen Start auf dieser Trackversion. Position, Teilantworten und Endantwort werden gegen dieselbe Identität geprüft. Neue Basis, Reload, Abbruch, Laufende und Reconnect beenden beziehungsweise entwerten alte Aufträge ausdrücklich. IDLE darf nicht erst auf das Ende eines Minuten-Sweeps warten, um zur vollständigen Prüfung überzugehen. Normales Fortschreiten verschiebt nicht nachträglich den Schnitt eines bereits laufenden Auftrags; eine erneute Planung braucht eine eigene Generation.
+
+**Wächter ergänzen:** Parse vollständig zwischen zwei beobachteten Statusframes; Einstieg/Reconnect erst nach Veröffentlichung; fehlgeschlagener Mittellauf-Parse plus spätere andere Publikation; gleiche Basenames in verschiedenen Verzeichnissen; zweite Tabellenänderung vor erster Antwort; altes `run-pos` nach Trackwechsel; Ende und schneller Neustart derselben Datei. Die genaue sichtbare Behandlung des bisherigen Ergebnisses während `wartet / prüft / teilweise / ungültig` gehört dazu.
+
+### VP112-03 · P1 · Die heutige Projektion ist keine konservative Untergrenze des ausgeführten Vorkommens
+
+**Plan Ausgangslage 3, B.2/B.5, Zeilen 9/29/40.** „Frühester passender Durchgang“ gilt nur für gleich gute Treffer in der Vollsuche. `projectOntoTrack` wählt den **kleinsten Abstand**, nicht den frühesten plausiblen Treffer; `runWatcher` kann außerdem bereits einen ausreichend nahen Fenster-/Zeilenhinweis akzeptieren. Das ist für einen gleitenden Positionszeiger brauchbar, aber kein Beweis dafür, dass davor nichts mehr auszuführen ist.
+
+**Gegenprobe bis zum echten Sweep:** Die Maschine gehört zum ersten Wegstück von `(0,0)` nach `(10,0)`, die beobachtete Pose ist `(1,0.1)`; später folgt ein paralleles Wegstück auf Y0.1. Beide sind plausible Treffer. Die Vollsuche und der Run-Watcher wählen **Segment 5**, nicht Segment 1: Abstand praktisch 0 statt 0.1. Mit `k = index - 1 = 4` fehlt anschließend das Hindernis bei `(10,5)`, das auf dem dazwischenliegenden, noch bevorstehenden Weg liegt. Der Vollsweep findet es an L3. [Projektion, Watcher und beide Sweep-Ergebnisse](viewer-palette-fest.r112.codex-projection.json).
+
+**Im Plan festlegen:** Position zur Darstellung und gesicherte Untergrenze für den Prüfbereich trennen. Ohne eindeutiges Vorkommen entweder den frühesten **nicht ausgeschlossenen** Abschnitt prüfen oder auf die volle bekannte Vorschau zurückfallen, mit offen benannter unklarer Laufzuordnung. Eine nachweislich konservative Kandidatenauswahl ist etwas anderes als der aktuelle nächste geometrische Treffer. `motion_line` darf wegen Schleifen, Remaps und Unterprogrammzeilen nur unter passender Herkunft/Instanzzuordnung einschränken; eine nackte Zeilennummer repariert das nicht.
+
+Ein Schnitt mitten im Segment enthält dessen Rest. `runWatcher.index` ist der **obere** Punktindex; der geplante Segmentanfang ist `index - 1`. Die erforderliche Trackversion, Pose samt WCS/TLO/Kinematik und deren Beobachtungszeit gehören zur Zuordnung. `ustart`, nicht vorhergesagte Probewege und andere unbekannte Strecken bleiben unbekannt. „Ganzer Track nach 3 s“ ist als bezeichnete **Vollprüfung der Vorschau** möglich, beweist aber weder die tatsächliche Laufposition noch eine unverändert passende Laufbasis. Die pauschale Aussage „übersieht nichts“ ist zu streichen.
+
+**Wächter ergänzen:** Die beigefügte Parallelweg-Probe, identische wiederholte Durchgänge, Fenster-/Hinweis-Treffer auf einem späteren Vorkommen, Wechsel auf neu geparsten Track und Schnitt mitten im Segment. Ein Modelltest mit nur einem eindeutigen geraden Weg reicht nicht.
+
+### VP112-04 · P1 · Die neue Teilstück-Basis kann auch zukünftige Kollisionen statisch ausschließen
+
+**Plan B.3/B.5, Zeilen 31/39; Ausgangslage 4.** Der Plan beschreibt die statische Ausnahme am Schnitt bereits, behandelt sie aber nicht als Abdeckungsverlust. Sie widerspricht gerade der Vorgabe aus VP102-05, bestehende Kontakte nicht zu neuen Basisausnahmen zu machen.
+
+**Gegenprobe:** Zwei Maschinenkörper, Ruhelage in Kontakt, Programm beginnt frei bei X5. Track **X5 → X0 → X5 → X0 → X5**. Der vollständige Sweep meldet beide Kontaktbesuche, ohne statische Ausnahme. `sliceTrack(..., 1, ...)` beginnt am ersten Kontakt bei X0; der neue Baseline-Pass findet Kontakt auch in Ruhe, setzt `staticExcluded` und prüft dieses Paar anschließend gar nicht mehr. **Auch der zweite, noch bevorstehende Kontakt verschwindet.** [Voll- und Restergebnis](viewer-palette-fest.r112.codex-baseline.json), Ursache `collision.ts:1593–1631`.
+
+**Im Plan festlegen:** Die Paar-/Strukturausnahmen aus der ursprünglichen gültigen Programmbasis von der Kontaktinitialisierung an der Schnittpose trennen. Am Reststart keine zusätzlichen statischen Ausnahmen erzeugen. Ein Startparameter auf dem Basistrack oder ein Teilstück mit explizitem Baseline-Kontext sind beide möglich; das unveränderte `sliceTrack` plus frischer normaler Sweep ist es nicht.
+
+Die Kontaktbewertung an der Grenze muss konservativ sein: aktiver Maschinen-/Werkzeugkontakt bleibt sichtbar, unklarer Kontaktbeginn bleibt unklar. Insbesondere einen schon vorher im Rapid begonnenen Schneidenkontakt nicht durch das neue „von Anfang an eingerastet“ als normalen Schnitt ausblenden. Bei geänderter Werkzeug-/Offsetbasis keine alten Abstands-, Innen- oder Freiraumzertifikate übernehmen. Eine vollständige Wiederholung des historischen Präfixes ist für eine vorsichtige erste Fassung nicht zwingend: ein als solcher benannter Grenzkontakt ist besser als ein stiller Ausschluss.
+
+**Wächter ergänzen:** beigefügter Wiederkontaktfall; bereits laufender Rapid-Schneidenkontakt; beim Schnitt vollständig eingeschlossener Körper; unentscheidbarer Innenstatus; neue Werkzeuggeometrie trotz altem Kontaktzustand. Zusätzlich Resultat-/Abdeckungstests für Teilantwort, Parken und Shard-Abbruch: Ein beendeter Rest-Sweep deckt `[Start, Ende]`, nicht automatisch `[0, Ende]`; `truncated = null` darf den ungeprüften Präfix nicht zum geprüften Band machen. Null-Länge und ausschließlich unbekannte Reststrecken separat behandeln.
+
+### VP112-05 · P2 · „Werkzeug im Lauf gemessen“ führt den bereits verworfenen Messnachweis wieder ein
+
+**Plan B.1/B.4, Zeilen 26/37.** Das Gateway erkennt weiterhin eine Änderung der Werkzeugtabelle. `midrun:` beweist keine erfolgreiche M600; eine gewöhnliche Tabellenänderung reicht, eine Messung auf denselben Wert muss keinen Reparse auslösen. Genau diese Abgrenzung wurde unter **VP102-04** vereinbart und mit der Planfassung in R103 angenommen.
+
+**Änderung:** Mit dem vorhandenen Auslöser etwa **„Restprüfung · Werkzeugtabelle aktualisiert“**, mit getrenntem Fortschritt und Abschnitt, verwenden. „Gemessen“ nur mit eigener bestätigter Messherkunft und Bindung an Werkzeug/Aufruf/Lauf. Wenn jede tatsächliche Messung auch ohne Wertänderung eine Restprüfung auslösen soll, braucht der Plan dieses zusätzliche Ereignis; andernfalls diese Grenze ausdrücklich nennen. Der Transient-Latch macht aus einer Tabellenänderung keinen solchen Beleg.
+
+### VP112-06 · P2 · Browser-Ausführung ist keine Zusage, dass die Steuerung unbelastet bleibt
+
+**Plan B.5, Zeile 41.** Browser und LinuxCNC können auf demselben Maschinen-PC beziehungsweise derselben VM laufen. Worker teilen CPU, Speicher und Speicherbandbreite; der bestehende Pool kann bis zu acht Worker starten. Der Code dokumentiert bereits GPU-/UI-Verdrängung durch Kollisionsarbeit (`collisionWorker.ts:338–346`); selbst der mit `nice 19` gestartete Mittellauf-Parser erklärt ausdrücklich, dass dies keine Latenzgarantie ist (`bulk_pipeline.py:420–424`). „Die Steuerung ist davon nicht betroffen“ ist daher nicht tragfähig.
+
+**Im Plan festlegen:** Ein Budget für Parallelität, Arbeitsscheiben und Speicher während AUTO, einschließlich gleichzeitigen Parses/Dekodierens und neuer Tabellenänderung. Der vorhandene offene Sweep darf offen bleiben; gefordert ist kein willkürlicher Gesamttimeout. Für die erste Fassung bietet sich eine konservative begrenzte Parallelität mit gemessener UI-/Statuslatenz an, bevor mehr Kerne genutzt werden. Geteilter Maschinen-PC und separater Browser-PC sind unterschiedliche Prüfaufbauten. Kamera/Tab-Pause allein deckt diese Frage nicht ab.
+
+**Abnahme ergänzen:** längeres Programm auf begrenzter Kernzahl, Parser und Sweep gleichzeitig, schneller Basiswechsel ohne anwachsende Job-/Speicherwarteschlange; numerische Latenz-/Speicherziele im Messprotokoll festlegen. Im UI bei fehlender/teilweiser Abdeckung keine rechtzeitige Warnung vor der fahrenden Maschine versprechen. Der gemeinsame Lasttest mit LinuxCNC bleibt ein ausdrücklich späterer Live-Nachweis; für diese Planrunde wurde keiner ausgeführt.
+
+### VP112-07 · P2 · Das unverändert übernommene Parken stoppt die Prüfung bei programmierten Drehbewegungen
+
+**Plan B.3, Zeile 31.** Der heutige Rotary-Watcher unterscheidet nicht zwischen Jog und AUTO-Bewegung (`ThreeViewer.vue:3167–3183`). Sobald sich A/B/C während eines Sweeps um mehr als **0,05°** gegenüber dessen Start ändern, sendet er `stopCollisionCheck()`. Weiter geht es erst nach **4,5 s** ohne entsprechende Positionsänderung und ohne laufenden Reparse. Ein Rest-Sweep während kontinuierlicher programmierter Drehbewegung würde damit nach dem Anlaufen geparkt bleiben, obwohl gerade diese Bewegung im Track modelliert ist.
+
+**Im Plan festlegen:** Erwartete Drehbewegungen innerhalb der gültigen Lauf-/Trackbasis dürfen den Rest-Sweep nicht wie einen Jog vor einem Reparse parken. Kamera-/Tab-Pausen bleiben bestehen; tatsächliche Basisänderung, Jog außerhalb des Laufs und Verlust der Laufzuordnung erhalten ihre eigenen Regeln. Dies ist eine weitere nötige Anpassung des Haupt-Sweeps, kein Verhalten, das durch das neue Teilstück automatisch passt.
+
+**Wächter ergänzen:** laufender Rest-Sweep auf einem XYZAC-Programm mit fortlaufend verändertem A/C bleibt aktiv und liefert Teilergebnisse; derselbe Positionswechsel im Jog-/IDLE-Kontext parkt wie bisher. Der Befund folgt aus dem vorhandenen Watcher; kein Live-Bewegungsversuch durchgeführt.
+
+### Antworten auf die vier Fragen und empfohlene Paketfolge
+
+1. **A in der jetzigen Form: nein; das Ziel: ja.** Programmierte Zustandswechsel müssen Befunde nicht löschen, wenn die verwendete Basis unverändert definiert ist und die Gültigkeit ehrlich bleibt. Zuerst den Snapshot-Vertrag samt Gegenfällen aus VP112-01 festlegen.
+2. **Rest bevorzugen, aber keine neue Programmanfangs-Semantik am Schnitt.** Ich bevorzuge einen Startparameter auf dem Basistrack mit explizitem Baseline-/Grenzkontaktvertrag. Ein Teilstück ist ebenfalls vertretbar, wenn es genau diese Informationen erhält. Eine Kopie beliebiger Kontaktzustände aus der Prüfung mit alter Werkzeugtabelle ist keine Lösung.
+3. **Im aktuellen Restergebnis Befunde hinter der sicher bekannten Grenze weglassen.** Frühere Ergebnisse nur bei Bedarf als getrennten, mit ihrer alten Basis bezeichneten Stand anbieten; nicht mit aktuellen Farben, Zähler oder „nächster Befund“ vermischen. Bei konservativ früher im Programm angesetzter Untergrenze können zusätzliche bereits passierte Befunde bleiben: Dann den Umfang „ab frühestem möglichen Abschnitt“ nennen. Grau allein erklärt weder Alter noch Gültigkeit.
+4. **Der tatsächliche früheste mögliche Durchgang wäre konservativ; die heutige Projektion garantiert ihn nicht.** `motion_line` nicht pauschal zur Ausschlussgrenze machen. Zuerst eindeutige beziehungsweise konservative Vorkommenszuordnung, sonst benannter Volltrack-Rückfall oder „Laufzuordnung unbekannt“.
+
+Empfohlene Folge: **(1)** unveränderliche Publikations-/Laufbasis und Ergebniszustände, **(2)** Befunde bei erwarteten Programmwechseln erhalten, **(3)** konservativer Bereich und Grenzkontakt samt Worker-/Abdeckungsvertrag, **(4)** UI und Lastmessung. Die vorhandenen IDLE-Regeln bleiben dabei ein eigener Rückkehrpfad. So wird nicht zuerst ein scheinbar fertiger Rest angezeigt, dessen Herkunft oder Grenze erst nachträglich geklärt werden muss.
+
+### Belege und Prüfgrenzen
+
+Die drei Proben verwenden die vorhandenen Resolver, den echten Run-Watcher und den echten Kollisionssweep mit synthetischem XYZ-Modell. Die angenommene tatsächliche Position im ersten Durchgang ist im Projektionsbeleg offengelegt; sie kann gerade nicht aus dem besten geometrischen Treffer bewiesen werden. Publikations-/Lebenszyklus- und Lastbefunde beruhen auf dem Plan und der Quellprüfung, nicht auf einem behaupteten Live-Gegenversuch.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r112.codex-checks.md), [Sonde](viewer-palette-fest.r112.codex-client.test.ts), [Testprotokoll](viewer-palette-fest.r112.codex-client.txt), [Quellstellen mit Hashes](viewer-palette-fest.r112.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r112.codex-context.json), [Beleghashes](viewer-palette-fest.r112.codex-sha256.json). Kein Gesamtgate, Browserlauf, Build oder nativer Parse erforderlich oder wiederholt. Die separaten M600-Live-Nachweise aus R111 bleiben unverändert offen.

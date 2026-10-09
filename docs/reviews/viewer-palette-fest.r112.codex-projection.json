@@ -1,0 +1,103 @@
+{
+  "points": [
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      10,
+      0,
+      0
+    ],
+    [
+      10,
+      10,
+      0
+    ],
+    [
+      0,
+      10,
+      0
+    ],
+    [
+      0,
+      0.1,
+      0
+    ],
+    [
+      10,
+      0.1,
+      0
+    ]
+  ],
+  "machine": [
+    1,
+    0.1,
+    0,
+    0,
+    0,
+    0
+  ],
+  "assumedActualSegment": 1,
+  "early": {
+    "cum": 1,
+    "index": 1,
+    "dist2": 0.010000000000000002
+  },
+  "best": {
+    "cum": 40.900001525878906,
+    "index": 5,
+    "dist2": 2.220446032706701e-18
+  },
+  "watched": {
+    "phase": "attached",
+    "probed": "full",
+    "cum": 40.900001525878906,
+    "index": 5,
+    "costMs": 0.11004199999999287
+  },
+  "k": 4,
+  "full": {
+    "hits": [
+      {
+        "line": 3,
+        "cum": 14.5004638671875,
+        "cumEnd": 15.500097656249999,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            14.5004638671875,
+            15.500097656249999
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 38,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 1.488297000000017,
+    "sweepMs": 18.206570999999997,
+    "truncated": null
+  },
+  "rest": {
+    "hits": [],
+    "staticContacts": [],
+    "samples": 3,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 1,
+    "bvhMs": 0.3505010000000084,
+    "sweepMs": 0.16670900000002575,
+    "truncated": null
+  }
+}

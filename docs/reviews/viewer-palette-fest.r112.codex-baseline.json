@@ -1,0 +1,129 @@
+{
+  "points": [
+    [
+      5,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      5,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ],
+    [
+      5,
+      0,
+      0
+    ]
+  ],
+  "cut": 1,
+  "full": {
+    "hits": [
+      {
+        "line": 2,
+        "cum": 4.5004638671875,
+        "cumEnd": 5,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            4.5004638671875,
+            5
+          ]
+        ],
+        "spanCumEnd": 5.5,
+        "spanEndLine": 3
+      },
+      {
+        "line": 3,
+        "cum": 5,
+        "cumEnd": 5.5,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 2,
+        "intervals": [
+          [
+            5,
+            5.5
+          ]
+        ]
+      },
+      {
+        "line": 4,
+        "cum": 14.5004638671875,
+        "cumEnd": 15,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            14.5004638671875,
+            15
+          ]
+        ],
+        "spanCumEnd": 15.5,
+        "spanEndLine": 5
+      },
+      {
+        "line": 5,
+        "cum": 15,
+        "cumEnd": 15.5,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "continuation": 4,
+        "intervals": [
+          [
+            15,
+            15.5
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 51,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.262250999999992,
+    "sweepMs": 9.681494999999984,
+    "truncated": null
+  },
+  "rest": {
+    "hits": [],
+    "staticContacts": [
+      {
+        "a": "head",
+        "b": "fixed",
+        "dist": 0
+      }
+    ],
+    "samples": 7,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.2656259999999975,
+    "sweepMs": 0.23875100000003613,
+    "truncated": null
+  }
+}
