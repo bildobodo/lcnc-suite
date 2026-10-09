@@ -311,7 +311,7 @@ const runEnv = (file: string, over: Record<string, unknown> = {}) => ({ run_basi
   start: { g5x_index: 1, g5x_offset: Z9, g92_offset: Z9, rotation_xy: 0, wcs_table: null, tool_number: 0,
            tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: Z9 },
   verified: true, why: null, ...over } });
-const basisOf = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionBasis!());
+const basisOf = (page: Page) => page.evaluate(() => window.__viewerDiag?.getCollisionBasis?.() ?? null);
 const g92z = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
 
 async function runReady(page: Page, context: BrowserContext, file: string, version: number) {
@@ -416,14 +416,14 @@ const originEnv = (file: string, version: number, over: Record<string, unknown> 
   tool_basis_rev: 1, tool_basis_rev_now: 1, ...over } });
 const pinnedFor = (runId: number) => ({ pinned: true, reason: "midrun:table_mtime",
   for_run: { run_id: runId, ctx_digest: "d", tool_basis_rev: 1 } });
-const runLog = (page: Page) => page.evaluate(() => window.__viewerDiag!.getRunCheckLog!());
+const runLog = (page: Page) => page.evaluate(() => window.__viewerDiag?.getRunCheckLog?.() ?? []);
 /** Publish `version` during the run and, once it is on screen, one status
  *  frame (the gateway sends 30 a second; `quiet` sends none): the run watcher
  *  attaches the position to the new track before the auto timer plans. */
 async function publishInRun(page: Page, file: string, version: number, over: Record<string, unknown>) {
   await ctl({ op: "status_delta", envelope: originEnv(file, version, over), data: {} });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getShownVersion!()), { timeout: 10_000 }).toBe(version);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getShownVersion?.() ?? null), { timeout: 10_000 }).toBe(version);
   await ctl({ op: "status_delta", data: { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
 }
 /** The run on screen at X 120 on L7 (the attached run position the provisional check starts from). */
@@ -517,7 +517,7 @@ test("at standstill a rotary move parks the check — the control of the run's o
   await expect.poll(async () => {
     a = a ? 0 : 2;
     await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
-    return (await page.evaluate(() => window.__viewerDiag!.getCollisionStopped!()))?.reason ?? null;
+    return page.evaluate(() => window.__viewerDiag?.getCollisionStopped?.()?.reason ?? null);
   }, { timeout: 30_000, intervals: [50] }).toBe("motion");
   await ctl({ op: "reset" });
 });
