@@ -442,7 +442,13 @@ test("a parse made for the run is checked during it: provisional from the machin
   // the table edge's pinned parse, published for run 9 — and the run's table
   // turns its rotaries meanwhile: a run's own motion parks nothing (plan 4)
   await publishInRun(page, file, 4202, pinnedFor(9));
+  // the decode held the sweep and let it go (plan 4)
+  expect(await page.evaluate(() => window.__viewerDiag!.getCollisionHoldLog!())).toEqual(expect.arrayContaining(["decode on", "decode off"]));
   await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("start provisional 1");
+  // during a run: two workers at most, shorter slices (plan 4)
+  const meta = (await page.evaluate(() => window.__viewerDiag!.getCollisionRequestMeta!()))!;
+  expect(meta.sliceMs).toBe(20);
+  expect(meta.maxShards).toBeLessThanOrEqual(2);
   for (const a of [5, 10, 15]) await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
   await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
   const label = page.locator(".simPanel .checkRow .sub");
@@ -456,6 +462,7 @@ test("a parse made for the run is checked during it: provisional from the machin
   await ctl({ op: "status_delta", data: { interp_state: 1, task_mode: 1, motion_line: 0 } });
   await expect.poll(async () => (await basisOf(page))?.kind, { timeout: 10_000 }).toBe("idle");
   expect(await runLog(page)).toEqual(["start provisional 1", "full", "done", "discard idle"]);
+  expect((await page.evaluate(() => window.__viewerDiag!.getCollisionRequestMeta!()))?.sliceMs, "idle: the default slices").toBeNull();
   await expect(label).toHaveText("Collision check");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
@@ -493,6 +500,21 @@ test("only a parse made for this run is checked during it — every other public
   await ctl({ op: "status_delta", envelope: originEnv(file, version + 1), data: {} });
   await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("discard origin");
   await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+test("at standstill a rotary move parks the check — the control of the run's own motion (plan „Prüfung im Lauf“ 4)", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  const file = "/parkidle.ngc";
+  await prepare(page, context, { file, version: 4231, feed: RUN_FEED, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0] });
+  await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
+  // the load sweep runs; the table turns by hand (a jog) until the sweep parks
+  let a = 0;
+  await expect.poll(async () => {
+    a = a ? 0 : 2;
+    await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
+    return (await page.evaluate(() => window.__viewerDiag!.getCollisionStopped!()))?.reason ?? null;
+  }, { timeout: 30_000, intervals: [50] }).toBe("motion");
   await ctl({ op: "reset" });
 });
 

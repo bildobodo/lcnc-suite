@@ -593,6 +593,10 @@ export const toolTableVersion = ref(0);
 // off the WS writer so the gateway's heartbeat loop isn't delayed by N-way
 // broadcasts. Null when no program is loaded or the fetch failed.
 export const gcodeContent = ref<string | null>(null);
+// A preview payload is being decoded off-thread (previewWorker) — from the
+// post to its reply or failure. The collision check pauses meanwhile (plan
+// „Prüfung im Lauf“ 4: the decode and a sweep would compete for the cores).
+export const previewDecoding = ref(false);
 // The PUBLISHED program revision, `<file>#<version>` of the latest
 // viewer_gcode_ready — set on ARRIVAL, before the text fetch, so a hold
 // bound to it (Start / Step / Resume / Run from line) is cancelled the
@@ -785,6 +789,7 @@ function _ensurePreviewWorker(): Worker {
     if (m.version !== _previewLastVersion) return;  // stale — newer load in flight
     if (m.basisKey !== undefined && m.basisKey !== _previewWantKey) return;  // another basis wanted now (R59)
     // (a worker error keeps a pending basis change pending — VP-I23)
+    previewDecoding.value = false;
     if (m.error) {
       console.error("preview load failed", m.error);
       _previewErr.value = `/preview failed: ${m.error}`;
@@ -804,6 +809,7 @@ function _ensurePreviewWorker(): Worker {
     }
   };
   _previewWorker.onerror = (ev) => {
+    previewDecoding.value = false;
     console.error("previewWorker error", ev.message);
     _previewErr.value = `preview worker error: ${ev.message}`;
     _previewLastVersion = -1;
@@ -837,6 +843,7 @@ function _keyOf(version: number, file: string | null, basis: number[] | null): s
 
 function _postPreview(version: number, file: string | null, basis: number[] | null) {
   _previewWantKey = _keyOf(version, file, basis);
+  previewDecoding.value = true;
   _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}`, basis,
                                        basisKey: _previewWantKey });
 }

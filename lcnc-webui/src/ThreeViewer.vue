@@ -15,7 +15,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
@@ -2255,6 +2255,9 @@ async function buildFromInit(init: ViewerInit) {
         // The checks during runs, in order (plan 3), and the result's range.
         getRunCheckLog: () => _colRunLog.slice(),
         getShownVersion: () => viewerGcode.value?.publishedVersion ?? null,
+        getCollisionRequestMeta: () => (_colReqMeta ? { ..._colReqMeta } : null),
+        getCollisionStopped: () => (collisionStopped.value ? { ...collisionStopped.value } : null),
+        getCollisionHoldLog: () => _colHoldLog.slice(),
         getCollisionRange: () => (collisionResult.value?.range ? { ...collisionResult.value.range,
           boundary: (collisionResult.value.boundaryContacts ?? []).length } : null),
         // The earlier preview's verdict, kept named while a run goes on (1c).
@@ -2939,6 +2942,8 @@ let _colKeepShown = false;
 // "start provisional <from>" / "start full", "full", "done", "stopped",
 // "discard <why>".
 const _colRunLog: string[] = [];
+// The last main request's load settings (__viewerDiag.getCollisionRequestMeta).
+let _colReqMeta: { maxShards: number | null; sliceMs: number | null; range: number | null } | null = null;
 /** The entry track's result: the overlay merged onto the base result (cums
  *  shifted by the entry length, two baselines reported). Null until both
  *  exist — a base sweep still running shows as running, not as "no result". */
@@ -3248,14 +3253,21 @@ function _colOnRotarySettled() {
 // posted while either holds starts paused; a running one is paused/resumed
 // by the events. Two independent holds in the worker, both must release.
 let _camMoving = false;
-function _colSetPaused(why: "camera" | "hidden", on: boolean) {
+// Every hold the viewer asked for, in order (__viewerDiag.getCollisionHoldLog).
+const _colHoldLog: string[] = [];
+function _colSetPaused(why: "camera" | "hidden" | "decode", on: boolean) {
+  _colHoldLog.push(`${why} ${on ? "on" : "off"}`);
+  if (_colHoldLog.length > 50) _colHoldLog.shift();
   if (!_colWorker || !collisionBusy.value) return;
   _colWorker.postMessage(on ? { pause: _colReqId, why } : { resume: _colReqId, why });
 }
 function _colApplyPauses() {
   if (_camMoving) _colSetPaused("camera", true);
   if (document.hidden) _colSetPaused("hidden", true);
+  if (previewDecoding.value) _colSetPaused("decode", true);
 }
+// A payload being decoded: the sweep waits (plan „Prüfung im Lauf“ 4).
+watch(previewDecoding, (on) => _colSetPaused("decode", on));
 function _colOnVisibility() {
   _colSetPaused("hidden", document.hidden);
 }
@@ -3379,6 +3391,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     // During a run at most two workers (plan „Prüfung im Lauf“ 4: the
     // machine is cutting; the check must not take the cores from the page).
     maxShards: _runInProgress(status.value?.data) ? Math.min(2, _colMaxShards ?? 2) : _colMaxShards,
+    // ... and shorter slices between its message checks (20 instead of 40 ms)
+    sliceMs: _runInProgress(status.value?.data) ? 20 : undefined,
     options: {
       margin: COLLISION_MARGIN_MM * _unitScale,
       // Per-epoch re-add terms (review P2) — the sweep converts each
@@ -3427,6 +3441,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   const req = _colBuildRequest(track, id, false, basis, run?.range);
   if (!req) return;
   _colBasis = basis;
+  _colReqMeta = { maxShards: req.msg.maxShards ?? null, sliceMs: req.msg.sliceMs ?? null, range: run?.range?.from ?? null };
   _colReqRunGen = run ? run.gen : null;
   _colKeepShown = !!run?.keepShown;
   collisionPrevious.value = null;   // a check of the displayed preview begins

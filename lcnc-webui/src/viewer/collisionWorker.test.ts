@@ -164,6 +164,33 @@ describe("a failing sub-worker (VP-I48, VP-I49)", () => {
     await vi.runAllTimersAsync();
     expect(sent.filter(m => m.id === 14 && m.result)).toHaveLength(1);
   });
+  it("a decode pause holds the run here until its own resume — apart from the hidden-tab hold (plan „Prüfung im Lauf“ 4)", async () => {
+    const { sent, workers, send } = await setup();
+    send(req(19));
+    send({ pause: 19, why: "decode" });
+    send({ pause: 19, why: "hidden" });
+    workers[1]!.fail();
+    send({ resume: 19, why: "hidden" });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sent.some(m => m.id === 19 && m.result), "still decoding").toBe(false);
+    send({ resume: 19, why: "decode" });
+    await vi.runAllTimersAsync();
+    expect(sent.filter(m => m.id === 19 && m.result)).toHaveLength(1);
+  });
+  it("a decode pause released while the pool ran holds nothing after the fall back", async () => {
+    const { sent, workers, send } = await setup();
+    send(req(22));
+    send({ pause: 22, why: "decode" });
+    send({ resume: 22, why: "decode" });
+    workers[1]!.fail();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sent.filter(m => m.id === 22 && m.result)).toHaveLength(1);
+  });
+  it("a request's slice length reaches the shards", async () => {
+    const { workers, send } = await setup();
+    send({ ...req(21), sliceMs: 20 });
+    expect(workers.map(w => w.messages.find(m => m.id === 21)?.sliceMs)).toEqual([20, 20]);
+  });
   it("a parked sweep computes nothing until continue — then from the beginning", async () => {
     const { sent, workers, send } = await setup();
     send(req(15));

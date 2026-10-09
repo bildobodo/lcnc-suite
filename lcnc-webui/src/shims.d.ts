@@ -41,6 +41,9 @@ interface ViewerDiag {
   getCollisionPrevious?: () => { collisions: number; complete: boolean; version: number | null } | null;
   getRunCheckLog?: () => string[];
   getShownVersion?: () => number | null;
+  getCollisionRequestMeta?: () => { maxShards: number | null; sliceMs: number | null; range: number | null } | null;
+  getCollisionStopped?: () => { covered: number; reason: "motion" } | null;
+  getCollisionHoldLog?: () => string[];
   getCollisionRange?: () => { fromCum: number; fromLine: number; empty?: true; boundary: number } | null;
   getLabels?: () => { total: number; laidOut: number };
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
