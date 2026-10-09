@@ -1,0 +1,86 @@
+{
+  "events": [
+    {
+      "seq": 0,
+      "idx": 1,
+      "rotationDeg": 0,
+      "rewritten": false,
+      "g5x": [
+        0,
+        0,
+        0
+      ],
+      "g92": []
+    },
+    {
+      "seq": 2,
+      "idx": 1,
+      "rotationDeg": 0,
+      "rewritten": true,
+      "g5x": [
+        100,
+        0,
+        0
+      ],
+      "g92": []
+    }
+  ],
+  "before": [
+    {
+      "ox": 0,
+      "oy": 0,
+      "oz": 0,
+      "oa": 0,
+      "ob": 0,
+      "oc": 0,
+      "tx": 0,
+      "ty": 0,
+      "tz": 0,
+      "cth": 1,
+      "sth": 0
+    },
+    {
+      "ox": 100,
+      "oy": 0,
+      "oz": 0,
+      "oa": 0,
+      "ob": 0,
+      "oc": 0,
+      "tx": 0,
+      "ty": 0,
+      "tz": 0,
+      "cth": 1,
+      "sth": 0
+    }
+  ],
+  "after": [
+    {
+      "ox": 100,
+      "oy": 0,
+      "oz": 0,
+      "oa": 0,
+      "ob": 0,
+      "oc": 0,
+      "tx": 0,
+      "ty": 0,
+      "tz": 0,
+      "cth": 1,
+      "sth": 0
+    },
+    {
+      "ox": 100,
+      "oy": 0,
+      "oz": 0,
+      "oa": 0,
+      "ob": 0,
+      "oc": 0,
+      "tx": 0,
+      "ty": 0,
+      "tz": 0,
+      "cth": 1,
+      "sth": 0
+    }
+  ],
+  "inheritedBefore": 1,
+  "inheritedAfter": 2
+}

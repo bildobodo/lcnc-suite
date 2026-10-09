@@ -1,0 +1,34 @@
+{
+  "viewer-palette-fest.r112.codex-baseline.json": {
+    "sha256": "2dc5def054cc193798b15bfdec6cd5768674b212cb0174aa15095f7c1303e5ae",
+    "bytes": 2095
+  },
+  "viewer-palette-fest.r112.codex-basis.json": {
+    "sha256": "dfc316a8e01e88ecd5603a0863f95ec032d6e0b0c90ac29388e39beacd8e5c51",
+    "bytes": 1160
+  },
+  "viewer-palette-fest.r112.codex-checks.md": {
+    "sha256": "f40a27a9f9a5bf7a0d9c595ed155960583e1549c57015f77faaad2364bdfe57f",
+    "bytes": 3440
+  },
+  "viewer-palette-fest.r112.codex-client.test.ts": {
+    "sha256": "e325e998a71d3342146eb7ebb7aaac76a687a26725c18c223bd6b21a91790dac",
+    "bytes": 3885
+  },
+  "viewer-palette-fest.r112.codex-client.txt": {
+    "sha256": "cbfd2205573517ff4cebe05ca4880f16a16e5333e5f38f40f576d8b60a8092e0",
+    "bytes": 218
+  },
+  "viewer-palette-fest.r112.codex-context.json": {
+    "sha256": "93faa7849610f56a7ffc06cdc6b46ba153f7249947039125f19ac3e3f8183b44",
+    "bytes": 316
+  },
+  "viewer-palette-fest.r112.codex-projection.json": {
+    "sha256": "5672b26147c8ca04cd4c82bec1112dd185d7cd71093279404daf00cc449fb3f7",
+    "bytes": 1571
+  },
+  "viewer-palette-fest.r112.codex-sources.json": {
+    "sha256": "e90e94df1d44ef125f6e72c5d2532383314248d4d67110a3e400bbccb7f10bec",
+    "bytes": 76080
+  }
+}

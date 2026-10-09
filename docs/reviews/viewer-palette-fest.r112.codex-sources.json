@@ -1,0 +1,2360 @@
+[
+  {
+    "file": "docs/reviews/restpruefung-lauf.plan.md",
+    "sha256": "85e466c8badbb402837fb72efc922760630c714732f653911e381b99604f282e",
+    "excerpts": [
+      {
+        "start": 10,
+        "end": 56,
+        "lines": [
+          {
+            "line": 10,
+            "text": "4. **Der Sweep beginnt immer bei Punkt 0.** `CollisionOptions` kennt keinen Startindex. Ein Teilstück geht nur über `sliceTrack(t, a, b)`. Die Ereignistabellen (`tloEvents`, `wcsEvents`, Frames) bleiben dabei geteilt, die Indizes pro Segment gültig. Die Basis wandert dann auf den ersten Punkt des Teilstücks: Schneidpaare in Kontakt beginnen „eingerastet“, Werkzeugpaare in Kontakt werden als Beginn gemeldet, Maschinenpaare, die dort berühren und in Ruhe frei sind, ebenfalls; die auch in Ruhe berühren, werden statisch ausgeschlossen. Eine Zusammenführung gibt es nur für ein **vorangestelltes** Stück (`mergeEntryResult`, die Anfahrt), keine für einen Rest."
+          },
+          {
+            "line": 11,
+            "text": ""
+          },
+          {
+            "line": 12,
+            "text": "## Vorschlag"
+          },
+          {
+            "line": 13,
+            "text": ""
+          },
+          {
+            "line": 14,
+            "text": "### A · Was der Lauf selbst ändert, ist kein neuer Eingang"
+          },
+          {
+            "line": 15,
+            "text": ""
+          },
+          {
+            "line": 16,
+            "text": "Solange ein Programm läuft (AUTO, `interp_state` ≠ IDLE), lösen Änderungen von `tool_length`, `tool_diameter`, `tool_offset`, `g5x_offset`, `g92_offset`, `rotation_xy` und den genutzten WCS-Zeilen **kein** `_colOnInputChange` aus. Das Programm erzeugt sie selbst, und der geprüfte Payload bildet sie pro Segment ab. Was vor dem Lauf geprüft wurde, gilt weiter."
+          },
+          {
+            "line": 17,
+            "text": ""
+          },
+          {
+            "line": 18,
+            "text": "Der Prüfstand des Laufs bleibt der vor dem Start, also Werkzeug- und Offsetbasis zu Beginn. Ein Lauf ändert nichts davon, ohne dass ein neuer Payload kommt: Das Gateway parst im Lauf nur bei einer Tabellenänderung neu (Punkt B), und jede Änderung im Stillstand wird wie heute im Stillstand behandelt."
+          },
+          {
+            "line": 19,
+            "text": ""
+          },
+          {
+            "line": 20,
+            "text": "Wächter: e2e, Lauf mit Programm-M6 (andere `tool_length`, `tool_diameter`) und Programm-G10 L2 → die Befunde bleiben (rot mit dem heutigen Löschen); im Stillstand derselbe Wechsel → gelöscht und neu geprüft (Kontrolle)."
+          },
+          {
+            "line": 21,
+            "text": ""
+          },
+          {
+            "line": 22,
+            "text": "### B · Nach einer Messung im Lauf: der Rest ab der aktuellen Position"
+          },
+          {
+            "line": 23,
+            "text": ""
+          },
+          {
+            "line": 24,
+            "text": "1. **Erkennen:**"
+          },
+          {
+            "line": 25,
+            "text": "   - `previewRefresh.reason` mit dem Präfix `midrun:` setzt ein Merkzeichen für die Datei."
+          },
+          {
+            "line": 26,
+            "text": "   - Ein `viewerGcode` derselben Datei, das bei laufendem Interpreter eintrifft, ist dann ein Payload aus einer Messung im Lauf."
+          },
+          {
+            "line": 27,
+            "text": "   - Das Merkzeichen endet mit diesem Payload, bei IDLE oder bei einem Programmwechsel."
+          },
+          {
+            "line": 28,
+            "text": "   - Ein Payload im Lauf ohne Merkzeichen (gibt es heute nicht) wird wie bisher bis IDLE zurückgehalten."
+          },
+          {
+            "line": 29,
+            "text": "2. **Position:** `ScrubBar` gibt die Ausgabe von `runWatcher` an ThreeViewer weiter (neues Emit `run-pos {cum, index, phase}`, nur im Lauf). Der Startindex `k` ist der erste Punkt des Segments, auf das die Maschine projiziert. Ist die Position beim Eintreffen nicht angehängt (OFF-PATH oder noch keine Vollsuche), wartet die Restprüfung bis zu 3 s auf eine angehängte Position. Danach prüft sie den **ganzen** Track. Das ist langsamer, übersieht aber nichts."
+          },
+          {
+            "line": 30,
+            "text": "3. **Prüfen:**"
+          },
+          {
+            "line": 31,
+            "text": "   - Ein **Haupt**-Sweep über `sliceTrack(base, k, base.count)`. Er läuft mit allem, was der Haupt-Sweep hat: Shards, Teilergebnisse, Pause bei Kamera und verborgenem Tab, Parken."
+          },
+          {
+            "line": 32,
+            "text": "   - Er läuft nicht als Seiten-Sweep: Der ist einzeln, ohne Teilergebnis, ohne Pause."
+          },
+          {
+            "line": 33,
+            "text": "   - Der volle Sweep wartet weiter bis IDLE (MR-I03) und ersetzt dann das Restergebnis."
+          },
+          {
+            "line": 34,
+            "text": "4. **Anzeigen:**"
+          },
+          {
+            "line": 35,
+            "text": "   - Ein neues `mergeRestResult(rest, k, base)` verschiebt die Treffer-cums um `base.cum[k]`, ebenso Intervalle, Spannen-Enden und den erfassten Anteil (`covered` auf die Basisachse umgerechnet, ab `cum[k]`)."
+          },
+          {
+            "line": 36,
+            "text": "   - ScrubBar zeigt es auf dem Basis-Track. Der geprüfte Bereich ist das Band ab der Position, das Ungeprüfte davor bleibt ohne Band."
+          },
+          {
+            "line": 37,
+            "text": "   - Die Zusammenfassung im Sim-Tab nennt den Umfang: „Rest ab L… geprüft (Werkzeug im Lauf gemessen)“. Das „?“ erklärt, dass davor nicht neu geprüft ist."
+          },
+          {
+            "line": 38,
+            "text": "5. **Grenzen, offen benannt:**"
+          },
+          {
+            "line": 39,
+            "text": "   - **Die Basis am Startpunkt:** Was dort berührt, wird als Beginn auf der ersten Zeile des Rests gemeldet, nicht als Fortsetzung eines früheren Befunds. Im Schnitt eingerastete Schneidpaare bleiben wie beim Programmanfang still."
+          },
+          {
+            "line": 40,
+            "text": "   - **Schleifen:** Die Position kann auf einem früheren Durchgang liegen, dann prüft der Rest mehr als nötig. Befunde hinter der Maschine sind dann sichtbar. Übersehen wird nichts vor der Maschine."
+          },
+          {
+            "line": 41,
+            "text": "   - **Rechenlast:** Die Prüfung läuft im Browser, nicht auf der Steuerung. Die Steuerung ist davon nicht betroffen."
+          },
+          {
+            "line": 42,
+            "text": ""
+          },
+          {
+            "line": 43,
+            "text": "### C · Was unverändert bleibt"
+          },
+          {
+            "line": 44,
+            "text": ""
+          },
+          {
+            "line": 45,
+            "text": "- Der Zeitstrahl startet keine Bewegung, eine Warnung hält nichts an. Anzeige wird vereinheitlicht, nicht Betätigung."
+          },
+          {
+            "line": 46,
+            "text": "- Die Prüfung im Stillstand bleibt wie heute."
+          },
+          {
+            "line": 47,
+            "text": "- Die Gateway-Seite bleibt unverändert."
+          },
+          {
+            "line": 48,
+            "text": ""
+          },
+          {
+            "line": 49,
+            "text": "## Abnahme"
+          },
+          {
+            "line": 50,
+            "text": ""
+          },
+          {
+            "line": 51,
+            "text": "- **Unit:**"
+          },
+          {
+            "line": 52,
+            "text": "  - `mergeRestResult`: Verschiebung, Intervalle, `spanCumEnd`, Anteil, leeres Ergebnis."
+          },
+          {
+            "line": 53,
+            "text": "  - Restplaner: Start `k`, Rückfall auf den ganzen Track ohne Position, Merkzeichen-Ende."
+          },
+          {
+            "line": 54,
+            "text": "  - `runWatcher`-Weitergabe."
+          },
+          {
+            "line": 55,
+            "text": "- **e2e `collisions.viewer.spec`:**"
+          },
+          {
+            "line": 56,
+            "text": "  - Programm-M6 und G10 L2 im Lauf behalten die Befunde (A)."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/ThreeViewer.vue",
+    "sha256": "fabc63b440631216fe8491e02251df87a9d5d75af06b35c76aee8156fe1cbad7",
+    "excerpts": [
+      {
+        "start": 2588,
+        "end": 2617,
+        "lines": [
+          {
+            "line": 2588,
+            "text": "  if (_numArrChanged(_pv.g5x, st.g5x_offset)) { _pv.g5x = st.g5x_offset ? [...st.g5x_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }"
+          },
+          {
+            "line": 2589,
+            "text": "  if (_numArrChanged(_pv.g92, st.g92_offset)) { _pv.g92 = st.g92_offset ? [...st.g92_offset] : null; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }"
+          },
+          {
+            "line": 2590,
+            "text": "  // tool_offset is a transform input (joint-space math is G43-inclusive) only"
+          },
+          {
+            "line": 2591,
+            "text": "  // for a payload without a known start: a seeded one resolves to its tool"
+          },
+          {
+            "line": 2592,
+            "text": "  // basis, which moves with a re-decode at the verified basis (VP-I20) —"
+          },
+          {
+            "line": 2593,
+            "text": "  // the live offset then only moves the markers (the machine's own state)."
+          },
+          {
+            "line": 2594,
+            "text": "  if (_numArrChanged(_pv.toolOffset, st.tool_offset)) {"
+          },
+          {
+            "line": 2595,
+            "text": "    _pv.toolOffset = st.tool_offset ? [...st.tool_offset] : null; changed = true; _markerDirty = true;"
+          },
+          {
+            "line": 2596,
+            "text": "    if (!viewerGcode.value?.toolBasis) { _pfScheduleWcsRefresh(); _colOnInputChange(); }"
+          },
+          {
+            "line": 2597,
+            "text": "  }"
+          },
+          {
+            "line": 2598,
+            "text": "  if (toolNum !== _pv.toolNum) { _pv.toolNum = toolNum; changed = true; }"
+          },
+          {
+            "line": 2599,
+            "text": "  if (toolDiam !== _pv.toolDiam) { _pv.toolDiam = toolDiam; changed = true; _colOnInputChange(); }"
+          },
+          {
+            "line": 2600,
+            "text": "  if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(); }"
+          },
+          {
+            "line": 2601,
+            "text": "  if ((st.tool_table_z ?? null) !== _pv.toolTableZ) { _pv.toolTableZ = st.tool_table_z ?? null; changed = true; }"
+          },
+          {
+            "line": 2602,
+            "text": "  if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(); }"
+          },
+          {
+            "line": 2603,
+            "text": "  // Fixture-table edits (review P2): only the rows the payload's"
+          },
+          {
+            "line": 2604,
+            "text": "  // non-rewritten epochs actually RE-ADD participate in the change key"
+          },
+          {
+            "line": 2605,
+            "text": "  // (W2 P5 — wcs_frames ships on every modern payload, so keying on the"
+          },
+          {
+            "line": 2606,
+            "text": "  // whole stringified table made every idle table publish a change)."
+          },
+          {
+            "line": 2607,
+            "text": "  if (viewerGcode.value?.wcsEvents?.length) {"
+          },
+          {
+            "line": 2608,
+            "text": "    const tk = usedWcsRowsKey(viewerGcode.value.wcsEvents,"
+          },
+          {
+            "line": 2609,
+            "text": "                              st.wcs_table as WcsTableRow[] | undefined);"
+          },
+          {
+            "line": 2610,
+            "text": "    if (tk !== _pv.wcsTableKey) {"
+          },
+          {
+            "line": 2611,
+            "text": "      _pv.wcsTableKey = tk;"
+          },
+          {
+            "line": 2612,
+            "text": "      _pv.wcsTable = (st.wcs_table as WcsTableRow[] | undefined) ?? null;"
+          },
+          {
+            "line": 2613,
+            "text": "      changed = true;"
+          },
+          {
+            "line": 2614,
+            "text": "      _pfScheduleWcsRefresh(); _colOnInputChange();"
+          },
+          {
+            "line": 2615,
+            "text": "    }"
+          },
+          {
+            "line": 2616,
+            "text": "  }"
+          },
+          {
+            "line": 2617,
+            "text": "  // tool_meta is null on the vast majority of ticks; the gateway sends a fresh"
+          }
+        ]
+      },
+      {
+        "start": 2781,
+        "end": 2807,
+        "lines": [
+          {
+            "line": 2781,
+            "text": " *  Visual length = raw + the shank's sink into the holder, floored. */"
+          },
+          {
+            "line": 2782,
+            "text": "function _toolVisual(diamRaw: number | null | undefined, lenRaw: number | null | undefined): { diam: number; len: number } {"
+          },
+          {
+            "line": 2783,
+            "text": "  const diam = diamRaw || 6.0 * _unitScale;"
+          },
+          {
+            "line": 2784,
+            "text": "  const rawLen = lenRaw || 60.0 * _unitScale;"
+          },
+          {
+            "line": 2785,
+            "text": "  return { diam, len: Math.max(40 * _unitScale, rawLen + 20 * _unitScale) };"
+          },
+          {
+            "line": 2786,
+            "text": "}"
+          },
+          {
+            "line": 2787,
+            "text": ""
+          },
+          {
+            "line": 2788,
+            "text": "/** Per-program-tool dims for the sweep (schema 8): every tool a tlo_events"
+          },
+          {
+            "line": 2789,
+            "text": " *  row names that has a parse-time table row. Absent channel → undefined"
+          },
+          {
+            "line": 2790,
+            "text": " *  (the sweep keeps the loaded tool / stub body throughout, and the bar"
+          },
+          {
+            "line": 2791,
+            "text": " *  says so). */"
+          },
+          {
+            "line": 2792,
+            "text": "function _programToolDims(): Record<number, { diam: number; len: number }> | undefined {"
+          },
+          {
+            "line": 2793,
+            "text": "  const g = viewerGcode.value;"
+          },
+          {
+            "line": 2794,
+            "text": "  if (!g?.tloEvents?.length || !g.parse_tlos?.length) return undefined;"
+          },
+          {
+            "line": 2795,
+            "text": "  const out: Record<number, { diam: number; len: number }> = {};"
+          },
+          {
+            "line": 2796,
+            "text": "  const unknown = _unknownProgramTools();"
+          },
+          {
+            "line": 2797,
+            "text": "  for (const ev of g.tloEvents) {"
+          },
+          {
+            "line": 2798,
+            "text": "    if (ev.tool == null || ev.tool <= 0 || out[ev.tool] || unknown.includes(ev.tool)) continue;"
+          },
+          {
+            "line": 2799,
+            "text": "    const d = toolDimsFor(ev.tool, g.parse_tlos, _unitScale, { diam: null, len: null });"
+          },
+          {
+            "line": 2800,
+            "text": "    if (d.known) out[ev.tool] = _toolVisual(d.diam, d.len);"
+          },
+          {
+            "line": 2801,
+            "text": "  }"
+          },
+          {
+            "line": 2802,
+            "text": "  return Object.keys(out).length ? out : undefined;"
+          },
+          {
+            "line": 2803,
+            "text": "}"
+          },
+          {
+            "line": 2804,
+            "text": "/** Program tools without a length in the table: their body is unknown, the"
+          },
+          {
+            "line": 2805,
+            "text": " *  sweep does not check their own pairs (M600 plan, row 3). */"
+          },
+          {
+            "line": 2806,
+            "text": "function _unknownProgramTools(): number[] {"
+          },
+          {
+            "line": 2807,
+            "text": "  const g = viewerGcode.value;"
+          }
+        ]
+      },
+      {
+        "start": 2828,
+        "end": 2840,
+        "lines": [
+          {
+            "line": 2828,
+            "text": "  // joint-space-exact (G43). The part-frame tip peel and the collision"
+          },
+          {
+            "line": 2829,
+            "text": "  // worker's tool-body shift both subtract it back, so the drawn curve is"
+          },
+          {
+            "line": 2830,
+            "text": "  // unchanged; the posed BODIES (spindle housing at joint height) are what"
+          },
+          {
+            "line": 2831,
+            "text": "  // it corrects."
+          },
+          {
+            "line": 2832,
+            "text": "  return {"
+          },
+          {
+            "line": 2833,
+            "text": "    g5x: _pv.g5x ?? [], g92: _pv.g92 ?? [],"
+          },
+          {
+            "line": 2834,
+            "text": "    rotationDeg: _pv.rotationXy ?? 0, tool: _programTool(),"
+          },
+          {
+            "line": 2835,
+            "text": "  };"
+          },
+          {
+            "line": 2836,
+            "text": "}"
+          },
+          {
+            "line": 2837,
+            "text": ""
+          },
+          {
+            "line": 2838,
+            "text": "// ---- Collision sweep (offline dry run, stage 3) ----"
+          },
+          {
+            "line": 2839,
+            "text": "// Sweeps the machine model through the scrub track off-thread and reports"
+          },
+          {
+            "line": 2840,
+            "text": "// tool-side vs work-side body pairs inside the clearance margin. Owned here"
+          }
+        ]
+      },
+      {
+        "start": 3206,
+        "end": 3213,
+        "lines": [
+          {
+            "line": 3206,
+            "text": "function _colModelKey(init: ViewerInit): string {"
+          },
+          {
+            "line": 3207,
+            "text": "  const parts = (init.parts ?? [])"
+          },
+          {
+            "line": 3208,
+            "text": "    .filter(p => partCollides(p) && !!getCachedGeometry(p.id))"
+          },
+          {
+            "line": 3209,
+            "text": "    .map(p => [p.id, p.file, p.collision ?? null, p.group ?? \"root\", p.translate ?? null, (p as any).rotate ?? null, p.stock ? 1 : 0]);"
+          },
+          {
+            "line": 3210,
+            "text": "  return JSON.stringify([parts, _unitScale, _toolVisual(_pv.toolDiam, _pv.toolLen)]);"
+          },
+          {
+            "line": 3211,
+            "text": "}"
+          },
+          {
+            "line": 3212,
+            "text": ""
+          },
+          {
+            "line": 3213,
+            "text": "/** The worker request for one sweep of `track`. Bodies (copies of every"
+          }
+        ]
+      },
+      {
+        "start": 3286,
+        "end": 3313,
+        "lines": [
+          {
+            "line": 3286,
+            "text": "    // model visibly touched while the sweep saw clearance."
+          },
+          {
+            "line": 3287,
+            "text": "    tool: _toolVisual(_pv.toolDiam, _pv.toolLen),"
+          },
+          {
+            "line": 3288,
+            "text": "    track: trackCopy,"
+          },
+          {
+            "line": 3289,
+            "text": "    wcs: _pfWcs(),"
+          },
+          {
+            "line": 3290,
+            "text": "    side: side || undefined,   // beside the main sweep (entry segment)"
+          },
+          {
+            "line": 3291,
+            "text": "    maxShards: _colMaxShards,"
+          },
+          {
+            "line": 3292,
+            "text": "    options: {"
+          },
+          {
+            "line": 3293,
+            "text": "      margin: COLLISION_MARGIN_MM * _unitScale,"
+          },
+          {
+            "line": 3294,
+            "text": "      // Per-epoch re-add terms (review P2) — the sweep converts each"
+          },
+          {
+            "line": 3295,
+            "text": "      // segment's program coords through ITS epoch's basis. Built here"
+          },
+          {
+            "line": 3296,
+            "text": "      // (live status is main-thread state); plain JSON, clones fine."
+          },
+          {
+            "line": 3297,
+            "text": "      epochTerms: track.wcsEvents?.length"
+          },
+          {
+            "line": 3298,
+            "text": "        ? epochTermsFor(track.wcsEvents, _pfWcs(), _pv.wcsTable ?? undefined)"
+          },
+          {
+            "line": 3299,
+            "text": "        : undefined,"
+          },
+          {
+            "line": 3300,
+            "text": "      tloEvents: track.tloEvents,"
+          },
+          {
+            "line": 3301,
+            "text": "      // Per-program-tool bodies (schema 8): the sweep swaps the tool"
+          },
+          {
+            "line": 3302,
+            "text": "      // cylinder to each segment's tool; the live tool is the pre-first-M6"
+          },
+          {
+            "line": 3303,
+            "text": "      // fallback."
+          },
+          {
+            "line": 3304,
+            "text": "      toolDims: _programToolDims(),"
+          },
+          {
+            "line": 3305,
+            "text": "      liveTool: _pv.toolNum,"
+          },
+          {
+            "line": 3306,
+            "text": "      // An offset set from the unknown position after a tool change: the"
+          },
+          {
+            "line": 3307,
+            "text": "      // note names its line (Codex R95 VP-I53). Plain arrays, clone fine."
+          },
+          {
+            "line": 3308,
+            "text": "      staleOffsetLines: viewerGcode.value?.stale_offset_lines?.slice(),"
+          },
+          {
+            "line": 3309,
+            "text": "      staleOffsetUntracked: viewerGcode.value?.stale_offset_untracked,"
+          },
+          {
+            "line": 3310,
+            "text": "      // M600 (docs/reviews/m600-preview.plan.md): the measurement the"
+          },
+          {
+            "line": 3311,
+            "text": "      // preview cannot predict, and the program tools whose body is unknown."
+          },
+          {
+            "line": 3312,
+            "text": "      probeStops: parseProbeStops(viewerGcode.value?.probe_unpredicted).map(p => ({ tool: p.tool, reason: p.reason })),"
+          },
+          {
+            "line": 3313,
+            "text": "      unknownTools: _unknownProgramTools(),"
+          }
+        ]
+      },
+      {
+        "start": 3384,
+        "end": 3409,
+        "lines": [
+          {
+            "line": 3384,
+            "text": "// A check a RUN held off (the interpreter was busy when the timer fired —"
+          },
+          {
+            "line": 3385,
+            "text": "// a mid-run re-parse publishes during AUTO): it starts once the interpreter"
+          },
+          {
+            "line": 3386,
+            "text": "// is idle again, whether or not another parse follows (Codex R40 MR-I03)."
+          },
+          {
+            "line": 3387,
+            "text": "let _colHeldByRun = false;"
+          },
+          {
+            "line": 3388,
+            "text": "function _colScheduleAuto() {"
+          },
+          {
+            "line": 3389,
+            "text": "  clearTimeout(_colAutoTimer);"
+          },
+          {
+            "line": 3390,
+            "text": "  _colAutoTimer = setTimeout(() => {"
+          },
+          {
+            "line": 3391,
+            "text": "    if (simMode.value) return;               // ScrubBar re-checks with the entry track"
+          },
+          {
+            "line": 3392,
+            "text": "    if (!machineReady.value) return;         // geometry loading — machineReady watcher retries"
+          },
+          {
+            "line": 3393,
+            "text": "    if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)"
+          },
+          {
+            "line": 3394,
+            "text": "    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) { _colHeldByRun = true; return; }"
+          },
+          {
+            "line": 3395,
+            "text": "    _colHeldByRun = false;"
+          },
+          {
+            "line": 3396,
+            "text": "    if (!viewerGcode.value?.scrubTrack) return;"
+          },
+          {
+            "line": 3397,
+            "text": "    if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();"
+          },
+          {
+            "line": 3398,
+            "text": "    runCollisionCheck();"
+          },
+          {
+            "line": 3399,
+            "text": "  }, 400);"
+          },
+          {
+            "line": 3400,
+            "text": "}"
+          },
+          {
+            "line": 3401,
+            "text": "watch(() => status.value?.data?.interp_state, (st, prev) => {"
+          },
+          {
+            "line": 3402,
+            "text": "  if (st === INTERP_IDLE && _colHeldByRun) _colScheduleAuto();"
+          },
+          {
+            "line": 3403,
+            "text": "  // back to idle: the interpreter synched its parameters — G30 may have moved"
+          },
+          {
+            "line": 3404,
+            "text": "  if (st === INTERP_IDLE && prev != null && prev !== INTERP_IDLE) refreshG30();"
+          },
+          {
+            "line": 3405,
+            "text": "});"
+          },
+          {
+            "line": 3406,
+            "text": ""
+          },
+          {
+            "line": 3407,
+            "text": "// Live WCS or tool dims changed: current results are stale — clear them"
+          },
+          {
+            "line": 3408,
+            "text": "// honestly and re-run (debounced; touch-off sequences change several"
+          },
+          {
+            "line": 3409,
+            "text": "// values in quick succession)."
+          }
+        ]
+      },
+      {
+        "start": 2887,
+        "end": 2888,
+        "lines": [
+          {
+            "line": 2887,
+            "text": "const ROTARY_STOP_DEG = 0.05;"
+          },
+          {
+            "line": 2888,
+            "text": "const ROTARY_SETTLE_MS = 4_500;   // > the gateway's 2 s debounce × 2 settled checks"
+          }
+        ]
+      },
+      {
+        "start": 3162,
+        "end": 3184,
+        "lines": [
+          {
+            "line": 3162,
+            "text": "// A rotary jog parks the running sweep (its track is about to be re-parsed);"
+          },
+          {
+            "line": 3163,
+            "text": "// once the pose has held still and no re-parse is in flight, it resumes."
+          },
+          {
+            "line": 3164,
+            "text": "// A re-parse that does land drops the parked sweep and starts a fresh one"
+          },
+          {
+            "line": 3165,
+            "text": "// (the viewerGcode watcher). Keyed on VALUES: full status frames re-send an"
+          },
+          {
+            "line": 3166,
+            "text": "// unchanged pose as a new array."
+          },
+          {
+            "line": 3167,
+            "text": "watch(() => vst.value?.rotary_abc as number[] | null | undefined, (abc) => {"
+          },
+          {
+            "line": 3168,
+            "text": "  if (!Array.isArray(abc)) return;"
+          },
+          {
+            "line": 3169,
+            "text": "  const changed = !_colRotaryLast || abc.some((v, i) => Math.abs(v - (_colRotaryLast![i] ?? v)) > ROTARY_STOP_DEG);"
+          },
+          {
+            "line": 3170,
+            "text": "  _colRotaryLast = abc.slice();"
+          },
+          {
+            "line": 3171,
+            "text": "  if (!changed) return;"
+          },
+          {
+            "line": 3172,
+            "text": "  if (collisionBusy.value && _colRotaryAtStart"
+          },
+          {
+            "line": 3173,
+            "text": "      && abc.some((v, i) => Math.abs(v - (_colRotaryAtStart![i] ?? v)) > ROTARY_STOP_DEG)) {"
+          },
+          {
+            "line": 3174,
+            "text": "    stopCollisionCheck();"
+          },
+          {
+            "line": 3175,
+            "text": "  }"
+          },
+          {
+            "line": 3176,
+            "text": "  clearTimeout(_colSettleTimer);"
+          },
+          {
+            "line": 3177,
+            "text": "  _colSettleTimer = setTimeout(_colOnRotarySettled, ROTARY_SETTLE_MS);"
+          },
+          {
+            "line": 3178,
+            "text": "});"
+          },
+          {
+            "line": 3179,
+            "text": "function _colOnRotarySettled() {"
+          },
+          {
+            "line": 3180,
+            "text": "  if (collisionStopped.value?.reason !== \"motion\" || !collisionResumable.value || collisionBusy.value) return;"
+          },
+          {
+            "line": 3181,
+            "text": "  if (previewRefresh.value) return;   // its payload drops this sweep and starts a fresh one"
+          },
+          {
+            "line": 3182,
+            "text": "  continueCollisionCheck();"
+          },
+          {
+            "line": 3183,
+            "text": "}"
+          },
+          {
+            "line": 3184,
+            "text": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/wcsEpochs.ts",
+    "sha256": "2db8b3dd75aba0b6659914058be45cdb991e62a9f1c7f77d8fbee043cc8383d8",
+    "excerpts": [
+      {
+        "start": 63,
+        "end": 95,
+        "lines": [
+          {
+            "line": 63,
+            "text": "/** The PartFrameWcs each epoch's segments must re-add (see module header)."
+          },
+          {
+            "line": 64,
+            "text": " *  A non-rewritten epoch whose table row is unavailable (pre-first-status"
+          },
+          {
+            "line": 65,
+            "text": " *  race, older gateway) falls back to the parse snapshot — the only honest"
+          },
+          {
+            "line": 66,
+            "text": " *  stand-in; it re-resolves on the next status frame. */"
+          },
+          {
+            "line": 67,
+            "text": "export function epochWcsList("
+          },
+          {
+            "line": 68,
+            "text": "  events: readonly WcsEpoch[],"
+          },
+          {
+            "line": 69,
+            "text": "  live: PartFrameWcs,"
+          },
+          {
+            "line": 70,
+            "text": "  table: readonly WcsTableRow[] | undefined,"
+          },
+          {
+            "line": 71,
+            "text": "): PartFrameWcs[] {"
+          },
+          {
+            "line": 72,
+            "text": "  return events.map(ev => {"
+          },
+          {
+            "line": 73,
+            "text": "    const row = !ev.rewritten && ev.idx >= 1 ? table?.[ev.idx - 1] : undefined;"
+          },
+          {
+            "line": 74,
+            "text": "    if (row) {"
+          },
+          {
+            "line": 75,
+            "text": "      return {"
+          },
+          {
+            "line": 76,
+            "text": "        g5x: AXIS_KEYS.map(k => Number(row[k] ?? 0)),"
+          },
+          {
+            "line": 77,
+            "text": "        g92: live.g92,"
+          },
+          {
+            "line": 78,
+            "text": "        rotationDeg: Number(row.r ?? 0),"
+          },
+          {
+            "line": 79,
+            "text": "      };"
+          },
+          {
+            "line": 80,
+            "text": "    }"
+          },
+          {
+            "line": 81,
+            "text": "    return { g5x: ev.g5x, g92: ev.g92, rotationDeg: ev.rotationDeg };"
+          },
+          {
+            "line": 82,
+            "text": "  });"
+          },
+          {
+            "line": 83,
+            "text": "}"
+          },
+          {
+            "line": 84,
+            "text": ""
+          },
+          {
+            "line": 85,
+            "text": "export function epochTermsFor("
+          },
+          {
+            "line": 86,
+            "text": "  events: readonly WcsEpoch[],"
+          },
+          {
+            "line": 87,
+            "text": "  live: PartFrameWcs,"
+          },
+          {
+            "line": 88,
+            "text": "  table: readonly WcsTableRow[] | undefined,"
+          },
+          {
+            "line": 89,
+            "text": "): WcsTerms[] {"
+          },
+          {
+            "line": 90,
+            "text": "  return epochWcsList(events, live, table).map(wcsTerms);"
+          },
+          {
+            "line": 91,
+            "text": "}"
+          },
+          {
+            "line": 92,
+            "text": ""
+          },
+          {
+            "line": 93,
+            "text": "const _KEY_AXES = [\"x\", \"y\", \"z\", \"a\", \"b\", \"c\", \"r\"] as const;"
+          },
+          {
+            "line": 94,
+            "text": ""
+          },
+          {
+            "line": 95,
+            "text": "/** Change key over ONLY the fixture rows an epoch-aware payload actually"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/tloEvents.ts",
+    "sha256": "6b8acaea6e2e75a86e8bf33f7778d7ce95412121085d18f7c671a37c21ca8b9c",
+    "excerpts": [
+      {
+        "start": 71,
+        "end": 91,
+        "lines": [
+          {
+            "line": 71,
+            "text": "  events: readonly TloEvent[] | undefined,"
+          },
+          {
+            "line": 72,
+            "text": "  liveTool: number | null | undefined,"
+          },
+          {
+            "line": 73,
+            "text": "): number | null {"
+          },
+          {
+            "line": 74,
+            "text": "  if (idx != null && idx !== TLO_NONE && events) {"
+          },
+          {
+            "line": 75,
+            "text": "    const ev = events[idx];"
+          },
+          {
+            "line": 76,
+            "text": "    if (ev && ev.tool != null) return ev.tool;"
+          },
+          {
+            "line": 77,
+            "text": "  }"
+          },
+          {
+            "line": 78,
+            "text": "  return liveTool != null && liveTool > 0 ? liveTool : null;"
+          },
+          {
+            "line": 79,
+            "text": "}"
+          },
+          {
+            "line": 80,
+            "text": ""
+          },
+          {
+            "line": 81,
+            "text": "/** Program tools whose BODY is unknown (M600 plan, state table row 3): a"
+          },
+          {
+            "line": 82,
+            "text": " *  tool number > 0 a TLO/tool event row names that has no parse-time table"
+          },
+          {
+            "line": 83,
+            "text": " *  row, or a row without a length — an unmeasured tool. The sweep does not"
+          },
+          {
+            "line": 84,
+            "text": " *  check its own pairs while it is in the spindle (toolDimsFor would wear a"
+          },
+          {
+            "line": 85,
+            "text": " *  60 mm stub for it). Pure. */"
+          },
+          {
+            "line": 86,
+            "text": "export function unknownProgramTools("
+          },
+          {
+            "line": 87,
+            "text": "  events: readonly { tool: number | null }[] | undefined,"
+          },
+          {
+            "line": 88,
+            "text": "  parseTlos: readonly (readonly (number | undefined)[])[] | undefined,"
+          },
+          {
+            "line": 89,
+            "text": "): number[] {"
+          },
+          {
+            "line": 90,
+            "text": "  const out: number[] = [];"
+          },
+          {
+            "line": 91,
+            "text": "  for (const ev of events ?? []) {"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/scrubTrack.ts",
+    "sha256": "33f83dadd9608f3f0a4df73648928544d36cbfea0be95629ef6aa7e138cd8440",
+    "excerpts": [
+      {
+        "start": 730,
+        "end": 747,
+        "lines": [
+          {
+            "line": 730,
+            "text": " *  run playhead): best point-to-segment match in 6D (1° ≙ 1 unit) over the"
+          },
+          {
+            "line": 731,
+            "text": " *  segments whose cum range intersects `win` (null = the whole track)."
+          },
+          {
+            "line": 732,
+            "text": " *  motion_line is NOT consulted — sub/remap-relative line numbers collide"
+          },
+          {
+            "line": 733,
+            "text": " *  with the main file's, which is exactly what parked the old highlight on"
+          },
+          {
+            "line": 734,
+            "text": " *  wrong lines. The machine pose converts to program space per candidate"
+          },
+          {
+            "line": 735,
+            "text": " *  segment through ITS epoch's terms (precomputed flat per epoch); brk"
+          },
+          {
+            "line": 736,
+            "text": " *  segments (frame relabels — poses the machine never sweeps) are skipped."
+          },
+          {
+            "line": 737,
+            "text": " *  `stride` probes every Nth segment — the off-path re-probe's bounded"
+          },
+          {
+            "line": 738,
+            "text": " *  coarse scan (W2 P5); callers refine a strided hit with a windowed"
+          },
+          {
+            "line": 739,
+            "text": " *  stride-1 pass before trusting its residual. */"
+          },
+          {
+            "line": 740,
+            "text": "export function projectOntoTrack("
+          },
+          {
+            "line": 741,
+            "text": "  t: ScrubTrack,"
+          },
+          {
+            "line": 742,
+            "text": "  machine: readonly number[],"
+          },
+          {
+            "line": 743,
+            "text": "  wcs: PartFrameWcs,"
+          },
+          {
+            "line": 744,
+            "text": "  epochTerms: readonly WcsTerms[] | undefined,"
+          },
+          {
+            "line": 745,
+            "text": "  win: { lo: number; hi: number } | null,"
+          },
+          {
+            "line": 746,
+            "text": "  stride = 1,"
+          },
+          {
+            "line": 747,
+            "text": "): TrackProjection | null {"
+          }
+        ]
+      },
+      {
+        "start": 799,
+        "end": 821,
+        "lines": [
+          {
+            "line": 799,
+            "text": "    const da = t.abc[j]! - aa, db = t.abc[j + 1]! - ab, dc = t.abc[j + 2]! - ac;"
+          },
+          {
+            "line": 800,
+            "text": "    const len2 = dx * dx + dy * dy + dz * dz + da * da + db * db + dc * dc;"
+          },
+          {
+            "line": 801,
+            "text": "    const rx = pFlat[off]! - ax, ry = pFlat[off + 1]! - ay, rz = pFlat[off + 2]! - az;"
+          },
+          {
+            "line": 802,
+            "text": "    const ra = pFlat[off + 3]! - aa, rb = pFlat[off + 4]! - ab, rc = pFlat[off + 5]! - ac;"
+          },
+          {
+            "line": 803,
+            "text": "    const u = len2 > 0"
+          },
+          {
+            "line": 804,
+            "text": "      ? Math.min(1, Math.max(0, (rx * dx + ry * dy + rz * dz + ra * da + rb * db + rc * dc) / len2))"
+          },
+          {
+            "line": 805,
+            "text": "      : 0;"
+          },
+          {
+            "line": 806,
+            "text": "    const ex = rx - u * dx, ey = ry - u * dy, ez = rz - u * dz;"
+          },
+          {
+            "line": 807,
+            "text": "    const ea = ra - u * da, eb = rb - u * db, ec = rc - u * dc;"
+          },
+          {
+            "line": 808,
+            "text": "    const d2 = ex * ex + ey * ey + ez * ez + ea * ea + eb * eb + ec * ec;"
+          },
+          {
+            "line": 809,
+            "text": "    if (d2 < (best?.dist2 ?? Infinity)) {"
+          },
+          {
+            "line": 810,
+            "text": "      best = { cum: t.cum[i - 1]! + u * (t.cum[i]! - t.cum[i - 1]!), index: i, dist2: d2 };"
+          },
+          {
+            "line": 811,
+            "text": "    }"
+          },
+          {
+            "line": 812,
+            "text": "  }"
+          },
+          {
+            "line": 813,
+            "text": "  return best;"
+          },
+          {
+            "line": 814,
+            "text": "}"
+          },
+          {
+            "line": 815,
+            "text": ""
+          },
+          {
+            "line": 816,
+            "text": "/** Reads track `t`'s point i as a cum on `on`: `t` itself, or a track built"
+          },
+          {
+            "line": 817,
+            "text": " *  from it by PREPENDING points (the entry move, prependEntry) — the same"
+          },
+          {
+            "line": 818,
+            "text": " *  point sits `on.count − t.count` later there. The displayed track's own"
+          },
+          {
+            "line": 819,
+            "text": " *  cums, never t's cum plus a float shift (float32 cums on a long program)."
+          },
+          {
+            "line": 820,
+            "text": " *  null when `on` is not such a track. */"
+          },
+          {
+            "line": 821,
+            "text": "function cumReader(t: ScrubTrack, on: ScrubTrack): ((i: number) => number) | null {"
+          }
+        ]
+      },
+      {
+        "start": 878,
+        "end": 913,
+        "lines": [
+          {
+            "line": 878,
+            "text": "export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {"
+          },
+          {
+            "line": 879,
+            "text": "  const n = Math.max(0, Math.min(b, t.count) - a);"
+          },
+          {
+            "line": 880,
+            "text": "  const base = t.cum[a] ?? 0;"
+          },
+          {
+            "line": 881,
+            "text": "  const cum = new Float32Array(n);"
+          },
+          {
+            "line": 882,
+            "text": "  for (let i = 0; i < n; i++) cum[i] = t.cum[a + i]! - base;"
+          },
+          {
+            "line": 883,
+            "text": "  const u8 = (x?: Uint8Array) => (x ? x.slice(a, a + n) : undefined);"
+          },
+          {
+            "line": 884,
+            "text": "  const u32 = (x?: Uint32Array) => (x ? x.slice(a, a + n) : undefined);"
+          },
+          {
+            "line": 885,
+            "text": "  const out: ScrubTrack = {"
+          },
+          {
+            "line": 886,
+            "text": "    pos: t.pos.slice(a * 3, (a + n) * 3),"
+          },
+          {
+            "line": 887,
+            "text": "    abc: t.abc.slice(a * 3, (a + n) * 3),"
+          },
+          {
+            "line": 888,
+            "text": "    lines: t.lines.slice(a, a + n),"
+          },
+          {
+            "line": 889,
+            "text": "    rapid: t.rapid.slice(a, a + n),"
+          },
+          {
+            "line": 890,
+            "text": "    cum, timeBased: t.timeBased, count: n,"
+          },
+          {
+            "line": 891,
+            "text": "    lineIndex: buildLineIndex(t.lines.slice(a, a + n), cum),"
+          },
+          {
+            "line": 892,
+            "text": "  };"
+          },
+          {
+            "line": 893,
+            "text": "  if (t.mode) out.mode = u8(t.mode);"
+          },
+          {
+            "line": 894,
+            "text": "  if (t.frame) out.frame = u32(t.frame);"
+          },
+          {
+            "line": 895,
+            "text": "  if (t.frames) out.frames = t.frames;"
+          },
+          {
+            "line": 896,
+            "text": "  if (t.brk) out.brk = u8(t.brk);"
+          },
+          {
+            "line": 897,
+            "text": "  if (t.ustart) out.ustart = u8(t.ustart);"
+          },
+          {
+            "line": 898,
+            "text": "  if (t.unpredicted) out.unpredicted = u8(t.unpredicted);"
+          },
+          {
+            "line": 899,
+            "text": "  if (t.wcsEpoch) out.wcsEpoch = u32(t.wcsEpoch);"
+          },
+          {
+            "line": 900,
+            "text": "  if (t.lineOk) out.lineOk = u8(t.lineOk);"
+          },
+          {
+            "line": 901,
+            "text": "  if (t.sub) out.sub = u8(t.sub);"
+          },
+          {
+            "line": 902,
+            "text": "  if (t.subNames) out.subNames = t.subNames;"
+          },
+          {
+            "line": 903,
+            "text": "  if (t.cline) out.cline = t.cline.slice(a, a + n);"
+          },
+          {
+            "line": 904,
+            "text": "  if (t.wcsEvents) out.wcsEvents = t.wcsEvents;"
+          },
+          {
+            "line": 905,
+            "text": "  if (t.tlo) out.tlo = u32(t.tlo);"
+          },
+          {
+            "line": 906,
+            "text": "  if (t.outside) out.outside = u8(t.outside);"
+          },
+          {
+            "line": 907,
+            "text": "  if (t.tloEvents) out.tloEvents = t.tloEvents;"
+          },
+          {
+            "line": 908,
+            "text": "  return out;"
+          },
+          {
+            "line": 909,
+            "text": "}"
+          },
+          {
+            "line": 910,
+            "text": ""
+          },
+          {
+            "line": 911,
+            "text": "/** New track with the ENTRY MOVE prepended: the rapid the machine will make"
+          },
+          {
+            "line": 912,
+            "text": " *  from its live position (program coords) to the program's first point —"
+          },
+          {
+            "line": 913,
+            "text": " *  run-time-only motion no parse can know, and the classic crash. The entry"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/collision.ts",
+    "sha256": "58f0bad7e45ce321aeef78abfc6039a4c10b5b41041723f9002e2f381baa017e",
+    "excerpts": [
+      {
+        "start": 1496,
+        "end": 1509,
+        "lines": [
+          {
+            "line": 1496,
+            "text": "  // Baseline pass (first pose): pairs already inside the margin here are"
+          },
+          {
+            "line": 1497,
+            "text": "  // mechanical-joint proximity (slides, bearings, trunnion mounts). Reported"
+          },
+          {
+            "line": 1498,
+            "text": "  // once, excluded from the sweep. CUTTING pairs are never baseline-excluded"
+          },
+          {
+            "line": 1499,
+            "text": "  // (a tool parked on the work is normal) — they instead seed the in-contact"
+          },
+          {
+            "line": 1500,
+            "text": "  // state for onset tracking. TOOL pairs are never excluded either: contact"
+          },
+          {
+            "line": 1501,
+            "text": "  // here is an ONSET on the first line (see the header) — the seeded latch"
+          },
+          {
+            "line": 1502,
+            "text": "  // makes the sweep's first sample record it and the following lines'"
+          },
+          {
+            "line": 1503,
+            "text": "  // records continuations of it."
+          },
+          {
+            "line": 1504,
+            "text": "  // The onset belongs to the first segment WITH length: a zero-length"
+          },
+          {
+            "line": 1505,
+            "text": "  // unknown-start rapid (schema 6) carries no sample."
+          },
+          {
+            "line": 1506,
+            "text": "  let firstSeg = 1;"
+          },
+          {
+            "line": 1507,
+            "text": "  while (firstSeg < n - 1 && dcum[firstSeg]! - dcum[firstSeg - 1]! <= 1e-9) firstSeg++;"
+          },
+          {
+            "line": 1508,
+            "text": "  const staticExcluded = new Uint8Array(pairs.length);"
+          },
+          {
+            "line": 1509,
+            "text": "  const inContact = new Uint8Array(pairs.length);"
+          }
+        ]
+      },
+      {
+        "start": 1593,
+        "end": 1631,
+        "lines": [
+          {
+            "line": 1593,
+            "text": "    }"
+          },
+          {
+            "line": 1594,
+            "text": "    if (dist <= opts.margin) {"
+          },
+          {
+            "line": 1595,
+            "text": "      nearFirst[pi] = 1;"
+          },
+          {
+            "line": 1596,
+            "text": "      if (pairCutting[pi]) {"
+          },
+          {
+            "line": 1597,
+            "text": "        inContact[pi] = 1;  // engaged from the start — a later retract is benign"
+          },
+          {
+            "line": 1598,
+            "text": "      } else if (pairTool[pi]) {"
+          },
+          {
+            "line": 1599,
+            "text": "        seedOnset(pi);"
+          },
+          {
+            "line": 1600,
+            "text": "      } else {"
+          },
+          {
+            "line": 1601,
+            "text": "        candidates.push(pi);"
+          },
+          {
+            "line": 1602,
+            "text": "        firstDist[pi] = dist;"
+          },
+          {
+            "line": 1603,
+            "text": "      }"
+          },
+          {
+            "line": 1604,
+            "text": "    }"
+          },
+          {
+            "line": 1605,
+            "text": "  }"
+          },
+          {
+            "line": 1606,
+            "text": "  if (candidates.length) {"
+          },
+          {
+            "line": 1607,
+            "text": "    poseRest();"
+          },
+          {
+            "line": 1608,
+            "text": "    for (const pi of candidates) {"
+          },
+          {
+            "line": 1609,
+            "text": "      const [ai, bi] = pairs[pi]!;"
+          },
+          {
+            "line": 1610,
+            "text": "      // At rest too: touching or wholly inside — decided, never undecidable"
+          },
+          {
+            "line": 1611,
+            "text": "      // (VP96-03: no static exclusion on an answer nobody has)."
+          },
+          {
+            "line": 1612,
+            "text": "      let rest = pairDistance(bodies[ai]!, bodies[bi]!, opts.margin, opts.margin) <= opts.margin;"
+          },
+          {
+            "line": 1613,
+            "text": "      if (!rest) {"
+          },
+          {
+            "line": 1614,
+            "text": "        const v = insideOf(pi);"
+          },
+          {
+            "line": 1615,
+            "text": "        rest = v === \"inside\";"
+          },
+          {
+            "line": 1616,
+            "text": "        if (v === \"undecidable\") markInside(pi, v, firstLine);"
+          },
+          {
+            "line": 1617,
+            "text": "      }"
+          },
+          {
+            "line": 1618,
+            "text": "      if (rest) {"
+          },
+          {
+            "line": 1619,
+            "text": "        staticExcluded[pi] = 1;   // touching at rest too: a slide, a bearing, a mount"
+          },
+          {
+            "line": 1620,
+            "text": "        staticContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, dist: firstDist[pi]! });"
+          },
+          {
+            "line": 1621,
+            "text": "      } else {"
+          },
+          {
+            "line": 1622,
+            "text": "        seedOnset(pi);            // clear at rest: the program starts crashed"
+          },
+          {
+            "line": 1623,
+            "text": "      }"
+          },
+          {
+            "line": 1624,
+            "text": "    }"
+          },
+          {
+            "line": 1625,
+            "text": "    poseFirst();   // leave the model where the sweep expects it"
+          },
+          {
+            "line": 1626,
+            "text": "  }"
+          },
+          {
+            "line": 1627,
+            "text": "  done++;"
+          },
+          {
+            "line": 1628,
+            "text": "  for (let pi = 0; pi < pairs.length; pi++) if (staticExcluded[pi]) skipPair[pi] = 1;"
+          },
+          {
+            "line": 1629,
+            "text": "  if (opts.shard && opts.shard.of > 1) {"
+          },
+          {
+            "line": 1630,
+            "text": "    // Every shard computes this same split from the same baseline. A pair"
+          },
+          {
+            "line": 1631,
+            "text": "    // inside the margin at the first pose is what a long sweep queries"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-webui/src/viewer/collisionWorker.ts",
+    "sha256": "2bc8b333c558dc4c510b989c00330b08ab16ec216b0f5675a858337be125783f",
+    "excerpts": [
+      {
+        "start": 338,
+        "end": 346,
+        "lines": [
+          {
+            "line": 338,
+            "text": "// K: the cores but TWO, for the page and the browser's own processes (Codex"
+          },
+          {
+            "line": 339,
+            "text": "// R90 — one busy worker once held the Mac's GPU frames behind; four cores"
+          },
+          {
+            "line": 340,
+            "text": "// make two shards), at most MAX_SHARDS, and never more copies of the model"
+          },
+          {
+            "line": 341,
+            "text": "// than SHARD_TRIANGLES allows (every shard holds the whole BVH model: the"
+          },
+          {
+            "line": 342,
+            "text": "// shipped 3-axis table alone is 1.1 M triangles). One shard, no Worker in"
+          },
+          {
+            "line": 343,
+            "text": "// this scope, or a pool that failed: the single-core path, as before."
+          },
+          {
+            "line": 344,
+            "text": "const MAX_SHARDS = 8;"
+          },
+          {
+            "line": 345,
+            "text": "const SHARD_TRIANGLES = 4_000_000;"
+          },
+          {
+            "line": 346,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "start": 388,
+        "end": 395,
+        "lines": [
+          {
+            "line": 388,
+            "text": "function shardCount(d: CollisionReq): number {"
+          },
+          {
+            "line": 389,
+            "text": "  if (_poolBroken || d.options.shard) return 1;"
+          },
+          {
+            "line": 390,
+            "text": "  const bodies = d.bodies ?? (_bodies?.key === d.modelKey ? _bodies.bodies : null);"
+          },
+          {
+            "line": 391,
+            "text": "  if (!bodies) return 1;   // the model is not known here: the single path asks for it"
+          },
+          {
+            "line": 392,
+            "text": "  const tris = bodies.reduce((n, b) => n + b.positions.length / 9, 0);"
+          },
+          {
+            "line": 393,
+            "text": "  const cores = (self.navigator?.hardwareConcurrency ?? 2) - 2;"
+          },
+          {
+            "line": 394,
+            "text": "  return Math.max(1, Math.min(MAX_SHARDS, cores, d.maxShards ?? MAX_SHARDS, Math.floor(SHARD_TRIANGLES / Math.max(tris, 1))));"
+          },
+          {
+            "line": 395,
+            "text": "}"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/bulk_pipeline.py",
+    "sha256": "07d95ed15b0c80eff1583fdb67941379c233070534a7b85e6557e206afd35836",
+    "excerpts": [
+      {
+        "start": 420,
+        "end": 440,
+        "lines": [
+          {
+            "line": 420,
+            "text": "    #: A pinned (mid-run) parse runs niced: on a real machine it yields CPU"
+          },
+          {
+            "line": 421,
+            "text": "    #: to LinuxCNC's task feeding the motion queue — a priority, no guarantee"
+          },
+          {
+            "line": 422,
+            "text": "    #: for real-time, memory or I/O latency. nice 19 rather than SCHED_IDLE"
+          },
+          {
+            "line": 423,
+            "text": "    #: (weaker still): a machine PC rendering its own HMI browser would give"
+          },
+          {
+            "line": 424,
+            "text": "    #: an idle-class parse very little."
+          },
+          {
+            "line": 425,
+            "text": "    PINNED_NICE = 19"
+          },
+          {
+            "line": 426,
+            "text": "    #: ... and gets a longer leash: niced under a busy run it may take a"
+          },
+          {
+            "line": 427,
+            "text": "    #: multiple of its idle time. Its duration never enters the history."
+          },
+          {
+            "line": 428,
+            "text": "    _PINNED_TIMEOUT_FACTOR = 3.0"
+          },
+          {
+            "line": 429,
+            "text": ""
+          },
+          {
+            "line": 430,
+            "text": "    def pinned_ctx(self, filepath: str) -> Optional[dict]:"
+          },
+          {
+            "line": 431,
+            "text": "        \"\"\"The worker ctx for a PINNED re-parse of `filepath`: the published"
+          },
+          {
+            "line": 432,
+            "text": "        parse's ctx (fixture index, WCS var patches, kins type/frame), its"
+          },
+          {
+            "line": 433,
+            "text": "        parameter basis (`param_text` + `g92_offset`, Codex R40 MR-I02), its"
+          },
+          {
+            "line": 434,
+            "text": "        rotary seed (`rotary_pose`, the golden override hook) and its tool"
+          },
+          {
+            "line": 435,
+            "text": "        seed (applied offset + loaded tool; the worker puts that tool in the"
+          },
+          {
+            "line": 436,
+            "text": "        interpreter's spindle pocket, MR-I01), niced. Read live: the tool"
+          },
+          {
+            "line": 437,
+            "text": "        TABLE — the reason for the parse — and the operator's run options"
+          },
+          {
+            "line": 438,
+            "text": "        (block delete) and the configuration (units, axis mask, limits). None"
+          },
+          {
+            "line": 439,
+            "text": "        when nothing, or no parameter basis, is published for this file.\"\"\""
+          },
+          {
+            "line": 440,
+            "text": "        base = self.published_ctx"
+          }
+        ]
+      },
+      {
+        "start": 533,
+        "end": 545,
+        "lines": [
+          {
+            "line": 533,
+            "text": "    def preview_refresh_status(self) -> Optional[dict]:"
+          },
+          {
+            "line": 534,
+            "text": "        \"\"\"The status wire's `preview_refresh` (2026-09-05): what the"
+          },
+          {
+            "line": 535,
+            "text": "        gateway is re-parsing and why, with the expected duration, so the"
+          },
+          {
+            "line": 536,
+            "text": "        operator sees the wait instead of a silently stale preview. None"
+          },
+          {
+            "line": 537,
+            "text": "        when no parse runs (the key is then absent from the frame).\"\"\""
+          },
+          {
+            "line": 538,
+            "text": "        inf = self.inflight"
+          },
+          {
+            "line": 539,
+            "text": "        if inf is None or not self.refresh_running:"
+          },
+          {
+            "line": 540,
+            "text": "            return None"
+          },
+          {
+            "line": 541,
+            "text": "        return {\"reason\": inf.get(\"reason\"), \"file\": os.path.basename(inf.get(\"file\") or \"\"),"
+          },
+          {
+            "line": 542,
+            "text": "                \"expected_ms\": inf.get(\"expected_ms\"), \"started_ms\": inf.get(\"started_ms\"),"
+          },
+          {
+            "line": 543,
+            "text": "                \"queued\": bool(self.reparse_pending),"
+          },
+          {
+            "line": 544,
+            "text": "                \"superseded\": self.superseded_total}"
+          },
+          {
+            "line": 545,
+            "text": ""
+          }
+        ]
+      },
+      {
+        "start": 855,
+        "end": 888,
+        "lines": [
+          {
+            "line": 855,
+            "text": "                # the mtime only, which an edit can keep."
+          },
+          {
+            "line": 856,
+            "text": "                _trace.emit(\"gcode.source_changed_during_parse\", level=\"warn\","
+          },
+          {
+            "line": 857,
+            "text": "                            file=os.path.basename(filepath))"
+          },
+          {
+            "line": 858,
+            "text": "                self.reparse_pending = True"
+          },
+          {
+            "line": 859,
+            "text": "                self.reparse_pending_reason = \"file\""
+          },
+          {
+            "line": 860,
+            "text": "            # Publish metadata + bytes together before bumping the version so"
+          },
+          {
+            "line": 861,
+            "text": "            # GET /preview readers never see stale bytes under a new version."
+          },
+          {
+            "line": 862,
+            "text": "            self.published_source = _source_at_parse if _source_after == _source_at_parse else None"
+          },
+          {
+            "line": 863,
+            "text": "            self.preview_pending = {\"file\": filepath}"
+          },
+          {
+            "line": 864,
+            "text": "            self.preview_raw_len = len(stdout)"
+          },
+          {
+            "line": 865,
+            "text": "            # Keep the raw copy ONLY when no gz exists: every real browser accepts"
+          },
+          {
+            "line": 866,
+            "text": "            # gzip, so holding raw + gz resident (~22 MB on a heavy file) paid for a"
+          },
+          {
+            "line": 867,
+            "text": "            # variant that was practically never served."
+          },
+          {
+            "line": 868,
+            "text": "            self.preview_bytes = None if preview_bytes_gz is not None else stdout"
+          },
+          {
+            "line": 869,
+            "text": "            self.preview_bytes_gz = preview_bytes_gz"
+          },
+          {
+            "line": 870,
+            "text": "            self.published_schema = worker_schema"
+          },
+          {
+            "line": 871,
+            "text": "            self.published_tlo = worker_tlo"
+          },
+          {
+            "line": 872,
+            "text": "            self.tool_basis = self.basis_of(worker_tlo)"
+          },
+          {
+            "line": 873,
+            "text": "            self.published_rotary_seed = worker_rotary_seed"
+          },
+          {
+            "line": 874,
+            "text": "            self.published_rotary_cmd = worker_rotary_cmd"
+          },
+          {
+            "line": 875,
+            "text": "            self.published_limits = worker_limits"
+          },
+          {
+            "line": 876,
+            "text": "            self.published_kins_seed = worker_kins_seed"
+          },
+          {
+            "line": 877,
+            "text": "            self.published_wcs_off = worker_wcs_off"
+          },
+          {
+            "line": 878,
+            "text": "            self.published_ctx = ctx"
+          },
+          {
+            "line": 879,
+            "text": "            self.table_stale = None"
+          },
+          {
+            "line": 880,
+            "text": "            self.published_params = worker_params if isinstance(worker_params, dict) else None"
+          },
+          {
+            "line": 881,
+            "text": "            self.published_toolsetter = worker_toolsetter if isinstance(worker_toolsetter, dict) else None"
+          },
+          {
+            "line": 882,
+            "text": "            self.preview_version += 1"
+          },
+          {
+            "line": 883,
+            "text": "            self.last_file = filepath"
+          },
+          {
+            "line": 884,
+            "text": "            self.last_mtime = _mtime_at_parse"
+          },
+          {
+            "line": 885,
+            "text": "            if not pinned:"
+          },
+          {
+            "line": 886,
+            "text": "                # A niced mid-run parse is no estimate for the next idle one."
+          },
+          {
+            "line": 887,
+            "text": "                self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)"
+          },
+          {
+            "line": 888,
+            "text": "            _trace.emit(\"gcode.publish\","
+          }
+        ]
+      },
+      {
+        "start": 900,
+        "end": 904,
+        "lines": [
+          {
+            "line": 900,
+            "text": "            self.refresh_running = False"
+          },
+          {
+            "line": 901,
+            "text": "            self.gcode_parse_proc = None"
+          },
+          {
+            "line": 902,
+            "text": "            self.inflight = None"
+          },
+          {
+            "line": 903,
+            "text": "            if _verify_path:"
+          },
+          {
+            "line": 904,
+            "text": "                try:"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "lcnc-gateway/gateway.py",
+    "sha256": "9f81935610606e0bf51c1fee09aeb7a0b208852bc399714714b1e6a663b057af",
+    "excerpts": [
+      {
+        "start": 1730,
+        "end": 1742,
+        "lines": [
+          {
+            "line": 1730,
+            "text": "                # the cache key (file+mtime) can't see a code upgrade, so the"
+          },
+          {
+            "line": 1731,
+            "text": "                # stamp is the missing key component. Latched per (file,"
+          },
+          {
+            "line": 1732,
+            "text": "                # mtime): if the mismatch survives one reparse (the worker on"
+          },
+          {
+            "line": 1733,
+            "text": "                # disk genuinely emits a different schema than this process"
+          },
+          {
+            "line": 1734,
+            "text": "                # imported — a half-upgraded install), respawning every tick"
+          },
+          {
+            "line": 1735,
+            "text": "                # fixes nothing; the client banner carries the signal instead."
+          },
+          {
+            "line": 1736,
+            "text": "                bool(st.active_file)"
+          },
+          {
+            "line": 1737,
+            "text": "                and not _bulk.refresh_running"
+          },
+          {
+            "line": 1738,
+            "text": "                and _bulk.preview_available()"
+          },
+          {
+            "line": 1739,
+            "text": "                and _bulk.published_schema != PREVIEW_SCHEMA"
+          },
+          {
+            "line": 1740,
+            "text": "                and _bulk.schema_reparse_attempted != (_bulk.last_file, _bulk.last_mtime)"
+          },
+          {
+            "line": 1741,
+            "text": "            ):"
+          },
+          {
+            "line": 1742,
+            "text": "                _bulk.schema_reparse_attempted = (_bulk.last_file, _bulk.last_mtime)"
+          }
+        ]
+      },
+      {
+        "start": 1754,
+        "end": 1776,
+        "lines": [
+          {
+            "line": 1754,
+            "text": "                # table_only) — the run's own G43 / M6 are no drift."
+          },
+          {
+            "line": 1755,
+            "text": "                st.active_file, _bulk.refresh_running, _bulk.preview_available(),"
+          },
+          {
+            "line": 1756,
+            "text": "                st.task_mode == linuxcnc.MODE_AUTO,"
+          },
+          {
+            "line": 1757,
+            "text": "                st.interp_state == linuxcnc.INTERP_IDLE,"
+          },
+          {
+            "line": 1758,
+            "text": "                time.monotonic() - _bulk.tlo_check_ts,"
+          },
+          {
+            "line": 1759,
+            "text": "            ):"
+          },
+          {
+            "line": 1760,
+            "text": "                _bulk.tlo_check_ts = time.monotonic()"
+          },
+          {
+            "line": 1761,
+            "text": "                _mdrift = None"
+          },
+          {
+            "line": 1762,
+            "text": "                if _bulk.published_tlo is not None:"
+          },
+          {
+            "line": 1763,
+            "text": "                    _tt_cur, _rows = _tool_table_now(_bulk.published_tlo)"
+          },
+          {
+            "line": 1764,
+            "text": "                    _mdrift = evaluate_tlo_drift("
+          },
+          {
+            "line": 1765,
+            "text": "                        _bulk.published_tlo, _tt_cur, None,"
+          },
+          {
+            "line": 1766,
+            "text": "                        table_rows=_rows, table_only=True)"
+          },
+          {
+            "line": 1767,
+            "text": "                _mact, _mwhy = midrun_table_action("
+          },
+          {
+            "line": 1768,
+            "text": "                    _mdrift,"
+          },
+          {
+            "line": 1769,
+            "text": "                    bool(_bulk.published_ctx) and _bulk.published_ctx.get(\"file\") == st.active_file,"
+          },
+          {
+            "line": 1770,
+            "text": "                    bool(_bulk.published_params) and _bulk.published_params.get(\"text\") is not None,"
+          },
+          {
+            "line": 1771,
+            "text": "                    _bulk.pin_unsupported)"
+          },
+          {
+            "line": 1772,
+            "text": "                if _mact == \"pinned\":"
+          },
+          {
+            "line": 1773,
+            "text": "                    _trace.emit(\"gcode.reparse_table_midrun\", reason=_mdrift,"
+          },
+          {
+            "line": 1774,
+            "text": "                                tool=st.tool_number)"
+          },
+          {
+            "line": 1775,
+            "text": "                    _bulk.schedule_refresh(st.active_file, \"midrun:\" + _mdrift,"
+          },
+          {
+            "line": 1776,
+            "text": "                                           _spawn_preview_task, pinned=True)"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "file": "docs/reviews/viewer-palette-fest.ideen.md",
+    "sha256": "69bb4620a9be98b6a6d0a93d40505ee83ec02df5bb7966586c0e75768d91c0e2",
+    "excerpts": [
+      {
+        "start": 14273,
+        "end": 14295,
+        "lines": [
+          {
+            "line": 14273,
+            "text": ""
+          },
+          {
+            "line": 14274,
+            "text": "**Wächter:** unbekannte Länge mit Hindernis schon zwischen M6 und G38; `G43` erneut für dasselbe unbekannte Werkzeug; G49; Wechsel auf ein bekanntes anderes Werkzeug; fehlendes Setup mit weiteren Bewegungen. Das lässt sich ohne eine allgemeine Simulation physischer Tasterfehler festlegen."
+          },
+          {
+            "line": 14275,
+            "text": ""
+          },
+          {
+            "line": 14276,
+            "text": "### VP102-04 · P2 · Eine neue Tabelle oder ein TLO-Ereignis beweist nicht „measured“"
+          },
+          {
+            "line": 14277,
+            "text": ""
+          },
+          {
+            "line": 14278,
+            "text": "**Planabschnitt 4** lässt die Basisanzeige bei einem Mittellauf-Payload auf „measured“ wechseln. Der vorhandene Auslöser in `gateway.py:1742ff` beobachtet jedoch eine Tabellenänderung, nicht den erfolgreichen Abschluss von M600. Auch ein gewöhnliches `G10 L1` oder eine andere Tabellenänderung kann ihn auslösen. Eine erfolgreiche Messung auf denselben Wert muss umgekehrt keinen neuen Längenwert erzeugen. `tool_offset` ist ebenfalls kein Messnachweis: Schon die eigene native Probe mit bloßem G43 erzeugt ein TLO-Ereignis mit Z10, ganz ohne Tasten."
+          },
+          {
+            "line": 14279,
+            "text": ""
+          },
+          {
+            "line": 14280,
+            "text": "**Erforderlich:** Entweder eine bestätigte Messherkunft mit Werkzeug, konkretem Aufruf/Lauf und Gültigkeit definieren, oder die Anzeige an den tatsächlich vorhandenen Nachweis anpassen: etwa „table updated“ beziehungsweise „applied offset“. „From the table“ ist für die angenommene Vorschau richtig. Marker plus passendes abschließendes G43 reichen als **Vorschau-Basisereignis**, aber nicht als Bestätigung einer realen Messung. Die Paarung muss auf den jeweiligen Routine-Aufruf begrenzt sein; RFL-Return, T0 und ein nachfolgendes beliebiges G43 dürfen keinen offenen Marker vervollständigen."
+          },
+          {
+            "line": 14281,
+            "text": ""
+          },
+          {
+            "line": 14282,
+            "text": "[Native Gegenprobe](viewer-palette-fest.r102.codex-native.json); [LinuxCNC: G43 aktiviert einen Tabellenoffset](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g43)."
+          },
+          {
+            "line": 14283,
+            "text": ""
+          },
+          {
+            "line": 14284,
+            "text": "### VP102-05 · P1 · Die Restprüfung im Lauf braucht einen definierten Ausschnitt und eine Ergebnisgültigkeit"
+          },
+          {
+            "line": 14285,
+            "text": ""
+          },
+          {
+            "line": 14286,
+            "text": "**Planabschnitt 4 / Paket 5** ist bisher nur ein Zielsatz. „Ab der aktuellen Zeile“ definiert den Rest eines ausgeführten Programms nicht: `current_line` ist laut `status_runtime.py:244` der vorauslesende Interpreterstand. Unterprogramme, Remaps und Schleifen wiederholen Zeilennummern; der bestehende Positionsabgleich in `scrubTrack.ts:721ff` konsultiert `motion_line` genau deshalb nicht. Während Parse und Sweep arbeiten, bewegt sich die Maschine weiter und kann erneut Werkzeug, Offset oder Programm ändern."
+          },
+          {
+            "line": 14287,
+            "text": ""
+          },
+          {
+            "line": 14288,
+            "text": "**Erforderlich vor Umsetzung dieses Pakets:**"
+          },
+          {
+            "line": 14289,
+            "text": ""
+          },
+          {
+            "line": 14290,
+            "text": "- Den Start im konkreten Track-Vorkommen und mit der dazu passenden Pose/WCS/TLO/Kinematik festlegen. Bei mehrdeutiger oder fehlender Zuordnung keinen Restbereich als geprüft ausgeben. Ein Schnitt mitten in einer Bewegung muss deren verbleibenden Teil enthalten."
+          },
+          {
+            "line": 14291,
+            "text": "- Einen Ergebnisauftrag an Datei/Version, Parse-/Tabellenbasis und Lauf binden. Alte Antworten nach neuer Messung, Reload, Abbruch oder Laufende verwerfen; das Verhalten beim Fortschreiten der laufenden Position festlegen."
+          },
+          {
+            "line": 14292,
+            "text": "- Kontaktzustand am Schnitt berücksichtigen: Ein bereits bestehender Kontakt darf beim neuen Seitenlauf nicht versehentlich zur statischen Basisausnahme werden. Nur tatsächlich abgedeckte Teilstrecken als geprüft zeigen; „noch offen“, „abgebrochen“ und „unbekannt“ bleiben unterscheidbar."
+          },
+          {
+            "line": 14293,
+            "text": "- CPU-Budget und Darstellung während der Berechnung definieren. Die haus-Messung liegt in der Größenordnung von Minuten; „next clash“ darf kein rechtzeitig berechnetes Ergebnis für noch ungeprüfte Strecke versprechen."
+          },
+          {
+            "line": 14294,
+            "text": ""
+          },
+          {
+            "line": 14295,
+            "text": "**Wächter:** zweimal dieselbe Unterprogrammzeile, Schnitt mitten in einem Segment, schon bestehender Kontakt, zweite Tabellenänderung vor erster Antwort, Abbruch/Dateiwechsel sowie nur teilweise beendeter Sweep. Empfehlung: Diesen Schritt als eigenes Folgepaket konkretisieren. Er muss die vorgezogene Umsetzung der statischen M600-Vorschau nach Klärung von VP102-01 bis -04 nicht unnötig vergrößern; im aktuellen Gesamtplan ist er noch nicht abnahmefähig."
+          }
+        ]
+      }
+    ]
+  }
+]
