@@ -1,0 +1,58 @@
+{
+  "result": {
+    "hits": [
+      {
+        "line": 3,
+        "cum": 45,
+        "cumEnd": 50,
+        "a": "spindle",
+        "b": "vise",
+        "dist": 0,
+        "rapid": false,
+        "boundary": true,
+        "intervals": [
+          [
+            45,
+            50
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 27,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 1.4855139999999665,
+    "sweepMs": 21.47382299999998,
+    "truncated": null,
+    "range": {
+      "fromCum": 45,
+      "fromLine": 3
+    },
+    "boundaryContacts": [
+      {
+        "a": "spindle",
+        "b": "vise",
+        "line": 3,
+        "cum": 45,
+        "dist": 0,
+        "cutting": false
+      }
+    ]
+  },
+  "countedCollisions": 0,
+  "emittedMarks": [
+    {
+      "line": 3,
+      "boundary": true
+    }
+  ],
+  "title": "in contact at the check's start (provisional) — where it began and what it is, the full check says",
+  "glow": [
+    "spindle",
+    "vise"
+  ]
+}

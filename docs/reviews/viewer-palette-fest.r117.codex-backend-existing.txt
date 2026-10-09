@@ -1,0 +1,26 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+test_a_context_that_is_not_the_runs_names_no_run (test_bulk_pipeline.TestRunBinding.test_a_context_that_is_not_the_runs_names_no_run) ... ok
+test_a_pinned_parse_for_a_run_is_built_from_the_runs_start (test_bulk_pipeline.TestRunBinding.test_a_pinned_parse_for_a_run_is_built_from_the_runs_start) ... ok
+test_every_difference_from_the_published_start_is_not_verified (test_bulk_pipeline.TestRunBinding.test_every_difference_from_the_published_start_is_not_verified) ... ok
+test_every_publication_says_where_it_comes_from (test_bulk_pipeline.TestRunBinding.test_every_publication_says_where_it_comes_from) ... ok
+test_the_binding_is_checked_again_at_the_publish (test_bulk_pipeline.TestRunBinding.test_the_binding_is_checked_again_at_the_publish) ... ok
+test_the_origin_on_the_wire_has_the_fixtures_keys (test_bulk_pipeline.TestRunBinding.test_the_origin_on_the_wire_has_the_fixtures_keys) ... ok
+test_the_published_start_is_verified (test_bulk_pipeline.TestRunBinding.test_the_published_start_is_verified) ... ok
+test_the_start_ctx_is_a_copy (test_bulk_pipeline.TestRunBinding.test_the_start_ctx_is_a_copy) ... ok
+test_the_tool_basis_revision_counts_changes_only (test_bulk_pipeline.TestRunBinding.test_the_tool_basis_revision_counts_changes_only) ... ok
+test_a_run_basis_is_taken_before_the_start_is_written (test_command_dispatch.TestHandlerExecution.test_a_run_basis_is_taken_before_the_start_is_written) ... ok
+test_a_write_that_fails_is_no_run (test_command_dispatch.TestHandlerExecution.test_a_write_that_fails_is_no_run) ... ok
+test_a_start_cancelled_before_its_write_is_no_run (test_command_dispatch.TestHandlerExecution.test_a_start_cancelled_before_its_write_is_no_run) ... ok
+test_a_start_whose_capture_fails_names_no_start_and_still_goes_out (test_command_dispatch.TestHandlerExecution.test_a_start_whose_capture_fails_names_no_start_and_still_goes_out) ... ok
+test_a_paused_step_and_a_resume_continue_the_run (test_command_dispatch.TestHandlerExecution.test_a_paused_step_and_a_resume_continue_the_run) ... ok
+test_the_basis_is_taken_on_a_fresh_poll (test_command_dispatch.TestHandlerExecution.test_the_basis_is_taken_on_a_fresh_poll) ... ok
+test_a_verified_start_carries_the_start_context (test_command_dispatch.TestHandlerExecution.test_a_verified_start_carries_the_start_context) ... ok
+test_the_run_basis_on_the_wire_has_the_fixtures_keys (test_command_dispatch.TestHandlerExecution.test_the_run_basis_on_the_wire_has_the_fixtures_keys) ... ok
+test_the_start_snapshot_reads_like_the_status (test_command_dispatch.TestHandlerExecution.test_the_start_snapshot_reads_like_the_status) ... ok
+test_the_toolsetter_book_is_an_open_edge_at_the_start (test_command_dispatch.TestHandlerExecution.test_the_toolsetter_book_is_an_open_edge_at_the_start) ... ok
+
+----------------------------------------------------------------------
+Ran 19 tests in 2.587s
+
+OK
+[GC] +2772ms gen=2 duration=11.1ms collected=513 uncollectable=0

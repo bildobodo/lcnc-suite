@@ -1,0 +1,30 @@
+{
+  "scope": "Real _cmd_blocking/_begin_run_basis/_run_for_pin under fake_linuxcnc. No live command. First run verification is a fixture; second-run poll failure is injected.",
+  "command_spy": [
+    [
+      16,
+      1,
+      "sending"
+    ],
+    [
+      16,
+      2,
+      "sending"
+    ]
+  ],
+  "previous_run_id": 1,
+  "after_new_start": {
+    "run_id": 2,
+    "state": "sent",
+    "file": "/tmp/tmpmenl28gt/a.ngc",
+    "source": null,
+    "version": null,
+    "ctx_digest": null,
+    "tool_basis_rev": 0,
+    "start": null,
+    "verified": false,
+    "why": "controller status not read"
+  },
+  "same_record_after_new_start": false,
+  "old_verified_context_selected_for_next_pin": false
+}

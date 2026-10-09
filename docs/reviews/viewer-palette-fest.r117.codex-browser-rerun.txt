@@ -1,0 +1,47 @@
+[2m[WebServer] [22m(node:750283) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:750295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:750295) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:620:1 › a worker that asks for the bodies gets the same request again — provisional and full keep their range, run and the result on screen (Codex R116 VP-I70) (7.5s)
+  ✓  2 e2e/collisions.viewer.spec.ts:656:1 › the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (7.2s)
+  ✘  3 e2e/collisions.viewer.spec.ts:998:1 › Codex R117: forty boundary contacts remain reachable at portrait and landscape zoom (9.9s)
+
+
+  1) e2e/collisions.viewer.spec.ts:998:1 › Codex R117: forty boundary contacts remain reachable at portrait and landscape zoom 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: [32m"r117-part-0"[39m
+    Received string:    [31m"Checked from L7, where the machine presumably is; the program's start follows in the full check. In contact at the check's start: R117-part-0 ↔ R117-peer-0 (L7, the cutter in the stock); R117-part-1 ↔ R117-peer-1 (L7); R117-part-2 ↔ R117-peer-2 (L7, the cutter in the stock); R117-part-3 ↔ R117-peer-3 (L7); R117-part-4 ↔ R117-peer-4 (L7, the cutter in the stock); R117-part-5 ↔ R117-peer-5 (L7); R117-part-6 ↔ R117-peer-6 (L7, the cutter in the stock); R117-part-7 ↔ R117-peer-7 (L7); R117-part-8 ↔ R117-peer-8 (L7, the cutter in the stock); R117-part-9 ↔ R117-peer-9 (L7); R117-part-10 ↔ R117-peer-10 (L7, the cutter in the stock); R117-part-11 ↔ R117-peer-11 (L7); R117-part-12 ↔ R117-peer-12 (L7, the cutter in the stock); R117-part-13 ↔ R117-peer-13 (L7); R117-part-14 ↔ R117-peer-14 (L7, the cutter in the stock); R117-part-15 ↔ R117-peer-15 (L7); R117-part-16 ↔ R117-peer-16 (L7, the cutter in the stock); R117-part-17 ↔ R117-peer-17 (L7); R117-part-18 ↔ R117-peer-18 (L7, the cutter in the stock); R117-part-19 ↔ R117-peer-19 (L7); R117-part-20 ↔ R117-peer-20 (L7, the cutter in the stock); R117-part-21 ↔ R117-peer-21 (L7); R117-part-22 ↔ R117-peer-22 (L7, the cutter in the stock); R117-part-23 ↔ R117-peer-23 (L7); R117-part-24 ↔ R117-peer-24 (L7, the cutter in the stock); R117-part-25 ↔ R117-peer-25 (L7); R117-part-26 ↔ R117-peer-26 (L7, the cutter in the stock); R117-part-27 ↔ R117-peer-27 (L7); R117-part-28 ↔ R117-peer-28 (L7, the cutter in the stock); R117-part-29 ↔ R117-peer-29 (L7); R117-part-30 ↔ R117-peer-30 (L7, the cutter in the stock); R117-part-31 ↔ R117-peer-31 (L7); R117-part-32 ↔ R117-peer-32 (L7, the cutter in the stock); R117-part-33 ↔ R117-peer-33 (L7); R117-part-34 ↔ R117-peer-34 (L7, the cutter in the stock); R117-part-35 ↔ R117-peer-35 (L7); R117-part-36 ↔ R117-peer-36 (L7, the cutter in the stock); R117-part-37 ↔ R117-peer-37 (L7); R117-part-38 ↔ R117-peer-38 (L7, the cutter in the stock); R117-part-39 ↔ R117-peer-39 (L7) — where each began and what it is, the full check says. A stop shows the first contact (machine off). 9 contacts at the start ignored. No tool loaded: checked with a 6 mm stub."[39m
+
+      1030 |         overflowY:getComputedStyle(el).overflowY,text:el.textContent};
+      1031 |     });
+    > 1032 |     for(let i=0;i<40;i++) expect(before.text).toContain(`r117-part-${i}`);
+           |                                               ^
+      1033 |     expect(before.x).toBeGreaterThanOrEqual(0);expect(before.y).toBeGreaterThanOrEqual(0);
+      1034 |     expect(before.right).toBeLessThanOrEqual(size.width+1);expect(before.bottom).toBeLessThanOrEqual(size.height+1);
+      1035 |     expect(before.scrollWidth).toBeLessThanOrEqual(before.clientWidth+1);
+        at /tmp/codex-r117-l2qvz9hs/lcnc-webui/e2e/collisions.viewer.spec.ts:1032:47
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../r117-browser-results/collisions.viewer-Codex-R1-a44cb-portrait-and-landscape-zoom/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../r117-browser-results/collisions.viewer-Codex-R1-a44cb-portrait-and-landscape-zoom/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    ../r117-browser-results/collisions.viewer-Codex-R1-a44cb-portrait-and-landscape-zoom/trace.zip
+    Usage:
+
+        npx playwright show-trace ../r117-browser-results/collisions.viewer-Codex-R1-a44cb-portrait-and-landscape-zoom/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/collisions.viewer.spec.ts:998:1 › Codex R117: forty boundary contacts remain reachable at portrait and landscape zoom 
+  2 passed (26.3s)

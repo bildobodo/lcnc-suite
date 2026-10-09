@@ -1,0 +1,74 @@
+[
+  {
+    "size": {
+      "width": 1280,
+      "height": 800,
+      "zoom": "1"
+    },
+    "before": {
+      "x": 986,
+      "y": 205.5,
+      "right": 1274,
+      "bottom": 794,
+      "clientHeight": 587,
+      "scrollHeight": 757,
+      "scrollWidth": 271,
+      "clientWidth": 271,
+      "overflowY": "auto",
+      "text": "Checked from L7, where the machine presumably is; the program's start follows in the full check. In contact at the check's start: R117-part-0 ↔ R117-peer-0 (L7, the cutter in the stock); R117-part-1 ↔ R117-peer-1 (L7); R117-part-2 ↔ R117-peer-2 (L7, the cutter in the stock); R117-part-3 ↔ R117-peer-3 (L7); R117-part-4 ↔ R117-peer-4 (L7, the cutter in the stock); R117-part-5 ↔ R117-peer-5 (L7); R117-part-6 ↔ R117-peer-6 (L7, the cutter in the stock); R117-part-7 ↔ R117-peer-7 (L7); R117-part-8 ↔ R117-peer-8 (L7, the cutter in the stock); R117-part-9 ↔ R117-peer-9 (L7); R117-part-10 ↔ R117-peer-10 (L7, the cutter in the stock); R117-part-11 ↔ R117-peer-11 (L7); R117-part-12 ↔ R117-peer-12 (L7, the cutter in the stock); R117-part-13 ↔ R117-peer-13 (L7); R117-part-14 ↔ R117-peer-14 (L7, the cutter in the stock); R117-part-15 ↔ R117-peer-15 (L7); R117-part-16 ↔ R117-peer-16 (L7, the cutter in the stock); R117-part-17 ↔ R117-peer-17 (L7); R117-part-18 ↔ R117-peer-18 (L7, the cutter in the stock); R117-part-19 ↔ R117-peer-19 (L7); R117-part-20 ↔ R117-peer-20 (L7, the cutter in the stock); R117-part-21 ↔ R117-peer-21 (L7); R117-part-22 ↔ R117-peer-22 (L7, the cutter in the stock); R117-part-23 ↔ R117-peer-23 (L7); R117-part-24 ↔ R117-peer-24 (L7, the cutter in the stock); R117-part-25 ↔ R117-peer-25 (L7); R117-part-26 ↔ R117-peer-26 (L7, the cutter in the stock); R117-part-27 ↔ R117-peer-27 (L7); R117-part-28 ↔ R117-peer-28 (L7, the cutter in the stock); R117-part-29 ↔ R117-peer-29 (L7); R117-part-30 ↔ R117-peer-30 (L7, the cutter in the stock); R117-part-31 ↔ R117-peer-31 (L7); R117-part-32 ↔ R117-peer-32 (L7, the cutter in the stock); R117-part-33 ↔ R117-peer-33 (L7); R117-part-34 ↔ R117-peer-34 (L7, the cutter in the stock); R117-part-35 ↔ R117-peer-35 (L7); R117-part-36 ↔ R117-peer-36 (L7, the cutter in the stock); R117-part-37 ↔ R117-peer-37 (L7); R117-part-38 ↔ R117-peer-38 (L7, the cutter in the stock); R117-part-39 ↔ R117-peer-39 (L7) — where each began and what it is, the full check says. A stop shows the first contact (machine off). 9 contacts at the start ignored. No tool loaded: checked with a 6 mm stub."
+    },
+    "focus": {
+      "tag": "DIV",
+      "cls": "helpPopover"
+    },
+    "atEnd": 170
+  },
+  {
+    "size": {
+      "width": 900,
+      "height": 1200,
+      "zoom": "1.5"
+    },
+    "before": {
+      "x": 462,
+      "y": 6,
+      "right": 894,
+      "bottom": 814,
+      "clientHeight": 537,
+      "scrollHeight": 758,
+      "scrollWidth": 277,
+      "clientWidth": 277,
+      "overflowY": "auto",
+      "text": "Checked from L7, where the machine presumably is; the program's start follows in the full check. In contact at the check's start: R117-part-0 ↔ R117-peer-0 (L7, the cutter in the stock); R117-part-1 ↔ R117-peer-1 (L7); R117-part-2 ↔ R117-peer-2 (L7, the cutter in the stock); R117-part-3 ↔ R117-peer-3 (L7); R117-part-4 ↔ R117-peer-4 (L7, the cutter in the stock); R117-part-5 ↔ R117-peer-5 (L7); R117-part-6 ↔ R117-peer-6 (L7, the cutter in the stock); R117-part-7 ↔ R117-peer-7 (L7); R117-part-8 ↔ R117-peer-8 (L7, the cutter in the stock); R117-part-9 ↔ R117-peer-9 (L7); R117-part-10 ↔ R117-peer-10 (L7, the cutter in the stock); R117-part-11 ↔ R117-peer-11 (L7); R117-part-12 ↔ R117-peer-12 (L7, the cutter in the stock); R117-part-13 ↔ R117-peer-13 (L7); R117-part-14 ↔ R117-peer-14 (L7, the cutter in the stock); R117-part-15 ↔ R117-peer-15 (L7); R117-part-16 ↔ R117-peer-16 (L7, the cutter in the stock); R117-part-17 ↔ R117-peer-17 (L7); R117-part-18 ↔ R117-peer-18 (L7, the cutter in the stock); R117-part-19 ↔ R117-peer-19 (L7); R117-part-20 ↔ R117-peer-20 (L7, the cutter in the stock); R117-part-21 ↔ R117-peer-21 (L7); R117-part-22 ↔ R117-peer-22 (L7, the cutter in the stock); R117-part-23 ↔ R117-peer-23 (L7); R117-part-24 ↔ R117-peer-24 (L7, the cutter in the stock); R117-part-25 ↔ R117-peer-25 (L7); R117-part-26 ↔ R117-peer-26 (L7, the cutter in the stock); R117-part-27 ↔ R117-peer-27 (L7); R117-part-28 ↔ R117-peer-28 (L7, the cutter in the stock); R117-part-29 ↔ R117-peer-29 (L7); R117-part-30 ↔ R117-peer-30 (L7, the cutter in the stock); R117-part-31 ↔ R117-peer-31 (L7); R117-part-32 ↔ R117-peer-32 (L7, the cutter in the stock); R117-part-33 ↔ R117-peer-33 (L7); R117-part-34 ↔ R117-peer-34 (L7, the cutter in the stock); R117-part-35 ↔ R117-peer-35 (L7); R117-part-36 ↔ R117-peer-36 (L7, the cutter in the stock); R117-part-37 ↔ R117-peer-37 (L7); R117-part-38 ↔ R117-peer-38 (L7, the cutter in the stock); R117-part-39 ↔ R117-peer-39 (L7) — where each began and what it is, the full check says. A stop shows the first contact (machine off). 9 contacts at the start ignored. No tool loaded: checked with a 6 mm stub."
+    },
+    "focus": {
+      "tag": "DIV",
+      "cls": "helpPopover"
+    },
+    "atEnd": 220
+  },
+  {
+    "size": {
+      "width": 1024,
+      "height": 768,
+      "zoom": "1.5"
+    },
+    "before": {
+      "x": 586,
+      "y": 302.25,
+      "right": 1018,
+      "bottom": 762,
+      "clientHeight": 305,
+      "scrollHeight": 758,
+      "scrollWidth": 277,
+      "clientWidth": 277,
+      "overflowY": "auto",
+      "text": "Checked from L7, where the machine presumably is; the program's start follows in the full check. In contact at the check's start: R117-part-0 ↔ R117-peer-0 (L7, the cutter in the stock); R117-part-1 ↔ R117-peer-1 (L7); R117-part-2 ↔ R117-peer-2 (L7, the cutter in the stock); R117-part-3 ↔ R117-peer-3 (L7); R117-part-4 ↔ R117-peer-4 (L7, the cutter in the stock); R117-part-5 ↔ R117-peer-5 (L7); R117-part-6 ↔ R117-peer-6 (L7, the cutter in the stock); R117-part-7 ↔ R117-peer-7 (L7); R117-part-8 ↔ R117-peer-8 (L7, the cutter in the stock); R117-part-9 ↔ R117-peer-9 (L7); R117-part-10 ↔ R117-peer-10 (L7, the cutter in the stock); R117-part-11 ↔ R117-peer-11 (L7); R117-part-12 ↔ R117-peer-12 (L7, the cutter in the stock); R117-part-13 ↔ R117-peer-13 (L7); R117-part-14 ↔ R117-peer-14 (L7, the cutter in the stock); R117-part-15 ↔ R117-peer-15 (L7); R117-part-16 ↔ R117-peer-16 (L7, the cutter in the stock); R117-part-17 ↔ R117-peer-17 (L7); R117-part-18 ↔ R117-peer-18 (L7, the cutter in the stock); R117-part-19 ↔ R117-peer-19 (L7); R117-part-20 ↔ R117-peer-20 (L7, the cutter in the stock); R117-part-21 ↔ R117-peer-21 (L7); R117-part-22 ↔ R117-peer-22 (L7, the cutter in the stock); R117-part-23 ↔ R117-peer-23 (L7); R117-part-24 ↔ R117-peer-24 (L7, the cutter in the stock); R117-part-25 ↔ R117-peer-25 (L7); R117-part-26 ↔ R117-peer-26 (L7, the cutter in the stock); R117-part-27 ↔ R117-peer-27 (L7); R117-part-28 ↔ R117-peer-28 (L7, the cutter in the stock); R117-part-29 ↔ R117-peer-29 (L7); R117-part-30 ↔ R117-peer-30 (L7, the cutter in the stock); R117-part-31 ↔ R117-peer-31 (L7); R117-part-32 ↔ R117-peer-32 (L7, the cutter in the stock); R117-part-33 ↔ R117-peer-33 (L7); R117-part-34 ↔ R117-peer-34 (L7, the cutter in the stock); R117-part-35 ↔ R117-peer-35 (L7); R117-part-36 ↔ R117-peer-36 (L7, the cutter in the stock); R117-part-37 ↔ R117-peer-37 (L7); R117-part-38 ↔ R117-peer-38 (L7, the cutter in the stock); R117-part-39 ↔ R117-peer-39 (L7) — where each began and what it is, the full check says. A stop shows the first contact (machine off). 9 contacts at the start ignored. No tool loaded: checked with a 6 mm stub."
+    },
+    "focus": {
+      "tag": "DIV",
+      "cls": "helpPopover"
+    },
+    "atEnd": 452
+  }
+]

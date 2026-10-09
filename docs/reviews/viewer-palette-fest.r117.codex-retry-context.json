@@ -1,0 +1,84 @@
+{
+  "original": {
+    "gen": 12,
+    "phase": "provisional",
+    "range": {
+      "from": 1
+    }
+  },
+  "sent": [
+    {
+      "id": 8,
+      "options": {
+        "range": {
+          "from": 1
+        }
+      }
+    },
+    {
+      "id": 9,
+      "options": {}
+    },
+    {
+      "id": 10,
+      "options": {}
+    }
+  ],
+  "calls": [
+    {
+      "id": 8,
+      "side": false,
+      "basis": {
+        "kind": "run",
+        "runId": 9
+      },
+      "range": {
+        "from": 1
+      }
+    },
+    {
+      "id": 9,
+      "side": false,
+      "basis": {
+        "kind": "run",
+        "runId": 9
+      },
+      "range": null
+    },
+    {
+      "id": 10,
+      "side": false,
+      "basis": {
+        "kind": "run",
+        "runId": 9
+      },
+      "range": null
+    }
+  ],
+  "after": {
+    "retry": {
+      "meta": {
+        "maxShards": null,
+        "sliceMs": null,
+        "range": 1
+      },
+      "gen": 12,
+      "keepShown": false
+    },
+    "fullRetry": {
+      "meta": {
+        "maxShards": null,
+        "sliceMs": null,
+        "range": null
+      },
+      "gen": 12,
+      "keepShown": true,
+      "retained": true
+    },
+    "phase": "full",
+    "log": [
+      "full",
+      "done"
+    ]
+  }
+}
