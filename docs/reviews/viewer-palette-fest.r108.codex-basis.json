@@ -1,0 +1,70 @@
+[
+  {
+    "text": "#3009=4",
+    "assigned_keys": [
+      3009
+    ],
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791536386.8337681
+    }
+  },
+  {
+    "text": "#1=3009\n##1=4",
+    "assigned_keys": null,
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791536386.8338478
+    }
+  },
+  {
+    "text": "#3 0 0 9=4",
+    "assigned_keys": [
+      3009
+    ],
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791536386.8339128
+    }
+  },
+  {
+    "text": "#+3009=4",
+    "assigned_keys": [
+      3009
+    ],
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791536386.8339636
+    }
+  },
+  {
+    "text": "#3009.0=4",
+    "assigned_keys": [
+      3009
+    ],
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791536386.8340058
+    }
+  },
+  {
+    "text": "#[3000+9]=4",
+    "assigned_keys": null,
+    "basis_state": "assumed",
+    "3009": {
+      "value": 4.0,
+      "origin": "assumed",
+      "t": 1791536386.8340523
+    }
+  }
+]

@@ -1,0 +1,532 @@
+{
+  "assign_literal": {
+    "tuple": [
+      "G21 G90\n#3009 = 4\nG0 X#3009 Y0 Z0\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        }
+      }
+    ]
+  },
+  "assign_double_hash": {
+    "tuple": [
+      "G21 G90\n#1=3009\n##1=4\nG0 X#3009 Y0 Z0\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        }
+      }
+    ]
+  },
+  "assign_spaced": {
+    "tuple": [
+      "G21 G90\n#3 0 0 9=4\nG0 X#3009 Y0 Z0\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        }
+      }
+    ]
+  },
+  "assign_signed": {
+    "tuple": [
+      "G21 G90\n#+3009=4\nG0 X#3009 Y0 Z0\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        }
+      }
+    ]
+  },
+  "assign_decimal": {
+    "tuple": [
+      "G21 G90\n#3009.0=4\nG0 X#3009 Y0 Z0\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        }
+      }
+    ]
+  },
+  "foreign_control": {
+    "tuple": [
+      "G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\nT2 M600\nG0 X60 Y60\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+        "subs": {
+          "othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\n"
+        }
+      }
+    ]
+  },
+  "foreign_compact": {
+    "tuple": [
+      "G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\nT2M600\nG0 X60 Y60\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+        "subs": {
+          "othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\n"
+        }
+      }
+    ]
+  },
+  "foreign_signed": {
+    "tuple": [
+      "G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\nT2 M+600\nG0 X60 Y60\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+        "subs": {
+          "othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\n"
+        }
+      }
+    ]
+  },
+  "foreign_expression": {
+    "tuple": [
+      "G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\nT2 M[600]\nG0 X60 Y60\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+        "subs": {
+          "othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\n"
+        }
+      }
+    ]
+  },
+  "foreign_called": {
+    "tuple": [
+      "G21 G90\nG0 X50 Y50 Z-100\no<child> call\nG0 X60 Y60\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc",
+        "subs": {
+          "othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\n",
+          "child.ngc": "o<child> sub\nT2 M600\no<child> endsub\n"
+        }
+      }
+    ]
+  },
+  "unknown_first": {
+    "m600": {
+      "prog": "G21 G90\nT2 M600\nG0 X60 Y60 Z-100\nG0 X70\nM2\n",
+      "ctx": {
+        "toolsetter_unpredictable": "toolsetter_unknown"
+      }
+    }
+  },
+  "repeat_same_tool": {
+    "m600": {
+      "prog": "G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60\n#3007=1\nT2 M600\nG0 X70\nM2\n"
+    }
+  },
+  "near_call_pair": {
+    "m600": {
+      "prog": "G21 G90\nG0 X50 Y50 Z-100\nT2 M599.99999\nG0 X60\nT1 M600\nG0 X70\nM2\n"
+    }
+  },
+  "near_call_single": {
+    "m600": {
+      "prog": "G21 G90\nG0 X50 Y50 Z-100\nT2 M599.99999\nG0 X60\nM2\n"
+    }
+  },
+  "remap_write": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z0\nM200\nG0 X#3009\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        },
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=setter_write",
+        "subs": {
+          "setter_write.ngc": "o<setter_write> sub\n#3009=4\no<setter_write> endsub\n"
+        }
+      }
+    ]
+  },
+  "foreign_remap_nested": {
+    "tuple": [
+      "G21 G90\nG0 X50 Y50 Z-100\nM200\nG0 X60 Y60\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=othertc\nREMAP=M200 modalgroup=10 ngc=wrapper",
+        "subs": {
+          "othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\n",
+          "wrapper.ngc": "o<wrapper> sub\nT2 M600\no<wrapper> endsub\n"
+        }
+      }
+    ]
+  },
+  "inline_if_assignment": {
+    "tuple": [
+      "G21 G90\no100 if [1] #3009=4\no100 endif\nG0 X#3009 Y0 Z0\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        }
+      }
+    ]
+  },
+  "inline_endif_assignment": {
+    "tuple": [
+      "G21 G90\no100 if [1]\no100 endif #3009=4\nG0 X#3009 Y0 Z0\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        }
+      }
+    ]
+  },
+  "comment_split_remap": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z0\nM2(x)00\nG0 X#3009\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "var": {
+          "3009": 3
+        },
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=setter_write",
+        "subs": {
+          "setter_write.ngc": "o<setter_write> sub\n#3009=4\no<setter_write> endsub\n"
+        }
+      }
+    ]
+  },
+  "negative_g92_expr": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\nG-[-92] X10\nG0 X11\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {}
+    ]
+  },
+  "negative_g92_var": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\n#1=-92\nG-#1 X10\nG0 X11\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {}
+    ]
+  },
+  "negative_g10_expr": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\nG-[-10] L2 P1 X5\nG0 X11\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {}
+    ]
+  },
+  "negative_g10_function": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\nG-ABS[-10] L2 P1 X5\nG0 X11\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {}
+    ]
+  },
+  "stale_g92_control": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\nT2 M6\nG92 X10\nG0 X11 Y0 Z0\nG0 X12\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 100 100 -100"
+      }
+    ]
+  },
+  "stale_g92_negative": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\nT2 M6\nG-[-92] X10\nG0 X11 Y0 Z0\nG0 X12\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 100 100 -100"
+      }
+    ]
+  },
+  "stale_g10_control": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\nT2 M6\nG10 L20 P1 X10\nG0 X11 Y0 Z0\nG0 X12\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 100 100 -100"
+      }
+    ]
+  },
+  "stale_g10_negative": {
+    "tuple": [
+      "G21 G90\nG0 X5 Y0 Z0\nT2 M6\nG-[-10] L20 P1 X10\nG0 X11 Y0 Z0\nG0 X12\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 100 100 -100"
+      }
+    ]
+  },
+  "inactive_control": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+      }
+    ]
+  },
+  "inactive_negative": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG-[-10] L20 P2 Z10\nG0 X10 Y5 Z15\nG55\nG0 X20 Z25\nG0 X30\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+      }
+    ]
+  },
+  "store_control": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG28.1\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+      }
+    ]
+  },
+  "store_negative": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG-[-28.1]\nG0 X10 Y5 Z15\nG28\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30"
+      }
+    ]
+  },
+  "sequence_named_body": {
+    "m600": {
+      "prog": "G21 G90\nG0 X50 Y50 Z-100\nT2 M200\nG0 X60\nM2\nT2 M600\n",
+      "rs274ngc": "REMAP=M600 modalgroup=6 ngc=m600\nREMAP=M200 modalgroup=10 ngc=wrapper",
+      "subs": {
+        "wrapper.ngc": "o<wrapper> sub\no<m600> call\no<wrapper> endsub\n"
+      }
+    }
+  },
+  "explicit_same_block": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0 M200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "explicit_separate_blocks": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nG10 L2 P1 X0\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "remap_only": {
+    "tuple": [
+      "G21 G90\nG0 X0 Y0 Z40\nM6\nM200\nG0 X10 Y5 Z15\nG0 X20\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "emcio": "TOOL_CHANGE_POSITION = 0 20 30",
+        "rs274ngc": "REMAP=M200 modalgroup=10 ngc=writer",
+        "subs": {
+          "writer.ngc": "o<writer> sub\nG92 Z10\no<writer> endsub\n"
+        }
+      }
+    ]
+  },
+  "numbered_main": {
+    "m600": {
+      "prog": "N100 G21 G90\nN200 G0 X50 Y50 Z-100\nN300 T2 M600\nN400 G0 X60\nN500 M2\n"
+    }
+  },
+  "nested_main_file_sub": {
+    "m600": {
+      "prog": "o<local> sub\nT2 M600\no<local> endsub\nG21 G90\nG0 X50 Y50 Z-100\no<local> call\nG0 X60\nM2\n"
+    }
+  },
+  "foreign_first": {
+    "tuple": [
+      "T2 M600\nG0 X1 Y1 Z1\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=other",
+        "subs": {
+          "other.ngc": "o<other> sub\nG53 G0 Z0\no<other> endsub\n"
+        }
+      }
+    ]
+  },
+  "foreign_pct_first": {
+    "tuple": [
+      "%\nT2 M600\nG0 X1 Y1 Z1\nM2\n%\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=other",
+        "subs": {
+          "other.ngc": "o<other> sub\nG53 G0 Z0\no<other> endsub\n"
+        }
+      }
+    ]
+  },
+  "foreign_before_move": {
+    "tuple": [
+      "G21 G90\nT2 M600\nG0 X1 Y1 Z1\nM2\n",
+      "mm",
+      0.0,
+      [
+        490
+      ],
+      {
+        "rs274ngc": "REMAP=M600 modalgroup=6 ngc=other",
+        "subs": {
+          "other.ngc": "o<other> sub\nG53 G0 Z0\no<other> endsub\n"
+        }
+      }
+    ]
+  }
+}

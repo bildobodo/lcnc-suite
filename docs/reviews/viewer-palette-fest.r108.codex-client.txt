@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r108-nsubpv33/archive/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  5 passed (5)
+   Start at  11:01:25
+   Duration  274ms (transform 126ms, setup 0ms, import 199ms, tests 30ms, environment 0ms)
+

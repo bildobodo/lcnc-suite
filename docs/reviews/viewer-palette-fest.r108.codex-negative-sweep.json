@@ -1,0 +1,134 @@
+[
+  {
+    "control": "store_control",
+    "a": {
+      "stale": [
+        4
+      ],
+      "ustart": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "lines": [
+        2,
+        5,
+        6,
+        6,
+        7
+      ],
+      "cum": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hits": [],
+      "uncertified": "4 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6, L7)",
+      "notes": [
+        "4 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6, L7)"
+      ]
+    },
+    "other": "store_negative",
+    "b": {
+      "stale": [
+        4
+      ],
+      "ustart": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "lines": [
+        2,
+        5,
+        6,
+        6,
+        7
+      ],
+      "cum": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hits": [],
+      "uncertified": "4 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6, L7)",
+      "notes": [
+        "4 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L6, L7)"
+      ]
+    }
+  },
+  {
+    "control": "inactive_control",
+    "a": {
+      "stale": [
+        4
+      ],
+      "ustart": [
+        1,
+        1,
+        0,
+        1,
+        1
+      ],
+      "lines": [
+        2,
+        5,
+        7,
+        7,
+        8
+      ],
+      "cum": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hits": [],
+      "uncertified": "3 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L7, L8)",
+      "notes": [
+        "3 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L7, L8)"
+      ]
+    },
+    "other": "inactive_negative",
+    "b": {
+      "stale": [
+        4
+      ],
+      "ustart": [
+        1,
+        1,
+        0,
+        1,
+        1
+      ],
+      "lines": [
+        2,
+        5,
+        7,
+        7,
+        8
+      ],
+      "cum": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "hits": [],
+      "uncertified": "3 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L7, L8)",
+      "notes": [
+        "3 moves after a tool change run from a position the preview cannot know — not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after (L5, L7, L8)"
+      ]
+    }
+  }
+]

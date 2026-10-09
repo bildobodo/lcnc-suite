@@ -1,0 +1,8 @@
+explicit_same_block {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'tool_change_lines': [[3, 0]], 'probe_unpredicted': None, 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+explicit_separate_blocks {'parse_error': None, 'stale_offset_lines': [5], 'rapid_ustart': [1, 0, 1, 1], 'tool_change_lines': [[3, 0]], 'probe_unpredicted': None, 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+remap_only {'parse_error': None, 'stale_offset_lines': [4], 'rapid_ustart': [1, 0, 1, 1], 'tool_change_lines': [[3, 0]], 'probe_unpredicted': None, 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+numbered_main {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 0, 0], 'tool_change_lines': [[3, 2]], 'probe_unpredicted': None, 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+nested_main_file_sub {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 0, 0], 'tool_change_lines': [[2, 2]], 'probe_unpredicted': None, 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+foreign_first {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 1], 'tool_change_lines': [], 'probe_unpredicted': [[0, -1, 'foreign_remap', 0]], 'rapid_tcum': [0.0, 0.0]}
+foreign_pct_first {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 1], 'tool_change_lines': [], 'probe_unpredicted': [[0, -1, 'foreign_remap', 0]], 'rapid_tcum': [0.0, 0.0]}
+foreign_before_move {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 1], 'tool_change_lines': [], 'probe_unpredicted': [[0, -1, 'foreign_remap', 0]], 'rapid_tcum': [0.0, 0.0]}

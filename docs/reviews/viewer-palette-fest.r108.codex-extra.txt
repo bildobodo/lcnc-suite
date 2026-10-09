@@ -1,0 +1,6 @@
+near_call_pair 0
+near_call_single 0
+remap_write 0
+foreign_remap_nested 0
+inline_if_assignment 0
+inline_endif_assignment 0
