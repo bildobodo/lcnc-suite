@@ -1,0 +1,3 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+REPRODUCED: new AUTO_RUN was sent after snapshot poll failed; previous verified run is still selected for pinned parsing.
+[GC] +128ms gen=2 duration=8.0ms collected=89 uncollectable=0

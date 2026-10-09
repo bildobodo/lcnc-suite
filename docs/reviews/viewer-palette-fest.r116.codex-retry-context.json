@@ -1,0 +1,39 @@
+{
+  "original": {
+    "gen": 12,
+    "phase": "provisional",
+    "range": {
+      "from": 1
+    }
+  },
+  "sent": [
+    {
+      "id": 8,
+      "options": {}
+    }
+  ],
+  "calls": [
+    {
+      "id": 8,
+      "side": false,
+      "basis": {
+        "kind": "run",
+        "runId": 9
+      },
+      "range": null
+    }
+  ],
+  "after": {
+    "retry": {
+      "meta": {
+        "maxShards": null,
+        "sliceMs": null,
+        "range": null
+      },
+      "gen": null,
+      "keepShown": false
+    },
+    "phase": "provisional",
+    "log": []
+  }
+}

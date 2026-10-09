@@ -15814,3 +15814,53 @@ Beide traten auch auf dem Integrationsstand `f8834c3c` auf und sind an der Ursac
 
 - Das **Messprotokoll** mit festen Zielen (Statusbild p95 < 50 ms, Herzschlag-Abstand p99 < 300 ms, keine wachsende Warteschlange bei schnellem Basiswechsel; Maschinen-PC und getrennter Browser-PC) und der Live-Lauf mit einem M600-Programm brauchen ein laufendes LinuxCNC.
 - **Latenz von Cycle Start:** `_begin_run_basis` hasht den Programmtext vor dem Schreiben (in einem Thread). Auf dem 1,18-Mio.-Zeilen-Programm ist das noch nicht gemessen; der Wert gehört in den Live-Nachweis.
+
+## Review R116 · Codex · Prüfung im Lauf, Umsetzung Pakete 1–4 · 9. Oktober 2026
+
+**Ergebnis: `findings`. Vier Befunde VP-I67 bis VP-I70, davon zwei P1.** Die Umsetzung folgt dem angenommenen Plan im regulären Ablauf. Offen sind ein Fehlerpfad bei der Laufherkunft, eine falsche Abdeckungsanzeige, die durchgehende Kennzeichnung von Grenzkontakten und der Wiederholungsweg bei fehlender Worker-Geometrie. Noch kein Implementierungs-Agreement.
+
+Geprüft: `f8834c3c..87f59037` (Produkt bis `81ded5ed`), gegen [Plan Fassung 4](restpruefung-lauf.plan.md) und R115. Eigene Archivkopie, kein Produktcode im Live-Baum verändert. Gezielt **53 bestehende Frontend-Tests und 9 Backend-Tests grün**; vier eigene Client-Proben und eine Backend-Probe reproduzieren die folgenden Fehler. Das berichtete Gesamtgate wurde nicht wiederholt.
+
+### VP-I67 · P1 · Ein fehlgeschlagener Start-Poll lässt die verifizierte Basis des vorigen Laufs weitergelten
+
+**`gateway.py:3145–3149`, `3236–3260`, `_run_for_pin` ab 3192.** Bei einer Ausnahme in `STAT.poll()` kehrt `_begin_run_basis()` mit `None` zurück, ohne die bisherige `_run_basis` ungültig zu machen. `_cmd_blocking()` sendet den neuen AUTO-Befehl anschließend trotzdem. Nach einem abgeschlossenen verifizierten Lauf derselben Datei bleibt damit dessen `sent`/`verified`-Datensatz als vermeintliche Basis des neuen Laufs erhalten.
+
+Die [Probe mit `fake_linuxcnc`](viewer-palette-fest.r116.codex-backend-probe.json) führt den echten Dispatch aus: erster Start mit verifizierter Testbasis, Rückkehr nach IDLE, beim zusätzlichen Snapshot-Poll des zweiten Starts eine Ausnahme. Der Command-Spy sieht zweimal AUTO_RUN, beide Male `run_id=1`; beim zweiten Schreiben steht der Datensatz bereits auf `sent`. `_run_for_pin()` liefert weiterhin denselben alten verifizierten Kontext. Ein späterer Tabellen-Parse kann damit genau die alte Laufkennung und Startbasis erhalten, gegen die der Client seine Zulassung prüft. Unterschiedliche Starts derselben Datei werden nicht mehr getrennt.
+
+**Korrektur:** Scheitert die Erfassung für einen neuen Start, darf keine vorherige verifizierte Laufbasis dafür nutzbar bleiben. Einen ausdrücklich unverifizierten neuen Start beziehungsweise eine unbekannte Herkunft führen; keine spätere Rekonstruktion aus dem bereits laufenden Zustand. Die Maschinenfreigabe muss dafür nicht von der Vorschau abhängig werden. Wächter: verifizierter Lauf A → Ende → neuer Start mit einmaligem Poll-Fehler → Befehl gesendet, aber keine Bindung eines Parses/Sweeps an A; normale Pause/STEP/Fortsetzung als Gegenkontrolle.
+
+### VP-I68 · P1 · Ein abgebrochener vorläufiger Sweep färbt den ungeprüften Rest als geprüft ein
+
+**`ScrubBar.vue:767–780`, insbesondere 775; `745–747`.** Sobald der vollständige Sweep hinter dem vorläufigen Ergebnis läuft, setzt `sweptFrac` für jedes angezeigte `range`-Ergebnis pauschal `f=1`. Dabei wird `r.truncated.covered` übergangen. Gleichzeitig unterdrückt `sweepCaveat` wegen `collisionBusy` die Einschränkung des angezeigten Ergebnisses, obwohl die laufende Arbeit hier eine andere Prüfung ist.
+
+Die [Gegenprobe](viewer-palette-fest.r116.codex-provisional-coverage.json) verwendet einen echten Bereichssweep, der an seinem Zeitbudget endet: Start bei Track-Cum 45 von 90, `covered=0.5`, keine Strecke hinter dem Start geprüft. Die unverändert extrahierten Computeds zeigen während des folgenden Vollsweeps trotzdem das Band **[0.5, 1]** und keinen Caveat; dessen eigener Fortschritt beträgt in der Probe erst 0.1. Das ist eine konkrete Überzeichnung der Abdeckung, keine Rundungsfrage.
+
+**Korrektur:** Das Band und die Einschränkungen immer aus dem tatsächlich angezeigten Ergebnis ableiten. Solange der vorläufige Stand sichtbar bleibt, bleiben auch dessen Zeit-/Sample-Grenze, ungeprüfter Rest und Unzertifiziert-Hinweis sichtbar. Den Fortschritt des Vollsweeps weiterhin getrennt führen. Wächter mit vorzeitig beendetem und unzertifiziertem Suffix; anschließend erfolgreicher Vollersatz als Kontrolle.
+
+### VP-I69 · P2 · Grenzkontakte verlieren ihre vorläufige Bedeutung auf dem Weg zur Anzeige
+
+**`ThreeViewer.vue:3000`, `3020`, `3055`; `GcodePanel.vue:413–422`; `ScrubBar.vue:1057–1061`.** Der Sweep und `clashTargets` unterscheiden die neue Art korrekt. Beim Emittieren der Code-Zeilen werden die Hits aber auf `{line, continuation}` reduziert: `boundary` geht verloren. Das Codefenster nennt den ersten solchen Datensatz daher gewöhnlich **„collision clearance hit“**, weitere Zeilen einen Kontakt mit bestimmtem Beginn. Die vereinbarte Bedeutung „bei Prüfbeginn bereits in Kontakt, Herkunft noch vorläufig“ fehlt.
+
+Die [Probe mit echtem Bereichssweep](viewer-palette-fest.r116.codex-boundary-consumers.json) liefert ausschließlich einen Grenzkontakt: **0** gezählte Kollisionen, aber eine gewöhnliche Kollisionsmarkierung an L3 mit genau diesem Titel. Sie wertet den echten Emit-Ausdruck und die echte `lineMarkTitle`-Funktion aus. Der gemessene Körperkontakt kann sichtbar bleiben; seine unbekannte Herkunft muss dabei erhalten bleiben.
+
+**Zur ausdrücklich gestellten Frage nach dem „?“:** Eine eigene vierte Listenart ist für die erste Fassung nicht erforderlich. Die Hilfe reicht als Detailort, wenn alle Grenzkontakte und ihre Bedeutung dort erreichbar sind und die übrigen Anzeigen dieselbe Bedeutung tragen. Aktuell begrenzt sie sich allerdings endgültig auf drei Paare (`slice(0, 3)` plus Ellipse), ohne Zugang zum Rest. Die [Fünf-Paare-Kontrolle](viewer-palette-fest.r116.codex-boundary-help.json) bestätigt, dass Paar 4/5 mit ihren Zeilen ganz fehlen. Gerade Schneid-Grenzkontakte haben zudem keine Hit-Zeilen als anderen Zugang.
+
+**Korrektur:** Grenz-/Vorläufigkeitsinformation bis zu den Code-Markierungen und Titeln führen; keine bestimmte Beginnzeile behaupten. Im „?“ die vollständigen Details zugänglich machen, bei Bedarf aufklappbar, und verbleibende Folgeintervalle ehrlich als vorläufig kennzeichnen. Zähler und Navigation dürfen diese Kontakte weiterhin nicht als neue Kollisionen zählen.
+
+### VP-I70 · P2 · `needBodies` verliert Bereich und Laufgeneration beim Wiederholen
+
+**`ThreeViewer.vue:2981–2997` und `3437–3449`.** Die Antwort `needBodies` ruft `runCollisionCheck(_colPendingTrack)` ohne den ursprünglichen `RunSweep` auf. Dadurch fehlen beim Wiederholen `range`, `gen` und gegebenenfalls `keepShown`. Der Wiederholungsauftrag wird als Volltrack-Auftrag aufgebaut, `_colReqRunGen` wird `null`; `collisionRun.phase` bleibt dagegen `provisional`. Beim Abschluss passt die Generation nicht mehr, und der vorgesehene Phasenwechsel findet nicht statt.
+
+Die [isolierte Controller-Probe](viewer-palette-fest.r116.codex-retry-context.json) führt den echten Message-Handler und `runCollisionCheck` aus, mit einem Worker-/Request-Spy statt Browser: ursprünglicher Auftrag `gen=12`, `range.from=1`; nach `needBodies` wird ohne Bereich gesendet, die Auftragsgeneration ist `null`. Nach einer vollständigen Ergebnisantwort steht die Anzeige weiter auf `provisional`, ohne `full`/`done`-Übergang. Das ist eine gezielt eingespeiste Fehlerantwort, kein behaupteter Live-Ausfall.
+
+**Korrektur:** Den vollständigen Kontext des ausstehenden Auftrags beim einmaligen Nachsenden der Geometrie erhalten – Prüfstand, Bereich, Laufgeneration und die Entscheidung, das vorherige Ergebnis sichtbar zu halten. Wächter für `needBodies` sowohl in der vorläufigen Phase als auch im folgenden Vollsweep; danach normale Abschluss-/Verfallsregeln.
+
+### Was bestätigt ist, was offen bleibt
+
+Die reguläre Kontextkopie und Publikationsbindung, die gemeinsame Wire-Form, die statische Programmbasis des Bereichssweeps, die beiden R114-Schneidfälle, Shard-Zusammenführung und Decode-Halteart sind in den gezielt wiederholten Tests grün. Die More-Änderung ist im Quellvergleich nachvollziehbar; die berichteten Browser-Gates habe ich nicht erneut ausgeführt. Die Nebenänderungen an den Browser-Kontrollen ergeben in diesem Review keinen weiteren Befund.
+
+Die offen genannten Lastmessungen, Cycle-Start-Latenz auf der großen Datei und der M600-Live-Lauf bleiben ausstehend. Weder die eigenen Offline-Proben noch Claudes Gate ersetzen diese Nachweise. Keine Live-Ports, kein HAL und keine Maschinenbefehle verwendet.
+
+### Belege und Prüfgrenzen
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r116.codex-checks.md), [Client-Sonden](viewer-palette-fest.r116.codex-client.test.ts), [Client-Protokoll](viewer-palette-fest.r116.codex-client-probe.txt), [bestehende Frontend-Tests](viewer-palette-fest.r116.codex-client-existing.txt), [Backend-Sonde](viewer-palette-fest.r116.codex-backend-probe.py), [Backend-Protokoll](viewer-palette-fest.r116.codex-backend-probe-rerun.txt), [bestehende Backend-Tests](viewer-palette-fest.r116.codex-backend-existing-rerun.txt), [Quellstellen](viewer-palette-fest.r116.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r116.codex-context.json), [Beleghashes](viewer-palette-fest.r116.codex-sha256.json). Die SFC-Proben führen extrahierte Originalausdrücke mit kontrollierten Eingaben aus; keine Browser-/Pixelprüfung behauptet. Die Backend-Läufe benötigen hier einen dokumentierten periodischen Selector-Weckruf im Testlauncher; keine Produktfunktion oder Assertion wurde dafür ersetzt.

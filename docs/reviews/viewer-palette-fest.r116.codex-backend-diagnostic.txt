@@ -1,0 +1,36 @@
+/tmp/codex-r116-zwu6k4_4/lcnc-gateway/test_bulk_pipeline.py:545: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpyxx99eic/m.ini' mode='w' encoding='UTF-8'>
+  open(self.ini, "w").write("[EMC]\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r116-zwu6k4_4/lcnc-gateway/test_bulk_pipeline.py:547: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpyxx99eic/p.ngc' mode='w' encoding='UTF-8'>
+  open(self.ngc, "w").write("G0 X1\nM2\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/tmp/codex-r116-zwu6k4_4/lcnc-gateway/test_bulk_pipeline.py:720: ResourceWarning: unclosed file <_io.TextIOWrapper name='/tmp/tmpyxx99eic/tool.tbl' mode='w' encoding='UTF-8'>
+  open(self.table, "w").write("T13 P1 Z48.2 D8\n")
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+Timeout (0:00:05)!
+Thread 0x0000ffffa1a38160 (most recent call first):
+  File "/usr/lib/python3.13/concurrent/futures/thread.py", line 90 in _worker
+  File "/usr/lib/python3.13/threading.py", line 994 in run
+  File "/usr/lib/python3.13/threading.py", line 1043 in _bootstrap_inner
+  File "/usr/lib/python3.13/threading.py", line 1014 in _bootstrap
+
+Thread 0x0000ffffa3f90ba0 (most recent call first):
+  File "/usr/lib/python3.13/selectors.py", line 452 in select
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2004 in _run_once
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683 in run_forever
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712 in run_until_complete
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118 in run
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195 in run
+  File "/tmp/codex-r116-zwu6k4_4/lcnc-gateway/test_bulk_pipeline.py", line 755 in _load
+  File "/tmp/codex-r116-zwu6k4_4/lcnc-gateway/test_bulk_pipeline.py", line 767 in test_the_published_start_is_verified
+  File "/usr/lib/python3.13/unittest/case.py", line 606 in _callTestMethod
+  File "/usr/lib/python3.13/unittest/case.py", line 651 in run
+  File "/usr/lib/python3.13/unittest/case.py", line 707 in __call__
+  File "/usr/lib/python3.13/unittest/suite.py", line 122 in run
+  File "/usr/lib/python3.13/unittest/suite.py", line 84 in __call__
+  File "/usr/lib/python3.13/unittest/suite.py", line 122 in run
+  File "/usr/lib/python3.13/unittest/suite.py", line 84 in __call__
+  File "/usr/lib/python3.13/unittest/runner.py", line 240 in run
+  File "/usr/lib/python3.13/unittest/main.py", line 270 in runTests
+  File "/usr/lib/python3.13/unittest/main.py", line 104 in __init__
+  File "<string>", line 1 in <module>

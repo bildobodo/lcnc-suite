@@ -1,0 +1,10 @@
+{
+  "head": "87f59037e83a9a2205ee2a42054cb50c9c6743c9",
+  "base": "f8834c3c",
+  "archive": "/tmp/codex-r116-zwu6k4_4",
+  "review_bytes_before": 1121466,
+  "review_sha256_before": "a6bfc69613a372723eb1b8909a49031f881cfcabd6d822b6ee0700d1da79823a",
+  "worktree_initial": "",
+  "no_live_ports": true,
+  "no_product_edits": true
+}
