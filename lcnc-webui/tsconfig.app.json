@@ -46,6 +46,7 @@
     "src/viteHttpRestartPing.test.ts",
     "src/viteProxyCoverage.test.ts",
     "src/macroHeader.test.ts",
-    "src/viewer/checkBasis.test.ts"
+    "src/viewer/checkBasis.test.ts",
+    "src/viewer/collisionRangeOracle.test.ts"
   ]
 }

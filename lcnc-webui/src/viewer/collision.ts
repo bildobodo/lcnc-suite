@@ -209,6 +209,11 @@ export interface CollisionHit {
    *  first point and carries its line) — the same line and pair as a
    *  program contact, another finding (Codex R33 VP-I07). */
   entry?: true;
+  /** A record of a contact in progress at a RANGE sweep's start (plan
+   *  „Prüfung im Lauf“ 3b): it began before the range, so the range cannot
+   *  tell its onset or its kind — the full check does. Never a collision of
+   *  its own; its records stand as provisional until the pair separates. */
+  boundary?: true;
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */
@@ -300,6 +305,15 @@ export interface CollisionOptions {
    *  contacts and the prescreened count are reported by shard 0 alone, so the
    *  merge sums to the single sweep's. Absent = every pair. */
   shard?: { index: number; of: number };
+  /** Sweep only from track point `from` on (plan „Prüfung im Lauf“ 3b, the
+   *  provisional check during a run): the PROGRAM's baseline — its first
+   *  pose and the rest pose decide the static exclusions, as in the full
+   *  sweep — then every pair is queried afresh at `from`. A pair inside the
+   *  margin there (cutting pairs too) is a BOUNDARY contact: begun before
+   *  the range, its onset and kind are unknown (`boundaryContacts`; its
+   *  records carry `boundary` until it separates). Nothing before `from` is
+   *  swept, refined or reported. Absent = the whole track. */
+  range?: { from: number };
 }
 
 export interface CollisionResult {
@@ -341,6 +355,15 @@ export interface CollisionResult {
   /** How many workers swept it (the parallel sweep, sweepShards.ts); absent
    *  = one. */
   shards?: number;
+  /** A RANGE sweep's start (CollisionOptions.range): the track cum and line
+   *  of point `from`. `empty`: nothing of positive length after it — no
+   *  verdict (plan 3c: a range of length zero, or of unknown-start points
+   *  only, is a state of its own). Absent on a full sweep. */
+  range?: { fromCum: number; fromLine: number; empty?: true };
+  /** A range sweep's BOUNDARY contacts: the pairs inside the margin at its
+   *  start, in track cum — not collisions (plan 3b: "contact at the check's
+   *  start — its kind is the full check's"). Absent on a full sweep. */
+  boundaryContacts?: Array<{ a: string; b: string; line: number; cum: number; dist: number; cutting: boolean }>;
 }
 
 /** The statements of several results, each once, in order — and the
@@ -1649,13 +1672,45 @@ export function* sweepCollisionsIter(
     if (opts.shard.index !== 0) { staticContacts.length = 0; pairsPrescreened = 0; }
   }
 
-  const keyFor = (line: number, pi: number) => {
+  // ── A RANGE sweep (plan „Prüfung im Lauf“ 3b) ─────────────────────────
+  // The baseline above is the PROGRAM's — its first pose and the rest pose
+  // decide the static exclusions (a baseline at the range start would take a
+  // pair touching there and at rest for a mount, VP112-04). What the first
+  // pose SEEDED is not the range's: no contact state, no undecidable stretch
+  // at the first line. The sweep starts at the first segment with length
+  // after point `from`, every pair queried afresh there: no certificate yet
+  // (`clear` 0), and no surface distance measured (`surf` 0), so the inside
+  // question is asked too; a pair inside the margin at that first sample is a
+  // BOUNDARY contact (noteQuery). Nothing before `rangeStart` is swept,
+  // refined or reported.
+  const rangeFrom = opts.range ? Math.max(0, Math.min(n - 1, Math.floor(opts.range.from))) : 0;
+  let startSeg = 1;
+  if (opts.range) {
+    startSeg = rangeFrom + 1;
+    while (startSeg < n && dcum[startSeg]! - dcum[startSeg - 1]! <= 1e-9) startSeg++;
+    inContact.fill(0);
+    onsetLine.fill(-1);
+    onsetRapid.fill(0);
+    undecided.fill(0);
+    undecSpans.clear();
+  }
+  const rangeStart = opts.range && n > 0 ? dcum[rangeFrom]! : 0;
+  const rangeEmpty = !!opts.range && startSeg >= n;
+  // In contact at the range's first sample: begun before the range, its
+  // onset and kind unknown — its records carry `boundary` until it separates.
+  const boundaryPair = new Uint8Array(pairs.length);
+  const boundaryContacts: NonNullable<CollisionResult["boundaryContacts"]> = [];
+
+  const keyFor = (line: number, pi: number, boundary = false) => {
     const [ai, bi] = pairs[pi]!;
-    return `${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
+    return `${boundary ? "B" : ""}${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
   };
   const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number) => {
     const [ai, bi] = pairs[pi]!;
-    const key = keyFor(line, pi);
+    // A boundary contact's records have keys of their own: the pair may
+    // separate and come back on the same line — a collision of its own.
+    const boundary = boundaryPair[pi] === 1;
+    const key = keyFor(line, pi, boundary);
     const prev = worst.get(key);
     if (!prev || dist < prev.dist) {
       const rec: CollisionHit & { pi: number; samples: number[]; carriedFrom?: number } = {
@@ -1668,6 +1723,7 @@ export function* sweepCollisionsIter(
       const cont = prev ? prev.continuation
         : (onsetLine[pi]! >= 0 && onsetLine[pi] !== line ? onsetLine[pi]! : undefined);
       if (cont !== undefined) rec.continuation = cont;
+      if (boundary) rec.boundary = true;
       if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
       if (dist <= CONTACT_EPS) rec.samples.push(cum);
       worst.set(key, rec);
@@ -1691,6 +1747,16 @@ export function* sweepCollisionsIter(
         inContact[pi] = 1;
         onsetRapid[pi] = isRapid ? 1 : 0;
         onsetLine[pi] = line;
+        if (opts.range && s <= rangeStart + 1e-9) {
+          // In contact where the range starts: begun before it. A cutting
+          // pair's onset is unknown — taken as feed-begun, so it reports
+          // nothing; the boundary contact names it for the full check.
+          boundaryPair[pi] = 1;
+          onsetRapid[pi] = 0;
+          const [ai, bi] = pairs[pi]!;
+          boundaryContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, line, cum: s, dist: Math.max(0, d),
+                                  cutting: !!pairCutting[pi] });
+        }
         // Re-entry promotion: a genuine onset on a line whose record
         // was minted as a continuation (contact carried in, separated,
         // came back on the same line) is a real clash — never hidden.
@@ -1704,7 +1770,8 @@ export function* sweepCollisionsIter(
       }
       if (pairCutting[pi]) {
         // Cutting pair (the cutter × a stock body): feed contact is
-        // MACHINING — never reported. A contact whose ONSET fell in a
+        // MACHINING — never reported. (A boundary contact's onset is taken
+        // as feed: it records nothing.) A contact whose ONSET fell in a
         // rapid is the gouge class and reports for that rapid; a
         // retract leaving contact begun on a feed (or present from
         // the program start) is benign.
@@ -1716,6 +1783,7 @@ export function* sweepCollisionsIter(
       inContact[pi] = 0;
       onsetRapid[pi] = 0;
       onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
+      boundaryPair[pi] = 0;
     }
   };
 
@@ -1845,7 +1913,9 @@ export function* sweepCollisionsIter(
   // contact records used to spend 10+ s refining them before the worker
   // could start the sweep that superseded it (trace 2026-09-12: 14 s at 0 %).
   let aborted = false;
-  let sweptTo = 0;   // dist parameter reached — the covered fraction on truncation
+  // dist parameter reached — the covered fraction on truncation; a range
+  // sweep has covered nothing before its start
+  let sweptTo = rangeStart;
   const overBudget = (): boolean => clock() - t0 > maxMs;
   // Progress and `covered` are fractions of the TRACK's axis (time on a
   // time-based track): the scrub bar draws the swept section on its
@@ -1979,8 +2049,11 @@ export function* sweepCollisionsIter(
     // each). Selection on the raw cums: refinement moves an onset back by
     // under one sample step, so the order is the same but for near-ties.
     const entries = [...recs.entries()];
-    const onsetE = entries.filter(([, h]) => h.continuation === undefined).sort((x, y) => x[1].cum - y[1].cum);
-    const contE = entries.filter(([, h]) => h.continuation !== undefined).sort((x, y) => x[1].cum - y[1].cum);
+    // (a boundary contact's records are no onsets: they go with the
+    // continuations)
+    const isOnset = (h: CollisionHit) => h.continuation === undefined && !h.boundary;
+    const onsetE = entries.filter(([, h]) => isOnset(h)).sort((x, y) => x[1].cum - y[1].cum);
+    const contE = entries.filter(([, h]) => !isOnset(h)).sort((x, y) => x[1].cum - y[1].cum);
     const selected = [...onsetE, ...contE].slice(0, MAX_HITS);
     for (const [key, h] of selected) {
       if (!refine) break;
@@ -2001,7 +2074,9 @@ export function* sweepCollisionsIter(
         else delete h.carried;
         continue;
       }
-      const floor = lineStartDist(h.cum, h.line);
+      // never before a range's start: a contact just after it on the same
+      // line would walk back past it into contact before the range
+      const floor = Math.max(lineStartDist(h.cum, h.line), rangeStart);
       const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
       // A tool pair never walks into a stretch where the tool's body is
       // unknown: every boundary stays inside its own cluster's known span.
@@ -2080,7 +2155,7 @@ export function* sweepCollisionsIter(
       const from = h.continuation ?? (h.carried ? h.carriedFrom : undefined);
       if (from === undefined) continue;
       const end = h.continuation !== undefined ? h.cumEnd : h.intervals![0]![1];
-      const key = keyFor(from, h.pi);
+      const key = keyFor(from, h.pi, !!h.boundary);
       spanEndDist.set(key, Math.max(spanEndDist.get(key) ?? -Infinity, end));
     }
     // Hits leave the sweep in TRACK cum (time on a time-based track) — the
@@ -2105,7 +2180,7 @@ export function* sweepCollisionsIter(
     for (const h of recs.values()) {
       const from = h.continuation ?? (h.carried ? h.carriedFrom : undefined);
       if (from === undefined) continue;
-      const onset = recs.get(keyFor(from, h.pi));
+      const onset = recs.get(keyFor(from, h.pi, !!h.boundary));
       if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
     }
 
@@ -2131,6 +2206,11 @@ export function* sweepCollisionsIter(
       bvhMs: model.bvhMs,
       sweepMs: clock() - t0,
       truncated: trunc,
+      ...(opts.range ? {
+        range: { fromCum: n > 0 ? track.cum[rangeFrom]! : 0, fromLine: track.lines[Math.min(startSeg, n - 1)] ?? 0,
+                 ...(rangeEmpty ? { empty: true as const } : {}) },
+        boundaryContacts: boundaryContacts.map(b => ({ ...b, cum: distToTrackCum(b.cum) })),
+      } : {}),
     };
     };
 
@@ -2154,14 +2234,14 @@ export function* sweepCollisionsIter(
   }
   // Checkpoint before the first segment: an abort here leaves the baseline
   // pose only (the "aborts early" contract).
-  const abortAtStart = (yield 0) === true;
+  const abortAtStart = (yield opts.range ? frac(rangeStart) : 0) === true;
   if (abortAtStart) aborted = true;
   lastYield = clock();
   // Tool geometry / tool offset of the previous segment (TWP-06): a carried
   // clearance certificate is only valid while the tool body's geometry and
   // its −TLO shift are those it was measured with.
-  let prevTool = toolFor(0);
-  let prevTlo = tloFor(0);
+  let prevTool = toolFor(opts.range ? Math.min(startSeg, n - 1) : 0);
+  let prevTlo = tloFor(opts.range ? Math.min(startSeg, n - 1) : 0);
   let prevUnknown = false;
   // A break crossed since the last swept segment (R-03, implementation review
   // 2026-09-15). `brk` carries TWO things: a kins/WCS relabel, which is a
@@ -2180,7 +2260,7 @@ export function* sweepCollisionsIter(
   // wire.
   let pendingBreak = false;
   outer:
-  for (let i = 1; i < n && !abortAtStart; i++) {
+  for (let i = startSeg; i < n && !abortAtStart; i++) {
     // i > 1 for the time-based checkpoint: a segment-1 checkpoint has
     // swept nothing, and a budget check there would report 0 % covered for
     // a sweep that merely started late (scheduler pause between the
@@ -2227,7 +2307,7 @@ export function* sweepCollisionsIter(
     if (prevUnknown && !segUnknown) {
       for (let pi = 0; pi < pairs.length; pi++) {
         if (!pairTool[pi]) continue;
-        inContact[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0;
+        inContact[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0; boundaryPair[pi] = 0;
       }
     }
     prevUnknown = segUnknown;

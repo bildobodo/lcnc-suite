@@ -22,12 +22,15 @@ export { assignPairs } from "./pairAssign";
  *  sweep's way (onsets first, then continuations, each by position; the
  *  report re-sorted by position), static contacts concatenated (each pair
  *  belongs to one shard), samples and prescreened pairs summed. A sweep is
- *  only as covered as its least covered shard. */
+ *  only as covered as its least covered shard. A range sweep's start is
+ *  every shard's, its boundary contacts their union. */
 export function mergeShardResults(results: readonly CollisionResult[]): CollisionResult {
   if (results.length === 1) return results[0]!;
   const all = results.flatMap(r => r.hits);
-  const onsets = all.filter(h => h.continuation === undefined).sort((x, y) => x.cum - y.cum);
-  const conts = all.filter(h => h.continuation !== undefined).sort((x, y) => x.cum - y.cum);
+  // a range sweep's boundary records are no onsets (collision.ts buildResult)
+  const isOnset = (h: CollisionHit) => h.continuation === undefined && !h.boundary;
+  const onsets = all.filter(isOnset).sort((x, y) => x.cum - y.cum);
+  const conts = all.filter(h => !isOnset(h)).sort((x, y) => x.cum - y.cum);
   const hits: CollisionHit[] = [...onsets, ...conts].slice(0, MAX_HITS).sort((x, y) => x.cum - y.cum);
   let truncated: CollisionResult["truncated"] = null;
   for (const r of results) {
@@ -49,5 +52,9 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
     sweepMs: Math.max(...results.map(r => r.sweepMs)),
     truncated,
     shards: results.length,
+    // a range sweep: every shard starts at the same point; each reports the
+    // boundary contacts of its own pairs
+    ...(first.range ? { range: first.range } : {}),
+    ...(results.some(r => r.boundaryContacts) ? { boundaryContacts: results.flatMap(r => r.boundaryContacts ?? []) } : {}),
   };
 }

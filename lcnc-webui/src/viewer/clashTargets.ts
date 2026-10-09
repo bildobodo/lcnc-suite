@@ -37,7 +37,10 @@ export interface ClashTarget {
 export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
   const out: ClashTarget[] = [];
   for (const h of hits) {
-    if (h.continuation !== undefined) continue;
+    // a continuation is its onset's contact; a boundary record a contact in
+    // progress at a range sweep's start — no collision of its own (plan
+    // „Prüfung im Lauf“ 3b)
+    if (h.continuation !== undefined || h.boundary) continue;
     const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
     // A carried first interval is an earlier finding's contact (Codex R34
     // VP-I09); the later intervals keep their index, so their keys are the
