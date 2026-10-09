@@ -1,0 +1,12 @@
+# R108 — gate R27 on fix/r107 50fd3e41: every offline stage, the browser in four runs
+PASS backend, 5axis-model, audit-css, review-handshake
+backend: 1362 passed, 2398 subtests passed in 54.56s
+frontend lint / build / unit: lint exit 0, build exit 0, unit exit 1 — Tests  1 failed | 2037 passed (2038)
+  the one: src/viewer/fatPaths.test.ts "everything a build and a finding's view leave alive is in the ledger (fat, legacy)" —
+  a gc()-survivor check (prepareOverlays 532 B alive after two collections) under the full parallel run; no client
+  source changed in this commit; the file alone 5 of 5 green, the full unit run again: Tests  2038 passed (2038), exit 0
+browser A (--project=serial-guards): 312 passed (17.1m)
+browser serial-layout --no-deps: 98 passed (10.6m)
+browser serial-visual --no-deps: 10 passed (28.4s)
+browser serial-viewer --no-deps: 74 passed (6.2m)
+312 + 98 + 10 + 74 = 494

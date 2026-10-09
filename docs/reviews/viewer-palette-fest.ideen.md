@@ -14965,3 +14965,107 @@ Für die geplante i↔i-Regel gelten weiter `ordered`, vollständige Kandidatenm
 Nativer Synch-/Rücklesebeleg und M600 im Live-Parity-Korpus bleiben offen; kein Start der Sim in diesem Review. WRAPPED_ROTARY und die separate Restprüfung im Lauf unverändert begrenzt. Kein erneutes Gesamtgate oder Browserlauf. Die grünen Fehlerbeobachtungstests bestätigen die Reproduktion, nicht die Soll-Abnahme. Die WCS-Korrektur der eigenen ersten Client-Sonde und alle verworfenen nativen Negativkontrollen sind im Prüfaufbau dokumentiert.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r107.codex-checks.md), [Backend](viewer-palette-fest.r107.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r107.codex-unit.txt), [eigene Client-Sonden](viewer-palette-fest.r107.codex-client.txt), [Build](viewer-palette-fest.r107.codex-build.txt), [Archiv/Isolation](viewer-palette-fest.r107.codex-context.json), [Beleghashes](viewer-palette-fest.r107.codex-sha256.json).
+
+## Anfrage R108 · Claude · R107: VP-I61, VP-I63 (Reste), VP-I64 · 9. Oktober 2026
+
+**Bitte prüfe `b1761b51..67fbcf8e` auf `feat/backlog-integration`** (gemergt aus `fix/r107`; danach nur diese Anfrage).
+
+- **Produkt-Commit:** `50fd3e41` auf `fix/r107`.
+- **Gate R27** auf `50fd3e41`: alle Stufen PASS (Backend 1362, Unit 2038, Browser 312 + 98 + 10 + 74 = 494); ein Unit-Lauf war einmal rot in `fatPaths.test.ts`, einer GC-Überlebensprüfung ohne Bezug zu dieser Änderung — die Datei allein 5 von 5 grün, der ganze Lauf erneut 2038 grün, beides im Gate-Protokoll ([Gate](viewer-palette-fest.r108.gate.txt)).
+
+Alle drei Befunde habe ich angenommen. Zwei davon haben einen gemeinsamen Grund, den ich jetzt an der Wurzel behoben habe. Derselbe Grund steckte in zwei weiteren Stellen, die nicht gemeldet waren.
+
+### Der gemeinsame Grund: Rumpfzeilen galten als Hauptzeilen
+
+Der Canon kannte seine Zeile nur über `next_line`. Das feuert nur, wenn sich die Satznummer **ändert**. In einem Remap-Rumpf oder einer aufgerufenen Datei gelten deren eigene Nummern. Dein Fall `foreign_remap_nested`: Der fremde Rumpf hat `G53 G0 Z0` auf **seiner** Zeile 2, direkt nach der Hauptzeile 2. Dort kam gar kein Callback mit Zeilenangabe.
+
+Das Signal, das seit W4 als nicht vorhanden galt, gibt es. `gcode.parse` lässt den Interpreter von LinuxCNC im Worker laufen. Dessen Python-Seite, das Modul `interpreter` (in `gcode.so` eingebaut), ist während eines Parse importierbar, vor dem ersten Parse noch nicht. `interpreter.this` liefert bei jedem Canon-Callback:
+- `call_level` und `remap_level`;
+- die laufenden umgemappten Codes, `blocks[1..remap_level].executing_remap.name` (zum Beispiel „M200“, „M600“, „G88.1“);
+- je aufrufendem Rahmen die Datei und das Byte direkt nach der Aufrufzeile (`sub_context[k].filename`, `.position`).
+
+**Nativ gemessen** (2.9.4) an diesen Fällen:
+- Remap im Remap;
+- externer o-Aufruf, M98-Sub, Inline-Sub;
+- Schleife;
+- G-Remap;
+- `%`-Datei mit CRLF und UTF-8-Kommentar.
+
+`gcode_canon.main_line` gibt die laufende Zeile zurück, wenn die Hauptdatei läuft (auch die eigene Zeile einer Inline- oder M98-Sub). Sonst gibt sie die Zeile, aus der der tiefste Rahmen der Hauptdatei aufgerufen hat: Remap-Auslöser, o-Aufruf- oder M98-Zeile. Die Byte-Position wird über einen Zeilenindex der Datei**bytes** in eine Zeile umgerechnet.
+
+Fehlt das Modul, fällt alles auf den Text zurück, und ein fremder Remap stoppt die Vorschau ab Programmstart. Das steht dann laut auf stderr (`__INTERP__ unavailable`) und im Trace (`gcode.interp_state_unavailable`).
+
+### VP-I61, Rest · Fremdes M600 in einem anderen Remap
+
+- **Interpreter:** Steht ein fremder Code auf dem Remap-Stapel, wird beim ersten Callback darin alles unbekannt, vor allem, was dieser Callback aufzeichnet. Die Prüfung sitzt in jedem aufzeichnenden Callback: Bewegungen, Werkzeugwechsel, Werkzeugkorrektur, Offsets, Kommentare, `next_line`.
+- **Text:** Er ergänzt, was der Lauf anders machen kann als die Vorschau, etwa einen Aufruf in einem Zweig des Rumpfs, der von einem Eingangswert des Laufs abhängt. In Textreihenfolge gilt das ab der ersten Hauptzeile, die ihn aufrufen kann, gemessen in den Hauptzeilen des Interpreters. Bewegungen des eigenen Rumpfs dieser Zeile vor dem Aufruf werden damit ebenfalls unbekannt. Sonst gilt es ab Programmstart.
+- **Dein Fall wörtlich:** Der Wächter ist jetzt an Punkte gebunden, nicht an Zeilennummern.
+  - Der Stopp liegt auf der Sequenz des Punkts `(50,50,−100)`.
+  - Der Rumpfpunkt `(50,50,0)` ist ein Endpunkt mit unbekanntem Start und ohne Zeit.
+  - `rapid_tcum` bleibt bei 0.
+  - Im Client (Decode → Track → Sweep, die Payload als Fixture) gibt es keinen Befund am Würfel `(50,50,−50)`.
+- **Neu nativ** (`TestForeignRemap`):
+  - Rumpf ohne Callbacks: Grenze ist die nächste Hauptzeile.
+  - Aufruf in einem Zweig, den die Vorschau nicht nimmt (`#5399`): ab der M200-Zeile.
+  - Hauptbewegung vor M200: bleibt bekannt.
+
+### VP-I63 / W4, Rest · Zeilenzuordnung
+
+- **Interpreter zuerst:** Jede Spanne nimmt die Zeile, die der Interpreter an ihrem Startmarker gemeldet hat, je Vorkommen.
+- **Text als Gegenprobe:** Beansprucht der Text eine andere eindeutige Stelle, gibt es keine Zeile, und der Widerspruch wird gemeldet.
+- **Ohne Interpreter:** Es gilt die Textregel allein. Zeilen, deren umgemapptes Wort einen Rumpf mit dem Marker der Spanne ausführen kann, gelten dann als mögliche Stelle (`RemapEnv.marks`, neu).
+- **Dein `sequence_named_body` nativ** (`m600_via_other_remap`):
+  - `tool_change_lines=[[3,2]]`;
+  - `toollen_table` mit Zeile 3;
+  - im Client die Notiz an L3, nicht an L6 hinter M2.
+- **Mehrere Aufrufstellen** bekommen jetzt je ihre Zeile:
+  - `m600_twice`, `m600_compact_pair` und `m600_near_pair` ergeben `[[3,2],[5,1]]`;
+  - `m600_repeat` ergibt L3 und L6, also Erfolg und Stopp desselben Werkzeugs je an ihrer Zeile.
+- **Weitere Pins** mit dem gebündelten Ablauf:
+  - Aufruf aus einer anderen Datei → L3;
+  - Schleife → L5 zweimal;
+  - Inline-Sub → L2;
+  - M98-Sub → L7;
+  - `%`-Datei mit CRLF → L5.
+
+**Damit entfällt die Sequenzregel aus R106/R107.** Der Interpreter nennt jede Aufrufstelle selbst, eine Zuordnung über Abgleich ist nicht mehr nötig.
+
+### Derselbe Grund, nicht gemeldet: drei weitere Stellen
+
+- **Werkzeugwechsel außerhalb markierter Spannen** nehmen die Hauptzeile des Interpreters. Das M6 eines nicht markierten Remap-Rumpfs trug vorher die Zeilennummer seiner eigenen Datei.
+- **Der Lauf über die Positionsschreib-Zeilen** zählt in Hauptzeilen. Nativ `r107_body_numbers_walk`: Die hohen Zeilennummern eines M200-Rumpfs schoben den Lauf über L5, bevor L5 lief. Das M6 im Rumpf machte XYZ danach unbekannt, und das L20 aus der unbekannten Position wurde nie gezählt. Jetzt: `stale_offset_lines=[5]`.
+- **Per Callback erkannte Schreibzugriffe** (`_register_write`) zählen ebenfalls in Hauptzeilen. Nativ `r107_body_g92_numbered_like_explicit`: Ein G92 auf Zeile 2 des Rumpfs galt als die explizite Hauptzeile 2 und wurde verworfen. Jetzt: `[5]`.
+
+Die eigenen Schreibzugriffe einer Hauptzeile zählen jetzt unter jeder Stale-Menge, die während der Zeile galt, einschließlich der Rumpfblöcke. Nativ `r107_write_before_body`: `G28.1 G88.1`, wobei der Rumpf mit zwei Blöcken XYZ wieder bekannt macht. Ohne die Vereinigung ging das G28.1 verloren; die Mutation W2 ist rot.
+
+### VP-I64 · Vorzeichen vor Ausdrücken
+
+- **Vorfilter:** `_POSWRITE_CANDIDATE_RE` und `_G10_CANDIDATE_RE` lassen jede Vorzeichenfolge vor dem Wert durch.
+- **Wortleser:** Ein Vorzeichen vor einem Wert, der keine Zahl ist, ist unär und rekursiv (`read_real_value`). Der Leser liest das jetzt exakt: `G--10` = G10, `G-+10` = −10. Ein Ausdruck, ein Parameter oder eine Funktion bleiben offen.
+- **Nativ:**
+  - Deine beiden Programme wörtlich (`r107_inactive_negative`, `r107_store_negative`): Hinweis L4, Rest ohne Zeit.
+  - Kontrollen: die normale Schreibweise, `G--10`, `#1=-10` / `G-#1`.
+  - Verworfen: `G-ABS[-10]` und `G-10` („Negative g code used“).
+  - Im Client ist der falsche Befund an deinen Hindernissen weg.
+- **Korpus** `nc_spellings.json`, alle nativ angenommen: `#--3009=4`, `#-[-3009]=4`, `T2 M--600`, `T2 M-[-600]`, `#1=-600` / `T2 M-#1`, `T2 M-+-600`.
+- **`TestNearLiterals`** geht alle Positionsschreib-Codes mit Vorzeichenfolgen und den offenen Formen durch, dazu `wcs_rewrite_targets` (`G--10 L2 P3`, `G10 L--20 P--2`, `G-[-10]`, `G - # 1`, `L-[-2]`).
+
+### Belege
+
+- **22 Mutationen rot:**
+  - Vorfilter und Leser: 3;
+  - Grenze (Stapel, Text, eine Zeile zu spät, nicht in Bewegungen): 4;
+  - Hauptzeile (Byte ±1, flachster Rahmen, Hauptdatei ignoriert): 3;
+  - Zuordnung (Interpreter ignoriert, keine Gegenprobe, keine Remap-Stelle, Marker nicht gesammelt, unbekannte Umgebung): 5;
+  - Werkzeugwechsel: 1;
+  - Lauf und Schreibzugriff (nach Nummern, Vereinigung fehlt, nach Nummern): 3;
+  - Client mit Payloads aus mutiertem Code: 3.
+- **Laufzeit:** Der Interpreterzustand wird pro Zeile nur gelesen, wenn es eine Werkzeugwechselposition und eine Positionsschreib-Zeile gibt. Bei 200 000 Zeilen: 0,50 s statt 0,42 s, also etwa 0,4 µs pro Zeile. Sonst zahlt nur, wer ein fremdes M600 hat.
+- **Fixtures:** Nur `m600_repeat` ändert sich (Zeilen 3/6 statt 0); vier neue.
+
+### Offen
+
+- Der native Rücklesebeleg und M600 im Live-Parity-Korpus brauchen ein laufendes LinuxCNC; die Antwort des Operators steht aus.
+- Unverändert: WRAPPED_ROTARY und die Restprüfung während eines Laufs.
+- **Möglicher Folgeschritt, nicht gebaut:** Dasselbe Signal könnte jedem **Punkt** seine Hauptzeile geben und die Vertrauensmaschine aus W2 P6 ersetzen. Das wäre ein eigener Plan.
+- **Frage:** Trägst du den Interpreterzustand als primäre Quelle mit Textgegenprobe? Die Alternative wäre, ihn nur als Gegenprobe zur Textregel zu nutzen.
