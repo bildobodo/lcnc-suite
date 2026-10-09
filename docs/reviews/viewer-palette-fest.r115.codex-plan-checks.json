@@ -1,0 +1,95 @@
+{
+  "scope": "Plan-model checks of F4 using the real pinned_ctx helper; stored R114 sweep evidence read, not rerun. No implemented run_basis/range/coordinator or native gateway is tested.",
+  "context_controls": {
+    "A_still_admitted_after_B": true,
+    "B_with_A_label_rejected_before_dispatch": true,
+    "same_path_changed_source_rejected": true,
+    "same_source_changed_path_rejected": true,
+    "new_run_rejected_at_publication": true,
+    "same_version_new_basis_revision_rejected": true,
+    "changed_built_context_rejected": true,
+    "snapshot_survives_nested_mutation": true
+  },
+  "start_context_digest": "9cf0e4e63c161d7dce34b7b6634c91173eeb88dd4957d9d1aa16c7e9eb1a2988",
+  "later_publication_digest": "e54ab3e2eee99d34bbbe4d3de6c3330abc6f7a6bf0f8bd25f76e98581b8738f6",
+  "complete_result_contract": {
+    "feed": "Provisional boundary is replaced; completed full result has no collision.",
+    "rapid": {
+      "required_full_hits": [
+        {
+          "line": 8,
+          "cum": 40,
+          "cumEnd": 43,
+          "a": "cutter",
+          "b": "stock",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              40,
+              43
+            ]
+          ],
+          "spanCumEnd": 48,
+          "spanEndLine": 11
+        },
+        {
+          "line": 10,
+          "cum": 44,
+          "cumEnd": 45,
+          "a": "cutter",
+          "b": "stock",
+          "dist": 0,
+          "rapid": true,
+          "continuation": 8,
+          "intervals": [
+            [
+              44,
+              45
+            ]
+          ]
+        },
+        {
+          "line": 11,
+          "cum": 45,
+          "cumEnd": 48,
+          "a": "cutter",
+          "b": "stock",
+          "dist": 0,
+          "rapid": true,
+          "continuation": 8,
+          "intervals": [
+            [
+              45,
+              48
+            ]
+          ]
+        }
+      ],
+      "merge_needed": false
+    },
+    "unknown_first_move": {
+      "required_full_hits": [
+        {
+          "line": 9,
+          "cum": 9.5004638671875,
+          "cumEnd": 10.50009765625,
+          "a": "head",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              9.5004638671875,
+              10.50009765625
+            ]
+          ]
+        }
+      ],
+      "required_notes": [
+        "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L8)"
+      ]
+    },
+    "incomplete_full_result": "The plan's 3c caveat must remain; completion/termination alone is not full coverage. Not executed here."
+  }
+}

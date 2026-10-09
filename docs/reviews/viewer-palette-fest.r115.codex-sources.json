@@ -1,0 +1,51 @@
+{
+  "head": "b278117ac27c18fe9825627ffdf2f3dea1ec7177",
+  "base": "010ebf07",
+  "changed_files": [
+    "docs/reviews/restpruefung-lauf.plan.md",
+    "docs/reviews/viewer-palette-fest.ideen.md"
+  ],
+  "product_diff_since_R114": [],
+  "sources": [
+    {
+      "file": "docs/reviews/restpruefung-lauf.plan.md",
+      "sha256": "f52549cbfa402e350ba2403e3d1ef5b4da7e231f432886ed027f606fed51d85b",
+      "unchanged_from_R114_reviewed_head": false
+    },
+    {
+      "file": "lcnc-gateway/bulk_pipeline.py",
+      "sha256": "07d95ed15b0c80eff1583fdb67941379c233070534a7b85e6557e206afd35836",
+      "unchanged_from_R114_reviewed_head": true
+    },
+    {
+      "file": "lcnc-gateway/gateway.py",
+      "sha256": "9f81935610606e0bf51c1fee09aeb7a0b208852bc399714714b1e6a663b057af",
+      "unchanged_from_R114_reviewed_head": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collision.ts",
+      "sha256": "58f0bad7e45ce321aeef78abfc6039a4c10b5b41041723f9002e2f381baa017e",
+      "unchanged_from_R114_reviewed_head": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepMerge.ts",
+      "sha256": "c16e055dbbd9714fbdd21959de4dd0ba64421baf7e4c50e6f4f89b0e2cc3b67b",
+      "unchanged_from_R114_reviewed_head": true
+    },
+    {
+      "file": "docs/reviews/viewer-palette-fest.r114.codex-feed-seam.json",
+      "sha256": "599768b6b5ddcf9a78ca341fca10dcdac393356b5264a35543834e6d76dfe55c",
+      "matches_original_R114_manifest": true
+    },
+    {
+      "file": "docs/reviews/viewer-palette-fest.r114.codex-rapid-seam.json",
+      "sha256": "83539076614ae9da1d29b20b52d6001e02420358694c3cc1e50bd690379f7061",
+      "matches_original_R114_manifest": true
+    },
+    {
+      "file": "docs/reviews/viewer-palette-fest.r114.codex-two-phase-control.json",
+      "sha256": "0fbe6a1b7eca67893b717e822574532f5d0327c9d4c5b805f7240e9b82fbb1f1",
+      "matches_original_R114_manifest": true
+    }
+  ]
+}
