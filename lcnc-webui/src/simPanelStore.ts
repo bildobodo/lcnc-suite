@@ -20,6 +20,9 @@ export interface SimSweepView {
   caveat: boolean;
   /** The "?": how much was checked, what was excluded, with which tools. */
   detail: string;
+  /** The check's name when it is not the standstill check: the check during
+   *  a run (plan „Prüfung im Lauf“ 3d). */
+  label?: string;
 }
 
 export const simRows = shallowRef<SimRow[]>([]);
@@ -37,6 +40,11 @@ export const simView = reactive({
   lineTitle: "",
   time: "",
   sweep: null as SimSweepView | null,
+  /** The verdict of the preview shown before the one displayed now — a run
+   *  published another (its tool table changed) — said in words only: no
+   *  marks, counts or jumps of the current preview (plan „Prüfung im Lauf“
+   *  1c). Null otherwise. */
+  previous: null as string | null,
   /** The program's soft-limit records: `total` distinct (line, axis) records
    *  (null = not validated — unchecked ≠ clean), `records` the ones the
    *  payload carries (the gateway caps the list at 200). */

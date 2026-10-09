@@ -59,7 +59,11 @@ async function ready(page: Page, settings: Record<string, unknown> = {}, folder?
 
 /** Press with the mouse for `ms`, then release — a tap or a hold. */
 async function press(page: Page, target: Locator, ms: number) {
-  const box = (await target.boundingBox())!;
+  // a gate change re-renders the button (its .btnTip wrapper): wait for a box
+  await expect(target).toBeVisible();
+  let box = await target.boundingBox();
+  for (let i = 0; !box && i < 40; i++) { await page.waitForTimeout(50); box = await target.boundingBox(); }
+  if (!box) throw new Error("press: the control has no box");
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.waitForTimeout(ms);

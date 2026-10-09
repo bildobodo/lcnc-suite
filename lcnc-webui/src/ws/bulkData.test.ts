@@ -26,7 +26,7 @@ class FakeWorker {
 (globalThis as any).Worker = FakeWorker;
 
 const {
-  fetchCompGrid, fetchSurfacePoints, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource,
+  fetchCompGrid, fetchSurfacePoints, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, previewDecoding,
   handleToolTableChanged, handleViewerGcode, handleViewerGcodeReady, handleViewerInit,
   previewLoadError, resetBulkVersionsOnClose, toolTableVersion, viewerGcode, viewerInit,
   previewSchemaMismatch, EXPECTED_PREVIEW_SCHEMA, parseTloMismatch, previewRefusal,
@@ -259,6 +259,24 @@ describe("preview worker channel", () => {
     await flush();
     expect(gcodeContent.value).toBe("G0 X0");
     expect(fetchCalls.filter(c => c.url.startsWith("/gcode")).length).toBe(1);
+  });
+
+  it("a payload being decoded is said from the post to its reply — a superseded reply keeps it (plan „Prüfung im Lauf“ 4)", async () => {
+    fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
+    handleViewerGcodeReady({ version: 70, file: "/nc/d.ngc" });
+    const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
+    expect(previewDecoding.value).toBe(true);
+    handleViewerGcodeReady({ version: 71, file: "/nc/d.ngc" });
+    // the reply for 70 is superseded: 71 is still being decoded
+    w.onmessage?.({ data: { version: 70, basisKey: "/nc/d.ngc#70:start", gcode: { file: "/nc/d.ngc" } } } as any);
+    expect(previewDecoding.value).toBe(true);
+    w.onmessage?.({ data: { version: 71, basisKey: "/nc/d.ngc#71:start", gcode: { file: "/nc/d.ngc" } } } as any);
+    expect(previewDecoding.value).toBe(false);
+    // a failed decode ends it too
+    handleViewerGcodeReady({ version: 72, file: "/nc/d.ngc" });
+    expect(previewDecoding.value).toBe(true);
+    w.onmessage?.({ data: { version: 72, basisKey: "/nc/d.ngc#72:start", error: "bad bytes" } } as any);
+    expect(previewDecoding.value).toBe(false);
   });
 
   it("a verified tool basis re-decodes the payload on screen — this file AND version only (VP-I20, R58 VP-I24)", async () => {

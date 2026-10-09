@@ -167,6 +167,8 @@ def build_status_envelope(
     preview_refresh: Optional[dict] = None,
     preview_table_stale: Optional[dict] = None,
     preview_tool_basis: Optional[dict] = None,
+    preview_origin: Optional[dict] = None,
+    run_basis: Optional[dict] = None,
 ) -> dict:
     """Assemble the per-tick status envelope.
 
@@ -212,6 +214,13 @@ def build_status_envelope(
         # The payload's tool table is stale until idle (MR-I04) — the
         # viewer mutes the path and says why.
         msg["preview_table_stale"] = preview_table_stale
+    if preview_origin is not None:
+        # Where the published payload comes from (plan „Prüfung im Lauf“
+        # 1b): a client connecting after the publish has it too.
+        msg["preview_origin"] = preview_origin
+    if run_basis is not None:
+        # The run's basis, taken before its start was written (plan 1a).
+        msg["run_basis"] = run_basis
     return msg
 
 

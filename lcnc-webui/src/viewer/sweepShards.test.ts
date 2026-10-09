@@ -60,6 +60,19 @@ describe("mergeShardResults", () => {
     expect(m.hits.filter(h => h.continuation === undefined)).toHaveLength(MAX_HITS - 10);
     expect(m.hits.map(h => h.cum)).toEqual([...m.hits.map(h => h.cum)].sort((x, y) => x - y));
   });
+  it("carries a range sweep's start and every shard's boundary contacts; a boundary record is no onset for the cap", () => {
+    const range = { fromCum: 40, fromLine: 7 };
+    const bc = (b: string) => ({ a: "a", b, line: 7, cum: 40, dist: 0, cutting: false });
+    const m = mergeShardResults([result([], { range, boundaryContacts: [bc("x")] }),
+      result([], { range, boundaryContacts: [bc("y"), bc("z")] })]);
+    expect(m.range).toEqual(range);
+    expect(m.boundaryContacts?.map(b => b.b)).toEqual(["x", "y", "z"]);
+    expect(mergeShardResults([result([]), result([])]).boundaryContacts, "absent on a full sweep").toBeUndefined();
+    const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
+    const prov = Array.from({ length: 50 }, (_, i) => ({ ...hit(i, i), boundary: true as const }));
+    const capped = mergeShardResults([result(onsets.slice(0, 100)), result([...onsets.slice(100), ...prov])]);
+    expect(capped.hits.filter(h => !h.boundary)).toHaveLength(MAX_HITS - 10);
+  });
   it("is only as covered as its least covered shard", () => {
     const m = mergeShardResults([result([], { truncated: { covered: 0.8, reason: "time" } }), result([]),
       result([], { truncated: { covered: 0.3, reason: "stopped" } })]);
@@ -81,7 +94,7 @@ describe("the merged shards against the single sweep", () => {
       expect(single.hits.length, "under the cap — the comparison is complete").toBeLessThan(MAX_HITS);
       const truth = trackTruth(model, c, track);
       const pairIndex = new Map(model.pairs.map(([a, b], i) => [[model.bodies[a]!.id, model.bodies[b]!.id].sort().join("/"), i]));
-      const key = (h: CollisionHit) => `${h.line}|${[h.a, h.b].sort().join("/")}`;
+      const key = (h: CollisionHit) => `${h.boundary ? "B" : ""}${h.line}|${[h.a, h.b].sort().join("/")}`;
       const byKey = (r: CollisionResult) => new Map(r.hits.map(h => [key(h), h]));
       const rand = rng(7);
       const byMask = (masks: Uint8Array[]) => () => masks.map(m => sweepCollisions(model, track, WCS0, { margin: MARGIN, pairMask: m }));
@@ -92,9 +105,21 @@ describe("the merged shards against the single sweep", () => {
         // The workers' own split: each shard assigns itself after the baseline.
         ["the shard option, 3", () => [0, 1, 2].map(index => sweepCollisions(model, track, WCS0, { margin: MARGIN, shard: { index, of: 3 } }))],
       ];
-      for (const [name, run] of splits) {
+      // A range sweep from the middle point too (plan „Prüfung im Lauf“ 3b):
+      // the shards' boundary contacts are each its own pairs'.
+      const mid = Math.floor(track.count / 2);
+      const singleRange = sweepCollisions(model, track, WCS0, { margin: MARGIN, range: { from: mid } });
+      const runs: Array<[string, () => CollisionResult[], CollisionResult]> = [
+        ...splits.map(([n, r]) => [n, r, single] as [string, () => CollisionResult[], CollisionResult]),
+        ["a range from the middle, the shard option, 3", () => [0, 1, 2].map(index =>
+          sweepCollisions(model, track, WCS0, { margin: MARGIN, range: { from: mid }, shard: { index, of: 3 } })), singleRange],
+      ];
+      for (const [name, run, single] of runs) {
         const merged = mergeShardResults(run());
         const where = `${c.name}${ti ? " inside track" : ""}, ${name}`;
+        expect(merged.range, `${where}: the range`).toEqual(single.range);
+        const bcs = (r: CollisionResult) => (r.boundaryContacts ?? []).map(b => `${[b.a, b.b].sort().join("/")} ${b.cutting}`).sort();
+        expect(bcs(merged), `${where}: boundary contacts`).toEqual(bcs(single));
         expect(merged.uncertified, where).toBe(single.uncertified);
         expect(merged.truncated, where).toBeNull();
         expect([merged.pairCount, merged.pairsPrescreened], `${where}: pairs and prescreen`).toEqual([single.pairCount, single.pairsPrescreened]);

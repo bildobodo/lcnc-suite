@@ -125,6 +125,24 @@ def datum_seq_advanced(before_seq, now_seq) -> Optional[bool]:
     return float(now_seq) != float(before_seq)
 
 
+def spindle_tool_dims(tool_number, tool_table, tool_offset):
+    """(diameter, length, table_z) of the spindle tool as the status carries
+    them: from its table row (length = |Z offset|, table_z signed), else the
+    length from the applied offset; None where unknown. One derivation for
+    the status and a run's start snapshot (plan „Prüfung im Lauf“ 1a)."""
+    diameter = length = table_z = None
+    if tool_number is not None and tool_table:
+        for t in tool_table:
+            if t.id == tool_number:
+                diameter = float(t.diameter)
+                length = abs(float(t.zoffset))
+                table_z = float(t.zoffset)
+                break
+    if length is None and tool_offset:
+        length = abs(float(tool_offset[2]))
+    return diameter, length, table_z
+
+
 def seed_wcs_row_xyz(wcs_cache: List[Dict[str, Any]], index0: int,
                      xyz: Sequence[float]) -> None:
     """Overwrite x/y/z of ONE cached fixture row in place (the gateway holds
@@ -1080,23 +1098,8 @@ class StatusRuntime:
         # diameter, frontangle, backangle, orientation). STAT.tool_offset is a 9-tuple
         # of floats holding the active G43 offset (Z at index 2).
         tool_number = safe_get("tool_in_spindle", None)
-        tool_diameter = None
-        tool_length = None
-        tool_table_z = None
-
-        tt = safe_get("tool_table", None)
-        if tool_number is not None and tt:
-            for t in tt:
-                if t.id == tool_number:
-                    tool_diameter = float(t.diameter)
-                    tool_length = abs(float(t.zoffset))
-                    tool_table_z = float(t.zoffset)
-                    break
-
-        if tool_length is None:
-            tofs = safe_get("tool_offset", None)
-            if tofs:
-                tool_length = abs(float(tofs[2]))
+        tool_diameter, tool_length, tool_table_z = spindle_tool_dims(
+            tool_number, safe_get("tool_table", None), safe_get("tool_offset", None))
 
         # Tool change request from HAL iocontrol (via webui-reader snapshot).
         # None means reader has no snapshot yet — pass that through honestly.

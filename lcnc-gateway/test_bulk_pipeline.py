@@ -11,7 +11,8 @@ import tempfile
 import types
 import unittest
 
-from bulk_pipeline import BulkPipeline
+from bulk_pipeline import BulkPipeline, ctx_digest
+from gateway_util import program_source
 
 
 def _pipeline(ini_path=None):
@@ -703,6 +704,258 @@ class TestPinnedReparse(unittest.TestCase):
         self.assertIsNone(self.b.published_ctx)
         self.assertIsNone(self.b.published_params)
         self.assertIsNone(self.b.pinned_ctx(self.ngc))
+
+
+class TestRunBinding(unittest.TestCase):
+    """The run's start and the pinned parse that belongs to it (plan „Prüfung
+    im Lauf“ 1a/1b, Codex R112–R115): a start is verified only by a direct
+    comparison with the published parse's start basis; a pinned parse during
+    the run is built from the run's START context — never from a publication
+    made since — and names the run only when it is that context, checked
+    again at the publish."""
+
+    def setUp(self):
+        TestPinnedReparse.setUp(self)
+        self.table = os.path.join(self.tmp.name, "tool.tbl")
+        open(self.table, "w").write("T13 P1 Z48.2 D8\n")
+        os.utime(self.table, (5.0, 5.0))
+        self.live.axis_mask = 0b101111                      # X Y Z A C
+        self.live.g92_offset = [0.0] * 9
+        self.live.tool_offset = (0.0, 0.0, 41.5) + (0.0,) * 6
+        self.live.gcodes = (0, 10, 170, 430)
+        self.live.tool_in_spindle = 1
+        self.live.tool_table = [types.SimpleNamespace(id=13, zoffset=48.2, diameter=8.0)]
+        self.run = None
+        self.b._get_run_basis = lambda: self.run
+        self.on_pinned = None
+        tlo = (b'__TLO__\t{"table_path": "' + self.table.encode() + b'", "table_mtime": 5.0, '
+               b'"tlos": [[13, 0.0, 0.0, 48.2, 8.0]], "applied_tlo": [0.0, 0.0, 41.5], '
+               b'"loaded_tool": 1, "start_known": true, "tlo_start": [0.0, 0.0, 41.5], '
+               b'"start_mode": 430, "start_reason": null}\n')
+
+        self.pinned_start = None
+
+        def worker(ctx_bytes, timeout):
+            import msgspec
+            ctx = msgspec.msgpack.decode(ctx_bytes)
+            self.sent.append((ctx, timeout))
+            if ctx.get("nice") and self.on_pinned:
+                self.on_pinned()
+            t = tlo
+            if ctx.get("nice") and self.pinned_start:
+                t = t.replace(b'"tlo_start": [0.0, 0.0, 41.5]', b'"tlo_start": [0.0, 0.0, ' + self.pinned_start + b']')
+            return (0, b"x" * 8, b'__SCHEMA__\t8\n__ABCSEED__\t{"A": 0.0, "C": 0.0}\n'
+                    + t + self.params_line)
+        self.b._run_gcode_worker_blocking = worker
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def _load(self, reason="file"):
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason=reason))
+
+    def _check(self, **kw):
+        return self.b.run_start_check(self.ngc, self.live, program_source(self.ngc), **kw)
+
+    def _run(self, run_id=1):
+        ctx = self.b.start_ctx(self.ngc)
+        return {"run_id": run_id, "state": "sent", "file": self.ngc,
+                "source": program_source(self.ngc), "ctx": ctx, "ctx_digest": ctx_digest(ctx),
+                "tool_basis_rev": self.b.tool_basis_rev, "verified": True}
+
+    def test_the_published_start_is_verified(self):
+        self._load()
+        self.assertEqual(self._check(), (True, None))
+
+    def test_every_difference_from_the_published_start_is_not_verified(self):
+        self._load()
+
+        def text():
+            open(self.ngc, "w").write("G0 X2\nM2\n")
+
+        def table_time():
+            os.utime(self.table, (6.0, 6.0))
+
+        def table_gone():
+            os.remove(self.table)
+        cases = {
+            "text": text,
+            "fixture": lambda: setattr(self.live, "g5x_index", 2),
+            "fixture table": lambda: self.patches.update({"5221": "11.0"}),
+            "G92": lambda: setattr(self.live, "g92_offset", [0.0, 0.0, 0.001] + [0.0] * 6),
+            "kins": lambda: setattr(self, "kins", (1, None)),
+            "rotary": lambda: setattr(self.live, "actual_position", [0.0] * 3 + [0.02] + [0.0] * 5),
+            "rotary set": lambda: setattr(self.live, "axis_mask", 0b111111),
+            "tool start": lambda: setattr(self.live, "tool_offset", (0.0, 0.0, 41.6) + (0.0,) * 6),
+            "tool mode": lambda: setattr(self.live, "gcodes", (0, 10, 170, 490)),
+            "tool in spindle": lambda: setattr(self.live, "tool_in_spindle", 2),
+            "table row": lambda: setattr(self.live, "tool_table",
+                                         [types.SimpleNamespace(id=13, zoffset=48.3, diameter=8.0)]),
+            "table time": table_time,
+            "table unreadable": table_gone,
+            "parse running": lambda: setattr(self.b, "refresh_running", True),
+            "parse pending": lambda: setattr(self.b, "reparse_pending", True),
+            "WCS snapshot": lambda: setattr(self.b, "published_wcs_off", [1.0, 2.5]),
+            "limits": lambda: (setattr(self.b, "published_limits",
+                                       {"source": "live", "limits": {"X": [-100.0, 100.0]}}),
+                               setattr(self.live, "joint",
+                                       [{"min_position_limit": -100.0, "max_position_limit": 99.0}])),
+        }
+        for name, change in cases.items():
+            with self.subTest(name):
+                saved = (open(self.ngc).read(), dict(vars(self.live)), dict(self.patches), self.kins,
+                         self.b.refresh_running, self.b.reparse_pending, self.b.published_wcs_off,
+                         self.b.published_limits)
+                change()
+                ok, why = self._check()
+                self.assertFalse(ok)
+                self.assertTrue(why)
+                (text_was, live_was, patches_was, self.kins, self.b.refresh_running,
+                 self.b.reparse_pending, self.b.published_wcs_off, self.b.published_limits) = saved
+                open(self.ngc, "w").write(text_was)
+                vars(self.live).clear()
+                vars(self.live).update(live_was)
+                self.patches = patches_was
+                open(self.table, "w").write("T13 P1 Z48.2 D8\n")
+                os.utime(self.table, (5.0, 5.0))
+                self.assertEqual(self._check(), (True, None))   # restored: the control
+        with self.subTest("another program"):
+            self.assertFalse(self.b.run_start_check(self.ngc + "x", self.live, program_source(self.ngc))[0])
+        with self.subTest("no status"):
+            self.assertFalse(self.b.run_start_check(self.ngc, None, program_source(self.ngc))[0])
+        with self.subTest("the caller's open edge"):
+            self.assertEqual(self._check(open_drift="toolsetter"), (False, "drift open: toolsetter"))
+        with self.subTest("nothing published"):
+            self.b.clear_preview()
+            self.assertFalse(self._check()[0])
+
+    def test_the_start_ctx_is_a_copy(self):
+        self._load()
+        ctx = self.b.start_ctx(self.ngc)
+        ctx["var_patches"]["5221"] = "77.0"
+        ctx["rotary_pose"]["A"] = 5.0
+        again = self.b.start_ctx(self.ngc)
+        self.assertEqual(again["var_patches"], {"5221": "10.0"})
+        self.assertEqual(again["rotary_pose"], {"A": 0.0, "C": 0.0})
+        self.assertEqual(ctx_digest(again), ctx_digest(self.b.pinned_ctx(self.ngc)))
+        # nice is a priority, not an input
+        self.assertEqual(ctx_digest(dict(again, nice=19)), ctx_digest(again))
+        self.assertNotEqual(ctx_digest(dict(again, g5x_index=2)), ctx_digest(again))
+
+    def test_a_pinned_parse_for_a_run_is_built_from_the_runs_start(self):
+        # R114: verified run A → an ordinary publication B of the same text
+        # (another fixture table) → the table edge's pinned parse: its context
+        # is A's, and it names run A
+        self._load()
+        self.run = self._run()
+        a_patches = dict(self.patches)
+        self.patches = {"5221": "20.0"}
+        self._load(reason="wcsoff:G54:x")                   # publication B
+        self.assertEqual(self.b.published_ctx["var_patches"], {"5221": "20.0"})
+        # the control first: without the run the pinned parse is B's, and no run's
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime", pinned=True))
+        self.assertEqual(self.sent[-1][0]["var_patches"], {"5221": "20.0"})
+        self.assertIsNone(self.b.published_origin["for_run"])
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                 pinned=True, run=self.run))
+        ctx = self.sent[-1][0]
+        self.assertEqual(ctx["var_patches"], a_patches)
+        self.assertEqual(ctx_digest(ctx), self.run["ctx_digest"])
+        self.assertEqual(self.b.published_origin["for_run"],
+                         {"run_id": 1, "ctx_digest": self.run["ctx_digest"],
+                          "tool_basis_rev": self.run["tool_basis_rev"]})
+        self.assertTrue(self.b.published_origin["pinned"])
+        self.assertEqual(self.b.published_origin["reason"], "midrun:table_mtime")
+
+    def test_a_context_that_is_not_the_runs_names_no_run(self):
+        self._load()
+        for name, change in (("digest", lambda r: r.update(ctx_digest="0" * 64)),
+                             ("file", lambda r: r["ctx"].update(file=self.ngc + "x")),
+                             ("no ctx", lambda r: r.update(ctx=None))):
+            with self.subTest(name):
+                self.run = self._run()
+                change(self.run)
+                asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                         pinned=True, run=self.run))
+                self.assertIsNone(self.b.published_origin["for_run"])
+
+    def test_the_binding_is_checked_again_at_the_publish(self):
+        self._load()
+        for name, change in (
+                ("another run", lambda: setattr(self, "run", dict(self.run, run_id=2))),
+                ("no run", lambda: setattr(self, "run", None)),
+                ("another basis revision", lambda: setattr(self, "run", dict(self.run, tool_basis_rev=-1))),
+                ("the text changed", lambda: open(self.ngc, "w").write("G0 X3\nM2\n"))):
+            with self.subTest(name):
+                open(self.ngc, "w").write("G0 X1\nM2\n")
+                self._load()
+                self.run = self._run()
+                run = self.run
+                self.on_pinned = change
+                asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                         pinned=True, run=run))
+                self.on_pinned = None
+                self.assertIsNone(self.b.published_origin["for_run"])
+        with self.subTest("the parse's own start moved the basis"):
+            open(self.ngc, "w").write("G0 X1\nM2\n")
+            self._load()
+            self.run = self._run()
+            self.pinned_start = b"41.6"
+            asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                     pinned=True, run=self.run))
+            self.pinned_start = None
+            self.assertNotEqual(self.b.tool_basis_rev, self.run["tool_basis_rev"])
+            self.assertIsNone(self.b.published_origin["for_run"])
+        with self.subTest("the control: the same run"):
+            open(self.ngc, "w").write("G0 X1\nM2\n")
+            self._load()
+            self.run = self._run()
+            asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                     pinned=True, run=self.run))
+            self.assertEqual(self.b.published_origin["for_run"]["run_id"], 1)
+
+    def test_the_origin_on_the_wire_has_the_fixtures_keys(self):
+        # the client reads scripts/test_fixtures/run_check_wire.json
+        wire = json.loads(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scripts",
+                                            "test_fixtures", "run_check_wire.json")).read())["preview_origin"]
+        self._load()
+        self.run = self._run()
+        asyncio.run(self.b.refresh_gcode_preview(self.ngc, reason="midrun:table_mtime",
+                                                 pinned=True, run=self.run))
+        o = self.b.preview_origin_status()
+        self.assertEqual(set(o), set(wire))
+        self.assertEqual(set(o["for_run"]), set(wire["for_run"]))
+        self.assertEqual(set(o["table"]), set(wire["table"]))
+
+    def test_the_tool_basis_revision_counts_changes_only(self):
+        rev0 = self.b.tool_basis_rev
+        self._load()
+        rev1 = self.b.tool_basis_rev
+        self.assertEqual(rev1, rev0 + 1)
+        self._load()                                         # the same basis again
+        self.assertEqual(self.b.tool_basis_rev, rev1)
+        self.b._set_tool_basis({"xyz": [0.0, 0.0, 50.0], "mode": 430})
+        self.assertEqual(self.b.tool_basis_rev, rev1 + 1)    # a verify without a new version
+        self.b.clear_preview()
+        self.assertEqual(self.b.tool_basis_rev, rev1 + 2)
+
+    def test_every_publication_says_where_it_comes_from(self):
+        import hashlib
+        self.assertIsNone(self.b.preview_origin_status())
+        self._load()
+        o = self.b.preview_origin_status()
+        rows = hashlib.sha256(json.dumps([[13, 0.0, 0.0, 48.2, 8.0]]).encode()).hexdigest()[:16]
+        self.assertEqual(o, {"version": self.b.preview_version, "file": self.ngc,
+                             "source": program_source(self.ngc), "reason": "file", "pinned": False,
+                             "for_run": None, "table": {"mtime": 5.0, "rows": rows},
+                             "tool_basis_rev": self.b.tool_basis_rev,
+                             "tool_basis_rev_now": self.b.tool_basis_rev})
+        self.b._set_tool_basis({"xyz": [0.0, 0.0, 50.0], "mode": 430})
+        o2 = self.b.preview_origin_status()
+        self.assertEqual(o2["tool_basis_rev_now"], o["tool_basis_rev"] + 1)
+        self.assertEqual(o2["tool_basis_rev"], o["tool_basis_rev"])
+        self.b.clear_preview()
+        self.assertIsNone(self.b.preview_origin_status())
 
 
 class TestVerifyAtTheActualOffset(unittest.TestCase):

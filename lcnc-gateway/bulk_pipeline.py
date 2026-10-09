@@ -24,7 +24,9 @@ injected: STAT accessor, machine-units resolver, WCS rotation patch builder.
 This module never imports gateway.
 """
 import asyncio
+import copy
 import gzip
+import hashlib
 import json
 import os
 import subprocess
@@ -37,13 +39,24 @@ import msgspec as _msgspec
 
 import lcnc_trace as _trace
 from tool_import import decode_tool_blob
-from gateway_util import (PIN_UNSUPPORTED_EXIT, program_source, rotary_seed_values,
-                          start_tlo_seed)
+from gateway_util import (AXIS_LETTERS, PIN_UNSUPPORTED_EXIT, evaluate_limits_drift,
+                          evaluate_start_drift, evaluate_tlo_drift, evaluate_wcs_offset_drift,
+                          program_source, rotary_seed_values, start_tlo_seed)
 
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 GCODE_WORKER_PATH = os.path.join(_BASE_DIR, "gcode_parse_worker.py")
 TOOL_IMPORT_WORKER_PATH = os.path.join(_BASE_DIR, "tool_import.py")
 TOOL_IMPORT_INLINE_MAX = 1 << 20   # <=1 MiB decodes in ~15 ms — a thread is fine
+
+
+def ctx_digest(ctx: Optional[dict]) -> Optional[str]:
+    """A parse context's fingerprint — its start basis; the tool TABLE is
+    read live by the worker and bound apart (plan „Prüfung im Lauf“ 1b).
+    Canonical JSON, `nice` left out (a priority, no input)."""
+    if ctx is None:
+        return None
+    body = {k: v for k, v in ctx.items() if k != "nice"}
+    return hashlib.sha256(json.dumps(body, sort_keys=True, default=repr).encode()).hexdigest()
 
 
 async def terminate_parse_proc(proc) -> None:
@@ -82,8 +95,13 @@ class BulkPipeline:
         get_live_kins: Optional[Callable[[], tuple]] = None,
         get_wcs_off_flat: Optional[Callable[[], Optional[list]]] = None,
         get_toolsetter_ctx: Optional[Callable[[], Optional[dict]]] = None,
+        get_run_basis: Optional[Callable[[], Optional[dict]]] = None,
     ) -> None:
         self._get_stat = get_stat
+        # The run in progress (the gateway's run_basis, plan „Prüfung im
+        # Lauf“ 1a) — a pinned parse's run binding is checked against it
+        # again at the publish. None: no run (tests, idle).
+        self._get_run_basis = get_run_basis or (lambda: None)
         self._get_machine_units = get_machine_units
         self._build_wcs_rotation_patches = build_wcs_rotation_patches
         # Live WCS-offset snapshot in the worker's __WCSOFF__ shape (the
@@ -161,6 +179,14 @@ class BulkPipeline:
         # The idle start edge compares the live start with this; a pinned
         # parse seeds it.
         self.tool_basis: Optional[dict] = None
+        # Bumped by every change of tool_basis — a verify confirms a basis
+        # without a new payload version (Prüfung im Lauf, R113): the run
+        # binding names the basis revision, not the version alone.
+        self.tool_basis_rev: int = 0
+        # Where the published payload comes from (plan „Prüfung im Lauf“ 1b):
+        # version, file, source, reason, pinned, the run it was planned for,
+        # the tool table it read. None: nothing published.
+        self.published_origin: Optional[dict] = None
         # Parse-time rotary seed of the published payload (W6), from the
         # worker's `__ABCSEED__` stderr line: {letter: degrees} the sync
         # initcode posed uncommanded rotaries at. The same idle drift edge
@@ -297,7 +323,8 @@ class BulkPipeline:
         get_preview)."""
         return self.preview_bytes is not None or self.preview_bytes_gz is not None
 
-    def schedule_refresh(self, filepath: str, reason: str, spawn, pinned: bool = False) -> bool:
+    def schedule_refresh(self, filepath: str, reason: str, spawn, pinned: bool = False,
+                         run: Optional[dict] = None) -> bool:
         """Single-flight scheduler — the ONE place refresh_running goes True.
 
         `spawn(coro) -> asyncio.Task` is supplied by the gateway (its
@@ -314,7 +341,7 @@ class BulkPipeline:
         self.reparse_pending = False
         self.reparse_pending_reason = None
         try:
-            task = spawn(self.refresh_gcode_preview(filepath, reason=reason, pinned=pinned))
+            task = spawn(self.refresh_gcode_preview(filepath, reason=reason, pinned=pinned, run=run))
         except BaseException as e:
             self.refresh_running = False
             _trace.emit("gcode.refresh_schedule_failed", level="warn",
@@ -349,7 +376,8 @@ class BulkPipeline:
         self.published_schema = None
         self.schema_reparse_attempted = None
         self.published_tlo = None
-        self.tool_basis = None
+        self._set_tool_basis(None)
+        self.published_origin = None
         self.published_rotary_seed = None
         self.published_kins_seed = None
         self.published_wcs_off = None
@@ -426,6 +454,99 @@ class BulkPipeline:
     #: ... and gets a longer leash: niced under a busy run it may take a
     #: multiple of its idle time. Its duration never enters the history.
     _PINNED_TIMEOUT_FACTOR = 3.0
+
+    def _set_tool_basis(self, basis: Optional[dict]) -> None:
+        if basis != self.tool_basis:
+            self.tool_basis_rev += 1
+        self.tool_basis = basis
+
+    def start_ctx(self, filepath: str) -> Optional[dict]:
+        """A run's start context (plan „Prüfung im Lauf“ 1b): what pinned_ctx
+        would build NOW, copied whole — a pinned parse during the run is built
+        from it, never from a publication made after the start. None when
+        nothing is published for this file."""
+        ctx = self.pinned_ctx(filepath)
+        return copy.deepcopy(ctx) if ctx is not None else None
+
+    def run_start_check(self, filepath: Optional[str], stat, source_now: Optional[str],
+                        open_drift: Optional[str] = None) -> tuple:
+        """Is the published preview this program's START, for a run about to
+        start (plan 1a)? (verified, why). A direct comparison of the
+        controller's state now with the published parse's start basis —
+        fixture and its table, G92, kinematics, rotary seed, tool start —
+        and every drift edge evaluated now, without its debounce or settle
+        guard (the tool table, the WCS snapshot, the soft-limit window, and
+        `open_drift`, the caller's own: the toolsetter book). Whatever cannot
+        be compared is not verified."""
+        if not filepath or self.last_file != filepath or not self.preview_available():
+            return False, "no publication of this program"
+        if self.refresh_running or self.reparse_pending:
+            return False, "a parse runs or is pending"
+        if open_drift:
+            return False, f"drift open: {open_drift}"
+        if self.published_source is None or source_now != self.published_source:
+            return False, "the program text is not the published one"
+        ctx = self.pinned_ctx(filepath)
+        if ctx is None:
+            return False, "no published start"
+        if stat is None:
+            return False, "no controller status"
+        if getattr(stat, "g5x_index", None) != ctx.get("g5x_index"):
+            return False, "another fixture"
+        if self._build_wcs_rotation_patches() != ctx.get("var_patches"):
+            return False, "another fixture table"
+        g92 = getattr(stat, "g92_offset", None)
+        pg = (self.published_params or {}).get("g92")
+        if g92 is None or pg is None or len(g92) < len(pg) or any(abs(float(a) - float(b)) > 1e-9 for a, b in zip(g92, pg)):
+            return False, "another G92"
+        if tuple(self._get_live_kins()) != (ctx.get("kins_type"), ctx.get("kins_frame")):
+            return False, "another kinematics state"
+        live_rot = rotary_seed_values(getattr(stat, "axis_mask", 0) or 0, getattr(stat, "actual_position", None))
+        pub_rot = self.published_rotary_seed
+        if (live_rot is None) != (pub_rot is None) or (live_rot and (
+                set(live_rot) != set(pub_rot) or any(abs(live_rot[k] - pub_rot[k]) > 0.01 for k in live_rot))):
+            return False, "another rotary pose"
+        live = self.live_start(stat)
+        if live is None or self.tool_basis is None or evaluate_start_drift(self.published_tlo, self.tool_basis, live) is not None:
+            return False, "another tool start"
+        meta = self.published_tlo or {}
+        tpath = meta.get("table_path")
+        try:
+            t_now = os.path.getmtime(tpath) if tpath else None
+        except OSError:
+            t_now = None
+        if meta.get("table_mtime") is not None and t_now is None:
+            return False, "tool table not readable"
+        try:
+            rows = [(int(t.id), float(t.zoffset)) for t in (getattr(stat, "tool_table", None) or [])]
+        except (AttributeError, TypeError, ValueError):
+            return False, "tool table rows not readable"
+        d = evaluate_tlo_drift(meta, t_now, getattr(stat, "tool_in_spindle", None), table_rows=rows)
+        if d:
+            return False, f"drift open: {d}"
+        d = evaluate_wcs_offset_drift(self.published_wcs_off, self._get_wcs_off_flat())
+        if d:
+            return False, f"drift open: {d}"
+        mask = int(getattr(stat, "axis_mask", 0) or 0)
+        letters = [AXIS_LETTERS[i] for i in range(9) if mask & (1 << i)]
+        jl = []
+        for j in getattr(stat, "joint", None) or ():
+            mn = j.get("min_position_limit") if isinstance(j, dict) else None
+            mx = j.get("max_position_limit") if isinstance(j, dict) else None
+            jl.append([float(mn), float(mx)] if isinstance(mn, (int, float))
+                      and isinstance(mx, (int, float)) else None)
+        d = evaluate_limits_drift(self.published_limits, jl[:len(letters)], letters)
+        if d:
+            return False, f"drift open: {d}"
+        return True, None
+
+    def preview_origin_status(self) -> Optional[dict]:
+        """The status wire's `preview_origin` (plan 1b): the published
+        payload's origin, and the tool basis revision now — present while a
+        preview is published."""
+        if self.published_origin is None or not self.preview_available():
+            return None
+        return {**self.published_origin, "tool_basis_rev_now": self.tool_basis_rev}
 
     def pinned_ctx(self, filepath: str) -> Optional[dict]:
         """The worker ctx for a PINNED re-parse of `filepath`: the published
@@ -544,7 +665,7 @@ class BulkPipeline:
                 "superseded": self.superseded_total}
 
     async def refresh_gcode_preview(self, filepath: str, reason: str = "file",
-                                    pinned: bool = False):
+                                    pinned: bool = False, run: Optional[dict] = None):
         """Parse filepath in an isolated subprocess and publish the result.
 
         Called from the poller on file change. Single-flight via
@@ -577,8 +698,24 @@ class BulkPipeline:
                 _trace.emit("gcode.refresh_skipped", level="warn", file=filepath,
                             reason="no-stat" if stat is None else "no-ini")
                 return
+            # The run a pinned parse belongs to (plan „Prüfung im Lauf“ 1b):
+            # built from the run's START context, copied at the start —
+            # never from a publication made since — and bound to it only
+            # when the context actually built is that one.
+            for_run: Optional[dict] = None
+            run_source: Optional[str] = None
             if pinned:
-                ctx = self.pinned_ctx(filepath)
+                if run is not None and run.get("ctx") is not None:
+                    ctx = copy.deepcopy(run["ctx"])
+                    if ctx_digest(ctx) == run.get("ctx_digest") and ctx.get("file") == filepath:
+                        for_run = {"run_id": run.get("run_id"), "ctx_digest": run.get("ctx_digest"),
+                                   "tool_basis_rev": run.get("tool_basis_rev")}
+                        run_source = run.get("source")
+                    else:
+                        _trace.emit("gcode.run_ctx_mismatch", level="warn", file=filepath,
+                                    run_id=run.get("run_id"))
+                else:
+                    ctx = self.pinned_ctx(filepath)
                 if ctx is None:
                     _trace.emit("gcode.refresh_skipped", level="warn", file=filepath,
                                 reason="no-published-ctx")
@@ -821,7 +958,7 @@ class BulkPipeline:
                 # Verified at the actual offset: the published payload stays;
                 # only its tool basis moves to the start the worker seeded.
                 if self.basis_of(worker_tlo) is not None:
-                    self.tool_basis = self.basis_of(worker_tlo)
+                    self._set_tool_basis(self.basis_of(worker_tlo))
                     _trace.emit("gcode.reparse_verified_same", file=os.path.basename(filepath),
                                 basis=self.tool_basis, version=self.preview_version,
                                 total_ms=round((time.monotonic() - t_start) * 1000, 1))
@@ -869,7 +1006,7 @@ class BulkPipeline:
             self.preview_bytes_gz = preview_bytes_gz
             self.published_schema = worker_schema
             self.published_tlo = worker_tlo
-            self.tool_basis = self.basis_of(worker_tlo)
+            self._set_tool_basis(self.basis_of(worker_tlo))
             self.published_rotary_seed = worker_rotary_seed
             self.published_rotary_cmd = worker_rotary_cmd
             self.published_limits = worker_limits
@@ -877,6 +1014,29 @@ class BulkPipeline:
             self.published_wcs_off = worker_wcs_off
             self.published_ctx = ctx
             self.table_stale = None
+            # The run binding again at the publish: still the run in progress,
+            # with the same start and the same text (plan 1b) — else this
+            # payload has none.
+            if for_run is not None:
+                cur = self._get_run_basis() or {}
+                if (cur.get("run_id"), cur.get("ctx_digest"), cur.get("tool_basis_rev")) != (
+                        for_run["run_id"], for_run["ctx_digest"], for_run["tool_basis_rev"]) or (
+                        self.published_source is None or self.published_source != run_source) or (
+                        # this parse's own start moved the basis: not the run's start
+                        self.tool_basis_rev != for_run["tool_basis_rev"]):
+                    _trace.emit("gcode.run_binding_lost", level="warn", file=filepath,
+                                run_id=for_run["run_id"], now=cur.get("run_id"))
+                    for_run = None
+            self.published_origin = {
+                "version": self.preview_version + 1, "file": filepath,
+                "source": self.published_source, "reason": reason, "pinned": bool(pinned),
+                "for_run": for_run,
+                # the tool table the parse actually read (its __TLO__ meta)
+                "table": {"mtime": (worker_tlo or {}).get("table_mtime"),
+                          "rows": hashlib.sha256(json.dumps((worker_tlo or {}).get("tlos"),
+                                                            default=repr).encode()).hexdigest()[:16]},
+                "tool_basis_rev": self.tool_basis_rev,
+            }
             self.published_params = worker_params if isinstance(worker_params, dict) else None
             self.published_toolsetter = worker_toolsetter if isinstance(worker_toolsetter, dict) else None
             self.preview_version += 1

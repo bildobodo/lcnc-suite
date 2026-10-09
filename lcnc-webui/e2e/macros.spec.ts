@@ -530,9 +530,13 @@ test("a tap on a row selects it for Run; its name is one Tab stop whose keys sel
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await ctl({ op: "clearCmds" });
   await expect(page.getByTitle("Keyboard shortcuts active", { exact: true })).toBeVisible();
-  await page.keyboard.down("ArrowDown");
-  await expect.poll(jogs, { message: "control: ArrowDown on the bare page jogs" }).toContain("jog_cont");
-  await page.keyboard.up("ArrowDown");
+  // pressed until it jogs: the binding is live once the settings frame is
+  // applied — the title shows from the defaults too
+  await expect.poll(async () => {
+    await page.keyboard.down("ArrowDown");
+    await page.keyboard.up("ArrowDown");
+    return jogs();
+  }, { message: "control: ArrowDown on the bare page jogs" }).toContain("jog_cont");
   await page.keyboard.down("ArrowDown");   // release any jog the control left
   await page.keyboard.up("ArrowDown");
   await page.locator(".macrosTab .rowPick[tabindex='0']").focus();
@@ -621,6 +625,29 @@ test("one action row: Run and Abort left, More right; its panel, its keys, and a
     for (const n of ["New", "Upload", "Download"]) {
       await expect(head.getByRole("button", { name: n, exact: true }), `${where}: ${n} folded`).toBeHidden();
     }
+    if (narrow) {
+      // Reopened after the zoom, the panel is never shown before it is placed
+      // (it showed a frame at its last place — the gate of 2026-10-09):
+      // with the animation frames held, it stays hidden.
+      await page.evaluate(() => {
+        const w = window as any;
+        w.__rafQ = []; w.__rafOrig = w.requestAnimationFrame;
+        w.requestAnimationFrame = (cb: FrameRequestCallback) => { w.__rafQ.push(cb); return 0; };
+      });
+      await more.click();
+      await expect(more).toHaveAttribute("aria-expanded", "true");
+      await page.waitForTimeout(100);
+      const held = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);
+      expect(await held.isVisible(), `${where}: not shown before it is placed`).toBe(false);
+      await page.evaluate(() => {
+        const w = window as any;
+        w.requestAnimationFrame = w.__rafOrig;
+        for (const cb of w.__rafQ) cb(performance.now());
+      });
+      await expect(held).toBeVisible();
+      await more.click();
+      await expect(more).toHaveAttribute("aria-expanded", "false");
+    }
     await more.click();
     await expect(more).toHaveAttribute("aria-expanded", "true");
     const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);
@@ -650,9 +677,14 @@ test("one action row: Run and Abort left, More right; its panel, its keys, and a
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
   await ctl({ op: "clearCmds" });
   await expect(page.getByTitle("Keyboard shortcuts active", { exact: true })).toBeVisible();
-  await page.keyboard.down("ArrowRight");
-  await expect.poll(jogs, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
-  await page.keyboard.up("ArrowRight");
+  // Pressed until it jogs: the title shows from the defaults too — the
+  // binding is live once the settings frame is applied (a single press
+  // before that was lost, the gate of 2026-10-09).
+  await expect.poll(async () => {
+    await page.keyboard.down("ArrowRight");
+    await page.keyboard.up("ArrowRight");
+    return jogs();
+  }, { message: "control: ArrowRight on the bare page jogs" }).toContain("jog_cont");
   await more.focus();
   await page.keyboard.press("Enter");
   const panel = page.locator(`[id="${await more.getAttribute("aria-controls")}"]`);

@@ -21,6 +21,7 @@ import {
   type ScrubSample,
 } from "./viewer/scrubTrack";
 import { createRunWatcher } from "./viewer/runWatcher";
+import { runPlayhead } from "./viewer/runPlayhead";
 import { runLineState, subExecState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
@@ -37,7 +38,7 @@ import { fmtElapsed } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, limitStopOf, nextRowKey, simRowOrder, type SimRowKind } from "./viewer/simRows";
+import { buildSimRows, limitStopOf, nextRowKey, simRowOrder, type SimRowKind, partLabel } from "./viewer/simRows";
 import { m600Events, m600ToolNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
@@ -74,6 +75,14 @@ const props = defineProps<{
    *  it continues by itself once the pose settles. */
   collisionStopped: { covered: number; reason: "motion" } | null;
   collisionResumable: boolean;
+  /** The verdict of the preview shown before the one displayed now, kept
+   *  while a run goes on (plan „Prüfung im Lauf“ 1c): named, nothing more. */
+  collisionPrevious?: { collisions: number; complete: boolean; version: number | null } | null;
+  /** The check during a run (plan „Prüfung im Lauf“ 3b–3d): its phase, where
+   *  the provisional range starts, and whether the provisional result is the
+   *  one on screen while the full check runs. */
+  collisionRunCheck?: { phase: "provisional" | "full"; fromLine: number | null; fromCum: number | null;
+                        provisionalShown: boolean } | null;
 }>();
 
 const emit = defineEmits<{
@@ -515,6 +524,8 @@ watch(st, (d) => {
       points: t.count, phase: out.phase,
     });
   }
+  // the run check's hint (plan „Prüfung im Lauf“ 3b): attached only
+  runPlayhead.value = out.phase === "attached" && out.index != null ? { track: t, index: out.index } : null;
   if (out.phase === "offPath") {
     // Frozen playhead — the machine is somewhere the program never goes
     // (toolchange park); pretending otherwise is the old bug. The
@@ -558,6 +569,7 @@ watch(st, (d) => {
 });
 watch(running, (r) => {
   _runWatcher.reset();
+  runPlayhead.value = null;
   runOffPath.value = false;
   if (!r) runLineState.value = null;
   if (!r && !simMode.value) subExecState.value = null;
@@ -757,7 +769,10 @@ const sweptFrac = computed(() => {
   if (!t || cumMax.value <= 0) return 0;
   let f: number;
   let merged = false;
-  if (props.collisionBusy) f = props.collisionProgress;
+  // the full check during a run behind the provisional result on screen: the
+  // band is the provisional's; the full one's progress is the Sim tab's
+  if (props.collisionBusy && !props.collisionRunCheck?.provisionalShown) f = props.collisionProgress;
+  else if (props.collisionBusy && shownResult.value?.range) f = 1;
   else {
     const r = shownResult.value;
     if (!r) return 0;
@@ -766,7 +781,16 @@ const sweptFrac = computed(() => {
     else f = 1;
   }
   if (b && t !== b && t.count > 1) return mergedSweptFraction(f, merged, t.cum[1]!, b.cum[b.count - 1]!, cumMax.value);
-  return Math.min(1, Math.max(0, f));
+  return Math.min(1, Math.max(sweptFrom.value, f));
+});
+/** Where the swept band begins: a provisional check during a run covers its
+ *  range only — from the run's point (plan „Prüfung im Lauf“ 3c). */
+const sweptFrom = computed(() => {
+  if (cumMax.value <= 0) return 0;
+  const r = shownResult.value, rc = props.collisionRunCheck;
+  const from = r?.range ? r.range.fromCum
+    : props.collisionBusy && rc?.phase === "provisional" ? rc.fromCum : null;
+  return from == null ? 0 : Math.min(1, Math.max(0, from / cumMax.value));
 });
 
 // One navigation target per contact ONSET: an intermittent-contact line
@@ -977,6 +1001,44 @@ const sweepView = computed<SimSweepView | null>(() => {
       ? { state: "nopairs", frac: 0, verdict: "Not checked", tone: "warn", caveat, detail }
       : { state: "nopairs", frac: 0, verdict: "No moving pairs", tone: "muted", caveat: false, detail };
   }
+  const rc = props.collisionRunCheck;
+  if (rc) {
+    // The check during a run (plan „Prüfung im Lauf“ 3d): provisional from
+    // the machine's presumed line, then in full — never "measured".
+    const label = "Run check · tool table updated";
+    const from = rc.fromLine != null ? `L${rc.fromLine}` : "the run's point";
+    const runDetail = (rc.phase === "provisional" || rc.provisionalShown
+      ? `Checked from ${from}, where the machine presumably is; the program's start follows in the full check. `
+      : "") + boundaryDetail.value + detail;
+    if (rc.phase === "provisional" && props.collisionBusy) {
+      return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
+        verdict: `${n ? found : "No collision"} from ${from} so far (provisional)` };
+    }
+    if (rc.provisionalShown) {
+      return { state: "checking", frac: props.collisionProgress, label, tone: n ? "danger" : "muted", caveat: !!sweepCaveat.value,
+        detail: runDetail, verdict: `${n ? found : "No collision"} from ${from} (provisional)` };
+    }
+    if (props.collisionBusy) {
+      return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
+        verdict: n ? `${found} so far` : "No collision so far" };
+    }
+    // "checked in full" only for a full sweep that is neither cut short nor
+    // uncertified — a finished worker alone is no full check (Codex R115)
+    if (r && !r.truncated && !r.range) {
+      return { state: "done", frac: 1, label, tone: n ? "danger" : "ok", caveat, detail: runDetail,
+        verdict: `${n ? found : "Clear"} · ${caveat ? "checked to the end" : "checked in full"}` };
+    }
+    if (r?.range) {
+      // a provisional result with no full check behind it: still provisional
+      return { state: "partial", frac: sweptFrac.value, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
+        verdict: `${n ? found : "No collision"} from ${from} (provisional)` };
+    }
+    if (r?.truncated) {
+      const cov = props.collisionStopped && props.collisionResumable ? props.collisionStopped.covered : r.truncated.covered;
+      return { state: "partial", frac: sweptFrac.value, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
+        verdict: n ? `${found} in ${pctOf(cov)} swept` : `No collision in ${pctOf(cov)} swept` };
+    }
+  }
   if (props.collisionBusy) {
     return { state: "checking", frac: sweptFrac.value, verdict: n ? `${found} so far` : "No collision so far",
       tone: n ? "danger" : "muted", caveat: false, detail };
@@ -989,6 +1051,14 @@ const sweepView = computed<SimSweepView | null>(() => {
       tone: n ? "danger" : "warn", caveat, detail };
   }
   return { state: "done", frac: 1, verdict: n ? found : "Clear", tone: n ? "danger" : "ok", caveat, detail };
+});
+/** A provisional check's boundary contacts (plan 3b): the pairs in contact
+ *  where it started — their onset and kind are the full check's. */
+const boundaryDetail = computed(() => {
+  const bc = shownResult.value?.boundaryContacts ?? [];
+  if (!bc.length) return "";
+  const named = bc.slice(0, 3).map(b => `${partLabel(b.a)} ↔ ${partLabel(b.b)} (L${b.line})`).join(", ");
+  return `Contact at the check's start: ${named}${bc.length > 3 ? " …" : ""} — its kind is settled by the full check. `;
 });
 /** Which tools the check poses — said in the check's "?", not on the bar. */
 const sweepToolSentence = computed(() => {
@@ -1008,6 +1078,10 @@ watchEffect(() => {
   simView.lineTitle = lineTitle.value;
   simView.time = posText.value;
   simView.sweep = sweepView.value;
+  const prev = props.collisionPrevious;
+  simView.previous = prev && !sweepView.value
+    ? `${prev.collisions ? `${prev.collisions} collision${prev.collisions === 1 ? "" : "s"}` : "Clear"}${prev.complete ? "" : " so far"}`
+    : null;
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };
   simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;
@@ -1076,7 +1150,7 @@ onUnmounted(releaseSim);
              with their glyphs (× clash, ▲ soft limit, ● tool change), and the
              input's thumb above them all. -->
         <div class="scrubBand track" :class="{ dim: !simMode }"></div>
-        <div class="scrubBand swept" :style="{ left: 'calc(var(--range-thumb) / 2)', width: `calc((100% - var(--range-thumb)) * ${sweptFrac})` }"></div>
+        <div class="scrubBand swept" :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${sweptFrom})`, width: `calc((100% - var(--range-thumb)) * ${Math.max(0, sweptFrac - sweptFrom)})` }"></div>
         <div v-for="(b, i) in limitBands" :key="'lb' + i" class="scrubBand limit"
              :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${b[0] / 100})`, width: `calc((100% - var(--range-thumb)) * ${(b[1] - b[0]) / 100})` }"></div>
         <div v-for="(b, i) in clashBands" :key="'cb' + i" class="scrubBand clash"

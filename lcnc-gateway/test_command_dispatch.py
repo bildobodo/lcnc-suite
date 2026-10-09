@@ -628,6 +628,228 @@ class TestHandlerExecution(unittest.TestCase):
                 self.assertEqual(at_send, ["assumed"], "booked before the send")
                 self.assertEqual(gateway._ts_basis[3010]["origin"], "read", "a key it does not write keeps its basis")
 
+    # ---- plan „Prüfung im Lauf“ 1a: the run basis, taken before the start ----
+    def _run_basis_setup(self):
+        import time as _time
+        saved = (gateway._run_basis, gateway._run_seq, gateway._bulk.last_file,
+                 gateway._status_runtime.program, getattr(gateway.STAT, "paused", None))
+        self.addCleanup(lambda: [setattr(gateway, "_run_basis", saved[0]),
+                                 setattr(gateway, "_run_seq", saved[1]),
+                                 setattr(gateway._bulk, "last_file", saved[2]),
+                                 setattr(gateway._status_runtime, "program", saved[3]),
+                                 setattr(gateway.STAT, "paused", saved[4])])
+        self._with_program()
+        gateway._bulk.last_file = self.prog
+        gateway._status_runtime.program = program = gateway._status_runtime_mod.LoadedProgram()
+        program.update(None, True, _time.monotonic())
+        program.request_load(self.prog, _time.monotonic())
+        program.update(self.prog, True, _time.monotonic())
+        cmd = self._rcs()
+        seen = []
+
+        def spy(*a, _orig=cmd.auto, **k):
+            rb = gateway._run_basis
+            seen.append((a[0], rb and rb["run_id"], rb and rb["state"]))
+            if getattr(self, "auto_raises", False):
+                raise RuntimeError("the write failed")
+            return _orig(*a, **k)
+        spy.__name__ = "auto"   # _start_kind reads the name
+        cmd.auto = spy
+        self.auto_raises = False
+        return cmd, seen
+
+    def _idle_auto(self):
+        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        gateway.STAT.paused = False
+
+    def test_a_run_basis_is_taken_before_the_start_is_written(self):
+        # a client never reconstructs a run's start from the first frame it
+        # sees — an early G92 / G43.1 may already have run (R113)
+        _cmd, seen = self._run_basis_setup()
+        for kind, code in (("cycle_start", linuxcnc.AUTO_RUN), ("auto_step", linuxcnc.AUTO_STEP),
+                           ("auto_run", linuxcnc.AUTO_RUN)):
+            with self.subTest(kind):
+                self._idle_auto()
+                seq = gateway._run_seq
+                seen.clear()
+                r = self._auto_run(line=2)[0] if kind == "auto_run" else self._send({"cmd": kind})
+                self.assertTrue(r["ok"], r)
+                self.assertEqual(seen, [(code, seq + 1, "sending")], "taken before the write")
+                self.assertEqual(gateway._run_basis["run_id"], seq + 1)
+                self.assertEqual(gateway._run_basis["state"], "sent")
+                self.assertEqual(gateway._run_basis["file"], self.prog)
+                self.assertEqual(gateway._run_basis["source"], gateway.program_source(self.prog))
+                status = gateway._run_basis_status()
+                self.assertNotIn("ctx", status, "the parse context stays in the gateway")
+                self.assertEqual(status["state"], "sent")
+                # nothing published for it: the start is not verified, and says why
+                self.assertFalse(status["verified"])
+                self.assertTrue(status["why"])
+                self.assertIsNone(gateway._run_for_pin(self.prog))
+
+    def test_a_write_that_fails_is_no_run(self):
+        _cmd, seen = self._run_basis_setup()
+        self._idle_auto()
+        self.auto_raises = True
+        seq = gateway._run_seq
+        self._send({"cmd": "cycle_start"})
+        self.assertEqual(seen[-1][1:], (seq + 1, "sending"))
+        self.assertEqual(gateway._run_basis["state"], "unsent")
+        gateway._run_basis["verified"] = True
+        self.assertIsNone(gateway._run_for_pin(self.prog), "an unsent start binds no parse")
+
+    def test_a_start_cancelled_before_its_write_is_no_run(self):
+        # an abort preempts the handler while it waits for the source lock:
+        # the basis it took must not stay "sending" for good
+        _cmd, seen = self._run_basis_setup()
+        self._idle_auto()
+
+        saved_lock = gateway._source_lock
+        self.addCleanup(lambda: setattr(gateway, "_source_lock", saved_lock))
+        gateway._source_lock = None   # a lock of this test's loop
+
+        async def go():
+            lock = gateway._get_source_lock()
+            await lock.acquire()
+            try:
+                t = asyncio.ensure_future(gateway._cmd_blocking(gateway.CMD.auto, linuxcnc.AUTO_RUN, 0,
+                                                                wait=None))
+                for _ in range(400):
+                    await asyncio.sleep(0.005)
+                    if gateway._run_basis is not None and gateway._run_basis.get("state") == "sending":
+                        break
+                self.assertEqual(gateway._run_basis["state"], "sending", "waiting for the lock")
+                t.cancel()
+                with self.assertRaises(asyncio.CancelledError):
+                    await t
+            finally:
+                lock.release()
+        gateway._run_basis = None
+        asyncio.run(go())
+        self.assertEqual(seen, [], "nothing was written")
+        self.assertEqual(gateway._run_basis["state"], "unsent")
+
+    def test_a_paused_step_and_a_resume_continue_the_run(self):
+        _cmd, seen = self._run_basis_setup()
+        self._idle_auto()
+        self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        first = gateway._run_basis
+        gateway.STAT.interp_state = linuxcnc.INTERP_PAUSED
+        gateway.STAT.paused = True
+        for kind in ("auto_step", "cycle_resume"):
+            with self.subTest(kind):
+                seen.clear()
+                gateway._shared_status = _payload(paused=True, interp_state=linuxcnc.INTERP_PAUSED)
+                self.assertTrue(_run(gateway.handle_command({"cmd": kind}, True))["ok"])
+                self.assertEqual(len(seen), 1)
+                self.assertIs(gateway._run_basis, first, "the same run")
+                self.assertEqual(first["state"], "sent")
+
+    def test_the_basis_is_taken_on_a_fresh_poll(self):
+        # the controller may have started meanwhile (another client): the
+        # snapshot says idle, a fresh poll says busy — no new run
+        _cmd, _seen = self._run_basis_setup()
+        self._idle_auto()
+        before = (gateway._run_basis, gateway._run_seq)
+        poll = gateway.STAT.poll
+        self.addCleanup(lambda: setattr(gateway.STAT, "poll", poll))
+
+        def busy():
+            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        gateway.STAT.poll = busy
+        r = asyncio.run(gateway._begin_run_basis())
+        self.assertIsNone(r)
+        self.assertEqual((gateway._run_basis, gateway._run_seq), before)
+
+    def test_a_verified_start_carries_the_start_context(self):
+        import unittest.mock
+        from bulk_pipeline import ctx_digest
+        self._run_basis_setup()
+        self._idle_auto()
+        ctx = {"file": self.prog, "g5x_index": 1, "var_patches": {"5221": "1.0"}}
+        with unittest.mock.patch.object(gateway._bulk, "start_ctx", lambda f: dict(ctx)), \
+                unittest.mock.patch.object(gateway._bulk, "run_start_check",
+                                           lambda *a, **k: (True, None)):
+            self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        rb = gateway._run_basis
+        self.assertTrue(rb["verified"])
+        self.assertIsNone(rb["why"])
+        self.assertEqual(rb["ctx"], ctx)
+        self.assertEqual(rb["ctx_digest"], ctx_digest(ctx))
+        self.assertEqual(rb["tool_basis_rev"], gateway._bulk.tool_basis_rev)
+        self.assertEqual(gateway._run_basis_status()["ctx_digest"], ctx_digest(ctx))
+        self.assertIs(gateway._run_for_pin(self.prog), rb)
+        self.assertIsNone(gateway._run_for_pin(self.prog + "x"), "another program")
+        # no context, no verified start — whatever the comparison said
+        with unittest.mock.patch.object(gateway._bulk, "start_ctx", lambda f: None), \
+                unittest.mock.patch.object(gateway._bulk, "run_start_check",
+                                           lambda *a, **k: (True, None)):
+            self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        self.assertFalse(gateway._run_basis["verified"])
+        self.assertIsNone(gateway._run_for_pin(self.prog))
+
+    def test_the_run_basis_on_the_wire_has_the_fixtures_keys(self):
+        # scripts/test_fixtures/run_check_wire.json is what the client reads
+        # (runBasis.test.ts, checkBasis.test.ts): the gateway's run_basis has
+        # exactly its keys, its start too
+        import json
+        wire = json.loads((Path(__file__).resolve().parent.parent / "scripts" / "test_fixtures"
+                           / "run_check_wire.json").read_text())["run_basis"]
+        self._run_basis_setup()
+        self._idle_auto()
+        self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        status = gateway._run_basis_status()
+        self.assertEqual(set(status), set(wire))
+        self.assertEqual(set(status["start"]), set(wire["start"]))
+
+    def test_the_start_snapshot_reads_like_the_status(self):
+        # a run's check reads run_basis.start where an idle check reads the
+        # live status: the same fields, the same derivation
+        from types import SimpleNamespace as NS
+        st = NS(tool_in_spindle=13, tool_table=[NS(id=13, zoffset=-48.2, diameter=8.0)],
+                tool_offset=(0.0, 0.0, -48.2) + (0.0,) * 6, g5x_index=2,
+                g5x_offset=(1.0,) * 9, g92_offset=(0.0,) * 9, rotation_xy=15.0,
+                axis_mask=0b101111, actual_position=[0.0] * 3 + [10.0, 0.0, 20.0] + [0.0] * 3)
+        snap = gateway._start_snapshot(st)
+        self.assertEqual((snap["tool_number"], snap["tool_diameter"], snap["tool_length"],
+                          snap["tool_table_z"]), (13, 8.0, 48.2, -48.2))
+        self.assertEqual(snap["rotation_xy"], 15.0)
+        self.assertEqual(snap["rotary"], {"A": 10.0, "C": 20.0})
+        self.assertEqual(snap["wcs_table"], [r.copy() for r in gateway._wcs_cache])
+        snap["wcs_table"][0]["x"] = 12345.0
+        self.assertNotEqual(gateway._wcs_cache[0].get("x"), 12345.0, "a copy")
+        # no table row: the length from the applied offset, as the status does
+        st.tool_table = []
+        snap = gateway._start_snapshot(st)
+        self.assertEqual((snap["tool_diameter"], snap["tool_length"], snap["tool_table_z"]),
+                         (None, 48.2, None))
+
+    def test_the_toolsetter_book_is_an_open_edge_at_the_start(self):
+        saved = (gateway._bulk.published_toolsetter, gateway._bulk.published_ctx,
+                 gateway._ts_basis_version)
+        self.addCleanup(lambda: [setattr(gateway._bulk, "published_toolsetter", saved[0]),
+                                 setattr(gateway._bulk, "published_ctx", saved[1]),
+                                 setattr(gateway, "_ts_basis_version", saved[2])])
+        gateway._bulk.published_toolsetter = {"routine": True}
+        gateway._bulk.published_ctx = {"toolsetter": {"version": 3}}
+        gateway._ts_basis_version = 3
+        self.assertIsNone(gateway._ts_open_drift())
+        gateway._ts_basis_version = 4
+        self.assertEqual(gateway._ts_open_drift(), "toolsetter")
+        gateway._bulk.published_toolsetter = {"routine": False}
+        self.assertIsNone(gateway._ts_open_drift(), "a program without the routine")
+        # the start's check hears it
+        import unittest.mock
+        self._run_basis_setup()
+        self._idle_auto()
+        gateway._bulk.published_toolsetter = {"routine": True}
+        heard = []
+        with unittest.mock.patch.object(gateway._bulk, "run_start_check",
+                                        lambda *a, **k: heard.append(k.get("open_drift")) or (True, None)):
+            asyncio.run(gateway._begin_run_basis())
+        self.assertEqual(heard, ["toolsetter"])
+
     def test_auto_run_is_bound_to_the_program_it_was_confirmed_on(self):
         self._with_program()
         cmd = self._rcs()

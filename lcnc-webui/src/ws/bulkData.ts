@@ -286,6 +286,10 @@ export function limitViolationText(v: LimitViolation, unit: string): string {
 }
 
 export interface ViewerGcode {
+  /** The publication this payload is — viewer_gcode_ready's version,
+   *  stamped on arrival (plan „Prüfung im Lauf“ 3a: a run check admits only
+   *  the displayed version). Absent on the empty-state path. */
+  publishedVersion?: number;
   file?: string | null;
   // Wire-format generation stamp (P1) — gateway_util.PREVIEW_SCHEMA at parse
   // time. The gateway cache keys payloads on file+mtime only, so a gateway
@@ -589,6 +593,10 @@ export const toolTableVersion = ref(0);
 // off the WS writer so the gateway's heartbeat loop isn't delayed by N-way
 // broadcasts. Null when no program is loaded or the fetch failed.
 export const gcodeContent = ref<string | null>(null);
+// A preview payload is being decoded off-thread (previewWorker) — from the
+// post to its reply or failure. The collision check pauses meanwhile (plan
+// „Prüfung im Lauf“ 4: the decode and a sweep would compete for the cores).
+export const previewDecoding = ref(false);
 // The PUBLISHED program revision, `<file>#<version>` of the latest
 // viewer_gcode_ready — set on ARRIVAL, before the text fetch, so a hold
 // bound to it (Start / Step / Resume / Run from line) is cancelled the
@@ -781,6 +789,7 @@ function _ensurePreviewWorker(): Worker {
     if (m.version !== _previewLastVersion) return;  // stale — newer load in flight
     if (m.basisKey !== undefined && m.basisKey !== _previewWantKey) return;  // another basis wanted now (R59)
     // (a worker error keeps a pending basis change pending — VP-I23)
+    previewDecoding.value = false;
     if (m.error) {
       console.error("preview load failed", m.error);
       _previewErr.value = `/preview failed: ${m.error}`;
@@ -791,6 +800,7 @@ function _ensurePreviewWorker(): Worker {
     // letting Vue deep-proxy them would wrap the typed arrays in a Proxy, which
     // breaks/slows THREE.BufferAttribute's GPU upload. Consumers only react to
     // the ref reassignment, not deep mutation, so raw is correct here.
+    if (m.gcode) m.gcode.publishedVersion = m.version;
     viewerGcode.value = m.gcode ? markRaw(m.gcode) : null;
     _previewErr.value = null;
     if (m.basisKey !== undefined) {
@@ -799,6 +809,7 @@ function _ensurePreviewWorker(): Worker {
     }
   };
   _previewWorker.onerror = (ev) => {
+    previewDecoding.value = false;
     console.error("previewWorker error", ev.message);
     _previewErr.value = `preview worker error: ${ev.message}`;
     _previewLastVersion = -1;
@@ -832,6 +843,7 @@ function _keyOf(version: number, file: string | null, basis: number[] | null): s
 
 function _postPreview(version: number, file: string | null, basis: number[] | null) {
   _previewWantKey = _keyOf(version, file, basis);
+  previewDecoding.value = true;
   _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}`, basis,
                                        basisKey: _previewWantKey });
 }
