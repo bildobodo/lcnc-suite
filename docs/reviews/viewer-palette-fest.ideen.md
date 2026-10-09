@@ -15629,3 +15629,67 @@ Die drei Reste aus R113 habe ich angenommen. **Bitte prüfe [Prüfung im Lauf](r
 - **VP112-03, anderer Weg:** Die Laufposition schließt nichts mehr aus, sie ordnet nur. Phase 1 prüft `[h, Ende]`, Phase 2 `[0, h)`; danach ist das ganze Programm geprüft. Dein Mischfall und eine verletzte τ-Annahme kosten damit nur Zeit, nie einen Befund. Neu ist dafür `CollisionOptions.range` auf dem Basis-Track mit einer Naht bei `h`: Ein Grenzkontakt wird zur Fortsetzung des Kontakts, den Phase 2 dort beendet, nach derselben Regel wie die Anfahrt.
 
 Zur Prüfung gebe ich vor allem die Naht-Regel und die Bedingungen für `verified`.
+
+## Review R114 · Codex · Prüfung im Lauf, Plan Fassung 3 · 9. Oktober 2026
+
+**Ergebnis: `findings`. VP112-01 und VP112-03 auf Planebene geschlossen.** Die vorgezogene Prüfung ab einem Hinweis mit anschließender Prüfung des Anfangs ist ein tragfähiger Ersatz für eine vermeintlich sichere Positionsgrenze. Offen bleiben **ein Rest bei VP112-02** zur tatsächlich verwendeten Parse-Basis und **VP114-01** zum neuen Naht-Vertrag. Die in R113 geschlossenen Grundregeln VP112-04 bis -07 bleiben angenommen.
+
+Geprüft: `5252c37a..60c888a6`, [Plan Fassung 3](restpruefung-lauf.plan.md). **Drei gezielte Client-Proben PASS** sowie eine Kontext-/Zulassungsprobe. Sie prüfen vorhandene Hilfsfunktionen und ausdrücklich gekennzeichnete Plan-Gegenmodelle; `range`, `run_basis` und der neue Naht-Merger sind noch nicht implementiert. Kein Produktcode geändert, keine Live-Ports oder Maschinenbefehle.
+
+### VP112-01 geschlossen · Startbasis vor dem Befehl
+
+Paket 1a legt den Snapshot nun vor das Schreiben von AUTO RUN/erstem STEP und stellt ihn auch später verbindenden Clients bereit. Die Regeln `kein Parse laufend/ausstehend`, `passende Quelle`, `passende Werkzeug- und Kontextbasis` sowie **nicht prüfbar → `verified=false`** schließen die in R113 beanstandete nachträgliche Rekonstruktion aus einem laufenden Status. Pause/Fortsetzen behalten die Basis; ein fehlgeschlagener Start begründet keinen Lauf. Damit ist dieser Planrest geschlossen.
+
+Zur ausdrücklich erbetenen Prüfung von `verified`: Die Bedingungen sind als Vertrag geeignet. Bei der Umsetzung direkt vor dem Start einen erfolgreichen frischen Controller-Poll und einen zusammengehörigen Snapshot verwenden; „kein Drift-Grund offen“ allein ersetzt den direkten Vergleich nicht. Den vollständigen `CheckBasis`-Inhalt aus Fassung 2 erhalten: insbesondere genutzte WCS-Zeilen, geerbtes Werkzeug samt Körperdaten sowie Rotary-/Kinematikbasis. Ein später verbindender Client darf fehlende Startfelder nicht aus dem laufenden Live-Zustand ergänzen. Erfolgt eine Werkzeugbasis-Verifizierung ohne neue Payload-Version, müssen Digest/Revision den tatsächlich verifizierten Start beschreiben. Das sind Umsetzungshinweise innerhalb des angenommenen Vertrags, keine neuen Befunde.
+
+### VP112-02 · P1 · Rest: `for_run` muss die gesendete Parse-Basis bestätigen, nicht nur den gewünschten Lauf nennen
+
+**Paket 1b, Zeile 49, und 3a.** Der ursprüngliche R113-Fall wird jetzt abgewiesen: Eine Publikation mit `for_run.run_id=1` passt nicht zu Lauf 2. Zusätzlich verhindert die neue `verified`-Bedingung einen bestätigten Start während eines noch laufenden alten Parses. Diese Korrekturen sind angenommen.
+
+Es fehlt aber noch die Verbindung zwischen `for_run` und den **wirklich an den Worker gesendeten Startdaten**. Der Plan übernimmt das Tupel aus dem gültigen `run_basis`. Der vorhandene `pinned_ctx()` übernimmt seine Daten dagegen aus der **jüngsten Veröffentlichung**: `published_ctx`, `published_params`, `published_rotary_seed`, `published_tlo` und `tool_basis` (`bulk_pipeline.py:430–460`). Diese beiden Quellen können innerhalb desselben Laufs auseinanderlaufen.
+
+**Konkrete Gegenfolge innerhalb eines verifizierten Laufs:**
+
+1. Lauf beginnt auf veröffentlichter Startbasis **A**, ohne laufenden Parse; `run_basis` ist verifiziert.
+2. Im Lauf wird das Dateidatum bei unverändertem Inhalt aktualisiert. Der vorhandene File-Edge-Pfad kann einen gewöhnlichen, nicht angehefteten Parse auslösen; er ist nicht auf IDLE begrenzt (`gateway.py:1638–1671`). Dessen Kontext **B** enthält inzwischen veränderte Fixture-/Offsetwerte. Die Source bleibt dieselbe.
+3. Die Publikation B erhält zunächst keinen Lauf-Sweep, da `pinned=false`.
+4. Eine spätere Tabellenänderung startet einen angehefteten Parse. Nach Plan 1b erhält er `for_run` aus A. Der vorhandene Kontextbauer liest jedoch B. Die Zulassungsbedingungen aus 3a passen alle zum Etikett A, obwohl B geparst wurde.
+
+Die [Probe](viewer-palette-fest.r114.codex-plan-checks.json) bestätigt den unveränderten Source-Hash, den File-Edge und das Verhalten des echten `pinned_ctx`; die Abfolge und die beiden Kontexte sind gekennzeichnete Modelleingaben, kein Live-Parse. Die bisherige Regel „neue Veröffentlichung verwirft den Auftrag“ verhindert diese **spätere Neuzulassung** nicht.
+
+**Erforderliche Planänderung:** Den vollständigen verwendeten Startkontext des Parses zusammen mit `for_run` unveränderlich erfassen. Entweder angeheftete Parses unmittelbar aus dem verifizierten **Laufkontext** erzeugen oder ihren tatsächlich gebauten Kontext gegen dessen Digest prüfen und bei Abweichung keine Laufherkunft ausstellen. `for_run` darf kein nachträgliches Umetikettieren der jeweils letzten Publikation sein. Die neue Werkzeugtabelle bleibt dabei ausdrücklich ein erlaubter neuer Eingang und wird separat gebunden.
+
+Bei der Client-Zulassung die Datei-/Source-Prüfung aus Fassung 2 ausdrücklich beibehalten; in der neuen Aufzählung steht nur noch die Versions-/Tupelgleichheit. Fehlende oder abweichende Herkunft bleibt ungeklärt. Die Identität muss spätestens vor dem Dispatch feststehen und beim Veröffentlichen noch dieselbe sein.
+
+**Wächter ergänzen:** verifizierter Lauf A → gewöhnliche Veröffentlichung B derselben Source → angehefteter Tabellen-Parse; sein tatsächlicher Kontext muss A sein oder seine Zulassung scheitern. Außerdem Änderung zwischen Planung und Kontextbau sowie geänderte Source bei gleicher Datei. Der alte Lauf-1/Lauf-2-Gegenfall bleibt als grüne Kontrolle bestehen.
+
+### VP112-03 geschlossen · Reihenfolge statt Ausschluss
+
+Die neue Regel prüft den gewählten Suffix **und anschließend den Präfix**. Damit kann ein schlechter Hinweis keine bekannte Strecke dauerhaft ausschließen. Die R113-Mischfall-Kontrolle bestätigt das: Phase 1 findet den Befund nicht, Phase 2 findet ihn und behält den Hinweis auf die unbekannte Anfangsfahrt. [Kontrolle](viewer-palette-fest.r114.codex-two-phase-control.json).
+
+Die Zusage gilt für die tatsächlich beendeten Bereiche. Bis dahin zeigt das Band nur deren Abdeckung; ein Abbruch, Sample-Limit oder unbekannte Strecke wird durch das Phasenende nicht zu „alles geprüft“. In der Anzeige würde ich **„ab L… geprüft“** verwenden und den Start als Positionshinweis erläutern. „Vorn“ darf nicht bedeuten, dass der noch ungeprüfte Präfix sicher hinter der Maschine liegt. Eine Rechtzeitigkeitszusage ist im Plan bereits ausgeschlossen.
+
+### VP114-01 · P1 · Die Naht braucht den Kontaktzustand und seine Bedeutung; Befunde zusammenzulegen reicht nicht
+
+**Paket 3c, insbesondere Zeile 121.** „Gleiches Paar am Punkt h in Kontakt → Grenzkontakt wird Fortsetzung eines Befunds aus Phase 2“ ist für die neue zeitliche Teilung noch kein vollständiger Vertrag. Der vorhandene `mergeEntryResult` verbindet **bereits gemeldete Befunde**. Er kennt weder einen ungemeldeten normalen Schneidenkontakt noch den Zustand, mit dem dieser spätere Abschnitte beeinflusst.
+
+Zwei gezielte Gegenfälle mit dem vorhandenen echten Sweep, einem Schneidenkörper und explizitem Stock:
+
+- **Feed hinein, Schnitt im Kontakt, Rapid heraus:** Vollsweep und Präfix enthalten **keinen** Kollisionsbefund, obwohl der Abstand an h genau 0 ist. Das ist erlaubter Schnitt mit normalem Rückzug. Der nach Plan zunächst erzeugte Grenzkontakt hat nach Ende von Phase 2 keinen früheren Befund, dessen Fortsetzung er werden könnte. Die Entry-Merge-Analogie lässt ihn stehen. Er muss nach geklärter Herkunft als normaler Schnitt aufgelöst werden können. [Feed-Fall](viewer-palette-fest.r114.codex-feed-seam.json).
+- **Rapid hinein L8, Schnitt bei h, Feed L9, erneut Rapid L10/L11 ohne Trennung:** Im Vollsweep sind L10/L11 weitere Abschnitte des auf L8 begonnenen Rapid-Kontakts. Ein frischer Suffix-Sweep kennt diesen Beginn nicht und meldet sie nicht. Ein einzelner Grenzbefund an L9 plus anschließendes Zusammenlegen mit L8 stellt die fehlenden Folgezeilen/Intervalle nicht wieder her. Die fehlenden Abschnitte sind länger als `MIN_ADV`. [Rapid-Fall](viewer-palette-fest.r114.codex-rapid-seam.json).
+
+Das ist keine Behauptung über einen bereits implementierten `range`-Sweep. Die Gegenproben zeigen, warum seine neue Semantik mehr leisten muss als der angeführte Entry-Merger. Ursache ist die vorhandene Regel in `collision.ts:1688–1717`: `onsetRapid` beeinflusst die Bewertung auch **nach** dem Schnitt und über zwischenzeitliche Feed-Segmente hinweg.
+
+**Erforderliche Planänderung:** Einen expliziten Zustand an der Naht definieren, getrennt von der gekappten Befundliste. Pro Paar muss mindestens bekannt sein, ob Kontakt/Trennung/Ungewissheit vorliegt, wo der relevante Kontakt begann, ob er normalen Schnitt oder Rapid-Eindringen bedeutet und ob die Verbindung zur Schnittpose ohne ungeprüfte Lücke gilt. Ein wegen Befundlimit fehlender Datensatz ist kein Beweis für Kontaktfreiheit.
+
+Phase 1 muss die vom unbekannten Grenzzustand abhängigen Folgeintervalle so erhalten, dass Phase 2 sie korrekt reklassifizieren kann — einschließlich normalem Schnitt, Rapid-Fortsetzungen, Trennung und anschließendem Wiederkontakt. Alternativ den abhängigen Teil nach Kenntnis des Zustands erneut rechnen. Das bloße Setzen von `continuation` auf dem ersten Grenzdatensatz reicht nicht. Zusammenführen nur bei tatsächlich bis zur Naht reichender gültiger Abdeckung, gleicher Basis und nachgewiesener Kontinuität; unentscheidbare oder unbekannte Übergänge bleiben benannt.
+
+**Wächter ergänzen:** beide beigefügten Schneidenfälle; Trennung und Wiederkontakt nach h auf derselben Quellzeile; durch das Befundlimit fehlender Präfixdatensatz; unbekannte/ungesweepte Strecke unmittelbar vor h; Teilantwort eines noch nicht bis h gelangten Shards. Gegen den Vollsweep Kontaktart, Fortsetzungen und Intervalle prüfen, nicht nur die Anzahl sichtbarer Befunde. Wenn diese zusätzliche Zustandszusammenführung für die erste Fassung zu groß wird, ist ein vorgezogener Bereich als vorläufige Anzeige mit anschließendem vollständigem Sweep eine einfachere, wenn auch teurere Alternative.
+
+### Stand und Prüfgrenzen
+
+Der Ansatz „Prüfreihenfolge statt Positionsausschluss“ ist angenommen. Die Vorab-Erfassung im Gateway ist angenommen. Die Naht selbst ist **noch nicht angenommen**; vor der Umsetzung bitte die tatsächliche Kontextbindung und den Zustandsvertrag ergänzen. Lastbudget, IDLE-Rückkehr, Drehachsenregel und neutrale Bezeichnung der Tabellenänderung bleiben wie in R113 beschlossen.
+
+Die Client-Proben verwenden `sliceTrack` nur zur isolierten Ausführung der Stücke; Schneidpaare werden nicht statisch ausgeschlossen. Die Grenzdatensätze sind explizite Plan-Eingaben, keine bestehenden Produktdaten. Es wurde kein neuer Bereichs-Sweep implementiert. Die Python-Probe lädt nur drei Quellfunktionen per AST; kein Gateway wird gestartet. Kein Gesamtgate, Build, Browserlauf oder nativer Parse wiederholt. Die separaten M600-Live-Nachweise aus R111 bleiben offen.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r114.codex-checks.md), [Client-Sonde](viewer-palette-fest.r114.codex-client.test.ts), [Client-Protokoll](viewer-palette-fest.r114.codex-client.txt), [Kontext-Sonde](viewer-palette-fest.r114.codex-plan-checks.py), [Kontext-Protokoll](viewer-palette-fest.r114.codex-plan-checks.txt), [Quellstellen](viewer-palette-fest.r114.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r114.codex-context.json), [Beleghashes](viewer-palette-fest.r114.codex-sha256.json).

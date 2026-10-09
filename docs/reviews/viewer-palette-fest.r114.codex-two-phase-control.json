@@ -1,0 +1,78 @@
+{
+  "h": 3,
+  "full": {
+    "hits": [
+      {
+        "line": 9,
+        "cum": 9.5004638671875,
+        "cumEnd": 10.50009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            9.5004638671875,
+            10.50009765625
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 34,
+    "coarsened": false,
+    "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L8)",
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L8)"
+    ],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.19937500000003183,
+    "sweepMs": 3.593871999999976,
+    "truncated": null
+  },
+  "phase1": {
+    "hits": [],
+    "staticContacts": [],
+    "samples": 3,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 1,
+    "bvhMs": 0.18358299999999872,
+    "sweepMs": 0.053916999999955806,
+    "truncated": null
+  },
+  "phase2": {
+    "hits": [
+      {
+        "line": 9,
+        "cum": 9.5004638671875,
+        "cumEnd": 10.50009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": false,
+        "intervals": [
+          [
+            9.5004638671875,
+            10.50009765625
+          ]
+        ]
+      }
+    ],
+    "staticContacts": [],
+    "samples": 32,
+    "coarsened": false,
+    "uncertified": "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L8)",
+    "notes": [
+      "1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L8)"
+    ],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.17149999999998045,
+    "sweepMs": 2.6714980000000423,
+    "truncated": null
+  }
+}

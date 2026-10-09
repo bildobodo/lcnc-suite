@@ -1,0 +1,113 @@
+{
+  "scope": "Actual pure pinned_ctx/file-edge/source helpers, plus a plan countermodel; no implemented run_basis/for_run or live parse is claimed.",
+  "file_edge": {
+    "same_source": true,
+    "old_mtime": 1791549889.7686589,
+    "new_mtime": 1791549891.7686589,
+    "action": "schedule",
+    "gateway_route": "gateway.py 1625-1671 selects an unpinned file-edge reparse without an IDLE gate"
+  },
+  "events": [
+    "A is the published start context, no parse in flight; AUTO run 1 is verified against A",
+    "during run 1 a metadata-only external file update schedules an ordinary parse with the then-current context B",
+    "B is published, pinned=false; no in-run sweep is admitted for this publication",
+    "later table drift schedules a pinned parse; plan 1b stamps for_run from the original run basis A",
+    "the actual existing pinned_ctx builder reads the newest published B, not the original A",
+    "the listed plan 3a comparisons all pass for this newly labelled pinned publication"
+  ],
+  "original_context": {
+    "file": "/tmp/codex-r114-aat3eisf/r114-input.ngc",
+    "g5x_index": 1,
+    "var_patches": {
+      "5221": 0
+    },
+    "param_text": "5221 0\n",
+    "g92_offset": [
+      0,
+      0,
+      0
+    ],
+    "rotary_pose": {
+      "a": 0,
+      "b": 0,
+      "c": 0
+    },
+    "seed_tool": {
+      "applied_tlo": [
+        0,
+        0,
+        0
+      ],
+      "start_mode": 0,
+      "loaded_tool": 1
+    },
+    "nice": 19
+  },
+  "later_published_context": {
+    "file": "/tmp/codex-r114-aat3eisf/r114-input.ngc",
+    "g5x_index": 2,
+    "var_patches": {
+      "5221": 100
+    },
+    "param_text": "5221 100\n",
+    "g92_offset": [
+      100,
+      0,
+      0
+    ],
+    "rotary_pose": {
+      "a": 0,
+      "b": 0,
+      "c": 0
+    },
+    "seed_tool": {
+      "applied_tlo": [
+        0,
+        0,
+        0
+      ],
+      "start_mode": 0,
+      "loaded_tool": 1
+    },
+    "nice": 19
+  },
+  "run_basis_model": {
+    "run_id": 1,
+    "ctx_digest": "b087fbc84f6dbf7290de655e848c775276dade2481b0208631681b8ff4695d1e",
+    "tool_basis_rev": 9,
+    "verified": true,
+    "state": "sent",
+    "file": "/tmp/codex-r114-aat3eisf/r114-input.ngc",
+    "source": "ba3ddaed41c76bab795ab3d54dd1b6088f738a9648da4889df8cd80ac453b738"
+  },
+  "labelled_origin": {
+    "version": 3,
+    "file": "/tmp/codex-r114-aat3eisf/r114-input.ngc",
+    "source": "ba3ddaed41c76bab795ab3d54dd1b6088f738a9648da4889df8cd80ac453b738",
+    "pinned": true,
+    "for_run": {
+      "run_id": 1,
+      "ctx_digest": "b087fbc84f6dbf7290de655e848c775276dade2481b0208631681b8ff4695d1e",
+      "tool_basis_rev": 9
+    },
+    "tool_basis_rev": 9
+  },
+  "actual_seed_digest": "4242e823d10e63d5cac8a70fd3876f7070020c2a75bd3c1c1d9a7d19319184aa",
+  "plan_3a_conditions": {
+    "pinned": true,
+    "displayed_version": true,
+    "for_run_matches": true,
+    "run_verified": true,
+    "interpreter_running": true
+  },
+  "cross_run_control": {
+    "for_run": {
+      "run_id": 1,
+      "ctx_digest": "b087fbc84f6dbf7290de655e848c775276dade2481b0208631681b8ff4695d1e",
+      "tool_basis_rev": 9
+    },
+    "current_run_id": 2,
+    "admitted": false
+  },
+  "required_invariant": "for_run identifies the context actually frozen and sent to the worker; reject mismatching seeds or use the immutable verified run context."
+}
