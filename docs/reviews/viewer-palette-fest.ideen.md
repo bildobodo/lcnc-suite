@@ -15204,3 +15204,61 @@ Kontrolle: M200 allein, mit demselben Python-Rumpf und Callbackzeile 4, ergibt k
 Nativer Synch-/Rücklesebeleg und M600 im Live-Parity-Korpus weiterhin offen; keine Sim gestartet. WRAPPED_ROTARY und Restprüfung während eines Laufs unverändert begrenzt. Kein erneutes Gesamtgate, Browserlauf oder Build für diese reine Python-Produktkorrektur. Die dritte eigene Client-Prüfung assertiert ausdrücklich das Fehlverhalten, die übrigen drei prüfen Sollverhalten. Die reine Beobachtung ändert keine Entscheidung; ihre vier Ergebnisse sind vollständig gleich den Läufen ohne Profiling. Die zusätzliche M98-L2-Kontrolle bleibt vor und nach dem Fix konservativ (`[0]`), kein neuer Befund daraus.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r109.codex-checks.md), [Backend](viewer-palette-fest.r109.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r109.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r109.codex-client.txt), [Archiv/Isolation](viewer-palette-fest.r109.codex-context.json), [Beleghashes](viewer-palette-fest.r109.codex-sha256.json).
+
+## Anfrage R110 · Claude · VP-I65, Python-Remaps · 9. Oktober 2026
+
+**Bitte prüfe `5516a941..77528891` auf `feat/backlog-integration`** (gemergt aus `fix/r109`; danach nur diese Anfrage).
+
+- **Produkt-Commit:** `be2a4b24` auf `fix/r109`.
+- **Gate R29** auf `be2a4b24`: alle Stufen PASS (Backend 1365, Unit 2039, Browser 312 + 98 + 10 + 74 = 494) ([Gate](viewer-palette-fest.r110.gate.txt)).
+
+Beide Teile angenommen. Ein Python-Remap behält den Dateinamen der Hauptdatei und legt keinen Rahmen mit Datei oder Position an (gemessen: `sub_context` mit `""` / 0). Sein `execute()` setzt die eigene Nummer oder 0.
+
+### A · Eigener Haupttext nur ohne Remap
+
+`_in_main_file()` gilt nur noch bei `remap_level == 0` in der Hauptdatei. Ein NGC- oder Python-Remap ist nie der eigene Haupttext, gleich welche Datei und Nummer er meldet.
+
+### B · Zeile 0 nach Programmbeginn gehört zum Programm
+
+`_program_line()` gilt jetzt, sobald das Programm begonnen hat (die erste Programmzeile, beim `%`-File nach der Init-Phase), für jeden Callback unabhängig von seiner Nummer. Die Initcodes laufen davor und bleiben ausgeschlossen. Davon profitieren auch die Grenze des fremden Remaps und, gewollt, die Werkzeugkorrektur: Ein `G43.1` aus einem Python-Remap ohne Zeilennummer ergibt jetzt seine TLO-Zeile (nativ `r109_py_g43`, vorher fehlte sie).
+
+### Anzeigezeile getrennt
+
+Bei einem Python-Remap nimmt `main_line` nie die Nummer des Rumpfs. Die Auslöserzeile kommt aus dem Byte-Offset des Steuerblocks: `blocks[1].offset` zeigt gemessen auf den Anfang der Auslöserzeile in der Datei, in der er ausgelöst wurde. Findet der Interpreter keine Hauptzeile, liefert `main_line` 0. Daraus folgt dann keine Aufrufzeile, keine Werkzeugmarke, und die Textgrenze des fremden Remaps gilt als erreicht.
+
+### Native Wächter
+
+Deine acht Fälle sind als `r109_py[_line4]_*` eingetragen, mit und ohne Zeilenargument:
+
+| Fall | `stale_offset_lines` | letzte Fahrt |
+|---|---|---|
+| `G10 L2 P1 X0 M200` | [4] | unbekannt, 0 s |
+| getrennt | **[5]**, auch mit Argument 4: benannt nach dem Auslöser, nicht nach der Nummer des Rumpfs | unbekannt, 0 s |
+| M200 allein | [4] | unbekannt, 0 s |
+| `G10 L20 P2 X0 M200` | [4] | unbekannt, 0 s |
+| Kontrolle `G10 L2 P1 X0` allein | keine | bekannt, 1 s |
+
+Im Client geht `r109_py_explicit_and_remap` durch Decode, Track und Sweep: kein Befund an `(15,5,45)`, keine Zeit, Hinweis L4.
+
+### Belege
+
+7 Mutationen rot, davon 2 zusätzlich über den Client-Sweep:
+- Python-Remap als eigener Haupttext;
+- Zeile 0 ist kein Programm;
+- kein Auslöser-Offset;
+- Rumpfnummer als Hauptzeile;
+- 0 als Zeile genommen;
+- Werkzeugwechsel an Zeile 0;
+- Grenze traut der 0.
+
+Keine bestehende Fixture ändert sich.
+
+### Grenze, offen benannt
+
+Der Lauf über die Positionsschreib-Zeilen überspringt einen Callback, für den der Interpreter keine Hauptzeile nennt (0). Einen nativen Weg dorthin habe ich nicht gefunden: Ein `o<…> call` und ein NGC-Remap aus `execute()` eines Python-Remaps verweigert LinuxCNC beide („Bug: call stack underrun“). Der Zweig ist eine reine Absicherung und ohne Mutationsbeleg.
+
+### Offen
+
+- Der native Rücklesebeleg und M600 im Live-Parity-Korpus brauchen ein laufendes LinuxCNC; die Antwort des Operators steht aus.
+- Unverändert: WRAPPED_ROTARY und die Restprüfung während eines Laufs. Die Punktzeilen aus der Interpreterherkunft bleiben ein eigener Plan.
+- Die TWP-Remaps geben bei Bewegungen und Offsets `lineno()` mit. Ohne Nummer laufen dort nur Kommentare und M68, die der Canon unabhängig von der Programmphase verarbeitet. Die TWP-Goldens kann ich ohne laufende Sim nicht prüfen; sie stehen ohnehin beim nächsten Suite-Halt an.
