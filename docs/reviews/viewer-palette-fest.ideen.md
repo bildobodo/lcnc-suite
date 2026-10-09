@@ -15158,3 +15158,49 @@ Danke für die Annahme der Interpreterherkunft als primäre Quelle. VP-I65 habe 
 
 - Der native Rücklesebeleg und M600 im Live-Parity-Korpus brauchen ein laufendes LinuxCNC; die Antwort des Operators steht aus.
 - Unverändert: WRAPPED_ROTARY und die Restprüfung während eines Laufs. Die Punktzeilen aus der Interpreterherkunft bleiben ein eigener Plan.
+
+## Review R109 · Codex · VP-I65 · 9. Oktober 2026
+
+**Ergebnis: `findings`. Der ursprüngliche NGC-Remap-Fall ist korrigiert; VP-I65 bleibt P2 für Python-Remaps. Der Dateiname allein belegt nicht, dass ein Schreibzugriff aus dem Haupttext stammt.**
+
+Geprüft: `acd2f754..0da81920`, Archiv/Anfrage `9c06928c`, Produktfix `6166c369`. **74 gezielte Backend-Tests und 118 Client-Repositorytests PASS**, dazu 18 eigene native Programme, fünf Basisvergleiche, vier reine Beobachtungsläufe und vier Client-Prüfungen. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle.
+
+### Bestätigte Korrektur
+
+Die drei ursprünglichen R108-Eingaben unverändert wiederholt: NGC-Remap `G92 Z10` neben `G10 L2 P1 X0` ergibt jetzt Hinweis **L4**, getrennt **L5**, allein **L4**. Auch der zweite Ausschlusszweig (`G10 L20 P2 X0 M200`) bleibt korrekt unbekannt. Keine Dauer und kein Befund am Würfel `(15,5,45)`.
+
+Ein explizites G10 L2 ohne Rumpf bleibt bekannt; das gilt auch in einer tatsächlich in der Hauptdatei stehenden Inline-Sub. Die Kontrolle mit G92 in derselben Inline-Sub behält die Unsicherheit. Damit ist die gewünschte Unterscheidung für diese Fälle bestätigt.
+
+[Native Eingaben](viewer-palette-fest.r109.codex-native-cases.json), [NGC und erste Python-Proben](viewer-palette-fest.r109.codex-native.json), [weitere Kontrollen](viewer-palette-fest.r109.codex-python-cases.json), [NGC bis zum Sweep](viewer-palette-fest.r109.codex-ngc-sweep.json), [explizite Kontrollfahrten](viewer-palette-fest.r109.codex-explicit-sweep.json).
+
+### VP-I65-Rest · P2 · Python-Remap meldet die Hauptdatei, obwohl sein Schreibzugriff nicht im Haupttext steht
+
+**A — Herkunftsausschluss weiterhin falsch:** `gcode_canon.py:382–391` / `:682–686`. LinuxCNC hält bei einem Python-Remap den Hauptdateinamen. Deshalb liefert `_in_main_file()` auch für dessen `self.execute(...)` **True**. Eine vom Python-Aufruf mitgegebene Zeilennummer kann dann erneut auf einen sachfremden `explicit`- oder gelisteten Hauptsatz treffen.
+
+Native Gegenprobe mit unverändertem Hauptprogramm aus R108, aber `REMAP=M200 modalgroup=10 python=writer`, privatem `[PYTHON] TOPLEVEL` mit `import remap` und folgendem Python-Rumpf:
+
+```python
+from interpreter import INTERP_OK
+
+def writer(self, **words):
+    self.execute("G92 Z10", 4)
+    return INTERP_OK
+```
+
+Die `4` ist die optionale Callbackzeile des Python-Execute-Aufrufs, kein Nachweis einer Hauptdatei-Herkunft. Am Eintritt in `_register_write` sind **stale XYZ**, `remaps_running() == ('m200',)`, Hauptdateiname, `main_line() == 4`, `_in_main_file() == True` gemessen. Bei `G10 L2 P1 X0 M200` wird das positionsabhängige G92 wieder als expliziter Haupttext verworfen. **Kein `stale_offset_lines`, letzte Fahrt bekannt, 1 s, Kollisionsbefund L6** an `(15,5,45)`. Gleiches Ergebnis beim zweiten Ausschlusszweig `G10 L20 P2 X0 M200`.
+
+Kontrolle: M200 allein, mit demselben Python-Rumpf und Callbackzeile 4, ergibt korrekt `[4]`, unbekannt/0 s/kein Befund. Es ist also der Textausschluss nach der unzureichenden Herkunftsprüfung, der den kombinierten Fall verliert.
+
+**B — Standardaufruf wird schon vorher verworfen:** Derselbe Python-Rumpf mit dem üblichen `self.execute("G92 Z10")`, ohne Zeilenargument, liefert Callbackzeile **0**, obwohl `_in_init == False` und M200 aktiv ist. `_program_line()` (`:331–333`) und damit der frühe Rücksprung in `_register_write` (`:679–680`) behandeln ihn als Nicht-Programm. In diesem Fall gehen kombinierter Satz, getrennte Sätze und M200 allein verloren: ebenfalls letzte Fahrt bekannt, 1 s, Kollisionsbefund L6. Die bestehende Init-Abgrenzung muss auch hier echte Initialisierung und eine während des Programms ausgeführte Python-Anweisung unterscheiden.
+
+**Erforderlich:** Für das Entschuldigen eines Callbacks dessen tatsächlichen Ausführungskontext verwenden; Dateiname/Callbacknummer genügen bei Python nicht. Einen aktiven Programm-Remap auch bei Callbackzeile 0 als solchen berücksichtigen. Die Anzeigezeile getrennt davon behandeln und keine vom Python-Rumpf vergebene Nummer ungeprüft zur Hauptzeile erklären. Wächter für Python-Execute mit und ohne Zeilenargument, beide Textausschlusszweige, Remap allein sowie unverändert sichere explizite Haupttext-Schreibzugriffe. Auch konservative unbekannte Herkunft darf einen nachgewiesenen Schreibzugriff nicht verschlucken.
+
+**Einordnung:** Die beiden zusätzlich am Basiscommit `acd2f754` wiederholten Python-Gegenproben (kombinierter Satz mit und ohne Zeilenargument) zeigen dort bereits dasselbe Verhalten. Das ist ein **verbliebener Fall des VP-I65-Vertrags**, keine neu durch `6166c369` eingeführte Regression. Die neue Aussage „Callback aus dem eigenen Text der Hauptdatei“ ist durch den Dateinamensvergleich noch nicht vollständig erfüllt.
+
+[Beobachteter Callbackkontext](viewer-palette-fest.r109.codex-trace.json), [Beobachtungssonde](viewer-palette-fest.r109.codex-trace.py), [Python-Payloads bis zum Sweep](viewer-palette-fest.r109.codex-python-sweep.json), [Python-/Inline-Kontrollen](viewer-palette-fest.r109.codex-python-control-sweep.json), [identische Eingaben am Basiscommit](viewer-palette-fest.r109.codex-baseline.json), [Client-Sonde](viewer-palette-fest.r109.codex-client.test.ts).
+
+### Prüfgrenzen
+
+Nativer Synch-/Rücklesebeleg und M600 im Live-Parity-Korpus weiterhin offen; keine Sim gestartet. WRAPPED_ROTARY und Restprüfung während eines Laufs unverändert begrenzt. Kein erneutes Gesamtgate, Browserlauf oder Build für diese reine Python-Produktkorrektur. Die dritte eigene Client-Prüfung assertiert ausdrücklich das Fehlverhalten, die übrigen drei prüfen Sollverhalten. Die reine Beobachtung ändert keine Entscheidung; ihre vier Ergebnisse sind vollständig gleich den Läufen ohne Profiling. Die zusätzliche M98-L2-Kontrolle bleibt vor und nach dem Fix konservativ (`[0]`), kein neuer Befund daraus.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r109.codex-checks.md), [Backend](viewer-palette-fest.r109.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r109.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r109.codex-client.txt), [Archiv/Isolation](viewer-palette-fest.r109.codex-context.json), [Beleghashes](viewer-palette-fest.r109.codex-sha256.json).

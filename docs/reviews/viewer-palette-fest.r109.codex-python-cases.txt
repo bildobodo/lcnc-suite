@@ -1,0 +1,8 @@
+python_line4_explicit_same_block 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+python_line4_explicit_separate_blocks 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+python_line4_remap_only 0 {'parse_error': None, 'stale_offset_lines': [4], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+python_line4_listed_same_block 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+inline_explicit 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 1, 0], 'rapid_tcum': [0.0, 0.0, 1.0]}
+inline_g92 0 {'parse_error': None, 'stale_offset_lines': [2], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+m98_explicit 0 {'parse_error': None, 'stale_offset_lines': [0], 'rapid_ustart': [1, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0]}
+m98_g92 0 {'parse_error': None, 'stale_offset_lines': [0], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}

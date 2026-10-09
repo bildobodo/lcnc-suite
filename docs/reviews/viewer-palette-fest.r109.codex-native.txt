@@ -1,0 +1,10 @@
+explicit_same_block 0 {'parse_error': None, 'stale_offset_lines': [4], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+explicit_separate_blocks 0 {'parse_error': None, 'stale_offset_lines': [5], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+remap_only 0 {'parse_error': None, 'stale_offset_lines': [4], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+listed_same_block 0 {'parse_error': None, 'stale_offset_lines': [4], 'rapid_ustart': [1, 0, 1, 1], 'rapid_tcum': [0.0, 0.0, 0.0, 0.0]}
+explicit_alone 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 1, 0], 'rapid_tcum': [0.0, 0.0, 1.0]}
+python_explicit_same_block 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+python_explicit_separate_blocks 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+python_remap_only 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+python_listed_same_block 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 0, 1, 0], 'rapid_tcum': [0.0, 0.0, 0.0, 1.0]}
+python_explicit_alone 0 {'parse_error': None, 'stale_offset_lines': None, 'rapid_ustart': [1, 1, 0], 'rapid_tcum': [0.0, 0.0, 1.0]}

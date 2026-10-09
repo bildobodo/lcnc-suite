@@ -1,0 +1,24 @@
+{
+  "head": "9c06928c51d57e53fc954a9ae22ad33428e13241",
+  "scope": "acd2f754..0da81920",
+  "root": "/tmp/codex-r109-zd3dl8vz",
+  "lfs_materialized": 0,
+  "live_review_sha256": "7ad9d94810843b3cf9c522b47ef9f03a493c8a37eea202ad964be44f41b2974a",
+  "same_git_blob_files": 4040,
+  "verified_lfs_files": 95,
+  "product_changes": [],
+  "live_head_at_finish": "9c06928c51d57e53fc954a9ae22ad33428e13241",
+  "live_status_before_evidence": "",
+  "no_live_ports_or_machine_commands": true,
+  "nice": 19,
+  "vitest_workers": 1,
+  "tests": {
+    "backend": 74,
+    "client_repository": 118,
+    "native_inputs": 18,
+    "baseline_native_inputs": 5,
+    "traced_native_inputs": 4,
+    "own_client_tests": 4
+  },
+  "build": "not repeated; product change Python only"
+}
