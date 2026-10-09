@@ -1206,7 +1206,11 @@ in text order, lists it for its own scan — and the text speaks only for a
 write of its OWN: a remap body's or a called file's callback is named by the
 main line it ran in, never excused by it (Codex R108 VP-I65: `G10 L2 P1 X0
 M200`, the body's G92 from the unknown position; `_in_main_file`, the
-interpreter's word); named by its line where the
+interpreter's word: no remap level and the main file — a PYTHON remap keeps
+the main file's name, its execute() passes a number of its own or 0, Codex
+R109; it is named by its trigger, the controlling block's byte offset
+`blocks[1].offset`, and a callback numbered 0 after the program began is the
+program's, never the initcodes'); named by its line where the
 numbers are the file's, else 0 — a main-file write listed under the same
 number proves no shared origin (R98 VP-I56). A cause line is named once
 a move runs after it (`stale_offset_lines` on the wire); the payload says

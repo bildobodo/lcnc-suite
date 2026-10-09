@@ -2044,6 +2044,7 @@ class TestLineTrustMachinery(unittest.TestCase):
         self.assertEqual(f([(2, 5, 0, None)], [], {}), [[2, 5]])
         self.assertEqual(f([(263, 2, 2, 3)], subs, {0: 3}), [[3, 2]])
         self.assertEqual(f([(263, 2, 2, 3)], subs, {}), [], "a span without a line: none")
+        self.assertEqual(f([(7, 5, 0, 0)], [], {}), [], "the interpreter names no main-file line")
 
 
 class TestSegmentOutsideFlags(unittest.TestCase):
@@ -2575,6 +2576,10 @@ class TestCallerAttribution(unittest.TestCase):
         # without the interpreter's word the text rule stands
         self.assertEqual(f([(2, "m600", "m600", None)], one)[0], {0: 2})
         self.assertEqual(f([(2, "m600", "m600")], one)[0], {0: 2})
+        # the interpreter naming no main-file line (0): none, never the text's
+        # — whether the text claims a site or (two sites) none
+        self.assertEqual(f([(2, "m600", "m600", 0)], one), ({}, ["m600"]))
+        self.assertEqual(f([(2, "m600", "m600", 0)], two), ({}, ["m600"]))
 
     def test_a_remap_body_that_runs_the_marker_is_a_maybe_site(self):
         # Codex R107: M200's body runs `o<m600> call` — a span of m600 may be
@@ -2646,6 +2651,32 @@ class TestCallerAttribution(unittest.TestCase):
             state["now"] = body("M200")
             c2._foreign_gate()
             self.assertTrue(c2._probe_unknown, "M200's line may call it")
+            # a Python remap keeps the main file's name and records no frame of
+            # it; its sequence number is the body's (4 here): the trigger is
+            # its controlling block's byte offset (L4), and it is never the
+            # main text's own (Codex R109)
+            line4 = len(b"G21\r\nG0 X1\r\n(\xc3\xa4)\r\n")
+            state["now"] = ns(filename=main, sequence_number=4, call_level=1, remap_level=1,
+                              blocks=[ns(offset=0, executing_remap=None), ns(offset=line4, executing_remap=ns(name="M200"))],
+                              sub_context=[ns(filename="", position=0), ns(filename="", position=0)])
+            self.assertEqual(c.main_line(), 4)
+            self.assertIs(c._in_main_file(), False)
+            state["now"] = ns(filename=main, sequence_number=2, call_level=0, remap_level=0)
+            self.assertIs(c._in_main_file(), True)
+            # a remap in another file with no main frame: the interpreter names none (0)
+            state["now"] = ns(filename=os.path.join(d, "x.ngc"), sequence_number=3, call_level=1, remap_level=1,
+                              blocks=[ns(offset=0, executing_remap=None), ns(offset=5, executing_remap=ns(name="M200"))],
+                              sub_context=[ns(filename="", position=0), ns(filename="", position=0)])
+            self.assertEqual(c.main_line(), 0)
+            # and the boundary then holds from here: no main line named is no
+            # proof the line that may call the foreign remap has not run
+            c4 = object.__new__(gcode_canon.PreviewCanon)
+            c4.seq, c4.lineno, c4.cur_tool, c4.sub_events = 0, 2, -1, []
+            c4.set_main_file(main)
+            c4.interp = lambda: state["now"]
+            c4.foreign_codes, c4.foreign_m600_lines = frozenset({"m600"}), frozenset({4})
+            c4._foreign_gate()
+            self.assertTrue(c4._probe_unknown)
             # without the interpreter's word: from the first program callback
             c3 = object.__new__(gcode_canon.PreviewCanon)
             c3.seq, c3.lineno, c3.cur_tool, c3.sub_events = 0, 2, -1, []
