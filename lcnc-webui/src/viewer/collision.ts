@@ -217,7 +217,13 @@ export interface CollisionHit {
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */
-export interface CollisionLineMark { line: number; continuation?: number }
+export interface CollisionLineMark {
+  line: number;
+  continuation?: number;
+  /** A provisional record of a contact in progress at a range sweep's start
+   *  (CollisionHit.boundary): no onset, no kind known yet. */
+  boundary?: true;
+}
 
 export interface CollisionOptions {
   /** Clearance margin in machine units — pairs closer than this are hits. */

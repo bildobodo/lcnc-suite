@@ -9039,3 +9039,21 @@ fourth row kind would ripple through the Sim tab's filter, counts and
 navigation. The measurement protocol with its targets and the live M600 run
 need a running LinuxCNC.
 
+
+**Codex R116 (implementation review), four findings fixed.** VP-I67: a start
+whose fresh poll or whose capture failed kept the LAST run's verified record —
+a parse and a sweep could bind to run A during run B. It now takes an
+unverified basis of its own (no context, no start; the command still goes out).
+VP-I68: while the full check ran behind the provisional result, the band, the
+star and the words were the running sweep's ("still checking", no caveat, the
+band to the end) — they are the shown result's own now, cut short where it
+stopped. VP-I69: the boundary meaning ended in the result: the code panel
+marked those lines as collisions, and the "?" named three contacts. The marks
+carry `boundary` (`viewer/collisionMarks.ts`, a light module — the code panel
+is in the main bundle), a line shows a contact's own record over a
+provisional one, and the "?" names every contact with its provisional lines.
+Codex agreed that the "?" suffices when it is complete. VP-I70: a worker that
+asked for the bodies got a whole-track check of no run, and the run check
+stayed "provisional" for good; the retry is the same request now. The browser
+guards reach the worker through a tap on `window.Worker` (needBodies on
+demand, a held full result, fields over the provisional result).

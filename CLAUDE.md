@@ -874,7 +874,9 @@ from the machine's line, then in full — instead of waiting for idle. Gateway:
 `_cmd_blocking` takes a `run_basis` for AUTO_RUN / a first AUTO_STEP from idle
 BEFORE the write (a fresh poll; a paused step and a resume continue the run):
 `run_id`, state sending → sent / unsent (a failed or cancelled write is no
-run), file, source, version, `start` (the status's own fields:
+run; a start whose poll or capture fails takes an UNVERIFIED basis without
+context or start — never the last run's record, Codex R116 VP-I67 — and still
+goes out), file, source, version, `start` (the status's own fields:
 `status_runtime.spindle_tool_dims`, the fixture table copied), the published
 start context copied whole (server-side only) with its `ctx_digest`,
 `tool_basis_rev` and `verified` — `BulkPipeline.run_start_check` compares the
@@ -908,7 +910,15 @@ the run watcher's attached segment start (`viewer/runPlayhead.ts`, read once
 when planning), shows it ("Run check · tool table updated", "… from L7
 (provisional)", the band from the start, the boundary contacts in the "?"),
 then the full sweep from 0 on the same basis replaces it ("· checked in full";
-never "measured"). A new publication, another basis revision, another run, a
+never "measured"). While the full one runs, the band, the star and the words
+are the SHOWN provisional result's own — where it stopped (", stopped at
+60 %"), whether certified (Codex R116 VP-I68); every boundary contact is named
+in the "?" with the lines it stays on provisionally, and its records reach the
+code panel as provisional marks (`viewer/collisionMarks.ts`: `boundary` kept,
+one mark per line — a contact's own record over a provisional one; VP-I69). A
+worker that asks for the bodies (`needBodies`) gets the SAME request again —
+basis, range, run and whether the result on screen stays (`_colPendingRun`,
+VP-I70). A new publication, another basis revision, another run, a
 lost connection and idle discard it; idle starts the full check. Load: during
 a run at most two workers and 20 ms slices (`sliceMs`), a decoding payload
 holds the sweep (`previewDecoding`, worker hold "decode"), the run's own
@@ -917,7 +927,9 @@ rotary motion parks nothing. Owed: the measurement protocol (status frame p95
 PC) and the live M600 run need a running LinuxCNC. Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
-`collisions.viewer.spec` (plan 1c–4).
+`collisionMarks.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on
+the page's collision worker answers a request with `needBodies`, lays fields
+over the provisional result and holds the full one's).
 
 **M600 in the preview (collision plan step 3, Codex R102–R104, plan
 `docs/reviews/m600-preview.plan.md` Fassung 3)**: the bundled

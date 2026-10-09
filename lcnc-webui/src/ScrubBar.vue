@@ -728,9 +728,12 @@ const verdictDetail = computed<string>(() => {
   // Short and precise (operator, D1 live look: "nobody reads an abstract").
   const parts: string[] = [];
   const stopped = props.collisionStopped;
-  if (props.collisionBusy) parts.push("Still checking — positions refine when it ends.");
+  if (props.collisionBusy && !provisionalOnScreen.value) parts.push("Still checking — positions refine when it ends.");
   else if (stopped && props.collisionResumable) parts.push(stoppedTitle.value);
-  else if (r.truncated) parts.push(`${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
+  // a provisional check began at the run's point: where it stopped, not how much
+  else if (r.truncated) parts.push(r.range
+    ? `Stopped at ${pctOf(r.truncated.covered)} of the program — the rest is unchecked.`
+    : `${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
   if (r.pairCount === 0) parts.push(r.uncertified ? "No part that could be checked moves against another." : "No parts move against each other — nothing to check.");
   if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
   if (r.staticContacts.length) parts.push(`${r.staticContacts.length} contact${r.staticContacts.length === 1 ? "" : "s"} at the start ignored.`);
@@ -742,9 +745,15 @@ const verdictDetail = computed<string>(() => {
 // it does. Both cases mean the same thing to an operator — the result is a
 // sample, not a proof — so they share one marker rather than hiding one of
 // them next to a green "clear".
+/** The result on screen is not the running sweep's: the provisional check
+ *  during a run, shown while the full one runs (Codex R116 VP-I68) — its
+ *  limits are the shown result's own. */
+const provisionalOnScreen = computed(() =>
+  props.collisionBusy && !!props.collisionRunCheck?.provisionalShown && !!shownResult.value?.range);
 const sweepCaveat = computed<string | null>(() => {
   const r = shownResult.value;
-  if (!r || props.collisionBusy) return null;   // a live partial claims nothing yet
+  // a live partial claims nothing yet — a shown provisional result does
+  if (!r || (props.collisionBusy && !provisionalOnScreen.value)) return null;
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
   if (r.coarsened) why.push("coarsened to fit the sample budget");
@@ -770,9 +779,13 @@ const sweptFrac = computed(() => {
   let f: number;
   let merged = false;
   // the full check during a run behind the provisional result on screen: the
-  // band is the provisional's; the full one's progress is the Sim tab's
-  if (props.collisionBusy && !props.collisionRunCheck?.provisionalShown) f = props.collisionProgress;
-  else if (props.collisionBusy && shownResult.value?.range) f = 1;
+  // band is the provisional's own coverage — cut short, as far as it got
+  // (Codex R116 VP-I68); the full one's progress is the Sim tab's
+  if (props.collisionBusy && !provisionalOnScreen.value) f = props.collisionProgress;
+  else if (provisionalOnScreen.value) {
+    const r = shownResult.value!;
+    f = r.truncated ? r.truncated.covered : 1;
+  }
   else {
     const r = shownResult.value;
     if (!r) return 0;
@@ -1015,8 +1028,9 @@ const sweepView = computed<SimSweepView | null>(() => {
         verdict: `${n ? found : "No collision"} from ${from} so far (provisional)` };
     }
     if (rc.provisionalShown) {
+      const cut = r?.truncated ? `, stopped at ${pctOf(r.truncated.covered)}` : "";
       return { state: "checking", frac: props.collisionProgress, label, tone: n ? "danger" : "muted", caveat: !!sweepCaveat.value,
-        detail: runDetail, verdict: `${n ? found : "No collision"} from ${from} (provisional)` };
+        detail: runDetail, verdict: `${n ? found : "No collision"} from ${from}${cut} (provisional)` };
     }
     if (props.collisionBusy) {
       return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
@@ -1055,10 +1069,20 @@ const sweepView = computed<SimSweepView | null>(() => {
 /** A provisional check's boundary contacts (plan 3b): the pairs in contact
  *  where it started — their onset and kind are the full check's. */
 const boundaryDetail = computed(() => {
-  const bc = shownResult.value?.boundaryContacts ?? [];
+  const r = shownResult.value;
+  const bc = r?.boundaryContacts ?? [];
   if (!bc.length) return "";
-  const named = bc.slice(0, 3).map(b => `${partLabel(b.a)} ↔ ${partLabel(b.b)} (L${b.line})`).join(", ");
-  return `Contact at the check's start: ${named}${bc.length > 3 ? " …" : ""} — its kind is settled by the full check. `;
+  // every one of them (Codex R116 VP-I69: the fourth and fifth were cut
+  // off), with the lines its contact stays on — provisional records
+  const lines = (b: { a: string; b: string }) => [...new Set((r?.hits ?? [])
+    .filter(h => h.boundary && ((h.a === b.a && h.b === b.b) || (h.a === b.b && h.b === b.a))).map(h => h.line))]
+    .sort((x, y) => x - y);
+  const named = bc.map(b => {
+    const ls = lines(b);
+    const more = ls.length > 1 ? `, provisional to L${ls[ls.length - 1]}` : "";
+    return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (L${b.line}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
+  }).join("; ");
+  return `In contact at the check's start: ${named} — where each began and what it is, the full check says. `;
 });
 /** Which tools the check poses — said in the check's "?", not on the bar. */
 const sweepToolSentence = computed(() => {

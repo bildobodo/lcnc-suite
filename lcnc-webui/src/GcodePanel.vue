@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, useId, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
+import { collisionMarkByLine } from "./viewer/collisionMarks";
 import { listFiles, uploadFile, saveFile, fetchSubfile, fetchProgramFile, UploadConflictError, type FileEntry } from "./lcncApi";
 import { saveAsFile } from "./download";
 import DialogFrame from "./DialogFrame.vue";
@@ -408,14 +409,18 @@ const violationsByLine = computed(() => {
   return m;
 });
 
-const collisionLineSet = computed(() => new Map((props.collisionLines ?? []).map(m => [m.line, m])));
+// one mark per line: a collision's own record over a provisional one (Codex
+// R116 VP-I69)
+const collisionLineSet = computed(() => collisionMarkByLine(props.collisionLines ?? []));
 
 function lineMarkTitle(lineNum: number): string | undefined {
   const parts: string[] = [];
   const v = violationsByLine.value.get(lineNum);
   if (v) parts.push(v.map(violationText).join("; "));
   const cm = collisionLineSet.value.get(lineNum);
-  if (cm) parts.push(cm.continuation !== undefined
+  if (cm) parts.push(cm.boundary
+    ? "in contact at the check's start (provisional) — where it began and what it is, the full check says"
+    : cm.continuation !== undefined
     ? (cm.continuation === 0
       ? "still in contact (began in the entry move) — see viewer Check results"
       : `still in contact (began L${cm.continuation}) — see viewer Check results`)

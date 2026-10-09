@@ -48,6 +48,7 @@ import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } fro
 import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
 import { partCollides } from "./viewer/collision";
+import { collisionLineMarks } from "./viewer/collisionMarks";
 import { clashTintBodies } from "./viewer/clashTint";
 import { mergeEntryResult } from "./viewer/sweepMerge";
 import { planEntryCheck } from "./viewer/sweepEntry";
@@ -2938,6 +2939,9 @@ const collisionRun = shallowRef<{ version: number; runId: number; gen: number; p
 // provisional — its partial findings are not shown).
 let _colReqRunGen: number | null = null;
 let _colKeepShown = false;
+// The main request in flight, whole: re-sent unchanged when the worker asks
+// for the bodies (needBodies) — the basis it was built from too.
+let _colPendingRun: RunSweep | undefined;
 // What the checks during runs did, in order (__viewerDiag.getRunCheckLog):
 // "start provisional <from>" / "start full", "full", "done", "stopped",
 // "discard <why>".
@@ -2989,7 +2993,10 @@ function _colGetWorker(): Worker {
         _colNeedBodiesRetried = true;
         _colModelSent = null;
         collisionBusy.value = false;   // runCollisionCheck early-returns on busy
-        runCollisionCheck(_colPendingTrack ?? undefined);
+        // the same request again — its basis, its range, its run and whether
+        // the result on screen stays (Codex R116 VP-I70: it went out as a
+        // whole-track check of no run, and the run check stuck "provisional")
+        runCollisionCheck(_colPendingTrack ?? undefined, _colPendingRun);
         return;
       }
       if (m.progress != null && !m.result) {
@@ -2997,7 +3004,7 @@ function _colGetWorker(): Worker {
         if (m.partial && !_colKeepShown) {
           collisionPartial.value = m.partial;
           collisionPartialTrack.value = _colPendingTrack;
-          emit("collision-lines", m.partial.hits.map(h => ({ line: h.line, continuation: h.continuation })));
+          emit("collision-lines", collisionLineMarks(m.partial.hits));
           _colRetint();
         }
         return;
@@ -3017,7 +3024,7 @@ function _colGetWorker(): Worker {
           reason: "motion", covered: m.result!.truncated?.covered ?? 0, hits: m.result!.hits.length,
           ms: Math.round(performance.now() - _colStartedAt),
         });
-        emit("collision-lines", m.result!.hits.map(h => ({ line: h.line, continuation: h.continuation })));
+        emit("collision-lines", collisionLineMarks(m.result!.hits));
         _colRetint();
         return;
       }
@@ -3052,7 +3059,7 @@ function _colGetWorker(): Worker {
         hits: result.hits.length, pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
         points: _colPendingTrack?.count ?? null,
       });
-      emit("collision-lines", result.hits.map(h => ({ line: h.line, continuation: h.continuation })));
+      emit("collision-lines", collisionLineMarks(result.hits));
       _colRetint();
       _colKeepShown = false;
       if (run0 && _colReqRunGen === run0.gen && run0.phase === "full") _colRunLog.push("done");
@@ -3426,7 +3433,7 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
  *  range from the run's point, then the full check — both on the run's basis.
  *  `keepShown`: the provisional result stays on screen while the full one
  *  runs (its findings land only when it is done). */
-interface RunSweep { basis: CheckBasis; gen: number; range?: { from: number }; keepShown?: boolean }
+interface RunSweep { basis: CheckBasis; gen: number | null; range?: { from: number }; keepShown?: boolean }
 function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   // The MAIN sweep always runs the program's own (base) track; the sim
   // entry segment is a side sweep (runEntryCheck).
@@ -3442,8 +3449,9 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   if (!req) return;
   _colBasis = basis;
   _colReqMeta = { maxShards: req.msg.maxShards ?? null, sliceMs: req.msg.sliceMs ?? null, range: run?.range?.from ?? null };
-  _colReqRunGen = run ? run.gen : null;
+  _colReqRunGen = run?.gen ?? null;
   _colKeepShown = !!run?.keepShown;
+  _colPendingRun = run ? { ...run, basis } : { basis, gen: null };
   collisionPrevious.value = null;   // a check of the displayed preview begins
   _colPendingTrack = track;
   collisionBusy.value = true;

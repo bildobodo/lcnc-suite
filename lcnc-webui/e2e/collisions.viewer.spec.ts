@@ -538,6 +538,189 @@ test("another run discards the check made during the last one (plan „Prüfung 
   await ctl({ op: "reset" });
 });
 
+// ---- Codex R116: the provisional result's own limits, and a worker that asks for the bodies ----
+type TapReq = { id: number; kind: "provisional" | "full" | "other"; range: number | null; bodies: boolean; dropped: boolean };
+interface ColTap {
+  reqs: TapReq[];
+  /** answer the next request of this kind with "needBodies" (each once) */
+  drop: Array<"provisional" | "full">;
+  /** hold the full check's result until `release` */
+  holdFull: boolean;
+  held: Array<() => void>;
+  /** fields laid over the provisional result as it arrives */
+  patchProvisional: Record<string, unknown> | null;
+  /** [line, a] of the provisional result's records to mark as boundary records */
+  boundaryHits: Array<[number, string]>;
+  lastProvisional: { hits: Array<{ line: number; boundary?: true; a: string; b: string }>;
+                     boundaryContacts?: Array<{ a: string; b: string; line: number }> } | null;
+}
+/** A tap on the page's collision worker: it records the main requests,
+ *  answers a chosen one with the worker's own "needBodies" (a worker that
+ *  lost the model), lays fields over the provisional result and holds the
+ *  full check's result. Installed before the page loads. */
+async function installWorkerTap(page: Page) {
+  await page.addInitScript(() => {
+    const tap = { reqs: [], drop: [], holdFull: false, held: [], patchProvisional: null, boundaryHits: [],
+      lastProvisional: null } as unknown as ColTap;
+    (window as unknown as { __colTap: ColTap }).__colTap = tap;
+    const Real = window.Worker;
+    const Tapped = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const kinds = new Map<number, TapReq["kind"]>();
+      let sawRange = false;
+      let handler: ((ev: MessageEvent) => unknown) | null = null;
+      const post = w.postMessage.bind(w) as (m: unknown, t?: Transferable[]) => void;
+      w.postMessage = ((msg: { id: number; track?: unknown; side?: boolean; bodies?: unknown; options?: { range?: { from: number } } },
+                        transfer?: Transferable[]) => {
+        if (msg && typeof msg === "object" && "track" in msg && !msg.side) {
+          const range = msg.options?.range?.from ?? null;
+          const kind: TapReq["kind"] = range != null ? "provisional" : sawRange ? "full" : "other";
+          if (range != null) sawRange = true;
+          kinds.set(msg.id, kind);
+          const i = tap.drop.indexOf(kind as "provisional" | "full");
+          tap.reqs.push({ id: msg.id, kind, range, bodies: !!msg.bodies, dropped: i >= 0 });
+          if (i >= 0) {
+            tap.drop.splice(i, 1);
+            setTimeout(() => handler?.(new MessageEvent("message", { data: { id: msg.id, needBodies: true } })), 0);
+            return;
+          }
+        }
+        post(msg, transfer);
+      }) as typeof w.postMessage;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler,
+        set: (fn: ((ev: MessageEvent) => unknown) | null) => { handler = fn; } });
+      w.addEventListener("message", (ev: MessageEvent) => {
+        const d = ev.data as { id: number; result?: Record<string, unknown> };
+        const kind = d && kinds.get(d.id);
+        if (d?.result && kind === "provisional") {
+          if (tap.patchProvisional) Object.assign(d.result, structuredClone(tap.patchProvisional));
+          for (const h of d.result.hits as Array<{ line: number; a: string; boundary?: true }>) {
+            if (tap.boundaryHits.some(([l, a]) => h.line === l && h.a === a)) h.boundary = true;
+          }
+          tap.lastProvisional = JSON.parse(JSON.stringify(d.result));
+        }
+        if (d?.result && kind === "full" && tap.holdFull) { tap.held.push(() => handler?.(ev)); return; }
+        handler?.(ev);
+      });
+      return w;
+    } as unknown as typeof Worker;
+    Tapped.prototype = Real.prototype;
+    window.Worker = Tapped;
+  });
+}
+const colTap = <T>(page: Page, f: (t: ColTap) => T) =>
+  page.evaluate(`(${f.toString()})(window.__colTap)`) as Promise<T>;
+const releaseFull = (page: Page) => page.evaluate(() => {
+  const t = (window as unknown as { __colTap: ColTap }).__colTap;
+  t.holdFull = false;
+  for (const h of t.held.splice(0)) h();
+});
+
+test("a worker that asks for the bodies gets the same request again — provisional and full keep their range, run and the result on screen (Codex R116 VP-I70)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await installWorkerTap(page);
+  const file = "/runbodies.ngc";
+  await runReady(page, context, file, 4241);
+  await page.evaluate(() => {
+    const t = (window as unknown as { __colTap: ColTap }).__colTap;
+    t.drop = ["provisional", "full"];
+    t.holdFull = true;
+  });
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 4241);
+  await publishInRun(page, file, 4242, pinnedFor(9));
+  const runReqs = () => colTap(page, t => t.reqs.filter(q => q.kind !== "other").map(q => [q.kind, q.range, q.bodies, q.dropped]));
+  // the full check's own retry is out and its result held: each retry is the
+  // request it repeats, with the bodies this time
+  await expect.poll(runReqs, { timeout: 60_000 }).toEqual([
+    ["provisional", 1, false, true], ["provisional", 1, true, false],
+    ["full", null, false, true], ["full", null, true, false]]);
+  expect(await runLog(page)).toEqual(["start provisional 1", "full"]);
+  // the provisional result stays on screen while the full check runs
+  expect(await page.evaluate(() => window.__viewerDiag!.getCollisionRange!()), "the provisional result kept").not.toBeNull();
+  await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /\(provisional\)/);
+  await releaseFull(page);
+  await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
+  await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /· checked in full$/);
+  expect(await page.evaluate(() => window.__viewerDiag!.getCollisionRange!()), "the full check replaced it").toBeNull();
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// VP-I68: while the full check runs behind it, the provisional result on
+// screen keeps its OWN limits — the band where it stopped, its star, its
+// words; VP-I69: what it found in contact at its start stays provisional in
+// the "?" (every contact) and on the code lines. The control: the full check
+// replaces all of it.
+test("the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await installWorkerTap(page);
+  const file = "/runlimits.ngc";
+  await runReady(page, context, file, 4251);
+  const contact = (a: string, b: string, line: number, cutting = false) => ({ a, b, line, cum: 280, dist: 0, cutting });
+  await page.evaluate(([bc]) => {
+    const t = (window as unknown as { __colTap: ColTap }).__colTap;
+    t.holdFull = true;
+    // stopped at 60 % of the program and not certified
+    t.patchProvisional = { truncated: { covered: 0.6, reason: "samples" }, uncertified: "a body was left out", boundaryContacts: bc };
+    // L7: the nose's contact its own, the tool's provisional (after it);
+    // L8: provisional only
+    t.boundaryHits = [[7, "tool"], [8, "tool"], [8, "spindle_nose"]];
+  }, [[contact("tool", "a_yoke_casting", 7), contact("spindle_nose", "a_yoke_casting", 7), contact("x_saddle", "column", 7),
+       contact("y_saddle", "column", 7), contact("tool", "work_piece", 7, true)]] as const);
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 4251);
+  await publishInRun(page, file, 4252, pinnedFor(9));
+  await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full"]);
+  await expect.poll(() => colTap(page, t => t.held.length), { timeout: 60_000 }).toBe(1);
+  const band = async () => {
+    const st = (await page.locator(".scrubBand.swept").getAttribute("style")) ?? "";
+    const [from, width] = [...st.matchAll(/\* ([\d.e-]+)\)/g)].map(m => Number(m[1]));
+    return [Math.round(from! * 1000) / 1000, Math.round((from! + width!) * 1000) / 1000];
+  };
+  const item = page.locator(".simSummary .sumItem").first();
+  const help = async () => {
+    await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
+    const text = await page.locator(".helpPopover:popover-open").innerText();
+    await page.keyboard.press("Tab");   // light dismiss without Escape (E-Stop)
+    await page.mouse.click(5, 5);
+    return text;
+  };
+  // the full check runs (its result held) — on screen the provisional result
+  expect(await band(), "the band: from L7 to where it stopped").toEqual([0.35, 0.6]);
+  await expect(item).toHaveAttribute("aria-label", /from L7, stopped at 60 % \(provisional\) \(not certified\)$/);
+  await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
+  const text = await help();
+  expect(text).toContain("Stopped at 60 % of the program — the rest is unchecked.");
+  expect(text).toContain("Not certified: Clearance guarantee not certified for this sweep: a body was left out");
+  expect(text).not.toContain("Still checking");
+  // every contact at its start, with the lines it stays on provisionally
+  for (const s of ["Tool ↔ A yoke casting (L7, provisional to L8)", "Spindle nose ↔ A yoke casting (L7)",
+    "X saddle ↔ Column (L7)", "Y saddle ↔ Column (L7)", "Tool ↔ Work piece (L7, the cutter in the stock)"]) {
+    expect(text, s).toContain(s);
+  }
+  // the code lines: L8 provisional, L7 the nose's own contact
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  const codeLine = (n: number) => page.locator(".codeLine").filter({ has: page.locator(".lineNumber", { hasText: new RegExp(`^${n}$`) }) });
+  await expect(codeLine(8)).toHaveAttribute("title", /in contact at the check's start \(provisional\)/);
+  await expect(codeLine(7)).toHaveAttribute("title", /^collision clearance hit/);
+  await openSimTab(page);
+  // the control: the full check, clean, replaces it all
+  await releaseFull(page);
+  await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
+  await expect(item).toHaveAttribute("aria-label", /· checked in full$/);
+  await expect(item.locator('span[title^="Not certified"]')).toHaveCount(0);
+  expect(await band()).toEqual([0, 1]);
+  const after = await help();
+  expect(after).not.toContain("In contact at the check's start");
+  expect(after).not.toContain("the rest is unchecked");
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(codeLine(8)).not.toHaveAttribute("title", /provisional/);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
 // Codex R41 MR-I04: when no faithful re-parse can follow a tool-table change
 // during a run (a random tool changer the worker refuses to pin, or no
 // published start state), the gateway marks the payload's table stale until
