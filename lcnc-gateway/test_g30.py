@@ -63,8 +63,23 @@ class _Task:
             self.block[2].wait(5)
 
     def mode(self, m):
+        """emctaskmain.cc EMC_TASK_SET_MODE + emctask.cc emcTaskSetMode:
+        leaving AUTO with the interpreter busy is refused; a switch to MDI or
+        AUTO — AUTO again too — runs emcTaskAbort (a program in AUTO is
+        aborted: recorded) and emcTaskPlanSynch (save_parameters)."""
         self.calls.append(("mode", m))
-        gateway.STAT.task_mode = m
+        st = gateway.STAT
+        busy = getattr(st, "interp_state", linuxcnc.INTERP_IDLE) != linuxcnc.INTERP_IDLE
+        if getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO and busy and m != linuxcnc.MODE_AUTO:
+            self._last = 1          # an operator error; the command itself is done
+            return 0
+        if m in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
+            if busy:
+                self.calls.append(("aborted",))
+                st.interp_state = linuxcnc.INTERP_IDLE
+            if self.synch_saves:
+                self.save()
+        st.task_mode = m
         self._last = 1
         return 0
 
@@ -80,6 +95,13 @@ class _Task:
     def task_plan_synch(self):
         self.calls.append(("synch",))
         self._maybe_block("synch")
+        st = gateway.STAT
+        if (getattr(st, "task_state", None) == linuxcnc.STATE_ON
+                and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO):
+            # "can't do that (EMC_TASK_PLAN_SYNCH) in auto mode with the
+            # interpreter idle" (emctaskmain.cc; every AUTO state refuses it)
+            self._last = 3
+            return
         if self.synch_saves:
             self.save()
         self._last = self.synch_rc
@@ -346,6 +368,78 @@ class TestG30Read(_G30Case):
         r = gateway._read_g30_vars()
         self.assertEqual(r["values"], {"X": 100.0, "Y": 0.0, "Z": None, "A": None, "C": None})
         self.assertIn("mtime_ms", r)
+
+
+class TestSynchInAuto(_G30Case):
+    """Machine ON in AUTO with the interpreter idle — where every loaded
+    program leaves the task — LinuxCNC refuses task_plan_synch (measured
+    live 2026-10-09: every confirmed read failed there, with an operator
+    error). The switch to AUTO itself synchs; it is sent only where it
+    cannot abort a program or be ignored for a jog."""
+
+    def setUp(self):
+        super().setUp()
+        gateway.STAT.task_state = linuxcnc.STATE_ON
+        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+        self.pins = {"jog_active": False}
+        for name, value in (("_reader_get", lambda k: self.pins.get(k)), ("_reader_is_stale", lambda: False)):
+            p = unittest.mock.patch.object(gateway, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+
+    def test_a_read_in_auto_synchs_by_the_switch_to_auto(self):
+        self.task.params[5183] = -20.0
+        r = self.send({"cmd": "read_g30"})
+        self.assertEqual(r, {"ok": True, "confirmed": True, "values": {**self.stored(), "Z": -20.0}})
+        self.assertEqual(self.task.calls, [("mode", linuxcnc.MODE_AUTO)], "no task_plan_synch, no abort")
+        self.assertEqual(gateway.STAT.task_mode, linuxcnc.MODE_AUTO, "the operator's mode unchanged")
+
+    def test_a_write_in_auto_reads_switches_to_mdi_writes_and_reads(self):
+        r = self.send({"cmd": "set_g30", "values": {"x": 120.0}, "based_on": self.stored()})
+        self.assertEqual((r["ok"], r["confirmed"], r["values"]["X"]), (True, True, 120.0), r)
+        self.assertEqual(self.task.names(), ["mode", "mode", "mdi", "synch"])
+        self.assertEqual(self.task.calls[:2], [("mode", linuxcnc.MODE_AUTO), ("mode", linuxcnc.MODE_MDI)])
+
+    def test_nothing_is_sent_with_the_interpreter_busy_or_a_jog(self):
+        # the re-entry would abort the program (SET_MODE AUTO is honoured
+        # with the interpreter busy) or be ignored for a jog — and an
+        # unknown jog state is no proof there is none
+        cases = (({"interp": linuxcnc.INTERP_READING}, "interpreter not idle"),
+                 ({"interp": linuxcnc.INTERP_PAUSED}, "interpreter not idle"),
+                 ({"jog": True}, "jog active"),
+                 ({"jog": None}, "jog state unknown"),
+                 ({"stale": True}, "jog state unknown"))
+        for case, how in cases:
+            with self.subTest(case=case):
+                self.task.calls.clear()
+                gateway.STAT.interp_state = case.get("interp", linuxcnc.INTERP_IDLE)
+                self.pins["jog_active"] = case.get("jog", False)
+                stale = case.get("stale", False)
+                with unittest.mock.patch.object(gateway, "_reader_is_stale", lambda: stale):
+                    rc, said = _run(gateway._synch_interp_params())
+                self.assertEqual((rc, said, self.task.calls), (None, how, []))
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        self.pins["jog_active"] = False
+        with unittest.mock.patch.object(gateway, "_reader_is_stale", lambda: False):
+            r = self.send({"cmd": "read_g30"})
+        self.assertTrue(r["confirmed"], r)
+
+    def test_a_machine_off_or_in_estop_takes_task_plan_synch(self):
+        # LinuxCNC takes PLAN_SYNCH in every mode while the machine is not ON
+        for state in (linuxcnc.STATE_OFF, linuxcnc.STATE_ESTOP):
+            with self.subTest(state=state):
+                self.task.calls.clear()
+                gateway.STAT.task_state = state
+                rc, how = _run(gateway._synch_interp_params())
+                self.assertEqual((rc, how, self.task.names()), (1, "task_plan_synch", ["synch"]))
+
+    def test_mdi_and_manual_take_task_plan_synch(self):
+        for mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_MANUAL):
+            with self.subTest(mode=mode):
+                self.task.calls.clear()
+                gateway.STAT.task_mode = mode
+                rc, how = _run(gateway._synch_interp_params())
+                self.assertEqual((rc, how, self.task.names()), (1, "task_plan_synch", ["synch"]))
 
 
 class TestG30Exclusive(_G30Case):
