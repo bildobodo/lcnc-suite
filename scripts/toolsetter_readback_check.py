@@ -288,9 +288,10 @@ async def main(ini, report, keep_sim):
             await gw.cmd({"cmd": "arm", "armed": False})
             if not keep_sim:
                 # the client stays connected while the sim goes down
-                # by its process name — `pgrep -f` with the command line also
-                # matches a shell whose own command holds the pattern
-                pids = subprocess.run(["pgrep", "-x", "lcnc-suite"], capture_output=True, text=True).stdout.split()
+                # the launcher is a bash script (its comm is `bash`): matched by
+                # its command line from the start — a `bash -c` shell holding
+                # the pattern in its own command does not start with it
+                pids = subprocess.run(["pgrep", "-f", "^bash .*/lcnc-suite -ini "], capture_output=True, text=True).stdout.split()
                 for pid in pids:
                     os.kill(int(pid), signal.SIGTERM)
                 t0 = time.monotonic()
