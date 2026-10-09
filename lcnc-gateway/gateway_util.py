@@ -2281,37 +2281,26 @@ def read_var_wcs_rows(path):
 
 
 #: RS274 is whitespace-insensitive ("spaces and tabs are allowed anywhere on a
-#: line and do not change its meaning") and word order is free, so the scan
-#: below strips whitespace and looks for WORDS, not for a spaced, ordered
-#: phrase. A word is a letter followed by a numeric literal, a parameter
-#: (#n / #<name>) or a bracketed expression. The first regex here (a `\b`-
-#: anchored `G\s*10 ... L ... P` phrase) missed `N10G10L2P1X5` (no boundary
-#: between the 0 of N10 and the G), `G10 P1 L2` (free word order), and every
-#: `P#100` / `P[...]` form — the exact writes this scan exists to catch.
-_G10_WORD_RE = re.compile(r"G0*10(?![0-9.])")
-_L_WORD_RE = re.compile(r"L(\d+|#|\[)")
-_P_WORD_RE = re.compile(r"P(\d+|#|\[)")
+#: line and do not change its meaning") and word order is free: the scans
+#: read WORDS (nc_block_norm since Codex R106), never a spaced, ordered phrase
+#: — a `\b`-anchored `G\s*10 ... L ... P` missed `N10G10L2P1X5`, `G10 P1 L2`
+#: and every `P#100` form, and a word regex missed `G9.99999` (G10) and read
+#: `L1.99999` as L1.
 _NAMED_PARAM_RE = re.compile(r"#<[^>]*>")
 
 
 #: Candidate lines for position_write_lines: a settings or store word.
 #: LinuxCNC reads `G1 0` as G10 (spaces count nowhere): the candidate
 #: allows them; the decision is taken on the line without whitespace.
-_POSWRITE_CANDIDATE_RE = re.compile(r"G[\s+]*[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8|3\s*0|[\[#])", re.I)
-#: A word's value as LinuxCNC reads it — a number in any spelling (`92`,
-#: `092`, `92.0`, `28.10`), or `[` / `#` for one the text cannot settle.
-_NUM = r"(?:([\[#])|([+-]?(?:\d+\.?\d*|\.\d+)))"   # LinuxCNC numbers take a sign (Codex R97)
-_G_WORDS_RE = re.compile(r"G" + _NUM)
-_L_NUM_RE = re.compile(r"L" + _NUM)
-_P_NUM_RE = re.compile(r"P" + _NUM)
-
-
-def _word_value(m):
-    """A word match's value ×10 rounded (LinuxCNC reads G codes so: G92.1 =
-    921), or None for an expression or a parameter."""
-    if m is None or m.group(1):
-        return None
-    return int(round(float(m.group(2)) * 10))
+#: A literal reads as G10 / G28 / G30 / G52 / G92 within 1e-4 (read_g), so
+#: its integer part is the code's or the one below (`G91.99999` is G92,
+#: natively — Codex R106's near forms; TestPosWriteCandidates proves it).
+#: A value that is no literal starts with `[`, `#` or a function (`ABS[92]`).
+_POSWRITE_CANDIDATE_RE = re.compile(
+    r"G[\s+]*[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8|3\s*0|9\s*\.|9\s*1\s*\.|5\s*1\s*\.|2\s*7\s*\.|2\s*9\s*\.|[\[#]"
+    r"|[A-Z][A-Z\s]*\[)", re.I)
+#: The same for a G10 (wcs_rewrite_targets): `10`, `9.99999`, or no literal.
+_G10_CANDIDATE_RE = re.compile(r"G[\s+]*[\s0]*(?:1\s*0|9\s*\.|[\[#]|[A-Z][A-Z\s]*\[)", re.I)
 
 
 # ── ONE reader of a block's words, the interpreter's way (Codex R105 VP-I59,
@@ -2482,11 +2471,17 @@ def position_write_lines(text):
         ls = t.rfind("\n", 0, pos) + 1
         le = t.find("\n", pos)
         raw = t[ls:(len(t) if le < 0 else le)]
-        line = strip_gcode_comments(raw)
-        s = _OWORD_NAME_RE.sub("O0", _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line))).upper()
-        expr = "#" in s or "[" in s
-        gm = list(_G_WORDS_RE.finditer(s))
-        codes = {_word_value(m) for m in gm}
+        # the words read the interpreter's way (nc_block_norm, Codex R106: a
+        # G word regex missed `GABS[92]` and `G+[92]`); a line it cannot read
+        # may be a write
+        n = nc_norm(raw)
+        b = nc_block_norm(n)
+        if b is None:
+            out[line_no] = "all"
+            continue
+        words = b[0]
+        expr = "#" in n or "[" in n
+        codes = {None if v is None else nc_g10(v) for w, v in words if w == "G"}
         if None in codes:
             out[line_no] = "all"                 # a G word the text cannot settle (Codex R96)
         elif codes & {281, 301, 920}:
@@ -2496,24 +2491,20 @@ def position_write_lines(text):
         elif 520 in codes:
             out[line_no] = "all" if expr else "explicit"
         elif 100 in codes:
-            lw = _L_NUM_RE.search(s)
-            pw = _P_NUM_RE.search(s)
-            l10, p10 = _word_value(lw), _word_value(pw)
-            l_no = l10 // 10 if l10 is not None and l10 % 10 == 0 else None
-            p_no = p10 // 10 if p10 is not None and p10 % 10 == 0 else None
-            if lw is None:
-                # no L word it can read: none at all writes nothing (an error);
-                # one it cannot read is no proof of none (Codex R97)
-                out[line_no] = "all" if "L" in s else "explicit"
+            lv = [v for w, v in words if w == "L"]
+            pv = [v for w, v in words if w == "P"]
+            l_no = nc_int(lv[0]) if lv and lv[0] is not None else None
+            p_no = nc_int(pv[0]) if pv and pv[0] is not None else None
+            if not lv:
+                out[line_no] = "explicit"        # no L word: writes nothing (an error)
             elif l_no is None or l_no in (10, 11):
-                out[line_no] = "all"
+                out[line_no] = "all"             # an L it cannot settle is no proof of none (R97)
             elif l_no in (1, 2) and not expr:
                 out[line_no] = "explicit"
             elif l_no == 1:
                 out[line_no] = "all"
             elif l_no in (2, 20):
-                out[line_no] = ("all" if (pw is not None and p_no is None) or (pw is None and "P" in s) else
-                                p_no if p_no else "active")
+                out[line_no] = "all" if pv and p_no is None else (p_no if p_no else "active")
             else:
                 out[line_no] = "all"
     # ONE reading decides both whether the order is lost and how
@@ -2616,25 +2607,37 @@ def wcs_rewrite_targets(text):
     not count."""
     explicit, active = set(), False
     for raw in (text or "").splitlines():
-        line = strip_gcode_comments(raw)
-        # Whitespace-free, upper-cased, named params neutralised so a letter
-        # inside `#<name>` can never read as a word.
-        s = _NAMED_PARAM_RE.sub("#0", re.sub(r"\s+", "", line)).upper()
-        if not _G10_WORD_RE.search(s):
+        if not _G10_CANDIDATE_RE.search(strip_gcode_comments(raw)):
             continue
-        lw = _L_WORD_RE.search(s)
-        if lw is None:
+        # read the interpreter's way (nc_block_norm, Codex R106): G9.99999 is
+        # G10, L1.99999 is L2, L+2 is L2 — a regex took the first for none
+        # and the second for L1
+        n = nc_norm(raw)
+        if "G" not in n:
+            continue
+        b = nc_block_norm(n)
+        if b is None:
+            active = True            # a block it cannot read: cannot tell
+            continue
+        words = b[0]
+        gs = [v for w, v in words if w == "G"]
+        if not any(v is None or nc_g10(v) == 100 for v in gs):
+            continue
+        ls = [v for w, v in words if w == "L"]
+        if not ls:
             continue                 # a G10 with no L word writes nothing
-        if not lw.group(1).isdigit():
-            active = True            # dynamic L: cannot tell -> snapshot
+        lv = ls[0]
+        if lv is None or nc_int(lv) is None or any(v is None for v in gs):
+            active = True            # dynamic L or G: cannot tell -> snapshot
             continue
-        if int(lw.group(1)) not in (2, 20):
+        if nc_int(lv) not in (2, 20):
             continue                 # L1 tool table, L10/L11 tool offsets
-        pw = _P_WORD_RE.search(s)
-        if pw is None or not pw.group(1).isdigit():
+        ps = [v for w, v in words if w == "P"]
+        pv = ps[0] if ps else None
+        if pv is None or nc_int(pv) is None:
             active = True            # missing/dynamic P: cannot tell
             continue
-        p = int(pw.group(1))
+        p = nc_int(pv)
         if p == 0:
             active = True
         else:
@@ -4122,6 +4125,222 @@ _PROBE_UNPREDICTED_MARKER = re.compile(r"^\s*WEBUI_PROBE_UNPREDICTED\s*=\s*([a-z
 _TOOLLEN_TABLE_MARKER = re.compile(r"^\s*WEBUI_TOOLLEN_TABLE\s*$", re.IGNORECASE)
 
 
+class RemapEnv:
+    """The configured REMAPs and what their bodies MAY do (Codex R106,
+    VP-I59 / VP-I61 rests): a remapped code runs a body the text scan never
+    reads — `M200` writing #3009, an M200 whose body calls a foreign M600.
+    Per remapped code (key: ("M", 600), ("G", 533) by read_g's ×10, ("T",
+    None) for a remap of a whole letter — T, S, F) `effect(key)` answers
+    (writes, reaches): the toolsetter basis keys the body may write and the
+    remapped codes it may invoke, each None = any. Conservative by
+    construction: `python=` / `prolog=` / `epilog=` is opaque (None, None) —
+    a name or a marker proves nothing; a body is EVERY file of its name on
+    the search path (`dirs`, the INI folder first), so LinuxCNC's first-hit
+    order need not be reproduced; a file not found, not readable, a block
+    the reader cannot read, an o-word it cannot read, an M98, a setting
+    whose target it does not settle — None. A literal word of a remapped
+    code is that code; a value the text does not settle reaches every remap
+    of its letter — an M without a P word cannot be an M98 (the interpreter
+    refuses it, natively: TestNcSpellings), with one it is None. o-calls
+    are followed into their files; cycles end as "nothing new".
+    `RemapEnv.unknown()` (no INI read) answers None for every word."""
+
+    def __init__(self, remap_lines, search_dirs, max_read=262144):
+        self.known = remap_lines is not None
+        self.dirs = list(search_dirs or ())
+        self.max_read = max_read
+        self.remaps = {}
+        for raw in remap_lines or ():
+            parts = str(raw or "").split()
+            if not parts:
+                continue
+            key = self.code_key(parts[0])
+            if key is None:
+                continue
+            opts = dict(p.split("=", 1) for p in parts[1:] if "=" in p)
+            opts = {k.strip().lower(): v.strip() for k, v in opts.items()}
+            opaque = any(opts.get(k) for k in ("python", "prolog", "epilog"))
+            ngc = opts.get("ngc")
+            if ngc and ngc.lower().endswith(".ngc"):
+                ngc = ngc[:-4]
+            self.remaps[key] = {"ngc": (ngc or "").lower() or None, "opaque": opaque or not ngc}
+        self._effect = {}
+        self._file = {}
+
+    @classmethod
+    def unknown(cls):
+        return cls(None, ())
+
+    def _may_matter(self, flat):
+        """A lossless prefilter for one whitespace-free, upper-cased line
+        (comments in: a superset): only a setting (`=`), an o-word, an M98
+        (its letter beside "97" / "98", or a value that is no literal) or a
+        word of a remapped letter — beside the code's near integer parts
+        (_near_int_parts: a literal within 1e-4) or a value that is no
+        literal — can write a key, call a file or trigger a remap."""
+        if "=" in flat or "O" in flat:
+            return True
+        if not hasattr(self, "_near"):
+            near = {"M": {"97", "98"}}
+            for letter, code in self.remaps:
+                if code is None:
+                    near[letter] = None
+                elif near.get(letter, set()) is not None:
+                    near.setdefault(letter, set()).update(
+                        _near_int_parts(code / 10.0 if letter == "G" else float(code)))
+            self._near = near
+        open_value = "[" in flat or "#" in flat
+        for letter, parts in self._near.items():
+            if letter in flat and (parts is None or open_value or any(d in flat for d in parts)):
+                return True
+        return False
+
+    @staticmethod
+    def code_key(code):
+        """("M", 600) / ("G", 533) / ("T", None) for a REMAP's code."""
+        c = str(code or "").strip().upper()
+        if not c or not c[0].isalpha():
+            return None
+        if len(c) == 1:
+            return (c, None)
+        try:
+            v = float(c[1:])
+        except ValueError:
+            return None
+        n = nc_g10(v) if c[0] == "G" else nc_int(v)
+        return None if n is None else (c[0], n)
+
+    def word_keys(self, letter, v, has_p):
+        """The remapped codes one word triggers; None when it may trigger
+        anything (an M whose value the text does not settle beside a P word:
+        a possible M98)."""
+        if (letter, None) in self.remaps:
+            return [(letter, None)]
+        if v is None:
+            if letter == "M" and has_p:
+                return None
+            return [k for k in self.remaps if k[0] == letter]
+        n = nc_g10(v) if letter == "G" else nc_int(v)
+        return [(letter, n)] if (letter, n) in self.remaps else []
+
+    def effect(self, key):
+        """(writes, reaches) of a remapped code's body, transitively."""
+        if not self.known:
+            return None, None
+        if key not in self.remaps:
+            return frozenset(), frozenset()
+        if key not in self._effect:
+            self._effect[key] = self._closure([key], [])
+        return self._effect[key]
+
+    def text_effect(self, text):
+        """(writes, reaches) of a text — an MDI line, a program, a body: its
+        own settings, the remapped codes its words trigger and the files its
+        o-calls run, followed to the end."""
+        if not self.known:
+            return None, None
+        own = self._own_text(text)
+        if own is None:
+            return None, None
+        w, keys, names = own
+        got_w, got_r = self._closure(list(keys), list(names))
+        if got_w is None:
+            return None, None
+        return frozenset(w) | got_w, got_r
+
+    def _closure(self, keys, names):
+        """Every node reachable from `keys` (remapped codes) and `names`
+        (sub files by name), each visited once: the union of their OWN
+        writes is the closure whatever the order — a cycle ends there."""
+        writes, reaches = set(), set()
+        seen_k, seen_n = set(), set()
+        while keys or names:
+            if keys:
+                key = keys.pop()
+                if key in seen_k:
+                    continue
+                seen_k.add(key)
+                reaches.add(key)
+                r = self.remaps.get(key)
+                if r is None:
+                    continue
+                if r["opaque"]:
+                    return None, None
+                names.append(r["ngc"])
+                continue
+            name = names.pop()
+            if name in seen_n:
+                continue
+            seen_n.add(name)
+            paths = [os.path.join(d, name + ".ngc") for d in self.dirs]
+            paths = [p for p in paths if os.path.isfile(p)]
+            if not paths:
+                return None, None
+            for p in paths:
+                own = self._own_file(os.path.realpath(p))
+                if own is None:
+                    return None, None
+                w, ks, ns = own
+                writes |= w
+                keys.extend(ks)
+                names.extend(ns)
+        return frozenset(writes), frozenset(reaches)
+
+    def _own_file(self, path):
+        if path not in self._file:
+            try:
+                with open(path, encoding="utf-8", errors="replace") as f:
+                    text = f.read(self.max_read + 1)
+            except OSError:
+                text = None
+            self._file[path] = None if text is None or len(text) > self.max_read else self._own_text(text)
+        return self._file[path]
+
+    def _own_text(self, text):
+        """(writes, keys, names) of one text alone — its settings, the remapped
+        codes its words trigger, the subs its o-calls name — or None."""
+        writes, keys, calls, defined = set(), set(), set(), set()
+        for raw in (text or "").splitlines():
+            if not self._may_matter("".join(raw.split()).upper()):
+                continue
+            n = nc_norm(raw)
+            if not n:
+                continue
+            b = nc_block_norm(n)
+            if b is None:
+                return None
+            words, sets, oword = b
+            if oword:
+                kind, oname = _flow_of_norm(n)
+                if kind == "foreign":
+                    return None
+                if kind in ("call", "sub"):
+                    (calls if kind == "call" else defined).add((oname or "").strip("<>").lower())
+                continue
+            for tgt in sets:
+                if tgt == "name":
+                    continue
+                k = None if tgt is None else nc_int(tgt)
+                if k is None or k < 0:
+                    return None
+                if k in TOOLSETTER_BASIS_KEYS:
+                    writes.add(k)
+            has_p = any(w == "P" for w, _ in words)
+            for letter, v in words:
+                if letter == "M" and v is not None and nc_int(v) == 98:
+                    return None
+                ks = self.word_keys(letter, v, has_p)
+                if ks is None:
+                    return None
+                keys.update(ks)
+        # a sub this text defines is read with it; another is a file — by
+        # name; a numbered one LinuxCNC looks up nowhere else
+        names = calls - defined
+        if any(not nm or nm.isdigit() for nm in names):
+            return None
+        return writes, keys, names
+
+
 def foreign_m600_codes(remap_lines, search_dirs, max_read=65536) -> frozenset:
     """The M600 / M601 remaps that are not the suite's (M600 plan, section 4,
     last row): a REMAP for the code whose ngc file — the first hit on the
@@ -4154,6 +4373,47 @@ def foreign_m600_codes(remap_lines, search_dirs, max_read=65536) -> frozenset:
                 break
         if text is None or not re.search(r"\(\s*WEBUI_SUB\s*=\s*" + code + r"\b", text, re.IGNORECASE):
             out.add(code)
+    return frozenset(out)
+
+
+def remap_reach_lines(source_text, env: "RemapEnv", targets) -> frozenset:
+    """The main file's lines (1-based) whose block MAY run one of `targets`
+    (RemapEnv keys, ("M", 600)) through ANOTHER remap's body — an M200 whose
+    body calls a foreign M600 (Codex R106, VP-I61 rest): a word of a remapped
+    code whose body may reach it, or whose body is opaque, a value the text
+    does not settle for a letter with remaps, a block the reader cannot
+    read. o-calls are the flow mode's (a call into another file is unknown
+    from the program's start). Pure but for the body files `env` reads."""
+    targets = set(targets)
+    out = set()
+    for i, raw in enumerate((source_text or "").splitlines()):
+        n = nc_norm(raw)
+        if not n:
+            continue
+        b = nc_block_norm(n)
+        if b is None:
+            out.add(i + 1)
+            continue
+        words, _sets, oword = b
+        if oword:
+            continue
+        has_p = any(w == "P" for w, _ in words)
+        for letter, v in words:
+            keys = env.word_keys(letter, v, has_p) if env.known else None
+            if keys is None:
+                out.add(i + 1)
+                break
+            hit = False
+            for k in keys:
+                if k in targets:
+                    continue          # the code itself: m_code_lines' question
+                _w, r = env.effect(k)
+                if r is None or r & targets:
+                    hit = True
+                    break
+            if hit:
+                out.add(i + 1)
+                break
     return frozenset(out)
 
 
@@ -4454,6 +4714,13 @@ def resolve_sub_indices(seqs, sub_events, name_index):
     return out
 
 
+def _near_int_parts(val):
+    """The integer parts a number reading as `val` (within 1e-4, the
+    interpreter's integer / G-code reading) is written with: "599" and "600"
+    for 600, "53" for 53.3."""
+    return {str(int(math.floor(val - 2e-4))), str(int(math.floor(val + 2e-4)))}
+
+
 def _caller_site(n, name, caller_token):
     """Does the MAIN-file block `n` (nc_norm) invoke sub `name`: "site" —
     its `o<name> call` statement, or the marker-declared CALLER token as a
@@ -4476,9 +4743,14 @@ def _caller_site(n, name, caller_token):
         val = float(caller_token[1:])
     except ValueError:
         return None
+    # the letter is required for a word of it. A literal that reads as the
+    # code lies within 1e-4 of it (nc_int / nc_g10), so its integer part is
+    # the code's or the one below — M599.99999 is 600 (Codex R106: a filter
+    # on "600" missed it and put two calls on the other line); else the value
+    # is no literal (`[`, `#`). TestNcSpellings proves it over the near forms.
     if letter not in n:
         return None
-    if str(int(val)) not in n and "[" not in n and "#" not in n:
+    if "[" not in n and "#" not in n and not any(d in n for d in _near_int_parts(val)):
         return None
     b = nc_block_norm(n)
     if b is None:
@@ -4883,7 +5155,7 @@ TOOLSETTER_BASIS_KEYS = (3004, 3005, 3006, 3007, 3009, 3010, 3013, 3014) + tuple
 TOOLSETTER_ORIGINS = ("applied", "read", "assumed", "unknown")
 
 
-def toolsetter_assigned_keys(text) -> Optional[frozenset]:
+def toolsetter_assigned_keys(text, env: "RemapEnv") -> Optional[frozenset]:
     """The toolsetter keys a program or an MDI line may write: every
     parameter setting's target read the interpreter's way (nc_block_norm —
     `#3 0 0 9=`, `#+3009=`, `#3009.0=` are #3009). None when it may write
@@ -4892,11 +5164,17 @@ def toolsetter_assigned_keys(text) -> Optional[frozenset]:
     reader cannot read, or a call into another file whose text is not read
     (an o-word of no sub this text defines, M98: position_write_lines'
     `foreign`). A setting it did not recognise never proves "writes
-    nothing" (Codex R105 VP-I59). Pure."""
+    nothing" (Codex R105 VP-I59). A word of a remapped code adds what its
+    body may write (`env`, the configured REMAPs — RemapEnv; Codex R106: an
+    M200 whose body writes #3009 was "writes nothing"). Pure but for the
+    body files `env` reads."""
     _, mode = position_write_lines(text or "")
     if mode == "foreign":
         return None
-    keys = set()
+    body, _reach = env.text_effect(text or "")
+    if body is None:
+        return None
+    keys = set(body)
     for raw in (text or "").splitlines():
         if "=" not in raw:
             continue

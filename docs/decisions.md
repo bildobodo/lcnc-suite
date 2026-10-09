@@ -8857,3 +8857,33 @@ line, or a line whose runs differ — is named in general (Program Stats'
 lines therefore shows its lengths in Program Stats, not on the rows, until
 the call lines can be verified (VP-I63; the positional rule that would do it
 is proposed in R106, not built).
+
+## 2026-10-09 — A remapped code's body is read; a text prefilter accepts every spelling that reads as its code (Codex R106)
+
+R106 closed VP-I60 and VP-I62 and found three rests. A remapped code runs a
+body the line does not show: `M200` whose ngc writes #3009 left a confirmed
+basis (VP-I59), and an M200 whose body calls a foreign M600 left the program
+predicted (VP-I61). The configured remaps are now read (`RemapEnv`): per code,
+what its body may write and which remaps it may invoke — every file of its
+name on the path, followed through o-calls and remapped words; a python,
+prolog or epilog remap, a body that cannot be read, an M98 or an unsettled
+target is "any". This replaces the named limit proposed in R106 ("a foreign
+remap body is not read"), which Codex refused: the gateway itself sends these
+commands in a known configuration. An M whose value the text does not settle
+can be any remapped M, but no M98 without a P word — LinuxCNC refuses that,
+measured. On the TWP profile the toolsetter routine's own `M#<spindle_stop_m>`
+may therefore be a python remap, and an M600 start books every key assumed;
+the read-back confirms them again. Accepted, named.
+
+The third rest (VP-I63 / W4): a filter on the digits "600" skipped
+`M599.99999`, which the interpreter reads as M600 — and put two calls on one
+line again. Measured natively, a literal reads as a code within 1e-4, so the
+same was true of the position-write prefilter (`G91.99999` is G92) and of the
+G10 scan (`G9.99999`, `L1.99999` is L2, `L+20` was no L at all — a payload
+fixture changed with it: `G10 L+20 P1` now marks G54 program-written like
+`G10 L20 P1`). Every such prefilter now accepts the code's integer part or the
+one below, or a value that is no literal, proven over the near forms by
+tests; the decisions behind them read the reader's words. The display
+scanners of the same class — the client's M6 text scan, the program-end line,
+the line classification — decide marks, not what is known, and stay a named
+limit.

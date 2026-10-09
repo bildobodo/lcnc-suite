@@ -331,6 +331,17 @@ class TestCallLines(unittest.TestCase):
         self.assertEqual(r["tool_change_lines"], [])
         self.assertEqual([(row[1], row[3]) for row in r["toollen_table"]], [(2, 0), (1, 0)])
 
+    def test_a_near_literal_is_a_site_too(self):
+        # Codex R106: M599.99999 reads as 600 — a filter on the digits "600"
+        # missed it and put both calls on L5
+        r = probe("m600_near_pair")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["tool_change_lines"], [])
+        self.assertEqual([(row[1], row[3]) for row in r["toollen_table"]], [(2, 0), (1, 0)])
+        r = probe("m600_near_single")
+        self.assertEqual(r["tool_change_lines"], [[3, 2]])
+        self.assertEqual([row[3] for row in r["toollen_table"]], [3])
+
     def test_the_same_tool_twice_keeps_each_measurement_apart(self):
         # predicted at the first call, not at the second (a 1 mm travel): two
         # events of T2, in order; neither call site is unique — no line, so
@@ -340,6 +351,33 @@ class TestCallLines(unittest.TestCase):
         self.assertEqual([(row[1], row[2], row[3]) for row in r["toollen_table"]], [(2, 80.0, 0)])
         self.assertEqual([(row[1], row[2], row[3]) for row in r["probe_unpredicted"]], [(2, "travel", 0)])
         self.assertLess(r["toollen_table"][0][0], r["probe_unpredicted"][0][0])
+
+
+class TestRemapBodies(unittest.TestCase):
+    """Codex R106: a remapped code runs a body the text does not show."""
+
+    def test_a_body_that_writes_a_key_is_in_the_programs_write_set(self):
+        # VP-I59 rest: M200 → setter_write `#3009=4` — natively X4 after it
+        r = probe("remap_write")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["rapid"][-1][0], 4.0)
+        self.assertEqual(r["toolsetter_meta"]["writes"], [3009])
+
+    def test_a_foreign_m600_inside_another_remap_is_not_predicted(self):
+        # VP-I61 rest: M200 → wrapper `T2 M600` → the foreign othertc; the
+        # program's own first move (L2) is known, nothing from M200 on
+        r = probe("foreign_remap_nested")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual([row[2] for row in r["probe_unpredicted"]], ["foreign_remap"])
+        ev = path(r)
+        g0 = max(q for q, k, p, ln in ev if ln == 2)
+        self.assertEqual(r["probe_unpredicted"][0][0], g0, "from the end of the block before M200")
+        ustart = dict(zip(r["rapid_seq"], r["rapid_ustart"]))
+        self.assertEqual({ustart.get(q) for q, *_ in ev if q > g0}, {1})
+
+    def test_an_m_whose_value_is_open_is_no_m98_without_a_p_word(self):
+        # RemapEnv.word_keys: such an M reaches only remapped M codes
+        self.assertIn("no P-word", probe("m98_param_no_p")["parse_error"])
 
 
 class TestNcSpellings(unittest.TestCase):
@@ -353,7 +391,7 @@ class TestNcSpellings(unittest.TestCase):
                                            "nc_spellings.json")).read())
 
     def test_every_setting_the_interpreter_takes_is_seen(self):
-        from gateway_util import toolsetter_assigned_keys
+        from gateway_util import RemapEnv, toolsetter_assigned_keys
         taken = {}
         for name, text in self.SPELL["assign"].items():
             with self.subTest(name=name):
@@ -364,7 +402,7 @@ class TestNcSpellings(unittest.TestCase):
                 # `G0 X#3009` after it: 4 = the setting wrote #3009 (3 before)
                 wrote = r["rapid"][-1][0] == 4.0
                 taken[name] = wrote
-                keys = toolsetter_assigned_keys(text)
+                keys = toolsetter_assigned_keys(text, RemapEnv([], []))
                 if wrote:
                     self.assertTrue(keys is None or 3009 in keys, f"{text!r} writes #3009, read as {keys}")
         # the interpreter's answers, pinned: every spelling here writes #3009
@@ -374,7 +412,9 @@ class TestNcSpellings(unittest.TestCase):
         self.assertEqual({n for n, w in taken.items() if w is False}, set())
 
     def test_literal_targets_are_read_exactly_and_the_rest_as_any(self):
-        from gateway_util import toolsetter_assigned_keys as f
+        from gateway_util import RemapEnv, toolsetter_assigned_keys
+        def f(text):
+            return toolsetter_assigned_keys(text, RemapEnv([], []))
         any_ = {"double_hash", "named_indirect", "expression", "function", "unbracketed_sum", "negative_target"}
         for name, text in self.SPELL["assign"].items():
             with self.subTest(name=name):

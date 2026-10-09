@@ -20,7 +20,7 @@ import unittest
 
 from test_g30 import _G30Case, _run
 import gateway  # noqa: E402  (test_g30 installed the fake binding first)
-from gateway_util import TOOLSETTER_BASIS_KEYS, toolsetter_basis_view  # noqa: E402
+from gateway_util import TOOLSETTER_BASIS_KEYS, RemapEnv, toolsetter_basis_view  # noqa: E402
 
 FILE = {k: float(i) for i, k in enumerate(TOOLSETTER_BASIS_KEYS)}
 
@@ -39,6 +39,12 @@ class _BasisCase(_G30Case):
         gateway._ts_basis_version = 0
         gateway._ts_readback_task = gateway._ts_readback_tried = gateway._ts_reparse_for = None
         gateway.STAT.enabled = True
+        # a configuration without remaps (the double has no INI: unknown —
+        # every line may write anything; TestRemapBodies covers both)
+        remap_env = gateway._remap_env
+        self._real_remap_env = remap_env
+        self.addCleanup(lambda: setattr(gateway, "_remap_env", remap_env))
+        gateway._remap_env = lambda: RemapEnv([], [])
         # an MDI line of any text: the interpreter assigns its `#N = v` words
         task = self.task
 
@@ -299,4 +305,79 @@ class TestStartWrites(_BasisCase):
         self.assertEqual(self.task.params[3009], 4.0, "the interpreter took it")
         self.assertEqual(self.origin(3009), "assumed")
         self.assertEqual(self.origin(3010), "read", "a key the line does not write keeps its basis")
+
+
+class TestRemapBodies(_BasisCase):
+    """Codex R106 (VP-I59 rest): a remapped code runs a body the line does
+    not show — `M200` whose body writes #3009 left a confirmed basis over an
+    interpreter holding 4."""
+
+    def _env(self, body):
+        import os
+        import tempfile
+        d = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, d, True)
+        with open(os.path.join(d, "setter_write.ngc"), "w") as f:
+            f.write(body)
+        return RemapEnv(["M200 modalgroup=10 ngc=setter_write"], [d])
+
+    def _mdi(self, text):
+        from test_command_dispatch import _payload
+        gateway._skip_flag_unknown = False
+        gateway._shared_status = _payload(inpos=True, current_vel=0.0)
+        return _run(gateway.handle_command({"cmd": "mdi", "text": text}, True))
+
+    def test_a_remapped_code_books_what_its_body_writes(self):
+        gateway._remap_env = lambda: self._env("o<setter_write> sub\n#3009=4\no<setter_write> endsub\n")
+        gateway._ts_book({**FILE}, "read")
+        self.assertTrue(self._mdi("M200")["ok"])
+        self.assertEqual(self.origin(3009), "assumed")
+        self.assertEqual(self.origin(3010), "read", "a key the body does not write keeps its basis")
+        self.assertEqual(toolsetter_basis_view(gateway._ts_basis)["state"], "assumed")
+
+    def test_a_body_that_writes_nothing_keeps_the_basis(self):
+        gateway._remap_env = lambda: self._env("o<setter_write> sub\n#<_x>=4\nG0 X1\no<setter_write> endsub\n")
+        gateway._ts_book({**FILE}, "read")
+        self.assertTrue(self._mdi("M200")["ok"])
+        self.assertEqual({self.origin(k) for k in TOOLSETTER_BASIS_KEYS}, {"read"})
+
+    def test_the_gateway_reads_the_remaps_of_the_ini_it_runs_with(self):
+        import os
+        import tempfile
+        import unittest.mock
+        d = tempfile.mkdtemp()
+        self.addCleanup(__import__("shutil").rmtree, d, True)
+        with open(os.path.join(d, "setter_write.ngc"), "w") as f:
+            f.write("o<setter_write> sub\n#3009=4\no<setter_write> endsub\n")
+        ini_path = os.path.join(d, "machine.ini")
+
+        class _Ini:
+            def __init__(self, path):
+                if path != ini_path:
+                    raise OSError(path)
+
+            def find(self, section, key):
+                return {("RS274NGC", "SUBROUTINE_PATH"): "."}.get((section, key))
+
+            def findall(self, section, key):
+                return ["M200 modalgroup=10 ngc=setter_write"] if (section, key) == ("RS274NGC", "REMAP") else []
+        stat = gateway.STAT
+        with unittest.mock.patch.object(gateway.linuxcnc, "ini", _Ini):
+            # the INI LinuxCNC runs with: its remaps, its folder on the path
+            with unittest.mock.patch.object(stat, "ini_filename", ini_path, create=True):
+                env = self._real_remap_env()
+                self.assertTrue(env.known)
+                self.assertEqual(env.effect(("M", 200))[0], frozenset({3009}))
+            # no INI, or one that cannot be read: unknown — every line may write
+            with unittest.mock.patch.object(stat, "ini_filename", None, create=True):
+                self.assertFalse(self._real_remap_env().known)
+            with unittest.mock.patch.object(stat, "ini_filename", ini_path + ".gone", create=True):
+                self.assertFalse(self._real_remap_env().known)
+
+    def test_remaps_not_read_make_every_line_a_writer(self):
+        # the gateway could not read the INI: any word may be a remapped code
+        gateway._remap_env = RemapEnv.unknown
+        gateway._ts_book({**FILE}, "read")
+        self.assertTrue(self._mdi("G0 X1")["ok"])
+        self.assertEqual({self.origin(k) for k in TOOLSETTER_BASIS_KEYS}, {"assumed"})
 

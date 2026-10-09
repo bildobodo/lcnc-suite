@@ -80,7 +80,7 @@ from gateway_util import (
     attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
     main_file_event_lines,
     read_var_snapshot, TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys,
-    foreign_m600_codes, m_code_lines, next_block_lines,
+    foreign_m600_codes, m_code_lines, next_block_lines, RemapEnv, remap_reach_lines,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
@@ -234,19 +234,24 @@ def parse(ctx: dict) -> dict:
     _ts_used = None
     # An M600 / M601 remap that is not the suite's (M600 plan, section 4): its
     # call lines from the main file's text — read here only when there is one.
-    _foreign = foreign_m600_codes(
-        ini.findall("RS274NGC", "REMAP") or [],
-        resolve_subroutine_dirs(ini.find("DISPLAY", "PROGRAM_PREFIX"), ini_path)
-        + resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"), ini_path))
+    _remap_lines = ini.findall("RS274NGC", "REMAP") or []
+    _sub_dirs = (resolve_subroutine_dirs(ini.find("DISPLAY", "PROGRAM_PREFIX"), ini_path)
+                 + resolve_subroutine_dirs(ini.find("RS274NGC", "SUBROUTINE_PATH"), ini_path))
+    # What the configured remaps' bodies may write or invoke (Codex R106):
+    # every file of a body's name, the INI folder (milltask's) first.
+    _remap_env = RemapEnv(_remap_lines, [os.path.dirname(os.path.abspath(ini_path))] + _sub_dirs)
+    _foreign = foreign_m600_codes(_remap_lines, _sub_dirs)
     if _foreign:
         try:
             with open(filename, "r", errors="replace") as f:
                 _ftext = f.read()
             # Every line that MAY call it (m_code_lines reads the words the
-            # interpreter's way); a call into another file (M98, an o-word
-            # of no sub defined here) may run it there — from the program's
-            # start then: no line of this text says when (Codex R105 VP-I61).
-            _flines = m_code_lines(_ftext, _foreign)
+            # interpreter's way), or may run it through another remap's body
+            # (remap_reach_lines, Codex R106); a call into another file (M98,
+            # an o-word of no sub defined here) may run it there — from the
+            # program's start then: no line of this text says when (R105).
+            _flines = m_code_lines(_ftext, _foreign) | remap_reach_lines(
+                _ftext, _remap_env, {RemapEnv.code_key(c) for c in _foreign})
             _, _fmode = position_write_lines(_ftext)
             if _fmode == "foreign":
                 _flines = _flines | {0}
@@ -1345,7 +1350,7 @@ def parse(ctx: dict) -> dict:
     # bundled routine (the gateway reads its values back when unconfirmed,
     # and re-parses when they change), and which of them may it write itself
     # (null: any — those turn "assumed" when it starts).
-    _ts_writes = toolsetter_assigned_keys(_src_text or "")
+    _ts_writes = toolsetter_assigned_keys(_src_text or "", _remap_env)
     print("__TOOLSETTER__\t" + json.dumps({
         "routine": any(_ev[1] == "tool_touch_off" for _ev in canon.sub_events),
         "writes": None if _ts_writes is None else sorted(_ts_writes)}), file=sys.stderr, flush=True)

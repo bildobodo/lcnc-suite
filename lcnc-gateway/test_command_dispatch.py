@@ -599,6 +599,9 @@ class TestHandlerExecution(unittest.TestCase):
         gateway._bulk.published_toolsetter = {"routine": False, "writes": [3009]}
         cmd = self._rcs()
         at_send = []
+        remap_env = gateway._remap_env
+        self.addCleanup(lambda: setattr(gateway, "_remap_env", remap_env))
+        gateway._remap_env = lambda: gateway.RemapEnv([], [])   # a configuration without remaps
         claims = list(gateway._source_claims)
         self.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), claims))
         for name in ("auto", "mdi"):
