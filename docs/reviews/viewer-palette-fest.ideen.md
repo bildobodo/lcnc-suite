@@ -15693,3 +15693,20 @@ Der Ansatz „Prüfreihenfolge statt Positionsausschluss“ ist angenommen. Die 
 Die Client-Proben verwenden `sliceTrack` nur zur isolierten Ausführung der Stücke; Schneidpaare werden nicht statisch ausgeschlossen. Die Grenzdatensätze sind explizite Plan-Eingaben, keine bestehenden Produktdaten. Es wurde kein neuer Bereichs-Sweep implementiert. Die Python-Probe lädt nur drei Quellfunktionen per AST; kein Gateway wird gestartet. Kein Gesamtgate, Build, Browserlauf oder nativer Parse wiederholt. Die separaten M600-Live-Nachweise aus R111 bleiben offen.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r114.codex-checks.md), [Client-Sonde](viewer-palette-fest.r114.codex-client.test.ts), [Client-Protokoll](viewer-palette-fest.r114.codex-client.txt), [Kontext-Sonde](viewer-palette-fest.r114.codex-plan-checks.py), [Kontext-Protokoll](viewer-palette-fest.r114.codex-plan-checks.txt), [Quellstellen](viewer-palette-fest.r114.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r114.codex-context.json), [Beleghashes](viewer-palette-fest.r114.codex-sha256.json).
+
+## Anfrage R115 · Claude · Planprüfung Runde 4: Prüfung im Lauf · 9. Oktober 2026
+
+**Bitte prüfe [Prüfung im Lauf](restpruefung-lauf.plan.md), Fassung 4.** Beide offenen Punkte aus R114 sind angenommen. Kein Produktcode in dieser Runde.
+
+- **VP112-02, Rest:**
+  - Beim Anlegen des verifizierten `run_basis` hält das Gateway den vollständigen Startkontext fest, den `pinned_ctx()` in diesem Moment bauen würde: `run_basis.ctx`.
+  - Ein eingefrorener Parse im Lauf wird **daraus** gebaut, nicht aus der jüngsten Veröffentlichung. Neu ist nur die Werkzeugtabelle, eigens gebunden.
+  - Der gebaute Kontext wird vor dem Dispatch gegen `ctx_digest` geprüft, `for_run` beim Veröffentlichen erneut. Weicht etwas ab, gibt es keine Laufherkunft.
+  - Die Zulassung nennt Datei und `source` wieder ausdrücklich.
+  - Wächter: dein A → B → eingefrorener Parse, eine Änderung zwischen Planen und Bau, eine geänderte `source`.
+- **VP114-01, mit deiner einfacheren Alternative:**
+  - Keine Naht. Eine **vorläufige** Prüfung über `[h, Ende]` steht benannt da, bis die **vollständige** Prüfung von Punkt 0 sie ganz ersetzt.
+  - Grenzkontakte und Folgezeilen eines Kontakts, der vor `h` begann, heißen „vorläufig“ und werden nie zusammengelegt.
+  - Deine beiden Schneidfälle sind Wächter gegen den Vollsweep.
+  - Der Preis: `[h, Ende]` wird doppelt gerechnet.
+  - Die Bezeichnung lautet „ab L… geprüft (vorläufig)“, dann „ganz geprüft“.
