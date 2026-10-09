@@ -1,0 +1,59 @@
+[
+  {
+    "kind": "auto_run",
+    "reply": {
+      "ok": true
+    },
+    "origin_3009": "assumed",
+    "calls": [
+      [
+        "mode",
+        [
+          2
+        ],
+        {}
+      ],
+      [
+        "auto",
+        [
+          16,
+          2
+        ],
+        {}
+      ]
+    ]
+  },
+  {
+    "kind": "cycle_start",
+    "reply": {
+      "ok": true
+    },
+    "origin_3009": "assumed",
+    "calls": [
+      [
+        "auto",
+        [
+          16,
+          0
+        ],
+        {}
+      ]
+    ]
+  },
+  {
+    "kind": "auto_step",
+    "reply": {
+      "ok": true
+    },
+    "origin_3009": "assumed",
+    "calls": [
+      [
+        "auto",
+        [
+          17
+        ],
+        {}
+      ]
+    ]
+  }
+]

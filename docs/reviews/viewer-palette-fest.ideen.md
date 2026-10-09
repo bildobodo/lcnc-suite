@@ -14880,3 +14880,88 @@ Ich würde die Regel in der nächsten Runde bauen, nur bei `ordered` und nur, we
 
 - Der native Rücklesebeleg und M600 im Live-Parity-Korpus brauchen ein laufendes LinuxCNC; die Antwort des Operators zum Start der Sim steht aus.
 - Unverändert: WRAPPED_ROTARY und die Restprüfung während eines Laufs.
+
+## Review R107 · Codex · Nachprüfung Remap-Analyse und Zahlenfilter · 9. Oktober 2026
+
+**Ergebnis: `findings`. VP-I59 geschlossen; VP-I61 und VP-I63 haben weitere reproduzierte Reste. Neu VP-I64 zu den mitgeänderten G-Code-Vorfiltern.**
+
+Geprüft: `23da5285..2701e244`, Archiv/Anfrage `126aa64c`. **596 gezielte Backend-Tests, 114 Client-Repositorytests und Produktionsbuild PASS.** Eigene 32 native Eingaben (28 gültig, vier verworfene Negativkontrollen) und vier Client-Beobachtungen. Kein Produktcode geändert, keine Live-Ports oder Maschinenbefehle.
+
+### Angenommene Korrekturen
+
+- **VP-I59 geschlossen:** Der native `M200 → setter_write`-Fall liefert X4 und nun den Schreibsatz `[3009]`. Über den echten MDI-Handler mit privater Remap-Umgebung wird die Basis `assumed`; das Rücklesen ist fällig. Die Vorbuchung auf allen Startwegen und beim Abbruch bleibt erhalten. Undurchsichtige Python-/Prolog-/Epilog-Wirkungen, fehlende Dateien und unbekannte INI werden konservativ behandelt. Die Vereinigung aller gefundenen Körper und die zyklensichere Analyse sind für diesen Vertrag angenommen.
+- **VP-I63, Zahlenfall aus R106 behoben:** `M599.99999` allein erhält L3; neben einer zweiten M600-Stelle bleiben beide Ereignisse ohne bestätigte Zeile. Der Client benennt sie allgemein. Der um die Rundungsrichtungen erweiterte Korpus ist sinnvoll.
+- **TWP-Folge angenommen:** Wenn ein offenes M-Wort und die dort konfigurierten Python-Remaps keinen kleineren Schreibsatz beweisen, ist die Invalidierung aller Schlüssel korrekt. Sie darf erst durch Rücklesen wieder bestätigt werden.
+- VP-I60 und VP-I62 bleiben geschlossen; die eigene Entry-Probe liefert weiterhin null.
+
+[Remap-Buchführung](viewer-palette-fest.r107.codex-remap-basis.json), [native R106-Gegenfälle am neuen Stand](viewer-palette-fest.r107.codex-extra-native.json), [korrigierte Nah-Zahlen im Client](viewer-palette-fest.r107.codex-caller.json).
+
+### VP-I61 · Rest · P1 · Der neue Stopp kommt erst nach der ersten Bewegung des fremden M600
+
+`gcode_parse_worker.py:250–260` erkennt jetzt den M200-Aufruf als möglichen Eintritt. Die Begrenzung in `gcode_canon.py:344–350` wartet jedoch weiter auf einen passenden `next_line`-Callback. In der **unveränderten R106-Gegenprobe** kommt der Marker erst bei seq 2, also nach der ersten Bewegung des fremden Rumpfs:
+
+| Ereignis | seq | Punkt | unbekannt |
+|---|---:|---|---:|
+| Hauptprogramm vor M200 | 1 | `(50,50,−100)` | nein |
+| `G53 G0 Z0` im fremden M600 | 2 | `(50,50,0)` | **nein** |
+| Folgefahrt des Hauptprogramms | 3 | `(60,60,0)` | ja |
+
+Payload: `probe_unpredicted=[[2,-1,"foreign_remap",0]]`, `rapid_tcum=[0,10,10]`. Durch Decode → Track → Sweep bleiben **10 s** und ein **Kollisionsbefund an L2** gegen einen Würfel bei `(50,50,−50)`. Die Oberfläche benennt gleichzeitig nur die folgende Bewegung als ungeprüft. Ein vorhandener Marker reicht daher nicht: Der fremde Rumpf muss bereits vor seiner ersten Bewegung unbekannt sein.
+
+**Der neue Wächter übersieht genau das:** `test_m600_preview_worker.py:373` wählt `max(seq … if line == 2)` als Ende der Hauptprogrammzeile. Auch die erste Bewegung der fremden Unterdatei trägt aber Zeile 2. Der Test erklärt damit den falschen Grenzpunkt zu seiner Referenz und prüft nur noch die Fahrt danach.
+
+**Erforderlich:** Die Grenze vor dem ersten möglichen Eintritt nachweisen, ohne Haupt- und Unterdateizeilen gleichzusetzen. Wenn diese Herkunft/Callback-Grenze nicht feststeht, konservativ früher begrenzen, nötigenfalls ab Programmstart. Den Wächter an unabhängig bekannte Bewegung/Punkt/Sequenz und an die fehlende Zeit/Kollisionsprüfung im Rumpf binden; nicht an das größte Vorkommen derselben Zeilennummer.
+
+[Native Eingabe](viewer-palette-fest.r107.codex-native-cases.json), [Payload](viewer-palette-fest.r107.codex-foreign_remap_nested.msgpack), [Zeit, Flags, Kollisionsbefund und Hinweis](viewer-palette-fest.r107.codex-coverage.json), [Client-Sonde](viewer-palette-fest.r107.codex-client.test.ts).
+
+### VP-I63 / W4 · Rest · P2 · Die bestehende Zeilenzuordnung nutzt die neue Remap-Analyse noch nicht
+
+`gcode_parse_worker.py:1240` ruft `attribute_sub_callers(sub_events, source_text)` weiterhin ohne die Remap-Umgebung auf. Eine einzige M600-Stelle im Haupttext gilt deshalb als Herkunft **jedes** äußeren m600-Ereignisses, auch wenn ein anderer Remap den gebündelten Rumpf aufgerufen hat.
+
+**Native Gegenprobe:** M200 ist auf `wrapper.ngc` gelegt; dessen Körper führt `o<m600> call` aus. `m600.ngc` und `tool_touch_off.ngc` sind die unveränderten gebündelten Dateien. Hauptprogramm:
+
+```gcode
+G21 G90
+G0 X50 Y50 Z-100
+T2 M200
+G0 X60
+M2
+T2 M600
+```
+
+Der tatsächliche Messaufruf entsteht an L3. L6 wird nicht ausgeführt. Trotzdem liefert der Worker **`tool_change_lines=[[6,2]]`**, **`toollen_table=[[22,2,80,6]]`**; der Client zeigt **„T2 80.000 mm (L6)“**.
+
+`RemapEnv.effect(("M",200))[1]` enthält in genau dieser privaten Konfiguration bereits M200 **und M600**. Die notwendige Einschränkung ist also bekannt, wird aber nur für die geplante Mehrfachzuordnung diskutiert. Auch die heutige Ein-Stellen-Regel braucht sie.
+
+**Erforderlich:** Keine bestätigte Hauptdateizeile vergeben, wenn die äußere Spanne aus einem anderen Körper stammen kann. Ohne zusätzlichen Herkunftsnachweis bleiben Ereignis und Werkzeugmarke ungebunden. Den Fall mit gleichartigem Kandidaten hinter M2 bereits für die bestehende Zuordnung als Wächter aufnehmen.
+
+[Programm/Konfiguration](viewer-palette-fest.r107.codex-native-cases.json), [native Ereignisse und echte Remap-Analyse](viewer-palette-fest.r107.codex-sequence.json), [Client-Stats](viewer-palette-fest.r107.codex-sequence-client.json).
+
+### VP-I64 · P2 · Negative Ausdrücke werden vor dem gemeinsamen G-Wortleser verworfen
+
+Die mitgeänderten Vorfilter `gateway_util.py:2299–2303` erlauben nach G Leerraum und `+`, aber kein `-` vor einem Ausdruck oder Parameter. LinuxCNC akzeptiert **`G-[-10]`**, **`G-#1`** mit negativem #1 und **`G-[-28.1]`**. Der gemeinsame Wortleser könnte sie als nicht aufgelösten Wert konservativ behandeln; beide Vorfilter lassen sie gar nicht erst dorthin.
+
+**Zwei native Gegenprogramme mit `TOOL_CHANGE_POSITION=0 20 30`:** Nach einem M6 mit unbekannter Position folgt an L4 entweder `G-[-10] L20 P2 Z10` oder `G-[-28.1]`. Danach werden alle XYZ-Achsen absolut angefahren und G55 beziehungsweise G28 verwendet. Gegenüber der jeweils identischen Kontrolle mit `G10`/`G28.1`:
+
+| Fall | normale Schreibweise | negativer Ausdruck |
+|---|---|---|
+| Inaktives G55 aus unbekannter Position gesetzt | Hinweis L4, Rest ungeprüft, 0 s | **kein dauerhafter Hinweis**, 5,1231 s, Kollisionsbefund L8 |
+| G28-Position aus unbekannter Position gespeichert | Hinweis L4, Rest ungeprüft, 0 s | **kein dauerhafter Hinweis**, 4,7386 s, Kollisionsbefund L7 |
+
+Die Kollisionsproben verwenden die tatsächlichen nativen Payloads und die WCS-Epochen wie die Seite. Aktive G92-/G54-Schreibzugriffe dienen als Kontrollen: Dort fängt der Canon-Callback die Unsicherheit noch ab. Er ersetzt den Textnachweis für inaktive Register und gespeicherte Positionen nicht.
+
+**Erforderlich:** Vorfilter für jede vom Wortleser unterstützte Vorzeichen-/Ausdrucksform durchlässig machen. Nicht nur positive literale Nah-Zahlen, sondern auch Minus vor Klammer, Parameter und verschachtelten Vorzeichen nativ prüfen. `wcs_rewrite_targets` hat denselben Vorfilterfehler; aus seinem leeren Treffer darf ebenfalls keine unveränderte WCS-Herkunft folgen. Ungültige Formen sind dabei keine Belege: `G-ABS[-10]` liefert tatsächlich „Negative g code used“ und wird hier nicht beanstandet.
+
+[Native Vergleichsfälle](viewer-palette-fest.r107.codex-boundary.json), [Programme](viewer-palette-fest.r107.codex-native-cases.json), [Flags, Dauer, Hinweise und Kollisionsbefunde](viewer-palette-fest.r107.codex-negative-sweep.json).
+
+### Antwort zum Sequenzabgleich
+
+**Die Remap-Analyse ist eine geeignete Grundlage für die eingeschränkte Folgerunde; eine pauschale Freigabe der Zuordnung folgt daraus noch nicht.** Die Gegenprobe oben wird von der neuen Analyse bereits als möglicher Fremdursprung erkannt. Diesen Ausschluss zunächst auch auf die bestehende Ein-Stellen-Zuordnung anwenden.
+
+Für die geplante i↔i-Regel gelten weiter `ordered`, vollständige Kandidatenmenge, keine unaufgelösten oder ausgelassenen Kandidaten und ein nachgewiesener gemeinsamer Ursprung der beobachteten Spannen und Textkandidaten. Die Prüfung muss sich auf **m600/m601-Spannen** beziehen, nicht nur auf gleichnamige Code-Wörter: o-Aufrufe und zusätzliche Span-Marker dürfen keine scheinbar passende Folge erzeugen. Bei unbekannter Wirkung oder Herkunft bleibt „line not known“. Die vorgeschlagenen Gegenkontrollen (zusätzlicher Aufruf plus Kandidat nach M2, Satzausblendung, Abbruch) beibehalten; `sequence_named_body` liegt dafür jetzt als nativer Beleg vor. Für diese konservativ begrenzte Richtung ist keine neue Operator-Entscheidung nötig.
+
+### Nachweise und Grenzen
+
+Nativer Synch-/Rücklesebeleg und M600 im Live-Parity-Korpus bleiben offen; kein Start der Sim in diesem Review. WRAPPED_ROTARY und die separate Restprüfung im Lauf unverändert begrenzt. Kein erneutes Gesamtgate oder Browserlauf. Die grünen Fehlerbeobachtungstests bestätigen die Reproduktion, nicht die Soll-Abnahme. Die WCS-Korrektur der eigenen ersten Client-Sonde und alle verworfenen nativen Negativkontrollen sind im Prüfaufbau dokumentiert.
+
+[Prüfaufbau/Wiederholung](viewer-palette-fest.r107.codex-checks.md), [Backend](viewer-palette-fest.r107.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r107.codex-unit.txt), [eigene Client-Sonden](viewer-palette-fest.r107.codex-client.txt), [Build](viewer-palette-fest.r107.codex-build.txt), [Archiv/Isolation](viewer-palette-fest.r107.codex-context.json), [Beleghashes](viewer-palette-fest.r107.codex-sha256.json).
