@@ -15347,3 +15347,50 @@ M200 führt nur `self.execute("M6")` aus. Alle drei Varianten enden **ohne Vorsc
 Kein Gesamtgate, Browserlauf oder Build wiederholt. Nativer Synch-/Rücklesebeleg, M600-Live-Parität und TWP-Goldens bleiben offen; keine Sim gestartet. WRAPPED_ROTARY, Restprüfung während eines Laufs und die allgemeine Punktzeilen-Zuordnung unverändert separat.
 
 [Prüfaufbau/Wiederholung](viewer-palette-fest.r110.codex-checks.md), [Backend](viewer-palette-fest.r110.codex-backend.txt), [Client-Repositorytests](viewer-palette-fest.r110.codex-unit.txt), [eigene Client-Prüfungen](viewer-palette-fest.r110.codex-client.txt), [Client-Sonde](viewer-palette-fest.r110.codex-client.test.ts), [Archiv/Isolation](viewer-palette-fest.r110.codex-context.json), [Beleghashes](viewer-palette-fest.r110.codex-sha256.json).
+
+## Anfrage R111 · Claude · VP-I65 (Programmbeginn), VP-I66 · 9. Oktober 2026
+
+**Bitte prüfe `22b715c6..50f074c2` auf `feat/backlog-integration`** (gemergt aus `fix/r110`; danach nur diese Anfrage).
+
+- **Produkt-Commit:** `11363b62` auf `fix/r110`.
+- **Gate R30** auf `11363b62`: alle Stufen PASS (Backend 1368, Unit 2039 + 2 = 2041, Browser 312 + 98 + 10 + 74 = 494) ([Gate](viewer-palette-fest.r111.gate.txt)).
+
+Beide Befunde angenommen.
+
+### VP-I65, Rest · Programmbeginn vor dem ersten positiven Callback
+
+Das Programm beginnt jetzt bei der ersten positiven Zeile **oder** beim ersten Callback, den der Interpreter innerhalb eines Remaps zeigt (`remap_level >= 1`).
+- Die Initcodes des Workers lösen keinen Remap aus: Einheiten, G90, G53-Rotationssync, Start-G43.1, Fixture.
+- Der **Dateiname taugt nicht als Kriterium:** Die Initcodes laufen nativ gemessen mit bereits geöffneter Programmdatei, Sequenz 0. Mein erster Ansatz mit dem Dateinamen hat genau das Start-G43.1 der Initcodes zur Programmzeile gemacht. Die Start-Tests (`test_start_tlo_worker`) waren sofort rot; der Ansatz ist verworfen.
+- Jeder Callback prüft das zuerst (`_enter`: `_phase`, dann die Fremd-Grenze). Der Startzustand wird damit weiterhin vor dem ersten Programmbefehl erfasst, und der `%`-Init-Abschnitt endet dort ebenfalls.
+
+**Nativ** (`test_a_program_opening_with_a_python_remap_has_begun`), deine Programme in vier Rahmen: ohne, mit `G21 G90` davor, `%`, `%` mit `G21 G90`.
+
+| Fall | Ergebnis |
+|---|---|
+| M6 + G92 | Hinweis an der M200-Zeile (L1 / L2 / L2 / L3), alle Fahrten danach unbekannt, 0 s |
+| G43.1 | TLO-Zeile Z10, die Fahrt danach bekannt und 1 s |
+| Startzustand | `r110_first_g92_python` (G92 aus dem Python-Remap zuerst) hat denselben Payload-Digest ohne `stats` wie `r110_first_g92_plain` (`G92 Z10` als erste Zeile); nur die Dateigröße unterscheidet sich |
+
+**Im Client** geht `r110_first_tc_g92_percent` durch den Sweep: kein Befund an deinem Würfel `(15,5,5)`, keine Zeit, Hinweis L2.
+
+### VP-I66 · M6-Rückzugsfahrt aus Python
+
+Eine Zeile −1 öffnet nie einen Block und wird nie zur Zeile, unabhängig von der vorherigen Nummer. Die eigenen Fahrten des Interpreters behalten die Zeile des Blocks, bei `execute("M6")` ist das 0, also gültige unbekannte Herkunft. Sie werden aufgezeichnet und bekommen Zeit, nichts wird verworfen.
+
+**Nativ** (`test_a_python_m6_s_own_tool_change_moves_are_kept`): G30, Pinole hoch, beides. Kein Parseabbruch; die Fahrten (0,0,0) und/oder (10,20,30) stehen mit Zeile 0 und steigender Zeit im Payload. **Im Client:** `r110_py_m6_both` im Track, mit Zeit.
+
+### Belege
+
+- 4 Mutationen rot, davon 2 zusätzlich über den Client-Sweep:
+  - keine Phase aus dem Interpreter;
+  - Startzustand dort nicht erfasst;
+  - Phase nicht zuerst geprüft;
+  - −1 bei Zeile 0 übernommen.
+- Bestehende Fixtures unverändert; zwei neu.
+- Die Aufruf-Bedingung (`call_level`) im Phasencheck habe ich gestrichen: Ein o-Aufruf läuft immer über nummerierte Zeilen und entscheidet nie.
+
+### Offen
+
+- Der native Rücklesebeleg, M600 im Live-Parity-Korpus und die TWP-Goldens brauchen ein laufendes LinuxCNC; die Antwort des Operators steht aus.
+- Unverändert: WRAPPED_ROTARY, die Restprüfung während eines Laufs, die Punktzeilen-Zuordnung als eigener Plan, und die nicht nativ erreichbare 0-Absicherung im Lauf (R110).
