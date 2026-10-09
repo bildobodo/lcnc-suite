@@ -20,6 +20,9 @@ export interface SimSweepView {
   caveat: boolean;
   /** The "?": how much was checked, what was excluded, with which tools. */
   detail: string;
+  /** The check's name when it is not the standstill check: the check during
+   *  a run (plan „Prüfung im Lauf“ 3d). */
+  label?: string;
 }
 
 export const simRows = shallowRef<SimRow[]>([]);

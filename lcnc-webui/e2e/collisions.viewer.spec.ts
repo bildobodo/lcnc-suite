@@ -409,6 +409,109 @@ test("a preview published in the run names the earlier verdict only, until it is
   await ctl({ op: "reset" });
 });
 
+// ---- Plan „Prüfung im Lauf“ 3 (Codex R112–R115): the check during a run ----
+/** The envelope's preview_origin for `version` (ordinary unless `forRun`). */
+const originEnv = (file: string, version: number, over: Record<string, unknown> = {}) => ({ preview_origin: {
+  version, file, source: "s", reason: "file", pinned: false, for_run: null, table: { mtime: 5, rows: "r" },
+  tool_basis_rev: 1, tool_basis_rev_now: 1, ...over } });
+const pinnedFor = (runId: number) => ({ pinned: true, reason: "midrun:table_mtime",
+  for_run: { run_id: runId, ctx_digest: "d", tool_basis_rev: 1 } });
+const runLog = (page: Page) => page.evaluate(() => window.__viewerDiag!.getRunCheckLog!());
+/** Publish `version` during the run and, once it is on screen, one status
+ *  frame (the gateway sends 30 a second; `quiet` sends none): the run watcher
+ *  attaches the position to the new track before the auto timer plans. */
+async function publishInRun(page: Page, file: string, version: number, over: Record<string, unknown>) {
+  await ctl({ op: "status_delta", envelope: originEnv(file, version, over), data: {} });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getShownVersion!()), { timeout: 10_000 }).toBe(version);
+  await ctl({ op: "status_delta", data: { joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
+}
+/** The run on screen at X 120 on L7 (the attached run position the provisional check starts from). */
+async function runOnL7(page: Page, file: string, version: number) {
+  await ctl({ op: "status_delta", envelope: { ...runEnv(file, { run_id: 9 }), ...originEnv(file, version) },
+    data: { interp_state: 2, task_mode: 2, motion_line: 7, joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
+  await expect(simLine(page)).toHaveText(/L7/);
+}
+
+test("a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const file = "/runcheck.ngc";
+  await runReady(page, context, file, 4201);
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 4201);
+  // the table edge's pinned parse, published for run 9 — and the run's table
+  // turns its rotaries meanwhile: a run's own motion parks nothing (plan 4)
+  await publishInRun(page, file, 4202, pinnedFor(9));
+  await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("start provisional 1");
+  for (const a of [5, 10, 15]) await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
+  await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
+  const label = page.locator(".simPanel .checkRow .sub");
+  await expect(label).toHaveText("Run check · tool table updated");
+  await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /· checked in full$/);
+  const b = await basisOf(page);
+  expect(b?.kind, "built from the run's start").toBe("run");
+  expect(b?.runId).toBe(9);
+  expect(await page.evaluate(() => window.__viewerDiag!.getCollisionRange!()), "the full check replaced the provisional").toBeNull();
+  // idle: the check during the run ends; the full check on the state now
+  await ctl({ op: "status_delta", data: { interp_state: 1, task_mode: 1, motion_line: 0 } });
+  await expect.poll(async () => (await basisOf(page))?.kind, { timeout: 10_000 }).toBe("idle");
+  expect(await runLog(page)).toEqual(["start provisional 1", "full", "done", "discard idle"]);
+  await expect(label).toHaveText("Collision check");
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+test("only a parse made for this run is checked during it — every other publication waits for idle, before any sweep (plan „Prüfung im Lauf“ 3a)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const file = "/runadmit.ngc";
+  const found = await runReady(page, context, file, 4211);
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 4211);
+  const variants: Array<[string, Record<string, unknown>]> = [
+    // R114: an ordinary publication B of the same text during run A
+    ["an ordinary publication", {}],
+    // R113: a parse of another run, published late
+    ["made for another run", pinnedFor(8)],
+    ["another text of the same file", { ...pinnedFor(9), source: "t" }],
+    // a basis confirmed since without a new version
+    ["the basis moved since", { ...pinnedFor(9), tool_basis_rev_now: 2 }],
+  ];
+  let version = 4212;
+  for (const [name, over] of variants) {
+    await publishInRun(page, file, version, over);
+    await expect(page.locator(".simSummary .sumItem").first(), name).toHaveAttribute("aria-label", /^Earlier preview/);
+    await page.waitForTimeout(800);   // past the auto timer
+    expect(await runLog(page), `${name}: no check during the run`).toEqual([]);
+    expect((await basisOf(page))?.kind, `${name}: no sweep began`).toBe("idle");
+    version++;
+  }
+  // the control: the table edge's parse for THIS run, after B — admitted (R114)
+  await publishInRun(page, file, version, pinnedFor(9));
+  await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
+  expect(found).toBeGreaterThan(0);
+  // a new publication discards it again
+  await ctl({ op: "status_delta", envelope: originEnv(file, version + 1), data: {} });
+  await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("discard origin");
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+test("another run discards the check made during the last one (plan „Prüfung im Lauf“ 3a)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const file = "/runnext.ngc";
+  await runReady(page, context, file, 4221);
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 4221);
+  await publishInRun(page, file, 4222, pinnedFor(9));
+  await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
+  // the next start (run 10): the result on screen was run 9's
+  await ctl({ op: "status_delta", envelope: runEnv(file, { run_id: 10 }), data: {} });
+  await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("discard run");
+  await expect(page.locator(".simPanel .checkRow .sub")).toHaveText("Collision check");
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
 // Codex R41 MR-I04: when no faithful re-parse can follow a tool-table change
 // during a run (a random tool changer the worker refuses to pin, or no
 // published start state), the gateway marks the payload's table stale until

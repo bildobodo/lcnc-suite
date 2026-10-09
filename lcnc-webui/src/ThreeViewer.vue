@@ -15,7 +15,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
@@ -26,7 +26,8 @@ import { fetchG30, type G30Response } from "./lcncApi";
 import { g30Confirmed } from "./g30Shared";
 import { INTERP_IDLE, TASK_MODE_AUTO } from "./lcnc";
 import { runInProgress } from "./runBasis";
-import { basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
+import { admitRunCheck, basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
+import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
@@ -2251,6 +2252,11 @@ async function buildFromInit(init: ViewerInit) {
         // The basis the last main sweep was built from (plan „Prüfung im
         // Lauf“ 1c): kind, run, the inputs it read.
         getCollisionBasis: () => (_colBasis ? JSON.parse(JSON.stringify(_colBasis)) : null),
+        // The checks during runs, in order (plan 3), and the result's range.
+        getRunCheckLog: () => _colRunLog.slice(),
+        getShownVersion: () => viewerGcode.value?.publishedVersion ?? null,
+        getCollisionRange: () => (collisionResult.value?.range ? { ...collisionResult.value.range,
+          boundary: (collisionResult.value.boundaryContacts ?? []).length } : null),
         // The earlier preview's verdict, kept named while a run goes on (1c).
         getCollisionPrevious: () => (collisionPrevious.value ? { ...collisionPrevious.value } : null),
         // The result's `uncertified` note alone (Codex R87 VP-I46: a body
@@ -2900,6 +2906,15 @@ let _colSettleTimer: ReturnType<typeof setTimeout> | undefined;
 const collisionBusy = ref(false);
 const collisionProgress = ref(0);
 const collisionResult = ref<CollisionResult | null>(null);
+/** The check during a run as the bar and the Sim tab name it (plan 3c/3d). */
+const collisionRunCheckView = computed(() => {
+  const r = collisionRun.value;
+  if (!r) return null;
+  const t = viewerGcode.value?.scrubTrack;
+  return { phase: r.phase, fromLine: r.fromLine,
+           fromCum: r.fromIndex != null && t ? t.cum[r.fromIndex] ?? null : null,
+           provisionalShown: r.phase === "full" && collisionBusy.value && !!collisionResult.value?.range };
+});
 // The verdict of the preview shown before the one displayed now, kept NAMED
 // while a run goes on (plan „Prüfung im Lauf“ 1c): no marks, counts or jumps
 // of the current preview — only the line that says what it was.
@@ -2908,6 +2923,22 @@ const collisionPrevious = shallowRef<{ collisions: number; complete: boolean; ve
 // meaningful against it (shallowRef: tracks hold Maps + typed arrays).
 const collisionTrack = shallowRef<ScrubTrack | null>(null);
 let _colPendingTrack: ScrubTrack | null = null;
+// The check during a run (plan „Prüfung im Lauf“ 3a/3b): bound to the payload
+// version on screen, the run and a generation. A new publication, another
+// basis revision, a reload, an abort, the run's end or a lost connection
+// discards it; idle starts the full check as before.
+let _colRunGen = 0;
+const collisionRun = shallowRef<{ version: number; runId: number; gen: number; phase: "provisional" | "full";
+                                  fromIndex: number | null; fromLine: number | null; basis: CheckBasis } | null>(null);
+// The run check the main request in flight belongs to (its generation), and
+// whether the result on screen stays while it runs (the full after the
+// provisional — its partial findings are not shown).
+let _colReqRunGen: number | null = null;
+let _colKeepShown = false;
+// What the checks during runs did, in order (__viewerDiag.getRunCheckLog):
+// "start provisional <from>" / "start full", "full", "done", "stopped",
+// "discard <why>".
+const _colRunLog: string[] = [];
 /** The entry track's result: the overlay merged onto the base result (cums
  *  shifted by the entry length, two baselines reported). Null until both
  *  exist — a base sweep still running shows as running, not as "no result". */
@@ -2958,7 +2989,7 @@ function _colGetWorker(): Worker {
       }
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;
-        if (m.partial) {
+        if (m.partial && !_colKeepShown) {
           collisionPartial.value = m.partial;
           collisionPartialTrack.value = _colPendingTrack;
           emit("collision-lines", m.partial.hits.map(h => ({ line: h.line, continuation: h.continuation })));
@@ -2967,6 +2998,7 @@ function _colGetWorker(): Worker {
         return;
       }
       if (m.stopped) {
+        if (collisionRun.value) _colRunLog.push("stopped");
         // Parked (a rotary jog): the sweep-so-far is the result on display,
         // and the worker still holds the generator.
         collisionBusy.value = false;
@@ -2996,6 +3028,7 @@ function _colGetWorker(): Worker {
         return;
       }
       const result = m.result!;
+      const run0 = collisionRun.value;
       collisionResult.value = result;
       collisionTrack.value = _colPendingTrack;
       collisionResumable.value = false;
@@ -3016,6 +3049,20 @@ function _colGetWorker(): Worker {
       });
       emit("collision-lines", result.hits.map(h => ({ line: h.line, continuation: h.continuation })));
       _colRetint();
+      _colKeepShown = false;
+      if (run0 && _colReqRunGen === run0.gen && run0.phase === "full") _colRunLog.push("done");
+      // The provisional check is on screen; the full one follows on the same
+      // basis and replaces it when it is done (plan 3b: no seam).
+      const run = collisionRun.value;
+      if (run && _colReqRunGen === run.gen && run.phase === "provisional") {
+        _colRunLog.push("full");
+        collisionRun.value = { ...run, phase: "full" };
+        const t = collisionTrack.value;
+        setTimeout(() => {
+          if (collisionRun.value?.gen !== run.gen || !t) return;
+          runCollisionCheck(t, { basis: run.basis, gen: run.gen, keepShown: true });
+        }, 0);
+      }
     };
     // A worker-level failure (module load, OOM, uncaught throw) never
     // replies — without this the busy flag stayed set and the Check chip
@@ -3181,7 +3228,8 @@ watch(() => vst.value?.rotary_abc as number[] | null | undefined, (abc) => {
   const changed = !_colRotaryLast || abc.some((v, i) => Math.abs(v - (_colRotaryLast![i] ?? v)) > ROTARY_STOP_DEG);
   _colRotaryLast = abc.slice();
   if (!changed) return;
-  if (collisionBusy.value && _colRotaryAtStart
+  // (a run turns its rotaries itself: its check is not parked — plan 4)
+  if (collisionBusy.value && _colRotaryAtStart && !_runInProgress(status.value?.data)
       && abc.some((v, i) => Math.abs(v - (_colRotaryAtStart![i] ?? v)) > ROTARY_STOP_DEG)) {
     stopCollisionCheck();
   }
@@ -3258,7 +3306,7 @@ function _colWcs(basis: CheckBasis): PartFrameWcs {
  *  (`__viewerDiag.setCollisionShards`): undefined = as many as the worker
  *  chooses. */
 let _colMaxShards: number | undefined;
-function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: CheckBasis) {
+function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: CheckBasis, range?: { from: number }) {
   const init = viewerInit.value;
   if (!init) return null;
   const modelKey = _colModelKey(init, basis);
@@ -3328,7 +3376,9 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     track: trackCopy,
     wcs: _colWcs(basis),
     side: side || undefined,   // beside the main sweep (entry segment)
-    maxShards: _colMaxShards,
+    // During a run at most two workers (plan „Prüfung im Lauf“ 4: the
+    // machine is cutting; the check must not take the cores from the page).
+    maxShards: _runInProgress(status.value?.data) ? Math.min(2, _colMaxShards ?? 2) : _colMaxShards,
     options: {
       margin: COLLISION_MARGIN_MM * _unitScale,
       // Per-epoch re-add terms (review P2) — the sweep converts each
@@ -3351,12 +3401,19 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
       // preview cannot predict, and the program tools whose body is unknown.
       probeStops: parseProbeStops(viewerGcode.value?.probe_unpredicted).map(p => ({ tool: p.tool, reason: p.reason })),
       unknownTools: _unknownProgramTools(),
+      // the provisional check during a run (plan 3b): from the run's point on
+      ...(range ? { range } : {}),
     },
   };
   return { msg, transfer, modelKey, bodies: bodies.length };
 }
 
-function runCollisionCheck(trackOverride?: ScrubTrack) {
+/** A check DURING a run (plan „Prüfung im Lauf“ 3a/3b): the provisional
+ *  range from the run's point, then the full check — both on the run's basis.
+ *  `keepShown`: the provisional result stays on screen while the full one
+ *  runs (its findings land only when it is done). */
+interface RunSweep { basis: CheckBasis; gen: number; range?: { from: number }; keepShown?: boolean }
+function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   // The MAIN sweep always runs the program's own (base) track; the sim
   // entry segment is a side sweep (runEntryCheck).
   // toRaw: structured clone refuses Vue Proxies. The gcode payload is
@@ -3366,16 +3423,18 @@ function runCollisionCheck(trackOverride?: ScrubTrack) {
   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
   if (!track || collisionBusy.value) return;
   const id = ++_colReqId;
-  const basis = _checkBasisNow();
-  const req = _colBuildRequest(track, id, false, basis);
+  const basis = run?.basis ?? _checkBasisNow();
+  const req = _colBuildRequest(track, id, false, basis, run?.range);
   if (!req) return;
   _colBasis = basis;
+  _colReqRunGen = run ? run.gen : null;
+  _colKeepShown = !!run?.keepShown;
   collisionPrevious.value = null;   // a check of the displayed preview begins
   _colPendingTrack = track;
   collisionBusy.value = true;
   _colStopPending = false;
   collisionProgress.value = 0;
-  collisionResult.value = null;
+  if (!_colKeepShown) collisionResult.value = null;
   collisionPartial.value = null;
   collisionResumable.value = false;
   collisionStopped.value = null;
@@ -3436,14 +3495,78 @@ function _colScheduleAuto() {
     if (simMode.value) return;               // ScrubBar re-checks with the entry track
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
     if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)
-    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) { _colHeldByRun = true; return; }
+    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) {
+      if (!_startRunCheck()) _colHeldByRun = true;
+      return;
+    }
     _colHeldByRun = false;
     if (!viewerGcode.value?.scrubTrack) return;
     if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
     runCollisionCheck();
   }, 400);
 }
+/** Start the check during the run when the displayed payload is admitted
+ *  (plan 3a): the provisional range from the run's point — read once, here —
+ *  then the full check; without an attached position the full one at once. */
+function _startRunCheck(): boolean {
+  const g = viewerGcode.value, track = g?.scrubTrack, rb = runBasis.value;
+  if (!g || !track || !rb || collisionRun.value) return false;
+  const adm = admitRunCheck({ origin: previewOrigin.value, shownVersion: g.publishedVersion ?? null,
+    shownFile: g.file ?? null, run: rb, running: _runInProgress(status.value?.data) });
+  if (!adm.ok) {
+    emitTelemetry("collision.run_check_refused", { why: adm.why, version: g.publishedVersion ?? null, run: rb.runId });
+    return false;
+  }
+  const basis = basisFromRun(rb, g.toolBasis ?? null);
+  if (!basis) return false;
+  const hint = runPlayhead.value;
+  const from = hint && hint.track === track && hint.index >= 1 && hint.index < track.count ? hint.index - 1 : null;
+  const gen = ++_colRunGen;
+  collisionRun.value = { version: g.publishedVersion!, runId: rb.runId, gen, basis,
+    phase: from != null ? "provisional" : "full", fromIndex: from,
+    fromLine: from != null ? track.lines[from + 1] ?? null : null };
+  if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
+  emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from });
+  _colRunLog.push(from != null ? `start provisional ${from}` : "start full");
+  runCollisionCheck(track, { basis, gen, ...(from != null ? { range: { from } } : {}) });
+  return true;
+}
+/** Discard the check during the run (plan 3a): its result is no longer the
+ *  displayed preview's on the run's basis. Its verdict stays named; the full
+ *  check follows at idle. */
+function _discardRunCheck(why: string) {
+  if (!collisionRun.value) return;
+  emitTelemetry("collision.run_check_discarded", { why, gen: collisionRun.value.gen });
+  _colRunLog.push(`discard ${why}`);
+  collisionRun.value = null;
+  const prev = collisionResult.value;
+  if (prev) collisionPrevious.value = { collisions: clashTargets(prev.hits).length, complete: !prev.truncated, version: null };
+  cancelCollisionCheck();
+  collisionResult.value = null;
+  collisionTrack.value = null;
+  emit("collision-lines", null);
+  _updateClashTint(null, null);
+  _colHeldByRun = true;
+}
+watch(previewOrigin, (o) => {
+  const run = collisionRun.value;
+  if (run && (!o || o.version !== run.version || o.toolBasisRevNow !== o.toolBasisRev)) _discardRunCheck("origin");
+  // the origin of the payload on screen arrived after the payload: admit now
+  else if (!run && _colHeldByRun && !collisionBusy.value && _runInProgress(status.value?.data)) _startRunCheck();
+});
+watch(runBasis, (rb) => {
+  if (collisionRun.value && rb?.runId !== collisionRun.value.runId) _discardRunCheck("run");
+});
+watch(connected, (c) => { if (!c) _discardRunCheck("connection"); });
 watch(() => status.value?.data?.interp_state, (st, prev) => {
+  // The run ended (or was aborted): a check during it stops; the full check
+  // on the state now follows (plan 3a: idle starts it as before).
+  if (st === INTERP_IDLE && collisionRun.value) {
+    _discardRunCheck("idle");
+    collisionPrevious.value = null;
+    _colScheduleAuto();
+    return;
+  }
   // The run ended: a result it kept (plan 2) whose basis is not the state
   // now is re-checked — the next start begins from here.
   if (st === INTERP_IDLE && prev != null && prev !== INTERP_IDLE && _colBasis
@@ -3492,6 +3615,7 @@ watch(previewBasisPending, (pending) => {
 // preview's verdict stays NAMED, without its marks, counts or jumps (plan 1c
 // „bisherige Vorschau“), until a check of the displayed preview begins.
 watch(viewerGcode, (g, old) => {
+  if (collisionRun.value && g?.publishedVersion !== collisionRun.value.version) collisionRun.value = null;
   const prev = collisionResult.value;
   collisionPrevious.value = prev && g && old && g.file === old.file && _runInProgress(status.value?.data)
     ? { collisions: clashTargets(prev.hits).length, complete: !prev.truncated, version: old.publishedVersion ?? null }
@@ -4976,6 +5100,7 @@ defineExpose({
       :collisionPartialTrack="collisionPartialTrack"
       :collisionEntryResult="collisionEntryResult"
       :collisionPrevious="collisionPrevious"
+      :collisionRunCheck="collisionRunCheckView"
       @check-entry="runEntryCheck"
       @pose="onScrubPose"
       @finding="onFinding"

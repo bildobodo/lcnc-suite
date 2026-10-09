@@ -39,6 +39,9 @@ interface ViewerDiag {
     rotationXy: number; toolOffset: number[]; toolNum: number | null; toolDiam: number | null;
     toolLen: number | null } | null;
   getCollisionPrevious?: () => { collisions: number; complete: boolean; version: number | null } | null;
+  getRunCheckLog?: () => string[];
+  getShownVersion?: () => number | null;
+  getCollisionRange?: () => { fromCum: number; fromLine: number; empty?: true; boundary: number } | null;
   getLabels?: () => { total: number; laidOut: number };
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
   // cue), width and opacity; the longest visible segment of a role on screen.

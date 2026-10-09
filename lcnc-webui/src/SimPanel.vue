@@ -250,7 +250,7 @@ function onRootKey(e: KeyboardEvent) {
 
       <!-- The collision check: how far, what it found, the details in "?" -->
       <div class="checkRow row-controls">
-        <span class="sub">Collision check</span>
+        <span class="sub">{{ simView.sweep?.label ?? "Collision check" }}</span>
         <template v-if="simView.sweep">
           <div class="progressTrack" role="progressbar" aria-label="Collision check progress"
                :aria-valuenow="Math.round(simView.sweep.frac * 100)" aria-valuemin="0" aria-valuemax="100">

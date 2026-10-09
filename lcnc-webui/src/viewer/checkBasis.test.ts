@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parsePreviewOrigin, parseRunBasis, runInProgress } from "../runBasis";
-import { basisFromLive, basisFromRun, checkState, sameCheckInputs, type CheckBasis, type LiveCheckInputs } from "./checkBasis";
+import { admitRunCheck, basisFromLive, basisFromRun, checkState, sameCheckInputs, type CheckBasis, type LiveCheckInputs, type RunCheckInputs } from "./checkBasis";
 
 // The status envelope as the gateway sends it — the gateway's tests hold its
 // keys to the same file (test_command_dispatch, test_bulk_pipeline).
@@ -125,5 +125,46 @@ describe("the check basis (plan 1c)", () => {
       .toEqual({ kind: "run-provisional", fromLine: 42, done: false });
     expect(checkState({ shown: { basis: run, phase: "full", fromLine: null, done: true }, previous: false }))
       .toEqual({ kind: "run-full", done: true });
+  });
+});
+
+describe("admitting a check during the run (plan „Prüfung im Lauf“ 3a)", () => {
+  const ok = (): RunCheckInputs => ({
+    origin: parsePreviewOrigin(WIRE.preview_origin), run: parseRunBasis(WIRE.run_basis),
+    shownVersion: WIRE.preview_origin.version, shownFile: WIRE.run_basis.file, running: true,
+  });
+  it("the pinned parse made for this run, on screen, while it runs", () => {
+    expect(admitRunCheck(ok())).toEqual({ ok: true });
+  });
+  it("every other case waits for idle — before any sweep", () => {
+    const o = ok();
+    const cases: Array<[string, RunCheckInputs]> = [
+      ["no run", { ...o, running: false }],
+      ["no run basis", { ...o, run: null }],
+      ["a start not written", { ...o, run: { ...o.run!, state: "unsent" } }],
+      ["the run's start not verified", { ...o, run: { ...o.run!, verified: false } }],
+      ["an ordinary publication", { ...o, origin: { ...o.origin!, pinned: false } }],
+      ["no origin", { ...o, origin: null }],
+      ["another version on screen", { ...o, shownVersion: 12 }],
+      ["nothing decoded yet", { ...o, shownVersion: null }],
+      ["another file", { ...o, origin: { ...o.origin!, file: "/other.ngc" } }],
+      ["another file on screen", { ...o, shownFile: "/other.ngc" }],
+      // the same file and another text (R113)
+      ["another text", { ...o, origin: { ...o.origin!, source: "0".repeat(64) } }],
+      ["no text fingerprint", { ...o, origin: { ...o.origin!, source: null } }],
+      // a parse of run 1 published after run 2 started (R113's green control)
+      ["planned for another run", { ...o, origin: { ...o.origin!, forRun: { ...o.origin!.forRun!, runId: 2 } } }],
+      // the same file and text from another start (R114: B's context under A's label)
+      ["another start context", { ...o, origin: { ...o.origin!, forRun: { ...o.origin!.forRun!, ctxDigest: "x" } } }],
+      ["another basis revision", { ...o, origin: { ...o.origin!, forRun: { ...o.origin!.forRun!, toolBasisRev: 3 } } }],
+      ["planned for no run", { ...o, origin: { ...o.origin!, forRun: null } }],
+      // a basis verified since without a new version
+      ["the basis moved since", { ...o, origin: { ...o.origin!, toolBasisRevNow: 5 } }],
+    ];
+    for (const [name, inp] of cases) {
+      const r = admitRunCheck(inp);
+      expect(r.ok, name).toBe(false);
+      expect((r as { why: string }).why, name).toBeTruthy();
+    }
   });
 });
