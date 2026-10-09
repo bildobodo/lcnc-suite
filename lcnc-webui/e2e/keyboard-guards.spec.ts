@@ -652,8 +652,11 @@ test("pause and resume via Space are unchanged", async ({ page }) => {
   await ctl({ op: "status_delta", data: { interp_state: 3, paused: true, permissions: { ...PERMS_ALL, run: false, pause: false, resume: true } } });
   await expect(page.locator(".safetyStrip .statusRow").filter({ hasText: "Interp" })
     .locator(".stable-width > span:not(.alt)")).toHaveText("PAUSED");
-  // fire()'s 200 ms busy latch after the pause would drop a second Space.
-  await page.waitForTimeout(250);
+  // fire()'s busy latch after the pause drops a second Space — a timer, late
+  // under load (a fixed 250 ms failed 2 of 3 with the sim running, the base
+  // too): wait until Resume is open again, the same gate Space reads.
+  await expect(page.getByRole("button", { name: "Resume", exact: true })).toBeEnabled();
+  await focusBody(page);
   await ctl({ op: "clearCmds" });
   await page.keyboard.press(" ");
   await expect.poll(recordedCmds).toContain("cycle_resume");
