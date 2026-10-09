@@ -1,0 +1,48 @@
+{
+  "nested": {
+    "stop": [
+      [
+        2,
+        -1,
+        "foreign_remap",
+        0
+      ]
+    ],
+    "cum": [
+      0,
+      10,
+      10
+    ],
+    "ustart": [
+      1,
+      0,
+      1
+    ],
+    "unpredicted": [
+      0,
+      0,
+      1
+    ],
+    "hits": [
+      {
+        "line": 2,
+        "cum": 4.95004638671875,
+        "cumEnd": 5.050009765625,
+        "a": "head",
+        "b": "fixed",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            4.95004638671875,
+            5.050009765625
+          ]
+        ]
+      }
+    ],
+    "notes": [
+      "Tool measurement not predicted (the tool change remap is not the suite's routine) — 1 move after it not checked to the program's end (L4)"
+    ]
+  },
+  "entry": null
+}

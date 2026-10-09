@@ -1,0 +1,46 @@
+
+ RUN  v4.1.8 /tmp/codex-r107-0jyogf94/archive/lcnc-webui
+
+ ❯ src/viewer/r107.codex.test.ts (3 tests | 2 failed) 28ms
+   × R107: nested foreign M600 stops coverage and the unknown-first entry stays absent 6ms
+   × R107 observation: a negated positive G-code expression drops the stored-position caveat 19ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r107.codex.test.ts > R107: nested foreign M600 stops coverage and the unknown-first entry stays absent
+AssertionError: expected 10 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 10
+
+ ❯ src/viewer/r107.codex.test.ts:32:129
+     30| it('R107: nested foreign M600 stops coverage and the unknown-first ent…
+     31|  const r=sweep('foreign_remap_nested',[55,55,0]);
+     32|  expect(r.raw.probe_unpredicted[0][2]).toBe('foreign_remap');expect(r.…
+       |                                                                                                                                 ^
+     33|  const {raw,t}=load('unknown_first');
+     34|  const entry=buildEntryTrack(t,[0,0,0],['X','Y','Z'],{g5x:[],g92:[],ro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/r107.codex.test.ts > R107 observation: a negated positive G-code expression drops the stored-position caveat
+AssertionError: expected 0 to be greater than 0
+ ❯ src/viewer/r107.codex.test.ts:46:70
+     44|   observations.push({control,a:pick(a),other,b:pick(b)});
+     45|   expect(a.raw.stale_offset_lines).toEqual([4]);expect(b.raw.stale_off…
+     46|   expect(a.result.hits).toHaveLength(0);expect(b.result.hits.length).t…
+       |                                                                      ^
+     47|  }
+     48|  fs.writeFileSync(ev+'negative-sweep.json',JSON.stringify(observations…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  06:53:08
+   Duration  261ms (transform 120ms, setup 0ms, import 188ms, tests 28ms, environment 0ms)
+

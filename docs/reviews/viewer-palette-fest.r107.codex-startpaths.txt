@@ -1,0 +1,2 @@
+[VINIT] Loaded machine config: 3-Axis Mill
+[GC] +142ms gen=2 duration=21.0ms collected=75 uncollectable=0

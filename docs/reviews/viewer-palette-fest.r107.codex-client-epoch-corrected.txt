@@ -1,0 +1,33 @@
+
+ RUN  v4.1.8 /tmp/codex-r107-0jyogf94/archive/lcnc-webui
+
+ ❯ src/viewer/r107.codex.test.ts (3 tests | 1 failed) 32ms
+   × R107: nested foreign M600 stops coverage and the unknown-first entry stays absent 6ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r107.codex.test.ts > R107: nested foreign M600 stops coverage and the unknown-first entry stays absent
+AssertionError: expected 10 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 10
+
+ ❯ src/viewer/r107.codex.test.ts:33:129
+     31| it('R107: nested foreign M600 stops coverage and the unknown-first ent…
+     32|  const r=sweep('foreign_remap_nested',[55,55,0]);
+     33|  expect(r.raw.probe_unpredicted[0][2]).toBe('foreign_remap');expect(r.…
+       |                                                                                                                                 ^
+     34|  const {raw,t}=load('unknown_first');
+     35|  const entry=buildEntryTrack(t,[0,0,0],['X','Y','Z'],{g5x:[],g92:[],ro…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  06:53:15
+   Duration  275ms (transform 125ms, setup 0ms, import 196ms, tests 32ms, environment 0ms)
+
