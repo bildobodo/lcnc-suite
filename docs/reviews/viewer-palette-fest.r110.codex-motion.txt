@@ -1,0 +1,18 @@
+python_m6_g30_zero 1 None /tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/gcode_parse_worker.py", line 1213, in parse
+    rapid_lines_bin = np.asarray(rapid_lines, dtype="<u4").tobytes() if rapid_lines else b""
+                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+OverflowError: Python integer -1 out of bounds for uint32
+
+python_m6_g30_line4 0 {'rapid': [[0.0, 0.0, 40.0], [10.0, 0.0, 0.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], 'rapid_lines': [2, 4, 4, 5], 'rapid_ustart': [1, 0, 0, 0], 'rapid_tcum': [0.0, 4.123105525970459, 5.704244613647461, 6.704244613647461]} 
+python_m6_quill_zero 1 None /tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/gcode_parse_worker.py", line 1213, in parse
+    rapid_lines_bin = np.asarray(rapid_lines, dtype="<u4").tobytes() if rapid_lines else b""
+                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+OverflowError: Python integer -1 out of bounds for uint32
+
+python_m6_quill_line4 0 {'rapid': [[0.0, 0.0, 40.0], [0.0, 0.0, 0.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], 'rapid_lines': [2, 4, 4, 5], 'rapid_ustart': [1, 0, 0, 0], 'rapid_tcum': [0.0, 4.0, 5.870828628540039, 6.870828628540039]} 
+python_m6_both_zero 1 None /tmp/codex-r110-zps9xr0e/archive/lcnc-gateway/gcode_parse_worker.py", line 1213, in parse
+    rapid_lines_bin = np.asarray(rapid_lines, dtype="<u4").tobytes() if rapid_lines else b""
+                      ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+OverflowError: Python integer -1 out of bounds for uint32
+
+python_m6_both_line4 0 {'rapid': [[0.0, 0.0, 40.0], [0.0, 0.0, 0.0], [10.0, 0.0, 0.0], [10.0, 5.0, 15.0], [20.0, 5.0, 15.0]], 'rapid_lines': [2, 4, 4, 4, 5], 'rapid_ustart': [1, 0, 0, 0, 0], 'rapid_tcum': [0.0, 4.0, 5.0, 6.581138610839844, 7.581138610839844]} 

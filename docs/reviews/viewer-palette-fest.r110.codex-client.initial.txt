@@ -1,0 +1,26 @@
+
+ RUN  v4.1.8 /tmp/codex-r110-zps9xr0e/archive/lcnc-webui
+
+ ❯ src/viewer/r110.codex.test.ts (5 tests | 1 failed) 61ms
+   × R110 observation: first Python M6+G92 still loses the persistent unknown 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r110.codex.test.ts > R110 observation: first Python M6+G92 still loses the persistent unknown
+AssertionError: expected 0 to be greater than 0
+ ❯ src/viewer/r110.codex.test.ts:41:137
+     39| it('R110 observation: first Python M6+G92 still loses the persistent u…
+     40|  const results=['tc_g92_first','tc_g92_g21_first','tc_g92_percent_firs…
+     41|  for(const r of results){expect(r.stale).toBeFalsy();expect(r.ustart.a…
+       |                                                                                                                                         ^
+     42|  fs.writeFileSync(ev+'first-sweep.json',JSON.stringify(results,null,2)…
+     43| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  12:51:46
+   Duration  308ms (transform 124ms, setup 0ms, import 200ms, tests 61ms, environment 0ms)
+
