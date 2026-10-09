@@ -258,6 +258,25 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
         expect(r.result.uncertified, name).toMatch(/the offset set from that position at L4 stays unknown/);
       }
     });
+    it("a program opening with a Python remap has begun (Codex R110 VP-I65)", () => {
+      // `%` / M200 → execute("M6"), execute("G92 Z10"), numbered 0 before any
+      // positive callback: the G92 from the unknown position keeps every
+      // later move unknown — no false hit on Codex's box at the preview's
+      // path (world Z5), M200's line (L2) named
+      const r = sweepXYZ("r110_first_tc_g92_percent", [15, 5, 5]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.track.cum[r.last]).toBe(r.track.cum[0]);
+      expect(r.result.uncertified).toMatch(/the offset set from that position at L2 stays unknown/);
+    });
+    it("a Python M6's own tool-change moves are kept and timed (Codex R110 VP-I66)", () => {
+      // execute("M6") with TOOL_CHANGE_AT_G30 and TOOL_CHANGE_QUILL_UP: the
+      // interpreter's −1 moves used to end the parse without a payload
+      const { track } = load("r110_py_m6_both");
+      const zs = Array.from({ length: track.count }, (_, i) => [track.pos[i * 3]!, track.pos[i * 3 + 1]!, track.pos[i * 3 + 2]!]);
+      expect(zs.slice(1, 3)).toEqual([[0, 0, 0], [10, 20, 30]]);
+      for (let i = 2; i < track.count; i++) expect(track.cum[i]!).toBeGreaterThan(track.cum[i - 1]!);
+    });
     it("an o-word whose name is no literal is read as one, never as no o-word (Codex R99)", () => {
       // `o+100 call` runs 100.ngc's G92 Z40: L7 stays unknown, no hit on
       // Codex's box at the preview's Z15, the write named by no main-file line.

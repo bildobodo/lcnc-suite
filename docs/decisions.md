@@ -8981,3 +8981,26 @@ The walk's guard for that case has no native path. An o-call or an NGC remap
 from a Python remap's execute() is refused natively ("call stack underrun").
 A side effect, intended: a Python remap's own G43 without a line number now
 gives its tool-offset row.
+
+R110 found two more gaps around the program's start.
+
+**VP-I65 rest.** The program counted as begun only at the first callback with
+a positive line number. A program whose first command is a Python remap,
+whose `execute()` passes no number, therefore stayed in the "initcodes"
+phase. In a `%` file the init phase never ended at all. Its M6 marked no
+unknown position, its G92 was not counted, and its G43.1 gave no tool-offset
+row.
+
+The program now also begins at the first callback the interpreter shows
+inside a remap (`remap_level ≥ 1`). The worker's initcodes trigger no remap,
+and the file name proves nothing, because the initcodes run with the program
+file already open (measured). Every callback passes this check first, so the
+program-start basis is still taken before the program's first command. A
+Python remap's G92 first gives the same payload as a plain G92 first.
+
+**VP-I66.** A Python remap's `execute("M6")` is numbered 0. The
+interpreter's own quill-up and G30 moves at line −1 were kept only behind a
+positive line. Behind 0 they put −1 on the wire's uint32 lines, and the
+parse ended without a payload. A −1 now never opens a block and never
+becomes a line: the moves keep the block's line 0 and are recorded and
+timed.

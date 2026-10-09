@@ -444,103 +444,109 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def next_line(self, st):
         self.state = st
-        if (st.sequence_number or 0) >= 0 or (self.lineno or 0) < 1:
-            # A new block: the one that ran before it ran in the modes this
-            # state shows — absolute (G90, not 910) re-establishes the stale
-            # axes whose program coordinate it ENDED away from where it
-            # began (but a G98 cycle's normal axis), G91 none. Slot 0 is the
-            # sequence NUMBER — line 910 is no G91, line 810 no G81.
-            prev = int(self.lineno or 0)
-            stale_in_block = self.stale
-            gs = tuple(getattr(st, "gcodes", None) or ())
-            if self._block_start is not None:
-                g = gs[1:]
-                if 910 not in g:
-                    keep = frozenset()
-                    if 980 in g and not self._CYCLES.isdisjoint(g):
-                        keep = frozenset(self._PLANE_NORMAL[c] for c in g if c in self._PLANE_NORMAL)
-                    p0, p1 = self._program(self._block_start), self._program(self.lo)
-                    self.stale = self.stale - frozenset(
-                        i for i in self.stale - keep - self._frame_unknown if abs(p1[i] - p0[i]) > 1e-9)
-                self._block_start = None
-            # The writes on the lines run since the previous next_line: the
-            # previous line's own under the stale set of its block (a group-0
-            # word runs before the block's motion), the lines without a canon
-            # call after it under the set its end left.
-            # In text order the call-less lines between the two ran too. With
-            # o-words a gap proves nothing ran (a branch not taken — Codex R96
-            # VP-I54): only the line that had its own next_line is known to
-            # have run (inline subs keep this file's numbers); with a call
-            # into another file a number may be that file's — callbacks only.
-            n = int(st.sequence_number or 0)
-            if self.write_lines:
-                # In MAIN-file lines, the interpreter's word (Codex R107): a
-                # remap body's or a called file's blocks carry their own
-                # numbers — taken for this file's, a body's high line ran the
-                # walk ahead (range(prev, it)) and a main line after it,
-                # lower, never counted. A line's own writes count under
-                # every stale set seen while it ran, its body's blocks too.
-                m = self.main_line()
-                if m is not None:
-                    seen = self._walk_stale | stale_in_block
-                    prev, stale_in_block = self._walk_line, seen
-                    if m >= 1 and m != prev:
-                        self._walk_line, self._walk_stale = m, frozenset()
-                    else:
-                        # the same line still runs — or the interpreter names
-                        # none (0): nothing is known to have run since (a
-                        # guard: no native path found — an o-call or an NGC
-                        # remap from a Python remap's execute() is refused,
-                        # "call stack underrun", Codex R109)
-                        self._walk_stale = seen
-                        m = prev
-                    n = m
-            if self.write_lines and prev >= 1 and n != prev:
-                if self.write_mode == "ordered" and n > prev:
-                    lines = range(prev, n)
-                elif self.write_mode == "inline":
-                    lines = (prev,)
-                else:
-                    lines = ()
-                for line in lines:
-                    t = self.write_lines.get(line)
-                    if t is not None and t != "explicit":
-                        axes = stale_in_block if line == prev else self.stale
-                        if axes:
-                            self._position_write(line, t, axes)
-        if (st.sequence_number or 0) < 0 and (self.lineno or 0) >= 1:
+        if (st.sequence_number or 0) < 0:
             # A motion the interpreter makes itself inside the current block —
             # an M6's quill-up or G30 move (TOOL_CHANGE_QUILL_UP /
             # TOOL_CHANGE_AT_G30, interp_convert.cc STRAIGHT_TRAVERSE(-1, …))
             # arrives as line -1: it belongs to the block that runs it, and a
             # -1 on the wire's uint32 line arrays ended every such parse in an
-            # OverflowError (found 2026-10-08 with Codex R91's R92 notes).
+            # OverflowError (found 2026-10-08 with Codex R91's R92 notes) —
+            # also when that block is a Python remap's execute("M6") numbered
+            # 0 (Codex R110 VP-I66): no new block, no line of its own.
             return
+        # A new block: the one that ran before it ran in the modes this
+        # state shows — absolute (G90, not 910) re-establishes the stale
+        # axes whose program coordinate it ENDED away from where it
+        # began (but a G98 cycle's normal axis), G91 none. Slot 0 is the
+        # sequence NUMBER — line 910 is no G91, line 810 no G81.
+        prev = int(self.lineno or 0)
+        stale_in_block = self.stale
+        gs = tuple(getattr(st, "gcodes", None) or ())
+        if self._block_start is not None:
+            g = gs[1:]
+            if 910 not in g:
+                keep = frozenset()
+                if 980 in g and not self._CYCLES.isdisjoint(g):
+                    keep = frozenset(self._PLANE_NORMAL[c] for c in g if c in self._PLANE_NORMAL)
+                p0, p1 = self._program(self._block_start), self._program(self.lo)
+                self.stale = self.stale - frozenset(
+                    i for i in self.stale - keep - self._frame_unknown if abs(p1[i] - p0[i]) > 1e-9)
+            self._block_start = None
+        # The writes on the lines run since the previous next_line: the
+        # previous line's own under the stale set of its block (a group-0
+        # word runs before the block's motion), the lines without a canon
+        # call after it under the set its end left.
+        # In text order the call-less lines between the two ran too. With
+        # o-words a gap proves nothing ran (a branch not taken — Codex R96
+        # VP-I54): only the line that had its own next_line is known to
+        # have run (inline subs keep this file's numbers); with a call
+        # into another file a number may be that file's — callbacks only.
+        n = int(st.sequence_number or 0)
+        if self.write_lines:
+            # In MAIN-file lines, the interpreter's word (Codex R107): a
+            # remap body's or a called file's blocks carry their own
+            # numbers — taken for this file's, a body's high line ran the
+            # walk ahead (range(prev, it)) and a main line after it,
+            # lower, never counted. A line's own writes count under
+            # every stale set seen while it ran, its body's blocks too.
+            m = self.main_line()
+            if m is not None:
+                seen = self._walk_stale | stale_in_block
+                prev, stale_in_block = self._walk_line, seen
+                if m >= 1 and m != prev:
+                    self._walk_line, self._walk_stale = m, frozenset()
+                else:
+                    # the same line still runs — or the interpreter names
+                    # none (0): nothing is known to have run since (a
+                    # guard: no native path found — an o-call or an NGC
+                    # remap from a Python remap's execute() is refused,
+                    # "call stack underrun", Codex R109)
+                    self._walk_stale = seen
+                    m = prev
+                n = m
+        if self.write_lines and prev >= 1 and n != prev:
+            if self.write_mode == "ordered" and n > prev:
+                lines = range(prev, n)
+            elif self.write_mode == "inline":
+                lines = (prev,)
+            else:
+                lines = ()
+            for line in lines:
+                t = self.write_lines.get(line)
+                if t is not None and t != "explicit":
+                    axes = stale_in_block if line == prev else self.stale
+                    if axes:
+                        self._position_write(line, t, axes)
         self.lineno = st.sequence_number
         if (self.lineno or 0) >= 1:
             if self.percent_delimited and not self._pct_line_seen:
                 self._pct_line_seen = True     # the `%` line: the init block follows
                 self._in_init = True
             else:
-                self._in_init = False          # program from here on, for good
-                self._program_started = True
-        self._foreign_gate()
-        # PROGRAM-START basis: the offsets in effect after the gateway's
-        # initcodes (which force the machine's ACTIVE WCS) and before the
-        # program's first line runs.
-        #
-        # This is the basis the extraction must subtract, because the CLIENT
-        # re-adds the live active WCS. End-of-parse is wrong: M2 resets the
-        # interpreter to G54, so a program run in any other WCS would render
-        # displaced by the whole fixture delta. First-MOTION is also wrong: a
-        # program whose preamble selects a different WCS than the active one
-        # would then be drawn at the wrong fixture. Both verified against the
-        # real interpreter (scripts/gen_canon_fixtures.py).
-        #
-        # The initcode block arrives as sequence_number 0 and its offsets are
-        # applied AFTER that callback, so the first line with a real (>=1)
-        # number is the first moment the post-initcode state is visible.
-        if self.basis_at_start is None and self._program_line():
+                self._begin_program()          # program from here on, for good
+        self._enter()
+
+    def _begin_program(self):
+        """The program's first callback — a positive line, or one the
+        interpreter places in the program before any (`_phase`): the init
+        phase ends for good, and the PROGRAM-START basis is taken.
+
+        The basis: the offsets in effect after the gateway's initcodes (which
+        force the machine's ACTIVE WCS) and before the program's first
+        command. This is the basis the extraction must subtract, because the
+        CLIENT re-adds the live active WCS. End-of-parse is wrong: M2 resets
+        the interpreter to G54, so a program run in any other WCS would render
+        displaced by the whole fixture delta. First-MOTION is also wrong: a
+        program whose preamble selects a different WCS than the active one
+        would then be drawn at the wrong fixture. Both verified against the
+        real interpreter (scripts/gen_canon_fixtures.py). Every callback
+        enters here before it applies anything, so a program opening with a
+        Python remap's G92 is measured before it (Codex R110)."""
+        self._in_init = False
+        if self._program_started:
+            return
+        self._program_started = True
+        if self.basis_at_start is None:
             self.basis_at_start = self.wcs_basis()
             # Re-arm the first-move suppression for the PROGRAM (schema 5):
             # the rotary-sync initcode (gateway_util.rotary_sync_initcode)
@@ -551,11 +557,34 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # sync initcode leaves first_move already True; this is a no-op.
             self.first_move = True
 
+    def _phase(self):
+        """Before the program's first positive callback: has it begun? The
+        interpreter's word (Codex R110 VP-I65): a remap runs only in the
+        program — the worker's initcodes (units, G90, the rotary sync's G53,
+        the start offset's G43.1, the fixture) trigger none. The file proves
+        nothing: the initcodes run with the program already open (measured,
+        sequence 0). A program opening with a Python remap whose execute()
+        passes no line number reaches its callbacks with line 0 only (an
+        o-call's sub lines are numbered)."""
+        if self._program_started or self.main_file is None:
+            return
+        t = self.interp()
+        if t is None:
+            return
+        if int(t.remap_level) >= 1:
+            self._begin_program()
+
+    def _enter(self):
+        """Every callback's first step: the program's phase, then a foreign
+        remap's boundary."""
+        self._phase()
+        self._foreign_gate()
+
     def set_feed_rate(self, f): self.feedrate = f / 60.0
     def set_spindle_rate(self, _): pass
     def select_plane(self, _): pass
     def comment(self, text):
-        self._foreign_gate()
+        self._enter()
         k = parse_kinstype_marker(text)
         if k is not None:
             self.kins_events.append((self.seq, k))
@@ -597,7 +626,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def dwell(self, _): pass
 
     def change_tool(self, idx):
-        self._foreign_gate()
+        self._enter()
         StatMixin.change_tool(self, idx)
         if self.tool_change_moves and self._program_line():
             self.stale = frozenset(self.tool_change_axes) | self._frame_unknown
@@ -614,7 +643,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
-        self._foreign_gate()
+        self._enter()
         # G43 / G49 move nothing: the machine stands, and only the frame the
         # program's coordinates are read in changes — `lo` is re-expressed in
         # it below (LinuxCNC's canon moves its end point the same way). So the
@@ -713,7 +742,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
     # change what wcs_basis() returns — flag, then let the parent assign.
     def set_g5x_offset(self, *args, **kw):
-        self._foreign_gate()
+        self._enter()
         self._wcs_dirty = True
         before = getattr(self, "g5x_index", None)
         r = super().set_g5x_offset(*args, **kw)
@@ -731,7 +760,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         return r
 
     def set_g92_offset(self, *args, **kw):
-        self._foreign_gate()
+        self._enter()
         self._wcs_dirty = True
         r = super().set_g92_offset(*args, **kw)
         if self._switch_g92_line is not None and self._switch_g92_line == self.lineno:
@@ -758,7 +787,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         return m if m is not None else int(self.lineno or 0)
 
     def set_xy_rotation(self, *args, **kw):
-        self._foreign_gate()
+        self._enter()
         self._wcs_dirty = True
         before = getattr(self, "rotation_xy", 0) or 0
         r = super().set_xy_rotation(*args, **kw)
@@ -799,7 +828,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.lo = end
 
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
-        self._foreign_gate()
+        self._enter()
         if self.suppress > 0: return
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
         if self.stale:
@@ -832,7 +861,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.lo = l
 
     def straight_feed(self, x, y, z, a, b, c, u, v, w):
-        self._foreign_gate()
+        self._enter()
         if self.suppress > 0: return
         self.first_move = False
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
@@ -845,7 +874,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     straight_probe = straight_feed
 
     def rigid_tap(self, x, y, z):
-        self._foreign_gate()
+        self._enter()
         if self.suppress > 0: return
         self.first_move = False
         if self.stale:
@@ -858,7 +887,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.feed.append((self.lineno, l, self.lo, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
 
     def straight_arcsegments(self, segs):
-        self._foreign_gate()
+        self._enter()
         self.first_move = False
         if self.stale and segs:
             # The whole arc was computed from the old position (its centre is
