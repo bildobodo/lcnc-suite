@@ -1,0 +1,45 @@
+{
+  "input": [
+    {
+      "a": "moving0",
+      "b": "fixed0",
+      "line": 10,
+      "cum": 0,
+      "dist": 0,
+      "cutting": true
+    },
+    {
+      "a": "moving1",
+      "b": "fixed1",
+      "line": 11,
+      "cum": 1,
+      "dist": 0,
+      "cutting": true
+    },
+    {
+      "a": "moving2",
+      "b": "fixed2",
+      "line": 12,
+      "cum": 2,
+      "dist": 0,
+      "cutting": true
+    },
+    {
+      "a": "moving3",
+      "b": "fixed3",
+      "line": 13,
+      "cum": 3,
+      "dist": 0,
+      "cutting": true
+    },
+    {
+      "a": "moving4",
+      "b": "fixed4",
+      "line": 14,
+      "cum": 4,
+      "dist": 0,
+      "cutting": true
+    }
+  ],
+  "detail": "Contact at the check's start: moving0 ↔ fixed0 (L10), moving1 ↔ fixed1 (L11), moving2 ↔ fixed2 (L12) … — its kind is settled by the full check. "
+}

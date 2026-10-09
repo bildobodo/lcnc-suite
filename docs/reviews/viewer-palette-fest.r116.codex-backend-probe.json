@@ -1,0 +1,190 @@
+{
+  "scope": "Real _cmd_blocking/_begin_run_basis/_run_for_pin under fake_linuxcnc. No live command. First run verification is a fixture; second-run poll failure is injected.",
+  "command_spy": [
+    [
+      16,
+      1,
+      "sending"
+    ],
+    [
+      16,
+      1,
+      "sent"
+    ]
+  ],
+  "previous_run_id": 1,
+  "after_new_start": {
+    "run_id": 1,
+    "state": "sent",
+    "file": "/tmp/tmpf0_y89rt/a.ngc",
+    "source": "9784a033343cce222492670a70202a21416d32d6cfca28b46c4615542c29e915",
+    "version": 1791564867,
+    "ctx_digest": "e08f4f492c8caf2f58008700764b9d0408ca9ec60083963f27b88bf768aedb2c",
+    "tool_basis_rev": 0,
+    "start": {
+      "g5x_index": 1,
+      "g5x_offset": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "g92_offset": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotation_xy": 0.0,
+      "wcs_table": [
+        {
+          "name": "G54",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G55",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G56",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G57",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G58",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G59",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G59.1",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G59.2",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G59.3",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        }
+      ],
+      "tool_number": 0,
+      "tool_diameter": null,
+      "tool_length": 0.0,
+      "tool_table_z": null,
+      "tool_offset": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotary": null
+    },
+    "verified": true,
+    "why": null
+  },
+  "same_record_after_new_start": true,
+  "old_verified_context_selected_for_next_pin": true
+}

@@ -1,0 +1,30 @@
+{
+  "result": {
+    "hits": [],
+    "staticContacts": [],
+    "samples": 1,
+    "coarsened": false,
+    "uncertified": null,
+    "notes": [],
+    "pairCount": 1,
+    "pairsPrescreened": 0,
+    "bvhMs": 0.3676269999999704,
+    "sweepMs": 1.851507999999967,
+    "truncated": {
+      "covered": 0.5,
+      "reason": "time"
+    },
+    "range": {
+      "fromCum": 45,
+      "fromLine": 3
+    },
+    "boundaryContacts": []
+  },
+  "fullCheckProgress": 0.1,
+  "displayedBand": [
+    0.5,
+    1
+  ],
+  "actualCoverageEnd": 0.5,
+  "caveat": null
+}

@@ -1,0 +1,154 @@
+{
+  "head": "87f59037e83a9a2205ee2a42054cb50c9c6743c9",
+  "base": "f8834c3c",
+  "review_scope": [
+    "CLAUDE.md",
+    "docs/decisions.md",
+    "docs/reviews/viewer-palette-fest.ideen.md",
+    "docs/reviews/viewer-palette-fest.r116.gate.txt",
+    "lcnc-gateway/bulk_pipeline.py",
+    "lcnc-gateway/gateway.py",
+    "lcnc-gateway/status_runtime.py",
+    "lcnc-gateway/test_bulk_pipeline.py",
+    "lcnc-gateway/test_command_dispatch.py",
+    "lcnc-gateway/test_ws_fanout.py",
+    "lcnc-gateway/ws_fanout.py",
+    "lcnc-webui/e2e/collisions.viewer.spec.ts",
+    "lcnc-webui/e2e/keyboard-guards.spec.ts",
+    "lcnc-webui/e2e/macros.spec.ts",
+    "lcnc-webui/e2e/mock-gateway.mjs",
+    "lcnc-webui/e2e/run-hold.spec.ts",
+    "lcnc-webui/src/MoreMenu.vue",
+    "lcnc-webui/src/ScrubBar.vue",
+    "lcnc-webui/src/SimPanel.vue",
+    "lcnc-webui/src/ThreeViewer.vue",
+    "lcnc-webui/src/lcncWs.exports.test.ts",
+    "lcnc-webui/src/lcncWs.ts",
+    "lcnc-webui/src/runBasis.ts",
+    "lcnc-webui/src/shims.d.ts",
+    "lcnc-webui/src/simPanelStore.ts",
+    "lcnc-webui/src/viewer/checkBasis.test.ts",
+    "lcnc-webui/src/viewer/checkBasis.ts",
+    "lcnc-webui/src/viewer/clashTargets.ts",
+    "lcnc-webui/src/viewer/collision.ts",
+    "lcnc-webui/src/viewer/collisionRange.test.ts",
+    "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts",
+    "lcnc-webui/src/viewer/collisionWorker.ts",
+    "lcnc-webui/src/viewer/runPlayhead.ts",
+    "lcnc-webui/src/viewer/sweepShards.test.ts",
+    "lcnc-webui/src/viewer/sweepShards.ts",
+    "lcnc-webui/src/ws/bulkData.test.ts",
+    "lcnc-webui/src/ws/bulkData.ts",
+    "lcnc-webui/src/ws/statusStore.test.ts",
+    "lcnc-webui/src/ws/statusStore.ts",
+    "lcnc-webui/tsconfig.app.json",
+    "lcnc-webui/tsconfig.test.json",
+    "scripts/test_fixtures/run_check_wire.json"
+  ],
+  "sources": [
+    {
+      "file": "lcnc-gateway/gateway.py",
+      "sha256": "8976ab1d201bd6356f50fba0d250888230bbed8ea59cda0fac72a50106f242c8",
+      "bytes": 495642
+    },
+    {
+      "file": "lcnc-gateway/bulk_pipeline.py",
+      "sha256": "4d1b78038a33db60a4a3bc607b94a36f671b68d2f8bc7e42a421f1741042d7f7",
+      "bytes": 64911
+    },
+    {
+      "file": "lcnc-gateway/status_runtime.py",
+      "sha256": "ad5a8b9d4b599d7b2eb47da06762d4a2adcd64cff833533e543310c77929d26e",
+      "bytes": 64070
+    },
+    {
+      "file": "lcnc-gateway/test_bulk_pipeline.py",
+      "sha256": "3d110f57b130019b3e53d14d7674c868bf44a49ec7f1a21a4f2ef71ee8b5ec94",
+      "bytes": 49697
+    },
+    {
+      "file": "lcnc-gateway/test_command_dispatch.py",
+      "sha256": "44ab4838eaa1a825f8dab600073dea567e91b7e24171eb9481fa305f16f68e1e",
+      "bytes": 108319
+    },
+    {
+      "file": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "fe6ba08e4ee5f20cffb709b9a93a20296ddf9f6d572d479555f2aadee8dad7c1",
+      "bytes": 263134
+    },
+    {
+      "file": "lcnc-webui/src/ScrubBar.vue",
+      "sha256": "03fa621a1bd7946bb9c7e58163f474852653498ef51a55b1f312ea28cdbd1c45",
+      "bytes": 66784
+    },
+    {
+      "file": "lcnc-webui/src/GcodePanel.vue",
+      "sha256": "45106715801144f71d4e5a6bb43ffb49655f0d05e5aeaa55b00a51b8aafa9f43",
+      "bytes": 61744
+    },
+    {
+      "file": "lcnc-webui/src/runBasis.ts",
+      "sha256": "be0f83df0eb1f029aca27e4b66a3bffcfcc1a37223a9d31a329d8e32200ff48b",
+      "bytes": 5589
+    },
+    {
+      "file": "lcnc-webui/src/viewer/checkBasis.ts",
+      "sha256": "aa55ef01925c1df660a75440ea2a5c50c53311f08b7016531d6381f5ea4a52e7",
+      "bytes": 6548
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collision.ts",
+      "sha256": "f3eda11512524b7c0b98827cd9f69efa3595af55d46b97165987453320f5fd73",
+      "bytes": 136314
+    },
+    {
+      "file": "lcnc-webui/src/viewer/clashTargets.ts",
+      "sha256": "a9c56a9540197372b5e43655191816176a84e9ec3792a6b1863c3e5667b80b5f",
+      "bytes": 2671
+    },
+    {
+      "file": "lcnc-webui/src/viewer/clashTint.ts",
+      "sha256": "f2529c9db1991dbb52d7b0cca49310eb2e25b8a1685cefd0811c39a4e11d492a",
+      "bytes": 2816
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionWorker.ts",
+      "sha256": "092cee4dd1536fa0292438138b9024c727f3bf193dba4ca43f02fc431d4f8acb",
+      "bytes": 31324
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepShards.ts",
+      "sha256": "5eac6a0de10d17f580ae3792a0834de30bf60e1458e35fe0ddfdf4244ef81859",
+      "bytes": 3548
+    },
+    {
+      "file": "docs/reviews/restpruefung-lauf.plan.md",
+      "sha256": "ecc5e30905798cf6aacfd1c2816a28be4252eda2ddc71fb4a6188e382626423d",
+      "bytes": 15715
+    }
+  ],
+  "key_locations": {
+    "VP-I67": [
+      "gateway.py:3140-3165",
+      "gateway.py:3192-3203",
+      "gateway.py:3236-3260"
+    ],
+    "VP-I68": [
+      "ScrubBar.vue:745-754",
+      "ScrubBar.vue:767-784"
+    ],
+    "VP-I69": [
+      "ThreeViewer.vue:3000",
+      "ThreeViewer.vue:3020",
+      "ThreeViewer.vue:3055",
+      "GcodePanel.vue:413-423",
+      "ScrubBar.vue:1057-1061"
+    ],
+    "VP-I70": [
+      "ThreeViewer.vue:2981-2997",
+      "ThreeViewer.vue:3430-3472",
+      "ThreeViewer.vue:3057-3069"
+    ]
+  }
+}

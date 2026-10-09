@@ -1,0 +1,28 @@
+
+ RUN  v4.1.8 /tmp/codex-r116-zwu6k4_4/lcnc-webui
+
+ ❯ src/viewer/r116.codex.test.ts (2 tests | 1 failed) 152ms
+   × a timed-out provisional sweep paints its unswept suffix while the full sweep runs 14ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r116.codex.test.ts > a timed-out provisional sweep paints its unswept suffix while the full sweep runs
+AssertionError: expected undefined to be 'time' // Object.is equality
+
+- Expected:
+"time"
+
++ Received:
+undefined
+
+ ❯ src/viewer/r116.codex.test.ts:56:30
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  18:50:17
+   Duration  664ms (transform 212ms, setup 0ms, import 457ms, tests 152ms, environment 0ms)
+
