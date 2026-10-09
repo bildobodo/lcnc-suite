@@ -31,7 +31,10 @@ CASES = ("g43_mid", "g43_g1_block", "r92_m6_feed", "r92_m6_feed_then_rapid", "r9
          "r98_foreign_plain", "r98_foreign_spaced", "r99_o_plus", "r99_plus_skip",
          # M600 in the preview (docs/reviews/m600-preview.plan.md)
          "m600_known", "m600_length_unknown", "m600_basis_unknown", "m600_unknown_then_high",
-         "m600_unknown_first", "m600_repeat")
+         "m600_unknown_first", "m600_repeat",
+         # Codex R107: a foreign M600 called from another remap's body, the
+         # routine run by another remap's body, a sign before the G10 / G28.1
+         "foreign_remap_nested", "m600_via_other_remap", "r107_inactive_negative", "r107_store_negative")
 
 
 def main():

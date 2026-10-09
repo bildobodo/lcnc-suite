@@ -8887,3 +8887,62 @@ tests; the decisions behind them read the reader's words. The display
 scanners of the same class — the client's M6 text scan, the program-end line,
 the line classification — decide marks, not what is known, and stay a named
 limit.
+
+## 2026-10-09 — The interpreter's own state names the main-file line a callback comes from (Codex R107)
+
+R107 closed VP-I59 and found two rests and one new defect. All three came
+from the same blind spot. The canon learned the line it runs in only through
+next_line, which fires when the sequence number CHANGES. Inside a remap body
+or a called file the numbers are that file's. A foreign M600's `G53 G0 Z0` on
+its line 2, after the main program's line 2, fired nothing and was swept, 10 s
+and a collision included (VP-I61). The bundled routine run by another remap's
+body (`o<m600> call`) was put on the only M600 line of the text, after M2
+(VP-I63).
+
+The signal recorded as missing since W4 exists. gcode.parse runs LinuxCNC's
+interpreter in the worker, and its Python face, the module `interpreter`
+built into gcode.so, is importable while a parse runs. `interpreter.this`
+answers at every canon callback:
+- the call and remap levels;
+- the remapped codes running;
+- each calling frame's file and the byte after the line it called from.
+
+Measured natively (2.9.4) for a remap inside a remap, an external o-call, an
+M98 sub, an inline sub, a loop, a G remap, and a `%` file with CRLF and a
+UTF-8 comment. The canon now asks it (`main_line`):
+- a foreign remap marks everything unknown at the first callback it runs in;
+- each sub span takes the line the interpreter ran, per occurrence. Two
+  M600 call sites now each get their line, so the sequence-matching rule
+  proposed in R106 is no longer needed;
+- the tool changes outside marked spans take that line;
+- the position-write walk and the callback-caught writes count in
+  main-file lines.
+
+The last two were the same defect, unreported. A remap body's high line
+numbers ran the walk past a main line before it ran, so its L20 from an
+unknown position never counted. A body's G92 on its line 2 was taken for
+the main file's explicit line 2.
+
+The text keeps two roles:
+- the cross-check: where it claims a unique site that differs from the
+  interpreter's line, no line is given, and the disagreement is noted;
+- what the run may do where the preview does not, such as a call in a
+  body's branch on a run's input. In text order the preview is unknown from
+  the first main-file line that may call the foreign remap, including the
+  moves of that line's own remap body before its call.
+
+`RemapEnv` now also reads which span markers a body may run, so a remap whose
+body runs `o<m600>` makes the one M600 site no claim when the text decides
+alone.
+
+Without the module, every rule falls back to the text, and a foreign remap
+stops the preview from the program's start. This is said on stderr and in
+the trace, never silently. The cost is about 0.4 µs per line, and only where
+a tool change position and a position write make the walk read it.
+
+VP-I64: the prefilters of the position-write and G10 scans admitted `+` but
+not `-` before a value. LinuxCNC reads a sign before a value that is no
+number as unary, recursively: `G-[-10]` and `G--10` are G10, and `G-[-28.1]`
+is G28.1. The prefilters now let any run of signs through, and the reader
+reads signs exactly. A negative G code is refused natively ("Negative g code
+used").

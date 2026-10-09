@@ -228,6 +228,22 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
         expect(r.result.uncertified, name).not.toMatch(/at L2\b/);
       }
     });
+    it("a sign before an expression is a write too (Codex R107 VP-I64)", () => {
+      // `G-[-10] L20 P2 Z10` after the change sets the INACTIVE G55 from the
+      // unknown position: at G55 every later move stays unknown — no false
+      // hit on Codex's box at the preview's L8 path (Z25 + the guessed 30),
+      // L4 named; `G-[-28.1]` stores the G28 position from it: the G28 and
+      // the move after it (Codex's box at L7) stay unknown, L4 named.
+      let r = sweepXYZ("r107_inactive_negative", [25, 5, 55]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.track.cum[r.last]).toBe(r.track.cum[0]);
+      expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
+      r = sweepXYZ("r107_store_negative", [10, 0, 40]);
+      expect(r.track.ustart![r.last]).toBe(1);
+      expect(r.result.hits).toHaveLength(0);
+      expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
+    });
     it("an o-word whose name is no literal is read as one, never as no o-word (Codex R99)", () => {
       // `o+100 call` runs 100.ngc's G92 Z40: L7 stays unknown, no hit on
       // Codex's box at the preview's Z15, the write named by no main-file line.
@@ -426,18 +442,49 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
   });
 
   // Codex R105 VP-I63: a note belongs to its call. The native events carry
-  // the verified call line: the only M600 line (L3) for m600_known; none
-  // where two lines call the routine — then no row takes either note.
+  // the call line the interpreter ran (Codex R107): the only M600 line (L3)
+  // for m600_known; each call its own where two lines call the routine — the
+  // same tool's success and stop never share a row.
+  const notesOf = (name: string) => {
+    const { raw } = load(name);
+    return m600ToolNotes(m600Events(parseProbeStops(raw.probe_unpredicted), raw.toollen_table, "mm"));
+  };
   it("binds a measurement's note to its own call, natively", () => {
-    const notesOf = (name: string) => {
-      const { raw } = load(name);
-      return m600ToolNotes(m600Events(parseProbeStops(raw.probe_unpredicted), raw.toollen_table, "mm"));
-    };
     const known = notesOf("m600_known");
     expect([...known.byLine]).toEqual([[3, { tool: 2, note: "80.000 mm from the table (assumed)" }]]);
     expect(known.unbound).toEqual([]);
     const rep = notesOf("m600_repeat");
-    expect(rep.byLine.size).toBe(0);
-    expect(rep.unbound.map(e => [e.tool, e.length])).toEqual([[2, 80], [2, null]]);
+    expect([...rep.byLine.keys()]).toEqual([3, 6]);
+    expect(rep.byLine.get(3)).toEqual({ tool: 2, note: "80.000 mm from the table (assumed)" });
+    expect(rep.byLine.get(6)!.tool).toBe(2);
+    expect(rep.byLine.get(6)!.note).not.toMatch(/80\.000/);
+    expect(rep.unbound).toEqual([]);
+  });
+
+  // Codex R107 (its `sequence_named_body`): M200's body runs `o<m600> call`
+  // at L3 — the note and the tool change are L3's, never the T2 M600 after
+  // M2 (L6) the text alone took for the one site.
+  it("a routine another remap's body runs is that remap's line", () => {
+    const { raw } = load("m600_via_other_remap");
+    expect(raw.tool_change_lines).toEqual([[3, 2]]);
+    const n = notesOf("m600_via_other_remap");
+    expect([...n.byLine.keys()]).toEqual([3]);
+    expect(n.unbound).toEqual([]);
+  });
+
+  // Codex R107 VP-I61 (its probe, verbatim): M200 → `T2 M600` → a foreign
+  // M600 whose `G53 G0 Z0` is on ITS line 2, after the main program's line
+  // 2 — the interpreter fired no next_line there, and the body's move was
+  // swept: 10 s and a collision at L2 against a box at (50, 50, −50).
+  it("a foreign M600 inside another remap: its first move is already unknown", () => {
+    const { raw, result, track, last } = sweepM600("foreign_remap_nested", [50, 50, -50], 80);
+    expect(result.hits).toHaveLength(0);
+    expect(track.cum[last]).toBe(track.cum[0]);
+    const zs = Array.from({ length: track.count }, (_, i) => track.pos[i * 3 + 2]!);
+    const body = zs.indexOf(0);
+    expect(body).toBeGreaterThan(0);
+    expect(track.ustart![body]).toBe(1);
+    expect(track.unpredicted![body]).toBe(1);
+    expect(raw.probe_unpredicted[0][2]).toBe("foreign_remap");
   });
 });

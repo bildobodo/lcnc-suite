@@ -7,7 +7,10 @@ apply_var_patches() when building the context handed to the worker.
 """
 
 import math
+import os
 from typing import Dict, List
+
+import numpy as np
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
 
 from gateway_util import (
@@ -23,6 +26,32 @@ from gateway_util import (
 _ARC_EPS = 0.001
 _ARC_MIN_SEGS = 8
 _ARC_MAX_SEGS = 64
+
+# The interpreter's OWN word on where a callback comes from (Codex R107,
+# measured natively on 2.9.4): gcode.parse runs LinuxCNC's interpreter in
+# this process, and its Python face — the module `interpreter`, built into
+# gcode.so — is importable while a parse runs (not before the first one).
+# `interpreter.this` is that interpreter: `call_level`, `remap_level`,
+# `filename`, `sequence_number`, `blocks[1..remap_level].executing_remap
+# .name` (the remapped codes running, outermost first: "M200", "M600",
+# "G88.1") and `sub_context[k]` — each calling frame's `filename` and the
+# byte `position` just after the line it called from. next_line tells none
+# of it: it fires only when the sequence number CHANGES, so a body line
+# numbered like the line before it reports nothing at all (Codex R107
+# VP-I61: a foreign M600's `G53 G0 Z0` on its line 2 after the main
+# program's line 2).
+_INTERP = None
+
+
+def interp_this():
+    """`interpreter.this`, or None outside a parse or without the module."""
+    global _INTERP
+    if _INTERP is None:
+        try:
+            import interpreter as _INTERP   # noqa: F811 — only while a parse runs
+        except ImportError:
+            return None
+    return getattr(_INTERP, "this", None)
 
 
 class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
@@ -118,10 +147,29 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # text order (`ordered`) the mark lands where the block BEFORE the call
     # has run (a remap trigger line gets no next_line), else — lines that
     # need not run in text order — at the program's start.
+    # The lines come with the remapped codes (`foreign_codes`, "m600"): the
+    # interpreter says when one of them runs (`remaps_running`) — from that
+    # callback on, before anything it records, all is unknown. The text adds
+    # what the preview may not run where the machine does (a body's branch
+    # on a value only the run has): in text order from the first main-file
+    # line that may call it (`main_line`, the interpreter's), else from the
+    # program's start; without the interpreter's word from the start too.
     foreign_m600_lines = frozenset()
     foreign_m600_mode = "ordered"
-    _next_block = {}
-    _foreign_pending = False
+    foreign_codes = frozenset()
+    # The MAIN program (the worker sets it, set_main_file): its real path and
+    # bytes — a frame's `position` is a byte offset (a `%` file with CRLF and
+    # UTF-8 comments measured too).
+    main_file = None
+    _main_raw = None
+    _main_nl = None
+    _main_names = {}
+    interp = staticmethod(interp_this)    # a fake in the unit tests
+    # The position-write walk in MAIN-file lines: where the last next_line
+    # ran, and every stale set seen while it ran (a remap body's blocks run
+    # inside the line that called it).
+    _walk_line = 0
+    _walk_stale = frozenset()
     _CYCLES = frozenset((730, 810, 820, 830, 840, 850, 860, 870, 880, 890))
     _PLANE_NORMAL = {170: 2, 180: 1, 190: 0, 171: 8, 181: 7, 191: 6}
 
@@ -146,10 +194,11 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.arc_moves = 0
         self.tools_used = set()
         self.tool_changes = 0
-        # [(lineno, tool_idx, k)] in execution order; k = the sub-span
+        # [(lineno, tool_idx, k, main)] in execution order; k = the sub-span
         # markers seen so far (len(sub_events)): an M6 inside a marked sub —
-        # the M600 routine's own — carries the SUB file's line
-        # (gateway_util.main_file_tool_changes)
+        # the M600 routine's own — carries the SUB file's line; main = the
+        # main-file line the interpreter ran (main_line, None where it
+        # cannot tell) — gateway_util.main_file_tool_changes
         self.tool_change_events = []
         # Switchkins mode markers `(WEBUI_KINSTYPE=n)` from the toggle
         # remaps (TCP+TWP phase 2): [(seq_at_marker, kinstype)] in
@@ -195,17 +244,18 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # Subroutine span markers `(WEBUI_SUB=name [CALLER=tok])` /
         # `(WEBUI_SUB_END)` from our shipped subs and the TWP remap
         # wrappers (W2 P6): [(seq_at_marker, name | None, caller_token |
-        # None)] in execution order; name None = span end. Motion inside a
-        # span carries the SUB file's line numbers — colliding with the
-        # main program's — so the worker marks those points untrusted
-        # (with the sub's name for the UI) instead of letting the
-        # text-panel highlight land on an unrelated main line. The CALLER
-        # token (W4) declares the main-file text that invokes the sub, for
-        # call-site line attribution (attribute_sub_callers). NOTE: the
-        # interpreter fires next_line only for plainly-executed blocks —
+        # None, main | None)] in execution order; name None = span end.
+        # Motion inside a span carries the SUB file's line numbers —
+        # colliding with the main program's — so the worker marks those
+        # points untrusted (with the sub's name for the UI) instead of
+        # letting the text-panel highlight land on an unrelated main line.
+        # The interpreter fires next_line only for plainly-executed blocks —
         # never for remap trigger lines, o-call lines, blanks, or
-        # comment-only lines (verified empirically, W4) — so no canon-side
-        # signal can locate the call site; attribution is text-scan only.
+        # comment-only lines (W4) — but its own state names the call site:
+        # `main` at a start marker is the main-file line it ran
+        # (main_line, Codex R107), the call-site line attribution's first
+        # word (attribute_sub_callers); the CALLER token (W4) declares the
+        # main-file text that invokes the sub, its cross-check.
         self.sub_events = []
         # Seqs of ZERO-LENGTH rapids recorded at suppressed-move endpoints
         # (W3 P1): a first_move rapid's PRIOR position is unknown, but its
@@ -282,6 +332,88 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         """Is the current callback from a PROGRAM line (not the initcodes)?"""
         return (self.lineno or 0) >= 1 and not self._in_init
 
+    def set_main_file(self, path):
+        """The main program, for main_line (the worker)."""
+        self.main_file = os.path.realpath(path)
+        self._main_nl = None
+        self._main_names = {}
+
+    def _is_main(self, name):
+        if not name:
+            return False
+        got = self._main_names.get(name)
+        if got is None:
+            got = self._main_names[name] = os.path.realpath(name) == self.main_file
+        return got
+
+    def _byte_line(self, pos):
+        """The 1-based main-file line holding byte pos − 1: a frame's position
+        is the byte after the line it called from. None when the file cannot
+        be read."""
+        if self._main_nl is None:
+            try:
+                with open(self.main_file, "rb") as f:
+                    raw = f.read()
+            except OSError:
+                return None
+            self._main_nl = np.flatnonzero(np.frombuffer(raw, dtype=np.uint8) == 10)
+        return int(np.searchsorted(self._main_nl, pos - 1, side="left")) + 1
+
+    def main_line(self):
+        """The MAIN file's line the interpreter executes at this callback —
+        its current line where the main file runs (an inline or M98 sub's own
+        line too), else the line the deepest frame of the main file called
+        from: a remap trigger, an o-call or M98 line (measured natively,
+        Codex R107). None before the program, outside a parse or without the
+        interpreter's word."""
+        if self.main_file is None:
+            return None
+        t = self.interp()
+        if t is None:
+            return None
+        if self._is_main(t.filename):
+            return int(t.sequence_number)
+        for k in range(int(t.call_level) - 1, -1, -1):
+            c = t.sub_context[k]
+            if self._is_main(c.filename):
+                return self._byte_line(int(c.position))
+        return None
+
+    def remaps_running(self):
+        """The remapped codes the interpreter runs now, lower case, outermost
+        first ("m200", "m600"); () without its word."""
+        t = self.interp()
+        if t is None:
+            return ()
+        out = []
+        for i in range(1, int(t.remap_level) + 1):
+            r = t.blocks[i].executing_remap
+            if r is not None:
+                out.append(str(r.name).lower())
+        return tuple(out)
+
+    _foreign_first = None
+
+    def _foreign_gate(self):
+        """Before a callback records anything: does a foreign M600 / M601 run,
+        or may it have run (the text)? Then all is unknown from here."""
+        if not self.foreign_codes or self._probe_unknown or not self._program_line():
+            return
+        if not self.foreign_codes.isdisjoint(self.remaps_running()):
+            self._mark_probe_unknown("foreign_remap")
+            return
+        lines = self.foreign_m600_lines
+        if not lines:
+            return
+        if self.foreign_m600_mode != "ordered" or 0 in lines:
+            self._mark_probe_unknown("foreign_remap")
+            return
+        if self._foreign_first is None:
+            self._foreign_first = min(lines)
+        m = self.main_line()
+        if m is None or m >= self._foreign_first:
+            self._mark_probe_unknown("foreign_remap")
+
     def next_line(self, st):
         self.state = st
         if (st.sequence_number or 0) >= 0 or (self.lineno or 0) < 1:
@@ -313,6 +445,22 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # have run (inline subs keep this file's numbers); with a call
             # into another file a number may be that file's — callbacks only.
             n = int(st.sequence_number or 0)
+            if self.write_lines:
+                # In MAIN-file lines, the interpreter's word (Codex R107): a
+                # remap body's or a called file's blocks carry their own
+                # numbers — taken for this file's, a body's high line ran the
+                # walk ahead (range(prev, it)) and a main line after it,
+                # lower, never counted. A line's own writes count under
+                # every stale set seen while it ran, its body's blocks too.
+                m = self.main_line()
+                if m is not None:
+                    seen = self._walk_stale | stale_in_block
+                    prev, stale_in_block = self._walk_line, seen
+                    if m != prev:
+                        self._walk_line, self._walk_stale = m, frozenset()
+                    else:
+                        self._walk_stale = seen
+                    n = m
             if self.write_lines and prev >= 1 and n != prev:
                 if self.write_mode == "ordered" and n > prev:
                     lines = range(prev, n)
@@ -341,13 +489,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 self._in_init = True
             else:
                 self._in_init = False          # program from here on, for good
-        if self.foreign_m600_lines and not self._probe_unknown and self._program_line():
-            n = int(self.lineno)
-            if (self.foreign_m600_mode != "ordered" or self._foreign_pending
-                    or n in self.foreign_m600_lines):
-                self._mark_probe_unknown("foreign_remap")
-            elif self._next_block.get(n) in self.foreign_m600_lines:
-                self._foreign_pending = True
+        self._foreign_gate()
         # PROGRAM-START basis: the offsets in effect after the gateway's
         # initcodes (which force the machine's ACTIVE WCS) and before the
         # program's first line runs.
@@ -378,6 +520,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def set_spindle_rate(self, _): pass
     def select_plane(self, _): pass
     def comment(self, text):
+        self._foreign_gate()
         k = parse_kinstype_marker(text)
         if k is not None:
             self.kins_events.append((self.seq, k))
@@ -388,7 +531,10 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             return
         sub = parse_sub_marker(text)
         if sub is not None:
-            self.sub_events.append((self.seq, sub[1], sub[2]))
+            # a start carries the main-file line the interpreter ran
+            # (attribute_sub_callers, Codex R107 VP-I63)
+            self.sub_events.append((self.seq, sub[1], sub[2],
+                                    self.main_line() if sub[0] == "start" else None))
             self._toollen_open = False
             if sub[0] == "start" and sub[1] == "tool_touch_off" and self.toolsetter_unpredictable:
                 self._mark_probe_unknown(self.toolsetter_unpredictable)
@@ -416,6 +562,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def dwell(self, _): pass
 
     def change_tool(self, idx):
+        self._foreign_gate()
         StatMixin.change_tool(self, idx)
         if self.tool_change_moves and self._program_line():
             self.stale = frozenset(self.tool_change_axes) | self._frame_unknown
@@ -424,7 +571,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
         # preview-skipped contributes none — same honesty rule as the stats).
-        self.tool_change_events.append((self.lineno, idx, len(self.sub_events)))
+        self.tool_change_events.append((self.lineno, idx, len(self.sub_events), self.main_line()))
         if idx > 0:
             self.tools_used.add(idx)
         self.cur_tool = idx
@@ -432,6 +579,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self.tlo_events.append((self.seq, self.xo, self.yo, self.zo, idx))
 
     def tool_offset(self, xo, yo, zo, ao, bo, co, uo, vo, wo):
+        self._foreign_gate()
         # G43 / G49 move nothing: the machine stands, and only the frame the
         # program's coordinates are read in changes — `lo` is re-expressed in
         # it below (LinuxCNC's canon moves its end point the same way). So the
@@ -515,7 +663,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         line out of text order, any line of another file."""
         if not (self.stale and self._program_line()):
             return
-        n = int(self.lineno or 0)
+        n = self._write_line()
         if self.write_lines is not None and self.write_mode in ("ordered", "inline"):
             t = self.write_lines.get(n)
             if t == "explicit" or (t is not None and self.write_mode == "ordered"):
@@ -525,6 +673,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
     # change what wcs_basis() returns — flag, then let the parent assign.
     def set_g5x_offset(self, *args, **kw):
+        self._foreign_gate()
         self._wcs_dirty = True
         before = getattr(self, "g5x_index", None)
         r = super().set_g5x_offset(*args, **kw)
@@ -542,6 +691,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         return r
 
     def set_g92_offset(self, *args, **kw):
+        self._foreign_gate()
         self._wcs_dirty = True
         r = super().set_g92_offset(*args, **kw)
         if self._switch_g92_line is not None and self._switch_g92_line == self.lineno:
@@ -556,12 +706,19 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         call into another file a number may be that file's, and a main-file
         write listed under the same number proves no shared origin (Codex R98
         VP-I56): a note must not name the wrong main-file line."""
-        n = int(self.lineno or 0)
         if self.write_lines is not None and self.write_mode in ("ordered", "inline"):
-            return n
+            return self._write_line()
         return 0
 
+    def _write_line(self):
+        """The main-file line a callback-caught write ran in: the
+        interpreter's word (a remap body's line is its own file's, Codex
+        R107), else the current number."""
+        m = self.main_line()
+        return m if m is not None else int(self.lineno or 0)
+
     def set_xy_rotation(self, *args, **kw):
+        self._foreign_gate()
         self._wcs_dirty = True
         before = getattr(self, "rotation_xy", 0) or 0
         r = super().set_xy_rotation(*args, **kw)
@@ -602,6 +759,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.lo = end
 
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
+        self._foreign_gate()
         if self.suppress > 0: return
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
         if self.stale:
@@ -634,6 +792,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.lo = l
 
     def straight_feed(self, x, y, z, a, b, c, u, v, w):
+        self._foreign_gate()
         if self.suppress > 0: return
         self.first_move = False
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
@@ -646,6 +805,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     straight_probe = straight_feed
 
     def rigid_tap(self, x, y, z):
+        self._foreign_gate()
         if self.suppress > 0: return
         self.first_move = False
         if self.stale:
@@ -658,6 +818,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self.feed.append((self.lineno, l, self.lo, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
 
     def straight_arcsegments(self, segs):
+        self._foreign_gate()
         self.first_move = False
         if self.stale and segs:
             # The whole arc was computed from the old position (its centre is

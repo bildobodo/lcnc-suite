@@ -67,6 +67,7 @@ _trace.init("gcode_parse_worker")
 
 # Ensure local-dir imports resolve when invoked from anywhere
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import gcode_canon
 from gcode_canon import PreviewCanon, apply_var_patches
 from gateway_util import (
     scan_tool_stats, read_axis_limits, check_limit_violations,
@@ -80,7 +81,7 @@ from gateway_util import (
     attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
     main_file_event_lines,
     read_var_snapshot, TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys,
-    foreign_m600_codes, m_code_lines, next_block_lines, RemapEnv, remap_reach_lines,
+    foreign_m600_codes, m_code_lines, RemapEnv, remap_reach_lines,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
@@ -240,16 +241,25 @@ def parse(ctx: dict) -> dict:
     # What the configured remaps' bodies may write or invoke (Codex R106):
     # every file of a body's name, the INI folder (milltask's) first.
     _remap_env = RemapEnv(_remap_lines, [os.path.dirname(os.path.abspath(ini_path))] + _sub_dirs)
+    # The interpreter's own word on which main-file line runs (Codex R107,
+    # gcode_canon.main_line): the call sites, the tool changes, the
+    # position-write walk and the foreign remap's start read it.
+    canon.set_main_file(filename)
     _foreign = foreign_m600_codes(_remap_lines, _sub_dirs)
+    canon.foreign_codes = _foreign
     if _foreign:
         try:
             with open(filename, "r", errors="replace") as f:
                 _ftext = f.read()
-            # Every line that MAY call it (m_code_lines reads the words the
-            # interpreter's way), or may run it through another remap's body
-            # (remap_reach_lines, Codex R106); a call into another file (M98,
-            # an o-word of no sub defined here) may run it there — from the
-            # program's start then: no line of this text says when (R105).
+            # The interpreter says when the remap runs (gcode_canon
+            # _foreign_gate); the text adds what the machine may run where
+            # the preview does not (a body's branch on a value only the run
+            # has): every line that MAY call it (m_code_lines reads the words
+            # the interpreter's way), or may run it through another remap's
+            # body (remap_reach_lines, Codex R106) — from the first in text
+            # order; a call into another file (M98, an o-word of no sub
+            # defined here) may run it there — from the program's start then:
+            # no line of this text says when (R105).
             _flines = m_code_lines(_ftext, _foreign) | remap_reach_lines(
                 _ftext, _remap_env, {RemapEnv.code_key(c) for c in _foreign})
             _, _fmode = position_write_lines(_ftext)
@@ -258,9 +268,8 @@ def parse(ctx: dict) -> dict:
             canon.foreign_m600_lines = _flines
             if canon.foreign_m600_lines:
                 canon.foreign_m600_mode = _fmode
-                canon._next_block = next_block_lines(_ftext)
                 print(f"foreign remap {sorted(_foreign)}: not predicted from "
-                      f"{'the program start' if _fmode != 'ordered' else 'its first call'}",
+                      f"{'the program start' if _fmode != 'ordered' else 'its first possible call'}",
                       file=sys.stderr, flush=True)
         except OSError as e:
             # unreadable: every line may be one — from the program's start
@@ -421,6 +430,12 @@ def parse(ctx: dict) -> dict:
             # parse_partial event WITHOUT decoding the (multi-MB) stdout payload.
             print(f"__PARTIAL__\t{seq}\t{parse_error}", file=sys.stderr, flush=True)
         print(f"gcode.parse feed={len(canon.feed)} rapid={len(canon.rapid)} parse_ms={(t1-t0)*1000:.0f}", file=sys.stderr, flush=True)
+        if canon.lineno is not None and canon.lineno >= 1 and gcode_canon.interp_this() is None:
+            # without the interpreter's own word (gcode_canon.interp_this) the
+            # call sites, tool changes and writes fall back to the text and
+            # a foreign remap stops the preview from the program's start
+            print("__INTERP__\tunavailable", file=sys.stderr, flush=True)
+            _trace.emit("gcode.interp_state_unavailable", level="warn", file=filename)
         # Remap refusal in preview (2026-09-05): the gcode module's
         # CANON_ERROR is a stub and the fork's refusals `yield INTERP_EXIT`,
         # which gcode.parse reports as 1 (< MIN_ERROR) — a refused program
@@ -1231,14 +1246,19 @@ def parse(ctx: dict) -> dict:
         _nm_index = {nm: i for i, nm in enumerate(sub_names)}
         feed_sub = resolve_sub_indices(feed_seq, canon.sub_events, _nm_index)
         rapid_sub = resolve_sub_indices(rapid_seq, canon.sub_events, _nm_index)
-        # Call-site line attribution (W4): a span whose UNIQUE main-file
-        # call/trigger line text-verifies stamps its points with that line
-        # (u16 wire channel, 0 = none) so the text-panel highlight tracks
-        # the o-call/remap line instead of going dark. Unattributed spans
-        # keep the chip-only display — noted, never guessed. Lines beyond
-        # the u16 range make no claim (same honest degradation).
+        # Call-site line attribution (W4): a span whose main-file call or
+        # trigger line is known — the interpreter's word, the text scan its
+        # cross-check (Codex R107) — stamps its points with that line (u16
+        # wire channel, 0 = none) so the text-panel highlight tracks the
+        # o-call/remap line instead of going dark. Unattributed spans keep
+        # the chip-only display — noted, never guessed. Lines beyond the u16
+        # range make no claim (same honest degradation).
+        _caller_notes = []
         _caller_map, _unattributed = attribute_sub_callers(
-            canon.sub_events, _src_text)
+            canon.sub_events, _src_text, _remap_env, _caller_notes)
+        for _note in _caller_notes:
+            print(f"call-site attribution: {_note} — no line", file=sys.stderr, flush=True)
+            _trace.emit("gcode.caller_disagrees", level="warn", note=_note)
         if _caller_map:
             feed_cline = [c if 0 < c <= 0xffff else 0 for c in
                           resolve_sub_callers(feed_seq, canon.sub_events,

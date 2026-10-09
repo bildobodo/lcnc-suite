@@ -2294,13 +2294,17 @@ _NAMED_PARAM_RE = re.compile(r"#<[^>]*>")
 #: allows them; the decision is taken on the line without whitespace.
 #: A literal reads as G10 / G28 / G30 / G52 / G92 within 1e-4 (read_g), so
 #: its integer part is the code's or the one below (`G91.99999` is G92,
-#: natively — Codex R106's near forms; TestPosWriteCandidates proves it).
+#: natively — Codex R106's near forms; TestNearLiterals proves it).
 #: A value that is no literal starts with `[`, `#` or a function (`ABS[92]`).
+#: Any run of signs may precede it — read_real_value reads a sign before a
+#: value that is no number as a unary sign, recursively: `G-[-10]` is G10,
+#: `G--28.1` is G28.1 (natively, Codex R107 VP-I64; a literal's own last
+#: sign is the number's).
 _POSWRITE_CANDIDATE_RE = re.compile(
-    r"G[\s+]*[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8|3\s*0|9\s*\.|9\s*1\s*\.|5\s*1\s*\.|2\s*7\s*\.|2\s*9\s*\.|[\[#]"
+    r"G[\s+-]*[\s0]*(?:1\s*0|9\s*2|5\s*2|2\s*8|3\s*0|9\s*\.|9\s*1\s*\.|5\s*1\s*\.|2\s*7\s*\.|2\s*9\s*\.|[\[#]"
     r"|[A-Z][A-Z\s]*\[)", re.I)
 #: The same for a G10 (wcs_rewrite_targets): `10`, `9.99999`, or no literal.
-_G10_CANDIDATE_RE = re.compile(r"G[\s+]*[\s0]*(?:1\s*0|9\s*\.|[\[#]|[A-Z][A-Z\s]*\[)", re.I)
+_G10_CANDIDATE_RE = re.compile(r"G[\s+-]*[\s0]*(?:1\s*0|9\s*\.|[\[#]|[A-Z][A-Z\s]*\[)", re.I)
 
 
 # ── ONE reader of a block's words, the interpreter's way (Codex R105 VP-I59,
@@ -2362,7 +2366,9 @@ def _nc_value(s, i):
             return i + 3, None
         return _nc_value(s, i + 1)[0], None
     if c in "+-" and i + 1 < len(s) and not (s[i + 1].isdigit() or s[i + 1] == "."):
-        return _nc_value(s, i + 1)[0], None
+        # a unary sign (read_real_value): `--10` is 10, `-+10` is -10
+        j, v = _nc_value(s, i + 1)
+        return j, (None if v is None else (-v if c == "-" else v))
     if c.isalpha():
         for f in _NC_FUNCS:
             if s.startswith(f + "@", i):
@@ -4109,6 +4115,13 @@ def parse_sub_marker(text):
 
 
 _SUB_MARKER = re.compile(r"^\s*WEBUI_SUB\s*=\s*([^)]+?)\s*$", re.IGNORECASE)
+_PAREN_COMMENT_RE = re.compile(r"\(([^()]*)\)")
+
+
+def _comment_texts(raw):
+    """The texts of a line's `( … )` comments, as the canon's comment()
+    receives them."""
+    return _PAREN_COMMENT_RE.findall(raw or "")
 _SUB_END_MARKER = re.compile(r"^\s*WEBUI_SUB_END\s*$", re.IGNORECASE)
 
 
@@ -4231,7 +4244,19 @@ class RemapEnv:
             return frozenset(), frozenset()
         if key not in self._effect:
             self._effect[key] = self._closure([key], [])
-        return self._effect[key]
+        return self._effect[key][:2]
+
+    def marks(self, key):
+        """The sub-span markers (`(WEBUI_SUB=<name>)`, the names) the body of a
+        remapped code may run, transitively — None = any (an opaque or
+        unreadable body). A span of such a name may come from a line with
+        this code (attribute_sub_callers, Codex R107 VP-I63)."""
+        if not self.known:
+            return None
+        if key not in self.remaps:
+            return frozenset()
+        self.effect(key)
+        return self._effect[key][2]
 
     def text_effect(self, text):
         """(writes, reaches) of a text — an MDI line, a program, a body: its
@@ -4242,8 +4267,8 @@ class RemapEnv:
         own = self._own_text(text)
         if own is None:
             return None, None
-        w, keys, names = own
-        got_w, got_r = self._closure(list(keys), list(names))
+        w, keys, names, _marks = own
+        got_w, got_r, _m = self._closure(list(keys), list(names))
         if got_w is None:
             return None, None
         return frozenset(w) | got_w, got_r
@@ -4251,8 +4276,9 @@ class RemapEnv:
     def _closure(self, keys, names):
         """Every node reachable from `keys` (remapped codes) and `names`
         (sub files by name), each visited once: the union of their OWN
-        writes is the closure whatever the order — a cycle ends there."""
-        writes, reaches = set(), set()
+        writes (and span markers) is the closure whatever the order — a
+        cycle ends there. (writes, reaches, marks), each None = any."""
+        writes, reaches, marks = set(), set(), set()
         seen_k, seen_n = set(), set()
         while keys or names:
             if keys:
@@ -4265,7 +4291,7 @@ class RemapEnv:
                 if r is None:
                     continue
                 if r["opaque"]:
-                    return None, None
+                    return None, None, None
                 names.append(r["ngc"])
                 continue
             name = names.pop()
@@ -4275,16 +4301,17 @@ class RemapEnv:
             paths = [os.path.join(d, name + ".ngc") for d in self.dirs]
             paths = [p for p in paths if os.path.isfile(p)]
             if not paths:
-                return None, None
+                return None, None, None
             for p in paths:
                 own = self._own_file(os.path.realpath(p))
                 if own is None:
-                    return None, None
-                w, ks, ns = own
+                    return None, None, None
+                w, ks, ns, ms = own
                 writes |= w
+                marks |= ms
                 keys.extend(ks)
                 names.extend(ns)
-        return frozenset(writes), frozenset(reaches)
+        return frozenset(writes), frozenset(reaches), frozenset(marks)
 
     def _own_file(self, path):
         if path not in self._file:
@@ -4297,10 +4324,16 @@ class RemapEnv:
         return self._file[path]
 
     def _own_text(self, text):
-        """(writes, keys, names) of one text alone — its settings, the remapped
-        codes its words trigger, the subs its o-calls name — or None."""
-        writes, keys, calls, defined = set(), set(), set(), set()
+        """(writes, keys, names, marks) of one text alone — its settings, the
+        remapped codes its words trigger, the subs its o-calls name, the span
+        markers it carries — or None."""
+        writes, keys, calls, defined, marks = set(), set(), set(), set(), set()
         for raw in (text or "").splitlines():
+            if "WEBUI_SUB" in raw.upper():
+                for c in _comment_texts(raw):
+                    sub = parse_sub_marker(c)
+                    if sub is not None and sub[0] == "start":
+                        marks.add(sub[1])
             if not self._may_matter("".join(raw.split()).upper()):
                 continue
             n = nc_norm(raw)
@@ -4338,7 +4371,7 @@ class RemapEnv:
         names = calls - defined
         if any(not nm or nm.isdigit() for nm in names):
             return None
-        return writes, keys, names
+        return writes, keys, names, marks
 
 
 def foreign_m600_codes(remap_lines, search_dirs, max_read=65536) -> frozenset:
@@ -4441,20 +4474,6 @@ def m_code_lines(source_text, codes) -> frozenset:
         if b is None or any(letter == "M" and (v is None or nc_int(v) in want) for letter, v in b[0]):
             out.add(i + 1)
     return frozenset(out)
-
-
-def next_block_lines(source_text) -> dict:
-    """line → the next line (1-based) whose block is not empty, comments out
-    — what runs next in text order. Pure."""
-    out = {}
-    pending = []
-    for i, raw in enumerate((source_text or "").splitlines()):
-        if strip_gcode_comments(raw).strip():
-            for p in pending:
-                out[p] = i + 1
-            pending = []
-        pending.append(i + 1)
-    return out
 
 
 def parse_m600_marker(text):
@@ -4766,12 +4785,19 @@ def _caller_site(n, name, caller_token):
     return None
 
 
-def attribute_sub_callers(sub_events, source_text):
+def attribute_sub_callers(sub_events, source_text, env=None, notes=None):
     """Verified call-site MAIN-file line per sub-span START event (W4).
 
-    sub_events  -- canon triples [(seq, name|None, caller_token|None)];
-                   name None = span end.
+    sub_events  -- canon tuples [(seq, name|None, caller_token|None[, main])];
+                   name None = span end; main = the MAIN-file line the
+                   interpreter executed at the start marker
+                   (gcode_canon.PreviewCanon.main_line), None where it could
+                   not tell.
     source_text -- the main program's text.
+    env         -- RemapEnv or None: a line whose remapped word may run a body
+                   carrying the span's marker may be its origin too.
+    notes       -- a list the disagreements are appended to (the worker's
+                   stderr note), or None.
 
     Returns (caller_by_event, unattributed_names): caller_by_event maps
     the EVENT INDEX of a depth-0 start event to the verified main-file
@@ -4779,17 +4805,22 @@ def attribute_sub_callers(sub_events, source_text):
     deduped) with no attribution — the worker's stderr note. The display
     degrades to the sub-name chip there, never a guessed line.
 
-    Rule: UNIQUE-site text scan only. A main-file line attributes iff it
-    is the ONLY line invoking the sub (`o<name> call`, or the
-    marker-declared CALLER token — `_caller_site`, read the interpreter's
-    way) and no other line MAY invoke it; zero or several sites yield no
-    claim. No positional signal exists to disambiguate multiple sites —
-    the interpreter fires next_line only for plainly-executed blocks,
-    never for the o-call/remap trigger lines themselves (verified
-    empirically, W4). Nested spans (depth > 0) are never attributed:
-    their caller line lives in the OUTER sub's file, the very collision
-    this machinery exists to avoid. Pure.
-    """
+    Rule: the INTERPRETER's word first (Codex R107 VP-I63, measured
+    natively): a depth-0 span whose start event carries `main` — the line
+    of the deepest frame running the main file: a remap trigger, an o-call
+    or M98 line, an inline sub's own line; per occurrence, so a loop's or
+    several sites' spans each get theirs — takes that line, unless the text
+    scan below claims a different unique site: then none, and the
+    disagreement is noted (a contract of the interpreter's face the native
+    pins no longer hold must not turn into a wrong line). Without it, the
+    UNIQUE-site text scan alone: a main-file line attributes iff it is the
+    ONLY line invoking the sub (`o<name> call`, or the marker-declared
+    CALLER token — `_caller_site`, read the interpreter's way) and no other
+    line MAY invoke it — a call into another file, or a word whose remap
+    body may run the span's marker (`env.marks`; a body that calls
+    `o<m600>` makes a span of m600 that no M600 wrote, Codex R107); zero or
+    several sites yield no claim. Nested spans (depth > 0) are never
+    attributed. Pure."""
     lines = None
     out = {}
     unattributed = []
@@ -4810,16 +4841,50 @@ def attribute_sub_callers(sub_events, source_text):
                     k = _caller_site(n, name, ev[2])
                     if k == "site":
                         hits.append(i + 1)
-                    elif k == "maybe":
+                    elif k == "maybe" or (env is not None and _runs_marker(n, name, env)):
                         maybe = True
                 site_cache[key] = hits[0] if len(hits) == 1 and not maybe else None
             line = site_cache[key]
+            main = ev[3] if len(ev) > 3 else None
+            if main is not None:
+                if line is not None and line != main:
+                    if notes is not None:
+                        notes.append(f"{name}: the interpreter ran L{main}, the text names L{line}")
+                    line = None
+                else:
+                    line = int(main)
             if line is not None:
                 out[idx] = line
             elif name not in unattributed:
                 unattributed.append(name)
         depth += 1
     return out, unattributed
+
+
+def _runs_marker(n, name, env):
+    """May the normalised main-file line `n` run a body carrying the span
+    marker `name` through a remapped word (RemapEnv.marks)? A line the reader
+    cannot read, and any line where the remaps are not known: yes."""
+    if not env.known:
+        return bool(n)
+    if not env._may_matter(n):
+        return False
+    b = nc_block_norm(n)
+    if b is None:
+        return True
+    words, _sets, oword = b
+    if oword:
+        return False                 # _caller_site judges the o-words
+    has_p = any(w == "P" for w, _ in words)
+    for letter, v in words:
+        ks = env.word_keys(letter, v, has_p)
+        if ks is None:
+            return True
+        for k in ks:
+            m = env.marks(k)
+            if m is None or name in m:
+                return True
+    return False
 
 
 def _norm_gcode_line(text):
@@ -4914,23 +4979,30 @@ def resolve_sub_callers(seqs, sub_events, caller_by_event):
 def main_file_tool_changes(events, sub_events, caller_by_event):
     """The canon's tool changes as MAIN-file lines (M600 in the preview).
 
-    events          -- [(lineno, tool, k)] in execution order; k = how many
-                       sub-span markers had been seen when the M6 ran.
-    sub_events      -- canon triples [(seq, name|None, caller|None)].
+    events          -- [(lineno, tool, k[, main])] in execution order; k = how
+                       many sub-span markers had been seen when the M6 ran,
+                       main = the main-file line the interpreter executed
+                       then (gcode_canon main_line), None where it could not
+                       tell.
+    sub_events      -- canon tuples [(seq, name|None, caller|None[, main])].
     caller_by_event -- attribute_sub_callers' map (depth-0 start event
                        index -> verified main-file line).
 
-    An M6 outside every marked span keeps its line. One inside a span —
-    the bundled M600 routine's own M6 — carries the SUB file's line, which
-    collides with this file's (a mark at L263 of a long program): it takes
-    the outermost span's verified call line, else it is dropped (the text
-    scan still finds the M600 line, toolChangeScan.ts). Pure.
+    An M6 inside a marked span — the bundled M600 routine's own — carries
+    the SUB file's line, which collides with this file's (a mark at L263 of
+    a long program): it takes the outermost span's verified call line, else
+    it is dropped (the text scan still finds the M600 line,
+    toolChangeScan.ts). One outside every marked span takes the line the
+    interpreter executed — an M6 in an unmarked remap body or a called file
+    carries that file's number too (Codex R107) — else its own. Pure.
     """
     out = []
-    at = main_file_event_lines([k for _, _, k in events], sub_events, caller_by_event)
-    for (line, tool, _k), call in zip(events, at):
+    at = main_file_event_lines([e[2] for e in events], sub_events, caller_by_event)
+    for ev, call in zip(events, at):
+        line, tool = ev[0], ev[1]
+        main = ev[3] if len(ev) > 3 else None
         if call is None:
-            out.append([int(line), int(tool)])
+            out.append([int(main if main is not None else line), int(tool)])
         elif call > 0:
             out.append([int(call), int(tool)])
     return out

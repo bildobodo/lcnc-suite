@@ -1,5 +1,5 @@
 {
-  "_comment": "Codex R105 VP-I59 / VP-I61: spellings of a parameter setting and of an M word, run through LinuxCNC's native interpreter (native_start_probe.py assign_* / mword_*). The interpreter decides which it takes; gateway_util's word reader (nc_block_norm) is held to its answers (test_m600_preview_worker TestNcSpellings).",
+  "_comment": "Codex R105 VP-I59 / VP-I61: spellings of a parameter setting and of an M word, run through LinuxCNC's native interpreter (native_start_probe.py assign_* / mword_*). The interpreter decides which it takes; gateway_util's word reader (nc_block_norm) is held to its answers (test_m600_preview_worker TestNcSpellings). Codex R107 VP-I64: a sign before a value that is no number is unary, recursively (`--`, `-[-…]`, `-#`).",
   "assign": {
     "literal": "#3009=4",
     "spaced_eq": "#3009 = 4",
@@ -21,7 +21,9 @@
     "negative_target": "#-3009=4",
     "minus_param": "#1=-4\n#3009=-#1",
     "lower": "#3009=4 g0 x1",
-    "near_below": "#3008.99999=4"
+    "near_below": "#3008.99999=4",
+    "double_minus_target": "#--3009=4",
+    "minus_bracket_target": "#-[-3009]=4"
   },
   "mword": {
     "control": "T2 M600",
@@ -39,6 +41,10 @@
     "function": "T2 MABS[-600]",
     "lower": "t2 m600",
     "called": "o<child> call",
-    "near_below": "T2 M599.99999"
+    "near_below": "T2 M599.99999",
+    "double_minus": "T2 M--600",
+    "minus_bracket": "T2 M-[-600]",
+    "minus_param": "#1=-600\nT2 M-#1",
+    "sign_run": "T2 M-+-600"
   }
 }

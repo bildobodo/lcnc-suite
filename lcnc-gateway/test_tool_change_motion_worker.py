@@ -360,6 +360,48 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         # own next_line (it ran), and inline subs keep this file's numbers
         self.assertEqual(probe("r96_branch_inactive_l20")["stale_offset_lines"], [5])
 
+    def test_a_sign_before_an_expression_hides_no_write(self):
+        # Codex R107 VP-I64: `G-[-10]`, `G--10` and `G-#1` (#1 = −10) are
+        # G10, `G-[-28.1]` is G28.1 (natively) — the prefilters let a minus
+        # through, the reader reads the sign: the same note, the same unknown
+        # rest as the plain spelling (the controls)
+        for case, line in (("r107_inactive_negative", 4), ("r107_inactive_plain", 4),
+                           ("r107_inactive_double_minus", 4), ("r107_inactive_param", 5),
+                           ("r107_store_negative", 4), ("r107_store_plain", 4)):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["stale_offset_lines"], [line], case)
+            self.assertEqual(r["rapid_ustart"][-1], 1, case)
+            self.assertEqual(set(r["rapid_tcum"]), {0.0}, case)
+        # a negative G code is refused: no evidence either way
+        for case in ("r107_negative_function", "r107_negative_literal"):
+            self.assertEqual(probe(case)["parse_error"], "Negative g code used", case)
+
+    def test_a_remap_body_s_numbers_are_not_the_main_file_s(self):
+        # Codex R107 (VP-I61's root, in the walk): M200's body (lines 2–9)
+        # took the walk past L5 before L5 ran, its M6 made XYZ unknown after
+        # that — the L20 of L5 from the unknown position counts when L5 runs
+        # (the interpreter names the main-file line: gcode_canon.main_line)
+        r = probe("r107_body_numbers_walk")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["stale_offset_lines"], [5])
+        self.assertEqual(set(r["rapid_ustart"]), {1})
+        # the body's M6 (its line 9) is M200's line's
+        self.assertEqual(r["tool_change_lines"], [[3, 0]])
+        # a body's G92 on its line 2 — the main file's line 2 is an explicit
+        # G10 L2: by number the write was that line's and never counted
+        r = probe("r107_body_g92_numbered_like_explicit")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["stale_offset_lines"], [5])
+        self.assertEqual(r["rapid_ustart"][-1], 1)
+        # a write that runs BEFORE a remap body in its block (G28.1, then the
+        # motion-group G88.1 whose absolute move makes XYZ known again): it
+        # counts under the stale set it ran with — the G28 after it unknown
+        r = probe("r107_write_before_body")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["stale_offset_lines"], [4])
+        self.assertEqual(r["rapid_ustart"][-2:], [1, 1])
+
     def test_the_interpreter_s_own_tool_change_moves_stay_known(self):
         # Codex R92's controls: quill-up, G30 twice, both — canon traverses on
         # the M6's line, the move after them timed.

@@ -784,12 +784,13 @@ payload yields `scrubTrack: null` — the bar simply doesn't offer itself
 (unchecked ≠ broken). Text-panel line: `displayLineForPoint` is the ONE
 gating rule for scrub AND run playhead — the point's own line only when
 per-point trust allows (motion in called subs/remaps carries THAT file's
-colliding linenos, W2 P6), else the sub span's text-verified CALL/trigger
-line (W4, schema 7: `(WEBUI_SUB=name CALLER=g53.3)` markers +
-unique-site scan in `attribute_sub_callers` — multiple call sites of one
-sub keep the chip-only display; no positional signal exists, the interp
-never fires next_line for o-call/remap trigger lines), else null + the
-"(name)" chip. Above it sits `resolveCurrentLine` (W5, the display
+colliding linenos, W2 P6), else the sub span's CALL/trigger line (W4,
+schema 7: `(WEBUI_SUB=name CALLER=g53.3)` markers; the interp never fires
+next_line for o-call/remap trigger lines, but its own state names them —
+since Codex R107 the span takes the main-file line the interpreter ran at
+its start marker, per occurrence (`gcode_canon.main_line`, below), the
+unique-site scan in `attribute_sub_callers` its cross-check and its
+fallback), else null + the "(name)" chip. Above it sits `resolveCurrentLine` (W5, the display
 spec in docs/decisions.md wave 5): live `motion_line` — a bare
 motion-queue id with NO file identity — may display only when the
 track's per-line trust set vouches for it (the off-path approach
@@ -894,9 +895,10 @@ the Sim tab's summary "*" and "?", the bar's time "+", the stats rows and the
 tool-change row say why, `viewer/probeStop.ts`). Each measurement event
 carries the verified MAIN-file call line it belongs to (the rows' 4th
 element, `main_file_event_lines` — the same walk as the tool changes; 0 when
-not verified): the Sim tab notes a length or a stop on THAT call's row of
-THAT tool only (`m600ToolNotes`); one without a verified line, or a line
-whose runs differ (a loop), is named in general — Program Stats' "Tool
+not verified; the interpreter's own word since Codex R107, so two call
+sites each get theirs): the Sim tab notes a length or a stop on THAT call's
+row of THAT tool only (`m600ToolNotes`); one without a verified line, or a
+line whose runs differ (a loop), is named in general — Program Stats' "Tool
 Lengths" lists every measurement, the summary's "?" counts them (Codex R105
 VP-I63: a per-tool note put a later stop on an earlier success and on an
 ordinary M6 of the number). A first drawn point after a stop gets no entry
@@ -907,7 +909,32 @@ the routine before the change as a control structure
 marker: the program after it was taken for the call). The routine's M6 is a
 canon tool change on the SUB's line: `main_file_tool_changes` ships it at
 the verified call line (`CALLER=m600` / `m601` on the wrappers' markers),
-else none. A program tool without a length (or a row) has an unknown BODY
+else none; an M6 outside every marked span — an unmarked remap body's, a
+called file's — at the main-file line the interpreter ran.
+
+WHERE A CALLBACK COMES FROM (Codex R107, measured natively on 2.9.4):
+gcode.parse runs LinuxCNC's interpreter in the worker, and its Python face
+`interpreter` (built into gcode.so, importable while a parse runs) is that
+interpreter's state at every canon callback — `call_level`, `remap_level`,
+`filename`, `sequence_number`, the remapped codes running
+(`blocks[1..remap_level].executing_remap.name`, "M200", "M600") and each
+calling frame's file and the BYTE after the line it called from
+(`sub_context[k].position`). next_line fires only when the sequence number
+changes — a body line numbered like the main line before it reports
+nothing (Codex R107 VP-I61) — so the canon asks the interpreter instead
+(`gcode_canon.main_line`: its current line where the main file runs, an
+inline or M98 sub's own line too, else the line the deepest main-file frame
+called from — a remap trigger, an o-call or M98 line; per occurrence, a
+loop's line each time; `%`, CRLF and UTF-8 pinned): the sub spans' call
+lines (above), the tool changes, the position-write walk and the
+callback-caught writes (below: a remap body's G92 on ITS line 2 was taken
+for the main file's line 2, and a body's high numbers ran the walk ahead
+of the main file — Codex R107) and a foreign remap's start. Without the
+module (`__INTERP__ unavailable`, trace `gcode.interp_state_unavailable`)
+every one falls back to the text and a foreign remap stops the preview from
+the program's start. Tests: `TestCallLines` (native: another remap's body,
+a called file, a loop, an inline and an M98 sub, a `%` CRLF file),
+`TestCallerAttribution` (an interpreter double). A program tool without a length (or a row) has an unknown BODY
 (`tloEvents.unknownProgramTools`): while it is in the spindle the sweep skips
 the tool's own pairs (the machine's are checked), a contact of the tool
 restarts after such a stretch, no refinement walks into it — it used to
@@ -927,9 +954,14 @@ named from its start. An unconfirmed basis is read back once per version
 while a program that runs the routine is loaded (idle, nothing in flight; an
 abort cancels it); a change re-parses it (reason `toolsetter`). An M600 /
 M601 remap that is not the suite's (`foreign_m600_codes`) is unknown from
-its call (text order) or from the program's start — and from the start
-whenever the program calls another file (M98, an o-word of no sub defined
-in it), which may run it. What a text MAY write or call is read the
+the first callback it runs in — the interpreter's remap stack names it,
+before anything its body records (Codex R107 VP-I61: its first move was
+swept) — and the text adds what the run may do where the preview does not
+(a body's branch on a run's input): in text order from the first main-file
+line that may call it, its own or another remap's (that remap's body's
+moves before the call too), else from the program's start — and from the
+start whenever the program calls another file (M98, an o-word of no sub
+defined in it), which may run it. What a text MAY write or call is read the
 interpreter's way by ONE word reader (`gateway_util.nc_block_norm`: comments
 out, whitespace nowhere, a value a number with a sign, `[…]`, a parameter
 or a function): `toolsetter_assigned_keys` (`#3 0 0 9=`, `#+3009=`,
@@ -938,7 +970,13 @@ cannot read is "any"), `m_code_lines` (`T2M600`, `M+600`; `M[600]`, `M#1`
 are candidates), the M98 / M99 flow test (`M[98]` is a call) and the call
 sites of `attribute_sub_callers` (`T2M600`, `N5 o <x> c a l l`; a line that
 MAY call it leaves a single site unclaimed — the regex missed `T2M600` and
-put two calls on the other line, found with VP-I61). Which spellings the
+put two calls on the other line, found with VP-I61; so does a line whose
+remapped word's body may run the span's marker, `RemapEnv.marks` — a body
+with `o<m600> call` makes an m600 span no M600 wrote, Codex R107). A sign
+before a value that is no number is unary, recursively (`G-[-10]` and
+`G--10` are G10, `M-#1` with #1 = −600 is M600, natively — Codex R107
+VP-I64): the reader reads it exactly through signs, and the prefilters let
+any run of signs through. Which spellings the
 interpreter takes is pinned natively (`scripts/test_fixtures/nc_spellings.json`,
 `TestNcSpellings`): a literal reads as a code within 1e-4 (`M599.99999` is
 M600, `G91.99999` is G92, `L1.99999` is L2), so every text PREFILTER that
@@ -1141,8 +1179,11 @@ any spelling — `G92.0`, `G092`, `G28.10`, a sign `L+20` / `G+28.1` — while a
 G word the text cannot settle, `G[90+2]`, or an L / P word it cannot read
 counts as a write: Codex R96/R97; the worker hands it to the canon only with
 a tool change position) and a MODE: `ordered` (no o-words, no M98 — at each
-`next_line` the lines run since the last one: the previous line under its
-block's stale set, the call-less lines after it under the set its end left),
+`next_line` the lines run since the last one, in the main-file lines the
+interpreter names (`main_line`, Codex R107 — a remap body's blocks run inside
+the line that called it): the previous line under every stale set seen
+while it ran, its body's blocks too, the call-less lines after it under the
+set its end left),
 `inline` (o-words whose every called sub is defined in the file: the numbers
 are the file's, but a gap proves nothing ran — an `if [0]` branch, R96
 VP-I54 — so only the line that had its own `next_line` counts, as having
