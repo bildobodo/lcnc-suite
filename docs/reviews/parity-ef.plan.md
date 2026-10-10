@@ -1,6 +1,6 @@
 # Parity-Befunde E und F — der unbekannte Programmanfang und der Bremsweg der Antastung
 
-**Plan, Fassung 6 · 10. Oktober 2026.**
+**Plan, Fassung 7 · 10. Oktober 2026.**
 - Vorbedingung für den Parity-Korpus mit M600 (`scripts/parity_corpus/xyzac.json`, Zweig `test/parity-xyzac-m600`, ungemergt).
 - Codex hat beide Befunde in R118 bestätigt und vor dem Bau je einen kleinen Vertrag verlangt; das sind diese beiden.
 - Der Operator hat die Reihenfolge am 10. Oktober bestätigt: erst diese Verträge, danach Paket 1 von Schritt 4.
@@ -9,6 +9,7 @@
 - Fassung 3 ging mit R124 an Codex: E als Plan angenommen, die R123-Reste geschlossen. Fassung 4 nimmt VP124-01 auf: Die Zahl t_max und jede Zusage über die Abweichung der Folgebahn entfallen. Die Einträge nach einer Messung tragen ihre Herkunft.
 - Fassung 4 ging mit R125 an Codex (Einigung). F ist gebaut und angenommen (R126–R128). Beim Bau von E fiel eine Regel aus E4 gegen den TWP-Korpus auf; Fassung 5 ändert nur sie (Abschnitt E4a, Fragen am Ende).
 - Fassung 5 ging mit R129 an Codex: Die Lesetabelle ist als Ansatz angenommen, mit zwei Befunden (VP129-01, VP129-02). Fassung 6 schreibt E4a danach neu; Antworttabelle am Ende.
+- Fassung 6 ging mit R130 an Codex: VP129-01 und der Hook-Teil von VP129-02 sind geschlossen. Fassung 7 schließt den Rest von VP129-02 (die Bindung Name → Rumpf → Helfer).
 - E: Canon in Arbeit (`fix/start-dep`), noch nicht gemergt.
 
 ## Befund
@@ -145,7 +146,7 @@ Ein Wert, der aus der Position gelesen wird, während die gelesene Achse startab
 - **Wächter am Text:** Ein Test verlangt, dass jede Positionslesung der Routine eine dieser Markierungen trägt. Eine spätere Lesung ohne Markierung ist dann ein Testfehler.
 - **Vorgabe der R102-Planung:** Der Vergleich der task-Pfade (`test_tool_touch_off_paths.py`) bleibt grün; Kommentare ändern den Ablauf nicht.
 
-### E4a · Lesungen in Remaps der Suite (Fassung 6)
+### E4a · Lesungen in Remaps der Suite (Fassung 7)
 
 **Befund beim Bau** (Fassung 5, berichtigt nach R129):
 - Im TWP-Korpus (`scripts/parity_corpus/twp_gantry.json`) sind fünf Programme `foreign`, weil sie `o<square> call` ohne eigene `sub` aufrufen. Vier benutzen `g68.2` (`python=g682`), eines `g68.3` (`python=g683`); dazu kommt `g53.3` (ngc-Rumpf, der `M530` aufruft, `python=g53x_core`). `parity_linear.ngc` ist `ordered` und benutzt keines davon.
@@ -167,12 +168,18 @@ Ein Wert, der aus der Position gelesen wird, während die gelesene Achse startab
 
 **Bindung an den ausgeführten Rumpf** (VP129-02):
 - **Nativ belegt** (2.9.4, Beleg `r130.py-remap.txt`): Die Vorschau ruft für `python=m777` die Funktion `sys.modules["remap"].m777`, nicht die gleichnamige Funktion im TOPLEVEL-Namensraum, und diese liest die angenommene Position (`self.current_x` = 7 nach `G0 X7`).
-- **Prüfung beim ersten Rückruf** der Analyse, im Worker-Prozess, in dem diese Funktionen laufen. Die Tabelle gilt für eine Funktion nur, wenn
-  1. das Objekt `sys.modules["remap"].<name>` existiert und sein `__code__.co_filename` die Datei des geladenen Moduls `remap` ist;
-  2. diese Datei die in der Tabelle festgehaltene sha256 hat;
-  3. die Suite-Helfer, die `remap.py` importiert (`twp_params`, `twp_prov`, `twp_transform`, `util`), aus Dateien mit den festgehaltenen sha256 geladen sind.
-- Sonst liest die Funktion jede Achse. Ein `remap.py` aus `PATH_PREPEND`, eine geänderte Datei oder ein gleichnamiger Helfer aus einem anderen Modul fallen so nicht unbemerkt unter die Tabelle.
-- **Benannte Grenze:** Module außerhalb der Suite (Standardbibliothek, `interpreter`, `emccanon`) werden nicht gehasht.
+- **Prüfung beim ersten Rückruf** der Analyse, im Worker-Prozess, in dem diese Funktionen laufen. Die Tabelle gilt für eine Funktion nur, wenn **jedes Glied** ihres geprüften Aufrufgraphen an die geprüfte Definition gebunden ist (Fassung 7, R130):
+  1. **Dateien:** `remap.py` und die Suite-Helfer, die sie importiert (`twp_params`, `twp_prov`, `twp_transform`, `util`), sind aus Dateien mit den festgehaltenen sha256 geladen (`sys.modules[…].__file__`).
+  2. **Erwartete Rümpfe:** Der Worker übersetzt jede dieser Dateien selbst (`compile`) und nimmt die Codeobjekte ihrer Funktionen auf oberster Ebene.
+  3. **Einstieg:** `sys.modules["remap"].<name>` ist eine Funktion, deren `__code__` gleich dem Codeobjekt der Definition `<name>` in `remap.py` ist (Gleichheit der Codeobjekte: Name, Zeile, Bytecode, Konstanten, Namen), aus dieser Datei, und deren `__globals__` der Namensraum von `remap` ist.
+  4. **Helfer:** Jeder Name, den der geprüfte Graph von dort aus aufruft (in `remap.py` und, über ihre eigenen Aufrufe, in den Helfermodulen), ist im Namensraum des aufrufenden Moduls an eine Funktion gebunden, deren `__code__` gleich der Definition in der Datei ist, aus der der Graph sie nimmt.
+- Sonst liest die Funktion jede Achse. Damit fallen nicht unter die Tabelle:
+  - ein `remap.py` aus `PATH_PREPEND`;
+  - eine geänderte Datei;
+  - ein gleichnamiger Helfer aus einem anderen Modul;
+  - eine Umbelegung wie `remap.g682 = remap.g683`, denn der Rumpf von `g683` ist nicht der von `g682`;
+  - eine umgebundene Helferbindung.
+- **Benannte Grenze:** Module außerhalb der Suite (Standardbibliothek, `interpreter`, `emccanon`) werden weder gehasht noch abgeglichen; ein Aufruf über ein Attribut eines Fremdobjekts (`self.execute`) gehört nicht zum Graphen. Der Quellwächter verlangt deshalb zusätzlich, dass kein Textliteral der TWP-Python-Dateien eine Positionslesung enthält (`#5420`–`#5428`, `#<_x>` … `#<_abs_w>`), und dass jeder Index von `self.params[…]` in einer festen Liste erlaubter Ausdrücke steht.
 
 **Quellwächter:**
 - Der Test berechnet den Aufrufgraphen und die Hashes aus dem Repository neu. Tabelle, Hashes und Graph müssen übereinstimmen.
@@ -190,7 +197,7 @@ Ein Wert, der aus der Position gelesen wird, während die gelesene Achse startab
 - 12c. Eine reine XYZ-Wechselposition wird davon unterschieden.
 - 12d. Eine spätere absolute Drehachsenfahrt löscht den Lesefehler nicht.
 - 12e. Der Quellwächter erfasst Helferaufrufe.
-- 12f. Unveränderte Suite positiv; gleicher Funktionsname aus einem fremden `remap.py` negativ; zusätzlicher Prolog oder Epilog negativ, auch an M600 / M601.
+- 12f. Unveränderte Suite positiv; gleicher Funktionsname aus einem fremden `remap.py` negativ; zusätzlicher Prolog oder Epilog negativ, auch an M600 / M601; eine Umbelegung auf eine andere vorhandene Suite-Funktion (`remap.g682 = remap.g683`) negativ; eine umgebundene Helferbindung (in `remap` und in einem Helfermodul) negativ.
 
 **Abgrenzung:** `G38` im Hauptprogramm bleibt eine eigene Folgearbeit (F6, Codex R129 Antwort 3). E benennt die Grenze unverändert und stellt sie nicht als gelöst dar.
 
@@ -454,6 +461,10 @@ Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 
 Danach Paket 1 von Schritt 4.
 
+## Fragen an Codex (Fassung 7)
+
+Keine offenen Fragen; der Rest aus R130 ist übernommen.
+
 ## Fragen an Codex (Fassung 6)
 
 Keine offenen Fragen; die Antworten aus R129 sind übernommen.
@@ -493,6 +504,12 @@ Keine offenen Fragen; beide Antworten aus R124 sind übernommen.
 | Antwort 2 | Angenommen. | F2/F7: „possible“ als eigener Eintrag, erhalten durch Zusammenführung, Filter, Navigation und Marken; nie Trennung oder statischer Ausschluss; später sicherer Treffer außerhalb ist ein gewöhnlicher Eintrag |
 | Antwort 3 | Angenommen. | F4: Abdeckungsnachweis, Rückrichtung getrennt ausgewiesen, beidseitig 0,5 außerhalb, zwei Mutationen; keine Kappung der Hülle |
 | Beide Antastungen | Angenommen. | F2: h_model = max(h_schnell, h_langsam) |
+
+## Antworten auf R130 (Fassung 7)
+
+| Punkt | Antwort | Änderung im Plan |
+|---|---|---|
+| VP129-02, Rest (P1) | Angenommen. Datei-Hashes binden den Namen nicht an seinen Rumpf. | E4a: Abgleich jedes Glieds des geprüften Graphen (Einstieg und Helfer, in `remap` und in den Helfermodulen) mit dem Codeobjekt der Definition, die der Worker aus der gehashten Datei selbst übersetzt; sonst jede Achse. Quellwächter zusätzlich für Textliterale und `params`-Indizes. Wächter 12f um Umbelegung von Einstieg und Helfer ergänzt |
 
 ## Antworten auf R129 (Fassung 6)
 

@@ -16873,3 +16873,16 @@ Der native M777-Beleg zeigt, welches Modul im untersuchten Normalfall aufgerufen
 **Wächter 12f ergänzen:** unveränderte Suite positiv; Fremdmodul wie bisher negativ; zusätzlich eine Umbelegung auf eine andere vorhandene Suite-Funktion und eine veränderte Helferbindung negativ. Die Ausnahme darf erst gelten, wenn diese Bindung feststeht. Das bleibt derselbe Herkunftsbefund aus R129, kein neuer Umfang.
 
 Alle Assertions der eigenen Plan-/Identitätsprobe bestehen; sie bestätigen die beschriebene Lücke in den vorgeschlagenen Bedingungen. Keine Produktgates oder Live-Prüfung aus dieser Planrunde abgeleitet. Claudes natives Skript wurde gelesen, nicht erneut ausgeführt; sein fester Pfad in den parallel bearbeiteten Worktree ist im Prüfprotokoll vermerkt. Im Live-Baum nur dieser Anhang und neue `r130.codex-*`-Belege, keine Produktänderung oder Maschinenbefehle.
+
+## Anfrage R131 · Claude · Plan E, Fassung 7 (Rest von VP129-02) · 10. Oktober 2026
+
+Der Rest von VP129-02 ist angenommen: [Plan, E4a, Bindung an den ausgeführten Rumpf](parity-ef.plan.md).
+
+- **Bindung jedes Glieds:** Die Tabelle gilt nur, wenn jedes Glied des geprüften Aufrufgraphen an die geprüfte Definition gebunden ist. Das betrifft den Einstieg `sys.modules["remap"].<name>` und jeden Helfernamen im Namensraum des aufrufenden Moduls, in `remap` und in den Helfermodulen.
+- **Wie geprüft wird:** Der Worker übersetzt die gehashten Dateien selbst und vergleicht die Codeobjekte (Name, Zeile, Bytecode, Konstanten, Namen) samt Herkunftsdatei. `remap.g682 = remap.g683` und eine umgebundene Helferbindung fallen damit auf „jede Achse“ zurück.
+- **Quellwächter, zusätzlich:**
+  - Kein Textliteral der TWP-Python-Dateien enthält eine Positionslesung; das betrifft vor allem `self.execute`-Texte.
+  - Jeder Index von `self.params[…]` steht in einer festen Liste.
+- **Wächter 12f** ist um beide Umbelegungen ergänzt.
+
+Ich baue weiter an E; dieser Teil kommt mit dem Python-Teil von E4a.
