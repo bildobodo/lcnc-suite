@@ -1,0 +1,1285 @@
+{
+  "first_g1_xyz": {
+    "raw": {
+      "rapid_dep_basis": [
+        2
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 2,
+      "pos": [
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        0
+      ],
+      "cum": [
+        0,
+        6
+      ],
+      "brk": [
+        1,
+        0
+      ],
+      "ustart": [
+        1,
+        0
+      ]
+    },
+    "entry": {
+      "count": 3,
+      "pos": [
+        100,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        1,
+        0
+      ],
+      "cum": [
+        0,
+        10,
+        16
+      ],
+      "brk": [
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "first_g1_x_control": {
+    "raw": {
+      "rapid_dep": [
+        6
+      ],
+      "rapid_dep_basis": [
+        2
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 3,
+      "pos": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        0,
+        0
+      ],
+      "cum": [
+        0,
+        0,
+        6
+      ],
+      "dep": [
+        6,
+        0,
+        0
+      ],
+      "depBasis": [
+        2,
+        2,
+        0
+      ],
+      "depF": [
+        100,
+        100,
+        0
+      ],
+      "brk": [
+        1,
+        1,
+        0
+      ],
+      "ustart": [
+        1,
+        0,
+        0
+      ],
+      "depEnd": 1,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    },
+    "entry": {
+      "count": 4,
+      "pos": [
+        100,
+        100,
+        100,
+        0,
+        100,
+        100,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "cum": [
+        0,
+        60,
+        144.85281372070312,
+        150.85281372070312
+      ],
+      "dep": [
+        0,
+        6,
+        0,
+        0
+      ],
+      "depBasis": [
+        0,
+        2,
+        2,
+        0
+      ],
+      "depF": [
+        0,
+        100,
+        100,
+        0
+      ],
+      "brk": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "depEnd": 0,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "g43_before_first": {
+    "raw": {
+      "rapid_dep": [
+        6,
+        0
+      ],
+      "rapid_dep_basis": [
+        1,
+        1
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 2,
+      "pos": [
+        10,
+        0,
+        -10,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        0
+      ],
+      "dep": [
+        6,
+        0
+      ],
+      "depBasis": [
+        1,
+        1
+      ],
+      "depF": [
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        1
+      ],
+      "ustart": [
+        1,
+        0
+      ],
+      "depEnd": 1,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ],
+      "tlo": [
+        0,
+        0
+      ],
+      "tloEvents": [
+        {
+          "seq": 0,
+          "xyz": [
+            0,
+            0,
+            10
+          ],
+          "tool": null
+        }
+      ]
+    },
+    "entry": {
+      "count": 3,
+      "pos": [
+        100,
+        100,
+        90,
+        10,
+        100,
+        80,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        9.05538558959961,
+        21.86163330078125
+      ],
+      "dep": [
+        0,
+        6,
+        0
+      ],
+      "depBasis": [
+        0,
+        1,
+        1
+      ],
+      "depF": [
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0
+      ],
+      "depEnd": 0,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ],
+      "tlo": [
+        0,
+        0,
+        0
+      ],
+      "tloEvents": [
+        {
+          "seq": 0,
+          "xyz": [
+            0,
+            0,
+            10
+          ],
+          "tool": null
+        }
+      ]
+    }
+  },
+  "g43Collision": {
+    "actual": [],
+    "analyticHorizontalReference": [
+      {
+        "line": 3,
+        "cum": 4.829585653300294,
+        "cumEnd": 5.232010388601985,
+        "a": "head",
+        "b": "obstacle",
+        "dist": 0,
+        "rapid": true,
+        "intervals": [
+          [
+            4.829585653300294,
+            5.232010388601985
+          ]
+        ]
+      }
+    ]
+  },
+  "g43_after_first_control": {
+    "raw": {
+      "rapid_dep": [
+        6,
+        6,
+        0
+      ],
+      "rapid_dep_basis": [
+        1,
+        1,
+        1
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 3,
+      "pos": [
+        10,
+        0,
+        0,
+        10,
+        0,
+        -10,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        0,
+        0
+      ],
+      "dep": [
+        6,
+        6,
+        0
+      ],
+      "depBasis": [
+        1,
+        1,
+        1
+      ],
+      "depF": [
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        1,
+        1
+      ],
+      "ustart": [
+        1,
+        0,
+        0
+      ],
+      "depEnd": 2,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ],
+      "tlo": [
+        4294967295,
+        0,
+        0
+      ],
+      "tloEvents": [
+        {
+          "seq": 2,
+          "xyz": [
+            0,
+            0,
+            10
+          ],
+          "tool": null
+        }
+      ]
+    },
+    "entry": {
+      "count": 4,
+      "pos": [
+        100,
+        100,
+        100,
+        10,
+        100,
+        100,
+        10,
+        100,
+        90,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        9,
+        9,
+        22.453624725341797
+      ],
+      "dep": [
+        0,
+        6,
+        6,
+        0
+      ],
+      "depBasis": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "depF": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "depEnd": 0,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ],
+      "tlo": [
+        4294967295,
+        4294967295,
+        0,
+        0
+      ],
+      "tloEvents": [
+        {
+          "seq": 2,
+          "xyz": [
+            0,
+            0,
+            10
+          ],
+          "tool": null
+        }
+      ]
+    }
+  },
+  "m6_before_first": {
+    "raw": {
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 2,
+      "pos": [
+        10,
+        0,
+        0,
+        10,
+        10,
+        0
+      ],
+      "rapid": [
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        1
+      ],
+      "ustart": [
+        1,
+        1
+      ],
+      "tlo": [
+        0,
+        0
+      ],
+      "tloEvents": [
+        {
+          "seq": 0,
+          "xyz": [
+            0,
+            0,
+            0
+          ],
+          "tool": 0
+        }
+      ]
+    },
+    "entry": {
+      "count": 3,
+      "pos": [
+        100,
+        100,
+        100,
+        10,
+        0,
+        0,
+        10,
+        10,
+        0
+      ],
+      "rapid": [
+        0,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        16.76305389404297,
+        16.76305389404297
+      ],
+      "brk": [
+        0,
+        0,
+        1
+      ],
+      "ustart": [
+        0,
+        0,
+        1
+      ],
+      "tlo": [
+        0,
+        0,
+        0
+      ],
+      "tloEvents": [
+        {
+          "seq": 0,
+          "xyz": [
+            0,
+            0,
+            0
+          ],
+          "tool": 0
+        }
+      ]
+    }
+  },
+  "untracked_writes": {
+    "raw": {
+      "rapid_dep": [
+        3,
+        0
+      ],
+      "rapid_dep_basis": [
+        1,
+        1
+      ],
+      "start_writes_untracked": true,
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 3,
+      "pos": [
+        0,
+        0,
+        0,
+        10,
+        0,
+        0,
+        20,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        0,
+        1
+      ],
+      "dep": [
+        3,
+        0,
+        0
+      ],
+      "depBasis": [
+        1,
+        1,
+        0
+      ],
+      "depF": [
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        1,
+        0
+      ],
+      "ustart": [
+        1,
+        0,
+        0
+      ],
+      "depEnd": 1,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    },
+    "entry": {
+      "count": 4,
+      "pos": [
+        100,
+        100,
+        100,
+        100,
+        100,
+        0,
+        10,
+        0,
+        0,
+        20,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        10,
+        23.453624725341797,
+        24.453624725341797
+      ],
+      "dep": [
+        0,
+        3,
+        0,
+        0
+      ],
+      "depBasis": [
+        0,
+        1,
+        1,
+        0
+      ],
+      "depF": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "depEnd": 0,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "sideNotes": {
+    "full": "in the program's start-dependent beginning, offsets and stored positions written in subroutines, loops or called files are not tracked",
+    "sliced": null,
+    "hasDep": false
+  },
+  "runMerge": {
+    "before": {
+      "fromCum": 0,
+      "fromLine": 4
+    },
+    "boundaryBefore": []
+  },
+  "all_dep": {
+    "raw": {
+      "rapid_dep": [
+        7,
+        7
+      ],
+      "rapid_dep_basis": [
+        1,
+        1
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 2,
+      "pos": [
+        10,
+        0,
+        0,
+        10,
+        10,
+        0
+      ],
+      "rapid": [
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        0
+      ],
+      "dep": [
+        7,
+        7
+      ],
+      "depBasis": [
+        1,
+        1
+      ],
+      "depF": [
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        1
+      ],
+      "ustart": [
+        1,
+        0
+      ],
+      "depEnd": 2,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    },
+    "entry": {
+      "count": 3,
+      "pos": [
+        100,
+        100,
+        100,
+        110,
+        100,
+        100,
+        110,
+        110,
+        100
+      ],
+      "rapid": [
+        0,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        1,
+        2
+      ],
+      "dep": [
+        0,
+        7,
+        7
+      ],
+      "depBasis": [
+        0,
+        1,
+        1
+      ],
+      "depF": [
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0
+      ],
+      "depEnd": 0,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "wholeVerdict": {
+    "startDependent": {
+      "fromLine": 2,
+      "toLine": 3,
+      "whole": true
+    },
+    "idle": {
+      "state": "done",
+      "frac": 1,
+      "verdict": "Depends on the machine's position",
+      "tone": "warn",
+      "caveat": false,
+      "detail": " "
+    },
+    "run": {
+      "state": "done",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "ok",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "Clear · checked in full"
+    }
+  },
+  "unboundVerdict": {
+    "startDependent": {
+      "fromLine": 2,
+      "toLine": 3,
+      "whole": false
+    },
+    "run": {
+      "state": "done",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "ok",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "Clear · checked in full"
+    }
+  },
+  "store_before_first_absolute": {
+    "raw": {
+      "rapid_dep_basis": [
+        1
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 3,
+      "pos": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        0,
+        0
+      ],
+      "ustart": [
+        1,
+        0,
+        0
+      ]
+    },
+    "entry": {
+      "count": 4,
+      "pos": [
+        100,
+        100,
+        100,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        17.32050895690918,
+        17.32050895690918,
+        17.32050895690918
+      ],
+      "brk": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "initialStore": {
+    "flag": null,
+    "stale": null,
+    "depEnd": 0,
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.35708499999998367,
+      "sweepMs": 0.1387089999999489,
+      "truncated": null
+    }
+  },
+  "store_after_known_control": {
+    "raw": {
+      "rapid_dep_basis": [
+        1
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 3,
+      "pos": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        0,
+        0
+      ],
+      "ustart": [
+        1,
+        0,
+        0
+      ]
+    },
+    "entry": {
+      "count": 4,
+      "pos": [
+        100,
+        100,
+        100,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        1,
+        1,
+        1
+      ],
+      "cum": [
+        0,
+        17.32050895690918,
+        17.32050895690918,
+        17.32050895690918
+      ],
+      "brk": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "initialStoreFlagForced": {
+    "uncertified": null,
+    "depEnd": 0
+  },
+  "g93_no_limits": {
+    "raw": {
+      "rapid_dep": [
+        6
+      ],
+      "rapid_dep_basis": [
+        3
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 2,
+      "pos": [
+        10,
+        0,
+        0,
+        10,
+        10,
+        0
+      ],
+      "rapid": [
+        1,
+        0
+      ],
+      "cum": [
+        0,
+        0
+      ],
+      "dep": [
+        6,
+        4
+      ],
+      "depBasis": [
+        3,
+        3
+      ],
+      "depF": [
+        0,
+        0
+      ],
+      "brk": [
+        1,
+        1
+      ],
+      "ustart": [
+        1,
+        0
+      ],
+      "depEnd": 2,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    },
+    "entry": {
+      "count": 3,
+      "pos": [
+        100,
+        100,
+        100,
+        10,
+        100,
+        100,
+        10,
+        10,
+        100
+      ],
+      "rapid": [
+        0,
+        0,
+        0
+      ],
+      "cum": [
+        0,
+        0,
+        0
+      ],
+      "dep": [
+        0,
+        6,
+        4
+      ],
+      "depBasis": [
+        0,
+        3,
+        3
+      ],
+      "depF": [
+        0,
+        0,
+        0
+      ],
+      "brk": [
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0
+      ],
+      "depEnd": 0,
+      "depTime": {
+        "line": 3,
+        "bound": false
+      },
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "timeDetail": {
+    "depTime": {
+      "line": 3,
+      "bound": false
+    },
+    "cum": [
+      0,
+      0,
+      0
+    ],
+    "detail": "Tool and machine parts checked against each other along the whole program."
+  }
+}
