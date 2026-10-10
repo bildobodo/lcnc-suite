@@ -371,58 +371,66 @@ class TestG30Read(_G30Case):
 
 
 class TestSynchInAuto(_G30Case):
-    """Machine ON in AUTO with the interpreter idle — where every loaded
-    program leaves the task — LinuxCNC refuses task_plan_synch (measured
-    live 2026-10-09: every confirmed read failed there, with an operator
-    error). The switch to AUTO itself synchs; it is sent only where it
-    cannot abort a program or be ignored for a jog."""
+    """Machine ON in AUTO — where every loaded program leaves the task —
+    LinuxCNC refuses task_plan_synch (measured live 2026-10-09). The switch
+    to AUTO synchs too, but task honours it with the interpreter busy and
+    aborts, and a poll that saw it idle proves nothing about the moment task
+    takes the command (Codex R118 VP-I71). In AUTO nothing is sent and the
+    read is not confirmed; elsewhere task_plan_synch, which a start landing
+    first gets refused, never aborts."""
 
     def setUp(self):
         super().setUp()
         gateway.STAT.task_state = linuxcnc.STATE_ON
         gateway.STAT.task_mode = linuxcnc.MODE_AUTO
-        self.pins = {"jog_active": False}
-        for name, value in (("_reader_get", lambda k: self.pins.get(k)), ("_reader_is_stale", lambda: False)):
-            p = unittest.mock.patch.object(gateway, name, value)
-            p.start()
-            self.addCleanup(p.stop)
 
-    def test_a_read_in_auto_synchs_by_the_switch_to_auto(self):
-        self.task.params[5183] = -20.0
-        r = self.send({"cmd": "read_g30"})
-        self.assertEqual(r, {"ok": True, "confirmed": True, "values": {**self.stored(), "Z": -20.0}})
-        self.assertEqual(self.task.calls, [("mode", linuxcnc.MODE_AUTO)], "no task_plan_synch, no abort")
-        self.assertEqual(gateway.STAT.task_mode, linuxcnc.MODE_AUTO, "the operator's mode unchanged")
-
-    def test_a_write_in_auto_reads_switches_to_mdi_writes_and_reads(self):
-        r = self.send({"cmd": "set_g30", "values": {"x": 120.0}, "based_on": self.stored()})
-        self.assertEqual((r["ok"], r["confirmed"], r["values"]["X"]), (True, True, 120.0), r)
-        self.assertEqual(self.task.names(), ["mode", "mode", "mdi", "synch"])
-        self.assertEqual(self.task.calls[:2], [("mode", linuxcnc.MODE_AUTO), ("mode", linuxcnc.MODE_MDI)])
-
-    def test_nothing_is_sent_with_the_interpreter_busy_or_a_jog(self):
-        # the re-entry would abort the program (SET_MODE AUTO is honoured
-        # with the interpreter busy) or be ignored for a jog — and an
-        # unknown jog state is no proof there is none
-        cases = (({"interp": linuxcnc.INTERP_READING}, "interpreter not idle"),
-                 ({"interp": linuxcnc.INTERP_PAUSED}, "interpreter not idle"),
-                 ({"jog": True}, "jog active"),
-                 ({"jog": None}, "jog state unknown"),
-                 ({"stale": True}, "jog state unknown"))
-        for case, how in cases:
-            with self.subTest(case=case):
+    def test_nothing_is_sent_in_auto_whatever_the_interpreter_does(self):
+        for interp in (linuxcnc.INTERP_IDLE, linuxcnc.INTERP_PAUSED, linuxcnc.INTERP_READING):
+            with self.subTest(interp=interp):
                 self.task.calls.clear()
-                gateway.STAT.interp_state = case.get("interp", linuxcnc.INTERP_IDLE)
-                self.pins["jog_active"] = case.get("jog", False)
-                stale = case.get("stale", False)
-                with unittest.mock.patch.object(gateway, "_reader_is_stale", lambda: stale):
-                    rc, said = _run(gateway._synch_interp_params())
-                self.assertEqual((rc, said, self.task.calls), (None, how, []))
+                gateway.STAT.interp_state = interp
+                self.assertEqual(_run(gateway._synch_interp_params()), (None, "auto"))
+                self.assertEqual(self.task.calls, [])
+
+    def test_a_read_in_auto_is_not_confirmed_and_says_why(self):
+        r = self.send({"cmd": "read_g30"})
+        self.assertEqual(r, {"ok": False, "confirmed": False, "error": "G30 not confirmed in AUTO — switch to MDI first"})
+        self.assertEqual(self.task.calls, [], "no synch, no mode switch")
+
+    def test_a_start_between_the_poll_and_the_command_aborts_nothing(self):
+        # Codex R118's interleaving: the poll sees AUTO/IDLE; a start lands
+        # by the time task takes a command (the double's mode() then aborts
+        # it, as emcTaskSetMode AUTO does) — so no command may go out
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        self.pins["jog_active"] = False
-        with unittest.mock.patch.object(gateway, "_reader_is_stale", lambda: False):
-            r = self.send({"cmd": "read_g30"})
-        self.assertTrue(r["confirmed"], r)
+        mode = self.task.mode
+
+        def start_lands_first(m):
+            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+            return mode(m)
+        self.task.mode = start_lands_first
+        r = self.send({"cmd": "read_g30"})
+        self.assertFalse(r["confirmed"], r)
+        self.assertNotIn(("aborted",), self.task.calls)
+        self.assertEqual(self.task.calls, [])
+
+    def test_a_start_landing_before_the_synch_in_mdi_is_refused_not_aborted(self):
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        synch = self.task.task_plan_synch
+
+        def start_lands_first():
+            gateway.STAT.task_mode = linuxcnc.MODE_AUTO          # another GUI started a run
+            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+            synch()
+        self.task.task_plan_synch = start_lands_first
+        r = self.send({"cmd": "read_g30"})
+        self.assertEqual(r, {"ok": False, "confirmed": False, "error": "G30 not confirmed — LinuxCNC did not synch"})
+        self.assertEqual(self.task.names(), ["synch"])
+        self.assertNotIn(("aborted",), self.task.calls)
+
+    def test_a_write_in_auto_writes_nothing(self):
+        r = self.send({"cmd": "set_g30", "values": {"x": 120.0}, "based_on": self.stored()})
+        self.assertEqual((r["ok"], r["confirmed"]), (False, False))
+        self.assertEqual(self.task.calls, [], "no mode switch, no MDI")
 
     def test_a_machine_off_or_in_estop_takes_task_plan_synch(self):
         # LinuxCNC takes PLAN_SYNCH in every mode while the machine is not ON
@@ -438,8 +446,11 @@ class TestSynchInAuto(_G30Case):
             with self.subTest(mode=mode):
                 self.task.calls.clear()
                 gateway.STAT.task_mode = mode
+                gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
                 rc, how = _run(gateway._synch_interp_params())
                 self.assertEqual((rc, how, self.task.names()), (1, "task_plan_synch", ["synch"]))
+        r = self.send({"cmd": "read_g30"})
+        self.assertTrue(r["confirmed"], r)
 
 
 class TestG30Exclusive(_G30Case):

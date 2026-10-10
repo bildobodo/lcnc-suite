@@ -180,19 +180,17 @@ class TestReadBack(_BasisCase):
         self.assertEqual(toolsetter_basis_view(gateway._ts_basis)["state"], "confirmed")
         self.assertEqual(self.task.names(), ["synch"], "nothing written to the machine")
 
-    def test_a_read_back_with_a_program_loaded_synchs_by_the_switch_to_auto(self):
+    def test_a_read_back_in_auto_sends_nothing_and_confirms_nothing(self):
         # a loaded program leaves the task in AUTO, where LinuxCNC refuses
-        # task_plan_synch (measured live 2026-10-09) — the read went nowhere
-        import unittest.mock
+        # task_plan_synch and the switch to AUTO could abort a start that
+        # lands meanwhile (Codex R118 VP-I71): the basis stays assumed
         from test_g30 import linuxcnc
         gateway._ts_ensure()
         self.task.params[3009] = 9.0
         gateway.STAT.task_state, gateway.STAT.task_mode = linuxcnc.STATE_ON, linuxcnc.MODE_AUTO
-        with unittest.mock.patch.object(gateway, "_reader_get", lambda k: False if k == "jog_active" else None), \
-                unittest.mock.patch.object(gateway, "_reader_is_stale", lambda: False):
-            _run(gateway._ts_read_back("/p.ngc"))
-        self.assertEqual((self.origin(3009), self.value(3009)), ("read", 9.0))
-        self.assertEqual(self.task.calls, [("mode", linuxcnc.MODE_AUTO)], "nothing written, no abort")
+        _run(gateway._ts_read_back("/p.ngc"))
+        self.assertEqual(self.origin(3009), "assumed")
+        self.assertEqual(self.task.calls, [], "nothing sent")
 
     def test_a_synch_that_publishes_no_new_file_proves_nothing(self):
         gateway._ts_ensure()
@@ -253,6 +251,14 @@ class TestEdges(_BasisCase):
         self.assertIsNone(gateway._ts_drift_reason(), "a program without the routine")
 
     def test_an_unconfirmed_basis_is_read_back_once_while_the_program_is_loaded(self):
+        # machine on in AUTO (where a load leaves the task): not due, not
+        # tried — LinuxCNC takes no synch there (Codex R118 VP-I71); due
+        # once the task leaves AUTO
+        from test_g30 import linuxcnc
+        in_auto = type("InAuto", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_AUTO})
+        self.assertFalse(gateway._ts_read_back_due(in_auto))
+        in_mdi = type("InMdi", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_MDI})
+        self.assertTrue(gateway._ts_read_back_due(in_mdi))
         self.assertTrue(gateway._ts_read_back_due(_St))
         gateway._ts_readback_tried = (gateway._ts_basis_version, "/p.ngc")
         self.assertFalse(gateway._ts_read_back_due(_St), "once per version and program")

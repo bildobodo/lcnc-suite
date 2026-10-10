@@ -106,6 +106,29 @@ class TestToolNumberIsTheRowsId(unittest.TestCase):
         self.assertEqual((rows[7][3], rows[1][3]), (66.0, 10.0))
 
 
+class TestRandomToolchangerAndUnload(unittest.TestCase):
+    """Index 0 means "unload" only for a non-random toolchanger. A random one
+    swaps pocket 0 with the selected pocket; T7 already in pocket 0 is T7
+    after `T7 M6`, not tool 0 (Codex R118 VP-I72: the offset of 66 was
+    applied under tool 0)."""
+
+    def test_a_random_toolchanger_keeps_the_loaded_tool(self):
+        r = probe("m6_random_loaded")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["tool_change_lines"], [[3, 7]])
+        self.assertEqual([(e[3], e[4]) for e in r["tlo_events"]], [(0.0, 7), (66.0, 7)])
+
+    def test_a_random_toolchanger_swaps_another_pocket_in(self):
+        r = probe("m6_random_swap")
+        self.assertEqual(r["tool_change_lines"], [[3, 2]])
+        self.assertEqual([(e[3], e[4]) for e in r["tlo_events"]], [(0.0, 2), (20.0, 2)])
+
+    def test_t0_unloads_a_non_random_spindle(self):
+        r = probe("m6_unload")
+        self.assertEqual(r["tool_change_lines"], [[3, 1], [6, 0]])
+        self.assertEqual([e[4] for e in r["tlo_events"]], [1, 1, 0, 0])
+
+
 class TestUnknownStartAfterAToolChange(unittest.TestCase):
     """Codex R92 VP-I51: after an M6 at a tool change position the preview
     interpreter computes every left-out axis, an arc's centre and every G91

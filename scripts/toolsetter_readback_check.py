@@ -5,10 +5,16 @@ values — task_plan_synch makes the interpreter write every line of the
 parameter file from its own values (rs274ngc_pre.cc save_parameters), a new
 inode proves the fresh file.
 
-On a running SIM (never a machine): one armed WS client, heartbeats
-throughout. The check writes a scratch program `T1 M600` into a dot folder of
-PROGRAM_PREFIX and loads it (only a loaded program that runs the routine makes
-the gateway read back); nothing is run. Then:
+On a running SIM, never a machine — enforced before anything is sent
+(Codex R118 VP-I73): the INI must be the one LinuxCNC runs, its name a
+shipped simulator profile's (examples/sim_config/profiles.json), and its
+kinematics, joints, coordinates and HAL files the shipped fixture's;
+otherwise the check stops without connecting. One armed WS client,
+heartbeats throughout. The check writes a scratch program `T1 M600` into a
+dot folder of PROGRAM_PREFIX and loads it (only a loaded program that runs
+the routine makes the gateway read back), and switches the task to MDI (in
+AUTO, where a load leaves it, LinuxCNC takes no synch — Codex R118
+VP-I71); nothing is run. Then:
 
   1. the start: every key `assumed` from the file, the read-back confirms them
   2. MDI `#3009 = <file value + 1.25>`: the interpreter holds the new value,
@@ -18,9 +24,10 @@ the gateway read back); nothing is run. Then:
      toolsetter values follow
   4. the old value back by MDI and the same read-back
 
-Rows print PASS / FAIL with what was measured. Ends by terminating the sim's
-launcher while the client is still connected (a client leaving a running sim
-trips the HAL watchdog's latch, which nobody but the operator acknowledges).
+Rows print PASS / FAIL with what was measured. Ends by terminating the
+verified instance's launcher (only it) while the client is still connected
+(a client leaving a running sim trips the HAL watchdog's latch, which nobody
+but the operator acknowledges; the check never acknowledges a trip).
 
     lcnc-gateway/.venv/bin/python scripts/toolsetter_readback_check.py <ini> <report.txt> [--keep-sim]
 """
@@ -40,6 +47,57 @@ import websockets
 s = linuxcnc.stat()
 KEY = 3009
 ROWS = []
+SIM_CONFIG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples", "sim_config")
+
+
+def ini_values(text):
+    """Every value of each (SECTION, KEY), repeated HALFILE lines kept."""
+    values, section = {}, ""
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if line.startswith("[") and line.endswith("]"):
+            section = line[1:-1].upper()
+        elif "=" in line:
+            key, value = line.split("=", 1)
+            values.setdefault((section, key.strip().upper()), []).append(value.strip())
+    return values
+
+
+def validate_sim_target(ini, running_ini, sim_config=SIM_CONFIG):
+    """Only a running shipped SIMULATOR (Codex R118 VP-I73): the requested
+    INI is the one LinuxCNC runs, its name a shipped profile's, and what
+    makes it that simulator — kinematics, joints, coordinates, the HAL files
+    — the shipped fixture's. Raises ValueError with the reason."""
+    req = os.path.realpath(os.path.expanduser(ini))
+    if not running_ini or req != os.path.realpath(os.path.expanduser(running_ini)):
+        raise ValueError("the requested INI is not the one LinuxCNC runs")
+    with open(os.path.join(sim_config, "profiles.json")) as f:
+        names = [p["ini"] for p in json.load(f)["profiles"]]
+    name = os.path.basename(req)
+    if name not in names:
+        raise ValueError(f"{name} is no shipped simulator profile")
+    with open(req) as f:
+        got = ini_values(f.read())
+    with open(os.path.join(sim_config, name)) as f:
+        want = ini_values(f.read())
+    for key in (("KINS", "KINEMATICS"), ("KINS", "JOINTS"), ("TRAJ", "COORDINATES"),
+                ("HAL", "HALFILE"), ("HAL", "POSTGUI_HALFILE")):
+        if got.get(key) != want.get(key):
+            raise ValueError(f"not the shipped simulator: [{key[0]}] {key[1]} differs")
+
+
+def launcher_pids(running_ini, ps_lines):
+    """The pids of the launcher of exactly this instance: `bash …/lcnc-suite
+    -ini <running_ini>`. `ps_lines` are `pgrep -a` lines; another instance's
+    launcher, a shell holding the pattern in its command — none of them."""
+    out = []
+    for line in ps_lines:
+        pid, _, cmd = line.strip().partition(" ")
+        argv = cmd.split()
+        if (len(argv) == 4 and argv[0] == "bash" and argv[1].endswith("/lcnc-suite")
+                and argv[2] == "-ini" and argv[3] == running_ini):
+            out.append(int(pid))
+    return out
 
 
 def row(name, ok, detail=""):
@@ -218,7 +276,7 @@ def payload_value(gw):
     return vals.get(str(KEY))
 
 
-async def main(ini, report, keep_sim):
+async def main(ini, report, keep_sim, running_ini):
     cfg = os.path.dirname(os.path.abspath(ini))
     token = ini_value(ini, "DISPLAY", "WEBUI_TOKEN") or ""
     port = int(ini_value(ini, "DISPLAY", "WEBUI_PORT") or 8000)
@@ -246,6 +304,9 @@ async def main(ini, report, keep_sim):
             ino0, f0 = var_value(var, KEY)
             r = await send(gw, {"cmd": "load_file", "path": prog})
             row("load the scratch program (T1 M600, never run)", bool(r.get("ok")), str(r.get("error") or ""))
+            # in AUTO (where the load leaves the task) LinuxCNC takes no synch
+            r = await send(gw, {"cmd": "set_mode", "mode": linuxcnc.MODE_MDI})
+            row("switch the task to MDI (the read-back is due outside AUTO)", bool(r.get("ok")), str(r.get("error") or ""))
             ev, _ = await wait_trace(trace, lambda e: e.get("tag") == "toolsetter.read_back", timeout=90)
             row("1 start: the read-back confirms the file's values",
                 ev is not None and ev.get("state") == "confirmed",
@@ -291,9 +352,10 @@ async def main(ini, report, keep_sim):
                 # the launcher is a bash script (its comm is `bash`): matched by
                 # its command line from the start — a `bash -c` shell holding
                 # the pattern in its own command does not start with it
-                pids = subprocess.run(["pgrep", "-f", "^bash .*/lcnc-suite -ini "], capture_output=True, text=True).stdout.split()
-                for pid in pids:
-                    os.kill(int(pid), signal.SIGTERM)
+                lines = subprocess.run(["pgrep", "-a", "-f", "/lcnc-suite -ini "], capture_output=True,
+                                       text=True).stdout.splitlines()
+                for pid in launcher_pids(running_ini, lines):
+                    os.kill(pid, signal.SIGTERM)
                 t0 = time.monotonic()
                 while time.monotonic() - t0 < 30 and subprocess.run(["pgrep", "-x", "linuxcncsvr"],
                                                                     capture_output=True).returncode == 0:
@@ -314,5 +376,22 @@ async def main(ini, report, keep_sim):
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    asyncio.run(main(args[0], args[1], "--keep-sim" in sys.argv))
+    try:
+        s.poll()
+        running = s.ini_filename
+    except linuxcnc.error as e:
+        running = None
+        print(f"no running LinuxCNC: {e}", flush=True)
+    try:
+        validate_sim_target(args[0], running)
+    except ValueError as e:
+        # before connecting, arming or resetting anything
+        row("target: the running, shipped simulator", False, str(e))
+        with open(args[1], "w") as f:
+            f.write(f"# toolsetter read-back check {time.strftime('%Y-%m-%d %H:%M:%S')}: refused\n")
+            for name, verdict, detail in ROWS:
+                f.write(f"{verdict}  {name}  {detail}\n")
+        sys.exit(1)
+    row("target: the running, shipped simulator", True, os.path.basename(running))
+    asyncio.run(main(args[0], args[1], "--keep-sim" in sys.argv, running))
     sys.exit(0 if ROWS and all(v == "PASS" for _, v, _ in ROWS) else 1)

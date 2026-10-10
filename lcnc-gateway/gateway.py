@@ -4155,6 +4155,10 @@ def _ts_read_back_due(st) -> bool:
         return False
     if _ts_readback_task is not None and not _ts_readback_task.done():
         return False
+    # Machine ON in AUTO, LinuxCNC takes no synch (Codex R118 VP-I71): not due
+    # there — it becomes due once the task leaves AUTO, not tried in vain
+    if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
+        return False
     return not (_get_cmd_lock().locked() or _rfl_busy() or _active_jogs or st.current_vel)
 
 
@@ -8544,31 +8548,25 @@ async def _halshow_loop() -> None:
 
 async def _synch_interp_params() -> Tuple[Optional[int], str]:
     """Make the interpreter write the parameter file from its own values
-    (Interp::synch → save_parameters), the way LinuxCNC takes it in the mode
-    the task is in: (rc, how) — rc None when nothing was sent, `how` the
-    command or why not. Caller holds _cmd_lock.
+    (Interp::synch → save_parameters), where LinuxCNC takes it: (rc, how) —
+    rc None when nothing was sent, `how` the command or why not. Caller
+    holds _cmd_lock.
 
-    Machine ON in AUTO with the interpreter idle — where every loaded
-    program leaves the task — refuses EMC_TASK_PLAN_SYNCH ("can't do that
-    … in auto mode with the interpreter idle", emctaskmain.cc, an operator
-    error; measured live 2026-10-09: every confirmed read failed there).
-    There the switch to AUTO itself synchs (emcTaskSetMode AUTO:
-    emcTaskAbort + emcTaskPlanSynch), the operator's mode unchanged. That
-    re-entry is honoured with the interpreter BUSY too and would abort the
-    program, so it is sent only on a fresh poll that shows it idle; and task
-    ignores it while a jog runs (also allowed in AUTO idle), so only with
-    the jog pin read false. In every other state and mode LinuxCNC takes
-    task_plan_synch."""
+    Machine ON in AUTO — where every loaded program leaves the task —
+    refuses EMC_TASK_PLAN_SYNCH ("can't do that … in auto mode with the
+    interpreter idle", emctaskmain.cc, an operator error; measured live
+    2026-10-09). Nothing is sent there and the read is NOT confirmed: the
+    switch to AUTO also synchs, but task honours it with the interpreter
+    busy and aborts — a poll that saw it idle proves nothing about the
+    moment task takes the command (Codex R118 VP-I71: a start written in
+    between, or from another GUI, was aborted and the read then reported
+    confirmed). In MANUAL and MDI, and with the machine off, task takes
+    task_plan_synch; a start that lands first puts the task in AUTO, where
+    the synch is refused — no abort."""
     STAT.poll()
     if (safe_get("task_state", None) == linuxcnc.STATE_ON
             and safe_get("task_mode", None) == linuxcnc.MODE_AUTO):
-        if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
-            return None, "interpreter not idle"
-        if _reader_is_stale() or _reader_get("jog_active") is None:
-            return None, "jog state unknown"
-        if _reader_get("jog_active"):
-            return None, "jog active"
-        return await _cmd_blocking(CMD.mode, linuxcnc.MODE_AUTO, wait=5), "auto re-entry"
+        return None, "auto"
     return await _cmd_blocking(CMD.task_plan_synch, wait=5), "task_plan_synch"
 
 
@@ -8617,6 +8615,8 @@ async def _g30_synch_read(path: str, keys: List[str]) -> Dict[str, float]:
     rc, how = await _synch_interp_params()
     if rc != getattr(linuxcnc, "RCS_DONE", 1):
         _trace.emit("g30.not_synched", level="warn", rc=rc, how=how)
+        if how == "auto":
+            raise _G30Unconfirmed("G30 not confirmed in AUTO — switch to MDI first")
         raise _G30Unconfirmed("G30 not confirmed — LinuxCNC did not synch")
     try:
         ino1, values = await _var_file_thread(read_var_snapshot, path, keys)

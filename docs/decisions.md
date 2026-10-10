@@ -9104,3 +9104,19 @@ tool. The number is now the spindle row's id after StatMixin's change.
 change_tool on a table instead of bypassing it. The preview goldens change
 where a golden's table is not in order (regenerated at the next suite stop).
 
+**Codex R118, VP-I71.** The forced AUTO re-entry above is withdrawn. Task honours
+SET_MODE AUTO with the interpreter busy and runs emcTaskAbort; the fresh poll that
+saw it idle proves nothing about the moment task takes the command — a start written
+in between, or one from another GUI, would be aborted and the read then reported
+confirmed (Codex reproduced it against the task double). In ON + AUTO nothing is sent
+now and the read stays unconfirmed with its reason; G30 says "switch to MDI first",
+the toolsetter read-back keeps the basis assumed. The read-back therefore confirms
+only outside AUTO (after an MDI line, which books the basis assumed anew and makes it
+due again). A switch to MDI before the read would be safe against a running program
+(task refuses to leave AUTO with the interpreter busy) but changes the mode the
+operator sees — its own contract, offered, not built.
+
+**Codex R118, VP-I72.** A random toolchanger swaps pocket 0 with the selected pocket;
+index 0 there keeps the loaded tool. The tool number is the spindle pocket's id after
+StatMixin's change in every case, an empty pocket 0.
+
