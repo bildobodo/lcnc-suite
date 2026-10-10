@@ -1,0 +1,75 @@
+{
+  "scope": "plan checks reproduced in Python, not native or product tests",
+  "source_hashes": {
+    "remap": "af5e6eb664bd662e89abafa36d7cc4e2fc770287c71288435eb821361e0e2d5a",
+    "twp_params": "013e4de636cab748b7178e48ae018e38cba5026a55c35806c2e810b02d7bf190",
+    "twp_prov": "694163fa9cbc6cda2fbd52ac4ebb207550b2afc024c059672c80402d344f1acf",
+    "twp_transform": "3ccb18847ac8f25c546884d65d5478d7f6080335e1889d58c5badc9ae95aaa71",
+    "util": "aee8b6917d7a2a504b835112b03e03e5c598138729c0e2e985ca2e8f8c79fcd5"
+  },
+  "unmodified_positive_controls": {
+    "g682": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    },
+    "g684": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    },
+    "g69_core": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    },
+    "g683": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    },
+    "g53x_core": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    },
+    "twp_touchoff": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    }
+  },
+  "same_module_function_alias": {
+    "binding_under_test": "remap.g682",
+    "loader_statement": "remap.g682 = remap.g683",
+    "actual_code_name": "g683",
+    "actual_code_firstlineno": 1621,
+    "expected_mask_for_g682": "",
+    "mask_for_the_actual_g683_body": "ABC",
+    "plan_conditions": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    }
+  },
+  "same_module_helper_alias": {
+    "loader_statement": "remap.get_current_work_offset = remap.get_current_rotary_positions",
+    "entry_point_code_name_unchanged": true,
+    "called_helper_code_name": "get_current_rotary_positions",
+    "original_helper_code_name": "get_current_work_offset",
+    "plan_conditions": {
+      "exists_and_same_file": true,
+      "remap_file_hash_matches": true,
+      "helper_file_hashes_match": true
+    },
+    "scope": "identity/call-graph mismatch only; changed helper return type not executed"
+  },
+  "VP129_01_contract_model": {
+    "absent": false,
+    "XYZ": false,
+    "XYZABC": true,
+    "XYZABCUVW": true,
+    "malformed_count": true
+  },
+  "assertions": "PASS"
+}

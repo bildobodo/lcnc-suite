@@ -1,0 +1,16 @@
+{
+  "head": "f4ebe4fc7356dffe6f3a5221d4793b793e9c37de",
+  "base": "20128e28",
+  "archive": "/tmp/codex-r130-rqfehfpg/src",
+  "review_prefix_size": 1269857,
+  "review_prefix_sha256": "16935f8f2f04756495be8a4ed41a36455681423a3233a0c7116c3251d2527d47",
+  "source_sha256": {
+    "lcnc-gateway/gateway_util.py": "bf9d8eb7a16ce734d95935c05d4e8422c88931a29a1b29d9d820bd7f86b7caa9",
+    "examples/sim_config/lcnc_suite_sim_6axis_twp_xyzabc.ini": "449796ddf281a3e70aa998b9683a4c3bd4699ad6ba96f332a10d200610696ebf",
+    "scripts/parity_corpus/twp_gantry.json": "997fe8570eae5673292a77f9f0eea27d66c9387a646e371c48767ffe8a589e37",
+    "docs/reviews/parity-ef.plan.md": "902a8f77b4c93e13071f6e6a4c74fa9a8f8499dcbb57eb6783fe8b142c1e55d8",
+    "docs/reviews/viewer-palette-fest.r129.codex-audit.py": "6a2f578f006c760700616e379a9e84a3ca2c3b61eddcaaa31b4a6c323b2dd8ee",
+    "docs/reviews/viewer-palette-fest.r130.py-remap-probe.py": "fa7631c56252810db7da9d3865fecbb38cbe6ecc5486b8990c3468a71ddadc72",
+    "docs/reviews/viewer-palette-fest.r130.py-remap.txt": "0e6acd6f84f782d5666526551bcf71a79047b9644a2169e3687e013dd2376f2c"
+  }
+}
