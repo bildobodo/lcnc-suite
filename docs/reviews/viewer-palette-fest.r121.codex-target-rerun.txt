@@ -1,0 +1,2 @@
+PASS: installed profiles accepted and all R119/HAL-recursion controls refused.
+PASS: changed and missing loadusr Python script refused; scanner returns interpreter and file.

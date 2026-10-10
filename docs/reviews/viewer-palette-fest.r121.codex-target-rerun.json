@@ -1,0 +1,76 @@
+{
+  "offline_only": true,
+  "loadusr_line": "loadusr -Wn sim-toolsetter-feed python3 sim_toolsetter/sim_toolsetter_feed.py",
+  "files_found_by_runs": [
+    [
+      "path",
+      "python3"
+    ],
+    [
+      "file",
+      "sim_toolsetter/sim_toolsetter_feed.py"
+    ]
+  ],
+  "cases": [
+    {
+      "case": "installed_lcnc_suite_sim_3axis_xyz.ini",
+      "accepted": true,
+      "reason": null
+    },
+    {
+      "case": "installed_lcnc_suite_sim_5axis_xyzac.ini",
+      "accepted": true,
+      "reason": null
+    },
+    {
+      "case": "installed_lcnc_suite_sim_6axis_twp_xyzabc.ini",
+      "accepted": true,
+      "reason": null
+    },
+    {
+      "case": "other_active_ini",
+      "accepted": false,
+      "reason": "the requested INI is not the one LinuxCNC runs"
+    },
+    {
+      "case": "non_profile_name",
+      "accepted": false,
+      "reason": "production.ini is no shipped simulator profile"
+    },
+    {
+      "case": "different_halfile_name",
+      "accepted": false,
+      "reason": "not the shipped simulator: the INI differs (HALFILE = physical-drives.hal)"
+    },
+    {
+      "case": "changed_hal_body_same_filename",
+      "accepted": false,
+      "reason": "not the shipped simulator: hallib/core_sim_5.hal differs (source hallib/physical-drives.hal)"
+    },
+    {
+      "case": "extra_halcmd",
+      "accepted": false,
+      "reason": "not the shipped simulator: the INI differs (HALCMD = source physical-drives.hal)"
+    },
+    {
+      "case": "changed_sourced_hal",
+      "accepted": false,
+      "reason": "not the shipped simulator: hallib/sim_toolsetter.hal differs (loadrt hm2_pci)"
+    },
+    {
+      "case": "missing_sourced_hal",
+      "accepted": false,
+      "reason": "not the shipped simulator: hallib/sim_toolsetter.hal is missing"
+    },
+    {
+      "case": "changed_loadusr_python_script",
+      "accepted": false,
+      "reason": "not the shipped simulator: sim_toolsetter/sim_toolsetter_feed.py differs"
+    },
+    {
+      "case": "missing_loadusr_python_script",
+      "accepted": false,
+      "reason": "not the shipped simulator: sim_toolsetter/sim_toolsetter_feed.py is missing"
+    }
+  ]
+}

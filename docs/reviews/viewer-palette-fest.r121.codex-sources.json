@@ -1,0 +1,45 @@
+{
+  "head": "a5faea3a7d3ff05163dc3149fd6389e6380ad52d",
+  "sources": [
+    {
+      "path": "scripts/toolsetter_readback_check.py",
+      "sha256": "4332bd233d000aa43faf38bd0e5b3e80979278630b440a5b82d724217c1116f2",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/test_toolsetter_readback_check.py",
+      "sha256": "7202de1f77d6d461d5aa5dc0a237defa0b6f4121afd18cbe6f8503fc4e7e1273",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/config_sync_check.py",
+      "sha256": "8db21a0d612c00bdc65b667da9cbf224174c64b418c815a2e506a7048d50dfe5",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/install_examples.py",
+      "sha256": "174ccc943c4bc0f336c5e017ab267423d4aaa8df9e5e29946c0103321bc00605",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/test_config_sync_check.py",
+      "sha256": "770d5b3f98d8a26bca83a75e05481efd26f58812c0cab80e7e3375a6b6caecc2",
+      "matches_git": true
+    },
+    {
+      "path": "examples/sim_config/hallib/sim_toolsetter.hal",
+      "sha256": "ad564a4e38672726dfbab34841e4a9ced85aaffadcc47b52187c406030624211",
+      "matches_git": true
+    },
+    {
+      "path": "examples/sim_config/sim_toolsetter/sim_toolsetter_feed.py",
+      "sha256": "33cd640750fe66d3f8dea15337394a55f5495de1634f1c08122849971a9ff985",
+      "matches_git": true
+    },
+    {
+      "path": "install.sh",
+      "sha256": "219259810a3712edb596cabe0bb2440abc5f001976bf015c2d7c1b73a215cec8",
+      "matches_git": true
+    }
+  ]
+}
