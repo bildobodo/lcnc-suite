@@ -1,0 +1,47 @@
+# R126 · Gate und Mutationen · Umsetzung F (Bremsbereich der Antastung) · 10. Oktober 2026
+
+Geprüfter Stand: fix/probe-band 9b806d23 (d56c9961 + 9b806d23 auf der Integration b8c4e96a).
+Worktree ~/lcnc-suite-stop. Die Sim lief (unberührt; keine Live-Schritte in dieser Runde).
+
+## Stufe 1 (scripts/test_suite.py offline --component backend; npm lint / build / test)
+
+  backend PASS (56,8 s), 5axis-model PASS, audit-css PASS, review-handshake PASS,
+  readback-target PASS, parity-compare PASS (neu: scripts/test_parity_compare.py)
+  lint exit 0 · build exit 0 · vitest 2088 passed (2088)
+
+## Stufen B / C / D (--no-deps, --trace off)
+
+  serial-layout 98 passed · serial-visual 10 passed · serial-viewer 85 passed
+  Stufe A (serial-guards) nicht gelaufen: F ändert keinen Pfad dieser Tests (Tastatur,
+  Holds, Makros, G30); die Client-Änderungen greifen nur bei einer Nutzlast mit
+  probe_bands, die die Mocks nicht senden.
+
+## Native Werte (native_start_probe.py, XYZAC-Z: 100 mm/s, 500 mm/s², OFFSET_AV_RATIO 0,2,
+## Servoperiode 1 ms; Taster −180, T2 80 mm, Rückzug 3, F2000 / F200)
+
+  Z an der Tasterposition: 0, −95, −100 (P), −102,8444 (Bremsschenkel), −99,8444 (Rückzug),
+  −97,0 (hinauf bis P + r), −100 (langsam), −100,0344, −97,0344, −97,0; danach G53 Z0.
+  probe_bands [[16, 30, 2, 3]]; toollen_table 80,0; keine Hinweise.
+  Ohne die INI-Werte: Hinweis brake_unknown, Band ohne Bremsschenkel ([P, P + r]).
+
+## Mutationen (je eine, kompilierend, aus Byte-Kopie wiederhergestellt)
+
+  M1  ohne schnellen Bremsschenkel                 RED   (TestBrakingRange)
+  M2  ohne Reserve ρ                               RED
+  M3  ohne Grenze am befohlenen Ende               RED
+  M4  ohne Grenze der langsamen Antastung          RED
+  M5  Canon öffnet kein Band                       RED
+  M6  ohne Band-Anker in der Vereinfachung         GREEN — im Vorschubstrom hält die
+      Zeilen-Ankerung jeden Bandpunkt (jeder Schenkel eine eigene Zeile der Routine);
+      band_anchor_indices ist per Unit-Test festgehalten (test_band_anchor_indices)
+  M7  Eintrag ignoriert das Band (possible)        RED   (collision.test „braking range“)
+  M8  Trennung im Band verifiziert                 RED
+  M9  Endlage des Bands nicht im Band              RED
+  M10 Dekodierung schließt den Bandstart ein       RED   (previewDecode.test)
+  M11 Notiz zum Bereich fehlt                      RED
+  M12 Parity zählt Bandproben in Sim → Wahrheit    RED   (test_parity_compare)
+  M13 möglicher Eintrag gewinnt die Code-Marke     RED   (collisionMarks.test)
+  M14 Hinweis an der falschen Messung              RED   (probeStop.test)
+  M15 Zeilen nach der Messung nicht „conditional“  RED   (simRows.test)
+  M16 simDump markiert nichts                      — kein direkter Wächter; der Parity-Lauf
+      selbst wird ohne Markierung rot (Sim → Wahrheit über die Hülle)
