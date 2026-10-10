@@ -16024,3 +16024,104 @@ Paket 1 bleibt deshalb klein (Wörter, Karte, sofortiger erster Teilstand, Kappu
 
 - Browser-Seite des Messprotokolls auf einem getrennten Browser-PC.
 - Der Korpus `xyzac.json` mit dem M600-Programm bleibt ungemergt, bis E und F behoben sind.
+
+
+## Review R118 · Codex · Schritt-4-Plan, Live-Korrekturen und Parität · 10. Oktober 2026
+
+**Ergebnis: `findings`. Drei offene Umsetzungsbefunde: VP-I71 (P1, Rücklesen kann einen inzwischen gestarteten Lauf abbrechen), VP-I72 (P2, Werkzeug in Tasche 0 beim Zufallswechsler), VP-I73 (P1, Live-Prüfskript ohne Sim-Zielprüfung).** Die Korrektur der angezeigten Bereichs-Startzeile ist angenommen. Die Reihenfolge und der Zuschnitt des Schritt-4-Plans sind sinnvoll; Antworten und Umsetzungsvorgaben stehen unten. Die beiden Paritätsfehler bleiben vor einer geometrischen Abnahme zu beheben; die vorgeschlagenen Regeln brauchen die unten beschriebenen Grenzen.
+
+Geprüft: `5692f3b1..4232a44d`, Archiv von `4232a44d`, außerdem der Korpus auf `test/parity-xyzac-m600` lesend. Eigene Prüfungen: **55 Backend-Tests, 40 Client-Tests, Build und der neue Browser-Wächter zur Aufrufzeile PASS**; fünf zusätzliche native Interpreterfälle und zwei isolierte Gegenproben. Keine Live-Ports, kein Eingriff in die laufende Steuerung, keine Maschinenbefehle. [Prüfaufbau und Wiederholung](viewer-palette-fest.r118.codex-checks.md).
+
+### VP-I71 · P1 · AUTO-Rücklesen darf keinen inzwischen wirksam gewordenen Start abbrechen
+
+**Ort:** `lcnc-gateway/gateway.py:8562–8571`, gemeinsam für G30 und das automatische Toolsetter-Rücklesen.
+
+Der frische Poll und die Annahme des danach gesendeten `SET_MODE AUTO` sind keine atomare Operation. Ein vorher geschriebener, noch nicht im Status sichtbarer Start oder ein Start aus einem anderen Steuerungspfad kann zwischen beiden wirksam werden. `_cmd_lock` verhindert nur weitere gleichzeitige Gateway-Schreibvorgänge; er beweist nicht, dass der Controller beim Verarbeiten des Modusbefehls noch IDLE ist. Die vorhandenen Start-Claims werden hier ebenfalls nicht berücksichtigt.
+
+Meine Gegenprobe führt den echten `read_g30`-Dispatch gegen den Repository-Task-Doppelgänger aus: beim letzten Poll AUTO/IDLE, beim Verarbeiten von `mode(AUTO)` bereits READING. Ergebnis: **`mode(AUTO) → aborted`, anschließend `ok:true, confirmed:true`**. Das Rücklesen bestätigt also seine Werte, nachdem es den Lauf beendet hat. Das ist ein kontrollierter Interleaving-Nachweis, kein behaupteter Live-Abbruch. Die LinuxCNC-Task-Implementierung stützt genau diese Reihenfolge: AUTO→AUTO bleibt bei beschäftigtem Interpreter zugelassen; `emcTaskSetMode(AUTO)` ruft den Bewegungs-/Planabbruch auf. [Probe](viewer-palette-fest.r118.codex-backend-probe.py), [Ergebnis](viewer-palette-fest.r118.codex-auto-read-race.json), [Task-Zulassung in LinuxCNC 2.9.4](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc#L2125).
+
+**Antwort auf A:** Die fehlende Garantie betrifft den Stillstand zum Zeitpunkt der Ausführung, nicht bloß die schon benannten Nebenwirkungen im tatsächlich ruhenden Fall. Ein weiterer Poll schließt dieses Fenster nicht. Für automatisches Lesen keinen bedingungslosen AUTO-Wiedereintritt als Synchronisationsersatz verwenden. Eine Lösung muss den Zustand am Controller bei Annahme des Befehls absichern und darf keinen fremden/ausstehenden Start abbrechen; andernfalls bleibt dieses Lesen ausdrücklich unbestätigt. Ein Wechsel nach MANUAL wäre ein eigener, sichtbarer Modusvertrag mit nachgewiesener Annahme und ohne blindes Zurückschalten. Das ist nicht bereits durch diesen Review freigegeben.
+
+**Wächter:** ausstehender Start vor dem Status-Echo sowie Start zwischen Poll und Befehlsannahme; in beiden Fällen kein durch Lesen ausgelöster Abbruch. Normales AUTO/IDLE, Pause, Jog und fehlgeschlagene Synchronisation bleiben Gegenkontrollen.
+
+### VP-I72 · P2 · Tasche 0 ist beim Zufallswechsler nicht „kein Werkzeug“
+
+**Ort:** `lcnc-gateway/gcode_canon.py:637`: `int(self.tools[0][0]) if idx else 0`.
+
+Die Zuordnung über die Spindelzeile behebt den gemeldeten T37/T43-Fehler. Die Sonderbehandlung `idx == 0` ist aber nur für den Nicht-Zufallswechsler richtig. Bei `random` tauscht `StatMixin` Tasche 0 mit der ausgewählten Tasche; bei Index 0 bleibt das dort geladene Werkzeug erhalten.
+
+**Nativer Gegenfall:** `RANDOM_TOOLCHANGER=1`, T7 mit Länge 66 in P0, T1 in P1 und T2 in P2. `T7 M6; G43; G0 X10` wird fehlerfrei geparst, meldet jedoch **`tool_change_lines:[[3,0]]` und Werkzeug 0 beim TLO von 66**. Erwartet ist T7. Damit sind Werkzeugidentität und angewandte Geometrie widersprüchlich. [Native Fälle und Rohpayloads](viewer-palette-fest.r118.codex-native-results.json), [Probe](viewer-palette-fest.r118.codex-native-probe.py).
+
+**Antwort auf B:** Ja, die ID nach dem Tausch ist die richtige Quelle, auch beim Zufallswechsler und Index 0. Nur dessen aktuelle Umsetzung macht dort noch eine Ausnahme. Die Leer-Spindel-Sonderregel an den tatsächlichen Nicht-Zufallsfall binden. Zusätzlich zu den grünen unsortierten Tabellen: Zufallswechsler mit bereits geladenem Werkzeug, echter Tausch aus einer anderen Tasche und Nicht-Zufallswechsler `T0 M6` prüfen.
+
+### VP-I73 · P1 · Das neue „nur Sim“-Skript setzt auch ein ungeprüftes Ziel zurück und referenziert es
+
+**Ort:** `scripts/toolsetter_readback_check.py:221–241`, Gateway-Eintritt ab Zeile 99, Beenden ab Zeile 294.
+
+Das Skript bezeichnet sich als Sim-Prüfung, akzeptiert aber eine beliebige INI, verbindet sich mit deren Gateway-Port, armiert und sendet `estop_reset`, `machine_on`, `home_all`. Weder die Übereinstimmung mit der aktiven INI noch die Sim-HAL-Konfiguration wird vorher geprüft. Ein versehentlich übergebener Maschinenpfad genügt damit, um den Test auf einem anderen Ziel zu beginnen. Der Kommentar „never a machine“ setzt diese Grenze nicht durch.
+
+Die isolierte Probe übergibt eine INI mit `HALFILE=physical-drives.hal`, ersetzt LinuxCNC und Gateway vollständig durch Doppelgänger und zeichnet **Gateway-Eintritt und `estop_reset` ohne Ablehnung** auf. Danach beendet die Probe den Setup-Pfad absichtlich, bevor weitere Befehle möglich wären. [Probe](viewer-palette-fest.r118.codex-readback-target-probe.py), [Ergebnis](viewer-palette-fest.r118.codex-readback-target.json).
+
+Vor Armieren, Schreiben und Quittieren die aktive Instanz und eine bekannte Sim-Konfiguration verifizieren; unbekannte oder abweichende Ziele ablehnen. Ein vorhandenes Muster ist `scripts/test_suite.py:55` (`validate_live_target`), angepasst an dieses XYZAC-Profil. Auch das standardmäßige Beenden muss zur geprüften Instanz gehören: das aktuelle `pgrep` trifft alle passenden Suite-Launcher. Wächter für Nicht-Sim, angeforderte/aktive INI verschieden und korrektes Sim-Ziel ergänzen. Der Test darf einen bestehenden Operator-Trip nicht allein aufgrund eines ungeprüften INI-Arguments quittieren.
+
+### Angenommen und weiterhin ausdrücklich offen
+
+- **C angenommen:** geplante Startzeile, Ergebnisbereich und Hinweis zu unbekanntem Start verwenden die Aufrufzeile. Der Browser-Wächter zeigt L7 statt Routinezeile L339; die Bereichs-/Payload-Tests bestehen. Die weiterhin rohe Zeile der eigentlichen Befunde und Code-Marken bleibt der bereits benannte Punkt von Paket 2; diese Runde behauptet keine vollständige Korrektur der Befundnavigation.
+- **D/Testpflege:** das Wiederholen der Leertaste prüft die Ereignisverarbeitung nach Ablauf der bestehenden Sperre; die dokumentierte Mutation verhindert einen bloß grünen Test ohne Resume-Zweig. Es ist kein Nachweis, dass jeder einzelne Tastendruck unter Last angenommen wird. Die G30-Abfrage wartet nun auf den vollständig geladenen Wert. Kein zusätzlicher Befund dazu.
+- **Goldens:** die Änderungen sind mit den benannten G43-/M600-Änderungen vereinbar. Ich habe die Differenzen gelesen, die Goldens nicht gegen eine laufende Sim neu erzeugt.
+- **Live-Abnahme:** Rücklesen, Laufbasis, Veröffentlichung und nachfolgende Prüfung sind im gelieferten Protokoll erstmals zusammen belegt. Das ist ein Nachweis dieser Verarbeitungskette, noch keine geometrische M600-Abnahme: der Paritätslauf ist rot. Die großen Cycle-Start-Werte belegen den warmen Fall; der getrennte Browser-PC und die schnelle Folge mehrerer Basisänderungen bleiben offen. Der einfache WS-Client ersetzt den Browser-Lastnachweis nicht.
+- **Gate:** Backend, Unit und die drei späteren Browser-Stufen sind dokumentiert grün. `serial-guards` hat im gelieferten Protokoll keinen vollständig grünen Gesamtlauf nach der letzten Korrektur; die betroffenen Fälle wurden einzeln wiederholt, der Macro-Hold-Test bleibt schwankend. Deshalb hier kein pauschales „Gesamtgate PASS“.
+
+### Schritt 4 · Antworten auf die vier Planfragen
+
+**Reihenfolge und Umfang angenommen:** kleines Paket 1, danach das Datenmodell von Paket 2, danach erklärte Kontakte. Die Messung begründet insbesondere den Vorrang der Speicherarbeit. Den Stundenfall erneut zu profilieren bringt für diese Entscheidung wenig; wichtig ist später der Vergleich mit identischen Eingaben. Das Kontaktzertifikat bleibt ein eigener Beweis-/Orakelauftrag.
+
+1. **Eine zweite Probe ist für die frühe Meldung nicht erforderlich.** Ein tatsächlich gemessener Kontakt bleibt ein Kontakt, wenn die Verfeinerung seinen Beginn früher findet. Die Meldung muss aber ihre schon bekannte Art behalten: erlaubter Schneidkontakt, automatisch ausgenommenes Paar und vorläufiger Grenzkontakt sind nicht allein wegen `dist ≤ Grenze` eine bestätigte unerlaubte Kollision. Beim Grenzkontakt bleiben Beginn und Art vorläufig. Das Sofort-Ereignis an Auftrag, Spur/Version **und Phase/Generation** binden; Pool-Fallback, Retry und Wechsel vom vorläufigen zum vollen Lauf dürfen keine alte Meldung wieder einsetzen. Die Probe bestätigt den Fundort, nicht bereits den genauen Beginn.
+
+2. **Ja zur Detailkarte.** Sie ist für eine Liste von Paaren und die Prüfgrundlage besser geeignet als immer mehr Fließtext im „?“. Dafür einen vollständigen unveränderlichen Kontext am **angezeigten Ergebnis** halten. Das heutige `CheckBasis` enthält noch nicht alle geplanten Angaben, etwa Kinematik/Drehachsenlage, Fixture-Identität und Herkunft der Werkzeugwerte. Diese Daten bei Auftragserzeugung erfassen beziehungsweise aus dem zugehörigen Payload/Modell binden; nicht beim Öffnen der Karte live ergänzen. Während hinter einem vorläufigen Ergebnis die Vollprüfung läuft, zeigt die Karte weiter dessen Kontext und Ausschlüsse. Auch gekappte, alte und abgebrochene Ergebnisse behalten ihren Kontext.
+
+   Das neue `capped` braucht denselben Weg durch Teilstände, Shards und Anfahr-Merge wie das Ergebnis. Die Zahl muss klar „weggelassene Einträge“ heißen, nicht „zusätzliche Kollisionen“. Bis Paket 2 bleibt außerdem die 16-Cluster-Zusammenführung eine andere Approximation; das `MAX_HITS`-Kennzeichen darf sie nicht als behoben erscheinen lassen.
+
+3. **Bei Budgetende anhalten und den ungeprüften Rest nennen.** Weiterrechnen mit still verlorenem Ereignismodell wäre für Liste, Färbung und Navigation schwerer verständlich und zu prüfen. Bereits gesicherte Funde bleiben sichtbar; ein offener Kontakt bekommt bei Abbruch keinen erfundenen Austritt. Bei mehreren Shards muss die gemeinsame Abdeckung konservativ aus deren tatsächlicher Arbeit folgen. Im angekündigten Detailplan das Budget für **alle** Halter ausweisen: offene Kontakt-/Verfeinerungsdaten, Worker-Kopien, Teilstände und zusammengeführtes Ergebnis, nicht nur fertige Intervalle. „Nur Anhängen“ braucht außerdem ausdrücklich Aktualisierungen offener Intervallenden und später verfeinerter Grenzen mit stabiler Identität.
+
+4. **Gelenkfenster reichen für eine konkret erklärte Mechanik, wenn sie alle Freiheitsgrade begrenzen, von denen die Relativlage des Paars abhängt.** Für die mitgelieferten einfachen Führungen ist das ein guter erster Vertrag. Ein Fenster nur einer Achse ist keine allgemeine Garantie für beliebige gekoppelte Mechaniken. Die Erklärung gilt ausschließlich innerhalb ihres vollständig beschriebenen Bereichs; ein Verlassen zwischen Proben muss erfasst oder ausgeschlossen werden. Endkappen bleiben eigene prüfbare Körper. Einen allgemeinen Relativlage-Ausdruck würde ich erst ergänzen, wenn ein Modell ihn braucht; das ist Gegenstand der angekündigten Schema-Runde.
+
+### E · Unbekannter Start und nicht befohlene Achsen
+
+**Der Befund ist richtig; eine Maske ohne Koordinaten- und Geltungsbereich ist als Lösung noch zu ungenau.** Für den konkret gemessenen ersten `G53 G0 Z0` müssen X/Y aus der dazugehörigen Startbasis unverändert bleiben. Das künstliche diagonale Segment darf nicht als geprüfte Anfahrt gelten.
+
+Die eigenen nativen Proben beantworten die beiden Randfragen:
+
+| Satz, Ausgangspunkt (11,22,33), G30-Lage (100,200,300) | Interpreterergebnis |
+|---|---|
+| `G91 G53 G0 Z0` | Fehler: `Cannot use g53 incremental` |
+| `G30` | (100,200,300), alle Achsen zur gespeicherten Lage |
+| `G91 G30 Z0` | (11,22,300), nur Z zur gespeicherten Lage |
+| `G90 G30 Z400` | erst (11,22,400), dann (11,22,300) |
+
+[Native Fälle](viewer-palette-fest.r118.codex-native-results.json). G28 analog nach dessen eigenem gespeicherten Parametersatz behandeln. Bei G28/G30 Zwischenfahrt und gespeicherte Rückfahrt getrennt modellieren; „gespeicherte Lage“ allein beschreibt den Satz mit Achsworten nicht vollständig.
+
+Vor Umsetzung einen kleinen Vertrag ergänzen:
+
+- Die Achsinformation gehört zum **Befehlsrahmen**. G53 bezeichnet Maschinenachsen; nach gedrehtem WCS/TWP/TCP sind diese nicht automatisch die gleichnamigen Komponenten der gespeicherten Spur. Fehlende Komponenten in einem anderen Rahmen zu übernehmen kann wieder eine falsche Gerade erzeugen.
+- Nur der unbekannte **Programmanfang** darf aus der gebundenen Startbasis ergänzt werden. Ein unbekannter Ort nach M6/Probe/Sprung wird nicht aus der inzwischen live gemeldeten Position rekonstruiert.
+- Den Anfangszustand über die nachfolgenden nur teilweise bestimmten Bewegungen fortschreiben. Nur Punkt 0 zu korrigieren und danach wieder an angenommene X/Y-Werte anzuschließen verschiebt den falschen Weg um eine Bewegung.
+- G91 erzeugt keine neu bekannte absolute Achse, seine Deltas verschwinden aber nicht. Entweder von einem nachgewiesenen Start aus fortschreiben oder ausdrücklich unbekannt lassen. Die bestehende Einschränkung für G98-Zyklen bleibt erhalten. Positionsabhängige Offsets/Verzweigungen können zusätzlich eine Neubewertung des Parses verlangen; eine Client-Maske allein macht sie nicht richtig.
+
+Als erster umsetzbarer Umfang bietet sich die nachgewiesene Anfangsfolge gerader Bewegungen in klar benannten Rahmen an, mit explizitem unbekanntem Rest außerhalb dieses Bereichs. Wächter: das konkrete G53-Programm aus verschiedenen Start-X/Y, Folgebewegungen mit einzelnen Achsen, gedrehter Nullpunkt, G91, G28/G30 mit/ohne Achsworte und ein späterer unbekannter Start.
+
+### F · Auslösepunkt, Bremsende und Rückzug getrennt halten
+
+**Den gemessenen tieferen Weg berücksichtigen, aber die Formel mit halber Z-Beschleunigung noch nicht als exakte Bahn freigeben.** LinuxCNC bremst nach dem Probe-Ereignis innerhalb seiner Beschleunigungsgrenzen; `#5061…#5069` beschreiben den Auslösepunkt. Das ist nicht automatisch die Position am Ende des Bremsens. [LinuxCNC-Dokumentation zur Antastung](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g38).
+
+Das Modell braucht drei getrennte Größen: **P = Auslösepunkt**, **Q = Stillstand nach dem Bremsen**, danach die **programmierte Rückzugsbewegung von Q aus**. Ein relativer Rückzug beginnt bei Q; er fährt nicht automatisch erst zurück zu P und anschließend den ganzen Rückzugsbetrag. Probe-Parameter und daraus abgeleitete Werkzeugmessung dürfen beim Ergänzen von Q nicht auf den Bremsendpunkt umgebogen werden.
+
+Ich empfehle entweder ein belegtes Bewegungsmodell mit benanntem Gültigkeitsbereich oder zunächst eine konservative Bremsweg-Hülle mit ausdrücklich begrenzter Aussage. Ein Einzelwert „a/2 passt hier“ deckt andere Vorschübe, kurze Tastwege ohne erreichten Sollvorschub, Achs-/Gelenkbegrenzungen und den Probe-Signalpfad noch nicht ab. Die Kollisionserkennung muss den tieferen Bereich prüfen; außerhalb des belegten Modells bleibt die Geometrie unzertifiziert. Eine begründete Toleranz je Phase kann Modellfehler sichtbar machen, ersetzt aber keine Prüfung einer bisher ausgelassenen Bewegung.
+
+Wächter: schnelle und langsame Antastung, kurzer Beschleunigungsweg, geänderte Beschleunigung/Vorschub, Rückzug kleiner als der Bremsweg sowie ein Hindernis, das nur hinter P liegt. Dabei Probe-Parameter und Werkzeugoffset getrennt gegen den Auslösepunkt prüfen. Den Korpus erst nach diesen Korrekturen und einer erneuten Paritätsmessung übernehmen; die globale Toleranz nicht zum Verdecken des 2,2-mm-Bereichs erhöhen.
+
+### Belege und Prüfgrenzen
+
+[55 Backend-Tests](viewer-palette-fest.r118.codex-backend-existing.txt), [40 Client-Tests](viewer-palette-fest.r118.codex-client-existing.txt), [Build](viewer-palette-fest.r118.codex-build.txt), [Browser-Wächter](viewer-palette-fest.r118.codex-browser.txt), [native Zusammenfassung](viewer-palette-fest.r118.codex-native-summary.txt), [Quellhashes](viewer-palette-fest.r118.codex-sources.json), [Archivkontext](viewer-palette-fest.r118.codex-context.json), [Beleghashes](viewer-palette-fest.r118.codex-sha256.json).
+
+Die AUTO-Race-Probe verwendet einen kontrollierten Task-Doppelgänger; die Werkzeug-/G30-Proben den installierten nativen Offline-Interpreter mit synthetischem Status und eigener temporärer Werkzeugablage. Keine dieser Proben ist ein Live-Nachweis des gesamten Controllers. Claudes Live-Messungen und Mutationen sind gelesen, nicht eigenständig auf der laufenden Sim wiederholt. Die R117-Abnahme der vier damaligen Korrekturen bleibt bestehen.

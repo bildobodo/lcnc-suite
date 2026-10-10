@@ -1,0 +1,9 @@
+{
+  "head": "4232a44d051662538785388b9d051d26a4621535",
+  "base": "5692f3b1",
+  "archive": "/tmp/codex-r118-__gpv7fl",
+  "review_bytes_before": 1151401,
+  "review_sha256_before": "6300f6ebf6899580e0c03feb5cd99206d1685fa6e55c0b293506c1cac5911ae8",
+  "worktree_initial": "",
+  "no_live_ports": true
+}

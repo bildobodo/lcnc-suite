@@ -1,0 +1,31 @@
+{
+  "scenario": "AUTO IDLE at last poll; a start becomes READING before task consumes SET_MODE AUTO",
+  "before": {
+    "mode": 2,
+    "interp": 4
+  },
+  "reply": {
+    "ok": true,
+    "confirmed": true,
+    "values": {
+      "X": 100.0,
+      "Y": 0.0,
+      "Z": -26.275,
+      "A": 0.0,
+      "C": 0.0
+    }
+  },
+  "task_calls": [
+    [
+      "mode",
+      2
+    ],
+    [
+      "aborted"
+    ]
+  ],
+  "after": {
+    "mode": 2,
+    "interp": 4
+  }
+}

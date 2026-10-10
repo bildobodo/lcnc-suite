@@ -1,0 +1,12 @@
+{
+  "ini_kind": "non-simulation, HALFILE=physical-drives.hal",
+  "events": [
+    {
+      "entered_gateway": true
+    },
+    {
+      "cmd": "estop_reset"
+    }
+  ],
+  "report": "# toolsetter read-back check 2026-10-10 09:27:33 on production-machine.ini\nFAIL  setup: machine on and homed  \n"
+}

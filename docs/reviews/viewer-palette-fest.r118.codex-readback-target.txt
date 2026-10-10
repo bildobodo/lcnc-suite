@@ -1,0 +1,2 @@
+FAIL  setup: machine on and homed  
+REPRODUCED: non-simulation target accepted up to recording estop_reset; no real command sent.

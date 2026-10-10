@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r118-__gpv7fl/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  40 passed (40)
+   Start at  09:21:52
+   Duration  616ms (transform 153ms, setup 0ms, import 304ms, tests 222ms, environment 0ms)
+

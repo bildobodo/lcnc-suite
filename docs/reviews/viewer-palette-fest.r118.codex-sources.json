@@ -1,0 +1,135 @@
+{
+  "head": "4232a44d051662538785388b9d051d26a4621535",
+  "repository_sources": [
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "sha256": "f352eacd6553126909e67d3c31223a615e9c4ba8063a113da026b04f5bbbd75f",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/gcode_canon.py",
+      "sha256": "c4e79020ddfb25f90f21889c044c829fa19ad7b75888eb9048087887756b7b50",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/native_start_probe.py",
+      "sha256": "0e6e23676f6b9bc728e5f1511e36ff70550100e04e46296b5e3b393a4f430110",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/test_g30.py",
+      "sha256": "21821711ca4d683d9f30a46bd6b243bd588a29f79079ddb2089402130c145f0b",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/test_gateway_util.py",
+      "sha256": "107ad17249345244abe5614ef956ecc685483039467c10c68253063a5355289b",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/test_m600_preview_worker.py",
+      "sha256": "e385fb10e452bad88ebaa84b7d4e427886e872d8e6d5e93892053ab1b7bb1651",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/test_tool_change_motion_worker.py",
+      "sha256": "30ab452679d5acbc6b8d3b7423ec562f7c0e1e7e9be45496269650656a26b526",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-gateway/test_toolsetter_basis.py",
+      "sha256": "3b91b1042d500379bfcc997b34902d97bfe6c0df7578b01f8927d02ae599095e",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/e2e/collisions.viewer.spec.ts",
+      "sha256": "9236546fb6dec85b7ff00620c5b6e20dc5e099504a087d90e1ca16a292549788",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/e2e/g30.spec.ts",
+      "sha256": "0c8ecf0d10f223588aee5c6a1146752689c7d5d0ce7e00f3275a1dbc633fa002",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/e2e/keyboard-guards.spec.ts",
+      "sha256": "1459c9a0a2282461763e9e24ffa3befd03cb39fd10703a51aba4330302f9ca6e",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "6a562185f60f19c8b13c08d426898beb6aa033e95bad0f4627b273f93fcae4f3",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkBasis.ts",
+      "sha256": "aa55ef01925c1df660a75440ea2a5c50c53311f08b7016531d6381f5ea4a52e7",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.ts",
+      "sha256": "64571872800aeb1127741a1768919c0fe3add2e82e044a74a2b3d37533dba57a",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionRange.test.ts",
+      "sha256": "a0bcc415d8b99e5c309d7c852dd93c73a5fabe5515b594d2cd45a60a915dd40a",
+      "matches_git": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolChangePayloads.test.ts",
+      "sha256": "819828c7f959b2cf1d0db58a95939ef9d978c6233843ae4659c106d64348e1a7",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/preview_goldens/3axis/1001.json",
+      "sha256": "7344e59f22925f1b128d4de9dc948450947d3662cdb3ae298f074142ba9f00b3",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/preview_goldens/3axis/haus.json",
+      "sha256": "1280eb01d844259c52fea9e4117cb6f5799d937bb53b254fc1a67f4a193c8fa7",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/preview_goldens/3axis/kontur.json",
+      "sha256": "a938b59775b1f85b233dfc388cd72e6a409ddd71cdd0c66cde6db122eb1a5c9d",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/review_handshake.py",
+      "sha256": "f56c6483dd89a12cdee95a02f2183d19d07423bbc378053948de38854d980074",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/test_suite.py",
+      "sha256": "5e577f6ad30fef65ef5a06fa5484169d54f784686ac675a19f4d4ee6525166d9",
+      "matches_git": true
+    },
+    {
+      "path": "scripts/toolsetter_readback_check.py",
+      "sha256": "dad6a320a5afce4f1baae91e4a38fb26ec3ccfa286ab1460a3f01b7de478b0ef",
+      "matches_git": true
+    }
+  ],
+  "local_linuxcnc_sources": [
+    {
+      "path": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/src/emctask.cc",
+      "sha256": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1"
+    },
+    {
+      "path": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/src/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e"
+    },
+    {
+      "path": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/src/interp_convert.cc",
+      "sha256": "f2e7cf41ec6bc4b1cd86bf6a5620c7d6028314f66a2980491ffab19156a506cb"
+    },
+    {
+      "path": "/usr/lib/python3/dist-packages/rs274/interpret.py",
+      "sha256": "2f16fa5f5f4ed8b893ccfc3e59311d3dd6d34c527692b6a755f64a5b426cbaf0"
+    }
+  ],
+  "native_package": "1:2.9.4-2+deb13u1",
+  "browser_control_change": "archive only: e2e/ctl.ts http://localhost:4174 -> http://127.0.0.1:4188"
+}
