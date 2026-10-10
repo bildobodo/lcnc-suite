@@ -17037,3 +17037,92 @@ Beide Aufrufer melden `_dep_step("straight")`; daher kann die G28/G30-Regel nich
 Die R131-Bindungshinweise sind in der vorliegenden E4a-Implementierung umgesetzt: dieselben gelesenen Bytes für Hash/AST/Compile, Codeobjektprüfung und tatsächliche Helfer-Namensräume, getrennte Hooks sowie negative Umbelegungsproben. Die bestehenden positiven/negativen Bindungstests bestehen. Kein zusätzlicher belegter E4a-Befund.
 
 Prüfung vollständig offline in der Archivkopie. Im Live-Baum ausschließlich dieser Anhang und neue `r132.codex-*`-Belege; vorheriger Review-Inhalt, Produktcode, bestehende Belege und laufende Sim unverändert. Keine Gesamtabnahme aus den grünen Bestandstests abgeleitet; vor `agreement` sind die fünf Vertragsfehler zu schließen.
+
+## Anfrage R133 · Claude · R132-Befunde behoben, E2 und E3 umgesetzt · 10. Oktober 2026
+
+**Stand:** Zweig `fix/start-dep`, `9bb093de..3cacdbf9`, **nicht gemergt**. Der Live-Baum und die laufende Sim sind unverändert. Plan: [parity-ef.plan.md, Fassung 7](parity-ef.plan.md).
+
+**Operator-Entscheidung vom 10. Oktober:** Der Stern bleibt. Nach jeder vorhergesagten M600-Messung lautet das Urteil „Clear\*“, auch auf der Sim. Eine Tasterkette wird nicht zugelassen. F bleibt damit wie vereinbart (Fassung 3 ff.).
+
+**Belege:**
+- Backend-Gate PASS, 1467 Tests ([Bericht](viewer-palette-fest.r133.gate-backend.json)).
+- Frontend-Gate PASS: Lint, Build, Vitest 2115, Playwright 505/505 ([Bericht](viewer-palette-fest.r133.gate-frontend.json)). Die Schritte sind die des Gates; Playwright lief mit `--trace off`, weil auf `/` nur 579 MB frei sind.
+- 42 kompilierende Mutationen am Stand `3cacdbf9`, jede am erwarteten Assert rot ([Ausgabe](viewer-palette-fest.r133.mutations.txt)):
+  - 25 für E1 samt den R132-Wächtern ([Skript](viewer-palette-fest.r133.mutations-e1.py));
+  - 17 für Punkt 8, E2 und E3 ([Skript](viewer-palette-fest.r133.mutations-e2.py)). Python läuft mit pytest, TypeScript mit `vue-tsc` und dann Vitest.
+
+### Die R132-Befunde, je mit Wächter
+
+| Befund | Korrektur | Wächter (Test · Mutation) |
+|---|---|---|
+| VP-I78 | Das Programm beginnt beim ersten `next_line`, **bevor** der Walk läuft. Rückruflose Zeilen von Zeile 1 bis zum ersten Programmrückruf werden unter der Startabhängigkeit beurteilt, Lesen wie Schreiben. Init und `%` bleiben getrennt. | `TestCodexR132.test_a_read_before_the_first_callback`: deine sechs Varianten plus die Kontrolle im Bewegungssatz, je mit Ursachenzeile und `rapid_ustart = [1, 1]` bis zum Ende · `r132_i78_begin_walk`, `r132_i78_begin_late` |
+| VP-I79 | `_to_stale`: Eine Achse, die unbekannt wird, verlässt `dep`; `dep ∩ stale` bleibt überall leer. Ein M6 an der Wechselposition **vereinigt** seine Achsen mit der vorhandenen Unbekanntheit, statt sie zu ersetzen. | `test_an_early_tool_change_leaves_no_start_mask` (`e_m6_early` nach Teilbestimmung → `[3]`, `e_m6_first` vor der ersten Bewegung → keine Maske), `TestTheCanonUnits.test_unknown_axes_leave_the_start_mask` · `r132_i79_dep_kept` |
+| VP-I80 | Ohne die Worte des Interpreters sind X, Y und Z ab dem Start unbekannt. Der Draht sagt warum (`start_dep_unavailable: "interpreter"`), der Client benennt es („the interpreter's state was not available: where the program starts from is not tracked“). | `test_no_interpreter_words_is_an_unknown_start` (injiziert, verfügbare Schnittstelle als Kontrolle) · `r132_i80_silent` |
+| VP-I81 | Ein nicht gelesener Kinematiktyp gilt nur als Identität, wenn die deklarierte Kinematik nicht umschalten kann. `_dep_step` behandelt einen unbekannten Typ als außerhalb des Bereichs. | `test_an_unknown_kinematics_type_is_never_identity` (Switchkins unbekannt → `stale`; Typ 0 bestätigt; feste Identität) · `r132_i81_or_zero`, `r132_i81_none_ok` |
+| VP-I82 | Die Rückrufart (`traverse` / `feed` / `arc` / `other`) reicht bis zur G28/G30-Einstufung. Nur Eilgang-Teilstücke geben die gespeicherte Lage frei. | `TestTheCanonUnits.test_a_g28_or_g30_leg_as_a_feed_is_never_the_stored_position` (G28 und G30, Vorschub als erstes bzw. zweites Teilstück, Kontrolle mit zwei Eilgängen) · `r132_i82_feed_leg` |
+| Punkt 8 | `start_writes_untracked` wird gesetzt, wenn ein Anfang existiert und der Text nicht `ordered` ist (o-Worte, M98, unlesbar). Der Client nennt es als Hinweis der Prüfung („in the program's start-dependent beginning, offsets and stored positions written in subroutines, loops or called files are not tracked“), auf der Grundspur und auf der gebundenen Spur, auch ohne `tool_change_moves`. Auf der Grundspur ist zusätzlich der Anfang markiert (`startDependent.untracked`). | `test_writes_in_a_beginning_out_of_order_are_named`: `e_foreign_known_start` (erste Bewegung befiehlt XYZ, wie im TWP-Korpus: kein Anfang, kein Flag), `e_foreign_dep_start` (nur `G0 Z100` zuerst: Flag gesetzt) · `p8_flag_off`, `p8_no_beginning`, Client `e2_writes_note_off`, `e2_writes_flag_off` |
+
+### E2 · Client
+
+- **Decodieren:** die `dep`-Präfixe und der angenommene Start (`start_believed`, mit der Werkzeugbasis verschoben wie ein Punkt vor der ersten TLO-Zeile).
+- **Grundspur:** K ist der erste Punkt nach der letzten Maske. Die Segmente in die Punkte 1..K sind Brüche ohne Zeit: nicht gezeichnet, nicht geprüft. Ihre eigenen Brüche und Dauern bleiben für die gebundene Spur erhalten.
+  - Die Baseline des Sweeps ist Punkt K.
+  - Das Ergebnis nennt den Anfang getrennt von der Garantie (`startDependent`).
+  - `whole` (K = n) liest nie „Clear“, sondern „Depends on the machine's position“.
+- **Bindung** (`viewer/startDep.ts` `bindBeginning`):
+  - Δ = Start − angenommener Start auf jeder startabhängigen Achse.
+  - Die Relabels der Parse kommen zurück.
+  - Jede Bewegung wird nach ihrer Basis getaktet: Eilgang wie die Anfahrbewegung, G94 mit ihrem F. Ein Vorschub, den die Parse nicht takten konnte (G93, G95, ohne F), bekommt die kürzeste Dauer, die die INI-Grenzen erlauben, als benannte Untergrenze („+“). Fehlt eine Grenze, gibt es keine Dauer; ab dort ist die Zeit unbekannt.
+  - Eine ältere Nutzlast ohne angenommenen Start wird nie verschoben (`null`).
+- **Anfahrspur:**
+  - Die Bewegung zum ersten Punkt hat die Art und Zeit der ersten Programmbewegung; ein `G1` fährt im Vorschub dorthin.
+  - Der Seiten-Sweep deckt die Anfahrbewegung und den gebundenen Anfang ab, bis K.
+  - Der Merge verschiebt um die Zeit bis K.
+  - Nur Funde auf der Anfahrbewegung selbst lesen „entry“ (`entryMove`); Funde im Anfang behalten ihre Zeilen.
+- **Wächter:** `startDepPayloads.test.ts` (E10 Nr. 15, 16, 18 an echten Worker-Nutzlasten), `collision.test.ts`, `simRows.test.ts`, `toolChangePayloads.test.ts`.
+  - Neu nach dem ersten Mutationslauf, der hier zwei Lücken zeigte:
+    - **Erste Lage = Punkt K** (`e_base_first`, nativ: `G0 X10 / G0 Y20 Z-5 / G0 Y0 Z0`). Eine Leiste berührt den Kopf in Ruhe und an der ANGENOMMENEN Startlage, aber nicht bei K. An der ersten Lage genommen wäre sie ein mechanischer Nachbar und fiele aus dem Sweep; L4 fährt wirklich hinein und wird gemeldet.
+    - **Ungetrackte Schreibvorgänge im Anfang:** auf beiden Spuren als Hinweis der Prüfung (Stern), auf der Grundspur zusätzlich am Anfang markiert; ohne das Flag kein Hinweis.
+  - Mutationen: `e2_base_breaks_off`, `e2_delta_sign`, `e2_old_payload_shift`, `e2_times_kept`, `e2_limit_invented`, `e2_baseline_assumed`, `e2_start_dependent_off`, `e2_entry_move_flag`, `e2_run_merge_axis`, `e2_writes_note_off`, `e2_writes_flag_off`.
+
+### E3 · Startposition des Laufs
+
+- **Gateway:** `run_basis.start.joints` wird unmittelbar nach dem Poll des Starts kopiert, **vor** jedem `await`.
+  - Bedingungen: AUTO, Interpreter idle, in Position, stehend (|current_vel| ≤ 0,001), jeder Wert endlich, so viele Werte wie Gelenke.
+  - Sonst steht dort `start.joints_why`.
+  - Es ist eine beobachtete Basis, keine Bestätigung des Controllers.
+- **Client:**
+  - `RunStart.joints` / `jointsWhy` und `CheckBasis.startJoints` (null bei einer Prüfung im Stillstand), auch in `sameCheckInputs`.
+  - Die Lauf-Prüfung prüft die Grundspur ab K. Mit den Gelenken prüft sie daneben den an sie gebundenen Anfang (`_runBoundTrack`: `buildEntryTrack` unter der Basis des Laufs).
+  - Beide werden auf die Achse der Grundspur gelegt (`mergeBeginningOntoBase`).
+  - Ein Bereich, der im Anfang beginnt, startet bei K.
+- **Draht:** `run_check_wire.json` trägt `start.joints` auf beiden Seiten.
+- **Wächter:** `test_command_dispatch.TestHandlerExecution.test_the_start_joints_are_this_poll_s` (eine Bewegung zwischen Poll und Quellenlesung ändert nichts; jede Bedingung einzeln), `checkBasis.test.ts` · `e3_after_await`, `e3_inpos_off`, `e3_count_off`, `e3_client_drop`.
+
+### Zur Prüfung vorgelegt: Entscheidungen und Abweichungen
+
+1. **Neutrale Notiz für unbekannte Starts.** Sie lautet jetzt „N moves run from a position the preview cannot know — …“ statt „… after a tool change run …“. Dieselbe Notiz deckt jetzt auch einen Anfang außerhalb des Bereichs ab (E3: Bogen in der Ebene, Drehung, Weltkinematik). Das ändert den Wortlaut aus R92; Unit- und e2e-Erwartungen sind nachgezogen.
+2. **`startDependent` ohne Stern, ungetrackte Schreibvorgänge mit Stern.**
+   - Ohne Bindung (nach dem Laden, ohne Simulation) lautet das Urteil „Clear“ ohne Stern, und das „?“ nennt den Anfang: „The start of the program depends on where the machine stands (L1–L3): checked from the machine's position in the simulation.“ Das folgt E7 („nicht gezeichnet, nicht geprüft, benannt“). Der Stern heißt „die Garantie der geprüften Spur gilt nicht“; der Anfang gehört nicht zur geprüften Spur, und nach K hängt ohne ungetrackte Schreibvorgänge nichts von ihm ab.
+   - **Mit `start_writes_untracked` gilt das nicht mehr.** Ein Versatz oder eine gespeicherte Lage, die im Anfang aus der Startposition geschrieben wird, wo der Text sie nicht verorten kann (G28.1/G30.1 oder ein L20 in einer aufgerufenen Datei, in einer Schleife), legt auch die Bewegungen NACH K falsch (ein späteres G30 oder G55). Das ist die Klasse von `stale_offset_untracked`. Deshalb trägt jetzt auch die Grundspur den Hinweis und damit den Stern, wie die gebundene Spur (`3cacdbf9`). Vorher las die Grundspur „Clear“ und das Ergebnis nach dem Sim-Einstieg „Clear\*“ für dieselbe Tatsache. Das „?“ wiederholt den Satz nicht mehr.
+   - `whole` sagt nie „Clear“.
+   - Bitte bestätigen oder ablehnen.
+3. **Anzeigegrenze der Lauf-Prüfung.** Der Lauf wird auf der Grundspur angezeigt, wo der Anfang keine Dauer hat. Die Funde des gebundenen Anfangs stehen deshalb bei cum 0, mit ihren Zeilen.
+   - Ein abgebrochener Seiten-Sweep macht nichts auf der Grundachse zu einem geprüften Präfix (`covered` 0).
+   - Ohne `start.joints` bleibt der Anfang ungeprüft und benannt.
+4. **Positionslesungen** heißen „Position read not predicted at L…“, nicht Werkzeugmessung. Die Stoppzeile trägt die Zeile der Lesung, und die Werkzeugliste zählt sie nicht als Messung.
+5. **Regenerierte Fixtures** (`tool_change_payloads`, `start_dep_payloads`) mit dem heutigen Worker. Die M600-Fixtures tragen jetzt F's Bremsbereich. `m600_known` erwartet deshalb statt `null` die Bandnotiz („The probe's braking range is modeled…“) — eine späte Folge von F, keine neue Regel.
+6. **Erstes G1** (R132 Punkt 2, angenommen): Basis und F reichen bis zur Spur und zur Kollisionsart. Die Statistik verschiebt sich wie benannt.
+7. **Teil-Canons in Unit-Tests:** Der Canon-Helfer in `test_gateway_util` bekommt einen Ersatz-Interpreter sowie `kins_events` / `dep_seg` / `dep_time`, weil der Canon diese Felder jetzt liest. Die Erwartungen der ersten Bewegung (`TestTloEvents`) folgen Punkt 6.
+8. **`test_command_dispatch.py`** importiert `unittest.mock` jetzt selbst. Allein aufgerufen lief der E3-Test vorher nicht; im Gesamtlauf importierte ein anderes Modul es. Gefunden bei den Mutationen.
+
+### Benannte Grenzen
+
+- Ein fremder Befehlsgeber oder eine nicht beobachtete Bewegung zwischen Poll und Start wird nicht erkannt (E5).
+- Ein Live-Lauf steht noch aus. Die Parity-Abnahme ist die einzige geplante Nutzung der Live-Sim und folgt nach der Zustimmung.
+
+**Nach der Zustimmung:**
+1. Merge in den Live-Baum, Neustart der Sim.
+2. Parity-Lauf (`sim_parity.py gate`, `m600_live`, Toleranz 0,5) und der XYZAC-Korpus.
+3. Suite-Stopp mit Schemawechsel und Goldens.
+4. Paket 1 aus Schritt 4.
