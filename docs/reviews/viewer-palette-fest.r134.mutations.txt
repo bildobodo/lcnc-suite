@@ -1,0 +1,78 @@
+R134 mutations at fix/start-dep 52f7b49c — 64 compiling mutations, each run alone, restored from a byte copy; tree clean afterwards.
+Python: ast.parse, then pytest on the named test. TypeScript: vue-tsc --noEmit -p tsconfig.app.json, then vitest on the named files.
+Two anchors moved with the R133 changes and were re-pointed to the same mutation, then run again at the same head:
+  marked_bypass (E1): the reads path's marked-file check, now with its return line (the writes path has a check of its own, i88_marked_off).
+  e2_start_dependent_off (E2): startDependent cleared after its (now three-line) assignment.
+Columns: name, verdict, pytest/vitest tail, first assert lines.
+
+== E1 and the R132 guards (25) — viewer-palette-fest.r134.mutations-e1.py
+rdp_anchor RED 1 failed in 0.12s E       AssertionError: Lists differ: [[0.0, 0.0, 0.0], [10.0, 0.0, 0.0]] != [[0, 0, 0], [0, 0, 0], [0, 0, 0], [10, 0, 0]] | E
+dep_nan_off RED 1 failed in 0.11s E       AssertionError: Lists differ: [{'line': 2, 'axis': 'X', 'value': 600.0, 'limit': 500.0, 'kind': 'max'}] != [] | E
+read_gate_off RED 1 failed in 0.17s E           AssertionError: Tuples differ: (None, [1, 0]) != ([3], [1, 1]) | E
+walk_read_off RED 1 failed in 0.09s E           AssertionError: Tuples differ: (None, [1, 0]) != ([3], [1, 1]) | E
+return_readd_off RED 1 failed in 0.10s E       AssertionError: Lists differ: [3, 3] != [3, 3, 0, 3] | E
+foreign_excuse_off RED 1 failed in 0.19s E       AssertionError: 1 != 0
+code_eq_off RED 1 failed in 0.12s E       AssertionError: 'g682' unexpectedly found in {'g53x_core': frozenset({3, 4, 5}), 'g682': frozenset(), 'g683': frozenset({3, 4, 5}), 'g684': frozenset(), 'g69_core': frozenset(), 'twp_touchoff': frozenset({0, 1, 2, 3, 4, 5}
+hook_union_off RED 1 failed in 0.06s E       AssertionError: frozenset({3, 4, 5}) is not None : an unbound prolog reads every axis
+rotary_maybe_off RED 1 failed in 0.36s E       AssertionError: None != [0]
+leg3_off RED 1 failed in 0.04s E       AssertionError: Tuples differ: (frozenset({0, 1}), frozenset()) != (frozenset(), frozenset({0, 1})) | E
+r132_i78_begin_walk RED 1 failed in 0.10s E           AssertionError: None != [1] : e_read_first
+r132_i78_begin_late RED 1 failed in 0.10s E           AssertionError: None != [1] : e_read_first
+r132_i79_dep_kept RED 1 failed in 0.10s E       AssertionError: Tuples differ: ([3, 3, 3], [1, 1, 1]) != ([3], [1, 1, 1]) | E
+r132_i80_silent RED 1 failed in 0.10s E       AssertionError: Tuples differ: (None, None, [1, 0]) != ('interpreter', None, [1, 1]) | E
+r132_i81_or_zero RED 1 failed in 0.10s E       AssertionError: Tuples differ: ([3, 2], [1, 0]) != (None, [1, 1]) | E
+r132_i81_none_ok RED 1 failed in 0.10s E       AssertionError: Tuples differ: ([3, 2], [1, 0]) != (None, [1, 1]) | E
+r132_i82_feed_leg RED 1 failed in 0.04s E           AssertionError: Tuples differ: (frozenset(), frozenset()) != (frozenset(), frozenset({0, 1, 2})) | E
+first_g1_feed RED 1 failed in 0.10s E       AssertionError: Tuples differ: ([], None, [[0.0, 0.0, 0.0]]) != ([[0, 0, 0]], [1], []) | E
+feed_basis_always2 RED 1 failed in 0.10s E       AssertionError: Lists differ: [2] != [3] | E
+m600_hook_off RED 1 failed in 0.06s E           AssertionError: Items in the second set but not the first: | E           'm600' : prolog=x
+named_read_off RED 1 failed in 0.24s E           AssertionError: Tuples differ: (None, [1, 0]) != ([3], [1, 1]) | E
+marked_bypass RED 1 failed in 0.06s E       AssertionError: Items in the second set but not the first: | E       0
+probe_unknown_keeps_dep RED 1 failed in 0.11s E           AssertionError: 2 != 1 : e_read_dep: unknown to the end outranks dependent
+word_not_value RED 1 failed in 0.10s E       AssertionError: Lists differ: [7] != [6] | E
+verify_sb_off RED 1 failed in 0.18s E       AssertionError: Tuples differ: ((False, 'field start_believed differs'), ([34 chars]rs')) != ((True, 'same'), (True, 'same')) | E
+
+== E2, E3 and point 8 (16) — viewer-palette-fest.r134.mutations-e2.py
+p8_flag_off RED 1 failed in 0.11s E           AssertionError: None is not True : r133_store_before_first_absolute
+e3_after_await RED 1 failed in 0.21s E       AssertionError: Lists differ: [99.0, 99.0, 99.0] != [1.5, -2.0, 30.0] | E
+e3_inpos_off RED 1 failed in 0.21s E           AssertionError: Tuples differ: ([1.0, 2.0, 3.0], None) != (None, 'not in position') | E
+e3_count_off RED 1 failed in 0.20s E           AssertionError: Tuples differ: ([1.0, nan, 3.0], None) != (None, 'joint values incomplete') | E
+e3_client_drop RED Tests  2 failed | 11 passed (13) FAIL  src/viewer/checkBasis.test.ts > run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 1a/1b) > reads every field of the gateway's run_basis | AssertionError: expected { runId: 3, state: 'sent', …(8) } to deeply eq
+e2_base_breaks_off RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > the base track: the beginning is a break with no time > names K, keeps the assumed start, breaks 1..K | AssertionError: expected [ 1, +0, +0, +0 ] to deeply equal [ 1, 1, 1, +0 ]
+e2_delta_sign RED Tests  9 failed | 16 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > Δ = (100, 100, 0): both corners, the path the machine runs | AssertionError: expected [ [ 100, 100, +0 ],
+e2_old_payload_shift RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > an older payload without the assumed start is never shifted | AssertionError: expected { …(33) } to be nu
+e2_times_kept RED Tests  3 failed | 22 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > Δ = (100, 100, 0): both corners, the path the machine runs | AssertionError: expected [ +0, +0, +0, +0, 1
+e2_limit_invented RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > the time of the beginning (E10 Nr. 16, VP122-02) > moveTime | AssertionError: expected [ 1.2, 1 ] to deeply equal [ +0, 2 ]
+e2_baseline_assumed RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > the base sweep's first pose is point K, never the assumed start | AssertionError: expected [ { a: 'head',
+e2_start_dependent_off RED [messages] localStorage parse failed ReferenceError: localStorage is not defined FAIL  src/viewer/startDepPayloads.test.ts > the base track: the beginning is a break with no time > a track dependent to its end has nothing else (K = n) | AssertionError: expected undefined to deeply equal { fromLine: 2, toLine: 
+e2_run_merge_axis RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > onto the base's axis (a run check): the beginning's findings at the start, the base's where they were | A
+e2_entry_move_flag RED [messages] localStorage parse failed ReferenceError: localStorage is not defined FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > the side sweep finds an obstacle on the real path, the base sweep never the believed one | AssertionError
+e2_writes_note_off RED [messages] localStorage parse failed ReferenceError: localStorage is not defined FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > writes in a beginning the text cannot place are named, on the base and on the bound track | FAIL  src/vie
+e2_writes_flag_off RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > writes in a beginning the text cannot place are named, on the base and on the bound track | AssertionErro
+
+== R133 (23) — viewer-palette-fest.r134.mutations-r133.py
+i84_unbound_off RED 1 failed in 0.12s E           AssertionError: None != [0, 1, 2] : r133_m6_before_first
+i84_wire_off RED 1 failed in 0.12s E           AssertionError: None != [0, 1, 2] : r133_m6_before_first
+i88_own_off RED 1 failed in 0.10s E           AssertionError: None is not True : r133_store_before_first_absolute
+i88_closure_off RED 1 failed in 0.06s E       AssertionError: False is not true
+i88_hook_unbound RED 1 failed in 0.06s E       AssertionError: False is not true
+i88_hook_bound RED 1 failed in 0.06s E       AssertionError: True is not false
+i88_marked_off RED 1 failed in 0.06s E       AssertionError: True is not false
+i88_explicit RED 1 failed in 0.06s E       AssertionError: True is not false
+i83_start_basis RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I83: a G43.1 before the first move — the start shifts in the assumed start's basis | AssertionError: expected [ 10, 100, 80 ] to deeply equal [ 10, 100, 90 ]
+i84_entry_guard RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I84: X, Y or Z unknown at the first point — no entry move, the beginning not checkable | AssertionError: expected { …(26) } to be null
+i84_name RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I84: X, Y or Z unknown at the first point — no entry move, the beginning not checkable | AssertionError: expected undefined to be true // Object.is equality
+i84_decode RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I84: X, Y or Z unknown at the first point — no entry move, the beginning not checkable | AssertionError: expected undefined to deeply equal [ +0, 1, 2 ]
+i85_basis RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I85: a first G1 X Y Z keeps its kind and F with no mask after it | AssertionError: expected 1 to be +0 // Object.is equality
+i86_run_branch RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I86: a run check never calls an unchecked beginning checked in full | AssertionError: expected 'Clear · checked in full' to be 'Depends on the machine\'s position' // Obj
+i86_view RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I86: a run check never calls an unchecked beginning checked in full | AssertionError: expected [ 'checked', 'checked', 'nojoints' ] to deeply equal [ 'checking', 'checked
+i86_sentence RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I86: a run check never calls an unchecked beginning checked in full | AssertionError: expected 'The start of the program depends on w…' to match /The start of the program
+i87_range RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I87: the run merge keeps the base's range and its boundary contacts | AssertionError: expected undefined to deeply equal { fromCum: 1, fromLine: 6 }
+i87_boundary RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I87: the run merge keeps the base's range and its boundary contacts | AssertionError: expected undefined to deeply equal [ { a: 'head', b: 'obstacle', …(4) } ]
+i88_client_mask RED Tests  2 failed | 23 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whole chain) > writes in a beginning the text cannot place are named, on the base and on the bound track | FAIL  src/vie
+i88_slice RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I88: a stored position the canon does not see is named with no mask, and after a slice | AssertionError: expected undefined to be defined
+i89_entry_first RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I89: the earliest time cause, and the help says it | AssertionError: expected { line: 3, bound: false, …(1) } to deeply equal { line: 2, bound: false, …(1) }
+i89_unknown_merge RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I89: the earliest time cause, and the help says it | AssertionError: expected { line: 2, bound: false } to deeply equal { line: 2, bound: false, …(1) }
+i89_help RED Tests  1 failed | 24 passed (25) FAIL  src/viewer/startDepPayloads.test.ts > Codex R133 > VP-I89: the earliest time cause, and the help says it | AssertionError: expected 'Tool and machine parts checked agains…' to match /The time from L2 on is not known/
+
+total 64/64 RED

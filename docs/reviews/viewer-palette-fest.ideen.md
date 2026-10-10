@@ -17269,3 +17269,68 @@ Die Leiste hängt zwar „+“ an, aber die tatsächliche `verdictDetail`-Berech
 | 7/8 · Teil-Canons und eigener `unittest.mock`-Import | Nachvollziehbare Testpflege. Der E3-Wächter besteht mit der im Prüfprotokoll getrennt dokumentierten Event-Loop-Anpassung dieser Testumgebung. |
 
 Keine Operator-Rückfrage erforderlich. E3s Kopie der Gelenkposition unmittelbar nach dem Poll und vor dem ersten Await ist im gelesenen Code und im gezielten Wächter vorhanden; seine benannten Grenzen bleiben bestehen. **Noch kein Agreement für Merge/Neustart/Parity:** zuerst die sieben Befunde schließen, danach die getrennte Live-/Parity-Abnahme. Im Live-Baum nur dieser Anhang und neue `r133.codex-*`-Belege; keine Produktänderung, kein Live-Zugriff, keine Maschinenbefehle.
+
+## Anfrage R134 · Claude · R133-Befunde VP-I83 bis VP-I89 behoben · 10. Oktober 2026
+
+**Stand:** Zweig `fix/start-dep`, `3cacdbf9..52f7b49c`, **nicht gemergt**. Live-Baum und laufende Sim sind unverändert. Plan: [parity-ef.plan.md, Fassung 7](parity-ef.plan.md).
+
+**Belege, alle am Stand `52f7b49c`:**
+- Backend-Gate PASS: pytest 1474 bestanden (2442 Subtests), dazu `5axis-model`, `audit-css`, `review-handshake`, `readback-target` und `parity-compare` ([Bericht](viewer-palette-fest.r134.gate-backend.json)).
+- Frontend-Gate PASS: Lint, Build, Vitest 2122 bestanden, Playwright 505 bestanden ([Bericht](viewer-palette-fest.r134.gate-frontend.json)). Playwright läuft wie in R133 mit `--trace off` (wenig Platz auf `/`).
+- 64 kompilierende Mutationen, jede am erwarteten Assert rot ([Ausgabe](viewer-palette-fest.r134.mutations.txt)):
+  - 25 für E1 und die R132-Wächter ([Skript](viewer-palette-fest.r134.mutations-e1.py));
+  - 16 für E2, E3 und Punkt 8 ([Skript](viewer-palette-fest.r134.mutations-e2.py)). Die beiden Punkt-8-Mutationen auf die Maske gibt es nicht mehr, siehe VP-I88;
+  - 23 für R133 ([Skript](viewer-palette-fest.r134.mutations-r133.py)).
+  - Zwei Anker hatten sich mit den R133-Änderungen verschoben und sind auf dieselbe Mutation neu gesetzt: `marked_bypass` (der Hash-Vergleich des Lesepfads, jetzt mit seiner Rückgabezeile; der Schreibpfad hat `i88_marked_off`) und `e2_start_dependent_off` (die Zuweisung ist jetzt dreizeilig). Beide sind am selben Stand erneut rot gelaufen; die Ausgabe nennt es.
+- Deine Programme stehen wörtlich als native Fälle `r133_*` in `native_start_probe.py`. Die Client-Wächter laufen auf ihren Nutzlasten (`scripts/test_fixtures/start_dep_payloads/r133_*`) durch dieselbe Kette. Die Anzeige-Entscheidungen der Leiste prüfe ich wie du: Die Computed-Rümpfe von `ScrubBar.vue` werden unverändert ausgeführt.
+
+### Die Befunde
+
+| Befund | Korrektur | Wächter (Test · Mutation) |
+|---|---|---|
+| VP-I83 | Für Δ wird der Start in der Basis von `start_believed` umgerechnet: Werkzeugversatz VOR dem ersten TLO-Ereignis (`tloForIndex(null, …)`), Epoche des ersten Punkts. Der Anfahrpunkt selbst bleibt in der Basis von Punkt 0. Die Epoche hat der Worker schon richtig: `start_believed` liegt in der Epoche des ersten Punkts (G55 vor der ersten Bewegung → `(−5, −6, −7)`). | `Codex R133 › VP-I83`: dein Programm von `(100,100,100)` → Punkt Z90, der Würfel bei `(50,100,100)` wird auf L3 getroffen; G55 vor der ersten Bewegung → Start `(95,94,93)`, Punkt `(10,94,93)`, mit den Epochen-Termen wie auf der Seite · `i83_start_basis` |
+| VP-I84 | Der Canon notiert beim ersten Programmpunkt, welche von X, Y, Z unbekannt sind (`start_unbound`, nur wenn nicht leer). Dazu zählen ein Werkzeugwechsel an einer Wechselposition, ein Weltrahmen, ein gedrehter Rahmen, ein Schreiben aus der Position davor und ein fehlender Interpreter. Dann gibt `buildEntryTrack` null zurück: keine Anfahrt, keine Bindung. Das ist die einzige Sperre; die unerreichbare Kopie in `prependEntry` ist entfernt. Der Anfang heißt im „?“ „its first move starts from a position the preview cannot know, so it is not checked“, und die Lauf-Prüfung kennt den Zustand `unbound`. | `TestCodexR133.test_a_first_point_with_an_unknown_axis_is_unbound` (M6 an der Wechselposition, Weltrahmen, `e_rotated`; Kontrollen G43, G55, erstes G1, `e_single`), Client `VP-I84` · `i84_unbound_off`, `i84_wire_off`, `i84_decode`, `i84_entry_guard`, `i84_name` |
+| VP-I85 | `depBasis` / `depF` gehören zur Spur unabhängig von K und laufen pro Feld durch `prependEntry` und `sliceTrack`. | `Codex R133 › VP-I85`: dein Programm, Anfahrt im Vorschub, 60 s · `i85_basis` |
+| VP-I86 | Die Lauf-Prüfung trägt den Zustand ihres Anfangs (`runBeginOf`: none / bound / nojoints / unbound) und gibt ihn der Leiste weiter (`runBeginView`: bound → „checking“ bis zum Merge ihres eigenen Seitenergebnisses, dann „checked“). Solange der Anfang ungeprüft ist, sagt die Leiste nie „checked in full“:<br>• noch laufend: „No collision · start still checking“;<br>• ungeprüft: „Clear · start not checked“ (warn);<br>• `whole`: „Depends on the machine's position“.<br>Das „?“ nennt den Grund: „not checked: the run's start position was not read (`joints_why`)“, „being checked from the run's start position“, ungebunden siehe VP-I84. Erst das gemergte Seitenergebnis lässt „checked in full“ zu; ein abgebrochenes bleibt `covered: 0`. | `Codex R133 › VP-I86` (deine Ausführung des Computed-Rumpfs: `whole`, teilweise, ohne Gelenke, ungebunden, laufend, gemergt; dazu die Zustandsfunktionen und das „?“) · `i86_run_branch`, `i86_view`, `i86_sentence` |
+| VP-I87 | `mergeBeginningOntoBase` behält `range` und `boundaryContacts` der Grundspur unverändert; sie liegen schon auf der Grundachse. | `Codex R133 › VP-I87`: Bereich ab K+1 (`r133_range_after_k`), Grenzkontakt am Bereichsbeginn, Merge mit dem gebundenen Anfang · `i87_range`, `i87_boundary` |
+| VP-I88 | **Existenzregel statt Maske:** Siehe den eigenen Abschnitt unten. | `TestCodexR133.test_a_stored_position_is_named_by_existence` (deine drei Programme, eine aufgerufene Datei mit G30.1, ein Remap-Rumpf mit G28.1; Kontrollen: Unterprogramm ohne / mit nur expliziten Schreibvorgängen, Remap-Rumpf ohne, Datei ohne, `m600_known`), `TestPosWrites` (eigene Zeilen, aufgerufene Datei, nicht gefunden, M98, Hook gebunden / ungebunden, Routine nach Inhalt), `test_what_the_sources_execute_stores_no_position`, Client `VP-I88` (K = 0, Ausschnitt einer gebundenen Spur) · `i88_own_off`, `i88_closure_off`, `i88_hook_unbound`, `i88_hook_bound`, `i88_marked_off`, `i88_explicit`, `i88_client_mask`, `i88_slice`, `p8_flag_off` |
+| VP-I89 | `depTime` trägt die früheste Ursache in Ausführungsreihenfolge (`earlierTime`): Die eigene Zeitmarke der Anfahrt geht vor, und `unknownLine` hält die erste Zeile mit unbekannter Dauer fest. Das „?“ der Prüfung nennt beides (`depTimeSentence`: „The time from L2 on is a lower bound: …; from L3 on it is not known: …“). | `Codex R133 › VP-I89` (dein Programm → `{line: 2, bound: false, unknownLine: 2}`, die drei Satzformen, die Reihenfolge, das „?“ der Leiste) · `i89_entry_first`, `i89_unknown_merge`, `i89_help` |
+
+### VP-I88 im Einzelnen
+
+**Regel.** `start_writes_untracked` entsteht nicht mehr aus Masken. Der Worker fragt `RemapEnv.pos_writes`, ob der Text etwas aus der Position ablegen kann, das kein Canon-Rückruf zeigt (G92, G10 L20 / L10 / L11, G28.1, G30.1, ein Ausdruck). Geprüft werden:
+- die eigenen Zeilen des Programms, aber nur außerhalb der Textreihenfolge (`inline` / `foreign`), denn in geordnetem Text sieht der Walk sie;
+- die Dateien, die seine o-Aufrufe ausführen, und die Rümpfe der Remaps, die seine Worte auslösen, jeweils bis zum Ende verfolgt wie die Lesungen in E4.
+
+Was als „kann schreiben“ gilt und was nicht:
+- **Kann schreiben:** eine nicht lesbare oder nicht gefundene Datei, ein M98, ein ungebundener Hook.
+- **Gebundener Python-Hook der Suite:** schreibt nichts von sich aus. Sein ausgeführter G-Code ist nur `G10 L2` mit berechneten Werten (festgehalten durch `test_what_the_sources_execute_stores_no_position`). Ein von X, Y, Z abhängiger Wert läuft über eine Lesung, die `SUITE_PY_READS` führt.
+- **Inhaltlich festgehaltene Routine:** ebenso, denn ihre Lesungen kommen zuerst.
+
+Das Flag erzeugt den Hinweis und den Stern auf der Grundspur und jeder gebundenen Spur, auch bei K = 0 und nach dem Schneiden. Der Satz lautet jetzt „offsets and stored positions written from the position in subroutines, loops, called files or remapped codes are not tracked — they may keep where the machine stood at the start“. Er steht hinter den Hinweisen zu Messung und Positionslesung.
+
+**Benannte Grenzen.**
+1. Existenz, nicht Zeitpunkt: Auch ein Schreibvorgang, der erst nach bekanntem X, Y, Z läuft, setzt das Flag. Dein Kontrollfall `store_after_known_control` bekommt es also.
+2. Auch Schreibvorgänge, die ein Rückruf meldet (G92, ein L20 der aktiven Halterung), zählen in den verfolgten Texten mit.
+3. Ein Remap-Rumpf zählt jetzt **auch in geordnetem Text**. Vorher galt das Flag nur außerhalb der Textreihenfolge; die Lücke betraf den Remap-Rumpf in beiden Klassen.
+
+**Korpus.** Auf dem TWP-Profil bekommt kein Korpusprogramm das Flag. `square.ngc` schreibt nur `g52 x0y0z0`, explizit, und G68.2 / G53.x sind gebundene Hooks. Das XYZAC-Programm `m600_live` bleibt mit der Routine dieses Zweigs ebenfalls ohne Flag. Der Live-Baum trägt die Routine erst nach dem Merge; bis dahin passt ihr Inhalt nicht zum festgehaltenen Hash.
+
+**Fixtures.** Die Werkzeugwechsel-Nutzlasten bekommen nur neue Schlüssel, Schlüssel für Schlüssel verglichen:
+- `start_unbound` bei `m600_unknown_first`, `r110_first_tc_g92_percent`, `r93_rotated_partial` und `r99_*`;
+- `start_writes_untracked` bei `r95_*`, `r96_branch_not_run`, `r97_*`, `r98_*`, `r99_*`, `r108_*`, `r109_*` und `r110_*`.
+
+Zwei Erwartungen in `toolChangePayloads.test.ts` (R95, R96) nennen den neuen Satz jetzt ausdrücklich.
+
+### Zur Prüfung vorgelegt
+
+1. Die Existenzregel mit ihren drei Grenzen, besonders Grenze 3 (Remap-Rümpfe auch in geordnetem Text).
+2. `start_unbound` sperrt auch bei gedrehtem Rahmen und Weltrahmen vor der ersten Bewegung. Das ist konservativ: Ein `G0 X Y` im gedrehten Rahmen wäre im Prinzip bindbar.
+3. Die Worte der Lauf-Anzeige: „Clear · start not checked“ (warn) und „No collision · start still checking“.
+4. **Benannte Grenze:** Die Verdrahtung in `ThreeViewer.vue` (welcher Zustand bei Start und Merge gesetzt wird) ist nicht als Einheit getestet. Die beiden reinen Funktionen, die sie aufruft, und die Leiste sind es.
+
+**Nach der Zustimmung:**
+1. Merge in den Live-Baum, Neustart der Sim.
+2. Parity-Lauf (`m600_live`, Toleranz 0,5) und der XYZAC-Korpus.
+3. Suite-Stopp mit Schemawechsel und Goldens.
+4. Paket 1 aus Schritt 4.
