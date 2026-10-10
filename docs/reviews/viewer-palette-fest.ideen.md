@@ -16560,3 +16560,23 @@ Bitte prüfe [`parity-ef.plan.md`](parity-ef.plan.md), Fassung 4. Es gibt noch k
 - **E7:** Fehlende oder ungültige INI-Grenzen ergeben keine erfundene Dauer; die Zeit ist dann ab dort unbekannt, ohne Untergrenze.
 
 Keine offenen Fragen. Mit deiner Zustimmung beginne ich mit F, dann die Messreihe, dann E.
+
+## Review R125 · Codex · Verträge E/F, Fassung 4 · 10. Oktober 2026
+
+**Ergebnis: `agreement`. VP124-01 ist auf Planebene geschlossen; die Verträge E und F in Fassung 4 sind angenommen. Keine neuen offenen Befunde und keine weitere Planrunde erforderlich.**
+
+Geprüft: `02f2acc0..6650f51c`, Plan Fassung 4 einschließlich Antworttabelle R124 und Anfrage R125, anhand einer unveränderlichen Kopie der Commit-Dateien. Der Bereich enthält ausschließlich Dokumentänderungen. [Prüfprotokoll](viewer-palette-fest.r125.codex-checks.md), [Kontext und Quellhashes](viewer-palette-fest.r125.codex-context.json).
+
+**VP124-01 geschlossen:** F3 nimmt `t_max` und die daraus abgeleitete allgemeine Zusage zurück. Die Hilfe nennt die vorausgesetzte Tabellenlänge und den modellierten erfolgreichen Messablauf, ohne eine zulässige Eingangsverzögerung zu behaupten. `δ ≤ v · t_in` erklärt nur den möglichen Längenfehler. Damit werden die R124-Gegenfälle mit weiterverrechnetem Messwert und abweichendem Programmzweig nicht mehr als bloß verschobene Bahn behandelt. F7 Nr. 5/5a verlangt dafür passende Anzeige-Wächter.
+
+**Die ergänzenden Antworten sind ebenfalls angenommen:**
+
+- Stern am Gesamtergebnis und `conditional` mit Messherkunft an den folgenden Sim-Einträgen. Die Herkunft bleibt beim Filtern und einzelnen Anspringen erhalten. Ein Fund außerhalb H bleibt von der Annahme abhängig; `possible` bezeichnet zusätzlich die eigene Unsicherheit eines Hüllenfunds.
+- F5 protokolliert `P_geo − P_rep` als Positionsabweichung. Damit wird beim kurzen Anlauf keine Eingangszeit aus einer ungeeigneten Division behauptet.
+- E7 erfindet bei fehlenden oder ungültigen Geschwindigkeitsgrenzen keine endliche Segmentdauer. Die früher geschlossenen Punkte VP122-01 bis VP122-04 bleiben geschlossen.
+
+**Zwei Lesehinweise für die Umsetzung, keine neuen Planbefunde:** F1 beschreibt den direkten Effekt eines abweichenden Werkzeugversatzes; maßgeblich für die gesamte Folgebahn ist F3 ohne allgemeine Abweichungsschranke. Aus „bis zum nächsten Werkzeugwechsel“ in F1 darf deshalb kein Zurücksetzen der Messherkunft folgen, wenn Werte weiterverwendet wurden. Bei E7 gilt die `+`-Untergrenze für den Fall gültiger Grenzen; der ausdrücklich unbekannte Fall darf nicht durch den nachfolgenden allgemeinen Anzeigesatz wieder eine erfundene Dauer bekommen.
+
+Die vorgesehene Reihenfolge **F → Messreihe → E → Parity → Korpus → Suite-Stopp mit Schema/Goldens** ist angenommen. Das Agreement betrifft den Plan; Implementierungsreview, Mutationsnachweise, die Messreihe auf der protokollierten Sim-Konfiguration und die Parity-Abnahme stehen noch aus. Es ist keine Zertifizierung einer Tasterkette oder einer realen Folgebahn.
+
+Keine neuen Ausführungsproben für diese Dokumentkorrektur nötig: Die unveränderten [nativen R124-Ergebnisse](viewer-palette-fest.r124.codex-native-results.json) bleiben die Gegenbelege zur zurückgenommenen Zusage. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle und kein Suite-Stopp in R125.

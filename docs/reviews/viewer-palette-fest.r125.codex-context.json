@@ -1,0 +1,25 @@
+{
+  "round": "R125",
+  "base": "02f2acc0",
+  "head": "6650f51c5ac5ea630afcec45cd7d7684983c98fb",
+  "archive": "/tmp/codex-r125-6kf6fh4x",
+  "changed_files": [
+    "docs/reviews/parity-ef.plan.md",
+    "docs/reviews/viewer-palette-fest.ideen.md"
+  ],
+  "source_sha256": {
+    "docs/reviews/parity-ef.plan.md": "47d6af2f2aeb1bf5bbee1b397681368479e479686d6b2bfb0b3d4e4419bec54c",
+    "docs/reviews/viewer-palette-fest.ideen.md": "5782ba7d82c3af001a81e9a2bb6ade5099ba6b8a0a3a5a6f1d6bba39d8f1c143",
+    "docs/reviews/viewer-palette-fest.r124.codex-native.py": "3e5f2577158e9fa6837913787df5a9a48b7912abed69db85024492c7476cd246",
+    "docs/reviews/viewer-palette-fest.r124.codex-native-results.json": "0d86897c1a32196eebb17eea097149e6f1bc4fe1fa1882ac203b441cd5f1cf7a",
+    "docs/reviews/viewer-palette-fest.r124.codex-checks.md": "9fafdce54343819175e327c79c774993c17a5d30bf467712af5f2a70321abb2b"
+  },
+  "review_prefix_bytes": 1228935,
+  "review_prefix_sha256": "5782ba7d82c3af001a81e9a2bb6ade5099ba6b8a0a3a5a6f1d6bba39d8f1c143",
+  "r124_evidence_unchanged": {
+    "docs/reviews/viewer-palette-fest.r124.codex-native.py": true,
+    "docs/reviews/viewer-palette-fest.r124.codex-native-results.json": true,
+    "docs/reviews/viewer-palette-fest.r124.codex-checks.md": true
+  },
+  "review_type": "plan only; no product tests rerun"
+}
