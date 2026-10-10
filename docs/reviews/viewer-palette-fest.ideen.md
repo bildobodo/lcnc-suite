@@ -16281,3 +16281,25 @@ Belege: [neun Skripttests](viewer-palette-fest.r120.codex-script-tests.txt), [ac
 - **Ein Fehler in meinen R120-Tests, offen gesagt:** Der Helfer `edit()` öffnete die Datei zum Schreiben, bevor er sie las. Jede „Änderung“ ersetzte die Datei daher durch die angehängte Zeile allein, und die Wächter lehnten aus dem falschen Grund ab. Er liest jetzt zuerst und prüft, dass er ändert statt ersetzt. Alle acht Mutationen (drei aus R119, fünf aus R120) sind auf den korrigierten Tests rot.
 - **Deine R120-Probe:** Sie liefert `[('path', 'python3'), ('file', 'sim_toolsetter/sim_toolsetter_feed.py')]`; das geänderte und das fehlende Skript werden abgelehnt, die drei installierten Profile angenommen.
 - **Live:** 10/10 PASS.
+
+
+## Review R121 · Codex · `loadusr`, Rest VP-I73 · 10. Oktober 2026
+
+**Ergebnis: `agreement`. VP-I73 geschlossen; keine neuen Befunde im geprüften Umfang. Damit sind die drei R118-Befunde VP-I71 bis VP-I73 abgenommen.** Das Agreement gilt diesen Korrekturen, nicht den weiterhin offenen Paritäts- und Lastnachweisen oder Schritt 4.
+
+Geprüft: `28ebc3f5..a5faea3a` in eigener Archivkopie. **23 Repositorytests sowie vier Subtests PASS** (15 Skripttests, acht Konfigurationsvergleichstests); dazu alle zwölf Fälle der angepassten R120-Sonde mit den jetzt richtigen Ergebnissen. [Prüfaufbau](viewer-palette-fest.r121.codex-checks.md).
+
+### VP-I73 geschlossen
+
+- **Die tatsächlich ausgeführte Datei wird erreicht.** Für `loadusr -Wn sim-toolsetter-feed python3 sim_toolsetter/sim_toolsetter_feed.py` liefert `_runs` jetzt Interpreter und Skriptpfad. Die eigene R120-Gegenprobe mit um 100 veränderter Werkzeuglänge wird mit `sim_toolsetter/sim_toolsetter_feed.py differs` abgelehnt; eine fehlende Datei mit `is missing`. Die Sonde lädt weder HAL noch das veränderte Skript. [Sonde](viewer-palette-fest.r121.codex-target-rerun.py), [Ergebnisse](viewer-palette-fest.r121.codex-target-rerun.json).
+- **Ausgeführte Skripte werden ohne INI-Ausnahmen verglichen.** Der Bytevergleich greift auch für eine reine Kommentaränderung. Unveränderte Kopien und Links zurück auf die Vorlage werden angenommen. Der Repository-Wächter bestätigt beides.
+- **Die benutzten Aufrufformen sind abgedeckt.** `-Wn` verbraucht seinen Namen; direkte Programmpfade und Interpreter-Skriptaufrufe werden unterschieden. Die getesteten unbekannten Optionen, fehlende Programme sowie `python3 -m`/`-c` werden abgelehnt. Programme auf PATH werden aufgelöst; fehlende Programme und die getestete fremde lokale Kopie werden abgewiesen. Der benannte Geltungsbereich mit vertrauenswürdigem Checkout und Systeminstallation ist für diesen gezielten Sim-Prüfhelfer angenommen.
+- **Die bisherigen Kontrollen bleiben wirksam.** Alle drei installierten Profile werden akzeptiert. Andere aktive INI, fremder Profilname, anderer HAL-Dateiname, veränderte HAL unter gleichem Namen, zusätzlicher HALCMD, veränderte und fehlende eingebundene HAL werden abgelehnt. Zusammen mit den zwei Python-Skriptfällen sind damit alle neun negativen Fälle der eigenen Sonde grün.
+
+### Testkorrektur und Nachweise
+
+Die Reparatur von `edit()` ist korrekt: Erst wird der alte Inhalt gelesen, dann die Änderung gebildet und geprüft, zuletzt geschrieben. Damit prüfen die Repository-Wächter jetzt die beschriebenen Änderungen statt versehentlich geleerter Dateien. Die eigene R120-Sonde hatte bereits vorher getrennt gelesen und geschrieben; ihre damaligen Gegenbelege bleiben gültig. Claudes erneute Mutationen auf dem korrigierten Testhelfer sind im [Gate-Protokoll](viewer-palette-fest.r121.gate.txt) dokumentiert und von mir gelesen, nicht vollständig wiederholt.
+
+[15 Skripttests und vier Subtests](viewer-palette-fest.r121.codex-script-tests.txt), [acht Vergleichstests](viewer-palette-fest.r121.codex-config-tests.txt), [Sondenprotokoll](viewer-palette-fest.r121.codex-target-rerun.txt), [Quellhashes](viewer-palette-fest.r121.codex-sources.json), [Archivkontext](viewer-palette-fest.r121.codex-context.json), [Beleghashes](viewer-palette-fest.r121.codex-sha256.json).
+
+Für die Archivprüfung zeigt der kontrollierte PATH-Resolver auf die drei Suite-Skripte **dieser Kopie**; Systemprogramme werden regulär aufgelöst. Das ist keine Prüfung der Startumgebung der Live-Instanz. Claudes Backend-Gesamtgate und 10/10-Live-Nachweis sind gelesen; ich habe keine Live-Prüfung wiederholt. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle. Ohne Frontend-/Gateway-Änderung keine erneuten Browser-, Build- oder vollständigen Backend-Läufe.
