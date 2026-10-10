@@ -1116,6 +1116,7 @@ watchEffect(() => {
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };
   simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;
   simView.unboundMeasurements = m600Notes.value.unbound.length;
+  simView.unboundWarnings = m600Notes.value.unbound.filter(e => e.warnings?.length).length;
   const ts = confirmedToolsetter();
   simView.basis = toolsetterBasisLine(viewerGcode.value?.toolsetter_basis, ts.ok ? toolsetterVarMap(ts.values) : null);
   simView.jumpReason = hitNavReason.value;

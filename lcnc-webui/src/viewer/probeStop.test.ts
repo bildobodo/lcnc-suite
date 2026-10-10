@@ -142,3 +142,21 @@ describe("braking ranges and notes (parity-ef plan F2/F3)", () => {
     expect(probeNoteWhy({ reason: "slow_limit" })).toMatch(/may end below the Z limit/);
   });
 });
+
+describe("probe warnings reach Program Stats (Codex R126 VP-I75)", () => {
+  it("a measurement without a verified line keeps its warning in the stats", () => {
+    const ev = m600Events([], [[30, 2, 80, 0]], "mm", [{ seq: 14, tool: 2, reason: "brake_unknown", line: 0 }]);
+    const { unbound } = m600ToolNotes(ev);
+    expect(unbound).toHaveLength(1);
+    expect(m600StatsText(ev, "mm")).toBe("T2 80.000 mm (line not known) — the braking range is not modeled "
+      + "(the configuration lacks the Z limits) — not checked below the trip point");
+  });
+
+  it("two runs of one call line stay apart, each with its own warnings", () => {
+    // a loop: the first call warns (a 2 mm retract), the second does not
+    const ev = m600Events([], [[30, 2, 80, 5], [70, 2, 80, 5]], "mm", [{ seq: 14, tool: 2, reason: "retract", line: 5 }]);
+    expect(m600ToolNotes(ev).unbound).toHaveLength(2);
+    expect(m600StatsText(ev, "mm")).toBe("T2 80.000 mm (L5) — the retract may not clear the probe after braking — "
+      + "the slow probe may start tripped and LinuxCNC stops, T2 80.000 mm (L5)");
+  });
+});

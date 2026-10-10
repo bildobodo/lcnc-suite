@@ -119,6 +119,9 @@ type ViewerState = {
   g5x_offset?: number[];
   g92_offset?: number[];
   rotation_xy?: number;
+  /** The external Z offset (reader; null when the reader has none). */
+  eoffset_z?: number | null;
+  eoffset_enabled?: boolean | null;
   /** All nine fixture rows (lowercase axis letters + "r") — the per-epoch
    *  re-add source for multi-fixture previews (review P2). */
   wcs_table?: WcsTableRow[];
@@ -474,11 +477,15 @@ const _pv: {
    *  A WCS-epoch preview re-adds per-fixture rows, so table edits must
    *  refresh the preview exactly like the active-fixture terms do. */
   wcsTableKey: string; wcsTable: WcsTableRow[] | null;
+  /** The external Z offset (reader): a check basis records it — a note for
+   *  a probe's braking range, not a sweep input (parity-ef F3). */
+  eoffsetZ: number | null; eoffsetEnabled: boolean | null;
 } = {
   jointPos: null, machinePos: null, g5x: null, g92: null, toolOffset: null,
   toolNum: NaN as unknown as number, toolDiam: NaN, toolLen: NaN, toolTableZ: NaN,
   toolMeta: undefined, rotationXy: NaN,
   wcsTableKey: "", wcsTable: null,
+  eoffsetZ: null, eoffsetEnabled: null,
 };
 // Returns true if `next` differs from `prev`; when it differs, writes a fresh
 // copy back into the owner so subsequent ticks compare against the new value.
@@ -2618,6 +2625,10 @@ function applyState(init: ViewerInit, st: ViewerState) {
   if (toolLen !== _pv.toolLen) { _pv.toolLen = toolLen; changed = true; _colOnInputChange(st); }
   if ((st.tool_table_z ?? null) !== _pv.toolTableZ) { _pv.toolTableZ = st.tool_table_z ?? null; changed = true; }
   if (rotationXy !== _pv.rotationXy) { _pv.rotationXy = rotationXy; changed = true; _markerDirty = true; _pfScheduleWcsRefresh(); _colOnInputChange(st); }
+  // recorded for the next check's basis only — no re-check (a compensation
+  // moves it continuously during a run)
+  _pv.eoffsetZ = typeof st.eoffset_z === "number" && Number.isFinite(st.eoffset_z) ? st.eoffset_z : null;
+  _pv.eoffsetEnabled = typeof st.eoffset_enabled === "boolean" ? st.eoffset_enabled : null;
   // Fixture-table edits (review P2): only the rows the payload's
   // non-rewritten epochs actually RE-ADD participate in the change key
   // (W2 P5 — wcs_frames ships on every modern payload, so keying on the
@@ -3425,6 +3436,7 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
       probeStops: parseProbeStops(viewerGcode.value?.probe_unpredicted).map(p => ({ tool: p.tool, reason: p.reason })),
       // the predicted measurements' call lines, for the notes (parity-ef plan F2/F3)
       probeBands: parseProbeBands(viewerGcode.value?.probe_bands).map(b => ({ tool: b.tool, line: b.line })),
+      externalOffsetZ: { enabled: basis.eoffsetEnabled, z: basis.eoffsetZ },
       unknownTools: _unknownProgramTools(),
       // the provisional check during a run (plan 3b): from the run's point on
       ...(range ? { range } : {}),

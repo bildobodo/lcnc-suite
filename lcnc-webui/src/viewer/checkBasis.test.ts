@@ -21,7 +21,7 @@ describe("run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 
         g5xIndex: 1, g5xOffset: [10, 20, -30, 0, 0, 0, 0, 0, 0], g92Offset: [0, 0, 1.5, 0, 0, 0, 0, 0, 0],
         rotationXy: 0, wcsTable: WIRE.run_basis.start.wcs_table,
         toolNumber: 13, toolDiameter: 8, toolLength: 48.2, toolTableZ: -48.2,
-        toolOffset: [0, 0, -48.2, 0, 0, 0, 0, 0, 0],
+        toolOffset: [0, 0, -48.2, 0, 0, 0, 0, 0, 0], eoffsetZ: 0, eoffsetEnabled: false,
       },
     });
   });
@@ -66,7 +66,7 @@ describe("run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 
 const LIVE: LiveCheckInputs = {
   g5x: [1, 2, 3, 0, 0, 0, 0, 0, 0], g92: [0, 0, 0, 0, 0, 0, 0, 0, 0], rotationXy: 0,
   toolOffset: [0, 0, 10, 0, 0, 0, 0, 0, 0], wcsTable: [{ name: "G54", x: 1, y: 2, z: 3, r: 0 }],
-  toolNum: 2, toolDiam: 6, toolLen: 10,
+  toolNum: 2, toolDiam: 6, toolLen: 10, eoffsetZ: null, eoffsetEnabled: null,
 };
 
 describe("the check basis (plan 1c)", () => {
@@ -74,7 +74,8 @@ describe("the check basis (plan 1c)", () => {
     const pv = structuredClone(LIVE);
     const b = basisFromLive(pv, null);
     expect(b).toEqual({ kind: "idle", runId: null, g5x: LIVE.g5x, g92: LIVE.g92, rotationXy: 0,
-      toolOffset: LIVE.toolOffset, wcsTable: LIVE.wcsTable, toolNum: 2, toolDiam: 6, toolLen: 10 });
+      toolOffset: LIVE.toolOffset, wcsTable: LIVE.wcsTable, toolNum: 2, toolDiam: 6, toolLen: 10,
+      eoffsetZ: null, eoffsetEnabled: null });
     pv.g5x![0] = 99; pv.wcsTable![0]!.x = 99; pv.toolOffset![2] = 99;
     expect(b.g5x[0]).toBe(1);
     expect(b.wcsTable![0]!.x).toBe(1);
@@ -95,6 +96,7 @@ describe("the check basis (plan 1c)", () => {
       kind: "run", runId: 3, g5x: s.g5x_offset, g92: s.g92_offset, rotationXy: s.rotation_xy,
       toolOffset: s.tool_offset, wcsTable: s.wcs_table,
       toolNum: s.tool_number, toolDiam: s.tool_diameter, toolLen: s.tool_length,
+      eoffsetZ: s.eoffset_z, eoffsetEnabled: s.eoffset_enabled,
     });
     // a start that was not written is no run, and no start is no basis
     expect(basisFromRun({ ...rb, state: "unsent" }, null)).toBeNull();
@@ -166,5 +168,22 @@ describe("admitting a check during the run (plan „Prüfung im Lauf“ 3a)", ()
       expect(r.ok, name).toBe(false);
       expect((r as { why: string }).why, name).toBeTruthy();
     }
+  });
+});
+
+describe("the external Z offset rides the basis (parity-ef F3, Codex R126 VP-I76)", () => {
+  it("idle: the live value and enable, and not-read stays not-read", () => {
+    expect(basisFromLive({ ...LIVE, eoffsetZ: 0, eoffsetEnabled: true }, null))
+      .toMatchObject({ eoffsetZ: 0, eoffsetEnabled: true });
+    expect(basisFromLive(LIVE, null)).toMatchObject({ eoffsetZ: null, eoffsetEnabled: null });
+  });
+
+  it("a run: the start's, from the wire (the fixture carries both keys)", () => {
+    const rb = parseRunBasis(WIRE.run_basis)!;
+    expect(rb.start).toMatchObject({ eoffsetZ: 0, eoffsetEnabled: false });
+    const b = basisFromRun(rb, null)!;
+    expect(b).toMatchObject({ eoffsetZ: 0, eoffsetEnabled: false });
+    const off = parseRunBasis({ ...WIRE.run_basis, start: { ...WIRE.run_basis.start, eoffset_z: null, eoffset_enabled: 1 } })!;
+    expect(off.start).toMatchObject({ eoffsetZ: null, eoffsetEnabled: true });
   });
 });

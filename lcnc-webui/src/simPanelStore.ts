@@ -58,6 +58,9 @@ export const simView = reactive({
   /** Tool measurements whose call line is not verified: their notes stand
    *  in Program Stats, never on every row of the tool (Codex R105 VP-I63). */
   unboundMeasurements: 0,
+  /** …and how many of them carry a probe warning (parity-ef F3): the
+   *  summary says the warnings stand there too (Codex R126 VP-I75). */
+  unboundWarnings: 0,
   /** Why a row cannot be shown now (the machine is on), else undefined. */
   jumpReason: undefined as string | undefined,
   /** Playback speed, ×0.1 … ×100 in fixed steps. */

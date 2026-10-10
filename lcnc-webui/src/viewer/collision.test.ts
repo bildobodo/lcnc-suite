@@ -2127,20 +2127,70 @@ describe("a probe's braking range", () => {
     expect(plain.notes ?? []).toEqual([]);
   });
 
-  it("apart on the range is no verified separation — the contact carries across it", () => {
+  // Codex R126 VP-I74: a possible contact changes no contact state — a later
+  // rapid into the part is its own finding, for the cutter in the stock too
+  for (const cutting of [false, true]) {
+    it(`a possible feed contact on the range does not swallow a later rapid (cutting ${cutting})`, () => {
+      const bodies: CollisionBody[] = cutting ? [
+        { id: "stock", group: "platter", positions: boxPositions(10), stock: true },
+        { id: "spindle", group: "head", positions: boxPositions(10), tool: true },
+      ] : PLUNGE_BODIES;
+      const model = buildCollisionModel(PLUNGE, bodies);
+      const pts = [[0, 0, 0], [0, 0, -36], [0, 0, -41], [0, 0, -33], [0, 0, -43]];
+      const t = track(pts, undefined, [7, 8, 9, 10, 11], [0, 0, 0, 0, 1]);
+      t.band = new Uint8Array([0, 0, 1, 1, 0]);
+      t.cond = new Uint8Array([0, 0, 1, 1, 1]);
+      const targets = clashTargets(sweepCollisions(model, t, WCS0, { margin: 2 }).hits);
+      expect(targets.some(h => h.line === 11 && !h.possible && h.rapid)).toBe(true);
+      // the cutter's feed into the stock on the range is machining: nothing possible to say
+      if (cutting) expect(targets.some(h => h.possible)).toBe(false);
+    });
+  }
+
+  it("a certain hit after a possible one on the range is a finding of its own", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    // in contact on L8 (certain), the range lifts the head clear (10 apart,
-    // past 2 × margin), back in contact on L10 after the range
-    const pts = [[0, 0, 0], [0, 0, -41], [0, 0, -30], [0, 0, -41]];
-    const t = track(pts, undefined, [7, 8, 9, 10]);
+    const t = track([[0, 0, 0], [0, 0, -36], [0, 0, -41], [0, 0, -42]], undefined, [7, 8, 9, 10]);
     t.band = new Uint8Array([0, 0, 1, 0]);
     const r = sweepCollisions(model, t, WCS0, { margin: 2 });
     const l10 = r.hits.find(h => h.line === 10)!;
-    expect(l10.continuation).toBe(8);
     expect(l10.possible).toBeUndefined();
+    expect(l10.continuation).toBeUndefined();
+    expect(clashTargets(r.hits).map(c => [c.line, c.possible ?? false])).toEqual([[9, true], [10, false]]);
+  });
+
+  it("an external Z offset at the check's basis is named, enabled at 0, disabled with a value, or not read", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
+    t.band = new Uint8Array([0, 0, 1, 1, 0]);
+    t.cond = new Uint8Array([0, 0, 1, 1, 1]);
+    const note = (eo: { enabled: boolean | null; z: number | null }) =>
+      (sweepCollisions(model, t, WCS0, { margin: 2, externalOffsetZ: eo }).notes ?? []).find(n => n.startsWith("At the check's basis"));
+    expect(note({ enabled: true, z: 0 })).toMatch(/an external Z offset is enabled/);
+    expect(note({ enabled: false, z: 0.25 })).toMatch(/an external Z offset of 0.25 is applied/);
+    expect(note({ enabled: null, z: 0 })).toMatch(/the external Z offset was not read/);
+    expect(note({ enabled: false, z: null })).toMatch(/the external Z offset was not read/);
+    expect(note({ enabled: false, z: 0 })).toBeUndefined();
+    // without a braking range or a measurement before, no such note
+    const plain = sweepCollisions(model, track([[0, 0, 0], [0, 0, -20]]), WCS0,
+                                  { margin: 2, externalOffsetZ: { enabled: true, z: 1 } });
+    expect(plain.notes ?? []).toEqual([]);
+  });
+
+  it("apart on the range is no verified separation — the contact carries across it", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    // in contact on L8 (certain); on the range the head goes clear (10 apart,
+    // past 2 × margin) and back down; after the range, still in contact on L11
+    const pts = [[0, 0, 0], [0, 0, -41], [0, 0, -30], [0, 0, -41], [0, 0, -42]];
+    const t = track(pts, undefined, [7, 8, 9, 10, 11]);
+    t.band = new Uint8Array([0, 0, 1, 1, 0]);
+    const r = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const l11 = r.hits.find(h => h.line === 11)!;
+    expect(l11.continuation).toBe(8);
+    expect(l11.possible).toBeUndefined();
+    // the range's own touches continue the certain contact, possibly
+    expect(r.hits.find(h => h.line === 10)).toMatchObject({ continuation: 8, possible: true });
     // control: without the range the separation is verified, L10 a new onset
-    const plain = sweepCollisions(model, track(pts, undefined, [7, 8, 9, 10]), WCS0, { margin: 2 });
-    const p10 = plain.hits.find(h => h.line === 10)!;
-    expect(p10.continuation).toBeUndefined();
+    const plain = sweepCollisions(model, track(pts, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2 });
+    expect(plain.hits.find(h => h.line === 10)!.continuation).toBeUndefined();
   });
 });

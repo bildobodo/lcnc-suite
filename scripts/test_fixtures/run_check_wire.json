@@ -10,19 +10,78 @@
     "tool_basis_rev": 4,
     "start": {
       "g5x_index": 1,
-      "g5x_offset": [10.0, 20.0, -30.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-      "g92_offset": [0.0, 0.0, 1.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+      "g5x_offset": [
+        10.0,
+        20.0,
+        -30.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "g92_offset": [
+        0.0,
+        0.0,
+        1.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
       "rotation_xy": 0.0,
       "wcs_table": [
-        {"name": "G54", "x": 10.0, "y": 20.0, "z": -30.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 0.0},
-        {"name": "G55", "x": 0.0, "y": 0.0, "z": 0.0, "a": 0.0, "b": 0.0, "c": 0.0, "u": 0.0, "v": 0.0, "w": 0.0, "r": 15.0}
+        {
+          "name": "G54",
+          "x": 10.0,
+          "y": 20.0,
+          "z": -30.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 0.0
+        },
+        {
+          "name": "G55",
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "a": 0.0,
+          "b": 0.0,
+          "c": 0.0,
+          "u": 0.0,
+          "v": 0.0,
+          "w": 0.0,
+          "r": 15.0
+        }
       ],
       "tool_number": 13,
       "tool_diameter": 8.0,
       "tool_length": 48.2,
       "tool_table_z": -48.2,
-      "tool_offset": [0.0, 0.0, -48.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-      "rotary": {"A": 0.0, "C": 90.0}
+      "tool_offset": [
+        0.0,
+        0.0,
+        -48.2,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "rotary": {
+        "A": 0.0,
+        "C": 90.0
+      },
+      "eoffset_z": 0.0,
+      "eoffset_enabled": false
     },
     "verified": true,
     "why": null
@@ -33,8 +92,15 @@
     "source": "9f2c0e1a7b3d4c5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6",
     "reason": "midrun:table_mtime",
     "pinned": true,
-    "for_run": {"run_id": 3, "ctx_digest": "0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e", "tool_basis_rev": 4},
-    "table": {"mtime": 1760000000.5, "rows": "a1b2c3d4e5f60718"},
+    "for_run": {
+      "run_id": 3,
+      "ctx_digest": "0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e",
+      "tool_basis_rev": 4
+    },
+    "table": {
+      "mtime": 1760000000.5,
+      "rows": "a1b2c3d4e5f60718"
+    },
     "tool_basis_rev": 4,
     "tool_basis_rev_now": 4
   }

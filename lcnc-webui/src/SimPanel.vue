@@ -90,7 +90,8 @@ const sumHelp = computed(() => {
 });
 /** Measurements no row can carry (their call line is not verified): the
  *  stats' "Tool Lengths" row lists them (Codex R105 VP-I63). */
-const unbound = computed(() => (simView.unboundMeasurements ? " Tool lengths: Program Stats." : ""));
+const unbound = computed(() => (!simView.unboundMeasurements ? ""
+  : simView.unboundWarnings ? " Tool lengths and probe warnings: Program Stats." : " Tool lengths: Program Stats."));
 const sumTool = computed(() => {
   const n = count("tool");
   return { name: n ? `${n} tool change${n === 1 ? "" : "s"}` : "No tool changes", short: String(n), muted: !n };

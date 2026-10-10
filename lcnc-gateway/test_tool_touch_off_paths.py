@@ -204,6 +204,12 @@ def test_only_z_moves_inside_the_braking_range():
     assert len(starts) == 1 and len(ends) == 1 and starts[0] < ends[0]
     inside = [s for s in preview[starts[0] + 1:ends[0]] if _AXIS_XY.search(_motion_words(s))]
     assert inside == [], inside
+    # the first move after the range rises to machine Z0 (the top): every pose
+    # on it is one a machine that stopped lower passes too — the sweep takes
+    # the poses past the range's end vertex as real (Codex R126 VP-I74)
+    motion = re.compile(r"^(G53)?G[0-3](?![0-9.])|^G38")
+    after = [s for s in preview[ends[0] + 1:] if motion.search(s)]
+    assert re.sub(r"\([^)]*\)", "", after[0]) == "G53G1F#<TRAVERSE_FR>Z0", after[:2]
     task = list(_flat(_specialise(_tree(NEW.read_text(encoding="utf-8")), 1)))
     a = next(i for i, s in enumerate(task) if s.startswith("G38.3"))
     b = max(i for i, s in enumerate(task) if s == "G53G1F#<TRAVERSE_FR>Z0")

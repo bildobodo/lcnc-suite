@@ -119,7 +119,13 @@ export function probeStopTitle(stop: { tool: number; reason: string }): string {
  *  line]) — an assumption, never "measured" (plan section 5) — or one the
  *  preview does not predict, with why. A stop without a tool (the routine's
  *  values unknown) is none: the summary says it. */
-export interface M600Event { seq: number; tool: number; line: number; note: string; length: number | null }
+export interface M600Event {
+  seq: number; tool: number; line: number; note: string; length: number | null;
+  /** Where the modeled probe sequence may not hold (payload `probe_notes`,
+   *  parity-ef plan F3), in words — for every place that lists the
+   *  measurement, bound or not (Codex R126 VP-I75). */
+  warnings?: string[];
+}
 
 export function m600Events(stops: readonly ProbeStop[], toollen: unknown, unit: string,
                            notes: readonly ProbeNote[] = []): M600Event[] {
@@ -143,7 +149,10 @@ export function m600Events(stops: readonly ProbeStop[], toollen: unknown, unit: 
   // before its probe): the next predicted one of its tool after it.
   for (const n of notes) {
     const e = out.find(x => x.seq > n.seq && x.length != null && x.tool === n.tool);
-    if (e) e.note += `; ${probeNoteWhy(n)}`;
+    if (e) {
+      e.note += `; ${probeNoteWhy(n)}`;
+      (e.warnings ??= []).push(probeNoteWhy(n));
+    }
   }
   return out;
 }
@@ -173,8 +182,11 @@ export function m600ToolNotes(events: readonly M600Event[]): {
 /** Program Stats' list: every measurement in order, its line where known
  *  ("T2 80.000 mm (L3), T2 not predicted (L6)"). */
 export function m600StatsText(events: readonly M600Event[], unit: string): string {
+  // in execution order: two runs of one call line stay two entries, each
+  // with its own warnings (Codex R126 VP-I75)
   return events.map(e => `T${e.tool} ${e.length == null ? "not predicted" : fmtQty(e.length, unit, 3)}`
-                         + (e.line ? ` (L${e.line})` : " (line not known)")).join(", ");
+                         + (e.line ? ` (L${e.line})` : " (line not known)")
+                         + (e.warnings?.length ? ` — ${e.warnings.join("; ")}` : "")).join(", ");
 }
 
 /** The toolsetter basis the routine was predicted with (payload
