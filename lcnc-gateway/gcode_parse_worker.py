@@ -89,7 +89,7 @@ from gateway_util import (
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
     rotary_word_lines, first_rotary_commands, seq_boundary_indices, band_anchor_indices,
-    position_write_lines, position_read_lines,
+    position_write_lines, position_read_lines, suite_python_reads,
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
@@ -313,23 +313,34 @@ def parse(ctx: dict) -> dict:
     # is start-dependent (X, Y, Z) or may become unknown (the axes a tool
     # change position names) is unknown from the program's start — no line
     # says when. Unreadable: from the start too.
-    try:
-        with open(filename, "r", errors="replace") as f:
-            _rtext = f.read()
-        _rlines = position_read_lines(_rtext, _remap_env)
-        _maybe = {0, 1, 2} | (set(canon.tool_change_axes) if canon.tool_change_moves else set())
-        _hits = lambda r: r is None or bool(r & _maybe)
-        if canon.write_lines is not None and canon.write_mode == "ordered":
-            canon.read_lines = _rlines or None
-        elif any(_hits(r) for r in _rlines.values()):
+    # Set up at the parse's first callback: a Python remap's reads hold only
+    # for the functions the interpreter has LOADED, bound as reviewed
+    # (suite_python_reads, plan E4a) — the plugin loads TOPLEVEL before it.
+    def _setup_reads():
+        _remap_env.python_reads = suite_python_reads(sys.modules)
+        _py = sorted({h for r in _remap_env.remaps.values() for h in r["hooks"]})
+        if _py:
+            print("python remap reads: bound " + (",".join(sorted(_remap_env.python_reads)) or "none")
+                  + "; every axis: " + (",".join(h for h in _py if h not in _remap_env.python_reads) or "none"),
+                  file=sys.stderr, flush=True)
+        try:
+            with open(filename, "r", errors="replace") as f:
+                _rtext = f.read()
+            _rlines = position_read_lines(_rtext, _remap_env)
+            _maybe = {0, 1, 2} | (set(canon.tool_change_axes) if canon.tool_change_moves else set())
+            _hits = lambda r: r is None or bool(r & _maybe)
+            if canon.write_lines is not None and canon.write_mode == "ordered":
+                canon.read_lines = _rlines or None
+            elif any(_hits(r) for r in _rlines.values()):
+                canon.read_from_start = True
+            elif canon.write_mode == "foreign" and _hits(_remap_env.text_reads(_rtext)):
+                canon.read_from_start = True
+            canon.read_remaps = {r["name"]: _remap_env.reads(k) for k, r in _remap_env.remaps.items()
+                                 if _remap_env.reads(k) is None or _remap_env.reads(k)}
+        except OSError as e:
             canon.read_from_start = True
-        elif canon.write_mode == "foreign" and _hits(_remap_env.text_reads(_rtext)):
-            canon.read_from_start = True
-        canon.read_remaps = {r["name"]: _remap_env.reads(k) for k, r in _remap_env.remaps.items()
-                             if _remap_env.reads(k) is None or _remap_env.reads(k)}
-    except OSError as e:
-        canon.read_from_start = True
-        _trace.emit_exc("gcode.read_scan_failed", e)
+            _trace.emit_exc("gcode.read_scan_failed", e)
+    canon._read_setup = _setup_reads
     # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
     # machine runs every move before the program's own G43/G49 under its
     # inherited modal G43, so the interpreter starts there too — read ONCE

@@ -4323,6 +4323,145 @@ def unmarked_position_reads(text):
 MARKED_POS_ROUTINES = frozenset({"9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2"})  # subroutines/tool_length_probe/tool_touch_off.ngc
 
 
+#: The suite's TWP Python remaps (docs/reviews/parity-ef.plan.md E4a,
+#: Fassung 7, Codex R129–R131): the axes each entry's call graph may READ
+#: from the position (canonical indices; the attributes POS_READ_ATTRS), as
+#: reviewed for the sources whose sha256 SUITE_PY_SHA256 pins. At a parse
+#: the table holds only for an entry whose every link — the entry the
+#: interpreter calls (`sys.modules["remap"].<name>`) and each helper its graph
+#: reaches, in the namespace that calls it — is bound to the definition the
+#: worker compiles itself from those exact bytes (suite_python_reads); any
+#: other Python body reads every axis. test_start_dep_worker recomputes the
+#: graph and the hashes from the repository.
+SUITE_PY_MODULES = ("remap", "twp_params", "twp_prov", "twp_transform", "util")
+SUITE_PY_SHA256 = {
+    "remap": "af5e6eb664bd662e89abafa36d7cc4e2fc770287c71288435eb821361e0e2d5a",
+    "twp_params": "013e4de636cab748b7178e48ae018e38cba5026a55c35806c2e810b02d7bf190",
+    "twp_prov": "694163fa9cbc6cda2fbd52ac4ebb207550b2afc024c059672c80402d344f1acf",
+    "twp_transform": "3ccb18847ac8f25c546884d65d5478d7f6080335e1889d58c5badc9ae95aaa71",
+    "util": "aee8b6917d7a2a504b835112b03e03e5c598138729c0e2e985ca2e8f8c79fcd5",
+}
+SUITE_PY_READS = {
+    "g682": frozenset(), "g684": frozenset(), "g69_core": frozenset(),
+    "g683": frozenset((3, 4, 5)), "g53x_core": frozenset((3, 4, 5)),
+    "twp_touchoff": frozenset((0, 1, 2, 3, 4, 5)),
+}
+#: The interpreter attributes that read the position, by axis.
+POS_READ_ATTRS = {"current_x": 0, "current_y": 1, "current_z": 2, "AA_current": 3, "BB_current": 4,
+                  "CC_current": 5, "u_current": 6, "v_current": 7, "w_current": 8}
+
+
+def py_module_graph(src, filename):
+    """One Python module's own graph, from its bytes: (functions, imports,
+    codes) — functions {top-level name: (axes it reads directly through
+    POS_READ_ATTRS, names it calls by name)}, imports {alias: (module, name)}
+    of its `from … import`, codes {name: the code object compile() gives the
+    top-level def}. Pure."""
+    import ast
+    import types
+    tree = ast.parse(src, filename)
+    functions, imports = {}, {}
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef):
+            axes = {POS_READ_ATTRS[n.attr] for n in ast.walk(node)
+                    if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load) and n.attr in POS_READ_ATTRS}
+            calls = {n.func.id for n in ast.walk(node)
+                     if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+            functions[node.name] = (frozenset(axes), frozenset(calls))
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            for a in node.names:
+                if a.name != "*":
+                    imports[a.asname or a.name] = (node.module, a.name)
+    code = compile(src, filename, "exec", dont_inherit=True)
+    codes = {c.co_name: c for c in code.co_consts
+             if isinstance(c, types.CodeType) and c.co_name in functions}
+    return functions, imports, codes
+
+
+def suite_graph_reads(graphs, entry):
+    """The axes `entry` of `remap` may read through its call graph over the
+    modules in `graphs` ({module: py_module_graph(…)}) and the links it walks
+    [(module, name)]. Pure."""
+    axes, links, seen = set(), [], set()
+    stack = [("remap", entry)]
+    while stack:
+        mod, name = stack.pop()
+        if (mod, name) in seen:
+            continue
+        seen.add((mod, name))
+        links.append((mod, name))
+        functions, imports, _codes = graphs[mod]
+        f_axes, calls = functions[name]
+        axes |= f_axes
+        for c in calls:
+            if c in functions:
+                stack.append((mod, c))
+            elif c in imports and imports[c][0] in graphs and imports[c][1] in graphs[imports[c][0]][0]:
+                stack.append((imports[c][0], imports[c][1]))
+    return frozenset(axes), links
+
+
+def suite_python_reads(modules, sha256=None, table=None):
+    """{entry: axes} for the suite's Python remaps the interpreter WILL call
+    as reviewed (parity-ef plan E4a, Fassung 7): each module of
+    SUITE_PY_MODULES loaded (`modules`, i.e. sys.modules) from a file with
+    the pinned sha256; the entry `modules["remap"].<name>` and every helper
+    its graph reaches — looked up in the `__globals__` of the function that
+    calls it, import aliases included — a function whose code object equals
+    the one compiled from those bytes, from that file, in that module's
+    namespace. An entry failing any of it is left out: it reads every axis.
+    Reads the module files; else pure."""
+    import os as _os
+    sha256 = SUITE_PY_SHA256 if sha256 is None else sha256
+    table = SUITE_PY_READS if table is None else table
+    graphs, files, spaces = {}, {}, {}
+    for m in SUITE_PY_MODULES:
+        mm = modules.get(m)
+        path = getattr(mm, "__file__", None)
+        if mm is None or not path:
+            return {}
+        try:
+            with open(path, "rb") as f:
+                raw = f.read()
+        except OSError:
+            return {}
+        if hashlib.sha256(raw).hexdigest() != sha256.get(m):
+            return {}
+        try:
+            graphs[m] = py_module_graph(raw, path)
+        except (SyntaxError, ValueError):
+            return {}
+        files[m] = _os.path.realpath(path)
+        spaces[m] = getattr(mm, "__dict__", None)
+    out = {}
+    for entry, axes in table.items():
+        fn = getattr(modules["remap"], entry, None)
+        ok = fn is not None
+        stack = [("remap", entry, fn)]
+        seen = set()
+        while ok and stack:
+            mod, name, obj = stack.pop()
+            if (mod, name) in seen:
+                continue
+            seen.add((mod, name))
+            functions, imports, codes = graphs[mod]
+            code = getattr(obj, "__code__", None)
+            if (name not in codes or code is None or code != codes[name]
+                    or _os.path.realpath(code.co_filename) != files[mod]
+                    or getattr(obj, "__globals__", None) is not spaces[mod]):
+                ok = False
+                break
+            g = obj.__globals__
+            for c in functions[name][1]:
+                if c in functions:
+                    stack.append((mod, c, g.get(c)))
+                elif c in imports and imports[c][0] in graphs and imports[c][1] in graphs[imports[c][0]][0]:
+                    stack.append((imports[c][0], imports[c][1], g.get(c)))
+        if ok:
+            out[entry] = frozenset(axes)
+    return out
+
+
 class RemapEnv:
     """The configured REMAPs and what their bodies MAY do (Codex R106,
     VP-I59 / VP-I61 rests): a remapped code runs a body the text scan never
@@ -4362,7 +4501,8 @@ class RemapEnv:
             if ngc and ngc.lower().endswith(".ngc"):
                 ngc = ngc[:-4]
             self.remaps[key] = {"ngc": (ngc or "").lower() or None, "opaque": opaque or not ngc,
-                                "name": parts[0].lower()}
+                                "name": parts[0].lower(),
+                                "hooks": [opts[k] for k in ("python", "prolog", "epilog") if opts.get(k)]}
         self._effect = {}
         self._file = {}
         self._reads = {}
@@ -4370,6 +4510,10 @@ class RemapEnv:
         # Files whose position reads carry their WEBUI_POS markers, by
         # content (sha256): the bundled routine (parity-ef plan E4a).
         self.marked_files = MARKED_POS_ROUTINES
+        # The Python functions whose reads are bound (suite_python_reads,
+        # set by the worker once the interpreter has loaded them); any other
+        # hook reads every axis.
+        self.python_reads = {}
 
     @classmethod
     def unknown(cls):
@@ -4498,7 +4642,17 @@ class RemapEnv:
                 if r is None:
                     continue
                 if r["opaque"]:
-                    return None
+                    # python=, prolog=, epilog= each (Codex R129 VP129-02):
+                    # a hook reads what its bound graph reads, else any
+                    if not r["hooks"]:
+                        return None
+                    for h in r["hooks"]:
+                        hr = self.python_reads.get(h)
+                        if hr is None:
+                            return None
+                        reads |= hr
+                    if not r["ngc"]:
+                        continue
                 names.append(r["ngc"])
                 continue
             name = names.pop()
@@ -4672,14 +4826,21 @@ def foreign_m600_codes(remap_lines, search_dirs, max_read=65536) -> frozenset:
     search path, LinuxCNC's rule — carries no `(WEBUI_SUB=m600)` /
     `(WEBUI_SUB=m601)` marker or cannot be found or read, or a remap without
     an ngc (python=). The preview cannot know what such a call does to the
-    tool and the machine's state. A code without a REMAP is none. Lower-case
-    codes ("m600", "m601"). Reads the files, else pure."""
+    tool and the machine's state. A `python=`, `prolog=` or `epilog=` hook
+    makes it foreign too, whatever its ngc carries. A code without a REMAP
+    is none. Lower-case codes ("m600", "m601"). Reads the files, else
+    pure."""
     out = set()
     for raw in remap_lines or ():
         parts = str(raw or "").split()
         if not parts or parts[0].lower() not in ("m600", "m601"):
             continue
         code = parts[0].lower()
+        if re.search(r"\b(?:python|prolog|epilog)\s*=", str(raw), re.IGNORECASE):
+            # a Python hook beside or instead of the ngc body runs what the
+            # preview cannot see (parity-ef plan E4a, Codex R129 VP129-02)
+            out.add(code)
+            continue
         m = re.search(r"\bngc\s*=\s*(\S+)", str(raw), re.IGNORECASE)
         if not m:
             out.add(code)

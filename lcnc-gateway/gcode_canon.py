@@ -159,6 +159,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     read_lines = None
     read_remaps = {}
     read_from_start = False
+    _read_setup = None              # the worker's, run once at the first callback
     position_read_lines = ()
     _read_done = frozenset()
     _pos_saved = None
@@ -497,6 +498,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def next_line(self, st):
         self.state = st
+        self._ensure_reads()
         if (st.sequence_number or 0) < 0:
             # A motion the interpreter makes itself inside the current block —
             # an M6's quill-up or G30 move (TOOL_CHANGE_QUILL_UP /
@@ -656,9 +658,16 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def _enter(self):
         """Every callback's first step: the program's phase, then a foreign
         remap's boundary."""
+        self._ensure_reads()
         self._phase()
         self._foreign_gate()
         self._read_gate()
+
+    def _ensure_reads(self):
+        f = self._read_setup
+        if f is not None:
+            self._read_setup = None
+            f()
 
     @staticmethod
     def _read_hits(axes, held):
