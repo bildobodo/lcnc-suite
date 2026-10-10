@@ -1,0 +1,83 @@
+# R122 · Claude · Achsworte, Rahmen und G28/G30-Teilstücke in den Canon-Rückrufen · 10. Oktober 2026
+
+Offline, nativer Vorschau-Interpreter (LinuxCNC 2.9.4) über lcnc-gateway/native_start_probe.py: synthetischer
+Status, temporäre INI/Var/Werkzeugdateien, linuxcnc.command verboten. Aufruf aus lcnc-gateway/:
+  .venv/bin/python ../docs/reviews/viewer-palette-fest.r122.native-flags.py <fall>
+Je Rückruf: Art, Zeile, Zielpunkt (Canon-Einheit Zoll, wie der Canon ihn erhält), blocks[0].x/y/z_flag,
+g_modes[0] (530 G53, 280 G28, 300 G30), g_modes[1] (Bewegung), distance_mode (0 G90, 1 G91), call_level.
+Var: G28 = (1, 2, 3) mm, G30 = (100, 200, 300) mm.
+
+## e_g53_prefix
+  Programm:
+     1 G21 G90
+     2 G53 G0 Z0
+     3 G0 X0
+     4 G91 G0 Y5
+     5 G90 G1 X0 Y0 Z-10 F100
+     6 M2
+  Rückrufe:
+  traverse L2  ziel [0.0, 0.0, 0.0]  xyz 001  g0  530  g1   0  dist 0  level 0
+  traverse L3  ziel [0.0, 0.0, 0.0]  xyz 100  g0   -1  g1   0  dist 0  level 0
+  traverse L4  ziel [0.0, 0.1969, 0.0]  xyz 010  g0   -1  g1   0  dist 1  level 0
+  feed     L5  ziel [0.0, 0.0, -0.3937]  xyz 111  g0   -1  g1  10  dist 0  level 0
+
+## e_g30_forms
+  Programm:
+     1 G21 G90
+     2 G0 X11 Y22 Z33
+     3 G30
+     4 G0 X11 Y22 Z33
+     5 G91 G30 Z0
+     6 G90
+     7 G0 X11 Y22 Z33
+     8 G30 Z400
+     9 M2
+  Rückrufe:
+  traverse L2  ziel [0.4331, 0.8661, 1.2992]  xyz 111  g0   -1  g1   0  dist 0  level 0
+  traverse L3  ziel [0.4331, 0.8661, 1.2992]  xyz 000  g0  300  g1  -1  dist 0  level 0
+  traverse L3  ziel [3.937, 7.874, 11.811]  xyz 000  g0  300  g1  -1  dist 0  level 0
+  traverse L4  ziel [0.4331, 0.8661, 1.2992]  xyz 111  g0   -1  g1   0  dist 0  level 0
+  traverse L5  ziel [0.4331, 0.8661, 1.2992]  xyz 001  g0  300  g1  -1  dist 1  level 0
+  traverse L5  ziel [0.4331, 0.8661, 11.811]  xyz 001  g0  300  g1  -1  dist 1  level 0
+  traverse L7  ziel [0.4331, 0.8661, 1.2992]  xyz 111  g0   -1  g1   0  dist 0  level 0
+  traverse L8  ziel [0.4331, 0.8661, 15.748]  xyz 001  g0  300  g1  -1  dist 0  level 0
+  traverse L8  ziel [0.4331, 0.8661, 11.811]  xyz 001  g0  300  g1  -1  dist 0  level 0
+
+## e_g28_g91
+  Programm:
+     1 G21 G90
+     2 G0 X11 Y22 Z33
+     3 G28 G91 Z0
+     4 G90
+     5 G28
+     6 M2
+  Rückrufe:
+  traverse L2  ziel [0.4331, 0.8661, 1.2992]  xyz 111  g0   -1  g1   0  dist 0  level 0
+  traverse L3  ziel [0.4331, 0.8661, 1.2992]  xyz 001  g0  280  g1  -1  dist 1  level 0
+  traverse L3  ziel [0.4331, 0.8661, 0.1181]  xyz 001  g0  280  g1  -1  dist 1  level 0
+  traverse L5  ziel [0.4331, 0.8661, 0.1181]  xyz 000  g0  280  g1  -1  dist 0  level 0
+  traverse L5  ziel [0.0394, 0.0787, 0.1181]  xyz 000  g0  280  g1  -1  dist 0  level 0
+
+## e_sub
+  Programm:
+     1 G21 G90
+     2 G0 X1 Y2 Z3
+     3 o<efsub> call
+     4 M2
+  efsub.ngc:
+     1 o<efsub> sub
+     2 G0 Y7
+     3 G53 G0 Z0
+     4 o<efsub> endsub
+  Rückrufe:
+  traverse L2  ziel [0.0394, 0.0787, 0.1181]  xyz 111  g0   -1  g1   0  dist 0  level 0
+  traverse L2  ziel [0.0394, 0.2756, 0.1181]  xyz 010  g0   -1  g1   0  dist 0  level 1
+  traverse L3  ziel [0.0394, 0.2756, 0.0]  xyz 001  g0  530  g1   0  dist 0  level 1
+
+Befunde:
+- Die Achsworte des laufenden Satzes sind im Rückruf lesbar, auch im Satz einer Unterroutine (e_sub: call_level 1,
+  der Satz der Unterroutine). `G0 X0` (L3 in e_g53_prefix) setzt x_flag, obwohl X schon 0 ist: die heutige
+  Wiederherstellungsregel über eine geänderte Koordinate sieht das nicht.
+- G53 trägt g_modes[0] = 530, G28 = 280, G30 = 300. distance_mode ist der Modus des Satzes selbst (L4: 1).
+- G28/G30 liefern IMMER zwei Rückrufe: zuerst den Zwischenpunkt (Achsworte nach Abstandsmodus, ohne Worte der
+  Ausgangspunkt), dann die gespeicherte Lage für die genannten Achsen (ohne Worte für alle).
