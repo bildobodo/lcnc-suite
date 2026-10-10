@@ -51,7 +51,7 @@ import { partCollides } from "./viewer/collision";
 import { collisionLineMarks } from "./viewer/collisionMarks";
 import { clashTintBodies } from "./viewer/clashTint";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
-import { runBeginOf, runBeginView } from "./viewer/startDep";
+import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { clashTargets } from "./viewer/clashTargets";
@@ -2915,6 +2915,15 @@ let _colSide: { id: number; entry: ScrubTrack; base: ScrubTrack; slice: ScrubTra
 // (parity-ef plan E5/E7): merged onto the base track's axis while the run
 // check that asked for it is on.
 const collisionRunSide = shallowRef<{ gen: number; base: ScrubTrack; bound: ScrubTrack; result: CollisionResult; shift: number } | null>(null);
+// ...and where that side sweep stands until its result is merged: posted
+// and running, or ended without a result — "being checked" only while it
+// runs (Codex R134 VP-I90: a failed one read "start still checking" for good).
+const collisionRunSideState = shallowRef<{ gen: number; side: RunSide } | null>(null);
+/** The run check `gen`'s side sweep ended with no result: its beginning is
+ *  not checked, said with why. */
+function _colRunSideFailed(gen: number, why: string) {
+  if (collisionRun.value?.gen === gen) collisionRunSideState.value = { gen, side: { state: "failed", why } };
+}
 let _colSideSeq = 0;   // side ids are NEGATIVE — their own space beside _colReqId
 // Rotary pose at the start of the current leg / as last seen: a rotary jog
 // parks the sweep (its track is about to be re-parsed); a settled pose with
@@ -2936,10 +2945,17 @@ const collisionRunCheckView = computed(() => {
   return { phase: r.phase, fromLine: r.fromLine,
            fromCum: r.fromIndex != null && t ? t.cum[r.fromIndex] ?? null : null,
            provisionalShown: r.phase === "full" && collisionBusy.value && !!collisionResult.value?.range,
-           // bound: checked once its side result for this run is merged
-           begin: runBeginView(r.begin, collisionRunSide.value?.gen === r.gen),
-           beginWhy: r.beginWhy };
+           ...runBeginNow(r) };
 });
+/** A run check's beginning as the bar shows it: bound, it is checked once
+ *  its own side result is merged and being checked only while its side
+ *  sweep runs (Codex R134 VP-I90). */
+function runBeginNow(r: { gen: number; begin: RunBeginStart; beginWhy: string | null }) {
+  const st = collisionRunSideState.value?.gen === r.gen ? collisionRunSideState.value.side : null;
+  const side: RunSide | null = collisionRunSide.value?.gen === r.gen ? { state: "merged" } : st;
+  const begin = runBeginView(r.begin, side);
+  return { begin, beginWhy: r.begin === "bound" ? (side?.state === "failed" ? side.why : null) : r.beginWhy };
+}
 // The verdict of the preview shown before the one displayed now, kept NAMED
 // while a run goes on (plan „Prüfung im Lauf“ 1c): no marks, counts or jumps
 // of the current preview — only the line that says what it was.
@@ -2956,7 +2972,7 @@ let _colRunGen = 0;
 const collisionRun = shallowRef<{ version: number; runId: number; gen: number; phase: "provisional" | "full";
                                   fromIndex: number | null; fromLine: number | null; basis: CheckBasis;
                                   // the program's start-dependent beginning (Codex R133 VP-I86)
-                                  begin: "none" | "bound" | "nojoints" | "unbound"; beginWhy: string | null } | null>(null);
+                                  begin: RunBeginStart; beginWhy: string | null } | null>(null);
 // The run check the main request in flight belongs to (its generation), and
 // whether the result on screen stays while it runs (the full after the
 // provisional — its partial findings are not shown).
@@ -3214,9 +3230,17 @@ function runEntryCheck(entry: ScrubTrack, base: ScrubTrack | null) {
 /** Drop the entry overlay (and a side sweep in flight): a touch-off, a new
  *  program or a failure makes it stale; ScrubBar re-asks on the next entry. */
 function _colDropEntry() {
-  if (_colSide && _colWorker) _colWorker.postMessage({ cancel: _colSide.id });
-  _colSide = null;
+  _colCancelSide("it was cancelled");
   collisionEntry.value = null;
+}
+/** Cancel the side sweep in flight: its cancel reply no longer reaches it
+ *  (the router knows only the current side), so a run check's beginning is
+ *  said not checked here (Codex R134 VP-I90). */
+function _colCancelSide(why: string) {
+  if (!_colSide) return;
+  if (_colWorker) _colWorker.postMessage({ cancel: _colSide.id });
+  if (_colSide.run) _colRunSideFailed(_colSide.run.gen, why);
+  _colSide = null;
 }
 
 /** ScrubBar's own input edge while simulating (WCS rows it re-adds): nothing
@@ -3233,12 +3257,17 @@ function _colInvalidate() {
 function _colOnSideMessage(m: { id: number; progress?: number; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean }) {
   const side = _colSide!;
   if (m.progress != null && !m.result) return;
-  if (m.cancelled) { _colSide = null; return; }
+  if (m.cancelled) {
+    _colSide = null;
+    if (side.run) _colRunSideFailed(side.run.gen, "it was cancelled");
+    return;
+  }
   if (m.needBodies) {
     if (side.retried) {
       console.error("[collision] worker asked for bodies twice — entry sweep not run");
       emitTelemetry("collision.entry_failed", { msg: "worker asked for bodies twice" });
       _colSide = null;
+      if (side.run) _colRunSideFailed(side.run.gen, "the machine model did not reach the check");
       return;
     }
     _colModelSent = null;
@@ -3249,6 +3278,7 @@ function _colOnSideMessage(m: { id: number; progress?: number; error?: string; r
   if (m.error) {
     console.error("[collision] entry sweep failed:", m.error);
     emitTelemetry("collision.entry_failed", { msg: m.error });
+    if (side.run) _colRunSideFailed(side.run.gen, "the check failed");
     return;
   }
   const result = m.result!;
@@ -3256,6 +3286,7 @@ function _colOnSideMessage(m: { id: number; progress?: number; error?: string; r
     // a run check's bound beginning: kept only for the run check that asked
     if (collisionRun.value?.gen === side.run.gen) {
       collisionRunSide.value = { gen: side.run.gen, base: side.base, bound: side.entry, result, shift: side.shift };
+      collisionRunSideState.value = null;
       _colRunLog.push("beginning");
     }
     return;
@@ -3544,17 +3575,22 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
   // base result's basis (a change since cleared it, _colOnInputChange); a
   // run check's bound beginning: the run's basis
   const req = _colBuildRequest(toRaw(slice) as ScrubTrack, id, true, run?.basis ?? _liveCheckBasis());
-  if (!req) return;
-  if (_colSide && _colWorker) _colWorker.postMessage({ cancel: _colSide.id });
+  if (!req) {
+    if (run) _colRunSideFailed(run.gen, "the check could not be built");
+    return;
+  }
+  _colCancelSide("another check replaced it");
   _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now(), ...(run ? { run } : {}) };
   emitTelemetry("collision.entry_start", { bodies: req.bodies, shift });
   try {
     _colGetWorker().postMessage(req.msg, req.transfer);
     _colModelSent = req.modelKey;
+    if (run) collisionRunSideState.value = { gen: run.gen, side: { state: "running" } };
   } catch (err) {
     console.error("[collision] entry sweep post failed:", err);
     emitTelemetry("collision.entry_failed", { msg: String(err) });
     _colSide = null;
+    if (run) _colRunSideFailed(run.gen, "the check could not be sent");
   }
 }
 
@@ -3608,10 +3644,11 @@ function _startRunCheck(): boolean {
   let from = hint && hint.track === track && hint.index >= 1 && hint.index < track.count ? hint.index - 1 : null;
   if (from != null && K > 0 && from < K) from = K;
   const bound = K > 0 ? _runBoundTrack(track, basis) : null;
-  const begin = runBeginOf(K, !!bound, !!track.startUnbound?.length);
+  const begin = runBeginOf(K, !!bound, !!track.startUnbound?.length, !!basis.startJoints);
   const gen = ++_colRunGen;
   collisionRun.value = { version: g.publishedVersion!, runId: rb.runId, gen, basis,
-    begin, beginWhy: begin === "nojoints" ? rb.start?.jointsWhy ?? null : null,
+    begin, beginWhy: begin === "nojoints" ? rb.start?.jointsWhy ?? null
+      : begin === "failed" ? "no start could be bound to it" : null,
     phase: from != null ? "provisional" : "full", fromIndex: from,
     // the line the operator sees there: inside a called file its call line
     // (a point nothing vouches for keeps its own number, collision.ts noteLine)
@@ -3646,6 +3683,7 @@ function _discardRunCheck(why: string) {
   _colRunLog.push(`discard ${why}`);
   collisionRun.value = null;
   collisionRunSide.value = null;
+  collisionRunSideState.value = null;
   if (_colSide?.run && _colWorker) { _colWorker.postMessage({ cancel: _colSide.id }); _colSide = null; }
   const prev = collisionResult.value;
   if (prev) collisionPrevious.value = { collisions: clashTargets(prev.hits).length, complete: !prev.truncated, version: null };

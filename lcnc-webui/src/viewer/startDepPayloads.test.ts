@@ -16,7 +16,7 @@ import * as THREE from "three";
 import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { describe, expect, it } from "vitest";
 import { decodePreviewStreams, normalizeToToolBasis } from "../previewDecode";
-import { buildEntryTrack, buildScrubTrack, sliceTrack } from "./scrubTrack";
+import { buildEntryTrack, buildScrubTrack, displayLineForPoint, sliceTrack } from "./scrubTrack";
 import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { beginSentence, bindBeginning, depTimeSentence, earlierTime, moveTime, runBeginOf, runBeginView } from "./startDep";
@@ -382,13 +382,178 @@ describe("Codex R133", () => {
     const merged = mergeBeginningOntoBase(side, part, e.cum[K + 1]!, rdp.track.cum[rdp.track.count - 1]!, e.cum[1]);
     expect(sweepView(merged, run("checked")).verdict).toBe("Clear · checked in full");
     // the states the viewer hands the bar
-    expect([runBeginOf(0, false, false), runBeginOf(2, true, false), runBeginOf(2, false, true), runBeginOf(2, false, false)])
-      .toEqual(["none", "bound", "unbound", "nojoints"]);
-    expect([runBeginView("bound", false), runBeginView("bound", true), runBeginView("nojoints", true)])
-      .toEqual(["checking", "checked", "nojoints"]);
+    expect([runBeginOf(0, false, false), runBeginOf(2, true, false), runBeginOf(2, false, true), runBeginOf(2, false, false),
+            runBeginOf(0, false, true), runBeginOf(2, false, false, true)])
+      .toEqual(["none", "bound", "unbound", "nojoints", "unbound", "failed"]);
+    expect([runBeginView("bound", { state: "running" }), runBeginView("bound", { state: "merged" }),
+            runBeginView("bound", { state: "failed", why: "x" }), runBeginView("bound", null),
+            runBeginView("nojoints", { state: "merged" })])
+      .toEqual(["checking", "checked", "failed", "failed", "nojoints"]);
     // the "?" says why
     expect(verdictDetail(part, run("nojoints", "moving"), rdp.track))
       .toMatch(/The start of the program depends on where the machine stands \(L\d+–L\d+\): not checked: the run's start position was not read \(moving\)\./);
     expect(verdictDetail(part, null, rdp.track)).toMatch(/: checked from the machine's position in the simulation\./);
+  });
+});
+
+// Codex R134: the run check's beginning through the viewer's REAL
+// coordinator functions — taken from ThreeViewer.vue as written and run
+// together; only the transport around them (gateway, admission, worker,
+// model) is stubbed. Codex's method (viewer-palette-fest.r134.codex-wiring).
+type Coord = {
+  start(): boolean; setBase(r: any): void; reply(data: Record<string, unknown>): void; drop(): void;
+  view(): any; result(): any; side(): any;
+};
+function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why?: string | null;
+                     buildFails?: boolean; postThrows?: boolean; noInit?: boolean } = {}): Coord {
+  const file = fs.readFileSync(path.resolve(__dirname, "../ThreeViewer.vue"), "utf8");
+  const script = file.slice(file.indexOf('<script setup lang="ts">') + 24, file.indexOf("</script>"));
+  const ast = ts.createSourceFile("ThreeViewer.ts", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const texts: string[] = [];
+  for (const name of ["_startRunCheck", "_runBoundTrack", "_colPostSide", "_colOnSideMessage", "_colBaseFor",
+                      "_colRunSideFailed", "_colCancelSide", "_colDropEntry", "runBeginNow"]) {
+    const f = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === name);
+    expect(f, name).toBeTruthy();
+    texts.push(f!.getText(ast));
+  }
+  const v = ast.statements.find(n => ts.isVariableStatement(n)
+    && n.declarationList.declarations.some(d => d.name.getText(ast) === "collisionRunCheckView"));
+  expect(v).toBeTruthy();
+  texts.push(v!.getText(ast));
+  const prelude = `
+  const computed = (f) => ({ get value() { return f(); } });
+  const ref = (x) => ({ value: x });
+  const viewerGcode = ref({ scrubTrack: track, file: "offline.ngc", publishedVersion: 7, rapid_rate: 10, rot_rapid_rate: 10 });
+  const runBasis = ref({ runId: 1, start: { jointsWhy: opts.why ?? null } }), previewOrigin = ref({}), status = ref({ data: {} });
+  const runPlayhead = ref(null), viewerInit = ref(opts.noInit ? null : { axes: ["X", "Y", "Z"] });
+  const collisionRun = ref(null), collisionRunSide = ref(null), collisionRunSideState = ref(null), collisionEntry = ref(null);
+  const collisionBusy = ref(false), collisionResumable = ref(false), collisionResult = ref(null), collisionTrack = ref(null);
+  const collisionPartial = ref(null), collisionPartialTrack = ref(null);
+  const basis = { startJoints: opts.joints === undefined ? [100, 100, 100] : opts.joints };
+  let _colRunGen = 0, _colSide = null, _colSideSeq = 0, _colModelSent = null;
+  const _colRunLog = [];
+  const _colWorker = { postMessage: (x) => { if (opts.postThrows && x && x.id < 0) throw new Error("injected"); } };
+  const _colGetWorker = () => _colWorker;
+  const emitTelemetry = () => {}, emit = () => {}, _colRetint = () => {};
+  const admitRunCheck = () => ({ ok: true }), _runInProgress = () => true, basisFromRun = () => basis;
+  const _colWcs = () => wcs, specFromWire = () => undefined, epochTermsFor = () => undefined;
+  const cancelCollisionCheck = () => {}, runCollisionCheck = () => {};
+  const _colBuildRequest = (_t, id) => opts.buildFails ? null : ({ msg: { id }, transfer: [], modelKey: "test", bodies: 2 });
+  const _liveCheckBasis = () => basis, toRaw = (x) => x;
+  `;
+  const expose = `
+  return {
+    start: () => _startRunCheck(),
+    setBase: (r) => { collisionResult.value = r; collisionTrack.value = track; },
+    reply: (data) => _colOnSideMessage({ id: _colSide.id, ...data }),
+    drop: () => _colDropEntry(),
+    view: () => collisionRunCheckView.value,
+    result: () => _colBaseFor(track),
+    side: () => _colSide,
+  };`;
+  const code = ts.transpileModule(prelude + texts.join("\n") + expose,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+  const deps = { track, wcs, opts, runBeginOf, runBeginView, buildEntryTrack, sliceTrack, mergeBeginningOntoBase,
+                 displayLineForPoint, console: { error: () => {} } };
+  return new Function(...Object.keys(deps), code)(...Object.values(deps));
+}
+const swept = (t: any, raw: Record<string, any>) => sweep(t, [500, 0, 0], raw);
+
+describe("Codex R134", () => {
+  it("VP-I84/I86 at K = 0: a first move from an unseen tool change position is said not checked — idle, in a run, in the '?'", () => {
+    for (const [name, whole] of [["r134_m6_first_absolute", false], ["r134_m6_only_absolute", true],
+                                 ["r133_m6_before_first", false]] as const) {
+      const { raw, track } = load(name);
+      expect([track.depEnd ?? 0, track.startUnbound], name).toEqual([0, [0, 1, 2]]);
+      expect(buildEntryTrack(track, [100, 100, 100], ["X", "Y", "Z"], wcsOf(raw), undefined, undefined, 0, rates(raw)), name).toBeNull();
+      const r = swept(track, raw);
+      expect(r.startDependent, name).toEqual({ fromLine: 3, toLine: 3, whole, unbound: true });
+      const words = whole ? "Not checked" : "Clear · start not checked";
+      const idle = sweepView(r, null);
+      expect([idle.verdict, idle.tone], name).toEqual([words, "warn"]);
+      // the run check as the viewer starts it: its beginning unbound
+      const h = coordinator(track, wcsOf(raw));
+      expect(h.start()).toBe(true);
+      h.setBase(r);
+      expect(h.view().begin, name).toBe("unbound");
+      const run = sweepView(h.result(), h.view());
+      expect([run.verdict, run.tone], name).toEqual([words, "warn"]);
+      const help = verdictDetail(h.result(), h.view(), track);
+      expect(help, name).toMatch(/depends on where the machine stands \(L3\): its first move starts from a position the preview cannot know, so it is not checked\./);
+      expect(help, name).not.toMatch(/along the whole program/);
+    }
+    // controls: a first move from a start the entry move binds — nothing
+    // named, clear in full; a beginning bound in the simulation stays clear
+    const k0 = load("r133_first_g1_xyz");
+    expect(k0.track.startUnbound).toBeUndefined();
+    const plain = swept(k0.track, k0.raw);
+    expect(plain.startDependent).toBeUndefined();
+    expect(sweepView(plain, null).verdict).toBe("Clear");
+    const h = coordinator(k0.track, wcsOf(k0.raw));
+    expect(h.start()).toBe(true);
+    h.setBase(plain);
+    expect([h.view().begin, sweepView(h.result(), h.view()).verdict]).toEqual(["none", "Clear · checked in full"]);
+    const single = load("e_single");
+    const bound = swept(single.track, single.raw);
+    expect([bound.startDependent?.unbound, sweepView(bound, null).verdict]).toEqual([undefined, "Clear"]);
+  });
+
+  it("VP-I90: a run's side sweep that ends with no result is not checked, with why — never 'still checking'", () => {
+    const { raw, track } = load("e_single");
+    expect(track.depEnd).toBeGreaterThan(0);
+    const base = swept(track, raw);
+    const cases: [string, (h: Coord) => void, string][] = [
+      ["worker error", h => h.reply({ error: "injected" }), "the check failed"],
+      ["bodies twice", h => { h.reply({ needBodies: true }); h.reply({ needBodies: true }); }, "the machine model did not reach the check"],
+      ["cancelled", h => h.reply({ cancelled: true }), "it was cancelled"],
+      ["dropped", h => h.drop(), "it was cancelled"],
+    ];
+    for (const [what, fail, why] of cases) {
+      const h = coordinator(track, wcsOf(raw));
+      expect(h.start()).toBe(true);
+      h.setBase(base);
+      const pending = sweepView(h.result(), h.view());
+      expect([h.view().begin, pending.state, pending.verdict], what).toEqual(["checking", "checking", "No collision · start still checking"]);
+      fail(h);
+      expect(h.side(), what).toBeNull();
+      expect([h.view().begin, h.view().beginWhy], what).toEqual(["failed", why]);
+      const shown = sweepView(h.result(), h.view());
+      expect([shown.state, shown.verdict, shown.tone], what).toEqual(["done", "Clear · start not checked", "warn"]);
+      expect(h.result().hits, what).toEqual(base.hits);              // the base check's finding stays
+      expect(verdictDetail(h.result(), h.view(), track), what)
+        .toContain(`not checked: the check from the run's start position did not run to its end (${why}).`);
+    }
+    // one that never went out: not built, or the post threw
+    for (const [what, o, why] of [["not built", { buildFails: true }, "the check could not be built"],
+                                  ["post threw", { postThrows: true }, "the check could not be sent"],
+                                  ["not bound", { noInit: true }, "no start could be bound to it"]] as const) {
+      const h = coordinator(track, wcsOf(raw), o);
+      expect(h.start()).toBe(true);
+      h.setBase(base);
+      expect([h.view().begin, h.view().beginWhy, sweepView(h.result(), h.view()).verdict], what)
+        .toEqual(["failed", why, "Clear · start not checked"]);
+    }
+    // controls: merged in either order is checked in full; no joints keeps
+    // its reason; a side stopped short is no full check
+    for (const order of ["base first", "side first"]) {
+      const h = coordinator(track, wcsOf(raw));
+      expect(h.start()).toBe(true);
+      const beginning = sweep(h.side().slice, [500, 0, 0], raw);
+      if (order === "base first") { h.setBase(base); h.reply({ result: beginning }); }
+      else { h.reply({ result: beginning }); expect(h.result()).toBeNull(); h.setBase(base); }
+      expect([h.view().begin, sweepView(h.result(), h.view()).verdict], order).toEqual(["checked", "Clear · checked in full"]);
+    }
+    const nj = coordinator(track, wcsOf(raw), { joints: null, why: "not in position" });
+    expect(nj.start()).toBe(true);
+    nj.setBase(base);
+    expect([nj.view().begin, nj.view().beginWhy]).toEqual(["nojoints", "not in position"]);
+    const st = coordinator(track, wcsOf(raw));
+    expect(st.start()).toBe(true);
+    st.setBase(base);
+    const cut = sweep(st.side().slice, [500, 0, 0], raw);
+    cut.truncated = { covered: 0.5, reason: "backstop" } as any;
+    st.reply({ result: cut });
+    expect(st.result().truncated.covered).toBe(0);
+    expect(sweepView(st.result(), st.view()).verdict).not.toContain("checked in full");
   });
 });

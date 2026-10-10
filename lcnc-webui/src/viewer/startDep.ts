@@ -134,22 +134,32 @@ export function bindBeginning(base: ScrubTrack, start: readonly number[], rates?
 }
 
 /** Where a run check stands with the program's start-dependent beginning
- *  (Codex R133 VP-I86): none, its bound side result merged ("checked"),
- *  still sweeping, no start joints in the run's basis, or no start bindable
- *  at the first point (`startUnbound`). */
-export type RunBegin = "none" | "checked" | "checking" | "nojoints" | "unbound";
+ *  (Codex R133 VP-I86, R134 VP-I90): none, its bound side result merged
+ *  ("checked"), its side sweep running, no start joints in the run's basis,
+ *  no start bindable at the first point (`startUnbound`), or a side sweep
+ *  that ended with no result or never ran ("failed"). */
+export type RunBegin = "none" | "checked" | "checking" | "nojoints" | "unbound" | "failed";
+/** The state a run check starts with. */
+export type RunBeginStart = "none" | "bound" | "nojoints" | "unbound" | "failed";
+/** Where the run check's own side sweep stands: its result merged, posted
+ *  and running, or ended without a result (`why`). */
+export type RunSide = { state: "merged" } | { state: "running" } | { state: "failed"; why: string };
 
-/** A run check's beginning when it starts: none (K = 0), bound to the run's
- *  start joints (a side sweep follows), no start bindable at the first
- *  point, or no joints in the run's basis. */
-export function runBeginOf(K: number, bound: boolean, unbound: boolean): "none" | "bound" | "nojoints" | "unbound" {
-  return K <= 0 ? "none" : bound ? "bound" : unbound ? "unbound" : "nojoints";
+/** A run check's beginning when it starts: no start bindable at the first
+ *  point — whatever K is, at K = 0 too (Codex R134) —, none (K = 0), bound
+ *  to the run's start joints (a side sweep follows), joints in the run's
+ *  basis that bind no start ("failed"), or no joints. */
+export function runBeginOf(K: number, bound: boolean, unbound: boolean, joints = false): RunBeginStart {
+  return unbound ? "unbound" : K <= 0 ? "none" : bound ? "bound" : joints ? "failed" : "nojoints";
 }
 
 /** ...and as the bar shows it: a bound beginning is checked once ITS side
- *  result (this run check's) is merged, until then still checking. */
-export function runBeginView(begin: "none" | "bound" | "nojoints" | "unbound", sideMerged: boolean): RunBegin {
-  return begin === "bound" ? (sideMerged ? "checked" : "checking") : begin;
+ *  result (this run check's) is merged, being checked only while its side
+ *  sweep runs — one that ended without a result, or none at all, is not
+ *  checked (Codex R134 VP-I90). */
+export function runBeginView(begin: RunBeginStart, side: RunSide | null): RunBegin {
+  if (begin !== "bound") return begin;
+  return side?.state === "merged" ? "checked" : side?.state === "running" ? "checking" : "failed";
 }
 
 /** The "?" sentence for a start-dependent beginning (plan E7; Codex R133
@@ -163,6 +173,7 @@ export function beginSentence(sd: { fromLine: number; toLine: number; whole: boo
     : !run ? "checked from the machine's position in the simulation"
     : run.begin === "checking" ? "being checked from the run's start position"
     : run.begin === "nojoints" ? `not checked: the run's start position was not read${run.beginWhy ? ` (${run.beginWhy})` : ""}`
+    : run.begin === "failed" ? `not checked: the check from the run's start position did not run to its end${run.beginWhy ? ` (${run.beginWhy})` : ""}`
     : "not checked";
   return `${sd.whole ? "The whole program" : "The start of the program"} depends on where the machine stands${at}: ${how}.`;
 }

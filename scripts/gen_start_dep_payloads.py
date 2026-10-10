@@ -23,7 +23,7 @@ CASES = ("e_g53_rdp", "e_single", "e_g91", "e_g43_fixture", "e_time_a", "e_time_
          "e_g93", "e_g93_limits", "e_all_dep", "e_m600_return", "e_arc_dep", "e_read_dep", "e_g0x0",
          "e_base_first", "e_rotated", "r133_first_g1_xyz", "r133_g43_before_first", "r133_g55_before_first",
          "r133_m6_before_first", "r133_g93_no_limits", "r133_store_before_first_absolute",
-         "r133_untracked_writes", "r133_range_after_k")
+         "r133_untracked_writes", "r133_range_after_k", "r134_m6_first_absolute", "r134_m6_only_absolute")
 
 
 def main():

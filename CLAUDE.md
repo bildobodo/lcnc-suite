@@ -1251,7 +1251,10 @@ and every bound track, wherever it runs (named limit: a write after X, Y, Z
 are known counts too). X, Y or Z unknown at the program's FIRST point (a tool
 change at a position no parse sees, a turned or world frame, a write before
 it) ships `start_unbound` (VP-I84): no entry move, no binding, the beginning
-named "not checked". A position READ (`#5420`–`#5428`,
+named "not checked" whatever K is — at K = 0 the first move alone, its XYZ end
+commanded whole (`startDependent` on its line; one point = the whole program,
+"Not checked"); the bar reads "Clear · start not checked" idle and in a run,
+never "Clear" alone (Codex R134). A position READ (`#5420`–`#5428`,
 `#<_x>`, `#<_abs_x>` …) of a dependent or unknown axis makes every axis
 unknown to the end (reason `position_read`, `position_read_lines`): in text
 order by the walk and the line's first callback (before its motion), in remap
@@ -1289,9 +1292,13 @@ sweep, merged onto the base axis (`mergeBeginningOntoBase`: the beginning's
 findings at cum 0, a named display limit; its range and boundary contacts
 are the base's — VP-I87). The bar names the beginning per run check
 (`runBeginOf` / `runBeginView`: none, checked once its side result is merged,
-still checking, no joints, unbound) and never says "checked in full" while it
-is not checked (VP-I86). The parity harness binds to its record's start
-joints. Tests: `test_start_dep_worker.py` (native, E10 + R132 + R133, `TestPosWrites`),
+still checking only while ITS side sweep runs, no joints, unbound, failed —
+a side sweep that ended without a result: an error, the bodies asked twice, a
+cancel, a request not built or not sent, joints that bind no start; the "?"
+says why, the base result stays, Codex R134 VP-I90) and never says "checked
+in full" while it is not checked (VP-I86). `startDepPayloads.test.ts` runs the
+viewer's own coordinator functions out of ThreeViewer.vue for it. The parity harness binds to its record's start
+joints. Tests: `test_start_dep_worker.py` (native, E10 + R132–R134, `TestPosWrites`),
 `suite_py_bind_probe.py`, `startDepPayloads.test.ts`
 (`scripts/gen_start_dep_payloads.py`).
 

@@ -1067,7 +1067,8 @@ const sweepView = computed<SimSweepView | null>(() => {
           verdict: `${n ? found : "No collision"} · start still checking` };
       }
       return { state: "done", frac: 1, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
-        verdict: sd.whole && !n ? "Depends on the machine's position" : `${n ? found : "Clear"} · start not checked` };
+        verdict: sd.whole && !n ? (sd.unbound ? "Not checked" : "Depends on the machine's position")
+          : `${n ? found : "Clear"} · start not checked` };
     }
     // "checked in full" only for a full sweep that is neither cut short nor
     // uncertified — a finished worker alone is no full check (Codex R115)
@@ -1098,9 +1099,17 @@ const sweepView = computed<SimSweepView | null>(() => {
       tone: n ? "danger" : "warn", caveat, detail };
   }
   // A track that is start-dependent to its end has nothing checked here: it
-  // never reads "Clear" (parity-ef plan E7, Codex R122 answer 4).
-  if (r?.startDependent?.whole && !n) {
-    return { state: "done", frac: 1, verdict: "Depends on the machine's position", tone: "warn", caveat, detail };
+  // never reads "Clear" (parity-ef plan E7, Codex R122 answer 4). A start no
+  // entry move can bind is checked nowhere, the simulation included: its
+  // beginning is said on the bar (Codex R134 VP-I84).
+  const sd = r?.startDependent;
+  if (sd?.whole && !n) {
+    return { state: "done", frac: 1, verdict: sd.unbound ? "Not checked" : "Depends on the machine's position",
+      tone: "warn", caveat, detail };
+  }
+  if (sd?.unbound) {
+    return { state: "done", frac: 1, verdict: `${n ? found : "Clear"} · start not checked`, tone: n ? "danger" : "warn",
+      caveat, detail };
   }
   return { state: "done", frac: 1, verdict: n ? found : "Clear", tone: n ? "danger" : "ok", caveat, detail };
 });

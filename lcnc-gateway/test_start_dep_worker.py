@@ -195,6 +195,13 @@ class TestCodexR133(unittest.TestCase):
             r = probe(case)
             self.assertIsNone(r["parse_error"], case)
             self.assertEqual(r["start_unbound"], axes, case)
+        # Codex R134: the first move's XYZ end commanded whole after such a
+        # tool change — no mask (nothing after it depends on the start), the
+        # first point an unknown start, and still unbound
+        for case, ustart in (("r134_m6_first_absolute", [1, 0]), ("r134_m6_only_absolute", [1])):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual((r["start_unbound"], r["rapid_dep"], r["rapid_ustart"]), ([0, 1, 2], None, ustart), case)
         # a G43 or a fixture switch before the first move is no unknown axis
         for case in ("e_single", "r133_g43_before_first", "r133_g55_before_first", "r133_first_g1_xyz"):
             self.assertIsNone(probe(case)["start_unbound"], case)

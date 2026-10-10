@@ -628,6 +628,13 @@ CASES.update({
     "r133_m6_before_first": ("G21 G90\nM6\nG91 G0 X10\nG0 Y10\nM2\n", "mm", 0.0, (490,),
                              {"emcio": "TOOL_CHANGE_POSITION = 50 50 50"}),
     "r133_world_before_first": ("G21 G90\nG0 X10\nG0 Y10\nM2\n", "mm", 0.0, (490,), {"ctx": {"kins_type": 1}}),
+    # Codex R134 (VP-I84/I86 at K = 0): the first move after a tool change at
+    # a position no parse sees, its XYZ end commanded whole — nothing after
+    # it depends on the start, the move itself starts from the unknown
+    "r134_m6_first_absolute": ("G21 G90\nM6\nG0 X10 Y20 Z30\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                               {"emcio": "TOOL_CHANGE_POSITION = 50 50 50"}),
+    "r134_m6_only_absolute": ("G21 G90\nM6\nG0 X10 Y20 Z30\nM2\n", "mm", 0.0, (490,),
+                              {"emcio": "TOOL_CHANGE_POSITION = 50 50 50"}),
     "r133_g93_no_limits": _E("G21 G90 G93\nG1 X10 F2\nG1 Y10 F2\nM2\n"),
     "r133_store_before_first_absolute": _E("G21 G90\no100 sub\nG30.1\no100 endsub\no100 call\nG0 X0 Y0 Z0\nG30\nM2\n"),
     "r133_store_after_known_control": _E("G21 G90\no100 sub\nG30.1\no100 endsub\nG0 X0 Y0 Z0\no100 call\nG30\nM2\n"),
