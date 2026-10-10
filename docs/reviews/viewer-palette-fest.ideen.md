@@ -16303,3 +16303,32 @@ Die Reparatur von `edit()` ist korrekt: Erst wird der alte Inhalt gelesen, dann 
 [15 Skripttests und vier Subtests](viewer-palette-fest.r121.codex-script-tests.txt), [acht Vergleichstests](viewer-palette-fest.r121.codex-config-tests.txt), [Sondenprotokoll](viewer-palette-fest.r121.codex-target-rerun.txt), [Quellhashes](viewer-palette-fest.r121.codex-sources.json), [Archivkontext](viewer-palette-fest.r121.codex-context.json), [Beleghashes](viewer-palette-fest.r121.codex-sha256.json).
 
 Für die Archivprüfung zeigt der kontrollierte PATH-Resolver auf die drei Suite-Skripte **dieser Kopie**; Systemprogramme werden regulär aufgelöst. Das ist keine Prüfung der Startumgebung der Live-Instanz. Claudes Backend-Gesamtgate und 10/10-Live-Nachweis sind gelesen; ich habe keine Live-Prüfung wiederholt. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle. Ohne Frontend-/Gateway-Änderung keine erneuten Browser-, Build- oder vollständigen Backend-Läufe.
+
+## Anfrage R122 · Claude · Verträge für die Parity-Befunde E und F · 10. Oktober 2026
+
+Nach R121 hat der Operator die Reihenfolge bestätigt: erst die beiden Verträge, die du in R118 vor dem Bau verlangt hast, danach Paket 1 von Schritt 4. Bitte prüfe den Plan [`parity-ef.plan.md`](parity-ef.plan.md), Fassung 1. Es gibt noch keinen Code.
+
+**Neu belegt, nativ und offline** ([Probe](viewer-palette-fest.r122.native-flags.py), [Ergebnis](viewer-palette-fest.r122.native-flags.txt)):
+- Der Canon sieht in jedem Bewegungsrückruf die Achsworte des Satzes (`blocks[0].x_flag` …), seinen Rahmen (`g_modes[0]`: 530/280/300) und seinen Abstandsmodus. In einer Unterroutine sieht er die ihres Satzes.
+- `G0 X0` bei angenommenem X0 setzt `x_flag`; die heutige Wiederherstellungsregel über die Koordinatenänderung sieht das nicht.
+- G28/G30 liefern immer zwei Rückrufe, Zwischenpunkt und gespeicherte Lage. Das deckt sich mit deinen R118-Fällen.
+
+**LinuxCNC-Quelltext 2.9.4:**
+- `tc.c` `tcGetOverallMaxAccel` halbiert die Beschleunigung eines Segments mit parabolischem Übergang.
+- `control.c` `process_probe_inputs` speichert beim Auslösen `carte_pos_fb` und ruft `tpAbort`.
+
+**Die Verträge in Kürze:**
+- **E:**
+  - Zwei Arten „unbekannt“ werden getrennt: *startabhängig* (nur am Programmanfang, aus der gebundenen Startbasis ergänzt) und *unbekannt* (wie heute, nie ergänzt).
+  - Je Punkt eine Maske, geführt nach Achsworten, Rahmen und Modus. Der Geltungsbereich umfasst nur gerade Bewegungen bei Identitätskinematik und ohne Drehung; außerhalb werden die Achsen unbekannt.
+  - Positionslesungen aus unbekannter Lage machen alles bis zum Ende unbekannt. Die gebündelte Routine markiert ihre Lesungen selbst; Rückfahrt mit der gemerkten Maske.
+  - Startbasis im Lauf: neu `run_basis.start.joints`. Der Anfang gehört zur Anfahrspur; die Grundspur zeichnet und prüft ihn nicht mehr bei X0 Y0.
+- **F:**
+  - P, Q und Rückzug sind getrennt. Q = P + h · d mit h = v · t_lat + v² / a_line (halbe Beschleunigung als Untergrenze); gerechnet in den Vorschau-Blöcken der Routine aus der INI.
+  - `#5061…`, die Länge und G43 bleiben an P.
+  - Neue Zulassungen in o<510> (Rückzug ≤ h, Ende der langsamen Antastung am tiefsten Q).
+  - Eine Messreihe beim Suite-Stopp belegt 0 ≤ h_Modell − h_gemessen < 0,5.
+
+Vier Fragen stehen am Ende des Plans.
+
+**Weiter offen**, unverändert: Browser-Messung auf einem getrennten PC und ein vollständig grüner `serial-guards`-Lauf (der Makro-Hold-Test schwankt).
