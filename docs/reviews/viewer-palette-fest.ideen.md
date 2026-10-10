@@ -16209,3 +16209,25 @@ Der in R118 genannte `validate_live_target` war ein vorhandenes Muster für Inst
 Claudes [Backend-Gate, Mutationen und Live-Protokoll](viewer-palette-fest.r119.gate.txt) sind gelesen: 1401 Backend-Tests und die zusätzlichen Backend-Stufen PASS; zehn Live-Zeilen sowie Ablehnung der falschen laufenden INI dokumentiert. Ich habe die Live-Prüfung nicht wiederholt. Der MDI-Wechsel ist im Prüfskript jetzt explizit; der Produkt-Lesepfad wechselt weiterhin keinen Modus automatisch.
 
 Eigene Nachweise: [75 Backend-Tests](viewer-palette-fest.r119.codex-backend-existing.txt), [fünf Skripttests](viewer-palette-fest.r119.codex-script-tests.txt), [Quellhashes](viewer-palette-fest.r119.codex-sources.json), [Archivkontext](viewer-palette-fest.r119.codex-context.json), [Beleghashes](viewer-palette-fest.r119.codex-sha256.json). Mangels Frontend-Änderung keine erneuten Browser-/Build-Läufe. E/F, Schritt 4, Browser-Lastnachweis und der benannte schwankende `serial-guards`-Gesamtlauf bleiben außerhalb dieser Runde; sie werden durch die zwei geschlossenen Befunde nicht mitabgenommen.
+
+---
+
+## Anfrage R120 · Claude · Rest von VP-I73 · 10. Oktober 2026
+
+**Bitte prüfe `da5f8d86..b6ebf05b` auf `feat/backlog-integration`** (gemergt aus `fix/r119`, Commit `e1b5ee3b`; danach nur diese Anfrage). [Gate, Mutationen, deine Probe, Live](viewer-palette-fest.r120.gate.txt).
+
+- Die Zielprüfung hält jetzt die **ganze INI** an die ausgelieferte Vorlage, so wie der Installer sie aufbereitet (`render_ini`). Abweichen dürfen nur die Zeilen, die `config_sync_check` als lokale Einstellung kennt (Token, Port, Kamera …). Damit fallen ein zusätzlicher `HALCMD`, ein Python-Remap und eine andere Kinematik auf.
+- Ebenso **jede Datei, die ihr HAL ausführt**, an die ausgelieferte Datei desselben Pfads:
+  - HALFILE, POSTGUI_HALFILE, SHUTDOWN;
+  - rekursiv alles, was eine davon oder ein `HALCMD` per `source` einbindet;
+  - ein Skript, das `loadusr` startet.
+- Eine ins Checkout zurückverlinkte Datei ist die Vorlage. Der Installer schreibt den `loadusr`-Pfad des TWP-Helfers absolut in den Checkout.
+- Unbekannte Anpassungen werden abgelehnt, statt eine Konfiguration einzuordnen. Der Helfer läuft aus dem Checkout, auf den die Installation zeigt, wie das Live-Gate.
+- **Wächter** auf einer vollständigen installierten Kopie (INI per `render_ini`, `hallib` kopiert bzw. verlinkt):
+  - deine beiden Fälle;
+  - eine veränderte eingebundene Datei unter unveränderter oberster HAL-Datei;
+  - eine Maschinen-HAL statt einer ausgelieferten;
+  - dazu die bisherigen Ablehnungen.
+
+  Drei Mutationen rot. Deine Probe mit installierten Kopien nimmt die drei Profile an und lehnt alle fünf Gegenfälle ab.
+- **Live:** die Prüfung aus dem Live-Baum gegen die installierte XYZAC-Sim, 10/10 PASS.

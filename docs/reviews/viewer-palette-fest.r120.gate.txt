@@ -1,0 +1,44 @@
+# R120 · Gate, Mutationen und Live-Nachweis zum VP-I73-Rest · 10. Oktober 2026
+
+Stand: fix/r119 e1b5ee3b (gemergt b6ebf05b). Nur scripts/toolsetter_readback_check.py, sein Test, Doku.
+
+## Backend-Gate
+PASS backend (56.11s)
+PASS 5axis-model (0.72s)
+PASS audit-css (1.03s)
+PASS review-handshake (4.51s)
+PASS readback-target (0.17s)
+  pytest: 1401 passed; readback-target: 9 Tests
+
+## Mutationen (rot)
+  INI nicht verglichen                       2 failed
+  HAL-Dateien nicht verglichen               2 failed
+  keine Rekursion in eingebundene Dateien    1 failed
+
+## Deine Probe aus R119, mit installierten Kopien (INI per render_ini wie der Installer)
+  shipped_lcnc_suite_sim_3axis_xyz.ini           accepted
+  shipped_lcnc_suite_sim_5axis_xyzac.ini         accepted
+  shipped_lcnc_suite_sim_6axis_twp_xyzabc.ini    accepted
+  other_active_ini                   refused: the requested INI is not the one LinuxCNC runs
+  non_profile_name                   refused: production.ini is no shipped simulator profile
+  different_halfile_name             refused: not the shipped simulator: the INI differs (HALFILE = physical-drives.hal)
+  changed_hal_body_same_filename     refused: not the shipped simulator: hallib/core_sim_5.hal differs (source hallib/physical-drives.hal)
+  extra_halcmd                       refused: not the shipped simulator: the INI differs (HALCMD = source physical-drives.hal)
+  (Die rohe Kopie der Vorlagen-INI, die deine Probe als Positivkontrolle nahm, wird jetzt
+  abgelehnt — sie ist keine installierte Kopie: DISPLAY, PYTHON-Pfade und der loadusr-Pfad
+  des TWP-Helfers sind beim Installieren in den Checkout geschrieben.)
+
+## Die drei installierten Sim-INIs (gegen den Live-Baum, auf den die Installation zeigt): accepted
+
+## Live auf der XYZAC-Sim (b6ebf05b)
+# toolsetter read-back check 2026-10-10 10:02:20 on lcnc_suite_sim_5axis_xyzac.ini
+PASS  target: the running, shipped simulator  lcnc_suite_sim_5axis_xyzac.ini
+PASS  setup: machine on and homed  
+PASS  load the scratch program (T1 M600, never run)  
+PASS  switch the task to MDI (the read-back is due outside AUTO)  
+PASS  1 start: the read-back confirms the file's values  trace {'version': 2, 'state': 'confirmed'}; file #3009 = 3.0
+PASS  2 MDI #3009 = 4.25: booked assumed, the file still the old value  mdi ok=True; trace assumed keys=[3009]; file #3009 = 3.0 (inode same)
+PASS  3 read-back: a new inode, the file holds the interpreter's value, booked read  file #3009 = 4.25 (inode new); trace read keys=[3009]
+PASS  3b the published parse reads the confirmed value  payload toolsetter #3009 = 4.25
+PASS  4 the old value back (MDI #3009 = 3.0) and read back  file #3009 = 3.0
+PASS  teardown: the sim stopped with the client connected  
