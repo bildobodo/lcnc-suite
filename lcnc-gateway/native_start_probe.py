@@ -672,6 +672,27 @@ CASES.update({
                                f"[AXIS_C]\nMIN_LIMIT = -320\nMAX_LIMIT = 320\n"
                                f"[PYTHON]\nPATH_APPEND = {HERE.parent}/examples/sim_config/twp/python\n"
                                f"TOPLEVEL = {HERE.parent}/examples/sim_config/twp/python/toplevel.py\n")),
+    # Codex R132 VP-I78: a read BEFORE the program's first callback
+    "e_read_first": _E("#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_named": _E("#1=#<_x>\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_modal": _E("G21 G90\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_same": _E("G21 G90 #1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_blank": _E("\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_pct": _E("%\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n%\n"),
+    "e_read_first_motion": _E("G0 X[#5420+5] Y0 Z0\nG0 X10\nM2\n"),
+    # Codex R132 VP-I79: an M6 at a tool change position while X/Y depend on
+    # the start, and before the first move
+    "e_m6_early": _E("G21 G90\nG53 G0 Z0\nM6\nG91 G0 X10\nG0 Y10\nM2\n", emcio="TOOL_CHANGE_POSITION = 50 50 50"),
+    "e_m6_first": _E("G21 G90\nM6\nG91 G0 X10\nG0 Y10\nM2\n", emcio="TOOL_CHANGE_POSITION = 50 50 50"),
+    # Codex R132 VP-I80: the interpreter's words unavailable (injected)
+    "e_no_interp": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", no_interp=True),
+    "e_with_interp": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n"),
+    # Codex R132 VP-I81: a switchable kinematics, its live type not read
+    "e_kins_unknown": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": None},
+                         ini="[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"),
+    "e_kins_zero": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": 0},
+                      ini="[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"),
+    "e_kins_fixed": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": None}),
     # 13: a world labeling at the start
     "e_world_start": _E("G21 G90\nG0 X5 Y5\nG0 Z5\nM2\n", ctx={"kins_type": 1}),
     # 15 (b): one mask over a run — an arc in XY with Z dependent (outside
@@ -685,6 +706,7 @@ CASES.update({
     "e_time_b": _E("G21 G90\nG1 X0 F200\nG1 Y0 F100\nM2\n"),
     "e_first_g1": _E("G21 G90\nG1 X0 F100\nM2\n"),
     "e_g93": _E("G21 G90 G93\nG1 X10 F2\nM2\n"),
+    "e_g93_limits": _E("G21 G90 G93\nG1 X10 F2\nM2\n", traj="MAX_LINEAR_VELOCITY = 20"),
     "e_g95": _E("G21 G90 G95 S1000 M3\nG1 X10 F0.1\nM2\n"),
     # 18: dependent to the end
     "e_all_dep": _E("G21 G90\nG91 G0 X10\nG0 Y10\nM2\n"),
@@ -804,6 +826,11 @@ import gcode_parse_worker as worker  # noqa: E402
 ctx = {"file": str(ngc), "ini_path": str(ini), "units": units, "g5x_index": 1,
        "var_patches": {str(b + j): "0" for b in range(5220, 5381, 20) for j in range(1, 11)},
        "kins_type": 0, "kins_frame": None, **extra.get("ctx", {})}
+if extra.get("no_interp"):
+    # Codex R132 VP-I80's injection: the interpreter's state unavailable
+    import gcode_canon  # noqa: E402
+    gcode_canon.PreviewCanon.interp = staticmethod(lambda: None)
+    gcode_canon.interp_this = lambda: None
 if extra.get("suite_py") is not None:
     # a synthetic suite module standing in for the TWP remaps (plan E4a):
     # bound by its own bytes, read set from the case
@@ -869,6 +896,7 @@ print(json.dumps({
     "feed_dep_basis": u("feed_dep_basis", "<u1"), "rapid_dep_basis": u("rapid_dep_basis", "<u1"),
     "feed_dep_f": u("feed_dep_f", "<f4"), "rapid_dep_f": u("rapid_dep_f", "<f4"),
     "start_believed": out.get("start_believed"), "position_read_lines": out.get("position_read_lines"),
+    "start_dep_unavailable": out.get("start_dep_unavailable"),
     "feed_lines_all": u("feed_lines", "<u4"), "python_reads": [ln for ln in err.getvalue().splitlines()
                                                               if ln.startswith("python remap reads")],
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},

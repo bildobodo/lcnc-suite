@@ -131,6 +131,49 @@ class TestTheCanonBooksTheMask(unittest.TestCase):
         self.assertEqual(probe("e_all_dep")["rapid_dep"], [7, 7])
 
 
+class TestCodexR132(unittest.TestCase):
+    """Codex R132's counterexamples to E1 (VP-I78..VP-I82)."""
+
+    def test_a_read_before_the_first_callback(self):
+        # VP-I78: the call-less lines from the program's first line to its
+        # first callback are judged under the start's dependence — a numeric
+        # and a named read, after a modal preamble, with modal words in the
+        # line, after a blank line, in a `%` file; the read in the first
+        # motion line as the control
+        for case, line in (("e_read_first", 1), ("e_read_first_named", 1), ("e_read_first_modal", 2),
+                           ("e_read_first_same", 1), ("e_read_first_blank", 2), ("e_read_first_pct", 2),
+                           ("e_read_first_motion", 1)):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["position_read_lines"], [line], case)
+            self.assertEqual(r["rapid_ustart"], [1, 1], f"{case}: unknown to the end")
+            self.assertIsNone(r["rapid_dep"], case)
+
+    def test_an_early_tool_change_leaves_no_start_mask(self):
+        # VP-I79: after the M6 at a tool change position X, Y are unknown,
+        # never start-dependent as well; the point before keeps its mask
+        r = probe("e_m6_early")
+        self.assertEqual((r["rapid_dep"], r["rapid_ustart"]), ([3], [1, 1, 1]))
+        r = probe("e_m6_first")
+        self.assertEqual((r["rapid_dep"], r["rapid_ustart"]), (None, [1, 1]))
+
+    def test_no_interpreter_words_is_an_unknown_start(self):
+        # VP-I80 (injected): no known path, the reason on the wire
+        r = probe("e_no_interp")
+        self.assertEqual((r["start_dep_unavailable"], r["rapid_dep"], r["rapid_ustart"]),
+                         ("interpreter", None, [1, 1]))
+        r = probe("e_with_interp")
+        self.assertEqual((r["start_dep_unavailable"], r["rapid_dep"], r["rapid_ustart"]), (None, [3, 2], [1, 0]))
+
+    def test_an_unknown_kinematics_type_is_never_identity(self):
+        # VP-I81: a switchable kinematics whose live type was not read — out
+        # of scope; its type 0 confirmed, and a machine that cannot switch
+        self.assertEqual((probe("e_kins_unknown")["rapid_dep"], probe("e_kins_unknown")["rapid_ustart"]),
+                         (None, [1, 1]))
+        self.assertEqual(probe("e_kins_zero")["rapid_dep"], [3, 2])
+        self.assertEqual(probe("e_kins_fixed")["rapid_dep"], [3, 2])
+
+
 class TestTimeBasis(unittest.TestCase):
     """E7 / E8 (VP122-02): the kind and the time basis of each move ending in
     the beginning; the first G1 keeps its F."""
@@ -312,7 +355,7 @@ class TestTheCanonUnits(unittest.TestCase):
     def _step(self, c, **kw):
         t = _Interp(**kw).this
         c.interp = lambda: t
-        return c._dep_step("straight")
+        return c._dep_step("traverse")
 
     def test_a_third_callback_of_a_g28_is_never_the_stored_position(self):
         # 17 (Codex R122): leg 3 of one block — the dependent axes unknown
@@ -325,6 +368,32 @@ class TestTheCanonUnits(unittest.TestCase):
         self._step(c, words="Z", g0=280)            # leg 2: Z home
         self._step(c, words="Z", g0=280)            # leg 3: unknown
         self.assertEqual((c.dep, c.stale), (frozenset(), frozenset({0, 1})))
+
+    def test_a_g28_or_g30_leg_as_a_feed_is_never_the_stored_position(self):
+        # VP-I82: the second callback a feed — the dependent axes unknown
+        for g0 in (280, 300):
+            c = self._canon()
+            t = _Interp(g0=g0).this
+            c.interp = lambda t=t: t
+            c._dep_step("traverse")                 # leg 1: no words, nothing known
+            c._dep_step("feed")                     # leg 2 as a feed
+            self.assertEqual((c.dep, c.stale), (frozenset(), frozenset({0, 1, 2})), g0)
+            c = self._canon()
+            c.interp = lambda t=t: t
+            c._dep_step("feed")                     # leg 1 as a feed
+            self.assertEqual(c.stale, frozenset({0, 1, 2}), g0)
+        c = self._canon()
+        t = _Interp(g0=280).this
+        c.interp = lambda: t
+        c._dep_step("traverse")
+        c._dep_step("traverse")                     # the supported pair: home, all known
+        self.assertEqual((c.dep, c.stale), (frozenset(), frozenset()))
+
+    def test_unknown_axes_leave_the_start_mask(self):
+        # VP-I79: dep ∩ stale stays empty wherever an axis becomes unknown
+        c = self._canon()
+        c._to_stale({0, 2})
+        self.assertEqual((c.dep, c.stale), (frozenset({1}), frozenset({0, 2})))
 
     def test_the_return_never_lifts_unknown_to_the_end(self):
         # 18 (b): RETURN after an axis became unknown for good

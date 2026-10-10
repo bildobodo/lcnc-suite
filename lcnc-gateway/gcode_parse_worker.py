@@ -304,8 +304,17 @@ def parse(ctx: dict) -> dict:
     except OSError as e:
         _trace.emit_exc("gcode.write_scan_failed", e)
     # the start labeling: a start-dependent axis lives only under identity
-    # kinematics (gcode_canon._dep_step reads the canon's kins state)
-    canon.start_kins_type = int(ctx.get("kins_type") or 0)
+    # kinematics (gcode_canon._dep_step reads the canon's kins state). A live
+    # type the gateway could not read is identity only where the declared
+    # kinematics cannot switch at all; else it is not known, and the start
+    # is out of scope (Codex R132 VP-I81) — never `or 0`.
+    _kcfg0 = parse_kins_config(ini.find("KINS", "KINEMATICS"), ini.findall("HAL", "HALCMD") or [])
+    canon.kins_markers_ignored = kins_marker_policy(_kcfg0) == "ignore"
+    _kt0 = ctx.get("kins_type")
+    try:
+        canon.start_kins_type = int(_kt0) if _kt0 is not None else (0 if canon.kins_markers_ignored else None)
+    except (TypeError, ValueError):
+        canon.start_kins_type = None
     # Position READS (parity-ef plan E4): a text in order hands its read
     # lines to the canon (placed by the walk and the line's first callback),
     # every remapped code whose body may read is judged where the
@@ -1533,6 +1542,9 @@ def parse(ctx: dict) -> dict:
               # position was unknown after a tool change (Codex R95 VP-I53):
               # the axes stay unknown to the end; the check's note names it.
               **({"stale_offset_lines": list(canon.stale_offset_lines)} if canon.stale_offset_lines else {}),
+              # The beginning untracked: the interpreter's words were not
+              # available (Codex R132 VP-I80) — X, Y, Z unknown from the start.
+              **({"start_dep_unavailable": canon.start_dep_unavailable} if canon.start_dep_unavailable else {}),
               # Lines whose position READ made every axis unknown to the end
               # (parity-ef plan E4; 0 = the text out of order may read
               # anywhere, from the program's start).
@@ -1673,6 +1685,15 @@ def parse(ctx: dict) -> dict:
         result["rapid_dep_basis"] = np.asarray([b for _m, b, _f in _rd], dtype="<u1").tobytes()
         result["feed_dep_f"] = np.asarray([f for _m, _b, f in _fd], dtype="<f4").tobytes()
         result["rapid_dep_f"] = np.asarray([f for _m, _b, f in _rd], dtype="<f4").tobytes()
+    if any(b == 3 for _m, b, _f in chain(_fd, _rd)):
+        # The limits the planner never exceeds (plan E7, Codex R123/R124): a
+        # feed in the beginning whose time this cannot say (G93, G95, no F)
+        # takes the shortest duration they allow — per axis MAX_VELOCITY and
+        # [TRAJ] MAX_LINEAR_VELOCITY, machine units / s; a missing or invalid
+        # one is null: no invented finite duration.
+        _pos = lambda v: v if v is not None and v > 0 and math.isfinite(v) else None
+        result["axis_vmax"] = [_pos(_ini_vel(f"AXIS_{_l}", "MAX_VELOCITY")) for _l in "XYZ"]
+        result["traj_vmax"] = _pos(_ini_vel("TRAJ", "MAX_LINEAR_VELOCITY"))
     if canon.start_lo is not None and (canon.feed or canon.rapid):
         _first = min(([(canon.feed[0][5], feed_epoch[0])] if canon.feed else [])
                      + ([(canon.rapid[0][4], rapid_epoch[0])] if canon.rapid else []))

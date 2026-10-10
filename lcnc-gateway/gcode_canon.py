@@ -160,6 +160,12 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     read_remaps = {}
     read_from_start = False
     _read_setup = None              # the worker's, run once at the first callback
+    # Without the interpreter's words no block can be told to command an
+    # axis (Codex R132 VP-I80): the beginning is unknown, said on the wire.
+    start_dep_unavailable = None
+    # The declared kinematics cannot switch: kins markers are noise (the
+    # worker's kins_marker_policy "ignore"), the labeling stays identity.
+    kins_markers_ignored = False
     position_read_lines = ()
     _read_done = frozenset()
     _pos_saved = None
@@ -517,6 +523,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # began (but a G98 cycle's normal axis), G91 none. Slot 0 is the
         # sequence NUMBER — line 910 is no G91, line 810 no G81.
         prev = int(self.lineno or 0)
+        # The program begins at this line (Codex R132 VP-I78): X, Y, Z depend
+        # on the start BEFORE the walk below judges the call-less lines from
+        # the program's first line to here (`#1 = #5420` before any motion).
+        n0 = int(st.sequence_number or 0)
+        begins = (not self._program_started and n0 >= 1
+                  and not (self.percent_delimited and not self._pct_line_seen))
+        if begins:
+            self._begin_program()
         stale_in_block = self.stale | self.dep
         self._block_moves = 0           # G28 / G30: its legs are this block's callbacks
         gs = tuple(getattr(st, "gcodes", None) or ())
@@ -562,9 +576,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                     self._walk_stale = seen
                     m = prev
                 n = m
-        if (self.write_lines or self.read_lines) and prev >= 1 and n != prev:
+        if (self.write_lines or self.read_lines) and (prev >= 1 or begins) and n != prev:
             if self.write_mode == "ordered" and n > prev:
-                lines = range(prev, n)
+                lines = range(max(prev, 1), n)
             elif self.write_mode == "inline":
                 lines = (prev,)
             else:
@@ -628,10 +642,14 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # in effect, in this basis) ships along — the client's Δ.
             # Without the interpreter's words (the module missing — the
             # worker says so, `gcode.interp_state_unavailable`) no block can
-            # be told to command an axis: the start dependence is not tracked
-            # and the payload carries none, as before plan E.
+            # be told to command an axis: X, Y, Z are unknown from the start
+            # (re-established by the stale rule), and the payload says why.
             if self.interp() is not None:
                 self.dep = frozenset((0, 1, 2))
+            else:
+                # never the assumed start as a known path (Codex R132 VP-I80)
+                self._to_stale((0, 1, 2))
+                self.start_dep_unavailable = "interpreter"
             self.start_lo = tuple(float(v) for v in self.lo)
             if self.read_from_start:
                 # a text out of order that may read the position somewhere:
@@ -803,8 +821,9 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         StatMixin.change_tool(self, idx)
         tool = max(int(self.tools[0][0]), 0)
         if self.tool_change_moves and self._program_line():
-            self.stale = frozenset(self.tool_change_axes) | self._frame_unknown
-            self.ever_stale = True
+            # the controller moved these where the preview does not see it:
+            # unknown, and no longer start-dependent (Codex R132 VP-I79)
+            self._to_stale(frozenset(self.tool_change_axes) | self._frame_unknown)
         self.tool_changes += 1
         # (lineno, tool) per executed M6 — timeline event markers. NOTE: only
         # canon-executed changes appear here (an M600 remap whose body is
@@ -977,7 +996,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # A turned frame mixes the program's X and Y: one of them unknown
         # makes both unknown (Codex R94 VP-I51 D).
         if self.stale & {0, 1} and abs((getattr(self, "rotation_xy", 0) or 0) - before) > 1e-12:
-            self.stale = self.stale | {0, 1}
+            self._to_stale({0, 1})
         return r
 
     def _program(self, p):
@@ -998,13 +1017,26 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     _PLANE_AXES = {1: frozenset((0, 1)), 2: frozenset((0, 2)), 3: frozenset((1, 2))}
 
     def _kins_now(self):
-        return self.kins_events[-1][1] if self.kins_events else self.start_kins_type
+        """The labeling now: the program's last kins marker, else the start's
+        (None = not known — never identity by default, Codex R132 VP-I81)."""
+        if self.kins_events and not self.kins_markers_ignored:
+            return self.kins_events[-1][1]
+        return self.start_kins_type
+
+    def _to_stale(self, axes):
+        """Axes the preview no longer knows: unknown is never start-dependent
+        at the same time (Codex R132 VP-I79)."""
+        axes = frozenset(axes)
+        if axes:
+            self.stale = self.stale | axes
+            self.dep = self.dep - axes
+            self.ever_stale = True
 
     def _dep_step(self, motion):
         """Before a motion callback records (parity-ef plan E2/E3): which
         start-dependent axes this move keeps, which it hands to `stale` (a
         move outside the contract) and which it commands absolutely. motion:
-        "straight" (traverse, feed, probe), "arc", "other" (a tap). Returns
+        "traverse", "feed" (a probe too), "arc", "other" (a tap). Returns
         (before, after) masks, None when no axis depends on the start."""
         if not self.dep and not self._pos_return:
             return None
@@ -1019,7 +1051,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         except Exception:
             g0 = g1 = dist = None
             words = None
-        if words is None or self._kins_now() not in (0, None) or self._internal_move:
+        if words is None or self._kins_now() != 0 or self._internal_move:
             # no interpreter word, a world / TWP labeling, or the
             # interpreter's own move at an M6 (quill-up, G30: line -1)
             out = set(before)
@@ -1033,15 +1065,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             if g0 in (280, 300):
                 self._block_moves += 1
                 leg = self._block_moves
-                if leg > 2:
-                    out |= before             # a callback the two-leg rule does not know
+                if leg > 2 or motion != "traverse":
+                    # a callback the two-leg rule does not know: a third, or a
+                    # feed (Codex R132 VP-I82) — never the stored position
+                    out |= before
                 elif leg == 1:
                     known = words if dist == 0 else set()
                 else:
                     known = words if words else {0, 1, 2}
             elif g0 == 530:
                 known = words                 # G53: absolute, machine frame (G91 G53 is refused)
-            elif g1 in self._STRAIGHT or motion == "arc":
+            elif g1 in self._STRAIGHT and motion in ("traverse", "feed") or motion == "arc":
                 known = words if dist == 0 else set()
             else:
                 out |= before                 # a probe, a cycle, a spindle-synced move, a spline
@@ -1107,7 +1141,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
         self._enter()
         if self.suppress > 0: return
-        dp = self._dep_step("straight") if self._program_line() else None
+        dp = self._dep_step("traverse") if self._program_line() else None
         seq0 = self.seq
         self._straight_traverse(x, y, z, a, b, c, u, v, w)
         self._dep_note(dp, seq0, (1, 0.0))
@@ -1146,7 +1180,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def straight_feed(self, x, y, z, a, b, c, u, v, w):
         self._enter()
         if self.suppress > 0: return
-        dp = self._dep_step("straight") if self._program_line() else None
+        dp = self._dep_step("feed") if self._program_line() else None
         seq0 = self.seq
         basis = self._feed_basis()
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)

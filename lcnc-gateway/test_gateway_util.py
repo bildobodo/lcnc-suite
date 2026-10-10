@@ -2960,6 +2960,13 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
             setattr(c, "g92_offset_" + s, 0.0)
         c.g5x_index = 1
         c.rotate_and_translate = lambda *a: tuple(a)
+        # The interpreter's words (docs/reviews/parity-ef.plan.md E): every
+        # block commands X, Y, Z absolutely — the known path these cases are
+        # about. Without them the start is unknown (Codex R132 VP-I80).
+        _b = types.SimpleNamespace(x_flag=True, y_flag=True, z_flag=True, g_modes=[-1, 0])
+        _t = types.SimpleNamespace(blocks=[_b], distance_mode=0, feed_mode=0)
+        c.interp = lambda: _t
+        c.kins_events, c.dep_seg, c.dep_time = [], {}, {}
         return c, types.SimpleNamespace
 
     def test_initcode_move_seeds_lo_and_program_first_move_is_ustart(self):
