@@ -1,13 +1,14 @@
 # Parity-Befunde E und F — der unbekannte Programmanfang und der Bremsweg der Antastung
 
-**Plan, Fassung 4 · 10. Oktober 2026.**
+**Plan, Fassung 5 · 10. Oktober 2026.**
 - Vorbedingung für den Parity-Korpus mit M600 (`scripts/parity_corpus/xyzac.json`, Zweig `test/parity-xyzac-m600`, ungemergt).
 - Codex hat beide Befunde in R118 bestätigt und vor dem Bau je einen kleinen Vertrag verlangt; das sind diese beiden.
 - Der Operator hat die Reihenfolge am 10. Oktober bestätigt: erst diese Verträge, danach Paket 1 von Schritt 4.
 - Fassung 1 ging mit R122 an Codex. Die Grundentscheidung für E ist angenommen. Fassung 2 nimmt VP122-01 bis VP122-04 und die Antworten auf die vier Fragen auf; F ist neu geschnitten (eine geführte Hülle statt eines Einzelwegs). Antworttabelle am Ende.
 - Fassung 2 ging mit R123 an Codex. VP122-01 ist geschlossen; die Hülle, die Messreihe vor der Parity und „possible“ als eigener Eintrag sind angenommen. Die Ausnahme für nicht zugelassene Tasterketten ist abgelehnt. Fassung 3 gibt die Zulassung ganz auf: Der Bremsbereich ist modelliert und nicht zertifiziert, und die Bahn nach einer Messung trägt ihre Bedingung sichtbar am Ergebnis, auf jeder Maschine, auch auf der Sim. Antworttabelle am Ende.
 - Fassung 3 ging mit R124 an Codex: E als Plan angenommen, die R123-Reste geschlossen. Fassung 4 nimmt VP124-01 auf: Die Zahl t_max und jede Zusage über die Abweichung der Folgebahn entfallen. Die Einträge nach einer Messung tragen ihre Herkunft.
-- Noch kein Code.
+- Fassung 4 ging mit R125 an Codex (Einigung). F ist gebaut und angenommen (R126–R128). Beim Bau von E fiel eine Regel aus E4 gegen den TWP-Korpus auf; Fassung 5 ändert nur sie (Abschnitt E4a, Fragen am Ende).
+- E: Canon in Arbeit (`fix/start-dep`), noch nicht gemergt.
 
 ## Befund
 
@@ -142,6 +143,39 @@ Ein Wert, der aus der Position gelesen wird, während die gelesene Achse startab
 - **Fremde Lesungen** in Remap-Rümpfen, die der Text nicht auflöst, bleiben vorsichtig: Sie gelten als „liest jede Achse“. Die Herkunft der Aufrufzeile bleibt dabei wie heute erhalten.
 - **Wächter am Text:** Ein Test verlangt, dass jede Positionslesung der Routine eine dieser Markierungen trägt. Eine spätere Lesung ohne Markierung ist dann ein Testfehler.
 - **Vorgabe der R102-Planung:** Der Vergleich der task-Pfade (`test_tool_touch_off_paths.py`) bleibt grün; Kommentare ändern den Ablauf nicht.
+
+### E4a · Lesungen in Remaps der Suite (Fassung 5)
+
+**Befund beim Bau.** E4 sagt für `inline` / `foreign`: Kann irgendein erreichbarer Text die Position lesen, sind ab dem Programmstart alle Achsen unbekannt. Ein `python=`-Rumpf gilt als „liest jede Achse“.
+- Jedes Programm des TWP-Korpus (`scripts/parity_corpus/twp_gantry.json`, sechs Programme) ruft `o<square> call` ohne eigene `sub` auf. Der Text ist damit `foreign`.
+- Jedes benutzt `g68.2` (`python=g682`) und `g53.3` (ngc-Rumpf, der `M530` aufruft, `python=g53x_core`).
+- Wörtlich umgesetzt wären alle sechs ab dem Programmstart unbekannt, und `sim_parity.py gate` auf diesem Korpus fiele.
+- Die Gefahr, gegen die E4 schützt, besteht dort nicht: Jedes der Programme fährt `g0 x0y0z100` vor dem ersten Remap.
+
+**Was die Python-Remaps der Suite lesen** (Textbefund, `examples/sim_config/twp/python/*.py`):
+- **X, Y, Z:** `self.current_x/y/z` nur in `twp_touchoff` (M535, `remap.py:1556`). Das ist der Touch-off aus der Position, den das Gateway per MDI sendet.
+- **Drehachsen:** `AA_current` / `BB_current` / `CC_current` in `get_current_rotary_positions` und `get_machine_a`. Drehachsen sind nach E1 nie startabhängig, weil sie aus der Live-Lage gesetzt werden; unbekannt werden sie nur durch die bestehenden Regeln.
+- **Parameter:** `self.params[…]` nur für Halterungszeilen, G92, die Herkunftsstempel und `#5220`. Keine Lesung von `#5420`–`#5428` oder der Namen `_x` … `_abs_w`.
+- **ngc-Text:** Die Hauptdateien des Korpus, `twp/demos/square.ngc` und die Rümpfe in `twp/remap_subs` lesen keine Position. Einzige Ausnahme ist `twp_goto_zero.ngc` (`#<_z>`), das nur per MDI (→ Zero) läuft.
+
+**Änderung (P1):**
+- **Erklärte Lesetabelle** für die Python-Remaps der Suite:
+  - M535 liest X, Y, Z.
+  - G68.2, G68.3, G68.4, M530 und M469 lesen nur Drehachsen und zählen für E4 nicht als Positionslesung.
+- **Erkennung an der Quelle,** wie beim M600 der Suite: `[PYTHON] TOPLEVEL` der INI zeigt (realpath) in das `twp/python` dieser Installation, und die Funktion des REMAP steht in der Tabelle. Jeder andere `python=`-Rumpf bleibt „liest jede Achse“.
+- **Textwächter** über `twp/python/*.py`. Ein Testfehler ist:
+  - jede Lesung von `current_x|y|z|u|v|w` außerhalb der Funktionen, die die Tabelle mit diesen Achsen nennt;
+  - jede Lesung von `#5420`–`#5428` in irgendeiner Schreibweise und jeder Name `_x` … `_abs_w`;
+  - jeder `params`-Index, der nicht in einer festen Liste erlaubter Ausdrücke steht (heute die Halterungs-, G92- und Herkunftstabellen);
+  - ein Tabelleneintrag ohne zugehörige Funktion.
+- **Das M600 / M601 der Suite** (erkannt wie heute, `foreign_m600_codes`) ist von der Lese-Verfolgung ausgenommen. Seine Routine markiert ihre Lesungen selbst (E4-Tabelle), und der Textwächter dort bleibt. Ein fremdes M600 bleibt „liest jede Achse“.
+
+**Unverändert:**
+- Die Regel für `inline` / `foreign` selbst.
+- Die Einordnung in `ordered` über den Gang und den Remap-Stapel.
+- Jeder Rumpf, der nicht der Suite gehört.
+
+**Abgrenzung:** Die Alternative wäre, die erreichbaren Texte auf die Strecken zu begrenzen, in denen `dep` oder `stale` nicht leer ist. Das verlangt eine zeitliche Einordnung, die `foreign` gerade nicht hat. P1 ist das, was der Korpus braucht, und hält die Regel sonst unverändert.
 
 ### E5 · Die gebundene Startbasis
 
@@ -402,6 +436,12 @@ Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 6. **Suite-Stopp:** Schemanummer und Goldens (haus und kontur rufen M600 auf; jede Golden mit startabhängigem Anfang ändert sich).
 
 Danach Paket 1 von Schritt 4.
+
+## Fragen an Codex (Fassung 5)
+
+1. **E4a, P1:** Reichen die erklärte Lesetabelle für die Python-Remaps der Suite und ihr Textwächter, oder willst du die Alternative (Strecken mit nicht leerem `dep` / `stale`)?
+2. **Erkennung:** Genügt TOPLEVEL per realpath im `twp/python` der Installation plus Funktionsname, oder soll das Modul die Tabelle selbst tragen (eine Konstante, gegen die der Wächter den Quelltext prüft)?
+3. **Beobachtung außerhalb von E:** Eine `G38` im Hauptprogramm zeichnet die Vorschau über den ganzen Weg; ihre Antastung löst nie aus (bei bekannten Achsen bucht sie einen Vorschub bis zum Endpunkt). Liest das Programm danach `#5061`–`#5069`, ist das Ziel eine Vermutung. E4 nennt diese Parameter nicht. Ich würde das als eigene Folgearbeit führen (Antastungen im Hauptprogramm), nicht in E. Einverstanden?
 
 ## Fragen an Codex (Fassung 4)
 
