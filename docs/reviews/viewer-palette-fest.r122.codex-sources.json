@@ -1,0 +1,15 @@
+{
+  "docs/reviews/parity-ef.plan.md": "8961d04acea0302d214c0711cc298ca59564ac6908f5406259b0f88d04875dda",
+  "docs/reviews/viewer-palette-fest.ideen.md": "6223ac7220348250553543572c32c330e7ab05f1f8574397e03dfe7f0f8c6f24",
+  "docs/reviews/viewer-palette-fest.r122.native-flags.py": "af092e208f0947486ddaf063e18ae3b1129396174c12715d6aed32f98c768d5f",
+  "docs/reviews/viewer-palette-fest.r122.native-flags.txt": "10d657201d92df88b6ebf20e92c3f256f576fb38e6d64dbbadce0986ef3337b8",
+  "lcnc-gateway/native_start_probe.py": "0cd12f41071bf3134e910904ea4e43a30cfcff34fb5a66da26796d149e031dd3",
+  "lcnc-gateway/gcode_canon.py": "44caf734dbd3c25522ce8538c03e73aea4c0f831223621e6563c00b20750f0d4",
+  "lcnc-gateway/gcode_parse_worker.py": "8886a4cde310ed2ab59ef3b7421071838943ee50abbea8e530b3fffb1cc03456",
+  "lcnc-gateway/gateway.py": "ced6d8950d9265a0fcd18a6ec7f5f7bf0ccb12e2bf490834f0a5c286ae819980",
+  "lcnc-gateway/bulk_pipeline.py": "4d1b78038a33db60a4a3bc607b94a36f671b68d2f8bc7e42a421f1741042d7f7",
+  "lcnc-webui/src/viewer/scrubTrack.ts": "33f83dadd9608f3f0a4df73648928544d36cbfea0be95629ef6aa7e138cd8440",
+  "lcnc-webui/src/viewer/sweepMerge.ts": "c16e055dbbd9714fbdd21959de4dd0ba64421baf7e4c50e6f4f89b0e2cc3b67b",
+  "subroutines/tool_length_probe/tool_touch_off.ngc": "6106febe3194c5b8d5a4fcce0d5bb3f2535d96f95a7316a51c0c130e6208be04",
+  "examples/sim_config/lcnc_suite_sim_5axis_xyzac.ini": "623b1f0a14c52a71cb250c25c7213d9892408b2cdab971b398d8a2d254d95288"
+}

@@ -1,0 +1,94 @@
+{
+  "native_cases": 9,
+  "all_native_parse_and_private_mmap_checks_pass": true,
+  "rapid_corner": {
+    "retained_lines": [
+      2,
+      5
+    ],
+    "expected_corrected_points": [
+      [
+        100,
+        100,
+        0
+      ],
+      [
+        0,
+        100,
+        0
+      ],
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        10,
+        0,
+        0
+      ]
+    ],
+    "missing_corner_distance_to_diagonal_mm": 74.32941462471663
+  },
+  "zero_length_time": {
+    "equal_payload_digest": "bb1a2223f04ab1824ee7518f6f122ba7d47bbe0d658366e9c9504aeb14ae43f2",
+    "published_feed_tcum": [
+      0.0,
+      0.0
+    ],
+    "corrected_times_a_s": [
+      60.0,
+      30.0
+    ],
+    "corrected_times_b_s": [
+      30.0,
+      60.0
+    ]
+  },
+  "analytic_only": {
+    "axis_limit_split": {
+      "offset_av_ratio": 0.2,
+      "raw_axis_a": 500.0,
+      "planning_a": 400.0,
+      "raw_axis_v": 100.0,
+      "planning_v": 80.0,
+      "at_F2000_h_unsplit_mm": 2.2888888888888896,
+      "at_F2000_h_split_mm": 2.844444444444445
+    },
+    "g61": [
+      {
+        "feed_mm_min": 2000,
+        "a_mm_s2": 500,
+        "t_lat_s": 0.002,
+        "h_plan_mm": 2.2888888888888896,
+        "h_full_acceleration_mm": 1.177777777777778,
+        "excess_mm": 1.1111111111111116
+      },
+      {
+        "feed_mm_min": 3000,
+        "a_mm_s2": 250,
+        "t_lat_s": 0.002,
+        "h_plan_mm": 10.1,
+        "h_full_acceleration_mm": 5.1,
+        "excess_mm": 5.0
+      }
+    ],
+    "short_approach": {
+      "feed_mm_min": 3000,
+      "a_mm_s2": 250,
+      "approach_mm": 0.1,
+      "v_trip_mm_s": 7.0710678118654755,
+      "h_plan_mm": 10.1,
+      "h_at_trip_mm": 0.11414213562373098
+    },
+    "retract_interval": {
+      "P": 0,
+      "deepest_Q": -2.3,
+      "admissible_Q": -0.2,
+      "r": 3,
+      "deepest_retract_end": 0.7000000000000002,
+      "admissible_retract_end": 2.8
+    },
+    "extra_20ms_latency_at_F2000_mm": 0.6666666666666667
+  }
+}
