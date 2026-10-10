@@ -86,7 +86,8 @@ from gateway_util import (
     wcs_rewrite_targets, ustart_start_tuple,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
-    rotary_word_lines, first_rotary_commands, seq_boundary_indices, position_write_lines,
+    rotary_word_lines, first_rotary_commands, seq_boundary_indices, band_anchor_indices,
+    position_write_lines,
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
@@ -419,6 +420,7 @@ def parse(ctx: dict) -> dict:
         t0 = time.monotonic()
         result, seq = gcode.parse(filename, canon, initcodes, "")
         t1 = time.monotonic()
+        canon.close_band()      # a braking range a parse error cut short ends there
         if result > gcode.MIN_ERROR:
             # The interpreter hit an error partway through. We still return the
             # polyline collected so far, but flag it so the gateway/UI can badge
@@ -599,6 +601,8 @@ def parse(ctx: dict) -> dict:
                             for _ev in canon.tlo_events]
         canon.probe_events = tuple((_ev[0] * 2,) + tuple(_ev[1:]) for _ev in canon.probe_events)
         canon.toollen_events = tuple((_ev[0] * 2,) + tuple(_ev[1:]) for _ev in canon.toollen_events)
+        canon.probe_bands = tuple((_ev[0] * 2, _ev[1] * 2) + tuple(_ev[2:]) for _ev in canon.probe_bands)
+        canon.probe_notes = tuple((_ev[0] * 2,) + tuple(_ev[1:]) for _ev in canon.probe_notes)
         if relabel_seqs or flips_unresolved or flips_carry_spans:
             print(f"flips: {len(relabel_seqs)} relabel vertices inserted "
                   f"({len(canon.wcs_events)} wcs epochs), {flips_unresolved} "
@@ -1053,6 +1057,8 @@ def parse(ctx: dict) -> dict:
             # END vertex, so a collapsed run across the boundary would draw
             # real inherited motion riding the table.
             anchors = sorted(set(anchors) | seq_boundary_indices(feed_seq, _rot_bounds))
+        if canon.probe_bands:
+            anchors = sorted(set(anchors) | band_anchor_indices(feed_seq, canon.probe_bands))
         keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
@@ -1089,6 +1095,8 @@ def parse(ctx: dict) -> dict:
             _u_idx = {i for i, s in enumerate(rapid_seq) if s in ustart_seqs}
             r_anchors = sorted(set(r_anchors) | _u_idx
                                | {i - 1 for i in _u_idx if i > 0})
+        if canon.probe_bands:
+            r_anchors = sorted(set(r_anchors) | band_anchor_indices(rapid_seq, canon.probe_bands))
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
@@ -1413,6 +1421,21 @@ def parse(ctx: dict) -> dict:
                   canon.toollen_events, main_file_event_lines([e[3] for e in canon.toollen_events],
                                                               canon.sub_events, _caller_map))]}
                  if canon.toollen_events else {}),
+              # The probe's braking range (docs/reviews/parity-ef.plan.md F2):
+              # [seq_start, seq_end, tool, line] — the segments seq_start <
+              # seq <= seq_end run through a MODELED hull (findings there are
+              # "possible", nothing there is certified); every point after
+              # seq_start depends on the measurement (conditional). And the
+              # notes where the modeled sequence may not hold: [seq, tool,
+              # reason, line]. line as for probe_unpredicted.
+              **({"probe_bands": [[int(a), int(b), int(t), int(at or 0)] for (a, b, t, _k), at in zip(
+                  canon.probe_bands, main_file_event_lines([e[3] for e in canon.probe_bands],
+                                                           canon.sub_events, _caller_map))]}
+                 if canon.probe_bands else {}),
+              **({"probe_notes": [[int(q), int(t), str(r), int(at or 0)] for (q, t, r, _k), at in zip(
+                  canon.probe_notes, main_file_event_lines([e[3] for e in canon.probe_notes],
+                                                           canon.sub_events, _caller_map))]}
+                 if canon.probe_notes else {}),
               # the toolsetter basis the routine was read with (state, origin,
               # time, the values) — present when the gateway sent one
               **({"toolsetter_basis": {**_ts_used, "routine": any(_ev[1] == "tool_touch_off"

@@ -492,6 +492,34 @@ CASES.update({
     # Codex R105 VP-I63: the same tool measured twice — predicted, then (#3007
     # = 1) not; VP-I62: the routine before the first drawn point, unknown
     "m600_repeat": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60\n#3007=1\nT2 M600\nG0 X70\nM2\n"),
+    # The braking range (docs/reviews/parity-ef.plan.md F2): the XYZAC sim's Z
+    # (100 mm/s, 500 mm/s², OFFSET_AV_RATIO 0.2) and a 1 ms servo period — the
+    # fast probe (F2000) brakes up to 2.844 mm past the trip point, the slow one
+    # (F200) 0.034 mm. Without these INI values (every other case) the range has
+    # no brake leg and says so.
+    "m600_band": _m600(zvmax=100, axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
+                       ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
+    "m600_band_no_rho": _m600(zvmax=100, axis_z="MAX_ACCELERATION = 500",
+                              ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
+    # [TRAJ] caps both: 20 mm/s, 250 mm/s² (in the first TRAJ block — LinuxCNC
+    # reads a section that occurs twice in its first block only)
+    "m600_band_traj": _m600(zvmax=100, axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
+                            ini="[EMCMOT]\nSERVO_PERIOD = 1000000",
+                            traj="MAX_LINEAR_VELOCITY = 20\nMAX_LINEAR_ACCELERATION = 250"),
+    # the "slow" probe faster than the fast one: its leg is the longer
+    "m600_band_slow_faster": _m600({3005: 3000}, zvmax=100,
+                                   axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
+                                   ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
+    # a 2 mm retract inside the 2.844 mm range: the slow probe may start tripped
+    "m600_band_retract_short": _m600({3009: 2}, zvmax=100,
+                                     axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
+                                     ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
+    # Z limit −104: the slow probe ends at −103 from a stop at the trip point,
+    # at −105.84 from the deepest stop — it may be refused; the fast probe's
+    # travel is clamped to 7 mm (end −102), so its leg stops there
+    "m600_band_limit": _m600(zmin=-104, zvmax=100,
+                             axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
+                             ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
     "m600_unknown_first": _m600(prog="G21 G90\nT2 M600\nG0 X60 Y60 Z-100\nG0 X70\nM2\n",
                                 ctx={"toolsetter_unpredictable": "toolsetter_unknown"}),
     # a move past Z max (50) after the call: a violation where the measurement
@@ -581,6 +609,7 @@ MACHINE = START_PROBE
 COORDINATES = {"XYZA" if extra.get("rotary") else "XYZ"}
 LINEAR_UNITS = {"inch" if inch else "mm"}
 ANGULAR_UNITS = degree
+{extra.get("traj", "")}
 [RS274NGC]
 PARAMETER_FILE = machine.var
 SUBROUTINE_PATH = {work}
@@ -599,7 +628,9 @@ MAX_VELOCITY = 10
 [AXIS_Z]
 MIN_LIMIT = {extra.get("zmin", -500)}
 MAX_LIMIT = {1.2 if inch else 50}
-MAX_VELOCITY = 10
+MAX_VELOCITY = {extra.get("zvmax", 10)}
+{extra.get("axis_z", "")}
+{extra.get("ini", "")}
 """)
 os.environ["INI_FILE_NAME"] = str(ini)
 # (tool, Z): the table file and STAT's — the preview reads tools through the
@@ -726,6 +757,7 @@ print(json.dumps({
     "rapid_tcum": u("rapid_tcum", "<f4"), "rapid_brk": u("rapid_brk", "<u1"),
     "rapid_ustart": u("rapid_ustart", "<u1"), "feed_seq": u("feed_seq", "<u4"),
     "stale_offset_lines": out.get("stale_offset_lines"),
+    "probe_bands": out.get("probe_bands"), "probe_notes": out.get("probe_notes"),
     "stale_offset_untracked": out.get("stale_offset_untracked"),
     "feed_tcum": u("feed_tcum", "<f4"),
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},

@@ -1113,6 +1113,30 @@ def seq_boundary_indices(seqs, bounds):
     return set(int(i) for i in flips) | set(int(i) + 1 for i in flips)
 
 
+def band_anchor_indices(seqs, bands):
+    """Vertex indices the decimation must keep for the probe's braking ranges
+    (docs/reviews/parity-ef.plan.md F2): every vertex of a band (seq_start <
+    seq <= seq_end — the hull's turning points are where it reaches its
+    ends, and a band is a handful of vertices) and both sides of each band
+    boundary (seq_boundary_indices), so no kept segment spans band and
+    non-band motion — the client flags a segment by its END vertex. `bands`
+    rows start (seq_start, seq_end, ...). Pure."""
+    if not bands or not len(seqs):
+        return set()
+    out = set()
+    for i, q in enumerate(seqs):
+        q = int(q)
+        for b in bands:
+            if int(b[0]) < q <= int(b[1]):
+                out.add(i)
+                break
+    bounds = set()
+    for b in bands:
+        bounds.add(int(b[0]) + 1)
+        bounds.add(int(b[1]) + 1)
+    return out | seq_boundary_indices(seqs, bounds)
+
+
 def event_boundary_indices(seqs, events):
     """Vertex indices that must survive decimation at a seq-keyed EVENT
     boundary (schema 8: tlo_events). Same rule as mode_boundary_indices —
@@ -4136,6 +4160,14 @@ PROBE_UNPREDICTED_REASONS = ("length", "setter_z", "travel", "feed", "retract", 
                              "toolsetter_unknown", "toolsetter_not_set_up", "foreign_remap")
 _PROBE_UNPREDICTED_MARKER = re.compile(r"^\s*WEBUI_PROBE_UNPREDICTED\s*=\s*([a-z_]+)\s*$", re.IGNORECASE)
 _TOOLLEN_TABLE_MARKER = re.compile(r"^\s*WEBUI_TOOLLEN_TABLE\s*$", re.IGNORECASE)
+# The probe's braking range (docs/reviews/parity-ef.plan.md F2, Codex R122–R125):
+# from `(WEBUI_PROBE_BAND)` after the trip point to `(WEBUI_PROBE_BAND_END)` the
+# routine moves only Z through a MODELED hull — the stop lies somewhere in it —
+# and `(WEBUI_PROBE_NOTE=<reason>)` says where the modeled sequence may not hold.
+PROBE_NOTE_REASONS = ("retract", "slow_limit", "brake_unknown")
+_PROBE_BAND_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND\s*$", re.IGNORECASE)
+_PROBE_BAND_END_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND_END\s*$", re.IGNORECASE)
+_PROBE_NOTE_MARKER = re.compile(r"^\s*WEBUI_PROBE_NOTE\s*=\s*([a-z_]+)\s*$", re.IGNORECASE)
 
 
 class RemapEnv:
@@ -4477,14 +4509,23 @@ def m_code_lines(source_text, codes) -> frozenset:
 
 
 def parse_m600_marker(text):
-    """Comment text -> ("unpredicted", reason) / ("table", None) / None.
+    """Comment text -> ("unpredicted", reason) / ("table", None) /
+    ("band", None) / ("band_end", None) / ("note", reason) / None.
     A reason the list does not know stays a reason (lower case): a newer
-    routine's word is still a stop, never a prediction. Pure."""
-    m = _PROBE_UNPREDICTED_MARKER.match(text or "")
+    routine's word is still a stop (or a note), never a prediction. Pure."""
+    t = text or ""
+    m = _PROBE_UNPREDICTED_MARKER.match(t)
     if m:
         return ("unpredicted", m.group(1).lower())
-    if _TOOLLEN_TABLE_MARKER.match(text or ""):
+    if _TOOLLEN_TABLE_MARKER.match(t):
         return ("table", None)
+    if _PROBE_BAND_MARKER.match(t):
+        return ("band", None)
+    if _PROBE_BAND_END_MARKER.match(t):
+        return ("band_end", None)
+    m = _PROBE_NOTE_MARKER.match(t)
+    if m:
+        return ("note", m.group(1).lower())
     return None
 
 

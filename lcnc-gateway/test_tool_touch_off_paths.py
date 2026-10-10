@@ -182,3 +182,54 @@ def test_the_comparison_sees_a_changed_task_path():
     dropped = new_text.replace("  G38.3 Z-[#<z_max_travel>]    (fast tool probe)\n", "", 1)
     assert dropped != new_text
     assert _specialise(_tree(dropped), 1) != old
+
+
+_AXIS_XY = re.compile(r"(?<![A-Z])[XY](?=[-+\[#0-9.])")
+
+
+def _motion_words(stmt):
+    """The statement without its parameter names (#<...>) — what is left
+    names the words it carries."""
+    return re.sub(r"#<[^>]*>", "#", stmt)
+
+
+def test_only_z_moves_inside_the_braking_range():
+    """The braking range (docs/reviews/parity-ef.plan.md F2) is a hull on the
+    probe axis at a fixed X/Y: from the trip point to the band's end the
+    routine moves only Z — in the preview path between its markers, and in
+    the task path from the fast probe to the drive-free G53 Z0."""
+    preview = list(_flat(_specialise(_tree(NEW.read_text(encoding="utf-8"), comments=True), 0)))
+    starts = [i for i, s in enumerate(preview) if "(WEBUI_PROBE_BAND)" in s]
+    ends = [i for i, s in enumerate(preview) if "(WEBUI_PROBE_BAND_END)" in s]
+    assert len(starts) == 1 and len(ends) == 1 and starts[0] < ends[0]
+    inside = [s for s in preview[starts[0] + 1:ends[0]] if _AXIS_XY.search(_motion_words(s))]
+    assert inside == [], inside
+    task = list(_flat(_specialise(_tree(NEW.read_text(encoding="utf-8")), 1)))
+    a = next(i for i, s in enumerate(task) if s.startswith("G38.3"))
+    b = max(i for i, s in enumerate(task) if s == "G53G1F#<TRAVERSE_FR>Z0")
+    assert a < b
+    moved = [s for s in task[a:b] if _AXIS_XY.search(_motion_words(s))]
+    assert moved == [], moved
+
+
+def test_the_probes_follow_a_collinear_move_or_a_reversal():
+    """The braking model's half acceleration holds with no kink reduction
+    (tp.c tpSetupTangent): the fast probe follows the straight G53 Z move to
+    its start, the slow one the retract up — a reversal, an exact stop."""
+    task = list(_flat(_specialise(_tree(NEW.read_text(encoding="utf-8")), 1)))
+    motion = re.compile(r"^(G53)?G[0-3](?![0-9.])|^G38|^G1F")
+    fast = next(i for i, s in enumerate(task) if s.startswith("G38.3"))
+    before = [s for s in task[:fast] if motion.search(s)]
+    assert before[-1] == "G53G1F#<TRAVERSE_FR>Z#<PROBE_START_POS_Z>", before[-1]
+    slow = next(i for i, s in enumerate(task) if s.startswith("G38.2"))
+    between = [s for s in task[fast + 1:slow] if motion.search(s)]
+    assert between == ["G1F#<TRAVERSE_FR>Z[#<RETRACT_DISTANCE>]"], between
+
+
+def test_the_preview_brakes_past_the_trip_point_and_climbs_back():
+    preview = list(_flat(_specialise(_tree(NEW.read_text(encoding="utf-8")), 0)))
+    assert preview.count("G1Z-[#<PV_H_FAST>]") == 1 and preview.count("G1Z[#<PV_H_FAST>]") == 1
+    assert preview.count("G1Z-[#<PV_H_SLOW>]") == 1 and preview.count("G1Z[#<PV_H_SLOW>]") == 1
+    # the probe results are set at P, before the brake leg
+    i = preview.index("G1Z-[#<PV_H_FAST>]")
+    assert "#5070=1" in preview[i - 3:i]

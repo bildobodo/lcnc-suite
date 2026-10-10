@@ -373,6 +373,70 @@ o<200> do
       (WEBUI_SUB_END) ;lcnc-suite: a return skips the endsub's marker - the span ends here too
       o<tool_touch_off> return
     o<513> endif
+    ;-126- lcnc-suite preview: the modeled braking range (docs/reviews/parity-ef.plan.md F2).
+    ;LinuxCNC stores the feedback position at the trip (P) and then brakes along the
+    ;probe line: h = v * t + v^2 / (2 * a), v the probe feed capped by the planner's Z
+    ;velocity, a half the planner's Z acceleration (a parabolic blend halves it), t two
+    ;servo periods (an ideal probe input). The planner keeps OFFSET_AV_RATIO for external
+    ;offsets. MODELED, never certified: a slower probe input brakes deeper.
+    #<pv_u> = 1                    ;INI units to the program's
+    o<514> if [#<_metric> EQ 1 AND #<_metric_machine> EQ 0]
+      #<pv_u> = 25.4
+    o<514> elseif [#<_metric> EQ 0 AND #<_metric_machine> EQ 1]
+      #<pv_u> = [1 / 25.4]
+    o<514> endif
+    #<pv_h_fast> = 0
+    #<pv_h_slow> = 0
+    o<515> if [EXISTS[#<_ini[AXIS_Z]MAX_VELOCITY>] AND EXISTS[#<_ini[AXIS_Z]MAX_ACCELERATION>] AND EXISTS[#<_ini[EMCMOT]SERVO_PERIOD>]]
+      #<pv_rho> = 0
+      o<516> if [EXISTS[#<_ini[AXIS_Z]OFFSET_AV_RATIO>]]
+        #<pv_rho> = #<_ini[AXIS_Z]OFFSET_AV_RATIO>
+      o<516> endif
+      #<pv_vmax> = [[1 - #<pv_rho>] * #<_ini[AXIS_Z]MAX_VELOCITY> * #<pv_u>]
+      o<517> if [EXISTS[#<_ini[TRAJ]MAX_LINEAR_VELOCITY>]]
+        o<518> if [#<_ini[TRAJ]MAX_LINEAR_VELOCITY> * #<pv_u> LT #<pv_vmax>]
+          #<pv_vmax> = [#<_ini[TRAJ]MAX_LINEAR_VELOCITY> * #<pv_u>]
+        o<518> endif
+      o<517> endif
+      #<pv_amax> = [[1 - #<pv_rho>] * #<_ini[AXIS_Z]MAX_ACCELERATION> * #<pv_u>]
+      o<519> if [EXISTS[#<_ini[TRAJ]MAX_LINEAR_ACCELERATION>]]
+        o<521> if [#<_ini[TRAJ]MAX_LINEAR_ACCELERATION> * #<pv_u> LT #<pv_amax>]
+          #<pv_amax> = [#<_ini[TRAJ]MAX_LINEAR_ACCELERATION> * #<pv_u>]
+        o<521> endif
+      o<519> endif
+      #<pv_t> = [2 * #<_ini[EMCMOT]SERVO_PERIOD> / 1000000000]
+      o<522> if [#<pv_vmax> GT 0 AND #<pv_amax> GT 0 AND #<pv_t> GE 0]
+        #<pv_v> = [#<fast_probe_fr> / 60]
+        o<523> if [#<pv_v> GT #<pv_vmax>]
+          #<pv_v> = #<pv_vmax>
+        o<523> endif
+        #<pv_h_fast> = [#<pv_v> * #<pv_t> + #<pv_v> * #<pv_v> / #<pv_amax>]
+        o<524> if [#<slow_probe_fr> GT 0]
+          #<pv_v> = [#<slow_probe_fr> / 60]
+          o<525> if [#<pv_v> GT #<pv_vmax>]
+            #<pv_v> = #<pv_vmax>
+          o<525> endif
+          #<pv_h_slow> = [#<pv_v> * #<pv_t> + #<pv_v> * #<pv_v> / #<pv_amax>]
+        o<524> endif
+        ;a stop never lies past the move's commanded end (the planner brakes inside it)
+        o<535> if [#<pv_h_fast> GT [#<preview_trip_z> - [#<probe_start_pos_z> - #<z_max_travel>]]]
+          #<pv_h_fast> = [#<preview_trip_z> - [#<probe_start_pos_z> - #<z_max_travel>]]
+        o<535> endif
+        o<536> if [#<pv_h_slow> GT [#<pv_h_fast> + #<retract_distance>]]
+          #<pv_h_slow> = [#<pv_h_fast> + #<retract_distance>]
+        o<536> endif
+      o<522> else
+        (WEBUI_PROBE_NOTE=brake_unknown) ;lcnc-suite: preview marker, never in task
+      o<522> endif
+    o<515> else
+      (WEBUI_PROBE_NOTE=brake_unknown) ;lcnc-suite: preview marker, never in task
+    o<515> endif
+    o<526> if [#<slow_probe_fr> GT 0 AND #<retract_distance> LE #<pv_h_fast>]
+      (WEBUI_PROBE_NOTE=retract) ;lcnc-suite: preview marker, never in task
+    o<526> endif
+    o<527> if [#<slow_probe_fr> GT 0 AND [#<preview_trip_z> - #<pv_h_fast> - #<retract_distance>] LT #<_ini[AXIS_Z]MIN_LIMIT>]
+      (WEBUI_PROBE_NOTE=slow_limit) ;lcnc-suite: preview marker, never in task
+    o<527> endif
   o<510> endif
 
 
@@ -396,8 +460,20 @@ o<200> do
     #5068 = #5427
     #5069 = #5428
     #5070 = 1
+    ;the braking range (-126-): on past P, the retract below starts there; the
+    ;range is a hull, its findings "possible" (WEBUI_PROBE_BAND ... _END)
+    (WEBUI_PROBE_BAND) ;lcnc-suite: preview marker, never in task
+    o<528> if [#<pv_h_fast> GT 0]
+      G1 Z-[#<pv_h_fast>]
+    o<528> endif
   o<520> endif
   G1 F#<traverse_fr> Z[#<retract_distance>]    (retract tool retract distance amount)
+  o<529> if [#<_task> EQ 0]
+    ;lcnc-suite preview: up to the range's top, P + retract (a stop at P retracts there)
+    o<531> if [#<pv_h_fast> GT 0]
+      G1 Z[#<pv_h_fast>]
+    o<531> endif
+  o<529> endif
   G90
   #<addreps> = [#<addreps> - 1]
   (LOG, Fast probe: #5063)
@@ -450,9 +526,17 @@ o<120> if [#<slow_probe_fr> GT 0]
     #5068 = #5427
     #5069 = #5428
     #5070 = 1
+    o<532> if [#<pv_h_slow> GT 0]
+      G1 Z-[#<pv_h_slow>]
+    o<532> endif
   o<530> endif
   ;#<z_slow_probe> = #5063
   G1 F#<traverse_fr> Z[#<retract_distance>]
+  o<533> if [#<_task> EQ 0]
+    o<534> if [#<pv_h_slow> GT 0]
+      G1 Z[#<pv_h_slow>]
+    o<534> endif
+  o<533> endif
   G90
   (LOG, Slow probe: #5063)
 
@@ -479,6 +563,7 @@ o<131>endif
 ;-175- lcnc-suite preview: the length -180-/-190- apply is the TABLE's (assumed,
 ;never measured); the canon pairs this marker with the G43 of this call
 o<540> if [#<_task> EQ 0]
+  (WEBUI_PROBE_BAND_END) ;lcnc-suite: preview marker, never in task - only Z moved since the band began
   (WEBUI_TOOLLEN_TABLE) ;lcnc-suite: preview marker, never in task
 o<540> endif
 
