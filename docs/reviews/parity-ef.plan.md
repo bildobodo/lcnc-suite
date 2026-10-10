@@ -1,6 +1,6 @@
 # Parity-Befunde E und F — der unbekannte Programmanfang und der Bremsweg der Antastung
 
-**Plan, Fassung 5 · 10. Oktober 2026.**
+**Plan, Fassung 6 · 10. Oktober 2026.**
 - Vorbedingung für den Parity-Korpus mit M600 (`scripts/parity_corpus/xyzac.json`, Zweig `test/parity-xyzac-m600`, ungemergt).
 - Codex hat beide Befunde in R118 bestätigt und vor dem Bau je einen kleinen Vertrag verlangt; das sind diese beiden.
 - Der Operator hat die Reihenfolge am 10. Oktober bestätigt: erst diese Verträge, danach Paket 1 von Schritt 4.
@@ -8,6 +8,7 @@
 - Fassung 2 ging mit R123 an Codex. VP122-01 ist geschlossen; die Hülle, die Messreihe vor der Parity und „possible“ als eigener Eintrag sind angenommen. Die Ausnahme für nicht zugelassene Tasterketten ist abgelehnt. Fassung 3 gibt die Zulassung ganz auf: Der Bremsbereich ist modelliert und nicht zertifiziert, und die Bahn nach einer Messung trägt ihre Bedingung sichtbar am Ergebnis, auf jeder Maschine, auch auf der Sim. Antworttabelle am Ende.
 - Fassung 3 ging mit R124 an Codex: E als Plan angenommen, die R123-Reste geschlossen. Fassung 4 nimmt VP124-01 auf: Die Zahl t_max und jede Zusage über die Abweichung der Folgebahn entfallen. Die Einträge nach einer Messung tragen ihre Herkunft.
 - Fassung 4 ging mit R125 an Codex (Einigung). F ist gebaut und angenommen (R126–R128). Beim Bau von E fiel eine Regel aus E4 gegen den TWP-Korpus auf; Fassung 5 ändert nur sie (Abschnitt E4a, Fragen am Ende).
+- Fassung 5 ging mit R129 an Codex: Die Lesetabelle ist als Ansatz angenommen, mit zwei Befunden (VP129-01, VP129-02). Fassung 6 schreibt E4a danach neu; Antworttabelle am Ende.
 - E: Canon in Arbeit (`fix/start-dep`), noch nicht gemergt.
 
 ## Befund
@@ -144,38 +145,54 @@ Ein Wert, der aus der Position gelesen wird, während die gelesene Achse startab
 - **Wächter am Text:** Ein Test verlangt, dass jede Positionslesung der Routine eine dieser Markierungen trägt. Eine spätere Lesung ohne Markierung ist dann ein Testfehler.
 - **Vorgabe der R102-Planung:** Der Vergleich der task-Pfade (`test_tool_touch_off_paths.py`) bleibt grün; Kommentare ändern den Ablauf nicht.
 
-### E4a · Lesungen in Remaps der Suite (Fassung 5)
+### E4a · Lesungen in Remaps der Suite (Fassung 6)
 
-**Befund beim Bau.** E4 sagt für `inline` / `foreign`: Kann irgendein erreichbarer Text die Position lesen, sind ab dem Programmstart alle Achsen unbekannt. Ein `python=`-Rumpf gilt als „liest jede Achse“.
-- Jedes Programm des TWP-Korpus (`scripts/parity_corpus/twp_gantry.json`, sechs Programme) ruft `o<square> call` ohne eigene `sub` auf. Der Text ist damit `foreign`.
-- Jedes benutzt `g68.2` (`python=g682`) und `g53.3` (ngc-Rumpf, der `M530` aufruft, `python=g53x_core`).
-- Wörtlich umgesetzt wären alle sechs ab dem Programmstart unbekannt, und `sim_parity.py gate` auf diesem Korpus fiele.
-- Die Gefahr, gegen die E4 schützt, besteht dort nicht: Jedes der Programme fährt `g0 x0y0z100` vor dem ersten Remap.
+**Befund beim Bau** (Fassung 5, berichtigt nach R129):
+- Im TWP-Korpus (`scripts/parity_corpus/twp_gantry.json`) sind fünf Programme `foreign`, weil sie `o<square> call` ohne eigene `sub` aufrufen. Vier benutzen `g68.2` (`python=g682`), eines `g68.3` (`python=g683`); dazu kommt `g53.3` (ngc-Rumpf, der `M530` aufruft, `python=g53x_core`). `parity_linear.ngc` ist `ordered` und benutzt keines davon.
+- E4 wörtlich (ein `python=`-Rumpf liest jede Achse) machte die fünf ab dem Programmstart unbekannt.
 
-**Was die Python-Remaps der Suite lesen** (Textbefund, `examples/sim_config/twp/python/*.py`):
-- **X, Y, Z:** `self.current_x/y/z` nur in `twp_touchoff` (M535, `remap.py:1556`). Das ist der Touch-off aus der Position, den das Gateway per MDI sendet.
-- **Drehachsen:** `AA_current` / `BB_current` / `CC_current` in `get_current_rotary_positions` und `get_machine_a`. Drehachsen sind nach E1 nie startabhängig, weil sie aus der Live-Lage gesetzt werden; unbekannt werden sie nur durch die bestehenden Regeln.
-- **Parameter:** `self.params[…]` nur für Halterungszeilen, G92, die Herkunftsstempel und `#5220`. Keine Lesung von `#5420`–`#5428` oder der Namen `_x` … `_abs_w`.
-- **ngc-Text:** Die Hauptdateien des Korpus, `twp/demos/square.ngc` und die Rümpfe in `twp/remap_subs` lesen keine Position. Einzige Ausnahme ist `twp_goto_zero.ngc` (`#<_z>`), das nur per MDI (→ Zero) läuft.
+**Die Tabelle beschreibt gelesene Achsen, keine befreiten Codes** (VP129-01). Je Funktion die Obermenge aus dem Aufrufgraphen von `remap.py` (Codex' Verfahren in R129, Attribute `current_x|y|z`, `AA|BB|CC_current`, `u|v|w_current`, über alle Helfer derselben Datei):
 
-**Änderung (P1):**
-- **Erklärte Lesetabelle** für die Python-Remaps der Suite:
-  - M535 liest X, Y, Z.
-  - G68.2, G68.3, G68.4, M530 und M469 lesen nur Drehachsen und zählen für E4 nicht als Positionslesung.
-- **Erkennung an der Quelle,** wie beim M600 der Suite: `[PYTHON] TOPLEVEL` der INI zeigt (realpath) in das `twp/python` dieser Installation, und die Funktion des REMAP steht in der Tabelle. Jeder andere `python=`-Rumpf bleibt „liest jede Achse“.
-- **Textwächter** über `twp/python/*.py`. Ein Testfehler ist:
-  - jede Lesung von `current_x|y|z|u|v|w` außerhalb der Funktionen, die die Tabelle mit diesen Achsen nennt;
-  - jede Lesung von `#5420`–`#5428` in irgendeiner Schreibweise und jeder Name `_x` … `_abs_w`;
-  - jeder `params`-Index, der nicht in einer festen Liste erlaubter Ausdrücke steht (heute die Halterungs-, G92- und Herkunftstabellen);
-  - ein Tabelleneintrag ohne zugehörige Funktion.
-- **Das M600 / M601 der Suite** (erkannt wie heute, `foreign_m600_codes`) ist von der Lese-Verfolgung ausgenommen. Seine Routine markiert ihre Lesungen selbst (E4-Tabelle), und der Textwächter dort bleibt. Ein fremdes M600 bleibt „liest jede Achse“.
+| Funktion | Code | liest |
+|---|---|---|
+| `g682`, `g684` | G68.2, G68.4 | — |
+| `g69_core` | M469 | — |
+| `g683` | G68.3 | A, B, C |
+| `g53x_core` | M530 | A, B, C |
+| `twp_touchoff` | M535 | X, Y, Z, A, B, C |
 
-**Unverändert:**
-- Die Regel für `inline` / `foreign` selbst.
-- Die Einordnung in `ordered` über den Gang und den Remap-Stapel.
-- Jeder Rumpf, der nicht der Suite gehört.
+- **`ordered`:** Die Aufrufzeile liest die Achsen der Tabelle. Die E4-Wirkung tritt ein, wenn eine davon beim Aufruf startabhängig oder unbekannt ist (Gang und Remap-Stapel wie bisher). Ein späterer absoluter Befehl hebt sie nicht auf.
+- **`inline` / `foreign`:** Die Gesamtregel bleibt für jeden erreichbaren Leser von X, Y oder Z, denn sie sind am Start startabhängig. Ein erreichbarer Leser **nur von Drehachsen** zählt nicht, solange im Programm keine Drehachse unbekannt werden kann. Das ist statisch entschieden: keine `TOOL_CHANGE_POSITION`, die eine Drehachse nennt (6 oder 9 Werte, oder eine Anzahl, die alle Achsen unbekannt macht). Sonst gilt die Gesamtregel. Nach einer nicht vorhergesagten Messung oder einem fremden M600 ist ohnehin alles bis zum Ende unbekannt.
+- **Je Remap** werden `python=`, `prolog=` und `epilog=` getrennt bewertet und ihre Lesungen vereinigt. Eine Funktion ohne geprüfte Bindung liest jede Achse.
 
-**Abgrenzung:** Die Alternative wäre, die erreichbaren Texte auf die Strecken zu begrenzen, in denen `dep` oder `stale` nicht leer ist. Das verlangt eine zeitliche Einordnung, die `foreign` gerade nicht hat. P1 ist das, was der Korpus braucht, und hält die Regel sonst unverändert.
+**Bindung an den ausgeführten Rumpf** (VP129-02):
+- **Nativ belegt** (2.9.4, Beleg `r130.py-remap.txt`): Die Vorschau ruft für `python=m777` die Funktion `sys.modules["remap"].m777`, nicht die gleichnamige Funktion im TOPLEVEL-Namensraum, und diese liest die angenommene Position (`self.current_x` = 7 nach `G0 X7`).
+- **Prüfung beim ersten Rückruf** der Analyse, im Worker-Prozess, in dem diese Funktionen laufen. Die Tabelle gilt für eine Funktion nur, wenn
+  1. das Objekt `sys.modules["remap"].<name>` existiert und sein `__code__.co_filename` die Datei des geladenen Moduls `remap` ist;
+  2. diese Datei die in der Tabelle festgehaltene sha256 hat;
+  3. die Suite-Helfer, die `remap.py` importiert (`twp_params`, `twp_prov`, `twp_transform`, `util`), aus Dateien mit den festgehaltenen sha256 geladen sind.
+- Sonst liest die Funktion jede Achse. Ein `remap.py` aus `PATH_PREPEND`, eine geänderte Datei oder ein gleichnamiger Helfer aus einem anderen Modul fallen so nicht unbemerkt unter die Tabelle.
+- **Benannte Grenze:** Module außerhalb der Suite (Standardbibliothek, `interpreter`, `emccanon`) werden nicht gehasht.
+
+**Quellwächter:**
+- Der Test berechnet den Aufrufgraphen und die Hashes aus dem Repository neu. Tabelle, Hashes und Graph müssen übereinstimmen.
+- Jede Änderung der TWP-Python-Dateien schlägt deshalb fehl, bis die Tabelle geprüft ist. Ein neuer Aufruf eines XYZ-Lesers aus `g682` ändert den Graphen und fällt auf, auch ohne neues `current_x`.
+
+**M600 / M601 der Suite:**
+- Keine Ausnahme nach Code. Die Lese-Verfolgung folgt dem Rumpf wie jedem anderen.
+- Die Lesungen einer Datei zählen nicht, wenn die Datei **inhaltlich** die ausgelieferte Routine ist (sha256 festgehalten). Der Wächter verlangt dort, dass jede Positionslesung eine `WEBUI_POS`-Markierung trägt; die Markierungen wirken zur Laufzeit (E4-Tabelle).
+- `prolog=` / `epilog=` an M600 / M601 sind undurchsichtig wie in `RemapEnv` und lesen jede Achse.
+- **Klein mitgezogen:** `foreign_m600_codes` stuft ein M600 / M601 mit `python=`, `prolog=` oder `epilog=` als fremd ein. Das ist strenger als heute; keine ausgelieferte INI hat einen solchen Haken.
+
+**Wächter** (zu E10):
+- 12a. Bekannter Drehachsenstart ohne späteren Verlust: G68.2, G68.3 und M530 bleiben prüfbar (Form des Korpus).
+- 12b. Sechsachsige Wechselposition vor G68.3 / M530 wird nicht freigestellt.
+- 12c. Eine reine XYZ-Wechselposition wird davon unterschieden.
+- 12d. Eine spätere absolute Drehachsenfahrt löscht den Lesefehler nicht.
+- 12e. Der Quellwächter erfasst Helferaufrufe.
+- 12f. Unveränderte Suite positiv; gleicher Funktionsname aus einem fremden `remap.py` negativ; zusätzlicher Prolog oder Epilog negativ, auch an M600 / M601.
+
+**Abgrenzung:** `G38` im Hauptprogramm bleibt eine eigene Folgearbeit (F6, Codex R129 Antwort 3). E benennt die Grenze unverändert und stellt sie nicht als gelöst dar.
 
 ### E5 · Die gebundene Startbasis
 
@@ -437,6 +454,10 @@ Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 
 Danach Paket 1 von Schritt 4.
 
+## Fragen an Codex (Fassung 6)
+
+Keine offenen Fragen; die Antworten aus R129 sind übernommen.
+
 ## Fragen an Codex (Fassung 5)
 
 1. **E4a, P1:** Reichen die erklärte Lesetabelle für die Python-Remaps der Suite und ihr Textwächter, oder willst du die Alternative (Strecken mit nicht leerem `dep` / `stale`)?
@@ -472,6 +493,17 @@ Keine offenen Fragen; beide Antworten aus R124 sind übernommen.
 | Antwort 2 | Angenommen. | F2/F7: „possible“ als eigener Eintrag, erhalten durch Zusammenführung, Filter, Navigation und Marken; nie Trennung oder statischer Ausschluss; später sicherer Treffer außerhalb ist ein gewöhnlicher Eintrag |
 | Antwort 3 | Angenommen. | F4: Abdeckungsnachweis, Rückrichtung getrennt ausgewiesen, beidseitig 0,5 außerhalb, zwei Mutationen; keine Kappung der Hülle |
 | Beide Antastungen | Angenommen. | F2: h_model = max(h_schnell, h_langsam) |
+
+## Antworten auf R129 (Fassung 6)
+
+| Punkt | Antwort | Änderung im Plan |
+|---|---|---|
+| VP129-01 (P1) | Angenommen. Die Drehachsen sind am Start nicht startabhängig; eine Ausnahme für spätere unbekannte Werte folgt daraus nicht. | E4a: Tabelle der gelesenen Achsen (G68.3 / M530: A, B, C; M535: X, Y, Z, A, B, C als Obermenge), `ordered` am Aufruf, `inline` / `foreign` nur ohne eine Wechselposition, die eine Drehachse nennt. Wächter 12a–12e |
+| VP129-02 (P1) | Angenommen. TOPLEVEL und Name binden den Rumpf nicht. | E4a: Bindung an `sys.modules["remap"].<name>` (nativ belegt), dessen Datei und die Suite-Helfer per sha256; `python`, `prolog`, `epilog` getrennt; die Routine nach Inhalt statt nach Code; `foreign_m600_codes` strenger. Wächter 12f |
+| Antwort 1 | Übernommen. | wie VP129-01 |
+| Antwort 2 | Übernommen. | Zentrale Tabelle mit Quellwächter; keine Modulkonstante |
+| Antwort 3 | Übernommen. | E4a, Abgrenzung |
+| Textkorrektur | Übernommen. | E4a, Befund: fünf `foreign`, vier G68.2, eines G68.3 |
 
 ## Antworten auf R124 (Fassung 4)
 

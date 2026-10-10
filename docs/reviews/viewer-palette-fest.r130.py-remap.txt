@@ -1,0 +1,34 @@
+R130 · Claude · Wie die Vorschau ein Python-Remap aufruft (LinuxCNC 2.9.4, nativ, offline)
+===============================================================================
+
+Skript: viewer-palette-fest.r130.py-remap-probe.py — eine Kopie von
+lcnc-gateway/native_start_probe.py (fix/start-dep) mit dem Fall "py_remap" und
+einer Zusatzausgabe "PY". Eigener Prozess, temporäre INI / Var-Datei /
+Werkzeugtabelle, synthetisches STAT, linuxcnc.command wirft. Kein HAL, kein
+Live-Port, keine Maschine.
+
+Aufbau des Falls:
+- INI: [PYTHON] TOPLEVEL = <work>/toplevel.py, PATH_APPEND = <work>;
+  [RS274NGC] REMAP=M777 modalgroup=10 python=m777
+- toplevel.py: "import remap" und eine EIGENE Funktion m777 (schreibt in
+  TOP_CALLED)
+- remap.py: m777 schreibt float(self.current_x) in CALLED
+- Programm: G21 G90 / G0 X7 Y0 Z10 / M777 / G0 X5 / M2
+
+Aufruf (aus lcnc-gateway, Venv-Python):
+  env -u PYTHONPATH LCNC_LOG_DIR=<scratch>/testlogs .venv/bin/python \
+      viewer-palette-fest.r130.py-remap-probe.py py_remap
+
+LinuxCNC: 2.9.4
+
+Ausgabe:
+{"PY": {"remap_file": "/tmp/start-probe-qb_1qky0/remap.py", "remap_called": [7.0], "main_top_called": [], "main_has_remap": true, "parse_error": null, "mods": ["emccanon", "interpreter", "remap"]}}
+
+Lesart:
+- remap_called = [7.0]: aufgerufen wurde sys.modules["remap"].m777, und die
+  Funktion las die ANGENOMMENE Position (X7 nach G0 X7).
+- main_top_called = []: die gleichnamige Funktion im TOPLEVEL-Namensraum
+  (__main__, dort liegt auch "remap") wurde nicht aufgerufen.
+- Damit ist das Objekt, das die Analyse aufruft, im Worker-Prozess als
+  sys.modules["remap"].<name> greifbar; seine Datei und die der Helfer lassen
+  sich vor dem ersten Aufruf prüfen (Plan E4a, Fassung 6).
