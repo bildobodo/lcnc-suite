@@ -693,6 +693,13 @@ CASES.update({
     "e_kins_zero": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": 0},
                       ini="[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"),
     "e_kins_fixed": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": None}),
+    # Codex R132 point 8: writes in the beginning a text out of order cannot
+    # place — named only where a beginning exists (the TWP corpus commands
+    # X, Y, Z first: none)
+    "e_foreign_known_start": _E("G21 G90 G54\nG0 X0 Y0 Z100\no<sq> call\nM2\n",
+                                subs={"sq.ngc": "o<sq> sub\nG1 X10 F100\no<sq> endsub\nM2\n"}),
+    "e_foreign_dep_start": _E("G21 G90 G54\nG0 Z100\no<sq> call\nM2\n",
+                              subs={"sq.ngc": "o<sq> sub\nG1 X10 F100\no<sq> endsub\nM2\n"}),
     # 13: a world labeling at the start
     "e_world_start": _E("G21 G90\nG0 X5 Y5\nG0 Z5\nM2\n", ctx={"kins_type": 1}),
     # 15 (b): one mask over a run — an arc in XY with Z dependent (outside
@@ -897,6 +904,7 @@ print(json.dumps({
     "feed_dep_f": u("feed_dep_f", "<f4"), "rapid_dep_f": u("rapid_dep_f", "<f4"),
     "start_believed": out.get("start_believed"), "position_read_lines": out.get("position_read_lines"),
     "start_dep_unavailable": out.get("start_dep_unavailable"),
+    "start_writes_untracked": out.get("start_writes_untracked"),
     "feed_lines_all": u("feed_lines", "<u4"), "python_reads": [ln for ln in err.getvalue().splitlines()
                                                               if ln.startswith("python remap reads")],
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},

@@ -165,6 +165,14 @@ class TestCodexR132(unittest.TestCase):
         r = probe("e_with_interp")
         self.assertEqual((r["start_dep_unavailable"], r["rapid_dep"], r["rapid_ustart"]), (None, [3, 2], [1, 0]))
 
+    def test_writes_in_a_beginning_out_of_order_are_named(self):
+        # R132 point 8: a text with a call into another file names its
+        # beginning's writes untracked — only where a beginning exists
+        self.assertIsNone(probe("e_foreign_known_start")["start_writes_untracked"])
+        r = probe("e_foreign_dep_start")
+        self.assertIs(r["start_writes_untracked"], True)
+        self.assertEqual(r["rapid_dep"][0], 3)
+
     def test_an_unknown_kinematics_type_is_never_identity(self):
         # VP-I81: a switchable kinematics whose live type was not read — out
         # of scope; its type 0 confirmed, and a machine that cannot switch
