@@ -94,7 +94,11 @@ for (const s of cums) {
   sampleTrack(track, s, sample);
   jointsForSample(sample, wcs, axes, joints, kinsSpec, epochTerms);
   if (joints.some(j => j == null)) nullSamples++;
-  lines.push(JSON.stringify({ cum: Math.round(s * 1e4) / 1e4, joints: joints.slice() }));
+  // On a probe's braking range (docs/reviews/parity-ef.plan.md F2) the path
+  // is a MODELED hull: the gate checks it covers the truth, never that the
+  // truth reaches its far end (sim_parity.compare_files).
+  const band = track.band?.[sample.index] === 1;
+  lines.push(JSON.stringify({ cum: Math.round(s * 1e4) / 1e4, joints: joints.slice(), ...(band ? { band: 1 } : {}) }));
 }
 writeFileSync(outPath, lines.join("\n") + "\n");
 console.log(`simDump: ${cums.length} samples (${track.count} vertices, ` +

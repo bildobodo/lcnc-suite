@@ -64,11 +64,14 @@ def load_truth_joints(path):
     return np.asarray(rows, dtype=float)
 
 
-def load_sim_joints(path):
-    """((N, J) rows, null_sample_count) from a simDump capture. Samples
-    with any null joint are EXCLUDED from the arrays and counted — the
-    caller must surface them (unchecked ≠ clean)."""
+def load_sim_joints(path, with_band=False):
+    """((N, J) rows, null_sample_count) from a simDump capture — with
+    `with_band` also an (N,) bool mask: the sample lies on a probe's braking
+    range (`band`, docs/reviews/parity-ef.plan.md F2). Samples with any null
+    joint are EXCLUDED from the arrays and counted — the caller must surface
+    them (unchecked ≠ clean)."""
     rows = []
+    band = []
     nulls = 0
     for line in open(path):
         if not line.strip():
@@ -81,6 +84,9 @@ def load_sim_joints(path):
             nulls += 1
             continue
         rows.append(j)
+        band.append(bool(r.get("band")))
+    if with_band:
+        return np.asarray(rows, dtype=float), nulls, np.asarray(band, dtype=bool)
     return np.asarray(rows, dtype=float), nulls
 
 
@@ -109,7 +115,7 @@ def path_deviation(A, B):
 def compare_files(truth_path, sim_path, tol):
     """Bidirectional gate on one run. Returns (ok, report_str)."""
     T = load_truth_joints(truth_path)
-    S, nulls = load_sim_joints(sim_path)
+    S, nulls, band = load_sim_joints(sim_path, with_band=True)
     if T.size == 0 or S.size == 0:
         return False, "empty trajectory (truth or sim) — nothing to certify"
     if T.shape[1] != S.shape[1]:
@@ -118,11 +124,20 @@ def compare_files(truth_path, sim_path, tol):
         # with a whole rotary channel unchecked.
         return False, (f"joint width mismatch: truth {T.shape[1]} vs sim "
                        f"{S.shape[1]} columns — refusing to certify")
+    # A probe's braking range is a MODELED hull every stop lies in (parity-ef
+    # plan F2/F4, Codex R123): the truth must lie on it (truth→sim over the
+    # whole sim path, the hull included); the hull reaches past the truth by
+    # design, so sim→truth leaves its samples out and reports them apart —
+    # a COVERAGE proof there, the two-way comparison everywhere else.
     t2s_max, t2s_p99 = path_deviation(T, S)
-    s2t_max, s2t_p99 = path_deviation(S, T)
+    s2t_max, s2t_p99 = path_deviation(S[~band], T) if (~band).any() else (0.0, 0.0)
     ok = t2s_max <= tol and s2t_max <= tol
     rep = (f"truth→sim max {t2s_max:.3f} p99 {t2s_p99:.3f} | "
            f"sim→truth max {s2t_max:.3f} p99 {s2t_p99:.3f} | tol {tol}")
+    if band.any():
+        b_max, _ = path_deviation(S[band], T)
+        rep += (f" | braking range: {int(band.sum())} sim samples, coverage only "
+                f"(truth→sim above), the hull reaches up to {b_max:.3f} past the truth")
     if nulls:
         frac = nulls / max(1, nulls + len(S))
         rep += f" | {nulls} sim samples with null joints (UNCHECKED)"

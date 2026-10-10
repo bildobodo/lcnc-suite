@@ -184,3 +184,23 @@ describe("tool-basis normalisation (VP-I20)", () => {
       { bounds: null, motion: { min: [0, 9, 40], max: [0, 9, 40] } });
   });
 });
+
+describe("the probe's braking ranges (parity-ef plan F2)", () => {
+  it("flags the segments inside a range and counts the measurements before a point", () => {
+    const p = payload([10, 16, 17, 20, 22, 23, 40, 42, 44, 50], [], []);
+    p.rapid = new Uint8Array(new Float32Array(30).buffer);   // the points as the wire's bytes
+    // two ranges: (16, 22] and (40, 44]
+    p.probe_bands = [[16, 22, 2, 3], [40, 44, 7, 9]];
+    const d = decodePreviewStreams(p);
+    expect(Array.from(d.rapid.band!)).toEqual([0, 0, 1, 1, 1, 0, 0, 1, 1, 0]);
+    expect(Array.from(d.rapid.cond!)).toEqual([0, 0, 1, 1, 1, 1, 1, 2, 2, 2]);
+  });
+
+  it("carries nothing without ranges, and drops malformed rows", () => {
+    expect(decodePreviewStreams(payload([1, 2], [], [])).rapid.band).toBeUndefined();
+    const p = payload([1, 2, 3], [], []);
+    p.rapid = new Uint8Array(new Float32Array(9).buffer);
+    p.probe_bands = [[5, 2, 2, 3], ["x", 3]];
+    expect(decodePreviewStreams(p).rapid.band).toBeUndefined();
+  });
+});

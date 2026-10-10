@@ -494,3 +494,102 @@ class TestNcSpellings(unittest.TestCase):
                     # its line (L4, after the call's set-up line where there is one)
                     self.assertIn(3 + text.count("\n") + 1, m_code_lines(
                         "G21 G90\nG0 X50 Y50 Z-100\nG1 X55 F100\n" + text + "\n", {"m600"}))
+
+
+class TestBrakingRange(unittest.TestCase):
+    """The probe's braking range (docs/reviews/parity-ef.plan.md F2, Codex
+    R122–R125): LinuxCNC stores the feedback position at the trip (P) and then
+    brakes along the probe line, so the machine stops below P. The preview
+    goes on past P by the MODELED braking distance h = v·t + v²/a (v the probe
+    feed capped by the planner's Z velocity, a the planner's Z acceleration —
+    half of it, doubled by the formula —, t two servo periods), never past the
+    move's commanded end, then lets the routine retract from there and climbs
+    to P + retract: the hull H = [P − h, P + r] every stop and retract lies in.
+    The segments from just after P to the band's end are the band; the probe
+    results and the length stay at P."""
+
+    H_FAST = 2000 / 60 * 0.002 + (2000 / 60) ** 2 / 400     # XYZAC Z: 80 % of 500 mm/s²
+    H_SLOW = 200 / 60 * 0.002 + (200 / 60) ** 2 / 400
+
+    def _band_points(self, r):
+        a, b = r["probe_bands"][0][:2]
+        return [p for s, _, p, _ in path(r) if a < s <= b]
+
+    def test_the_range_runs_past_the_trip_point_and_back(self):
+        r = probe("m600_band")
+        self.assertIsNone(r["parse_error"])
+        self.assertIsNone(r["probe_unpredicted"])
+        self.assertIsNone(r["probe_notes"])
+        hf, hs = self.H_FAST, self.H_SLOW
+        z = feeds_at(r, 10, 10)
+        self.assertEqual(z[:3], [0, -95, -100])
+        for got, want in zip(z[3:10], [-100 - hf, -100 - hf + 3, -97, -100, -100 - hs, -100 - hs + 3, -97]):
+            self.assertAlmostEqual(got, want, places=4)
+        # the band: every segment from just after P to the climb back, at the
+        # setter's X/Y, inside [P − h, P + r]; the call line and the tool
+        self.assertEqual(len(r["probe_bands"]), 1)
+        self.assertEqual(r["probe_bands"][0][2:], [2, 3])
+        pts = self._band_points(r)
+        self.assertEqual({p[:2] for p in pts}, {(10, 10)})
+        self.assertAlmostEqual(min(p[2] for p in pts), -100 - hf, places=4)
+        self.assertAlmostEqual(max(p[2] for p in pts), -97, places=4)
+        # the length and the probe results stay at P: the table's 80
+        self.assertAlmostEqual(tool_rows(r, 2)[-1][3], 80.0, places=9)
+        self.assertEqual([row[2] for row in r["toollen_table"]], [80.0])
+        # the move after the range (G53 Z0, program −80 under the new offset)
+        # is outside it
+        after = [s for s, _, p, _ in path(r) if s > r["probe_bands"][0][1]]
+        self.assertTrue(after)
+
+    def test_without_the_reserved_share_the_planner_brakes_harder(self):
+        r = probe("m600_band_no_rho")
+        h = 2000 / 60 * 0.002 + (2000 / 60) ** 2 / 500
+        self.assertAlmostEqual(min(p[2] for p in self._band_points(r)), -100 - h, places=4)
+
+    def test_traj_caps_velocity_and_acceleration(self):
+        r = probe("m600_band_traj")
+        h = 20 * 0.002 + 20 ** 2 / 250
+        self.assertAlmostEqual(min(p[2] for p in self._band_points(r)), -100 - h, places=4)
+
+    def test_a_slow_probe_faster_than_the_fast_one_spans_the_range(self):
+        # F3000 brakes 6.35 mm, more than its own move can reach: its end lies
+        # at most h_fast + retract below P (a start at the deepest stop + r)
+        r = probe("m600_band_slow_faster")
+        self.assertAlmostEqual(min(p[2] for p in self._band_points(r)), -100 - self.H_FAST - 3, places=4)
+
+    def test_a_retract_inside_the_range_is_a_note_not_a_stop(self):
+        r = probe("m600_band_retract_short")
+        self.assertIsNone(r["probe_unpredicted"])
+        self.assertEqual([n[1:] for n in r["probe_notes"]], [[2, "retract", 3]])
+        self.assertTrue(r["probe_bands"])
+
+    def test_the_commanded_end_caps_the_range_and_a_possible_limit_is_a_note(self):
+        # Z limit −104: the fast travel is clamped to 7 mm (end −102), so the
+        # stop lies at −102 at the deepest; from there the slow probe ends at
+        # −105 < −104 — it may be refused (a note); from P it ends at −103 —
+        # not certainly refused, so no stop
+        r = probe("m600_band_limit")
+        self.assertIsNone(r["probe_unpredicted"])
+        self.assertAlmostEqual(min(p[2] for p in self._band_points(r)), -102, places=4)
+        self.assertEqual([n[2] for n in r["probe_notes"]], ["slow_limit"])
+
+    def test_without_the_ini_values_the_range_has_no_brake_leg_and_says_so(self):
+        r = probe("m600_known")
+        self.assertEqual([n[1:] for n in r["probe_notes"]], [[2, "brake_unknown", 3]])
+        pts = self._band_points(r)
+        self.assertAlmostEqual(min(p[2] for p in pts), -100, places=4)
+        self.assertAlmostEqual(max(p[2] for p in pts), -97, places=4)
+
+    def test_what_follows_a_measurement_is_after_its_range_however_it_uses_the_value(self):
+        # Codex R124: a program may compute with #5063 or branch on it — no
+        # delay bound makes that a shifted path. Every point after the trip
+        # point lies after the range's start: the client marks it conditional
+        # (previewDecode `cond`), with the assumption and no number.
+        r = probe("m600_band_computed")
+        self.assertIsNone(r["parse_error"])
+        a = r["probe_bands"][0][0]
+        follow = [(s, p) for s, k, p, ln in path(r) if ln in (4, 6, 8)]
+        self.assertTrue(follow)
+        self.assertTrue(all(s > a for s, _ in follow))
+        # the preview took #5063 = P exactly: X 150, and the else branch
+        self.assertEqual([p[0] for _, p in follow], [150, 150])

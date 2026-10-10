@@ -2017,9 +2017,33 @@ class TestLineTrustMachinery(unittest.TestCase):
         routine = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "subroutines",
                                "tool_length_probe", "tool_touch_off.ngc")
         with open(routine, encoding="utf-8") as f:
-            written = set(re.findall(r"WEBUI_PROBE_UNPREDICTED=([a-z_]+)", f.read()))
+            text = f.read()
+        written = set(re.findall(r"WEBUI_PROBE_UNPREDICTED=([a-z_]+)", text))
         self.assertTrue(written)
         self.assertLessEqual(written, set(gateway_util.PROBE_UNPREDICTED_REASONS))
+        # the braking range (docs/reviews/parity-ef.plan.md F2) and its notes
+        self.assertEqual(p("WEBUI_PROBE_BAND"), ("band", None))
+        self.assertEqual(p(" webui_probe_band "), ("band", None))
+        self.assertEqual(p("WEBUI_PROBE_BAND_END"), ("band_end", None))
+        self.assertEqual(p("WEBUI_PROBE_NOTE=retract"), ("note", "retract"))
+        self.assertEqual(p("WEBUI_PROBE_NOTE=Newer"), ("note", "newer"))
+        self.assertIsNone(p("WEBUI_PROBE_BAND=1"))
+        self.assertIsNone(p("WEBUI_PROBE_NOTE="))
+        notes = set(re.findall(r"WEBUI_PROBE_NOTE=([a-z_]+)", text))
+        self.assertTrue(notes)
+        self.assertLessEqual(notes, set(gateway_util.PROBE_NOTE_REASONS))
+
+    def test_band_anchor_indices(self):
+        # every vertex of a band (seq_start < seq <= seq_end) and both sides
+        # of each boundary: no kept segment spans band and non-band motion
+        f = gateway_util.band_anchor_indices
+        seqs = [2, 4, 6, 8, 10, 12, 14, 16]
+        self.assertEqual(f(seqs, [(6, 12, 2, 3)]), {2, 3, 4, 5, 6})   # 2 = P, the band's predecessor
+        # a band whose ends fall between kept vertices still anchors both sides
+        self.assertEqual(f(seqs, [(7, 11, 2, 3)]), {2, 3, 4, 5})
+        self.assertEqual(f(seqs, [(6, 8, 2, 3), (12, 14, 2, 4)]), {2, 3, 4, 5, 6, 7})
+        self.assertEqual(f(seqs, []), set())
+        self.assertEqual(f([], [(6, 12, 2, 3)]), set())
 
     def test_main_file_tool_changes(self):
         # an M6 of the main file keeps its line; one inside a marked sub (the

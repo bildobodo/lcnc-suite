@@ -30,6 +30,62 @@ export function parseProbeStops(v: unknown): ProbeStop[] {
   return out.sort((a, b) => a.seq - b.seq);
 }
 
+/** A predicted measurement's braking range (payload `probe_bands`, docs/
+ *  reviews/parity-ef.plan.md F2): the segments seqStart < seq <= seqEnd run
+ *  through a MODELED hull; every point after seqStart depends on it. */
+export interface ProbeBand { seqStart: number; seqEnd: number; tool: number; line: number }
+
+/** Wire `probe_bands` → ranges in execution order; malformed rows dropped. */
+export function parseProbeBands(v: unknown): ProbeBand[] {
+  if (!Array.isArray(v)) return [];
+  const out: ProbeBand[] = [];
+  for (const row of v) {
+    if (!Array.isArray(row)) continue;
+    const [a, b, tool, line] = row;
+    if (typeof a !== "number" || !Number.isInteger(a) || a < 0) continue;
+    if (typeof b !== "number" || !Number.isInteger(b) || b < a) continue;
+    out.push({ seqStart: a, seqEnd: b, tool: typeof tool === "number" && Number.isInteger(tool) ? tool : -1,
+               line: callLine(line) });
+  }
+  return out.sort((x, y) => x.seqStart - y.seqStart);
+}
+
+/** Where the modeled probe sequence may not hold (payload `probe_notes`). */
+export interface ProbeNote { seq: number; tool: number; reason: string; line: number }
+
+export function parseProbeNotes(v: unknown): ProbeNote[] {
+  if (!Array.isArray(v)) return [];
+  const out: ProbeNote[] = [];
+  for (const row of v) {
+    if (!Array.isArray(row)) continue;
+    const [seq, tool, reason, line] = row;
+    if (typeof seq !== "number" || !Number.isInteger(seq) || seq < 0) continue;
+    out.push({ seq, tool: typeof tool === "number" && Number.isInteger(tool) ? tool : -1,
+               reason: typeof reason === "string" ? reason : "", line: callLine(line) });
+  }
+  return out.sort((a, b) => a.seq - b.seq);
+}
+
+/** A note in words (no full stop). */
+export function probeNoteWhy(note: { reason: string }): string {
+  switch (note.reason) {
+    case "retract": return "the retract may not clear the probe after braking — the slow probe may start tripped and LinuxCNC stops";
+    case "slow_limit": return "the slow probe may end below the Z limit — LinuxCNC may refuse it";
+    case "brake_unknown": return "the braking range is not modeled (the configuration lacks the Z limits) — not checked below the trip point";
+    default: return note.reason ? `note: ${note.reason}` : "note";
+  }
+}
+
+/** The help a row after a predicted measurement carries (Codex R124: the
+ *  assumption, no number — a program may compute or branch on the value). */
+export function conditionalHelp(lines: readonly number[]): string {
+  const ls = lines.filter(l => l > 0);
+  const at = !ls.length ? "the measurement"
+    : `the measurement${ls.length === 1 ? "" : "s"} at ${ls.map(l => "L" + l).join(", ")}`;
+  return `After ${at}, this path assumes the table length and the modeled successful probe sequence. `
+    + "Probe timing and the resulting tool offset are not verified.";
+}
+
 /** The seq of the first stop, or undefined. */
 export function firstProbeStopSeq(v: unknown): number | undefined {
   return parseProbeStops(v)[0]?.seq;
@@ -65,7 +121,8 @@ export function probeStopTitle(stop: { tool: number; reason: string }): string {
  *  values unknown) is none: the summary says it. */
 export interface M600Event { seq: number; tool: number; line: number; note: string; length: number | null }
 
-export function m600Events(stops: readonly ProbeStop[], toollen: unknown, unit: string): M600Event[] {
+export function m600Events(stops: readonly ProbeStop[], toollen: unknown, unit: string,
+                           notes: readonly ProbeNote[] = []): M600Event[] {
   const out: M600Event[] = [];
   for (const st of stops) {
     if (st.tool > 0) out.push({ seq: st.seq, tool: st.tool, line: st.line, length: null,
@@ -81,7 +138,14 @@ export function m600Events(stops: readonly ProbeStop[], toollen: unknown, unit: 
                  note: `${fmtQty(len, unit, 3)} from the table (assumed)` });
     }
   }
-  return out.sort((a, b) => a.seq - b.seq);
+  out.sort((a, b) => a.seq - b.seq);
+  // A note belongs to the measurement it precedes (the routine says it
+  // before its probe): the next predicted one of its tool after it.
+  for (const n of notes) {
+    const e = out.find(x => x.seq > n.seq && x.length != null && x.tool === n.tool);
+    if (e) e.note += `; ${probeNoteWhy(n)}`;
+  }
+  return out;
 }
 
 /** The Simulation tab's notes, bound to the CALL each measurement belongs

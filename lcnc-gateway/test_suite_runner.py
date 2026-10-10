@@ -79,10 +79,13 @@ class TestSuiteRunner(unittest.TestCase):
         # readback-target (the live read-back check's sim-target pins, Codex
         # R118 VP-I73) + four frontend gates. (viewer-ab-report left with the
         # A/B tooling after the Mac acceptance, 2026-10-01.)
-        self.assertEqual(len(commands), 9)
+        # + parity-compare (the parity gate's comparison: two-way, coverage on
+        # a probe's braking range — docs/reviews/parity-ef.plan.md F4)
+        self.assertEqual(len(commands), 10)
         self.assertIn("audit-css", [name for name, _, _ in commands])
         self.assertIn("review-handshake", [name for name, _, _ in commands])
         self.assertIn("readback-target", [name for name, _, _ in commands])
+        self.assertIn("parity-compare", [name for name, _, _ in commands])
         self.assertNotIn("viewer-ab-report", [name for name, _, _ in commands])
         self.assertFalse(any("sim_parity" in str(command) for _, command, _ in commands))
 

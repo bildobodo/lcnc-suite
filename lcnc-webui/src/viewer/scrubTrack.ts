@@ -67,6 +67,14 @@ export interface ScrubStream {
   /** 1 = after a tool measurement the preview cannot predict (decoded
    *  from the payload's `probe_unpredicted` by seq). Absent = none. */
   unpredicted?: Uint8Array;
+  /** 1 = the segment ending here runs through a probe's braking range
+   *  (payload `probe_bands` by seq, docs/reviews/parity-ef.plan.md F2): a
+   *  modeled hull, its contacts only `possible`. Absent = none. */
+  band?: Uint8Array;
+  /** k = the predicted tool measurements whose braking range began before
+   *  this point (capped at 255): the path assumes their table length and
+   *  modeled probe sequence (`conditional`). Absent = none. */
+  cond?: Uint8Array;
   /** Per-point line trust (wire feed_lineok/rapid_lineok, W2 P6). Absent
    *  = pre-schema-4 payload. */
   lineOk?: Uint8Array;
@@ -161,6 +169,11 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (!feed.unpredicted || feed.unpredicted.length === nf)
     && (!rapid.unpredicted || rapid.unpredicted.length === nr);
   const unpredicted = hasUnpred ? new Uint8Array(n) : undefined;
+  // The probe's braking ranges and what depends on them: the same rules.
+  const has8 = (k: "band" | "cond") => !!(feed[k] || rapid[k])
+    && (!feed[k] || feed[k]!.length === nf) && (!rapid[k] || rapid[k]!.length === nr);
+  const band = has8("band") ? new Uint8Array(n) : undefined;
+  const cond = has8("cond") ? new Uint8Array(n) : undefined;
   // WCS epochs (review P2): like mode — present iff every non-empty stream
   // carries the per-point index and an events list exists to deref into.
   const hasWcs = !!wcsEvents?.length
@@ -228,6 +241,8 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     if (brk) brk[i] = (src.brk?.[si] ?? 0) | (src.ustart?.[si] ?? 0);
     if (ustart) ustart[i] = src.ustart?.[si] ?? 0;
     if (unpredicted) unpredicted[i] = src.unpredicted?.[si] ?? 0;
+    if (band) band[i] = src.band?.[si] ?? 0;
+    if (cond) cond[i] = src.cond?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
     if (tlo) tlo[i] = src.tlo?.[si] ?? TLO_NONE;
     if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
@@ -285,7 +300,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   }
 
   return { pos, abc, lines, rapid: rapidFlag, mode, outside, frame: frameIdx,
-           frames: hasFrame ? frames : undefined, brk, ustart, unpredicted,
+           frames: hasFrame ? frames : undefined, brk, ustart, unpredicted, band, cond,
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
@@ -896,6 +911,8 @@ export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
   if (t.brk) out.brk = u8(t.brk);
   if (t.ustart) out.ustart = u8(t.ustart);
   if (t.unpredicted) out.unpredicted = u8(t.unpredicted);
+  if (t.band) out.band = u8(t.band);
+  if (t.cond) out.cond = u8(t.cond);
   if (t.wcsEpoch) out.wcsEpoch = u32(t.wcsEpoch);
   if (t.lineOk) out.lineOk = u8(t.lineOk);
   if (t.sub) out.sub = u8(t.sub);
@@ -1002,6 +1019,17 @@ export function prependEntry(
     unpredicted[0] = 0;
     unpredicted[1] = 0;
   }
+  // The entry move runs before any measurement: no braking range, nothing
+  // conditional on one.
+  const shift8 = (a: Uint8Array | undefined) => {
+    if (!a) return undefined;
+    const o = new Uint8Array(n);
+    o.set(a, 1);
+    o[0] = 0;
+    o[1] = 0;
+    return o;
+  };
+  const band = shift8(t.band), cond = shift8(t.cond);
   let wcsEpoch: Uint32Array | undefined;
   if (t.wcsEpoch) {
     // The entry move targets the track's first point, whose coords live in
@@ -1063,7 +1091,7 @@ export function prependEntry(
   const inheritedEnd = t.inheritedEnd
     ? { A: t.inheritedEnd.A + 1, B: t.inheritedEnd.B + 1, C: t.inheritedEnd.C + 1, unknown: t.inheritedEnd.unknown + 1 }
     : undefined;
-  return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart, unpredicted,
+  return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart, unpredicted, band, cond,
            wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents, outside,
            lineOk, sub, subNames: t.subNames, cline, inheritedEnd,
            cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };

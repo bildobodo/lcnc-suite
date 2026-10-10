@@ -420,6 +420,8 @@ function lineMarkTitle(lineNum: number): string | undefined {
   const cm = collisionLineSet.value.get(lineNum);
   if (cm) parts.push(cm.boundary
     ? "in contact at the check's start (provisional) — where it began and what it is, the full check says"
+    : cm.possible
+    ? "possible collision in the probe's braking range — see viewer Check results"
     : cm.continuation !== undefined
     ? (cm.continuation === 0
       ? "still in contact (began in the entry move) — see viewer Check results"

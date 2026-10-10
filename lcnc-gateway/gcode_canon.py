@@ -138,6 +138,15 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # `toollen_events` [(seq, tool, zo, k)].
     probe_events = ()
     toollen_events = ()
+    # The probe's braking range (docs/reviews/parity-ef.plan.md F2): from
+    # `(WEBUI_PROBE_BAND)` (just after the trip point) to `(WEBUI_PROBE_BAND_END)`
+    # the routine moves only Z through a modeled hull — [(seq_start, seq_end,
+    # tool, k)]: the segments seq_start < seq <= seq_end are the band. And
+    # `(WEBUI_PROBE_NOTE=<reason>)` where the modeled sequence may not hold —
+    # [(seq, tool, reason, k)]. k as for probe_events.
+    probe_bands = ()
+    probe_notes = ()
+    _band_open = None
     toolsetter_unpredictable = None
     _probe_unknown = False
     _toollen_open = False
@@ -600,6 +609,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             self.sub_events.append((self.seq, sub[1], sub[2],
                                     self.main_line() if sub[0] == "start" else None))
             self._toollen_open = False
+            if sub[0] != "start":
+                self.close_band()          # a call that returns ends its band
             if sub[0] == "start" and sub[1] == "tool_touch_off" and self.toolsetter_unpredictable:
                 self._mark_probe_unknown(self.toolsetter_unpredictable)
             return
@@ -607,8 +618,25 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if mark is not None and self._program_line():
             if mark[0] == "unpredicted":
                 self._mark_probe_unknown(mark[1])
-            elif not self._probe_unknown:
+            elif mark[0] == "band_end":
+                self.close_band()
+            elif self._probe_unknown:
+                pass
+            elif mark[0] == "table":
                 self._toollen_open = True
+            elif mark[0] == "band":
+                self.close_band()
+                self._band_open = (self.seq, self.cur_tool, len(self.sub_events))
+            elif mark[0] == "note":
+                self.probe_notes = self.probe_notes + (
+                    (self.seq, self.cur_tool, mark[1], len(self.sub_events)),)
+
+    def close_band(self):
+        """End an open braking range at the last emitted segment."""
+        if self._band_open is not None:
+            q, tool, k = self._band_open
+            self._band_open = None
+            self.probe_bands = self.probe_bands + ((q, self.seq, tool, k),)
 
     def _mark_probe_unknown(self, reason):
         """From here every axis is unknown to the program's end."""

@@ -6,7 +6,8 @@ import type { CollisionHit, CollisionLineMark } from "./collision";
 /** The marks for a result's records — a boundary record stays provisional
  *  (in contact at a range sweep's start: no onset, no kind known yet). */
 export function collisionLineMarks(hits: readonly CollisionHit[]): CollisionLineMark[] {
-  return hits.map(h => ({ line: h.line, continuation: h.continuation, ...(h.boundary ? { boundary: true as const } : {}) }));
+  return hits.map(h => ({ line: h.line, continuation: h.continuation, ...(h.boundary ? { boundary: true as const } : {}),
+                          ...(h.possible ? { possible: true as const } : {}) }));
 }
 
 /** One mark per line: a collision's own record over a provisional one,
@@ -16,7 +17,8 @@ export function collisionMarkByLine(marks: readonly CollisionLineMark[]): Map<nu
   const m = new Map<number, CollisionLineMark>();
   for (const c of marks) {
     const had = m.get(c.line);
-    if (!had || (had.boundary && !c.boundary)) m.set(c.line, c);
+    // a certain record over a possible one (a braking range, parity-ef F2)
+    if (!had || (had.boundary && !c.boundary) || (had.possible && !c.possible && !c.boundary)) m.set(c.line, c);
   }
   return m;
 }

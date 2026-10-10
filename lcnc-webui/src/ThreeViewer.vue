@@ -39,7 +39,7 @@ import type { ReachInfo } from "./viewer/reachEnvelope";
 import type { LineIndex } from "./viewer/lineIndex";
 import { MACHINE_PALETTE, defaultPartHex } from "./viewer/palette";
 import { toolDimsFor, unknownProgramTools } from "./viewer/tloEvents";
-import { parseProbeStops } from "./viewer/probeStop";
+import { parseProbeBands, parseProbeStops } from "./viewer/probeStop";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire, worldModeForSpec, semanticKinsMode } from "./viewer/kins";
 import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
@@ -3372,6 +3372,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
     tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
     unpredicted: track.unpredicted?.slice(),  // after an unpredicted tool measurement (M600)
+    band: track.band?.slice(),    // a probe's braking range: contacts there only `possible`
+    cond: track.cond?.slice(),    // after a predicted measurement: the path is conditional
     lineOk: track.lineOk?.slice(), sub: track.sub?.slice(), cline: track.cline?.slice(),  // the lines a note names
   };
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
@@ -3421,6 +3423,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
       // M600 (docs/reviews/m600-preview.plan.md): the measurement the
       // preview cannot predict, and the program tools whose body is unknown.
       probeStops: parseProbeStops(viewerGcode.value?.probe_unpredicted).map(p => ({ tool: p.tool, reason: p.reason })),
+      // the predicted measurements' call lines, for the notes (parity-ef plan F2/F3)
+      probeBands: parseProbeBands(viewerGcode.value?.probe_bands).map(b => ({ tool: b.tool, line: b.line })),
       unknownTools: _unknownProgramTools(),
       // the provisional check during a run (plan 3b): from the run's point on
       ...(range ? { range } : {}),

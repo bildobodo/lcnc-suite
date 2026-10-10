@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSimRows, nextRowKey, partLabel } from "./simRows";
+import { buildSimRows, measurementsOf, nextRowKey, partLabel } from "./simRows";
 import type { ClashTarget } from "./clashTargets";
 
 const clash = (o: Partial<ClashTarget> & { cum: number; line: number }): ClashTarget =>
@@ -94,5 +94,27 @@ describe("simRows", () => {
     expect(nextRowKey(rows, 0)).toBe(rows[0]!.key);
     expect(nextRowKey(rows, 10)).toBe("L3");
     expect(nextRowKey(rows, 25)).toBeNull();
+  });
+});
+
+describe("the probe's braking range and what depends on it (parity-ef plan F2/F3)", () => {
+  it("a possible contact says so; every row after a measurement is conditional", () => {
+    const rows = buildSimRows({
+      clash: [clash({ cum: 5, line: 3, possible: true, key: "C389|t|w|0" }), clash({ cum: 9, line: 12, key: "C12|t|w|0" })],
+      limit: [], tool: [{ key: "T3", line: 3, tool: 2, cum: 1, cumEnd: 2 }],
+      violations: [], unit: "mm", timeBased: false, axisEnd: 10,
+      measurements: [{ cum: 4, line: 3 }],
+    });
+    expect(rows.map(r => r.note)).toEqual([
+      "",                                                     // the tool change itself: before the trip point
+      "possible — in the probe's braking range · conditional — after the measurement at L3",
+      "conditional — after the measurement at L3",
+    ]);
+  });
+
+  it("finds the trip points where the measurement count rises", () => {
+    const t = { count: 6, cum: [0, 1, 2, 3, 4, 5], cond: [0, 0, 1, 1, 2, 2] };
+    expect(measurementsOf(t, [3, 9])).toEqual([{ cum: 1, line: 3 }, { cum: 3, line: 9 }]);
+    expect(measurementsOf({ count: 2, cum: [0, 1] }, [3])).toEqual([]);
   });
 });

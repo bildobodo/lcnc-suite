@@ -131,6 +131,7 @@ def offline_commands(component):
         commands.append(("audit-css", [python(), "-m", "pytest", str(ROOT / "scripts/test_audit_scoped_css.py")], ROOT))
         commands.append(("review-handshake", [python(), "-m", "pytest", str(ROOT / "scripts/test_review_handshake.py")], ROOT))
         commands.append(("readback-target", [python(), "-m", "pytest", str(ROOT / "scripts/test_toolsetter_readback_check.py")], ROOT))
+        commands.append(("parity-compare", [python(), "-m", "pytest", str(ROOT / "scripts/test_parity_compare.py")], ROOT))
     if component in ("all", "frontend"):
         for name, cmd in (("lint", ["npm", "run", "lint"]),
                           ("build", ["npm", "run", "build"]),

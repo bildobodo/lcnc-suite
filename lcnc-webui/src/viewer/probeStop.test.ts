@@ -2,7 +2,7 @@
 // the preview cannot predict (payload `probe_unpredicted`) and for a length
 // the routine took from the table (`toollen_table`).
 import { describe, expect, it } from "vitest";
-import { firstProbeStopSeq, m600Events, m600StatsText, m600ToolNotes, parseProbeStops, probeStopTitle, probeStopWhy,
+import { conditionalHelp, firstProbeStopSeq, parseProbeBands, parseProbeNotes, probeNoteWhy, m600Events, m600StatsText, m600ToolNotes, parseProbeStops, probeStopTitle, probeStopWhy,
          toolsetterBasisLine } from "./probeStop";
 import { fmtClock } from "../format";
 import { buildSimRows } from "./simRows";
@@ -116,3 +116,29 @@ describe("probe stops", () => {
   });
 });
 
+
+describe("braking ranges and notes (parity-ef plan F2/F3)", () => {
+  it("parses ranges and notes, dropping malformed rows", () => {
+    expect(parseProbeBands([[16, 30, 2, 3], [40, 39, 2, 3], ["x"], [50, 60, 7]]))
+      .toEqual([{ seqStart: 16, seqEnd: 30, tool: 2, line: 3 }, { seqStart: 50, seqEnd: 60, tool: 7, line: 0 }]);
+    expect(parseProbeNotes([[14, 2, "retract", 3], [-1, 2, "x", 3]]))
+      .toEqual([{ seq: 14, tool: 2, reason: "retract", line: 3 }]);
+    expect(parseProbeBands(null)).toEqual([]);
+  });
+
+  it("a note goes on the measurement it precedes, of its tool", () => {
+    const ev = m600Events([], [[30, 2, 80, 3], [70, 7, 66, 9]], "mm",
+                          [{ seq: 14, tool: 2, reason: "retract", line: 3 }, { seq: 50, tool: 7, reason: "brake_unknown", line: 9 }]);
+    expect(ev.map(e => e.note)).toEqual([
+      "80.000 mm from the table (assumed); the retract may not clear the probe after braking — the slow probe may start tripped and LinuxCNC stops",
+      "66.000 mm from the table (assumed); the braking range is not modeled (the configuration lacks the Z limits) — not checked below the trip point",
+    ]);
+  });
+
+  it("the help of a conditional row: the assumption, no number", () => {
+    expect(conditionalHelp([7])).toBe("After the measurement at L7, this path assumes the table length and the modeled "
+      + "successful probe sequence. Probe timing and the resulting tool offset are not verified.");
+    expect(conditionalHelp([0])).toMatch(/^After the measurement, /);
+    expect(probeNoteWhy({ reason: "slow_limit" })).toMatch(/may end below the Z limit/);
+  });
+});
