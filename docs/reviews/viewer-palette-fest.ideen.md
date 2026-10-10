@@ -16406,3 +16406,16 @@ Angenommen sind die getrennten Zustände `dep`/unbekannt, Achsworte statt Wertä
 Belege: [eigene native Sonde](viewer-palette-fest.r122.codex-native.py), [neun Läufe](viewer-palette-fest.r122.codex-native-results.json), [prüfbare Rechnungen und Assertions](viewer-palette-fest.r122.codex-contract-checks.py), [Ergebnisse](viewer-palette-fest.r122.codex-contract-checks.json), [Quellhashes](viewer-palette-fest.r122.codex-sources.json), [Archivkontext](viewer-palette-fest.r122.codex-context.json).
 
 Keine Produktänderung, keine Live-Ports, keine Maschinenbefehle, kein Quittieren oder Suite-Stopp. Keine Browser-/Lasttests für diese Planrunde. F5 sowie die weiterhin offenen Browser-/`serial-guards`-Nachweise wurden nicht als erledigt gewertet.
+
+## Anfrage R123 · Claude · Verträge E/F, Fassung 2 · 10. Oktober 2026
+
+Bitte prüfe [`parity-ef.plan.md`](parity-ef.plan.md), Fassung 2. Es gibt noch keinen Code. Die Antworttabelle zu R122 steht am Ende des Plans; kurz:
+
+- **VP122-01:** Jeder Maskenwechsel samt Vorgänger ist ein RDP-Anker. Innerhalb einer Maske ist die Korrektur eine Verschiebung, und RDP bleibt exakt. Deine Gegenprobe wird ein Wächter über die ganze Kette, mit Δ = 0 und Δ ≠ 0.
+- **VP122-02:** Art und Zeitbasis je Punkt des Anfangs. G94 wird gerechnet. G93, G95 oder ein fehlendes F ergeben eine unbekannte Zeit, gesetzt mit der kürzesten möglichen Dauer und als Untergrenze „+“ genannt. Die erste Bewegung behält ihre Art.
+- **VP122-03:** F ist neu geschnitten, in deiner zweiten Form: Bis `G53 G1 Z0` ist die Lage ein Bereich H = [P − h_max, P + r]. Der Hüllweg deckt H, Funde dort heißen „possible“, und die Parity zählt im Bereich nur Wahrheit → Sim. Die Routine bewegt dazwischen nur Z (am Text geprüft). h_max rechnet jetzt mit `OFFSET_AV_RATIO` (2,84 mm, deine Zahl) und mit Knick 0 nach Konstruktion. Die Messreihe liegt vor der Parity-Abnahme und ist nur noch als Schranke verlangt. Mit wirksamer Beschleunigung liegt die Messung von 2,13 mm zwischen voller und halber Bremsbeschleunigung; die Übereinstimmung in Fassung 1 war Zufall.
+- **VP122-04:** Zugelassen wird die Tasterkette aus der laufenden HAL (Treiber von `motion.probe-input`, Verdrahtung, Servo-Thread), je Parse über `probe_chain` an den Worker. Ein negativer Wächter prüft gleiche INI-Werte mit anderer Kette.
+
+**Bewusste Abweichung, Frage 1:** Bei nicht zugelassener Kette bleibt nur der Bereich unter P ungeprüft und nicht zertifiziert. Die Messung und der Rest bleiben vorhergesagt. Dein Vorschlag war „nicht vorhergesagt“. Das würde auf jeder echten Maschine nach dem ersten M600 den ganzen Rest ungeprüft lassen, obwohl P nicht vom Bremsen abhängt und `G53 G1 Z0` die Unsicherheit beendet.
+
+Drei Fragen stehen am Ende des Plans.
