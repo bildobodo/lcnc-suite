@@ -8,7 +8,7 @@
 import { parseWcsFrames, type WcsEpoch } from "./viewer/wcsEpochs";
 import { TLO_NONE, parseTloEvents, type TloEvent } from "./viewer/tloEvents";
 import { EVENT_NONE, eventIdxFor } from "./viewer/eventIndex";
-import { firstProbeStopSeq } from "./viewer/probeStop";
+import { firstProbeStopSeq, parseProbeBands } from "./viewer/probeStop";
 import type { ScrubStream } from "./viewer/scrubTrack";
 import type { RotaryCmd } from "./ws/bulkData";
 
@@ -96,19 +96,38 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   };
   const feedUnpred = after(feedSeq, feedPos.length / 3);
   const rapidUnpred = after(rapidSeq, rapidPos.length / 3);
+  // The probe's braking ranges (docs/reviews/parity-ef.plan.md F2): the
+  // segments inside one, and how many measurements began before a point.
+  const bands = parseProbeBands(g.probe_bands);
+  const inBands = (seq: Uint32Array | undefined, n: number) => {
+    if (!bands.length || !seq || seq.length !== n) return [undefined, undefined] as const;
+    const band = new Uint8Array(n), cond = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      const q = seq[i]!;
+      let k = 0;
+      for (const b of bands) {
+        if (b.seqStart < q) k++;
+        if (b.seqStart < q && q <= b.seqEnd) band[i] = 1;
+      }
+      cond[i] = Math.min(k, 255);
+    }
+    return [band, cond] as const;
+  };
+  const [feedBand, feedCond] = inBands(feedSeq, feedPos.length / 3);
+  const [rapidBand, rapidCond] = inBands(rapidSeq, rapidPos.length / 3);
 
   return {
     feed: { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq,
             tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? toF32(g.feed_tcum) : undefined,
             mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, tlo: feedTloWire,
             lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire, outside: feedOutsideWire,
-            unpredicted: feedUnpred },
+            unpredicted: feedUnpred, band: feedBand, cond: feedCond },
     rapid: { pos: rapidPos, abc: rapidAbc, lines: toU32(g.rapid_lines), seq: rapidSeq,
              tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? toF32(g.rapid_tcum) : undefined,
              mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire,
              ustart: rapidUstartWire, wcs: rapidWcsWire, tlo: rapidTloWire,
              lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire, outside: rapidOutsideWire,
-             unpredicted: rapidUnpred },
+             unpredicted: rapidUnpred, band: rapidBand, cond: rapidCond },
     kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd,
     feedPos, rapidPos, feedLines, feedAbc, rapidAbc,
   };

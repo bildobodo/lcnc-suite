@@ -23,6 +23,9 @@ export interface ClashTarget {
   /** The body pair (tool side, work side) — the Simulation tab names it. */
   a: string;
   b: string;
+  /** On a probe's braking range (CollisionHit.possible): the contact MAY
+   *  happen — never a certain one. */
+  possible?: boolean;
 }
 
 /**
@@ -51,6 +54,7 @@ export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
         line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine, a: h.a, b: h.b };
       if (h.entry) t.entry = true;
       if (k > 0) t.reentry = true;
+      if (h.possible) t.possible = true;
       out.push(t);
     }
   }

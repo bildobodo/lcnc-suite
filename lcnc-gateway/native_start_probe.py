@@ -520,6 +520,12 @@ CASES.update({
     "m600_band_limit": _m600(zmin=-104, zvmax=100,
                              axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
                              ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
+    # Codex R124's follow-ups: a sentence that computes with the measured
+    # value, and a branch on it — the path after the measurement depends on it
+    "m600_band_computed": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG1 X[150 + 100 * [#5063 + 100]] F100\n"
+                                     "o1 if [#5063 LT -100.05]\nG1 X50 F100\no1 else\nG1 X150 F100\no1 endif\nM2\n",
+                                zvmax=100, axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
+                                ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
     "m600_unknown_first": _m600(prog="G21 G90\nT2 M600\nG0 X60 Y60 Z-100\nG0 X70\nM2\n",
                                 ctx={"toolsetter_unpredictable": "toolsetter_unknown"}),
     # a move past Z max (50) after the call: a violation where the measurement

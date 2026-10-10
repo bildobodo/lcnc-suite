@@ -13,7 +13,7 @@ import { makeKins as kinsForTest } from "./kins";
 import { EVENT_NONE } from "./eventIndex";
 import { wcsTerms } from "./partFrame";
 
-function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[]; tlo?: number[]; outside?: number[] } = {}): ScrubStream {
+function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; seq?: number[]; tcum?: number[]; mode?: number[]; frame?: number[]; brk?: number[]; tlo?: number[]; outside?: number[]; band?: number[]; cond?: number[] } = {}): ScrubStream {
   return {
     tlo: opts.tlo ? new Uint32Array(opts.tlo) : undefined,
     outside: opts.outside ? new Uint8Array(opts.outside) : undefined,
@@ -25,6 +25,8 @@ function stream(points: number[][], opts: { abc?: number[][]; lines?: number[]; 
     mode: opts.mode ? new Uint8Array(opts.mode) : undefined,
     frame: opts.frame ? new Uint32Array(opts.frame) : undefined,
     brk: opts.brk ? new Uint8Array(opts.brk) : undefined,
+    band: opts.band ? new Uint8Array(opts.band) : undefined,
+    cond: opts.cond ? new Uint8Array(opts.cond) : undefined,
   };
 }
 
@@ -1130,5 +1132,17 @@ describe("rotary-command boundary → inherited prefix (2026-09-11)", () => {
     // section opens with point 1 (src 1), then point 2 (src 2)
     expect(Array.from(sp.rapidSrc!)).toEqual([1, 2]);
     expect(Array.from(sp.feedSrc!)).toEqual([0, 1, 2, 3]);
+  });
+});
+
+describe("braking ranges ride the track (parity-ef plan F2/F3)", () => {
+  it("merges band and cond per point, and the entry move carries neither", () => {
+    const base = buildScrubTrack(
+      stream([[10, 0, 0], [10, 0, -5], [10, 0, 0]], { lines: [5, 6, 7], band: [0, 1, 0], cond: [0, 1, 1] }), EMPTY)!;
+    expect(Array.from(base.band!)).toEqual([0, 1, 0]);
+    expect(Array.from(base.cond!)).toEqual([0, 1, 1]);
+    const t = prependEntry(base, [10, -30, 0, 0, 0, 0]);
+    expect(Array.from(t.band!)).toEqual([0, 0, 1, 0]);
+    expect(Array.from(t.cond!)).toEqual([0, 0, 1, 1]);
   });
 });

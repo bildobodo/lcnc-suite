@@ -1063,12 +1063,49 @@ one of its python remaps, so every M600 start books the basis assumed until
 the read-back (`TestShippedRemapsWriteNoBasisKey`). Named limits:
 `#5064`–`#5066` are copied without the wrapped-rotary fold; another writer of
 the interpreter (a second GUI, halui) is not seen; a mid-run measurement's
-rest check is its own later plan. Tests: `test_m600_preview_worker.py`
+rest check is its own later plan.
+THE PROBE'S BRAKING RANGE (plan `docs/reviews/parity-ef.plan.md` F,
+Codex R122–R125): LinuxCNC stores the feedback position at the trip
+(`control.c` `process_probe_inputs`: `probedPos = carte_pos_fb`, then
+`tpAbort`) and brakes along the probe line, so the machine stops BELOW the
+trip point P (2.13 mm at F2000 on the XYZAC sim). The preview branch goes
+on past P by the MODELED distance h = v·t + v²/a — v the probe feed capped by
+(1 − `OFFSET_AV_RATIO`) · `[AXIS_Z] MAX_VELOCITY` and `[TRAJ]
+MAX_LINEAR_VELOCITY`, a the same share of `MAX_ACCELERATION` (v²/a is
+v²/(2·a/2): a parabolic blend halves the acceleration, `tc.c`
+`tcGetOverallMaxAccel`; the probes follow a collinear move or a reversal, so
+no kink reduction — text-guarded), t two servo periods (an ideal probe input)
+— never past the move's commanded end; the routine's own retract starts
+there and a preview leg climbs to P + retract: the hull H = [P − h, P + r]
+every stop and retract lies in (only Z moves between the probes and the
+drive-free G53 Z0 — text-guarded). `#5061…#5070` and the length stay at P.
+On the wire `probe_bands` [seq_start, seq_end, tool, line] (the segments
+inside, every vertex a decimation anchor) and `probe_notes` [seq, tool,
+reason, line] (`retract` inside the range, a possible `slow_limit`,
+`brake_unknown` without the INI values). The client: track `band` (a sweep
+record there is `possible` — a MAY, never a certain collision; apart there
+is no verified separation, the range's end pose included) and `cond` (every
+point after a trip point): the check's notes say the range is modeled, not
+certified, and "After the measurement at L7, this path assumes the table
+length and the modeled successful probe sequence. Probe timing and the
+resulting tool offset are not verified" — NO delay number (a program may
+compute or branch on the measured value, Codex R124) — so every program with
+a predicted measurement reads "Clear*", on the sim too; the Sim tab's rows
+after a trip point carry "conditional — after the measurement at L7". The
+parity gate checks COVERAGE there: truth→sim over the whole path, sim→truth
+without the range's samples (simDump `band`), the hull's reach past the
+truth reported apart (`scripts/test_parity_compare.py`). Named: no probe
+chain is admitted (a real input's latency shortens the measured length and
+deepens the stop — a machine/probe contract is a later step); the range's
+time is estimated; G38 outside the routine is unchanged. Tests: `test_m600_preview_worker.py`
 (native, `native_start_probe.py` with the shipped routine and a tool data
 mmap — libtooldata needs 1001 comment pointers — and a check that the
 preview never writes it), `test_toolsetter_basis.py`,
 `toolChangePayloads.test.ts` (the native payloads through decode, track and
-sweep), `probeStop.test.ts`, `sim-panel.viewer.spec`.
+sweep), `probeStop.test.ts`, `sim-panel.viewer.spec`; the braking range:
+`TestBrakingRange`, `test_tool_touch_off_paths.py` (only Z inside it, collinear
+approach / reversal), `collision.test.ts` ("a probe's braking range"),
+`simRows.test.ts`, `previewDecode.test.ts`, `scripts/test_parity_compare.py`.
 
 **Start tool state + verify at the actual offset (VP-I20, Codex R51–R57,
 2026-10-01)**: the machine runs every move before a program's own G43/G49

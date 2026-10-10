@@ -22,3 +22,16 @@ describe("the code panel's collision marks", () => {
     expect(collisionMarkByLine([first, second]).get(8), "two records of their own: the first").toBe(first);
   });
 });
+
+describe("possible marks (parity-ef plan F2)", () => {
+  it("a certain record wins a line over a possible one, and the flag survives", () => {
+    const marks = collisionLineMarks([
+      { line: 9, cum: 1, cumEnd: 1, a: "t", b: "w", dist: 0, rapid: false, possible: true },
+      { line: 9, cum: 2, cumEnd: 2, a: "t", b: "v", dist: 0, rapid: false },
+      { line: 11, cum: 3, cumEnd: 3, a: "t", b: "w", dist: 0, rapid: false, possible: true },
+    ]);
+    const byLine = collisionMarkByLine(marks);
+    expect(byLine.get(9)!.possible).toBeUndefined();
+    expect(byLine.get(11)!.possible).toBe(true);
+  });
+});

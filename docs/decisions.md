@@ -9147,3 +9147,42 @@ Found on the way: the R120 tests' edit helper opened the file for writing before
 reading it, so every "edit" replaced the file with the appended line alone and the
 tests refused for the wrong reason; the helper now reads first and asserts it edits.
 
+## 2026-10-10 — The probe's braking range is a modeled hull; the path after a measurement is conditional (plan parity-ef Fassung 4, Codex R122–R125)
+
+The first M600 parity run (R118) found the machine 2.13 mm below the trip point
+where the preview ended at it. LinuxCNC stores the feedback position at the trip
+and then aborts the move, which decelerates along the probe line (2.9.4
+`control.c` `process_probe_inputs`, `tp.c`/`tc.c`). Four plan rounds fixed what
+the preview may claim:
+
+- **P, P_rep and Q are three things.** P is where the TABLE length touches the
+  setter (already an assumption), P_rep the feedback position in the cycle the
+  input is read (a slower input reports lower — the measured length is shorter,
+  the tip runs deeper after G43), Q the stop. The preview keeps the probe
+  results and the length at P.
+- **The range is a hull, modeled and not certified.** h = v·t + v²/a with the
+  planner's share of the Z limits (`OFFSET_AV_RATIO` reserved — Fassung 1 forgot
+  it: 2.29 → 2.84 mm; the measured 2.13 lies between full and half
+  deceleration, so the earlier match was a coincidence), half the acceleration
+  (parabolic blend), t two servo periods, never past the commanded end. Between
+  the probes the routine moves only Z, so the hull [P − h, P + r] is covered by
+  a path that reaches both ends; contacts there are `possible`.
+- **No probe chain is admitted.** Fassung 2 wanted to certify the sim's chain
+  from its HAL topology; Codex showed the topology does not prove the model
+  (plate, length supply, enable, the manual input) and that the reported point
+  moves with the input's delay. Fassung 3 drops the admission on every machine.
+- **No delay number.** Fassung 3 offered "the path holds if the probe reports
+  within margin / v"; Codex R124: a program may compute or branch on #5063 —
+  0.1 mm changed an X target by 10 and 100 mm natively. The path after a
+  measurement carries the assumption in words, the verdict a star, the Sim
+  tab's rows "conditional".
+- **A failed measurement may run MORE, not less.** Fassung 2's "a failure only
+  removes motion" was wrong: the routine's retry repositions and probes again.
+  A retract inside the range and a possible slow-probe limit are notes of the
+  same condition.
+- **Parity checks coverage on the range.** Truth→sim everywhere; sim→truth
+  without the range's samples, the hull's reach reported apart; the global
+  tolerance stays 0.5. A measurement series on this sim's configuration (feeds,
+  accelerations, the reserve, a short approach, G61/G64) must show h ≥ the
+  measured overshoot before the parity acceptance; it certifies nothing for
+  the product.

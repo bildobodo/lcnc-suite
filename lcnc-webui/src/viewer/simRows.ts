@@ -56,6 +56,12 @@ export interface SimRowInput {
   /** The note of the tool measurement a tool-change row's CALL made, by its
    *  line (probeStop.m600ToolNotes): on that line's row of that tool only. */
   toolNotes?: ReadonlyMap<number, { tool: number; note: string }>;
+  /** Where each predicted tool measurement's braking range begins (its trip
+   *  point on the displayed track) with its call line (0 = not verified):
+   *  every row after one is CONDITIONAL on it (docs/reviews/parity-ef.plan.md
+   *  F3, Codex R124 — the path assumes the table length and the modeled
+   *  probe sequence). Ascending. */
+  measurements?: readonly { cum: number; line: number }[];
 }
 
 const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
@@ -89,6 +95,7 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
     if (t.reentry) notes.push("re-entry");
     if ((t.dist ?? 0) > 1e-3) notes.push(`near miss, ${fmtDist(t.dist ?? 0, i.unit)} apart`);
     if ((t.spanEndLine ?? t.line) > t.line) notes.push(`through L${t.spanEndLine}`);
+    if (t.possible) notes.push("possible — in the probe's braking range");
     rows.push({ key: t.key, kind: "clash", line: t.line, lineLabel: t.entry ? "entry" : `L${t.line}`,
       cum: t.cum, cumEnd: t.cumEnd,
       what: t.a && t.b ? `${partLabel(t.a)} ↔ ${partLabel(t.b)}` : "Collision",
@@ -106,7 +113,42 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   }
   rows.sort(simRowOrder);
   markLimitStop(rows, i.stop ?? null);
+  markConditional(rows, i.measurements ?? []);
   return rows;
+}
+
+/** Rows after a predicted tool measurement (docs/reviews/parity-ef.plan.md
+ *  F3, Codex R124/R125): the path from its trip point on assumes the table
+ *  length and the modeled probe sequence — "conditional", with the call line
+ *  (the full words are the check's "?", probeStop.conditionalHelp). A row AT
+ *  the trip point or before (the tool change itself) is not. */
+function markConditional(rows: SimRow[], ms: readonly { cum: number; line: number }[]): void {
+  if (!ms.length) return;
+  for (const r of rows) {
+    const before = ms.filter(m => m.cum < r.cum);
+    if (!before.length) continue;
+    const ls = [...new Set(before.map(m => m.line).filter(l => l > 0))];
+    const text = `conditional — after the measurement${ls.length > 1 ? "s" : ""}${ls.length ? ` at ${ls.map(l => "L" + l).join(", ")}` : ""}`;
+    r.note = r.note ? `${r.note} · ${text}` : text;
+  }
+}
+
+/** The predicted measurements on a displayed track (`SimRowInput.measurements`):
+ *  where the braking-range count `cond` rises, the point before it is the
+ *  trip point; the call lines come with the payload's ranges, in order. */
+export function measurementsOf(t: { count: number; cum: ArrayLike<number>; cond?: ArrayLike<number> } | null | undefined,
+                               lines: readonly number[]): { cum: number; line: number }[] {
+  const c = t?.cond;
+  if (!t || !c) return [];
+  const out: { cum: number; line: number }[] = [];
+  let k = 0;
+  for (let i = 1; i < t.count; i++) {
+    while ((c[i] ?? 0) > k) {
+      out.push({ cum: t.cum[i - 1]!, line: lines[k] ?? 0 });
+      k++;
+    }
+  }
+  return out;
 }
 
 /** The first point of a track a move ends beyond the joint window at (the

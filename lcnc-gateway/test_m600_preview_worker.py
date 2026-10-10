@@ -579,3 +579,17 @@ class TestBrakingRange(unittest.TestCase):
         pts = self._band_points(r)
         self.assertAlmostEqual(min(p[2] for p in pts), -100, places=4)
         self.assertAlmostEqual(max(p[2] for p in pts), -97, places=4)
+
+    def test_what_follows_a_measurement_is_after_its_range_however_it_uses_the_value(self):
+        # Codex R124: a program may compute with #5063 or branch on it — no
+        # delay bound makes that a shifted path. Every point after the trip
+        # point lies after the range's start: the client marks it conditional
+        # (previewDecode `cond`), with the assumption and no number.
+        r = probe("m600_band_computed")
+        self.assertIsNone(r["parse_error"])
+        a = r["probe_bands"][0][0]
+        follow = [(s, p) for s, k, p, ln in path(r) if ln in (4, 6, 8)]
+        self.assertTrue(follow)
+        self.assertTrue(all(s > a for s, _ in follow))
+        # the preview took #5063 = P exactly: X 150, and the else branch
+        self.assertEqual([p[0] for _, p in follow], [150, 150])

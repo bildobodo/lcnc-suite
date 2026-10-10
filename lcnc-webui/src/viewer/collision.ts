@@ -104,6 +104,14 @@ export interface CollisionTrack {
   /** 1 = after a tool measurement the preview cannot predict (M600): an
    *  unknown start for that reason, named apart (CollisionOptions.probeStops). */
   unpredicted?: Uint8Array;
+  /** 1 = the segment ending here runs through a probe's braking range (payload
+   *  `probe_bands`, docs/reviews/parity-ef.plan.md F2): a modeled hull — its
+   *  records are `possible`, a separation there is no verified one. */
+  band?: Uint8Array;
+  /** k > 0 = after k predicted tool measurements (a braking range began
+   *  before): the path assumes the table length and the modeled probe
+   *  sequence — the note says so (CollisionOptions.probeBands). */
+  cond?: Uint8Array;
   /** The line a note names for a point (scrubTrack.displayLineForPoint):
    *  its own where trusted, else the verified call line. */
   lineOk?: Uint8Array;
@@ -214,6 +222,10 @@ export interface CollisionHit {
    *  tell its onset or its kind — the full check does. Never a collision of
    *  its own; its records stand as provisional until the pair separates. */
   boundary?: true;
+  /** A record on a probe's braking range (track `band`, docs/reviews/
+   *  parity-ef.plan.md F2): the path there is a MODELED hull every stop lies
+   *  in, so the contact MAY happen — never a certain one. */
+  possible?: true;
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */
@@ -223,6 +235,11 @@ export interface CollisionLineMark {
   /** A provisional record of a contact in progress at a range sweep's start
    *  (CollisionHit.boundary): no onset, no kind known yet. */
   boundary?: true;
+  /** A record on the probe's braking range (track `band`, docs/reviews/
+   *  parity-ef.plan.md F2): the path there is a MODELED hull every stop lies
+   *  in, so the contact MAY happen — never a certain one. Its line keys
+   *  apart from every other (the range runs on lines of its own). */
+  possible?: true;
 }
 
 export interface CollisionOptions {
@@ -286,6 +303,10 @@ export interface CollisionOptions {
    *  an unknown start (the track's `unpredicted`) — the note names the
    *  measurement and why, apart from those after an unseen tool change. */
   probeStops?: Pick<ProbeStop, "tool" | "reason">[];
+  /** The predicted tool measurements, in order (payload `probe_bands`): the
+   *  call line each braking range belongs to (0 = not verified) — the notes
+   *  name them (the track's `band` / `cond`). */
+  probeBands?: { tool: number; line: number }[];
   /** Program tools whose BODY is unknown — no length in the table, or no row
    *  (M600 plan, state table row 3): while one is in the spindle the tool's
    *  own pairs are not checked (the machine's still are) and the note says
@@ -1255,6 +1276,29 @@ export function* sweepCollisionsIter(
       + (k ? `${k} move${k === 1 ? "" : "s"} after it not checked to the program's end${at.length ? ` (${list(at)})` : ""}`
            : "nothing after it is checked"));
   }
+  // A predicted tool measurement (docs/reviews/parity-ef.plan.md F2/F3,
+  // Codex R122–R125): its braking range is a MODELED hull — swept, its
+  // contacts `possible`, nothing in it certified — and the path after it
+  // assumes the table length and the modeled probe sequence (no number: a
+  // program may compute or branch on the measured value, Codex R124).
+  if (track.band || track.cond) {
+    let inBand = false, inCond = false;
+    for (let i = 1; i < n && !(inBand && inCond); i++) {
+      if (track.band?.[i]) inBand = true;
+      if (track.cond?.[i]) inCond = true;
+    }
+    const callLines = [...new Set((opts.probeBands ?? []).map(b => b.line).filter(l => l > 0))];
+    const at = (one: string, many: string) => !callLines.length ? one
+      : `${callLines.length === 1 ? one : many} at ${list(callLines)}`;
+    if (inBand) {
+      noteParts.push(`${at("The probe's braking range", "The probes' braking ranges")} is modeled for this machine's `
+        + "limits and an ideal probe input — a slower input brakes deeper; not certified");
+    }
+    if (inCond) {
+      noteParts.push(`After ${at("the measurement", "the measurements")}, this path assumes the table length and `
+        + "the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified");
+    }
+  }
   // A program tool whose body is unknown (no table length): per real segment
   // it is in the spindle for, the tool's own pairs are skipped.
   const unknownTool = new Set((opts.unknownTools ?? []).filter(t => t > 0));
@@ -1717,7 +1761,7 @@ export function* sweepCollisionsIter(
     const [ai, bi] = pairs[pi]!;
     return `${boundary ? "B" : ""}${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
   };
-  const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number) => {
+  const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number, inBand = false) => {
     const [ai, bi] = pairs[pi]!;
     // A boundary contact's records have keys of their own: the pair may
     // separate and come back on the same line — a collision of its own.
@@ -1736,6 +1780,7 @@ export function* sweepCollisionsIter(
         : (onsetLine[pi]! >= 0 && onsetLine[pi] !== line ? onsetLine[pi]! : undefined);
       if (cont !== undefined) rec.continuation = cont;
       if (boundary) rec.boundary = true;
+      if (inBand || prev?.possible) rec.possible = true;
       if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
       if (dist <= CONTACT_EPS) rec.samples.push(cum);
       worst.set(key, rec);
@@ -1753,7 +1798,7 @@ export function* sweepCollisionsIter(
   // (with the re-entry promotion), the record under the cutting rule, a
   // verified separation past 2 × margin. The main loop then sets the pair's
   // certificates; the re-sampling sets none.
-  const noteQuery = (pi: number, s: number, line: number, isRapid: boolean, d: number) => {
+  const noteQuery = (pi: number, s: number, line: number, isRapid: boolean, d: number, inBand = false) => {
     if (d <= opts.margin) {
       if (!inContact[pi]) {
         inContact[pi] = 1;
@@ -1787,11 +1832,13 @@ export function* sweepCollisionsIter(
         // rapid is the gouge class and reports for that rapid; a
         // retract leaving contact begun on a feed (or present from
         // the program start) is benign.
-        if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d);
+        if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d, inBand);
       } else {
-        recordHit(line, s, isRapid, pi, d);
+        recordHit(line, s, isRapid, pi, d, inBand);
       }
-    } else if (inContact[pi] && d > opts.margin * 2) {
+    } else if (inContact[pi] && d > opts.margin * 2 && !inBand) {
+      // (On the braking range the path is a hull, not where the machine is:
+      // apart there proves no separation — the contact carries across it.)
       inContact[pi] = 0;
       onsetRapid[pi] = 0;
       onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
@@ -1818,6 +1865,11 @@ export function* sweepCollisionsIter(
   // sweep does, so refined parameters lie exactly on the swept path.
   // The segment a dist parameter lies on (the one ENDING at the returned
   // vertex; its line and rapid flag are that vertex's).
+  // On a probe's braking range (track `band`): the segment's own flag, and
+  // the range's END pose too — the first sample of the segment after the
+  // range sits at that hull vertex, not where the machine is.
+  const bandAt = (seg: number, s: number) => track.band?.[seg] === 1
+    || (seg > 0 && track.band?.[seg - 1] === 1 && s - dcum[seg - 1]! <= 1e-9);
   const segAtDist = (s: number): number => {
     let lo = 1, hi = n - 1;
     while (lo < hi) {
@@ -2524,14 +2576,14 @@ export function* sweepCollisionsIter(
               markInside(pi, vx, track.lines[seg]!);
               if (vx === "inside") dx = 0;
               else if (vx === "undecidable") dx = Math.min(dx, opts.margin * 2);
-              noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx);
+              noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
             }
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
           markInside(pi, v, line);
           // Undecidable: a record only for what the surfaces show (inside the
           // margin), never a separation (at most 2 × margin).
-          noteQuery(pi, s, line, isRapid, unknownInside ? Math.min(d, opts.margin * 2) : d);
+          noteQuery(pi, s, line, isRapid, unknownInside ? Math.min(d, opts.margin * 2) : d, bandAt(i, s));
           if (unknownInside) {
             // No clearance certificate: asked again at the contact cadence
             // until a pose decides it.

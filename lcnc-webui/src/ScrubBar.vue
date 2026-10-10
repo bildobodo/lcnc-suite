@@ -38,8 +38,8 @@ import { fmtElapsed } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, limitStopOf, nextRowKey, simRowOrder, type SimRowKind, partLabel } from "./viewer/simRows";
-import { m600Events, m600ToolNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
+import { buildSimRows, limitStopOf, measurementsOf, nextRowKey, simRowOrder, type SimRowKind, partLabel } from "./viewer/simRows";
+import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import MachineToggle from "./MachineToggle.vue";
@@ -461,7 +461,8 @@ const probeStops = computed(() => parseProbeStops(viewerGcode.value?.probe_unpre
 // Each measurement of the routine, bound to its call's row where the call
 // line is verified (Codex R105 VP-I63); the rest is named in general.
 const m600Notes = computed(() => m600ToolNotes(
-  m600Events(probeStops.value, viewerGcode.value?.toollen_table, linearUnit.value)));
+  m600Events(probeStops.value, viewerGcode.value?.toollen_table, linearUnit.value,
+             parseProbeNotes(viewerGcode.value?.probe_notes))));
 // Position readout: elapsed/total time on a time-based track, percent on
 // the distance fallback.
 const posLabel = computed(() => {
@@ -985,12 +986,17 @@ function targetsOf(kind: SimRowKind): FindingTarget[] {
  *  (simRows markLimitStop; Codex R96/R97 VP-I55). Null without the
  *  gateway's flags. */
 const limitStop = computed(() => limitStopOf(track.value));
+// The predicted tool measurements on the displayed track: every row after
+// one's trip point is conditional on it (parity-ef plan F3).
+const measurements = computed(() => measurementsOf(track.value,
+  parseProbeBands(viewerGcode.value?.probe_bands).map(b => b.line)));
 const rowsNow = computed(() => buildSimRows({
   clash: hitTargets.value, limit: violationTargets.value, tool: toolTargets.value,
   violations: violations.value ?? [], unit: linearUnit.value,
   timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
   stop: limitStop.value,
   toolNotes: m600Notes.value.byLine,
+  measurements: measurements.value,
 }));
 watch(rowsNow, r => { simRows.value = r; }, { immediate: true });
 // Per frame while playing, but it only CHANGES where the playhead passes a

@@ -166,6 +166,14 @@ export interface ScrubTrack {
    *  (payload `probe_unpredicted`): its position is unknown — merged from
    *  the streams' flags (previewDecode). Absent = no such measurement. */
   unpredicted?: Uint8Array;
+  /** 1 = the segment ending here runs through a probe's braking range
+   *  (payload `probe_bands` by seq, docs/reviews/parity-ef.plan.md F2): a
+   *  modeled hull, its contacts only `possible`. Absent = none. */
+  band?: Uint8Array;
+  /** k = the predicted tool measurements whose braking range began before
+   *  this point (capped at 255): the path assumes their table length and
+   *  modeled probe sequence (`conditional`). Absent = none. */
+  cond?: Uint8Array;
   tloEvents?: import("../viewer/tloEvents").TloEvent[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
@@ -443,6 +451,14 @@ export interface ViewerGcode {
    *  length, line] (machine units; line as above): an assumption, never a
    *  measurement. */
   toollen_table?: [number, number, number, number?][];
+  /** The probe's braking ranges (docs/reviews/parity-ef.plan.md F2) —
+   *  [seq_start, seq_end, tool, line]: the segments seq_start < seq <=
+   *  seq_end run through a MODELED hull, and every point after seq_start
+   *  depends on that measurement. line as above. */
+  probe_bands?: [number, number, number, number?][];
+  /** Where the modeled probe sequence may not hold — [seq, tool, reason,
+   *  line] (gateway_util.PROBE_NOTE_REASONS). */
+  probe_notes?: [number, number, string, number?][];
   /** The toolsetter basis the routine was read with (plan section 2):
    *  `state` confirmed / assumed / unknown / not_set_up, the latest
    *  confirmation's `origin` (applied / read) and `t` (epoch s), the values

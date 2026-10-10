@@ -2090,3 +2090,57 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2, 3]);
   });
 });
+
+// The probe's braking range (docs/reviews/parity-ef.plan.md F2, Codex
+// R122–R125): a MODELED hull — swept, its contacts only `possible`, a
+// separation there no verified one — and the notes say what is not certified.
+describe("a probe's braking range", () => {
+  // the head comes within 4 of the vise at Z −36 (clear), touches at −40
+  const BAND_PTS = [[0, 0, 0], [0, 0, -36], [0, 0, -41], [0, 0, -33], [0, 0, 0]];
+
+  it("a contact only inside the range is possible, never certain", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
+    t.band = new Uint8Array([0, 0, 1, 1, 0]);
+    t.cond = new Uint8Array([0, 0, 1, 1, 1]);
+    const r = sweepCollisions(model, t, WCS0, { margin: 2, probeBands: [{ tool: 2, line: 3 }] });
+    expect(r.hits.map(h => [h.line, h.possible ?? false])).toEqual([[9, true], [10, true]]);
+    expect(clashTargets(r.hits).every(c => c.possible)).toBe(true);
+    // control: the same path without the range is a certain collision
+    const plain = sweepCollisions(model, track(BAND_PTS, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2 });
+    expect(plain.hits.some(h => h.line === 9 && !h.possible)).toBe(true);
+  });
+
+  it("the notes say the range is modeled and the path after it conditional", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
+    t.band = new Uint8Array([0, 0, 1, 1, 0]);
+    t.cond = new Uint8Array([0, 0, 1, 1, 1]);
+    const r = sweepCollisions(model, t, WCS0, { margin: 2, probeBands: [{ tool: 2, line: 3 }] });
+    expect(r.notes).toContain("The probe's braking range at L3 is modeled for this machine's limits and an ideal "
+      + "probe input — a slower input brakes deeper; not certified");
+    expect(r.notes).toContain("After the measurement at L3, this path assumes the table length and the modeled "
+      + "successful probe sequence. Probe timing and the resulting tool offset are not verified");
+    expect(r.uncertified).toBeTruthy();
+    // no range, nothing said
+    const plain = sweepCollisions(model, track([[0, 0, 0], [0, 0, -20]]), WCS0, { margin: 2 });
+    expect(plain.notes ?? []).toEqual([]);
+  });
+
+  it("apart on the range is no verified separation — the contact carries across it", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    // in contact on L8 (certain), the range lifts the head clear (10 apart,
+    // past 2 × margin), back in contact on L10 after the range
+    const pts = [[0, 0, 0], [0, 0, -41], [0, 0, -30], [0, 0, -41]];
+    const t = track(pts, undefined, [7, 8, 9, 10]);
+    t.band = new Uint8Array([0, 0, 1, 0]);
+    const r = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const l10 = r.hits.find(h => h.line === 10)!;
+    expect(l10.continuation).toBe(8);
+    expect(l10.possible).toBeUndefined();
+    // control: without the range the separation is verified, L10 a new onset
+    const plain = sweepCollisions(model, track(pts, undefined, [7, 8, 9, 10]), WCS0, { margin: 2 });
+    const p10 = plain.hits.find(h => h.line === 10)!;
+    expect(p10.continuation).toBeUndefined();
+  });
+});
