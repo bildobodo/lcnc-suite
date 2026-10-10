@@ -1222,6 +1222,59 @@ a VM-local tab decodes the previous publish — the comment-strip fast
 path, the canon's WCS snapshot only on a setter call, and the vectorized
 limit checks (below).
 
+**The program's start-dependent beginning (plan `docs/reviews/parity-ef.plan.md`
+E, Fassung 7, Codex R122–R132)**: X, Y, Z stand where the machine stands when
+the program starts — a value no parse knows. The canon books per callback the
+axes whose value still DEPENDS on it (`dep`, bit 0 X, 1 Y, 2 Z): every axis at
+the program's first callback (`_begin_program`, before the walk of the
+call-less lines up to it — R132 VP-I78), leaving `dep` only when a block
+commands it absolutely — the interpreter's own words (`blocks[0].x_flag…`,
+`g_modes[0]` 530 / 280 / 300, `distance_mode`), never a changed value (`G0 X0`
+at a believed X0 commands X); G28/G30 legs free the stored position only as
+the two traverses. Out of scope — an arc whose plane holds a dependent axis, a
+cycle, a probe, a turned XY frame, a labeling that is not identity (an unread
+live kins type is identity only where the declared kinematics cannot switch,
+VP-I81), the interpreter's own M6 moves (line −1), a feed leg of G28/G30 — the
+axes become `stale` (`_to_stale`: unknown is never dependent too, VP-I79);
+without the interpreter's words X/Y/Z are unknown from the start and the wire
+says so (`start_dep_unavailable`, VP-I80). A write FROM a dependent axis
+(G92, L20, G28.1 …) is unknown to the end; an explicit main-file line is no
+cause in `foreign` text either when the interpreter places the callback in
+the main file (the TWP corpus's `g10 l2 p0 …`). A position READ (`#5420`–`#5428`,
+`#<_x>`, `#<_abs_x>` …) of a dependent or unknown axis makes every axis
+unknown to the end (reason `position_read`, `position_read_lines`): in text
+order by the walk and the line's first callback (before its motion), in remap
+bodies on the interpreter's stack (`RemapEnv.reads`: ngc bodies followed;
+`python=` / `prolog=` / `epilog=` each, bound only for the suite's TWP Python
+entries — `SUITE_PY_READS`, every link of the call graph matched to the code
+object the worker compiles from the sha256-pinned sources, natively
+`sys.modules["remap"].<name>`, R129–R131), out of order from the start. The
+bundled routine marks its reads (`WEBUI_POS_SAVE` / `_RETURN` / `_READ=<axes>`,
+content-pinned `MARKED_POS_ROUTINES`): the return takes the saved state. The
+worker ships per stream a PREFIX of masks, time bases (1 rapid, 2 G94 at F, 3
+a feed it cannot time) and F (`*_dep`, `*_dep_basis`, `*_dep_f`), anchors RDP
+at every change, gives dependent axes no limit verdict (NaN), and ships
+`start_believed` (the first point's epoch, shifted with the tool basis like a
+point before the first TLO row — verify and `normalizeToToolBasis`); a first
+G1 is a zero-length endpoint with its feed basis like a first G0. Client: the
+BASE track breaks the segments into points 1..K (K = after the last mask; no
+time, not drawn, not checked; the sweep's baseline is point K; the result
+names it, `startDependent` — a whole dependent track never reads "Clear").
+`viewer/startDep.ts bindBeginning` binds it to a start: Δ = start −
+`start_believed` on every dependent axis, the parse's relabels back, each
+move timed by its basis (G93/G95: the INI's shortest duration, a lower bound
+"+", none without a limit — `axis_vmax` / `traj_vmax`). The simulation's
+entry track binds to the live joints (the first move keeps its kind: a G1
+feeds there), its side sweep covers the entry move and the beginning to K
+(only the entry move's findings read "entry"); a run check binds to
+`run_basis.start.joints` (gateway: copied from the start's poll before any
+await — standing, in position, finite; else `joints_why`) beside the base
+sweep, merged onto the base axis (`mergeBeginningOntoBase`: the beginning's
+findings at cum 0, a named display limit); the parity harness binds to its
+record's start joints. Tests: `test_start_dep_worker.py` (native, E10 + R132),
+`suite_py_bind_probe.py`, `startDepPayloads.test.ts`
+(`scripts/gen_start_dep_payloads.py`).
+
 **Entry move + auto-check**: at sim entry the live machine position is
 captured (joints→machine→program via `machineToProgram`, the exact
 inverse of the preview transform) and `prependEntry` puts the rapid from
