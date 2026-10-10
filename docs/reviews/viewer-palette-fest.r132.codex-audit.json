@@ -1,0 +1,5581 @@
+{
+  "early_m6": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        3,
+        0
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        10.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      4,
+      5
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      3,
+      3,
+      3
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "dad6057a2e451cb3914fbc50cc3e9533b0091c758d740483d1a503fb29e25c4b",
+    "digest_without_stats": "f966fda7eaad9055d978b0d04491d08abf262751fc8a656c570d36ab86638e4c",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "change_tool",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          5
+        ],
+        "before": {
+          "line": 4,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 5,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          6
+        ],
+        "before": {
+          "line": 5,
+          "seq": 3,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 6,
+          "seq": 3,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nG53 G0 Z0\nM6\nG91 G0 X10\nG0 Y10\nM2\n",
+    "extra": {
+      "emcio": "TOOL_CHANGE_POSITION = 50 50 50"
+    },
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=3 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 3->3 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-1rl37c28/tool.tbl\", \"table_mtime\": 1791637274.2004178, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "early_m6_none": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        3,
+        0
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        10.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      4,
+      5
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      1.0,
+      2.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      3,
+      3,
+      3
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "02a5fe027150d4811bfab296fe9a2cf393cced8abd7bdc475bcb570931bef4c3",
+    "digest_without_stats": "4e83db82681ba875d924f3b60a2d2b181898afc45e9da6acf6165c1c74a355d7",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "change_tool",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          5
+        ],
+        "before": {
+          "line": 4,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 5,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          6
+        ],
+        "before": {
+          "line": 5,
+          "seq": 3,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 6,
+          "seq": 3,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nG53 G0 Z0\nM6\nG91 G0 X10\nG0 Y10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=3 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 3->3 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-ehp3u9or/tool.tbl\", \"table_mtime\": 1791637274.2604175, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "early_m6_first": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        2,
+        0
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        10.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        0,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      7,
+      7
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "769820543f4bb1d722ec6ff721f9a4a33bbdd77dc4d942fb2acaad8c69187065",
+    "digest_without_stats": "fa0a1a6561e9866d2e3a489e3ef3323442bd18a612f74f584cb992a1e57e0cb2",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "change_tool",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          5
+        ],
+        "before": {
+          "line": 4,
+          "seq": 2,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nM6\nG91 G0 X10\nG0 Y10\nM2\n",
+    "extra": {
+      "emcio": "TOOL_CHANGE_POSITION = 50 50 50"
+    },
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-cpz20xqy/tool.tbl\", \"table_mtime\": 1791637274.3204174, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "late_m6_control": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [
+      [
+        3,
+        0
+      ]
+    ],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        10.0,
+        0.0
+      ]
+    ],
+    "tlo_events": [
+      [
+        1,
+        0.0,
+        0.0,
+        0.0,
+        0
+      ]
+    ],
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      4,
+      5
+    ],
+    "rapid_seq": [
+      1,
+      2,
+      3
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "e27b5ed76b3592d91ec37af22d87a437354d227e85c95355e4014f346283ca8f",
+    "digest_without_stats": "e1eb588a42322d5fe8f6aee50e5c78edd2b6d70f59478a8e9523f4e2f9afce41",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "change_tool",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          5
+        ],
+        "before": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 5,
+          "seq": 2,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          6
+        ],
+        "before": {
+          "line": 5,
+          "seq": 3,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 6,
+          "seq": 3,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nG0 X0 Y0 Z0\nM6\nG91 G0 X10\nG0 Y10\nM2\n",
+    "extra": {
+      "emcio": "TOOL_CHANGE_POSITION = 50 50 50"
+    },
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=3 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 3->3 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-dhwszxt9/tool.tbl\", \"table_mtime\": 1791637274.3804173, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "no_interp": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      1.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": null,
+    "rapid_dep_basis": null,
+    "feed_dep_f": null,
+    "rapid_dep_f": null,
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "0b351703ba7a205cd9bb43ed8c20f2d94af9f1766f74a7cd1d3e7847608afb34",
+    "digest_without_stats": "9e60c574dbd0d3b10d38e253564236a491efb798b77f53f0aafe8adff6b21801",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nG53 G0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": true,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__INTERP__\tunavailable\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-wdkrmn26/tool.tbl\", \"table_mtime\": 1791637274.4364173, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "interp_control": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      1.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      3,
+      2
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "e3e3cd22025b47830e55b6580fe0df18f9d170f24b6e4f9d759e3344a189f682",
+    "digest_without_stats": "f284eef727cadc10a4a42ce9c8b1615e84b94ddfc85a2e24c87bc7cd8ed6d65e",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 2,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 2,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nG53 G0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-_q3aotis/tool.tbl\", \"table_mtime\": 1791637274.496417, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "initial_read": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        5.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.5
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "cf8c446772923842b97f385f12c0eceee94e5f9a07277746cc92da24282ecd97",
+    "digest_without_stats": "a81a2fb61da3aec296b31922045365458ff3c17f8c11f7057b881f59f357f3e5",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "program": "#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-dokucn3e/tool.tbl\", \"table_mtime\": 1791637274.552417, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "initial_named_read": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        5.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.5
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "cf8c446772923842b97f385f12c0eceee94e5f9a07277746cc92da24282ecd97",
+    "digest_without_stats": "a81a2fb61da3aec296b31922045365458ff3c17f8c11f7057b881f59f357f3e5",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "program": "#1=#<_x>\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-n2_vgjs2/tool.tbl\", \"table_mtime\": 1791637274.612417, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "read_on_first_move": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": [
+      [
+        0,
+        -1,
+        "position_read",
+        0
+      ]
+    ],
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        5.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      1,
+      2
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      1
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": null,
+    "rapid_dep_basis": null,
+    "feed_dep_f": null,
+    "rapid_dep_f": null,
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": [
+      1
+    ],
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "81f3c9013bae94b60fba9048dc901ba4702a38434dee2941ce3ff35367c0bb34",
+    "digest_without_stats": "edc61a350af6a6e386fadc6bedaa4ef7d1ebc52ac57fe222f29c32166e8d4e78",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          1
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 1,
+          "seq": 0,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 1,
+          "seq": 0,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 1,
+          "seq": 0,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 1,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 2,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 2,
+          "dep": [],
+          "stale": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "read_done": [
+            1
+          ],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "program": "G0 X[#5420+5] Y0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-ahohrq_g/tool.tbl\", \"table_mtime\": 1791637274.6684167, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "read_after_modal": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        5.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.5
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "f3b57bedac0371a9259273e2248cbbd4352fc6f4a9cdfd74bdfb6e177e480e3e",
+    "digest_without_stats": "1be23cd8ac2c869a7593a6ebd13a627830e18774a02966ae6e7d173fcbcc3b33",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          5
+        ],
+        "before": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "program": "G21 G90\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-v0lrvlkm/tool.tbl\", \"table_mtime\": 1791637274.7244167, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "initial_read_with_modal": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        5.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.5
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "c65078d1be144ab1a9275e9199a145aa9341e5488480698d6ff6b510fbde7504",
+    "digest_without_stats": "a81a2fb61da3aec296b31922045365458ff3c17f8c11f7057b881f59f357f3e5",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "1": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "program": "G21 G90 #1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-idn67yqs/tool.tbl\", \"table_mtime\": 1791637274.7884166, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "initial_read_percent": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        5.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.5
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "c8b3cf87107ca5aad78f6156504b4a0622eb1124edd679e8cc3f5833a6c316a3",
+    "digest_without_stats": "1be23cd8ac2c869a7593a6ebd13a627830e18774a02966ae6e7d173fcbcc3b33",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          1
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          5
+        ],
+        "before": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [
+            2
+          ],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "program": "%\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n%\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-twjhrv8z/tool.tbl\", \"table_mtime\": 1791637274.8524165, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "initial_read_blank": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        5.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      3,
+      4
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.5
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": null,
+    "rapid_dep": null,
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "c0452348dbbfd6e254c3c84056c494eeda33581bc1612b3b37fcd1a04dc0c84d",
+    "digest_without_stats": "1be23cd8ac2c869a7593a6ebd13a627830e18774a02966ae6e7d173fcbcc3b33",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 3,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 4,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          5
+        ],
+        "before": {
+          "line": 4,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        },
+        "after": {
+          "line": 5,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": {
+            "2": [
+              0
+            ]
+          }
+        }
+      }
+    ],
+    "program": "\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-9xe9yisr/tool.tbl\", \"table_mtime\": 1791637274.9124165, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "unknown_kins": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      1.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      3,
+      2
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "e3e3cd22025b47830e55b6580fe0df18f9d170f24b6e4f9d759e3344a189f682",
+    "digest_without_stats": "f284eef727cadc10a4a42ce9c8b1615e84b94ddfc85a2e24c87bc7cd8ed6d65e",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 2,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 2,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nG53 G0 Z0\nG0 X10\nM2\n",
+    "extra": {
+      "ctx": {
+        "kins_type": null
+      }
+    },
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-q2fbr0q0/tool.tbl\", \"table_mtime\": 1791637274.9724162, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": null, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "unknown_switchkins": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      3
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      1.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      3,
+      2
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "e3e3cd22025b47830e55b6580fe0df18f9d170f24b6e4f9d759e3344a189f682",
+    "digest_without_stats": "f284eef727cadc10a4a42ce9c8b1615e84b94ddfc85a2e24c87bc7cd8ed6d65e",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          4
+        ],
+        "before": {
+          "line": 3,
+          "seq": 2,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 4,
+          "seq": 2,
+          "dep": [
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90\nG53 G0 Z0\nG0 X10\nM2\n",
+    "extra": {
+      "ctx": {
+        "kins_type": null
+      },
+      "ini": "[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"
+    },
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-60mqvbdd/tool.tbl\", \"table_mtime\": 1791637275.0404162, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": null, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "g28_feed_second": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [
+      2
+    ],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [
+      0
+    ],
+    "rapid_outside": [
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2
+    ],
+    "rapid_seq": [
+      1
+    ],
+    "rapid_tcum": [
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1
+    ],
+    "feed_seq": [
+      2
+    ],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [
+      0.0
+    ],
+    "feed_dep": [
+      0
+    ],
+    "rapid_dep": [
+      7
+    ],
+    "feed_dep_basis": [
+      2
+    ],
+    "rapid_dep_basis": [
+      1
+    ],
+    "feed_dep_f": [
+      100.0
+    ],
+    "rapid_dep_f": [
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [
+      2
+    ],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "512f133c470d7e5a48c5a09483b2f3f398fac0ae4ca1b5ffdcfa9fd4a08bf95e",
+    "digest_without_stats": "929442e493d5afd4cc060ab5cd47ccacfe6a02cee09d79780484c34e6a92f7ec",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          1
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 1,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 1,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90 F100\nG28\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": true,
+    "worker_stderr": "gcode.parse feed=1 rapid=1 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 1->1 rapid 1->1 eps=0.00500 ship_abc=False\nline trust: 1/2 shipped points trust their line (marked subs: none)\n__TLO__\t{\"table_path\": \"/tmp/start-probe-l7mhxeoa/tool.tbl\", \"table_mtime\": 1791637275.100416, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  },
+  "g28_rapid_control": {
+    "mmap_unchanged": true,
+    "probe_unpredicted": null,
+    "toollen_table": null,
+    "feed_sub": null,
+    "rapid_sub": null,
+    "sub_names": null,
+    "toolsetter_basis": null,
+    "toolsetter_meta": {
+      "routine": false,
+      "writes": []
+    },
+    "feed_lines": [],
+    "tool_change_lines": [],
+    "parse_error": null,
+    "feed": [],
+    "rapid": [
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "tlo_events": null,
+    "parse_tlos": [
+      [
+        1,
+        0.0,
+        0.0,
+        10.0,
+        6.0
+      ]
+    ],
+    "violations": [],
+    "violations_total": 0,
+    "violations_reason": null,
+    "feed_outside": [],
+    "rapid_outside": [
+      0,
+      0
+    ],
+    "start_known": true,
+    "tlo_start": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "start_reason": null,
+    "rapid_lines": [
+      2,
+      2
+    ],
+    "rapid_seq": [
+      1,
+      2
+    ],
+    "rapid_tcum": [
+      0.0,
+      0.0
+    ],
+    "rapid_brk": null,
+    "rapid_ustart": [
+      1,
+      0
+    ],
+    "feed_seq": [],
+    "stale_offset_lines": null,
+    "probe_bands": null,
+    "probe_notes": null,
+    "stale_offset_untracked": null,
+    "feed_tcum": [],
+    "feed_dep": [],
+    "rapid_dep": [
+      7,
+      0
+    ],
+    "feed_dep_basis": [],
+    "rapid_dep_basis": [
+      1,
+      1
+    ],
+    "feed_dep_f": [],
+    "rapid_dep_f": [
+      0.0,
+      0.0
+    ],
+    "start_believed": [
+      0.0,
+      0.0,
+      0.0
+    ],
+    "position_read_lines": null,
+    "feed_lines_all": [],
+    "python_reads": [],
+    "meta": {
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_mode": 490,
+      "start_reason": null
+    },
+    "digest_without_start": "57dce9e802694628cd81704cd710f875d1be1676cd76178914af84b35f8f098b",
+    "digest_without_stats": "25c370f3412091896f49c7bad3e2d93596a081272b99082cfafc706322113426",
+    "review_events": [
+      {
+        "method": "next_line",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": -1,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          1
+        ],
+        "before": {
+          "line": 0,
+          "seq": 0,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 1,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          2
+        ],
+        "before": {
+          "line": 1,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      },
+      {
+        "method": "next_line",
+        "args": [
+          3
+        ],
+        "before": {
+          "line": 2,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 2,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    ],
+    "program": "G21 G90 F100\nG28\nM2\n",
+    "extra": {},
+    "interpreter_unavailable_injected": false,
+    "second_g28_callback_feed_injected": false,
+    "worker_stderr": "gcode.parse feed=0 rapid=2 parse_ms=1\n__LIMITS__\t{\"source\": \"ini\", \"limits\": {\"X\": [-500.0, 500.0], \"Y\": [-500.0, 500.0], \"Z\": [-500.0, 50.0]}}\nlimits axes=XYZ violations=0\nrdp feed 0->0 rapid 2->2 eps=0.00500 ship_abc=False\n__TLO__\t{\"table_path\": \"/tmp/start-probe-hbefu6fr/tool.tbl\", \"table_mtime\": 1791637275.156416, \"tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"applied_tlo\": [0.0, 0.0, 0.0], \"loaded_tool\": 1, \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}\n__KINSSEED__\t{\"type\": 0, \"frame\": null}\n__WCSOFF__\t[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]\n__TOOLSETTER__\t{\"routine\": false, \"writes\": []}\n__PARAMS__\t{\"text\": \"5161 0\\n5181 10\\n5210 1\\n5211 0\\n5212 0\\n5213 0\\n5220 1\\n5221 0\\n5222 0\\n5223 0\\n\", \"g92\": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]}\n"
+  }
+}

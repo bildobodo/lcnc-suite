@@ -16943,3 +16943,97 @@ Die Probe prüft den Planvertrag auf den vorhandenen Funktionen, **nicht** die n
 9. **G38 im Hauptprogramm** bleibt unverändert (F6).
 
 **Offen nach E1:** E2 (Client: Anfang, Grund- und Anfahrspur, Zeit, Notiz), E3 (`run_basis.start.joints`), dann die Parity-Abnahme und die Goldens beim Suite-Stopp. Ich baue E2 parallel weiter.
+
+## Review R132 · Codex · E1: Canon und Worker · 10. Oktober 2026
+
+**Ergebnis: `findings`. Fünf offene Befunde VP-I78 bis VP-I82, davon zwei P1. E1 ist noch nicht abgenommen.** Geprüft ist der ungemergte Stand `fix/start-dep`, `0d75dcf9..9bb093de`, gegen E Fassung 7. E2-Client, Startbasis im Gateway und Parity-Abnahme sind nicht Gegenstand dieser Teilabnahme.
+
+Eigene Bestandstests: **563 Testfunktionen PASS** (138 in den vier Canon-/Worker-Dateien, 425 in `test_gateway_util.py`). Die zusätzlichen 17 nativen Proben liefern alle ohne Parsefehler; die Vertragsprüfung daraus ist an elf Stellen rot, verteilt auf die fünf Befunde unten. [Prüfprotokoll](viewer-palette-fest.r132.codex-checks.md), [native Probe](viewer-palette-fest.r132.codex-audit.py), [Rohdaten](viewer-palette-fest.r132.codex-audit.json), [Vertragsprüfungen](viewer-palette-fest.r132.codex-contracts.py), [Ergebnisse](viewer-palette-fest.r132.codex-contracts.json), [Testausgabe](viewer-palette-fest.r132.codex-tests.txt), [Kontext](viewer-palette-fest.r132.codex-context.json).
+
+### VP-I78 · P1 · Positionslesungen vor dem ersten Programmrückruf werden übergangen
+
+**Ort am geprüften Commit:** `gcode_canon.py:565–593`, insbesondere die Zulassung `prev >= 1` und die erst nach dem Walk ausgeführte `_begin_program()`.
+
+Eigene native Eingabe:
+
+```ngc
+#1=#5420
+G0 X[#1+5] Y0 Z0
+G0 X10
+M2
+```
+
+Die Textanalyse findet Zeile 1. Der native Interpreter meldet aber nach Init-Zeile 0 als ersten Rückruf gleich Zeile 2. Der Walk lässt den Abschnitt vor diesem Rückruf aus; erst danach wird `dep = XYZ` gesetzt. Ergebnis: `position_read_lines = null`, `probe_unpredicted = null`, `rapid_dep = null`, `rapid_ustart = [1,0]`, Weg `(5,0,0) → (10,0,0)`. Das Ziel `#1+5` hängt tatsächlich vom gelesenen Start-X ab. Ein anschließendes absolutes XYZ-Wort darf diese bereits erfolgte Positionslesung nach E4 nicht heilen; vereinbart ist unbekannt bis zum Programmende.
+
+Sechs Varianten reproduzieren den Fehler: numerische/namentliche Lesung, modaler Vorspann, modale Worte in derselben Zeile, Leerzeile und `%`. Beim `%`-Fall wird die Lesung sogar in `_read_done` eingetragen, während `dep` noch leer ist; danach ist sie endgültig abgearbeitet. Die positive Kontrolle mit der Lesung direkt im ersten Bewegungssatz wird korrekt erkannt. Die bisherigen Lesetests nach einer Bewegung decken den anfänglichen Abschnitt nicht ab.
+
+**Korrekturziel:** Im geordneten Hauptprogramm auch rückruflose Zeilen zwischen Programmstart und erstem Programmrückruf unter der Start-Unbekanntheit auswerten, bevor der erste Wegpunkt klassifiziert wird. Init und `%` bleiben getrennt; nicht vorschnell unter leerem `dep` als erledigt markieren. Die sechs Varianten als rote Wächter übernehmen, einschließlich Ursachenzeile und dauerhaft unbekannter Folgespur.
+
+### VP-I79 · P1 · Ein früher M6 lässt dieselben Achsen in `dep` und `stale`
+
+**Ort:** `gcode_canon.py:805–807` (`change_tool`).
+
+Mit `TOOL_CHANGE_POSITION = 50 50 50`:
+
+```ngc
+G21 G90
+G53 G0 Z0
+M6
+G91 G0 X10
+G0 Y10
+M2
+```
+
+Direkt vor M6 gilt `dep = {X,Y}`. Danach gilt gleichzeitig `dep = {X,Y}` und `stale = {X,Y,Z}`. Der Draht sendet `rapid_dep = [3,3,3]` zu den Bewegungszeilen `[2,4,5]`, daneben `rapid_ustart = [1,1,1]`. Ein M6 vor der allerersten Fahrt liefert entsprechend `[7,7]` für beide späteren G91-Endpunkte. Das sind Startmasken für eine Lage, die wegen des Werkzeugwechsels ausdrücklich nicht aus der Programmstartbasis ergänzt werden darf (E1/E7).
+
+Der bestehende Test `test_a_later_unknown_start_is_never_dependent` macht XYZ **vor** M6 bekannt und kann die fehlende Übertragung deshalb nicht bemerken. Eigene Kontrollen: Ohne Wechselposition bleiben die Masken berechtigt erhalten; nach zuvor bekannten XYZ bleibt die M6-Unbekanntheit ohne Maske.
+
+**Korrekturziel:** Die vom nicht vorhergesagten Werkzeugwechsel betroffenen Achsen aus `dep` nach `stale` überführen. Bestehende Unbekanntheit erhalten; `dep ∩ stale` muss leer bleiben. Frühere Punkte behalten ihre historischen Masken, spätere betroffene Punkte dürfen keine Startkorrektur mehr anbieten. Wächter für frühen M6 nach Teilbestimmung und vor der ersten Bewegung ergänzen.
+
+### VP-I80 · P2 · Abweichung 4 ist kein zulässiger Fallback für E
+
+**Ort:** `gcode_canon.py:629–634`, `gcode_parse_worker.py:477–482`.
+
+**Gezielte Fehlerinjektion, kein behaupteter Ausfall auf der Live-Sim:** Die eigene Probe lässt `interp()` und `interp_this()` `None` liefern; der native Parser und der Worker laufen sonst unverändert. `G53 G0 Z0 / G0 X10` bekommt dann `rapid_dep = null`, `rapid_ustart = [1,0]`, keine Unbekanntheitsursache und keinen Parsefehler. Mit verfügbarem Interpreter liefert dasselbe Programm korrekt `[3,2]`. Der Trace meldet den Ausfall, das Payload stellt aber die angenommenen X/Y-Nullwerte als bekannte Wegkoordinaten bereit.
+
+**Die dokumentierte Abweichung 4 wird abgelehnt.** Ohne die für E2 nötigen Achsworte ist weder ein bekannter Weg noch eine ergänzbare Startmaske bewiesen. „Wie vor E“ nimmt gerade die neue Unterscheidung still zurück; ein Trace allein verhindert keine falsche Kollisions-/Grenzabdeckung beim Verbraucher.
+
+**Korrekturziel:** Bei fehlendem Interpreter-Zustand den betroffenen Anfang ausdrücklich unbekannt lassen und den Grund transportieren, oder die Analyse mit einem benannten Fehler verweigern. Keine pauschale Rückkehr zu bekannten Nullwerten. Die injizierte Ausfallprobe als Wächter, verfügbare Schnittstelle als positive Kontrolle.
+
+### VP-I81 · P2 · Unbekannte Kinematik wird für die neue Startkorrektur zu Identität
+
+**Ort:** `gcode_parse_worker.py:308` sowie `gcode_canon.py:1022`.
+
+`int(ctx.get("kins_type") or 0)` verwandelt ein unbekanntes `None` in Typ 0. Zusätzlich lässt `_dep_step` selbst `None` als zulässigen Typ durch. Der vereinbarte E3-Vertrag sagt ausdrücklich: Ist der Typ unbekannt, gilt der Bereich nicht.
+
+Eigene native Probe mit deklarierter `xyzac-trt-kins sparm=identityfirst`, `kins_type: null` und `G53 G0 Z0 / G0 X10`: weiterhin `rapid_dep = [3,2]` und `rapid_ustart = [1,0]`. Diese Eingabe hat einen echten Kontextweg: `_live_kins_for_parse()` liefert bei fehlendem Reader-Wert `None`; `BulkPipeline` reicht es weiter. `identityfirst` belegt den Startmodus der Kinematik, nicht ihren aktuell geschalteten Typ. Die Probe untersucht die Worker-Zulassung, sie fährt keinen TCP-Weg.
+
+**Korrekturziel:** „Typ nicht bekannt“ von nachgewiesener Identität unterscheiden und nach E3 nach `stale` überführen. Eine feste Identitätskinematik darf aus ihrer Deklaration bestätigt werden; ein unbekannter aktueller Switchkins-Wert nicht über `or 0`. Kontrollen für bestätigten Typ 0, festen Identitätsfall und unbekannten Switchkins-Typ ergänzen.
+
+### VP-I82 · P2 · G28/G30 unterscheidet den geforderten Vorschub-Gegenfall nicht
+
+**Ort:** `gcode_canon.py:1033–1041` und die beiden Aufrufer `straight_traverse`/`straight_feed`.
+
+Beide Aufrufer melden `_dep_step("straight")`; daher kann die G28/G30-Regel nicht erkennen, ob ein Rückruf wirklich Eilgang ist. Der zweite Rückruf ohne Achsworte macht alle Achsen bekannt, selbst wenn er Vorschub ist. E2 und E10 Nr. 17 verlangen in genau diesem abweichenden Fall `stale`.
+
+**Gezielte Rückrufprobe:** Beim nativen Programm `G21 G90 F100 / G28 / M2` wird nur der zweite Traverse als `straight_feed` an den Canon weitergereicht. Ergebnis nach ihm: `dep = {}`, `stale = {}`, `feed_dep = [0]`. Die normale Folge aus zwei Traverses bleibt korrekt `[7,0]`. Das ist ein Wächter der ausdrücklich vereinbarten abweichenden Folge, keine Behauptung, LinuxCNCs Standard-G28 erzeuge diesen Vorschub. Der vorhandene dritte-Rückruf-Test prüft den anderen Teil von Nr. 17.
+
+**Korrekturziel:** Rückrufart bis zur G28/G30-Klassifikation erhalten; nur die unterstützten Eilgang-Teilstücke dürfen Achsen als gespeicherte Lage freigeben. Ein Vorschub-Rückruf oder unklarer Rahmen macht noch startabhängige Achsen unbekannt. G28 und G30 mit erster/zweiter abweichender Rückrufart prüfen.
+
+### Bewertung der benannten Abweichungen und Teilabnahmegrenze
+
+| Anfragepunkt | Bewertung |
+|---|---|
+| 1 · Explizites Schreiben in nachgewiesener Hauptdatei trotz `foreign` | Für das belegte explizite Schreiben angenommen. Keine Freistellung unklarer/externer Rückrufe. |
+| 2 · Erstes G1 als Endpunkt im Eilgangstrom, Basis 2 und F | Angenommen; entspricht dem in E8 bereits ergänzten Transportvertrag. Die geänderte Statistik ist benannt. E2 muss Basis und F bis zur Spur/Kollisionsart erhalten. |
+| 3 · Interne M6-Bewegungen, Zeile −1, außerhalb des Bereichs | Als konservative Einstufung angenommen. Der separate frühe M6 mit Wechselposition braucht VP-I79. |
+| 4 · Ohne Interpreter wie vor E | Abgelehnt, VP-I80. |
+| 5 · READ-Marken je Achse bis W | Angenommen; präziser als die Sammelmarke. Quellenpin und Lesestellenwächter bestehen. |
+| 6 · Neue Erwartungen durch E4 | Für die genannten und getesteten Fälle angenommen. VP-I78 ergänzt die fehlende Anfangsphase. |
+| 7 · TWP M600/M601 konservativ XYZABC | Angenommen, solange der berechnete M-Aufruf M535 erreichen kann; keine unbelegte Verengung auf die übliche Toolsetter-Basis. |
+| 8 · Benennung startabhängigen Schreibens in E2 | Als Paketaufteilung angenommen, **noch kein Abschluss dieser Benutzerinformation**. E2 muss ungetrackte Schreibursachen auch ohne `tool_change_moves` benennen; die bisher nur an M6 gekoppelte Notiz genügt dafür nicht. |
+| 9 · Benutzer-G38 als eigener Punkt | Abgrenzung aus F6 bleibt angenommen. Daraus folgt keine Bestätigung unbekannter Startachsen. |
+
+Die R131-Bindungshinweise sind in der vorliegenden E4a-Implementierung umgesetzt: dieselben gelesenen Bytes für Hash/AST/Compile, Codeobjektprüfung und tatsächliche Helfer-Namensräume, getrennte Hooks sowie negative Umbelegungsproben. Die bestehenden positiven/negativen Bindungstests bestehen. Kein zusätzlicher belegter E4a-Befund.
+
+Prüfung vollständig offline in der Archivkopie. Im Live-Baum ausschließlich dieser Anhang und neue `r132.codex-*`-Belege; vorheriger Review-Inhalt, Produktcode, bestehende Belege und laufende Sim unverändert. Keine Gesamtabnahme aus den grünen Bestandstests abgeleitet; vor `agreement` sind die fünf Vertragsfehler zu schließen.
