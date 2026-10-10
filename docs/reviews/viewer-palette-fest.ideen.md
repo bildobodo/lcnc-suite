@@ -16697,3 +16697,41 @@ Zu R126 drei Korrekturen und eine eigene Modellkorrektur aus F5: `fix/probe-band
 **Nachweise** ([Gate und Mutationen](viewer-palette-fest.r127.gate.txt)): Stufe 1 grün (Vitest 2096), `serial-viewer` 85, die Mutationen M17 bis M24 rot.
 
 Mit deiner Zustimmung baue ich danach E, wie im Plan.
+
+## Review R127 · Codex · Korrekturen R126 und Bremsmodell nach F5 · 10. Oktober 2026
+
+**Ergebnis: `findings` wegen des noch unvollständigen F5-Nachweises (VP-I77, P2). VP-I74, VP-I75 und VP-I76 sind geschlossen; die drei Korrekturen und die Umstellung auf vier Servotakte sind angenommen. Kein verbleibender Produktcode-Befund aus R126. E kann parallel weitergehen; vor der Parity-Abnahme muss F5 vervollständigt sein.**
+
+Geprüft: `c69567b8..02746e30`, insbesondere `49197ea3` und `8fc6765c`, in einer Archivkopie von `02746e30`. [Prüfprotokoll/Reproduktion](viewer-palette-fest.r127.codex-checks.md), [Ergebnisse](viewer-palette-fest.r127.codex-results.json), [native Payload-Ausgaben](viewer-palette-fest.r127.codex-native-results.json), [Kontext/Quellhashes](viewer-palette-fest.r127.codex-context.json).
+
+### VP-I74 bis VP-I76 geschlossen
+
+**VP-I74:** Die drei kleinen Kontakt-Gegenproben aus R126 bestehen unverändert. Der mögliche Hüllenkontakt setzt keinen gewöhnlichen Beginn mehr; der spätere Eilgang wird für gewöhnliche und Schneide/Werkstück-Paare gefunden. Der gewöhnliche Folgefund verliert `possible` und ist erreichbar. Die erneute Abfrage hinter der Bandendlage behebt auch die unzureichende Zeilenprobe. Der bestehende Wächter bestätigt weiterhin, dass eine Hüllentrennung einen vor dem Band tatsächlich bestehenden Kontakt nicht zurücksetzt.
+
+**Korrektur meiner zusätzlichen R126-Beweisführung:** Die damalige native M600-Sonde bleibt zwar rot, beweist aber keinen Rest dieses Fehlers. Ich habe sie mit einer neuen Payload wiederholt und den Kontaktbeginn in der Archivkopie protokolliert. Nach G43 kommt ihr Bodenkörper auf dem gewöhnlichen Vorschubrückzug erneut in die Prüfzone: Beginn auf L583, `inBand:false`, Abstand rund 1,965 mm bei 2 mm Prüfzone. Die spätere Eilgangberührung folgt ohne verifizierte Trennung. Meine Annahme „Bodenkörper nur im Hüllenschenkel erreicht“ war für dieses Testmodell falsch; ich ziehe diese zusätzliche Gegenprobe zurück. Die drei unabhängigen kleinen R126-Proben waren gültig und sind durch den Fix grün. [Diagnose und genaue Einordnung](viewer-palette-fest.r127.codex-checks.md), [Kontaktprotokoll](viewer-palette-fest.r127.codex-trace.json).
+
+**VP-I75:** Beide R126-Hinweisproben bestehen; ebenso die Wiederholung mit frisch erzeugter Schleifen-Payload. App übergibt `probe_notes`, und die Statistik behält die Warnung des ersten Aufrufs neben dem zweiten Aufruf ohne Warnung. Der ungebundene Verweis nennt nun auch die Warnungen. Ausführungsreihenfolge und getrennte Ereignisse bleiben erhalten.
+
+**VP-I76:** Freigabe und Wert stehen in der Leerlauf-/Laufbasis; die Sweep-Anfrage übernimmt sie daraus. Eigene Prüfungen über Basis → Sweep → Zusammenführung bestätigen „freigegeben bei 0“, „deaktiviert mit Restwert“, beide unbekannten Zustände und die Gegenkontrolle „deaktiviert bei 0“. Der Grund bleibt im Ergebnis. Dass die laufend veränderliche Kompensation keine dauernden Neuprüfungen auslöst, ist für diese ausdrücklich auf **die damalige Prüfbasis** bezogene Notiz akzeptiert; sie behauptet keine laufende Überwachung externer Versätze.
+
+### Bremsmodell: vier Servotakte angenommen, F5 noch nicht vollständig
+
+Die 42 veröffentlichten Zeilen habe ich gegen `h = 4·v·T + v²/a` und die angegebenen Beschleunigungsanteile nachgerechnet. Die Werte stimmen innerhalb ihrer Rundung; alle berichteten Abstände sind positiv, der kleinste ist 0,0012 mm. Nativ erzeugt die neue Routine bei F2000/P = −100 den Bandpunkt Z −102,9111; die angenommene Länge bleibt 80. Die reine Vorschauänderung und der Vergleich der task-Zweige bestehen. Damit ist die Erweiterung gegenüber zwei Takten nachvollziehbar und angenommen. Die Zahlen gelten für die protokollierten Fälle, weiterhin ohne Produktzertifizierung. [Unabhängige Auswertung](viewer-palette-fest.r127.codex-f5.json), [Auswertungsskript](viewer-palette-fest.r127.codex-f5-audit.py).
+
+### VP-I77 · P2 · F5 belegt Einzelantastungen, aber noch nicht die vereinbarte Routinefolge und ihre vollständige Messbasis
+
+**Stellen:** `docs/reviews/viewer-palette-fest.r127.f5-probe.py:49–69,119,149–163`; Vertrag `parity-ef.plan.md:355,357–360`.
+
+Das Messskript fährt je Fall Anfahrt → **eine G38.3** → Stillstand. Auch der F200-Fall ist eine eigene Antastung. Es fehlen der Rückzug nach der schnellen Antastung und die unmittelbar folgende langsame G38.2 als zusammenhängende Folge der ausgelieferten Routine. Gerade die verbleibende Freigabe nach dem Rückzug ist eine der neuen Modellbedingungen; die einzeln nachgewiesenen Bremsstrecken prüfen diesen Ablauf nicht. Der Plan verlangt zusätzlich ausdrücklich „die tatsächliche Folge der Routine“.
+
+Außerdem liest das Skript als HAL-Messbasis nur die drei Plattenkoordinaten. Es protokolliert weder Tasterfreigabe und manuellen Eingang noch externen Z-Versatz/Freigabe und den Vergleich der Platte mit `#3100`–`#3102`. `validate_sim_target` prüft die Konfigurationsdateien und ausgeführten Dateien; es belegt diese veränderlichen Laufzeitwerte nicht. Diese Angaben fehlen auch im abgelegten Messprotokoll. Die Aussage „vor jedem Befehl“ im Beleg trifft auf das Skript nicht zu: die Zielprüfung steht einmal vor `main`; `rb.send` wiederholt sie nicht. Daraus folgt kein nachgewiesener falscher Messwert, aber der vereinbarte F5-Nachweis ist noch unvollständig.
+
+**Korrekturziel:** Die vorhandenen 42 Einzelmessungen behalten. Den vollständigen schnellen/langsamen Ablauf der gebündelten Routine ergänzen, mit eindeutig zugeordneten Auslöse-/Stillstandspunkten beider Antastungen und ihrem Rückzug. Die vorgeschriebenen Zustände der jeweiligen Messbasis mit ablegen, einschließlich INI-Werten/Servoperiode und Platten-/Parametervergleich; nötigenfalls einen fehlend dokumentierten Fall wiederholen. Keine Toleranzänderung und keine weitere Ausweitung des Bremsmodells aufgrund dieses Befunds verlangt. Bis dahin F5 als teilweise erledigt führen; E muss darauf nicht warten, die Parity-Abnahme schon.
+
+**Kleine Dokumentkorrektur, kein weiterer Befund:** `CLAUDE.md` verweist für diese Messung auf `viewer-palette-fest.r126.f5.txt`; der abgelegte Beleg heißt `viewer-palette-fest.r127.f5.txt`.
+
+### Prüfung und Arbeitsgrenzen
+
+Client: **144 bestanden im Hauptlauf**, zusätzlich **3 bestanden** mit frischen nativen Payloads. Backend: **53 Routine-/Pfadtests und 1 Start-Snapshot-Test bestanden**. Ein breiterer Dispatch-Lauf wurde ohne Ergebnis abgebrochen und zählt nicht als bestanden; Einzelheiten im Prüfprotokoll. Die zurückgezogene native Kollisionsprobe ist ausdrücklich kein weiterhin offener Akzeptanzwächter. [Client](viewer-palette-fest.r127.codex-client.txt), [frische Payloads](viewer-palette-fest.r127.codex-fresh-payload.txt), [Backend](viewer-palette-fest.r127.codex-backend.txt), [Snapshot](viewer-palette-fest.r127.codex-snapshot.txt).
+
+Keine Live-Messung durch Codex, keine Zugriffe auf Live-Ports, kein HAL oder Maschinenbefehl, kein Suite-Stopp. Im Live-Baum nur dieser Anhang und neue `r127.codex-*`-Belege. Bestehende Belege und Produktcode unverändert.
