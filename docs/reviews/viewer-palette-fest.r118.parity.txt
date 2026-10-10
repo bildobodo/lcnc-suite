@@ -1,0 +1,31 @@
+# R118 · Parity-Gate mit einem M600-Programm · 10. Oktober 2026
+
+Korpus: scripts/parity_corpus/xyzac.json (Zweig test/parity-xyzac-m600), Programm xyzac/m600_live.ngc
+(T1 M600, Quadrat, T7 M600, zwei Quadrate; G54 der Sim). XYZAC-Sim, Stand fe997e6a. Die beiden
+Werkzeugwechsel bestätigte ein eigener scharfer Client (er tut sonst nichts); scripts/sim_parity.py gate.
+
+Erster Lauf mit der langen Fassung (acht Quadrate): Abbruch der Aufzeichnung nach 180 s (fest in
+twp_parity.sample_run) — das Programm ist dafür zu lang. Die kurze Fassung:
+
+sampled 3225 rows -> runs/webui_m600_live.run1.truth.ndjson
+[FAIL] webui_m600_live.run1: truth→sim max 16.799 p99 6.891 | sim→truth max 84.853 p99 58.324 | tol 0.5
+[----] webui_m600_live.run1: plane invariants: no g68.2/g68.3 in the program — no plane to gate
+sim parity gate: 1 FAILURE(S)
+
+Wo die Pfade auseinanderlaufen (Abstand jedes Wahrheitspunkts zum Sim-Polygonzug und umgekehrt,
+Gelenkraum X/Y/Z, Stellen über 2 mm):
+
+  Wahrheit t 0,16–2,23 s, bis 16,8 mm: Zeile 6 `G53 G0 Z0`, dann tool_touch_off.ngc (G30-Vorpositionierung):
+    die Maschine fährt von (−132,28 −96,35 −39,81) senkrecht auf Z 0, dann zu G30 (0 −13,44).
+  Sim cum 0,04–4,12, bis 84,9 mm: die Anfahrbewegung geht von der Maschinenposition SCHRÄG zu
+    (−238,28 −200 0) = Programm X0 Y0 auf Maschinen-Z 0, dann zu G30.
+  Wahrheit t 37,96–38,06 s, 2,2 mm: X150 Y0 Z −236,04 … −236,07 — das Überschwingen der schnellen
+    Antastung am Toolsetter (Bremsweg; die Vorschau fährt genau bis zum Auslösepunkt).
+
+Ursache der Startabweichung: Die erste Bewegung `G53 G0 Z0` befiehlt nur Z. Die Vorschau verbucht sie als
+Endpunkt mit unbekanntem Start (rapid_ustart) mit ihrem ANGENOMMENEN X/Y (Programm 0/0); die Anfahrbewegung
+(prependEntry) führt von der Live-Position gerade dorthin. Die Maschine lässt die nicht befohlenen Achsen
+stehen. Payload (Spurpunkte in Programmkoordinaten):
+  seq 2  R (0, 0, 103,798)        L6   ustart
+  seq 3  R (0, 0, 103,798)        L239 brk  (tool_touch_off)
+  seq 6  F (238,281, 186,56, 103,798) L245     (G30 X/Y)

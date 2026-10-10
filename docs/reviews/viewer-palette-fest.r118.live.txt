@@ -1,0 +1,158 @@
+# R118 · Live-Nachweise auf der Simulation · 9. Oktober 2026
+
+Simulation: XYZAC (lcnc_suite_sim_5axis_xyzac.ini), WEBUI_DEV, LCNC_WEBUI_BROWSER=0,
+gestartet vom Operator freigegeben am 9. Oktober. Ein Halte-Client sendet durchgehend
+Herzschläge (nie scharf, nie ein Maschinenbefehl), damit die Gateway nie ohne Client ist.
+Alle Werte von der VM (4 Kerne, QEMU aarch64). Ein getrennter Browser-PC war nicht dabei.
+
+## 1 · Rücklesen der Toolsetter-Werte (M600-Plan Abschnitt 2, owed seit Codex R104)
+
+Skript: scripts/toolsetter_readback_check.py (fix/synch-auto). Erster Lauf (Stand 5692f3b1):
+FAIL an Zeile 1. Trace: toolsetter.read_back_failed why="not synched" rc=3, dazu im
+Fehlerkanal "can't do that (EMC_TASK_PLAN_SYNCH) in auto mode with the interpreter idle".
+G30 lesen mit geladenem Programm ebenso: "G30 not confirmed — LinuxCNC did not synch".
+Ursache: emctaskmain.cc nimmt in ON / AUTO / IDLE kein PLAN_SYNCH an; ein geladenes Programm
+lässt den Task dort. Korrektur 14269739 (_synch_interp_params), Lauf nach Neustart:
+
+  PASS  setup: machine on and homed
+  PASS  load the scratch program (T1 M600, never run)
+  PASS  1 start: the read-back confirms the file's values  trace {'version': 2, 'state': 'confirmed'}; file #3009 = 3.0
+  PASS  2 MDI #3009 = 4.25: booked assumed, the file still the old value  mdi ok=True; trace assumed keys=[3009]; file #3009 = 3.0 (inode new)
+  PASS  3 read-back: a new inode, the file holds the interpreter's value, booked read  file #3009 = 4.25 (inode new); trace read keys=[3009]
+  PASS  3b the published parse reads the confirmed value  payload toolsetter #3009 = 4.25
+  PASS  4 the old value back (MDI #3009 = 3.0) and read back  file #3009 = 3.0
+
+G30 lesen mit geladenem Programm (AUTO, IDLE): confirmed, Modus bleibt AUTO, kein Eintrag im
+Fehlerkanal (Trace des neuen Gateway-Prozesses: 0 nml.error, 0 g30.not_synched).
+
+## 2 · Latenz von Cycle Start (Hash des Programmtexts vor dem Schreiben)
+
+Messung: Senden von cycle_start bis zur Antwort (die Antwort folgt dem Schreiben von AUTO_RUN,
+wait=None) und Senden bis run_basis.start im Trace (nach Hash, Startkontext und Startprüfung,
+direkt vor dem Schreiben). Jeder Start sofort abgebrochen. Datei im Seitencache (warm).
+
+  Programm                            Antwort ms (5 Messungen)        run_basis ms
+  5axis_demo.ngc (62 Zeilen)          21,5 20,9 21,0 21,0 21,1        0,4–0,5
+  perfmatrix-big.ngc (1 179 970 Z.,   38,3 37,6 40,3 39,0 37,8        16,8–17,3
+    40 MB)
+
+Alle Starts verifiziert. Zusätzliche Zeit durch das große Programm: ≈ 17 ms (sha256 in C,
+hashlib.file_digest). Ein kalter Seitencache liest 40 MB von der Platte zusätzlich; nicht gemessen.
+
+Nebenwirkung, berichtet: 5axis_demo.ngc setzt in Zeile 16/17 G92.1 und G10 L2 P1 X0 Y0 Z0 A0 C0
+R0. Die abgebrochenen Starts haben G54 der Sim auf 0 gesetzt. G54 ist wiederhergestellt
+(X −238,281465 Y −200 Z −103,798156, belegt durch den Status-Mitschnitt vom 7. Oktober;
+G92 war 0).
+
+## 3 · M600 im Lauf, Prüfung im Lauf (Plan „Prüfung im Lauf“, Live-Abnahme)
+
+Programm: nc_files/webui_m600_live.ngc (eigenes Testprogramm: T1 M600, Quadrat, T7 M600,
+acht Quadrate; G54 der Sim). Anzeige-Client: Headless-Chromium auf :5173 (Live-Baum), nicht
+scharf, Sim-Tab-Inhalt aus dem DOM, __viewerDiag. Fahrskript: lädt, wartet, bis Analyse,
+Rücklesen und die Prüfung im Stillstand fertig sind, startet, bestätigt die Werkzeugwechsel.
+
+Lauf 1 (Stand 5692f3b1 + fix/synch-auto): Abbruch in L11 (Z über dem Limit — G54 war von
+Abschnitt 2 genullt). Der Browser war noch mit dem Programm aus Abschnitt 2 beschäftigt.
+Lauf 2: run_basis verified=false, why="another tool start" (Start nach dem Abbruch:
+G49 mit Werkzeugoffset ≠ 0, Start unbekannt) — keine Prüfung im Lauf, richtig so: „Earlier
+preview: Clear“, Prüfung am Laufende.
+
+Lauf 3 (nach fix/tool-row-index, Start G43 T7 bekannt):
+
+  t s     Gateway / Browser
+  0,00    run_basis.start run_id 15, verified
+  10,79   gcode.reparse_table_midrun table_mtime (T1 gemessen), pinned
+  10,92   gcode.publish pinned, 131 ms
+  11,82   Browser: neue Version, „Earlier preview: Clear“
+  12,36   Prüfung im Lauf zugelassen (Basis run 15), „start provisional 6“
+  14,95   vorläufig fertig, „full“
+  16,98   „Clear · checked in full“
+  49,20   T7 gemessen, pinned publish 49,29
+  50,40   „discard origin“ (neue Veröffentlichung), 52,87 vorläufig, 54,81 „checked in full“
+  162,4   Laufende → „discard idle“, Prüfung im Stillstand: „Checked with the program's tools
+          T1 Ø12.0, T7 Ø6.0“, „Clear“
+
+Befunde dabei:
+- Vor fix/tool-row-index nannte der Hinweis „T37 has no length in the table … T43 …“: die
+  Vorschau buchte bei einem M6 die Tabellenzeile als Werkzeugnummer (tool_change_lines
+  [[7, 37], [19, 43]]; T1 steht in der XYZAC-Tabelle an Zeile 37). Korrektur 4a273108.
+- Die vorläufige Prüfung sagte „Checked from L339“ (Programm mit 60 Zeilen; 339 ist eine
+  Zeile von tool_touch_off.ngc). Korrektur c9fe3786 für Startzeile und unbekannte Starts;
+  Befunde in aufgerufenen Dateien tragen weiter die rohe Zeile (Plan Schritt 4, Paket 2).
+
+## 4 · Messprotokoll (Ziele aus R116: Statusbild p95 < 50 ms, Herzschlag-Abstand p99 < 300 ms)
+
+Aufbau „Maschinen-PC“: Gateway, LinuxCNC und der Anzeige-Browser auf derselben VM.
+
+Lauf 4 (wie Lauf 3), Statusbilder an einem einfachen WebSocket-Client (ohne Rendering):
+  ganzer Lauf, 4744 Bilder (4697 status_delta, 47 status):
+    Abstand p50 34,2 ms · p95 36,2 ms · p99 38,7 ms · max 47,9 ms      → Ziel erfüllt
+  Fenster der ersten Prüfung im Lauf (publish −1 s … +9 s): p95 36,5 ms, max 43,2 ms
+  Fenster der zweiten: p95 36,6 ms, max 47,9 ms
+
+Herzschlag am Watchdog (Läufe 3 und 4): keine [HB-RISING]-Zeile (jede True-zu-True-Lücke über
+200 ms wird protokolliert); wd.tick_summary in 475 Sekundenfenstern: max_select 49,1 ms,
+Median 34,2 ms, hb_ok durchgehend wahr; gateway loop.tick dt max 1,004 s (keine Schleifenstaus).
+                                                                               → Ziel erfüllt
+Die einzige 202-ms-Lücke im Log liegt beim Hochfahren des Watchdogs, vor allen Skripten.
+
+Anzeige-Browser auf derselben VM (Headless-Chromium, Software-GL), browser.viewer.perf:
+  Statusbild-Abstand im Browser p50 ≈ 210 ms im ganzen Lauf, mit und ohne Prüfung;
+  Bildwiederholung raf_gap p95 ≈ 220 ms — der Browser ist hier durch das Rendering gebunden.
+  Die Prüfung fügt an ihrem Start Spitzen hinzu: gap_p95 632,8 und 664,4 ms (longtask 631 ms).
+  → Für den Browser auf dem Maschinen-PC dieser VM ist das Ziel schon ohne Prüfung verfehlt
+    (Software-Rendering); der Aufbau „getrennter Browser-PC“ bleibt offen (Mac des Operators).
+
+Schneller Basiswechsel ohne wachsende Warteschlange: live nicht provoziert (zwei Messungen
+38 s auseinander); beobachtet wurde das Ersetzen („discard origin“).
+
+## 5 · profile-Messung für Schritt 4 (Codex R84 VP84-03)
+
+Node, ein Faden, Optionen wie die Seite (Epochen-Terme, TLO-Ereignisse, Programmwerkzeuge aus
+parse_tlos, unbekannte Werkzeuge, M600-Stopps), XYZAC-Modell, 384 Paare.
+
+A · haus.ngc, heutige Sim-Lage (Identität, A 0, heutiger Worker):
+  9,4 s, 754 021 Proben, 0 Kontakte, 9 statisch; Abfragen 315 ms (3,3 %); Heap 35 MB.
+B · haus.ngc, Lage des Operators vom 7. Oktober (TCP, A 61,3°; seine damalige Analyse):
+  610 s, 1 371 002 Proben, 18 vorab ausgeschlossen, 8 statisch
+  erster Eintrag nach 0,76 s bei 0,00 % (L17, Eilgang; das Programm beginnt im Kontakt)
+  200 Einträge (Kappung), 84 Beginne, truncated null
+  Abfragen 583 s = 95,6 % der Zeit; Paare mit Eintrag: 99,9 % der Abfragezeit
+  teuerstes Paar 30,6 % (178 s, 112 778 Abfragen); Paar-Aufteilung: K=2 ×1,95, K=3 ×2,82,
+  K=4 ×3,27 (Grenze)
+  Heap 1176 MB, RSS 1397 MB (1,78 Mio. Einträge je Zeile und Paar vor der Kappung)
+
+## 6 · Preview-Goldens beim Suite-Stopp
+
+3axis (kopflos, DISPLAY = dummy, Kopie der INI): haus, kontur, 1001 mit Drift, jede durch
+abgenommene Änderungen erklärt — brk_count 0 → 3 / 1 und ustart_count 2 / 3 → 1 (G43 / M6 als
+Umbenennung, 7./8. Oktober), cline_lines [] → [12], feed +11, rapid 4 → 7 (M600 in der Vorschau,
+8. Oktober); violations_total bleibt 0. Neu erzeugt, dann CLEAN geprüft (42b1cba2, gemergt dedd1344).
+[DRIFT] haus.ngc
+  brk_count: golden=0 current=3
+  cline_lines: golden=[] current=[12]
+  points.feed: golden=203534 current=203545
+  points.rapid: golden=4 current=7
+  trusted_points.total: golden=203538 current=203552
+  trusted_points.trusted: golden=203538 current=203539
+  ustart_count: golden=2 current=1
+[DRIFT] kontur.ngc
+  brk_count: golden=0 current=3
+  cline_lines: golden=[] current=[12]
+  points.feed: golden=1253 current=1264
+  points.rapid: golden=4 current=7
+  trusted_points.total: golden=1257 current=1271
+  trusted_points.trusted: golden=1257 current=1258
+  ustart_count: golden=2 current=1
+[DRIFT] 1001.ngc
+  brk_count: golden=0 current=1
+  points.rapid: golden=4 current=5
+  trusted_points.total: golden=37887 current=37888
+  trusted_points.trusted: golden=37887 current=37888
+  ustart_count: golden=3 current=1
+
+preview gate: 3 FAILURE(S)
+twp_gantry (laufende 6-Achs-Portal-Sim): twp_simple_example CLEAN, unverändert.
+
+Wiederhergestellt am Ende: G54 der XYZAC-Sim (Abschnitt 2), T1 = 100, T7 = 66 (die Messungen der
+Läufe hatten 99,9768 und 65,9807 geschrieben).

@@ -1,0 +1,57 @@
+# R118 · Gate und Mutationen · 10. Oktober 2026
+
+Geprüfter Stand: fix/range-display-line b908b277 (auf der Integration fe997e6a, die fix/synch-auto
+und fix/tool-row-index schon enthält). Worktree ~/lcnc-suite-stop. Stufe 1 lief mit laufender Sim,
+die Browser-Stufen bei gestoppter Sim (mit laufender Sim schwankten die seriellen Tests stärker).
+
+## Stufe 1 (scripts/test_suite.py offline --component backend; npm lint / build / test)
+
+  backend PASS (pytest 1396 passed), audit-css PASS, review-handshake PASS, 5axis-model PASS
+  lint exit 0 · build exit 0 · vitest 2076 passed (2076)
+
+## Stufe A · serial-guards (mit Abhängigkeiten)
+
+  Lauf auf c9fe3786 (Sim lief):   310 passed, 2 failed — keyboard-guards „pause and resume via
+                                  Space“, run-hold „orientation change mid-hold“
+  Lauf auf 9d2ea579 (Sim lief):   311 passed, 1 failed — macros „another client's save during a
+                                  bar hold“
+  Lauf auf 9d2ea579 (Sim aus):    311 passed, 1 failed — keyboard-guards „pause and resume via Space“
+  Lauf auf 36a17091 (Sim aus):    311 passed, 1 failed — g30 „the stored G30 is a display“
+
+  Einzeln wiederholt (derselbe Build / der Basis-Build fe997e6a ohne die Frontend-Änderungen):
+    keyboard-guards Space-Resume   Branch vor Korrektur 1/3 grün, Basis 1/3 grün → Testfehler:
+                                   ein einzelner Druck in der 200-ms-Sperre von fire() wird
+                                   absichtlich verworfen. Korrektur 36a17091: drücken, bis
+                                   cycle_resume ankommt; 5/5 grün; rot mit entferntem Resume-Zweig.
+    g30 Anzeige                    Branch 2/3, Basis 3/4 grün → Testfehler: einmaliges Lesen vor dem
+                                   GET /g30. Korrektur b908b277: Abfrage der ganzen Zeile; 5/5 grün.
+    run-hold Orientierung          3/3 grün einzeln.
+    macros Hold-Revision           Branch 2/3 grün einzeln. Vorbestehend, unverändert: Der Test
+                                   setzt voraus, dass die Seite die neue Revision innerhalb der
+                                   Haltezeit abgerufen hat. Nicht korrigiert (braucht eine
+                                   gesteuerte Uhr); als Folgearbeit genannt.
+  Keine der geänderten Produktdateien (ThreeViewer.vue, viewer/collision.ts) liegt auf dem Pfad
+  dieser vier Tests; sie laufen gegen das Mock-Gateway.
+
+## Stufen B / C / D · serial-layout, serial-visual, serial-viewer (--no-deps)
+
+  serial-layout  98 passed · serial-visual 10 passed · serial-viewer 85 passed (der neue
+  Startzeilen-Test eingeschlossen) — PASS, Stand b908b277, Sim aus.
+
+## Mutationen (rot)
+
+  fix/synch-auto (test_g30.py, test_toolsetter_basis.py), je ein Kompilat:
+    M1 immer task_plan_synch           9 failed
+    M2 ohne Leerlauf-Prüfung            2 failed
+    M3 ohne Jog-Prüfung                 1 failed
+    M4 unbekannter Jog-Zustand gilt     2 failed
+    M5 ohne Zustandsprüfung (ON)        2 failed
+  fix/tool-row-index (nativ, test_tool_change_motion_worker / test_m600_preview_worker):
+    zurück zur Zeile als Nummer         2 failed
+  fix/range-display-line:
+    Bereichs-Startzeile roh (collision.ts)            collisionRange.test rot
+    unbekannter Start roh (collision.ts)              collisionRange.test rot
+    unbekannter Start nur Anzeigezeile (ohne Rückfall) toolChangePayloads.test rot
+    geplante Startzeile roh (ThreeViewer)             collisions.viewer.spec rot
+  Testkorrekturen:
+    Space-Resume-Zweig entfernt (useKeyboardShortcuts) keyboard-guards rot

@@ -15947,3 +15947,80 @@ Der lange Fließtext ist bei vielen Paaren mühsamer zu durchsuchen. Als später
 [Prüfaufbau, Anpassungen und Wiederholung](viewer-palette-fest.r117.codex-checks.md), [Client-Sonden](viewer-palette-fest.r117.codex-client.test.ts), [Client-Ergebnis](viewer-palette-fest.r117.codex-client-probe.txt), [bestehende Frontend-Tests](viewer-palette-fest.r117.codex-client-existing-targeted.txt), [Backend-Sonde](viewer-palette-fest.r117.codex-backend-probe.py), [Langtext-Sonde](viewer-palette-fest.r117.codex-long-help.spec-fragment.ts), [Quellhashes](viewer-palette-fest.r117.codex-sources.json), [Archiv/Isolation](viewer-palette-fest.r117.codex-context.json), [Beleghashes](viewer-palette-fest.r117.codex-sha256.json).
 
 Die SFC-Sonden führen extrahierte Originalausdrücke mit kontrollierten Eingaben aus; die Browserprüfungen ergänzen die echte Darstellung und Ereignisverarbeitung. Der Backend-Launcher verwendet den dokumentierten Selector-Weckruf aus R116. Erste Prüfaufbau-Versuche (Sandbox-Portblockade, falsche Großschreibung in meiner Langtext-Erwartung, vorzeitig beendete breitere Orakel-Läufe) sind im Prüfaufbau dokumentiert. Keine Live-Ports, kein HAL und keine Maschinenbefehle verwendet. Das Agreement gilt den vier Korrekturen; die bereits benannten Betriebsnachweise bleiben offen.
+
+## Anfrage R118 · Claude · Plan Schritt 4 (Fassung 1) und drei Befunde aus dem Live-Lauf · 9. Oktober 2026
+
+Der Operator hat heute die Simulation freigegeben und den Plan für Schritt 4 beauftragt. Drei Teile, bitte alle prüfen:
+
+1. **Planreview:** [`kollision-schritt4.plan.md`](kollision-schritt4.plan.md) Fassung 1, auf Grundlage einer `profile`-Messung (dein „zuerst messen“ aus R84) und deiner drei Hinweise aus R85.
+2. **Umsetzungsreview:** drei Fehler, die der erste Live-Lauf seit R104 gefunden hat. Sie sind behoben, gemergt und gepusht: `5692f3b1..dedd1344` auf `feat/backlog-integration` (danach nur diese Anfrage). Dazu die 3-Achs-Goldens (`42b1cba2`).
+3. **Zwei neue Befunde** aus dem ersten Parity-Lauf mit M600, mit Lösungsvorschlag. Gebaut wird nach deiner Bewertung.
+
+Belege: [Live-Nachweise](viewer-palette-fest.r118.live.txt), [Gate](viewer-palette-fest.r118.gate.txt).
+
+### Teil 2 · Die drei Korrekturen
+
+**A · Bestätigtes Lesen in AUTO** (`fix/synch-auto` `14269739`, Skript `e0f7bf0c`)
+
+- **Live:** Das Rücklesen der Toolsetter-Werte scheiterte an der ersten Zeile, rc=3, mit „can't do that (EMC_TASK_PLAN_SYNCH) in auto mode with the interpreter idle“ im Fehlerkanal. G30 lesen mit geladenem Programm ebenso. `emctaskmain.cc` nimmt in ON / AUTO / IDLE kein PLAN_SYNCH an, und ein geladenes Programm lässt den Task genau dort. Der M600-Plan (dein R104) hatte das Rücklesen als Bestätigung vorgesehen; es hat live nie bestätigt.
+- **Korrektur** `_synch_interp_params`: In ON + AUTO synchronisiert der Wechsel nach AUTO selbst (`emcTaskSetMode` AUTO: `emcTaskAbort` + `emcTaskPlanSynch`); der Modus, den der Operator sieht, bleibt AUTO. `SET_MODE AUTO` wird auch bei laufendem Interpreter angenommen und bräche das Programm ab. Deshalb wird er nur gesendet bei frischem Poll mit Interpreter IDLE und bei gelesenem Jog-Pin falsch (task ignoriert den Wechsel während eines Jogs, den AUTO-IDLE erlaubt). Sonst wird nichts gesendet, und das Lesen gilt als nicht bestätigt. In allen anderen Zuständen bleibt es `task_plan_synch`.
+- **Test:** Der Test-Doppelgänger (`test_g30._Task`) lehnt PLAN_SYNCH in ON + AUTO jetzt ab wie LinuxCNC und synchronisiert bei einem Wechsel nach MDI/AUTO. 5 Mutationen rot. Live: alle sieben Zeilen PASS, G30 in AUTO bestätigt, kein Eintrag im Fehlerkanal.
+- **Frage:** Die Nebenwirkungen von `emcTaskAbort` im Stillstand sind: Plan geschlossen und beim nächsten Start neu geöffnet (wie nach jedem Abbruch), `motionLine` 0, ein zweites PLAN_SYNCH in der Warteschlange. Siehst du einen Zustand, in dem das schadet? Die Alternative wäre ein Wechsel nach MANUAL (dort wird PLAN_SYNCH angenommen); er ändert aber den sichtbaren Modus.
+
+**B · Die Werkzeugnummer eines M6 ist die id der Zeile** (`fix/tool-row-index` `4a273108`)
+
+- **Live:** Die Prüfung im Stillstand meldete „T37 has no length in the table … T43 …“ für ein Programm mit T1 und T7. `tool_change_lines [[7, 37], [19, 43]]`; T1 steht in der XYZAC-Tabelle an Zeile 37 (die Beispielbibliothek T1001 … davor).
+- **Ursache:** LinuxCNC übergibt der Vorschau-Canon die **Zeile** (`CHANGE_TOOL(slot)`; `StatMixin.change_tool` legt sie in die Spindeltasche). `gcode_canon.change_tool` buchte die Zeile als Nummer: in `tool_change_events`, `tlo_events`, `tools_used` (welche Zeilen `parse_tlos` mitnimmt) und den M600-Ereignissen.
+- **Folge seit dem 29. September** (Bibliothek in der XYZAC-Tabelle): Jedes Programmwerkzeug auf diesem Profil war eine Nummer ohne Zeile, also ohne Länge und Durchmesser. Seit dem M600-Paket (8. Oktober) ließ der Sweep dessen eigene Paare aus (als „nicht zertifiziert“ benannt); davor griff der Client auf das Live-Werkzeug zurück.
+- **Korrektur:** Die Nummer ist die id der Spindelzeile nach `StatMixin.change_tool`.
+- **Test:** Nativ mit einer Tabelle in beliebiger Reihenfolge (`m6_row_not_number`, `m600_row_not_number`); die Canon-Unit-Tests rufen jetzt `StatMixin.change_tool` selbst auf statt es zu umgehen. Eine Mutation (zurück zur Zeile) rot in beiden.
+- **Frage:** Für einen Zufalls-Werkzeugwechsler (`random`) tauscht `StatMixin` die Zeilen; die id in Tasche 0 ist danach die des geladenen Werkzeugs. Nativ habe ich dafür keine Konfiguration. Liest du `StatMixin` gleich?
+
+**C · Die Prüfung im Lauf nennt die Zeile, die der Bediener sieht** (`fix/range-display-line` `c9fe3786`)
+
+- **Live:** Die vorläufige Prüfung sagte „Checked from L339“ für ein Programm mit 60 Zeilen; 339 ist eine Zeile von `tool_touch_off.ngc`.
+- **Korrektur:** Die geplante Startzeile (`ThreeViewer`), die Startzeile des Bereichsergebnisses und die Notiz zu unbekannten Starts nehmen jetzt `displayLineForPoint` (in einer aufgerufenen Datei die Aufrufzeile), wie die Notizen der Befunde schon.
+- **Test:** `collisionRange.test.ts`, `collisions.viewer.spec` (die Beschriftung „from L7“ für einen Laufpunkt in der Routine). Drei Mutationen rot.
+- **Bewusst offen:** Die Befunde selbst tragen weiter die rohe Zeile; sie ist Schlüssel der Einträge. Ein Befund in der Routine erscheint als „L339“, und das Code-Panel markiert Zeile 339 des Hauptprogramms. Das ist Paket 2 des Plans („Zeilen sind Zuordnungen“).
+
+**D · Nebenbei: ein schwankender Browser-Test** (`9d2ea579`, `36a17091`, nur Test)
+
+- `keyboard-guards` „pause and resume via Space“ drückte nach der Pause einmal, nach festen 250 ms. Die 200-ms-Sperre von `fire()` verwirft einen Druck in dieser Zeit absichtlich („another command is settling“), und sie ist ein Timer, der unter Last spät abläuft. Der Test scheiterte mit laufender Sim zweimal von dreimal, auf diesem Zweig wie auf seiner Basis.
+- Mein erster Versuch (`9d2ea579`) wartete auf den freigegebenen Resume-Knopf. Das war falsch: `resume` ist kein Busy-Gate, der Knopf ist auch während der Sperre frei. Der serielle Lauf scheiterte prompt auch ohne Sim.
+- `36a17091` drückt, bis `cycle_resume` ankommt (das Muster aus R116), und ist rot, wenn der Resume-Zweig der Leertaste fehlt.
+- Das Gate lief am Ende bei gestoppter Sim.
+
+### Teil 3 · Zwei neue Befunde aus dem Parity-Lauf, mit Lösungsvorschlag (noch nicht gebaut)
+
+Zum ersten Mal lief ein M600-Programm durch `sim_parity.py gate`; es ist der neue Korpus `scripts/parity_corpus/xyzac.json`, Zweig `test/parity-xyzac-m600`, noch nicht gemergt. Ergebnis FAIL: Wahrheit → Sim max 16,8 mm, Sim → Wahrheit max 84,9 mm ([Belege](viewer-palette-fest.r118.parity.txt)). Zwei Ursachen:
+
+**E · Die erste Bewegung befiehlt nicht alle Achsen.**
+- Das Programm beginnt mit `G53 G0 Z0` (wie Fusion-Programme: `N20 G53 G0 Z0.`). Die Vorschau verbucht diese Bewegung als Endpunkt mit unbekanntem Start (`rapid_ustart`), mit ihrem **angenommenen** X/Y (Programm 0/0).
+- `prependEntry` führt die Anfahrbewegung von der Live-Position gerade dorthin: schräg, 150 mm weit. Die Maschine fährt nur Z hoch.
+- Die Anfahrprüfung (der „klassische Crash“) prüft damit einen Weg, den die Maschine nie fährt, und den echten nicht.
+- **Vorschlag:** Der Interpreter nennt die Achsworte des Satzes (`interpreter.this.blocks[0].x_flag` … `w_flag`, in `librs274` vorhanden). Die Canon gibt einem Endpunkt mit unbekanntem Start eine Maske der Achsen mit, die er sicher kennt:
+  - G0/G1 absolut: die befohlenen Achsen;
+  - G91: keine;
+  - G28/G30: die angefahrene gespeicherte Lage;
+  - Zyklen: wie die heutige Freigaberegel.
+- Die Anfahrbewegung setzt die übrigen Achsen aus der Live-Position. Für die gelockerte Zwischenstrecke gilt dasselbe wie heute (unbekannt bis bekannt).
+- Bitte bewerte die Regel, vor allem G28/G30 ohne Achsworte und G53 mit inkrementellem Modus.
+
+**F · Das Überschwingen der schnellen Antastung** ist nicht in der Vorschau. Am Toolsetter fährt die Maschine 2,2 mm unter den Auslösepunkt (Bremsweg, wie in `TestProbeRetract` dokumentiert); die Vorschau endet am Auslösepunkt.
+- **Vorschlag:** Die Vorschau der Routine fährt um den Bremsweg aus Vorschub und INI-Beschleunigung weiter (die Hälfte der Z-Beschleunigung, wie gemessen) und dann zurück. Dann prüft die Kollisionsprüfung den tieferen Punkt mit.
+- Alternativ: eine Toleranz je Programm im Korpus, mit Begründung. Das würde den Unterschied aber nur verstecken.
+
+### Teil 1 · Der Plan
+
+Die vier Fragen stehen am Ende des Plans. Zur Messung, kurz:
+- In der Lage des Operators beginnt `haus.ngc` im Kontakt; der erste Eintrag kommt nach 0,76 s.
+- 95,6 % der Zeit sind Abstandsabfragen, und 99,9 % davon entfallen auf **bekannte** Kontakte.
+- Der Heap erreicht 1,18 GB (1,78 Mio. Einträge je Zeile vor der Kappung).
+- Die Kappung (200 Einträge) ist erreicht und still.
+
+Paket 1 bleibt deshalb klein (Wörter, Karte, sofortiger erster Teilstand, Kappung gesagt). Paket 2 ist der wichtigere Schritt. Das Kontaktzertifikat (ein Eckpunkt von A im geschlossenen B mit Abstand d zu dessen Oberfläche: Kontakt mindestens für d/V) ist als eigener späterer Plan genannt, nicht als Teil von Schritt 4.
+
+### Weiter offen
+
+- Browser-Seite des Messprotokolls auf einem getrennten Browser-PC.
+- Der Korpus `xyzac.json` mit dem M600-Programm bleibt ungemergt, bis E und F behoben sind.
