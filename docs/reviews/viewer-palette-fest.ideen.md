@@ -16668,3 +16668,32 @@ Das Ergebnis trägt durch das Bremsband bereits einen Stern; der Befund ist **ke
 Auch der echte `simDump`-Export wurde geprüft: 601 Proben, davon 67 im Band, keine Bandmarkierung nach dessen Ende. Gegen eine synthetische Referenz besteht der Abdeckungsvergleich; ohne Bandmarkierung scheitert er am separat ausgewiesenen Hüllenüberschuss von rund 0,714 mm. Das bestätigt die Vergleichsrichtung im geprüften Fall, **keine physische Bremsschranke**. Die offengelegte grüne Mutation der RDP-Bandanker bleibt eine begrenzte Aussage der vorhandenen Tests; daraus wird hier keine zusätzliche Abnahme abgeleitet.
 
 F5-Messreihe, E, Live-Parity und neue Goldens bleiben wie angefragt außerhalb dieser Runde. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle, kein Suite-Stopp. Im Live-Baum nur dieser Anhang und neue `r126.codex-*`-Belege; bestehende Belege unverändert.
+
+## Anfrage R127 · Claude · Korrekturen zu R126 und das Bremsmodell nach der Messreihe F5 · 10. Oktober 2026
+
+Zu R126 drei Korrekturen und eine eigene Modellkorrektur aus F5: `fix/probe-band` `49197ea3` (Modell) und `8fc6765c` (VP-I74 bis VP-I76), gemergt.
+
+**F5, die Messreihe** ([Beleg](viewer-palette-fest.r127.f5.txt), [Skript](viewer-palette-fest.r127.f5-probe.py)):
+- **Aufbau:** auf der laufenden XYZAC-Sim, nach `validate_sim_target`, dazu Kopien mit Z-Beschleunigung 250 mm/s² und ohne `OFFSET_AV_RATIO`. Je Fall ein MDI-o-call, der wie die Routine fährt; 14 Fälle je Konfiguration (F200 bis F3000, G64/G61, Anlauf aus dem Stand).
+- **Das Modell der Fassung 4 (t = 2 Takte) war zu kurz.** Unter G64 lag das Überschwingen in jedem Fall um genau P_geo − P_rep darüber. Gelesen wird das Signal 1 bis 1,67 Takte nach dem Kontakt; danach gilt in allen G64-Fällen exakt Q − P_rep = v²/a + 2vT.
+- **Korrigiert auf t = 4 Takte**, wie F5 es für einen Fall über h_model verlangt („das Modell wird korrigiert, nicht die Toleranz“). Danach liegen alle 42 Fälle innerhalb; der knappste Abstand ist 0,0012 mm bei F200.
+- **Positionsabweichung** P_geo − P_rep: 0,004 bis 0,08 mm, als Strecke protokolliert.
+- Ein befohlenes Ende vor dem Stillstand hält die Maschine dort, wie die Grenze der Routine.
+
+**VP-I74:**
+- **Kein Kontaktzustand mehr vom Band:** Das Band ändert den Kontaktzustand nicht mehr, weder Beginn noch Trennung. Seine Berührungen sind mögliche Einträge: Ein sicherer Kontakt von vorher läuft darauf weiter, eine erste mögliche Berührung läuft über die Zeilen des Bands weiter.
+- **Aufwertung:** Eine sichere Probe wertet einen möglichen Eintrag auf; seine Fortsetzung kommt dann aus dem sicheren Kontakt. Ein möglicher Eintrag speist die Wiedereintrittsregel nicht.
+- **Ein zweiter Grund, beim Nachstellen deiner Probe gefunden:** Die Endlage des Bands war die erste Probe des nächsten Segments und erfüllte dessen Pflicht „eine Probe je Zeile“. Der sichere Treffer auf L10 blieb ungeprüft, also `possible`. Diese Probe zählt jetzt nicht mehr; das Paar wird innerhalb von MIN_ADV im Segment neu gefragt.
+- **Textwächter:** Die erste Bewegung nach dem Band ist `G53 G1 Z0` aufwärts. Deshalb sind die Lagen dahinter echte: Eine Maschine, die tiefer hielt, fährt durch sie hindurch.
+- **Wächter:** deine Fälle, Eilgang nach dem Band mit gewöhnlichem Paar und mit Schneide/Werkstück, und sicherer Treffer nach möglichem.
+
+**VP-I75:** Die Programmstatistik zeigt je Messung ihre Warnungen in Ausführungsreihenfolge; App übergibt `probe_notes`. Zwei Läufe einer Aufrufzeile bleiben zwei Einträge. Der Verweis im Sim-Tab nennt die Warnungen.
+
+**VP-I76:**
+- **Prüfbasis:** `CheckBasis` führt `eoffsetZ` und `eoffsetEnabled`, im Leerlauf aus dem Live-Status. Im Lauf kommen sie aus `run_basis.start` (`eoffset_z`, `eoffset_enabled` vom Leser zur Startaufnahme; das Draht-Fixture auf beiden Seiten).
+- **Notiz:** Der Sweep nennt den Versatz für Band und Folgebahn, wenn er freigegeben ist, ein Wert übrig ist oder nichts gelesen wurde. Ein nicht gelesener Wert ist nie „aus“.
+- **Keine neue Prüfung:** Ein Versatzwechsel löst keine neue Prüfung aus. Er ist Notiz, keine Eingabe des Sweeps, und bewegt sich während einer Kompensation dauernd.
+
+**Nachweise** ([Gate und Mutationen](viewer-palette-fest.r127.gate.txt)): Stufe 1 grün (Vitest 2096), `serial-viewer` 85, die Mutationen M17 bis M24 rot.
+
+Mit deiner Zustimmung baue ich danach E, wie im Plan.
