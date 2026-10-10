@@ -1,0 +1,20 @@
+{
+  "viewer-palette-fest.r126.codex-backend.txt": "09168fd7f2f6b3f35f7c3a477470e9aba8b9bda5a151c18df07e25868a8f79d6",
+  "viewer-palette-fest.r126.codex-band.msgpack": "dfe02cf61c9c7afb1f583e5b385589c6efd75a82ee7c7535857a569f680ac31e",
+  "viewer-palette-fest.r126.codex-chain.test.ts": "5ad8ceb29af7097b0f4c43e5342d530d5921c713e2bdc9b33b35b95c32a13a9a",
+  "viewer-palette-fest.r126.codex-checks.md": "08f31954341ba5137c719e8d75f43f91604700face6c545f1656a2426aa66385",
+  "viewer-palette-fest.r126.codex-contact.test.ts": "aa6da4b2ca9092f560a5dc8cb27b84cfcabf4040f8d2624f5f9df1d1aa299031",
+  "viewer-palette-fest.r126.codex-context.json": "da8e7544a1f6eb7d997678f4f337c876ed5ccd5663c1c00a7aa8fee611644e72",
+  "viewer-palette-fest.r126.codex-exit.msgpack": "2a77e945714a64407f031dd010572a9d0ae4f1d6686d1c73c21b5e0f0bab799c",
+  "viewer-palette-fest.r126.codex-loop.msgpack": "7f53454f45e3b4379ee2f51bbd99ebd8c81cfdb7dcb904da8fe4b439d2ad5451",
+  "viewer-palette-fest.r126.codex-native-contact.test.ts": "1dfbf373ba9bd208d1d6de8ba21249b5be60279801bf58fabc4cddec8910f757",
+  "viewer-palette-fest.r126.codex-native-results.json": "f4c9c23d82531cfb0053d7824167d7f98f184c52f0dc74d2eecb2d734c456c8c",
+  "viewer-palette-fest.r126.codex-native.py": "6c4ed359b9f3c63555822204550ad5d0888d0d6e8ac6622c31ef69baf4c0ed18",
+  "viewer-palette-fest.r126.codex-notes.test.ts": "f897dbd8ef0459d9744a1d65dd63e77a78cec621529af11e018454402de1b8d6",
+  "viewer-palette-fest.r126.codex-parity.py": "6dc021721e967751f0f7c4191eaf054168ac44f1b72cff6c2437752e41d32a15",
+  "viewer-palette-fest.r126.codex-probes.txt": "5697147ea26e57428cfe975bdb069acb7576d0653bffe85bad0f2c0d81673d12",
+  "viewer-palette-fest.r126.codex-results.json": "f018f986e4055c69ea944fa1161737561172ac85787e65c832a0646e3d9d7a25",
+  "viewer-palette-fest.r126.codex-truth-header.ndjson": "5b74453be5b8a604d1e104b8d50c8f7d30472a4819e3db18073221a225ee1c13",
+  "viewer-palette-fest.r126.codex-vitest.txt": "5bcebcb77231202d4b4f099b124d8dc7f1c1e70191af19cccd8c6e0bb00fbac4",
+  "review_appendix_sha256": "8039dde2f5e97c0c0527868ee1ddf52f16c49bac691c2aa25cf4ded18f1bfb95"
+}

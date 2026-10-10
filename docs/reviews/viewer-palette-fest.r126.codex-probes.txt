@@ -1,0 +1,106 @@
+
+ RUN  v4.1.8 /tmp/codex-r126-31qqwza2/lcnc-webui
+
+ ❯ src/viewer/r126.native-contact.codex.test.ts (1 test | 1 failed) 68ms
+   × native M600 hull feed cannot certify a cut before the following G0 67ms
+ ❯ src/viewer/r126.codex.test.ts (3 tests | 3 failed) 52ms
+     × band-only feed contact must not swallow a subsequent real rapid: cutting=false 40ms
+     × band-only feed contact must not swallow a subsequent real rapid: cutting=true 7ms
+     × a later real hit on a continuing pair must be navigable as more than possible 4ms
+ ❯ src/viewer/r126.notes.codex.test.ts (2 tests | 2 failed) 5ms
+     × an unbound braking warning survives the fallback to Program Stats 3ms
+     × a native repeated call with different notes preserves its unbound warning 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r126.codex.test.ts > Codex R126 contact provenance > band-only feed contact must not swallow a subsequent real rapid: cutting=false
+ FAIL  src/viewer/r126.codex.test.ts > Codex R126 contact provenance > band-only feed contact must not swallow a subsequent real rapid: cutting=true
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r126.codex.test.ts:96:59
+     94|       writeFileSync('../r126.codex-contact.json',JSON.stringify(observ…
+     95|       expect(control.hits.some(h=>h.line===11)).toBe(true);
+     96|       expect(targets.some(h=>h.line===11 && !h.possible)).toBe(true);
+       |                                                           ^
+     97|     });
+     98|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/viewer/r126.codex.test.ts > Codex R126 contact provenance > a later real hit on a continuing pair must be navigable as more than possible
+AssertionError: expected true to be undefined
+
+- Expected:
+undefined
+
++ Received:
+true
+
+ ❯ src/viewer/r126.codex.test.ts:107:51
+    105|     observations.push({kind:"band_continuation",result:r,targets});
+    106|     writeFileSync('../r126.codex-contact.json',JSON.stringify(observat…
+    107|     expect(r.hits.find(h=>h.line===10)?.possible).toBeUndefined();
+       |                                                   ^
+    108|     expect(targets.some(h=>!h.possible)).toBe(true);
+    109|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/viewer/r126.native-contact.codex.test.ts > native M600 hull feed cannot certify a cut before the following G0
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r126.native-contact.codex.test.ts:33:42
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/viewer/r126.notes.codex.test.ts > Codex R126 model boundary notes > an unbound braking warning survives the fallback to Program Stats
+AssertionError: expected 'T2 80.000 mm (line not known)' to contain 'not checked below the trip point'
+
+Expected: "not checked below the trip point"
+Received: "T2 80.000 mm (line not known)"
+
+ ❯ src/viewer/r126.notes.codex.test.ts:14:16
+     12|   notes.push({kind:'unbound_warning',events:ev,unbound:bound.unbound,b…
+     13|   expect(bound.unbound).toHaveLength(1);
+     14|   expect(text).toContain('not checked below the trip point');
+       |                ^
+     15|  });
+     16|  it('a native repeated call with different notes preserves its unbound…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/viewer/r126.notes.codex.test.ts > Codex R126 model boundary notes > a native repeated call with different notes preserves its unbound warning
+AssertionError: expected 'T2 80.000 mm (L5), T2 80.000 mm (L5)' to contain 'the retract may not clear'
+
+Expected: "the retract may not clear"
+Received: "T2 80.000 mm (L5), T2 80.000 mm (L5)"
+
+ ❯ src/viewer/r126.notes.codex.test.ts:26:17
+     24|   expect(mapped.byLine.size).toBe(0);
+     25|   expect(mapped.unbound).toHaveLength(2);
+     26|   expect(stats).toContain('the retract may not clear');
+       |                 ^
+     27|  });
+     28| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+
+ Test Files  3 failed | 1 passed (4)
+      Tests  6 failed | 1 passed (7)
+   Start at  13:01:26
+   Duration  787ms (transform 178ms, setup 0ms, import 437ms, tests 132ms, environment 0ms)
+

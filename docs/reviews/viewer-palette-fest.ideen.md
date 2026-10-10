@@ -16619,3 +16619,52 @@ Nach deiner Zustimmung R125 zu [`parity-ef.plan.md`](parity-ef.plan.md) Fassung 
 - die Messreihe F5 (Vorschübe auf der laufenden Sim, INI-Varianten beim nächsten Neustart), vor der Parity;
 - E;
 - die Goldens (haus und kontur bekommen Bremsschenkel) beim Suite-Stopp.
+
+## Review R126 · Codex · Umsetzung F: Bremsbereich der Antastung · 10. Oktober 2026
+
+**Ergebnis: `findings`. Drei offene Befunde: VP-I74 (P1), VP-I75 und VP-I76 (P2). Noch kein Implementierungs-Agreement für F.**
+
+Geprüft: `b8c4e96a..cf432355`, insbesondere `d56c9961`/`9b806d23`, gegen `parity-ef.plan.md` Fassung 4. Ausführung nur in einer Archivkopie von `cf432355`. [Prüfprotokoll und Wiederholung](viewer-palette-fest.r126.codex-checks.md), [Ergebnisse](viewer-palette-fest.r126.codex-results.json), [native Ausgaben](viewer-palette-fest.r126.codex-native-results.json), [Kontext/Quellhashes](viewer-palette-fest.r126.codex-context.json).
+
+### VP-I74 · P1 · Ein möglicher Hüllenkontakt wird zum tatsächlichen Kontaktbeginn und kann spätere Eilgangfunde unterdrücken
+
+**Stellen:** `lcnc-webui/src/viewer/collision.ts:1764–1845`, insbesondere 1783, 1802–1806 und 1835; `clashTargets.ts:46`.
+
+`noteQuery` übernimmt auch auf einem Bremsband den Kontakt in `inContact`, `onsetRapid` und `onsetLine`. Eine Trennung auf dem Band wird richtigerweise nicht als verifiziert übernommen. Es fehlt aber die entsprechende Unterscheidung beim **Beginn**: Ein bloß möglicher Vorschubkontakt wird danach wie ein sicher begonnener Schnitt behandelt. Für Schneide × Werkstück unterdrückt `isRapid && onsetRapid` dann einen späteren Eilgangfund. Bei anderen Paaren wird der spätere gewöhnliche Fund zur `continuation` des möglichen Funds und aus der Befundnavigation ausgefiltert. Zusätzlich bleibt `possible` durch `inBand || prev?.possible` auch dann stehen, wenn derselbe Zeileneintrag später einen bestimmten Fund außerhalb des Bands enthält.
+
+**Eigene Gegenproben:**
+
+- Kleines Modell: P bei Z −36, Hüllenschenkel bis −41 und zurück auf −33, danach gewöhnlicher Eilgang bis −43. Ohne den künstlichen Bremsschenkel wird L11 gefunden. Mit ihm bleibt bei einem gewöhnlichen Paar nur der mögliche Navigationsfund L9; beim Schneide/Werkstück-Paar ist `hits` vollständig leer. Eine zweite Probe mit fortgesetztem Kontakt außerhalb des Bands behält fälschlich `possible` auf der Folgezeile.
+- Zusätzlich die echte native M600-Payload des Programms `G21 G90 / G0 X10 Y50 Z-100 / T2 M600 / G0 X20 Y10 / M2`, geprüft mit synthetischen geschlossenen Körpern: Ein nur vom Bremsbereich erreichter kleiner Bodenkörper und eine Wand gehören zum selben Werkstück. **Mit Bodenkörper: keine Funde. Ohne nur diesen Bodenkörper: Eilgangfund auf L4.** Die Programmauswertung ist nativ/offline; die Kollisionsgeometrie ist ein gezieltes Testmodell, kein Maschinenlauf.
+
+[Geometriesonde](viewer-palette-fest.r126.codex-contact.test.ts), [native Payload → Sweep](viewer-palette-fest.r126.codex-native-contact.test.ts), [rote Wächter](viewer-palette-fest.r126.codex-probes.txt). Alle vier Kontaktwächter scheitern am beschriebenen Verhalten; die Kontrollfunde bestehen.
+
+**Korrekturziel:** Den möglichen Kontaktzustand getrennt führen. Ein möglicher Vorschubbeginn darf einen späteren Eilgang nicht als sicher harmlosen Rückzug freistellen. Ein bestimmter Fund außerhalb des Bands muss als gewöhnlicher Befund erreichbar sein und den Status eines bloß möglichen Funds überwinden können. Bereits vor dem Band tatsächlich bestehende Kontakte dabei erhalten; eine künstliche Hüllentrennung weiterhin nicht als verifiziert ausgeben. Das setzt F2 und F7 Nr. 3 um, ohne die Schnittregel pauschal zurückzusetzen.
+
+### VP-I75 · P2 · Bremswarnungen gehen beim Rückfall auf „Program Stats“ verloren
+
+**Stellen:** `lcnc-webui/src/App.vue:1874–1876`, `viewer/probeStop.ts:158–177`, `SimPanel.vue:93`.
+
+Die Sim-Zeile erhält die neuen `probe_notes`. Bei unbekannter Aufrufzeile oder verschiedenen Hinweisen aus derselben Schleifenzeile nimmt `m600ToolNotes` die Hinweise aber korrekt aus der eindeutigen Zeilenzuordnung heraus. Die Oberfläche verweist dann auf „Tool lengths: Program Stats.“ Dort fehlen die Warnungen zweifach: `App.vue` übergibt `probe_notes` nicht an `m600Events`, und `m600StatsText` stellt `e.note` ohnehin nicht dar.
+
+**Reproduziert:** Bei unbekannter Zeile ist im Ereignis „not checked below the trip point“ vorhanden, in der Statistik nur `T2 80.000 mm (line not known)`. Außerdem nativ: `#3009=2`, zweimal dieselbe Zeile `T2 M600` in einer Schleife, nach dem ersten Aufruf `#3009=3`. Der erste Aufruf trägt `retract`, der zweite nicht. Beide werden deshalb `unbound`; die Statistik zeigt ausschließlich `T2 80.000 mm (L5), T2 80.000 mm (L5)`. Die Warnung zum womöglich noch ausgelösten langsamen Antasten verschwindet vollständig. [Hinweissonde](viewer-palette-fest.r126.codex-notes.test.ts), zwei rote Wächter.
+
+**Korrekturziel:** Warnungen samt Aufruf-/Ausführungsherkunft auch im ungebundenen Fall anzeigen. Dafür sowohl `probe_notes` an die Statistik übergeben als auch die Ereignishinweise dort darstellen. Mehrere Aufrufe nicht durch eine irreführende gemeinsame Zeilenwarnung ersetzen. F3 verlangt die Hinweise ausdrücklich in Sim-Tab und Programmstatistik.
+
+### VP-I76 · P2 · Der vereinbarte Grund „externer Z-Versatz“ fehlt in der Prüfbasis und im Ergebnis
+
+**Vertrag:** Plan F3, Zeile 331, und F7 Nr. 8: Ist `axis.z.eoffset-enable` gesetzt **oder** ein Versatz ungleich null vorhanden, liegen Bremsbereich und Folgebahn außerhalb des Modells; das wird als eigener Grund benannt.
+
+**Statischer Befund:** `viewer/checkBasis.ts:12–79` hält weder Freigabe noch Versatz fest. Auch die Sweep-Anfrage in `ThreeViewer.vue:3423–3430` übergibt diesen Zustand nicht. Der vorhandene HUD-Text „Comp Z“ (`ThreeViewer.vue:5077`) liest den aktuellen Live-Status, hängt nur an `eoffset_enabled` und erklärt keine Modellgrenze des Prüfergebnisses. Der neue allgemeine Hinweis zur idealen Tasterkette nennt externe Versätze ebenfalls nicht.
+
+Das Ergebnis trägt durch das Bremsband bereits einen Stern; der Befund ist **kein fehlender allgemeiner Stern**, sondern der fehlende vereinbarte Grund und seine Bindung an die geprüfte Basis. Der Bediener erfährt nicht, dass die aktuelle Prüfbasis eine weitere Modellannahme verletzt.
+
+**Korrekturziel:** Freigabe und Wert aus der passenden unveränderlichen Leerlauf-/Laufbasis berücksichtigen und den Grund bis zur Ergebnisanzeige erhalten. Wächter für „freigegeben bei Wert 0“ sowie „deaktiviert mit verbleibendem Wert ≠ 0“; ein fehlender Lesewert darf kein nachgewiesenes „aus“ werden. Kein vollständiges Modell externer Versätze nötig. [Quellstellen im Prüfprotokoll](viewer-palette-fest.r126.codex-checks.md). Keine Live-/HAL-Probe für diesen Vertragsbefund durchgeführt.
+
+### Bestätigt und Grenzen dieser Runde
+
+**482 bestehende Backend-/Parity-Tests und 231 bestehende Client-Tests bestehen.** Die eigene native Kette bis zur Sim-Zeile ist grün: Bremsband, Folgebedingung und Messherkunft überstehen Dekodierung und Spur-Slice. Der native Normalfall reicht bis Z −102,8444 bei P = −100, die angenommene Länge bleibt 80. Der Vergleich der task-Zweige besteht. [Backend](viewer-palette-fest.r126.codex-backend.txt), [Client](viewer-palette-fest.r126.codex-vitest.txt).
+
+Auch der echte `simDump`-Export wurde geprüft: 601 Proben, davon 67 im Band, keine Bandmarkierung nach dessen Ende. Gegen eine synthetische Referenz besteht der Abdeckungsvergleich; ohne Bandmarkierung scheitert er am separat ausgewiesenen Hüllenüberschuss von rund 0,714 mm. Das bestätigt die Vergleichsrichtung im geprüften Fall, **keine physische Bremsschranke**. Die offengelegte grüne Mutation der RDP-Bandanker bleibt eine begrenzte Aussage der vorhandenen Tests; daraus wird hier keine zusätzliche Abnahme abgeleitet.
+
+F5-Messreihe, E, Live-Parity und neue Goldens bleiben wie angefragt außerhalb dieser Runde. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle, kein Suite-Stopp. Im Live-Baum nur dieser Anhang und neue `r126.codex-*`-Belege; bestehende Belege unverändert.
