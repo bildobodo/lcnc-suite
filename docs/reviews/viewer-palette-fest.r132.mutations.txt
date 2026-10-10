@@ -1,0 +1,20 @@
+R132 · Claude · E1 mutations (fix/start-dep 9bb093de; Skript viewer-palette-fest.r132.mutations.py, aus lcnc-gateway mit der Venv-Python). Jede Mutation wird in eine Byte-Kopie zurückgesetzt; Spalten: Name, Ergebnis, pytest-Zeile, erster Assert.
+
+rdp_anchor RED 1 failed in 0.10s E       AssertionError: Lists differ: [[0.0, 0.0, 0.0], [10.0, 0.0, 0.0]] != [[0, 0, 0], [0, 0, 0], [0, 0, 0], [10, 0, 0]] | E
+dep_nan_off RED 1 failed in 0.11s E       AssertionError: Lists differ: [{'line': 2, 'axis': 'X', 'value': 600.0, 'limit': 500.0, 'kind': 'max'}] != [] | E
+read_gate_off RED 1 failed in 0.16s E           AssertionError: Tuples differ: (None, [1, 0]) != ([3], [1, 1]) | E
+walk_read_off RED 1 failed in 0.09s E           AssertionError: Tuples differ: (None, [1, 0]) != ([3], [1, 1]) | E
+return_readd_off RED 1 failed in 0.10s E       AssertionError: Lists differ: [3, 3] != [3, 3, 0, 3] | E
+foreign_excuse_off RED 1 failed in 0.19s E       AssertionError: 1 != 0
+code_eq_off RED 1 failed in 0.12s E       AssertionError: 'g682' unexpectedly found in {'g53x_core': frozenset({3, 4, 5}), 'g682': frozenset(), 'g683': frozenset({3, 4, 5}), 'g684': frozenset(), 'g69_core': frozenset(), 'twp_touchoff': frozenset({0, 1, 2, 3, 4, 5}
+hook_union_off RED 1 failed in 0.05s E       AssertionError: frozenset({3, 4, 5}) is not None : an unbound prolog reads every axis
+rotary_maybe_off RED 1 failed in 0.33s E       AssertionError: None != [0]
+leg3_off RED 1 failed in 0.04s E       AssertionError: Tuples differ: (frozenset({0, 1}), frozenset()) != (frozenset(), frozenset({0, 1})) | E
+first_g1_feed RED 1 failed in 0.10s E       AssertionError: Tuples differ: ([], None, [[0.0, 0.0, 0.0]]) != ([[0, 0, 0]], [1], []) | E
+feed_basis_always2 RED 1 failed in 0.10s E       AssertionError: Lists differ: [2] != [3] | E
+m600_hook_off RED 1 failed in 0.05s E           AssertionError: Items in the second set but not the first: | E           'm600' : prolog=x
+named_read_off RED 1 failed in 0.21s E           AssertionError: Tuples differ: (None, [1, 0]) != ([3], [1, 1]) | E
+marked_bypass RED 1 failed in 0.05s E       AssertionError: Items in the second set but not the first: | E       0
+probe_unknown_keeps_dep RED 1 failed in 0.11s E           AssertionError: 2 != 1 : e_read_dep: unknown to the end outranks dependent
+word_not_value RED 1 failed in 0.09s E       AssertionError: Lists differ: [7] != [6] | E
+verify_sb_off RED 1 failed in 0.16s E       AssertionError: Tuples differ: ((False, 'field start_believed differs'), ([34 chars]rs')) != ((True, 'same'), (True, 'same')) | E
