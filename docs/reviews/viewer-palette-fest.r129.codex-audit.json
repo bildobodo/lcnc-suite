@@ -1,0 +1,157 @@
+{
+  "scope": "plan Fassung 5; no implementation of E4a under test",
+  "source_sha256": "af5e6eb664bd662e89abafa36d7cc4e2fc770287c71288435eb821361e0e2d5a",
+  "call_graph_read_supersets": {
+    "g682": {
+      "axes": "",
+      "read_functions": {}
+    },
+    "g683": {
+      "axes": "ABC",
+      "read_functions": {
+        "get_current_rotary_positions": [
+          "A",
+          "B",
+          "C"
+        ],
+        "get_machine_a": [
+          "A"
+        ]
+      }
+    },
+    "g684": {
+      "axes": "",
+      "read_functions": {}
+    },
+    "g53x_core": {
+      "axes": "ABC",
+      "read_functions": {
+        "get_current_rotary_positions": [
+          "A",
+          "B",
+          "C"
+        ],
+        "get_machine_a": [
+          "A"
+        ]
+      }
+    },
+    "g69_core": {
+      "axes": "",
+      "read_functions": {}
+    },
+    "twp_touchoff": {
+      "axes": "XYZABC",
+      "read_functions": {
+        "get_current_rotary_positions": [
+          "A",
+          "B",
+          "C"
+        ],
+        "get_machine_a": [
+          "A"
+        ],
+        "twp_touchoff": [
+          "X",
+          "Y",
+          "Z"
+        ]
+      }
+    }
+  },
+  "actual_rotary_helper": [
+    {
+      "B": 0,
+      "C": 0,
+      "primary_secondary_degrees": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "B": 20,
+      "C": -15,
+      "primary_secondary_degrees": [
+        -14.999999999999998,
+        20.0
+      ]
+    }
+  ],
+  "toplevel_import_counterexample": {
+    "toplevel_inside_suite_python": true,
+    "function_name": "g682",
+    "actual_function_file_inside_suite_python": false,
+    "observed_X_read": 123.0
+  },
+  "existing_M600_M601_recognizer_and_hooks": {
+    "M600 modalgroup=6 ngc=m600": {
+      "foreign_m600_codes": [],
+      "opaque_in_RemapEnv": false
+    },
+    "M600 modalgroup=6 ngc=m600 prolog=reads_x": {
+      "foreign_m600_codes": [],
+      "opaque_in_RemapEnv": true
+    },
+    "M600 modalgroup=6 ngc=m600 epilog=reads_x": {
+      "foreign_m600_codes": [],
+      "opaque_in_RemapEnv": true
+    },
+    "M601 modalgroup=6 ngc=m601": {
+      "foreign_m600_codes": [],
+      "opaque_in_RemapEnv": false
+    },
+    "M601 modalgroup=6 ngc=m601 prolog=reads_x": {
+      "foreign_m600_codes": [],
+      "opaque_in_RemapEnv": true
+    },
+    "M601 modalgroup=6 ngc=m601 epilog=reads_x": {
+      "foreign_m600_codes": [],
+      "opaque_in_RemapEnv": true
+    }
+  },
+  "corpus": [
+    {
+      "file": "twp_gantry/twp_simple_example.ngc",
+      "mode": "foreign",
+      "square_call": true,
+      "g682": true,
+      "g683": false
+    },
+    {
+      "file": "twp_gantry/twp_a_tilt.ngc",
+      "mode": "foreign",
+      "square_call": true,
+      "g682": true,
+      "g683": false
+    },
+    {
+      "file": "twp_gantry/parity_linear.ngc",
+      "mode": "ordered",
+      "square_call": false,
+      "g682": false,
+      "g683": false
+    },
+    {
+      "file": "twp_gantry/twp_g69_tail.ngc",
+      "mode": "foreign",
+      "square_call": true,
+      "g682": true,
+      "g683": false
+    },
+    {
+      "file": "twp_gantry/twp_a_define_tilted.ngc",
+      "mode": "foreign",
+      "square_call": true,
+      "g682": true,
+      "g683": false
+    },
+    {
+      "file": "twp_gantry/twp_g683_tilted.ngc",
+      "mode": "foreign",
+      "square_call": true,
+      "g682": false,
+      "g683": true
+    }
+  ],
+  "checks": "PASS: all audit assertions; no product acceptance implied"
+}
