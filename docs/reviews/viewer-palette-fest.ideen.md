@@ -16497,3 +16497,51 @@ Bitte prüfe [`parity-ef.plan.md`](parity-ef.plan.md), Fassung 3. Es gibt noch k
 **Sichtbare Folge:** Jedes Programm mit vorhergesagter M600-Messung zeigt dann „Clear*“, auch auf der Sim.
 
 Zwei Fragen stehen am Ende des Plans.
+
+## Review R124 · Codex · Verträge E/F, Fassung 3 · 10. Oktober 2026
+
+**Ergebnis: `findings`. Die R123-Reste sind durch die Vertragsergänzungen und den engeren Anspruch auf Planebene geschlossen. Ein neuer Punkt bleibt offen: VP124-01 zur numerischen Zusage in F3.** E ist damit als Plan angenommen. Für F sind die modellierte Hülle und eine auf jeder Maschine sichtbar bedingte Folgevorschau angenommen; die vorgeschlagene allgemein zulässige Eingangsverzögerung ist es nicht.
+
+Geprüft: `e4812385..663c3a4c`, Plan Fassung 3 und Antworttabelle in eigener Archivkopie. Sechs native Offline-Gegen-/Kontrollfälle, ohne Live-Zugriff. [Sonde](viewer-palette-fest.r124.codex-native.py), [Runner](viewer-palette-fest.r124.codex-run.py), [Ergebnisse](viewer-palette-fest.r124.codex-native-results.json), [Prüfaufbau und Grenzen](viewer-palette-fest.r124.codex-checks.md).
+
+### Geschlossen und angenommen
+
+- **VP122-02:** `*_dep_f` in beiden Strömen und der erste G1 als Kettentest lösen den Draht-Rest. Die eigene Zeituntergrenze aus den INI-Geschwindigkeitsgrenzen ist als Vertrag angenommen. Fehlende/ungültige Grenzen dürfen bei der Umsetzung keine erfundene endliche Dauer ergeben.
+- **VP122-03:** P_geo, P_rep und Q sind getrennt. Die aus dem Messpunkt abgeleitete Werkzeugbasis und Folgebahn werden auf jeder Maschine als bedingt geführt; G53 Z0 macht sie nicht mehr pauschal wieder bekannt. Die zurückgezogene Aussage zum bloß verkürzten Fehlerablauf, die externen Versätze und `max(h_schnell, h_langsam)` sind berücksichtigt. Der verbleibende Einwand betrifft die **neue** F3-Zahl, siehe unten.
+- **VP122-04:** Der ausdrückliche Verzicht auf eine Produkt-Zertifizierung löst die unvollständige Kettenzulassung innerhalb dieses Plans. F5 ist ein Nachweis für die protokollierte Sim-Konfiguration; F6 verschiebt einen vollständigen Maschinenvertrag in einen späteren, getrennten Umfang. Die Messreihe bleibt vor der Parity-Abnahme erforderlich.
+- Die getrennte Behandlung von Hüllenfunden, der Erhalt ihrer Herkunft und die beiden Parity-Mutationen sind übernommen. VP122-01 bleibt geschlossen.
+
+### VP124-01 · P1 · Die Prüfzone begrenzt nicht die Wirkung eines Messfehlers auf beliebige Folgeprogramme
+
+**Stelle:** `parity-ef.plan.md:269–271, 312–317` und F7 Nr. 5.
+
+Der geometrische Satz gilt unter seiner Voraussetzung: Bleiben Bahn und Körper gleich und ändert sich ihre relative Lage nur um einen Vektor mit Norm höchstens δ, kann ihr Abstand höchstens um δ kleiner werden. **Die Vorschau garantiert diese Voraussetzung für ein Programm nach M600 nicht.** `#5063` ist ein Programmeingang; daraus können weitere Koordinaten, gespeicherte Werte oder Verzweigungen entstehen. Der Plan enthält dafür weder eine Einschränkung noch einen Nachweis. Die Messparameter sind auch ausdrücklich Teil der unterstützten Vorschau. [LinuxCNC, G38.n](https://linuxcnc.org/docs/2.9/html/gcode/g-code.html#gcode:g38).
+
+**Native Gegenprobe:** T2 = 80, Platte −180, ideales P_rep = −100. Der Test führt die gebündelte M600-Vorschau aus und speist danach ausdrücklich die zwei hypothetischen Messergebnisse −100 und −100,1 samt zugehöriger Länge 80 bzw. 79,9 ein. Anschließend:
+
+| Folgesatz ab X100/Y20/Z−90 | Ziel-X ideal | Ziel-X mit 0,1 mm Messunterschied |
+|---|---:|---:|
+| `G1 X150 F100` (Kontrolle) | 150 | 150 |
+| `G1 X[150 + 100 * [#5063 + 100]] F100` | 150 | 140 |
+| `#5063 < −100,05`: X50, sonst X150 | 150 | 50 |
+
+Alle sechs Parses bestehen. Die 0,1 mm entsprechen bei konstantem F200 rechnerisch **30 ms**, also weit weniger als die vorgeschlagenen **600 ms**; trotzdem unterscheiden sich die folgenden X-Ziele um **10 bzw. 100 mm**. Das ist eine Prüfung der nativen Programmauswertung mit eingespeisten Werten, **keine gemessene Verzögerung und kein ausgeführter Maschinenlauf**. Sie widerlegt bereits die benötigte Annahme „nur um δ verschobene Werkzeugseite“. Ein späterer Werkzeugwechsel beseitigt außerdem keine Abhängigkeit, die das Programm zuvor in andere Parameter übernommen hat.
+
+Damit ist „reports within 600 ms“ keine hinreichende Bedingung für die behauptete Absicherung der Folgebahn. Der vorhandene Stern korrigiert eine solche falsche Erklärung nicht. Zusätzlich benennt `collision.ts:18–20` selbst eine Mindestauflösung; aus dem UI-Ergebnis „Clear“ folgt kein darüber hinausgehender Abstandsnachweis für jede Zwischenlage.
+
+**Empfohlene kleine Korrektur:** Den bedingten Restweg beibehalten, aber `t_max = m / v_letzt` und die daraus abgeleitete Zusage aus F3/F7 entfernen. `δ ≤ v · t_in` darf als Erklärung des möglichen Längenfehlers stehen, ausdrücklich **ohne** Zusage über die gesamte Bahnabweichung. Keine zusätzliche Datenflussanalyse für dieses Paket nötig. Ein späterer Vertrag mit einer numerischen Toleranz müsste die verwendeten Messwerte und die daraus entstehenden Bewegungen tatsächlich begrenzen; eine neue HAL-Zulassung allein würde diese Programmbedingung nicht beweisen.
+
+Möglicher Hilfetext:
+
+> “After the measurement at L7, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified.”
+
+Die Fälle mit Rechnung und Verzweigung gehören als Wächter zur Anzeige: Die Folgespur bleibt unter ihrer Annahme gekennzeichnet, statt durch eine Verzögerungszahl als abgesichert zu erscheinen.
+
+### Antworten auf die zwei Fragen
+
+1. **Stern am Gesamtergebnis plus Herkunft an den betroffenen Listeneinträgen.** Ich empfehle die zusätzliche Kennzeichnung im Sim-Tab: kurz „conditional“ am Eintrag, mit „after the measurement at L7“ in seiner eigenen Hilfe. Bei einer zusammengehörigen Gruppe genügt ein gemeinsamer sichtbarer Hinweis; gefilterte oder einzeln navigierte Einträge müssen ihre Herkunft behalten. Keinen langen Satz in jede Tabellenzeile schreiben. „Possible“ bleibt die eigene Bedeutung des Hüllenfunds; ein gewöhnlicher Fund außerhalb H ist zwar auf der angenommenen Bahn bestimmt, bleibt aber von der Messannahme abhängig. Eine geometrische Trennung beendet diese Abhängigkeit nicht. So passt die Detailansicht zum Stern im Ergebnis.
+2. **Das reine Translationsargument ist richtig, seine allgemeine Anwendung hier nicht.** Daher kein `t_max` als zulässige Tasterlatenz oder Erklärung, wann die Folgebahn abgesichert sei. Die kleine Korrektur oben erhält den Nutzen der Vorschau, ohne für dieses Paket einen neuen Maschinenvertrag oder eine Analyse aller Parameterabhängigkeiten zu verlangen.
+
+**Kleiner Messhinweis für F5:** `P_geo − P_rep` ist eine Strecke. Beim kurzen Anlauf ist ihre Division durch den programmierten Vorschub kein gemessenes `t_in`. Entweder die Eingangs-/Kontaktzeit mit geeigneten Zeitmarken messen oder den Wert als Positionsabweichung protokollieren; der Abdeckungsvergleich P_geo → Q bleibt davon unabhängig.
+
+[Quellhashes](viewer-palette-fest.r124.codex-sources.json), [Archivkontext](viewer-palette-fest.r124.codex-context.json). Keine Produktänderung, keine Live-Ports oder Maschinenbefehle, kein Suite-Stopp. Keine neue Parity- oder Live-Abnahme; keine Gesamtgates für diese reine Planrunde.
