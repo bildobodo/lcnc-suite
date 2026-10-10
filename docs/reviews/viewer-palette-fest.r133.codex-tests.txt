@@ -1,0 +1,118 @@
+R133 focused repository tests and test-environment limitation
+
+===== 145 native/canon tests, exit 0 (backend-focused.txt) =====
+........................................................................ [ 49%]
+................................................................... [ 95%]
+......                                                                   [100%]
+
+
+===== Collection supporting the 145 test count (collected.txt) =====
+test_m600_preview_worker.py: 46
+test_start_dep_worker.py: 53
+test_start_tlo_worker.py: 11
+test_tool_change_motion_worker.py: 35
+
+
+
+===== 75 frontend tests, exit 0 (frontend.txt) =====
+
+ RUN  v4.1.8 /tmp/codex-r133-d06eos78/src/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  75 passed (75)
+   Start at  19:56:50
+   Duration  1.02s (transform 230ms, setup 0ms, import 567ms, tests 165ms, environment 0ms)
+
+
+
+===== Initial combined backend attempt interrupted at E3 dispatch, exit 130; NOT PASS (backend.txt) =====
+........................................................................ [ 27%]
+................................................................... [ 52%]
+.......................
+
+===== Isolated E3 dispatch without workaround, 60-second timeout, exit 124; NOT PASS (backend-joints.txt) =====
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/codex-r133-d06eos78/src/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 120 items / 119 deselected / 1 selected
+
+test_command_dispatch.py::TestHandlerExecution::test_the_start_joints_are_this_poll_s 
+
+===== Isolated E3 dispatch stack after 8 seconds, 20-second timeout, exit 124; NOT PASS (backend-joints-stack.txt) =====
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/codex-r133-d06eos78/src/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... collected 120 items / 119 deselected / 1 selected
+
+test_command_dispatch.py::TestHandlerExecution::test_the_start_joints_are_this_poll_s Timeout (0:00:08)!
+Thread 0x0000ffff79fef160 (most recent call first):
+  File "/usr/lib/python3.13/concurrent/futures/thread.py", line 90 in _worker
+  File "/usr/lib/python3.13/threading.py", line 994 in run
+  File "/usr/lib/python3.13/threading.py", line 1043 in _bootstrap_inner
+  File "/usr/lib/python3.13/threading.py", line 1014 in _bootstrap
+
+Thread 0x0000ffff8bb42ba0 (most recent call first):
+  File "/usr/lib/python3.13/selectors.py", line 452 in select
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 2004 in _run_once
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 683 in run_forever
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 712 in run_until_complete
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118 in run
+  File "/usr/lib/python3.13/asyncio/runners.py", line 195 in run
+  File "/tmp/codex-r133-d06eos78/src/lcnc-gateway/test_command_dispatch.py", line 28 in _run
+  File "/tmp/codex-r133-d06eos78/src/lcnc-gateway/test_command_dispatch.py", line 238 in _send
+  File "/tmp/codex-r133-d06eos78/src/lcnc-gateway/test_command_dispatch.py", line 872 in test_the_start_joints_are_this_poll_s
+  File "/usr/lib/python3.13/unittest/case.py", line 606 in _callTestMethod
+  File "/usr/lib/python3.13/unittest/case.py", line 651 in run
+  File "/usr/lib/python3.13/unittest/case.py", line 707 in __call__
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/unittest.py", line 389 in runtest
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 179 in pytest_runtest_call
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 245 in <lambda>
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 353 in from_call
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 244 in call_and_report
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 137 in runtestprotocol
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/runner.py", line 118 in pytest_runtest_protocol
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 396 in pytest_runtestloop
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 372 in _main
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 318 in wrap_session
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/main.py", line 365 in pytest_cmdline_main
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_callers.py", line 121 in _multicall
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_manager.py", line 120 in _hookexec
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pluggy/_hooks.py", line 512 in __call__
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py", line 199 in main
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/_pytest/config/__init__.py", line 223 in console_main
+  File "/home/cnc/lcnc-suite/lcnc-gateway/.venv/lib/python3.13/site-packages/pytest/__main__.py", line 9 in <module>
+  File "<frozen runpy>", line 88 in _run_code
+  File "<frozen runpy>", line 198 in _run_module_as_main
+
+
+===== Independent asyncio-to-thread control, 5-second timeout after returning 42, exit 124 (asyncio-control.txt) =====
+before asyncio.to_thread
+after asyncio.to_thread: 42
+
+
+===== Same E3 dispatch test with periodic event-loop wake, exit 0; one PASS (backend-joints-wakeup.txt) =====
+.                                                                        [100%]
+[GC] +304ms gen=2 duration=9.3ms collected=812 uncollectable=0
+[GC] +312ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +319ms gen=2 duration=7.3ms collected=0 uncollectable=0
+[GC] +326ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +332ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +339ms gen=2 duration=6.4ms collected=0 uncollectable=0
+
+

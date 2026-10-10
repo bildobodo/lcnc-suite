@@ -1,0 +1,228 @@
+
+ RUN  v4.1.8 /tmp/codex-r133-d06eos78/src/lcnc-webui
+
+ ❯ src/viewer/r133.review.test.ts (15 tests | 12 failed) 89ms
+     × first G1 with all XYZ specified keeps its feed kind and F 6ms
+     × G43 before the first move does not subtract its offset twice from dependent Z 1ms
+     × the G43 error must not hide an obstacle on the real horizontal X move 24ms
+     × a first endpoint after unseen M6 travel is not connected to the program-start pose 1ms
+     × slicing the real side request preserves the untracked-write caveat 2ms
+     × merging the run beginning retains a provisional range and boundary contacts 2ms
+     × a full run check without start joints never calls a wholly dependent track clear 37ms
+     × a run whose beginning is still unbound never says checked in full 7ms
+     × a call-less store before the first absolute move is still untracked 1ms
+     × the untracked-write flag is authoritative even when no endpoint retains a mask 1ms
+     × unknown time begins at the first G93 move, not its successor 1ms
+     × the help names the cause and line of unknown beginning time 4ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > first G1 with all XYZ specified keeps its feed kind and F
+AssertionError: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/viewer/r133.review.test.ts:68:26
+     66|  it('first G1 with all XYZ specified keeps its feed kind and F',()=>{
+     67|   const {entry}=load('first_g1_xyz',[100,0,0]);
+     68|   expect(entry.rapid[1]).toBe(0);
+       |                          ^
+     69|   expect(entry.cum[1]).toBeCloseTo(60,4);
+     70|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > G43 before the first move does not subtract its offset twice from dependent Z
+AssertionError: expected 80 to be close to 90, received difference is 10, but expected 0.000049999999999999996
+ ❯ src/viewer/r133.review.test.ts:80:24
+     78|   // Machine starts at Z100, G43.1 Z10 relabels the tip to program Z90.
+     79|   // G0 X10 moves no Z: the endpoint must still be program Z90.
+     80|   expect(entry.pos[5]).toBeCloseTo(90,4);
+       |                        ^
+     81|  });
+     82|  it('the G43 error must not hide an obstacle on the real horizontal X …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > the G43 error must not hide an obstacle on the real horizontal X move
+AssertionError: expected 0 to be greater than 0
+ ❯ src/viewer/r133.review.test.ts:91:30
+     89|   evidence.g43Collision={actual:actual.hits,analyticHorizontalReferenc…
+     90|   expect(reference.hits.length).toBeGreaterThan(0);
+     91|   expect(actual.hits.length).toBeGreaterThan(0);
+       |                              ^
+     92|  });
+     93|  it('control: G43 after first move keeps program Z90 at its relabel',(…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > a first endpoint after unseen M6 travel is not connected to the program-start pose
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r133.review.test.ts:99:38
+     97|  it('a first endpoint after unseen M6 travel is not connected to the p…
+     98|   const {entry}=load('m6_before_first');
+     99|   expect(!entry||entry.brk?.[1]===1).toBe(true);
+       |                                      ^
+    100|  });
+    101|  it('slicing the real side request preserves the untracked-write cavea…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > slicing the real side request preserves the untracked-write caveat
+AssertionError: the given combination of arguments (null and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ src/viewer/r133.review.test.ts:110:34
+    108|   const sideResult=sweepCollisions(model(),{...side,wcs:side.wcsEpoch}…
+    109|   evidence.sideNotes={full:fullResult.uncertified,sliced:sideResult.un…
+    110|   expect(sideResult.uncertified).toContain('start-dependent beginning'…
+       |                                  ^
+    111|  });
+    112|  it('merging the run beginning retains a provisional range and boundar…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > merging the run beginning retains a provisional range and boundary contacts
+AssertionError: expected undefined to deeply equal { fromCum: +0, fromLine: 4 }
+
+- Expected:
+{
+  "fromCum": 0,
+  "fromLine": 4,
+}
+
++ Received:
+undefined
+
+ ❯ src/viewer/r133.review.test.ts:119:24
+    117|   const merged=mergeBeginningOntoBase(sideResult,baseResult,entry.cum[…
+    118|   evidence.runMerge={before:baseResult.range,after:merged.range,bounda…
+    119|   expect(merged.range).toEqual(baseResult.range);
+       |                        ^
+    120|   expect(merged.boundaryContacts).toEqual(baseResult.boundaryContacts);
+    121|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > a full run check without start joints never calls a wholly dependent track clear
+AssertionError: expected 'Clear · checked in full' not to match /Clear|checked in full/
+
+- Expected:
+/Clear|checked in full/
+
++ Received:
+"Clear · checked in full"
+
+ ❯ src/viewer/r133.review.test.ts:129:27
+    127|   const run=actualSweepView(result,{phase:'full',provisionalShown:fals…
+    128|   evidence.wholeVerdict={startDependent:result.startDependent,idle,run…
+    129|   expect(run.verdict).not.toMatch(/Clear|checked in full/);
+       |                           ^
+    130|  });
+    131|  it('a run whose beginning is still unbound never says checked in full…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > a run whose beginning is still unbound never says checked in full
+AssertionError: expected 'Clear · checked in full' not to contain 'checked in full'
+
+Expected: "checked in full"
+Received: "Clear · checked in full"
+
+ ❯ src/viewer/r133.review.test.ts:137:27
+    135|   const run=actualSweepView(result,{phase:'full',provisionalShown:fals…
+    136|   evidence.unboundVerdict={startDependent:result.startDependent,run};
+    137|   expect(run.verdict).not.toContain('checked in full');
+       |                           ^
+    138|  });
+    139|  it('a call-less store before the first absolute move is still untrack…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > a call-less store before the first absolute move is still untracked
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r133.review.test.ts:143:79
+    141|   evidence.initialStore={flag:raw.start_writes_untracked??null,stale:r…
+    142|     result:sweepCollisions(model(),{...base,wcs:base.wcsEpoch},wcs,{ma…
+    143|   expect(raw.start_writes_untracked===true||!!raw.stale_offset_lines?.…
+       |                                                                               ^
+    144|  });
+    145|  it('control: a store after fully known coordinates has no start-depen…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > the untracked-write flag is authoritative even when no endpoint retains a mask
+AssertionError: the given combination of arguments (null and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ src/viewer/r133.review.test.ts:155:30
+    153|   const result=sweepCollisions(model(),{...base,wcs:base.wcsEpoch},wcs…
+    154|   evidence.initialStoreFlagForced={uncertified:result.uncertified,depE…
+    155|   expect(result.uncertified).toContain('start-dependent beginning');
+       |                              ^
+    156|  });
+    157|  it('unknown time begins at the first G93 move, not its successor',()=…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > unknown time begins at the first G93 move, not its successor
+AssertionError: expected { line: 3, bound: false } to deeply equal { line: 2, bound: false }
+
+- Expected
++ Received
+
+  {
+    "bound": false,
+-   "line": 2,
++   "line": 3,
+  }
+
+ ❯ src/viewer/r133.review.test.ts:159:25
+    157|  it('unknown time begins at the first G93 move, not its successor',()=…
+    158|   const {entry}=load('g93_no_limits');
+    159|   expect(entry.depTime).toEqual({line:2,bound:false});
+       |                         ^
+    160|  });
+    161|  it('the help names the cause and line of unknown beginning time',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  src/viewer/r133.review.test.ts > R133 independent native-payload contracts > the help names the cause and line of unknown beginning time
+AssertionError: expected 'Tool and machine parts checked agains…' to match /L2/
+
+- Expected:
+/L2/
+
++ Received:
+"Tool and machine parts checked against each other along the whole program."
+
+ ❯ src/viewer/r133.review.test.ts:166:18
+    164|   const detail=actualVerdictDetail(result,entry);
+    165|   evidence.timeDetail={depTime:entry.depTime,cum:Array.from(entry.cum)…
+    166|   expect(detail).toMatch(/L2/);
+       |                  ^
+    167|   expect(detail).toMatch(/unknown|lower bound|time/i);
+    168|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  12 failed | 3 passed (15)
+   Start at  20:05:53
+   Duration  594ms (transform 209ms, setup 0ms, import 441ms, tests 89ms, environment 0ms)
+

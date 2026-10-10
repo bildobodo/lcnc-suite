@@ -17126,3 +17126,146 @@ Prüfung vollständig offline in der Archivkopie. Im Live-Baum ausschließlich d
 2. Parity-Lauf (`sim_parity.py gate`, `m600_live`, Toleranz 0,5) und der XYZAC-Korpus.
 3. Suite-Stopp mit Schemawechsel und Goldens.
 4. Paket 1 aus Schritt 4.
+
+## Review R133 · Codex · R132-Korrekturen, E2 und E3 · 10. Oktober 2026
+
+**Ergebnis: `findings`. VP-I78–VP-I82 sind im Canon/Worker geschlossen. Sieben offene Befunde VP-I83–VP-I89 verhindern die Implementierungsabnahme von E2/E3; R132 Punkt 8 bleibt als VP-I88 offen.** Geprüft: `fix/start-dep`, `9bb093de..3cacdbf9`, ungemergt, gegen Plan E Fassung 7. Die Operator-Entscheidung **„M600 behält den Stern, auch auf der Sim“** bleibt uneingeschränkt bestehen.
+
+Die unveränderten R132-Sonden bestehen: **33/33 Bedingungen, 17 native Prozesse**. Eigene Repository-Prüfungen: **145 Canon-/Worker-Tests, 75 Frontend-Tests sowie der neue E3-Dispatch-Wächter bestanden**. Beim Dispatch-Wächter war eine offen dokumentierte Testumgebungsanpassung nötig: periodisches Wecken des Event-Loops; schon eine unabhängige `asyncio.to_thread`-Minimalprobe blieb beim Beenden hängen. Kein Produktbefund daraus. Die zusätzlichen Gegenproben verwenden elf native Programme und die echte Client-Kette; **12 rote und drei grüne Vertragsprüfungen**, auf die sieben Befunde unten verteilt.
+
+[Prüfprotokoll und Reproduktion](viewer-palette-fest.r133.codex-checks.md), [R132-Nachprüfung](viewer-palette-fest.r133.codex-r132-rerun.json), [nativer Generator](viewer-palette-fest.r133.codex-native.py), [native Ergebnisse](viewer-palette-fest.r133.codex-native.json), [Payloads](viewer-palette-fest.r133.codex-payloads.zip), [Client-Probe](viewer-palette-fest.r133.codex-client.test.ts), [Client-Messdaten](viewer-palette-fest.r133.codex-client.json), [rote Assertions](viewer-palette-fest.r133.codex-client.txt), [Repository-Testausgaben](viewer-palette-fest.r133.codex-tests.txt), [Kontext](viewer-palette-fest.r133.codex-context.json).
+
+### VP-I83 · P1 · G43 vor der ersten Bewegung verschiebt die gebundene Z-Lage doppelt
+
+**Ort:** `lcnc-webui/src/viewer/scrubTrack.ts:669–674`, `startDep.ts:84–89` am geprüften Commit.
+
+```ngc
+G21 G90
+G43.1 Z10
+G0 X10
+G0 Y0 Z0
+M2
+```
+
+Startgelenke `(100,100,100)`, anfänglicher Werkzeugversatz 0. Der erste `G0 X10` bewegt Z nicht: Nach G43.1 muss sein Programm-Z **90** sein, die Maschine bleibt auf Z100. Der Worker liefert für diesen Punkt `(10,0,-10)`, Maske YZ und `start_believed = (0,0,0)` – das ist korrekt. `buildEntryTrack` rechnet den Start jedoch schon mit dem **TLO des ersten Zielpunkts**, also Z10, in Programm-Z90 um und benutzt diesen Wert zugleich für Δ gegen den Start **vor** dem TLO-Ereignis. Damit wird der Zielpunkt auf **Z80** statt Z90 verschoben.
+
+Eigener Beleg über Decode → Track → Bindung → Sweep: Ein Würfelhindernis bei Maschinenposition `(50,100,100)` liegt auf der tatsächlichen horizontalen X-Fahrt. Der Sweep der Produktspur findet **keinen** Kontakt. Die analytische Kontrollspur, bei der nur das falsche Ziel-Z von 80 auf 90 korrigiert wird, findet den Kontakt auf L3. Es geht also nicht nur um eine Beschriftung oder Zeitabweichung. Die Kontrolle mit G43 erst nach der ersten Bewegung besteht.
+
+**Korrekturziel:** Den Start für Δ in derselben Basis wie `start_believed` ausdrücken – nach E5 mit dem Werkzeugversatz **vor dem ersten TLO-Ereignis**. Die separate Lage des Anfahrpunkts darf weiterhin in der Basis des ersten Zielpunkts ausgedrückt werden; diese beiden Aufgaben nicht vermischen. Wächter für G43/G49 vor der ersten Teilpositionierung, einschließlich Kollisionsgegenprobe und Werkzeugbasis-Normalisierung.
+
+### VP-I84 · P1 · Der Client macht aus dem ersten unbekannten M6-Endpunkt wieder eine geprüfte Anfahrt
+
+**Ort:** `scrubTrack.ts:674–677`, `:997–1001` und das anschließende Löschen des ersten Bruchs in `prependEntry`.
+
+Der R132-Fix setzt bei frühem M6 die betroffenen Achsen korrekt auf `stale` und entfernt `dep`. Mit `TOOL_CHANGE_POSITION = 50 50 50`:
+
+```ngc
+G21 G90
+M6
+G91 G0 X10
+G0 Y10
+M2
+```
+
+Das native Payload enthält keine Startmaske und zwei unbekannte Endpunkte (`rapid_ustart = [1,1]`). `buildEntryTrack` ergänzt trotzdem vom Programmstart `(100,100,100)` eine durchgehende Anfahrt zum angenommenen `(10,0,0)`, löscht dort `brk`/`ustart` und bucht **16,763 s**. Die tatsächliche Lage nach dem Werkzeugwechsel stammt gerade nicht aus dieser Programmstartposition. E1/E7 verbieten diese Ergänzung ausdrücklich.
+
+Der bestehende Schutz `t.unpredicted?.[0]` erfasst die nicht vorhergesagte Messung; er erfasst diesen ersten M6-/`stale`-Endpunkt nicht. `rapid_ustart` allein unterscheidet ihn auch nicht vom ergänzbaren normalen Programmanfang.
+
+**Korrekturziel:** Die Herkunft des ersten unbekannten Endpunkts bis zum Client erhalten. Nur den wirklichen Programmanfang beziehungsweise bestätigte `dep`-Achsen an die Startbasis binden; nach einem nicht gesehenen Werkzeugwechsel oder einem anderen Bereichsverlust keine synthetische bekannte Anfahrt einfügen. R132 bleibt auf Canon-Ebene geschlossen, diese Gegenprobe ergänzt die jetzt erstmals geprüfte vollständige Client-Kette.
+
+### VP-I85 · P2 · Erstes G1 mit vollständigem XYZ verliert Art und F
+
+**Ort:** `scrubTrack.ts:339` und `:676–677`.
+
+```ngc
+G21 G90
+G1 X0 Y0 Z0 F100
+G1 X10
+M2
+```
+
+Vom Start `(100,0,0)` muss die erste Bewegung ein Vorschub von **60 s** sein. Der Worker liefert korrekt `rapid_dep_basis = [2]` samt F100, aber kein gesetztes Maskenbit: Das erste Ziel bestimmt bereits XYZ. Weil `buildScrubTrack` auch `depBasis` und `depF` nur bei `depEnd > 0` übernimmt, gehen diese Angaben verloren. Die Anfahrt fällt auf Basis 1 zurück: **Eilgang, 10 s**, Gesamtdauer 16 statt 66 s. Entsprechend bekommt auch die Kollisionsprüfung die falsche Bewegungsart (Eilgangkontakt statt möglichem Schneiden).
+
+Die positive Kontrolle `G1 X0 F100` mit verbleibender YZ-Maske besteht. Genau deshalb reicht der bestehende First-G1-Test nicht.
+
+**Korrekturziel:** Art und Zeitbasis der ersten Bewegung unabhängig davon erhalten, ob nach ihr noch eine Achse startabhängig ist. Nullmaske bedeutet nicht „keine Metadaten“. Über Decode, Track und Anfahrt für G94 sowie G93/G95 prüfen.
+
+### VP-I86 · P1 · Die Lauf-Anzeige nennt einen ungeprüften Anfang „checked in full“
+
+**Ort:** `lcnc-webui/src/ScrubBar.vue:1058–1060`, vor der `whole`-Prüfung auf `:1086`.
+
+Eigene Ausführung des **unveränderten Computed-Rumpfs** `sweepView` mit einem echten Sweep-Ergebnis für `G91 G0 X10 / G0 Y10` und einer abgeschlossenen Lauf-Grundprüfung ohne gebundene Startgelenke:
+
+- Ergebnis: `startDependent = { fromLine: 2, toLine: 3, whole: true }`, keine Kollisionen.
+- Ohne Laufprüfung korrekt: **„Depends on the machine's position“**.
+- Als Laufprüfung mit `phase: full`, nicht beschäftigt: **„Clear · checked in full“**, grün, ohne Stern.
+
+Der Lauf-Zweig kehrt zurück, bevor die Schutzregel für die vollständig startabhängige Spur erreicht wird. Dasselbe Problem besteht bei einem nur teilweise startabhängigen Anfang: Auch dann wird die Grundprüfung als vollständig bezeichnet, obwohl `startDependent` noch vorhanden ist. Fehlende `start.joints` sind nach E5 ein zulässiger, ausdrücklich zu benennender Fall. Auch ein noch ausstehendes Seitenergebnis darf keine vollständige Abdeckung begründen.
+
+**Korrekturziel:** Die Abdeckung des Anfangs in jedem Anzeigezweig berücksichtigen, insbesondere im Lauf. `whole` ohne Bindung niemals „Clear“; teilweise ungeprüfter Anfang niemals „checked in full“. Fehlende Basis und noch laufende Seitenprüfung unterscheiden. Erst das passende abgeschlossene Seitenergebnis darf diese Lücke schließen. Keine neue Sternbedeutung nötig – das ist eine fehlende Abdeckungsentscheidung.
+
+### VP-I87 · P2 · Der neue Lauf-Merge verliert Bereich und Grenzkontakte
+
+**Ort:** `lcnc-webui/src/viewer/sweepMerge.ts:88–110` (`mergeBeginningOntoBase` über `mergeEntryResult`).
+
+Der Helper baut das Ergebnis aus `mergeEntryResult`, das weder `base.range` noch `base.boundaryContacts` übernimmt. Die eigene Probe erzeugt einen echten Bereichs-Sweep mit `range = { fromCum: 0, fromLine: 4 }`; nach dem Zusammenführen des gebundenen Anfangs sind **beide Felder `undefined`**. Schon eine vorhandene leere Grenzkontaktliste geht verloren; eine gefüllte wird von demselben Rückgabeweg ebenfalls nicht übernommen.
+
+Die Seite nutzt diese Angaben zur Abgrenzung der vorläufigen Prüfung und für „In contact at the check's start“. Der separate Laufstatus schützt einige vorläufige Texte, ersetzt aber die verlorenen Ergebnisdaten und Grenzkontakte nicht. Die Prüfung des Anfangs füllt insbesondere nicht die Lücke zwischen K und einem weiter hinten beginnenden Bereich.
+
+**Korrekturziel:** Bereich und Grenzkontakte beim Merge auf der Grundachse unverändert erhalten beziehungsweise ausdrücklich korrekt abbilden. Ein gebundener Anfang macht einen später beginnenden Bereich nicht zur vollständigen Prüfung. Wächter mit `from > K`, Grenzkontakt und angehaltener vorläufiger Prüfung ergänzen.
+
+### VP-I88 · P1 · R132 Punkt 8 bleibt vor dem ersten absoluten Endpunkt still
+
+**Ort:** `lcnc-gateway/gcode_parse_worker.py:1557–1559`, `lcnc-webui/src/viewer/collision.ts:1320–1330`; ergänzend `scrubTrack.ts:934–966` (`sliceTrack`).
+
+```ngc
+G21 G90
+o100 sub
+G30.1
+o100 endsub
+o100 call
+G0 X0 Y0 Z0
+G30
+M2
+```
+
+G30.1 speichert die startabhängige Position **vor** der ersten Bewegung. Die spätere absolute XYZ-Fahrt heilt den gespeicherten Wert nicht; G30 kehrt zu ihm zurück. Im nativen Preview bleibt dieser rückruflose Schreibvorgang der Inline-Unterfunktion unverfolgt. Dennoch sendet der Worker **weder `start_writes_untracked` noch `stale_offset_lines`**, und der Sweep liefert `uncertified = null`, keine Anfangsnotiz. Die Spur enthält nur angenommene Nullpunkte. Die Kontrolle, die G30.1 erst **nach** `G0 X0 Y0 Z0` ausführt, braucht diesen Hinweis tatsächlich nicht.
+
+Ursache: Das Flag prüft nur, ob ein **Endpunkt nach seiner Bewegung** eine Maske behält (`any(a for _b, a ...)`). Beim ersten absoluten XYZ-Endpunkt ist das bereits 0; es beweist nichts über davor gespeicherte Werte.
+
+**Auch die Client-Seite braucht die Korrektur:** Selbst mit ausdrücklich gesetztem Flag erzeugt derselbe Track keinen Hinweis, weil `collision.ts` erneut eine vorhandene Maske oder `startDependent` verlangt. Außerdem verliert `sliceTrack` die Masken: Der von der Seite tatsächlich gesendete Seitenausschnitt verliert dadurch die Warnung, die der direkte Test am ungeschnittenen gebundenen Track noch zeigt. Im bisherigen normalen Merge verdeckt die Warnung der Grundspur diese zweite Lücke; sie ist kein Beleg, dass der Seitenausschnitt den Vertrag erfüllt.
+
+**Korrekturziel:** Nicht verortbare Schreibvorgänge im startabhängigen Zustand vor dem ersten Endpunkt berücksichtigen, unabhängig vom späteren geometrischen Anfang K. Das nachgewiesene Flag muss im Verbraucher und nach dem Schneiden der Spur wirksam bleiben, auch bei K = 0. Entweder die Ursache konservativ benennen (Stern) oder den Schreibvorgang vollständig verfolgen; keine klare Garantie aus fehlenden Endpunktmasken ableiten.
+
+### VP-I89 · P2 · Unbekannte Anfangszeit bekommt die falsche erste Zeile und keine Erklärung
+
+**Ort:** `scrubTrack.ts:1143`, `ScrubBar.vue:467–476` und `:730–755`.
+
+Native Gegenprobe ohne `[TRAJ] MAX_LINEAR_VELOCITY`:
+
+```ngc
+G21 G90 G93
+G1 X10 F2
+G1 Y10 F2
+M2
+```
+
+Die Zeit ist schon ab **L2** unbekannt. `bindBeginning` legt zunächst `depTime` für L3 an; `prependEntry` übernimmt diese spätere Ursache, statt die davor liegende unbekannte erste Bewegung einzutragen. Ergebnis: `{ line: 3, bound: false }`, `cum = [0,0,0]`.
+
+Die Leiste hängt zwar „+“ an, aber die tatsächliche `verdictDetail`-Berechnung gibt für die Probe nur „Tool and machine parts checked against each other along the whole program.“ zurück – keine Zeitursache, keine Zeile. `depTime` wird in der Oberfläche ausschließlich für das Plus gelesen. E7 verlangt ausdrücklich, dass das „?“ die Zeile und die zeitliche Einschränkung nennt.
+
+**Korrekturziel:** Die früheste Ursache in Ausführungsreihenfolge bewahren, einschließlich der vorangestellten ersten Bewegung; Untergrenze und unbekannte Dauer benennen. Das Plus allein erfüllt den Informationsvertrag nicht. Wächter für mehrere betroffene Anfangsbewegungen und den tatsächlichen Hilfetext.
+
+### Entscheidungen aus der Anfrage
+
+| Punkt | Entscheidung |
+|---|---|
+| 1 · Neutrale Notiz für unbekannte Starts | **Angenommen.** „… run from a position the preview cannot know“ umfasst Werkzeugwechsel und neue Bereichsverluste sachlich richtig. |
+| 2 · `startDependent` ohne Stern; ungetracktes Schreiben mit Stern | **Als Bedeutungsvertrag angenommen.** Ein klar abgegrenzter geprüfter Rest nach K braucht wegen des ausgelassenen Anfangs keinen zusätzlichen Garantiestern. Das „?“ muss die Auslassung benennen; `whole` darf nie „Clear“ sein und ein Lauf darf sie nicht als „checked in full“ ausgeben (VP-I86). Ungetrackte Schreibvorgänge können den Rest verändern und brauchen den Stern unabhängig von noch vorhandenen Masken (VP-I88). **M600 behält seinen eigenen Stern auch auf der Sim.** |
+| 3 · Lauf auf der Grundachse, Anfangsfunde bei cum 0 mit Zeilen | **Als Anzeigegrenze angenommen.** Abgebrochener Seiten-Sweep mit `covered: 0` ist konservativ. Bereichs-/Grenzkontaktmetadaten müssen erhalten bleiben (VP-I87); ein fehlender oder ausstehender Anfang bleibt sichtbar ungeprüft (VP-I86). |
+| 4 · Positionslesungen als solche benennen | **Angenommen.** Keine Werkzeugmessung daraus machen; eigene Ursachenzeile und keine Messungszählung sind richtig. Die nativen R132-Lesefälle bestehen. |
+| 5 · Regenerierte Fixtures samt Bremsbereich | Als Folge von F nachvollziehbar; die ausgeführten Payload-Tests bestehen. Das ersetzt keine Parity-/Live-Abnahme. |
+| 6 · Erstes G1 bis zur Spur | Vertrag bleibt angenommen, Umsetzung noch unvollständig (VP-I85). |
+| 7/8 · Teil-Canons und eigener `unittest.mock`-Import | Nachvollziehbare Testpflege. Der E3-Wächter besteht mit der im Prüfprotokoll getrennt dokumentierten Event-Loop-Anpassung dieser Testumgebung. |
+
+Keine Operator-Rückfrage erforderlich. E3s Kopie der Gelenkposition unmittelbar nach dem Poll und vor dem ersten Await ist im gelesenen Code und im gezielten Wächter vorhanden; seine benannten Grenzen bleiben bestehen. **Noch kein Agreement für Merge/Neustart/Parity:** zuerst die sieben Befunde schließen, danach die getrennte Live-/Parity-Abnahme. Im Live-Baum nur dieser Anhang und neue `r133.codex-*`-Belege; keine Produktänderung, kein Live-Zugriff, keine Maschinenbefehle.
