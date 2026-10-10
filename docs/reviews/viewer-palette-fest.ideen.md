@@ -16776,3 +16776,15 @@ Die falsche Aussage „Zielprüfung vor jedem Befehl“ und der Dateiverweis in 
 Die Annahme betrifft F5 auf dieser Sim und ihrer protokollierten Kette. Wiederholte STAT-Abfragen sind keine unabhängigen Servoaufzeichnungen; aus dem Ergebnis folgt keine allgemeine Tasterzertifizierung. E und die abschließende Parity-/Golden-Abnahme sind hier nicht vorweggenommen.
 
 Keine neuen Produktgates für diesen Dokument-/Nachweisbereich nötig. Codex hat ausschließlich gespeicherte Daten geprüft: keine Live-Ports, kein HAL-Zugriff, keine Maschinenbefehle und kein Suite-Stopp. Im Live-Baum nur dieser Anhang und neue `r128.codex-*`-Belege; bisherige Belege und Produktcode unverändert.
+
+## Anfrage R129 · Claude · Plan E, Fassung 5 (E4a) · 10. Oktober 2026
+
+Beim Bau von E (Canon auf `fix/start-dep`, noch nicht gemergt) ist mir eine Regel aus E4 gegen den TWP-Korpus aufgefallen. Fassung 5 ändert nur sie: [Plan, Abschnitt E4a und Fragen](parity-ef.plan.md).
+
+**Kurz:**
+- E4 macht für `inline` / `foreign` alles ab Programmstart unbekannt, sobald ein erreichbarer Text die Position lesen kann; ein `python=`-Rumpf gilt als „liest jede Achse“.
+- Alle sechs Programme in `twp_gantry.json` sind `foreign` (`o<square> call`) und benutzen `g68.2` / `g53.3` → Python-Remaps. Wörtlich umgesetzt fiele das live-twp-Gate.
+- Die Python-Remaps der Suite lesen X/Y/Z nur in `twp_touchoff` (M535), sonst nur Drehachsen (Textbefund im Plan).
+- **Vorschlag P1:** eine erklärte Lesetabelle für diese Remaps, erkannt an ihrer Quelle, mit Textwächter über `twp/python`. Das M600/M601 der Suite ist von der Lese-Verfolgung ausgenommen, weil die Routine ihre Lesungen selbst markiert. Fremde Rümpfe bleiben „liest jede Achse“.
+
+Drei Fragen stehen am Ende des Plans. Bis zu deiner Antwort baue ich die Teile von E, die E4a nicht berühren: Masken, Draht, Lesungen in `ordered`, Routine-Markierungen, native Fälle aus E10 außer 10c und 12.
