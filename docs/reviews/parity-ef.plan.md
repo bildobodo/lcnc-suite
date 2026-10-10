@@ -1,11 +1,12 @@
 # Parity-Befunde E und F — der unbekannte Programmanfang und der Bremsweg der Antastung
 
-**Plan, Fassung 3 · 10. Oktober 2026.**
+**Plan, Fassung 4 · 10. Oktober 2026.**
 - Vorbedingung für den Parity-Korpus mit M600 (`scripts/parity_corpus/xyzac.json`, Zweig `test/parity-xyzac-m600`, ungemergt).
 - Codex hat beide Befunde in R118 bestätigt und vor dem Bau je einen kleinen Vertrag verlangt; das sind diese beiden.
 - Der Operator hat die Reihenfolge am 10. Oktober bestätigt: erst diese Verträge, danach Paket 1 von Schritt 4.
 - Fassung 1 ging mit R122 an Codex. Die Grundentscheidung für E ist angenommen. Fassung 2 nimmt VP122-01 bis VP122-04 und die Antworten auf die vier Fragen auf; F ist neu geschnitten (eine geführte Hülle statt eines Einzelwegs). Antworttabelle am Ende.
 - Fassung 2 ging mit R123 an Codex. VP122-01 ist geschlossen; die Hülle, die Messreihe vor der Parity und „possible“ als eigener Eintrag sind angenommen. Die Ausnahme für nicht zugelassene Tasterketten ist abgelehnt. Fassung 3 gibt die Zulassung ganz auf: Der Bremsbereich ist modelliert und nicht zertifiziert, und die Bahn nach einer Messung trägt ihre Bedingung sichtbar am Ergebnis, auf jeder Maschine, auch auf der Sim. Antworttabelle am Ende.
+- Fassung 3 ging mit R124 an Codex: E als Plan angenommen, die R123-Reste geschlossen. Fassung 4 nimmt VP124-01 auf: Die Zahl t_max und jede Zusage über die Abweichung der Folgebahn entfallen. Die Einträge nach einer Messung tragen ihre Herkunft.
 - Noch kein Code.
 
 ## Befund
@@ -190,7 +191,7 @@ Eine Korrektur des Versatzes um Δ wäre möglich, liegt aber außerhalb dieses 
   - **Neu:** Jeder Punkt des Anfangs trägt Art und Zeitbasis der Bewegung, die an ihm endet (E8). Das Segment davor dauert dann:
     - **Eilgang:** max(linear / Eilganggeschwindigkeit, rotatorisch / Drehachsen-Eilgang), wie heute die Anfahrbewegung (`rapid_rate`, `rot_rapid_rate`).
     - **Vorschub, G94 mit F > 0:** max(lineare Länge, Drehwinkel) / F, die Regel des Workers.
-    - **Vorschub mit nicht unterstützter Basis** (G93, G95, F fehlt oder ≤ 0): Die Zeit ist **unbekannt**. Damit die Spur eine Ordnung behält, sitzt das Segment auf der Zeitachse mit seiner kürzesten möglichen Dauer. Sie folgt aus den Grenzen der INI, die der Planer nie überschreitet (mit `OFFSET_AV_RATIO` fährt er noch langsamer): max(maxᵢ |Δᵢ| / `[AXIS_i] MAX_VELOCITY`, |Δ_linear| / `[TRAJ] MAX_LINEAR_VELOCITY`). Das ist eine eigene Rechnung aus diesen Grenzen, nicht die vorhandene Eilgang-Schätzung unter neuem Namen (Codex R123). Ab dort zeigt die Zeitanzeige eine Untergrenze („+“, wie nach einer nicht vorhergesagten Messung), und das „?“ nennt die Zeile. Nicht still, nicht 0.
+    - **Vorschub mit nicht unterstützter Basis** (G93, G95, F fehlt oder ≤ 0): Die Zeit ist **unbekannt**. Damit die Spur eine Ordnung behält, sitzt das Segment auf der Zeitachse mit seiner kürzesten möglichen Dauer. Sie folgt aus den Grenzen der INI, die der Planer nie überschreitet (mit `OFFSET_AV_RATIO` fährt er noch langsamer): max(maxᵢ |Δᵢ| / `[AXIS_i] MAX_VELOCITY`, |Δ_linear| / `[TRAJ] MAX_LINEAR_VELOCITY`). Das ist eine eigene Rechnung aus diesen Grenzen, nicht die vorhandene Eilgang-Schätzung unter neuem Namen (Codex R123). Fehlt eine Grenze oder ist sie ungültig, gibt es keine erfundene endliche Dauer: Die Zeit ist ab dort unbekannt, ohne Untergrenze (Codex R124). Ab dort zeigt die Zeitanzeige eine Untergrenze („+“, wie nach einer nicht vorhergesagten Messung), und das „?“ nennt die Zeile. Nicht still, nicht 0.
   - **Die Bewegung von der Startposition zum ersten Punkt** ist die erste Bewegung des Programms. Sie hat deren Art und Zeitbasis, nicht pauschal Eilgang. Ein Programm, das mit `G1` beginnt, fährt dorthin im Vorschub.
 - **Grenzprüfung:** Startabhängige Achsen eines Anfangssegments prüft der Worker nicht (sie wären bei X0 Y0 geprüft). Bekannte Achsen prüft er wie heute.
   - Unverändert ungeprüft bleibt nur der Fall, dass ein G91-Delta einer startabhängigen Achse über die Grenze führt. Benannt.
@@ -308,13 +309,19 @@ Trifft das nicht zu, macht die Maschine etwas anderes. **Fassung 2 sagte hier �
 - Löst die schnelle G38.3 nicht aus (Codex' Fall `enable = false`), fährt sie bis zum befohlenen Ende. Dann positioniert die Wiederholung der Routine neu (`o<106> … OR #<fastprobefailed> EQ 1`) und tastet erneut. Das sind Fahrten, die die Vorschau nicht zeigt.
 - Eine langsame Antastung, die ausgelöst startet oder deren Ende außerhalb liegt, bricht dagegen ab.
 
-**Am Ergebnis**, je M600-Aufrufzeile:
-- Die Bahn ab dem Auslösen ist bedingt: der vorhandene Stern „*“ (`uncertified`), und das „?“ nennt die Bedingung mit Zahl:
-  > „assumes the probe at L7 trips at the table length and reports within 60 ms (F2000; slower, the tool runs deeper than the 2 mm clearance) — not verified on this machine“
-- **Die Zahl:** t_max = m / v_letzt, m die Prüfzone (2 mm). Grundlage: „Clear“ heißt, kein Paar außer statischen Kontakten und Vorschub ins Rohteil kommt näher als m (Schneidpaare zählen im Eilgang schon in der Zone als Kontakt; `collision.ts`).
-  - Eine starre Verschiebung der Werkzeugseite um δ < m kann also keinen ungemeldeten Kontakt erzeugen.
-  - Gemeldete Abstände verschieben sich um bis zu δ.
-  - Bei F200: 600 ms; bei F2000 ohne langsame Antastung: 60 ms.
+**Am Ergebnis**, je M600-Aufrufzeile (VP124-01, Codex R124):
+- **Gesamtergebnis:** Die Bahn ab dem Auslösen ist bedingt. Das zeigt der vorhandene Stern „*“ (`uncertified`), und das „?“ nennt die Annahme **ohne Zahl** (Codex' Text):
+  > “After the measurement at L7, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified.”
+- **Einträge der Sim-Liste nach der Messung** tragen ein kurzes Kennzeichen „conditional“. Ihre eigene Hilfe sagt „after the measurement at L7“.
+  - Für eine zusammengehörige Gruppe genügt ein gemeinsamer sichtbarer Hinweis.
+  - Gefilterte oder einzeln angesprungene Einträge behalten ihre Herkunft.
+  - Ein gewöhnlicher Fund außerhalb H ist auf der angenommenen Bahn bestimmt, bleibt aber bedingt. Eine geometrische Trennung beendet die Abhängigkeit nicht.
+  - „possible“ (F2) bleibt die eigene Bedeutung eines Funds im Bremsbereich.
+- **Keine Zusage über die Bahnabweichung.** Fassung 3 leitete aus der Prüfzone eine zulässige Meldeverzögerung ab (t_max = m / v_letzt). Das ist zurückgenommen.
+  - Das Verschiebungsargument gilt nur, wenn sich die Werkzeugseite allein um δ verschiebt.
+  - Ein Programm kann aber `#5063` und die Länge weiterverrechnen, speichern oder darauf verzweigen. Codex' native Gegenprobe: 0,1 mm Messunterschied, rechnerisch 30 ms bei F200, ergeben 10 bzw. 100 mm anderes X-Ziel.
+  - δ ≤ v_letzt · t_in bleibt nur als Erklärung, wie ein Längenfehler entsteht.
+  - Ein späterer Vertrag mit einer Toleranz müsste die verwendeten Messwerte und die daraus entstehenden Bewegungen tatsächlich begrenzen.
 - **Hinweise zur Messung** (Sim-Tab, Programmstatistik), über `(WEBUI_PROBE_NOTE=<grund>)`:
   - r ≤ h_model: „the retract r may not clear the probe after braking (modeled up to h): the slow probe may start tripped and LinuxCNC stops“;
   - P_geo − h_model − r < MIN_LIMIT ≤ P_geo − r: „the slow probe may end below the Z limit“.
@@ -324,7 +331,7 @@ Trifft das nicht zu, macht die Maschine etwas anderes. **Fassung 2 sagte hier �
 **Externe Versätze:** Zeigt die Prüfbasis `axis.z.eoffset-enable` oder einen Versatz ≠ 0 (der Leser liefert beide), liegen Bereich und Folgebahn außerhalb des Modells; das ist ein weiterer genannter Grund (Codex R122/R123).
 
 **Sim und echte Maschine** werden gleich behandelt. Auf der Sim ist die Bedingung erfüllt (t_in ≈ 2 Servotakte, δ ≈ 0,007 mm bei F200). Die Vorschau weiß das aber nicht verbindlich, und die Parity misst es nur.
-- **Folge, sichtbar für den Bediener:** Jedes Programm mit einer vorhergesagten M600-Messung zeigt künftig „Clear*“ statt „Clear“. Das gilt so lange, bis ein nachgewiesener Vertrag für Maschine und Taster die Bedingung belegt (Codex R123, Antwort 3: später nur als ganzer Vertrag).
+- **Folge, sichtbar für den Bediener:** Jedes Programm mit einer vorhergesagten M600-Messung zeigt künftig „Clear*“ statt „Clear“, und die Einträge nach der Messung tragen „conditional“. Das gilt so lange, bis ein nachgewiesener Vertrag für Maschine und Taster die Bedingung belegt (Codex R123, Antwort 3: später nur als ganzer Vertrag).
 - Fassung 2 wollte das mit einer HAL-Zulassung für die Sim lösen. Das ist in dieser Fassung bewusst nicht enthalten.
 
 ### F4 · Parity: Abdeckung statt Weggleichheit
@@ -346,7 +353,7 @@ Die Parity stützt sich auf die Abdeckung durch H. Die Messreihe zeigt, dass h_m
   - kurzer Anlauf;
   - G61 und G64;
   - die tatsächliche Folge der Routine.
-  - Gemessen werden P_rep (`#5063`), der Stillstand und P_geo − P_rep (das gemessene t_in).
+  - Gemessen werden P_rep (`#5063`), der Stillstand und P_geo − P_rep. Diese ist eine **Positionsabweichung**; sie wird als Strecke protokolliert, nicht als t_in (beim kurzen Anlauf ist die Division durch F keine Zeit, Codex R124). Der Abdeckungsvergleich P_geo → Q hängt nicht davon ab.
 - **Protokoll der Konfiguration**, auf der sie lief:
   - `validate_sim_target` (die ausgelieferte INI-, HAL- und `loadusr`-Kette, R119–R121);
   - die Plattenparameter der Komponente gegen `#3100`–`#3102`;
@@ -372,7 +379,8 @@ Nativ mit der gebündelten Routine (`test_m600_preview_worker.py`), Client-Kette
 2. Kurzer Anlauf, geänderte Beschleunigung, Vorschub und ρ: h nach der Formel.
 3. Hindernis nur zwischen P_geo und P_geo − h_model: „possible“, nie sicher, nie als Trennung oder statischer Ausschluss. Dasselbe Paar später außerhalb sicher getroffen: ein gewöhnlicher Eintrag. Hindernis unter dem Bereich: nicht gefunden, nichts behauptet.
 4. „possible“ übersteht Zusammenführung (Shards, Anfahrt), Filter, Navigation und Code-Marken.
-5. Die Bedingung am Ergebnis: Stern und „?“ mit Aufrufzeile und t_max je Messung. Ohne M600 kein Stern.
+5. Die Bedingung am Ergebnis: Stern und „?“ mit Aufrufzeile, ohne Zahl. Die Einträge danach tragen „conditional“, auch gefiltert und einzeln angesprungen. Ohne M600 weder Stern noch Kennzeichen.
+5a. Codex' R124-Fälle (Folgesatz, der `#5063` verrechnet, und Verzweigung auf `#5063`): Die Folgespur bleibt unter ihrer Annahme gekennzeichnet, und keine Verzögerungszahl erscheint als Absicherung.
 6. Die Hinweise r ≤ h_model und die mögliche Grenzverletzung; r ≤ 0 und die sichere Grenzverletzung bleiben nicht vorhergesagt.
 7. `#5061…#5069`, die Länge in `toollen_table` und der G43-Versatz werden **getrennt** gegen P_geo geprüft, unverändert gegenüber heute.
 8. Externe Versätze in der Prüfbasis: genannt, außerhalb des Modells.
@@ -395,10 +403,9 @@ Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 
 Danach Paket 1 von Schritt 4.
 
-## Fragen an Codex (Fassung 3)
+## Fragen an Codex (Fassung 4)
 
-1. **F3, die Bedingung als Stern:** Genügt der vorhandene Stern mit einer Zeile je Messung im „?“ als „Abhängigkeit am Ergebnis“? Oder sollen die Zeilen der Sim-Liste nach der Messung zusätzlich gekennzeichnet werden, wie nach dem ersten Grenzübertritt („after the measurement at L7 — conditional“)?
-2. **F3, die Zahl t_max = m / v_letzt:** Trägt das Argument über die Prüfzone (eine starre Verschiebung der Werkzeugseite um δ < m erzeugt keinen ungemeldeten Kontakt)? Ich habe es an der Melderegel in `collision.ts` geprüft, nicht an einer Umsetzung.
+Keine offenen Fragen; beide Antworten aus R124 sind übernommen.
 
 ## Antworten auf R122 (in Fassung 2; F4 dort ist durch Fassung 3 ersetzt)
 
@@ -419,9 +426,19 @@ Danach Paket 1 von Schritt 4.
 |---|---|---|
 | VP122-01 | Geschlossen (Codex R123). | — ; der Kettentest bleibt Umsetzungsgate (E10 Nr. 15) |
 | VP122-02, Rest (P2) | Angenommen. | E8: `*_dep_f` in **beiden** Strömen; ein erstes `G1` trägt im Eilgangstrom Basis 2 und sein F. E7: Die Untergrenze für G93/G95 kommt aus den INI-Grenzen (Achsen und `[TRAJ]`), nicht aus der Eilgang-Schätzung. E10 Nr. 16 prüft das F der ersten Bewegung über die ganze Kette |
-| VP122-03, Rest (P1) | Angenommen. | F1: P_geo, P_rep und Q getrennt; die Vorschau setzt P_geo (t_in = 0), die Maschine misst um δ ≤ v · t_in kürzer, und die Spitze läuft danach um δ tiefer. F3: Die Folgebahn ist auf jeder Maschine bedingt, Stern mit t_max = m / v_letzt. Externe Versätze sind ein genannter Grund. Die Begründung „dann läuft nur weniger“ ist zurückgezogen (Wiederholzweig `o<106>`) |
+| VP122-03, Rest (P1) | Angenommen. | F1: P_geo, P_rep und Q getrennt; die Vorschau setzt P_geo (t_in = 0), die Maschine misst um δ ≤ v · t_in kürzer, und die Spitze läuft danach um δ tiefer. F3: Die Folgebahn ist auf jeder Maschine bedingt, Stern (die Zahl t_max = m / v_letzt ist in Fassung 4 entfernt, VP124-01). Externe Versätze sind ein genannter Grund. Die Begründung „dann läuft nur weniger“ ist zurückgezogen (Wiederholzweig `o<106>`) |
 | VP122-04, Rest (P1) | Angenommen, durch Verzicht. | Keine Zulassung einer Kette in diesem Plan; der Bereich ist modelliert, nicht zertifiziert (F2). Die Konfiguration der Messreihe wird protokolliert, statt das Produkt zu zertifizieren (F5). Ein Vertrag für Maschine und Taster mit Codex' Liste ist als späterer Schritt genannt (F6) |
 | Antwort 1 | Angenommen. | F3: sichtbar bedingte Folgevorschau mit der Abhängigkeit am Ergebnis, auf jeder Maschine |
 | Antwort 2 | Angenommen. | F2/F7: „possible“ als eigener Eintrag, erhalten durch Zusammenführung, Filter, Navigation und Marken; nie Trennung oder statischer Ausschluss; später sicherer Treffer außerhalb ist ein gewöhnlicher Eintrag |
 | Antwort 3 | Angenommen. | F4: Abdeckungsnachweis, Rückrichtung getrennt ausgewiesen, beidseitig 0,5 außerhalb, zwei Mutationen; keine Kappung der Hülle |
 | Beide Antastungen | Angenommen. | F2: h_model = max(h_schnell, h_langsam) |
+
+## Antworten auf R124 (Fassung 4)
+
+| Punkt | Antwort | Änderung im Plan |
+|---|---|---|
+| VP124-01 (P1) | Angenommen. Das Verschiebungsargument setzt eine reine Verschiebung der Werkzeugseite voraus; die Vorschau garantiert sie nicht, weil `#5063` ein Programmeingang ist. | F3: `t_max` und die abgeleitete Zusage entfernt; „?“ mit Codex' Text ohne Zahl; δ ≤ v · t_in nur als Erklärung. F7 Nr. 5/5a: Codex' Rechnungs- und Verzweigungsfall als Wächter der Anzeige |
+| Antwort 1 | Angenommen. | F3: Stern am Gesamtergebnis plus „conditional“ an den Einträgen nach der Messung, Hilfe „after the measurement at L7“; Herkunft bleibt beim Filtern und Navigieren |
+| Antwort 2 | Angenommen. | wie VP124-01 |
+| Messhinweis F5 | Angenommen. | F5: P_geo − P_rep als Positionsabweichung protokolliert, nicht als t_in |
+| Zeituntergrenze (E) | Angenommen. | E7: Fehlen oder ungültige INI-Grenzen ergeben keine erfundene endliche Dauer; dann ist die Zeit ab dort unbekannt ohne Untergrenze |
