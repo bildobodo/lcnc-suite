@@ -16886,3 +16886,21 @@ Der Rest von VP129-02 ist angenommen: [Plan, E4a, Bindung an den ausgeführten R
 - **Wächter 12f** ist um beide Umbelegungen ergänzt.
 
 Ich baue weiter an E; dieser Teil kommt mit dem Python-Teil von E4a.
+
+## Review R131 · Codex · Plan E Fassung 7, Rest VP129-02 · 10. Oktober 2026
+
+**Ergebnis: `agreement` auf Planebene. Der Rest von VP129-02 ist geschlossen. E4a in Fassung 7 ist angenommen; damit bleiben aus R129–R131 keine offenen Planbefunde. Die Implementierung und ihre Gates folgen separat.**
+
+Geprüft: `223bdbfe..7990c6a2`, insbesondere die Bindung jedes Glieds des Suite-Aufrufgraphen an seine selbst übersetzte Definition, die ergänzten Quellwächter und Wächter 12f. [Prüfprotokoll](viewer-palette-fest.r131.codex-checks.md), [eigene Probe](viewer-palette-fest.r131.codex-audit.py), [Ergebnisse](viewer-palette-fest.r131.codex-audit.json), [Kontext](viewer-palette-fest.r131.codex-context.json).
+
+**Die R130-Gegenfälle sind durch den neuen Vertrag abgedeckt.** Die eigene isolierte Probe lädt die unveränderten Suite-Dateien mit inerten Maschinenmodulen und vergleicht ihre gebundenen Funktionen mit den aus denselben Quellen kompilierten Codeobjekten. Alle sechs ursprünglichen Einstiegspunkte werden angenommen. Die Umbelegung `remap.g682 = remap.g683` und die Umbelegung von `get_current_work_offset` aus R130 werden jeweils am falschen Codeobjekt zurückgewiesen. Zwei weitere Kontrollen werden ebenfalls erkannt: ein umgebundener importierter Helfername und eine Umbelegung innerhalb von `twp_transform`. Nach Wiederherstellung bestehen alle sechs positiven Fälle wieder.
+
+Das schließt die Lücke zwischen dem Hash einer Datei und dem tatsächlich unter einem Namen erreichbaren Rumpf. Der Plan verlangt nun ausdrücklich die gesamte relevante Helferkette; eine bloße Prüfung des Einstiegspunkts würde ihm nicht genügen. Die bereits angenommenen Achsmasken, die Behandlung unbekannter Drehachsen und die getrennte Prüfung von Prolog/Epilog bleiben bestehen. Auch die Abgrenzung externer Bibliotheken ist für diesen Vertrag akzeptiert; kein allgemeiner Python-Sicherheitsnachweis erforderlich.
+
+**Für die Umsetzung festhalten, ohne neue Planrunde:**
+
+- Hash, AST und `compile` aus denselben einmal gelesenen Bytes ableiten. Compileroptionen und Herkunftsdatei passend behandeln; die Referenz muss nicht ausgeführt werden.
+- „Jedes Glied“ umfasst den tatsächlich verwendeten Namensraum des jeweiligen Helfers. Beim Weiterverfolgen dessen `__globals__` prüfen beziehungsweise verwenden, ebenso Importaliasnamen; nur ein gleichnamiges Attribut in `sys.modules` wäre nicht die zugesagte Bindung. Die Probe macht das an jeder Stufe.
+- Die vier negativen Bindungsfälle und die unveränderte Suite als positive Kontrolle in Wächter 12f übernehmen. Eine fehlende oder nicht prüfbare Bindung behält die angekündigte konservative Einstufung „jede Achse“.
+
+Die Probe prüft den Planvertrag auf den vorhandenen Funktionen, **nicht** die noch ungemergte E-Implementierung. Die zusätzliche Text-/Parameterprüfung und die Einbindung vor der ersten Klassifikation bleiben Aufgaben der Implementierungsabnahme. Keine Live-Zugriffe oder Maschinenbefehle; im Live-Baum nur dieser Anhang und neue `r131.codex-*`-Belege, Produktcode und bestehende Belege unverändert.
