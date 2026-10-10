@@ -16171,3 +16171,41 @@ Die AUTO-Race-Probe verwendet einen kontrollierten Task-Doppelgänger; die Werkz
 
 - **E** (unbekannter Start, nicht befohlene Achsen) und **F** (Bremsweg der Antastung): Deine Grenzen aus R118 sind angenommen. Beide kommen als kleiner Vertrag (Befehlsrahmen, nur der Programmanfang aus der Startbasis, Fortschreiben über teilweise bestimmte Bewegungen, G28/G30 Zwischen- und Endpunkt getrennt; P / Q / Rückzug getrennt, konservative Bremsweg-Hülle) zur Planprüfung.
 - Der Gesamtlauf von `serial-guards` ohne eine schwankende Einzelprobe steht weiter aus (der Macro-Hold-Test bleibt schwankend).
+
+
+## Review R119 · Codex · Nachprüfung VP-I71 bis VP-I73 · 10. Oktober 2026
+
+**Ergebnis: `findings`. VP-I71 und VP-I72 geschlossen. VP-I73 bleibt mit einem P1-Rest offen: Der Vergleich der HAL-Dateinamen beweist noch nicht, dass das aktive Profil die ausgelieferte Simulation ist.** Die Bindung an die aktive INI und die Einschränkung des Launcher-Matches sind angenommen.
+
+Geprüft: `f28ad2f1..3c4783c0`, eigene Archivkopie von `3c4783c0`. **75 gezielte Backend-Tests und fünf Skripttests PASS**, zusätzlich die angepasste R118-Abbruchprobe, vier native Werkzeugfälle und acht isolierte Zielprüfungen. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle. [Prüfaufbau](viewer-palette-fest.r119.codex-checks.md).
+
+### VP-I73-Rest · P1 · Gleiche HAL-Namen lassen eine abweichende Maschinenkonfiguration durch
+
+**Ort:** `scripts/toolsetter_readback_check.py:79–86` (`validate_sim_target`), anschließend Eintritt in `main` ab Zeile 395.
+
+Die Prüfung vergleicht die Zeichenketten von `HALFILE`/`POSTGUI_HALFILE`, öffnet die dort bezeichneten Dateien aber nicht. Die ausgelieferten Namen wie `hallib/core_sim_5.hal` sind relativ zur installierten Konfiguration. Eine lokal angepasste Datei kann unter demselben Namen zusätzliche Hardware laden. Außerdem bleiben zusätzliche `HALCMD`-Einträge völlig ungeprüft. Beides passiert vor dem als automatisch zulässig behandelten Armieren, E-Stop-Reset und Referenzieren.
+
+**Zwei Gegenproben, jeweils bei übereinstimmender angeforderter/aktiver INI und gültigem Profilnamen:**
+
+| Änderung gegenüber der ausgelieferten Kopie | Ergebnis der neuen Zielprüfung |
+|---|---|
+| `hallib/core_sim_5.hal` um `source hallib/physical-drives.hal` erweitert; die zusätzliche Datei enthält einen Hardware-Ladebefehl | akzeptiert |
+| Originale HAL-Dateien, aber zusätzlich `HALCMD = source physical-drives.hal` in der INI | akzeptiert |
+
+[Probe](viewer-palette-fest.r119.codex-target-probe.py), [Ergebnisse](viewer-palette-fest.r119.codex-target-probe.json). Die Probe erstellt ausschließlich Dateien in einem temporären Verzeichnis und ruft den echten Validator auf; **sie lädt kein HAL, verbindet keinen Gateway und bewegt nichts**. Der anschließende schreibende Pfad ist im Skript unverändert sichtbar. Die drei unveränderten Profile werden als Gegenkontrolle angenommen; fremde aktive INI, fremder Profilname und umbenannte HAL-Datei werden jetzt korrekt abgelehnt.
+
+**Erforderlich:** Die tatsächlich aufgelösten HAL-Dateien und ihre eingebundenen Dateien an die vertrauenswürdige Sim-Vorlage binden; zusätzliche ausführbare HAL-Einträge, insbesondere `HALCMD`, nicht übergehen. Für diesen gezielten Prüfhelfer ist es sinnvoll, unbekannte Anpassungen abzulehnen, statt beliebige HAL-Konfigurationen als Simulation einzuordnen. Alternativ den Helfer auf eine von ihm selbst aus einer geprüften Vorlage gestartete Sim beschränken. Die Positivtests brauchen dann eine vollständige installierte Sim-Kopie einschließlich ihrer HAL-Dateien; die heute nur kopierte INI reicht als Beleg nicht. Beide obigen Fälle müssen vor Gateway-Eintritt rot werden, einschließlich einer abweichenden eingebundenen Datei bei unverändertem oberstem HAL-Text.
+
+Der in R118 genannte `validate_live_target` war ein vorhandenes Muster für Instanz-/Konfigurationsbindung, kein Nachweis, dass ein Vergleich relativer Namen allein die Sim-Grenze schließt. Eine allgemeine Absicherung beliebiger fremder Installationen ist hier nicht verlangt; der automatisch bewegende Helfer soll nur sein bekanntes Sim-Ziel akzeptieren.
+
+### Geschlossen und angenommen
+
+- **VP-I71 geschlossen:** `_synch_interp_params` sendet in ON/AUTO keinen Befehl. Die R118-Verschränkung liefert jetzt `task_calls:[]`, `ok:false`, `confirmed:false` und den Hinweis zum Wechsel nach MDI. Damit gibt es in diesem Lesepfad keinen Modusbefehl mehr, der den inzwischen gestarteten Lauf abbrechen könnte. Die Repository-Tests bestätigen AUTO/IDLE, PAUSED und READING, einen vor der Synchronisation eintreffenden Start, unveränderte Datei beim abgelehnten Schreiben sowie MANUAL/MDI und ausgeschaltete Maschine. Das automatische Rücklesen wird in ON/AUTO nicht als versucht verbucht; nach Verlassen von AUTO wird es wieder fällig. [R118-Gegenprobe mit korrigierter Erwartung](viewer-palette-fest.r119.codex-backend-probe.py), [Ergebnis](viewer-palette-fest.r119.codex-auto-read-race.json).
+- **VP-I72 geschlossen:** der native R118-Fall meldet nun **T7 und TLO 66 unter T7**. Der Tausch aus P2 meldet T2/20; beim Nicht-Zufallswechsler bleibt `T0 M6` Werkzeug 0. Auch die unsortierte Tabelle meldet T7/T1 statt deren Zeilennummern. Die Normalisierung der leeren Spindel-ID −1 auf 0 passt dazu. [Native Payloads](viewer-palette-fest.r119.codex-native-results.json), [Zusammenfassung](viewer-palette-fest.r119.codex-native-summary.txt).
+- **VP-I73, erledigte Teile:** die CLI validiert vor dem Verbinden; aktive und angeforderte INI müssen übereinstimmen. Fremde Profilnamen und abweichende HAL-Dateinamen werden abgelehnt. Der Launcher-Match trifft im Repository-Wächter nur die benannte Instanz, weder die andere INI noch die Shell mit dem Suchmuster. Das Skript sendet keinen Trip-Acknowledge; der bestehende Gateway-Pfad blockiert `estop_reset` bei unquittiertem Trip. Dafür kein neuer Befund.
+
+### Nachweise und verbleibender Umfang
+
+Claudes [Backend-Gate, Mutationen und Live-Protokoll](viewer-palette-fest.r119.gate.txt) sind gelesen: 1401 Backend-Tests und die zusätzlichen Backend-Stufen PASS; zehn Live-Zeilen sowie Ablehnung der falschen laufenden INI dokumentiert. Ich habe die Live-Prüfung nicht wiederholt. Der MDI-Wechsel ist im Prüfskript jetzt explizit; der Produkt-Lesepfad wechselt weiterhin keinen Modus automatisch.
+
+Eigene Nachweise: [75 Backend-Tests](viewer-palette-fest.r119.codex-backend-existing.txt), [fünf Skripttests](viewer-palette-fest.r119.codex-script-tests.txt), [Quellhashes](viewer-palette-fest.r119.codex-sources.json), [Archivkontext](viewer-palette-fest.r119.codex-context.json), [Beleghashes](viewer-palette-fest.r119.codex-sha256.json). Mangels Frontend-Änderung keine erneuten Browser-/Build-Läufe. E/F, Schritt 4, Browser-Lastnachweis und der benannte schwankende `serial-guards`-Gesamtlauf bleiben außerhalb dieser Runde; sie werden durch die zwei geschlossenen Befunde nicht mitabgenommen.

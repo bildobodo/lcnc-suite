@@ -1,0 +1,600 @@
+[
+  {
+    "case": "m6_random_loaded",
+    "exit": 0,
+    "payload": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": []
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          7
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -100.0
+        ],
+        [
+          0.0,
+          0.0,
+          -166.0
+        ],
+        [
+          10.0,
+          0.0,
+          -166.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          7
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          66.0,
+          7
+        ]
+      ],
+      "parse_tlos": [
+        [
+          7,
+          0.0,
+          0.0,
+          66.0,
+          6.0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        5,
+        5
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "e35f29e7d06021be841d916cebc1fec84a1cde10599449fb1760506c586376ec",
+      "digest_without_stats": "6a6878c2082d78cff003ccaaa12ad8434ee61435999ce28b3edb7973d2a70cdd"
+    },
+    "stderr": ""
+  },
+  {
+    "case": "m6_random_swap",
+    "exit": 0,
+    "payload": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": []
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          2
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -100.0
+        ],
+        [
+          0.0,
+          0.0,
+          -120.0
+        ],
+        [
+          10.0,
+          0.0,
+          -120.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          2
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          20.0,
+          2
+        ]
+      ],
+      "parse_tlos": [
+        [
+          7,
+          0.0,
+          0.0,
+          66.0,
+          6.0
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          20.0,
+          6.0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        5,
+        5
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "1a24cf827266a4f567d491293899bba03dad3faa81c93a523364b1bd6dfe8918",
+      "digest_without_stats": "4de349e455ccd0fe3201f5ebe57fc7db4ba6ea5d464a8377556428df1d6ec95e"
+    },
+    "stderr": ""
+  },
+  {
+    "case": "m6_unload",
+    "exit": 0,
+    "payload": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": []
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          1
+        ],
+        [
+          6,
+          0
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -100.0
+        ],
+        [
+          0.0,
+          0.0,
+          -110.0
+        ],
+        [
+          10.0,
+          0.0,
+          -110.0
+        ],
+        [
+          10.0,
+          0.0,
+          -100.0
+        ],
+        [
+          20.0,
+          0.0,
+          -100.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          1
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          10.0,
+          1
+        ],
+        [
+          4,
+          0.0,
+          0.0,
+          10.0,
+          0
+        ],
+        [
+          4,
+          0.0,
+          0.0,
+          0.0,
+          0
+        ]
+      ],
+      "parse_tlos": [
+        [
+          1,
+          0.0,
+          0.0,
+          10.0,
+          6.0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        5,
+        5,
+        8,
+        8
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        2.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "01582cf2491b30fe7bb6468ff2707d68eaa46c4f965de9c35fbba57690669a40",
+      "digest_without_stats": "38ce9b4890561de2f9f669986552bf0846e001ec5baea43d5a2e8d119cd531e6"
+    },
+    "stderr": ""
+  },
+  {
+    "case": "m6_row_not_number",
+    "exit": 0,
+    "payload": {
+      "mmap_unchanged": true,
+      "probe_unpredicted": null,
+      "toollen_table": null,
+      "feed_sub": null,
+      "rapid_sub": null,
+      "sub_names": null,
+      "toolsetter_basis": null,
+      "toolsetter_meta": {
+        "routine": false,
+        "writes": []
+      },
+      "feed_lines": [],
+      "tool_change_lines": [
+        [
+          3,
+          7
+        ],
+        [
+          6,
+          1
+        ]
+      ],
+      "parse_error": null,
+      "feed": [],
+      "rapid": [
+        [
+          0.0,
+          0.0,
+          -100.0
+        ],
+        [
+          0.0,
+          0.0,
+          -166.0
+        ],
+        [
+          10.0,
+          0.0,
+          -166.0
+        ],
+        [
+          10.0,
+          0.0,
+          -110.0
+        ],
+        [
+          20.0,
+          0.0,
+          -110.0
+        ]
+      ],
+      "tlo_events": [
+        [
+          2,
+          0.0,
+          0.0,
+          0.0,
+          7
+        ],
+        [
+          2,
+          0.0,
+          0.0,
+          66.0,
+          7
+        ],
+        [
+          4,
+          0.0,
+          0.0,
+          66.0,
+          1
+        ],
+        [
+          4,
+          0.0,
+          0.0,
+          10.0,
+          1
+        ]
+      ],
+      "parse_tlos": [
+        [
+          1,
+          0.0,
+          0.0,
+          10.0,
+          6.0
+        ],
+        [
+          7,
+          0.0,
+          0.0,
+          66.0,
+          6.0
+        ]
+      ],
+      "violations": [],
+      "violations_total": 0,
+      "violations_reason": null,
+      "feed_outside": [],
+      "rapid_outside": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "start_known": true,
+      "tlo_start": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "start_reason": null,
+      "rapid_lines": [
+        2,
+        5,
+        5,
+        8,
+        8
+      ],
+      "rapid_seq": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "rapid_tcum": [
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+        2.0
+      ],
+      "rapid_brk": [
+        0,
+        1,
+        0,
+        1,
+        0
+      ],
+      "rapid_ustart": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "feed_seq": [],
+      "stale_offset_lines": null,
+      "stale_offset_untracked": null,
+      "feed_tcum": [],
+      "meta": {
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_mode": 490,
+        "start_reason": null
+      },
+      "digest_without_start": "4de29fdb9c1ee4dc9ad0150e8cafdee97120143e852e8449eb290382db4cbe98",
+      "digest_without_stats": "70850ce377f39887c705b10c5ecae430316163132a9ec885809c7ca7af67f47c"
+    },
+    "stderr": ""
+  }
+]

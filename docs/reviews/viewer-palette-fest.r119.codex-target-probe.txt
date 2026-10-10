@@ -1,0 +1,2 @@
+PASS controls: 3 shipped profiles accepted; 3 old counterexamples refused.
+REPRODUCED VP-I73 rest: changed HAL contents and extra HALCMD are both accepted.

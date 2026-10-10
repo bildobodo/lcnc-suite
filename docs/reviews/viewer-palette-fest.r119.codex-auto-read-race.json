@@ -1,0 +1,17 @@
+{
+  "scenario": "R118 AUTO IDLE at poll; start would become READING before mode is consumed",
+  "before": {
+    "mode": 2,
+    "interp": 4
+  },
+  "reply": {
+    "ok": false,
+    "confirmed": false,
+    "error": "G30 not confirmed in AUTO \u2014 switch to MDI first"
+  },
+  "task_calls": [],
+  "after": {
+    "mode": 2,
+    "interp": 4
+  }
+}
