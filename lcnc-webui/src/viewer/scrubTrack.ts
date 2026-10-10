@@ -1023,7 +1023,7 @@ export function prependEntry(
   // tool, offset — is not known, so there is no move to it to time or sweep;
   // that stretch stays unchecked like the rest after the stop (Codex R105
   // VP-I62: the entry move made it a timed, swept rapid again).
-  if (t.unpredicted?.[0] || t.startUnbound?.length) return t;
+  if (t.unpredicted?.[0]) return t;
 
   const n = t.count + 1;
   const pos = new Float32Array(n * 3);
