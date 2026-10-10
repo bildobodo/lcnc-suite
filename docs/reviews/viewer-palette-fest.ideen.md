@@ -16735,3 +16735,21 @@ Außerdem liest das Skript als HAL-Messbasis nur die drei Plattenkoordinaten. Es
 Client: **144 bestanden im Hauptlauf**, zusätzlich **3 bestanden** mit frischen nativen Payloads. Backend: **53 Routine-/Pfadtests und 1 Start-Snapshot-Test bestanden**. Ein breiterer Dispatch-Lauf wurde ohne Ergebnis abgebrochen und zählt nicht als bestanden; Einzelheiten im Prüfprotokoll. Die zurückgezogene native Kollisionsprobe ist ausdrücklich kein weiterhin offener Akzeptanzwächter. [Client](viewer-palette-fest.r127.codex-client.txt), [frische Payloads](viewer-palette-fest.r127.codex-fresh-payload.txt), [Backend](viewer-palette-fest.r127.codex-backend.txt), [Snapshot](viewer-palette-fest.r127.codex-snapshot.txt).
 
 Keine Live-Messung durch Codex, keine Zugriffe auf Live-Ports, kein HAL oder Maschinenbefehl, kein Suite-Stopp. Im Live-Baum nur dieser Anhang und neue `r127.codex-*`-Belege. Bestehende Belege und Produktcode unverändert.
+
+## Anfrage R128 · Claude · F5 vervollständigt (VP-I77) · 10. Oktober 2026
+
+**Die Folge der Routine** ([Beleg](viewer-palette-fest.r128.f5.txt), [Skript](viewer-palette-fest.r128.f5-seq.py)):
+- **Aufbau:** `T7 M600` auf der laufenden XYZAC-Sim, mit schneller G38.3, Rückzug und langsamer G38.2 der ausgelieferten Routine. Ein zweiter Client bestätigte den Wechsel. Die Lage wurde schnell abgetastet (33 000 Proben), die Kette per halcmd alle 100 ms.
+- **Schnell:** P_rep −234,0449, Q −236,2050. Das Überschwingen beträgt 2,205 mm bei h_model 2,911; der Vorlauf ist nur 2 mm (`#3104`).
+- **Rückzug:** 3,000 mm ab Q. Die Spitze steht danach 0,795 mm über der Platte, und der Taster ist beim Start der langsamen Antastung frei.
+- **Langsam:** Überschwingen 0,0383 mm bei h_model 0,0411 (Abstand 0,0028).
+- **Länge:** Die gemessene Länge 65,9961 ist 66 minus P_geo − P_rep der langsamen Antastung (0,0039), die Verkürzung aus F1/F3. Danach wieder 66.
+
+**Messbasis:**
+- **Folge der Routine:** INI-Werte, Servoperiode, Var-Werte, Platte = `#3100`–`#3102`, Treiber von `motion.probe-input` = `sim-toolsetter.0.out`. Während der Messung war die Freigabe gesetzt, der manuelle Eingang nie, der externe Z-Versatz 0 und aus.
+- **Die 42 Einzelmessungen** habe ich mit derselben Protokollierung wiederholt ([Skript](viewer-palette-fest.r128.f5-probe.py)). Sie liefern in allen drei Konfigurationen exakt dieselben Zeilen wie in R127.
+- **Korrektur meines R127-Belegs:** Die Zielprüfung läuft einmal vor dem Verbinden, nicht vor jedem Befehl.
+
+`CLAUDE.md` nennt jetzt `r127.f5.txt` und `r128.f5.txt` (`fix/probe-band` `20228c6e`).
+
+Damit sehe ich F5 als vollständig. E baue ich als Nächstes; die Parity-Abnahme folgt nach E.
