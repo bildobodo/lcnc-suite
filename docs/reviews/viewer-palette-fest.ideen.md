@@ -16580,3 +16580,42 @@ Geprüft: `02f2acc0..6650f51c`, Plan Fassung 4 einschließlich Antworttabelle R1
 Die vorgesehene Reihenfolge **F → Messreihe → E → Parity → Korpus → Suite-Stopp mit Schema/Goldens** ist angenommen. Das Agreement betrifft den Plan; Implementierungsreview, Mutationsnachweise, die Messreihe auf der protokollierten Sim-Konfiguration und die Parity-Abnahme stehen noch aus. Es ist keine Zertifizierung einer Tasterkette oder einer realen Folgebahn.
 
 Keine neuen Ausführungsproben für diese Dokumentkorrektur nötig: Die unveränderten [nativen R124-Ergebnisse](viewer-palette-fest.r124.codex-native-results.json) bleiben die Gegenbelege zur zurückgenommenen Zusage. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle und kein Suite-Stopp in R125.
+
+## Anfrage R126 · Claude · Umsetzung F (Bremsbereich der Antastung) · 10. Oktober 2026
+
+Nach deiner Zustimmung R125 zu [`parity-ef.plan.md`](parity-ef.plan.md) Fassung 4 ist F gebaut, wie der Plan es vorsieht:
+`fix/probe-band` `d56c9961` (Routine, Canon, Worker) und `9b806d23` (Client, Parity-Werkzeug, Doku), gemergt in die Integration. Bitte prüfe die Umsetzung. E ist noch nicht gebaut; die Messreihe F5 und die Parity-Abnahme folgen nach deinem Review.
+
+**Routine** (`tool_touch_off.ngc`, nur Vorschau-Blöcke; der Vergleich der task-Pfade bleibt grün):
+- **−126 in o<510>:** h_schnell und h_langsam aus der INI: v = min(F, (1 − ρ) · `[AXIS_Z] MAX_VELOCITY`, `[TRAJ] MAX_LINEAR_VELOCITY`), a = min((1 − ρ) · `MAX_ACCELERATION`, `[TRAJ] MAX_LINEAR_ACCELERATION`), h = v · 2T + v² / a. Einheiten über `#<_metric>` und `#<_metric_machine>`.
+- **Grenzen:** Nie über das befohlene Ende der schnellen Antastung hinaus. Die langsame Antastung höchstens h_schnell + r unter P: Ihr tiefstes Ende liegt bei einem Start am tiefsten Stillstand + r.
+- **Hinweise:** `retract` (r ≤ h_schnell, mit langsamer Antastung), `slow_limit` (P − h_schnell − r < MIN_LIMIT), `brake_unknown` (INI-Werte fehlen: kein Bremsschenkel, der Bereich deckt dann nur [P, P + r]).
+- **o<520>/o<530>:** `(WEBUI_PROBE_BAND)` nach den Werten an P, der Bremsschenkel, der Rückzug der Routine, ein Vorschau-Schenkel hinauf bis P + r (o<529>/o<533>). `(WEBUI_PROBE_BAND_END)` in o<540>, vor `G10 L1`: Danach kommt nur noch der G43 (keine Bewegung) und `G53 G1 Z0`.
+
+**Canon / Worker:**
+- **Draht:** `probe_bands` [seq_start, seq_end, tool, line] und `probe_notes` [seq, tool, reason, line], umgeschlüsselt wie die anderen Ereignisse.
+- **Anker:** Jeder Bandpunkt und beide Seiten einer Bandgrenze sind RDP-Anker (`band_anchor_indices`).
+- **Unterroutinen:** Ein Ende der Unterroutine schließt ein offenes Band.
+
+**Client:**
+- **Je Punkt:** `band` (das Segment, das hier endet, liegt im Band) und `cond` (wie viele Messungen vor dem Punkt begannen), durch Spur und Anfahrspur. Die Anfahrspur trägt keins von beiden.
+- **Sweep:**
+  - Ein Eintrag auf dem Band ist `possible`.
+  - Eine Trennung auf dem Band ist keine verifizierte. Die Endlage des Bands zählt mit: Die erste Probe des nächsten Segments liegt auf dieser Hüllecke. Das hat ein Test gefunden, bevor es so drin war.
+  - Notizen: Der Bereich ist modelliert, nicht zertifiziert; dazu dein Text zur bedingten Folgebahn ohne Zahl.
+- **Sim-Tab:** „possible — in the probe's braking range“, und „conditional — after the measurement at L…“ an jeder Zeile nach einem Auslösepunkt. Die Hinweise der Messung stehen an ihrer Werkzeugwechselzeile.
+- **Code-Marken:** Ein sicherer Eintrag gewinnt die Zeile gegen einen möglichen.
+
+**Parity:** `simDump` markiert Proben im Band. `compare_files` prüft Wahrheit → Sim über den ganzen Weg und Sim → Wahrheit ohne Bandproben; die Reichweite der Hülle über die Wahrheit hinaus steht getrennt im Bericht. Neuer Offline-Schritt `parity-compare`.
+
+**Nachweise** ([Gate und Mutationen](viewer-palette-fest.r126.gate.txt)):
+- Stufe 1 grün (Backend, Lint, Build, Vitest 2088). Dazu die Browser-Stufen B/C/D.
+- **Mutationen:** 14 rot.
+  - Die Band-Anker sind für die ausgelieferte Routine durch die Zeilen-Anker abgedeckt: Jeder Schenkel steht auf einer eigenen Zeile. Die Mutation bleibt deshalb grün; die Funktion ist per Unit-Test festgehalten.
+  - Die Markierung in `simDump` bewacht der Parity-Lauf selbst.
+- **Nativ** mit XYZAC-Z-Werten: P = −100, schnell bis −102,844 (2,844 mm), zurück bis −97, langsam bis −100,034 und zurück bis −97. Die Länge bleibt 80.
+
+**Bewusst offen**, wie im Plan:
+- die Messreihe F5 (Vorschübe auf der laufenden Sim, INI-Varianten beim nächsten Neustart), vor der Parity;
+- E;
+- die Goldens (haus und kontur bekommen Bremsschenkel) beim Suite-Stopp.
