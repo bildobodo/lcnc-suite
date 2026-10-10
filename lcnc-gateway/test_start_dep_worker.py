@@ -432,6 +432,31 @@ class TestSuitePythonBinding(unittest.TestCase):
             self.assertTrue(hit, case)
             self.assertEqual(set(b), set(gateway_util.SUITE_PY_READS) - hit, case)
 
+    def test_the_real_suite_binds_in_the_worker(self):
+        # the repository's twp/python, loaded by the native interpreter in
+        # the worker's process (TOPLEVEL, PATH_APPEND), bound at the first
+        # callback
+        r = probe("e_twp_real_bind")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual(r["python_reads"], ["python remap reads: bound "
+                                             "g53x_core,g682,g683,g684,g69_core,twp_touchoff; every axis: none"])
+
+    def test_the_twp_profile_s_m600_may_read_through_m535(self):
+        # The routine's `M#<spindle_stop_m>` is an M word the text does not
+        # settle: it may run any remapped M — on the TWP profile M535
+        # (X, Y, Z, A, B, C). An M600 before the first absolute XYZ move there
+        # makes everything unknown to the end (named in R132; the toolsetter
+        # basis could settle #3107 later).
+        lines = [ln.split("=", 1)[1].strip() for ln in TWP_INI.read_text().splitlines()
+                 if re.match(r"\s*REMAP\s*=", ln)]
+        base = ROOT / "examples" / "sim_config"
+        dirs = [str(base), str(base / "twp" / "remap_subs"), str(ROUTINE.parent)]
+        env = gateway_util.RemapEnv(lines, dirs)
+        env.python_reads = dict(gateway_util.SUITE_PY_READS)
+        self.assertEqual(env.reads(("M", 600)), frozenset(range(6)))
+        self.assertEqual(env.reads(("G", 682)), frozenset())
+        self.assertEqual(env.reads(("G", 533)), frozenset({3, 4, 5}))
+
     def test_hooks_each_and_unions(self):
         dirs = [str(ROOT / "examples" / "sim_config" / "remap_subs"), str(ROUTINE.parent)]
         lines = ["G68.2 modalgroup=1 python=g682", "M530 modalgroup=10 python=g53x_core",

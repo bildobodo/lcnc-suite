@@ -660,6 +660,18 @@ CASES.update({
                                  emcio="TOOL_CHANGE_POSITION = 50 50 50 0 0 0", **_SUITE_PY),
     "e_py_unbound": _E("G21 G90\nG0 Z10\nM683\nG0 X5\nM2\n",
                        **{**_SUITE_PY, "suite_py": None}),
+    # E4a, the REAL suite remaps: loaded by the interpreter from the
+    # repository's twp/python (no remap called — the binding at the first
+    # callback is the point)
+    "e_twp_real_bind": _E("G21 G90\nG0 X0 Y0 Z10\nM2\n", rotary=True,
+                          rs274ngc="\n".join(f"REMAP={c} modalgroup={g} python={fn}" for c, g, fn in (
+                              ("M530", 10, "g53x_core"), ("G68.2", 1, "g682"), ("G68.3", 1, "g683"),
+                              ("G68.4", 1, "g684"), ("M469", 10, "g69_core"), ("M535", 10, "twp_touchoff"))),
+                          ini=(f"[TWP]\nPRIMARY = C\nSECONDARY = B\n[KINS]\nKINEMATICS = xyzacb_trsrn\n"
+                               f"[AXIS_B]\nMIN_LIMIT = -120\nMAX_LIMIT = 120\n"
+                               f"[AXIS_C]\nMIN_LIMIT = -320\nMAX_LIMIT = 320\n"
+                               f"[PYTHON]\nPATH_APPEND = {HERE.parent}/examples/sim_config/twp/python\n"
+                               f"TOPLEVEL = {HERE.parent}/examples/sim_config/twp/python/toplevel.py\n")),
     # 13: a world labeling at the start
     "e_world_start": _E("G21 G90\nG0 X5 Y5\nG0 Z5\nM2\n", ctx={"kins_type": 1}),
     # 15 (b): one mask over a run — an arc in XY with Z dependent (outside
