@@ -16904,3 +16904,42 @@ Das schließt die Lücke zwischen dem Hash einer Datei und dem tatsächlich unte
 - Die vier negativen Bindungsfälle und die unveränderte Suite als positive Kontrolle in Wächter 12f übernehmen. Eine fehlende oder nicht prüfbare Bindung behält die angekündigte konservative Einstufung „jede Achse“.
 
 Die Probe prüft den Planvertrag auf den vorhandenen Funktionen, **nicht** die noch ungemergte E-Implementierung. Die zusätzliche Text-/Parameterprüfung und die Einbindung vor der ersten Klassifikation bleiben Aufgaben der Implementierungsabnahme. Keine Live-Zugriffe oder Maschinenbefehle; im Live-Baum nur dieser Anhang und neue `r131.codex-*`-Belege, Produktcode und bestehende Belege unverändert.
+
+## Anfrage R132 · Claude · E1 umgesetzt (Canon und Worker) · 10. Oktober 2026
+
+**Stand:** Zweig `fix/start-dep`, `0d75dcf9..9bb093de`, **nicht gemergt** (der Live-Baum bleibt bis E2 unverändert). Plan: [parity-ef.plan.md, Fassung 7](parity-ef.plan.md).
+
+**Belege:**
+- Backend-Gate PASS, 1459 Tests ([Bericht](viewer-palette-fest.r132.gate-backend.json)).
+- 18 kompilierende Mutationen, jede am erwarteten Assert rot ([Ausgabe](viewer-palette-fest.r132.mutations.txt), [Skript](viewer-palette-fest.r132.mutations.py)).
+- Neue Tests: `lcnc-gateway/test_start_dep_worker.py` (46). Die nativen Fälle stehen in `native_start_probe.py` (`e_*`), die Bindungsprobe in `suite_py_bind_probe.py`.
+
+**Was gebaut ist:**
+- **E1/E2 Maske:** im Canon je Rückruf aus `blocks[0].*_flag`, `g_modes`, `distance_mode`, mit den G28/G30-Teilstücken. Außerhalb des Bereichs werden die Achsen `stale`.
+- **Draht:** `feed_dep` / `rapid_dep`, `*_dep_basis`, `*_dep_f` als Präfix bis zum letzten Punkt mit Maske oder Zeitbasis; dazu `start_believed`. RDP-Anker an jedem Wechsel von (Maske, Basis, F).
+- **E6 Schreiben:** Schreiben aus startabhängiger Lage ist unbekannt bis zum Ende.
+- **E4 Lesen:**
+  - `ordered`: Gang plus erster Rückruf der Zeile, also vor ihrer Bewegung.
+  - Remap-Stapel.
+  - `inline` / `foreign`: ab dem Start.
+  - Die Routine trägt `WEBUI_POS_*`-Marken und ist nach Inhalt festgehalten (`MARKED_POS_ROUTINES`).
+- **E4a:** `SUITE_PY_READS` mit Bindung jedes Glieds an das selbst übersetzte Codeobjekt. `python`/`prolog`/`epilog` werden einzeln bewertet. Im echten Worker mit dem echten `remap.py` sind alle sechs gebunden (`e_twp_real_bind`).
+- **Grenzprüfung:** startabhängige Achsen gehen als NaN in die Prüfung, also ohne Urteil.
+- **Verify:** `start_believed` wird wie ein Punkt vor der ersten TLO-Zeile verschoben.
+
+**Abweichungen vom Plantext, je mit dem Test, der sie festhält:**
+1. **`foreign`-Modus und explizites Schreiben.** Ein explizites Schreiben einer Hauptdateizeile ist keine Ursache, wenn der Interpreter den Rückruf selbst in die Hauptdatei legt (`_in_main_file() is True`). Ohne diese Regel wäre jedes Korpusprogramm mit `g10 l2 p0 …` vor der ersten absoluten Fahrt dauerhaft unbekannt. Test: `test_a_call_into_another_file_spelled_any_way` (Kontrollfall) und Mutation `foreign_excuse_off`.
+2. **Erstes `G1`.** Es wird ein Nullweg-Endpunkt im Eilgangstrom mit Basis 2 und seinem F, wie ein erstes `G0`. Bisher war es ein Phantom-Vorschub ab Programmnull. Die Statistik verschiebt sich: ein Vorschub weniger, ein Eilgang mehr. Tests: `test_a_first_g1_is_an_endpoint_with_its_feed` sowie drei angepasste Unit-Tests in `test_gateway_util` (`TestTloEvents`).
+3. **Interne Bewegungen eines M6.** Die eigenen M6-Bewegungen des Interpreters (QUILL_UP / AT_G30, Zeile −1) machen startabhängige Achsen `stale`. Sie stehen nicht in der Liste aus E3; kein ausgeliefertes Profil nutzt sie. Die Einordnung folgt der Regel „außerhalb des Bereichs“.
+4. **Ohne Interpreter-Modul** wird nichts verfolgt: Das Verhalten ist wie vor E, und der vorhandene Trace `gcode.interp_state_unavailable` meldet es.
+5. **READ-Marken je Achse.** An den Auslösepunkten der Routine trägt jede Zeile ihre eigene Marke, auch für A bis W (`=X`, `=Y`, …, `=W`). Das ist strenger als das `=XYZ` im Plan. Test: `test_every_read_of_the_routine_carries_its_marker`.
+6. **Geänderte Erwartungen durch E4:**
+   - `r99_*`: unlesbares o-Wort, also ab Start.
+   - `r109_py_*` und `r110_*`: undurchsichtiges Python-Remap, also eine Lesung an der Auslösezeile, dieselbe Zuordnung wie zuvor beim Schreiben.
+   - `m600_m98`: M98, also ab Start.
+   Jeder dieser Tests prüft jetzt die Lesung.
+7. **TWP-Profil:** M600/M601 lesen dort X, Y, Z, A, B, C. Das unbestimmte `M#<spindle_stop_m>` der Routine erreicht jedes M-Remap, auch M535. Ein M600 vor der ersten absoluten XYZ-Fahrt ist dort deshalb eine Lesung. Test: `test_the_twp_profile_s_m600_may_read_through_m535`. Möglich wäre später eine Verengung, wenn die Toolsetter-Basis `#3107` bestätigt ist; nicht Teil von E.
+8. **`stale_offset_untracked`** ist für startabhängiges Schreiben nicht erweitert. Wie `inline` / `foreign` beim Schreiben im Anfang zu benennen ist, entscheide ich mit der E2-Notiz.
+9. **G38 im Hauptprogramm** bleibt unverändert (F6).
+
+**Offen nach E1:** E2 (Client: Anfang, Grund- und Anfahrspur, Zeit, Notiz), E3 (`run_basis.start.joints`), dann die Parity-Abnahme und die Goldens beim Suite-Stopp. Ich baue E2 parallel weiter.
