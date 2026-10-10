@@ -1,0 +1,292 @@
+{
+  "scope": "Plan Fassung 7; not a product acceptance test",
+  "hashes": {
+    "remap": "af5e6eb664bd662e89abafa36d7cc4e2fc770287c71288435eb821361e0e2d5a",
+    "twp_params": "013e4de636cab748b7178e48ae018e38cba5026a55c35806c2e810b02d7bf190",
+    "twp_prov": "694163fa9cbc6cda2fbd52ac4ebb207550b2afc024c059672c80402d344f1acf",
+    "twp_transform": "3ccb18847ac8f25c546884d65d5478d7f6080335e1889d58c5badc9ae95aaa71",
+    "util": "aee8b6917d7a2a504b835112b03e03e5c598138729c0e2e985ca2e8f8c79fcd5"
+  },
+  "positive": {
+    "g682": {
+      "accepted": true,
+      "errors": [],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._canon_error",
+        "remap._clear_pose_stamp",
+        "remap._get_rot_axis_yz",
+        "remap._rotary_work_offset",
+        "remap.g682",
+        "remap.get_current_work_offset",
+        "remap.gui_update_twp",
+        "remap.read_touchoff_pose",
+        "remap.reset_twp_params",
+        "remap.rotary_offsets_nonzero",
+        "remap.to_storage_frame",
+        "remap.twp_calc_euler_rot_matrix",
+        "twp_params.active_index",
+        "twp_params.fixture_base",
+        "twp_params.wcs_row_params",
+        "twp_prov.prov_params",
+        "twp_transform._apply",
+        "twp_transform._rot_x",
+        "twp_transform.compose_table_a",
+        "twp_transform.to_table_frame"
+      ]
+    },
+    "g684": {
+      "accepted": true,
+      "errors": [],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._canon_error",
+        "remap._clear_pose_stamp",
+        "remap.g684",
+        "remap.get_current_work_offset",
+        "remap.gui_update_twp",
+        "remap.reset_twp_params",
+        "remap.twp_calc_euler_rot_matrix"
+      ]
+    },
+    "g69_core": {
+      "accepted": true,
+      "errors": [],
+      "checked_definitions": [
+        "remap._clear_pose_stamp",
+        "remap.g69_core",
+        "remap.gui_update_twp",
+        "remap.reset_twp_params"
+      ]
+    },
+    "g683": {
+      "accepted": true,
+      "errors": [],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._canon_error",
+        "remap._clear_pose_stamp",
+        "remap._get_nut_angle",
+        "remap._get_pre_rot",
+        "remap._get_rot_axis_yz",
+        "remap._rotary_work_offset",
+        "remap.g683",
+        "remap.get_current_rotary_positions",
+        "remap.get_current_work_offset",
+        "remap.get_machine_a",
+        "remap.gui_update_twp",
+        "remap.kins_calc_tool_rot_c_for_horizontal_x",
+        "remap.kins_calc_tool_transformation",
+        "remap.kins_tool_transformation",
+        "remap.read_touchoff_pose",
+        "remap.reset_twp_params",
+        "remap.rotary_offsets_nonzero",
+        "remap.to_storage_frame",
+        "twp_params.active_index",
+        "twp_params.fixture_base",
+        "twp_params.wcs_row_params",
+        "twp_prov.prov_params",
+        "twp_transform._apply",
+        "twp_transform._rot_x",
+        "twp_transform.compose_table_a",
+        "twp_transform.to_table_frame",
+        "twp_transform.to_table_frame_vector"
+      ]
+    },
+    "g53x_core": {
+      "accepted": true,
+      "errors": [],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._canon_error",
+        "remap._clear_pose_stamp",
+        "remap._g92_rotary_nonzero",
+        "remap._get_nut_angle",
+        "remap._get_pre_rot",
+        "remap._get_rot_axis_yz",
+        "remap._rotary_work_offset",
+        "remap.calc_angle_pairs_and_distances",
+        "remap.calc_optimal_joint_move",
+        "remap.g53x_core",
+        "remap.get_current_rotary_positions",
+        "remap.get_machine_a",
+        "remap.gui_update_twp",
+        "remap.kins_calc_jnt_angles",
+        "remap.kins_calc_pre_rot",
+        "remap.kins_calc_primary",
+        "remap.kins_calc_secondary",
+        "remap.kins_calc_tool_transformation",
+        "remap.kins_tool_transformation",
+        "remap.matrix_to_point",
+        "remap.point_to_matrix",
+        "remap.reserved_rows_dirty",
+        "remap.reset_twp_params",
+        "remap.transform_to_pipi",
+        "remap.truncated_remainder",
+        "twp_params.active_index",
+        "twp_params.fixture_base",
+        "twp_params.wcs_row_params",
+        "twp_transform._apply",
+        "twp_transform._rot_x",
+        "twp_transform.calc_rotary_move_with_joint_limits",
+        "twp_transform.calc_shortest_distance",
+        "twp_transform.compose_table_a",
+        "twp_transform.from_table_frame",
+        "twp_transform.rotary_delta_deg",
+        "twp_transform.rotary_within",
+        "util.lineno"
+      ]
+    },
+    "twp_touchoff": {
+      "accepted": true,
+      "errors": [],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._bump_datum_seq",
+        "remap._canon_error",
+        "remap._get_nut_angle",
+        "remap._get_pre_rot",
+        "remap._get_rot_axis_yz",
+        "remap._rotary_work_offset",
+        "remap.get_current_rotary_positions",
+        "remap.get_machine_a",
+        "remap.gui_update_twp",
+        "remap.kins_calc_tool_transformation",
+        "remap.kins_tool_transformation",
+        "remap.matrix_to_point",
+        "remap.point_to_matrix",
+        "remap.reserved_rows_dirty",
+        "remap.twp_touchoff",
+        "twp_params.active_index",
+        "twp_params.fixture_base",
+        "twp_params.wcs_row_params",
+        "twp_prov.prov_params",
+        "twp_transform._apply",
+        "twp_transform._rot_x",
+        "twp_transform.compose_table_a",
+        "twp_transform.to_table_frame",
+        "util.lineno"
+      ]
+    }
+  },
+  "negative": {
+    "R130_entry_alias": {
+      "accepted": false,
+      "errors": [
+        "remap.g682: wrong code object (g683)"
+      ],
+      "checked_definitions": []
+    },
+    "R130_same_module_helper_alias": {
+      "accepted": false,
+      "errors": [
+        "remap.g684 -> get_current_work_offset: wrong code object (get_current_rotary_positions)"
+      ],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._canon_error",
+        "remap._clear_pose_stamp",
+        "remap.g684",
+        "remap.gui_update_twp",
+        "remap.reset_twp_params",
+        "remap.twp_calc_euler_rot_matrix"
+      ]
+    },
+    "imported_helper_alias": {
+      "accepted": false,
+      "errors": [
+        "remap._rotary_work_offset -> _active_fixture_index: wrong code object (fixture_base)"
+      ],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._canon_error",
+        "remap._clear_pose_stamp",
+        "remap._get_nut_angle",
+        "remap._get_pre_rot",
+        "remap._get_rot_axis_yz",
+        "remap._rotary_work_offset",
+        "remap.g683",
+        "remap.get_current_rotary_positions",
+        "remap.get_current_work_offset",
+        "remap.get_machine_a",
+        "remap.gui_update_twp",
+        "remap.kins_calc_tool_rot_c_for_horizontal_x",
+        "remap.kins_calc_tool_transformation",
+        "remap.kins_tool_transformation",
+        "remap.read_touchoff_pose",
+        "remap.reset_twp_params",
+        "remap.rotary_offsets_nonzero",
+        "remap.to_storage_frame",
+        "twp_params.fixture_base",
+        "twp_params.wcs_row_params",
+        "twp_prov.prov_params",
+        "twp_transform._apply",
+        "twp_transform._rot_x",
+        "twp_transform.compose_table_a",
+        "twp_transform.to_table_frame",
+        "twp_transform.to_table_frame_vector"
+      ]
+    },
+    "binding_inside_helper_module": {
+      "accepted": false,
+      "errors": [
+        "twp_transform._apply -> _rot_x: wrong code object (to_table_frame_vector)",
+        "twp_transform.to_table_frame_vector -> _rot_x: wrong code object (to_table_frame_vector)"
+      ],
+      "checked_definitions": [
+        "remap.Rx",
+        "remap.Ry",
+        "remap.Rz",
+        "remap._canon_error",
+        "remap._clear_pose_stamp",
+        "remap._get_nut_angle",
+        "remap._get_pre_rot",
+        "remap._get_rot_axis_yz",
+        "remap._rotary_work_offset",
+        "remap.g683",
+        "remap.get_current_rotary_positions",
+        "remap.get_current_work_offset",
+        "remap.get_machine_a",
+        "remap.gui_update_twp",
+        "remap.kins_calc_tool_rot_c_for_horizontal_x",
+        "remap.kins_calc_tool_transformation",
+        "remap.kins_tool_transformation",
+        "remap.read_touchoff_pose",
+        "remap.reset_twp_params",
+        "remap.rotary_offsets_nonzero",
+        "remap.to_storage_frame",
+        "twp_params.active_index",
+        "twp_params.fixture_base",
+        "twp_params.wcs_row_params",
+        "twp_prov.prov_params",
+        "twp_transform._apply",
+        "twp_transform.compose_table_a",
+        "twp_transform.to_table_frame",
+        "twp_transform.to_table_frame_vector"
+      ]
+    }
+  },
+  "restored": {
+    "g682": true,
+    "g684": true,
+    "g69_core": true,
+    "g683": true,
+    "g53x_core": true,
+    "twp_touchoff": true
+  },
+  "assertions": "PASS"
+}
