@@ -1,0 +1,10 @@
+{
+  "commit": "663c3a4c095dd2d42fdf365bc09eae4d5ebbdd10",
+  "sha256": {
+    "docs/reviews/parity-ef.plan.md": "eb2e3e59edbc9be36002edb62c86da587ed197ac00a1444d3ecc3c37bb3fe06b",
+    "lcnc-gateway/native_start_probe.py": "0cd12f41071bf3134e910904ea4e43a30cfcff34fb5a66da26796d149e031dd3",
+    "lcnc-gateway/gcode_parse_worker.py": "8886a4cde310ed2ab59ef3b7421071838943ee50abbea8e530b3fffb1cc03456",
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "6106febe3194c5b8d5a4fcce0d5bb3f2535d96f95a7316a51c0c130e6208be04",
+    "lcnc-webui/src/viewer/collision.ts": "64571872800aeb1127741a1768919c0fe3add2e82e044a74a2b3d37533dba57a"
+  }
+}
