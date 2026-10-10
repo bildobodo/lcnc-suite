@@ -56,7 +56,7 @@ const runStart = (headerWcs.tool?.length ?? 0) >= 3 ? headerWcs.tool!.slice(0, 3
 const toolBasis = normalizeToToolBasis(d, payload.tlo_start, runStart);
 const wcs: PartFrameWcs = toolBasis ? { ...headerWcs, tool: toolBasis } : headerWcs;
 const base = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames, d.tloEvents,
-                            undefined, d.startBelieved);
+                            undefined, d.startBelieved, d.startUnbound);
 if (!base) fail("scrub track unbuildable from this payload — the sim would not offer itself (that IS a red result)");
 const epochTerms = base.wcsEvents
   ? epochTermsFor(base.wcsEvents, wcs, header.wcs_table as WcsTableRow[] | undefined)

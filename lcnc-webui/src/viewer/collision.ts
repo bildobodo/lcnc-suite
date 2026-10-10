@@ -112,9 +112,11 @@ export interface CollisionTrack {
    *  parity-ef plan E7): its baseline is point K's pose, and its result names
    *  the beginning (`startDependent`). 0 / absent = none. */
   depEnd?: number;
-  /** The start-dependent axes per point (ScrubTrack.dep): a bound beginning
-   *  is named where its writes are not tracked. */
+  /** The start-dependent axes per point (ScrubTrack.dep). */
   dep?: Uint8Array;
+  /** X, Y, Z unknown at the first point (ScrubTrack.startUnbound, Codex
+   *  R133 VP-I84): the beginning is named as not checkable. */
+  startUnbound?: number[];
   /** k > 0 = after k predicted tool measurements (a braking range began
    *  before): the path assumes the table length and the modeled probe
    *  sequence — the note says so (CollisionOptions.probeBands). */
@@ -388,7 +390,7 @@ export interface CollisionResult {
    *  start — not swept here; checked from the machine's position in the
    *  simulation (the entry side sweep binds it, and its merge drops this).
    *  The lines it spans; `whole` = the track has nothing else. Absent = none. */
-  startDependent?: { fromLine: number; toLine: number; whole: boolean; untracked?: boolean };
+  startDependent?: { fromLine: number; toLine: number; whole: boolean; untracked?: boolean; unbound?: boolean };
   /** The statements `uncertified` joins ("; "), one each — what a merge of
    *  results (the shards, the entry move over the program) unites, so no
    *  result's statement is lost behind another's (`unitedNotes`). Absent on
@@ -1269,7 +1271,10 @@ export function* sweepCollisionsIter(
       if (ln > 0 && (!from || ln < from)) from = ln;
       if (ln > to) to = ln;
     }
-    startDependent = { fromLine: from, toLine: to, whole: depK >= track.count };
+    startDependent = { fromLine: from, toLine: to, whole: depK >= track.count,
+                       // no start can be bound at its first point (Codex R133
+                       // VP-I84): not checked in the simulation either
+                       ...(track.startUnbound?.length ? { unbound: true } : {}) };
   }
   const notesOf = (parts: string[]) => ({ uncertified: parts.length ? parts.join("; ") : null, notes: parts.slice(),
                                           ...(startDependent ? { startDependent } : {}) });
@@ -1317,17 +1322,6 @@ export function* sweepCollisionsIter(
   if (opts.startUntracked) {
     noteParts.push("the interpreter's state was not available: where the program starts from is not tracked");
   }
-  if (opts.startWritesUntracked
-      && (startDependent || (track.dep && Array.from(track.dep.subarray(0, track.count)).some(m => m)))) {
-    // An offset or a stored position written from the start's position
-    // where the text cannot place it (a subroutine, a loop, a called file)
-    // places the moves AFTER the beginning too: the checked part's guarantee
-    // does not hold — a note on the base and on the bound track alike, the
-    // base's beginning flagged as well (Codex R132 point 8, R133).
-    if (startDependent) startDependent.untracked = true;
-    noteParts.push("in the program's start-dependent beginning, offsets and stored positions written in "
-      + "subroutines, loops or called files are not tracked");
-  }
   if (opts.probeStops?.length || afterProbe.length) {
     const stop = opts.probeStops?.[0];
     const k = afterProbe.length, at = [...new Set(afterProbe.filter(l => l > 0))];
@@ -1364,6 +1358,19 @@ export function* sweepCollisionsIter(
         : eo.enabled === null || eo.z === null ? "the external Z offset was not read" : null;
       if (off) noteParts.push(`At the check's basis ${off} — the probe's braking range and the path after the measurement are outside the model`);
     }
+  }
+  if (opts.startWritesUntracked) {
+    // An offset or a stored position written from the start's position
+    // where the text cannot place it (a subroutine, a loop, a called file)
+    // places the moves AFTER the beginning too: the checked part's guarantee
+    // does not hold — a note on the base and on the bound track alike, the
+    // base's beginning flagged as well (Codex R132 point 8, R133). The
+    // worker decides whether such a write may run; no mask is asked: the
+    // first absolute XYZ endpoint carries none, and a value stored before
+    // it is not repaired by it (Codex R133 VP-I88).
+    if (startDependent) startDependent.untracked = true;
+    noteParts.push("offsets and stored positions written from the position in subroutines, loops, called files "
+      + "or remapped codes are not tracked — they may keep where the machine stood at the start");
   }
   // A program tool whose body is unknown (no table length): per real segment
   // it is in the spindle for, the tool's own pairs are skipped.

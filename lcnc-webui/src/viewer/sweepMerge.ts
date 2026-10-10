@@ -107,6 +107,11 @@ export function mergeBeginningOntoBase(side: CollisionResult, base: CollisionRes
     // a side sweep cut short leaves the beginning partly unchecked: nothing
     // on the base axis is a checked prefix then
     truncated: side.truncated ? { covered: 0, reason: side.truncated.reason } : base.truncated,
+    // the base's range and boundary contacts are on the base axis already
+    // and stay what they were (Codex R133 VP-I87): a bound beginning checks
+    // [0, K], never the stretch between K and a range that starts later
+    ...(base.range ? { range: base.range } : {}),
+    ...(base.boundaryContacts ? { boundaryContacts: base.boundaryContacts } : {}),
   };
 }
 

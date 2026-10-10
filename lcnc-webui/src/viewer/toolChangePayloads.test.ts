@@ -182,7 +182,7 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // still reports itself, and the note says what is not tracked.
       r = sweepXYZ("r95_oword_g92", [15, 5, 45]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.uncertified).toMatch(/at L6 stays unknown .*; in subroutines and loops, stored positions \(G28.1 \/ G30.1\) and fixture writes in called files are not tracked$/);
+      expect(r.result.uncertified).toMatch(/at L6 stays unknown .*; in subroutines and loops, stored positions \(G28.1 \/ G30.1\) and fixture writes in called files are not tracked; offsets and stored positions written from the position in subroutines, loops, called files or remapped codes are not tracked — they may keep where the machine stood at the start$/);
       // A G92 in a called subroutine file: caught by its callback, its line
       // the sub file's — the note names none rather than a wrong one.
       r = sweepXYZ("r95_sub_g92", [15, 5, 45]);
@@ -201,7 +201,7 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       r = sweepXYZ("r96_branch_not_run", [100, 100, 100]);
       expect(r.track.ustart![r.last]).toBe(0);
       expect(r.track.cum[r.last]! - r.track.cum[r.last - 1]!).toBeCloseTo(1, 5);
-      expect(r.result.uncertified).toMatch(/not checked until the position is known again \(L7\); in subroutines and loops, stored positions \(G28.1 \/ G30.1\) and fixture writes in called files are not tracked$/);
+      expect(r.result.uncertified).toMatch(/not checked until the position is known again \(L7\); in subroutines and loops, stored positions \(G28.1 \/ G30.1\) and fixture writes in called files are not tracked; offsets and stored positions written from the position in subroutines, loops, called files or remapped codes are not tracked — they may keep where the machine stood at the start$/);
     });
     it("a sign on a number, and a write computed equal to the old value, hide nothing (Codex R97)", () => {
       // G10 L+20 P1 Z10: L6 stays unknown, no false hit at Z45, L4 named.

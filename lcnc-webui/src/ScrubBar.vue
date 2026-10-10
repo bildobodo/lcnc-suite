@@ -42,6 +42,7 @@ import { buildSimRows, limitStopOf, measurementsOf, nextRowKey, simRowOrder, typ
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
+import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
@@ -82,7 +83,9 @@ const props = defineProps<{
    *  the provisional range starts, and whether the provisional result is the
    *  one on screen while the full check runs. */
   collisionRunCheck?: { phase: "provisional" | "full"; fromLine: number | null; fromCum: number | null;
-                        provisionalShown: boolean } | null;
+                        provisionalShown: boolean;
+                        /** the program's start-dependent beginning in this run check (Codex R133 VP-I86) */
+                        begin?: RunBegin; beginWhy?: string | null } | null;
 }>();
 
 const emit = defineEmits<{
@@ -742,15 +745,14 @@ const verdictDetail = computed<string>(() => {
   if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
   if (r.staticContacts.length) parts.push(`${r.staticContacts.length} contact${r.staticContacts.length === 1 ? "" : "s"} at the start ignored.`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
+  // parity-ef plan E7: the beginning stands where the machine stands — in
+  // the simulation and in a run, checked or not (Codex R133 VP-I84/I86)
   const sd = r.startDependent;
-  if (sd) {
-    // parity-ef plan E7: the beginning stands where the machine stands
-    const at = sd.fromLine ? ` (${sd.toLine > sd.fromLine ? `L${sd.fromLine}–L${sd.toLine}` : `L${sd.fromLine}`})` : "";
-    parts.push(sd.whole
-      ? `The whole program depends on where the machine stands${at}: checked from the machine's position in the simulation.`
-      : `The start of the program depends on where the machine stands${at}: checked from the machine's position in the simulation.`);
-  }
-  return parts.join(" ") || "Tool and machine parts checked against each other along the whole program.";
+  if (sd) parts.push(beginSentence(sd, props.collisionRunCheck));
+  const text = parts.join(" ") || "Tool and machine parts checked against each other along the whole program.";
+  // the beginning's time, from where it is only bounded or unknown (VP-I89)
+  const dt = track.value?.depTime;
+  return dt ? `${text} ${depTimeSentence(dt)}` : text;
 });
 
 // Reasons this sweep's no-missed-crossing guarantee does NOT hold. Null when
@@ -1052,6 +1054,20 @@ const sweepView = computed<SimSweepView | null>(() => {
     if (props.collisionBusy) {
       return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
         verdict: n ? `${found} so far` : "No collision so far" };
+    }
+    // The program's start-dependent beginning (plan E7, Codex R133 VP-I86):
+    // a run check covers it only with its bound side result merged — the
+    // shown result then names no `startDependent`. Still sweeping, or with
+    // no start to bind it to: never "checked in full"; dependent to its
+    // end: never "Clear".
+    const sd = r?.startDependent;
+    if (r && sd && !r.truncated && !r.range) {
+      if (rc.begin === "checking") {
+        return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat, detail: runDetail,
+          verdict: `${n ? found : "No collision"} · start still checking` };
+      }
+      return { state: "done", frac: 1, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
+        verdict: sd.whole && !n ? "Depends on the machine's position" : `${n ? found : "Clear"} · start not checked` };
     }
     // "checked in full" only for a full sweep that is neither cut short nor
     // uncertified — a finished worker alone is no full check (Codex R115)

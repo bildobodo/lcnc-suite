@@ -197,7 +197,12 @@ export interface ScrubTrack {
   /** On a bound track: the first line from which the time axis is only a
    *  lower bound (`bound`) or unknown — a feed in the beginning the parse
    *  could not time (plan E7). */
-  depTime?: { line: number; bound: boolean };
+  depTime?: { line: number; bound: boolean; unknownLine?: number };
+  /** X, Y, Z (0..2) unknown at the program's FIRST point (wire
+   *  start_unbound, Codex R133 VP-I84): a tool change at a position no parse
+   *  sees, a rotated or world frame, a write from the position before it.
+   *  No start is bound there — no entry move, the beginning not checked. */
+  startUnbound?: number[];
   tloEvents?: import("../viewer/tloEvents").TloEvent[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
@@ -472,6 +477,7 @@ export interface ViewerGcode {
   feed_dep_f?: Uint8Array;
   rapid_dep_f?: Uint8Array;
   start_believed?: number[];
+  start_unbound?: number[];
   position_read_lines?: number[];
   axis_vmax?: (number | null)[];
   traj_vmax?: number | null;

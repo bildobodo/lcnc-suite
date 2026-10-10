@@ -22,7 +22,7 @@ import {
   type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
 import type { WcsEpoch } from "./wcsEpochs";
 import type { RotaryCmd, ScrubTrack } from "../ws/bulkData";
-import { bindBeginning, moveTime, type DepRates } from "./startDep";
+import { bindBeginning, earlierTime, moveTime, type DepRates } from "./startDep";
 
 export type { ScrubTrack };
 
@@ -109,7 +109,8 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
                                 subNames?: string[],
                                 tloEvents?: TloEvent[],
                                 rotaryCmd?: RotaryCmd,
-                                startBelieved?: [number, number, number]): ScrubTrack | null {
+                                startBelieved?: [number, number, number],
+                                startUnbound?: readonly number[]): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -336,7 +337,12 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
 
   return { pos, abc, lines, rapid: rapidFlag, mode, outside, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart, unpredicted, band, cond,
-           ...(depEnd > 0 ? { dep, depBasis, depF, depEnd, depBrk, depDur, startBelieved } : {}),
+           ...(depEnd > 0 ? { dep, depEnd, depBrk, depDur, startBelieved } : {}),
+           // the first move's kind and time basis whatever follows it — a
+           // first G1 X Y Z leaves no mask but feeds from the start (Codex
+           // R133 VP-I85): the arrays ride with or without a beginning
+           ...(depBasis ? { depBasis } : {}), ...(depF ? { depF } : {}),
+           ...(startUnbound?.length ? { startUnbound: [...startUnbound] } : {}),
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
@@ -666,12 +672,23 @@ export function buildEntryTrack(
   const entryTerms = epochTerms?.[base.wcsEpoch?.[0] ?? 0];
   // Point 0's tool offset (schema 8) — the fourth member of the "one
   // consistent triple": the entry lands where vertex 0 lifts from.
+  // X, Y or Z unknown at the first point (Codex R133 VP-I84): where the
+  // run is there does not follow from this start — no move to it to time or
+  // sweep, the beginning not bound (the unpredicted measurement's path).
+  if (base.startUnbound?.length) return null;
   const entryTlo = tloForIndex(base.tlo?.[0], base.tloEvents, wcs.tool);
   const entry = machineJointsToProgram(liveJoints, axes, wcs, kins,
                                        ktEntry, frameEntry, entryTerms, entryTlo);
-  // The start-dependent beginning (parity-ef plan E7) bound to this start:
-  // the same conversion names the live pose and the program's beginning.
-  const bound = bindBeginning(base, entry, rates);
+  // The start-dependent beginning (parity-ef plan E5/E7) bound to this
+  // start: the shift Δ = start − assumed start needs the start in the
+  // assumed start's basis — the first point's epoch and the tool offset
+  // BEFORE the first TLO row, never point 0's (Codex R133 VP-I83: a G43.1
+  // before the first move shifted Z twice). The entry point itself stays in
+  // point 0's basis.
+  const startTlo = tloForIndex(null, base.tloEvents, wcs.tool);
+  const startProg = startTlo === entryTlo ? entry
+    : machineJointsToProgram(liveJoints, axes, wcs, kins, ktEntry, frameEntry, entryTerms, startTlo);
+  const bound = bindBeginning(base, startProg, rates);
   if (!bound) return null;   // a beginning with no assumed start: nothing to shift by
   const t = prependEntry(bound, entry, rates, {
     basis: base.depBasis?.[0] ?? 1, f: base.depF?.[0] ?? 0, force: bound !== base });
@@ -963,6 +980,14 @@ export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
   if (t.tlo) out.tlo = u32(t.tlo);
   if (t.outside) out.outside = u8(t.outside);
   if (t.tloEvents) out.tloEvents = t.tloEvents;
+  // the beginning's masks and the first move's basis ride a slice too (the
+  // page sends a slice of the bound track to the side sweep — Codex R133
+  // VP-I88); a slice is never bound again, so K and the kept durations not
+  if (t.dep) out.dep = u8(t.dep);
+  if (t.depBasis) out.depBasis = u8(t.depBasis);
+  if (t.depF) out.depF = t.depF.slice(a, a + n);
+  if (t.depTime) out.depTime = t.depTime;
+  if (t.startUnbound) out.startUnbound = t.startUnbound;
   return out;
 }
 
@@ -998,7 +1023,7 @@ export function prependEntry(
   // tool, offset — is not known, so there is no move to it to time or sweep;
   // that stretch stays unchecked like the rest after the stop (Codex R105
   // VP-I62: the entry move made it a timed, swept rapid again).
-  if (t.unpredicted?.[0]) return t;
+  if (t.unpredicted?.[0] || t.startUnbound?.length) return t;
 
   const n = t.count + 1;
   const pos = new Float32Array(n * 3);
@@ -1140,12 +1165,17 @@ export function prependEntry(
     o.set(a, 1);
     return o;
   };
-  const depTime = timeFlag && !t.depTime ? { line: t.lines[0] ?? 0, bound: timeFlag === 1 } : t.depTime;
+  // the entry move IS the first move: its own time flag is the earliest
+  // cause, before any the bound beginning noted (Codex R133 VP-I89)
+  const depTime = timeFlag ? earlierTime({ line: t.lines[0] ?? 0, bound: timeFlag === 1,
+                                           ...(timeFlag === 2 ? { unknownLine: t.lines[0] ?? 0 } : {}) }, t.depTime)
+    : t.depTime;
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart, unpredicted, band, cond,
            wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents, outside,
            lineOk, sub, subNames: t.subNames, cline, inheritedEnd,
-           ...(t.dep ? { dep: shiftCh(t.dep, k => new Uint8Array(k)), depBasis: shiftCh(t.depBasis, k => new Uint8Array(k)),
-                         depF: shiftCh(t.depF, k => new Float32Array(k)), depEnd: 0, startBelieved: t.startBelieved } : {}),
+           ...(t.dep ? { dep: shiftCh(t.dep, k => new Uint8Array(k)), depEnd: 0, startBelieved: t.startBelieved } : {}),
+           ...(t.depBasis ? { depBasis: shiftCh(t.depBasis, k => new Uint8Array(k)) } : {}),
+           ...(t.depF ? { depF: shiftCh(t.depF, k => new Float32Array(k)) } : {}),
            ...(depTime ? { depTime } : {}),
            cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };
 }

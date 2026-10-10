@@ -1223,7 +1223,7 @@ path, the canon's WCS snapshot only on a setter call, and the vectorized
 limit checks (below).
 
 **The program's start-dependent beginning (plan `docs/reviews/parity-ef.plan.md`
-E, Fassung 7, Codex R122–R132)**: X, Y, Z stand where the machine stands when
+E, Fassung 7, Codex R122–R133)**: X, Y, Z stand where the machine stands when
 the program starts — a value no parse knows. The canon books per callback the
 axes whose value still DEPENDS on it (`dep`, bit 0 X, 1 Y, 2 Z): every axis at
 the program's first callback (`_begin_program`, before the walk of the
@@ -1240,7 +1240,18 @@ without the interpreter's words X/Y/Z are unknown from the start and the wire
 says so (`start_dep_unavailable`, VP-I80). A write FROM a dependent axis
 (G92, L20, G28.1 …) is unknown to the end; an explicit main-file line is no
 cause in `foreign` text either when the interpreter places the callback in
-the main file (the TWP corpus's `g10 l2 p0 …`). A position READ (`#5420`–`#5428`,
+the main file (the TWP corpus's `g10 l2 p0 …`). A write the canon cannot see
+— an inline sub's G30.1, a called file's, a remap body's — is decided by
+EXISTENCE (R133 VP-I88): `RemapEnv.pos_writes` follows the text (its own
+lines out of text order), its o-call files and remap bodies; a bound suite
+Python hook writes nothing from the position by itself (its executed G-code
+is test-pinned), the content-pinned routine neither (its reads come first);
+any such write sets `start_writes_untracked`, a note and the "*" on the base
+and every bound track, wherever it runs (named limit: a write after X, Y, Z
+are known counts too). X, Y or Z unknown at the program's FIRST point (a tool
+change at a position no parse sees, a turned or world frame, a write before
+it) ships `start_unbound` (VP-I84): no entry move, no binding, the beginning
+named "not checked". A position READ (`#5420`–`#5428`,
 `#<_x>`, `#<_abs_x>` …) of a dependent or unknown axis makes every axis
 unknown to the end (reason `position_read`, `position_read_lines`): in text
 order by the walk and the line's first callback (before its motion), in remap
@@ -1256,22 +1267,31 @@ a feed it cannot time) and F (`*_dep`, `*_dep_basis`, `*_dep_f`), anchors RDP
 at every change, gives dependent axes no limit verdict (NaN), and ships
 `start_believed` (the first point's epoch, shifted with the tool basis like a
 point before the first TLO row — verify and `normalizeToToolBasis`); a first
-G1 is a zero-length endpoint with its feed basis like a first G0. Client: the
+G1 is a zero-length endpoint with its feed basis like a first G0 — kept by the
+track with no mask after it too (VP-I85). Client: the
 BASE track breaks the segments into points 1..K (K = after the last mask; no
 time, not drawn, not checked; the sweep's baseline is point K; the result
 names it, `startDependent` — a whole dependent track never reads "Clear").
 `viewer/startDep.ts bindBeginning` binds it to a start: Δ = start −
-`start_believed` on every dependent axis, the parse's relabels back, each
+`start_believed` on every dependent axis — the start converted in
+`start_believed`'s basis, the tool offset BEFORE the first TLO row (a G43
+before the first move shifted Z twice, VP-I83) — the parse's relabels back, each
 move timed by its basis (G93/G95: the INI's shortest duration, a lower bound
-"+", none without a limit — `axis_vmax` / `traj_vmax`). The simulation's
+"+", none without a limit — `axis_vmax` / `traj_vmax`; `depTime` keeps the
+earliest cause in execution order, the entry move's own first, and the "?"
+names it — VP-I89). The simulation's
 entry track binds to the live joints (the first move keeps its kind: a G1
 feeds there), its side sweep covers the entry move and the beginning to K
 (only the entry move's findings read "entry"); a run check binds to
 `run_basis.start.joints` (gateway: copied from the start's poll before any
 await — standing, in position, finite; else `joints_why`) beside the base
 sweep, merged onto the base axis (`mergeBeginningOntoBase`: the beginning's
-findings at cum 0, a named display limit); the parity harness binds to its
-record's start joints. Tests: `test_start_dep_worker.py` (native, E10 + R132),
+findings at cum 0, a named display limit; its range and boundary contacts
+are the base's — VP-I87). The bar names the beginning per run check
+(`runBeginOf` / `runBeginView`: none, checked once its side result is merged,
+still checking, no joints, unbound) and never says "checked in full" while it
+is not checked (VP-I86). The parity harness binds to its record's start
+joints. Tests: `test_start_dep_worker.py` (native, E10 + R132 + R133, `TestPosWrites`),
 `suite_py_bind_probe.py`, `startDepPayloads.test.ts`
 (`scripts/gen_start_dep_payloads.py`).
 

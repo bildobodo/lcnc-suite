@@ -33,6 +33,17 @@ export interface DepRates {
 
 const DEG_AS_MM = 1;
 
+export type DepTime = NonNullable<ScrubTrack["depTime"]>;
+
+/** Two time causes in execution order (`a` runs first, Codex R133
+ *  VP-I89): the first inexact line is a's; the time stays a lower bound only
+ *  while neither is unknown; the first unknown line is a's, else b's. */
+export function earlierTime(a: DepTime, b: DepTime | undefined): DepTime {
+  if (!b) return a;
+  const unknownLine = a.unknownLine ?? b.unknownLine;
+  return { line: a.line, bound: a.bound && b.bound, ...(unknownLine != null ? { unknownLine } : {}) };
+}
+
 /** The duration of one move from (p0, a0) to (p1, a1) by its basis: 1 rapid,
  *  2 a G94 feed at f (units/min), 3 a feed whose time is not known. On a
  *  distance axis (no time base) every move is max(linear, rotary°). Returns
@@ -105,7 +116,11 @@ export function bindBeginning(base: ScrubTrack, start: readonly number[], rates?
       const [t, flag] = moveTime(b, base.depF?.[i] ?? 0, pos[j]! - pos[h]!, pos[j + 1]! - pos[h + 1]!,
                                  pos[j + 2]! - pos[h + 2]!, rot, base.timeBased, rates);
       dur = t;
-      if (flag && !depTime) depTime = { line: base.lines[i] ?? 0, bound: flag === 1 };
+      if (flag) {
+        const ln = base.lines[i] ?? 0;
+        const c: DepTime = { line: ln, bound: flag === 1, ...(flag === 2 ? { unknownLine: ln } : {}) };
+        depTime = depTime ? earlierTime(depTime, c) : c;
+      }
     }
     cum[i] = cum[i - 1]! + dur;
   }
@@ -116,4 +131,48 @@ export function bindBeginning(base: ScrubTrack, start: readonly number[], rates?
   delete out.depBrk;
   delete out.depDur;
   return out;
+}
+
+/** Where a run check stands with the program's start-dependent beginning
+ *  (Codex R133 VP-I86): none, its bound side result merged ("checked"),
+ *  still sweeping, no start joints in the run's basis, or no start bindable
+ *  at the first point (`startUnbound`). */
+export type RunBegin = "none" | "checked" | "checking" | "nojoints" | "unbound";
+
+/** A run check's beginning when it starts: none (K = 0), bound to the run's
+ *  start joints (a side sweep follows), no start bindable at the first
+ *  point, or no joints in the run's basis. */
+export function runBeginOf(K: number, bound: boolean, unbound: boolean): "none" | "bound" | "nojoints" | "unbound" {
+  return K <= 0 ? "none" : bound ? "bound" : unbound ? "unbound" : "nojoints";
+}
+
+/** ...and as the bar shows it: a bound beginning is checked once ITS side
+ *  result (this run check's) is merged, until then still checking. */
+export function runBeginView(begin: "none" | "bound" | "nojoints" | "unbound", sideMerged: boolean): RunBegin {
+  return begin === "bound" ? (sideMerged ? "checked" : "checking") : begin;
+}
+
+/** The "?" sentence for a start-dependent beginning (plan E7; Codex R133
+ *  VP-I84/I86): where it lies and whether, and how, it is checked — idle,
+ *  in the simulation from the machine's position; in a run from the run's
+ *  start joints, or not. */
+export function beginSentence(sd: { fromLine: number; toLine: number; whole: boolean; unbound?: boolean },
+                              run: { begin?: RunBegin; beginWhy?: string | null } | null | undefined): string {
+  const at = sd.fromLine ? ` (${sd.toLine > sd.fromLine ? `L${sd.fromLine}–L${sd.toLine}` : `L${sd.fromLine}`})` : "";
+  const how = sd.unbound ? "its first move starts from a position the preview cannot know, so it is not checked"
+    : !run ? "checked from the machine's position in the simulation"
+    : run.begin === "checking" ? "being checked from the run's start position"
+    : run.begin === "nojoints" ? `not checked: the run's start position was not read${run.beginWhy ? ` (${run.beginWhy})` : ""}`
+    : "not checked";
+  return `${sd.whole ? "The whole program" : "The start of the program"} depends on where the machine stands${at}: ${how}.`;
+}
+
+/** The "?" sentence for a beginning's time (plan E7; Codex R133 VP-I89):
+ *  from which line it is a lower bound, from which unknown. */
+export function depTimeSentence(dt: DepTime): string {
+  const lower = "a feed with no known rate is counted at the shortest the INI's velocity limits allow";
+  const unknown = "a feed with no known rate, and an INI velocity limit is missing";
+  if (dt.unknownLine == null) return `The time from L${dt.line} on is a lower bound: ${lower}.`;
+  if (dt.unknownLine === dt.line) return `The time from L${dt.line} on is not known: ${unknown}.`;
+  return `The time from L${dt.line} on is a lower bound: ${lower}; from L${dt.unknownLine} on it is not known: ${unknown}.`;
 }

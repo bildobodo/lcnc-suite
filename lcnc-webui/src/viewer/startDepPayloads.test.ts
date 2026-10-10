@@ -19,7 +19,9 @@ import { decodePreviewStreams, normalizeToToolBasis } from "../previewDecode";
 import { buildEntryTrack, buildScrubTrack, sliceTrack } from "./scrubTrack";
 import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
-import { bindBeginning, moveTime } from "./startDep";
+import { beginSentence, bindBeginning, depTimeSentence, earlierTime, moveTime, runBeginOf, runBeginView } from "./startDep";
+import ts from "typescript";
+import { epochTermsFor } from "./wcsEpochs";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
 const MACHINE: CollisionMachine = {
@@ -44,7 +46,7 @@ function load(name: string) {
   const raw = msgpackDecode(fs.readFileSync(path.join(DIR, `${name}.msgpack`))) as Record<string, any>;
   const d = decodePreviewStreams(raw);
   const track = buildScrubTrack(d.feed, d.rapid, d.kinsFrames, d.wcsEvents, d.subNames, d.tloEvents,
-                                undefined, d.startBelieved)!;
+                                undefined, d.startBelieved, d.startUnbound)!;
   return { raw, d, track };
 }
 const wcsOf = (raw: Record<string, any>) => ({ g5x: [], g92: [], rotationDeg: 0, tool: raw.tlo_start } as any);
@@ -170,9 +172,9 @@ describe("bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whol
     const opts = { margin: 0.1, startWritesUntracked: true };
     const base = sweepCollisions(model([500, 0, 0]), { ...track, wcs: track.wcsEpoch }, wcsOf(raw), opts);
     expect(base.startDependent).toEqual({ fromLine: 2, toLine: 4, whole: false, untracked: true });
-    expect(base.uncertified).toMatch(/in the program's start-dependent beginning, offsets and stored positions written in subroutines, loops or called files are not tracked/);
+    expect(base.uncertified).toMatch(/offsets and stored positions written from the position in subroutines, loops, called files or remapped codes are not tracked — they may keep where the machine stood at the start/);
     const side = sweepCollisions(model([500, 0, 0]), { ...e, wcs: e.wcsEpoch }, wcsOf(raw), opts);
-    expect(side.uncertified).toMatch(/in the program's start-dependent beginning, offsets and stored positions written in subroutines, loops or called files are not tracked/);
+    expect(side.uncertified).toMatch(/offsets and stored positions written from the position in subroutines, loops, called files or remapped codes are not tracked — they may keep where the machine stood at the start/);
     // without the flag: nothing of it
     const plain = sweepCollisions(model([500, 0, 0]), { ...track, wcs: track.wcsEpoch }, wcsOf(raw), { margin: 0.1 });
     expect(plain.startDependent?.untracked).toBeUndefined();
@@ -230,7 +232,7 @@ describe("the time of the beginning (E10 Nr. 16, VP122-02)", () => {
     expect(lim.depTime).toEqual({ line: 2, bound: true });
     const none = entry("e_g93", [100, 100, 0]).e;            // no [TRAJ] MAX_LINEAR_VELOCITY
     expect(cums(none)).toEqual([0, 0]);
-    expect(none.depTime).toEqual({ line: 2, bound: false });
+    expect(none.depTime).toEqual({ line: 2, bound: false, unknownLine: 2 });
   });
 
   it("moveTime", () => {
@@ -249,5 +251,144 @@ describe("the tool basis moves the assumed start with the points before the firs
     const d = decodePreviewStreams(raw);
     normalizeToToolBasis(d, [0, 0, 0], [0, 0, 7]);
     expect(d.startBelieved).toEqual([0, 0, -7]);
+  });
+});
+
+// Codex R133's counterexamples (VP-I83..VP-I89) on the native payloads, the
+// client chain as the page runs it.
+const sweepFlags = (t: any, at: [number, number, number], raw: Record<string, any>, extra: Record<string, unknown> = {}) =>
+  sweepCollisions(model(at), { ...t, wcs: t.wcsEpoch }, wcsOf(raw),
+                  { margin: 0.1, tloEvents: t.tloEvents, startWritesUntracked: !!raw.start_writes_untracked, ...extra });
+/** A computed body of ScrubBar.vue, executed as written with its inputs —
+ *  the bar's own decision, no copy (Codex R133's method). */
+function barComputed(name: string, refs: Record<string, unknown>) {
+  const src = fs.readFileSync(path.resolve(__dirname, "../ScrubBar.vue"), "utf8");
+  const begin = src.indexOf(`const ${name} = computed`);
+  expect(begin).toBeGreaterThan(0);
+  const end = src.indexOf("\n});", begin) + 4;
+  const body = ts.transpileModule(src.slice(begin, end) + `\nreturn ${name};`,
+    { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
+  const all = { computed: (f: () => unknown) => f(), ...refs };
+  return new Function(...Object.keys(all), body)(...Object.values(all));
+}
+const sweepView = (result: any, run: any) => barComputed("sweepView", {
+  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, hitTargets: { value: [] },
+  sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
+  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %` });
+const verdictDetail = (result: any, run: any, track: any) => barComputed("verdictDetail", {
+  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, track: { value: track },
+  provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hits: { value: result.hits },
+  sweepCaveat: { value: result.uncertified }, pctOf: (x: number) => `${x * 100} %`, beginSentence, depTimeSentence });
+
+describe("Codex R133", () => {
+  it("VP-I83: a G43.1 before the first move — the start shifts in the assumed start's basis", () => {
+    // G43.1 Z10 / G0 X10 / G0 Y0 Z0 from (100, 100, 100), no start offset:
+    // X10 moves no Z, its program Z is 90 (it read 80)
+    const { raw, e } = entry("r133_g43_before_first", [100, 100, 100]);
+    expect(pts(e)[1]).toEqual([10, 100, 90]);
+    // a cube on the machine's real X move at Z100 is met on L3
+    const side = sweepFlags(sliceTrack(e, 0, 3), [50, 100, 100], raw);
+    expect(side.hits.some(h => h.line === 3)).toBe(true);
+    // a fixture switch before the first move: the same shift, the start
+    // converted with the epochs' terms as the page does
+    const g = load("r133_g55_before_first");
+    const terms = epochTermsFor(g.track.wcsEvents!, wcsOf(g.raw), undefined);
+    const g55 = buildEntryTrack(g.track, [100, 100, 100], ["X", "Y", "Z"], wcsOf(g.raw), undefined, terms, 0, rates(g.raw))!;
+    expect(pts(g55)[0]).toEqual([95, 94, 93]);               // the start in G55
+    expect(pts(g55)[1]).toEqual([10, 94, 93]);
+  });
+
+  it("VP-I84: X, Y or Z unknown at the first point — no entry move, the beginning not checkable", () => {
+    const m6 = load("r133_m6_before_first");
+    expect(m6.track.startUnbound).toEqual([0, 1, 2]);
+    expect(buildEntryTrack(m6.track, [100, 100, 100], ["X", "Y", "Z"], wcsOf(m6.raw), undefined, undefined, 0,
+                           rates(m6.raw))).toBeNull();
+    const rot = load("e_rotated");
+    expect(buildEntryTrack(rot.track, [100, 100, 100], ["X", "Y", "Z"], wcsOf(rot.raw), undefined, undefined, 0,
+                           rates(rot.raw))).toBeNull();
+    const base = sweep(rot.track, [500, 0, 0], rot.raw);
+    expect(base.startDependent?.unbound).toBe(true);
+    expect(beginSentence(base.startDependent!, null)).toMatch(/its first move starts from a position the preview cannot know, so it is not checked\.$/);
+  });
+
+  it("VP-I85: a first G1 X Y Z keeps its kind and F with no mask after it", () => {
+    const { e } = entry("r133_first_g1_xyz", [100, 0, 0]);
+    expect(e.rapid[1]).toBe(0);
+    expect(e.cum[1]).toBeCloseTo(60, 4);                   // 100 mm at F100
+  });
+
+  it("VP-I87: the run merge keeps the base's range and its boundary contacts", () => {
+    const { raw, track, e } = entry("r133_range_after_k", [100, 100, 0]);
+    const K = track.depEnd!, from = K + 1;
+    expect(from).toBeLessThan(track.count - 1);
+    const at = pts(track)[from]! as [number, number, number];
+    const base = sweepCollisions(model(at), { ...track, wcs: track.wcsEpoch }, wcsOf(raw), { margin: 0.1, range: { from } });
+    expect(base.range?.fromCum).toBeDefined();
+    expect(base.boundaryContacts?.length).toBeGreaterThan(0);
+    const side = sweep(sliceTrack(e, 0, K + 2), [500, 0, 0], raw);
+    const m = mergeBeginningOntoBase(side, base, e.cum[K + 1]!, track.cum[track.count - 1]!, e.cum[1]);
+    expect(m.range).toEqual(base.range);
+    expect(m.boundaryContacts).toEqual(base.boundaryContacts);
+  });
+
+  it("VP-I88: a stored position the canon does not see is named with no mask, and after a slice", () => {
+    const store = load("r133_store_before_first_absolute");
+    expect(store.raw.start_writes_untracked).toBe(true);
+    expect(store.track.depEnd ?? 0).toBe(0);
+    const r = sweepFlags(store.track, [500, 0, 0], store.raw);
+    expect(r.uncertified).toMatch(/offsets and stored positions written from the position in subroutines, loops, called files or remapped codes are not tracked/);
+    // the side sweep's slice of a bound track keeps the beginning's arrays and the flag's note
+    const u = entry("r133_untracked_writes", [100, 100, 100]);
+    const sl = sliceTrack(u.e, 0, (u.track.depEnd ?? 0) + 2);
+    expect(sl.dep).toBeDefined();
+    expect(sweepFlags(sl, [500, 0, 0], u.raw).uncertified).toMatch(/not tracked — they may keep where the machine stood at the start/);
+  });
+
+  it("VP-I89: the earliest time cause, and the help says it", () => {
+    const { e } = entry("r133_g93_no_limits", [0, 0, 0]);
+    expect(e.depTime).toEqual({ line: 2, bound: false, unknownLine: 2 });
+    expect(depTimeSentence(e.depTime!)).toBe("The time from L2 on is not known: a feed with no known rate, and an INI velocity limit is missing.");
+    expect(depTimeSentence({ line: 2, bound: true })).toMatch(/^The time from L2 on is a lower bound: /);
+    expect(depTimeSentence({ line: 2, bound: false, unknownLine: 3 })).toMatch(/lower bound: .*; from L3 on it is not known: /);
+    // in execution order: the earlier line, unknown from the later one
+    expect(earlierTime({ line: 2, bound: true }, { line: 3, bound: false, unknownLine: 3 }))
+      .toEqual({ line: 2, bound: false, unknownLine: 3 });
+    expect(earlierTime({ line: 2, bound: false, unknownLine: 2 }, { line: 3, bound: true }))
+      .toEqual({ line: 2, bound: false, unknownLine: 2 });
+    // the bar's own "?" carries it
+    const r = sweep(e, [500, 0, 0], load("r133_g93_no_limits").raw);
+    expect(verdictDetail(r, null, e)).toMatch(/The time from L2 on is not known/);
+  });
+
+  it("VP-I86: a run check never calls an unchecked beginning checked in full", () => {
+    const all = load("e_all_dep");
+    const whole = sweep(all.track, [500, 0, 0], all.raw);
+    expect(whole.startDependent?.whole).toBe(true);
+    const run = (begin: string, beginWhy: string | null = null) =>
+      ({ phase: "full", fromLine: null, fromCum: null, provisionalShown: false, begin, beginWhy });
+    expect(sweepView(whole, run("nojoints")).verdict).toBe("Depends on the machine's position");
+    expect(sweepView(whole, null).verdict).toBe("Depends on the machine's position");
+    const rdp = load("e_g53_rdp");
+    const part = sweep(rdp.track, [500, 0, 0], rdp.raw);
+    expect(part.startDependent?.whole).toBe(false);
+    expect(sweepView(part, run("nojoints")).verdict).toBe("Clear · start not checked");
+    expect(sweepView(part, run("unbound")).verdict).toBe("Clear · start not checked");
+    const pending = sweepView(part, run("checking"));
+    expect([pending.state, pending.verdict]).toEqual(["checking", "No collision · start still checking"]);
+    // the bound side result merged: no beginning left to name — in full
+    const { e } = entry("e_g53_rdp", [100, 100, 0]);
+    const K = rdp.track.depEnd!;
+    const side = sweep(sliceTrack(e, 0, K + 2), [500, 0, 0], rdp.raw);
+    const merged = mergeBeginningOntoBase(side, part, e.cum[K + 1]!, rdp.track.cum[rdp.track.count - 1]!, e.cum[1]);
+    expect(sweepView(merged, run("checked")).verdict).toBe("Clear · checked in full");
+    // the states the viewer hands the bar
+    expect([runBeginOf(0, false, false), runBeginOf(2, true, false), runBeginOf(2, false, true), runBeginOf(2, false, false)])
+      .toEqual(["none", "bound", "unbound", "nojoints"]);
+    expect([runBeginView("bound", false), runBeginView("bound", true), runBeginView("nojoints", true)])
+      .toEqual(["checking", "checked", "nojoints"]);
+    // the "?" says why
+    expect(verdictDetail(part, run("nojoints", "moving"), rdp.track))
+      .toMatch(/The start of the program depends on where the machine stands \(L\d+–L\d+\): not checked: the run's start position was not read \(moving\)\./);
+    expect(verdictDetail(part, null, rdp.track)).toMatch(/: checked from the machine's position in the simulation\./);
   });
 });

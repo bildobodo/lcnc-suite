@@ -25,6 +25,9 @@ export interface DecodedPreview {
   /** The start the parse assumed (wire start_believed, plan E5); shifted
    *  with the points before the first TLO row by normalizeToToolBasis. */
   startBelieved?: [number, number, number];
+  /** Wire start_unbound (Codex R133 VP-I84): X, Y, Z unknown at the first
+   *  point — no start can be bound there. */
+  startUnbound?: number[];
   // The drawing-path aliases the worker also ships (same buffers as the
   // stream fields — feed.pos === feedPos etc.).
   feedPos: Float32Array;
@@ -140,6 +143,8 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   const sb = g.start_believed;
   const startBelieved = Array.isArray(sb) && sb.length === 3 && sb.every((v: unknown) => Number.isFinite(Number(v)))
     ? [Number(sb[0]), Number(sb[1]), Number(sb[2])] as [number, number, number] : undefined;
+  const su = g.start_unbound;
+  const startUnbound = Array.isArray(su) && su.length ? su.map((v: unknown) => Number(v)) : undefined;
 
   return {
     feed: { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq,
@@ -155,7 +160,7 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
              lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire, outside: rapidOutsideWire,
              unpredicted: rapidUnpred, band: rapidBand, cond: rapidCond,
              dep: pad8(g.rapid_dep, nrp), depBasis: pad8(g.rapid_dep_basis, nrp), depF: padF(g.rapid_dep_f, nrp) },
-    kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd, startBelieved,
+    kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd, startBelieved, startUnbound,
     feedPos, rapidPos, feedLines, feedAbc, rapidAbc,
   };
 }

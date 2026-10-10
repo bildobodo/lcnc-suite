@@ -51,6 +51,7 @@ import { partCollides } from "./viewer/collision";
 import { collisionLineMarks } from "./viewer/collisionMarks";
 import { clashTintBodies } from "./viewer/clashTint";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
+import { runBeginOf, runBeginView } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { clashTargets } from "./viewer/clashTargets";
@@ -2934,7 +2935,10 @@ const collisionRunCheckView = computed(() => {
   const t = viewerGcode.value?.scrubTrack;
   return { phase: r.phase, fromLine: r.fromLine,
            fromCum: r.fromIndex != null && t ? t.cum[r.fromIndex] ?? null : null,
-           provisionalShown: r.phase === "full" && collisionBusy.value && !!collisionResult.value?.range };
+           provisionalShown: r.phase === "full" && collisionBusy.value && !!collisionResult.value?.range,
+           // bound: checked once its side result for this run is merged
+           begin: runBeginView(r.begin, collisionRunSide.value?.gen === r.gen),
+           beginWhy: r.beginWhy };
 });
 // The verdict of the preview shown before the one displayed now, kept NAMED
 // while a run goes on (plan „Prüfung im Lauf“ 1c): no marks, counts or jumps
@@ -2950,7 +2954,9 @@ let _colPendingTrack: ScrubTrack | null = null;
 // discards it; idle starts the full check as before.
 let _colRunGen = 0;
 const collisionRun = shallowRef<{ version: number; runId: number; gen: number; phase: "provisional" | "full";
-                                  fromIndex: number | null; fromLine: number | null; basis: CheckBasis } | null>(null);
+                                  fromIndex: number | null; fromLine: number | null; basis: CheckBasis;
+                                  // the program's start-dependent beginning (Codex R133 VP-I86)
+                                  begin: "none" | "bound" | "nojoints" | "unbound"; beginWhy: string | null } | null>(null);
 // The run check the main request in flight belongs to (its generation), and
 // whether the result on screen stays while it runs (the full after the
 // provisional — its partial findings are not shown).
@@ -3408,6 +3414,7 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
     ustart: track.ustart?.slice(), // unknown starts — named in the result, never assumed swept
     depEnd: track.depEnd,          // the start-dependent beginning: baseline at K, named (plan E7)
+    startUnbound: track.startUnbound,   // ...and named not checkable when no start binds (VP-I84)
     dep: track.dep?.slice(),       // ...and where it lies on a bound track
     wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
     tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
@@ -3600,8 +3607,11 @@ function _startRunCheck(): boolean {
   const K = track.depEnd ?? 0;
   let from = hint && hint.track === track && hint.index >= 1 && hint.index < track.count ? hint.index - 1 : null;
   if (from != null && K > 0 && from < K) from = K;
+  const bound = K > 0 ? _runBoundTrack(track, basis) : null;
+  const begin = runBeginOf(K, !!bound, !!track.startUnbound?.length);
   const gen = ++_colRunGen;
   collisionRun.value = { version: g.publishedVersion!, runId: rb.runId, gen, basis,
+    begin, beginWhy: begin === "nojoints" ? rb.start?.jointsWhy ?? null : null,
     phase: from != null ? "provisional" : "full", fromIndex: from,
     // the line the operator sees there: inside a called file its call line
     // (a point nothing vouches for keeps its own number, collision.ts noteLine)
@@ -3610,7 +3620,6 @@ function _startRunCheck(): boolean {
   emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from });
   _colRunLog.push(from != null ? `start provisional ${from}` : "start full");
   runCollisionCheck(track, { basis, gen, ...(from != null ? { range: { from } } : {}) });
-  const bound = K > 0 ? _runBoundTrack(track, basis) : null;
   if (bound) _colPostSide(sliceTrack(bound, 0, Math.min(K + 1, bound.count - 1) + 1), bound, track,
                           bound.cum[Math.min(K + 1, bound.count - 1)]!, false, { gen, basis });
   return true;
