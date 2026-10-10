@@ -1317,13 +1317,16 @@ export function* sweepCollisionsIter(
   if (opts.startUntracked) {
     noteParts.push("the interpreter's state was not available: where the program starts from is not tracked");
   }
-  if (opts.startWritesUntracked) {
-    // the beginning bound to a start (a side sweep) or named apart (a base)
+  if (opts.startWritesUntracked
+      && (startDependent || (track.dep && Array.from(track.dep.subarray(0, track.count)).some(m => m)))) {
+    // An offset or a stored position written from the start's position
+    // where the text cannot place it (a subroutine, a loop, a called file)
+    // places the moves AFTER the beginning too: the checked part's guarantee
+    // does not hold — a note on the base and on the bound track alike, the
+    // base's beginning flagged as well (Codex R132 point 8, R133).
     if (startDependent) startDependent.untracked = true;
-    else if (track.dep && Array.from(track.dep.subarray(0, track.count)).some(m => m)) {
-      noteParts.push("in the program's start-dependent beginning, offsets and stored positions written in "
-        + "subroutines, loops or called files are not tracked");
-    }
+    noteParts.push("in the program's start-dependent beginning, offsets and stored positions written in "
+      + "subroutines, loops or called files are not tracked");
   }
   if (opts.probeStops?.length || afterProbe.length) {
     const stop = opts.probeStops?.[0];

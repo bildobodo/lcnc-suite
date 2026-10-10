@@ -749,7 +749,6 @@ const verdictDetail = computed<string>(() => {
     parts.push(sd.whole
       ? `The whole program depends on where the machine stands${at}: checked from the machine's position in the simulation.`
       : `The start of the program depends on where the machine stands${at}: checked from the machine's position in the simulation.`);
-    if (sd.untracked) parts.push("Offsets and stored positions written there in subroutines, loops or called files are not tracked.");
   }
   return parts.join(" ") || "Tool and machine parts checked against each other along the whole program.";
 });

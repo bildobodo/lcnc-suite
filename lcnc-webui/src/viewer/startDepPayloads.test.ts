@@ -162,17 +162,21 @@ describe("bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whol
   });
 
   it("writes in a beginning the text cannot place are named, on the base and on the bound track", () => {
-    // R132 point 8 (start_writes_untracked): the base names it at its
-    // beginning, a bound track (a side sweep) in its notes
+    // R132 point 8 (start_writes_untracked): such a write may place the
+    // moves after the beginning too — the base's guarantee does not hold
+    // (its note, the "*"), its beginning flagged; a bound track (a side
+    // sweep) says the same in its notes (R133)
     const { raw, track, e } = entry("e_single", [0, 0, 0]);
     const opts = { margin: 0.1, startWritesUntracked: true };
     const base = sweepCollisions(model([500, 0, 0]), { ...track, wcs: track.wcsEpoch }, wcsOf(raw), opts);
     expect(base.startDependent).toEqual({ fromLine: 2, toLine: 4, whole: false, untracked: true });
+    expect(base.uncertified).toMatch(/in the program's start-dependent beginning, offsets and stored positions written in subroutines, loops or called files are not tracked/);
     const side = sweepCollisions(model([500, 0, 0]), { ...e, wcs: e.wcsEpoch }, wcsOf(raw), opts);
     expect(side.uncertified).toMatch(/in the program's start-dependent beginning, offsets and stored positions written in subroutines, loops or called files are not tracked/);
     // without the flag: nothing of it
     const plain = sweepCollisions(model([500, 0, 0]), { ...track, wcs: track.wcsEpoch }, wcsOf(raw), { margin: 0.1 });
     expect(plain.startDependent?.untracked).toBeUndefined();
+    expect(plain.uncertified).toBeNull();
   });
 
   it("a G43 and a fixture switch inside the beginning stay relabels, with no time", () => {
