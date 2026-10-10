@@ -1,0 +1,60 @@
+--- R133 original
++++ R134 adapted copy
+@@ -8,6 +8,7 @@
+ import { buildCollisionModel, sweepCollisions, type CollisionMachine } from './collision';
+ import { mergeBeginningOntoBase } from './sweepMerge';
+ import ts from 'typescript';
++import {beginSentence,depTimeSentence} from './startDep';
+ 
+ const out = path.resolve(process.env.REVIEW_OUT ?? '../..');
+ const evidence: Record<string, any> = {};
+@@ -42,7 +43,7 @@
+  const end=source.indexOf('\n});',begin)+4;
+  const body=ts.transpileModule(source.slice(begin,end)+'\nreturn verdictDetail;',
+    {compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}}).outputText;
+- const refs={computed:(f:()=>any)=>f(),shownResult:{value:result},props:{collisionBusy:false},track:{value:track},
++ const refs={computed:(f:()=>any)=>f(),beginSentence,depTimeSentence,shownResult:{value:result},props:{collisionBusy:false},track:{value:track},
+   provisionalOnScreen:{value:false},stoppedTitle:{value:''},hits:{value:result.hits},sweepCaveat:{value:result.uncertified},
+   pctOf:(n:number)=>String(n*100)+'%'};
+  return new Function(...Object.keys(refs),body)(...Object.values(refs));
+@@ -50,7 +51,7 @@
+ function load(name: string, start=[100,100,100]) {
+  const raw=decode(fs.readFileSync(path.join(out,'payloads',name+'.msgpack'))) as Record<string,any>;
+  const d=decodePreviewStreams(raw);
+- const base=buildScrubTrack(d.feed,d.rapid,d.kinsFrames,d.wcsEvents,d.subNames,d.tloEvents,d.rotaryCmd,d.startBelieved)!;
++ const base=buildScrubTrack(d.feed,d.rapid,d.kinsFrames,d.wcsEvents,d.subNames,d.tloEvents,d.rotaryCmd,d.startBelieved,d.startUnbound)!;
+  const wcs={g5x:[],g92:[],rotationDeg:0,tool:raw.tlo_start} as any;
+  const rates={linear:raw.rapid_rate,rotary:raw.rot_rapid_rate,axisVmax:raw.axis_vmax,trajVmax:raw.traj_vmax};
+  const entry=buildEntryTrack(base,start,['X','Y','Z'],wcs,undefined,undefined,0,rates);
+@@ -107,7 +108,7 @@
+   const fullResult=sweepCollisions(model(),{...entry,wcs:entry.wcsEpoch},wcs,opts);
+   const sideResult=sweepCollisions(model(),{...side,wcs:side.wcsEpoch},wcs,opts);
+   evidence.sideNotes={full:fullResult.uncertified,sliced:sideResult.uncertified,hasDep:!!side.dep};
+-  expect(sideResult.uncertified).toContain('start-dependent beginning');
++  expect(sideResult.uncertified).toContain('stored positions written from the position');
+  });
+  it('merging the run beginning retains a provisional range and boundary contacts',()=>{
+   const {base,entry,wcs}=load('first_g1_x_control');
+@@ -144,7 +145,7 @@
+  });
+  it('control: a store after fully known coordinates has no start-dependent caveat',()=>{
+   const {raw}=load('store_after_known_control');
+-  expect(raw.start_writes_untracked).toBeUndefined();
++  expect(raw.start_writes_untracked).toBe(true); // R134 proposed existence rule (after-known false positive named)
+  });
+  it('the untracked-write flag is authoritative even when no endpoint retains a mask',()=>{
+   const {base,wcs}=load('store_before_first_absolute');
+@@ -152,11 +153,11 @@
+   // would currently be ignored when every emitted endpoint is absolute.
+   const result=sweepCollisions(model(),{...base,wcs:base.wcsEpoch},wcs,{margin:0.1,startWritesUntracked:true});
+   evidence.initialStoreFlagForced={uncertified:result.uncertified,depEnd:base.depEnd??0};
+-  expect(result.uncertified).toContain('start-dependent beginning');
++  expect(result.uncertified).toContain('stored positions written from the position');
+  });
+  it('unknown time begins at the first G93 move, not its successor',()=>{
+   const {entry}=load('g93_no_limits');
+-  expect(entry.depTime).toEqual({line:2,bound:false});
++  expect(entry.depTime).toEqual({line:2,bound:false,unknownLine:2});
+  });
+  it('the help names the cause and line of unknown beginning time',()=>{
+   const {entry,wcs}=load('g93_no_limits');

@@ -17334,3 +17334,65 @@ Zwei Erwartungen in `toolChangePayloads.test.ts` (R95, R96) nennen den neuen Sat
 2. Parity-Lauf (`m600_live`, Toleranz 0,5) und der XYZAC-Korpus.
 3. Suite-Stopp mit Schemawechsel und Goldens.
 4. Paket 1 aus Schritt 4.
+
+## Review R134 · Codex · Nachprüfung VP-I83–VP-I89 · 10. Oktober 2026
+
+**Ergebnis: `findings`. VP-I83, VP-I85, VP-I87, VP-I88 und VP-I89 sind geschlossen. Die Bindungssperre aus VP-I84 funktioniert; bei ihrer Anzeige bleiben VP-I84/VP-I86 für K = 0 offen. Zusätzlich VP-I90: Ein fehlgeschlagener Seiten-Sweep bleibt als laufend angezeigt.** Geprüft: `fix/start-dep`, `3cacdbf9..52f7b49c`, ungemergt, gegen Plan E/F Fassung 7 und Anfrage R134.
+
+Die 15 R133-Client-Vertragsprüfungen bestehen am neuen Stand mit den unten offengelegten Schnittstellen-/Vertragsanpassungen. Dazu **152 Backend- und 73 Frontend-Bestandstests PASS**. Die neue Ablaufprobe führt die echten Funktionen aus `ThreeViewer.vue` zusammen mit Decode, Spur, Sweep, Merge und den Computed-Rümpfen der Leiste aus: **vier grüne Kontrollen und vier rote Gegenprüfungen**, auf die zwei offenen Punkte verteilt. Kein Browser-, Gesamtgate- oder Live-/Parity-Lauf durch Codex.
+
+[Prüfprotokoll](viewer-palette-fest.r134.codex-checks.md), [Kontext](viewer-palette-fest.r134.codex-context.json), [native Programme](viewer-palette-fest.r134.codex-native.py), [native Ergebnisse](viewer-palette-fest.r134.codex-native.json), [Payloads](viewer-palette-fest.r134.codex-payloads.zip), [R133-Nachprüfung](viewer-palette-fest.r134.codex-rerun.test.ts), [Anpassungen der Sondenkopie](viewer-palette-fest.r134.codex-rerun-adaptations.diff), [R133-Messdaten](viewer-palette-fest.r134.codex-rerun.json), [Ablaufprobe](viewer-palette-fest.r134.codex-wiring.test.ts), [Ablauf-Messdaten](viewer-palette-fest.r134.codex-wiring.json), [Testausgaben](viewer-palette-fest.r134.codex-tests.txt).
+
+### VP-I84/VP-I86 · Rest · P1 · Unbindbarer erster Weg bei K = 0 wird als vollständig geprüft gemeldet
+
+**Orte am geprüften Commit:** `lcnc-webui/src/viewer/startDep.ts:145–146`, `collision.ts:1266–1278` und `:1299`; `ThreeViewer.vue:3606–3614`, `ScrubBar.vue:1076–1079`.
+
+Native Gegenprobe mit `TOOL_CHANGE_POSITION = 50 50 50`:
+
+```ngc
+G21 G90
+M6
+G0 X10 Y20 Z30
+G0 X20
+M2
+```
+
+Der Worker meldet korrekt `start_unbound = [0,1,2]`, `rapid_ustart = [1,0]` und keine `dep`-Maske. Der erste Weg beginnt an der nicht gesehenen Werkzeugwechselposition; erst sein vollständig befohlenes XYZ-Ende ist wieder bekannt. `buildEntryTrack` gibt jetzt korrekt `null` zurück. **Dieser Teil von VP-I84 ist behoben.**
+
+Die Benennung geht anschließend verloren:
+
+1. K = 0 lässt `runBeginOf(0, false, true)` trotzdem `none` zurückgeben.
+2. `collision.ts` übernimmt `startUnbound` nur innerhalb von `depK > 0`; die Liste anderer unbekannter Starts beginnt bei Index 1. Der erste Punkt fällt durch beide Regeln.
+3. Das echte Sweep-Ergebnis enthält weder `startDependent` noch eine Notiz, `uncertified = null`. In der zusammen ausgeführten Viewer-/Leisten-Kette steht **„Clear · checked in full“**, grün, ohne Stern. Das „?“ behauptet **„Tool and machine parts checked against each other along the whole program.“**
+
+Auch die Variante ohne `G0 X20`, also mit genau **einer** nicht geprüften Programmbewegung, ergibt diese vollständige Entwarnung. Das belegt eine fehlende Abdeckungsinformation, keinen Fehler des neuen `null`-Rückgabewerts und keinen behaupteten realen Kollisionsfund. Der bisherige Anzeige-Wächter benutzt den gedrehten Fall mit verbleibender Maske; er erreicht den K-0-Zweig nicht.
+
+**Korrekturziel:** `start_unbound` unabhängig von K bis zum Ergebnis, zum Laufzustand und zum Hilfetext berücksichtigen. Eine unbekannte erste Bewegung ausdrücklich als ausgelassen benennen, auch wenn ihr Ende bereits XYZ bestimmt oder danach keine zweite Bewegung folgt. In diesem Zustand nie „checked in full“ beziehungsweise „along the whole program“ ausgeben. Keine künstliche Maske und keine Anfahrt erfinden, um die vorhandene Anzeige auszulösen. Wächter über die tatsächliche Kette für beide obigen Programme, daneben gewöhnlicher bindbarer Programmanfang als Kontrolle.
+
+### VP-I90 · P2 · Fehlgeschlagene Anfangsprüfung bleibt dauerhaft „start still checking“
+
+**Orte:** `lcnc-webui/src/ThreeViewer.vue:3231–3252`, `:2940`; `lcnc-webui/src/viewer/startDep.ts:151–152`.
+
+Gezielte Fehlerinjektion an der Worker-Grenze, **kein behaupteter Fehler der Live-Sim**: Die Ablaufprobe startet einen zulässigen Lauf-Check mit gebundenem Anfang und lässt die Grundprüfung abschließen. Danach meldet der Seiten-Sweep entweder `error`, oder er fordert zweimal die Körperdaten an. Beide Wege sind bereits ausdrücklich behandelte Fehlerpfade des Produkts.
+
+`_colOnSideMessage` setzt `_colSide = null` und protokolliert `collision.entry_failed`. Es gibt danach keinen Seitenauftrag und kein Seitenergebnis. `collisionRun.begin` bleibt jedoch `bound`; `runBeginView` übersetzt jedes fehlende Seitenergebnis weiter in `checking`. Die Leiste zeigt deshalb **„No collision · start still checking“**, Zustand `checking`, auch nachdem die gesamte noch laufende Arbeit beendet ist. Ein neues Ergebnis kann diesen Zustand nicht mehr auflösen; erst eine spätere Invalidierung tut das.
+
+**Korrekturziel:** Für die Anfangsprüfung ausstehend, abgeschlossen und fehlgeschlagen/ungeprüft unterscheiden. Auf den behandelten Fehlerpfaden den fehlenden Anfang sichtbar abschließen („start not checked“ mit Grund), ohne den gültigen Befund der Grundprüfung zu verlieren. Denselben Vertrag bei einem synchron gescheiterten Versand beziehungsweise einem nicht erzeugbaren Seitenauftrag beachten. Keine automatische Wiederholung erforderlich; „wird noch geprüft“ darf nur stehen, solange ein passender Auftrag tatsächlich läuft.
+
+Die positiven Ablaufkontrollen bestehen: Grund-Ergebnis zuerst, Seiten-Ergebnis zuerst, fehlende Startgelenke mit `jointsWhy`, sowie abgebrochener Seiten-Sweep mit `covered: 0`. Das Problem ist somit nicht allein das Fehlen eines umfassenden Komponententests, sondern ein reproduzierbarer fehlender Zustandsübergang.
+
+### Nachprüfung und Entscheidungen
+
+| Punkt | Ergebnis |
+|---|---|
+| VP-I83 | **Geschlossen.** G43 vor der ersten Bewegung: Ziel-Z90 statt Z80; die eigene Würfel-Kollisionsprobe trifft wieder L3. Die G43-nach-erster-Bewegung-Kontrolle und der Repository-Wächter für G55 bestehen. |
+| VP-I84 | **Bindungssperre angenommen und belegt**, einschließlich des konservativen gedrehten/Weltrahmen-Falls. Benennung bei K = 0 noch offen, siehe oben. |
+| VP-I85 | **Geschlossen.** Erstes `G1 X0 Y0 Z0 F100` bleibt Vorschub, 60 s ab `(100,0,0)`. |
+| VP-I86 | Die bisherigen `whole`-/Teilanfang-Fälle sowie fehlende Gelenke und beide Ergebnisreihenfolgen bestehen. Der K-0-Rest bleibt offen; der zusätzliche Fehlerübergang ist VP-I90. |
+| VP-I87 | **Geschlossen.** Bereich und Grenzkontakte bleiben erhalten; eigener Merge-Gegenfall sowie Repository-Wächter mit nichtleeren Grenzkontakten bestehen. |
+| VP-I88 · Existenzregel | **Angenommen und geschlossen, mit allen drei benannten Grenzen.** Ein möglicherweise positionsabhängiger gespeicherter Wert kann auch den Rest hinter K verändern. Deshalb darf die konservative Warnung unabhängig vom geometrischen Anfang entstehen; auch ein Remap in geordnetem Haupttext muss verfolgt werden. Warnung für einen erst nach bekannten XYZ ausgeführten Schreibvorgang und für bereits per Rückruf erfasste Schreibvorgänge sind die benannte Überapproximation. Die eigene nachgelagerte G30.1-Kontrolle erwartet deshalb jetzt ausdrücklich das Flag. Die Ausnahmen für die Suite bleiben an geprüfte Codeobjekte beziehungsweise Routineinhalt gebunden. |
+| VP-I89 | **Geschlossen.** Die früheste Zeitursache ist L2; die unbekannte Zeit und ihre Zeile erscheinen im tatsächlichen Hilfetext. |
+| Worte der Lauf-Anzeige | **Angenommen für den belegten Zustand:** „Clear · start not checked“ mit Warnton für einen geprüften Rest, „No collision · start still checking“ nur während der wirklich laufenden Anfangsprüfung. Keine Entwarnung für einen vollständig ungeprüften Weg. VP-I90 verhindert derzeit die zweite Zusage auf Fehlerpfaden. |
+| ThreeViewer-Verdrahtung | Die offengelegte Testgrenze ist fair benannt. Die eigenen zusammengesetzten Funktionsproben ergänzen sie gezielt; sie sind kein vollständiger Vue-/Browserlauf. Die beiden roten Fälle sollten als Wächter dieser Zustandsübergänge ins Repository übernommen werden. |
+
+Der **M600-Stern bleibt** gemäß Operator-Entscheidung unverändert. Keine Operator-Rückfrage erforderlich. Noch kein Implementierungs-Agreement; erst die zwei offenen Punkte schließen, danach die gesonderte Live-/Parity-Abnahme. Im Live-Baum ausschließlich dieser Anhang und neue `r134.codex-*`-Belege, keine Produktänderung und keine Maschinenbefehle.
