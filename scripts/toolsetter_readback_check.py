@@ -35,6 +35,7 @@ import asyncio
 import json
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import time
@@ -64,29 +65,66 @@ def ini_values(text):
     return values
 
 
+INTERPRETERS = {"python", "python3", "bash", "sh", "tclsh", "haltcl"}
+SYSTEM_PREFIXES = ("/usr/", "/bin/", "/sbin/", "/lib/", "/opt/linuxcnc/")
+
+
+def _loadusr_runs(words):
+    """What a `loadusr` line starts, by halcmd's forms (`loadusr [-W | -Wn
+    name | -w | -i] program [args]`; -Wn names the component to wait for,
+    never the program — Codex R120): [("file", path)] for a program given as
+    a path and for an interpreter's script (relative to the configuration,
+    the working directory halcmd runs in), [("path", name)] for a program
+    found on PATH. Raises ValueError on a form it does not know."""
+    i = 1
+    while i < len(words) and words[i].startswith("-"):
+        if words[i] == "-Wn":
+            i += 2
+        elif words[i] in ("-W", "-w", "-i"):
+            i += 1
+        else:
+            raise ValueError(f"loadusr option {words[i]} not known")
+    if i >= len(words):
+        raise ValueError("loadusr without a program")
+    prog, rest = words[i], words[i + 1:]
+    out = [("file", prog) if "/" in prog else ("path", prog)]
+    if os.path.basename(prog) in INTERPRETERS:
+        opts, script = [], None
+        for w in rest:
+            if not w.startswith("-"):
+                script = w
+                break
+            opts.append(w)
+        if script is None or "-m" in opts or "-c" in opts:
+            raise ValueError(f"loadusr {prog} without a script file")
+        out.append(("file", script))
+    return out
+
+
 def _runs(text):
-    """The files a halcmd text runs: `source <file>`, and the program a
-    `loadusr` starts when it is a path (a script in the configuration)."""
+    """What a halcmd text runs: ("file", path) for `source <file>` and the
+    files a `loadusr` starts, ("path", name) for a program it finds on PATH."""
     for raw in text.splitlines():
         words = raw.split("#", 1)[0].split()
         if len(words) >= 2 and words[0] == "source":
-            yield words[1]
+            yield ("file", words[1])
         elif words and words[0] == "loadusr":
-            prog = next((w for w in words[1:] if not w.startswith("-")), "")
-            if "/" in prog:
-                yield prog
+            yield from _loadusr_runs(words)
 
 
-def validate_sim_target(ini, running_ini, sim_config=SIM_CONFIG):
+def validate_sim_target(ini, running_ini, sim_config=SIM_CONFIG, which=shutil.which):
     """Only a running shipped SIMULATOR (Codex R118/R119 VP-I73): the
     requested INI is the one LinuxCNC runs, its name a shipped profile's, the
     whole INI the shipped template as the installer renders it (only the
     per-install settings lines may differ — config_sync_check's rule; an
     extra HALCMD, another kinematics, a Python remap differ), and every file
     its HAL runs — HALFILE, POSTGUI_HALFILE, SHUTDOWN, each file one of them
-    or a HALCMD `source`s, a script a `loadusr` starts — the shipped
-    template's file of that path. A file linked back into the checkout is
-    the template by construction. Raises ValueError with the reason."""
+    or a HALCMD `source`s, a program or interpreter script a `loadusr`
+    starts (byte for byte) — the shipped template's file of that path; a
+    program found on PATH must be the checkout's own (install.sh links the
+    suite's scripts) or the system's. A file linked back into the checkout
+    is the template by construction. A `loadusr` form it does not know is
+    refused. Raises ValueError with the reason."""
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from config_sync_check import drifted_lines   # noqa: E402 (scripts/, the installer's rule)
     from install_examples import render_ini        # noqa: E402
@@ -108,15 +146,29 @@ def validate_sim_target(ini, running_ini, sim_config=SIM_CONFIG):
         ln = (local or missing)[0][1].strip()
         raise ValueError(f"not the shipped simulator: the INI differs ({ln})")
     got = ini_values(text)
-    todo = [v for key in (("HAL", "HALFILE"), ("HAL", "POSTGUI_HALFILE"), ("HAL", "SHUTDOWN"))
+    todo = [("file", v) for key in (("HAL", "HALFILE"), ("HAL", "POSTGUI_HALFILE"), ("HAL", "SHUTDOWN"))
             for v in got.get(key, [])]
-    todo += [r for cmd in got.get(("HAL", "HALCMD"), []) for r in _runs(cmd)]
+    try:
+        todo += [r for cmd in got.get(("HAL", "HALCMD"), []) for r in _runs(cmd)]
+    except ValueError as e:
+        raise ValueError(f"not the shipped simulator: {e}")
     base, seen = os.path.dirname(req), set()
+    checkout = str(repo) + os.sep
     while todo:
-        rel = todo.pop(0)
-        if rel.startswith("LIB:") or rel in seen:
-            continue                     # LinuxCNC's own library, or done
-        seen.add(rel)
+        kind, rel = todo.pop(0)
+        if (kind, rel) in seen:
+            continue
+        seen.add((kind, rel))
+        if kind == "path":
+            # a program on PATH: the checkout's own (install.sh links the
+            # suite's scripts) or the system's, never another file
+            found = which(rel)
+            real = os.path.realpath(found) if found else ""
+            if not (real.startswith(checkout) or real.startswith(SYSTEM_PREFIXES)):
+                raise ValueError(f"not the shipped simulator: {rel} runs from {found or 'nowhere on PATH'}")
+            continue
+        if rel.startswith("LIB:"):
+            continue                     # LinuxCNC's own library
         deployed = os.path.normpath(os.path.join(base, rel))
         shipped = os.path.normpath(os.path.join(sim_config, rel))
         if not os.path.isfile(shipped):
@@ -125,14 +177,24 @@ def validate_sim_target(ini, running_ini, sim_config=SIM_CONFIG):
             raise ValueError(f"not the shipped simulator: {rel} is missing")
         with open(deployed, errors="replace") as f:
             dtext = f.read()
+        hal = rel.endswith((".hal", ".tcl"))
         if os.path.realpath(deployed) != os.path.realpath(shipped):
-            with open(shipped, errors="replace") as f:
-                stext = f.read()
-            missing, local = drifted_lines(stext, dtext)
-            if missing or local:
-                raise ValueError(f"not the shipped simulator: {rel} differs ({(local or missing)[0][1].strip()})")
-        if rel.endswith((".hal", ".tcl")):
-            todo += list(_runs(dtext))
+            if hal:
+                with open(shipped, errors="replace") as f:
+                    missing, local = drifted_lines(f.read(), dtext)
+                if missing or local:
+                    raise ValueError(f"not the shipped simulator: {rel} differs ({(local or missing)[0][1].strip()})")
+            else:
+                # a program or script it starts: byte for byte, no settings
+                # line or comment exempt (Codex R120)
+                with open(shipped, "rb") as a, open(deployed, "rb") as b:
+                    if a.read() != b.read():
+                        raise ValueError(f"not the shipped simulator: {rel} differs")
+        if hal:
+            try:
+                todo += list(_runs(dtext))
+            except ValueError as e:
+                raise ValueError(f"not the shipped simulator: {rel}: {e}")
 
 
 def launcher_pids(running_ini, ps_lines):

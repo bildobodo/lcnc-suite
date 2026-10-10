@@ -9135,3 +9135,15 @@ points to, like the live gate. Tests on a complete installed copy (rendered INI,
 hallib copied or linked): Codex's two cases, a changed sourced file under an
 unchanged top-level file, a machine HAL in place of a shipped one.
 
+**Codex R120, VP-I73 rest.** `loadusr -Wn sim-toolsetter-feed python3
+sim_toolsetter/sim_toolsetter_feed.py`: the scanner took the name after -Wn for the
+program, and the script python3 runs was never compared — changed or missing, it
+passed. `loadusr` is read by halcmd's forms (`-W`, `-w`, `-i`, `-Wn <name>`; any other
+option refused): a program given as a path and an interpreter's script (relative to
+the configuration, halcmd's working directory) are compared byte for byte with the
+shipped file — no settings line or comment exempt; a program found on PATH must
+resolve into the checkout (install.sh links the suite's scripts) or the system.
+Found on the way: the R120 tests' edit helper opened the file for writing before
+reading it, so every "edit" replaced the file with the appended line alone and the
+tests refused for the wrong reason; the helper now reads first and asserts it edits.
+
