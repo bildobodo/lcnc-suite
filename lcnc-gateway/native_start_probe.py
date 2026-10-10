@@ -84,6 +84,15 @@ CASES = {
     # An M6 names the tool's ROW to the canon (CHANGE_TOOL(slot)), and a row
     # is no tool number once the table is not T1, T2 … in order — a library
     # tool ahead of T1 (the XYZAC sim's table, live 2026-10-09: T1 read as 37)
+    # A random toolchanger swaps pocket 0 with the selected pocket: pocket 0
+    # (index 0) is the tool already loaded, never "no tool" (Codex R118 VP-I72)
+    "m6_random_loaded": ("G21 G90\nG0 X0 Y0 Z-100\nT7 M6\nG43\nG0 X10\nM2\n", "mm", 0.0, (490,),
+                         {"emcio": "RANDOM_TOOLCHANGER = 1", "random": True, "tools": [(7, 66), (1, 10), (2, 20)]}),
+    "m6_random_swap": ("G21 G90\nG0 X0 Y0 Z-100\nT2 M6\nG43\nG0 X10\nM2\n", "mm", 0.0, (490,),
+                       {"emcio": "RANDOM_TOOLCHANGER = 1", "random": True, "tools": [(7, 66), (1, 10), (2, 20)]}),
+    # A non-random toolchanger's T0 M6 empties the spindle: tool 0
+    "m6_unload": ("G21 G90\nG0 X0 Y0 Z-100\nT1 M6\nG43\nG0 X10\nT0 M6\nG49\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                  {"tools": [(1001, 30), (1, 10)]}),
     "m6_row_not_number": ("G21 G90\nG0 X0 Y0 Z-100\nT7 M6\nG43\nG0 X10\nT1 M6\nG43\nG0 X20\nM2\n",
                           "mm", 0.0, (490,), {"tools": [(1001, 30), (1, 10), (7, 66)]}),
     # ...and one it moves the machine at: the next move's start is unknown.
@@ -596,7 +605,11 @@ os.environ["INI_FILE_NAME"] = str(ini)
 # (tool, Z): the table file and STAT's — the preview reads tools through the
 # canon (get_tool → STAT.tool_table), the mmap only keeps it from crashing
 _tools = extra.get("tools", [(1, 10), (2, 80)])
-(work / "tool.tbl").write_text("".join(f"T{n} P{n} Z{z} D6\n" for n, z in _tools))
+# A random toolchanger (`random`): pocket i holds the i-th tool, pocket 0 the
+# loaded one — the table LinuxCNC keeps for it (Codex R118 VP-I72's case)
+_random = bool(extra.get("random"))
+(work / "tool.tbl").write_text("".join(
+    f"T{n} P{i if _random else n} Z{z} D6\n" for i, (n, z) in enumerate(_tools)))
 _var = {5161: 0, 5181: 10, 5210: 1, 5211: 0, 5212: 0, 5213: 0, 5220: 1, 5221: 0, 5222: 0, 5223: 0,
         **extra.get("var", {})}
 # LinuxCNC reads the parameter file in ascending order only
@@ -616,7 +629,7 @@ _td = ctypes.CDLL("libtooldata.so.0")
 _tool_stat = ctypes.create_string_buffer(1 << 20)   # kept alive: the library keeps the pointer
 _td["_Z17tool_mmap_creatorPK13EMC_TOOL_STATi"](_tool_stat, 0)
 _td["_Z13tooldata_initb"].argtypes = [ctypes.c_bool]
-_td["_Z13tooldata_initb"](False)
+_td["_Z13tooldata_initb"](_random)
 _load = _td["_Z13tooldata_loadPKcPPc"]
 _load.argtypes = [ctypes.c_char_p, ctypes.POINTER(ctypes.c_char_p)]
 # tooldata_load clears CANON_POCKETS_MAX (1001) comment strings before it
@@ -643,7 +656,9 @@ s = SimpleNamespace(poll=lambda: None, axis_mask=(15 if extra.get("rotary") else
                     linear_units=(1.0 / 25.4 if inch else 1.0), block_delete=False,
                     actual_position=[0] * 9, g92_offset=[0] * 9,
                     tool_offset=[0, 0, z_off, extra.get("a_offset", 0)] + [0] * 5,
-                    tool_in_spindle=1, tool_table=[tool(*_tools[0])] + [tool(n, z) for n, z in _tools],
+                    tool_in_spindle=_tools[0][0] if _random else 1,
+                    tool_table=([tool(n, z) for n, z in _tools] if _random
+                                else [tool(*_tools[0])] + [tool(n, z) for n, z in _tools]),
                     joint=None)
 if gcodes_live is not None:
     s.gcodes = gcodes_live

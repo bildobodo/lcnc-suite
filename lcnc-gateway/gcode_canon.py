@@ -631,10 +631,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         never by its number: the two coincide only in a table that lists T1,
         T2 … in order. The number is the row's id — a library tool ahead of
         T1 made every T1 a 37 (XYZAC sim, live 2026-10-09), and the program's
-        tools had no length or diameter on the client."""
+        tools had no length or diameter on the client. Index 0 is "unload"
+        only for a non-random toolchanger (StatMixin empties the pocket, id
+        −1); a random one swaps pocket 0 with itself and the loaded tool
+        stays (Codex R118 VP-I72). An empty pocket is tool 0."""
         self._enter()
         StatMixin.change_tool(self, idx)
-        tool = int(self.tools[0][0]) if idx else 0
+        tool = max(int(self.tools[0][0]), 0)
         if self.tool_change_moves and self._program_line():
             self.stale = frozenset(self.tool_change_axes) | self._frame_unknown
             self.ever_stale = True
