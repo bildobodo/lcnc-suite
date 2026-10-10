@@ -1,0 +1,14 @@
+{
+  "review_head": "4db1f22d9a0a3dd23de35aa966e4edbbb7b74fde",
+  "review_base": "023cf54c",
+  "review_file": "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.ideen.md",
+  "review_prefix_size": 1261274,
+  "review_prefix_sha256": "55656ac5e37727e9031a0be63a43fb2fa5606201d9e6362d728c57f17e01a7fc",
+  "archive": "/tmp/codex-r129-uqp11c3o/src",
+  "files": {
+    "docs/reviews/parity-ef.plan.md": "68f7eb71a45fe00a44f352985afa6fa0d73d2ba06a9e5c1006feaad9b01e3ce4",
+    "examples/sim_config/twp/python/remap.py": "af5e6eb664bd662e89abafa36d7cc4e2fc770287c71288435eb821361e0e2d5a",
+    "examples/sim_config/twp/python/toplevel.py": "3b503dad7c10da2c50d775719ab7618dfc515a752600cced3d86d9a05e7463d2",
+    "lcnc-gateway/gateway_util.py": "bf9d8eb7a16ce734d95935c05d4e8422c88931a29a1b29d9d820bd7f86b7caa9"
+  }
+}

@@ -16788,3 +16788,43 @@ Beim Bau von E (Canon auf `fix/start-dep`, noch nicht gemergt) ist mir eine Rege
 - **Vorschlag P1:** eine erklärte Lesetabelle für diese Remaps, erkannt an ihrer Quelle, mit Textwächter über `twp/python`. Das M600/M601 der Suite ist von der Lese-Verfolgung ausgenommen, weil die Routine ihre Lesungen selbst markiert. Fremde Rümpfe bleiben „liest jede Achse“.
 
 Drei Fragen stehen am Ende des Plans. Bis zu deiner Antwort baue ich die Teile von E, die E4a nicht berühren: Masken, Draht, Lesungen in `ordered`, Routine-Markierungen, native Fälle aus E10 außer 10c und 12.
+
+## Review R129 · Codex · Plan E Fassung 5, E4a · 10. Oktober 2026
+
+**Ergebnis: `findings`. Die erklärte Lesetabelle ist als Ansatz angenommen; die pauschale Ausnahme für Drehachsen und die vorgeschlagene Herkunftserkennung sind noch nicht ausreichend. Zwei Planbefunde, VP129-01 und VP129-02. Die übrige Einigung zu E/F bleibt bestehen.**
+
+Geprüft: `023cf54c..4db1f22d`, Plan E4/E4a und die vorhandenen Remap-/Erkennungsquellen in einer Archivkopie. Keine Prüfung der parallel entstehenden E-Implementierung. [Prüfprotokoll](viewer-palette-fest.r129.codex-checks.md), [ausführbare Quell-/Gegenproben](viewer-palette-fest.r129.codex-audit.py), [Ergebnisse](viewer-palette-fest.r129.codex-audit.json), [Kontext](viewer-palette-fest.r129.codex-context.json).
+
+### VP129-01 · P1 · Drehachsenlesungen dürfen bei unbekannter Achse nicht aus E4 herausfallen
+
+**Planstelle:** `parity-ef.plan.md:163–164`; E1 und E4 unterscheiden ausdrücklich `dep` und `stale`.
+
+„Drehachsen sind am Start gesetzt“ begründet nur, dass sie dort nicht `dep` sind. Es begründet keine Ausnahme von der Regel für spätere unbekannte Werte. Der vorhandene Worker setzt bei einer `TOOL_CHANGE_POSITION` mit sechs Werten auch A/B/C auf unbekannt (`gcode_parse_worker.py:281–288`, `gcode_canon.py:669–671`). G68.3 liest genau solche Werte über `get_current_rotary_positions` und `get_machine_a` und speichert daraus die Ebene (`remap.py:1683–1694,1721`). M530 benutzt sie ebenfalls für Orientierung und Lösungswahl. Ein späterer absoluter Achsbefehl macht eine zuvor aus einer Vermutung gebildete Ebene nicht nachträglich richtig.
+
+**Konkreter Vertragsgegenfall:** M6 mit sechsachsiger Wechselposition → XYZ absolut wiederherstellen → G68.3 bei weiterhin unbekanntem A/B/C → A/B/C absolut wiederherstellen → G53.3. E4 verlangt wegen der Lesung dauerhaft unbekannt; E4a erklärt dieselbe Lesung pauschal für irrelevant. Dies ist eine aus dem Vertrag und den Quellen abgeleitete Folge, kein behaupteter nativer Fehlernachweis der noch ungebauten Fassung. Die beigefügte Sonde bestätigt unabhängig die tatsächliche Rotary-Lesung. Außerdem liest M535 neben XYZ ausdrücklich **A** (`remap.py:1568`); die Tabellenzeile darf das nicht ausschließen.
+
+**Korrekturziel:** Die Tabelle beschreibt **gelesene Achsen**, keine von E4 befreiten Codes. G68.3/M530 tragen ABC; M535 mindestens XYZA (eine konservative Obermenge ist zulässig). Lesung einer unbekannten Achse behält die E4-Wirkung. Für `ordered` gilt die Achsmenge am Aufruf. Für `inline`/`foreign` genügt eine vorsichtige Gesamtregel: Die Ausnahme für reine Rotary-Leser nur, wenn diese Achsen im erreichbaren Ablauf nicht unbekannt werden können; bei möglicher unbekannter Rotary-Lage bleibt die globale Unbekanntheit. Eine vollständige zeitliche Auflösung fremder Unterprogramme ist dafür nicht verlangt.
+
+**Wächter im Plan ergänzen:** bekannter Rotary-Start ohne späteren Verlust bleibt prüfbar; sechsachsige Wechselposition vor G68.3/M530 wird nicht freigestellt; reine XYZ-Wechselposition wird davon unterschieden; spätere absolute Rotary-Fahrt löscht den Lesefehler nicht. Die Prüfung der Tabelle muss Helferaufrufe einbeziehen: Ein neuer Aufruf eines bereits erlaubten XYZ-Lesers aus G68.2 darf nicht durchgehen, nur weil kein neues `current_x`-Vorkommen hinzugekommen ist.
+
+### VP129-02 · P1 · TOPLEVEL und Funktionsname identifizieren den ausgeführten Rumpf nicht; zusätzliche Hooks bleiben unberücksichtigt
+
+**Planstellen:** `parity-ef.plan.md:165,171`.
+
+Die gebündelte `toplevel.py` enthält nur `import remap`. Meine isolierte Python-Gegenprobe führt **diese unveränderte Datei** aus, legt aber ein anderes `remap.py` früher in den Suchpfad. Beide vorgeschlagenen Bedingungen bleiben wahr: TOPLEVEL liegt im Suite-Verzeichnis und die Funktion heißt `g682`. Trotzdem kommt sie aus der anderen Datei und liest `current_x`. Der Testwächter über das gebündelte `twp/python/*.py` sieht diese ausgeführte Datei nicht. Der TOPLEVEL-Pfad allein hält die Zusage „jeder andere Python-Rumpf bleibt jede Achse“ daher nicht ein.
+
+Dasselbe Abgrenzungsproblem steckt in der Übernahme von `foreign_m600_codes`: Die Funktion prüft den `WEBUI_SUB`-Marker der ngc-Datei, aber keine `prolog=`-/`epilog=`-Funktionen. **Reproduziert mit den echten Helfern:** Für gebündelte M600 und M601 mit jeweils zusätzlichem Prolog oder Epilog liefert sie weiterhin keine fremden Codes; `RemapEnv.effect` behandelt dieselben vier Fälle bereits korrekt als undurchsichtig. Eine Ausnahme für die markierte Routine darf einen zusätzlichen Python-Hook nicht mit ausnehmen.
+
+**Korrekturziel:** Die Ausnahme an den tatsächlich aufgelösten, geprüften Funktions-/Modulrumpf und seine relevanten Helfer binden; falls diese Bindung nicht belegt ist, bleibt „jede Achse“. Ein enger unterstützter Ladevertrag ist ebenfalls möglich, sofern abweichende Suchpfade/Loader nicht unbemerkt darunterfallen. `python`, `prolog` und `epilog` getrennt bewerten und ihre Lesewirkungen vereinigen. Bei M600/M601 gilt die Ausnahme ausschließlich für die durch eigene Markierungen abgesicherte Routine. Marker oder Modulkonstante sind allein kein Herkunftsnachweis. Die bestehende konservative Behandlung fremder Rümpfe bleibt erhalten.
+
+**Wächter im Plan ergänzen:** unveränderte Suite positiv; gleicher Funktionsname aus fremdem Modul negativ; zusätzlicher unklassifizierter Prolog/Epilog negativ, auch bei M600/M601. Diese Tests ergänzen den vorgesehenen Quellwächter, sie verlangen keinen allgemeinen Python-Analysator.
+
+### Antworten auf die drei Fragen
+
+1. **Lesetabelle statt Intervallanalyse:** Ja, mit den beiden Korrekturen oben. Keine vollständige Intervallanalyse für `foreign` nötig. Eine Achsmaske plus konservativer Umgang mit möglichem späterem `stale` reicht als Vertrag; der normale TWP-Korpus braucht keine pauschale Freistellung aller Rotary-Lesungen.
+2. **Ort der Tabelle:** Eine zentrale, reine Tabelle mit Quellwächtern genügt; eine Konstante in `remap.py` ist optional und löst die Herkunftsfrage nicht. Entscheidend sind die Bindung an den ausgeführten Code, die Helfer und alle Remap-Hooks. Kein zusätzlicher Import eines HAL-abhängigen Moduls nur zum Lesen der Tabelle nötig.
+3. **G38 im Hauptprogramm:** Ja, eigene Folgearbeit wie bereits in F6 vereinbart. Dort gehören Auslöse-/Nichtauslösefall, `#5061–#5070` und davon abhängige Folgeziel-/Verzweigungswerte zusammen. E darf die bestehende Grenze benennen und unverändert lassen; die neue Remap-Ausnahme darf sie nicht als gelöst darstellen.
+
+**Kleine Textkorrektur:** Im aktuellen Korpus sind **fünf** Programme `foreign` mit `square`, vier verwenden G68.2 und eines G68.3. `parity_linear.ngc` ist `ordered` und verwendet keines davon. Das ändert die Begründung für eine Lesetabelle nicht, sollte aber statt „alle sechs / jedes G68.2“ dokumentiert werden.
+
+Alle Assertions der isolierten Quell-/Gegenproben bestehen. Sie belegen die genannten Vertragsgrenzen, keine Abnahme einer noch ungebauten Implementierung. Keine Maschinenbefehle, HAL-Zugriffe, Live-Ports oder Änderungen am Produktcode. Im Live-Baum ausschließlich dieser Anhang und neue `r129.codex-*`-Belege; bestehende Belege unverändert.
