@@ -20,6 +20,10 @@ export interface RunStart {
   toolLength: number | null;
   toolTableZ: number | null;
   toolOffset: number[] | null;
+  /** The external Z offset at the start (the reader's): its value and its
+   *  enable — null where the gateway read none (never an "off"). */
+  eoffsetZ: number | null;
+  eoffsetEnabled: boolean | null;
 }
 
 export type RunState = "sending" | "sent" | "unsent";
@@ -62,6 +66,8 @@ export interface PreviewOrigin {
 
 const num = (v: unknown): number | null => (typeof v === "number" && Number.isFinite(v) ? v : null);
 const str = (v: unknown): string | null => (typeof v === "string" ? v : null);
+/** A HAL bit as the reader ships it (bool, or 0 / 1); anything else unknown. */
+const flag = (v: unknown): boolean | null => (typeof v === "boolean" ? v : v === 0 || v === 1 ? v === 1 : null);
 const vec = (v: unknown): number[] | null =>
   Array.isArray(v) && v.every(x => typeof x === "number" && Number.isFinite(x)) ? (v as number[]).slice() : null;
 
@@ -76,6 +82,7 @@ function readStart(raw: unknown): RunStart | null {
     rotationXy: num(s.rotation_xy), wcsTable: table,
     toolNumber: num(s.tool_number), toolDiameter: num(s.tool_diameter), toolLength: num(s.tool_length),
     toolTableZ: num(s.tool_table_z), toolOffset: vec(s.tool_offset),
+    eoffsetZ: num(s.eoffset_z), eoffsetEnabled: flag(s.eoffset_enabled),
   };
 }
 

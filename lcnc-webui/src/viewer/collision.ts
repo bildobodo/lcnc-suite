@@ -307,6 +307,11 @@ export interface CollisionOptions {
    *  call line each braking range belongs to (0 = not verified) — the notes
    *  name them (the track's `band` / `cond`). */
   probeBands?: { tool: number; line: number }[];
+  /** The external Z offset at the check's basis (parity-ef F3, Codex R126
+   *  VP-I76): enabled, or a value left, puts a probe's braking range and the
+   *  path after it outside the model; null = not read, said too — never an
+   *  "off" nobody read. Absent = not a check with a basis (tests). */
+  externalOffsetZ?: { enabled: boolean | null; z: number | null };
   /** Program tools whose BODY is unknown — no length in the table, or no row
    *  (M600 plan, state table row 3): while one is in the spindle the tool's
    *  own pairs are not checked (the machine's still are) and the note says
@@ -1298,6 +1303,13 @@ export function* sweepCollisionsIter(
       noteParts.push(`After ${at("the measurement", "the measurements")}, this path assumes the table length and `
         + "the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified");
     }
+    const eo = opts.externalOffsetZ;
+    if (eo && (inBand || inCond)) {
+      const off = eo.enabled === true ? "an external Z offset is enabled"
+        : eo.z != null && Math.abs(eo.z) > 1e-9 ? `an external Z offset of ${+eo.z.toFixed(3)} is applied`
+        : eo.enabled === null || eo.z === null ? "the external Z offset was not read" : null;
+      if (off) noteParts.push(`At the check's basis ${off} — the probe's braking range and the path after the measurement are outside the model`);
+    }
   }
   // A program tool whose body is unknown (no table length): per real segment
   // it is in the spindle for, the tool's own pairs are skipped.
@@ -1592,6 +1604,10 @@ export function* sweepCollisionsIter(
   // non-cutting branch too: a record minted on a later line while the pair
   // never separated is a CONTINUATION, not a new clash.
   const onsetLine = new Int32Array(pairs.length).fill(-1);
+  // On a probe's braking range (track `band`): the line of a pair's first
+  // POSSIBLE touch there while it is in no certain contact — the range's
+  // later touches continue that record; the contact state stays as it was.
+  const bandOnset = new Int32Array(pairs.length).fill(-1);
   // A pair in contact (inContact) whose LAST query found it touching
   // (d ≤ CONTACT_EPS): it keeps the EXPLORE cadence. One that was not
   // touching carries a clearance certificate like a clear pair — see the
@@ -1746,6 +1762,7 @@ export function* sweepCollisionsIter(
     while (startSeg < n && dcum[startSeg]! - dcum[startSeg - 1]! <= 1e-9) startSeg++;
     inContact.fill(0);
     onsetLine.fill(-1);
+    bandOnset.fill(-1);
     onsetRapid.fill(0);
     undecided.fill(0);
     undecSpans.clear();
@@ -1768,6 +1785,18 @@ export function* sweepCollisionsIter(
     const boundary = boundaryPair[pi] === 1;
     const key = keyFor(line, pi, boundary);
     const prev = worst.get(key);
+    // A certain sample on a line whose record so far was only possible (the
+    // range's end pose sits on the next segment's line): the record is
+    // certain now, and its continuation the certain contact's, not the
+    // range's (Codex R126 VP-I74).
+    if (prev?.possible && !inBand) {
+      delete prev.possible;
+      const c = onsetLine[pi]! >= 0 && onsetLine[pi] !== line ? onsetLine[pi]! : undefined;
+      if (c === undefined) delete prev.continuation;
+      else prev.continuation = c;
+    }
+    // Continuing what: a certain contact, or on the range a possible one.
+    const onsetFor = inBand && !inContact[pi] ? bandOnset[pi]! : onsetLine[pi]!;
     if (!prev || dist < prev.dist) {
       const rec: CollisionHit & { pi: number; samples: number[]; carriedFrom?: number } = {
         line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
@@ -1777,10 +1806,11 @@ export function* sweepCollisionsIter(
       // not separated since. A worse sample on the same line keeps the
       // record's existing verdict.
       const cont = prev ? prev.continuation
-        : (onsetLine[pi]! >= 0 && onsetLine[pi] !== line ? onsetLine[pi]! : undefined);
+        : (onsetFor >= 0 && onsetFor !== line ? onsetFor : undefined);
       if (cont !== undefined) rec.continuation = cont;
       if (boundary) rec.boundary = true;
-      if (inBand || prev?.possible) rec.possible = true;
+      // possible while every sample of the record lies on the range
+      if (inBand && (!prev || prev.possible)) rec.possible = true;
       if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
       if (dist <= CONTACT_EPS) rec.samples.push(cum);
       worst.set(key, rec);
@@ -1799,6 +1829,25 @@ export function* sweepCollisionsIter(
   // verified separation past 2 × margin. The main loop then sets the pair's
   // certificates; the re-sampling sets none.
   const noteQuery = (pi: number, s: number, line: number, isRapid: boolean, d: number, inBand = false) => {
+    if (inBand) {
+      // The braking range is a hull, not where the machine is: it changes
+      // no contact state — no separation there is verified, and no onset
+      // either: a possible feed contact must not make a later rapid a benign
+      // retract, nor a later certain hit its continuation (Codex R126
+      // VP-I74). Its touches are `possible` records: a certain contact begun
+      // before it continues on them; one only there starts its own.
+      if (d <= opts.margin) {
+        if (pairCutting[pi]) {
+          // the cutter in the stock: a range leg is a feed — machining;
+          // only a rapid-begun (gouge) contact keeps reporting
+          if (inContact[pi] && isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d, true);
+        } else {
+          recordHit(line, s, isRapid, pi, d, true);
+          if (!inContact[pi] && bandOnset[pi]! < 0) bandOnset[pi] = line;
+        }
+      }
+      return;
+    }
     if (d <= opts.margin) {
       if (!inContact[pi]) {
         inContact[pi] = 1;
@@ -1820,7 +1869,9 @@ export function* sweepCollisionsIter(
         // Its carried-in part stays the earlier onset's contact
         // (carriedFrom → `carried` after refinement, Codex R34 VP-I09).
         const ex = worst.get(keyFor(line, pi));
-        if (ex && ex.continuation !== undefined) {
+        // (a POSSIBLE record — the braking range's end pose on this line —
+        // carries nothing in: the certain onset is the line's own, VP-I74)
+        if (ex && ex.continuation !== undefined && !ex.possible) {
           ex.carriedFrom = ex.continuation;
           delete ex.continuation;
         }
@@ -1836,9 +1887,7 @@ export function* sweepCollisionsIter(
       } else {
         recordHit(line, s, isRapid, pi, d, inBand);
       }
-    } else if (inContact[pi] && d > opts.margin * 2 && !inBand) {
-      // (On the braking range the path is a hull, not where the machine is:
-      // apart there proves no separation — the contact carries across it.)
+    } else if (inContact[pi] && d > opts.margin * 2) {
       inContact[pi] = 0;
       onsetRapid[pi] = 0;
       onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
@@ -2336,6 +2385,8 @@ export function* sweepCollisionsIter(
     }
     const line = track.lines[i]!;
     const isRapid = track.rapid[i] === 1;
+    // a braking range begins: its possible touches start afresh
+    if (track.band?.[i] && !track.band[i - 1]) bandOnset.fill(-1);
     const c0 = dcum[i - 1]!, c1 = dcum[i]!;
     const L = c1 - c0;
     if (track.brk?.[i]) pendingBreak = true;
@@ -2620,6 +2671,15 @@ export function* sweepCollisionsIter(
             sQ[pi] = s;
             qLine[pi] = line;
             sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
+          }
+          if (bandAt(i, s) && !track.band?.[i]) {
+            // The braking range's END pose, the first sample of the segment
+            // after it: a hull vertex, not where the machine is — it does
+            // not count as this line's sample. The line's first real pose
+            // lies past it: asked again within MIN_ADV, inside the segment
+            // (Codex R126 VP-I74: a certain hit there stayed `possible`).
+            qLine[pi] = -1;
+            sSafe[pi] = Math.min(sSafe[pi]!, s + MIN_ADV, c1);
           }
           const remain = sSafe[pi]! - s;
           if (remain < step) step = remain;

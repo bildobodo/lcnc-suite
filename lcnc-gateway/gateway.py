@@ -3121,7 +3121,10 @@ def _start_snapshot(stat) -> Dict[str, Any]:
     status's own fields and derivations (a run's check reads it where an
     idle check reads the live status): the fixture and its offsets, G92,
     the XY rotation, the fixture table, the tool in the spindle with its
-    dims, the applied offset, the rotary pose. From one poll."""
+    dims, the applied offset, the rotary pose. From one poll — and the
+    external Z offset from the reader's snapshot of the same moment (its
+    enable and value, None when the reader has none: never an "off" it did
+    not read — parity-ef F3, Codex R126 VP-I76)."""
     def vec(name):
         v = getattr(stat, name, None)
         return [float(x) for x in v] if v is not None else None
@@ -3134,7 +3137,8 @@ def _start_snapshot(stat) -> Dict[str, Any]:
             "tool_number": tool, "tool_diameter": diameter, "tool_length": length,
             "tool_table_z": table_z, "tool_offset": vec("tool_offset"),
             "rotary": rotary_seed_values(getattr(stat, "axis_mask", 0) or 0,
-                                         getattr(stat, "actual_position", None))}
+                                         getattr(stat, "actual_position", None)),
+            "eoffset_z": _reader_get("z_eoffset"), "eoffset_enabled": _reader_get("z_eoffset_enable")}
 
 
 def _unverified_run_basis(why: str) -> Dict[str, Any]:

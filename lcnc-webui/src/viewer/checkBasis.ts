@@ -23,6 +23,11 @@ export interface CheckBasis {
   toolNum: number | null;
   toolDiam: number | null;
   toolLen: number | null;
+  /** The external Z offset (reader): value and enable, null = not read —
+   *  a probe's braking range and the path after it assume none (parity-ef
+   *  F3, Codex R126 VP-I76). A note, not a sweep input. */
+  eoffsetZ: number | null;
+  eoffsetEnabled: boolean | null;
 }
 
 /** What the viewer holds of the live status (ThreeViewer's `_pv`). */
@@ -35,6 +40,8 @@ export interface LiveCheckInputs {
   toolNum: number | null;
   toolDiam: number | null;
   toolLen: number | null;
+  eoffsetZ: number | null;
+  eoffsetEnabled: boolean | null;
 }
 
 const copyRows = (t: WcsTableRow[] | null | undefined): WcsTableRow[] | null =>
@@ -50,6 +57,7 @@ export function basisFromLive(pv: LiveCheckInputs, payloadToolBasis: number[] | 
     toolOffset: [...(payloadToolBasis ?? pv.toolOffset ?? [])],
     wcsTable: copyRows(pv.wcsTable),
     toolNum: pv.toolNum, toolDiam: pv.toolDiam, toolLen: pv.toolLen,
+    eoffsetZ: pv.eoffsetZ, eoffsetEnabled: pv.eoffsetEnabled,
   };
 }
 
@@ -65,6 +73,7 @@ export function basisFromRun(rb: RunBasis | null, payloadToolBasis: number[] | n
     toolOffset: [...(payloadToolBasis ?? s.toolOffset ?? [])],
     wcsTable: copyRows(s.wcsTable),
     toolNum: s.toolNumber, toolDiam: s.toolDiameter, toolLen: s.toolLength,
+    eoffsetZ: s.eoffsetZ, eoffsetEnabled: s.eoffsetEnabled,
   };
 }
 

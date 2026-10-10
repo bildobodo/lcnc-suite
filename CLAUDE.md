@@ -1074,24 +1074,37 @@ on past P by the MODELED distance h = v·t + v²/a — v the probe feed capped b
 MAX_LINEAR_VELOCITY`, a the same share of `MAX_ACCELERATION` (v²/a is
 v²/(2·a/2): a parabolic blend halves the acceleration, `tc.c`
 `tcGetOverallMaxAccel`; the probes follow a collinear move or a reversal, so
-no kink reduction — text-guarded), t two servo periods (an ideal probe input)
-— never past the move's commanded end; the routine's own retract starts
+no kink reduction — text-guarded), t four servo periods (an ideal probe input:
+up to two until motion reads it and stores P, two more until the trajectory
+brakes — measured on the XYZAC sim, `viewer-palette-fest.r126.f5.txt`; with two
+the model fell short by the read delay in every G64 case) — never past the
+move's commanded end; the routine's own retract starts
 there and a preview leg climbs to P + retract: the hull H = [P − h, P + r]
 every stop and retract lies in (only Z moves between the probes and the
 drive-free G53 Z0 — text-guarded). `#5061…#5070` and the length stay at P.
 On the wire `probe_bands` [seq_start, seq_end, tool, line] (the segments
 inside, every vertex a decimation anchor) and `probe_notes` [seq, tool,
 reason, line] (`retract` inside the range, a possible `slow_limit`,
-`brake_unknown` without the INI values). The client: track `band` (a sweep
-record there is `possible` — a MAY, never a certain collision; apart there
-is no verified separation, the range's end pose included) and `cond` (every
-point after a trip point): the check's notes say the range is modeled, not
+`brake_unknown` without the INI values). The client: track `band` (the range
+changes NO contact state — no onset, no separation: a possible feed contact
+must not make a later rapid a benign retract, nor a later certain hit its
+continuation; its touches are `possible` records — a certain contact begun
+before continues on them, a certain sample upgrades a record, a possible one
+never feeds the re-entry rule; the range's end pose, the first sample of the
+segment after it, does not count as that line's sample — Codex R126 VP-I74;
+the move after the range rises to machine Z0, text-guarded, so the poses
+past its end vertex are real) and `cond` (every point after a trip point): the check's notes say the range is modeled, not
 certified, and "After the measurement at L7, this path assumes the table
 length and the modeled successful probe sequence. Probe timing and the
 resulting tool offset are not verified" — NO delay number (a program may
 compute or branch on the measured value, Codex R124) — so every program with
 a predicted measurement reads "Clear*", on the sim too; the Sim tab's rows
-after a trip point carry "conditional — after the measurement at L7". The
+after a trip point carry "conditional — after the measurement at L7"; the
+measurement's warnings stand in Program Stats too, per run in execution order
+(VP-I75); an external Z offset at the check's basis — enabled, a value left,
+or not read (never an "off" nobody read) — is named for the range and the path
+after it (`CheckBasis.eoffsetZ/eoffsetEnabled`, `run_basis.start.eoffset_*`,
+VP-I76). The
 parity gate checks COVERAGE there: truth→sim over the whole path, sim→truth
 without the range's samples (simDump `band`), the hull's reach past the
 truth reported apart (`scripts/test_parity_compare.py`). Named: no probe

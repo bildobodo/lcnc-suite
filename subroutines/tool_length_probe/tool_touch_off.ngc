@@ -376,9 +376,11 @@ o<200> do
     ;-126- lcnc-suite preview: the modeled braking range (docs/reviews/parity-ef.plan.md F2).
     ;LinuxCNC stores the feedback position at the trip (P) and then brakes along the
     ;probe line: h = v * t + v^2 / (2 * a), v the probe feed capped by the planner's Z
-    ;velocity, a half the planner's Z acceleration (a parabolic blend halves it), t two
-    ;servo periods (an ideal probe input). The planner keeps OFFSET_AV_RATIO for external
-    ;offsets. MODELED, never certified: a slower probe input brakes deeper.
+    ;velocity, a half the planner's Z acceleration (a parabolic blend halves it), t four
+    ;servo periods - up to two until motion reads the input and stores P, two more until
+    ;the trajectory brakes (measured on the sim, parity-ef F5). The planner keeps
+    ;OFFSET_AV_RATIO for external offsets. MODELED, never certified: a slower probe input
+    ;brakes deeper.
     #<pv_u> = 1                    ;INI units to the program's
     o<514> if [#<_metric> EQ 1 AND #<_metric_machine> EQ 0]
       #<pv_u> = 25.4
@@ -404,7 +406,7 @@ o<200> do
           #<pv_amax> = [#<_ini[TRAJ]MAX_LINEAR_ACCELERATION> * #<pv_u>]
         o<521> endif
       o<519> endif
-      #<pv_t> = [2 * #<_ini[EMCMOT]SERVO_PERIOD> / 1000000000]
+      #<pv_t> = [4 * #<_ini[EMCMOT]SERVO_PERIOD> / 1000000000]
       o<522> if [#<pv_vmax> GT 0 AND #<pv_amax> GT 0 AND #<pv_t> GE 0]
         #<pv_v> = [#<fast_probe_fr> / 60]
         o<523> if [#<pv_v> GT #<pv_vmax>]

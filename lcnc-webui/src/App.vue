@@ -35,7 +35,7 @@ import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
 import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
-import { m600Events, m600StatsText, parseProbeStops, probeStopWhy, type ProbeStop } from "./viewer/probeStop";
+import { m600Events, m600StatsText, parseProbeNotes, parseProbeStops, probeStopWhy, type ProbeStop } from "./viewer/probeStop";
 import MachineBtn from "./MachineBtn.vue";
 import MacroBar from "./MacroBar.vue";
 import MacrosPanel from "./MacrosPanel.vue";
@@ -1872,7 +1872,8 @@ watch(viewerGcode, (newGcode) => {
   gcodeWorldUnchecked.value = newGcode?.violations_world_unchecked ?? 0;
   gcodeProbeStops.value = parseProbeStops(newGcode?.probe_unpredicted);
   gcodeM600Text.value = m600StatsText(m600Events(gcodeProbeStops.value, newGcode?.toollen_table,
-                                                 (newGcode?.stats?.unit as string) ?? "mm"),
+                                                 (newGcode?.stats?.unit as string) ?? "mm",
+                                                 parseProbeNotes(newGcode?.probe_notes)),
                                       (newGcode?.stats?.unit as string) ?? "mm");
   gcodeKinsUnresolved.value = newGcode?.kins_flips_unresolved ?? 0;
   gcodeKinsCarrySpans.value = newGcode?.kins_carry_spans ?? 0;

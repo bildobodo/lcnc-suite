@@ -494,8 +494,8 @@ CASES.update({
     "m600_repeat": _m600(prog="G21 G90\nG0 X50 Y50 Z-100\nT2 M600\nG0 X60\n#3007=1\nT2 M600\nG0 X70\nM2\n"),
     # The braking range (docs/reviews/parity-ef.plan.md F2): the XYZAC sim's Z
     # (100 mm/s, 500 mm/s², OFFSET_AV_RATIO 0.2) and a 1 ms servo period — the
-    # fast probe (F2000) brakes up to 2.844 mm past the trip point, the slow one
-    # (F200) 0.034 mm. Without these INI values (every other case) the range has
+    # fast probe (F2000) brakes up to 2.911 mm past the trip point, the slow one
+    # (F200) 0.041 mm. Without these INI values (every other case) the range has
     # no brake leg and says so.
     "m600_band": _m600(zvmax=100, axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
                        ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
@@ -515,7 +515,7 @@ CASES.update({
                                      axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
                                      ini="[EMCMOT]\nSERVO_PERIOD = 1000000"),
     # Z limit −104: the slow probe ends at −103 from a stop at the trip point,
-    # at −105.84 from the deepest stop — it may be refused; the fast probe's
+    # at −105.91 from the deepest stop — it may be refused; the fast probe's
     # travel is clamped to 7 mm (end −102), so its leg stops there
     "m600_band_limit": _m600(zmin=-104, zvmax=100,
                              axis_z="MAX_ACCELERATION = 500\nOFFSET_AV_RATIO = 0.2",
