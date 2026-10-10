@@ -1,0 +1,45 @@
+# R121 · Gate, Mutationen, deine R120-Probe und Live · 10. Oktober 2026
+
+Stand: fix/r120 0464e772 (gemergt fdc61626). Nur scripts/toolsetter_readback_check.py, sein Test, Doku.
+
+## Backend-Gate
+PASS backend (55.03s)
+PASS 5axis-model (0.72s)
+PASS audit-css (1.03s)
+PASS review-handshake (4.51s)
+PASS readback-target (0.17s)
+  pytest: 1401 passed; readback-target: 15 Tests
+
+## Ein Fehler in meinen R120-Tests, offen gesagt
+  Der Testhelfer edit() öffnete die Datei zum Schreiben, bevor er sie las: jede „Änderung“
+  ersetzte die Datei durch die angehängte Zeile allein. Die R120-Wächter lehnten deshalb aus dem
+  falschen Grund ab (auch der HALCMD-Fall prüfte eine leere INI). Der Helfer liest jetzt zuerst
+  und prüft, dass er ändert statt ersetzt; alle Mutationen sind auf den korrigierten Tests
+  wiederholt.
+
+## Mutationen (rot, auf den korrigierten Tests)
+  R119: INI nicht verglichen · HAL-Dateien nicht verglichen · keine Rekursion
+  R120: -Wn ohne sein Argument · Interpreter-Skript nicht verfolgt · Skripte mit
+        Kommentar-Ausnahme verglichen · jedes PATH-Programm · unbekannte Option übergangen
+
+## Deine R120-Probe (Erwartung der beiden nachgestellten Fälle auf „abgelehnt“ gesetzt, sonst unverändert)
+  _runs(loadusr -Wn sim-toolsetter-feed python3 sim_toolsetter/sim_toolsetter_feed.py)
+     = [('path', 'python3'), ('file', 'sim_toolsetter/sim_toolsetter_feed.py')]
+  installed_* (3 Profile)            accepted
+  other_active_ini, non_profile_name, different_halfile_name, changed_hal_body_same_filename,
+  extra_halcmd, changed_sourced_hal, missing_sourced_hal         refused
+  changed_loadusr_python_script      refused: sim_toolsetter/sim_toolsetter_feed.py differs
+  missing_loadusr_python_script      refused: sim_toolsetter/sim_toolsetter_feed.py is missing
+
+## Live (fdc61626, aus dem Live-Baum gegen die installierte XYZAC-Sim)
+# toolsetter read-back check 2026-10-10 10:13:32 on lcnc_suite_sim_5axis_xyzac.ini
+PASS  target: the running, shipped simulator  lcnc_suite_sim_5axis_xyzac.ini
+PASS  setup: machine on and homed  
+PASS  load the scratch program (T1 M600, never run)  
+PASS  switch the task to MDI (the read-back is due outside AUTO)  
+PASS  1 start: the read-back confirms the file's values  trace {'version': 2, 'state': 'confirmed'}; file #3009 = 3.0
+PASS  2 MDI #3009 = 4.25: booked assumed, the file still the old value  mdi ok=True; trace assumed keys=[3009]; file #3009 = 3.0 (inode same)
+PASS  3 read-back: a new inode, the file holds the interpreter's value, booked read  file #3009 = 4.25 (inode new); trace read keys=[3009]
+PASS  3b the published parse reads the confirmed value  payload toolsetter #3009 = 4.25
+PASS  4 the old value back (MDI #3009 = 3.0) and read back  file #3009 = 3.0
+PASS  teardown: the sim stopped with the client connected  
