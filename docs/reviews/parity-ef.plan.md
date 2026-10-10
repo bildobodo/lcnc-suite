@@ -1,10 +1,11 @@
 # Parity-Befunde E und F — der unbekannte Programmanfang und der Bremsweg der Antastung
 
-**Plan, Fassung 2 · 10. Oktober 2026.**
+**Plan, Fassung 3 · 10. Oktober 2026.**
 - Vorbedingung für den Parity-Korpus mit M600 (`scripts/parity_corpus/xyzac.json`, Zweig `test/parity-xyzac-m600`, ungemergt).
 - Codex hat beide Befunde in R118 bestätigt und vor dem Bau je einen kleinen Vertrag verlangt; das sind diese beiden.
 - Der Operator hat die Reihenfolge am 10. Oktober bestätigt: erst diese Verträge, danach Paket 1 von Schritt 4.
 - Fassung 1 ging mit R122 an Codex. Die Grundentscheidung für E ist angenommen. Fassung 2 nimmt VP122-01 bis VP122-04 und die Antworten auf die vier Fragen auf; F ist neu geschnitten (eine geführte Hülle statt eines Einzelwegs). Antworttabelle am Ende.
+- Fassung 2 ging mit R123 an Codex. VP122-01 ist geschlossen; die Hülle, die Messreihe vor der Parity und „possible“ als eigener Eintrag sind angenommen. Die Ausnahme für nicht zugelassene Tasterketten ist abgelehnt. Fassung 3 gibt die Zulassung ganz auf: Der Bremsbereich ist modelliert und nicht zertifiziert, und die Bahn nach einer Messung trägt ihre Bedingung sichtbar am Ergebnis, auf jeder Maschine, auch auf der Sim. Antworttabelle am Ende.
 - Noch kein Code.
 
 ## Befund
@@ -189,7 +190,7 @@ Eine Korrektur des Versatzes um Δ wäre möglich, liegt aber außerhalb dieses 
   - **Neu:** Jeder Punkt des Anfangs trägt Art und Zeitbasis der Bewegung, die an ihm endet (E8). Das Segment davor dauert dann:
     - **Eilgang:** max(linear / Eilganggeschwindigkeit, rotatorisch / Drehachsen-Eilgang), wie heute die Anfahrbewegung (`rapid_rate`, `rot_rapid_rate`).
     - **Vorschub, G94 mit F > 0:** max(lineare Länge, Drehwinkel) / F, die Regel des Workers.
-    - **Vorschub mit nicht unterstützter Basis** (G93, G95, F fehlt oder ≤ 0): Die Zeit ist **unbekannt**. Damit die Spur eine Ordnung behält, sitzt das Segment auf der Zeitachse mit seiner kürzesten möglichen Dauer, der Länge bei Eilganggeschwindigkeit (kein Vorschub ist schneller als die Achsgrenze). Ab dort zeigt die Zeitanzeige eine Untergrenze („+“, wie nach einer nicht vorhergesagten Messung), und das „?“ nennt die Zeile. Nicht still, nicht 0.
+    - **Vorschub mit nicht unterstützter Basis** (G93, G95, F fehlt oder ≤ 0): Die Zeit ist **unbekannt**. Damit die Spur eine Ordnung behält, sitzt das Segment auf der Zeitachse mit seiner kürzesten möglichen Dauer. Sie folgt aus den Grenzen der INI, die der Planer nie überschreitet (mit `OFFSET_AV_RATIO` fährt er noch langsamer): max(maxᵢ |Δᵢ| / `[AXIS_i] MAX_VELOCITY`, |Δ_linear| / `[TRAJ] MAX_LINEAR_VELOCITY`). Das ist eine eigene Rechnung aus diesen Grenzen, nicht die vorhandene Eilgang-Schätzung unter neuem Namen (Codex R123). Ab dort zeigt die Zeitanzeige eine Untergrenze („+“, wie nach einer nicht vorhergesagten Messung), und das „?“ nennt die Zeile. Nicht still, nicht 0.
   - **Die Bewegung von der Startposition zum ersten Punkt** ist die erste Bewegung des Programms. Sie hat deren Art und Zeitbasis, nicht pauschal Eilgang. Ein Programm, das mit `G1` beginnt, fährt dorthin im Vorschub.
 - **Grenzprüfung:** Startabhängige Achsen eines Anfangssegments prüft der Worker nicht (sie wären bei X0 Y0 geprüft). Bekannte Achsen prüft er wie heute.
   - Unverändert ungeprüft bleibt nur der Fall, dass ein G91-Delta einer startabhängigen Achse über die Grenze führt. Benannt.
@@ -199,7 +200,7 @@ Eine Korrektur des Versatzes um Δ wäre möglich, liegt aber außerhalb dieses 
 ### E8 · Draht
 
 - **Neu:** `feed_dep` / `rapid_dep` (u8 je Punkt, Bit 0 X, 1 Y, 2 Z; nur vorhanden, wenn ein Bit gesetzt ist) und `start_believed` [x, y, z].
-- **Neu, nur für die Punkte des Anfangs** (0 … K, je Strom): `feed_dep_basis` / `rapid_dep_basis` (u8: 1 Eilgang, 2 Vorschub G94, 3 Vorschub mit nicht unterstützter Basis). Dazu `feed_dep_f` (f32, F in Maschineneinheiten pro Minute für Basis 2). Der erste Endpunkt steht als Nullweg im Eilgangstrom, trägt aber die Art seiner Bewegung.
+- **Neu, nur für die Punkte des Anfangs** (0 … K, je Strom): `feed_dep_basis` / `rapid_dep_basis` (u8: 1 Eilgang, 2 Vorschub G94, 3 Vorschub mit nicht unterstützter Basis). Dazu `feed_dep_f` / `rapid_dep_f` (f32, F in Maschineneinheiten pro Minute für Basis 2), in **beiden** Strömen (Codex R123). Der erste Endpunkt steht als Nullweg im Eilgangstrom; ist seine Bewegung ein `G1`, trägt er dort Basis 2 und sein F.
 - **Gewechselte Achsen:** Gründe `position_read` / `position` laufen in die vorhandenen `probe_unpredicted`-Zeilen. Die Zeile einer Schreib- oder Leseursache läuft in `stale_offset_lines` bzw. eine neue Liste `position_read_lines`.
 - **Schema:** Die neuen Schlüssel werden ausgeliefert (alte Leser übergehen sie). Die Schemanummer wird **erst beim Suite-Stopp** erhöht; die Goldens werden dort neu erzeugt, nie live.
 
@@ -240,7 +241,7 @@ Zusätzlich:
 13. Ein Wechsel nach TCP bei startabhängigem X/Y: unbekannt.
 14. Die Prüfung im Lauf mit und ohne `run_basis.start.joints`. Das Gateway trägt keine Position ein bei Bewegung im Poll, bei nicht endlichen oder fehlenden Gelenkwerten und bei einem Poll vor einem `await` ohne neue Kopie.
 15. **Codex' RDP-Gegenprobe** (VP122-01) über die ganze Kette, Canon → Worker/RDP → Client-Korrektur → Spur/Sweep: `G53 G0 Z0 / G0 X0 / G0 Y0 / G0 X10`, mit Δ = 0 und Δ = (100, 100, 0). Beide Zwischenecken bleiben erhalten. Dazu ein langer Anfang mit gleicher Maske, auf dem RDP weiter wirkt.
-16. **Zeit** (VP122-02): `G1 X0 F100 / G1 Y0 F200` gegen die vertauschten F. Die Dauern unterscheiden sich wie 60/30 und 30/60 s. Ein erstes `G1` ist ein Vorschub. G93 und G95 im Anfang ergeben eine Untergrenze mit „+“.
+16. **Zeit** (VP122-02): `G1 X0 F100 / G1 Y0 F200` gegen die vertauschten F; die Dauern unterscheiden sich wie 60/30 und 30/60 s. `G21 G90 / G1 X0 F100 / M2`: Das **F der ersten Bewegung** kommt über Worker → Draht → Client an und bestimmt deren Dauer. G93 und G95 im Anfang ergeben die Untergrenze aus den INI-Grenzen mit „+“.
 17. G28/G30 mit einem dritten Rückruf oder einem Vorschub-Rückruf: Die Achsen werden unbekannt, nie „gespeicherte Lage“.
 18. Eine ganz startabhängige Spur (K = n) und RETURN nach einer inzwischen dauerhaft unbekannten Achse.
 19. **Parity:** `sim_parity.py gate` auf `m600_live` grün in beiden Richtungen bei Toleranz 0,5 (mit F6 für den Hüllenbereich). `simDump` bindet über `header.start_joints`.
@@ -249,154 +250,135 @@ Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 
 ---
 
-## F · Vertrag: Auslösepunkt, Bremsbereich, Rückzug
+## F · Vertrag: Kontakt, Meldung, Bremsbereich, Rückzug
 
-Fassung 1 setzte Q als tiefsten Stillstand und rechnete von dort weiter, als wäre es der Weg der Maschine. Codex R122 (VP122-03): Eine obere Schranke ist kein Einzelweg, und der Rückzug von Q endet irgendwo in einem Bereich. Fassung 2 nimmt Codex' zweite Möglichkeit: eine **als solche geführte Hülle**, bis zur nächsten sicheren Position.
+Fassung 2 wollte das Bremsmodell für eine **zugelassene** Tasterkette zertifizieren und nach der Messung alles wieder als abgesichert führen. Codex R123 hat zwei Lücken gezeigt:
+- Eine verzögerte Meldung verschiebt auch den **gemeldeten** Messpunkt und damit die Werkzeuglänge.
+- Die Topologie der Kette belegt das Modell nicht (Platte, Längenversorgung, Freigabe, manueller Eingang).
 
-### F1 · Was bekannt ist und was ein Bereich ist
+Fassung 3 geht deshalb den zweiten der beiden Wege, die Codex in R118 genannt hat: eine Hülle mit ausdrücklich begrenzter Aussage. **Keine Kette wird zugelassen, und nichts in diesem Bereich wird zertifiziert**, auch nicht auf der Sim. Was nach einer Messung folgt, zeigt und prüft die Vorschau weiter, aber als **sichtbar bedingte** Vorschau; die Bedingung steht am Ergebnis (Codex R123, Antwort 1).
 
-| Größe | Was | In der Vorschau |
+### F1 · Drei Punkte, getrennt benannt
+
+| Größe | Was | Was die Vorschau weiß |
 |---|---|---|
-| **P** | Auslösepunkt | wie heute: wo die Tabellenlänge des Werkzeugs den Taster berührt (`#3102 + L`, + `#3115` beim Kantentaster) — **bekannt** |
-| **Q** | Stillstand nach dem Bremsen | ein **Bereich**: [P − h_max, P] entlang der Antastrichtung (F3) |
-| Rückzug | die programmierte Bewegung ab Q | endet in [P − h_max + r, P + r] |
-| langsame Antastung | ab dort bis P, Stillstand in [P − h_max,langsam, P], Rückzug | endet in [P − h_max,langsam + r, P + r] |
-| nächste sichere Position | die nächste absolute Z-Bewegung der Routine: `G53 G1 Z0` (−200) | ab ihrem Ende wieder bekannt |
+| **P_geo** | geometrischer Kontakt | wo die Tabellenlänge den Taster berührt (`#3102 + L`, + `#3115` beim Kantentaster). Das ist schon eine Annahme: physische Länge = Tabellenlänge |
+| **P_rep** | gemeldeter Punkt: die Rückmeldeposition in dem Servotakt, in dem motion das Signal liest (`probedPos = carte_pos_fb`, dann `tpAbort`) | P_rep ∈ [P_geo − v · t_in, P_geo]. t_in ist die Zeit vom Kontakt bis zum Lesen; im Allgemeinen unbekannt |
+| **Q** | Stillstand nach dem Bremsen ab P_rep | Q ∈ [P_rep − v² / (2 · a_boden), P_rep] |
 
-- **Die Unsicherheit ist eindimensional:** Zwischen dem schnellen Auslösen und `G53 G1 Z0` bewegt die Routine nur Z, bei festem X/Y. Ein Textwächter hält das fest; der G43 bei −190 bewegt nichts.
-- **Der Hüllbereich** ist daher die Strecke H = [P − h_max, P + r] auf der Antastachse, bei festem X/Y. Jede Lage, die das Werkzeug dazwischen einnehmen kann, liegt in H.
-- **Was an P bleibt:** `#5061…#5069` und `#5070` werden an P gesetzt. Die Längenformel (−170), `G10 L1`, `G43 H` und `toollen_table` rechnen aus P, unverändert. Codex R118: nie auf den Bremsendpunkt umbiegen.
+- **Was die Vorschau setzt:** `#5061…#5069` und `#5070` an **P_geo**, also mit t_in = 0. Damit ist die Länge die Tabellenlänge.
+- **Was die Maschine misst:** eine um δ = P_geo − P_rep **kürzere** Länge, mit 0 ≤ δ ≤ v_letzt · t_in. v_letzt ist der Vorschub der Antastung, deren `#5063` die Längenformel (−170) zuletzt liest; mit langsamer Antastung die langsame.
+- **Folge:** Mit `G10 L1` / `G43 H` läuft die Werkzeugspitze danach bis zum nächsten Werkzeugwechsel um δ **tiefer** als die Vorschau zeigt. Codex' Rechnung: 100 ms bei F600 ergeben 1 mm.
 
-### F2 · Wie die Vorschau den Bereich führt
+### F2 · Der Bremsbereich: modelliert, nicht zertifiziert
 
-**Der Weg:** Die Vorschau-Blöcke der Routine legen einen **Hüllweg**, der H ganz abfährt. Jeder Punkt darauf trägt die Markierung `probe_band`.
+**Bereich:** Zwischen dem schnellen Auslösen und der nächsten absoluten Z-Fahrt der Routine (`G53 G1 Z0`, −200) bewegt die Routine nur Z, bei festem X/Y; ein Textwächter hält das fest. Die Vorschau führt die Lage dort als Bereich:
 
-*Schnelle Antastung:*
-1. `G1` bis P;
-2. die Werte an P setzen;
-3. `(WEBUI_PROBE_BAND)`, dann `G1` hinunter bis P − h_max (Bremsbereich);
-4. der unveränderte Rückzug der Routine (endet bei P − h_max + r);
-5. ein Vorschau-Schenkel hinauf bis P + r, das obere Ende des Bereichs.
+H = [P_geo − h_model, P_geo + r]
+- h_model = max(h_schnell, h_langsam). Beide Antastungen sind eingeschlossen, auch wenn der „langsame“ Vorschub größer ist (Codex R123).
+- h = v · t_model + v² / (2 · a_boden)
+- v = min(F, (1 − ρ) · `[AXIS_Z] MAX_VELOCITY`, `[TRAJ] MAX_LINEAR_VELOCITY`)
+- a_boden = ½ · min((1 − ρ) · `[AXIS_Z] MAX_ACCELERATION`, `[TRAJ] MAX_LINEAR_ACCELERATION`, falls vorhanden)
+- ρ = `[AXIS_Z] OFFSET_AV_RATIO`, sonst 0. Der Override ist aus (`M50 P0`, Zeile 143).
+- **½:** die Halbierung bei parabolischem Übergang (`tcGetOverallMaxAccel`). Der Knick-Abzug ist 0 nach Konstruktion: gleichgerichtete Anfahrt vor der schnellen Antastung, Umkehr (STOP) vor der langsamen; ein Textwächter hält beides fest.
+- **t_model = 2 · Servoperiode:** ein idealer Tastereingang, der im nächsten Takt gelesen wird.
+- XYZAC mit F2000: **2,84 mm**.
 
-*Langsame Antastung:*
-1. von P + r hinunter bis P;
-2. die Werte an P setzen;
-3. hinunter bis P − h_max,langsam;
-4. der Rückzug der Routine;
-5. ein Schenkel hinauf bis P + r.
+**Der Hüllweg:** Die Vorschau-Blöcke der Routine legen einen Weg, der H ganz abfährt (`probe_band` je Punkt; Ablauf wie in Fassung 2):
+- schnell: bis P_geo, die Werte setzen, `(WEBUI_PROBE_BAND)`, hinunter bis P_geo − h_schnell, der Rückzug der Routine, ein Schenkel hinauf bis P_geo + r;
+- langsam: bis P_geo, die Werte setzen, hinunter bis P_geo − h_langsam, der Rückzug der Routine, ein Schenkel hinauf bis P_geo + r;
+- `(WEBUI_PROBE_BAND_END)` vor `G53 G1 Z0`.
 
-`(WEBUI_PROBE_BAND_END)` vor `G53 G1 Z0` beendet den Bereich.
+**Was die Prüfung sagt:**
+- **Funde** mit einem Eintrag auf `probe_band` heißen „**possible**“: ein eigener Eintrag mit Paar, Aufrufzeile und Bereich (Codex R123, Antwort 2). Das Kennzeichen bleibt beim Zusammenführen, Filtern, Navigieren und an den Code-Marken erhalten.
+  - Ein „possible“-Kontakt begründet **nie** eine sichere Trennung und **nie** einen statischen Ausschluss.
+  - Wird dasselbe Paar außerhalb des Bereichs sicher getroffen, ist dieser Fund ein gewöhnlicher Eintrag.
+- **Ohne Fund im Bereich** heißt das Ergebnis nicht „Clear“ für ihn. Der Bereich ist **nicht zertifiziert**, mit dem Grund im „?“: „braking modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified“.
+- **Unter P_geo − h_model** wird nichts behauptet.
 
-**Die Kollisionsprüfung** fährt diesen Weg wie jeden anderen ab. Damit prüft sie jede Lage in H, auch den tieferen Bereich unter P, den sie heute nicht sieht. Ein Hindernis, das nur zwischen P und P − h_max liegt, wird gefunden.
-- **Funde** mit einem Eintrag auf einem `probe_band`-Segment heißen „**possible**“: „may touch if the probe brakes the full distance“. Sie sind nie eine sicher eintretende Kollision (`band: true` am Eintrag; Sim-Tab und Code-Marken sagen es).
-- Ein leerer Bereich ist eine echte Aussage der Hülle: Nirgends in H gibt es einen Kontakt.
+### F3 · Die Bahn nach einer Messung: sichtbar bedingt
 
-**Zeit:** Die Zeiten im Bereich sind Schätzungen; die Schenkel laufen mit den Vorschüben der Routine. Das „?“ nennt den Bereich.
+Die Vorschau setzt voraus, dass die Messung so abläuft, wie sie modelliert ist:
+- Der Taster löst an P_geo aus.
+- Er meldet sofort.
+- Der Stillstand liegt in H.
+- Der Rückzug gibt den Taster frei, und die langsame Antastung startet und endet zulässig.
 
-**Simulation:** Das Werkzeug fährt den Hüllweg, beschriftet „probe braking range“. Das ist keine Behauptung, dass die Maschine genau so fährt.
+Trifft das nicht zu, macht die Maschine etwas anderes. **Fassung 2 sagte hier „dann läuft nur weniger“. Das ziehe ich ausdrücklich zurück:**
+- Löst die schnelle G38.3 nicht aus (Codex' Fall `enable = false`), fährt sie bis zum befohlenen Ende. Dann positioniert die Wiederholung der Routine neu (`o<106> … OR #<fastprobefailed> EQ 1`) und tastet erneut. Das sind Fahrten, die die Vorschau nicht zeigt.
+- Eine langsame Antastung, die ausgelöst startet oder deren Ende außerhalb liegt, bricht dagegen ab.
 
-**Parity** (`sim_parity.py`):
-- **Wahrheit → Sim** bleibt, wie es ist. Ein Wahrheitspunkt in H liegt auf dem Hüllweg, Abstand 0.
-- **Sim → Wahrheit** lässt Proben auf `probe_band`-Punkten aus. Der Bericht nennt sie getrennt, mit ihrer größten Ausdehnung über die Wahrheit hinaus.
-- Ein Bereich wird nur dort ausgelassen, wo die Nutzlast ihn markiert.
-- Die globale Toleranz bleibt 0,5.
+**Am Ergebnis**, je M600-Aufrufzeile:
+- Die Bahn ab dem Auslösen ist bedingt: der vorhandene Stern „*“ (`uncertified`), und das „?“ nennt die Bedingung mit Zahl:
+  > „assumes the probe at L7 trips at the table length and reports within 60 ms (F2000; slower, the tool runs deeper than the 2 mm clearance) — not verified on this machine“
+- **Die Zahl:** t_max = m / v_letzt, m die Prüfzone (2 mm). Grundlage: „Clear“ heißt, kein Paar außer statischen Kontakten und Vorschub ins Rohteil kommt näher als m (Schneidpaare zählen im Eilgang schon in der Zone als Kontakt; `collision.ts`).
+  - Eine starre Verschiebung der Werkzeugseite um δ < m kann also keinen ungemeldeten Kontakt erzeugen.
+  - Gemeldete Abstände verschieben sich um bis zu δ.
+  - Bei F200: 600 ms; bei F2000 ohne langsame Antastung: 60 ms.
+- **Hinweise zur Messung** (Sim-Tab, Programmstatistik), über `(WEBUI_PROBE_NOTE=<grund>)`:
+  - r ≤ h_model: „the retract r may not clear the probe after braking (modeled up to h): the slow probe may start tripped and LinuxCNC stops“;
+  - P_geo − h_model − r < MIN_LIMIT ≤ P_geo − r: „the slow probe may end below the Z limit“.
+  - Beide sind Teil derselben Bedingung, kein eigener Freispruch.
+- **Wie heute nicht vorhergesagt:** r ≤ 0 und P_geo − r < MIN_LIMIT (sicher abgelehnt).
 
-### F3 · Die obere Schranke h_max
+**Externe Versätze:** Zeigt die Prüfbasis `axis.z.eoffset-enable` oder einen Versatz ≠ 0 (der Leser liefert beide), liegen Bereich und Folgebahn außerhalb des Modells; das ist ein weiterer genannter Grund (Codex R122/R123).
 
-h_max = v · t_kette + v² / (2 · a_boden)
+**Sim und echte Maschine** werden gleich behandelt. Auf der Sim ist die Bedingung erfüllt (t_in ≈ 2 Servotakte, δ ≈ 0,007 mm bei F200). Die Vorschau weiß das aber nicht verbindlich, und die Parity misst es nur.
+- **Folge, sichtbar für den Bediener:** Jedes Programm mit einer vorhergesagten M600-Messung zeigt künftig „Clear*“ statt „Clear“. Das gilt so lange, bis ein nachgewiesener Vertrag für Maschine und Taster die Bedingung belegt (Codex R123, Antwort 3: später nur als ganzer Vertrag).
+- Fassung 2 wollte das mit einer HAL-Zulassung für die Sim lösen. Das ist in dieser Fassung bewusst nicht enthalten.
 
-| Größe | Wert | Begründung |
-|---|---|---|
-| ρ | `[AXIS_Z] OFFSET_AV_RATIO`, sonst 0 | Der Planer behält ρ für externe Versätze (Codex R122) |
-| v | min(F_Antastung, (1 − ρ) · `[AXIS_Z] MAX_VELOCITY`, `[TRAJ] MAX_LINEAR_VELOCITY`) | obere Schranke der Geschwindigkeit beim Auslösen. Bei kurzem Anlauf ist sie kleiner, also innerhalb. Der Override ist aus: Die Routine schaltet ihn mit `M50 P0` ab (Zeile 143, nur task). Ein Übergang aus dem vorigen Segment ist durch dessen und F begrenzt |
-| a_boden | ½ · min((1 − ρ) · `[AXIS_Z] MAX_ACCELERATION`, `[TRAJ] MAX_LINEAR_ACCELERATION`, falls vorhanden) | ½ ist die Halbierung eines parabolischen Übergangs (G64); unter G61 bremst das Segment mit der vollen Grenze, kürzer, also innerhalb |
-| Knick-Abzug | 0 nach Konstruktion | Die schnelle Antastung folgt der gleichgerichteten `G53 G1 Z`-Fahrt zur Startlage (Abzug 0) oder einem Stillstand. Die langsame folgt dem Rückzug nach oben, einer Umkehr (STOP). Ein Textwächter hält beide Nachbarschaften fest; ändert sich die Routine, ist der Test rot |
-| t_kette | aus der zugelassenen Tasterkette (F4) | im Sim: 2 · Servoperiode |
+### F4 · Parity: Abdeckung statt Weggleichheit
 
-XYZAC mit F2000: v = 33,3 mm/s, a_boden = 200 mm/s², h_max = 0,07 + 2,78 = **2,84 mm**. Langsam mit F200: 0,04 mm.
+Codex R123, Antwort 3, angenommen:
+- **Wahrheit → Sim** wird überall verlangt (≤ 0,5). Ein Wahrheitspunkt in H liegt auf dem Hüllweg.
+- **Sim → Wahrheit** lässt `probe_band`-Proben aus und berichtet sie getrennt: als **Abdeckungsnachweis** mit der Breite der Hülle und ihrem Überschuss über die Wahrheit. Außerhalb markierter Bereiche bleibt der beidseitige Vergleich bei 0,5.
+- **Mutationen:** eine fehlende Abdeckung (Hüllweg ohne den Bremsschenkel) und eine Markierung über `(WEBUI_PROBE_BAND_END)` hinaus sind rot.
+- Die Hülle wird nie unter die verlangte Schranke gekappt, um die Anzeige zu verbessern. Die globale Toleranz bleibt 0,5.
 
-**Rechnung in der Routine:** Sie rechnet h_max in ihren Blöcken nur für die Vorschau aus der INI, so wie sie schon `#<_ini[AXIS_Z]MIN_LIMIT>` liest. `[TRAJ]` und `OFFSET_AV_RATIO` sind mit `EXISTS[…]` geschützt.
-- Den Vorschub bringt sie mit `#<_metric>` und `#<_metric_machine>` auf Maschineneinheiten.
-- t_kette kommt **nicht** aus der INI, sondern aus der Zulassung (F4).
-- Nativ zu belegen bei der Umsetzung: wie `EXISTS` und ein fehlender `_ini`-Wert im Vorschau-Interpreter antworten.
+### F5 · Messreihe, vor der Parity-Abnahme
 
-### F4 · Die Zulassung der Tasterkette (VP122-04)
+Die Parity stützt sich auf die Abdeckung durch H. Die Messreihe zeigt, dass h_model auf **dieser** Sim eine Schranke ist: in jedem Fall 0 ≤ h_model − h_gemessen, der Abstand berichtet. Sie zertifiziert nichts für das Produkt.
 
-INI-Zahlen unterscheiden die Sim nicht von einer echten Steuerung mit zusätzlicher Eingangsverzögerung. Und `#<_task> EQ 0` bezeichnet jeden Vorschau-Interpreter. Die Zulassung kommt deshalb aus der **laufenden HAL** und erreicht die Vorschau über den Worker:
+- **Fälle:**
+  - Vorschub 500, 1000, 2000 und 3000 mm/min;
+  - Z-Beschleunigung 500 und 250 mm/s²;
+  - ρ 0,2 und 0;
+  - kurzer Anlauf;
+  - G61 und G64;
+  - die tatsächliche Folge der Routine.
+  - Gemessen werden P_rep (`#5063`), der Stillstand und P_geo − P_rep (das gemessene t_in).
+- **Protokoll der Konfiguration**, auf der sie lief:
+  - `validate_sim_target` (die ausgelieferte INI-, HAL- und `loadusr`-Kette, R119–R121);
+  - die Plattenparameter der Komponente gegen `#3100`–`#3102`;
+  - `enable`, kein manuelles Auslösen, `eoffset` aus, ρ.
+- **Ort:**
+  - Die Vorschubfälle laufen auf der laufenden XYZAC-Sim per MDI.
+  - Die INI-Varianten laufen in kopflosen Kopien beim nächsten erlaubten Neustart.
+- **Ein Fall über h_model:** Das Modell ist dort falsch und wird korrigiert, nicht die Toleranz.
 
-- **Prüfung im Gateway** über den HAL-Leser. Zugelassen ist nur die ausgelieferte Kette:
-  1. Der Treiber des Signals an `motion.probe-input` ist **unmittelbar** der Ausgang der ausgelieferten Komponente `sim-toolsetter.0`; keine andere Komponente liegt dazwischen.
-  2. Ihre Positionseingänge hängen an `joint.N.pos-fb`, wie `hallib/sim_toolsetter.hal` sie verdrahtet.
-  3. Ihre Funktion läuft im Servo-Thread (`halcmd show thread`, einmal je LinuxCNC-Instanz). Die Periode des Threads ist die Servoperiode.
-- **Ergebnis im Parse-Kontext:** `probe_chain`.
-  - Zugelassen: {model: "sim_toolsetter", t_chain_s: 2 · Periode}.
-  - Sonst: {model: null, reason}.
-  - Das Gateway liest die Kette zu jedem Parse-Start neu; eine Änderung der HAL bis dahin ist erfasst.
-- **Worker:** Er setzt nur bei Zulassung `#<_webui_probe_tchain>` als Init-Parameter. Die Routine prüft `EXISTS[#<_webui_probe_tchain>]`.
-- **Nicht zugelassen** sind jede andere Kette, ein fehlender oder veralteter Leser, ein gescheitertes `halcmd` und ein fehlender Pflichtwert der INI. Dann gilt:
-  - **P, die Messung und alles danach bleiben vorhergesagt.** P hängt nicht vom Bremsen ab, und nach `G53 G1 Z0` ist Z wieder bekannt.
-  - **Der Bremsbereich unter P ist unbekannt:** Es gibt keinen Bremsschenkel, und der Hüllweg deckt nur [P, P + r]. Die Prüfung nennt die Stelle ungeprüft („braking depth on this probe input not known — not checked below the trip point, L…“), und das Ergebnis ist für diese Strecke nicht zertifiziert (`uncertified`).
-  - Ob der Rückzug den Taster freigibt, ist unbekannt und wird genannt.
-  - Das weicht von Codex' Vorschlag ab, die Messung dann „nicht vorhergesagt“ zu nennen. Frage 1 begründet es.
-- **Negativer Wächter:** gleiche Achs-, TRAJ- und Servo-Werte, aber eine Entprellkomponente zwischen Komponente und `motion.probe-input` oder ein anderer Treiber → nicht zugelassen.
-- **Kein Regler in `[DISPLAY]`** (Codex R122, Antwort 3). Eine echte Maschine kommt später nur mit einem eigenen nachgewiesenen Vertrag für Maschine und Taster dazu.
+### F6 · Benannt
 
-### F5 · Zulassungen in o<510>
-
-| Fall | Folge | Warum |
-|---|---|---|
-| r ≤ 0 | nicht vorhergesagt (`retract`), wie heute | — |
-| P − r < `[AXIS_Z] MIN_LIMIT` | nicht vorhergesagt (`slow_limit`), wie heute | Das Ende der langsamen Antastung liegt sicher außerhalb; motion lehnt sie beim Einreihen ab (`command.c`) |
-| r ≤ h_max (zugelassene Kette) | **Hinweis**, die Vorhersage läuft weiter | Der Rückzug gibt den Taster vielleicht nicht frei; dann startet G38.2 ausgelöst, und LinuxCNC hält das Programm an. Das ist keine Gewissheit (Codex R122) |
-| P − h_max − r < MIN_LIMIT ≤ P − r | **Hinweis** | Die langsame Antastung kann abgelehnt werden |
-
-**Warum ein Hinweis genügt:** Scheitert die Routine an der Maschine, läuft danach weniger, als die Vorschau zeigt, nie mehr. Eine Prüfung, die dann zu viel zeigt, verdeckt nichts.
-
-Die Hinweise laufen über eine Vorschau-Markierung `(WEBUI_PROBE_NOTE=<grund>)` in die Notiz der Messung (Sim-Tab, Programmstatistik).
-
-### F6 · Nachweis: eine Messreihe, vor der Parity-Abnahme
-
-**Ziel:** zeigen, dass h_max auf der Sim eine Schranke ist. Verlangt ist in jedem Fall 0 ≤ h_max − h_gemessen; der Abstand wird berichtet. Eine Obergrenze für ihn verlangt der Vertrag nicht mehr, weil der Bereich eine Hülle ist.
-
-**Liegt ein Fall darüber**, ist das Modell dort falsch. Die Bedingung wird nicht zugelassen, bis die Ursache verstanden ist; die Toleranz wird nicht angepasst.
-
-**Fälle:**
-- Vorschub 500, 1000, 2000 und 3000 mm/min;
-- Z-Beschleunigung 500 und 250 mm/s²;
-- ρ 0,2 und 0;
-- ein kurzer Anlauf, bei dem der Taster vor dem vollen Vorschub auslöst;
-- G61 und G64;
-- die tatsächliche Folge der Routine: gleichgerichtete Anfahrt, dann Antastung.
-- Gemessen werden P (`#5063`), der Stillstand und der Abstand von P zum geometrischen Auslösepunkt (t_kette).
-
-**Wo:**
-- Die Vorschubfälle laufen auf der laufenden XYZAC-Sim per MDI am Sim-Taster.
-- Die INI-Varianten laufen in kopflosen Kopien beim nächsten erlaubten Neustart (Golden-Rezept, `DISPLAY = dummy`).
-
-**Reihenfolge:** vor der Parity- und Korpusabnahme (Codex R122). Fassung 1 hatte sie danach.
-
-### F7 · Benannt
-
-- Echte Tastereingänge sind nicht zugelassen. Unter P bleibt dort ungeprüft (F4).
+- Der Bremsbereich ist modelliert, nicht zertifiziert. Unter ihm wird nichts behauptet.
+- Die Bahn nach jeder Messung ist bedingt (t_in, Tabellenlänge, Ablauf wie modelliert), auf jeder Maschine.
 - Die Zeit im Bereich ist geschätzt.
-- Der Bereich setzt voraus, dass die Routine zwischen den Antastungen nur Z bewegt. Ein Textwächter hält das fest.
-- Eine Antastung in einem Benutzerprogramm (G38 außerhalb der Routine) bleibt wie heute: Die Vorschau fährt den ganzen Weg. Das ist ein eigener Punkt, nicht Teil davon.
+- Eine Antastung in einem Benutzerprogramm (G38 außerhalb der Routine) bleibt wie heute. Eigener Punkt.
+- **Späterer Schritt, nicht Teil davon:** ein nachgewiesener Vertrag für Maschine und Taster. Er müsste Kette, Platte, Längenversorgung, Freigabe, manuellen Eingang, externe Versätze und Gültigkeit über die Zeit belegen, wie Codex in R123 aufzählt. Er könnte die Bedingung für eine bestimmte Maschine aufheben.
 
-### F8 · Wächter
+### F7 · Wächter
 
-Codex' Liste aus R118, angepasst; nativ mit der gebündelten Routine (`test_m600_preview_worker.py`), Client-Kette und Parity-Werkzeug:
+Nativ mit der gebündelten Routine (`test_m600_preview_worker.py`), Client-Kette und Parity-Werkzeug:
 
-1. Schnelle und langsame Antastung: Der Hüllweg deckt [P − h_max, P + r], die Werte stehen an P.
-2. Kurzer Anlaufweg: dasselbe h_max, als Schranke.
-3. Geänderte Beschleunigung, geänderter Vorschub, ρ: h_max nach der Formel.
-4. Rückzug kleiner als h_max: Hinweis, die Vorhersage läuft weiter. r ≤ 0 bleibt nicht vorhergesagt.
-5. Hindernis nur zwischen P und P − h_max: als „possible“ gefunden, nie als sicher. Hindernis unter P − h_max: nicht gefunden, es liegt außerhalb der Hülle. Gegenkontrolle mit nicht zugelassener Kette: genannt, ungeprüft, nicht zertifiziert.
-6. `#5061…#5069`, die Länge in `toollen_table` und der G43-Versatz werden **getrennt** gegen P geprüft, unverändert gegenüber heute.
-7. Zulassung (F4): die ausgelieferte Kette zugelassen; gleiche INI-Werte mit anderer Kette, fehlender Leser oder gescheitertes `halcmd` nicht zugelassen.
-8. Textwächter: nur Z zwischen den Antastungen; gleichgerichtete Anfahrt vor der schnellen und Umkehr vor der langsamen Antastung; der Pfadvergleich der task-Zweige bleibt grün.
-9. `slow_limit` sicher → nicht vorhergesagt; möglich → Hinweis.
-10. Parity-Werkzeug: Proben im Bereich zählen nur Wahrheit → Sim, getrennt berichtet; ohne Markierung wird nichts ausgelassen.
-11. Die Messreihe F6.
+1. Schnelle und langsame Antastung: Der Hüllweg deckt H, die Werte stehen an P_geo. Mit schnellem < langsamem Vorschub ist h_model = h_langsam.
+2. Kurzer Anlauf, geänderte Beschleunigung, Vorschub und ρ: h nach der Formel.
+3. Hindernis nur zwischen P_geo und P_geo − h_model: „possible“, nie sicher, nie als Trennung oder statischer Ausschluss. Dasselbe Paar später außerhalb sicher getroffen: ein gewöhnlicher Eintrag. Hindernis unter dem Bereich: nicht gefunden, nichts behauptet.
+4. „possible“ übersteht Zusammenführung (Shards, Anfahrt), Filter, Navigation und Code-Marken.
+5. Die Bedingung am Ergebnis: Stern und „?“ mit Aufrufzeile und t_max je Messung. Ohne M600 kein Stern.
+6. Die Hinweise r ≤ h_model und die mögliche Grenzverletzung; r ≤ 0 und die sichere Grenzverletzung bleiben nicht vorhergesagt.
+7. `#5061…#5069`, die Länge in `toollen_table` und der G43-Versatz werden **getrennt** gegen P_geo geprüft, unverändert gegenüber heute.
+8. Externe Versätze in der Prüfbasis: genannt, außerhalb des Modells.
+9. Textwächter: nur Z zwischen den Antastungen; gleichgerichtete Anfahrt und Umkehr; der Pfadvergleich der task-Zweige bleibt grün.
+10. Parity-Werkzeug: Abdeckung (F4) mit beiden Mutationen.
+11. Die Messreihe F5.
 
 Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 
@@ -404,8 +386,8 @@ Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 
 ## Reihenfolge
 
-1. **F** (eigener Zweig): Routine und o<510>, Zulassung der Kette im Gateway, Hüllmarkierung bis zum Client und zum Parity-Werkzeug.
-2. **Messreihe F6:** die Vorschubfälle auf der laufenden Sim, die INI-Varianten beim nächsten erlaubten Neustart. **Vor** der Parity-Abnahme.
+1. **F** (eigener Zweig): die Routine (Hüllweg, Hinweise), der Canon (`probe_band`, Bedingung je Messung), die Kennzeichnung „possible“ und der Stern im Client sowie die Abdeckung im Parity-Werkzeug.
+2. **Messreihe F5:** die Vorschubfälle auf der laufenden Sim, die INI-Varianten beim nächsten erlaubten Neustart. **Vor** der Parity-Abnahme.
 3. **E** (eigener Zweig): Canon, Worker, Draht, Client, `run_basis`.
 4. **Parity:** `xyzac.json` mit `m600_live` neu gemessen.
 5. **Korpus:** gemergt erst, wenn die Parity grün ist.
@@ -413,18 +395,12 @@ Jeder Wächter wird mit einer kompilierenden Mutation rot geprüft.
 
 Danach Paket 1 von Schritt 4.
 
-## Fragen an Codex (Fassung 2)
+## Fragen an Codex (Fassung 3)
 
-1. **F4, nicht zugelassene Kette:** Ich schlage vor, nur den Bereich unter P ungeprüft und nicht zertifiziert zu führen. Die Messung und alles danach bleiben vorhergesagt. Dein Vorschlag war, die Messung dann „nicht vorhergesagt“ zu nennen.
-   - P und damit die Länge hängen nicht vom Bremsen ab.
-   - Zwischen den Antastungen bewegt die Routine nur Z, und `G53 G1 Z0` beendet die Unsicherheit.
-   - Scheitert die Maschine, läuft nur weniger.
-   - „Nicht vorhergesagt“ würde auf jeder echten Maschine nach dem ersten M600 den ganzen Rest des Programms ungeprüft lassen.
-   - Trägt dieser Schnitt?
-2. **F2, Funde im Bereich:** Sie heißen „possible“, als Kennzeichen am Eintrag mit eigener Wortwahl in Liste und Marken. Genügt das, oder soll ein solcher Fund keine eigene Zeile bekommen, sondern nur in der Notiz stehen?
-3. **F6:** Verlangt ist nur 0 ≤ h_max − h_gemessen, der Abstand wird berichtet. Brauchst du zusätzlich eine Obergrenze, damit die Hülle nicht beliebig grob wird? Sie wäre eine Güteaussage, keine Sicherheitsaussage.
+1. **F3, die Bedingung als Stern:** Genügt der vorhandene Stern mit einer Zeile je Messung im „?“ als „Abhängigkeit am Ergebnis“? Oder sollen die Zeilen der Sim-Liste nach der Messung zusätzlich gekennzeichnet werden, wie nach dem ersten Grenzübertritt („after the measurement at L7 — conditional“)?
+2. **F3, die Zahl t_max = m / v_letzt:** Trägt das Argument über die Prüfzone (eine starre Verschiebung der Werkzeugseite um δ < m erzeugt keinen ungemeldeten Kontakt)? Ich habe es an der Melderegel in `collision.ts` geprüft, nicht an einer Umsetzung.
 
-## Antworten auf R122
+## Antworten auf R122 (in Fassung 2; F4 dort ist durch Fassung 3 ersetzt)
 
 | Punkt | Antwort | Änderung im Plan |
 |---|---|---|
@@ -436,3 +412,16 @@ Danach Paket 1 von Schritt 4.
 | Antwort 2 (E5) | Übernommen. | E5: Kopie sofort nach dem Poll (vor `await`, sonst neuer Poll), beobachteter Stillstand, vollständige Werte, an den gesendeten Start gebunden; fremde Befehlsgeber benannt |
 | Antwort 3 (F2) | Übernommen. | F4: kein Regler; später nur ein ganzer Maschinen-/Tastervertrag |
 | Antwort 4 (E) | Übernommen. | E7: K = n für eine ganz startabhängige Spur; RETURN im Anfang; späte M6- und Mess-Unbekanntheit nie aus Live-Koordinaten. E2: abweichende G28/G30-Folgen nie als gespeicherte Lage |
+
+## Antworten auf R123 (Fassung 3)
+
+| Punkt | Antwort | Änderung im Plan |
+|---|---|---|
+| VP122-01 | Geschlossen (Codex R123). | — ; der Kettentest bleibt Umsetzungsgate (E10 Nr. 15) |
+| VP122-02, Rest (P2) | Angenommen. | E8: `*_dep_f` in **beiden** Strömen; ein erstes `G1` trägt im Eilgangstrom Basis 2 und sein F. E7: Die Untergrenze für G93/G95 kommt aus den INI-Grenzen (Achsen und `[TRAJ]`), nicht aus der Eilgang-Schätzung. E10 Nr. 16 prüft das F der ersten Bewegung über die ganze Kette |
+| VP122-03, Rest (P1) | Angenommen. | F1: P_geo, P_rep und Q getrennt; die Vorschau setzt P_geo (t_in = 0), die Maschine misst um δ ≤ v · t_in kürzer, und die Spitze läuft danach um δ tiefer. F3: Die Folgebahn ist auf jeder Maschine bedingt, Stern mit t_max = m / v_letzt. Externe Versätze sind ein genannter Grund. Die Begründung „dann läuft nur weniger“ ist zurückgezogen (Wiederholzweig `o<106>`) |
+| VP122-04, Rest (P1) | Angenommen, durch Verzicht. | Keine Zulassung einer Kette in diesem Plan; der Bereich ist modelliert, nicht zertifiziert (F2). Die Konfiguration der Messreihe wird protokolliert, statt das Produkt zu zertifizieren (F5). Ein Vertrag für Maschine und Taster mit Codex' Liste ist als späterer Schritt genannt (F6) |
+| Antwort 1 | Angenommen. | F3: sichtbar bedingte Folgevorschau mit der Abhängigkeit am Ergebnis, auf jeder Maschine |
+| Antwort 2 | Angenommen. | F2/F7: „possible“ als eigener Eintrag, erhalten durch Zusammenführung, Filter, Navigation und Marken; nie Trennung oder statischer Ausschluss; später sicherer Treffer außerhalb ist ein gewöhnlicher Eintrag |
+| Antwort 3 | Angenommen. | F4: Abdeckungsnachweis, Rückrichtung getrennt ausgewiesen, beidseitig 0,5 außerhalb, zwei Mutationen; keine Kappung der Hülle |
+| Beide Antastungen | Angenommen. | F2: h_model = max(h_schnell, h_langsam) |

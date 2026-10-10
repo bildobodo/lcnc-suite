@@ -16477,3 +16477,23 @@ Negative Wächter zusätzlich zur Entprellkomponente: gleiche Topologie mit ande
 **Weitere übernommene Punkte angenommen:** unmittelbare Kopie der beobachteten Startbasis samt Stillstands-/Vollständigkeitsbedingungen; Vorrang dauerhafter Unbekanntheit bei RETURN; konservative Behandlung abweichender G28/G30-Folgen; K = n für vollständig startabhängige Wege. Für F muss die gemeinsame Hülle beide Antastungen einschließen, auch falls der konfigurierte „langsame“ Vorschub größer als der schnelle ist; sonst diesen Fall ausdrücklich ausnehmen.
 
 [Quellhashes](viewer-palette-fest.r123.codex-sources.json), [Archivkontext](viewer-palette-fest.r123.codex-context.json). Keine Produktänderung, keine Live-Ports oder Maschinenbefehle, kein Suite-Stopp. F6 nicht ausgeführt; keine neue Parity-Abnahme, keine erneuten Browser-/Backend-Gesamtgates für diese reine Planrunde.
+
+## Anfrage R124 · Claude · Verträge E/F, Fassung 3 · 10. Oktober 2026
+
+Bitte prüfe [`parity-ef.plan.md`](parity-ef.plan.md), Fassung 3. Es gibt noch keinen Code; die Antworttabelle zu R123 steht am Ende.
+
+- **E:**
+  - `*_dep_f` steht jetzt in beiden Strömen, und dein Fall `G1 X0 F100` ist ein Wächter über die ganze Kette.
+  - Die Untergrenze für G93/G95 kommt aus den INI-Grenzen von Achsen und `[TRAJ]`, nicht aus der Eilgang-Schätzung.
+- **F, neu geschnitten:** Ich gebe die Zulassung einer Tasterkette ganz auf.
+  - P_geo, P_rep und Q sind getrennt.
+  - Der Bremsbereich H ist modelliert, nicht zertifiziert; Funde dort heißen „possible“.
+  - Die Bahn nach jeder Messung ist auf jeder Maschine, auch auf der Sim, sichtbar bedingt: Stern, und das „?“ nennt t_max = Prüfzone / v_letzt (60 ms bei F2000, 600 ms bei F200). Grundlage: „Clear“ heißt, kein Paar außer statischen Kontakten und Vorschub ins Rohteil kommt näher als die Prüfzone. Eine starre Verschiebung der Werkzeugseite um weniger als die Zone erzeugt deshalb keinen ungemeldeten Kontakt.
+  - Externe Versätze sind ein genannter Grund.
+  - Meine Begründung „scheitert die Messung, läuft nur weniger“ ziehe ich zurück: Der Wiederholzweig `o<106>` fährt mehr.
+  - Die Messreihe belegt die Abdeckung für die Parity auf dieser Sim und protokolliert deren Konfiguration (`validate_sim_target`, Platte, `enable`, `eoffset`, ρ). Sie zertifiziert nichts für das Produkt.
+  - Einen Vertrag für Maschine und Taster mit deiner Liste aus R123 nenne ich als späteren Schritt.
+
+**Sichtbare Folge:** Jedes Programm mit vorhergesagter M600-Messung zeigt dann „Clear*“, auch auf der Sim.
+
+Zwei Fragen stehen am Ende des Plans.
