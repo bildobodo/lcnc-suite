@@ -1221,9 +1221,15 @@ export function* sweepCollisionsIter(
   // their position is unknown for the measurement's sake (probeStops).
   const afterProbe: number[] = [];
   const shownLine = (i: number) => displayLineForPoint(track, i, true).line ?? 0;
+  // The line a note names for a point is the one the operator sees: inside
+  // a called file (an M600's routine) the call line — the raw number is the
+  // called file's own ("from L339" in a 60-line program, live 2026-10-09).
+  // A point the parse does not vouch for and no call line names keeps its
+  // own number (the move after an M6 at a tool change position).
+  const noteLine = (i: number) => displayLineForPoint(track, i, true).line ?? track.lines[i] ?? 0;
   if (track.ustart) for (let i = 1; i < n; i++) if (track.ustart[i]) {
     if (track.unpredicted?.[i]) afterProbe.push(shownLine(i));
-    else unknownStarts.push(track.lines[i]!);
+    else unknownStarts.push(noteLine(i));
   }
   const list = (ls: number[]) => `${ls.slice(0, 3).map(l => "L" + l).join(", ")}${ls.length > 3 ? " …" : ""}`;
   // An offset or a stored position set FROM that position is the preview's
@@ -2213,7 +2219,7 @@ export function* sweepCollisionsIter(
       sweepMs: clock() - t0,
       truncated: trunc,
       ...(opts.range ? {
-        range: { fromCum: n > 0 ? track.cum[rangeFrom]! : 0, fromLine: track.lines[Math.min(startSeg, n - 1)] ?? 0,
+        range: { fromCum: n > 0 ? track.cum[rangeFrom]! : 0, fromLine: noteLine(Math.min(startSeg, n - 1)),
                  ...(rangeEmpty ? { empty: true as const } : {}) },
         boundaryContacts: boundaryContacts.map(b => ({ ...b, cum: distToTrackCum(b.cum) })),
       } : {}),

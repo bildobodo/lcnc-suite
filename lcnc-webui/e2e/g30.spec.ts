@@ -66,7 +66,9 @@ async function enter(page: Page, l: string, value: number) {
 
 test("the stored G30 is a display: a missing value is empty, never 0, and Save waits for a known basis", async ({ page }) => {
   await open(page, { X: 100, Y: 0, Z: null });
-  expect(await values(page)).toEqual(["100", "0", ""]);
+  // the read lands after the tab opens (GET /g30): poll the whole row — a
+  // single read raced it ("", "", "" once in a serial run, the base too)
+  await expect.poll(() => values(page)).toEqual(["100", "0", ""]);
   await expect(storedLine(page)).toHaveText(/^Stored: as of LinuxCNC's last synch \(\d\d:\d\d\)$/);
   const save = page.getByRole("button", { name: "Save G30", exact: true });
   await expect(save).toBeDisabled();

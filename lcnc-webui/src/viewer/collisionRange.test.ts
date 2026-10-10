@@ -64,6 +64,22 @@ const counted = (r: CollisionResult) => clashTargets(r.hits);
 const pairOf = (h: { a: string; b: string }) => [h.a, h.b].sort().join("/");
 
 describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
+  it("names the line the operator sees: inside a called routine, its call line", () => {
+    // live 2026-10-09: "Checked from L339" in a 60-line program — the point
+    // lay in the M600's tool_touch_off.ngc, whose own numbers the track
+    // carries; the code panel and the readouts show the call line there
+    const base = track([[0, 0, 0], [0, 0, -45], [0, 0, 0], [0, 0, -45], [0, 0, 0]], [1, 2, 339, 340, 5]);
+    const t: ScrubTrack = { ...base, lineOk: new Uint8Array([1, 1, 0, 0, 1]),
+      sub: new Uint8Array([0xff, 0xff, 0, 0, 0xff]), subNames: ["tool_touch_off"],
+      cline: new Uint16Array([0, 0, 7, 7, 0]) };
+    const r = sweepCollisions(crash(), t, WCS0, { ...M, range: { from: 2 } });
+    expect(r.range?.fromLine).toBe(7);
+    // an unknown start inside the routine is named by its call line too
+    const u = sweepCollisions(crash(), { ...t, ustart: new Uint8Array([0, 0, 0, 1, 0]) }, WCS0, M);
+    expect(u.uncertified).toContain("(L7)");
+    expect(u.uncertified).not.toContain("340");
+  });
+
   it("from a clear point: what the full sweep finds after it, nothing before it", () => {
     const model = crash();
     // L2 plunges into the vise, L3 retracts, L4 plunges again

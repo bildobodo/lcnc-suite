@@ -652,11 +652,17 @@ test("pause and resume via Space are unchanged", async ({ page }) => {
   await ctl({ op: "status_delta", data: { interp_state: 3, paused: true, permissions: { ...PERMS_ALL, run: false, pause: false, resume: true } } });
   await expect(page.locator(".safetyStrip .statusRow").filter({ hasText: "Interp" })
     .locator(".stable-width > span:not(.alt)")).toHaveText("PAUSED");
-  // fire()'s 200 ms busy latch after the pause would drop a second Space.
-  await page.waitForTimeout(250);
+  // fire()'s busy latch after the pause drops a Space by design ("another
+  // command is settling"), and `resume` is no busy gate, so nothing on the
+  // page shows when the latch ends — a timer, late under load (a fixed 250 ms
+  // failed in the serial run, on the base too). Press until the resume is
+  // sent: one press past the latch sends it.
+  await focusBody(page);
   await ctl({ op: "clearCmds" });
-  await page.keyboard.press(" ");
-  await expect.poll(recordedCmds).toContain("cycle_resume");
+  await expect.poll(async () => {
+    await page.keyboard.press(" ");
+    return recordedCmds();
+  }, { timeout: 10_000, intervals: [300] }).toContain("cycle_resume");
 });
 
 test("a jog key released after a field opened mid-jog still sends jog_stop", async ({ page }) => {

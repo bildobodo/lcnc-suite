@@ -43,7 +43,7 @@ import { parseProbeStops } from "./viewer/probeStop";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire, worldModeForSpec, semanticKinsMode } from "./viewer/kins";
 import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
-import { roomEndOf, sliceTrack } from "./viewer/scrubTrack";
+import { displayLineForPoint, roomEndOf, sliceTrack } from "./viewer/scrubTrack";
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
@@ -3547,7 +3547,9 @@ function _startRunCheck(): boolean {
   const gen = ++_colRunGen;
   collisionRun.value = { version: g.publishedVersion!, runId: rb.runId, gen, basis,
     phase: from != null ? "provisional" : "full", fromIndex: from,
-    fromLine: from != null ? track.lines[from + 1] ?? null : null };
+    // the line the operator sees there: inside a called file its call line
+    // (a point nothing vouches for keeps its own number, collision.ts noteLine)
+    fromLine: from != null ? displayLineForPoint(track, from + 1, true).line ?? track.lines[from + 1] ?? null : null };
   if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
   emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from });
   _colRunLog.push(from != null ? `start provisional ${from}` : "start full");

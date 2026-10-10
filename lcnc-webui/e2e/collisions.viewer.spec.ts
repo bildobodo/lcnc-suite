@@ -314,8 +314,10 @@ const runEnv = (file: string, over: Record<string, unknown> = {}) => ({ run_basi
 const basisOf = (page: Page) => page.evaluate(() => window.__viewerDiag?.getCollisionBasis?.() ?? null);
 const g92z = (z: number) => [0, 0, z, 0, 0, 0, 0, 0, 0];
 
-async function runReady(page: Page, context: BrowserContext, file: string, version: number) {
-  await prepare(page, context, { file, version, feed: RUN_FEED, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0] });
+async function runReady(page: Page, context: BrowserContext, file: string, version: number,
+  o: { lines?: number[]; extra?: Record<string, unknown> } = {}) {
+  await prepare(page, context, { file, version, feed: RUN_FEED, lines: o.lines ?? [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    extra: o.extra });
   await ctl({ op: "status_delta", data: { is_enabled: true, enabled: true, interp_state: 1, task_mode: 1 } });
   await expect(clashRows(page).first(), "the program's collisions, swept at load").toBeVisible({ timeout: 30_000 });
   await expect.poll(() => sweepDone(page), { timeout: 30_000 }).toBe(true);
@@ -644,6 +646,31 @@ test("a worker that asks for the bodies gets the same request again — provisio
   await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
   await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /· checked in full$/);
   expect(await page.evaluate(() => window.__viewerDiag!.getCollisionRange!()), "the full check replaced it").toBeNull();
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// Live 2026-10-09 (M600 run on the XYZAC sim): the provisional check began
+// in the measuring routine and said "from L339" of a 60-line program — the
+// routine's own line. It names the call line the code panel shows there.
+test("a run check that begins inside a called routine names its call line, never the routine's own number (live 2026-10-09)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await installWorkerTap(page);
+  const file = "/runsub.ngc";
+  // the run's point (X 120) lies in tool_touch_off.ngc's line 339, called from L7
+  await runReady(page, context, file, 4261, { lines: [1, 6, 339, 8], extra: {
+    feed_lineok: new Uint8Array([1, 1, 0, 1]), feed_sub: new Uint8Array([255, 255, 0, 255]),
+    feed_cline: new Uint8Array(new Uint16Array([0, 0, 7, 0]).buffer), sub_names: ["tool_touch_off"] } });
+  await page.evaluate(() => { (window as unknown as { __colTap: ColTap }).__colTap.holdFull = true; });
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 4261);
+  await publishInRun(page, file, 4262, pinnedFor(9));
+  await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full"]);
+  const item = page.locator(".simSummary .sumItem").first();
+  await expect(item).toHaveAttribute("aria-label", /from L7 .*\(provisional\)/);
+  expect(await item.getAttribute("aria-label")).not.toContain("339");
+  await releaseFull(page);
+  await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
