@@ -1,0 +1,45 @@
+{
+  "offline_only": true,
+  "cases": [
+    {
+      "case": "shipped_lcnc_suite_sim_3axis_xyz.ini",
+      "result": "accepted",
+      "detail": ""
+    },
+    {
+      "case": "shipped_lcnc_suite_sim_5axis_xyzac.ini",
+      "result": "accepted",
+      "detail": ""
+    },
+    {
+      "case": "shipped_lcnc_suite_sim_6axis_twp_xyzabc.ini",
+      "result": "accepted",
+      "detail": ""
+    },
+    {
+      "case": "other_active_ini",
+      "result": "refused: the requested INI is not the one LinuxCNC runs",
+      "detail": ""
+    },
+    {
+      "case": "non_profile_name",
+      "result": "refused: production.ini is no shipped simulator profile",
+      "detail": ""
+    },
+    {
+      "case": "different_halfile_name",
+      "result": "refused: not the shipped simulator: [HAL] HALFILE differs",
+      "detail": ""
+    },
+    {
+      "case": "changed_hal_body_same_filename",
+      "result": "accepted",
+      "detail": "hallib/core_sim_5.hal adds source hallib/physical-drives.hal; body is not compared"
+    },
+    {
+      "case": "extra_halcmd",
+      "result": "accepted",
+      "detail": "additional HALCMD = source physical-drives.hal; command list is not compared"
+    }
+  ]
+}
