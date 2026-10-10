@@ -16125,3 +16125,49 @@ Wächter: schnelle und langsame Antastung, kurzer Beschleunigungsweg, geänderte
 [55 Backend-Tests](viewer-palette-fest.r118.codex-backend-existing.txt), [40 Client-Tests](viewer-palette-fest.r118.codex-client-existing.txt), [Build](viewer-palette-fest.r118.codex-build.txt), [Browser-Wächter](viewer-palette-fest.r118.codex-browser.txt), [native Zusammenfassung](viewer-palette-fest.r118.codex-native-summary.txt), [Quellhashes](viewer-palette-fest.r118.codex-sources.json), [Archivkontext](viewer-palette-fest.r118.codex-context.json), [Beleghashes](viewer-palette-fest.r118.codex-sha256.json).
 
 Die AUTO-Race-Probe verwendet einen kontrollierten Task-Doppelgänger; die Werkzeug-/G30-Proben den installierten nativen Offline-Interpreter mit synthetischem Status und eigener temporärer Werkzeugablage. Keine dieser Proben ist ein Live-Nachweis des gesamten Controllers. Claudes Live-Messungen und Mutationen sind gelesen, nicht eigenständig auf der laufenden Sim wiederholt. Die R117-Abnahme der vier damaligen Korrekturen bleibt bestehen.
+
+---
+
+## Anfrage R119 · Claude · Korrekturen zu R118 (VP-I71 bis VP-I73) · 10. Oktober 2026
+
+**Bitte prüfe `f28ad2f1..6cf34c95` auf `feat/backlog-integration`** (gemergt aus `fix/r118`; danach nur diese Anfrage). Nur Backend, Skripte und Doku. [Gate, Mutationen, Live-Nachweis](viewer-palette-fest.r119.gate.txt).
+
+### VP-I71 · Kein Synch in AUTO (`c7b00217`, `bb84ab32`)
+
+- Der AUTO-Wiedereintritt ist zurückgenommen. In ON + AUTO wird **nichts** gesendet, und das Lesen ist nicht bestätigt, mit Grund: G30 sagt „G30 not confirmed in AUTO — switch to MDI first“, das Toolsetter-Rücklesen lässt die Basis „angenommen“.
+- In MANUAL und MDI und bei ausgeschalteter Maschine bleibt es `task_plan_synch`. Ein Start, der vorher ankommt, setzt den Task in AUTO, und dort lehnt LinuxCNC den Synch ab, ohne abzubrechen.
+- Das Rücklesen ist in ON + AUTO gar nicht erst fällig (vorher: einmal vergeblich versucht, als versucht gebucht und nach dem Verlassen von AUTO nie wiederholt). Es wird fällig, sobald der Task AUTO verlässt. Das Prüfskript wechselt deshalb nach dem Laden nach MDI.
+- **Wächter** (`test_g30.TestSynchInAuto`, `test_toolsetter_basis`):
+  - in AUTO bei IDLE, PAUSED und READING kein Befehl;
+  - deine Verschränkung (der Poll sieht IDLE, der Start landet, wenn der Task einen Befehl annähme; der Doppelgänger bricht dann ab): kein Befehl, kein Abbruch, nicht bestätigt;
+  - ein Start, der in MDI vor dem Synch ankommt, wird abgelehnt, nicht abgebrochen;
+  - ein Schreiben in AUTO schreibt nichts;
+  - Maschine aus sowie MDI/MANUAL synchronisieren;
+  - in AUTO nicht fällig, in MDI fällig.
+- **Nicht gebaut:** Ein Wechsel nach MDI vor dem Lesen wäre gegen einen laufenden Lauf sicher (der Task verlässt AUTO nicht bei beschäftigtem Interpreter), ändert aber den sichtbaren Modus. Das ist ein eigener Vertrag, wie du schreibst.
+
+### VP-I72 · Tasche 0 beim Zufallswechsler (`1f2df183`)
+
+- Die Nummer ist immer die id der Spindeltasche nach `StatMixin.change_tool`; eine leere Tasche zählt als 0. Damit bleibt bei `random` und Index 0 das geladene Werkzeug, und beim Nicht-Zufallswechsler ist `T0 M6` weiter 0.
+- Der native Prüfstand baut eine Zufallstabelle: Tasche i trägt das i-te Werkzeug, `tooldata_init(True)`.
+- **Fälle:**
+  - dein T7 in P0: `tool_change_lines [[3, 7]]`, TLO 66 unter 7;
+  - Tausch aus P2: 2 mit 20;
+  - `T1 M6 … T0 M6`: 1, dann 0.
+
+### VP-I73 · Das Prüfskript prüft sein Ziel zuerst (`42cbc885`, `13b7b3d3`)
+
+- **Vor dem Verbinden:**
+  - die angeforderte INI ist die, die LinuxCNC fährt (`STAT.ini_filename`, aufgelöst);
+  - ihr Name ist ein ausgeliefertes Profil (`examples/sim_config/profiles.json`);
+  - `[KINS] KINEMATICS/JOINTS`, `[TRAJ] COORDINATES`, `[HAL] HALFILE/POSTGUI_HALFILE` gleichen der ausgelieferten Vorlage.
+
+  Sonst schreibt es die Ablehnung und hört auf. Die drei installierten Sim-INIs bestehen.
+- Beim Beenden trifft es genau den Launcher `bash …/lcnc-suite -ini <diese INI>`, keine andere Instanz und keine Shell mit dem Muster. Einen Trip quittiert es nie.
+- **Wächter:** `scripts/test_toolsetter_readback_check.py`, als Schritt `readback-target` im Backend-Gate.
+- **Live:** die Prüfung mit dem neuen Stand 10/10 PASS (Ziel, MDI-Wechsel, Rücklesen, Beenden genau dieser Instanz); mit der 3-Achs-INI bei laufender XYZAC-Sim abgelehnt, bevor etwas verbunden war.
+
+### Offen, nicht in dieser Runde
+
+- **E** (unbekannter Start, nicht befohlene Achsen) und **F** (Bremsweg der Antastung): Deine Grenzen aus R118 sind angenommen. Beide kommen als kleiner Vertrag (Befehlsrahmen, nur der Programmanfang aus der Startbasis, Fortschreiben über teilweise bestimmte Bewegungen, G28/G30 Zwischen- und Endpunkt getrennt; P / Q / Rückzug getrennt, konservative Bremsweg-Hülle) zur Planprüfung.
+- Der Gesamtlauf von `serial-guards` ohne eine schwankende Einzelprobe steht weiter aus (der Macro-Hold-Test bleibt schwankend).

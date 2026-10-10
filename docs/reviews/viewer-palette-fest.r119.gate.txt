@@ -1,0 +1,50 @@
+# R119 · Gate, Mutationen und Live-Nachweis der R118-Korrekturen · 10. Oktober 2026
+
+Stand: fix/r118 13b7b3d3 (gemergt 6cf34c95). Nur Backend, Skripte, Doku — keine Frontend-Datei.
+
+## Backend-Gate (scripts/test_suite.py offline --component backend)
+
+PASS backend (55.71s)
+PASS 5axis-model (0.72s)
+PASS audit-css (1.03s)
+PASS review-handshake (4.52s)
+PASS readback-target (0.11s)
+PASS: report.json (gate run directory)
+  pytest: 1401 passed
+  Der erste Lauf scheiterte nur an test_suite_runner (die Zahl der Offline-Schritte, 8 → 9 mit
+  readback-target); angepasst in 13b7b3d3.
+
+## Mutationen (je ein Kompilat, rot)
+
+  VP-I71 (test_g30, test_toolsetter_basis):
+    der alte AUTO-Wiedereintritt, wenn der Poll IDLE sah   5 failed
+    task_plan_synch auch in AUTO                           7 failed
+    AUTO ohne die Bedingung „Maschine ON“                   2 failed
+    Rücklesen in AUTO fällig                                1 failed
+  VP-I72 (nativ, test_tool_change_motion_worker):
+    Index 0 ist bei jedem Wechsler „entladen“              1 failed
+    leere Tasche ohne Klemmung (−1)                        1 failed
+  VP-I73 (scripts/test_toolsetter_readback_check):
+    ohne Vergleich mit der laufenden INI                   1 failed
+    jeder Name                                             1 failed
+    HAL-Dateien nicht verglichen                           1 failed
+    Launcher nach Präfix                                   1 failed
+
+## Live auf der XYZAC-Sim (neu gestartet mit 6cf34c95)
+
+# toolsetter read-back check 2026-10-10 09:49:24 on lcnc_suite_sim_5axis_xyzac.ini
+PASS  target: the running, shipped simulator  lcnc_suite_sim_5axis_xyzac.ini
+PASS  setup: machine on and homed  
+PASS  load the scratch program (T1 M600, never run)  
+PASS  switch the task to MDI (the read-back is due outside AUTO)  
+PASS  1 start: the read-back confirms the file's values  trace {'version': 2, 'state': 'confirmed'}; file #3009 = 3.0
+PASS  2 MDI #3009 = 4.25: booked assumed, the file still the old value  mdi ok=True; trace assumed keys=[3009]; file #3009 = 3.0 (inode same)
+PASS  3 read-back: a new inode, the file holds the interpreter's value, booked read  file #3009 = 4.25 (inode new); trace read keys=[3009]
+PASS  3b the published parse reads the confirmed value  payload toolsetter #3009 = 4.25
+PASS  4 the old value back (MDI #3009 = 3.0) and read back  file #3009 = 3.0
+PASS  teardown: the sim stopped with the client connected  
+
+Ablehnung live: dieselbe Prüfung mit der 3-Achs-INI, während die XYZAC-Sim lief:
+# toolsetter read-back check 2026-10-10 09:49:36: refused
+FAIL  target: the running, shipped simulator  the requested INI is not the one LinuxCNC runs
+  Gateway danach: clients 0, armed 0 — nichts verbunden.
