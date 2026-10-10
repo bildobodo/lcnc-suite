@@ -1074,8 +1074,11 @@ on past P by the MODELED distance h = v·t + v²/a — v the probe feed capped b
 MAX_LINEAR_VELOCITY`, a the same share of `MAX_ACCELERATION` (v²/a is
 v²/(2·a/2): a parabolic blend halves the acceleration, `tc.c`
 `tcGetOverallMaxAccel`; the probes follow a collinear move or a reversal, so
-no kink reduction — text-guarded), t two servo periods (an ideal probe input)
-— never past the move's commanded end; the routine's own retract starts
+no kink reduction — text-guarded), t four servo periods (an ideal probe input:
+up to two until motion reads it and stores P, two more until the trajectory
+brakes — measured on the XYZAC sim, `viewer-palette-fest.r126.f5.txt`; with two
+the model fell short by the read delay in every G64 case) — never past the
+move's commanded end; the routine's own retract starts
 there and a preview leg climbs to P + retract: the hull H = [P − h, P + r]
 every stop and retract lies in (only Z moves between the probes and the
 drive-free G53 Z0 — text-guarded). `#5061…#5070` and the length stay at P.

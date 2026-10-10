@@ -9164,7 +9164,12 @@ the preview may claim:
   planner's share of the Z limits (`OFFSET_AV_RATIO` reserved — Fassung 1 forgot
   it: 2.29 → 2.84 mm; the measured 2.13 lies between full and half
   deceleration, so the earlier match was a coincidence), half the acceleration
-  (parabolic blend), t two servo periods, never past the commanded end. Between
+  (parabolic blend), t four servo periods, never past the commanded end. The
+  measurement series (F5, 2026-10-10, the XYZAC sim, 11 cases) found the model
+  with two periods short by exactly P − P_rep in every G64 case: the input is read
+  1–1.7 periods after the contact (P_rep, the stored point) and the trajectory
+  brakes two periods after that, at half the acceleration (Q − P_rep = v²/a + 2vT
+  exactly); four periods cover both (F2000: 2.911 ≥ 2.900 measured). Between
   the probes the routine moves only Z, so the hull [P − h, P + r] is covered by
   a path that reaches both ends; contacts there are `possible`.
 - **No probe chain is admitted.** Fassung 2 wanted to certify the sim's chain

@@ -502,14 +502,16 @@ class TestBrakingRange(unittest.TestCase):
     brakes along the probe line, so the machine stops below P. The preview
     goes on past P by the MODELED braking distance h = v·t + v²/a (v the probe
     feed capped by the planner's Z velocity, a the planner's Z acceleration —
-    half of it, doubled by the formula —, t two servo periods), never past the
+    half of it, doubled by the formula —, t four servo periods: up to two until
+    the input is read and P stored, two until the trajectory brakes, measured
+    on the sim — parity-ef F5), never past the
     move's commanded end, then lets the routine retract from there and climbs
     to P + retract: the hull H = [P − h, P + r] every stop and retract lies in.
     The segments from just after P to the band's end are the band; the probe
     results and the length stay at P."""
 
-    H_FAST = 2000 / 60 * 0.002 + (2000 / 60) ** 2 / 400     # XYZAC Z: 80 % of 500 mm/s²
-    H_SLOW = 200 / 60 * 0.002 + (200 / 60) ** 2 / 400
+    H_FAST = 2000 / 60 * 0.004 + (2000 / 60) ** 2 / 400     # XYZAC Z: 80 % of 500 mm/s²
+    H_SLOW = 200 / 60 * 0.004 + (200 / 60) ** 2 / 400
 
     def _band_points(self, r):
         a, b = r["probe_bands"][0][:2]
@@ -543,12 +545,12 @@ class TestBrakingRange(unittest.TestCase):
 
     def test_without_the_reserved_share_the_planner_brakes_harder(self):
         r = probe("m600_band_no_rho")
-        h = 2000 / 60 * 0.002 + (2000 / 60) ** 2 / 500
+        h = 2000 / 60 * 0.004 + (2000 / 60) ** 2 / 500
         self.assertAlmostEqual(min(p[2] for p in self._band_points(r)), -100 - h, places=4)
 
     def test_traj_caps_velocity_and_acceleration(self):
         r = probe("m600_band_traj")
-        h = 20 * 0.002 + 20 ** 2 / 250
+        h = 20 * 0.004 + 20 ** 2 / 250
         self.assertAlmostEqual(min(p[2] for p in self._band_points(r)), -100 - h, places=4)
 
     def test_a_slow_probe_faster_than_the_fast_one_spans_the_range(self):
