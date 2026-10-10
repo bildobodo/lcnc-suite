@@ -24,6 +24,13 @@ export interface RunStart {
    *  enable — null where the gateway read none (never an "off"). */
   eoffsetZ: number | null;
   eoffsetEnabled: boolean | null;
+  /** The joints the run started from (parity-ef plan E5): taken from the
+   *  start's own poll, standing in position, every value finite — an
+   *  observed basis, not a controller confirmation. Null with `jointsWhy`
+   *  when not taken: the program's start-dependent beginning stays
+   *  unchecked in the run, named. */
+  joints: number[] | null;
+  jointsWhy: string | null;
 }
 
 export type RunState = "sending" | "sent" | "unsent";
@@ -83,6 +90,7 @@ function readStart(raw: unknown): RunStart | null {
     toolNumber: num(s.tool_number), toolDiameter: num(s.tool_diameter), toolLength: num(s.tool_length),
     toolTableZ: num(s.tool_table_z), toolOffset: vec(s.tool_offset),
     eoffsetZ: num(s.eoffset_z), eoffsetEnabled: flag(s.eoffset_enabled),
+    joints: Array.isArray(s.joints) && s.joints.length ? vec(s.joints) : null, jointsWhy: str(s.joints_why),
   };
 }
 

@@ -18,7 +18,7 @@ import { describe, expect, it } from "vitest";
 import { decodePreviewStreams, normalizeToToolBasis } from "../previewDecode";
 import { buildEntryTrack, buildScrubTrack, sliceTrack } from "./scrubTrack";
 import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
-import { mergeEntryResult } from "./sweepMerge";
+import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { bindBeginning, moveTime } from "./startDep";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
@@ -101,6 +101,26 @@ describe("bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whol
     expect(pts(e)).toEqual([[100, 100, 0], [100, 100, 0], [0, 100, 0], [0, 0, 0], [10, 0, 0]]);
     expect(cums(e)).toEqual([0, 0, 10, 20, 21]);            // 100 mm at 10 mm/s, twice
     expect(Array.from(e.brk!.subarray(0, 5))).toEqual([0, 0, 0, 0, 0]);
+  });
+
+  it("the bound point K is the base's point K (the merge's seam)", () => {
+    // K is the first point with no dependent axis: Δ leaves it alone, so the
+    // side sweep ends where the base's checked part begins
+    const { track, e } = entry("e_g53_rdp", [100, 100, 0]);
+    const K = track.depEnd!;
+    expect(Array.from(e.pos.subarray((K + 1) * 3, (K + 2) * 3))).toEqual(Array.from(track.pos.subarray(K * 3, (K + 1) * 3)));
+  });
+
+  it("onto the base's axis (a run check): the beginning's findings at the start, the base's where they were", () => {
+    const { raw, track, e } = entry("e_g53_rdp", [100, 100, 0]);
+    const K = track.depEnd!;
+    const side = sweep(sliceTrack(e, 0, K + 2), [50, 100, 0], raw);
+    const base = sweep(track, [5, 0, 0], raw);                   // on X0 → X10, after K
+    const m = mergeBeginningOntoBase(side, base, e.cum[K + 1]!, track.cum[track.count - 1]!, e.cum[1]);
+    const begin = m.hits.find(h => h.line === 3)!, after = m.hits.find(h => h.line === 5)!;
+    expect(begin.cum).toBe(0);
+    expect(after.cum).toBeCloseTo(base.hits.find(h => h.line === 5)!.cum, 6);
+    expect(m.startDependent).toBeUndefined();
   });
 
   it("the side sweep finds an obstacle on the real path, the base sweep never the believed one", () => {

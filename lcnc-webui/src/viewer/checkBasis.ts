@@ -28,6 +28,10 @@ export interface CheckBasis {
    *  F3, Codex R126 VP-I76). A note, not a sweep input. */
   eoffsetZ: number | null;
   eoffsetEnabled: boolean | null;
+  /** The start the program's start-dependent beginning is bound to in a
+   *  run check (parity-ef plan E5): the run's start joints; null for an idle
+   *  check (the simulation's entry binds its own) or a run without them. */
+  startJoints: number[] | null;
 }
 
 /** What the viewer holds of the live status (ThreeViewer's `_pv`). */
@@ -58,6 +62,7 @@ export function basisFromLive(pv: LiveCheckInputs, payloadToolBasis: number[] | 
     wcsTable: copyRows(pv.wcsTable),
     toolNum: pv.toolNum, toolDiam: pv.toolDiam, toolLen: pv.toolLen,
     eoffsetZ: pv.eoffsetZ, eoffsetEnabled: pv.eoffsetEnabled,
+    startJoints: null,
   };
 }
 
@@ -74,6 +79,7 @@ export function basisFromRun(rb: RunBasis | null, payloadToolBasis: number[] | n
     wcsTable: copyRows(s.wcsTable),
     toolNum: s.toolNumber, toolDiam: s.toolDiameter, toolLen: s.toolLength,
     eoffsetZ: s.eoffsetZ, eoffsetEnabled: s.eoffsetEnabled,
+    startJoints: s.joints ? [...s.joints] : null,
   };
 }
 
@@ -85,7 +91,9 @@ export function sameCheckInputs(a: CheckBasis, b: CheckBasis): boolean {
   return sameArr(a.g5x, b.g5x) && sameArr(a.g92, b.g92) && a.rotationXy === b.rotationXy
     && sameArr(a.toolOffset, b.toolOffset)
     && JSON.stringify(a.wcsTable) === JSON.stringify(b.wcsTable)
-    && a.toolNum === b.toolNum && a.toolDiam === b.toolDiam && a.toolLen === b.toolLen;
+    && a.toolNum === b.toolNum && a.toolDiam === b.toolDiam && a.toolLen === b.toolLen
+    // a beginning bound to another start is another check (plan E5)
+    && (a.startJoints == null ? b.startJoints == null : b.startJoints != null && sameArr(a.startJoints, b.startJoints));
 }
 
 /** What the shown collision result is (plan 1c, 3c/3d). */

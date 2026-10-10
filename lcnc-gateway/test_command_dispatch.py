@@ -662,6 +662,11 @@ class TestHandlerExecution(unittest.TestCase):
         gateway.STAT.task_mode = linuxcnc.MODE_AUTO
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         gateway.STAT.paused = False
+        # standing in position: the start's joints are taken (parity-ef E5)
+        gateway.STAT.inpos = True
+        gateway.STAT.current_vel = 0.0
+        gateway.STAT.joints = 3
+        gateway.STAT.joint_actual_position = (1.5, -2.0, 30.0) + (0.0,) * 13
 
     def test_a_run_basis_is_taken_before_the_start_is_written(self):
         # a client never reconstructs a run's start from the first frame it
@@ -850,6 +855,39 @@ class TestHandlerExecution(unittest.TestCase):
         status = gateway._run_basis_status()
         self.assertEqual(set(status), set(wire))
         self.assertEqual(set(status["start"]), set(wire["start"]))
+
+    def test_the_start_joints_are_this_poll_s(self):
+        # parity-ef plan E5 (Codex R122 answer 2): copied right after the
+        # poll, before the source read awaits — a poll meanwhile changes
+        # nothing; standing, in position, finite, as many as the joints
+        self._run_basis_setup()
+        self._idle_auto()
+        real = gateway.program_source
+
+        def moved_meanwhile(f):
+            gateway.STAT.joint_actual_position = (99.0, 99.0, 99.0) + (0.0,) * 13
+            return real(f)
+        with unittest.mock.patch.object(gateway, "program_source", moved_meanwhile):
+            self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        self.assertEqual(gateway._run_basis["start"]["joints"], [1.5, -2.0, 30.0])
+        self.assertNotIn("joints_why", gateway._run_basis["start"])
+        from types import SimpleNamespace as NS
+        ok = dict(task_mode=linuxcnc.MODE_AUTO, inpos=True, current_vel=0.0, joints=3,
+                  joint_actual_position=(1.0, 2.0, 3.0, 0.0))
+        self.assertEqual(gateway._start_joints_now(NS(**ok)), ([1.0, 2.0, 3.0], None))
+        for change, why in (({"current_vel": 0.01}, "moving"), ({"inpos": False}, "not in position"),
+                            ({"task_mode": linuxcnc.MODE_MDI}, "not in AUTO"),
+                            ({"joint_actual_position": (1.0, float("nan"), 3.0)}, "joint values incomplete"),
+                            ({"joint_actual_position": (1.0, 2.0)}, "joint values incomplete"),
+                            ({"joints": 0}, "joint values incomplete"),
+                            ({"current_vel": float("nan")}, "moving")):
+            self.assertEqual(gateway._start_joints_now(NS(**{**ok, **change})), (None, why), change)
+        # not standing at the start: the basis names why, never a position
+        self._idle_auto()
+        gateway.STAT.current_vel = 5.0
+        self.assertTrue(self._send({"cmd": "cycle_start"})["ok"])
+        self.assertEqual(gateway._run_basis["start"].get("joints_why"), "moving")
+        self.assertNotIn("joints", gateway._run_basis["start"])
 
     def test_the_start_snapshot_reads_like_the_status(self):
         # a run's check reads run_basis.start where an idle check reads the

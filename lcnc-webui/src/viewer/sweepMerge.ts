@@ -86,6 +86,30 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
   };
 }
 
+/** A run check's bound beginning (docs/reviews/parity-ef.plan.md E5/E7)
+ *  merged onto the BASE track's axis: the run is displayed on the base,
+ *  where the beginning has no duration — its findings sit at the start (cum
+ *  0, their lines kept), every base cum stays. The side sweep `side` covers
+ *  the entry move and the beginning bound to the run's start joints (axis
+ *  of the bound track, the base's point K at `shift`). The base result's
+ *  `startDependent` is answered by it and dropped. Pure. */
+export function mergeBeginningOntoBase(side: CollisionResult, base: CollisionResult, shift: number, baseLen: number,
+                                       entryMoveEnd?: number): CollisionResult {
+  const m = mergeEntryResult(side, base, shift, baseLen, entryMoveEnd);
+  const at = (c: number) => Math.max(0, c - shift);
+  return {
+    ...m,
+    hits: m.hits.map(h => ({
+      ...h, cum: at(h.cum), cumEnd: at(h.cumEnd),
+      intervals: h.intervals?.map(iv => [at(iv[0]), at(iv[1])] as [number, number]),
+      ...(h.spanCumEnd !== undefined ? { spanCumEnd: at(h.spanCumEnd) } : {}),
+    })),
+    // a side sweep cut short leaves the beginning partly unchecked: nothing
+    // on the base axis is a checked prefix then
+    truncated: side.truncated ? { covered: 0, reason: side.truncated.reason } : base.truncated,
+  };
+}
+
 /** The merged result's `truncated`, as a conservative checked PREFIX of the
  *  merged axis (entry length `shift` + base length `baseLen`) — the shape
  *  the timeline band and the "N % swept" wording consume (TWP-12, review
