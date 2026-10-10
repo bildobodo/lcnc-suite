@@ -1,0 +1,24 @@
+{
+  "base": "ad7f195b",
+  "head": "0d75dcf986287eb2b3e5596db86bd64e6e3e5c05",
+  "archive": "/tmp/codex-r128-nyvew6of",
+  "review_prefix_bytes": 1256289,
+  "review_prefix_sha256": "1ad55b59ef88a6cee361339b31e80c5f171dda88645e18be8d38d1dbe6d89b5c",
+  "source_sha256": {
+    "CLAUDE.md": "a7a523be5b9e3feae82364d3513fad698ec05b6333d68e4e4775de9e0f252d06",
+    "docs/reviews/parity-ef.plan.md": "47d6af2f2aeb1bf5bbee1b397681368479e479686d6b2bfb0b3d4e4419bec54c",
+    "docs/reviews/viewer-palette-fest.ideen.md": "1ad55b59ef88a6cee361339b31e80c5f171dda88645e18be8d38d1dbe6d89b5c",
+    "docs/reviews/viewer-palette-fest.r127.f5.txt": "3817c621def7be60aec0d2abba79055778da69b1b91035d0918ff42631d0a038",
+    "docs/reviews/viewer-palette-fest.r128.f5-probe.py": "3a652633fec960b5091b77095c3301ea1fcf63fa05271a3726949a172a7fc960",
+    "docs/reviews/viewer-palette-fest.r128.f5-seq.py": "947c99c2cd354895e883d6d566fdb238030a372ef7863cc6a87ec6bd1b45a6ab",
+    "docs/reviews/viewer-palette-fest.r128.f5.txt": "4b0ade00eea9167e4072bf3dd8aa7c01305452850754fbaf5daa89ae24f51829",
+    "scripts/toolsetter_readback_check.py": "4332bd233d000aa43faf38bd0e5b3e80979278630b440a5b82d724217c1116f2",
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "604279213e5e8eaa4e316bc7a1fee70376ca4707f3b92631b7853111cab908eb"
+  },
+  "scratchpad_source": "/tmp/claude-1000/-home-cnc-lcnc-suite/b51e55ad-5023-4968-835e-f7e1362322ed/scratchpad/ef",
+  "raw_samples_sha256": "23c9b2bf417f6480ea8e446c4b9b7c418b996517251d0bfa39e75a89a789d7f1",
+  "executed_probe_scripts_match_committed": {
+    "f5_seq.py": true,
+    "f5_probe.py": true
+  }
+}
