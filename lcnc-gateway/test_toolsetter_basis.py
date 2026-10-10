@@ -251,6 +251,14 @@ class TestEdges(_BasisCase):
         self.assertIsNone(gateway._ts_drift_reason(), "a program without the routine")
 
     def test_an_unconfirmed_basis_is_read_back_once_while_the_program_is_loaded(self):
+        # machine on in AUTO (where a load leaves the task): not due, not
+        # tried — LinuxCNC takes no synch there (Codex R118 VP-I71); due
+        # once the task leaves AUTO
+        from test_g30 import linuxcnc
+        in_auto = type("InAuto", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_AUTO})
+        self.assertFalse(gateway._ts_read_back_due(in_auto))
+        in_mdi = type("InMdi", (_St,), {"state": linuxcnc.STATE_ON, "task_mode": linuxcnc.MODE_MDI})
+        self.assertTrue(gateway._ts_read_back_due(in_mdi))
         self.assertTrue(gateway._ts_read_back_due(_St))
         gateway._ts_readback_tried = (gateway._ts_basis_version, "/p.ngc")
         self.assertFalse(gateway._ts_read_back_due(_St), "once per version and program")

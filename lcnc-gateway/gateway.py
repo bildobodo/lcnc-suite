@@ -4155,6 +4155,10 @@ def _ts_read_back_due(st) -> bool:
         return False
     if _ts_readback_task is not None and not _ts_readback_task.done():
         return False
+    # Machine ON in AUTO, LinuxCNC takes no synch (Codex R118 VP-I71): not due
+    # there — it becomes due once the task leaves AUTO, not tried in vain
+    if getattr(st, "state", None) == linuxcnc.STATE_ON and getattr(st, "task_mode", None) == linuxcnc.MODE_AUTO:
+        return False
     return not (_get_cmd_lock().locked() or _rfl_busy() or _active_jogs or st.current_vel)
 
 
