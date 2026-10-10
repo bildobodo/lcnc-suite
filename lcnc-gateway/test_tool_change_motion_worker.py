@@ -331,22 +331,22 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
 
     def test_an_o_word_whose_name_is_no_literal_is_read_as_one(self):
         # Codex R99 VP-I53 rest: `o+100 call` / `oABS[-100] call` run
-        # 100.ngc natively — its G92 keeps L7 unknown, named 0 (never the
-        # main file's explicit L2); `o+100 if [0]` skips its G92 (L8 known,
-        # timed), `o+100 if [1]` runs it (L8 unknown).
-        for case in ("r99_o_plus", "r99_o_function", "r99_plus_run"):
+        # 100.ngc natively — its G92 kept L7 unknown, named 0 (never the main
+        # file's explicit L2); `o+100 if [0]` skipped its G92 (L8 known,
+        # timed). Since parity-ef plan E4 a text with an o-word the reader
+        # cannot read may READ the position anywhere — no line says when: from
+        # the program's start every axis is unknown (a read at line 0),
+        # whichever branch runs. The o-word is still read as one: a text it
+        # took for none would run in order and keep its moves.
+        for case in ("r99_o_plus", "r99_o_function", "r99_plus_run", "r99_plus_skip",
+                     "r99_o_plus_position_control"):
             r = probe(case)
             self.assertIsNone(r["parse_error"], case)
-            self.assertEqual(r["rapid_ustart"][-1], 1, case)
-            self.assertEqual(r["stale_offset_lines"], [0], case)
-            self.assertIs(r["stale_offset_untracked"], True, case)
-        r = probe("r99_plus_skip")
-        self.assertEqual(r["rapid_ustart"][-1], 0)
-        self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
-        self.assertIsNone(r["stale_offset_lines"])
-        r = probe("r99_o_plus_position_control")
-        self.assertEqual(r["rapid_ustart"][-1], 0)
-        self.assertIsNone(r["stale_offset_lines"])
+            # every point an unknown start, but a relabel vertex (a fixture
+            # flip re-expressing the pose, brk)
+            self.assertTrue(all(u or b for u, b in zip(r["rapid_ustart"], r["rapid_brk"] or [0] * 99)), case)
+            self.assertEqual(r["position_read_lines"], [0], case)
+            self.assertEqual([row[2] for row in r["probe_unpredicted"]], ["position_read"], case)
 
     def test_any_spelling_of_a_write_is_seen(self):
         # Codex R96 VP-I53 rest: G92.0, G10.0, G28.10 are the same codes; a
@@ -468,13 +468,16 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         # neither makes its G92 the main text's. Named by the trigger's line
         # (its block's byte offset), never by the number the body passed:
         # two lines name L5 whatever the body says
+        # Since parity-ef plan E4 the opaque body may also READ the position,
+        # and is judged first — at its first callback, the axes unknown after
+        # the M6: the same line, named as the read.
         for arg in ("", "_line4"):
             for case, line in (("explicit_and_remap", 4), ("explicit_then_remap", 5),
                                ("remap_alone", 4), ("listed_and_remap", 4)):
                 name = f"r109_py{arg}_{case}"
                 r = probe(name)
                 self.assertIsNone(r["parse_error"], name)
-                self.assertEqual(r["stale_offset_lines"], [line], name)
+                self.assertEqual(r["position_read_lines"], [line], name)
                 self.assertEqual(r["rapid_ustart"][-1], 1, name)
                 self.assertEqual(set(r["rapid_tcum"]), {0.0}, name)
             r = probe(f"r109_py{arg}_explicit_alone")
@@ -496,24 +499,30 @@ class TestUnknownStartAfterAToolChange(unittest.TestCase):
         # the program: the M6 makes XYZ unknown, the G92 from there is named
         # by M200's line, nothing after it is timed or swept; the G43.1 is the
         # program's offset (its row, the move after it timed)
+        # Since parity-ef plan E4 the opaque body may also read the position
+        # while X/Y/Z still stand where the machine does: named as a read at
+        # M200's line — the program has begun there either way.
         for frame, line in (("plain", 1), ("modal", 2), ("percent", 2), ("percent_modal", 3)):
             r = probe(f"r110_first_tc_g92_{frame}")
             self.assertIsNone(r["parse_error"], frame)
-            self.assertEqual(r["stale_offset_lines"], [line], frame)
+            self.assertEqual(r["position_read_lines"], [line], frame)
             self.assertEqual(set(r["rapid_ustart"]), {1}, frame)
             self.assertEqual(set(r["rapid_tcum"]), {0.0}, frame)
             r = probe(f"r110_first_g43_{frame}")
             self.assertIsNone(r["parse_error"], frame)
             self.assertEqual([row[3] for row in r["tlo_events"]], [10.0], frame)
-            self.assertEqual(r["rapid_ustart"][-1], 0, frame)
-            self.assertAlmostEqual(r["rapid_tcum"][-1] - r["rapid_tcum"][-2], 1.0, places=5)
+            self.assertEqual(r["position_read_lines"], [line], frame)
 
     def test_the_start_state_is_taken_before_a_python_remap_s_first_command(self):
         # the program-start basis (gcode_canon._begin_program) — a Python
         # remap's G92 first is the very program a plain G92 first is
+        # The opaque body may read the position (parity-ef plan E4), the plain
+        # G92 writes from it (E6): both unknown to the end, each for its
+        # reason — from the same start, the same points.
         a, b = probe("r110_first_g92_python"), probe("r110_first_g92_plain")
         self.assertIsNone(a["parse_error"])
-        self.assertEqual(a["digest_without_stats"], b["digest_without_stats"])
+        self.assertEqual((a["rapid"], a["start_believed"]), (b["rapid"], b["start_believed"]))
+        self.assertEqual((a["position_read_lines"], b["stale_offset_lines"]), ([1], [1]))
 
     def test_a_python_m6_s_own_tool_change_moves_are_kept(self):
         # Codex R110 VP-I66: execute("M6") is numbered 0, the interpreter's

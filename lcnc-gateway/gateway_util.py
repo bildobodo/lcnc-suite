@@ -1659,6 +1659,8 @@ def compare_preview_payloads(old, new):
     - bounds / motion_bounds: recomputed from the normalised old points equal
       the fresh payload's within the same precision (the client recomputes
       them so after a normalisation);
+    - `start_believed` (the start the parse assumed, before every row):
+      shifted like those points;
     - every other field byte-equal (limit verdict, outside flags, stream
       structure, rotary values, stats, tool changes, sub spans, refusals …),
       except the basis fields (VERIFY_BASIS_KEYS).
@@ -1675,13 +1677,23 @@ def compare_preview_payloads(old, new):
         return False, "start basis missing"
     if set(old) != set(new):
         return False, "fields differ: " + ",".join(sorted(set(old) ^ set(new)))
-    special = VERIFY_BASIS_KEYS | set(VERIFY_POINT_KEYS) | set(VERIFY_BOX_KEYS)
+    special = VERIFY_BASIS_KEYS | set(VERIFY_POINT_KEYS) | set(VERIFY_BOX_KEYS) | {"start_believed"}
     for k in sorted(set(new) - special):
         if old[k] != new[k]:
             return False, f"field {k} differs"
     rows = new.get("tlo_events") or []
     first_row_seq = rows[0][0] if rows else None
     shift = np.asarray(s_old, dtype=np.float64) - np.asarray(s_new, dtype=np.float64)
+    # the start the parse assumed (parity-ef plan E5) stands before every
+    # TLO row: shifted like those points
+    sb_o, sb_n = old.get("start_believed"), new.get("start_believed")
+    if (sb_o is None) != (sb_n is None):
+        return False, "field start_believed differs"
+    if sb_o is not None:
+        a = np.asarray(sb_o, dtype=np.float64) + shift
+        b = np.asarray(sb_n, dtype=np.float64)
+        if a.shape != b.shape or bool((np.abs(a - b) > VERIFY_F32_REL * np.maximum(1.0, np.abs(b))).any()):
+            return False, "field start_believed differs"
     norm = {}
     for k in VERIFY_POINT_KEYS:
         ob, nb = old.get(k), new.get(k)
@@ -2452,6 +2464,88 @@ def nc_block_norm(s):
 def nc_block(raw):
     """nc_block_norm of one raw line. Pure."""
     return nc_block_norm(nc_norm(raw))
+
+
+#: The parameters that read the POSITION (docs/reviews/parity-ef.plan.md E4):
+#: #5420–#5428 and the names `_x` … `_w`, `_abs_x` … `_abs_w`, each for its
+#: axis (canonical index, "XYZABCUVW").
+_POS_READ_NAMES = {**{"_" + c: i for i, c in enumerate("XYZABCUVW")},
+                   **{"_ABS_" + c: i for i, c in enumerate("XYZABCUVW")}}
+
+
+def position_reads_norm(n):
+    """The axes one normalised block (nc_norm: comments out — a LOG / DEBUG
+    text reads nothing that moves —, no whitespace, upper case) may read
+    from the position: a frozenset of canonical axis indices, None = any (a
+    parameter number the text does not settle — `#[…]`, `##1`, a function —
+    or a `#` the reader cannot read). Every `#` counts, an assignment's
+    target too. Pure."""
+    if "#" not in n:
+        return frozenset()
+    out = set()
+    i = n.find("#")
+    while i >= 0:
+        j = i + 1
+        if n.startswith("<", j):
+            k = n.find(">", j)
+            if k < 0:
+                return None
+            ax = _POS_READ_NAMES.get(n[j + 1:k])
+            if ax is not None:
+                out.add(ax)
+            i = n.find("#", k + 1)
+            continue
+        try:
+            _end, v = _nc_value(n, j)
+        except ValueError:
+            return None
+        p = None if v is None else nc_int(v)
+        if p is None:
+            return None
+        if 5420 <= p <= 5428:
+            out.add(p - 5420)
+        i = n.find("#", j)
+    return frozenset(out)
+
+
+def position_read_lines(text, env=None):
+    """What the MAIN file's lines may read FROM THE POSITION (parity-ef plan
+    E4): {1-based line: frozenset of axes | None (any)}. A line counts with
+    its own parameters (position_reads_norm) and with the bodies of the
+    remapped codes its words trigger (RemapEnv.reads — None for an opaque or
+    unreadable body, an M whose value the text does not settle beside a P
+    word); a block the reader cannot read that may trigger a remap counts as
+    any. Lines that read nothing are left out. The order the lines run in is
+    position_write_lines' `mode`. Pure but for the body files env reads."""
+    out = {}
+    for no, raw in enumerate((text or "").splitlines(), 1):
+        n = nc_norm(raw)
+        if not n:
+            continue
+        r = position_reads_norm(n)
+        if r is not None and env is not None and env.remaps and env._may_matter(n):
+            b = nc_block_norm(n)
+            if b is None:
+                r = None
+            elif not b[2]:
+                words = b[0]
+                has_p = any(w == "P" for w, _ in words)
+                for letter, v in words:
+                    ks = env.word_keys(letter, v, has_p)
+                    if ks is None:
+                        r = None
+                        break
+                    for k in ks:
+                        kr = env.reads(k)
+                        if kr is None:
+                            r = None
+                            break
+                        r = r | kr
+                    if r is None:
+                        break
+        if r is None or r:
+            out[no] = r
+    return out
 
 
 #: Lines that may hold an o-word or an M98 / M99 — in any spelling of the M
@@ -3329,6 +3423,20 @@ def ustart_start_tuple(end, seed_abc, eps=_USTART_SEED_EPS):
     return tuple(out)
 
 
+def dep_nan(point, mask):
+    """A canon point with its START-DEPENDENT axes (docs/reviews/parity-ef.plan.md
+    E7: bit 0 X, 1 Y, 2 Z — the preview's guess of where the machine stood
+    when the program started, plus the deltas since) read as NaN for the
+    limit checks: no verdict on a value no parse knows. NaN compares false
+    every way, so a known end beyond a limit still flags after a dependent
+    start (the move is no parked axis), and a dependent end never flags.
+    None (a wholly unknown start) and None slots stay as they are. Pure."""
+    if point is None or not mask:
+        return point
+    return tuple(float("nan") if k < 3 and (mask >> k) & 1 and v is not None else v
+                 for k, v in enumerate(point))
+
+
 def _fill_unknown_start(start, end):
     """(filled_start, unknown_axis_indices) for the joint-side checkers:
     an axis is UNKNOWN when start is None or its slot is None (see
@@ -4168,6 +4276,51 @@ PROBE_NOTE_REASONS = ("retract", "slow_limit", "brake_unknown")
 _PROBE_BAND_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND\s*$", re.IGNORECASE)
 _PROBE_BAND_END_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND_END\s*$", re.IGNORECASE)
 _PROBE_NOTE_MARKER = re.compile(r"^\s*WEBUI_PROBE_NOTE\s*=\s*([a-z_]+)\s*$", re.IGNORECASE)
+# The routine's position reads (docs/reviews/parity-ef.plan.md E4): the
+# preview canon takes the state of X, Y, Z at a save, hands it to the two
+# return moves, and requires known axes where the routine reads them.
+_POS_SAVE_MARKER = re.compile(r"^\s*WEBUI_POS_SAVE\s*$", re.IGNORECASE)
+_POS_RETURN_MARKER = re.compile(r"^\s*WEBUI_POS_RETURN\s*$", re.IGNORECASE)
+_POS_READ_MARKER = re.compile(r"^\s*WEBUI_POS_READ\s*=\s*([XYZABCUVW]+)\s*$", re.IGNORECASE)
+
+
+def parse_pos_marker(text):
+    """Comment text -> ("save", None) / ("return", None) / ("read", axes) /
+    None; axes a frozenset of canonical indices ("XYZABCUVW"). Pure."""
+    t = text or ""
+    if _POS_SAVE_MARKER.match(t):
+        return ("save", None)
+    if _POS_RETURN_MARKER.match(t):
+        return ("return", None)
+    m = _POS_READ_MARKER.match(t)
+    if m:
+        return ("read", frozenset("XYZABCUVW".index(c) for c in m.group(1).upper()))
+    return None
+
+
+def unmarked_position_reads(text):
+    """The 1-based lines of a text that read the position (position_reads_norm:
+    an axis or any) without a WEBUI_POS marker comment on the same line — the
+    routine's own guard (parity-ef plan E4: each read carries its marker).
+    Pure."""
+    out = []
+    for no, raw in enumerate((text or "").splitlines(), 1):
+        if "#" not in raw:
+            continue
+        r = position_reads_norm(nc_norm(raw))
+        if r is not None and not r:
+            continue
+        if not any(parse_pos_marker(c) is not None for c in _comment_texts(raw)):
+            out.append(no)
+    return out
+
+
+#: The bundled routine whose position reads carry their WEBUI_POS markers
+#: (parity-ef plan E4 / E4a): bound by CONTENT — a file with these bytes reads
+#: nothing for the text scan, its markers act in the canon. Any edit of the
+#: routine changes the hash; the guard (test_start_dep_worker) then fails
+#: until it is checked again.
+MARKED_POS_ROUTINES = frozenset({"9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2"})  # subroutines/tool_length_probe/tool_touch_off.ngc
 
 
 class RemapEnv:
@@ -4208,9 +4361,15 @@ class RemapEnv:
             ngc = opts.get("ngc")
             if ngc and ngc.lower().endswith(".ngc"):
                 ngc = ngc[:-4]
-            self.remaps[key] = {"ngc": (ngc or "").lower() or None, "opaque": opaque or not ngc}
+            self.remaps[key] = {"ngc": (ngc or "").lower() or None, "opaque": opaque or not ngc,
+                                "name": parts[0].lower()}
         self._effect = {}
         self._file = {}
+        self._reads = {}
+        self._file_reads = {}
+        # Files whose position reads carry their WEBUI_POS markers, by
+        # content (sha256): the bundled routine (parity-ef plan E4a).
+        self.marked_files = MARKED_POS_ROUTINES
 
     @classmethod
     def unknown(cls):
@@ -4289,6 +4448,107 @@ class RemapEnv:
             return frozenset()
         self.effect(key)
         return self._effect[key][2]
+
+    def reads(self, key):
+        """The axes (canonical indices) a remapped code's body may READ from
+        the position (parity-ef plan E4), transitively through its o-calls
+        and remapped words — None = any: an opaque body (`python=`,
+        `prolog=`, `epilog=`), a file not found or not readable, a block the
+        reader cannot read, an M98. A file in `marked_files` (by content)
+        reads nothing here: its markers act in the canon. A code without a
+        REMAP reads nothing."""
+        if not self.known:
+            return None
+        if key not in self.remaps:
+            return frozenset()
+        if key not in self._reads:
+            self._reads[key] = self._read_closure([key], [])
+        return self._reads[key]
+
+    def text_reads(self, text):
+        """reads() of a text — a program whose o-calls run other files: its
+        own position reads, the remapped codes its words trigger and the
+        files its o-calls run, followed to the end. None = any."""
+        if not self.known:
+            return None
+        own = self._own_text(text)
+        if own is None:
+            return None
+        _w, keys, names, _m = own
+        r = self._text_own_reads(text)
+        if r is None:
+            return None
+        got = self._read_closure(list(keys), list(names))
+        return None if got is None else r | got
+
+    def remap_names(self, keys):
+        """The interpreter's names of these remapped codes ("m600", "g68.2")."""
+        return frozenset(self.remaps[k]["name"] for k in keys if k in self.remaps)
+
+    def _read_closure(self, keys, names):
+        reads = set()
+        seen_k, seen_n = set(), set()
+        while keys or names:
+            if keys:
+                key = keys.pop()
+                if key in seen_k:
+                    continue
+                seen_k.add(key)
+                r = self.remaps.get(key)
+                if r is None:
+                    continue
+                if r["opaque"]:
+                    return None
+                names.append(r["ngc"])
+                continue
+            name = names.pop()
+            if name in seen_n:
+                continue
+            seen_n.add(name)
+            paths = [os.path.join(d, name + ".ngc") for d in self.dirs]
+            paths = [p for p in paths if os.path.isfile(p)]
+            if not paths:
+                return None
+            for p in paths:
+                rp = os.path.realpath(p)
+                own = self._own_file(rp)
+                if own is None:
+                    return None
+                if rp not in self._file_reads:
+                    self._file_reads[rp] = self._file_own_reads(rp)
+                fr = self._file_reads[rp]
+                if fr is None:
+                    return None
+                reads |= fr
+                _w, ks, ns, _ms = own
+                keys.extend(ks)
+                names.extend(ns)
+        return frozenset(reads)
+
+    def _file_own_reads(self, path):
+        try:
+            with open(path, "rb") as f:
+                raw = f.read(self.max_read + 1)
+        except OSError:
+            return None
+        if hashlib.sha256(raw).hexdigest() in self.marked_files:
+            return frozenset()
+        return self._text_own_reads(raw.decode("utf-8", errors="replace"))
+
+    @staticmethod
+    def _text_own_reads(text):
+        """The position reads of one text's own lines; None = any."""
+        if text is None:
+            return None
+        out = set()
+        for raw in text.splitlines():
+            if "#" not in raw:
+                continue
+            r = position_reads_norm(nc_norm(raw))
+            if r is None:
+                return None
+            out |= r
+        return frozenset(out)
 
     def text_effect(self, text):
         """(writes, reaches) of a text — an MDI line, a program, a body: its

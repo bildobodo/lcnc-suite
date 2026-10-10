@@ -740,7 +740,8 @@ def pts(key):
     return np.frombuffer(b, dtype=np.float32).reshape(-1, 3).tolist() if isinstance(b, bytes) else b
 
 
-comparable = {k: v for k, v in out.items() if k not in ("file", "tlo_start")}
+# the start basis: tlo_start, and the start the parse assumed in its frame
+comparable = {k: v for k, v in out.items() if k not in ("file", "tlo_start", "start_believed")}
 if len(sys.argv) > 2:
     # the encoded payload, as the gateway would publish it
     out["file"] = "/program.ngc"
@@ -766,6 +767,10 @@ print(json.dumps({
     "probe_bands": out.get("probe_bands"), "probe_notes": out.get("probe_notes"),
     "stale_offset_untracked": out.get("stale_offset_untracked"),
     "feed_tcum": u("feed_tcum", "<f4"),
+    "feed_dep": u("feed_dep", "<u1"), "rapid_dep": u("rapid_dep", "<u1"),
+    "feed_dep_basis": u("feed_dep_basis", "<u1"), "rapid_dep_basis": u("rapid_dep_basis", "<u1"),
+    "feed_dep_f": u("feed_dep_f", "<f4"), "rapid_dep_f": u("rapid_dep_f", "<f4"),
+    "start_believed": out.get("start_believed"), "position_read_lines": out.get("position_read_lines"),
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},
     "digest_without_start": __import__("hashlib").sha256(
         __import__("msgspec").msgpack.encode(comparable)).hexdigest(),

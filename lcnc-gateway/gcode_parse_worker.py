@@ -46,6 +46,8 @@ Result shape (msgpack dict):
                at 200 — or None when the INI has no MIN/MAX_LIMIT to check
                against (unchecked ≠ clean)
   violations_total: distinct (line, axis) violation count before the cap
+  feed_dep / rapid_dep, *_dep_basis, *_dep_f, start_believed: the program's
+               start-dependent beginning (parity-ef plan E8, see the emission)
 """
 
 import json
@@ -83,11 +85,11 @@ from gateway_util import (
     read_var_snapshot, TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys,
     foreign_m600_codes, m_code_lines, RemapEnv, remap_reach_lines,
     insert_flip_relabels, read_var_wcs_rows, wcs_event_rewritten,
-    wcs_rewrite_targets, ustart_start_tuple,
+    wcs_rewrite_targets, ustart_start_tuple, dep_nan,
     PREVIEW_SCHEMA, should_ship_abc, rotary_sync_initcode,
     rotary_seed_values, override_rotary_position,
     rotary_word_lines, first_rotary_commands, seq_boundary_indices, band_anchor_indices,
-    position_write_lines,
+    position_write_lines, position_read_lines,
     LINE_NONE, LINE_RAPID, LINE_FEED, LINE_EITHER,
     seed_kins_events, program_end_kins_type, wcs_offset_flat_from_var,
     seeded_tool_meta, seeded_spindle_row, PIN_UNSUPPORTED_EXIT,
@@ -290,15 +292,44 @@ def parse(ctx: dict) -> dict:
             canon.tool_change_axes = tuple(range(9))
             print(f"TOOL_CHANGE_POSITION has {len(_tcp)} values (3, 6 or 9 expected) — "
                   "every axis taken as unknown after an M6", file=sys.stderr, flush=True)
-        # What the main file may write FROM the position (Codex R95 VP-I53):
-        # after such an M6 only the text tells an explicit G10 L2 from an
-        # L20, and sees the writes no canon call reports. Unreadable text:
-        # the canon falls back to its callbacks, and the note says so.
-        try:
-            with open(filename, "r", errors="replace") as f:
-                canon.write_lines, canon.write_mode = position_write_lines(f.read())
-        except OSError as e:
-            _trace.emit_exc("gcode.write_scan_failed", e)
+    # What the main file may write FROM the position (Codex R95 VP-I53):
+    # after such an M6 — and from the program's start, where X/Y/Z stand
+    # wherever the machine does (parity-ef plan E6) — only the text tells an
+    # explicit G10 L2 from an L20, and sees the writes no canon call
+    # reports. Unreadable text: the canon falls back to its callbacks, and
+    # the note says so.
+    try:
+        with open(filename, "r", errors="replace") as f:
+            canon.write_lines, canon.write_mode = position_write_lines(f.read())
+    except OSError as e:
+        _trace.emit_exc("gcode.write_scan_failed", e)
+    # the start labeling: a start-dependent axis lives only under identity
+    # kinematics (gcode_canon._dep_step reads the canon's kins state)
+    canon.start_kins_type = int(ctx.get("kins_type") or 0)
+    # Position READS (parity-ef plan E4): a text in order hands its read
+    # lines to the canon (placed by the walk and the line's first callback),
+    # every remapped code whose body may read is judged where the
+    # interpreter runs it; a text out of order that may read an axis that
+    # is start-dependent (X, Y, Z) or may become unknown (the axes a tool
+    # change position names) is unknown from the program's start — no line
+    # says when. Unreadable: from the start too.
+    try:
+        with open(filename, "r", errors="replace") as f:
+            _rtext = f.read()
+        _rlines = position_read_lines(_rtext, _remap_env)
+        _maybe = {0, 1, 2} | (set(canon.tool_change_axes) if canon.tool_change_moves else set())
+        _hits = lambda r: r is None or bool(r & _maybe)
+        if canon.write_lines is not None and canon.write_mode == "ordered":
+            canon.read_lines = _rlines or None
+        elif any(_hits(r) for r in _rlines.values()):
+            canon.read_from_start = True
+        elif canon.write_mode == "foreign" and _hits(_remap_env.text_reads(_rtext)):
+            canon.read_from_start = True
+        canon.read_remaps = {r["name"]: _remap_env.reads(k) for k, r in _remap_env.remaps.items()
+                             if _remap_env.reads(k) is None or _remap_env.reads(k)}
+    except OSError as e:
+        canon.read_from_start = True
+        _trace.emit_exc("gcode.read_scan_failed", e)
     # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
     # machine runs every move before the program's own G43/G49 under its
     # inherited modal G43, so the interpreter starts there too — read ONCE
@@ -612,6 +643,19 @@ def parse(ctx: dict) -> dict:
     # Unknown-start seqs (W3 P1) in the same seq space as the tuples —
     # doubled iff the relabel pass ran and doubled everything else.
     ustart_seqs = {(_s * 2 if flips_handled else _s) for _s in canon.unknown_start}
+    # The start-dependent axes (parity-ef plan E2): per segment seq the masks
+    # (before, after) and the time basis, re-keyed like ustart; an inserted
+    # relabel vertex (odd seq) re-expresses the point before it — its mask.
+    _dmul = 2 if flips_handled else 1
+    dep_seg = {_q * _dmul: _v for _q, _v in canon.dep_seg.items()}
+    dep_time = {_q * _dmul: _v for _q, _v in canon.dep_time.items()}
+
+    def _dep_masks(seq):
+        if seq in dep_seg:
+            return dep_seg[seq]
+        if seq in relabel_seqs and (seq - 1) in dep_seg:
+            return (dep_seg[seq - 1][1], dep_seg[seq - 1][1])
+        return (0, 0)
     if kins_active:
         # Raw switchkins type per segment — the wire ships these
         # (phase 3: trsrn type 1/TCP and type 2/TOOL have different
@@ -644,14 +688,19 @@ def parse(ctx: dict) -> dict:
             # the previous run's park pose, exempt like any parked axis).
             # Relabel connectors (relabel_seqs → wire `brk`) are skipped
             # outright: the machine does not move at a kins/epoch flip.
+            # A start-dependent axis (parity-ef plan E7) has the preview's
+            # guess, not the run's value: NaN there — never a limit record.
             for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
                 if not (feed_world and feed_world[_i]) and _i not in _cut_f:
-                    yield _lineno, _start, _end, _tlo
+                    _b, _a = _dep_masks(_seq)
+                    yield _lineno, dep_nan(_start, _b), dep_nan(_end, _a), _tlo
             for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
                 if _seq in relabel_seqs or _i in _cut_r:
                     continue  # a kins/epoch RELABEL connector (a re-expression, not motion), or past the cut
                 if not (rapid_world and rapid_world[_i]):
-                    yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
+                    _b, _a = _dep_masks(_seq)
+                    yield (_lineno, dep_nan(ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _b),
+                           dep_nan(_end, _a), _tlo)
         violations, violations_total = check_limit_violations(
             _identity_segs(), axis_limits, unit_scale)
         # Per-segment OUTSIDE flags (2026-09-12): the raw joint-side verdict
@@ -662,10 +711,12 @@ def parse(ctx: dict) -> dict:
         _ri_idx = [i for i, t in enumerate(canon.rapid)
                    if t[4] not in relabel_seqs and not (rapid_world and rapid_world[i]) and i not in _cut_r]
         _f_flags = segment_outside_flags(
-            [(canon.feed[i][0], canon.feed[i][1], canon.feed[i][2], canon.feed[i][4]) for i in _fi_idx],
+            [(canon.feed[i][0], dep_nan(canon.feed[i][1], _dep_masks(canon.feed[i][5])[0]),
+              dep_nan(canon.feed[i][2], _dep_masks(canon.feed[i][5])[1]), canon.feed[i][4]) for i in _fi_idx],
             axis_limits, unit_scale)
         _r_flags = segment_outside_flags(
-            [(canon.rapid[i][0], canon.rapid[i][1], canon.rapid[i][2], canon.rapid[i][3]) for i in _ri_idx],
+            [(canon.rapid[i][0], dep_nan(canon.rapid[i][1], _dep_masks(canon.rapid[i][4])[0]),
+              dep_nan(canon.rapid[i][2], _dep_masks(canon.rapid[i][4])[1]), canon.rapid[i][3]) for i in _ri_idx],
             axis_limits, unit_scale)
         for k, i in enumerate(_fi_idx):
             feed_out[i] = int(_f_flags[k])
@@ -884,6 +935,21 @@ def parse(ctx: dict) -> dict:
 
     total_rapid_time = _rtc if time_axis else 0.0
 
+    # The start-dependent axes per shipped point (parity-ef plan E2/E7/E8):
+    # the mask after the move ending there (1 X, 2 Y, 4 Z), and the move's
+    # time basis while a mask is set — 1 rapid, 2 a feed at F (machine units
+    # per minute), 3 a feed whose time the start changes in a way this cannot
+    # say (G93, G95, no F). A relabel vertex takes its predecessor's mask.
+    def _dep_point(seq):
+        _b, _a = _dep_masks(seq)
+        tb = dep_time.get(seq)
+        if tb is None and seq in relabel_seqs and (seq - 1) in dep_time:
+            tb = (1, 0.0)
+        basis, rate = tb if tb is not None else (0, 0.0)
+        return (_a, basis, round(rate * unit_scale * 60.0, 6) if basis == 2 else 0.0)
+    feed_depp = [_dep_point(q) for q in feed_seq] if dep_seg else []
+    rapid_depp = [_dep_point(q) for q in rapid_seq] if dep_seg else []
+
     # Per-line motion classification (W2 P6) and the unmarked-sub advisory
     # (W3 P5) — computed here, ahead of the rotary boundary that consults
     # them; reused by the per-point trust flags on the shipped lists below.
@@ -1059,6 +1125,11 @@ def parse(ctx: dict) -> dict:
             anchors = sorted(set(anchors) | seq_boundary_indices(feed_seq, _rot_bounds))
         if canon.probe_bands:
             anchors = sorted(set(anchors) | band_anchor_indices(feed_seq, canon.probe_bands))
+        if feed_depp:
+            # a mask or time-basis change and its predecessor (Codex R122
+            # VP-I01): within one run every point moves by the same Δ — RDP
+            # on the believed coordinates is exact for the corrected ones
+            anchors = sorted(set(anchors) | mode_boundary_indices(feed_depp))
         keep = _rdp_keep(_rdp_points(feed, feed_abc), anchors, eps_sq)
         if len(keep) < len(feed):
             feed = [feed[i] for i in keep]
@@ -1071,6 +1142,8 @@ def parse(ctx: dict) -> dict:
             # interior segments' durations in the next kept point's delta.
             feed_tcum = [feed_tcum[i] for i in keep]
             feed_out = reduce_outside_flags(feed_out, keep)
+            if feed_depp:
+                feed_depp = [feed_depp[i] for i in keep]
     if len(rapid) > 2:
         r_anchors = [0, len(rapid) - 1]
         if rapid_mode:
@@ -1097,6 +1170,8 @@ def parse(ctx: dict) -> dict:
                                | {i - 1 for i in _u_idx if i > 0})
         if canon.probe_bands:
             r_anchors = sorted(set(r_anchors) | band_anchor_indices(rapid_seq, canon.probe_bands))
+        if rapid_depp:
+            r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_depp))
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
         if len(keep) < len(rapid):
             rapid = [rapid[i] for i in keep]
@@ -1111,6 +1186,8 @@ def parse(ctx: dict) -> dict:
                 rapid_brk = [rapid_brk[i] for i in keep]
             if rapid_ustart:
                 rapid_ustart = [rapid_ustart[i] for i in keep]
+            if rapid_depp:
+                rapid_depp = [rapid_depp[i] for i in keep]
     print(
         f"rdp feed {pre_feed}->{len(feed)} rapid {pre_rapid}->{len(rapid)} eps={eps:.5f} ship_abc={ship_abc}",
         file=sys.stderr, flush=True,
@@ -1445,6 +1522,10 @@ def parse(ctx: dict) -> dict:
               # position was unknown after a tool change (Codex R95 VP-I53):
               # the axes stay unknown to the end; the check's note names it.
               **({"stale_offset_lines": list(canon.stale_offset_lines)} if canon.stale_offset_lines else {}),
+              # Lines whose position READ made every axis unknown to the end
+              # (parity-ef plan E4; 0 = the text out of order may read
+              # anywhere, from the program's start).
+              **({"position_read_lines": list(canon.position_read_lines)} if canon.position_read_lines else {}),
               # ...and a program whose writes the text cannot place (o-words,
               # M98, an unreadable file): the note says they are not tracked.
               **({"stale_offset_untracked": True}
@@ -1555,6 +1636,40 @@ def parse(ctx: dict) -> dict:
         # the vertex itself is a real commanded pose with 0 s / 0 dist.
         # Present only when the program has suppressed moves (schema ≥ 6).
         result["rapid_ustart"] = np.asarray(rapid_ustart, dtype="<u1").tobytes() if rapid_ustart else b""
+    # The program's start-dependent beginning (docs/reviews/parity-ef.plan.md
+    # E8): per stream, the points up to the last that carries a mask or a
+    # time basis — a point past the arrays' end has neither. `*_dep` u8 (bit 0
+    # X, 1 Y, 2 Z: the axis still holds the start's value plus the deltas
+    # since; present only when a bit is set), `*_dep_basis` u8 (the move
+    # ending there, from a start-dependent position: 1 rapid, 2 feed at
+    # `*_dep_f` machine units / min, 3 a feed whose time this cannot say —
+    # G93, G95, no F), `*_dep_f` f32. `start_believed` [x, y, z]: the start
+    # the parse assumed, in the program frame of the first point's epoch and
+    # machine units like every point — the client's Δ is the bound start
+    # basis minus it.
+    def _dep_prefix(depp):
+        n = 0
+        for i, (m, b, _f) in enumerate(depp):
+            if m or b:
+                n = i + 1
+        return depp[:n]
+    _fd, _rd = _dep_prefix(feed_depp), _dep_prefix(rapid_depp)
+    if _fd or _rd:
+        if any(m for m, _b, _f in chain(_fd, _rd)):
+            result["feed_dep"] = np.asarray([m for m, _b, _f in _fd], dtype="<u1").tobytes()
+            result["rapid_dep"] = np.asarray([m for m, _b, _f in _rd], dtype="<u1").tobytes()
+        result["feed_dep_basis"] = np.asarray([b for _m, b, _f in _fd], dtype="<u1").tobytes()
+        result["rapid_dep_basis"] = np.asarray([b for _m, b, _f in _rd], dtype="<u1").tobytes()
+        result["feed_dep_f"] = np.asarray([f for _m, _b, f in _fd], dtype="<f4").tobytes()
+        result["rapid_dep_f"] = np.asarray([f for _m, _b, f in _rd], dtype="<f4").tobytes()
+    if canon.start_lo is not None and (canon.feed or canon.rapid):
+        _first = min(([(canon.feed[0][5], feed_epoch[0])] if canon.feed else [])
+                     + ([(canon.rapid[0][4], rapid_epoch[0])] if canon.rapid else []))
+        _e = _ep[_first[1]]
+        _dx, _dy = canon.start_lo[0] - _e[0], canon.start_lo[1] - _e[1]
+        result["start_believed"] = [float((_dx * _e[6] + _dy * _e[7]) * unit_scale),
+                                    float((-_dx * _e[7] + _dy * _e[6]) * unit_scale),
+                                    float((canon.start_lo[2] - _e[2]) * unit_scale)]
     if flips_unresolved:
         # Flips the twins could not evaluate (no twin for the family, or
         # a frameless type-2 side): their segments keep the raw phantom

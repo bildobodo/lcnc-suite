@@ -14,7 +14,7 @@ import numpy as np
 from rs274.interpret import Translated, ArcsToSegmentsMixin, StatMixin
 
 from gateway_util import (
-    parse_kinstype_marker, parse_twpframe_marker, parse_sub_marker, parse_m600_marker,
+    parse_kinstype_marker, parse_twpframe_marker, parse_sub_marker, parse_m600_marker, parse_pos_marker,
 )
 
 
@@ -121,6 +121,48 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     _reg_unknown = {}
     _pending_offset_lines = ()
     _block_start = None
+    # The program's START (docs/reviews/parity-ef.plan.md E, Codex R122–R125):
+    # X, Y and Z stand where the machine stands when the program starts — a
+    # value no parse knows; the client binds it to the check's start basis.
+    # `dep`: the axes whose value still depends on it. Every axis at the
+    # program's start; an axis leaves it when a block commands it ABSOLUTELY
+    # — read from the interpreter's own words in the callback
+    # (blocks[0].x_flag…z_flag, g_modes[0]: 530 G53 / 280 G28 / 300 G30,
+    # distance_mode), never from a changed value (`G0 X0` at a believed X0
+    # commands X). Only straight moves under identity kinematics, X/Y
+    # unrotated, keep it (a per-axis translation, the same for the believed
+    # and the real path); any other motion hands the dep axes to `stale`
+    # (unknown, never bound). Per emitted segment `dep_seg[seq] = (before,
+    # after)` masks (1 X, 2 Y, 4 Z) and, while one is set, `dep_time[seq] =
+    # (basis, rate)`: 1 a rapid, 2 a feed in units per minute at `rate`
+    # (canon units / s, like `feed`), 3 a feed whose time the start changes in
+    # a way this cannot say (G93, G95, no F).
+    dep = frozenset()
+    start_lo = None
+    start_kins_type = 0
+    _block_moves = 0
+    _internal_move = False
+    # Position READS (plan E4): a value read from the position while the
+    # axis it reads is start-dependent or unknown is the preview's guess —
+    # it may become a later absolute target, an offset or a branch — so from
+    # there EVERY axis is unknown to the program's end (reason
+    # "position_read", its line in `position_read_lines`). The worker hands
+    # in where: `read_lines` {main-file line: axes | None (any)} for a text
+    # that runs in order (the walk below places a line without a callback;
+    # a line with one is judged at its first callback, before its motion),
+    # `read_remaps` {interpreter name: axes | None} for the remapped codes
+    # whose bodies may read (judged at every callback the interpreter shows
+    # inside one), `read_from_start` for a text out of order that may read
+    # anywhere. The bundled routine marks its own reads (WEBUI_POS_*):
+    # `_pos_saved` the X/Y/Z state at its save, `_pos_return` the return
+    # moves still to take it.
+    read_lines = None
+    read_remaps = {}
+    read_from_start = False
+    position_read_lines = ()
+    _read_done = frozenset()
+    _pos_saved = None
+    _pos_return = 0
     # M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R104):
     # the bundled tool_touch_off.ngc runs in the preview. Where its probe
     # cannot be predicted it stops at the probe's start with
@@ -275,6 +317,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # start==end tuple; the segment INTO it is unknown-path (client
         # brk semantics, `rapid_ustart` on the wire).
         self.unknown_start = []
+        self.dep_seg = {}
+        self.dep_time = {}
         # TLO / tool EVENTS (schema 8 — the sixth run-time state input):
         # [(seq, xo, yo, zo, tool)] in execution order, CANON units, recorded
         # at every G43/G43.1/G49 (tool_offset) and every executed M6
@@ -462,14 +506,17 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # OverflowError (found 2026-10-08 with Codex R91's R92 notes) —
             # also when that block is a Python remap's execute("M6") numbered
             # 0 (Codex R110 VP-I66): no new block, no line of its own.
+            self._internal_move = True      # (parity-ef E: no word of the block says where it goes)
             return
+        self._internal_move = False
         # A new block: the one that ran before it ran in the modes this
         # state shows — absolute (G90, not 910) re-establishes the stale
         # axes whose program coordinate it ENDED away from where it
         # began (but a G98 cycle's normal axis), G91 none. Slot 0 is the
         # sequence NUMBER — line 910 is no G91, line 810 no G81.
         prev = int(self.lineno or 0)
-        stale_in_block = self.stale
+        stale_in_block = self.stale | self.dep
+        self._block_moves = 0           # G28 / G30: its legs are this block's callbacks
         gs = tuple(getattr(st, "gcodes", None) or ())
         if self._block_start is not None:
             g = gs[1:]
@@ -491,7 +538,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         # have run (inline subs keep this file's numbers); with a call
         # into another file a number may be that file's — callbacks only.
         n = int(st.sequence_number or 0)
-        if self.write_lines:
+        if self.write_lines or self.read_lines:
             # In MAIN-file lines, the interpreter's word (Codex R107): a
             # remap body's or a called file's blocks carry their own
             # numbers — taken for this file's, a body's high line ran the
@@ -513,7 +560,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                     self._walk_stale = seen
                     m = prev
                 n = m
-        if self.write_lines and prev >= 1 and n != prev:
+        if (self.write_lines or self.read_lines) and prev >= 1 and n != prev:
             if self.write_mode == "ordered" and n > prev:
                 lines = range(prev, n)
             elif self.write_mode == "inline":
@@ -521,9 +568,18 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             else:
                 lines = ()
             for line in lines:
+                # a read on a line without a callback (`#1 = #5420`), under
+                # the axes held while it ran (plan E4)
+                if self.read_lines and line in self.read_lines and line not in self._read_done:
+                    self._read_done = self._read_done | {line}
+                    if (not self._probe_unknown and self._read_hits(
+                            self.read_lines[line], stale_in_block if line == prev else (self.stale | self.dep))):
+                        self._mark_position_read(line)
+                if not self.write_lines:
+                    continue
                 t = self.write_lines.get(line)
                 if t is not None and t != "explicit":
-                    axes = stale_in_block if line == prev else self.stale
+                    axes = stale_in_block if line == prev else (self.stale | self.dep)
                     if axes:
                         self._position_write(line, t, axes)
         self.lineno = st.sequence_number
@@ -565,6 +621,20 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             # prior XYZ position is still unknown. A parse without the
             # sync initcode leaves first_move already True; this is a no-op.
             self.first_move = True
+            # X, Y, Z stand where the machine stands (parity-ef plan E): the
+            # believed start (the interpreter's, program zero of the fixture
+            # in effect, in this basis) ships along — the client's Δ.
+            # Without the interpreter's words (the module missing — the
+            # worker says so, `gcode.interp_state_unavailable`) no block can
+            # be told to command an axis: the start dependence is not tracked
+            # and the payload carries none, as before plan E.
+            if self.interp() is not None:
+                self.dep = frozenset((0, 1, 2))
+            self.start_lo = tuple(float(v) for v in self.lo)
+            if self.read_from_start:
+                # a text out of order that may read the position somewhere:
+                # no line says when (plan E4)
+                self._mark_position_read(0)
 
     def _phase(self):
         """Before the program's first positive callback: has it begun? The
@@ -588,6 +658,41 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         remap's boundary."""
         self._phase()
         self._foreign_gate()
+        self._read_gate()
+
+    @staticmethod
+    def _read_hits(axes, held):
+        return bool(held) if axes is None else bool(axes & held)
+
+    def _mark_position_read(self, line):
+        """A position read from a guess: every axis unknown to the end."""
+        if self._probe_unknown:
+            return
+        self.position_read_lines = self.position_read_lines + (int(line or 0),)
+        self._mark_probe_unknown("position_read")
+
+    def _read_gate(self):
+        """Before a callback records anything: does the block that runs read
+        the position from an axis that depends on the start or is unknown —
+        in a remapped body the interpreter runs now, or on its main-file
+        line (judged once, at the line's first callback: the parameters of a
+        block are read before its motion)?"""
+        if self._probe_unknown or not self._program_line():
+            return
+        if not (self.read_remaps or self.read_lines):
+            return
+        held = self.stale | self.dep
+        if self.read_remaps and held:
+            for name in self.remaps_running():
+                if name in self.read_remaps and self._read_hits(self.read_remaps[name], held):
+                    self._mark_position_read(self.main_line() or 0)
+                    return
+        if self.read_lines:
+            m = self.main_line()
+            if m and m in self.read_lines and m not in self._read_done:
+                self._read_done = self._read_done | {m}
+                if self._read_hits(self.read_lines[m], held):
+                    self._mark_position_read(m)
 
     def set_feed_rate(self, f): self.feedrate = f / 60.0
     def set_spindle_rate(self, _): pass
@@ -614,6 +719,11 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             if sub[0] == "start" and sub[1] == "tool_touch_off" and self.toolsetter_unpredictable:
                 self._mark_probe_unknown(self.toolsetter_unpredictable)
             return
+        pm = parse_pos_marker(text)
+        if pm is not None:
+            if self._program_line():
+                self._pos_marker(pm)
+            return
         mark = parse_m600_marker(text)
         if mark is not None and self._program_line():
             if mark[0] == "unpredicted":
@@ -631,6 +741,21 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
                 self.probe_notes = self.probe_notes + (
                     (self.seq, self.cur_tool, mark[1], len(self.sub_events)),)
 
+    def _pos_marker(self, pm):
+        """The routine's position reads (plan E4): SAVE takes the state of X,
+        Y, Z; RETURN hands it to the next two moves (the return to the saved
+        point); READ requires the axes known — else the measurement is not
+        predicted (reason "position")."""
+        if pm[0] == "save":
+            self._pos_saved = {a: ("stale" if a in self.stale else "dep" if a in self.dep else "known")
+                               for a in (0, 1, 2)}
+            self._pos_return = 0
+        elif pm[0] == "return":
+            self._pos_return = 2
+        elif pm[0] == "read":
+            if not self._probe_unknown and pm[1] & (self.stale | self.dep):
+                self._mark_probe_unknown("position")
+
     def close_band(self):
         """End an open braking range at the last emitted segment."""
         if self._band_open is not None:
@@ -647,6 +772,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             every = frozenset(range(9))
             self._frame_unknown = every
             self.stale = every
+            self.dep = frozenset()          # unknown to the end outranks start-dependent
+            self._pos_return = 0
             self._pending_offset_lines = ()
     def message(self, _): pass
     def check_abort(self): pass
@@ -745,6 +872,7 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         if target in ("all", "active") or target == idx:
             self._frame_unknown = self._frame_unknown | axes
             self.stale = self.stale | axes
+            self.dep = self.dep - axes      # written from the start's position: unknown for good
             # named once a move runs in it (a reset at M2 is no cause)
             if line not in self.stale_offset_lines + self._pending_offset_lines:
                 self._pending_offset_lines = self._pending_offset_lines + (line,)
@@ -767,15 +895,23 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         position). Everything else counts: a line the scan missed ("not
         found" is no proof of none), a listed line out of text order, any
         line of another file."""
-        if not (self.stale and self._program_line()):
+        if not ((self.stale or self.dep) and self._program_line()):
             return
         n = self._write_line()
-        if (self.write_lines is not None and self.write_mode in ("ordered", "inline")
-                and self._in_main_file() is not False):
+        inm = self._in_main_file()
+        # With a call into another file a number may be that file's — but
+        # not a callback the interpreter places in the main file's own text
+        # (`inm` True, its line the main line): an explicit line of it is no
+        # cause there either (parity-ef plan E6: X/Y/Z depend on the start
+        # from the program's first line, and a `G10 L2 P0 …` before the first
+        # absolute move is the TWP corpus's shape).
+        if self.write_lines is not None and (
+                (self.write_mode in ("ordered", "inline") and inm is not False)
+                or (self.write_mode == "foreign" and inm is True)):
             t = self.write_lines.get(n)
             if t == "explicit" or (t is not None and self.write_mode == "ordered"):
                 return
-        self._position_write(self._backstop_line(), "all", self.stale)
+        self._position_write(self._backstop_line(), "all", self.stale | self.dep)
 
     # WCS basis writers (rs274.interpret.Translated): the ONLY paths that
     # change what wcs_basis() returns — flag, then let the parent assign.
@@ -849,6 +985,100 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         q = (x, y, z, a, b, c, u, v, w)
         return tuple(q[i] - getattr(self, "g92_offset_" + s, 0.0) for i, s in enumerate(self._WCS_SUFFIXES))
 
+    _STRAIGHT = frozenset((0, 10))
+    _PLANE_AXES = {1: frozenset((0, 1)), 2: frozenset((0, 2)), 3: frozenset((1, 2))}
+
+    def _kins_now(self):
+        return self.kins_events[-1][1] if self.kins_events else self.start_kins_type
+
+    def _dep_step(self, motion):
+        """Before a motion callback records (parity-ef plan E2/E3): which
+        start-dependent axes this move keeps, which it hands to `stale` (a
+        move outside the contract) and which it commands absolutely. motion:
+        "straight" (traverse, feed, probe), "arc", "other" (a tap). Returns
+        (before, after) masks, None when no axis depends on the start."""
+        if not self.dep and not self._pos_return:
+            return None
+        before = self.dep
+        out = set()
+        known = set()
+        t = self.interp()
+        try:
+            b = t.blocks[0]
+            words = {i for i, f in enumerate((b.x_flag, b.y_flag, b.z_flag)) if f}
+            g0, g1, dist = int(b.g_modes[0]), int(b.g_modes[1]), int(t.distance_mode)
+        except Exception:
+            g0 = g1 = dist = None
+            words = None
+        if words is None or self._kins_now() not in (0, None) or self._internal_move:
+            # no interpreter word, a world / TWP labeling, or the
+            # interpreter's own move at an M6 (quill-up, G30: line -1)
+            out = set(before)
+        else:
+            if abs(getattr(self, "rotation_xy", 0) or 0) > 1e-12:
+                out |= {0, 1} & before        # a turned frame mixes X and Y (Z is about it)
+            if motion == "other":
+                out |= before
+            elif motion == "arc":
+                out |= self._PLANE_AXES.get(self.plane, frozenset()) & before   # its centre is relative
+            if g0 in (280, 300):
+                self._block_moves += 1
+                leg = self._block_moves
+                if leg > 2:
+                    out |= before             # a callback the two-leg rule does not know
+                elif leg == 1:
+                    known = words if dist == 0 else set()
+                else:
+                    known = words if words else {0, 1, 2}
+            elif g0 == 530:
+                known = words                 # G53: absolute, machine frame (G91 G53 is refused)
+            elif g1 in self._STRAIGHT or motion == "arc":
+                known = words if dist == 0 else set()
+            else:
+                out |= before                 # a probe, a cycle, a spindle-synced move, a spline
+        readd, make_stale = set(), set()
+        if self._pos_return > 0:
+            # The return to the routine's saved point (plan E4): its words
+            # take the state the axes had at the save, never "known" by
+            # themselves. Unknown to the end stays; unknown at the save is
+            # unknown; start-dependent at the save is start-dependent again.
+            self._pos_return -= 1
+            saved = self._pos_saved or {}
+            for a in list(known):
+                st_a = saved.get(a, "stale")
+                if a in self._frame_unknown or st_a == "stale":
+                    known.discard(a)
+                    make_stale.add(a)
+                elif st_a == "dep":
+                    known.discard(a)
+                    readd.add(a)
+        if out:
+            self.stale = self.stale | (out & before)
+            self.ever_stale = True
+        if make_stale:
+            self.stale = self.stale | make_stale
+            self.ever_stale = True
+        after = ((before - out) - known) | readd
+        self.dep = frozenset(after)
+        mask = lambda a: sum(1 << i for i in a)
+        return mask(before), mask(after)
+
+    def _dep_note(self, dp, seq0, basis):
+        """The masks and the time basis of the segments this callback emitted."""
+        if dp is None or self.seq == seq0:
+            return
+        for q in range(seq0 + 1, self.seq + 1):
+            self.dep_seg[q] = dp
+            self.dep_time[q] = basis
+
+    def _feed_basis(self):
+        t = self.interp()
+        try:
+            mode = int(t.feed_mode)
+        except Exception:
+            mode = None
+        return (2, float(self.feedrate)) if mode == 0 and self.feedrate > 0 else (3, 0.0)
+
     def _unknown_move(self, end):
         """A motion from a position with a stale axis: its end as a
         zero-length unknown-start endpoint (rapid stream, like the program's
@@ -868,6 +1098,12 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def straight_traverse(self, x, y, z, a, b, c, u, v, w):
         self._enter()
         if self.suppress > 0: return
+        dp = self._dep_step("straight") if self._program_line() else None
+        seq0 = self.seq
+        self._straight_traverse(x, y, z, a, b, c, u, v, w)
+        self._dep_note(dp, seq0, (1, 0.0))
+
+    def _straight_traverse(self, x, y, z, a, b, c, u, v, w):
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
         if self.stale:
             self.first_move = False
@@ -901,13 +1137,28 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     def straight_feed(self, x, y, z, a, b, c, u, v, w):
         self._enter()
         if self.suppress > 0: return
-        self.first_move = False
+        dp = self._dep_step("straight") if self._program_line() else None
+        seq0 = self.seq
+        basis = self._feed_basis()
         l = self.rotate_and_translate(x, y, z, a, b, c, u, v, w)
         if self.stale:
+            self.first_move = False
             self._unknown_move(l)
-            return
-        self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
-        self.lo = l
+        elif self.first_move and self._program_line():
+            # The program's first move is a feed: its start is the machine's
+            # (parity-ef plan E) — the same zero-length unknown-start endpoint
+            # as a first rapid, its time basis the feed's (`dep_time`). It
+            # used to be a feed segment from the believed start, program zero.
+            self.first_move = False
+            seq = self._next_seq()
+            self.rapid.append((self.lineno, l, l, (self.xo, self.yo, self.zo), seq))
+            self.unknown_start.append(seq)
+            self.lo = l
+        else:
+            self.first_move = False
+            self.feed.append((self.lineno, self.lo, l, self.feedrate, (self.xo, self.yo, self.zo), self._next_seq()))
+            self.lo = l
+        self._dep_note(dp, seq0, basis)
 
     straight_probe = straight_feed
 
@@ -915,6 +1166,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
         self._enter()
         if self.suppress > 0: return
         self.first_move = False
+        if self._program_line():
+            self._dep_step("other")
         if self.stale:
             self._unknown_move(self.lo)   # a tap ends where it began
             return
@@ -926,6 +1179,13 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
 
     def straight_arcsegments(self, segs):
         self._enter()
+        dp = self._dep_step("arc") if self._program_line() and segs else None
+        seq0 = self.seq
+        basis = self._feed_basis()
+        self._straight_arcsegments(segs)
+        self._dep_note(dp, seq0, basis)
+
+    def _straight_arcsegments(self, segs):
         self.first_move = False
         if self.stale and segs:
             # The whole arc was computed from the old position (its centre is

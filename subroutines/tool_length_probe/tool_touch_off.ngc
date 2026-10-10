@@ -146,9 +146,11 @@ o<501> endif
 
 
 ;-20- Save the stop position in the current coordinate system
-#<stop_position_x> = #5420          ;current X position in the current coordinate system
-#<stop_position_y> = #5421          ;current Y position in the current coordinate system
-#<stop_position_z> = #5422          ;current Z position in the current coordinate system
+;lcnc-suite: (WEBUI_POS_SAVE) - the preview takes what X, Y, Z are here (known,
+;start-dependent or unknown) and hands it to the return at -210 (silent in task)
+#<stop_position_x> = #5420 (WEBUI_POS_SAVE) ;current X position in the current coordinate system
+#<stop_position_y> = #5421 (WEBUI_POS_SAVE) ;current Y position in the current coordinate system
+#<stop_position_z> = #5422 (WEBUI_POS_SAVE) ;current Z position in the current coordinate system
 #<offset_z> = 0                     ;Stores the current Z position in the current coordinate system, will be set later
 
 
@@ -237,7 +239,7 @@ o<200> do
   G49
   G90             (set absolute coordinates)
   G53 G1 F#<traverse_fr> Z0       (move to z0 home position)
-  #<offset_z> = #5422         ;Stores the offset of the current Z coordinate at G53 Z0 without tool offset.
+  #<offset_z> = #5422 (WEBUI_POS_READ=Z) ;Stores the offset of the current Z coordinate at G53 Z0 without tool offset.
   M#<spindle_stop_m>
 
   o<106> if [#<disable_pre_pos> EQ 0 AND [[#<mode> EQ 1 AND #<fastprobefailed> NE 2] OR #<fastprobefailed> EQ 1]] 
@@ -452,15 +454,16 @@ o<200> do
   o<520> else
     ;lcnc-suite preview: to the trip point o<510> admitted
     G1 F#<fast_probe_fr> Z-[#<probe_start_pos_z> - #<preview_trip_z>]
-    #5061 = #5420                  ;the probe results as LinuxCNC sets them at a trip:
-    #5062 = #5421                  ;the position in the program frame (G5x, G92, TLO),
-    #5063 = #5422                  ;before the retract
-    #5064 = #5423
-    #5065 = #5424
-    #5066 = #5425
-    #5067 = #5426
-    #5068 = #5427
-    #5069 = #5428
+    ;lcnc-suite: each read requires its axis known in the preview (WEBUI_POS_READ)
+    #5061 = #5420 (WEBUI_POS_READ=X) ;the probe results as LinuxCNC sets them at a trip:
+    #5062 = #5421 (WEBUI_POS_READ=Y) ;the position in the program frame (G5x, G92, TLO),
+    #5063 = #5422 (WEBUI_POS_READ=Z) ;before the retract
+    #5064 = #5423 (WEBUI_POS_READ=A)
+    #5065 = #5424 (WEBUI_POS_READ=B)
+    #5066 = #5425 (WEBUI_POS_READ=C)
+    #5067 = #5426 (WEBUI_POS_READ=U)
+    #5068 = #5427 (WEBUI_POS_READ=V)
+    #5069 = #5428 (WEBUI_POS_READ=W)
     #5070 = 1
     ;the braking range (-126-): on past P, the retract below starts there; the
     ;range is a hull, its findings "possible" (WEBUI_PROBE_BAND ... _END)
@@ -518,15 +521,16 @@ o<120> if [#<slow_probe_fr> GT 0]
   o<530> else
     ;lcnc-suite preview: back down the retract to the same trip point
     G1 F#<slow_probe_fr> Z-[#<retract_distance>]
-    #5061 = #5420                  ;the probe results as LinuxCNC sets them at a trip:
-    #5062 = #5421                  ;the position in the program frame (G5x, G92, TLO),
-    #5063 = #5422                  ;before the retract
-    #5064 = #5423
-    #5065 = #5424
-    #5066 = #5425
-    #5067 = #5426
-    #5068 = #5427
-    #5069 = #5428
+    ;lcnc-suite: each read requires its axis known in the preview (WEBUI_POS_READ)
+    #5061 = #5420 (WEBUI_POS_READ=X) ;the probe results as LinuxCNC sets them at a trip:
+    #5062 = #5421 (WEBUI_POS_READ=Y) ;the position in the program frame (G5x, G92, TLO),
+    #5063 = #5422 (WEBUI_POS_READ=Z) ;before the retract
+    #5064 = #5423 (WEBUI_POS_READ=A)
+    #5065 = #5424 (WEBUI_POS_READ=B)
+    #5066 = #5425 (WEBUI_POS_READ=C)
+    #5067 = #5426 (WEBUI_POS_READ=U)
+    #5068 = #5427 (WEBUI_POS_READ=V)
+    #5069 = #5428 (WEBUI_POS_READ=W)
     #5070 = 1
     o<532> if [#<pv_h_slow> GT 0]
       G1 Z-[#<pv_h_slow>]
@@ -587,6 +591,7 @@ G53 G1 F#<traverse_fr> Z0 (Send spindle to home zero position)
 ;Runs only in automatic mode.
 o<140> if [#<mode> EQ 1]
   o<141> if [#<go_back_to_start_pos> EQ 1]
+    (WEBUI_POS_RETURN) ;lcnc-suite: the next two moves return to the -20- position, silent in task
     G1 F#<traverse_fr> X[#<stop_position_x>] Y[#<stop_position_y>]
     G1 F#<traverse_fr> Z[#<stop_position_z>]
   o<141> endif
