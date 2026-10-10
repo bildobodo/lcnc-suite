@@ -1,0 +1,153 @@
+{
+  "source": "saved Claude F5 data, audited offline; no new live run",
+  "raw_sha256": "23c9b2bf417f6480ea8e446c4b9b7c418b996517251d0bfa39e75a89a789d7f1",
+  "stat_samples": 32971,
+  "hal_samples": 117,
+  "duration_s": 12.1435776790604,
+  "INI": {
+    "AXIS_Z.MAX_VELOCITY": 100.0,
+    "AXIS_Z.MAX_ACCELERATION": 500.0,
+    "AXIS_Z.OFFSET_AV_RATIO": 0.2,
+    "AXIS_Z.MIN_LIMIT": -400.0,
+    "TRAJ.MAX_LINEAR_VELOCITY": 100.0,
+    "TRAJ.MAX_LINEAR_ACCELERATION": null,
+    "EMCMOT.SERVO_PERIOD": 1000000.0
+  },
+  "plate": [
+    150,
+    0,
+    -300
+  ],
+  "initial_tool_length": 66,
+  "events": [
+    {
+      "kind": "fast",
+      "index": 20193,
+      "t": 704373.74004877,
+      "reported_trip_z": -234.04493333333332,
+      "sampled_stop_z": -236.20499999999996,
+      "overshoot_mm": 2.2049999999999557,
+      "model_mm": 2.9111111111111114,
+      "margin_mm": 0.7061111111111558,
+      "identical_min_samples": 57,
+      "sampled_min_plateau_s": 0.020676170010119677,
+      "hal_brackets": [
+        [
+          704373.696804629,
+          {
+            "sim-toolsetter.0.enable": "TRUE",
+            "sim-toolsetter.0.manual": "FALSE",
+            "sim-toolsetter.0.tool-length": "66",
+            "axis.z.eoffset": "0",
+            "axis.z.eoffset-enable": "FALSE"
+          }
+        ],
+        [
+          704373.800472818,
+          {
+            "sim-toolsetter.0.enable": "TRUE",
+            "sim-toolsetter.0.manual": "FALSE",
+            "sim-toolsetter.0.tool-length": "66",
+            "axis.z.eoffset": "0",
+            "axis.z.eoffset-enable": "FALSE"
+          }
+        ]
+      ],
+      "retract": {
+        "top_z": -233.20499999999996,
+        "distance_mm": 3.0,
+        "tip_above_plate_mm": 0.7950000000000728,
+        "probe_at_peak": 0,
+        "probe_on_first_observed_descent": 0
+      }
+    },
+    {
+      "kind": "slow",
+      "index": 22029,
+      "t": 704374.41431004,
+      "reported_trip_z": -234.00386666666665,
+      "sampled_stop_z": -234.03826666666666,
+      "overshoot_mm": 0.03826666666665801,
+      "model_mm": 0.04111111111111111,
+      "margin_mm": 0.002844444444453101,
+      "identical_min_samples": 28,
+      "sampled_min_plateau_s": 0.009998084045946598,
+      "hal_brackets": [
+        [
+          704374.320213225,
+          {
+            "sim-toolsetter.0.enable": "TRUE",
+            "sim-toolsetter.0.manual": "FALSE",
+            "sim-toolsetter.0.tool-length": "66",
+            "axis.z.eoffset": "0",
+            "axis.z.eoffset-enable": "FALSE"
+          }
+        ],
+        [
+          704374.42554713,
+          {
+            "sim-toolsetter.0.enable": "TRUE",
+            "sim-toolsetter.0.manual": "FALSE",
+            "sim-toolsetter.0.tool-length": "66",
+            "axis.z.eoffset": "0",
+            "axis.z.eoffset-enable": "FALSE"
+          }
+        ]
+      ]
+    }
+  ],
+  "sampled_probe_window_hal_count": 10,
+  "tool_length": {
+    "expected_from_slow_trip": 65.99613333333335,
+    "reported_after": 65.9961,
+    "restored": 66
+  },
+  "repeated_cases": {
+    "count": 42,
+    "identical_to_R127": true,
+    "configs": [
+      {
+        "name": "xyzac",
+        "INI": {
+          "AXIS_Z.MAX_VELOCITY": 100.0,
+          "AXIS_Z.MAX_ACCELERATION": 500.0,
+          "AXIS_Z.OFFSET_AV_RATIO": 0.2,
+          "AXIS_Z.MIN_LIMIT": -400.0,
+          "TRAJ.MAX_LINEAR_VELOCITY": 100.0,
+          "TRAJ.MAX_LINEAR_ACCELERATION": null,
+          "EMCMOT.SERVO_PERIOD": 1000000.0
+        },
+        "count": 14,
+        "min_reported_margin_mm": 0.0012
+      },
+      {
+        "name": "accel250",
+        "INI": {
+          "AXIS_Z.MAX_VELOCITY": 100.0,
+          "AXIS_Z.MAX_ACCELERATION": 250.0,
+          "AXIS_Z.OFFSET_AV_RATIO": 0.2,
+          "AXIS_Z.MIN_LIMIT": -400.0,
+          "TRAJ.MAX_LINEAR_VELOCITY": 100.0,
+          "TRAJ.MAX_LINEAR_ACCELERATION": null,
+          "EMCMOT.SERVO_PERIOD": 1000000.0
+        },
+        "count": 14,
+        "min_reported_margin_mm": 0.0022
+      },
+      {
+        "name": "norho",
+        "INI": {
+          "AXIS_Z.MAX_VELOCITY": 100.0,
+          "AXIS_Z.MAX_ACCELERATION": 500.0,
+          "AXIS_Z.OFFSET_AV_RATIO": null,
+          "AXIS_Z.MIN_LIMIT": -400.0,
+          "TRAJ.MAX_LINEAR_VELOCITY": 100.0,
+          "TRAJ.MAX_LINEAR_ACCELERATION": null,
+          "EMCMOT.SERVO_PERIOD": 1000000.0
+        },
+        "count": 14,
+        "min_reported_margin_mm": 0.0023
+      }
+    ]
+  }
+}

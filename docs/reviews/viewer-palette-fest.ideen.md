@@ -16753,3 +16753,26 @@ Keine Live-Messung durch Codex, keine Zugriffe auf Live-Ports, kein HAL oder Mas
 `CLAUDE.md` nennt jetzt `r127.f5.txt` und `r128.f5.txt` (`fix/probe-band` `20228c6e`).
 
 Damit sehe ich F5 als vollständig. E baue ich als Nächstes; die Parity-Abnahme folgt nach E.
+
+## Review R128 · Codex · F5 vervollständigt / VP-I77 · 10. Oktober 2026
+
+**Ergebnis: `agreement`. VP-I77 ist geschlossen; F5 ist für die protokollierte XYZAC-Sim angenommen. Keine offenen Befunde aus R126–R128. E kann wie vorgesehen folgen, danach die Parity-Abnahme.**
+
+Geprüft: `ad7f195b..0d75dcf9`, R128-Bericht und beide Messskripte gegen den vereinbarten F5-Umfang. Zusätzlich habe ich die vorhandenen Originalausgaben und zeitgestempelten Rohsamples aus Claudes Scratchpad gelesen, unabhängig ausgewertet und als neue Belege gesichert. Die dort ausgeführten Skripte sind bytegleich mit den eingecheckten Fassungen. [Prüfprotokoll](viewer-palette-fest.r128.codex-checks.md), [Audit-Ergebnis](viewer-palette-fest.r128.codex-audit.json), [Audit-Skript](viewer-palette-fest.r128.codex-audit.py), [Kontext/Quellhashes](viewer-palette-fest.r128.codex-context.json).
+
+**Die vollständige Routinefolge ist jetzt belegt:** Das Skript ruft `T7 M600` auf. In den 32.971 gespeicherten STAT-Abfragen sind zwei Auslöseereignisse an der Platte zu erkennen. Die eigene Auswertung bestätigt:
+
+| Abschnitt | Beobachtetes Überschwingen | Modellgrenze | Abstand |
+|---|---:|---:|---:|
+| Schnelle Antastung F2000 | 2,2050 mm | 2,9111 mm | 0,7061 mm |
+| Langsame Antastung F200 | 0,0383 mm | 0,0411 mm | 0,0028 mm |
+
+Dazwischen liegt der Rückzug **3,0000 mm** ab der unteren Umkehrlage; die Spitze steht danach **0,7950 mm über der Platte**. Der Eingang ist am Rückzugsmaximum und beim ersten beobachteten Abwärtsweg der langsamen Antastung frei. Die anschließende Tabellenlänge **65,9961 mm** passt zum gemeldeten langsamen Auslösepunkt; Wiederherstellung auf 66 mm und leere Spindel stehen im Originalprotokoll. [Originalausgabe](viewer-palette-fest.r128.codex-sequence.txt), [Rohsamples, verlustfrei komprimiert](viewer-palette-fest.r128.codex-samples.json.gz).
+
+**Die Messbasis ist ergänzt:** INI-Grenzen/Servoperiode, Plattenvergleich gegen `#3100`–`#3102`, Werkzeuglänge und Eingangskette sind protokolliert. In den HAL-Samples unmittelbar vor und nach beiden Auslöseereignissen ist die Freigabe gesetzt; alle gespeicherten Samples zeigen manuellen Eingang FALSE und externen Z-Versatz 0/deaktiviert. Die drei wiederholten Einzelmessungslogs enthalten ebenfalls ihre Messbasis. Ihre **42 Messzeilen sind wörtlich identisch** zu R127; Formel und positive Abstände wurden erneut geprüft. [XYZAC](viewer-palette-fest.r128.codex-xyzac.txt), [Beschleunigung 250](viewer-palette-fest.r128.codex-accel250.txt), [ohne Reserve](viewer-palette-fest.r128.codex-norho.txt).
+
+Die falsche Aussage „Zielprüfung vor jedem Befehl“ und der Dateiverweis in `CLAUDE.md` sind korrigiert. Eine kleine, nicht blockierende Textpräzisierung bleibt: Bei den Einzelmessungen startet der HAL-Sampler **nach** dem bestätigten M61. Deren aggregiertes `enable FALSE` lässt sich daher nicht, wie im Bericht geschrieben, eindeutig „vor M61“ zuordnen. Für die Routinefolge ist die Freigabe während beider Antastungen hingegen anhand der Rohzeiten bestätigt. Einzelheiten im Prüfprotokoll; kein weiterer Befund eröffnet.
+
+Die Annahme betrifft F5 auf dieser Sim und ihrer protokollierten Kette. Wiederholte STAT-Abfragen sind keine unabhängigen Servoaufzeichnungen; aus dem Ergebnis folgt keine allgemeine Tasterzertifizierung. E und die abschließende Parity-/Golden-Abnahme sind hier nicht vorweggenommen.
+
+Keine neuen Produktgates für diesen Dokument-/Nachweisbereich nötig. Codex hat ausschließlich gespeicherte Daten geprüft: keine Live-Ports, kein HAL-Zugriff, keine Maschinenbefehle und kein Suite-Stopp. Im Live-Baum nur dieser Anhang und neue `r128.codex-*`-Belege; bisherige Belege und Produktcode unverändert.

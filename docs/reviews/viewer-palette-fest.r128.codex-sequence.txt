@@ -1,0 +1,22 @@
+# F5 routine sequence 2026-10-10 13:43:25 on lcnc_suite_sim_5axis_xyzac.ini
+INI {"AXIS_Z.MAX_VELOCITY": 100.0, "AXIS_Z.MAX_ACCELERATION": 500.0, "AXIS_Z.OFFSET_AV_RATIO": 0.2, "AXIS_Z.MIN_LIMIT": -400.0, "TRAJ.MAX_LINEAR_VELOCITY": 100.0, "TRAJ.MAX_LINEAR_ACCELERATION": null, "EMCMOT.SERVO_PERIOD": 1000000.0}
+var file (as of the last synch) {"3004": 2000.0, "3005": 200.0, "3006": 6000.0, "3007": 180.0, "3008": 50.0, "3009": 3.0, "3010": 180.0, "3014": 99.0, "3100": 150.0, "3101": 0.0, "3102": -300.0, "3103": 1.0, "3104": 2.0, "3105": 0.0, "3106": 0.0, "3107": 5.0, "3108": 0.0, "3109": 0.0, "3110": 0.0, "3111": 0.0, "3112": 0.0, "3113": 0.0, "3114": 0.0, "3115": 0.0, "3116": 0.0, "5181": 0.0, "5182": -13.44, "5183": -26.275}
+plate {'x': 150.0, 'y': 0.0, 'z': -300.0} vs #3100–#3102 150.0, 0.0, -300.0: equal
+probe chain: Type          Value  Name     (linked to) | bit           FALSE  probe-input | ==> motion.probe-input | <== sim-toolsetter.0.out
+setter pins before: enable=FALSE manual=FALSE radius=25 tool-length=0 eoffset=0 eoffset-enable=FALSE
+T7 table length 66.0000; spindle T0
+setup: on, homed, the gateway agrees: True
+tool change confirmed ok=True 
+T7 M600: mdi ok=True  still=True 32971 stat samples in 12.1 s
+T7 table length after the routine 65.9961 (written by G10 L1)
+restore G49: ok=True
+restore G10 L1 P7 Z66.0: ok=True
+restore M61 Q0: ok=True
+restore G90 G53 G0 Z0: ok=True
+restored: T7 66.0000, spindle T0
+P_geo -234.0000 (plate Z -300.0 + table length 66.0000); 2 trip events at the setter
+fast G38.3 F2000: P_rep -234.0449 (P_geo − P_rep 0.0449), Q -236.2050, overshoot 2.2050, h_model 2.9111, margin 0.7061
+  retract: from Q -236.2050 up to -233.2050 (3.0000, #3009 = 3); the tool's tip there -299.2050 vs the plate -300.0: clear; probe value at the slow start: released
+slow G38.2 F200: P_rep -234.0039 (P_geo − P_rep 0.0039), Q -234.0383, overshoot 0.0383, h_model 0.0411, margin 0.0028
+during the run (halcmd, 117 samples): enable ['FALSE', 'TRUE'], manual ['FALSE'], tool-length ['0', '65.99613', '66'], eoffset/enable [('0', 'FALSE')]
+teardown: the sim stopped with the clients connected: True

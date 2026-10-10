@@ -1,0 +1,24 @@
+# F5 probe overshoot 2026-10-10 13:50:30 on lcnc_suite_sim_5axis_xyzac.ini
+INI {"AXIS_Z.MAX_VELOCITY": 100.0, "AXIS_Z.MAX_ACCELERATION": 250.0, "AXIS_Z.OFFSET_AV_RATIO": 0.2, "AXIS_Z.MIN_LIMIT": -400.0, "TRAJ.MAX_LINEAR_VELOCITY": 100.0, "TRAJ.MAX_LINEAR_ACCELERATION": null, "EMCMOT.SERVO_PERIOD": 1000000.0}
+plate x=150 y=0 z=-300 vs #3100–#3102 150.0, 0.0, -300.0
+probe chain: Type          Value  Name     (linked to) | bit           FALSE  probe-input | ==> motion.probe-input | <== sim-toolsetter.0.out
+setup: on and homed: True
+tool T7 in the spindle (M61): ok=True table length 66.0000; plate X150.0 Y0.0 Z-300.0; P_geo -234.0000
+feed  start  mode       P_rep      Q          P_geo-P_rep  overshoot(P_geo-Q)  h_model   margin(h_model-overshoot)
+F200   +10    G64       -234.0044  -234.0667      0.0044       0.0667            0.0689    0.0022
+F500   +10    G64       -234.0111  -234.3750      0.0111       0.3750            0.3806    0.0056
+F1000  +10    G64       -234.0278  -235.4500      0.0278       1.4500            1.4556    0.0056
+F2000  +10    G64       -234.0444  -239.6667      0.0444       5.6667            5.6889    0.0222
+F3000  +10    G64       -234.0797  -244.0000      0.0797      10.0000           12.7000    2.7000
+F200   +10    G61       -234.0055  -234.0399      0.0055       0.0399            0.0689    0.0290
+F500   +10    G61       -234.0097  -234.1999      0.0097       0.1999            0.3806    0.1806
+F1000  +10    G61       -234.0222  -234.7500      0.0222       0.7500            1.4556    0.7056
+F2000  +10    G61       -234.0555  -236.9000      0.0555       2.9000            5.6889    2.7889
+F3000  +10    G61       -234.0500  -240.4000      0.0500       6.4000           12.7000    6.3000
+F200   +3     G64       -234.0044  -234.0667      0.0044       0.0667            0.0689    0.0022
+F2000  +1     G64 stop  -234.0225  -235.1025      0.0225       1.1025            5.6889    4.5864
+F3000  +1     G64 stop  -234.0225  -235.1025      0.0225       1.1025           12.7000   11.5975
+F3000  +0.3   G64 stop  -234.0121  -234.3561      0.0121       0.3561           12.7000   12.3439
+during the cases (halcmd, 1365 samples): enable ['FALSE', 'TRUE'], manual ['FALSE'], tool-length ['0', '66'], eoffset ['0'], eoffset-enable ['FALSE']
+tool back to T0 (M61): spindle 0
+teardown: the sim stopped with the client connected: True
