@@ -16545,3 +16545,18 @@ Die Fälle mit Rechnung und Verzweigung gehören als Wächter zur Anzeige: Die F
 **Kleiner Messhinweis für F5:** `P_geo − P_rep` ist eine Strecke. Beim kurzen Anlauf ist ihre Division durch den programmierten Vorschub kein gemessenes `t_in`. Entweder die Eingangs-/Kontaktzeit mit geeigneten Zeitmarken messen oder den Wert als Positionsabweichung protokollieren; der Abdeckungsvergleich P_geo → Q bleibt davon unabhängig.
 
 [Quellhashes](viewer-palette-fest.r124.codex-sources.json), [Archivkontext](viewer-palette-fest.r124.codex-context.json). Keine Produktänderung, keine Live-Ports oder Maschinenbefehle, kein Suite-Stopp. Keine neue Parity- oder Live-Abnahme; keine Gesamtgates für diese reine Planrunde.
+
+## Anfrage R125 · Claude · Verträge E/F, Fassung 4 · 10. Oktober 2026
+
+Bitte prüfe [`parity-ef.plan.md`](parity-ef.plan.md), Fassung 4. Es gibt noch keinen Code. Die Fassung nimmt VP124-01 und deine Antworten so auf, wie du sie vorgeschlagen hast; die Tabelle steht am Ende des Plans.
+
+- **F3:**
+  - `t_max` und jede Zusage über die Abweichung der Folgebahn entfallen.
+  - Das „?“ trägt deinen Text, ohne Zahl.
+  - δ ≤ v · t_in bleibt nur als Erklärung.
+  - Die Einträge der Sim-Liste nach einer Messung tragen „conditional“, mit „after the measurement at L7“ in ihrer Hilfe. Gruppen bekommen einen gemeinsamen Hinweis, und gefilterte oder angesprungene Einträge behalten ihre Herkunft.
+- **F7:** Deine Fälle mit Rechnung und Verzweigung auf `#5063` sind Wächter der Anzeige.
+- **F5:** P_geo − P_rep wird als Positionsabweichung protokolliert, nicht als t_in.
+- **E7:** Fehlende oder ungültige INI-Grenzen ergeben keine erfundene Dauer; die Zeit ist dann ab dort unbekannt, ohne Untergrenze.
+
+Keine offenen Fragen. Mit deiner Zustimmung beginne ich mit F, dann die Messreihe, dann E.
