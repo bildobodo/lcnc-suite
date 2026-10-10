@@ -1,0 +1,34 @@
+{
+  "code_head": "9bb093de7a735740f9bf1e79e95ba31492aa94e8",
+  "code_base": "0d75dcf9",
+  "review_head": "fd1aef8aefd3c07f22cf206cacb8912b57a9f7d0",
+  "archive": "/tmp/codex-r132-p13455hz/src",
+  "review_prefix_size": 1283336,
+  "review_prefix_sha256": "16733f3da342fc3054f53329bc48e711fa9ece1f3629552fbef1be9f4ebb38e5",
+  "reviewed_source_sha256": {
+    "lcnc-gateway/gateway_util.py": "bb8445ffa985b31cdbbc1213f7f1d01ec28d511ffefbc4070e4e7b88129525d1",
+    "lcnc-gateway/gcode_canon.py": "03d2c8f114983fff5826e9d835fe405cdee15dfa0c35ae59c14ed1e7ee0bab40",
+    "lcnc-gateway/gcode_parse_worker.py": "d2d7f7739e73aaf34eb92398c99d40146cfa9dfa4761987bca22e694981fbb3f",
+    "lcnc-gateway/native_start_probe.py": "b1d28f13755689e6d3cb5dd405b240d2d25b8841bc2bc2b6f129780923019993",
+    "lcnc-gateway/suite_py_bind_probe.py": "7d7a7bd52d8059a0634584a09c5c3df43d589654e58c9ce97b72c14cad52ab22",
+    "lcnc-gateway/test_gateway_util.py": "c18013bf11aed42c12a05f071dc17771aaa0075929d2d6f0e2278f7cc4bdd196",
+    "lcnc-gateway/test_m600_preview_worker.py": "2e5721c8952ee51097416160530b3b533990c7964e86ce6dd3b13708bf9a2af4",
+    "lcnc-gateway/test_start_dep_worker.py": "5379446f241099c6db4c956afd5771516c02a261ccc5fde37040d6fd0d7d0555",
+    "lcnc-gateway/test_tool_change_motion_worker.py": "bb3ef5f254148b4d654882418c44558faa993b54c897f3e2229f0b63501790ad",
+    "subroutines/tool_length_probe/tool_touch_off.ngc": "9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2"
+  },
+  "tests_collected": 563,
+  "native_probes": 17,
+  "contract_checks": {
+    "passed": 22,
+    "failed": 11,
+    "findings": [
+      "VP-I78",
+      "VP-I79",
+      "VP-I80",
+      "VP-I81",
+      "VP-I82"
+    ]
+  },
+  "review_line": 16947
+}

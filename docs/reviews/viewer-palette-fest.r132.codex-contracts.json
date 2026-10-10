@@ -1,0 +1,471 @@
+{
+  "passed": 22,
+  "failed": 11,
+  "checks": [
+    {
+      "check": "harness/early_m6",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/early_m6_none",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/early_m6_first",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/late_m6_control",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/no_interp",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/interp_control",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/initial_read",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/initial_named_read",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/read_on_first_move",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/read_after_modal",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/initial_read_with_modal",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/initial_read_percent",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/initial_read_blank",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/unknown_kins",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/unknown_switchkins",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/g28_feed_second",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "harness/g28_rapid_control",
+      "status": "PASS",
+      "observed": {
+        "rc": null,
+        "parse_error": null,
+        "mmap_unchanged": true
+      }
+    },
+    {
+      "check": "VP-I78/initial_read",
+      "status": "FAIL",
+      "observed": {
+        "rapid": [
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid_dep": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "position_read_lines": null
+      }
+    },
+    {
+      "check": "VP-I78/initial_named_read",
+      "status": "FAIL",
+      "observed": {
+        "rapid": [
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid_dep": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "position_read_lines": null
+      }
+    },
+    {
+      "check": "VP-I78/initial_read_with_modal",
+      "status": "FAIL",
+      "observed": {
+        "rapid": [
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid_dep": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "position_read_lines": null
+      }
+    },
+    {
+      "check": "VP-I78/initial_read_blank",
+      "status": "FAIL",
+      "observed": {
+        "rapid": [
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid_dep": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "position_read_lines": null
+      }
+    },
+    {
+      "check": "VP-I78/initial_read_percent",
+      "status": "FAIL",
+      "observed": {
+        "rapid": [
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid_dep": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "position_read_lines": null
+      }
+    },
+    {
+      "check": "VP-I78/read_after_modal",
+      "status": "FAIL",
+      "observed": {
+        "rapid": [
+          [
+            5.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid_dep": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "position_read_lines": null
+      }
+    },
+    {
+      "check": "VP-I79/early_m6",
+      "status": "FAIL",
+      "observed": {
+        "method": "change_tool",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 3,
+          "seq": 1,
+          "dep": [
+            0,
+            1
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    },
+    {
+      "check": "VP-I79/early_m6_first",
+      "status": "FAIL",
+      "observed": {
+        "method": "change_tool",
+        "args": [
+          0
+        ],
+        "before": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 0,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [
+            0,
+            1,
+            2
+          ],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    },
+    {
+      "check": "VP-I80/no_interp",
+      "status": "FAIL",
+      "observed": {
+        "rapid_dep": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "probe_unpredicted": null,
+        "parse_error": null
+      }
+    },
+    {
+      "check": "VP-I81/unknown_switchkins",
+      "status": "FAIL",
+      "observed": {
+        "rapid_dep": [
+          3,
+          2
+        ],
+        "rapid_ustart": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "check": "VP-I82/g28_feed_second",
+      "status": "FAIL",
+      "observed": {
+        "method": "_dep_step",
+        "args": [
+          "straight"
+        ],
+        "before": {
+          "line": 2,
+          "seq": 1,
+          "dep": [
+            0,
+            1,
+            2
+          ],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        },
+        "after": {
+          "line": 2,
+          "seq": 1,
+          "dep": [],
+          "stale": [],
+          "read_done": [],
+          "read_lines": null
+        }
+      }
+    },
+    {
+      "check": "control/no_moving_M6_keeps_dep",
+      "status": "PASS",
+      "observed": [
+        3,
+        3,
+        3
+      ]
+    },
+    {
+      "check": "control/M6_after_known_has_no_dep",
+      "status": "PASS",
+      "observed": null
+    },
+    {
+      "check": "control/available_interpreter",
+      "status": "PASS",
+      "observed": [
+        3,
+        2
+      ]
+    },
+    {
+      "check": "control/read_in_first_motion_is_named",
+      "status": "PASS",
+      "observed": [
+        1
+      ]
+    },
+    {
+      "check": "control/g28_two_rapids",
+      "status": "PASS",
+      "observed": [
+        7,
+        0
+      ]
+    }
+  ]
+}
