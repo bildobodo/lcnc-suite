@@ -1,5 +1,5 @@
 {
-  "brk_count": 0,
+  "brk_count": 1,
   "cline_lines": [],
   "kins_frames": 0,
   "kinstype_present": false,
@@ -10,7 +10,7 @@
   },
   "points": {
     "feed": 37883,
-    "rapid": 4
+    "rapid": 5
   },
   "preview_schema": 10,
   "rotary_cmd": null,
@@ -18,11 +18,11 @@
   "sub_names": [],
   "swept_axes": [],
   "trusted_points": {
-    "total": 37887,
-    "trusted": 37887
+    "total": 37888,
+    "trusted": 37888
   },
   "unmarked_subs": [],
-  "ustart_count": 3,
+  "ustart_count": 1,
   "violations_total": 0,
   "violations_world_unchecked": 0,
   "wcs_epochs": {
