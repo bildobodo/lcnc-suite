@@ -1,0 +1,456 @@
+{
+  "m6_first_absolute": {
+    "raw": {
+      "ustart": [
+        1,
+        0
+      ],
+      "unbound": [
+        0,
+        1,
+        2
+      ]
+    },
+    "K": 0,
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 3,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 1.8138420000000224,
+      "sweepMs": 0.8128790000000095,
+      "truncated": null
+    },
+    "view": {
+      "phase": "full",
+      "fromLine": null,
+      "fromCum": null,
+      "provisionalShown": false,
+      "begin": "none",
+      "beginWhy": null
+    },
+    "shown": {
+      "state": "done",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "ok",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "Clear · checked in full"
+    },
+    "help": "Tool and machine parts checked against each other along the whole program."
+  },
+  "m6_only_absolute": {
+    "raw": {
+      "ustart": [
+        1
+      ],
+      "unbound": [
+        0,
+        1,
+        2
+      ]
+    },
+    "K": 0,
+    "result": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 1,
+      "coarsened": false,
+      "uncertified": null,
+      "notes": [],
+      "pairCount": 1,
+      "pairsPrescreened": 1,
+      "bvhMs": 0.45496000000002823,
+      "sweepMs": 0.15400099999999384,
+      "truncated": null
+    },
+    "view": {
+      "phase": "full",
+      "fromLine": null,
+      "fromCum": null,
+      "provisionalShown": false,
+      "begin": "none",
+      "beginWhy": null
+    },
+    "shown": {
+      "state": "done",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "ok",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "Clear · checked in full"
+    },
+    "help": "Tool and machine parts checked against each other along the whole program."
+  },
+  "first_g1_x_control": {
+    "raw": {
+      "rapid_dep": [
+        6
+      ],
+      "rapid_dep_basis": [
+        2
+      ],
+      "start_believed": [
+        0,
+        0,
+        0
+      ]
+    },
+    "base": {
+      "count": 3,
+      "pos": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        1,
+        0,
+        0
+      ],
+      "cum": [
+        0,
+        0,
+        6
+      ],
+      "dep": [
+        6,
+        0,
+        0
+      ],
+      "depBasis": [
+        2,
+        2,
+        0
+      ],
+      "depF": [
+        100,
+        100,
+        0
+      ],
+      "brk": [
+        1,
+        1,
+        0
+      ],
+      "ustart": [
+        1,
+        0,
+        0
+      ],
+      "depEnd": 1,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    },
+    "entry": {
+      "count": 4,
+      "pos": [
+        100,
+        100,
+        100,
+        0,
+        100,
+        100,
+        0,
+        0,
+        0,
+        10,
+        0,
+        0
+      ],
+      "rapid": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "cum": [
+        0,
+        60,
+        144.85281372070312,
+        150.85281372070312
+      ],
+      "dep": [
+        0,
+        6,
+        0,
+        0
+      ],
+      "depBasis": [
+        0,
+        2,
+        2,
+        0
+      ],
+      "depF": [
+        0,
+        100,
+        100,
+        0
+      ],
+      "brk": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "ustart": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "depEnd": 0,
+      "startBelieved": [
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "base-first": {
+    "view": {
+      "phase": "full",
+      "fromLine": null,
+      "fromCum": null,
+      "provisionalShown": false,
+      "begin": "checked",
+      "beginWhy": null
+    },
+    "shown": {
+      "state": "done",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "ok",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "Clear · checked in full"
+    },
+    "startDependent": null
+  },
+  "side-first": {
+    "view": {
+      "phase": "full",
+      "fromLine": null,
+      "fromCum": null,
+      "provisionalShown": false,
+      "begin": "checked",
+      "beginWhy": null
+    },
+    "shown": {
+      "state": "done",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "ok",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "Clear · checked in full"
+    },
+    "startDependent": null
+  },
+  "nojoints": {
+    "view": {
+      "phase": "full",
+      "fromLine": null,
+      "fromCum": null,
+      "provisionalShown": false,
+      "begin": "nojoints",
+      "beginWhy": "not in position"
+    },
+    "shown": {
+      "state": "done",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "warn",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "Clear · start not checked"
+    },
+    "sentence": "The start of the program depends on where the machine stands (L2–L3): not checked: the run's start position was not read (not in position)."
+  },
+  "worker-error": {
+    "state": {
+      "run": {
+        "version": 7,
+        "runId": 1,
+        "gen": 1,
+        "basis": {
+          "startJoints": [
+            100,
+            100,
+            100
+          ]
+        },
+        "begin": "bound",
+        "beginWhy": null,
+        "phase": "full",
+        "fromIndex": null,
+        "fromLine": null
+      },
+      "view": {
+        "phase": "full",
+        "fromLine": null,
+        "fromCum": null,
+        "provisionalShown": false,
+        "begin": "checking",
+        "beginWhy": null
+      },
+      "pending": false,
+      "events": [
+        {
+          "type": "collision.run_check_start",
+          "data": {
+            "version": 7,
+            "run": 1,
+            "from": null
+          }
+        },
+        {
+          "type": "collision.entry_start",
+          "data": {
+            "bodies": 2,
+            "shift": 144.85281372070312
+          }
+        },
+        {
+          "type": "collision.entry_failed",
+          "data": {
+            "msg": "injected side sweep failure"
+          }
+        }
+      ],
+      "posted": [
+        {
+          "id": -1
+        }
+      ]
+    },
+    "shown": {
+      "state": "checking",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "muted",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "No collision · start still checking"
+    }
+  },
+  "need-bodies-twice": {
+    "state": {
+      "run": {
+        "version": 7,
+        "runId": 1,
+        "gen": 1,
+        "basis": {
+          "startJoints": [
+            100,
+            100,
+            100
+          ]
+        },
+        "begin": "bound",
+        "beginWhy": null,
+        "phase": "full",
+        "fromIndex": null,
+        "fromLine": null
+      },
+      "view": {
+        "phase": "full",
+        "fromLine": null,
+        "fromCum": null,
+        "provisionalShown": false,
+        "begin": "checking",
+        "beginWhy": null
+      },
+      "pending": false,
+      "events": [
+        {
+          "type": "collision.run_check_start",
+          "data": {
+            "version": 7,
+            "run": 1,
+            "from": null
+          }
+        },
+        {
+          "type": "collision.entry_start",
+          "data": {
+            "bodies": 2,
+            "shift": 144.85281372070312
+          }
+        },
+        {
+          "type": "collision.entry_start",
+          "data": {
+            "bodies": 2,
+            "shift": 144.85281372070312
+          }
+        },
+        {
+          "type": "collision.entry_failed",
+          "data": {
+            "msg": "worker asked for bodies twice"
+          }
+        }
+      ],
+      "posted": [
+        {
+          "id": -1
+        },
+        {
+          "cancel": -1
+        },
+        {
+          "id": -2
+        }
+      ]
+    },
+    "shown": {
+      "state": "checking",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "muted",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "No collision · start still checking"
+    }
+  },
+  "stopped": {
+    "view": {
+      "phase": "full",
+      "fromLine": null,
+      "fromCum": null,
+      "provisionalShown": false,
+      "begin": "checked",
+      "beginWhy": null
+    },
+    "truncated": {
+      "covered": 0,
+      "reason": "backstop"
+    },
+    "shown": {
+      "state": "partial",
+      "frac": 1,
+      "label": "Run check · tool table updated",
+      "tone": "warn",
+      "caveat": false,
+      "detail": " ",
+      "verdict": "No collision in 0% swept"
+    }
+  }
+}

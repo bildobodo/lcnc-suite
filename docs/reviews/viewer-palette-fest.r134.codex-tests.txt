@@ -1,0 +1,84 @@
+R134 · Codex · Offline review tests
+
+===== 152 focused backend tests PASS; exit 0 (backend.txt) =====
+........................................................................ [ 47%]
+................................................................... [ 91%]
+.............                                                            [100%]
+
+
+===== Collection supporting backend test count (collected.txt) =====
+test_m600_preview_worker.py: 46
+test_start_dep_worker.py: 60
+test_start_tlo_worker.py: 11
+test_tool_change_motion_worker.py: 35
+
+
+
+===== 73 frontend repository tests + 15 R133 adapted probes PASS; exit 0 (client-rerun.txt) =====
+
+ RUN  v4.1.8 /tmp/codex-r134-unmzpu6o/src/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  88 passed (88)
+   Start at  21:33:25
+   Duration  1.56s (transform 243ms, setup 0ms, import 926ms, tests 357ms, environment 0ms)
+
+
+
+===== New coordinator probes: 4 PASS, 4 FAIL; exit 1, counterexamples expected (wiring.txt) =====
+
+ RUN  v4.1.8 /tmp/codex-r134-unmzpu6o/src/lcnc-webui
+
+stderr | src/viewer/r134.wiring.test.ts > R134 integrated coordinator and new boundary cases > worker-error: a failed side check does not remain checking forever
+[collision] entry sweep failed: injected side sweep failure
+
+stderr | src/viewer/r134.wiring.test.ts > R134 integrated coordinator and new boundary cases > need-bodies-twice: a failed side check does not remain checking forever
+[collision] worker asked for bodies twice — entry sweep not run
+
+ ❯ src/viewer/r134.wiring.test.ts (8 tests | 4 failed) 318ms
+     × m6_first_absolute: the unbindable first motion stays explicitly unchecked 114ms
+     × m6_only_absolute: the unbindable first motion stays explicitly unchecked 46ms
+     × worker-error: a failed side check does not remain checking forever 24ms
+     × need-bodies-twice: a failed side check does not remain checking forever 21ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r134.wiring.test.ts > R134 integrated coordinator and new boundary cases > m6_first_absolute: the unbindable first motion stays explicitly unchecked
+ FAIL  src/viewer/r134.wiring.test.ts > R134 integrated coordinator and new boundary cases > m6_only_absolute: the unbindable first motion stays explicitly unchecked
+AssertionError: expected 'Clear · checked in full' not to contain 'checked in full'
+
+Expected: "checked in full"
+Received: "Clear · checked in full"
+
+ ❯ src/viewer/r134.wiring.test.ts:130:29
+    128|   const help=actualVerdictDetail(h.result(),base);
+    129|   evidence[name]={raw:{ustart:Array.from(raw.rapid_ustart??[]),unbound…
+    130|   expect(shown.verdict).not.toContain('checked in full');
+       |                             ^
+    131|   expect(help).toMatch(/not checked|cannot know/);
+    132|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/viewer/r134.wiring.test.ts > R134 integrated coordinator and new boundary cases > worker-error: a failed side check does not remain checking forever
+ FAIL  src/viewer/r134.wiring.test.ts > R134 integrated coordinator and new boundary cases > need-bodies-twice: a failed side check does not remain checking forever
+AssertionError: expected 'checking' not to be 'checking' // Object.is equality
+ ❯ src/viewer/r134.wiring.test.ts:163:27
+    161|   evidence[failure]={state:h.snapshot(),shown};
+    162|   expect(h.side()).toBeNull();
+    163|   expect(shown.state).not.toBe('checking');
+       |                           ^
+    164|   expect(shown.verdict).toMatch(/not checked|failed/);
+    165|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 4 passed (8)
+   Start at  21:36:25
+   Duration  801ms (transform 196ms, setup 0ms, import 422ms, tests 318ms, environment 0ms)
+
+
+
