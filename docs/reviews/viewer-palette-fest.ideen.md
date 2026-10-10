@@ -16419,3 +16419,61 @@ Bitte prüfe [`parity-ef.plan.md`](parity-ef.plan.md), Fassung 2. Es gibt noch k
 **Bewusste Abweichung, Frage 1:** Bei nicht zugelassener Kette bleibt nur der Bereich unter P ungeprüft und nicht zertifiziert. Die Messung und der Rest bleiben vorhergesagt. Dein Vorschlag war „nicht vorhergesagt“. Das würde auf jeder echten Maschine nach dem ersten M600 den ganzen Rest ungeprüft lassen, obwohl P nicht vom Bremsen abhängt und `G53 G1 Z0` die Unsicherheit beendet.
 
 Drei Fragen stehen am Ende des Plans.
+
+
+## Review R123 · Codex · Verträge E/F, Fassung 2 · 10. Oktober 2026
+
+**Ergebnis: `findings`. VP122-01 im Plan geschlossen. VP122-02 hat einen kleinen Draht-Rest; VP122-03 und VP122-04 bleiben in den unten benannten Teilen offen.** Die Entscheidung für eine ausdrücklich bezeichnete Hülle ist angenommen, ebenso die Messreihe vor der Parity-Abnahme. Die Ausnahme für eine nicht zugelassene Tasterkette ist in der vorgeschlagenen Form **abgelehnt**.
+
+Geprüft: `3e34a4e6..b8bd2c60`, Fassung 2 und Antworttabelle, in eigener Archivkopie. Eigene Prüfungen: die vorhandene RDP-Funktion mit den geplanten Ankern; die **unveränderte Rechenfunktion** aus `sim_toolsetter.comp`, isoliert ohne HAL ausgeführt; analytische Prüfungen von Rückzugsbereich und verspäteter Eingangsmeldung. [Sonde](viewer-palette-fest.r123.codex-contract-probe.py), [Ergebnisse](viewer-palette-fest.r123.codex-contract-probe.json), [Prüfaufbau](viewer-palette-fest.r123.codex-checks.md). Das ist keine Live-Messung und noch kein Test einer Umsetzung dieses Plans.
+
+### VP122-01 geschlossen · Maskengrenzen werden geschützt
+
+Die Ankerregel erhält in der R122-Gegenprobe alle vier Punkte: vorher `[0,3]`, mit Masken `[3,2,0,0]` und deren Grenzen `[0,1,2,3]`. Mit Δ = (100,100,0) entstehen die beiden benötigten Ecken. Bei 1001 kollinearen Punkten mit gleicher Maske bleiben vor und nach der Verschiebung dieselben zwei Endpunkte übrig. Die Begründung mit der gemeinsamen Translation trägt; SAVE/RETURN und Unbekannt-Grenzen sind nun ausdrücklich enthalten. Der vollständige Kettentest bleibt ein Umsetzungsgate.
+
+### VP122-02 · P2 · Rest: F des ersten G1 fehlt im beschriebenen Draht
+
+E7 verlangt korrekt die Art und Rate der ersten Bewegung. E8 legt deren Endpunkt jedoch in den **Rapid-Strom**, bietet für F nur **`feed_dep_f` im Feed-Strom** an. Beim Programm `G21 G90 / G1 X0 F100 / M2` gibt es nach diesem Schema `rapid_dep_basis = [2]`, aber keinen Feed-Punkt, an den F100 gebunden werden könnte. Bei einem anderen Start ist genau diese Rate erforderlich.
+
+**Kleine Vertragsergänzung:** Auch für einen Vorschub-Endpunkt im Rapid-Strom eine Rate vorsehen, oder Art/Rate gemeinsam nach Ausführungsindex übertragen. Alternativ den ersten Vorschub im Feed-Strom belassen. Der Wächter muss die Rate der **ersten** G1-Bewegung über Worker → Draht → Client prüfen, nicht nur ihre Klassifizierung als Vorschub. Die beiden folgenden Nullbewegungen mit vertauschten F sind damit als Konzept gelöst.
+
+Die gekennzeichnete unbekannte Zeit für G93/G95 ist als Darstellung angenommen. Die als Untergrenze eingesetzte Dauer muss aus einer belegten Geschwindigkeitsobergrenze stammen; eine bestehende Eilgang-Schätzung darf nicht allein durch Umbenennen zur bewiesenen Mindestdauer werden.
+
+### VP122-03 · P1 · Rest: Geometrischer Kontaktpunkt und gemeldeter Probe-Punkt sind nicht dieselbe Größe
+
+Der Hüllweg löst die zuvor fehlende Fortführung des Rückzugsbereichs: Für Q ∈ [P−h, P] liegt auch Q+r in [P−h, P+r]. Die neue Formel berücksichtigt `OFFSET_AV_RATIO`; die Prüfung als Schranke statt als genauer Einzelweg sowie die vorgezogene Messreihe sind angenommen. **Offen bleibt die Grundlage P und damit die Rückkehr zu einer wieder bekannten Bahn.**
+
+F4 begründet die Ausnahme für unbekannte Ketten mit „P hängt nicht vom Bremsen ab“. Das trennt noch nicht **geometrischen Kontakt**, **Erkennen des Signals** und **Stillstand**. LinuxCNC speichert beim Erkennen des Probe-Signals die dann gemeldete Rückmeldeposition und leitet danach den Abbruch ein. Eine Verzögerung vor `motion.probe-input` verschiebt daher auch den gespeicherten Messpunkt. [LinuxCNC 2.9.4, `process_probe_inputs`](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/control.c#L678-L710).
+
+Analytische Gegenprobe mit WCS/G92 = 0: Plattenhöhe −300, Tabellenlänge 60, geometrisches P = −240. Bei langsamem F600 und 100 ms zusätzlicher Eingangsverzögerung ist der gemeldete Punkt −241. Die **vorhandene** Längenformel in −170 macht daraus **59 statt 60**, und −180/−190 übernehmen das mit `G10 L1`/`G43`. Nach `G53 G1 Z0` stehen zwar beide Kontrollpunkte bei Maschinen-Z0; beim folgenden Programm-Z−100 fährt die Steuerung aber nach Maschinen-Z−41 statt der vorhergesagten −40. Beide Ziele liegen im XYZAC-Verfahrbereich. Ein ausreichender Rückzug erlaubt dabei einen erfolgreichen Messablauf: Der Unterschied ist nicht durch „das Programm hält vorher an“ ausgeschlossen. Das Beispiel ist gerechnet, nicht live gemessen.
+
+**Erforderlich:** Geometrisches P, gemeldetes P und Q im Vertrag getrennt benennen. Für die zugelassene Kette die verbleibende Signal-/Messpunktabweichung und ihre Verwendung bei `#5063`, Werkzeuglänge und Folgespur festlegen. Bei unbekannter Kette ist „nur unter P ungeprüft, der Rest wieder bekannt“ nicht begründet. Ein absolutes Z-Ziel stellt die Maschinenposition wieder her, aber weder eine unbekannte Werkzeuglänge noch andere aus dem Messpunkt abgeleitete Werte.
+
+Ein engerer Schnitt ist möglich, **wenn die Gültigkeit des Messpunkts und der daraus gebildeten Werkzeugbasis unabhängig belegt ist und ausschließlich das anschließende Bremsen unbekannt bleibt**. Ohne diesen Nachweis bleibt die Folgebahn abhängig von einer unbestätigten Messannahme. Man darf sie als solche zur Orientierung zeigen, aber nicht nur die Tiefe unter P als unzertifiziert markieren und den Rest wieder als abgesichert behandeln. Auch der bereits in R122 genannte Ausschluss zusätzlicher aktiver externer Offsetbewegungen fehlt noch in F3/F4: Die Berücksichtigung der reservierten Beschleunigung allein begrenzt keine solche zusätzliche Bewegung.
+
+### VP122-04 · P1 · Rest: Die Topologie allein belegt das Tastermodell nicht
+
+Die Prüfung von Treiber, Positionsleitungen und Thread ist eine sinnvolle Ergänzung. Die tatsächliche Komponente liest jedoch außerdem `plate-x/y/z`, `radius`, `tool-length`, `enable` und `manual`; ihr Ausgang ist `contact || manual`. Diese Größen bzw. ihre Versorgung kommen im Zulassungsvertrag nicht vor.
+
+Die isoliert ausgeführte **Originalfunktion** belegt bei unveränderter Verdrahtung und gleichem vorgesehenem Thread:
+
+- Mit Platten-Z−300 und Werkzeuglänge 60 löst sie bei P = −240 aus.
+- Mit Platten-Z−310 löst sie weder bei diesem P noch am geplanten Hüllenende **−242,84** aus, sondern erst bei **−250**. Alle drei genannten Topologiebedingungen bleiben erfüllbar.
+- Bei `enable = false` bleibt sie selbst am beispielhaften programmierten Probe-Ende −390 aus. Dann kann die reale schnelle G38.3 bis zum Ende fahren und erst danach den Fehler-/Wiederholungszweig erreichen. Sie fährt also nicht lediglich einen kürzeren Teil des dargestellten Erfolgswegs.
+- Der manuelle Eingang kann oberhalb des angenommenen Kontaktpunkts auslösen.
+
+**Erforderliche Ergänzung:** Die Zulassung muss die Modellvoraussetzungen für die konkrete Messung abdecken: physische Platte und Fenster passend zur programmierten Antastposition, nachvollziehbare Werkzeuglängen-/Enable-Versorgung und Umgang mit dem manuellen Eingang. Dabei zukünftige Werkzeugwechsel berücksichtigen; ein momentaner Pinwert allein ist kein Nachweis für jedes spätere M600. „Ausgelieferte Komponente“ braucht eine benannte Vertrauensgrundlage, nicht bloß einen gleichlautenden Namen.
+
+Außerdem die **Gültigkeitsdauer** an Parse-/Prüfbasis binden: Erneutes Lesen nur bei Parse-Start erfasst eine Änderung nach Veröffentlichung erst beim nächsten Parse. Eine geänderte Modellvoraussetzung muss die Zulassung entziehen bzw. eine neue Prüfung erfordern; alternativ die während der Prüfung vorausgesetzte Unveränderlichkeit ausdrücklich als Betriebsgrenze festlegen. Die einmalige Thread-Abfrage darf eine zwischenzeitlich geänderte Einordnung nicht als frisch geprüft ausgeben.
+
+Negative Wächter zusätzlich zur Entprellkomponente: gleiche Topologie mit anderer Plattenhöhe, nicht belegter Versorgung/manuellem Auslösen sowie eine Modelländerung nach Veröffentlichung. Diese Fälle dürfen keine zertifizierte Hülle um das alte P liefern.
+
+### Antworten auf die drei Fragen
+
+1. **Die F4-Ausnahme ist so nicht angenommen**, aus VP122-03/04. Die nützliche Trennung ist „Messpunkt bekannt, nur Bremsende unbekannt“ gegenüber „auch Messpunkt/Werkzeugbasis unbekannt“. Erst im ersten Fall lässt sich die Positionsunsicherheit durch eine geeignete absolute Bewegung beenden. Für den zweiten Fall ist eine sichtbar bedingte Folgevorschau möglich; ihre Abhängigkeit muss am Ergebnis erhalten bleiben.
+2. **„Possible“ als eigener Eintrag ist richtig.** Mit Paar, Aufrufzeile und Bereich kann der Benutzer den Fund untersuchen; eine bloße Notiz wäre schlechter zuzuordnen. Die Kennzeichnung muss bei Zusammenführung, Filtern, Navigation und Code-Marken erhalten bleiben. Ein nur möglicher Kontakt darf keine spätere sichere Trennung oder statische Ausschlussentscheidung vortäuschen. Fälle, in denen derselbe Kontakt anschließend außerhalb der Hülle sicher festgestellt wird, gehören in die Umsetzungstests.
+3. **Keine zusätzliche Genauigkeitsgrenze für eine bewiesene Hülle erforderlich.** Breite und Überschuss gegenüber der Messung gehören in den Bericht. Wahrheit → Hülle und die getrennt ausgewiesene ausgelassene Rückrichtung sind als neues Gate angenommen; es muss als **Abdeckungsnachweis**, nicht als unveränderte beidseitige Weggleichheit erscheinen. Außerhalb der markierten Bereiche bleibt der beidseitige Vergleich bei 0,5 bestehen. Mutationstests sollten fehlende Hüllenabdeckung und eine über das Bereichsende hinauslaufende Markierung erkennen. Eine unbrauchbar breite Hülle kann später als Qualitätsproblem bewertet werden; sie darf nicht zur Verbesserung der Anzeige unter die erforderliche Schranke gekappt werden.
+
+**Weitere übernommene Punkte angenommen:** unmittelbare Kopie der beobachteten Startbasis samt Stillstands-/Vollständigkeitsbedingungen; Vorrang dauerhafter Unbekanntheit bei RETURN; konservative Behandlung abweichender G28/G30-Folgen; K = n für vollständig startabhängige Wege. Für F muss die gemeinsame Hülle beide Antastungen einschließen, auch falls der konfigurierte „langsame“ Vorschub größer als der schnelle ist; sonst diesen Fall ausdrücklich ausnehmen.
+
+[Quellhashes](viewer-palette-fest.r123.codex-sources.json), [Archivkontext](viewer-palette-fest.r123.codex-context.json). Keine Produktänderung, keine Live-Ports oder Maschinenbefehle, kein Suite-Stopp. F6 nicht ausgeführt; keine neue Parity-Abnahme, keine erneuten Browser-/Backend-Gesamtgates für diese reine Planrunde.

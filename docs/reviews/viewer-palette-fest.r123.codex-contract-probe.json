@@ -1,0 +1,94 @@
+{
+  "rdp": {
+    "before": [
+      0,
+      3
+    ],
+    "mask_anchors": [
+      0,
+      1,
+      2
+    ],
+    "after": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "corrected": [
+      [
+        100.0,
+        100.0,
+        0.0
+      ],
+      [
+        0.0,
+        100.0,
+        0.0
+      ],
+      [
+        0.0,
+        0.0,
+        0.0
+      ],
+      [
+        10.0,
+        0.0,
+        0.0
+      ]
+    ],
+    "constant_mask_1001_points": [
+      0,
+      1000
+    ],
+    "translation_preserves_kept_indices": true
+  },
+  "pure_component": {
+    "source": "examples/sim_config/sim_toolsetter/sim_toolsetter.comp",
+    "source_sha256": "ca0580ff55d914f2fc4292707c803785e0420d5c67c0e396178872e5b96715a7",
+    "cases": {
+      "nominal_at_P": 1,
+      "lowered_plate_at_P": 0,
+      "lowered_plate_at_band_bottom": 0,
+      "lowered_plate_at_its_trip": 1,
+      "disabled_at_P": 0,
+      "disabled_at_programmed_end": 0,
+      "manual_above_P": 1
+    },
+    "planned_P": -240.0,
+    "planned_band_bottom": -242.84444444444443,
+    "lowered_plate_trip": -250
+  },
+  "analytic_only": {
+    "input_delay": {
+      "slow_feed_mm_min": 600,
+      "extra_delay_s": 0.1,
+      "geometric_P": -240.0,
+      "latched_P": -241.0,
+      "preview_length": 60.0,
+      "latched_length": 59.0,
+      "later_move_after_G53_Z0": {
+        "commanded_program_z": -100,
+        "preview_control_point_z": -40.0,
+        "delayed_input_control_point_z": -41.0,
+        "difference_mm": 1.0
+      }
+    },
+    "bounded_retract": {
+      "band": [
+        -2.844444444444445,
+        3.0
+      ],
+      "stops_checked": 101,
+      "contained": true
+    },
+    "first_G1_wire_requires_F_in_rapid_or_common_stream": {
+      "rapid_dep_basis": [
+        2
+      ],
+      "feed_dep_basis": [],
+      "feed_dep_f": []
+    }
+  },
+  "limits": "Pure component function, RDP and analytic plan examples only; no controller or trajectory planner executed."
+}
