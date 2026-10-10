@@ -9120,3 +9120,18 @@ operator sees — its own contract, offered, not built.
 index 0 there keeps the loaded tool. The tool number is the spindle pocket's id after
 StatMixin's change in every case, an empty pocket 0.
 
+**Codex R119, VP-I73 rest.** The read-back check compared the names of the HAL files
+and the kinematics keys; a local `core_sim_5.hal` that sources a hardware file under
+its shipped name, or an extra `HALCMD`, passed. The target check now holds the whole
+INI to the shipped template as the installer renders it (`render_ini`; only
+config_sync_check's per-install lines may differ — so an extra HALCMD, a Python
+remap, another kinematics differ) and every file its HAL runs — HALFILE,
+POSTGUI_HALFILE, SHUTDOWN, each file one of them or a HALCMD `source`s, a script a
+`loadusr` starts — to the shipped file of that path (a file linked back into the
+checkout is the template by construction; the installer writes the TWP helper's
+`loadusr` path into the checkout). The helper refuses unknown customizations
+instead of classifying a configuration; it runs from the checkout the installation
+points to, like the live gate. Tests on a complete installed copy (rendered INI,
+hallib copied or linked): Codex's two cases, a changed sourced file under an
+unchanged top-level file, a machine HAL in place of a shipped one.
+
