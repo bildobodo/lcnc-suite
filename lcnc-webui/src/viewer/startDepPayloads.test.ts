@@ -141,6 +141,40 @@ describe("bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whol
     expect(sweep(sliceTrack(z.e, 0, K + 2), [50, 100, 0], raw).hits).toHaveLength(0);
   });
 
+  it("the base sweep's first pose is point K, never the assumed start", () => {
+    // G0 X10 / G0 Y20 Z-5 / G0 Y0 Z0: the first point stands where the parse
+    // ASSUMED the start (Y, Z still the start's), point K is the first known
+    // one. A bar the head touches at rest and at that assumed point, but not
+    // at K: taken at the first pose it would read as a mechanical neighbour
+    // (touching at the first pose and at rest) and leave the sweep — and L4,
+    // which really drives into it, would never be reported
+    const { raw, track } = load("e_base_first");
+    expect(track.depEnd).toBe(1);
+    expect(pts(track)).toEqual([[10, 0, 0], [10, 20, -5], [10, 0, 0]]);
+    const g = new THREE.BoxGeometry(14, 2, 2).toNonIndexed();
+    const bar = new Float32Array(g.getAttribute("position").array);
+    g.dispose();
+    const m = buildCollisionModel(MACHINE, [{ id: "bar", group: "table", positions: bar, translate: [5, 0, 0] },
+                                            { id: "head", group: "head", positions: cube() }]);
+    const base = sweepCollisions(m, { ...track, wcs: track.wcsEpoch }, wcsOf(raw), { margin: 0.1 });
+    expect(base.staticContacts).toHaveLength(0);
+    expect(base.hits.some(h => h.line === 4)).toBe(true);
+  });
+
+  it("writes in a beginning the text cannot place are named, on the base and on the bound track", () => {
+    // R132 point 8 (start_writes_untracked): the base names it at its
+    // beginning, a bound track (a side sweep) in its notes
+    const { raw, track, e } = entry("e_single", [0, 0, 0]);
+    const opts = { margin: 0.1, startWritesUntracked: true };
+    const base = sweepCollisions(model([500, 0, 0]), { ...track, wcs: track.wcsEpoch }, wcsOf(raw), opts);
+    expect(base.startDependent).toEqual({ fromLine: 2, toLine: 4, whole: false, untracked: true });
+    const side = sweepCollisions(model([500, 0, 0]), { ...e, wcs: e.wcsEpoch }, wcsOf(raw), opts);
+    expect(side.uncertified).toMatch(/in the program's start-dependent beginning, offsets and stored positions written in subroutines, loops or called files are not tracked/);
+    // without the flag: nothing of it
+    const plain = sweepCollisions(model([500, 0, 0]), { ...track, wcs: track.wcsEpoch }, wcsOf(raw), { margin: 0.1 });
+    expect(plain.startDependent?.untracked).toBeUndefined();
+  });
+
   it("a G43 and a fixture switch inside the beginning stay relabels, with no time", () => {
     const { track, e } = entry("e_g43_fixture", [7, 8, 9]);
     expect(Array.from(track.depBrk!.subarray(0, 3))).toEqual([1, 1, 0]);

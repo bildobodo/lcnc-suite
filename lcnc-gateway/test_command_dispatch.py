@@ -9,6 +9,7 @@ off-machine. Requires the gateway venv (fastapi/msgspec are real deps):
 import asyncio
 import os
 import unittest
+import unittest.mock
 from pathlib import Path
 from types import SimpleNamespace
 

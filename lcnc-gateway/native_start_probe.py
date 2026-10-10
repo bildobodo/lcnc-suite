@@ -619,6 +619,8 @@ CASES.update({
     "e_g53_rdp": _E("G21 G90\nG53 G0 Z0\nG0 X0\nG0 Y0\nG0 X10\nM2\n"),
     # 2
     "e_single": _E("G21 G90\nG0 X10\nG0 Y20\nG1 Z-5 F100\nM2\n"),
+    # the base sweep's first pose: K, a move after it
+    "e_base_first": _E("G21 G90\nG0 X10\nG0 Y20 Z-5\nG0 Y0 Z0\nM2\n"),
     # 3: a turned fixture — X/Y unknown at the first move, Z still dependent
     "e_rotated": _E("G21 G90\nG10 L2 P1 R30\nG0 X5 Y5\nG0 Z5\nM2\n"),
     # 4

@@ -20,7 +20,8 @@ ROOT = Path(__file__).resolve().parent.parent
 GATEWAY = ROOT / "lcnc-gateway"
 OUT = ROOT / "scripts/test_fixtures/start_dep_payloads"
 CASES = ("e_g53_rdp", "e_single", "e_g91", "e_g43_fixture", "e_time_a", "e_time_b", "e_first_g1",
-         "e_g93", "e_g93_limits", "e_all_dep", "e_m600_return", "e_arc_dep", "e_read_dep", "e_g0x0")
+         "e_g93", "e_g93_limits", "e_all_dep", "e_m600_return", "e_arc_dep", "e_read_dep", "e_g0x0",
+         "e_base_first")
 
 
 def main():
