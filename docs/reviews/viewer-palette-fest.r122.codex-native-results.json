@@ -1,0 +1,1831 @@
+[
+  {
+    "case": "e_g53_prefix",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/docs/reviews/viewer-palette-fest.r122.native-flags.py",
+      "e_g53_prefix"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [5], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [[0.0, 0.0, -10.0]], \"rapid\": [[0.0, 0.0, 0.0], [0.0, 5.0, 0.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [0], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 4], \"rapid_seq\": [1, 3], \"rapid_tcum\": [0.0, 0.5], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [4], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [6.7082037925720215], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"3c12451d56e8b424611c62eae0c35addc8bc8b6689ec73a3426acc4af5b59284\", \"digest_without_stats\": \"21306b852b843d9d990dfea552e793b1cd6e3f52779b96b07f7b0f6db9725c3c\"}\n__FLAGS__ [{\"kind\": \"straight_traverse\", \"line\": 2, \"args\": [0.0, 0.0, 0.0], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 2, \"g_modes\": [530, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 3, \"args\": [0.0, 0.0, 0.0], \"x_flag\": true, \"y_flag\": false, \"z_flag\": false, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 3, \"g_modes\": [-1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 4, \"args\": [0.0, 0.1969, 0.0], \"x_flag\": false, \"y_flag\": true, \"z_flag\": false, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 4, \"g_modes\": [-1, 0, -1, 910, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"1\", \"call_level\": 0}, {\"kind\": \"straight_feed\", \"line\": 5, \"args\": [0.0, 0.0, -0.3937], \"x_flag\": true, \"y_flag\": true, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 10, \"line_number\": 5, \"g_modes\": [-1, 10, -1, 900, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}]\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [
+          5
+        ],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [
+          [
+            0.0,
+            0.0,
+            -10.0
+          ]
+        ],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            5.0,
+            0.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [
+          0
+        ],
+        "rapid_outside": [
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2,
+          4
+        ],
+        "rapid_seq": [
+          1,
+          3
+        ],
+        "rapid_tcum": [
+          0.0,
+          0.5
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "feed_seq": [
+          4
+        ],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [
+          6.7082037925720215
+        ],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "3c12451d56e8b424611c62eae0c35addc8bc8b6689ec73a3426acc4af5b59284",
+        "digest_without_stats": "21306b852b843d9d990dfea552e793b1cd6e3f52779b96b07f7b0f6db9725c3c"
+      },
+      [
+        {
+          "kind": "straight_traverse",
+          "line": 2,
+          "args": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 2,
+          "g_modes": [
+            530,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 3,
+          "args": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "x_flag": true,
+          "y_flag": false,
+          "z_flag": false,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 3,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 4,
+          "args": [
+            0.0,
+            0.1969,
+            0.0
+          ],
+          "x_flag": false,
+          "y_flag": true,
+          "z_flag": false,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 4,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            910,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "1",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_feed",
+          "line": 5,
+          "args": [
+            0.0,
+            0.0,
+            -0.3937
+          ],
+          "x_flag": true,
+          "y_flag": true,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 10,
+          "line_number": 5,
+          "g_modes": [
+            -1,
+            10,
+            -1,
+            900,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        }
+      ]
+    ]
+  },
+  {
+    "case": "e_g30_forms",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/docs/reviews/viewer-palette-fest.r122.native-flags.py",
+      "e_g30_forms"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[11.0, 22.0, 33.0], [100.0, 200.0, 300.0], [11.0, 22.0, 33.0], [11.0, 22.0, 400.0], [11.0, 22.0, 300.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [{\"line\": 3, \"axis\": \"Z\", \"value\": 300.0, \"limit\": 50.0, \"kind\": \"max\"}, {\"line\": 5, \"axis\": \"Z\", \"value\": 300.0, \"limit\": 50.0, \"kind\": \"max\"}, {\"line\": 8, \"axis\": \"Z\", \"value\": 400.0, \"limit\": 50.0, \"kind\": \"max\"}], \"violations_total\": 3, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 1, 0, 1, 1], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 3, 4, 8, 8], \"rapid_seq\": [1, 3, 4, 8, 9], \"rapid_tcum\": [0.0, 33.300750732421875, 66.60150146484375, 156.70150756835938, 166.70150756835938], \"rapid_brk\": null, \"rapid_ustart\": [1, 0, 0, 0, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"7b0f99894360d6495be8e5da1b586a71a6b16db2a3b9d213aa39695e6037d361\", \"digest_without_stats\": \"3169f4b18366b66b3b4c68d554bca1a87ae3ef500638c56aa1ca1f645bfd5ca7\"}\n__FLAGS__ [{\"kind\": \"straight_traverse\", \"line\": 2, \"args\": [0.4331, 0.8661, 1.2992], \"x_flag\": true, \"y_flag\": true, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 2, \"g_modes\": [-1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 3, \"args\": [0.4331, 0.8661, 1.2992], \"x_flag\": false, \"y_flag\": false, \"z_flag\": false, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 3, \"g_modes\": [300, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 3, \"args\": [3.937, 7.874, 11.811], \"x_flag\": false, \"y_flag\": false, \"z_flag\": false, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 3, \"g_modes\": [300, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 4, \"args\": [0.4331, 0.8661, 1.2992], \"x_flag\": true, \"y_flag\": true, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 4, \"g_modes\": [-1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 5, \"args\": [0.4331, 0.8661, 1.2992], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 5, \"g_modes\": [300, -1, -1, 910, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"1\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 5, \"args\": [0.4331, 0.8661, 11.811], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 5, \"g_modes\": [300, -1, -1, 910, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"1\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 7, \"args\": [0.4331, 0.8661, 1.2992], \"x_flag\": true, \"y_flag\": true, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 7, \"g_modes\": [-1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 8, \"args\": [0.4331, 0.8661, 15.748], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 8, \"g_modes\": [300, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 8, \"args\": [0.4331, 0.8661, 11.811], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 8, \"g_modes\": [300, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}]\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            11.0,
+            22.0,
+            33.0
+          ],
+          [
+            100.0,
+            200.0,
+            300.0
+          ],
+          [
+            11.0,
+            22.0,
+            33.0
+          ],
+          [
+            11.0,
+            22.0,
+            400.0
+          ],
+          [
+            11.0,
+            22.0,
+            300.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [
+          {
+            "line": 3,
+            "axis": "Z",
+            "value": 300.0,
+            "limit": 50.0,
+            "kind": "max"
+          },
+          {
+            "line": 5,
+            "axis": "Z",
+            "value": 300.0,
+            "limit": 50.0,
+            "kind": "max"
+          },
+          {
+            "line": 8,
+            "axis": "Z",
+            "value": 400.0,
+            "limit": 50.0,
+            "kind": "max"
+          }
+        ],
+        "violations_total": 3,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          1,
+          0,
+          1,
+          1
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2,
+          3,
+          4,
+          8,
+          8
+        ],
+        "rapid_seq": [
+          1,
+          3,
+          4,
+          8,
+          9
+        ],
+        "rapid_tcum": [
+          0.0,
+          33.300750732421875,
+          66.60150146484375,
+          156.70150756835938,
+          166.70150756835938
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "feed_seq": [],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "7b0f99894360d6495be8e5da1b586a71a6b16db2a3b9d213aa39695e6037d361",
+        "digest_without_stats": "3169f4b18366b66b3b4c68d554bca1a87ae3ef500638c56aa1ca1f645bfd5ca7"
+      },
+      [
+        {
+          "kind": "straight_traverse",
+          "line": 2,
+          "args": [
+            0.4331,
+            0.8661,
+            1.2992
+          ],
+          "x_flag": true,
+          "y_flag": true,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 2,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 3,
+          "args": [
+            0.4331,
+            0.8661,
+            1.2992
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": false,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 3,
+          "g_modes": [
+            300,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 3,
+          "args": [
+            3.937,
+            7.874,
+            11.811
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": false,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 3,
+          "g_modes": [
+            300,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 4,
+          "args": [
+            0.4331,
+            0.8661,
+            1.2992
+          ],
+          "x_flag": true,
+          "y_flag": true,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 4,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 5,
+          "args": [
+            0.4331,
+            0.8661,
+            1.2992
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 5,
+          "g_modes": [
+            300,
+            -1,
+            -1,
+            910,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "1",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 5,
+          "args": [
+            0.4331,
+            0.8661,
+            11.811
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 5,
+          "g_modes": [
+            300,
+            -1,
+            -1,
+            910,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "1",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 7,
+          "args": [
+            0.4331,
+            0.8661,
+            1.2992
+          ],
+          "x_flag": true,
+          "y_flag": true,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 7,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 8,
+          "args": [
+            0.4331,
+            0.8661,
+            15.748
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 8,
+          "g_modes": [
+            300,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 8,
+          "args": [
+            0.4331,
+            0.8661,
+            11.811
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 8,
+          "g_modes": [
+            300,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        }
+      ]
+    ]
+  },
+  {
+    "case": "e_g28_g91",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/docs/reviews/viewer-palette-fest.r122.native-flags.py",
+      "e_g28_g91"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[11.0, 22.0, 33.0], [11.0, 22.0, 3.0], [1.0, 2.0, 3.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 3, 5], \"rapid_seq\": [1, 3, 5], \"rapid_tcum\": [0.0, 3.0, 5.236067771911621], \"rapid_brk\": null, \"rapid_ustart\": [1, 0, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"d640376535cb57b734a81f976a5d89fa37a80b32ade1e2d9f4e8375e7bb853ec\", \"digest_without_stats\": \"ffb4963eaacad17a85a1ac5320ccd3a24345e54a4f8e2d276cc0dbc4391d6bde\"}\n__FLAGS__ [{\"kind\": \"straight_traverse\", \"line\": 2, \"args\": [0.4331, 0.8661, 1.2992], \"x_flag\": true, \"y_flag\": true, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 2, \"g_modes\": [-1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 3, \"args\": [0.4331, 0.8661, 1.2992], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 3, \"g_modes\": [280, -1, -1, 910, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"1\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 3, \"args\": [0.4331, 0.8661, 0.1181], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 3, \"g_modes\": [280, -1, -1, 910, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"1\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 5, \"args\": [0.4331, 0.8661, 0.1181], \"x_flag\": false, \"y_flag\": false, \"z_flag\": false, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 5, \"g_modes\": [280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 5, \"args\": [0.0394, 0.0787, 0.1181], \"x_flag\": false, \"y_flag\": false, \"z_flag\": false, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": -1, \"line_number\": 5, \"g_modes\": [280, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}]\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            11.0,
+            22.0,
+            33.0
+          ],
+          [
+            11.0,
+            22.0,
+            3.0
+          ],
+          [
+            1.0,
+            2.0,
+            3.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2,
+          3,
+          5
+        ],
+        "rapid_seq": [
+          1,
+          3,
+          5
+        ],
+        "rapid_tcum": [
+          0.0,
+          3.0,
+          5.236067771911621
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1,
+          0,
+          0
+        ],
+        "feed_seq": [],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "d640376535cb57b734a81f976a5d89fa37a80b32ade1e2d9f4e8375e7bb853ec",
+        "digest_without_stats": "ffb4963eaacad17a85a1ac5320ccd3a24345e54a4f8e2d276cc0dbc4391d6bde"
+      },
+      [
+        {
+          "kind": "straight_traverse",
+          "line": 2,
+          "args": [
+            0.4331,
+            0.8661,
+            1.2992
+          ],
+          "x_flag": true,
+          "y_flag": true,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 2,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 3,
+          "args": [
+            0.4331,
+            0.8661,
+            1.2992
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 3,
+          "g_modes": [
+            280,
+            -1,
+            -1,
+            910,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "1",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 3,
+          "args": [
+            0.4331,
+            0.8661,
+            0.1181
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 3,
+          "g_modes": [
+            280,
+            -1,
+            -1,
+            910,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "1",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 5,
+          "args": [
+            0.4331,
+            0.8661,
+            0.1181
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": false,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 5,
+          "g_modes": [
+            280,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 5,
+          "args": [
+            0.0394,
+            0.0787,
+            0.1181
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": false,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": -1,
+          "line_number": 5,
+          "g_modes": [
+            280,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        }
+      ]
+    ]
+  },
+  {
+    "case": "e_sub",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/docs/reviews/viewer-palette-fest.r122.native-flags.py",
+      "e_sub"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": null}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[1.0, 2.0, 3.0], [1.0, 7.0, 3.0], [1.0, 7.0, 0.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 2, 3], \"rapid_seq\": [1, 2, 3], \"rapid_tcum\": [0.0, 0.5, 0.800000011920929], \"rapid_brk\": null, \"rapid_ustart\": [1, 0, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"397dc11cbd5c70948fb6b20ae7d3c0ca46b0becbecf246ed97b0b580038a7a9b\", \"digest_without_stats\": \"189be1ab508f9656530c0f7ec32771c5bc30e5aa74c1d668a04667fd414851fa\"}\n__FLAGS__ [{\"kind\": \"straight_traverse\", \"line\": 2, \"args\": [0.0394, 0.0787, 0.1181], \"x_flag\": true, \"y_flag\": true, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 2, \"g_modes\": [-1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 0}, {\"kind\": \"straight_traverse\", \"line\": 2, \"args\": [0.0394, 0.2756, 0.1181], \"x_flag\": false, \"y_flag\": true, \"z_flag\": false, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 2, \"g_modes\": [-1, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 1}, {\"kind\": \"straight_traverse\", \"line\": 3, \"args\": [0.0394, 0.2756, 0.0], \"x_flag\": false, \"y_flag\": false, \"z_flag\": true, \"a_flag\": false, \"c_flag\": false, \"motion_to_be\": 0, \"line_number\": 3, \"g_modes\": [530, 0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1], \"distance_mode\": \"0\", \"call_level\": 1}]\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": null
+        },
+        "feed_lines": [],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            1.0,
+            2.0,
+            3.0
+          ],
+          [
+            1.0,
+            7.0,
+            3.0
+          ],
+          [
+            1.0,
+            7.0,
+            0.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2,
+          2,
+          3
+        ],
+        "rapid_seq": [
+          1,
+          2,
+          3
+        ],
+        "rapid_tcum": [
+          0.0,
+          0.5,
+          0.800000011920929
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1,
+          0,
+          0
+        ],
+        "feed_seq": [],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "397dc11cbd5c70948fb6b20ae7d3c0ca46b0becbecf246ed97b0b580038a7a9b",
+        "digest_without_stats": "189be1ab508f9656530c0f7ec32771c5bc30e5aa74c1d668a04667fd414851fa"
+      },
+      [
+        {
+          "kind": "straight_traverse",
+          "line": 2,
+          "args": [
+            0.0394,
+            0.0787,
+            0.1181
+          ],
+          "x_flag": true,
+          "y_flag": true,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 2,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 0
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 2,
+          "args": [
+            0.0394,
+            0.2756,
+            0.1181
+          ],
+          "x_flag": false,
+          "y_flag": true,
+          "z_flag": false,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 2,
+          "g_modes": [
+            -1,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 1
+        },
+        {
+          "kind": "straight_traverse",
+          "line": 3,
+          "args": [
+            0.0394,
+            0.2756,
+            0.0
+          ],
+          "x_flag": false,
+          "y_flag": false,
+          "z_flag": true,
+          "a_flag": false,
+          "c_flag": false,
+          "motion_to_be": 0,
+          "line_number": 3,
+          "g_modes": [
+            530,
+            0,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1,
+            -1
+          ],
+          "distance_mode": "0",
+          "call_level": 1
+        }
+      ]
+    ]
+  },
+  {
+    "case": "r122_feed_f100",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/r122.native.py",
+      "r122_feed_f100"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [3, 4], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], \"rapid\": [[0.0, 0.0, 0.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [0, 0], \"rapid_outside\": [0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2], \"rapid_seq\": [1], \"rapid_tcum\": [0.0], \"rapid_brk\": null, \"rapid_ustart\": [1], \"feed_seq\": [2, 3], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [0.0, 0.0], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"409c7c7e8fdb61caa4ce686dc4d481ea3eabd34228b2907636ba52e128c983b5\", \"digest_without_stats\": \"c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383\"}\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [
+          3,
+          4
+        ],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [
+          0,
+          0
+        ],
+        "rapid_outside": [
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2
+        ],
+        "rapid_seq": [
+          1
+        ],
+        "rapid_tcum": [
+          0.0
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1
+        ],
+        "feed_seq": [
+          2,
+          3
+        ],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [
+          0.0,
+          0.0
+        ],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "409c7c7e8fdb61caa4ce686dc4d481ea3eabd34228b2907636ba52e128c983b5",
+        "digest_without_stats": "c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383"
+      }
+    ]
+  },
+  {
+    "case": "r122_feed_f200",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/r122.native.py",
+      "r122_feed_f200"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [3, 4], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], \"rapid\": [[0.0, 0.0, 0.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [0, 0], \"rapid_outside\": [0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2], \"rapid_seq\": [1], \"rapid_tcum\": [0.0], \"rapid_brk\": null, \"rapid_ustart\": [1], \"feed_seq\": [2, 3], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [0.0, 0.0], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"eca4693c54a4ebd029552405f0314d1941f6a20517c16ce7f68004617b056e9f\", \"digest_without_stats\": \"c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383\"}\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [
+          3,
+          4
+        ],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [
+          0,
+          0
+        ],
+        "rapid_outside": [
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2
+        ],
+        "rapid_seq": [
+          1
+        ],
+        "rapid_tcum": [
+          0.0
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1
+        ],
+        "feed_seq": [
+          2,
+          3
+        ],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [
+          0.0,
+          0.0
+        ],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "eca4693c54a4ebd029552405f0314d1941f6a20517c16ce7f68004617b056e9f",
+        "digest_without_stats": "c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383"
+      }
+    ]
+  },
+  {
+    "case": "r122_rapid_corner",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/r122.native.py",
+      "r122_rapid_corner"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [], \"rapid\": [[0.0, 0.0, 0.0], [10.0, 0.0, 0.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [], \"rapid_outside\": [0, 0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2, 5], \"rapid_seq\": [1, 4], \"rapid_tcum\": [0.0, 1.0], \"rapid_brk\": null, \"rapid_ustart\": [1, 0], \"feed_seq\": [], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"abdeaac2c751f8e7a1c53988a6c54cdf3587f9e7c0d48e23cf50537fb3b46933\", \"digest_without_stats\": \"7a46836bff959371b9061153f1986958a2ceb61b0d9a6ef554aee8eeda58cef8\"}\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            10.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [],
+        "rapid_outside": [
+          0,
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2,
+          5
+        ],
+        "rapid_seq": [
+          1,
+          4
+        ],
+        "rapid_tcum": [
+          0.0,
+          1.0
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1,
+          0
+        ],
+        "feed_seq": [],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "abdeaac2c751f8e7a1c53988a6c54cdf3587f9e7c0d48e23cf50537fb3b46933",
+        "digest_without_stats": "7a46836bff959371b9061153f1986958a2ceb61b0d9a6ef554aee8eeda58cef8"
+      }
+    ]
+  },
+  {
+    "case": "r122_feed_mixed_a",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/r122.native.py",
+      "r122_feed_mixed_a"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [3, 4], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], \"rapid\": [[0.0, 0.0, 0.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [0, 0], \"rapid_outside\": [0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2], \"rapid_seq\": [1], \"rapid_tcum\": [0.0], \"rapid_brk\": null, \"rapid_ustart\": [1], \"feed_seq\": [2, 3], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [0.0, 0.0], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"bb1a2223f04ab1824ee7518f6f122ba7d47bbe0d658366e9c9504aeb14ae43f2\", \"digest_without_stats\": \"c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383\"}\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [
+          3,
+          4
+        ],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [
+          0,
+          0
+        ],
+        "rapid_outside": [
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2
+        ],
+        "rapid_seq": [
+          1
+        ],
+        "rapid_tcum": [
+          0.0
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1
+        ],
+        "feed_seq": [
+          2,
+          3
+        ],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [
+          0.0,
+          0.0
+        ],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "bb1a2223f04ab1824ee7518f6f122ba7d47bbe0d658366e9c9504aeb14ae43f2",
+        "digest_without_stats": "c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383"
+      }
+    ]
+  },
+  {
+    "case": "r122_feed_mixed_b",
+    "command": [
+      "nice",
+      "-n",
+      "19",
+      "/home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python",
+      "/tmp/codex-r122-xy729vat/r122.native.py",
+      "r122_feed_mixed_b"
+    ],
+    "returncode": 0,
+    "stdout": "{\"mmap_unchanged\": true, \"probe_unpredicted\": null, \"toollen_table\": null, \"feed_sub\": null, \"rapid_sub\": null, \"sub_names\": null, \"toolsetter_basis\": null, \"toolsetter_meta\": {\"routine\": false, \"writes\": []}, \"feed_lines\": [3, 4], \"tool_change_lines\": [], \"parse_error\": null, \"feed\": [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]], \"rapid\": [[0.0, 0.0, 0.0]], \"tlo_events\": null, \"parse_tlos\": [[1, 0.0, 0.0, 10.0, 6.0]], \"violations\": [], \"violations_total\": 0, \"violations_reason\": null, \"feed_outside\": [0, 0], \"rapid_outside\": [0], \"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_reason\": null, \"rapid_lines\": [2], \"rapid_seq\": [1], \"rapid_tcum\": [0.0], \"rapid_brk\": null, \"rapid_ustart\": [1], \"feed_seq\": [2, 3], \"stale_offset_lines\": null, \"stale_offset_untracked\": null, \"feed_tcum\": [0.0, 0.0], \"meta\": {\"start_known\": true, \"tlo_start\": [0.0, 0.0, 0.0], \"start_mode\": 490, \"start_reason\": null}, \"digest_without_start\": \"bb1a2223f04ab1824ee7518f6f122ba7d47bbe0d658366e9c9504aeb14ae43f2\", \"digest_without_stats\": \"c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383\"}\n",
+    "stderr": "",
+    "decoded": [
+      {
+        "mmap_unchanged": true,
+        "probe_unpredicted": null,
+        "toollen_table": null,
+        "feed_sub": null,
+        "rapid_sub": null,
+        "sub_names": null,
+        "toolsetter_basis": null,
+        "toolsetter_meta": {
+          "routine": false,
+          "writes": []
+        },
+        "feed_lines": [
+          3,
+          4
+        ],
+        "tool_change_lines": [],
+        "parse_error": null,
+        "feed": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "rapid": [
+          [
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "tlo_events": null,
+        "parse_tlos": [
+          [
+            1,
+            0.0,
+            0.0,
+            10.0,
+            6.0
+          ]
+        ],
+        "violations": [],
+        "violations_total": 0,
+        "violations_reason": null,
+        "feed_outside": [
+          0,
+          0
+        ],
+        "rapid_outside": [
+          0
+        ],
+        "start_known": true,
+        "tlo_start": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "start_reason": null,
+        "rapid_lines": [
+          2
+        ],
+        "rapid_seq": [
+          1
+        ],
+        "rapid_tcum": [
+          0.0
+        ],
+        "rapid_brk": null,
+        "rapid_ustart": [
+          1
+        ],
+        "feed_seq": [
+          2,
+          3
+        ],
+        "stale_offset_lines": null,
+        "stale_offset_untracked": null,
+        "feed_tcum": [
+          0.0,
+          0.0
+        ],
+        "meta": {
+          "start_known": true,
+          "tlo_start": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "start_mode": 490,
+          "start_reason": null
+        },
+        "digest_without_start": "bb1a2223f04ab1824ee7518f6f122ba7d47bbe0d658366e9c9504aeb14ae43f2",
+        "digest_without_stats": "c9aa6d5fdec0bca3eb8101393f25753e9181ebd216280f7a7313a82caccbd383"
+      }
+    ]
+  }
+]

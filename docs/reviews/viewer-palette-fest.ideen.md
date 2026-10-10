@@ -16332,3 +16332,77 @@ Nach R121 hat der Operator die Reihenfolge bestätigt: erst die beiden Verträge
 Vier Fragen stehen am Ende des Plans.
 
 **Weiter offen**, unverändert: Browser-Messung auf einem getrennten PC und ein vollständig grüner `serial-guards`-Lauf (der Makro-Hold-Test schwankt).
+
+
+## Review R122 · Codex · Verträge für Parity E/F, Fassung 1 · 10. Oktober 2026
+
+**Ergebnis: `findings`. Die Grundentscheidung für E ist angenommen; vor dem Bau bleiben vier Vertragspunkte VP122-01 bis VP122-04 offen.** Für F sind Auslösepunkt und Bremsende richtig getrennt. Die vorgeschlagene obere Schranke reicht jedoch noch nicht als Vertrag für den weitergerechneten Weg und dessen Parity-Abnahme.
+
+Geprüft: `6754232a..fd74f212`, Plan Fassung 1, die R118-Anforderungen und Claudes neue native Belege, in eigener Archivkopie. **Neun native Offline-Fälle ohne Parsefehler**, davon die vier gelieferten Fälle wiederholt und fünf eigene Gegenproben. Die privaten Werkzeugabbilder bleiben unverändert. Die Bremsrechnungen unten sind **analytische Vertragsprüfungen, keine Messungen an motion**. [Prüfaufbau und Quellen](viewer-palette-fest.r122.codex-checks.md), [native Ergebnisse](viewer-palette-fest.r122.codex-native-results.json), [Rechnungen](viewer-palette-fest.r122.codex-contract-checks.json).
+
+### VP122-01 · P1 · E2/E7/E8: Die Maske muss die Geometrie bereits vor der Vereinfachung schützen
+
+E führt eine Maske je Punkt ein, sagt aber noch nicht, welche Punkte die RDP-Vereinfachung erhalten muss. Eine in den angenommenen Koordinaten überflüssige Ecke kann nach der Startkorrektur einen echten Fahrweg begrenzen.
+
+Eigene native Gegenprobe:
+
+```gcode
+G21 G90
+G53 G0 Z0
+G0 X0
+G0 Y0
+G0 X10
+M2
+```
+
+Der heutige Worker liefert nur L2 und L5, `rapid_seq = [1,4]`. Bei Start `(100,100,0)` müssten nach E2 die Punkte `(100,100,0) → (0,100,0) → (0,0,0) → (10,0,0)` entstehen. Wenn erst die heute vereinfachte Nutzlast korrigiert wird, fehlen beide Zwischenpunkte; die erste fehlende Ecke liegt **74,33 mm** neben der Ersatzdiagonale. Die neue Maske allein bringt gelöschte Punkte nicht zurück.
+
+**Erforderliche Festlegung:** Abhängigkeitswechsel samt begrenzenden Punkten müssen die Vereinfachung überstehen, ebenso SAVE/RETURN und die Grenze zwischen `dep`, bekannt und unbekannt. Eine einfache erste Umsetzung darf den startabhängigen Abschnitt einschließlich seiner Übergänge ungekürzt übertragen. Auch die gezeichneten LODs dürfen später keine in den korrigierten Koordinaten relevante Ecke entfernen. Test über **Canon → Worker/RDP → Client-Korrektur → Track/Sweep**, mit Δ = 0 und Δ ≠ 0. Das Beispiel gehört zusätzlich zu E10, nicht nur die Prüfung von `x_flag` im Canon.
+
+### VP122-02 · P2 · E7/E8: Länge durch Dauer liefert bei Nullwegen keine Segmentrate
+
+E7 bestimmt die Rate aus angenommener Länge / angenommener Dauer. Beide können null sein, obwohl nach E5 eine Bewegung entsteht.
+
+Nativ geprüft: Nach `G53 G0 Z0` folgen `G1 X0 F100` und `G1 Y0 F200`. Eine zweite Variante vertauscht F100/F200. Beide erzeugen **dieselbe Nutzlast** (Digest ohne Dateiname/Startmetadaten identisch), mit zwei Feed-Punkten `(0,0,0)` und `feed_tcum = [0,0]`. Bei Start `(100,100,0)` betragen die konstanten Vorschubzeiten dagegen **60/30 s** beziehungsweise **30/60 s**. Aus dem Nutzlastquotienten `0/0` lässt sich das nicht rekonstruieren.
+
+**Erforderliche Festlegung:** Die tatsächliche Segmentart und ihre Zeitbasis müssen den ursprünglichen Nullweg überleben, etwa als Feedrate je Segment im betroffenen Abschnitt. Auch die erste Bewegung braucht ihre Art: Ein erstes G1 darf durch das Ergänzen des Starts nicht pauschal die Eilgangrate bekommen. Bei nicht unterstützter Zeitbasis die Zeit als unbekannt führen; kein stiller Ersatz durch null oder Rapid. Für diese Fälle sowie fehlende Raten und den ausdrücklich unterstützten Vorschubmodus einen Vertrag und Wächter ergänzen.
+
+### VP122-03 · P1 · F1–F6: Effektive Beschleunigung und die Rolle von Q sind noch nicht ausreichend festgelegt
+
+**Schon die Beschleunigungsbasis ist unvollständig:** Die mitgelieferte XYZAC-INI setzt unter `[AXIS_Z]` `MAX_ACCELERATION = 500`, `MAX_VELOCITY = 100` und **`OFFSET_AV_RATIO = 0.2`**. Für die normale Planung werden daraus 400 mm/s² und 80 mm/s; die Aufteilung hängt am konfigurierten Verhältnis, nicht erst an einer aktiven Offsetbewegung. [LinuxCNC-2.9-Dokumentation](https://www.linuxcnc.org/docs/2.9/html/motion/external-offsets.html#_ini_file_settings). Für den von F2 angenommenen Fall mit halber Beschleunigung ergibt die Formel bei F2000 einschließlich zwei Servotakten dann **2,84 mm statt 2,29 mm**. Das ist eine Rechnung aus den dokumentierten Grenzen, keine Behauptung über den tatsächlich gemessenen Halt. Sie zeigt aber, dass bereits die behauptete obere Schranke ihre effektive Beschleunigungsbasis nicht berücksichtigt. Diese Aufteilung und der Ausschluss zusätzlicher aktiver Offsetbewegungen gehören in F2/F4 und die Messfälle.
+
+F2 bezeichnet Q als tiefstmöglichen Stillstand, F3 setzt diesen Wert anschließend als den Start des relativen Rückzugs ein. F5 verlangt zugleich für jeden zugelassenen Fall weniger als 0,5 mm Überschätzung. Diese Genauigkeit folgt nicht aus der Schranke.
+
+Schon **unter den Annahmen des Plans** ergibt F2000 mit a = 500 bei voller statt halber Bremsbeschleunigung einen Unterschied von **1,11 mm**, F3000 mit a = 250 einen von **5 mm**. Die angesetzte gleiche Latenz ändert diese Differenz nicht. Ein kurzer Anlauf aus dem Stillstand verschärft den Abstand zum Modell mit vollem Vorschub. Die Fallunterscheidung der Beschleunigung steht tatsächlich in [`tcGetOverallMaxAccel`, LinuxCNC 2.9.4](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/tp/tc.c#L51-L63). Die Zahlen sind eine analytische Gegenprüfung der Planannahmen; sie ersetzen keine native Bremsmessung.
+
+Auch eine reine Hüllenaussage muss nach dem Bremsen fortgeführt werden: Aus Q ∈ [P−h, P] wird beim Rückzug ein Endpunkt in [P−h+r, P+r]. Nur ab P−h weiterzufahren bildet diese Menge nicht ab. Beispiel P=0, h=2,3, r=3: Der Modellrückzug endet bei 0,7; ein ebenfalls zulässiger Stillstand bei −0,2 führt bis 2,8. Das ist ein Gegenbeleg zur segmentweisen Hülle, **kein behaupteter Nachweis einer im vollständigen Routineweg verpassten Kollision**. Ebenso beweist `r ≤ h_max` nur eine fehlende Freigabegarantie, nicht, dass der reale Taster nach dem Rückzug zwingend noch ausgelöst ist.
+
+**Erforderliche Entscheidung vor dem Bau:**
+
+- Für einen einzelnen vorhergesagten Weg: eine präzise, zur Laufzeit prüfbare Zulassung, in der Q hinreichend genau ist. G61/G64, Anlauf, erreichbare Geschwindigkeit und das Ende des Tastwegs müssen darin vorkommen. Nicht bestandene F5-Fälle bekommen eine nachvollziehbare Zulassungsregel; „der gemessene Fall wird benannt“ allein entscheidet andere Eingaben noch nicht.
+- Alternativ: eine als solche geführte Brems-/Rückzugshülle mit fortgeführter Unsicherheit bis zur nächsten sicheren Position. Diese darf nicht als auf 0,5 mm übereinstimmender Einzelweg oder als sicher eingetretene Kollision ausgegeben werden.
+
+**Reihenfolge korrigieren:** Die Messreihe F5 bestimmt diesen Geltungsbereich und muss vor der endgültigen Parity-/Korpus-Abnahme liegen. Der Plan führt sie derzeit erst nach dem Korpus-Merge auf. Ein Vorversuch beim nächsten erlaubten Suite-Stopp kann die Entscheidung vorbereiten; kein Live-Stopp für dieses Review nötig. Die globale Toleranz 0,5 bleibt unverändert.
+
+### VP122-04 · P1 · F2–F4: Die Sim-Grenze muss eine prüfbare Zulassung sein
+
+F2 gilt ausdrücklich nur für den Sim-Signalweg. F3 liest dafür aber nur Achs-/Trajektoriengrenzen und `SERVO_PERIOD`; F4 lehnt fehlende oder ungültige Zahlen ab. Diese Werte unterscheiden eine Sim nicht von einer echten Steuerung mit denselben INI-Zahlen und zusätzlicher Eingangsverzögerung. Auch `#<_task> EQ 0` bezeichnet jeden Vorschau-Interpreter, nicht die Sim.
+
+Damit fehlt im Bauvertrag die Entscheidung, die auf einer nicht nachgewiesenen Signalkette **vor der Antastung** zum Grund `brake` führt. Schon zusätzliche 20 ms entsprechen bei F2000 rund 0,67 mm; die zwei Servotakte allein begrenzen eine unbekannte Kette nicht.
+
+**Erforderliche Festlegung:** Die Vorschau erhält oder ermittelt eine belastbare Kennung des zugelassenen Modells samt Parametern; unbekannte Herkunft wird nicht zugelassen. Festlegen, woher diese Kennung kommt und wie eine abweichende HAL-/Tasterkette aus dem Bereich fällt. Nur vorhandene Standard-INI-Werte oder ein ungesichertes „sim“-Namensmerkmal reichen dafür nicht. Dazu ein negativer Wächter: gleiche Achs-/TRAJ-/Servo-Werte, aber keine bestätigte Modellzulassung → unvorhergesagt. Die Festlegung „nur Routine, kein Worker-Kanal“ darf diese notwendige Information nicht ausschließen.
+
+### Antworten auf die vier Fragen
+
+1. **E4: alle Achsen bis zum Ende unbekannt beibehalten.** Eine Zeile ohne Verzweigung kann einen Parameter speichern, der erst später eine Achse oder den Programmfluss beeinflusst. Die kleine Ausnahme für die gebündelte Routine ist sinnvoll. SAVE/RETURN darf eine inzwischen dauerhafte Unbekannt-Markierung nicht aufheben; unbekannte bzw. nicht analysierbare Remap-Lesungen bleiben konservativ. Die Herkunft der Aufrufzeile wie bisher erhalten.
+2. **E5: ein Poll ist eine beobachtete Startbasis, keine atomare Controller-Startbestätigung.** Im bisherigen Betriebsmodell kann er die Basis liefern, wenn der Plan den erfolgreich beobachteten AUTO-/Stillstandszustand, vollständige endliche Gelenkwerte in bekannter Reihenfolge und eine unveränderliche Kopie aus diesem Poll verlangt. Die Kopie vor einem `await` ablegen oder nach vorbereitender I/O erneut pollen; `_begin_run_basis` wartet heute zwischen `STAT.poll()` und `_start_snapshot(STAT)` auf `program_source`. An genau den gesendeten Start binden, bei unvollständiger oder bewegter Aufnahme unverifiziert lassen. Die Jog-Verweigerung beim Moduswechsel allein beweist keine Unveränderlichkeit nach der Aufnahme. Fremde Befehlsgeber oder nicht beobachtete Bewegungen zwischen Aufnahme und Start sind als Grenze zu nennen, ohne neue Maschinenbefehle zur Absicherung einzuführen.
+3. **F2: vorerst keinen zusätzlichen Latenz-Regler.** Erst das geprüfte Sim-Modell zulassen, alles außerhalb wie VP122-04 erkennbar ungeprüft lassen. Ein einzelner `[DISPLAY]`-Wert würde weder die Herkunft noch die übrigen Modellannahmen belegen. Eine spätere Erweiterung sollte den gesamten nachgewiesenen Maschinen-/Tastervertrag tragen.
+4. **E: der begrenzte erste Umfang ist sinnvoll.** Bögen in einer abhängigen Ebene, Zyklen, TCP/TWP und gedrehte XY-Rahmen konservativ unbekannt zu führen, ist angenommen. Die Z-Ausnahme bei einer reinen XY-Drehung und eine konstante abhängige Z-Koordinate im XY-Bogen sind plausibel. Das Ende des Anfangs muss auch für einen vollständig startabhängigen Track und ein späteres Wiederauftauchen durch RETURN definiert sein; keine Ergänzung späterer M6-/Mess-Unbekanntheit aus Live-Koordinaten.
+
+### Angenommen und Prüfgrenzen
+
+Angenommen sind die getrennten Zustände `dep`/unbekannt, Achsworte statt Wertänderung, die eigene Behandlung der beiden G28/G30-Teilstücke, der Ausschluss positionsabhängiger Schreib-/Leseeffekte, die Bindung an eine Startbasis und P als Grundlage für `#5061…#5070` und Werkzeuglänge. Claudes vier native Fälle wurden bestätigt. Die Aussage zu zwei G28/G30-Rückrufen ist damit für diese geprüften Standardfälle belegt; unbekannte/abweichende Rückruffolgen dürfen die spätere Umsetzung nicht versehentlich als gespeicherte Lage einstufen.
+
+Belege: [eigene native Sonde](viewer-palette-fest.r122.codex-native.py), [neun Läufe](viewer-palette-fest.r122.codex-native-results.json), [prüfbare Rechnungen und Assertions](viewer-palette-fest.r122.codex-contract-checks.py), [Ergebnisse](viewer-palette-fest.r122.codex-contract-checks.json), [Quellhashes](viewer-palette-fest.r122.codex-sources.json), [Archivkontext](viewer-palette-fest.r122.codex-context.json).
+
+Keine Produktänderung, keine Live-Ports, keine Maschinenbefehle, kein Quittieren oder Suite-Stopp. Keine Browser-/Lasttests für diese Planrunde. F5 sowie die weiterhin offenen Browser-/`serial-guards`-Nachweise wurden nicht als erledigt gewertet.
