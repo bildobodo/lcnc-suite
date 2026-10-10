@@ -1,0 +1,15 @@
+{
+  "docs/reviews/parity-ef.plan.md": "87ae050d0ff8f31bc6d6b4e4513a3f0625ae82fb3375589a6592106f2f984394",
+  "docs/reviews/viewer-palette-fest.ideen.md": "832697bf031eb50bf4e82e63b5935f9be906928c4c5e25ff921bcfbf5a8a2a76",
+  "docs/reviews/m600-preview.plan.md": "e0a3aa3a1543f9b846eb04df108264378d53d7a4b6a6858d33223aca68e3c19e",
+  "lcnc-gateway/gcode_parse_worker.py": "8886a4cde310ed2ab59ef3b7421071838943ee50abbea8e530b3fffb1cc03456",
+  "lcnc-gateway/gateway_util.py": "66e3b50cffa862c1e7151479338d2761ae83f3ba41c2d720bfba1f74cbf2bc5b",
+  "subroutines/tool_length_probe/tool_touch_off.ngc": "6106febe3194c5b8d5a4fcce0d5bb3f2535d96f95a7316a51c0c130e6208be04",
+  "examples/sim_config/sim_toolsetter/sim_toolsetter.comp": "ca0580ff55d914f2fc4292707c803785e0420d5c67c0e396178872e5b96715a7",
+  "examples/sim_config/sim_toolsetter/sim_toolsetter_feed.py": "33cd640750fe66d3f8dea15337394a55f5495de1634f1c08122849971a9ff985",
+  "examples/sim_config/hallib/sim_toolsetter.hal": "ad564a4e38672726dfbab34841e4a9ced85aaffadcc47b52187c406030624211",
+  "examples/sim_config/hallib/core_sim_5.hal": "0ead9626947007686682f0da79637769a48205708c65482b1f261770f7a6fb5a",
+  "examples/sim_config/hallib/lcnc_webui.hal": "ae989d84fbd7cd7183dc167f6cd36b6d9ad93fb93df3df4f9dcb76ae0a4ae1d5",
+  "examples/sim_config/lcnc_suite_sim_5axis_xyzac.ini": "623b1f0a14c52a71cb250c25c7213d9892408b2cdab971b398d8a2d254d95288",
+  "scripts/sim_parity.py": "ea87c45c65d4a79a00ddeebe3e87dfea5b1edbbf8eedfb9f555c5a54bcec7fec"
+}
