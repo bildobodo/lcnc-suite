@@ -346,8 +346,18 @@ def parse(ctx: dict) -> dict:
                 canon.read_from_start = True
             canon.read_remaps = {r["name"]: _remap_env.reads(k) for k, r in _remap_env.remaps.items()
                                  if _remap_env.reads(k) is None or _remap_env.reads(k)}
+            # Writes FROM the position the canon does not see (Codex R133
+            # VP-I88): out of text order the program's own lines too (an
+            # inline sub's G30.1, a branch), in any order the bodies its
+            # remapped codes and o-calls run. X, Y, Z depend on the start
+            # from the program's first line, so such a write MAY store the
+            # start's position wherever it runs — named whenever it exists,
+            # never from a mask (existence, not timing).
+            canon.start_writes_untracked = bool(
+                _remap_env.pos_writes(_rtext, own=canon.write_lines is None or canon.write_mode != "ordered"))
         except OSError as e:
             canon.read_from_start = True
+            canon.start_writes_untracked = True
             _trace.emit_exc("gcode.read_scan_failed", e)
     canon._read_setup = _setup_reads
     # The tool state the program STARTS with (VP-I20, Codex R51–R57): the
@@ -1550,13 +1560,14 @@ def parse(ctx: dict) -> dict:
               # The beginning untracked: the interpreter's words were not
               # available (Codex R132 VP-I80) — X, Y, Z unknown from the start.
               **({"start_dep_unavailable": canon.start_dep_unavailable} if canon.start_dep_unavailable else {}),
+              # X, Y, Z unknown at the program's first point (Codex R133
+              # VP-I84): no start can be bound there — no entry move.
+              **({"start_unbound": list(canon.start_unbound)} if canon.start_unbound else {}),
               # ...and a beginning whose writes the text cannot place (o-words,
               # M98, an unreadable file): offsets or stored positions written
               # from the start's position there are not tracked (Codex R132,
               # the R132 table's point 8) — named, never assumed.
-              **({"start_writes_untracked": True}
-                 if any(a for _b, a in canon.dep_seg.values())
-                 and (canon.write_lines is None or canon.write_mode != "ordered") else {}),
+              **({"start_writes_untracked": True} if canon.start_writes_untracked else {}),
               # Lines whose position READ made every axis unknown to the end
               # (parity-ef plan E4; 0 = the text out of order may read
               # anywhere, from the program's start).

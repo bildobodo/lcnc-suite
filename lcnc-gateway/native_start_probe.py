@@ -619,6 +619,34 @@ CASES.update({
     "e_g53_rdp": _E("G21 G90\nG53 G0 Z0\nG0 X0\nG0 Y0\nG0 X10\nM2\n"),
     # 2
     "e_single": _E("G21 G90\nG0 X10\nG0 Y20\nG1 Z-5 F100\nM2\n"),
+    # Codex R133's counterexamples (VP-I83..VP-I89), verbatim
+    "r133_first_g1_xyz": _E("G21 G90\nG1 X0 Y0 Z0 F100\nG1 X10\nM2\n"),
+    "r133_first_g1_x_control": _E("G21 G90\nG1 X0 F100\nG1 Y0 Z0\nG1 X10\nM2\n"),
+    "r133_g43_before_first": _E("G21 G90\nG43.1 Z10\nG0 X10\nG0 Y0 Z0\nM2\n"),
+    "r133_g43_after_first_control": _E("G21 G90\nG0 X10\nG43.1 Z10\nG0 Y0 Z0\nM2\n"),
+    "r133_g55_before_first": _E("G21 G90\nG10 L2 P2 X5 Y6 Z7\nG55\nG0 X10\nG0 Y0 Z0\nM2\n"),
+    "r133_m6_before_first": ("G21 G90\nM6\nG91 G0 X10\nG0 Y10\nM2\n", "mm", 0.0, (490,),
+                             {"emcio": "TOOL_CHANGE_POSITION = 50 50 50"}),
+    "r133_world_before_first": ("G21 G90\nG0 X10\nG0 Y10\nM2\n", "mm", 0.0, (490,), {"ctx": {"kins_type": 1}}),
+    "r133_g93_no_limits": _E("G21 G90 G93\nG1 X10 F2\nG1 Y10 F2\nM2\n"),
+    "r133_store_before_first_absolute": _E("G21 G90\no100 sub\nG30.1\no100 endsub\no100 call\nG0 X0 Y0 Z0\nG30\nM2\n"),
+    "r133_store_after_known_control": _E("G21 G90\no100 sub\nG30.1\no100 endsub\nG0 X0 Y0 Z0\no100 call\nG30\nM2\n"),
+    "r133_untracked_writes": _E("G21 G90\nG0 Z0\no100 sub\nG30.1\no100 endsub\no100 call\nG0 X10 Y0 Z0\nG0 X20\nM2\n"),
+    # a range that starts after K (VP-I87): moves enough after the beginning
+    "r133_range_after_k": _E("G21 G90\nG0 X10\nG0 Y0 Z0\nG0 X20\nG0 X30\nG0 X40\nM2\n"),
+    # a called file and a remap body that store the position: the flag, the
+    # file followed; the same file storing nothing: none
+    "r133_foreign_write": _E("G21 G90 G54\nG0 X0 Y0 Z100\no<sq> call\nM2\n",
+                             subs={"sq.ngc": "o<sq> sub\nG30.1\no<sq> endsub\nM2\n"}),
+    "r133_remap_write": _E("G21 G90\nG0 Z5\nM200\nG0 X0 Y0 Z0\nG28\nM2\n",
+                           rs274ngc="REMAP=M200 modalgroup=10 ngc=writer",
+                           subs={"writer.ngc": "o<writer> sub\nG28.1\no<writer> endsub\nM2\n"}),
+    "r133_remap_no_write": _E("G21 G90\nG0 Z5\nM200\nG0 X0 Y0 Z0\nM2\n",
+                              rs274ngc="REMAP=M200 modalgroup=10 ngc=mover",
+                              subs={"mover.ngc": "o<mover> sub\nG0 Z7\no<mover> endsub\nM2\n"}),
+    # an inline sub that writes nothing, and one that writes explicitly: no flag
+    "r133_inline_no_write": _E("G21 G90\no100 sub\nG0 Z5\no100 endsub\no100 call\nG0 X0 Y0 Z0\nM2\n"),
+    "r133_inline_explicit_write": _E("G21 G90\no100 sub\nG10 L2 P1 X1 Y2 Z3\no100 endsub\no100 call\nG0 X0 Y0 Z0\nM2\n"),
     # the base sweep's first pose: K, a move after it
     "e_base_first": _E("G21 G90\nG0 X10\nG0 Y20 Z-5\nG0 Y0 Z0\nM2\n"),
     # 3: a turned fixture — X/Y unknown at the first move, Z still dependent
@@ -907,6 +935,7 @@ print(json.dumps({
     "start_believed": out.get("start_believed"), "position_read_lines": out.get("position_read_lines"),
     "start_dep_unavailable": out.get("start_dep_unavailable"),
     "start_writes_untracked": out.get("start_writes_untracked"),
+    "start_unbound": out.get("start_unbound"),
     "feed_lines_all": u("feed_lines", "<u4"), "python_reads": [ln for ln in err.getvalue().splitlines()
                                                               if ln.startswith("python remap reads")],
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},

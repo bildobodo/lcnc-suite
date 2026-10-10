@@ -163,6 +163,15 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
     # Without the interpreter's words no block can be told to command an
     # axis (Codex R132 VP-I80): the beginning is unknown, said on the wire.
     start_dep_unavailable = None
+    # The worker's: a write FROM the position the canon cannot see may run
+    # in this program (Codex R133 VP-I88) — the start's position may be
+    # stored, the moves after the beginning may run elsewhere.
+    start_writes_untracked = False
+    # X, Y, Z that are unknown (not start-dependent) at the program's FIRST
+    # point (Codex R133 VP-I84): a tool change at a position no parse sees,
+    # a rotated frame, a write from the position before it. That point is no
+    # start a live pose can be bound to — no entry move.
+    start_unbound = None
     # The declared kinematics cannot switch: kins markers are noise (the
     # worker's kins_marker_policy "ignore"), the labeling stays identity.
     kins_markers_ignored = False
@@ -886,6 +895,8 @@ class PreviewCanon(Translated, ArcsToSegmentsMixin, StatMixin):
             if basis != self._last_wcs_basis:
                 self._last_wcs_basis = basis
                 self.wcs_events.append((self.seq, idx, basis))
+        if self.seq == 0 and self.start_unbound is None:
+            self.start_unbound = tuple(a for a in (0, 1, 2) if a in self.stale)
         self.seq += 1
         return self.seq
 

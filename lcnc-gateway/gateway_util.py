@@ -2554,6 +2554,13 @@ def position_read_lines(text, env=None):
 _FLOW_CANDIDATE_RE = re.compile(r"[OM]", re.I)
 
 
+def _text_pos_writes(text):
+    """Whether one text's own lines may write a register FROM the position
+    (position_write_lines: any target but "explicit"). Pure."""
+    wl, _mode = position_write_lines(text)
+    return any(t != "explicit" for t in wl.values())
+
+
 def position_write_lines(text):
     """What the MAIN file's lines may write FROM THE MACHINE'S POSITION, for
     the preview's unknown-position rule (gcode_canon `stale`, Codex R95
@@ -4507,6 +4514,7 @@ class RemapEnv:
         self._file = {}
         self._reads = {}
         self._file_reads = {}
+        self._file_pos_writes = {}
         # Files whose position reads carry their WEBUI_POS markers, by
         # content (sha256): the bundled routine (parity-ef plan E4a).
         self.marked_files = MARKED_POS_ROUTINES
@@ -4624,6 +4632,85 @@ class RemapEnv:
             return None
         got = self._read_closure(list(keys), list(names))
         return None if got is None else r | got
+
+    def pos_writes(self, text, own=True):
+        """Whether a text MAY write a register FROM the position where no
+        canon call shows it (parity-ef plan E6, Codex R133 VP-I88): its own
+        lines (`own`; position_write_lines — any target but "explicit": G92,
+        G10 L20 / L10 / L11, G28.1, G30.1, an expression) and, followed to
+        the end, the bodies of the remapped codes its words trigger and the
+        files its o-calls run. A file in `marked_files` (by content) writes
+        nothing here: a value it could write from a start-dependent position
+        it READS first, and its read markers make the axes unknown (E4). A
+        bound suite Python hook neither: what it executes stores no position
+        by itself (G10 L2 with values it computes — no G92, G28.1, G30.1,
+        L10 / L11 / L20; test-pinned), and a computed value depends on X, Y,
+        Z only through a read SUITE_PY_READS lists (E4a). True = may: an
+        unreadable text or file, a hook not bound, a file not found, an M98.
+        Existence, not timing: a write that runs only after X, Y and Z are
+        known counts too, and so does one a callback reports (G92, an active
+        fixture's L20) — named limit."""
+        if not self.known:
+            return True
+        o = self._own_text(text)
+        if o is None:
+            return True
+        if own and _text_pos_writes(text):
+            return True
+        _w, keys, names, _m = o
+        return self._pos_write_closure(list(keys), list(names))
+
+    def _pos_write_closure(self, keys, names):
+        seen_k, seen_n = set(), set()
+        while keys or names:
+            if keys:
+                key = keys.pop()
+                if key in seen_k:
+                    continue
+                seen_k.add(key)
+                r = self.remaps.get(key)
+                if r is None:
+                    continue
+                if r["opaque"]:
+                    if not r["hooks"] or any(self.python_reads.get(h) is None for h in r["hooks"]):
+                        return True
+                    if not r["ngc"]:
+                        continue
+                names.append(r["ngc"])
+                continue
+            name = names.pop()
+            if name in seen_n:
+                continue
+            seen_n.add(name)
+            paths = [os.path.join(d, name + ".ngc") for d in self.dirs]
+            paths = [p for p in paths if os.path.isfile(p)]
+            if not paths:
+                return True
+            for p in paths:
+                rp = os.path.realpath(p)
+                own = self._own_file(rp)
+                if own is None:
+                    return True
+                if rp not in self._file_pos_writes:
+                    self._file_pos_writes[rp] = self._file_own_pos_writes(rp)
+                if self._file_pos_writes[rp]:
+                    return True
+                _w, ks, ns, _ms = own
+                keys.extend(ks)
+                names.extend(ns)
+        return False
+
+    def _file_own_pos_writes(self, path):
+        try:
+            with open(path, "rb") as f:
+                raw = f.read(self.max_read + 1)
+        except OSError:
+            return True
+        if len(raw) > self.max_read:
+            return True
+        if hashlib.sha256(raw).hexdigest() in self.marked_files:
+            return False
+        return _text_pos_writes(raw.decode("utf-8", errors="replace"))
 
     def remap_names(self, keys):
         """The interpreter's names of these remapped codes ("m600", "g68.2")."""

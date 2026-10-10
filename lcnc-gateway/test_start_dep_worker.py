@@ -166,11 +166,12 @@ class TestCodexR132(unittest.TestCase):
         self.assertEqual((r["start_dep_unavailable"], r["rapid_dep"], r["rapid_ustart"]), (None, [3, 2], [1, 0]))
 
     def test_writes_in_a_beginning_out_of_order_are_named(self):
-        # R132 point 8: a text with a call into another file names its
-        # beginning's writes untracked — only where a beginning exists
+        # R132 point 8, by existence since Codex R133 VP-I88: a call into
+        # another file is followed — one that stores nothing raises no flag,
+        # a beginning or not
         self.assertIsNone(probe("e_foreign_known_start")["start_writes_untracked"])
         r = probe("e_foreign_dep_start")
-        self.assertIs(r["start_writes_untracked"], True)
+        self.assertIsNone(r["start_writes_untracked"])
         self.assertEqual(r["rapid_dep"][0], 3)
 
     def test_an_unknown_kinematics_type_is_never_identity(self):
@@ -180,6 +181,85 @@ class TestCodexR132(unittest.TestCase):
                          (None, [1, 1]))
         self.assertEqual(probe("e_kins_zero")["rapid_dep"], [3, 2])
         self.assertEqual(probe("e_kins_fixed")["rapid_dep"], [3, 2])
+
+
+class TestCodexR133(unittest.TestCase):
+    """Codex R133's counterexamples on the worker side (VP-I84, VP-I88)."""
+
+    def test_a_first_point_with_an_unknown_axis_is_unbound(self):
+        # VP-I84: a tool change at a position no parse sees, a world
+        # labeling, a rotated frame before the first move — X, Y or Z unknown
+        # at the first point: no start can be bound there
+        for case, axes in (("r133_m6_before_first", [0, 1, 2]), ("r133_world_before_first", [0, 1, 2]),
+                           ("e_rotated", [0, 1])):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertEqual(r["start_unbound"], axes, case)
+        # a G43 or a fixture switch before the first move is no unknown axis
+        for case in ("e_single", "r133_g43_before_first", "r133_g55_before_first", "r133_first_g1_xyz"):
+            self.assertIsNone(probe(case)["start_unbound"], case)
+
+    def test_a_stored_position_is_named_by_existence(self):
+        # VP-I88: a value stored from the position where no canon call shows
+        # it — an inline sub's G30.1 before the first absolute XYZ, a called
+        # file's G30.1, a remap body's G28.1 — raises the flag, wherever it
+        # runs: the control that stores only after X, Y, Z are known too (the
+        # named limit: existence, not timing)
+        for case in ("r133_store_before_first_absolute", "r133_untracked_writes", "r133_store_after_known_control",
+                     "r133_foreign_write", "r133_remap_write"):
+            r = probe(case)
+            self.assertIsNone(r["parse_error"], case)
+            self.assertIs(r["start_writes_untracked"], True, case)
+        # a sub, a file or a body that stores nothing, or writes explicit
+        # values: none
+        for case in ("r133_inline_no_write", "r133_inline_explicit_write", "r133_remap_no_write",
+                     "e_foreign_known_start", "e_single", "m600_known"):
+            self.assertIsNone(probe(case)["start_writes_untracked"], case)
+
+
+class TestPosWrites(unittest.TestCase):
+    """RemapEnv.pos_writes (Codex R133 VP-I88): which texts may store the
+    position where no canon call shows it — own lines, called files, remap
+    bodies, hooks."""
+
+    def _env(self, remaps, files):
+        import shutil
+        import tempfile
+        d = tempfile.mkdtemp(prefix="poswrites-")
+        self.addCleanup(shutil.rmtree, d, True)
+        for name, text in files.items():
+            Path(d, name).write_bytes(text if isinstance(text, bytes) else text.encode())
+        return gateway_util.RemapEnv(remaps, [d])
+
+    def test_own_lines(self):
+        env = self._env([], {})
+        self.assertTrue(env.pos_writes("G0 X0\nG30.1\n"))
+        self.assertFalse(env.pos_writes("G0 X0\nG30.1\n", own=False))
+        self.assertFalse(env.pos_writes("G10 L2 P1 X1 Y2\nG92.1\nG52 X0\n"))
+        self.assertTrue(env.pos_writes("G10 L20 P1 X0\n"))
+
+    def test_a_called_file_is_followed(self):
+        env = self._env([], {"w.ngc": "o<w> sub\nG28.1\no<w> endsub\n", "n.ngc": "o<n> sub\nG0 X1\no<n> endsub\n"})
+        self.assertTrue(env.pos_writes("o<w> call\n", own=False))
+        self.assertFalse(env.pos_writes("o<n> call\n", own=False))
+        self.assertTrue(env.pos_writes("o<gone> call\n", own=False))      # not found: may
+        self.assertTrue(env.pos_writes("M98 P100\n", own=False))           # an M98: may
+
+    def test_a_remap_body_and_a_hook(self):
+        env = self._env(["M200 modalgroup=10 ngc=w", "M201 modalgroup=10 python=m201py"],
+                        {"w.ngc": "o<w> sub\nG30.1\no<w> endsub\n"})
+        self.assertTrue(env.pos_writes("G0 X0\nM200\n", own=False))
+        self.assertTrue(env.pos_writes("G0 X0\nM201\n", own=False))       # a hook not bound: may
+        env.python_reads = {"m201py": frozenset()}
+        self.assertFalse(env.pos_writes("G0 X0\nM201\n", own=False))      # bound as reviewed
+
+    def test_the_marked_routine_stores_nothing_here(self):
+        # the suite's routine (by content): its writes follow its reads (E4)
+        routine = (ROOT / "subroutines" / "tool_length_probe" / "tool_touch_off.ngc").read_bytes()
+        env = self._env(["M600 modalgroup=6 ngc=tool_touch_off"], {"tool_touch_off.ngc": routine})
+        self.assertFalse(env.pos_writes("T1 M600\n", own=False))
+        env = self._env(["M600 modalgroup=6 ngc=tool_touch_off"], {"tool_touch_off.ngc": routine + b"\n"})
+        self.assertTrue(env.pos_writes("T1 M600\n", own=False))
 
 
 class TestTimeBasis(unittest.TestCase):
@@ -458,6 +538,30 @@ class TestSuitePythonTable(unittest.TestCase):
             for n in ast.walk(tree):
                 if isinstance(n, ast.Constant) and isinstance(n.value, str):
                     self.assertIsNone(pat.search(n.value), f"{m}: {n.value[:60]!r}")
+
+    def test_what_the_sources_execute_stores_no_position(self):
+        # Codex R133 VP-I88 (RemapEnv.pos_writes): a bound hook writes no
+        # register FROM the position by itself — its G10 L2 carries values
+        # it computes, and an X/Y/Z-dependent one passes a listed read
+        stores = re.compile(r"G\s*0*92(?!\s*\.\s*[123])|G\s*0*28\s*\.\s*1|G\s*0*30\s*\.\s*1|L\s*0*(?:10|11|20)(?![0-9])",
+                            re.I)
+        seen = 0
+        for m in gateway_util.SUITE_PY_MODULES:
+            for n in ast.walk(ast.parse((TWP_PY / (m + ".py")).read_text())):
+                if not (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "execute"
+                        and n.args):
+                    continue
+                a = n.args[0]
+                if isinstance(a, ast.BinOp) and isinstance(a.op, ast.Mod):
+                    a = a.left
+                if isinstance(a, ast.JoinedStr):
+                    text = "0".join(v.value for v in a.values if isinstance(v, ast.Constant))
+                else:
+                    self.assertIsInstance(a, ast.Constant, f"{m}: an executed text not read here")
+                    text = a.value
+                seen += 1
+                self.assertIsNone(stores.search(re.sub(r"\([^)]*\)", "", text)), f"{m}: {text[:60]!r}")
+        self.assertGreater(seen, 10)
 
     def test_dynamic_reads_are_the_listed_ones(self):
         allowed_params = {"'_metric'", "5220", "G92_FLAG_PARAM", "G92_PARAMS[l]", "G92_PARAMS[letter]",
