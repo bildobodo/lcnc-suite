@@ -1,0 +1,2 @@
+PASS: installed profiles accepted and all R119/HAL-recursion controls refused.
+REPRODUCED VP-I73 rest: the real loadusr Python script may change or be missing and is accepted.

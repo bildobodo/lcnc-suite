@@ -16231,3 +16231,37 @@ Eigene Nachweise: [75 Backend-Tests](viewer-palette-fest.r119.codex-backend-exis
 
   Drei Mutationen rot. Deine Probe mit installierten Kopien nimmt die drei Profile an und lehnt alle fünf Gegenfälle ab.
 - **Live:** die Prüfung aus dem Live-Baum gegen die installierte XYZAC-Sim, 10/10 PASS.
+
+
+## Review R120 · Codex · INI-/HAL-Inhalte, Rest VP-I73 · 10. Oktober 2026
+
+**Ergebnis: `findings`. Die R119-Gegenfälle sind behoben; VP-I73 bleibt wegen eines übersehenen, tatsächlich gestarteten Python-Helfers offen.** Keine Wiedereröffnung von VP-I71/72 und keine Erweiterung auf E/F oder Schritt 4.
+
+Geprüft: `da5f8d86..66c16ab7` in eigener Archivkopie. **Neun Repository-Skripttests und acht Tests des verwendeten Konfigurationsvergleichs PASS.** Eigene Sonde: drei installierte Profile angenommen, sieben fehlerhafte INI-/HAL-Konfigurationen abgelehnt; zwei Varianten eines ungeprüften `loadusr`-Skripts weiterhin angenommen. [Prüfaufbau](viewer-palette-fest.r120.codex-checks.md), [Ergebnisse](viewer-palette-fest.r120.codex-target-probe.json).
+
+### VP-I73-Rest · P1 · `loadusr -Wn … python3 …` wird nicht bis zur ausgeführten Datei geprüft
+
+**Ort:** `scripts/toolsetter_readback_check.py:74–77` (`_runs`); konkreter Aufruf in `examples/sim_config/hallib/sim_toolsetter.hal:24`.
+
+Die ausgelieferte HAL-Datei startet:
+
+```text
+loadusr -Wn sim-toolsetter-feed python3 sim_toolsetter/sim_toolsetter_feed.py
+```
+
+Der Scanner nimmt das erste Wort ohne Bindestrich als Programm. Hier ist das **`sim-toolsetter-feed`, der Name hinter `-Wn`**. Weil dieses Wort keinen Schrägstrich enthält, liefert `_runs` eine leere Liste. Auch nach dem Überspringen dieses Namens muss der eigentliche Skriptpfad hinter `python3` berücksichtigt werden. `-Wn name` benennt die abzuwartende Komponente, nicht das auszuführende Programm. [LinuxCNC-Handbuch zu `loadusr`](https://linuxcnc.org/docs/2.9/html/man/man1/halcmd.1.html).
+
+**Reproduktion auf einer vollständig kopierten installierten XYZAC-Konfiguration:** INI und alle HAL-Dateien unverändert; nur `sim_toolsetter/sim_toolsetter_feed.py` wird geändert, sodass die gelieferte Werkzeuglänge um 100 erhöht wird. Die Zielprüfung akzeptiert diese abweichende ausgeführte Datei. Wird sie vollständig entfernt, akzeptiert sie ebenfalls. Der reale HAL-Aufruf wird vom Scanner in beiden Fällen nicht verfolgt. [Sonde](viewer-palette-fest.r120.codex-target-probe.py), [JSON, Fälle `changed_loadusr_python_script` / `missing_loadusr_python_script`](viewer-palette-fest.r120.codex-target-probe.json).
+
+Die Sonde verändert ausschließlich temporäre Dateien und ruft den Validator auf. Sie führt weder das geänderte Python-Skript noch HAL aus und behauptet keinen Live-Maschinenversuch. Der Befund ist die weiterhin unvollständige Prüfung der geladenen Konfiguration vor dem automatisch schreibenden Prüfhelfer. Der R120-Vertrag „jede Datei, die ihr HAL ausführt“ ist für einen Aufruf aller drei mitgelieferten Profile noch nicht erfüllt.
+
+**Korrektur:** die tatsächlich verwendeten `loadusr`-Formen einschließlich Optionsargumenten und Python-Skriptaufruf auflösen und die ausgeführte Datei prüfen. Unbekannte Formen nicht still als „keine Datei“ behandeln. Für die drei festen Profile wäre auch eine explizite Liste ihrer ausführbaren lokalen Abhängigkeiten ausreichend; ein allgemeiner HAL-Parser ist dafür nicht nötig. Beim Inhaltsvergleich ausführbarer Skripte keine lokalen INI-Einstellungs-Ausnahmen übernehmen. Wächter: geänderte und fehlende `sim_toolsetter_feed.py`, unveränderte Kopie sowie zulässiger Link in den Checkout; die jetzigen INI-/HAL-Wächter erhalten.
+
+### Angenommene Teile und Prüfgrenzen
+
+- Beide R119-Restfälle werden jetzt korrekt abgelehnt: gleicher HAL-Dateiname mit anderem Inhalt und zusätzlicher `HALCMD`.
+- Ebenso abgelehnt: eine veränderte **eingebundene** HAL-Datei bei unverändertem oberstem Text und eine fehlende eingebundene Datei. Die Rekursion über `source` ist für diese Fälle wirksam.
+- Die drei Positivfälle verwenden jetzt `render_ini` und kopierte Abhängigkeiten. Diese Anpassung gegenüber der R119-Sonde ist richtig: Der Vergleich gilt der installierten Konfiguration mit ihren aufgelösten Suite-Pfaden. Die Repository-Sonde zum verlinkten `hallib` besteht ebenfalls.
+- [Claudes Gate, Mutationen und Live-Nachweis](viewer-palette-fest.r120.gate.txt) gelesen; keine erneute Live-Prüfung durch Codex. Ein unverändertes Profil im Live-Test deckt die übersehene Skriptänderung nicht ab.
+
+Belege: [neun Skripttests](viewer-palette-fest.r120.codex-script-tests.txt), [acht Vergleichstests](viewer-palette-fest.r120.codex-config-tests.txt), [Sondenprotokoll](viewer-palette-fest.r120.codex-target-probe.txt), [Quellhashes](viewer-palette-fest.r120.codex-sources.json), [Archivkontext](viewer-palette-fest.r120.codex-context.json), [Beleghashes](viewer-palette-fest.r120.codex-sha256.json). Keine Produktänderung, keine Live-Ports, keine Maschinenbefehle. Nur der Prüfhelfer und sein Test wurden geändert; deshalb keine erneuten Frontend-Builds oder Browserläufe.
