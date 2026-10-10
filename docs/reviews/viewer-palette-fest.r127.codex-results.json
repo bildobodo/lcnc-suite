@@ -1,0 +1,912 @@
+{
+  "contact": [
+    {
+      "kind": "band_rapid",
+      "cutting": false,
+      "actual": {
+        "hits": [
+          {
+            "line": 9,
+            "cum": 40,
+            "cumEnd": 41,
+            "a": "spindle",
+            "b": "vise",
+            "dist": 0,
+            "rapid": false,
+            "possible": true,
+            "intervals": [
+              [
+                40,
+                41
+              ]
+            ],
+            "spanCumEnd": 42,
+            "spanEndLine": 10
+          },
+          {
+            "line": 10,
+            "cum": 41,
+            "cumEnd": 42,
+            "a": "spindle",
+            "b": "vise",
+            "dist": 0,
+            "rapid": false,
+            "continuation": 9,
+            "possible": true,
+            "intervals": [
+              [
+                41,
+                42
+              ]
+            ]
+          },
+          {
+            "line": 11,
+            "cum": 56,
+            "cumEnd": 59,
+            "a": "spindle",
+            "b": "vise",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                56,
+                59
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 36,
+        "coarsened": false,
+        "uncertified": "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified; After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified",
+        "notes": [
+          "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified",
+          "After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified"
+        ],
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 1.4814649999999858,
+        "sweepMs": 30.860210999999993,
+        "truncated": null
+      },
+      "targets": [
+        {
+          "cum": 40,
+          "cumEnd": 41,
+          "key": "C9|spindle|vise|0",
+          "line": 9,
+          "rapid": false,
+          "dist": 0,
+          "spanEndLine": 10,
+          "a": "spindle",
+          "b": "vise",
+          "possible": true
+        },
+        {
+          "cum": 56,
+          "cumEnd": 59,
+          "key": "C11|spindle|vise|0",
+          "line": 11,
+          "rapid": true,
+          "dist": 0,
+          "a": "spindle",
+          "b": "vise"
+        }
+      ],
+      "control": {
+        "hits": [
+          {
+            "line": 11,
+            "cum": 46,
+            "cumEnd": 49,
+            "a": "spindle",
+            "b": "vise",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                46,
+                49
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 12,
+        "coarsened": false,
+        "uncertified": null,
+        "notes": [],
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 1.4814649999999858,
+        "sweepMs": 3.2030129999999986,
+        "truncated": null
+      }
+    },
+    {
+      "kind": "band_rapid",
+      "cutting": true,
+      "actual": {
+        "hits": [
+          {
+            "line": 11,
+            "cum": 56,
+            "cumEnd": 59,
+            "a": "spindle",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                56,
+                59
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 36,
+        "coarsened": false,
+        "uncertified": "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified; After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified",
+        "notes": [
+          "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified",
+          "After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified"
+        ],
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.561378000000019,
+        "sweepMs": 4.71989499999998,
+        "truncated": null
+      },
+      "targets": [
+        {
+          "cum": 56,
+          "cumEnd": 59,
+          "key": "C11|spindle|stock|0",
+          "line": 11,
+          "rapid": true,
+          "dist": 0,
+          "a": "spindle",
+          "b": "stock"
+        }
+      ],
+      "control": {
+        "hits": [
+          {
+            "line": 11,
+            "cum": 46,
+            "cumEnd": 49,
+            "a": "spindle",
+            "b": "stock",
+            "dist": 0,
+            "rapid": true,
+            "intervals": [
+              [
+                46,
+                49
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 12,
+        "coarsened": false,
+        "uncertified": null,
+        "notes": [],
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.561378000000019,
+        "sweepMs": 2.3060929999999757,
+        "truncated": null
+      }
+    },
+    {
+      "kind": "band_continuation",
+      "result": {
+        "hits": [
+          {
+            "line": 9,
+            "cum": 40,
+            "cumEnd": 41,
+            "a": "spindle",
+            "b": "vise",
+            "dist": 0,
+            "rapid": false,
+            "possible": true,
+            "intervals": [
+              [
+                40,
+                41
+              ]
+            ]
+          },
+          {
+            "line": 10,
+            "cum": 41,
+            "cumEnd": 42,
+            "a": "spindle",
+            "b": "vise",
+            "dist": 0,
+            "rapid": false,
+            "intervals": [
+              [
+                41,
+                42
+              ]
+            ]
+          }
+        ],
+        "staticContacts": [],
+        "samples": 11,
+        "coarsened": false,
+        "uncertified": "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified",
+        "notes": [
+          "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified"
+        ],
+        "pairCount": 1,
+        "pairsPrescreened": 0,
+        "bvhMs": 0.31212600000000634,
+        "sweepMs": 2.308009999999996,
+        "truncated": null
+      },
+      "targets": [
+        {
+          "cum": 40,
+          "cumEnd": 41,
+          "key": "C9|spindle|vise|0",
+          "line": 9,
+          "rapid": false,
+          "dist": 0,
+          "a": "spindle",
+          "b": "vise",
+          "possible": true
+        },
+        {
+          "cum": 41,
+          "cumEnd": 42,
+          "key": "C10|spindle|vise|0",
+          "line": 10,
+          "rapid": false,
+          "dist": 0,
+          "a": "spindle",
+          "b": "vise"
+        }
+      ]
+    }
+  ],
+  "offset": [
+    {
+      "kind": "idle",
+      "enabled": true,
+      "z": 0,
+      "note": "At the check's basis an external Z offset is enabled — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "run",
+      "enabled": true,
+      "z": 0,
+      "note": "At the check's basis an external Z offset is enabled — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "idle",
+      "enabled": false,
+      "z": 0.25,
+      "note": "At the check's basis an external Z offset of 0.25 is applied — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "run",
+      "enabled": false,
+      "z": 0.25,
+      "note": "At the check's basis an external Z offset of 0.25 is applied — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "idle",
+      "enabled": null,
+      "z": 0,
+      "note": "At the check's basis the external Z offset was not read — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "run",
+      "enabled": null,
+      "z": 0,
+      "note": "At the check's basis the external Z offset was not read — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "idle",
+      "enabled": false,
+      "z": null,
+      "note": "At the check's basis the external Z offset was not read — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "run",
+      "enabled": false,
+      "z": null,
+      "note": "At the check's basis the external Z offset was not read — the probe's braking range and the path after the measurement are outside the model"
+    },
+    {
+      "kind": "idle",
+      "enabled": false,
+      "z": 0,
+      "note": null
+    },
+    {
+      "kind": "run",
+      "enabled": false,
+      "z": 0,
+      "note": null
+    }
+  ],
+  "notes": [
+    {
+      "kind": "unbound_warning",
+      "events": [
+        {
+          "seq": 30,
+          "tool": 2,
+          "line": 0,
+          "length": 80,
+          "note": "80.000 mm from the table (assumed); the braking range is not modeled (the configuration lacks the Z limits) — not checked below the trip point",
+          "warnings": [
+            "the braking range is not modeled (the configuration lacks the Z limits) — not checked below the trip point"
+          ]
+        }
+      ],
+      "unbound": [
+        {
+          "seq": 30,
+          "tool": 2,
+          "line": 0,
+          "length": 80,
+          "note": "80.000 mm from the table (assumed); the braking range is not modeled (the configuration lacks the Z limits) — not checked below the trip point",
+          "warnings": [
+            "the braking range is not modeled (the configuration lacks the Z limits) — not checked below the trip point"
+          ]
+        }
+      ],
+      "byLine": [],
+      "stats": "T2 80.000 mm (line not known) — the braking range is not modeled (the configuration lacks the Z limits) — not checked below the trip point"
+    },
+    {
+      "kind": "native_loop_warning",
+      "wire": {
+        "notes": [
+          [
+            14,
+            2,
+            "retract",
+            5
+          ]
+        ],
+        "lengths": [
+          [
+            30,
+            2,
+            80,
+            5
+          ],
+          [
+            64,
+            2,
+            80,
+            5
+          ]
+        ]
+      },
+      "events": [
+        {
+          "seq": 30,
+          "tool": 2,
+          "line": 5,
+          "length": 80,
+          "note": "80.000 mm from the table (assumed); the retract may not clear the probe after braking — the slow probe may start tripped and LinuxCNC stops",
+          "warnings": [
+            "the retract may not clear the probe after braking — the slow probe may start tripped and LinuxCNC stops"
+          ]
+        },
+        {
+          "seq": 64,
+          "tool": 2,
+          "line": 5,
+          "length": 80,
+          "note": "80.000 mm from the table (assumed)"
+        }
+      ],
+      "byLine": [],
+      "unbound": [
+        {
+          "seq": 30,
+          "tool": 2,
+          "line": 5,
+          "length": 80,
+          "note": "80.000 mm from the table (assumed); the retract may not clear the probe after braking — the slow probe may start tripped and LinuxCNC stops",
+          "warnings": [
+            "the retract may not clear the probe after braking — the slow probe may start tripped and LinuxCNC stops"
+          ]
+        },
+        {
+          "seq": 64,
+          "tool": 2,
+          "line": 5,
+          "length": 80,
+          "note": "80.000 mm from the table (assumed)"
+        }
+      ],
+      "stats": "T2 80.000 mm (L5) — the retract may not clear the probe after braking — the slow probe may start tripped and LinuxCNC stops, T2 80.000 mm (L5)"
+    }
+  ],
+  "chain": {
+    "bands": [
+      {
+        "seqStart": 16,
+        "seqEnd": 30,
+        "tool": 2,
+        "line": 3
+      }
+    ],
+    "ms": [
+      {
+        "cum": 5.530624866485596,
+        "line": 3
+      }
+    ],
+    "points": [
+      {
+        "i": 0,
+        "line": 2,
+        "cum": 0,
+        "p": [
+          50,
+          50,
+          -100
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 1
+      },
+      {
+        "i": 1,
+        "line": 239,
+        "cum": 0,
+        "p": [
+          50,
+          50,
+          -100
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 1
+      },
+      {
+        "i": 2,
+        "line": 239,
+        "cum": 2,
+        "p": [
+          50,
+          50,
+          0
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 0
+      },
+      {
+        "i": 3,
+        "line": 245,
+        "cum": 3.2806248664855957,
+        "p": [
+          10,
+          0,
+          0
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 0
+      },
+      {
+        "i": 4,
+        "line": 246,
+        "cum": 3.2806248664855957,
+        "p": [
+          10,
+          0,
+          0
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 0
+      },
+      {
+        "i": 5,
+        "line": 282,
+        "cum": 3.2806248664855957,
+        "p": [
+          10,
+          0,
+          0
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 0
+      },
+      {
+        "i": 6,
+        "line": 306,
+        "cum": 3.4806249141693115,
+        "p": [
+          10,
+          10,
+          0
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 0
+      },
+      {
+        "i": 7,
+        "line": 339,
+        "cum": 5.380624771118164,
+        "p": [
+          10,
+          10,
+          -95
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 0
+      },
+      {
+        "i": 8,
+        "line": 454,
+        "cum": 5.530624866485596,
+        "p": [
+          10,
+          10,
+          -100
+        ],
+        "band": 0,
+        "cond": 0,
+        "brk": 0
+      },
+      {
+        "i": 9,
+        "line": 469,
+        "cum": 5.617958068847656,
+        "p": [
+          10,
+          10,
+          -102.9111099243164
+        ],
+        "band": 1,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 10,
+        "line": 472,
+        "cum": 5.677958011627197,
+        "p": [
+          10,
+          10,
+          -99.9111099243164
+        ],
+        "band": 1,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 11,
+        "line": 476,
+        "cum": 5.736180305480957,
+        "p": [
+          10,
+          10,
+          -97
+        ],
+        "band": 1,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 12,
+        "line": 520,
+        "cum": 6.636180400848389,
+        "p": [
+          10,
+          10,
+          -100
+        ],
+        "band": 1,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 13,
+        "line": 532,
+        "cum": 6.6485137939453125,
+        "p": [
+          10,
+          10,
+          -100.0411148071289
+        ],
+        "band": 1,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 14,
+        "line": 536,
+        "cum": 6.7085137367248535,
+        "p": [
+          10,
+          10,
+          -97.0411148071289
+        ],
+        "band": 1,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 15,
+        "line": 539,
+        "cum": 6.709335803985596,
+        "p": [
+          10,
+          10,
+          -97
+        ],
+        "band": 1,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 16,
+        "line": 583,
+        "cum": 6.709335803985596,
+        "p": [
+          10,
+          10,
+          -177
+        ],
+        "band": 0,
+        "cond": 1,
+        "brk": 1
+      },
+      {
+        "i": 17,
+        "line": 583,
+        "cum": 8.649335861206055,
+        "p": [
+          10,
+          10,
+          -80
+        ],
+        "band": 0,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 18,
+        "line": 590,
+        "cum": 9.780706405639648,
+        "p": [
+          50,
+          50,
+          -80
+        ],
+        "band": 0,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 19,
+        "line": 591,
+        "cum": 10.180706977844238,
+        "p": [
+          50,
+          50,
+          -100
+        ],
+        "band": 0,
+        "cond": 1,
+        "brk": 0
+      },
+      {
+        "i": 20,
+        "line": 4,
+        "cum": 11.59492015838623,
+        "p": [
+          60,
+          60,
+          -100
+        ],
+        "band": 0,
+        "cond": 1,
+        "brk": 0
+      }
+    ],
+    "row": {
+      "key": "L4",
+      "kind": "limit",
+      "line": 4,
+      "lineLabel": "L4",
+      "cum": 11.59492015838623,
+      "cumEnd": 11.59492015838623,
+      "what": "Soft limit",
+      "note": "conditional — after the measurement at L3",
+      "rapid": null,
+      "at": "00:11"
+    }
+  },
+  "old_native_probe": {
+    "program": "G21 G90 / G0 X10 Y50 Z-100 / T2 M600 / G0 X20 Y10 / M2",
+    "rawBands": [
+      [
+        14,
+        28,
+        2,
+        3
+      ]
+    ],
+    "actual": {
+      "hits": [],
+      "staticContacts": [],
+      "samples": 359,
+      "coarsened": false,
+      "uncertified": "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified; After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified",
+      "notes": [
+        "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified",
+        "After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified"
+      ],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 1.728006999999991,
+      "sweepMs": 30.673082999999963,
+      "truncated": null
+    },
+    "control": {
+      "hits": [
+        {
+          "line": 4,
+          "cum": 8.218710899353027,
+          "cumEnd": 8.618710899353028,
+          "a": "tool",
+          "b": "obstacle",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              8.218710899353027,
+              8.618710899353028
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 353,
+      "coarsened": false,
+      "uncertified": "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified; After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified",
+      "notes": [
+        "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified",
+        "After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified"
+      ],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.35400199999997994,
+      "sweepMs": 10.66208499999999,
+      "truncated": null
+    },
+    "noncut": {
+      "hits": [
+        {
+          "line": 469,
+          "cum": 4.927999773680725,
+          "cumEnd": 4.937333106994629,
+          "a": "tool",
+          "b": "obstacle",
+          "dist": 0,
+          "rapid": false,
+          "possible": true,
+          "intervals": [
+            [
+              4.927999773680725,
+              4.937333106994629
+            ]
+          ],
+          "spanCumEnd": 4.9435538536248105,
+          "spanEndLine": 472
+        },
+        {
+          "line": 472,
+          "cum": 4.937333106994629,
+          "cumEnd": 4.9435538536248105,
+          "a": "tool",
+          "b": "obstacle",
+          "dist": 0,
+          "rapid": false,
+          "continuation": 469,
+          "possible": true,
+          "intervals": [
+            [
+              4.937333106994629,
+              4.9435538536248105
+            ]
+          ]
+        },
+        {
+          "line": 583,
+          "cum": 7.436711044940745,
+          "cumEnd": 7.516711027636964,
+          "a": "tool",
+          "b": "obstacle",
+          "dist": 0,
+          "rapid": false,
+          "intervals": [
+            [
+              7.436711044940745,
+              7.516711027636964
+            ]
+          ],
+          "spanCumEnd": 8.618710899353028,
+          "spanEndLine": 583
+        },
+        {
+          "line": 4,
+          "cum": 8.218710899353027,
+          "cumEnd": 8.618710899353028,
+          "a": "tool",
+          "b": "obstacle",
+          "dist": 0,
+          "rapid": true,
+          "continuation": 583,
+          "intervals": [
+            [
+              8.218710899353027,
+              8.618710899353028
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 358,
+      "coarsened": false,
+      "uncertified": "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified; After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified",
+      "notes": [
+        "The probe's braking range is modeled for this machine's limits and an ideal probe input — a slower input brakes deeper; not certified",
+        "After the measurement, this path assumes the table length and the modeled successful probe sequence. Probe timing and the resulting tool offset are not verified"
+      ],
+      "pairCount": 1,
+      "pairsPrescreened": 0,
+      "bvhMs": 0.5770440000000008,
+      "sweepMs": 18.025323000000014,
+      "truncated": null
+    },
+    "actualTargets": [],
+    "noncutTargets": [
+      {
+        "cum": 4.927999773680725,
+        "cumEnd": 4.937333106994629,
+        "key": "C469|tool|obstacle|0",
+        "line": 469,
+        "rapid": false,
+        "dist": 0,
+        "spanEndLine": 472,
+        "a": "tool",
+        "b": "obstacle",
+        "possible": true
+      },
+      {
+        "cum": 7.436711044940745,
+        "cumEnd": 7.516711027636964,
+        "key": "C583|tool|obstacle|0",
+        "line": 583,
+        "rapid": false,
+        "dist": 0,
+        "spanEndLine": 583,
+        "a": "tool",
+        "b": "obstacle"
+      }
+    ]
+  },
+  "old_native_probe_interpretation": "Rejected as a residual VP-I74 counterexample: trace shows ordinary feed onset after G43 at L583 before the later rapid, not a hull-derived onset."
+}

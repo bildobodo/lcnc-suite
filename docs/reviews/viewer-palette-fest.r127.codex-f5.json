@@ -1,0 +1,448 @@
+{
+  "source": "Claude supplied F5 report; arithmetic and static script audit only, no live execution",
+  "cases": 42,
+  "min_reported_margin_mm": 0.0012,
+  "counts": {
+    "500_rho02": 14,
+    "250_rho02": 14,
+    "500_rho0": 14
+  },
+  "formula": "4*v*T + v*v/a, T=.001s, axis reserve applied",
+  "hal_reads_in_script": [
+    "sim-toolsetter.0.plate-x",
+    "sim-toolsetter.0.plate-y",
+    "sim-toolsetter.0.plate-z"
+  ],
+  "subroutine": "o<f5case> sub\n(#1 feed, #2 start Z machine, #3 travel, #4 path mode 61 or 64)\nG90\nG53 G0 Z0\nG53 G0 X#5 Y#6\no10 if [#4 EQ 61]\n  G61\no10 else\n  G64\no10 endif\nG53 G1 F3000 Z#2\no20 if [#7 EQ 1]\n  G4 P0.2\no20 endif\nG91\nG38.3 Z-[#3] F#1\nG90\nG64\no<f5case> endsub\nM2\n",
+  "contains_slow_G38_2": false,
+  "calls_bundled_routine": false,
+  "has_retract_between_fast_and_slow": false,
+  "missing_F5_conditions": [
+    "sim-toolsetter enable value",
+    "manual probe input value",
+    "external Z offset enable and value",
+    "plate vs #3100..#3102 comparison"
+  ],
+  "rows": [
+    {
+      "config": "500_rho02",
+      "feed": 200.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.0411,
+      "overshoot": 0.0399,
+      "margin": 0.0012
+    },
+    {
+      "config": "500_rho02",
+      "feed": 500.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.2069,
+      "overshoot": 0.1999,
+      "margin": 0.007
+    },
+    {
+      "config": "500_rho02",
+      "feed": 1000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.7611,
+      "overshoot": 0.75,
+      "margin": 0.0111
+    },
+    {
+      "config": "500_rho02",
+      "feed": 2000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 2.9111,
+      "overshoot": 2.9,
+      "margin": 0.0111
+    },
+    {
+      "config": "500_rho02",
+      "feed": 3000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 6.45,
+      "overshoot": 6.4,
+      "margin": 0.05
+    },
+    {
+      "config": "500_rho02",
+      "feed": 200.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.0411,
+      "overshoot": 0.0267,
+      "margin": 0.0144
+    },
+    {
+      "config": "500_rho02",
+      "feed": 500.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.2069,
+      "overshoot": 0.1165,
+      "margin": 0.0904
+    },
+    {
+      "config": "500_rho02",
+      "feed": 1000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.7611,
+      "overshoot": 0.3999,
+      "margin": 0.3612
+    },
+    {
+      "config": "500_rho02",
+      "feed": 2000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 2.9111,
+      "overshoot": 1.5,
+      "margin": 1.4111
+    },
+    {
+      "config": "500_rho02",
+      "feed": 3000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 6.45,
+      "overshoot": 3.3,
+      "margin": 3.15
+    },
+    {
+      "config": "500_rho02",
+      "feed": 200.0,
+      "approach": 3.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.0411,
+      "overshoot": 0.0399,
+      "margin": 0.0012
+    },
+    {
+      "config": "500_rho02",
+      "feed": 2000.0,
+      "approach": 1.0,
+      "path": 64,
+      "stop": true,
+      "model": 2.9111,
+      "overshoot": 1.1218,
+      "margin": 1.7893
+    },
+    {
+      "config": "500_rho02",
+      "feed": 3000.0,
+      "approach": 1.0,
+      "path": 64,
+      "stop": true,
+      "model": 6.45,
+      "overshoot": 1.1218,
+      "margin": 5.3282
+    },
+    {
+      "config": "500_rho02",
+      "feed": 3000.0,
+      "approach": 0.3,
+      "path": 64,
+      "stop": true,
+      "model": 6.45,
+      "overshoot": 0.3728,
+      "margin": 6.0772
+    },
+    {
+      "config": "250_rho02",
+      "feed": 200.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.0689,
+      "overshoot": 0.0667,
+      "margin": 0.0022
+    },
+    {
+      "config": "250_rho02",
+      "feed": 500.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.3806,
+      "overshoot": 0.375,
+      "margin": 0.0056
+    },
+    {
+      "config": "250_rho02",
+      "feed": 1000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 1.4556,
+      "overshoot": 1.45,
+      "margin": 0.0056
+    },
+    {
+      "config": "250_rho02",
+      "feed": 2000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 5.6889,
+      "overshoot": 5.6667,
+      "margin": 0.0222
+    },
+    {
+      "config": "250_rho02",
+      "feed": 3000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 12.7,
+      "overshoot": 10.0,
+      "margin": 2.7
+    },
+    {
+      "config": "250_rho02",
+      "feed": 200.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.0689,
+      "overshoot": 0.0399,
+      "margin": 0.029
+    },
+    {
+      "config": "250_rho02",
+      "feed": 500.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.3806,
+      "overshoot": 0.1999,
+      "margin": 0.1806
+    },
+    {
+      "config": "250_rho02",
+      "feed": 1000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 1.4556,
+      "overshoot": 0.75,
+      "margin": 0.7056
+    },
+    {
+      "config": "250_rho02",
+      "feed": 2000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 5.6889,
+      "overshoot": 2.9,
+      "margin": 2.7889
+    },
+    {
+      "config": "250_rho02",
+      "feed": 3000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 12.7,
+      "overshoot": 6.4,
+      "margin": 6.3
+    },
+    {
+      "config": "250_rho02",
+      "feed": 200.0,
+      "approach": 3.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.0689,
+      "overshoot": 0.0667,
+      "margin": 0.0022
+    },
+    {
+      "config": "250_rho02",
+      "feed": 2000.0,
+      "approach": 1.0,
+      "path": 64,
+      "stop": true,
+      "model": 5.6889,
+      "overshoot": 1.1025,
+      "margin": 4.5864
+    },
+    {
+      "config": "250_rho02",
+      "feed": 3000.0,
+      "approach": 1.0,
+      "path": 64,
+      "stop": true,
+      "model": 12.7,
+      "overshoot": 1.1025,
+      "margin": 11.5975
+    },
+    {
+      "config": "250_rho02",
+      "feed": 3000.0,
+      "approach": 0.3,
+      "path": 64,
+      "stop": true,
+      "model": 12.7,
+      "overshoot": 0.3561,
+      "margin": 12.3439
+    },
+    {
+      "config": "500_rho0",
+      "feed": 200.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.0356,
+      "overshoot": 0.0333,
+      "margin": 0.0023
+    },
+    {
+      "config": "500_rho0",
+      "feed": 500.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.1722,
+      "overshoot": 0.1666,
+      "margin": 0.0056
+    },
+    {
+      "config": "500_rho0",
+      "feed": 1000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.6222,
+      "overshoot": 0.6166,
+      "margin": 0.0056
+    },
+    {
+      "config": "500_rho0",
+      "feed": 2000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 2.3556,
+      "overshoot": 2.3333,
+      "margin": 0.0223
+    },
+    {
+      "config": "500_rho0",
+      "feed": 3000.0,
+      "approach": 10.0,
+      "path": 64,
+      "stop": false,
+      "model": 5.2,
+      "overshoot": 5.1499,
+      "margin": 0.0501
+    },
+    {
+      "config": "500_rho0",
+      "feed": 200.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.0356,
+      "overshoot": 0.0232,
+      "margin": 0.0124
+    },
+    {
+      "config": "500_rho0",
+      "feed": 500.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.1722,
+      "overshoot": 0.0998,
+      "margin": 0.0724
+    },
+    {
+      "config": "500_rho0",
+      "feed": 1000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 0.6222,
+      "overshoot": 0.3333,
+      "margin": 0.289
+    },
+    {
+      "config": "500_rho0",
+      "feed": 2000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 2.3556,
+      "overshoot": 1.2332,
+      "margin": 1.1224
+    },
+    {
+      "config": "500_rho0",
+      "feed": 3000.0,
+      "approach": 10.0,
+      "path": 61,
+      "stop": false,
+      "model": 5.2,
+      "overshoot": 2.6498,
+      "margin": 2.5502
+    },
+    {
+      "config": "500_rho0",
+      "feed": 200.0,
+      "approach": 3.0,
+      "path": 64,
+      "stop": false,
+      "model": 0.0356,
+      "overshoot": 0.0333,
+      "margin": 0.0023
+    },
+    {
+      "config": "500_rho0",
+      "feed": 2000.0,
+      "approach": 1.0,
+      "path": 64,
+      "stop": true,
+      "model": 2.3556,
+      "overshoot": 1.1623,
+      "margin": 1.1933
+    },
+    {
+      "config": "500_rho0",
+      "feed": 3000.0,
+      "approach": 1.0,
+      "path": 64,
+      "stop": true,
+      "model": 5.2,
+      "overshoot": 1.1623,
+      "margin": 4.0377
+    },
+    {
+      "config": "500_rho0",
+      "feed": 3000.0,
+      "approach": 0.3,
+      "path": 64,
+      "stop": true,
+      "model": 5.2,
+      "overshoot": 0.376,
+      "margin": 4.824
+    }
+  ]
+}
