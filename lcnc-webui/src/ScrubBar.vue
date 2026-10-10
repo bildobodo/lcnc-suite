@@ -292,7 +292,7 @@ function _buildEntryTrack() {
   const built = buildEntryTrack(
     base, _baseJoints, viewerInit.value?.axes ?? [], _wcs(), _kinsSpec.value,
     _epochTerms.value, st.value.kins_type ?? null,
-    { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
+    { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate, axisVmax: g?.axis_vmax, trajVmax: g?.traj_vmax });
   entryTrack.value = built ? markRaw(built) : null;
 }
 
@@ -467,7 +467,10 @@ const m600Notes = computed(() => m600ToolNotes(
 // the distance fallback.
 const posLabel = computed(() => {
   if (track.value?.timeBased) {
-    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}${probeStops.value.length ? "+" : ""}`;
+    // "+" too where a feed in the program's start-dependent beginning has
+    // only a shortest duration, or none (parity-ef plan E7)
+    const more = probeStops.value.length || track.value.depTime;
+    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}${more ? "+" : ""}`;
   }
   return `${pct.value} %`;
 });
@@ -739,6 +742,15 @@ const verdictDetail = computed<string>(() => {
   if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
   if (r.staticContacts.length) parts.push(`${r.staticContacts.length} contact${r.staticContacts.length === 1 ? "" : "s"} at the start ignored.`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
+  const sd = r.startDependent;
+  if (sd) {
+    // parity-ef plan E7: the beginning stands where the machine stands
+    const at = sd.fromLine ? ` (${sd.toLine > sd.fromLine ? `L${sd.fromLine}–L${sd.toLine}` : `L${sd.fromLine}`})` : "";
+    parts.push(sd.whole
+      ? `The whole program depends on where the machine stands${at}: checked from the machine's position in the simulation.`
+      : `The start of the program depends on where the machine stands${at}: checked from the machine's position in the simulation.`);
+    if (sd.untracked) parts.push("Offsets and stored positions written there in subroutines, loops or called files are not tracked.");
+  }
   return parts.join(" ") || "Tool and machine parts checked against each other along the whole program.";
 });
 
@@ -1069,6 +1081,11 @@ const sweepView = computed<SimSweepView | null>(() => {
     return { state: props.collisionStopped && props.collisionResumable ? "paused" : "partial", frac: sweptFrac.value,
       verdict: n ? `${found} in ${pctOf(covered)} swept` : `No collision in ${pctOf(covered)} swept`,
       tone: n ? "danger" : "warn", caveat, detail };
+  }
+  // A track that is start-dependent to its end has nothing checked here: it
+  // never reads "Clear" (parity-ef plan E7, Codex R122 answer 4).
+  if (r?.startDependent?.whole && !n) {
+    return { state: "done", frac: 1, verdict: "Depends on the machine's position", tone: "warn", caveat, detail };
   }
   return { state: "done", frac: 1, verdict: n ? found : "Clear", tone: n ? "danger" : "ok", caveat, detail };
 });

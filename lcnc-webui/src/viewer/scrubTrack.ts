@@ -22,6 +22,7 @@ import {
   type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
 import type { WcsEpoch } from "./wcsEpochs";
 import type { RotaryCmd, ScrubTrack } from "../ws/bulkData";
+import { bindBeginning, moveTime, type DepRates } from "./startDep";
 
 export type { ScrubTrack };
 
@@ -75,6 +76,11 @@ export interface ScrubStream {
    *  this point (capped at 255): the path assumes their table length and
    *  modeled probe sequence (`conditional`). Absent = none. */
   cond?: Uint8Array;
+  /** The start-dependent beginning (wire *_dep, *_dep_basis, *_dep_f,
+   *  padded to the stream's length): see ScrubTrack.dep. Absent = none. */
+  dep?: Uint8Array;
+  depBasis?: Uint8Array;
+  depF?: Float32Array;
   /** Per-point line trust (wire feed_lineok/rapid_lineok, W2 P6). Absent
    *  = pre-schema-4 payload. */
   lineOk?: Uint8Array;
@@ -102,7 +108,8 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
                                 wcsEvents?: WcsEpoch[],
                                 subNames?: string[],
                                 tloEvents?: TloEvent[],
-                                rotaryCmd?: RotaryCmd): ScrubTrack | null {
+                                rotaryCmd?: RotaryCmd,
+                                startBelieved?: [number, number, number]): ScrubTrack | null {
   const nf = (feed.pos.length / 3) | 0;
   const nr = (rapid.pos.length / 3) | 0;
   const n = nf + nr;
@@ -162,7 +169,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
   // brk exists whenever EITHER channel does: ustart unions into it so every
   // brk consumer (draw sections, sweep, time, projection) inherits the
   // never-cross-the-connector behavior with no per-consumer changes.
-  const brk = (hasBrk || hasUstart) ? new Uint8Array(n) : undefined;
+  let brk = (hasBrk || hasUstart) ? new Uint8Array(n) : undefined;
   const ustart = hasUstart ? new Uint8Array(n) : undefined;
   // After an unpredicted tool measurement: the same tolerance rules.
   const hasUnpred = !!(feed.unpredicted || rapid.unpredicted)
@@ -170,10 +177,16 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     && (!rapid.unpredicted || rapid.unpredicted.length === nr);
   const unpredicted = hasUnpred ? new Uint8Array(n) : undefined;
   // The probe's braking ranges and what depends on them: the same rules.
-  const has8 = (k: "band" | "cond") => !!(feed[k] || rapid[k])
+  const has8 = (k: "band" | "cond" | "dep" | "depBasis") => !!(feed[k] || rapid[k])
     && (!feed[k] || feed[k]!.length === nf) && (!rapid[k] || rapid[k]!.length === nr);
   const band = has8("band") ? new Uint8Array(n) : undefined;
   const cond = has8("cond") ? new Uint8Array(n) : undefined;
+  // The start-dependent beginning (parity-ef plan E7): the same rules.
+  const dep = has8("dep") ? new Uint8Array(n) : undefined;
+  const depBasis = has8("depBasis") ? new Uint8Array(n) : undefined;
+  const hasDepF = !!(feed.depF || rapid.depF)
+    && (!feed.depF || feed.depF.length === nf) && (!rapid.depF || rapid.depF.length === nr);
+  const depF = hasDepF ? new Float32Array(n) : undefined;
   // WCS epochs (review P2): like mode — present iff every non-empty stream
   // carries the per-point index and an events list exists to deref into.
   const hasWcs = !!wcsEvents?.length
@@ -243,6 +256,9 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     if (unpredicted) unpredicted[i] = src.unpredicted?.[si] ?? 0;
     if (band) band[i] = src.band?.[si] ?? 0;
     if (cond) cond[i] = src.cond?.[si] ?? 0;
+    if (dep) dep[i] = src.dep?.[si] ?? 0;
+    if (depBasis) depBasis[i] = src.depBasis?.[si] ?? 0;
+    if (depF) depF[i] = src.depF?.[si] ?? 0;
     if (wcsEpoch) wcsEpoch[i] = src.wcs?.[si] ?? 0;
     if (tlo) tlo[i] = src.tlo?.[si] ?? TLO_NONE;
     if (lineOk) lineOk[i] = src.lineOk?.[si] ?? 0;
@@ -283,6 +299,25 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
     }
   }
 
+  // The start-dependent beginning (parity-ef plan E7): K = the first point
+  // after the last one with a mask. Its points stand where the parse ASSUMED
+  // the start — not drawable, not checkable before a start is bound: the
+  // segments into points 1..K are breaks with no duration here, their own
+  // break flags and durations kept for the bound track (startDep.ts).
+  let depEnd = 0;
+  let depBrk: Uint8Array | undefined, depDur: Float32Array | undefined;
+  if (dep) for (let i = n - 1; i >= 0; i--) if (dep[i]) { depEnd = i + 1; break; }
+  if (depEnd > 0) {
+    const last = Math.min(depEnd, n - 1);
+    if (!brk) brk = new Uint8Array(n);
+    depBrk = brk.slice(0, last + 1);
+    depDur = new Float32Array(last + 1);
+    for (let i = 1; i <= last; i++) depDur[i] = cum[i]! - cum[i - 1]!;
+    const off = cum[last]!;
+    for (let i = 1; i <= last; i++) brk[i] = 1;
+    for (let i = 0; i < n; i++) cum[i] = i <= last ? 0 : cum[i]! - off;
+  }
+
   let inheritedEnd: ScrubTrack["inheritedEnd"];
   if (mergedSeq && rotaryCmd) {
     // The merged track is seq-ascending: points inheriting an axis are the
@@ -301,6 +336,7 @@ export function buildScrubTrack(feed: ScrubStream, rapid: ScrubStream,
 
   return { pos, abc, lines, rapid: rapidFlag, mode, outside, frame: frameIdx,
            frames: hasFrame ? frames : undefined, brk, ustart, unpredicted, band, cond,
+           ...(depEnd > 0 ? { dep, depBasis, depF, depEnd, depBrk, depDur, startBelieved } : {}),
            wcsEpoch, wcsEvents: hasWcs ? wcsEvents : undefined,
            tlo, tloEvents: hasTlo ? tloEvents : undefined,
            lineOk, sub, subNames: hasSub ? subNames : undefined, cline,
@@ -617,7 +653,7 @@ export function buildEntryTrack(
   kins: KinsSpec | undefined,
   epochTerms: readonly WcsTerms[] | undefined,
   liveKinsType: number | null | undefined,
-  rates?: { linear?: number | null; rotary?: number | null },
+  rates?: DepRates,
 ): ScrubTrack | null {
   if (!liveJoints.length) return null;
   const ktEntry = base.mode?.[0] ?? liveKinsType ?? null;
@@ -633,7 +669,12 @@ export function buildEntryTrack(
   const entryTlo = tloForIndex(base.tlo?.[0], base.tloEvents, wcs.tool);
   const entry = machineJointsToProgram(liveJoints, axes, wcs, kins,
                                        ktEntry, frameEntry, entryTerms, entryTlo);
-  const t = prependEntry(base, entry, rates);
+  // The start-dependent beginning (parity-ef plan E7) bound to this start:
+  // the same conversion names the live pose and the program's beginning.
+  const bound = bindBeginning(base, entry, rates);
+  if (!bound) return null;   // a beginning with no assumed start: nothing to shift by
+  const t = prependEntry(bound, entry, rates, {
+    basis: base.depBasis?.[0] ?? 1, f: base.depF?.[0] ?? 0, force: bound !== base });
   return t === base ? null : t;
 }
 
@@ -936,22 +977,22 @@ export function sliceTrack(t: ScrubTrack, a: number, b: number): ScrubTrack {
 export function prependEntry(
   t: ScrubTrack,
   entry: [number, number, number, number, number, number],
-  rates?: { linear?: number | null; rotary?: number | null },
+  rates?: DepRates,
+  first?: { basis: number; f: number; force?: boolean },
 ): ScrubTrack {
   const dx = t.pos[0]! - entry[0], dy = t.pos[1]! - entry[1], dz = t.pos[2]! - entry[2];
-  const linear = Math.sqrt(dx * dx + dy * dy + dz * dz);
   const rotDeg = Math.max(
     Math.abs(t.abc[0]! - entry[3]),
     Math.abs(t.abc[1]! - entry[4]),
     Math.abs(t.abc[2]! - entry[5]),
   );
-  let entryLen: number;
-  if (t.timeBased && rates?.linear) {
-    entryLen = Math.max(linear / rates.linear, rotDeg / (rates.rotary || rates.linear));
-  } else {
-    entryLen = Math.max(linear, rotDeg * DEG_AS_MM);
-  }
-  if (entryLen < 1e-6) return t;
+  // The move to the first point is the program's FIRST move (parity-ef plan
+  // E7): its kind and time basis, never a rapid by default — a program that
+  // starts with G1 feeds there (`first`, the first point's basis and F).
+  const feedFirst = !!first && first.basis >= 2;
+  const [entryLen, timeFlag] = moveTime(first?.basis ?? 1, first?.f ?? 0, dx, dy, dz, rotDeg,
+                                        t.timeBased && !!rates?.linear, rates);
+  if (entryLen < 1e-6 && !first?.force) return t;
   // A first point AFTER a tool measurement the preview does not predict
   // (M600 before the first drawn point): where the run is then — position,
   // tool, offset — is not known, so there is no move to it to time or sweep;
@@ -971,7 +1012,7 @@ export function prependEntry(
   abc.set(t.abc, 3);
   lines.set(t.lines, 1);            // entry point keeps line 0 = "entry"
   rapid.set(t.rapid, 1);
-  rapid[1] = 1;                     // the entry MOVE (ending at old point 0) is a rapid
+  rapid[1] = feedFirst ? 0 : 1;     // the entry MOVE (ending at old point 0): the first move's kind
   let mode: Uint8Array | undefined;
   if (t.mode) {
     // The entry rapid executes under the program's initial mode (the
@@ -1091,9 +1132,21 @@ export function prependEntry(
   const inheritedEnd = t.inheritedEnd
     ? { A: t.inheritedEnd.A + 1, B: t.inheritedEnd.B + 1, C: t.inheritedEnd.C + 1, unknown: t.inheritedEnd.unknown + 1 }
     : undefined;
+  // The beginning's masks stay with their points (one index up); the
+  // entry point is the live pose itself.
+  const shiftCh = <A extends Uint8Array | Float32Array>(a: A | undefined, make: (k: number) => A): A | undefined => {
+    if (!a) return undefined;
+    const o = make(n);
+    o.set(a, 1);
+    return o;
+  };
+  const depTime = timeFlag && !t.depTime ? { line: t.lines[0] ?? 0, bound: timeFlag === 1 } : t.depTime;
   return { pos, abc, lines, rapid, mode, frame, frames: t.frames, brk, ustart, unpredicted, band, cond,
            wcsEpoch, wcsEvents: t.wcsEvents, tlo, tloEvents: t.tloEvents, outside,
            lineOk, sub, subNames: t.subNames, cline, inheritedEnd,
+           ...(t.dep ? { dep: shiftCh(t.dep, k => new Uint8Array(k)), depBasis: shiftCh(t.depBasis, k => new Uint8Array(k)),
+                         depF: shiftCh(t.depF, k => new Float32Array(k)), depEnd: 0, startBelieved: t.startBelieved } : {}),
+           ...(depTime ? { depTime } : {}),
            cum, count: n, lineIndex: buildLineIndex(lines, cum), timeBased: t.timeBased };
 }
 

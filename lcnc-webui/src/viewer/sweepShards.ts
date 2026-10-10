@@ -46,6 +46,8 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
     // statements — but a pair's own (an undecidable inside check) only the
     // shard that sweeps it: their union.
     ...unitedNotes(results),
+    // the same track for every shard: the same start-dependent beginning
+    ...(first.startDependent ? { startDependent: first.startDependent } : {}),
     pairCount: first.pairCount,
     pairsPrescreened: results.reduce((s, r) => s + r.pairsPrescreened, 0),
     bvhMs: Math.max(...results.map(r => r.bvhMs)),

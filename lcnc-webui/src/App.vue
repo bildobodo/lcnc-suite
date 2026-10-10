@@ -616,7 +616,9 @@ const softLimitStatus = computed(() => {
   if (w) parts.push(`${w} TCP segment${w === 1 ? "" : "s"} not validated`);
   // M600: nothing after a tool measurement the preview cannot predict
   const stop = gcodeProbeStops.value[0];
-  if (stop) parts.push(`not validated after the tool measurement (${probeStopWhy(stop)})`);
+  if (stop) parts.push(stop.reason === "position_read"
+    ? `not validated after the position read (${probeStopWhy(stop)})`
+    : `not validated after the tool measurement (${probeStopWhy(stop)})`);
   return parts.length ? { cls: "warn", text: parts.join(" · ") }
                       : { cls: "ok", text: "OK" };
 });

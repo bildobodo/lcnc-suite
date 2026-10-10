@@ -22,6 +22,9 @@ export interface DecodedPreview {
   /** Rotary-command boundary (wire `rotary_cmd`, 2026-09-11); undefined
    *  when absent or malformed (never guessed). */
   rotaryCmd?: RotaryCmd;
+  /** The start the parse assumed (wire start_believed, plan E5); shifted
+   *  with the points before the first TLO row by normalizeToToolBasis. */
+  startBelieved?: [number, number, number];
   // The drawing-path aliases the worker also ships (same buffers as the
   // stream fields — feed.pos === feedPos etc.).
   feedPos: Float32Array;
@@ -115,20 +118,44 @@ export function decodePreviewStreams(g: Record<string, any>): DecodedPreview {
   };
   const [feedBand, feedCond] = inBands(feedSeq, feedPos.length / 3);
   const [rapidBand, rapidCond] = inBands(rapidSeq, rapidPos.length / 3);
+  // The start-dependent beginning (docs/reviews/parity-ef.plan.md E8): each
+  // stream ships a PREFIX; a point past it has no mask and no time basis.
+  const pad8 = (b: unknown, n: number) => {
+    if (b == null) return undefined;
+    const src = new Uint8Array(b as Uint8Array);
+    if (src.length > n) return undefined;   // a prefix longer than its stream: never guessed
+    const out = new Uint8Array(n);
+    out.set(src, 0);
+    return out;
+  };
+  const padF = (b: unknown, n: number) => {
+    if (b == null) return undefined;
+    const src = toF32(b);
+    if (src.length > n) return undefined;
+    const out = new Float32Array(n);
+    out.set(src, 0);
+    return out;
+  };
+  const nfp = feedPos.length / 3, nrp = rapidPos.length / 3;
+  const sb = g.start_believed;
+  const startBelieved = Array.isArray(sb) && sb.length === 3 && sb.every((v: unknown) => Number.isFinite(Number(v)))
+    ? [Number(sb[0]), Number(sb[1]), Number(sb[2])] as [number, number, number] : undefined;
 
   return {
     feed: { pos: feedPos, abc: feedAbc, lines: feedLines, seq: feedSeq,
             tcum: g.feed_tcum != null && (g.feed_tcum as Uint8Array).length ? toF32(g.feed_tcum) : undefined,
             mode: feedModeWire, frame: feedFrameWire, wcs: feedWcsWire, tlo: feedTloWire,
             lineOk: feedLineOkWire, sub: feedSubWire, cline: feedClineWire, outside: feedOutsideWire,
-            unpredicted: feedUnpred, band: feedBand, cond: feedCond },
+            unpredicted: feedUnpred, band: feedBand, cond: feedCond,
+            dep: pad8(g.feed_dep, nfp), depBasis: pad8(g.feed_dep_basis, nfp), depF: padF(g.feed_dep_f, nfp) },
     rapid: { pos: rapidPos, abc: rapidAbc, lines: toU32(g.rapid_lines), seq: rapidSeq,
              tcum: g.rapid_tcum != null && (g.rapid_tcum as Uint8Array).length ? toF32(g.rapid_tcum) : undefined,
              mode: rapidModeWire, frame: rapidFrameWire, brk: rapidBrkWire,
              ustart: rapidUstartWire, wcs: rapidWcsWire, tlo: rapidTloWire,
              lineOk: rapidLineOkWire, sub: rapidSubWire, cline: rapidClineWire, outside: rapidOutsideWire,
-             unpredicted: rapidUnpred, band: rapidBand, cond: rapidCond },
-    kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd,
+             unpredicted: rapidUnpred, band: rapidBand, cond: rapidCond,
+             dep: pad8(g.rapid_dep, nrp), depBasis: pad8(g.rapid_dep_basis, nrp), depF: padF(g.rapid_dep_f, nrp) },
+    kinsFrames, wcsEvents, tloEvents, subNames, rotaryCmd, startBelieved,
     feedPos, rapidPos, feedLines, feedAbc, rapidAbc,
   };
 }
@@ -155,6 +182,8 @@ export function normalizeToToolBasis(d: DecodedPreview, tloStart: unknown,
   const b = basis && basis.length >= 3 ? [Number(basis[0]), Number(basis[1]), Number(basis[2])] : s;
   const dx = s[0]! - b[0]!, dy = s[1]! - b[1]!, dz = s[2]! - b[2]!;
   if (dx || dy || dz) {
+    // the assumed start stands before every row too (plan E5)
+    if (d.startBelieved) d.startBelieved = [d.startBelieved[0] + dx, d.startBelieved[1] + dy, d.startBelieved[2] + dz];
     for (const st of [d.feed, d.rapid]) {
       const pos = st.pos, tlo = st.tlo;
       const n = pos.length / 3;

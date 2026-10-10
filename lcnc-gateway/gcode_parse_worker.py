@@ -1510,7 +1510,12 @@ def parse(ctx: dict) -> dict:
               # [seq, tool, reason | length, line]: line = the verified
               # MAIN-file call the event belongs to, 0 when not verified —
               # the client puts a note on that call's row only (VP-I63).
-              **({"probe_unpredicted": [[int(q), int(t), str(r), int(at or 0)] for (q, t, r, _k), at in zip(
+              # (a position read names its own main-file line — the walk's
+              # or the interpreter's, parity-ef plan E4; 0 = from the start)
+              **({"probe_unpredicted": [[int(q), int(t), str(r),
+                                         int((canon.position_read_lines[0] if r == "position_read"
+                                              and canon.position_read_lines else at) or 0)]
+                                        for (q, t, r, _k), at in zip(
                   canon.probe_events, main_file_event_lines([e[3] for e in canon.probe_events],
                                                             canon.sub_events, _caller_map))]}
                  if canon.probe_events else {}),
@@ -1545,6 +1550,13 @@ def parse(ctx: dict) -> dict:
               # The beginning untracked: the interpreter's words were not
               # available (Codex R132 VP-I80) — X, Y, Z unknown from the start.
               **({"start_dep_unavailable": canon.start_dep_unavailable} if canon.start_dep_unavailable else {}),
+              # ...and a beginning whose writes the text cannot place (o-words,
+              # M98, an unreadable file): offsets or stored positions written
+              # from the start's position there are not tracked (Codex R132,
+              # the R132 table's point 8) — named, never assumed.
+              **({"start_writes_untracked": True}
+                 if any(a for _b, a in canon.dep_seg.values())
+                 and (canon.write_lines is None or canon.write_mode != "ordered") else {}),
               # Lines whose position READ made every axis unknown to the end
               # (parity-ef plan E4; 0 = the text out of order may read
               # anywhere, from the program's start).

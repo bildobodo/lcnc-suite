@@ -13,6 +13,8 @@ export interface ClashTarget {
   /** A contact on the ENTRY MOVE (the simulation's rapid to the first
    *  point), not on a program line. */
   entry?: boolean;
+  /** …and began on the entry move itself (not on the bound beginning). */
+  entryMove?: boolean;
   line: number;
   rapid?: boolean;
   dist?: number;
@@ -53,6 +55,7 @@ export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
         key: `${h.entry ? "E" : "C"}${h.line}|${h.a}|${h.b}|${k}`,
         line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine, a: h.a, b: h.b };
       if (h.entry) t.entry = true;
+      if (h.entryMove) t.entryMove = true;
       if (k > 0) t.reentry = true;
       if (h.possible) t.possible = true;
       out.push(t);

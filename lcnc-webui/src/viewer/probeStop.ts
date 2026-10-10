@@ -104,13 +104,20 @@ export function probeStopWhy(stop: { tool: number; reason: string }): string {
     case "toolsetter_unknown": return "the toolsetter values are not confirmed";
     case "toolsetter_not_set_up": return "the toolsetter is not set up";
     case "foreign_remap": return "the tool change remap is not the suite's routine";
+    // docs/reviews/parity-ef.plan.md E4: a value read from the position
+    // where the preview does not know it — in the routine, or anywhere
+    case "position": return "the routine reads a position the preview does not know";
+    case "position_read": return "the program reads a position the preview does not know";
     default: return stop.reason ? `not predicted: ${stop.reason}` : "not predicted";
   }
 }
 
 /** One line: what stopped and why ("Tool measurement not predicted (T2 has
  *  no length in the table)"). */
-export function probeStopTitle(stop: { tool: number; reason: string }): string {
+export function probeStopTitle(stop: { tool: number; reason: string; line?: number }): string {
+  // A position read is no measurement (plan E4): said as what it is.
+  if (stop.reason === "position_read")
+    return `Position read not predicted${stop.line ? ` at L${stop.line}` : ""} (${probeStopWhy(stop)})`;
   return `Tool measurement not predicted (${probeStopWhy(stop)})`;
 }
 
@@ -131,7 +138,8 @@ export function m600Events(stops: readonly ProbeStop[], toollen: unknown, unit: 
                            notes: readonly ProbeNote[] = []): M600Event[] {
   const out: M600Event[] = [];
   for (const st of stops) {
-    if (st.tool > 0) out.push({ seq: st.seq, tool: st.tool, line: st.line, length: null,
+    // a position read is no measurement of the tool (plan E4)
+    if (st.tool > 0 && st.reason !== "position_read") out.push({ seq: st.seq, tool: st.tool, line: st.line, length: null,
                                 note: `measurement not predicted: ${probeStopWhy(st)}` });
   }
   if (Array.isArray(toollen)) {

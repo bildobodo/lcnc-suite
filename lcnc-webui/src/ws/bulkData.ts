@@ -174,6 +174,30 @@ export interface ScrubTrack {
    *  this point (capped at 255): the path assumes their table length and
    *  modeled probe sequence (`conditional`). Absent = none. */
   cond?: Uint8Array;
+  /** The program's START-DEPENDENT beginning (docs/reviews/parity-ef.plan.md
+   *  E7/E8): per point the axes whose value still depends on where the
+   *  machine stood at the start (bit 0 X, 1 Y, 2 Z) after the move ending
+   *  there; the move's time basis (1 rapid, 2 feed at `depF` units/min, 3 a
+   *  feed whose time the start changes in a way the parse cannot say) and F.
+   *  Absent = none. */
+  dep?: Uint8Array;
+  depBasis?: Uint8Array;
+  depF?: Float32Array;
+  /** K: the first point after the last one with a mask (0 = none, `count`
+   *  = the whole track). On a BASE track the segments into points 1..K are
+   *  breaks with no duration — the beginning is drawn and checked only once
+   *  bound to a start (viewer/startDep.ts); `depBrk` / `depDur` keep their
+   *  own break flags and durations for that. A bound track carries 0. */
+  depEnd?: number;
+  depBrk?: Uint8Array;
+  depDur?: Float32Array;
+  /** The start the parse assumed (program frame of the first point's epoch,
+   *  machine units): the bound start minus it is the beginning's shift. */
+  startBelieved?: [number, number, number];
+  /** On a bound track: the first line from which the time axis is only a
+   *  lower bound (`bound`) or unknown — a feed in the beginning the parse
+   *  could not time (plan E7). */
+  depTime?: { line: number; bound: boolean };
   tloEvents?: import("../viewer/tloEvents").TloEvent[];
   /** Monotonic scrub parameter: SECONDS when `timeBased` (unified timeline
    *  phase 1 — per-segment feed + INI rapid velocities), else distance
@@ -436,6 +460,27 @@ export interface ViewerGcode {
   // for the client-built entry move's duration; null = INI didn't say.
   rapid_rate?: number | null;
   rot_rapid_rate?: number | null;
+  /** The program's start-dependent beginning (parity-ef plan E8): per stream
+   *  a PREFIX (up to the last point with a mask or a time basis) of masks
+   *  (u8), time bases (u8) and F (f32, units/min); the assumed start; the
+   *  lines whose position read made every axis unknown (0 = from the start);
+   *  the INI limits for a feed's shortest duration (units/s, null = none). */
+  feed_dep?: Uint8Array;
+  rapid_dep?: Uint8Array;
+  feed_dep_basis?: Uint8Array;
+  rapid_dep_basis?: Uint8Array;
+  feed_dep_f?: Uint8Array;
+  rapid_dep_f?: Uint8Array;
+  start_believed?: number[];
+  position_read_lines?: number[];
+  axis_vmax?: (number | null)[];
+  traj_vmax?: number | null;
+  /** The interpreter's words were not available (Codex R132 VP-I80): X, Y,
+   *  Z unknown from the start, said. */
+  start_dep_unavailable?: string;
+  /** Offsets written in the start-dependent beginning where the text cannot
+   *  place them are not tracked (o-words, M98). */
+  start_writes_untracked?: boolean;
   // Executed tool changes as [line, tool] in execution order (canon M6 on a
   // line of this file; the M600 routine's own M6 at its call line when that
   // is the program's only one, else none — gateway_util.main_file_tool_changes).

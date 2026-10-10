@@ -11,7 +11,8 @@
 // every cum lives on the ENTRY track's axis. Pure.
 import { unitedNotes, type CollisionHit, type CollisionResult } from "./collision";
 
-export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, shift: number, baseLen: number): CollisionResult {
+export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, shift: number, baseLen: number,
+                                 entryMoveEnd?: number): CollisionResult {
   const shifted: CollisionHit[] = base.hits.map(h => ({
     ...h,
     cum: h.cum + shift,
@@ -33,7 +34,12 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
   // Marked as the entry move's own (Codex R33 VP-I07): its records carry
   // the program's first line, so line + pair alone named a program contact
   // on that line and pair too.
-  const entryHits: CollisionHit[] = entry.hits.map(h => ({ ...h, entry: true }));
+  // The side sweep also covers the start-dependent beginning (parity-ef plan
+  // E7): only a contact that began on the entry MOVE (before `entryMoveEnd`,
+  // the first point's cum) reads "entry"; the others keep their lines.
+  const entryHits: CollisionHit[] = entry.hits.map(h => ({
+    ...h, entry: true,
+    ...(entryMoveEnd == null || h.cum <= entryMoveEnd + 1e-9 ? { entryMove: true as const } : {}) }));
   for (const e of entryHits) {
     if (e.continuation !== undefined || e.dist > CONTACT || e.cumEnd < shift - tol) continue;
     const bi = shifted.findIndex(b => b.continuation === undefined && b.dist <= CONTACT

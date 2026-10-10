@@ -2972,7 +2972,8 @@ const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResu
   const e = collisionEntry.value;
   const b = e ? _colBaseFor(e.base) : null;
   if (!e || !b) return null;
-  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!) };
+  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!,
+                                                    e.track.cum[1]) };
 });
 /** The result swept on exactly `trk` (base or entry-overlaid), else null. */
 function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {
@@ -3183,7 +3184,13 @@ function runEntryCheck(entry: ScrubTrack, base: ScrubTrack | null) {
   });
   if (!base) return;
   if (plan.runBase) { cancelCollisionCheck(); runCollisionCheck(base); }
-  if (plan.runSide && entry.count >= 2) _colPostSide(sliceTrack(entry, 0, 2), entry, base, entry.cum[1]!);
+  // The side sweep covers the entry move AND the program's start-dependent
+  // beginning bound to this start (parity-ef plan E7): the base draws and
+  // checks nothing before its point K, so the overlay shifts the base result
+  // by the time to K.
+  const K = base?.depEnd ?? 0;
+  const end = Math.min(K + 1, entry.count - 1);
+  if (plan.runSide && entry.count >= 2) _colPostSide(sliceTrack(entry, 0, end + 1), entry, base, entry.cum[end]!);
 }
 
 /** Drop the entry overlay (and a side sweep in flight): a touch-off, a new
@@ -3380,6 +3387,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     frames: track.frames,         // small list — structured-cloned, not transferred
     brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
     ustart: track.ustart?.slice(), // unknown starts — named in the result, never assumed swept
+    depEnd: track.depEnd,          // the start-dependent beginning: baseline at K, named (plan E7)
+    dep: track.dep?.slice(),       // ...and where it lies on a bound track
     wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
     tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
     unpredicted: track.unpredicted?.slice(),  // after an unpredicted tool measurement (M600)
@@ -3431,6 +3440,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
       // note names its line (Codex R95 VP-I53). Plain arrays, clone fine.
       staleOffsetLines: viewerGcode.value?.stale_offset_lines?.slice(),
       staleOffsetUntracked: viewerGcode.value?.stale_offset_untracked,
+      startUntracked: viewerGcode.value?.start_dep_unavailable,
+      startWritesUntracked: viewerGcode.value?.start_writes_untracked,
       // M600 (docs/reviews/m600-preview.plan.md): the measurement the
       // preview cannot predict, and the program tools whose body is unknown.
       probeStops: parseProbeStops(viewerGcode.value?.probe_unpredicted).map(p => ({ tool: p.tool, reason: p.reason })),

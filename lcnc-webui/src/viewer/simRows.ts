@@ -96,7 +96,7 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
     if ((t.dist ?? 0) > 1e-3) notes.push(`near miss, ${fmtDist(t.dist ?? 0, i.unit)} apart`);
     if ((t.spanEndLine ?? t.line) > t.line) notes.push(`through L${t.spanEndLine}`);
     if (t.possible) notes.push("possible — in the probe's braking range");
-    rows.push({ key: t.key, kind: "clash", line: t.line, lineLabel: t.entry ? "entry" : `L${t.line}`,
+    rows.push({ key: t.key, kind: "clash", line: t.line, lineLabel: t.entryMove ? "entry" : `L${t.line}`,
       cum: t.cum, cumEnd: t.cumEnd,
       what: t.a && t.b ? `${partLabel(t.a)} ↔ ${partLabel(t.b)}` : "Collision",
       note: notes.join(" · "), rapid: !!t.rapid, at: at(t.cum) });

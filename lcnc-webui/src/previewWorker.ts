@@ -69,7 +69,8 @@ self.onmessage = async (e: MessageEvent<Req>) => {
     }
     let { feedPos, rapidPos, feedLines, feedAbc, rapidAbc } = d;
     const { kinsFrames, wcsEvents, tloEvents } = d;
-    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames, tloEvents, d.rotaryCmd);
+    const scrubTrack = buildScrubTrack(d.feed, d.rapid, kinsFrames, wcsEvents, d.subNames, tloEvents, d.rotaryCmd,
+                                       d.startBelieved);
 
     // Drawn-preview streams re-derived from the merged track (sectioned, with
     // break indices) — the raw endpoint strips draw FALSE connectors across
