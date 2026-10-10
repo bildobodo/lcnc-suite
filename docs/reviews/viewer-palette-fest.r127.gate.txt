@@ -1,0 +1,19 @@
+# R127 · Gate und Mutationen · Korrekturen zu R126 und das Modell nach F5 · 10. Oktober 2026
+
+Geprüfter Stand: fix/probe-band 8fc6765c (49197ea3 Modell, 8fc6765c VP-I74..VP-I76). Worktree ~/lcnc-suite-stop.
+
+## Stufe 1 (scripts/test_suite.py offline --component backend; npm lint / build / test)
+  backend PASS, 5axis-model, audit-css, review-handshake, readback-target, parity-compare PASS
+  lint exit 0 · build exit 0 · vitest 2096 passed (2096)
+## serial-viewer (--no-deps, --trace off): 85 passed
+
+## Mutationen (je eine, kompilierend, aus Byte-Kopie wiederhergestellt)
+  M17 zwei statt vier Servotakte                               RED  (TestBrakingRange)
+  M18 das Band beginnt Kontakte (Zweig aus)                    RED  (collision.test „braking range“: R126-Fälle)
+  M19 keine Aufwertung eines möglichen Eintrags zu sicher      RED
+  M20 ein möglicher Eintrag speist die Wiedereintrittsregel    RED
+  M21 die Endlage des Bands zählt als Probe der Zeile          RED
+  M22 Programmstatistik ohne Warnungen                         RED  (probeStop.test)
+  M23 nicht gelesener externer Versatz gilt als aus            RED
+  M24 run_basis.start ohne eoffset                             RED  (test_command_dispatch run_basis)
+  Die Mutationen M1..M16 aus R126 sind unverändert gültig (M6 und M16 wie dort benannt).
