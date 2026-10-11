@@ -7,11 +7,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import ts from "typescript";
-import { describe, expect, it } from "vitest";
-import { confirmedContact, type CollisionHit, type CollisionResult } from "./collision";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CollisionHit, CollisionResult } from "./collision";
 import { clashTargets } from "./clashTargets";
 import { findingWords } from "./sweepWords";
 import { collisionLineMarks } from "./collisionMarks";
+import { firstOnly, holdsFirst, withFirstContact } from "./firstContact";
+import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { captureCheckContext } from "./checkContext";
 import { semanticKinsMode } from "./kins";
 import { basisFromLive, type CheckBasis } from "./checkBasis";
@@ -21,9 +23,10 @@ function viewerFns(names: string[], prelude: string, refs: Record<string, unknow
   const script = file.slice(file.indexOf('<script setup lang="ts">') + 24, file.indexOf("</script>"));
   const ast = ts.createSourceFile("ThreeViewer.ts", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const texts = names.map(name => {
-    const f = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === name);
+    const f = ast.statements.find(n => (ts.isFunctionDeclaration(n) && n.name?.text === name)
+      || (ts.isVariableStatement(n) && n.declarationList.declarations.some(d => d.name.getText(ast) === name)));
     expect(f, name).toBeTruthy();
-    return f!.getText(ast);
+    return f!.getText(ast).replaceAll("import.meta.url", '"https://test.invalid/ThreeViewer.js"');
   });
   const body = ts.transpileModule(`${prelude}\n${texts.join("\n")}\nreturn { ${[...names, ...exports].join(", ")} };`,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
@@ -36,48 +39,163 @@ const result = (hits: CollisionHit[], over: Partial<CollisionResult> = {}): Coll
   hits, staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
   pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null, ...over });
 
-describe("the first confirmed contact at once (step 4 plan 1b, _colShowFirst)", () => {
-  /** _colShowFirst over a partial on screen (`start`, of `onTrack`) while the
-   *  request's track is TRACK; `shown()` reads the partial it leaves. */
-  const showFirst = (start: CollisionResult | null, onTrack: unknown, progress = 0.4) => {
-    const TRACK = { id: "pending" };
-    return viewerFns(["_colShowFirst"], `
-      const collisionPartial = { value: START }, collisionPartialTrack = { value: ON === "pending" ? TRACK : ON };
-      const collisionProgress = { value: PROGRESS };
-      let _colPendingTrack = TRACK;
-      const shown = () => collisionPartial.value;
-      const emitted = [], counts = { retint: 0 };
-      const emit = (e, x) => emitted.push([e, x]), _colRetint = () => { counts.retint++; };`,
-      { confirmedContact, collisionLineMarks, TRACK, START: start, ON: onTrack, PROGRESS: progress }, ["shown", "emitted", "counts"]);
-  };
-  const lines = (r: CollisionResult) => r.hits.map(x => x.line);
+/** The viewer's own worker handler (_colGetWorker's onmessage) and
+ *  _colShowFirst as written, over the refs they read: `post` hands the
+ *  handler a worker message of request `_colReqId`; `nextRequest` is a new
+ *  request (its id). */
+function owner() {
+  return viewerFns(["_colGetWorker", "_colShowFirst"], `
+    let _colWorker = null, _colModelSent = null, _colSide = null, _colReqId = 12, _colKeepShown = false, _colFirstHeld = null;
+    const TRACK = {}, _colPendingTrack = TRACK;
+    const collisionPartial = { value: null }, collisionPartialTrack = { value: null }, collisionProgress = { value: 0 };
+    const emitted = [], emit = (e, x) => emitted.push([e, x]), _colRetint = () => {};
+    class Worker { postMessage() {} }
+    const post = (data) => _colGetWorker().onmessage({ data });
+    const shown = () => collisionPartial.value;
+    const nextRequest = () => ++_colReqId;`,
+    { collisionLineMarks, holdsFirst, withFirstContact, firstOnly }, ["post", "shown", "nextRequest", "emitted"]);
+}
+const words = (r: CollisionResult | null) => findingWords(clashTargets(r?.hits ?? []));
+const running = (hits: CollisionHit[], covered = 0.1) => result(hits, { truncated: { covered, reason: "running" } });
+
+describe("the first confirmed contact at once, through the viewer's worker handler (step 4 plan 1b; Codex R136)", () => {
+  const near = hit(7, 1.5);
+  it("VP-I91: the first of an onset shown as a near miss replaces it — one contact, one target, one key", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
+    expect(words(ui.shown()).text).toBe("1 near miss");
+    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
+    const t = clashTargets(ui.shown().hits);
+    expect(t.map(x => x.key)).toHaveLength(1);
+    expect(words(ui.shown()).text).toBe("1 collision");
+    // the code panel's marks follow at once
+    expect(ui.emitted.at(-1)).toEqual(["collision-lines", collisionLineMarks(ui.shown().hits)]);
+  });
+  it("VP-I92: a partial built from older words keeps the shown contact until a partial carries it", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
+    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
+    // the pool's merged partial from a shard's older word: the near miss again
+    ui.post({ id: 12, progress: 0.25, partial: running([near], 0.25) });
+    expect(words(ui.shown()).text, "never back to a near miss").toBe("1 collision");
+    expect(ui.shown().truncated).toEqual({ covered: 0.25, reason: "running" });
+    // a newer word carries it: the partial as it is from then on
+    ui.post({ id: 12, progress: 0.3, partial: running([{ ...near, touches: true }, hit(9, 0, { b: "column" })], 0.3) });
+    expect(words(ui.shown()).text).toBe("2 collisions");
+  });
+  it("the first stays with its request: a new request's partials are its own", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.2, first: hit(7, 0) });
+    ui.nextRequest();
+    ui.post({ id: 13, progress: 0.1, partial: running([]) });
+    expect(ui.shown().hits).toEqual([]);
+  });
+  it("positive controls: another onset's near miss stays beside it; progress and a stale request's partial change nothing", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.1, partial: running([hit(9, 1.5, { b: "table" })]) });
+    ui.post({ id: 12, progress: 0.2, first: hit(7, 0) });
+    ui.post({ id: 12, progress: 0.3 });
+    ui.post({ id: 11, progress: 0.4, partial: running([]) });
+    expect(words(ui.shown()).text).toBe("1 collision · 1 near miss");
+    expect(ui.shown().hits.map((h: CollisionHit) => h.line)).toEqual([7, 9]);
+  });
   it("with nothing on screen: a running partial of the contact alone, at the progress it came with", () => {
-    const f = showFirst(null, null);
-    f._colShowFirst(hit(7, 0), 0.1);
-    expect(lines(f.shown())).toEqual([7]);
-    expect(f.shown().truncated).toEqual({ covered: 0.1, reason: "running" });
-    // the code panel's marks and the tint follow at once, like any partial
-    expect(f.emitted).toEqual([["collision-lines", collisionLineMarks([hit(7, 0)])]]);
-    expect(f.counts.retint).toBe(1);
-    f._colShowFirst(hit(3, 0));
-    expect(lines(f.shown()), "a confirmed contact on screen: nothing added").toEqual([7]);
-    expect(f.emitted).toHaveLength(1);
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.15, first: hit(7, 0) });
+    expect(ui.shown()).toMatchObject({ hits: [hit(7, 0)], truncated: { covered: 0.15, reason: "running" } });
   });
-  it("over a partial of the same track that holds only a near miss: the contact joins it, in track order", () => {
-    const f = showFirst(result([hit(9, 1.5)]), "pending");
-    f._colShowFirst(hit(4, 0));
-    expect(lines(f.shown())).toEqual([4, 9]);
-    expect(f.shown().truncated).toEqual({ covered: 0.4, reason: "running" });
+});
+
+// The pooled sequence of Codex's R136 probe through the REAL coordinator and
+// the viewer's handler: shard A's near miss, shard B's partial held by the
+// cadence, A's first after it — the merged partial that follows must not
+// take the contact back.
+describe("the pool's whole message sequence into the viewer (Codex R136 VP-I92)", () => {
+  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
+  it("a known contact never reverts to a near miss", async () => {
+    vi.resetModules();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    const sent: Record<string, any>[] = [], workers: { onmessage: ((e: { data: unknown }) => void) | null }[] = [];
+    class FakeWorker {
+      onmessage: ((e: { data: unknown }) => void) | null = null;
+      onerror: unknown = null;
+      constructor() { workers.push(this); }
+      postMessage() {}
+      terminate() {}
+    }
+    const scope = { onmessage: null as ((e: { data: unknown }) => void) | null, postMessage: (m: Record<string, any>) => sent.push(structuredClone(m)),
+      navigator: { hardwareConcurrency: 4 }, location: { href: "https://test.invalid/collisionWorker.js" } };
+    vi.stubGlobal("self", scope);
+    vi.stubGlobal("Worker", FakeWorker);
+    await import("./collisionWorker");
+    const machine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }],
+      kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 }],
+      workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z"] };
+    const tri = () => new Float32Array([0, 0, 0, 0, 10, 0, 0, 0, 10]);
+    scope.onmessage!({ data: { id: 12, side: false, modelKey: "simple", machine, tool: null, maxShards: 2,
+      bodies: [{ id: "fixed", group: "fixed", positions: tri() }, { id: "moving", group: "moving", positions: tri() }],
+      track: { pos: new Float32Array([10, 0, 0, 20, 0, 0]), abc: new Float32Array(6), cum: new Float32Array([0, 10]),
+               rapid: new Uint8Array([1, 1]), lines: new Uint32Array([1, 2]), count: 2 },
+      wcs: { g5x: [], g92: [], rotationDeg: 0 }, options: { margin: 2 } } });
+    const emitFrom = (k: number, data: unknown) => workers[k]!.onmessage!({ data: structuredClone(data) });
+    const near = hit(7, 1.5);
+    emitFrom(0, { id: 12, progress: 0.1, partial: running([near]) });
+    await vi.advanceTimersByTimeAsync(100);
+    emitFrom(1, { id: 12, progress: 0.1, partial: running([]) });
+    await vi.advanceTimersByTimeAsync(500);
+    emitFrom(0, { id: 12, progress: 0.2, first: { ...near, touches: true } });
+    // the coordinator does send a merged partial without it after the first
+    expect(sent.findIndex(m => m.first)).toBeGreaterThanOrEqual(0);
+    const ui = owner();
+    const seen: string[] = [];
+    let collided = false;
+    for (const m of sent) {
+      ui.post(m);
+      const w = words(ui.shown());
+      seen.push(w.text);
+      if (w.collisions) collided = true;
+      else if (collided) throw new Error(`a known contact went back: ${seen.join(" → ")}`);
+    }
+    expect(collided).toBe(true);
+    expect(words(ui.shown()).collisions).toBe(1);
   });
-  it("a partial of another track is not built upon (a new program's request)", () => {
-    const f = showFirst(result([hit(9, 1.5)]), { id: "old" });
-    f._colShowFirst(hit(4, 0));
-    expect(lines(f.shown())).toEqual([4]);
+});
+
+// The side sweep's first confirmed contact (Codex R136 VP-I93): the entry
+// move — the start-dependent beginning with it — shows its contact before
+// its result, said still checking; its end ends it.
+describe("the side sweep's first contact on the entry track (Codex R136 VP-I93)", () => {
+  const BASE = { cum: new Float64Array([0, 10, 20]), count: 3 };
+  const ENTRY = { cum: new Float64Array([0, 5, 15, 25]), count: 4 };
+  const side = () => viewerFns(["_colOnSideMessage", "_colBaseFor", "collisionEntryResult"], `
+    const computed = (f) => ({ get value() { return f(); } });
+    let _colSide = { id: -1, entry: ENTRY, base: BASE, slice: ENTRY, shift: 5, retried: false, startedAt: 0 }, _colModelSent = null;
+    const collisionEntry = { value: null }, collisionSideFirst = { value: null }, collisionRun = { value: null };
+    const collisionRunSide = { value: null }, collisionRunSideState = { value: null };
+    const collisionResult = { value: BASE_RESULT }, collisionTrack = { value: BASE };
+    const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
+    const emitTelemetry = () => {}, _colRetint = () => {}, _colPostSide = () => {}, _colRunSideFailed = () => {};
+    const _colRunLog = [];
+    const post = (data) => _colOnSideMessage({ id: -1, ...data });
+    const entryShown = () => collisionEntryResult.value;`,
+    { mergeEntryResult, mergeBeginningOntoBase, firstOnly, ENTRY, BASE, BASE_RESULT: result([]), console: { error: () => {} } },
+    ["post", "entryShown"]);
+  it("shows the contact while the side sweep runs, said still checking; the result takes over", () => {
+    const f = side();
+    expect(f.entryShown(), "nothing yet").toBeNull();
+    f.post({ progress: 0.1, first: hit(0, 0, { cum: 2, cumEnd: 2 }) });
+    const shown = f.entryShown()!;
+    expect(shown.checking).toBe(true);
+    expect(shown.result.hits.some((h: CollisionHit) => h.entry && h.dist === 0)).toBe(true);
+    f.post({ result: result([hit(0, 0, { cum: 2, cumEnd: 3 })]) });
+    expect(f.entryShown()!.checking).toBeUndefined();
+    expect(f.entryShown()!.result.hits.some((h: CollisionHit) => h.entry)).toBe(true);
   });
-  it("a margin entry that touched later counts as a confirmed contact on screen", () => {
-    const f = showFirst(result([hit(9, 1.5, { touches: true })]), "pending");
-    f._colShowFirst(hit(4, 0));
-    expect(lines(f.shown())).toEqual([9]);
+  it("a side sweep that ends without a result takes its contact with it", () => {
+    const f = side();
+    f.post({ progress: 0.1, first: hit(0, 0, { cum: 2, cumEnd: 2 }) });
+    f.post({ error: "boom" });
+    expect(f.entryShown()).toBeNull();
   });
 });
 

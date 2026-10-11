@@ -23,6 +23,7 @@ import { beginSentence, bindBeginning, depTimeSentence, earlierTime, moveTime, r
 import ts from "typescript";
 import { epochTermsFor } from "./wcsEpochs";
 import { findingWords } from "./sweepWords";
+import { firstOnly } from "./firstContact";
 import { partLabel } from "./simRows";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
@@ -430,7 +431,7 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const runPlayhead = ref(null), viewerInit = ref(opts.noInit ? null : { axes: ["X", "Y", "Z"] });
   const collisionRun = ref(null), collisionRunSide = ref(null), collisionRunSideState = ref(null), collisionEntry = ref(null);
   const collisionBusy = ref(false), collisionResumable = ref(false), collisionResult = ref(null), collisionTrack = ref(null);
-  const collisionPartial = ref(null), collisionPartialTrack = ref(null);
+  const collisionPartial = ref(null), collisionPartialTrack = ref(null), collisionSideFirst = ref(null);
   const basis = { startJoints: opts.joints === undefined ? [100, 100, 100] : opts.joints };
   let _colRunGen = 0, _colSide = null, _colSideSeq = 0, _colModelSent = null;
   const _colRunLog = [];
@@ -456,10 +457,36 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const code = ts.transpileModule(prelude + texts.join("\n") + expose,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const deps = { track, wcs, opts, runBeginOf, runBeginView, buildEntryTrack, sliceTrack, mergeBeginningOntoBase,
-                 displayLineForPoint, console: { error: () => {} } };
+                 displayLineForPoint, firstOnly, console: { error: () => {} } };
   return new Function(...Object.keys(deps), code)(...Object.values(deps));
 }
 const swept = (t: any, raw: Record<string, any>) => sweep(t, [500, 0, 0], raw);
+
+describe("Codex R136 VP-I93", () => {
+  it("a run's side sweep shows its first confirmed contact while it runs; the beginning stays checking until its result", () => {
+    const { raw, track } = load("e_single");
+    const base = swept(track, raw);
+    const first = { line: 1, cum: 1, cumEnd: 1, a: "tool", b: "post", dist: 0, rapid: true };
+    const h = coordinator(track, wcsOf(raw));
+    expect(h.start()).toBe(true);
+    h.setBase(base);
+    const beginning = sweep(h.side().slice, [500, 0, 0], raw);
+    h.reply({ progress: 0.2, first });
+    expect(h.view().begin, "still checking").toBe("checking");
+    expect(h.result().hits.some((x: any) => x.a === "tool" && x.b === "post"), "its contact shown").toBe(true);
+    // its result takes over (here clean): merged, checked, the early contact gone with it
+    h.reply({ result: beginning });
+    expect(h.view().begin).toBe("checked");
+    expect(h.result().hits.some((x: any) => x.b === "post")).toBe(false);
+    // a side sweep that ends without a result takes its contact with it
+    const g = coordinator(track, wcsOf(raw));
+    expect(g.start()).toBe(true);
+    g.setBase(base);
+    g.reply({ progress: 0.2, first });
+    g.reply({ error: "injected" });
+    expect(g.result().hits).toEqual(base.hits);
+  });
+});
 
 describe("Codex R134", () => {
   it("VP-I84/I86 at K = 0: a first move from an unseen tool change position is said not checked — idle, in a run, in the '?'", () => {

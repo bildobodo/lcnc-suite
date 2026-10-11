@@ -41,8 +41,11 @@ const slider = (page: Page) => page.locator(".scrubBar .sliderInput");
 const at = async (page: Page) => Number(await slider(page).inputValue());
 /** The collision count the findings button reads ("9 collisions"). */
 const hitCount = async (page: Page) => clashRows(page).count();
-/** The sweep has ended: the findings show from the live partial on ("… so far"). */
-const sweepDone = async (page: Page) => !/so far/.test(await page.locator(".simPanel").innerText());
+/** The sweep has ended: the findings show from the live partial on ("… so far").
+ *  Read from the summary's NAME — its line may show the result as a count
+ *  ("3… · entry move still checking", the measured short form). */
+const sweepDone = async (page: Page) =>
+  !/so far/.test(await page.locator(".simPanel .simSummary .sumItem").first().getAttribute("aria-label") ?? "");
 
 // L7 traverses the spindle nose at Z −380 sideways into the A yoke's wall
 // (top −350) — inside the soft limits, clear at rest and at the first pose.
@@ -446,7 +449,7 @@ test("the check basis card says what the check read when it began — a later st
   for (const want of ["Check basis", "The machine when the check started",
                       // the kinematics the CHECK posed the program in: a payload without
                       // labels in the machine frame — though the layout mock stands in TCP
-                      "Kinematics\nMachine frame", "Rotary axes\nA 0.00° C 0.00°",
+                      "Program kinematics\nMachine frame", "Rotary axes\nA 0.00° C 0.00°",
                       "G54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°", "Z 2.000", "None — the check uses a stub body",
                       "The program's first point", `${s!.pairsPrescreened} pairs`])
     expect(text, want).toContain(want);

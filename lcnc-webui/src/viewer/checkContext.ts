@@ -166,7 +166,7 @@ export function checkCard(ctx: CheckContext | null, r: CollisionResult | null,
       : { label: "Basis", value: "The machine when the check started" });
   // the kinematics the program is posed in; the rotary axes at the start
   const mode = ctx.kins == null ? "Unknown" : KINS_WORDS[ctx.kins] ?? "Unknown";
-  rows.push({ label: "Kinematics", value: `${mode}${ctx.kinsSwitches ? " · switches in the program" : ""}`,
+  rows.push({ label: "Program kinematics", value: `${mode}${ctx.kinsSwitches ? " · switches in the program" : ""}`,
               ...(ctx.kins == null ? { warn: true } : {}) });
   if (ctx.axes.some(l => ROTARY.has(l))) {
     rows.push(ctx.rotary == null ? { label: "Rotary axes", value: "Not read", warn: true }
@@ -187,6 +187,8 @@ export function checkCard(ctx: CheckContext | null, r: CollisionResult | null,
   rows.push({ label: "Start tool", value: n != null && n > 0
     ? [`T${n}`, len(b.toolLen), dia(b.toolDiam)].filter(Boolean).join(" · ") + ` ${o.unit} · tool table`
     : "None — the check uses a stub body" });
+  // the body the check poses for a tool is not its table length (Codex R136, answer 8)
+  notes.push("The check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).");
   list(rows, "Program tools", ctx.programTools.map(t => {
     if (t.unknown) return `T${t.num} · no length in the table — its own pairs not checked`;
     const dims = [len(t.len), dia(t.diam)].filter(Boolean).join(" · ");

@@ -24,6 +24,13 @@ export interface SimSweepView {
   /** The check's name when it is not the standstill check: the check during
    *  a run (plan „Prüfung im Lauf“ 3d). */
   label?: string;
+  /** The verdict's parts (Codex R136 VP-I94): the result by kind, the
+   *  coverage with the cap's caveat (empty for a verdict that is all result),
+   *  and the result as a count ("200+" past the cap's contacts) — the tab
+   *  shortens the result before the coverage. */
+  result: string;
+  coverage: string;
+  short: string;
 }
 
 export const simRows = shallowRef<SimRow[]>([]);

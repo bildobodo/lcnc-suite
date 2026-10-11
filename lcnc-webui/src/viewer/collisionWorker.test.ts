@@ -322,6 +322,25 @@ describe("the side id −1 (VP-I50)", () => {
     expect(r.pairCount).toBe(0);
     expect(r.bodies?.unusable).toEqual(["line"]);
   });
+  it("a SIDE run sends its first confirmed contact before its result too — no partials (Codex R136 VP-I93)", async () => {
+    vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
+      const r = it.next();
+      return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
+                    : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
+    } }));
+    const { sent, send } = await setup(2);
+    // the entry move and a long start-dependent beginning: the side request
+    const n = 401, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = 10 - i * 0.05; cum[i] = i * 0.05; lines[i] = i + 1; }
+    send({ ...req(-1, { side: true }), track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    for (let i = 0; i < 800 && !sent.some(terminal); i++) await vi.advanceTimersToNextTimerAsync();
+    const at = sent.findIndex(m => m.result);
+    expect(at).toBeGreaterThan(0);
+    const firsts = sent.filter(m => m.first);
+    expect(firsts.map(m => m.id)).toEqual([-1]);
+    expect(sent.indexOf(firsts[0]!), "before the result").toBeLessThan(at);
+    expect(sent.filter(m => m.partial), "a side run posts no partials").toHaveLength(0);
+  });
   it("the coordinator passes on the first confirmed contact of any shard at once, once per run", async () => {
     const { sent, workers, send } = await setup();
     send(req(12));

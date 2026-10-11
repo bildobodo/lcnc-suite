@@ -28,12 +28,13 @@ const result = (over: Partial<CollisionResult> = {}): CollisionResult => ({
   pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null, ...over });
 const hit = (line: number, dist: number, over: Partial<CollisionHit> = {}): CollisionHit =>
   ({ line, cum: line, cumEnd: line, a: "spindle_nose", b: `part_${line}`, dist, rapid: false, ...over });
-const view = (r: CollisionResult, o: { busy?: boolean; frac?: number; caveat?: string } = {}) => barComputed("sweepView", {
+const view = (r: CollisionResult, o: { busy?: boolean; frac?: number; caveat?: string; entryChecking?: boolean } = {}) => barComputed("sweepView", {
   shownResult: { value: r },
-  props: { collisionBusy: !!o.busy, collisionRunCheck: null, collisionStopped: null, collisionResumable: false, collisionProgress: 0 },
+  props: { collisionBusy: !!o.busy, collisionRunCheck: null, collisionStopped: null, collisionResumable: false, collisionProgress: 0,
+           collisionEntryResult: o.entryChecking ? { checking: true, result: r } : null },
   hitTargets: { value: clashTargets(r.hits) }, sweepToolSentence: { value: "" }, verdictDetail: { value: "" },
   sweepCaveat: { value: o.caveat ?? null }, boundaryDetail: { value: "" }, sweptFrac: { value: o.frac ?? 1 }, pctOf, findingWords,
-}) as { verdict: string; tone: string };
+}) as { verdict: string; tone: string; result: string; coverage: string; short: string; state: string };
 const detail = (r: CollisionResult) => barComputed("verdictDetail", {
   shownResult: { value: r }, props: { collisionBusy: false, collisionRunCheck: null, collisionStopped: null, collisionResumable: false },
   track: { value: null }, provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hits: { value: r.hits },
@@ -74,6 +75,23 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(detail(onsets)).toContain(`9 records left out of the list, 5 of them where a contact begins — contacts past the first ${MAX_HITS} are not listed or counted.`);
     expect(detail(onsets)).not.toContain("later lines of contacts it lists");
     expect(view(result({ hits: [hit(7, 0)] })).verdict).not.toContain("cut");
+  });
+
+  it("the parts apart (Codex R136 VP-I94): the result, the coverage with the cap's caveat, the result as a count — 200+ past the cap's contacts", () => {
+    const v = view(result({ hits: [hit(7, 0), hit(9, 1.5)], capped: 9, cappedOnsets: 2 }));
+    expect([v.result, v.coverage, v.short]).toEqual(["1 collision · 1 near miss", "checked in full · more contacts not listed", "2+"]);
+    expect(v.verdict).toBe(`${v.result} · ${v.coverage}`);
+    expect(view(result({ hits: [hit(7, 0)], capped: 9 })).short, "records cut: the count holds").toBe("1");
+    expect(view(result({ hits: [hit(7, 0)] }), { busy: true, frac: 0.4 }).short, "while it runs").toBe("1…");
+    const clear = view(result());
+    expect([clear.result, clear.coverage, clear.short]).toEqual(["Clear", "checked in full", "Clear"]);
+  });
+
+  it("the entry move's side sweep runs on after its first contact: shown, said still checking (Codex R136 VP-I93)", () => {
+    const r = result({ hits: [hit(1, 0, { entry: true, entryMove: true })] });
+    const v = view(r, { entryChecking: true });
+    expect([v.state, v.verdict]).toEqual(["checking", "1 collision on the entry move so far · entry move still checking"]);
+    expect(view(r).verdict, "its result: done").toBe("1 collision on the entry move · checked in full");
   });
 
   it("a timeline mark is a near miss only where nothing touched — a margin entry that touched later is a collision's", () => {

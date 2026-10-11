@@ -28,6 +28,7 @@ import { INTERP_IDLE, TASK_MODE_AUTO } from "./lcnc";
 import { runInProgress } from "./runBasis";
 import { admitRunCheck, basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
 import { captureCheckContext, type CheckContext } from "./viewer/checkContext";
+import { firstOnly, holdsFirst, withFirstContact } from "./viewer/firstContact";
 import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
@@ -48,7 +49,7 @@ import { buildEntryTrack, displayLineForPoint, roomEndOf, sliceTrack } from "./v
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionHit, CollisionResult, CollisionLineMark } from "./viewer/collision";
-import { confirmedContact, partCollides } from "./viewer/collision";
+import { partCollides } from "./viewer/collision";
 import { collisionLineMarks } from "./viewer/collisionMarks";
 import { clashTintBodies } from "./viewer/clashTint";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
@@ -2910,6 +2911,12 @@ const collisionPartialTrack = shallowRef<ScrubTrack | null>(null);
 // own identity, so a sim entry never cancels the program's sweep and a
 // re-entry never re-sweeps it (viewer/sweepEntry.ts pins the plan).
 const collisionEntry = shallowRef<{ track: ScrubTrack; base: ScrubTrack; result: CollisionResult; shift: number } | null>(null);
+/** A side sweep's first confirmed contact while it runs (Codex R136 VP-I93):
+ *  the entry move and the start-dependent beginning — the whole program on a
+ *  dependent one — are side sweeps; their contact shows before their result.
+ *  Ends with the side sweep (every path that ends or replaces `_colSide`). */
+const collisionSideFirst = shallowRef<{ id: number; entry: ScrubTrack; base: ScrubTrack; shift: number;
+                                        run?: { gen: number }; first: CollisionHit } | null>(null);
 let _colSide: { id: number; entry: ScrubTrack; base: ScrubTrack; slice: ScrubTrack; shift: number; retried: boolean; startedAt: number;
                 /** a run check's bound beginning (parity-ef plan E5/E7): its run generation and basis */
                 run?: { gen: number; basis: CheckBasis } } | null = null;
@@ -3021,14 +3028,23 @@ function _colBaseFor(trk: ScrubTrack): CollisionResult | null {
   if (r && rs && rs.base === trk && collisionRun.value?.gen === rs.gen) {
     return mergeBeginningOntoBase(rs.result, r, rs.shift, trk.cum[trk.count - 1]!, rs.bound.cum[1]);
   }
+  // ...or, while its side sweep runs, the first contact it found (VP-I93)
+  const sf = collisionSideFirst.value;
+  if (r && sf?.run && sf.base === trk && collisionRun.value?.gen === sf.run.gen) {
+    return mergeBeginningOntoBase({ ...firstOnly(sf.first, 0), truncated: null }, r, sf.shift, trk.cum[trk.count - 1]!, sf.entry.cum[1]);
+  }
   return r;
 }
-const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResult } | null>(() => {
-  const e = collisionEntry.value;
+const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResult; checking?: boolean } | null>(() => {
+  // the entry move's result, or — while its side sweep runs — the first
+  // contact it found (Codex R136 VP-I93), said still checking
+  const sf = collisionSideFirst.value;
+  const e = collisionEntry.value
+    ?? (sf && !sf.run ? { track: sf.entry, base: sf.base, shift: sf.shift, result: { ...firstOnly(sf.first, 0), truncated: null } } : null);
   const b = e ? _colBaseFor(e.base) : null;
   if (!e || !b) return null;
-  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!,
-                                                    e.track.cum[1]) };
+  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!, e.track.cum[1]),
+           ...(e !== collisionEntry.value ? { checking: true } : {}) };
 });
 /** The result swept on exactly `trk` (base or entry-overlaid), else null. */
 function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {
@@ -3047,16 +3063,21 @@ function _colPreviousOf(prev: CollisionResult, version: number | null) {
 }
 
 /** Show a sweep's first confirmed contact at once (step 4 plan 1b): a
- *  running partial with that record added — unrefined, at its discovering
- *  sample, like every live record — unless the partial on screen already
- *  holds a confirmed contact. The next real partial replaces it. */
+ *  running partial with that record in it — unrefined, at its discovering
+ *  sample, like every live record; the record of the same onset replaced
+ *  (Codex R136 VP-I91). Held into every later partial of the request until
+ *  one carries it (VP-I92). */
+let _colFirstHeld: { id: number; first: CollisionHit } | null = null;
 function _colShowFirst(first: CollisionHit, progress?: number) {
   const cur = collisionPartial.value && collisionPartialTrack.value === _colPendingTrack ? collisionPartial.value : null;
-  if (cur?.hits.some(confirmedContact)) return;
-  const base: CollisionResult = cur ?? { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
-                                         pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null };
-  const shown: CollisionResult = { ...base, hits: [...base.hits, first].sort((x, y) => x.cum - y.cum),
-                                   truncated: { covered: progress ?? collisionProgress.value, reason: "running" } };
+  // held until a partial of this request carries it (VP-I92: a pooled
+  // partial built from older shard words dropped it again)
+  _colFirstHeld = { id: _colReqId, first };
+  if (holdsFirst(cur, first)) return;
+  const covered = progress ?? collisionProgress.value;
+  // the onset it is replaces the record of the same onset (VP-I91)
+  const shown: CollisionResult = cur ? { ...withFirstContact(cur, first), truncated: { covered, reason: "running" } }
+    : firstOnly(first, covered);
   collisionPartial.value = shown;
   collisionPartialTrack.value = _colPendingTrack;
   emit("collision-lines", collisionLineMarks(shown.hits));
@@ -3102,7 +3123,11 @@ function _colGetWorker(): Worker {
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;
         if (m.partial && !_colKeepShown) {
-          collisionPartial.value = m.partial;
+          let p = m.partial;
+          // the request's first contact, until a partial of it carries it
+          const held = _colFirstHeld?.id === m.id ? _colFirstHeld.first : null;
+          if (held) { if (holdsFirst(p, held)) _colFirstHeld = null; else p = withFirstContact(p, held); }
+          collisionPartial.value = p;
           collisionPartialTrack.value = _colPendingTrack;
           emit("collision-lines", collisionLineMarks(m.partial.hits));
           _colRetint();
@@ -3296,7 +3321,7 @@ function _colCancelSide(why: string) {
   if (!_colSide) return;
   if (_colWorker) _colWorker.postMessage({ cancel: _colSide.id });
   if (_colSide.run) _colRunSideFailed(_colSide.run.gen, why);
-  _colSide = null;
+  _colSide = null; collisionSideFirst.value = null;
 }
 
 /** ScrubBar's own input edge while simulating (WCS rows it re-adds): nothing
@@ -3310,11 +3335,18 @@ function _colInvalidate() {
   _updateClashTint(null, null);
 }
 
-function _colOnSideMessage(m: { id: number; progress?: number; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean }) {
+function _colOnSideMessage(m: { id: number; progress?: number; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean }) {
   const side = _colSide!;
+  // its first confirmed contact, before its result (Codex R136 VP-I93)
+  if (m.first) {
+    collisionSideFirst.value = { id: side.id, entry: side.entry, base: side.base, shift: side.shift,
+                                 ...(side.run ? { run: { gen: side.run.gen } } : {}), first: m.first };
+    _colRetint();
+    if (m.progress == null) return;
+  }
   if (m.progress != null && !m.result) return;
   if (m.cancelled) {
-    _colSide = null;
+    _colSide = null; collisionSideFirst.value = null;
     if (side.run) _colRunSideFailed(side.run.gen, "it was cancelled");
     return;
   }
@@ -3322,7 +3354,7 @@ function _colOnSideMessage(m: { id: number; progress?: number; error?: string; r
     if (side.retried) {
       console.error("[collision] worker asked for bodies twice — entry sweep not run");
       emitTelemetry("collision.entry_failed", { msg: "worker asked for bodies twice" });
-      _colSide = null;
+      _colSide = null; collisionSideFirst.value = null;
       if (side.run) _colRunSideFailed(side.run.gen, "the machine model did not reach the check");
       return;
     }
@@ -3330,7 +3362,7 @@ function _colOnSideMessage(m: { id: number; progress?: number; error?: string; r
     _colPostSide(side.slice, side.entry, side.base, side.shift, true, side.run);
     return;
   }
-  _colSide = null;
+  _colSide = null; collisionSideFirst.value = null;
   if (m.error) {
     console.error("[collision] entry sweep failed:", m.error);
     emitTelemetry("collision.entry_failed", { msg: m.error });
@@ -3659,6 +3691,7 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
     return;
   }
   _colCancelSide("another check replaced it");
+  collisionSideFirst.value = null;   // a side sweep replaced ends its first contact too
   _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now(), ...(run ? { run } : {}) };
   emitTelemetry("collision.entry_start", { bodies: req.bodies, shift });
   try {
@@ -3668,7 +3701,7 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
   } catch (err) {
     console.error("[collision] entry sweep post failed:", err);
     emitTelemetry("collision.entry_failed", { msg: String(err) });
-    _colSide = null;
+    _colSide = null; collisionSideFirst.value = null;
     if (run) _colRunSideFailed(run.gen, "the check could not be sent");
   }
 }
@@ -3763,7 +3796,7 @@ function _discardRunCheck(why: string) {
   collisionRun.value = null;
   collisionRunSide.value = null;
   collisionRunSideState.value = null;
-  if (_colSide?.run && _colWorker) { _colWorker.postMessage({ cancel: _colSide.id }); _colSide = null; }
+  if (_colSide?.run && _colWorker) { _colWorker.postMessage({ cancel: _colSide.id }); _colSide = null; collisionSideFirst.value = null; }
   const prev = collisionResult.value;
   if (prev) collisionPrevious.value = _colPreviousOf(prev, null);
   cancelCollisionCheck();

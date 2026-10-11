@@ -15,15 +15,16 @@ const result = (over: Partial<CollisionResult> = {}): CollisionResult => ({
   hits: [], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
   pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null, ...over });
 const opts = { stale: false, entry: false, unit: "mm" };
+const BODY = "The check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).";
 const row = (v: ReturnType<typeof checkCard>, label: string) => v.rows.find(r => r.label === label);
 
 describe("the check basis card (step 4 plan 1c)", () => {
   it("the kinematics the program is posed in; the rotary axes by letter when the check began (A from abc[0], C from abc[2])", () => {
     const v = checkCard(captureCheckContext(inputs()), null, opts);
-    expect(row(v, "Kinematics")).toEqual({ label: "Kinematics", value: "TCP" });
+    expect(row(v, "Program kinematics")).toEqual({ label: "Program kinematics", value: "TCP" });
     expect(row(v, "Rotary axes")).toEqual({ label: "Rotary axes", value: "A 61.30° C -12.50°" });
-    expect(v.notes).toEqual([]);
-    expect(row(checkCard(captureCheckContext(inputs({ kinsSwitches: true })), null, opts), "Kinematics")!.value)
+    expect(v.notes).toEqual([BODY]);
+    expect(row(checkCard(captureCheckContext(inputs({ kinsSwitches: true })), null, opts), "Program kinematics")!.value)
       .toBe("TCP · switches in the program");
     // a machine without rotary axes has no such row
     expect(row(checkCard(captureCheckContext(inputs({ axes: ["X", "Y", "Z"] })), null, opts), "Rotary axes")).toBeUndefined();
@@ -33,10 +34,10 @@ describe("the check basis card (step 4 plan 1c)", () => {
     // joint 4 is C on XYZAC: an index taken as the canonical slot would read A's neighbour
     const ctx = captureCheckContext(inputs({ basis: runBasis([1, 2, 3, 40, 90]), kins: 0, rotaryAbc: [0, 0, 0] }));
     const v = checkCard(ctx, null, opts);
-    expect(row(v, "Kinematics")!.value).toBe("Machine frame");
+    expect(row(v, "Program kinematics")!.value).toBe("Machine frame");
     expect(row(v, "Rotary axes")!.value).toBe("A 40.00° C 90.00°");
     expect(row(v, "Basis")!.value).toBe("The run's start (run 7)");
-    expect(v.notes).toEqual(["In a run, the rotary axes are the run's start joints."]);
+    expect(v.notes).toEqual(["In a run, the rotary axes are the run's start joints.", BODY]);
   });
 
   it("a run without start joints says the rotary axes were not read (warn)", () => {
@@ -45,8 +46,8 @@ describe("the check basis card (step 4 plan 1c)", () => {
   });
 
   it("a label the machine's family does not know is said (warn)", () => {
-    expect(row(checkCard(captureCheckContext(inputs({ kins: null })), null, opts), "Kinematics"))
-      .toEqual({ label: "Kinematics", value: "Unknown", warn: true });
+    expect(row(checkCard(captureCheckContext(inputs({ kins: null })), null, opts), "Program kinematics"))
+      .toEqual({ label: "Program kinematics", value: "Unknown", warn: true });
   });
 
   it("the work offset with every axis; G92 and the XY rotation only when set", () => {

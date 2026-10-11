@@ -459,8 +459,9 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   const items = page.locator(".simPanel .simSummary [role=img]");
   await expect(items).toHaveCount(3);
   expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label")))).toEqual(["2 collisions · checked in full", "2 limit violations", "2 tool changes"]);
-  await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeVisible();
-  await expect(page.locator(".simPanel .simSummary .sumShort").first()).toBeHidden();
+  // wide: the words (the form is measured — Codex R136 VP-I94)
+  await expect(page.locator(".simPanel .simSummary")).toHaveAttribute("data-sum-form", "0");
+  expect((await items.allInnerTexts()).map(t => t.trim())).toEqual(["2 collisions · checked in full", "2 limit violations", "2 tool changes"]);
   await ctl({ op: "reset" });
   // The gateway's list holds its first 200 records; the summary says the total.
   await prepare(page, context, "touch-portrait", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: 9000 })));
@@ -478,10 +479,13 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   expect(move, "narrow: the move whole in its row").toEqual({ shown: true, text: " · Rapid", inside: true });
   expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label"))))
     .toEqual(["2 collisions · checked in full", "9000 limit violations · the first 2 lines listed", "2 tool changes"]);
-  const shorts = page.locator(".simPanel .simSummary .sumShort");
-  expect(await shorts.allInnerTexts(), "narrow: the number").toEqual(["2", "9000", "2"]);
-  for (let i = 0; i < 3; i++) await expect(shorts.nth(i), "narrow: each number shows").toBeVisible();
-  await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeHidden();
+  // narrow: the other kinds as their numbers — and the result as a count
+  // too where its words do not fit (the form is measured); its coverage kept
+  const form = await page.locator(".simPanel .simSummary").getAttribute("data-sum-form");
+  expect(form, "narrow: a shorter form").not.toBe("0");
+  expect((await items.allInnerTexts()).map(t => t.trim()), "narrow: the numbers")
+    .toEqual([form === "2" ? "2 · checked in full" : "2 collisions · checked in full", "9000", "2"]);
+  for (let i = 0; i < 3; i++) await expect(items.nth(i), "narrow: each item shows").toBeVisible();
   const box = await page.locator(".simPanel .simSummary").evaluate(el => ({ w: el.scrollWidth, cw: el.clientWidth, h: el.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(el).lineHeight) || 0 }));
   expect(box.w, "narrow: the whole line fits").toBeLessThanOrEqual(box.cw);
   // Codex R82 VP-I42: narrow, the cap was said only in a name and a mouse
@@ -549,14 +553,18 @@ test("a measurement without a verified call line is on no row: the \"?\" points 
 // content's clipping edge and the outer 4 px of its 24 px hit area were cut
 // off — a tap there landed on the side pane. The row keeps the reach.
 test("the summary's \"?\" answers in its whole hit area, at the right edge of a full line", async ({ page, context }) => {
-  // A FULL line (Codex's case: 1600 × 1000): twelve collisions and a
-  // sixteen-digit total — the limit text gives way, the "?" ends the line.
-  // A ten-digit total fitted in Firefox (283 px of 283) and the guard never
-  // reached its case there (Codex R85 VP-I44); the precondition below stays.
-  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: Number.MAX_SAFE_INTEGER })));
+  // A FULL line: twelve collisions and a sixteen-digit total at 150 %
+  // portrait — even the counts take the line and the coverage gives way, the
+  // "?" ends it. (The form is measured since Codex R136 VP-I94: a wide pane
+  // no longer fills the line.) A ten-digit total fitted in Firefox and the
+  // guard never reached its case there (Codex R85 VP-I44); the precondition
+  // below stays.
+  await prepare(page, context, "touch-portrait", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: Number.MAX_SAFE_INTEGER })));
+  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
   await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(Array.from({ length: 12 }, (_, i) => ({ line: 5 + i, frac: (2 + i) / 29 }))));
   await settleLayout(page);
-  expect(await page.locator(".simPanel .sumLimit .sumWide").evaluate(el => el.scrollWidth > el.clientWidth), "the line is full: its limit text gives way").toBe(true);
+  await expect(page.locator(".simPanel .simSummary")).toHaveAttribute("data-sum-form", "2");
+  expect(await page.locator(".simPanel .checkVerdict").evaluate(el => el.scrollWidth > el.clientWidth), "the line is full: the coverage gives way").toBe(true);
   const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
   const g = await help.evaluate(el => {
     const r = el.getBoundingClientRect(), tab = el.closest(".tab-content")!.getBoundingClientRect();
@@ -581,7 +589,7 @@ test.describe("the check basis card by touch (step 4 plan 1c)", () => {
     await ctl({ op: "clearCmds" });
     await trigger.tap();
     await expect(card).toContainText("The machine when the check started");
-    await expect(card).toContainText("Kinematics");
+    await expect(card).toContainText("Program kinematics");
     await expect(card).toContainText("Work offset");
     const box = (await card.boundingBox())!;
     const vp = page.viewportSize()!;
@@ -599,4 +607,75 @@ test.describe("the check basis card by touch (step 4 plan 1c)", () => {
       .filter(c => !["hello", "heartbeat", "get_tool_table", "timing_log", "tab_visibility"].includes(c));
     expect(sent, "reading the card moves nothing").toEqual([]);
   });
+});
+
+// Codex R136 VP-I94: at 1600 × 1000 the side pane is regular (540 px, not
+// narrow) — the new result words of a mixed result with the cap's contacts
+// took 709 px, and the coverage, the cap and the other two kinds fell out of
+// the clipped line. The form is measured: whatever the words, every item and
+// the coverage stay in the line, which keeps its height.
+test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)", () => {
+  async function mixed(page: Page) {
+    await page.addInitScript(() => {
+      const Real = window.Worker;
+      window.Worker = class extends Real {
+        constructor(url: string | URL, options?: WorkerOptions) {
+          super(url, options);
+          if (!/collisionWorker/.test(String(url))) return;
+          this.addEventListener("message", ev => {
+            if (!ev.data?.result) return;
+            const hit = (line: number, dist: number, extra = {}) =>
+              ({ line, cum: line, cumEnd: line + 1, a: "spindle", b: "vise", dist, rapid: true, ...extra });
+            const hits = [hit(12, 0), hit(14, 0, { entryMove: true }), hit(16, 0, { possible: true }), hit(18, 1.5)];
+            for (let i = 0; i < 196; i++) hits.push(hit(19 + i % 10, 0, { b: "fixture_" + i }));
+            // 200 onsets kept, 2 more onsets and 23 continuations cut: a rendering fixture
+            Object.assign(ev.data.result, { pairCount: 200, hits, capped: 25, cappedOnsets: 2 });
+          });
+        }
+      };
+    });
+  }
+  const measure = (page: Page) => page.locator(".simPanel .simSummary").evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const items = [...el.querySelectorAll(".sumItem")].map(e => {
+      const b = e.getBoundingClientRect();
+      return { text: (e as HTMLElement).innerText.trim(), left: b.left, right: b.right };
+    });
+    const verdict = el.querySelector(".checkVerdict") as HTMLElement;
+    return { form: el.getAttribute("data-sum-form"), left: r.left, right: r.right, sw: el.scrollWidth, cw: el.clientWidth,
+      rowH: (el.parentElement as HTMLElement).offsetHeight, items,
+      verdictCut: verdict.scrollWidth > verdict.clientWidth + 0.5, pane: document.querySelector(".sidePane")!.clientWidth,
+      narrow: document.querySelector(".sidePane")!.classList.contains("narrow") };
+  });
+  for (const [vp, zoom] of [["desktop", 1], ["touch-landscape", 1], ["touch-portrait", 1.5]] as const) {
+    test(`a mixed result with the cap's contacts — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
+      await mixed(page);
+      await prepare(page, context, vp);
+      if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+      await settleLayout(page);
+      await expect(page.locator(".simPanel .checkVerdict")).toHaveText(/more contacts not listed|200\+/);
+      const m = await measure(page);
+      expect(m.sw, "the line fits").toBeLessThanOrEqual(m.cw);
+      for (const it of m.items) {
+        expect(it.left, it.text).toBeGreaterThanOrEqual(m.left - 0.5);
+        expect(it.right, it.text).toBeLessThanOrEqual(m.right + 0.5);
+      }
+      // the other two kinds, whole
+      expect(m.items.slice(1).map(x => x.text)).toEqual(m.form === "0" ? ["2 limit violations", "2 tool changes"] : ["2", "2"]);
+      if (vp === "desktop") {
+        expect(m.narrow, "the regular pane").toBe(false);
+        // the result shortened before the coverage: the coverage and the cap whole
+        expect(m.verdictCut, "the coverage whole").toBe(false);
+        expect(m.items[0]!.text).toContain("checked in full · more contacts not listed");
+        // the count holds the cap's contacts: 200+, never "at least 200 collisions"
+        if (m.form === "2") expect(m.items[0]!.text.startsWith("200+")).toBe(true);
+      }
+      // one height whatever the form: the same row with the plain result
+      await page.evaluate(() => window.__viewerDiag!.setCollisionHits!([]));
+      await expect(page.locator(".simPanel .checkVerdict")).toHaveText(/^Clear/);
+      await settleLayout(page);
+      expect((await measure(page)).rowH, "the row's height").toBe(m.rowH);
+      await ctl({ op: "reset" });
+    });
+  }
 });

@@ -261,7 +261,10 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
     // `sweepMs` reports. The iterator's own maxMs stays unset: nothing bounds
     // a sweep but its sample backstop and the owner's park.
     const activeClock = () => run.activeMs + (run.sliceStart ? performance.now() - run.sliceStart : 0);
-    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: side ? undefined : run.snapshot });
+    // A side run (the entry move, the start-dependent beginning — the whole
+    // program on a dependent one) takes the snapshot for its first confirmed
+    // contact only: no partials (Codex R136 VP-I93).
+    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot });
     if (side) _side = run; else _run = run;
     // Park: the generator stays suspended at its current checkpoint; the
     // owner gets the sweep-so-far and decides between continue and cancel.
@@ -306,7 +309,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
         }
         let partial: CollisionResult | undefined;
         const recs = run.snapshot.records?.() ?? 0;
-        if (run.snapshot.peek && recs !== run.lastPeekRecords && performance.now() >= run.nextPeekAt) {
+        if (!side && run.snapshot.peek && recs !== run.lastPeekRecords && performance.now() >= run.nextPeekAt) {
           const t0 = performance.now();
           run.lastPeekRecords = recs;
           partial = run.snapshot.peek();
