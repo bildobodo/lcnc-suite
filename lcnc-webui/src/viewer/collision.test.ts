@@ -4,7 +4,7 @@ import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
   buildCollisionModel, sweepCollisions, withoutArealessFacets, poseModel, pairDistance, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
-  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, type CollisionHit, mergeContiguousIntervals, componentBoxes, MAX_HITS } from "./collision";
+  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, type CollisionHit, mergeContiguousIntervals, componentBoxes, MAX_HITS, confirmedContact } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
@@ -298,6 +298,45 @@ describe("sweepCollisions", () => {
     expect(progress[3]).toBe(1);
   });
 
+  it("the snapshot hook's first confirmed contact: never a near miss, on the track's axis, the first and only one (step 4 plan 1b)", () => {
+    // the plunge approaches the beam: near misses inside the 2 mm margin
+    // first, then the touch
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
+    const t = track(pts);
+    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    let r = it.next();
+    let firstSeen: CollisionHit | null = null, nearOnlyCheckpoints = 0;
+    while (!r.done) {
+      const f = snap.first!();
+      const live = snap.peek!().hits;
+      if (!f && live.length) {
+        nearOnlyCheckpoints++;
+        expect(live.every(h => h.dist > 1e-4), "records but no first: only near misses so far").toBe(true);
+      }
+      if (f) {
+        // the FINDING: the pair's onset, its contact touching (here on a later
+        // line than its margin entry — `touches`)
+        expect(f.continuation).toBeUndefined();
+        expect(f.dist <= 1e-4 || f.touches).toBe(true);
+        if (firstSeen) expect(f).toEqual(firstSeen);   // the first stays the first
+        firstSeen = f;
+      }
+      r = it.next();
+    }
+    expect(nearOnlyCheckpoints, "a near miss came first").toBeGreaterThan(0);
+    expect(firstSeen).not.toBeNull();
+    const full = r.value as CollisionResult;
+    const finding = full.hits.find(h => h.continuation === undefined && (h.dist <= 1e-4 || h.touches))!;
+    expect([firstSeen!.line, firstSeen!.a, firstSeen!.b]).toEqual([finding.line, finding.a, finding.b]);
+    // on the track's axis
+    expect(firstSeen!.cum).toBeGreaterThanOrEqual(0);
+    expect(firstSeen!.cum).toBeLessThanOrEqual(t.cum[t.count - 1]!);
+    expect(snap.first, "cleared with the sweep").toBeNull();
+  });
+
   it("stop/continue via the snapshot hook: every snapshot is a truncated sweep-so-far, continuing ends in the uninterrupted result", () => {
     // 2026-09-12: the worker parks a sweep (budget, operator stop, rotary
     // motion) by simply not resuming the generator, snapshots the sweep-so-
@@ -309,7 +348,7 @@ describe("sweepCollisions", () => {
     const t = track(pts);
     const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
     expect(sync.hits.length).toBeGreaterThan(0);
-    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
     const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
     let r = it.next();
     expect(snap.take).not.toBeNull();       // installed before the first checkpoint
@@ -368,7 +407,7 @@ describe("sweepCollisions", () => {
     const pts: number[][] = [];
     for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
     const t = track(pts);
-    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
     const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
     let r = it.next();
     const ends = new Map<string, number>();
@@ -398,7 +437,7 @@ describe("sweepCollisions", () => {
     for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
     const t = track(pts);
     const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
-    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
     const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
     let r = it.next();
     expect(snap.peek).not.toBeNull();
@@ -717,6 +756,24 @@ describe("contact-window refinement (glow window)", () => {
     const conts = contact.filter(h => h.continuation !== undefined);
     expect(conts.map(h => h.line).sort()).toEqual([26, 27, 28]);
     expect(conts.every(h => h.continuation === 25)).toBe(true);
+  });
+
+  it("a contact that enters the margin on one line and touches on a later one is a collision, not a near miss (`touches`)", () => {
+    // 2026-10-11 (step 4 package 1): the onset record of such a contact keeps
+    // its margin-entry distance — it read "near miss, 2.0 mm apart" while its
+    // continuations touched
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [];
+    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
+    const res = sweepCollisions(model, track(pts), WCS0, { margin: 2 });
+    const onsets = res.hits.filter(h => h.continuation === undefined);
+    const crash = onsets.find(h => h.dist > 1e-4 && res.hits.some(c => c.continuation === h.line && c.a === h.a && c.b === h.b && c.dist <= 1e-4))!;
+    expect(crash, "a margin entry whose contact touches later").toBeDefined();
+    expect(crash.touches).toBe(true);
+    expect(confirmedContact(crash)).toBe(true);
+    // a contact that only grazes the margin stays a near miss
+    const graze = sweepCollisions(model, track([[0, 0, 0], [0, 0, -5]]), WCS0, { margin: 2 });
+    for (const h of graze.hits) if (h.dist > 1e-4) expect([h.touches, confirmedContact(h)]).toEqual([undefined, false]);
   });
 
   it("the cap says how many records it left out (Codex R84/R118: `capped`)", () => {
@@ -2080,7 +2137,7 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     for (let x = 0; x <= 60; x += 0.5) pts.push(x);
     const model = buildCollisionModel(machine(), [post(), nub]);
     const sync = sweepCollisions(model, xs(pts), WCS0, { margin: 0.1 });
-    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
     const it = sweepCollisionsIter(model, xs(pts), WCS0, { margin: 0.1, snapshot: snap });
     let r = it.next(), parks = 0;
     while (!r.done) { snap.take!("stopped"); snap.peek!(); parks++; r = it.next(); }

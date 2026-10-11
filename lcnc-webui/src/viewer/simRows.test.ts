@@ -43,6 +43,14 @@ describe("simRows", () => {
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
   });
 
+  it("a margin entry whose contact touches on a later line is no near miss (`touches`)", () => {
+    const [r] = buildSimRows({
+      clash: [clash({ cum: 3, line: 6, dist: 2, touches: true, spanEndLine: 9, key: "C6|t|w|0" })],
+      limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
+    });
+    expect(r!.note).toBe("through L9");
+  });
+
   it("reads a side-sweep finding on the bound beginning as its line, not the entry move", () => {
     // parity-ef plan E7: the side sweep covers the start-dependent beginning
     // too — origin E (its key), but only the entry move itself reads "entry"

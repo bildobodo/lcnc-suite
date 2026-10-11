@@ -46,8 +46,8 @@ import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chain
 import { buildEntryTrack, displayLineForPoint, roomEndOf, sliceTrack } from "./viewer/scrubTrack";
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
-import type { CollisionBody, CollisionResult, CollisionLineMark } from "./viewer/collision";
-import { partCollides } from "./viewer/collision";
+import type { CollisionBody, CollisionHit, CollisionResult, CollisionLineMark } from "./viewer/collision";
+import { confirmedContact, partCollides } from "./viewer/collision";
 import { collisionLineMarks } from "./viewer/collisionMarks";
 import { clashTintBodies } from "./viewer/clashTint";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
@@ -3018,12 +3018,29 @@ function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {
   return e && e.track === trk ? e.result : null;
 }
 
+/** Show a sweep's first confirmed contact at once (step 4 plan 1b): a
+ *  running partial with that record added — unrefined, at its discovering
+ *  sample, like every live record — unless the partial on screen already
+ *  holds a confirmed contact. The next real partial replaces it. */
+function _colShowFirst(first: CollisionHit, progress?: number) {
+  const cur = collisionPartial.value && collisionPartialTrack.value === _colPendingTrack ? collisionPartial.value : null;
+  if (cur?.hits.some(confirmedContact)) return;
+  const base: CollisionResult = cur ?? { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
+                                         pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null };
+  const shown: CollisionResult = { ...base, hits: [...base.hits, first].sort((x, y) => x.cum - y.cum),
+                                   truncated: { covered: progress ?? collisionProgress.value, reason: "running" } };
+  collisionPartial.value = shown;
+  collisionPartialTrack.value = _colPendingTrack;
+  emit("collision-lines", collisionLineMarks(shown.hits));
+  _colRetint();
+}
+
 function _colGetWorker(): Worker {
   if (!_colWorker) {
     _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean };
+      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean };
       if (_colSide && m.id === _colSide.id) { _colOnSideMessage(m); return; }
       if (m.id !== _colReqId) return;  // superseded
       if (m.cancelled) return;         // our own cancel, acknowledged
@@ -3044,6 +3061,15 @@ function _colGetWorker(): Worker {
         // whole-track check of no run, and the run check stuck "provisional")
         runCollisionCheck(_colPendingTrack ?? undefined, _colPendingRun);
         return;
+      }
+      if (m.first) {
+        // The sweep's first confirmed contact (step 4 plan 1b), of THIS
+        // request (`m.id === _colReqId`: its track, version, basis and run
+        // phase — a new program, a retry or the full check after a
+        // provisional one is another request). Never over a provisional
+        // result kept on screen (`_colKeepShown`).
+        if (!_colKeepShown) _colShowFirst(m.first, m.progress);
+        if (m.progress == null) return;
       }
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;

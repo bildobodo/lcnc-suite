@@ -287,6 +287,42 @@ describe("the regular flow", () => {
 });
 
 describe("the side id −1 (VP-I50)", () => {
+  it("a local sweep sends its first confirmed contact at once, not on the snapshot cadence a near miss started (step 4 plan 1b)", async () => {
+    // one iterator checkpoint per slice: the real sweep, observable between
+    vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
+      const r = it.next();
+      return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
+                    : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
+    } }));
+    const { sent, send } = await setup(2);   // one core for the sweep: the local path
+    // the moving triangle crosses the fixed one's plane: near misses inside
+    // the 2 mm margin first, then the touch at X 0
+    const n = 201, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = 10 - i * 0.1; cum[i] = i * 0.1; lines[i] = i + 1; }
+    send({ ...req(11), track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    for (let i = 0; i < 400 && !sent.some(terminal); i++) await vi.advanceTimersToNextTimerAsync();
+    expect(sent.some(m => m.result)).toBe(true);
+    const firsts = sent.filter(m => m.first);
+    expect(firsts).toHaveLength(1);
+    // the finding: touching, or its contact touching after its margin entry
+    expect(firsts[0]!.first.dist <= 1e-4 || firsts[0]!.first.touches).toBe(true);
+    const at = sent.indexOf(firsts[0]!);
+    // a near miss's snapshot came before it, and no snapshot showed a touch
+    // before it: the cadence would have held the touch
+    expect(sent.slice(0, at).some(m => m.partial?.hits.length)).toBe(true);
+    expect(sent.slice(0, at).some(m => m.partial?.hits.some((h: Msg) => h.dist <= 1e-4 || h.touches))).toBe(false);
+  });
+  it("the coordinator passes on the first confirmed contact of any shard at once, once per run", async () => {
+    const { sent, workers, send } = await setup();
+    send(req(12));
+    const f = { ...hit(4), intervals: undefined };
+    workers[1]!.emit({ id: 12, progress: 0.1, first: f });
+    workers[0]!.emit({ id: 12, progress: 0.2, first: { ...f, line: 2 } });
+    const firsts = sent.filter(m => m.first);
+    expect(firsts.map(m => [m.id, m.first.line])).toEqual([[12, 4]]);
+    // the partial cadence is its own: no snapshot went out with it
+    expect(sent.filter(m => m.partial)).toHaveLength(0);
+  });
   it("the first local side request can be cancelled", async () => {
     // Hold the local sweep at its first slice boundary; the worker still owns
     // the cancel flag, routes the message and pumps.

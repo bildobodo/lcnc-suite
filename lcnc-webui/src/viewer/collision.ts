@@ -240,11 +240,27 @@ export interface CollisionHit {
    *  parity-ef.plan.md F2): the path there is a MODELED hull every stop lies
    *  in, so the contact MAY happen — never a certain one. */
   possible?: true;
+  /** On an onset record whose own distance is above CONTACT_EPS (the pair
+   *  entered the margin on this line): its contact TOUCHED on a later line
+   *  (a touching continuation record). The finding is a collision, not a near
+   *  miss (step 4 package 1, found 2026-10-11: such a finding read "near miss,
+   *  2.0 mm apart" while its continuation touched). Its position stays the
+   *  margin entry; where the touch begins is the contact history's (package 2). */
+  touches?: true;
   /** The onset record of a contact the program STARTS in: the pair is clear
    *  at the model's rest pose and touching at the first pose (step 4 plan
    *  1d) — proven there, not merely inside the margin. The entry merge drops
    *  it where the contact began on the entry move. */
   atStart?: true;
+}
+
+/** A CONFIRMED contact (step 4 plan 1b/1d, Codex R118): a record that
+ *  touches (≤ CONTACT_EPS) or — an onset — whose contact touched on a later
+ *  line (`touches`), and is no boundary contact of a range sweep (onset and
+ *  kind are the full check's) and no `possible` one (the braking range). A
+ *  near miss is never one. */
+export function confirmedContact(h: CollisionHit): boolean {
+  return !h.boundary && !h.possible && (h.dist <= CONTACT_EPS || !!h.touches);
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */
@@ -475,6 +491,13 @@ export interface SnapshotHandle {
   peek: (() => CollisionResult) | null;
   /** Contact records so far — the driver peeks only when this changed. */
   records: (() => number) | null;
+  /** The sweep's FIRST CONFIRMED contact (step 4 plan 1b, Codex R85/R118):
+   *  the first record TOUCHING (dist ≤ CONTACT_EPS) that is no boundary
+   *  contact (its onset and kind are the full check's), no `possible` one
+   *  (the braking range), no continuation — a copy, unrefined (at its
+   *  discovering sample). A cutting contact begun on a feed and a statically
+   *  excluded pair make no record at all. Null until there is one. */
+  first: (() => CollisionHit | null) | null;
 }
 
 // maxSamples is a RUNAWAY backstop, not the operative bound: with carried
@@ -1474,6 +1497,9 @@ export function* sweepCollisionsIter(
   // record carried in before a re-entry made it an onset) are internal to
   // the refinement pass.
   const worst = new Map<string, CollisionHit & { pi: number; samples: number[]; carriedFrom?: number }>();
+  // the first confirmed contact (SnapshotHandle.first), on the sweep's own
+  // distance axis like every live record
+  let firstTouch: CollisionHit | null = null;
   let done = 0;
 
   // Per-segment epoch terms (review P2): a segment's program coords convert
@@ -1903,6 +1929,7 @@ export function* sweepCollisionsIter(
         line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
         samples: prev ? prev.samples : [] };
       if (prev?.carriedFrom !== undefined) rec.carriedFrom = prev.carriedFrom;
+      if (prev?.touches) rec.touches = true;
       // Continuation: the pair's contact began on an EARLIER line and has
       // not separated since. A worse sample on the same line keeps the
       // record's existing verdict.
@@ -1917,6 +1944,17 @@ export function* sweepCollisionsIter(
       if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
       if (dist <= CONTACT_EPS) rec.samples.push(cum);
       worst.set(key, rec);
+      // A touch on a later line than the pair's margin entry: the onset
+      // record's finding is a collision (`touches`).
+      const onsetRec = dist <= CONTACT_EPS && rec.continuation !== undefined && !rec.boundary && !rec.possible
+        ? worst.get(keyFor(rec.continuation, pi, false)) : undefined;
+      if (onsetRec && onsetRec.dist > CONTACT_EPS && !onsetRec.possible) onsetRec.touches = true;
+      // The sweep's first confirmed contact: its FINDING — the onset record
+      // where the touch continues one (SnapshotHandle.first).
+      if (!firstTouch && dist <= CONTACT_EPS && !rec.boundary && !rec.possible) {
+        const { pi: _pi, samples: _s, carriedFrom: _c, ...copy } = onsetRec ?? rec;
+        firstTouch = copy;
+      }
     } else {
       if (dist <= CONTACT_EPS) {
         prev.samples.push(cum);  // in-contact sample — interval clustering input
@@ -2450,6 +2488,9 @@ export function* sweepCollisionsIter(
       return buildResult(copy, { covered: frac(sweptTo), reason: "running" }, false, false);
     };
     opts.snapshot.records = () => worst.size;
+    // on the track's axis, like every record buildResult reports
+    opts.snapshot.first = () => firstTouch && { ...firstTouch, cum: distToTrackCum(firstTouch.cum),
+                                                cumEnd: Math.max(distToTrackCum(firstTouch.cum), distToTrackCum(firstTouch.cumEnd)) };
   }
   // Checkpoint before the first segment: an abort here leaves the baseline
   // pose only (the "aborts early" contract).
@@ -2816,6 +2857,6 @@ export function* sweepCollisionsIter(
   }
   const finalResult = buildResult(worst, truncated, true, !aborted);
   yield truncated ? truncated.covered : 1;
-  if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; }
+  if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; opts.snapshot.first = null; }
   return finalResult;
 }

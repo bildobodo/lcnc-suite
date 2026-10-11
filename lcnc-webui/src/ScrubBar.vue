@@ -928,7 +928,7 @@ const marks = computed(() => {
   const pctOfCum = (c: number) => Math.min(100, (c / max) * 100);
   for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
   for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
-  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: (x.dist ?? 0) > 1e-3 });
+  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: (x.dist ?? 0) > 1e-3 && !x.touches });
   return out;
 });
 // Extent bands (timeline percentages): where a soft-limit line runs (warn)
