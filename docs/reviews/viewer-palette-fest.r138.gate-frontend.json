@@ -1,0 +1,30 @@
+{
+  "head": "2371a617819eae4b39c0ccbab12594bc37f6f135",
+  "note": "the offline gate's frontend steps; Playwright with --trace off (little room on /); run beside the mutation run in a worktree of its own (/home/cnc/lcnc-suite-mut), the browser steps never at the same time",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 12
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 22
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 498
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2225
+    }
+  ]
+}
