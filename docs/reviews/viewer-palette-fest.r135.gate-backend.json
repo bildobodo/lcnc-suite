@@ -1,0 +1,113 @@
+{
+  "mode": "offline",
+  "started": "2026-10-11T07:35:46.566059+00:00",
+  "root": "/home/cnc/lcnc-suite-stop",
+  "gates": [
+    {
+      "name": "backend",
+      "command": [
+        "/home/cnc/lcnc-suite-stop/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-stop/lcnc-gateway",
+      "log": "backend.log",
+      "started": "2026-10-11T07:35:46.572363+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 62.04,
+      "finished": "2026-10-11T07:36:48.609103+00:00",
+      "notes": []
+    },
+    {
+      "name": "5axis-model",
+      "command": [
+        "/home/cnc/lcnc-suite-stop/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-stop/scripts/test_5axis_xyzac.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-stop",
+      "log": "5axis-model.log",
+      "started": "2026-10-11T07:36:48.609314+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.72,
+      "finished": "2026-10-11T07:36:49.328339+00:00",
+      "notes": []
+    },
+    {
+      "name": "audit-css",
+      "command": [
+        "/home/cnc/lcnc-suite-stop/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-stop/scripts/test_audit_scoped_css.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-stop",
+      "log": "audit-css.log",
+      "started": "2026-10-11T07:36:49.328475+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 1.07,
+      "finished": "2026-10-11T07:36:50.396683+00:00",
+      "notes": []
+    },
+    {
+      "name": "review-handshake",
+      "command": [
+        "/home/cnc/lcnc-suite-stop/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-stop/scripts/test_review_handshake.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-stop",
+      "log": "review-handshake.log",
+      "started": "2026-10-11T07:36:50.396828+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 4.51,
+      "finished": "2026-10-11T07:36:54.910332+00:00",
+      "notes": []
+    },
+    {
+      "name": "readback-target",
+      "command": [
+        "/home/cnc/lcnc-suite-stop/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-stop/scripts/test_toolsetter_readback_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-stop",
+      "log": "readback-target.log",
+      "started": "2026-10-11T07:36:54.910473+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.17,
+      "finished": "2026-10-11T07:36:55.076276+00:00",
+      "notes": []
+    },
+    {
+      "name": "parity-compare",
+      "command": [
+        "/home/cnc/lcnc-suite-stop/lcnc-gateway/.venv/bin/python3",
+        "-m",
+        "pytest",
+        "/home/cnc/lcnc-suite-stop/scripts/test_parity_compare.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-stop",
+      "log": "parity-compare.log",
+      "started": "2026-10-11T07:36:55.076405+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 0.16,
+      "finished": "2026-10-11T07:36:55.240913+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "b3a20a2f0a61acc030816ada80f512b510931290",
+  "tracked_changes": [],
+  "runner_sha256": "ad2a70abaac46b079e3e0e3e02afc5b745eba88f98910c8cdd40149d4a6ca2d7",
+  "status": "pass",
+  "changed_file_sha256": {},
+  "not_run": [],
+  "finished": "2026-10-11T07:36:55.241051+00:00"
+}
