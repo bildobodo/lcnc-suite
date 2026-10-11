@@ -1,0 +1,22 @@
+# step 4 package 1, before/after 2026-10-11T10:29:03+02:00
+synthetic COLL=old: wall 1815 ms, samples 4601, queries 2101 (1788 ms), hits 200, peeks 4 (4 ms), heap 38 MB
+   first record 48 ms · contact shown by the cadence never (only at the end) ms · first message — ms
+synthetic COLL=new: wall 1867 ms, samples 4601, queries 2101 (1837 ms), hits 200, peeks 4 (4 ms), heap 41 MB
+   first record 44 ms · contact shown by the cadence never (only at the end) ms · first message 1840 ms
+--- synthetic v2 (touch mid-sweep)
+synthetic COLL=old: wall 2618 ms, samples 3001, queries 1429 (2590 ms), hits 200, peeks 5 (5 ms), heap 44 MB
+   first record 46 ms · contact shown by the cadence never (only at the end) ms · first message — ms
+synthetic COLL=new: wall 2413 ms, samples 3001, queries 1429 (2387 ms), hits 200, peeks 5 (5 ms), heap 44 MB
+   first record 47 ms · contact shown by the cadence never (only at the end) ms · first message 720 ms
+--- haus (today's sim position, the 2026-10-09 payload)
+haus COLL=old: wall 9410 ms, samples 754021, queries 400234 (309 ms), hits 0, peeks 0 (0 ms), heap 42 MB
+   first record undefined ms · contact shown by the cadence never (only at the end) ms · first message — ms
+haus COLL=new: wall 9395 ms, samples 754021, queries 400234 (315 ms), hits 0, peeks 0 (0 ms), heap 43 MB
+   first record undefined ms · contact shown by the cadence never (only at the end) ms · first message — ms
+--- synthetic v2, final results
+synthetic COLL=old: wall 2424 ms, samples 3001, queries 1429 (2398 ms), hits 200, peeks 5 (5 ms), heap 50 MB
+   final: touching records 0 of 200, onsets 1 (dist 2.00, touches false), capped —
+   first record 46 ms · contact shown by the cadence never (only at the end) ms · first message — ms
+synthetic COLL=new: wall 2362 ms, samples 3001, queries 1429 (2336 ms), hits 200, peeks 5 (5 ms), heap 45 MB
+   final: touching records 0 of 200, onsets 1 (dist 2.00, touches true), capped 1228
+   first record 46 ms · contact shown by the cadence never (only at the end) ms · first message 702 ms
