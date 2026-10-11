@@ -312,6 +312,16 @@ describe("the side id −1 (VP-I50)", () => {
     expect(sent.slice(0, at).some(m => m.partial?.hits.length)).toBe(true);
     expect(sent.slice(0, at).some(m => m.partial?.hits.some((h: Msg) => h.dist <= 1e-4 || h.touches))).toBe(false);
   });
+  it("no moving pair: the result still names the bodies by class (step 4 plan 1c)", async () => {
+    const { sent, send } = await setup(2);
+    // both bodies on the fixed group: nothing moves against anything; one has no facet with area
+    send({ ...req(13), bodies: [{ id: "fixed", group: "fixed", positions: triangle() },
+                                { id: "line", group: "fixed", positions: new Float32Array([0, 0, 0, 1, 0, 0, 2, 0, 0]) }] });
+    for (let i = 0; i < 50 && !sent.some(terminal); i++) await vi.advanceTimersToNextTimerAsync();
+    const r = sent.find(m => m.result)!.result as CollisionResult;
+    expect(r.pairCount).toBe(0);
+    expect(r.bodies?.unusable).toEqual(["line"]);
+  });
   it("the coordinator passes on the first confirmed contact of any shard at once, once per run", async () => {
     const { sent, workers, send } = await setup();
     send(req(12));

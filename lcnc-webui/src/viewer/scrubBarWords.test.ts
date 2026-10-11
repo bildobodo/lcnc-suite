@@ -76,6 +76,13 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(view(result({ hits: [hit(7, 0)] })).verdict).not.toContain("cut");
   });
 
+  it("a timeline mark is a near miss only where nothing touched — a margin entry that touched later is a collision's", () => {
+    const hits = [hit(10, 0), hit(40, 1.5), hit(70, 1.5, { touches: true })];
+    const marks = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] },
+      hitTargets: { value: clashTargets(hits) } }) as Array<{ pct: number; near: boolean }>;
+    expect(marks.map(m => [m.pct, m.near])).toEqual([[10, false], [40, true], [70, false]]);
+  });
+
   it("the pairs in contact at rest are excluded, counted in the \"?\"", () => {
     const r = result({ staticContacts: [{ a: "x_slide", b: "y_saddle", dist: 0 }, { a: "column", b: "base", dist: 1 }] });
     expect(detail(r)).toContain("2 pairs already in contact at rest — excluded.");

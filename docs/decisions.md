@@ -9230,3 +9230,43 @@ TWP live gate, 2026-10-01).
 `tool_basis_pairs.json` also takes E's beginning (masks, `start_believed`,
 the first move's kind) — it was not regenerated with E, and toolBasis.test
 passes on it.
+
+**After the stop (the e2e stamps).** The bump left 25 literal
+`preview_schema: 10` stamps in nine e2e specs; the viewer refused those
+payloads with the version banner. The schema-10 bump had changed them in the
+same commit, this one did not — no browser run on the schema branch.
+Corrected in `220a01a6` (Playwright 505/505), merged `813f1e36`. A schema
+bump runs the full browser suite before its merge.
+
+## 2026-10-11 — Step 4 package 1: the first contact at once; result, coverage and caveat apart; the check's basis in a card (plan kollision-schritt4, Codex R118)
+
+**The record model found under 1b.** A contact's onset is its MARGIN ENTRY;
+a touch on a later line is a continuation record. The verdict, the marks and
+the list read such an onset (2.00 mm) as a near miss, and with the cap
+(200 records, onsets first) the touching continuations could vanish: in the
+synthetic measurement the old result held 0 touching records of 200. The
+onset now carries `touches` (`confirmedContact`); detection is unchanged
+(the oracle and the shard equality pass unchanged).
+
+**1b.** The sweep's first confirmed contact (`SnapshotHandle.first`, the
+finding — the onset where the touch continues one) goes once per run before
+the snapshot cadence, without `buildResult`; the coordinator forwards a
+shard's first once (first in time, not the earliest on the track — the
+merged partials place every finding). First message in the synthetic case at
+702 ms, before only at the end; haus.ngc case A 9410 → 9395 ms with the same
+samples and queries. Side sweeps send none (milliseconds).
+
+**1a / 1d.** One line, three statements: the result by kind
+(`findingWords`: collisions, on the entry move, possible contacts, near
+misses — the marks stay one list, the count is split), the coverage, the
+caveat. "Clear" only for an ended check. A start in contact only where
+proven (`atStart`: clear at rest, touching at the first pose — a near miss
+at the first pose stays one). The cap: `capped` records, `cappedOnsets`
+contact beginnings among them — the first wording claimed "no further
+collisions" for every cut, wrong past 200 onsets.
+
+**1c.** The card "Check basis" (`viewer/checkContext.ts`): taken when the
+request is built, never re-read; its kinematics are the TRACK's labels (what
+the sweep poses), not the live mode; "changed since" only for an idle check
+(a run's basis is the run's start). Named: the start tool's origin is "tool
+table" only; the tool body rule (+20 mm, 40 mm floor) is not on the card.

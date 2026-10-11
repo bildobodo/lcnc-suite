@@ -776,6 +776,21 @@ describe("contact-window refinement (glow window)", () => {
     for (const h of graze.hits) if (h.dist > 1e-4) expect([h.touches, confirmedContact(h)]).toEqual([undefined, false]);
   });
 
+  it("a margin entry's `touches` survives a later pass on its line (a loop, a repeated source line)", () => {
+    // L25 enters the margin (1.9 mm), L26 touches and lifts back inside the
+    // margin, L25 runs again closer (1.5 mm) without touching: the onset's
+    // record is replaced by the closer sample — the touch it led to stays
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, -30], [0, 0, -38.1], [0, 0, -45], [0, 0, -39], [0, 0, -38.5], [0, 0, 0]],
+      undefined, [24, 25, 26, 26, 25, 27]);
+    const res = sweepCollisions(model, t, WCS0, { margin: 2 });
+    const onset = res.hits.find(h => h.line === 25 && h.continuation === undefined)!;
+    expect(onset.dist, "the second pass is the record's sample").toBeLessThan(1.8);
+    expect(onset.dist).toBeGreaterThan(1e-4);
+    expect(onset.touches).toBe(true);
+    expect(confirmedContact(onset)).toBe(true);
+  });
+
   it("the cap says how many records it left out (Codex R84/R118: `capped`)", () => {
     // one contact over 262 lines is one onset and 261 continuation records:
     // the cap keeps 200 and says it omitted 62 — records, not collisions
@@ -2000,6 +2015,8 @@ describe("facets without area (Codex R86 VP-I46)", () => {
     expect(model.bodies.map(b => b.id)).toEqual(["plate", "post"]);
     const r = sweepCollisions(model, track([[0, 0, 0], [5, 0, 0]]), WCS0, { margin: 2 });
     expect(r.uncertified).toMatch(/^line: no facet with area — not checked/);
+    // ...and by class, for the card (step 4 plan 1c)
+    expect(r.bodies?.unusable).toEqual(["line"]);
   });
 
   it("a body that lost a damaged facet is checked on what is left and said to be partly checked (Codex R87)", () => {
@@ -2017,6 +2034,7 @@ describe("facets without area (Codex R86 VP-I46)", () => {
     // single facets close no surface: a part inside them is not found either
     expect(r.uncertified).toBe("damaged: facets with coordinates that are not numbers — partly checked; "
       + "damaged, plate: surface not closed — a part wholly inside them is not found");
+    expect(r.bodies).toEqual({ unusable: [], damaged: ["damaged"], open: ["damaged", "plate"] });
   });
 });
 
@@ -2216,6 +2234,22 @@ describe("a probe's braking range", () => {
     // control: the same path without the range is a certain collision
     const plain = sweepCollisions(model, track(BAND_PTS, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2 });
     expect(plain.hits.some(h => h.line === 9 && !h.possible)).toBe(true);
+  });
+
+  it("a touch inside the range is no first confirmed contact (step 4 plan 1b); the same path without it is", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const firstOf = (t: ReturnType<typeof track>, o: Record<string, unknown> = {}) => {
+      const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
+      const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap, ...o });
+      let seen: CollisionHit | null = null;
+      for (let r = it.next(); !r.done; r = it.next()) seen = seen ?? snap.first?.() ?? null;
+      return seen;
+    };
+    const t = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
+    t.band = new Uint8Array([0, 0, 1, 1, 0]);
+    t.cond = new Uint8Array([0, 0, 1, 1, 1]);
+    expect(firstOf(t, { probeBands: [{ tool: 2, line: 3 }] })).toBeNull();
+    expect(firstOf(track(BAND_PTS, undefined, [7, 8, 9, 10, 11]))?.line).toBe(9);
   });
 
   it("the notes say the range is modeled and the path after it conditional", () => {

@@ -68,6 +68,10 @@ describe("mergeEntryResult", () => {
     const b = m.hits.find(h => !h.entry && h.line === 7)!;
     expect(b.continuation).toBeUndefined();
     expect(b.carried).toBe(true);
+    // ...and a start contact the entry move began is none, the separating
+    // case too (step 4 plan 1d)
+    const startIn = mergeEntryResult(entry, res({ hits: [{ ...base.hits[0]!, atStart: true }, other] }), 10, 80);
+    expect(startIn.hits.find(h => !h.entry && h.line === 7)!.atStart).toBeUndefined();
     // A contact that does NOT separate still counts once, as before; a jump
     // chosen on it goes on by position (Codex R34, answer 1)
     const through = res({ hits: [{ line: 7, cum: 0, cumEnd: 4, intervals: [[0, 4]], a: "tool", b: "work", dist: 0, rapid: false }, other] });
@@ -87,6 +91,11 @@ describe("mergeEntryResult", () => {
     // a base start contact the entry move did not reach keeps it
     const alone = mergeEntryResult(res({}), base, 2, 90);
     expect(alone.hits[0]!.atStart).toBe(true);
+  });
+  it("keeps the model's body classes (one model for both sweeps)", () => {
+    const bodies = { unusable: ["broken"], damaged: [], open: ["frame"] };
+    expect(mergeEntryResult(res({}), res({ bodies }), 10, 90).bodies).toEqual(bodies);
+    expect(mergeEntryResult(res({ bodies }), res({}), 10, 90).bodies).toEqual(bodies);
   });
   it("keeps what either sweep's cap left out (`capped`), applying no cap of its own", () => {
     expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).capped).toBe(7);

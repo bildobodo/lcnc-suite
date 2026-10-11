@@ -52,6 +52,10 @@ describe("mergeShardResults", () => {
     expect(m.staticContacts).toHaveLength(1);
     expect([m.samples, m.pairsPrescreened, m.pairCount, m.bvhMs, m.sweepMs, m.coarsened]).toEqual([12, 3, 9, 9, 100, true]);
   });
+  it("keeps the model's body classes — one model for every shard", () => {
+    const bodies = { unusable: [], damaged: ["chipped"], open: ["frame"] };
+    expect(mergeShardResults([result([hit(1, 1)], { bodies }), result([hit(2, 2)], { bodies })]).bodies).toEqual(bodies);
+  });
   it("caps the single sweep's way: onsets before continuations", () => {
     const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
     const conts = Array.from({ length: 50 }, (_, i) => hit(i, i, 1));   // earlier, but continuations
