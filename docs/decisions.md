@@ -9286,3 +9286,20 @@ push the coverage out of a regular pane's line. The stop / cancel reaction,
 measured old against new: unchanged (checkpoint gaps p95 0.9 ms on haus case
 A; one pre-existing gap of 0.54–0.60 s in the sweep's setup before its first
 segment, in both); `take("stopped")` ≤ 1.4 ms.
+
+**Codex R137.** VP-I91 closed. The rests: the code marks took the bare
+partial, and a pool falling back to this core after a partial had carried the
+first contact lost it again — the viewer feeds every consumer from the folded
+partial and holds the first for the whole request. A gap since E5: the bar
+took the bare base result, so a run check's bound beginning — its findings
+early and final — never reached the list, the marks or the verdict; the
+viewer now hands the bar the result and the partial with the beginning in
+them, and the early merge keeps the base's `startDependent` (one contact
+answers no coverage). The summary gained a fourth form (the coverage in its
+fewest words) and its "?" says the whole statement. The worker's answer to
+cancel and stop, measured from the page's send, old and new: 9–41 ms for a
+cancel and 48–74 ms for a stop while the sweep runs (the slice in progress,
+then `take`) — per case faster or slower by up to one 40 ms slice, no change
+beyond it; in the sweep's setup before its first segment up to
+0.83 s on haus.ngc — the baseline stretch without a checkpoint,
+pre-existing, a change of its own.

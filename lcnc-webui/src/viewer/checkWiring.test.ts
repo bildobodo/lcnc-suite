@@ -96,9 +96,13 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     const ui = owner();
     ui.post({ id: 12, progress: 0.1, partial: running([near]) });
     ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
-    ui.post({ id: 12, progress: 0.25, partial: running([near], 0.25) });
+    // the pool's merged partial with a shard not heard from yet: no record of
+    // the contact at all (a near-miss record marks its line the same way, so
+    // only a partial without it tells the shown marks from the raw ones)
+    ui.post({ id: 12, progress: 0.25, partial: running([], 0.25) });
     expect(words(ui.shown()).text).toBe("1 collision");
     expect(ui.emitted.at(-1), "the panel's marks of the shown partial").toEqual(["collision-lines", collisionLineMarks(ui.shown().hits)]);
+    expect(ui.emitted.at(-1)?.[1], "the held contact's line marked").toEqual([{ line: near.line, continuation: undefined }]);
     expect(ui.shown().hits.some((h: CollisionHit) => h.touches)).toBe(true);
   });
   it("VP-I92 (R137): held for the whole request — a fall back to this core starts again after a partial carried it", () => {
