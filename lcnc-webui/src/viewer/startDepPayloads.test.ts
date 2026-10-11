@@ -24,6 +24,7 @@ import ts from "typescript";
 import { epochTermsFor } from "./wcsEpochs";
 import { findingWords } from "./sweepWords";
 import { firstOnly } from "./firstContact";
+import { clashTargets } from "./clashTargets";
 import { partLabel } from "./simRows";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
@@ -278,6 +279,11 @@ const sweepView = (result: any, run: any) => barComputed("sweepView", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, hitTargets: { value: [] },
   sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
   boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, findingWords });
+/** The bar's verdict with the result's own targets (sweepView above lists none). */
+const sweepViewOf = (result: any, run: any) => barComputed("sweepView", {
+  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, hitTargets: { value: clashTargets(result.hits) },
+  sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
+  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, findingWords });
 const verdictDetail = (result: any, run: any, track: any) => barComputed("verdictDetail", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, track: { value: track },
   provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hits: { value: result.hits },
@@ -413,7 +419,7 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const script = file.slice(file.indexOf('<script setup lang="ts">') + 24, file.indexOf("</script>"));
   const ast = ts.createSourceFile("ThreeViewer.ts", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const texts: string[] = [];
-  for (const name of ["_startRunCheck", "_runBoundTrack", "_colPostSide", "_colOnSideMessage", "_colBaseFor",
+  for (const name of ["_startRunCheck", "_runBoundTrack", "_colPostSide", "_colOnSideMessage", "_colBaseFor", "_colWithRunSide",
                       "_colRunSideFailed", "_colCancelSide", "_colDropEntry", "runBeginNow"]) {
     const f = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === name);
     expect(f, name).toBeTruthy();
@@ -442,7 +448,7 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const _colWcs = () => wcs, specFromWire = () => undefined, epochTermsFor = () => undefined;
   const cancelCollisionCheck = () => {}, runCollisionCheck = () => {};
   const _colBuildRequest = (_t, id) => opts.buildFails ? null : ({ msg: { id }, transfer: [], modelKey: "test", bodies: 2 });
-  const _liveCheckBasis = () => basis, toRaw = (x) => x;
+  const _liveCheckBasis = () => basis, toRaw = (x) => x, _colEmitMarks = () => {};
   `;
   const expose = `
   return {
@@ -474,6 +480,11 @@ describe("Codex R136 VP-I93", () => {
     h.reply({ progress: 0.2, first });
     expect(h.view().begin, "still checking").toBe("checking");
     expect(h.result().hits.some((x: any) => x.a === "tool" && x.b === "post"), "its contact shown").toBe(true);
+    // through the bar's own verdict: the contact, and the beginning still
+    // checking — one contact answers no coverage (Codex R137 VP-I93 B)
+    const early = sweepViewOf(h.result(), h.view());
+    expect(early.verdict).toMatch(/^1 collision.* · start still checking$/);
+    expect(early.verdict).not.toContain("checked in full");
     // its result takes over (here clean): merged, checked, the early contact gone with it
     h.reply({ result: beginning });
     expect(h.view().begin).toBe("checked");

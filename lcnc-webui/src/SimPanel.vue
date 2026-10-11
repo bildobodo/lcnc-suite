@@ -81,15 +81,18 @@ const sumLimit = computed(() => {
  *  narrow, the capped list was said only in a name and a mouse tooltip).
  *  Capped: the total, what the parse sent, the lines the list shows. */
 const sumHelp = computed(() => {
-  // the stop first: it bounds all three
-  if (simView.stop) return `${simView.stop}: from there no path, no time, no collision or limit check.${unbound.value}`;
+  // The line's whole statement, whatever form it shows (Codex R137 VP-I94:
+  // the short forms cut the coverage and the cap — the "?" is the touch way
+  // to them): each kind in its words, the cap explained.
   const { total, records } = simView.limits;
-  if (total != null && total > records) {
-    const lines = count("limit");
-    return `${total} limit violations, a line and an axis each. The parse sends the first ${records}; the list shows their ${lines} line${lines === 1 ? "" : "s"}.`;
-  }
-  return "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes."
-    + (simView.basis ? ` ${simView.basis}.` : "") + unbound.value;
+  const lines = count("limit");
+  const limit = total != null && total > records
+    ? `${total} limit violations, a line and an axis each — the parse sends the first ${records}; the list shows their ${lines} line${lines === 1 ? "" : "s"}`
+    : sumLimit.value.name;
+  const kinds = `× ${sumClash.value.name}. ▲ ${limit}. ● ${sumTool.value.name}.`;
+  // the stop first: it bounds all three
+  if (simView.stop) return `${simView.stop}: from there no path, no time, no collision or limit check. ${kinds}${unbound.value}`;
+  return kinds + (simView.basis ? ` ${simView.basis}.` : "") + unbound.value;
 });
 /** Measurements no row can carry (their call line is not verified): the
  *  stats' "Tool Lengths" row lists them (Codex R105 VP-I63). */
@@ -104,15 +107,16 @@ const sumTool = computed(() => {
 // words pushed the coverage, the cap and the other two kinds out of the
 // clipped line — the narrow threshold alone did not see it): from the words
 // down — limits and tool changes as glyph and number, then the collision
-// result as a count — the first form whose line fits. Every change of width
+// result as a count, then its coverage in the fewest words (R137) — the
+// first form whose line fits. Every change of width
 // or content starts again from the words, so the pick depends on them alone
 // and cannot swing; it settles before the browser paints.
 const summaryEl = ref<HTMLElement | null>(null);
-const sumForm = ref<0 | 1 | 2>(0);
+const sumForm = ref<0 | 1 | 2 | 3>(0);
 let _sumFitSeq = 0;
 async function fitSummary() {
   const seq = ++_sumFitSeq;
-  for (const f of [0, 1, 2] as const) {
+  for (const f of [0, 1, 2, 3] as const) {
     sumForm.value = f;
     await nextTick();
     if (seq !== _sumFitSeq) return;
@@ -318,9 +322,9 @@ function onRootKey(e: KeyboardEvent) {
           <span class="sumItem sumClash row-tight" role="img" :aria-label="sumClash.name" :title="sumClash.name">
             <X class="sumGlyph clash" :size="12" :stroke-width="3" aria-hidden="true" />
             <span v-if="simView.sweep" class="checkVerdict" :class="simView.sweep.tone === 'danger' ? 'sumKind clash' : `text-${simView.sweep.tone}`"><span
-              :class="{ mono: sumForm === 2 }">{{ sumForm === 2 ? sumClash.short : simView.sweep.result }}</span><template
-              v-if="simView.sweep.coverage"> · {{ simView.sweep.coverage }}</template></span>
-            <span v-else class="text-muted">{{ sumForm === 2 ? sumClash.short : sumClash.name }}</span>
+              :class="{ mono: sumForm >= 2 }">{{ sumForm >= 2 ? sumClash.short : simView.sweep.result }}</span><template
+              v-if="simView.sweep.coverage"> · {{ sumForm === 3 ? simView.sweep.coverageShort : simView.sweep.coverage }}</template></span>
+            <span v-else class="text-muted">{{ sumForm >= 2 ? sumClash.short : sumClash.name }}</span>
             <span v-if="simView.sweep?.caveat" class="text-warn" title="Not certified — see the collision check help">*</span>
           </span>
           <span class="sumItem sumLimit row-tight" role="img" :aria-label="sumLimit.name" :title="sumLimit.name">
@@ -403,10 +407,10 @@ function onRootKey(e: KeyboardEvent) {
 .simSummary { flex: 0 1 auto; min-width: 0; overflow: hidden; white-space: nowrap; }
 .sumItem { flex: none; }
 /* The last form gives way inside the collision item: where even the count
-   and the coverage do not fit (150 % portrait), the coverage takes an
-   ellipsis — its whole text is the item's name, title and the "?". */
-.simSummary.form2 .sumClash { flex: 0 1 auto; min-width: 0; }
-.simSummary.form2 .checkVerdict { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+   and the coverage in its fewest words do not fit, the coverage takes an
+   ellipsis — the whole statement is the item's name, title and the "?". */
+.simSummary.form3 .sumClash { flex: 0 1 auto; min-width: 0; }
+.simSummary.form3 .checkVerdict { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .filterSelect { flex: 1; min-width: 0; }
 .simTable { flex: 1; min-height: 0; overflow: auto; }
 tbody tr { cursor: pointer; }

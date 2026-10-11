@@ -34,7 +34,7 @@ const view = (r: CollisionResult, o: { busy?: boolean; frac?: number; caveat?: s
            collisionEntryResult: o.entryChecking ? { checking: true, result: r } : null },
   hitTargets: { value: clashTargets(r.hits) }, sweepToolSentence: { value: "" }, verdictDetail: { value: "" },
   sweepCaveat: { value: o.caveat ?? null }, boundaryDetail: { value: "" }, sweptFrac: { value: o.frac ?? 1 }, pctOf, findingWords,
-}) as { verdict: string; tone: string; result: string; coverage: string; short: string; state: string };
+}) as { verdict: string; tone: string; result: string; coverage: string; coverageShort: string; short: string; state: string };
 const detail = (r: CollisionResult) => barComputed("verdictDetail", {
   shownResult: { value: r }, props: { collisionBusy: false, collisionRunCheck: null, collisionStopped: null, collisionResumable: false },
   track: { value: null }, provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hits: { value: r.hits },
@@ -85,6 +85,12 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(view(result({ hits: [hit(7, 0)] }), { busy: true, frac: 0.4 }).short, "while it runs").toBe("1…");
     const clear = view(result());
     expect([clear.result, clear.coverage, clear.short]).toEqual(["Clear", "checked in full", "Clear"]);
+    // the fewest words (Codex R137 VP-I94): the state kept, the caveat's words left to the count's "+"
+    expect(v.coverageShort).toBe("in full");
+    expect(view(result({ hits: [hit(7, 0)] }), { busy: true, frac: 0.4 }).coverageShort).toBe("40 %");
+    expect(view(result({ hits: [hit(7, 0)], truncated: { covered: 0.6, reason: "samples" } })).coverageShort).toBe("stopped 60 %");
+    expect(view(result({ hits: [hit(1, 0, { entry: true, entryMove: true })] }), { entryChecking: true }).coverageShort).toBe("entry checking");
+    expect(view(result(), { caveat: "x" }).coverageShort).toBe("to the end");
   });
 
   it("the entry move's side sweep runs on after its first contact: shown, said still checking (Codex R136 VP-I93)", () => {

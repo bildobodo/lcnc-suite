@@ -30,6 +30,9 @@ export interface SimSweepView {
    *  shortens the result before the coverage. */
   result: string;
   coverage: string;
+  /** The coverage in the fewest words ("in full", "41 %", "from L7"), no
+   *  caveat words — the tab's last form (Codex R137 VP-I94). */
+  coverageShort: string;
   short: string;
 }
 

@@ -1,5 +1,5 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
-import { encode } from "@msgpack/msgpack";
+import { decode, encode } from "@msgpack/msgpack";
 import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
@@ -1097,6 +1097,74 @@ test("a mid-run re-parse for a measured tool is one line, never a second one und
   await expect(lines.first().locator(".helpPopover")).toContainText("Why: tool measured (program running).");
   await expect(tlo).toHaveCount(0);
   await expect(lines, "one line while the re-parse runs").toHaveCount(1);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// Codex R137 VP-I93: a run check's bound beginning is a side sweep; what it
+// finds — early (its first confirmed contact) and final — reaches the list
+// and the verdict, the beginning said still checking until its result. The
+// bar used to take the bare base result: the beginning's findings never
+// showed. Real page, decode and main sweep; only the side request's
+// transport is answered here (a known contact now, the result later).
+test("a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    const tap: any = { side: null, deliver: null, first: null };
+    (window as any).__sideTap = tap;
+    const Real = window.Worker;
+    const Tapped = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      w.addEventListener("message", ev => handler?.(ev));
+      w.postMessage = ((m: any, t?: Transferable[]) => {
+        if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
+        post(m, t ?? []);
+      }) as any;
+      return w;
+    } as any;
+    Tapped.prototype = Real.prototype;
+    window.Worker = Tapped;
+  });
+  const file = "/side-run.ngc";
+  await runReady(page, context, file, 7137);
+  await ctl({ op: "quiet", on: true });
+  const start = { ...runEnv(file).run_basis.start, joints: [-100, 0, -100, 0, 0], joints_why: null };
+  await ctl({ op: "status_delta", envelope: { ...runEnv(file, { run_id: 9, start }), ...originEnv(file, 7137) },
+    data: { interp_state: 2, task_mode: 2, motion_line: 7, joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
+  // the parse made for the run: a native payload with a start-dependent beginning
+  const native = decode(readFileSync(new URL("../../scripts/test_fixtures/start_dep_payloads/e_single.msgpack", import.meta.url))) as any;
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode({ ...native, file })) }));
+  await publishInRun(page, file, 7138, pinnedFor(9));
+  await expect.poll(() => page.evaluate(() => (window as any).__sideTap.side !== null), { timeout: 30_000 }).toBe(true);
+  await expect.poll(() => runLog(page), { timeout: 60_000 }).toContain("done");
+  const clash = page.locator(".simPanel .simSummary .sumItem").first();
+  await expect(clash).toHaveAttribute("aria-label", "No contact · start still checking");
+  await expect(clashRows(page)).toHaveCount(0);
+  // early: the side sweep's first confirmed contact
+  await page.evaluate(() => {
+    const t = (window as any).__sideTap, i = 1;
+    t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a: "spindle_nose", b: "a_yoke", dist: 0, rapid: true };
+    t.deliver({ progress: 0.2, first: t.first });
+  });
+  await expect(clash, "early: the contact, the beginning still checking").toHaveAttribute("aria-label", /^1 collision.* · start still checking$/);
+  await expect(clashRows(page), "early: in the list").toHaveCount(1);
+  // ...and in the code panel's marks: the same result
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".codeLine.collision"), "early: marked in the code").toHaveCount(1);
+  await openSimTab(page);
+  // final: its result with the same contact
+  await page.evaluate(() => {
+    const t = (window as any).__sideTap;
+    t.deliver({ result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
+                          pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
+  });
+  await expect(clash, "final: checked, the beginning with it").toHaveAttribute("aria-label", /^1 collision.* · checked in full$/);
+  await expect(clashRows(page), "final: in the list").toHaveCount(1);
+  expect(await runLog(page)).toContain("beginning");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });

@@ -44,13 +44,15 @@ const result = (hits: CollisionHit[], over: Partial<CollisionResult> = {}): Coll
  *  handler a worker message of request `_colReqId`; `nextRequest` is a new
  *  request (its id). */
 function owner() {
-  return viewerFns(["_colGetWorker", "_colShowFirst"], `
+  return viewerFns(["_colGetWorker", "_colShowFirst", "_colEmitMarks"], `
     let _colWorker = null, _colModelSent = null, _colSide = null, _colReqId = 12, _colKeepShown = false, _colFirstHeld = null;
     const TRACK = {};
     let _colPendingTrack = TRACK;
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null }, collisionProgress = { value: 0 };
     const emitted = [], emit = (e, x) => emitted.push([e, x]), _colRetint = () => {};
     const newTrack = () => { _colPendingTrack = {}; };
+    // no result and no run check here: what is shown is the partial
+    const collisionResultShown = { get value() { return null; } }, collisionPartialShown = { get value() { return collisionPartial.value; } };
     class Worker { postMessage() {} }
     const post = (data) => _colGetWorker().onmessage({ data });
     const shown = () => collisionPartial.value;
@@ -85,6 +87,26 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     // a newer word carries it: the partial as it is from then on
     ui.post({ id: 12, progress: 0.3, partial: running([{ ...near, touches: true }, hit(9, 0, { b: "column" })], 0.3) });
     expect(words(ui.shown()).text).toBe("2 collisions");
+  });
+  it("VP-I92 (R137): the code marks are what is shown — the held contact in them after an older partial", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
+    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
+    ui.post({ id: 12, progress: 0.25, partial: running([near], 0.25) });
+    expect(words(ui.shown()).text).toBe("1 collision");
+    expect(ui.emitted.at(-1), "the panel's marks of the shown partial").toEqual(["collision-lines", collisionLineMarks(ui.shown().hits)]);
+    expect(ui.shown().hits.some((h: CollisionHit) => h.touches)).toBe(true);
+  });
+  it("VP-I92 (R137): held for the whole request — a fall back to this core starts again after a partial carried it", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
+    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
+    // a pooled partial carries it ...
+    ui.post({ id: 12, progress: 0.3, partial: running([{ ...near, touches: true, cumEnd: 30 }], 0.3) });
+    expect(ui.shown().hits[0].cumEnd, "a partial that holds it keeps its own, newer record").toBe(30);
+    // ... the pool fails, the sweep starts again here: its partial has the near miss only
+    ui.post({ id: 12, progress: 0.05, partial: running([near], 0.05) });
+    expect(words(ui.shown()).text, "never back to a near miss").toBe("1 collision");
   });
   it("the first stays with its request: a new request's partials are its own", () => {
     const ui = owner();
@@ -186,14 +208,14 @@ describe("the pool's whole message sequence into the viewer (Codex R136 VP-I92)"
 describe("the side sweep's first contact on the entry track (Codex R136 VP-I93)", () => {
   const BASE = { cum: new Float64Array([0, 10, 20]), count: 3 };
   const ENTRY = { cum: new Float64Array([0, 5, 15, 25]), count: 4 };
-  const side = () => viewerFns(["_colOnSideMessage", "_colBaseFor", "collisionEntryResult"], `
+  const side = () => viewerFns(["_colOnSideMessage", "_colBaseFor", "_colWithRunSide", "collisionEntryResult"], `
     const computed = (f) => ({ get value() { return f(); } });
     let _colSide = { id: -1, entry: ENTRY, base: BASE, slice: ENTRY, shift: 5, retried: false, startedAt: 0 }, _colModelSent = null;
     const collisionEntry = { value: null }, collisionSideFirst = { value: null }, collisionRun = { value: null };
     const collisionRunSide = { value: null }, collisionRunSideState = { value: null };
     const collisionResult = { value: BASE_RESULT }, collisionTrack = { value: BASE };
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
-    const emitTelemetry = () => {}, _colRetint = () => {}, _colPostSide = () => {}, _colRunSideFailed = () => {};
+    const emitTelemetry = () => {}, _colRetint = () => {}, _colPostSide = () => {}, _colRunSideFailed = () => {}, _colEmitMarks = () => {};
     const _colRunLog = [];
     const post = (data) => _colOnSideMessage({ id: -1, ...data });
     const entryShown = () => collisionEntryResult.value;`,

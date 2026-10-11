@@ -3018,23 +3018,45 @@ let _colReqMeta: { maxShards: number | null; sliceMs: number | null; range: numb
 /** The entry track's result: the overlay merged onto the base result (cums
  *  shifted by the entry length, two baselines reported). Null until both
  *  exist — a base sweep still running shows as running, not as "no result". */
-/** The base result on display: the refined one, else the live partial. */
-function _colBaseFor(trk: ScrubTrack): CollisionResult | null {
-  let r: CollisionResult | null = null;
-  if (collisionResult.value && collisionTrack.value === trk) r = collisionResult.value;
-  else if (collisionPartial.value && collisionPartialTrack.value === trk) r = collisionPartial.value;
-  // a run check: its bound beginning onto the base's axis (plan E5/E7)
+/** `r` (swept on `trk`) as it is shown: a run check's bound beginning merged
+ *  onto the base's axis (plan E5/E7) — its result, or while its side sweep
+ *  runs the first contact it found, the beginning still dependent: one
+ *  contact answers no coverage (Codex R137 VP-I93 B). */
+function _colWithRunSide(r: CollisionResult | null, trk: ScrubTrack | null): CollisionResult | null {
+  if (!r || !trk) return r;
   const rs = collisionRunSide.value;
-  if (r && rs && rs.base === trk && collisionRun.value?.gen === rs.gen) {
+  if (rs && rs.base === trk && collisionRun.value?.gen === rs.gen) {
     return mergeBeginningOntoBase(rs.result, r, rs.shift, trk.cum[trk.count - 1]!, rs.bound.cum[1]);
   }
-  // ...or, while its side sweep runs, the first contact it found (VP-I93)
   const sf = collisionSideFirst.value;
-  if (r && sf?.run && sf.base === trk && collisionRun.value?.gen === sf.run.gen) {
-    return mergeBeginningOntoBase({ ...firstOnly(sf.first, 0), truncated: null }, r, sf.shift, trk.cum[trk.count - 1]!, sf.entry.cum[1]);
+  if (sf?.run && sf.base === trk && collisionRun.value?.gen === sf.run.gen) {
+    const m = mergeBeginningOntoBase({ ...firstOnly(sf.first, 0), truncated: null }, r, sf.shift, trk.cum[trk.count - 1]!, sf.entry.cum[1]);
+    return r.startDependent ? { ...m, startDependent: r.startDependent } : m;
   }
   return r;
 }
+/** The base result on display: the refined one, else the live partial. */
+function _colBaseFor(trk: ScrubTrack): CollisionResult | null {
+  if (collisionResult.value && collisionTrack.value === trk) return _colWithRunSide(collisionResult.value, trk);
+  if (collisionPartial.value && collisionPartialTrack.value === trk) return _colWithRunSide(collisionPartial.value, trk);
+  return null;
+}
+/** What the bar and the code panel show (Codex R137 VP-I93 A): the result
+ *  and the partial with a run check's beginning in them — the bar took the
+ *  bare ones, and the beginning's findings, early or final, never reached
+ *  the list, the marks or the verdict. */
+const collisionResultShown = computed(() => _colWithRunSide(collisionResult.value, collisionTrack.value));
+const collisionPartialShown = computed(() => _colWithRunSide(collisionPartial.value, collisionPartialTrack.value));
+/** The code panel's marks of what is shown. */
+function _colEmitMarks() {
+  const r = collisionResultShown.value ?? collisionPartialShown.value;
+  emit("collision-lines", r ? collisionLineMarks(r.hits) : null);
+}
+// A run's side sweep ended without a result: its early contact leaves the
+// marks and the tint too (every path that ends it clears collisionSideFirst).
+watch(collisionSideFirst, (now, before) => {
+  if (before?.run && !now) { _colEmitMarks(); _colRetint(); }
+});
 const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResult; checking?: boolean } | null>(() => {
   // the entry move's result, or — while its side sweep runs — the first
   // contact it found (Codex R136 VP-I93), said still checking
@@ -3080,7 +3102,7 @@ function _colShowFirst(first: CollisionHit, progress?: number) {
     : firstOnly(first, covered);
   collisionPartial.value = shown;
   collisionPartialTrack.value = _colPendingTrack;
-  emit("collision-lines", collisionLineMarks(shown.hits));
+  _colEmitMarks();
   _colRetint();
 }
 
@@ -3124,12 +3146,15 @@ function _colGetWorker(): Worker {
         collisionProgress.value = m.progress;
         if (m.partial && !_colKeepShown) {
           let p = m.partial;
-          // the request's first contact, until a partial of it carries it
+          // the request's first contact, in every partial of it that does not
+          // carry it — for the whole request: a pool falling back to this core
+          // starts its sweep again (Codex R137 VP-I92 B); a partial that holds
+          // it keeps its own, newer record
           const held = _colFirstHeld?.id === m.id ? _colFirstHeld.first : null;
-          if (held) { if (holdsFirst(p, held)) _colFirstHeld = null; else p = withFirstContact(p, held); }
+          if (held && !holdsFirst(p, held)) p = withFirstContact(p, held);
           collisionPartial.value = p;
           collisionPartialTrack.value = _colPendingTrack;
-          emit("collision-lines", collisionLineMarks(m.partial.hits));
+          _colEmitMarks();   // what is shown, the held contact in it (VP-I92 A)
           _colRetint();
         }
         return;
@@ -3150,7 +3175,7 @@ function _colGetWorker(): Worker {
           reason: "motion", covered: m.result!.truncated?.covered ?? 0, hits: m.result!.hits.length,
           ms: Math.round(performance.now() - _colStartedAt),
         });
-        emit("collision-lines", collisionLineMarks(m.result!.hits));
+        _colEmitMarks();
         _colRetint();
         return;
       }
@@ -3186,7 +3211,7 @@ function _colGetWorker(): Worker {
         hits: result.hits.length, pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
         points: _colPendingTrack?.count ?? null,
       });
-      emit("collision-lines", collisionLineMarks(result.hits));
+      _colEmitMarks();
       _colRetint();
       _colKeepShown = false;
       if (run0 && _colReqRunGen === run0.gen && run0.phase === "full") _colRunLog.push("done");
@@ -3341,6 +3366,7 @@ function _colOnSideMessage(m: { id: number; progress?: number; first?: Collision
   if (m.first) {
     collisionSideFirst.value = { id: side.id, entry: side.entry, base: side.base, shift: side.shift,
                                  ...(side.run ? { run: { gen: side.run.gen } } : {}), first: m.first };
+    if (side.run) _colEmitMarks();
     _colRetint();
     if (m.progress == null) return;
   }
@@ -3375,6 +3401,8 @@ function _colOnSideMessage(m: { id: number; progress?: number; first?: Collision
     if (collisionRun.value?.gen === side.run.gen) {
       collisionRunSide.value = { gen: side.run.gen, base: side.base, bound: side.entry, result, shift: side.shift };
       collisionRunSideState.value = null;
+      _colEmitMarks();
+      _colRetint();
       _colRunLog.push("beginning");
     }
     return;
@@ -5351,11 +5379,11 @@ defineExpose({
       :collisionBusy="collisionBusy"
       :collisionProgress="collisionProgress"
       :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"
-      :collisionResult="collisionResult"
+      :collisionResult="collisionResultShown"
       :collisionTrack="collisionTrack"
       :collisionStopped="collisionStopped"
       :collisionResumable="collisionResumable"
-      :collisionPartial="collisionPartial"
+      :collisionPartial="collisionPartialShown"
       :collisionPartialTrack="collisionPartialTrack"
       :collisionEntryResult="collisionEntryResult"
       :collisionPrevious="collisionPrevious"
