@@ -62,7 +62,9 @@ test("without the server's settings, and without a saved section, Measure Curren
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect(await reasonAt(page, "Measure Current")).toHaveText("Settings not loaded yet — wait");
   await ctl({ op: "raw", frame: { type: "settings_init", settings: M600 } });
-  await expect(await reasonAt(page, "Measure Current")).toHaveText(UNSET);
+  // ctl returns once the mock SENT the frame; under load the page takes it a
+  // little later, and a hint shown meanwhile keeps the old reason — ask again
+  await expect.poll(async () => (await reasonAt(page, "Measure Current")).innerText()).toBe(UNSET);
   await expect(await reasonAt(page, "Unload")).toHaveText(UNSET);
   expect(await sent(), "nothing reached the machine").toEqual([]);
 });
