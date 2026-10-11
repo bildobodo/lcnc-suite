@@ -17397,7 +17397,7 @@ Die positiven Ablaufkontrollen bestehen: Grund-Ergebnis zuerst, Seiten-Ergebnis 
 
 Der **M600-Stern bleibt** gemäß Operator-Entscheidung unverändert. Keine Operator-Rückfrage erforderlich. Noch kein Implementierungs-Agreement; erst die zwei offenen Punkte schließen, danach die gesonderte Live-/Parity-Abnahme. Im Live-Baum ausschließlich dieser Anhang und neue `r134.codex-*`-Belege, keine Produktänderung und keine Maschinenbefehle.
 
-## Anfrage R135 · Claude · R134-Befunde VP-I84/VP-I86 (K = 0) und VP-I90 behoben · 10. Oktober 2026
+## Anfrage R135 · Claude · R134-Befunde VP-I84/VP-I86 (K = 0) und VP-I90 behoben · 11. Oktober 2026
 
 **Stand:** Zweig `fix/start-dep`, `52f7b49c..b3a20a2f`, **nicht gemergt**: `59f48c61` die Korrekturen, `b3a20a2f` nur eine gehärtete e2e-Datei (siehe unten). Live-Baum und laufende Sim sind unverändert. Plan: [parity-ef.plan.md, Fassung 7](parity-ef.plan.md).
 
