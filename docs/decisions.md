@@ -9270,3 +9270,19 @@ request is built, never re-read; its kinematics are the TRACK's labels (what
 the sweep poses), not the live mode; "changed since" only for an idle check
 (a run's basis is the run's start). Named: the start tool's origin is "tool
 table" only; the tool body rule (+20 mm, 40 mm floor) is not on the card.
+
+**Codex R136 (VP-I91..VP-I94).** The first contact is an onset: it replaces
+the record of the same onset a partial shows (it was appended — one contact,
+"1 collision · 1 near miss"). The viewer holds it, bound to its request, until
+a partial carries it: the pool's merged partial from a shard's older word took
+it back; held in the viewer rather than the coordinator because only the
+viewer sees the whole sequence — a pool that falls back to this core posts the
+local run's partials without the coordinator. Decision 5 ("side sweeps take
+milliseconds") was refused: since E1–E3 a side sweep is the entry move plus
+the start-dependent beginning, the whole program on a dependent one — side
+runs send their first contact too. The summary's form is measured: the
+`.sidePane.narrow` threshold alone let a mixed result with the cap's contacts
+push the coverage out of a regular pane's line. The stop / cancel reaction,
+measured old against new: unchanged (checkpoint gaps p95 0.9 ms on haus case
+A; one pre-existing gap of 0.54–0.60 s in the sweep's setup before its first
+segment, in both); `take("stopped")` ≤ 1.4 ms.

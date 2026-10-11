@@ -46,14 +46,16 @@ const result = (hits: CollisionHit[], over: Partial<CollisionResult> = {}): Coll
 function owner() {
   return viewerFns(["_colGetWorker", "_colShowFirst"], `
     let _colWorker = null, _colModelSent = null, _colSide = null, _colReqId = 12, _colKeepShown = false, _colFirstHeld = null;
-    const TRACK = {}, _colPendingTrack = TRACK;
+    const TRACK = {};
+    let _colPendingTrack = TRACK;
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null }, collisionProgress = { value: 0 };
     const emitted = [], emit = (e, x) => emitted.push([e, x]), _colRetint = () => {};
+    const newTrack = () => { _colPendingTrack = {}; };
     class Worker { postMessage() {} }
     const post = (data) => _colGetWorker().onmessage({ data });
     const shown = () => collisionPartial.value;
     const nextRequest = () => ++_colReqId;`,
-    { collisionLineMarks, holdsFirst, withFirstContact, firstOnly }, ["post", "shown", "nextRequest", "emitted"]);
+    { collisionLineMarks, holdsFirst, withFirstContact, firstOnly }, ["post", "shown", "nextRequest", "emitted", "newTrack"]);
 }
 const words = (r: CollisionResult | null) => findingWords(clashTargets(r?.hits ?? []));
 const running = (hits: CollisionHit[], covered = 0.1) => result(hits, { truncated: { covered, reason: "running" } });
@@ -108,6 +110,13 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     ui.post({ id: 11, progress: 0.4, partial: running([]) });
     expect(words(ui.shown()).text).toBe("1 collision · 1 near miss");
     expect(ui.shown().hits.map((h: CollisionHit) => h.line)).toEqual([7, 9]);
+  });
+  it("a partial of another track is not built upon (the request's track is new — another program)", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.1, partial: running([hit(9, 1.5, { b: "table" })]) });
+    ui.newTrack();
+    ui.post({ id: 12, progress: 0.2, first: hit(4, 0) });
+    expect(ui.shown().hits.map((h: CollisionHit) => h.line)).toEqual([4]);
   });
   it("with nothing on screen: a running partial of the contact alone, at the progress it came with", () => {
     const ui = owner();

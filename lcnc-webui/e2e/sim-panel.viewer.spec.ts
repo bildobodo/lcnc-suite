@@ -24,7 +24,7 @@ const PREVIEW = Buffer.from(encode(PREVIEW_FIELDS));
 // T3 on line 10; T5 on line 20 — the same moment as line 20's limit
 const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : i === 19 ? "T5 M6" : `G1 X${i} F100`).join("\n");
 
-async function prepare(page: Page, context: BrowserContext, vp = "desktop", preview = PREVIEW) {
+async function prepare(page: Page, context: BrowserContext, vp = "desktop", preview = PREVIEW, setHits = true) {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
@@ -33,7 +33,7 @@ async function prepare(page: Page, context: BrowserContext, vp = "desktop", prev
   await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
   // The sweep's verdict, then two collisions on the swept track (L12 feed, L26 rapid).
   await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(
+  if (setHits) await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(
     [{ line: 12, frac: 9 / 29 }, { line: 26, frac: 23 / 29, rapid: true }]) ?? false)).toBe(true);
   await openSimTab(page);
 }
@@ -650,10 +650,13 @@ test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)
   for (const [vp, zoom] of [["desktop", 1], ["touch-landscape", 1], ["touch-portrait", 1.5]] as const) {
     test(`a mixed result with the cap's contacts — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
       await mixed(page);
-      await prepare(page, context, vp);
+      // the worker's result as the fixture made it — no hits set over it
+      await prepare(page, context, vp, PREVIEW, false);
       if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
       await settleLayout(page);
-      await expect(page.locator(".simPanel .checkVerdict")).toHaveText(/more contacts not listed|200\+/);
+      await expect(page.locator(".simPanel .checkVerdict")).toHaveText(/more contacts not listed/);
+      await expect(page.locator(".simPanel .simSummary .sumItem").first(), "the fixture's 200 findings")
+        .toHaveAttribute("aria-label", /^197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss/);
       const m = await measure(page);
       expect(m.sw, "the line fits").toBeLessThanOrEqual(m.cw);
       for (const it of m.items) {
