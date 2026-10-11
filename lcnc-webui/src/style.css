@@ -1724,6 +1724,16 @@ label:has(input:disabled, select:disabled) {
   margin-bottom: var(--gap-tight);
   border-bottom: 1px solid var(--border);
 }
+/* A DetailsPopover card's label | value rows (the connection details, the
+   Sim tab's check basis). */
+.detailsList {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--gap-micro) var(--gap-section);
+  margin: 0;
+}
+.detailsList dt { color: var(--fg-muted); }
+.detailsList dd { margin: 0; text-align: right; }
 
 /* ---- Dialogs ---- */
 .dialogOverlay {
