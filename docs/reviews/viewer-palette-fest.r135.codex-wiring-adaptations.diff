@@ -1,0 +1,20 @@
+--- R134 original
++++ R135 context only
+@@ -72,7 +72,7 @@
+  const file=fs.readFileSync('src/ThreeViewer.vue','utf8');
+  const script=file.slice(file.indexOf('<script setup lang="ts">')+24,file.indexOf('</script>'));
+  const ast=ts.createSourceFile('ThreeViewer.ts',script,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
+- const functionNames=['_startRunCheck','_runBoundTrack','_colPostSide','_colOnSideMessage','_colBaseFor'];
++ const functionNames=['_startRunCheck','_runBoundTrack','_colPostSide','_colOnSideMessage','_colBaseFor','_colRunSideFailed','_colCancelSide','_colDropEntry','runBeginNow'];
+  const texts:string[]=[];
+  for(const name of functionNames){
+   const f=ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===name);
+@@ -86,7 +86,7 @@
+  const viewerGcode=ref({scrubTrack:track,file:'offline.ngc',publishedVersion:7,rapid_rate:10,rot_rapid_rate:10});
+  const runBasis=ref({runId:1,start:{jointsWhy:why}}),previewOrigin=ref({}),status=ref({data:{}});
+  const runPlayhead=ref(null),viewerInit=ref({axes:['X','Y','Z']});
+- const collisionRun=ref(null),collisionRunSide=ref(null),collisionEntry=ref(null);
++ const collisionRun=ref(null),collisionRunSide=ref(null),collisionEntry=ref(null),collisionRunSideState=ref(null);
+  const collisionBusy=ref(false),collisionResumable=ref(false),collisionResult=ref(null),collisionTrack=ref(null);
+  const collisionPartial=ref(null),collisionPartialTrack=ref(null);
+  const basis={startJoints:joints};

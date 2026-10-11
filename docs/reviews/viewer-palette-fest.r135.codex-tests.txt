@@ -1,0 +1,23 @@
+R135 · Codex · Offline tests
+
+===== 60 backend repository tests PASS, exit 0 (backend.txt) =====
+............................................................             [100%]
+
+
+===== Backend collection (collected.txt) =====
+test_start_dep_worker.py: 60
+
+
+
+===== 75 frontend repository tests + 15 R133 + 8 R134 probes PASS, exit 0 (frontend.txt) =====
+
+ RUN  v4.1.8 /tmp/codex-r135-k3ccqqc4/src/lcnc-webui
+
+
+ Test Files  6 passed (6)
+      Tests  98 passed (98)
+   Start at  09:38:39
+   Duration  2.54s (transform 260ms, setup 0ms, import 1.13s, tests 1.06s, environment 0ms)
+
+
+
