@@ -67,6 +67,10 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
   await expect(page.locator(".simBanner")).toBeVisible();
   await expect(simLine(page), "the FIRST click lands on the collision's line").toHaveText(/^L7\b/);
   await expect(page.locator("[data-path-reveal]")).toHaveText("Toolpath shown for this finding — hidden in Layers");
+  // the card says what the shown result covers: the entry move from the
+  // machine's position, merged in (step 4 plan 1c)
+  await expect.poll(async () => await basisCard(page), { timeout: 30_000 })
+    .toContain("The machine's position — the entry move included");
   const move = (await page.evaluate(() => window.__viewerDiag!.projectRole!("feed")))!;
   expect(move, "the collision's move is shown").not.toBeNull();
   // L7 runs along X; the plunge (L6) and the retract (L8) are along Z — a
@@ -412,6 +416,67 @@ test("a preview published in the run names the earlier verdict only, until it is
   await ctl({ op: "reset" });
 });
 
+// ---- Step 4 plan 1c: the card "Check basis" ----
+/** The card's text, opened by its trigger (click) and closed again by it —
+ *  never by Escape, which is E-Stop. */
+async function basisCard(page: Page): Promise<string> {
+  const trigger = page.getByRole("button", { name: "Check basis", exact: true });
+  await trigger.click();
+  const card = page.locator(".helpPopover:popover-open");
+  await expect(card).toBeVisible();
+  const text = await card.innerText();
+  await trigger.click();
+  await expect(card).toHaveCount(0);
+  return text;
+}
+const machineCmds = async () => ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? [])
+  .map(c => c.cmd ?? "").filter(c => !["hello", "heartbeat", "get_tool_table", "timing_log", "tab_visibility"].includes(c));
+
+test("the check basis card says what the check read when it began — a later status does not change it, a run's own change is named; keys, Escape is E-Stop (step 4 plan 1c)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const file = "/basiscard.ngc";
+  await runReady(page, context, file, 4131);
+  // a fresh check on a state of its own: G92 Z 2, the rotary axes read
+  await ctl({ op: "status_delta", data: { g92_offset: g92z(2), rotary_abc: [0, 0, 0], g5x_index: 1 } });
+  await expect.poll(async () => (await basisOf(page))?.g92[2], { timeout: 10_000 }).toBe(2);
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  const s = await page.evaluate(() => window.__viewerDiag!.getCollisionSummary!());
+  expect(s!.pairsPrescreened).toBeGreaterThan(0);
+  const text = await basisCard(page);
+  for (const want of ["Check basis", "The machine when the check started",
+                      // the kinematics the CHECK posed the program in: a payload without
+                      // labels in the machine frame — though the layout mock stands in TCP
+                      "Kinematics\nMachine frame", "Rotary axes\nA 0.00° C 0.00°",
+                      "G54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°", "Z 2.000", "None — the check uses a stub body",
+                      "The program's first point", `${s!.pairsPrescreened} pairs`])
+    expect(text, want).toContain(want);
+  expect(text).not.toContain("changed since");
+  if (s!.staticContacts) expect(text, "the pairs at rest, by name").toContain("In contact at rest — excluded");
+  // a status that is no input of the check moves nothing on the card
+  await ctl({ op: "status_delta", data: { rotary_abc: [10, 0, 5] } });
+  await page.waitForTimeout(800);
+  expect(await sweepDone(page)).toBe(true);
+  expect(await basisCard(page), "the card is the check's, not the status now").toBe(text);
+  // a run's own G92 keeps the findings (plan „Prüfung im Lauf“ 2): the check's
+  // basis is no longer the machine's state, and the card says so
+  await ctl({ op: "quiet", on: true });
+  await ctl({ op: "status_delta", envelope: runEnv(file), data: { interp_state: 2, task_mode: 2, g92_offset: g92z(5) } });
+  await page.waitForTimeout(800);
+  expect(await sweepDone(page), "no check began").toBe(true);
+  const changed = await basisCard(page);
+  expect(changed).toContain("The machine when the check started — changed since");
+  expect(changed, "still the values the check read").toContain("Z 2.000");
+  // keys: Enter opens it from its trigger; Escape stays E-Stop
+  await page.getByRole("button", { name: "Check basis", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".helpPopover:popover-open")).toBeVisible();
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.press("Escape");
+  await expect.poll(machineCmds).toEqual(["estop"]);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
 // ---- Plan „Prüfung im Lauf“ 3 (Codex R112–R115): the check during a run ----
 /** The envelope's preview_origin for `version` (ordinary unless `forRun`). */
 const originEnv = (file: string, version: number, over: Record<string, unknown> = {}) => ({ preview_origin: {
@@ -699,6 +764,8 @@ test("the provisional result keeps its own limits while the full check runs, its
        contact("y_saddle", "column", 7), contact("tool", "work_piece", 7, true)]] as const);
   await ctl({ op: "quiet", on: true });
   await runOnL7(page, file, 4251);
+  // the program switched the fixture meanwhile: the run's start is G54
+  await ctl({ op: "status_delta", data: { g5x_index: 2 } });
   await publishInRun(page, file, 4252, pinnedFor(9));
   await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full"]);
   await expect.poll(() => colTap(page, t => t.held.length), { timeout: 60_000 }).toBe(1);
@@ -728,6 +795,13 @@ test("the provisional result keeps its own limits while the full check runs, its
     "X saddle ↔ Column (L7)", "Y saddle ↔ Column (L7)", "Tool ↔ Work piece (L7, the cutter in the stock)"]) {
     expect(text, s).toContain(s);
   }
+  // the card (step 4 plan 1c) describes the result on screen — the
+  // provisional one, from the run's start — not the full check behind it
+  const card = await basisCard(page);
+  for (const s of ["The run's start (run 9)", "From L7, provisional", "G54 X 0.000", "Rotary axes\nNot read",
+                   "In contact at the check's start", "Tool ↔ A yoke casting (L7)", "Spindle nose ↔ A yoke casting (L7)"]) {
+    expect(card, s).toContain(s);
+  }
   // the code lines: L8 provisional, L7 the nose's own contact
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   const codeLine = (n: number) => page.locator(".codeLine").filter({ has: page.locator(".lineNumber", { hasText: new RegExp(`^${n}$`) }) });
@@ -743,6 +817,9 @@ test("the provisional result keeps its own limits while the full check runs, its
   const after = await help();
   expect(after).not.toContain("In contact at the check's start");
   expect(after).not.toContain("the rest is unchecked");
+  const fullCard = await basisCard(page);
+  expect(fullCard, "the card follows the result: the full check").toContain("The whole program");
+  expect(fullCard).not.toContain("In contact at the check's start");
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(codeLine(8)).not.toHaveAttribute("title", /provisional/);
   await ctl({ op: "quiet", on: false });

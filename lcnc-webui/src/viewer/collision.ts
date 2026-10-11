@@ -425,6 +425,11 @@ export interface CollisionResult {
    *  more than 16 contact clusters on one record is a separate approximation
    *  this count does not cover. */
   capped?: number;
+  /** Of `capped`, the records where a contact BEGINS (onsets past the first
+   *  MAX_HITS): contacts — collisions perhaps — the list and its count do not
+   *  hold. Absent when every onset is listed (the cut records are then
+   *  continuations of listed contacts). */
+  cappedOnsets?: number;
   /** The model's bodies the check could not take whole, by class
    *  (`bodyClasses`; the same as the text `geometryNote` puts in `notes`). */
   bodies?: { unusable: string[]; damaged: string[]; open: string[] };
@@ -2311,6 +2316,7 @@ export function* sweepCollisionsIter(
     const contE = entries.filter(([, h]) => !isOnset(h)).sort((x, y) => x[1].cum - y[1].cum);
     const selected = [...onsetE, ...contE].slice(0, MAX_HITS);
     const omitted = entries.length - selected.length;
+    const omittedOnsets = Math.max(0, onsetE.length - MAX_HITS);
     for (const [key, h] of selected) {
       if (!refine) break;
       // Near-misses keep their closest-approach sample. A contact from the
@@ -2463,6 +2469,7 @@ export function* sweepCollisionsIter(
       sweepMs: clock() - t0,
       truncated: trunc,
       ...(omitted > 0 ? { capped: omitted } : {}),
+      ...(omittedOnsets > 0 ? { cappedOnsets: omittedOnsets } : {}),
       ...(opts.range ? {
         range: { fromCum: n > 0 ? track.cum[rangeFrom]! : 0, fromLine: noteLine(Math.min(startSeg, n - 1)),
                  ...(rangeEmpty ? { empty: true as const } : {}) },

@@ -90,6 +90,8 @@ describe("mergeEntryResult", () => {
   });
   it("keeps what either sweep's cap left out (`capped`), applying no cap of its own", () => {
     expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).capped).toBe(7);
+    expect(mergeEntryResult(res({ capped: 2, cappedOnsets: 1 }), res({ capped: 5, cappedOnsets: 3 }), 10, 90).cappedOnsets).toBe(4);
+    expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).cappedOnsets).toBeUndefined();
     expect(mergeEntryResult(res({}), res({ capped: 5 }), 10, 90).capped).toBe(5);
     expect(mergeEntryResult(res({}), res({}), 10, 90).capped).toBeUndefined();
   });

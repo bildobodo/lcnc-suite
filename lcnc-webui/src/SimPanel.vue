@@ -7,10 +7,11 @@
 // actions are the scrub bar's own (simPanelStore.ts): the marks, the rows and
 // prev/next are one navigation. During a run the list marks the next event.
 import { computed, nextTick, onUnmounted, ref, watch } from "vue";
-import { ChevronLeft, ChevronRight, Circle, Triangle, X } from "lucide-vue-next";
+import { ChevronLeft, ChevronRight, Circle, ClipboardList, Triangle, X } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSelect from "./MachineSelect.vue";
 import HelpIcon from "./HelpIcon.vue";
+import DetailsPopover from "./DetailsPopover.vue";
 import { vStickyHead } from "./stickyHead";
 import { usePermissions } from "./permissions";
 import { explainAt } from "./gateExplain";
@@ -21,6 +22,8 @@ import { SIM_SPEEDS, simJump, simRows, simStep, simView } from "./simPanelStore"
 import type { SimRow, SimRowKind } from "./viewer/simRows";
 
 const can = usePermissions();
+/** The card before any check (step 4 plan 1c). */
+const NO_CHECK = "No check has run on this program yet.";
 
 type Filter = "all" | SimRowKind;
 const filter = ref<Filter>("all");
@@ -260,6 +263,18 @@ function onRootKey(e: KeyboardEvent) {
           <span class="mono checkPct">{{ fmtPct(simView.sweep.frac) }}</span>
         </template>
         <span v-else class="text-muted">{{ simView.previous ? "Not checked yet" : "Not checked" }}</span>
+        <!-- What the check on screen was computed with (step 4 plan 1c): a
+             card, not more text in the "?" — taken when the check began. -->
+        <DetailsPopover type="detailsIcon" label="Check basis">
+          <template #icon><ClipboardList :size="14" /></template>
+          <div class="popTitle">Check basis</div>
+          <dl v-if="simView.card?.rows.length" class="detailsList checkCard">
+            <template v-for="(r, i) in simView.card.rows" :key="i">
+              <dt>{{ r.label }}</dt><dd :class="{ 'text-warn': r.warn }">{{ r.value }}</dd>
+            </template>
+          </dl>
+          <div v-for="n in (simView.card ? simView.card.notes : [NO_CHECK])" :key="n" class="text-muted">{{ n }}</div>
+        </DetailsPopover>
         <HelpIcon label="Collision check">{{ simView.sweep?.detail || (simView.previous
           ? "The run published a new preview (tool table changed). The earlier verdict is named only; this one is checked at run end."
           : "Tool and machine parts checked against each other along the program.") }}</HelpIcon>
@@ -340,6 +355,8 @@ function onRootKey(e: KeyboardEvent) {
 .speedSelect { width: auto; }
 .simWhere { margin-left: auto; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .checkRow .progressTrack { min-width: 48px; }
+/* The check basis card: its values are sentences — they read from the start. */
+.checkCard dd { text-align: start; }
 .checkPct { white-space: nowrap; }
 /* The summary keeps ONE line whatever it says: the limit item gives way
    (an ellipsis; the whole text is its name and title). */

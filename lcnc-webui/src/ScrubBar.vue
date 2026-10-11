@@ -32,7 +32,7 @@ import { mapAcrossEntry, sampleCum, targetAfter, targetBefore, type NavSelection
 import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
-import type { CollisionResult } from "./viewer/collision";
+import { MAX_HITS, type CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsed } from "./format";
@@ -44,6 +44,7 @@ import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbe
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
+import { checkCard, type CheckContext } from "./viewer/checkContext";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
@@ -71,6 +72,10 @@ const props = defineProps<{
   collisionPartial: CollisionResult | null;
   collisionPartialTrack: ScrubTrack | null;
   collisionEntryResult: { track: ScrubTrack; result: CollisionResult } | null;
+  /** What the check on screen was computed with (step 4 plan 1c), and
+   *  whether an idle check's basis is no longer the machine's state. */
+  collisionContext?: CheckContext | null;
+  collisionContextStale?: boolean;
   /** The sweep is PARKED by a rotary jog (its track is about to be re-parsed)
    *  — with the covered fraction. The partial result is in `collisionResult`
    *  (marks show); `collisionResumable` says the worker still holds it, and
@@ -753,7 +758,8 @@ const verdictDetail = computed<string>(() => {
     const k = r.staticContacts.length;
     parts.push(`${k} pair${k === 1 ? "" : "s"} already in contact at rest — excluded.`);
   }
-  if (r.capped) parts.push(`${r.capped} record${r.capped === 1 ? "" : "s"} left out of the list (a contact is a record per line) — no further collisions.`);
+  if (r.cappedOnsets) parts.push(`${r.capped} records left out of the list, ${r.cappedOnsets} of them where a contact begins — contacts past the first ${MAX_HITS} are not listed or counted.`);
+  else if (r.capped) parts.push(`${r.capped} record${r.capped === 1 ? "" : "s"} left out of the list — the later lines of contacts it lists (a contact is a record per line).`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
   // parity-ef plan E7: the beginning stands where the machine stands — in
   // the simulation and in a run, checked or not (Codex R133 VP-I84/I86)
@@ -1040,7 +1046,9 @@ const sweepView = computed<SimSweepView | null>(() => {
   const startsIn = fw.startsIn ? " · starts in contact" : "";
   const result = (none: string, running = false) =>
     n ? `${fw.text}${running ? " so far" : ""}${startsIn}` : running ? "No contact so far" : none;
-  const cut = r?.capped ? " · records cut" : "";
+  // the cap: records of listed contacts left out — or contacts themselves,
+  // whose count the words then cannot hold
+  const cut = r?.cappedOnsets ? " · more contacts not listed" : r?.capped ? " · records cut" : "";
   const tools = sweepToolSentence.value;
   const detail = (r ? verdictDetail.value + " " : "") + tools;
   const caveat = !!sweepCaveat.value;
@@ -1152,6 +1160,17 @@ const boundaryDetail = computed(() => {
   }).join("; ");
   return `In contact at the check's start: ${named} — where each began and what it is, the full check says. `;
 });
+/** The card "Check basis" (step 4 plan 1c) for the check the tab shows: its
+ *  context as taken at the request, the result on screen for what it left
+ *  out. The entry move is included when the shown result is the entry
+ *  track's merge. No check on screen, no card. */
+const checkCardView = computed(() => {
+  if (!sweepView.value) return null;
+  const e = props.collisionEntryResult;
+  return checkCard(props.collisionContext ?? null, shownResult.value, {
+    stale: !!props.collisionContextStale, unit: linearUnit.value,
+    entry: !!e && e.track === track.value && shownResult.value === e.result });
+});
 /** Which tools the check poses — said in the check's "?", not on the bar. */
 const sweepToolSentence = computed(() => {
   const pt = props.sweepTool?.programTools;
@@ -1170,6 +1189,7 @@ watchEffect(() => {
   simView.lineTitle = lineTitle.value;
   simView.time = posText.value;
   simView.sweep = sweepView.value;
+  simView.card = checkCardView.value;
   const prev = props.collisionPrevious;
   simView.previous = prev && !sweepView.value
     ? (prev.text ? `${prev.text}${prev.complete ? "" : " so far"}` : prev.complete ? "Clear" : "No contact so far")

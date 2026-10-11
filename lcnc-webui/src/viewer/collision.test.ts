@@ -788,9 +788,27 @@ describe("contact-window refinement (glow window)", () => {
     expect(res.hits).toHaveLength(MAX_HITS);
     expect(res.hits.filter(h => h.continuation === undefined && h.dist < 1e-3).map(h => h.line)).toEqual([25]);
     expect(res.capped).toBe(262 - MAX_HITS);
+    expect(res.cappedOnsets, "every onset listed: the cut records continue it").toBeUndefined();
     // under the cap: no count at all
     const short = sweepCollisions(model, track(pts.slice(0, 12), undefined, lines.slice(0, 12)), WCS0, { margin: 2 });
     expect(short.capped).toBeUndefined();
+  });
+
+  it("past MAX_HITS contact BEGINNINGS the cap cuts contacts, and says how many (`cappedOnsets`)", () => {
+    // 205 plunges, each after a verified separation: 205 contacts (Codex R84:
+    // 201 onsets came back as 200, unsaid)
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [[0, 0, 0]];
+    const lines = [1];
+    for (let i = 0; i < 205; i++) {
+      pts.push([0, 0, -45], [0, 0, 0]);
+      lines.push(10 + 2 * i, 11 + 2 * i);
+    }
+    const res = sweepCollisions(model, track(pts, undefined, lines), WCS0, { margin: 2 });
+    const onsets = res.hits.filter(h => h.continuation === undefined && h.dist < 1e-3);
+    expect(onsets).toHaveLength(MAX_HITS);
+    expect(res.cappedOnsets).toBe(5);
+    expect(res.capped).toBeGreaterThanOrEqual(5);
   });
 
   it("verified separation (>2×margin) then re-entry two lines later yields two onset records", () => {

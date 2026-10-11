@@ -5,6 +5,7 @@
 // decides anything: a second navigation would drift from the bar's marks.
 import { reactive, shallowRef } from "vue";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
+import type { CardView } from "./viewer/checkContext";
 
 /** The collision check as the tab says it. */
 export interface SimSweepView {
@@ -45,6 +46,9 @@ export const simView = reactive({
    *  marks, counts or jumps of the current preview (plan „Prüfung im Lauf“
    *  1c). Null otherwise. */
   previous: null as string | null,
+  /** The card "Check basis" (step 4 plan 1c): what the check on screen was
+   *  computed with, taken when it was requested. Null without a check. */
+  card: null as CardView | null,
   /** The program's soft-limit records: `total` distinct (line, axis) records
    *  (null = not validated — unchecked ≠ clean), `records` the ones the
    *  payload carries (the gateway caps the list at 200). */

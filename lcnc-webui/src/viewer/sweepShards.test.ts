@@ -66,6 +66,14 @@ describe("mergeShardResults", () => {
     const m = mergeShardResults([result(onsets.slice(0, 100), { capped: 7 }), result([...onsets.slice(100), ...conts], { capped: 3 })]);
     expect(m.capped).toBe(7 + 3 + (MAX_HITS - 10 + 50 - MAX_HITS));
     expect(mergeShardResults([result([hit(1, 1)]), result([hit(2, 2)])]).capped, "nothing cut").toBeUndefined();
+    expect(m.cappedOnsets, "every onset listed").toBeUndefined();
+  });
+  it("counts the contact beginnings the caps left out apart (`cappedOnsets`): every shard's own and the merge's", () => {
+    const onsets = Array.from({ length: MAX_HITS + 6 }, (_, i) => hit(1000 + i, 1000 + i));
+    const m = mergeShardResults([result(onsets.slice(0, 100), { capped: 4, cappedOnsets: 2 }), result(onsets.slice(100))]);
+    expect(m.hits.filter(h => h.continuation === undefined)).toHaveLength(MAX_HITS);
+    expect(m.cappedOnsets).toBe(2 + 6);
+    expect(m.capped).toBe(4 + 6);
   });
   it("carries a range sweep's start and every shard's boundary contacts; a boundary record is no onset for the cap", () => {
     const range = { fromCum: 40, fromLine: 7 };

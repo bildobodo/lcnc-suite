@@ -89,6 +89,8 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     truncated: mergedTruncated(entry.truncated, base.truncated, shift, baseLen),
     // what either sweep's cap left out stays said (no cap is applied here)
     ...((entry.capped ?? 0) + (base.capped ?? 0) > 0 ? { capped: (entry.capped ?? 0) + (base.capped ?? 0) } : {}),
+    ...((entry.cappedOnsets ?? 0) + (base.cappedOnsets ?? 0) > 0
+      ? { cappedOnsets: (entry.cappedOnsets ?? 0) + (base.cappedOnsets ?? 0) } : {}),
   };
 }
 

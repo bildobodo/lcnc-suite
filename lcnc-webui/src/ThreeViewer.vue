@@ -27,6 +27,7 @@ import { g30Confirmed } from "./g30Shared";
 import { INTERP_IDLE, TASK_MODE_AUTO } from "./lcnc";
 import { runInProgress } from "./runBasis";
 import { admitRunCheck, basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
+import { captureCheckContext, type CheckContext } from "./viewer/checkContext";
 import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
@@ -2961,6 +2962,25 @@ function runBeginNow(r: { gen: number; begin: RunBeginStart; beginWhy: string | 
 // while a run goes on (plan „Prüfung im Lauf“ 1c): no marks, counts or jumps
 // of the current preview — only the line that says what it was.
 const collisionPrevious = shallowRef<{ collisions: number; text: string; complete: boolean; version: number | null } | null>(null);
+// What the check on screen was computed with (step 4 plan 1c, the card
+// "Check basis"): taken when its request was built, never re-read. The
+// request in flight has its own; it becomes the shown one with the result it
+// shows — while a provisional run result stays on screen (`keepShown`), the
+// card keeps describing that result, not the full check behind it.
+const collisionContext = shallowRef<CheckContext | null>(null);
+let _colPendingCtx: CheckContext | null = null;
+/** Bumped whenever _pv takes a new check input (_colOnInputChange). */
+const _colInputsRev = ref(0);
+/** The check's basis is no longer the machine's state. The card says it for
+ *  an idle check only (checkContext.checkCard): a run's basis is the run's
+ *  start — the program's own G92 / M6 move the live state on purpose. */
+const collisionContextStale = computed(() => {
+  // _pv takes the status in the render loop, after a status frame's own
+  // reactive pass — the revision is bumped where _pv takes a check input.
+  void _colInputsRev.value;
+  const c = collisionContext.value;
+  return !!c && !sameCheckInputs(c.basis, _liveCheckBasis());
+});
 // The exact track the current result was swept on — hit cums are only
 // meaningful against it (shallowRef: tracks hold Maps + typed arrays).
 const collisionTrack = shallowRef<ScrubTrack | null>(null);
@@ -3096,6 +3116,7 @@ function _colGetWorker(): Worker {
         collisionBusy.value = false;
         _colStopPending = false;
         collisionResult.value = m.result!;
+        collisionContext.value = _colPendingCtx;
         collisionTrack.value = _colPendingTrack;
         collisionPartial.value = null;
         collisionResumable.value = true;
@@ -3122,6 +3143,7 @@ function _colGetWorker(): Worker {
       const result = m.result!;
       const run0 = collisionRun.value;
       collisionResult.value = result;
+      collisionContext.value = _colPendingCtx;
       collisionTrack.value = _colPendingTrack;
       collisionResumable.value = false;
       collisionStopped.value = null;
@@ -3422,6 +3444,27 @@ function _checkBasisNow(): CheckBasis {
 }
 /** The basis of the main sweep posted last — its result's. */
 let _colBasis: CheckBasis | null = null;
+/** The card's context for a check built from `basis` on `track` (step 4
+ *  plan 1c): the kinematics the track is posed in; the rotary axes and the
+ *  fixture idle from the status when the check begins, in a run from the
+ *  run's start. */
+function _colContextFor(basis: CheckBasis, track: ScrubTrack, run?: RunSweep): CheckContext {
+  const init = viewerInit.value, d = vst.value, g = viewerGcode.value;
+  const inRun = basis.kind === "run";
+  // the sweep poses each segment by its label; a track without labels in
+  // the machine frame (collision.ts) — the card says what the check used
+  const m = track.mode;
+  return captureCheckContext({
+    basis, axes: init?.axes ?? [],
+    kins: m?.length ? semanticKinsMode(m[0]!, init?.kins) : 0,
+    kinsSwitches: !!m && m.some(t => t !== m[0]),
+    rotaryAbc: d?.rotary_abc ?? null,
+    fixture: inRun ? runBasis.value?.start?.g5xIndex ?? null : d?.g5x_index ?? null,
+    tloEvents: g?.tloEvents, parseTlos: g?.parse_tlos, toollenTable: g?.toollen_table,
+    unknownTools: _unknownProgramTools(),
+    fromLine: run?.range ? collisionRun.value?.fromLine ?? null : null,
+  });
+}
 function _colWcs(basis: CheckBasis): PartFrameWcs {
   return { g5x: basis.g5x, g92: basis.g92, rotationDeg: basis.rotationXy, tool: basis.toolOffset };
 }
@@ -3567,6 +3610,8 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   const req = _colBuildRequest(track, id, false, basis, run?.range);
   if (!req) return;
   _colBasis = basis;
+  _colPendingCtx = _colContextFor(basis, track, run);
+  if (!run?.keepShown) collisionContext.value = _colPendingCtx;
   _colReqMeta = { maxShards: req.msg.maxShards ?? null, sliceMs: req.msg.sliceMs ?? null, range: run?.range?.from ?? null };
   _colReqRunGen = run?.gen ?? null;
   _colKeepShown = !!run?.keepShown;
@@ -3761,6 +3806,7 @@ watch(() => status.value?.data?.interp_state, (st, prev) => {
 // honestly and re-run (debounced; touch-off sequences change several
 // values in quick succession).
 function _colOnInputChange(st?: any) {
+  _colInputsRev.value++;   // the card's "changed since" (step 4 plan 1c)
   // A run in progress changes these itself (an early G92, its M6): the
   // result stays with the basis it was built from (plan „Prüfung im Lauf“
   // 2) — decided on the SAME status frame as the change; the end of the
@@ -5280,6 +5326,8 @@ defineExpose({
       :collisionPartialTrack="collisionPartialTrack"
       :collisionEntryResult="collisionEntryResult"
       :collisionPrevious="collisionPrevious"
+      :collisionContext="collisionContext"
+      :collisionContextStale="collisionContextStale"
       :collisionRunCheck="collisionRunCheckView"
       @check-entry="runEntryCheck"
       @pose="onScrubPose"

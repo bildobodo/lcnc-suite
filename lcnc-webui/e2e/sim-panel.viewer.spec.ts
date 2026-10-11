@@ -569,3 +569,34 @@ test("the summary's \"?\" answers in its whole hit area, at the right edge of a 
   await page.mouse.click(g.right + g.reach - 1, g.cy);
   await expect(page.locator(".helpPopover:popover-open"), "a tap at the hit area's outer edge").toHaveCount(1);
 });
+
+// Step 4 plan 1c: the card "Check basis" by touch — a tap opens it inside the
+// window, the trigger and a tap outside close it, nothing reaches the machine.
+test.describe("the check basis card by touch (step 4 plan 1c)", () => {
+  test.use({ hasTouch: true });
+  test("a tap opens the card in the window; its trigger and a tap outside close it; nothing is sent", async ({ page, context }) => {
+    await prepare(page, context, "touch-landscape");
+    const trigger = page.getByRole("button", { name: "Check basis", exact: true });
+    const card = page.locator(".helpPopover:popover-open");
+    await ctl({ op: "clearCmds" });
+    await trigger.tap();
+    await expect(card).toContainText("The machine when the check started");
+    await expect(card).toContainText("Kinematics");
+    await expect(card).toContainText("Work offset");
+    const box = (await card.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+    await trigger.tap();
+    await expect(card, "its trigger closes it").toHaveCount(0);
+    await trigger.tap();
+    await expect(card).toBeVisible();
+    await page.touchscreen.tap(5, 5);
+    await expect(card, "a tap outside closes it").toHaveCount(0);
+    const sent = ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? []).map(c => c.cmd ?? "")
+      .filter(c => !["hello", "heartbeat", "get_tool_table", "timing_log", "tab_visibility"].includes(c));
+    expect(sent, "reading the card moves nothing").toEqual([]);
+  });
+});

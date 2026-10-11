@@ -34,6 +34,8 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
   const hits: CollisionHit[] = [...onsets, ...conts].slice(0, MAX_HITS).sort((x, y) => x.cum - y.cum);
   // what every shard's own cap left out, and what this one cuts again
   const capped = results.reduce((s, r) => s + (r.capped ?? 0), 0) + Math.max(0, all.length - MAX_HITS);
+  // ...and the contacts' beginnings among them
+  const cappedOnsets = results.reduce((s, r) => s + (r.cappedOnsets ?? 0), 0) + Math.max(0, onsets.length - MAX_HITS);
   let truncated: CollisionResult["truncated"] = null;
   for (const r of results) {
     if (r.truncated && (!truncated || r.truncated.covered < truncated.covered)) truncated = r.truncated;
@@ -58,6 +60,7 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
     sweepMs: Math.max(...results.map(r => r.sweepMs)),
     truncated,
     ...(capped > 0 ? { capped } : {}),
+    ...(cappedOnsets > 0 ? { cappedOnsets } : {}),
     shards: results.length,
     // a range sweep: every shard starts at the same point; each reports the
     // boundary contacts of its own pairs
