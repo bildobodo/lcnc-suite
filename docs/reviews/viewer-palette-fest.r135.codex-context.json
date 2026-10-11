@@ -1,0 +1,32 @@
+{
+  "archive": "/tmp/codex-r135-k3ccqqc4/src",
+  "code_base": "52f7b49c",
+  "code_head": "b3a20a2f0a61acc030816ada80f512b510931290",
+  "review_head": "e97cf9e239aa71212bd32aa7233d881ea1ceeb51",
+  "review_prefix_size": 1346688,
+  "review_prefix_sha256": "a8443141c6a960f6b65ab78bf1c7b324c3b49a43d635fcbda54cbebfa62b2b4b",
+  "verified_changed_files_against_git": [
+    "CLAUDE.md",
+    "lcnc-gateway/native_start_probe.py",
+    "lcnc-gateway/test_start_dep_worker.py",
+    "lcnc-webui/e2e/toolsetter.viewer.spec.ts",
+    "lcnc-webui/src/ScrubBar.vue",
+    "lcnc-webui/src/ThreeViewer.vue",
+    "lcnc-webui/src/viewer/collision.ts",
+    "lcnc-webui/src/viewer/startDep.ts",
+    "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+    "scripts/gen_start_dep_payloads.py",
+    "scripts/test_fixtures/start_dep_payloads/r134_m6_first_absolute.msgpack",
+    "scripts/test_fixtures/start_dep_payloads/r134_m6_only_absolute.msgpack"
+  ],
+  "review_append_start_line": 17438,
+  "repository_tests": {
+    "backend_passed": 60,
+    "frontend_passed": 75
+  },
+  "own_tests": {
+    "r133_passed": 15,
+    "r134_passed": 8
+  },
+  "native_programs": 13
+}

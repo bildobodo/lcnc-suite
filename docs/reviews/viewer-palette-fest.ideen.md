@@ -17434,3 +17434,37 @@ Der erste Gate-Lauf am Stand `59f48c61` hatte je einen Ausfall in `serial-guards
 2. Parity-Lauf (`m600_live`, Toleranz 0,5) und der XYZAC-Korpus.
 3. Suite-Stopp mit Schemawechsel und Goldens.
 4. Paket 1 aus Schritt 4.
+
+## Review R135 · Codex · Nachprüfung R134 · 11. Oktober 2026
+
+**Ergebnis: `agreement`. Die Reste von VP-I84/VP-I86 bei K = 0 und VP-I90 sind geschlossen. Keine weiteren Befunde im geprüften Umfang.** Geprüft: `fix/start-dep`, `52f7b49c..b3a20a2f`, ungemergt; `59f48c61` enthält die Korrekturen, der Folgecommit ausschließlich die Änderung an `e2e/toolsetter.viewer.spec.ts`.
+
+Damit sind die offenen Implementierungsbefunde aus R132–R134 zu E1–E3 abgearbeitet. Das Implementierungsreview steht dem vorgesehenen Merge und Neustart mit anschließendem gesondertem Parity-/XYZAC-Lauf nicht mehr entgegen. **Das Agreement ersetzt diese noch ausstehende Live-Abnahme nicht.** Der M600-Stern bleibt gemäß Operator-Entscheidung bestehen.
+
+[Prüfprotokoll](viewer-palette-fest.r135.codex-checks.md), [Kontext](viewer-palette-fest.r135.codex-context.json), [native Programme](viewer-palette-fest.r135.codex-native.py), [native Ergebnisse](viewer-palette-fest.r135.codex-native.json), [Payloads](viewer-palette-fest.r135.codex-payloads.zip), [R133-Nachprüfung](viewer-palette-fest.r135.codex-rerun.test.ts), [R133-Messdaten](viewer-palette-fest.r135.codex-rerun.json), [R134-Ablaufprobe](viewer-palette-fest.r135.codex-wiring.test.ts), [Anpassung des Sondenkontexts](viewer-palette-fest.r135.codex-wiring-adaptations.diff), [Ablauf-Messdaten](viewer-palette-fest.r135.codex-wiring.json), [Testausgaben](viewer-palette-fest.r135.codex-tests.txt).
+
+### Nachprüfung der Befunde
+
+| Befund | Ergebnis und eigener Nachweis |
+|---|---|
+| VP-I84/VP-I86 · K = 0 | **Geschlossen.** Beide nativen R134-Programme liefern weiter korrekt `start_unbound = [0,1,2]`, keine Maske und keine bindbare Anfahrt. Der Sweep benennt jetzt L3 auch ohne K. Durch den tatsächlichen Lauf-Koordinator und die Leiste: mit nachfolgender bekannter Bewegung **„Clear · start not checked“**, Warnton, `begin: unbound`; ohne zweite Bewegung **„Not checked“**, Warnton. Der tatsächliche Hilfetext nennt die unbekannte erste Bewegung und behauptet keine Prüfung des ganzen Programms mehr. |
+| VP-I90 · Fehlerzustand | **Geschlossen.** Die unveränderten R134-Erwartungen für `error` und zweimal `needBodies` bestehen: kein Seitenauftrag mehr, `begin: failed`, konkreter Grund, Anzeige `done` und **„Clear · start not checked“**. Kein dauerhaftes `checking`. Die bestehenden Ergebnisse der Grundprüfung bleiben erhalten. |
+| Übrige Fehler-/Abbruchpfade | Die übernommenen Repository-Wächter bestehen für Abbruch-Antwort, `_colDropEntry`, nicht erzeugbaren Auftrag, synchron gescheiterten Versand und vorhandene Gelenke ohne mögliche Bindung. Im Code führen Ersetzen eines Seitenauftrags und `_colFail` ebenfalls über den gemeinsamen Abbruchpfad. Die Fehlerzuordnung prüft die Laufgeneration. |
+| Positive Kontrollen | Eigene R134-Probe: Grund-Ergebnis zuerst, Seiten-Ergebnis zuerst, fehlende Startgelenke mit Grund und abgeschnittener Seiten-Sweep mit `covered: 0` bleiben korrekt. Die 15 R133-Vertragsprüfungen bestehen ebenfalls, einschließlich G43-Kollisionsgegenprobe, erstem G1, Merge-Daten, Schreibhinweis und Zeithilfe. |
+
+**Eigene Prüfungen:** 60 Backend-Bestandstests und 98 Frontend-Prüfungen PASS; die 98 sind **75 Repository-Tests plus 15 R133- und acht R134-Prüfungen**. 13 native Programme ohne Parsefehler, Werkzeug-mmap jeweils unverändert. Die R134-Ablaufprobe brauchte nur die neuen produktiven Hilfsfunktionen und `collisionRunSideState` im Ausführungskontext; **keine Erwartung wurde geändert**. Die vier zuvor roten Assertions sind jetzt grün. Claudes Gate-Berichte für `b3a20a2f` und der Nachweis der 81 roten Mutationen auf `59f48c61` wurden geprüft, nicht als eigene Gesamtläufe ausgegeben.
+
+### Entscheidungen aus der Anfrage
+
+1. **„Clear · start not checked“ auch im Leerlauf: angenommen.** Der ungeprüfte Teil wird direkt im Urteil genannt, mit Warnton und Erklärung im „?“. Der bereits vereinbarte Verzicht auf einen zusätzlichen Stern für diese ausdrücklich ausgegrenzte Bewegung bleibt konsistent; eigenständige Garantieeinschränkungen behalten ihren Stern.
+2. **„Not checked“ bei der einzigen, ungebunden beginnenden Bewegung: angenommen.** Die Prüfung einer Endpose ist keine Prüfung des Wegs dorthin.
+3. **Die sieben `failed`-Gründe: angenommen.** Sie trennen Fehler, Abbruch, fehlendes Modell, nicht gebauten/gesendeten Auftrag, Ersetzung und fehlgeschlagene Bindung. Die übergeordnete Aussage bleibt verständlich: Der Anfang wurde nicht zu Ende geprüft.
+4. **Kein eigener Wächter für „another check replaced it“: als benannte Grenze akzeptiert.** Der Pfad benutzt denselben geprüften `_colCancelSide`-Übergang. Das ist keine Behauptung, dass dieser Übergang über die aktuelle Lauf-UI erreichbar oder im Browser getestet wurde.
+
+### G30-Testpflege und verbleibende Abnahmegrenze
+
+Die Änderung in `b3a20a2f` ist angenommen: `idleEdge` wartet auf die tatsächlich übernommene Interp-Anzeige statt auf 150–200 ms. Die entscheidenden Erwartungen bleiben erhalten – G30 wird neu gelesen, ungültige Werte blenden die Stecknadel aus, eine ältere Antwort darf die neuere Position nicht ersetzen. Der Status-Store und der G30-Watcher bestätigen im gelesenen Code, warum zwei Statusmeldungen innerhalb eines Frames keine sichtbare Busy→Idle-Flanke erzeugen müssen.
+
+**Die gemeldete Produktgrenze bleibt offen und getrennt:** Ein solcher kurzer Busy-Impuls kann weiterhin die automatische G30-Nachlesung auslassen. Die Teständerung behebt diese Grenze nicht; sie prüft zuverlässig den Vertrag nach einer beobachteten Flanke. Die bereits vorhandene unmittelbare Übernahme bestätigter G30-Werte bleibt bestehen. Dieser vorbestehende Anzeige-Nebenbefund wird mit dem R135-Agreement nicht als erledigt geführt.
+
+Alle eigenen Prüfungen liefen offline in der Archivkopie. Kein eigener Browser-/Gesamtgate-Lauf, keine Live-/Parity-Prüfung. Im Live-Baum ausschließlich dieser Anhang und neue `r135.codex-*`-Belege; Produktcode, ältere Belege und laufende Sim unverändert. Rückmeldung per `done R135 --verdict agreement`.
