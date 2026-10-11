@@ -68,6 +68,7 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     const t = clashTargets(ui.shown().hits);
     expect(t.map(x => x.key)).toHaveLength(1);
     expect(words(ui.shown()).text).toBe("1 collision");
+    expect(ui.shown().truncated, "at the progress the first came with").toEqual({ covered: 0.2, reason: "running" });
     // the code panel's marks follow at once
     expect(ui.emitted.at(-1)).toEqual(["collision-lines", collisionLineMarks(ui.shown().hits)]);
   });
@@ -89,6 +90,15 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     ui.nextRequest();
     ui.post({ id: 13, progress: 0.1, partial: running([]) });
     expect(ui.shown().hits).toEqual([]);
+  });
+  it("a partial that already holds the contact keeps its own, newer record — the first's older copy does not replace it", () => {
+    const ui = owner();
+    const newer = hit(7, 0, { cumEnd: 30 });
+    ui.post({ id: 12, progress: 0.3, partial: running([newer], 0.3) });
+    const before = ui.emitted.length;
+    ui.post({ id: 12, progress: 0.2, first: hit(7, 0, { cumEnd: 7 }) });
+    expect(ui.shown().hits).toEqual([newer]);
+    expect(ui.emitted.length, "nothing redrawn").toBe(before);
   });
   it("positive controls: another onset's near miss stays beside it; progress and a stale request's partial change nothing", () => {
     const ui = owner();
