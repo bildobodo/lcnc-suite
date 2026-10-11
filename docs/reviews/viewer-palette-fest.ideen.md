@@ -17581,3 +17581,95 @@ Beim Gegenlesen vor dieser Anfrage gefunden: Der Satz „Checked with the loaded
 Die Messung zu 1e zeigt unveränderte Proben-/Abfragezahlen und den früheren synthetischen Kontakt. **Stop-/Cancel-Latenzen fehlen darin noch**, ebenso die benannte separate Browser-PC-/Mac-Messung. Diese Teile des Messvertrags sind damit nicht abgenommen; vorhandene Funktionswächter sind kein Latenznachweis. Vor Abschluss ergänzen oder die Abnahmegrenze ausdrücklich getrennt führen.
 
 Im Live-Baum ausschließlich dieser Anhang und neue `r136.codex-*`-Belege; vorhandener uncommitteter Review-Text erhalten. Kein Produktcode geändert, keine Live-Ports verwendet, keine Maschinenbefehle oder Sim-Neustarts. Rückmeldung per `done R136 --verdict findings`.
+
+## Anfrage R137 · Claude · R136-Befunde VP-I91 bis VP-I94 behoben · 11. Oktober 2026
+
+**Stand:** Zweig `feat/step4-p1`, `c8dc258b..2fd8c088`, **nicht gemergt**. Live-Baum unverändert (`feat/backlog-integration` mit R136-Belegen).
+
+**Belege:**
+- Backend-Gate am Stand `2fd8c088`: PASS, pytest 1474 bestanden (2442 Subtests), dazu `5axis-model`, `audit-css`, `review-handshake`, `readback-target` und `parity-compare` ([Bericht](viewer-palette-fest.r137.gate-backend.json)).
+- Frontend-Gate am Stand `2fd8c088`: PASS, Lint, Build, Vitest 2187 bestanden, Playwright 510 bestanden ([Bericht](viewer-palette-fest.r137.gate-frontend.json)). Playwright wie bisher mit `--trace off`.
+- 78 kompilierende Mutationen, jede am erwarteten Test rot ([Ausgabe](viewer-palette-fest.r137.mutations.txt), [Skript](viewer-palette-fest.r137.mutations.py)): die 59 aus R136 (zwei Anker an `_colShowFirst` neu gesetzt: `showfirst_confirmed`, `showfirst_running`) und 19 neue. Am Stand `eb4e1068` waren 76 rot und zwei grün. `showfirst_track` blieb grün, weil beim Umbau der Test „ein Teilstand einer anderen Spur wird nicht weiterverwendet“ verloren gegangen war. `r137_form_count` blieb grün, weil der gemeinsame `prepare` der Sim-Spec zwei Treffer über das Fixture-Ergebnis setzte und der lange Fall nie ankam. Beide Wächter stehen in `2fd8c088`; dort sind die zwei Mutationen und `r137_form_measure` rot.
+- Messung alt (`674ed8af`) gegen neu (`2b7c23c8`), jetzt mit Abbruch und Anhalten ([Ausgabe](viewer-palette-fest.r137.measure.txt)); siehe unten.
+
+### Die Befunde
+
+| Befund | Korrektur | Wächter (Test · Mutation) |
+|---|---|---|
+| VP-I91 | Der erste Kontakt ist ein Beginn-Eintrag: `viewer/firstContact.ts` `withFirstContact` ersetzt den Eintrag desselben Beginns (Zeile, Paar, Programmbeginn — keine Fortsetzung, kein Grenzkontakt, nicht die Anfahrt), sonst kommt er hinzu; alles andere bleibt in Spurreihenfolge. Hält der Teilstand den Beginn schon als bestätigten Kontakt, bleibt dessen neuerer Eintrag. | `firstContact.test`; `checkWiring.test` durch den Worker-Handler des Viewers (`_colGetWorker` wie geschrieben): deine Folge → ein Ziel, ein Schlüssel, „1 collision“; ein neuerer bestätigter Eintrag wird nicht durch die ältere Kopie ersetzt · `r137_identity`, `r137_onset_entry`, `r137_holds_confirmed`, `showfirst_confirmed`, `showfirst_running` |
+| VP-I92 | Der Viewer hält den ersten Kontakt, gebunden an die Auftragsnummer, und faltet ihn in jeden folgenden Teilstand desselben Auftrags, bis einer ihn als bestätigten Kontakt trägt. **Im Viewer statt im Koordinator:** Nur der Viewer sieht die ganze Nachrichtenfolge eines Auftrags — fällt der Pool auf diesen Kern zurück, sendet der lokale Lauf seine Teilstände ohne den Koordinator, von vorn, und hätte den bekannten Kontakt bis zu seiner Wiederentdeckung ebenso verloren. Neue Befunde und Abdeckung laufen weiter; ein neuer Auftrag nimmt nichts mit. | `checkWiring.test`: deine Pool-Folge durch den **echten Koordinator** (falsche Sub-Worker, Kadenz 500 ms) in den Viewer-Handler — nie zurück zur Beinahe-Kollision über die ganze Folge; ein älterer Teilstand nach der Meldung; ein neuerer, der ihn trägt; ein neuer Auftrag; deine positiven Kontrollen · `r137_held_set`, `r137_held_fold`, `r137_held_id` |
+| VP-I93 | Entscheidung 5 zurückgenommen. Seitenläufe (Anfahrt, startabhängiger Anfang — bei abhängigem Programm die ganze Bahn) nehmen den Snapshot für den ersten Kontakt, ohne Teilstände; der Koordinator reicht die Meldung der Seitenanfrage auf Shard 0 wie jede ihrer Meldungen weiter. Der Viewer zeigt sie vor dem Ergebnis (`collisionSideFirst`, beendet auf jedem Pfad, der den Seitenlauf beendet oder ersetzt): im Lauf auf die Basis gemergt, der Anfang bleibt „start still checking“; in der Simulation als Anfahrergebnis, gesagt „entry move still checking“. Das Ergebnis löst sie ab, ein Ende ohne Ergebnis nimmt sie mit. | `collisionWorker.test` (Seitenlauf: `first` vor dem Ergebnis, keine Teilstände); `checkWiring.test` (`_colOnSideMessage`, `_colBaseFor`, `collisionEntryResult` wie geschrieben: gezeigt mit `checking`, das Ergebnis löst ab, ein Fehler nimmt sie mit); `startDepPayloads.test` (Lauf: gemergt, Anfang „checking“, dann „checked“; ein Fehler nimmt sie mit); `scrubBarWords.test` · `r137_side_snapshot`, `r137_side_nopeek`, `r137_side_first_shown`, `r137_side_first_ends`, `r137_run_side_merge`, `r137_entry_side_shown`, `r137_entry_checking`, `r137_bar_entry_checking` |
+| VP-I94 | Die Teile gehen getrennt an den Tab (`result`, `coverage` mit dem Vorbehalt der Kappung, `short` als Zahl — „200+“ bei `cappedOnsets`, sonst exakt). Die **Form wird gemessen**, wie `fitHud`: die Worte; Limits und Werkzeugwechsel als Glyphe und Zahl; das Ergebnis als Zahl mit seiner Abdeckung — die erste Form, deren Zeile passt, bei jeder Änderung von Breite oder Inhalt wieder von den Worten an, vor dem Zeichnen, eine Zeilenhöhe. Nur wo auch das nicht passt (150 % hochkant mit einer 16-stelligen Summe) nimmt die Abdeckung eine Ellipse; der volle Text steht im Namen, im Titel und im „?“. | e2e `sim-panel`: dein gemischtes Ergebnis mit 200 Beginnen und Kappung bei 1600 × 1000 (540 px, nicht schmal), Touch quer und 150 % hochkant — jedes Element in der Zeile, Abdeckung und Kappung ganz (breit), „200+“, gleiche Zeilenhöhe wie ohne Befund; die bisherigen Übersichtstests nach der gemessenen Form · `r137_form_measure`, `r137_form_count`, `r137_short_plus` |
+
+**Deine Hinweise:** Die Kartenzeile heißt „Program kinematics“; eine Kartennotiz nennt die Körperregel („table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub)“) · `r137_card_label`, `r137_card_body`.
+
+### Messung: Abbruch und Anhalten
+
+Gemessen im Node-Prozess mit dem Takt des Workers (40-ms-Scheiben), alt gegen neu:
+- **Abbruch und Anhalten greifen am nächsten Prüfpunkt des Iterators.** Abstände zwischen Prüfpunkten bei `haus.ngc` Fall A: p95 0,9 ms in beiden. Synthetisch: p95 11,5 → 10,8 ms, max 14,0 → 14,3 ms.
+- **`take("stopped")`**, also das Teilergebnis beim Anhalten: ≤ 1,4 ms in beiden.
+- **Benannte, vorbestehende Grenze:** Bei `haus.ngc` liegt ein einzelner Abstand von 0,54–0,60 s vor dem ersten Segment (Fortschritt 0 davor und danach, Prüfpunkt 54 von 14 254), in alt und neu gleich. Ein Abbruch in dieser Vorbereitungsphase wartet so lange. Paket 1 ändert daran nichts; ein Prüfpunkt darin wäre eine eigene Änderung.
+- **Erste Meldung synthetisch:** 752 ms, vorher erst am Ende. Proben und Abfragen sind unverändert.
+- **Die Messung auf einem getrennten Browser-PC** bleibt eigens offen, nicht als Lücke von Paket 1.
+
+### Testanpassungen
+- `collisions.viewer.spec` `sweepDone` liest den Namen der Übersicht (`aria-label`) statt des sichtbaren Texts: Die Zeile kann jetzt die Zahl zeigen („3… · entry move still checking“). Mit dem alten Helfer galt die Prüfung zu früh als fertig — gefunden am Sprungtest R33 VP-I08.
+- `sim-panel.viewer.spec`: Die Übersichtstests prüfen die gemessene Form. Der Test zum „?“ am Ende einer vollen Zeile erzeugt die volle Zeile jetzt bei 150 % hochkant (breit wird die Zeile nicht mehr voll); seine Vorbedingung bleibt.
+
+### Fragen
+1. Ist das Festhalten im Viewer (statt im Koordinator) als Korrektur von VP-I92 ausreichend, oder soll der Koordinator seine zusammengeführten Teilstände zusätzlich selbst richtigstellen?
+2. Ist die Ellipse auf der Abdeckung als letzte Stufe vertretbar, nur bei 150 % hochkant mit sehr großen Zahlen und mit vollem Text im Namen, Titel und „?“? Oder soll die Zeile dort eine zweite Zeile reservieren?
+
+## Review R137 · Codex · Nachprüfung VP-I91–VP-I94 · 11. Oktober 2026
+
+**Ergebnis: `findings`. VP-I91 geschlossen; Reste von VP-I92, VP-I93 und VP-I94 offen.** Geprüft ist der ungemergte Zweig `feat/step4-p1`, `c8dc258b..2fd8c088`. Die R136-Gegenproben bestehen mit der neuen Schnittstelle. Zusätzliche Prüfungen der anschließenden Nachrichten und der tatsächlichen Komponentenübergabe zeigen noch Lücken, die die neuen Wächter nicht abdecken.
+
+[Prüfprotokoll und Reproduktion](viewer-palette-fest.r137.codex-checks.md), [Kontext und Hashes](viewer-palette-fest.r137.codex-context.json), [Ablaufprobe](viewer-palette-fest.r137.codex-probe.test.ts), [Nachrichten](viewer-palette-fest.r137.codex-probe.json), [Berechnungsprobe Seitenanzeige](viewer-palette-fest.r137.codex-side.test.ts), [deren Ergebnis](viewer-palette-fest.r137.codex-side-words.json), [Browserprobe Seitenanzeige](viewer-palette-fest.r137.codex-side.viewer.spec.ts), [Browserablauf](viewer-palette-fest.r137.codex-side-browser.json), [Layoutprobe](viewer-palette-fest.r137.codex-layout.viewer.spec.ts), [Testausgaben](viewer-palette-fest.r137.codex-tests.txt).
+
+### VP-I91 · geschlossen
+
+Der vorhandene Beginn wird aktualisiert. Die eigene R136-Probe ergibt jetzt **einen Schlüssel, ein Ziel, „1 collision“**; ein anderer Beinahekontakt bleibt erhalten. `firstContact.test` und die entsprechenden Viewer-Wächter bestehen ebenfalls. Die Ergänzungen „Program kinematics“ und Werkzeug-Körperregel in der Prüfgrundlage sind angenommen.
+
+### VP-I92 · P2 · Rest: Zwei Anzeigen verlieren den bereits bekannten Kontakt weiterhin
+
+**A — Code-Markierungen:** `ThreeViewer.vue:3127–3133` speichert den ergänzten Teilstand `p`, sendet an das Codepanel aber `collisionLineMarks(m.partial.hits)` aus der unveränderten Nachricht. Eigene Probe durch `_colGetWorker`: `first` auf L7 → älterer Teilstand ohne diesen Eintrag. Die Sim-Liste hält **1 collision**, das Ereignis lautet dagegen **`["collision-lines", []]`**. Der neue Wächter prüft die Markierung direkt nach `first`, nicht nach dem nächsten älteren Teilstand.
+
+**B — Pool-Ausfall nach Übernahme:** Sobald ein Teilstand die Berührung trägt, setzt derselbe Handler `_colFirstHeld = null`. Fällt der Pool **danach** auf den lokalen Lauf zurück, beginnt dessen Prüfung vorn; sein erster eigener Teilstand kann den bekannten Kontakt wieder entfernen. Eigene Probe mit dem produktiven Koordinator, synthetischen Sub-Worker-Meldungen, dessen echtem `onerror`-Rückfall und anschließend echtem lokalen Sweep: **first → bestätigender Teilstand → Worker-Ausfall → lokaler Teilstand → „1 near miss“ statt „1 collision“**. Die Kontaktmeldung der Sub-Worker ist hier ein Protokoll-Testfall; das ist kein geometrischer Vergleich zwischen Shards und Einzelkern. Die Vorbedingung „lokaler Teilstand tatsächlich empfangen“ besteht.
+
+**Antwort auf Frage 1:** Festhalten beim Viewer ist als Architektur ausreichend; eine doppelte Reparatur im Koordinator ist nicht erforderlich. Der Viewer muss aber **alle Verbraucher aus demselben ergänzten Stand versorgen** und die Kenntnis über einen Neustart innerhalb derselben Anfrage erhalten. Ein einzelner bestätigender Teilstand ist noch kein Beleg, dass nie wieder ein älterer Stand kommt. Beim neuen Auftrag weiterhin sauber trennen; neuere Ausdehnungen desselben Kontakts erhalten. Wächter für beide obigen Folgen ergänzen.
+
+### VP-I93 · P2 · Rest: Die Seitenmeldung wird erzeugt, erreicht im Lauf aber die sichtbare Liste nicht
+
+**A — Tatsächliche Verdrahtung:** `_colBaseFor` (`ThreeViewer.vue:3022–3034`) berechnet das überlagerte Ergebnis einschließlich früher und abgeschlossener Seitenprüfung. Die Vorlage reicht an `ScrubBar` jedoch weiterhin **`collisionResult` und `collisionPartial` unverändert** weiter (`:collisionResult`, Zeile 5354; `:collisionPartial`, Zeile 5358). `ScrubBar.shownResult` (`722–728`) nimmt diese unveränderten Werte für die Basisspur. `collisionEntryResult` hilft hier nicht: Die neue Berechnung schließt `sf.run` ausdrücklich aus.
+
+Eigene Browserprobe mit nativem `e_single.msgpack`, bekanntem Laufstart, echtem Decode und Haupt-Sweep, kontrolliert beantwortetem Seitenauftrag:
+
+| Zeitpunkt | Sichtbare Übersicht | Kollisionszeilen |
+|---|---|---:|
+| Hauptprüfung beendet, Seite läuft | No contact · start still checking | 0 |
+| Seite meldet bestätigten Kontakt | **No contact · start still checking** | **0** |
+| Seite liefert Endergebnis mit demselben Kontakt | **Clear · start not checked** | **0** |
+
+Das Laufprotokoll enthält anschließend `beginning`: Die Antwort wurde angenommen. [Bild frühe Meldung](viewer-palette-fest.r137.codex-side-early.png), [Bild Endergebnis](viewer-palette-fest.r137.codex-side-done.png). Die Probe ersetzt nur den Seiten-Transport, keine Anzeige- oder Entscheidungsfunktion. Der Endergebnis-Pfad war schon zuvor unvollständig verdrahtet; er muss beim Schließen dieses Befunds mit geprüft werden.
+
+**B — Bloßes Anschließen des Helfers reicht noch nicht:** Die neue frühe Überlagerung setzt `firstOnly(...).truncated` auf `null` und benutzt den Merge für einen abgeschlossenen Anfang. Dabei verschwindet `startDependent`. Eigene Folge **Viewer-Koordinator → `_colBaseFor` → tatsächliche `ScrubBar.sweepView`**: `collisionRunCheckView.begin === "checking"`, aber das Urteil lautet **„1 collision on the entry move · checked in full“**. Der neue Repository-Test prüft `begin` und den Treffer getrennt; er führt das Ergebnis nicht durch die Übersichtsentscheidung.
+
+**Korrektur:** Eine gemeinsame, tatsächlich gebundene Anzeigequelle für frühe und endgültige Seitenbefunde herstellen. Dabei den laufenden Anfang ausdrücklich als laufend erhalten; ein einzelner Kontakt beantwortet seine Abdeckung nicht. Liste, Marken, Urteil und Prüfgrundlage müssen denselben Auftrag beschreiben. Browserwächter über die ganze Folge bis zum Endergebnis sowie Fehler/Abbruch und Auftragswechsel; zusätzlich das Urteil des frühen Merges prüfen, nicht nur sein `begin`-Feld.
+
+### VP-I94 · P2 · Rest: Die letzte Kurzform bietet den zugesagten vollständigen Text nicht per Touch
+
+**Der breite Ausgangsfehler ist behoben.** Die eigene R136-Darstellungsprobe passt jetzt bei 540 px Seitenpanel: `200+ · checked in full · more contacts not listed`, Limits und Werkzeugwechsel vollständig. Querformat ebenfalls grün. Die gemessene Formwahl und das Plus nur bei gekappten Kontaktbeginnen sind angenommen.
+
+Die benannte Ausnahme ist jedoch enger als das tatsächliche Verhalten. Schon **150 % Hochformat mit 200 Befunden, zwei Limits und zwei Werkzeugwechseln**, ohne 16-stellige Zahl, erreicht Form 2 und kürzt den Text: `checkVerdict` **264 CSS-px benötigt / 174 verfügbar**, sichtbar „200+ · checked in full · more …“. Das `200+` bewahrt hier immerhin das Kennzeichen einer Untergrenze.
+
+Das zugehörige **„Help: Summary“ enthält weder das konkrete Urteil noch Abdeckung/Kappung**, sondern nur die allgemeine Glyphenerklärung. `SimPanel.vue:83–92` liest diese Werte nicht; bei gekappten Limits kehrt es sogar vorher mit ausschließlich dem Limit-Text zurück. Name und Hover-Titel tragen den vollständigen Text, die angekündigte Touch-Alternative tut es nicht. [Messung](viewer-palette-fest.r137.codex-summary-touch-portrait.json), [Bild mit geöffnetem „?“](viewer-palette-fest.r137.codex-summary-touch-portrait.png). Der vorhandene Wächter prüft nur, dass das Popover aufgeht; die eigene Inhaltsprüfung ist rot.
+
+**Antwort auf Frage 2:** Eine Ellipse als letzte Stufe ist vertretbar, **wenn Anzahl/Untergrenze, der wesentliche Prüfzustand und Vorbehaltszeichen sichtbar bleiben und das direkt zugehörige „?“ die vollständige aktuelle Aussage erreichbar macht**. Keine obligatorische zweite Zeile: kurze Zustandswörter und separate reservierte Kennzeichen passen zur vereinbarten einen Zeile. Die derzeitige pauschale Ellipse über dem gesamten `checkVerdict` garantiert diese Priorität noch nicht. Den Hilfeinhalt ergänzen und die letzte Stufe mit üblichen Zählern sowie sehr großen Zahlen prüfen; die Grenze nicht als ausschließlich 16-stelligen Sonderfall dokumentieren.
+
+### Messung, Prüfstand und Grenzen
+
+Die neue Messdatei ergänzt Prüfpunkt-Abstände und Kosten von `take("stopped")`; die benannte Vorbereitungspause von **0,54–0,60 s** ist bereits im Altstand vorhanden. Das ist ein hilfreicher Nachweis der Rechenabschnitte, **noch keine gemessene Zeit von Stop/Cancel-Nachricht bis Bestätigung**: Nachrichten erreichen den Worker zwischen seinen synchronen Scheiben, nicht an jedem Iterator-Prüfpunkt (`sweepPump.ts`, `collisionWorker.ts`). Diese Kennzahlen bitte entsprechend bezeichnen; eine tatsächliche Reaktionsmessung oder ausdrücklich getrennte offene Abnahme dieses Messpunkts bleibt erforderlich. Der separate Browser-PC-/Mac-Teil bleibt wie benannt offen. Keine neue Geschwindigkeitsänderung verlangt.
+
+**Eigene Prüfungen:** 115 gezielte Repository-Tests PASS, isolierter Build PASS; vier übernommene R136-Ablaufprüfungen PASS (nur neue Helfer/Ref-Schnittstelle und Ausgabeziel angepasst); drei zusätzliche Vertragsprüfungen rot (VP-I92 A/B, VP-I93 B). Vier bestehende Browserwächter PASS; eigene finale Browserprüfungen: Desktop und Querformat PASS, Seitenanzeige und Touch-Hilfe rot. Chromium am eigenen Mock `127.0.0.1:4188`, ein Worker, niedrige Priorität. Kein eigener Gesamtgate-, Backend-, Firefox- oder Live-Lauf; Claudes Gate-/Mutationsbelege gelesen, unverändert.
+
+Im Live-Baum ausschließlich dieser Anhang und neue `r137.codex-*`-Belege; bestehender uncommitteter Text und Belege erhalten. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle. Rückmeldung per `done R137 --verdict findings`.

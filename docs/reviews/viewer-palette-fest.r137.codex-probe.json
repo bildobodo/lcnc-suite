@@ -1,0 +1,1986 @@
+{
+  "duplicate": {
+    "targets": [
+      {
+        "cum": 2,
+        "cumEnd": 3,
+        "key": "C7|moving|fixed|0",
+        "line": 7,
+        "rapid": true,
+        "dist": 1.5,
+        "a": "moving",
+        "b": "fixed",
+        "touches": true
+      }
+    ],
+    "summary": {
+      "text": "1 collision",
+      "collisions": 1,
+      "entryCollisions": 0,
+      "nearMisses": 0,
+      "possible": 0,
+      "startsIn": false,
+      "danger": true
+    }
+  },
+  "pool": {
+    "sent": [
+      {
+        "id": 12,
+        "progress": 0,
+        "partial": {
+          "hits": [
+            {
+              "line": 7,
+              "cum": 2,
+              "cumEnd": 3,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.5,
+              "rapid": true
+            }
+          ],
+          "staticContacts": [],
+          "samples": 20,
+          "coarsened": false,
+          "uncertified": null,
+          "pairCount": 2,
+          "pairsPrescreened": 0,
+          "bvhMs": 1,
+          "sweepMs": 20,
+          "truncated": {
+            "covered": 0,
+            "reason": "running"
+          },
+          "shards": 2
+        }
+      },
+      {
+        "id": 12,
+        "progress": 0.1
+      },
+      {
+        "id": 12,
+        "first": {
+          "line": 7,
+          "cum": 2,
+          "cumEnd": 3,
+          "a": "moving",
+          "b": "fixed",
+          "dist": 1.5,
+          "rapid": true,
+          "touches": true
+        }
+      },
+      {
+        "id": 12,
+        "progress": 0.1,
+        "partial": {
+          "hits": [
+            {
+              "line": 7,
+              "cum": 2,
+              "cumEnd": 3,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.5,
+              "rapid": true
+            }
+          ],
+          "staticContacts": [],
+          "samples": 40,
+          "coarsened": false,
+          "notes": [],
+          "uncertified": null,
+          "pairCount": 2,
+          "pairsPrescreened": 0,
+          "bvhMs": 1,
+          "sweepMs": 20,
+          "truncated": {
+            "covered": 0.1,
+            "reason": "running"
+          },
+          "shards": 2
+        }
+      }
+    ],
+    "states": [
+      {
+        "message": "partial",
+        "words": "1 near miss"
+      },
+      {
+        "message": "progress",
+        "words": "1 near miss"
+      },
+      {
+        "message": "first",
+        "words": "1 collision"
+      },
+      {
+        "message": "partial",
+        "words": "1 collision"
+      }
+    ]
+  },
+  "sideBinding": {
+    "baseCount": 2001,
+    "depEnd": 2001,
+    "boundCount": 2002,
+    "sideCount": 2002
+  },
+  "side": {
+    "messages": [
+      {
+        "progress": 0,
+        "result": false
+      },
+      {
+        "progress": 0.006999981002853997,
+        "result": false
+      },
+      {
+        "progress": 0.014999963378995658,
+        "result": false
+      },
+      {
+        "progress": 0.022999943370957347,
+        "result": false
+      },
+      {
+        "progress": 0.030999923362919037,
+        "result": false
+      },
+      {
+        "progress": 0.038999903354880724,
+        "result": false
+      },
+      {
+        "progress": 0.04699990242028218,
+        "result": false
+      },
+      {
+        "progress": 0.05499991340658348,
+        "first": {
+          "line": 81,
+          "cum": 7.999999523162842,
+          "cumEnd": 7.999999523162842,
+          "a": "moving",
+          "b": "fixed",
+          "dist": 2,
+          "rapid": true,
+          "touches": true
+        },
+        "result": false
+      },
+      {
+        "progress": 0.05499991340658348,
+        "result": false
+      },
+      {
+        "progress": 0.06299992439288478,
+        "result": false
+      },
+      {
+        "progress": 0.07099993537918609,
+        "result": false
+      },
+      {
+        "progress": 0.07899994636548739,
+        "result": false
+      },
+      {
+        "progress": 0.0869999573517887,
+        "result": false
+      },
+      {
+        "progress": 0.09499994926465023,
+        "result": false
+      },
+      {
+        "progress": 0.1029999316407919,
+        "result": false
+      },
+      {
+        "progress": 0.11099990448021367,
+        "result": false
+      },
+      {
+        "progress": 0.11899988685635533,
+        "result": false
+      },
+      {
+        "progress": 0.12699986923249698,
+        "result": false
+      },
+      {
+        "progress": 0.12749986991914083,
+        "result": false
+      },
+      {
+        "progress": 0.13499985160863864,
+        "result": false
+      },
+      {
+        "progress": 0.1429998339847803,
+        "result": false
+      },
+      {
+        "progress": 0.15099981636092197,
+        "result": false
+      },
+      {
+        "progress": 0.15899978920034374,
+        "result": false
+      },
+      {
+        "progress": 0.1669996762092866,
+        "result": false
+      },
+      {
+        "progress": 0.1749995346080698,
+        "result": false
+      },
+      {
+        "progress": 0.182999393006853,
+        "result": false
+      },
+      {
+        "progress": 0.19099925140563623,
+        "result": false
+      },
+      {
+        "progress": 0.19899910980441943,
+        "result": false
+      },
+      {
+        "progress": 0.20699896820320263,
+        "result": false
+      },
+      {
+        "progress": 0.2149989028957449,
+        "result": false
+      },
+      {
+        "progress": 0.22299887573516666,
+        "result": false
+      },
+      {
+        "progress": 0.2309988676480282,
+        "result": false
+      },
+      {
+        "progress": 0.23899884048745,
+        "result": false
+      },
+      {
+        "progress": 0.24699883240031154,
+        "result": false
+      },
+      {
+        "progress": 0.2549988052397333,
+        "result": false
+      },
+      {
+        "progress": 0.2554987963896573,
+        "result": false
+      },
+      {
+        "progress": 0.26299877807915506,
+        "result": false
+      },
+      {
+        "progress": 0.2709987699920166,
+        "result": false
+      },
+      {
+        "progress": 0.2789987428314384,
+        "result": false
+      },
+      {
+        "progress": 0.28699873474429993,
+        "result": false
+      },
+      {
+        "progress": 0.2949987075837217,
+        "result": false
+      },
+      {
+        "progress": 0.3029986804231435,
+        "result": false
+      },
+      {
+        "progress": 0.31099867233600503,
+        "result": false
+      },
+      {
+        "progress": 0.3189986451754268,
+        "result": false
+      },
+      {
+        "progress": 0.32699863708828836,
+        "result": false
+      },
+      {
+        "progress": 0.33499860992771013,
+        "result": false
+      },
+      {
+        "progress": 0.3429985827671319,
+        "result": false
+      },
+      {
+        "progress": 0.35099859375343323,
+        "result": false
+      },
+      {
+        "progress": 0.358998566592855,
+        "result": false
+      },
+      {
+        "progress": 0.3669985394322768,
+        "result": false
+      },
+      {
+        "progress": 0.37499851227169856,
+        "result": false
+      },
+      {
+        "progress": 0.38299848511112033,
+        "result": false
+      },
+      {
+        "progress": 0.3834984762610443,
+        "result": false
+      },
+      {
+        "progress": 0.3909984579505421,
+        "result": false
+      },
+      {
+        "progress": 0.39899846893684343,
+        "result": false
+      },
+      {
+        "progress": 0.4069984417762652,
+        "result": false
+      },
+      {
+        "progress": 0.414998414615687,
+        "result": false
+      },
+      {
+        "progress": 0.42299838745510876,
+        "result": false
+      },
+      {
+        "progress": 0.43099836029453054,
+        "result": false
+      },
+      {
+        "progress": 0.43899837128083186,
+        "result": false
+      },
+      {
+        "progress": 0.44699834412025363,
+        "result": false
+      },
+      {
+        "progress": 0.4549983169596754,
+        "result": false
+      },
+      {
+        "progress": 0.4629982897990972,
+        "result": false
+      },
+      {
+        "progress": 0.47099826263851896,
+        "result": false
+      },
+      {
+        "progress": 0.4789982736248202,
+        "result": false
+      },
+      {
+        "progress": 0.48699824646424206,
+        "result": false
+      },
+      {
+        "progress": 0.49499821930366383,
+        "result": false
+      },
+      {
+        "progress": 0.5029981921430856,
+        "result": false
+      },
+      {
+        "progress": 0.5109981649825074,
+        "result": false
+      },
+      {
+        "progress": 0.5114981942793109,
+        "result": false
+      },
+      {
+        "progress": 0.5189981759688087,
+        "result": false
+      },
+      {
+        "progress": 0.5269981488082305,
+        "result": false
+      },
+      {
+        "progress": 0.5349981216476523,
+        "result": false
+      },
+      {
+        "progress": 0.542998094487074,
+        "result": false
+      },
+      {
+        "progress": 0.5509980673264958,
+        "result": false
+      },
+      {
+        "progress": 0.5589980783127971,
+        "result": false
+      },
+      {
+        "progress": 0.5669980511522189,
+        "result": false
+      },
+      {
+        "progress": 0.5749980239916407,
+        "result": false
+      },
+      {
+        "progress": 0.5829979968310625,
+        "result": false
+      },
+      {
+        "progress": 0.5909979696704842,
+        "result": false
+      },
+      {
+        "progress": 0.5989979806567856,
+        "result": false
+      },
+      {
+        "progress": 0.6069979534962073,
+        "result": false
+      },
+      {
+        "progress": 0.6149979263356291,
+        "result": false
+      },
+      {
+        "progress": 0.6229978991750509,
+        "result": false
+      },
+      {
+        "progress": 0.6309978720144727,
+        "result": false
+      },
+      {
+        "progress": 0.6389978830007739,
+        "result": false
+      },
+      {
+        "progress": 0.6394978741506979,
+        "result": false
+      },
+      {
+        "progress": 0.646998237308991,
+        "result": false
+      },
+      {
+        "progress": 0.6549987060578465,
+        "result": false
+      },
+      {
+        "progress": 0.6629991748067021,
+        "result": false
+      },
+      {
+        "progress": 0.6709996435555577,
+        "result": false
+      },
+      {
+        "progress": 0.6790001123044134,
+        "result": false
+      },
+      {
+        "progress": 0.6870005810532689,
+        "result": false
+      },
+      {
+        "progress": 0.6950007446270883,
+        "result": false
+      },
+      {
+        "progress": 0.7030007556133896,
+        "result": false
+      },
+      {
+        "progress": 0.7110006903059318,
+        "result": false
+      },
+      {
+        "progress": 0.7190007012922331,
+        "result": false
+      },
+      {
+        "progress": 0.7270006359847754,
+        "result": false
+      },
+      {
+        "progress": 0.7350006469710767,
+        "result": false
+      },
+      {
+        "progress": 0.743000657957378,
+        "result": false
+      },
+      {
+        "progress": 0.7510005926499203,
+        "result": false
+      },
+      {
+        "progress": 0.7590006036362216,
+        "result": false
+      },
+      {
+        "progress": 0.7670005383287638,
+        "result": false
+      },
+      {
+        "progress": 0.7675005676255673,
+        "result": false
+      },
+      {
+        "progress": 0.7750005493150651,
+        "result": false
+      },
+      {
+        "progress": 0.7830005603013664,
+        "result": false
+      },
+      {
+        "progress": 0.7910004949939087,
+        "result": false
+      },
+      {
+        "progress": 0.79900050598021,
+        "result": false
+      },
+      {
+        "progress": 0.8070004406727522,
+        "result": false
+      },
+      {
+        "progress": 0.8150004516590535,
+        "result": false
+      },
+      {
+        "progress": 0.8230004626453549,
+        "result": false
+      },
+      {
+        "progress": 0.8310003973378971,
+        "result": false
+      },
+      {
+        "progress": 0.8390004083241984,
+        "result": false
+      },
+      {
+        "progress": 0.8470003430167407,
+        "result": false
+      },
+      {
+        "progress": 0.855000354003042,
+        "result": false
+      },
+      {
+        "progress": 0.8630003649893433,
+        "result": false
+      },
+      {
+        "progress": 0.8710002996818855,
+        "result": false
+      },
+      {
+        "progress": 0.8790003106681868,
+        "result": false
+      },
+      {
+        "progress": 0.8870002453607291,
+        "result": false
+      },
+      {
+        "progress": 0.8950002563470304,
+        "result": false
+      },
+      {
+        "progress": 0.8955002856438339,
+        "result": false
+      },
+      {
+        "progress": 0.9030002673333317,
+        "result": false
+      },
+      {
+        "progress": 0.911000202025874,
+        "result": false
+      },
+      {
+        "progress": 0.9190002130121753,
+        "result": false
+      },
+      {
+        "progress": 0.9270001477047175,
+        "result": false
+      },
+      {
+        "progress": 0.9350001586910188,
+        "result": false
+      },
+      {
+        "progress": 0.9430001696773201,
+        "result": false
+      },
+      {
+        "progress": 0.9510001043698624,
+        "result": false
+      },
+      {
+        "progress": 0.9590001153561637,
+        "result": false
+      },
+      {
+        "progress": 0.9670000500487059,
+        "result": false
+      },
+      {
+        "progress": 0.9750000610350072,
+        "result": false
+      },
+      {
+        "progress": 0.9830000720213086,
+        "result": false
+      },
+      {
+        "progress": 0.9910000067138508,
+        "result": false
+      },
+      {
+        "progress": 0.9990000177001521,
+        "result": false
+      },
+      {
+        "progress": 1,
+        "result": false
+      },
+      {
+        "result": true
+      }
+    ],
+    "summary": {
+      "text": "1 collision",
+      "collisions": 1,
+      "entryCollisions": 0,
+      "nearMisses": 0,
+      "possible": 0,
+      "startsIn": false,
+      "danger": true
+    }
+  },
+  "positive": {
+    "text": "1 collision · 1 near miss",
+    "collisions": 1,
+    "entryCollisions": 0,
+    "nearMisses": 1,
+    "possible": 0,
+    "startsIn": false,
+    "danger": true
+  },
+  "codeMarks": {
+    "shown": {
+      "hits": [
+        {
+          "line": 7,
+          "cum": 2,
+          "cumEnd": 3,
+          "a": "moving",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              2,
+              3
+            ]
+          ]
+        }
+      ],
+      "staticContacts": [],
+      "samples": 20,
+      "coarsened": false,
+      "uncertified": null,
+      "pairCount": 2,
+      "pairsPrescreened": 0,
+      "bvhMs": 1,
+      "sweepMs": 20,
+      "truncated": {
+        "covered": 0.25,
+        "reason": "running"
+      }
+    },
+    "emitted": [
+      "collision-lines",
+      []
+    ],
+    "expected": [
+      {
+        "line": 7
+      }
+    ]
+  },
+  "fallback": {
+    "messages": [
+      {
+        "id": 12,
+        "first": {
+          "line": 7,
+          "cum": 2,
+          "cumEnd": 3,
+          "a": "moving",
+          "b": "fixed",
+          "dist": 0,
+          "rapid": true,
+          "intervals": [
+            [
+              2,
+              3
+            ]
+          ]
+        }
+      },
+      {
+        "id": 12,
+        "progress": 0
+      },
+      {
+        "id": 12,
+        "progress": 0,
+        "partial": {
+          "hits": [
+            {
+              "line": 7,
+              "cum": 2,
+              "cumEnd": 3,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 0,
+              "rapid": true,
+              "intervals": [
+                [
+                  2,
+                  3
+                ]
+              ]
+            }
+          ],
+          "staticContacts": [],
+          "samples": 20,
+          "coarsened": false,
+          "uncertified": null,
+          "pairCount": 2,
+          "pairsPrescreened": 0,
+          "bvhMs": 1,
+          "sweepMs": 20,
+          "truncated": {
+            "covered": 0,
+            "reason": "running"
+          },
+          "shards": 2
+        }
+      },
+      {
+        "id": 12,
+        "progress": 0.3,
+        "partial": {
+          "hits": [
+            {
+              "line": 7,
+              "cum": 2,
+              "cumEnd": 3,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 0,
+              "rapid": true,
+              "intervals": [
+                [
+                  2,
+                  3
+                ]
+              ]
+            }
+          ],
+          "staticContacts": [],
+          "samples": 40,
+          "coarsened": false,
+          "notes": [],
+          "uncertified": null,
+          "pairCount": 2,
+          "pairsPrescreened": 0,
+          "bvhMs": 1,
+          "sweepMs": 20,
+          "truncated": {
+            "covered": 0.3,
+            "reason": "running"
+          },
+          "shards": 2
+        }
+      },
+      {
+        "id": 12,
+        "progress": 0
+      },
+      {
+        "id": 12,
+        "progress": 0.007500000298023224
+      },
+      {
+        "id": 12,
+        "progress": 0.015500000781483121
+      },
+      {
+        "id": 12,
+        "progress": 0.023500000437100727
+      },
+      {
+        "id": 12,
+        "progress": 0.03149999843703376
+      },
+      {
+        "id": 12,
+        "progress": 0.03950000140402052
+      },
+      {
+        "id": 12,
+        "progress": 0.04750000105963813
+      },
+      {
+        "id": 12,
+        "progress": 0.05550000071525574
+      },
+      {
+        "id": 12,
+        "progress": 0.06350000037087335
+      },
+      {
+        "id": 12,
+        "progress": 0.0714999967151218
+      },
+      {
+        "id": 12,
+        "progress": 0.07949999968210857
+      },
+      {
+        "id": 12,
+        "progress": 0.08750000264909533
+      },
+      {
+        "id": 12,
+        "progress": 0.09549999899334377
+      },
+      {
+        "id": 12,
+        "progress": 0.10350000196033055
+      },
+      {
+        "id": 12,
+        "progress": 0.11149999830457899
+      },
+      {
+        "id": 12,
+        "progress": 0.11950000127156575
+      },
+      {
+        "id": 12,
+        "progress": 0.1275000042385525
+      },
+      {
+        "id": 12,
+        "progress": 0.1275000042385525
+      },
+      {
+        "id": 12,
+        "progress": 0.13549999396006265
+      },
+      {
+        "id": 12,
+        "progress": 0.14349999692704943
+      },
+      {
+        "id": 12,
+        "progress": 0.15149999989403617
+      },
+      {
+        "id": 12,
+        "progress": 0.15950000286102295
+      },
+      {
+        "id": 12,
+        "progress": 0.16750000582800972
+      },
+      {
+        "id": 12,
+        "progress": 0.17549999554951987
+      },
+      {
+        "id": 12,
+        "progress": 0.1834999985165066
+      },
+      {
+        "id": 12,
+        "progress": 0.1915000014834934
+      },
+      {
+        "id": 12,
+        "progress": 0.19950000445048013
+      },
+      {
+        "id": 12,
+        "progress": 0.20749999417199028
+      },
+      {
+        "id": 12,
+        "progress": 0.21549999713897705
+      },
+      {
+        "id": 12,
+        "progress": 0.2234999868604872
+      },
+      {
+        "id": 12,
+        "progress": 0.23149998982747397
+      },
+      {
+        "id": 12,
+        "progress": 0.23949999279446071
+      },
+      {
+        "id": 12,
+        "progress": 0.2474999957614475
+      },
+      {
+        "id": 12,
+        "progress": 0.25549999872843426
+      },
+      {
+        "id": 12,
+        "progress": 0.25549999872843426
+      },
+      {
+        "id": 12,
+        "progress": 0.263500001695421
+      },
+      {
+        "id": 12,
+        "progress": 0.27150000466240776
+      },
+      {
+        "id": 12,
+        "progress": 0.27950000762939453
+      },
+      {
+        "id": 12,
+        "progress": 0.2875000105963813
+      },
+      {
+        "id": 12,
+        "progress": 0.2954999870724148
+      },
+      {
+        "id": 12,
+        "progress": 0.3034999900394016
+      },
+      {
+        "id": 12,
+        "progress": 0.31149999300638836
+      },
+      {
+        "id": 12,
+        "progress": 0.3194999959733751
+      },
+      {
+        "id": 12,
+        "progress": 0.32749999894036186
+      },
+      {
+        "id": 12,
+        "progress": 0.33550000190734863
+      },
+      {
+        "id": 12,
+        "progress": 0.3435000048743354
+      },
+      {
+        "id": 12,
+        "progress": 0.3515000078413222
+      },
+      {
+        "id": 12,
+        "progress": 0.3595000108083089
+      },
+      {
+        "id": 12,
+        "progress": 0.36749998728434247
+      },
+      {
+        "id": 12,
+        "progress": 0.3754999902513292
+      },
+      {
+        "id": 12,
+        "progress": 0.38349999321831596
+      },
+      {
+        "id": 12,
+        "progress": 0.38349999321831596
+      },
+      {
+        "id": 12,
+        "progress": 0.39149999618530273
+      },
+      {
+        "id": 12,
+        "progress": 0.3994999991522895
+      },
+      {
+        "id": 12,
+        "progress": 0.4075000021192763
+      },
+      {
+        "id": 12,
+        "progress": 0.415500005086263
+      },
+      {
+        "id": 12,
+        "progress": 0.4235000080532498
+      },
+      {
+        "id": 12,
+        "progress": 0.43150001102023655
+      },
+      {
+        "id": 12,
+        "progress": 0.43949998749627006
+      },
+      {
+        "id": 12,
+        "progress": 0.44750001695421004
+      },
+      {
+        "id": 12,
+        "progress": 0.4555000199211968
+      },
+      {
+        "id": 12,
+        "progress": 0.4635000228881836
+      },
+      {
+        "id": 12,
+        "progress": 0.47150002585517037
+      },
+      {
+        "id": 12,
+        "progress": 0.47949997584025067
+      },
+      {
+        "id": 12,
+        "progress": 0.4874999788072374
+      },
+      {
+        "id": 12,
+        "progress": 0.49549998177422416
+      },
+      {
+        "id": 12,
+        "progress": 0.5034999847412109
+      },
+      {
+        "id": 12,
+        "progress": 0.5114999877081977
+      },
+      {
+        "id": 12,
+        "progress": 0.5114999877081977
+      },
+      {
+        "id": 12,
+        "progress": 0.5194999906751845
+      },
+      {
+        "id": 12,
+        "progress": 0.5274999936421713
+      },
+      {
+        "id": 12,
+        "progress": 0.535499996609158
+      },
+      {
+        "id": 12,
+        "progress": 0.5434999995761447
+      },
+      {
+        "id": 12,
+        "progress": 0.5515000025431315
+      },
+      {
+        "id": 12,
+        "progress": 0.5595000055101182
+      },
+      {
+        "id": 12,
+        "progress": 0.567500008477105
+      },
+      {
+        "id": 12,
+        "progress": 0.5755000114440918
+      },
+      {
+        "id": 12,
+        "progress": 0.5835000144110786
+      },
+      {
+        "id": 12,
+        "progress": 0.5915000173780653
+      },
+      {
+        "id": 12,
+        "progress": 0.5995000203450521
+      },
+      {
+        "id": 12,
+        "progress": 0.6075000233120389
+      },
+      {
+        "id": 12,
+        "progress": 0.6155000262790256
+      },
+      {
+        "id": 12,
+        "progress": 0.6234999762641059
+      },
+      {
+        "id": 12,
+        "progress": 0.6314999792310927
+      },
+      {
+        "id": 12,
+        "progress": 0.6394999821980795
+      },
+      {
+        "id": 12,
+        "progress": 0.6394999821980795
+      },
+      {
+        "id": 12,
+        "progress": 0.6474999851650662
+      },
+      {
+        "id": 12,
+        "progress": 0.6554999881320529
+      },
+      {
+        "id": 12,
+        "progress": 0.6634999910990397
+      },
+      {
+        "id": 12,
+        "progress": 0.6714999940660265
+      },
+      {
+        "id": 12,
+        "progress": 0.6794999970330132
+      },
+      {
+        "id": 12,
+        "progress": 0.6875
+      },
+      {
+        "id": 12,
+        "progress": 0.6955000029669868
+      },
+      {
+        "id": 12,
+        "progress": 0.7035000059339735
+      },
+      {
+        "id": 12,
+        "progress": 0.7115000089009603
+      },
+      {
+        "id": 12,
+        "progress": 0.7195000118679471
+      },
+      {
+        "id": 12,
+        "progress": 0.7275000148349338
+      },
+      {
+        "id": 12,
+        "progress": 0.7355000178019205
+      },
+      {
+        "id": 12,
+        "progress": 0.7435000207689073
+      },
+      {
+        "id": 12,
+        "progress": 0.7515000237358941
+      },
+      {
+        "id": 12,
+        "progress": 0.7594999737209744
+      },
+      {
+        "id": 12,
+        "progress": 0.7674999766879611
+      },
+      {
+        "id": 12,
+        "progress": 0.7674999766879611
+      },
+      {
+        "id": 12,
+        "progress": 0.7754999796549479
+      },
+      {
+        "id": 12,
+        "progress": 0.7834999826219347
+      },
+      {
+        "id": 12,
+        "progress": 0.7914999855889214
+      },
+      {
+        "id": 12,
+        "progress": 0.7994999885559082
+      },
+      {
+        "id": 12,
+        "progress": 0.807499991522895
+      },
+      {
+        "id": 12,
+        "progress": 0.8154999944898818
+      },
+      {
+        "id": 12,
+        "progress": 0.8234999974568685
+      },
+      {
+        "id": 12,
+        "progress": 0.8315000004238553
+      },
+      {
+        "id": 12,
+        "progress": 0.839500003390842
+      },
+      {
+        "id": 12,
+        "progress": 0.8475000063578287
+      },
+      {
+        "id": 12,
+        "progress": 0.8555000093248155
+      },
+      {
+        "id": 12,
+        "progress": 0.8635000122918023
+      },
+      {
+        "id": 12,
+        "progress": 0.8715000152587891
+      },
+      {
+        "id": 12,
+        "progress": 0.8795000182257758
+      },
+      {
+        "id": 12,
+        "progress": 0.8875000211927626
+      },
+      {
+        "id": 12,
+        "progress": 0.8954999711778429,
+        "partial": {
+          "hits": [
+            {
+              "line": 1779,
+              "cum": 8.00100040435791,
+              "cumEnd": 8.00100040435791,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9989999532699585,
+              "rapid": true,
+              "spanCumEnd": 8.055000305175781,
+              "spanEndLine": 1792
+            },
+            {
+              "line": 1780,
+              "cum": 8.00100040435791,
+              "cumEnd": 8.00100040435791,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9989999532699585,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1781,
+              "cum": 8.005499839782715,
+              "cumEnd": 8.005499839782715,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9945000410079956,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1782,
+              "cum": 8.010000228881836,
+              "cumEnd": 8.010000228881836,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9900000095367432,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1783,
+              "cum": 8.01449966430664,
+              "cumEnd": 8.01449966430664,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9854999780654907,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1784,
+              "cum": 8.019000053405762,
+              "cumEnd": 8.019000053405762,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9809999465942383,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1785,
+              "cum": 8.023500442504883,
+              "cumEnd": 8.023500442504883,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9765000343322754,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1786,
+              "cum": 8.027999877929688,
+              "cumEnd": 8.027999877929688,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.972000002861023,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1787,
+              "cum": 8.032500267028809,
+              "cumEnd": 8.032500267028809,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9674999713897705,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1788,
+              "cum": 8.036999702453613,
+              "cumEnd": 8.036999702453613,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9630000591278076,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1789,
+              "cum": 8.041500091552734,
+              "cumEnd": 8.041500091552734,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9585000276565552,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1790,
+              "cum": 8.045999526977539,
+              "cumEnd": 8.045999526977539,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9539999961853027,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1791,
+              "cum": 8.05049991607666,
+              "cumEnd": 8.05049991607666,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9494999647140503,
+              "rapid": true,
+              "continuation": 1779
+            },
+            {
+              "line": 1792,
+              "cum": 8.055000305175781,
+              "cumEnd": 8.055000305175781,
+              "a": "moving",
+              "b": "fixed",
+              "dist": 1.9450000524520874,
+              "rapid": true,
+              "continuation": 1779
+            }
+          ],
+          "staticContacts": [],
+          "samples": 3583,
+          "coarsened": false,
+          "uncertified": "fixed, moving: surface not closed — a part wholly inside them is not found",
+          "notes": [
+            "fixed, moving: surface not closed — a part wholly inside them is not found"
+          ],
+          "bodies": {
+            "unusable": [],
+            "damaged": [],
+            "open": [
+              "fixed",
+              "moving"
+            ]
+          },
+          "pairCount": 1,
+          "pairsPrescreened": 0,
+          "bvhMs": 0,
+          "sweepMs": 0,
+          "truncated": {
+            "covered": 0.8954999711778429,
+            "reason": "running"
+          }
+        }
+      }
+    ],
+    "states": [
+      {
+        "message": "first",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "partial",
+        "words": "1 collision"
+      },
+      {
+        "message": "partial",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "progress",
+        "words": "1 collision"
+      },
+      {
+        "message": "partial",
+        "words": "1 near miss"
+      }
+    ]
+  }
+}

@@ -1,0 +1,309 @@
+===== build.txt =====
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2107 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-CbQ7i83d.js               32.51 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-DsEjYNjh.js            198.32 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-tliMIJxR.css                 7.96 kB │ gzip:   1.97 kB
+dist/static/index-BsHz_sQf.css                      94.78 kB │ gzip:  17.30 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-Dl49EECv.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-yIl7maRb.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-BJqGcL7Z.js                185.93 kB │ gzip:  70.04 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-DmJVN893.js                      639.17 kB │ gzip: 204.68 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.64s
+
+
+===== focused.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r137-0s9wgq_s/src/lcnc-webui
+
+
+ Test Files  8 passed (8)
+      Tests  115 passed (115)
+   Start at  16:27:32
+   Duration  161.08s (transform 344ms, setup 24ms, import 1.53s, tests 159.00s, environment 0ms)
+
+
+
+===== probe-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r137-0s9wgq_s/src/lcnc-webui
+
+ ❯ src/viewer/r137.codex-probe.test.ts (6 tests | 2 failed) 282ms
+     × code panel marks keep the known contact as the Sim list does 32ms
+     × after a partial carries the contact a pool fallback does not erase it 48ms
+ ❯ src/viewer/r137.codex-side.test.ts (29 tests | 1 failed | 28 skipped) 109ms
+     × an early side hit cannot turn checking into checked in full 109ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r137.codex-probe.test.ts > R137 Codex: knowledge after subsequent partials > code panel marks keep the known contact as the Sim list does
+AssertionError: expected [ 'collision-lines', [] ] to deeply equal [ 'collision-lines', …(1) ]
+
+- Expected
++ Received
+
+  [
+    "collision-lines",
+-   [
+-     {
+-       "continuation": undefined,
+-       "line": 7,
+-     },
+-   ],
++   [],
+  ]
+
+ ❯ src/viewer/r137.codex-probe.test.ts:177:31
+    175|     const shownMarks=collisionLineMarks(ui.shown().hits);
+    176|     save('codeMarks', {shown:ui.shown(), emitted:ui.emitted.at(-1), ex…
+    177|     expect(ui.emitted.at(-1)).toEqual(['collision-lines',shownMarks]);
+       |                               ^
+    178|   });
+    179|   it('after a partial carries the contact a pool fallback does not era…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/viewer/r137.codex-probe.test.ts > R137 Codex: knowledge after subsequent partials > after a partial carries the contact a pool fallback does not erase it
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r137.codex-probe.test.ts:205:68
+    203|     save('fallback',{messages:sent,states});
+    204|     expect(sent.slice(before).some(m=>m.partial),'a local fallback par…
+    205|     expect(findingWords(clashTargets(ui.shown().hits)).collisions).toB…
+       |                                                                    ^
+    206|   });
+    207| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/viewer/r137.codex-side.test.ts > R137 Codex: run side display > an early side hit cannot turn checking into checked in full
+AssertionError: expected '1 collision on the entry move · check…' to contain 'start still checking'
+
+Expected: "start still checking"
+Received: "1 collision on the entry move · checked in full"
+
+ ❯ src/viewer/r137.codex-side.test.ts:600:36
+    598|     fs.writeFileSync('/tmp/codex-r137-0s9wgq_s/side-words.json',JSON.s…
+    599|     expect(observed.run.begin).toBe('checking');
+    600|     expect(observed.words.verdict).toContain('start still checking');
+       |                                    ^
+    601|   });
+    602| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 4 passed | 28 skipped (35)
+   Start at  16:33:45
+   Duration  1.28s (transform 282ms, setup 12ms, import 751ms, tests 391ms, environment 0ms)
+
+
+
+===== browser-tests.txt =====
+[WebServer] (node:2917844) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:2917876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2917876) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r137.codex-layout.viewer.spec.ts:43:1 › R137: mixed summary and its coverage remain visible in the wide side pane (2.3s)
+  ✘  2 e2e/r137.codex-side.viewer.spec.ts:100:1 › R137: a run side contact reaches the Sim list before and after completion (6.0s)
+(node:2918103) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2918103) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:555:1 › the summary's "?" answers in its whole hit area, at the right edge of a full line (2.2s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:651:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — desktop (2.5s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:651:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — touch-landscape (2.6s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:651:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — touch-portrait at 150 % (2.4s)
+
+
+  1) e2e/r137.codex-side.viewer.spec.ts:100:1 › R137: a run side contact reaches the Sim list before and after completion 
+
+    Error: early contact in the actual summary
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /1 collision/
+    Received string:  "No contact · start still checking"
+
+      144 |   const done=await read();await page.screenshot({path:'/tmp/codex-r137-0s9wgq_s/side-done.png'});
+      145 |   writeFileSync('/tmp/codex-r137-0s9wgq_s/side-browser.json',JSON.stringify({before,early,done},null,2));
+    > 146 |   expect.soft(early.aria,'early contact in the actual summary').toMatch(/1 collision/);
+          |                                                                 ^
+      147 |   expect.soft(early.rows,'early contact in the actual list').toHaveLength(1);
+      148 |   expect.soft(early.aria,'early coverage remains honest').toContain('start still checking');
+      149 |   expect.soft(done.aria,'final side contact in the actual summary').toMatch(/1 collision/);
+        at /tmp/codex-r137-0s9wgq_s/src/lcnc-webui/e2e/r137.codex-side.viewer.spec.ts:146:65
+
+    Error: early contact in the actual list
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      145 |   writeFileSync('/tmp/codex-r137-0s9wgq_s/side-browser.json',JSON.stringify({before,early,done},null,2));
+      146 |   expect.soft(early.aria,'early contact in the actual summary').toMatch(/1 collision/);
+    > 147 |   expect.soft(early.rows,'early contact in the actual list').toHaveLength(1);
+          |                                                              ^
+      148 |   expect.soft(early.aria,'early coverage remains honest').toContain('start still checking');
+      149 |   expect.soft(done.aria,'final side contact in the actual summary').toMatch(/1 collision/);
+      150 |   expect.soft(done.rows,'final contact in the actual list').toHaveLength(1);
+        at /tmp/codex-r137-0s9wgq_s/src/lcnc-webui/e2e/r137.codex-side.viewer.spec.ts:147:62
+
+    Error: final side contact in the actual summary
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /1 collision/
+    Received string:  "Clear · start not checked"
+
+      147 |   expect.soft(early.rows,'early contact in the actual list').toHaveLength(1);
+      148 |   expect.soft(early.aria,'early coverage remains honest').toContain('start still checking');
+    > 149 |   expect.soft(done.aria,'final side contact in the actual summary').toMatch(/1 collision/);
+          |                                                                     ^
+      150 |   expect.soft(done.rows,'final contact in the actual list').toHaveLength(1);
+      151 |   expect.soft(done.aria,'bound beginning is now complete').toContain('checked in full');
+      152 |   await ctl({op:'reset'});
+        at /tmp/codex-r137-0s9wgq_s/src/lcnc-webui/e2e/r137.codex-side.viewer.spec.ts:149:69
+
+    Error: final contact in the actual list
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      148 |   expect.soft(early.aria,'early coverage remains honest').toContain('start still checking');
+      149 |   expect.soft(done.aria,'final side contact in the actual summary').toMatch(/1 collision/);
+    > 150 |   expect.soft(done.rows,'final contact in the actual list').toHaveLength(1);
+          |                                                             ^
+      151 |   expect.soft(done.aria,'bound beginning is now complete').toContain('checked in full');
+      152 |   await ctl({op:'reset'});
+      153 | });
+        at /tmp/codex-r137-0s9wgq_s/src/lcnc-webui/e2e/r137.codex-side.viewer.spec.ts:150:61
+
+    Error: bound beginning is now complete
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "checked in full"
+    Received string:    "Clear · start not checked"
+
+      149 |   expect.soft(done.aria,'final side contact in the actual summary').toMatch(/1 collision/);
+      150 |   expect.soft(done.rows,'final contact in the actual list').toHaveLength(1);
+    > 151 |   expect.soft(done.aria,'bound beginning is now complete').toContain('checked in full');
+          |                                                            ^
+      152 |   await ctl({op:'reset'});
+      153 | });
+      154 |
+        at /tmp/codex-r137-0s9wgq_s/src/lcnc-webui/e2e/r137.codex-side.viewer.spec.ts:151:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-output/r137.codex-side.viewer-R13-2a56a-before-and-after-completion/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-output/r137.codex-side.viewer-R13-2a56a-before-and-after-completion/error-context.md
+
+  1 failed
+    e2e/r137.codex-side.viewer.spec.ts:100:1 › R137: a run side contact reaches the Sim list before and after completion 
+  5 passed (19.3s)
+
+
+===== layout-tests.txt =====
+[WebServer] (node:2919152) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:2919178) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2919178) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r137.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, desktop at 1 (2.8s)
+  ✓  2 e2e/r137.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-landscape at 1 (2.7s)
+  ✘  3 e2e/r137.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-portrait at 1.5 (2.9s)
+
+
+  1) e2e/r137.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-portrait at 1.5 ────────
+
+    Error: touch help carries the hidden coverage
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "checked in full"
+    Received string:    "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes."
+
+      79 |   expect(measurement.items[0]!.rect.right, 'result, coverage and cap must fit in the visible summary').toBeLessThanOrEqual(measurement.summary.right+1);
+      80 |   if(measurement.verdict.sw>measurement.verdict.cw+1){
+    > 81 |     expect.soft(help,'touch help carries the hidden coverage').toContain('checked in full');
+         |                                                                ^
+      82 |     expect.soft(help,'touch help carries the hidden cap').toContain('more contacts not listed');
+      83 |   }
+      84 |   await ctl({op:'reset'});
+        at /tmp/codex-r137-0s9wgq_s/src/lcnc-webui/e2e/r137.codex-layout.viewer.spec.ts:81:64
+
+    Error: touch help carries the hidden cap
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "more contacts not listed"
+    Received string:    "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes."
+
+      80 |   if(measurement.verdict.sw>measurement.verdict.cw+1){
+      81 |     expect.soft(help,'touch help carries the hidden coverage').toContain('checked in full');
+    > 82 |     expect.soft(help,'touch help carries the hidden cap').toContain('more contacts not listed');
+         |                                                           ^
+      83 |   }
+      84 |   await ctl({op:'reset'});
+      85 | });
+        at /tmp/codex-r137-0s9wgq_s/src/lcnc-webui/e2e/r137.codex-layout.viewer.spec.ts:82:59
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-output/r137.codex-layout.viewer-R-b1eb5-mmary-touch-portrait-at-1-5/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-output/r137.codex-layout.viewer-R-b1eb5-mmary-touch-portrait-at-1-5/error-context.md
+
+  1 failed
+    e2e/r137.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-portrait at 1.5 ─────────
+  2 passed (9.0s)
