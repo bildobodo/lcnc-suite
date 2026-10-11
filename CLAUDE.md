@@ -712,10 +712,11 @@ so an uncommanded table rotary never moves them; world-kins segments and
 everything from the first command on ride the part as before. A payload
 without the key keeps the old picture. Follow-on hooks: `published_rotary_cmd`
 in the bulk pipeline (skip the rotary reparse when the drifted axes are never
-commanded), `rapidSrc`, `roomEnd` plumbing. Schema bump for the key is owed at
-the next suite stop (never bump `PREVIEW_SCHEMA` while the suite is live: the
-fresh worker emits the new number against the running gateway's imported old
-one and the schema-mismatch edge reparses forever).
+commanded), `rapidSrc`, `roomEnd` plumbing. Every payload from schema 10 on
+carries the key (the 2026-10-01 stop's bump re-parsed every cache); never bump
+`PREVIEW_SCHEMA` while the suite is live: the fresh worker emits the new number
+against the running gateway's imported old one and the schema-mismatch edge
+reparses forever.
 
 **Program scrub (offline dry run, stage 2 + unified-timeline phase 1)**: a
 timeline bar overlaid on the 3D viewer (`ScrubBar.vue`, hosted in
@@ -1177,7 +1178,13 @@ pinned to a G49 start (`preview_gate.GOLDEN_APPLIED_TLO`). Schema 10 (the
 start state + the `%` init phase) shipped at the suite stop of 2026-10-01:
 the four goldens (`3axis` haus / kontur / 1001 against a headless boot,
 `twp_gantry` against the gantry sim) moved in the schema field alone — none
-of them is a `%` program on a rotary config.
+of them is a `%` program on a rotary config. Schema 11 (the suite stop of
+2026-10-11: the keys of the unknown positions after a tool change, M600 in the
+preview, the braking range and the start-dependent beginning — see
+`gateway_util.PREVIEW_SCHEMA`): the same four goldens moved in the schema
+field, haus and kontur also by +4 feed points — the braking range's legs
+inside their M600's band (untrusted routine lines; plan parity-ef F) — and
+the 73 native payload fixtures in the stamp alone.
 
 **Re-parse cancel-and-restart + visibility (2026-09-05)**: every drift
 edge above used to be gated on "no parse running", so an edge raised

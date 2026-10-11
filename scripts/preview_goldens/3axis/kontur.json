@@ -11,10 +11,10 @@
     "rapid": 0
   },
   "points": {
-    "feed": 1264,
+    "feed": 1268,
     "rapid": 7
   },
-  "preview_schema": 10,
+  "preview_schema": 11,
   "rotary_cmd": null,
   "ships_abc": false,
   "sub_names": [
@@ -23,7 +23,7 @@
   ],
   "swept_axes": [],
   "trusted_points": {
-    "total": 1271,
+    "total": 1275,
     "trusted": 1258
   },
   "unmarked_subs": [],
