@@ -398,7 +398,8 @@ test("a preview published in the run names the earlier verdict only, until it is
   await expect(summary).toHaveAttribute("aria-label", `Earlier preview: ${found} collision${found === 1 ? "" : "s"}`);
   await expect(page.locator(".simPanel .checkRow")).toContainText("Not checked yet");
   const previous = () => page.evaluate(() => window.__viewerDiag!.getCollisionPrevious!());
-  expect(await previous()).toEqual({ collisions: found, complete: true, version: 4121 });
+  expect(await previous()).toEqual({ collisions: found, text: `${found} collision${found === 1 ? "" : "s"}`,
+                                    complete: true, version: 4121 });
   await page.waitForTimeout(800);
   await expect(clashRows(page)).toHaveCount(0);
   // idle: the displayed preview is checked; the earlier verdict goes
