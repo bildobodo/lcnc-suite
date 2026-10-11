@@ -18,6 +18,15 @@
     "feed": {
      "bytes_b64": "AACgQAAAoEAAAKDA"
     },
+    "feed_dep": {
+     "bytes_b64": ""
+    },
+    "feed_dep_basis": {
+     "bytes_b64": ""
+    },
+    "feed_dep_f": {
+     "bytes_b64": ""
+    },
     "feed_lineok": {
      "bytes_b64": "AQ=="
     },
@@ -28,7 +37,7 @@
      "bytes_b64": "AA=="
     },
     "feed_seq": {
-     "bytes_b64": "BAAAAA=="
+     "bytes_b64": "CAAAAA=="
     },
     "feed_tcum": {
      "bytes_b64": "AABAQQ=="
@@ -58,30 +67,47 @@
       6.0
      ]
     ],
-    "preview_schema": 10,
+    "preview_schema": 11,
     "rapid": {
-     "bytes_b64": "AAAAAAAAAAAAACDBAACgQAAAoEAAACDBAACgQAAAoEAAAHBB"
+     "bytes_b64": "AAAAAAAAAAAAACDBAACgQAAAoEAAACDBAACgQAAAoEAAACDBAACgQAAAoEAAAHBB"
     },
-    "rapid_lineok": {
+    "rapid_brk": {
+     "bytes_b64": "AAABAA=="
+    },
+    "rapid_dep": {
+     "bytes_b64": "AwAA"
+    },
+    "rapid_dep_basis": {
      "bytes_b64": "AQEB"
     },
+    "rapid_dep_f": {
+     "bytes_b64": "AAAAAAAAAAAAAAAA"
+    },
+    "rapid_lineok": {
+     "bytes_b64": "AQEBAQ=="
+    },
     "rapid_lines": {
-     "bytes_b64": "AwAAAAQAAAAGAAAA"
+     "bytes_b64": "AwAAAAQAAAAGAAAABgAAAA=="
     },
     "rapid_outside": {
-     "bytes_b64": "AAAA"
+     "bytes_b64": "AAAAAA=="
     },
     "rapid_rate": 10.0,
     "rapid_seq": {
-     "bytes_b64": "AQAAAAIAAAADAAAA"
+     "bytes_b64": "AgAAAAQAAAAFAAAABgAAAA=="
     },
     "rapid_tcum": {
-     "bytes_b64": "AAAAAPMENT/zBDU/"
+     "bytes_b64": "AAAAAPMENT/zBDU/PUFNQA=="
     },
     "rapid_ustart": {
-     "bytes_b64": "AQAB"
+     "bytes_b64": "AQAAAA=="
     },
     "rot_rapid_rate": null,
+    "start_believed": [
+     0.0,
+     0.0,
+     -10.0
+    ],
     "start_known": true,
     "stats": {
      "arcDist": 0.0,
@@ -95,17 +121,17 @@
      "fileSize": 57,
      "linearDist": 20.0,
      "linearMoves": 1,
-     "rapidDist": 7.07,
-     "rapidMoves": 3,
-     "rapidTime": 0.7,
+     "rapidDist": 32.07,
+     "rapidMoves": 4,
+     "rapidTime": 3.2,
      "toolChanges": 0,
      "toolsUsed": [],
-     "totalTime": 12.7,
+     "totalTime": 15.2,
      "unit": "mm"
     },
     "tlo_events": [
      [
-      2,
+      4,
       0.0,
       0.0,
       10.0,
@@ -187,6 +213,15 @@
     "feed": {
      "bytes_b64": "AACgQAAAoEAAAKDA"
     },
+    "feed_dep": {
+     "bytes_b64": ""
+    },
+    "feed_dep_basis": {
+     "bytes_b64": ""
+    },
+    "feed_dep_f": {
+     "bytes_b64": ""
+    },
     "feed_lineok": {
      "bytes_b64": "AQ=="
     },
@@ -197,7 +232,7 @@
      "bytes_b64": "AA=="
     },
     "feed_seq": {
-     "bytes_b64": "BAAAAA=="
+     "bytes_b64": "CAAAAA=="
     },
     "feed_tcum": {
      "bytes_b64": "AABAQQ=="
@@ -227,30 +262,47 @@
       6.0
      ]
     ],
-    "preview_schema": 10,
+    "preview_schema": 11,
     "rapid": {
-     "bytes_b64": "AAAAAAAAAAB7FCDBAACgQAAAoEB7FCDBAACgQAAAoEAAAHBB"
+     "bytes_b64": "AAAAAAAAAAB7FCDBAACgQAAAoEB7FCDBAACgQAAAoEAAACDBAACgQAAAoEAAAHBB"
     },
-    "rapid_lineok": {
+    "rapid_brk": {
+     "bytes_b64": "AAABAA=="
+    },
+    "rapid_dep": {
+     "bytes_b64": "AwAA"
+    },
+    "rapid_dep_basis": {
      "bytes_b64": "AQEB"
     },
+    "rapid_dep_f": {
+     "bytes_b64": "AAAAAAAAAAAAAAAA"
+    },
+    "rapid_lineok": {
+     "bytes_b64": "AQEBAQ=="
+    },
     "rapid_lines": {
-     "bytes_b64": "AwAAAAQAAAAGAAAA"
+     "bytes_b64": "AwAAAAQAAAAGAAAABgAAAA=="
     },
     "rapid_outside": {
-     "bytes_b64": "AAAA"
+     "bytes_b64": "AAAAAA=="
     },
     "rapid_rate": 10.0,
     "rapid_seq": {
-     "bytes_b64": "AQAAAAIAAAADAAAA"
+     "bytes_b64": "AgAAAAQAAAAFAAAABgAAAA=="
     },
     "rapid_tcum": {
-     "bytes_b64": "AAAAAPMENT/zBDU/"
+     "bytes_b64": "AAAAAPMENT/zBDU/PUFNQA=="
     },
     "rapid_ustart": {
-     "bytes_b64": "AQAB"
+     "bytes_b64": "AQAAAA=="
     },
     "rot_rapid_rate": null,
+    "start_believed": [
+     0.0,
+     0.0,
+     -10.005
+    ],
     "start_known": true,
     "stats": {
      "arcDist": 0.0,
@@ -264,17 +316,17 @@
      "fileSize": 57,
      "linearDist": 20.0,
      "linearMoves": 1,
-     "rapidDist": 7.07,
-     "rapidMoves": 3,
-     "rapidTime": 0.7,
+     "rapidDist": 32.07,
+     "rapidMoves": 4,
+     "rapidTime": 3.2,
      "toolChanges": 0,
      "toolsUsed": [],
-     "totalTime": 12.7,
+     "totalTime": 15.2,
      "unit": "mm"
     },
     "tlo_events": [
      [
-      2,
+      4,
       0.0,
       0.0,
       10.0,
@@ -347,6 +399,12 @@
     "feed": {
      "bytes_b64": ""
     },
+    "feed_dep_basis": {
+     "bytes_b64": ""
+    },
+    "feed_dep_f": {
+     "bytes_b64": ""
+    },
     "feed_lineok": {
      "bytes_b64": ""
     },
@@ -387,30 +445,44 @@
       6.0
      ]
     ],
-    "preview_schema": 10,
+    "preview_schema": 11,
     "rapid": {
-     "bytes_b64": "AAAAAAAAAAAAACDBAAAgQQAAAAAAACDBAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
+     "bytes_b64": "AAAAAAAAAAAAACDBAAAgQQAAAAAAACDBAAAgQQAAAAAAAAAAAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
+    },
+    "rapid_brk": {
+     "bytes_b64": "AAABAAA="
+    },
+    "rapid_dep_basis": {
+     "bytes_b64": "AQ=="
+    },
+    "rapid_dep_f": {
+     "bytes_b64": "AAAAAA=="
     },
     "rapid_lineok": {
-     "bytes_b64": "AQEBAQ=="
+     "bytes_b64": "AQEBAQE="
     },
     "rapid_lines": {
-     "bytes_b64": "AgAAAAMAAAAFAAAABgAAAA=="
+     "bytes_b64": "AgAAAAMAAAAFAAAABQAAAAYAAAA="
     },
     "rapid_outside": {
-     "bytes_b64": "AAAAAA=="
+     "bytes_b64": "AAAAAAA="
     },
     "rapid_rate": 10.0,
     "rapid_seq": {
-     "bytes_b64": "AQAAAAIAAAADAAAABAAAAA=="
+     "bytes_b64": "AgAAAAQAAAAFAAAABgAAAAgAAAA="
     },
     "rapid_tcum": {
-     "bytes_b64": "AAAAAAAAgD8AAIA/AAAQQQ=="
+     "bytes_b64": "AAAAAAAAgD8AAIA/AACgQAAAUEE="
     },
     "rapid_ustart": {
-     "bytes_b64": "AQABAA=="
+     "bytes_b64": "AQAAAAA="
     },
     "rot_rapid_rate": null,
+    "start_believed": [
+     0.0,
+     0.0,
+     -10.0
+    ],
     "start_known": true,
     "stats": {
      "arcDist": 0.0,
@@ -422,17 +494,17 @@
      "fileSize": 63,
      "linearDist": 0.0,
      "linearMoves": 0,
-     "rapidDist": 90.0,
-     "rapidMoves": 4,
-     "rapidTime": 9.0,
+     "rapidDist": 130.0,
+     "rapidMoves": 5,
+     "rapidTime": 13.0,
      "toolChanges": 0,
      "toolsUsed": [],
-     "totalTime": 9.0,
+     "totalTime": 13.0,
      "unit": "mm"
     },
     "tlo_events": [
      [
-      2,
+      4,
       0.0,
       0.0,
       0.0,
@@ -503,6 +575,12 @@
     "feed": {
      "bytes_b64": ""
     },
+    "feed_dep_basis": {
+     "bytes_b64": ""
+    },
+    "feed_dep_f": {
+     "bytes_b64": ""
+    },
     "feed_lineok": {
      "bytes_b64": ""
     },
@@ -543,30 +621,44 @@
       6.0
      ]
     ],
-    "preview_schema": 10,
+    "preview_schema": 11,
     "rapid": {
-     "bytes_b64": "AAAAAAAAAAAAAKDBAAAgQQAAAAAAAKDBAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
+     "bytes_b64": "AAAAAAAAAAAAAKDBAAAgQQAAAAAAAKDBAAAgQQAAAAAAAAAAAAAgQQAAAAAAACDCAAAgQQAAAAAAACBC"
+    },
+    "rapid_brk": {
+     "bytes_b64": "AAABAAA="
+    },
+    "rapid_dep_basis": {
+     "bytes_b64": "AQ=="
+    },
+    "rapid_dep_f": {
+     "bytes_b64": "AAAAAA=="
     },
     "rapid_lineok": {
-     "bytes_b64": "AQEBAQ=="
+     "bytes_b64": "AQEBAQE="
     },
     "rapid_lines": {
-     "bytes_b64": "AgAAAAMAAAAFAAAABgAAAA=="
+     "bytes_b64": "AgAAAAMAAAAFAAAABQAAAAYAAAA="
     },
     "rapid_outside": {
-     "bytes_b64": "AAAAAA=="
+     "bytes_b64": "AAAAAAA="
     },
     "rapid_rate": 10.0,
     "rapid_seq": {
-     "bytes_b64": "AQAAAAIAAAADAAAABAAAAA=="
+     "bytes_b64": "AgAAAAQAAAAFAAAABgAAAAgAAAA="
     },
     "rapid_tcum": {
-     "bytes_b64": "AAAAAAAAgD8AAIA/AAAQQQ=="
+     "bytes_b64": "AAAAAAAAgD8AAIA/AACgQAAAUEE="
     },
     "rapid_ustart": {
-     "bytes_b64": "AQABAA=="
+     "bytes_b64": "AQAAAAA="
     },
     "rot_rapid_rate": null,
+    "start_believed": [
+     0.0,
+     0.0,
+     -20.0
+    ],
     "start_known": true,
     "stats": {
      "arcDist": 0.0,
@@ -578,17 +670,17 @@
      "fileSize": 63,
      "linearDist": 0.0,
      "linearMoves": 0,
-     "rapidDist": 90.0,
-     "rapidMoves": 4,
-     "rapidTime": 9.0,
+     "rapidDist": 130.0,
+     "rapidMoves": 5,
+     "rapidTime": 13.0,
      "toolChanges": 0,
      "toolsUsed": [],
-     "totalTime": 9.0,
+     "totalTime": 13.0,
      "unit": "mm"
     },
     "tlo_events": [
      [
-      2,
+      4,
       0.0,
       0.0,
       0.0,

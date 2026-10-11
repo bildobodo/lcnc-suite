@@ -77,8 +77,18 @@ ALLOWED_EXTENSIONS = {".ngc", ".nc", ".gcode", ".tap", ".txt"}
 # normalises to a verified tool basis — and `violations_reason`
 # ("start_unknown": no verdict, never a clean one); a `%` file's initcode
 # block is init, not program (no phantom point at program 0,0,0 from the
-# rotary sync, no seed row).
-PREVIEW_SCHEMA = 10
+# rotary sync, no seed row);
+# 11 = what a schema-10 reader would show without: the positions a tool
+# change leaves unknown (`stale_offset_lines` / `stale_offset_untracked`,
+# Codex R92–R110), M600 in the preview (`probe_unpredicted`,
+# `toollen_table`), the probe's braking range (`probe_bands` /
+# `probe_notes`, plan parity-ef F) and the program's start-dependent
+# beginning (`feed_dep` / `rapid_dep` with `*_dep_basis` / `*_dep_f`,
+# `start_believed`, `start_unbound`, `start_writes_untracked`,
+# `position_read_lines`, `start_dep_unavailable`; plan parity-ef E) — each
+# shipped as an optional key while the suite ran, the bump at the suite
+# stop of 2026-10-11 re-parses every cached schema-10 payload.
+PREVIEW_SCHEMA = 11
 
 
 def sanitize_filename(name: str) -> str:

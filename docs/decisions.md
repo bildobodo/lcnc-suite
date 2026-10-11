@@ -9191,3 +9191,42 @@ the preview may claim:
   accelerations, the reserve, a short approach, G61/G64) must show h ≥ the
   measured overshoot before the parity acceptance; it certifies nothing for
   the product.
+
+## 2026-10-11 (suite stop) — Schema 11 and the goldens, after the parity acceptance of E1–E3
+
+**Before the stop.** `fix/start-dep` (E1–E3, Codex R132–R135 agreement) was
+merged into the live tree (57910c62) and the XYZAC sim restarted on it; the
+parity gate on the new XYZAC corpus program `m600_live` (tool changes and two
+M600 measurements during the run) passed: truth→sim max 0.035, sim→truth max
+0.073, tolerance 0.5 — R118 measured 16.8 / 84.9 on the same program before
+E/F. The braking range's hull reaches up to 0.706 past the truth, reported
+apart (coverage only). The payload carries no untracked-writes flag: the live
+tree's routine matches the pinned one. Record:
+`docs/reviews/viewer-palette-fest.r135.parity.txt`; the corpus branch
+`test/parity-xyzac-m600` is merged.
+
+**Schema 11** (`PREVIEW_SCHEMA` / `EXPECTED_PREVIEW_SCHEMA`): the keys that
+shipped as optional keys while the suite ran — the positions a tool change
+leaves unknown (`stale_offset_*`), M600 in the preview (`probe_unpredicted`,
+`toollen_table`), the braking range (`probe_bands` / `probe_notes`) and the
+start-dependent beginning (`feed_dep` / `rapid_dep` with their basis and F,
+`start_believed`, `start_unbound`, `start_writes_untracked`,
+`position_read_lines`, `start_dep_unavailable`). Bumped with every suite
+stopped (XYZAC stopped with a client connected; 3-axis headless boot; gantry
+sim with a keeper).
+
+**Goldens.** `3axis` (haus / kontur / 1001, headless `DISPLAY = dummy` copy)
+and `twp_gantry` (twp_simple_example, the gantry sim): `check` first, every
+drift explained before `generate` — the schema field everywhere; haus and
+kontur also +4 feed points and +4 total points with the trusted count
+unchanged: their one M600 has a braking range (one band, 8 feed points), the
+legs past the trip point the routine's own, untrusted lines (plan parity-ef
+F; noted at R127 as owed to this stop). E's beginning is present in all three
+and moves no count. Then `check` CLEAN. `twp/` stays at schema 9 (the stale
+TWP live gate, 2026-10-01).
+
+**Fixtures.** The 73 native payloads (`start_dep_payloads`,
+`tool_change_payloads`) differ in the stamp alone, compared key by key.
+`tool_basis_pairs.json` also takes E's beginning (masks, `start_believed`,
+the first move's kind) — it was not regenerated with E, and toolBasis.test
+passes on it.
