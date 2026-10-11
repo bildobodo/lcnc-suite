@@ -1171,13 +1171,20 @@ const checkCardView = computed(() => {
     stale: !!props.collisionContextStale, unit: linearUnit.value,
     entry: !!e && e.track === track.value && shownResult.value === e.result });
 });
-/** Which tools the check poses — said in the check's "?", not on the bar. */
+/** Which tools the check poses — said in the check's "?", not on the bar.
+ *  From the check's own context (step 4 plan 1c: the card and the "?" say the
+ *  same — a run's own M6 changes the live tool, not the check's); the live
+ *  tool only for a check without one. */
 const sweepToolSentence = computed(() => {
-  const pt = props.sweepTool?.programTools;
-  if (pt?.length) return "Checked with the program's tools " + pt.map(t => `T${t.num} Ø${t.diam.toFixed(1)}`).join(", ") + ".";
-  const n = props.sweepTool?.num;
+  const ctx = props.collisionContext;
+  const pt = ctx
+    ? ctx.programTools.filter(t => !t.unknown && (t.len != null || t.diam != null)).map(t => ({ num: t.num, diam: t.diam }))
+    : props.sweepTool?.programTools;
+  if (pt?.length) return "Checked with the program's tools "
+    + pt.map(t => `T${t.num}${t.diam != null && t.diam > 0 ? ` Ø${t.diam.toFixed(1)}` : ""}`).join(", ") + ".";
+  const n = ctx ? ctx.basis.toolNum : props.sweepTool?.num;
   if (n == null || !Number.isFinite(n) || n <= 0) return "No tool loaded: checked with a 6 mm stub.";
-  const d = props.sweepTool?.diam;
+  const d = ctx ? ctx.basis.toolDiam : props.sweepTool?.diam;
   return `Checked with the loaded T${n}${d != null && d > 0 ? ` Ø${d.toFixed(1)}` : ""} throughout.`;
 });
 watchEffect(() => {

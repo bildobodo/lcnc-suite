@@ -83,6 +83,19 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(marks.map(m => [m.pct, m.near])).toEqual([[10, false], [40, true], [70, false]]);
   });
 
+  it("the tools the \"?\" names are the check's — not the live tool a run's own M6 changed (step 4 plan 1c)", () => {
+    const tools = (collisionContext: unknown, sweepTool: unknown) => barComputed("sweepToolSentence",
+      { props: { collisionContext, sweepTool } }) as string;
+    const basis = (toolNum: number, toolDiam: number) => ({ toolNum, toolDiam });
+    const live = { num: 5, diam: 12, programTools: null };
+    expect(tools({ basis: basis(3, 6), programTools: [] }, live)).toBe("Checked with the loaded T3 Ø6.0 throughout.");
+    expect(tools({ basis: basis(0, 0), programTools: [] }, live)).toBe("No tool loaded: checked with a 6 mm stub.");
+    expect(tools({ basis: basis(3, 6), programTools: [{ num: 1, len: 50, diam: 6, assumed: false, unknown: false },
+      { num: 9, len: null, diam: null, assumed: false, unknown: true }] }, live)).toBe("Checked with the program's tools T1 Ø6.0.");
+    // no check context: the live tool, as before
+    expect(tools(null, live)).toBe("Checked with the loaded T5 Ø12.0 throughout.");
+  });
+
   it("the pairs in contact at rest are excluded, counted in the \"?\"", () => {
     const r = result({ staticContacts: [{ a: "x_slide", b: "y_saddle", dist: 0 }, { a: "column", b: "base", dist: 1 }] });
     expect(detail(r)).toContain("2 pairs already in contact at rest — excluded.");
