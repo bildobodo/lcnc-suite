@@ -271,8 +271,14 @@ export interface LimitViolation {
 // (feed_outside/rapid_outside → track.outside → the yellow overlay) — the
 // client carries the flags and derives nothing (one source of truth);
 // 10 = the start tool state (tlo_start / start_known / start_reason,
-// violations_reason) and the `%` init phase (VP-I20).
-export const EXPECTED_PREVIEW_SCHEMA = 10;
+// violations_reason) and the `%` init phase (VP-I20); 11 = the positions a
+// tool change leaves unknown (stale_offset_*), M600 in the preview
+// (probe_unpredicted, toollen_table), the probe's braking range
+// (probe_bands / probe_notes) and the program's start-dependent beginning
+// (feed_dep / rapid_dep and their basis / F, start_believed, start_unbound,
+// start_writes_untracked, position_read_lines) — optional keys while the
+// suite ran, the bump at the 2026-10-11 suite stop.
+export const EXPECTED_PREVIEW_SCHEMA = 11;
 
 /** Non-null when the loaded payload was parsed with a DIFFERENT tool length
  *  than the live table now holds for the spindle tool (W2 P4): the per-line
