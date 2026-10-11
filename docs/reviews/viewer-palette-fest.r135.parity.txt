@@ -1,0 +1,29 @@
+Parity acceptance after the merge of fix/start-dep (E1–E3, Codex R132–R135 agreement) — XYZAC sim, 2026-10-11
+
+Live tree: feat/backlog-integration 57910c62 (merge of fix/start-dep b3a20a2f), pushed.
+Sim: restarted on that tree (LCNC_WEBUI_BROWSER=0, lcnc_suite_sim_5axis_xyzac.ini); the old instance stopped with a
+heartbeat-only client connected, no leftover process. E-Stop reset, power on, home all through one armed client.
+
+Start state read before the run (linuxcnc.stat, the INI's parameter file, HAL):
+  T1 = 100, T7 = 66, spindle empty, G49, G54 active at (-238.281465, -200, -103.798156), G92 zero;
+  #3100..#3102 = 150 / 0 / -300 = sim-toolsetter.0.plate-x/-y/-z; #3116 = 0.
+Corpus: test/parity-xyzac-m600 scripts/parity_corpus/xyzac.json, program m600_live.ngc
+  (in the program folder as webui_m600_live.ngc, byte-equal to the branch's file), tol 0.5.
+Run: scripts/sim_parity.py gate (the R118 invocation; LCNC_WS_TOKEN from the INI, never printed),
+  an armed client confirming the two tool changes (T1 M600, T7 M600).
+
+sampled 3172 rows -> parity/runs-r135/webui_m600_live.run1.truth.ndjson
+[PASS] webui_m600_live.run1: truth→sim max 0.035 p99 0.004 | sim→truth max 0.073 p99 0.005 | tol 0.5 | braking range: 124 sim samples, coverage only (truth→sim above), the hull reaches up to 0.706 past the truth
+[----] webui_m600_live.run1: plane invariants: no g68.2/g68.3 in the program — no plane to gate
+sim parity gate: GREEN
+
+For comparison, R118 on the same program before E/F: truth→sim max 16.799 | sim→truth max 84.853 (FAIL).
+
+The payload the gate replayed (runs-r135/webui_m600_live.run1.payload.msgpack):
+  start_writes_untracked absent (the live tree's tool_touch_off.ngc matches the pinned routine), start_unbound absent,
+  start_believed (0, 0, 0), parse_error none, violations_total 0, probe_bands [[16, 30, 1, 7], [64, 78, 7, 19]],
+  rapid_dep / feed_dep present.
+
+After the run: the measurements wrote T1 99.996133 / T7 65.996133 (0.003867 short of the table — the sim probe
+input's read delay, plan F), T7 in the spindle. Restored by MDI: G49, G10 L1 P1 Z100, G10 L1 P7 Z66, M61 Q0.
+The sim stays powered and homed; a heartbeat-only client (never arms) stays connected.
