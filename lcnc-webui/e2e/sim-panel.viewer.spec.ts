@@ -14,7 +14,7 @@ import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 const FEED = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
 FEED[17]![0] = 110;   // line 20 out of the X window
 FEED[29]![0] = 120;   // line 32 out of the X window
-const PREVIEW_FIELDS = { file: "/sim.ngc", preview_schema: 10, feed: FEED,
+const PREVIEW_FIELDS = { file: "/sim.ngc", preview_schema: 11, feed: FEED,
   feed_lines: FEED.map((_, i) => i + 3), feed_seq: FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(FEED.map(p => (p[0]! > 100 ? 1 : 0))),
   feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 4)).buffer),
@@ -299,7 +299,7 @@ test("a tool change shown after a finding ends the finding's reveal, the stored 
 // The same on a hidden RAPID (Codex R78 VP-I39: feed and rapid): line 14's
 // rapid runs out of the X window; T3 M6 on line 5.
 const RAPID_FEED = Array.from({ length: 10 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
-const RAPID_PREVIEW = Buffer.from(encode({ file: "/simrapid.ngc", preview_schema: 10, feed: RAPID_FEED,
+const RAPID_PREVIEW = Buffer.from(encode({ file: "/simrapid.ngc", preview_schema: 11, feed: RAPID_FEED,
   feed_lines: RAPID_FEED.map((_, i) => i + 3), feed_seq: RAPID_FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(RAPID_FEED.length),
   rapid: [[27, 20, 0], [150, 20, 5]], rapid_lines: [13, 14], rapid_seq: [13, 14],
@@ -339,7 +339,7 @@ test("a tool change shown after a finding on a hidden rapid ends the rapids' rev
 // when the program runs"): a list longer than its view keeps the marked row
 // — the next one ahead — in the middle while the simulation scrubs.
 const LONG_FEED = Array.from({ length: 60 }, (_, i) => [i * 2, i % 2 ? 20 : 0, 0]);
-const LONG_PREVIEW = Buffer.from(encode({ file: "/long.ngc", preview_schema: 10, feed: LONG_FEED,
+const LONG_PREVIEW = Buffer.from(encode({ file: "/long.ngc", preview_schema: 11, feed: LONG_FEED,
   feed_lines: LONG_FEED.map((_, i) => i + 3), feed_seq: LONG_FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(LONG_FEED.length),
   feed_tcum: new Uint8Array(new Float32Array(LONG_FEED.map((_, i) => i * 4)).buffer),
