@@ -69,7 +69,7 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   expect(await rowKeys(page)).toEqual(["L20", "L32"]);
   // the collision check: its progress and its verdict, the tools in its "?"
   await expect(page.locator(".simPanel .checkPct")).toHaveText("100 %");
-  await expect(page.locator(".simPanel .checkVerdict")).toHaveText("2 collisions");
+  await expect(page.locator(".simPanel .checkVerdict")).toHaveText("2 collisions · checked in full");
 });
 
 test("a row shows its finding; the steps go through the shown kind; the next row follows the position", async ({ page, context }) => {
@@ -245,7 +245,7 @@ test("a part left out of the check stays marked, with or without moving pairs", 
   // With a moving pair the same note marks the clear verdict.
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]) ?? false)).toBe(true);
   await page.evaluate(n => window.__viewerDiag?.setCollisionNote?.(n), note);
-  await expect(item).toHaveAttribute("aria-label", "Clear (not certified)");
+  await expect(item).toHaveAttribute("aria-label", "Clear · checked to the end (not certified)");
   await expect(item.locator('span[title^="Not certified"]')).toHaveCount(1);
 });
 
@@ -458,7 +458,7 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await prepare(page, context);
   const items = page.locator(".simPanel .simSummary [role=img]");
   await expect(items).toHaveCount(3);
-  expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label")))).toEqual(["2 collisions", "2 limit violations", "2 tool changes"]);
+  expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label")))).toEqual(["2 collisions · checked in full", "2 limit violations", "2 tool changes"]);
   await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeVisible();
   await expect(page.locator(".simPanel .simSummary .sumShort").first()).toBeHidden();
   await ctl({ op: "reset" });
@@ -477,7 +477,7 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   });
   expect(move, "narrow: the move whole in its row").toEqual({ shown: true, text: " · Rapid", inside: true });
   expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label"))))
-    .toEqual(["2 collisions", "9000 limit violations · the first 2 lines listed", "2 tool changes"]);
+    .toEqual(["2 collisions · checked in full", "9000 limit violations · the first 2 lines listed", "2 tool changes"]);
   const shorts = page.locator(".simPanel .simSummary .sumShort");
   expect(await shorts.allInnerTexts(), "narrow: the number").toEqual(["2", "9000", "2"]);
   for (let i = 0; i < 3; i++) await expect(shorts.nth(i), "narrow: each number shows").toBeVisible();

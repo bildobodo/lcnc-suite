@@ -641,7 +641,7 @@ test("a worker that asks for the bodies gets the same request again — provisio
   expect(await runLog(page)).toEqual(["start provisional 1", "full"]);
   // the provisional result stays on screen while the full check runs
   expect(await page.evaluate(() => window.__viewerDiag!.getCollisionRange!()), "the provisional result kept").not.toBeNull();
-  await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /\(provisional\)/);
+  await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /provisional from /);
   await releaseFull(page);
   await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
   await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /· checked in full$/);
@@ -667,7 +667,7 @@ test("a run check that begins inside a called routine names its call line, never
   await publishInRun(page, file, 4262, pinnedFor(9));
   await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full"]);
   const item = page.locator(".simSummary .sumItem").first();
-  await expect(item).toHaveAttribute("aria-label", /from L7 .*\(provisional\)/);
+  await expect(item).toHaveAttribute("aria-label", /provisional from L7/);
   expect(await item.getAttribute("aria-label")).not.toContain("339");
   await releaseFull(page);
   await expect.poll(() => runLog(page), { timeout: 30_000 }).toEqual(["start provisional 1", "full", "done"]);
@@ -716,7 +716,7 @@ test("the provisional result keeps its own limits while the full check runs, its
   };
   // the full check runs (its result held) — on screen the provisional result
   expect(await band(), "the band: from L7 to where it stopped").toEqual([0.35, 0.6]);
-  await expect(item).toHaveAttribute("aria-label", /from L7, stopped at 60 % \(provisional\) \(not certified\)$/);
+  await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 60 % \(not certified\)$/);
   await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
   const text = await help();
   expect(text).toContain("Stopped at 60 % of the program — the rest is unchecked.");

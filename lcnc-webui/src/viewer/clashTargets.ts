@@ -21,6 +21,8 @@ export interface ClashTarget {
   /** The contact touched on a later line than this margin entry
    *  (CollisionHit.touches): a collision whatever `dist` says. */
   touches?: boolean;
+  /** The onset of a contact the program STARTS in (CollisionHit.atStart). */
+  atStart?: boolean;
   spanEndLine?: number;
   /** A second (or later) contact interval on the SAME line/pair — a real
    *  re-entry, flagged so two stops on one line read as intended. */
@@ -62,6 +64,7 @@ export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
       if (k > 0) t.reentry = true;
       if (h.possible) t.possible = true;
       if (h.touches) t.touches = true;
+      if (h.atStart && k === 0) t.atStart = true;
       out.push(t);
     }
   }

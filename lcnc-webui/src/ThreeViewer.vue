@@ -55,6 +55,7 @@ import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./vi
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { clashTargets } from "./viewer/clashTargets";
+import { findingWords } from "./viewer/sweepWords";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -2959,7 +2960,7 @@ function runBeginNow(r: { gen: number; begin: RunBeginStart; beginWhy: string | 
 // The verdict of the preview shown before the one displayed now, kept NAMED
 // while a run goes on (plan „Prüfung im Lauf“ 1c): no marks, counts or jumps
 // of the current preview — only the line that says what it was.
-const collisionPrevious = shallowRef<{ collisions: number; complete: boolean; version: number | null } | null>(null);
+const collisionPrevious = shallowRef<{ collisions: number; text: string; complete: boolean; version: number | null } | null>(null);
 // The exact track the current result was swept on — hit cums are only
 // meaningful against it (shallowRef: tracks hold Maps + typed arrays).
 const collisionTrack = shallowRef<ScrubTrack | null>(null);
@@ -3016,6 +3017,13 @@ function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {
   if (b) return b;
   const e = collisionEntryResult.value;
   return e && e.track === trk ? e.result : null;
+}
+
+/** The verdict of a preview no longer shown, kept named (plan „Prüfung im
+ *  Lauf“ 1c): its marks' number and their kinds in words (step 4 plan 1a). */
+function _colPreviousOf(prev: CollisionResult, version: number | null) {
+  const targets = clashTargets(prev.hits);
+  return { collisions: targets.length, text: findingWords(targets).text, complete: !prev.truncated, version };
 }
 
 /** Show a sweep's first confirmed contact at once (step 4 plan 1b): a
@@ -3712,7 +3720,7 @@ function _discardRunCheck(why: string) {
   collisionRunSideState.value = null;
   if (_colSide?.run && _colWorker) { _colWorker.postMessage({ cancel: _colSide.id }); _colSide = null; }
   const prev = collisionResult.value;
-  if (prev) collisionPrevious.value = { collisions: clashTargets(prev.hits).length, complete: !prev.truncated, version: null };
+  if (prev) collisionPrevious.value = _colPreviousOf(prev, null);
   cancelCollisionCheck();
   collisionResult.value = null;
   collisionTrack.value = null;
@@ -3790,7 +3798,7 @@ watch(viewerGcode, (g, old) => {
   if (collisionRun.value && g?.publishedVersion !== collisionRun.value.version) collisionRun.value = null;
   const prev = collisionResult.value;
   collisionPrevious.value = prev && g && old && g.file === old.file && _runInProgress(status.value?.data)
-    ? { collisions: clashTargets(prev.hits).length, complete: !prev.truncated, version: old.publishedVersion ?? null }
+    ? _colPreviousOf(prev, old.publishedVersion ?? null)
     : (g && old && g.file === old.file ? collisionPrevious.value : null);
   cancelCollisionCheck();
   collisionResult.value = null;
