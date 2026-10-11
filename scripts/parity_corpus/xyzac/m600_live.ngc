@@ -1,0 +1,36 @@
+%
+(webui live check, XYZAC sim: tools measured during the run by M600 at the sim tool setter)
+(G54 is the sim's stored fixture; X60..110 Y60..110 stay inside the travel with T1 and T7)
+G21 G90 G94 G17 G40 G49 G80 G64 P0.05
+G54
+G53 G0 Z0
+T1 M600
+G43 H1
+S3000 M3
+G0 X60 Y60
+G0 Z2
+G1 Z-2 F300
+G1 X110 F1200
+G1 Y110
+G1 X60
+G1 Y60
+G0 Z2
+G53 G0 Z0
+T7 M600
+G43 H7
+G0 X60 Y60
+G0 Z2
+G1 Z-2 F300
+G1 X108 Y62 F1200
+G1 Y108
+G1 X62
+G1 Y62
+G1 X106 Y64 F1200
+G1 Y106
+G1 X64
+G1 Y64
+G0 Z2
+G53 G0 Z0
+M5
+M2
+%

@@ -1,0 +1,11 @@
+{
+  "ini": "~/linuxcnc/configs/lcnc_suite_sim/lcnc_suite_sim_5axis_xyzac.ini",
+  "programs": [
+    {
+      "file": "xyzac/m600_live.ngc",
+      "runs": 1,
+      "tol": 0.5,
+      "note": "M600 in the preview (plan m600-preview Fassung 3): T1 and T7 are measured at the sim tool setter during the run — G30, the fast and the slow probe, the retracts. The preview moves to the point the TABLE length trips at; the sim's setter trips at the table length, so the run's path must be the preview's. G54 is the sim's stored fixture (X -238.281465 Y -200 Z -103.798156); the program stays inside the travel with T1 (100) and T7 (66). An armed client must confirm the tool changes."
+    }
+  ]
+}
