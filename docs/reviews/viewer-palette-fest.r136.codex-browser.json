@@ -1,0 +1,39 @@
+{
+  "pane": {
+    "left": 1052,
+    "right": 1592,
+    "width": 540
+  },
+  "narrow": false,
+  "summary": {
+    "left": 1061,
+    "right": 1556.5,
+    "width": 495.5
+  },
+  "items": [
+    {
+      "text": "197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss · checked in full · more contacts not listed200",
+      "rect": {
+        "left": 1061,
+        "right": 1770,
+        "width": 709
+      }
+    },
+    {
+      "text": "2 limit violations2",
+      "rect": {
+        "left": 1778,
+        "right": 1778,
+        "width": 0
+      }
+    },
+    {
+      "text": "2 tool changes2",
+      "rect": {
+        "left": 1786,
+        "right": 1887,
+        "width": 101
+      }
+    }
+  ]
+}

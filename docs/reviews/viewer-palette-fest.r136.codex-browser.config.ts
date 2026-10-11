@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./e2e',testMatch:/(collisions|sim-panel|r136.codex)\.viewer\.spec\.ts/,workers:1,fullyParallel:false,timeout:120000,reporter:[['list']],outputDir:'/tmp/codex-r136-bapg7k2b/browser-output',use:{browserName:'chromium',baseURL:'http://127.0.0.1:4188',headless:true,trace:'off',screenshot:'only-on-failure',locale:'en-GB',timezoneId:'UTC'},webServer:{command:'MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs',url:'http://127.0.0.1:4188',reuseExistingServer:false}});

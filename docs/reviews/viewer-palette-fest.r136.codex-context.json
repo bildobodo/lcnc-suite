@@ -1,0 +1,29 @@
+{
+  "archive": "/tmp/codex-r136-bapg7k2b/src",
+  "code_base": "813f1e36",
+  "code_head": "c8dc258bdf234a897f6c4b077a054ca587a29b38",
+  "review_head": "813f1e36d6c9d6bc0b529885ea517c0cac715a87",
+  "review_prefix_size": 1364574,
+  "review_prefix_sha256": "e641eb9217f95afc50c5e85f07a99f40877de25b41a012d973e83bf0d87b5cd5",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r136.gate-backend.json\n?? docs/reviews/viewer-palette-fest.r136.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r136.measure.txt\n?? docs/reviews/viewer-palette-fest.r136.mutations.py\n?? docs/reviews/viewer-palette-fest.r136.mutations.txt\n",
+  "initial_evidence": {
+    "viewer-palette-fest.r136.gate-frontend.json": "69a426d25850d3734fe997b9f456e4adf6a1bef19d35e162b9b701a33cdd66c8",
+    "viewer-palette-fest.r136.mutations.py": "e0bd52a13e9ef0e8bee9d51f274fddbe1b6f88e24c4ad987e3a79e878a320255",
+    "viewer-palette-fest.r136.gate-backend.json": "6a42379de322c7a188cb4c2e8bd0db4696fcb078b01b33d52cbd8c0a6be91d0b",
+    "viewer-palette-fest.r136.mutations.txt": "52e78676d0d5a4a098ffbcd5b19c0a45b042fddd40a2a3c5e94ae83398425b49",
+    "viewer-palette-fest.r136.measure.txt": "c05f672e9c5e1ef32c11f2106b243f63e1ab5cd46ea75dc473064e85ba4d06ab"
+  },
+  "verification": {
+    "changed_files_match_target": 35,
+    "live_head": "813f1e36d6c9d6bc0b529885ea517c0cac715a87",
+    "prior_review_bytes_unchanged": true,
+    "claude_evidence_unchanged": true,
+    "archive_harness_changes": [
+      "lcnc-webui/e2e/ctl.ts: mock URL 127.0.0.1:4188",
+      "new Vitest/Playwright configs and own probes only"
+    ],
+    "ports_used": [
+      "127.0.0.1:4188 (isolated mock)"
+    ]
+  }
+}

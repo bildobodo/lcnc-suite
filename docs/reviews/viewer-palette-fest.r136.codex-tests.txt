@@ -1,0 +1,232 @@
+Focused repository tests: 218 PASS
+
+ RUN  v4.1.8 /tmp/codex-r136-bapg7k2b/src/lcnc-webui
+
+
+ Test Files  9 passed (9)
+      Tests  218 passed (218)
+   Start at  14:36:28
+   Duration  160.04s (transform 411ms, setup 26ms, import 1.62s, tests 157.83s, environment 0ms)
+
+
+
+Own stream probes: 3 expected FAIL / 1 positive PASS
+
+ RUN  v4.1.8 /tmp/codex-r136-bapg7k2b/src/lcnc-webui
+
+ ❯ src/viewer/r136.codex-probe.test.ts (4 tests | 3 failed) 211ms
+     × upgrades the existing onset instead of adding a second finding with the same key 93ms
+     × a first contact survives a pooled partial built from older shard words 56ms
+     × the side sweep also publishes a known contact before completion 37ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r136.codex-probe.test.ts > R136 Codex: first-contact delivery end to end > upgrades the existing onset instead of adding a second finding with the same key
+AssertionError: one physical contact, one marker and list row: expected [ { cum: 2, cumEnd: 3, …(7) }, …(1) ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/viewer/r136.codex-probe.test.ts:106:70
+    104|     const targets = clashTargets(ui.shown().hits);
+    105|     save('duplicate', { targets, summary: findingWords(targets) });
+    106|     expect(targets, 'one physical contact, one marker and list row').t…
+       |                                                                      ^
+    107|     expect(findingWords(targets).text).toBe('1 collision');
+    108|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/viewer/r136.codex-probe.test.ts > R136 Codex: first-contact delivery end to end > a first contact survives a pooled partial built from older shard words
+AssertionError: known contact must not revert to near miss: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r136.codex-probe.test.ts:125:114
+    123|     }
+    124|     save('pool', { sent, states });
+    125|     expect(findingWords(clashTargets(ui.shown().hits)).collisions, 'kn…
+       |                                                                                                                  ^
+    126|   });
+    127|   it('the side sweep also publishes a known contact before completion'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/viewer/r136.codex-probe.test.ts > R136 Codex: first-contact delivery end to end > the side sweep also publishes a known contact before completion
+AssertionError: no need to await the whole dependent prefix: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ src/viewer/r136.codex-probe.test.ts:154:126
+    152|     expect(r, 'the real sweep completed').toBeTruthy();
+    153|     expect(r.hits.some(confirmedContact), 'the real sweep proves a con…
+    154|     expect(sent.some(m => m.first || m.partial?.hits.some(confirmedCon…
+       |                                                                                                                              ^
+    155|   });
+    156|   it('positive controls: unrelated near miss retained, progress and a …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 1 passed (4)
+   Start at  14:42:36
+   Duration  721ms (transform 219ms, setup 11ms, import 443ms, tests 211ms, environment 0ms)
+
+
+
+Card: mouse/keyboard and touch, 2 PASS
+[WebServer] (node:2779023) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:2779055) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2779055) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:435:1 › the check basis card says what the check read when it began — a later status does not change it, a run's own change is named; keys, Escape is E-Stop (step 4 plan 1c) (8.2s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:577:3 › the check basis card by touch (step 4 plan 1c) › a tap opens the card in the window; its trigger and a tap outside close it; nothing is sent (2.8s)
+
+  2 passed (11.9s)
+
+
+Card provisional-to-full: 1 PASS; first exploratory layout fixture was not usable (pairCount=0)
+[WebServer] (node:2780491) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:2780503) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2780503) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:749:1 › the provisional result keeps its own limits while the full check runs, its contacts at the start stay provisional — then a full check replaces them (Codex R116 VP-I68/I69) (7.3s)
+  ✘  2 e2e/r136.codex.viewer.spec.ts:43:1 › R136: mixed summary and its coverage remain visible in the wide side pane (7.2s)
+
+
+  1) e2e/r136.codex.viewer.spec.ts:43:1 › R136: mixed summary and its coverage remain visible in the wide side pane 
+
+    Error: expect(locator).toContainText(expected) failed
+
+    Locator: locator('.checkVerdict')
+    Expected substring: "more contacts not listed"
+    Received string:    "No moving pairs"
+    Timeout: 5000ms
+
+    Call log:
+      - Expect "toContainText" with timeout 5000ms
+      - waiting for locator('.checkVerdict')
+        14 × locator resolved to <span data-v-29ac8288="" class="checkVerdict sumWide text-muted">No moving pairs</span>
+           - unexpected value "No moving pairs"
+
+
+      57 |   });
+      58 |   await prepare(page,context);
+    > 59 |   await expect(page.locator('.checkVerdict')).toContainText('more contacts not listed');
+         |                                               ^
+      60 |   const measurement = await page.locator('.simSummary').evaluate(el => {
+      61 |     const rect = (e:Element) => {const r=e.getBoundingClientRect();return {left:r.left,right:r.right,width:r.width};};
+      62 |     return {pane:rect(document.querySelector('.sidePane')!),narrow:document.querySelector('.sidePane')!.classList.contains('narrow'),
+        at /tmp/codex-r136-bapg7k2b/src/lcnc-webui/e2e/r136.codex.viewer.spec.ts:59:47
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-output/r136.codex.viewer-R136-mix-1b1e0-sible-in-the-wide-side-pane/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-output/r136.codex.viewer-R136-mix-1b1e0-sible-in-the-wide-side-pane/error-context.md
+
+  1 failed
+    e2e/r136.codex.viewer.spec.ts:43:1 › R136: mixed summary and its coverage remain visible in the wide side pane 
+  1 passed (15.1s)
+
+
+Final layout probe, consistent 200-onset capped result: expected FAIL
+[WebServer] (node:2782697) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:2782709) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2782709) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r136.codex.viewer.spec.ts:43:1 › R136: mixed summary and its coverage remain visible in the wide side pane (2.6s)
+
+
+  1) e2e/r136.codex.viewer.spec.ts:43:1 › R136: mixed summary and its coverage remain visible in the wide side pane 
+
+    Error: result, coverage and cap must fit in the visible summary
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 1557.5
+    Received:    1770
+
+      70 |   await page.screenshot({path:'/tmp/codex-r136-bapg7k2b/summary-browser.png'});
+      71 |   expect(measurement.narrow).toBe(false);
+    > 72 |   expect(measurement.items[0]!.rect.right, 'result, coverage and cap must fit in the visible summary').toBeLessThanOrEqual(measurement.summary.right+1);
+         |                                                                                                        ^
+      73 | });
+      74 |
+        at /tmp/codex-r136-bapg7k2b/src/lcnc-webui/e2e/r136.codex.viewer.spec.ts:72:104
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-output/r136.codex.viewer-R136-mix-1b1e0-sible-in-the-wide-side-pane/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-output/r136.codex.viewer-R136-mix-1b1e0-sible-in-the-wide-side-pane/error-context.md
+
+  1 failed
+    e2e/r136.codex.viewer.spec.ts:43:1 › R136: mixed summary and its coverage remain visible in the wide side pane 
+
+
+Isolated Vite build PASS (not a typecheck or full build gate)
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2106 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-CbQ7i83d.js               32.51 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-DP0kIX1Z.js            198.32 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-B0O78zUZ.css                 7.96 kB │ gzip:   1.97 kB
+dist/static/index-DJj6JVxQ.css                      94.90 kB │ gzip:  17.32 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-CkyDIUdX.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BKwgNauP.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-DOW7tilB.js                185.09 kB │ gzip:  69.44 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-C92htfKL.js                      638.65 kB │ gzip: 204.43 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.00s
