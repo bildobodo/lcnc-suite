@@ -2960,6 +2960,13 @@ class TestCanonFirstMoveRearm(unittest.TestCase):
             setattr(c, "g92_offset_" + s, 0.0)
         c.g5x_index = 1
         c.rotate_and_translate = lambda *a: tuple(a)
+        # The interpreter's words (docs/reviews/parity-ef.plan.md E): every
+        # block commands X, Y, Z absolutely — the known path these cases are
+        # about. Without them the start is unknown (Codex R132 VP-I80).
+        _b = types.SimpleNamespace(x_flag=True, y_flag=True, z_flag=True, g_modes=[-1, 0])
+        _t = types.SimpleNamespace(blocks=[_b], distance_mode=0, feed_mode=0)
+        c.interp = lambda: _t
+        c.kins_events, c.dep_seg, c.dep_time = [], {}, {}
         return c, types.SimpleNamespace
 
     def test_initcode_move_seeds_lo_and_program_first_move_is_ustart(self):
@@ -3056,10 +3063,12 @@ class TestTloEvents(unittest.TestCase):
         self._prog(c, ns, 3)
         c.straight_feed(2, 0, 0, 0, 0, 0, 0, 0, 0)          # seq 2
         self.assertEqual(c.tlo_events, [(1, 0, 0, 22, -1)])
-        # governs seq > 1 only: the first feed carries 0, the second 22
-        self.assertEqual(c.feed[0][4], (0.0, 0.0, 0.0))
-        self.assertEqual(c.feed[1][4], (0, 0, 22))
-        self.assertLess(c.tlo_events[0][0], c.feed[1][5])
+        # governs seq > 1 only: the first feed carries 0 (the program's first
+        # move: a zero-length unknown-start endpoint in the rapid stream since
+        # parity-ef plan E8), the second 22
+        self.assertEqual((c.rapid[0][3], c.unknown_start), ((0.0, 0.0, 0.0), [1]))
+        self.assertEqual(c.feed[0][4], (0, 0, 22))
+        self.assertLess(c.tlo_events[0][0], c.feed[0][5])
 
     def test_m6_then_g43_same_seq_last_row_wins(self):
         c, ns = self._canon()
@@ -3112,17 +3121,19 @@ class TestTloEvents(unittest.TestCase):
         # lo-peel identity: world (raw + tlo) is continuous across the G43 —
         # the property the carry-retire closure rests on (pinned against the
         # real interpreter by the canon fixture).
-        self.assertAlmostEqual(c.lo[2] + c.zo, c.feed[0][2][2] + 0.0, places=9)
+        self.assertAlmostEqual(c.lo[2] + c.zo, c.rapid[0][2][2] + 0.0, places=9)
         self.assertEqual(c.offset_events, [1])                # after seq 1
         self._prog(c, ns, 3)
         c.straight_traverse(5, 0, 0, 0, 0, 0, 0, 0, 0)      # seq 2, a real move
-        self.assertEqual(c.unknown_start, [])
-        self.assertEqual(c.rapid[0][3], (0, 0, 22))
-        self.assertEqual(c.rapid[0][1], (1, 0, -22, 0, 0, 0, 0, 0, 0))   # where the machine stands
-        self.assertEqual(c.rapid[0][2], (5, 0, 0, 0, 0, 0, 0, 0, 0))
+        # only the program's first move (seq 1, a feed: plan E8) is unknown
+        self.assertEqual(c.unknown_start, [1])
+        self.assertEqual(c.rapid[1][3], (0, 0, 22))
+        self.assertEqual(c.rapid[1][1], (1, 0, -22, 0, 0, 0, 0, 0, 0))   # where the machine stands
+        self.assertEqual(c.rapid[1][2], (5, 0, 0, 0, 0, 0, 0, 0, 0))
 
     def test_an_m6_unknown_start_follows_the_controller_s_motion(self):
-        for moves, ustart in ((True, [2]), (False, [])):
+        # seq 1, the program's first move, is unknown either way (plan E8)
+        for moves, ustart in ((True, [1, 2]), (False, [1])):
             c, ns = self._canon()
             c.tool_change_moves = moves
             self._prog(c, ns, 1)

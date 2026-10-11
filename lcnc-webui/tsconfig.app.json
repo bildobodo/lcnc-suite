@@ -20,6 +20,7 @@
   // src/tsconfigCoverage.test.ts enforces it and refuses stale entries.
   "exclude": [
     "src/viewer/toolChangePayloads.test.ts",
+    "src/viewer/startDepPayloads.test.ts",
     "src/viewer/insideCheck.test.ts",
     "src/bundledFonts.test.ts",
     "src/viewer/toolBasis.test.ts",

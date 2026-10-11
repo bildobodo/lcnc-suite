@@ -12,6 +12,20 @@ const SET_UP = {
   maxZTravel: 180, retractDist: 2, spindleZeroHeight: 180,
 };
 
+/** One busy → idle edge the page SEES (the interpreter back to idle reads G30
+ *  again). The status store applies the latest status once per frame, so a
+ *  busy pulse that ends inside one frame folds into the idle status and no
+ *  edge happens — under the scene's long tasks (up to ~480 ms measured
+ *  2026-10-11) a 150–200 ms pulse did, on any test but a run's first. Each
+ *  state is waited for on the strip. */
+async function idleEdge(page: Page) {
+  const interp = page.locator(".safetyStrip .statusRow").filter({ hasText: "Interp" }).locator(".stable-width > span:not(.alt)");
+  await ctl({ op: "status_delta", data: { interp_state: 2 } });
+  await expect(interp).toHaveText("RUNNING");
+  await ctl({ op: "status_delta", data: { interp_state: 1 } });
+  await expect(interp).toHaveText("IDLE");
+}
+
 const puck = (page: Page) => page.evaluate(() => {
   const t = window.__viewerDiag?.getToolsetter?.();
   return t ? { visible: t.visible, top: t.top.map(v => Math.round(v * 1000) / 1000) } : null;
@@ -241,15 +255,11 @@ test("the tool-change pin stands at the stored G30; without a read there is none
   expect((await pin())).toMatchObject({ visible: true, onTop: true });
   // the interpreter back to idle (a G30.1, a Save): read again
   g30 = { ok: true, values: { X: 120, Y: -30, Z: -5, A: 0, C: 0 }, mtime_ms: 2, units: "mm" };
-  await ctl({ op: "status_delta", data: { interp_state: 2 } });
-  await page.waitForTimeout(200);
-  await ctl({ op: "status_delta", data: { interp_state: 1 } });
+  await idleEdge(page);
   await expect.poll(async () => (await pin())?.top, { message: "moved with the stored G30" }).toEqual([120, -30, -5]);
   // a missing row: no position, never 0
   g30 = { ok: true, values: { X: 120, Y: null, Z: -5, A: 0, C: 0 }, mtime_ms: 3, units: "mm" };
-  await ctl({ op: "status_delta", data: { interp_state: 2 } });
-  await page.waitForTimeout(200);
-  await ctl({ op: "status_delta", data: { interp_state: 1 } });
+  await idleEdge(page);
   await expect.poll(async () => (await pin())?.visible, { message: "no position, no pin" }).toBe(false);
 });
 
@@ -267,11 +277,7 @@ test("a late G30 read never puts the pin back on an older position (Codex R50 VP
   // registered last, so it answers first: every read from here on is held
   const held: { route: import("@playwright/test").Route; data: object }[] = [];
   await context.route(/\/g30(\?|$)/, route => { held.push({ route, data: read() }); });
-  const edge = async () => {
-    await ctl({ op: "status_delta", data: { interp_state: 2 } });
-    await page.waitForTimeout(150);
-    await ctl({ op: "status_delta", data: { interp_state: 1 } });
-  };
+  const edge = () => idleEdge(page);
   value = 110; await edge(); await expect.poll(() => held.length).toBe(1);
   value = 120; await edge(); await expect.poll(() => held.length).toBe(2);
   await held[1]!.route.fulfill({ json: held[1]!.data });

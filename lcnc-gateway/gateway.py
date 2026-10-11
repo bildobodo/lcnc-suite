@@ -3141,6 +3141,31 @@ def _start_snapshot(stat) -> Dict[str, Any]:
             "eoffset_z": _reader_get("z_eoffset"), "eoffset_enabled": _reader_get("z_eoffset_enable")}
 
 
+def _start_joints_now(stat) -> Tuple[Optional[List[float]], Optional[str]]:
+    """The joints the run starts from, from the poll just made (parity-ef plan
+    E5): an observed basis, never a controller confirmation — only in AUTO
+    with the interpreter idle (the caller's check), in position and standing
+    (|current_vel| ≤ 0.001), every joint value finite, as many as the machine
+    has joints. (joints, None), or (None, why). Pure but for reading `stat`."""
+    try:
+        if getattr(stat, "task_mode", None) != linuxcnc.MODE_AUTO:
+            return None, "not in AUTO"
+        if not getattr(stat, "inpos", False):
+            return None, "not in position"
+        vel = getattr(stat, "current_vel", None)
+        if vel is None or not math.isfinite(float(vel)) or abs(float(vel)) > 0.001:
+            return None, "moving"
+        n = int(getattr(stat, "joints", 0) or 0)
+        raw = getattr(stat, "joint_actual_position", None)
+        vals = [float(v) for v in list(raw or ())[:n]]
+        if n <= 0 or len(vals) != n or not all(math.isfinite(v) for v in vals):
+            return None, "joint values incomplete"
+        return vals, None
+    except Exception as e:  # noqa: BLE001 - no position: the beginning stays unchecked, named
+        _trace.emit_exc("run_basis.joints_unread", e)
+        return None, "joints not read"
+
+
 def _unverified_run_basis(why: str) -> Dict[str, Any]:
     """A new run basis that names NO start (Codex R116 VP-I67): the start's
     capture failed, so whatever ran before can no longer stand for this
@@ -3176,12 +3201,20 @@ async def _begin_run_basis() -> Optional[Dict[str, Any]]:
         return _unverified_run_basis("controller status not read")
     if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
         return None
+    # The start's joints from THIS poll, copied before any await (parity-ef
+    # plan E5, Codex R122 answer 2): the start a run check binds the
+    # program's start-dependent beginning to.
+    start_joints, joints_why = _start_joints_now(STAT)
     try:
         file = _status_runtime.program.loaded
         source = await asyncio.to_thread(program_source, file) if file else None
         ctx = _bulk.start_ctx(file) if file else None
         ok, why = _bulk.run_start_check(file, STAT, source, open_drift=_ts_open_drift())
         start = _start_snapshot(STAT)
+        if start_joints is not None:
+            start["joints"] = start_joints
+        else:
+            start["joints_why"] = joints_why
     except Exception as e:  # noqa: BLE001 - the start goes out; it names no start
         _trace.emit_exc("run_basis.capture_failed", e)
         return _unverified_run_basis("start not captured")

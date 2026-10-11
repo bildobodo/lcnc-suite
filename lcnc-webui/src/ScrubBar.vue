@@ -42,6 +42,7 @@ import { buildSimRows, limitStopOf, measurementsOf, nextRowKey, simRowOrder, typ
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
+import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
@@ -82,7 +83,9 @@ const props = defineProps<{
    *  the provisional range starts, and whether the provisional result is the
    *  one on screen while the full check runs. */
   collisionRunCheck?: { phase: "provisional" | "full"; fromLine: number | null; fromCum: number | null;
-                        provisionalShown: boolean } | null;
+                        provisionalShown: boolean;
+                        /** the program's start-dependent beginning in this run check (Codex R133 VP-I86) */
+                        begin?: RunBegin; beginWhy?: string | null } | null;
 }>();
 
 const emit = defineEmits<{
@@ -292,7 +295,7 @@ function _buildEntryTrack() {
   const built = buildEntryTrack(
     base, _baseJoints, viewerInit.value?.axes ?? [], _wcs(), _kinsSpec.value,
     _epochTerms.value, st.value.kins_type ?? null,
-    { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate });
+    { linear: g?.rapid_rate, rotary: g?.rot_rapid_rate, axisVmax: g?.axis_vmax, trajVmax: g?.traj_vmax });
   entryTrack.value = built ? markRaw(built) : null;
 }
 
@@ -467,7 +470,10 @@ const m600Notes = computed(() => m600ToolNotes(
 // the distance fallback.
 const posLabel = computed(() => {
   if (track.value?.timeBased) {
-    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}${probeStops.value.length ? "+" : ""}`;
+    // "+" too where a feed in the program's start-dependent beginning has
+    // only a shortest duration, or none (parity-ef plan E7)
+    const more = probeStops.value.length || track.value.depTime;
+    return `${fmtElapsed(Math.floor(sPos.value))}/${fmtElapsed(Math.floor(cumMax.value))}${more ? "+" : ""}`;
   }
   return `${pct.value} %`;
 });
@@ -739,7 +745,14 @@ const verdictDetail = computed<string>(() => {
   if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
   if (r.staticContacts.length) parts.push(`${r.staticContacts.length} contact${r.staticContacts.length === 1 ? "" : "s"} at the start ignored.`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
-  return parts.join(" ") || "Tool and machine parts checked against each other along the whole program.";
+  // parity-ef plan E7: the beginning stands where the machine stands — in
+  // the simulation and in a run, checked or not (Codex R133 VP-I84/I86)
+  const sd = r.startDependent;
+  if (sd) parts.push(beginSentence(sd, props.collisionRunCheck));
+  const text = parts.join(" ") || "Tool and machine parts checked against each other along the whole program.";
+  // the beginning's time, from where it is only bounded or unknown (VP-I89)
+  const dt = track.value?.depTime;
+  return dt ? `${text} ${depTimeSentence(dt)}` : text;
 });
 
 // Reasons this sweep's no-missed-crossing guarantee does NOT hold. Null when
@@ -1042,6 +1055,21 @@ const sweepView = computed<SimSweepView | null>(() => {
       return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
         verdict: n ? `${found} so far` : "No collision so far" };
     }
+    // The program's start-dependent beginning (plan E7, Codex R133 VP-I86):
+    // a run check covers it only with its bound side result merged — the
+    // shown result then names no `startDependent`. Still sweeping, or with
+    // no start to bind it to: never "checked in full"; dependent to its
+    // end: never "Clear".
+    const sd = r?.startDependent;
+    if (r && sd && !r.truncated && !r.range) {
+      if (rc.begin === "checking") {
+        return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat, detail: runDetail,
+          verdict: `${n ? found : "No collision"} · start still checking` };
+      }
+      return { state: "done", frac: 1, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
+        verdict: sd.whole && !n ? (sd.unbound ? "Not checked" : "Depends on the machine's position")
+          : `${n ? found : "Clear"} · start not checked` };
+    }
     // "checked in full" only for a full sweep that is neither cut short nor
     // uncertified — a finished worker alone is no full check (Codex R115)
     if (r && !r.truncated && !r.range) {
@@ -1069,6 +1097,19 @@ const sweepView = computed<SimSweepView | null>(() => {
     return { state: props.collisionStopped && props.collisionResumable ? "paused" : "partial", frac: sweptFrac.value,
       verdict: n ? `${found} in ${pctOf(covered)} swept` : `No collision in ${pctOf(covered)} swept`,
       tone: n ? "danger" : "warn", caveat, detail };
+  }
+  // A track that is start-dependent to its end has nothing checked here: it
+  // never reads "Clear" (parity-ef plan E7, Codex R122 answer 4). A start no
+  // entry move can bind is checked nowhere, the simulation included: its
+  // beginning is said on the bar (Codex R134 VP-I84).
+  const sd = r?.startDependent;
+  if (sd?.whole && !n) {
+    return { state: "done", frac: 1, verdict: sd.unbound ? "Not checked" : "Depends on the machine's position",
+      tone: "warn", caveat, detail };
+  }
+  if (sd?.unbound) {
+    return { state: "done", frac: 1, verdict: `${n ? found : "Clear"} · start not checked`, tone: n ? "danger" : "warn",
+      caveat, detail };
   }
   return { state: "done", frac: 1, verdict: n ? found : "Clear", tone: n ? "danger" : "ok", caveat, detail };
 });

@@ -22,8 +22,14 @@ describe("run_basis and preview_origin on the wire (plan „Prüfung im Lauf“ 
         rotationXy: 0, wcsTable: WIRE.run_basis.start.wcs_table,
         toolNumber: 13, toolDiameter: 8, toolLength: 48.2, toolTableZ: -48.2,
         toolOffset: [0, 0, -48.2, 0, 0, 0, 0, 0, 0], eoffsetZ: 0, eoffsetEnabled: false,
+        joints: [1.5, -2, 30], jointsWhy: null,
       },
     });
+    // not taken: why, never a position (parity-ef plan E5)
+    const why = parseRunBasis({ ...WIRE.run_basis, start: { ...WIRE.run_basis.start, joints: undefined, joints_why: "moving" } })!;
+    expect([why.start!.joints, why.start!.jointsWhy]).toEqual([null, "moving"]);
+    const bad = parseRunBasis({ ...WIRE.run_basis, start: { ...WIRE.run_basis.start, joints: [1, null, 3] } })!;
+    expect(bad.start!.joints).toBeNull();
   });
 
   it("reads every field of the gateway's preview_origin", () => {
@@ -75,7 +81,7 @@ describe("the check basis (plan 1c)", () => {
     const b = basisFromLive(pv, null);
     expect(b).toEqual({ kind: "idle", runId: null, g5x: LIVE.g5x, g92: LIVE.g92, rotationXy: 0,
       toolOffset: LIVE.toolOffset, wcsTable: LIVE.wcsTable, toolNum: 2, toolDiam: 6, toolLen: 10,
-      eoffsetZ: null, eoffsetEnabled: null });
+      eoffsetZ: null, eoffsetEnabled: null, startJoints: null });
     pv.g5x![0] = 99; pv.wcsTable![0]!.x = 99; pv.toolOffset![2] = 99;
     expect(b.g5x[0]).toBe(1);
     expect(b.wcsTable![0]!.x).toBe(1);
@@ -96,7 +102,7 @@ describe("the check basis (plan 1c)", () => {
       kind: "run", runId: 3, g5x: s.g5x_offset, g92: s.g92_offset, rotationXy: s.rotation_xy,
       toolOffset: s.tool_offset, wcsTable: s.wcs_table,
       toolNum: s.tool_number, toolDiam: s.tool_diameter, toolLen: s.tool_length,
-      eoffsetZ: s.eoffset_z, eoffsetEnabled: s.eoffset_enabled,
+      eoffsetZ: s.eoffset_z, eoffsetEnabled: s.eoffset_enabled, startJoints: s.joints,
     });
     // a start that was not written is no run, and no start is no basis
     expect(basisFromRun({ ...rb, state: "unsent" }, null)).toBeNull();
@@ -112,8 +118,13 @@ describe("the check basis (plan 1c)", () => {
       { g5x: [1, 2, 3.001, 0, 0, 0, 0, 0, 0] }, { g92: [0, 0, 1, 0, 0, 0, 0, 0, 0] }, { rotationXy: 1 },
       { toolOffset: [0, 0, 11] }, { wcsTable: [{ name: "G54", x: 1, y: 2, z: 4, r: 0 }] },
       { toolNum: 3 }, { toolDiam: 7 }, { toolLen: 11 },
+      // a beginning bound to another start (parity-ef plan E5)
+      { startJoints: [1, 2, 3] },
     ];
     for (const c of changed) expect(sameCheckInputs(a, { ...a, ...c }), JSON.stringify(c)).toBe(false);
+    const j = { ...a, startJoints: [1, 2, 3] };
+    expect(sameCheckInputs(j, { ...j, startJoints: [1, 2, 3] })).toBe(true);
+    expect(sameCheckInputs(j, { ...j, startJoints: [1, 2, 3.5] })).toBe(false);
   });
 
   it("checkState names what the shown result is", () => {

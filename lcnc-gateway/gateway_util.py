@@ -1659,6 +1659,8 @@ def compare_preview_payloads(old, new):
     - bounds / motion_bounds: recomputed from the normalised old points equal
       the fresh payload's within the same precision (the client recomputes
       them so after a normalisation);
+    - `start_believed` (the start the parse assumed, before every row):
+      shifted like those points;
     - every other field byte-equal (limit verdict, outside flags, stream
       structure, rotary values, stats, tool changes, sub spans, refusals …),
       except the basis fields (VERIFY_BASIS_KEYS).
@@ -1675,13 +1677,23 @@ def compare_preview_payloads(old, new):
         return False, "start basis missing"
     if set(old) != set(new):
         return False, "fields differ: " + ",".join(sorted(set(old) ^ set(new)))
-    special = VERIFY_BASIS_KEYS | set(VERIFY_POINT_KEYS) | set(VERIFY_BOX_KEYS)
+    special = VERIFY_BASIS_KEYS | set(VERIFY_POINT_KEYS) | set(VERIFY_BOX_KEYS) | {"start_believed"}
     for k in sorted(set(new) - special):
         if old[k] != new[k]:
             return False, f"field {k} differs"
     rows = new.get("tlo_events") or []
     first_row_seq = rows[0][0] if rows else None
     shift = np.asarray(s_old, dtype=np.float64) - np.asarray(s_new, dtype=np.float64)
+    # the start the parse assumed (parity-ef plan E5) stands before every
+    # TLO row: shifted like those points
+    sb_o, sb_n = old.get("start_believed"), new.get("start_believed")
+    if (sb_o is None) != (sb_n is None):
+        return False, "field start_believed differs"
+    if sb_o is not None:
+        a = np.asarray(sb_o, dtype=np.float64) + shift
+        b = np.asarray(sb_n, dtype=np.float64)
+        if a.shape != b.shape or bool((np.abs(a - b) > VERIFY_F32_REL * np.maximum(1.0, np.abs(b))).any()):
+            return False, "field start_believed differs"
     norm = {}
     for k in VERIFY_POINT_KEYS:
         ob, nb = old.get(k), new.get(k)
@@ -2454,10 +2466,99 @@ def nc_block(raw):
     return nc_block_norm(nc_norm(raw))
 
 
+#: The parameters that read the POSITION (docs/reviews/parity-ef.plan.md E4):
+#: #5420–#5428 and the names `_x` … `_w`, `_abs_x` … `_abs_w`, each for its
+#: axis (canonical index, "XYZABCUVW").
+_POS_READ_NAMES = {**{"_" + c: i for i, c in enumerate("XYZABCUVW")},
+                   **{"_ABS_" + c: i for i, c in enumerate("XYZABCUVW")}}
+
+
+def position_reads_norm(n):
+    """The axes one normalised block (nc_norm: comments out — a LOG / DEBUG
+    text reads nothing that moves —, no whitespace, upper case) may read
+    from the position: a frozenset of canonical axis indices, None = any (a
+    parameter number the text does not settle — `#[…]`, `##1`, a function —
+    or a `#` the reader cannot read). Every `#` counts, an assignment's
+    target too. Pure."""
+    if "#" not in n:
+        return frozenset()
+    out = set()
+    i = n.find("#")
+    while i >= 0:
+        j = i + 1
+        if n.startswith("<", j):
+            k = n.find(">", j)
+            if k < 0:
+                return None
+            ax = _POS_READ_NAMES.get(n[j + 1:k])
+            if ax is not None:
+                out.add(ax)
+            i = n.find("#", k + 1)
+            continue
+        try:
+            _end, v = _nc_value(n, j)
+        except ValueError:
+            return None
+        p = None if v is None else nc_int(v)
+        if p is None:
+            return None
+        if 5420 <= p <= 5428:
+            out.add(p - 5420)
+        i = n.find("#", j)
+    return frozenset(out)
+
+
+def position_read_lines(text, env=None):
+    """What the MAIN file's lines may read FROM THE POSITION (parity-ef plan
+    E4): {1-based line: frozenset of axes | None (any)}. A line counts with
+    its own parameters (position_reads_norm) and with the bodies of the
+    remapped codes its words trigger (RemapEnv.reads — None for an opaque or
+    unreadable body, an M whose value the text does not settle beside a P
+    word); a block the reader cannot read that may trigger a remap counts as
+    any. Lines that read nothing are left out. The order the lines run in is
+    position_write_lines' `mode`. Pure but for the body files env reads."""
+    out = {}
+    for no, raw in enumerate((text or "").splitlines(), 1):
+        n = nc_norm(raw)
+        if not n:
+            continue
+        r = position_reads_norm(n)
+        if r is not None and env is not None and env.remaps and env._may_matter(n):
+            b = nc_block_norm(n)
+            if b is None:
+                r = None
+            elif not b[2]:
+                words = b[0]
+                has_p = any(w == "P" for w, _ in words)
+                for letter, v in words:
+                    ks = env.word_keys(letter, v, has_p)
+                    if ks is None:
+                        r = None
+                        break
+                    for k in ks:
+                        kr = env.reads(k)
+                        if kr is None:
+                            r = None
+                            break
+                        r = r | kr
+                    if r is None:
+                        break
+        if r is None or r:
+            out[no] = r
+    return out
+
+
 #: Lines that may hold an o-word or an M98 / M99 — in any spelling of the M
 #: word's value (`M[98]`, `M#1`) — after which the main file's lines no
 #: longer run in text order: `_flow_of_block` decides on the line read.
 _FLOW_CANDIDATE_RE = re.compile(r"[OM]", re.I)
+
+
+def _text_pos_writes(text):
+    """Whether one text's own lines may write a register FROM the position
+    (position_write_lines: any target but "explicit"). Pure."""
+    wl, _mode = position_write_lines(text)
+    return any(t != "explicit" for t in wl.values())
 
 
 def position_write_lines(text):
@@ -3329,6 +3430,20 @@ def ustart_start_tuple(end, seed_abc, eps=_USTART_SEED_EPS):
     return tuple(out)
 
 
+def dep_nan(point, mask):
+    """A canon point with its START-DEPENDENT axes (docs/reviews/parity-ef.plan.md
+    E7: bit 0 X, 1 Y, 2 Z — the preview's guess of where the machine stood
+    when the program started, plus the deltas since) read as NaN for the
+    limit checks: no verdict on a value no parse knows. NaN compares false
+    every way, so a known end beyond a limit still flags after a dependent
+    start (the move is no parked axis), and a dependent end never flags.
+    None (a wholly unknown start) and None slots stay as they are. Pure."""
+    if point is None or not mask:
+        return point
+    return tuple(float("nan") if k < 3 and (mask >> k) & 1 and v is not None else v
+                 for k, v in enumerate(point))
+
+
 def _fill_unknown_start(start, end):
     """(filled_start, unknown_axis_indices) for the joint-side checkers:
     an axis is UNKNOWN when start is None or its slot is None (see
@@ -4168,6 +4283,190 @@ PROBE_NOTE_REASONS = ("retract", "slow_limit", "brake_unknown")
 _PROBE_BAND_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND\s*$", re.IGNORECASE)
 _PROBE_BAND_END_MARKER = re.compile(r"^\s*WEBUI_PROBE_BAND_END\s*$", re.IGNORECASE)
 _PROBE_NOTE_MARKER = re.compile(r"^\s*WEBUI_PROBE_NOTE\s*=\s*([a-z_]+)\s*$", re.IGNORECASE)
+# The routine's position reads (docs/reviews/parity-ef.plan.md E4): the
+# preview canon takes the state of X, Y, Z at a save, hands it to the two
+# return moves, and requires known axes where the routine reads them.
+_POS_SAVE_MARKER = re.compile(r"^\s*WEBUI_POS_SAVE\s*$", re.IGNORECASE)
+_POS_RETURN_MARKER = re.compile(r"^\s*WEBUI_POS_RETURN\s*$", re.IGNORECASE)
+_POS_READ_MARKER = re.compile(r"^\s*WEBUI_POS_READ\s*=\s*([XYZABCUVW]+)\s*$", re.IGNORECASE)
+
+
+def parse_pos_marker(text):
+    """Comment text -> ("save", None) / ("return", None) / ("read", axes) /
+    None; axes a frozenset of canonical indices ("XYZABCUVW"). Pure."""
+    t = text or ""
+    if _POS_SAVE_MARKER.match(t):
+        return ("save", None)
+    if _POS_RETURN_MARKER.match(t):
+        return ("return", None)
+    m = _POS_READ_MARKER.match(t)
+    if m:
+        return ("read", frozenset("XYZABCUVW".index(c) for c in m.group(1).upper()))
+    return None
+
+
+def unmarked_position_reads(text):
+    """The 1-based lines of a text that read the position (position_reads_norm:
+    an axis or any) without a WEBUI_POS marker comment on the same line — the
+    routine's own guard (parity-ef plan E4: each read carries its marker).
+    Pure."""
+    out = []
+    for no, raw in enumerate((text or "").splitlines(), 1):
+        if "#" not in raw:
+            continue
+        r = position_reads_norm(nc_norm(raw))
+        if r is not None and not r:
+            continue
+        if not any(parse_pos_marker(c) is not None for c in _comment_texts(raw)):
+            out.append(no)
+    return out
+
+
+#: The bundled routine whose position reads carry their WEBUI_POS markers
+#: (parity-ef plan E4 / E4a): bound by CONTENT — a file with these bytes reads
+#: nothing for the text scan, its markers act in the canon. Any edit of the
+#: routine changes the hash; the guard (test_start_dep_worker) then fails
+#: until it is checked again.
+MARKED_POS_ROUTINES = frozenset({"9d180577d1909b178f2921d3c96dd78536037b9f8312b862bd93354d6be51de2"})  # subroutines/tool_length_probe/tool_touch_off.ngc
+
+
+#: The suite's TWP Python remaps (docs/reviews/parity-ef.plan.md E4a,
+#: Fassung 7, Codex R129–R131): the axes each entry's call graph may READ
+#: from the position (canonical indices; the attributes POS_READ_ATTRS), as
+#: reviewed for the sources whose sha256 SUITE_PY_SHA256 pins. At a parse
+#: the table holds only for an entry whose every link — the entry the
+#: interpreter calls (`sys.modules["remap"].<name>`) and each helper its graph
+#: reaches, in the namespace that calls it — is bound to the definition the
+#: worker compiles itself from those exact bytes (suite_python_reads); any
+#: other Python body reads every axis. test_start_dep_worker recomputes the
+#: graph and the hashes from the repository.
+SUITE_PY_MODULES = ("remap", "twp_params", "twp_prov", "twp_transform", "util")
+SUITE_PY_SHA256 = {
+    "remap": "af5e6eb664bd662e89abafa36d7cc4e2fc770287c71288435eb821361e0e2d5a",
+    "twp_params": "013e4de636cab748b7178e48ae018e38cba5026a55c35806c2e810b02d7bf190",
+    "twp_prov": "694163fa9cbc6cda2fbd52ac4ebb207550b2afc024c059672c80402d344f1acf",
+    "twp_transform": "3ccb18847ac8f25c546884d65d5478d7f6080335e1889d58c5badc9ae95aaa71",
+    "util": "aee8b6917d7a2a504b835112b03e03e5c598138729c0e2e985ca2e8f8c79fcd5",
+}
+SUITE_PY_READS = {
+    "g682": frozenset(), "g684": frozenset(), "g69_core": frozenset(),
+    "g683": frozenset((3, 4, 5)), "g53x_core": frozenset((3, 4, 5)),
+    "twp_touchoff": frozenset((0, 1, 2, 3, 4, 5)),
+}
+#: The interpreter attributes that read the position, by axis.
+POS_READ_ATTRS = {"current_x": 0, "current_y": 1, "current_z": 2, "AA_current": 3, "BB_current": 4,
+                  "CC_current": 5, "u_current": 6, "v_current": 7, "w_current": 8}
+
+
+def py_module_graph(src, filename):
+    """One Python module's own graph, from its bytes: (functions, imports,
+    codes) — functions {top-level name: (axes it reads directly through
+    POS_READ_ATTRS, names it calls by name)}, imports {alias: (module, name)}
+    of its `from … import`, codes {name: the code object compile() gives the
+    top-level def}. Pure."""
+    import ast
+    import types
+    tree = ast.parse(src, filename)
+    functions, imports = {}, {}
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef):
+            axes = {POS_READ_ATTRS[n.attr] for n in ast.walk(node)
+                    if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load) and n.attr in POS_READ_ATTRS}
+            calls = {n.func.id for n in ast.walk(node)
+                     if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)}
+            functions[node.name] = (frozenset(axes), frozenset(calls))
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            for a in node.names:
+                if a.name != "*":
+                    imports[a.asname or a.name] = (node.module, a.name)
+    code = compile(src, filename, "exec", dont_inherit=True)
+    codes = {c.co_name: c for c in code.co_consts
+             if isinstance(c, types.CodeType) and c.co_name in functions}
+    return functions, imports, codes
+
+
+def suite_graph_reads(graphs, entry):
+    """The axes `entry` of `remap` may read through its call graph over the
+    modules in `graphs` ({module: py_module_graph(…)}) and the links it walks
+    [(module, name)]. Pure."""
+    axes, links, seen = set(), [], set()
+    stack = [("remap", entry)]
+    while stack:
+        mod, name = stack.pop()
+        if (mod, name) in seen:
+            continue
+        seen.add((mod, name))
+        links.append((mod, name))
+        functions, imports, _codes = graphs[mod]
+        f_axes, calls = functions[name]
+        axes |= f_axes
+        for c in calls:
+            if c in functions:
+                stack.append((mod, c))
+            elif c in imports and imports[c][0] in graphs and imports[c][1] in graphs[imports[c][0]][0]:
+                stack.append((imports[c][0], imports[c][1]))
+    return frozenset(axes), links
+
+
+def suite_python_reads(modules, sha256=None, table=None):
+    """{entry: axes} for the suite's Python remaps the interpreter WILL call
+    as reviewed (parity-ef plan E4a, Fassung 7): each module of
+    SUITE_PY_MODULES loaded (`modules`, i.e. sys.modules) from a file with
+    the pinned sha256; the entry `modules["remap"].<name>` and every helper
+    its graph reaches — looked up in the `__globals__` of the function that
+    calls it, import aliases included — a function whose code object equals
+    the one compiled from those bytes, from that file, in that module's
+    namespace. An entry failing any of it is left out: it reads every axis.
+    Reads the module files; else pure."""
+    import os as _os
+    sha256 = SUITE_PY_SHA256 if sha256 is None else sha256
+    table = SUITE_PY_READS if table is None else table
+    graphs, files, spaces = {}, {}, {}
+    for m in SUITE_PY_MODULES:
+        mm = modules.get(m)
+        path = getattr(mm, "__file__", None)
+        if mm is None or not path:
+            return {}
+        try:
+            with open(path, "rb") as f:
+                raw = f.read()
+        except OSError:
+            return {}
+        if hashlib.sha256(raw).hexdigest() != sha256.get(m):
+            return {}
+        try:
+            graphs[m] = py_module_graph(raw, path)
+        except (SyntaxError, ValueError):
+            return {}
+        files[m] = _os.path.realpath(path)
+        spaces[m] = getattr(mm, "__dict__", None)
+    out = {}
+    for entry, axes in table.items():
+        fn = getattr(modules["remap"], entry, None)
+        ok = fn is not None
+        stack = [("remap", entry, fn)]
+        seen = set()
+        while ok and stack:
+            mod, name, obj = stack.pop()
+            if (mod, name) in seen:
+                continue
+            seen.add((mod, name))
+            functions, imports, codes = graphs[mod]
+            code = getattr(obj, "__code__", None)
+            if (name not in codes or code is None or code != codes[name]
+                    or _os.path.realpath(code.co_filename) != files[mod]
+                    or getattr(obj, "__globals__", None) is not spaces[mod]):
+                ok = False
+                break
+            g = obj.__globals__
+            for c in functions[name][1]:
+                if c in functions:
+                    stack.append((mod, c, g.get(c)))
+                elif c in imports and imports[c][0] in graphs and imports[c][1] in graphs[imports[c][0]][0]:
+                    stack.append((imports[c][0], imports[c][1], g.get(c)))
+        if ok:
+            out[entry] = frozenset(axes)
+    return out
 
 
 class RemapEnv:
@@ -4208,9 +4507,21 @@ class RemapEnv:
             ngc = opts.get("ngc")
             if ngc and ngc.lower().endswith(".ngc"):
                 ngc = ngc[:-4]
-            self.remaps[key] = {"ngc": (ngc or "").lower() or None, "opaque": opaque or not ngc}
+            self.remaps[key] = {"ngc": (ngc or "").lower() or None, "opaque": opaque or not ngc,
+                                "name": parts[0].lower(),
+                                "hooks": [opts[k] for k in ("python", "prolog", "epilog") if opts.get(k)]}
         self._effect = {}
         self._file = {}
+        self._reads = {}
+        self._file_reads = {}
+        self._file_pos_writes = {}
+        # Files whose position reads carry their WEBUI_POS markers, by
+        # content (sha256): the bundled routine (parity-ef plan E4a).
+        self.marked_files = MARKED_POS_ROUTINES
+        # The Python functions whose reads are bound (suite_python_reads,
+        # set by the worker once the interpreter has loaded them); any other
+        # hook reads every axis.
+        self.python_reads = {}
 
     @classmethod
     def unknown(cls):
@@ -4289,6 +4600,196 @@ class RemapEnv:
             return frozenset()
         self.effect(key)
         return self._effect[key][2]
+
+    def reads(self, key):
+        """The axes (canonical indices) a remapped code's body may READ from
+        the position (parity-ef plan E4), transitively through its o-calls
+        and remapped words — None = any: an opaque body (`python=`,
+        `prolog=`, `epilog=`), a file not found or not readable, a block the
+        reader cannot read, an M98. A file in `marked_files` (by content)
+        reads nothing here: its markers act in the canon. A code without a
+        REMAP reads nothing."""
+        if not self.known:
+            return None
+        if key not in self.remaps:
+            return frozenset()
+        if key not in self._reads:
+            self._reads[key] = self._read_closure([key], [])
+        return self._reads[key]
+
+    def text_reads(self, text):
+        """reads() of a text — a program whose o-calls run other files: its
+        own position reads, the remapped codes its words trigger and the
+        files its o-calls run, followed to the end. None = any."""
+        if not self.known:
+            return None
+        own = self._own_text(text)
+        if own is None:
+            return None
+        _w, keys, names, _m = own
+        r = self._text_own_reads(text)
+        if r is None:
+            return None
+        got = self._read_closure(list(keys), list(names))
+        return None if got is None else r | got
+
+    def pos_writes(self, text, own=True):
+        """Whether a text MAY write a register FROM the position where no
+        canon call shows it (parity-ef plan E6, Codex R133 VP-I88): its own
+        lines (`own`; position_write_lines — any target but "explicit": G92,
+        G10 L20 / L10 / L11, G28.1, G30.1, an expression) and, followed to
+        the end, the bodies of the remapped codes its words trigger and the
+        files its o-calls run. A file in `marked_files` (by content) writes
+        nothing here: a value it could write from a start-dependent position
+        it READS first, and its read markers make the axes unknown (E4). A
+        bound suite Python hook neither: what it executes stores no position
+        by itself (G10 L2 with values it computes — no G92, G28.1, G30.1,
+        L10 / L11 / L20; test-pinned), and a computed value depends on X, Y,
+        Z only through a read SUITE_PY_READS lists (E4a). True = may: an
+        unreadable text or file, a hook not bound, a file not found, an M98.
+        Existence, not timing: a write that runs only after X, Y and Z are
+        known counts too, and so does one a callback reports (G92, an active
+        fixture's L20) — named limit."""
+        if not self.known:
+            return True
+        o = self._own_text(text)
+        if o is None:
+            return True
+        if own and _text_pos_writes(text):
+            return True
+        _w, keys, names, _m = o
+        return self._pos_write_closure(list(keys), list(names))
+
+    def _pos_write_closure(self, keys, names):
+        seen_k, seen_n = set(), set()
+        while keys or names:
+            if keys:
+                key = keys.pop()
+                if key in seen_k:
+                    continue
+                seen_k.add(key)
+                r = self.remaps.get(key)
+                if r is None:
+                    continue
+                if r["opaque"]:
+                    if not r["hooks"] or any(self.python_reads.get(h) is None for h in r["hooks"]):
+                        return True
+                    if not r["ngc"]:
+                        continue
+                names.append(r["ngc"])
+                continue
+            name = names.pop()
+            if name in seen_n:
+                continue
+            seen_n.add(name)
+            paths = [os.path.join(d, name + ".ngc") for d in self.dirs]
+            paths = [p for p in paths if os.path.isfile(p)]
+            if not paths:
+                return True
+            for p in paths:
+                rp = os.path.realpath(p)
+                own = self._own_file(rp)
+                if own is None:
+                    return True
+                if rp not in self._file_pos_writes:
+                    self._file_pos_writes[rp] = self._file_own_pos_writes(rp)
+                if self._file_pos_writes[rp]:
+                    return True
+                _w, ks, ns, _ms = own
+                keys.extend(ks)
+                names.extend(ns)
+        return False
+
+    def _file_own_pos_writes(self, path):
+        try:
+            with open(path, "rb") as f:
+                raw = f.read(self.max_read + 1)
+        except OSError:
+            return True
+        if len(raw) > self.max_read:
+            return True
+        if hashlib.sha256(raw).hexdigest() in self.marked_files:
+            return False
+        return _text_pos_writes(raw.decode("utf-8", errors="replace"))
+
+    def remap_names(self, keys):
+        """The interpreter's names of these remapped codes ("m600", "g68.2")."""
+        return frozenset(self.remaps[k]["name"] for k in keys if k in self.remaps)
+
+    def _read_closure(self, keys, names):
+        reads = set()
+        seen_k, seen_n = set(), set()
+        while keys or names:
+            if keys:
+                key = keys.pop()
+                if key in seen_k:
+                    continue
+                seen_k.add(key)
+                r = self.remaps.get(key)
+                if r is None:
+                    continue
+                if r["opaque"]:
+                    # python=, prolog=, epilog= each (Codex R129 VP129-02):
+                    # a hook reads what its bound graph reads, else any
+                    if not r["hooks"]:
+                        return None
+                    for h in r["hooks"]:
+                        hr = self.python_reads.get(h)
+                        if hr is None:
+                            return None
+                        reads |= hr
+                    if not r["ngc"]:
+                        continue
+                names.append(r["ngc"])
+                continue
+            name = names.pop()
+            if name in seen_n:
+                continue
+            seen_n.add(name)
+            paths = [os.path.join(d, name + ".ngc") for d in self.dirs]
+            paths = [p for p in paths if os.path.isfile(p)]
+            if not paths:
+                return None
+            for p in paths:
+                rp = os.path.realpath(p)
+                own = self._own_file(rp)
+                if own is None:
+                    return None
+                if rp not in self._file_reads:
+                    self._file_reads[rp] = self._file_own_reads(rp)
+                fr = self._file_reads[rp]
+                if fr is None:
+                    return None
+                reads |= fr
+                _w, ks, ns, _ms = own
+                keys.extend(ks)
+                names.extend(ns)
+        return frozenset(reads)
+
+    def _file_own_reads(self, path):
+        try:
+            with open(path, "rb") as f:
+                raw = f.read(self.max_read + 1)
+        except OSError:
+            return None
+        if hashlib.sha256(raw).hexdigest() in self.marked_files:
+            return frozenset()
+        return self._text_own_reads(raw.decode("utf-8", errors="replace"))
+
+    @staticmethod
+    def _text_own_reads(text):
+        """The position reads of one text's own lines; None = any."""
+        if text is None:
+            return None
+        out = set()
+        for raw in text.splitlines():
+            if "#" not in raw:
+                continue
+            r = position_reads_norm(nc_norm(raw))
+            if r is None:
+                return None
+            out |= r
+        return frozenset(out)
 
     def text_effect(self, text):
         """(writes, reaches) of a text — an MDI line, a program, a body: its
@@ -4412,14 +4913,21 @@ def foreign_m600_codes(remap_lines, search_dirs, max_read=65536) -> frozenset:
     search path, LinuxCNC's rule — carries no `(WEBUI_SUB=m600)` /
     `(WEBUI_SUB=m601)` marker or cannot be found or read, or a remap without
     an ngc (python=). The preview cannot know what such a call does to the
-    tool and the machine's state. A code without a REMAP is none. Lower-case
-    codes ("m600", "m601"). Reads the files, else pure."""
+    tool and the machine's state. A `python=`, `prolog=` or `epilog=` hook
+    makes it foreign too, whatever its ngc carries. A code without a REMAP
+    is none. Lower-case codes ("m600", "m601"). Reads the files, else
+    pure."""
     out = set()
     for raw in remap_lines or ():
         parts = str(raw or "").split()
         if not parts or parts[0].lower() not in ("m600", "m601"):
             continue
         code = parts[0].lower()
+        if re.search(r"\b(?:python|prolog|epilog)\s*=", str(raw), re.IGNORECASE):
+            # a Python hook beside or instead of the ngc body runs what the
+            # preview cannot see (parity-ef plan E4a, Codex R129 VP129-02)
+            out.add(code)
+            continue
         m = re.search(r"\bngc\s*=\s*(\S+)", str(raw), re.IGNORECASE)
         if not m:
             out.add(code)

@@ -606,6 +606,162 @@ for _n, _c in _SPELL["mword"].items():
                              "subs": {"othertc.ngc": "o<othertc> sub\nG53 G0 Z0\no<othertc> endsub\nM2\n",
                                       "child.ngc": "o<child> sub\nT2 M600\no<child> endsub\nM2\n"}})
 
+# parity-ef plan E (the program's start-dependent beginning, E10): started
+# under G49 from the believed start, program zero.
+_E = lambda prog, **extra: (prog, "mm", 0.0, (490,), extra)
+_PY683 = ("from interpreter import INTERP_OK\n\n"
+          "def g683(self, **words):\n    a = self.AA_current\n    return INTERP_OK\n")
+_SUITE_PY = {"rs274ngc": "REMAP=M683 modalgroup=10 python=g683\n[PYTHON]\nPATH_PREPEND={work}\nTOPLEVEL={work}/toplevel.py",
+             "subs": {"toplevel.py": "import remap\n", "remap.py": _PY683},
+             "suite_py": {"g683": [3, 4, 5]}, "rotary": True}
+CASES.update({
+    # 1 / 15: Codex's RDP counterexample (VP122-01)
+    "e_g53_rdp": _E("G21 G90\nG53 G0 Z0\nG0 X0\nG0 Y0\nG0 X10\nM2\n"),
+    # 2
+    "e_single": _E("G21 G90\nG0 X10\nG0 Y20\nG1 Z-5 F100\nM2\n"),
+    # Codex R133's counterexamples (VP-I83..VP-I89), verbatim
+    "r133_first_g1_xyz": _E("G21 G90\nG1 X0 Y0 Z0 F100\nG1 X10\nM2\n"),
+    "r133_first_g1_x_control": _E("G21 G90\nG1 X0 F100\nG1 Y0 Z0\nG1 X10\nM2\n"),
+    "r133_g43_before_first": _E("G21 G90\nG43.1 Z10\nG0 X10\nG0 Y0 Z0\nM2\n"),
+    "r133_g43_after_first_control": _E("G21 G90\nG0 X10\nG43.1 Z10\nG0 Y0 Z0\nM2\n"),
+    "r133_g55_before_first": _E("G21 G90\nG10 L2 P2 X5 Y6 Z7\nG55\nG0 X10\nG0 Y0 Z0\nM2\n"),
+    "r133_m6_before_first": ("G21 G90\nM6\nG91 G0 X10\nG0 Y10\nM2\n", "mm", 0.0, (490,),
+                             {"emcio": "TOOL_CHANGE_POSITION = 50 50 50"}),
+    "r133_world_before_first": ("G21 G90\nG0 X10\nG0 Y10\nM2\n", "mm", 0.0, (490,), {"ctx": {"kins_type": 1}}),
+    # Codex R134 (VP-I84/I86 at K = 0): the first move after a tool change at
+    # a position no parse sees, its XYZ end commanded whole — nothing after
+    # it depends on the start, the move itself starts from the unknown
+    "r134_m6_first_absolute": ("G21 G90\nM6\nG0 X10 Y20 Z30\nG0 X20\nM2\n", "mm", 0.0, (490,),
+                               {"emcio": "TOOL_CHANGE_POSITION = 50 50 50"}),
+    "r134_m6_only_absolute": ("G21 G90\nM6\nG0 X10 Y20 Z30\nM2\n", "mm", 0.0, (490,),
+                              {"emcio": "TOOL_CHANGE_POSITION = 50 50 50"}),
+    "r133_g93_no_limits": _E("G21 G90 G93\nG1 X10 F2\nG1 Y10 F2\nM2\n"),
+    "r133_store_before_first_absolute": _E("G21 G90\no100 sub\nG30.1\no100 endsub\no100 call\nG0 X0 Y0 Z0\nG30\nM2\n"),
+    "r133_store_after_known_control": _E("G21 G90\no100 sub\nG30.1\no100 endsub\nG0 X0 Y0 Z0\no100 call\nG30\nM2\n"),
+    "r133_untracked_writes": _E("G21 G90\nG0 Z0\no100 sub\nG30.1\no100 endsub\no100 call\nG0 X10 Y0 Z0\nG0 X20\nM2\n"),
+    # a range that starts after K (VP-I87): moves enough after the beginning
+    "r133_range_after_k": _E("G21 G90\nG0 X10\nG0 Y0 Z0\nG0 X20\nG0 X30\nG0 X40\nM2\n"),
+    # a called file and a remap body that store the position: the flag, the
+    # file followed; the same file storing nothing: none
+    "r133_foreign_write": _E("G21 G90 G54\nG0 X0 Y0 Z100\no<sq> call\nM2\n",
+                             subs={"sq.ngc": "o<sq> sub\nG30.1\no<sq> endsub\nM2\n"}),
+    "r133_remap_write": _E("G21 G90\nG0 Z5\nM200\nG0 X0 Y0 Z0\nG28\nM2\n",
+                           rs274ngc="REMAP=M200 modalgroup=10 ngc=writer",
+                           subs={"writer.ngc": "o<writer> sub\nG28.1\no<writer> endsub\nM2\n"}),
+    "r133_remap_no_write": _E("G21 G90\nG0 Z5\nM200\nG0 X0 Y0 Z0\nM2\n",
+                              rs274ngc="REMAP=M200 modalgroup=10 ngc=mover",
+                              subs={"mover.ngc": "o<mover> sub\nG0 Z7\no<mover> endsub\nM2\n"}),
+    # an inline sub that writes nothing, and one that writes explicitly: no flag
+    "r133_inline_no_write": _E("G21 G90\no100 sub\nG0 Z5\no100 endsub\no100 call\nG0 X0 Y0 Z0\nM2\n"),
+    "r133_inline_explicit_write": _E("G21 G90\no100 sub\nG10 L2 P1 X1 Y2 Z3\no100 endsub\no100 call\nG0 X0 Y0 Z0\nM2\n"),
+    # the base sweep's first pose: K, a move after it
+    "e_base_first": _E("G21 G90\nG0 X10\nG0 Y20 Z-5\nG0 Y0 Z0\nM2\n"),
+    # 3: a turned fixture — X/Y unknown at the first move, Z still dependent
+    "e_rotated": _E("G21 G90\nG10 L2 P1 R30\nG0 X5 Y5\nG0 Z5\nM2\n"),
+    # 4
+    "e_g91": _E("G21 G90\nG91 G0 X10\nG90 G0 Y5\nM2\n"),
+    # 5: G28 / G30 legs (G28 at 1 2 3, G30 at 10 20 30)
+    "e_g28_none": _E("G21 G90\nG28\nM2\n", var={5161: 1, 5162: 2, 5163: 3}),
+    "e_g28_z": _E("G21 G90\nG28 Z10\nM2\n", var={5161: 1, 5162: 2, 5163: 3}),
+    "e_g28_g91_z0": _E("G21 G91\nG28 Z0\nG90\nM2\n", var={5161: 1, 5162: 2, 5163: 3}),
+    "e_g30_xy": _E("G21 G90\nG30 X5 Y5\nM2\n", var={5181: 10, 5182: 20, 5183: 30}),
+    # 6: an M6 at a tool change position after the beginning — unknown, never dependent
+    "e_m6_tc": _E("G21 G90\nG0 X0 Y0 Z40\nM6\nG0 X10\nM2\n", emcio="TOOL_CHANGE_POSITION = 50 50 50"),
+    # 7: the word, never the value
+    "e_g0x0": _E("G21 G90\nG0 X0\nM2\n"),
+    # 8: a G43 and a fixture switch carry the mask
+    "e_g43_fixture": _E("G21 G90\nG0 X0\nG43.1 Z10\nG55\nG0 X5\nG0 Y0\nM2\n"),
+    # 9: G92 from a dependent X
+    "e_g92": _E("G21 G90\nG0 Z10\nG92 X0\nG0 Y5\nG0 X3\nM2\n"),
+    # 10: position reads
+    "e_read_dep": _E("G21 G90\nG0 Z10\n#1 = #5420\nG0 X[#1+5]\nM2\n"),
+    "e_read_known": _E("G21 G90\nG0 X0 Y0 Z10\n#1 = #5420\nG0 X[#1+5]\nM2\n"),
+    "e_read_same_line": _E("G21 G90\nG0 Z10\nG0 X[#5420+5]\nM2\n"),
+    "e_read_named": _E("G21 G90\nG0 X0 Z10\n#1 = #<_y>\nG0 X5\nM2\n"),
+    "e_read_inline": _E("G21 G90\no100 sub\n#1 = #5421\no100 endsub\nG0 X0 Y0 Z10\no100 call\nG0 X5\nM2\n"),
+    # 12: a remap body that reads (ordered), the axis dependent / known
+    "e_remap_read": _E("G21 G90\nG0 Z10\nM200\nG0 X5\nM2\n", rs274ngc="REMAP=M200 modalgroup=10 ngc=reader",
+                       subs={"reader.ngc": "o<reader> sub\n#1 = #5420\no<reader> endsub\nM2\n"}),
+    "e_remap_read_known": _E("G21 G90\nG0 X0 Y0 Z10\nM200\nG0 X5\nM2\n",
+                             rs274ngc="REMAP=M200 modalgroup=10 ngc=reader",
+                             subs={"reader.ngc": "o<reader> sub\n#1 = #5420\no<reader> endsub\nM2\n"}),
+    # 12a–12d: a bound Python reader of the rotaries (a synthetic suite)
+    "e_py_rotary_known": _E("G21 G90\nG0 X0 Y0 Z10\nM683\nG0 X5\nM2\n", **_SUITE_PY),
+    "e_py_rotary_tc6": _E("G21 G90\nG0 X0 Y0 Z10\nM6\nG0 X10 Y10 Z20\nM683\nG0 X5\nG0 A0\nG0 X6\nM2\n",
+                          emcio="TOOL_CHANGE_POSITION = 50 50 50 0 0 0", **_SUITE_PY),
+    "e_py_rotary_tc3": _E("G21 G90\nG0 X0 Y0 Z10\nM6\nG0 X10 Y10 Z20\nM683\nG0 X5\nM2\n",
+                          emcio="TOOL_CHANGE_POSITION = 50 50 50", **_SUITE_PY),
+    "e_py_rotary_inline_tc3": _E("G21 G90\no100 sub\nM683\no100 endsub\nG0 X0 Y0 Z10\no100 call\nG0 X5\nM2\n",
+                                 emcio="TOOL_CHANGE_POSITION = 50 50 50", **_SUITE_PY),
+    "e_py_rotary_inline_tc6": _E("G21 G90\no100 sub\nM683\no100 endsub\nG0 X0 Y0 Z10\no100 call\nG0 X5\nM2\n",
+                                 emcio="TOOL_CHANGE_POSITION = 50 50 50 0 0 0", **_SUITE_PY),
+    "e_py_unbound": _E("G21 G90\nG0 Z10\nM683\nG0 X5\nM2\n",
+                       **{**_SUITE_PY, "suite_py": None}),
+    # E4a, the REAL suite remaps: loaded by the interpreter from the
+    # repository's twp/python (no remap called — the binding at the first
+    # callback is the point)
+    "e_twp_real_bind": _E("G21 G90\nG0 X0 Y0 Z10\nM2\n", rotary=True,
+                          rs274ngc="\n".join(f"REMAP={c} modalgroup={g} python={fn}" for c, g, fn in (
+                              ("M530", 10, "g53x_core"), ("G68.2", 1, "g682"), ("G68.3", 1, "g683"),
+                              ("G68.4", 1, "g684"), ("M469", 10, "g69_core"), ("M535", 10, "twp_touchoff"))),
+                          ini=(f"[TWP]\nPRIMARY = C\nSECONDARY = B\n[KINS]\nKINEMATICS = xyzacb_trsrn\n"
+                               f"[AXIS_B]\nMIN_LIMIT = -120\nMAX_LIMIT = 120\n"
+                               f"[AXIS_C]\nMIN_LIMIT = -320\nMAX_LIMIT = 320\n"
+                               f"[PYTHON]\nPATH_APPEND = {HERE.parent}/examples/sim_config/twp/python\n"
+                               f"TOPLEVEL = {HERE.parent}/examples/sim_config/twp/python/toplevel.py\n")),
+    # Codex R132 VP-I78: a read BEFORE the program's first callback
+    "e_read_first": _E("#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_named": _E("#1=#<_x>\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_modal": _E("G21 G90\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_same": _E("G21 G90 #1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_blank": _E("\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n"),
+    "e_read_first_pct": _E("%\n#1=#5420\nG0 X[#1+5] Y0 Z0\nG0 X10\nM2\n%\n"),
+    "e_read_first_motion": _E("G0 X[#5420+5] Y0 Z0\nG0 X10\nM2\n"),
+    # Codex R132 VP-I79: an M6 at a tool change position while X/Y depend on
+    # the start, and before the first move
+    "e_m6_early": _E("G21 G90\nG53 G0 Z0\nM6\nG91 G0 X10\nG0 Y10\nM2\n", emcio="TOOL_CHANGE_POSITION = 50 50 50"),
+    "e_m6_first": _E("G21 G90\nM6\nG91 G0 X10\nG0 Y10\nM2\n", emcio="TOOL_CHANGE_POSITION = 50 50 50"),
+    # Codex R132 VP-I80: the interpreter's words unavailable (injected)
+    "e_no_interp": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", no_interp=True),
+    "e_with_interp": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n"),
+    # Codex R132 VP-I81: a switchable kinematics, its live type not read
+    "e_kins_unknown": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": None},
+                         ini="[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"),
+    "e_kins_zero": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": 0},
+                      ini="[KINS]\nKINEMATICS = xyzac-trt-kins sparm=identityfirst\n"),
+    "e_kins_fixed": _E("G21 G90\nG53 G0 Z0\nG0 X10\nM2\n", ctx={"kins_type": None}),
+    # Codex R132 point 8: writes in the beginning a text out of order cannot
+    # place — named only where a beginning exists (the TWP corpus commands
+    # X, Y, Z first: none)
+    "e_foreign_known_start": _E("G21 G90 G54\nG0 X0 Y0 Z100\no<sq> call\nM2\n",
+                                subs={"sq.ngc": "o<sq> sub\nG1 X10 F100\no<sq> endsub\nM2\n"}),
+    "e_foreign_dep_start": _E("G21 G90 G54\nG0 Z100\no<sq> call\nM2\n",
+                              subs={"sq.ngc": "o<sq> sub\nG1 X10 F100\no<sq> endsub\nM2\n"}),
+    # 13: a world labeling at the start
+    "e_world_start": _E("G21 G90\nG0 X5 Y5\nG0 Z5\nM2\n", ctx={"kins_type": 1}),
+    # 15 (b): one mask over a run — an arc in XY with Z dependent (outside
+    # its plane: in scope) — decimates exactly as with Z known
+    "e_arc_dep": _E("G21 G90\nG0 X10 Y0\nG3 X-10 Y0 I-10 J0 F100\nG3 X10 Y0 I10 J0\nM2\n"),
+    "e_arc_known": _E("G21 G90\nG0 X10 Y0 Z0\nG3 X-10 Y0 I-10 J0 F100\nG3 X10 Y0 I10 J0\nM2\n"),
+    # an arc whose plane holds a dependent axis: unknown, never shifted
+    "e_arc_plane_dep": _E("G21 G90\nG0 X10 Z5\nG3 X-10 Y0 I-10 J0 F100\nG0 X0 Y0\nM2\n"),
+    # 16: the time basis
+    "e_time_a": _E("G21 G90\nG1 X0 F100\nG1 Y0 F200\nM2\n"),
+    "e_time_b": _E("G21 G90\nG1 X0 F200\nG1 Y0 F100\nM2\n"),
+    "e_first_g1": _E("G21 G90\nG1 X0 F100\nM2\n"),
+    "e_g93": _E("G21 G90 G93\nG1 X10 F2\nM2\n"),
+    "e_g93_limits": _E("G21 G90 G93\nG1 X10 F2\nM2\n", traj="MAX_LINEAR_VELOCITY = 20"),
+    "e_g95": _E("G21 G90 G95 S1000 M3\nG1 X10 F0.1\nM2\n"),
+    # 18: dependent to the end
+    "e_all_dep": _E("G21 G90\nG91 G0 X10\nG0 Y10\nM2\n"),
+    # the limits: a dependent axis gives no verdict, a known one does
+    "e_limit_dep": _E("G21 G90\nG91 G0 X600\nM2\n"),
+    "e_limit_known": _E("G21 G90\nG0 X600\nM2\n"),
+    # 11: the routine's return takes the saved state (#3106 1 / 0)
+    "e_m600_return": _m600(prog="G21 G90\nG53 G0 Z0\nT2 M600\nG0 Z5\nM2\n"),
+    "e_m600_no_return": _m600(prog="G21 G90\nG53 G0 Z0\nT2 M600\nG0 Z5\nM2\n", var={3106: 0}),
+})
+
 program, units, z_off, gcodes_live, extra = CASES[sys.argv[1]]
 inch = units == "in"
 ini = work / "machine.ini"
@@ -714,6 +870,19 @@ import gcode_parse_worker as worker  # noqa: E402
 ctx = {"file": str(ngc), "ini_path": str(ini), "units": units, "g5x_index": 1,
        "var_patches": {str(b + j): "0" for b in range(5220, 5381, 20) for j in range(1, 11)},
        "kins_type": 0, "kins_frame": None, **extra.get("ctx", {})}
+if extra.get("no_interp"):
+    # Codex R132 VP-I80's injection: the interpreter's state unavailable
+    import gcode_canon  # noqa: E402
+    gcode_canon.PreviewCanon.interp = staticmethod(lambda: None)
+    gcode_canon.interp_this = lambda: None
+if extra.get("suite_py") is not None:
+    # a synthetic suite module standing in for the TWP remaps (plan E4a):
+    # bound by its own bytes, read set from the case
+    import hashlib  # noqa: E402
+    import gateway_util  # noqa: E402
+    gateway_util.SUITE_PY_MODULES = ("remap",)
+    gateway_util.SUITE_PY_SHA256 = {"remap": hashlib.sha256((work / "remap.py").read_bytes()).hexdigest()}
+    gateway_util.SUITE_PY_READS = {k: frozenset(v) for k, v in extra["suite_py"].items()}
 err = io.StringIO()
 _mmap = (work / ".tool.mmap").read_bytes()
 with contextlib.redirect_stderr(err):
@@ -740,7 +909,8 @@ def pts(key):
     return np.frombuffer(b, dtype=np.float32).reshape(-1, 3).tolist() if isinstance(b, bytes) else b
 
 
-comparable = {k: v for k, v in out.items() if k not in ("file", "tlo_start")}
+# the start basis: tlo_start, and the start the parse assumed in its frame
+comparable = {k: v for k, v in out.items() if k not in ("file", "tlo_start", "start_believed")}
 if len(sys.argv) > 2:
     # the encoded payload, as the gateway would publish it
     out["file"] = "/program.ngc"
@@ -766,6 +936,15 @@ print(json.dumps({
     "probe_bands": out.get("probe_bands"), "probe_notes": out.get("probe_notes"),
     "stale_offset_untracked": out.get("stale_offset_untracked"),
     "feed_tcum": u("feed_tcum", "<f4"),
+    "feed_dep": u("feed_dep", "<u1"), "rapid_dep": u("rapid_dep", "<u1"),
+    "feed_dep_basis": u("feed_dep_basis", "<u1"), "rapid_dep_basis": u("rapid_dep_basis", "<u1"),
+    "feed_dep_f": u("feed_dep_f", "<f4"), "rapid_dep_f": u("rapid_dep_f", "<f4"),
+    "start_believed": out.get("start_believed"), "position_read_lines": out.get("position_read_lines"),
+    "start_dep_unavailable": out.get("start_dep_unavailable"),
+    "start_writes_untracked": out.get("start_writes_untracked"),
+    "start_unbound": out.get("start_unbound"),
+    "feed_lines_all": u("feed_lines", "<u4"), "python_reads": [ln for ln in err.getvalue().splitlines()
+                                                              if ln.startswith("python remap reads")],
     "meta": {k: meta.get(k) for k in ("start_known", "tlo_start", "start_mode", "start_reason")},
     "digest_without_start": __import__("hashlib").sha256(
         __import__("msgspec").msgpack.encode(comparable)).hexdigest(),

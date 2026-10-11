@@ -11,7 +11,8 @@
 // every cum lives on the ENTRY track's axis. Pure.
 import { unitedNotes, type CollisionHit, type CollisionResult } from "./collision";
 
-export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, shift: number, baseLen: number): CollisionResult {
+export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, shift: number, baseLen: number,
+                                 entryMoveEnd?: number): CollisionResult {
   const shifted: CollisionHit[] = base.hits.map(h => ({
     ...h,
     cum: h.cum + shift,
@@ -33,7 +34,12 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
   // Marked as the entry move's own (Codex R33 VP-I07): its records carry
   // the program's first line, so line + pair alone named a program contact
   // on that line and pair too.
-  const entryHits: CollisionHit[] = entry.hits.map(h => ({ ...h, entry: true }));
+  // The side sweep also covers the start-dependent beginning (parity-ef plan
+  // E7): only a contact that began on the entry MOVE (before `entryMoveEnd`,
+  // the first point's cum) reads "entry"; the others keep their lines.
+  const entryHits: CollisionHit[] = entry.hits.map(h => ({
+    ...h, entry: true,
+    ...(entryMoveEnd == null || h.cum <= entryMoveEnd + 1e-9 ? { entryMove: true as const } : {}) }));
   for (const e of entryHits) {
     if (e.continuation !== undefined || e.dist > CONTACT || e.cumEnd < shift - tol) continue;
     const bi = shifted.findIndex(b => b.continuation === undefined && b.dist <= CONTACT
@@ -77,6 +83,35 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     bvhMs: entry.bvhMs + base.bvhMs,
     sweepMs: entry.sweepMs + base.sweepMs,
     truncated: mergedTruncated(entry.truncated, base.truncated, shift, baseLen),
+  };
+}
+
+/** A run check's bound beginning (docs/reviews/parity-ef.plan.md E5/E7)
+ *  merged onto the BASE track's axis: the run is displayed on the base,
+ *  where the beginning has no duration — its findings sit at the start (cum
+ *  0, their lines kept), every base cum stays. The side sweep `side` covers
+ *  the entry move and the beginning bound to the run's start joints (axis
+ *  of the bound track, the base's point K at `shift`). The base result's
+ *  `startDependent` is answered by it and dropped. Pure. */
+export function mergeBeginningOntoBase(side: CollisionResult, base: CollisionResult, shift: number, baseLen: number,
+                                       entryMoveEnd?: number): CollisionResult {
+  const m = mergeEntryResult(side, base, shift, baseLen, entryMoveEnd);
+  const at = (c: number) => Math.max(0, c - shift);
+  return {
+    ...m,
+    hits: m.hits.map(h => ({
+      ...h, cum: at(h.cum), cumEnd: at(h.cumEnd),
+      intervals: h.intervals?.map(iv => [at(iv[0]), at(iv[1])] as [number, number]),
+      ...(h.spanCumEnd !== undefined ? { spanCumEnd: at(h.spanCumEnd) } : {}),
+    })),
+    // a side sweep cut short leaves the beginning partly unchecked: nothing
+    // on the base axis is a checked prefix then
+    truncated: side.truncated ? { covered: 0, reason: side.truncated.reason } : base.truncated,
+    // the base's range and boundary contacts are on the base axis already
+    // and stay what they were (Codex R133 VP-I87): a bound beginning checks
+    // [0, K], never the stretch between K and a range that starts later
+    ...(base.range ? { range: base.range } : {}),
+    ...(base.boundaryContacts ? { boundaryContacts: base.boundaryContacts } : {}),
   };
 }
 

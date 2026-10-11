@@ -396,14 +396,21 @@ class TestCallLines(unittest.TestCase):
         self.assertEqual([row[3] for row in r["toollen_table"]], [3])
         # the line of the deepest frame running the main file: a called
         # file's call (L3), a loop's line each time (L5 twice), an inline
-        # sub's own line (L2), an M98 sub's (L7), and a `%` file with CRLF
-        # and a UTF-8 comment — a frame's position is a byte offset (L5)
+        # sub's own line (L2), and a `%` file with CRLF and a UTF-8 comment —
+        # a frame's position is a byte offset (L5)
         for case, lines in (("m600_ext_call", [3]), ("m600_loop", [5, 5]), ("m600_inline_sub", [2]),
-                            ("m600_m98", [7]), ("m600_pct_crlf", [5])):
+                            ("m600_pct_crlf", [5])):
             r = probe(case)
             self.assertIsNone(r["parse_error"], case)
             self.assertEqual(r["tool_change_lines"], [[ln, 2] for ln in lines], case)
             self.assertEqual([row[3] for row in r["toollen_table"]], lines, case)
+        # An M98 sub's line was L7. Since parity-ef plan E4 an M98 may call a
+        # text the reader does not see, and that text may READ the position —
+        # no line says when: every axis unknown from the program's start, so
+        # no measurement is predicted at all.
+        r = probe("m600_m98")
+        self.assertIsNone(r["parse_error"])
+        self.assertEqual((r["position_read_lines"], r["toollen_table"]), ([0], None))
 
 
 class TestRemapBodies(unittest.TestCase):

@@ -108,6 +108,15 @@ export interface CollisionTrack {
    *  `probe_bands`, docs/reviews/parity-ef.plan.md F2): a modeled hull — its
    *  records are `possible`, a separation there is no verified one. */
   band?: Uint8Array;
+  /** K of a base track's start-dependent beginning (ScrubTrack.depEnd,
+   *  parity-ef plan E7): its baseline is point K's pose, and its result names
+   *  the beginning (`startDependent`). 0 / absent = none. */
+  depEnd?: number;
+  /** The start-dependent axes per point (ScrubTrack.dep). */
+  dep?: Uint8Array;
+  /** X, Y, Z unknown at the first point (ScrubTrack.startUnbound, Codex
+   *  R133 VP-I84): the beginning is named as not checkable. */
+  startUnbound?: number[];
   /** k > 0 = after k predicted tool measurements (a braking range began
    *  before): the path assumes the table length and the modeled probe
    *  sequence — the note says so (CollisionOptions.probeBands). */
@@ -217,6 +226,11 @@ export interface CollisionHit {
    *  first point and carries its line) — the same line and pair as a
    *  program contact, another finding (Codex R33 VP-I07). */
   entry?: true;
+  /** Of the side sweep's records, one whose contact began on the entry MOVE
+   *  itself (the live position to the first point) — the others lie on the
+   *  program's start-dependent beginning bound to the start (parity-ef plan
+   *  E7) and read as their lines. */
+  entryMove?: true;
   /** A record of a contact in progress at a RANGE sweep's start (plan
    *  „Prüfung im Lauf“ 3b): it began before the range, so the range cannot
    *  tell its onset or its kind — the full check does. Never a collision of
@@ -298,6 +312,13 @@ export interface CollisionOptions {
   /** The program's offsets set from that position are not tracked (its
    *  lines do not run in text order — subroutines, loops): the note says so. */
   staleOffsetUntracked?: boolean;
+  /** The program's start-dependent beginning (parity-ef plan E): the
+   *  interpreter's words were not available, so X, Y, Z are unknown from the
+   *  start (payload `start_dep_unavailable`, Codex R132 VP-I80); offsets
+   *  written in it where the text cannot place them are not tracked
+   *  (`start_writes_untracked`, R132 point 8). */
+  startUntracked?: string;
+  startWritesUntracked?: boolean;
   /** Tool measurements the preview cannot predict (payload
    *  `probe_unpredicted`, M600 in the preview): every move after the first is
    *  an unknown start (the track's `unpredicted`) — the note names the
@@ -364,6 +385,12 @@ export interface CollisionResult {
    *  trivkins machine, wrong for the machine that declared otherwise. Null
    *  means the sweep is certified. Unchecked is not clear. */
   uncertified: string | null;
+  /** The program's START-DEPENDENT beginning (docs/reviews/parity-ef.plan.md
+   *  E7): a base track's points before K stand where the parse assumed the
+   *  start — not swept here; checked from the machine's position in the
+   *  simulation (the entry side sweep binds it, and its merge drops this).
+   *  The lines it spans; `whole` = the track has nothing else. Absent = none. */
+  startDependent?: { fromLine: number; toLine: number; whole: boolean; untracked?: boolean; unbound?: boolean };
   /** The statements `uncertified` joins ("; "), one each — what a merge of
    *  results (the shards, the entry move over the program) unites, so no
    *  result's statement is lost behind another's (`unitedNotes`). Absent on
@@ -1234,7 +1261,28 @@ export function* sweepCollisionsIter(
   const noteParts: string[] = [];
   const geoNote = geometryNote(model);
   if (geoNote) noteParts.push(geoNote);
-  const notesOf = (parts: string[]) => ({ uncertified: parts.length ? parts.join("; ") : null, notes: parts.slice() });
+  // The start-dependent beginning, named apart from the guarantee (plan E7).
+  // A start no entry move can bind (`startUnbound`, Codex R133 VP-I84) is
+  // named whatever K is: at K = 0 the first move alone starts where the
+  // machine stands, unseen — its XYZ end commanded whole, nothing after it
+  // depends on the start, and the move itself is in no sweep (Codex R134).
+  // With no point after it the whole program is that move.
+  const depK = Math.min(track.depEnd ?? 0, track.count);
+  const unbound = !!track.startUnbound?.length;
+  let startDependent: CollisionResult["startDependent"];
+  if (depK > 0 || (unbound && track.count > 0)) {
+    let from = 0, to = 0;
+    for (let i = 0; i < Math.min(depK + 1, track.count); i++) {
+      const ln = track.lines[i] ?? 0;
+      if (ln > 0 && (!from || ln < from)) from = ln;
+      if (ln > to) to = ln;
+    }
+    startDependent = { fromLine: from, toLine: to, whole: depK > 0 ? depK >= track.count : track.count <= 1,
+                       // not checked in the simulation either
+                       ...(unbound ? { unbound: true } : {}) };
+  }
+  const notesOf = (parts: string[]) => ({ uncertified: parts.length ? parts.join("; ") : null, notes: parts.slice(),
+                                          ...(startDependent ? { startDependent } : {}) });
   // A move whose START no parse can know (an unknown-start point after the
   // first — the program's own start is the entry move's): the controller
   // moved the machine at a tool change ([EMCIO] TOOL_CHANGE_POSITION) where
@@ -1267,12 +1315,17 @@ export function* sweepCollisionsIter(
     const at = [...new Set(unknownStarts)];   // a cycle is several moves on one line
     // 0 = a write the parse caught without a main-file line to name
     const off = opts.staleOffsetLines ?? [], named = off.filter(l => l > 0);
-    noteParts.push(`${k} move${k === 1 ? "" : "s"} after a tool change run${k === 1 ? "s" : ""} from a position the preview cannot know — `
+    // after a tool change the controller moves at, or from the program's
+    // start out of the scope a start can be bound in (parity-ef plan E3)
+    noteParts.push(`${k} move${k === 1 ? "" : "s"} run${k === 1 ? "s" : ""} from a position the preview cannot know — `
       + (!off.length ? `not checked until the position is known again (${list(at)})`
         : named.length ? `not checked to the program's end: the offset${named.length === 1 ? "" : "s"} set from that position at ${list(named)} `
             + `stay${named.length === 1 ? "s" : ""} unknown whatever is positioned after (${list(at)})`
         : `not checked to the program's end: an offset set from that position stays unknown whatever is positioned after (${list(at)})`)
       + (opts.staleOffsetUntracked ? "; in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked" : ""));
+  }
+  if (opts.startUntracked) {
+    noteParts.push("the interpreter's state was not available: where the program starts from is not tracked");
   }
   if (opts.probeStops?.length || afterProbe.length) {
     const stop = opts.probeStops?.[0];
@@ -1310,6 +1363,19 @@ export function* sweepCollisionsIter(
         : eo.enabled === null || eo.z === null ? "the external Z offset was not read" : null;
       if (off) noteParts.push(`At the check's basis ${off} — the probe's braking range and the path after the measurement are outside the model`);
     }
+  }
+  if (opts.startWritesUntracked) {
+    // An offset or a stored position written from the start's position
+    // where the text cannot place it (a subroutine, a loop, a called file)
+    // places the moves AFTER the beginning too: the checked part's guarantee
+    // does not hold — a note on the base and on the bound track alike, the
+    // base's beginning flagged as well (Codex R132 point 8, R133). The
+    // worker decides whether such a write may run; no mask is asked: the
+    // first absolute XYZ endpoint carries none, and a value stored before
+    // it is not repaired by it (Codex R133 VP-I88).
+    if (startDependent) startDependent.untracked = true;
+    noteParts.push("offsets and stored positions written from the position in subroutines, loops, called files "
+      + "or remapped codes are not tracked — they may keep where the machine stood at the start");
   }
   // A program tool whose body is unknown (no table length): per real segment
   // it is in the spindle for, the tool's own pairs are skipped.
@@ -1594,7 +1660,11 @@ export function* sweepCollisionsIter(
   // records continuations of it.
   // The onset belongs to the first segment WITH length: a zero-length
   // unknown-start rapid (schema 6) carries no sample.
-  let firstSeg = 1;
+  // A base track's start-dependent beginning (parity-ef plan E7): its points
+  // before K stand where the parse ASSUMED the start, so the program's first
+  // KNOWN pose — point K — is the baseline's, never the assumed one.
+  const p0 = Math.max(0, Math.min(track.depEnd ?? 0, n - 1));
+  let firstSeg = Math.min(p0 + 1, Math.max(1, n - 1));
   while (firstSeg < n - 1 && dcum[firstSeg]! - dcum[firstSeg - 1]! <= 1e-9) firstSeg++;
   const staticExcluded = new Uint8Array(pairs.length);
   const inContact = new Uint8Array(pairs.length);
@@ -1655,9 +1725,9 @@ export function* sweepCollisionsIter(
     onsetLine[pi] = track.lines[firstSeg] ?? 0;
     onsetRapid[pi] = track.rapid[firstSeg] === 1 ? 1 : 0;
   };
-  const poseFirst = () => poseAt(track.pos[0]!, track.pos[1]!, track.pos[2]!,
-                                 track.abc[0]!, track.abc[1]!, track.abc[2]!, vertModel?.[0] ?? identityKins,
-                                 termFor(0), tloFor(0), toolFor(0));
+  const poseFirst = () => poseAt(track.pos[p0 * 3]!, track.pos[p0 * 3 + 1]!, track.pos[p0 * 3 + 2]!,
+                                 track.abc[p0 * 3]!, track.abc[p0 * 3 + 1]!, track.abc[p0 * 3 + 2]!,
+                                 vertModel?.[p0] ?? identityKins, termFor(p0), tloFor(p0), toolFor(p0));
   // The model's REST pose — every joint at zero, raw (no kins, no WCS, no
   // TLO): the second baseline that tells a mechanical neighbour (touching
   // here too) from a crash pose (clear here). A classification probe, not

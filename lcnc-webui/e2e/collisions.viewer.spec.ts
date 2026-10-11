@@ -90,12 +90,12 @@ test("a move whose start no parse can know is named in the check", async ({ page
   // through optional calls, never `!` — a cold model threw before it was there.
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCollisionSummary?.()?.uncertified ?? null),
                     { timeout: 60_000 })
-    .toBe("1 move after a tool change runs from a position the preview cannot know — not checked until the position is known again (L4)");
+    .toBe("1 move runs from a position the preview cannot know — not checked until the position is known again (L4)");
   await openSimTab(page);
   const item = page.locator(".simPanel .simSummary .sumItem").first();
   await expect(item.locator('span[title^="Not certified"]'), "the marker").toHaveCount(1);
   await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
-  await expect(page.locator(".helpPopover:popover-open")).toContainText("after a tool change runs from a position the preview cannot know");
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("1 move runs from a position the preview cannot know");
   await page.keyboard.press("Tab");   // light dismiss without Escape (E-Stop)
   await ctl({ op: "reset" });
 });
@@ -113,7 +113,7 @@ test("an offset set from the unknown position is named, to the program's end", a
              stale_offset_lines: [3], stale_offset_untracked: true } });
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCollisionSummary?.()?.uncertified ?? null),
                     { timeout: 60_000 })
-    .toBe("1 move after a tool change runs from a position the preview cannot know — not checked to the program's end: "
+    .toBe("1 move runs from a position the preview cannot know — not checked to the program's end: "
       + "the offset set from that position at L3 stays unknown whatever is positioned after (L4); "
       + "in subroutines and loops, stored positions (G28.1 / G30.1) and fixture writes in called files are not tracked");
   await ctl({ op: "reset" });

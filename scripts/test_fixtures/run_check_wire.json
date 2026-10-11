@@ -1,5 +1,5 @@
 {
-  "_doc": "The status envelope's run_basis and preview_origin (plan „Prüfung im Lauf“ 1a/1b). The gateway's tests hold its output to these keys (test_command_dispatch, test_bulk_pipeline); the client's tests read the values through runBasis.ts / checkBasis.ts. Change both sides with this file.",
+  "_doc": "The status envelope's run_basis and preview_origin (plan \u201ePr\u00fcfung im Lauf\u201c 1a/1b). The gateway's tests hold its output to these keys (test_command_dispatch, test_bulk_pipeline); the client's tests read the values through runBasis.ts / checkBasis.ts. Change both sides with this file.",
   "run_basis": {
     "run_id": 3,
     "state": "sent",
@@ -81,7 +81,12 @@
         "C": 90.0
       },
       "eoffset_z": 0.0,
-      "eoffset_enabled": false
+      "eoffset_enabled": false,
+      "joints": [
+        1.5,
+        -2.0,
+        30.0
+      ]
     },
     "verified": true,
     "why": null

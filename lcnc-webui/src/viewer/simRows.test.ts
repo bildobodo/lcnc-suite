@@ -33,7 +33,7 @@ describe("simRows", () => {
 
   it("says a re-entry, a near miss, a contact through later lines, and the entry move", () => {
     const [a, b, c] = buildSimRows({
-      clash: [clash({ cum: 1, line: 5, entry: true, key: "E5|t|w|0" }), clash({ cum: 2, line: 5, reentry: true, key: "C5|t|w|1" }),
+      clash: [clash({ cum: 1, line: 5, entry: true, entryMove: true, key: "E5|t|w|0" }), clash({ cum: 2, line: 5, reentry: true, key: "C5|t|w|1" }),
         clash({ cum: 3, line: 6, dist: 1.5, spanEndLine: 9, key: "C6|t|w|0" })],
       limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
     });
@@ -41,6 +41,16 @@ describe("simRows", () => {
     expect(b!.note).toBe("re-entry");
     expect(c!.note).toBe("near miss, 1.5 mm apart · through L9");
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
+  });
+
+  it("reads a side-sweep finding on the bound beginning as its line, not the entry move", () => {
+    // parity-ef plan E7: the side sweep covers the start-dependent beginning
+    // too — origin E (its key), but only the entry move itself reads "entry"
+    const [a] = buildSimRows({
+      clash: [clash({ cum: 1, line: 3, entry: true, key: "E3|t|w|0" })],
+      limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
+    });
+    expect(a!.lineLabel).toBe("L3");
   });
 
   it("marks the rows after the first point a move ends beyond the window — the latest the run reaches", () => {
