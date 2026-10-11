@@ -35,7 +35,7 @@ function payload(kind: "dense" | "thin") {
   }
   return {
     lines: line,
-    body: Buffer.from(encode({ file: `/${kind}.ngc`, preview_schema: 10, feed, feed_lines: lines, feed_outside: new Uint8Array(outside),
+    body: Buffer.from(encode({ file: `/${kind}.ngc`, preview_schema: 11, feed, feed_lines: lines, feed_outside: new Uint8Array(outside),
       rapid: [[0, 0, 60], [-150, -150, 60], [-150, -150, 5]], rapid_outside: new Uint8Array(3) })),
   };
 }
@@ -170,7 +170,7 @@ function ladderPayload() {
   }
   return {
     lines: line,
-    body: Buffer.from(encode({ file: "/ladder.ngc", preview_schema: 10, feed, feed_lines: lines, feed_seq: seq, feed_outside: new Uint8Array(outside),
+    body: Buffer.from(encode({ file: "/ladder.ngc", preview_schema: 11, feed, feed_lines: lines, feed_seq: seq, feed_outside: new Uint8Array(outside),
       rapid, rapid_lines: rapidLines, rapid_seq: rapidSeq, rapid_outside: new Uint8Array(rapid.length) })),
   };
 }
@@ -751,7 +751,7 @@ test("the toolpath box's end marks stand off the background and the model in fou
   // a program with all three extents (a flat one has no Z edges to mark):
   // X −150 … 230 (past the window's 200 — its overflow drawn too), Y −150 … 125, Z 0 … 40
   const corners = [[-150, -150, 0], [230, -150, 0], [230, 125, 20], [-150, 125, 40], [-150, -150, 40]];
-  const program = { lines: corners.length + 3, body: Buffer.from(encode({ file: "/dense.ngc", preview_schema: 10, feed: corners,
+  const program = { lines: corners.length + 3, body: Buffer.from(encode({ file: "/dense.ngc", preview_schema: 11, feed: corners,
     feed_lines: corners.map((_, i) => 3 + i), feed_outside: new Uint8Array(corners.map(c => (c[0]! > 200 ? 1 : 0))),
     rapid: [[0, 0, 60], [-150, -150, 60], [-150, -150, 5]], rapid_outside: new Uint8Array(3) })) };
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: program.body }));
@@ -1077,7 +1077,7 @@ test("CSS-px objects keep their size in every drawn frame of a view animation (C
   await ctl({ op: "reset" });
   await page.setViewportSize({ width: 1400, height: 1000 });
   const pts = [[-150, -150, -10], [150, -150, -10], [150, 150, 100], [-150, 150, 100]];
-  const body = Buffer.from(encode({ file: "/tween.ngc", preview_schema: 10, feed: pts, feed_lines: [1, 2, 3, 4],
+  const body = Buffer.from(encode({ file: "/tween.ngc", preview_schema: 11, feed: pts, feed_lines: [1, 2, 3, 4],
     feed_outside: new Uint8Array(4), rapid: [], rapid_outside: new Uint8Array(0) }));
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "G1 X-150 Y-150 Z-10\nG1 X150\nG1 Y150 Z100\nG1 X-150\nM2\n" }));
