@@ -153,7 +153,7 @@ test("the Simulation tab's speed and list filter while the simulation plays", as
   // 10 s, played at ×10 — the tab re-renders with the time several times a
   // second, and the playback outlasts the packets.
   const feed = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
-  const preview = Buffer.from(encode({ file: "/leak.ngc", preview_schema: 10, feed,
+  const preview = Buffer.from(encode({ file: "/leak.ngc", preview_schema: 11, feed,
     feed_lines: feed.map((_, i) => i + 3), feed_seq: feed.map((_, i) => i + 3),
     feed_tcum: new Uint8Array(new Float32Array(feed.map((_, i) => i * 10)).buffer),
     violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }], violations_total: 1 }));
