@@ -240,6 +240,11 @@ export interface CollisionHit {
    *  parity-ef.plan.md F2): the path there is a MODELED hull every stop lies
    *  in, so the contact MAY happen — never a certain one. */
   possible?: true;
+  /** The onset record of a contact the program STARTS in: the pair is clear
+   *  at the model's rest pose and touching at the first pose (step 4 plan
+   *  1d) — proven there, not merely inside the margin. The entry merge drops
+   *  it where the contact began on the entry move. */
+  atStart?: true;
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */
@@ -397,6 +402,16 @@ export interface CollisionResult {
    *  a result built elsewhere: its `uncertified` counts as one statement. */
   notes?: string[];
   pairCount: number;
+  /** Records the MAX_HITS cap left out of `hits` (onsets are kept first, so
+   *  these are the latest continuation and onset records): OMITTED records,
+   *  never "more collisions" — a contact over many lines is a record per line
+   *  (Codex R84/R118). Absent when nothing was cut. The refinement's merge of
+   *  more than 16 contact clusters on one record is a separate approximation
+   *  this count does not cover. */
+  capped?: number;
+  /** The model's bodies the check could not take whole, by class
+   *  (`bodyClasses`; the same as the text `geometryNote` puts in `notes`). */
+  bodies?: { unusable: string[]; damaged: string[]; open: string[] };
   /** Pairs the whole-program reach prescreen dropped before the sweep:
    *  provably beyond the margin at every pose the sweep would evaluate
    *  (2026-09-13). Never queried, never certified. `pairCount` still counts
@@ -775,6 +790,15 @@ export function geometryNote(model: CollisionModel): string | null {
   if (partly.length) notes.push(`${partly.join(", ")}: facets with coordinates that are not numbers — partly checked`);
   if (model.open.length) notes.push(`${model.open.join(", ")}: surface not closed — a part wholly inside ${model.open.length === 1 ? "it" : "them"} is not found`);
   return notes.length ? notes.join("; ") : null;
+}
+
+/** The same bodies as `geometryNote`, by class, for the check-basis card
+ *  (step 4 plan 1c): left out (no facet with area), partly checked (facets
+ *  that are not numbers) and open (no inside). Undefined when all are whole. */
+export function bodyClasses(model: CollisionModel): CollisionResult["bodies"] {
+  const partly = model.damaged.filter(id => !model.unusable.includes(id));
+  if (!model.unusable.length && !partly.length && !model.open.length) return undefined;
+  return { unusable: [...model.unusable], damaged: partly, open: [...model.open] };
 }
 
 export function buildCollisionModel(machine: CollisionMachine, bodyDefs: CollisionBody[]): CollisionModel {
@@ -1281,8 +1305,9 @@ export function* sweepCollisionsIter(
                        // not checked in the simulation either
                        ...(unbound ? { unbound: true } : {}) };
   }
+  const bodyClass = bodyClasses(model);
   const notesOf = (parts: string[]) => ({ uncertified: parts.length ? parts.join("; ") : null, notes: parts.slice(),
-                                          ...(startDependent ? { startDependent } : {}) });
+                                          ...(startDependent ? { startDependent } : {}), ...(bodyClass ? { bodies: bodyClass } : {}) });
   // A move whose START no parse can know (an unknown-start point after the
   // first — the program's own start is the entry move's): the controller
   // moved the machine at a tool change ([EMCIO] TOOL_CHANGE_POSITION) where
@@ -1720,7 +1745,12 @@ export function* sweepCollisionsIter(
   const staticContacts: CollisionResult["staticContacts"] = [];
   // Contact from the program's first point: an ONSET on the first line the
   // sweep's first sample records; later lines' records are continuations.
+  // A contact the program STARTS in (clear at rest, inside the margin at the
+  // first pose): its record on the first line says so (`atStart`) while the
+  // seeded contact lasts — a separation ends it like every contact state.
+  const seeded = new Uint8Array(pairs.length);
   const seedOnset = (pi: number) => {
+    seeded[pi] = 1;
     inContact[pi] = 1;
     onsetLine[pi] = track.lines[firstSeg] ?? 0;
     onsetRapid[pi] = track.rapid[firstSeg] === 1 ? 1 : 0;
@@ -1758,13 +1788,13 @@ export function* sweepCollisionsIter(
     }
     if (dist <= opts.margin) {
       nearFirst[pi] = 1;
+      firstDist[pi] = dist;
       if (pairCutting[pi]) {
         inContact[pi] = 1;  // engaged from the start — a later retract is benign
       } else if (pairTool[pi]) {
         seedOnset(pi);
       } else {
         candidates.push(pi);
-        firstDist[pi] = dist;
       }
     }
   }
@@ -1831,6 +1861,7 @@ export function* sweepCollisionsIter(
     startSeg = rangeFrom + 1;
     while (startSeg < n && dcum[startSeg]! - dcum[startSeg - 1]! <= 1e-9) startSeg++;
     inContact.fill(0);
+    seeded.fill(0);
     onsetLine.fill(-1);
     bandOnset.fill(-1);
     onsetRapid.fill(0);
@@ -1878,6 +1909,8 @@ export function* sweepCollisionsIter(
       const cont = prev ? prev.continuation
         : (onsetFor >= 0 && onsetFor !== line ? onsetFor : undefined);
       if (cont !== undefined) rec.continuation = cont;
+      // proven at the first pose: touching there, not merely inside the margin
+      else if (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !boundary && !inBand) rec.atStart = true;
       if (boundary) rec.boundary = true;
       // possible while every sample of the record lies on the range
       if (inBand && (!prev || prev.possible)) rec.possible = true;
@@ -1959,6 +1992,7 @@ export function* sweepCollisionsIter(
       }
     } else if (inContact[pi] && d > opts.margin * 2) {
       inContact[pi] = 0;
+      seeded[pi] = 0;
       onsetRapid[pi] = 0;
       onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
       boundaryPair[pi] = 0;
@@ -2238,6 +2272,7 @@ export function* sweepCollisionsIter(
     const onsetE = entries.filter(([, h]) => isOnset(h)).sort((x, y) => x[1].cum - y[1].cum);
     const contE = entries.filter(([, h]) => !isOnset(h)).sort((x, y) => x[1].cum - y[1].cum);
     const selected = [...onsetE, ...contE].slice(0, MAX_HITS);
+    const omitted = entries.length - selected.length;
     for (const [key, h] of selected) {
       if (!refine) break;
       // Near-misses keep their closest-approach sample. A contact from the
@@ -2389,6 +2424,7 @@ export function* sweepCollisionsIter(
       bvhMs: model.bvhMs,
       sweepMs: clock() - t0,
       truncated: trunc,
+      ...(omitted > 0 ? { capped: omitted } : {}),
       ...(opts.range ? {
         range: { fromCum: n > 0 ? track.cum[rangeFrom]! : 0, fromLine: noteLine(Math.min(startSeg, n - 1)),
                  ...(rangeEmpty ? { empty: true as const } : {}) },
@@ -2492,7 +2528,7 @@ export function* sweepCollisionsIter(
     if (prevUnknown && !segUnknown) {
       for (let pi = 0; pi < pairs.length; pi++) {
         if (!pairTool[pi]) continue;
-        inContact[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0; boundaryPair[pi] = 0;
+        inContact[pi] = 0; seeded[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0; boundaryPair[pi] = 0;
       }
     }
     prevUnknown = segUnknown;

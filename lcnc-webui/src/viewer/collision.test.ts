@@ -4,7 +4,7 @@ import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
   buildCollisionModel, sweepCollisions, withoutArealessFacets, poseModel, pairDistance, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
-  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, type CollisionHit, mergeContiguousIntervals, componentBoxes } from "./collision";
+  type CollisionBody, type CollisionMachine, type CollisionResult, type CollisionOptions, type CollisionHit, mergeContiguousIntervals, componentBoxes, MAX_HITS } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
@@ -717,6 +717,23 @@ describe("contact-window refinement (glow window)", () => {
     const conts = contact.filter(h => h.continuation !== undefined);
     expect(conts.map(h => h.line).sort()).toEqual([26, 27, 28]);
     expect(conts.every(h => h.continuation === 25)).toBe(true);
+  });
+
+  it("the cap says how many records it left out (Codex R84/R118: `capped`)", () => {
+    // one contact over 262 lines is one onset and 261 continuation records:
+    // the cap keeps 200 and says it omitted 62 — records, not collisions
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const pts: number[][] = [[0, 0, 0], [0, 0, -45]];
+    const lines = [25, 25];
+    for (let i = 1; i <= 260; i++) { pts.push([0.01 * i, 0, -45]); lines.push(25 + i); }
+    pts.push([2.6, 0, 0]); lines.push(286);
+    const res = sweepCollisions(model, track(pts, undefined, lines), WCS0, { margin: 2 });
+    expect(res.hits).toHaveLength(MAX_HITS);
+    expect(res.hits.filter(h => h.continuation === undefined && h.dist < 1e-3).map(h => h.line)).toEqual([25]);
+    expect(res.capped).toBe(262 - MAX_HITS);
+    // under the cap: no count at all
+    const short = sweepCollisions(model, track(pts.slice(0, 12), undefined, lines.slice(0, 12)), WCS0, { margin: 2 });
+    expect(short.capped).toBeUndefined();
   });
 
   it("verified separation (>2×margin) then re-entry two lines later yields two onset records", () => {
@@ -1962,6 +1979,21 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(r.staticContacts).toEqual([]);
     expect(r.hits.map(h => [h.line, h.continuation])).toEqual([[2, undefined]]);
     expect(iv(r.hits[0]!)).toEqual([[0, 30.5]]);
+    // proven at the first pose: the program STARTS in contact (step 4 plan 1d)
+    expect(r.hits[0]!.atStart).toBe(true);
+  });
+
+  it("inside the margin at the first pose but not touching: the touch on the first move is an onset, not a start in contact", () => {
+    // the head's base at X 40: X −9.45 puts the cube 0.05 clear of the post's
+    // face at the first pose (margin 0.1) — seeded; the first move drives in
+    // to the centre (X −40): a collision on L2, never "starts in contact"
+    const r = sweepCollisions(buildCollisionModel(machine(40), [post(), nub]), xs([-9.45, -40]), WCS0, { margin: 0.1 });
+    const onset = r.hits.find(h => h.continuation === undefined && h.dist <= 1e-4)!;
+    expect(onset.line).toBe(2);
+    expect(onset.atStart).toBeUndefined();
+    // and a contact that begins on the program's move is no start contact either
+    const later = sweepCollisions(buildCollisionModel(machine(), [post(), nub]), xs([60, 0, 60]), WCS0, { margin: 0.1 });
+    expect(later.hits.some(h => h.atStart)).toBe(false);
   });
 
   it("inside at the first pose and at rest: a static contact, never a finding", () => {

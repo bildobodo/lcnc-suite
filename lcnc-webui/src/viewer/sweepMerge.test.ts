@@ -78,6 +78,21 @@ describe("mergeEntryResult", () => {
     expect(targetAfter(once, pos, sel)!.cum).toBe(60);
     expect(targetBefore(once, pos, sel)!.entry).toBe(true);
   });
+  it("a contact the base starts in that the entry move began is no start contact (`atStart` dropped)", () => {
+    const entry = res({ hits: [{ line: 0, cum: 1, cumEnd: 2, a: "tool", b: "column", dist: 0, rapid: true }] });
+    const base = res({ hits: [{ line: 7, cum: 0, cumEnd: 3, a: "tool", b: "column", dist: 0, rapid: false, atStart: true }] });
+    const m = mergeEntryResult(entry, base, 2, 90);
+    const b = m.hits.find(h => h.line === 7)!;
+    expect([b.continuation, b.atStart]).toEqual([0, undefined]);
+    // a base start contact the entry move did not reach keeps it
+    const alone = mergeEntryResult(res({}), base, 2, 90);
+    expect(alone.hits[0]!.atStart).toBe(true);
+  });
+  it("keeps what either sweep's cap left out (`capped`), applying no cap of its own", () => {
+    expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).capped).toBe(7);
+    expect(mergeEntryResult(res({}), res({ capped: 5 }), 10, 90).capped).toBe(5);
+    expect(mergeEntryResult(res({}), res({}), 10, 90).capped).toBeUndefined();
+  });
   it("unions static contacts by pair (two baselines: live pose and first point) and carries the base's partial state", () => {
     const entry = res({ staticContacts: [{ a: "tool", b: "vise", dist: 0.5 }] });
     const base = res({

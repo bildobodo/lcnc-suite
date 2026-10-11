@@ -55,12 +55,14 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
       if (ivs[0]![1] > e.cumEnd) e.spanCumEnd = ivs[0]![1];
       e.spanEndLine = b.line;
       shifted[bi] = { ...b, carried: true };
+      delete shifted[bi]!.atStart;   // it began on the entry move
       continue;
     }
     const end = b.spanCumEnd ?? b.cumEnd;
     if (end > e.cumEnd) e.spanCumEnd = end;
     e.spanEndLine = b.spanEndLine ?? b.line;
     shifted[bi] = { ...b, continuation: e.line };
+    delete shifted[bi]!.atStart;     // it began on the entry move
   }
   const hits = [...entryHits, ...shifted].sort((x, y) => x.cum - y.cum);
   const seen = new Set<string>();
@@ -80,9 +82,13 @@ export function mergeEntryResult(entry: CollisionResult, base: CollisionResult, 
     ...unitedNotes([entry, base]),
     pairCount: base.pairCount,
     pairsPrescreened: base.pairsPrescreened,
+    // one model for both sweeps
+    ...((base.bodies ?? entry.bodies) ? { bodies: base.bodies ?? entry.bodies } : {}),
     bvhMs: entry.bvhMs + base.bvhMs,
     sweepMs: entry.sweepMs + base.sweepMs,
     truncated: mergedTruncated(entry.truncated, base.truncated, shift, baseLen),
+    // what either sweep's cap left out stays said (no cap is applied here)
+    ...((entry.capped ?? 0) + (base.capped ?? 0) > 0 ? { capped: (entry.capped ?? 0) + (base.capped ?? 0) } : {}),
   };
 }
 

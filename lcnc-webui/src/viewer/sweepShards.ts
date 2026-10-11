@@ -32,6 +32,8 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
   const onsets = all.filter(isOnset).sort((x, y) => x.cum - y.cum);
   const conts = all.filter(h => !isOnset(h)).sort((x, y) => x.cum - y.cum);
   const hits: CollisionHit[] = [...onsets, ...conts].slice(0, MAX_HITS).sort((x, y) => x.cum - y.cum);
+  // what every shard's own cap left out, and what this one cuts again
+  const capped = results.reduce((s, r) => s + (r.capped ?? 0), 0) + Math.max(0, all.length - MAX_HITS);
   let truncated: CollisionResult["truncated"] = null;
   for (const r of results) {
     if (r.truncated && (!truncated || r.truncated.covered < truncated.covered)) truncated = r.truncated;
@@ -48,11 +50,14 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
     ...unitedNotes(results),
     // the same track for every shard: the same start-dependent beginning
     ...(first.startDependent ? { startDependent: first.startDependent } : {}),
+    // one model for every shard: the same bodies
+    ...(first.bodies ? { bodies: first.bodies } : {}),
     pairCount: first.pairCount,
     pairsPrescreened: results.reduce((s, r) => s + r.pairsPrescreened, 0),
     bvhMs: Math.max(...results.map(r => r.bvhMs)),
     sweepMs: Math.max(...results.map(r => r.sweepMs)),
     truncated,
+    ...(capped > 0 ? { capped } : {}),
     shards: results.length,
     // a range sweep: every shard starts at the same point; each reports the
     // boundary contacts of its own pairs

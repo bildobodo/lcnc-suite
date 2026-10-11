@@ -60,6 +60,13 @@ describe("mergeShardResults", () => {
     expect(m.hits.filter(h => h.continuation === undefined)).toHaveLength(MAX_HITS - 10);
     expect(m.hits.map(h => h.cum)).toEqual([...m.hits.map(h => h.cum)].sort((x, y) => x - y));
   });
+  it("says what the caps left out: every shard's own and what the merge cuts again (`capped`)", () => {
+    const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
+    const conts = Array.from({ length: 50 }, (_, i) => hit(i, i, 1));
+    const m = mergeShardResults([result(onsets.slice(0, 100), { capped: 7 }), result([...onsets.slice(100), ...conts], { capped: 3 })]);
+    expect(m.capped).toBe(7 + 3 + (MAX_HITS - 10 + 50 - MAX_HITS));
+    expect(mergeShardResults([result([hit(1, 1)]), result([hit(2, 2)])]).capped, "nothing cut").toBeUndefined();
+  });
   it("carries a range sweep's start and every shard's boundary contacts; a boundary record is no onset for the cap", () => {
     const range = { fromCum: 40, fromLine: 7 };
     const bc = (b: string) => ({ a: "a", b, line: 7, cum: 40, dist: 0, cutting: false });
