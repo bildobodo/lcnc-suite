@@ -1,0 +1,34 @@
+{
+  "archive": "/tmp/codex-r138-0vg78d9n/src",
+  "code_base": "2fd8c088",
+  "code_head": "2371a617819eae4b39c0ccbab12594bc37f6f135",
+  "review_head": "e9d583dcf04901a44b201f61ad153b4ab8105d18",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r138.checkpoints.txt\n?? docs/reviews/viewer-palette-fest.r138.gate-backend.json\n?? docs/reviews/viewer-palette-fest.r138.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r138.mutations.py\n?? docs/reviews/viewer-palette-fest.r138.mutations.txt\n?? docs/reviews/viewer-palette-fest.r138.react.txt\n",
+  "review_prefix_size": 1399912,
+  "review_prefix_sha256": "0ff68785400f18df4af477a43c815cd5b1945080439bb5c0ce9f6a8c96247b47",
+  "initial_evidence": {
+    "viewer-palette-fest.r138.checkpoints.txt": "170431bcc6bcf0c0cc9db6b529406224b4f4410bb5653da5f3033cabb32de468",
+    "viewer-palette-fest.r138.react.txt": "763d112a13d05a7db9f4a2395bf9c7e8540572c08b87b180a11a18d3ca43d5f2",
+    "viewer-palette-fest.r138.mutations.py": "a247e96ef221a21b54cb88474ce484e8fa108a41a83c377f48edff0deb1d3eab",
+    "viewer-palette-fest.r138.mutations.txt": "b71cae05d76b694d10556ab121a2e3068e3598ffb1019d00a45f1daa160da046",
+    "viewer-palette-fest.r138.gate-backend.json": "b6c7285c3558809af2727ba34fc20ad41531ee4aa8399ed8e60b6aa1b5b09035",
+    "viewer-palette-fest.r138.gate-frontend.json": "484ae4bb41f1f9483c63bdba5272cfbf2cf9dd9463adf60ce9f960d461fade6b"
+  },
+  "verified_target_files_sha256": {
+    "CLAUDE.md": "626ea99c0b0f57943cea4be291e277d75ff2f7904c9d8de55735f2acdf2670e8",
+    "docs/decisions.md": "cba65cf94906fedf8426ae4ea3dd53e9c139f641e3727b7edf4b16b84d1842fa",
+    "lcnc-webui/e2e/collisions.viewer.spec.ts": "a7cc67b3c0123de7041b54187d83fc0678a1f20f709a1595387f5d51b1abdc69",
+    "lcnc-webui/e2e/sim-panel.viewer.spec.ts": "cdeb7377867ea19886b507e203871962e079e83bdbd2ffa4703d1cd19f1df7b5",
+    "lcnc-webui/src/ScrubBar.vue": "9526fece9b273d858ae5396596f3dd50312459a47e4520128d7dc05344a3a835",
+    "lcnc-webui/src/SimPanel.vue": "ffee74624da9f36d8e59ae1aa8ef9578be2b088a2fdda3bedd0e35704796bc2b",
+    "lcnc-webui/src/ThreeViewer.vue": "dd0de8bd4b0b84751d2c16fa2197c647fde1fb1c55e912befb8cff4f99542480",
+    "lcnc-webui/src/simPanelStore.ts": "cd0e6ad37c68d1314cff488c881337e96b8c5e1f302fc1ca1268e75c8c8fb18c",
+    "lcnc-webui/src/viewer/checkWiring.test.ts": "46d4557e388ce10ce8157babe51b9b8cb20b4c0a897ac74df5462f6b32d96efe",
+    "lcnc-webui/src/viewer/scrubBarWords.test.ts": "41f08a384fa9801fc0a251e9a884b5c9cea26dc7bf17b09cd526f1013de35d5c",
+    "lcnc-webui/src/viewer/startDepPayloads.test.ts": "61ae61d09d558183847c97f2fbb35f17bee14512345d624bc68086817f216446"
+  },
+  "review_prefix_preserved": true,
+  "initial_evidence_preserved": true,
+  "mock": "127.0.0.1:4188",
+  "live_ports_accessed": false
+}

@@ -1,0 +1,175 @@
+===== build.txt =====
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2107 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-CbQ7i83d.js               32.51 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-DsEjYNjh.js            198.32 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-ZzSNUQAs.css                 7.96 kB │ gzip:   1.97 kB
+dist/static/index-CE9H_1Z-.css                      94.78 kB │ gzip:  17.30 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-Dc9ur7Wx.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-CoGmqM7s.js                 9.05 kB │ gzip:   3.34 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-DQYnCQz9.js                186.63 kB │ gzip:  70.28 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-qZAnW0Io.js                      639.15 kB │ gzip: 204.67 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 16.83s
+
+
+===== focused.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r138-0vg78d9n/src/lcnc-webui
+
+
+ Test Files  8 passed (8)
+      Tests  118 passed (118)
+   Start at  18:16:55
+   Duration  204.32s (transform 1.50s, setup 37ms, import 4.22s, tests 199.07s, environment 1ms)
+
+
+
+===== probe-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r138-0vg78d9n/src/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  7 passed | 28 skipped (35)
+   Start at  18:17:33
+   Duration  2.15s (transform 446ms, setup 19ms, import 1.17s, tests 783ms, environment 0ms)
+
+
+
+===== browser-tests.txt =====
+[WebServer] (node:3055453) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 11 tests using 1 worker
+
+(node:3055479) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3055479) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:1155:1 › a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93) (6.8s)
+  ✓   2 e2e/collisions.viewer.spec.ts:1180:1 › a run's bound beginning that ends without a result takes its early contact out of the list, the marks and the verdict (Codex R137 VP-I93) (7.1s)
+  ✓   3 e2e/r138.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, desktop at 1 (3.5s)
+  ✓   4 e2e/r138.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-landscape at 1 (3.9s)
+  ✓   5 e2e/r138.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-portrait at 1.5 (4.0s)
+  ✓   6 e2e/r138.codex-side.viewer.spec.ts:100:1 › R137: a run side contact reaches the Sim list before and after completion (7.7s)
+  ✘   7 e2e/r138.codex-side.viewer.spec.ts:157:1 › R138: side contact before the main first partial and while the main runs (12.0s)
+(node:3056575) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3056575) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:558:1 › the summary's "?" answers in its whole hit area, at the right edge of a full line (3.6s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:656:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — desktop (4.1s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:656:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — touch-landscape (4.5s)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:656:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — touch-portrait at 150 % (4.1s)
+
+
+  1) e2e/r138.codex-side.viewer.spec.ts:157:1 › R138: side contact before the main first partial and while the main runs 
+
+    Error: early contact in the actual summary
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /1 collision/
+    Received string:  "No contact so far · <1 % checked"
+
+      215 |   const done=await read();await page.screenshot({path:'/tmp/codex-r138-0vg78d9n/side-partial-done.png'});
+      216 |   writeFileSync('/tmp/codex-r138-0vg78d9n/side-partial-browser.json',JSON.stringify({before,early,partial,marked,done},null,2));
+    > 217 |   expect.soft(early.aria,'early contact in the actual summary').toMatch(/1 collision/);
+          |                                                                 ^
+      218 |   expect.soft(early.rows,'early contact in the actual list').toHaveLength(1);
+      219 |   expect.soft(early.aria,'early coverage remains honest').not.toContain('checked in full');
+      220 |   expect.soft(partial.aria,'contact survives main partial').toMatch(/1 collision/);
+        at /tmp/codex-r138-0vg78d9n/src/lcnc-webui/e2e/r138.codex-side.viewer.spec.ts:217:65
+
+    Error: early contact in the actual list
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      216 |   writeFileSync('/tmp/codex-r138-0vg78d9n/side-partial-browser.json',JSON.stringify({before,early,partial,marked,done},null,2));
+      217 |   expect.soft(early.aria,'early contact in the actual summary').toMatch(/1 collision/);
+    > 218 |   expect.soft(early.rows,'early contact in the actual list').toHaveLength(1);
+          |                                                              ^
+      219 |   expect.soft(early.aria,'early coverage remains honest').not.toContain('checked in full');
+      220 |   expect.soft(partial.aria,'contact survives main partial').toMatch(/1 collision/);
+      221 |   expect.soft(partial.rows,'the actual partial binding delivers the side contact').toHaveLength(1);
+        at /tmp/codex-r138-0vg78d9n/src/lcnc-webui/e2e/r138.codex-side.viewer.spec.ts:218:62
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-output/r138.codex-side.viewer-R13-83671-ial-and-while-the-main-runs/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-output/r138.codex-side.viewer-R13-83671-ial-and-while-the-main-runs/error-context.md
+
+  1 failed
+    e2e/r138.codex-side.viewer.spec.ts:157:1 › R138: side contact before the main first partial and while the main runs 
+  10 passed (1.1m)
+
+
+===== layout-cuts-tests.txt =====
+[WebServer] (node:3057760) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:3057772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3057772) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r138.codex-layout.viewer.spec.ts:87:1 › R138: continuation-only cap stays visibly marked in the last form (3.9s)
+
+
+  1) e2e/r138.codex-layout.viewer.spec.ts:87:1 › R138: continuation-only cap stays visibly marked in the last form 
+
+    Error: the final form needs a visible record-cap indication, distinct from the exact uncapped count
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "200 · in full"
+
+      121 |   await page.screenshot({path:`/tmp/codex-r138-0vg78d9n/summary-records-cut.png`});
+      122 |   expect(measurement.form).toBe('3');
+    > 123 |   expect.soft(measurement.items[0]!.text,'the final form needs a visible record-cap indication, distinct from the exact uncapped count').not.toBe('200 · in full');
+          |                                                                                                                                              ^
+      124 |   expect(measurement.items[0]!.rect.right, 'result, coverage and cap must fit in the visible summary').toBeLessThanOrEqual(measurement.summary.right+1);
+      125 |   {
+      126 |     expect.soft(help,'touch help carries the hidden coverage').toContain('checked in full');
+        at /tmp/codex-r138-0vg78d9n/src/lcnc-webui/e2e/r138.codex-layout.viewer.spec.ts:123:142
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-output/r138.codex-layout.viewer-R-da91d-bly-marked-in-the-last-form/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-output/r138.codex-layout.viewer-R-da91d-bly-marked-in-the-last-form/error-context.md
+
+  1 failed
+    e2e/r138.codex-layout.viewer.spec.ts:87:1 › R138: continuation-only cap stays visibly marked in the last form 

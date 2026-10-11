@@ -1,0 +1,185 @@
+{
+  "before": {
+    "text": "No contact so far · <1 % checked\nNo limit violations\nNo tool changes",
+    "aria": "No contact so far · <1 % checked",
+    "rows": [],
+    "log": [
+      "start full"
+    ],
+    "tap": {
+      "requests": [
+        {
+          "id": 2,
+          "side": false,
+          "count": 4
+        },
+        {
+          "id": 4,
+          "side": false,
+          "count": 3,
+          "depEnd": 2
+        },
+        {
+          "id": -1,
+          "side": true,
+          "count": 4
+        }
+      ],
+      "side": {
+        "id": -1,
+        "count": 4,
+        "lines": [
+          0,
+          2,
+          3,
+          4
+        ],
+        "cum": [
+          0,
+          11,
+          13,
+          70
+        ]
+      }
+    }
+  },
+  "early": {
+    "text": "No contact so far · <1 % checked\nNo limit violations\nNo tool changes",
+    "aria": "No contact so far · <1 % checked",
+    "rows": [],
+    "log": [
+      "start full"
+    ],
+    "tap": {
+      "requests": [
+        {
+          "id": 2,
+          "side": false,
+          "count": 4
+        },
+        {
+          "id": 4,
+          "side": false,
+          "count": 3,
+          "depEnd": 2
+        },
+        {
+          "id": -1,
+          "side": true,
+          "count": 4
+        }
+      ],
+      "side": {
+        "id": -1,
+        "count": 4,
+        "lines": [
+          0,
+          2,
+          3,
+          4
+        ],
+        "cum": [
+          0,
+          11,
+          13,
+          70
+        ]
+      }
+    }
+  },
+  "partial": {
+    "text": "1 collision on the entry move so far · <1 % checked\n0\n0",
+    "aria": "1 collision on the entry move so far · <1 % checked",
+    "rows": [
+      "entrySpindle nose ↔ A yoke · RapidRapid00:00"
+    ],
+    "log": [
+      "start full"
+    ],
+    "tap": {
+      "requests": [
+        {
+          "id": 2,
+          "side": false,
+          "count": 4
+        },
+        {
+          "id": 4,
+          "side": false,
+          "count": 3,
+          "depEnd": 2
+        },
+        {
+          "id": -1,
+          "side": true,
+          "count": 4
+        }
+      ],
+      "side": {
+        "id": -1,
+        "count": 4,
+        "lines": [
+          0,
+          2,
+          3,
+          4
+        ],
+        "cum": [
+          0,
+          11,
+          13,
+          70
+        ]
+      }
+    }
+  },
+  "marked": 1,
+  "done": {
+    "text": "1 collision on the entry move · checked in full\n0\n0",
+    "aria": "1 collision on the entry move · checked in full",
+    "rows": [
+      "entrySpindle nose ↔ A yoke · RapidRapid00:00"
+    ],
+    "log": [
+      "start full",
+      "done",
+      "beginning"
+    ],
+    "tap": {
+      "requests": [
+        {
+          "id": 2,
+          "side": false,
+          "count": 4
+        },
+        {
+          "id": 4,
+          "side": false,
+          "count": 3,
+          "depEnd": 2
+        },
+        {
+          "id": -1,
+          "side": true,
+          "count": 4
+        }
+      ],
+      "side": {
+        "id": -1,
+        "count": 4,
+        "lines": [
+          0,
+          2,
+          3,
+          4
+        ],
+        "cum": [
+          0,
+          11,
+          13,
+          70
+        ]
+      }
+    }
+  }
+}

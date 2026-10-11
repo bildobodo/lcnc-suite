@@ -1,0 +1,47 @@
+{
+  "pane": {
+    "left": 444,
+    "right": 888,
+    "width": 444
+  },
+  "narrow": true,
+  "form": "3",
+  "verdict": {
+    "text": "200 · in full",
+    "sw": 62,
+    "cw": 62
+  },
+  "aria": "197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss · checked in full · records cut",
+  "summary": {
+    "left": 457,
+    "right": 665.5,
+    "width": 208.5
+  },
+  "items": [
+    {
+      "text": "200 · in full",
+      "rect": {
+        "left": 457,
+        "right": 574,
+        "width": 117
+      }
+    },
+    {
+      "text": "2",
+      "rect": {
+        "left": 586,
+        "right": 620.5,
+        "width": 34.5
+      }
+    },
+    {
+      "text": "2",
+      "rect": {
+        "left": 632.5,
+        "right": 665.5,
+        "width": 33
+      }
+    }
+  ],
+  "help": "× 197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss · checked in full · records cut. ▲ 2 limit violations. ● 2 tool changes."
+}
