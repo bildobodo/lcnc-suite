@@ -1065,13 +1065,17 @@ const sweepView = computed<SimSweepView | null>(() => {
     .replace(/^provisional from /, "from ").replace(/^(stopped|paused) at /, "$1 ")
     .replace(/^start still checking$/, "start checking").replace(/^start not checked$/, "start unchecked")
     .replace(/^entry move still checking$/, "entry checking");
+  // records cut while every contact's beginning is kept: the count is whole
+  // (no "+"), so the fewest words keep the cut itself (Codex R138 VP-I94)
+  const shortCut = r?.capped && !r?.cappedOnsets ? " · cut" : "";
   /** One view: the result, the coverage (with the cap's caveat) and both
    *  joined; `short` the result as a count. */
   const view = (state: SimSweepView["state"], frac: number, tone: Tone, cav: boolean, det: string,
                 res: string, cov: string, label?: string): SimSweepView => {
     const coverage = cov ? `${cov}${cut}` : "";
     return { state, frac, tone, caveat: cav, detail: det, ...(label ? { label } : {}),
-             verdict: coverage ? `${res} · ${coverage}` : res, result: res, coverage, coverageShort: shortCov(cov),
+             verdict: coverage ? `${res} · ${coverage}` : res, result: res, coverage,
+             coverageShort: cov ? `${shortCov(cov)}${shortCut}` : "",
              short: n ? `${n}${r?.cappedOnsets ? "+" : ""}${state === "done" ? "" : "…"}` : res };
   };
   // No moving pair: nothing to check — unless a body was left out or lost

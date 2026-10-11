@@ -49,7 +49,7 @@ import { buildEntryTrack, displayLineForPoint, roomEndOf, sliceTrack } from "./v
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionHit, CollisionResult, CollisionLineMark } from "./viewer/collision";
-import { partCollides } from "./viewer/collision";
+import { partCollides, startDependentOf } from "./viewer/collision";
 import { collisionLineMarks } from "./viewer/collisionMarks";
 import { clashTintBodies } from "./viewer/clashTint";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
@@ -3035,18 +3035,46 @@ function _colWithRunSide(r: CollisionResult | null, trk: ScrubTrack | null): Col
   }
   return r;
 }
+/** No base result or partial yet while the main request runs on the track a
+ *  run check's beginning is bound to: the main request as it stands —
+ *  nothing found so far, swept to its progress, its start-dependent
+ *  beginning named — so the beginning's contact, early or final, shows
+ *  before the main request's first partial (Codex R138 VP-I93: a main sweep
+ *  finding nothing posts no partial until it ends). Never another track,
+ *  never a coverage the main request has not reported. */
+function _colRunSideBase(): { r: CollisionResult; trk: ScrubTrack } | null {
+  if (collisionResult.value || collisionPartial.value || !collisionBusy.value) return null;
+  const gen = collisionRun.value?.gen;
+  const rs = collisionRunSide.value, sf = collisionSideFirst.value;
+  const trk = rs && rs.gen === gen ? rs.base : sf?.run && sf.run.gen === gen ? sf.base : null;
+  if (!trk || _colPendingTrack !== trk) return null;
+  const sd = startDependentOf(trk);
+  // the pairs: the side sweep's (the same model), else at least the pair
+  // in contact — never 0, which the bar reads as "nothing to check"
+  const pairCount = rs && rs.gen === gen ? rs.result.pairCount : 1;
+  return { trk, r: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null, pairCount,
+                     pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: { covered: collisionProgress.value, reason: "running" },
+                     ...(sd ? { startDependent: sd } : {}) } };
+}
 /** The base result on display: the refined one, else the live partial. */
 function _colBaseFor(trk: ScrubTrack): CollisionResult | null {
   if (collisionResult.value && collisionTrack.value === trk) return _colWithRunSide(collisionResult.value, trk);
   if (collisionPartial.value && collisionPartialTrack.value === trk) return _colWithRunSide(collisionPartial.value, trk);
-  return null;
+  const s = _colRunSideBase();
+  return s && s.trk === trk ? _colWithRunSide(s.r, trk) : null;
 }
 /** What the bar and the code panel show (Codex R137 VP-I93 A): the result
  *  and the partial with a run check's beginning in them — the bar took the
  *  bare ones, and the beginning's findings, early or final, never reached
- *  the list, the marks or the verdict. */
+ *  the list, the marks or the verdict. Before the main request's first
+ *  partial, the beginning on the main request as it stands (R138). */
 const collisionResultShown = computed(() => _colWithRunSide(collisionResult.value, collisionTrack.value));
-const collisionPartialShown = computed(() => _colWithRunSide(collisionPartial.value, collisionPartialTrack.value));
+const collisionPartialShown = computed(() => {
+  if (collisionPartial.value) return _colWithRunSide(collisionPartial.value, collisionPartialTrack.value);
+  const s = _colRunSideBase();
+  return s ? _colWithRunSide(s.r, s.trk) : null;
+});
+const collisionPartialTrackShown = computed(() => collisionPartial.value ? collisionPartialTrack.value : _colRunSideBase()?.trk ?? null);
 /** The code panel's marks of what is shown. */
 function _colEmitMarks() {
   const r = collisionResultShown.value ?? collisionPartialShown.value;
@@ -5387,7 +5415,7 @@ defineExpose({
       :collisionStopped="collisionStopped"
       :collisionResumable="collisionResumable"
       :collisionPartial="collisionPartialShown"
-      :collisionPartialTrack="collisionPartialTrack"
+      :collisionPartialTrack="collisionPartialTrackShown"
       :collisionEntryResult="collisionEntryResult"
       :collisionPrevious="collisionPrevious"
       :collisionContext="collisionContext"

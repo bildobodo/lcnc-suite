@@ -9303,3 +9303,12 @@ then `take`) — per case faster or slower by up to one 40 ms slice, no change
 beyond it; in the sweep's setup before its first segment up to
 0.83 s on haus.ngc — the baseline stretch without a checkpoint,
 pre-existing, a change of its own.
+
+**Codex R138.** VP-I92 closed. Two rests: a run check's beginning that found
+a contact before the main request's first partial waited for that partial —
+and a main sweep finding nothing posts none until it ends. The viewer now
+lays the beginning onto the main request as it stands (nothing found so far,
+its progress, the beginning it names; never another track, never a finished
+main request). And the summary's last form lost the only mark of records cut
+while every beginning was kept: it says "· cut"; contacts cut keep the
+count's "+".

@@ -93,6 +93,18 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(view(result(), { caveat: "x" }).coverageShort).toBe("to the end");
   });
 
+  it("the fewest words keep each kind of cut (Codex R138 VP-I94): records cut → \"cut\", never a \"+\"; contacts cut → the count's \"+\"; nothing cut → neither", () => {
+    const records = view(result({ hits: [hit(7, 0)], capped: 25, cappedOnsets: 0 }));
+    expect([records.short, records.coverageShort], "every beginning kept: the count whole, the cut said").toEqual(["1", "in full · cut"]);
+    expect(records.coverage).toBe("checked in full · records cut");
+    const running = view(result({ hits: [hit(7, 0)], capped: 25 }), { busy: true, frac: 0.4 });
+    expect([running.short, running.coverageShort]).toEqual(["1…", "40 % · cut"]);
+    const onsets = view(result({ hits: [hit(7, 0)], capped: 25, cappedOnsets: 2 }));
+    expect([onsets.short, onsets.coverageShort], "contacts cut: the \"+\" says it").toEqual(["1+", "in full"]);
+    const whole = view(result({ hits: [hit(7, 0)] }));
+    expect([whole.short, whole.coverageShort]).toEqual(["1", "in full"]);
+  });
+
   it("the entry move's side sweep runs on after its first contact: shown, said still checking (Codex R136 VP-I93)", () => {
     const r = result({ hits: [hit(1, 0, { entry: true, entryMove: true })] });
     const v = view(r, { entryChecking: true });

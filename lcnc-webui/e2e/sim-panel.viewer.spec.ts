@@ -620,8 +620,8 @@ test.describe("the check basis card by touch (step 4 plan 1c)", () => {
 // the clipped line. The form is measured: whatever the words, every item and
 // the coverage stay in the line, which keeps its height.
 test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)", () => {
-  async function mixed(page: Page) {
-    await page.addInitScript(() => {
+  async function mixed(page: Page, cut: { capped: number; cappedOnsets: number } = { capped: 25, cappedOnsets: 2 }) {
+    await page.addInitScript(cut => {
       const Real = window.Worker;
       window.Worker = class extends Real {
         constructor(url: string | URL, options?: WorkerOptions) {
@@ -633,12 +633,12 @@ test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)
               ({ line, cum: line, cumEnd: line + 1, a: "spindle", b: "vise", dist, rapid: true, ...extra });
             const hits = [hit(12, 0), hit(14, 0, { entryMove: true }), hit(16, 0, { possible: true }), hit(18, 1.5)];
             for (let i = 0; i < 196; i++) hits.push(hit(19 + i % 10, 0, { b: "fixture_" + i }));
-            // 200 onsets kept, 2 more onsets and 23 continuations cut: a rendering fixture
-            Object.assign(ev.data.result, { pairCount: 200, hits, capped: 25, cappedOnsets: 2 });
+            // 200 onsets kept, by default 2 more onsets and 23 continuations cut: a rendering fixture
+            Object.assign(ev.data.result, { pairCount: 200, hits, ...cut });
           });
         }
       };
-    });
+    }, cut);
   }
   const measure = (page: Page) => page.locator(".simPanel .simSummary").evaluate(el => {
     const r = el.getBoundingClientRect();
@@ -696,5 +696,33 @@ test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)
       expect((await measure(page)).rowH, "the row's height").toBe(m.rowH);
       await ctl({ op: "reset" });
     });
+  }
+  // each kind of cut keeps a visible mark in every form, the uncut line none
+  // (Codex R138 VP-I94: records cut while every beginning is kept lost its
+  // only mark in the last form — the count is whole, so no "+")
+  for (const [kind, cut, words, last] of [
+    ["records cut, every beginning kept", { capped: 25, cappedOnsets: 0 }, " · checked in full · records cut", /^200 · in full · cut$/],
+    ["nothing cut", { capped: 0, cappedOnsets: 0 }, " · checked in full", /^200 · in full$/],
+  ] as const) {
+    for (const [vp, zoom] of [["desktop", 1], ["touch-portrait", 1.5]] as const) {
+      test(`${kind} — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
+        await mixed(page, cut);
+        await prepare(page, context, vp, PREVIEW, false);
+        if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+        await settleLayout(page);
+        const clash = page.locator(".simPanel .simSummary .sumItem").first();
+        await expect(clash).toHaveAttribute("aria-label",
+          `197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss${words}`);
+        const m = await measure(page);
+        expect(m.sw, "the line fits").toBeLessThanOrEqual(m.cw);
+        expect(m.verdictCut, "the collision item whole").toBe(false);
+        const text = m.items[0]!.text;
+        expect(text.startsWith("200+"), "no \"+\": every beginning is counted").toBe(false);
+        if (m.form === "3") expect(text).toMatch(last);
+        else expect(text.endsWith(words), text).toBe(true);
+        if (vp === "touch-portrait" && cut.capped) expect(m.form, "the last form at 150 % portrait").toBe("3");
+        await ctl({ op: "reset" });
+      });
+    }
   }
 });

@@ -1177,6 +1177,145 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   await ctl({ op: "reset" });
 });
 
+// Codex R138 VP-I93: the beginning's contact before the MAIN request's first
+// partial — a main sweep finding nothing posts no partial until it ends, and
+// the contact waited for it. The main request's messages are held here (its
+// real sweep, its real result), the side request answered by the page.
+/** A run check with the main request's messages held and the side request
+ *  waiting: nothing shown yet. */
+async function sideRunHeld(page: Page, context: BrowserContext, file = "/side-held.ngc") {
+  await page.addInitScript(() => {
+    const tap: any = { side: null, deliver: null, first: null, hold: false, mainId: null, main: [], raw: null };
+    (window as any).__sideTap = tap;
+    const Real = window.Worker;
+    const Tapped = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      tap.raw = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      w.addEventListener("message", ev => { if (ev.data?.id === tap.mainId) { tap.main.push(ev.data); return; } handler?.(ev); });
+      w.postMessage = ((m: any, t?: Transferable[]) => {
+        if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
+        if (m?.track && tap.hold) { tap.mainId = m.id; tap.main = []; }
+        post(m, t ?? []);
+      }) as any;
+      return w;
+    } as any;
+    Tapped.prototype = Real.prototype;
+    window.Worker = Tapped;
+  });
+  await runReady(page, context, file, 7137);
+  await ctl({ op: "quiet", on: true });
+  const start = { ...runEnv(file).run_basis.start, joints: [-100, 0, -100, 0, 0], joints_why: null };
+  await ctl({ op: "status_delta", envelope: { ...runEnv(file, { run_id: 9, start }), ...originEnv(file, 7137) },
+    data: { interp_state: 2, task_mode: 2, motion_line: 7, joint_pos: [120, 0, -380, 0, 0], actual_position: [120, 0, -380, 0, 0] } });
+  const native = decode(readFileSync(new URL("../../scripts/test_fixtures/start_dep_payloads/e_single.msgpack", import.meta.url))) as any;
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode({ ...native, file })) }));
+  // from the run's publication on, the main request's messages are held
+  await page.evaluate(() => { (window as any).__sideTap.hold = true; });
+  await publishInRun(page, file, 7138, pinnedFor(9));
+  await expect.poll(() => page.evaluate(() => (window as any).__sideTap.side !== null), { timeout: 30_000 }).toBe(true);
+  // the main request's real messages, held — none of them delivered yet
+  await expect.poll(() => page.evaluate(() => (window as any).__sideTap.main.some((m: any) => m.result)), { timeout: 60_000 }).toBe(true);
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", /^No contact so far/);
+  await expect(clashRows(page)).toHaveCount(0);
+}
+/** The held main request: a running partial of its real result, then the result. */
+const mainPartial = (page: Page, covered: number) => page.evaluate(c => {
+  const t = (window as any).__sideTap, end = t.main.find((m: any) => m.result);
+  t.raw({ id: t.mainId, progress: c, partial: { ...end.result, truncated: { covered: c, reason: "running" } } });
+}, covered);
+const mainResult = (page: Page) => page.evaluate(() => { const t = (window as any).__sideTap; t.raw(t.main.find((m: any) => m.result)); });
+const sideResult = (page: Page) => page.evaluate(() => {
+  const t = (window as any).__sideTap;
+  t.deliver({ result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
+                        pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
+});
+const codeMarks = async (page: Page) => {
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  const n = await page.locator(".codeLine.collision").count();
+  await openSimTab(page);
+  return n;
+};
+
+test("a run's beginning: its contact before the main request's first partial, then with it, then final (Codex R138 VP-I93)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await sideRunHeld(page, context);
+  const clash = page.locator(".simPanel .simSummary .sumItem").first();
+  await sideFirst(page);
+  await expect(clash, "early, no main partial: the contact, the main request still running").toHaveAttribute("aria-label", /^1 collision.* so far · <1 % checked/);
+  await expect(clash).not.toHaveAttribute("aria-label", /checked in full/);
+  await expect(clashRows(page), "in the list").toHaveCount(1);
+  expect(await codeMarks(page), "marked in the code").toBe(1);
+  // the main request's first partial, finding nothing of its own: the contact stays
+  await mainPartial(page, 0.5);
+  await expect(clash, "with the main partial: the contact kept, still running").toHaveAttribute("aria-label", /^1 collision.* so far · /);
+  await expect(clash).not.toHaveAttribute("aria-label", /checked in full/);
+  await expect(clashRows(page)).toHaveCount(1);
+  // both results: checked
+  await mainResult(page);
+  await sideResult(page);
+  await expect(clash, "final").toHaveAttribute("aria-label", /^1 collision.* · checked in full$/);
+  await expect(clashRows(page)).toHaveCount(1);
+  expect(await codeMarks(page)).toBe(1);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+test("a run's beginning that ends with its result before the main request's first partial shows it, the main request still running (Codex R138 VP-I93)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await sideRunHeld(page, context);
+  const clash = page.locator(".simPanel .simSummary .sumItem").first();
+  await sideFirst(page);
+  await sideResult(page);
+  await expect(clash, "the beginning checked, the main request not yet").toHaveAttribute("aria-label", /^1 collision.* so far · /);
+  await expect(clash).not.toHaveAttribute("aria-label", /checked in full/);
+  await expect(clashRows(page)).toHaveCount(1);
+  expect(await codeMarks(page)).toBe(1);
+  await mainResult(page);
+  await expect(clash).toHaveAttribute("aria-label", /^1 collision.* · checked in full$/);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+for (const end of ["error", "cancelled"] as const) {
+  test(`a run's beginning that ends without a result (${end}) before the main request's first partial takes its contact out (Codex R138 VP-I93)`, async ({ page, context }) => {
+    test.setTimeout(150_000);
+    await sideRunHeld(page, context);
+    const clash = page.locator(".simPanel .simSummary .sumItem").first();
+    await sideFirst(page);
+    await expect(clashRows(page)).toHaveCount(1);
+    await page.evaluate(e => (window as any).__sideTap.deliver(e === "error" ? { error: "injected" } : { cancelled: true }), end);
+    await expect(clash).toHaveAttribute("aria-label", /^No contact so far/);
+    await expect(clashRows(page)).toHaveCount(0);
+    expect(await codeMarks(page), "the early mark is gone too").toBe(0);
+    await mainResult(page);
+    await expect(clash).toHaveAttribute("aria-label", "Clear · start not checked");
+    await expect(clashRows(page)).toHaveCount(0);
+    await ctl({ op: "quiet", on: false });
+    await ctl({ op: "reset" });
+  });
+}
+
+test("a run's beginning's contact before the main request's first partial belongs to its request: a new one takes nothing along (Codex R138 VP-I93)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  const file = "/side-held.ngc";
+  await sideRunHeld(page, context, file);
+  await sideFirst(page);
+  await expect(clashRows(page)).toHaveCount(1);
+  // another publication for the run: a new main request and a new side request
+  await page.evaluate(() => { (window as any).__sideTap.side = null; });
+  await publishInRun(page, file, 7139, pinnedFor(9));
+  await expect.poll(() => page.evaluate(() => (window as any).__sideTap.side !== null), { timeout: 30_000 }).toBe(true);
+  await expect(clashRows(page), "the old contact is not the new request's").toHaveCount(0);
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).not.toHaveAttribute("aria-label", /collision/);
+  expect(await codeMarks(page)).toBe(0);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
 test("a run's bound beginning that ends without a result takes its early contact out of the list, the marks and the verdict (Codex R137 VP-I93)", async ({ page, context }) => {
   test.setTimeout(120_000);
   await sideRunReady(page, context);

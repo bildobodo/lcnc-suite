@@ -254,6 +254,27 @@ export interface CollisionHit {
   atStart?: true;
 }
 
+/** The start-dependent beginning a sweep of `track` names, apart from the
+ *  guarantee (plan E7). A start no entry move can bind (`startUnbound`, Codex
+ *  R133 VP-I84) is named whatever K is: at K = 0 the first move alone starts
+ *  where the machine stands, unseen — its XYZ end commanded whole, nothing
+ *  after it depends on the start, and the move itself is in no sweep (Codex
+ *  R134). With no point after it the whole program is that move. */
+export function startDependentOf(track: { count: number; lines: ArrayLike<number>; depEnd?: number; startUnbound?: readonly number[] }): CollisionResult["startDependent"] {
+  const depK = Math.min(track.depEnd ?? 0, track.count);
+  const unbound = !!track.startUnbound?.length;
+  if (!(depK > 0 || (unbound && track.count > 0))) return undefined;
+  let from = 0, to = 0;
+  for (let i = 0; i < Math.min(depK + 1, track.count); i++) {
+    const ln = track.lines[i] ?? 0;
+    if (ln > 0 && (!from || ln < from)) from = ln;
+    if (ln > to) to = ln;
+  }
+  return { fromLine: from, toLine: to, whole: depK > 0 ? depK >= track.count : track.count <= 1,
+           // not checked in the simulation either
+           ...(unbound ? { unbound: true } : {}) };
+}
+
 /** A CONFIRMED contact (step 4 plan 1b/1d, Codex R118): a record that
  *  touches (≤ CONTACT_EPS) or — an onset — whose contact touched on a later
  *  line (`touches`), and is no boundary contact of a range sweep (onset and
@@ -1314,25 +1335,7 @@ export function* sweepCollisionsIter(
   const geoNote = geometryNote(model);
   if (geoNote) noteParts.push(geoNote);
   // The start-dependent beginning, named apart from the guarantee (plan E7).
-  // A start no entry move can bind (`startUnbound`, Codex R133 VP-I84) is
-  // named whatever K is: at K = 0 the first move alone starts where the
-  // machine stands, unseen — its XYZ end commanded whole, nothing after it
-  // depends on the start, and the move itself is in no sweep (Codex R134).
-  // With no point after it the whole program is that move.
-  const depK = Math.min(track.depEnd ?? 0, track.count);
-  const unbound = !!track.startUnbound?.length;
-  let startDependent: CollisionResult["startDependent"];
-  if (depK > 0 || (unbound && track.count > 0)) {
-    let from = 0, to = 0;
-    for (let i = 0; i < Math.min(depK + 1, track.count); i++) {
-      const ln = track.lines[i] ?? 0;
-      if (ln > 0 && (!from || ln < from)) from = ln;
-      if (ln > to) to = ln;
-    }
-    startDependent = { fromLine: from, toLine: to, whole: depK > 0 ? depK >= track.count : track.count <= 1,
-                       // not checked in the simulation either
-                       ...(unbound ? { unbound: true } : {}) };
-  }
+  const startDependent = startDependentOf(track);
   const bodyClass = bodyClasses(model);
   const notesOf = (parts: string[]) => ({ uncertified: parts.length ? parts.join("; ") : null, notes: parts.slice(),
                                           ...(startDependent ? { startDependent } : {}), ...(bodyClass ? { bodies: bodyClass } : {}) });

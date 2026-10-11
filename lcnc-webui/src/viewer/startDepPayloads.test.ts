@@ -17,7 +17,7 @@ import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { describe, expect, it } from "vitest";
 import { decodePreviewStreams, normalizeToToolBasis } from "../previewDecode";
 import { buildEntryTrack, buildScrubTrack, displayLineForPoint, sliceTrack } from "./scrubTrack";
-import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
+import { buildCollisionModel, startDependentOf, sweepCollisions, type CollisionMachine } from "./collision";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { beginSentence, bindBeginning, depTimeSentence, earlierTime, moveTime, runBeginOf, runBeginView } from "./startDep";
 import ts from "typescript";
@@ -410,7 +410,7 @@ describe("Codex R133", () => {
 // together; only the transport around them (gateway, admission, worker,
 // model) is stubbed. Codex's method (viewer-palette-fest.r134.codex-wiring).
 type Coord = {
-  start(): boolean; setBase(r: any): void; reply(data: Record<string, unknown>): void; drop(): void;
+  start(): boolean; setBase(r: any): void; mainRunning(progress: number, on?: any): void; mainEnded(): void; reply(data: Record<string, unknown>): void; drop(): void;
   view(): any; result(): any; side(): any;
 };
 function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why?: string | null;
@@ -420,7 +420,7 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const ast = ts.createSourceFile("ThreeViewer.ts", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const texts: string[] = [];
   for (const name of ["_startRunCheck", "_runBoundTrack", "_colPostSide", "_colOnSideMessage", "_colBaseFor", "_colWithRunSide",
-                      "_colRunSideFailed", "_colCancelSide", "_colDropEntry", "runBeginNow"]) {
+                      "_colRunSideBase", "_colRunSideFailed", "_colCancelSide", "_colDropEntry", "runBeginNow"]) {
     const f = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === name);
     expect(f, name).toBeTruthy();
     texts.push(f!.getText(ast));
@@ -437,7 +437,8 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const runPlayhead = ref(null), viewerInit = ref(opts.noInit ? null : { axes: ["X", "Y", "Z"] });
   const collisionRun = ref(null), collisionRunSide = ref(null), collisionRunSideState = ref(null), collisionEntry = ref(null);
   const collisionBusy = ref(false), collisionResumable = ref(false), collisionResult = ref(null), collisionTrack = ref(null);
-  const collisionPartial = ref(null), collisionPartialTrack = ref(null), collisionSideFirst = ref(null);
+  const collisionPartial = ref(null), collisionPartialTrack = ref(null), collisionSideFirst = ref(null), collisionProgress = ref(0);
+  let _colPendingTrack = null;
   const basis = { startJoints: opts.joints === undefined ? [100, 100, 100] : opts.joints };
   let _colRunGen = 0, _colSide = null, _colSideSeq = 0, _colModelSent = null;
   const _colRunLog = [];
@@ -454,6 +455,9 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   return {
     start: () => _startRunCheck(),
     setBase: (r) => { collisionResult.value = r; collisionTrack.value = track; },
+    // the main request running on the given track (default: the run's) at that progress, no partial yet
+    mainRunning: (progress, on = track) => { collisionBusy.value = true; _colPendingTrack = on; collisionProgress.value = progress; },
+    mainEnded: () => { collisionBusy.value = false; },
     reply: (data) => _colOnSideMessage({ id: _colSide.id, ...data }),
     drop: () => _colDropEntry(),
     view: () => collisionRunCheckView.value,
@@ -463,7 +467,7 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const code = ts.transpileModule(prelude + texts.join("\n") + expose,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const deps = { track, wcs, opts, runBeginOf, runBeginView, buildEntryTrack, sliceTrack, mergeBeginningOntoBase,
-                 displayLineForPoint, firstOnly, console: { error: () => {} } };
+                 displayLineForPoint, firstOnly, startDependentOf, console: { error: () => {} } };
   return new Function(...Object.keys(deps), code)(...Object.values(deps));
 }
 const swept = (t: any, raw: Record<string, any>) => sweep(t, [500, 0, 0], raw);
@@ -496,6 +500,38 @@ describe("Codex R136 VP-I93", () => {
     g.reply({ progress: 0.2, first });
     g.reply({ error: "injected" });
     expect(g.result().hits).toEqual(base.hits);
+  });
+});
+
+describe("Codex R138 VP-I93", () => {
+  it("before the main request's first partial: the beginning's contact on the main request as it stands — its progress, its start-dependent beginning, never another track or a finished main request", () => {
+    const { raw, track } = load("e_single");
+    const first = { line: 1, cum: 1, cumEnd: 1, a: "tool", b: "post", dist: 0, rapid: true };
+    const h = coordinator(track, wcsOf(raw));
+    expect(h.start()).toBe(true);
+    h.mainRunning(0.1);
+    expect(h.result(), "nothing found yet, nothing shown").toBeNull();
+    h.reply({ progress: 0.2, first });
+    const early = h.result();
+    expect(early.hits.some((x: any) => x.a === "tool" && x.b === "post"), "the side contact shown").toBe(true);
+    expect(early.truncated, "the main request's own progress, running").toEqual({ covered: 0.1, reason: "running" });
+    expect(early.startDependent, "the beginning the main request names").toEqual(startDependentOf(track));
+    expect(early.startDependent).toBeTruthy();
+    expect(early.pairCount, "a contact: moving pairs exist").toBeGreaterThan(0);
+    // the beginning's result before the main partial: shown the same way
+    const beginning = sweep(h.side().slice, [500, 0, 0], raw);
+    h.reply({ result: { ...beginning, hits: [first, ...beginning.hits] } });
+    expect(h.result().hits.some((x: any) => x.b === "post"), "the final side contact shown").toBe(true);
+    expect(h.result().truncated).toEqual({ covered: 0.1, reason: "running" });
+    // the main request ended without a result (an error, a cancel): nothing is invented
+    h.mainEnded();
+    expect(h.result(), "no finished main request is made up").toBeNull();
+    // another track pending: not this run's base
+    const g = coordinator(track, wcsOf(raw));
+    expect(g.start()).toBe(true);
+    g.mainRunning(0.1, { ...track });
+    g.reply({ progress: 0.2, first });
+    expect(g.result(), "the main request runs on another track").toBeNull();
   });
 });
 
