@@ -1,0 +1,30 @@
+{
+  "head": "2fd8c08862755fc03197adeba64d24bf16d6da48",
+  "note": "the offline gate's frontend steps; Playwright with --trace off (little room on /)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 6
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 14
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 263
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 1982
+    }
+  ]
+}

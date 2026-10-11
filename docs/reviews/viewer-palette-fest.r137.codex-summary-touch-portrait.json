@@ -1,0 +1,47 @@
+{
+  "pane": {
+    "left": 444,
+    "right": 888,
+    "width": 444
+  },
+  "narrow": true,
+  "form": "2",
+  "verdict": {
+    "text": "200+ · checked in full · more contacts not listed",
+    "sw": 264,
+    "cw": 174
+  },
+  "aria": "197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss · checked in full · more contacts not listed",
+  "summary": {
+    "left": 457,
+    "right": 833,
+    "width": 376
+  },
+  "items": [
+    {
+      "text": "200+ · checked in full · more contacts not listed",
+      "rect": {
+        "left": 457,
+        "right": 741.5,
+        "width": 284.5
+      }
+    },
+    {
+      "text": "2",
+      "rect": {
+        "left": 753.5,
+        "right": 788,
+        "width": 34.5
+      }
+    },
+    {
+      "text": "2",
+      "rect": {
+        "left": 800,
+        "right": 833,
+        "width": 33
+      }
+    }
+  ],
+  "help": "× the collision check's verdict · ▲ soft-limit records, a line and an axis each · ● the program's tool changes."
+}

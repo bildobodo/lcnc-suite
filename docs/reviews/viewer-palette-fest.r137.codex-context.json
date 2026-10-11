@@ -1,0 +1,40 @@
+{
+  "archive": "/tmp/codex-r137-0s9wgq_s/src",
+  "code_base": "c8dc258b",
+  "code_head": "2fd8c08862755fc03197adeba64d24bf16d6da48",
+  "review_head": "5fee11ddf89ea77e88c2fc0bb8e5f811be2d677b",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r137.gate-backend.json\n?? docs/reviews/viewer-palette-fest.r137.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r137.measure.txt\n?? docs/reviews/viewer-palette-fest.r137.mutations.py\n?? docs/reviews/viewer-palette-fest.r137.mutations.txt\n",
+  "review_prefix_size": 1382595,
+  "review_prefix_sha256": "4808de3604aeac5907f18643ac9159ae5eba8c7040418a273ad45a6f54b65d56",
+  "initial_evidence": {
+    "viewer-palette-fest.r137.gate-backend.json": "22e1c5630e4fca65d637add3b91dc7a3d4ffb631fa6bcf34c4875bf61d1c218f",
+    "viewer-palette-fest.r137.gate-frontend.json": "bb43e717a3c64d596ebf3a9a6199ae441ef8c94f1504427c2ec6eccc66cb6dcc",
+    "viewer-palette-fest.r137.mutations.txt": "b794afb2f271db643a9d07be8057fcc461724eba623adb93a03f3a37432e1881",
+    "viewer-palette-fest.r137.measure.txt": "462c6a0d7bb66e8fc9999eec9b06124b24bc03b41fffd14c662d7833cc067371",
+    "viewer-palette-fest.r137.mutations.py": "4165b718fa48c2305269f3877af48638c53e060023c40afbb2df0ae78fbdc18a"
+  },
+  "verified_target_files_sha256": {
+    "CLAUDE.md": "530bebf038bcb4c06ccdf736a1dcaf4e14eacd0bada8cb425c9b0f4edbef065f",
+    "docs/decisions.md": "25a81cd9583c85044c5e02d0a7850449eca5d6d1d48d0515c345b6166f67af00",
+    "lcnc-webui/e2e/collisions.viewer.spec.ts": "d894eea243f8769c226187fb1e0b390028c8d95ad153f0d4118684f36fc8ffab",
+    "lcnc-webui/e2e/sim-panel.viewer.spec.ts": "e5e0bd8a332070889c7cd37a9eb74c2c0f9acb1b2f93e0fea90999dc88b31f79",
+    "lcnc-webui/src/ScrubBar.vue": "e8c71833ca1110f57d53996e9412639d3a840552c1d4cfcc293b16bc4cb313ee",
+    "lcnc-webui/src/SimPanel.vue": "5c212ee992fc56570b263975240a6b6860aefe3b29a65a72e9109616c244e5ed",
+    "lcnc-webui/src/ThreeViewer.vue": "1b37cd589b3c398c8653682911762184045bffccf24d066bdeefb2de0c37ad01",
+    "lcnc-webui/src/simPanelStore.ts": "d3a46eff35fc32164cb7f3353c601e41a7d6154fb8ff018ac52cd343c3e510ec",
+    "lcnc-webui/src/viewer/checkContext.test.ts": "d13a49a7f9f54f00f83d0d2f541ee7f8a4dd01044a56d4eb4a78d6d548af5455",
+    "lcnc-webui/src/viewer/checkContext.ts": "2d909c130888c055688fa327e859c2dcf627e8e61a6610353fd8dcfe3430ffd8",
+    "lcnc-webui/src/viewer/checkWiring.test.ts": "83004d0c9b386dc84b4a75c8ea72cda873f97d28394aaaa70e988f92b17df017",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts": "055639453902a90ff8a554864f3071d9dca7d252c9c658d26af1c240b4799571",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "17e71a814a246fa8fbb50dac09ef8b878765f551b95a2ed15cc672088f89f688",
+    "lcnc-webui/src/viewer/firstContact.test.ts": "5835ba240c48ab43908e50f257ad3c233f103add7b68e4fa7f628eddba5e4133",
+    "lcnc-webui/src/viewer/firstContact.ts": "34017186e68b6be33eeab21cf814b2b097ec48ca6d6fddeb37351f25f3a1157b",
+    "lcnc-webui/src/viewer/scrubBarWords.test.ts": "c83936643c6a1a363929946104543dad73249830fde12ccb5788e349e7aa80fb",
+    "lcnc-webui/src/viewer/startDepPayloads.test.ts": "7f7092b4acd0ad4c20beaab4b734928309b51278502f72fcc9e944c3e2b1652f"
+  },
+  "review_prefix_preserved": true,
+  "initial_evidence_preserved": true,
+  "mock": "127.0.0.1:4188",
+  "live_ports_accessed": false,
+  "evidence_note": "Fresh archive, product sources unchanged; own tests/configurations and archive e2e/ctl.ts only for the mock."
+}
