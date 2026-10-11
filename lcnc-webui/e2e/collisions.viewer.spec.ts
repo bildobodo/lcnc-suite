@@ -1107,8 +1107,9 @@ test("a mid-run re-parse for a measured tool is one line, never a second one und
 // bar used to take the bare base result: the beginning's findings never
 // showed. Real page, decode and main sweep; only the side request's
 // transport is answered here (a known contact now, the result later).
-test("a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93)", async ({ page, context }) => {
-  test.setTimeout(120_000);
+/** A run check whose bound beginning's side request the page answers itself;
+ *  the main check done, the side request waiting. */
+async function sideRunReady(page: Page, context: BrowserContext) {
   await page.addInitScript(() => {
     const tap: any = { side: null, deliver: null, first: null };
     (window as any).__sideTap = tap;
@@ -1141,15 +1142,22 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   await publishInRun(page, file, 7138, pinnedFor(9));
   await expect.poll(() => page.evaluate(() => (window as any).__sideTap.side !== null), { timeout: 30_000 }).toBe(true);
   await expect.poll(() => runLog(page), { timeout: 60_000 }).toContain("done");
-  const clash = page.locator(".simPanel .simSummary .sumItem").first();
-  await expect(clash).toHaveAttribute("aria-label", "No contact · start still checking");
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", "No contact · start still checking");
   await expect(clashRows(page)).toHaveCount(0);
+}
+/** The side sweep's first confirmed contact, delivered. */
+const sideFirst = (page: Page) => page.evaluate(() => {
+  const t = (window as any).__sideTap, i = 1;
+  t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a: "spindle_nose", b: "a_yoke", dist: 0, rapid: true };
+  t.deliver({ progress: 0.2, first: t.first });
+});
+
+test("a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await sideRunReady(page, context);
+  const clash = page.locator(".simPanel .simSummary .sumItem").first();
   // early: the side sweep's first confirmed contact
-  await page.evaluate(() => {
-    const t = (window as any).__sideTap, i = 1;
-    t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a: "spindle_nose", b: "a_yoke", dist: 0, rapid: true };
-    t.deliver({ progress: 0.2, first: t.first });
-  });
+  await sideFirst(page);
   await expect(clash, "early: the contact, the beginning still checking").toHaveAttribute("aria-label", /^1 collision.* · start still checking$/);
   await expect(clashRows(page), "early: in the list").toHaveCount(1);
   // ...and in the code panel's marks: the same result
@@ -1165,6 +1173,21 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   await expect(clash, "final: checked, the beginning with it").toHaveAttribute("aria-label", /^1 collision.* · checked in full$/);
   await expect(clashRows(page), "final: in the list").toHaveCount(1);
   expect(await runLog(page)).toContain("beginning");
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+test("a run's bound beginning that ends without a result takes its early contact out of the list, the marks and the verdict (Codex R137 VP-I93)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await sideRunReady(page, context);
+  await sideFirst(page);
+  await expect(clashRows(page)).toHaveCount(1);
+  await page.evaluate(() => (window as any).__sideTap.deliver({ error: "injected" }));
+  const clash = page.locator(".simPanel .simSummary .sumItem").first();
+  await expect(clash, "not checked, with why — no contact of its own").toHaveAttribute("aria-label", "Clear · start not checked");
+  await expect(clashRows(page)).toHaveCount(0);
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".codeLine.collision"), "the early mark is gone too").toHaveCount(0);
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });

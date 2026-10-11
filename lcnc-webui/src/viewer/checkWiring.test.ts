@@ -53,6 +53,10 @@ function owner() {
     const newTrack = () => { _colPendingTrack = {}; };
     // no result and no run check here: what is shown is the partial
     const collisionResultShown = { get value() { return null; } }, collisionPartialShown = { get value() { return collisionPartial.value; } };
+    // the bodies retry: the same request again, under a new id
+    let _colNeedBodiesRetried = false, _colPendingRun = undefined;
+    const collisionBusy = { value: true }, emitTelemetry = () => {}, _colFail = () => {};
+    const runCollisionCheck = () => { _colReqId++; };
     class Worker { postMessage() {} }
     const post = (data) => _colGetWorker().onmessage({ data });
     const shown = () => collisionPartial.value;
@@ -107,6 +111,14 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     // ... the pool fails, the sweep starts again here: its partial has the near miss only
     ui.post({ id: 12, progress: 0.05, partial: running([near], 0.05) });
     expect(words(ui.shown()).text, "never back to a near miss").toBe("1 collision");
+  });
+  it("a bodies retry is the same request: its first contact stays held under the new id", () => {
+    const ui = owner();
+    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
+    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
+    ui.post({ id: 12, needBodies: true });
+    ui.post({ id: 13, progress: 0.05, partial: running([near], 0.05) });
+    expect(words(ui.shown()).text).toBe("1 collision");
   });
   it("the first stays with its request: a new request's partials are its own", () => {
     const ui = owner();

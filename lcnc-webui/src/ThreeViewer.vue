@@ -3130,7 +3130,10 @@ function _colGetWorker(): Worker {
         // the same request again — its basis, its range, its run and whether
         // the result on screen stays (Codex R116 VP-I70: it went out as a
         // whole-track check of no run, and the run check stuck "provisional")
+        const held = _colFirstHeld?.id === m.id ? _colFirstHeld.first : null;
         runCollisionCheck(_colPendingTrack ?? undefined, _colPendingRun);
+        // ...a first contact it reported is the same request's (its new id)
+        if (held) _colFirstHeld = { id: _colReqId, first: held };
         return;
       }
       if (m.first) {
