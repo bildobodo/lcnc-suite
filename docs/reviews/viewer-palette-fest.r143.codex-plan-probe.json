@@ -1,0 +1,159 @@
+{
+  "scope": "Analytic plan-contract checks only; no product implementation executed.",
+  "r142_witness_fix": {
+    "conservative_entry": 1.0003662109375,
+    "entry_decided": false,
+    "witness": 2.5,
+    "witness_decided": true,
+    "shown": [
+      [
+        1.25,
+        3
+      ]
+    ],
+    "old_rule_matching_children": 0,
+    "new_rule_matching_children": 1,
+    "selected_id": 11,
+    "ids": [
+      11
+    ]
+  },
+  "multiple_cuts": {
+    "pieces": [
+      [
+        0,
+        1.25
+      ],
+      [
+        1.75,
+        3.25
+      ],
+      [
+        3.75,
+        5
+      ]
+    ],
+    "keys": [
+      [
+        [
+          "held-generation",
+          "program",
+          "A-B",
+          7,
+          0
+        ],
+        "begin"
+      ],
+      [
+        [
+          "held-generation",
+          "program",
+          "A-B",
+          7,
+          0
+        ],
+        "clear-row-21"
+      ],
+      [
+        [
+          "held-generation",
+          "program",
+          "A-B",
+          7,
+          0
+        ],
+        "clear-row-22"
+      ]
+    ],
+    "witness": 4.5,
+    "ids": [
+      12,
+      13,
+      11
+    ],
+    "unchanged_delta_ids": [
+      12,
+      13,
+      11
+    ],
+    "forward_navigation": [
+      12,
+      13,
+      11
+    ],
+    "backward_navigation": [
+      11,
+      13,
+      12
+    ],
+    "selected_piece": [
+      3.75,
+      5
+    ]
+  },
+  "r140_control": [
+    [
+      0,
+      1
+    ],
+    [
+      1.001,
+      2
+    ]
+  ],
+  "r141_control": [
+    [
+      0,
+      1
+    ],
+    [
+      1.4,
+      1.6
+    ],
+    [
+      2,
+      3
+    ]
+  ],
+  "free_radius": {
+    "inward_rounding": [
+      {
+        "r": 0.1,
+        "stored": 0.09999999403953552
+      },
+      {
+        "r": 0.5,
+        "stored": 0.5
+      },
+      {
+        "r": 1e-08,
+        "stored": 9.99999993922529e-09
+      },
+      {
+        "r": 0.0001,
+        "stored": 9.999999747378752e-05
+      },
+      {
+        "r": 0.375,
+        "stored": 0.375
+      },
+      {
+        "r": 12.3456789,
+        "stored": 12.345678329467773
+      },
+      {
+        "r": 100.1,
+        "stored": 100.0999984741211
+      }
+    ],
+    "open_edges_retained": true,
+    "section_clipped": true,
+    "zero_speed_confined_to_section": true
+  },
+  "capacity": {
+    "table_holder_bytes": 19267584,
+    "derived_bytes": 8388608,
+    "six_main_six_side_derived_bytes": 138444800
+  },
+  "all_assertions_passed": true
+}

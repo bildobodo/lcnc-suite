@@ -1,0 +1,7 @@
+R143 analytic plan-contract probe: exit 0; all assertions passed.
+R142 counterexample: old rule has 0 matching children; witness rule has 1 (ID 11).
+Multiple cuts: IDs [12, 13, 11], unchanged on repeated delta; selected witness child retains 11.
+R140/R141 preservation controls: PASS.
+Open radius edges, seven inward float32 roundings, section clipping and zero speed: PASS.
+Capacity: T=19267584 bytes; derived=8388608 bytes; total=138444800 bytes.
+Plan agreement only; no product sweep/UI/build or live controller executed.
