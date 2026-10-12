@@ -1,0 +1,11 @@
+R142 plan contract probes: exit 0; all assertions passed.
+R140 separation control: PASS
+R141 narrow contact control: PASS
+Exit delta schema before next interval: PASS (schema only)
+Ordinary split identity control: PASS (rule model only)
+Remaining counterexample: reproduced
+Refined anchor: 1.0003662109375 (undecidable)
+New certified free span: [0.5, 1.25]
+Children containing old anchor: 0
+Actual contact witness 2.5 retained: True
+No product build/test or live controller was run.

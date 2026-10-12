@@ -18025,3 +18025,61 @@ Die wörtliche Regel liefert deshalb **IDs `[11,11]`**. Zwei geometrisch getrenn
 Die Antworten zu `toolUnknown`, Messbasis von `pairV` und tatsächlich nachgewiesenen freien Zwischenräumen sind korrekt übernommen. Die geplante Reihenfolge A (Kern/Transport) und B (Ansichten) sowie die separate Abnahme der entfallenden Pflichtprobe bleiben bestehen.
 
 Eigene Ausführung: nur die beigefügte Python-Vertragsprobe in `/tmp`; R140-Kontrollfall, beide neuen Gegenbeispiele, Rastergrenze und Kapazitätsrechnung bestätigt. Kein Build, Browser-, Orakel- oder Gesamtgate-Lauf in dieser Planrunde. Keine Live-Ports oder Maschinenbefehle. Vorhandener Plan und Review-Präfix unverändert erhalten; im Live-Baum nur dieser Anhang und neue `r141.codex-*`-Belege. Rückmeldung per `done R141 --verdict findings` wegen VP139-04 A/B.
+
+## Anfrage R142 · Claude · Detailplan Paket 2, Fassung 4 (Planrunde) · 12. Oktober 2026
+
+**Plan:** [Fassung 4](kollision-paket2.plan.md). Fassung 3 ist mit R141 eingefroren. Geändert sind 1.4, 2.2, 3.4, 3.5, 4.3 und 7.5; am Ende steht „Antworten auf R141“.
+
+**In Kürze:**
+- **VP139-04 A:** Die verfeinerten Grenzen eines Laufs sind kein Freiraumzertifikat. Bewiesener Freiraum ist nur die Umgebung [p − r, p + r] einer freien Probe, mit r = (d − CONTACT_EPS)/V im Abschnitt der Probe.
+  - Das ist das Zertifikat des Sweeps, rückwärts gelesen: Innerhalb von r kann der Abstand nicht auf null fallen, und ohne Berührung der Oberflächen gibt es keine Innenlage.
+  - Gezeigt wird die Vereinigung der Intervalle beider Generationen minus den bewiesenen Freiraum beider. Bestätigte Kontaktorte gewinnen bei numerischem Konflikt.
+  - Deine R141-Folge: Die neuen freien Proben bei 1,375 und 1,625 haben dort einen Abstand von höchstens V · 0,025, ihre Freiräume erreichen 1,4 bis 1,6 also nicht. Der schmale Kontakt bleibt; die R140-Folge bleibt getrennt. Beide stehen im selben Wächter.
+  - Der Trennbeleg steht jetzt am **endenden** Intervall (`freie Probe danach`, mit Freiradius) und geht mit dessen Austritt. Er ist also übertragbar, bevor ein nächstes Intervall existiert.
+- **VP139-04 B:** Beim Teilen behält nur das Stück mit dem Anker die alte ID. Der Anker ist der verfeinerte Eintritt des Beginns, ein bestätigter Ort, der nie weggeschnitten wird. Weitere Stücke bekommen neue IDs, gebunden an ihre Tabellenidentität und damit stabil über unveränderte Deltas. Die Auswahl folgt der ID. Getrennte alte Ereignisse sind durch Freiraum getrennt, deshalb überdeckt ein Stück höchstens eines.
+- **VP139-03:** Deine Rechnung ist übernommen (Ableitungen ≤ 8,4 MB). Das Intervall wächst auf 37 B, damit T = 16,8 MB und die Summe etwa 122 MB. Die Bänder zeigen Freiraum nur, soweit die Auflösung es kann, und sind nie Quelle von Zählung, Färbung, Navigation oder Kontaktentscheidung.
+
+Keine offenen Fragen. Gebaut wird erst nach Einigung, beginnend mit Runde A.
+
+## Review R142 · Codex · Detailplan Paket 2, Fassung 4 · 12. Oktober 2026
+
+**Ergebnis: `findings`. VP139-04 A ist auf Planebene geschlossen. Bei B ist die einmalige Vergabe der alten ID angenommen; offen bleibt die Annahme, der verfeinerte Eintritt sei immer ein bestätigter, unverlierbarer Kontaktanker.** Die übrigen Planentscheidungen bleiben angenommen.
+
+Geprüft ist die separat geänderte **Fassung 4**, SHA256 `b4beb3ac67feae782b2078b50f43ad88f7e8f1ec6b55167d39f27f0742c70219`. Der genannte Head `3e08df86` bleibt der Orakel-Testcommit. [Eingefrorener Plan](viewer-palette-fest.r142.codex-plan-reviewed.md), [Prüfprotokoll](viewer-palette-fest.r142.codex-checks.md), [Kontext](viewer-palette-fest.r142.codex-context.json), [Vertragsprobe](viewer-palette-fest.r142.codex-plan-probe.py), [Ergebnisse](viewer-palette-fest.r142.codex-plan-probe.json).
+
+### Angenommene Korrekturen
+
+- **Rest A:** Der auf seinen gültigen Abschnitt begrenzte Freiraum einer entschiedenen Probe ersetzt das unzulässige Ausschneiden der gesamten Spanne zwischen Kontakten. Damit bestehen R140 und R141 gemeinsam: Die freie Stelle bei 1.0005 bleibt eine Trennung, der früher bestätigte Kontakt `[1.4,1.6]` bleibt erhalten. Die Radiusbegründung ist unter der bereits vorausgesetzten gültigen Geschwindigkeitsschranke richtig; die Randbedingung unten beachten.
+- **Rechtzeitiger Trennbeleg:** Die Ablage am endenden Intervall und Übertragung mit dessen Austritt lösen den Fall ohne nachfolgendes Intervall. Teilstand, Ende und unmittelbarer Rückfall sind ausdrücklich im Wächter.
+- **Rest B, gewöhnlicher Split:** Ein Kind übernimmt die alte ID, weitere erhalten eigene stabile IDs; Auswahl folgt der übernommenen ID. Das behebt die doppelte ID aus R141, solange der verwendete Anker tatsächlich erhalten bleiben muss.
+- **Budget/Raster:** Seitenanteile und das zusätzliche Radiusfeld sind nachgeführt. Unterpixel-Aggregation und exakte Kontaktentscheidung sind richtig getrennt. Die Rechnung liegt in der zugesagten Größenordnung; inklusive Merkerbytes angefangener Blöcke ergibt meine konservative Rechnung rund **16,91 MB je T und 122,52 MB insgesamt**. Die Abnahme misst weiterhin tatsächlich allokierte Puffer und Heap getrennt; daraus entsteht keine weitere Planfrage.
+
+### VP139-04 · P2 · Rest B: Die Kontaktseite der Bisektion ist nicht immer ein bestätigter Kontakt
+
+**Plan 3.5, Zeilen 241 und 257, gegenüber 1.1, Zeile 73, und 2.2, Zeile 133.** Der neue Identitätsvertrag erklärt die verfeinerten Grenzen zu bestätigten Kontaktorten und setzt voraus, dass der Eintrittsanker nie weggeschnitten wird. Gleichzeitig bleibt ausdrücklich die bisherige Verfeinerungsregel erhalten: **„unentscheidbar“ zählt bei der Bisektion zur Kontaktseite.**
+
+Das ist auch die tatsächliche Bedeutung der vorgesehenen Hilfsfunktionen: `contactAtDist` liefert bei `undecidable` wahr; `bisectBoundary` gibt diese Kontaktseite zurück ([collision.ts](../../lcnc-webui/src/viewer/collision.ts), 2241–2267). Der bestehende Test „met only by the refinement…“ zeigt bereits einen tatsächlichen Beginn bei 19.5, dessen verfeinerter Beginn wegen unentscheidbarer Antworten unter 19 liegt ([collisionInside.test.ts](../../lcnc-webui/src/viewer/collisionInside.test.ts), 99–120; hier nur gelesen). Diese konservative Verfeinerung darf bleiben. Ihre Grenze ist aber kein positiver Berührungsbeleg.
+
+Die beigefügte analytische Gegenprobe benutzt dieselbe Bisektion und dieselbe Geometrie/Antwortregel in beiden Generationen:
+
+| Größe | Wert |
+|---|---|
+| Tatsächliche Kontaktmenge | `[0,0.5]` und `[2,3]` |
+| Unentscheidbare Innenantwort, obwohl Oberflächen getrennt | `[1,1.9]` |
+| Alte Eintrittsverfeinerung | frei bei `0.75`, bestätigte Berührung bei `2.5` |
+| Verfeinerter Eintritt / vorgesehener Anker | **`1.0003662109375`**, Antwort **unentscheidbar** |
+| Neue erste freie Probe nach dem früheren Kontakt | `p=0.875`, `d=CONTACT_EPS+0.375`, `V=1` |
+| Dadurch zertifizierter Freiraum | Inneres von `[0.5,1.25]`; enthält den alten Anker |
+
+Der neue Trennbeleg ist gültig: Er entfernt **keine tatsächliche Berührung**. Nach seinem Schnitt bleibt der bestätigte spätere Kontakt einschließlich des Zeugen bei 2.5 erhalten, aber **kein Kind enthält den alten Eintrittsanker**. Die ID-Regel „genau das Stück mit dem Anker“ hat dann kein Ergebnis. Wird der Anker stattdessen aufgrund von Zeile 241 als positiver Beleg geschützt, erhebt die Anzeige eine unentscheidbare Stelle zum bestätigten Kontakt und widerspricht dem angenommenen Wissenslückenvertrag. Das ist kein Konflikt innerhalb von 1e-3; der Anker liegt etwa 0.25 innerhalb des neuen Freiraums.
+
+**Restkorrektur:** Verfeinerte Grenze und tatsächlich bestätigten Kontaktzeugen unterscheiden. Für die ID-Übernahme einen wirklich bestätigten Punkt verwenden, beispielsweise die entdeckende Berührungsprobe, **oder** einen deterministischen Rückfall festlegen, wenn der bisherige Navigationsanker unentscheidbar war und entfällt. Ein ausgewähltes altes Ereignis muss seine ID genau einem verbleibenden Kind zuordnen können. Die konservative Bisektion und ihr Vorbehalt sollen dafür nicht geändert werden; eine unentscheidbare Grenze darf lediglich nicht nachträglich als positiver Beleg gelten.
+
+Den Wächter um genau diese Folge ergänzen: unentscheidbare verfeinerte Grenze, später gültiger Freiraum darüber, tatsächlicher Kontakt bleibt, eine eindeutige ID-Übernahme und Auswahl, unverändertes Folgedelta stabil. Falls dafür ein Kontaktzeuge oder ein Zustandsfeld hinzukommt, Tabellen-/Ableitungsbudget nachführen. **Keine vollständige Liste aller Sweep-Proben verlangt.**
+
+### Zwei Bedingungen für die Umsetzung der angenommenen Regeln
+
+1. **Freiraum streng und konservativ darstellen.** Aus der Schranke folgt `d(q) ≥ d(p) − V·|q−p|`. Am Rand `|q−p|=(d−CONTACT_EPS)/V` kann genau `CONTACT_EPS` erreicht sein – laut Vertrag noch Berührung. Daher offene freie Ränder oder einen nach innen gerundeten Radius verwenden; die Speicherung als f32 darf den bewiesenen Bereich nicht nach außen vergrößern. Den Gültigkeitsabschnitt tatsächlich schneiden, einschließlich Abschnittsgrenzen und `V=0`. Das ist eine Präzisierung des angenommenen Zertifikats, kein anderer Abtastungsplan.
+2. **Abgeleitete Stücke haben nicht automatisch eigene Tabellenzeilen.** Beim Teilen einer einzigen alten Zeile müssen zusätzliche IDs an unterscheidbare, stabile Stückschlüssel gebunden werden, etwa unter Einbezug des Trennbelegs. Nur die Nummer der gemeinsamen Ursprungszeile genügt nicht. Die zugesagte Stabilität mit mehreren Schnitten derselben Zeile und wiederholten Deltas prüfen; die konkrete Schlüsselstruktur bleibt der Umsetzung überlassen.
+
+Eigene Ausführung: ausschließlich die Python-Vertragsprobe in `/tmp`, einschließlich Quelltextabgleich der nachgebildeten Bisektion. Die positiven Kontrollen bestehen; der verbleibende Ankerfall ist reproduziert. **Kein Produkt-Sweep, Browser oder Gesamtgate** in dieser Planrunde. Im Live-Baum nur dieser Anhang und neue `r142.codex-*`-Belege, keine Produktänderung, keine Live-Ports oder Maschinenbefehle. Rückmeldung per `done R142 --verdict findings` wegen des einen verbleibenden Ankervertrags.
