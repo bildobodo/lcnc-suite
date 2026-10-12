@@ -1,10 +1,12 @@
 # Kollisionsprüfung Schritt 4, Paket 2 — Kontaktverläufe je Paar (Detailplan)
 
-**Fassung 2 · 12. Oktober 2026 · Zweig `feat/step4-p2`, angelegt von `feat/step4-p1` (Paket 1 abgenommen in R139, gemergt) · Merge nach `development` über den Integrationszweig, nie `main`.**
+**Fassung 3 · 12. Oktober 2026 · Zweig `feat/step4-p2`, angelegt von `feat/step4-p1` (Paket 1 abgenommen in R139, gemergt) · Merge nach `development` über den Integrationszweig, nie `main`.**
 
 Dieser Plan ist der Detailplan, den `kollision-schritt4.plan.md` für Paket 2 ankündigt („Budget, Blockgröße, Ableitungen“). Er beantwortet die Vorgaben aus Codex R84 (VP84-01), R85 und R118 (Antwort auf Frage 3). Gebaut wird erst nach Einigung über diesen Plan.
 
 Fassung 1 hat Codex in R139 in der Architektur angenommen: Kontaktverläufe statt Sätzen je Zeile, typisierte Blöcke, ein Ableitungsmodul, ein Listenfenster, Anhalten mit benannter Restabdeckung, zwei Umsetzungsrunden. Fassung 2 klärt die fünf Befunde VP139-01 bis VP139-05 und nimmt die drei Umsetzungshinweise auf. Neu gefasst sind 1.1, 1.2, 1.4, 2.1–2.4, 3.1, 3.2, 3.4, 3.5 (neu), 4.2, 4.4, 4.5, 5, 7 und 8. Die Antworten stehen am Ende.
+
+Fassung 2 hat Codex in R140 für VP139-01, -02 und -05 angenommen. Fassung 3 schließt die Reste von VP139-03 (Ableitungen beider Generationen) und VP139-04 (Belege über den Rückfall) und übernimmt die Antworten auf die zwei Fragen. Geändert sind 1.1, 1.4, 2.2, 3.4, 3.5, 4.3, 7.3, 7.4 und 7.5. Die Antworten auf R140 stehen am Ende.
 
 ## Ausgangslage am Stand `2371a617`
 
@@ -70,7 +72,7 @@ Eine **Wissenslücke** ist eine Strecke, über die der Sweep für ein Paar nicht
 3. **Lücke an einem bekannten Intervall.** Trifft ein offenes Intervall auf eine Lücke, wird es **ausgesetzt**. Sein Austritt bleibt unbekannt; es wird kein Austritt erfunden. Die Lücke steht mit ihrem Grund daneben.
    - Folgt nach der Lücke wieder eine bestätigte Berührung ohne nachgewiesene Trennung dazwischen, **läuft dasselbe Intervall weiter**: ein Ziel, kein Wiedereintritt, mit der Lücke darin.
    - Liegt eine nachgewiesene Trennung dazwischen (eine Probe mit `d > CONTACT_EPS` und entschiedener Innenprüfung „außen“), beginnt ein neues Intervall.
-   - **Ausnahme `toolUnknown`, wie heute:** Ein Werkzeugkontakt beginnt nach der Strecke neu, als eigenes Ziel. Das Intervall davor endet „an der Lücke“, ohne Austritt.
+   - **`toolUnknown`** (Codex R140, Antwort 1): Nach der Strecke steht wieder eine bekannte Werkzeuggeometrie, also eine neue Prüfgrundlage für die Werkzeugpaare. Der Kontakt davor setzt sich nicht über diese Grenze fort; sein Intervall endet „an der Lücke“, ohne Austritt. Ein Kontakt danach ist ein eigenes Ziel, **„Beginn nach unbekanntem Werkzeug“, kein geometrischer Wiedereintritt**.
 
 **Anzeige.** Eine Lücke zählt nirgends, färbt nicht und hat kein Band. Sie steht im „?“ und in den Notizen, etwa „inside check undecidable for A ↔ B (L5–L9)“ oder „tool without a length (L12–L40)“, und hält das Ergebnis unzertifiziert wie heute. Ein ausgesetztes Intervall wird bis zum Lückenbeginn gefärbt und markiert, nicht durch die Lücke hindurch.
 
@@ -102,12 +104,12 @@ Drei Tabellen in Spalten (SoA), in Blöcken zu 4096 Zeilen. Ein Block wird angeh
 | Tabelle | Spalten | Bytes je Zeile |
 |---|---|---|
 | Episode | Paar u32, Nummer u32, Kennzeichen u16, Eintritt f64, Ende f64 (letzte Probe im Rand; NaN = offen), nächste Stelle f64, nächster Abstand f32, erstes Intervall u32, Zahl der Intervalle u32 | 46 |
-| Intervall | Episode u32, Eintritt f64, Austritt f64 (NaN = offen oder ausgesetzt), Kennzeichen u8 (möglich, ausgesetzt, nach Lücke), nächstes Intervall derselben Episode u32 | 25 |
+| Intervall | Episode u32, Eintritt f64, Austritt f64 (NaN = offen oder ausgesetzt), Kennzeichen u8 (möglich, ausgesetzt, nach Lücke, nach unbekanntem Werkzeug), nächstes Intervall derselben Episode u32, freie Probe davor f64 (der Trennbeleg zum vorigen Intervall; NaN = keiner) | 33 |
 | Lücke | Paar u32, Beginn f64, Ende f64 (NaN = offen), Grund u8 | 21 |
 
 Die Intervalle verschachtelter Paare liegen nicht zusammenhängend (A1, B1, A2). Jede Episode verkettet ihre Intervalle deshalb über „nächstes Intervall“ (Hinweis a); die vier Bytes stehen im Budget.
 
-**Budget je Anfrage**, über alle Shards zusammen: 65 536 Episoden, 262 144 Intervalle und 16 384 Lücken. Das sind 3,0 + 6,6 + 0,3 MB = 9,9 MB Tabellen. Dazu kommen je Zeile ein Byte Änderungsmerker (0,3 MB) und je Shard und Tabelle höchstens ein angefangener Block (bei K ≤ 8 höchstens 3,0 MB). Zusammen sind das **T = 13,3 MB je Halter**.
+**Budget je Anfrage**, über alle Shards zusammen: 65 536 Episoden, 262 144 Intervalle und 16 384 Lücken. Das sind 3,0 + 8,7 + 0,3 MB = 12,0 MB Tabellen. Dazu kommen je Zeile ein Byte Änderungsmerker (0,3 MB) und je Shard und Tabelle höchstens ein angefangener Block (bei K ≤ 8 höchstens 3,3 MB). Zusammen sind das **T = 15,6 MB je Halter**.
 
 Zum Vergleich: 84 Beginne bei `haus.ngc`, 201 in Codex' synthetischem Fall R84. Das Budget wird nur von einem Programm erreicht, das ein Paar zehntausendfach in den Rand und wieder heraus führt.
 
@@ -133,7 +135,7 @@ Jede Grenze einer **Berührung** wird verfeinert, sobald sie erkannt ist, nicht 
 
 **Kein Zusammenführen** (VP139-02). Jeder Übergang wird genau einmal bisektiert, also gibt es nichts numerisch Doppeltes zusammenzufassen.
 - `mergeContiguousIntervals` hat in der neuen Senke keine Aufgabe.
-- Eine nachgewiesene nicht berührende Probe zwischen zwei Intervallen gehört zur Ereignisidentität; die beiden bleiben getrennt, auch wenn die Lücke unter 2e-3 liegt.
+- Eine nachgewiesene nicht berührende Probe zwischen zwei Intervallen gehört zur Ereignisidentität; die beiden bleiben getrennt, auch wenn die Lücke unter 2e-3 liegt. Sie steht am folgenden Intervall (`freie Probe davor`) und ist der Trennbeleg, den 3.5 über einen Rückfall trägt.
 - Eine **unbeprobte** Lücke zwischen zwei berührenden Proben ist dagegen keine Trennung. Sie gilt wie heute als Kontakt.
 
 **Pose und Zeit** (Hinweis c).
@@ -199,39 +201,57 @@ Die Erstmeldung aus Paket 1 (1b) ist ein sofortiges Delta, sobald das erste Ber�
 
 ### 3.4 Halter und ihr Budget
 
-T = 13,3 MB nach 1.4; S = T/8 für die Seitenläufe.
+T = 15,6 MB nach 1.4; S = T/8 = 1,95 MB für die Seitenläufe.
 
 | Halter | Inhalt | Obergrenze |
 |---|---|---|
-| Sweep je Shard | eigene Tabellen (Teilbudget), Zustand je Paar (wie heute) | Σ ≤ T |
+| Sweep je Shard | eigene Tabellen (Teilbudget) | Σ ≤ T |
 | Shards → Koordinator | je Shard höchstens ein unbestätigtes Delta, jedes ≤ seine Tabellen | Σ ≤ T |
 | Koordinator | Tabellen je Shard | ≤ T |
 | Koordinator → Viewer | höchstens ein unbestätigtes Delta | ≤ T |
-| Viewer | Tabellen des Auftrags | ≤ T |
-| Viewer beim Rückfall | die gehaltenen Zeilen der vorigen Generation (3.5) | ≤ T |
-| Viewer, Ableitungen | Index der Ziele (u32 je Ziel) und Vereinigung der Berührungen (f64-Paare) | ≤ 1,3 + 4,2 MB |
-| Seitenläufe | dieselben fünf Halter mit Budget S | ≤ 5 · S |
-| **Summe im ungünstigsten Fall** | | **etwa 93 MB** |
+| Viewer, aktuelle Generation | Tabellen des Auftrags | ≤ T |
+| Viewer, gehaltene Generation | die Belege der vorigen Generation (3.5) | ≤ T |
+| Viewer, Ableitungen über **beide** Generationen und den Seitenlauf, ohne Zuordnung gerechnet | Zielindex u32 je Ziel: 2 · (65 536 + 262 144) · 4 B = 2,6 MB, Seitenlauf 0,3 MB · Anzeige-Identität u32 je Zeile: 2,6 MB · Intervallindex je Paar u32 je Intervall: 2,1 MB · Bänder in Anzeigeauflösung, höchstens 8192 Stücke: 0,1 MB | ≤ 7,8 MB |
+| Seitenläufe | dieselben sechs Halter mit Budget S | ≤ 6 · S = 11,7 MB |
+| **Summe im ungünstigsten Fall** | | **etwa 113 MB** |
 
-Im üblichen Fall ist es ein Bruchteil davon; bei `haus.ngc` mit 84 Beginnen sind es Kilobytes. Heute stehen bei Fall B 1176 MB in einem einzigen Halter, und zwar unbegrenzt.
+**Nicht materialisiert** (VP139-03), damit die Ableitungen begrenzt bleiben:
+- die Vereinigung der Berührungen für die Bänder: Sie wird in Anzeigeauflösung berechnet (4.3);
+- die Code-Marken: Sie werden nur für sichtbare Zeilen abgefragt (4.2).
+
+Lückenstücke, also ein Kontakt `[0,10]` mit Lücke `[4,6]` als zwei Bandstücke, entstehen damit nur in dieser begrenzten Darstellung.
+
+**Außerhalb der Zusage, getrennt gemessen und berichtet:** der Index der Anzeigezeilen (je Spur, abhängig von der Zahl der Spurpunkte, wie heute `lineIndex.ts`) und der Zustand je Paar im Sweep (je Modell, wie heute).
+
+Im üblichen Fall ist die Summe ein Bruchteil davon. Berichtet werden dann die tatsächlich **belegten Puffer** samt der 4096er-Blöcke, nicht nur die Nutzbytes; bei `haus.ngc` mit 84 Beginnen liegen sie im Bereich eines MB je Halter. Heute stehen bei Fall B 1176 MB in einem einzigen Halter, und zwar unbegrenzt.
 
 Im Viewer entsteht kein Objekt je Ereignis. Objekte gibt es nur für das sichtbare Fenster der Liste (4.4).
 
-Gemessen werden **Datenbudget und Heap getrennt**: die Summe der Tabellen, Deltas und Indizes je Halter, und der Heap des Prozesses (7.4).
+Gemessen werden **Datenbudget und Heap getrennt**: die Summe der Tabellen, Deltas und Ableitungen je Halter, und der Heap des Prozesses (7.4).
 
-### 3.5 Rückfall: alle Befunde bleiben (VP139-04)
+### 3.5 Rückfall: alle Belege bleiben (VP139-04)
 
-Bei einem Pool-Rückfall rechnet der lokale Lauf als neue Generation neu. Für die Anzeige gilt:
+Bei einem Pool-Rückfall rechnet der lokale Lauf als neue Generation neu, auf derselben Prüfgrundlage. Für die Anzeige gilt:
 
-- **Jede bereits erhaltene Zeile des Auftrags bleibt**, nicht nur der erste Kontakt. Die neue Generation führt ihre Abdeckung getrennt davon.
-- **Zuordnung eins zu eins.** Eine Zeile der neuen Generation, die eine gehaltene Zeile derselben Herkunft und desselben Paars überdeckt, ersetzt sie und übernimmt deren Anzeige-Identität. Gesucht wird nach Stelle geordnet; jede alte Zeile hat höchstens eine neue Partnerin und umgekehrt. Mehrere Intervalle eines Paars verschmelzen nie zu einem.
-- **Erreichen ist kein Widerlegen.** Überholt die neue Generation die Stelle einer gehaltenen Zeile, ohne sie wiederzufinden, bleibt die Zeile. Sie ist dann als „aus dem früheren Lauf“ gekennzeichnet. Ein schmaler Kontakt kann zufällig gefunden worden sein; dass ein anderer Lauf ihn nicht sieht, widerlegt ihn nicht.
-- **Ein offenes gehaltenes Intervall** mit einem späteren Ende in der neuen Generation wird durch dieses ersetzt.
-- **Nachrichten einer älteren Generation** werden nach dem Wechsel verworfen.
-- **Ein neuer Auftrag** mit anderer Grundlage trennt wie heute: Er übernimmt nichts.
-- **Startabhängiger Anfang:** Seine Zeilen werden mit `max(0, c − shift)` abgebildet und behalten Herkunft und Nummer. Mehrere Ereignisse bei 0 bleiben getrennt und werden nie über die Stelle zusammengelegt.
+**Belege, nicht nur Zeilen** (Codex R140). Je Paar und Herkunft gibt es aus jeder Generation zwei Arten Beleg:
+- **positiv:** ein Berührungsintervall, mit seinen verfeinerten Grenzen;
+- **negativ:** eine nachgewiesene freie Probe (`freie Probe davor`), mit den verfeinerten Grenzen der beiden Intervalle um sie.
 
-Der gehaltene erste Kontakt aus Paket 1 (`_colFirstHeld`, `withFirstContact`, `holdsFirst`) wird ein Sonderfall dieser Regel und entfällt als eigener Code. Die gehaltenen Zeilen stehen im Budget (3.4).
+**Gezeigt wird** je Paar die Vereinigung der Intervalle beider Generationen, **geschnitten an jeder nachgewiesenen freien Probe beider Generationen**. Die Schnittgrenzen sind der verfeinerte Austritt und Eintritt der Generation, die die freie Probe nachgewiesen hat.
+- Ein gröberes Intervall überbrückt so keine bewiesene freie Stelle. Codex' Gegenbeispiel: Pool A = [0, 1] und B = [1,001; 2], frei bei 1,0005; lokal C = [0, 2]. Gezeigt werden [0, 1] und [1,001; 2], nicht [0, 2], in allen sechs Ansichten.
+- Umgekehrt wird ein altes, grobes Intervall genauer, wenn die neue Generation darin freie Proben nachweist.
+- **Erreichen ist kein Widerlegen.** Ein bestätigtes Intervall verschwindet nie, weil eine andere Generation die Stelle ohne Treffer überholt. Ein schmaler Kontakt kann zufällig gefunden worden sein.
+- „Möglich“ und „sicher“: Wo beide Generationen eine Stelle haben, gilt „sicher“.
+- Ein offenes Intervall mit einem späteren Ende in der anderen Generation verlängert sich durch die Vereinigung.
+
+**Ereignisse und Identität.** Jedes Stück nach dem Schneiden ist ein Ereignis. Es trägt die Anzeige-Identität des frühesten gehaltenen Ereignisses, das es überdeckt. Überdeckt ein neues Intervall mehrere getrennte alte Ereignisse, entstehen durch das Schneiden mehrere Stücke, jedes mit seiner alten Identität; ein Stück ohne altes Gegenstück bekommt eine neue. Zählung, Liste, Navigation, Färbung, Bänder und Code-Marken sind damit eine Ableitung desselben Belegbestands, nicht nur dieselbe Zahl von Zielen.
+
+**Weiter gilt:**
+- Nachrichten einer älteren Generation werden nach dem Wechsel verworfen.
+- Ein neuer Auftrag mit anderer Grundlage trennt wie heute: Er übernimmt keine Belege.
+- Startabhängiger Anfang: Seine Zeilen werden mit `max(0, c − shift)` abgebildet und behalten Herkunft und Nummer. Mehrere Ereignisse bei 0 bleiben getrennt und werden nie über die Stelle zusammengelegt.
+
+Der gehaltene erste Kontakt aus Paket 1 (`_colFirstHeld`, `withFirstContact`, `holdsFirst`) wird ein Sonderfall dieser Regel und entfällt als eigener Code. Die gehaltenen Belege stehen im Budget (3.4).
 
 ## 4 · Eine Ableitung für alle Ansichten
 
@@ -255,8 +275,8 @@ Alle Ansichten lesen die Tabellen über **ein** Modul (`viewer/contactView.ts`).
 
 ### 4.3 Färbung, Bänder
 
-- **Färbung:** Ein Paar leuchtet, wenn die Pose in einem seiner Berührungsintervalle liegt. Ein offenes Intervall gilt bis zur Abdeckung. Es gibt keine Spanne aus einem Beginnsatz und keine Verlängerung über eine Annäherung (R85).
-- **Bänder der Zeitleiste:** die Vereinigung der Berührungsintervalle. Ein offenes reicht bis zur Abdeckung und ist als offen gekennzeichnet.
+- **Färbung:** Ein Paar leuchtet, wenn die Pose in einem seiner gezeigten Intervalle liegt (3.5), binär gesucht im Intervallindex des Paars. Ein offenes Intervall gilt bis zur Abdeckung, **außer über eine Wissenslücke**; ein ausgesetztes bis zum Lückenbeginn. Es gibt keine Spanne aus einem Beginnsatz und keine Verlängerung über eine Annäherung (R85).
+- **Bänder der Zeitleiste:** Sie werden **in Anzeigeauflösung** berechnet, nicht als vollständige Vereinigung gespeichert. Je Pixelspalte der Leiste zählt, ob ein gezeigtes Intervall sie berührt. Ein Kontakt schmaler als ein Pixel belegt sein Pixel und verschwindet nie. Lücken unterbrechen ein Band, ein offenes Intervall reicht bis zur Abdeckung und ist gekennzeichnet. Höchstens 8192 Stücke.
 
 ### 4.4 Liste im Sim-Tab
 
@@ -338,9 +358,9 @@ Erlaubt sind Abweichungen nur dort, wo das alte Modell gekappt (200), zusammenge
    - Wiedereintritte;
    - Vorschub-/Eilgang-Wechsel innerhalb des Fensters.
 
-   Verlangt: Jedes Fenster ist genau ein Intervall mit seinen Grenzen auf 1e-3, und jeder freie Zwischenraum bleibt eine Trennung (VP139-02).
+   Verlangt: Jedes Fenster ist genau ein Intervall mit seinen Grenzen auf 1e-3, und jeder freie Zwischenraum, den der Sweep **mit einer Probe nachgewiesen** hat, bleibt eine Trennung (VP139-02). Ein analytisch vorhandener, unbeprobter Zwischenraum unter MIN_ADV darf nach der vereinbarten Regel überbrückt bleiben (Codex R140). Der Wächter prüft deshalb zuerst, dass die freie Probe im Ergebnis steht.
 2. **Erzeugte Maschinen bei feinem Raster.** `generatedCase` (Commit `3e08df86` auf `feat/step4-p2`) mit STEP = 0,05 auf kurzen Spuren, als Abnahme des Pflichtproben-Commits und der Modellumstellung, nicht in jedem Gate.
-3. **Die Geschwindigkeitsschranke direkt.** Ein Eigenschaftstest auf erzeugten Maschinen: Je Abschnitt ist `pairV` mindestens die dicht abgetastete relative Punktgeschwindigkeit der Netzpunkte beider Körper. Das prüft die Hebelrechnung selbst und nicht nur ihre Folgen.
+3. **Die Geschwindigkeitsschranke direkt.** Ein Eigenschaftstest auf erzeugten Maschinen: Je Abschnitt ist `pairV` mindestens die relative Punktgeschwindigkeit der Netzpunkte beider Körper. Diese wird **im Inneren** des Abschnitts dicht abgetastet, nicht nur an den Endpunkten, damit mehrere Drehachsen und veränderliche Hebel gesehen werden. Gemessen wird in derselben Parameter- und Koordinatenbasis wie `pairV` (mm bzw. °, 1° ≙ 1 Einheit; Codex R140). Das prüft die Hebelrechnung selbst und nicht nur ihre Folgen.
 
 **Empfindlichkeit, gemessen** (12. Oktober, kompilierende Mutationen der Hebelrechnung in `collision.ts`):
 
@@ -363,8 +383,9 @@ Die erzeugten Maschinen erweitern die empirische Abdeckung. Die Allgemeinheit ü
 
 - Ein künstlich kleines Budget hält an, sagt „unvollständig ab“, lässt offene Kontakte offen und zeigt die gesicherten Funde. Im Pool ist `incompleteFrom` das Minimum über die Shards.
 - **Angehaltener Empfänger:** Der Viewer bestätigt nicht, während dieselbe offene Episode tausendfach aktualisiert wird und ein Seitenlauf sowie viele unentscheidbare Abschnitte laufen. Verlangt: höchstens ein Delta je Weg, kein Wachstum der Puffer, das Datenbudget unter seiner Grenze.
+- **Speicherwächter mit beiden Generationen** (VP139-03): gehaltener und neuer Bestand mit nicht zugeordneten Kontakten, Wissenslücken, die Bänder zerlegen, und ein gleichzeitiger Seitenlauf. Verlangt: die Ableitungen unter ihrer Grenze aus 3.4, die Bänder höchstens 8192 Stücke.
 - Volle Lückentabelle: Der Sweep hält an und sagt „unvollständig ab“.
-- `haus.ngc` Fall B: Datenbudget und Heap getrennt, vorher und nachher; nach Commit 5 zusätzlich die Abfragen.
+- `haus.ngc` Fall B: Datenbudget (belegte Puffer samt Blockrundung und Nutzbytes) und Heap getrennt, vorher und nachher; nach Commit 5 zusätzlich die Abfragen.
 
 ### 7.5 Weitere Abnahme
 
@@ -374,7 +395,16 @@ Die erzeugten Maschinen erweitern die empirische Abdeckung. Die Allgemeinheit ü
   - bestätigter Kontakt → unentscheidbar → wieder bestätigt, ohne und mit nachgewiesener Trennung;
   - Kontakt → unbekanntes Werkzeug → wieder bekannt.
 - **Trennung:** Codex' Gegenbeispiel [0,1] und [1,001; 2] mit freier Probe bei 1,0005 ergibt zwei Intervalle (VP139-02).
-- **Rückfall** (VP139-04): die A/B-Folge (beide bleiben); zwei getrennte Kontakte desselben Paars (bleiben zwei); ein offenes Intervall mit späterem Ende (wird ersetzt); eine alte Nachricht nach dem Generationswechsel (verworfen); ein neuer Auftrag (übernimmt nichts). Dazu die R136–R138-Folgen als Wächter.
+- **Rückfall** (VP139-04), je in allen sechs Ansichten:
+  - die A/B-Folge: beide bleiben;
+  - Codex' R140-Folge A = [0, 1], B = [1,001; 2], frei bei 1,0005, danach C = [0, 2]: zwei Ziele, **Band und Färbung an 1,0005 aus**, die Trennung erhalten, die Navigation eindeutig;
+  - der umgekehrte Fall: altes grobes [0, 2], neue freie Probe bei 1,0005 ergibt zwei Stücke;
+  - ein neues Intervall über mehrere getrennte alte Ereignisse: jedes behält seine Identität;
+  - ein offenes Intervall mit späterem Ende: verlängert;
+  - eine alte Nachricht nach dem Generationswechsel: verworfen;
+  - ein neuer Auftrag: übernimmt nichts.
+
+  Dazu die R136–R138-Folgen als Wächter.
 - **Zeit:** Erstmeldung mit Verfeinerung und Antwort auf Anhalten und Abbruch, gemessen wie in R138 und alt gegen neu verglichen (2.2).
 - Mutationen für jede Regel, kompilierend und rot.
 
@@ -419,7 +449,14 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 | Hinweis b | Jede Spanne einer wiederholten Quellzeile einzeln; Fokus an der Ereignisidentität. | 4.2, 4.4 |
 | Hinweis c | Pose nach jeder Bisektion wiederhergestellt; Erstmeldung nach der Verfeinerung ihres Eintritts, Verzögerung und Antwortzeiten gemessen. | 2.2, 7.5 |
 
-## Fragen an Codex
+## Antworten auf R140
 
-1. **`toolUnknown`:** Ist der Neubeginn nach der Strecke als eigenes Ziel (wie heute) richtig, oder soll ein Werkzeugkontakt ohne nachgewiesene Trennung wie bei `undecidable` weiterlaufen?
-2. **Obergrenze:** Reicht „etwa 93 MB im ungünstigsten Fall, Kilobytes im üblichen“ als zugesagte Grenze aller Halter, oder sollen die Budgets kleiner sein?
+| Befund / Frage | Antwort | Wo |
+|---|---|---|
+| VP139-04, Rest | Belege bleiben über den Rückfall, positive wie negative. Gezeigt wird die Vereinigung der Intervalle beider Generationen, geschnitten an jeder nachgewiesenen freien Probe (gespeichert als `freie Probe davor`). Ein gröberes Intervall überbrückt keine bewiesene freie Stelle; ein altes grobes wird genauer. Identität nach dem frühesten überdeckten alten Ereignis, beim Überdecken mehrerer alter Ereignisse durch Schneiden getrennt. Wächter in allen sechs Ansichten mit Codex' Folge. | 1.4, 2.2, 3.5, 7.5 |
+| VP139-03, Rest | Ableitungen für beide Generationen und den Seitenlauf ohne Zuordnung budgetiert (≤ 7,8 MB), Bänder in Anzeigeauflösung (≤ 8192 Stücke) und Code-Marken je sichtbarer Zeile nicht materialisiert, Lückenstücke damit begrenzt; Summe etwa 113 MB; Anzeigezeilenindex und Paarzustand getrennt ausgewiesen; Speicherwächter mit beiden Beständen, Lücken und Seitenlauf; belegte Puffer samt Blockrundung berichtet. | 3.4, 4.3, 7.4 |
+| Frage 1 (`toolUnknown`) | Übernommen: Neubeginn als eigenes Ziel „nach unbekanntem Werkzeug“, kein geometrischer Wiedereintritt; die Lücke ohne Marke und Band. | 1.1, 1.4 |
+| Frage 2 (Budget) | Übernommen: Größenordnung bleibt, keine kleineren Budgets; Grenze nach VP139-03 neu gerechnet. | 3.4 |
+| Hinweise zu den Wächtern | Freie Zwischenräume nur als vom Sweep nachgewiesene Trennbelege; `pairV` im Inneren der Abschnitte in derselben Basis verglichen. | 7.3 |
+
+Keine offenen Fragen.
