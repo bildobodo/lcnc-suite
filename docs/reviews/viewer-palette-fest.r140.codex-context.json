@@ -1,0 +1,40 @@
+{
+  "workdir": "/tmp/codex-r140-3d50s0dn",
+  "live_head": "b9541f4555f887074ccba1cfc5548b8f40a9c850",
+  "request_base": "33dac80c",
+  "request_head": "3e08df86",
+  "initial_status": " M docs/reviews/kollision-paket2.plan.md\n M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r140.oracle.txt\n?? docs/reviews/viewer-palette-fest.r140.sensitivity.txt\n",
+  "inputs": {
+    "kollision-paket2.plan.md": {
+      "sha256": "53eebc206f9a8aad9a80cbcf88f984d53db4a89be1b4fcb89f0296c3c03e553d",
+      "bytes": 39350
+    },
+    "viewer-palette-fest.ideen.md": {
+      "sha256": "c0f47e9e141dcaccb07b9c5b2f0998ac12b3bf8a56c253ebb3ff86629d055a67",
+      "bytes": 1431182
+    },
+    "viewer-palette-fest.r140.oracle.txt": {
+      "sha256": "a244cbcc9facee8877b9d76a347fe44fce9d38e45475f6ab4286b27575d557bc",
+      "bytes": 9042
+    },
+    "viewer-palette-fest.r140.sensitivity.txt": {
+      "sha256": "71fbac1bf39cac00dc1e6c53f39a0518987e4b815930b60b9787db7972096450",
+      "bytes": 1440
+    }
+  },
+  "probe_python": "3.13.5",
+  "probe_exit_code": 0,
+  "outcome": {
+    "VP139-01": "closed (plan)",
+    "VP139-02": "closed (plan, cross-generation issue in VP139-04)",
+    "VP139-03": "rest open: derived storage for retained and current generation",
+    "VP139-04": "rest open: preservation of known separation through replacement",
+    "VP139-05": "closed (plan)"
+  },
+  "oracle_test_sources": {
+    "lcnc-webui/src/viewer/collisionFixtures.ts": "35033ff71cae556cea04ea317134462d65214274f7d7e17cdad2aecc613dc86e",
+    "lcnc-webui/src/viewer/collisionOracle.test.ts": "fbc644f3208b183f7b4df6d7f9e1a027976b707251b2de15b3b9d55afec673f6"
+  },
+  "product_tests_or_builds_run": false,
+  "initial_material_verified_unchanged_before_append": true
+}
