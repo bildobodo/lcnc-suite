@@ -1,0 +1,15 @@
+# Sensitivity of the collision oracles to the rotary lever bound — 2026-10-12, feat/step4-p2 (the
+# oracle as committed in 3e08df86), each mutation in lcnc-webui/src/viewer/collision.ts alone,
+# compiled (vue-tsc app), restored from a byte copy after each.
+#   gate: npx vitest run src/viewer/collisionOracle.test.ts -t <filter>  (STEP 0.5, short tracks)
+#   deep: COLLISION_HUNT=deep … -t "generated machine"                    (50 machines, STEP 0.25)
+lever_no_radius  `+ body.radius` → `+ body.radius * 0` in leverFor
+  gate generated: 11 passed | 5 skipped   gate all walks: 14 passed | 2 skipped   deep generated: 51 passed   → GREEN everywhere
+lever_half       `(lever + trans)` → `(lever + trans) * 0.5` in the rotary term
+  gate generated: 11 passed | 5 skipped   gate all walks: 14 passed | 2 skipped   deep generated: 51 passed   → GREEN everywhere
+axis_z           `_axisDir.copy(pd.dof.axisVec)` → `_axisDir.set(0, 0, 1)` in leverFor
+  deep generated: 51 passed                                                                              → GREEN
+lever_quarter    `(lever + trans)` → `(lever + trans) * 0.25`
+  deep generated: FAIL generated 20261026 (trivkins XYZB) track 2 s 33.13 (L11) frame_0/tool_z_1 true 1.7508:
+                  inside the margin wider than 0.251 of path on its line with no record on it            → RED
+lever_one_body   (dropping B's lever) did not compile (B unused) — not run.

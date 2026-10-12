@@ -1,0 +1,64 @@
+{
+  "one_to_one_replacement": {
+    "old": [
+      [
+        0.0,
+        1.0
+      ],
+      [
+        1.001,
+        2.0
+      ]
+    ],
+    "new": [
+      [
+        0.0,
+        2.0
+      ]
+    ],
+    "known_free_sample": 1.0005,
+    "shown": [
+      [
+        0.0,
+        2.0
+      ],
+      [
+        1.001,
+        2.0
+      ]
+    ],
+    "two_targets_retained": true,
+    "known_free_sample_covered_after_replacement": true,
+    "interpretation": "One-to-one identity matching alone does not preserve interval geometry or a separation proof; package 2 is not implemented."
+  },
+  "derived_tables": {
+    "single_generation_target_index_bytes": 1310716,
+    "two_disjoint_generations_target_index_bytes": 2621432,
+    "single_generation_union_bytes": 4194304,
+    "two_disjoint_generations_union_bytes": 8388608,
+    "two_disjoint_generations_union_with_split_gaps_bytes": 8912896,
+    "excludes": "side-run targets/bands, retained knowledge gaps, identity mapping, track-line span index, per-pair state, geometry and runtime overhead",
+    "interpretation": "Exact lower-bound arithmetic from allowed row counts; not a measured heap. Alternatives may avoid these arrays but must state their own bound."
+  },
+  "gap_split_example": {
+    "contact_interval": [
+      0,
+      10
+    ],
+    "gap": [
+      4,
+      6
+    ],
+    "rendered_bands": [
+      [
+        0,
+        4
+      ],
+      [
+        6,
+        10
+      ]
+    ],
+    "interpretation": "Even one semantic contact interval can need two band intervals when knowledge gaps are removed."
+  }
+}

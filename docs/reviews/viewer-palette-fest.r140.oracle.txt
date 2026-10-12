@@ -1,0 +1,73 @@
+# feat/step4-p2 3e08df86, 2026-10-12T20:22:41+02:00
+## gate: npx vitest run src/viewer/collisionOracle.test.ts
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle > XYZAC identity: every touch and every in-margin pose the oracle finds is reported, every report is real 22437ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle > XYZAC TCP: every touch and every in-margin pose the oracle finds is reported, every report is real 22117ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle > TWP gantry TCP: every touch and every in-margin pose the oracle finds is reported, every report is real 32295ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle > 3 axis: every touch and every in-margin pose the oracle finds is reported, every report is real 23864ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle > the inside tracks reach a body wholly inside another 0ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261012: every touch and every in-margin pose the oracle finds is reported, every report is real 879ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261013: every touch and every in-margin pose the oracle finds is reported, every report is real 659ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261014: every touch and every in-margin pose the oracle finds is reported, every report is real 1118ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261015: every touch and every in-margin pose the oracle finds is reported, every report is real 233ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261016: every touch and every in-margin pose the oracle finds is reported, every report is real 500ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261017: every touch and every in-margin pose the oracle finds is reported, every report is real 301ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261018: every touch and every in-margin pose the oracle finds is reported, every report is real 479ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261019: every touch and every in-margin pose the oracle finds is reported, every report is real 165ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261020: every touch and every in-margin pose the oracle finds is reported, every report is real 104ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > generated machine 20261021: every touch and every in-margin pose the oracle finds is reported, every report is real 224ms
+ ✓ src/viewer/collisionOracle.test.ts > the sweep against a brute-force oracle on generated machines > the generated machines reach contact 0ms
+      Tests  16 passed (16)
+
+## deep, generated machines only: COLLISION_HUNT=deep npx vitest run src/viewer/collisionOracle.test.ts -t generated
+      Tests  51 passed | 5 skipped (56)
+### per machine (COLLISION_HUNT_LOG)
+generated 20261012 (xyzac-trt XYZAC): 49352 touching (1040 inside), 1009 near, 207 onsets, 0 narrow runs, 3 s
+generated 20261013 (xyzbc-trt XYZBC): 31830 touching (248 inside), 1067 near, 129 onsets, 0 narrow runs, 2 s
+generated 20261014 (xyzacb-trsrn XYZABC): 26193 touching (1456 inside), 1100 near, 116 onsets, 0 narrow runs, 2 s
+generated 20261015 (trivkins XYZA): 25898 touching (69 inside), 653 near, 80 onsets, 0 narrow runs, 1 s
+generated 20261016 (trivkins XYZAC): 51538 touching (285 inside), 1341 near, 216 onsets, 0 narrow runs, 3 s
+generated 20261017 (xyzac-trt XYZAC): 17573 touching (10 inside), 424 near, 99 onsets, 0 narrow runs, 1 s
+generated 20261018 (xyzbc-trt XYZBC): 36283 touching (301 inside), 577 near, 139 onsets, 0 narrow runs, 1 s
+generated 20261019 (xyzacb-trsrn XYZABC): 31490 touching (22 inside), 785 near, 124 onsets, 0 narrow runs, 1 s
+generated 20261020 (trivkins XYZAB): 11763 touching (71 inside), 245 near, 56 onsets, 0 narrow runs, 1 s
+generated 20261021 (trivkins XYZBC): 35625 touching (264 inside), 820 near, 134 onsets, 0 narrow runs, 2 s
+generated 20261022 (xyzac-trt XYZAC): 50638 touching (54 inside), 2599 near, 197 onsets, 0 narrow runs, 4 s
+generated 20261023 (xyzbc-trt XYZBC): 11686 touching (81 inside), 384 near, 60 onsets, 0 narrow runs, 1 s
+generated 20261024 (xyzacb-trsrn XYZABC): 51130 touching (124 inside), 932 near, 187 onsets, 0 narrow runs, 2 s
+generated 20261025 (trivkins XYZAB): 21508 touching (0 inside), 1143 near, 76 onsets, 0 narrow runs, 1 s
+generated 20261026 (trivkins XYZB): 29354 touching (705 inside), 1126 near, 128 onsets, 0 narrow runs, 2 s
+generated 20261027 (xyzac-trt XYZAC): 37118 touching (368 inside), 920 near, 162 onsets, 0 narrow runs, 2 s
+generated 20261028 (xyzbc-trt XYZBC): 30971 touching (281 inside), 740 near, 140 onsets, 0 narrow runs, 2 s
+generated 20261029 (xyzacb-trsrn XYZABC): 27433 touching (95 inside), 1047 near, 95 onsets, 0 narrow runs, 2 s
+generated 20261030 (trivkins XYZC): 9652 touching (0 inside), 248 near, 42 onsets, 0 narrow runs, 0 s
+generated 20261031 (trivkins XYZABC): 43631 touching (45 inside), 1194 near, 177 onsets, 0 narrow runs, 2 s
+generated 20261032 (xyzac-trt XYZAC): 12857 touching (174 inside), 647 near, 74 onsets, 0 narrow runs, 1 s
+generated 20261033 (xyzbc-trt XYZBC): 33691 touching (15 inside), 767 near, 112 onsets, 0 narrow runs, 2 s
+generated 20261034 (xyzacb-trsrn XYZABC): 30732 touching (322 inside), 1894 near, 237 onsets, 0 narrow runs, 2 s
+generated 20261035 (trivkins XYZAC): 11627 touching (1243 inside), 658 near, 39 onsets, 0 narrow runs, 1 s
+generated 20261036 (trivkins XYZC): 15024 touching (298 inside), 555 near, 59 onsets, 0 narrow runs, 1 s
+generated 20261037 (xyzac-trt XYZAC): 41902 touching (83 inside), 1114 near, 188 onsets, 0 narrow runs, 2 s
+generated 20261038 (xyzbc-trt XYZBC): 60752 touching (292 inside), 1366 near, 273 onsets, 0 narrow runs, 2 s
+generated 20261039 (xyzacb-trsrn XYZABC): 19807 touching (418 inside), 3228 near, 77 onsets, 0 narrow runs, 2 s
+generated 20261040 (trivkins XYZAC): 28638 touching (54 inside), 624 near, 107 onsets, 0 narrow runs, 1 s
+generated 20261041 (trivkins XYZAB): 20037 touching (746 inside), 412 near, 94 onsets, 0 narrow runs, 1 s
+generated 20261042 (xyzac-trt XYZAC): 30692 touching (741 inside), 1064 near, 106 onsets, 0 narrow runs, 1 s
+generated 20261043 (xyzbc-trt XYZBC): 28329 touching (66 inside), 789 near, 154 onsets, 0 narrow runs, 1 s
+generated 20261044 (xyzacb-trsrn XYZABC): 57934 touching (129 inside), 1545 near, 152 onsets, 0 narrow runs, 2 s
+generated 20261045 (trivkins XYZC): 4007 touching (13 inside), 205 near, 28 onsets, 0 narrow runs, 0 s
+generated 20261046 (trivkins XYZA): 51639 touching (38 inside), 2260 near, 153 onsets, 0 narrow runs, 2 s
+generated 20261047 (xyzac-trt XYZAC): 40947 touching (1237 inside), 1077 near, 162 onsets, 0 narrow runs, 2 s
+generated 20261048 (xyzbc-trt XYZBC): 11020 touching (94 inside), 917 near, 67 onsets, 0 narrow runs, 1 s
+generated 20261049 (xyzacb-trsrn XYZABC): 63437 touching (637 inside), 1333 near, 252 onsets, 0 narrow runs, 3 s
+generated 20261050 (trivkins XYZA): 29035 touching (92 inside), 1477 near, 91 onsets, 0 narrow runs, 1 s
+generated 20261051 (trivkins XYZBC): 65203 touching (48 inside), 1689 near, 219 onsets, 1 narrow runs, 3 s
+generated 20261052 (xyzac-trt XYZAC): 29654 touching (176 inside), 681 near, 114 onsets, 0 narrow runs, 1 s
+generated 20261053 (xyzbc-trt XYZBC): 49437 touching (218 inside), 1742 near, 223 onsets, 0 narrow runs, 2 s
+generated 20261054 (xyzacb-trsrn XYZABC): 24117 touching (89 inside), 456 near, 74 onsets, 0 narrow runs, 1 s
+generated 20261055 (trivkins XYZBC): 27582 touching (79 inside), 316 near, 94 onsets, 0 narrow runs, 1 s
+generated 20261056 (trivkins XYZ): 4907 touching (65 inside), 441 near, 23 onsets, 0 narrow runs, 1 s
+generated 20261057 (xyzac-trt XYZAC): 63259 touching (1298 inside), 2436 near, 276 onsets, 0 narrow runs, 3 s
+generated 20261058 (xyzbc-trt XYZBC): 21985 touching (0 inside), 3560 near, 88 onsets, 0 narrow runs, 1 s
+generated 20261059 (xyzacb-trsrn XYZABC): 10341 touching (86 inside), 206 near, 51 onsets, 0 narrow runs, 1 s
+generated 20261060 (trivkins XYZA): 17055 touching (54 inside), 382 near, 71 onsets, 0 narrow runs, 1 s
+generated 20261061 (trivkins XYZA): 11033 touching (60 inside), 325 near, 70 onsets, 0 narrow runs, 0 s
