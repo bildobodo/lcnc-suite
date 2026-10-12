@@ -1,0 +1,26 @@
+{
+  "task_dir": "/tmp/codex-r143-i3xnt4hv",
+  "live_head": "67e50634295bea03b3378ee602d59b554105268f",
+  "request_base": "67e50634",
+  "request_head": "3e08df86",
+  "initial_status": " M docs/reviews/kollision-paket2.plan.md\n M docs/reviews/viewer-palette-fest.ideen.md\n",
+  "inputs": {
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 54784,
+      "sha256": "0b26cb1fdd30a62e23d74f8b2561992891d493e5124742c61b2f26afe2b4cf40"
+    },
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1461546,
+      "sha256": "706e769dd481b1b6bf9bb07ef6d9b320ecc20fa3198f94c4b32886172b339d8b"
+    }
+  },
+  "verdict": "agreement",
+  "result": "VP139-04 B witness anchor closed on plan level; Fassung 5 accepted for implementation round A.",
+  "execution": {
+    "command": "python3 plan_probe.py",
+    "exit_code": 0,
+    "scope": "Analytic contract probe only; no product implementation or live controller."
+  },
+  "review_append_heading_line": 18102,
+  "review_append_sha256": "bbfcfdb7073b28d2278139f2bc2bfb0d172e83311de56567e99ebc42f88f781c"
+}
