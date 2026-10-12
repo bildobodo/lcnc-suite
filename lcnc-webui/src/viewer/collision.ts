@@ -61,6 +61,10 @@ import { assignPairs } from "./pairAssign";
 import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./insideCheck";
 import { displayLineForPoint } from "./scrubTrack";
 import { probeStopTitle, type ProbeStop } from "./probeStop";
+import {
+  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT,
+  IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, ORIGIN_PROGRAM, f32Inward,
+} from "./contactStore";
 
 // Every bounded closest-point query prunes by the library's box-to-box
 // distance, which came out too large (bvhBoxDistance.ts): corrected before
@@ -409,6 +413,13 @@ export interface CollisionOptions {
    *  records carry `boundary` until it separates). Nothing before `from` is
    *  swept, refined or reported. Absent = the whole track. */
   range?: { from: number };
+  /** The contact store of step 4 package 2 (plan Fassung 5): the sweep ALSO
+   *  writes episodes, touch intervals and knowledge gaps into it, from the
+   *  same samples as its records, in track cum (round A: both sinks — the
+   *  records stay what the app reads). `origin`: the episodes' origin
+   *  (program, entry, beginning; a range's boundary contacts are marked by
+   *  the sweep). Absent = records only. */
+  contacts?: { store: ContactStore; origin?: number };
 }
 
 export interface CollisionResult {
@@ -1977,7 +1988,7 @@ export function* sweepCollisionsIter(
   // (with the re-entry promotion), the record under the cutting rule, a
   // verified separation past 2 × margin. The main loop then sets the pair's
   // certificates; the re-sampling sets none.
-  const noteQuery = (pi: number, s: number, line: number, isRapid: boolean, d: number, inBand = false) => {
+  const noteState = (pi: number, s: number, line: number, isRapid: boolean, d: number, inBand = false) => {
     if (inBand) {
       // The braking range is a hull, not where the machine is: it changes
       // no contact state — no separation there is verified, and no onset
@@ -2043,6 +2054,229 @@ export function* sweepCollisionsIter(
       onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
       boundaryPair[pi] = 0;
     }
+  };
+
+  // ── The contact store (step 4 package 2, plan Fassung 5) ──────────────
+  // Round A writes it beside the records, from the SAME samples in the same
+  // time order (noteQuery, the main loop's and the re-sampling's): a pair's
+  // stay inside the margin is an EPISODE; only a confirmed touch or inside
+  // opens a touch INTERVAL, that sample its WITNESS; each boundary is bisected
+  // once when seen, with no line floor, and is DECIDED only where its contact
+  // side was a decided touch; the first decided free sample after an exit is
+  // the separation's evidence with the radius its distance proves; an
+  // undecidable answer is a knowledge GAP and opens, separates or certifies
+  // nothing (plan 1.1, 2.2; Codex VP139-01/02/04).
+  let chunkLo = 0, chunkHi = 0;   // the chunk whose V the main loop holds now
+  let breakAt = -Infinity;        // the last jump (break, unknown start): no bisection reaches across it
+  const sink = opts.contacts ? (() => {
+    const store = opts.contacts.store;
+    const origin = opts.contacts.origin ?? ORIGIN_PROGRAM;
+    const P = pairs.length;
+    const epRow = new Int32Array(P).fill(-1), ivRow = new Int32Array(P).fill(-1), lastIv = new Int32Array(P).fill(-1);
+    const gapRow = new Int32Array(P).fill(-1), toolGap = new Int32Array(P).fill(-1);
+    const ordinal = new Uint32Array(P);
+    const lastFree = new Float64Array(P).fill(NaN);      // the pair's last decided free sample (dist parameter)
+    const lastTouchD = new Float64Array(P).fill(NaN);    // its last touching sample
+    const lastInMargin = new Float64Array(P).fill(NaN);
+    const lastUndec = new Float64Array(P).fill(NaN);
+    const afterTool = new Uint8Array(P);
+    const cutMute = new Uint8Array(P);    // a cutting pair's feed-begun contact: machining, nothing written
+    const cutPart = new Uint8Array(P);    // its rapid part ended at a feed: a later rapid part continues it
+    const T = (s: number) => distToTrackCum(s);
+    const add = (t: ColumnTable, v: Record<string, number>): number => {
+      const r = t.append(v);
+      if (r < 0) api.full = true;
+      return r;
+    };
+    // a point's contact kind for the bisections — 1 touching or inside
+    // (decided), 2 undecidable, 0 free — apart from the records' notes
+    const kindAt = (s: number, pi: number): 0 | 1 | 2 => {
+      if (distAtCum(s, pi) <= CONTACT_EPS) return 1;
+      const v = insideOf(pi);
+      return v === "inside" ? 1 : v === "undecidable" ? 2 : 0;
+    };
+    const bisect = (contact: number, free: number, pi: number): { at: number; decided: boolean } => {
+      let c = contact, x = free, decided = true, undec = NaN;
+      for (let it = 0; it < 48 && Math.abs(x - c) > 1e-3; it++) {
+        const mid = (c + x) / 2, k = kindAt(mid, pi);
+        if (k === 0) x = mid;
+        else { c = mid; decided = k === 1; if (k === 2 && Number.isNaN(undec)) undec = mid; }
+      }
+      api.moved = true;
+      // an undecidable answer the bisection met is named (plan 1.1, rule 2)
+      if (!Number.isNaN(undec)) add(store.gaps, { pair: pi, start: T(undec), end: T(undec), reason: GAP_UNDECIDABLE });
+      return { at: c, decided };
+    };
+    const closeInterval = (pi: number, s: number, d: number) => {
+      const iv = ivRow[pi]!;
+      ivRow[pi] = -1;
+      if (iv < 0) return;
+      const from = lastTouchD[pi]!;
+      let flags = store.intervals.get(iv, "flags");
+      if (from < breakAt) {
+        // a jump since the last touch: no exit is bisected across it
+        store.intervals.set(iv, "exit", T(breakAt));
+      } else {
+        const ex = bisect(from, s, pi);
+        store.intervals.set(iv, "exit", T(ex.at));
+        if (ex.decided) flags |= IV_EXIT_DECIDED;
+      }
+      store.intervals.set(iv, "flags", flags);
+      // the separation's evidence: this decided free sample and the radius its
+      // distance proves at the chunk's V — open, inside the chunk, in track
+      // units the smaller side of the monotone map, f32 inward (Codex R142)
+      let r = 0;
+      if (s >= chunkLo - 1e-9 && s <= chunkHi + 1e-9) {
+        const V = pairV[pi]!;
+        r = Math.min(V > 0 ? (d - CONTACT_EPS) / V : Infinity, s - chunkLo, chunkHi - s);
+      }
+      const ts = T(s), rt = r > 0 ? Math.min(ts - T(s - r), T(s + r) - ts) : 0;
+      store.intervals.set(iv, "freeAt", ts);
+      store.intervals.set(iv, "freeR", f32Inward(rt));
+    };
+    const closeEpisode = (pi: number) => {
+      const ep = epRow[pi]!;
+      epRow[pi] = -1;
+      if (ep >= 0) store.episodes.set(ep, "end", T(lastInMargin[pi]!));
+    };
+    const api = {
+      full: false,
+      moved: false,
+      sample(pi: number, s: number, isRapid: boolean, d: number, inBand: boolean, undecidable: boolean) {
+        if (api.full) return;
+        // the knowledge gap: open or extend on an undecidable answer, end on a decided one
+        if (undecidable) {
+          if (gapRow[pi]! < 0) gapRow[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_UNDECIDABLE });
+          lastUndec[pi] = s;
+        } else if (gapRow[pi]! >= 0) {
+          store.gaps.set(gapRow[pi]!, "end", T(lastUndec[pi]!));
+          gapRow[pi] = -1;
+        }
+        const cutting = !!pairCutting[pi];
+        const touch = !undecidable && d <= CONTACT_EPS;
+        const freeDecided = !undecidable && !inBand && d > CONTACT_EPS;
+        if (d <= opts.margin) {
+          if (epRow[pi]! < 0 && !cutMute[pi]) {
+            // a cutting pair's contact begun on a feed (or before a range) is
+            // machining: nothing is written until it separates (plan 2.3)
+            const boundary = !!opts.range && s <= rangeStart + 1e-9;
+            if (cutting && (!isRapid || boundary)) cutMute[pi] = 1;
+            else {
+              const flags = (boundary ? ORIGIN_BOUNDARY : origin) | (isRapid ? EP_RAPID : 0)
+                | (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !opts.range ? EP_AT_START : 0) | (inBand ? EP_POSSIBLE : 0);
+              epRow[pi] = add(store.episodes, { pair: pi, ordinal: ordinal[pi]!++, flags, onset: T(s), end: NaN,
+                                                closeAt: T(s), closeDist: d, firstIv: NONE, ivCount: 0 });
+              lastIv[pi] = -1;
+              cutPart[pi] = 0;
+            }
+          }
+          const ep = epRow[pi]!;
+          if (ep >= 0) {
+            lastInMargin[pi] = s;
+            if (d < store.episodes.get(ep, "closeDist")) {
+              store.episodes.set(ep, "closeDist", d);
+              store.episodes.set(ep, "closeAt", T(s));
+            }
+            if (!inBand && (store.episodes.get(ep, "flags") & EP_POSSIBLE)) store.episodes.set(ep, "flags", store.episodes.get(ep, "flags") & ~EP_POSSIBLE);
+          }
+        } else if (d > opts.margin * 2 && !undecidable && !inBand) {
+          // a verified separation ends the stay (and a muted cutting contact)
+          if (ivRow[pi]! >= 0) closeInterval(pi, s, d);
+          closeEpisode(pi);
+          cutMute[pi] = 0;
+        }
+        const ep = epRow[pi]!;
+        if (ep >= 0 && touch && cutting && !isRapid) {
+          // a rapid-begun cutting contact goes on as a feed: its rapid part ends
+          // here, the feed is machining — no exit, no evidence (today's records
+          // are its rapid lines alone)
+          const iv = ivRow[pi]!;
+          if (iv >= 0) {
+            store.intervals.set(iv, "exit", T(s));
+            store.intervals.set(iv, "flags", store.intervals.get(iv, "flags") | IV_ENDED_AT_FEED);
+            ivRow[pi] = -1;
+            cutPart[pi] = 1;
+          }
+        } else if (ep >= 0 && touch) {
+          if (ivRow[pi]! < 0) {
+            // opened by this confirmed touch, its witness; the entry bisected
+            // back to the pair's last decided free sample — never across a jump
+            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, breakAt, rangeStart);
+            let enter: { at: number; decided: boolean };
+            if (floor >= s - 1e-9) enter = { at: s, decided: true };
+            else if (floor > lastFree[pi]! || Number.isNaN(lastFree[pi]!)) {
+              // the floor is a start or a jump, no free sample: contact there already?
+              const k = kindAt(floor, pi);
+              api.moved = true;
+              enter = k === 0 ? bisect(s, floor, pi) : { at: floor, decided: k === 1 };
+            } else enter = bisect(s, floor, pi);
+            const flags = (inBand ? IV_POSSIBLE : 0) | (enter.decided ? IV_ENTER_DECIDED : 0)
+              | (afterTool[pi] ? IV_AFTER_UNKNOWN_TOOL : 0) | (cutPart[pi] ? IV_CONTINUES_CUT : 0);
+            const iv = add(store.intervals, { episode: ep, enter: T(enter.at), exit: NaN, flags, next: NONE,
+                                              witness: T(s), freeAt: NaN, freeR: 0 });
+            if (iv >= 0) {
+              if (lastIv[pi]! >= 0) store.intervals.set(lastIv[pi]!, "next", iv);
+              else store.episodes.set(ep, "firstIv", iv);
+              store.episodes.set(ep, "ivCount", store.episodes.get(ep, "ivCount") + 1);
+              lastIv[pi] = iv;
+              ivRow[pi] = iv;
+            }
+            afterTool[pi] = 0;
+          } else if (!inBand) {
+            const iv = ivRow[pi]!;
+            const f = store.intervals.get(iv, "flags");
+            if (f & IV_POSSIBLE) store.intervals.set(iv, "flags", f & ~IV_POSSIBLE);   // a certain sample
+          }
+          lastTouchD[pi] = s;
+        } else if (ivRow[pi]! >= 0 && freeDecided) {
+          closeInterval(pi, s, d);
+        }
+        if (freeDecided) lastFree[pi] = s;
+      },
+      /** The tool's body becomes unknown at `s`: its pairs' contacts end
+       *  there, no exit claimed; the stretch is their knowledge gap. */
+      toolUnknownFrom(s: number) {
+        for (let pi = 0; pi < P; pi++) {
+          if (!pairTool[pi] || epRow[pi]! < 0) continue;
+          const iv = ivRow[pi]!;
+          if (iv >= 0) store.intervals.set(iv, "flags", store.intervals.get(iv, "flags") | IV_ENDED_AT_GAP);
+          ivRow[pi] = -1;
+          closeEpisode(pi);
+          toolGap[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_TOOL_UNKNOWN });
+        }
+      },
+      /** Known again at `s`: the gap ends; a contact from here begins anew,
+       *  after an unknown tool — no geometric re-entry (Codex R140). */
+      toolKnown(s: number) {
+        for (let pi = 0; pi < P; pi++) {
+          if (!pairTool[pi]) continue;
+          if (toolGap[pi]! >= 0) { store.gaps.set(toolGap[pi]!, "end", T(s)); toolGap[pi] = -1; afterTool[pi] = 1; }
+          lastFree[pi] = NaN; lastTouchD[pi] = NaN;
+        }
+      },
+      /** The sweep ended. A swept track's end pose is a real sample: an
+       *  interval still open there whose pair is decided free at the end
+       *  closes with its bisected exit (a touching pair's next query lay past
+       *  the end — the records' refinement found that exit too). What is
+       *  still open otherwise stays open, no exit invented. */
+      finish(s: number, complete: boolean) {
+        for (let pi = 0; pi < P; pi++) {
+          if (complete && ivRow[pi]! >= 0 && !api.full) {
+            const d = distAtCum(s, pi, HORIZON);
+            const v = d > CONTACT_EPS ? insideOf(pi) : null;
+            api.moved = true;
+            if (d > CONTACT_EPS && v === "outside") closeInterval(pi, s, d);
+          }
+          if (gapRow[pi]! >= 0) { store.gaps.set(gapRow[pi]!, "end", T(lastUndec[pi]!)); gapRow[pi] = -1; }
+          if (toolGap[pi]! >= 0) { store.gaps.set(toolGap[pi]!, "end", T(s)); toolGap[pi] = -1; }
+        }
+      },
+    };
+    return api;
+  })() : null;
+  const noteQuery = (pi: number, s: number, line: number, isRapid: boolean, d: number, inBand = false, undecidable = false) => {
+    noteState(pi, s, line, isRapid, d, inBand);
+    sink?.sample(pi, s, isRapid, d, inBand, undecidable);
   };
 
   // Conservative lever arm of a rotary DOF for one body at the CURRENT pose:
@@ -2564,6 +2798,7 @@ export function* sweepCollisionsIter(
       || segTlo[0] !== prevTlo[0] || segTlo[1] !== prevTlo[1] || segTlo[2] !== prevTlo[2];
     const breakBoundary = pendingBreak;
     pendingBreak = false;
+    if (breakBoundary) breakAt = c0;
     if (toolBoundary || breakBoundary) {
       for (let pi = 0; pi < pairs.length; pi++) {
         if (skipPair[pi]) continue;
@@ -2576,7 +2811,9 @@ export function* sweepCollisionsIter(
     // stretch, a contact of the tool does not carry across it — a touch from
     // here on is a new onset, never the stretch's continuation.
     const segUnknown = segUnk?.[i] === 1;
+    if (!prevUnknown && segUnknown) sink?.toolUnknownFrom(c0);
     if (prevUnknown && !segUnknown) {
+      sink?.toolKnown(c0);
       for (let pi = 0; pi < pairs.length; pi++) {
         if (!pairTool[pi]) continue;
         inContact[pi] = 0; seeded[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0; boundaryPair[pi] = 0;
@@ -2602,6 +2839,7 @@ export function* sweepCollisionsIter(
       const s0 = c0 + (L * ch) / chunks;
       const s1 = c0 + (L * (ch + 1)) / chunks;
       const Lc = s1 - s0;
+      chunkLo = s0; chunkHi = s1;
 
       // Chunk endpoint joint values + start-pose rotary levers.
       interpPose(i, (s0 - c0) / L);
@@ -2784,14 +3022,17 @@ export function* sweepCollisionsIter(
               markInside(pi, vx, track.lines[seg]!);
               if (vx === "inside") dx = 0;
               else if (vx === "undecidable") dx = Math.min(dx, opts.margin * 2);
-              noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
+              noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x), vx === "undecidable");
             }
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
           markInside(pi, v, line);
           // Undecidable: a record only for what the surfaces show (inside the
           // margin), never a separation (at most 2 × margin).
-          noteQuery(pi, s, line, isRapid, unknownInside ? Math.min(d, opts.margin * 2) : d, bandAt(i, s));
+          noteQuery(pi, s, line, isRapid, unknownInside ? Math.min(d, opts.margin * 2) : d, bandAt(i, s), unknownInside);
+          // the contact store's bisections moved the model: this sample's pose
+          // again for the pairs after this one (plan 2.2, Codex R139 hint c)
+          if (sink?.moved) { sink.moved = false; interpPose(i, (s - c0) / L); }
           if (unknownInside) {
             // No clearance certificate: asked again at the contact cadence
             // until a pose decides it.
@@ -2865,6 +3106,7 @@ export function* sweepCollisionsIter(
       }
     }
   }
+  sink?.finish(sweptTo, !truncated && !aborted);
   const finalResult = buildResult(worst, truncated, true, !aborted);
   yield truncated ? truncated.covered : 1;
   if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; opts.snapshot.first = null; }

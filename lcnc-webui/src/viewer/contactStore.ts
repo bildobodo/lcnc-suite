@@ -50,6 +50,8 @@ export const IV_ENTER_DECIDED = 2;       // the bisection's contact-side end was
 export const IV_EXIT_DECIDED = 4;
 export const IV_AFTER_UNKNOWN_TOOL = 8;  // begins after a stretch with the tool unknown — no geometric re-entry
 export const IV_ENDED_AT_GAP = 16;       // ended where the tool became unknown: no exit is claimed
+export const IV_ENDED_AT_FEED = 32;      // a cutting contact's rapid part ended where the move became a feed: machining from there
+export const IV_CONTINUES_CUT = 64;     // a later rapid part of the same cutting contact (one finding with the part before)
 
 // Gap reasons (u8).
 export const GAP_UNDECIDABLE = 1, GAP_TOOL_UNKNOWN = 2;
