@@ -16,6 +16,10 @@ describe("clashTargets — one list for count, marks and navigation", () => {
     expect(t[0]!.reentry).toBeUndefined();
     expect(t[1]).toMatchObject({ cum: 110, line: 26, reentry: true });
   });
+  it("a start in contact is its first interval's alone — a re-entry on its line is no start (step 4 plan 1d)", () => {
+    const t = clashTargets([hit({ line: 3, cum: 0, cumEnd: 120, intervals: [[0, 5], [110, 120]], atStart: true })]);
+    expect(t.map(x => x.atStart)).toEqual([true, undefined]);
+  });
   it("a continuation record is not a clash of its own", () => {
     expect(clashTargets([hit({ line: 27, cum: 60, continuation: 26 })])).toEqual([]);
   });

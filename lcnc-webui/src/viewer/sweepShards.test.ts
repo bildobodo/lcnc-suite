@@ -52,6 +52,10 @@ describe("mergeShardResults", () => {
     expect(m.staticContacts).toHaveLength(1);
     expect([m.samples, m.pairsPrescreened, m.pairCount, m.bvhMs, m.sweepMs, m.coarsened]).toEqual([12, 3, 9, 9, 100, true]);
   });
+  it("keeps the model's body classes — one model for every shard", () => {
+    const bodies = { unusable: [], damaged: ["chipped"], open: ["frame"] };
+    expect(mergeShardResults([result([hit(1, 1)], { bodies }), result([hit(2, 2)], { bodies })]).bodies).toEqual(bodies);
+  });
   it("caps the single sweep's way: onsets before continuations", () => {
     const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
     const conts = Array.from({ length: 50 }, (_, i) => hit(i, i, 1));   // earlier, but continuations
@@ -59,6 +63,21 @@ describe("mergeShardResults", () => {
     expect(m.hits).toHaveLength(MAX_HITS);
     expect(m.hits.filter(h => h.continuation === undefined)).toHaveLength(MAX_HITS - 10);
     expect(m.hits.map(h => h.cum)).toEqual([...m.hits.map(h => h.cum)].sort((x, y) => x - y));
+  });
+  it("says what the caps left out: every shard's own and what the merge cuts again (`capped`)", () => {
+    const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
+    const conts = Array.from({ length: 50 }, (_, i) => hit(i, i, 1));
+    const m = mergeShardResults([result(onsets.slice(0, 100), { capped: 7 }), result([...onsets.slice(100), ...conts], { capped: 3 })]);
+    expect(m.capped).toBe(7 + 3 + (MAX_HITS - 10 + 50 - MAX_HITS));
+    expect(mergeShardResults([result([hit(1, 1)]), result([hit(2, 2)])]).capped, "nothing cut").toBeUndefined();
+    expect(m.cappedOnsets, "every onset listed").toBeUndefined();
+  });
+  it("counts the contact beginnings the caps left out apart (`cappedOnsets`): every shard's own and the merge's", () => {
+    const onsets = Array.from({ length: MAX_HITS + 6 }, (_, i) => hit(1000 + i, 1000 + i));
+    const m = mergeShardResults([result(onsets.slice(0, 100), { capped: 4, cappedOnsets: 2 }), result(onsets.slice(100))]);
+    expect(m.hits.filter(h => h.continuation === undefined)).toHaveLength(MAX_HITS);
+    expect(m.cappedOnsets).toBe(2 + 6);
+    expect(m.capped).toBe(4 + 6);
   });
   it("carries a range sweep's start and every shard's boundary contacts; a boundary record is no onset for the cap", () => {
     const range = { fromCum: 40, fromLine: 7 };

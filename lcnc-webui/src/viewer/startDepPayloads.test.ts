@@ -17,11 +17,15 @@ import { decode as msgpackDecode } from "@msgpack/msgpack";
 import { describe, expect, it } from "vitest";
 import { decodePreviewStreams, normalizeToToolBasis } from "../previewDecode";
 import { buildEntryTrack, buildScrubTrack, displayLineForPoint, sliceTrack } from "./scrubTrack";
-import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
+import { buildCollisionModel, startDependentOf, sweepCollisions, type CollisionMachine } from "./collision";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { beginSentence, bindBeginning, depTimeSentence, earlierTime, moveTime, runBeginOf, runBeginView } from "./startDep";
 import ts from "typescript";
 import { epochTermsFor } from "./wcsEpochs";
+import { findingWords } from "./sweepWords";
+import { firstOnly } from "./firstContact";
+import { clashTargets } from "./clashTargets";
+import { partLabel } from "./simRows";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
 const MACHINE: CollisionMachine = {
@@ -274,11 +278,16 @@ function barComputed(name: string, refs: Record<string, unknown>) {
 const sweepView = (result: any, run: any) => barComputed("sweepView", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, hitTargets: { value: [] },
   sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
-  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %` });
+  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, findingWords });
+/** The bar's verdict with the result's own targets (sweepView above lists none). */
+const sweepViewOf = (result: any, run: any) => barComputed("sweepView", {
+  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, hitTargets: { value: clashTargets(result.hits) },
+  sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
+  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, findingWords });
 const verdictDetail = (result: any, run: any, track: any) => barComputed("verdictDetail", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, track: { value: track },
   provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hits: { value: result.hits },
-  sweepCaveat: { value: result.uncertified }, pctOf: (x: number) => `${x * 100} %`, beginSentence, depTimeSentence });
+  sweepCaveat: { value: result.uncertified }, pctOf: (x: number) => `${x * 100} %`, beginSentence, depTimeSentence, partLabel });
 
 describe("Codex R133", () => {
   it("VP-I83: a G43.1 before the first move — the start shifts in the assumed start's basis", () => {
@@ -374,7 +383,7 @@ describe("Codex R133", () => {
     expect(sweepView(part, run("nojoints")).verdict).toBe("Clear · start not checked");
     expect(sweepView(part, run("unbound")).verdict).toBe("Clear · start not checked");
     const pending = sweepView(part, run("checking"));
-    expect([pending.state, pending.verdict]).toEqual(["checking", "No collision · start still checking"]);
+    expect([pending.state, pending.verdict]).toEqual(["checking", "No contact · start still checking"]);
     // the bound side result merged: no beginning left to name — in full
     const { e } = entry("e_g53_rdp", [100, 100, 0]);
     const K = rdp.track.depEnd!;
@@ -401,7 +410,7 @@ describe("Codex R133", () => {
 // together; only the transport around them (gateway, admission, worker,
 // model) is stubbed. Codex's method (viewer-palette-fest.r134.codex-wiring).
 type Coord = {
-  start(): boolean; setBase(r: any): void; reply(data: Record<string, unknown>): void; drop(): void;
+  start(): boolean; setBase(r: any): void; mainRunning(progress: number, on?: any): void; mainEnded(): void; reply(data: Record<string, unknown>): void; drop(): void;
   view(): any; result(): any; side(): any;
 };
 function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why?: string | null;
@@ -410,8 +419,8 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const script = file.slice(file.indexOf('<script setup lang="ts">') + 24, file.indexOf("</script>"));
   const ast = ts.createSourceFile("ThreeViewer.ts", script, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   const texts: string[] = [];
-  for (const name of ["_startRunCheck", "_runBoundTrack", "_colPostSide", "_colOnSideMessage", "_colBaseFor",
-                      "_colRunSideFailed", "_colCancelSide", "_colDropEntry", "runBeginNow"]) {
+  for (const name of ["_startRunCheck", "_runBoundTrack", "_colPostSide", "_colOnSideMessage", "_colBaseFor", "_colWithRunSide",
+                      "_colRunSideBase", "_colRunSideFailed", "_colCancelSide", "_colDropEntry", "runBeginNow"]) {
     const f = ast.statements.find(n => ts.isFunctionDeclaration(n) && n.name?.text === name);
     expect(f, name).toBeTruthy();
     texts.push(f!.getText(ast));
@@ -428,7 +437,8 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const runPlayhead = ref(null), viewerInit = ref(opts.noInit ? null : { axes: ["X", "Y", "Z"] });
   const collisionRun = ref(null), collisionRunSide = ref(null), collisionRunSideState = ref(null), collisionEntry = ref(null);
   const collisionBusy = ref(false), collisionResumable = ref(false), collisionResult = ref(null), collisionTrack = ref(null);
-  const collisionPartial = ref(null), collisionPartialTrack = ref(null);
+  const collisionPartial = ref(null), collisionPartialTrack = ref(null), collisionSideFirst = ref(null), collisionProgress = ref(0);
+  let _colPendingTrack = null;
   const basis = { startJoints: opts.joints === undefined ? [100, 100, 100] : opts.joints };
   let _colRunGen = 0, _colSide = null, _colSideSeq = 0, _colModelSent = null;
   const _colRunLog = [];
@@ -439,12 +449,15 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const _colWcs = () => wcs, specFromWire = () => undefined, epochTermsFor = () => undefined;
   const cancelCollisionCheck = () => {}, runCollisionCheck = () => {};
   const _colBuildRequest = (_t, id) => opts.buildFails ? null : ({ msg: { id }, transfer: [], modelKey: "test", bodies: 2 });
-  const _liveCheckBasis = () => basis, toRaw = (x) => x;
+  const _liveCheckBasis = () => basis, toRaw = (x) => x, _colEmitMarks = () => {};
   `;
   const expose = `
   return {
     start: () => _startRunCheck(),
     setBase: (r) => { collisionResult.value = r; collisionTrack.value = track; },
+    // the main request running on the given track (default: the run's) at that progress, no partial yet
+    mainRunning: (progress, on = track) => { collisionBusy.value = true; _colPendingTrack = on; collisionProgress.value = progress; },
+    mainEnded: () => { collisionBusy.value = false; },
     reply: (data) => _colOnSideMessage({ id: _colSide.id, ...data }),
     drop: () => _colDropEntry(),
     view: () => collisionRunCheckView.value,
@@ -454,10 +467,73 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const code = ts.transpileModule(prelude + texts.join("\n") + expose,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const deps = { track, wcs, opts, runBeginOf, runBeginView, buildEntryTrack, sliceTrack, mergeBeginningOntoBase,
-                 displayLineForPoint, console: { error: () => {} } };
+                 displayLineForPoint, firstOnly, startDependentOf, console: { error: () => {} } };
   return new Function(...Object.keys(deps), code)(...Object.values(deps));
 }
 const swept = (t: any, raw: Record<string, any>) => sweep(t, [500, 0, 0], raw);
+
+describe("Codex R136 VP-I93", () => {
+  it("a run's side sweep shows its first confirmed contact while it runs; the beginning stays checking until its result", () => {
+    const { raw, track } = load("e_single");
+    const base = swept(track, raw);
+    const first = { line: 1, cum: 1, cumEnd: 1, a: "tool", b: "post", dist: 0, rapid: true };
+    const h = coordinator(track, wcsOf(raw));
+    expect(h.start()).toBe(true);
+    h.setBase(base);
+    const beginning = sweep(h.side().slice, [500, 0, 0], raw);
+    h.reply({ progress: 0.2, first });
+    expect(h.view().begin, "still checking").toBe("checking");
+    expect(h.result().hits.some((x: any) => x.a === "tool" && x.b === "post"), "its contact shown").toBe(true);
+    // through the bar's own verdict: the contact, and the beginning still
+    // checking — one contact answers no coverage (Codex R137 VP-I93 B)
+    const early = sweepViewOf(h.result(), h.view());
+    expect(early.verdict).toMatch(/^1 collision.* · start still checking$/);
+    expect(early.verdict).not.toContain("checked in full");
+    // its result takes over (here clean): merged, checked, the early contact gone with it
+    h.reply({ result: beginning });
+    expect(h.view().begin).toBe("checked");
+    expect(h.result().hits.some((x: any) => x.b === "post")).toBe(false);
+    // a side sweep that ends without a result takes its contact with it
+    const g = coordinator(track, wcsOf(raw));
+    expect(g.start()).toBe(true);
+    g.setBase(base);
+    g.reply({ progress: 0.2, first });
+    g.reply({ error: "injected" });
+    expect(g.result().hits).toEqual(base.hits);
+  });
+});
+
+describe("Codex R138 VP-I93", () => {
+  it("before the main request's first partial: the beginning's contact on the main request as it stands — its progress, its start-dependent beginning, never another track or a finished main request", () => {
+    const { raw, track } = load("e_single");
+    const first = { line: 1, cum: 1, cumEnd: 1, a: "tool", b: "post", dist: 0, rapid: true };
+    const h = coordinator(track, wcsOf(raw));
+    expect(h.start()).toBe(true);
+    h.mainRunning(0.1);
+    expect(h.result(), "nothing found yet, nothing shown").toBeNull();
+    h.reply({ progress: 0.2, first });
+    const early = h.result();
+    expect(early.hits.some((x: any) => x.a === "tool" && x.b === "post"), "the side contact shown").toBe(true);
+    expect(early.truncated, "the main request's own progress, running").toEqual({ covered: 0.1, reason: "running" });
+    expect(early.startDependent, "the beginning the main request names").toEqual(startDependentOf(track));
+    expect(early.startDependent).toBeTruthy();
+    expect(early.pairCount, "a contact: moving pairs exist").toBeGreaterThan(0);
+    // the beginning's result before the main partial: shown the same way
+    const beginning = sweep(h.side().slice, [500, 0, 0], raw);
+    h.reply({ result: { ...beginning, hits: [first, ...beginning.hits] } });
+    expect(h.result().hits.some((x: any) => x.b === "post"), "the final side contact shown").toBe(true);
+    expect(h.result().truncated).toEqual({ covered: 0.1, reason: "running" });
+    // the main request ended without a result (an error, a cancel): nothing is invented
+    h.mainEnded();
+    expect(h.result(), "no finished main request is made up").toBeNull();
+    // another track pending: not this run's base
+    const g = coordinator(track, wcsOf(raw));
+    expect(g.start()).toBe(true);
+    g.mainRunning(0.1, { ...track });
+    g.reply({ progress: 0.2, first });
+    expect(g.result(), "the main request runs on another track").toBeNull();
+  });
+});
 
 describe("Codex R134", () => {
   it("VP-I84/I86 at K = 0: a first move from an unseen tool change position is said not checked — idle, in a run, in the '?'", () => {
@@ -488,14 +564,14 @@ describe("Codex R134", () => {
     expect(k0.track.startUnbound).toBeUndefined();
     const plain = swept(k0.track, k0.raw);
     expect(plain.startDependent).toBeUndefined();
-    expect(sweepView(plain, null).verdict).toBe("Clear");
+    expect(sweepView(plain, null).verdict).toBe("Clear · checked in full");
     const h = coordinator(k0.track, wcsOf(k0.raw));
     expect(h.start()).toBe(true);
     h.setBase(plain);
     expect([h.view().begin, sweepView(h.result(), h.view()).verdict]).toEqual(["none", "Clear · checked in full"]);
     const single = load("e_single");
     const bound = swept(single.track, single.raw);
-    expect([bound.startDependent?.unbound, sweepView(bound, null).verdict]).toEqual([undefined, "Clear"]);
+    expect([bound.startDependent?.unbound, sweepView(bound, null).verdict]).toEqual([undefined, "Clear · checked in full"]);
   });
 
   it("VP-I90: a run's side sweep that ends with no result is not checked, with why — never 'still checking'", () => {
@@ -513,7 +589,7 @@ describe("Codex R134", () => {
       expect(h.start()).toBe(true);
       h.setBase(base);
       const pending = sweepView(h.result(), h.view());
-      expect([h.view().begin, pending.state, pending.verdict], what).toEqual(["checking", "checking", "No collision · start still checking"]);
+      expect([h.view().begin, pending.state, pending.verdict], what).toEqual(["checking", "checking", "No contact · start still checking"]);
       fail(h);
       expect(h.side(), what).toBeNull();
       expect([h.view().begin, h.view().beginWhy], what).toEqual(["failed", why]);

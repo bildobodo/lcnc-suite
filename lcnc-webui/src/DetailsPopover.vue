@@ -10,11 +10,15 @@
 import { onBeforeUnmount, ref, useId } from "vue";
 import MachineBtn from "./MachineBtn.vue";
 import { placePopover, cssZoomOf } from "./helpPlacement";
+import type { ButtonType } from "./machineControls";
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** The trigger's accessible name and title ("Connection details"). */
   label: string;
-}>();
+  /** The trigger's catalog type: the header's icon button, or `detailsIcon`
+   *  where a card sits beside a section's "?" (the Sim tab's check basis). */
+  type?: ButtonType;
+}>(), { type: "headerIcon" });
 
 const id = `details${useId()}`;
 const btnWrap = ref<HTMLElement | null>(null);
@@ -78,7 +82,7 @@ onBeforeUnmount(() => window.removeEventListener("resize", position));
 
 <template>
   <span ref="btnWrap" class="detailsTrigger">
-    <MachineBtn type="headerIcon" :aria-label="props.label" :title="props.label" aria-haspopup="true"
+    <MachineBtn :type="props.type" :aria-label="props.label" :title="props.label" aria-haspopup="true"
                 :aria-expanded="open" :aria-controls="id" @pointerdown="onPointerDown" @click="toggle">
       <slot name="icon" />
     </MachineBtn>

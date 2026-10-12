@@ -34,6 +34,8 @@
   "include": [
     "src/viewer/toolChangePayloads.test.ts",
     "src/viewer/startDepPayloads.test.ts",
+    "src/viewer/scrubBarWords.test.ts",
+    "src/viewer/checkWiring.test.ts",
     "src/viewer/insideCheck.test.ts",
     "src/shims.d.ts",
     "src/bundledFonts.test.ts",

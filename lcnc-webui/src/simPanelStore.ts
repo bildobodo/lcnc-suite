@@ -5,6 +5,7 @@
 // decides anything: a second navigation would drift from the bar's marks.
 import { reactive, shallowRef } from "vue";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
+import type { CardView } from "./viewer/checkContext";
 
 /** The collision check as the tab says it. */
 export interface SimSweepView {
@@ -23,6 +24,16 @@ export interface SimSweepView {
   /** The check's name when it is not the standstill check: the check during
    *  a run (plan „Prüfung im Lauf“ 3d). */
   label?: string;
+  /** The verdict's parts (Codex R136 VP-I94): the result by kind, the
+   *  coverage with the cap's caveat (empty for a verdict that is all result),
+   *  and the result as a count ("200+" past the cap's contacts) — the tab
+   *  shortens the result before the coverage. */
+  result: string;
+  coverage: string;
+  /** The coverage in the fewest words ("in full", "41 %", "from L7"), no
+   *  caveat words — the tab's last form (Codex R137 VP-I94). */
+  coverageShort: string;
+  short: string;
 }
 
 export const simRows = shallowRef<SimRow[]>([]);
@@ -45,6 +56,9 @@ export const simView = reactive({
    *  marks, counts or jumps of the current preview (plan „Prüfung im Lauf“
    *  1c). Null otherwise. */
   previous: null as string | null,
+  /** The card "Check basis" (step 4 plan 1c): what the check on screen was
+   *  computed with, taken when it was requested. Null without a check. */
+  card: null as CardView | null,
   /** The program's soft-limit records: `total` distinct (line, axis) records
    *  (null = not validated — unchecked ≠ clean), `records` the ones the
    *  payload carries (the gateway caps the list at 200). */

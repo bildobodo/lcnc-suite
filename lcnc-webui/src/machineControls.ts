@@ -231,6 +231,10 @@ export const BUTTON_TYPES = {
   // the state gate is `armed` (it happens mid-program, never idle/ready).
   toolChangeConfirm: { gate: 'armed', variant: 'primary', size: 'md' },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
+  // A DetailsPopover's trigger beside a section's "?" in the side pane (the
+  // Sim tab's check basis): reading, never a machine action — the icon look
+  // at the section row's size.
+  detailsIcon:    { gate: 'always',  variant: 'default', size: 'sm',  icon: true },
 
   // ── Number keypad ──
   numKey:  { gate: 'always', variant: 'default', size: 'lg', mono: true },  // digits, decimal

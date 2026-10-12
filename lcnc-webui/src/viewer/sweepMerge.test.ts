@@ -68,6 +68,10 @@ describe("mergeEntryResult", () => {
     const b = m.hits.find(h => !h.entry && h.line === 7)!;
     expect(b.continuation).toBeUndefined();
     expect(b.carried).toBe(true);
+    // ...and a start contact the entry move began is none, the separating
+    // case too (step 4 plan 1d)
+    const startIn = mergeEntryResult(entry, res({ hits: [{ ...base.hits[0]!, atStart: true }, other] }), 10, 80);
+    expect(startIn.hits.find(h => !h.entry && h.line === 7)!.atStart).toBeUndefined();
     // A contact that does NOT separate still counts once, as before; a jump
     // chosen on it goes on by position (Codex R34, answer 1)
     const through = res({ hits: [{ line: 7, cum: 0, cumEnd: 4, intervals: [[0, 4]], a: "tool", b: "work", dist: 0, rapid: false }, other] });
@@ -77,6 +81,28 @@ describe("mergeEntryResult", () => {
     const pos = 10 + sampleCum(chosen), sel = { key: chosen.key, pos };
     expect(targetAfter(once, pos, sel)!.cum).toBe(60);
     expect(targetBefore(once, pos, sel)!.entry).toBe(true);
+  });
+  it("a contact the base starts in that the entry move began is no start contact (`atStart` dropped)", () => {
+    const entry = res({ hits: [{ line: 0, cum: 1, cumEnd: 2, a: "tool", b: "column", dist: 0, rapid: true }] });
+    const base = res({ hits: [{ line: 7, cum: 0, cumEnd: 3, a: "tool", b: "column", dist: 0, rapid: false, atStart: true }] });
+    const m = mergeEntryResult(entry, base, 2, 90);
+    const b = m.hits.find(h => h.line === 7)!;
+    expect([b.continuation, b.atStart]).toEqual([0, undefined]);
+    // a base start contact the entry move did not reach keeps it
+    const alone = mergeEntryResult(res({}), base, 2, 90);
+    expect(alone.hits[0]!.atStart).toBe(true);
+  });
+  it("keeps the model's body classes (one model for both sweeps)", () => {
+    const bodies = { unusable: ["broken"], damaged: [], open: ["frame"] };
+    expect(mergeEntryResult(res({}), res({ bodies }), 10, 90).bodies).toEqual(bodies);
+    expect(mergeEntryResult(res({ bodies }), res({}), 10, 90).bodies).toEqual(bodies);
+  });
+  it("keeps what either sweep's cap left out (`capped`), applying no cap of its own", () => {
+    expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).capped).toBe(7);
+    expect(mergeEntryResult(res({ capped: 2, cappedOnsets: 1 }), res({ capped: 5, cappedOnsets: 3 }), 10, 90).cappedOnsets).toBe(4);
+    expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).cappedOnsets).toBeUndefined();
+    expect(mergeEntryResult(res({}), res({ capped: 5 }), 10, 90).capped).toBe(5);
+    expect(mergeEntryResult(res({}), res({}), 10, 90).capped).toBeUndefined();
   });
   it("unions static contacts by pair (two baselines: live pose and first point) and carries the base's partial state", () => {
     const entry = res({ staticContacts: [{ a: "tool", b: "vise", dist: 0.5 }] });

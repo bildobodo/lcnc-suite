@@ -229,7 +229,7 @@ describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
     for (let i = 1; i <= 400; i++) pts.push([i % 2 ? 1 : 0, 0, -i * 0.05]);
     const t = track(pts, pts.map((_, i) => i + 1));
     const from = 200, fromFrac = t.cum[from]! / t.cum[t.count - 1]!;
-    const snap: SnapshotHandle = { take: null, peek: null, records: null };
+    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
     const it = sweepCollisionsIter(model, t, WCS0, { ...M, range: { from }, snapshot: snap, yieldMs: 0 });
     const seen: number[] = [];
     let step = it.next();

@@ -1910,7 +1910,7 @@ watch(viewerGcode, (newGcode) => {
           <DetailsPopover label="Connection details">
             <template #icon><Activity :size="22" /></template>
             <div class="popTitle">Connection</div>
-            <dl class="connDetails">
+            <dl class="detailsList">
               <dt>Clients</dt>
               <dd>{{ connectedClients.length }}</dd>
               <template v-for="c in connectedClients" :key="c.ip">
@@ -2771,15 +2771,6 @@ watch(viewerGcode, (newGcode) => {
   justify-content: flex-end;
 }
 .hdrBtns { flex-shrink: 0; }
-/* The connection details card (DetailsPopover): label | value rows. */
-.connDetails {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: var(--gap-micro) var(--gap-section);
-  margin: 0;
-}
-.connDetails dt { color: var(--fg-muted); }
-.connDetails dd { margin: 0; text-align: right; }
 
 .title {
   font-size: var(--fs-2xl);

@@ -27,11 +27,12 @@ import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
 import { clashTargets } from "./viewer/clashTargets";
+import { findingWords } from "./viewer/sweepWords";
 import { mapAcrossEntry, sampleCum, targetAfter, targetBefore, type NavSelection } from "./viewer/findingNav";
 import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
-import type { CollisionResult } from "./viewer/collision";
+import { MAX_HITS, type CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsed } from "./format";
@@ -43,6 +44,7 @@ import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbe
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
 import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
 import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
+import { checkCard, type CheckContext } from "./viewer/checkContext";
 import MachineToggle from "./MachineToggle.vue";
 
 const props = defineProps<{
@@ -69,7 +71,13 @@ const props = defineProps<{
    *  the sweep ends or parks. Shown on `collisionPartialTrack`. */
   collisionPartial: CollisionResult | null;
   collisionPartialTrack: ScrubTrack | null;
-  collisionEntryResult: { track: ScrubTrack; result: CollisionResult } | null;
+  /** `checking`: the entry move's side sweep still runs — what it found so
+   *  far (its first confirmed contact) is shown (Codex R136 VP-I93). */
+  collisionEntryResult: { track: ScrubTrack; result: CollisionResult; checking?: boolean } | null;
+  /** What the check on screen was computed with (step 4 plan 1c), and
+   *  whether an idle check's basis is no longer the machine's state. */
+  collisionContext?: CheckContext | null;
+  collisionContextStale?: boolean;
   /** The sweep is PARKED by a rotary jog (its track is about to be re-parsed)
    *  — with the covered fraction. The partial result is in `collisionResult`
    *  (marks show); `collisionResumable` says the worker still holds it, and
@@ -78,7 +86,7 @@ const props = defineProps<{
   collisionResumable: boolean;
   /** The verdict of the preview shown before the one displayed now, kept
    *  while a run goes on (plan „Prüfung im Lauf“ 1c): named, nothing more. */
-  collisionPrevious?: { collisions: number; complete: boolean; version: number | null } | null;
+  collisionPrevious?: { collisions: number; text: string; complete: boolean; version: number | null } | null;
   /** The check during a run (plan „Prüfung im Lauf“ 3b–3d): its phase, where
    *  the provisional range starts, and whether the provisional result is the
    *  one on screen while the full check runs. */
@@ -743,7 +751,17 @@ const verdictDetail = computed<string>(() => {
     : `${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
   if (r.pairCount === 0) parts.push(r.uncertified ? "No part that could be checked moves against another." : "No parts move against each other — nothing to check.");
   if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
-  if (r.staticContacts.length) parts.push(`${r.staticContacts.length} contact${r.staticContacts.length === 1 ? "" : "s"} at the start ignored.`);
+  // step 4 plan 1d: a start in contact is said with its pair; pairs touching
+  // at rest too are the model's mounts, excluded (each one in Check basis)
+  const startPairs = [...new Set(hits.value.filter(h => h.atStart && !h.entry && !h.possible && (h.dist <= 1e-3 || h.touches))
+    .map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
+  if (startPairs.length) parts.push(`The program starts in contact: ${startPairs.join(", ")}.`);
+  if (r.staticContacts.length) {
+    const k = r.staticContacts.length;
+    parts.push(`${k} pair${k === 1 ? "" : "s"} already in contact at rest — excluded.`);
+  }
+  if (r.cappedOnsets) parts.push(`${r.capped} records left out of the list, ${r.cappedOnsets} of them where a contact begins — contacts past the first ${MAX_HITS} are not listed or counted.`);
+  else if (r.capped) parts.push(`${r.capped} record${r.capped === 1 ? "" : "s"} left out of the list — the later lines of contacts it lists (a contact is a record per line).`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
   // parity-ef plan E7: the beginning stands where the machine stands — in
   // the simulation and in a run, checked or not (Codex R133 VP-I84/I86)
@@ -928,7 +946,7 @@ const marks = computed(() => {
   const pctOfCum = (c: number) => Math.min(100, (c / max) * 100);
   for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
   for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
-  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: (x.dist ?? 0) > 1e-3 });
+  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: (x.dist ?? 0) > 1e-3 && !x.touches });
   return out;
 });
 // Extent bands (timeline percentages): where a soft-limit line runs (warn)
@@ -1019,19 +1037,54 @@ const nextKeyNow = computed(() => nextRowKey(rowsNow.value, sPos.value));
 const sweepView = computed<SimSweepView | null>(() => {
   const r = shownResult.value;
   if (!r && !props.collisionBusy) return null;
+  // ONE line, three statements (step 4 plan 1a): the RESULT by kind — a
+  // collision, a near miss (never called one), a possible contact, the entry
+  // move's apart, a start in contact —, the COVERAGE, the CAVEATS (records
+  // the cap left out; the "*" beside it). "Clear" only for a check that has
+  // ended: never while it runs ("No contact so far"), never for a part.
+  // The parts go to the tab apart, so it can shorten the result and keep the
+  // coverage (Codex R136 VP-I94).
   const n = hitTargets.value.length;
-  const found = `${n} collision${n === 1 ? "" : "s"}`;
+  const fw = findingWords(hitTargets.value);
+  const findTone = fw.danger ? "danger" : "warn";
+  const startsIn = fw.startsIn ? " · starts in contact" : "";
+  const result = (none: string, running = false) =>
+    n ? `${fw.text}${running ? " so far" : ""}${startsIn}` : running ? "No contact so far" : none;
+  // the cap: records of listed contacts left out — or contacts themselves,
+  // whose count the words then cannot hold ("200+" short, Codex R136 answer 2)
+  const cut = r?.cappedOnsets ? " · more contacts not listed" : r?.capped ? " · records cut" : "";
   const tools = sweepToolSentence.value;
   const detail = (r ? verdictDetail.value + " " : "") + tools;
   const caveat = !!sweepCaveat.value;
+  type Tone = SimSweepView["tone"];
+  // the coverage in the fewest words — the tab's last form keeps the count,
+  // the check's state and the "+" (Codex R137 VP-I94)
+  const shortCov = (cov: string) => cov
+    .replace(/^checked in full$/, "in full").replace(/^checked to the end$/, "to the end")
+    .replace(/^(.+%) checked$/, "$1").replace(/^provisional from (.+), stopped at (.+%)$/, "from $1, $2")
+    .replace(/^provisional from /, "from ").replace(/^(stopped|paused) at /, "$1 ")
+    .replace(/^start still checking$/, "start checking").replace(/^start not checked$/, "start unchecked")
+    .replace(/^entry move still checking$/, "entry checking");
+  // records cut while every contact's beginning is kept: the count is whole
+  // (no "+"), so the fewest words keep the cut itself (Codex R138 VP-I94)
+  const shortCut = r?.capped && !r?.cappedOnsets ? " · cut" : "";
+  /** One view: the result, the coverage (with the cap's caveat) and both
+   *  joined; `short` the result as a count. */
+  const view = (state: SimSweepView["state"], frac: number, tone: Tone, cav: boolean, det: string,
+                res: string, cov: string, label?: string): SimSweepView => {
+    const coverage = cov ? `${cov}${cut}` : "";
+    return { state, frac, tone, caveat: cav, detail: det, ...(label ? { label } : {}),
+             verdict: coverage ? `${res} · ${coverage}` : res, result: res, coverage,
+             coverageShort: cov ? `${shortCov(cov)}${shortCut}` : "",
+             short: n ? `${n}${r?.cappedOnsets ? "+" : ""}${state === "done" ? "" : "…"}` : res };
+  };
   // No moving pair: nothing to check — unless a body was left out or lost
   // damaged facets (VP-I46, Codex R87): then "nothing to check" would hide
   // that a part could not be checked, so the view says it and is marked
   // like every result the guarantee does not cover.
   if (r && r.pairCount === 0) {
-    return r.uncertified
-      ? { state: "nopairs", frac: 0, verdict: "Not checked", tone: "warn", caveat, detail }
-      : { state: "nopairs", frac: 0, verdict: "No moving pairs", tone: "muted", caveat: false, detail };
+    return r.uncertified ? view("nopairs", 0, "warn", caveat, detail, "Not checked", "")
+      : view("nopairs", 0, "muted", false, detail, "No moving pairs", "");
   }
   const rc = props.collisionRunCheck;
   if (rc) {
@@ -1043,17 +1096,16 @@ const sweepView = computed<SimSweepView | null>(() => {
       ? `Checked from ${from}, where the machine presumably is; the program's start follows in the full check. `
       : "") + boundaryDetail.value + detail;
     if (rc.phase === "provisional" && props.collisionBusy) {
-      return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
-        verdict: `${n ? found : "No collision"} from ${from} so far (provisional)` };
+      return view("checking", sweptFrac.value, n ? findTone : "muted", false, runDetail, result("", true), `provisional from ${from}`, label);
     }
     if (rc.provisionalShown) {
-      const cut = r?.truncated ? `, stopped at ${pctOf(r.truncated.covered)}` : "";
-      return { state: "checking", frac: props.collisionProgress, label, tone: n ? "danger" : "muted", caveat: !!sweepCaveat.value,
-        detail: runDetail, verdict: `${n ? found : "No collision"} from ${from}${cut} (provisional)` };
+      const stop = r?.truncated ? `, stopped at ${pctOf(r.truncated.covered)}` : "";
+      return view("checking", props.collisionProgress, n ? findTone : "muted", !!sweepCaveat.value, runDetail,
+        result("No contact"), `provisional from ${from}${stop}`, label);
     }
     if (props.collisionBusy) {
-      return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat: false, detail: runDetail,
-        verdict: n ? `${found} so far` : "No collision so far" };
+      return view("checking", sweptFrac.value, n ? findTone : "muted", false, runDetail, result("", true),
+        `${pctOf(sweptFrac.value)} checked`, label);
     }
     // The program's start-dependent beginning (plan E7, Codex R133 VP-I86):
     // a run check covers it only with its bound side result merged — the
@@ -1063,40 +1115,40 @@ const sweepView = computed<SimSweepView | null>(() => {
     const sd = r?.startDependent;
     if (r && sd && !r.truncated && !r.range) {
       if (rc.begin === "checking") {
-        return { state: "checking", frac: sweptFrac.value, label, tone: n ? "danger" : "muted", caveat, detail: runDetail,
-          verdict: `${n ? found : "No collision"} · start still checking` };
+        return view("checking", sweptFrac.value, n ? findTone : "muted", caveat, runDetail, result("No contact"), "start still checking", label);
       }
-      return { state: "done", frac: 1, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
-        verdict: sd.whole && !n ? (sd.unbound ? "Not checked" : "Depends on the machine's position")
-          : `${n ? found : "Clear"} · start not checked` };
+      return sd.whole && !n
+        ? view("done", 1, "warn", caveat, runDetail, sd.unbound ? "Not checked" : "Depends on the machine's position", "", label)
+        : view("done", 1, n ? findTone : "warn", caveat, runDetail, result("Clear"), "start not checked", label);
     }
     // "checked in full" only for a full sweep that is neither cut short nor
     // uncertified — a finished worker alone is no full check (Codex R115)
     if (r && !r.truncated && !r.range) {
-      return { state: "done", frac: 1, label, tone: n ? "danger" : "ok", caveat, detail: runDetail,
-        verdict: `${n ? found : "Clear"} · ${caveat ? "checked to the end" : "checked in full"}` };
+      return view("done", 1, n ? findTone : "ok", caveat, runDetail, result("Clear"), caveat ? "checked to the end" : "checked in full", label);
     }
     if (r?.range) {
       // a provisional result with no full check behind it: still provisional
-      return { state: "partial", frac: sweptFrac.value, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
-        verdict: `${n ? found : "No collision"} from ${from} (provisional)` };
+      return view("partial", sweptFrac.value, n ? findTone : "warn", caveat, runDetail, result("No contact"), `provisional from ${from}`, label);
     }
     if (r?.truncated) {
       const cov = props.collisionStopped && props.collisionResumable ? props.collisionStopped.covered : r.truncated.covered;
-      return { state: "partial", frac: sweptFrac.value, label, tone: n ? "danger" : "warn", caveat, detail: runDetail,
-        verdict: n ? `${found} in ${pctOf(cov)} swept` : `No collision in ${pctOf(cov)} swept` };
+      return view("partial", sweptFrac.value, n ? findTone : "warn", caveat, runDetail, result("No contact"), `stopped at ${pctOf(cov)}`, label);
     }
   }
   if (props.collisionBusy) {
-    return { state: "checking", frac: sweptFrac.value, verdict: n ? `${found} so far` : "No collision so far",
-      tone: n ? "danger" : "muted", caveat: false, detail };
+    return view("checking", sweptFrac.value, n ? findTone : "muted", false, detail, result("", true), `${pctOf(sweptFrac.value)} checked`);
   }
-  const covered = props.collisionStopped && props.collisionResumable ? props.collisionStopped.covered
-    : r?.truncated ? r.truncated.covered : null;
+  // the entry move's side sweep runs and has found a contact (Codex R136
+  // VP-I93): shown, and said still checking
+  const ec = props.collisionEntryResult;
+  if (ec?.checking && r && r === ec.result) {
+    return view("checking", sweptFrac.value, n ? findTone : "muted", false, detail, result("", true), "entry move still checking");
+  }
+  const paused = !!(props.collisionStopped && props.collisionResumable);
+  const covered = paused ? props.collisionStopped!.covered : r?.truncated ? r.truncated.covered : null;
   if (covered != null) {
-    return { state: props.collisionStopped && props.collisionResumable ? "paused" : "partial", frac: sweptFrac.value,
-      verdict: n ? `${found} in ${pctOf(covered)} swept` : `No collision in ${pctOf(covered)} swept`,
-      tone: n ? "danger" : "warn", caveat, detail };
+    return view(paused ? "paused" : "partial", sweptFrac.value, n ? findTone : "warn", caveat, detail,
+      result("No contact"), `${paused ? "paused" : "stopped"} at ${pctOf(covered)}`);
   }
   // A track that is start-dependent to its end has nothing checked here: it
   // never reads "Clear" (parity-ef plan E7, Codex R122 answer 4). A start no
@@ -1104,14 +1156,12 @@ const sweepView = computed<SimSweepView | null>(() => {
   // beginning is said on the bar (Codex R134 VP-I84).
   const sd = r?.startDependent;
   if (sd?.whole && !n) {
-    return { state: "done", frac: 1, verdict: sd.unbound ? "Not checked" : "Depends on the machine's position",
-      tone: "warn", caveat, detail };
+    return view("done", 1, "warn", caveat, detail, sd.unbound ? "Not checked" : "Depends on the machine's position", "");
   }
   if (sd?.unbound) {
-    return { state: "done", frac: 1, verdict: `${n ? found : "Clear"} · start not checked`, tone: n ? "danger" : "warn",
-      caveat, detail };
+    return view("done", 1, n ? findTone : "warn", caveat, detail, result("Clear"), "start not checked");
   }
-  return { state: "done", frac: 1, verdict: n ? found : "Clear", tone: n ? "danger" : "ok", caveat, detail };
+  return view("done", 1, n ? findTone : "ok", caveat, detail, result("Clear"), caveat ? "checked to the end" : "checked in full");
 });
 /** A provisional check's boundary contacts (plan 3b): the pairs in contact
  *  where it started — their onset and kind are the full check's. */
@@ -1131,13 +1181,31 @@ const boundaryDetail = computed(() => {
   }).join("; ");
   return `In contact at the check's start: ${named} — where each began and what it is, the full check says. `;
 });
-/** Which tools the check poses — said in the check's "?", not on the bar. */
+/** The card "Check basis" (step 4 plan 1c) for the check the tab shows: its
+ *  context as taken at the request, the result on screen for what it left
+ *  out. The entry move is included when the shown result is the entry
+ *  track's merge. No check on screen, no card. */
+const checkCardView = computed(() => {
+  if (!sweepView.value) return null;
+  const e = props.collisionEntryResult;
+  return checkCard(props.collisionContext ?? null, shownResult.value, {
+    stale: !!props.collisionContextStale, unit: linearUnit.value,
+    entry: !!e && e.track === track.value && shownResult.value === e.result });
+});
+/** Which tools the check poses — said in the check's "?", not on the bar.
+ *  From the check's own context (step 4 plan 1c: the card and the "?" say the
+ *  same — a run's own M6 changes the live tool, not the check's); the live
+ *  tool only for a check without one. */
 const sweepToolSentence = computed(() => {
-  const pt = props.sweepTool?.programTools;
-  if (pt?.length) return "Checked with the program's tools " + pt.map(t => `T${t.num} Ø${t.diam.toFixed(1)}`).join(", ") + ".";
-  const n = props.sweepTool?.num;
+  const ctx = props.collisionContext;
+  const pt = ctx
+    ? ctx.programTools.filter(t => !t.unknown && (t.len != null || t.diam != null)).map(t => ({ num: t.num, diam: t.diam }))
+    : props.sweepTool?.programTools;
+  if (pt?.length) return "Checked with the program's tools "
+    + pt.map(t => `T${t.num}${t.diam != null && t.diam > 0 ? ` Ø${t.diam.toFixed(1)}` : ""}`).join(", ") + ".";
+  const n = ctx ? ctx.basis.toolNum : props.sweepTool?.num;
   if (n == null || !Number.isFinite(n) || n <= 0) return "No tool loaded: checked with a 6 mm stub.";
-  const d = props.sweepTool?.diam;
+  const d = ctx ? ctx.basis.toolDiam : props.sweepTool?.diam;
   return `Checked with the loaded T${n}${d != null && d > 0 ? ` Ø${d.toFixed(1)}` : ""} throughout.`;
 });
 watchEffect(() => {
@@ -1149,9 +1217,10 @@ watchEffect(() => {
   simView.lineTitle = lineTitle.value;
   simView.time = posText.value;
   simView.sweep = sweepView.value;
+  simView.card = checkCardView.value;
   const prev = props.collisionPrevious;
   simView.previous = prev && !sweepView.value
-    ? `${prev.collisions ? `${prev.collisions} collision${prev.collisions === 1 ? "" : "s"}` : "Clear"}${prev.complete ? "" : " so far"}`
+    ? (prev.text ? `${prev.text}${prev.complete ? "" : " so far"}` : prev.complete ? "Clear" : "No contact so far")
     : null;
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0 };

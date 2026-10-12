@@ -9230,3 +9230,85 @@ TWP live gate, 2026-10-01).
 `tool_basis_pairs.json` also takes E's beginning (masks, `start_believed`,
 the first move's kind) — it was not regenerated with E, and toolBasis.test
 passes on it.
+
+**After the stop (the e2e stamps).** The bump left 25 literal
+`preview_schema: 10` stamps in nine e2e specs; the viewer refused those
+payloads with the version banner. The schema-10 bump had changed them in the
+same commit, this one did not — no browser run on the schema branch.
+Corrected in `220a01a6` (Playwright 505/505), merged `813f1e36`. A schema
+bump runs the full browser suite before its merge.
+
+## 2026-10-11 — Step 4 package 1: the first contact at once; result, coverage and caveat apart; the check's basis in a card (plan kollision-schritt4, Codex R118)
+
+**The record model found under 1b.** A contact's onset is its MARGIN ENTRY;
+a touch on a later line is a continuation record. The verdict, the marks and
+the list read such an onset (2.00 mm) as a near miss, and with the cap
+(200 records, onsets first) the touching continuations could vanish: in the
+synthetic measurement the old result held 0 touching records of 200. The
+onset now carries `touches` (`confirmedContact`); detection is unchanged
+(the oracle and the shard equality pass unchanged).
+
+**1b.** The sweep's first confirmed contact (`SnapshotHandle.first`, the
+finding — the onset where the touch continues one) goes once per run before
+the snapshot cadence, without `buildResult`; the coordinator forwards a
+shard's first once (first in time, not the earliest on the track — the
+merged partials place every finding). First message in the synthetic case at
+702 ms, before only at the end; haus.ngc case A 9410 → 9395 ms with the same
+samples and queries. Side sweeps send none (milliseconds).
+
+**1a / 1d.** One line, three statements: the result by kind
+(`findingWords`: collisions, on the entry move, possible contacts, near
+misses — the marks stay one list, the count is split), the coverage, the
+caveat. "Clear" only for an ended check. A start in contact only where
+proven (`atStart`: clear at rest, touching at the first pose — a near miss
+at the first pose stays one). The cap: `capped` records, `cappedOnsets`
+contact beginnings among them — the first wording claimed "no further
+collisions" for every cut, wrong past 200 onsets.
+
+**1c.** The card "Check basis" (`viewer/checkContext.ts`): taken when the
+request is built, never re-read; its kinematics are the TRACK's labels (what
+the sweep poses), not the live mode; "changed since" only for an idle check
+(a run's basis is the run's start). Named: the start tool's origin is "tool
+table" only; the tool body rule (+20 mm, 40 mm floor) is not on the card.
+
+**Codex R136 (VP-I91..VP-I94).** The first contact is an onset: it replaces
+the record of the same onset a partial shows (it was appended — one contact,
+"1 collision · 1 near miss"). The viewer holds it, bound to its request, until
+a partial carries it: the pool's merged partial from a shard's older word took
+it back; held in the viewer rather than the coordinator because only the
+viewer sees the whole sequence — a pool that falls back to this core posts the
+local run's partials without the coordinator. Decision 5 ("side sweeps take
+milliseconds") was refused: since E1–E3 a side sweep is the entry move plus
+the start-dependent beginning, the whole program on a dependent one — side
+runs send their first contact too. The summary's form is measured: the
+`.sidePane.narrow` threshold alone let a mixed result with the cap's contacts
+push the coverage out of a regular pane's line. The stop / cancel reaction,
+measured old against new: unchanged (checkpoint gaps p95 0.9 ms on haus case
+A; one pre-existing gap of 0.54–0.60 s in the sweep's setup before its first
+segment, in both); `take("stopped")` ≤ 1.4 ms.
+
+**Codex R137.** VP-I91 closed. The rests: the code marks took the bare
+partial, and a pool falling back to this core after a partial had carried the
+first contact lost it again — the viewer feeds every consumer from the folded
+partial and holds the first for the whole request. A gap since E5: the bar
+took the bare base result, so a run check's bound beginning — its findings
+early and final — never reached the list, the marks or the verdict; the
+viewer now hands the bar the result and the partial with the beginning in
+them, and the early merge keeps the base's `startDependent` (one contact
+answers no coverage). The summary gained a fourth form (the coverage in its
+fewest words) and its "?" says the whole statement. The worker's answer to
+cancel and stop, measured from the page's send, old and new: 9–41 ms for a
+cancel and 48–74 ms for a stop while the sweep runs (the slice in progress,
+then `take`) — per case faster or slower by up to one 40 ms slice, no change
+beyond it; in the sweep's setup before its first segment up to
+0.83 s on haus.ngc — the baseline stretch without a checkpoint,
+pre-existing, a change of its own.
+
+**Codex R138.** VP-I92 closed. Two rests: a run check's beginning that found
+a contact before the main request's first partial waited for that partial —
+and a main sweep finding nothing posts none until it ends. The viewer now
+lays the beginning onto the main request as it stands (nothing found so far,
+its progress, the beginning it names; never another track, never a finished
+main request). And the summary's last form lost the only mark of records cut
+while every beginning was kept: it says "· cut"; contacts cut keep the
+count's "+".

@@ -38,7 +38,7 @@
 // the owner omits `bodies` when it knows the worker holds the model; a
 // worker that does not (recreated after a failure) answers `needBodies`
 // instead of guessing.
-import { restoreBaseTool, geometryNote,
+import { restoreBaseTool, geometryNote, bodyClasses,
   buildCollisionModel, sweepCollisionsIter, toolCylinderPositions,
   type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionOptions,
   type CollisionResult, type CollisionTrack, type SnapshotHandle,
@@ -130,6 +130,8 @@ interface Run {
   /** Live-snapshot pacing: no snapshot before this time (performance.now). */
   nextPeekAt: number;
   lastPeekRecords: number;
+  /** The first confirmed contact went out (step 4 plan 1b): once per run. */
+  firstSent: boolean;
   /** Re-entry point for `continue`. */
   pump: () => void;
   /** The (resident) model this run poses — restored to its base tool
@@ -143,7 +145,7 @@ let _run: Run | null = null;
 /** An ephemeral SIDE sweep (sim-entry segment); never parks. */
 let _side: Run | null = null;
 
-const clearSnapshot = (s: SnapshotHandle) => { s.take = null; s.peek = null; s.records = null; };
+const clearSnapshot = (s: SnapshotHandle) => { s.take = null; s.peek = null; s.records = null; s.first = null; };
 
 type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue;
 
@@ -236,7 +238,8 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       // relative motion — nothing to check. Surface it honestly.
       // No moving pair: nothing to certify, so the guarantee holds vacuously
       // — unless a body was left out for having no facet with area (VP-I46).
-      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: geometryNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null } });
+      const bodies = bodyClasses(model);
+      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: geometryNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null, ...(bodies ? { bodies } : {}) } });
       return;
     }
     const run: Run = {
@@ -244,8 +247,8 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       pausedCam: !!holds.pausedCam, pausedCamAt: holds.pausedCamAt ?? 0, pausedHidden: !!holds.pausedHidden,
       pausedDecode: !!holds.pausedDecode, sliceMs: d.sliceMs ?? SLICE_MS,
       activeMs: 0, sliceStart: 0,
-      snapshot: { take: null, peek: null, records: null },
-      stopped: false, stopRequested: false, nextPeekAt: 0, lastPeekRecords: 0, pump: () => {},
+      snapshot: { take: null, peek: null, records: null, first: null },
+      stopped: false, stopRequested: false, nextPeekAt: 0, lastPeekRecords: 0, firstSent: false, pump: () => {},
       model,
     };
     // The slot this run lives in — cleared only if it still holds this run
@@ -258,7 +261,10 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
     // `sweepMs` reports. The iterator's own maxMs stays unset: nothing bounds
     // a sweep but its sample backstop and the owner's park.
     const activeClock = () => run.activeMs + (run.sliceStart ? performance.now() - run.sliceStart : 0);
-    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: side ? undefined : run.snapshot });
+    // A side run (the entry move, the start-dependent beginning — the whole
+    // program on a dependent one) takes the snapshot for its first confirmed
+    // contact only: no partials (Codex R136 VP-I93).
+    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot });
     if (side) _side = run; else _run = run;
     // Park: the generator stays suspended at its current checkpoint; the
     // owner gets the sweep-so-far and decides between continue and cancel.
@@ -291,9 +297,19 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
         return;
       }
       if (!slice.done) {
+        // The first confirmed contact goes out at the end of the slice that
+        // found it — no snapshot (no buildResult, no copy of every record),
+        // no wait for the snapshot cadence a near miss may have started
+        // (step 4 plan 1b, Codex R85/R118). Once per run; the cadence below
+        // is unchanged.
+        const first = !run.firstSent ? run.snapshot.first?.() ?? null : null;
+        if (first) {
+          run.firstSent = true;
+          self.postMessage({ id, progress: slice.progress, first });
+        }
         let partial: CollisionResult | undefined;
         const recs = run.snapshot.records?.() ?? 0;
-        if (run.snapshot.peek && recs !== run.lastPeekRecords && performance.now() >= run.nextPeekAt) {
+        if (!side && run.snapshot.peek && recs !== run.lastPeekRecords && performance.now() >= run.nextPeekAt) {
           const t0 = performance.now();
           run.lastPeekRecords = recs;
           partial = run.snapshot.peek();
@@ -371,6 +387,8 @@ interface PoolRun {
   posted: number;
   /** A shard's word not yet in a posted partial, and when the next may go. */
   partialDirty: boolean;
+  /** A shard's first confirmed contact went to the owner (once per run). */
+  firstSent: boolean;
   nextPartialAt: number;
   /** The owner's controls, kept for a fall back to this core. */
   pausedCam: boolean;
@@ -471,6 +489,13 @@ function onShardMessage(k: number, m: any): void {
   }
   if (m.progress !== undefined) {
     run.progress[k] = m.progress;
+    // the first confirmed contact of ANY shard goes on at once (step 4 plan
+    // 1b) — the first in time, not necessarily the earliest on the track;
+    // the merged partials that follow place every finding
+    if (m.first && !run.firstSent) {
+      run.firstSent = true;
+      self.postMessage({ id: run.id, first: m.first });
+    }
     if (m.partial) { run.partial[k] = m.partial; run.partialDirty = true; }
     postProgress(run, false);
     return;
@@ -649,7 +674,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   if (_run) handleLocal({ cancel: _run.id });
   _poolRun = { id: req.id, k, req, progress: new Array(k).fill(0), partial: new Array(k).fill(undefined),
                final: new Array(k).fill(undefined), parked: new Array(k).fill(false), cancelled: 0, ended: false,
-               posted: -1, partialDirty: false, nextPartialAt: 0, pausedCam: false, pausedCamAt: 0,
+               posted: -1, partialDirty: false, firstSent: false, nextPartialAt: 0, pausedCam: false, pausedCamAt: 0,
                pausedHidden: false, pausedDecode: false, stopPending: false, parkedPosted: false, cancelling: false };
   _shards.forEach((w, i) => w.postMessage(shardRequest(req, i, k)));
 };

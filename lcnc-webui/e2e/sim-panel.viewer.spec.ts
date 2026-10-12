@@ -24,7 +24,7 @@ const PREVIEW = Buffer.from(encode(PREVIEW_FIELDS));
 // T3 on line 10; T5 on line 20 — the same moment as line 20's limit
 const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : i === 19 ? "T5 M6" : `G1 X${i} F100`).join("\n");
 
-async function prepare(page: Page, context: BrowserContext, vp = "desktop", preview = PREVIEW) {
+async function prepare(page: Page, context: BrowserContext, vp = "desktop", preview = PREVIEW, setHits = true) {
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: TEXT }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === vp)!);
@@ -33,7 +33,7 @@ async function prepare(page: Page, context: BrowserContext, vp = "desktop", prev
   await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
   // The sweep's verdict, then two collisions on the swept track (L12 feed, L26 rapid).
   await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(
+  if (setHits) await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(
     [{ line: 12, frac: 9 / 29 }, { line: 26, frac: 23 / 29, rapid: true }]) ?? false)).toBe(true);
   await openSimTab(page);
 }
@@ -69,7 +69,7 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   expect(await rowKeys(page)).toEqual(["L20", "L32"]);
   // the collision check: its progress and its verdict, the tools in its "?"
   await expect(page.locator(".simPanel .checkPct")).toHaveText("100 %");
-  await expect(page.locator(".simPanel .checkVerdict")).toHaveText("2 collisions");
+  await expect(page.locator(".simPanel .checkVerdict")).toHaveText("2 collisions · checked in full");
 });
 
 test("a row shows its finding; the steps go through the shown kind; the next row follows the position", async ({ page, context }) => {
@@ -245,7 +245,7 @@ test("a part left out of the check stays marked, with or without moving pairs", 
   // With a moving pair the same note marks the clear verdict.
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]) ?? false)).toBe(true);
   await page.evaluate(n => window.__viewerDiag?.setCollisionNote?.(n), note);
-  await expect(item).toHaveAttribute("aria-label", "Clear (not certified)");
+  await expect(item).toHaveAttribute("aria-label", "Clear · checked to the end (not certified)");
   await expect(item.locator('span[title^="Not certified"]')).toHaveCount(1);
 });
 
@@ -458,9 +458,10 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   await prepare(page, context);
   const items = page.locator(".simPanel .simSummary [role=img]");
   await expect(items).toHaveCount(3);
-  expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label")))).toEqual(["2 collisions", "2 limit violations", "2 tool changes"]);
-  await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeVisible();
-  await expect(page.locator(".simPanel .simSummary .sumShort").first()).toBeHidden();
+  expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label")))).toEqual(["2 collisions · checked in full", "2 limit violations", "2 tool changes"]);
+  // wide: the words (the form is measured — Codex R136 VP-I94)
+  await expect(page.locator(".simPanel .simSummary")).toHaveAttribute("data-sum-form", "0");
+  expect((await items.allInnerTexts()).map(t => t.trim())).toEqual(["2 collisions · checked in full", "2 limit violations", "2 tool changes"]);
   await ctl({ op: "reset" });
   // The gateway's list holds its first 200 records; the summary says the total.
   await prepare(page, context, "touch-portrait", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: 9000 })));
@@ -477,17 +478,21 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   });
   expect(move, "narrow: the move whole in its row").toEqual({ shown: true, text: " · Rapid", inside: true });
   expect(await items.evaluateAll(els => els.map(e => e.getAttribute("aria-label"))))
-    .toEqual(["2 collisions", "9000 limit violations · the first 2 lines listed", "2 tool changes"]);
-  const shorts = page.locator(".simPanel .simSummary .sumShort");
-  expect(await shorts.allInnerTexts(), "narrow: the number").toEqual(["2", "9000", "2"]);
-  for (let i = 0; i < 3; i++) await expect(shorts.nth(i), "narrow: each number shows").toBeVisible();
-  await expect(page.locator(".simPanel .simSummary .sumWide").first()).toBeHidden();
+    .toEqual(["2 collisions · checked in full", "9000 limit violations · the first 2 lines listed", "2 tool changes"]);
+  // narrow: the other kinds as their numbers — and the result as a count
+  // too where its words do not fit (the form is measured); its coverage kept
+  const form = await page.locator(".simPanel .simSummary").getAttribute("data-sum-form");
+  expect(form, "narrow: a shorter form").not.toBe("0");
+  expect((await items.allInnerTexts()).map(t => t.trim()), "narrow: the numbers")
+    .toEqual([form === "3" ? "2 · in full" : form === "2" ? "2 · checked in full" : "2 collisions · checked in full", "9000", "2"]);
+  for (let i = 0; i < 3; i++) await expect(items.nth(i), "narrow: each item shows").toBeVisible();
   const box = await page.locator(".simPanel .simSummary").evaluate(el => ({ w: el.scrollWidth, cw: el.clientWidth, h: el.getBoundingClientRect().height, lh: parseFloat(getComputedStyle(el).lineHeight) || 0 }));
   expect(box.w, "narrow: the whole line fits").toBeLessThanOrEqual(box.cw);
   // Codex R82 VP-I42: narrow, the cap was said only in a name and a mouse
   // tooltip. The line's own "?" says it — by keyboard and by a tap.
   const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
-  const said = /^9000 limit violations, a line and an axis each\. The parse sends the first 2; the list shows their 2 lines\.$/;
+  // the line's whole statement: each kind, the cap explained (Codex R137 VP-I94)
+  const said = /^× 2 collisions · checked in full\. ▲ 9000 limit violations, a line and an axis each — the parse sends the first 2; the list shows their 2 lines\. ● 2 tool changes\.$/;
   await help.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".helpPopover:popover-open"), "keyboard: the cap in words").toHaveText(said);
@@ -519,8 +524,10 @@ test("a tool measurement the preview cannot predict: the summary, the time and t
   await expect(page.locator(".simPanel .simSummary .sumLimit .text-warn")).toHaveText("*");
   const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
   await help.click();
-  await expect(page.locator(".helpPopover:popover-open")).toHaveText(
-    "Tool measurement not predicted (T3 has no length in the table): from there no path, no time, no collision or limit check.");
+  // the stop first — it bounds all three — then the line's whole statement
+  await expect(page.locator(".helpPopover:popover-open")).toHaveText(new RegExp(
+    "^Tool measurement not predicted \\(T3 has no length in the table\\): from there no path, no time, no collision or limit check\\. "
+    + "× .+\\. ▲ 2 limit violations · checked to the tool measurement\\. ● 2 tool changes\\.$"));
   await help.click();
   const pos = await page.locator(".scrubBar .posSlot").evaluate(e => ({
     text: (e as HTMLElement).innerText, whole: e.scrollWidth <= e.clientWidth + 1, title: e.getAttribute("title") }));
@@ -549,14 +556,20 @@ test("a measurement without a verified call line is on no row: the \"?\" points 
 // content's clipping edge and the outer 4 px of its 24 px hit area were cut
 // off — a tap there landed on the side pane. The row keeps the reach.
 test("the summary's \"?\" answers in its whole hit area, at the right edge of a full line", async ({ page, context }) => {
-  // A FULL line (Codex's case: 1600 × 1000): twelve collisions and a
-  // sixteen-digit total — the limit text gives way, the "?" ends the line.
-  // A ten-digit total fitted in Firefox (283 px of 283) and the guard never
-  // reached its case there (Codex R85 VP-I44); the precondition below stays.
-  await prepare(page, context, "desktop", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: Number.MAX_SAFE_INTEGER })));
+  // A FULL line: twelve collisions and a sixteen-digit total at 150 %
+  // portrait, the window 820 px wide (a 241 px pane) — even the counts and the
+  // coverage's fewest words take the line, the coverage gives way, the "?"
+  // ends it. (The form is measured since Codex R136/R137 VP-I94: neither a
+  // wide pane nor the 900 px portrait fills the line any more.) A ten-digit
+  // total fitted in Firefox and the guard never reached its case there (Codex
+  // R85 VP-I44); the precondition below stays.
+  await prepare(page, context, "touch-portrait", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: Number.MAX_SAFE_INTEGER })));
+  await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
   await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(Array.from({ length: 12 }, (_, i) => ({ line: 5 + i, frac: (2 + i) / 29 }))));
+  await page.setViewportSize({ width: 820, height: 1200 });
   await settleLayout(page);
-  expect(await page.locator(".simPanel .sumLimit .sumWide").evaluate(el => el.scrollWidth > el.clientWidth), "the line is full: its limit text gives way").toBe(true);
+  await expect(page.locator(".simPanel .simSummary")).toHaveAttribute("data-sum-form", "3");
+  expect(await page.locator(".simPanel .checkVerdict").evaluate(el => el.scrollWidth > el.clientWidth), "the line is full: the coverage gives way").toBe(true);
   const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
   const g = await help.evaluate(el => {
     const r = el.getBoundingClientRect(), tab = el.closest(".tab-content")!.getBoundingClientRect();
@@ -568,4 +581,148 @@ test("the summary's \"?\" answers in its whole hit area, at the right edge of a 
   expect(g.tabRight - g.right, "the \"?\" ends the full line, its reach inside the tab").toBeLessThanOrEqual(g.reach + 1);
   await page.mouse.click(g.right + g.reach - 1, g.cy);
   await expect(page.locator(".helpPopover:popover-open"), "a tap at the hit area's outer edge").toHaveCount(1);
+});
+
+// Step 4 plan 1c: the card "Check basis" by touch — a tap opens it inside the
+// window, the trigger and a tap outside close it, nothing reaches the machine.
+test.describe("the check basis card by touch (step 4 plan 1c)", () => {
+  test.use({ hasTouch: true });
+  test("a tap opens the card in the window; its trigger and a tap outside close it; nothing is sent", async ({ page, context }) => {
+    await prepare(page, context, "touch-landscape");
+    const trigger = page.getByRole("button", { name: "Check basis", exact: true });
+    const card = page.locator(".helpPopover:popover-open");
+    await ctl({ op: "clearCmds" });
+    await trigger.tap();
+    await expect(card).toContainText("The machine when the check started");
+    await expect(card).toContainText("Program kinematics");
+    await expect(card).toContainText("Work offset");
+    const box = (await card.boundingBox())!;
+    const vp = page.viewportSize()!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.y).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(vp.width);
+    expect(box.y + box.height).toBeLessThanOrEqual(vp.height);
+    await trigger.tap();
+    await expect(card, "its trigger closes it").toHaveCount(0);
+    await trigger.tap();
+    await expect(card).toBeVisible();
+    await page.touchscreen.tap(5, 5);
+    await expect(card, "a tap outside closes it").toHaveCount(0);
+    const sent = ((await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string }[] }).cmds ?? []).map(c => c.cmd ?? "")
+      .filter(c => !["hello", "heartbeat", "get_tool_table", "timing_log", "tab_visibility"].includes(c));
+    expect(sent, "reading the card moves nothing").toEqual([]);
+  });
+});
+
+// Codex R136 VP-I94: at 1600 × 1000 the side pane is regular (540 px, not
+// narrow) — the new result words of a mixed result with the cap's contacts
+// took 709 px, and the coverage, the cap and the other two kinds fell out of
+// the clipped line. The form is measured: whatever the words, every item and
+// the coverage stay in the line, which keeps its height.
+test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)", () => {
+  async function mixed(page: Page, cut: { capped: number; cappedOnsets: number } = { capped: 25, cappedOnsets: 2 }) {
+    await page.addInitScript(cut => {
+      const Real = window.Worker;
+      window.Worker = class extends Real {
+        constructor(url: string | URL, options?: WorkerOptions) {
+          super(url, options);
+          if (!/collisionWorker/.test(String(url))) return;
+          this.addEventListener("message", ev => {
+            if (!ev.data?.result) return;
+            const hit = (line: number, dist: number, extra = {}) =>
+              ({ line, cum: line, cumEnd: line + 1, a: "spindle", b: "vise", dist, rapid: true, ...extra });
+            const hits = [hit(12, 0), hit(14, 0, { entryMove: true }), hit(16, 0, { possible: true }), hit(18, 1.5)];
+            for (let i = 0; i < 196; i++) hits.push(hit(19 + i % 10, 0, { b: "fixture_" + i }));
+            // 200 onsets kept, by default 2 more onsets and 23 continuations cut: a rendering fixture
+            Object.assign(ev.data.result, { pairCount: 200, hits, ...cut });
+          });
+        }
+      };
+    }, cut);
+  }
+  const measure = (page: Page) => page.locator(".simPanel .simSummary").evaluate(el => {
+    const r = el.getBoundingClientRect();
+    const items = [...el.querySelectorAll(".sumItem")].map(e => {
+      const b = e.getBoundingClientRect();
+      return { text: (e as HTMLElement).innerText.trim(), left: b.left, right: b.right };
+    });
+    const verdict = el.querySelector(".checkVerdict") as HTMLElement;
+    return { form: el.getAttribute("data-sum-form"), left: r.left, right: r.right, sw: el.scrollWidth, cw: el.clientWidth,
+      rowH: (el.parentElement as HTMLElement).offsetHeight, items,
+      verdictCut: verdict.scrollWidth > verdict.clientWidth + 0.5, pane: document.querySelector(".sidePane")!.clientWidth,
+      narrow: document.querySelector(".sidePane")!.classList.contains("narrow") };
+  });
+  for (const [vp, zoom] of [["desktop", 1], ["touch-landscape", 1], ["touch-portrait", 1.5]] as const) {
+    test(`a mixed result with the cap's contacts — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
+      await mixed(page);
+      // the worker's result as the fixture made it — no hits set over it
+      await prepare(page, context, vp, PREVIEW, false);
+      if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+      await settleLayout(page);
+      const clash = page.locator(".simPanel .simSummary .sumItem").first();
+      await expect(clash, "the fixture's 200 findings").toHaveAttribute("aria-label",
+        /^197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss · checked in full · more contacts not listed$/);
+      const m = await measure(page);
+      expect(m.sw, "the line fits").toBeLessThanOrEqual(m.cw);
+      for (const it of m.items) {
+        expect(it.left, it.text).toBeGreaterThanOrEqual(m.left - 0.5);
+        expect(it.right, it.text).toBeLessThanOrEqual(m.right + 0.5);
+      }
+      // the other two kinds, whole
+      expect(m.items.slice(1).map(x => x.text)).toEqual(m.form === "0" ? ["2 limit violations", "2 tool changes"] : ["2", "2"]);
+      // the count, the check's state and the cap's "+" whole — no ellipsis
+      // with ordinary numbers, at 150 % portrait too (Codex R137 VP-I94)
+      expect(m.verdictCut, "the collision item whole").toBe(false);
+      if (Number(m.form) >= 2) expect(m.items[0]!.text.startsWith("200+"), "the count holds the cap's contacts").toBe(true);
+      expect(m.items[0]!.text).toMatch(m.form === "3" ? / · in full$/ : / · checked in full · more contacts not listed$/);
+      if (vp === "desktop") {
+        expect(m.narrow, "the regular pane").toBe(false);
+        // the result shortened before the coverage: the coverage and the cap in words
+        expect(m.form).not.toBe("3");
+      }
+      // the "?" says the line's whole statement — the touch way to what a short form leaves out
+      const name = (await clash.getAttribute("aria-label"))!;
+      await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
+      const help = page.locator(".helpPopover:popover-open");
+      await expect(help).toContainText(name);
+      await expect(help).toContainText("2 limit violations");
+      await expect(help).toContainText("2 tool changes");
+      await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
+      await expect(help).toHaveCount(0);
+      // one height whatever the form: the same row with the plain result
+      await page.evaluate(() => window.__viewerDiag!.setCollisionHits!([]));
+      await expect(page.locator(".simPanel .checkVerdict")).toHaveText(/^Clear/);
+      await settleLayout(page);
+      expect((await measure(page)).rowH, "the row's height").toBe(m.rowH);
+      await ctl({ op: "reset" });
+    });
+  }
+  // each kind of cut keeps a visible mark in every form, the uncut line none
+  // (Codex R138 VP-I94: records cut while every beginning is kept lost its
+  // only mark in the last form — the count is whole, so no "+")
+  for (const [kind, cut, words, last] of [
+    ["records cut, every beginning kept", { capped: 25, cappedOnsets: 0 }, " · checked in full · records cut", /^200 · in full · cut$/],
+    ["nothing cut", { capped: 0, cappedOnsets: 0 }, " · checked in full", /^200 · in full$/],
+  ] as const) {
+    for (const [vp, zoom] of [["desktop", 1], ["touch-portrait", 1.5]] as const) {
+      test(`${kind} — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
+        await mixed(page, cut);
+        await prepare(page, context, vp, PREVIEW, false);
+        if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
+        await settleLayout(page);
+        const clash = page.locator(".simPanel .simSummary .sumItem").first();
+        await expect(clash).toHaveAttribute("aria-label",
+          `197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss${words}`);
+        const m = await measure(page);
+        expect(m.sw, "the line fits").toBeLessThanOrEqual(m.cw);
+        expect(m.verdictCut, "the collision item whole").toBe(false);
+        const text = m.items[0]!.text;
+        expect(text.startsWith("200+"), "no \"+\": every beginning is counted").toBe(false);
+        if (m.form === "3") expect(text).toMatch(last);
+        else expect(text.endsWith(words), text).toBe(true);
+        if (vp === "touch-portrait" && cut.capped) expect(m.form, "the last form at 150 % portrait").toBe("3");
+        await ctl({ op: "reset" });
+      });
+    }
+  }
 });
