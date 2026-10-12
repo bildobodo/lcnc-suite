@@ -87,6 +87,87 @@ export function shippedCases(files: FixtureFiles): Case[] {
   ];
 }
 
+/** A closed box of 12 triangles, outward, centred at (ox, oy, oz). */
+export function boxPositions(sx: number, sy: number, sz: number, ox = 0, oy = 0, oz = 0): Float32Array {
+  const x = [ox - sx / 2, ox + sx / 2], y = [oy - sy / 2, oy + sy / 2], z = [oz - sz / 2, oz + sz / 2];
+  const v = (i: number) => [x[i & 1]!, y[(i >> 1) & 1]!, z[(i >> 2) & 1]!];
+  // each face as two triangles, counter-clockwise seen from outside
+  const quads = [[0, 2, 3, 1], [4, 5, 7, 6], [0, 1, 5, 4], [2, 6, 7, 3], [0, 4, 6, 2], [1, 3, 7, 5]];
+  const out: number[] = [];
+  for (const [a, b, c, d] of quads) out.push(...v(a!), ...v(b!), ...v(c!), ...v(a!), ...v(c!), ...v(d!));
+  return Float32Array.from(out);
+}
+
+/** A machine nobody built (the oracle on generated machines, step 4 plan
+ *  package 2, 7.3; operator 2026-10-11: shown general, not assumed): every
+ *  axis of the family on the work side or the tool side at random, in a
+ *  random order down its chain — rotaries nested on either side, about their
+ *  letter's axis or, on trivkins, a random one —, each driven group offset by
+ *  a random pivot, boxes of random size on every group and the frame, the
+ *  cutter on the tool group. The family by seed: trivkins with 3–6 axes, or
+ *  the supported world kins (xyzac-trt, xyzbc-trt, xyzacb-trsrn) under TCP with
+ *  random pivots. Deterministic per seed. */
+export function generatedCase(seed: number): { c: Case; model: CollisionModel; stock: Set<string> } {
+  const rand = rng(seed);
+  const between = (a: number, b: number) => a + rand() * (b - a);
+  const family = seed % 5;   // 0, 1: trivkins; 2: xyzac-trt; 3: xyzbc-trt; 4: xyzacb-trsrn
+  let axes: string[], kins: KinsSpec | undefined, mode: number | undefined;
+  if (family <= 1) {
+    axes = ["X", "Y", "Z", ...["A", "B", "C"].filter(() => rand() < 0.5)];
+  } else if (family <= 3) {
+    axes = family === 2 ? ["X", "Y", "Z", "A", "C"] : ["X", "Y", "Z", "B", "C"];
+    kins = { type: family === 2 ? "xyzac-trt" : "xyzbc-trt", identityFirst: true, params: {
+      xRotPoint: between(-200, 200), yRotPoint: between(-200, 200), zRotPoint: between(-200, 200),
+      xOffset: between(-100, 100), yOffset: between(-100, 100), zOffset: between(-100, 100) } };
+    mode = 1;
+  } else {
+    axes = ["X", "Y", "Z", "A", "B", "C"];
+    kins = { type: "xyzacb-trsrn", identityFirst: false, trsrn: {
+      yPivot: between(-300, 300), zPivot: between(-300, 300), xOffset: between(-150, 150), yOffset: between(-150, 150),
+      yRotAxis: between(-200, 200), zRotAxis: between(-200, 200), nutAngle: between(30, 60) } };
+    mode = 1;
+  }
+  const shuffle = <T>(xs: T[]) => { for (let i = xs.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [xs[i], xs[j]] = [xs[j]!, xs[i]!]; } return xs; };
+  const sides: number[][] = [[], []];
+  axes.forEach((_, j) => sides[rand() < 0.5 ? 0 : 1]!.push(j));
+  const pivot = () => [between(-150, 150), between(-150, 150), between(-150, 150)];
+  const groups: CollisionMachine["groups"] = [{ id: "frame", parent: "root", translate: pivot() }];
+  const kinematics: Array<Record<string, any>> = [];
+  const chainEnd: string[] = [];
+  ["work", "tool"].forEach((side, s) => {
+    let parent = "frame";
+    for (const j of shuffle(sides[s]!)) {
+      const id = `${side}_${axes[j]!.toLowerCase()}`;
+      groups.push({ id, parent, translate: pivot() });
+      const letter = axes[j]!, rot = "ABC".includes(letter);
+      const dir = { X: "x", Y: "y", Z: "z", A: "x", B: "y", C: "z" }[letter]!;
+      const sign = rand() < 0.5 ? 1 : -1;
+      if (rot && !kins && rand() < 0.3) {
+        const a = [between(-1, 1), between(-1, 1), between(-1, 1)], n = Math.hypot(...a) || 1;
+        kinematics.push({ group: id, joint: j, type: "rotate", axis: a.map(v => v / n), sign });
+      } else kinematics.push({ group: id, joint: j, type: rot ? "rotate" : "translate", direction: dir, sign });
+      parent = id;
+    }
+    groups.push({ id: side, parent, translate: pivot() });
+    chainEnd.push(side);
+  });
+  const defs: CollisionBody[] = [];
+  for (const g of groups) {
+    for (let k = 0, n = 1 + Math.floor(rand() * 2); k < n; k++) {
+      defs.push({ id: `${g.id}_${k}`, group: g.id,
+        positions: boxPositions(between(20, 250), between(20, 250), between(20, 250), between(-120, 120), between(-120, 120), between(-120, 120)) });
+    }
+  }
+  defs.push({ id: "tool", group: "tool", positions: toolCylinderPositions(10, 80), tool: true });
+  const machine: CollisionMachine = { groups, kinematics, workGroup: chainEnd[0]!, toolGroup: chainEnd[1]!, unitScale: 1, axes,
+    ...(kins ? { kins } : {}) };
+  const box: Record<string, [number, number]> = { X: [-250, 250], Y: [-250, 250], Z: [-250, 250] };
+  for (const l of axes) if (l === "A" || l === "B") box[l] = [-90, 90]; else if (l === "C") box[l] = [-180, 180];
+  const name = `generated ${seed} (${kins?.type ?? "trivkins"} ${axes.join("")})`;
+  const c: Case = { name, dir: "", axes, ...(kins ? { kins } : {}), ...(mode !== undefined ? { mode } : {}), box, tracks: 3, segments: 5, seed };
+  return { c, model: buildCollisionModel(machine, defs), stock: new Set() };
+}
+
 /** The case's model as the live sweep sees it: every colliding part (its
  *  collision proxy where it has one) and the cutter, a 10 × 80 cylinder. */
 export function loadShippedModel(c: Case, files: FixtureFiles): { model: CollisionModel; stock: Set<string> } {
@@ -190,18 +271,22 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
   const WIDE = MIN_ADV + 1e-3;
   // `alsoInside`: a pose wholly inside (either way round, the winding
   // number) belongs to the run too — the run of a contact the surfaces enter.
-  const runWide = (pi: number, s: number, e: number, alsoInside = false): boolean => {
+  // `within`: the run counted inside these track parameters only — a LINE's
+  // part of a run (a record is the line of the sample that saw it; a run
+  // that crosses a line's end by less than MIN_ADV owes that line no sample —
+  // found on generated machine 20261051, step 4 plan package 2, 7.3).
+  const runWide = (pi: number, s: number, e: number, alsoInside = false, within?: [number, number]): boolean => {
     const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
     const inside = (x: number) => {
       poseAt(x);
       return below(A, B, e) !== null || (alsoInside && (insideTruth(A, B) === true || insideTruth(B, A) === true));
     };
-    const end = track.cum[track.count - 1]!;
+    const lo = within ? within[0] : 0, end = within ? within[1] : track.cum[track.count - 1]!;
     const edge = (dir: 1 | -1): number => {
       let x = s;
       for (;;) {
-        const y = dir > 0 ? Math.min(end, x + MIN_ADV) : Math.max(0, x - MIN_ADV);
-        if (y === x) return x;                  // the track's end: the run reaches it
+        const y = dir > 0 ? Math.min(end, x + MIN_ADV) : Math.max(lo, x - MIN_ADV);
+        if (y === x) return x;                  // the track's (or the line's) end: the run reaches it
         if (Math.abs(y - s) > WIDE + MIN_ADV) return y;   // wide already
         if (!inside(y)) {                       // bracketed: bisect between x (in) and y (out)
           let a = x, b = y;
@@ -213,7 +298,16 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
     };
     return edge(1) - edge(-1) > WIDE;
   };
-  return { poseAt, below, runWide, WIDE };
+  /** The track parameters of segment `seg`'s line: the run of segments with
+   *  its line around it. */
+  const lineSpan = (seg: number): [number, number] => {
+    const ln = track.lines[seg];
+    let a = seg, b = seg;
+    while (a > 1 && track.lines[a - 1] === ln) a--;
+    while (b < track.count - 1 && track.lines[b + 1] === ln) b++;
+    return [track.cum[a - 1]!, track.cum[b]!];
+  };
+  return { poseAt, below, runWide, lineSpan, WIDE };
 }
 
 const _itInv = new THREE.Matrix4(), _itRel = new THREE.Matrix4(), _itP = new THREE.Vector3();
