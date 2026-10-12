@@ -1,0 +1,189 @@
+{
+  "scope": "Plan rules and analytic examples only; no application/sweep build or live machine.",
+  "source_verification": {
+    "sha256": "0d96a6e3556308657de59222276cf0a05ce3bfe726fe91875dec11f993910edb",
+    "bisection_matches": true
+  },
+  "r140_control": {
+    "certificates": [
+      [
+        1.0,
+        1.001
+      ]
+    ],
+    "shown": [
+      [
+        0,
+        1.0
+      ],
+      [
+        1.001,
+        2
+      ]
+    ],
+    "separation_retained": true
+  },
+  "r141_control": {
+    "certificates": [
+      [
+        1.0,
+        1.25
+      ],
+      [
+        1.35,
+        1.4
+      ],
+      [
+        1.6,
+        1.65
+      ],
+      [
+        1.75,
+        2.0
+      ]
+    ],
+    "shown": [
+      [
+        0,
+        1
+      ],
+      [
+        1.4,
+        1.6
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "confirmed_1_5_retained": true
+  },
+  "exit_delta_before_next_interval": {
+    "intervals": [
+      {
+        "entry": 0,
+        "exit": 1,
+        "free_after": 1.0005,
+        "free_radius": 0.0004999999999999449
+      }
+    ],
+    "next_interval": null
+  },
+  "ordinary_split_control": {
+    "pieces": [
+      [
+        0,
+        1.4
+      ],
+      [
+        1.6,
+        3
+      ]
+    ],
+    "ids": [
+      11,
+      12
+    ],
+    "selected_id": 11,
+    "unchanged_update_stable": true
+  },
+  "anchor_counterexample": {
+    "truth": [
+      [
+        0,
+        0.5
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "undecidable_range": [
+      1,
+      1.9
+    ],
+    "old_known_clear": 0.75,
+    "old_discovery_contact": 2.5,
+    "refined_anchor": 1.0003662109375,
+    "anchor_verdict": "undecidable",
+    "actual_clearance_at_anchor": 0.5003662109375,
+    "refinement_probes": [
+      {
+        "p": 1.625,
+        "state": "undecidable"
+      },
+      {
+        "p": 1.1875,
+        "state": "undecidable"
+      },
+      {
+        "p": 0.96875,
+        "state": "outside"
+      },
+      {
+        "p": 1.078125,
+        "state": "undecidable"
+      },
+      {
+        "p": 1.0234375,
+        "state": "undecidable"
+      },
+      {
+        "p": 0.99609375,
+        "state": "outside"
+      },
+      {
+        "p": 1.009765625,
+        "state": "undecidable"
+      },
+      {
+        "p": 1.0029296875,
+        "state": "undecidable"
+      },
+      {
+        "p": 0.99951171875,
+        "state": "outside"
+      },
+      {
+        "p": 1.001220703125,
+        "state": "undecidable"
+      },
+      {
+        "p": 1.0003662109375,
+        "state": "undecidable"
+      }
+    ],
+    "new_first_free_after_earlier_contact": 0.875,
+    "new_certificate": [
+      0.5,
+      1.25
+    ],
+    "shown_after_cut": [
+      [
+        0,
+        0.5
+      ],
+      [
+        1.25,
+        3
+      ]
+    ],
+    "children_containing_old_anchor": 0,
+    "confirmed_discovery_witness_retained": true,
+    "conclusion": "The refined contact-side bound is not necessarily confirmed; old-ID inheritance by its immutable presence has no child here."
+  },
+  "strict_certificate_edge": {
+    "p": 1.5,
+    "d": 0.5001,
+    "V": 1,
+    "radius": 0.5,
+    "q": 1,
+    "d_at_q": 0.0001,
+    "q_is_touch": true
+  },
+  "capacity_arithmetic": {
+    "T_bytes_including_dirty_rounded_blocks": 16908288,
+    "derived_bytes": 8388608,
+    "six_main_six_side_plus_derived": 122519552
+  }
+}

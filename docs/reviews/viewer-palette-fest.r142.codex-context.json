@@ -1,0 +1,29 @@
+{
+  "task_dir": "/tmp/codex-r142-sc1b5jus",
+  "live_head": "839ea11d36cd26e3ee8ae1ae88a1e68e16d024cc",
+  "request_base": "839ea11d",
+  "request_head": "3e08df86",
+  "initial_status": " M docs/reviews/kollision-paket2.plan.md\n M docs/reviews/viewer-palette-fest.ideen.md\n",
+  "inputs": {
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 50298,
+      "sha256": "b4beb3ac67feae782b2078b50f43ad88f7e8f1ec6b55167d39f27f0742c70219"
+    },
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1452686,
+      "sha256": "2e4b7f43e46ea216aa451f8570da72a50806668a6fe0851ded60f32476fe8ed0"
+    }
+  },
+  "verdict": "findings",
+  "result": {
+    "VP139-04_A": "closed on plan level",
+    "VP139-04_B": "single inheritance accepted; refined entry can be undecidable, so anchor survival is not guaranteed"
+  },
+  "execution": {
+    "command": "python3 plan_probe.py --source /home/cnc/lcnc-suite/lcnc-webui/src/viewer/collision.ts",
+    "exit_code": 0,
+    "scope": "Analytic contract probe only; no product test/build/live command"
+  },
+  "review_append_sha256": "ec92fb5aea0c6937ce13b80b0852cc6e246aaadaa0dacbf0d2821d687baa2589",
+  "review_append_heading_line": 18044
+}
