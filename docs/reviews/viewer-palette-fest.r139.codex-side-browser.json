@@ -1,0 +1,142 @@
+{
+  "before": {
+    "text": "No contact · start still checking\nNo limit violations\nNo tool changes",
+    "aria": "No contact · start still checking",
+    "rows": [],
+    "log": [
+      "start full",
+      "done"
+    ],
+    "tap": {
+      "requests": [
+        {
+          "id": 2,
+          "side": false,
+          "count": 4
+        },
+        {
+          "id": 4,
+          "side": false,
+          "count": 3,
+          "depEnd": 2
+        },
+        {
+          "id": -1,
+          "side": true,
+          "count": 4
+        }
+      ],
+      "side": {
+        "id": -1,
+        "count": 4,
+        "lines": [
+          0,
+          2,
+          3,
+          4
+        ],
+        "cum": [
+          0,
+          11,
+          13,
+          70
+        ]
+      }
+    }
+  },
+  "early": {
+    "text": "1 collision on the entry move · start still checking\n0\n0",
+    "aria": "1 collision on the entry move · start still checking",
+    "rows": [
+      "entrySpindle nose ↔ A yoke · RapidRapid00:00"
+    ],
+    "log": [
+      "start full",
+      "done"
+    ],
+    "tap": {
+      "requests": [
+        {
+          "id": 2,
+          "side": false,
+          "count": 4
+        },
+        {
+          "id": 4,
+          "side": false,
+          "count": 3,
+          "depEnd": 2
+        },
+        {
+          "id": -1,
+          "side": true,
+          "count": 4
+        }
+      ],
+      "side": {
+        "id": -1,
+        "count": 4,
+        "lines": [
+          0,
+          2,
+          3,
+          4
+        ],
+        "cum": [
+          0,
+          11,
+          13,
+          70
+        ]
+      }
+    }
+  },
+  "done": {
+    "text": "1 collision on the entry move · checked in full\n0\n0",
+    "aria": "1 collision on the entry move · checked in full",
+    "rows": [
+      "entrySpindle nose ↔ A yoke · RapidRapid00:00"
+    ],
+    "log": [
+      "start full",
+      "done",
+      "beginning"
+    ],
+    "tap": {
+      "requests": [
+        {
+          "id": 2,
+          "side": false,
+          "count": 4
+        },
+        {
+          "id": 4,
+          "side": false,
+          "count": 3,
+          "depEnd": 2
+        },
+        {
+          "id": -1,
+          "side": true,
+          "count": 4
+        }
+      ],
+      "side": {
+        "id": -1,
+        "count": 4,
+        "lines": [
+          0,
+          2,
+          3,
+          4
+        ],
+        "cum": [
+          0,
+          11,
+          13,
+          70
+        ]
+      }
+    }
+  }
+}

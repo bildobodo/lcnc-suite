@@ -1,0 +1,35 @@
+{
+  "head": "6d5e20f7f9518b093cdd8060a3ee12f3543c8618",
+  "note": "the offline gate's frontend steps; Playwright with --trace off (little room on /); lint, build and unit beside the mutation run (own worktree /home/cnc/lcnc-suite-mut), the browser step alone",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 10
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 21
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 563
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2072,
+      "note": "run alone; the first run beside the vitest mutations (load average ~5 on 4 cores) failed macros.spec.ts:242 \u2014 a transient hold hint gone before it was read \u2014 and stopped the serial chain at 311 of 521; that test then passed 3 of 3 alone",
+      "first_run": {
+        "status": "FAIL",
+        "seconds": 1298
+      }
+    }
+  ]
+}

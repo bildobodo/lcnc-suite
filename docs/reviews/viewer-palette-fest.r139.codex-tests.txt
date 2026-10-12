@@ -1,0 +1,118 @@
+===== build.txt =====
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2107 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-CbQ7i83d.js               32.51 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-BraGiAnZ.js            198.34 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-9pQh_C3b.css                 7.96 kB │ gzip:   1.97 kB
+dist/static/index-CE9H_1Z-.css                      94.78 kB │ gzip:  17.30 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-ioRJRyA3.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-h3RZUpQp.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/ThreeViewer-CEQR_QlZ.js                187.59 kB │ gzip:  70.62 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/index-CMUvWmLr.js                      639.15 kB │ gzip: 204.67 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.59s
+
+===== focused.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r139-p56dtkmu/src/lcnc-webui
+
+
+ Test Files  8 passed (8)
+      Tests  120 passed (120)
+   Start at  20:01:36
+   Duration  204.85s (transform 724ms, setup 32ms, import 2.60s, tests 201.58s, environment 0ms)
+
+
+===== probe-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r139-p56dtkmu/src/lcnc-webui
+
+
+ Test Files  2 passed (2)
+      Tests  7 passed | 28 skipped (35)
+   Start at  20:01:54
+   Duration  2.08s (transform 468ms, setup 16ms, import 1.17s, tests 716ms, environment 0ms)
+
+
+===== browser-tests.txt =====
+[WebServer] (node:3196704) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 17 tests using 1 worker
+
+(node:3196716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3196716) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/collisions.viewer.spec.ts:1155:1 › a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93) (7.1s)
+  ✓   2 e2e/collisions.viewer.spec.ts:1243:1 › a run's beginning: its contact before the main request's first partial, then with it, then final (Codex R138 VP-I93) (6.6s)
+  ✓   3 e2e/collisions.viewer.spec.ts:1267:1 › a run's beginning that ends with its result before the main request's first partial shows it, the main request still running (Codex R138 VP-I93) (6.2s)
+  ✓   4 e2e/collisions.viewer.spec.ts:1284:3 › a run's beginning that ends without a result (error) before the main request's first partial takes its contact out (Codex R138 VP-I93) (9.9s)
+  ✓   5 e2e/collisions.viewer.spec.ts:1284:3 › a run's beginning that ends without a result (cancelled) before the main request's first partial takes its contact out (Codex R138 VP-I93) (8.5s)
+  ✓   6 e2e/collisions.viewer.spec.ts:1302:1 › a run's beginning's contact before the main request's first partial belongs to its request: a new one takes nothing along (Codex R138 VP-I93) (9.2s)
+  ✓   7 e2e/collisions.viewer.spec.ts:1319:1 › a run's bound beginning that ends without a result takes its early contact out of the list, the marks and the verdict (Codex R137 VP-I93) (8.1s)
+  ✓   8 e2e/r139.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, desktop at 1 (4.8s)
+  ✓   9 e2e/r139.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-landscape at 1 (4.6s)
+  ✓  10 e2e/r139.codex-layout.viewer.spec.ts:44:1 › R137: mixed summary, touch-portrait at 1.5 (4.4s)
+  ✓  11 e2e/r139.codex-layout.viewer.spec.ts:87:1 › R138: continuation-only cap stays visibly marked in the last form (4.4s)
+  ✓  12 e2e/r139.codex-side.viewer.spec.ts:100:1 › R137: a run side contact reaches the Sim list before and after completion (8.6s)
+  ✓  13 e2e/r139.codex-side.viewer.spec.ts:157:1 › R138: side contact before the main first partial and while the main runs (9.3s)
+  ✓  14 e2e/sim-panel.viewer.spec.ts:558:1 › the summary's "?" answers in its whole hit area, at the right edge of a full line (3.4s)
+  ✓  15 e2e/sim-panel.viewer.spec.ts:656:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — desktop (3.9s)
+  ✓  16 e2e/sim-panel.viewer.spec.ts:656:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — touch-landscape (3.7s)
+  ✓  17 e2e/sim-panel.viewer.spec.ts:656:5 › the summary keeps every statement in its line (Codex R136 VP-I94) › a mixed result with the cap's contacts — touch-portrait at 150 % (4.2s)
+
+  17 passed (1.8m)
+
+===== browser-cap-tests.txt =====
+[WebServer] (node:3199839) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:3199865) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3199865) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/sim-panel.viewer.spec.ts:708:7 › the summary keeps every statement in its line (Codex R136 VP-I94) › records cut, every beginning kept — desktop (4.0s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:708:7 › the summary keeps every statement in its line (Codex R136 VP-I94) › records cut, every beginning kept — touch-portrait at 150 % (3.7s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:708:7 › the summary keeps every statement in its line (Codex R136 VP-I94) › nothing cut — desktop (4.8s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:708:7 › the summary keeps every statement in its line (Codex R136 VP-I94) › nothing cut — touch-portrait at 150 % (4.7s)
+
+  4 passed (18.0s)
+
+===== plan-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r139-p56dtkmu/src/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  20:06:46
+   Duration  742ms (transform 396ms, setup 26ms, import 595ms, tests 4ms, environment 0ms)
+

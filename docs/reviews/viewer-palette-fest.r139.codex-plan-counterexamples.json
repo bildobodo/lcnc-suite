@@ -1,0 +1,50 @@
+{
+  "verifiedGap": {
+    "intervals": [
+      [
+        0,
+        1
+      ],
+      [
+        1.001,
+        2
+      ]
+    ],
+    "freeSample": 1.0005,
+    "merged": [
+      [
+        0,
+        2
+      ]
+    ],
+    "caution": "A plan counterexample: no new sweep is implemented here."
+  },
+  "oracleGrid": {
+    "step": 0.5,
+    "MIN_ADV": 0.25,
+    "interval": [
+      0.35,
+      0.65
+    ],
+    "width": 0.30000000000000004,
+    "coarse": [
+      0.25,
+      0.75,
+      1.25,
+      1.75
+    ],
+    "coarseFinds": [],
+    "fineFinds": [
+      0.375,
+      0.625
+    ],
+    "caution": "An analytic sampling limit, not a demonstrated product miss."
+  },
+  "transport": {
+    "holderBytes": 8519680,
+    "updateBlockBytes": 188416,
+    "queuedMessages": 1000,
+    "queuedBytes": 188416000,
+    "caution": "Permitted by the plan without acknowledgement/backpressure; illustrative arithmetic, not a measured allocation."
+  }
+}
