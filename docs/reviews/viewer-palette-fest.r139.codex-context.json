@@ -1,0 +1,38 @@
+{
+  "archive": "/tmp/codex-r139-p56dtkmu/src",
+  "code_base": "2371a617",
+  "code_head": "6d5e20f7f9518b093cdd8060a3ee12f3543c8618",
+  "review_head": "49bb51acbe8b92c99e32cd545654babaec5ffb79",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/kollision-paket2.plan.md\n?? docs/reviews/viewer-palette-fest.r139.gate-backend.json\n?? docs/reviews/viewer-palette-fest.r139.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r139.mutations.py\n?? docs/reviews/viewer-palette-fest.r139.mutations.txt\n",
+  "review_prefix_size": 1413402,
+  "review_prefix_sha256": "33d347d2fd522b5a464d297503af90aede7eecc68a8db60819e54afa1842e8c4",
+  "plan_sha256": "d6745bf8d0beab8e364774847644629c256d4de59a0ab723f96329ab8b4c6eb5",
+  "initial_evidence": {
+    "viewer-palette-fest.r139.mutations.py": "34b70aaa840a5b0a7ec9a7818dca93313eb92c35cd89c051febcb1d520879a14",
+    "viewer-palette-fest.r139.gate-frontend.json": "1a77783b57d8517ed837bf62a18b1138c28405148b0e483e10783244e1a68d9b",
+    "viewer-palette-fest.r139.mutations.txt": "b6e0ce711073d5099920596aa3b931e63ab03ccf1b4c9c90222d58e59702346b",
+    "viewer-palette-fest.r139.gate-backend.json": "92366167d7577975899f9f95da71b1d011477c47c62cc2901bb4e30bb4378055"
+  },
+  "archive_diff_files_byte_equal_to_target": [
+    "CLAUDE.md",
+    "docs/decisions.md",
+    "lcnc-webui/e2e/collisions.viewer.spec.ts",
+    "lcnc-webui/e2e/sim-panel.viewer.spec.ts",
+    "lcnc-webui/src/ScrubBar.vue",
+    "lcnc-webui/src/ThreeViewer.vue",
+    "lcnc-webui/src/viewer/collision.ts",
+    "lcnc-webui/src/viewer/scrubBarWords.test.ts",
+    "lcnc-webui/src/viewer/startDepPayloads.test.ts"
+  ],
+  "own_results": {
+    "repository_tests_pass": 120,
+    "copied_probe_tests_pass": 7,
+    "browser_tests_pass": 21,
+    "plan_counterexamples_pass": 3,
+    "build": "PASS"
+  },
+  "verdict_part_a": "agreement",
+  "verdict_part_b": "findings",
+  "review_date": "2026-10-12",
+  "initial_material_verified_unchanged_before_append": true
+}

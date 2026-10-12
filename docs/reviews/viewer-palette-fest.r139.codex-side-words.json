@@ -1,0 +1,53 @@
+{
+  "run": {
+    "phase": "full",
+    "fromLine": null,
+    "fromCum": null,
+    "provisionalShown": false,
+    "begin": "checking",
+    "beginWhy": null
+  },
+  "result": {
+    "hits": [
+      {
+        "line": 2,
+        "cum": 0,
+        "cumEnd": 0,
+        "a": "tool",
+        "b": "post",
+        "dist": 0,
+        "rapid": true,
+        "entry": true,
+        "entryMove": true
+      }
+    ],
+    "staticContacts": [],
+    "samples": 1,
+    "coarsened": false,
+    "notes": [],
+    "uncertified": null,
+    "pairCount": 1,
+    "pairsPrescreened": 1,
+    "bvhMs": 2.625224000000003,
+    "sweepMs": 0.8325999999999567,
+    "truncated": null,
+    "startDependent": {
+      "fromLine": 2,
+      "toLine": 4,
+      "whole": false
+    }
+  },
+  "words": {
+    "state": "checking",
+    "frac": 1,
+    "tone": "danger",
+    "caveat": false,
+    "detail": " ",
+    "label": "Run check · tool table updated",
+    "verdict": "1 collision on the entry move · start still checking",
+    "result": "1 collision on the entry move",
+    "coverage": "start still checking",
+    "coverageShort": "start checking",
+    "short": "1…"
+  }
+}

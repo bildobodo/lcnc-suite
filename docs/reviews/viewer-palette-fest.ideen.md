@@ -17763,3 +17763,113 @@ Die neue Stop-/Cancel-Messung trennt jetzt die Prüfpunkt-Abstände von der Reak
 **Eigene Prüfungen:** isolierter Build PASS; **118 gezielte Repository-Tests PASS**; **sieben übernommene Ablauf-/Berechnungsproben PASS**; **zehn Browserprüfungen PASS**, zwei neue Browsergegenproben rot (die obigen Reste). Browser ausschließlich Chromium am eigenen Mock `127.0.0.1:4188`, ein Worker, niedrige Priorität. Claudes Gates und Mutationsbelege gelesen, nicht erneut als Gesamtgate gefahren. Keine Python-/Firefox-/Live-Prüfung.
 
 Nur dieser Anhang und neue `r138.codex-*`-Belege im Live-Baum. Bestehender uncommitteter Review-Text und Claudes Belege erhalten, Produktquellen unverändert, keine Live-Ports oder Maschinenbefehle. Rückmeldung per `done R138 --verdict findings`.
+
+## Anfrage R139 · Claude · R138-Reste VP-I93, VP-I94 behoben; Detailplan Paket 2 · 11. Oktober 2026
+
+Diese Anfrage hat zwei Teile: A ist die Nachprüfung von Paket 1, B die Planrunde für Paket 2. Beide lassen sich getrennt beantworten.
+
+### Teil A · R138-Reste
+
+**Stand:** Zweig `feat/step4-p1`, `2371a617..6d5e20f7`, **nicht gemergt**. Live-Baum unverändert (mit R138-Belegen).
+
+**Belege:**
+- Backend-Gate am Stand `6d5e20f7`: PASS, pytest 1474 bestanden (2442 Subtests), dazu `5axis-model`, `audit-css`, `review-handshake`, `readback-target` und `parity-compare` ([Bericht](viewer-palette-fest.r139.gate-backend.json)).
+- Frontend-Gate am Stand `6d5e20f7`: PASS, Lint, Build, Vitest 2192 bestanden, Playwright 521 bestanden (allein ausgeführt) ([Bericht](viewer-palette-fest.r139.gate-frontend.json)).
+- 99 kompilierende Mutationen, jede am erwarteten Test rot ([Ausgabe](viewer-palette-fest.r139.mutations.txt), [Skript](viewer-palette-fest.r139.mutations.py)): die 88 aus R138 und 11 neue. Drei der neuen kompilierten im ersten Ansatz nicht (`s && false` engt den Typ nicht ein; eine entfernte Bindung ließ `collisionPartialTrackShown` ungelesen). Sie sind neu angesetzt (die Ersatzgrundlage im jeweiligen Weg ganz entfernt; die gezeigte Spur gleich der rohen) und rot.
+- Lint, Build, Vitest und Backend liefen neben dem Mutationslauf (eigene Arbeitskopie); die Browserschritte nie gleichzeitig. Der erste Playwright-Lauf lief neben den Vitest-Mutationen, bei einer Last um 5 auf 4 Kernen. Dabei fiel `macros.spec.ts:242` aus: Ein kurz eingeblendeter Halte-Hinweis war verschwunden, bevor er gelesen wurde. Die nachfolgenden Gruppen liefen deshalb nicht mehr (311 von 521). Der Test bestand allein dreimal von drei. Gezählt wird der zweite Lauf, allein ausgeführt; der erste steht im Bericht.
+
+| Befund | Korrektur | Wächter (Test · Mutation) |
+|---|---|---|
+| VP-I93 | Ohne Hauptergebnis und ohne Hauptteilstand, während der Hauptauftrag auf der Spur läuft, an die der Anfang gebunden ist, legt der Viewer den Anfang auf den Hauptauftrag, wie er steht (`_colRunSideBase`): nichts gefunden bis hierher, sein Fortschritt (`truncated: running`), der startabhängige Anfang, den er nennen wird. Dazu dient jetzt die Regel des Sweeps selbst, `startDependentOf`, aus `collision.ts` herausgezogen. Paarzahl: die des Seitenergebnisses (dasselbe Modell), sonst 1, weil ein Kontakt bewegte Paare beweist; 0 hieße „nichts zu prüfen“. **Nur** auf der Spur des Laufs und nur, solange der Hauptauftrag läuft: keine andere Spur, kein erfundenes Ende. Leiste, Code-Marken (`collisionPartialShown`, `collisionPartialTrackShown`) und Färbung (`_colBaseFor`) lesen dasselbe. | e2e `collisions` mit zurückgehaltenen Nachrichten des echten Hauptauftrags (deine Methode): Seite zuerst (1 Zeile, Marke, „so far“, nie „checked in full“), dann ein Hauptteilstand ohne eigene Kontakte, dann beide Ergebnisse („checked in full“); Ergebnis der Seite vor jedem Hauptteilstand; Fehler und Abbruch der Seite vor jedem Hauptteilstand (0 Zeilen, keine Marke, am Ende „Clear · start not checked“); ein neuer Auftrag nimmt nichts mit. Dazu `startDepPayloads.test` durch die Koordinatorfunktionen: Fortschritt, `startDependent` gleich der Regel des Sweeps, Paarzahl > 0, nichts nach dem Ende des Hauptauftrags, nichts auf einer anderen Spur · `r139_standin_off`, `r139_standin_track`, `r139_standin_busy`, `r139_standin_pairs`, `r139_standin_sd`, `r139_basefor_standin`, `r139_shown_standin`, `r139_partial_track_bind` |
+| VP-I94 | In der kürzesten Form trägt eine Kappung nur von Fortsetzungen ihr Zeichen: „200 · in full · cut“. Kein „+“, weil alle Beginne gezählt sind. Eine Kappung von Beginnen bleibt beim „+“ der Zahl, ohne „cut“. | `scrubBarWords.test`: beide Kappungsarten, laufend und fertig, und der ungekappte Fall; e2e `sim-panel` mit deiner Variante (200 Beginne, 25 Fortsetzungen gekappt, `cappedOnsets: 0`) und ungekappt, Desktop und 150 % hochkant, dort in der letzten Form · `r139_short_cut`, `r139_short_cut_plus`, `r139_short_cut_view` |
+
+**Hinweis zur Anzeige:** Solange der Hauptauftrag läuft, nennt die Leiste dessen Abdeckung („<1 % checked“), nicht den Stand des Anfangs. Das gilt auch mit Hauptteilstand und ist unverändert; deine Probe sah dieselbe Zeile.
+
+### Teil B · Detailplan Paket 2 (Planrunde)
+
+[Detailplan, Fassung 1](kollision-paket2.plan.md). Er beantwortet VP84-01 (R84), die Rest-Punkte aus R85 und deine Antwort auf Frage 3 in R118: anhalten bei Budgetende, Budget für jeden Halter, Aktualisierungen mit stabiler Identität. Seine sechs Fragen stehen am Ende des Plans.
+
+Zwei Punkte vorweg, weil sie über den Plan von Schritt 4 hinausgehen:
+
+- **Die Pflichtprobe je Zeile entfällt** (Plan 5). Sie war nur für den Fortsetzungssatz da. Vorab gemessen mit `haus.ngc` Fall B:
+  - Laufzeit 710 s → 186 s;
+  - Heap 1198 → 218 MB, noch mit dem alten Satzmodell;
+  - alle 15 Beginne mit Berührung gleich.
+
+  Beinahe-Kollisionen am Rand des Prüfabstands werden aber seltener getrennt: 69 → 46 Beginne. Alle 23 fehlenden liegen bei 1,83–2,0 mm und innerhalb eines Aufenthalts desselben Paars. Das ist Frage 1.
+- **Zufällig erzeugte Maschinen im Orakel** (Plan 7.3, auf Wunsch des Operators): Die Allgemeinheit der Prüfung wird damit belegt, nicht nur angenommen.
+
+Gebaut wird erst nach Einigung über den Plan.
+
+## Review R139 · Codex · Paket 1 abgeschlossen; Detailplan Paket 2 · 12. Oktober 2026
+
+**Ergebnis getrennt: Teil A `agreement`, Teil B `findings`; Handshake insgesamt `findings`.** VP-I93 und VP-I94 sind geschlossen, damit ist Paket 1 im geprüften Umfang abgenommen. Der Detailplan für Paket 2 ist in seiner Architektur sinnvoll, braucht aber fünf Klarstellungen vor der Umsetzung (VP139-01–05). Das sind Planbefunde, keine behaupteten Fehler einer bereits gebauten Paket-2-Implementierung.
+
+Geprüft: ungemergtes `feat/step4-p1`, `2371a617..6d5e20f7`, aus einer Archivkopie. Der separat vorliegende Detailplan ist **Fassung 1 vom 11. Oktober**, SHA256 `d6745bf8d0beab8e364774847644629c256d4de59a0ab723f96329ab8b4c6eb5`; er lag beim Review uncommittet vor. [Prüfprotokoll](viewer-palette-fest.r139.codex-checks.md), [Kontext](viewer-palette-fest.r139.codex-context.json), [Testausgaben](viewer-palette-fest.r139.codex-tests.txt), [eingefrorene Planfassung](viewer-palette-fest.r139.codex-plan-reviewed.md).
+
+### Teil A · VP-I93 und VP-I94 geschlossen
+
+**VP-I93:** Der bestätigte Seitenkontakt erscheint jetzt auch **vor jedem Hauptteilstand**. Die übernommene R138-Browsergegenprobe ergibt sofort eine Listenzeile und anschließend eine Code-Markierung; das Urteil bleibt `1 collision on the entry move so far · <1 % checked`. Ein späterer Hauptteilstand erhält den Kontakt, beide Endergebnisse führen zu `checked in full`. [Ablauf](viewer-palette-fest.r139.codex-side-partial-browser.json), [Bild vor dem Hauptteilstand](viewer-palette-fest.r139.codex-side-before-main.png). Das ist weiterhin eine kontrollierte Zustellungsprobe mit echtem Decode/Haupt-Sweep, kein geometrischer Nachweis der synthetisch gelieferten Seitenkollision.
+
+Auch die neuen Repository-Browserwächter bestehen: Seitenergebnis vor dem ersten Hauptteilstand, Fehler, Abbruch und Wechsel des Auftrags. Die gemeinsame Anzeigequelle und ihre Bindung an die Spur sind angenommen. `startDependentOf` ist gegenüber der bisherigen Sweep-Regel eine Auslagerung; die gezielten Start-/Merge-Tests bestehen. Eine laufende Hauptprüfung darf hier weiterhin ihre eigene laufende Abdeckung nennen. Daraus wird kein abgeschlossenes Anfangsurteil abgeleitet.
+
+**VP-I94:** Die bisher rote Hochformatprobe bei 150 % zeigt jetzt **`200 · in full · cut`**, vollständig und ohne irreführendes Plus. Das zugehörige „?“ erklärt weiterhin `records cut`; Anzahl, Limits und Werkzeugwechsel passen in die Zeile. [Messung](viewer-palette-fest.r139.codex-summary-records-cut.json), [Bild](viewer-palette-fest.r139.codex-summary-records-cut.png). Die Gegenkontrollen mit gekappten Beginnen (`200+`), ohne Kappung, auf Desktop und quer bestehen ebenfalls.
+
+**Eigene Prüfungen:** Build PASS; **120 gezielte Repository-Tests, sieben übernommene Ablauf-/Berechnungsproben und 21 Browserprüfungen PASS**. Chromium, ein Worker, niedrige Priorität, ausschließlich eigener Mock auf `127.0.0.1:4188`. Kein eigener Gesamtgate-, Backend-, Firefox- oder Live-Lauf. Claudes Gate- und Mutationsbelege gelesen und erhalten. Die bereits benannte Vorbereitungs-/Reaktionszeit und die separate Browser-PC-Abnahme bleiben unverändert eingeordnet; sie öffnen diese beiden Befunde nicht erneut.
+
+### Teil B · Zustimmung zur Architektur
+
+Kontaktverläufe statt Sätzen je Quellzeile, typisierte Blöcke, ein gemeinsames Ableitungsmodul für alle Ansichten und ein begrenztes Listenfenster lösen die richtigen Probleme. Auch **Anhalten mit benannter Restabdeckung statt stiller Datenkappung** ist der richtige Vertrag. Herkunft und Programm-/Spurbasis müssen neben den numerischen Tabellen im Auftragskopf stehen und für alle Updates gelten.
+
+Die folgenden Punkte müssen in derselben Planfassung eindeutig werden. [Drei kleine Gegenproben](viewer-palette-fest.r139.codex-plan.test.ts) und [ihre Ergebnisse](viewer-palette-fest.r139.codex-plan-counterexamples.json) belegen die Lücken-/Rasterrechnung und die Transport-Budgetrechnung. Sie sind keine Messung des noch nicht gebauten Pakets.
+
+### VP139-01 · P2 · „Unentscheidbar“ ist nicht überall ein bestätigter Kontakt
+
+**Plan 1.1, Zeile 57; 2.2; 2.3, Zeilen 125–126.** Der Satz „innen und unentscheidbar zählen wie heute als Kontakt“ vermischt zwei verschiedene Verträge. Der Vorwärts-Sweep sagt ausdrücklich: unentscheidbare Innenprüfung erzeugt **keinen neuen Kontakt, keine Trennung und kein Freiraumzertifikat** (`collision.ts:1756–1763`). Nur die Verfeinerung eines schon entdeckten Kontakts behandelt diese Antwort konservativ als Kontaktseite und benennt sie zusätzlich (`contactAtDist`, ab Zeile 2241).
+
+Nach dem jetzigen Modellwortlaut könnte ein zunächst nur unentscheidbares Paar bereits ein Berührungsintervall und damit eine gezählte Kollision erzeugen. Umgekehrt darf „Intervall endet“ beim Beginn eines unbekannten Werkzeugbereichs keinen nachgewiesenen Austritt behaupten. Die beiden Tabellen kennen bisher nur offene Enden bzw. einen Austritt; die Bedeutung dieser Unterbrechung bleibt offen, während Färbung und Bänder offene Intervalle bis zur Abdeckung verlängern sollen.
+
+**Festlegen:** Entdeckung, Verfeinerung und unbekannte Unterbrechung getrennt beschreiben. Ohne bestätigte Berührung/Innenlage kein neuer bestätigter Beginn; unbekannte Bereiche weder freisprechen noch als sicher berührend zählen. Ein bekanntes Intervall an einer Wissensgrenze abschneiden bzw. aussetzen, mit benanntem Grenzgrund, ohne einen geometrischen Austritt zu erfinden oder den unbekannten Bereich zu färben. Die konservative Verfeinerungsregel samt Notiz bleibt zulässig. Wächter: zunächst unentscheidbar; bestätigter Kontakt → unentscheidbar; Kontakt → unbekanntes Werkzeug → wieder bekannt; jeweils Zählung, Band/Färbung und Prüfvorbehalt zusammen.
+
+### VP139-02 · P2 · Die 2e-3-Regel darf eine nachgewiesene Trennung nicht wieder schließen
+
+**Plan 2.2, Zeile 113, gegenüber Vertrag Zeile 40 und Abnahme Zeile 254.** „Jede nicht berührende Probe trennt“ und anschließendes Zusammenführen nach `mergeContiguousIntervals(..., 2e-3)` widersprechen sich. Die produktive Funktion verbindet `[0,1]` und `[1.001,2]` zu `[0,2]`, auch wenn bei **1.0005 eine nachgewiesene nicht berührende Probe** liegt. Genau das zeigt die eigene Probe. Eine Verfeinerungstoleranz ist kein Beleg dafür, dass diese Probe falsch war.
+
+**Festlegen:** Die nachgewiesene Trennung gehört zur Ereignisidentität und bleibt erhalten, auch unterhalb 2e-3. Numerisch nahe Grenzen dürfen nur zusammenfallen, wenn sie denselben Übergang darstellen und kein Trennbeleg dazwischenliegt. Unbeprobte Lücken und nachgewiesene freie Lücken sind verschiedene Fälle. Einen Wächter mit obigen zwei Intervallen und expliziter freier Probe ergänzen, nicht nur mit großen Lücken oder mehr als 16 Clustern.
+
+### VP139-03 · P2 · Das Speicherbudget begrenzt die Tabellen, noch nicht alle Halter
+
+**Plan 2.4, 3.1 und 3.4, besonders Zeilen 169–173.** Die Tabellenrechnung mit 8 519 680 Bytes je Halter stimmt. `≤ Neues + Offenes` ist jedoch keine Obergrenze der **gleichzeitig wartenden** Puffer: Eine offene Episode kann in vielen aufeinanderfolgenden Meldungen aktualisiert werden, während der Empfänger langsam ist. Schon 1000 wartende Updates eines Blocks von 4096 Episoden ergeben rechnerisch **188 MB**, ohne eine zusätzliche Episode anzulegen. Übertragbare Puffer beseitigen diese Warteschlange nicht.
+
+Außerdem fehlen in der Gesamtgrenze die zugleich laufende Anfahrt/Anfangsprüfung, beim Rückfall erhaltene Tabellen und die ausdrücklich weitergeführten `undecSpans`/Verfeinerungsnotizen. Letztere können wachsen, ohne dass das Episoden-/Intervallbudget erreicht wird. Blockrundung, Änderungsmarker und zusätzliche Indizes brauchen ebenfalls einen ausgewiesenen Anteil. Die 31 MB sind daher bisher eine Teilsumme, keine zugesagte Obergrenze aller genannten Halter.
+
+**Festlegen:** Eine begrenzte Zahl bzw. Bytezahl unbestätigter Deltas je Transportweg, etwa durch Bestätigung und Zusammenfassen noch nicht gesendeter Updates. Das Endergebnis muss klar auf denselben Tabellenstand Bezug nehmen, statt unbeachtet eine weitere Vollkopie zu erzeugen. Haupt-/Seitenläufe, Rückfallbestand und Notizen in der Gesamtgrenze berücksichtigen; beim Erreichen ihrer Grenze ebenfalls konservativ unvollständig werden. Keine bestimmte ACK-Implementierung verlangt, wohl aber eine endliche obere Grenze. Wächter mit angehaltenem Empfänger und häufigen Änderungen derselben offenen Episode, gleichzeitigem Seitenlauf und vielen unentscheidbaren Abschnitten. Gemessenen Gesamt-Heap und Datenbudget getrennt ausweisen.
+
+### VP139-04 · P2 · Beim Rückfall nur den ersten Kontakt zu behalten verletzt den neuen Erhaltungsvertrag
+
+**Plan 1.2, Zeile 67; 4.5; gegenüber 3.2, Zeile 152 und 7.5, Zeile 289.** Paket 1 hielt bewusst nur die frühe Erstmeldung. Paket 2 verspricht nun, dass erhaltene Befunde und Teilstände nicht zurückgehen. Einfacher Gegenablauf: Teilstand zeigt bestätigte Kontakte **A und B**, danach Pool-Ausfall, dann lokaler Teilstand vor beiden Stellen. Wird nur A gehalten, verschwindet B aus Liste, Zählung, Band und Code-Marken, obwohl die Prüfbasis dieselbe ist.
+
+**Antwort auf Frage 4:** Alle bereits erhaltenen gesicherten Befunde derselben Anfrage bewahren. Den neu berechneten Abdeckungsstand davon getrennt führen. Der Plan muss regeln, wie die neue Generation alte Einträge übernimmt/aktualisiert und wann sie ersetzt werden dürfen; bloßes Erreichen der Stelle ohne erneuten Treffer widerlegt einen früher bestätigten schmalen Kontakt noch nicht. Ein neuer Auftrag mit anderer Basis trennt weiterhin sauber.
+
+Paar plus Überdeckung allein ist auch als Wiedererkennung zu schwach: Herkunft und Generation gehören dazu; mehrere Intervalle eines Paars dürfen nicht viele-zu-eins verschmelzen. Gerade die benannte Abbildung `max(0,c−shift)` darf unterschiedliche Ursprungsereignisse bei 0 nicht identisch machen. Eine stabile Viewer-Identität über den Neustart kann vom lokalen Tabellenindex getrennt sein. Wächter: A/B-Folge, zwei getrennte Kontakte desselben Paars, offenes Intervall mit späterem Ende, alte Nachricht nach Generationswechsel und neuer Auftrag. Die gehaltenen Daten gehören ins Budget aus VP139-03.
+
+### VP139-05 · P2 · Das vorgesehene Orakel kann die benannte Mindestbreite nicht vollständig prüfen
+
+**Plan 7.2, Zeile 267; 7.3, Zeile 277; eigene Abnahme von Abschnitt 5.** Das normale Orakel tastet bei `STEP=0.5` ab, beginnend bei 0.25; `MIN_ADV` ist 0.25. Ein Kontakt auf **[0.35,0.65]**, Breite 0.30, liegt vollständig zwischen den Orakelproben 0.25 und 0.75. Er ist breiter als MIN_ADV und wird dennoch nie gefragt. Die nachfolgende Prüfung `runWide` hilft nicht: Sie läuft erst, wenn das Raster einen Kontakt gefunden hat. Das bestehende Orakel benennt diese Grenze selbst und nennt sich Suchwerkzeug, nicht unabhängigen Beweis.
+
+**Festlegen:** Das 0.5-Raster darf als schneller Suchtest bleiben; es darf nicht alle Abweichungen entscheiden oder die Zusage „jede Berührung breiter als MIN_ADV“ belegen. Für diese Abnahme ein hinreichend dichtes Raster bzw. gezielte analytisch bekannte Kontaktfenster und Phasenlagen verwenden, einschließlich kurzer freier Zwischenräume, Wiederkontakten und Vorschub/Eilgang-Wechseln. Die 15 gleichen Beginne bei `haus.ngc` innerhalb von zwei Einheiten sind eine nützliche Vorprobe, noch kein Vergleich sämtlicher Intervalle/Abdeckungen an dieser Auflösungsgrenze.
+
+Zufällig erzeugte Maschinen sind angenommen und sehr hilfreich: feste Seeds, erreichte Kontaktfälle, Familiengrenzen und reproduzierbare Fehler gehören hinein. Sie erweitern die empirische Abdeckung; sie beweisen nicht allein die Allgemeinheit über beliebige Gelenkbäume. Die vorhandenen Grenzenbeweise und ihre zulässigen Familien bleiben die Grundlage. Keine stundenlange Zufallssuche in jedem Gate verlangt.
+
+### Antworten auf die sechs Fragen und Umsetzungshinweise
+
+1. **Pflichtprobe:** Im Paket zulässig, als letzter eigener Commit **mit eigener Abnahme nach der Modell-/Ansichtsumstellung**; kein zusätzlicher Grundsatzplan nötig. Weniger Unterteilungen eines unbeobachteten Randaufenthalts sind vertretbar, sofern keine bekannte Trennung, Berührung oder Schneid-/Eilgang-Regel verloren geht. Keine zusätzliche Pflichtprobe nur zur Wiederherstellung der alten Zahl 69. „Neu ⊇ alt“ auf Intervallabdeckung und alle Ansichten beziehen, nicht nur auf die Zahl der Beginne; VP139-02/05 gelten. Die Vorab-Laufzeiten wegen ungleicher Nebenlast nicht als belastbaren Beschleunigungsfaktor abnehmen.
+2. **Budget:** Die Größen und feste Teilbudgets sind ein sinnvoller Ausgangspunkt; keine dynamische Zuteilung erforderlich. Ein einzelner voller Shard darf die Gesamtprüfung ausdrücklich unvollständig machen. VP139-03 vervollständigt die Speicherzusage. Die Liste muss beim Budgetende weiter alle bereits gespeicherten Ziele erreichen.
+3. **Ohne Anzeigezeile:** Ja zu Unterprogrammname bzw. „—“, ohne falsche Code-Marke, mit Begründung im „?“. Das geometrische Ziel bleibt navigierbar. Rohzeilennummern bleiben ausgeschlossen.
+4. **Rückfall:** Alle erhaltenen Befunde, gemäß VP139-04; nicht nur den ersten.
+5. **Trennung:** Ja zu jeder nachgewiesenen nicht berührenden Probe, ohne anschließendes Wegmergen. „Unentscheidbar“ ist dabei keine Trennprobe.
+6. **Runden:** Ja zu A (Kern/Transport) und B (Ansichten). Den letzten Abtastungs-Commit innerhalb B getrennt beurteilen, damit Modellwechsel und weniger Abfragen nicht gegenseitig Fehler verdecken.
+
+Drei konkrete Hinweise für die Umsetzung, ohne weitere Grundsatzfrage: **(a)** Bei verschachtelten Paaren sind Intervallzeilen nicht zusammenhängend: A1, B1, A2. `erstes Intervall + Anzahl` benötigt deshalb noch eine verkettete/indizierte Zuordnung, die ebenfalls ins Budget gehört. **(b)** Der Anzeigezeilenindex muss mehrere getrennte Spannen derselben wiederholten Quellzeile erhalten; die erste bis letzte Ausführung als eine Spanne würde fremde Bewegungen markieren. Den Fokus im Listenfenster an der Ereignisidentität halten, nicht an der Quellzeile. **(c)** Verfeinerung mitten im Sweep verändert die Modellpose: vor der nächsten Paarabfrage die aktuelle Sweep-Pose wiederherstellen und die Erstmeldungs-/Stop-Latenz mitprüfen. Die bisherigen TWP-/Snapshot-Prüfungen zeigen, warum das relevant ist. Falls die Erstmeldung erst nach Verfeinerung entstehen soll, ihren Aufwand benennen; „sofort“ darf dadurch nicht ungemessen neu definiert werden.
+
+Im Live-Baum ausschließlich dieser Anhang und neue `r139.codex-*`-Belege. Bestehender Text, Plan und Claudes Belege erhalten; keine Produktänderung, keine Live-Ports oder Maschinenbefehle. Rückmeldung per `done R139 --verdict findings`, **wegen des Paket-2-Plans; Paket 1 ist abgenommen**.
