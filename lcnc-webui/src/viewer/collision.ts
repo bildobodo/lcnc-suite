@@ -478,7 +478,11 @@ export interface CollisionResult {
    *  time on a time-based track — what the scrub bar's swept band and its
    *  "N % swept" text show). Null = the whole track was swept. A truncated
    *  sweep with no hits is NOT "clear": only the covered part is. */
-  truncated: { covered: number; reason: "time" | "samples" | "stopped" | "running" } | null;
+  truncated: { covered: number; reason: "time" | "samples" | "stopped" | "running" | "budget" } | null;
+  /** The contact store's budget ran out (step 4 package 2, plan 2.4): the
+   *  sweep stopped where it would have written the next row — track cum.
+   *  Not checked from there; open contacts stay open, no exit invented. */
+  incompleteFrom?: number;
   /** How many workers swept it (the parallel sweep, sweepShards.ts); absent
    *  = one. */
   shards?: number;
@@ -3083,6 +3087,12 @@ export function* sweepCollisionsIter(
           if (remain < step) step = remain;
         }
         sweptTo = s;   // this sample's queries are complete
+        if (sink?.full) {
+          // the contact store's budget is spent: stop and say from where
+          // (plan 2.4, Codex R118 Q3) — never a silent cut
+          truncated = { covered: frac(s), reason: "budget" };
+          break outer;
+        }
         if (budgetExceeded) step = Math.min(step, EXPLORE);
         if (s >= s1 - 1e-9) break;
         s = Math.min(s1, s + Math.max(step, MIN_ADV));
@@ -3108,6 +3118,7 @@ export function* sweepCollisionsIter(
   }
   sink?.finish(sweptTo, !truncated && !aborted);
   const finalResult = buildResult(worst, truncated, true, !aborted);
+  if (truncated?.reason === "budget") finalResult.incompleteFrom = distToTrackCum(sweptTo);
   yield truncated ? truncated.covered : 1;
   if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; opts.snapshot.first = null; }
   return finalResult;

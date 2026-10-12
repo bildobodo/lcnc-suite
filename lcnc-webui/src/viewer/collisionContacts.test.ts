@@ -177,3 +177,29 @@ describe("the contact store against the records, one sweep (step 4 package 2, pl
     expect(reached, "tracks with touches compared").toBeGreaterThan(5);
   });
 });
+
+describe("a spent budget stops the sweep and says from where (step 4 package 2, plan 2.4)", () => {
+  it("rows up to the budget, the same as a full run's first rows; open contacts stay open; incompleteFrom", { timeout: 600_000 }, () => {
+    const g = generatedCase(20261016);
+    const rand = rng(g.c.seed!);
+    const track = randomTrack(g.c, rand, 4, 0.5);
+    const full = new ContactStore(1, 0);
+    sweepCollisions(g.model, track, WCS0, { margin: MARGIN, contacts: { store: full } });
+    expect(full.intervals.rows, "the full run has more than the small budget").toBeGreaterThan(3);
+    const small = new ContactStore(1, 0, { episodes: 65536, intervals: 3, gaps: 16384 });
+    const r = sweepCollisions(g.model, track, WCS0, { margin: MARGIN, contacts: { store: small } });
+    expect(r.truncated?.reason).toBe("budget");
+    expect(r.incompleteFrom, "said from where").toBeDefined();
+    expect(r.incompleteFrom!).toBeLessThan(track.cum[track.count - 1]!);
+    expect(small.intervals.rows).toBe(3);
+    // the gathered findings are the full run's first ones: nothing summarized
+    for (let iv = 0; iv < 3; iv++) {
+      expect(small.intervals.get(iv, "enter")).toBe(full.intervals.get(iv, "enter"));
+      expect(small.intervals.get(iv, "witness")).toBe(full.intervals.get(iv, "witness"));
+      const exit = small.intervals.get(iv, "exit");
+      // closed as in the full run, or still open at the stop — never an invented exit
+      if (!Number.isNaN(exit)) expect(exit).toBe(full.intervals.get(iv, "exit"));
+      else expect(small.intervals.get(iv, "witness")).toBeLessThanOrEqual(r.incompleteFrom! + 1e-9);
+    }
+  });
+});
