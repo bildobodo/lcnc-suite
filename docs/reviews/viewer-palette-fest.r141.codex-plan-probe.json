@@ -1,0 +1,126 @@
+{
+  "r140_control": {
+    "old": [
+      [
+        0,
+        1
+      ],
+      [
+        1.001,
+        2
+      ]
+    ],
+    "new": [
+      [
+        0,
+        2
+      ]
+    ],
+    "shown": [
+      [
+        0,
+        1
+      ],
+      [
+        1.001,
+        2
+      ]
+    ],
+    "free_point": 1.0005,
+    "free_point_covered": false
+  },
+  "positive_contact_erased": {
+    "old": [
+      [
+        0,
+        1
+      ],
+      [
+        1.4,
+        1.6
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "new": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "old_confirmed_touch": 1.5,
+    "new_free_samples": [
+      1.125,
+      1.375,
+      1.625,
+      1.875
+    ],
+    "new_gap_bracket": [
+      1,
+      2
+    ],
+    "shown": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "old_touch_covered_after_cut": false,
+    "note": "All listed negative samples agree with the old positive contact. The entire gap bracket is not proved clear."
+  },
+  "split_identity": {
+    "held": [
+      {
+        "id": 11,
+        "span": [
+          0,
+          3
+        ]
+      }
+    ],
+    "shown": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "assigned_ids": [
+      11,
+      11
+    ],
+    "unique_ids": false
+  },
+  "raster_limit": {
+    "pixel_span": [
+      1,
+      1.01
+    ],
+    "pixel_on": true,
+    "exact_free_point": 1.0005,
+    "point_contact": false
+  },
+  "index_arithmetic": {
+    "main_target_index": 2621440,
+    "side_target_index": 327680,
+    "all_display_ids": 2949120,
+    "main_pair_index": 2097152,
+    "side_pair_index": 262144,
+    "band_buffer": 131072,
+    "total_bytes": 8388608
+  },
+  "scope": "Literal plan rules and arithmetic only; no product implementation and no machine execution."
+}

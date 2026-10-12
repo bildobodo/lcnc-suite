@@ -1,0 +1,28 @@
+{
+  "task_dir": "/tmp/codex-r141-qistigzp",
+  "live_head": "d450a67b20dea4d159bf9497299c7583e88dc9a5",
+  "request_base": "d450a67b",
+  "request_head": "3e08df86",
+  "initial_status": " M docs/reviews/kollision-paket2.plan.md\n M docs/reviews/viewer-palette-fest.ideen.md\n",
+  "inputs": {
+    "kollision-paket2.plan.md": {
+      "bytes": 44895,
+      "sha256": "6651ca6f334c821d5363eb71f16ae0151af9080f832a92f640d023abeca21f3a"
+    },
+    "viewer-palette-fest.ideen.md": {
+      "bytes": 1442760,
+      "sha256": "598761b187f843a380676821402bea20caedd5266a3c60c98181dfb9935a6e5b"
+    }
+  },
+  "own_probe": {
+    "python": "3.13.5",
+    "exit_code": 0,
+    "product_execution": false
+  },
+  "verdict": "findings",
+  "outcome": {
+    "VP139-03": "architecture accepted, non-blocking index arithmetic correction",
+    "VP139-04": "rest A: point evidence vs clear bracket; rest B: duplicate display IDs on split"
+  },
+  "initial_inputs_verified_unchanged_before_append": true
+}
