@@ -1312,6 +1312,10 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   // ...and in the code panel's marks: the same result
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".codeLine.collision"), "early: marked in the code").toHaveCount(1);
+  // ...on the line it is on: the side track's own (round B3 — the base axis
+  // folds the whole beginning to 0, where other lines lie)
+  const own = await page.evaluate(() => (window as any).__sideTap.first.line as number);
+  expect(await page.locator(".codeLine.collision .lineNumber").innerText(), "the beginning's own line").toBe(String(own));
   await openSimTab(page);
   // final: its result with the same contact
   await sideResultMsg(page);
