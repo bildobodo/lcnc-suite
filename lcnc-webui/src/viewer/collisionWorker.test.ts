@@ -480,6 +480,9 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     workers[1]!.fail();
     await vi.runAllTimersAsync();
     expect(rowsOf(deltas(sent, 81), 0), "one generation-0 delta out, the other held").toBe(1);
+    send({ contactsAck: 81, generation: 1 });   // this core's run's: releases nothing of generation 0
+    await vi.runAllTimersAsync();
+    expect(rowsOf(deltas(sent, 81), 0), "still held").toBe(1);
     send({ contactsAck: 81, generation: 0 });
     await vi.runAllTimersAsync();
     expect(rowsOf(deltas(sent, 81), 0), "both shards' rows reach the owner").toBe(2);
