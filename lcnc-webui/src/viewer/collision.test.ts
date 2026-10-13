@@ -2512,9 +2512,10 @@ describe("the contact store across an unknown tool, a cutting feed and a spent b
     const t = { pos: new Float32Array([-20, 0, 0, 20, 0, 0]), abc: new Float32Array(6), lines: new Uint32Array([1, 2]), rapid: new Uint8Array([1, 1]),
                 cum: new Float32Array([0, 40]), count: 2, lineIndex: emptyLineIndex(), timeBased: false };
     const full = new ContactStore(1, 0), small = new ContactStore(1, 0, { episodes: 100, intervals: 1, gaps: 100 });
-    sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: full } });
+    const whole = sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: full } });
     const r = sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: small } });
     expect(full.intervals.rows, "two contacts").toBeGreaterThan(1);
+    expect(r.samples, "the spent budget stops the sweep (plan 2.4), it does not sweep on").toBeLessThan(whole.samples);
     const lost = full.intervals.get(1, "enter");
     expect(r.truncated?.reason).toBe("budget");
     expect(r.incompleteFrom!, `incomplete from ${r.incompleteFrom}, the lost contact enters at ${lost}`).toBeLessThanOrEqual(lost + 1e-6);
