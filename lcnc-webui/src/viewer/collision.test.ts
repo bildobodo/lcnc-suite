@@ -10,6 +10,12 @@ import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
 import { runSweepSlice } from "./sweepPump";
 import { clashTargets } from "./clashTargets";
+import { ContactStore, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_POSSIBLE } from "./contactStore";
+
+/** A store's intervals as plain rows (step 4 package 2). */
+const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (_, k) => ({
+  enter: st.intervals.get(k, "enter"), exit: st.intervals.get(k, "exit"), flags: st.intervals.get(k, "flags"),
+  witness: st.intervals.get(k, "witness"), freeAt: st.intervals.get(k, "freeAt") }));
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
@@ -130,6 +136,22 @@ describe("sweepCollisions", () => {
     const r = sweepCollisions(model, track(
       [[0, 0, 0], [0, 0, -45]], undefined, [7, 8], [0, 1]), WCS0, { margin: 2 });
     expect(r.hits[0]!.rapid).toBe(true);
+  });
+
+  it("the contact store bisects no exit across a jump (step 4 package 2, plan 2.2)", () => {
+    // in contact at Z −40 over the vise, then a relabel (brk, zero width) puts
+    // the table at X 30: the pose after it is free — the exit is the jump,
+    // never a bisection between poses on its two sides
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, 0], [0, 0, -40], [30, 0, -40], [30, 0, 0]], undefined, [1, 2, 3, 4]);
+    t.brk = new Uint8Array([0, 0, 1, 0]);
+    t.cum[2] = t.cum[1]!;
+    t.cum[3] = t.cum[2]! + 40;
+    const store = new ContactStore(1, 0);
+    sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store } });
+    const ivs = ivRows(store);
+    expect(ivs).toHaveLength(1);
+    expect(ivs[0]!.exit, "the jump, cum 40").toBeCloseTo(40, 6);
   });
 
   it("skips kins-flip relabel segments — a phantom crossing reports nothing", () => {
@@ -645,6 +667,29 @@ describe("sweepCollisions", () => {
     expect(onset, "the feed into the stock is reported").toBeDefined();
     expect([onset!.a, onset!.b].sort()).toEqual(["housing", "stock"]);
     expect(onset!.rapid).toBe(false);
+  });
+
+  it("the contact store's cutting rule: a feed-begun contact writes nothing; a rapid-begun one its rapid parts (package 2, plan 2.3)", () => {
+    const bodies: CollisionBody[] = [
+      { id: "stock", group: "platter", positions: boxPositions(10), stock: true },
+      { id: "spindle", group: "head", positions: boxPositions(10), tool: true },
+    ];
+    const model = buildCollisionModel(PLUNGE, bodies);
+    const run = (pts: number[][], rapid: number[]) => {
+      const store = new ContactStore(1, 0);
+      sweepCollisions(model, track(pts, undefined, pts.map((_, i) => 7 + i), rapid), WCS0, { margin: 2, contacts: { store } });
+      return store;
+    };
+    expect(run([[0, 0, 0], [0, 0, -43], [0, 0, 0]], [0, 0, 0]).episodes.rows, "a feed plunge: machining").toBe(0);
+    expect(run([[0, 0, 0], [0, 0, -43], [0, 0, 0]], [0, 0, 1]).episodes.rows, "its rapid retract: benign").toBe(0);
+    const gouge = run([[0, 0, 0], [0, 0, -43]], [0, 1]);
+    expect([gouge.episodes.rows, gouge.intervals.rows], "a rapid plunge: a gouge").toEqual([1, 1]);
+    // a rapid gouge going on as a feed: its rapid part ends where the feed begins
+    const on = run([[0, 0, 0], [0, 0, -43], [0, 0, -46]], [0, 1, 0]);
+    const ivs = ivRows(on);
+    expect(ivs).toHaveLength(1);
+    expect(ivs[0]!.flags & IV_ENDED_AT_FEED, "ended at the feed").toBeTruthy();
+    expect(ivs[0]!.exit).toBeGreaterThanOrEqual(43 - 1e-6);
   });
 
   it("detects collisions with root-attached static frame bodies", () => {
@@ -1584,6 +1629,20 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     }
   };
 
+  it("in the contact store the contact ends where the tool becomes unknown — no exit; the stretch is a gap; the next touch begins after an unknown tool (package 2, Codex R140)", () => {
+    const store = new ContactStore(1, 0);
+    const { t } = unknownT3(undefined, { linStepMm: 0.5, rotStepDeg: 0.5, contacts: { store } });
+    const ivs = ivRows(store);
+    const ended = ivs.find(v => v.flags & IV_ENDED_AT_GAP);
+    expect(ended, "a contact ended at the stretch").toBeDefined();
+    expect(Number.isNaN(ended!.exit), "no exit claimed").toBe(true);
+    const after = ivs.find(v => v.flags & IV_AFTER_UNKNOWN_TOOL);
+    expect(after, "a contact after the stretch, begun anew").toBeDefined();
+    expect(after!.enter).toBeGreaterThanOrEqual(t.cum[33]! - 1e-6);
+    const gaps = Array.from({ length: store.gaps.rows }, (_, k) => [store.gaps.get(k, "start"), store.gaps.get(k, "end"), store.gaps.get(k, "reason")]);
+    expect(gaps.some(([a, b, r]) => r === GAP_TOOL_UNKNOWN && a! <= t.cum[28]! + 1e-6 && b! >= t.cum[33]! - 1e-6), JSON.stringify(gaps)).toBe(true);
+  });
+
   it("a tool whose body is unknown: its contacts are not checked there, and none carries across (M600 plan, row 3)", () => {
     // a contact cadence (0.5) shorter than the stretch (2.3): it would be asked
     const { t, ev, r } = unknownT3(undefined, { linStepMm: 0.5, rotStepDeg: 0.5 });
@@ -2250,6 +2309,19 @@ describe("a probe's braking range", () => {
     t.cond = new Uint8Array([0, 0, 1, 1, 1]);
     expect(firstOf(t, { probeBands: [{ tool: 2, line: 3 }] })).toBeNull();
     expect(firstOf(track(BAND_PTS, undefined, [7, 8, 9, 10, 11]))?.line).toBe(9);
+  });
+
+  it("in the contact store a touch only inside the range is a POSSIBLE interval; without the range a certain one (package 2)", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const banded = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
+    banded.band = new Uint8Array([0, 0, 1, 1, 0]);
+    banded.cond = new Uint8Array([0, 0, 1, 1, 1]);
+    const a = new ContactStore(1, 0), b = new ContactStore(1, 0);
+    sweepCollisions(model, banded, WCS0, { margin: 2, probeBands: [{ tool: 2, line: 3 }], contacts: { store: a } });
+    sweepCollisions(model, track(BAND_PTS, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2, contacts: { store: b } });
+    expect(ivRows(a).length).toBeGreaterThan(0);
+    expect(ivRows(a).every(v => v.flags & IV_POSSIBLE), "possible").toBe(true);
+    expect(ivRows(b).some(v => !(v.flags & IV_POSSIBLE)), "certain").toBe(true);
   });
 
   it("the notes say the range is modeled and the path after it conditional", () => {

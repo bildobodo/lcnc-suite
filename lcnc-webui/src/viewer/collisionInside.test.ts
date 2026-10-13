@@ -10,6 +10,7 @@ import { buildCollisionModel, sweepCollisions, type CollisionBody, type Collisio
 import { emptyLineIndex } from "./lineIndex";
 import { mergeShardResults } from "./sweepShards";
 import type { ScrubTrack } from "../ws/bulkData";
+import { ContactStore, GAP_UNDECIDABLE } from "./contactStore";
 
 // undecidable where `when` says (the point in the container's frame)
 const ctl = vi.hoisted(() => ({ when: null as ((p: { x: number; y: number; z: number }) => boolean) | null }));
@@ -50,6 +51,26 @@ const iv = (r: CollisionResult, line: number) =>
   r.hits.find(h => h.line === line)!.intervals!.map(([a, b]) => [Number(a.toFixed(2)), Number(b.toFixed(2))]);
 
 describe("an undecidable inside check in the sweep", () => {
+  it("in the contact store an undecidable answer opens, separates and certifies nothing: one interval through it, the stretch a gap (package 2, Codex VP139-01)", () => {
+    ctl.when = () => true;
+    try {
+      // in through the face (a decided touch), undecidable inside, out through the face
+      const store = new ContactStore(1, 0);
+      sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([60, 0, 60]), WCS0, { margin: 0.1, contacts: { store } });
+      expect(store.intervals.rows, "one contact, never separated inside").toBe(1);
+      const gaps = Array.from({ length: store.gaps.rows }, (_, k) => store.gaps.get(k, "reason"));
+      expect(gaps.length).toBeGreaterThan(0);
+      expect(gaps.every(r => r === GAP_UNDECIDABLE)).toBe(true);
+      // starting inside, undecidable: nothing opens until the face is touched
+      const start = new ContactStore(1, 0);
+      sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([0, 60]), WCS0, { margin: 0.1, contacts: { store: start } });
+      const w = start.intervals.rows ? start.intervals.get(0, "witness") : NaN;
+      expect(w, "its first interval's witness is the face (X 29.5–30.5), not the undecidable start").toBeGreaterThan(28);
+    } finally {
+      ctl.when = null;
+    }
+  });
+
   it("is no record, no separation, and its stretch is named; the refinement counts it as contact", () => {
     ctl.when = () => true;
     try {

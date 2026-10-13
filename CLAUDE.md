@@ -1882,6 +1882,42 @@ which proves no gap. Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 
+**Contact store (step 4 package 2, round A; plan `docs/reviews/kollision-paket2.plan.md`
+Fassung 5, Codex R139–R143)**: the sweep can ALSO write what it finds as typed
+column tables (`viewer/contactStore.ts`: blocks of 4096 rows, appended, never
+copied) — EPISODES (a pair's stay inside the margin, from the sample that found
+it to the last sample in the margin before a verified separation, its closest
+approach, origin program / entry / beginning / boundary), TOUCH INTERVALS
+(opened only by a confirmed touch or inside — that sample is the interval's
+WITNESS, the one ID anchor; each boundary bisected once when seen, no line
+floor, DECIDED only where its contact side was a decided touch; the first
+decided free sample after the exit is the separation's evidence with its free
+radius r = (d − CONTACT_EPS)/V of the chunk — open edges, inside the chunk, the
+smaller side in track units, f32 rounded inward) and KNOWLEDGE GAPS
+(undecidable; a tool without a length — gaps open, separate, certify, count and
+tint nothing). `CollisionOptions.contacts = {store, origin}` turns the sink on
+beside the records, from the same samples in the same order (noteQuery; the
+sweep restores its pose after the sink's bisections); round A leaves the app on
+the records. A store whose budget is spent stops the sweep (`truncated.reason
+"budget"`, `incompleteFrom`). Transport (`collisionWorker`, a request's
+`contacts: {generation}`): deltas `{id, contacts: StoreDelta[]}` — new rows
+plus rows changed since, each once with its latest state — at most ONE
+unacknowledged per path (`{contactsAck: id}`), the last delta with the result;
+the coordinator applies and acknowledges each shard's delta at once and sends
+the owner one message per round; a fall back to this core is the next
+generation. `viewer/contactMerge.ts`: the entry join (an entry contact on at the
+first point continues the base episode's FIRST interval there), the beginning on
+the base axis, a pool's coverage. Checks: `collisionContacts.test.ts` (both
+sinks from one sweep on the shipped and generated machines: the same touch
+unions and near stays up to the plan's named differences — the records bridged
+a proven free sample, stopped at a line start (R90), keyed a second stay of a
+line into one record), `collisionWindows.test.ts` (contact windows in closed
+form, widths 0.26–0.5, every one found to 1e-3; a free gap narrower than the
+touching stride EXPLORE may stay unsampled and read as contact, one wider is
+always proved), `collisionSpeed.test.ts` (V ≥ every vertex's relative speed at
+interior points; the generated machines and a rotary not about Z),
+`contactStore.test.ts`, `contactMerge.test.ts`, `collisionWorker.test.ts`.
+
 ## Key Patterns
 
 - **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, opacity, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: machine active states use `--ok` (green), form controls (toggles, radios, checkboxes) use `--info` (blue), danger/abort uses `--danger`, warnings use `--warn` — as FILLS, borders and tints; a TEXT or state glyph in that state reads its `-text` role (`--ok-text`, `--warn-text`, `--danger-text`, `--info-text`, `--accent-text`), muted text `--fg-muted` (see Text roles).

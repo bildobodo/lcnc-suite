@@ -9312,3 +9312,21 @@ its progress, the beginning it names; never another track, never a finished
 main request). And the summary's last form lost the only mark of records cut
 while every beginning was kept: it says "· cut"; contacts cut keep the
 count's "+".
+
+## 2026-10-13 — Step 4 package 2, round A: the contact store beside the records
+
+Plan `docs/reviews/kollision-paket2.plan.md` Fassung 5 (Codex R143 agreement).
+The sweep writes episodes, touch intervals and knowledge gaps from the same
+samples as its records; round A keeps the app on the records and proves the
+store against them sample for sample. What it showed: the records bridged a
+proven free sample where the store keeps two contacts, stopped a contact's
+entry at its line's start where the store has the crossing (R90), and keyed a
+second stay of the same line into one record — a near miss followed by a touch
+on one line vanished from the records. All three are the old model's limits the
+package removes. A touching pair re-probes every EXPLORE (5 units), so a
+separation inside a contact narrower than that may stay unsampled and read as
+one contact: today's rule, unchanged and named. The direct speed test catches
+a lever without the body's radius, a zero bulge term and a rotary axis taken as
+Z; a halved rotary term and the ×2 inflation at ×1 keep V above every measured
+speed — they remove the proof's reserve for nested rotaries, which no test of
+soundness observes.

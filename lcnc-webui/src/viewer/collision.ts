@@ -2088,6 +2088,9 @@ export function* sweepCollisionsIter(
     const lastInMargin = new Float64Array(P).fill(NaN);
     const lastUndec = new Float64Array(P).fill(NaN);
     const afterTool = new Uint8Array(P);
+    // where the tool became known again: no bisection reaches back into the
+    // stretch, whose tool body is not the one the bisection would pose
+    const toolFloor = new Float64Array(P).fill(-Infinity);
     const cutMute = new Uint8Array(P);    // a cutting pair's feed-begun contact: machining, nothing written
     const cutPart = new Uint8Array(P);    // its rapid part ended at a feed: a later rapid part continues it
     const T = (s: number) => distToTrackCum(s);
@@ -2209,7 +2212,7 @@ export function* sweepCollisionsIter(
           if (ivRow[pi]! < 0) {
             // opened by this confirmed touch, its witness; the entry bisected
             // back to the pair's last decided free sample — never across a jump
-            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, breakAt, rangeStart);
+            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, breakAt, rangeStart, toolFloor[pi]!);
             let enter: { at: number; decided: boolean };
             if (floor >= s - 1e-9) enter = { at: s, decided: true };
             else if (floor > lastFree[pi]! || Number.isNaN(lastFree[pi]!)) {
@@ -2259,7 +2262,7 @@ export function* sweepCollisionsIter(
         for (let pi = 0; pi < P; pi++) {
           if (!pairTool[pi]) continue;
           if (toolGap[pi]! >= 0) { store.gaps.set(toolGap[pi]!, "end", T(s)); toolGap[pi] = -1; afterTool[pi] = 1; }
-          lastFree[pi] = NaN; lastTouchD[pi] = NaN;
+          lastFree[pi] = NaN; lastTouchD[pi] = NaN; toolFloor[pi] = s;
         }
       },
       /** The sweep ended. A swept track's end pose is a real sample: an
