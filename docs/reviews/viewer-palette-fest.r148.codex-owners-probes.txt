@@ -1,0 +1,33 @@
+
+ RUN  v4.1.8 /tmp/codex-r148-tvk4cc8j/repo/lcnc-webui
+
+ ❯ src/viewer/r148.codex-owners.test.ts (3 tests | 1 failed) 10ms
+   × cancel with only a partial preserves exactly the current owners 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r148.codex-owners.test.ts > cancel with only a partial preserves exactly the current owners
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/viewer/r148.codex-owners.test.ts:37:40
+     35|   const state={...x.state(),owners:[...x.owners()],held:x.receiver.ids…
+     36|   expect(state.request).toBe(8);expect(state.partial).toBeNull();
+     37|   expect(x.receiver.ids().includes(7)).toBe(shown);
+       |                                        ^
+     38|  }finally{scope.stop();}
+     39| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 passed (3)
+   Start at  16:47:11
+   Duration  1.23s (transform 252ms, setup 0ms, import 1.11s, tests 10ms, environment 0ms)
+
