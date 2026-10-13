@@ -1,0 +1,417 @@
+{
+  "runRunning": {
+    "spec": {
+      "base": {
+        "id": 1,
+        "map": null,
+        "coverage": 5
+      },
+      "side": {
+        "id": -1,
+        "map": {
+          "kind": "minus",
+          "shift": 10
+        },
+        "coverage": 0,
+        "entry": true,
+        "entryEnd": 2,
+        "done": false,
+        "track": {
+          "count": 5,
+          "cum": [
+            0,
+            2,
+            4,
+            10,
+            15
+          ],
+          "lines": [
+            21,
+            21,
+            22,
+            23,
+            5
+          ]
+        }
+      },
+      "axisEnd": 5
+    },
+    "target": {
+      "cum": 0,
+      "cumEnd": 0,
+      "key": "E0|0|0",
+      "line": 21,
+      "a": "tool",
+      "b": "work",
+      "dist": 0,
+      "near": false,
+      "entry": true,
+      "entryMove": true,
+      "spanEndLine": 23
+    },
+    "n": 1,
+    "mark": {
+      "line": 23,
+      "continuation": 0
+    },
+    "tint": [],
+    "bands": [
+      [
+        0,
+        0.01
+      ]
+    ],
+    "ownCoverage": [
+      {
+        "id": 1,
+        "ownCov": 5,
+        "cov": 5
+      },
+      {
+        "id": -1,
+        "ownCov": 10,
+        "cov": 0
+      }
+    ]
+  },
+  "runStopped": {
+    "spec": {
+      "base": {
+        "id": 1,
+        "map": null,
+        "coverage": 5
+      },
+      "side": {
+        "id": -1,
+        "map": {
+          "kind": "minus",
+          "shift": 10
+        },
+        "coverage": 0,
+        "entry": true,
+        "entryEnd": 2,
+        "done": true,
+        "track": {
+          "count": 5,
+          "cum": [
+            0,
+            2,
+            4,
+            10,
+            15
+          ],
+          "lines": [
+            21,
+            21,
+            22,
+            23,
+            5
+          ]
+        }
+      },
+      "axisEnd": 5
+    },
+    "target": {
+      "cum": 0,
+      "cumEnd": 0,
+      "key": "E0|0|0",
+      "line": 21,
+      "a": "tool",
+      "b": "work",
+      "dist": 0,
+      "near": false,
+      "entry": true,
+      "entryMove": true,
+      "spanEndLine": 23
+    },
+    "n": 1,
+    "mark": {
+      "line": 23,
+      "continuation": 0
+    },
+    "tint": [],
+    "bands": [
+      [
+        0,
+        0.01
+      ]
+    ],
+    "ownCoverage": [
+      {
+        "id": 1,
+        "ownCov": 5,
+        "cov": 5
+      },
+      {
+        "id": -1,
+        "ownCov": 10,
+        "cov": 0
+      }
+    ]
+  },
+  "entryStopped": {
+    "spec": {
+      "base": {
+        "id": 1,
+        "map": {
+          "kind": "plus",
+          "shift": 10
+        },
+        "coverage": 15
+      },
+      "side": {
+        "id": -1,
+        "map": null,
+        "coverage": 10,
+        "entry": true,
+        "entryEnd": 2,
+        "done": true
+      },
+      "axisEnd": 15
+    },
+    "target": {
+      "cum": 1,
+      "cumEnd": 10,
+      "key": "E0|0|0",
+      "line": 21,
+      "a": "tool",
+      "b": "work",
+      "dist": 0,
+      "near": false,
+      "entry": true,
+      "entryMove": true,
+      "spanEndLine": 23
+    },
+    "n": 1,
+    "mark": {
+      "line": 23,
+      "continuation": 0
+    },
+    "tint": [
+      "tool",
+      "work"
+    ],
+    "bands": [
+      [
+        0.1,
+        1
+      ]
+    ],
+    "ownCoverage": [
+      {
+        "id": 1,
+        "ownCov": 5.000000000000001,
+        "cov": 15
+      },
+      {
+        "id": -1,
+        "ownCov": 10,
+        "cov": 10
+      }
+    ]
+  },
+  "stoppedJoin": {
+    "spec": {
+      "base": {
+        "id": 1,
+        "map": null,
+        "coverage": 5
+      },
+      "side": {
+        "id": -1,
+        "map": {
+          "kind": "minus",
+          "shift": 10
+        },
+        "coverage": 0,
+        "entry": true,
+        "entryEnd": 2,
+        "done": true,
+        "track": {
+          "count": 5,
+          "cum": [
+            0,
+            2,
+            4,
+            10,
+            15
+          ],
+          "lines": [
+            21,
+            21,
+            22,
+            23,
+            5
+          ]
+        }
+      },
+      "axisEnd": 5
+    },
+    "target": {
+      "cum": 0,
+      "cumEnd": 3,
+      "key": "E0|0|0",
+      "line": 21,
+      "a": "tool",
+      "b": "work",
+      "dist": 0,
+      "near": false,
+      "entry": true,
+      "entryMove": true,
+      "spanEndLine": 23
+    },
+    "n": 1,
+    "mark": {
+      "line": 23,
+      "continuation": 0
+    },
+    "tint": [],
+    "bands": [
+      [
+        0,
+        0.6
+      ]
+    ],
+    "ownCoverage": [
+      {
+        "id": 1,
+        "ownCov": 5,
+        "cov": 5
+      },
+      {
+        "id": -1,
+        "ownCov": 10,
+        "cov": 0
+      }
+    ]
+  },
+  "completeJoin": {
+    "spec": {
+      "base": {
+        "id": 1,
+        "map": null,
+        "coverage": 5
+      },
+      "side": {
+        "id": -1,
+        "map": {
+          "kind": "minus",
+          "shift": 10
+        },
+        "coverage": 0,
+        "entry": true,
+        "entryEnd": 2,
+        "done": true,
+        "track": {
+          "count": 5,
+          "cum": [
+            0,
+            2,
+            4,
+            10,
+            15
+          ],
+          "lines": [
+            21,
+            21,
+            22,
+            23,
+            5
+          ]
+        }
+      },
+      "axisEnd": 5
+    },
+    "target": {
+      "cum": 0,
+      "cumEnd": 3,
+      "key": "E0|0|0",
+      "line": 21,
+      "a": "tool",
+      "b": "work",
+      "dist": 0,
+      "near": false,
+      "entry": true,
+      "entryMove": true,
+      "spanEndLine": 23
+    },
+    "n": 1,
+    "mark": {
+      "line": 23,
+      "continuation": 0
+    },
+    "tint": [],
+    "bands": [
+      [
+        0,
+        0.6
+      ]
+    ],
+    "ownCoverage": [
+      {
+        "id": 1,
+        "ownCov": 5,
+        "cov": 5
+      },
+      {
+        "id": -1,
+        "ownCov": 10,
+        "cov": 0
+      }
+    ]
+  },
+  "entryRunning": {
+    "spec": {
+      "base": {
+        "id": 1,
+        "map": {
+          "kind": "plus",
+          "shift": 10
+        },
+        "coverage": 15
+      },
+      "side": {
+        "id": -1,
+        "map": null,
+        "coverage": 2,
+        "entry": true,
+        "entryEnd": 2,
+        "done": false
+      },
+      "axisEnd": 15
+    },
+    "target": {
+      "cum": 1,
+      "cumEnd": 2,
+      "key": "E0|0|0",
+      "line": 21,
+      "a": "tool",
+      "b": "work",
+      "dist": 0,
+      "near": false,
+      "entry": true,
+      "entryMove": true
+    },
+    "n": 1,
+    "mark": null,
+    "tint": [],
+    "bands": [
+      [
+        0.1,
+        0.2
+      ]
+    ],
+    "ownCoverage": [
+      {
+        "id": 1,
+        "ownCov": 5.000000000000001,
+        "cov": 15
+      },
+      {
+        "id": -1,
+        "ownCov": 2,
+        "cov": 2
+      }
+    ]
+  }
+}

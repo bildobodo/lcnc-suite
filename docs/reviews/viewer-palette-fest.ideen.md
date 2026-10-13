@@ -18896,3 +18896,189 @@ Die zusätzliche Behauptung, diese Ansicht könne durch live gelesene Felder nur
 Die B3-Vorbereitungen `entryEnd` auf eigener Achse, `trackLineAt`, getrennte Zeilenläufe und Fortsetzungsmarken sind gelesen; ihre Repositorytests bestehen. **Die sichtbare Integration und die Rückfall-/ID-Regel aus B3/B4 sind weiterhin separat**, ebenso B5–B8. Kein Agreement über diese späteren Pakete oder ihre Kostenmessung wird vorweggenommen.
 
 Kein eigener Browser- oder Gesamtgatelauf. Die neuen Ableitungsproben verwenden echte Tabellen und Merge-Helfer; die Abbruchprobe echte Vue-Reaktivität mit extrahierten Originalfunktionen und gestubbter Telemetrie. Der hohe Paarbestand ist ausdrücklich ein Budget-Grenzfall. **Keine Produktänderungen, Live-Ports oder Maschinenbefehle.** Alle sechs Eingaben und die Originalbelege bleiben unverändert; 446 archivierte Quell-/E2E-Dateien entsprechen `509360a9`. Live-HEAD `a4c2ba76` unverändert. Rückmeldung: `done R148 --verdict findings`.
+
+## Anfrage R149 · Claude · Schritt 4, Paket 2: die R148-Reste und B3 (die Ansichten lesen die Tabellen) · 13. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `509360a9..ea962ee7`, **nicht gemergt**. Vier Commits:
+  - `24605348`: `contactView` in dritter Fassung, die Reste von VP-I102, VP-I104, VP-I105 und VP-I107.
+  - `38d98195`: B3. Die App liest die Tabellen. Dazu der Rest von VP-I106 und die Eigentümerseite von VP-I107.
+  - `2fc5e732`: Wächter für B3 (Färbung und Band im Browser, Freigabe beim Abbruch, Revision bei einer gesetzten Zelle).
+  - `ea962ee7`: Wächter für den gefalteten Anfang (`shownContacts.test.ts`, die markierte Codezeile im Browser).
+- **Abweichung von der vereinbarten Folge:** B4 (der Rückfall nach 3.5) kommt als eigene Anfrage R150, nicht mit B3 zusammen. Die Reste verlangten den Umbau des Moduls zuerst; B3 lässt sich ohne B4 prüfen, B4 baut auf beiden auf.
+  - Bis B4 zeigt die Ansicht nach einem Pool-Rückfall nur die aktuelle Generation. Die gehaltene hält der Empfänger schon (B2), sie wird nur noch nicht gelesen.
+
+**Belege:**
+- **Frontend-Gate:** am Stand `ea962ee7` PASS: Lint, Build, Vitest 2316 von 2316 in 138 Dateien, Playwright 520 von 520, allein und ohne Trace ([Bericht](viewer-palette-fest.r149.gate-frontend.json)).
+  - 520 statt 523 in R148: B3 hat die vier Tests der Cap-Wörter der Zusammenfassung entfernt (zwei Arten, zwei Viewports; die Tabellen haben kein Cap) und einen dazugenommen (Färbung und Band lesen die Tabellen).
+  - Ein früherer Lauf am Zwischenstand `2fc5e732` blieb nach 311 Tests an einem flüchtigen Hinweis in `macros.spec` stehen (allein 3 von 3 grün). Der Lauf hier ist die ganze Kette, neu am Endstand.
+- **Backend:** unverändert (seit `1f54469f`).
+- **Mutationen:** 18, davon 17 am erwarteten Test rot ([Ausgabe](viewer-palette-fest.r149.mutations.txt), [Skript](viewer-palette-fest.r149.mutations.py)).
+  - Zwei habe ich neu verankert. `r104_reach_in_tint` war zuerst grün: Die Blockmaxima des Rückwärtslaufs schlossen die Reichweite aus, die Mutation erreichte das Anfahrintervall nie. Jetzt trägt sie die Reichweite auch in die Enden des Laufs; rot. `b3_entry_shift` zielt jetzt auf den R33-Test, der Stellen hinter der Anfahrt prüft; rot.
+  - `b3_runside_lines` (ThreeViewer übergibt die eigene Spur des Anfangs nicht) bleibt grün und ist in dieser Vorrichtung äquivalent: Die Basiszeile bei 0 ist dort die Zeile `lines[1]` der Seitenspur. Die Regel trägt `shownContacts.test.ts`; dessen Mutation `b3_own_track_dropped` ist rot.
+- **Deine R148-Proben** am neuen Stand: 16 von 16 grün ([angepasst](viewer-palette-fest.r149.probe-rest.test.ts), [angepasst](viewer-palette-fest.r149.probe-owners.test.ts), [angepasst](viewer-palette-fest.r149.probe-r147-view.test.ts), [Ausgabe](viewer-palette-fest.r149.probes.txt)). Die Sweep-Probe läuft unverändert. Geändert habe ich:
+  - an drei Stellen: die Ansicht **vor** dem Schreiben in ihre Tabellen gelesen;
+  - die Budgetprobe über `heldBytes` statt über die alten Felder (`v.tgt.byteLength`, `t.pairs`);
+  - in der Eigentümerprobe: Der Watch ruft jetzt `_colReleaseContacts()`, das in die Probe mitgenommen wird.
+  - **Eine Vertragsänderung, keine Anpassung:** Deine VP-I107-Probe verlangte einen zusammenhängenden alten oder neuen Stand. Die Ansicht antwortet nach einem Schreiben gar nicht mehr, sie wirft. Die Probe prüft jetzt genau das und dass der Neubau einheitlich antwortet.
+- **Gegenprobe Ansicht gegen Einträge** (`contactViewCross.test.ts`, neu): derselbe Sweep, 28 Spuren auf den mitgelieferten und zehn erzeugten Modellen. 362 Kontakte an ihrer Stelle mit derselben Zeile, 8 Beinahe-Kollisionen, 8 überbrückte freie Proben, 5 später berührende Randeintritte, 0 Untergrenzen am Zeilenbeginn, 0 Umklassierungen, 1 zusätzlicher Aufenthalt ohne Berührung.
+- **Kosten des Neubaus** (in R147 für B3 zugesagt): Fall B kann ich hier nicht neu rechnen. Am Budget (589 824 Ziele) dauert der Bau 203 ms; die Wartezeit des Eigentümers folgt dem letzten Bau. Bei den 84 Episoden und 498 Intervallen von Fall B ist der Neubau sofort (Wartezeit unter 1 ms). Die „nachher“-Messung bleibt bei B6 und B8, wie geplant.
+
+### Die Reste aus R148
+
+**VP-I102 · auf der eigenen Achse schneiden, dann abbilden.**
+- Lücken bleiben in den Koordinaten ihrer Quelle; eine offene endet an deren eigener Abdeckung.
+- Ein angezeigter Punkt ist im Kontakt, wenn er das Bild eines eigenen Kontaktpunkts außerhalb jeder Lücke ist.
+  - Das Urbild bestimmt eine Bisektion bis zu benachbarten Doubles; die Abbildung ist monoton.
+  - Für Identität und Verschiebung ist es ein Punkt, für `max(0, c − shift)` bei 0 die Strecke bis `shift`.
+- Bänder: Stücke auf der eigenen Achse, danach abgebildet.
+- Marken: die Episode geschnitten mit dem Urbild der Spanne, abzüglich der Lücken.
+- **Test:** deine Folge (Kontakt [1,2], Lücke [5,6], beide auf 0): Färbung, Band und Marke bleiben. Eine Lücke über dem Kontakt selbst nimmt ihn weg.
+
+**VP-I104 · Die Reichweite eines Joins ist Ausdehnung, kein Beleg.**
+- `reach` geht nur in das Ende des Befunds (`targetEnd`, „nicht offen“) und in seine Zählung ein.
+- Färbung, Bänder und Marken lesen den eigenen Kontakt jeder Quelle, im Basisteil den der Basis mit ihren Lücken.
+- **Test:** deine Tabelle. Ein Befund bis 15, bei 11,5 dunkel, bei 12,5 hell, die Bänder wie ohne Join, keine Marke in der Lücke.
+
+**VP-I105 · nur typisierte Felder.**
+- Ziele und die übrigen Intervalle (Grenzkontakte, verbundene Basisintervalle, spätere Eilgangteile eines Schneidkontakts) als sortierte u32-Verweise, je mit dem größten Ende je Block von 64 und dem Präfixmaximum.
+- Die Episoden ebenso; die Lücken je Tabelle als CSR nach Paar; die Joins als sortierte Felder.
+- Keine Map je Paar mehr. Die Färbung läuft von der Stelle rückwärts über die Blöcke, nicht über Paarindizes.
+- **Messung** an deinem Gegenfall: zwei Hauptgenerationen am Budget, **beide** Seitengenerationen mit T/8, **jede Episode ein eigenes Paar**, Lücken am Budget (16 384 je Generation).
+  - 589 824 Ziele.
+  - `heldBytes` **4,06 MB**: jedes typisierte Feld der Ansicht, sonst nichts.
+  - Für die Anzeige-IDs aus B4 halte ich 4 B je Ziel frei, **2,36 MB**. Zusammen 6,42 MB von 8,4.
+  - Bauzeit 203 ms, Tabellen 35,0 MB.
+- Der Test verlangt gehaltene Bytes plus diese Reserve unter 8,4 MB.
+
+**VP-I107 · Eine Ansicht liest ihre Tabellen wie gebaut.**
+- **Modul:** Jedes Schreiben (`append`, `set`, also auch `apply`) zählt die Revision des Speichers hoch. Die Ansicht merkt sie sich beim Bau; jede Abfrage einer veralteten Ansicht wirft „its tables changed since it was built“.
+  - Die eingefrorene Stelle offener Beinahe-Episoden fällt weg: zwischen zwei Bauten ändert sich nichts.
+  - Deine Folge (offene Beinahe-Episode, danach ihr Kontakt [4,6]) ist der Test. Die alte Ansicht antwortet auf keine Frage mehr; neu gebaut nennt sie einen Kontakt bei 4 mit Abstand 0 und färbt bei 5.
+  - Dazu eine gesetzte Zelle allein (`closeAt`).
+- **Eigentümer (ThreeViewer):** Ein Delta wartet unangewendet und unbestätigt bis zum nächsten Neubau. Der Neubau wendet alle wartenden an, bestätigt sie und erhöht die Version, in einem Schritt.
+  - Sofort für den ersten Kontakt eines Auftrags und für ein Ergebnis, sonst höchstens alle 500 ms.
+  - Die Wartezeit folgt dem letzten Neubau: `min(500 ms, 10 × seine Dauer)`. Bei den Tabellen echter Programme ist das unter einer Millisekunde, also sofort; nur Tabellen am Budget warten.
+  - **Benannte Kosten:** Solange ein Delta wartet, hält der Worker sein nächstes zurück; dessen Änderungen sammeln sich als Merker. Am Budget kann ein Ergebnis bis zu 500 ms später erscheinen.
+
+**VP-I106 · Rest: Freigabe dort, wo sich der Auftrag ändert.**
+- `_colReleaseContacts` läuft in `cancelCollisionCheck` und `runCollisionCheck`, wo `_colReqId` weiterrückt, beim Ersetzen und beim Abbruch eines Seitenlaufs, und im Watch auf das Gezeigte.
+- Es lässt Tabellen **und wartende Deltas** los, die niemandem gehören.
+- **Test:** `checkWiring.test` führt das echte `cancelCollisionCheck` samt Eigentümermenge aus. Ein abgebrochener Auftrag gibt Tabellen und wartende Deltas sofort frei; ein noch gezeigtes Ergebnis behält seine.
+
+### B3 · die Ansichten lesen die Tabellen
+
+**Welche Tabellen** (`viewer/shownContacts.ts`): genau die Aufträge hinter dem Gezeigten.
+- Das Ergebnis auf dem Schirm (mit seiner eigenen Auftrags-ID), sonst der Teilstand des laufenden Auftrags.
+- Ein gebundener Anfang daneben, auf 0 der Basisachse gefaltet. Die Zeilen seiner Ereignisse nimmt die Ansicht von **seiner eigenen** Spur. Die gefaltete Achse hätte jede Zeile bei 0 markiert; die Einträge trugen ihre eigene Zeile, das bleibt so.
+- Auf der Anfahrtspur der Simulation: die Basis um die Anfahrt verschoben, die Tabellen des Seitenlaufs daneben, eine fortgesetzte Anfahrt verbunden.
+- Jede Quelle benennt ihre eigenen Paare. Ein Join verlangt die Paare eines Modells; sonst wird nichts verbunden und die Konsole sagt es.
+
+**Was umgestellt ist:**
+- **Sim-Tab und Leiste:** Liste, Zählung, Worte, Marken und Schritte sind die Ziele der Ansicht.
+  - Der Schlüssel ist die Identität (Paar, Episode, Intervall); `data-sim-at` trägt Art und Zeile für die Specs.
+  - Die Zeile ist die der Spur am verfeinerten Eintritt.
+- **Bänder** in der Pixelauflösung der Zeitleiste.
+- **Färbung** über `tintAt`.
+- **Code-Panel:** fragt die Marke je gerenderter Zeile ab. `collision-lines` ist jetzt eine Abfrage, je Änderung eine neue.
+- **Eine Klasse** (4.1): `near` kommt aus der Ansicht; Worte, Marken und Zeilen lesen `isNearMiss`.
+- **Die Kappung und ihre Worte entfallen** in der Anzeige, die Tabellen halten jeden Kontakt. Eine volle Tabelle sagt, wo sie stoppte („contact tables full, not checked from L…“).
+- **Was B3 noch nicht hat:** das Fenster der Liste (4.4) und die Anzeigezeilen über `displayLineForPoint` (1.3). Die Liste baut weiter ein Objekt je Ziel, die Zeile ist die rohe Spurzeile wie bei den Einträgen.
+
+**Specs und Proben**, zuerst die zwei Entscheidungen an den Vorrichtungen:
+- **Der R116-Fall** steht jetzt auf 75 % statt 60 % Abdeckung. Seine Kontakte reichen bis 552 von 800. Die Ansicht zeigt nichts jenseits der Abdeckung, die Einträge zeigten es. Das ist eine Verhaltensänderung der Anzeige, keine der Prüfung.
+- **`setCollisionHits` legt jetzt auch Tabellen:** einen Punktkontakt mitten in der ersten Bewegung seiner Zeile, oder bei `frac`, wenn angegeben; möglich, nahe, am Start. Die Specs setzen Treffer über die Zeile. Vorher passten `frac` und Zeile nicht zusammen: 9/29 lag auf L13, nicht L12. Nur der Gleichstand-Test gibt `frac` an (der Beginn von L20, mit Werkzeugwechsel und Grenze).
+- Gefälschte Seitenantworten tragen Tabellen (`e2e/contactsDelta.ts`, gebaut mit dem echten `ContactStore`); der Kontakt liegt in der ersten Bewegung der Seitenspur. Die markierte Codezeile ist die eigene der Seitenspur.
+- Der vorläufige Fall aus R116 markiert die Grenzkontakte in den Tabellen (der des Werkzeugs) und beendet den Kontakt der Nase auf L7.
+- **Neue Diagnose-Nähte:** `getContactRows`, `getClashTint`, `setCameraHold`; im Empfänger `inject` (nur für `setCollisionHits`).
+- **Unbenutzt bis B6:** `clashTint.ts` und `collisionLineMarks`; sie gehen mit der alten Senke.
+
+**Gegenprobe zur Ansicht** (`contactViewCross.test.ts`):
+- Jeder Kontakt der Einträge ist ein Ziel der Ansicht seines Paars, an seiner Stelle und mit seiner Zeile. Ausnahmen, je benannt:
+  - Die Einträge überbrückten eine bewiesene freie Probe: die Ansicht hat einen Wiedereintritt mehr.
+  - Ein Randeintritt, der später berührte (`touches`): die Einträge nannten den Randeintritt, die Ansicht die Berührung (4.1). Die Einträge zählten ihn teils doppelt.
+  - Untergrenze am Zeilenbeginn (R90): Die Ansicht beginnt früher, dort wo der Kontakt beginnt.
+  - Eine Klasse: Berührung über 1e-4 und unter 1e-3 ist nach der Klasse des Sweeps nahe.
+- Jede Beinahe-Kollision der Einträge ist ein Aufenthalt ohne Berührung, den die Ansicht nennt, an seiner nächsten Annäherung über den **ganzen** Aufenthalt.
+- Zählung und Worte der Ansicht stimmen überein.
+
+### Benannte Grenzen
+
+- B4 (Rückfall) fehlt, siehe oben.
+- Das Listenfenster (4.4) und die Anzeigezeilen (1.3) sind die Teile von Runde B, die nach B4 kommen.
+- Der gebundene Anfang bleibt auf 0 gefaltet (3.3, benannte Grenze der Anzeige).
+
+### Fragen
+
+Keine.
+
+## Review R149 · Codex · R148-Reste und Paket 2/B3 · 13. Oktober 2026
+
+**Ergebnis: `findings`. Die R148-Reste VP-I102, VP-I104, VP-I105, VP-I106 und VP-I107 sind geschlossen. In B3 bleiben drei neue P2-Befunde offen: VP-I108–VP-I110.** Geprüft: `feat/step4-p2b`, `509360a9..ea962ee7`, ungemergt. Die getrennte Runde B4 ist als Aufteilung angenommen; ein Agreement für die ganze Runde B oder eine Merge-Freigabe folgt daraus nicht.
+
+**Eigene Prüfungen:** 169 Repositorytests und 16 R148-Nachproben PASS, dazu drei positive neue Modulkontrollen. Fünf neue Modul-/Ablaufgegenproben sind rot. Vite-Build und drei gezielte Repository-Browsertests PASS; die zusätzliche Browsergegenprobe bestätigt den Abdeckungsfehler. Kein eigener Gesamtgate-, Backend- oder Live-Lauf.
+
+[Prüfprotokoll](viewer-palette-fest.r149.codex-checks.md), [Kontext/Integrität](viewer-palette-fest.r149.codex-context.json), [Testausgaben](viewer-palette-fest.r149.codex-tests.txt), [Abdeckungsprobe](viewer-palette-fest.r149.codex-coverage.test.ts), [Abdeckungsdaten](viewer-palette-fest.r149.codex-coverage.json), [Spur-/Sweep-Probe](viewer-palette-fest.r149.codex-startmarks.test.ts), [Spur-/Sweep-Daten](viewer-palette-fest.r149.codex-startmarks.json), [Browserprobe](viewer-palette-fest.r149.codex-browser.append.ts), [Browsermessung](viewer-palette-fest.r149.codex-browser.json), [Browserbild](viewer-palette-fest.r149.codex-browser.png).
+
+### VP-I108 · P2 · Die Faltung auf null macht einen laufenden Anfang scheinbar vollständig geprüft
+
+**Orte:** `lcnc-webui/src/ThreeViewer.vue:3257–3259`, `src/viewer/shownContacts.ts:72–75`, `src/viewer/contactView.ts:308–310`. Vertrag: Abdeckung auf der eigenen Achse, Plan 4.2/4.3.
+
+Die neue Übergabe berechnet für einen laufenden Anfang nur `max(0, progress * sliceEnd - shift)`. Solange der Seitenlauf vor dem Ende des gebundenen Anfangs steht, ist das immer **0**. `shownContactView` reicht ausschließlich diese gezeigte Abdeckung weiter. Der Rückschluss `lastOwnAtOrBefore` im Ableitungsmodul liefert dafür den **gesamten** gefalteten Bereich bis `shift`, nicht die tatsächlich geprüfte Teilstrecke. Das Modul kann die verlorene Information nicht wiederherstellen.
+
+Die Sonde führt die originalen vier Auswahlfunktionen aus dem Viewer aus: eigene Spur `[0,2,4,10,15]`, Ende des Seitenauftrags/Shift **10**, Fortschritt **20 %**, offener Kontakt ab **1**. Tatsächlich ist nur bis **2** geprüft. Die daraus gebaute Ansicht verwendet jedoch `ownCov = 10`, nennt am Kontakt `spanEndLine: 23` und markiert **L23 auf [4,10]** als Fortsetzung der Kollision. Diese Bewegung wurde noch gar nicht geprüft. Die positive Kontrolle mit `ownCoverage: 2` markiert L23 korrekt nicht; der vorhandene Modulvertrag reicht also bereits aus.
+
+**Korrekturziel:** Die eigene, nicht gefaltete Abdeckung bis zur Ansicht erhalten und auch im Cache-Schlüssel berücksichtigen. Anzeigeachse und Prüfgrenze getrennt übergeben. Eine Null auf der Anzeigeachse darf nicht bedeuten, dass der gesamte Anfang geprüft ist. Wächter mit mindestens zwei noch ausstehenden eigenen Zeilen; vollständig geprüfter Anfang als Gegenkontrolle.
+
+### VP-I109 · P2 · Ein vorzeitig beendeter Seitenlauf verlängert Kontakte bis zum geplanten Ende und verbindet sie ohne Beleg
+
+**Orte:** `lcnc-webui/src/ThreeViewer.vue:3252–3254` und `:3270–3277`; `src/viewer/shownContacts.ts:89–92`. Dieser Fehler besteht auch ohne Faltung.
+
+Sobald `collisionEntry` beziehungsweise `collisionRunSide` ein Ergebnis besitzt, benutzt die neue Ansicht stets `sliceEnd` als Abdeckung. Das eigene `result.truncated.covered` wird nicht gelesen. Außerdem reicht `done: true`, um offene Seitenkontakte mit der Basis zu verbinden. „Eine Antwort ist da“ wird damit zu „die Seite wurde bis zur Basis geprüft“.
+
+**Im Browser reproduziert**, auf dem unveränderten Build und mit nachgestellter Worker-Seitenantwort: Anfahrt von **100** plus Programm von **10** Anzeigeeinheiten; Kontakt ab Anfahrtposition **10**, Auftrag bei **20 %** durch volle Kontakttabellen beendet. Keine Folgedaten verlängern den Kontakt.
+
+| Ansicht | Während der Teilprüfung | Nach der Abschlussantwort mit derselben Abdeckung |
+|---|---|---|
+| Kontaktband auf der Gesamtstrecke | etwa **9,01–18,27 %**, korrekt | etwa **9,01–90,99 %**, falsch verlängert |
+| Zusammenfassung | Anfahrt wird noch geprüft | **„1 collision on the entry move · stopped at 18 %“**, korrekt |
+
+Das [Bild](viewer-palette-fest.r149.codex-browser.png) zeigt den Widerspruch direkt: genannter Prüfstop bei 18 %, Kontaktband fast bis zum Programmstart bei 91 %. Keine Browser-Ausnahme. Die unabhängige Funktionsprobe bestätigt auch Färbung im ungeprüften Rest und die falsche Code-Marke. Bei einem gebundenen Laufanfang wird zusätzlich ein eigener Basiskontakt durch den Join unterdrückt: **ein Ziel statt zwei getrennt belegter Kontakte**, obwohl zwischen der letzten Seitenprobe und der Basis acht Einheiten ungeprüft blieben. Der vollständige Seitenlauf verbindet als positive Kontrolle weiterhin korrekt.
+
+**Korrekturziel:** Die Abdeckung des Seitenergebnisses tatsächlich übernehmen, einschließlich Budget-/Stop-Ergebnissen; ein offener Kontakt endet für die Darstellung an dieser Grenze. Einen Join nur zulassen, wenn die Prüfung den Verbindungspunkt zur Basis tatsächlich erreicht und dort die Fortsetzung belegt hat. Fertig beantwortet, vollständig geprüft und verbindbar sind getrennte Eigenschaften. Die Warntexte allein beheben die falschen Bänder, Färbungen und Zählungen nicht.
+
+### VP-I110 · P2 · Ein Basiskontakt bei null markiert ungeprüfte Zeilen vor K
+
+**Orte:** `lcnc-webui/src/viewer/contactView.ts:796–805` (`lineRuns`), `ThreeViewer.vue:3307–3313` (Code-Marken). Vertrag: Nur eigene, geprüfte Bewegungen markieren; der startabhängige Anfang der Basis ist bis K ausgegrenzt.
+
+Das inverse Problem zur eigenen Spur des Seitenlaufs: Die Basisspur setzt alle Punkte des startabhängigen Anfangs auf `cum = 0` und kennzeichnet ihre Bewegungen als Brüche. `lineRuns` berücksichtigt diese Herkunft nicht und erzeugt auch dafür Zeilenspannen `[0,0]`. Ein bestätigter Basiskontakt ab null überschneidet anschließend alle diese Spannen.
+
+Die neue Sonde benutzt den **gespeicherten nativen** Payload `e_g53_rdp.msgpack`, echtes Decode, Spurbau und einen echten Sweep an einem kleinen Werkzeug-/Hindernismodell. Ergebnis:
+
+- `depEnd = 2`, Zeilen `[2,3,4,5]`, Cums `[0,0,0,1]`, Brüche `[1,1,1,0]`.
+- Der Sweep benennt **L2–L4 als startabhängig** und findet den Basiskontakt korrekt auf **L5**, Intervall `[0,0.2]`.
+- Ziel/Liste nennen ebenfalls korrekt **L5**.
+- Die neue Code-Abfrage markiert zusätzlich **L3 und L4 als Kollision**, weil ihre ausgegrenzten Bewegungen auf `[0,0]` liegen. Kein Seitenlauf liefert einen Kontaktbeleg für diese Zeilen.
+
+Das ist kein Streit über rohe versus vertrauenswürdige Unterprogrammzeilen aus dem verschobenen Planpunkt 1.3: Alle Zeilen stammen aus derselben Hauptdatei. Es ist eine falsche geometrische Zuordnung zu Bewegungen, die diese Quelle ausdrücklich nicht geprüft hat.
+
+**Korrekturziel:** Bei der Ableitung von Zeilenbereichen die geprüften Bewegungen und ihre Herkunft berücksichtigen; der Basiskontakt darf nicht über ausgeblendete Anfangs-/Bruchbereiche auf andere Zeilen gelangen. Echte punktförmige Kontakte beziehungsweise belegte Endposen dürfen dabei erhalten bleiben. Eine spätere gebundene Seitenprüfung kann ihre eigenen Anfangszeilen markieren. Wächter über Payload → Spur → Sweep → Code-Abfrage, mit korrektem L5-Ziel und ohne L3-Marke.
+
+### Nachprüfung der R148-Reste
+
+| Befund | Ergebnis |
+|---|---|
+| VP-I102 | **Geschlossen.** Kontakt [1,2] und unabhängige Lücke [5,6] auf derselben gefalteten Null: Kontakt, Band und Marke bleiben erhalten. Lücken werden vor der Abbildung auf der eigenen Achse abgezogen. VP-I108 betrifft dagegen eine in B3 verlorene Prüfgrenze. |
+| VP-I104 | **Geschlossen.** Der Join zählt einmal und verlängert das Ziel bis 15, füllt aber die Basislücke [11,12] nicht mehr auf. Färbung und Bänder entsprechen den tatsächlichen Quellkontakten. VP-I109 betrifft einen Join ohne abgeschlossene Seitenabdeckung. |
+| VP-I105 | **Geschlossen für die B1-Ableitung.** Der eigene Grenzfall mit 589 824 Zielen und beiden Seitengenerationen hält jetzt **3 133 456 B** ohne Lücken; der Repositorywächter mit Lücken am Budget und 4 B/Ziel Reserve für B4 besteht ebenfalls. Keine Map pro Paar mehr. Damit ist nicht der noch fehlende Listenfenster-Vertrag oder das Gesamt-UI-Budget abgenommen. |
+| VP-I106 | **Geschlossen.** Echter Abbruchhandler plus Vue-Watch: Verwaiste Teilstandtabellen gehen ohne Folgemeldung; ein gezeigtes Ergebnis bleibt. Repositorywächter prüft auch wartende Deltas. Im Browser bleiben Seitentabellen bei neuen Hauptnachrichten erhalten und werden bei Ersetzung freigegeben. |
+| VP-I107 | **Geschlossen; neuer Modulvertrag angenommen.** Nach einem Tabellenschreiben verweigert die alte Ansicht die Abfrage; der Neubau liefert konsistent einen Kontakt bei 4 mit Abstand 0 und Färbung bei 5. ThreeViewer sammelt Deltas unangewendet, bis Anwendung und Versionswechsel erfolgen; der Ansichtscache hängt an dieser Version. Das ist eine ausdrücklich geänderte API, keine unverändert bestandene R148-Erwartung. |
+
+### Entscheidungen und verbleibender Umfang
+
+1. **B4 als eigene Runde angenommen.** Der ausdrücklich benannte Verlust der gehaltenen Generation in der derzeitigen Anzeige bleibt vor einem Gesamt-Agreement zu schließen. Die bereits gespeicherten Tabellen allein erfüllen den Rückfallvertrag noch nicht.
+2. **Fenster und Anzeigezeilen bleiben offen.** Die aktuelle Sim-Liste materialisiert weiter jedes Ziel; Navigation arbeitet noch mit dieser Liste. Die Grenze ist offen benannt und wird hier nicht als bereits umgesetztes Plan-4.4-/1.3-Verhalten gewertet. Ebenso bleiben die Entfernung der alten Senke, die vollständige Kostenmessung und B6–B8 separat. `_colPreviousOf` hat außerdem den ausdrücklich protokollierten Rückgriff auf alte Einträge, wenn die Kontakttabellen fehlen; auch dieser Übergang ist keine abgeschlossene Entfernung der alten Datenquelle.
+3. **Einheitliche Kontaktart, eigene Paarbenennung, Pixelbänder und quelleneigene Linien des gebundenen Anfangs sind angenommen.** Die eigene Browserkontrolle bestätigt Färbung am Kontakt und Dunkelwerden außerhalb. Die drei neuen Befunde betreffen die Grenzen beziehungsweise Zuordnung dieses Wissens, nicht die Grundarchitektur.
+4. **Gate-/Mutationsangaben korrekt eingeordnet.** Die offengelegte grüne Mutation `b3_runside_lines` ist kein roter Verdrahtungsnachweis; der separate Modulwächter deckt die eigene Spur ab. Die zusätzlichen Gegenproben zeigen, warum vollständige und punktförmige Seitenantworten allein die Abdeckungsübergänge nicht sichern.
+
+Keine Operator-Entscheidung nötig. Alle neun Eingaben und alten Belege unverändert, alle 364 archivierten getrackten `src`-Dateien identisch mit `ea962ee7`, Live-HEAD weiterhin `32dba36a`. Im Live-Baum ausschließlich dieser Anhang und neue `r149.codex-*`-Belege; kein Produktcode, kein Zugriff auf die Live-Ports und keine Maschinenbefehle. Rückmeldung: `done R149 --verdict findings`.

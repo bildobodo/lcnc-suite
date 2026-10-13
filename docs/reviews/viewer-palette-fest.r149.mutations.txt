@@ -1,0 +1,32 @@
+# R149 mutations — ts (vue-tsc, then vitest on the named file; in a worktree of the same commit), e2e (build, Playwright -g, alone)
+## run 1 (ts) at 2fc5e732
+r102_cut_after_map RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the derivation's exactness and budget (Codex R147) > VP-I102 (R148): a gap and a separate contact that both map to one shown point — the contact is cut on its own axis, and stays | AssertionE 7s
+r104_reach_in_bands RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the derivation's exactness and budget (Codex R147) > VP-I104 (R148): a join extends the entry FINDING to the base's end — the contact there is the base's own, with the base's gaps | Assertion 7s
+r104_reach_in_tint GREEN! Tests  23 passed (23)  8s
+r105_wide_lists RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the derivation's exactness and budget (Codex R147) > VP-I105: two generations at the request budget and BOTH side generations, every episode its own pair, the gaps at budget — held within 8.4 9s
+r107_no_check RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the derivation's exactness and budget (Codex R147) > VP-I107: a view reads its tables as built — a write after the build makes every query of it throw; built anew it answers from one state |  10s
+r107_set_no_revision RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the derivation's exactness and budget (Codex R147) > VP-I107: a view reads its tables as built — a write after the build makes every query of it throw; built anew it answers from one state |  12s
+r106_cancel_keeps RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/checkWiring.test.ts > a cancel releases what no one shows (Codex R148 VP-I106) > a running request cancelled: its tables and waiting deltas go | AssertionError: expected [ 8, [ 7 ], 1 ] to deeply equal [ 8, [], +0 13s
+b3_near_class RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/scrubBarWords.test.ts > the summary line: result · coverage · caveat (step 4 plan 1a) > a timeline mark is a near miss only where nothing touched — a margin entry that touched later is a collision's | AssertionErr 15s
+b3_line_at_start RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > lines on the shown track (plan 1.3, 4.2) > a position is the move containing it — on a segment's start the next move's, at an end the move ending there | AssertionError: expected [ 5, 5, 6, 5 14s
+done rc=0
+## run 2 (ts): r104_reach_in_tint was green in run 1 — the tint walk's block maxima excluded the reach, so the mutant never reached the entry interval; re-anchored to put the reach into the walk's ends as well
+r104_reach_in_tint RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the derivation's exactness and budget (Codex R147) > VP-I104 (R148): a join extends the entry FINDING to the base's end — the contact there is the base's own, with the base's gaps | Assertion 14s
+## run 3 (ts) at ea962ee7: the folded beginning's own track (new test shownContacts.test.ts), and run 2's mutant again
+r104_reach_in_tint RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the derivation's exactness and budget (Codex R147) > VP-I104 (R148): a join extends the entry FINDING to the base's end — the contact there is the base's own, with the base's gaps | Assertion 8s
+b3_own_track_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/shownContacts.test.ts > a run check's bound beginning, folded onto the base (plan 3.3, 1.3) > its event's line is its own track's, and it marks its own lines — never every line the fold lands on | AssertionError:  7s
+## e2e at 2fc5e732
+r107_apply_at_once RED 1 passed (13.0s) Error: every delta acknowledged | Expected: 4 36s
+b3_result_req RED   1 failed Error: the sweep finds the nose in the yoke | Expected: visible 88s
+b3_entry_shift GREEN!   1 passed (8.8s)  31s
+b3_entry_no_join RED 2 passed (23.7s) Error: with the entry move: still four | Expected: 4 46s
+b3_runside_lines GREEN!   1 passed (9.0s)  31s
+b3_no_bands RED   1 failed Error: a contact band | Expected: > 0 30s
+b3_no_tint RED   1 failed Error: expect(received).toContain(expected) // indexOf | Expected value: "a_yoke_casting" 45s
+b3_no_code_marks RED   1 failed Error: collision: × named {"limitOnly":{"name":"Limit violation","glyph":"lucide-triangle-icon","codeX":1130},"collisionOnly":{"name":null,"glyph":null,"codeX":1130},"both":{"name":"Limit violation","glyph":"lucide-triangle-icon", 28s
+rebuild ok 16s
+done rc=0
+## e2e at ea962ee7: b3_entry_shift retargeted to the R33 test (positions behind the entry move), b3_runside_lines against the sharpened assertion (the marked line is the side track's own)
+b3_entry_shift RED 2 passed (23.5s) Error: next after the nose: the tool's later contact | Expected: > 425.17 46s
+b3_runside_lines GREEN!   1 passed (9.1s)  32s
+rebuild ok 15s

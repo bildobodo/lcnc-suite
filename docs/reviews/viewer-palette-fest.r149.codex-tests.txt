@@ -1,0 +1,302 @@
+
+===== repository-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r149-6y7rrmjw/repo/lcnc-webui
+
+
+ Test Files  11 passed (11)
+      Tests  169 passed (169)
+   Start at  19:08:44
+   Duration  177.85s (transform 376ms, setup 0ms, import 1.35s, tests 175.90s, environment 0ms)
+
+
+===== rerun-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r149-6y7rrmjw/repo/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  16 passed (16)
+   Start at  19:15:16
+   Duration  2.23s (transform 303ms, setup 0ms, import 1.10s, tests 833ms, environment 0ms)
+
+
+===== coverage-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r149-6y7rrmjw/repo/lcnc-webui
+
+ ❯ src/viewer/r149.codex-coverage.test.ts (7 tests | 4 failed) 19ms
+   × folded run beginning: running after 20% must not mark a not-yet-swept line 10ms
+   × folded run beginning: stopped after 20% must not mark a not-yet-swept line 2ms
+   × stopped simulation side: its open contact does not tint the untested remainder 3ms
+   × stopped run side: no proof of connection to the base, so do not merge its event into the base contact 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r149.codex-coverage.test.ts > folded run beginning: running after 20% must not mark a not-yet-swept line
+ FAIL  src/viewer/r149.codex-coverage.test.ts > folded run beginning: stopped after 20% must not mark a not-yet-swept line
+AssertionError: contact observed only through own cum 2 / line21: expected 23 to be 21 // Object.is equality
+
+- Expected
++ Received
+
+- 21
++ 23
+
+ ❯ src/viewer/r149.codex-coverage.test.ts:52:102
+     50| for(const done of [false,true])it(`folded run beginning: ${done?'stopp…
+     51|  const r=inspect(true,done,.2);report[done?'runStopped':'runRunning']=…
+     52|  expect.soft(r.target.spanEndLine??r.target.line,'contact observed onl…
+       |                                                                                                      ^
+     53|  expect(r.mark,'line23 lies on own cum4..10, not swept').toBeNull();
+     54| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/viewer/r149.codex-coverage.test.ts > folded run beginning: running after 20% must not mark a not-yet-swept line
+ FAIL  src/viewer/r149.codex-coverage.test.ts > folded run beginning: stopped after 20% must not mark a not-yet-swept line
+AssertionError: line23 lies on own cum4..10, not swept: expected { line: 23, continuation: +0 } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "continuation": 0,
+  "line": 23,
+}
+
+ ❯ src/viewer/r149.codex-coverage.test.ts:53:58
+     51|  const r=inspect(true,done,.2);report[done?'runStopped':'runRunning']=…
+     52|  expect.soft(r.target.spanEndLine??r.target.line,'contact observed onl…
+     53|  expect(r.mark,'line23 lies on own cum4..10, not swept').toBeNull();
+       |                                                          ^
+     54| });
+     55| it('stopped simulation side: its open contact does not tint the untest…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/viewer/r149.codex-coverage.test.ts > stopped simulation side: its open contact does not tint the untested remainder
+AssertionError: own cum6 lies after stop at own cum2: expected [ 'tool', 'work' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "tool",
++   "work",
++ ]
+
+ ❯ src/viewer/r149.codex-coverage.test.ts:57:61
+     55| it('stopped simulation side: its open contact does not tint the untest…
+     56|  const r=inspect(false,true,.2);report.entryStopped=r;
+     57|  expect.soft(r.tint,'own cum6 lies after stop at own cum2').toEqual([]…
+       |                                                             ^
+     58|  expect.soft(r.bands,'band stops at coverage .2').toEqual([[.1,.2]]);
+     59|  expect(r.mark).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/viewer/r149.codex-coverage.test.ts > stopped simulation side: its open contact does not tint the untested remainder
+AssertionError: band stops at coverage .2: expected [ [ 0.1, 1 ] ] to deeply equal [ [ 0.1, 0.2 ] ]
+
+- Expected
++ Received
+
+  [
+    [
+      0.1,
+-     0.2,
++     1,
+    ],
+  ]
+
+ ❯ src/viewer/r149.codex-coverage.test.ts:58:51
+     56|  const r=inspect(false,true,.2);report.entryStopped=r;
+     57|  expect.soft(r.tint,'own cum6 lies after stop at own cum2').toEqual([]…
+     58|  expect.soft(r.bands,'band stops at coverage .2').toEqual([[.1,.2]]);
+       |                                                   ^
+     59|  expect(r.mark).toBeNull();
+     60| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/viewer/r149.codex-coverage.test.ts > stopped simulation side: its open contact does not tint the untested remainder
+AssertionError: expected { line: 23, continuation: +0 } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "continuation": 0,
+  "line": 23,
+}
+
+ ❯ src/viewer/r149.codex-coverage.test.ts:59:17
+     57|  expect.soft(r.tint,'own cum6 lies after stop at own cum2').toEqual([]…
+     58|  expect.soft(r.bands,'band stops at coverage .2').toEqual([[.1,.2]]);
+     59|  expect(r.mark).toBeNull();
+       |                 ^
+     60| });
+     61| it('stopped run side: no proof of connection to the base, so do not me…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/viewer/r149.codex-coverage.test.ts > stopped run side: no proof of connection to the base, so do not merge its event into the base contact
+AssertionError: 8 units between the last side observation and the base were never swept: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ src/viewer/r149.codex-coverage.test.ts:63:88
+     61| it('stopped run side: no proof of connection to the base, so do not me…
+     62|  const r=inspect(true,true,.2,[[0,3]]);report.stoppedJoin=r;
+     63|  expect(r.n,'8 units between the last side observation and the base we…
+       |                                                                                        ^
+     64| });
+     65| it('control: a complete folded beginning marks its later line and can …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 3 passed (7)
+   Start at  19:16:16
+   Duration  884ms (transform 208ms, setup 0ms, import 774ms, tests 19ms, environment 0ms)
+
+
+===== startmarks-tests.txt =====
+
+ RUN  v4.1.8 /tmp/codex-r149-6y7rrmjw/repo/lcnc-webui
+
+ ❯ src/viewer/r149.codex-startmarks.test.ts (1 test | 1 failed) 34ms
+   × the base check cannot mark an unbound beginning just because its collapsed cum equals the checked endpoint 34ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r149.codex-startmarks.test.ts > the base check cannot mark an unbound beginning just because its collapsed cum equals the checked endpoint
+AssertionError: L3 is the unbound move ending before K; its motion was never swept: expected { line: 3 } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "line": 3,
+}
+
+ ❯ src/viewer/r149.codex-startmarks.test.ts:33:111
+     31|  expect(marks.find(x=>x.line===5)?.mark).toEqual({line:5});
+     32|  expect(marks.find(x=>x.line===2)?.mark).toBeNull();
+     33|  expect(marks.find(x=>x.line===3)?.mark,'L3 is the unbound move ending…
+       |                                                                                                               ^
+     34| });
+     35|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  19:23:24
+   Duration  375ms (transform 176ms, setup 0ms, import 282ms, tests 34ms, environment 0ms)
+
+
+===== browser-tests.txt =====
+[2m[WebServer] [22m(node:1708) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:1721) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1721) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:93:1 › the tint and the band are the contact tables': lit at the finding, a band over its contact, dark away from it (step 4 package 2, round B3) (6.8s)
+  ✓  2 e2e/collisions.viewer.spec.ts:208:1 › a shown side result keeps its contact tables while the main request sends on; a replacing one lets them go (Codex R147 VP-I106) (16.7s)
+  ✓  3 e2e/collisions.viewer.spec.ts:1304:1 › a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93) (6.4s)
+
+  3 passed (30.9s)
+
+===== browser-probe.txt =====
+[2m[WebServer] [22m(node:14562) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:14588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14588) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/collisions.viewer.spec.ts:1486:1 › Codex R149: a budget-stopped side keeps its actual coverage in the shown band (5.3s)
+
+
+  1) e2e/collisions.viewer.spec.ts:1486:1 › Codex R149: a budget-stopped side keeps its actual coverage in the shown band 
+
+    Error: stopping at 20% must not extend the contact band to the end of the side track
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThan[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: < [32m30[39m
+    Received:   [31m90.98786484771574[39m
+
+      1529 |   const {writeFileSync}=await import('node:fs');writeFileSync('/tmp/codex-r149-6y7rrmjw/browser-coverage.json',JSON.stringify(data,null,2)+'\n');
+      1530 |   expect(errors).toEqual([]);
+    > 1531 |   expect(Math.max(...final.map(b=>b.left+b.width)),'stopping at 20% must not extend the contact band to the end of the side track').toBeLessThan(30);
+           |                                                                                                                                     ^
+      1532 | });
+      1533 |
+        at /tmp/codex-r149-6y7rrmjw/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1531:133
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-Codex-R1-583bc--coverage-in-the-shown-band/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-Codex-R1-583bc--coverage-in-the-shown-band/error-context.md
+
+  1 failed
+    e2e/collisions.viewer.spec.ts:1486:1 › Codex R149: a budget-stopped side keeps its actual coverage in the shown band 
+
+===== build.txt =====
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2110 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-CbQ7i83d.js               32.51 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-C1LeSD7O.js            210.09 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-DG3C_kt-.css                 7.96 kB │ gzip:   1.97 kB
+dist/static/index-CCAv4hww.css                      94.78 kB │ gzip:  17.30 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-DrE3nQUR.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-Biv5ICSw.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-DFJ725en.js                211.12 kB │ gzip:  79.56 kB
+dist/static/index-DUboajJQ.js                      639.00 kB │ gzip: 204.61 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 6.80s

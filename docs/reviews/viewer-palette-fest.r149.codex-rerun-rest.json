@@ -1,0 +1,167 @@
+{
+  "collapsedGap": {
+    "before": {
+      "n": 1,
+      "pos": 0,
+      "key": "E0|0|0",
+      "tint": [
+        "t0",
+        "w0"
+      ],
+      "band": [
+        [
+          0,
+          0.01
+        ]
+      ],
+      "mark": {
+        "line": 1
+      }
+    },
+    "after": {
+      "n": 1,
+      "pos": 0,
+      "key": "E0|0|0",
+      "tint": [
+        "t0",
+        "w0"
+      ],
+      "band": [
+        [
+          0,
+          0.01
+        ]
+      ],
+      "mark": {
+        "line": 1
+      }
+    },
+    "sourceContact": [
+      1,
+      2
+    ],
+    "sourceGap": [
+      5,
+      6
+    ],
+    "shift": 10
+  },
+  "joinedGap": {
+    "unjoined": {
+      "n": 2,
+      "tint": [],
+      "bands": [
+        [
+          0.2,
+          0.7333333333333333
+        ],
+        [
+          0.8,
+          1
+        ]
+      ],
+      "mark": null
+    },
+    "joined": {
+      "n": 1,
+      "tint": [],
+      "bands": [
+        [
+          0.2,
+          0.7333333333333333
+        ],
+        [
+          0.8,
+          1
+        ]
+      ],
+      "mark": null
+    },
+    "baseGapOnAxis": [
+      11,
+      12
+    ]
+  },
+  "liveNear": {
+    "before": {
+      "counts": {
+        "collisions": 0,
+        "entryCollisions": 0,
+        "nearMisses": 1,
+        "possible": 0,
+        "startsIn": false
+      },
+      "target": {
+        "cum": 2,
+        "cumEnd": 2,
+        "key": "C0|0|n",
+        "line": 1,
+        "a": "t0",
+        "b": "w0",
+        "dist": 1,
+        "near": true
+      },
+      "words": "1 near miss",
+      "tint": []
+    },
+    "rebuilt": {
+      "counts": {
+        "collisions": 1,
+        "entryCollisions": 0,
+        "nearMisses": 0,
+        "possible": 0,
+        "startsIn": false
+      },
+      "target": {
+        "cum": 4,
+        "cumEnd": 6,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "t0",
+        "b": "w0",
+        "dist": 0,
+        "near": false
+      },
+      "words": "1 collision",
+      "tint": [
+        "t0",
+        "w0"
+      ]
+    }
+  },
+  "budget": {
+    "sources": [
+      {
+        "request": 1,
+        "generation": 0,
+        "episodes": 65536,
+        "intervals": 262144,
+        "tableBytes": 15138816
+      },
+      {
+        "request": 1,
+        "generation": 1,
+        "episodes": 65536,
+        "intervals": 262144,
+        "tableBytes": 15138816
+      },
+      {
+        "request": -1,
+        "generation": 0,
+        "episodes": 8192,
+        "intervals": 32768,
+        "tableBytes": 1892352
+      },
+      {
+        "request": -1,
+        "generation": 1,
+        "episodes": 8192,
+        "intervals": 32768,
+        "tableBytes": 1892352
+      }
+    ],
+    "n": 589824,
+    "reportedHeldBytes": 3133456,
+    "limit": 8400000
+  }
+}

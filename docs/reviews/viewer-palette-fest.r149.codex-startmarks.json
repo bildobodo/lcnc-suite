@@ -1,0 +1,102 @@
+{
+  "payload": "e_g53_rdp.msgpack",
+  "depEnd": 2,
+  "cum": [
+    0,
+    0,
+    0,
+    1
+  ],
+  "lines": [
+    2,
+    3,
+    4,
+    5
+  ],
+  "brk": [
+    1,
+    1,
+    1,
+    0
+  ],
+  "hits": [
+    {
+      "line": 5,
+      "cum": 0,
+      "cumEnd": 0.2,
+      "a": "head",
+      "b": "obstacle",
+      "dist": 0,
+      "rapid": true,
+      "atStart": true,
+      "intervals": [
+        [
+          0,
+          0.2
+        ]
+      ]
+    }
+  ],
+  "startDependent": {
+    "fromLine": 2,
+    "toLine": 4,
+    "whole": false
+  },
+  "targets": [
+    {
+      "cum": 0,
+      "cumEnd": 0.2,
+      "key": "C0|0|0",
+      "line": 5,
+      "a": "head",
+      "b": "obstacle",
+      "dist": 0,
+      "near": false,
+      "rapid": true,
+      "atStart": true
+    }
+  ],
+  "marks": [
+    {
+      "line": 2,
+      "spans": [],
+      "mark": null
+    },
+    {
+      "line": 3,
+      "spans": [
+        [
+          0,
+          0
+        ]
+      ],
+      "mark": {
+        "line": 3
+      }
+    },
+    {
+      "line": 4,
+      "spans": [
+        [
+          0,
+          0
+        ]
+      ],
+      "mark": {
+        "line": 4
+      }
+    },
+    {
+      "line": 5,
+      "spans": [
+        [
+          0,
+          1
+        ]
+      ],
+      "mark": {
+        "line": 5
+      }
+    }
+  ]
+}
