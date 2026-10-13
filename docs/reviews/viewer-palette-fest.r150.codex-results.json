@@ -1,0 +1,578 @@
+{
+  "R149_coverage_rerun": {
+    "runRunning": {
+      "spec": {
+        "base": {
+          "id": 1,
+          "map": null,
+          "coverage": 5
+        },
+        "side": {
+          "id": -1,
+          "map": {
+            "kind": "minus",
+            "shift": 10
+          },
+          "coverage": 0,
+          "ownCoverage": 2,
+          "entry": true,
+          "entryEnd": 2,
+          "sweptToEnd": false,
+          "track": {
+            "count": 5,
+            "cum": [
+              0,
+              2,
+              4,
+              10,
+              15
+            ],
+            "lines": [
+              21,
+              21,
+              22,
+              23,
+              5
+            ]
+          }
+        },
+        "axisEnd": 5
+      },
+      "target": {
+        "cum": 0,
+        "cumEnd": 0,
+        "key": "E0|0|0",
+        "line": 21,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "entry": true,
+        "entryMove": true
+      },
+      "n": 1,
+      "mark": null,
+      "tint": [],
+      "bands": [
+        [
+          0,
+          0.01
+        ]
+      ],
+      "ownCoverage": [
+        {
+          "id": 1,
+          "ownCov": 5,
+          "cov": 5
+        },
+        {
+          "id": -1,
+          "ownCov": 2,
+          "cov": 0
+        }
+      ]
+    },
+    "runStopped": {
+      "spec": {
+        "base": {
+          "id": 1,
+          "map": null,
+          "coverage": 5
+        },
+        "side": {
+          "id": -1,
+          "map": {
+            "kind": "minus",
+            "shift": 10
+          },
+          "coverage": 0,
+          "ownCoverage": 2,
+          "entry": true,
+          "entryEnd": 2,
+          "sweptToEnd": false,
+          "track": {
+            "count": 5,
+            "cum": [
+              0,
+              2,
+              4,
+              10,
+              15
+            ],
+            "lines": [
+              21,
+              21,
+              22,
+              23,
+              5
+            ]
+          }
+        },
+        "axisEnd": 5
+      },
+      "target": {
+        "cum": 0,
+        "cumEnd": 0,
+        "key": "E0|0|0",
+        "line": 21,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "entry": true,
+        "entryMove": true
+      },
+      "n": 1,
+      "mark": null,
+      "tint": [],
+      "bands": [
+        [
+          0,
+          0.01
+        ]
+      ],
+      "ownCoverage": [
+        {
+          "id": 1,
+          "ownCov": 5,
+          "cov": 5
+        },
+        {
+          "id": -1,
+          "ownCov": 2,
+          "cov": 0
+        }
+      ]
+    },
+    "entryStopped": {
+      "spec": {
+        "base": {
+          "id": 1,
+          "map": {
+            "kind": "plus",
+            "shift": 10
+          },
+          "coverage": 15
+        },
+        "side": {
+          "id": -1,
+          "map": null,
+          "coverage": 2,
+          "entry": true,
+          "entryEnd": 2,
+          "sweptToEnd": false
+        },
+        "axisEnd": 15
+      },
+      "target": {
+        "cum": 1,
+        "cumEnd": 2,
+        "key": "E0|0|0",
+        "line": 21,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "entry": true,
+        "entryMove": true
+      },
+      "n": 1,
+      "mark": null,
+      "tint": [],
+      "bands": [
+        [
+          0.1,
+          0.2
+        ]
+      ],
+      "ownCoverage": [
+        {
+          "id": 1,
+          "ownCov": 5.000000000000001,
+          "cov": 15
+        },
+        {
+          "id": -1,
+          "ownCov": 2,
+          "cov": 2
+        }
+      ]
+    },
+    "stoppedJoin": {
+      "spec": {
+        "base": {
+          "id": 1,
+          "map": null,
+          "coverage": 5
+        },
+        "side": {
+          "id": -1,
+          "map": {
+            "kind": "minus",
+            "shift": 10
+          },
+          "coverage": 0,
+          "ownCoverage": 2,
+          "entry": true,
+          "entryEnd": 2,
+          "sweptToEnd": false,
+          "track": {
+            "count": 5,
+            "cum": [
+              0,
+              2,
+              4,
+              10,
+              15
+            ],
+            "lines": [
+              21,
+              21,
+              22,
+              23,
+              5
+            ]
+          }
+        },
+        "axisEnd": 5
+      },
+      "target": {
+        "cum": 0,
+        "cumEnd": 3,
+        "key": "C0|0|0",
+        "line": 5,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false
+      },
+      "n": 2,
+      "mark": null,
+      "tint": [],
+      "bands": [
+        [
+          0,
+          0.6
+        ]
+      ],
+      "ownCoverage": [
+        {
+          "id": 1,
+          "ownCov": 5,
+          "cov": 5
+        },
+        {
+          "id": -1,
+          "ownCov": 2,
+          "cov": 0
+        }
+      ]
+    },
+    "completeJoin": {
+      "spec": {
+        "base": {
+          "id": 1,
+          "map": null,
+          "coverage": 5
+        },
+        "side": {
+          "id": -1,
+          "map": {
+            "kind": "minus",
+            "shift": 10
+          },
+          "coverage": 0,
+          "ownCoverage": 10,
+          "entry": true,
+          "entryEnd": 2,
+          "sweptToEnd": true,
+          "track": {
+            "count": 5,
+            "cum": [
+              0,
+              2,
+              4,
+              10,
+              15
+            ],
+            "lines": [
+              21,
+              21,
+              22,
+              23,
+              5
+            ]
+          }
+        },
+        "axisEnd": 5
+      },
+      "target": {
+        "cum": 0,
+        "cumEnd": 3,
+        "key": "E0|0|0",
+        "line": 21,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "entry": true,
+        "entryMove": true,
+        "spanEndLine": 23
+      },
+      "n": 1,
+      "mark": {
+        "line": 23,
+        "continuation": 0
+      },
+      "tint": [],
+      "bands": [
+        [
+          0,
+          0.6
+        ]
+      ],
+      "ownCoverage": [
+        {
+          "id": 1,
+          "ownCov": 5,
+          "cov": 5
+        },
+        {
+          "id": -1,
+          "ownCov": 10,
+          "cov": 0
+        }
+      ]
+    },
+    "entryRunning": {
+      "spec": {
+        "base": {
+          "id": 1,
+          "map": {
+            "kind": "plus",
+            "shift": 10
+          },
+          "coverage": 15
+        },
+        "side": {
+          "id": -1,
+          "map": null,
+          "coverage": 2,
+          "entry": true,
+          "entryEnd": 2,
+          "sweptToEnd": false
+        },
+        "axisEnd": 15
+      },
+      "target": {
+        "cum": 1,
+        "cumEnd": 2,
+        "key": "E0|0|0",
+        "line": 21,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "entry": true,
+        "entryMove": true
+      },
+      "n": 1,
+      "mark": null,
+      "tint": [],
+      "bands": [
+        [
+          0.1,
+          0.2
+        ]
+      ],
+      "ownCoverage": [
+        {
+          "id": 1,
+          "ownCov": 5.000000000000001,
+          "cov": 15
+        },
+        {
+          "id": -1,
+          "ownCov": 2,
+          "cov": 2
+        }
+      ]
+    }
+  },
+  "R149_native_track_rerun": {
+    "payload": "e_g53_rdp.msgpack",
+    "depEnd": 2,
+    "cum": [
+      0,
+      0,
+      0,
+      1
+    ],
+    "lines": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "brk": [
+      1,
+      1,
+      1,
+      0
+    ],
+    "hits": [
+      {
+        "line": 5,
+        "cum": 0,
+        "cumEnd": 0.2,
+        "a": "head",
+        "b": "obstacle",
+        "dist": 0,
+        "rapid": true,
+        "atStart": true,
+        "intervals": [
+          [
+            0,
+            0.2
+          ]
+        ]
+      }
+    ],
+    "startDependent": {
+      "fromLine": 2,
+      "toLine": 4,
+      "whole": false
+    },
+    "targets": [
+      {
+        "cum": 0,
+        "cumEnd": 0.2,
+        "key": "C0|0|0",
+        "line": 5,
+        "a": "head",
+        "b": "obstacle",
+        "dist": 0,
+        "near": false,
+        "rapid": true,
+        "atStart": true
+      }
+    ],
+    "marks": [
+      {
+        "line": 2,
+        "spans": [],
+        "mark": null
+      },
+      {
+        "line": 3,
+        "spans": [],
+        "mark": null
+      },
+      {
+        "line": 4,
+        "spans": [],
+        "mark": null
+      },
+      {
+        "line": 5,
+        "spans": [
+          [
+            0,
+            1
+          ]
+        ],
+        "mark": {
+          "line": 5
+        }
+      }
+    ]
+  },
+  "R149_browser_rerun": {
+    "meta": {
+      "id": -1,
+      "cum": [
+        0,
+        100
+      ],
+      "lines": [
+        0,
+        1
+      ],
+      "n": 2
+    },
+    "early": [
+      {
+        "left": 9.008169416243655,
+        "width": 9.263959390862944
+      }
+    ],
+    "final": [
+      {
+        "left": 9.008169416243655,
+        "width": 9.263959390862944
+      }
+    ],
+    "errors": [],
+    "summary": "1 collision on the entry move \u00b7 stopped at 18 %\n*\n0\n0"
+  },
+  "B4_proposed_contract_probes": {
+    "proposedPointProtection": {
+      "free": {
+        "lo": 1,
+        "hi": 1.001,
+        "probe": 1.0005
+      },
+      "witness": 1.0001,
+      "tolerance": 0.001,
+      "conflictDepth": 9.999999999998899e-05,
+      "protection": [
+        0.9991,
+        1.0010999999999999
+      ],
+      "exactPointKeepsWitness": true,
+      "exactPointKeepsFreeProbe": true,
+      "proposedNeighbourhoodCoversFreeProbe": true,
+      "proposedNeighbourhoodCoversEntireGap": true
+    },
+    "proposedHeldCoverage": {
+      "progress": 0.46875,
+      "coverage": 15,
+      "rows": {
+        "episode.onset": [
+          0
+        ],
+        "episode.end": [
+          null
+        ],
+        "episode.closeAt": [
+          0
+        ],
+        "interval.enter": [
+          0
+        ],
+        "interval.exit": [
+          null
+        ],
+        "interval.witness": [
+          0
+        ],
+        "interval.freeAt": [
+          null
+        ],
+        "gap.start": [],
+        "gap.end": []
+      },
+      "inferred": 0,
+      "query": 7.5,
+      "previousEnd": 15,
+      "proposedHeldEnd": 0,
+      "previouslyLit": [
+        "tool",
+        "obstacle"
+      ],
+      "litUsingProposedBound": [],
+      "newGenerationRows": 0,
+      "newFreeCertificates": 0
+    }
+  }
+}

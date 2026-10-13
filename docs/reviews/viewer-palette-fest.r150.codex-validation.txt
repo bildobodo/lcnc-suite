@@ -1,0 +1,161 @@
+R150 Codex independent review, 2026-10-13
+Reviewed commit: e996903c24bfa0e4a71208683cd523a0149572cd
+Archive: /tmp/codex-r150-b8abm816/repo
+UI cwd: /tmp/codex-r150-b8abm816/repo/lcnc-webui
+Own mock: 127.0.0.1:4188
+The live checkout and simulator were not used for tests. No live machine commands.
+
+RESULT SCOPE
+86/86 targeted tests (78 repository tests + eight R149 counterprobes).
+One own browser regression test passed.
+Two B4 proposed-contract demonstrations passed. These assert the consequence
+of the PROPOSED rules; no unsubmitted contactUnion implementation is tested.
+Own Vite build passed; no full gate, mutation rerun, lint or separate typecheck.
+
+REPRODUCTION
+Create an archive of the exact reviewed commit and provide its UI dependencies.
+Copy the three attached .test.ts files to lcnc-webui/src/viewer/ under the
+following names; retain assertions and change only the evidence output paths
+if /tmp/codex-r150-b8abm816 is unavailable:
+  r150.codex-r149-coverage.test.ts
+  r150.codex-r149-startmarks.test.ts
+  r150.codex-b4-contract.test.ts
+
+Run from lcnc-webui:
+nice -n 15 node node_modules/vitest/vitest.mjs run src/viewer/contactView.test.ts src/viewer/shownContacts.test.ts src/viewer/checkWiring.test.ts src/viewer/startDepPayloads.test.ts src/viewer/r150.codex-r149-coverage.test.ts src/viewer/r150.codex-r149-startmarks.test.ts --config vitest.codex-r150.config.ts
+nice -n 15 node node_modules/vitest/vitest.mjs run src/viewer/r150.codex-b4-contract.test.ts --config vitest.codex-r150.config.ts
+
+Browser: append the attached browser.append.ts to e2e/collisions.viewer.spec.ts
+IN THE ARCHIVE. Change only e2e/ctl.ts's localhost:4174 to 127.0.0.1:4188.
+Build: nice -n 15 node node_modules/vite/bin/vite.js build
+Run: nice -n 15 node node_modules/@playwright/test/cli.js test --config playwright.codex-r150.config.ts -g 'Codex R150 rerun:|a budget-stopped side'
+That grep matched ONLY the appended own test, not a second repository test.
+The browser command needed permission to bind the private mock port.
+It completed and its mock stopped. Product sources remained unchanged.
+
+
+VITEST CONFIG
+import { defineConfig } from 'vitest/config';
+export default defineConfig({test:{environment:'node',include:['src/**/*.test.ts'],pool:'threads',maxWorkers:1,execArgv:[]}});
+
+
+PLAYWRIGHT CONFIG
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./e2e',testMatch:/collisions.viewer.spec.ts/,fullyParallel:false,workers:1,timeout:120000,expect:{timeout:10000},reporter:[['list']],use:{browserName:'chromium',headless:true,baseURL:'http://127.0.0.1:4188',launchOptions:{ignoreDefaultArgs:['--hide-scrollbars']},deviceScaleFactor:1,locale:'en-GB',timezoneId:'UTC',trace:'off',screenshot:'only-on-failure'},webServer:{command:'MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs',url:'http://127.0.0.1:4188',reuseExistingServer:false,timeout:60000}});
+
+
+R149 COVERAGE PROBE ADAPTATIONS
+--- R149 original
++++ R150 probe copy
+@@ -8,7 +8,7 @@
+ import { shownContactView } from './shownContacts';
+ const src = readFileSync(new URL('../ThreeViewer.vue', import.meta.url), 'utf8').match(/<script setup lang="ts">([\s\S]*?)<\/script>/)![1]!;
+ const ast=ts.createSourceFile('ThreeViewer.ts',src,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
+-const names=['_sliceEnd','_colBaseSpec','_colRunSideSpec','_colViewSpec'];
++const names=['_sliceEnd','_sideCovered','_colBaseSpec','_colRunSideSpec','_colViewSpec'];
+ const fns=names.map(name=>ast.statements.find(n=>ts.isFunctionDeclaration(n)&&n.name?.text===name)!.getText(ast)).join('\n');
+ const prelude=`
+  const collisionRun={value:{gen:1}},collisionRunSide={value:null},collisionSideFirst={value:null},collisionEntry={value:null};
+@@ -36,7 +36,7 @@
+ }
+ const base={count:2,cum:[0,5],lines:[5,5]}, side={count:5,cum:[0,2,4,10,15],lines:[21,21,22,23,5]};
+ const report:Record<string,unknown>={};
+-afterAll(()=>writeFileSync('/tmp/codex-r149-6y7rrmjw/coverage.json',JSON.stringify(report,null,2)+'\n'));
++afterAll(()=>writeFileSync('/tmp/codex-r150-b8abm816/coverage.json',JSON.stringify(report,null,2)+'\n'));
+ function inspect(run:boolean,done:boolean,progress:number,baseIvs:Array<[number,number]>=[]) {
+  const T=new Map([[1,table(1,baseIvs)],[-1,table(-1,[[1,NaN]])]]);
+  const spec=makeSpec(base,side,run,done,progress,10,10);
+
+
+R149 STARTMARKS PROBE ADAPTATIONS
+--- R149 original
++++ R150 probe copy
+@@ -25,7 +25,7 @@
+  const runs=lineRuns(t),at=trackLineAt(t);
+  const marks=Array.from(new Set(t.lines)).map(line=>({line,spans:runsOf(runs,line),mark:lineMark(v,line,runsOf(runs,line),at)}));
+  const out={payload:'e_g53_rdp.msgpack',depEnd:t.depEnd,cum:Array.from(t.cum),lines:Array.from(t.lines),brk:Array.from(t.brk??[]),hits:r.hits,startDependent:r.startDependent,targets:Array.from({length:v.n},(_,i)=>targetAt(v,i,at)),marks};
+- writeFileSync('/tmp/codex-r149-6y7rrmjw/startmarks.json',JSON.stringify(out,null,2)+'\n');
++ writeFileSync('/tmp/codex-r150-b8abm816/startmarks.json',JSON.stringify(out,null,2)+'\n');
+  expect(st.intervals.rows,'the actual sweep confirms contact at the known endpoint').toBeGreaterThan(0);
+  expect(out.targets.map(x=>x.line)).toEqual([5]);
+  expect(marks.find(x=>x.line===5)?.mark).toEqual({line:5});
+
+
+TARGETED TEST OUTPUT
+
+ RUN  v4.1.8 /tmp/codex-r150-b8abm816/repo/lcnc-webui
+
+
+ Test Files  6 passed (6)
+      Tests  86 passed (86)
+   Start at  20:33:15
+   Duration  5.89s (transform 462ms, setup 0ms, import 1.94s, tests 3.43s, environment 0ms)
+
+
+
+B4 PROPOSED-CONTRACT OUTPUT
+
+ RUN  v4.1.8 /tmp/codex-r150-b8abm816/repo/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  20:39:34
+   Duration  481ms (transform 256ms, setup 0ms, import 380ms, tests 25ms, environment 0ms)
+
+
+
+BUILD OUTPUT
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2110 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-CbQ7i83d.js               32.51 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-C1LeSD7O.js            210.09 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-C_jJC-xF.css                 7.96 kB │ gzip:   1.97 kB
+dist/static/index-CCAv4hww.css                      94.78 kB │ gzip:  17.30 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-uZI-S39v.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-BzIAUEq8.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-BZ5Aheg5.js                211.43 kB │ gzip:  79.66 kB
+dist/static/index-CrV0P62x.js                      639.00 kB │ gzip: 204.61 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 8.56s
+
+
+BROWSER OUTPUT
+[2m[WebServer] [22m(node:96064) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:96076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:96076) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:1544:1 › Codex R150 rerun: a budget-stopped side keeps its actual coverage in the shown band (6.3s)
+
+  1 passed (7.2s)
+
