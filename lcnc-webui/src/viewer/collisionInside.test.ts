@@ -11,6 +11,7 @@ import { emptyLineIndex } from "./lineIndex";
 import { mergeShardResults } from "./sweepShards";
 import type { ScrubTrack } from "../ws/bulkData";
 import { ContactStore, GAP_UNDECIDABLE, IV_EXIT_DECIDED } from "./contactStore";
+import { buildContactView, lineMark, tintAt } from "./contactView";
 
 // undecidable where `when` says (the point in the container's frame)
 const ctl = vi.hoisted(() => ({ when: null as ((p: { x: number; y: number; z: number }) => boolean) | null }));
@@ -206,6 +207,33 @@ describe("an undecidable inside check in the sweep", () => {
       expect([...merged.notes!].sort()).toEqual([...one.notes!].sort());
       expect(merged.uncertified).toBe(merged.notes!.join("; "));
       expect(one.notes!.map(n => n.slice(0, 40))).toEqual(["inside check undecidable for a ↔ post (L", "inside check undecidable for b ↔ post (L"]);
+    } finally { ctl.when = null; }
+  });
+});
+
+// Codex R147 VP-I102 A, from a real sweep: the refinement leaves a POINT gap
+// (an undecidable answer at one sample inside the cavity) inside the
+// contact's interval — the view must not show contact at that point.
+describe("a point gap from the sweep's own refinement (Codex R147)", () => {
+  it("the undecidable refinement point stays unknown in the contact view", () => {
+    const outer = box(60), inner = box(40);
+    for (let i = 0; i < inner.length; i += 9) for (let k = 0; k < 3; k++) { const v = inner[i + k]!; inner[i + k] = inner[i + 3 + k]!; inner[i + 3 + k] = v; }
+    const hollow: CollisionBody = { ...POST, positions: new Float32Array([...outer, ...inner]) };
+    const store = new ContactStore(1, 0, { episodes: 100, intervals: 100, gaps: 100 });
+    try {
+      ctl.when = p => p.x > 19.7 && p.x < 19.9;
+      const model = buildCollisionModel(machine(), [hollow, nub()]);
+      sweepCollisions(model, xs([40, 30, 19]), WCS0, { margin: 0.1, contacts: { store } });
+      const v = buildContactView({ sources: [{ stores: [store], at: c => c }], coverage: 21,
+        pairName: i => ({ a: model.bodies[model.pairs[i]![0]]!.id, b: model.bodies[model.pairs[i]![1]]!.id }) });
+      expect(store.gaps.rows).toBe(1);
+      const point = store.gaps.get(0, "start");
+      expect(store.gaps.get(0, "end"), "a point gap").toBe(point);
+      expect(store.intervals.rows, "inside a contact interval").toBe(1);
+      expect(store.intervals.get(0, "enter")).toBeLessThan(point);
+      expect([...tintAt(v, point)], "unknown at the point: no tint").toEqual([]);
+      expect([...tintAt(v, point - 0.01)].length, "lit beside it").toBe(2);
+      expect(lineMark(v, 2, [[point, point]]), "no mark for a span lying only there").toBeNull();
     } finally { ctl.when = null; }
   });
 });

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_POSSIBLE,
-  NONE, ORIGIN_BOUNDARY,
+  NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
 } from "./contactStore";
 import {
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
-  indexAfter, indexBefore, lineMark, targetAt, targetKey, targetWindow, tintAt, viewCounts, type ContactSource,
+  heldBytes, indexAfter, indexBefore, lineMark, lineRuns, runsOf, targetAt, targetEnd, targetKey, targetKind, targetPos,
+  targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
 } from "./contactView";
 import { findingWords } from "./sweepWords";
 
@@ -33,6 +34,8 @@ function store(eps: Ep[], gaps: Array<[number, number, number, number]> = []): C
 const names = (pair: number) => ({ a: `t${pair}`, b: `w${pair}` });
 const src = (st: ContactStore, o: Partial<ContactSource> = {}): ContactSource => ({ stores: [st], at: c => c, ...o });
 const lineAt = (pos: number) => Math.floor(pos) + 1;
+const poss = (v: ContactView) => Array.from({ length: v.n }, (_, i) => targetPos(v, i));
+const kinds = (v: ContactView) => Array.from({ length: v.n }, (_, i) => targetKind(v, i));
 
 describe("the target index (plan 4.1)", () => {
   it("an interval at its entry, a near miss at its closest approach, sorted; re-entry, possible, at start, rapid", () => {
@@ -43,8 +46,8 @@ describe("the target index (plan 4.1)", () => {
       { pair: 4, ivs: [[7, 8, IV_POSSIBLE]] },
     ]);
     const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
-    expect(Array.from(v.pos)).toEqual([0, 3.5, 4, 5, 7]);
-    expect(Array.from(v.kind)).toEqual([T_AT_START | T_RAPID, T_NEAR, T_NEAR | T_POSSIBLE, T_REENTRY | T_RAPID, T_POSSIBLE]);
+    expect(poss(v)).toEqual([0, 3.5, 4, 5, 7]);
+    expect(kinds(v)).toEqual([T_AT_START | T_RAPID, T_NEAR, T_NEAR | T_POSSIBLE, T_REENTRY | T_RAPID, T_POSSIBLE]);
     expect(viewCounts(v)).toEqual({ collisions: 2, entryCollisions: 0, nearMisses: 1, possible: 2, startsIn: true });
     // the same kinds the words count from objects
     const objs = Array.from({ length: v.n }, (_, i) => targetAt(v, i, lineAt));
@@ -67,8 +70,9 @@ describe("the target index (plan 4.1)", () => {
       { pair: 2, ivs: [[2, 3], [4, 5, IV_CONTINUES_CUT]] },
     ]);
     const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
-    expect(Array.from(v.pos)).toEqual([2]);
-    expect(Array.from(v.touch.get(2)!), "both rapid parts touch").toEqual([2, 3, 4, 5]);
+    expect(poss(v)).toEqual([2]);
+    expect([...tintAt(v, 4.5)].sort(), "both rapid parts touch").toEqual(["t2", "w2"]);
+    expect([...tintAt(v, 0.5)].sort(), "so does the boundary contact").toEqual(["t1", "w1"]);
   });
 
   it("the entry move: its findings keyed E; on the entry move itself before its end; a joined base interval counted once, reaching the base exit", () => {
@@ -81,10 +85,10 @@ describe("the target index (plan 4.1)", () => {
       pairName: names, coverage: 100,
       joins: [{ entrySrc: 0, baseSrc: 1, entryShard: 0, baseShard: 0, joins: new Map([[0, 0]]) }],
     });
-    expect(Array.from(v.pos)).toEqual([3, 12, 21]);
-    expect(v.end[0], "the entry contact reaches the base interval's exit").toBe(19);
-    expect(v.kind[0]! & (T_ENTRY | T_ENTRY_MOVE | T_OPEN), "joined: not open").toBe(T_ENTRY | T_ENTRY_MOVE);
-    expect(v.kind[1]! & (T_ENTRY | T_ENTRY_MOVE), "past the entry move: the bound beginning").toBe(T_ENTRY);
+    expect(poss(v)).toEqual([3, 12, 21]);
+    expect(targetEnd(v, 0), "the entry contact reaches the base interval's exit").toBe(19);
+    expect(targetKind(v, 0) & (T_ENTRY | T_ENTRY_MOVE | T_OPEN), "joined: not open").toBe(T_ENTRY | T_ENTRY_MOVE);
+    expect(targetKind(v, 1) & (T_ENTRY | T_ENTRY_MOVE), "past the entry move: the bound beginning").toBe(T_ENTRY);
     expect([targetKey(v, 0), targetKey(v, 2)]).toEqual(["E1|0|0", "C1|0|1"]);
     expect(viewCounts(v)).toMatchObject({ collisions: 2, entryCollisions: 1 });
   });
@@ -92,8 +96,8 @@ describe("the target index (plan 4.1)", () => {
   it("an open interval runs to the coverage; one ended at an unknown tool to its gap, never through it", () => {
     const st = store([{ pair: 1, ivs: [[2, NaN]] }, { pair: 2, ivs: [[1, NaN, IV_ENDED_AT_GAP]] }], [[2, 3, 6, GAP_TOOL_UNKNOWN]]);
     const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 8 });
-    expect([v.pos[0], v.end[0], v.kind[0]! & T_OPEN]).toEqual([1, 3, 0]);
-    expect([v.pos[1], v.end[1], v.kind[1]! & T_OPEN]).toEqual([2, 8, T_OPEN]);
+    expect([targetPos(v, 0), targetEnd(v, 0), targetKind(v, 0) & T_OPEN]).toEqual([1, 3, 0]);
+    expect([targetPos(v, 1), targetEnd(v, 1), targetKind(v, 1) & T_OPEN]).toEqual([2, 8, T_OPEN]);
   });
 });
 
@@ -160,5 +164,136 @@ describe("tint, marks and bands (plan 4.2, 4.3)", () => {
     expect(fine.length, "a 0.0005 column can").toBe(3);
     expect(fine[0]![1]).toBeLessThan(fine[1]![0]);
     expect(contactBands(v, 1e6, 4).length, "at most 8192 columns").toBe(3);
+  });
+});
+
+// Codex R147: VP-I101..VP-I105, each one rule the derivation had wrong.
+describe("the derivation's exactness and budget (Codex R147)", () => {
+  it("VP-I101: no tolerance fills a proven free point between two contacts", () => {
+    const st = store([{ pair: 1, ivs: [[0, 1], [1.001, 2]] }]);
+    st.intervals.set(0, "freeAt", 1.0005);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 4 });
+    expect([...tintAt(v, 1.0005)], "the free point: dark").toEqual([]);
+    expect([...tintAt(v, 1)].sort(), "the exit itself: lit").toEqual(["t1", "w1"]);
+    expect([...tintAt(v, 1.001)].sort(), "the re-entry itself: lit").toEqual(["t1", "w1"]);
+  });
+
+  it("VP-I102 A: a point gap inside a contact is unknown — no tint at it, no mark for a span lying only there", () => {
+    const st = store([{ pair: 1, ivs: [[20, 21]], end: 21 }], [[1, 20.75, 20.75, GAP_UNDECIDABLE]]);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 22 });
+    expect([...tintAt(v, 20.75)]).toEqual([]);
+    expect([...tintAt(v, 20.7)].sort()).toEqual(["t1", "w1"]);
+    expect(lineMark(v, 8, [[20.75, 20.75]])).toBeNull();
+    expect(lineMark(v, 8, [[20.7, 20.75]])).toEqual({ line: 8 });
+  });
+
+  it("VP-I102 B: a contact mapped to a point keeps its tint and band when the pair gains a gap elsewhere", () => {
+    const st = store([{ pair: 1, ivs: [[1, 2]], end: 2 }]);
+    const mapped = () => buildContactView({ sources: [src(st, { at: c => Math.max(0, c - 3) })], pairName: names, coverage: 4 });
+    const before = mapped();
+    st.gaps.append({ pair: 1, start: 5, end: 6, reason: GAP_UNDECIDABLE });
+    const after = mapped();
+    expect([...tintAt(after, 0)].sort()).toEqual(["t1", "w1"]);
+    expect(contactBands(after, 100, 4)).toEqual(contactBands(before, 100, 4));
+    expect(contactBands(after, 100, 4)).toEqual([[0, 0.01]]);
+    expect(lineMark(after, 1, [[0, 0]])).toEqual({ line: 1 });
+  });
+
+  it("VP-I103: a contact ended at an unknown tool ends at the TOOL gap, an undecidable one before it only cuts it", () => {
+    const st = store([{ pair: 1, ivs: [[1, NaN, IV_ENDED_AT_GAP]], end: 6 }], [[1, 3, 4, GAP_UNDECIDABLE], [1, 7, 9, GAP_TOOL_UNKNOWN]]);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
+    expect(targetEnd(v, 0)).toBe(7);
+    expect([...tintAt(v, 5)].sort(), "after the undecidable stretch: lit").toEqual(["t1", "w1"]);
+    expect([...tintAt(v, 3.5)], "inside it: dark").toEqual([]);
+    expect([...tintAt(v, 8)], "inside the tool gap: dark").toEqual([]);
+    expect(targetKind(v, 0) & T_OPEN, "ended, not open").toBe(0);
+  });
+
+  it("VP-I104: a gap belongs to its own source, to that source's coverage — it never erases another source's contact", () => {
+    // the side run ends at 10 with a gap open from 2; the base on the same axis from 10
+    const side = store([], [[1, 2, NaN, GAP_UNDECIDABLE]]), base = store([{ pair: 1, ivs: [[2, 5]], end: 5 }]);
+    const v = buildContactView({ sources: [src(side, { entry: true, coverage: 10 }), src(base, { at: c => c + 10 })], pairName: names, coverage: 20 });
+    expect([...tintAt(v, 13)].sort()).toEqual(["t1", "w1"]);
+    expect(lineMark(v, 13, [[13, 14]])).toEqual({ line: 13 });
+    expect(contactBands(v, 20, 20)).toEqual([[0.6, 0.75]]);
+    // two sources on ONE axis: the first's gap is its own ignorance, the
+    // second's contact there stands
+    const a = store([{ pair: 1, ivs: [[5, 6]], end: 6 }], [[1, 2, NaN, GAP_UNDECIDABLE]]), b = store([{ pair: 1, ivs: [[3, 4]], end: 4 }]);
+    const w = buildContactView({ sources: [src(a, { coverage: 10 }), src(b)], pairName: names, coverage: 20 });
+    expect([...tintAt(w, 3.5)].sort(), "b's contact inside a's gap").toEqual(["t1", "w1"]);
+    expect([...tintAt(w, 5.5)], "a's own contact inside its gap: unknown").toEqual([]);
+  });
+
+  it("a view is a snapshot: an open stay's near miss keeps its built position; a later exit reads no further than the coverage built with; a tool gap not yet in the tables leaves the contact open", () => {
+    const st = store([{ pair: 1, close: [2, 1] }, { pair: 2, close: [5, 1] }, { pair: 3, ivs: [[1, NaN]] }]);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 6 });
+    expect(poss(v)).toEqual([1, 2, 5]);
+    st.episodes.set(0, "closeAt", 5.5);   // a closer approach after the build
+    expect(poss(v), "sorted as built").toEqual([1, 2, 5]);
+    expect(indexAfter(v, 3, null)).toBe(2);
+    st.intervals.set(0, "exit", 8);        // an exit past what the view was built with
+    expect(targetEnd(v, 0)).toBe(6);
+    // flagged ended at a gap whose row has not arrived: open, no end made up
+    const w = store([{ pair: 1, ivs: [[1, NaN, IV_ENDED_AT_GAP]] }]);
+    const vw = buildContactView({ sources: [src(w)], pairName: names, coverage: 6 });
+    expect([targetEnd(vw, 0), targetKind(vw, 0) & T_OPEN]).toEqual([6, T_OPEN]);
+  });
+
+  it("VP-I105: two generations at the request budget and a side run hold their indices within the 8.4 MB of plan 3.4", { timeout: 300_000 }, () => {
+    const full = (k: number, b = REQUEST_BUDGET) => {
+      const st = new ContactStore(k, 0, b);
+      const per = Math.floor(b.intervals / b.episodes);
+      for (let e = 0; e < b.episodes; e++) {
+        const p = e * 4;
+        const ep = st.episodes.append({ pair: e % 384, ordinal: Math.floor(e / 384), onset: p, end: p + 3.25, closeAt: p, closeDist: 0, firstIv: NONE, ivCount: per });
+        let last = -1;
+        for (let k2 = 0; k2 < per; k2++) {
+          const iv = st.intervals.append({ episode: ep, enter: p + k2, exit: p + k2 + 0.25, flags: 0, next: NONE, witness: p + k2, freeAt: NaN });
+          if (last < 0) st.episodes.set(ep, "firstIv", iv); else st.intervals.set(last, "next", iv);
+          last = iv;
+        }
+      }
+      return st;
+    };
+    const genA = full(1), genB = full(1), side = full(-1, shareOf(REQUEST_BUDGET, 8));
+    expect(genA.intervals.rows).toBe(REQUEST_BUDGET.intervals);
+    const t0 = performance.now();
+    const v = buildContactView({ sources: [{ stores: [genA], at: c => c }, { stores: [genB], at: c => c }, { stores: [side], at: c => c, entry: true }],
+                                 pairName: names, coverage: 4 * REQUEST_BUDGET.episodes + 1 });
+    const ms = performance.now() - t0;
+    const held = heldBytes(v);
+    // the measurement the request reports
+    console.log(`[R147 VP-I105] targets ${v.n}, held ${(held / 1e6).toFixed(2)} MB (limit 8.4), build ${ms.toFixed(0)} ms; ` +
+                `tables ${((genA.allocatedBytes() + genB.allocatedBytes() + side.allocatedBytes()) / 1e6).toFixed(1)} MB`);
+    expect(held).toBeLessThanOrEqual(8_400_000);
+    expect(genA.allocatedBytes(), "one generation's tables within T = 19.3 MB").toBeLessThanOrEqual(19_300_000);
+    // what it answers stays exact at that size
+    expect(v.n).toBe(2 * REQUEST_BUDGET.intervals + shareOf(REQUEST_BUDGET, 8).intervals);
+    expect([...tintAt(v, 4 * 1000 + 2.1)].length).toBe(2);
+    expect([...tintAt(v, 4 * 1000 + 2.5)]).toEqual([]);
+  });
+});
+
+describe("lines on the shown track (plan 1.3, 4.2)", () => {
+  // points 0..4: L5 from 0 to 1, L6 from 1 to 2, L5 again from 2 to 3, a zero-length L7 at 3, L8 to 4
+  const t = { count: 6, cum: [0, 1, 2, 3, 3, 4], lines: [5, 5, 6, 5, 7, 8] };
+  it("a position is the move containing it — on a segment's start the next move's, at an end the move ending there", () => {
+    const at = trackLineAt(t);
+    expect([at(0.5), at(1), at(1.5), at(3), at(3.5)]).toEqual([5, 6, 6, 8, 8]);
+    expect([at(1, true), at(2, true), at(3, true)], "where something ends").toEqual([5, 6, 5]);
+  });
+  it("each run of a repeated line apart", () => {
+    const r = lineRuns(t);
+    expect(runsOf(r, 5)).toEqual([[0, 1], [2, 3]]);
+    expect(runsOf(r, 6)).toEqual([[1, 2]]);
+    expect(runsOf(r, 7)).toEqual([[3, 3]]);
+    expect(runsOf(r, 9)).toEqual([]);
+  });
+  it("a line a contact carried in from an earlier line is \"still in contact\", naming that line; one beginning on it wins", () => {
+    const st = store([{ pair: 1, ivs: [[0.5, 2.5]], end: 2.5 }, { pair: 2, ivs: [[1.5, 1.6]], end: 1.6 }]);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 4 });
+    const at = trackLineAt(t);
+    expect(lineMark(v, 5, [[2, 3]], at), "the second run of L5: carried in from L5's first").toEqual({ line: 5, continuation: 5 });
+    expect(lineMark(v, 6, [[1, 2]], at), "pair 2 begins on L6").toEqual({ line: 6 });
   });
 });
