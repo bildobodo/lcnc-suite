@@ -1,0 +1,79 @@
+
+ RUN  v4.1.8 /tmp/codex-r145-mkz1nrvc/repo/lcnc-webui
+
+stdout | src/viewer/r145.codex-finish.test.ts > a gap budget exhausted only in finish must make the result incomplete
+{"finish_budget":[{"budget":100,"attempts":[{"values":{"pair":0,"start":20.75,"end":20.75,"reason":1},"finish":true}],"truncated":null,"intervals":1,"gaps":1},{"budget":0,"attempts":[{"values":{"pair":0,"start":20.75,"end":20.75,"reason":1},"finish":true}],"truncated":null,"intervals":1,"gaps":0}]}
+
+ ❯ src/viewer/r145.codex-finish.test.ts (1 test | 1 failed) 49ms
+   × a gap budget exhausted only in finish must make the result incomplete 48ms
+stdout | src/viewer/r145.codex-worker-rest.test.ts > R145 pool drain boundary probes > old data are delivered before the generation changes, with only one owner delta outstanding
+{"beforeAck":[0,1],"generations":[0,1,0],"receivedRows":1,"droppedRows":1}
+
+ ❯ src/viewer/r145.codex-worker-rest.test.ts (2 tests | 1 failed) 28ms
+     × old data are delivered before the generation changes, with only one owner delta outstanding 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r145.codex-finish.test.ts > a gap budget exhausted only in finish must make the result incomplete
+AssertionError: expected undefined to be 'budget' // Object.is equality
+
+- Expected:
+"budget"
+
++ Received:
+undefined
+
+ ❯ src/viewer/r145.codex-finish.test.ts:74:39
+     72|  expect(records[1].attempts.length,'small budget really refused a row'…
+     73|  expect(records[1].attempts.every((a:any)=>a.finish),'all writes were …
+     74|  expect(records[1].truncated?.reason).toBe('budget');
+       |                                       ^
+     75|  expect(records[1].incompleteFrom).toBeLessThanOrEqual(records[1].atte…
+     76| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/viewer/r145.codex-worker-rest.test.ts > R145 pool drain boundary probes > old data are delivered before the generation changes, with only one owner delta outstanding
+AssertionError: the delayed old row must reach a consumer obeying the accepted generation contract: expected 1 to be +0 // Object.is equality
+
+- Expected
++ Received
+
+- 0
++ 1
+
+ ❯ src/viewer/r145.codex-worker-rest.test.ts:99:113
+     97|   }
+     98|   console.log(JSON.stringify({beforeAck,generations:packets.map(m=>m.c…
+     99|   expect.soft(droppedRows,'the delayed old row must reach a consumer o…
+       |                                                                                                                 ^
+    100|   expect.soft(beforeAck,'one unacknowledged message on the owner path'…
+    101|  });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/viewer/r145.codex-worker-rest.test.ts > R145 pool drain boundary probes > old data are delivered before the generation changes, with only one owner delta outstanding
+AssertionError: one unacknowledged message on the owner path: expected [ +0, 1 ] to have a length of 1 but got 2
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/viewer/r145.codex-worker-rest.test.ts:100:73
+     98|   console.log(JSON.stringify({beforeAck,generations:packets.map(m=>m.c…
+     99|   expect.soft(droppedRows,'the delayed old row must reach a consumer o…
+    100|   expect.soft(beforeAck,'one unacknowledged message on the owner path'…
+       |                                                                         ^
+    101|  });
+    102| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 1 passed (3)
+   Start at  12:32:45
+   Duration  487ms (transform 159ms, setup 0ms, import 307ms, tests 76ms, environment 0ms)
+

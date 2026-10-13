@@ -1,0 +1,56 @@
+{
+  "review_head": "0426c92300a4e1e3b6e56d6149ec70e8781b49eb",
+  "observations": [
+    {
+      "finish_budget": [
+        {
+          "budget": 100,
+          "attempts": [
+            {
+              "values": {
+                "pair": 0,
+                "start": 20.75,
+                "end": 20.75,
+                "reason": 1
+              },
+              "finish": true
+            }
+          ],
+          "truncated": null,
+          "intervals": 1,
+          "gaps": 1
+        },
+        {
+          "budget": 0,
+          "attempts": [
+            {
+              "values": {
+                "pair": 0,
+                "start": 20.75,
+                "end": 20.75,
+                "reason": 1
+              },
+              "finish": true
+            }
+          ],
+          "truncated": null,
+          "intervals": 1,
+          "gaps": 0
+        }
+      ]
+    },
+    {
+      "beforeAck": [
+        0,
+        1
+      ],
+      "generations": [
+        0,
+        1,
+        0
+      ],
+      "receivedRows": 1,
+      "droppedRows": 1
+    }
+  ]
+}
