@@ -1,0 +1,59 @@
+{
+  "task_dir": "/tmp/codex-r149-6y7rrmjw",
+  "review_head": "ea962ee75e89496dd62769d1b827f88e88dc2461",
+  "review_base": "509360a9",
+  "live_head": "32dba36acf9556e28a6047f869e404dce719c0ee",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r149.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r149.mutations.py\n?? docs/reviews/viewer-palette-fest.r149.mutations.txt\n?? docs/reviews/viewer-palette-fest.r149.probe-owners.test.ts\n?? docs/reviews/viewer-palette-fest.r149.probe-r147-view.test.ts\n?? docs/reviews/viewer-palette-fest.r149.probe-rest.test.ts\n?? docs/reviews/viewer-palette-fest.r149.probes.txt\n",
+  "inputs": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1574760,
+      "sha256": "38d8c456da7c84788638867189c34acc8a3b16e0cded9bd9ed6239b43ebbeb29"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 54842,
+      "sha256": "af8be63ad5280ba568630ab03fff355516ba9ecd1a5db563376401177618df90"
+    },
+    "docs/reviews/viewer-palette-fest.r149.mutations.txt": {
+      "bytes": 5285,
+      "sha256": "17333a79e67bd0a751174bf3afa45fded990ba308c2952c2f6e6835d14cee314"
+    },
+    "docs/reviews/viewer-palette-fest.r149.mutations.py": {
+      "bytes": 8464,
+      "sha256": "d02a8680794652bccc33a3472cf61d1fb510654d37a6b1754dc80f5150e264e5"
+    },
+    "docs/reviews/viewer-palette-fest.r149.probes.txt": {
+      "bytes": 221,
+      "sha256": "a9e60e544538893902b1a57492f00578bb4676f714705f51845ca617b1f50d5c"
+    },
+    "docs/reviews/viewer-palette-fest.r149.probe-r147-view.test.ts": {
+      "bytes": 5543,
+      "sha256": "bf6fcb32a397a2e898c937faf13d139a07f00d2b3f38d6e8c3675f02d4c41735"
+    },
+    "docs/reviews/viewer-palette-fest.r149.gate-frontend.json": {
+      "bytes": 1117,
+      "sha256": "9a55a089fcfe02a5a5731aac3aae5fc2ca7d8709f95e4c0f94a074784466e383"
+    },
+    "docs/reviews/viewer-palette-fest.r149.probe-owners.test.ts": {
+      "bytes": 3784,
+      "sha256": "de5561bfcfa589f99a78abdf48aa11545ea4387cc72ac0939b5723a48b75b031"
+    },
+    "docs/reviews/viewer-palette-fest.r149.probe-rest.test.ts": {
+      "bytes": 5925,
+      "sha256": "000b1ca1662755120ce61284e7c1b9253107c4f3ff27526138a6abfc0ab9a5e2"
+    }
+  },
+  "audit": {
+    "live_head_unchanged": true,
+    "all_input_hashes_unchanged_before_append": true,
+    "tracked_src_files_matched": 364,
+    "src_differences": [],
+    "browser_mock": "127.0.0.1:4188",
+    "live_ports_used": false,
+    "machine_commands": false,
+    "archive_only_changes": [
+      "new probe test files and runner configs",
+      "e2e/ctl.ts: localhost:4174 -> 127.0.0.1:4188",
+      "e2e/collisions.viewer.spec.ts: appended own browser counterprobe"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  16 passed (16)
+   Start at  17:47:42
+   Duration  1.93s (transform 955ms, setup 0ms, import 2.06s, tests 1.93s, environment 0ms)
+

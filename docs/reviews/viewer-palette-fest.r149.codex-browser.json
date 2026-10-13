@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "id": -1,
+    "cum": [
+      0,
+      100
+    ],
+    "lines": [
+      0,
+      1
+    ],
+    "n": 2
+  },
+  "early": [
+    {
+      "left": 9.008169416243655,
+      "width": 9.263959390862944
+    }
+  ],
+  "final": [
+    {
+      "left": 9.008169416243655,
+      "width": 81.97969543147208
+    }
+  ],
+  "errors": [],
+  "summary": "1 collision on the entry move · stopped at 18 %\n*\n0\n0"
+}

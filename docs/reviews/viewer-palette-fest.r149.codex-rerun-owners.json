@@ -1,0 +1,31 @@
+{
+  "resultCancel": {
+    "request": 8,
+    "result": {
+      "hits": []
+    },
+    "partial": null,
+    "sent": [],
+    "owners": [
+      8,
+      7
+    ],
+    "held": [
+      7
+    ]
+  },
+  "partialCancel": {
+    "request": 8,
+    "result": null,
+    "partial": null,
+    "sent": [
+      {
+        "cancel": 7
+      }
+    ],
+    "owners": [
+      8
+    ],
+    "held": []
+  }
+}

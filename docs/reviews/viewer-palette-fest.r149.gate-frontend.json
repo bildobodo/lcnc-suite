@@ -1,0 +1,33 @@
+{
+  "head": "ea962ee7",
+  "note": "the offline gate's frontend steps; Playwright with --trace off, alone. 520 browser tests against R148's 523: B3 removed the four cap-word tests of the summary (two kinds x two viewports; the tables have no cap) and added one (the tint and the band read the tables)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 16
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 479,
+      "tests": "138 files, 2316 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2149,
+      "tests": "520 passed",
+      "note": "run alone; an earlier run at the intermediate head 2fc5e732 stopped after 311 tests on a transient hint in macros.spec (passed 3/3 alone); this is the whole chain, rerun at the final head"
+    }
+  ]
+}
