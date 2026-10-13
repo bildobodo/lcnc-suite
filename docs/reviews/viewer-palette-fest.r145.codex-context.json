@@ -1,0 +1,66 @@
+{
+  "task_dir": "/tmp/codex-r145-mkz1nrvc",
+  "review_head": "0426c92300a4e1e3b6e56d6149ec70e8781b49eb",
+  "review_base": "a81ac7d3",
+  "live_head": "3f64fe7b8fa21897547505988b61a45467118820",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r145.contacts-cross.txt\n?? docs/reviews/viewer-palette-fest.r145.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r145.mutations.py\n?? docs/reviews/viewer-palette-fest.r145.mutations.txt\n",
+  "inputs": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1503247,
+      "sha256": "f7c3a93474694f3df71cbd36f8cf64ccd9b99d0eb1705447fe98c22e8dd61df1"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 54842,
+      "sha256": "af8be63ad5280ba568630ab03fff355516ba9ecd1a5db563376401177618df90"
+    },
+    "docs/reviews/viewer-palette-fest.r145.mutations.py": {
+      "bytes": 12604,
+      "sha256": "fbb8ef1d4d75f0f6a86b9c809922485b7e2124b7e9a5f980dd469498d1179afa"
+    },
+    "docs/reviews/viewer-palette-fest.r145.contacts-cross.txt": {
+      "bytes": 6656,
+      "sha256": "212c77624880ba6a0693e5f746dff33736c4052cb36a358f16696ef8537533ec"
+    },
+    "docs/reviews/viewer-palette-fest.r145.mutations.txt": {
+      "bytes": 29864,
+      "sha256": "0c06fc12d7112e5ad32888dfd9e01533671bb61909e3311b4522c8facfc5d7b3"
+    },
+    "docs/reviews/viewer-palette-fest.r145.gate-frontend.json": {
+      "bytes": 866,
+      "sha256": "9cdbf89b63f2ac265dd2e11ac71812bc87395a79f31224d0613895f897bdda8d"
+    }
+  },
+  "archive_changed_files_verified_unmodified": {
+    "CLAUDE.md": "6b2262863fc86525d3a59df748a111a6a22b75857cd4fe98f67ab747114e726f",
+    "docs/decisions.md": "be5d12609fd47bb4648bc906e3691e6a917abca926c65fb0c51b763042ae1902",
+    "lcnc-webui/src/viewer/collision.test.ts": "6d6b2aa6da06ad73bd5b3f076cc33ad98923ace01019948a906bf9e48699e41f",
+    "lcnc-webui/src/viewer/collision.ts": "6c2ac3d33bfa7651f4abfa3e8a494d78051db27091709f1ca5f6b137f20d22e8",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts": "aa23a498aa18092366705315a2cda536040756b73282553e0f869a3f9af96233",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "39ad0c21fb570ed7cedae147c00e51d7cff919343f9d51d38ba397320cfa5825",
+    "lcnc-webui/src/viewer/contactMerge.test.ts": "116db3f9d0605ddc54d713bb7090a33989b9e658b0f808bf98574b1e5ffba43d",
+    "lcnc-webui/src/viewer/contactMerge.ts": "1aa544b2f86d46d0ad412535ce04cf58b292ad2fb5464c047b2dd05bd51e1d70",
+    "lcnc-webui/src/viewer/sweepShards.test.ts": "1e8f8810856d2737c737d460127a68b127887d4702813c47ff613b683e22b079",
+    "lcnc-webui/src/viewer/sweepShards.ts": "7999b84b0380849bfde2324175e662fc1a1fe7775cb3394df940b3fa320c0d3d"
+  },
+  "test_results": {
+    "repository": {
+      "passed": 79,
+      "unselected": 119
+    },
+    "r144_adapted_probes": {
+      "passed": 11
+    },
+    "new_control": {
+      "passed": 1
+    },
+    "new_boundary_probes": {
+      "failed_expected": 2
+    },
+    "full_gate_repeated": false,
+    "browser_or_live_access": false
+  },
+  "probe_adaptations": [
+    "R144 core copy: entryJoins third argument no longer entry shift; omit it for baseStart=0.",
+    "R144 worker copy: add generation:0 to old ACKs; all assertions unchanged."
+  ]
+}
