@@ -1,0 +1,81 @@
+{
+  "task_dir": "/tmp/codex-r146-uj9v3tcf",
+  "review_head": "e24f4b145a8375a13a3ef13c332053ad72eb1ad6",
+  "review_base": "0426c923",
+  "live_head": "7fc341e6d23b2aa965549dd23e74fb72ba3107ce",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r146.contacts-cross.txt\n?? docs/reviews/viewer-palette-fest.r146.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r146.mutations.py\n?? docs/reviews/viewer-palette-fest.r146.mutations.txt\n",
+  "inputs": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1516662,
+      "sha256": "3654da096701f16c821c5acda9b74db59c4d17a0cb2bf81ed2992f4d7f364021"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 54842,
+      "sha256": "af8be63ad5280ba568630ab03fff355516ba9ecd1a5db563376401177618df90"
+    },
+    "docs/reviews/viewer-palette-fest.r146.gate-frontend.json": {
+      "bytes": 1242,
+      "sha256": "4717ce9a12eba413e1b529b4eff2cee761ad09799f6f2a9f247bb3e5faa5240e"
+    },
+    "docs/reviews/viewer-palette-fest.r146.contacts-cross.txt": {
+      "bytes": 6656,
+      "sha256": "212c77624880ba6a0693e5f746dff33736c4052cb36a358f16696ef8537533ec"
+    },
+    "docs/reviews/viewer-palette-fest.r146.mutations.txt": {
+      "bytes": 16324,
+      "sha256": "4ef833a41d4d977eaf340bc3fd4397e92ed4532e73b89b2851a5b05264dc9c97"
+    },
+    "docs/reviews/viewer-palette-fest.r146.mutations.py": {
+      "bytes": 13091,
+      "sha256": "886ed4b56d893f3d8022fc2fb9d6a68827aa89172577198dd0f80437613e4109"
+    }
+  },
+  "archive_changed_files_verified_unmodified": {
+    "CLAUDE.md": "217f0123aaa8ef62fea6c5b656e84dc011d73d0772a0267c331b59b634f36418",
+    "docs/decisions.md": "8b7e10c37a128a6614cbd49bcb4c47363bed061a74a1c4b2ed64c0ae329786d9",
+    "lcnc-webui/src/viewer/collision.test.ts": "e80783e4d4bc87531e2ca691c024f0dee67ac960a48433eb9f77617bbca75ce1",
+    "lcnc-webui/src/viewer/collision.ts": "b1fbf69280cb7d988ab067b4edc23c937f01979e8b9c020a502c6a35fc731255",
+    "lcnc-webui/src/viewer/collisionInside.test.ts": "66bae629468b0e326db489688e0dc7fc20dcef1699cf83d9b8c11a947f2c84d7",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts": "febc9083f02fe5564d03a531891e17b7096f904046c33d1d20f17b046218e4dc",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "7592eb2fd15697541579294065c78f7610720da159c265f0af59e9f7bac54d01"
+  },
+  "test_results": {
+    "regressions": {
+      "passed": 71,
+      "files": 7
+    },
+    "repository_sink_selected": {
+      "passed": 11,
+      "skipped": 114
+    },
+    "repository_merge_selected": {
+      "passed": 8,
+      "skipped": 5
+    },
+    "total": {
+      "passed": 90,
+      "failed": 0,
+      "repository": 81,
+      "own_unchanged_probes": 9
+    },
+    "full_gate_repeated": false,
+    "browser_or_live_access": false
+  },
+  "probe_sources": {
+    "r145-worker.test.ts": {
+      "source": "viewer-palette-fest.r145.codex-worker-rest.test.ts",
+      "sha256": "0ab60f5acd05319f5fa43d1dbc47ffe1e9081daf13d65967d3d5ff4ec46e59f3",
+      "unchanged": true
+    },
+    "r145-finish.test.ts": {
+      "source": "viewer-palette-fest.r145.codex-finish.test.ts",
+      "sha256": "39a4db1d071afef61a500a8be0ca3f7991e483d11c57f44d3db77cced35b2287",
+      "unchanged": true
+    },
+    "r144-core.test.ts": {
+      "source": "viewer-palette-fest.r145.codex-r144-core.test.ts",
+      "sha256": "ee0ae05f0fb69ecae3bf7f348b01282a8bfb244e914ea743f0af7b3294958abf",
+      "unchanged": true
+    }
+  }
+}
