@@ -1,0 +1,39 @@
+# Step 4 package 2 round B1/B2 — mutations (script: viewer-palette-fest.r147.mutations.py)
+# ts mutations at 069873e4
+cv_join_skip RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > the entry move: its findings keyed E; on the entry move itself before its end; a joined base interval counted once, reaching the base exit | AssertionError: expe 9s
+cv_join_reach RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > the entry move: its findings keyed E; on the entry move itself before its end; a joined base interval counted once, reaching the base exit | AssertionError: the  8s
+cv_continues_cut RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > a boundary contact and a later rapid part of a cutting contact are no findings of their own | AssertionError: expected [ 2, 4 ] to deeply equal [ 2 ] 9s
+cv_boundary_target RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > a boundary contact and a later rapid part of a cutting contact are no findings of their own | AssertionError: expected [ +0, 2 ] to deeply equal [ 2 ] 9s
+cv_reentry RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > an interval at its entry, a near miss at its closest approach, sorted; re-entry, possible, at start, rapid | AssertionError: expected [ 72, 1, 3, 64, 2 ] to deep 9s
+cv_at_start RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > an interval at its entry, a near miss at its closest approach, sorted; re-entry, possible, at start, rapid | AssertionError: expected [ 72, 1, 3, 76, 2 ] to deep 8s
+cv_open_end RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > an open interval runs to the coverage; one ended at an unknown tool to its gap, never through it | AssertionError: expected [ 2, 2, 128 ] to deeply equal [ 2, 8, 8s
+cv_source_cov RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > the entry move: its findings keyed E; on the entry move itself before its end; a joined base interval counted once, reaching the base exit | AssertionError: the  9s
+cv_entry_move RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > the entry move: its findings keyed E; on the entry move itself before its end; a joined base interval counted once, reaching the base exit | AssertionError: past 9s
+cv_gap_touch RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > tint, marks and bands (plan 4.2, 4.3) > the tint glows a pair inside its touch stretch, dark in its gap, per pair | AssertionError: the gap: dark: expected [ 't1', 'w1' ] to deeply equal [] 8s
+cv_gap_episode RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > tint, marks and bands (plan 4.2, 4.3) > a line is marked where an episode covers one of its moves: a contact over a possible over a provisional; each span of a repeated line apart; a gap mark 9s
+cv_ended_at_gap RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the target index (plan 4.1) > an open interval runs to the coverage; one ended at an unknown tool to its gap, never through it | AssertionError: expected [ 1, 8, 128 ] to deeply equal [ 1, 3, 9s
+cv_mark_rank RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > tint, marks and bands (plan 4.2, 4.3) > a line is marked where an episode covers one of its moves: a contact over a possible over a provisional; each span of a repeated line apart; a gap mark 8s
+cv_mark_walk GREEN! Tests  10 passed (10)  8s
+cv_band_edge RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > tint, marks and bands (plan 4.2, 4.3) > bands at display resolution: the R140 separation shows where a column can hold it, a narrow contact never vanishes | AssertionError: a 0.04 column cann 7s
+cv_nav_sample GREEN! Tests  10 passed (10)  7s
+cv_nav_key RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > navigation on the index (findingNav's rule) > next by position lands past s; by key steps from the one shown; wraps | AssertionError: expected +0 to be 1 // Object.is equality 8s
+rc_drop_old NOCOMPILE ["src/viewer/contactsReceiver.ts(43,23): error TS18048: 'deltas' is possibly 'undefined'."] 7s
+rc_held RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactsReceiver.test.ts > the owner's contact receiver (round B2, plan 3.1/3.5) > a newer generation becomes the current one and the one before is HELD; an older one after the switch is dropped (and acknowledged) 8s
+rc_ack_gen RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactsReceiver.test.ts > the owner's contact receiver (round B2, plan 3.1/3.5) > a newer generation becomes the current one and the one before is HELD; an older one after the switch is dropped (and acknowledged) 8s
+rc_pairs NOCOMPILE ["src/viewer/contactsReceiver.ts(52,34): error TS2322: Type '[string, string][] | undefined' is not assignable to type '[string, string][] | null'."] 7s
+rc_refused RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactsReceiver.test.ts > the owner's contact receiver (round B2, plan 3.1/3.5) > a delta out of order is refused by its table, counted, never patched in; requests are let go | AssertionError: expected [ +0, +0 ] 8s
+wk_pairs_once GREEN! Tests  37 passed (37)  8s
+wk_coord_pairs NOCOMPILE ["src/viewer/collisionWorker.ts(575,48): error TS18047: 'run' is possibly 'null'."] 8s
+done
+
+# at 8796c6b7 (adds three tests; three mutations re-anchored to compile)
+cv_mark_walk RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > tint, marks and bands (plan 4.2, 4.3) > a line inside a long early contact is marked past later short stays that ended before it | AssertionError: expected null to deeply equal { line: 7 } 8s
+cv_nav_sample RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > navigation on the index (findingNav's rule) > next by position lands past s; by key steps from the one shown; wraps | AssertionError: just past a start, before where its jump samples: that on 8s
+rc_drop_old GREEN! Tests  4 passed (4)  9s
+rc_pairs RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactsReceiver.test.ts > the owner's contact receiver (round B2, plan 3.1/3.5) > applies a request's deltas per shard and says what to acknowledge — the delta's generation | AssertionError: expected [ +0, 2, 3,  8s
+wk_pairs_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/collisionWorker.test.ts > contact deltas: one unacknowledged per path (package 2, VP139-03) > this core: deltas while it sweeps, one at a time; the result waits for the acknowledgement of the delta before it | Ass 9s
+wk_coord_pairs RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/collisionWorker.test.ts > contact deltas: one unacknowledged per path (package 2, VP139-03) > the pairs' body ids go once per generation with its first delta — on this core and through the pool (round B2) | Assert 9s
+
+# the e2e mutation at 8796c6b7, alone
+tv_ack RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 88s
+rebuild ok 104s

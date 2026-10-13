@@ -1,0 +1,53 @@
+# haus.ngc profile 2026-10-13T12:11:41.047Z
+model build 164 ms, bodies 31, pairs 384
+payload keys: start_known true, tlo_start [0,0,65.03573333333335], kins {"module":"xyzac-trt-kins","type":"xyzac-trt","identity_first":true,"params":{"x_rot_point":0,"y_rot_point":0,"z_rot_poi
+track points 203538, tool events 1, program tools {}, unknown []
+  t 60 s progress 13.4 % records 330924
+  t 120 s progress 15.9 % records 403652
+  t 180 s progress 19.0 % records 485922
+  t 240 s progress 29.6 % records 745790
+  t 300 s progress 37.9 % records 963984
+  t 360 s progress 39.5 % records 1006661
+  t 420 s progress 41.0 % records 1041637
+  t 480 s progress 42.3 % records 1070450
+  t 540 s progress 44.0 % records 1104707
+  t 600 s progress 52.8 % records 1256011
+  t 660 s progress 79.9 % records 1632940
+  t 720 s progress 95.6 % records 1772678
+sweep wall 734733 ms, samples 1371002, pairs 384, prescreened 18, static 8
+first record: t 826 ms at 0.00 %
+first onset (peek): t 826 ms at 0.00 %: L17 rear_column / y_saddle (rapid)
+hits 200 (cap 200), onsets 84, truncated null
+first onset (refined): L17 rear_column / y_saddle at cum 0.0 of 15960.3
+uncertified: 1 move runs from a position the preview cannot know — not checked until the position is known again (L18)
+memory heapUsed 1171 MB (start 23 MB) rss 1370 MB
+store rows: episodes 84, intervals 498, gaps 0
+store bytes: allocated 380928 (0.38 MB), used 26274
+incompleteFrom —; probes away from the main step 11384
+query ms 670043 (91.2 % of the wall), pairs queried 358
+largest pair share 28.1 %
+K=2: query makespan 342788 ms, speedup 1.95
+K=3: query makespan 224813 ms, speedup 2.98
+K=4: query makespan 188295 ms, speedup 3.56
+K=6: query makespan 188295 ms, speedup 3.56
+query ms of pairs with a record: 669487 (99.9 %)
+  rear_column/c_faceplate 188295 ms 112778 queries
+  rear_column/a_trunnion_shafts 109213 ms 46366 queries
+  rear_column/a_bearing_pedestals 97930 ms 225446 queries
+  rear_column/a_bearing_rings 71893 ms 221549 queries
+  rear_column/a_drive_covers 57483 ms 108113 queries
+  rear_column/a_yoke_casting 55333 ms 225446 queries
+  rear_column/y_saddle 48268 ms 225446 queries
+  rear_column/c_bearing_lip 29894 ms 127680 queries
+  column_foot/y_guide_blocks 6721 ms 225366 queries
+  column_foot/y_saddle 3496 ms 225446 queries
+  column_foot/y_guide_endcaps 959 ms 585 queries
+  c_bearing_lip/c_faceplate 143 ms 1024759 queries
+  a_bearing_pedestals/a_trunnion_shafts 106 ms 2 queries
+  a_yoke_casting/c_faceplate 61 ms 2 queries
+  rear_column/x_guide_endcaps 17 ms 32297 queries
+  rear_column/x_guide_blocks 14 ms 34416 queries
+  x_guide_rails/x_saddle 8 ms 13035 queries
+  z_slide/a_bearing_pedestals 8 ms 7169 queries
+  rear_column/fixture_blank 4 ms 528 queries
+  column_foot/x_saddle 4 ms 11081 queries

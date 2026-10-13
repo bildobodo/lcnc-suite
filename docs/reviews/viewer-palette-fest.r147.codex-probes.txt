@@ -1,0 +1,239 @@
+
+ RUN  v4.1.8 /tmp/codex-r147-gmq5gcaf/repo/lcnc-webui
+
+ ❯ src/viewer/r147.codex-view.test.ts (7 tests | 6 failed) 299ms
+   × a proven free point between close contacts is not filled by a view epsilon 4ms
+   × a point-sized undecidable refinement gap is still unknown, with zero tolerance too 1ms
+   × a beginning mapped to zero keeps its contact when its pair has a later gap 2ms
+   × only the unknown-tool gap terminates an IV_ENDED_AT_GAP interval 1ms
+   × an open side gap ends at its own coverage and cannot erase the later base contact 1ms
+   × one legal generation already must fit the total derivation budget of 8.4 MB 288ms
+ ❯ src/viewer/r147.codex-transport.test.ts (2 tests | 2 failed) 8ms
+   × the completed sim entry tables remain while their result remains 6ms
+   × the completed run beginning tables remain while their result remains 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 8 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r147.codex-transport.test.ts > the completed sim entry tables remain while their result remains
+ FAIL  src/viewer/r147.codex-transport.test.ts > the completed run beginning tables remain while their result remains
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r147.codex-transport.test.ts:51:26
+     49|   results[run?'runBeginning':'simEntry']={before,after};
+     50|   expect(after.mainRows).toBe(1);expect(after.hasResult).toBe(true);ex…
+     51|   expect(after.sideRows).toBe(1);
+       |                          ^
+     52| });
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > a proven free point between close contacts is not filled by a view epsilon
+AssertionError: expected [ 'tool-0', 'work-0' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "tool-0",
++   "work-0",
++ ]
+
+ ❯ src/viewer/r147.codex-view.test.ts:33:34
+     31|   const v = view(s, 4);
+     32|   results.freePoint = { spans: [...v.touch.get(0)!], defaultTint: [...…
+     33|   expect([...tintAt(v, 1.0005)]).toEqual([]);
+       |                                  ^
+     34| });
+     35|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > a point-sized undecidable refinement gap is still unknown, with zero tolerance too
+AssertionError: expected [ 'tool-0', 'work-0' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "tool-0",
++   "work-0",
++ ]
+
+ ❯ src/viewer/r147.codex-view.test.ts:40:41
+     38|   const v = view(s, 22);
+     39|   results.pointGap = { gap: [20.75, 20.75], tint: [...tintAt(v, 20.75,…
+     40|   expect.soft([...tintAt(v, 20.75, 0)]).toEqual([]);
+       |                                         ^
+     41|   expect(lineMark(v, 8, [[20.75, 20.75]])).toBeNull();
+     42| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > a point-sized undecidable refinement gap is still unknown, with zero tolerance too
+AssertionError: expected { line: 8 } to be null
+
+- Expected:
+null
+
++ Received:
+{
+  "line": 8,
+}
+
+ ❯ src/viewer/r147.codex-view.test.ts:41:44
+     39|   results.pointGap = { gap: [20.75, 20.75], tint: [...tintAt(v, 20.75,…
+     40|   expect.soft([...tintAt(v, 20.75, 0)]).toEqual([]);
+     41|   expect(lineMark(v, 8, [[20.75, 20.75]])).toBeNull();
+       |                                            ^
+     42| });
+     43|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > a beginning mapped to zero keeps its contact when its pair has a later gap
+AssertionError: expected [] to deeply equal [ 'tool-0', 'work-0' ]
+
+- Expected
++ Received
+
+- [
+-   "tool-0",
+-   "work-0",
+- ]
++ []
+
+ ❯ src/viewer/r147.codex-view.test.ts:50:38
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > a beginning mapped to zero keeps its contact when its pair has a later gap
+AssertionError: expected [] to deeply equal [ [ +0, 0.01 ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     0,
+-     0.01,
+-   ],
+- ]
++ []
+
+ ❯ src/viewer/r147.codex-view.test.ts:51:39
+     49|   expect(tintAt(before, 0).size).toBe(2);
+     50|   expect.soft([...tintAt(after, 0)]).toEqual([...tintAt(before, 0)]);
+     51|   expect(contactBands(after, 100, 4)).toEqual(contactBands(before, 100…
+       |                                       ^
+     52| });
+     53|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > only the unknown-tool gap terminates an IV_ENDED_AT_GAP interval
+AssertionError: expected 3 to be 7 // Object.is equality
+
+- Expected
++ Received
+
+- 7
++ 3
+
+ ❯ src/viewer/r147.codex-view.test.ts:59:25
+     57|   const v = view(s, 10);
+     58|   results.gapReason = { targetEnd: v.end[0], spans: [...v.touch.get(0)…
+     59|   expect.soft(v.end[0]).toBe(7);
+       |                         ^
+     60|   expect.soft([...tintAt(v, 5, 0)]).toEqual(['tool-0', 'work-0']);
+     61|   expect([...tintAt(v, 3.5, 0)]).toEqual([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > only the unknown-tool gap terminates an IV_ENDED_AT_GAP interval
+AssertionError: expected [] to deeply equal [ 'tool-0', 'work-0' ]
+
+- Expected
++ Received
+
+- [
+-   "tool-0",
+-   "work-0",
+- ]
++ []
+
+ ❯ src/viewer/r147.codex-view.test.ts:60:37
+     58|   results.gapReason = { targetEnd: v.end[0], spans: [...v.touch.get(0)…
+     59|   expect.soft(v.end[0]).toBe(7);
+     60|   expect.soft([...tintAt(v, 5, 0)]).toEqual(['tool-0', 'work-0']);
+       |                                     ^
+     61|   expect([...tintAt(v, 3.5, 0)]).toEqual([]);
+     62| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > an open side gap ends at its own coverage and cannot erase the later base contact
+AssertionError: expected [] to deeply equal [ 'tool-0', 'work-0' ]
+
+- Expected
++ Received
+
+- [
+-   "tool-0",
+-   "work-0",
+- ]
++ []
+
+ ❯ src/viewer/r147.codex-view.test.ts:69:38
+     67|   const v = buildContactView({ sources: [source(side, { entry: true, c…
+     68|   results.sourceCoverage = { sideCoverage: 10, viewCoverage: 20, targe…
+     69|   expect.soft([...tintAt(v, 13, 0)]).toEqual(['tool-0', 'work-0']);
+       |                                      ^
+     70|   expect(lineMark(v, 13, [[13, 14]])).toEqual({ line: 13 });
+     71| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > an open side gap ends at its own coverage and cannot erase the later base contact
+AssertionError: expected null to deeply equal { line: 13 }
+
+- Expected:
+{
+  "line": 13,
+}
+
++ Received:
+null
+
+ ❯ src/viewer/r147.codex-view.test.ts:70:39
+     68|   results.sourceCoverage = { sideCoverage: 10, viewCoverage: 20, targe…
+     69|   expect.soft([...tintAt(v, 13, 0)]).toEqual(['tool-0', 'work-0']);
+     70|   expect(lineMark(v, 13, [[13, 14]])).toEqual({ line: 13 });
+       |                                       ^
+     71| });
+     72|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  src/viewer/r147.codex-view.test.ts > one legal generation already must fit the total derivation budget of 8.4 MB
+AssertionError: expected 11862016 to be less than or equal to 8400000
+ ❯ src/viewer/r147.codex-view.test.ts:86:24
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  8 failed | 1 passed (9)
+   Start at  15:17:08
+   Duration  922ms (transform 149ms, setup 0ms, import 492ms, tests 307ms, environment 0ms)
+

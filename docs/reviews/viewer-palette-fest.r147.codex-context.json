@@ -1,0 +1,98 @@
+{
+  "task_dir": "/tmp/codex-r147-gmq5gcaf",
+  "review_head": "8796c6b7b7a3f65e1c6ead572da035a27fc26bc7",
+  "review_base": "e24f4b14",
+  "live_head": "87f7a9ff270ae675e5bb5f1b578561afd2987cfb",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r147.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r147.hausB-store.txt\n?? docs/reviews/viewer-palette-fest.r147.mutations.py\n?? docs/reviews/viewer-palette-fest.r147.mutations.txt\n",
+  "inputs": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1528727,
+      "sha256": "2381b85f8099010d2cdb6bbdaee5242f7f4c2d74b197284f14ca025c287b8a15"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 54842,
+      "sha256": "af8be63ad5280ba568630ab03fff355516ba9ecd1a5db563376401177618df90"
+    },
+    "docs/reviews/viewer-palette-fest.r147.hausB-store.txt": {
+      "bytes": 2778,
+      "sha256": "ebeb1fa8b4f58ca641f419134e54964c28d760d149d7d01f1884dbf0de7f29ed"
+    },
+    "docs/reviews/viewer-palette-fest.r147.gate-frontend.json": {
+      "bytes": 743,
+      "sha256": "e9cc22d0a357814bdd45781604c2071866ef013627ff55e6e1180158cecb4a07"
+    },
+    "docs/reviews/viewer-palette-fest.r147.mutations.txt": {
+      "bytes": 8035,
+      "sha256": "335675ca7d53ff31dbb04c77017ff4e7bf6a6572459930a0722d9873bdbdd681"
+    },
+    "docs/reviews/viewer-palette-fest.r147.mutations.py": {
+      "bytes": 7879,
+      "sha256": "f13497815db15216cba74ddcbaad76f5632f427297e8cb3ad293b5f5a429b559"
+    }
+  },
+  "verification": {
+    "all_inputs_unchanged": true,
+    "live_head_unchanged": true,
+    "archive_source_and_e2e_git_blobs_verified": 446,
+    "no_product_edits": true,
+    "review_only_appended": true,
+    "original_evidence_still_unchanged_after_append": true,
+    "review_links_resolve": true,
+    "review_append_sha256": "209b823a201dad2819abd94a552338f994ad830ab3ac804a13fd5ae05563258f"
+  },
+  "environment": {
+    "node": "v22.23.2",
+    "vitest": "4.1.8",
+    "config": "vitest.codex-r147.config.ts",
+    "priority": "nice -n 15",
+    "workers": 1,
+    "browser_used": false,
+    "live_ports_used": false
+  },
+  "checks": {
+    "repository_tests": 70,
+    "repository_failed": 0,
+    "own_tests": 10,
+    "own_passed": 1,
+    "own_failed": 9,
+    "verdict": "findings"
+  },
+  "evidence": {
+    "docs/reviews/viewer-palette-fest.r147.codex-view.test.ts": {
+      "bytes": 5856,
+      "sha256": "08247c2734fbeb2997e00c812a20c859616c3ed531fb61b836f7a37bc6407e5a"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-transport.test.ts": {
+      "bytes": 3557,
+      "sha256": "0f9cedf99dd9a6db097c40777c5e2ad245e8ed6b2508f2a59e79e55b573c8867"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-sweep.test.ts": {
+      "bytes": 4593,
+      "sha256": "c441a15ee1b2490af5bc91d1ef85ee8aac5c2a1e14ef7717b60163f767ded260"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-vitest.config.ts": {
+      "bytes": 173,
+      "sha256": "f854d5b4a6783f993419c89cce6be794a78d9c9d15c39c68313810e2cd8f3bbd"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-repository-tests.txt": {
+      "bytes": 226,
+      "sha256": "ca5fafc4e0598cdb446dc62eaca1bb16c00af8a591a781ce4e45b5b208ae6a57"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-probes.txt": {
+      "bytes": 7872,
+      "sha256": "52913b43c373973485030070b6c73da02f1f4890bcf08a0d7db1bd7e13ad603a"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-sweep-probe.txt": {
+      "bytes": 786,
+      "sha256": "d044e12fdb1ebf5c9a58ef0a5ea7c73f95c33e35ee4bda14a9c30542771a8272"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-results.json": {
+      "bytes": 3091,
+      "sha256": "3ed867995684347c268d6ea96220780617b0c4084c8352b64e56dbf172c8df32"
+    },
+    "docs/reviews/viewer-palette-fest.r147.codex-checks.md": {
+      "bytes": 4788,
+      "sha256": "a96b5ee9b80ccfb897c951c793518f25bd3b9d34d9bef7d2d04945f26997e109"
+    }
+  }
+}

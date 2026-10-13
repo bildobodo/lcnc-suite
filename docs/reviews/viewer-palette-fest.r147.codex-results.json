@@ -1,0 +1,176 @@
+{
+  "view": {
+    "freePoint": {
+      "spans": [
+        0,
+        1,
+        1.001,
+        2
+      ],
+      "defaultTint": [
+        "tool-0",
+        "work-0"
+      ],
+      "exactTint": [],
+      "fineBands": [
+        [
+          0,
+          0.25
+        ],
+        [
+          0.250125,
+          0.5
+        ]
+      ]
+    },
+    "pointGap": {
+      "gap": [
+        20.75,
+        20.75
+      ],
+      "tint": [
+        "tool-0",
+        "work-0"
+      ],
+      "mark": {
+        "line": 8
+      }
+    },
+    "pointContact": {
+      "before": {
+        "tint": [
+          "tool-0",
+          "work-0"
+        ],
+        "bands": [
+          [
+            0,
+            0.01
+          ]
+        ]
+      },
+      "after": {
+        "tint": [],
+        "bands": [],
+        "targets": 1
+      }
+    },
+    "gapReason": {
+      "targetEnd": 3,
+      "spans": [
+        1,
+        3
+      ],
+      "recoveredTint": [],
+      "mark": {
+        "line": 5
+      }
+    },
+    "sourceCoverage": {
+      "sideCoverage": 10,
+      "viewCoverage": 20,
+      "targets": [
+        12
+      ],
+      "spans": [],
+      "baseTint": [],
+      "baseMark": null
+    },
+    "memory": {
+      "rows": {
+        "episodes": 65536,
+        "intervals": 262144,
+        "gaps": 0
+      },
+      "targets": 262144,
+      "columns": {
+        "pos": 2097152,
+        "end": 2097152,
+        "src": 262144,
+        "shard": 262144,
+        "row": 1048576,
+        "kind": 262144,
+        "epStart": 524288,
+        "epEnd": 524288,
+        "epMark": 65536,
+        "epMax": 524288
+      },
+      "touchBytes": 4194304,
+      "derivedBytes": 11862016,
+      "allowedAllGenerationsAndSide": 8400000,
+      "constructionMs": 287.34263400000003,
+      "excludes": "source tables; temporary per-row objects/arrays; maps and view object; future ID binding"
+    }
+  },
+  "transport": {
+    "simEntry": {
+      "before": {
+        "sideRows": 1,
+        "activeSide": null,
+        "hasResult": true
+      },
+      "after": {
+        "sideRows": 0,
+        "hasResult": true,
+        "mainRows": 1,
+        "acks": [
+          {
+            "contactsAck": -1,
+            "generation": 0
+          },
+          {
+            "contactsAck": 7,
+            "generation": 0
+          }
+        ]
+      }
+    },
+    "runBeginning": {
+      "before": {
+        "sideRows": 1,
+        "activeSide": null,
+        "hasResult": true
+      },
+      "after": {
+        "sideRows": 0,
+        "hasResult": true,
+        "mainRows": 1,
+        "acks": [
+          {
+            "contactsAck": -1,
+            "generation": 0
+          },
+          {
+            "contactsAck": 7,
+            "generation": 0
+          }
+        ]
+      }
+    }
+  },
+  "sweep": {
+    "gap": {
+      "point": 20.75,
+      "end": 20.75,
+      "reason": 1
+    },
+    "intervals": [
+      {
+        "enter": 9.5005859375,
+        "exit": 20.7998046875,
+        "witness": 9.65
+      }
+    ],
+    "spans": [
+      [
+        9.5005859375,
+        20.7998046875
+      ]
+    ],
+    "tint": [
+      "nub",
+      "post"
+    ],
+    "truncated": null
+  }
+}
