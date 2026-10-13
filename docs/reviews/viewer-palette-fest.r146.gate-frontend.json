@@ -1,0 +1,44 @@
+{
+  "head": "e24f4b14 (lint, build, collision.test, browser); ca18d3e3 (unit \u2014 e24f4b14 adds one expectation to collision.test.ts)",
+  "note": "the offline gate's frontend steps; Playwright with --trace off; unit beside the mutation run (own worktree /home/cnc/lcnc-suite-mut), the browser step alone",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8,
+      "head": "e24f4b14"
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15,
+      "head": "e24f4b14"
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 452,
+      "head": "ca18d3e3",
+      "tests": "134 files, 2265 passed"
+    },
+    {
+      "name": "frontend-unit-changed",
+      "command": "npx vitest run src/viewer/collision.test.ts",
+      "status": "PASS",
+      "head": "e24f4b14",
+      "tests": "125 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2062,
+      "head": "e24f4b14",
+      "tests": "521 passed",
+      "note": "run alone"
+    }
+  ]
+}
