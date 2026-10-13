@@ -2300,10 +2300,10 @@ export function* sweepCollisionsIter(
         for (let pi = 0; pi < P; pi++) {
           if (!pairTool[pi]) continue;
           if (toolGap[pi]! >= 0) { store.gaps.set(toolGap[pi]!, "end", T(s)); toolGap[pi] = -1; }
-          // a new basis: every contact from here is one after the unknown tool,
-          // and a muted feed contact before it mutes nothing after it
+          // a new basis: every contact from here is one after the unknown tool
+          // (the cutting state began anew where the gap did — the stretch
+          // queries none of the tool's pairs)
           afterTool[pi] = 1;
-          cutMute[pi] = 0; cutPart[pi] = 0; cutFeedAt[pi] = NaN;
           lastFree[pi] = NaN; lastTouchD[pi] = NaN; toolFloor[pi] = s;
         }
       },
