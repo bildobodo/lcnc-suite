@@ -104,6 +104,7 @@ describe("navigation on the index (findingNav's rule)", () => {
     expect(indexAfter(v, 0, null)).toBe(0);
     expect(indexAfter(v, 3, null)).toBe(2);
     expect(indexAfter(v, 7, null), "wraps").toBe(0);
+    expect(indexAfter(v, 1.0003, null), "just past a start, before where its jump samples: that one").toBe(0);
     // two findings 0.5 ms apart: the shown one by key, the next is the other
     const s = 1 + 1e-3 * 0.5;
     expect(indexAfter(v, s, { key: targetKey(v, 0), pos: s })).toBe(1);
@@ -143,6 +144,12 @@ describe("tint, marks and bands (plan 4.2, 4.3)", () => {
     expect(lineMark(v, 3, [[2, 3], [5.5, 6]]), "between the episodes: no mark").toBeNull();
     expect(lineMark(v, 4, [[8.2, 8.8]]), "in the gap of an open contact").toBeNull();
     expect(lineMark(v, 4, [[9.5, 9.6]]), "after the gap: marked").toEqual({ line: 4 });
+  });
+
+  it("a line inside a long early contact is marked past later short stays that ended before it", () => {
+    const st = store([{ pair: 1, ivs: [[0, 10]], end: 10 }, { pair: 2, close: [2.5, 1], onset: 2, end: 3 }]);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 12 });
+    expect(lineMark(v, 7, [[5, 6]])).toEqual({ line: 7 });
   });
 
   it("bands at display resolution: the R140 separation shows where a column can hold it, a narrow contact never vanishes", () => {

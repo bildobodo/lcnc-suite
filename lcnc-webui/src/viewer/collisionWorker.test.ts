@@ -402,6 +402,7 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     for (let i = 0; i < 10 && !sent.some(m => m.result); i++) await vi.advanceTimersToNextTimerAsync();
     const fin = sent.find(m => m.result)!;
     expect(fin.contacts, "the last delta rides with the result").toHaveLength(1);
+    expect(sent.filter(m => m.contacts).map(m => !!m.contactPairs), "the pairs named once, with the first delta").toEqual([true, false]);
     // the receiver's tables equal what was found: one stay, one touch interval
     const r = new ContactStore(1, 0);
     for (const m of sent.filter(x => x.contacts)) for (const d of m.contacts as StoreDelta[]) expect(r.apply(d)).toBe(true);
