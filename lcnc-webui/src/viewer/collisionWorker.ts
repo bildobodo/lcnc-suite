@@ -46,6 +46,7 @@ import { restoreBaseTool, geometryNote, bodyClasses,
 import { runSweepSlice, type SweepIter } from "./sweepPump";
 import { mergeShardResults } from "./sweepShards";
 import type { PartFrameWcs } from "./partFrame";
+import { ContactStore, REQUEST_BUDGET, deltaTransfer, shareOf, type StoreBudget, type StoreDelta } from "./contactStore";
 
 export interface CollisionReq {
   id: number;
@@ -68,9 +69,22 @@ export interface CollisionReq {
   /** Wall-clock per slice between message checks (default SLICE_MS): a check
    *  during a run takes shorter slices (plan „Prüfung im Lauf“ 4). */
   sliceMs?: number;
+  /** The contact store of step 4 package 2 (plan Fassung 5, 3.1/3.2): the
+   *  sweep also writes episodes, intervals and gaps, and they go out as
+   *  DELTAS (`{id, contacts: StoreDelta[]}`, one per shard), at most one
+   *  unacknowledged per path — the owner answers each with `{contactsAck:
+   *  id, generation}` (the delta's: a late acknowledgement of an older run
+   *  releases nothing of a newer one — Codex R144 VP-I99); a run's last delta
+   *  rides with its result. `generation` counts the request's runs (a fall
+   *  back to this core is the next, a side run's too). Absent = records only,
+   *  as before. */
+  contacts?: { generation: number; budget?: StoreBudget; origin?: number };
 }
 
 export interface CollisionCancel { cancel: number }
+/** The owner applied the last contact delta of request `contactsAck` in that
+ *  generation. */
+export interface CollisionContactsAck { contactsAck: number; generation: number }
 /** Park the running sweep at its next slice boundary: the owner receives
  *  `{stopped: true, result}` (the sweep-so-far, `truncated.reason ===
  *  "stopped"`) and may `continue` it later. */
@@ -137,6 +151,10 @@ interface Run {
   /** The (resident) model this run poses — restored to its base tool
    *  whenever the run ends without its own epilogue (TWP-07). */
   model: CollisionModel;
+  /** Its contact store (package 2), and the final message waiting for the
+   *  owner's acknowledgement of the delta before it. */
+  store: ContactStore | null;
+  final: Record<string, unknown> | null;
 }
 
 let _resident: { key: string; model: CollisionModel } | null = null;
@@ -147,7 +165,26 @@ let _side: Run | null = null;
 
 const clearSnapshot = (s: SnapshotHandle) => { s.take = null; s.peek = null; s.records = null; s.first = null; };
 
-type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue;
+/** Runs whose contact store still talks to the owner — until their final
+ *  delta went out (a run released from its slot may still wait for an ack). */
+const _contactRuns = new Map<number, Run>();
+/** The run's next contact delta, unless one is unacknowledged (VP139-03);
+ *  `extra` rides with it (the result: then a delta goes even if empty). */
+function sendContacts(run: Run, extra?: Record<string, unknown>): boolean {
+  const s = run.store;
+  if (!s || s.waiting) return false;
+  // a failed pool's older generation still owes the owner its last word on
+  // this request's path: this run computes on, its rows wait in its own store
+  // until that is delivered and acknowledged (Codex R145 VP-I98)
+  if (_drain && _drain.id === run.id) return false;
+  const delta = s.takeDelta(extra !== undefined);
+  if (!delta) return false;
+  const contacts: StoreDelta[] = [delta];
+  self.postMessage({ id: run.id, contacts, ...extra }, { transfer: deltaTransfer(delta) });
+  return true;
+}
+
+type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue | CollisionContactsAck;
 
 /** Holds a run starts with — the owner's pause, carried over when a pooled
  *  sweep falls back to this core (Codex R90 VP-I49). */
@@ -156,7 +193,17 @@ interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: bool
 /** One sweep in THIS worker — the single-core path, a shard's work, and every
  *  side run. */
 function handleLocal(d: Msg, holds: Holds = {}): void {
+  if ("contactsAck" in d) {
+    const run = _contactRuns.get(d.contactsAck);
+    if (!run?.store || run.store.generation !== d.generation) return;   // another run's — late or early
+    run.store.ack();
+    if (run.final) {
+      if (sendContacts(run, run.final)) { run.final = null; _contactRuns.delete(run.id); }
+    } else sendContacts(run);
+    return;
+  }
   if ("cancel" in d) {
+    _contactRuns.delete(d.cancel);
     if (_side && _side.id === d.cancel) { _side.cancelled = true; return; }
     if (_run && _run.id === d.cancel) {
       if (_run.stopped) {
@@ -239,7 +286,9 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       // No moving pair: nothing to certify, so the guarantee holds vacuously
       // — unless a body was left out for having no facet with area (VP-I46).
       const bodies = bodyClasses(model);
-      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: geometryNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null, ...(bodies ? { bodies } : {}) } });
+      const empty = d.contacts ? new ContactStore(id, d.contacts.generation).takeDelta(true) : null;
+      self.postMessage({ id, result: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: geometryNote(model), pairCount: 0, bvhMs: model.bvhMs, sweepMs: 0, truncated: null, ...(bodies ? { bodies } : {}) },
+                         ...(empty ? { contacts: [empty] } : {}) });
       return;
     }
     const run: Run = {
@@ -249,8 +298,15 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       activeMs: 0, sliceStart: 0,
       snapshot: { take: null, peek: null, records: null, first: null },
       stopped: false, stopRequested: false, nextPeekAt: 0, lastPeekRecords: 0, firstSent: false, pump: () => {},
-      model,
+      model, store: null, final: null,
     };
+    if (d.contacts) {
+      // a shard's share of the request's budget, a side run's T/8 (plan 2.4)
+      const base = d.contacts.budget ?? REQUEST_BUDGET;
+      run.store = new ContactStore(id, d.contacts.generation,
+        options.shard ? shareOf(base, options.shard.of) : side ? shareOf(base, 8) : base);
+      _contactRuns.set(id, run);
+    }
     // The slot this run lives in — cleared only if it still holds this run
     // (a superseding request may have replaced it while a slice ran).
     const release = () => {
@@ -264,7 +320,8 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
     // A side run (the entry move, the start-dependent beginning — the whole
     // program on a dependent one) takes the snapshot for its first confirmed
     // contact only: no partials (Codex R136 VP-I93).
-    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot });
+    run.it = sweepCollisionsIter(model, track, wcs, { ...options, maxMs: undefined, clock: activeClock, snapshot: run.snapshot,
+                                                       ...(run.store ? { contacts: { store: run.store, origin: d.contacts!.origin } } : {}) });
     if (side) _side = run; else _run = run;
     // Park: the generator stays suspended at its current checkpoint; the
     // owner gets the sweep-so-far and decides between continue and cancel.
@@ -273,6 +330,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       run.stopRequested = false;
       run.stopped = true;
       self.postMessage({ id, stopped: true, result: run.snapshot.take!("stopped") });
+      sendContacts(run);
     };
     const pump = () => {
       if ((run.pausedCam || run.pausedHidden || run.pausedDecode) && !run.cancelled) {
@@ -292,6 +350,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
         run.sliceStart = 0;
       } catch (err) {
         release();
+        _contactRuns.delete(id);
         restoreBaseTool(run.model);   // the epilogue never ran (TWP-07)
         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
         return;
@@ -317,13 +376,23 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
           run.nextPeekAt = performance.now() + Math.max(PEEK_MS, PEEK_DUTY * took);
         }
         self.postMessage(partial ? { id, progress: slice.progress, partial } : { id, progress: slice.progress });
+        // the contacts so far — the first interval at the end of the slice that
+        // wrote it — while no delta waits for its acknowledgement
+        sendContacts(run);
         if (run.stopRequested && run.snapshot.take) { park(); return; }
         setTimeout(pump, 0);
         return;
       }
       release();
       clearSnapshot(run.snapshot);
-      if (slice.cancelled) { self.postMessage({ id, cancelled: true }); return; }
+      if (slice.cancelled) { _contactRuns.delete(id); self.postMessage({ id, cancelled: true }); return; }
+      if (run.store) {
+        // the last delta rides with the result — after the owner acknowledged
+        // the one before it (one unacknowledged per path)
+        if (sendContacts(run, { result: slice.result })) _contactRuns.delete(id);
+        else run.final = { result: slice.result };
+        return;
+      }
       self.postMessage({ id, result: slice.result });
     };
     run.pump = pump;
@@ -400,6 +469,11 @@ interface PoolRun {
   /** The owner holds a `stopped` result: parked until continue. */
   parkedPosted: boolean;
   cancelling: boolean;
+  /** The shards' contact tables as received here (package 2), a delta to the
+   *  owner not acknowledged yet, and the final message waiting for that. */
+  stores: ContactStore[] | null;
+  ownerWaiting: boolean;
+  finalMsg: Record<string, unknown> | null;
 }
 /** A parked pooled sweep whose shards failed: nothing computes until the
  *  owner continues it (from the beginning, here) or cancels it. */
@@ -464,6 +538,19 @@ function postProgress(run: PoolRun, now: boolean): void {
   run.posted = progress;
 }
 
+/** The shards' contacts received here go to the owner as ONE message, one
+ *  delta per shard, while none waits for its acknowledgement (VP139-03); the
+ *  shards are acknowledged as soon as their delta is applied here, so a slow
+ *  owner holds up no shard — the changes wait as marks in these tables. */
+function forwardContacts(run: PoolRun, extra?: Record<string, unknown>): boolean {
+  if (!run.stores || run.ownerWaiting) return false;
+  if (!extra && !run.stores.some(s => s.pending())) return false;
+  const contacts = run.stores.map(s => { const d = s.takeDelta(true)!; s.ack(); return d; });
+  run.ownerWaiting = true;
+  self.postMessage({ id: run.id, contacts, ...extra }, { transfer: contacts.flatMap(deltaTransfer) });
+  return true;
+}
+
 function onShardMessage(k: number, m: any): void {
   if (_sideOnShard && m.id === _sideOnShard.req.id) {
     self.postMessage(m);
@@ -472,6 +559,11 @@ function onShardMessage(k: number, m: any): void {
   }
   const run = _poolRun;
   if (!run || m.id !== run.id || run.ended) return;   // a superseded run's late word
+  if (m.contacts && run.stores) {
+    for (const dl of m.contacts as StoreDelta[]) run.stores[k]!.apply(dl);
+    _shards[k]!.postMessage({ contactsAck: run.id, generation: run.stores[k]!.generation });
+    if (!m.result) forwardContacts(run);
+  }
   if (m.needBodies) {
     if (_bodies?.key === run.req.modelKey) { _shardModel[k] = ""; _shards[k]!.postMessage(shardRequest(run.req, k, run.k)); }
     else { run.ended = true; self.postMessage({ id: run.id, needBodies: true }); }
@@ -513,16 +605,59 @@ function onShardMessage(k: number, m: any): void {
         run.stopPending = false;
         run.parkedPosted = true;
         self.postMessage({ id: run.id, stopped: true, result: merged });
+        forwardContacts(run);
       } else {
         run.ended = true;
-        self.postMessage({ id: run.id, result: merged });
+        if (run.stores) { if (!forwardContacts(run, { result: merged })) run.finalMsg = { result: merged }; }
+        else self.postMessage({ id: run.id, result: merged });
       }
       return;
     }
     run.partialDirty = true;
     postProgress(run, true);
+    forwardContacts(run);
   }
 }
+
+/** A failed pool's last word (Codex R144 VP-I98): the coordinator
+ *  acknowledged its shards' deltas as they came — what it took over and had
+ *  not forwarded yet, and a result computed but held for the owner's
+ *  acknowledgement, are still the owner's. Delivered in that generation, one
+ *  delta at a time, before the generation is let go; a run already computed
+ *  is not run again. */
+interface PoolDrain { id: number; generation: number; stores: ContactStore[]; ownerWaiting: boolean; finalMsg: Record<string, unknown> | null }
+let _drain: PoolDrain | null = null;
+
+function drainForward(dr: PoolDrain): void {
+  if (dr.ownerWaiting) return;
+  if (!dr.finalMsg && !dr.stores.some(s => s.pending())) {
+    if (_drain === dr) {
+      // delivered and acknowledged: the path is the newer generation's now
+      _drain = null;
+      const run = _contactRuns.get(dr.id);
+      if (run?.final) { if (sendContacts(run, run.final)) { run.final = null; _contactRuns.delete(run.id); } }
+      else if (run) sendContacts(run);
+    }
+    return;
+  }
+  const contacts = dr.stores.map(s => { const d = s.takeDelta(true)!; s.ack(); return d; });
+  const extra = dr.finalMsg;
+  dr.finalMsg = null;
+  dr.ownerWaiting = true;
+  self.postMessage({ id: dr.id, contacts, ...(extra ?? {}) }, { transfer: contacts.flatMap(deltaTransfer) });
+}
+
+/** The owner applied the pool's last contact message. */
+function onPoolAck(run: PoolRun): void {
+  run.ownerWaiting = false;
+  if (run.finalMsg) { if (forwardContacts(run, run.finalMsg)) run.finalMsg = null; }
+  else forwardContacts(run);
+}
+
+/** A run again on this core is the request's next generation (plan 1.2):
+ *  its contacts are counted afresh and its messages say so. */
+const nextGeneration = (req: CollisionReq): CollisionReq =>
+  req.contacts ? { ...req, contacts: { ...req.contacts, generation: req.contacts.generation + 1 } } : req;
 
 /** A request to run on this core: on the resident model when it is this one,
  *  else with the bodies kept here, else without (the run asks the owner). */
@@ -541,6 +676,12 @@ function poolFailed(): void {
   const run = _poolRun, side = _sideOnShard;
   _poolRun = null;
   _sideOnShard = null;
+  // what the coordinator took over is still owed in its generation (VP-I98)
+  if (run?.stores && !run.cancelling && (run.ownerWaiting || run.finalMsg || run.stores.some(s => s.pending()))) {
+    _drain = { id: run.id, generation: run.stores[0]!.generation, stores: run.stores, ownerWaiting: run.ownerWaiting, finalMsg: run.finalMsg };
+    run.finalMsg = null;
+    drainForward(_drain);
+  }
   if (run && !run.ended) {
     run.ended = true;
     const holds = { pausedCam: run.pausedCam, pausedCamAt: run.pausedCamAt, pausedHidden: run.pausedHidden,
@@ -558,15 +699,16 @@ function poolFailed(): void {
         self.postMessage({ id: run.id, error: "a sweep worker failed before anything was swept — stopped, not resumable" });
       } else {
         if (swept) self.postMessage({ id: run.id, stopped: true, result: swept });
-        _lostParked = { req: run.req, ...holds };
+        _lostParked = { req: nextGeneration(run.req), ...holds };
       }
     } else {
-      handleLocal(onThisCore(run.req), holds);
+      handleLocal(onThisCore(nextGeneration(run.req)), holds);
     }
   }
   if (side) {
     if (side.cancelling) self.postMessage({ id: side.req.id, cancelled: true });
-    else handleLocal(onThisCore(side.req));
+    // run again here: its next generation, its tables counted afresh (VP-I99)
+    else handleLocal(onThisCore(nextGeneration(side.req)));
   }
 }
 
@@ -608,9 +750,21 @@ function onLostParked(lp: LostParked, d: Msg): void {
 
 self.onmessage = (e: MessageEvent<Msg>) => {
   const d = e.data;
+  if ("contactsAck" in d) {
+    // the pool's, a side run's on shard 0, or a run on this core
+    if (_poolRun && _poolRun.id === d.contactsAck && _poolRun.stores) {
+      if (_poolRun.stores[0]!.generation === d.generation) onPoolAck(_poolRun);
+    } else if (_drain && _drain.id === d.contactsAck && _drain.generation === d.generation) {
+      _drain.ownerWaiting = false;
+      drainForward(_drain);
+    } else if (_sideOnShard && _sideOnShard.req.id === d.contactsAck) _shards[0]?.postMessage(d);
+    else handleLocal(d);
+    return;
+  }
   // Control messages for the pooled run go to every shard.
   const ctrlId = "cancel" in d ? d.cancel : "stop" in d ? d.stop : "continue" in d ? d.continue
     : "pause" in d ? d.pause : "resume" in d ? d.resume : null;
+  if ("cancel" in d && _drain && _drain.id === d.cancel) _drain = null;
   if (ctrlId !== null) {
     if (_sideOnShard && _sideOnShard.req.id === ctrlId) {
       // A side run takes nothing but a cancel (see the header).
@@ -664,6 +818,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
     return;
   }
   _lostParked = null;   // a new request supersedes a parked one
+  _drain = null;        // ...and a failed pool's last word
   const k = shardCount(req);
   if (k <= 1 || !ensureShards(k)) {
     if (_poolRun) { for (const w of _shards) w.postMessage({ cancel: _poolRun.id }); _poolRun = null; }
@@ -675,6 +830,10 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   _poolRun = { id: req.id, k, req, progress: new Array(k).fill(0), partial: new Array(k).fill(undefined),
                final: new Array(k).fill(undefined), parked: new Array(k).fill(false), cancelled: 0, ended: false,
                posted: -1, partialDirty: false, firstSent: false, nextPartialAt: 0, pausedCam: false, pausedCamAt: 0,
-               pausedHidden: false, pausedDecode: false, stopPending: false, parkedPosted: false, cancelling: false };
+               pausedHidden: false, pausedDecode: false, stopPending: false, parkedPosted: false, cancelling: false,
+               stores: req.contacts
+                 ? Array.from({ length: k }, () => new ContactStore(req.id, req.contacts!.generation, shareOf(req.contacts!.budget ?? REQUEST_BUDGET, k)))
+                 : null,
+               ownerWaiting: false, finalMsg: null };
   _shards.forEach((w, i) => w.postMessage(shardRequest(req, i, k)));
 };

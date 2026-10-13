@@ -1882,6 +1882,66 @@ which proves no gap. Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 
+**Contact store (step 4 package 2, round A; plan `docs/reviews/kollision-paket2.plan.md`
+Fassung 5, Codex R139–R144)**: the sweep can ALSO write what it finds as typed
+column tables (`viewer/contactStore.ts`: blocks of 4096 rows, appended, never
+copied) — EPISODES (a pair's stay inside the margin, from the sample that found
+it to the last sample in the margin before a verified separation, its closest
+approach, origin program / entry / beginning / boundary), TOUCH INTERVALS
+(opened only by a confirmed touch or inside — that sample is the interval's
+WITNESS, the one ID anchor; each boundary bisected once when seen, no line
+floor, never across a jump — a jump has zero width in the sweep's parameter
+and every pair is queried at its first sample, so a re-sample below it bounds
+an exit or a re-entry on its own side (the jump before it the floor),
+DECIDED only where its contact side was a decided touch; the first
+decided free sample after the exit is the separation's evidence with its free
+radius r = (d − CONTACT_EPS)/V of the chunk — open edges, inside the chunk, the
+smaller side in track units, f32 rounded inward; at a chunk's start the radius
+is 0 and the free POINT alone is the evidence — Codex R144 decision 6) and
+KNOWLEDGE GAPS (undecidable; a tool without a length — for EVERY tool pair, in
+contact before or not, and the contact after it is flagged after the unknown
+tool, the cutting state begun anew — gaps open, separate, certify, count and
+tint nothing). A cutter's rapid part after a feed begins where the rapid does
+(its entry never reaches back over the feed — R144 VP-I95/I96). `CollisionOptions.contacts = {store, origin}` turns the sink on
+beside the records, from the same samples in the same order (noteQuery; the
+sweep restores its pose after the sink's bisections); round A leaves the app on
+the records. A store whose budget is spent stops the sweep (`truncated.reason
+"budget"`, `incompleteFrom` = the earliest position of a row it refused — every
+pair of that sample still tries, and a row the closing refinement in `finish`
+cannot write counts before the result goes out; the shard merge keeps the
+shards' minimum — R144/R145 VP-I100). Transport (`collisionWorker`, a request's
+`contacts: {generation}`): deltas `{id, contacts: StoreDelta[]}` — new rows
+plus rows changed since, each once with its latest state — at most ONE
+unacknowledged per path (`{contactsAck: id, generation}` — bound to the
+generation it acknowledges), the last delta with the result; the coordinator
+applies and acknowledges each shard's delta at once and sends the owner one
+message per round; a fall back to this core is the next generation, a side run
+started again too. A failed pool still DRAINS its generation: what the
+coordinator took over and had not forwarded, and a result computed and held for
+the acknowledgement, go out one delta at a time; a run already computed is not
+run again, and the newer generation computes meanwhile but says nothing on the
+request's path until the drain is delivered and acknowledged — one delta
+outstanding per path, generations in order (R144/R145 VP-I98/I99). `viewer/contactMerge.ts`: the entry join (an entry
+contact still OPEN at its end — no exit, not ended at a gap — continues the base
+episode's FIRST interval when it begins at the base's first checked point;
+a closed one has its separation evidence, and no nearness tolerance joins
+across it — R144 VP-I97), the beginning on the base axis. Checks: `collisionContacts.test.ts` (both
+sinks from one sweep on the shipped and generated machines: the same touch
+unions and near stays up to the plan's named differences — the records bridged
+a proven free sample, stopped at a line start (R90), keyed a second stay of a
+line into one record), `collisionWindows.test.ts` (contact windows in closed
+form, widths 0.26–0.5, every one found to 1e-3; a free gap narrower than the
+touching stride EXPLORE may stay unsampled and read as contact, one wider is
+always proved), `collisionSpeed.test.ts` (V ≥ every vertex's relative speed at
+interior points; the generated machines and a rotary not about Z),
+`sweepShards.test.ts` (the contact tables of 1, 2, 3 shards and a random
+split: every touch interval's witness, entry and decided exit inside the other
+run's intervals of its pair, else a touch run no wider than MIN_ADV by the
+truth), `contactStore.test.ts`, `contactMerge.test.ts`,
+`collisionWorker.test.ts`. `CollisionOptions.profile.probes` counts the
+distance probes away from the main step (refinement, re-sampling, the store's
+bisections) — the sink's cost without the load.
+
 ## Key Patterns
 
 - **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, opacity, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: machine active states use `--ok` (green), form controls (toggles, radios, checkboxes) use `--info` (blue), danger/abort uses `--danger`, warnings use `--warn` — as FILLS, borders and tints; a TEXT or state glyph in that state reads its `-text` role (`--ok-text`, `--warn-text`, `--danger-text`, `--info-text`, `--accent-text`), muted text `--fg-muted` (see Text roles).

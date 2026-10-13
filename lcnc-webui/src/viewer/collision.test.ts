@@ -10,6 +10,13 @@ import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
 import { runSweepSlice } from "./sweepPump";
 import { clashTargets } from "./clashTargets";
+import { ContactStore, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE } from "./contactStore";
+import { boxPositions as boxAt } from "./collisionFixtures";
+
+/** A store's intervals as plain rows (step 4 package 2). */
+const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (_, k) => ({
+  enter: st.intervals.get(k, "enter"), exit: st.intervals.get(k, "exit"), flags: st.intervals.get(k, "flags"),
+  witness: st.intervals.get(k, "witness"), freeAt: st.intervals.get(k, "freeAt") }));
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
@@ -130,6 +137,66 @@ describe("sweepCollisions", () => {
     const r = sweepCollisions(model, track(
       [[0, 0, 0], [0, 0, -45]], undefined, [7, 8], [0, 1]), WCS0, { margin: 2 });
     expect(r.hits[0]!.rapid).toBe(true);
+  });
+
+  it("the contact store bisects no exit across a jump (step 4 package 2, plan 2.2)", () => {
+    // in contact at Z −40 over the vise, then a relabel (brk, zero width) puts
+    // the table at X 30: the pose after it is free — the exit is the jump,
+    // never a bisection between poses on its two sides
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, 0], [0, 0, -40], [30, 0, -40], [30, 0, 0]], undefined, [1, 2, 3, 4]);
+    t.brk = new Uint8Array([0, 0, 1, 0]);
+    t.cum[2] = t.cum[1]!;
+    t.cum[3] = t.cum[2]! + 40;
+    const store = new ContactStore(1, 0);
+    sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store } });
+    const ivs = ivRows(store);
+    expect(ivs).toHaveLength(1);
+    expect(ivs[0]!.exit, "the jump, cum 40").toBeCloseTo(40, 6);
+  });
+
+  it("the contact store bisects an exit the re-sampling finds BEFORE a jump on its own side (step 4 package 2, plan 2.2)", () => {
+    // in contact at Z −40 while the table runs X 0 → 12: the boxes part at
+    // X 10 (cum 50); the touching pair's next probe (cum 55) lies past the
+    // segment's end, so the pose before the jump is never probed — the first
+    // sample after the jump (X 30, free) re-samples the stretch since the last
+    // touch, all of it before the jump's zero width: the exit is X 10, bisected
+    // and decided, not the jump at cum 52
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, 0], [0, 0, -40], [12, 0, -40], [30, 0, -40], [30, 0, 0]], undefined, [1, 2, 3, 4, 5]);
+    t.brk = new Uint8Array([0, 0, 0, 1, 0]);
+    t.cum[3] = t.cum[2]!;
+    t.cum[4] = t.cum[3]! + 40;
+    const store = new ContactStore(1, 0);
+    sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store } });
+    const ivs = ivRows(store);
+    expect(ivs).toHaveLength(1);
+    expect(ivs[0]!.exit, "X 10, cum 50 — before the jump at 52").toBeCloseTo(50, 2);
+    expect(ivs[0]!.flags & IV_EXIT_DECIDED, "bisected between a touch and a decided free sample").not.toBe(0);
+  });
+
+  it("the contact store bounds a separation and a re-entry the re-sampling finds before a jump on their own side (plan 2.2)", () => {
+    // the vise is two narrow blocks: the spindle (X ±5) touches block A
+    // (offset 0, ±1) for table X < 6 and block B (offset −14.1, ±1) from X 8.1;
+    // the table runs X 0 → 9 at Z −40 (cum 40 → 49), probed at cum 40 and 45
+    // (A), its next probe due at 50 — past the segment's end; the first sample
+    // after the jump (X 30, free) re-samples 45 → 49 below the jump: A's exit
+    // at X 6 (cum 46) and B's entry at X 8.1 (cum 48.1), each bisected — not
+    // the jump at cum 49, and not the re-sample's discovering point (cum 48.25)
+    const block = (o: number) => { const p = boxPositions(10); for (let i = 0; i < p.length; i += 3) { p[i] = p[i]! / 5 + o; } return p; };
+    const vise = new Float32Array([...block(0), ...block(-14.1)]);
+    const model = buildCollisionModel(PLUNGE, [{ id: "vise", group: "table", positions: vise }, PLUNGE_BODIES[1]!]);
+    const t = track([[0, 0, 0], [0, 0, -40], [9, 0, -40], [30, 0, -40], [30, 0, 0]], undefined, [1, 2, 3, 4, 5]);
+    t.brk = new Uint8Array([0, 0, 0, 1, 0]);
+    t.cum[3] = t.cum[2]!;
+    t.cum[4] = t.cum[3]! + 40;
+    const store = new ContactStore(1, 0);
+    sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store } });
+    const ivs = ivRows(store);
+    expect(ivs, JSON.stringify(ivs)).toHaveLength(2);
+    expect(ivs[0]!.exit, "A's exit: X 6, cum 46").toBeCloseTo(46, 2);
+    expect(ivs[1]!.enter, "B's entry: X 8.1, cum 48.1").toBeCloseTo(48.1, 2);
+    expect(ivs[1]!.exit, "B's contact lasts to the jump, cum 49").toBeCloseTo(49, 2);
   });
 
   it("skips kins-flip relabel segments — a phantom crossing reports nothing", () => {
@@ -645,6 +712,29 @@ describe("sweepCollisions", () => {
     expect(onset, "the feed into the stock is reported").toBeDefined();
     expect([onset!.a, onset!.b].sort()).toEqual(["housing", "stock"]);
     expect(onset!.rapid).toBe(false);
+  });
+
+  it("the contact store's cutting rule: a feed-begun contact writes nothing; a rapid-begun one its rapid parts (package 2, plan 2.3)", () => {
+    const bodies: CollisionBody[] = [
+      { id: "stock", group: "platter", positions: boxPositions(10), stock: true },
+      { id: "spindle", group: "head", positions: boxPositions(10), tool: true },
+    ];
+    const model = buildCollisionModel(PLUNGE, bodies);
+    const run = (pts: number[][], rapid: number[]) => {
+      const store = new ContactStore(1, 0);
+      sweepCollisions(model, track(pts, undefined, pts.map((_, i) => 7 + i), rapid), WCS0, { margin: 2, contacts: { store } });
+      return store;
+    };
+    expect(run([[0, 0, 0], [0, 0, -43], [0, 0, 0]], [0, 0, 0]).episodes.rows, "a feed plunge: machining").toBe(0);
+    expect(run([[0, 0, 0], [0, 0, -43], [0, 0, 0]], [0, 0, 1]).episodes.rows, "its rapid retract: benign").toBe(0);
+    const gouge = run([[0, 0, 0], [0, 0, -43]], [0, 1]);
+    expect([gouge.episodes.rows, gouge.intervals.rows], "a rapid plunge: a gouge").toEqual([1, 1]);
+    // a rapid gouge going on as a feed: its rapid part ends where the feed begins
+    const on = run([[0, 0, 0], [0, 0, -43], [0, 0, -46]], [0, 1, 0]);
+    const ivs = ivRows(on);
+    expect(ivs).toHaveLength(1);
+    expect(ivs[0]!.flags & IV_ENDED_AT_FEED, "ended at the feed").toBeTruthy();
+    expect(ivs[0]!.exit).toBeGreaterThanOrEqual(43 - 1e-6);
   });
 
   it("detects collisions with root-attached static frame bodies", () => {
@@ -1584,6 +1674,20 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     }
   };
 
+  it("in the contact store the contact ends where the tool becomes unknown — no exit; the stretch is a gap; the next touch begins after an unknown tool (package 2, Codex R140)", () => {
+    const store = new ContactStore(1, 0);
+    const { t } = unknownT3(undefined, { linStepMm: 0.5, rotStepDeg: 0.5, contacts: { store } });
+    const ivs = ivRows(store);
+    const ended = ivs.find(v => v.flags & IV_ENDED_AT_GAP);
+    expect(ended, "a contact ended at the stretch").toBeDefined();
+    expect(Number.isNaN(ended!.exit), "no exit claimed").toBe(true);
+    const after = ivs.find(v => v.flags & IV_AFTER_UNKNOWN_TOOL);
+    expect(after, "a contact after the stretch, begun anew").toBeDefined();
+    expect(after!.enter).toBeGreaterThanOrEqual(t.cum[33]! - 1e-6);
+    const gaps = Array.from({ length: store.gaps.rows }, (_, k) => [store.gaps.get(k, "start"), store.gaps.get(k, "end"), store.gaps.get(k, "reason")]);
+    expect(gaps.some(([a, b, r]) => r === GAP_TOOL_UNKNOWN && a! <= t.cum[28]! + 1e-6 && b! >= t.cum[33]! - 1e-6), JSON.stringify(gaps)).toBe(true);
+  });
+
   it("a tool whose body is unknown: its contacts are not checked there, and none carries across (M600 plan, row 3)", () => {
     // a contact cadence (0.5) shorter than the stretch (2.3): it would be asked
     const { t, ev, r } = unknownT3(undefined, { linStepMm: 0.5, rotStepDeg: 0.5 });
@@ -2252,6 +2356,19 @@ describe("a probe's braking range", () => {
     expect(firstOf(track(BAND_PTS, undefined, [7, 8, 9, 10, 11]))?.line).toBe(9);
   });
 
+  it("in the contact store a touch only inside the range is a POSSIBLE interval; without the range a certain one (package 2)", () => {
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const banded = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
+    banded.band = new Uint8Array([0, 0, 1, 1, 0]);
+    banded.cond = new Uint8Array([0, 0, 1, 1, 1]);
+    const a = new ContactStore(1, 0), b = new ContactStore(1, 0);
+    sweepCollisions(model, banded, WCS0, { margin: 2, probeBands: [{ tool: 2, line: 3 }], contacts: { store: a } });
+    sweepCollisions(model, track(BAND_PTS, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2, contacts: { store: b } });
+    expect(ivRows(a).length).toBeGreaterThan(0);
+    expect(ivRows(a).every(v => v.flags & IV_POSSIBLE), "possible").toBe(true);
+    expect(ivRows(b).some(v => !(v.flags & IV_POSSIBLE)), "certain").toBe(true);
+  });
+
   it("the notes say the range is modeled and the path after it conditional", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
@@ -2335,3 +2452,95 @@ describe("a probe's braking range", () => {
     expect(plain.hits.find(h => h.line === 10)!.continuation).toBeUndefined();
   });
 });
+
+// Codex R144 VP-I95/I96/I100: the sink's own state across an unknown tool,
+// around a cutting feed, and where its budget ends — the reviewer's probes
+// made tests. A head moving in X over a 2 mm block (a stock body or not), the
+// cutter Ø 20 × 2; tool rows per point: T1, an unknown T3, T1 again.
+describe("the contact store across an unknown tool, a cutting feed and a spent budget (Codex R144)", () => {
+  const HEADX: CollisionMachine = { groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"] };
+  const run = (xs: number[], rapid: number[], toolRows: number[], stock = false, budget?: { episodes: number; intervals: number; gaps: number }) => {
+    const n = xs.length, cum = new Float32Array(n);
+    for (let i = 1; i < n; i++) cum[i] = cum[i - 1]! + Math.abs(xs[i]! - xs[i - 1]!);
+    const t = { pos: new Float32Array(xs.flatMap(x => [x, 0, 0])), abc: new Float32Array(n * 3), lines: Uint32Array.from(xs.map((_, i) => i + 1)),
+                rapid: new Uint8Array(rapid), cum, count: n, tlo: new Uint32Array(toolRows), lineIndex: emptyLineIndex(), timeBased: false };
+    const model = buildCollisionModel(HEADX, [{ id: "vise", group: "table", positions: boxAt(2, 2, 2), translate: [0, 0, 1], stock },
+                                             { id: "tool", group: "head", positions: toolCylinderPositions(20, 2), tool: true }]);
+    const store = new ContactStore(1, 0, budget);
+    const result = sweepCollisions(model, t, WCS0, { margin: 0.1, contacts: { store },
+      tloEvents: [{ seq: 0, xyz: [0, 0, 0], tool: 1 }, { seq: 1, xyz: [0, 0, 0], tool: 3 }, { seq: 2, xyz: [0, 0, 0], tool: 1 }],
+      toolDims: { 1: { diam: 20, len: 2 } }, liveTool: 1, unknownTools: [3] });
+    return { store, result, cum };
+  };
+  const gaps = (st: ContactStore) => Array.from({ length: st.gaps.rows }, (_, k) => st.gaps.get(k, "reason"));
+
+  it("an unknown tool is a knowledge gap for every tool pair, in contact before or not; the contact after it says so", () => {
+    const { store, result } = run([20, 15, 5], [1, 1, 1], [0, 1, 2]);
+    expect(result.notes?.some(t => t.includes("no length")), "the records name the unknown tool").toBe(true);
+    expect(gaps(store), "its gap, though no contact came before").toContain(GAP_TOOL_UNKNOWN);
+    const ivs = ivRows(store);
+    expect(ivs.length, "the contact after it").toBeGreaterThan(0);
+    expect(ivs.every(v => v.flags & IV_AFTER_UNKNOWN_TOOL), "after the unknown tool").toBe(true);
+  });
+
+  it("a muted feed contact before an unknown tool mutes nothing after it: the rapid contact on L4 is written", () => {
+    const { store, result } = run([20, 5, 4, 3], [0, 0, 1, 1], [0, 0, 1, 2], true);
+    expect(result.hits.some(h => h.line === 4), "the records report L4").toBe(true);
+    const ivs = ivRows(store);
+    expect(ivs.length, "the store has it").toBeGreaterThan(0);
+    expect(ivs[ivs.length - 1]!.flags & IV_AFTER_UNKNOWN_TOOL).toBeTruthy();
+  });
+
+  it("rapid – feed – rapid in one contact: the second rapid part begins where the rapid does, never over the feed", () => {
+    const { store, cum } = run([20, 5, 4, 3], [1, 1, 0, 1], [0, 0, 0, 0], true);
+    const ivs = ivRows(store);
+    expect(ivs, JSON.stringify(ivs)).toHaveLength(2);
+    expect(ivs[0]!.exit, "the first rapid part ends at the feed").toBeCloseTo(cum[1]!, 6);
+    expect(ivs[0]!.flags & IV_ENDED_AT_FEED).toBeTruthy();
+    expect(ivs[1]!.enter, "the second begins at the rapid, cum 16").toBeCloseTo(cum[2]!, 6);
+    expect(ivs[1]!.flags & IV_CONTINUES_CUT).toBeTruthy();
+  });
+
+  it("a budget spent during the re-sampling is incomplete from the finding it could not write, not from the outer sample", () => {
+    const machine: CollisionMachine = { groups: [{ id: "table", parent: "root" }, { id: "head", parent: "root" }],
+      kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+      workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"] };
+    const make = () => buildCollisionModel(machine, [{ id: "fixed", group: "table", positions: new Float32Array([...boxAt(1, 4, 4), ...boxAt(1, 4, 4, 3)]) },
+                                                     { id: "moving", group: "head", positions: boxAt(1, 4, 4) }]);
+    const t = { pos: new Float32Array([-20, 0, 0, 20, 0, 0]), abc: new Float32Array(6), lines: new Uint32Array([1, 2]), rapid: new Uint8Array([1, 1]),
+                cum: new Float32Array([0, 40]), count: 2, lineIndex: emptyLineIndex(), timeBased: false };
+    const full = new ContactStore(1, 0), small = new ContactStore(1, 0, { episodes: 100, intervals: 1, gaps: 100 });
+    const whole = sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: full } });
+    const r = sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: small } });
+    expect(full.intervals.rows, "two contacts").toBeGreaterThan(1);
+    expect(r.samples, "the spent budget stops the sweep (plan 2.4), it does not sweep on").toBeLessThan(whole.samples);
+    const lost = full.intervals.get(1, "enter");
+    expect(r.truncated?.reason).toBe("budget");
+    expect(r.incompleteFrom!, `incomplete from ${r.incompleteFrom}, the lost contact enters at ${lost}`).toBeLessThanOrEqual(lost + 1e-6);
+    expect(r.truncated!.covered * 40, "the coverage no further").toBeLessThanOrEqual(lost + 1e-6);
+  });
+
+  it("once the budget refuses a row, every pair of that sample still tries: the earliest lost entry bounds it, not the first refused", () => {
+    // two bodies on the head, the second 0.1 ahead: both come into contact
+    // with the wall between two samples (the MIN_ADV floor) and are found at
+    // the same one, the second entering earlier; with no room for intervals
+    // the first refused write is the first pair's
+    const machine: CollisionMachine = { groups: [{ id: "table", parent: "root" }, { id: "head", parent: "root" }],
+      kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+      workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"] };
+    const make = () => buildCollisionModel(machine, [{ id: "wall", group: "table", positions: boxAt(1, 4, 4, 10.5) },
+      { id: "b1", group: "head", positions: boxAt(1, 1, 1, 0, -1) }, { id: "b2", group: "head", positions: boxAt(1, 1, 1, 0.1, 1) }]);
+    const t = { pos: new Float32Array([0, 0, 0, 12, 0, 0]), abc: new Float32Array(6), lines: new Uint32Array([1, 2]), rapid: new Uint8Array([1, 1]),
+                cum: new Float32Array([0, 12]), count: 2, lineIndex: emptyLineIndex(), timeBased: false };
+    const full = new ContactStore(1, 0), none = new ContactStore(1, 0, { episodes: 100, intervals: 0, gaps: 100 });
+    sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: full } });
+    const r = sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: none } });
+    const enters = ivRows(full).map(v => v.enter).sort((x, y) => x - y);
+    expect(enters, "both pairs enter, the second first").toHaveLength(2);
+    expect(enters[1]! - enters[0]!, "0.1 apart").toBeCloseTo(0.1, 2);
+    expect(r.incompleteFrom!, `incomplete from ${r.incompleteFrom}`).toBeLessThanOrEqual(enters[0]! + 1e-6);
+  });
+});
+
