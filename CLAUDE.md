@@ -1916,7 +1916,13 @@ form, widths 0.26–0.5, every one found to 1e-3; a free gap narrower than the
 touching stride EXPLORE may stay unsampled and read as contact, one wider is
 always proved), `collisionSpeed.test.ts` (V ≥ every vertex's relative speed at
 interior points; the generated machines and a rotary not about Z),
-`contactStore.test.ts`, `contactMerge.test.ts`, `collisionWorker.test.ts`.
+`sweepShards.test.ts` (the contact tables of 1, 2, 3 shards and a random
+split: every touch interval's witness, entry and decided exit inside the other
+run's intervals of its pair, else a touch run no wider than MIN_ADV by the
+truth), `contactStore.test.ts`, `contactMerge.test.ts`,
+`collisionWorker.test.ts`. `CollisionOptions.profile.probes` counts the
+distance probes away from the main step (refinement, re-sampling, the store's
+bisections) — the sink's cost without the load.
 
 ## Key Patterns
 

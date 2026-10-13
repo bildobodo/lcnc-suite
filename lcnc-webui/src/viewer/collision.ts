@@ -387,8 +387,10 @@ export interface CollisionOptions {
   /** Diagnostics (2026-09-13): when set, the sweep allocates and fills
    *  per-pair distance-query counts and milliseconds, indexed like
    *  `model.pairs` — the tool for finding which pairs a slow sweep spends its
-   *  time on. Off by default; costs nothing when absent. */
-  profile?: { queries?: Uint32Array; ms?: Float64Array };
+   *  time on. Off by default; costs nothing when absent. `probes` counts the
+   *  distance probes away from the main step (refinement, the re-sampling
+   *  after a touch, the contact store's bisections) — work no load changes. */
+  profile?: { queries?: Uint32Array; ms?: Float64Array; probes?: Uint32Array };
   /** Test seam (step 4 package 2, plan 7.3 check 3): every chunk's speed
    *  bound per pair as the sweep uses it — `V` per unit of the sweep's
    *  distance parameter over [s0, s1]. Absent = nothing called. */
@@ -1726,6 +1728,7 @@ export function* sweepCollisionsIter(
   if (prof) {
     prof.queries = new Uint32Array(pairs.length);
     prof.ms = new Float64Array(pairs.length);
+    prof.probes = new Uint32Array(pairs.length);
   }
 
   // Baseline pass (first pose): pairs already inside the margin here are
@@ -2351,6 +2354,7 @@ export function* sweepCollisionsIter(
       toolFor(lo),
     );
     const [ai, bi] = pairs[pi]!;
+    if (prof) prof.probes![pi] = prof.probes![pi]! + 1;
     return pairDistance(bodies[ai]!, bodies[bi]!, maxT, opts.margin);
   };
 
