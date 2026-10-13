@@ -389,6 +389,10 @@ export interface CollisionOptions {
    *  `model.pairs` — the tool for finding which pairs a slow sweep spends its
    *  time on. Off by default; costs nothing when absent. */
   profile?: { queries?: Uint32Array; ms?: Float64Array };
+  /** Test seam (step 4 package 2, plan 7.3 check 3): every chunk's speed
+   *  bound per pair as the sweep uses it — `V` per unit of the sweep's
+   *  distance parameter over [s0, s1]. Absent = nothing called. */
+  onChunkSpeed?: (pi: number, s0: number, s1: number, V: number) => void;
   /** The pairs this sweep checks (1 = check), indexed like `model.pairs`: a
    *  SHARD of the parallel sweep (sweepShards.ts). Pairs are independent —
    *  each has its own certificates, contact state and records — so shards
@@ -2898,6 +2902,7 @@ export function* sweepCollisionsIter(
         // recursion leverTrue ≤ (leverEnd + trans) / (1 − rotRad) with
         // rotRad ≤ 0.4 (22.5° chunks) is bounded by ×1.65; ×2 gives slack.
         pairV[pi] = (trans + rotRadLever * 2) / Lc;
+        opts.onChunkSpeed?.(pi, s0, s1, pairV[pi]!);
       }
 
       // Certificates: a distance query at s proves the pair cannot reach
