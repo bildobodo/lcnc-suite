@@ -95,7 +95,7 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
   const lineStarts = new Set<number>();
   for (let i = 1; i < track.count; i++) if (track.lines[i] !== track.lines[i - 1]) lineStarts.add(track.cum[i - 1]!);
   const nearLineStart = (x: number) => [...lineStarts].some(l => Math.abs(l - x) <= TOL);
-  let touches = 0, nears = 0, collapsed = 0, bridgedN = 0, flooredN = 0, freeChecked = 0;
+  let touches = 0, nears = 0, collapsed = 0, bridgedN = 0, flooredN = 0, freeChecked = 0, freeN = 0, freeWide = 0;
   const pairsSeen = new Set<number>([...view.keys()]);
   for (let pi = 0; pi < model.pairs.length; pi++) if (oldByPair.has(ids(pi))) pairsSeen.add(pi);
   const { poseAt, below } = trackTruth(model, c, track);
@@ -132,6 +132,8 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
     // truth at dense points across it (plan 2.2, 7.5; Codex R141/R142)
     for (let q = 0; q < v.free.length; q++) {
       const f = v.free[q]!, r = v.freeR[q]!;
+      freeN++;
+      if (r > 0) freeWide++;
       // the radius stays inside the chunk whose V proves it (plan 2.2, Codex R142):
       // the track's cum is the sweep's distance parameter in these tracks
       if (r > 0) expect((chunks.get(pi) ?? []).some(([s0, s1]) => f - r >= s0 - 1e-3 && f + r <= s1 + 1e-3),
@@ -175,7 +177,7 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
   }
   void IV_POSSIBLE;
   if (process.env.COLLISION_CONTACTS_LOG) fs.appendFileSync(process.env.COLLISION_CONTACTS_LOG,
-    `${where}: ${touches} touch intervals, ${nears} near stays; records bridged a proven free sample ${bridgedN}×, floored at a line start ${flooredN}×, collapsed a second stay of a line ${collapsed}×; free stretches checked at ${freeChecked} points\n`);
+    `${where}: ${touches} touch intervals, ${nears} near stays; records bridged a proven free sample ${bridgedN}×, floored at a line start ${flooredN}×, collapsed a second stay of a line ${collapsed}×; free samples ${freeN}, ${freeWide} with a radius, checked at ${freeChecked} points\n`);
   return { skipped: false, touches, nears, collapsed };
 }
 

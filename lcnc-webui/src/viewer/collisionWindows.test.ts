@@ -59,7 +59,8 @@ describe("contact windows in closed form, through the product (plan 7.3 check 1)
       const x0 = -4 - rand() * 3, x1 = c2 + 4 + rand() * 3;
       const track = trackThrough([x0, x1, x0 - rand()], rand);
       const store = new ContactStore(1, 0);
-      const r = sweepCollisions(model, track, WCS0, { margin: 2, contacts: { store } });
+      const chunks: Array<[number, number]> = [];
+      const r = sweepCollisions(model, track, WCS0, { margin: 2, contacts: { store }, onChunkSpeed: (_pi, s0, s1) => chunks.push([s0, s1]) });
       expect(r.truncated).toBeNull();
       // the windows in track cum: each pass through each box
       const cumAt = (x: number, pass: 0 | 1) => pass === 0 ? x - x0 : (x1 - x0) + (x1 - x);
@@ -74,6 +75,17 @@ describe("contact windows in closed form, through the product (plan 7.3 check 1)
       windows += wins.length;
       const I = store.intervals, ivs: Array<{ a: number; b: number; free: number }> = [];
       for (let k = 0; k < I.rows; k++) ivs.push({ a: I.get(k, "enter"), b: I.get(k, "exit"), free: I.get(k, "freeAt") });
+      // a free radius holds only inside the chunk whose speed bound proves it
+      // (plan 2.2, Codex R142). A touching pair is queried at every chunk's
+      // start, so on these short lines a separation is found there (the side
+      // before it 0) or by a re-sample in an earlier chunk: the radius is 0 and
+      // the sample point alone is the evidence. Unclipped, it reaches past.
+      for (let k = 0; k < I.rows; k++) {
+        const f = I.get(k, "freeAt"), fr = I.get(k, "freeR");
+        if (Number.isNaN(f) || !(fr > 0)) continue;
+        expect(chunks.some(([s0, s1]) => f - fr >= s0 - 1e-4 && f + fr <= s1 + 1e-4),
+          `case ${t}: the free stretch ${f.toFixed(4)} ± ${fr.toFixed(4)} lies inside one chunk`).toBe(true);
+      }
       const frees = ivs.map(v => v.free).filter(f => !Number.isNaN(f));
       const where = `case ${t} (W ${W.toFixed(3)}, gap ${gap})`;
       // every window lies inside one interval
