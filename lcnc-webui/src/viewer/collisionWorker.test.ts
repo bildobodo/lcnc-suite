@@ -478,8 +478,14 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
   it("a fall back to this core is the request's next generation", async () => {
     const { sent, workers, send } = await setup();
     send({ ...boxReq(4, 2), contacts: { generation: 0 } });
+    workers[0]!.emit({ id: 4, progress: 0.25 });
+    workers[1]!.emit({ id: 4, progress: 0.5 });
     workers[1]!.fail();
     drain();
+    // first: how far each shard of generation 0 swept (Codex R150 VP150-02), before any word of generation 1
+    const cov = sent.findIndex(x => x.heldCoverage);
+    expect(sent[cov]!.heldCoverage).toEqual({ generation: 0, covered: [0.25, 0.5] });
+    expect(sent.findIndex(x => x.contacts && (x.contacts as StoreDelta[])[0]!.generation === 1), "after it").toBeGreaterThan(cov);
     const m = sent.find(x => x.contacts)!;
     expect((m.contacts as StoreDelta[])[0]!.generation, "generation 1 on this core").toBe(1);
     expect(new ContactStore(4, 0).apply((m.contacts as StoreDelta[])[0]!), "the old generation's table refuses it").toBe(false);
@@ -592,9 +598,14 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     const old = new ContactStore(-83, 7);
     addEp(old, 1);
     workers[0]!.emit({ id: -83, contacts: [old.takeDelta()!] });
+    workers[0]!.emit({ id: -83, progress: 0.4 });
     workers[1]!.fail();
     await vi.runAllTimersAsync();
     expect(deltas(sent, -83).map(d => d.generation)).toEqual([7, 8]);
+    // how far shard 0 had swept it, with its generation, before the rerun's word (Codex R150 VP150-02)
+    const cov = sent.findIndex(m => m.id === -83 && m.heldCoverage);
+    expect(sent[cov]!.heldCoverage).toEqual({ generation: 7, covered: [0.4] });
+    expect(sent.findIndex(m => m.id === -83 && m.contacts && (m.contacts as StoreDelta[])[0]!.generation === 8)).toBeGreaterThan(cov);
   });
 
   it("the pool's result keeps the earliest point a shard's store stopped writing (VP-I100)", async () => {

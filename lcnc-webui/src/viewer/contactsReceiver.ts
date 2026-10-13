@@ -19,11 +19,19 @@ export interface GenerationTables {
    *  generation's first delta. */
   pairs: Array<[string, string]> | null;
   deltas: number;
+  /** How far each of its shards swept (track fractions, by shard) when its
+   *  pool fell back — the earlier generation's own coverage (Codex R150
+   *  VP150-02); none while it is the request's live generation. */
+  covered?: number[];
 }
 
 interface RequestTables { current: GenerationTables | null; held: GenerationTables | null }
 
-export interface ContactsMessage { id: number; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]> }
+export interface ContactsMessage {
+  id: number; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
+  /** A pool fell back: how far each shard of `generation` swept. */
+  heldCoverage?: { generation: number; covered: number[] };
+}
 
 export class ContactsReceiver {
   private reqs = new Map<number, RequestTables>();
@@ -34,6 +42,11 @@ export class ContactsReceiver {
   /** Applies a message's deltas; returns the acknowledgement to send (null:
    *  the message carried none). */
   apply(m: ContactsMessage): { contactsAck: number; generation: number } | null {
+    if (m.heldCoverage) {
+      // it goes with its generation's tables, kept with them at the switch
+      const r = this.reqs.get(m.id), g = m.heldCoverage.generation;
+      for (const t of [r?.current, r?.held]) if (t && t.generation === g) t.covered = m.heldCoverage.covered.slice();
+    }
     const deltas = m.contacts;
     if (!deltas?.length) return null;
     const g = deltas[0]!.generation;

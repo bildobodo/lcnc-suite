@@ -3182,7 +3182,8 @@ let _viewProgress = 0, _viewSideProgress = 0;
 /** Deltas waiting for the next rebuild, in arrival order (Codex R148
  *  VP-I107). Each holds its path: the worker sends the next only after the
  *  acknowledgement, its changes waiting as marks in its own table. */
-const _pendingContacts: Array<{ id: number; contacts: StoreDelta[]; contactPairs?: Array<[string, string]> }> = [];
+const _pendingContacts: Array<{ id: number; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
+                                 heldCoverage?: { generation: number; covered: number[] } }> = [];
 /** How long the last rebuild took: the cadence follows it — a table the size
  *  of a real program's rebuilds at once, only a budget-size one waits. */
 let _lastViewBuildMs = 0;
@@ -3236,13 +3237,13 @@ function _colBaseSpec(trk: ScrubTrack): ShownSource | null {
   const end = _sliceEnd(trk);
   if (collisionResult.value && collisionTrack.value === trk) {
     const r = collisionResult.value;
-    return _colResultReq === null ? null : { id: _colResultReq, map: null, coverage: end * (r.truncated ? r.truncated.covered : 1) };
+    return _colResultReq === null ? null : { id: _colResultReq, map: null, coverage: end * (r.truncated ? r.truncated.covered : 1), ownEnd: end };
   }
   if (collisionPartial.value && collisionPartialTrack.value === trk) {
-    return _colPartialReq === null ? null : { id: _colPartialReq, map: null, coverage: end * _viewProgress };
+    return _colPartialReq === null ? null : { id: _colPartialReq, map: null, coverage: end * _viewProgress, ownEnd: end };
   }
   const s = _colRunSideBase();
-  return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * _viewProgress } : null;
+  return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * _viewProgress, ownEnd: end } : null;
 }
 /** How far a side result swept its own track: all of it, else what its
  *  `truncated` names (a stop, its budget) — an answer is not a whole check
@@ -3257,13 +3258,13 @@ function _colRunSideSpec(trk: ScrubTrack): ShownSource | null {
   const rs = collisionRunSide.value;
   if (rs && rs.base === trk && gen === rs.gen) {
     const own = _sideCovered(rs.result) * rs.sliceEnd;
-    return { id: rs.id, map: { kind: "minus", shift: rs.shift }, coverage: Math.max(0, own - rs.shift), ownCoverage: own,
+    return { id: rs.id, map: { kind: "minus", shift: rs.shift }, coverage: Math.max(0, own - rs.shift), ownCoverage: own, ownEnd: rs.sliceEnd,
              entry: true, entryEnd: rs.bound.cum[1], sweptToEnd: !rs.result.truncated, track: rs.bound };
   }
   const sf = collisionSideFirst.value;
   if (sf?.run && sf.base === trk && gen === sf.run.gen) {
     const own = _viewSideProgress * sf.sliceEnd;
-    return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, own - sf.shift), ownCoverage: own,
+    return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, own - sf.shift), ownCoverage: own, ownEnd: sf.sliceEnd,
              entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, track: sf.entry };
   }
   return null;
@@ -3281,7 +3282,7 @@ function _colViewSpec(trk: ScrubTrack): ShownSpec | null {
   const b = _colBaseSpec(ent.base);
   if (!b) return null;   // no entry overlay without its base (collisionEntryResult)
   return { base: { ...b, map: { kind: "plus", shift: ent.shift }, coverage: b.coverage + ent.shift },
-           side: { id: ent.id, map: null, coverage: ent.covered * ent.sliceEnd, entry: true,
+           side: { id: ent.id, map: null, coverage: ent.covered * ent.sliceEnd, ownEnd: ent.sliceEnd, entry: true,
                    entryEnd: ent.track.cum[1], sweptToEnd: ent.whole },
            axisEnd: _sliceEnd(trk) };
 }
@@ -3298,7 +3299,7 @@ function contactViewFor(trk: ScrubTrack | null): ShownContacts | null {
   const c = _viewCache.get(trk);
   if (c && c.key === key) return c.v;
   const t0 = performance.now();
-  const view = shownContactView(id => _contacts.current(id), spec);
+  const view = shownContactView(id => _contacts.current(id), spec, undefined, id => _contacts.held(id));
   _lastViewBuildMs = performance.now() - t0;
   const v = view ? { view, lineAt: _lineAtOf(trk) } : null;
   _viewCache.set(trk, { key, v });
@@ -3378,14 +3379,20 @@ function _colGetWorker(): Worker {
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
       const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean;
-                             contacts?: StoreDelta[]; contactPairs?: Array<[string, string]> };
+                             contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
+                             heldCoverage?: { generation: number; covered: number[] } };
+      if (m.heldCoverage) {
+        // a pool fell back: its generation's coverage, in order with its tables
+        if (m.id === _colReqId || (_colSide && m.id === _colSide.id)) { _pendingContacts.push({ id: m.id, heldCoverage: m.heldCoverage }); _contactsBump(true); }
+        return;
+      }
       if (m.contacts) {
         // the tables of the current request or the current side run; a
         // superseded one's are no one's (its cancel went out)
         if (m.id === _colReqId || (_colSide && m.id === _colSide.id)) {
           // waits, unapplied and unacknowledged, for the next rebuild (Codex
           // R148 VP-I107: the tables change only where the view is built anew)
-          const first = _intervalRows(m.id) === 0 && !_pendingContacts.some(p => p.id === m.id && p.contacts.some(d => d.intervals.count > 0))
+          const first = _intervalRows(m.id) === 0 && !_pendingContacts.some(p => p.id === m.id && p.contacts?.some(d => d.intervals.count > 0))
             && m.contacts.some(d => d.intervals.count > 0);
           _pendingContacts.push({ id: m.id, contacts: m.contacts, ...(m.contactPairs ? { contactPairs: m.contactPairs } : {}) });
           _contactsLog.messages++;

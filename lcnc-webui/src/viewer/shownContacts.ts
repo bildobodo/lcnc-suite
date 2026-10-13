@@ -25,6 +25,9 @@ export interface ShownSource {
   map: ShownMap;
   /** On the shown axis, how far it is swept: an open interval runs to here. */
   coverage: number;
+  /** Its own track's end: a fallen-back pool's coverage (track fractions)
+   *  reaches its own axis through it (Codex R150 VP150-02). */
+  ownEnd: number;
   /** On its OWN axis, how far it is swept — given for a source the map folds
    *  (a run check's beginning, all at 0 on the base axis): the shown 0 says
    *  nothing about how much of the beginning is checked (Codex R149 VP-I108),
@@ -67,17 +70,23 @@ export interface ShownSpec { base: ShownSource | null; side: ShownSource | null;
 
 /** The view of `spec` from the tables `tables` holds, null without any. Each
  *  request names its own pairs; joining an entry contact to the base's needs
- *  ONE model's pairs — `warn` hears a mismatch, and nothing is joined then. */
+ *  ONE model's pairs — `warn` hears a mismatch, and nothing is joined then.
+ *  `held` gives a request's EARLIER generation (a pool fell back to one core,
+ *  plan 3.5): its source then shows the union of both. */
 export function shownContactView(tables: (id: number) => GenerationTables | null, spec: ShownSpec,
-                                 warn: (msg: string) => void = m => console.error(m)): ContactView | null {
+                                 warn: (msg: string) => void = m => console.error(m),
+                                 held: (id: number) => GenerationTables | null = () => null): ContactView | null {
   const sources: ContactSource[] = [];
   const parts: Array<{ s: ShownSource; t: GenerationTables }> = [];
   for (const s of [spec.base, spec.side]) {
     const t = s ? tables(s.id) : null;
     if (!s || !t || !t.stores.length) continue;
     parts.push({ s, t });
-    const own = t.pairs;
+    const h = held(s.id);
+    // the pairs' names come with a generation's first delta: the earlier one's until then
+    const own = t.pairs ?? h?.pairs ?? null;
     sources.push({ stores: t.stores, at: atOf(s.map), coverage: s.coverage,
+                   ...(h?.stores.length ? { held: h.stores, ...(h.covered ? { heldCoverage: h.covered.map(f => f * s.ownEnd) } : {}) } : {}),
                    ...(s.ownCoverage !== undefined ? { ownCoverage: s.ownCoverage } : {}),
                    ...(own ? { pairName: (p: number) => { const n = own[p]; return n ? { a: n[0], b: n[1] } : { a: `pair ${p}`, b: "" }; } } : {}),
                    ...(s.track ? { ownTrack: ownTrackOf(s.track) } : {}),

@@ -1942,6 +1942,48 @@ truth), `contactStore.test.ts`, `contactMerge.test.ts`,
 distance probes away from the main step (refinement, re-sampling, the store's
 bisections) — the sink's cost without the load.
 
+**After a fallback (round B4, plan 3.5; Codex R140–R143, R150)**: a pool that
+falls back to one core reruns the request as its next generation; the
+receiver keeps the earlier one (`held`) together with how far each of its
+shards swept — the coordinator's `{id, heldCoverage: {generation, covered[]}}`
+(track fractions by shard; the side run on shard 0 its own), posted before any
+word of the next generation and queued with the tables' deltas: an open
+contact's rows name its entry only, so the furthest row position is a lower
+bound beside it, never the coverage (VP150-02). A source with held tables
+(`ContactSource.held`, `heldCoverage` on its own axis through
+`ShownSource.ownEnd`) shows, per pair AND origin, the union of both
+generations' intervals less the proven free stretches of both
+(`viewer/contactUnion.ts`, pure): a free sample proves (p − r', p + r') free,
+r' its radius cut back to the nearest confirmed point (a witness, a decided
+boundary) of either generation inside it — none where one lies on the sample
+itself; the point stays contact, the sample free, and no neighbourhood of the
+point is made contact (VP150-01: ±1e-3 around a point swallowed a whole free
+gap). A confirmed point deeper than the refinement's 1e-3 inside the original
+stretch is a contradiction of the two runs, kept and NAMED in the sweep's
+caveat ("its two runs disagree at N places (from L…) — kept as contact"). The
+pieces are the events — a knowledge gap does not split one, as it splits no
+interval without a fallback; a piece's contact on screen is its intervals'
+own less each one's generation's gaps. A piece is ONE u32 in the target list
+(its start evidence: an interval's enter or a free stretch's end); its end,
+what it holds, its kind and its key are asked of the union from that start
+(`pieceFrom`, the one search of the build and of every question; a build walks
+a group with its free stretches memoized, a view keeps its last group). Its
+identity: the earlier event's key where it holds that event's witness, else
+`<lead row key>#g<generation>/<b | f<gen>:<evidence row key>>`. Near misses of
+the two generations are matched one to one per group by overlap in order: a
+matched one shows the current approach under the earlier key, an earlier one
+not found again is `earlier` (the Sim tab: "from the earlier run"). Code marks
+read both generations' episodes (a free stretch proves no touch, not that the
+pair left the margin). `contactUnion.test.ts` holds the search to a brute
+force over open and closed spans (7 seeds × 4000 random generation pairs,
+piece by piece, each asked again from its start) and to Codex's R140–R142 and
+R150 sequences; `contactViewUnion.test.ts` holds the view through real tables
+(keys, gaps, near misses, the reported coverage in three steps, conflicts,
+origin groups, the budget); `collisions.viewer.spec` fails a real sub-worker
+(the worker script served with a hook that holds the pool's words after its
+first contact, then fails shard 0): the earlier finding stays listed under its
+key through the paused rerun, each contact once after it.
+
 ## Key Patterns
 
 - **No hardcoded visual styles** — never invent custom font-size, padding, border-radius, colors, opacity, or font-family for new elements. Always inherit from the nearest parent class or global base styles in `style.css`. New CSS should only override layout properties (flex, width, text-align). If a visual style doesn't exist, extend the existing class hierarchy or global base — never create one-off overrides. For color semantics: machine active states use `--ok` (green), form controls (toggles, radios, checkboxes) use `--info` (blue), danger/abort uses `--danger`, warnings use `--warn` — as FILLS, borders and tints; a TEXT or state glyph in that state reads its `-text` role (`--ok-text`, `--warn-text`, `--danger-text`, `--info-text`, `--accent-text`), muted text `--fg-muted` (see Text roles).

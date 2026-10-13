@@ -798,6 +798,13 @@ const sweepCaveat = computed<string | null>(() => {
   if (!r || (props.collisionBusy && !provisionalOnScreen.value)) return null;
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
+  // after a sweep worker failed the check ran again on one core; where the two
+  // runs contradict each other a confirmed contact is kept and named (plan 3.5)
+  const cf = shownView.value?.view.conflicts;
+  if (cf?.count) {
+    const at = shownView.value!.lineAt(cf.at);
+    why.push(`its two runs disagree at ${cf.count} place${cf.count > 1 ? "s" : ""}${at != null ? ` (from L${at})` : ""} — kept as contact`);
+  }
   if (r.coarsened) why.push("coarsened to fit the sample budget");
   if (r.truncated && r.truncated.reason !== "running" && !props.collisionResumable) {
     // a full contact table (step 4 package 2, plan 2.4): where it stopped writing

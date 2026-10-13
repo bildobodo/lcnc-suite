@@ -496,7 +496,7 @@ let _poolRun: PoolRun | null = null;
 let _lostParked: LostParked | null = null;
 /** The side request on shard 0. Null is none — every number is a side id
  *  the owner may use (−1 is its first; Codex R90 VP-I50). */
-let _sideOnShard: { req: CollisionReq; cancelling: boolean } | null = null;
+let _sideOnShard: { req: CollisionReq; cancelling: boolean; progress: number } | null = null;
 let _poolBroken = typeof Worker !== "function";
 
 function shardCount(d: CollisionReq): number {
@@ -565,6 +565,7 @@ function forwardContacts(run: PoolRun, extra?: Record<string, unknown>): boolean
 
 function onShardMessage(k: number, m: any): void {
   if (_sideOnShard && m.id === _sideOnShard.req.id) {
+    if (m.progress !== undefined) _sideOnShard.progress = m.progress;
     self.postMessage(m);
     if (m.result || m.error || m.cancelled || m.needBodies) _sideOnShard = null;
     return;
@@ -689,6 +690,16 @@ function poolFailed(): void {
   const run = _poolRun, side = _sideOnShard;
   _poolRun = null;
   _sideOnShard = null;
+  // how far each shard swept, with the generation whose tables it belongs to —
+  // before anything of the next generation: the earlier generation's own
+  // coverage, which its rows alone cannot tell (an open contact names its
+  // entry only; Codex R150 VP150-02)
+  if (run?.stores && !run.cancelling) {
+    self.postMessage({ id: run.id, heldCoverage: { generation: run.stores[0]!.generation, covered: run.progress.slice() } });
+  }
+  if (side?.req.contacts && !side.cancelling) {
+    self.postMessage({ id: side.req.id, heldCoverage: { generation: side.req.contacts.generation, covered: [side.progress] } });
+  }
   // what the coordinator took over is still owed in its generation (VP-I98)
   if (run?.stores && !run.cancelling && (run.ownerWaiting || run.finalMsg || run.stores.some(s => s.pending()))) {
     _drain = { id: run.id, generation: run.stores[0]!.generation, stores: run.stores, ownerWaiting: run.ownerWaiting, finalMsg: run.finalMsg };
@@ -821,7 +832,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   if (req.side) {
     // The entry segment: on shard 0 (which holds the model) while a pool runs.
     if (_shards.length) {
-      _sideOnShard = { req, cancelling: false };
+      _sideOnShard = { req, cancelling: false, progress: 0 };
       const hasModel = _shardModel[0] === req.modelKey;
       _shardModel[0] = req.modelKey;
       _shards[0]!.postMessage({ ...req, bodies: hasModel ? undefined : _bodies?.key === req.modelKey ? _bodies.bodies : undefined });

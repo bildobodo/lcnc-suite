@@ -11,6 +11,7 @@
 // unacknowledged delta (VP139-03), so a slow receiver queues nothing — the
 // changes wait as marks in the sender's own table.
 export const BLOCK = 4096;
+export const BLOCK_SHIFT = 12;
 
 export type ColType = "u8" | "u16" | "u32" | "f32" | "f64";
 type Typed = Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
@@ -101,6 +102,10 @@ export class ColumnTable {
   get(row: number, name: string): number {
     return this.col(name)[Math.floor(row / BLOCK)]![row % BLOCK]!;
   }
+  /** A column's blocks, for a reader that holds them (contactView): row r is
+   *  `blocks[r >>> BLOCK_SHIFT][r & (BLOCK - 1)]`. Read only — a write goes
+   *  through set() (its dirty mark, its revision). */
+  blocksOf(name: string): readonly ArrayLike<number>[] { return this.col(name); }
 
   /** Change one cell. A row already sent is marked dirty — once. */
   set(row: number, name: string, value: number): void {

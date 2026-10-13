@@ -5,7 +5,7 @@ import { ctl } from "./ctl";
 import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 import { FROM_WIRE_INIT, oneContact, wireDelta } from "./contactsDelta";
-import type { ContactStore } from "../src/viewer/contactStore";
+import { ContactStore } from "../src/viewer/contactStore";
 
 // COLLISION jumps on the real 5-axis model (examples/sim_config/machine-
 // 5axis-xyzac, the XYZAC config's own machine.json and STLs): the sweep runs
@@ -1537,4 +1537,108 @@ test("a side run stopped by its budget keeps its contact band at its own coverag
   await expect(page.locator(".simPanel .simSummary .sumItem").first()).not.toHaveAttribute("aria-label", /still checking/);
   expect(await reach(), "stopped at 20 %: the band ends there, not at the side track's end").toBeLessThan(30);
   expect(errors).toEqual([]);
+});
+
+// Round B4 (plan 3.5): a sweep worker fails mid-run; the request runs again on
+// one core as its next generation, and the earlier generation's evidence stays.
+// The worker script is served with a hook in front (no seam in the product):
+// once a sub-worker's contact reached the coordinator, the sub-workers' words
+// wait (so the pool cannot end first), and on the page's word sub-worker 0
+// fails. The rerun is held by a camera hold: its own tables have nothing yet.
+const FAIL_HOOK = `(() => {
+  const RealWorker = self.Worker;
+  if (!RealWorker) return;
+  const subs = [];
+  let held = false;
+  self.Worker = function (url, opts) {
+    const w = new RealWorker(url, opts);
+    subs.push(w);
+    let handler = null;
+    Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+    w.addEventListener("message", e => {
+      if (held) return;
+      handler && handler(e);
+      const c = e.data && e.data.contacts;
+      if (c && c.some(d => d.intervals && d.intervals.count > 0)) { held = true; self.postMessage({ __poolHeld: true }); }
+    });
+    return w;
+  };
+  self.addEventListener("message", e => {
+    if (e.data && e.data.__failShard !== undefined) {
+      e.stopImmediatePropagation();
+      const w = subs[e.data.__failShard];
+      if (w) w.dispatchEvent(new ErrorEvent("error", { message: "a failing sweep worker (test)" }));
+    }
+  });
+})();
+`;
+test("a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await context.route(/collisionWorker[^/]*\.js(\?|$)/, async route => {
+    const r = await route.fetch();
+    await route.fulfill({ response: r, body: FAIL_HOOK + await r.text() });
+  });
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { w: null, poolHeld: false, pairs: null, deliver: null, dropAck: false };
+    (window as any).__b4 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      tap.w = w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      w.addEventListener("message", e => {
+        if (e.data?.__poolHeld) { tap.poolHeld = true; return; }
+        if (e.data?.contactPairs) tap.pairs = e.data.contactPairs;
+        handler?.(e);
+      });
+      // the acknowledgement of the delta the page was handed (below) is not the worker's
+      w.postMessage = ((m: any, t?: Transferable[]) => {
+        if (tap.dropAck && m?.contactsAck !== undefined && m.generation === 1) { tap.dropAck = false; return; }
+        post(m, t ?? []);
+      }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  await prepare(page, context, { file: "/crash-fallback.ngc", version: 2214, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]],
+    before: () => expect.poll(() => page.evaluate(() => { window.__viewerDiag?.setCollisionShards?.(2); return !!window.__viewerDiag?.setCollisionShards; })).toBe(true) });
+  // the pool found the nose in the yoke; its words wait from here
+  await expect.poll(() => page.evaluate(() => (window as any).__b4.poolHeld), { timeout: 60_000 }).toBe(true);
+  // a camera hold, then sub-worker 0 fails: the pool's tables are delivered,
+  // the request runs again here as generation 1 — held
+  await page.evaluate(() => { window.__viewerDiag!.setCameraHold!(true); (window as any).__b4.w.postMessage({ __failShard: 0 }); });
+  const row = page.locator('.simPanel tbody tr[data-sim-at="C7"]');
+  await expect(row, "the pool's collision on L7").toHaveCount(1, { timeout: 30_000 });
+  const key = await row.getAttribute("data-sim-row");
+  expect(key, "an event of the earlier run keeps its plain key").toMatch(/^C\d+\|\d+\|0$/);
+  const id = await page.evaluate(() => window.__viewerDiag!.getContacts!().main!.id);
+  // generation 1's first word — nothing found yet (the rerun holds before it sweeps)
+  await page.evaluate(([w, id]) => {
+    const t = (window as any).__b4;
+    t.dropAck = true;
+    t.deliver({ id, contacts: [(window as any).__fromWire(w)], contactPairs: t.pairs });
+  }, [wireDelta(new ContactStore(1, 1)), id] as const);
+  await expect.poll(() => page.evaluate(() => {
+    const m = window.__viewerDiag!.getContacts!().main;
+    return m?.held ? `${m.held.generation}<${m.generation} held ${m.held.rows!.intervals > 0} current ${m.rows!.intervals}` : null;
+  }), { timeout: 30_000 }).toBe("0<1 held true current 0");
+  await expect(row, "listed from the earlier run though the rerun found nothing yet").toHaveCount(1);
+  await expect(row).toHaveAttribute("data-sim-row", key!);
+  // the rerun goes on and ends: still that one finding, under the same key
+  await page.evaluate(() => window.__viewerDiag!.setCameraHold!(false));
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().main?.rows?.intervals ?? 0), { timeout: 60_000 }).toBeGreaterThan(0);
+  await expect(page.locator(`.simPanel tbody tr[data-sim-row="${key}"]`), "the same event, one row").toHaveCount(1);
+  // the rerun swept L7 whole (the pool's words stopped at its first contact): every pair once — no event twice
+  const pairs = await row.evaluateAll(rs => rs.map(r => r.getAttribute("aria-label") ?? r.textContent ?? ""));
+  expect(pairs.length).toBeGreaterThanOrEqual(1);
+  expect(new Set(pairs).size, `each contact once: ${pairs.join(" | ")}`).toBe(pairs.length);
+  await ctl({ op: "reset" });
 });

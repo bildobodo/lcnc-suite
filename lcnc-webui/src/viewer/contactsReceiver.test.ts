@@ -32,6 +32,20 @@ describe("the owner's contact receiver (round B2, plan 3.1/3.5)", () => {
     expect([r.dropped, r.held(9)!.stores[0]!.episodes.rows], "dropped, never patched into the held generation").toEqual([1, 1]);
   });
 
+  it("a pool's coverage goes with its generation's tables and stays with them at the switch (Codex R150 VP150-02)", () => {
+    const r = new ContactsReceiver();
+    const g0 = new ContactStore(9, 0), g1 = new ContactStore(9, 1);
+    ep(g0, 1); ep(g1, 1);
+    r.apply({ id: 9, contacts: [g0.takeDelta()!] }); g0.ack();
+    expect(r.apply({ id: 9, heldCoverage: { generation: 0, covered: [0.25, 0.5] } }), "nothing to acknowledge").toBeNull();
+    expect(r.current(9)!.covered).toEqual([0.25, 0.5]);
+    r.apply({ id: 9, contacts: [g1.takeDelta()!] });
+    expect([r.held(9)!.generation, r.held(9)!.covered, r.current(9)!.covered]).toEqual([0, [0.25, 0.5], undefined]);
+    // a word for another generation touches neither
+    r.apply({ id: 9, heldCoverage: { generation: 5, covered: [1] } });
+    expect([r.held(9)!.covered, r.current(9)!.covered]).toEqual([[0.25, 0.5], undefined]);
+  });
+
   it("a delta out of order is refused by its table, counted, never patched in; requests are let go", () => {
     const r = new ContactsReceiver();
     const s = new ContactStore(3, 0);

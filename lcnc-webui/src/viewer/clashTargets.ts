@@ -38,6 +38,9 @@ export interface ClashTarget {
   /** On a probe's braking range (CollisionHit.possible): the contact MAY
    *  happen — never a certain one. */
   possible?: boolean;
+  /** A near miss of the check's earlier run (a pool that fell back to one
+   *  core, plan 3.5) the run since did not find again: "from the earlier run". */
+  earlier?: boolean;
 }
 
 /** A near miss: by the sweep's class where the target carries it, else the
