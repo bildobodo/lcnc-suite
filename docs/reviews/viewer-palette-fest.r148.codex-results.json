@@ -1,0 +1,366 @@
+{
+  "regression-results.json": {
+    "freePoint": {
+      "defaultTint": [],
+      "exactTint": [],
+      "fineBands": [
+        [
+          0,
+          0.25
+        ],
+        [
+          0.250125,
+          0.5
+        ]
+      ]
+    },
+    "pointGap": {
+      "gap": [
+        20.75,
+        20.75
+      ],
+      "tint": [],
+      "mark": null
+    },
+    "pointContact": {
+      "before": {
+        "tint": [
+          "tool-0",
+          "work-0"
+        ],
+        "bands": [
+          [
+            0,
+            0.01
+          ]
+        ]
+      },
+      "after": {
+        "tint": [
+          "tool-0",
+          "work-0"
+        ],
+        "bands": [
+          [
+            0,
+            0.01
+          ]
+        ],
+        "targets": 1
+      }
+    },
+    "gapReason": {
+      "targetEnd": 7,
+      "recoveredTint": [
+        "tool-0",
+        "work-0"
+      ],
+      "mark": {
+        "line": 5
+      }
+    },
+    "sourceCoverage": {
+      "sideCoverage": 10,
+      "viewCoverage": 20,
+      "targets": [
+        12
+      ],
+      "baseTint": [
+        "tool-0",
+        "work-0"
+      ],
+      "baseMark": {
+        "line": 13
+      }
+    },
+    "memory": {
+      "rows": {
+        "episodes": 65536,
+        "intervals": 262144,
+        "gaps": 0
+      },
+      "targets": 262144,
+      "derivedBytes": 2375712,
+      "allowedAllGenerationsAndSide": 8400000,
+      "constructionMs": 267.002216,
+      "accounting": "heldBytes (new reference-index API)"
+    }
+  },
+  "sweep-results.json": {
+    "gap": {
+      "point": 20.75,
+      "end": 20.75,
+      "reason": 1
+    },
+    "intervals": [
+      {
+        "enter": 9.5005859375,
+        "exit": 20.7998046875,
+        "witness": 9.65
+      }
+    ],
+    "targets": [
+      [
+        9.5005859375,
+        20.7998046875
+      ]
+    ],
+    "tint": [],
+    "truncated": null
+  },
+  "transport-results.json": {
+    "simEntry": {
+      "before": {
+        "sideRows": 1,
+        "activeSide": null,
+        "hasResult": true
+      },
+      "after": {
+        "sideRows": 1,
+        "hasResult": true,
+        "mainRows": 1,
+        "acks": [
+          {
+            "contactsAck": -1,
+            "generation": 0
+          },
+          {
+            "contactsAck": 7,
+            "generation": 0
+          }
+        ]
+      }
+    },
+    "runBeginning": {
+      "before": {
+        "sideRows": 1,
+        "activeSide": null,
+        "hasResult": true
+      },
+      "after": {
+        "sideRows": 1,
+        "hasResult": true,
+        "mainRows": 1,
+        "acks": [
+          {
+            "contactsAck": -1,
+            "generation": 0
+          },
+          {
+            "contactsAck": 7,
+            "generation": 0
+          }
+        ]
+      }
+    }
+  },
+  "rest-results.json": {
+    "collapsedGap": {
+      "before": {
+        "n": 1,
+        "pos": 0,
+        "key": "E0|0|0",
+        "tint": [
+          "t0",
+          "w0"
+        ],
+        "band": [
+          [
+            0,
+            0.01
+          ]
+        ],
+        "mark": {
+          "line": 1
+        }
+      },
+      "after": {
+        "n": 1,
+        "pos": 0,
+        "key": "E0|0|0",
+        "tint": [],
+        "band": [],
+        "mark": null
+      },
+      "sourceContact": [
+        1,
+        2
+      ],
+      "sourceGap": [
+        5,
+        6
+      ],
+      "shift": 10
+    },
+    "joinedGap": {
+      "unjoined": {
+        "n": 2,
+        "tint": [],
+        "bands": [
+          [
+            0.2,
+            0.7333333333333333
+          ],
+          [
+            0.8,
+            1
+          ]
+        ],
+        "mark": null
+      },
+      "joined": {
+        "n": 1,
+        "tint": [
+          "t0",
+          "w0"
+        ],
+        "bands": [
+          [
+            0.2,
+            1
+          ]
+        ],
+        "mark": null
+      },
+      "baseGapOnAxis": [
+        11,
+        12
+      ]
+    },
+    "liveNear": {
+      "before": {
+        "counts": {
+          "collisions": 0,
+          "entryCollisions": 0,
+          "nearMisses": 1,
+          "possible": 0,
+          "startsIn": false
+        },
+        "target": {
+          "cum": 2,
+          "cumEnd": 2,
+          "key": "C0|0|n",
+          "line": 1,
+          "a": "t0",
+          "b": "w0",
+          "dist": 1
+        },
+        "words": "1 near miss",
+        "tint": []
+      },
+      "after": {
+        "counts": {
+          "collisions": 0,
+          "entryCollisions": 0,
+          "nearMisses": 1,
+          "possible": 0,
+          "startsIn": false
+        },
+        "target": {
+          "cum": 2,
+          "cumEnd": 2,
+          "key": "C0|0|n",
+          "line": 1,
+          "a": "t0",
+          "b": "w0",
+          "dist": 0
+        },
+        "words": "1 collision",
+        "tint": []
+      },
+      "rebuilt": {
+        "counts": {
+          "collisions": 1,
+          "entryCollisions": 0,
+          "nearMisses": 0,
+          "possible": 0,
+          "startsIn": false
+        },
+        "target": {
+          "cum": 4,
+          "cumEnd": 6,
+          "key": "C0|0|0",
+          "line": 1,
+          "a": "t0",
+          "b": "w0",
+          "dist": 0
+        },
+        "words": "1 collision",
+        "tint": [
+          "t0",
+          "w0"
+        ]
+      }
+    },
+    "budget": {
+      "sources": [
+        {
+          "request": 1,
+          "generation": 0,
+          "episodes": 65536,
+          "intervals": 262144,
+          "tableBytes": 15138816
+        },
+        {
+          "request": 1,
+          "generation": 1,
+          "episodes": 65536,
+          "intervals": 262144,
+          "tableBytes": 15138816
+        },
+        {
+          "request": -1,
+          "generation": 0,
+          "episodes": 8192,
+          "intervals": 32768,
+          "tableBytes": 1892352
+        },
+        {
+          "request": -1,
+          "generation": 1,
+          "episodes": 8192,
+          "intervals": 32768,
+          "tableBytes": 1892352
+        }
+      ],
+      "n": 589824,
+      "pairMaps": 147456,
+      "typedBytes": 5345280,
+      "reportedHeldBytes": 10063872,
+      "limit": 8400000
+    }
+  },
+  "owners-results.json": {
+    "resultCancel": {
+      "request": 8,
+      "result": {
+        "hits": []
+      },
+      "partial": null,
+      "sent": [],
+      "owners": [
+        8,
+        7
+      ],
+      "held": [
+        7
+      ]
+    },
+    "partialCancel": {
+      "request": 8,
+      "result": null,
+      "partial": null,
+      "sent": [
+        {
+          "cancel": 7
+        }
+      ],
+      "owners": [
+        8
+      ],
+      "held": [
+        7
+      ]
+    }
+  }
+}

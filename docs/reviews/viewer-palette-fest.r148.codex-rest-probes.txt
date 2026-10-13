@@ -1,0 +1,183 @@
+
+ RUN  v4.1.8 /tmp/codex-r148-tvk4cc8j/repo/lcnc-webui
+
+ ❯ src/viewer/r148.codex-rest.test.ts (5 tests | 4 failed) 1125ms
+   × a gap separate from a contact on the source axis does not erase it when BOTH map to zero 16ms
+   × joining the same event does not fill the base portion's knowledge gap 2ms
+   × the held view keeps one event classification after an existing open near stay gains a contact 3ms
+   × all held indices stay within the total budget at a legal high pair count too 1100ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > a gap separate from a contact on the source axis does not erase it when BOTH map to zero
+AssertionError: expected [] to deeply equal [ 't0', 'w0' ]
+
+- Expected
++ Received
+
+- [
+-   "t0",
+-   "w0",
+- ]
++ []
+
+ ❯ src/viewer/r148.codex-rest.test.ts:27:36
+     25|  results.collapsedGap={before:read(before),after:read(after),sourceCon…
+     26|  expect(tintAt(before,0).size).toBe(2);expect(after.n).toBe(1);
+     27|  expect.soft([...tintAt(after,0)]).toEqual([...tintAt(before,0)]);
+       |                                    ^
+     28|  expect.soft(contactBands(after,100,10)).toEqual(contactBands(before,1…
+     29|  expect(lineMark(after,1,[[0,0]])).toEqual({line:1});
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/8]⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > a gap separate from a contact on the source axis does not erase it when BOTH map to zero
+AssertionError: expected [] to deeply equal [ [ +0, 0.01 ] ]
+
+- Expected
++ Received
+
+- [
+-   [
+-     0,
+-     0.01,
+-   ],
+- ]
++ []
+
+ ❯ src/viewer/r148.codex-rest.test.ts:28:42
+     26|  expect(tintAt(before,0).size).toBe(2);expect(after.n).toBe(1);
+     27|  expect.soft([...tintAt(after,0)]).toEqual([...tintAt(before,0)]);
+     28|  expect.soft(contactBands(after,100,10)).toEqual(contactBands(before,1…
+       |                                          ^
+     29|  expect(lineMark(after,1,[[0,0]])).toEqual({line:1});
+     30| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/8]⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > a gap separate from a contact on the source axis does not erase it when BOTH map to zero
+AssertionError: expected null to deeply equal { line: 1 }
+
+- Expected:
+{
+  "line": 1,
+}
+
++ Received:
+null
+
+ ❯ src/viewer/r148.codex-rest.test.ts:29:36
+     27|  expect.soft([...tintAt(after,0)]).toEqual([...tintAt(before,0)]);
+     28|  expect.soft(contactBands(after,100,10)).toEqual(contactBands(before,1…
+     29|  expect(lineMark(after,1,[[0,0]])).toEqual({line:1});
+       |                                    ^
+     30| });
+     31|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/8]⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > joining the same event does not fill the base portion's knowledge gap
+AssertionError: expected [ 't0', 'w0' ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "t0",
++   "w0",
++ ]
+
+ ❯ src/viewer/r148.codex-rest.test.ts:48:40
+     46|  results.joinedGap={unjoined:read(x.plain),joined:read(x.view),baseGap…
+     47|  expect(tintAt(x.plain,11.5).size).toBe(0);expect(tintAt(x.view,12.5).…
+     48|  expect.soft([...tintAt(x.view,11.5)]).toEqual([]);
+       |                                        ^
+     49|  expect(contactBands(x.view,150,15)).toEqual(contactBands(x.plain,150,…
+     50| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/8]⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > joining the same event does not fill the base portion's knowledge gap
+AssertionError: expected [ [ 0.2, 1 ] ] to deeply equal [ [ 0.2, 0.7333333333333333 ], …(1) ]
+
+- Expected
++ Received
+
+  [
+    [
+      0.2,
+-     0.7333333333333333,
+-   ],
+-   [
+-     0.8,
+      1,
+    ],
+  ]
+
+ ❯ src/viewer/r148.codex-rest.test.ts:49:38
+     47|  expect(tintAt(x.plain,11.5).size).toBe(0);expect(tintAt(x.view,12.5).…
+     48|  expect.soft([...tintAt(x.view,11.5)]).toEqual([]);
+     49|  expect(contactBands(x.view,150,15)).toEqual(contactBands(x.plain,150,…
+       |                                      ^
+     50| });
+     51|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/8]⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > the held view keeps one event classification after an existing open near stay gains a contact
+AssertionError: position and distance must come from one state: expected [ [ 2, 1 ], [ 4, +0 ] ] to deep equally contain [ 2, +0 ]
+
+- Expected
++ Received
+
+  [
++   [
+      2,
++     1,
++   ],
++   [
++     4,
+      0,
++   ],
+  ]
+
+ ❯ src/viewer/r148.codex-rest.test.ts:65:79
+     63|  // Either retaining the complete old snapshot or advancing the whole …
+     64|  // Advancing only closeDist gives a collision word at a stored near-m…
+     65|  expect.soft([[2,1],[4,0]], 'position and distance must come from one …
+       |                                                                               ^
+     66|  expect(after.words).toContain(after.counts.nearMisses?'near miss':'co…
+     67| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/8]⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > the held view keeps one event classification after an existing open near stay gains a contact
+AssertionError: expected '1 collision' to contain 'near miss'
+
+Expected: "near miss"
+Received: "1 collision"
+
+ ❯ src/viewer/r148.codex-rest.test.ts:66:22
+     64|  // Advancing only closeDist gives a collision word at a stored near-m…
+     65|  expect.soft([[2,1],[4,0]], 'position and distance must come from one …
+     66|  expect(after.words).toContain(after.counts.nearMisses?'near miss':'co…
+       |                      ^
+     67| });
+     68|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/8]⎯
+
+ FAIL  src/viewer/r148.codex-rest.test.ts > all held indices stay within the total budget at a legal high pair count too
+AssertionError: expected 10063872 to be less than or equal to 8400000
+ ❯ src/viewer/r148.codex-rest.test.ts:81:23
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/8]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed | 1 passed (5)
+   Start at  16:46:57
+   Duration  1.63s (transform 327ms, setup 0ms, import 389ms, tests 1.12s, environment 0ms)
+
