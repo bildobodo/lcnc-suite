@@ -41,6 +41,7 @@
     "src/viewer/collisionBounds.test.ts",
     "src/viewer/collisionOracle.test.ts",
     "src/viewer/collisionContacts.test.ts",
+    "src/viewer/contactViewCross.test.ts",
     "src/viewer/sweepShards.test.ts",
     "src/viewer/collisionHorizon.test.ts",
     "src/viewer/machineTrsrn.test.ts",

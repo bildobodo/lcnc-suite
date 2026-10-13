@@ -359,7 +359,7 @@ function onRootKey(e: KeyboardEvent) {
             <tr><th class="colKind" aria-label="Kind"></th><th class="colLine">Line</th><th class="colWhat">What</th><th class="colMove">Move</th><th class="colAt">Time</th></tr>
           </thead>
           <tbody>
-            <tr v-for="r in rows" :key="r.key" :data-sim-row="r.key"
+            <tr v-for="r in rows" :key="r.key" :data-sim-row="r.key" :data-sim-at="r.kind === 'clash' ? `${r.key[0]}${r.line}` : r.key"
                 :class="{ shownRow: shown(r), nextRow: isNext(r) }" @click="show(r, $event)">
               <td class="colKind" :class="r.kind">
                 <X v-if="r.kind === 'clash'" :size="12" :stroke-width="3" aria-hidden="true" />

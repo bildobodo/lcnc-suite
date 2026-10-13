@@ -5,10 +5,7 @@
 // from the program's — and whether the program STARTS in contact. One list
 // (`clashTargets`) still makes the marks, the count and the steps: the kinds
 // split its number, their sum is the marks'. Pure.
-import type { ClashTarget } from "./clashTargets";
-
-/** Under this a target's distance is a touch (the bar's 1e-3, as its marks). */
-const TOUCH = 1e-3;
+import { isNearMiss, type ClashTarget } from "./clashTargets";
 
 export interface FindingWords {
   /** "2 collisions · 1 near miss", "" when there is no finding. */
@@ -29,8 +26,7 @@ export function findingWords(targets: readonly ClashTarget[]): FindingWords {
   let collisions = 0, entryCollisions = 0, nearMisses = 0, possible = 0, startsIn = false;
   for (const t of targets) {
     if (t.possible) { possible++; continue; }
-    const touch = (t.dist ?? 0) <= TOUCH || !!t.touches;
-    if (!touch) { nearMisses++; continue; }
+    if (isNearMiss(t)) { nearMisses++; continue; }
     if (t.entryMove) entryCollisions++;
     else collisions++;
     if (t.atStart && !t.entry) startsIn = true;

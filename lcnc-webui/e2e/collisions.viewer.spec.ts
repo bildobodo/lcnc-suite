@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+import { FROM_WIRE_INIT, oneContact, wireDelta } from "./contactsDelta";
+import type { ContactStore } from "../src/viewer/contactStore";
 
 // COLLISION jumps on the real 5-axis model (examples/sim_config/machine-
 // 5axis-xyzac, the XYZAC config's own machine.json and STLs): the sweep runs
@@ -684,6 +686,11 @@ interface ColTap {
   patchProvisional: Record<string, unknown> | null;
   /** [line, a] of the provisional result's records to mark as boundary records */
   boundaryHits: Array<[number, string]>;
+  /** The provisional request's contact tables as they arrive (round B3: the
+   *  views read them): the episodes of these pairs made boundary contacts,
+   *  and the contact of `cut.pair` ended at `cut.at` */
+  boundaryPairs: Array<[string, string]>;
+  cut: { pair: [string, string]; at: number } | null;
   lastProvisional: { hits: Array<{ line: number; boundary?: true; a: string; b: string }>;
                      boundaryContacts?: Array<{ a: string; b: string; line: number }> } | null;
 }
@@ -694,7 +701,7 @@ interface ColTap {
 async function installWorkerTap(page: Page) {
   await page.addInitScript(() => {
     const tap = { reqs: [], drop: [], holdFull: false, held: [], patchProvisional: null, boundaryHits: [],
-      lastProvisional: null } as unknown as ColTap;
+      boundaryPairs: [], cut: null, lastProvisional: null } as unknown as ColTap;
     (window as unknown as { __colTap: ColTap }).__colTap = tap;
     const Real = window.Worker;
     const Tapped = function (url: string | URL, opts?: WorkerOptions) {
@@ -723,9 +730,35 @@ async function installWorkerTap(page: Page) {
       }) as typeof w.postMessage;
       Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler,
         set: (fn: ((ev: MessageEvent) => unknown) | null) => { handler = fn; } });
+      // the provisional request's tables: its pair names and, per table, the
+      // pair of each episode row seen so far
+      const pairsOf = new Map<number, Array<[string, string]>>(), epPair = new Map<string, number>();
+      type Col = Record<string, ArrayLike<number> & { [i: number]: number }>;
+      const patchTables = (id: number, contacts: Array<{ episodes: { from: number; count: number; rows: Col; updates: ArrayLike<number>; updated: Col };
+                                                       intervals: { from: number; count: number; rows: Col; updates: ArrayLike<number>; updated: Col } }>) => {
+        const names = pairsOf.get(id) ?? [];
+        const is = (pair: number, ab: [string, string]) => names[pair]?.[0] === ab[0] && names[pair]?.[1] === ab[1];
+        contacts.forEach((delta, k) => {
+          const eps: Array<[Col, number, (i: number) => number]> = [[delta.episodes.rows, delta.episodes.count, i => delta.episodes.from + i],
+            [delta.episodes.updated, delta.episodes.updates.length, i => delta.episodes.updates[i]!]];
+          for (const [c, n, rowOf] of eps) for (let i = 0; i < n; i++) {
+            const pair = c.pair![i]!;
+            epPair.set(`${id}:${k}:${rowOf(i)}`, pair);
+            if (tap.boundaryPairs.some(ab => is(pair, ab))) c.flags![i] = (c.flags![i]! & ~3) | 3;
+            if (tap.cut && is(pair, tap.cut.pair) && !(c.end![i]! <= tap.cut.at)) c.end![i] = tap.cut.at;
+          }
+          const ivs: Array<[Col, number]> = [[delta.intervals.rows, delta.intervals.count], [delta.intervals.updated, delta.intervals.updates.length]];
+          for (const [c, n] of ivs) for (let i = 0; i < n; i++) {
+            const pair = epPair.get(`${id}:${k}:${c.episode![i]}`);
+            if (tap.cut && pair !== undefined && is(pair, tap.cut.pair) && !(c.exit![i]! <= tap.cut.at)) c.exit![i] = tap.cut.at;
+          }
+        });
+      };
       w.addEventListener("message", (ev: MessageEvent) => {
-        const d = ev.data as { id: number; result?: Record<string, unknown> };
+        const d = ev.data as { id: number; result?: Record<string, unknown>; contacts?: Parameters<typeof patchTables>[1]; contactPairs?: Array<[string, string]> };
         const kind = d && kinds.get(d.id);
+        if (d?.contactPairs) pairsOf.set(d.id, d.contactPairs);
+        if (d?.contacts && kind === "provisional") patchTables(d.id, d.contacts);
         if (d?.result && kind === "provisional") {
           if (tap.patchProvisional) Object.assign(d.result, structuredClone(tap.patchProvisional));
           for (const h of d.result.hits as Array<{ line: number; a: string; boundary?: true }>) {
@@ -820,11 +853,16 @@ test("the provisional result keeps its own limits while the full check runs, its
   await page.evaluate(([bc]) => {
     const t = (window as unknown as { __colTap: ColTap }).__colTap;
     t.holdFull = true;
-    // stopped at 60 % of the program and not certified
-    t.patchProvisional = { truncated: { covered: 0.6, reason: "samples" }, uncertified: "a body was left out", boundaryContacts: bc };
+    // stopped at 75 % of the program and not certified (past the contacts
+    // it found: they reach 552 of 800 — the views show nothing past it)
+    t.patchProvisional = { truncated: { covered: 0.75, reason: "samples" }, uncertified: "a body was left out", boundaryContacts: bc };
     // L7: the nose's contact its own, the tool's provisional (after it);
     // L8: provisional only
     t.boundaryHits = [[7, "tool"], [8, "tool"], [8, "spindle_nose"]];
+    // ...in the tables the views read (round B3): the tool's contact a
+    // boundary one, the nose's ended on L7 (L7 is (280, 520])
+    t.boundaryPairs = [["tool", "a_yoke_casting"]];
+    t.cut = { pair: ["spindle_nose", "a_yoke_casting"], at: 515 };
   }, [[contact("tool", "a_yoke_casting", 7), contact("spindle_nose", "a_yoke_casting", 7), contact("x_saddle", "column", 7),
        contact("y_saddle", "column", 7), contact("tool", "work_piece", 7, true)]] as const);
   await ctl({ op: "quiet", on: true });
@@ -848,11 +886,11 @@ test("the provisional result keeps its own limits while the full check runs, its
     return text;
   };
   // the full check runs (its result held) — on screen the provisional result
-  expect(await band(), "the band: from L7 to where it stopped").toEqual([0.35, 0.6]);
-  await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 60 % \(not certified\)$/);
+  expect(await band(), "the band: from L7 to where it stopped").toEqual([0.35, 0.75]);
+  await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 75 % \(not certified\)$/);
   await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
   const text = await help();
-  expect(text).toContain("Stopped at 60 % of the program — the rest is unchecked.");
+  expect(text).toContain("Stopped at 75 % of the program — the rest is unchecked.");
   expect(text).toContain("Not certified: Clearance guarantee not certified for this sweep: a body was left out");
   expect(text).not.toContain("Still checking");
   // every contact at its start, with the lines it stays on provisionally
@@ -1172,8 +1210,9 @@ test("a mid-run re-parse for a measured tool is one line, never a second one und
 /** A run check whose bound beginning's side request the page answers itself;
  *  the main check done, the side request waiting. */
 async function sideRunReady(page: Page, context: BrowserContext) {
+  await page.addInitScript({ content: FROM_WIRE_INIT });
   await page.addInitScript(() => {
-    const tap: any = { side: null, deliver: null, first: null };
+    const tap: any = { side: null, deliver: null, first: null, pairs: null };
     (window as any).__sideTap = tap;
     const Real = window.Worker;
     const Tapped = function (url: string | URL, opts?: WorkerOptions) {
@@ -1182,7 +1221,7 @@ async function sideRunReady(page: Page, context: BrowserContext) {
       const post = w.postMessage.bind(w);
       let handler: any = null;
       Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
-      w.addEventListener("message", ev => handler?.(ev));
+      w.addEventListener("message", ev => { if (ev.data?.contactPairs && ev.data.id !== tap.side?.id) tap.pairs = ev.data.contactPairs; handler?.(ev); });
       w.postMessage = ((m: any, t?: Transferable[]) => {
         if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
         post(m, t ?? []);
@@ -1207,12 +1246,35 @@ async function sideRunReady(page: Page, context: BrowserContext) {
   await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", "No contact · start still checking");
   await expect(clashRows(page)).toHaveCount(0);
 }
-/** The side sweep's first confirmed contact, delivered. */
-const sideFirst = (page: Page) => page.evaluate(() => {
-  const t = (window as any).__sideTap, i = 1;
-  t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a: "spindle_nose", b: "a_yoke", dist: 0, rapid: true };
-  t.deliver({ progress: 0.2, first: t.first });
-});
+/** The side request's contact table as the spec answers it (round B3: the
+ *  views read the tables — the records beside them until B6). */
+const sideTables = new WeakMap<Page, ContactStore>();
+/** The side sweep's first confirmed contact, delivered: its record and its
+ *  table — one contact of the model's first pair, inside the side track's
+ *  first move (its record's line: the move ending at point 1). */
+const sideFirst = async (page: Page) => {
+  const { id, at, pairs } = await page.evaluate(() => {
+    const t = (window as any).__sideTap;
+    return { id: t.side.id as number, at: (t.side.track.cum[0] + t.side.track.cum[1]) / 2 as number, pairs: t.pairs as Array<[string, string]> | null };
+  });
+  const st = oneContact(id, 0, at, at);
+  sideTables.set(page, st);
+  await page.evaluate(([w, pairs]) => {
+    const t = (window as any).__sideTap, i = 1;
+    const [a, b] = pairs?.[0] ?? ["spindle_nose", "a_yoke"];
+    t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a, b, dist: 0, rapid: true };
+    t.deliver({ progress: 0.2, first: t.first, contacts: [(window as any).__fromWire(w)], contactPairs: pairs ?? [[a, b]] });
+  }, [wireDelta(st), pairs] as const);
+};
+/** The side request's result, its last (empty) delta riding with it. */
+const sideResultMsg = async (page: Page) => {
+  const w = wireDelta(sideTables.get(page)!);
+  await page.evaluate(w => {
+    const t = (window as any).__sideTap;
+    t.deliver({ contacts: [(window as any).__fromWire(w)], result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false,
+      uncertified: null, pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
+  }, w);
+};
 
 test("a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93)", async ({ page, context }) => {
   test.setTimeout(120_000);
@@ -1227,11 +1289,7 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   await expect(page.locator(".codeLine.collision"), "early: marked in the code").toHaveCount(1);
   await openSimTab(page);
   // final: its result with the same contact
-  await page.evaluate(() => {
-    const t = (window as any).__sideTap;
-    t.deliver({ result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
-                          pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
-  });
+  await sideResultMsg(page);
   await expect(clash, "final: checked, the beginning with it").toHaveAttribute("aria-label", /^1 collision.* · checked in full$/);
   await expect(clashRows(page), "final: in the list").toHaveCount(1);
   expect(await runLog(page)).toContain("beginning");
@@ -1246,8 +1304,9 @@ test("a run's bound beginning: its contact reaches the list early and final, the
 /** A run check with the main request's messages held and the side request
  *  waiting: nothing shown yet. */
 async function sideRunHeld(page: Page, context: BrowserContext, file = "/side-held.ngc") {
+  await page.addInitScript({ content: FROM_WIRE_INIT });
   await page.addInitScript(() => {
-    const tap: any = { side: null, deliver: null, first: null, hold: false, mainId: null, main: [], raw: null };
+    const tap: any = { side: null, deliver: null, first: null, hold: false, mainId: null, main: [], raw: null, pairs: null };
     (window as any).__sideTap = tap;
     const Real = window.Worker;
     const Tapped = function (url: string | URL, opts?: WorkerOptions) {
@@ -1257,7 +1316,11 @@ async function sideRunHeld(page: Page, context: BrowserContext, file = "/side-he
       let handler: any = null;
       Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
       tap.raw = (d: any) => handler?.(new MessageEvent("message", { data: d }));
-      w.addEventListener("message", ev => { if (ev.data?.id === tap.mainId) { tap.main.push(ev.data); return; } handler?.(ev); });
+      w.addEventListener("message", ev => {
+        if (ev.data?.contactPairs && ev.data.id !== tap.side?.id) tap.pairs = ev.data.contactPairs;
+        if (ev.data?.id === tap.mainId) { tap.main.push(ev.data); return; }
+        handler?.(ev);
+      });
       w.postMessage = ((m: any, t?: Transferable[]) => {
         if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
         if (m?.track && tap.hold) { tap.mainId = m.id; tap.main = []; }
@@ -1290,11 +1353,7 @@ const mainPartial = (page: Page, covered: number) => page.evaluate(c => {
   t.raw({ id: t.mainId, progress: c, partial: { ...end.result, truncated: { covered: c, reason: "running" } } });
 }, covered);
 const mainResult = (page: Page) => page.evaluate(() => { const t = (window as any).__sideTap; t.raw(t.main.find((m: any) => m.result)); });
-const sideResult = (page: Page) => page.evaluate(() => {
-  const t = (window as any).__sideTap;
-  t.deliver({ result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
-                        pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
-});
+const sideResult = sideResultMsg;
 const codeMarks = async (page: Page) => {
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   const n = await page.locator(".codeLine.collision").count();

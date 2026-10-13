@@ -9,7 +9,7 @@
 // the interpreter idle; exit is the Exit button or one of the auto-exits
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
-import { computed, markRaw, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
+import { computed, markRaw, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
 import { lineRange } from "./viewer/lineIndex";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
@@ -26,13 +26,15 @@ import { runLineState, subExecState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
-import { clashTargets } from "./viewer/clashTargets";
+import { isNearMiss, type ClashTarget } from "./viewer/clashTargets";
+import { boundaryStretches, contactBands, targetAt } from "./viewer/contactView";
+import type { ShownContacts } from "./viewer/shownContacts";
 import { findingWords } from "./viewer/sweepWords";
 import { mapAcrossEntry, sampleCum, targetAfter, targetBefore, type NavSelection } from "./viewer/findingNav";
 import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
-import { MAX_HITS, type CollisionResult } from "./viewer/collision";
+import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsed } from "./format";
@@ -94,6 +96,12 @@ const props = defineProps<{
                         provisionalShown: boolean;
                         /** the program's start-dependent beginning in this run check (Codex R133 VP-I86) */
                         begin?: RunBegin; beginWhy?: string | null } | null;
+  /** The contact view of what a track shows (step 4 package 2, round B3):
+   *  every finding the bar and the tab name, mark, band and step through is
+   *  read from it — the result objects carry what the check covered and why.
+   *  `contactsVersion` changes whenever it is rebuilt. */
+  contactViewFor?: ((t: ScrubTrack | null) => ShownContacts | null) | null;
+  contactsVersion?: number;
 }>();
 
 const emit = defineEmits<{
@@ -727,7 +735,11 @@ const shownResult = computed<CollisionResult | null>(() => {
   const e = props.collisionEntryResult;
   return e && e.track === t ? e.result : null;
 });
-const hits = computed(() => shownResult.value?.hits ?? []);
+/** The contact view of the displayed track (round B3). */
+const shownView = computed<ShownContacts | null>(() => {
+  void props.contactsVersion;
+  return props.contactViewFor?.(track.value) ?? null;
+});
 // What the displayed track IS, for the coverage wording: on the entry track
 // a merged result's fraction covers the whole route (TWP-12), never "the
 // program" alone.
@@ -750,18 +762,16 @@ const verdictDetail = computed<string>(() => {
     ? `Stopped at ${pctOf(r.truncated.covered)} of the program — the rest is unchecked.`
     : `${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
   if (r.pairCount === 0) parts.push(r.uncertified ? "No part that could be checked moves against another." : "No parts move against each other — nothing to check.");
-  if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
+  if (hitTargets.value.length) parts.push("A stop shows the first contact (machine off).");
   // step 4 plan 1d: a start in contact is said with its pair; pairs touching
   // at rest too are the model's mounts, excluded (each one in Check basis)
-  const startPairs = [...new Set(hits.value.filter(h => h.atStart && !h.entry && !h.possible && (h.dist <= 1e-3 || h.touches))
+  const startPairs = [...new Set(hitTargets.value.filter(h => h.atStart && !h.entry && !h.possible && !isNearMiss(h))
     .map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
   if (startPairs.length) parts.push(`The program starts in contact: ${startPairs.join(", ")}.`);
   if (r.staticContacts.length) {
     const k = r.staticContacts.length;
     parts.push(`${k} pair${k === 1 ? "" : "s"} already in contact at rest — excluded.`);
   }
-  if (r.cappedOnsets) parts.push(`${r.capped} records left out of the list, ${r.cappedOnsets} of them where a contact begins — contacts past the first ${MAX_HITS} are not listed or counted.`);
-  else if (r.capped) parts.push(`${r.capped} record${r.capped === 1 ? "" : "s"} left out of the list — the later lines of contacts it lists (a contact is a record per line).`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
   // parity-ef plan E7: the beginning stands where the machine stands — in
   // the simulation and in a run, checked or not (Codex R133 VP-I84/I86)
@@ -790,7 +800,12 @@ const sweepCaveat = computed<string | null>(() => {
   if (r.uncertified) why.push(r.uncertified);
   if (r.coarsened) why.push("coarsened to fit the sample budget");
   if (r.truncated && r.truncated.reason !== "running" && !props.collisionResumable) {
-    why.push(`stopped at ${pctOf(r.truncated.covered)} of the ${routeWord.value} (${r.truncated.reason === "samples" ? "sample backstop" : r.truncated.reason}) — the rest is unchecked`);
+    // a full contact table (step 4 package 2, plan 2.4): where it stopped writing
+    const from = r.truncated.reason === "budget" && r.incompleteFrom != null && track.value === baseTrack.value
+      ? shownView.value?.lineAt(r.incompleteFrom) ?? null : null;
+    const reason = r.truncated.reason === "samples" ? "sample backstop"
+      : r.truncated.reason === "budget" ? `contact tables full${from != null ? `, not checked from L${from}` : ""}` : r.truncated.reason;
+    why.push(`stopped at ${pctOf(r.truncated.covered)} of the ${routeWord.value} (${reason}) — the rest is unchecked`);
   }
   return why.length ? `Clearance guarantee not certified for this sweep: ${why.join("; ")}` : null;
 });
@@ -838,15 +853,18 @@ const sweptFrom = computed(() => {
   return from == null ? 0 : Math.min(1, Math.max(0, from / cumMax.value));
 });
 
-// One navigation target per contact ONSET: an intermittent-contact line
-// (enter → exit → re-enter) yields a target per interval, so the re-entry
-// is a real "next clash" stop, not folded invisibly into the first.
-// Continuation records (the same contact carried across line boundaries)
-// are NOT clashes of their own; the tint and the G-code marks still show
-// the whole extent. The COUNT, the timeline marks and prev/next all read
-// THIS list (viewer/clashTargets.ts) — they used to disagree (count per
-// record, marks per interval: "1 clash, 2 marks").
-const hitTargets = computed(() => clashTargets(hits.value));
+// One navigation target per contact INTERVAL (a re-entry is a stop of its
+// own) and per near miss, from the contact view (step 4 package 2, plan
+// 4.1): the COUNT, the timeline marks, the list and prev/next all read THIS
+// list. A contact carried across lines is one interval — the tint and the
+// code marks show its whole extent.
+const hitTargets = computed<ClashTarget[]>(() => {
+  const sv = shownView.value;
+  if (!sv) return [];
+  const out: ClashTarget[] = [];
+  for (let i = 0; i < sv.view.n; i++) out.push(targetAt(sv.view, i, sv.lineAt));
+  return out;
+});
 
 
 /** The entry move's length on a track built from the base (0 = the base). */
@@ -946,7 +964,7 @@ const marks = computed(() => {
   const pctOfCum = (c: number) => Math.min(100, (c / max) * 100);
   for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
   for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
-  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: (x.dist ?? 0) > 1e-3 && !x.touches });
+  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: isNearMiss(x) });
   return out;
 });
 // Extent bands (timeline percentages): where a soft-limit line runs (warn)
@@ -978,21 +996,29 @@ const limitBands = computed(() => {
   }
   return mergeSpans(spans);
 });
-const clashBands = computed(() => {
-  const max = cumMax.value;
-  const spans: Array<[number, number]> = [];
-  if (max <= 0) return spans;
-  for (const h of hits.value) {
-    if (h.dist > 1e-3) continue;
-    const ivs = h.intervals ?? (h.cumEnd > h.cum ? [[h.cum, h.cumEnd] as [number, number]] : []);
-    for (const [a, b] of ivs) if (b > a) spans.push([(a / max) * 100, (b / max) * 100]);
-    // An onset whose contact persists past its own line paints to where it
-    // finally ends (spanCumEnd — over ALL records, past the report cap).
-    if (h.continuation === undefined && h.spanCumEnd != null && h.spanCumEnd > h.cumEnd) {
-      spans.push([(h.cumEnd / max) * 100, (h.spanCumEnd / max) * 100]);
-    }
+// Contact bands at the timeline's own resolution (plan 4.3): a column per
+// CSS pixel of the thumb's travel — a contact narrower than a pixel keeps
+// its column; never the source of a count or a step.
+const sliderWrap = ref<HTMLElement | null>(null);
+const bandCols = ref(1024);
+let _bandRO: ResizeObserver | null = null;
+function measureBandCols() {
+  const el = sliderWrap.value;
+  if (!el) return;
+  const thumb = parseFloat(getComputedStyle(el).getPropertyValue("--range-thumb")) || 0;
+  bandCols.value = Math.max(1, Math.floor(el.clientWidth - thumb));
+}
+onMounted(() => {
+  if (typeof ResizeObserver !== "undefined") {
+    _bandRO = new ResizeObserver(measureBandCols);
+    watch(sliderWrap, (el, old) => { if (old) _bandRO?.unobserve(old); if (el) { _bandRO?.observe(el); measureBandCols(); } }, { immediate: true });
   }
-  return mergeSpans(spans);
+});
+onUnmounted(() => _bandRO?.disconnect());
+const clashBands = computed(() => {
+  const sv = shownView.value, max = cumMax.value;
+  if (!sv || max <= 0) return [] as Array<[number, number]>;
+  return contactBands(sv.view, bandCols.value, max).map(([a, b]) => [a * 100, b * 100] as [number, number]);
 });
 
 onUnmounted(() => {
@@ -1050,9 +1076,6 @@ const sweepView = computed<SimSweepView | null>(() => {
   const startsIn = fw.startsIn ? " · starts in contact" : "";
   const result = (none: string, running = false) =>
     n ? `${fw.text}${running ? " so far" : ""}${startsIn}` : running ? "No contact so far" : none;
-  // the cap: records of listed contacts left out — or contacts themselves,
-  // whose count the words then cannot hold ("200+" short, Codex R136 answer 2)
-  const cut = r?.cappedOnsets ? " · more contacts not listed" : r?.capped ? " · records cut" : "";
   const tools = sweepToolSentence.value;
   const detail = (r ? verdictDetail.value + " " : "") + tools;
   const caveat = !!sweepCaveat.value;
@@ -1065,18 +1088,15 @@ const sweepView = computed<SimSweepView | null>(() => {
     .replace(/^provisional from /, "from ").replace(/^(stopped|paused) at /, "$1 ")
     .replace(/^start still checking$/, "start checking").replace(/^start not checked$/, "start unchecked")
     .replace(/^entry move still checking$/, "entry checking");
-  // records cut while every contact's beginning is kept: the count is whole
-  // (no "+"), so the fewest words keep the cut itself (Codex R138 VP-I94)
-  const shortCut = r?.capped && !r?.cappedOnsets ? " · cut" : "";
   /** One view: the result, the coverage (with the cap's caveat) and both
    *  joined; `short` the result as a count. */
   const view = (state: SimSweepView["state"], frac: number, tone: Tone, cav: boolean, det: string,
                 res: string, cov: string, label?: string): SimSweepView => {
-    const coverage = cov ? `${cov}${cut}` : "";
+    const coverage = cov;
     return { state, frac, tone, caveat: cav, detail: det, ...(label ? { label } : {}),
              verdict: coverage ? `${res} · ${coverage}` : res, result: res, coverage,
-             coverageShort: cov ? `${shortCov(cov)}${shortCut}` : "",
-             short: n ? `${n}${r?.cappedOnsets ? "+" : ""}${state === "done" ? "" : "…"}` : res };
+             coverageShort: cov ? shortCov(cov) : "",
+             short: n ? `${n}${state === "done" ? "" : "…"}` : res };
   };
   // No moving pair: nothing to check — unless a body was left out or lost
   // damaged facets (VP-I46, Codex R87): then "nothing to check" would hide
@@ -1170,13 +1190,16 @@ const boundaryDetail = computed(() => {
   const bc = r?.boundaryContacts ?? [];
   if (!bc.length) return "";
   // every one of them (Codex R116 VP-I69: the fourth and fifth were cut
-  // off), with the lines its contact stays on — provisional records
-  const lines = (b: { a: string; b: string }) => [...new Set((r?.hits ?? [])
-    .filter(h => h.boundary && ((h.a === b.a && h.b === b.b) || (h.a === b.b && h.b === b.a))).map(h => h.line))]
-    .sort((x, y) => x - y);
+  // off), with the last line its contact stays on — provisional (the
+  // boundary stays in the contact view, round B3)
+  const sv = shownView.value;
+  const stretches = sv ? boundaryStretches(sv.view) : [];
+  const lastLine = (b: { a: string; b: string }) => stretches
+    .filter(x => (x.a === b.a && x.b === b.b) || (x.a === b.b && x.b === b.a))
+    .reduce((m, x) => Math.max(m, sv!.lineAt(x.e, true) ?? 0), 0);
   const named = bc.map(b => {
-    const ls = lines(b);
-    const more = ls.length > 1 ? `, provisional to L${ls[ls.length - 1]}` : "";
+    const last = lastLine(b);
+    const more = last > b.line ? `, provisional to L${last}` : "";
     return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (L${b.line}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
   }).join("; ");
   return `In contact at the check's start: ${named} — where each began and what it is, the full check says. `;
@@ -1270,7 +1293,7 @@ onUnmounted(releaseSim);
         <Pause v-if="playing" :size="14" />
         <Play v-else :size="14" />
       </MachineBtn>
-      <div class="sliderWrap">
+      <div ref="sliderWrap" class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                        title="Scrub the program — poses the machine model, nothing moves"

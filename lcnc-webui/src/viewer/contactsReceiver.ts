@@ -61,6 +61,11 @@ export class ContactsReceiver {
   }
 
   current(id: number): GenerationTables | null { return this.reqs.get(id)?.current ?? null; }
+  /** Puts tables in as a request's current generation — the diagnostic seam
+   *  that lays made-up findings over a result (`__viewerDiag.setCollisionHits`). */
+  inject(id: number, stores: ContactStore[], pairs: Array<[string, string]>): void {
+    this.reqs.set(id, { current: { generation: stores[0]?.generation ?? 0, stores, pairs, deltas: 0 }, held: null });
+  }
   /** The requests whose tables are held. */
   ids(): number[] { return [...this.reqs.keys()]; }
   held(id: number): GenerationTables | null { return this.reqs.get(id)?.held ?? null; }

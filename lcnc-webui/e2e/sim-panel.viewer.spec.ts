@@ -34,7 +34,7 @@ async function prepare(page: Page, context: BrowserContext, vp = "desktop", prev
   // The sweep's verdict, then two collisions on the swept track (L12 feed, L26 rapid).
   await expect.poll(() => page.locator(".simPanel .checkVerdict").count(), { timeout: 30_000 }).toBe(1);
   if (setHits) await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(
-    [{ line: 12, frac: 9 / 29 }, { line: 26, frac: 23 / 29, rapid: true }]) ?? false)).toBe(true);
+    [{ line: 12 }, { line: 26, rapid: true }]) ?? false)).toBe(true);
   await openSimTab(page);
 }
 const rows = (page: Page) => page.locator(".simPanel tbody tr");
@@ -203,7 +203,7 @@ test("a result change under the focus keeps it in the panel; no arrow jogs", asy
   await expect(page.locator(".simPanel .rowPick:focus"), "on the row now at its place").toHaveCount(1);
   expect(await tryJog(), "no arrow reached the jog map").toEqual([]);
   // the list filtered to collisions, a focused row, then the list empties
-  await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 9 / 29 }]));
+  await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12 }]));
   await simShow(page, "clash");
   await page.locator(".simPanel .rowPick").first().focus();
   await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]));
@@ -255,12 +255,14 @@ test("a part left out of the check stays marked, with or without moving pairs", 
 test("the steps through mixed kinds follow the list's own order, ties included", async ({ page, context }) => {
   await prepare(page, context);
   await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(
-    [{ line: 12, frac: 9 / 29 }, { line: 20, frac: 64 / 116 }, { line: 26, frac: 23 / 29, rapid: true }]) ?? false)).toBe(true);
+    // L20's collision where L20's move begins: the tool change and the limit's moment
+    [{ line: 12 }, { line: 20, frac: 64 / 116 }, { line: 26, rapid: true }]) ?? false)).toBe(true);
   await simShow(page, "all");
-  const list = await rows(page).evaluateAll(trs => trs.map(t => t.getAttribute("data-sim-row")!.split("|")[0]));
+  // the row's kind and line (a collision's key is its identity: pair and number, round B3)
+  const list = await rows(page).evaluateAll(trs => trs.map(t => t.getAttribute("data-sim-at")));
   expect(list, "the list: the tool, the limit and the collision of L20 at one moment").toEqual(["T10", "C12", "T20", "L20", "C20", "C26", "L32"]);
-  const shownKey = () => page.locator(".simPanel .shownRow").getAttribute("data-sim-row").then(k => k?.split("|")[0]);
-  await page.locator('.simPanel tr[data-sim-row^="C12"]').click();
+  const shownKey = () => page.locator(".simPanel .shownRow").getAttribute("data-sim-at");
+  await page.locator('.simPanel tr[data-sim-at="C12"]').click();
   await expect.poll(shownKey).toBe("C12");
   const next = simStepBtn(page, "Next on the timeline"), prev = simStepBtn(page, "Previous on the timeline");
   for (const want of ["T20", "L20", "C20", "C26", "L32", "T10", "C12"]) {
@@ -283,12 +285,12 @@ test("a tool change shown after a finding ends the finding's reveal, the stored 
   await expect.poll(() => page.evaluate(() => window.__viewerDiag!.projectRole!("feed"))).toBeNull();
   const reveal = page.locator("[data-path-reveal]");
   // by a row
-  await page.locator('.simPanel tr[data-sim-row^="C12"]').click();
+  await page.locator('.simPanel tr[data-sim-at="C12"]').click();
   await expect(reveal).toHaveText("Toolpath shown for this finding — hidden in Layers");
   await page.locator('.simPanel tr[data-sim-row="T20"]').click();
   await expect(reveal, "a row's tool change ends the reveal").toHaveCount(0);
   // by a step: from the collision the next on the timeline is the tool change
-  await page.locator('.simPanel tr[data-sim-row^="C12"]').click();
+  await page.locator('.simPanel tr[data-sim-at="C12"]').click();
   await expect(reveal).toHaveCount(1);
   await simStepBtn(page, "Next on the timeline").click();
   await expect(page.locator(".simPanel .shownRow")).toHaveAttribute("data-sim-row", "T20");
@@ -565,7 +567,7 @@ test("the summary's \"?\" answers in its whole hit area, at the right edge of a 
   // R85 VP-I44); the precondition below stays.
   await prepare(page, context, "touch-portrait", Buffer.from(encode({ ...PREVIEW_FIELDS, violations_total: Number.MAX_SAFE_INTEGER })));
   await page.evaluate(() => { document.documentElement.style.zoom = "1.5"; });
-  await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(Array.from({ length: 12 }, (_, i) => ({ line: 5 + i, frac: (2 + i) / 29 }))));
+  await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.(Array.from({ length: 12 }, (_, i) => ({ line: 5 + i }))));
   await page.setViewportSize({ width: 820, height: 1200 });
   await settleLayout(page);
   await expect(page.locator(".simPanel .simSummary")).toHaveAttribute("data-sum-form", "3");
@@ -615,30 +617,18 @@ test.describe("the check basis card by touch (step 4 plan 1c)", () => {
 });
 
 // Codex R136 VP-I94: at 1600 × 1000 the side pane is regular (540 px, not
-// narrow) — the new result words of a mixed result with the cap's contacts
-// took 709 px, and the coverage, the cap and the other two kinds fell out of
-// the clipped line. The form is measured: whatever the words, every item and
-// the coverage stay in the line, which keeps its height.
+// narrow) — the result words of a mixed result took 709 px, and the coverage
+// and the other two kinds fell out of the clipped line. The form is measured:
+// whatever the words, every item and the coverage stay in the line, which
+// keeps its height. (Round B3: the views read the contact tables, which hold
+// every contact — the record list's cap and its words are gone; the
+// fixture's findings go in through the seam.)
 test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)", () => {
-  async function mixed(page: Page, cut: { capped: number; cappedOnsets: number } = { capped: 25, cappedOnsets: 2 }) {
-    await page.addInitScript(cut => {
-      const Real = window.Worker;
-      window.Worker = class extends Real {
-        constructor(url: string | URL, options?: WorkerOptions) {
-          super(url, options);
-          if (!/collisionWorker/.test(String(url))) return;
-          this.addEventListener("message", ev => {
-            if (!ev.data?.result) return;
-            const hit = (line: number, dist: number, extra = {}) =>
-              ({ line, cum: line, cumEnd: line + 1, a: "spindle", b: "vise", dist, rapid: true, ...extra });
-            const hits = [hit(12, 0), hit(14, 0, { entryMove: true }), hit(16, 0, { possible: true }), hit(18, 1.5)];
-            for (let i = 0; i < 196; i++) hits.push(hit(19 + i % 10, 0, { b: "fixture_" + i }));
-            // 200 onsets kept, by default 2 more onsets and 23 continuations cut: a rendering fixture
-            Object.assign(ev.data.result, { pairCount: 200, hits, ...cut });
-          });
-        }
-      };
-    }, cut);
+  async function mixed(page: Page) {
+    const hits: Array<{ line: number; frac: number; rapid?: boolean; possible?: boolean; near?: number }> =
+      [{ line: 12, frac: 0.1, rapid: true }, { line: 16, frac: 0.2, possible: true }, { line: 18, frac: 0.3, near: 1.5 }];
+    for (let i = 0; i < 197; i++) hits.push({ line: 19, frac: 0.35 + i * 0.003, rapid: true });
+    await expect.poll(() => page.evaluate(h => window.__viewerDiag?.setCollisionHits?.(h) ?? false, hits)).toBe(true);
   }
   const measure = (page: Page) => page.locator(".simPanel .simSummary").evaluate(el => {
     const r = el.getBoundingClientRect();
@@ -653,15 +643,14 @@ test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)
       narrow: document.querySelector(".sidePane")!.classList.contains("narrow") };
   });
   for (const [vp, zoom] of [["desktop", 1], ["touch-landscape", 1], ["touch-portrait", 1.5]] as const) {
-    test(`a mixed result with the cap's contacts — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
-      await mixed(page);
-      // the worker's result as the fixture made it — no hits set over it
+    test(`a mixed result of 200 findings — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
       await prepare(page, context, vp, PREVIEW, false);
+      await mixed(page);
       if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
       await settleLayout(page);
       const clash = page.locator(".simPanel .simSummary .sumItem").first();
       await expect(clash, "the fixture's 200 findings").toHaveAttribute("aria-label",
-        /^197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss · checked in full · more contacts not listed$/);
+        /^198 collisions · 1 possible contact · 1 near miss · checked in full$/);
       const m = await measure(page);
       expect(m.sw, "the line fits").toBeLessThanOrEqual(m.cw);
       for (const it of m.items) {
@@ -670,14 +659,14 @@ test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)
       }
       // the other two kinds, whole
       expect(m.items.slice(1).map(x => x.text)).toEqual(m.form === "0" ? ["2 limit violations", "2 tool changes"] : ["2", "2"]);
-      // the count, the check's state and the cap's "+" whole — no ellipsis
-      // with ordinary numbers, at 150 % portrait too (Codex R137 VP-I94)
+      // the count and the check's state whole — no ellipsis with ordinary
+      // numbers, at 150 % portrait too (Codex R137 VP-I94)
       expect(m.verdictCut, "the collision item whole").toBe(false);
-      if (Number(m.form) >= 2) expect(m.items[0]!.text.startsWith("200+"), "the count holds the cap's contacts").toBe(true);
-      expect(m.items[0]!.text).toMatch(m.form === "3" ? / · in full$/ : / · checked in full · more contacts not listed$/);
+      if (Number(m.form) >= 2) expect(m.items[0]!.text.startsWith("200 "), "the count").toBe(true);
+      expect(m.items[0]!.text).toMatch(m.form === "3" ? / · in full$/ : / · checked in full$/);
       if (vp === "desktop") {
         expect(m.narrow, "the regular pane").toBe(false);
-        // the result shortened before the coverage: the coverage and the cap in words
+        // the result shortened before the coverage: the coverage in words
         expect(m.form).not.toBe("3");
       }
       // the "?" says the line's whole statement — the touch way to what a short form leaves out
@@ -696,33 +685,5 @@ test.describe("the summary keeps every statement in its line (Codex R136 VP-I94)
       expect((await measure(page)).rowH, "the row's height").toBe(m.rowH);
       await ctl({ op: "reset" });
     });
-  }
-  // each kind of cut keeps a visible mark in every form, the uncut line none
-  // (Codex R138 VP-I94: records cut while every beginning is kept lost its
-  // only mark in the last form — the count is whole, so no "+")
-  for (const [kind, cut, words, last] of [
-    ["records cut, every beginning kept", { capped: 25, cappedOnsets: 0 }, " · checked in full · records cut", /^200 · in full · cut$/],
-    ["nothing cut", { capped: 0, cappedOnsets: 0 }, " · checked in full", /^200 · in full$/],
-  ] as const) {
-    for (const [vp, zoom] of [["desktop", 1], ["touch-portrait", 1.5]] as const) {
-      test(`${kind} — ${vp}${zoom !== 1 ? ` at ${zoom * 100} %` : ""}`, async ({ page, context }) => {
-        await mixed(page, cut);
-        await prepare(page, context, vp, PREVIEW, false);
-        if (zoom !== 1) await page.evaluate(z => { document.documentElement.style.zoom = String(z); }, zoom);
-        await settleLayout(page);
-        const clash = page.locator(".simPanel .simSummary .sumItem").first();
-        await expect(clash).toHaveAttribute("aria-label",
-          `197 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss${words}`);
-        const m = await measure(page);
-        expect(m.sw, "the line fits").toBeLessThanOrEqual(m.cw);
-        expect(m.verdictCut, "the collision item whole").toBe(false);
-        const text = m.items[0]!.text;
-        expect(text.startsWith("200+"), "no \"+\": every beginning is counted").toBe(false);
-        if (m.form === "3") expect(text).toMatch(last);
-        else expect(text.endsWith(words), text).toBe(true);
-        if (vp === "touch-portrait" && cut.capped) expect(m.form, "the last form at 150 % portrait").toBe("3");
-        await ctl({ op: "reset" });
-      });
-    }
   }
 });

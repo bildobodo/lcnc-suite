@@ -5,7 +5,7 @@
 // list, the marks and prev/next can never disagree. Pure; unit-tested.
 import { limitViolationText, type LimitViolation } from "../ws/bulkData";
 import { fmtDist, fmtElapsed, fmtPct } from "../format";
-import type { ClashTarget } from "./clashTargets";
+import { isNearMiss, type ClashTarget } from "./clashTargets";
 
 export type SimRowKind = "clash" | "limit" | "tool";
 
@@ -94,7 +94,7 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
     const notes: string[] = [];
     if (t.reentry) notes.push("re-entry");
     // a margin entry whose contact touches later is a collision (`touches`)
-    if ((t.dist ?? 0) > 1e-3 && !t.touches) notes.push(`near miss, ${fmtDist(t.dist ?? 0, i.unit)} apart`);
+    if (isNearMiss(t)) notes.push(`near miss, ${fmtDist(t.dist ?? 0, i.unit)} apart`);
     if ((t.spanEndLine ?? t.line) > t.line) notes.push(`through L${t.spanEndLine}`);
     if (t.possible) notes.push("possible — in the probe's braking range");
     rows.push({ key: t.key, kind: "clash", line: t.line, lineLabel: t.entryMove ? "entry" : `L${t.line}`,

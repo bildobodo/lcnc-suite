@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, watch } from "vue";
-import type { CollisionLineMark } from "./viewer/collision";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, shallowRef, watch } from "vue";
+import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, OWNER_PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
 import { twpPoseOriented, twpPoseStale, twpDatumStale, fixtureOffDatum, stampAForFixture, poseAbcOf } from "./twpPose";
@@ -625,7 +625,8 @@ const softLimitStatus = computed(() => {
 // Source line at the viewer's scrub position (null = not scrubbing).
 const scrubLine = ref<number | null>(null);
 // Source lines with collision hits from the viewer's sweep (null = none run).
-const collisionLines = ref<CollisionLineMark[] | null>(null);
+// the code panel's collision mark per line (a query, step 4 package 2 plan 4.2)
+const collisionLines = shallowRef<CollisionLineQuery | null>(null);
 
 // Donut chart (distance breakdown) lives in StatsDonut.vue.
 

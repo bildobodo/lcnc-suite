@@ -36,7 +36,7 @@ interface ViewerDiag {
   // the tagged materials, and the stored mode — e2e/viewer.spec.ts reads it.
   getPalette?: () => { resolved: Record<string, string>; drawn: Record<string, string>; mode: string };
   tintPart?: (id: string, on: boolean) => void;
-  setCollisionHits?: (hits: { line: number; frac: number; rapid?: boolean }[]) => boolean;
+  setCollisionHits?: (hits: { line: number; frac?: number; rapid?: boolean; possible?: boolean; near?: number; atStart?: boolean }[]) => boolean;
   setCollisionNote?: (note: string | null) => boolean;
   setCollisionShards?: (n: number | null) => void;
   getContacts?: () => {
@@ -47,6 +47,9 @@ interface ViewerDiag {
     ids: number[];
     stats: { requests: number; rows: { episodes: number; intervals: number; gaps: number }; allocated: number; used: number };
   };
+  /** A request's contact rows by name: the shown result's, or the request in flight's. */
+  getContactRows?: (which?: "result" | "main") => Array<{ pair: string[]; flags: number; onset: number; end: number; closeAt: number;
+    closeDist: number; ivs: number[][] }> | null;
   /** Hold the main sweep as a camera interaction does. */
   setCameraHold?: (on: boolean) => void;
   getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[]; uncertified: string | null } | null;

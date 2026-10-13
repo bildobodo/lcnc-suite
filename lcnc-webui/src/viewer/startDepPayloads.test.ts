@@ -24,7 +24,7 @@ import ts from "typescript";
 import { epochTermsFor } from "./wcsEpochs";
 import { findingWords } from "./sweepWords";
 import { firstOnly } from "./firstContact";
-import { clashTargets } from "./clashTargets";
+import { clashTargets, isNearMiss } from "./clashTargets";
 import { partLabel } from "./simRows";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
@@ -286,8 +286,8 @@ const sweepViewOf = (result: any, run: any) => barComputed("sweepView", {
   boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, findingWords });
 const verdictDetail = (result: any, run: any, track: any) => barComputed("verdictDetail", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, track: { value: track },
-  provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hits: { value: result.hits },
-  sweepCaveat: { value: result.uncertified }, pctOf: (x: number) => `${x * 100} %`, beginSentence, depTimeSentence, partLabel });
+  provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hitTargets: { value: clashTargets(result.hits) },
+  sweepCaveat: { value: result.uncertified }, pctOf: (x: number) => `${x * 100} %`, beginSentence, depTimeSentence, partLabel, isNearMiss });
 
 describe("Codex R133", () => {
   it("VP-I83: a G43.1 before the first move — the start shifts in the assumed start's basis", () => {
@@ -450,6 +450,8 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const cancelCollisionCheck = () => {}, runCollisionCheck = () => {};
   const _colBuildRequest = (_t, id) => opts.buildFails ? null : ({ msg: { id }, transfer: [], modelKey: "test", bodies: 2 });
   const _liveCheckBasis = () => basis, toRaw = (x) => x, _colEmitMarks = () => {};
+  let _colSideProgress = 0;
+  const _contactsBump = () => {}, _sliceEnd = (t) => t.count ? t.cum[t.count - 1] : 0, _colReleaseContacts = () => {};
   `;
   const expose = `
   return {

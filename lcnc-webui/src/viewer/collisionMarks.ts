@@ -3,6 +3,11 @@
 // in the main bundle, the viewer is loaded on its own.
 import type { CollisionHit, CollisionLineMark } from "./collision";
 
+/** The code panel's mark for a line, asked per visible line (step 4 package
+ *  2, plan 4.2: no set over every line) — null: no mark. A new function per
+ *  change of what is shown. */
+export type CollisionLineQuery = (line: number) => CollisionLineMark | null;
+
 /** The marks for a result's records — a boundary record stays provisional
  *  (in contact at a range sweep's start: no onset, no kind known yet). */
 export function collisionLineMarks(hits: readonly CollisionHit[]): CollisionLineMark[] {

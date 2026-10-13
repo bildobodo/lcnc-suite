@@ -11,12 +11,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CollisionHit, CollisionResult } from "./collision";
 import { clashTargets } from "./clashTargets";
 import { findingWords } from "./sweepWords";
-import { collisionLineMarks } from "./collisionMarks";
 import { firstOnly, holdsFirst, withFirstContact } from "./firstContact";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { captureCheckContext } from "./checkContext";
 import { semanticKinsMode } from "./kins";
 import { basisFromLive, type CheckBasis } from "./checkBasis";
+import { ContactStore, NONE } from "./contactStore";
+import { buildContactView, targetAt } from "./contactView";
 
 function viewerFns(names: string[], prelude: string, refs: Record<string, unknown>, exports: string[] = []): Record<string, any> {
   const file = fs.readFileSync(path.resolve(__dirname, "../ThreeViewer.vue"), "utf8");
@@ -46,6 +47,10 @@ const result = (hits: CollisionHit[], over: Partial<CollisionResult> = {}): Coll
 function owner() {
   return viewerFns(["_colGetWorker", "_colShowFirst", "_colEmitMarks"], `
     let _colWorker = null, _colModelSent = null, _colSide = null, _colReqId = 12, _colKeepShown = false, _colFirstHeld = null;
+    // the contact tables (round B3): none in this harness — the marks read them, so they say nothing here
+    let _colPartialReq = null;
+    const _contactsBump = () => {}, contactViewFor = () => null, _lineRunsOf = () => null;
+    const collisionResult = { value: null }, collisionTrack = { value: null }, collisionPartialTrackShown = { value: null };
     const TRACK = {};
     let _colPendingTrack = TRACK;
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null }, collisionProgress = { value: 0 };
@@ -61,7 +66,7 @@ function owner() {
     const post = (data) => _colGetWorker().onmessage({ data });
     const shown = () => collisionPartial.value;
     const nextRequest = () => ++_colReqId;`,
-    { collisionLineMarks, holdsFirst, withFirstContact, firstOnly }, ["post", "shown", "nextRequest", "emitted", "newTrack"]);
+    { holdsFirst, withFirstContact, firstOnly }, ["post", "shown", "nextRequest", "emitted", "newTrack"]);
 }
 const words = (r: CollisionResult | null) => findingWords(clashTargets(r?.hits ?? []));
 const running = (hits: CollisionHit[], covered = 0.1) => result(hits, { truncated: { covered, reason: "running" } });
@@ -77,8 +82,8 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     expect(t.map(x => x.key)).toHaveLength(1);
     expect(words(ui.shown()).text).toBe("1 collision");
     expect(ui.shown().truncated, "at the progress the first came with").toEqual({ covered: 0.2, reason: "running" });
-    // the code panel's marks follow at once
-    expect(ui.emitted.at(-1)).toEqual(["collision-lines", collisionLineMarks(ui.shown().hits)]);
+    // the code panel is told at once (its marks read the contact tables since round B3)
+    expect(ui.emitted.at(-1)?.[0]).toBe("collision-lines");
   });
   it("VP-I92: a partial built from older words keeps the shown contact until a partial carries it", () => {
     const ui = owner();
@@ -92,17 +97,14 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     ui.post({ id: 12, progress: 0.3, partial: running([{ ...near, touches: true }, hit(9, 0, { b: "column" })], 0.3) });
     expect(words(ui.shown()).text).toBe("2 collisions");
   });
-  it("VP-I92 (R137): the code marks are what is shown — the held contact in them after an older partial", () => {
+  it("VP-I92 (R137): the shown partial keeps the held contact after an older partial (the code marks read the contact tables since round B3)", () => {
     const ui = owner();
     ui.post({ id: 12, progress: 0.1, partial: running([near]) });
     ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
-    // the pool's merged partial with a shard not heard from yet: no record of
-    // the contact at all (a near-miss record marks its line the same way, so
-    // only a partial without it tells the shown marks from the raw ones)
+    // the pool's merged partial with a shard not heard from yet: no record of the contact at all
     ui.post({ id: 12, progress: 0.25, partial: running([], 0.25) });
     expect(words(ui.shown()).text).toBe("1 collision");
-    expect(ui.emitted.at(-1), "the panel's marks of the shown partial").toEqual(["collision-lines", collisionLineMarks(ui.shown().hits)]);
-    expect(ui.emitted.at(-1)?.[1], "the held contact's line marked").toEqual([{ line: near.line, continuation: undefined }]);
+    expect(ui.emitted.at(-1)?.[0], "the code panel told").toBe("collision-lines");
     expect(ui.shown().hits.some((h: CollisionHit) => h.touches)).toBe(true);
   });
   it("VP-I92 (R137): held for the whole request — a fall back to this core starts again after a partial carried it", () => {
@@ -232,6 +234,8 @@ describe("the side sweep's first contact on the entry track (Codex R136 VP-I93)"
     const collisionResult = { value: BASE_RESULT }, collisionTrack = { value: BASE };
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
     const emitTelemetry = () => {}, _colRetint = () => {}, _colPostSide = () => {}, _colRunSideFailed = () => {}, _colEmitMarks = () => {};
+    let _colSideProgress = 0;
+    const _contactsBump = () => {}, _sliceEnd = (t) => t.count ? t.cum[t.count - 1] : 0;
     const _colRunLog = [];
     const post = (data) => _colOnSideMessage({ id: -1, ...data });
     const entryShown = () => collisionEntryResult.value;`,
@@ -257,12 +261,24 @@ describe("the side sweep's first contact on the entry track (Codex R136 VP-I93)"
 });
 
 describe("the earlier preview's verdict in words (step 4 plan 1a, _colPreviousOf)", () => {
-  const { _colPreviousOf } = viewerFns(["_colPreviousOf"], "", { clashTargets, findingWords });
-  it("its words are the summary's: kinds apart, a near miss never a collision", () => {
-    expect(_colPreviousOf(result([hit(7, 0), hit(9, 1.5)]), 12)).toEqual(
+  // the shown result's contact view (round B3): one contact, one near miss
+  const st = new ContactStore(1, 0);
+  st.episodes.append({ pair: 0, ordinal: 0, onset: 7, end: 8, closeAt: 7, closeDist: 0, firstIv: 0, ivCount: 1 });
+  st.intervals.append({ episode: 0, enter: 7, exit: 8, flags: 0, next: NONE, witness: 7, freeAt: NaN });
+  st.episodes.append({ pair: 1, ordinal: 0, onset: 9, end: 9.5, closeAt: 9.2, closeDist: 1.5, firstIv: NONE, ivCount: 0 });
+  const VIEW = { view: buildContactView({ sources: [{ stores: [st], at: c => c }], pairName: p => ({ a: "spindle_nose", b: `part_${p}` }), coverage: 20 }),
+                 lineAt: (pos: number) => Math.floor(pos) };
+  const fns = (view: unknown) => viewerFns(["_colPreviousOf"], "const collisionTrack = { value: {} };",
+    { clashTargets, findingWords, targetAt, contactViewFor: () => view, console: { warn: () => {} } });
+  it("its words are the summary's, from the shown contact view: kinds apart, a near miss never a collision", () => {
+    expect(fns(VIEW)._colPreviousOf(result([]), 12)).toEqual(
       { collisions: 2, text: "1 collision · 1 near miss", complete: true, version: 12 });
-    expect(_colPreviousOf(result([], { truncated: { covered: 0.5, reason: "time" } }), null))
-      .toEqual({ collisions: 0, text: "", complete: false, version: null });
+    expect(fns(VIEW)._colPreviousOf(result([], { truncated: { covered: 0.5, reason: "time" } }), null))
+      .toMatchObject({ complete: false, version: null });
+  });
+  it("without the tables (gone with their request): from the records, said in the console", () => {
+    expect(fns(null)._colPreviousOf(result([hit(7, 0), hit(9, 1.5)]), 12)).toEqual(
+      { collisions: 2, text: "1 collision · 1 near miss", complete: true, version: 12 });
   });
 });
 

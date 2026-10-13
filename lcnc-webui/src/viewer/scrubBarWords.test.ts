@@ -6,10 +6,10 @@ import * as path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
 import { findingWords } from "./sweepWords";
-import { clashTargets } from "./clashTargets";
+import { clashTargets, isNearMiss } from "./clashTargets";
 import { partLabel } from "./simRows";
 import { beginSentence, depTimeSentence } from "./startDep";
-import { MAX_HITS, type CollisionHit, type CollisionResult } from "./collision";
+import type { CollisionHit, CollisionResult } from "./collision";
 
 function barComputed(name: string, refs: Record<string, unknown>) {
   const src = fs.readFileSync(path.resolve(__dirname, "../ScrubBar.vue"), "utf8");
@@ -37,8 +37,8 @@ const view = (r: CollisionResult, o: { busy?: boolean; frac?: number; caveat?: s
 }) as { verdict: string; tone: string; result: string; coverage: string; coverageShort: string; short: string; state: string };
 const detail = (r: CollisionResult) => barComputed("verdictDetail", {
   shownResult: { value: r }, props: { collisionBusy: false, collisionRunCheck: null, collisionStopped: null, collisionResumable: false },
-  track: { value: null }, provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hits: { value: r.hits },
-  sweepCaveat: { value: null }, pctOf, beginSentence, depTimeSentence, partLabel, MAX_HITS }) as string;
+  track: { value: null }, provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hitTargets: { value: clashTargets(r.hits) },
+  sweepCaveat: { value: null }, pctOf, beginSentence, depTimeSentence, partLabel, isNearMiss }) as string;
 
 describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () => {
   it("'Clear' only for a check that has ended — never while it runs", () => {
@@ -66,22 +66,19 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(detail(result({ hits: [hit(1, 1.5, { atStart: true })] }))).not.toContain("starts in contact");
   });
 
-  it("the cap is said by what it cut: records of listed contacts, or contacts themselves", () => {
-    const cut = result({ hits: [hit(7, 0)], capped: 62 });
-    expect(view(cut).verdict).toBe("1 collision · checked in full · records cut");
-    expect(detail(cut)).toContain("62 records left out of the list — the later lines of contacts it lists");
-    const onsets = result({ hits: [hit(7, 0)], capped: 9, cappedOnsets: 5 });
-    expect(view(onsets).verdict).toBe("1 collision · checked in full · more contacts not listed");
-    expect(detail(onsets)).toContain(`9 records left out of the list, 5 of them where a contact begins — contacts past the first ${MAX_HITS} are not listed or counted.`);
-    expect(detail(onsets)).not.toContain("later lines of contacts it lists");
-    expect(view(result({ hits: [hit(7, 0)] })).verdict).not.toContain("cut");
+  it("the record list's cap changes no word: the views read the contact tables, which hold every contact (step 4 package 2, round B3)", () => {
+    for (const cut of [{ capped: 62 }, { capped: 9, cappedOnsets: 5 }]) {
+      const r = result({ hits: [hit(7, 0)], ...cut });
+      expect(view(r).verdict).toBe("1 collision · checked in full");
+      expect([view(r).short, view(r).coverageShort]).toEqual(["1", "in full"]);
+      expect(detail(r)).not.toMatch(/left out of the list|not listed|records cut/);
+    }
   });
 
-  it("the parts apart (Codex R136 VP-I94): the result, the coverage with the cap's caveat, the result as a count — 200+ past the cap's contacts", () => {
-    const v = view(result({ hits: [hit(7, 0), hit(9, 1.5)], capped: 9, cappedOnsets: 2 }));
-    expect([v.result, v.coverage, v.short]).toEqual(["1 collision · 1 near miss", "checked in full · more contacts not listed", "2+"]);
+  it("the parts apart (Codex R136 VP-I94): the result, the coverage, the result as a count", () => {
+    const v = view(result({ hits: [hit(7, 0), hit(9, 1.5)] }));
+    expect([v.result, v.coverage, v.short]).toEqual(["1 collision · 1 near miss", "checked in full", "2"]);
     expect(v.verdict).toBe(`${v.result} · ${v.coverage}`);
-    expect(view(result({ hits: [hit(7, 0)], capped: 9 })).short, "records cut: the count holds").toBe("1");
     expect(view(result({ hits: [hit(7, 0)] }), { busy: true, frac: 0.4 }).short, "while it runs").toBe("1…");
     const clear = view(result());
     expect([clear.result, clear.coverage, clear.short]).toEqual(["Clear", "checked in full", "Clear"]);
@@ -93,18 +90,6 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
     expect(view(result(), { caveat: "x" }).coverageShort).toBe("to the end");
   });
 
-  it("the fewest words keep each kind of cut (Codex R138 VP-I94): records cut → \"cut\", never a \"+\"; contacts cut → the count's \"+\"; nothing cut → neither", () => {
-    const records = view(result({ hits: [hit(7, 0)], capped: 25, cappedOnsets: 0 }));
-    expect([records.short, records.coverageShort], "every beginning kept: the count whole, the cut said").toEqual(["1", "in full · cut"]);
-    expect(records.coverage).toBe("checked in full · records cut");
-    const running = view(result({ hits: [hit(7, 0)], capped: 25 }), { busy: true, frac: 0.4 });
-    expect([running.short, running.coverageShort]).toEqual(["1…", "40 % · cut"]);
-    const onsets = view(result({ hits: [hit(7, 0)], capped: 25, cappedOnsets: 2 }));
-    expect([onsets.short, onsets.coverageShort], "contacts cut: the \"+\" says it").toEqual(["1+", "in full"]);
-    const whole = view(result({ hits: [hit(7, 0)] }));
-    expect([whole.short, whole.coverageShort]).toEqual(["1", "in full"]);
-  });
-
   it("the entry move's side sweep runs on after its first contact: shown, said still checking (Codex R136 VP-I93)", () => {
     const r = result({ hits: [hit(1, 0, { entry: true, entryMove: true })] });
     const v = view(r, { entryChecking: true });
@@ -114,9 +99,14 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
 
   it("a timeline mark is a near miss only where nothing touched — a margin entry that touched later is a collision's", () => {
     const hits = [hit(10, 0), hit(40, 1.5), hit(70, 1.5, { touches: true })];
-    const marks = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] },
+    const marks = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss,
       hitTargets: { value: clashTargets(hits) } }) as Array<{ pct: number; near: boolean }>;
     expect(marks.map(m => [m.pct, m.near])).toEqual([[10, false], [40, true], [70, false]]);
+    // a target from the contact view says it itself, by the sweep's class (plan 4.1)
+    const fromView = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss,
+      hitTargets: { value: [{ cum: 20, cumEnd: 20, key: "C1|0|n", line: 3, a: "t", b: "w", dist: 5e-4, near: true },
+                            { cum: 30, cumEnd: 31, key: "C2|0|0", line: 4, a: "t", b: "w", dist: 0, near: false }] } }) as Array<{ pct: number; near: boolean }>;
+    expect(fromView.map(m => [m.pct, m.near]), "a stay at 0.5 µm without a touch is a near miss").toEqual([[20, true], [30, false]]);
   });
 
   it("the tools the \"?\" names are the check's — not the live tool a run's own M6 changed (step 4 plan 1c)", () => {
