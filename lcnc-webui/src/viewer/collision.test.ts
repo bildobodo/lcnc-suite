@@ -10,7 +10,7 @@ import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
 import { runSweepSlice } from "./sweepPump";
 import { clashTargets } from "./clashTargets";
-import { ContactStore, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_POSSIBLE } from "./contactStore";
+import { ContactStore, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE } from "./contactStore";
 
 /** A store's intervals as plain rows (step 4 package 2). */
 const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (_, k) => ({
@@ -152,6 +152,50 @@ describe("sweepCollisions", () => {
     const ivs = ivRows(store);
     expect(ivs).toHaveLength(1);
     expect(ivs[0]!.exit, "the jump, cum 40").toBeCloseTo(40, 6);
+  });
+
+  it("the contact store bisects an exit the re-sampling finds BEFORE a jump on its own side (step 4 package 2, plan 2.2)", () => {
+    // in contact at Z −40 while the table runs X 0 → 12: the boxes part at
+    // X 10 (cum 50); the touching pair's next probe (cum 55) lies past the
+    // segment's end, so the pose before the jump is never probed — the first
+    // sample after the jump (X 30, free) re-samples the stretch since the last
+    // touch, all of it before the jump's zero width: the exit is X 10, bisected
+    // and decided, not the jump at cum 52
+    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    const t = track([[0, 0, 0], [0, 0, -40], [12, 0, -40], [30, 0, -40], [30, 0, 0]], undefined, [1, 2, 3, 4, 5]);
+    t.brk = new Uint8Array([0, 0, 0, 1, 0]);
+    t.cum[3] = t.cum[2]!;
+    t.cum[4] = t.cum[3]! + 40;
+    const store = new ContactStore(1, 0);
+    sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store } });
+    const ivs = ivRows(store);
+    expect(ivs).toHaveLength(1);
+    expect(ivs[0]!.exit, "X 10, cum 50 — before the jump at 52").toBeCloseTo(50, 2);
+    expect(ivs[0]!.flags & IV_EXIT_DECIDED, "bisected between a touch and a decided free sample").not.toBe(0);
+  });
+
+  it("the contact store bounds a separation and a re-entry the re-sampling finds before a jump on their own side (plan 2.2)", () => {
+    // the vise is two narrow blocks: the spindle (X ±5) touches block A
+    // (offset 0, ±1) for table X < 6 and block B (offset −14.1, ±1) from X 8.1;
+    // the table runs X 0 → 9 at Z −40 (cum 40 → 49), probed at cum 40 and 45
+    // (A), its next probe due at 50 — past the segment's end; the first sample
+    // after the jump (X 30, free) re-samples 45 → 49 below the jump: A's exit
+    // at X 6 (cum 46) and B's entry at X 8.1 (cum 48.1), each bisected — not
+    // the jump at cum 49, and not the re-sample's discovering point (cum 48.25)
+    const block = (o: number) => { const p = boxPositions(10); for (let i = 0; i < p.length; i += 3) { p[i] = p[i]! / 5 + o; } return p; };
+    const vise = new Float32Array([...block(0), ...block(-14.1)]);
+    const model = buildCollisionModel(PLUNGE, [{ id: "vise", group: "table", positions: vise }, PLUNGE_BODIES[1]!]);
+    const t = track([[0, 0, 0], [0, 0, -40], [9, 0, -40], [30, 0, -40], [30, 0, 0]], undefined, [1, 2, 3, 4, 5]);
+    t.brk = new Uint8Array([0, 0, 0, 1, 0]);
+    t.cum[3] = t.cum[2]!;
+    t.cum[4] = t.cum[3]! + 40;
+    const store = new ContactStore(1, 0);
+    sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store } });
+    const ivs = ivRows(store);
+    expect(ivs, JSON.stringify(ivs)).toHaveLength(2);
+    expect(ivs[0]!.exit, "A's exit: X 6, cum 46").toBeCloseTo(46, 2);
+    expect(ivs[1]!.enter, "B's entry: X 8.1, cum 48.1").toBeCloseTo(48.1, 2);
+    expect(ivs[1]!.exit, "B's contact lasts to the jump, cum 49").toBeCloseTo(49, 2);
   });
 
   it("skips kins-flip relabel segments — a phantom crossing reports nothing", () => {

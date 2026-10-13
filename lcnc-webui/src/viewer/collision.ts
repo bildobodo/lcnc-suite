@@ -2079,6 +2079,7 @@ export function* sweepCollisionsIter(
   // nothing (plan 1.1, 2.2; Codex VP139-01/02/04).
   let chunkLo = 0, chunkHi = 0;   // the chunk whose V the main loop holds now
   let breakAt = -Infinity;        // the last jump (break, unknown start): no bisection reaches across it
+  let prevBreakAt = -Infinity;    // the jump before it — the floor for a re-sample BELOW the last jump
   const sink = opts.contacts ? (() => {
     const store = opts.contacts.store;
     const origin = opts.contacts.origin ?? ORIGIN_PROGRAM;
@@ -2127,8 +2128,13 @@ export function* sweepCollisionsIter(
       if (iv < 0) return;
       const from = lastTouchD[pi]!;
       let flags = store.intervals.get(iv, "flags");
-      if (from < breakAt) {
-        // a jump since the last touch: no exit is bisected across it
+      if (from < breakAt && s > breakAt) {
+        // a jump between the last touch and this free sample: no exit is
+        // bisected across it — the contact lasts to the jump, not decided.
+        // Defensive: every pair is queried at a jump's first sample, so the
+        // free sample lies AT the jump at the latest; there the bisection's
+        // points all lie below its zero width, on the last touch's side, and
+        // so do a re-sample's before the jump (the stretch since the touch).
         store.intervals.set(iv, "exit", T(breakAt));
       } else {
         const ex = bisect(from, s, pi);
@@ -2215,7 +2221,10 @@ export function* sweepCollisionsIter(
           if (ivRow[pi]! < 0) {
             // opened by this confirmed touch, its witness; the entry bisected
             // back to the pair's last decided free sample — never across a jump
-            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, breakAt, rangeStart, toolFloor[pi]!);
+            // the jump below this sample: the last one, or for a re-sample before
+            // it (the stretch since a touch, below its zero width) the one before
+            const jump = s >= breakAt ? breakAt : prevBreakAt;
+            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, jump, rangeStart, toolFloor[pi]!);
             let enter: { at: number; decided: boolean };
             if (floor >= s - 1e-9) enter = { at: s, decided: true };
             else if (floor > lastFree[pi]! || Number.isNaN(lastFree[pi]!)) {
@@ -2813,7 +2822,7 @@ export function* sweepCollisionsIter(
       || segTlo[0] !== prevTlo[0] || segTlo[1] !== prevTlo[1] || segTlo[2] !== prevTlo[2];
     const breakBoundary = pendingBreak;
     pendingBreak = false;
-    if (breakBoundary) breakAt = c0;
+    if (breakBoundary) { prevBreakAt = breakAt; breakAt = c0; }
     if (toolBoundary || breakBoundary) {
       for (let pi = 0; pi < pairs.length; pi++) {
         if (skipPair[pi]) continue;

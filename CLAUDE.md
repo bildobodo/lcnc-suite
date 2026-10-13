@@ -1890,7 +1890,10 @@ it to the last sample in the margin before a verified separation, its closest
 approach, origin program / entry / beginning / boundary), TOUCH INTERVALS
 (opened only by a confirmed touch or inside — that sample is the interval's
 WITNESS, the one ID anchor; each boundary bisected once when seen, no line
-floor, DECIDED only where its contact side was a decided touch; the first
+floor, never across a jump — a jump has zero width in the sweep's parameter
+and every pair is queried at its first sample, so a re-sample below it bounds
+an exit or a re-entry on its own side (the jump before it the floor),
+DECIDED only where its contact side was a decided touch; the first
 decided free sample after the exit is the separation's evidence with its free
 radius r = (d − CONTACT_EPS)/V of the chunk — open edges, inside the chunk, the
 smaller side in track units, f32 rounded inward) and KNOWLEDGE GAPS
