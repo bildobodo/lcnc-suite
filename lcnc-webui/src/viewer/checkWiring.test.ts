@@ -18,6 +18,7 @@ import { semanticKinsMode } from "./kins";
 import { basisFromLive, type CheckBasis } from "./checkBasis";
 import { ContactStore, NONE } from "./contactStore";
 import { buildContactView, targetAt } from "./contactView";
+import { ContactsReceiver, contactOwners } from "./contactsReceiver";
 
 function viewerFns(names: string[], prelude: string, refs: Record<string, unknown>, exports: string[] = []): Record<string, any> {
   const file = fs.readFileSync(path.resolve(__dirname, "../ThreeViewer.vue"), "utf8");
@@ -313,5 +314,36 @@ describe("the card's context, taken at the request (step 4 plan 1c, _colContextF
     const ctx = f(run, { mode: undefined }, { basis: run, gen: 1, range: { from: 3 } });
     expect([ctx.fixture, ctx.rotary, ctx.fromLine]).toEqual([1, [{ letter: "A", deg: 20 }, { letter: "C", deg: 70 }], 7]);
     expect(f(run, { mode: undefined }, { basis: run, gen: 1 }).fromLine, "the full check: no start line").toBeNull();
+  });
+});
+
+// Codex R148 VP-I106 rest: a request cancelled with no result shown lets its
+// tables and its waiting deltas go at once — not with a later message. The
+// viewer's own cancelCollisionCheck, owner set and release, as written.
+describe("a cancel releases what no one shows (Codex R148 VP-I106)", () => {
+  const harness = () => viewerFns(["cancelCollisionCheck", "_colReleaseContacts", "_colContactOwners"], `
+    let _colWorker = { postMessage() {} }, _colReqId = 7, _colSide = null, _colStopPending = false, _colSettleTimer, _colStartedAt = 0;
+    let _colResultReq = null;
+    const collisionBusy = { value: true }, collisionResumable = { value: false }, collisionProgress = { value: 0.3 };
+    const collisionPartial = { value: null }, collisionStopped = { value: null }, collisionResult = { value: null };
+    const collisionEntry = { value: null }, collisionRunSide = { value: null }, collisionSideFirst = { value: null };
+    const _pendingContacts = [], emitTelemetry = () => {};
+    const _contacts = new ContactsReceiver();
+    const show = (id) => { collisionResult.value = { hits: [] }; _colResultReq = id; };
+    const reqId = () => _colReqId;`, { ContactsReceiver, contactOwners }, ["_contacts", "_pendingContacts", "show", "reqId"]);
+  const table = (id: number) => { const st = new ContactStore(id, 0); st.episodes.append({ pair: 0, ordinal: 0, onset: 1, end: 2, closeAt: 1, closeDist: 1, firstIv: NONE, ivCount: 0 }); return st.takeDelta()!; };
+  it("a running request cancelled: its tables and waiting deltas go", () => {
+    const f = harness();
+    f._contacts.apply({ id: 7, contacts: [table(7)] });
+    f._pendingContacts.push({ id: 7, contacts: [table(7)] });
+    f.cancelCollisionCheck();
+    expect([f.reqId(), f._contacts.ids(), f._pendingContacts.length]).toEqual([8, [], 0]);
+  });
+  it("a result still shown keeps its request's tables through the cancel", () => {
+    const f = harness();
+    f._contacts.apply({ id: 7, contacts: [table(7)] });
+    f.show(7);
+    f.cancelCollisionCheck();
+    expect(f._contacts.ids()).toEqual([7]);
   });
 });

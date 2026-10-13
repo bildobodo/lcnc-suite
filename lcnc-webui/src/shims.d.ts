@@ -47,6 +47,8 @@ interface ViewerDiag {
     ids: number[];
     stats: { requests: number; rows: { episodes: number; intervals: number; gaps: number }; allocated: number; used: number };
   };
+  /** The bodies the clash tint lights now. */
+  getClashTint?: () => string[];
   /** A request's contact rows by name: the shown result's, or the request in flight's. */
   getContactRows?: (which?: "result" | "main") => Array<{ pair: string[]; flags: number; onset: number; end: number; closeAt: number;
     closeDist: number; ivs: number[][] }> | null;

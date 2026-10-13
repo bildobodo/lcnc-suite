@@ -235,6 +235,11 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
                        () => lineMark(v, 5, [[4, 5]]), () => contactBands(v, 10, 10), () => indexAfter(v, 0, null)]) {
       expect(ask, "a stale view never answers").toThrow(/tables changed since it was built/);
     }
+    // a cell set alone (a closer approach) is a write too
+    const st2 = store([{ pair: 1, close: [2, 1] }]);
+    const v2 = buildContactView({ sources: [src(st2)], pairName: names, coverage: 10 });
+    st2.episodes.set(0, "closeAt", 3);
+    expect(() => targetPos(v2, 0), "a set cell").toThrow(/tables changed since it was built/);
     const w = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
     const t = targetAt(w, 0, lineAt);
     expect([t.cum, t.dist, t.near, viewCounts(w).collisions, [...tintAt(w, 5)].length]).toEqual([4, 0, false, 1, 2]);

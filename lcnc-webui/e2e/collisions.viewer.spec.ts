@@ -87,6 +87,31 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
   await ctl({ op: "reset" });
 });
 
+// Round B3: the tint and the timeline's band read the contact tables — the
+// finding's own bodies light where the jump lands, the band covers the
+// contact on the timeline, and both go where the pose leaves it.
+test("the tint and the band are the contact tables': lit at the finding, a band over its contact, dark away from it (step 4 package 2, round B3)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await prepare(page, context, { file: "/tint.ngc", version: 2205, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+  await expect(clashRows(page).first()).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  // the band: over the contact's place on the timeline
+  const bands = await page.locator(".scrubBar .scrubBand.clash").evaluateAll(els => els.map(e => (e as HTMLElement).style.left));
+  expect(bands.length, "a contact band").toBeGreaterThan(0);
+  // the first finding: its bodies lit where the jump lands
+  await nextHit(page).click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getClashTint!()), { timeout: 15_000 }).toContain("a_yoke_casting");
+  // the start of the program: nothing in contact there
+  await slider(page).evaluate((el: HTMLInputElement) => {
+    el.value = "0";
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getClashTint!())).toEqual([]);
+  await ctl({ op: "reset" });
+});
+
 // A move whose start no parse can know (a tool change the controller moves
 // at, [EMCIO] TOOL_CHANGE_POSITION — wire rapid_ustart after the program's
 // own start) is checked at its end only, and the check SAYS so (2026-10-08).

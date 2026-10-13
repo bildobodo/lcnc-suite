@@ -2274,6 +2274,8 @@ async function buildFromInit(init: ViewerInit) {
                    runSide: collisionRunSide.value ? { id: collisionRunSide.value.id, tables: one(collisionRunSide.value.id) } : null,
                    ids: _contacts.ids(), stats: _contacts.stats(), dropped: _contacts.dropped, ...(_contactsLog) };
         },
+        // The bodies the clash tint lights now (round B3: from the contact view).
+        getClashTint: () => [..._clashOnIds].sort(),
         // A request's contact rows by name (round B3): the shown result's, or
         // the request in flight's.
         getContactRows: (which: "result" | "main" = "result") => {
