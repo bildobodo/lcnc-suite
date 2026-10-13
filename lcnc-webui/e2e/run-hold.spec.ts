@@ -313,8 +313,12 @@ test("an orientation change mid-hold runs nothing; the focus and an open dialog'
   expect(await count("run_macro"), "the hold ended with its button").toBe(0);
   await press(page, park(), HOLD_MS);
   await expect.poll(() => count("run_macro"), { message: "a full hold on the new button runs once" }).toBe(1);
-  // the focus follows the macro, not a position
+  // the focus follows the macro, not a position — on the enabled button: the
+  // run's busy latch disables it for its cooldown, and focus() on a disabled
+  // button does nothing (the full gate met it there, 2026-10-13)
+  await expect(park(), "the run's busy latch is over").toBeEnabled();
   await park().focus();
+  await expect(park()).toBeFocused();
   await page.setViewportSize(LANDSCAPE);
   await expect(page.locator(".viewerColumn .macroBar")).toHaveCount(0);
   await expect(park(), "focus on the same macro in the new bar").toBeFocused();
