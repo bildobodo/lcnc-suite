@@ -80,7 +80,10 @@ function storeView(store: ContactStore, end: number) {
 
 function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: string) {
   const store = new ContactStore(1, 0);
-  const r = sweepCollisions(model, track, WCS0, { margin: MARGIN, contacts: { store } });
+  // every chunk the sweep bounds a pair's speed over — a free radius holds only there
+  const chunks = new Map<number, Array<[number, number]>>();
+  const r = sweepCollisions(model, track, WCS0, { margin: MARGIN, contacts: { store },
+    onChunkSpeed: (pi, s0, s1) => { let l = chunks.get(pi); if (!l) chunks.set(pi, l = []); l.push([s0, s1]); } });
   expect(r.truncated, `${where}: swept whole`).toBeNull();
   const end = track.cum[track.count - 1]!;
   if ((r.capped ?? 0) > 0) return { skipped: true, touches: 0, nears: 0, collapsed: 0 };   // the records were cut: no full comparison
@@ -129,6 +132,10 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
     // truth at dense points across it (plan 2.2, 7.5; Codex R141/R142)
     for (let q = 0; q < v.free.length; q++) {
       const f = v.free[q]!, r = v.freeR[q]!;
+      // the radius stays inside the chunk whose V proves it (plan 2.2, Codex R142):
+      // the track's cum is the sweep's distance parameter in these tracks
+      if (r > 0) expect((chunks.get(pi) ?? []).some(([s0, s1]) => f - r >= s0 - 1e-3 && f + r <= s1 + 1e-3),
+        `${where} ${ids(pi)}: the free stretch ${f.toFixed(4)} ± ${r.toFixed(4)} lies inside one chunk of the pair`).toBe(true);
       for (let k = -8; k <= 8; k++) {
         const x = f + (r * k) / 8.0001;   // inside the open stretch
         if (x < 0 || x > end) continue;
