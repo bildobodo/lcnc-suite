@@ -10,7 +10,7 @@ import { buildCollisionModel, sweepCollisions, type CollisionBody, type Collisio
 import { emptyLineIndex } from "./lineIndex";
 import { mergeShardResults } from "./sweepShards";
 import type { ScrubTrack } from "../ws/bulkData";
-import { ContactStore, GAP_UNDECIDABLE } from "./contactStore";
+import { ContactStore, GAP_UNDECIDABLE, IV_EXIT_DECIDED } from "./contactStore";
 
 // undecidable where `when` says (the point in the container's frame)
 const ctl = vi.hoisted(() => ({ when: null as ((p: { x: number; y: number; z: number }) => boolean) | null }));
@@ -66,6 +66,32 @@ describe("an undecidable inside check in the sweep", () => {
       sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([0, 60]), WCS0, { margin: 0.1, contacts: { store: start } });
       const w = start.intervals.rows ? start.intervals.get(0, "witness") : NaN;
       expect(w, "its first interval's witness is the face (X 29.5–30.5), not the undecidable start").toBeGreaterThan(28);
+    } finally {
+      ctl.when = null;
+    }
+  });
+
+  it("in the contact store a contact before a jump whose first sample after it is undecidable ends AT the jump, not decided (plan 2.2)", () => {
+    // the nub touches the post's face (X 30.5) and the table runs on to X 29
+    // (its next probe, 5 later, past the segment's end); a jump (zero width)
+    // to X 12, deep inside: undecidable, the contact neither ends nor goes on
+    // there; probed at the contact cadence it is next decided free at X −33,
+    // past the far face — the exit is the jump, never bisected across it
+    // into the undecidable stretch behind it
+    ctl.when = () => true;
+    try {
+      const t = xs([60, 29, 12, -60]);
+      t.brk = new Uint8Array([0, 0, 1, 0]);
+      t.cum[2] = t.cum[1]!;
+      t.cum[3] = t.cum[2]! + 72;
+      const store = new ContactStore(1, 0);
+      sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), t, WCS0, { margin: 0.1, contacts: { store } });
+      expect(store.intervals.rows, "one contact").toBe(1);
+      expect(store.intervals.get(0, "exit"), "the jump, cum 31").toBeCloseTo(31, 3);
+      expect(store.intervals.get(0, "flags") & IV_EXIT_DECIDED, "a jump is no decided boundary").toBe(0);
+      const gaps = Array.from({ length: store.gaps.rows }, (_, k) => store.gaps.get(k, "reason"));
+      expect(gaps.length, "the undecidable stretch is a gap").toBeGreaterThan(0);
+      expect(gaps.every(r => r === GAP_UNDECIDABLE)).toBe(true);
     } finally {
       ctl.when = null;
     }

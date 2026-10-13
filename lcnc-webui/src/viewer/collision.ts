@@ -2131,10 +2131,10 @@ export function* sweepCollisionsIter(
       if (from < breakAt && s > breakAt) {
         // a jump between the last touch and this free sample: no exit is
         // bisected across it — the contact lasts to the jump, not decided.
-        // Defensive: every pair is queried at a jump's first sample, so the
-        // free sample lies AT the jump at the latest; there the bisection's
-        // points all lie below its zero width, on the last touch's side, and
-        // so do a re-sample's before the jump (the stretch since the touch).
+        // Every pair is queried at a jump's first sample: a free one there
+        // bisects below the jump's zero width, on the last touch's side, like
+        // a re-sample before the jump; a free sample PAST the jump follows an
+        // undecidable first sample, and the stretch behind the jump is a gap.
         store.intervals.set(iv, "exit", T(breakAt));
       } else {
         const ex = bisect(from, s, pi);

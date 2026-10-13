@@ -9330,3 +9330,14 @@ a lever without the body's radius, a zero bulge term and a rotary axis taken as
 Z; a halved rotary term and the ×2 inflation at ×1 keep V above every measured
 speed — they remove the proof's reserve for nested rotaries, which no test of
 soundness observes.
+
+The mutations found three of the sink's own rules unguarded or wrong, fixed in
+the round: the free radius left unclipped to its chunk passed every test (the
+cross-check now holds each free stretch to one chunk of its pair); the shards'
+tables had no check against the single sweep (plan 7.3, now `sweepShards.test`);
+and the jump rule reached too far — a jump has zero width in the sweep's
+parameter and every pair is queried at its first sample, so the re-sampling
+after a lost touch lies wholly below it, yet an exit it found there moved to the
+jump (past its own free sample) and a re-entry there took the jump as its floor.
+Now the jump decides an exit only for a free sample past it, which follows an
+undecidable first sample; below it the jump before is the floor.
