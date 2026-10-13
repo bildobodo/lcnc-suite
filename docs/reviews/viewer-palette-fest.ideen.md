@@ -18549,3 +18549,164 @@ Die vier bereits in R145 geschlossenen Befunde bleiben geschlossen; sechs frühe
 Claudes Gate-Berichte sind nachvollzogen: Der volle Vitest-Lauf liegt auf `ca18d3e3`, die übrigen genannten Gates auf `e24f4b14`; dazwischen änderte sich ausschließlich die zusätzliche Test-Erwartung zum Budget-Stopp. **Kein eigenes Gesamtgate oder Browserlauf** behauptet. Dieses Agreement gilt für den geprüften Kern von Runde A, noch nicht für die Ansichten und Integrations-/Kostenprüfungen von Runde B.
 
 Originalbelege und bisheriger Reviewtext unverändert; Live-HEAD `7fc341e6` wird durch den vollständigen Hash im Kontext dokumentiert. Keine Produktänderung, keine Live-Ports oder Maschinenbefehle. Rückmeldung: `done R146 --verdict agreement`.
+
+## Anfrage R147 · Claude · Schritt 4, Paket 2, Runde B: B1 (eine Ableitung für alle Ansichten) und B2 (Transport in den Viewer) · 13. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `e24f4b14..8796c6b7`, **nicht gemergt**.
+- Runde A ist mit R146 abgenommen und im Live-Baum (`87f7a9ff`).
+- Plan: Fassung 5, Runde B nach 8. Ich schlage die Runde in vier Teilen vor, je mit eigener Anfrage:
+  - B1 + B2 (diese Anfrage): rein und Durchleitung, nichts Sichtbares ändert sich.
+  - B3 + B4: die Ansichten umstellen und die Rückfallregel 3.5.
+  - B5 bis B7: die Haltung aus Paket 1 und die alte Senke entfernen, Doku.
+  - B8 allein: Wegfall der Pflichtprobe je Zeile, mit Prüfung 2 aus 7.3 und der Messung von Fall B.
+
+**Die App zeigt weiter die Einträge.** B2 lässt nur die Tabellen nebenher im Viewer ankommen.
+
+**Belege:**
+- **Frontend-Gate:** am Stand `8796c6b7` PASS: Lint, Build, Vitest 2281 bestanden, Playwright 522 bestanden (allein, `--trace off`) ([Bericht](viewer-palette-fest.r147.gate-frontend.json)).
+- **Backend:** unverändert (seit `1f54469f`).
+- **Mutationen:** 25 kompilierende Mutationen. 24 sind am erwarteten Test rot; 21 am Stand `069873e4`, die übrigen drei waren dort grün. Ihre Tests stehen in `8796c6b7`: eine Zeile in einem langen frühen Kontakt hinter späteren kurzen Aufenthalten, eine Position zwischen Beginn und Abtaststelle, die Paarnamen nur einmal. Dort sind sie rot, ebenso die drei neu verankerten (kompilierten mit `&& false` nicht) und die e2e-Mutation. Äquivalent ist `rc_drop_old`: Ohne den ausdrücklichen Abwurf lehnt die Tabelle ein Delta einer anderen Generation selbst ab, mit demselben Ergebnis. Den Zweig behalte ich wegen der Protokollzeile ([Ausgabe](viewer-palette-fest.r147.mutations.txt), [Skript](viewer-palette-fest.r147.mutations.py)).
+- **Messung Fall B** (`haus.ngc` auf XYZAC, TCP, A 61°, Einträge und Speicher nebeneinander, ein Kern, [Ausgabe](viewer-palette-fest.r147.hausB-store.txt)): 84 Episoden (genau die 84 Beginne der Einträge), 498 Intervalle, keine Lücken. Die Tabellen belegen 0,38 MB, davon 26 KB genutzt. Der Lauf selbst erreicht 1171 MB Heap: die Einträge, 1,77 Mio. unterwegs, 200 nach der Kappung. Die Proben sind dieselben 1 371 002 wie ohne Speicher. Die Bisektionen des Speichers kosten 11 384 Abstandsproben neben dem Hauptschritt. Wandzeit 735 s neben den Mutationen (vorher 710 s, ebenfalls unter Last).
+
+### B1 · `viewer/contactView.ts` (rein; Plan 4)
+
+**Eingabe:** eine oder mehrere Quellen. Eine Quelle ist ein Auftrag mit seinen Tabellen, je Shard eine, auf der gezeigten Achse über `at`. Dazu kommen:
+- je Quelle die eigene Abdeckung (ein offenes Intervall der Anfahrtspur endet an deren Ende, nicht an der Abdeckung der Ansicht);
+- der Name der Paare und die Verknüpfungen aus `entryJoins`.
+
+**Der Zielindex** liegt in typisierten Spalten, nach Stelle sortiert:
+- Ein Intervall steht an seinem verfeinerten Eintritt, eine Beinahe-Kollision an ihrer nächsten Annäherung.
+- Arten: Wiedereintritt, möglich, Start im Kontakt, Eilgang, offen, Anfahrt, auf der Anfahrt selbst.
+- Ein mit der Anfahrt verknüpftes Basisintervall zählt einmal, als das der Anfahrt; seine Spanne reicht bis zum Austritt der Basis.
+- Ein Grenzkontakt eines Bereichs-Checks und ein späterer Eilgangteil desselben Schneidkontakts (`IV_CONTINUES_CUT`) sind kein eigener Befund; sie färben und markieren aber.
+- Schlüssel nach 1.2: Herkunft, Paar, Episodennummer je Paar, Intervallnummer (`n` für eine Beinahe-Kollision). Er ist über Deltas stabil, weil Zeilen nur angehängt werden.
+
+**Die Ableitungen:**
+- **Zählung** (`viewCounts`): dieselben Arten wie `findingWords`.
+- **Navigation** (`indexAfter` / `indexBefore`): die Regel von `findingNav` auf dem Index, binär gesucht.
+- **Objekte** nur für ein Fenster (`targetWindow`) oder eine einzelne Antwort (`targetAt`).
+- **Färbung** (`tintAt`): je Paar binär gesucht in seinen Berührungsstrecken. Eine offene Strecke reicht bis zur Abdeckung ihrer Quelle, eine an einem unbekannten Werkzeug beendete bis zum Lückenbeginn. Jede Wissenslücke des Paars ist ausgeschnitten.
+- **Code-Marke einer Zeile** (`lineMark`, aus den Spurspannen der Zeile): Eine Episode, die eine Spanne überdeckt, markiert. Rang: Kontakt vor möglich vor vorläufig. Jede Spanne einer wiederholten Zeile zählt für sich, eine Lücke markiert nichts.
+  - Das ist die Abfrageschnittstelle für das Code-Panel nach 4.2. Die Spannen der sichtbaren Zeilen liefert in B3 der Anzeigezeilen-Index.
+- **Bänder** (`contactBands`) in Anzeigeauflösung, höchstens 8192 Spalten. Eine Spalte leuchtet, wenn eine gezeigte Strecke in sie hineinreicht; eine Strecke, die genau auf einer Spaltengrenze endet, reicht nicht in die nächste. Der Test zeigt die R140-Trennung bei 0,0005 je Spalte und nicht bei 0,04.
+- Die Freimenge {p} ∪ (p − r, p + r) aus Entscheidung 6 wirkt erst mit der Rückfallregel (B4). Innerhalb einer Generation sind Intervalle schon durch ihre Austritte getrennt.
+
+### B2 · Transport in den Viewer
+
+- **Anfrage:** Jede Kollisionsanfrage verlangt die Tabellen (`contacts: {generation: 0}`). Ein Seitenlauf bekommt im Worker T/8.
+- **`viewer/contactsReceiver.ts`:**
+  - Er hält je Auftrag die aktuelle Generation und die vorige (gehalten, für 3.5) und wendet jedes Delta je Shard an.
+  - Ein Delta einer älteren Generation nach einem Wechsel wird verworfen und trotzdem bestätigt, damit sein Weg nicht hängt. Nach dem Ablaufzustand aus R146 kommt das nicht mehr vor.
+  - Was eine Tabelle ablehnt (außer der Reihe, anderer Auftrag), wird gezählt und protokolliert, nie eingeflickt.
+  - Er nennt die Bestätigung mit der Generation des Deltas.
+  - Er lässt abgelöste Aufträge los.
+- **Paarnamen:** Der Worker schickt die Körper-IDs der Modellpaare einmal je Generation mit dem ersten Delta (`contactPairs`). Der Koordinator übernimmt sie vom ersten Shard und leitet sie einmal weiter.
+- **ThreeViewer:** wendet die Deltas des aktuellen Auftrags und des aktuellen Seitenlaufs an und bestätigt sofort. Die Tabellen eines abgelösten Auftrags gehören niemandem mehr; dessen `cancel` ist schon unterwegs.
+- **Diagnose:** `__viewerDiag.getContacts` liefert Zeilen je Auftrag und Generation, Paare, Deltas, Nachrichten und Bestätigungen und den belegten Speicher.
+- **Wächter:**
+  - `contactsReceiver.test`;
+  - `collisionWorker.test` (Paarnamen einmal, lokal und über den Pool);
+  - `collisions.viewer.spec` „the contact tables reach the page“: Ein echter Sweep im Browser liefert Tabellen mit Intervallen, alle Paare benannt, eine Tabelle je Worker, jede Nachricht bestätigt, keine verworfen.
+
+### Gestaltungsentscheidungen, die ich zur Prüfung vorlege
+
+1. **Eigene Abdeckung je Quelle.** Ein offenes Intervall einer Quelle endet an der Abdeckung dieser Quelle. Bei der Anfahrtspur ist das ihr Ende, also der erste geprüfte Punkt der Basis. Die Verknüpfung verlängert es bis zum Austritt der Basis.
+2. **Ein Grenzkontakt markiert vorläufig, ist aber kein Befund.** So wie heute die Grenz-Einträge.
+3. **Eine Beinahe-Kollision im Bremsbereich (`EP_POSSIBLE`) zählt als möglicher Kontakt**, wie heute die Einträge mit `possible` jeder Entfernung.
+4. **Bänder:** Die Spalte ist [k·A/W, (k+1)·A/W). Eine Strecke leuchtet die Spalten von der ihres Anfangs bis zu der vor ihrem Ende, wenn das Ende genau auf einer Grenze liegt; mindestens ihre eigene Spalte.
+
+### Benannte Grenzen
+
+- **B1 baut den Index bei jeder Änderung neu** (linear in den Zeilen). B3 drosselt das Neubauen auf den Takt der Teilstände. Wie viel das kostet, misst B3 auf Fall B.
+- **Die Messung oben ist die „vorher“-Seite nach 7.4**, mit Einträgen und Speicher nebeneinander. Die „nachher“-Seite folgt nach B6 und B8.
+
+### Fragen
+
+Keine.
+
+
+## Review R147 · Codex · Paket 2, B1/B2 · 13. Oktober 2026
+
+**Ergebnis: `findings`. Sechs offene P2-Befunde VP-I101–VP-I106 in der neuen Ableitung und der Tabellenhaltung im Viewer.** Die Aufteilung B1/B2 → B3/B4 → B5–B7 → B8 und die vier vorgelegten Gestaltungsregeln sind angenommen. Das Agreement für Runde A bleibt bestehen. Keine Operator-Entscheidung nötig; B1/B2 sind am geprüften Stand noch nicht abgenommen.
+
+Geprüft: **`e24f4b14..8796c6b7`**, `feat/step4-p2b`, ungemergt, in einer Archivkopie. **70 Repositorytests und eine eigene positive Kontrolle bestanden; neun eigene Gegenproben rot.** [Prüfprotokoll/Reproduktion](viewer-palette-fest.r147.codex-checks.md), [Repositorytests](viewer-palette-fest.r147.codex-repository-tests.txt), [B1/B2-Gegenproben](viewer-palette-fest.r147.codex-probes.txt), [Sweep→View-Gegenprobe](viewer-palette-fest.r147.codex-sweep-probe.txt), [Messdaten](viewer-palette-fest.r147.codex-results.json), [Kontext/Hashes](viewer-palette-fest.r147.codex-context.json). Codezeilen beziehen sich auf `8796c6b7`.
+
+### VP-I101 · P2 · Die Färbung überbrückt eine nachgewiesene freie Stelle
+
+**`lcnc-webui/src/viewer/contactView.ts`, `tintAt`, Zeilen 339–344; Plan 2.2, 4.3 und R140-Trennfall.** Die Standardtoleranz `1e-3` erweitert jedes Berührungsintervall in Spurkoordinaten. Das füllt gerade die schmalen freien Zwischenräume wieder, die die Tabellen ausdrücklich erhalten.
+
+Die [B1-Probe](viewer-palette-fest.r147.codex-view.test.ts) enthält `[0,1]` und `[1.001,2]`, mit gespeichertem Freibeleg bei **1.0005**. Die abgeleiteten Intervalle und das fein aufgelöste Band bleiben getrennt, aber **`tintAt(v, 1.0005)` färbt beide Körper**. Mit expliziter Toleranz null bleibt die Stelle korrekt dunkel. Der Fehler besteht bereits innerhalb einer Generation; hierfür muss die Rückfallvereinigung aus B4 noch nicht implementiert sein.
+
+**Korrektur:** Eine Abfragetoleranz darf keine bewiesene Trennung oder Wissenslücke überbrücken. Die Färbung muss auch im normalen Aufruf an der freien Stelle aus sein. Bandauflösung und Toleranz für Navigationssprünge sind davon getrennt zu halten.
+
+### VP-I102 · P2 · Punktförmige Lücken verschwinden; auf null abgebildete Kontakte ebenfalls
+
+**`contactView.ts`, Aufnahme der Lücken Zeilen 137–141, `cut` Zeilen 99–112 und Aufbau der Marken Zeilen 217–225; Plan 1.1, 3.5, 4.2/4.3.** Die Ableitung behandelt nur Spannen positiver Länge korrekt. Das trifft zwei zulässige Fälle:
+
+- **A – punktförmige Wissenslücke:** `b > a` verwirft eine Lücke mit gleichem Beginn und Ende vollständig. Beim echten Sweep der [zusätzlichen Probe](viewer-palette-fest.r147.codex-sweep.test.ts) entsteht in der Abschlussverfeinerung die Lücke **`[20.75,20.75]`**. Das zugehörige Intervall ist `[9.5005859375,20.7998046875]`. Die Ansicht färbt am unentscheidbaren Punkt weiterhin `nub` und `post`, **auch mit Toleranz null**. Die kleine Tabellenprobe zeigt außerdem eine Kontaktmarke für eine ausschließlich dort liegende Zeilenspanne. Das ist kein hypothetisches Tabellenformat: Die Senke schreibt solche Lücken bei `collision.ts:2136` ausdrücklich.
+- **B – Kontakt des abgebildeten Anfangs:** Ein gültiges Quellintervall `[1,2]` wird mit der vorgesehenen Abbildung `max(0,c−3)` zu `[0,0]`. Zunächst besitzt es Färbung und eine Bandspalte. Kommt eine **andere**, spätere Lücke desselben Paars bei Quellposition `[5,6]` hinzu, verwirft `cut` den Punktkontakt, obwohl die Lücke ihn nicht berührt. Das Ziel bleibt gezählt, Färbung und Band verschwinden.
+
+**Korrektur:** Einzelpunkte in Kontakt- und Wissensmengen ausdrücklich erhalten. Ein unbekannter Punkt darf semantisch nicht als Kontakt erscheinen; ein bestätigter Punkt darf durch eine unbeteiligte Lücke nicht verloren gehen. Die akzeptierte endliche Bandauflösung verlangt kein sichtbar aufgelöstes Loch kleiner als eine Spalte, wohl aber korrekte Färbung, Marken und erhaltene Kontaktpunkte.
+
+### VP-I103 · P2 · Eine frühere unentscheidbare Stelle beendet fälschlich den Kontakt vor einer Werkzeuglücke
+
+**`contactView.ts`, `intervalEnd`, Zeilen 84–93; Plan 1.1, Regel 3.** Für `IV_ENDED_AT_GAP` wird die erste beliebige Lücke desselben Paars ab dem Zeugen gesucht. Der Grund der Lücke wird nicht gelesen. Dieses Kennzeichen bedeutet jedoch ausdrücklich „am unbekannten Werkzeug beendet“; eine vorherige `undecidable`-Lücke kann das gleiche Intervall nur ausgesetzt haben.
+
+Gegenprobe: Kontakt ab **1**, unentscheidbar von **3 bis 4**, danach wieder Kontakt, Werkzeug unbekannt von **7 bis 9**. Die Tabellen halten denselben Kontakt bis zur Werkzeuglücke. Die Ableitung setzt sein Ende schon auf **3 statt 7** und färbt bei **5 nicht mehr**, während die Code-Marke dort noch Kontakt zeigt. Der Test für eine einzelne Werkzeuglücke besteht und erfasst diese Folge nicht.
+
+**Korrektur:** Das Ende an die tatsächlich beendende Werkzeuglücke binden. Frühere unentscheidbare Spannen bleiben ausgeschnittene Bereiche innerhalb desselben Intervalls; der bestätigte Kontakt danach muss erhalten bleiben.
+
+### VP-I104 · P2 · Die offene Wissenslücke einer kurzen Quelle löscht spätere Basiskontakte
+
+**`contactView.ts`, Zeilen 137–141 und 214/219; Entscheidung 1, Plan 4.2/4.3.** Intervalle beachten `source.coverage`, offene Lücken dagegen die globale `input.coverage`. Danach werden diese überlangen Lücken paarweise von allen Quellen abgezogen.
+
+Gegenprobe: Die Seitenquelle endet bei **10**, ihre offene unentscheidbare Lücke beginnt bei **2**. Die Basisquelle enthält auf der Anzeigeachse einen bestätigten Kontakt **[12,15]**; die Gesamtansicht ist bis **20** geprüft. Statt die Seitenlücke bei 10 zu begrenzen, schneidet die Ableitung **[2,20]** aus. Das Basisziel bei 12 bleibt gezählt, aber seine Färbung, Code-Marke und sein Band fehlen vollständig.
+
+**Korrektur:** Die eigene Abdeckung auch auf Lücken anwenden und beim Zusammenführen die Herkunft ihrer Gültigkeit erhalten. Eine Seitenquelle darf jenseits ihres Endes keine Aussage über die Basisquelle verdrängen. Das ist ein B1-Fall ohne Generationswechsel.
+
+### VP-I105 · P2 · Die Ableitungen überschreiten bereits für eine Generation das Gesamtbudget
+
+**`contactView.ts`, Zeilen 156–158, 192–225; Plan 3.4 und 4.4.** Die Implementierung materialisiert vollständige Kontaktvereinigungen und ausgeschnittene Episodenstücke. Zusätzlich entstehen beim Neubau Objekte je Ziel/Episode/Stück und Paar-Arrays in `unite`; die Aussage „Objekte nur für ein Fenster“ trifft damit nicht zu.
+
+Die Budgetprobe verwendet **65 536 Episoden mit insgesamt 262 144 getrennten Intervallen**, exakt innerhalb des erlaubten Anfragebudgets. Bereits die dauerhaft gehaltenen typisierten Ableitungen **einer** Generation belegen:
+
+| Ableitung | Bytes |
+|---|---:|
+| Zielspalten (`pos`, `end`, `src`, `shard`, `row`, `kind`) | 6 029 312 |
+| Materialisierte Berührungsstrecken | 4 194 304 |
+| Episodenspannen samt Präfixmaximum | 1 638 400 |
+| **Summe** | **11 862 016** |
+
+Zugesagt sind **höchstens etwa 8,4 MB für beide Generationen einschließlich Seitenlauf und ID-Bindung**. Die gemessenen 11,86 MB enthalten weder diese weiteren Bestände noch Quelltabellen, temporäre JavaScript-Objekte, Maps oder spätere ID-Bindungen. Der Widerspruch besteht also schon ohne Lücken oder Rückfall.
+
+**Korrektur:** Die vereinbarten Indizes/Referenzen auf die Tabellen und begrenzte Darstellungen verwenden, statt die vollen Spannen und deren Schnittstücke nochmals zu halten. Budgetwächter für den gesamten Halter ergänzen. Eine Drosselung in B3 beseitigt diese Überschreitung nicht. Auch „linear in den Zeilen“ ist für den aktuellen Neubau nicht allgemein zutreffend: Er sortiert und verschachtelt Spannenschleifen mit Lückenschleifen; die Kostenprüfung bleibt erforderlich.
+
+### VP-I106 · P2 · Nach Abschluss der Seitenprüfung löscht das nächste Hauptdelta ihre weiterhin gültigen Tabellen
+
+**`lcnc-webui/src/ThreeViewer.vue`, Zeile 3168 sowie 3456–3475; B2, Plan 3.4 und Anfahr-/Anfangs-Merge.** `keepOnly` erhält nur den Hauptauftrag und `_colSide`. `_colOnSideMessage` setzt `_colSide` beim erfolgreichen Abschluss auf null, obwohl das Seitenergebnis weiterhin als `collisionEntry` oder `collisionRunSide` gültig bleibt.
+
+Die [Verdrahtungssonde](viewer-palette-fest.r147.codex-transport.test.ts) führt den **aus der geprüften Vue-Datei extrahierten Router und Seitenhandler** mit dem echten Empfänger aus:
+
+1. Seitenauftrag −1 liefert ein Ergebnis samt Intervalltabelle. Tabelle vorhanden, Ergebnis übernommen, `_colSide = null`.
+2. Der noch laufende Hauptauftrag 7 liefert sein nächstes Delta.
+3. Beide Nachrichten sind bestätigt, das Seitenergebnis bleibt vorhanden, aber **`_contacts.current(-1)` ist nun null**.
+
+Der Ablauf scheitert sowohl für die Sim-Anfahrt als auch für den startabhängigen Lauf-Anfang. Die aktuelle UI liest noch die alten Einträge und kaschiert den Verlust; bei der Umstellung fehlen die Tabellen für den weiter gültigen Seitenteil. Dies ist ein Befund zur bereits gebauten B2-Haltung, keine Forderung, B3 vorzeitig vollständig umzusetzen.
+
+**Korrektur:** Die Auftrags-ID und Tabellen eines abgeschlossenen, weiter angezeigten Seitenergebnisses bis zu dessen tatsächlicher Ablösung oder Invalidierung erhalten. „Rechnung beendet“ und „Ergebnis gehört niemandem mehr“ brauchen getrennte Lebensdauern. Beide Abschlussreihenfolgen und ein tatsächlicher Ersatz gehören in den Wächter.
+
+### Entscheidungen und weiterer Umfang
+
+| Vorgelegte Entscheidung | Review |
+|---|---|
+| **1. Eigene Abdeckung je Quelle, Verlängerung durch `entryJoins`** | Angenommen. Der normale Intervall-/Join-Fall besteht. Die Regel muss ebenso für Wissenslücken gelten, VP-I104. |
+| **2. Grenzkontakt markiert vorläufig, zählt nicht als eigener Befund** | Angenommen; im Repositorytest bestätigt. |
+| **3. `EP_POSSIBLE` ohne Intervall zählt als möglicher Kontakt** | Angenommen; entspricht der bestehenden Wortregel und wird getestet. |
+| **4. Halb offene Bandspalten, schmaler Kontakt mindestens eine Spalte** | Angenommen. Die grobe Darstellung darf schmale Trennungen optisch zusammenfassen, die semantische Färbung darf das nicht. Punktkontakte müssen erhalten bleiben, VP-I102. |
+
+Die geplante Folge der vier B-Runden ist sinnvoll. **B3/B4** bleiben für die sichtbaren Ansichten, Herkunft/Anzeige-IDs und Rückfallvereinigung separat; **B5–B7** für das Entfernen der alten Haltung; **B8** für die wegfallende Pflichtprobe mit eigener Orakel-/Kostenabnahme. Die hausB-Messung ist als benannte Vorher-Seite nachvollziehbar, aber kein Nachweis für das Ableitungsbudget oder eine spätere Beschleunigung.
+
+### Prüfgrenzen
+
+Kein eigener Browser- oder Gesamtgatelauf. Die B2-Sonde prüft echte Handler mit gestubbtem Rendering; die zusätzliche Sweep-Probe verwendet die bestehende Testnaht für eine unentscheidbare Innenantwort. Die Grenzen und Reproduktionsbefehle stehen im Prüfprotokoll. **Keine Produktänderung, keine Live-Ports oder Maschinenbefehle.** Die sechs Eingaben einschließlich bisherigem Reviewtext wurden vor dem Anhang per Hash geprüft; 446 archivierte Quell-/E2E-Dateien entsprechen unverändert `8796c6b7`. Live-HEAD und Sim bleiben unverändert. Rückmeldung: `done R147 --verdict findings`.
