@@ -61,6 +61,8 @@ export class ContactsReceiver {
   }
 
   current(id: number): GenerationTables | null { return this.reqs.get(id)?.current ?? null; }
+  /** The requests whose tables are held. */
+  ids(): number[] { return [...this.reqs.keys()]; }
   held(id: number): GenerationTables | null { return this.reqs.get(id)?.held ?? null; }
 
   /** Lets go of every request but `keep` (a superseded request's tables are
@@ -80,4 +82,19 @@ export class ContactsReceiver {
     }
     return { requests: this.reqs.size, rows, allocated, used };
   }
+}
+
+/** The requests whose tables someone still reads (Codex R147 VP-I106): the
+ *  request and the side run in flight, and every request behind what is
+ *  shown — the result on screen (a provisional one kept while its full check
+ *  runs; a cancel moves the request id on while the result stays), the entry
+ *  move's result, a run check's bound beginning, a side run's first contact.
+ *  "The run ended" and "nobody reads its result" are two lifetimes: a side
+ *  run's tables outlive its run while its result is shown. Every field is
+ *  named — a caller cannot forget one. */
+export function contactOwners(o: { main: number; side: number | null; result: number | null; entry: number | null;
+                                   runSide: number | null; sideFirst: number | null }): Set<number> {
+  const out = new Set<number>([o.main]);
+  for (const id of [o.side, o.result, o.entry, o.runSide, o.sideFirst]) if (id !== null) out.add(id);
+  return out;
 }

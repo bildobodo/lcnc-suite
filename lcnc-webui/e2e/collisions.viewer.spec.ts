@@ -14,6 +14,8 @@ const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"))
 
 async function prepare(page: Page, context: BrowserContext, o: {
   file: string; version: number; feed: number[][]; lines: number[]; joints: number[]; extra?: Record<string, unknown>;
+  /** Runs once the viewer is up, before the program is published. */
+  before?: () => Promise<unknown>;
 }) {
   const preview = Buffer.from(encode({ file: o.file, preview_schema: 11, feed: o.feed,
     feed_lines: o.lines, feed_seq: o.lines.map((_, i) => i + 1), feed_outside: new Uint8Array(o.feed.length), rapid: [],
@@ -30,6 +32,7 @@ async function prepare(page: Page, context: BrowserContext, o: {
   await ctl({ op: "status_delta", data: { active_file: o.file, joint_pos: o.joints, actual_position: o.joints,
     g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     rotation_xy: 0, is_enabled: false, enabled: false } });
+  if (o.before) await o.before();
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: o.version, file: o.file } });
   // The findings live in the side pane's Simulation tab, its list on the collisions.
   await simShow(page, "clash");
@@ -166,6 +169,46 @@ test("the contact tables reach the page beside the records: every delta applied 
   expect(c.dropped, "none dropped").toBe(0);
   expect(c.main!.rows!.episodes, "at least the records' contacts").toBeGreaterThanOrEqual(new Set(s.onsets).size);
   expect(c.stats.allocated, "the memory the page holds for them").toBeGreaterThanOrEqual(c.stats.used);
+  await ctl({ op: "reset" });
+});
+
+// Codex R147 VP-I106: the entry move's side run ends and its result stays
+// shown; the main request, still running, sends its next tables — and the
+// page let the side's tables go (its run was over, its result was not). They
+// stay while the result is shown, and go once a new side result replaces it.
+// (The other order — the main request done first — calls nothing that could
+// drop them; the unit test holds both.)
+test("a shown side result keeps its contact tables while the main request sends on; a replacing one lets them go (Codex R147 VP-I106)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  // the nose back and forth in the yoke: a main sweep of many slices
+  const feed: number[][] = [[0, 0, -100], [0, 0, -380]], lines = [1, 6];
+  for (let k = 0; k < 80; k++) { feed.push([k % 2 ? 0 : 240, 0, -380]); lines.push(7); }
+  feed.push([0, 0, -100]); lines.push(8);
+  await prepare(page, context, { file: "/side-tables.ngc", version: 2212, lines, joints: [-100, 0, 0, 0, 0], feed,
+    // the main sweep holds after its first slice, as under a camera drag
+    before: () => expect.poll(() => page.evaluate(() => { window.__viewerDiag?.setCameraHold?.(true); return !!window.__viewerDiag?.setCameraHold; })).toBe(true) });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCollisionHoldLog?.() ?? []), { timeout: 60_000 })
+    .toContain("camera on");
+  // the simulation's entry move: a side run beside the held main request
+  await page.locator(".scrubBar").getByRole("checkbox", { name: "Sim" }).check();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().entry?.tables?.id ?? null), { timeout: 60_000,
+    message: "the entry result is shown with its tables" }).not.toBeNull();
+  const entryId = (await page.evaluate(() => window.__viewerDiag!.getContacts!().entry!.id));
+  expect(await sweepDone(page), "the main request still runs").toBe(false);
+  const msgs = await page.evaluate(() => window.__viewerDiag!.getContacts!().messages);
+  // the main request sends on: its tables are applied, the shown side's stay
+  await page.evaluate(() => window.__viewerDiag!.setCameraHold!(false));
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  const c = await page.evaluate(() => window.__viewerDiag!.getContacts!());
+  expect(c.messages, "the main request's tables arrived after the side result").toBeGreaterThan(msgs);
+  expect(c.entry?.id, "the entry result is still the shown one").toBe(entryId);
+  expect(c.entry?.tables, "and its tables are still held").not.toBeNull();
+  // the machine moves: a new entry move, a new side result — the old one's tables go
+  await ctl({ op: "status_delta", data: { joint_pos: [-60, 0, 0, 0, 0], actual_position: [-60, 0, 0, 0, 0] } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().entry?.id ?? null), { timeout: 60_000,
+    message: "a new entry result" }).not.toBe(entryId);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().ids), { timeout: 30_000 }).not.toContain(entryId);
   await ctl({ op: "reset" });
 });
 

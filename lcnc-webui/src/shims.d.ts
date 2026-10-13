@@ -41,8 +41,14 @@ interface ViewerDiag {
   setCollisionShards?: (n: number | null) => void;
   getContacts?: () => {
     main: ContactsDiag | null; side: ContactsDiag | null; dropped: number; messages: number; acks: number; maxDeltaRows: number;
+    /** The shown side results and their tables (Codex R147 VP-I106), every request held. */
+    entry: { id: number; tables: ContactsDiag | null } | null;
+    runSide: { id: number; tables: ContactsDiag | null } | null;
+    ids: number[];
     stats: { requests: number; rows: { episodes: number; intervals: number; gaps: number }; allocated: number; used: number };
   };
+  /** Hold the main sweep as a camera interaction does. */
+  setCameraHold?: (on: boolean) => void;
   getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[]; uncertified: string | null } | null;
   /** The basis the last main sweep was built from (plan „Prüfung im Lauf“ 1c). */
   getCollisionBasis?: () => { kind: "idle" | "run"; runId: number | null; g5x: number[]; g92: number[];

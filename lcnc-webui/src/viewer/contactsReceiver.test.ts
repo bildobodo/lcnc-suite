@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ContactStore, NONE } from "./contactStore";
-import { ContactsReceiver } from "./contactsReceiver";
+import { ContactsReceiver, contactOwners } from "./contactsReceiver";
 
 const ep = (s: ContactStore, pair: number) => s.episodes.append({ pair, ordinal: 0, onset: pair, end: NaN, closeAt: pair, closeDist: 1, firstIv: NONE });
 
@@ -53,5 +53,44 @@ describe("the owner's contact receiver (round B2, plan 3.1/3.5)", () => {
     expect([st.requests, st.rows.episodes]).toEqual([1, 3]);
     expect(st.used).toBe(3 * 46);
     expect(st.allocated).toBeGreaterThanOrEqual(st.used);
+  });
+});
+
+// Codex R147 VP-I106: a side run's result stays shown after its run ended —
+// its tables must outlive the run until the result is replaced or dropped.
+describe("whose tables stay (Codex R147 VP-I106)", () => {
+  const owners = (o: Partial<Parameters<typeof contactOwners>[0]> & { main: number }) =>
+    contactOwners({ side: null, result: null, entry: null, runSide: null, sideFirst: null, ...o });
+  const side = (r: ContactsReceiver, id: number) => { const s = new ContactStore(id, 0); ep(s, 1); r.apply({ id, contacts: [s.takeDelta()!] }); };
+  const mainDelta = (r: ContactsReceiver, s: ContactStore, keep: Set<number>) => { r.keepOnly(keep); ep(s, s.episodes.rows + 2); r.apply({ id: 7, contacts: [s.takeDelta(true)!] }); s.ack(); };
+
+  it("the side run ends first, the main request sends on: the shown entry result's tables stay; a replacing side lets them go", () => {
+    for (const shown of ["entry", "runSide"] as const) {
+      const r = new ContactsReceiver(), main = new ContactStore(7, 0);
+      mainDelta(r, main, owners({ main: 7 }));
+      side(r, -1);                                   // the side's result, with its tables; the run is over
+      mainDelta(r, main, owners({ main: 7, [shown]: -1 }));
+      expect(r.current(-1), `${shown}: kept while shown`).not.toBeNull();
+      // the next side run replaces it: once its result is the shown one, -1 is no one's
+      side(r, -2);
+      mainDelta(r, main, owners({ main: 7, [shown]: -2 }));
+      expect([r.current(-1), r.current(-2) !== null], `${shown}: replaced`).toEqual([null, true]);
+    }
+  });
+
+  it("the main request ends first: the side's tables, the result's and a cancelled request's shown result stay", () => {
+    const r = new ContactsReceiver(), main = new ContactStore(7, 0);
+    mainDelta(r, main, owners({ main: 7 }));
+    side(r, -1);
+    // a cancel moved the request id on (8) while request 7's result is shown
+    r.keepOnly(owners({ main: 8, result: 7, entry: -1 }));
+    expect([r.current(7) !== null, r.current(-1) !== null]).toEqual([true, true]);
+    r.keepOnly(owners({ main: 8 }));
+    expect(r.ids(), "nothing shown: only the request in flight").toEqual([]);
+  });
+
+  it("every field counts", () => {
+    expect([...contactOwners({ main: 1, side: -1, result: 2, entry: -2, runSide: -3, sideFirst: -4 })].sort((a, b) => a - b))
+      .toEqual([-4, -3, -2, -1, 1, 2]);
   });
 });
