@@ -1907,8 +1907,9 @@ beside the records, from the same samples in the same order (noteQuery; the
 sweep restores its pose after the sink's bisections); round A leaves the app on
 the records. A store whose budget is spent stops the sweep (`truncated.reason
 "budget"`, `incompleteFrom` = the earliest position of a row it refused — every
-pair of that sample still tries; the shard merge keeps the shards' minimum —
-R144 VP-I100). Transport (`collisionWorker`, a request's
+pair of that sample still tries, and a row the closing refinement in `finish`
+cannot write counts before the result goes out; the shard merge keeps the
+shards' minimum — R144/R145 VP-I100). Transport (`collisionWorker`, a request's
 `contacts: {generation}`): deltas `{id, contacts: StoreDelta[]}` — new rows
 plus rows changed since, each once with its latest state — at most ONE
 unacknowledged per path (`{contactsAck: id, generation}` — bound to the
@@ -1918,7 +1919,9 @@ message per round; a fall back to this core is the next generation, a side run
 started again too. A failed pool still DRAINS its generation: what the
 coordinator took over and had not forwarded, and a result computed and held for
 the acknowledgement, go out one delta at a time; a run already computed is not
-run again (R144 VP-I98/I99). `viewer/contactMerge.ts`: the entry join (an entry
+run again, and the newer generation computes meanwhile but says nothing on the
+request's path until the drain is delivered and acknowledged — one delta
+outstanding per path, generations in order (R144/R145 VP-I98/I99). `viewer/contactMerge.ts`: the entry join (an entry
 contact still OPEN at its end — no exit, not ended at a gap — continues the base
 episode's FIRST interval when it begins at the base's first checked point;
 a closed one has its separation evidence, and no nearness tolerance joins

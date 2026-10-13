@@ -97,6 +97,32 @@ describe("an undecidable inside check in the sweep", () => {
     }
   });
 
+  it("a gap the closing refinement cannot write makes the result incomplete from it (Codex R145 VP-I100)", () => {
+    // a hollow post (a 40 mm cavity), the nub ending in the cavity: the end
+    // pose is decided free, the closing bisection meets an undecidable point
+    // near the cavity's wall and writes it as a gap — with no room for gaps
+    // that write is refused in finish, after the sweep loop
+    const outer = box(60), inner = box(40);
+    for (let i = 0; i < inner.length; i += 9) for (let k = 0; k < 3; k++) { const v = inner[i + k]!; inner[i + k] = inner[i + 3 + k]!; inner[i + 3 + k] = v; }
+    const hollow: CollisionBody = { ...POST, positions: new Float32Array([...outer, ...inner]) };
+    ctl.when = p => p.x > 19.7 && p.x < 19.9;
+    try {
+      const run = (gaps: number) => {
+        const store = new ContactStore(1, 0, { episodes: 100, intervals: 100, gaps });
+        const r = sweepCollisions(buildCollisionModel(machine(), [hollow, nub()]), xs([40, 30, 19]), WCS0, { margin: 0.1, contacts: { store } });
+        return { store, r };
+      };
+      const full = run(100), none = run(0);
+      expect(full.store.gaps.rows, "the closing refinement's gap").toBeGreaterThan(0);
+      expect(full.r.truncated, "complete with room for it").toBeNull();
+      const lost = full.store.gaps.get(0, "start");
+      expect(none.r.truncated?.reason, "refused in finish: not complete").toBe("budget");
+      expect(none.r.incompleteFrom!, `incomplete from ${none.r.incompleteFrom}, the gap at ${lost}`).toBeLessThanOrEqual(lost + 1e-6);
+    } finally {
+      ctl.when = null;
+    }
+  });
+
   it("is no record, no separation, and its stretch is named; the refinement counts it as contact", () => {
     ctl.when = () => true;
     try {

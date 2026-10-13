@@ -173,6 +173,10 @@ const _contactRuns = new Map<number, Run>();
 function sendContacts(run: Run, extra?: Record<string, unknown>): boolean {
   const s = run.store;
   if (!s || s.waiting) return false;
+  // a failed pool's older generation still owes the owner its last word on
+  // this request's path: this run computes on, its rows wait in its own store
+  // until that is delivered and acknowledged (Codex R145 VP-I98)
+  if (_drain && _drain.id === run.id) return false;
   const delta = s.takeDelta(extra !== undefined);
   if (!delta) return false;
   const contacts: StoreDelta[] = [delta];
@@ -626,7 +630,16 @@ let _drain: PoolDrain | null = null;
 
 function drainForward(dr: PoolDrain): void {
   if (dr.ownerWaiting) return;
-  if (!dr.finalMsg && !dr.stores.some(s => s.pending())) { if (_drain === dr) _drain = null; return; }
+  if (!dr.finalMsg && !dr.stores.some(s => s.pending())) {
+    if (_drain === dr) {
+      // delivered and acknowledged: the path is the newer generation's now
+      _drain = null;
+      const run = _contactRuns.get(dr.id);
+      if (run?.final) { if (sendContacts(run, run.final)) { run.final = null; _contactRuns.delete(run.id); } }
+      else if (run) sendContacts(run);
+    }
+    return;
+  }
   const contacts = dr.stores.map(s => { const d = s.takeDelta(true)!; s.ack(); return d; });
   const extra = dr.finalMsg;
   dr.finalMsg = null;

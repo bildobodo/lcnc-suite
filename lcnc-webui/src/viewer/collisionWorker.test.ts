@@ -488,6 +488,28 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     expect(rowsOf(deltas(sent, 81), 0), "both shards' rows reach the owner").toBe(2);
   });
 
+  it("the older generation is delivered whole before the newer one says a word on the path, one delta outstanding at a time (Codex R145 VP-I98)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(181), contacts: { generation: 0 } });
+    const a = new ContactStore(181, 0), b = new ContactStore(181, 0);
+    addEp(a, 1); addEp(b, 2);
+    workers[0]!.emit({ id: 181, contacts: [a.takeDelta()!] });   // out, not acknowledged
+    workers[1]!.emit({ id: 181, contacts: [b.takeDelta()!] });   // taken over, held
+    workers[1]!.fail();
+    await vi.runAllTimersAsync();
+    const gens = () => sent.filter(m => m.id === 181 && m.contacts).map(m => (m.contacts as StoreDelta[])[0]!.generation);
+    expect(gens(), "one delta outstanding: this core's run computes, its rows wait").toEqual([0]);
+    send({ contactsAck: 181, generation: 0 });
+    await vi.runAllTimersAsync();
+    expect(gens(), "the held row of generation 0, still alone on the path").toEqual([0, 0]);
+    expect(sent.some(m => m.id === 181 && m.result), "no result of generation 1 yet").toBe(false);
+    send({ contactsAck: 181, generation: 0 });
+    await vi.runAllTimersAsync();
+    expect(gens(), "only then generation 1").toEqual([0, 0, 1]);
+    expect(rowsOf(deltas(sent, 181), 0), "a receiver dropping an older generation after the switch keeps both rows").toBe(2);
+    expect(sent.find(m => m.id === 181 && m.result)?.contacts, "generation 1's result with its last delta").toBeTruthy();
+  });
+
   it("a result computed and held for the acknowledgement survives a worker's failure: delivered once, not run again (VP-I98)", async () => {
     const { sent, workers, send } = await setup();
     send({ ...req(84), contacts: { generation: 0 } });
@@ -520,15 +542,23 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     addEp(s0, 1);
     workers[0]!.emit({ id: 82, contacts: [s0.takeDelta()!] });
     workers[1]!.fail();
-    await vi.runAllTimersAsync();
+    // a few slices of the run on this core — mid-sweep, its rows held
+    const step = async (k: number) => { for (let i = 0; i < k; i++) await vi.advanceTimersToNextTimerAsync(); };
+    await step(6);
     const gen1 = () => sent.filter(m => m.id === 82 && (m.contacts as StoreDelta[] | undefined)?.[0]?.generation === 1).length;
-    expect(gen1(), "generation 1's first delta").toBe(1);
-    send({ contactsAck: 82, generation: 0 });   // late, for the pool's: it ends the drain
-    send({ contactsAck: 82, generation: 0 });   // and again — now only this core's run could take it
+    const done = () => sent.some(m => m.id === 82 && m.result);
+    expect(done(), "this core's run is still sweeping").toBe(false);
+    expect(gen1(), "generation 1 waits while generation 0's delta is out").toBe(0);
+    send({ contactsAck: 82, generation: 1 });   // nothing of generation 1 is out: releases nothing
+    expect(gen1(), "still waiting").toBe(0);
+    send({ contactsAck: 82, generation: 0 });   // generation 0 delivered: the path is generation 1's
+    expect(gen1(), "generation 1's first delta, mid-sweep").toBe(1);
+    expect(done(), "not its result").toBe(false);
+    send({ contactsAck: 82, generation: 0 });   // late again — only this core's run could take it now
     await vi.runAllTimersAsync();
     expect(gen1(), "the old generation's acknowledgement releases nothing of generation 1").toBe(1);
-    expect(sent.some(m => m.id === 82 && m.result), "no result before generation 1 is acknowledged").toBe(false);
-    for (let k = 0; k < 400 && !sent.some(m => m.id === 82 && m.result); k++) {
+    expect(done(), "no result before generation 1 is acknowledged").toBe(false);
+    for (let k = 0; k < 400 && !done(); k++) {
       send({ contactsAck: 82, generation: 1 });
       await vi.runAllTimersAsync();
     }

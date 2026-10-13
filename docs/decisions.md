@@ -9363,3 +9363,11 @@ symmetric radius, the open end, the immediate shard acknowledgement, the
 decided exit at a jump, and the free point at radius 0 — round B reads the
 proven free set as {p} ∪ (p − r, p + r).
 
+R145 left two rests, both fixed: the run started again after a pool failure
+published its generation while the drain still owed the older one — two
+deltas outstanding and an older one arriving after the switch, which the
+plan's receiver drops; it now computes on and waits until the drain is
+delivered and acknowledged. And a gap row the closing refinement could not
+write left the result complete; `finish`'s refusals now count before the
+result goes out.
+

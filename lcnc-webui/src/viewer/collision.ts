@@ -3168,6 +3168,11 @@ export function* sweepCollisionsIter(
     }
   }
   sink?.finish(sweptTo, !truncated && !aborted);
+  // the closing refinement writes too (a gap where its bisection met an
+  // undecidable point): a row refused there makes the store incomplete from
+  // it as well, before the result and the last progress go out (Codex R145
+  // VP-I100)
+  if (sink?.full && !truncated) truncated = { covered: frac(Math.min(sink.failAt, sweptTo)), reason: "budget" };
   const finalResult = buildResult(worst, truncated, true, !aborted);
   if (truncated?.reason === "budget") finalResult.incompleteFrom = distToTrackCum(Math.min(sink!.failAt, sweptTo));
   yield truncated ? truncated.covered : 1;
