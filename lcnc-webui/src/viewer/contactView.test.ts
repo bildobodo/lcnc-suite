@@ -190,11 +190,11 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
   it("VP-I102 B: a contact mapped to a point keeps its tint and band when the pair gains a gap elsewhere", () => {
     const st = store([{ pair: 1, ivs: [[1, 2]], end: 2 }]);
     const mapped = () => buildContactView({ sources: [src(st, { at: c => Math.max(0, c - 3) })], pairName: names, coverage: 4 });
-    const before = mapped();
+    const bandsBefore = contactBands(mapped(), 100, 4);   // a view reads its tables as built: read before the write
     st.gaps.append({ pair: 1, start: 5, end: 6, reason: GAP_UNDECIDABLE });
     const after = mapped();
     expect([...tintAt(after, 0)].sort()).toEqual(["t1", "w1"]);
-    expect(contactBands(after, 100, 4)).toEqual(contactBands(before, 100, 4));
+    expect(contactBands(after, 100, 4)).toEqual(bandsBefore);
     expect(contactBands(after, 100, 4)).toEqual([[0, 0.01]]);
     expect(lineMark(after, 1, [[0, 0]])).toEqual({ line: 1 });
   });
@@ -224,28 +224,60 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
     expect([...tintAt(w, 5.5)], "a's own contact inside its gap: unknown").toEqual([]);
   });
 
-  it("a view is a snapshot: an open stay's near miss keeps its built position; a later exit reads no further than the coverage built with; a tool gap not yet in the tables leaves the contact open", () => {
-    const st = store([{ pair: 1, close: [2, 1] }, { pair: 2, close: [5, 1] }, { pair: 3, ivs: [[1, NaN]] }]);
-    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 6 });
-    expect(poss(v)).toEqual([1, 2, 5]);
-    st.episodes.set(0, "closeAt", 5.5);   // a closer approach after the build
-    expect(poss(v), "sorted as built").toEqual([1, 2, 5]);
-    expect(indexAfter(v, 3, null)).toBe(2);
-    st.intervals.set(0, "exit", 8);        // an exit past what the view was built with
-    expect(targetEnd(v, 0)).toBe(6);
-    // flagged ended at a gap whose row has not arrived: open, no end made up
-    const w = store([{ pair: 1, ivs: [[1, NaN, IV_ENDED_AT_GAP]] }]);
-    const vw = buildContactView({ sources: [src(w)], pairName: names, coverage: 6 });
-    expect([targetEnd(vw, 0), targetKind(vw, 0) & T_OPEN]).toEqual([6, T_OPEN]);
+  it("VP-I107: a view reads its tables as built — a write after the build makes every query of it throw; built anew it answers from one state", () => {
+    // Codex R148: an open near stay at 2 (1 apart) gains its touch [4, 6]
+    const st = store([{ pair: 1, close: [2, 1] }]);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
+    expect([viewCounts(v).nearMisses, targetPos(v, 0)]).toEqual([1, 2]);
+    const iv = st.intervals.append({ episode: 0, enter: 4, exit: 6, flags: 0, next: NONE, witness: 4, freeAt: NaN });
+    st.episodes.set(0, "firstIv", iv); st.episodes.set(0, "ivCount", 1); st.episodes.set(0, "closeAt", 4); st.episodes.set(0, "closeDist", 0);
+    for (const ask of [() => targetPos(v, 0), () => targetAt(v, 0, lineAt), () => viewCounts(v), () => tintAt(v, 5),
+                       () => lineMark(v, 5, [[4, 5]]), () => contactBands(v, 10, 10), () => indexAfter(v, 0, null)]) {
+      expect(ask, "a stale view never answers").toThrow(/tables changed since it was built/);
+    }
+    const w = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
+    const t = targetAt(w, 0, lineAt);
+    expect([t.cum, t.dist, t.near, viewCounts(w).collisions, [...tintAt(w, 5)].length]).toEqual([4, 0, false, 1, 2]);
   });
 
-  it("VP-I105: two generations at the request budget and a side run hold their indices within the 8.4 MB of plan 3.4", { timeout: 300_000 }, () => {
-    const full = (k: number, b = REQUEST_BUDGET) => {
-      const st = new ContactStore(k, 0, b);
+  it("VP-I102 (R148): a gap and a separate contact that both map to one shown point — the contact is cut on its own axis, and stays", () => {
+    const st = store([{ pair: 1, ivs: [[1, 2]], end: 2 }]);
+    const at = (c: number) => Math.max(0, c - 10);
+    const make = () => buildContactView({ sources: [src(st, { entry: true, at, ownCoverage: 10 })], pairName: names, coverage: 20 });
+    const bandsBefore = contactBands(make(), 100, 10);
+    st.gaps.append({ pair: 1, start: 5, end: 6, reason: GAP_UNDECIDABLE });
+    const after = make();
+    expect([...tintAt(after, 0)].sort()).toEqual(["t1", "w1"]);
+    expect(contactBands(after, 100, 10)).toEqual(bandsBefore);
+    expect(lineMark(after, 1, [[0, 0]])).toEqual({ line: 1 });
+    // a gap over the contact itself, mapped there too, takes it away
+    st.gaps.append({ pair: 1, start: 0.5, end: 2.5, reason: GAP_UNDECIDABLE });
+    const covered = make();
+    expect([...tintAt(covered, 0)]).toEqual([]);
+    expect(lineMark(covered, 1, [[0, 0]])).toBeNull();
+  });
+
+  it("VP-I104 (R148): a join extends the entry FINDING to the base's end — the contact there is the base's own, with the base's gaps", () => {
+    const side = store([{ pair: 1, ivs: [[3, NaN]] }]), base = store([{ pair: 1, ivs: [[0, 5]], end: 5 }], [[1, 1, 2, GAP_UNDECIDABLE]]);
+    const sources = [src(side, { entry: true, entryEnd: 10, ownCoverage: 10 }), src(base, { at: c => c + 10, ownCoverage: 5 })];
+    const plain = buildContactView({ sources, pairName: names, coverage: 15 });
+    const v = buildContactView({ sources, pairName: names, coverage: 15,
+                                 joins: [{ entrySrc: 0, baseSrc: 1, entryShard: 0, baseShard: 0, joins: new Map([[0, 0]]) }] });
+    expect([v.n, targetEnd(v, 0)], "one finding, to the base's end").toEqual([1, 15]);
+    expect([...tintAt(v, 11.5)], "the base's gap: dark").toEqual([]);
+    expect([...tintAt(v, 12.5)].sort()).toEqual(["t1", "w1"]);
+    expect(contactBands(v, 150, 15), "the bands of the contacts themselves").toEqual(contactBands(plain, 150, 15));
+    expect(lineMark(v, 20, [[11.25, 11.75]]), "no mark in the gap").toBeNull();
+  });
+
+  it("VP-I105: two generations at the request budget and BOTH side generations, every episode its own pair, the gaps at budget — held within 8.4 MB, room kept for B4's display ids", { timeout: 300_000 }, () => {
+    // Codex R148's counterexample: the pairs are not 384 but one per episode
+    const full = (k: number, generation: number, b = REQUEST_BUDGET) => {
+      const st = new ContactStore(k, generation, b);
       const per = Math.floor(b.intervals / b.episodes);
       for (let e = 0; e < b.episodes; e++) {
         const p = e * 4;
-        const ep = st.episodes.append({ pair: e % 384, ordinal: Math.floor(e / 384), onset: p, end: p + 3.25, closeAt: p, closeDist: 0, firstIv: NONE, ivCount: per });
+        const ep = st.episodes.append({ pair: e, ordinal: 0, onset: p, end: p + 3.25, closeAt: p, closeDist: 0, firstIv: NONE, ivCount: per });
         let last = -1;
         for (let k2 = 0; k2 < per; k2++) {
           const iv = st.intervals.append({ episode: ep, enter: p + k2, exit: p + k2 + 0.25, flags: 0, next: NONE, witness: p + k2, freeAt: NaN });
@@ -253,23 +285,29 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
           last = iv;
         }
       }
+      for (let g = 0; g < b.gaps; g++) st.gaps.append({ pair: g, start: g * 4 + 0.5, end: g * 4 + 0.75, reason: GAP_UNDECIDABLE });
       return st;
     };
-    const genA = full(1), genB = full(1), side = full(-1, shareOf(REQUEST_BUDGET, 8));
-    expect(genA.intervals.rows).toBe(REQUEST_BUDGET.intervals);
+    const side = shareOf(REQUEST_BUDGET, 8);
+    const genA = full(1, 0), genB = full(1, 1), sideA = full(-1, 0, side), sideB = full(-1, 1, side);
+    expect([genA.intervals.rows, genA.gaps.rows, sideA.intervals.rows]).toEqual([REQUEST_BUDGET.intervals, REQUEST_BUDGET.gaps, side.intervals]);
     const t0 = performance.now();
-    const v = buildContactView({ sources: [{ stores: [genA], at: c => c }, { stores: [genB], at: c => c }, { stores: [side], at: c => c, entry: true }],
+    const v = buildContactView({ sources: [{ stores: [genA], at: c => c }, { stores: [genB], at: c => c },
+                                           { stores: [sideA], at: c => c, entry: true }, { stores: [sideB], at: c => c, entry: true }],
                                  pairName: names, coverage: 4 * REQUEST_BUDGET.episodes + 1 });
     const ms = performance.now() - t0;
     const held = heldBytes(v);
-    // the measurement the request reports
-    console.log(`[R147 VP-I105] targets ${v.n}, held ${(held / 1e6).toFixed(2)} MB (limit 8.4), build ${ms.toFixed(0)} ms; ` +
-                `tables ${((genA.allocatedBytes() + genB.allocatedBytes() + side.allocatedBytes()) / 1e6).toFixed(1)} MB`);
-    expect(held).toBeLessThanOrEqual(8_400_000);
+    // B4 binds a display id per target: a u32 each, reserved here
+    const reserve = 4 * v.n;
+    console.log(`[R148 VP-I105] targets ${v.n}, held ${(held / 1e6).toFixed(2)} MB + ${(reserve / 1e6).toFixed(2)} MB reserved for B4 (limit 8.4), ` +
+                `build ${ms.toFixed(0)} ms; tables ${([genA, genB, sideA, sideB].reduce((n, s) => n + s.allocatedBytes(), 0) / 1e6).toFixed(1)} MB`);
+    expect(held + reserve).toBeLessThanOrEqual(8_400_000);
     expect(genA.allocatedBytes(), "one generation's tables within T = 19.3 MB").toBeLessThanOrEqual(19_300_000);
-    // what it answers stays exact at that size
-    expect(v.n).toBe(2 * REQUEST_BUDGET.intervals + shareOf(REQUEST_BUDGET, 8).intervals);
-    expect([...tintAt(v, 4 * 1000 + 2.1)].length).toBe(2);
+    expect(v.n).toBe(2 * REQUEST_BUDGET.intervals + 2 * side.intervals);
+    // what it answers stays exact at that size: a contact, a gap of its pair, the free stretch after it
+    expect([...tintAt(v, 4 * 1000 + 0.1)].length).toBe(2);
+    expect([...tintAt(v, 4 * 1000 + 0.6)].length, "inside the pair's gap").toBe(0);
+    expect([...tintAt(v, 4 * 1000 + 1.1)].length).toBe(2);
     expect([...tintAt(v, 4 * 1000 + 2.5)]).toEqual([]);
   });
 });

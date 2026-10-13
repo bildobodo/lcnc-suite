@@ -67,6 +67,10 @@ export class ColumnTable {
   rows = 0;
   /** Rows up to here went out in a delta: a later change is an update. */
   sent = 0;
+  /** Bumped by every write (a row appended, a cell set): a view built on the
+   *  table knows whether it still reads what it was built from (Codex R148
+   *  VP-I107). */
+  revision = 0;
 
   constructor(schema: Schema, budget: number) {
     this.schema = schema;
@@ -84,6 +88,7 @@ export class ColumnTable {
   append(values: Readonly<Record<string, number>>): number {
     if (this.rows >= this.budget) return -1;
     const row = this.rows++;
+    this.revision++;
     const b = Math.floor(row / BLOCK), o = row % BLOCK;
     if (o === 0) {
       for (const [name, type] of this.schema) this.col(name).push(new CTOR[type](BLOCK));
@@ -101,6 +106,7 @@ export class ColumnTable {
   set(row: number, name: string, value: number): void {
     const b = Math.floor(row / BLOCK), o = row % BLOCK;
     this.col(name)[b]![o] = value;
+    this.revision++;
     if (row < this.sent && !this.dirtyBlocks[b]![o]) {
       this.dirtyBlocks[b]![o] = 1;
       this.dirtyList.push(row);
@@ -226,6 +232,8 @@ export class ContactStore {
   }
 
   pending(): number { return this.episodes.pending() + this.intervals.pending() + this.gaps.pending(); }
+  /** Bumped by every write to any of its tables. */
+  get revision(): number { return this.episodes.revision + this.intervals.revision + this.gaps.revision; }
   allocatedBytes(): number {
     return this.episodes.allocatedBytes() + this.intervals.allocatedBytes() + this.gaps.allocatedBytes();
   }

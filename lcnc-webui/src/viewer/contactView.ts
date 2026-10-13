@@ -1,6 +1,6 @@
 // Step 4 package 2, round B1: ONE derivation for every view of the contact
 // tables (plan docs/reviews/kollision-paket2.plan.md Fassung 5, section 4;
-// Codex R139–R147). Pure: the store's typed columns go in, the views take
+// Codex R139–R148). Pure: the store's typed columns go in, the views take
 // what they need out of ONE index — the count and the words, prev/next, the
 // list's window, the code panel's mark per line, the tint per pair, the
 // timeline's bands at display resolution. No object per event: objects exist
@@ -11,21 +11,30 @@
 // simulation; a run check's beginning mapped onto the base). Positions in the
 // tables are their own track's cum; `at` places them on the shown axis.
 //
-// HELD (plan 3.4, Codex R147 VP-I105): references into the tables, never a
-// copy of their spans — the targets as packed u32 references sorted by
-// position, per pair its intervals' rows (u32), the episodes as u32
-// references sorted by onset with a maximum per block of 64. Positions are
-// read from the tables: an interval's entry and an episode's onset never move
-// after they are written; the near miss of a stay still OPEN moves to its
-// closest approach, so its position is taken when the view is built (at most
-// one per pair and table). Ends are read live, clipped to the coverage the
-// view was built with — a snapshot that only grows more exact.
+// A VIEW READS ITS TABLES AS BUILT (Codex R148 VP-I107): it holds references
+// into them and reads positions, ends and kinds from them — a write to a
+// table after the build (a delta applied, a row changed) makes the view
+// stale, and every query of a stale view throws. The owner applies the
+// deltas and rebuilds in one step.
 //
-// KNOWLEDGE GAPS (VP-I102, VP-I104): a gap is a closed stretch of its OWN
-// source (clipped to that source's coverage, a point kept as a point); it
-// cuts that source's contacts only — ignorance is no freedom, so another
-// source's confirmed contact there stays. No tolerance widens a contact over
-// a proven free point (VP-I101).
+// HELD (plan 3.4, Codex R147/R148 VP-I105): typed arrays only, nothing per
+// pair in a Map — the targets as packed u32 references sorted by position,
+// the other intervals (boundary contacts, a base interval the entry move's
+// contact continues, a later rapid part of a cutting contact) beside them,
+// each list with the largest end per block of 64; the episodes likewise;
+// the knowledge gaps per table by pair (CSR); the joins as sorted arrays.
+//
+// KNOWLEDGE GAPS (VP-I102, VP-I104): a gap is a closed stretch on its OWN
+// source's axis (an open one to that source's coverage, a point kept); it
+// cuts that source's contacts only — ignorance is no freedom — and it cuts
+// them on the source's own axis, BEFORE the map to the shown axis: a map
+// that sends a stretch to one point (a run check's beginning at 0) must not
+// let an unrelated gap mapped there erase a confirmed contact. A shown point
+// is in contact where it is the image of an own point of a contact outside
+// every gap of its source. An entry contact the base continues is extended
+// to the base's end as a FINDING (its extent, its count); its contact there
+// is the base's own, with the base's gaps (VP-I104). No tolerance widens a
+// contact over a proven free point (VP-I101).
 import {
   EP_AT_START, EP_ORIGIN_MASK, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_POSSIBLE,
   NONE, ORIGIN_BOUNDARY, type ContactStore,
@@ -38,7 +47,7 @@ import { JUMP_NUDGE } from "./findingNav";
 export interface ContactSource {
   /** Its tables (a pool's are per shard; their pairs are disjoint). */
   stores: readonly ContactStore[];
-  /** Places one of its cums on the shown axis (monotone). */
+  /** Places one of its cums on the shown axis (monotone, continuous). */
   at: (c: number) => number;
   /** The entry move's request: its findings are keyed `E`, the program's `C`. */
   entry?: boolean;
@@ -47,10 +56,19 @@ export interface ContactSource {
    *  beginning (sweepMerge.mergeEntryResult's rule — a run check maps its
    *  whole beginning to 0 on the base axis, so the shown axis cannot tell). */
   entryEnd?: number;
-  /** On the shown axis, how far THIS source is swept — an open interval and
-   *  an open gap of it run to here (a side run's whole track; default the
-   *  view's). */
+  /** On the source's OWN axis, how far it is swept — an open interval and an
+   *  open gap of it run to here. */
+  ownCoverage?: number;
+  /** The same on the shown axis, when the own one is not given (the own
+   *  coverage is then the last own point the map sends there). */
   coverage?: number;
+  /** Its own requests' pair names (default the view's). */
+  pairName?: (pair: number) => { a: string; b: string };
+  /** Its OWN track's lines, for a source the map folds (a run check's
+   *  beginning, all at 0 on the base axis): the line of its event is its own
+   *  track's there, and the code panel marks the lines its contacts cover on
+   *  its own track — never every line the fold lands on (plan 1.3). */
+  ownTrack?: { lineAt: LineAt; runs: (line: number) => ReadonlyArray<readonly [number, number]> };
 }
 
 /** A base interval that continues an entry contact (contactMerge.entryJoins):
@@ -61,8 +79,8 @@ export interface ContactViewInput {
   sources: readonly ContactSource[];
   /** The tool / work body ids of a model pair. */
   pairName: (pair: number) => { a: string; b: string };
-  /** On the shown axis, how far the check has swept: an open interval runs
-   *  to here (plan 4.3), never past it. */
+  /** On the shown axis, how far the check has swept: nothing is shown past
+   *  it (plan 4.3). */
   coverage: number;
   joins?: readonly SourceJoin[];
 }
@@ -76,40 +94,45 @@ interface TableIndex {
   source: ContactSource;
   src: number;
   shard: number;
-  /** This source's coverage on the shown axis. */
+  /** The table's write revision at the build. */
+  revision: number;
+  /** This source's coverage, own and shown. */
+  ownCov: number;
   cov: number;
-  /** Per pair, its intervals' rows in entry order. */
-  pairs: Map<number, Uint32Array>;
-  /** Per pair, its knowledge gaps as closed [start, end] on the shown axis,
-   *  by start — clipped to this source's coverage, a point kept. */
-  holes: Map<number, Float64Array>;
-  /** Per pair, where its tool became unknown (own axis), ascending. */
-  toolGaps: Map<number, Float64Array>;
+  /** Its knowledge gaps on its own axis by pair (CSR): `hPairs` ascending,
+   *  the pair's gaps at [hOff[k], hOff[k + 1]) of `hSpan` (closed [start,
+   *  end] pairs, by start) and `hReason`. */
+  hPairs: Uint32Array;
+  hOff: Uint32Array;
+  hSpan: Float64Array;
+  hReason: Uint8Array;
 }
+
+/** A sorted list of packed references with the largest shown end per block
+ *  and up to it — the tint's and the marks' walk back from a position. */
+interface RefList { refs: Uint32Array; max: Float64Array; pre: Float64Array }
 
 export interface ContactView {
   readonly input: ContactViewInput;
   /** The targets: an interval at its refined entry, a near miss at its
    *  closest approach — `targetPos` / `targetEnd` / `targetKind` read them. */
   readonly n: number;
-  /** Packed references (source, table, row, near) in position order. */
-  readonly tgt: Uint32Array;
-  /** An open stay's near miss: its position as built. */
-  readonly live: ReadonlyMap<number, number>;
+  /** Targets by position. */
+  readonly tgt: RefList;
+  /** The intervals that are no target of their own, by position. */
+  readonly aux: RefList;
+  /** Every episode by shown onset — the code panel's marks. */
+  readonly ep: RefList;
   readonly tables: ReadonlyArray<TableIndex | undefined>;
-  /** Every episode (packed reference) by onset — the code panel's marks —
-   *  and per block of EP_BLOCK the largest end in it and up to it. */
-  readonly ep: Uint32Array;
-  readonly epBlockMax: Float64Array;
-  readonly epBlockPre: Float64Array;
-  /** Base intervals counted as the entry's, and how far each such entry
-   *  contact reaches on the shown axis. */
-  readonly joined: ReadonlySet<number>;
-  readonly reach: ReadonlyMap<number, number>;
+  /** Base intervals counted as the entry's (sorted refs), and how far each
+   *  such entry contact reaches as a finding (sorted entry refs, values). */
+  readonly joined: Uint32Array;
+  readonly reachRef: Uint32Array;
+  readonly reachVal: Float64Array;
 }
 
 const EP_MARK_CONTACT = 0, EP_MARK_POSSIBLE = 1, EP_MARK_BOUNDARY = 2;
-const EP_BLOCK = 64;
+const BLOCK = 64;
 /** The sweep's position tolerance (findings at or before the entry move's end). */
 const ON_ENTRY_TOL = 1e-9;
 /** Positions within this lie on one span's start (the sweep's 1e-3 bisection) —
@@ -125,23 +148,74 @@ const rowOf = (ref: number) => ref & ROW_MASK;
 const isNearRef = (ref: number) => (ref & NEAR_BIT) !== 0;
 const tableOf = (v: ContactView, ref: number) => v.tables[((ref >>> SRC_SHIFT) & 3) * MAX_TABLES + ((ref >>> TABLE_SHIFT) & 7)]!;
 
+const nameOf = (v: ContactView, t: TableIndex, pair: number) => (t.source.pairName ?? v.input.pairName)(pair);
+
 const onEntryMove = (source: ContactSource, ownCum: number) =>
   !!source.entry && source.entryEnd !== undefined && ownCum <= source.entryEnd + ON_ENTRY_TOL;
 
-/** x lies in one of the closed gaps `h`. */
-function inHole(h: Float64Array | undefined, x: number): boolean {
-  if (!h) return false;
-  for (let k = 0; k < h.length; k += 2) if (h[k]! <= x && x <= h[k + 1]!) return true;
-  return false;
+/** Index of `x` in a sorted Uint32Array, −1 when absent. */
+function findSorted(a: Uint32Array, x: number): number {
+  let lo = 0, hi = a.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (a[mid]! < x) lo = mid + 1; else hi = mid; }
+  return lo < a.length && a[lo] === x ? lo : -1;
 }
 
-/** The closed stretch [x, y] holds a point outside every closed gap of `h`
- *  (sorted by start): a gap may cover a contact wholly, a point gap a point. */
-function freeOf(h: Float64Array | undefined, x: number, y: number): boolean {
-  if (!h || !h.length) return true;
+/** The view still reads what it was built from — else it throws (VP-I107). */
+function check(v: ContactView): void {
+  for (const t of v.tables) {
+    if (t && t.st.revision !== t.revision) {
+      throw new Error("contactView: its tables changed since it was built — build it anew");
+    }
+  }
+}
+
+/** The own points [x0, x1] within [lo, hi] the map sends into [a, b] — the
+ *  map is monotone, so they are one stretch; exact to adjacent doubles. Null:
+ *  none. */
+function preimage(at: (c: number) => number, a: number, b: number, lo: number, hi: number): [number, number] | null {
+  if (!(lo <= hi) || at(hi) < a || at(lo) > b) return null;
+  let x0: number, x1: number;
+  if (at(lo) >= a) x0 = lo;
+  else {
+    let l = lo, h = hi;   // at(l) < a <= at(h)
+    for (;;) { const m = l + (h - l) / 2; if (m <= l || m >= h) break; if (at(m) >= a) h = m; else l = m; }
+    x0 = h;
+  }
+  if (at(hi) <= b) x1 = hi;
+  else {
+    let l = lo, h = hi;   // at(l) <= b < at(h)
+    for (;;) { const m = l + (h - l) / 2; if (m <= l || m >= h) break; if (at(m) <= b) l = m; else h = m; }
+    x1 = l;
+  }
+  return x0 <= x1 ? [x0, x1] : null;
+}
+
+/** The last own point the map sends to `c` or before it (the own coverage of
+ *  a shown one). */
+function lastOwnAtOrBefore(at: (c: number) => number, c: number): number {
+  let lo = c, hi = Math.abs(c) + 1;
+  for (let k = 0; at(lo) > c && k < 2000; k++) lo -= Math.abs(lo) + 1;
+  for (let k = 0; at(hi) <= c && k < 2000; k++) hi = hi * 2 + 1;
+  if (at(hi) <= c) return hi;
+  for (;;) { const m = lo + (hi - lo) / 2; if (m <= lo || m >= hi) break; if (at(m) <= c) lo = m; else hi = m; }
+  return lo;
+}
+
+/** The gaps of `pair` in table `t`: [from, to) into hSpan's pairs. */
+function holeRange(t: TableIndex, pair: number): [number, number] {
+  let lo = 0, hi = t.hPairs.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (t.hPairs[mid]! < pair) lo = mid + 1; else hi = mid; }
+  return lo < t.hPairs.length && t.hPairs[lo] === pair ? [t.hOff[lo]!, t.hOff[lo + 1]!] : [0, 0];
+}
+
+/** The closed own stretch [x, y] holds a point outside every closed gap of
+ *  `pair` (sorted by start): a gap may cover a contact wholly, a point gap a
+ *  point. */
+function freeOf(t: TableIndex, pair: number, x: number, y: number): boolean {
+  const [from, to] = holeRange(t, pair);
   let reach = -Infinity, started = false;
-  for (let k = 0; k < h.length; k += 2) {
-    const s = h[k]!, e = h[k + 1]!;
+  for (let k = from; k < to; k++) {
+    const s = t.hSpan[2 * k]!, e = t.hSpan[2 * k + 1]!;
     if (e < x) continue;
     if (s > y) break;
     if (!started) { if (s > x) return true; started = true; reach = e; }
@@ -151,61 +225,81 @@ function freeOf(h: Float64Array | undefined, x: number, y: number): boolean {
   return !started || reach < y;
 }
 
-/** [x, y] less the closed gaps `h`, as pieces (a point outside every gap is
- *  a piece of its own): for the bands, at display resolution. */
-function piecesOf(h: Float64Array | undefined, x: number, y: number, out: number[]): void {
-  if (!h || !h.length) { out.push(x, y); return; }
-  if (x === y) { if (!inHole(h, x)) out.push(x, x); return; }
-  let cur = x;
-  for (let k = 0; k < h.length; k += 2) {
-    const s = h[k]!, e = h[k + 1]!;
+/** The own stretch [x, y] less the gaps of `pair`, as pieces (a point outside
+ *  every gap is a piece of its own): for the bands, at display resolution. */
+function piecesOf(t: TableIndex, pair: number, x: number, y: number, out: number[]): void {
+  const [from, to] = holeRange(t, pair);
+  let cur = x, inside = false;
+  for (let k = from; k < to; k++) {
+    const s = t.hSpan[2 * k]!, e = t.hSpan[2 * k + 1]!;
     if (e < cur) continue;
     if (s > y) break;
+    if (x === y) { inside = true; break; }   // a point inside a gap
     if (s > cur) out.push(cur, s);
     cur = Math.max(cur, e);
     if (cur >= y) return;
   }
+  if (x === y) { if (!inside) out.push(x, x); return; }
   if (cur < y) out.push(cur, y);
 }
 
-/** Where an interval ends on the shown axis, clipped to its source's
- *  coverage: its exit; one ended at an unknown tool at the gap that ended it
- *  — the first TOOL gap of the pair from its witness on (VP-I103: an
- *  undecidable gap before it only suspended it); else it is open, to the
- *  coverage. An entry contact the base continues reaches the base's end. */
-function ivEnd(reach: ReadonlyMap<number, number>, t: TableIndex, row: number, ref: number): { end: number; open: boolean } {
+/** Where an interval ends on its OWN axis, within its source's coverage: its
+ *  exit; one ended at an unknown tool at the gap that ended it — the first
+ *  TOOL gap of the pair from its witness on (VP-I103: an undecidable gap
+ *  before it only suspended it; a tool gap not in the tables leaves it open,
+ *  never an end made up); else it is open, to the coverage. */
+function ownEnd(t: TableIndex, row: number): { end: number; open: boolean } {
   const I = t.st.intervals;
   const exit = I.get(row, "exit");
-  let end: number, open = false;
-  if (!Number.isNaN(exit)) end = Math.min(t.source.at(exit), t.cov);
-  else {
-    let g = NaN;
-    if (I.get(row, "flags") & IV_ENDED_AT_GAP) {
-      const tg = t.toolGaps.get(t.st.episodes.get(I.get(row, "episode"), "pair"));
-      const w = I.get(row, "witness");
-      if (tg) {
-        let lo = 0, hi = tg.length;
-        while (lo < hi) { const mid = (lo + hi) >> 1; if (tg[mid]! < w) lo = mid + 1; else hi = mid; }
-        if (lo < tg.length) g = tg[lo]!;
-      }
+  if (!Number.isNaN(exit)) return { end: Math.min(exit, t.ownCov), open: false };
+  if (I.get(row, "flags") & IV_ENDED_AT_GAP) {
+    const pair = t.st.episodes.get(I.get(row, "episode"), "pair");
+    const w = I.get(row, "witness");
+    const [from, to] = holeRange(t, pair);
+    for (let k = from; k < to; k++) {
+      if (t.hReason[k] === GAP_TOOL_UNKNOWN && t.hSpan[2 * k]! >= w) return { end: Math.min(t.hSpan[2 * k]!, t.ownCov), open: false };
     }
-    // a tool gap not in the tables the view was built from: open, never an end made up
-    if (Number.isNaN(g)) { end = t.cov; open = true; }
-    else end = Math.min(t.source.at(g), t.cov);
   }
-  const r = reach.get(ref);
-  if (r !== undefined) { end = Math.max(end, r); open = false; }
-  const enter = t.source.at(I.get(row, "enter"));
-  return { end: Math.max(end, enter), open };
+  return { end: t.ownCov, open: true };
 }
 
-/** An episode's stretch on the shown axis: onset to its end, an open one to
- *  its source's coverage. */
-function epStretch(t: TableIndex, row: number): [number, number] {
+/** An interval's shown stretch: its contact as the shown axis has it (no
+ *  join's reach — that is the base's own contact, VP-I104). */
+function shownStretch(t: TableIndex, row: number): [number, number] {
+  const a = t.source.at(t.st.intervals.get(row, "enter"));
+  return [a, Math.max(a, Math.min(t.source.at(ownEnd(t, row).end), t.cov))];
+}
+
+/** The reach of an entry contact the base continues (its finding's extent). */
+function reachOf(v: ContactView, ref: number): number | undefined {
+  const k = findSorted(v.reachRef, ref);
+  return k < 0 ? undefined : v.reachVal[k];
+}
+
+/** An episode's own stretch: onset to its end, an open one to its source's
+ *  coverage. */
+function epOwn(t: TableIndex, row: number): [number, number] {
   const E = t.st.episodes;
-  const s = t.source.at(E.get(row, "onset")), e = E.get(row, "end");
-  const end = Number.isNaN(e) ? t.cov : Math.min(t.source.at(e), t.cov);
-  return [s, Math.max(s, end)];
+  const s = E.get(row, "onset"), e = E.get(row, "end");
+  return [s, Math.max(s, Number.isNaN(e) ? t.ownCov : Math.min(e, t.ownCov))];
+}
+
+function refList(refs: Uint32Array, pos: Float64Array, end: Float64Array): RefList {
+  const n = refs.length;
+  const order = new Uint32Array(n);
+  for (let i = 0; i < n; i++) order[i] = i;
+  order.sort((a, b) => pos[a]! - pos[b]! || refs[a]! - refs[b]!);
+  const out = new Uint32Array(n);
+  const blocks = Math.ceil(n / BLOCK);
+  const max = new Float64Array(blocks).fill(-Infinity), pre = new Float64Array(blocks);
+  for (let i = 0; i < n; i++) {
+    out[i] = refs[order[i]!]!;
+    const b = (i / BLOCK) | 0;
+    max[b] = Math.max(max[b]!, end[order[i]!]!);
+  }
+  let m = -Infinity;
+  for (let b = 0; b < blocks; b++) { m = Math.max(m, max[b]!); pre[b] = m; }
+  return { refs: out, max, pre };
 }
 
 export function buildContactView(input: ContactViewInput): ContactView {
@@ -215,134 +309,97 @@ export function buildContactView(input: ContactViewInput): ContactView {
   const list: TableIndex[] = [];
   sources.forEach((source, si) => {
     if (source.stores.length > MAX_TABLES) throw new Error(`contactView: ${source.stores.length} tables (at most ${MAX_TABLES})`);
-    const cov = Math.min(source.coverage ?? coverage, coverage);
+    const ownCov = source.ownCoverage ?? lastOwnAtOrBefore(source.at, source.coverage ?? coverage);
+    const cov = Math.min(source.at(ownCov), coverage);
     source.stores.forEach((st, sh) => {
       if (st.intervals.rows > ROW_MASK || st.episodes.rows > ROW_MASK) throw new Error("contactView: a table past 2^24 rows");
-      // per pair its intervals' rows: written in time order, so in entry order
-      const byPair = new Map<number, number[]>();
-      for (let iv = 0; iv < st.intervals.rows; iv++) {
-        const pair = st.episodes.get(st.intervals.get(iv, "episode"), "pair");
-        let l = byPair.get(pair); if (!l) byPair.set(pair, l = []); l.push(iv);
-      }
-      const pairs = new Map<number, Uint32Array>();
-      for (const [pair, rows] of byPair) {
-        const a = Uint32Array.from(rows);
-        // (a guard, not an assumption: keep the order a binary search needs)
-        for (let k = 1; k < a.length; k++) {
-          if (st.intervals.get(a[k]!, "enter") < st.intervals.get(a[k - 1]!, "enter")) {
-            a.sort((x, y) => st.intervals.get(x, "enter") - st.intervals.get(y, "enter"));
-            break;
-          }
-        }
-        pairs.set(pair, a);
-      }
-      const holesL = new Map<number, number[]>(), toolL = new Map<number, number[]>();
-      for (let g = 0; g < st.gaps.rows; g++) {
-        const pair = st.gaps.get(g, "pair"), s0 = st.gaps.get(g, "start"), e0 = st.gaps.get(g, "end");
-        if (st.gaps.get(g, "reason") === GAP_TOOL_UNKNOWN) { let l = toolL.get(pair); if (!l) toolL.set(pair, l = []); l.push(s0); }
-        const a = source.at(s0);
-        if (a > cov) continue;   // past what this source checked: says nothing
-        const b = Number.isNaN(e0) ? cov : Math.min(source.at(e0), cov);
-        let l = holesL.get(pair); if (!l) holesL.set(pair, l = []); l.push(a, Math.max(a, b));
-      }
-      const holes = new Map<number, Float64Array>();
-      for (const [pair, l] of holesL) {
-        const idx = Array.from({ length: l.length >> 1 }, (_, k) => k).sort((x, y) => l[2 * x]! - l[2 * y]!);
-        const h = new Float64Array(l.length);
-        idx.forEach((k, j) => { h[2 * j] = l[2 * k]!; h[2 * j + 1] = l[2 * k + 1]!; });
-        holes.set(pair, h);
-      }
-      const toolGaps = new Map<number, Float64Array>();
-      for (const [pair, l] of toolL) toolGaps.set(pair, Float64Array.from(l).sort());
-      const t: TableIndex = { st, source, src: si, shard: sh, cov, pairs, holes, toolGaps };
+      // the gaps on the own axis, by pair then start (CSR)
+      const G = st.gaps, idx: number[] = [];
+      for (let g = 0; g < G.rows; g++) if (G.get(g, "start") <= ownCov) idx.push(g);
+      idx.sort((x, y) => G.get(x, "pair") - G.get(y, "pair") || G.get(x, "start") - G.get(y, "start"));
+      const hSpan = new Float64Array(2 * idx.length), hReason = new Uint8Array(idx.length);
+      const pairs: number[] = [], off: number[] = [];
+      idx.forEach((g, k) => {
+        const pair = G.get(g, "pair"), s0 = G.get(g, "start"), e0 = G.get(g, "end");
+        if (!pairs.length || pairs[pairs.length - 1] !== pair) { pairs.push(pair); off.push(k); }
+        hSpan[2 * k] = s0;
+        hSpan[2 * k + 1] = Math.max(s0, Number.isNaN(e0) ? ownCov : Math.min(e0, ownCov));
+        hReason[k] = G.get(g, "reason");
+      });
+      off.push(idx.length);
+      const t: TableIndex = { st, source, src: si, shard: sh, revision: st.revision, ownCov, cov,
+        hPairs: Uint32Array.from(pairs), hOff: Uint32Array.from(off), hSpan, hReason };
       tables[si * MAX_TABLES + sh] = t;
       list.push(t);
     });
   });
-  // the base intervals that continue an entry contact, and how far each such
-  // entry contact reaches on the shown axis
-  const joined = new Set<number>();
-  const reach = new Map<number, number>();
-  const none = new Map<number, number>();
+  // the joins: the base intervals counted as the entry's, and how far each
+  // entry finding reaches (the base interval's own end)
+  const jBase: number[] = [], jRef: number[] = [], jVal: number[] = [];
   for (const j of input.joins ?? []) {
     const bt = tables[j.baseSrc * MAX_TABLES + j.baseShard];
     if (!bt) continue;
     for (const [biv, eiv] of j.joins) {
-      const bref = pack(j.baseSrc, j.baseShard, biv);
-      joined.add(bref);
-      reach.set(pack(j.entrySrc, j.entryShard, eiv), ivEnd(none, bt, biv, bref).end);
+      jBase.push(pack(j.baseSrc, j.baseShard, biv));
+      jRef.push(pack(j.entrySrc, j.entryShard, eiv));
+      jVal.push(shownStretch(bt, biv)[1]);
     }
   }
-  // the targets: refs and their positions (temporary), then sorted
-  let count = 0;
-  for (const t of list) count += t.st.intervals.rows + t.st.episodes.rows;
-  const refs = new Uint32Array(count), poss = new Float64Array(count);
-  const live = new Map<number, number>();
-  let n = 0;
+  const joined = Uint32Array.from(jBase).sort();
+  const rOrder = jRef.map((_, k) => k).sort((x, y) => jRef[x]! - jRef[y]!);
+  const reachRef = Uint32Array.from(rOrder, k => jRef[k]!), reachVal = Float64Array.from(rOrder, k => jVal[k]!);
+  // the targets and the other intervals (temporary positions, then sorted)
+  let nT = 0, nA = 0, nE = 0;
+  for (const t of list) { nT += t.st.intervals.rows + t.st.episodes.rows; nA += t.st.intervals.rows; nE += t.st.episodes.rows; }
+  const tRefs = new Uint32Array(nT), tPos = new Float64Array(nT), tEnd = new Float64Array(nT);
+  const aRefs = new Uint32Array(nA), aPos = new Float64Array(nA), aEnd = new Float64Array(nA);
+  const eRefs = new Uint32Array(nE), eOn = new Float64Array(nE), eEnd = new Float64Array(nE);
+  let ti = 0, ai = 0, ei = 0;
   for (const t of list) {
     const E = t.st.episodes, I = t.st.intervals;
     for (let iv = 0; iv < I.rows; iv++) {
-      const ep = I.get(iv, "episode");
       const ref = pack(t.src, t.shard, iv);
+      const [p, e] = shownStretch(t, iv);
       // a joined base interval is the entry's finding; a later rapid part of
       // a cutting contact is the finding before it; a boundary contact (a
-      // range sweep's start) is no finding of its own
-      if ((E.get(ep, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY || joined.has(ref) || (I.get(iv, "flags") & IV_CONTINUES_CUT)) continue;
-      refs[n] = ref; poss[n++] = t.source.at(I.get(iv, "enter"));
+      // range sweep's start) is no finding of its own — all of them touch
+      if ((E.get(I.get(iv, "episode"), "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY
+          || findSorted(joined, ref) >= 0 || (I.get(iv, "flags") & IV_CONTINUES_CUT)) {
+        aRefs[ai] = ref; aPos[ai] = p; aEnd[ai++] = e;
+      } else { tRefs[ti] = ref; tPos[ti] = p; tEnd[ti++] = e; }
     }
     for (let e = 0; e < E.rows; e++) {
+      const [s, x] = epOwn(t, e);
+      eRefs[ei] = pack(t.src, t.shard, e); eOn[ei] = t.source.at(s); eEnd[ei++] = Math.min(t.source.at(x), t.cov);
       if (E.get(e, "ivCount") !== 0 || (E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) continue;
-      const ref = pack(t.src, t.shard, e, true), p = t.source.at(E.get(e, "closeAt"));
-      if (Number.isNaN(E.get(e, "end"))) live.set(ref, p);   // still open: its closest approach may move
-      refs[n] = ref; poss[n++] = p;
+      const p = t.source.at(E.get(e, "closeAt"));
+      tRefs[ti] = pack(t.src, t.shard, e, true); tPos[ti] = p; tEnd[ti++] = p;
     }
   }
-  const order = new Uint32Array(n);
-  for (let i = 0; i < n; i++) order[i] = i;
-  order.sort((a, b) => poss[a]! - poss[b]! || refs[a]! - refs[b]!);
-  const tgt = new Uint32Array(n);
-  for (let i = 0; i < n; i++) tgt[i] = refs[order[i]!]!;
-  // every episode by onset, with the largest end per block and up to it
-  let m = 0;
-  for (const t of list) m += t.st.episodes.rows;
-  const eRefs = new Uint32Array(m), eOn = new Float64Array(m), eEnd = new Float64Array(m);
-  m = 0;
-  for (const t of list) for (let e = 0; e < t.st.episodes.rows; e++) {
-    const [s, x] = epStretch(t, e);
-    eRefs[m] = pack(t.src, t.shard, e); eOn[m] = s; eEnd[m++] = x;
-  }
-  const eOrder = new Uint32Array(m);
-  for (let i = 0; i < m; i++) eOrder[i] = i;
-  eOrder.sort((a, b) => eOn[a]! - eOn[b]!);
-  const ep = new Uint32Array(m);
-  const blocks = Math.ceil(m / EP_BLOCK);
-  const epBlockMax = new Float64Array(blocks).fill(-Infinity), epBlockPre = new Float64Array(blocks);
-  for (let i = 0; i < m; i++) {
-    ep[i] = eRefs[eOrder[i]!]!;
-    const b = (i / EP_BLOCK) | 0;
-    epBlockMax[b] = Math.max(epBlockMax[b]!, eEnd[eOrder[i]!]!);
-  }
-  let pre = -Infinity;
-  for (let b = 0; b < blocks; b++) { pre = Math.max(pre, epBlockMax[b]!); epBlockPre[b] = pre; }
-  return { input, n, tgt, live, tables, ep, epBlockMax, epBlockPre, joined, reach };
+  const tgt = refList(tRefs.subarray(0, ti), tPos.subarray(0, ti), tEnd.subarray(0, ti));
+  const aux = refList(aRefs.subarray(0, ai), aPos.subarray(0, ai), aEnd.subarray(0, ai));
+  const ep = refList(eRefs, eOn, eEnd);
+  return { input, n: ti, tgt, aux, ep, tables, joined, reachRef, reachVal };
 }
 
-/** Target `i`'s position on the shown axis. */
-export function targetPos(v: ContactView, i: number): number {
-  const ref = v.tgt[i]!, t = tableOf(v, ref), row = rowOf(ref);
-  if (isNearRef(ref)) return v.live.get(ref) ?? t.source.at(t.st.episodes.get(row, "closeAt"));
-  return t.source.at(t.st.intervals.get(row, "enter"));
+/** Target `i`'s position on the shown axis (unchecked). */
+function posOf(v: ContactView, i: number): number {
+  const ref = v.tgt.refs[i]!, t = tableOf(v, ref), row = rowOf(ref);
+  return isNearRef(ref) ? t.source.at(t.st.episodes.get(row, "closeAt")) : t.source.at(t.st.intervals.get(row, "enter"));
 }
 
-/** Where target `i` ends on the shown axis (a near miss: its position). */
-export function targetEnd(v: ContactView, i: number): number {
-  const ref = v.tgt[i]!;
-  return isNearRef(ref) ? targetPos(v, i) : ivEnd(v.reach, tableOf(v, ref), rowOf(ref), ref).end;
+/** Where target `i` ends as a finding (unchecked): a near miss at its
+ *  position; an interval at its shown end, an entry contact the base
+ *  continues at the base's end. */
+function endOf(v: ContactView, i: number): number {
+  const ref = v.tgt.refs[i]!;
+  if (isNearRef(ref)) return posOf(v, i);
+  const e = shownStretch(tableOf(v, ref), rowOf(ref))[1], r = reachOf(v, ref);
+  return r === undefined ? e : Math.max(e, r);
 }
 
-/** Target `i`'s kind bits (T_*). */
-export function targetKind(v: ContactView, i: number): number {
-  const ref = v.tgt[i]!, t = tableOf(v, ref), row = rowOf(ref), E = t.st.episodes;
+function kindOf(v: ContactView, i: number): number {
+  const ref = v.tgt.refs[i]!, t = tableOf(v, ref), row = rowOf(ref), E = t.st.episodes;
   if (isNearRef(ref)) {
     let kind = T_NEAR;
     const flags = E.get(row, "flags");
@@ -358,15 +415,13 @@ export function targetKind(v: ContactView, i: number): number {
   if (!first) kind |= T_REENTRY;
   if (first && (flags & EP_AT_START)) kind |= T_AT_START;
   if (flags & EP_RAPID) kind |= T_RAPID;
-  if (ivEnd(v.reach, t, row, ref).open) kind |= T_OPEN;
+  if (ownEnd(t, row).open && reachOf(v, ref) === undefined) kind |= T_OPEN;
   if (t.source.entry) { kind |= T_ENTRY; if (onEntryMove(t.source, I.get(row, "enter"))) kind |= T_ENTRY_MOVE; }
   return kind;
 }
 
-/** The identity of target `i` (plan 1.2): origin, pair, episode number per
- *  pair, interval number in the episode (`n` for a near miss). */
-export function targetKey(v: ContactView, i: number): string {
-  const ref = v.tgt[i]!, t = tableOf(v, ref), row = rowOf(ref), E = t.st.episodes, I = t.st.intervals;
+function keyOf(v: ContactView, i: number): string {
+  const ref = v.tgt.refs[i]!, t = tableOf(v, ref), row = rowOf(ref), E = t.st.episodes, I = t.st.intervals;
   const near = isNearRef(ref);
   const ep = near ? row : I.get(row, "episode");
   let k = 0;
@@ -374,20 +429,32 @@ export function targetKey(v: ContactView, i: number): string {
   return `${t.source.entry ? "E" : "C"}${E.get(ep, "pair")}|${E.get(ep, "ordinal")}|${near ? "n" : k}`;
 }
 
+/** Target `i`'s position on the shown axis. */
+export function targetPos(v: ContactView, i: number): number { check(v); return posOf(v, i); }
+/** Where target `i` ends on the shown axis (a near miss: its position). */
+export function targetEnd(v: ContactView, i: number): number { check(v); return endOf(v, i); }
+/** Target `i`'s kind bits (T_*). */
+export function targetKind(v: ContactView, i: number): number { check(v); return kindOf(v, i); }
+/** The identity of target `i` (plan 1.2): origin, pair, episode number per
+ *  pair, interval number in the episode (`n` for a near miss). */
+export function targetKey(v: ContactView, i: number): string { check(v); return keyOf(v, i); }
+
 /** The line at a position of the shown track; `atEnd` reads a position where
  *  something ENDS (trackLineAt). */
 export type LineAt = (pos: number, atEnd?: boolean) => number | null;
 
-/** Target `i` as the views' object — built only for what is shown. `lineAt`
- *  is the shown track's line at a position (null: none, plan 1.3). */
-export function targetAt(v: ContactView, i: number, lineAt: LineAt): ClashTarget {
-  const ref = v.tgt[i]!, t = tableOf(v, ref), row = rowOf(ref);
-  const k = targetKind(v, i);
+function objectOf(v: ContactView, i: number, lineAt: LineAt): ClashTarget {
+  const ref = v.tgt.refs[i]!, t = tableOf(v, ref), row = rowOf(ref);
+  const k = kindOf(v, i);
   const ep = k & T_NEAR ? row : t.st.intervals.get(row, "episode");
-  const { a, b } = v.input.pairName(t.st.episodes.get(ep, "pair"));
-  const pos = targetPos(v, i), end = targetEnd(v, i);
-  const target: ClashTarget = { cum: pos, cumEnd: end, key: targetKey(v, i), line: lineAt(pos) ?? 0, a, b,
-    dist: k & T_NEAR ? t.st.episodes.get(ep, "closeDist") : 0 };
+  const { a, b } = nameOf(v, t, t.st.episodes.get(ep, "pair"));
+  const pos = posOf(v, i), end = endOf(v, i);
+  // the line: the shown track's at the position — a folded source's own track's
+  const own = t.source.ownTrack;
+  const ownPos = k & T_NEAR ? t.st.episodes.get(row, "closeAt") : t.st.intervals.get(row, "enter");
+  const line = own ? own.lineAt(ownPos) : lineAt(pos);
+  const target: ClashTarget = { cum: pos, cumEnd: end, key: keyOf(v, i), line: line ?? 0, a, b,
+    dist: k & T_NEAR ? t.st.episodes.get(ep, "closeDist") : 0, near: (k & T_NEAR) !== 0 };
   if (k & T_RAPID) target.rapid = true;
   if (k & T_REENTRY) target.reentry = true;
   if (k & T_POSSIBLE) target.possible = true;
@@ -395,20 +462,26 @@ export function targetAt(v: ContactView, i: number, lineAt: LineAt): ClashTarget
   if (k & T_ENTRY) target.entry = true;
   if (k & T_ENTRY_MOVE) target.entryMove = true;
   // the last line the contact reaches: the move its end lies in or ends at
-  if (end > pos) {
-    const last = lineAt(end, true);
-    if (last !== null && last > target.line) target.spanEndLine = last;
-  }
+  const last = own && !(k & T_NEAR) ? own.lineAt(ownEnd(t, row).end, true) : end > pos ? lineAt(end, true) : null;
+  if (last !== null && last > target.line) target.spanEndLine = last;
   return target;
+}
+
+/** Target `i` as the views' object — built only for what is shown. `lineAt`
+ *  is the shown track's line at a position (null: none, plan 1.3). */
+export function targetAt(v: ContactView, i: number, lineAt: LineAt): ClashTarget {
+  check(v);
+  return objectOf(v, i, lineAt);
 }
 
 export interface ViewCounts { collisions: number; entryCollisions: number; nearMisses: number; possible: number; startsIn: boolean }
 
 /** What the words count (sweepWords.findingWords' kinds), from the index. */
 export function viewCounts(v: ContactView): ViewCounts {
+  check(v);
   let collisions = 0, entryCollisions = 0, nearMisses = 0, possible = 0, startsIn = false;
   for (let i = 0; i < v.n; i++) {
-    const k = targetKind(v, i);
+    const k = kindOf(v, i);
     if (k & T_POSSIBLE) { possible++; continue; }
     if (k & T_NEAR) { nearMisses++; continue; }
     if (k & T_ENTRY_MOVE) entryCollisions++;
@@ -419,7 +492,7 @@ export function viewCounts(v: ContactView): ViewCounts {
 }
 
 const sampleAt = (v: ContactView, i: number) => {
-  const p = targetPos(v, i), room = targetEnd(v, i) - p;
+  const p = posOf(v, i), room = endOf(v, i) - p;
   return room > 0 ? p + Math.min(JUMP_NUDGE, room / 2) : p;
 };
 
@@ -427,10 +500,20 @@ const sampleAt = (v: ContactView, i: number) => {
 function firstAfter(v: ContactView, x: number, strict: boolean): number {
   let lo = 0, hi = v.n;
   while (lo < hi) {
-    const mid = (lo + hi) >> 1, p = targetPos(v, mid);
+    const mid = (lo + hi) >> 1, p = posOf(v, mid);
     if (strict ? p <= x : p < x) lo = mid + 1; else hi = mid;
   }
   return lo;
+}
+
+function findKeyOf(v: ContactView, key: string, near?: number): number {
+  if (near !== undefined) {
+    for (let i = firstAfter(v, near - 2 * JUMP_NUDGE, false); i < v.n && posOf(v, i) <= near + 2 * JUMP_NUDGE; i++) {
+      if (keyOf(v, i) === key) return i;
+    }
+  }
+  for (let i = 0; i < v.n; i++) if (keyOf(v, i) === key) return i;
+  return -1;
 }
 
 /** The target after the one shown (by key, while the timeline still stands
@@ -438,9 +521,10 @@ function firstAfter(v: ContactView, x: number, strict: boolean): number {
  *  findingNav's rule, on the index (binary search on the start; a jump lands
  *  at most JUMP_NUDGE past it). */
 export function indexAfter(v: ContactView, s: number, sel: { key: string; pos: number } | null): number {
+  check(v);
   if (!v.n) return -1;
   if (sel && sel.pos === s) {
-    const i = findKey(v, sel.key, s);
+    const i = findKeyOf(v, sel.key, s);
     if (i >= 0) return (i + 1) % v.n;
   }
   // the first with pos > s − JUMP_NUDGE, then the first whose sample lies past s
@@ -449,9 +533,10 @@ export function indexAfter(v: ContactView, s: number, sel: { key: string; pos: n
 }
 
 export function indexBefore(v: ContactView, s: number, sel: { key: string; pos: number } | null): number {
+  check(v);
   if (!v.n) return -1;
   if (sel && sel.pos === s) {
-    const i = findKey(v, sel.key, s);
+    const i = findKeyOf(v, sel.key, s);
     if (i >= 0) return (i - 1 + v.n) % v.n;
   }
   for (let i = Math.min(firstAfter(v, s, false), v.n - 1); i >= 0; i--) if (sampleAt(v, i) < s) return i;
@@ -461,98 +546,135 @@ export function indexBefore(v: ContactView, s: number, sel: { key: string; pos: 
 /** The index of the target `key` near position `s` (its sample lies within
  *  JUMP_NUDGE of it), else anywhere; −1 when gone. */
 export function findKey(v: ContactView, key: string, near?: number): number {
-  if (near !== undefined) {
-    for (let i = firstAfter(v, near - 2 * JUMP_NUDGE, false); i < v.n && targetPos(v, i) <= near + 2 * JUMP_NUDGE; i++) {
-      if (targetKey(v, i) === key) return i;
-    }
-  }
-  for (let i = 0; i < v.n; i++) if (targetKey(v, i) === key) return i;
-  return -1;
+  check(v);
+  return findKeyOf(v, key, near);
 }
 
 /** At most `max` targets around index `center` (plan 4.4: the list's window),
  *  with how many lie before and after it. */
 export function targetWindow(v: ContactView, center: number, max: number, lineAt: LineAt):
     { first: number; targets: ClashTarget[]; before: number; after: number } {
+  check(v);
   if (!v.n) return { first: 0, targets: [], before: 0, after: 0 };
   const c = Math.max(0, Math.min(v.n - 1, center));
   const first = Math.max(0, Math.min(c - (max >> 1), v.n - max));
   const last = Math.min(v.n, first + max);
   const targets: ClashTarget[] = [];
-  for (let i = first; i < last; i++) targets.push(targetAt(v, i, lineAt));
+  for (let i = first; i < last; i++) targets.push(objectOf(v, i, lineAt));
   return { first, targets, before: first, after: v.n - last };
 }
 
-/** The bodies in contact at `pos` (plan 4.3): a pair glows inside one of its
- *  intervals — an open one to its source's coverage — never at a point a
- *  gap of that source holds, and never widened (Codex R147 VP-I101: a
- *  tolerance filled the proven free point between two contacts). Binary
- *  search per pair and table. */
-export function tintAt(v: ContactView, pos: number): Set<string> {
-  const out = new Set<string>();
-  for (const t of v.tables) {
-    if (!t) continue;
-    const I = t.st.intervals;
-    for (const [pair, rows] of t.pairs) {
-      // the last interval entered at or before pos: the pair's intervals of
-      // one table are disjoint, so it is the only one that can hold pos
-      let lo = 0, hi = rows.length;
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (t.source.at(I.get(rows[mid]!, "enter")) <= pos) lo = mid + 1; else hi = mid; }
-      if (lo === 0) continue;
-      const row = rows[lo - 1]!;
-      if (ivEnd(v.reach, t, row, pack(t.src, t.shard, row)).end < pos || inHole(t.holes.get(pair), pos)) continue;
-      const { a, b } = v.input.pairName(pair);
-      out.add(a); out.add(b);
-    }
+/** Walks back from `pos` over the entries of `list` whose shown stretch may
+ *  hold it (block maxima skip the rest); `each` gets every candidate ref. */
+function walkBack(list: RefList, pos: number, startOf: (ref: number) => number, each: (ref: number) => void): void {
+  let lo = 0, hi = list.refs.length;
+  while (lo < hi) { const mid = (lo + hi) >> 1; if (startOf(list.refs[mid]!) <= pos) lo = mid + 1; else hi = mid; }
+  for (let i = lo - 1; i >= 0; i--) {
+    const blk = (i / BLOCK) | 0;
+    if (list.pre[blk]! < pos) break;
+    if (list.max[blk]! < pos) { i = blk * BLOCK; continue; }
+    each(list.refs[i]!);
   }
+}
+
+/** The shown point `pos` is the image of an own point of interval `row`'s
+ *  contact outside every gap of its source (VP-I102: the gap is cut on the
+ *  own axis). */
+function contactAt(t: TableIndex, row: number, pos: number): boolean {
+  const I = t.st.intervals;
+  const enter = I.get(row, "enter"), end = ownEnd(t, row).end;
+  if (pos > t.cov) return false;
+  const pre = preimage(t.source.at, pos, pos, enter, end);
+  return !!pre && freeOf(t, t.st.episodes.get(I.get(row, "episode"), "pair"), pre[0], pre[1]);
+}
+
+/** The bodies in contact at `pos` (plan 4.3): a pair glows where it is in
+ *  contact by one of its tables — an open contact to its source's coverage,
+ *  never at a point a gap of that source holds, never widened (VP-I101), an
+ *  entry contact the base continues by the base's own contact (VP-I104). */
+export function tintAt(v: ContactView, pos: number): Set<string> {
+  check(v);
+  const out = new Set<string>();
+  const visit = (ref: number) => {
+    if (isNearRef(ref)) return;
+    const t = tableOf(v, ref), row = rowOf(ref);
+    const pair = t.st.episodes.get(t.st.intervals.get(row, "episode"), "pair");
+    const { a, b } = nameOf(v, t, pair);
+    if (out.has(a) && out.has(b)) return;
+    if (contactAt(t, row, pos)) { out.add(a); out.add(b); }
+  };
+  // the lists' own order: an interval at its entry, a near miss at its closest approach
+  const start = (ref: number) => { const t = tableOf(v, ref), row = rowOf(ref);
+    return t.source.at(isNearRef(ref) ? t.st.episodes.get(row, "closeAt") : t.st.intervals.get(row, "enter")); };
+  walkBack(v.tgt, pos, start, visit);
+  walkBack(v.aux, pos, start, visit);
   return out;
 }
 
 /** The code panel's mark for one line, from the spans of its moves (plan
  *  4.2: a line is marked where an episode covers one of its moves — every
- *  span of a repeated line separately, a gap of the episode's source cut out:
- *  a span the gaps cover wholly is marked by nothing, VP-I102). A contact's
- *  own mark over a possible one over a provisional one. A contact that began
- *  before every span of the line it covers is "still in contact":
- *  `continuation` names the line it began on (0: the entry move) — read by
- *  `lineAt` on the shown axis; a contact beginning on the line wins. */
+ *  span of a repeated line separately, a gap of the episode's source cut out
+ *  on its own axis: a span the gaps cover wholly is marked by nothing,
+ *  VP-I102). A contact's own mark over a possible one over a provisional one.
+ *  A contact that began before every span of the line it covers is "still in
+ *  contact": `continuation` names the line it began on (0: the entry move) —
+ *  read by `lineAt` on the shown axis; a contact beginning on the line wins. */
 export function lineMark(v: ContactView, line: number, spans: ReadonlyArray<readonly [number, number]>,
                          lineAt?: LineAt): CollisionLineMark | null {
-  let best = -1, own = false, contOnset = NaN, contEntry = false;
-  for (const [a, b] of spans) {
-    // the last episode with its onset at or before b; walk back block by
-    // block while one may still reach a
-    let lo = 0, hi = v.ep.length;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1, ref = v.ep[mid]!, t = tableOf(v, ref);
-      if (t.source.at(t.st.episodes.get(rowOf(ref), "onset")) <= b) lo = mid + 1; else hi = mid;
+  check(v);
+  let best = -1, own = false, contOnset = NaN, contEntry = false, contLine: number | null = null;
+  const onsetOf = (ref: number) => { const t = tableOf(v, ref); return t.source.at(t.st.episodes.get(rowOf(ref), "onset")); };
+  const rank = (t: TableIndex, row: number): number => {
+    const E = t.st.episodes, flags = E.get(row, "flags");
+    if ((flags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) return EP_MARK_BOUNDARY;
+    if (E.get(row, "ivCount") === 0) return flags & EP_POSSIBLE ? EP_MARK_POSSIBLE : EP_MARK_CONTACT;
+    for (let iv = E.get(row, "firstIv"); iv !== NONE; iv = t.st.intervals.get(iv, "next")) {
+      if (!(t.st.intervals.get(iv, "flags") & IV_POSSIBLE)) return EP_MARK_CONTACT;
     }
-    for (let i = lo - 1; i >= 0; i--) {
-      const blk = (i / EP_BLOCK) | 0;
-      if (v.epBlockPre[blk]! < a) break;
-      if (v.epBlockMax[blk]! < a) { i = blk * EP_BLOCK; continue; }
-      const ref = v.ep[i]!, t = tableOf(v, ref), row = rowOf(ref), E = t.st.episodes;
-      const [s, e] = epStretch(t, row);
-      if (e < a) continue;
-      if (!freeOf(t.holes.get(E.get(row, "pair")), Math.max(a, s), Math.min(b, e))) continue;
-      const flags = E.get(row, "flags");
-      let m: number;
-      if ((flags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) m = EP_MARK_BOUNDARY;
-      else if (E.get(row, "ivCount") === 0) m = flags & EP_POSSIBLE ? EP_MARK_POSSIBLE : EP_MARK_CONTACT;
-      else {
-        let all = true;
-        for (let iv = E.get(row, "firstIv"); iv !== NONE; iv = t.st.intervals.get(iv, "next")) {
-          if (!(t.st.intervals.get(iv, "flags") & IV_POSSIBLE)) { all = false; break; }
-        }
-        m = all ? EP_MARK_POSSIBLE : EP_MARK_CONTACT;
+    return EP_MARK_POSSIBLE;
+  };
+  // a folded source's episodes, by the line's runs on its own track
+  for (const t of v.tables) {
+    const ot = t?.source.ownTrack;
+    if (!t || !ot) continue;
+    const runs = ot.runs(line), E = t.st.episodes;
+    if (!runs.length) continue;
+    for (let row = 0; row < E.rows; row++) {
+      const [s0, e0] = epOwn(t, row);
+      let covers = false, begins = false;
+      for (const [a, b] of runs) {
+        if (e0 < a || s0 > b) continue;
+        if (freeOf(t, E.get(row, "pair"), Math.max(a, s0), Math.min(b, e0))) { covers = true; if (s0 >= a - LINE_TOL) begins = true; }
       }
+      if (!covers) continue;
+      const m = rank(t, row);
+      const entryMove = onEntryMove(t.source, s0);
+      if (best < 0 || m < best) { best = m; own = begins; contOnset = NaN; contLine = begins ? null : entryMove ? 0 : ot.lineAt(s0); contEntry = false; }
+      else if (m === best && begins) own = true;
+    }
+  }
+  for (const [a, b] of spans) {
+    let lo = 0, hi = v.ep.refs.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (onsetOf(v.ep.refs[mid]!) <= b) lo = mid + 1; else hi = mid; }
+    for (let i = lo - 1; i >= 0; i--) {
+      const blk = (i / BLOCK) | 0;
+      if (v.ep.pre[blk]! < a) break;
+      if (v.ep.max[blk]! < a) { i = blk * BLOCK; continue; }
+      const ref = v.ep.refs[i]!, t = tableOf(v, ref), row = rowOf(ref), E = t.st.episodes;
+      if (t.source.ownTrack) continue;   // by its own track's lines, above
+      const [s0, e0] = epOwn(t, row);
+      if (a > t.cov) continue;
+      const pre = preimage(t.source.at, a, Math.min(b, t.cov), s0, e0);
+      if (!pre || !freeOf(t, E.get(row, "pair"), pre[0], pre[1])) continue;
+      const m = rank(t, row);
       // rank: contact 0 best, possible 1, boundary 2; at one rank a contact
       // beginning in the span over one carried in
+      const s = t.source.at(s0);
       const begins = s >= a - LINE_TOL;
-      const entryMove = onEntryMove(t.source, E.get(row, "onset"));
-      if (best < 0 || m < best) { best = m; own = begins; contOnset = begins ? NaN : s; contEntry = !begins && entryMove; }
+      const entryMove = onEntryMove(t.source, s0);
+      if (best < 0 || m < best) { best = m; own = begins; contOnset = begins ? NaN : s; contEntry = !begins && entryMove; contLine = null; }
       else if (m === best && begins) own = true;
-      else if (m === best && !own && s < contOnset) { contOnset = s; contEntry = entryMove; }
+      else if (m === best && !own && contLine === null && s < contOnset) { contOnset = s; contEntry = entryMove; }
     }
     if (best === EP_MARK_CONTACT && own) break;
   }
@@ -560,6 +682,7 @@ export function lineMark(v: ContactView, line: number, spans: ReadonlyArray<read
   const mark: CollisionLineMark = { line };
   if (best === EP_MARK_BOUNDARY) mark.boundary = true;
   else if (best === EP_MARK_POSSIBLE) mark.possible = true;
+  else if (!own && contLine !== null) mark.continuation = contLine;
   else if (!own && !Number.isNaN(contOnset) && lineAt) {
     const from = contEntry ? 0 : lineAt(contOnset);
     if (from !== null) mark.continuation = from;
@@ -569,35 +692,34 @@ export function lineMark(v: ContactView, line: number, spans: ReadonlyArray<read
 
 /** The timeline's contact bands at display resolution (plan 4.3): `columns`
  *  pixel columns over [0, axisEnd]; a column is lit when a contact of any
- *  pair reaches into it, its source's gaps cut out — a contact narrower than
- *  a column lights its column and never vanishes (a point contact too,
- *  VP-I102); a free stretch splits a band only where the resolution can show
- *  it. At most 8192 columns. Bands as [startFraction, endFraction] runs. */
+ *  pair reaches into it — its source's gaps cut out on its own axis, then
+ *  mapped: a contact narrower than a column lights its column and never
+ *  vanishes (a point contact too, VP-I102); a free stretch splits a band only
+ *  where the resolution can show it. At most 8192 columns. Bands as
+ *  [startFraction, endFraction] runs. */
 export function contactBands(v: ContactView, columns: number, axisEnd: number): Array<[number, number]> {
+  check(v);
   const W = Math.max(1, Math.min(8192, Math.floor(columns)));
   if (!(axisEnd > 0)) return [];
   const lit = new Uint8Array(W);
   const col = (x: number) => Math.max(0, Math.min(W - 1, Math.floor((x / axisEnd) * W)));
   const pieces: number[] = [];
-  for (const t of v.tables) {
-    if (!t) continue;
-    const I = t.st.intervals;
-    for (const [pair, rows] of t.pairs) {
-      const h = t.holes.get(pair);
-      for (const row of rows) {
-        const a = t.source.at(I.get(row, "enter")), b = ivEnd(v.reach, t, row, pack(t.src, t.shard, row)).end;
-        pieces.length = 0;
-        piecesOf(h, a, b, pieces);
-        for (let i = 0; i < pieces.length; i += 2) {
-          const x = pieces[i]!, y = pieces[i + 1]!;
-          if (y < 0 || x > axisEnd) continue;
-          // a stretch ending ON a column's left edge does not reach into it
-          const c0 = col(x), e = Math.max(c0, Math.min(W - 1, Math.ceil((y / axisEnd) * W) - 1));
-          for (let c = c0; c <= e; c++) lit[c] = 1;
-        }
-      }
+  const band = (ref: number) => {
+    if (isNearRef(ref)) return;
+    const t = tableOf(v, ref), row = rowOf(ref), I = t.st.intervals;
+    const pair = t.st.episodes.get(I.get(row, "episode"), "pair");
+    pieces.length = 0;
+    piecesOf(t, pair, I.get(row, "enter"), ownEnd(t, row).end, pieces);
+    for (let i = 0; i < pieces.length; i += 2) {
+      const x = t.source.at(pieces[i]!), y = Math.min(t.source.at(pieces[i + 1]!), t.cov);
+      if (y < x || y < 0 || x > axisEnd) continue;
+      // a stretch ending ON a column's left edge does not reach into it
+      const c0 = col(x), e = Math.max(c0, Math.min(W - 1, Math.ceil((y / axisEnd) * W) - 1));
+      for (let c = c0; c <= e; c++) lit[c] = 1;
     }
-  }
+  };
+  v.tgt.refs.forEach(band);
+  v.aux.refs.forEach(band);
   const out: Array<[number, number]> = [];
   for (let c = 0; c < W; c++) {
     if (!lit[c]) continue;
@@ -609,18 +731,34 @@ export function contactBands(v: ContactView, columns: number, axisEnd: number): 
   return out;
 }
 
-/** The bytes the view holds besides the tables it reads (plan 3.4): its
- *  typed indices, and the open stays' positions and the joins at the bytes
- *  a Map or Set entry of numbers takes in V8 (~32). */
-export function heldBytes(v: ContactView): number {
-  let n = v.tgt.byteLength + v.ep.byteLength + v.epBlockMax.byteLength + v.epBlockPre.byteLength;
+/** The boundary contacts' stretches on the shown axis (a range sweep's
+ *  contacts in progress at its start — provisional): the "?" names the lines
+ *  each stays on. */
+export function boundaryStretches(v: ContactView): Array<{ a: string; b: string; s: number; e: number }> {
+  check(v);
+  const out: Array<{ a: string; b: string; s: number; e: number }> = [];
   for (const t of v.tables) {
     if (!t) continue;
-    for (const a of t.pairs.values()) n += a.byteLength + 32;
-    for (const a of t.holes.values()) n += a.byteLength + 32;
-    for (const a of t.toolGaps.values()) n += a.byteLength + 32;
+    const E = t.st.episodes;
+    for (let row = 0; row < E.rows; row++) {
+      if ((E.get(row, "flags") & EP_ORIGIN_MASK) !== ORIGIN_BOUNDARY) continue;
+      const [s, e] = epOwn(t, row);
+      out.push({ ...nameOf(v, t, E.get(row, "pair")), s: t.source.at(s), e: Math.min(t.source.at(e), t.cov) });
+    }
   }
-  return n + 32 * (v.live.size + v.reach.size + v.joined.size);
+  return out;
+}
+
+/** The bytes the view holds besides the tables it reads (plan 3.4): every
+ *  typed array of it — it holds nothing else per row, pair or gap. */
+export function heldBytes(v: ContactView): number {
+  let n = v.joined.byteLength + v.reachRef.byteLength + v.reachVal.byteLength;
+  for (const l of [v.tgt, v.aux, v.ep]) n += l.refs.byteLength + l.max.byteLength + l.pre.byteLength;
+  for (const t of v.tables) {
+    if (!t) continue;
+    n += t.hPairs.byteLength + t.hOff.byteLength + t.hSpan.byteLength + t.hReason.byteLength;
+  }
+  return n;
 }
 
 /** The raw line at a position of a track (plan 1.3): the move CONTAINING it

@@ -21,6 +21,11 @@ export interface ClashTarget {
   /** The contact touched on a later line than this margin entry
    *  (CollisionHit.touches): a collision whatever `dist` says. */
   touches?: boolean;
+  /** A near miss by the sweep's own class (contactView: a stay inside the
+   *  margin without a touch interval — plan 4.1: one class, the sweep's).
+   *  Absent on a target built from records (clashTargets): there the views'
+   *  1e-3 still decides (`isNearMiss`). */
+  near?: boolean;
   /** The onset of a contact the program STARTS in (CollisionHit.atStart). */
   atStart?: boolean;
   spanEndLine?: number;
@@ -34,6 +39,11 @@ export interface ClashTarget {
    *  happen — never a certain one. */
   possible?: boolean;
 }
+
+/** A near miss: by the sweep's class where the target carries it, else the
+ *  records' distance test (a margin entry that never touched). */
+export const isNearMiss = (t: ClashTarget): boolean =>
+  t.near ?? ((t.dist ?? 0) > 1e-3 && !t.touches);
 
 /**
  * ONE derivation for the scrub bar's clash COUNT, timeline MARKS and prev/next
