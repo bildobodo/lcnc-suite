@@ -1,0 +1,262 @@
+{
+  "review_head": "a81ac7d3bd393bc23f57ded04e000df086872bed",
+  "observations": [
+    {
+      "pool_failure_old_rows_delivered": 1,
+      "packets": [
+        {
+          "g": 0,
+          "count": 1
+        },
+        {
+          "g": 0,
+          "count": 0
+        },
+        {
+          "g": 1,
+          "count": 0
+        }
+      ]
+    },
+    {
+      "new_generation_messages_after_old_ack": 2,
+      "results": 1
+    },
+    {
+      "side_run_generations": [
+        7,
+        7
+      ]
+    },
+    {
+      "terminal_after_held_final_worker_error": []
+    },
+    {
+      "pooled_budget_result": {
+        "hits": [],
+        "staticContacts": [],
+        "samples": 40,
+        "coarsened": false,
+        "notes": [],
+        "uncertified": null,
+        "pairCount": 2,
+        "pairsPrescreened": 0,
+        "bvhMs": 1,
+        "sweepMs": 20,
+        "truncated": {
+          "covered": 0.2,
+          "reason": "budget"
+        },
+        "shards": 2
+      }
+    },
+    {
+      "case": {
+        "xs": [
+          20,
+          15,
+          5
+        ],
+        "rapid": [
+          1,
+          1,
+          1
+        ],
+        "toolIndices": [
+          0,
+          1,
+          2
+        ],
+        "stock": false
+      },
+      "episodes": [
+        {
+          "pair": 0,
+          "ordinal": 0,
+          "flags": 4,
+          "onset": 8.9,
+          "end": null,
+          "closeAt": 9.15,
+          "closeDist": 0,
+          "firstIv": 0,
+          "ivCount": 1
+        }
+      ],
+      "intervals": [
+        {
+          "episode": 0,
+          "enter": 9.0005859375,
+          "exit": null,
+          "flags": 2,
+          "next": 4294967295,
+          "witness": 9.15,
+          "freeAt": null,
+          "freeR": 0
+        }
+      ],
+      "gaps": [],
+      "hits": [
+        {
+          "line": 3,
+          "intervals": [
+            [
+              9.0004638671875,
+              15
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "T3 has no length in the table: its own contacts are not checked (L2)"
+      ]
+    },
+    {
+      "case": {
+        "xs": [
+          20,
+          5,
+          4,
+          3
+        ],
+        "rapid": [
+          0,
+          0,
+          1,
+          1
+        ],
+        "toolIndices": [
+          0,
+          0,
+          1,
+          2
+        ],
+        "stock": true
+      },
+      "episodes": [],
+      "intervals": [],
+      "gaps": [],
+      "hits": [
+        {
+          "line": 4,
+          "intervals": [
+            [
+              16,
+              17
+            ]
+          ]
+        }
+      ],
+      "notes": [
+        "T3 has no length in the table: its own contacts are not checked (L3)"
+      ]
+    },
+    {
+      "case": {
+        "xs": [
+          20,
+          5,
+          4,
+          3
+        ],
+        "rapid": [
+          1,
+          1,
+          0,
+          1
+        ],
+        "toolIndices": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "stock": true
+      },
+      "episodes": [
+        {
+          "pair": 0,
+          "ordinal": 0,
+          "flags": 4,
+          "onset": 8.9,
+          "end": null,
+          "closeAt": 9.15,
+          "closeDist": 0,
+          "firstIv": 0,
+          "ivCount": 2
+        }
+      ],
+      "intervals": [
+        {
+          "episode": 0,
+          "enter": 9.0005859375,
+          "exit": 15,
+          "flags": 34,
+          "next": 1,
+          "witness": 9.15,
+          "freeAt": null,
+          "freeR": 0
+        },
+        {
+          "episode": 0,
+          "enter": 9.000537109375,
+          "exit": null,
+          "flags": 66,
+          "next": 4294967295,
+          "witness": 16,
+          "freeAt": null,
+          "freeR": 0
+        }
+      ],
+      "gaps": [],
+      "hits": [
+        {
+          "line": 2,
+          "intervals": [
+            [
+              9.0004638671875,
+              15
+            ]
+          ]
+        },
+        {
+          "line": 4,
+          "intervals": [
+            [
+              16,
+              17
+            ]
+          ]
+        }
+      ],
+      "notes": []
+    },
+    {
+      "entry_join_across_gap": [
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "entry_join_after_proven_separation": [
+        [
+          0,
+          0
+        ]
+      ]
+    },
+    {
+      "budget_resampling": {
+        "missingWitness": 22.15,
+        "incompleteFrom": 24.15,
+        "truncated": {
+          "covered": 0.60375,
+          "reason": "budget"
+        },
+        "rows": 1
+      }
+    }
+  ],
+  "note": "NaN values in typed tables serialize as null in these console snapshots."
+}

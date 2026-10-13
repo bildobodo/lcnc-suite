@@ -1,0 +1,85 @@
+{
+  "task_dir": "/tmp/codex-r144-em325n6m",
+  "live_head": "23d55a0d2f6bd656ef7e8176278510ff8ee1208f",
+  "review_head": "a81ac7d3bd393bc23f57ded04e000df086872bed",
+  "review_base": "6d5e20f7",
+  "initial_status": " M docs/reviews/kollision-paket2.plan.md\n M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r144.contacts-cross.txt\n?? docs/reviews/viewer-palette-fest.r144.gate-backend.json\n?? docs/reviews/viewer-palette-fest.r144.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r144.mutations.py\n?? docs/reviews/viewer-palette-fest.r144.mutations.txt\n?? docs/reviews/viewer-palette-fest.r144.sinkcost.txt\n?? docs/reviews/viewer-palette-fest.r144.sinkprobes.txt\n",
+  "inputs": {
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 54842,
+      "sha256": "af8be63ad5280ba568630ab03fff355516ba9ecd1a5db563376401177618df90"
+    },
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1480337,
+      "sha256": "c230c954ffdad3ac2e5ccfe296c3d10158eb4d0ced375f7f39676c02830dd224"
+    },
+    "docs/reviews/viewer-palette-fest.r144.contacts-cross.txt": {
+      "bytes": 6656,
+      "sha256": "212c77624880ba6a0693e5f746dff33736c4052cb36a358f16696ef8537533ec"
+    },
+    "docs/reviews/viewer-palette-fest.r144.gate-backend.json": {
+      "bytes": 3464,
+      "sha256": "a16f6398637b3246303113b55fa25c0727ce4a455a6b6246af8945140bb58cf7"
+    },
+    "docs/reviews/viewer-palette-fest.r144.gate-frontend.json": {
+      "bytes": 1448,
+      "sha256": "c656dd70e7618b6dc1b8a6494ef795101d9b4713b18555e175f562893d9ae7b3"
+    },
+    "docs/reviews/viewer-palette-fest.r144.mutations.py": {
+      "bytes": 9399,
+      "sha256": "eb3e448dd73a53002874a2b7d028242a7480193706c740b329c8f6cabb61ea22"
+    },
+    "docs/reviews/viewer-palette-fest.r144.mutations.txt": {
+      "bytes": 12629,
+      "sha256": "b1ed0e3fd8196b64f2a6dc186d4a545a6a334589e4ce77c558deb84eb2e84c55"
+    },
+    "docs/reviews/viewer-palette-fest.r144.sinkcost.txt": {
+      "bytes": 920,
+      "sha256": "08267aa4feb86edae48ecc690d502f94006416831d4fb1876fd70dda97ec4030"
+    },
+    "docs/reviews/viewer-palette-fest.r144.sinkprobes.txt": {
+      "bytes": 1033,
+      "sha256": "f1adfdbff76c632cc9935218214a4c11a2cf9a2d70113aac137313e3557eaa96"
+    }
+  },
+  "archive_changed_files_verified_unmodified": {
+    "CLAUDE.md": "894905a8aec237a1444023770aee5843d8d376c61b63d053e038f97ce1432406",
+    "docs/decisions.md": "7189440e64d64f9f20c67494a338e39b4206dad38c299db684e5c65843c881b0",
+    "lcnc-webui/e2e/run-hold.spec.ts": "3e2e214a21cd9dfc550246b8166b48e1af765fff454f7b0f55b2a5d56a597d33",
+    "lcnc-webui/src/viewer/collision.test.ts": "35bcf10299835405790f8c8e58cdccc900ac4a4fa1d47d2fa9e9e7473ea4a5c3",
+    "lcnc-webui/src/viewer/collision.ts": "b632c2987dd31d8598df9df622415d5f4f57511fe28fe7f374112678087b8b28",
+    "lcnc-webui/src/viewer/collisionContacts.test.ts": "b8e4bebd79446ad36767fee7f5b0a7793b41e7e2ec9f62ae0174ad5b9c39b03e",
+    "lcnc-webui/src/viewer/collisionFixtures.ts": "35033ff71cae556cea04ea317134462d65214274f7d7e17cdad2aecc613dc86e",
+    "lcnc-webui/src/viewer/collisionInside.test.ts": "34e4bd256e1fc8621624ec88dabc4809102d33feb4ce78861c42c1b300e8d4b1",
+    "lcnc-webui/src/viewer/collisionOracle.test.ts": "fbc644f3208b183f7b4df6d7f9e1a027976b707251b2de15b3b9d55afec673f6",
+    "lcnc-webui/src/viewer/collisionSpeed.test.ts": "ef64c8c53a2024f3a99751f91a5995a1a3b5348d19157d336303d60207130b0c",
+    "lcnc-webui/src/viewer/collisionWindows.test.ts": "d37f498de63050640c999646c9a9e518173b88fde17f38faefcc95afc8b4b115",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts": "0db8ce598a2c9118fdce3d00ee91f6f3056b99e85f91503f10783b08942b4797",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "6b98d99566a79ac996aed5f27a622e64ebc2cdd7234c15433e26a29a9b2e7eda",
+    "lcnc-webui/src/viewer/contactMerge.test.ts": "c477ab61848920729d8e99da95e9fb01e928924c1ccd5e14251caadc898ad16e",
+    "lcnc-webui/src/viewer/contactMerge.ts": "b643ff78f690cb104a9503997e5fb64873c388e0b3ff6e91f2be86ae4a00e0de",
+    "lcnc-webui/src/viewer/contactStore.test.ts": "43e3eb18e70d75a73446852c31c6240c92f38df91c0dcb1f4f96b4bf0ec83740",
+    "lcnc-webui/src/viewer/contactStore.ts": "79f19069f9a644c4ea726bd5fa70b2e75c74fe68be9112f5ddd2327680d5446b",
+    "lcnc-webui/src/viewer/sweepShards.test.ts": "0597dba8e5aaba589293d8d4b77ac68bc96ce6d2669276bad67995554d2c188b",
+    "lcnc-webui/tsconfig.app.json": "5a8efbb3a62def2fd02ad2d32ab500c0640669d9c324742c51d30593a92e20cb",
+    "lcnc-webui/tsconfig.test.json": "ed0bfbdadcebc8b35cc8ba204299008a5f8262fa6524335eba9492cdfdd3e34e"
+  },
+  "own_checks": {
+    "repository_focused": {
+      "passed": 53,
+      "files": 4
+    },
+    "repository_sink_selected": {
+      "passed": 6,
+      "skipped": 114
+    },
+    "independent_counterexamples": {
+      "failed_expected": 11,
+      "files": 2
+    },
+    "whole_gate_repeated": false,
+    "browser_or_live_machine_access": false,
+    "runner": "isolated Vitest threads, one worker, execArgv empty"
+  },
+  "publication": "Only new r144.codex-* evidence and append to the requested review; original input hashes checked before publication."
+}

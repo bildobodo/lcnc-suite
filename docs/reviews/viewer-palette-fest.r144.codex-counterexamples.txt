@@ -1,0 +1,252 @@
+
+ RUN  v4.1.8 /tmp/codex-r144-em325n6m/repo/lcnc-webui
+
+stdout | src/viewer/r144.codex-worker.test.ts > R144 worker own probes > a pool failure hands over received but still unforwarded contacts
+{"pool_failure_old_rows_delivered":1,"packets":[{"g":0,"count":1},{"g":0,"count":0},{"g":1,"count":0}]}
+
+stdout | src/viewer/r144.codex-worker.test.ts > R144 worker own probes > the old generation acknowledgement cannot release an unacknowledged new generation delta
+{"new_generation_messages_after_old_ack":2,"results":1}
+
+stdout | src/viewer/r144.codex-worker.test.ts > R144 worker own probes > a side run restarted after pool failure has a new generation too
+{"side_run_generations":[7,7]}
+
+stdout | src/viewer/r144.codex-worker.test.ts > R144 worker own probes > a final held for acknowledgement survives a worker error
+{"terminal_after_held_final_worker_error":[]}
+
+stdout | src/viewer/r144.codex-worker.test.ts > R144 worker own probes > pooled budget result preserves the exact incompleteFrom
+{"pooled_budget_result":{"hits":[],"staticContacts":[],"samples":40,"coarsened":false,"notes":[],"uncertified":null,"pairCount":2,"pairsPrescreened":0,"bvhMs":1,"sweepMs":20,"truncated":{"covered":0.2,"reason":"budget"},"shards":2}}
+
+ ❯ src/viewer/r144.codex-worker.test.ts (5 tests | 5 failed) 104ms
+     × a pool failure hands over received but still unforwarded contacts 30ms
+     × the old generation acknowledgement cannot release an unacknowledged new generation delta 61ms
+     × a side run restarted after pool failure has a new generation too 4ms
+     × a final held for acknowledgement survives a worker error 4ms
+     × pooled budget result preserves the exact incompleteFrom 4ms
+stdout | src/viewer/r144.codex-core.test.ts > R144 contact store own probes > unknown tool without preceding episode still records its knowledge gap
+{"case":{"xs":[20,15,5],"rapid":[1,1,1],"toolIndices":[0,1,2],"stock":false},"episodes":[{"pair":0,"ordinal":0,"flags":4,"onset":8.9,"end":null,"closeAt":9.15,"closeDist":0,"firstIv":0,"ivCount":1}],"intervals":[{"episode":0,"enter":9.0005859375,"exit":null,"flags":2,"next":4294967295,"witness":9.15,"freeAt":null,"freeR":0}],"gaps":[],"hits":[{"line":3,"intervals":[[9.0004638671875,15]]}],"notes":["T3 has no length in the table: its own contacts are not checked (L2)"]}
+
+stdout | src/viewer/r144.codex-core.test.ts > R144 contact store own probes > after an unknown tool a previous muted feed contact does not hide a new rapid collision
+{"case":{"xs":[20,5,4,3],"rapid":[0,0,1,1],"toolIndices":[0,0,1,2],"stock":true},"episodes":[],"intervals":[],"gaps":[],"hits":[{"line":4,"intervals":[[16,17]]}],"notes":["T3 has no length in the table: its own contacts are not checked (L3)"]}
+
+stdout | src/viewer/r144.codex-core.test.ts > R144 contact store own probes > rapid feed rapid: the second rapid part does not reach back across the feed
+{"case":{"xs":[20,5,4,3],"rapid":[1,1,0,1],"toolIndices":[0,0,0,0],"stock":true},"episodes":[{"pair":0,"ordinal":0,"flags":4,"onset":8.9,"end":null,"closeAt":9.15,"closeDist":0,"firstIv":0,"ivCount":2}],"intervals":[{"episode":0,"enter":9.0005859375,"exit":15,"flags":34,"next":1,"witness":9.15,"freeAt":null,"freeR":0},{"episode":0,"enter":9.000537109375,"exit":null,"flags":66,"next":4294967295,"witness":16,"freeAt":null,"freeR":0}],"gaps":[],"hits":[{"line":2,"intervals":[[9.0004638671875,15]]},{"line":4,"intervals":[[16,17]]}],"notes":[]}
+
+stdout | src/viewer/r144.codex-core.test.ts > R144 contact store own probes > entry join does not use an old contact ended at a tool-unknown gap
+{"entry_join_across_gap":[[0,0]]}
+
+stdout | src/viewer/r144.codex-core.test.ts > R144 contact store own probes > entry join never bridges an already proved free point near a long entry endpoint
+{"entry_join_after_proven_separation":[[0,0]]}
+
+stdout | src/viewer/r144.codex-core.test.ts > budget stop during re-sampling begins at the first unwritable finding, not the later outer sample
+{"budget_resampling":{"missingWitness":22.15,"incompleteFrom":24.15,"truncated":{"covered":0.60375,"reason":"budget"},"rows":1}}
+
+ ❯ src/viewer/r144.codex-core.test.ts (6 tests | 6 failed) 103ms
+     × unknown tool without preceding episode still records its knowledge gap 53ms
+     × after an unknown tool a previous muted feed contact does not hide a new rapid collision 7ms
+     × rapid feed rapid: the second rapid part does not reach back across the feed 16ms
+     × entry join does not use an old contact ended at a tool-unknown gap 3ms
+     × entry join never bridges an already proved free point near a long entry endpoint 1ms
+   × budget stop during re-sampling begins at the first unwritable finding, not the later outer sample 21ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r144.codex-core.test.ts > R144 contact store own probes > unknown tool without preceding episode still records its knowledge gap
+AssertionError: expected [] to include 2
+ ❯ src/viewer/r144.codex-core.test.ts:24:82
+     22|   const {store,result}=run([20,15,5],[1,1,1],[0,1,2]);
+     23|   expect(result.notes?.some(n=>n.includes('no length'))).toBe(true);
+     24|   expect(Array.from({length:store.gaps.rows},(_,i)=>store.gaps.get(i,'…
+       |                                                                                  ^
+     25|  });
+     26|  it('after an unknown tool a previous muted feed contact does not hide…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+
+ FAIL  src/viewer/r144.codex-core.test.ts > R144 contact store own probes > after an unknown tool a previous muted feed contact does not hide a new rapid collision
+AssertionError: expected 0 to be greater than 0
+ ❯ src/viewer/r144.codex-core.test.ts:29:32
+     27|   const {store,result}=run([20,5,4,3],[0,0,1,1],[0,0,1,2],true);
+     28|   expect(result.hits.some(h=>h.line===4)).toBe(true);
+     29|   expect(store.intervals.rows).toBeGreaterThan(0);
+       |                                ^
+     30|  });
+     31|  it('rapid feed rapid: the second rapid part does not reach back acros…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+
+ FAIL  src/viewer/r144.codex-core.test.ts > R144 contact store own probes > rapid feed rapid: the second rapid part does not reach back across the feed
+AssertionError: expected 9.000537109375 to be greater than or equal to 15.999
+ ❯ src/viewer/r144.codex-core.test.ts:34:42
+     32|   const {store,t}=run([20,5,4,3],[1,1,0,1],[0,0,0,0],true);
+     33|   expect(store.intervals.rows).toBe(2);
+     34|   expect(store.intervals.get(1,'enter')).toBeGreaterThanOrEqual(t.cum[…
+       |                                          ^
+     35|  });
+     36|  it('entry join does not use an old contact ended at a tool-unknown ga…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+
+ FAIL  src/viewer/r144.codex-core.test.ts > R144 contact store own probes > entry join does not use an old contact ended at a tool-unknown gap
+AssertionError: expected [ [ +0, +0 ] ] to deeply equal [ [ +0, 1 ] ]
+
+- Expected
++ Received
+
+  [
+    [
+      0,
+-     1,
++     0,
+    ],
+  ]
+
+ ❯ src/viewer/r144.codex-core.test.ts:46:17
+     44|   base.intervals.append({episode:0,enter:0,exit:NaN,next:NONE,witness:…
+     45|   const joins=[...entryJoins(entry,base,10)]; console.log(JSON.stringi…
+     46|   expect(joins).toEqual([[0,1]]);
+       |                 ^
+     47|  });
+     48|  it('entry join never bridges an already proved free point near a long…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+
+ FAIL  src/viewer/r144.codex-core.test.ts > R144 contact store own probes > entry join never bridges an already proved free point near a long entry endpoint
+AssertionError: expected [ [ +0, +0 ] ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   [
++     0,
++     0,
++   ],
++ ]
+
+ ❯ src/viewer/r144.codex-core.test.ts:55:17
+     53|   base.intervals.append({episode:0,enter:0,exit:NaN,next:NONE,witness:…
+     54|   const joins=[...entryJoins(entry,base,1000)];console.log(JSON.string…
+     55|   expect(joins).toEqual([]);
+       |                 ^
+     56|  });
+     57| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+
+ FAIL  src/viewer/r144.codex-core.test.ts > budget stop during re-sampling begins at the first unwritable finding, not the later outer sample
+AssertionError: expected 24.15 to be less than or equal to 22.15
+ ❯ src/viewer/r144.codex-core.test.ts:70:27
+     68|  console.log(JSON.stringify({budget_resampling:{missingWitness:missing…
+     69|  expect(r.truncated?.reason).toBe('budget');
+     70|  expect(r.incompleteFrom).toBeLessThanOrEqual(missing);
+       |                           ^
+     71| });
+     72|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+
+ FAIL  src/viewer/r144.codex-worker.test.ts > R144 worker own probes > a pool failure hands over received but still unforwarded contacts
+AssertionError: expected 1 to be 2 // Object.is equality
+
+- Expected
++ Received
+
+- 2
++ 1
+
+ ❯ src/viewer/r144.codex-worker.test.ts:80:19
+     78|   const oldRows=packets.filter(d=>d.generation===0).reduce((n,d)=>n+d.…
+     79|   console.log(JSON.stringify({pool_failure_old_rows_delivered:oldRows,…
+     80|   expect(oldRows).toBe(2);
+       |                   ^
+     81|  });
+     82|  it('the old generation acknowledgement cannot release an unacknowledg…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+
+ FAIL  src/viewer/r144.codex-worker.test.ts > R144 worker own probes > the old generation acknowledgement cannot release an unacknowledged new generation delta
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/viewer/r144.codex-worker.test.ts:93:19
+     91|   send({contactsAck:82}); // delayed ACK for generation 0; generation …
+     92|   console.log(JSON.stringify({new_generation_messages_after_old_ack:co…
+     93|   expect(count()).toBe(1);
+       |                   ^
+     94|  });
+     95|  it('a side run restarted after pool failure has a new generation too'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+
+ FAIL  src/viewer/r144.codex-worker.test.ts > R144 worker own probes > a side run restarted after pool failure has a new generation too
+AssertionError: expected [ 7, 7 ] to deeply equal [ 7, 8 ]
+
+- Expected
++ Received
+
+  [
+    7,
+-   8,
++   7,
+  ]
+
+ ❯ src/viewer/r144.codex-worker.test.ts:102:23
+    100|   const generations=sent.filter(m=>m.id===-83&&m.contacts).map(m=>m.co…
+    101|   console.log(JSON.stringify({side_run_generations:generations}));
+    102|   expect(generations).toEqual([7,8]);
+       |                       ^
+    103|  });
+    104|  it('a final held for acknowledgement survives a worker error',async()…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+
+ FAIL  src/viewer/r144.codex-worker.test.ts > R144 worker own probes > a final held for acknowledgement survives a worker error
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/viewer/r144.codex-worker.test.ts:113:18
+    111|   workers[1]!.fail();send({contactsAck:84});await vi.runAllTimersAsync…
+    112|   const finals=sent.filter(m=>m.id===84&&terminal(m));console.log(JSON…
+    113|   expect(finals).toHaveLength(1);
+       |                  ^
+    114|  });
+    115|  it('pooled budget result preserves the exact incompleteFrom',async()=…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+
+ FAIL  src/viewer/r144.codex-worker.test.ts > R144 worker own probes > pooled budget result preserves the exact incompleteFrom
+AssertionError: expected undefined to be 4 // Object.is equality
+
+- Expected:
+4
+
++ Received:
+undefined
+
+ ❯ src/viewer/r144.codex-worker.test.ts:121:30
+    119|   workers[1]!.emit({id:85,result:result(),contacts:[new ContactStore(8…
+    120|   const fin=sent.find(m=>m.result)!.result;console.log(JSON.stringify(…
+    121|   expect(fin.incompleteFrom).toBe(4);
+       |                              ^
+    122|  });
+    123| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  11 failed (11)
+   Start at  10:34:29
+   Duration  726ms (transform 207ms, setup 0ms, import 401ms, tests 206ms, environment 0ms)
+
