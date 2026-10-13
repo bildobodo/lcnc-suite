@@ -1,0 +1,16 @@
+# R150 mutations (scripts: viewer-palette-fest.r150.mutations.py). Run 2 at e996903c's working tree:
+i110_breaks_are_moves RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/startDepPayloads.test.ts > Codex R149 VP-I110: a base contact at 0 marks only the moves its check saw > the beginning before K is a break on the base track: its lines L3 and L4 sit at 0 but no check saw their move 9s
+i108_running_own_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/checkWiring.test.ts > how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109) > VP-I108: a run check's beginning folded onto 0 while it runs at 15 % — its own lines 22 and 23 are not checked yet:  8s
+i108_view_drops_own RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/checkWiring.test.ts > how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109) > VP-I108: a run check's beginning folded onto 0 while it runs at 15 % — its own lines 22 and 23 are not checked yet:  8s
+i109_runside_cov_full GREEN! Tests  23 passed (23)  8s
+i109_entry_cov_full RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/checkWiring.test.ts > how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109) > VP-I109: a side stopped at 20 % (its budget) ends its open contact at its coverage — no tint, band or mark past it | 8s
+i109_runside_joins_any RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/checkWiring.test.ts > how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109) > VP-I109: a stopped side never joins the base — the rest up to the base is unchecked: two findings; a whole one joins 8s
+i109_entry_joins_any RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/checkWiring.test.ts > how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109) > VP-I109: a stopped side never joins the base — the rest up to the base is unchecked: two findings; a whole one joins 8s
+i109_view_joins_any RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/checkWiring.test.ts > how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109) > VP-I109: a stopped side never joins the base — the rest up to the base is unchecked: two findings; a whole one joins 8s
+
+# i109_runside_cov_full was GREEN: the stopped run side's coverage was unchecked (only its join was). Assertion added (stopped at 15 %: no marks on L22, L23); rerun:
+i109_runside_cov_full RED  FAIL  src/viewer/checkWiring.test.ts > how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109) > VP-I108: a run check's beginning folded onto 0 while it runs at 15 % — its own lines 22 and 23 are not checked yet
+
+# the browser guard (Codex's probe as a spec test), build + Playwright:
+i109_entry_cov_full_e2e RED  1 failed  Error: stopped at 20 %: the band ends there, not at the side track's end | Expected: < 30
+rebuild ok

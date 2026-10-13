@@ -1,0 +1,9 @@
+✓ src/viewer/zz_r149_startmarks.test.ts > the base check cannot mark an unbound beginning just because its collapsed cum equals the checked endpoint 36ms
+✓ src/viewer/zz_r149_coverage.test.ts > folded run beginning: running after 20% must not mark a not-yet-swept line 2ms
+✓ src/viewer/zz_r149_coverage.test.ts > folded run beginning: stopped after 20% must not mark a not-yet-swept line 0ms
+✓ src/viewer/zz_r149_coverage.test.ts > stopped simulation side: its open contact does not tint the untested remainder 1ms
+✓ src/viewer/zz_r149_coverage.test.ts > stopped run side: no proof of connection to the base, so do not merge its event into the base contact 0ms
+✓ src/viewer/zz_r149_coverage.test.ts > control: a complete folded beginning marks its later line and can join to the base 1ms
+✓ src/viewer/zz_r149_coverage.test.ts > control: a running simulation side preserves its exact own coverage 0ms
+✓ src/viewer/zz_r149_coverage.test.ts > control: the view already supports an exact ownCoverage for a folded source 0ms
+Tests  8 passed (8)

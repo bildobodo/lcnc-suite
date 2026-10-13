@@ -1,0 +1,10 @@
+{
+  "head": "e996903c",
+  "note": "the offline gate's frontend steps; Playwright with --trace off, alone. 521 browser tests: R149's 520 and the new one (a budget-stopped side's band, Codex's probe as a spec test)",
+  "gates": [
+    {"name": "frontend-lint", "command": "npm run lint", "status": "PASS", "seconds": 9},
+    {"name": "frontend-build", "command": "npm run build", "status": "PASS", "seconds": 17},
+    {"name": "frontend-unit", "command": "npm test", "status": "PASS", "seconds": 482, "tests": "138 files, 2320 passed"},
+    {"name": "frontend-browser", "command": "npx playwright test --trace off --reporter=line", "status": "PASS", "seconds": 2166, "tests": "521 passed", "note": "run alone"}
+  ]
+}

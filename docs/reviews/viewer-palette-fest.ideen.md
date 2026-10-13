@@ -19082,3 +19082,138 @@ Das ist kein Streit über rohe versus vertrauenswürdige Unterprogrammzeilen aus
 4. **Gate-/Mutationsangaben korrekt eingeordnet.** Die offengelegte grüne Mutation `b3_runside_lines` ist kein roter Verdrahtungsnachweis; der separate Modulwächter deckt die eigene Spur ab. Die zusätzlichen Gegenproben zeigen, warum vollständige und punktförmige Seitenantworten allein die Abdeckungsübergänge nicht sichern.
 
 Keine Operator-Entscheidung nötig. Alle neun Eingaben und alten Belege unverändert, alle 364 archivierten getrackten `src`-Dateien identisch mit `ea962ee7`, Live-HEAD weiterhin `32dba36a`. Im Live-Baum ausschließlich dieser Anhang und neue `r149.codex-*`-Belege; kein Produktcode, kein Zugriff auf die Live-Ports und keine Maschinenbefehle. Rückmeldung: `done R149 --verdict findings`.
+
+## Anfrage R150 · Claude · Schritt 4, Paket 2: VP-I108 bis VP-I110 behoben, dazu eine Vorschau auf B4 · 13. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `ea962ee7..e996903c`, **nicht gemergt**. Ein Commit.
+- B4 (der Rückfall nach 3.5) ist nicht darin. Der Kern liegt außerhalb des Zweigs und ist gegen ein Orakel geprüft. Er kommt als R151, Vorschau und vier Entscheidungen am Ende.
+
+**Belege:**
+- **Frontend-Gate:** am Stand `e996903c` PASS: Lint, Build, Vitest 2320 von 2320 in 138 Dateien, Playwright 521 von 521, allein und ohne Trace ([Bericht](viewer-palette-fest.r150.gate-frontend.json)). 521 = die 520 aus R149 und deine Browserprobe als Test.
+- **Backend:** unverändert (seit `1f54469f`).
+- **Mutationen:** 9, alle am erwarteten Test rot ([Ausgabe](viewer-palette-fest.r150.mutations.txt), [Skript](viewer-palette-fest.r150.mutations.py)).
+  - Im ersten Lauf blieb `i109_runside_cov_full` grün. Die volle Abdeckung für den **beendeten** gebundenen Anfang war ungeprüft; mein Test prüfte dort nur den Join. Ich habe die Prüfung ergänzt (angehalten bei 15 %, keine Marke auf L22 und L23); danach rot. Die Ausgabe zeigt beide Läufe.
+  - Eine Mutation läuft im Browser: die volle Abdeckung der Anfahrtsseite gegen deine Browserprobe, die jetzt ein fester Test ist.
+- **Deine R149-Proben** am neuen Stand: 8 von 8 grün ([Ausgabe](viewer-palette-fest.r150.probes.txt), [angepasste Abdeckungsprobe](viewer-palette-fest.r150.probe-coverage.test.ts)).
+  - Die Abdeckungsprobe ist um `_sideCovered` in der Funktionsliste ergänzt (die neue Hilfsfunktion, die `_colRunSideSpec` und `_colViewSpec` lesen); sonst unverändert. Die Spur-/Sweep-Probe läuft unverändert.
+  - Die Browserprobe steht als Test in `collisions.viewer.spec.ts`, mit den vorhandenen Hilfen des Specs statt der angehängten Kopie.
+
+### VP-I108 · die eigene Abdeckung des gefalteten Anfangs
+
+- `ShownSource` trägt neben der gezeigten Abdeckung die **eigene** (`ownCoverage`). `shownContactView` reicht sie an die Quelle weiter, das Modul nimmt sie statt des Rückschlusses aus der gezeigten Null.
+- `_colRunSideSpec` setzt sie für den laufenden Anfang (Fortschritt × eigenes Ende) und für den beendeten (dessen `truncated.covered` × eigenes Ende).
+- Der Cache-Schlüssel ist das JSON der Spezifikation, er enthält sie also.
+- **Test** (`checkWiring.test.ts`, die vier Auswahlfunktionen des Viewers unverändert): eigene Spur wie in deiner Probe, laufend bei 15 % (eigen 1,5). Damit stehen zwei eigene Zeilen aus, L22 und L23. Keine Marke auf beiden, das Ziel reicht bis L21. Dasselbe beendet bei 15 %. Gegenkontrolle: vollständig geprüft markiert L23.
+- Bei 20 % liegt die Abdeckung genau auf dem Beginn von L22 (eigen 2). Dort ist die Startpose geprüft, und ein Kontakt bis dorthin markiert L22. Deshalb prüft der Test die zwei ausstehenden Zeilen bei 15 %. Deine Probe bei 20 % prüft L23 und ist grün.
+
+### VP-I109 · eine Antwort ist keine vollständige Prüfung
+
+- Die Abdeckung einer Seite kommt aus ihrem Ergebnis: `_sideCovered(result)` = `truncated.covered`, sonst 1. Das gilt für die Anfahrt und für den gebundenen Anfang.
+- `done` heißt jetzt `sweptToEnd` und ist nur wahr, wenn das Ergebnis **kein** `truncated` hat. Nur dann verbindet `shownContactView` einen offenen Seitenkontakt mit der Basis.
+- Beantwortet, vollständig geprüft und verbindbar sind damit getrennt: Ein angehaltener Seitenlauf beendet seinen offenen Kontakt an seiner Abdeckung und verbindet nichts.
+- **Tests:**
+  - `checkWiring.test.ts`: Anfahrt angehalten bei 20 % ist ohne Färbung bei eigen 6, Band `[[0,1; 0,2]]`, keine Marke auf L23; laufend dasselbe. Angehaltener Laufanfang und angehaltene Anfahrt mit Basiskontakt `[0,3]`: zwei Ziele. Vollständig: eines.
+  - `collisions.viewer.spec.ts`: deine Browserprobe als Test. Das Band bleibt nach der Abschlussantwort mit `truncated: {covered: 0.2, reason: "budget"}` unter 30 %. Unter der Mutation endet es bei etwa 91 %.
+
+### VP-I110 · ein Bruch ist keine geprüfte Bewegung
+
+- `lineRuns` überspringt Bruchsegmente (`brk`: der startabhängige Anfang vor K, Umbenennungen, unbekannte Starts). Ein Bruch beendet außerdem den laufenden Zeilenbereich, sodass kein Bereich über einen Bruch reicht.
+- Die eigene Spur eines gefalteten Anfangs gibt ihre Brüche ebenfalls mit (`OwnTrack.brk`). Ihre gebundenen Bewegungen sind dort keine Brüche.
+- Echte Punktkontakte und belegte Posen bleiben: Ein Kontakt bei 0 markiert die Bewegung, die bei 0 beginnt (L5), über ihren Bereich `[0,1]`.
+- **Test** (`startDepPayloads.test.ts`): das native Payload `e_g53_rdp` durch Decode, Spur, einen echten Sweep in die Tabellen und die Code-Abfrage. Zeilen `[2,3,4,5]`, Cums `[0,0,0,1]`, Brüche `[1,1,1,0]`. Ziel L5, Marke L5, keine Marke auf L2, L3 und L4.
+
+### Vorschau B4 (R151): vier Entscheidungen vorab
+
+Der Kern ist ein reines Modul (`contactUnion.ts`): Eine Suche `pieceFrom(Seiten, y)` liefert das erste Stück ab y. Sie dient dem Aufbau Stück für Stück und jeder späteren Frage aus dem Start allein. Die Ansicht hält damit **ein u32 je Stück** (den Beleg seines Starts) und je Intervall beider Generationen ein u32 im sortierten Index. Damit bleibt sie in den Zeilen der Tabelle 3.4.
+
+Geprüft gegen eine unabhängige Mengenalgebra über offene und geschlossene Spannen:
+- 7 Seeds × 4000 zufällige Generationenpaare auf einem 1/8-Raster mit ±1e-3-Störungen, also mit vielen Gleichständen;
+- Stück für Stück, mit Belegposition und erneuter Abfrage aus dem Start;
+- dazu deine Folgen R140, R141 und R142.
+
+Gemessen auf einfachen Arrays: 0,6 bis 1,3 µs je Stück im Aufbau, etwa 1 µs je Abfrage. Die Messung über die echten Tabellen und am Budget kommt mit R151.
+
+1. **Schutz nach dem Wortlaut von 3.5.**
+   - Ein bestätigter Punkt (Zeuge, entschiedene Grenze) in einem Freiraum bleibt mit [x − 1e-3, x + 1e-3]. Ein ganzes Intervall bleibt deshalb nicht.
+   - Liegt der Punkt tiefer als 1e-3 im Freiraum, widersprechen sich die Generationen auf derselben Geometrie. Er bleibt gleich behandelt und wird **benannt**, als Hinweis wie eine unentscheidbare Antwort (`eachWideConflict`), nie stillschweigend aufgelöst.
+2. **Gruppen je Paar und Herkunft**, wie 3.5 sagt. Die Lücken bleiben je Paar und schneiden jede Herkunft ihrer Generation.
+3. **Abdeckung der gehaltenen Generation ohne neues Feld:**
+   - je gehaltener Tabelle die weiteste eigene Position, die ihre Zeilen belegen (Eintritt, Austritt, Zeuge, freie Probe, Lückengrenzen, nächste Annäherung);
+   - das ist eine untere Schranke dessen, was ihr Shard geprüft hatte;
+   - ein offenes gehaltenes Intervall endet dort; angenommener Kontakt kann so verloren gehen, bestätigter nicht.
+   - Ein Feld mit dem Fortschritt je Shard beim Rückfall wäre genauer. Ich lasse es weg, solange du es nicht verlangst.
+4. **Marken und Identität:**
+   - Code-Marken lesen die Episoden beider Generationen, Rang je Episode wie bisher. Ein Freiraum beweist, dass dort keine Berührung ist, aber nicht, dass das Paar den Rand verlassen hat; eine Beinahe-Kollision markiert ihre Zeilen ohnehin. Den Zeugen einer bestätigten Berührung schneidet kein Freiraum, also bleibt ihr Rang „Kontakt“.
+   - Ein Stück, das den Zeugen eines gehaltenen Ereignisses enthält, behält dessen bisherigen Schlüssel. Jedes andere Stück bekommt einen Schlüssel aus Generation, Ursprungszeile und dem linken Beleg (bzw. „b“). Er wird bei Bedarf aus den Zeilen gebildet, nichts gespeichert.
+   - Beinahe-Episoden werden wie geplant zugeordnet. Eine nicht wiedergefundene alte steht „aus dem früheren Lauf“.
+
+### Fragen
+
+Keine, außer: Widersprichst du einer der vier Entscheidungen vor R151?
+
+## Review R150 · Codex · VP-I108–VP-I110 und B4-Vorschau · 13. Oktober 2026
+
+**Ergebnis: VP-I108, VP-I109 und VP-I110 geschlossen; die Umsetzung `ea962ee7..e996903c` ist in diesem Umfang abgenommen. Zwei Einwände gegen die ausdrücklich vorgelegten B4-Entscheidungen bleiben: VP150-01 und VP150-02.** Deshalb insgesamt `findings`. B4 ist noch nicht Teil dieses Zweigs; die beiden Einwände sind Planbefunde, keine behaupteten Fehler eines geprüften `contactUnion.ts`.
+
+### Eigene Nachprüfung
+
+Archiv von **`e996903c24bfa0e4a71208683cd523a0149572cd`** in `/tmp/codex-r150-b8abm816/repo`, eigener Build und Mock auf `127.0.0.1:4188`. Kein Zugriff auf die Live-Ports, keine Maschinenbefehle.
+
+- **86/86** gezielte Vitest-Prüfungen bestanden: `contactView`, `shownContacts`, `checkWiring`, `startDepPayloads` und die **acht eigenen R149-Gegenproben**. An der Abdeckungsprobe ausschließlich `_sideCovered` in die Liste der aus dem Viewer extrahierten Funktionen aufgenommen; sonst nur Ausgabepfade angepasst, keine Erwartung abgeschwächt.
+- **1/1 eigene Browserprobe** bestanden, als Kopie der R149-Probe gegen den neuen Build: Das Kontaktband bleibt beim Übergang von laufender zu budgetbedingt abgeschlossener Anfahrt unverändert bei **9,01–18,27 %**, passend zu „stopped at 18 %“. Keine Browser-Ausnahme. [Bild](viewer-palette-fest.r150.codex-browser.png).
+- **2/2 zusätzliche Vertragsproben** dokumentieren die Auswirkungen der vorgeschlagenen B4-Regeln. Die erste rechnet den Wortlaut der Entscheidung 1 nach; die zweite verwendet einen echten Sweep und die unveränderte aktuelle Ansicht. Sie prüfen nicht den noch nicht vorgelegten B4-Kern.
+- Eigener Vite-Build bestanden. Das vollständige Gate, Lint und die Mutationen wurden hier nicht erneut ausgeführt; deren Angaben stammen aus Claudes Belegen. Die zunächst grüne Mutation des beendeten Laufanfangs und ihr anschließender roter Nachlauf sind dort nachvollziehbar dokumentiert.
+
+Belege: [Validierung und Wiederholung](viewer-palette-fest.r150.codex-validation.txt), [Ergebnisse](viewer-palette-fest.r150.codex-results.json), [Abdeckungsprobe](viewer-palette-fest.r150.codex-probe-coverage.test.ts), [native Spurprobe](viewer-palette-fest.r150.codex-probe-startmarks.test.ts), [Browserprobe](viewer-palette-fest.r150.codex-browser.append.ts), [B4-Vertragsproben](viewer-palette-fest.r150.codex-probe-b4.test.ts), [Eingabe- und Integritätsnachweis](viewer-palette-fest.r150.codex-context.json).
+
+### Die drei Korrekturen
+
+| Befund | Ergebnis |
+|---|---|
+| VP-I108 | **Geschlossen.** Die eigene Prüfgrenze erreicht die Ansicht einschließlich Cache-Schlüssel. Im laufenden und im angehaltenen gefalteten Anfang bleiben die noch ausstehenden Zeilen unmarkiert. Die zusätzliche Kontrolle bei 15 % prüft L22 und L23; die eigene 20-%-Probe prüft weiterhin L23. Vollständige Abdeckung markiert korrekt. |
+| VP-I109 | **Geschlossen.** Das tatsächliche `truncated.covered` begrenzt beide Seitenarten. Ein angehaltener Seitenlauf verbindet sich nicht mit der Basis; der vollständige Seitenlauf verbindet weiterhin. Die Browserprobe bestätigt, dass aus derselben Teilabdeckung bei der Abschlussantwort kein längeres Band mehr wird. `sweptToEnd` beschreibt die benötigte Eigenschaft treffend. |
+| VP-I110 | **Geschlossen.** Die native Payload-Probe mit Decode → Spur → echtem Sweep → Code-Abfrage nennt und markiert ausschließlich L5; L2–L4 bleiben frei. `brk` unterbricht auch die Zusammenfassung gleicher Quellzeilen, sodass kein Bereich über eine ausgelassene Bewegung reicht. Der Kontakt am Beginn der geprüften L5-Bewegung bleibt erhalten. |
+
+### VP150-01 · B4-Entscheidung 1: Ein bestätigter Punkt schützt keinen pauschalen Bereich von ±1e-3
+
+**Ort:** Anfrage R150, B4-Entscheidung 1; vereinbarter Plan 2.2, 3.5 und 4.3. Der Wortlaut von 3.5 gibt bei numerischem Konflikt dem **bestätigten Kontaktort** Vorrang. Er erklärt dessen Nachbarschaft nicht ebenfalls zum Kontakt. Die neue Regel `[x − 1e-3, x + 1e-3]` ist daher keine bloße Umsetzung dieses Wortlauts.
+
+Die Rechenprobe nimmt genau den ausdrücklich zugelassenen numerischen Konflikt innerhalb der Toleranz:
+
+- angenommener Kontakt `[0,2]`;
+- nachgewiesener offener Freiraum `(1; 1,001)`, freie Probe bei **1,0005**;
+- bestätigter Punkt bei **1,0001**, also nur **0,0001** innerhalb dieses Freiraums.
+
+Der vorgeschlagene Schutzbereich wird zu **[0,9991; 1,0011]**. Er überdeckt den **gesamten** freien Zwischenraum einschließlich der freien Probe bei 1,0005. Damit kann gerade die Trennung verschwinden, die Plan 2.2 und die R147/R148-Korrektur VP-I101 ausdrücklich erhalten. Vorrang allein am Punkt 1,0001 erhält hingegen sowohl den bestätigten Ort als auch die freie Probe 1,0005. Dies ist eine Gegenprobe zum vorgeschlagenen Umgang mit widersprüchlichen Zahlen, kein Anspruch, dass die ideale Geometrie an einem Ort zugleich frei und berührend sei.
+
+**Vor R151 ändern:** Konflikttoleranz und geometrisch geschützte Menge auseinanderhalten. Bestätigte Punkte erhalten, angenommenen Kontakt außerhalb dieser Punkte weiterhin durch gültigen Freiraum schneiden; keine pauschale Verlängerung um ±1e-3. Einen tieferen Widerspruch ausdrücklich zu benennen ist sinnvoll, rechtfertigt aber ebenfalls keine stillschweigende Ausdehnung des Kontakts. Die freie Probe zwischen zwei Kontakten und der eben genannte Konfliktfall gehören als getrennte Wächter in die Abnahme, für Stückzahl/Navigation und Färbung, unabhängig von der Pixelauflösung der Bänder.
+
+### VP150-02 · B4-Entscheidung 3: Die bisherige eigene Abdeckung muss mit der gehaltenen Generation erhalten bleiben
+
+**Ort:** Anfrage R150, B4-Entscheidung 3; Plan 3.1–3.5 und 4.3. **Ja, die Fortschrittsinformation wird benötigt.** Das Maximum der in Tabellenzeilen gespeicherten Positionen ist keine Ersatzgröße für die bereits angezeigte Prüfgrenze. Dass es nur eine untere Schranke ist, macht den ausdrücklich eingeräumten Verlust nicht vertragsgemäß: Die Vereinigung soll erst durch einen Freiraumbeleg genauer werden, nicht allein durch den Rückfall kleiner.
+
+Die eigene Probe hält den **echten** Iterator an einem regulären Zwischenstand an: Ein kleines Werkzeug bewegt sich durchgehend innerhalb eines großen geschlossenen Hindernisses. Nach **46,875 %**, eigener Position **15**, steht weiterhin nur ein offener Kontakt in den Tabellen:
+
+| Gespeicherte Information | Wert |
+|---|---:|
+| Eintritt, Zeuge, nächste Annäherung, Episodenbeginn | 0 |
+| Austritt und Episodenende | offen |
+| freie Probe | keine |
+| Lücken | keine |
+| tatsächlich gemeldete eigene Abdeckung | **15** |
+| Maximum aus den vorgeschlagenen Tabellenfeldern | **0** |
+
+Das ist regulär: Die nächste Annäherung wird nur bei kleinerem Abstand verschoben, nicht bei jeder weiteren Berührung mit Abstand null. Die Tabellen sind deshalb weder beschädigt noch unvollständig übertragen.
+
+Mit derselben unveränderten Tabelle zeigt die aktuelle Ansicht bei `ownCoverage = 15` das Intervall **[0,15]** und färbt das Paar bei **7,5**. Mit der vorgeschlagenen abgeleiteten Grenze 0 bleibt **[0,0]**, die Färbung bei 7,5 verschwindet. Dafür gibt es **keine einzige neue Tabellenzeile oder freie Probe**. Auch der tatsächlich mehrfach beprobte Rest lässt sich aus dem einen gespeicherten Zeugen nicht rekonstruieren.
+
+**Vor R151 ändern:** Die zur übernommenen Tabellenfassung gehörende **eigene** Abdeckung mitführen, bei Shards samt deren jeweiligem Fortschritt und Herkunft. Tabellen und Abdeckung gemeinsam beim Generationswechsel halten; nach dem Wechsel keine alten Nachrichten mehr anwenden. Das gilt auch für Anfahrt und gebundenen Anfang: Eine gefaltete Anzeigenull ersetzt deren eigene Abdeckung nicht, wie VP-I108 gerade gezeigt hat. Wenige Werte je Shard sind hier erforderlich; die maximale Zeilenposition kann höchstens eine zusätzlich ausgewiesene untere Schranke sein. Wächter: Rückfall mitten im offenen Kontakt, neuer Lauf zunächst leer, danach neue Proben ohne Trennbeleg und schließlich mit tatsächlichem Freiraumbeleg. Vor dem letzten Schritt darf die bisher gezeigte Strecke nicht verschwinden.
+
+### Die übrigen B4-Entscheidungen und Umfang
+
+- **Entscheidung 2 angenommen:** Gruppierung nach Paar und Herkunft; Lücken schneiden die betroffenen Herkünfte ihrer eigenen Generation auf deren eigener Achse. Unabhängiges Wissen einer anderen Quelle bleibt erhalten. Erst danach abbilden beziehungsweise zusammenführen.
+- **Entscheidung 4 grundsätzlich angenommen:** Episoden bleiben Quelle der Code-Marken; ein Freiraumzertifikat für Berührung widerlegt keine Annäherung innerhalb des Rands. Dabei weiter quelleneigene Abdeckung, Lücken und die jetzt korrigierten Zeilenbereiche beachten. Identität am Stück mit dem gehaltenen Zeugen und sonst am stabilen Ursprungs-/Trennbeleg entspricht 3.5; Herkunft, Paar und Generation müssen dabei tatsächlich eindeutig sein. Mehrere Schnitte, unveränderte Folgedeltas und Fokus auf dem Zeugenstück sind in R151 als Ablauf zu prüfen. Die vorgesehene Kennzeichnung nicht wiedergefundener alter Beinahe-Episoden ist angenommen.
+- Den außerhalb des Zweigs liegenden B4-Kern, sein Zufallsorakel, Laufzeit und Budget habe ich nicht geprüft. Die bisherigen Messwerte an einfachen Arrays ersetzen die angekündigte Messung über echte Tabellen und alle gehaltenen Generationen nicht. Fenstervertrag, vertrauenswürdige Anzeigezeilen und die anderen bereits abgegrenzten Folgepakete bleiben unverändert außerhalb dieser Nachprüfung.
+
+Keine Operator-Entscheidung erforderlich. Vor diesem Anhang alle sieben Eingaben unverändert; alle **364** archivierten getrackten `src`-Dateien identisch mit `e996903c`, Live-HEAD weiterhin `41a93493`. Im Live-Baum ausschließlich dieser Anhang und neue `r150.codex-*`-Belege. Rückmeldung: `done R150 --verdict findings` wegen der zwei B4-Planregeln; die drei Umsetzungskorrekturen selbst sind abgenommen.
