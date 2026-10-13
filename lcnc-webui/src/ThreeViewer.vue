@@ -57,6 +57,8 @@ import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./vi
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { clashTargets } from "./viewer/clashTargets";
+import { ContactsReceiver } from "./viewer/contactsReceiver";
+import type { StoreDelta } from "./viewer/contactStore";
 import { findingWords } from "./viewer/sweepWords";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
@@ -2254,6 +2256,19 @@ async function buildFromInit(init: ViewerInit) {
         setCollisionShards: (n: number | null) => { _colMaxShards = n ?? undefined; },
         // The shown sweep's shape: how many workers swept it (the parallel
         // sweep), what it found and left out.
+        // The contact tables held here (round B2): per request and generation
+        // the rows, the pairs named, the deltas; the memory they take.
+        getContacts: () => {
+          const one = (id: number) => {
+            const cur = _contacts.current(id), held = _contacts.held(id);
+            const rows = (t: typeof cur) => t ? t.stores.reduce((a, st) => ({ episodes: a.episodes + st.episodes.rows,
+              intervals: a.intervals + st.intervals.rows, gaps: a.gaps + st.gaps.rows }), { episodes: 0, intervals: 0, gaps: 0 }) : null;
+            return cur ? { id, generation: cur.generation, shards: cur.stores.length, pairs: cur.pairs?.length ?? 0,
+                           deltas: cur.deltas, rows: rows(cur), held: held ? { generation: held.generation, rows: rows(held) } : null } : null;
+          };
+          return { main: one(_colReqId), side: _colSide ? one(_colSide.id) : null, stats: _contacts.stats(),
+                   dropped: _contacts.dropped, ...(_contactsLog) };
+        },
         getCollisionSummary: () => {
           const r = collisionResult.value;
           return r ? { shards: r.shards ?? 1, hits: r.hits.length, pairCount: r.pairCount, pairsPrescreened: r.pairsPrescreened,
@@ -2877,6 +2892,11 @@ function _pfWcs(): PartFrameWcs {
 const COLLISION_MARGIN_MM = 2;
 let _colWorker: Worker | null = null;
 let _colReqId = 0;
+// The contact tables of step 4 package 2 (round B2): every request asks the
+// sweep for them, the deltas land here and are acknowledged by their own
+// generation; the views still read the records until round B3 switches them.
+const _contacts = new ContactsReceiver();
+const _contactsLog = { messages: 0, acks: 0, maxDeltaRows: 0 };
 let _colStartedAt = 0;   // performance.now() of the running sweep's post (telemetry)
 // The AUTO sweep runs on load and on WCS/tool changes and must never own
 // the machine for long: a 1.18 M-point program ran ~2 h per sweep, restarted
@@ -3139,7 +3159,21 @@ function _colGetWorker(): Worker {
     _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean };
+      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean;
+                             contacts?: StoreDelta[]; contactPairs?: Array<[string, string]> };
+      if (m.contacts) {
+        // the tables of the current request or the current side run; a
+        // superseded one's are no one's (its cancel went out)
+        if (m.id === _colReqId || (_colSide && m.id === _colSide.id)) {
+          _contacts.keepOnly(new Set([_colReqId, ...(_colSide ? [_colSide.id] : [])]));
+          const ack = _contacts.apply(m);
+          _contactsLog.messages++;
+          _contactsLog.maxDeltaRows = Math.max(_contactsLog.maxDeltaRows,
+            m.contacts.reduce((n, d) => n + d.episodes.count + d.intervals.count + d.gaps.count, 0));
+          if (ack) { _colWorker!.postMessage(ack); _contactsLog.acks++; }
+        }
+        if (m.progress == null && !m.result && !m.stopped && !m.first && !m.error) return;   // a delta alone
+      }
       if (_colSide && m.id === _colSide.id) { _colOnSideMessage(m); return; }
       if (m.id !== _colReqId) return;  // superseded
       if (m.cancelled) return;         // our own cancel, acknowledged
@@ -3643,6 +3677,9 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     track: trackCopy,
     wcs: _colWcs(basis),
     side: side || undefined,   // beside the main sweep (entry segment)
+    // the contact tables beside the records (step 4 package 2; a side run's
+    // share is the worker's T/8)
+    contacts: { generation: 0 },
     // During a run at most two workers (plan „Prüfung im Lauf“ 4: the
     // machine is cutting; the check must not take the cores from the page).
     maxShards: _runInProgress(status.value?.data) ? Math.min(2, _colMaxShards ?? 2) : _colMaxShards,

@@ -410,6 +410,25 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     expect(Number.isNaN(r.intervals.get(0, "exit")), "closed, its exit in the last delta").toBe(false);
   });
 
+  it("the pairs' body ids go once per generation with its first delta — on this core and through the pool (round B2)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(41), contacts: { generation: 0 } });
+    const a = new ContactStore(41, 0), b = new ContactStore(41, 0);
+    a.episodes.append({ pair: 0, ordinal: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 1, firstIv: NONE });
+    workers[0]!.emit({ id: 41, contacts: [a.takeDelta()!], contactPairs: [["moving", "fixed"]] }); a.ack();
+    expect(sent.filter(m => m.contacts).map(m => m.contactPairs), "the coordinator's first forward names them").toEqual([[["moving", "fixed"]]]);
+    send({ contactsAck: 41, generation: 0 });
+    workers[1]!.emit({ id: 41, result: result(), contacts: [b.takeDelta(true)!] });
+    workers[0]!.emit({ id: 41, result: result(), contacts: [a.takeDelta(true)!] });
+    expect(sent.filter(m => m.contacts).map(m => m.contactPairs), "once").toEqual([[["moving", "fixed"]], undefined]);
+    // this core: a run's first delta names its model's pairs
+    const solo = await setup(3);
+    solo.send({ ...req(42), contacts: { generation: 0 } });
+    for (let i = 0; i < 50 && !solo.sent.some(m => m.result); i++) await vi.advanceTimersToNextTimerAsync();
+    const first = solo.sent.find(m => m.contacts)!;
+    expect(first.contactPairs, "the tool side and the work side by body id").toEqual([["moving", "fixed"]]);
+  });
+
   it("the pool: a shard's delta is applied and acknowledged at once; the owner gets one message, then nothing until it acknowledges", async () => {
     const { sent, workers, send } = await setup();
     send({ ...req(2), contacts: { generation: 0 } });

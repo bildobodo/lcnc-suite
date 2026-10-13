@@ -155,6 +155,8 @@ interface Run {
    *  owner's acknowledgement of the delta before it. */
   store: ContactStore | null;
   final: Record<string, unknown> | null;
+  /** The model pairs' body ids went out with the first delta (round B2). */
+  pairsSent: boolean;
 }
 
 let _resident: { key: string; model: CollisionModel } | null = null;
@@ -180,7 +182,11 @@ function sendContacts(run: Run, extra?: Record<string, unknown>): boolean {
   const delta = s.takeDelta(extra !== undefined);
   if (!delta) return false;
   const contacts: StoreDelta[] = [delta];
-  self.postMessage({ id: run.id, contacts, ...extra }, { transfer: deltaTransfer(delta) });
+  // the tables name pairs by the model's index: their body ids go once, with
+  // the generation's first delta (round B2)
+  const pairs = run.pairsSent ? null : run.model.pairs.map(([a, b]) => [run.model.bodies[a]!.id, run.model.bodies[b]!.id]);
+  run.pairsSent = true;
+  self.postMessage({ id: run.id, contacts, ...(pairs ? { contactPairs: pairs } : {}), ...extra }, { transfer: deltaTransfer(delta) });
   return true;
 }
 
@@ -298,7 +304,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       activeMs: 0, sliceStart: 0,
       snapshot: { take: null, peek: null, records: null, first: null },
       stopped: false, stopRequested: false, nextPeekAt: 0, lastPeekRecords: 0, firstSent: false, pump: () => {},
-      model, store: null, final: null,
+      model, store: null, final: null, pairsSent: false,
     };
     if (d.contacts) {
       // a shard's share of the request's budget, a side run's T/8 (plan 2.4)
@@ -474,6 +480,10 @@ interface PoolRun {
   stores: ContactStore[] | null;
   ownerWaiting: boolean;
   finalMsg: Record<string, unknown> | null;
+  /** The model pairs' body ids from the first shard that sent them, and
+   *  whether they went on to the owner (once, with the first forward). */
+  pairs: Array<[string, string]> | null;
+  pairsSent: boolean;
 }
 /** A parked pooled sweep whose shards failed: nothing computes until the
  *  owner continues it (from the beginning, here) or cancels it. */
@@ -547,7 +557,9 @@ function forwardContacts(run: PoolRun, extra?: Record<string, unknown>): boolean
   if (!extra && !run.stores.some(s => s.pending())) return false;
   const contacts = run.stores.map(s => { const d = s.takeDelta(true)!; s.ack(); return d; });
   run.ownerWaiting = true;
-  self.postMessage({ id: run.id, contacts, ...extra }, { transfer: contacts.flatMap(deltaTransfer) });
+  const pairs = !run.pairsSent && run.pairs ? run.pairs : null;
+  if (pairs) run.pairsSent = true;
+  self.postMessage({ id: run.id, contacts, ...(pairs ? { contactPairs: pairs } : {}), ...extra }, { transfer: contacts.flatMap(deltaTransfer) });
   return true;
 }
 
@@ -560,6 +572,7 @@ function onShardMessage(k: number, m: any): void {
   const run = _poolRun;
   if (!run || m.id !== run.id || run.ended) return;   // a superseded run's late word
   if (m.contacts && run.stores) {
+    if (m.contactPairs && !run.pairs) run.pairs = m.contactPairs;
     for (const dl of m.contacts as StoreDelta[]) run.stores[k]!.apply(dl);
     _shards[k]!.postMessage({ contactsAck: run.id, generation: run.stores[k]!.generation });
     if (!m.result) forwardContacts(run);
@@ -834,6 +847,6 @@ self.onmessage = (e: MessageEvent<Msg>) => {
                stores: req.contacts
                  ? Array.from({ length: k }, () => new ContactStore(req.id, req.contacts!.generation, shareOf(req.contacts!.budget ?? REQUEST_BUDGET, k)))
                  : null,
-               ownerWaiting: false, finalMsg: null };
+               ownerWaiting: false, finalMsg: null, pairs: null, pairsSent: false };
   _shards.forEach((w, i) => w.postMessage(shardRequest(req, i, k)));
 };

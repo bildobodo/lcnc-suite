@@ -20,6 +20,12 @@ declare module 'troika-three-text' {
 // Top-level `interface Window` in a script-mode .d.ts augments the global
 // Window without making this file a module (which would break the troika
 // ambient declaration above).
+/** One request's contact tables as the viewer holds them (round B2). */
+interface ContactsDiag {
+  id: number; generation: number; shards: number; pairs: number; deltas: number;
+  rows: { episodes: number; intervals: number; gaps: number } | null;
+  held: { generation: number; rows: { episodes: number; intervals: number; gaps: number } | null } | null;
+}
 interface ViewerDiag {
   ready: boolean;
   meshCount?: number;
@@ -33,6 +39,10 @@ interface ViewerDiag {
   setCollisionHits?: (hits: { line: number; frac: number; rapid?: boolean }[]) => boolean;
   setCollisionNote?: (note: string | null) => boolean;
   setCollisionShards?: (n: number | null) => void;
+  getContacts?: () => {
+    main: ContactsDiag | null; side: ContactsDiag | null; dropped: number; messages: number; acks: number; maxDeltaRows: number;
+    stats: { requests: number; rows: { episodes: number; intervals: number; gaps: number }; allocated: number; used: number };
+  };
   getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[]; uncertified: string | null } | null;
   /** The basis the last main sweep was built from (plan „Prüfung im Lauf“ 1c). */
   getCollisionBasis?: () => { kind: "idle" | "run"; runId: number | null; g5x: number[]; g92: number[];

@@ -150,6 +150,25 @@ test("the sweep runs on several workers and finds what the single sweep finds", 
   await ctl({ op: "reset" });
 });
 
+test("the contact tables reach the page beside the records: every delta applied and acknowledged in its generation (step 4 package 2, round B2)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await prepare(page, context, { file: "/crash-par.ngc", version: 2211, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+  await expect(clashRows(page).first(), "the nose in the yoke, found").toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  const s = (await page.evaluate(() => window.__viewerDiag!.getCollisionSummary!()))!;
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().main?.rows?.intervals ?? 0),
+    { message: "the program's touch intervals in the page's tables" }).toBeGreaterThan(0);
+  const c = await page.evaluate(() => window.__viewerDiag!.getContacts!());
+  expect(c.main!.shards, "one table per worker that swept").toBe(s.shards);
+  expect(c.main!.pairs, "the pairs named").toBe(s.pairCount);
+  expect(c.acks, "every delta acknowledged").toBe(c.messages);
+  expect(c.dropped, "none dropped").toBe(0);
+  expect(c.main!.rows!.episodes, "at least the records' contacts").toBeGreaterThanOrEqual(new Set(s.onsets).size);
+  expect(c.stats.allocated, "the memory the page holds for them").toBeGreaterThanOrEqual(c.stats.used);
+  await ctl({ op: "reset" });
+});
+
 // Codex R33's XYZAC probes: the machine stands at X 300 with the nose at
 // Z −380 already INSIDE the yoke — the live pose touches it with several
 // pairs. The entry move (300 mm back to the first point) leaves them; the
