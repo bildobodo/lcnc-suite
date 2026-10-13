@@ -10,7 +10,8 @@ import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
 import { runSweepSlice } from "./sweepPump";
 import { clashTargets } from "./clashTargets";
-import { ContactStore, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE } from "./contactStore";
+import { ContactStore, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE } from "./contactStore";
+import { boxPositions as boxAt } from "./collisionFixtures";
 
 /** A store's intervals as plain rows (step 4 package 2). */
 const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (_, k) => ({
@@ -2451,3 +2452,94 @@ describe("a probe's braking range", () => {
     expect(plain.hits.find(h => h.line === 10)!.continuation).toBeUndefined();
   });
 });
+
+// Codex R144 VP-I95/I96/I100: the sink's own state across an unknown tool,
+// around a cutting feed, and where its budget ends — the reviewer's probes
+// made tests. A head moving in X over a 2 mm block (a stock body or not), the
+// cutter Ø 20 × 2; tool rows per point: T1, an unknown T3, T1 again.
+describe("the contact store across an unknown tool, a cutting feed and a spent budget (Codex R144)", () => {
+  const HEADX: CollisionMachine = { groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root" }],
+    kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+    workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"] };
+  const run = (xs: number[], rapid: number[], toolRows: number[], stock = false, budget?: { episodes: number; intervals: number; gaps: number }) => {
+    const n = xs.length, cum = new Float32Array(n);
+    for (let i = 1; i < n; i++) cum[i] = cum[i - 1]! + Math.abs(xs[i]! - xs[i - 1]!);
+    const t = { pos: new Float32Array(xs.flatMap(x => [x, 0, 0])), abc: new Float32Array(n * 3), lines: Uint32Array.from(xs.map((_, i) => i + 1)),
+                rapid: new Uint8Array(rapid), cum, count: n, tlo: new Uint32Array(toolRows), lineIndex: emptyLineIndex(), timeBased: false };
+    const model = buildCollisionModel(HEADX, [{ id: "vise", group: "table", positions: boxAt(2, 2, 2), translate: [0, 0, 1], stock },
+                                             { id: "tool", group: "head", positions: toolCylinderPositions(20, 2), tool: true }]);
+    const store = new ContactStore(1, 0, budget);
+    const result = sweepCollisions(model, t, WCS0, { margin: 0.1, contacts: { store },
+      tloEvents: [{ seq: 0, xyz: [0, 0, 0], tool: 1 }, { seq: 1, xyz: [0, 0, 0], tool: 3 }, { seq: 2, xyz: [0, 0, 0], tool: 1 }],
+      toolDims: { 1: { diam: 20, len: 2 } }, liveTool: 1, unknownTools: [3] });
+    return { store, result, cum };
+  };
+  const gaps = (st: ContactStore) => Array.from({ length: st.gaps.rows }, (_, k) => st.gaps.get(k, "reason"));
+
+  it("an unknown tool is a knowledge gap for every tool pair, in contact before or not; the contact after it says so", () => {
+    const { store, result } = run([20, 15, 5], [1, 1, 1], [0, 1, 2]);
+    expect(result.notes?.some(t => t.includes("no length")), "the records name the unknown tool").toBe(true);
+    expect(gaps(store), "its gap, though no contact came before").toContain(GAP_TOOL_UNKNOWN);
+    const ivs = ivRows(store);
+    expect(ivs.length, "the contact after it").toBeGreaterThan(0);
+    expect(ivs.every(v => v.flags & IV_AFTER_UNKNOWN_TOOL), "after the unknown tool").toBe(true);
+  });
+
+  it("a muted feed contact before an unknown tool mutes nothing after it: the rapid contact on L4 is written", () => {
+    const { store, result } = run([20, 5, 4, 3], [0, 0, 1, 1], [0, 0, 1, 2], true);
+    expect(result.hits.some(h => h.line === 4), "the records report L4").toBe(true);
+    const ivs = ivRows(store);
+    expect(ivs.length, "the store has it").toBeGreaterThan(0);
+    expect(ivs[ivs.length - 1]!.flags & IV_AFTER_UNKNOWN_TOOL).toBeTruthy();
+  });
+
+  it("rapid – feed – rapid in one contact: the second rapid part begins where the rapid does, never over the feed", () => {
+    const { store, cum } = run([20, 5, 4, 3], [1, 1, 0, 1], [0, 0, 0, 0], true);
+    const ivs = ivRows(store);
+    expect(ivs, JSON.stringify(ivs)).toHaveLength(2);
+    expect(ivs[0]!.exit, "the first rapid part ends at the feed").toBeCloseTo(cum[1]!, 6);
+    expect(ivs[0]!.flags & IV_ENDED_AT_FEED).toBeTruthy();
+    expect(ivs[1]!.enter, "the second begins at the rapid, cum 16").toBeCloseTo(cum[2]!, 6);
+    expect(ivs[1]!.flags & IV_CONTINUES_CUT).toBeTruthy();
+  });
+
+  it("a budget spent during the re-sampling is incomplete from the finding it could not write, not from the outer sample", () => {
+    const machine: CollisionMachine = { groups: [{ id: "table", parent: "root" }, { id: "head", parent: "root" }],
+      kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+      workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"] };
+    const make = () => buildCollisionModel(machine, [{ id: "fixed", group: "table", positions: new Float32Array([...boxAt(1, 4, 4), ...boxAt(1, 4, 4, 3)]) },
+                                                     { id: "moving", group: "head", positions: boxAt(1, 4, 4) }]);
+    const t = { pos: new Float32Array([-20, 0, 0, 20, 0, 0]), abc: new Float32Array(6), lines: new Uint32Array([1, 2]), rapid: new Uint8Array([1, 1]),
+                cum: new Float32Array([0, 40]), count: 2, lineIndex: emptyLineIndex(), timeBased: false };
+    const full = new ContactStore(1, 0), small = new ContactStore(1, 0, { episodes: 100, intervals: 1, gaps: 100 });
+    sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: full } });
+    const r = sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: small } });
+    expect(full.intervals.rows, "two contacts").toBeGreaterThan(1);
+    const lost = full.intervals.get(1, "enter");
+    expect(r.truncated?.reason).toBe("budget");
+    expect(r.incompleteFrom!, `incomplete from ${r.incompleteFrom}, the lost contact enters at ${lost}`).toBeLessThanOrEqual(lost + 1e-6);
+    expect(r.truncated!.covered * 40, "the coverage no further").toBeLessThanOrEqual(lost + 1e-6);
+  });
+
+  it("once the budget refuses a row, every pair of that sample still tries: the earliest lost entry bounds it, not the first refused", () => {
+    // two bodies on the head, the second 0.1 ahead: both come into contact
+    // with the wall between two samples (the MIN_ADV floor) and are found at
+    // the same one, the second entering earlier; with no room for intervals
+    // the first refused write is the first pair's
+    const machine: CollisionMachine = { groups: [{ id: "table", parent: "root" }, { id: "head", parent: "root" }],
+      kinematics: [{ group: "head", joint: 0, type: "translate", direction: "x", sign: 1 }],
+      workGroup: "table", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"] };
+    const make = () => buildCollisionModel(machine, [{ id: "wall", group: "table", positions: boxAt(1, 4, 4, 10.5) },
+      { id: "b1", group: "head", positions: boxAt(1, 1, 1, 0, -1) }, { id: "b2", group: "head", positions: boxAt(1, 1, 1, 0.1, 1) }]);
+    const t = { pos: new Float32Array([0, 0, 0, 12, 0, 0]), abc: new Float32Array(6), lines: new Uint32Array([1, 2]), rapid: new Uint8Array([1, 1]),
+                cum: new Float32Array([0, 12]), count: 2, lineIndex: emptyLineIndex(), timeBased: false };
+    const full = new ContactStore(1, 0), none = new ContactStore(1, 0, { episodes: 100, intervals: 0, gaps: 100 });
+    sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: full } });
+    const r = sweepCollisions(make(), t, WCS0, { margin: 0.1, contacts: { store: none } });
+    const enters = ivRows(full).map(v => v.enter).sort((x, y) => x - y);
+    expect(enters, "both pairs enter, the second first").toHaveLength(2);
+    expect(enters[1]! - enters[0]!, "0.1 apart").toBeCloseTo(0.1, 2);
+    expect(r.incompleteFrom!, `incomplete from ${r.incompleteFrom}`).toBeLessThanOrEqual(enters[0]! + 1e-6);
+  });
+});
+

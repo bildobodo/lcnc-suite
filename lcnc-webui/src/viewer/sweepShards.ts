@@ -40,6 +40,10 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
   for (const r of results) {
     if (r.truncated && (!truncated || r.truncated.covered < truncated.covered)) truncated = r.truncated;
   }
+  // a contact store whose budget ran out: complete only before the earliest
+  // point any shard stopped writing (step 4 package 2, plan 2.4; Codex R144
+  // VP-I100 — the pool's result lost it)
+  const from = results.reduce((m, r) => (r.incompleteFrom === undefined ? m : Math.min(m, r.incompleteFrom)), Infinity);
   const first = results[0]!;
   return {
     hits,
@@ -59,6 +63,7 @@ export function mergeShardResults(results: readonly CollisionResult[]): Collisio
     bvhMs: Math.max(...results.map(r => r.bvhMs)),
     sweepMs: Math.max(...results.map(r => r.sweepMs)),
     truncated,
+    ...(from < Infinity ? { incompleteFrom: from } : {}),
     ...(capped > 0 ? { capped } : {}),
     ...(cappedOnsets > 0 ? { cappedOnsets } : {}),
     shards: results.length,

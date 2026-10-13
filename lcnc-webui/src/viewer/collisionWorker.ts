@@ -73,15 +73,18 @@ export interface CollisionReq {
    *  sweep also writes episodes, intervals and gaps, and they go out as
    *  DELTAS (`{id, contacts: StoreDelta[]}`, one per shard), at most one
    *  unacknowledged per path — the owner answers each with `{contactsAck:
-   *  id}`; a run's last delta rides with its result. `generation` counts the
-   *  request's runs (a fall back to this core is the next). Absent = records
-   *  only, as before. */
+   *  id, generation}` (the delta's: a late acknowledgement of an older run
+   *  releases nothing of a newer one — Codex R144 VP-I99); a run's last delta
+   *  rides with its result. `generation` counts the request's runs (a fall
+   *  back to this core is the next, a side run's too). Absent = records only,
+   *  as before. */
   contacts?: { generation: number; budget?: StoreBudget; origin?: number };
 }
 
 export interface CollisionCancel { cancel: number }
-/** The owner applied the last contact delta of request `contactsAck`. */
-export interface CollisionContactsAck { contactsAck: number }
+/** The owner applied the last contact delta of request `contactsAck` in that
+ *  generation. */
+export interface CollisionContactsAck { contactsAck: number; generation: number }
 /** Park the running sweep at its next slice boundary: the owner receives
  *  `{stopped: true, result}` (the sweep-so-far, `truncated.reason ===
  *  "stopped"`) and may `continue` it later. */
@@ -188,7 +191,7 @@ interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: bool
 function handleLocal(d: Msg, holds: Holds = {}): void {
   if ("contactsAck" in d) {
     const run = _contactRuns.get(d.contactsAck);
-    if (!run?.store) return;
+    if (!run?.store || run.store.generation !== d.generation) return;   // another run's — late or early
     run.store.ack();
     if (run.final) {
       if (sendContacts(run, run.final)) { run.final = null; _contactRuns.delete(run.id); }
@@ -554,7 +557,7 @@ function onShardMessage(k: number, m: any): void {
   if (!run || m.id !== run.id || run.ended) return;   // a superseded run's late word
   if (m.contacts && run.stores) {
     for (const dl of m.contacts as StoreDelta[]) run.stores[k]!.apply(dl);
-    _shards[k]!.postMessage({ contactsAck: run.id });
+    _shards[k]!.postMessage({ contactsAck: run.id, generation: run.stores[k]!.generation });
     if (!m.result) forwardContacts(run);
   }
   if (m.needBodies) {
@@ -612,6 +615,25 @@ function onShardMessage(k: number, m: any): void {
   }
 }
 
+/** A failed pool's last word (Codex R144 VP-I98): the coordinator
+ *  acknowledged its shards' deltas as they came — what it took over and had
+ *  not forwarded yet, and a result computed but held for the owner's
+ *  acknowledgement, are still the owner's. Delivered in that generation, one
+ *  delta at a time, before the generation is let go; a run already computed
+ *  is not run again. */
+interface PoolDrain { id: number; generation: number; stores: ContactStore[]; ownerWaiting: boolean; finalMsg: Record<string, unknown> | null }
+let _drain: PoolDrain | null = null;
+
+function drainForward(dr: PoolDrain): void {
+  if (dr.ownerWaiting) return;
+  if (!dr.finalMsg && !dr.stores.some(s => s.pending())) { if (_drain === dr) _drain = null; return; }
+  const contacts = dr.stores.map(s => { const d = s.takeDelta(true)!; s.ack(); return d; });
+  const extra = dr.finalMsg;
+  dr.finalMsg = null;
+  dr.ownerWaiting = true;
+  self.postMessage({ id: dr.id, contacts, ...(extra ?? {}) }, { transfer: contacts.flatMap(deltaTransfer) });
+}
+
 /** The owner applied the pool's last contact message. */
 function onPoolAck(run: PoolRun): void {
   run.ownerWaiting = false;
@@ -641,6 +663,12 @@ function poolFailed(): void {
   const run = _poolRun, side = _sideOnShard;
   _poolRun = null;
   _sideOnShard = null;
+  // what the coordinator took over is still owed in its generation (VP-I98)
+  if (run?.stores && !run.cancelling && (run.ownerWaiting || run.finalMsg || run.stores.some(s => s.pending()))) {
+    _drain = { id: run.id, generation: run.stores[0]!.generation, stores: run.stores, ownerWaiting: run.ownerWaiting, finalMsg: run.finalMsg };
+    run.finalMsg = null;
+    drainForward(_drain);
+  }
   if (run && !run.ended) {
     run.ended = true;
     const holds = { pausedCam: run.pausedCam, pausedCamAt: run.pausedCamAt, pausedHidden: run.pausedHidden,
@@ -666,7 +694,8 @@ function poolFailed(): void {
   }
   if (side) {
     if (side.cancelling) self.postMessage({ id: side.req.id, cancelled: true });
-    else handleLocal(onThisCore(side.req));
+    // run again here: its next generation, its tables counted afresh (VP-I99)
+    else handleLocal(onThisCore(nextGeneration(side.req)));
   }
 }
 
@@ -710,14 +739,19 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   const d = e.data;
   if ("contactsAck" in d) {
     // the pool's, a side run's on shard 0, or a run on this core
-    if (_poolRun && _poolRun.id === d.contactsAck && _poolRun.stores) onPoolAck(_poolRun);
-    else if (_sideOnShard && _sideOnShard.req.id === d.contactsAck) _shards[0]?.postMessage(d);
+    if (_poolRun && _poolRun.id === d.contactsAck && _poolRun.stores) {
+      if (_poolRun.stores[0]!.generation === d.generation) onPoolAck(_poolRun);
+    } else if (_drain && _drain.id === d.contactsAck && _drain.generation === d.generation) {
+      _drain.ownerWaiting = false;
+      drainForward(_drain);
+    } else if (_sideOnShard && _sideOnShard.req.id === d.contactsAck) _shards[0]?.postMessage(d);
     else handleLocal(d);
     return;
   }
   // Control messages for the pooled run go to every shard.
   const ctrlId = "cancel" in d ? d.cancel : "stop" in d ? d.stop : "continue" in d ? d.continue
     : "pause" in d ? d.pause : "resume" in d ? d.resume : null;
+  if ("cancel" in d && _drain && _drain.id === d.cancel) _drain = null;
   if (ctrlId !== null) {
     if (_sideOnShard && _sideOnShard.req.id === ctrlId) {
       // A side run takes nothing but a cancel (see the header).
@@ -771,6 +805,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
     return;
   }
   _lostParked = null;   // a new request supersedes a parked one
+  _drain = null;        // ...and a failed pool's last word
   const k = shardCount(req);
   if (k <= 1 || !ensureShards(k)) {
     if (_poolRun) { for (const w of _shards) w.postMessage({ cancel: _poolRun.id }); _poolRun = null; }

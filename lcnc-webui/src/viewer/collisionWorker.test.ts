@@ -398,7 +398,7 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     for (let i = 0; i < 600; i++) await vi.advanceTimersToNextTimerAsync();
     expect(sent.filter(m => m.contacts).length, "one delta out, the rest waits").toBe(1);
     expect(sent.some(m => m.result), "no result before the acknowledgement").toBe(false);
-    send({ contactsAck: 1 });
+    send({ contactsAck: 1, generation: 0 });
     for (let i = 0; i < 10 && !sent.some(m => m.result); i++) await vi.advanceTimersToNextTimerAsync();
     const fin = sent.find(m => m.result)!;
     expect(fin.contacts, "the last delta rides with the result").toHaveLength(1);
@@ -417,7 +417,7 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     const ep = (st: ContactStore, pair: number) => st.episodes.append({ pair, ordinal: 0, onset: pair, end: NaN, closeAt: pair, closeDist: 1, firstIv: NONE });
     const a = ep(shard0, 1);
     workers[0]!.emit({ id: 2, progress: 0.1, contacts: [shard0.takeDelta()!] });
-    expect(workers[0]!.messages.some(m => m.contactsAck === 2), "the shard acknowledged at once").toBe(true);
+    expect(workers[0]!.messages.some(m => m.contactsAck === 2 && m.generation === 0), "the shard acknowledged at once, in its generation").toBe(true);
     shard0.ack();
     const first = sent.filter(m => m.contacts);
     expect(first).toHaveLength(1);
@@ -433,7 +433,7 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     }
     expect(workers[1]!.messages.filter(m => m.contactsAck === 2)).toHaveLength(1);
     expect(sent.filter(m => m.contacts), "nothing more to the owner before its acknowledgement").toHaveLength(1);
-    send({ contactsAck: 2 });
+    send({ contactsAck: 2, generation: 0 });
     const second = last(sent.filter(m => m.contacts)).contacts as StoreDelta[];
     expect(second.map(d => [d.episodes.count, d.episodes.updates.length]), "coalesced: one update for the 500").toEqual([[0, 1], [1, 0]]);
     expect(second[0]!.episodes.updated["end"]![0]).toBe(499);
@@ -450,7 +450,7 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     s1.episodes.append({ pair: 2, ordinal: 0, onset: 3, end: 4, closeAt: 3, closeDist: 1, firstIv: NONE });
     workers[1]!.emit({ id: 3, result: result(), contacts: [s1.takeDelta(true)!] });
     expect(sent.some(m => m.result), "held: the owner has not acknowledged").toBe(false);
-    send({ contactsAck: 3 });
+    send({ contactsAck: 3, generation: 0 });
     const fin = sent.find(m => m.result)!;
     expect((fin.contacts as StoreDelta[]).map(d => [d.episodes.count, d.episodes.updates.length])).toEqual([[0, 1], [1, 0]]);
   });
@@ -463,5 +463,96 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     const m = sent.find(x => x.contacts)!;
     expect((m.contacts as StoreDelta[])[0]!.generation, "generation 1 on this core").toBe(1);
     expect(new ContactStore(4, 0).apply((m.contacts as StoreDelta[])[0]!), "the old generation's table refuses it").toBe(false);
+  });
+
+  // Codex R144 VP-I98/I99/I100: the reviewer's probes on the coordinator, made tests.
+  const addEp = (st: ContactStore, pair: number) => st.episodes.append({ pair, ordinal: 0, onset: pair, end: NaN, closeAt: pair, closeDist: 1, firstIv: NONE });
+  const deltas = (sent: Record<string, any>[], id: number) => sent.filter(m => m.id === id && m.contacts).flatMap(m => m.contacts as StoreDelta[]);
+  const rowsOf = (ds: StoreDelta[], g: number) => ds.filter(d => d.generation === g).reduce((n, d) => n + d.episodes.count, 0);
+
+  it("a pool failure still delivers, in its generation, what the coordinator took over and had not forwarded (VP-I98)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(81), contacts: { generation: 0 } });
+    const a = new ContactStore(81, 0), b = new ContactStore(81, 0);
+    addEp(a, 1); addEp(b, 2);
+    workers[0]!.emit({ id: 81, contacts: [a.takeDelta()!] });   // forwarded: the owner has not acknowledged it
+    workers[1]!.emit({ id: 81, contacts: [b.takeDelta()!] });   // taken over here, held behind it
+    workers[1]!.fail();
+    await vi.runAllTimersAsync();
+    expect(rowsOf(deltas(sent, 81), 0), "one generation-0 delta out, the other held").toBe(1);
+    send({ contactsAck: 81, generation: 0 });
+    await vi.runAllTimersAsync();
+    expect(rowsOf(deltas(sent, 81), 0), "both shards' rows reach the owner").toBe(2);
+  });
+
+  it("a result computed and held for the acknowledgement survives a worker's failure: delivered once, not run again (VP-I98)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(84), contacts: { generation: 0 } });
+    const a = new ContactStore(84, 0), b = new ContactStore(84, 0);
+    addEp(a, 1);
+    workers[0]!.emit({ id: 84, contacts: [a.takeDelta()!] }); a.ack();
+    workers[0]!.emit({ id: 84, result: result(), contacts: [a.takeDelta(true)!] });
+    workers[1]!.emit({ id: 84, result: result(), contacts: [b.takeDelta(true)!] });
+    expect(sent.some(m => m.result), "held for the owner's acknowledgement").toBe(false);
+    workers[1]!.fail();
+    send({ contactsAck: 84, generation: 0 });
+    await vi.runAllTimersAsync();
+    const ends = sent.filter(m => m.id === 84 && (m.result || m.error || m.cancelled || m.needBodies));
+    expect(ends, JSON.stringify(ends.map(m => Object.keys(m)))).toHaveLength(1);
+    expect(ends[0]!.result, "the computed result").toBeTruthy();
+    expect(deltas(sent, 84).every(d => d.generation === 0), "nothing run again").toBe(true);
+  });
+
+  it("an acknowledgement names its generation: an older one releases nothing of the newer run (VP-I99)", async () => {
+    vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
+      const r = it.next();
+      return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
+                    : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
+    } }));
+    const { sent, workers, send } = await setup();
+    const n = 161, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = -40 + i * 0.5; cum[i] = i * 0.5; lines[i] = i + 1; }
+    send({ ...boxReq(82, 2), track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    const s0 = new ContactStore(82, 0);
+    addEp(s0, 1);
+    workers[0]!.emit({ id: 82, contacts: [s0.takeDelta()!] });
+    workers[1]!.fail();
+    await vi.runAllTimersAsync();
+    const gen1 = () => sent.filter(m => m.id === 82 && (m.contacts as StoreDelta[] | undefined)?.[0]?.generation === 1).length;
+    expect(gen1(), "generation 1's first delta").toBe(1);
+    send({ contactsAck: 82, generation: 0 });   // late, for the pool's: it ends the drain
+    send({ contactsAck: 82, generation: 0 });   // and again — now only this core's run could take it
+    await vi.runAllTimersAsync();
+    expect(gen1(), "the old generation's acknowledgement releases nothing of generation 1").toBe(1);
+    expect(sent.some(m => m.id === 82 && m.result), "no result before generation 1 is acknowledged").toBe(false);
+    for (let k = 0; k < 400 && !sent.some(m => m.id === 82 && m.result); k++) {
+      send({ contactsAck: 82, generation: 1 });
+      await vi.runAllTimersAsync();
+    }
+    expect(sent.some(m => m.id === 82 && m.result), "its own acknowledgements carry it to its result").toBe(true);
+  });
+
+  it("a side run started again after a pool failure is its request's next generation (VP-I99)", async () => {
+    const { sent, workers, send } = await setup();
+    send(req(83));
+    send({ ...req(-83, { side: true }), contacts: { generation: 7 } });
+    const old = new ContactStore(-83, 7);
+    addEp(old, 1);
+    workers[0]!.emit({ id: -83, contacts: [old.takeDelta()!] });
+    workers[1]!.fail();
+    await vi.runAllTimersAsync();
+    expect(deltas(sent, -83).map(d => d.generation)).toEqual([7, 8]);
+  });
+
+  it("the pool's result keeps the earliest point a shard's store stopped writing (VP-I100)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(85), contacts: { generation: 0 } });
+    workers[0]!.emit({ id: 85, result: { ...result([], 0.2), truncated: { covered: 0.2, reason: "budget" }, incompleteFrom: 4 },
+                       contacts: [new ContactStore(85, 0).takeDelta(true)!] });
+    send({ contactsAck: 85, generation: 0 });
+    workers[1]!.emit({ id: 85, result: result(), contacts: [new ContactStore(85, 0).takeDelta(true)!] });
+    send({ contactsAck: 85, generation: 0 });
+    const fin = sent.find(m => m.id === 85 && m.result)!.result;
+    expect([fin.incompleteFrom, fin.truncated]).toEqual([4, { covered: 0.2, reason: "budget" }]);
   });
 });

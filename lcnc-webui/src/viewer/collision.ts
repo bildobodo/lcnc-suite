@@ -2097,11 +2097,25 @@ export function* sweepCollisionsIter(
     const toolFloor = new Float64Array(P).fill(-Infinity);
     const cutMute = new Uint8Array(P);    // a cutting pair's feed-begun contact: machining, nothing written
     const cutPart = new Uint8Array(P);    // its rapid part ended at a feed: a later rapid part continues it
+    const cutFeedAt = new Float64Array(P).fill(NaN);   // its last touching feed sample: the next rapid part begins after it
     const T = (s: number) => distToTrackCum(s);
-    const add = (t: ColumnTable, v: Record<string, number>): number => {
+    // a row that cannot be written ends the store's completeness AT ITS OWN
+    // position — an entry bisected back, a re-sample's finding — never at the
+    // sample being processed (Codex R144 VP-I100); every pair of that sample
+    // still tries, so the earliest lost finding is known
+    const add = (t: ColumnTable, v: Record<string, number>, at: number): number => {
       const r = t.append(v);
-      if (r < 0) api.full = true;
+      if (r < 0) { api.full = true; api.failAt = Math.min(api.failAt, at); }
       return r;
+    };
+    // where the rapid part after a cutting feed begins: the first rapid
+    // segment after the feed sample `x` (its start, sweep parameter)
+    const rapidStartAfter = (x: number): number => {
+      let seg = segAtDist(x);
+      // a feed sample ON a segment's end is the next segment's (a chunk starts there)
+      while (seg < n - 1 && track.rapid[seg] === 1 && dcum[seg]! <= x + 1e-9) seg++;
+      while (seg < n - 1 && track.rapid[seg] !== 1) seg++;
+      return dcum[seg - 1]!;
     };
     // a point's contact kind for the bisections — 1 touching or inside
     // (decided), 2 undecidable, 0 free — apart from the records' notes
@@ -2119,7 +2133,7 @@ export function* sweepCollisionsIter(
       }
       api.moved = true;
       // an undecidable answer the bisection met is named (plan 1.1, rule 2)
-      if (!Number.isNaN(undec)) add(store.gaps, { pair: pi, start: T(undec), end: T(undec), reason: GAP_UNDECIDABLE });
+      if (!Number.isNaN(undec)) add(store.gaps, { pair: pi, start: T(undec), end: T(undec), reason: GAP_UNDECIDABLE }, undec);
       return { at: c, decided };
     };
     const closeInterval = (pi: number, s: number, d: number) => {
@@ -2161,12 +2175,13 @@ export function* sweepCollisionsIter(
     };
     const api = {
       full: false,
+      /** The earliest position (sweep parameter) of a row the budget refused. */
+      failAt: Infinity,
       moved: false,
       sample(pi: number, s: number, isRapid: boolean, d: number, inBand: boolean, undecidable: boolean) {
-        if (api.full) return;
         // the knowledge gap: open or extend on an undecidable answer, end on a decided one
         if (undecidable) {
-          if (gapRow[pi]! < 0) gapRow[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_UNDECIDABLE });
+          if (gapRow[pi]! < 0) gapRow[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_UNDECIDABLE }, s);
           lastUndec[pi] = s;
         } else if (gapRow[pi]! >= 0) {
           store.gaps.set(gapRow[pi]!, "end", T(lastUndec[pi]!));
@@ -2185,9 +2200,10 @@ export function* sweepCollisionsIter(
               const flags = (boundary ? ORIGIN_BOUNDARY : origin) | (isRapid ? EP_RAPID : 0)
                 | (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !opts.range ? EP_AT_START : 0) | (inBand ? EP_POSSIBLE : 0);
               epRow[pi] = add(store.episodes, { pair: pi, ordinal: ordinal[pi]!++, flags, onset: T(s), end: NaN,
-                                                closeAt: T(s), closeDist: d, firstIv: NONE, ivCount: 0 });
+                                                closeAt: T(s), closeDist: d, firstIv: NONE, ivCount: 0 }, s);
               lastIv[pi] = -1;
               cutPart[pi] = 0;
+              cutFeedAt[pi] = NaN;
             }
           }
           const ep = epRow[pi]!;
@@ -2217,6 +2233,7 @@ export function* sweepCollisionsIter(
             ivRow[pi] = -1;
             cutPart[pi] = 1;
           }
+          if (cutPart[pi]) cutFeedAt[pi] = s;
         } else if (ep >= 0 && touch) {
           if (ivRow[pi]! < 0) {
             // opened by this confirmed touch, its witness; the entry bisected
@@ -2224,7 +2241,10 @@ export function* sweepCollisionsIter(
             // the jump below this sample: the last one, or for a re-sample before
             // it (the stretch since a touch, below its zero width) the one before
             const jump = s >= breakAt ? breakAt : prevBreakAt;
-            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, jump, rangeStart, toolFloor[pi]!);
+            // a rapid part after a cutting feed begins where the rapid does —
+            // its entry never reaches back over the feed (Codex R144 VP-I96)
+            const cutFrom = cutPart[pi] && !Number.isNaN(cutFeedAt[pi]!) ? rapidStartAfter(cutFeedAt[pi]!) : -Infinity;
+            const floor = Math.max(Number.isNaN(lastFree[pi]!) ? -Infinity : lastFree[pi]!, jump, rangeStart, toolFloor[pi]!, cutFrom);
             let enter: { at: number; decided: boolean };
             if (floor >= s - 1e-9) enter = { at: s, decided: true };
             else if (floor > lastFree[pi]! || Number.isNaN(lastFree[pi]!)) {
@@ -2236,7 +2256,7 @@ export function* sweepCollisionsIter(
             const flags = (inBand ? IV_POSSIBLE : 0) | (enter.decided ? IV_ENTER_DECIDED : 0)
               | (afterTool[pi] ? IV_AFTER_UNKNOWN_TOOL : 0) | (cutPart[pi] ? IV_CONTINUES_CUT : 0);
             const iv = add(store.intervals, { episode: ep, enter: T(enter.at), exit: NaN, flags, next: NONE,
-                                              witness: T(s), freeAt: NaN, freeR: 0 });
+                                              witness: T(s), freeAt: NaN, freeR: 0 }, enter.at);
             if (iv >= 0) {
               if (lastIv[pi]! >= 0) store.intervals.set(lastIv[pi]!, "next", iv);
               else store.episodes.set(ep, "firstIv", iv);
@@ -2259,13 +2279,19 @@ export function* sweepCollisionsIter(
       /** The tool's body becomes unknown at `s`: its pairs' contacts end
        *  there, no exit claimed; the stretch is their knowledge gap. */
       toolUnknownFrom(s: number) {
+        // every tool pair, in contact or not: the stretch is its knowledge gap
+        // whatever came before (Codex R144 VP-I95 — a pair without an episode
+        // had none, and a later contact did not say it followed one)
         for (let pi = 0; pi < P; pi++) {
-          if (!pairTool[pi] || epRow[pi]! < 0) continue;
-          const iv = ivRow[pi]!;
-          if (iv >= 0) store.intervals.set(iv, "flags", store.intervals.get(iv, "flags") | IV_ENDED_AT_GAP);
-          ivRow[pi] = -1;
-          closeEpisode(pi);
-          toolGap[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_TOOL_UNKNOWN });
+          if (!pairTool[pi]) continue;
+          if (epRow[pi]! >= 0) {
+            const iv = ivRow[pi]!;
+            if (iv >= 0) store.intervals.set(iv, "flags", store.intervals.get(iv, "flags") | IV_ENDED_AT_GAP);
+            ivRow[pi] = -1;
+            closeEpisode(pi);
+          }
+          cutMute[pi] = 0; cutPart[pi] = 0; cutFeedAt[pi] = NaN;
+          toolGap[pi] = add(store.gaps, { pair: pi, start: T(s), end: NaN, reason: GAP_TOOL_UNKNOWN }, s);
         }
       },
       /** Known again at `s`: the gap ends; a contact from here begins anew,
@@ -2273,7 +2299,11 @@ export function* sweepCollisionsIter(
       toolKnown(s: number) {
         for (let pi = 0; pi < P; pi++) {
           if (!pairTool[pi]) continue;
-          if (toolGap[pi]! >= 0) { store.gaps.set(toolGap[pi]!, "end", T(s)); toolGap[pi] = -1; afterTool[pi] = 1; }
+          if (toolGap[pi]! >= 0) { store.gaps.set(toolGap[pi]!, "end", T(s)); toolGap[pi] = -1; }
+          // a new basis: every contact from here is one after the unknown tool,
+          // and a muted feed contact before it mutes nothing after it
+          afterTool[pi] = 1;
+          cutMute[pi] = 0; cutPart[pi] = 0; cutFeedAt[pi] = NaN;
           lastFree[pi] = NaN; lastTouchD[pi] = NaN; toolFloor[pi] = s;
         }
       },
@@ -3111,7 +3141,7 @@ export function* sweepCollisionsIter(
         if (sink?.full) {
           // the contact store's budget is spent: stop and say from where
           // (plan 2.4, Codex R118 Q3) — never a silent cut
-          truncated = { covered: frac(s), reason: "budget" };
+          truncated = { covered: frac(Math.min(sink.failAt, s)), reason: "budget" };
           break outer;
         }
         if (budgetExceeded) step = Math.min(step, EXPLORE);
@@ -3139,7 +3169,7 @@ export function* sweepCollisionsIter(
   }
   sink?.finish(sweptTo, !truncated && !aborted);
   const finalResult = buildResult(worst, truncated, true, !aborted);
-  if (truncated?.reason === "budget") finalResult.incompleteFrom = distToTrackCum(sweptTo);
+  if (truncated?.reason === "budget") finalResult.incompleteFrom = distToTrackCum(Math.min(sink!.failAt, sweptTo));
   yield truncated ? truncated.covered : 1;
   if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; opts.snapshot.first = null; }
   return finalResult;

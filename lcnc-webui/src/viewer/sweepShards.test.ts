@@ -56,6 +56,14 @@ describe("mergeShardResults", () => {
     expect(m.staticContacts).toHaveLength(1);
     expect([m.samples, m.pairsPrescreened, m.pairCount, m.bvhMs, m.sweepMs, m.coarsened]).toEqual([12, 3, 9, 9, 100, true]);
   });
+  it("keeps the earliest point any shard's contact store stopped writing (Codex R144 VP-I100)", () => {
+    const m = mergeShardResults([
+      result([hit(1, 1)], { truncated: { covered: 0.2, reason: "budget" }, incompleteFrom: 4 }),
+      result([hit(2, 2)]),
+      result([], { truncated: { covered: 0.5, reason: "budget" }, incompleteFrom: 9 })]);
+    expect([m.incompleteFrom, m.truncated]).toEqual([4, { covered: 0.2, reason: "budget" }]);
+    expect(mergeShardResults([result([hit(1, 1)]), result([hit(2, 2)])]).incompleteFrom, "no store stopped").toBeUndefined();
+  });
   it("keeps the model's body classes — one model for every shard", () => {
     const bodies = { unusable: [], damaged: ["chipped"], open: ["frame"] };
     expect(mergeShardResults([result([hit(1, 1)], { bodies }), result([hit(2, 2)], { bodies })]).bodies).toEqual(bodies);

@@ -9341,3 +9341,25 @@ after a lost touch lies wholly below it, yet an exit it found there moved to the
 jump (past its own free sample) and a re-entry there took the jump as its floor.
 Now the jump decides an exit only for a free sample past it, which follows an
 undecidable first sample; below it the jump before is the floor.
+
+## 2026-10-13 — Step 4 package 2, round A: the R144 findings
+
+Codex R144 found six places where the store's data was wrong or lost, all in
+the implementation, none in the plan. An unknown tool was a gap only for a
+pair already in contact, and a feed contact muted before it muted a rapid
+crash after it; it is now a gap for every tool pair and the cutting state
+starts anew. A cutter's rapid part after a feed was bisected back over the
+feed; it begins where the rapid does. The entry join took any interval without
+an exit as running (an unknown tool also ends one without an exit) and a
+nearness growing with the entry's length; it joins only an open interval, to a
+base contact beginning at the base's first point. A failed pool dropped what
+its coordinator had acknowledged to the shards but not forwarded, and a result
+it held for the owner's acknowledgement; it drains both in their generation.
+Acknowledgements name their generation, and a side run started again is the
+next one. A spent budget said "incomplete from" the outer sample though a
+re-sample before it had lost a contact; it is the earliest refused row, and
+the pool's result keeps it. Accepted with the findings: EXPLORE, the
+symmetric radius, the open end, the immediate shard acknowledgement, the
+decided exit at a jump, and the free point at radius 0 — round B reads the
+proven free set as {p} ∪ (p − r, p + r).
+
