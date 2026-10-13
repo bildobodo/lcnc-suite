@@ -784,7 +784,11 @@ export function trackLineAt(t: { count: number; cum: ArrayLike<number>; lines: A
 /** Per raw line, the runs of the track's moves it owns — every run apart
  *  (plan 4.2 Hinweis b: a loop's or a repeated call's line has a run per
  *  execution; one span from its first to its last would mark the moves in
- *  between). Built once per track, line-indexed like lineIndex.ts. */
+ *  between). Only MOVES the sweep checked: a break (`brk` — a relabel, an
+ *  unknown start, the start-dependent beginning before K) is no motion of
+ *  its line; its zero-length span on another move's position let a contact
+ *  there mark lines no check saw (Codex R149 VP-I110). Built once per track,
+ *  line-indexed like lineIndex.ts. */
 export interface LineRuns {
   /** `offset[line]` .. `offset[line + 1]` index the line's runs. */
   offset: Int32Array;
@@ -793,16 +797,19 @@ export interface LineRuns {
   maxLine: number;
 }
 
-export function lineRuns(t: { count: number; cum: ArrayLike<number>; lines: ArrayLike<number> }): LineRuns {
+export function lineRuns(t: { count: number; cum: ArrayLike<number>; lines: ArrayLike<number>; brk?: ArrayLike<number> }): LineRuns {
   // the runs in track order: consecutive moves of one line
   const runLine: number[] = [], runA: number[] = [], runB: number[] = [];
-  let maxLine = 0;
+  let maxLine = 0, broken = false;
   for (let i = 1; i < t.count; i++) {
+    // a break ends the run: no run reaches over it
+    if (t.brk?.[i]) { broken = true; continue; }
     const ln = t.lines[i]!;
     if (ln > maxLine) maxLine = ln;
     const k = runLine.length - 1;
-    if (k >= 0 && runLine[k] === ln) runB[k] = t.cum[i]!;
+    if (k >= 0 && runLine[k] === ln && !broken) runB[k] = t.cum[i]!;
     else { runLine.push(ln); runA.push(t.cum[i - 1]!); runB.push(t.cum[i]!); }
+    broken = false;
   }
   const offset = new Int32Array(maxLine + 2);
   for (const ln of runLine) if (ln >= 0) offset[ln + 1]!++;

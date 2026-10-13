@@ -25,19 +25,27 @@ export interface ShownSource {
   map: ShownMap;
   /** On the shown axis, how far it is swept: an open interval runs to here. */
   coverage: number;
+  /** On its OWN axis, how far it is swept — given for a source the map folds
+   *  (a run check's beginning, all at 0 on the base axis): the shown 0 says
+   *  nothing about how much of the beginning is checked (Codex R149 VP-I108),
+   *  so the check's own limit goes in beside the shown one. */
+  ownCoverage?: number;
   /** A side run's (the entry move, a bound beginning): keyed `E`. */
   entry?: boolean;
   /** On its OWN axis, where the entry move ends. */
   entryEnd?: number;
-  /** The side run has its result: its contacts still on at its end continue
-   *  the base's (a running side's open interval is open because it runs). */
-  done?: boolean;
+  /** The side run swept to its end — the point the base begins at — so a
+   *  contact still on there continues the base's. An answer is not a whole
+   *  check: a side stopped early (its budget, a stop) has an unchecked rest,
+   *  and its open contact ends at its coverage, joined to nothing (Codex R149
+   *  VP-I109); a running side's is open because it runs. */
+  sweptToEnd?: boolean;
   /** A folded source's own track (a run check's beginning): its events' lines
    *  are this track's. Left out of the cache key (`specKey`). */
   track?: OwnTrack;
 }
 
-type OwnTrack = { count: number; cum: ArrayLike<number>; lines: ArrayLike<number> };
+type OwnTrack = { count: number; cum: ArrayLike<number>; lines: ArrayLike<number>; brk?: ArrayLike<number> };
 const ownTracks = new WeakMap<object, NonNullable<ContactSource["ownTrack"]>>();
 function ownTrackOf(t: OwnTrack): NonNullable<ContactSource["ownTrack"]> {
   let o = ownTracks.get(t);
@@ -70,6 +78,7 @@ export function shownContactView(tables: (id: number) => GenerationTables | null
     parts.push({ s, t });
     const own = t.pairs;
     sources.push({ stores: t.stores, at: atOf(s.map), coverage: s.coverage,
+                   ...(s.ownCoverage !== undefined ? { ownCoverage: s.ownCoverage } : {}),
                    ...(own ? { pairName: (p: number) => { const n = own[p]; return n ? { a: n[0], b: n[1] } : { a: `pair ${p}`, b: "" }; } } : {}),
                    ...(s.track ? { ownTrack: ownTrackOf(s.track) } : {}),
                    ...(s.entry ? { entry: true, ...(s.entryEnd !== undefined ? { entryEnd: s.entryEnd } : {}) } : {}) });
@@ -86,7 +95,7 @@ export function shownContactView(tables: (id: number) => GenerationTables | null
   }
   const joins: SourceJoin[] = [];
   const bi = parts.findIndex(p => p.s === spec.base), si = parts.findIndex(p => p.s === spec.side);
-  if (bi >= 0 && si >= 0 && spec.side!.done && oneModel) {
+  if (bi >= 0 && si >= 0 && spec.side!.sweptToEnd && oneModel) {
     parts[si]!.t.stores.forEach((es, ek) => parts[bi]!.t.stores.forEach((bs, bk) => {
       const j = entryJoins(es, bs, 0);
       if (j.size) joins.push({ entrySrc: si, baseSrc: bi, joins: j, entryShard: ek, baseShard: bk });

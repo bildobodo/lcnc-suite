@@ -1480,3 +1480,61 @@ test("a run's bound beginning that ends without a result takes its early contact
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
+
+// Codex R149 VP-I109 (his browser probe): a side run stopped by its budget at
+// 20 % — its answer carries `truncated` — shows its open contact up to where
+// it was checked; the band never reaches on to the end of the side's track.
+test("a side run stopped by its budget keeps its contact band at its own coverage (Codex R149 VP-I109)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { side: null, deliver: null };
+    (window as any).__r149 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      w.addEventListener("message", e => handler?.(e));
+      w.postMessage = ((m: any, t?: Transferable[]) => {
+        if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
+        post(m, t ?? []);
+      }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  await prepare(page, context, { file: "/side-stopped.ngc", version: 29149, lines: [1, 2], joints: [-100, 0, -100, 0, 0], feed: [[0, 0, -100], [10, 0, -100]] });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  await page.locator(".scrubBar").getByRole("checkbox", { name: "Sim" }).check();
+  await expect.poll(() => page.evaluate(() => (window as any).__r149.side?.id ?? null)).not.toBeNull();
+  const meta = await page.evaluate(() => { const s = (window as any).__r149.side; return { id: s.id as number, end: s.track.cum[s.track.count - 1] as number }; });
+  const st = oneContact(meta.id, 0, 0.1 * meta.end);
+  const bands = () => page.locator(".scrubBand.clash").evaluateAll(els => els.map(e => {
+    const track = e.parentElement!.querySelector(".scrubBand.track")!.getBoundingClientRect(), r = e.getBoundingClientRect();
+    return { left: 100 * (r.left - track.left) / track.width, width: 100 * r.width / track.width };
+  }));
+  const reach = async () => { const bs = await bands(); return bs.length ? Math.max(...bs.map(b => b.left + b.width)) : 999; };
+  // running at 20 %, its contact open from 10 %
+  await page.evaluate(([w, end]) => {
+    const t = (window as any).__r149;
+    t.first = { line: t.side.track.lines[1], cum: 0.1 * end, cumEnd: 0.2 * end, a: "spindle_nose", b: "a_yoke_casting", dist: 0, rapid: true };
+    t.deliver({ progress: 0.2, first: t.first, contacts: [(window as any).__fromWire(w)], contactPairs: [["spindle_nose", "a_yoke_casting"]] });
+  }, [wireDelta(st), meta.end] as const);
+  await expect.poll(reach).toBeLessThan(30);
+  // stopped there by its budget: the answer is no whole check
+  await page.evaluate(w => {
+    const t = (window as any).__r149;
+    t.deliver({ contacts: [(window as any).__fromWire(w)], result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false,
+      uncertified: null, pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 10, truncated: { covered: 0.2, reason: "budget" },
+      incompleteFrom: 0.2 * t.side.track.cum[t.side.track.count - 1] } });
+  }, wireDelta(st));
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).not.toHaveAttribute("aria-label", /still checking/);
+  expect(await reach(), "stopped at 20 %: the band ends there, not at the side track's end").toBeLessThan(30);
+  expect(errors).toEqual([]);
+});

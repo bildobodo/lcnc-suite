@@ -3244,19 +3244,27 @@ function _colBaseSpec(trk: ScrubTrack): ShownSource | null {
   const s = _colRunSideBase();
   return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * _viewProgress } : null;
 }
+/** How far a side result swept its own track: all of it, else what its
+ *  `truncated` names (a stop, its budget) — an answer is not a whole check
+ *  (Codex R149 VP-I109). */
+function _sideCovered(r: CollisionResult): number { return r.truncated ? r.truncated.covered : 1; }
 /** A run check's bound beginning on the base `trk` (plan 3.3): its result,
- *  or while it runs the side run whose first contact is shown. */
+ *  or while it runs the side run whose first contact is shown. The map folds
+ *  the beginning onto the base's 0, so its OWN coverage goes in beside the
+ *  shown one (Codex R149 VP-I108: a shown 0 read as the whole beginning). */
 function _colRunSideSpec(trk: ScrubTrack): ShownSource | null {
   const gen = collisionRun.value?.gen;
   const rs = collisionRunSide.value;
   if (rs && rs.base === trk && gen === rs.gen) {
-    return { id: rs.id, map: { kind: "minus", shift: rs.shift }, coverage: Math.max(0, rs.sliceEnd - rs.shift),
-             entry: true, entryEnd: rs.bound.cum[1], done: true, track: rs.bound };
+    const own = _sideCovered(rs.result) * rs.sliceEnd;
+    return { id: rs.id, map: { kind: "minus", shift: rs.shift }, coverage: Math.max(0, own - rs.shift), ownCoverage: own,
+             entry: true, entryEnd: rs.bound.cum[1], sweptToEnd: !rs.result.truncated, track: rs.bound };
   }
   const sf = collisionSideFirst.value;
   if (sf?.run && sf.base === trk && gen === sf.run.gen) {
-    return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, _viewSideProgress * sf.sliceEnd - sf.shift),
-             entry: true, entryEnd: sf.entry.cum[1], done: false, track: sf.entry };
+    const own = _viewSideProgress * sf.sliceEnd;
+    return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, own - sf.shift), ownCoverage: own,
+             entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, track: sf.entry };
   }
   return null;
 }
@@ -3267,14 +3275,14 @@ function _colViewSpec(trk: ScrubTrack): ShownSpec | null {
   const base = _colBaseSpec(trk);
   if (base) return { base, side: _colRunSideSpec(trk), axisEnd: _sliceEnd(trk) };
   const e = collisionEntry.value, sf = collisionSideFirst.value;
-  const ent = e ? { id: e.id, track: e.track, base: e.base, shift: e.shift, sliceEnd: e.sliceEnd, done: true }
-    : sf && !sf.run ? { id: sf.id, track: sf.entry, base: sf.base, shift: sf.shift, sliceEnd: sf.sliceEnd, done: false } : null;
+  const ent = e ? { id: e.id, track: e.track, base: e.base, shift: e.shift, sliceEnd: e.sliceEnd, covered: _sideCovered(e.result), whole: !e.result.truncated }
+    : sf && !sf.run ? { id: sf.id, track: sf.entry, base: sf.base, shift: sf.shift, sliceEnd: sf.sliceEnd, covered: _viewSideProgress, whole: false } : null;
   if (!ent || ent.track !== trk) return null;
   const b = _colBaseSpec(ent.base);
   if (!b) return null;   // no entry overlay without its base (collisionEntryResult)
   return { base: { ...b, map: { kind: "plus", shift: ent.shift }, coverage: b.coverage + ent.shift },
-           side: { id: ent.id, map: null, coverage: ent.done ? ent.sliceEnd : _viewSideProgress * ent.sliceEnd, entry: true,
-                   entryEnd: ent.track.cum[1], done: ent.done },
+           side: { id: ent.id, map: null, coverage: ent.covered * ent.sliceEnd, entry: true,
+                   entryEnd: ent.track.cum[1], sweptToEnd: ent.whole },
            axisEnd: _sliceEnd(trk) };
 }
 const _viewCache = new WeakMap<ScrubTrack, { key: string; v: ShownContacts | null }>();

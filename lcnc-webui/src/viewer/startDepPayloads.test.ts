@@ -26,6 +26,8 @@ import { findingWords } from "./sweepWords";
 import { firstOnly } from "./firstContact";
 import { clashTargets, isNearMiss } from "./clashTargets";
 import { partLabel } from "./simRows";
+import { ContactStore } from "./contactStore";
+import { buildContactView, lineMark, lineRuns, runsOf, targetAt, trackLineAt } from "./contactView";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
 const MACHINE: CollisionMachine = {
@@ -633,5 +635,24 @@ describe("Codex R134", () => {
     st.reply({ result: cut });
     expect(st.result().truncated.covered).toBe(0);
     expect(sweepView(st.result(), st.view()).verdict).not.toContain("checked in full");
+  });
+});
+
+describe("Codex R149 VP-I110: a base contact at 0 marks only the moves its check saw", () => {
+  it("the beginning before K is a break on the base track: its lines L3 and L4 sit at 0 but no check saw their moves — only L5 is marked", () => {
+    const { raw, track: t } = load("e_g53_rdp");
+    const m = buildCollisionModel(MACHINE, [{ id: "obstacle", group: "table", positions: cube(), translate: [0, 0, 0] },
+                                            { id: "head", group: "head", positions: cube(), tool: true }]);
+    const st = new ContactStore(1, 0);
+    sweepCollisions(m, { ...t, wcs: t.wcsEpoch } as any, wcsOf(raw), { margin: 0.1, contacts: { store: st } });
+    expect([Array.from(t.lines.subarray(0, t.count)), cums(t), Array.from(t.brk ?? [])], "the beginning: L3 and L4 at 0, breaks")
+      .toEqual([[2, 3, 4, 5], [0, 0, 0, 1], [1, 1, 1, 0]]);
+    expect(st.intervals.rows, "the sweep confirms the contact at the known point").toBeGreaterThan(0);
+    const v = buildContactView({ sources: [{ stores: [st], at: c => c }], coverage: t.cum[t.count - 1]!,
+                                 pairName: p => { const [a, b] = m.pairs[p]!; return { a: m.bodies[a]!.id, b: m.bodies[b]!.id }; } });
+    const runs = lineRuns(t), at = trackLineAt(t);
+    expect(Array.from({ length: v.n }, (_, i) => targetAt(v, i, at).line)).toEqual([5]);
+    expect(lineMark(v, 5, runsOf(runs, 5), at)).toEqual({ line: 5 });
+    for (const line of [2, 3, 4]) expect(lineMark(v, line, runsOf(runs, line), at), `L${line}`).toBeNull();
   });
 });

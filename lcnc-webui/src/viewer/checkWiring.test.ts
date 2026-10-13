@@ -17,7 +17,9 @@ import { captureCheckContext } from "./checkContext";
 import { semanticKinsMode } from "./kins";
 import { basisFromLive, type CheckBasis } from "./checkBasis";
 import { ContactStore, NONE } from "./contactStore";
-import { buildContactView, targetAt } from "./contactView";
+import { buildContactView, contactBands, lineMark, targetAt, tintAt, trackLineAt } from "./contactView";
+import { shownContactView } from "./shownContacts";
+import type { GenerationTables } from "./contactsReceiver";
 import { ContactsReceiver, contactOwners } from "./contactsReceiver";
 
 function viewerFns(names: string[], prelude: string, refs: Record<string, unknown>, exports: string[] = []): Record<string, any> {
@@ -345,5 +347,81 @@ describe("a cancel releases what no one shows (Codex R148 VP-I106)", () => {
     f.show(7);
     f.cancelCollisionCheck();
     expect(f._contacts.ids()).toEqual([7]);
+  });
+});
+
+/** The viewer's own spec selectors as written (Codex R149's probe): which
+ *  tables a track shows, how far each is checked, and whether a side joins
+ *  the base. `side` is the side run's own track; the run check's beginning
+ *  folds onto `base` at 0 (shift = its own end). */
+function specs(o: { run: boolean; done: boolean; progress: number }) {
+  const base = { count: 2, cum: [0, 5], lines: [5, 5] };
+  // own lines 21 (0..2), 22 (2..4), 23 (4..10); the base's line 5 after K at 10
+  const side = { count: 5, cum: [0, 2, 4, 10, 15], lines: [21, 21, 22, 23, 5] };
+  const result = { truncated: o.done && o.progress < 1 ? { covered: o.progress, reason: "budget" } : null };
+  const f = viewerFns(["_sliceEnd", "_sideCovered", "_colBaseSpec", "_colRunSideSpec", "_colViewSpec"], `
+    const collisionRun = { value: { gen: 1 } }, collisionRunSide = { value: null }, collisionSideFirst = { value: null }, collisionEntry = { value: null };
+    const collisionResult = { value: { truncated: null } }, collisionTrack = { value: base };
+    const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
+    let _colResultReq = 1, _colPartialReq = null, _colReqId = 1, _viewProgress = 1, _viewSideProgress = o.progress;
+    const _colRunSideBase = () => null;
+    const shift = 10, sliceEnd = 10;
+    if (o.run) {
+      if (o.done) collisionRunSide.value = { id: -1, gen: 1, base, bound: side, result, shift, sliceEnd };
+      else collisionSideFirst.value = { id: -1, run: { gen: 1 }, base, entry: side, shift, sliceEnd, first: {} };
+    } else {
+      if (o.done) collisionEntry.value = { id: -1, base, track: side, result, shift, sliceEnd };
+      else collisionSideFirst.value = { id: -1, base, entry: side, shift, sliceEnd, first: {} };
+    }`, { base, side, result, o });
+  return { spec: f._colViewSpec(o.run ? base : side), base, side };
+}
+function tablesOf(id: number, ivs: Array<[number, number]>): GenerationTables {
+  const st = new ContactStore(id, 0);
+  ivs.forEach(([a, b], k) => {
+    const e = st.episodes.append({ pair: 0, ordinal: k, onset: a, end: b, closeAt: a, closeDist: 0, firstIv: NONE, ivCount: 1, flags: 0 });
+    st.episodes.set(e, "firstIv", st.intervals.append({ episode: e, enter: a, exit: b, witness: a, freeAt: NaN, next: NONE, flags: 0 }));
+  });
+  return { generation: 0, stores: [st], pairs: [["tool", "work"]], deltas: 1 };
+}
+/** The side's one contact, open from its own 1; the base's from `baseIvs`. */
+function shown(o: { run: boolean; done: boolean; progress: number }, baseIvs: Array<[number, number]> = []) {
+  const { spec, base, side } = specs(o);
+  const T = new Map([[1, tablesOf(1, baseIvs)], [-1, tablesOf(-1, [[1, NaN]])]]);
+  const v = shownContactView(id => T.get(id) ?? null, spec)!;
+  const at = trackLineAt(o.run ? base : side);
+  return { v, at, target: targetAt(v, 0, at), mark: (line: number, spans: Array<[number, number]> = []) => lineMark(v, line, spans, at) };
+}
+
+describe("how far a side is checked reaches the view (Codex R149 VP-I108, VP-I109)", () => {
+  it("VP-I108: a run check's beginning folded onto 0 while it runs at 15 % — its own lines 22 and 23 are not checked yet: no mark, no reach", () => {
+    const r = shown({ run: true, done: false, progress: 0.15 });
+    expect(r.target.spanEndLine ?? r.target.line, "the contact is seen through its own 1.5, line 21").toBe(21);
+    expect(r.mark(22), "own 2..4: not swept").toBeNull();
+    expect(r.mark(23), "own 4..10: not swept").toBeNull();
+    // its check stopped there (its budget): the same — the answer is no whole check
+    const stopped = shown({ run: true, done: true, progress: 0.15 });
+    expect(stopped.target.spanEndLine ?? stopped.target.line).toBe(21);
+    expect([stopped.mark(22), stopped.mark(23)]).toEqual([null, null]);
+    // the same beginning checked whole: its open contact reaches line 23
+    const whole = shown({ run: true, done: true, progress: 1 });
+    expect(whole.mark(23)).not.toBeNull();
+  });
+
+  it("VP-I109: a side stopped at 20 % (its budget) ends its open contact at its coverage — no tint, band or mark past it", () => {
+    const r = shown({ run: false, done: true, progress: 0.2 });
+    expect([...tintAt(r.v, 6)], "own 6 lies past the stop at 2").toEqual([]);
+    expect(contactBands(r.v, 100, 10), "the band stops at the coverage").toEqual([[0.1, 0.2]]);
+    expect(r.mark(23, [[4, 10]])).toBeNull();
+    // running at 20 %: the same
+    const running = shown({ run: false, done: false, progress: 0.2 });
+    expect(contactBands(running.v, 100, 10)).toEqual([[0.1, 0.2]]);
+  });
+
+  it("VP-I109: a stopped side never joins the base — the rest up to the base is unchecked: two findings; a whole one joins: one", () => {
+    expect(shown({ run: true, done: true, progress: 0.2 }, [[0, 3]]).v.n).toBe(2);
+    expect(shown({ run: true, done: true, progress: 1 }, [[0, 3]]).v.n).toBe(1);
+    // the simulation's entry move likewise
+    expect(shown({ run: false, done: true, progress: 0.2 }, [[0, 3]]).v.n).toBe(2);
+    expect(shown({ run: false, done: true, progress: 1 }, [[0, 3]]).v.n).toBe(1);
   });
 });

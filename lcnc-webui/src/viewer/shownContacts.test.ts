@@ -21,7 +21,7 @@ describe("a run check's bound beginning, folded onto the base (plan 3.3, 1.3)", 
   const base = { count: 2, cum: [0, 5], lines: [5, 5] };
   const T = new Map<number, GenerationTables>([[1, tables(1, [], [["tool", "work"]])], [-1, tables(-1, [[2.5, 3]], [["tool", "work"]])]]);
   const spec: ShownSpec = { base: { id: 1, map: null, coverage: 5 },
-    side: { id: -1, map: { kind: "minus", shift: 10 }, coverage: 0, entry: true, entryEnd: 1, done: true, track: bound }, axisEnd: 5 };
+    side: { id: -1, map: { kind: "minus", shift: 10 }, coverage: 0, entry: true, entryEnd: 1, sweptToEnd: true, track: bound }, axisEnd: 5 };
   it("its event's line is its own track's, and it marks its own lines — never every line the fold lands on", () => {
     const v = shownContactView(id => T.get(id) ?? null, spec)!;
     const t = targetAt(v, 0, trackLineAt(base));
