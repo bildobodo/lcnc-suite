@@ -1,0 +1,9 @@
+# the contact sink's extra distance probes, counted (CollisionOptions.profile: queries = the main step's, probes = away from it), at 82632a55, the same 3 random tracks per case; no load dependence
+case: main-step queries | off-step probes without the store → with | samples without → with | intervals
+XYZAC identity: 21679 → 21679 | 758 → 986 (+228, 1.0 % of all probes) | 7310 → 7310 | 25
+XYZAC TCP: 15951 → 15951 | 382 → 510 (+128, 0.8 % of all probes) | 4049 → 4049 | 8
+TWP gantry TCP: 47473 → 47473 | 4221 → 5727 (+1506, 2.9 % of all probes) | 19625 → 19625 | 110
+3 axis: 1403 → 1403 | 1306 → 1624 (+318, 11.7 % of all probes) | 1499 → 1499 | 26
+generated 20261012 (xyzac-trt XYZAC): 11883 → 11883 | 2513 → 3413 (+900, 6.3 % of all probes) | 5035 → 5035 | 67
+generated 20261016 (trivkins XYZAC): 13864 → 13864 | 3308 → 4457 (+1149, 6.7 % of all probes) | 5803 → 5803 | 96
+generated 20261018 (xyzbc-trt XYZBC): 8787 → 8787 | 2470 → 3338 (+868, 7.7 % of all probes) | 5082 → 5082 | 68

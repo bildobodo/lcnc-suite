@@ -247,7 +247,7 @@ Bei einem Pool-Rückfall rechnet der lokale Lauf als neue Generation neu, auf de
 **Drei Arten Wissen** (Codex R141). Je Paar und Herkunft, aus jeder Generation:
 - **bestätigte Kontaktorte:** der Zeuge jedes Intervalls und seine **entschiedenen** Grenzen (2.2);
 - **nur angenommener Kontakt:** das Innere eines Intervalls zwischen berührenden Proben (die unbeprobte Lücke aus 2.2) und eine vorsichtige Grenze auf einer unentscheidbaren Antwort samt der Strecke bis zum Zeugen;
-- **bewiesener Freiraum:** die Strecke [p − r, p + r] um jede freie Probe nach 2.2.
+- **bewiesener Freiraum:** die offene Strecke (p − r, p + r) um jede freie Probe nach 2.2 (redaktionell nach R143: die Ränder sind offen).
 
 Die verfeinerten Grenzen eines Laufs sind **kein** Freiraumzertifikat für die Spanne zwischen zwei Kontakten. Dort kann ein schmaler Kontakt liegen, den dieser Lauf übersprungen hat.
 
@@ -264,7 +264,7 @@ Die verfeinerten Grenzen eines Laufs sind **kein** Freiraumzertifikat für die S
 - Jedes Stück nach dem Schneiden ist ein Ereignis. Getrennte alte Ereignisse sind durch Freiraum getrennt, deshalb überdeckt ein Stück höchstens ein altes Ereignis. Überdeckt ein neues grobes Intervall mehrere alte, trennt der Freiraum der alten Generation die Stücke, und jedes behält die Identität seines alten Ereignisses.
 - **Teilt sich ein altes Ereignis** (Freiraum der neuen Generation in seinem Inneren), behält **genau ein** Stück dessen Anzeige-ID: das Stück, das den **Zeugen** des Beginns des alten Ereignisses enthält. Der Zeuge ist ein bestätigter Kontaktort und wird nie weggeschnitten; anders als die verfeinerte Grenze, die auf einer unentscheidbaren Antwort liegen kann (Codex R142). Der Navigationspunkt bleibt die verfeinerte Grenze des Stücks, entschieden oder vorsichtig; nur die ID-Übernahme hängt am Zeugen. Jedes weitere Stück bekommt eine **neue** ID.
 - **Stückschlüssel.** Ein Stück hat nicht automatisch eine eigene Tabellenzeile. Seine neue ID wird an einen Schlüssel gebunden: die Ursprungszeile (Generation, Herkunft, Paar, Nummern) und der Trennbeleg, der das Stück links begrenzt (dessen Zeilenidentität), bzw. „Beginn“ für das erste Stück. Mehrere Schnitte derselben Zeile ergeben so verschiedene Schlüssel. Ein späteres Delta, das diese Belege nicht ändert, ändert die IDs nicht (Codex R142, Bedingung 2).
-- **Auswahl und Fokus** folgen der ID: Ein gewähltes Ereignis, das sich teilt, bleibt am Stück mit dem Anker gewählt. Die neuen Stücke reihen sich in die Navigation ein und sind per ‹ › je genau einmal erreichbar.
+- **Auswahl und Fokus** folgen der ID: Ein gewähltes Ereignis, das sich teilt, bleibt am Stück mit dem Zeugen gewählt. Die neuen Stücke reihen sich in die Navigation ein und sind per ‹ › je genau einmal erreichbar.
 - Beinahe-Episoden werden nach Herkunft, Paar und Überdeckung ihrer Spanne eins zu eins in Stellen-Reihenfolge zugeordnet. Eine nicht wiedergefundene alte bleibt, „aus dem früheren Lauf“.
 
 **Weiter gilt:**
@@ -426,7 +426,7 @@ Die erzeugten Maschinen erweitern die empirische Abdeckung. Die Allgemeinheit ü
   - eine Zeile mit mehreren Schnitten: jedes Stück mit eigenem Schlüssel und eigener stabiler ID, über wiederholte Deltas gleich;
   - der Freiraum am Rand: Eine Probe mit d knapp über CONTACT_EPS und eine Berührung genau am Rand des Radius werden nicht geschnitten (offene Ränder, nach innen gerundeter f32-Radius, auf den Abschnitt geschnitten, V = 0);
   - Freiradius: Der Freiraum einer Probe überdeckt nie eine dicht abgetastete Berührung (Eigenschaftstest auf erzeugten Maschinen, wie Prüfung 3 in 7.3);
-  - der umgekehrte Fall: altes grobes [0, 3] mit ID 11, neuer Freiraum bei 1,5 ergibt zwei Stücke. Das Stück mit dem Anker behält 11, das andere bekommt eine neue ID, beide sind per ‹ › je einmal erreichbar, die Auswahl bleibt bei 11, und nach einem unveränderten Delta sind beide IDs dieselben;
+  - der umgekehrte Fall: altes grobes [0, 3] mit ID 11, neuer Freiraum bei 1,5 ergibt zwei Stücke. Das Stück mit dem Zeugen behält 11, das andere bekommt eine neue ID, beide sind per ‹ › je einmal erreichbar, die Auswahl bleibt bei 11, und nach einem unveränderten Delta sind beide IDs dieselben;
   - ein neues Intervall über mehrere getrennte alte Ereignisse: jedes behält seine Identität;
   - ein offenes Intervall mit späterem Ende: verlängert;
   - eine alte Nachricht nach dem Generationswechsel: verworfen;

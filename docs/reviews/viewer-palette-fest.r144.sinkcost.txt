@@ -1,0 +1,8 @@
+# the contact sink's time on the sweep, at 1f54469f, 3 random tracks per case × 2 repetitions, the sweep without and with the store interleaved per track; run beside the mutation run and the backend gate (load ~4 on 4 cores) — about ±5 % noise (TWP gantry reads −3.5 %)
+XYZAC identity: without 255675 ms, with 258521 ms (+1.1 %), 27 episodes, 25 intervals
+XYZAC TCP: without 158901 ms, with 163291 ms (+2.8 %), 9 episodes, 8 intervals
+TWP gantry TCP: without 170185 ms, with 164246 ms (+-3.5 %), 111 episodes, 110 intervals
+3 axis: without 284707 ms, with 324828 ms (+14.1 %), 26 episodes, 26 intervals
+generated 20261012 (xyzac-trt XYZAC): without 818 ms, with 997 ms (+21.9 %), 66 episodes, 67 intervals
+generated 20261016 (trivkins XYZAC): without 1395 ms, with 1628 ms (+16.7 %), 95 episodes, 96 intervals
+generated 20261018 (xyzbc-trt XYZBC): without 981 ms, with 1149 ms (+17.1 %), 68 episodes, 68 intervals
