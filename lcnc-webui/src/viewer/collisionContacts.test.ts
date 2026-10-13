@@ -52,10 +52,10 @@ const minus = (a: Span[], b: Span[]): Span[] => {
 function storeView(store: ContactStore, end: number) {
   const E = store.episodes, I = store.intervals;
   const byPair = new Map<number, { episodes: Array<{ onset: number; ivCount: number; origin: number }>; spans: Span[];
-                                    free: number[]; witnesses: number[]; enters: Array<{ at: number; decided: boolean }> }>();
+                                    free: number[]; freeR: number[]; witnesses: number[]; enters: Array<{ at: number; decided: boolean }> }>();
   const of = (pi: number) => {
     let v = byPair.get(pi);
-    if (!v) byPair.set(pi, v = { episodes: [], spans: [], free: [], witnesses: [], enters: [] });
+    if (!v) byPair.set(pi, v = { episodes: [], spans: [], free: [], freeR: [], witnesses: [], enters: [] });
     return v;
   };
   for (let e = 0; e < E.rows; e++) {
@@ -69,7 +69,7 @@ function storeView(store: ContactStore, end: number) {
       v.spans.push([I.get(iv, "enter"), Number.isNaN(exit) ? end : exit]);
       v.witnesses.push(I.get(iv, "witness"));
       v.enters.push({ at: I.get(iv, "enter"), decided: (I.get(iv, "flags") & IV_ENTER_DECIDED) !== 0 });
-      if (!Number.isNaN(I.get(iv, "freeAt"))) v.free.push(I.get(iv, "freeAt"));
+      if (!Number.isNaN(I.get(iv, "freeAt"))) { v.free.push(I.get(iv, "freeAt")); v.freeR.push(I.get(iv, "freeR")); }
       iv = I.get(iv, "next");
       seen++;
     }
@@ -92,13 +92,13 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
   const lineStarts = new Set<number>();
   for (let i = 1; i < track.count; i++) if (track.lines[i] !== track.lines[i - 1]) lineStarts.add(track.cum[i - 1]!);
   const nearLineStart = (x: number) => [...lineStarts].some(l => Math.abs(l - x) <= TOL);
-  let touches = 0, nears = 0, collapsed = 0, bridgedN = 0, flooredN = 0;
+  let touches = 0, nears = 0, collapsed = 0, bridgedN = 0, flooredN = 0, freeChecked = 0;
   const pairsSeen = new Set<number>([...view.keys()]);
   for (let pi = 0; pi < model.pairs.length; pi++) if (oldByPair.has(ids(pi))) pairsSeen.add(pi);
   const { poseAt, below } = trackTruth(model, c, track);
   for (const pi of pairsSeen) {
     const recs = oldByPair.get(ids(pi)) ?? [];
-    const v = view.get(pi) ?? { episodes: [], spans: [], free: [], witnesses: [], enters: [] };
+    const v = view.get(pi) ?? { episodes: [], spans: [], free: [], freeR: [], witnesses: [], enters: [] };
     const oldU = unite(recs.filter(h => h.dist <= CONTACT_EPS || h.intervals)
       .flatMap(h => (h.intervals ?? [[h.cum, h.cumEnd]]) as Span[]));
     const newU = unite(v.spans.map(s => [s[0], s[1]] as Span));
@@ -124,6 +124,21 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
       // a touch, or wholly inside (the winding number, apart from the sweep's rays)
       const real = (d !== null && d <= 1e-3) || insideTruth(A, B) === true || insideTruth(B, A) === true;
       expect(real, `${where} ${ids(pi)}: the witness at ${w.toFixed(4)} touches or lies inside (distance ${d})`).toBe(true);
+    }
+    // a free sample's proven stretch (its open radius) holds no touch — the
+    // truth at dense points across it (plan 2.2, 7.5; Codex R141/R142)
+    for (let q = 0; q < v.free.length; q++) {
+      const f = v.free[q]!, r = v.freeR[q]!;
+      for (let k = -8; k <= 8; k++) {
+        const x = f + (r * k) / 8.0001;   // inside the open stretch
+        if (x < 0 || x > end) continue;
+        poseAt(x);
+        const d = below(A, B, MARGIN);
+        const inside = insideTruth(A, B) === true || insideTruth(B, A) === true;
+        expect((d === null || d > CONTACT_EPS / 2) && !inside,
+          `${where} ${ids(pi)}: the free stretch ${f.toFixed(4)} ± ${r.toFixed(4)} holds a touch at ${x.toFixed(4)} (distance ${d})`).toBe(true);
+        freeChecked++;
+      }
     }
     // the stays without a touch are the records' near misses, one for one —
     // except where the records keyed a second stay on the SAME line into one
@@ -153,7 +168,7 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
   }
   void IV_POSSIBLE;
   if (process.env.COLLISION_CONTACTS_LOG) fs.appendFileSync(process.env.COLLISION_CONTACTS_LOG,
-    `${where}: ${touches} touch intervals, ${nears} near stays; records bridged a proven free sample ${bridgedN}×, floored at a line start ${flooredN}×, collapsed a second stay of a line ${collapsed}×\n`);
+    `${where}: ${touches} touch intervals, ${nears} near stays; records bridged a proven free sample ${bridgedN}×, floored at a line start ${flooredN}×, collapsed a second stay of a line ${collapsed}×; free stretches checked at ${freeChecked} points\n`);
   return { skipped: false, touches, nears, collapsed };
 }
 
