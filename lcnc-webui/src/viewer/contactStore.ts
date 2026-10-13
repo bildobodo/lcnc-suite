@@ -138,13 +138,13 @@ export class ColumnTable {
       for (const [name] of this.schema) v[name] = d.rows[name]![i]!;
       if (this.append(v) < 0) throw new Error("contactStore: receiving table over its budget");
     }
+    // through set(): a receiver that forwards (the coordinator) sends the new
+    // rows as its own new rows and the updates of rows it already forwarded
+    // as its own updates — once each, coalesced like the sender's
     for (let i = 0; i < d.updates.length; i++) {
       const r = d.updates[i]!;
-      for (const [name] of this.schema) {
-        this.col(name)[Math.floor(r / BLOCK)]![r % BLOCK] = d.updated[name]![i]!;
-      }
+      for (const [name] of this.schema) this.set(r, name, d.updated[name]![i]!);
     }
-    this.sent = this.rows;   // a receiver forwards from its own state (the coordinator)
   }
 
   /** Allocated bytes: whole blocks of every column and the dirty marks —

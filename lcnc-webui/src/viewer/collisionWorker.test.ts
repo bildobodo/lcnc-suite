@@ -8,6 +8,8 @@
 // two-triangle model that never comes near (the result is clear).
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CollisionResult } from "./collision";
+import { ContactStore, NONE, type StoreDelta } from "./contactStore";
+import { boxPositions } from "./collisionFixtures";
 
 type Msg = Record<string, any>;
 const hit = (line = 7) => ({ line, cum: 2, cumEnd: 3, a: "moving", b: "fixed", dist: 0, rapid: true, intervals: [[2, 3] as [number, number]] });
@@ -365,5 +367,101 @@ describe("the side id −1 (VP-I50)", () => {
     send({ cancel: -1 });
     await vi.advanceTimersToNextTimerAsync();
     expect(sent.some(m => m.id === -1 && m.cancelled)).toBe(true);
+  });
+});
+
+// Step 4 package 2, round A6: the contact deltas (plan Fassung 5, 3.1/3.2,
+// Codex VP139-03) — at most one unacknowledged per path, the shards never held
+// up by a slow owner, a run's last delta with its result, a fall back the next
+// generation.
+describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", () => {
+  // two boxes the track drives through each other: a real contact on this core
+  const boxReq = (id: number, maxShards = 1) => ({
+    ...req(id, { maxShards }), modelKey: "boxes",
+    bodies: [{ id: "fixed", group: "fixed", positions: boxPositions(10, 10, 10) }, { id: "moving", group: "moving", positions: boxPositions(10, 10, 10) }],
+    track: { pos: new Float32Array([-40, 0, 0, 40, 0, 0]), abc: new Float32Array(6), cum: new Float32Array([0, 80]),
+             rapid: new Uint8Array([1, 1]), lines: new Uint32Array([1, 2]), count: 2 },
+    contacts: { generation: 0 } });
+  const drain = () => { for (let k = 0; k < 200; k++) vi.advanceTimersByTime(50); };
+
+  it("this core: deltas while it sweeps, one at a time; the result waits for the acknowledgement of the delta before it", async () => {
+    // one checkpoint per slice, so deltas go out while it sweeps
+    vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
+      const r = it.next();
+      return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
+                    : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
+    } }));
+    const { sent, send } = await setup(3);   // one core for sweeps: no pool
+    const n = 161, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = -40 + i * 0.5; cum[i] = i * 0.5; lines[i] = i + 1; }
+    send({ ...boxReq(1), track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    for (let i = 0; i < 600; i++) await vi.advanceTimersToNextTimerAsync();
+    expect(sent.filter(m => m.contacts).length, "one delta out, the rest waits").toBe(1);
+    expect(sent.some(m => m.result), "no result before the acknowledgement").toBe(false);
+    send({ contactsAck: 1 });
+    for (let i = 0; i < 10 && !sent.some(m => m.result); i++) await vi.advanceTimersToNextTimerAsync();
+    const fin = sent.find(m => m.result)!;
+    expect(fin.contacts, "the last delta rides with the result").toHaveLength(1);
+    // the receiver's tables equal what was found: one stay, one touch interval
+    const r = new ContactStore(1, 0);
+    for (const m of sent.filter(x => x.contacts)) for (const d of m.contacts as StoreDelta[]) expect(r.apply(d)).toBe(true);
+    expect([r.episodes.rows, r.intervals.rows]).toEqual([1, 1]);
+    expect(r.intervals.get(0, "enter")).toBeLessThan(r.intervals.get(0, "exit"));
+    expect(Number.isNaN(r.intervals.get(0, "exit")), "closed, its exit in the last delta").toBe(false);
+  });
+
+  it("the pool: a shard's delta is applied and acknowledged at once; the owner gets one message, then nothing until it acknowledges", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(2), contacts: { generation: 0 } });
+    const shard0 = new ContactStore(2, 0), shard1 = new ContactStore(2, 0);
+    const ep = (st: ContactStore, pair: number) => st.episodes.append({ pair, ordinal: 0, onset: pair, end: NaN, closeAt: pair, closeDist: 1, firstIv: NONE });
+    const a = ep(shard0, 1);
+    workers[0]!.emit({ id: 2, progress: 0.1, contacts: [shard0.takeDelta()!] });
+    expect(workers[0]!.messages.some(m => m.contactsAck === 2), "the shard acknowledged at once").toBe(true);
+    shard0.ack();
+    const first = sent.filter(m => m.contacts);
+    expect(first).toHaveLength(1);
+    expect((first[0]!.contacts as StoreDelta[]).map(d => d.episodes.count), "one delta per shard").toEqual([1, 0]);
+    // the owner is slow: the shards go on, their deltas are applied and acknowledged here
+    ep(shard1, 7);
+    workers[1]!.emit({ id: 2, progress: 0.2, contacts: [shard1.takeDelta()!] });
+    shard1.ack();
+    for (let k = 0; k < 500; k++) {
+      shard0.episodes.set(a, "end", k);   // the same open episode, again and again
+      workers[0]!.emit({ id: 2, progress: 0.2, contacts: [shard0.takeDelta()!] });
+      shard0.ack();
+    }
+    expect(workers[1]!.messages.filter(m => m.contactsAck === 2)).toHaveLength(1);
+    expect(sent.filter(m => m.contacts), "nothing more to the owner before its acknowledgement").toHaveLength(1);
+    send({ contactsAck: 2 });
+    const second = last(sent.filter(m => m.contacts)).contacts as StoreDelta[];
+    expect(second.map(d => [d.episodes.count, d.episodes.updates.length]), "coalesced: one update for the 500").toEqual([[0, 1], [1, 0]]);
+    expect(second[0]!.episodes.updated["end"]![0]).toBe(499);
+  });
+
+  it("the pool's result waits for the owner's acknowledgement and carries every shard's last delta", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(3), contacts: { generation: 0 } });
+    const s0 = new ContactStore(3, 0), s1 = new ContactStore(3, 0);
+    s0.episodes.append({ pair: 1, ordinal: 0, onset: 1, end: NaN, closeAt: 1, closeDist: 1, firstIv: NONE });
+    workers[0]!.emit({ id: 3, progress: 0.5, contacts: [s0.takeDelta()!] }); s0.ack();
+    s0.episodes.set(0, "end", 2);
+    workers[0]!.emit({ id: 3, result: result(), contacts: [s0.takeDelta(true)!] });
+    s1.episodes.append({ pair: 2, ordinal: 0, onset: 3, end: 4, closeAt: 3, closeDist: 1, firstIv: NONE });
+    workers[1]!.emit({ id: 3, result: result(), contacts: [s1.takeDelta(true)!] });
+    expect(sent.some(m => m.result), "held: the owner has not acknowledged").toBe(false);
+    send({ contactsAck: 3 });
+    const fin = sent.find(m => m.result)!;
+    expect((fin.contacts as StoreDelta[]).map(d => [d.episodes.count, d.episodes.updates.length])).toEqual([[0, 1], [1, 0]]);
+  });
+
+  it("a fall back to this core is the request's next generation", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...boxReq(4, 2), contacts: { generation: 0 } });
+    workers[1]!.fail();
+    drain();
+    const m = sent.find(x => x.contacts)!;
+    expect((m.contacts as StoreDelta[])[0]!.generation, "generation 1 on this core").toBe(1);
+    expect(new ContactStore(4, 0).apply((m.contacts as StoreDelta[])[0]!), "the old generation's table refuses it").toBe(false);
   });
 });

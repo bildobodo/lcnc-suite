@@ -81,6 +81,22 @@ describe("deltas: appended rows, coalesced updates, one unacknowledged (plan 3.1
     expect(new ContactStore(8, 2).apply(d), "another request").toBe(false);
   });
 
+  it("a receiver that forwards (the coordinator): received rows are its new rows, updates of forwarded rows its updates — once", () => {
+    const shard = new ContactStore(4, 0), coord = new ContactStore(4, 0), viewer = new ContactStore(4, 0);
+    const a = ep(shard, 1, 1);
+    coord.apply(shard.takeDelta()!); shard.ack();
+    viewer.apply(coord.takeDelta()!);          // forwarded, not yet acknowledged
+    ep(shard, 2, 2);
+    for (let k = 0; k < 50; k++) shard.episodes.set(a, "end", 10 + k);
+    coord.apply(shard.takeDelta()!); shard.ack();   // the shard is never held up by the viewer
+    expect(coord.takeDelta(), "one in flight to the viewer").toBeNull();
+    coord.ack();
+    const d = coord.takeDelta()!;
+    expect([d.episodes.from, d.episodes.count, Array.from(d.episodes.updates)]).toEqual([1, 1, [a]]);
+    viewer.apply(d);
+    expect([viewer.episodes.rows, viewer.episodes.get(a, "end")]).toEqual([2, 59]);
+  });
+
   it("a delta out of order is refused, never patched in", () => {
     const s = new ContactStore(1, 0), r = new ContactStore(1, 0);
     ep(s, 0, 0);
