@@ -1,0 +1,73 @@
+{
+  "task_dir": "/tmp/codex-r151-p05bfdb8",
+  "review_head": "be59a82ba6317ef03ba9dd4c51fd77edfcae67fb",
+  "base": "e996903c",
+  "live_head": "768c18d036e1ae00915bd19d2f61d6cc4fde48d9",
+  "initial_status": " M docs/reviews/viewer-palette-fest.ideen.md\n?? docs/reviews/viewer-palette-fest.r151.budget-probe.ts\n?? docs/reviews/viewer-palette-fest.r151.budget.txt\n?? docs/reviews/viewer-palette-fest.r151.gate-frontend.json\n?? docs/reviews/viewer-palette-fest.r151.mutations.py\n?? docs/reviews/viewer-palette-fest.r151.mutations.txt\n",
+  "inputs": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "sha256": "8113091eeef829986ede80009b97f2cdf5de0270722179023250d253bbd4c771",
+      "bytes": 1613180
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "sha256": "af8be63ad5280ba568630ab03fff355516ba9ecd1a5db563376401177618df90",
+      "bytes": 54842
+    },
+    "docs/reviews/viewer-palette-fest.r151.budget.txt": {
+      "sha256": "2eff708828a42ff854e0e02a5127bb21bb74f257488552b6526f09eca017b912",
+      "bytes": 993
+    },
+    "docs/reviews/viewer-palette-fest.r151.mutations.py": {
+      "sha256": "8d9121a875f44f32b3351d1a95fdf4b3e3b24b4937d628a8e44e8cf17a990110",
+      "bytes": 7318
+    },
+    "docs/reviews/viewer-palette-fest.r151.mutations.txt": {
+      "sha256": "52fe05bcf21145427e545173d7e2527a023e47fa859ee39faa860fefee3fcfde",
+      "bytes": 5722
+    },
+    "docs/reviews/viewer-palette-fest.r151.budget-probe.ts": {
+      "sha256": "b1c1c6c97d2b68740e9e9a2cbce20a51df649f2e097d3e16e2050c24b83f1cd4",
+      "bytes": 2634
+    },
+    "docs/reviews/viewer-palette-fest.r151.gate-frontend.json": {
+      "sha256": "162eb1e7c366711f76d9cef6954ab2ab41f73841ac8d5c4c409e14b76167132d",
+      "bytes": 857
+    }
+  },
+  "integrity_before_append": {
+    "inputs": {
+      "docs/reviews/viewer-palette-fest.ideen.md": {
+        "unchanged": true,
+        "bytes": 1613180
+      },
+      "docs/reviews/kollision-paket2.plan.md": {
+        "unchanged": true,
+        "bytes": 54842
+      },
+      "docs/reviews/viewer-palette-fest.r151.budget.txt": {
+        "unchanged": true,
+        "bytes": 993
+      },
+      "docs/reviews/viewer-palette-fest.r151.mutations.py": {
+        "unchanged": true,
+        "bytes": 7318
+      },
+      "docs/reviews/viewer-palette-fest.r151.mutations.txt": {
+        "unchanged": true,
+        "bytes": 5722
+      },
+      "docs/reviews/viewer-palette-fest.r151.budget-probe.ts": {
+        "unchanged": true,
+        "bytes": 2634
+      },
+      "docs/reviews/viewer-palette-fest.r151.gate-frontend.json": {
+        "unchanged": true,
+        "bytes": 857
+      }
+    },
+    "archive_tracked_src_files": 367,
+    "archive_source_mismatches": [],
+    "live_head_after": "768c18d036e1ae00915bd19d2f61d6cc4fde48d9",
+    "live_head_unchanged": true
+  }
+}
