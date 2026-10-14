@@ -1,0 +1,2 @@
+one pair: two plain sources 106 78 81 61 62 ms; the union of the same 300 301 280 260 254 ms
+many pairs: two plain sources 78 61 62 65 74 ms; the union of the same 286 263 269 264 265 ms

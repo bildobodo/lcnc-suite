@@ -1,0 +1,33 @@
+
+ RUN  v4.1.8 /tmp/codex-r152-706x1qnd/repo/lcnc-webui
+
+ ❯ src/viewer/r152.codex-contracts.test.ts (6 tests | 1 failed) 15ms
+   × a known point between touching tool-unknown stretches stays a separate event after empty fallback 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r152.codex-contracts.test.ts > a known point between touching tool-unknown stretches stays a separate event after empty fallback
+AssertionError: the known point is not new ignorance: expected 2 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 2
+
+ ❯ src/viewer/r152.codex-contracts.test.ts:81:82
+     79|  const after=buildContactView({sources:[{stores:[gen(1,1,[])],held:[ol…
+     80|  report.touchingToolGaps={before:targets(before),after:targets(after),…
+     81|  expect(before.n).toBe(3);expect(after.n,'the known point is not new i…
+       |                                                                                  ^
+     82|  expect(findKey(after,targetKey(before,1))).toBeGreaterThanOrEqual(0);
+     83| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 5 passed (6)
+   Start at  09:04:34
+   Duration  203ms (transform 107ms, setup 0ms, import 124ms, tests 15ms, environment 0ms)
+

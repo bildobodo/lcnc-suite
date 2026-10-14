@@ -1,0 +1,35 @@
+{
+  "head": "d8351211",
+  "note": "the offline gate's frontend steps; Playwright with --trace off, alone, at 91b4879d (d8351211 changes only one unit test's timeout). 524 browser tests: R151's 522 and the two join guards (VP-I111). The first vitest run at 91b4879d failed the random union test on vitest's 5 s default under the full suite's load (3.5 s alone); it has its own timeout since d8351211, the rerun passed",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 9
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 17
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 483,
+      "tests": "140 files, 2357 passed",
+      "note": "rerun at d8351211; the first run at 91b4879d: 2356 passed, 1 timed out (5 s default)"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2166,
+      "own_duration_min": 36.1,
+      "tests": "524 passed",
+      "note": "run alone, at 91b4879d"
+    }
+  ]
+}

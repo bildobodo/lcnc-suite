@@ -1,0 +1,34 @@
+{
+  "reviewedCommit": "d8351211712fff9c01dbc5aea91bd9f5156e4daf",
+  "liveHead": "8a9849e8bbe81a7bd573ced8aabc89be210a9e8b",
+  "archive": "/tmp/codex-r152-706x1qnd/repo",
+  "trackedSrcFilesChecked": 367,
+  "srcMismatches": [],
+  "inputsUnchangedBeforeAppend": {
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.ideen.md": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.budget-probe.ts": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.budget.txt": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.gate-frontend.json": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.mutations.py": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.mutations.txt": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.plain-probe.ts": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.plain.txt": true
+  },
+  "initialInputsSha256": {
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.ideen.md": "60dee31300f4c0a6a21c7add9a0989f991665d24cd147fd7bdde319eeee1ead1",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.budget-probe.ts": "a607594555cefc278cc09f426af24a4eebb9118c4a062f01403d90f89c78022c",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.budget.txt": "347b2ed206db93dea47f115b9a0e343c046d772637895902a94f0f1cd06c5d74",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.gate-frontend.json": "a04cf92acb6c554a7547473838f1d37d0a3efebcb3ebf85cec0f8d635c9eabd8",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.mutations.py": "56ded375ad4fbc567a3132f450adbe2f9a9335cf8fc92b732a6e8f82f0910cc4",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.mutations.txt": "8a9832bff599f6d9ac103dda20c7c0c588156d9ea582f88af5c2a62f5af3a373",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.plain-probe.ts": "148427ad9cd03a8bbda317277eace36c831b0adcbdfbcf91bbd3a1926584fbec",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r152.plain.txt": "3fb06f3b6e6c949ff54fd2eb95793a131acb21530d69145c41e7f42c1c28ea97"
+  },
+  "tests": {
+    "targetedRepoPlusR151Probes": "134/134 PASS (129 repository + 5 prior probes)",
+    "browser": "3/3 PASS (2 repository + 1 prior probe)",
+    "extendedContracts": "5 PASS / 1 FAIL (touching gaps)",
+    "realSweep": "1 PASS / 1 FAIL (positive control vs collapsed time axis)"
+  },
+  "browserSetup": "First launch failed before page setup because ctl WebSocket still pointed at unused localhost:4174; adapted both MOCK and CTL to 127.0.0.1:4188, final three tests PASS. No live ports used."
+}

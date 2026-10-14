@@ -1,0 +1,26 @@
+{
+  "secondMs": 1790.8680989999998,
+  "heapSecond": 4642160,
+  "secondRetainedGrowth": -4440,
+  "n": 262144,
+  "vn": 262144,
+  "heldBytes": 3768332,
+  "buildMs": 350.49234799999994,
+  "queryAllMs": 1806.2906469999998,
+  "checksum": 206157643776,
+  "heapBefore": 4258696,
+  "heapAfter": 4646600,
+  "retainedHeapGrowth": 387904,
+  "cache": {
+    "keys": [
+      "src",
+      "group",
+      "r0",
+      "r1",
+      "sides",
+      "seps"
+    ],
+    "sideCount": 2,
+    "separatorLength": 0
+  }
+}
