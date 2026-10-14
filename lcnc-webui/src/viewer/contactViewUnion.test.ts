@@ -210,6 +210,15 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
     }
   });
 
+  it("a bisection's point gap inside a longer gap: the longer one still darkens its stretch (ends need not rise with starts)", () => {
+    // the main loop's undecidable stretch [1, 3]; a bisection named a point at 2 inside it, written later; then [5, 6]
+    const st = gen(0, [{ pair: 0, enter: 0, exit: 7, witness: 0.5 }], { gaps: [[0, 1, 3], [0, 5, 6], [0, 2, 2]] });
+    const v = buildContactView({ sources: [{ stores: [st], at: c => c, ownCoverage: 8 }], pairName: names, coverage: 8 });
+    expect([...tintAt(v, 2.5)], "inside [1, 3], past the point at 2").toEqual([]);
+    expect([[...tintAt(v, 0.5)].length, [...tintAt(v, 4)].length, [...tintAt(v, 5.5)].length]).toEqual([2, 2, 0]);
+    expect(contactBands(v, 8, 8), "the bands: [0, 1], [3, 5], [6, 7]").toEqual([[0, 0.125], [0.375, 0.625], [0.75, 0.875]]);
+  });
+
   it("Codex R151 VP-I113, the defined handover: two old events one piece holds (a confirmed point on the free sample between them) — the second key selects that piece", () => {
     // old: [0, 1] and [1.25, 2] apart by a point free sample at 1.125; the new run touched exactly there
     const old = gen(0, [{ pair: 0, enter: 0, exit: 1, witness: 0.5, freeAt: 1.125, freeR: 0 }, { pair: 0, enter: 1.25, exit: 2, witness: 1.5 }]);

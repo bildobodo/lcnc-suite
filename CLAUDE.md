@@ -1942,7 +1942,7 @@ truth), `contactStore.test.ts`, `contactMerge.test.ts`,
 distance probes away from the main step (refinement, re-sampling, the store's
 bisections) — the sink's cost without the load.
 
-**After a fallback (round B4, plan 3.5; Codex R140–R143, R150, R151)**: a pool
+**After a fallback (round B4, plan 3.5; Codex R140–R143, R150–R152)**: a pool
 that falls back to one core reruns the request as its next generation; the
 receiver keeps the earlier one (`held`) together with how far each of its
 shards swept — the coordinator's `{id, heldCoverage: {generation, covered[]}}`
@@ -1964,13 +1964,22 @@ contradiction of the two runs, kept and NAMED in the sweep's caveat ("its two
 runs disagree at N places (from L…) — kept as contact"). A TOOL gap (the tool
 unknown) of either generation SEPARATES events (VP-I113: the contact before it
 ended, one after it begins anew — an empty rerun joined two old events at a
-point gap and lost the second's key): the pair's tool gaps of both
-generations, merged (`mergeSeps`), cut the axis into ZONES closed at both ends,
-each its own union; a point part at a zone's bound belongs where its interval
-goes on, a point interval on a point separator after it when it began after
-the unknown tool. An undecidable gap separates nothing; a knowledge gap does
-not split a piece, and a piece's contact on screen is its intervals' own less
-each one's generation's gaps. A piece is ONE u32 in the target list (its start
+point gap and lost the second's key): the pair's tool gaps become SEPARATORS
+(`mergeSeps`) — never two gaps of one generation (the sweep closes a gap
+before it opens the next; a time axis collapsed in f32 puts several on one
+point, and a known instant between them holds a contact of its own — R152),
+across generations the same gap aligned (equal, or overlapping: one cut at
+its coverage). They cut the axis into ZONES closed at both ends (between two
+that only touch, the shared point is a zone), each its own union; a part at a
+zone's bound with length elsewhere belongs where its interval goes on; a
+POINT interval lies in a zone holding its point, chosen by its generation's
+order where several do — never before the interval before it, one further
+when it began after the unknown tool. An undecidable gap separates nothing; a
+knowledge gap does not split a piece, and a piece's contact on screen is its
+intervals' own less each one's generation's gaps. Named limit: two contacts
+of a pair touching at one point within one known stretch (exit, free sample,
+re-entry in zero time) have no order in the store, so the union joins them
+under the first key and hands the second over. A piece is ONE u32 in the target list (its start
 evidence: an interval's enter, a free stretch's end, or — an interval of the
 other generation reaching over a separator — the zone's start, named by the
 gap it ends at and the piece's origin); the build walks each group ONCE
@@ -1981,7 +1990,11 @@ by start and the free union cut out), and every later question asks
 context of its last group, nothing per row (a memo of free stretches per
 interval grew with the group, outside the budget). Its identity: the earlier
 event's key where it holds that event's witness, else `<lead row key>#g<generation>/<b |
-f<gen>:<evidence row key> | s<gen>:<gap row>>`; an earlier event whose witness
+f<gen>:<evidence row key> | s<gen>:<gap row>>` — an interval's number in its
+episode read from the source's group index (every source has one: intervals
+by pair, origin and enter — an episode's stand together in time order), never
+by walking the episode's chain, which a pair with many re-entries makes as
+long as the table; an earlier event whose witness
 a piece another earlier event keeps holds (a free stretch refuted on its
 sample) is HANDED OVER — `findKey` with its key answers that piece. A base
 contact an entry contact continues is that entry's finding in every generation
@@ -1996,12 +2009,30 @@ again is `earlier` (the Sim tab: "from the earlier run"). Code marks read both
 generations' episodes (a free stretch proves no touch, not that the pair left
 the margin). `contactUnion.test.ts` holds the walk AND the search to a brute
 force over open and closed spans with zones (7 seeds × 3000 random generation
-pairs with tool gaps — realistic ones where a contact ended and point gaps
-— piece by piece and zone by zone, each asked again from its start, the
+pairs with tool gaps — realistic ones where a contact ended, point gaps and
+clusters of restarts at one point with a touch in some known instants —
+piece by piece and zone by zone, each asked again from its start, the
 contradictions the walk names equal to `eachWideConflict`'s) and to Codex's
-R140–R142, R150 and R151 sequences; `contactViewUnion.test.ts` holds the view
-through real tables (keys, gaps, separators, the handover, near misses, the
-reported coverage in three steps, conflicts, origin groups, the budget);
+R140–R142, R150–R152 sequences; `contactUnionSweep.test.ts` drives the REAL
+sweep (a Ø20 tool past a vise, the tool unknown on random stretches, zero-time
+clusters of restarts) and requires the earlier generation's events — keys,
+places, ends, kinds — unchanged by an empty and by an identical rerun (300
+passes; the named limit counted apart, its keys handed over);
+`contactViewUnion.test.ts` holds the view through real tables (keys, gaps,
+separators, the handover, near misses, the reported coverage in three steps,
+conflicts, origin groups, a point gap inside a longer one, the budget);
+`contactViewBudget.test.ts` holds what a view holds to `derivationBound` —
+derived from the store budgets term by term (pieces from union splits, zone
+starts and near misses, the episode list, the group index, the gap index with
+its pair's furthest end, the separators as two gap references, the near-miss
+matching, the joins): 10.91 MB at the request and side budgets (the 8.4 MB
+first agreed held none of the union's splits, gaps, separators or near
+matching) — at the budget, after the queries, every free sample cutting, full
+gap budgets of both reasons on one pair and on a pair each, near misses
+matched, pieces begun at separators (7.99–9.20 MB). The gap index holds each
+gap's row (4 B) and its pair's furthest end so far (8 B — a bisection's point
+gap may lie inside a longer gap), the values read from the table; a copy of
+every span and reason was 21 B a gap;
 `shownContacts.test` the joins (base, side, both, a side not swept whole, a
 later contact); `collisions.viewer.spec` fails a real sub-worker (the worker
 script served with a hook that holds the pool's words after its first

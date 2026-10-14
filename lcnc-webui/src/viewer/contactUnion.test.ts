@@ -2,8 +2,8 @@
 // the fast search against a brute force over plain sets of spans.
 import { describe, expect, it } from "vitest";
 import {
-  eachPiece, eachWideConflict, evidencePos, evidenceZone, mergeSeps, pieceFrom, pieceIntervals, PROTECT, START_ENTER, START_FREE,
-  START_SEP, unionScratch, unionReach, type UnionPiece, type UnionSide,
+  eachPiece, eachWideConflict, evidencePos, evidenceZone, mergeSeps, NO_SEPARATORS, pieceFrom, pieceIntervals, PROTECT, sepArray, START_ENTER, START_FREE,
+  START_SEP, unionScratch, unionReach, type UnionPiece, type UnionSeps, type UnionSide,
 } from "./contactUnion";
 
 interface Iv {
@@ -28,9 +28,11 @@ function side(p: Plain): UnionSide {
   };
 }
 const sidesOf = (held: Plain, cur: Plain) => [side(held), side(cur)];
-const sepsOf = (held: Plain, cur: Plain) => mergeSeps([...(held.gaps ?? []), ...(cur.gaps ?? [])].flat()).seps;
+/** Both generations' tool gaps merged: the flat spans (the brute force reads them) and as the core reads them. */
+const sepsFlat = (held: Plain, cur: Plain) => mergeSeps([(held.gaps ?? []).flat(), (cur.gaps ?? []).flat()]).seps;
+const sepsOf = (held: Plain, cur: Plain) => sepArray(sepsFlat(held, cur));
 
-const pieces = (sides: UnionSide[], seps: ArrayLike<number> = []) => {
+const pieces = (sides: UnionSide[], seps: UnionSeps = NO_SEPARATORS) => {
   const out: UnionPiece[] = [];
   eachPiece(sides, seps, p => out.push({ ...p }));
   return out;
@@ -39,7 +41,7 @@ const spans = (ps: UnionPiece[]) => ps.map(p => [p.start, p.end]);
 const r4 = (x: number) => Math.round(x * 1e4) / 1e4;
 
 /** The held interval whose witness the piece holds (the earliest), else −1. */
-function heir(sides: UnionSide[], p: UnionPiece, seps: ArrayLike<number> = []): number {
+function heir(sides: UnionSide[], p: UnionPiece, seps: UnionSeps = NO_SEPARATORS): number {
   let h = -1, w = Infinity;
   pieceIntervals(sides, seps, p, (si, k) => {
     const x = sides[si]!.witness(k);
@@ -75,25 +77,46 @@ function minus(set: Sp[], f: Sp): Sp[] {
   }
   return out.filter(s => !empty(s));
 }
-/** Interval iv's part in zone z of the merged separators — the rule written
- *  out apart: a point at a zone's bound belongs where the interval goes on; a
- *  point interval on a point separator after it when it began after the
- *  unknown tool. */
-function zonePart(iv: Iv, seps: ArrayLike<number>, z: number): Sp | null {
+/** The zone of each POINT interval of a generation (index → zone), the rule
+ *  written out apart: the zones holding its point are [separators starting
+ *  before it, separators ending at or before it]; where several do, the
+ *  generation's order decides — never before the interval before it, one
+ *  further after a restart. */
+function pointZones(g: Plain, seps: ArrayLike<number>): Map<number, number> {
+  const m = seps.length / 2, out = new Map<number, number>();
+  let prev = 0;   // before the first: the zone the track begins in
+  g.ivs.forEach((iv, k) => {
+    if (iv.enter !== iv.end) {
+      let below = 0;
+      for (let i = 0; i < m; i++) if (seps[2 * i + 1]! < iv.end) below++;
+      prev = below;
+      return;
+    }
+    let zmin = 0, zmax = 0;
+    for (let i = 0; i < m; i++) { if (seps[2 * i]! < iv.enter) zmin++; if (seps[2 * i + 1]! <= iv.enter) zmax++; }
+    prev = zmin > zmax ? -1 : zmin === zmax ? zmin : Math.min(zmax, Math.max(zmin, prev + (iv.after ? 1 : 0)));
+    out.set(k, prev);
+  });
+  return out;
+}
+/** Interval iv's part in zone z of the merged separators: a point at a zone's
+ *  bound belongs where the interval goes on; a point interval lies in its
+ *  point zone (`pz`, when there are separators). */
+function zonePart(iv: Iv, seps: ArrayLike<number>, z: number, pz?: number): Sp | null {
   const m = seps.length / 2;
+  if (iv.enter === iv.end && m > 0) return pz === z ? { a: iv.enter, ao: false, b: iv.end, bo: false } : null;
   const lo = z === 0 ? -Infinity : seps[2 * z - 1]!, hi = z < m ? seps[2 * z]! : Infinity;
   const A = Math.max(iv.enter, lo), B = Math.min(iv.end, hi);
   if (A > B) return null;
-  if (A === B) {
-    const point = iv.enter === iv.end;
-    if (z > 0 && A === lo && (iv.enter < lo || (point && seps[2 * z - 2] === lo && !iv.after))) return null;
-    if (z < m && B === hi && (iv.end > hi || (point && seps[2 * z + 1] === hi && !!iv.after))) return null;
+  if (A === B && iv.enter < iv.end) {
+    if (z > 0 && A === lo && iv.enter < lo) return null;
+    if (z < m && B === hi && iv.end > hi) return null;
   }
   return { a: A, ao: false, b: B, bo: false };
 }
 function oracle(held: Plain, cur: Plain): Array<Sp & { z: number }> {
   const gens = [held, cur];
-  const seps = sepsOf(held, cur);
+  const seps = sepsFlat(held, cur);
   const frags: Sp[] = [];
   for (const g of gens) for (const iv of g.ivs) {
     if (iv.freeAt === undefined || Number.isNaN(iv.freeAt)) continue;
@@ -110,9 +133,10 @@ function oracle(held: Plain, cur: Plain): Array<Sp & { z: number }> {
     if (!onSample) frags.push(r > 0 ? { a: p - r, ao: true, b: p + r, bo: true } : { a: p, ao: false, b: p, bo: false });
   }
   const free = union(frags), out: Array<Sp & { z: number }> = [];
+  const pzs = gens.map(g => pointZones(g, seps));
   for (let z = 0; z <= seps.length / 2; z++) {
     const parts: Sp[] = [];
-    for (const g of gens) for (const iv of g.ivs) { const x = zonePart(iv, seps, z); if (x) parts.push(x); }
+    gens.forEach((g, gi) => g.ivs.forEach((iv, k) => { const x = zonePart(iv, seps, z, pzs[gi]!.get(k)); if (x) parts.push(x); }));
     let s = union(parts);
     for (const f of free) s = minus(s, f);
     for (const x of union(s)) out.push({ ...x, z });
@@ -214,21 +238,54 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
     expect(pieces(sidesOf(wide, cur), sepsOf(wide, cur)).map(x => [x.zone, x.start, x.end])).toEqual([[0, 0, 1], [1, 3, 4]]);
     // the current run's gap separates the earlier run's contacts too: one coarse contact over both
     const coarse: Plain = { ivs: [{ enter: 0, end: 2, witness: 0.25 }] };
-    const both = pieces(sidesOf(coarse, { ivs: [], gaps: [[1, 1]] }), [1, 1]);
+    const both = pieces(sidesOf(coarse, { ivs: [], gaps: [[1, 1]] }), sepArray([1, 1]));
     expect(both.map(x => [x.zone, x.start, x.end, x.startKind]), "an interval reaching over a separator: its part after begins at the zone's start")
       .toEqual([[0, 0, 1, START_ENTER], [1, 1, 2, START_SEP]]);
   });
 
   it("a point interval on a point separator belongs after it when it began after the unknown tool, else before it", () => {
-    const at = (after: boolean) => pieces(sidesOf({ ivs: [{ enter: 1, end: 1, witness: 1, after }] }, { ivs: [] }), [1, 1]).map(x => [x.zone, x.start, x.end]);
+    const at = (after: boolean) => pieces(sidesOf({ ivs: [{ enter: 1, end: 1, witness: 1, after }] }, { ivs: [] }), sepArray([1, 1])).map(x => [x.zone, x.start, x.end]);
     expect(at(true)).toEqual([[1, 1, 1]]);
     expect(at(false)).toEqual([[0, 1, 1]]);
   });
 
-  it("merges separators: overlapping and touching ones join, each with the gap its end comes from", () => {
-    const m = mergeSeps([5, 6, 1, 2, 2, 3, 1.5, 3, 8, 8]);
-    expect([...m.seps]).toEqual([1, 3, 5, 6, 8, 8]);
-    expect([...m.src], "[1, 3] ends at the first gap ending at 3 in input order").toEqual([2, 0, 4]);
+  it("aligns separators: never two gaps of one generation; across generations the same gap — equal or overlapping — is one (Codex R152 VP-I113)", () => {
+    // one generation: two restarts at one point and two touching gaps stay apart
+    expect([...mergeSeps([[2, 2, 2, 2, 1, 2, 2, 3]]).seps]).toEqual([1, 2, 2, 2, 2, 2, 2, 3]);
+    // the same sequence in both: one each, aligned in order
+    const m = mergeSeps([[1, 2, 2, 2, 2, 3], [1, 2, 2, 2, 2, 3]]);
+    expect([...m.seps]).toEqual([1, 2, 2, 2, 2, 3]);
+    expect([[...m.first], [...m.last]], "the gaps each starts and ends with: the first generation's").toEqual([[0, 1, 2], [0, 1, 2]]);
+    // the earlier generation cut at its coverage: overlapping, one separator to the later one's end
+    expect([...mergeSeps([[1, 1.5], [1, 3]]).seps]).toEqual([1, 3]);
+    // tables that disagree: a gap overlapping two of the other's joins them; a point strictly inside one joins it
+    expect([...mergeSeps([[1, 2, 2.5, 3], [1.5, 2.75]]).seps]).toEqual([1, 3]);
+    expect([...mergeSeps([[1, 3], [2, 2]]).seps]).toEqual([1, 3]);
+    // touching across generations stays apart
+    expect([...mergeSeps([[1, 2], [2, 3]]).seps]).toEqual([1, 2, 2, 3]);
+  });
+
+  it("several restarts at one point (a collapsed time axis): each known instant's contact its own zone, by the generation's order", () => {
+    // unknown [0.5, 1], known at 1 (touch a), unknown [1, 1], known at 1 (touch b), unknown [1, 2], then [3, 4]
+    const held: Plain = { ivs: [{ enter: 0, end: 0.5, witness: 0.25, xd: false }, { enter: 1, end: 1, witness: 1, after: true, xd: false },
+                                { enter: 1, end: 1, witness: 1, after: true, xd: false }, { enter: 3, end: 4, witness: 3.5, after: true }],
+                          gaps: [[0.5, 1], [1, 1], [1, 2]] };
+    const sides = sidesOf(held, { ivs: [] }), seps = sepsOf(held, { ivs: [] }), p = pieces(sides, seps);
+    expect(p.map(x => [x.zone, x.start, x.end]), "a in the zone after the first restart, b after the second").toEqual([[0, 0, 0.5], [1, 1, 1], [2, 1, 1], [3, 3, 4]]);
+    expect(p.map(x => heir(sides, x, seps))).toEqual([0, 1, 2, 3]);
+  });
+
+  it("Codex R152 VP-I113: a known phase between two touching tool gaps keeps its contact — three events after an empty rerun", () => {
+    // [0, 1] ended where the tool became unknown at 1; known at 2 only, a touch there, unknown again; [3, 4] after it
+    const held: Plain = { ivs: [{ enter: 0, end: 1, witness: 0.5, xd: false }, { enter: 2, end: 2, witness: 2, after: true, xd: false },
+                                { enter: 3, end: 4, witness: 3.5, after: true }], gaps: [[1, 2], [2, 3]] };
+    const cur: Plain = { ivs: [] };
+    const sides = sidesOf(held, cur), seps = sepsOf(held, cur), p = pieces(sides, seps);
+    expect(p.map(x => [x.zone, x.start, x.end]), "the point between the gaps is a zone of its own").toEqual([[0, 0, 1], [1, 2, 2], [2, 3, 4]]);
+    expect(p.map(x => heir(sides, x, seps)), "each the earlier event").toEqual([0, 1, 2]);
+    // the rerun's identical gaps change nothing
+    const again = pieces(sidesOf(held, { ivs: [], gaps: [[1, 2], [2, 3]] }), sepsOf(held, { ivs: [], gaps: [[1, 2], [2, 3]] }));
+    expect(again.map(x => [x.zone, x.start, x.end])).toEqual([[0, 0, 1], [1, 2, 2], [2, 3, 4]]);
   });
 
   it("matches the brute force over random generations with tool gaps — piece by piece and zone by zone, its start's evidence, every later question from that start alone, the contradictions", { timeout: 120_000 }, () => {
@@ -255,6 +312,16 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
             gaps.push([s0, e0]);
             x = rnd() < 0.5 ? e0 : e0 + Math.max(0.125, grid(rnd()));
             after = true;
+            if (x === e0 && rnd() < 0.5) {
+              // known for an instant only, once or several times at one point: a touch in some of the instants,
+              // the tool unknown again from there (gaps that touch, point gaps at one coordinate)
+              for (let r = 1 + Math.floor(rnd() * 3); r > 0; r--) {
+                if (rnd() < 0.7) ivs.push({ enter: e0, end: e0, witness: e0, ed: rnd() < 0.5, xd: false, after: true });
+                const e1 = r > 1 && rnd() < 0.6 ? e0 : e0 + Math.max(0.125, grid(rnd()));
+                gaps.push([e0, e1]);
+                if (e1 !== e0) { x = rnd() < 0.5 ? e1 : e1 + Math.max(0.125, grid(rnd())); break; }
+              }
+            }
           }
           const len = rnd() < 0.15 ? 0 : Math.max(0, grid(rnd() * 2));
           const enter = x, end = x + len;
@@ -305,7 +372,7 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
           const brute: string[] = [];
           const span: Sp = { a: p.start, ao: p.startOpen, b: p.end, bo: p.endOpen };
           [held, cur].forEach((g, si) => g.ivs.forEach((iv, k) => {
-            const x = zonePart(iv, seps, p.zone);
+            const x = zonePart(iv, sepsFlat(held, cur), p.zone, pointZones(g, sepsFlat(held, cur)).get(k));
             if (x && meets(x, span)) brute.push(`${si}:${k}`);
           }));
           expect(holds, `${tag}: what the piece holds ${JSON.stringify(p)}`).toEqual(brute);

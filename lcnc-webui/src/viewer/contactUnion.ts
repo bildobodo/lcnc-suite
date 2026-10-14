@@ -23,13 +23,18 @@
 // ended there and one after it begins anew (no geometric re-entry, Codex
 // R140), so no shown event spans one (Codex R151 VP-I113 — an empty rerun
 // joined the two events of a point gap into one and lost the second's
-// identity). The tool gaps of both generations, merged, are the SEPARATORS;
-// they cut the axis into ZONES, closed at both ends ([e_{i−1}, s_i]), and each
-// zone is a union of its own. An interval's part in a zone is its stretch
-// there; a point part at a zone's bound belongs where the interval goes on,
-// and a point interval ON a point separator belongs after it when it began
-// after the unknown tool, else before it. An undecidable answer is no
-// separator: it suspends an interval, never ends one.
+// identity). The tool gaps are the SEPARATORS — never two of one generation
+// (R152: a time axis collapsed in f32 puts several restarts on one point, a
+// known instant between them holding a contact of its own), across the
+// generations the same gap aligned (`mergeSeps`). They cut the axis into
+// ZONES, closed at both ends ([e_{i−1}, s_i]; between two that only touch,
+// the point they share), and each zone is a union of its own. An interval's
+// part in a zone is its stretch there, a part at a zone's bound with length
+// elsewhere belonging where the interval goes on; a POINT interval lies in
+// one zone holding its point, by its generation's order where several do —
+// never before the interval before it, one further when it began after the
+// unknown tool (`pointZone`). An undecidable answer is no separator: it
+// suspends an interval, never ends one.
 //
 // The pieces are the EVENTS (targets, identity): a knowledge gap does not
 // split one, as it does not split an interval without a fallback. What a
@@ -80,9 +85,14 @@ export interface UnionSide {
   readonly front: number;
 }
 
-/** The group's separators: closed spans [s0, e0, s1, e1, …], by start, apart
- *  (`mergeSeps`); zone z is [e_{z−1}, s_z] (−∞ / +∞ at the ends). */
-export type UnionSeps = ArrayLike<number>;
+/** The group's separators: closed spans by start, none overlapping another
+ *  (`mergeSeps`); zone z is [e_{z−1}, s_z] (−∞ / +∞ at the ends) — between
+ *  two separators that only touch, the one point they share is a zone of its
+ *  own. Read through accessors: the view reads them from its tables. */
+export interface UnionSeps { readonly count: number; s(i: number): number; e(i: number): number }
+/** Separators from a flat [s0, e0, s1, e1, …] array. */
+export const sepArray = (a: ArrayLike<number>): UnionSeps => ({ count: a.length >> 1, s: i => a[2 * i]!, e: i => a[2 * i + 1]! });
+export const NO_SEPARATORS: UnionSeps = { count: 0, s: () => NaN, e: () => NaN };
 
 /** What a piece's start is: an interval's enter, the end of an interval's
  *  free stretch (p + r'; the point p itself for r' = 0), or a zone's start
@@ -118,50 +128,131 @@ export const freeRadius = (r: number) => (r > 0 ? r : 0);
 
 // ---- separators and zones -------------------------------------------------------------------------
 
-/** Closed spans [s, e, …] in any order merged into sorted spans apart from
- *  each other (touching ones join); `src[i]` is the input span whose end is
- *  merged span i's (the first such in input order). */
-export function mergeSeps(spans: ArrayLike<number>): { seps: Float64Array; src: Int32Array } {
-  const n = spans.length >> 1;
-  const order = Array.from({ length: n }, (_, k) => k).sort((x, y) => spans[2 * x]! - spans[2 * y]! || x - y);
-  const out: number[] = [], src: number[] = [];
-  for (const k of order) {
-    const s = spans[2 * k]!, e = Math.max(s, spans[2 * k + 1]!);
-    const m = out.length;
-    if (m && s <= out[m - 1]!) {
-      if (e > out[m - 1]! || (e === out[m - 1]! && k < src[src.length - 1]!)) { out[m - 1] = e; src[src.length - 1] = k; }
-    } else { out.push(s, e); src.push(k); }
+/** Each generation's tool gaps (flat [s, e, …]) aligned into separators.
+ *  Within ONE generation no two gaps are ever one separator: the sweep closes
+ *  a gap before it opens the next, so they are distinct restarts even where a
+ *  collapsed time axis puts them on one point (Codex R152 VP-I113: [1, 2] and
+ *  [2, 3] joined swallowed the contact at 2). A generation's gaps in time order
+ *  are by start, then end, then input order. Across generations a head is the
+ *  same gap when it is identical or overlaps with positive length (one
+ *  generation's gap cut at its coverage); a gap that overlaps a separator so
+ *  formed joins it too (tables that disagree — separators never overlap).
+ *  `first[i]` / `last[i]`: the gaps separator i starts and ends with, as
+ *  indices into the generations' spans one after the other (the first such). */
+export function mergeSeps(gens: ReadonlyArray<ArrayLike<number>>): { seps: Float64Array; first: Int32Array; last: Int32Array } {
+  let base = 0;
+  const lists = gens.map(g => {
+    const n = g.length >> 1, out: Array<{ s: number; e: number; k: number }> = [];
+    for (let i = 0; i < n; i++) out.push({ s: g[2 * i]!, e: Math.max(g[2 * i]!, g[2 * i + 1]!), k: base + i });
+    base += n;
+    return out.sort((x, y) => x.s - y.s || x.e - y.e || x.k - y.k);
+  });
+  const ptr = lists.map(() => 0), head = (i: number) => lists[i]![ptr[i]!];
+  // overlap with positive length, or a point strictly inside the other
+  const overlaps = (c: { s: number; e: number }, S: number, E: number) =>
+    Math.max(c.s, S) < Math.min(c.e, E) || (c.s === c.e && S < c.s && c.s < E) || (S === E && c.s < S && S < c.e);
+  const out: number[] = [], first: number[] = [], last: number[] = [];
+  for (;;) {
+    let li = -1;
+    for (let i = 0; i < lists.length; i++) {
+      const h = head(i);
+      if (h && (li < 0 || h.s < head(li)!.s || (h.s === head(li)!.s && h.e < head(li)!.e))) li = i;
+    }
+    if (li < 0) break;
+    const h = head(li)!;
+    ptr[li]!++;
+    let S = h.s, E = h.e, f = h.k, l = h.k;
+    const take = (i: number) => {
+      const c = head(i)!;
+      ptr[i]!++;
+      if (c.s < S) { S = c.s; f = c.k; }
+      if (c.e > E || (c.e === E && c.k < l)) { if (c.e > E) E = c.e; l = c.k; }
+    };
+    // the same gap in another generation
+    for (let i = 0; i < lists.length; i++) {
+      const c = head(i);
+      if (i !== li && c && ((c.s === S && c.e === E) || overlaps(c, S, E))) take(i);
+    }
+    // tables that disagree: whatever overlaps it joins it
+    for (let again = true; again;) {
+      again = false;
+      for (let i = 0; i < lists.length; i++) { const c = head(i); if (c && overlaps(c, S, E)) { take(i); again = true; } }
+    }
+    out.push(S, E); first.push(f); last.push(l);
   }
-  return { seps: Float64Array.from(out), src: Int32Array.from(src) };
+  return { seps: Float64Array.from(out), first: Int32Array.from(first), last: Int32Array.from(last) };
 }
 
-const zoneLo = (seps: UnionSeps, z: number) => (z === 0 ? -Infinity : seps[2 * z - 1]!);
-const zoneHi = (seps: UnionSeps, z: number) => (2 * z < seps.length ? seps[2 * z]! : Infinity);
-const pointSep = (seps: UnionSeps, i: number) => seps[2 * i] === seps[2 * i + 1];
+const zoneLo = (seps: UnionSeps, z: number) => (z === 0 ? -Infinity : seps.e(z - 1));
+const zoneHi = (seps: UnionSeps, z: number) => (z < seps.count ? seps.s(z) : Infinity);
 /** The separators ending before x (at or before it, with `incl`). */
 function sepsEnding(seps: UnionSeps, x: number, incl: boolean): number {
-  let lo = 0, hi = seps.length >> 1;
-  while (lo < hi) { const m = (lo + hi) >> 1; const e = seps[2 * m + 1]!; if (e < x || (incl && e === x)) lo = m + 1; else hi = m; }
+  let lo = 0, hi = seps.count;
+  while (lo < hi) { const m = (lo + hi) >> 1; const e = seps.e(m); if (e < x || (incl && e === x)) lo = m + 1; else hi = m; }
+  return lo;
+}
+/** The separators starting before x. */
+function sepsStarting(seps: UnionSeps, x: number): number {
+  let lo = 0, hi = seps.count;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (seps.s(m) < x) lo = m + 1; else hi = m; }
   return lo;
 }
 
-/** Interval k's part in zone z, closed; null: none. A point part at a zone's
- *  bound belongs to the zone the interval goes on in; a point interval on a
- *  point separator after it when it began after the unknown tool. */
-function partOf(s: UnionSide, k: number, seps: UnionSeps, z: number, out?: Span): Span | null {
-  return clipPart(s.enter(k), s.end(k), s.afterTool(k), seps, z, out);
+/** The zone a point interval at x lies in, from the zone of the interval
+ *  before it (`prev`) and whether it began after the unknown tool. The zones
+ *  holding x are [separators starting before x, separators ending at or
+ *  before x]; where separators meet at x (a time axis collapsed to one
+ *  coordinate) several do, and the side's time order decides: never before
+ *  the interval before it, one further when it began after a restart (−1:
+ *  inside a separator). */
+function pointZoneAt(seps: UnionSeps, x: number, after: boolean, prev: number): number {
+  const zmin = sepsStarting(seps, x), zmax = sepsEnding(seps, x, true);
+  if (zmin >= zmax) return zmin === zmax ? zmin : -1;
+  return Math.min(zmax, Math.max(zmin, prev + (after ? 1 : 0)));
 }
-/** partOf's rule on an interval's values. */
-function clipPart(a: number, b: number, after: boolean, seps: UnionSeps, z: number, out?: Span): Span | null {
-  const lo = zoneLo(seps, z), hi = zoneHi(seps, z);
+/** The zone interval k's LAST part lies in: a point interval's (pointZone),
+ *  else the zone its end lies in (a part at a zone's lower bound belongs to
+ *  the zone before). */
+const endZone = (seps: UnionSeps, b: number) => sepsEnding(seps, b, false);
+/** A point interval's zone: pointZoneAt with the side's order — back over the
+ *  point intervals whose zone may depend on the one before, then forward. */
+function pointZone(s: UnionSide, k: number, seps: UnionSeps): number {
+  // before the side's first interval: the zone its track begins in
+  let j = k, prev = 0;
+  for (;;) {
+    const x = s.enter(j), zmin = sepsStarting(seps, x), zmax = sepsEnding(seps, x, true);
+    if (zmin >= zmax || j === 0) break;          // decided by x alone, or the first
+    const pa = s.enter(j - 1), pb = s.end(j - 1);
+    if (pa !== pb) { prev = endZone(seps, pb); break; }
+    if (sepsEnding(seps, pa, true) + 1 <= zmin) break;   // the one before cannot reach a zone at x
+    j--;
+  }
+  for (let i = j; i <= k; i++) prev = pointZoneAt(seps, s.enter(i), s.afterTool(i), prev);
+  return prev;
+}
+
+/** Interval k's part in zone z, closed; null: none. A point part at a zone's
+ *  bound belongs to the zone the interval goes on in; a point interval lies in
+ *  its point zone. */
+function partOf(s: UnionSide, k: number, seps: UnionSeps, z: number, out?: Span): Span | null {
+  const a = s.enter(k), b = s.end(k);
+  if (a === b && seps.count) return pointZone(s, k, seps) === z ? setSpan(out, a, a) : null;
+  return clipPart(a, b, seps, z, out);
+}
+/** partOf's rule for an interval with length (or no separators). */
+function clipPart(a: number, b: number, seps: UnionSeps, z: number, out?: Span,
+                  lo = zoneLo(seps, z), hi = zoneHi(seps, z)): Span | null {
   const A = a > lo ? a : lo, B = b < hi ? b : hi;
   if (A > B) return null;
-  if (A === B) {
-    if (z > 0 && A === lo && (a < lo || (a === b && pointSep(seps, z - 1) && !after))) return null;
-    if (2 * z < seps.length && B === hi && (b > hi || (a === b && pointSep(seps, z) && after))) return null;
+  if (A === B && a < b) {
+    if (z > 0 && A === lo && a < lo) return null;
+    if (z < seps.count && B === hi && b > hi) return null;
   }
-  if (!out) return { a: A, ao: false, b: B, bo: false };
-  out.a = A; out.ao = false; out.b = B; out.bo = false;
+  return setSpan(out, A, B);
+}
+function setSpan(out: Span | undefined, a: number, b: number): Span {
+  if (!out) return { a, ao: false, b, bo: false };
+  out.a = a; out.ao = false; out.b = b; out.bo = false;
   return out;
 }
 /** A span the hot loops reuse (never held across a call that reuses it). */
@@ -223,7 +314,7 @@ function confirmedIn(s: UnionSide, k: number, f: Span, each: (x: number) => void
  *  generation touch at a point separator). */
 function eachConfirmedIn(sides: readonly UnionSide[], f: Span, each: (x: number) => void): void {
   for (const t of sides) {
-    for (let k = Math.max(0, predEnter(t, f.a) - 1); k < t.n && t.enter(k) <= f.b; k++) confirmedIn(t, k, f, each);
+    for (let k = Math.max(0, firstEnterFrom(t, f.a) - 1); k < t.n && t.enter(k) <= f.b; k++) confirmedIn(t, k, f, each);
   }
 }
 
@@ -272,7 +363,9 @@ export function evidenceZone(sides: readonly UnionSide[], seps: UnionSeps, side:
   if (kind === START_SEP) return idx + 1;
   const s = sides[side]!;
   if (kind === START_ENTER) {
-    const a = s.enter(idx), z = sepsEnding(seps, a, true);
+    const a = s.enter(idx);
+    if (a === s.end(idx) && seps.count) return pointZone(s, idx, seps);
+    const z = sepsEnding(seps, a, true);
     for (const c of [z, z - 1]) {
       if (c < 0) continue;
       const p = partOf(s, idx, seps, c);
@@ -288,7 +381,7 @@ export function evidenceZone(sides: readonly UnionSide[], seps: UnionSeps, side:
  *  question compute it with this one function (NaN: the evidence names none). */
 export function evidencePos(sides: readonly UnionSide[], seps: UnionSeps, side: number, kind: number, idx: number): number {
   if (kind === START_ENTER) return sides[side]!.enter(idx);
-  if (kind === START_SEP) return seps[2 * idx + 1]!;
+  if (kind === START_SEP) return seps.e(idx);
   const f = freeStretch(sides, side, idx);
   return f ? f.b : NaN;
 }
@@ -307,7 +400,7 @@ export function pieceFrom(sides: readonly UnionSide[], seps: UnionSeps, z: numbe
       const s = sides[si]!;
       // from the one before the last entering at or before y (two intervals
       // of a generation touch at a point separator, in two zones)
-      for (let k = Math.max(0, predEnter(s, y) - 1); k < s.n && s.enter(k) <= hi; k++) {
+      for (let k = Math.max(0, firstEnterFrom(s, y) - 1); k < s.n && s.enter(k) <= hi; k++) {
         const p = partFrom(s, k, seps, z, y, incl);
         if (!p) continue;
         if (!best || p.a < best.a || (p.a === best.a && best.ao && !p.ao)) { best = p; bSide = si; bK = k; }
@@ -364,7 +457,7 @@ export function pieceFrom(sides: readonly UnionSide[], seps: UnionSeps, z: numbe
     grew = false;
     for (const s of sides) {
       const k = predEnter(s, b);
-      for (let q = Math.max(0, k - 1); q <= k; q++) {
+      for (let q = Math.max(0, firstEnterFrom(s, b) - 1); q <= k; q++) {
         const p = partFrom(s, q, seps, z, b, true);
         if (!p || p.a !== b) continue;
         if (p.b > b || (p.b === b && bo && !p.bo)) { b = p.b; bo = p.bo; grew = true; }
@@ -391,7 +484,7 @@ function rangesOf(sides: readonly UnionSide[], seps: UnionSeps, p: UnionPiece): 
     let from = 0, to = 0;
     if (s) {
       from = -1;
-      for (let k = Math.max(0, predEnter(s, p.start) - 1); k < s.n && s.enter(k) <= p.end; k++) {
+      for (let k = Math.max(0, firstEnterFrom(s, p.start) - 1); k < s.n && s.enter(k) <= p.end; k++) {
         const iv = partOf(s, k, seps, p.zone, TMP);
         if (!iv || !meet(iv, span)) continue;
         if (from < 0) from = k;
@@ -425,6 +518,8 @@ interface SideScratch {
   enter: Float64Array; end: Float64Array; witness: Float64Array; freeAt: Float64Array; freeR: Float64Array;
   /** 1 enter decided, 2 exit decided, 4 open, 8 after the unknown tool. */
   flags: Uint8Array;
+  /** A point interval's zone (pointZone, computed forward once). */
+  pz: Int32Array;
   /** Its free stretches by interval order: count, start, end, a point, the interval. */
   fn: number;
   fLo: Float64Array; fHi: Float64Array; fPt: Uint8Array; fJ: Int32Array;
@@ -435,7 +530,7 @@ interface SideScratch {
 export interface UnionScratch { sides: SideScratch[]; fLo: Float64Array; fHi: Float64Array; fLoOpen: Uint8Array; fHiOpen: Uint8Array }
 export function unionScratch(): UnionScratch {
   const side = (): SideScratch => ({ n: 0, enter: new Float64Array(0), end: new Float64Array(0), witness: new Float64Array(0),
-                                     freeAt: new Float64Array(0), freeR: new Float64Array(0), flags: new Uint8Array(0),
+                                     freeAt: new Float64Array(0), freeR: new Float64Array(0), flags: new Uint8Array(0), pz: new Int32Array(0),
                                      fn: 0, fLo: new Float64Array(0), fHi: new Float64Array(0), fPt: new Uint8Array(0), fJ: new Int32Array(0), fByHi: null });
   return { sides: [side(), side()], fLo: new Float64Array(0), fHi: new Float64Array(0), fLoOpen: new Uint8Array(0), fHiOpen: new Uint8Array(0) };
 }
@@ -456,8 +551,24 @@ function readSide(s: UnionSide, x: SideScratch): void {
 }
 
 /** partOf from a side's scratch. */
-const partX = (x: SideScratch, k: number, seps: UnionSeps, z: number, out: Span) =>
-  clipPart(x.enter[k]!, x.end[k]!, (x.flags[k]! & F_AFTER) !== 0, seps, z, out);
+const partX = (x: SideScratch, k: number, seps: UnionSeps, z: number, out: Span, lo: number, hi: number) => {
+  const a = x.enter[k]!, b = x.end[k]!;
+  if (a === b && seps.count) return x.pz[k] === z ? setSpan(out, a, a) : null;
+  return clipPart(a, b, seps, z, out, lo, hi);
+};
+
+/** Every point interval's zone, forward in the side's order — pointZone's
+ *  rule, each from the one before. */
+function readPointZones(x: SideScratch, seps: UnionSeps): void {
+  x.pz = x.pz.length >= x.n ? x.pz : new Int32Array(Math.max(x.n, 2 * x.pz.length));
+  if (!seps.count) return;
+  let prev = 0;
+  for (let k = 0; k < x.n; k++) {
+    const a = x.enter[k]!, b = x.end[k]!;
+    if (a === b) { prev = pointZoneAt(seps, a, (x.flags[k]! & F_AFTER) !== 0, prev); x.pz[k] = prev; }
+    else prev = endZone(seps, b);
+  }
+}
 
 /** Last index with enter ≤ y in a side's scratch (−1: none). */
 function predEnterX(x: SideScratch, y: number): number {
@@ -605,12 +716,12 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
   const xs = scratch.sides;
   for (let si = 0; si < 2; si++) {
     const s = sides[si];
-    if (s) readSide(s, xs[si]!); else { xs[si]!.n = 0; }
+    if (s) { readSide(s, xs[si]!); readPointZones(xs[si]!, seps); } else { xs[si]!.n = 0; }
   }
   for (let si = 0; si < 2; si++) { if (sides[si]) readStretches(xs, si, conflict); else xs[si]!.fn = 0; }
   const fm = mergeFree(xs, scratch);
   const fLo = scratch.fLo, fHi = scratch.fHi, fLoOpen = scratch.fLoOpen, fHiOpen = scratch.fHiOpen;
-  const zones = (seps.length >> 1) + 1;
+  const zones = seps.count + 1;
   // per side: the first interval that may have a part in the zone (an
   // interval reaching over a separator has parts on both sides of it)
   const kz = [0, 0];
@@ -628,7 +739,7 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
     const nextPart = (si: number): Span | null => {
       const x = xs[si]!;
       while (pk[si]! < x.n && x.enter[pk[si]!]! <= hi) {
-        const p = partX(x, pk[si]!, seps, z, own[si]!);
+        const p = partX(x, pk[si]!, seps, z, own[si]!, lo, hi);
         if (p) return p;
         pk[si]!++;
       }
@@ -660,7 +771,7 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
       let fi = fp;
       const emit = (b: number, bo: boolean) => {
         if (x > b || (x === b && (xo || bo))) return;
-        emitPiece(sides, seps, xs, z, lo, x, xo, b, bo, rp, each);
+        emitPiece(sides, seps, xs, z, lo, hi, x, xo, b, bo, rp, each);
       };
       for (; fi < fm && (fLo[fi]! < cb || (fLo[fi] === cb && fLoOpen[fi] === 0)); fi++) {
         emit(fLo[fi]!, fLoOpen[fi] === 0);
@@ -678,7 +789,7 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
 }
 
 /** A piece found by the walk: its start evidence, its ranges, then `each`. */
-function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch[], z: number, lo: number,
+function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch[], z: number, lo: number, hi: number,
                    a: number, ao: boolean, b: number, bo: boolean, rp: number[], each: (p: UnionPiece) => void): void {
   const span: Span = { a, ao, b, bo };
   const piece: UnionPiece = { zone: z, start: a, startOpen: ao, end: b, endOpen: bo, startKind: -1, startSide: -1, startIdx: -1,
@@ -691,12 +802,12 @@ function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch
     let from = -1, to = 0;
     if (s) {
       while (rp[si]! < x.n && x.enter[rp[si]!]! <= b) {
-        const p = partX(x, rp[si]!, seps, z, TMP);
+        const p = partX(x, rp[si]!, seps, z, TMP, lo, hi);
         if (p && (p.b > a || (p.b === a && !ao))) break;
         rp[si]!++;
       }
       for (let k = rp[si]!; k < x.n && x.enter[k]! <= b; k++) {
-        const p = partX(x, k, seps, z, TMP);
+        const p = partX(x, k, seps, z, TMP, lo, hi);
         if (!p || !meet(p, span)) continue;
         if (from < 0) from = k;
         to = k + 1;
