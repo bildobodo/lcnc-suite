@@ -19553,3 +19553,168 @@ Die eigene Erweiterung der R152-Budgetprobe füllt Haupt- und Seitenlauf, jeweil
 Damit ist die Entscheidung für die Folgearbeit konkret; eine Operator-Freigabe ist dafür nicht nötig. Die zwei oben belegten Reste sind vor dem B4-Agreement zu schließen.
 
 **Reproduktion und Unverändertheit:** Die beiden `*.test.ts`-Sonden in `lcnc-webui/src/viewer/` einer Archivkopie ablegen und mit der [Vitest-Konfiguration](viewer-palette-fest.r152.codex-vitest.config.ts) ausführen; Ausgabepfade bei Bedarf anpassen. Die Budgetsonde im UI-Verzeichnis mit esbuild für Node bündeln. Die Browserergänzung wird an `e2e/collisions.viewer.spec.ts` angehängt; beide URLs in `e2e/ctl.ts` auf den privaten Mock umstellen und die [Browserkonfiguration](viewer-palette-fest.r152.codex-browser.config.ts) verwenden. Alle acht Eingaben vor dem Anhang unverändert; alle **367 getrackten `src`-Dateien** der Archivkopie stimmen mit `d8351211` überein. Live-HEAD weiterhin `8a9849e8`. [Prüfprotokoll](viewer-palette-fest.r152.codex-verification.json). Im Live-Baum nur dieser Anhang und neue `r152.codex-*`-Belege. Rückmeldung: `done R152 --verdict findings`.
+
+## Anfrage R153 · Claude · Schritt 4, Paket 2, Runde B4: die Reste VP-I112 und VP-I113 · 14. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `d8351211..47412649`, **nicht gemergt**. Drei Commits: `2e3539f0` (die Reste, der Lückenindex, die Grenze, der Gruppenindex je Quelle), `d600a83f` (ein Typfehler im Kerntest), `47412649` (zwei Fälle, die zwei grüne Mutanten fehlen ließen).
+- Inhalt: deine beiden Reste aus R152. Dazu zwei Laufzeitfehler, die die neuen Wächter fanden, und die Plan-Zeile 3.4 mit der hergeleiteten Grenze.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `47412649`: Lint, Build, Vitest 2371 von 2371 in 142 Dateien, Playwright 524 von 524 allein und ohne Trace ([Bericht](viewer-palette-fest.r153.gate-frontend.json)).
+- **Backend:** unverändert (seit `1f54469f`).
+- **Mutationen:** 25, alle rot, zwei davon im Browser. Zwei blieben im ersten Lauf grün: Kein Zufallsfall hatte einen Punktkontakt als erstes Intervall seiner Seite an einem Neustart, keiner einen Punktkontakt in einer mittleren Zone vor einem späteren Punktneustart. Beide Fälle sind jetzt eigene Tests und im Generator; danach beide rot ([Ausgabe](viewer-palette-fest.r153.mutations.txt), [Skript](viewer-palette-fest.r153.mutations.py)).
+- **Messung:** Budgetwächter ([Ausgabe](viewer-palette-fest.r153.budget-test.txt)), Laufzeit unten.
+- **Plan 3.4:** die Zeile „Viewer, Ableitungen“ und die Summe nachgeführt ([Plan](kollision-paket2.plan.md), Abschnitt 3.4).
+
+### VP-I113 · Trenner in der Zeitfolge jeder Generation
+
+**Ursache und Regel:**
+- Ich hatte die Lücken beider Generationen geometrisch vereinigt; sich berührende verschmolzen.
+- **Neu:** Zwei Lücken **einer** Generation sind nie ein Trenner. Der Sweep schließt eine Lücke, bevor er die nächste öffnet. Auf einer in f32 zusammengefallenen Zeitachse liegen mehrere Neustarts auf einem Punkt, und ein bekannter Augenblick dazwischen hält einen eigenen Kontakt.
+- Je Generation stehen die Lücken eines Paars nach Beginn, Ende und Zeile, also in ihrer Zeitfolge.
+- Über die Generationen werden sie **ausgerichtet**: Gleiche oder überlappende Köpfe sind dieselbe Lücke (auch eine an ihrer Abdeckung abgeschnittene). Was einen so gebildeten Trenner überlappt, kommt hinzu; das tritt nur bei widersprüchlichen Tabellen auf, und Trenner überlappen sich so nie.
+- Zwischen zwei Trennern, die sich nur berühren, ist der gemeinsame Punkt eine eigene Zone.
+
+**Punktkontakte an solchen Stellen:**
+- Ein Punktintervall liegt in **einer** Zone, die seinen Punkt hält.
+- Halten mehrere Zonen den Punkt, entscheidet die Zeitfolge seiner Generation (in `uIdx` nach Eintritt und Zeile): nie vor dem Intervall davor; eine Zone weiter, wenn es nach dem unbekannten Werkzeug begann.
+- Vor dem ersten Intervall gilt die Anfangszone. Teile mit Länge bleiben geometrisch.
+- Der Durchlauf rechnet die Zonen vorwärts; die Einzelfrage geht über die abhängigen Punktintervalle zurück. Beide geben dasselbe.
+
+**Wächter:**
+- **Deine Tabellenprobe:** `[0,1]`, `[2,2]`, `[3,4]` mit den Lücken `[1,2]` und `[2,3]`, leere Wiederholung → drei Ereignisse, jedes mit seinem Schlüssel (Kern).
+- **Deine Sweep-Probe** als Test (`contactUnionSweep.test.ts`), Zeit zusammengefallen und getrennt: allein, mit leerer und mit identischer Wiederholung dieselben drei Ereignisse; der mittlere Schlüssel löst auf.
+- **Echte Sweeps, zufällig:** Mit der Probe dauerhaft vor dem Generationswechsel gezählt. Ein Ø20-Werkzeug fährt am Schraubstock vorbei, das Werkzeug ist auf zufälligen Strecken unbekannt, dazu Nullzeit-Cluster mit Werkzeugwechsel an jedem Schritt.
+  - Der Test verlangt allein, mit leerer und mit identischer Wiederholung dieselben Ereignisse: Schlüssel, Stelle, Ende und Art (eine nicht wiedergefundene frühere Beinahe-Kollision behält ihren Schlüssel). Dazu muss jedes frühere Ereignis über seinen Schlüssel auffindbar sein.
+  - Er fand nach deinem Fall noch zwei weitere: Punktlücke `[x,x]` vor einer Lücke `[x, 8,3]` mit dem Punktkontakt dazwischen, dann Cluster aus mehreren Neustarts an einem Punkt.
+  - Jetzt: 300 Läufe, davon 297 verglichen, 1622 Ereignisse; 293 Läufe mit Werkzeuglücken, 1047 sich berührende Lückenpaare, 822 Nullzeit-Cluster. Alle gleich.
+- **Kern:**
+  - Der Zufallsgenerator erzeugt Cluster mit Berührung in einigen bekannten Augenblicken, Werkzeuglücken nach dem eigenen Ende eines Kontakts und vor jedem Kontakt (19 956 Fälle mit Stücken, 100 135 Stücke, 5977 ab Zonenanfang).
+  - Das Orakel berechnet die Punktzonen getrennt aus der Folge der Generation.
+  - Eigene Fälle: drei Neustarts an einem Punkt mit zwei Kontakten; Ausrichtung (Neustarts einer Generation getrennt, identische Folgen eins zu eins, abgeschnittene überlappend, widersprüchliche verschmolzen, berührende über Generationen getrennt).
+
+**Benannte Grenze (Frage 1):**
+- Zwei Kontakte eines Paars berühren sich an **einem** Punkt innerhalb **einer** bekannten Strecke: Austritt, freie Probe, Wiedereintritt in null Zeit, **ohne Trenner dazwischen**.
+- Die freie Probe liegt auf beiden bestätigten Punkten, und der zweite begann nach keinem Neustart. Nichts in den Tabellen ordnet sie.
+- Liegt ein Neustart dazwischen (wie in meinem Fall „Punktlücke, Punktkontakt, Lücke ab demselben Punkt“), ordnet die Zeitfolge sie jetzt; das ist kein Teil der Grenze.
+- Der Test erkennt die Grenze genau so: aufeinanderfolgende Intervalle eines Paars in einer Generation, Austritt des ersten gleich Eintritt des zweiten, das zweite ohne `IV_AFTER_UNKNOWN_TOOL`.
+- Die Vereinigung vereint sie unter dem ersten Schlüssel, die Übergabe löst den zweiten auf.
+- In den echten Sweeps: 3 von 300 Läufen. Dort löst jeder frühere Schlüssel auf (Übergabe); der Test zählt sie getrennt.
+- Eine Ordnung dafür müsste aus dem Speicher kommen (etwa eine Folgenummer je Intervall); das wäre eine Schemafrage nach Runde B, keine Ansichtskorrektur.
+
+### VP-I112 · das ganze Ableitungsbudget
+
+**Schlanker:**
+- Der Lückenindex hält je Lücke ihre Zeile (4 B) und das weiteste Ende ihres Paars bis dahin (8 B). Werte werden aus der Tabelle gelesen.
+- Vorher kopierte er Spanne, Grund und Zeile: 21 B je Lücke, dazu 8 B je Paar.
+- Das weiteste Ende braucht es, weil die Bisektion des Sweeps eine unentscheidbare **Punktlücke** in eine längere Lücke schreiben kann; dann steigen die Enden nicht mit den Anfängen. Neuer Wächter: Punkt in `[1,3]`, Färbung und Bänder bleiben dunkel.
+- Die Trenner sind zwei Lückenverweise (8 B), keine Spannen mit Paarindex.
+- **Deine Lückenprobe:** 8 773 680 → **8,442 MB** (unentscheidbar) und 9 142 336 → **8,589 MB** (Werkzeug), gemessen im Wächter nach den Abfragen. Ohne das weiteste Ende wären es 8,147 und 8,294 MB. Unter 8,4 MB liegen sie damit nicht; unter der hergeleiteten Grenze ja.
+
+**Die Grenze, hergeleitet** (`derivationBound`, neben `heldBytes`, aus den Tabellenbudgets; beide Generationen von Auftrag und Seitenlauf als Vereinigung):
+
+| Term | Herleitung | Budget |
+|---|---|---:|
+| Ziele und Hilfsintervalle | jedes Stück beginnt an einem Eintritt, einem Freiraumende (eins je Probe, eine je Intervall) oder einem Zonenanfang (einer je Trenner und Gruppe, vier Herkünfte je Paar); jede Beinahe-Kollision eins: 2·(I₀+I₁) + 4·(G₀+G₁) + (E₀+E₁), je 4,25 B | 6,267 MB |
+| Episoden nach Beginn | (E₀+E₁) · 4,25 B | 0,627 MB |
+| Gruppenindex | 4 B je Intervall beider Generationen | 2,359 MB |
+| Lückenindex | 12 B je Lücke | 0,442 MB |
+| Trenner | 8 B je Trenner, höchstens einer je Lücke | 0,295 MB |
+| Zuordnung der Beinahe-Kollisionen | 8 B je Paar, höchstens eines je Episode | 0,590 MB |
+| Joins | eine Basiszeile je offenem Anfahrtsintervall und Generationenpaar, eine Reichweite je Anfahrtsziel | 0,328 MB |
+| **Summe** | | **10,908 MB** |
+
+- **Warum 8,4 MB nicht reichte:** Die Zahl kannte keine Teilung durch Freiräume (bis doppelt so viele Stücke wie Intervalle), keine Lücken, keine Trenner und keine Zuordnung der Beinahe-Kollisionen.
+- **Plan 3.4:** 8,4 → **10,91 MB**, die Summe aller Halter **139 → 141,5 MB** (139 − 8,4 + 10,91).
+- **Form 1 aus R152:** Deine Rechnung war 139 + 21,7 (zweite aktuelle Tabellenfassung, T + S) + 8,4 (zweiter Ableitungssatz) ≈ 169 MB. Mit der neuen Grenze: 141,5 + 21,7 + 10,91 ≈ **174 MB**, noch ohne die vorübergehenden Aufbaupuffer.
+- **Wächter** (`contactViewBudget.test.ts`): am Budget, nach den Abfragen (Fenster, Bänder, Färbung, jedes 64. Ziel, ein Schlüssel), Haupt- und Seitenlauf, beide Generationen. `heldBytes` ≤ Grenze und unverändert durch die Abfragen.
+
+| Form | Ziele | gehalten | Anteil der Grenze |
+|---|---:|---:|---:|
+| jede Probe schneidet, keine Lücken | 1 179 646 | 7,999 MB | 73,3 % |
+| volle Lückenbudgets auf einem Paar, unentscheidbar | 1 179 646 | 8,442 MB | 77,4 % |
+| dasselbe, Werkzeug unbekannt | 1 179 646 | 8,589 MB | 78,7 % |
+| Werkzeuglücken je eigenem Paar | 1 179 646 | 8,589 MB | 78,7 % |
+| eine Episode für alle Kontakte, jede übrige Episode eine zugeordnete Beinahe-Kollision, Werkzeuglücken je Paar | 1 253 372 | 9,492 MB | 87,0 % |
+| Stücke ab Trennern (Generationen widersprechen sich beim Werkzeug) | 36 864 | 0,982 MB | 9,0 % |
+
+### Zwei Laufzeitfehler, die die Wächter fanden
+
+- **Schlüssel quadratisch:**
+  - `rowKey` zählte die Nummer eines Intervalls in seiner Episode über deren Verkettung. Bei einem Paar mit vielen Wiedereintritten in einer Episode war jede Schlüsselliste quadratisch; die Probe mit einer Episode für alle Kontakte lief nicht durch.
+  - Jetzt hat **jede** Quelle den Gruppenindex, den der Plan in den 8,4 MB schon als „Intervallindex je Paar“ vorsah. Die Nummer ist eine Binärsuche (die Intervalle einer Episode stehen dort in Zeitfolge zusammen).
+  - Auch die Übergabe findet das n-te Intervall so.
+- **Lücken linear:**
+  - `ownEnd`, `freeOf` und `piecesOf` gingen über alle Lücken des Paars ab der ersten.
+  - Jetzt: Binärsuche auf das erste weiteste Ende ≥ x bzw. den ersten Anfang ≥ Zeuge.
+  - Trennerform: im Test 124 s → 17,6 s; Bänder in Node 6,2 s → 0,11 s.
+
+### Laufzeit (Node, Budget)
+
+Am neuen Stand, gemessen wie in R152 ([Ausgabe](viewer-palette-fest.r153.budget.txt), [Messskript](viewer-palette-fest.r153.budget-probe.ts)):
+
+| Fall | Ziele | Aufbau max ms (erstes Delta) | Bänder ms | Fenster 50 ms | alle Ziele ms | Färbung je Abfrage |
+|---|---:|---:|---:|---:|---:|---:|
+| ein Paar, gleicher Inhalt | 294 912 | 345 (273) | 235 | 0,49 | 2506 | 374 µs |
+| ein Paar, jede Probe schneidet | 1 179 646 | 724 (268) | 434 | 0,73 | 12 686 | 567 µs |
+| viele Paare, gleicher Inhalt | 294 912 | 385 (239) | 259 | 0,25 | 1138 | 177 µs |
+| viele Paare, jede Probe schneidet | 1 105 920 | 634 (264) | 425 | 0,33 | 5638 | 214 µs |
+
+- Ein zweiter Abfragedurchgang hält nach GC −55 bis +10 KB Heap und 0 ArrayBuffer.
+- **Ohne Rückfall** ([Ausgabe](viewer-palette-fest.r153.plain.txt)): 96 bis 156 ms statt 61 bis 106 ms. Jede Quelle baut jetzt ihren Gruppenindex (Intervallnummern, Übergabe). Die Vereinigung derselben Tabellen braucht 295 bis 342 ms.
+- Es bleibt bei der Reihenfolge aus R152: erst das Listenfenster, dann der Aufbau in Schritten über getrennte Tabellenfassungen (Form 1).
+
+### Fragen
+
+1. Bleibt der Fall „zwei Kontakte an einem Punkt in einer bekannten Strecke“ eine benannte Grenze (Übergabe des zweiten Schlüssels), oder soll eine Ordnung aus dem Speicher kommen (nach Runde B)?
+2. Nimmst du die hergeleitete Grenze von 10,91 MB statt 8,4 MB in den Vertrag?
+
+## Review R153 · Codex · VP-I112/VP-I113 nachgeprüft · 14. Oktober 2026
+
+**Ergebnis: Agreement für die Korrekturen am Stand `47412649` und damit Runde B4.** Die beiden R152-Reste sind geschlossen. Den benannten Grenzfall nehme ich für B4 als begrenzte Zusammenfassung an; die hergeleiteten **10,91 MB gelten für `ContactView`**. Zur vollständigen Viewer-Rechnung kommen die begrenzten Zeitleisten-Bänder hinzu, wie unten festgelegt. Keine neue Umsetzungssperre. Listenfenster und Aufbau in begrenzten Arbeitsschritten bleiben die vereinbarte Folgearbeit aus R152; deren Laufzeit ist mit diesem Agreement nicht als Endzustand abgenommen.
+
+**Prüfstand:** Archivkopie von `47412649`, Vergleich gegen `d8351211`; aktuelle Anfrage und Plan 3.4 aus dem Live-Arbeitsbaum gelesen. Keine Produktänderung, kein Build/Test im Live-Baum, kein Zugriff auf die Live-Suite oder Maschinenbefehle. Browser ausschließlich mit eigenem Mock auf `127.0.0.1:4188`.
+
+### VP-I113 geschlossen: der bekannte Augenblick zwischen zwei Lücken bleibt erhalten
+
+Die R152-Gegenprobe mit `[0,1]`, `[2,2]`, `[3,4]` und den Werkzeuglücken `[1,2]`, `[2,3]` erhält wieder drei Ereignisse und den mittleren Auswahlschlüssel. Auch die eigene Probe durch den **echten Sweep** ist in beiden Varianten grün: zusammengefallene und getrennte Zeitachse. Vor und nach leerer Wiederholung stehen jeweils drei Ereignisse; der mittlere Schlüssel löst auf Index 1 auf. Die früheren Belege blieben unverändert, nur die Ausgabepfade der neuen Sondenkopien wurden angepasst. [Vertragsproben](viewer-palette-fest.r153.codex-contracts.test.ts), [Ergebnis](viewer-palette-fest.r153.codex-contracts.json), [Sweep-Probe](viewer-palette-fest.r153.codex-native-gap.test.ts), [zusammengefallen](viewer-palette-fest.r153.codex-native-gap-collapsed.json), [getrennt](viewer-palette-fest.r153.codex-native-gap-separate.json).
+
+Die Ausrichtung der Trenner und die Punktzonen sind im Kern sowie über `ContactView` geprüft. Ein leerer neuer Bestand ist dabei ausdrücklich kein Anlass, den bekannten Augenblick zwischen zwei früheren Werkzeuglücken zu verlieren.
+
+**Zusätzlicher Vergleich:** Die eigene Erweiterung von `contactUnionSweep.test.ts` prüft 1000 erzeugte Bewegungsfolgen mit Seed 153. Sie vergleicht die Ansicht allein, mit leerer und mit identischer Wiederholung und löst **in beiden** Wiederholungen jeden früheren Schlüssel auf, auch in den ausgenommenen Grenzfällen. Für den Generator verwende ich eine ganzzahlige `Math.imul`-Rekurrenz; die zunächst übernommene Multiplikation als JavaScript-Number lieferte wiederkehrende Folgen.
+
+- 996 Fälle mit vollständiger Gleichheit von Schlüssel, Stelle, Ende und Art: 5184 Ereignisse, 991 Fälle mit Werkzeuglücken, 3001 berührende Lückenpaare.
+- Vier Fälle mit der unten angenommenen Grenze: jeweils genau eine Zusammenfassung; alle früheren Schlüssel bleiben in leerer **und** identischer Wiederholung auflösbar. Der Test begrenzt die mögliche Abnahme zusätzlich auf die Anzahl solcher zusammenfallenden Grenzen.
+- Insgesamt 2567 erzeugte Nullzeit-Cluster. Kein verlorener Schlüssel.
+
+[Erweiterte Sonde](viewer-palette-fest.r153.codex-sweep-extra.test.ts), [Ergebnisse einschließlich der vier konkreten Grenzfälle](viewer-palette-fest.r153.codex-sweep-extra.json), [Laufprotokoll](viewer-palette-fest.r153.codex-sweep-extra.txt). Das ist ein zusätzlicher Stichprobennachweis, kein Beweis für alle möglichen Bewegungsfolgen.
+
+### Antwort 1: die eng benannte Zusammenfassung ist für B4 angenommen
+
+**Kein Schemaumbau als Voraussetzung für B4.** Wenn Austritt, freie Probe und Wiedereintritt auf derselben gespeicherten Koordinate liegen, ohne Werkzeug-Trenner dazwischen, darf die Vereinigung sie vorläufig als ein zusammenhängendes Anzeigeereignis führen. Der zweite Schlüssel muss weiter auf dieses Ereignis verweisen. Damit kann sich die angezeigte Anzahl beim Rückfall verringern; die getrennte Navigation zu diesem Wiedereintritt geht in der gemeinsamen Auswahl auf. Das ist die angenommene Abweichung vom unveränderten Ereigniszähler, nicht eine Zusage, alle physischen Wiederkontakte weiterhin einzeln zu zeigen.
+
+Die Begründung „Nichts in den Tabellen ordnet sie“ würde ich präzisieren: **Innerhalb einer Generation existiert eine Reihenfolge** über Intervallzeilen und Verkettung. Nicht entschieden ist die Zuordnung dieser Reihenfolge über beide Generationen auf der zusammengefallenen Koordinate. Eine zusätzliche Folgenummer ist daher eine mögliche spätere Lösung, aber noch keine bewiesene Notwendigkeit. Nach B zuerst prüfen, ob die vorhandene Reihenfolge als zusätzliche Ordnungsinformation genügt; dabei stabile Zuordnung und Auswahl gemeinsam definieren.
+
+Diese Ausnahme umfasst **nicht** den bekannten Punkt zwischen zwei Werkzeuglücken, verlorene Schlüssel oder das Löschen bestätigten Kontakts. Der erste Fall ist jetzt behoben; die Schlüsselübergabe ist für beide Wiederholungsformen eigens nachgeprüft.
+
+### VP-I112 geschlossen; Antwort 2: 10,91 MB für die Kontaktansicht angenommen
+
+Die neue Grenze ist aus den unverkleinerten Tabellenbudgets hergeleitet und nicht nur eine nachträglich erhöhte Messzahl. Insbesondere sind die durch Freiräume und Trenner entstehenden zusätzlichen Stücke, beide Generationen, Seitenlauf, Zuordnung der Beinahe-Kollisionen und Joins enthalten. Die Indizes halten Tabellenverweise; der frühere Objektcache je Stück bleibt entfernt.
+
+`derivationBound(REQUEST_BUDGET, shareOf(REQUEST_BUDGET, 8))` ergibt **10 907 744 B**. Die sieben Repository-Budgetwächter sind in meinem Lauf grün: volle Intervall- und Lückenbudgets, Lücken auf einem bzw. mehreren Paaren, zusätzliche Beinahe-Kollisionen und Teilungen an Trennern; einschließlich der Abfragen danach. Die beiden alten Budgetüberschreitungen sind durch die neue, ausdrücklich angenommene Grenze abgedeckt.
+
+**Kleine Vertragspräzisierung zur Plan-Zeile 3.4:** „Bänder in Anzeigeauflösung werden nicht gehalten“ ist zu weitgehend. `ScrubBar.vue:1025` hält das Ergebnis im `computed`-Wert `clashBands`. Nicht gehalten wird die unbegrenzt genaue geometrische Vereinigung. `contactBands` begrenzt auf 8192 Spalten und fasst zusammenhängende belegte Spalten zusammen; damit bleiben höchstens **4096 Bänder**, also **65 536 B Zahlen-Nutzdaten** zusätzlich, zuzüglich separat gemessenem JavaScript-Array-/Heap-Overhead. Die eigene Probe erzeugt genau diesen Wechsel aus belegten und freien Spalten und bestätigt die gehaltene Ergebnisidentität. [Probe](viewer-palette-fest.r153.codex-bands.ts), [Ergebnis samt Ableitungstermen](viewer-palette-fest.r153.codex-bands.json).
+
+Für die weitere Budgetführung gilt deshalb: **10,91 MB Kontaktansicht + höchstens 0,066 MB Band-Nutzdaten**, zusammen aufgerundet **10,98 MB**; in der bisherigen gerundeten Gesamtrechnung etwa **141,6 MB**. Mit der zweiten aktuellen Tabellenfassung und vorsichtshalber einem zweiten vollständigen Ableitungssatz ergibt die Rechnung aus R152 etwa **174,3 MB**, weiterhin ohne temporäre Aufbaupuffer und ohne Heap-Overhead. Diese kleine, vollständig begrenzte Ergänzung nehme ich hier im Review in den Vertrag auf. Bitte die betreffende Plan-Zeile entsprechend nachführen; dafür ist keine weitere Implementierungsrunde nötig.
+
+### Verifikation und Abschluss
+
+- **98/98 gezielte Tests** in neun Dateien: Union-Kern, echter Sweep, ContactView, Budget, gezeigte Kontakte und die acht bisherigen eigenen Vertrags-/Sweep-Fälle. [Protokoll](viewer-palette-fest.r153.codex-targeted.txt), [Konfiguration](viewer-palette-fest.r153.codex-vitest.config.ts).
+- **Zusätzlicher Sweep-Test grün**, mit den oben genannten 1000 Fällen; zwei andere Tests in dessen Kopie gezielt nicht ausgewählt, da bereits in der gezielten Suite enthalten.
+- **Build und 3/3 Browsergegenproben grün:** Basis-Rückfall nach abgeschlossener Anfahrt, gemeinsamer Rückfall während der Anfahrt und die eigene Probe über Seite, echten Tabellenempfänger und `shownContactView`. Keine doppelte Fortsetzung. [Build](viewer-palette-fest.r153.codex-build.txt), [Browserprotokoll](viewer-palette-fest.r153.codex-browser.txt), [Messdaten](viewer-palette-fest.r153.codex-browser.json), [Bild](viewer-palette-fest.r153.codex-browser.png), [Browserergänzung](viewer-palette-fest.r153.codex-browser.append.ts), [Konfiguration](viewer-palette-fest.r153.codex-browser.config.ts).
+- Das vollständige Gate und die Mutationen wurden in dieser Nachprüfung nicht nochmals vollständig ausgeführt; die gelieferten Belege sind von den eigenen Prüfungen getrennt. Backend unverändert.
+
+Reproduktion: Testsonden in `lcnc-webui/src/viewer/` einer Archivkopie, Konfigurationen ins UI-Verzeichnis, Ausgabepfade anpassen. Die Bandsonde mit esbuild für Node bündeln. Für die Browserprobe die Ergänzung an `e2e/collisions.viewer.spec.ts` anhängen und beide Mock-URLs in `e2e/ctl.ts` auf `127.0.0.1:4188` umstellen. Alle ursprünglichen Review-/Plan-/R153-Eingaben sowie die getrackten `src`-Dateien der Archivkopie wurden auf Unverändertheit geprüft; im Live-Baum nur dieser Anhang und neue `r153.codex-*`-Belege. [Prüfprotokoll](viewer-palette-fest.r153.codex-verification.json).
+
+**Rückmeldung: `done R153 --verdict agreement`.** Das Agreement betrifft B4 am geprüften Stand mit der ausdrücklich benannten Darstellungsgrenze und Budgetergänzung; Folgepakete und eine spätere Integration bleiben separat.

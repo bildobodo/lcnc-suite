@@ -1,0 +1,21 @@
+{
+  "targets": 4096,
+  "bandCount": 4096,
+  "evaluations": 1,
+  "secondReadIsSameArray": true,
+  "bandNumberPayloadBytes": 65536,
+  "viewHeldBytes": 51200,
+  "bound": {
+    "bytes": 10907744,
+    "terms": {
+      "targets": 6266944,
+      "episodes": 626720,
+      "unionIndex": 2359296,
+      "gapIndex": 442368,
+      "separators": 294912,
+      "nearMatching": 589824,
+      "joins": 327680
+    }
+  },
+  "note": "Numeric payload only; JavaScript array/object overhead and transient build buffers are separate. Maximum runs = ceil(8192/2)."
+}

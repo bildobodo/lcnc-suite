@@ -1,0 +1,8 @@
+[B4 bound] 10.908 MB: targets 6.267, episodes 0.627, unionIndex 2.359, gapIndex 0.442, separators 0.295, nearMatching 0.590, joins 0.328
+[B4 bound] every free sample cutting, no gaps: targets 1179646, conflicts 0, held 7.999 MB = 73.3 % of the bound
+[B4 bound] Codex R152: full gap budgets on one pair, undecidable: targets 1179646, conflicts 0, held 8.442 MB = 77.4 % of the bound
+[B4 bound] Codex R152: full gap budgets on one pair, tool unknown: targets 1179646, conflicts 0, held 8.589 MB = 78.7 % of the bound
+[B4 bound] tool gaps on a pair each: targets 1179646, conflicts 0, held 8.589 MB = 78.7 % of the bound
+[B4 bound] one episode of contacts, every other episode a matched near miss, tool gaps on a pair each: targets 1253372, conflicts 0, held 9.492 MB = 87.0 % of the bound
+[B4 bound] pieces begun at separators: targets 36864, held 0.982 MB = 9.0 % of the bound
+      Tests  7 passed (7)
