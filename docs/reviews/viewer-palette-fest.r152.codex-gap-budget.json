@@ -1,0 +1,53 @@
+[
+  {
+    "gapReason": null,
+    "n": 1179646,
+    "conflicts": {
+      "count": 0,
+      "at": null
+    },
+    "heldBytes": 7999504,
+    "limit": 8400000,
+    "buildMs": 770.254186,
+    "gaps": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  {
+    "gapReason": 1,
+    "n": 1179646,
+    "conflicts": {
+      "count": 0,
+      "at": null
+    },
+    "heldBytes": 8773680,
+    "limit": 8400000,
+    "buildMs": 748.7937839999997,
+    "gaps": [
+      16384,
+      16384,
+      2048,
+      2048
+    ]
+  },
+  {
+    "gapReason": 2,
+    "n": 1179646,
+    "conflicts": {
+      "count": 0,
+      "at": null
+    },
+    "heldBytes": 9142336,
+    "limit": 8400000,
+    "buildMs": 701.2062700000001,
+    "gaps": [
+      16384,
+      16384,
+      2048,
+      2048
+    ]
+  }
+]

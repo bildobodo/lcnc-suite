@@ -1,0 +1,28 @@
+
+ RUN  v4.1.8 /tmp/codex-r152-706x1qnd/repo/lcnc-webui
+
+ ❯ src/viewer/r152.codex-native-gap.test.ts (2 tests | 1 failed) 40ms
+   × real sweep retains the known tool phase; time-axis collapse=true 12ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r152.codex-native-gap.test.ts > real sweep retains the known tool phase; time-axis collapse=true
+AssertionError: expected 2 to be 3 // Object.is equality
+
+- Expected
++ Received
+
+- 3
++ 2
+
+ ❯ src/viewer/r152.codex-native-gap.test.ts:24:79
+
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 passed (2)
+   Start at  09:11:56
+   Duration  371ms (transform 194ms, setup 0ms, import 279ms, tests 40ms, environment 0ms)
+
