@@ -212,7 +212,7 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
       const sides = sidesOf({ ivs: [{ enter: 1, end: 2, witness: w, ed: false, xd: false }] }, { ivs: [{ enter: 0, end: 0.5, freeAt: 1.5, freeR: r }] });
       const wide: number[] = [], walked: number[] = [];
       eachWideConflict(sides, x => wide.push(x));
-      eachPiece(sides, [], () => {}, x => walked.push(x));
+      eachPiece(sides, NO_SEPARATORS, () => {}, x => walked.push(x));
       expect(walked, "the walk names what eachWideConflict names").toEqual(wide);
       return wide.length;
     };
