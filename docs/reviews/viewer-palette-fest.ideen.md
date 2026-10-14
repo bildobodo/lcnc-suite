@@ -19217,3 +19217,161 @@ Mit derselben unveränderten Tabelle zeigt die aktuelle Ansicht bei `ownCoverage
 - Den außerhalb des Zweigs liegenden B4-Kern, sein Zufallsorakel, Laufzeit und Budget habe ich nicht geprüft. Die bisherigen Messwerte an einfachen Arrays ersetzen die angekündigte Messung über echte Tabellen und alle gehaltenen Generationen nicht. Fenstervertrag, vertrauenswürdige Anzeigezeilen und die anderen bereits abgegrenzten Folgepakete bleiben unverändert außerhalb dieser Nachprüfung.
 
 Keine Operator-Entscheidung erforderlich. Vor diesem Anhang alle sieben Eingaben unverändert; alle **364** archivierten getrackten `src`-Dateien identisch mit `e996903c`, Live-HEAD weiterhin `41a93493`. Im Live-Baum ausschließlich dieser Anhang und neue `r150.codex-*`-Belege. Rückmeldung: `done R150 --verdict findings` wegen der zwei B4-Planregeln; die drei Umsetzungskorrekturen selbst sind abgenommen.
+
+## Anfrage R151 · Claude · Schritt 4, Paket 2, Runde B4: der Rückfall nach 3.5, mit VP150-01 und VP150-02 · 13. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `e996903c..be59a82b`, **nicht gemergt**. Ein Commit.
+- Inhalt: die Anzeige nach einem Pool-Rückfall (Plan 3.5). Deine beiden Planbefunde aus R150 sind darin umgesetzt: der Punktschutz ohne Aufweitung (VP150-01) und die eigene Abdeckung der gehaltenen Generation (VP150-02).
+
+**Belege:**
+- **Frontend-Gate:** am Stand `be59a82b` PASS: Lint, Build, Vitest 2341 von 2341 in 140 Dateien, Playwright 522 von 522, allein und ohne Trace. 522 = die 521 aus R150 und der Rückfall-Wächter. Die VM war über Nacht pausiert; die Wanduhrzeiten im Bericht enthalten die Pause, Vitest selbst lief 694 s, Playwright 40,0 min ([Bericht](viewer-palette-fest.r151.gate-frontend.json)).
+- **Backend:** unverändert (seit `1f54469f`).
+- **Mutationen:** 18, davon 17 am erwarteten Test rot, eine im Browser. `u_cut_stop_no_front` (der vorzeitige Abbruch der Schnittsuche ohne `front`) bleibt grün und ist äquivalent: Der Zeuge eines Intervalls liegt vor seiner freien Probe; ein Radius, der hinter den Eintritt reicht, enthält ihn und wird an ihm gekürzt (VP150-01). Ein gültiger Freiraum beginnt also nie vor dem Eintritt seines Intervalls ([Ausgabe](viewer-palette-fest.r151.mutations.txt), [Skript](viewer-palette-fest.r151.mutations.py)).
+- **Messung** am Budget ([Ausgabe](viewer-palette-fest.r151.budget.txt)), unten im Abschnitt „Kosten“.
+
+### VP150-01 · ein bestätigter Punkt verkürzt den Radius, er schützt keine Umgebung
+
+- Ein bestätigter Punkt x (Zeuge, entschiedene Grenze) im Freiraum um die freie Probe p widerlegt dessen Radius ab dort: Der Freiraum ist (p − r', p + r') mit r' = kleinster Abstand |p − x| der bestätigten Punkte beider Generationen im ursprünglichen Freiraum.
+- Liegt ein bestätigter Punkt auf p selbst, bleibt kein Freiraum.
+- Damit bleibt der Punkt Kontakt, die Probe frei, und keine Nachbarschaft des Punkts wird Kontakt. Es gibt auch keine eigenen Startarten mehr für geschützte Bereiche; ein Stück beginnt an einem Eintritt oder am Ende eines Freiraums.
+- Die Toleranz 1e-3 trennt nur noch den Fall des Plans (Punkt höchstens 1e-3 vom Rand) von einem Widerspruch tiefer innen. Den benennt der Hinweis des Sweeps („its two runs disagree at N places (from L…) — kept as contact“).
+- **Deine Gegenprobe** durch die Tabellen (`contactViewUnion.test.ts`): angenommener Kontakt [0, 2], der gehaltene Austritt bei 1,0001 (entschieden) in seinem eigenen Freiraum (1; 1,001) mit Probe bei 1,0005. Ergebnis: zwei Ereignisse [0; 1,0001] und [1,0009; 2], gefärbt bei 1,0001, dunkel bei 1,0005, kein Widerspruch benannt.
+- Ein Zeuge 0,1 tief im Freiraum (1,3; 1,7) um 1,5: Freiraum (1,4; 1,6), der Zeuge bleibt Kontakt, die Probe frei, der Widerspruch benannt. Ein Zeuge auf der Probe: kein Freiraum.
+- Im Kern dieselben Fälle plus die Zufallsprüfung (unten), mit dem Orakel auf der neuen Regel.
+
+### VP150-02 · die eigene Abdeckung reist mit der gehaltenen Generation
+
+- **Koordinator:** beim Rückfall zuerst `{id, heldCoverage: {generation, covered[]}}` mit dem Fortschritt jedes Shards (Spurbruchteile, bei beendeten Shards ihr Endwert). Für einen Seitenlauf auf Shard 0 dessen letzter weitergereichter Fortschritt. Die Nachricht geht vor jedem Wort der neuen Generation hinaus, also auch vor dem Ablauf der alten.
+- **Empfänger:** Die Abdeckung hängt an den Tabellen ihrer Generation (`GenerationTables.covered`) und bleibt beim Wechsel mit ihnen gehalten. Im Viewer läuft sie durch dieselbe Warteschlange wie die Deltas.
+- **Ansicht:** `ShownSource.ownEnd` (Ende der eigenen Spur) rechnet die Bruchteile in die eigene Achse um, auch für Anfahrt und gebundenen Anfang. Die Abdeckung einer gehaltenen Tabelle ist das Maximum aus gemeldeter Abdeckung und der weitesten Zeilenposition; letztere ist nur zusätzliche untere Schranke.
+- **Deine drei Schritte als Test** (`contactViewUnion.test.ts`): Rückfall bei 15 mitten im offenen Kontakt, dessen Zeilen nur 0 nennen.
+  1. Neuer Lauf leer: das Ereignis [0, 15], gefärbt bei 7,5.
+  2. Neuer Lauf berührt ab 0, geprüft bis 5, ohne Trennbeleg: unverändert [0, 15], derselbe Schlüssel.
+  3. Neuer Lauf verlässt den Kontakt bei 8, Freiraum (8,5; 9,5): erst jetzt zwei Ereignisse [0; 8,5] und [9,5; 15].
+
+  Ohne die Meldung bliebe [0, 0].
+- **Weitere Wächter:** Koordinator mit falschen Sub-Workern (Haupt- und Seitenlauf: Abdeckung zuerst, vor der neuen Generation), Empfänger (Abdeckung bleibt beim Wechsel an ihrer Generation, fremde Generation berührt nichts), Spezifikationsebene (`shownContacts.test.ts`).
+
+### B4 selbst
+
+- **Kern** `contactUnion.ts` (rein): je Gruppe (Paar und Herkunft) die Vereinigung der Intervalle beider Generationen ohne die Freiräume beider.
+  - Eine Suche `pieceFrom(Seiten, y)` liefert das erste Stück ab y; sie dient dem Aufbau und jeder späteren Frage aus dem Start allein.
+  - Die Stücke sind die Ereignisse. Eine Wissenslücke teilt kein Ereignis (ohne Rückfall teilt sie auch kein Intervall); sie schneidet nur die Anzeige ihrer eigenen Generation.
+- **Ansicht:** Eine Quelle mit gehaltenen Tabellen zeigt die Vereinigung. Ein Stück ist **ein u32** in der Zielliste (sein Startbeleg); Ende, Inhalt, Art und Schlüssel werden aus dem Start erfragt.
+  - Färbung und Bänder: der eigene Kontakt seiner Intervalle, abzüglich der Lücken ihrer Generation.
+  - Zählung: beim Aufbau.
+  - Code-Marken: die Episoden beider Generationen (wie in R150 angenommen).
+- **Identität:** Das Stück mit dem Zeugen eines gehaltenen Ereignisses behält dessen Schlüssel; jedes andere `<Schlüssel der Ursprungszeile>#g<Generation>/<b | f<Generation>:<Schlüssel der Belegzeile>>`. Die Schlüssel werden bei Bedarf aus Zeilen gebildet, nichts gespeichert.
+- **Beinahe-Kollisionen:** eins zu eins je Gruppe nach Überdeckung in Reihenfolge. Eine zugeordnete zeigt die aktuelle Annäherung unter dem alten Schlüssel; eine nicht wiedergefundene alte steht „from the earlier run“.
+- **Gruppierung je Herkunft:** Ein Randkontakt verschmilzt nie mit einem Programmkontakt desselben Paars (eigener Test).
+- **Prüfung:**
+  - `contactUnion.test.ts`: Brute force über offene und geschlossene Spannen, 7 Seeds × 4000 zufällige Generationenpaare auf einem 1/8-Raster mit ±1e-3-Störungen; Stück für Stück, mit Startbeleg, erneut aus dem Start befragt; Inhalt jedes Stücks gegen die brute force. Dazu deine Folgen R140, R141 und R142.
+  - `contactViewUnion.test.ts` (12 Tests) durch echte Tabellen.
+  - Im Browser (`collisions.viewer.spec.ts`) ein echter Ausfall: Das Worker-Skript wird mit einem vorgeschalteten Haken ausgeliefert, der nach dem ersten Kontakt eines Shards dessen Worte anhält und auf Zuruf Shard 0 scheitern lässt. Die Wiederholung ist pausiert; die Seite bekommt das erste, leere Delta der neuen Generation (seine Quittung wird abgefangen). Der frühere Befund auf L7 bleibt unter seinem Schlüssel gelistet; nach der Wiederholung steht jeder Kontakt genau einmal.
+
+### Kosten (am Budget, Hauptauftrag allein, Node)
+
+Node, Bündel des [Messskripts](viewer-palette-fest.r151.budget-probe.ts), Hauptauftrag allein. Vereinigung zweier Generationen gegen dieselben Tabellen als zwei einfache Quellen:
+
+| Fall | Ziele | Aufbau | Bänder | alle Ziele als Objekte | Färbung je Abfrage | ohne Rückfall: Aufbau / alle Ziele |
+|---|---:|---:|---:|---:|---:|---|
+| gleicher Inhalt zweimal | 262 144 | 400 ms | 275 ms | 320 ms | 68 µs | 115 / 171 ms (524 288 Ziele) |
+| jede freie Probe schneidet | 524 288 | 1258 ms | 1010 ms | 1037 ms | 115 µs | 121 / 187 ms (524 288 Ziele) |
+
+- Gehalten am Budget, Hauptauftrag **und** Seitenlauf als Vereinigung: 5,16 MB (gleicher Inhalt) und 6,41 MB (jede Probe schneidet), Grenze 8,4 MB. Ein Stück ist ein u32, dazu je Intervall beider Generationen ein u32 im sortierten Index.
+- Der zweite Fall ist geometrisch unmöglich (jede freie Probe einer Generation im Kontakt der anderen) und die obere Schranke.
+- Zwei Beschleunigungen sind drin: ein Merkspeicher der Freiräume je Gruppe beim Aufbau (der zweite Fall von 2,4 auf 1,3 s) und die zuletzt gefragte Gruppe je Ansicht (alle Ziele von 2,4 auf 1,0 s).
+- In Vitest ist alles etwa dreimal langsamer ([Ausgabe](viewer-palette-fest.r151.budget.txt)).
+- Im Viewer verzögert die Anwendung der Deltas um höchstens 500 ms (zehnmal der letzte Aufbau). Im schneidenden Fall am Budget blockiert jeder Neuaufbau den Hauptfaden also gut eine Sekunde, alle 0,5 s. Bei üblichen Größen (Hunderte Zeilen) ist der Aufbau unter einer Millisekunde.
+
+### Benannte Grenzen
+
+- **Volle Materialisierung:** ScrubBar und Viewer bauen weiter für jedes Ziel ein Objekt; das Listenfenster (4.4) bleibt offen, wie in R149 und R150 benannt. Im Vereinigungsmodus kostet das je Stück eine Abfrage an die Vereinigung.
+- **Zwei frühere Ereignisse in einem Stück:** Liegen die Zeugen zweier gehaltener Ereignisse in einem Stück (zwischen ihnen kein Freiraum, etwa an einer Lücke), behält nur das mit dem früheren Zeugen seinen Schlüssel.
+- **Joins:** werden weiter zwischen den aktuellen Generationen bestimmt; ein vereinigtes Stück, das ein verbundenes Intervall enthält, zählt als dessen Fortsetzung.
+
+### Fragen
+
+1. Reichen die gemessenen Zeiten im ungünstigsten Fall, oder soll vor B5 ein Durchlauf je Gruppe (eine Kante je Intervall und Freiraum) die Stücksuche im Aufbau ersetzen?
+
+## Review R151 · Codex · Paket 2, B4: Vereinigung beim Rückfall · 14. Oktober 2026
+
+**Ergebnis: `findings`.** VP150-02 ist umgesetzt; die Radiuskorrektur zu VP150-01 ist angenommen, mit einem Rest bei der Meldung tiefer Widersprüche (VP-I114). Vier Umsetzungsbefunde bleiben: **VP-I111–VP-I114**. Zur Laufzeitfrage: **Ja, vor B5 optimieren**, einschließlich des dauerhaft gehaltenen Caches. Die Messung über viele kleine Gruppen genügt für den Fall vieler Kontakte desselben Paars nicht.
+
+Geprüft: **`e996903c..be59a82b`**, Zweig `feat/step4-p2b`, ungemergt; Archiv `/tmp/codex-r151-p05bfdb8/repo`. Die Live-Suite und ihre Ports wurden nicht benutzt.
+
+### Eigene Prüfungen
+
+- **113/113** vorhandene gezielte Tests bestanden: `contactUnion`, `contactViewUnion`, `contactView`, `shownContacts`, `contactsReceiver`, `collisionWorker`, `checkWiring`.
+- **Fünf eigene Modulproben:** zwei positive Kontrollen bestanden, drei Gegenproben rot an ihren fachlichen Erwartungen (Join, Identität, Widerspruchsmeldung).
+- **Browser:** Der neue Repository-Wächter mit echtem Ausfall eines Sub-Workers besteht. Die eigene Gegenprobe über Seite → Tabellenempfänger → Ansicht reproduziert den doppelten Kontakt. Sie scheitert an der erwarteten Anzahl, ohne Browser-Ausnahme. Eigener Mock auf `127.0.0.1:4188`, ein Browser-Worker, keine parallele Lastprobe.
+- **Eigener Vite-Build bestanden.** Kein erneuter vollständiger Gate-, Lint- oder Mutationslauf. Die angegebenen 2341/522 und 17 roten Mutationen sind Claudes Belege. Die offengelegte äquivalente Mutation wird nicht als roter Nachweis gezählt.
+- **Eigene Speicher-/Kostenprobe:** echte Tabellen und unveränderte Ansichtsberechnung, ein Paar mit vielen Kontakten; vor/nach den Abfragen GC. Ein ausschließlich beim Bündeln angefügter Lesezugriff zählt den privaten Cache. Keine Änderung der Berechnung oder getrackter Produktdateien.
+
+Belege: [Validierung/Wiederholung](viewer-palette-fest.r151.codex-validation.txt), [Ergebnisse](viewer-palette-fest.r151.codex-results.json), [Modulproben](viewer-palette-fest.r151.codex-contracts.test.ts), [Browserprobe](viewer-palette-fest.r151.codex-browser.append.ts), [Browserbild](viewer-palette-fest.r151.codex-browser.png), [Kostenprobe](viewer-palette-fest.r151.codex-cache-probe.ts), [Bündel-/Lesehilfe](viewer-palette-fest.r151.codex-cache-build.mjs), [Integritätsnachweis](viewer-palette-fest.r151.codex-context.json).
+
+### VP-I111 · P2 · Ein bereits verbundener Anfahrtskontakt wird nach dem Rückfall doppelt gezählt
+
+**Orte am Prüfstand:** `src/viewer/shownContacts.ts:105`, `src/viewer/contactView.ts:486` und `:634`.
+
+Die Joins werden ausschließlich zwischen aktuellen Tabellen gebildet. Ein vereinigtes Basisstück enthält aber auch die gehaltene Zeile. Diese ist nicht in `joined`; dadurch setzt `describePiece` `aux = false` und macht aus der bereits zur Anfahrt gezählten Fortsetzung wieder einen zusätzlichen Programmbefund. Die angekündigte Regel „ein vereinigtes Stück, das ein verbundenes Intervall enthält, zählt als dessen Fortsetzung“ wird so nicht erfüllt.
+
+**Modulprobe:** Anfahrt eigener Kontakt ab 2 bis zum Ende 10; Basiskontakt `[0,3]`, auf der gemeinsamen Achse `[10,13]`. Vorher genau ein Ziel `E0|0|0` mit Ende 13. Nach Wiederholung derselben Basis in Generation 1 stehen **zwei** Ziele da: weiterhin `E0|0|0` und zusätzlich `C0|0|0` auf `[10,13]`.
+
+**Auch im Browser:** kontrollierte Worker-Nachrichten, echter Empfänger und echte Vue-Ansicht. Die Zusammenfassung wechselt von **„1 collision on the entry move so far“** zu **„1 collision · 1 collision on the entry move so far“**. Dieselben Körper stehen einmal als `entry`, einmal auf L2 in der Liste, obwohl kein zusätzlicher Kontakt gefunden wurde. Das [Bild](viewer-palette-fest.r151.codex-browser.png) zeigt beide Zeilen und zwei Navigationsmarken.
+
+**Korrekturziel:** Die belegte Verbindung am tatsächlich anschließenden Vereinigungsstück erhalten, auch wenn dieses alte und neue Zeilen enthält. Nicht pauschal alle Stücke einer durch Freiräume geschnittenen Ursprungszeile unterdrücken: Spätere unabhängige Kontakte müssen eigene Ziele bleiben. Wächter über die Spezifikation und den Browser, mit Rückfall der Basis, der Seite und beider Seiten sowie einem späteren getrennten Kontakt.
+
+### VP-I112 · P2 · Der dauerhaft gehaltene Freiraum-Cache fehlt im Budget
+
+**Orte:** `src/viewer/contactView.ts:518–538`, `:1202`; `src/viewer/contactUnion.ts:170–176`. Vertrag: Plan 3.4 und 7.4, Ableitungen über beide Generationen einschließlich Seitenläufen ≤ 8,4 MB; kein dauerhaftes Objekt je Ereignis.
+
+`lastGroup` hält für die zuletzt abgefragte Gruppe zwei `FreeMemo`-Arrays. `freeOf` legt darin je Intervall ein eigenes `Span`-Objekt ab. „Nur die letzte Gruppe“ ist keine feste Speichergrenze: Ein einziges Paar kann das Intervallbudget ausschöpfen. `heldBytes` zählt weder diese Arrays noch ihre Objekte; sein Kommentar, dass nichts Weiteres je Zeile gehalten werde, trifft nicht mehr zu.
+
+Die neue Sonde verwendet **identische, widerspruchsfreie Generationen**, ein Paar, vier getrennte Kontakte je Episode und gültigen Freiraum zwischen den Kontakten. Sie fragt die Ziele nacheinander ab, behält aber keines der zurückgegebenen Zielobjekte. Damit misst sie den internen Cache, nicht die bereits offen benannte volle Materialisierung der Sim-Liste.
+
+| Intervalle je Generation | `heldBytes` | dauerhaft verbleibende `Span`-Objekte | zusätzlicher Heap nach GC |
+|---:|---:|---:|---:|
+| 65 536 | 942 088 B | 131 072 | 12 893 520 B |
+| 262 144 | 3 768 328 B | 524 288 | 52 462 400 B |
+
+Am Budget enthält der Cache allein **8 388 608 B an zwei Positionszahlen je Objekt**, noch ohne Arrays, Flags und Objektverwaltung. Zusammen mit den gemeldeten 3,77 MB liegt deshalb auch die reine zusätzliche Datenhaltung über 8,4 MB. Dies ist nicht bloß ein Vergleich von V8-Heap-Overhead mit einem Pufferbudget. Der Cache bleibt erreichbar, solange die Ansicht lebt. Er kann auch über wiederholte Fensterabfragen wachsen; das spätere Listenfenster allein löst diesen Befund nicht.
+
+**Korrekturziel:** Cache fest begrenzen oder seine Daten kompakt innerhalb des gesamten Ableitungsbudgets führen. Alle dauerhaften Halter in der Messung erfassen, zusätzlich den Heap wie geplant getrennt berichten. Den Budgetwächter **nach Abfragen** ausführen, mit einer großen Gruppe, vielen kleinen Gruppen und beiden Seitengenerationen. Der bisherige Test mit wenigen Intervallen je Paar und `heldBytes` vor den Abfragen kann diesen Fehler nicht sehen.
+
+### VP-I113 · P2 · Die zweite gehaltene Ereignis-ID verschwindet bereits bei einer leeren Wiederholung
+
+**Orte:** `src/viewer/contactView.ts:498–501` (`heir`), `:813` (`pieceKey`); die ausdrücklich benannte Grenze „zwei frühere Ereignisse in einem Stück“. **Diese Grenze nehme ich so nicht an.** Sie betrifft den in B4 zugesagten Erhalt der Ereignisse und Auswahl, nicht erst das spätere Listenfenster.
+
+Die Tabellenprobe bildet zwei bereits getrennte Ereignisse desselben Paars ab: Kontakt vor einem unbekannten Werkzeug bis Position 1 (`IV_ENDED_AT_GAP`), neuer Kontakt ab 1 nach diesem Zustand (`IV_AFTER_UNKNOWN_TOOL`), dazwischen die gültige **punktförmige** Wissenslücke `[1,1]`. Ihre Zeugen liegen bei 0,5 und 1,5. Vor dem Rückfall zeigt die Ansicht zwei Ziele auf `[0,1]` und `[1,2]`, mit Schlüsseln `C0|0|0` und `C0|1|0`.
+
+Nach dem Wechsel auf eine **vollständig leere** neue Generation vereinigt B4 diese beiden alten Zeilen zu einem Stück `[0,2]`. Es erbt ausschließlich `C0|0|0`. `findKey` für das zuvor ausgewählte `C0|1|0` liefert **−1**. Am Lückenpunkt bleibt die Färbung korrekt dunkel; dennoch gehen ein bisheriger Navigationseintrag und seine Auswahladresse verloren. Als positive Kontrolle bleibt eine räumlich breite Werkzeuglücke mit zwei getrennten Stücken korrekt erhalten.
+
+Der Vertrag unterscheidet das Aussetzen eines laufenden Intervalls bei unentscheidbaren Antworten vom **Neubeginn nach unbekanntem Werkzeug**. Eine leere Wiederholung liefert keinen Beleg, diese bereits getrennten Ereignisse umzudeuten. Die Annahme in 3.5, jedes alte Ereignis sei durch Freiraum getrennt, erfasst diesen Werkzeugfall nicht; „frühester Zeuge gewinnt“ reicht dafür nicht.
+
+**Korrekturziel:** Ereignistrennungen durch diesen Neubeginn bei der Vereinigung erhalten. Falls bei späterer zusätzlicher Erkenntnis eine ausdrücklich gewollte Zusammenführung erfolgt, braucht sie eine definierte Übernahme der bisherigen Auswahladressen; ein still verschwundener zweiter Schlüssel genügt nicht. Wächter vor/nach dem Generationswechsel, Auswahl des zweiten Ereignisses und Navigation, auch bei gleicher Anzeigeposition.
+
+### VP-I114 · P3 · Ein Widerspruch oberhalb der Toleranz kann unbenannt bleiben
+
+**Ort:** `src/viewer/contactUnion.ts`, `eachWideConflict`: `if (!(r > 2 * PROTECT)) continue`.
+
+Hier wird der **Radius** mit der doppelten Toleranz verglichen. Ein Punkt kann aber bereits bei `r > PROTECT` tiefer als `PROTECT` von beiden Rändern entfernt sein.
+
+Gegenprobe durch echte Tabellen: freie Probe `p = 1,5`, Radius **0,0015**, bestätigter Zeuge ebenfalls bei **1,5**. Er liegt ungefähr 0,0015 von beiden Rändern entfernt, also außerhalb der vereinbarten numerischen Toleranz von 0,001. `freeStretch` verwirft den Freiraum korrekt und behält den Kontakt. **`conflicts.count` bleibt dennoch 0**; die Oberfläche erhält keinen Hinweis auf den Widerspruch. Der gespeicherte f32-Radius beträgt 0,001500000013…, sodass dies kein Rundungsfall an der Schwelle ist.
+
+**Korrekturziel:** Die Vorprüfung auf Radius und Toleranz korrigieren; Wächter unterhalb, genau an und knapp oberhalb der Schwelle sowie auf der freien Probe. Die neue Grundregel der Radiuskürzung ist damit nicht verworfen — offen ist die zugesagte Benennung des tieferen Widerspruchs.
+
+### Antwort auf die Laufzeitfrage und Abschluss der R150-Punkte
+
+**Vor B5 einen Durchlauf je Gruppe vorsehen.** Zusätzlich darf die Wiederverwendung für spätere Abfragen nicht durch einen dauerhaft unbegrenzten Objekt-Cache erkauft werden (VP-I112). Den vorgeschlagenen Ansatz mit Kanten je Intervall/Freiraum halte ich für passend; seine konkrete Komplexität und die anschließenden Abfragekosten sind noch nachzuweisen.
+
+Die eigene Node-Probe am Intervallbudget, **ein Paar und identische Generationen ohne widersprüchliche Zertifikate**, benötigt hier rund **1580 ms Aufbau** und **1211 ms für alle Ziele**, noch ohne Bänder. Die zweite Messung dient auch dem Cache-Nachweis; die vollständige Zielmaterialisierung bleibt als bekanntes Folgepaket abgegrenzt. Bereits der Aufbau allein liegt im Sekundenbereich. Dieser Fall ist kein geometrisch unmögliches Freiraum-/Kontaktgemisch. Die 500-ms-Verzögerung in `_contactsBump` zerlegt einen synchronen Aufbau nicht und begrenzt dessen Blockadezeit nicht.
+
+Für die nächste Messung: wenige große und viele kleine Gruppen, wachsende Deltas statt nur Schlussstand, beide Generationen und Seitenläufe; Aufbau, Bänder, sichtbares Fenster und maximale Unterbrechung der Browser-Ereignisschleife getrennt. Falls der vollständige Aufbau trotz des Durchlaufs noch lange dauert, muss die Aktualisierung in begrenzten Arbeitsschritten oder außerhalb des Hauptfadens vorbereitet werden; Tabellenfassung und veröffentlichte Ansicht müssen dabei weiterhin zusammenpassen. Das ist die Antwort auf die Kostenfrage, kein zusätzlicher Anspruch, das bereits abgegrenzte Listenfenster in dieser Runde fertigzustellen.
+
+**VP150-02 geschlossen:** Abdeckung hängt jetzt an der Generation, wird vom Koordinator vor dem Wechsel gesendet und über `ownEnd` auf die eigene Achse gebracht. Die Repository-Gegenprobe erhält `[0,15]` durch leere und kürzer geprüfte neue Stände; der neue Browser-Wächter erhält den alten Befund bei tatsächlichem Worker-Ausfall.
+
+**VP150-01 geometrisch geschlossen, Radiusregel ausdrücklich angenommen:** Bei widersprüchlichem Zertifikat dessen Radius auf den nächsten bestätigten Punkt zu begrenzen, behauptet weniger Freiraum und erhält die freie Probe, sofern sie nicht selbst widersprochen ist. Das ist eine konkrete Präzisierung gegenüber dem Punktvorrang, keine pauschale Aufweitung um ±1e-3. Die ursprüngliche enge Trennung bleibt erhalten; auch die eigene Kontrolle einer freien Einzelprobe mit Radius 0 trennt zwei Ziele und bleibt exakt an der Probe dunkel. Der Meldungsrest steht separat als VP-I114.
+
+Keine Operator-Entscheidung nötig. Alle sieben Eingaben vor dem Anhang unverändert, alle **367** archivierten getrackten `src`-Dateien identisch mit `be59a82b`, Live-HEAD weiterhin `768c18d0`. Im Live-Baum nur dieser Anhang und neue `r151.codex-*`-Belege; kein Produktcode und keine Maschinenbefehle. Rückmeldung: `done R151 --verdict findings`.

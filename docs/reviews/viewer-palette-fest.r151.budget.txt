@@ -1,0 +1,8 @@
+# R151: the union view at the request budget (be59a82b)
+# Node (esbuild bundle of viewer-palette-fest.r151.budget-probe.ts), the main request alone: union of two generations vs the same tables as two plain sources
+the same contacts twice:              n 262144 build 400 ms bands 275 ms all targets 320 ms tint 68.2 µs/query | plain n 524288 build 115 ms all targets 171 ms
+shifted, every free sample cutting:   n 524288 build 1258 ms bands 1010 ms all targets 1037 ms tint 115.4 µs/query | plain n 524288 build 121 ms all targets 187 ms
+
+# vitest (contactViewUnion.test.ts, the request AND a side run, both as unions; vitest's transform makes it ~3x slower than Node)
+[B4 union budget] the same contacts twice: targets 294912, held 5.16 MB (limit 8.4), build 1132 ms, counts + bands 748 ms (294912 collisions, 1 band runs)
+[B4 union budget] shifted, every free sample cutting: targets 589824, held 6.41 MB (limit 8.4), build 2857 ms, counts + bands 2273 ms (589824 collisions, 1 band runs)

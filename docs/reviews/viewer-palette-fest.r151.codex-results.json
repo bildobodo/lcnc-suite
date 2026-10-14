@@ -1,0 +1,294 @@
+{
+  "contracts": {
+    "join": {
+      "before": [
+        {
+          "cum": 2,
+          "cumEnd": 13,
+          "key": "E0|0|0",
+          "line": 3,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "entry": true,
+          "entryMove": true,
+          "spanEndLine": 14
+        }
+      ],
+      "after": [
+        {
+          "cum": 2,
+          "cumEnd": 13,
+          "key": "E0|0|0",
+          "line": 3,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "entry": true,
+          "entryMove": true,
+          "spanEndLine": 14
+        },
+        {
+          "cum": 10,
+          "cumEnd": 13,
+          "key": "C0|0|0",
+          "line": 11,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 14
+        }
+      ],
+      "counts": {
+        "collisions": 1,
+        "entryCollisions": 1,
+        "nearMisses": 0,
+        "possible": 0,
+        "startsIn": false
+      },
+      "tint": [
+        "tool",
+        "work"
+      ]
+    },
+    "separate": {
+      "before": [
+        {
+          "cum": 0,
+          "cumEnd": 1,
+          "key": "C0|0|0",
+          "line": 1,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 2
+        },
+        {
+          "cum": 3,
+          "cumEnd": 4,
+          "key": "C0|1|0",
+          "line": 4,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 5
+        }
+      ],
+      "after": [
+        {
+          "cum": 0,
+          "cumEnd": 1,
+          "key": "C0|0|0",
+          "line": 1,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 2
+        },
+        {
+          "cum": 3,
+          "cumEnd": 4,
+          "key": "C0|1|0",
+          "line": 4,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 5
+        }
+      ],
+      "counts": {
+        "collisions": 2,
+        "entryCollisions": 0,
+        "nearMisses": 0,
+        "possible": 0,
+        "startsIn": false
+      }
+    },
+    "pointFree": {
+      "targets": [
+        {
+          "cum": 0,
+          "cumEnd": 1,
+          "key": "C0|0|0",
+          "line": 1,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 2
+        },
+        {
+          "cum": 1,
+          "cumEnd": 2,
+          "key": "C0|1|0",
+          "line": 2,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 3
+        }
+      ],
+      "tintAtFree": [],
+      "left": [
+        "tool",
+        "work"
+      ],
+      "right": [
+        "tool",
+        "work"
+      ],
+      "bands": [
+        [
+          0,
+          1
+        ]
+      ]
+    },
+    "pointGapIdentity": {
+      "before": [
+        {
+          "cum": 0,
+          "cumEnd": 1,
+          "key": "C0|0|0",
+          "line": 1,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 2
+        },
+        {
+          "cum": 1,
+          "cumEnd": 2,
+          "key": "C0|1|0",
+          "line": 2,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 3
+        }
+      ],
+      "after": [
+        {
+          "cum": 0,
+          "cumEnd": 2,
+          "key": "C0|0|0",
+          "line": 1,
+          "a": "tool",
+          "b": "work",
+          "dist": 0,
+          "near": false,
+          "spanEndLine": 3
+        }
+      ],
+      "selected": "C0|1|0",
+      "selectedIndex": -1,
+      "atGap": []
+    },
+    "conflictThreshold": {
+      "radius": 0.001500000013038516,
+      "witness": 1.5,
+      "freeProbe": 1.5,
+      "conflicts": {
+        "count": 0,
+        "at": null
+      },
+      "tint": [
+        "tool",
+        "work"
+      ]
+    }
+  },
+  "browser_join": {
+    "main": {
+      "id": 2,
+      "end": 10
+    },
+    "side": {
+      "id": -1,
+      "end": 100
+    },
+    "before": {
+      "rows": [
+        {
+          "key": "E0|0|0",
+          "text": "entrySpindle nose \u2194 A yoke casting \u00b7 Rapid \u00b7 through L2Rapid18 %"
+        }
+      ],
+      "summary": "1 collision on the entry move so far \u00b7 95 % checked\n0\n0"
+    },
+    "after": {
+      "rows": [
+        {
+          "key": "E0|0|0",
+          "text": "entrySpindle nose \u2194 A yoke casting \u00b7 Rapid \u00b7 through L2Rapid18 %"
+        },
+        {
+          "key": "C0|0|0",
+          "text": "L2Spindle nose \u2194 A yoke casting \u00b7 RapidRapid91 %"
+        }
+      ],
+      "summary": "1 collision \u00b7 1 collision on the entry move so far \u00b7 95 % checked\n0\n0"
+    },
+    "errors": []
+  },
+  "cache_65536": {
+    "n": 65536,
+    "vn": 65536,
+    "heldBytes": 942088,
+    "buildMs": 411.671619,
+    "queryAllMs": 296.84686000000005,
+    "checksum": 6442352640,
+    "heapBefore": 4007624,
+    "heapAfter": 16901144,
+    "retainedHeapGrowth": 12893520,
+    "cache": {
+      "sides": [
+        {
+          "length": 65536,
+          "objects": 65536,
+          "nulls": 0
+        },
+        {
+          "length": 65536,
+          "objects": 65536,
+          "nulls": 0
+        }
+      ]
+    }
+  },
+  "cache_262144": {
+    "n": 262144,
+    "vn": 262144,
+    "heldBytes": 3768328,
+    "buildMs": 1579.639492,
+    "queryAllMs": 1210.9204459999999,
+    "checksum": 103078821888,
+    "heapBefore": 4233320,
+    "heapAfter": 56695720,
+    "retainedHeapGrowth": 52462400,
+    "cache": {
+      "sides": [
+        {
+          "length": 262144,
+          "objects": 262144,
+          "nulls": 0
+        },
+        {
+          "length": 262144,
+          "objects": 262144,
+          "nulls": 0
+        }
+      ]
+    }
+  }
+}

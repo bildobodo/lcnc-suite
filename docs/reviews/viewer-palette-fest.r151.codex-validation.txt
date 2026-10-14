@@ -1,0 +1,253 @@
+R151 Codex independent review, 2026-10-14
+Commit be59a82b (full commit and original input digests in context.json).
+Archive: /tmp/codex-r151-p05bfdb8/repo
+UI cwd: /tmp/codex-r151-p05bfdb8/repo/lcnc-webui
+Private mock: 127.0.0.1:4188, one browser worker, no parallel stress probe.
+No tests in the live tree; no use of :5173/:8000, no machine commands.
+
+RESULTS
+113/113 targeted repository tests passed.
+Own module probes: 3 red contract assertions, 2 positive controls passed.
+Repository browser fallback guard passed; own browser join probe red at
+its target-count assertion, with no pageerror (rerun after correcting its
+flags and using two animation frames instead of waiting for a known bad count).
+Cache: 65,536 and 262,144 intervals per generation of one pair. Identical
+nonconflicting tables in the two generations. Returned target objects are
+NOT retained. GC before and after all target queries; private lastGroup
+cache read by an esbuild onLoad append-only inspection function. No changes
+to tracked product files, no changes to algorithm. Timing is a single local
+Node measurement per size, not a global worst-case upper bound.
+Own Vite build passed, no full gate/lint/typecheck/mutation rerun.
+
+REPRODUCTION
+Use git archive be59a82b and provide the UI dependencies in the copy.
+Copy attached contracts.test.ts to src/viewer/r151.codex-contracts.test.ts.
+Only adapt its /tmp output path if needed.
+Command:
+nice -n 15 node node_modules/vitest/vitest.mjs run src/viewer/contactUnion.test.ts src/viewer/contactViewUnion.test.ts src/viewer/contactView.test.ts src/viewer/shownContacts.test.ts src/viewer/contactsReceiver.test.ts src/viewer/collisionWorker.test.ts src/viewer/checkWiring.test.ts --config vitest.codex-r151.config.ts
+nice -n 15 node node_modules/vitest/vitest.mjs run src/viewer/r151.codex-contracts.test.ts --config vitest.codex-r151.config.ts
+
+Cache (copy both attached files to UI root as r151.codex-cache-probe.ts and
+r151.codex-cache-build.mjs; adapt the temporary bundle path in the latter):
+node r151.codex-cache-build.mjs
+nice -n 15 node --expose-gc /tmp/codex-r151-p05bfdb8/cache-probe.cjs
+R151_N=262144 nice -n 15 node --expose-gc /tmp/codex-r151-p05bfdb8/cache-probe.cjs
+The extra export is only a read seam added by the bundler; no source rewrite.
+
+Browser (archive only): append browser.append.ts to e2e/collisions.viewer.spec.ts;
+change only localhost:4174 in e2e/ctl.ts to 127.0.0.1:4188. Adapt output paths.
+nice -n 15 node node_modules/vite/bin/vite.js build
+nice -n 15 node node_modules/@playwright/test/cli.js test --config playwright.codex-r151.config.ts -g 'a sweep worker fails mid-run|Codex R151:'
+Final own-probe rerun:
+nice -n 15 node node_modules/@playwright/test/cli.js test --config playwright.codex-r151.config.ts -g 'Codex R151:'
+The sandbox required permission to bind the private mock port. Approved;
+both browser runs completed, mocks ended.
+
+
+VITEST CONFIG
+import { defineConfig } from 'vitest/config';
+export default defineConfig({test:{environment:'node',include:['src/**/*.test.ts'],pool:'threads',maxWorkers:1,execArgv:[]}});
+
+
+PLAYWRIGHT CONFIG
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./e2e',testMatch:/collisions.viewer.spec.ts/,fullyParallel:false,workers:1,timeout:120000,expect:{timeout:10000},reporter:[['list']],use:{browserName:'chromium',headless:true,baseURL:'http://127.0.0.1:4188',launchOptions:{ignoreDefaultArgs:['--hide-scrollbars']},deviceScaleFactor:1,locale:'en-GB',timezoneId:'UTC',trace:'off',screenshot:'only-on-failure'},webServer:{command:'MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs',url:'http://127.0.0.1:4188',reuseExistingServer:false,timeout:60000}});
+
+
+TARGETED REPOSITORY TESTS
+
+ RUN  v4.1.8 /tmp/codex-r151-p05bfdb8/repo/lcnc-webui
+
+
+ Test Files  7 passed (7)
+      Tests  113 passed (113)
+   Start at  06:43:50
+   Duration  10.40s (transform 338ms, setup 0ms, import 698ms, tests 9.34s, environment 0ms)
+
+
+
+OWN CONTRACTS
+
+ RUN  v4.1.8 /tmp/codex-r151-p05bfdb8/repo/lcnc-webui
+
+ ❯ src/viewer/r151.codex-contracts.test.ts (5 tests | 3 failed) 12ms
+   × a base contact joined to an entry is still counted once after the base falls back 6ms
+   × two already distinct events meeting at a point gap retain the selected second event on an empty fallback 1ms
+   × a confirmed point more than 1e-3 deep in a free certificate is named even when its radius is below 2e-3 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r151.codex-contracts.test.ts > a base contact joined to an entry is still counted once after the base falls back
+AssertionError: same joined contact must not reappear as a second base finding: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/viewer/r151.codex-contracts.test.ts:30:83
+     28|  report.join={before:targets(before),after:targets(after),counts:viewC…
+     29|  expect(before.n).toBe(1);expect(targetEnd(before,0)).toBe(13);
+     30|  expect(after.n,'same joined contact must not reappear as a second bas…
+       |                                                                                   ^
+     31|  expect(targetEnd(after,0)).toBe(13);
+     32| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/viewer/r151.codex-contracts.test.ts > two already distinct events meeting at a point gap retain the selected second event on an empty fallback
+AssertionError: a new empty generation must not drop the selected held event: expected -1 to be greater than or equal to 0
+ ❯ src/viewer/r151.codex-contracts.test.ts:62:97
+     60|  report.pointGapIdentity={before:targets(before),after:targets(after),…
+     61|  expect(before.n).toBe(2);
+     62|  expect(findKey(after,selected),'a new empty generation must not drop …
+       |                                                                                                 ^
+     63| });
+     64| it('a confirmed point more than 1e-3 deep in a free certificate is nam…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/viewer/r151.codex-contracts.test.ts > a confirmed point more than 1e-3 deep in a free certificate is named even when its radius is below 2e-3
+AssertionError: the touch lies about 0.0015 from both edges, beyond the named tolerance: expected 0 to be greater than 0
+ ❯ src/viewer/r151.codex-contracts.test.ts:70:102
+     68|  report.conflictThreshold={radius:cur.intervals.get(0,'freeR'),witness…
+     69|  expect([...tintAt(v,1.5)]).toHaveLength(2);
+     70|  expect(v.conflicts.count,'the touch lies about 0.0015 from both edges…
+       |                                                                                                      ^
+     71| });
+     72|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 2 passed (5)
+   Start at  06:52:24
+   Duration  156ms (transform 76ms, setup 0ms, import 89ms, tests 12ms, environment 0ms)
+
+
+
+BUILD
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2111 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-zsM8cmEe.js                     4.40 kB
+dist/static/previewWorker-CbQ7i83d.js               32.51 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-DeTr6R6Q.js            210.45 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-2o0qou2m.css                 7.96 kB │ gzip:   1.97 kB
+dist/static/index-CCAv4hww.css                      94.78 kB │ gzip:  17.30 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-D8XKMUJh.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-C0GJd2od.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-aBn96EXv.js                224.63 kB │ gzip:  85.03 kB
+dist/static/index-D7iaOv0V.js                      639.00 kB │ gzip: 204.61 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.31s
+
+
+BROWSER FIRST RUN (repository guard + first own-probe version)
+[2m[WebServer] [22m(node:217917) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:217929) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:217929) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:1575:1 › a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4) (6.7s)
+  ✘  2 e2e/collisions.viewer.spec.ts:1649:1 › Codex R151: a joined entry contact is not duplicated by base fallback (3.1s)
+
+
+  1) e2e/collisions.viewer.spec.ts:1649:1 › Codex R151: a joined entry contact is not duplicated by base fallback 
+
+    Error: no additional contact was discovered
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m2[39m
+    Received array:  [31m[{"key": "E0|0|0", "text": "entrySpindle nose ↔ A yoke casting · Rapid · through L2Rapid18 %"}, {"key": "C0|0|0", "text": "L2Spindle nose ↔ A yoke casting · RapidRapid91 %"}][39m
+
+      1696 |  await page.screenshot({path:'/tmp/codex-r151-p05bfdb8/browser-join.png'});
+      1697 |  expect(errors).toEqual([]);
+    > 1698 |  expect(after.rows,'no additional contact was discovered').toHaveLength(before.rows.length);
+           |                                                            ^
+      1699 | });
+      1700 |
+        at /tmp/codex-r151-p05bfdb8/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1698:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-Codex-R1-9722c-duplicated-by-base-fallback/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-Codex-R1-9722c-duplicated-by-base-fallback/error-context.md
+
+  1 failed
+    e2e/collisions.viewer.spec.ts:1649:1 › Codex R151: a joined entry contact is not duplicated by base fallback 
+  1 passed (10.6s)
+
+
+BROWSER FINAL OWN PROBE
+[2m[WebServer] [22m(node:218917) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:218943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:218943) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/collisions.viewer.spec.ts:1649:1 › Codex R151: a joined entry contact is not duplicated by base fallback (3.3s)
+
+
+  1) e2e/collisions.viewer.spec.ts:1649:1 › Codex R151: a joined entry contact is not duplicated by base fallback 
+
+    Error: no additional contact was discovered
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoHaveLength[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected length: [32m1[39m
+    Received length: [31m2[39m
+    Received array:  [31m[{"key": "E0|0|0", "text": "entrySpindle nose ↔ A yoke casting · Rapid · through L2Rapid18 %"}, {"key": "C0|0|0", "text": "L2Spindle nose ↔ A yoke casting · RapidRapid91 %"}][39m
+
+      1695 |  await page.screenshot({path:'/tmp/codex-r151-p05bfdb8/browser-join.png'});
+      1696 |  expect(errors).toEqual([]);
+    > 1697 |  expect(after.rows,'no additional contact was discovered').toHaveLength(before.rows.length);
+           |                                                            ^
+      1698 | });
+      1699 |
+        at /tmp/codex-r151-p05bfdb8/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1697:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/collisions.viewer-Codex-R1-9722c-duplicated-by-base-fallback/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/collisions.viewer-Codex-R1-9722c-duplicated-by-base-fallback/error-context.md
+
+  1 failed
+    e2e/collisions.viewer.spec.ts:1649:1 › Codex R151: a joined entry contact is not duplicated by base fallback 
+

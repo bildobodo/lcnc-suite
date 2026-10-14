@@ -1,0 +1,10 @@
+{
+  "head": "be59a82b",
+  "note": "the offline gate's frontend steps; Playwright with --trace off, alone. 522 browser tests: R150's 521 and the fallback guard. The VM was paused overnight during the run: the wall-clock seconds below hold the pause; vitest's own duration was 694 s, Playwright's 40.0 min",
+  "gates": [
+    {"name": "frontend-lint", "command": "npm run lint", "status": "PASS", "seconds": 11},
+    {"name": "frontend-build", "command": "npm run build", "status": "PASS", "seconds": 23},
+    {"name": "frontend-unit", "command": "npm test", "status": "PASS", "seconds": 8802, "own_duration_s": 694, "tests": "140 files, 2341 passed"},
+    {"name": "frontend-browser", "command": "npx playwright test --trace off --reporter=line", "status": "PASS", "seconds": 24921, "own_duration_min": 40.0, "tests": "522 passed", "note": "run alone"}
+  ]
+}
