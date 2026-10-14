@@ -57,17 +57,20 @@ const list = (v: ContactView) => Array.from({ length: v.n }, (_, i) =>
   [targetKey(v, i), targetPos(v, i), targetEnd(v, i), targetKind(v, i) & ~T_EARLIER] as const);
 /** Two contacts of a pair that touch at one coordinate within ONE known
  *  stretch (exit, free sample, re-entry in zero time — the second began after
- *  no restart): the free sample lies on both confirmed points, nothing in the
- *  store orders them, so the union joins them (the named limit; the second
- *  key is handed over to the piece). */
-function oneInstantTwice(st: ContactStore): boolean {
+ *  no restart, no separator between): the free sample lies on both confirmed
+ *  points. Within the generation the rows order them; how that order maps
+ *  onto the other generation at the collapsed coordinate is not decided, so
+ *  the union joins them (the named limit, Codex R153: the second key is
+ *  handed over to the piece). How many such boundaries the store holds. */
+function oneInstantTwice(st: ContactStore): number {
   const I = st.intervals, E = st.episodes, last = new Map<number, number>();
+  let n = 0;
   for (let iv = 0; iv < I.rows; iv++) {
     const pair = E.get(I.get(iv, "episode"), "pair"), prev = last.get(pair);
-    if (prev !== undefined && I.get(prev, "exit") === I.get(iv, "enter") && !(I.get(iv, "flags") & IV_AFTER_UNKNOWN_TOOL)) return true;
+    if (prev !== undefined && I.get(prev, "exit") === I.get(iv, "enter") && !(I.get(iv, "flags") & IV_AFTER_UNKNOWN_TOOL)) n++;
     last.set(pair, iv);
   }
-  return false;
+  return n;
 }
 
 describe("a rerun that learns nothing new keeps every earlier event (Codex R152 VP-I113), through the real sweep", () => {
@@ -88,9 +91,10 @@ describe("a rerun that learns nothing new keeps every earlier event (Codex R152 
 
   it("random passes: unknown stretches, known instants, collapsed times — the empty and the identical rerun list exactly the earlier events", { timeout: 300_000 }, () => {
     let seed = 152;
-    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+    // a 32-bit linear congruential generator (Math.imul: a product of doubles past 2^53 loses its low bits — Codex R153)
+    const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
     let cases = 0, events = 0, withGaps = 0, touching = 0, limit = 0, clusters = 0;
-    for (let c = 0; c < 300; c++) {
+    for (let c = 0; c < 1000; c++) {
       const n = 12 + Math.floor(rnd() * 30);
       const xs: number[] = [], times: number[] = [], unknown: number[] = [];
       let x = 4 + rnd() * 12, time = 0, u = 0;
@@ -118,10 +122,15 @@ describe("a rerun that learns nothing new keeps every earlier event (Codex R152 
       const t = track(xs, times, unknown);
       const { plain, empty, same, old } = views(t);
       const tag = `case ${c}: ${JSON.stringify({ xs, times, unknown })}`;
-      if (oneInstantTwice(old)) {
-        // the named limit: one piece fewer at most per such instant, every earlier key still answers
+      // every earlier key answers in both reruns, the named limit's too (Codex R153)
+      for (let i = 0; i < plain.n; i++) {
+        expect([findKey(empty, targetKey(plain, i)) >= 0, findKey(same, targetKey(plain, i)) >= 0], `${tag}: event ${i} in both reruns`).toEqual([true, true]);
+      }
+      const merged = oneInstantTwice(old);
+      if (merged) {
+        // the named limit: at most one piece fewer per such boundary
         limit++;
-        for (let i = 0; i < plain.n; i++) expect(findKey(empty, targetKey(plain, i)), `${tag}: event ${i} handed over`).toBeGreaterThanOrEqual(0);
+        expect([plain.n - empty.n <= merged, plain.n - same.n <= merged], `${tag}: at most one merge per named boundary`).toEqual([true, true]);
         continue;
       }
       expect(list(empty), `${tag}: an empty rerun`).toEqual(list(plain));

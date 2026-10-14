@@ -313,7 +313,8 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
     const scratch = unionScratch();
     for (const seed0 of [12345, 777, 31337, 4242, 99, 2026, 151]) {
       let seed = seed0;
-      const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+      // a 32-bit linear congruential generator (Math.imul: a product of doubles past 2^53 loses its low bits — Codex R153)
+      const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
       const grid = (x: number) => Math.round(x * 8) / 8 + (rnd() < 0.1 ? (rnd() < 0.5 ? PROTECT : -PROTECT) * rnd() : 0);
       const gen = (): Plain => {
         const ivs: Iv[] = [], gaps: Array<[number, number]> = [];

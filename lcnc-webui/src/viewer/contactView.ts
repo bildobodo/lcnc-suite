@@ -410,9 +410,14 @@ function epOwn(t: TableIndex, row: number): [number, number] {
 
 function refList(refs: Uint32Array, pos: Float64Array, end: Float64Array): RefList {
   const n = refs.length;
-  // by position, then reference — a union's pieces come group by group, each
-  // group in order: already sorted often, else a run-adaptive sort
-  const before = (a: number, b: number) => pos[a]! - pos[b]! || refs[a]! - refs[b]!;
+  // by position; at one position a contact before a near miss, then by
+  // source, table and row — never by a piece's or a generation's bits, so a
+  // union lists ties as the view without a fallback does (Codex R153's seed:
+  // a near miss and a contact at one point swapped); a union's pieces come
+  // group by group, each group in order: already sorted often, else a
+  // run-adaptive sort
+  const tie = (r: number) => r & ((NEAR_BIT << 1) - 1);
+  const before = (a: number, b: number) => pos[a]! - pos[b]! || tie(refs[a]!) - tie(refs[b]!) || refs[a]! - refs[b]!;
   let sorted = true;
   for (let i = 1; i < n && sorted; i++) if (before(i - 1, i) > 0) sorted = false;
   const order = sorted ? null : Uint32Array.from(Array.from({ length: n }, (_, i) => i).sort(before));

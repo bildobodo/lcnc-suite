@@ -1976,10 +1976,15 @@ POINT interval lies in a zone holding its point, chosen by its generation's
 order where several do — never before the interval before it, one further
 when it began after the unknown tool. An undecidable gap separates nothing; a
 knowledge gap does not split a piece, and a piece's contact on screen is its
-intervals' own less each one's generation's gaps. Named limit: two contacts
-of a pair touching at one point within one known stretch (exit, free sample,
-re-entry in zero time) have no order in the store, so the union joins them
-under the first key and hands the second over. A piece is ONE u32 in the target list (its start
+intervals' own less each one's generation's gaps. Named limit (accepted
+R153): two contacts of a pair touching at one point within one known stretch
+(exit, free sample, re-entry in zero time, no separator between) — their
+generation's rows order them, but how that order maps onto the other
+generation at the collapsed coordinate is not decided — the union joins them
+under the first key and hands the second over (the shown count may drop by
+one per such boundary). At one position a target list puts contacts before
+near misses, then by source, table and row — never by a piece's or a
+generation's bits, so a union lists ties as the view without a fallback. A piece is ONE u32 in the target list (its start
 evidence: an interval's enter, a free stretch's end, or — an interval of the
 other generation reaching over a separator — the zone's start, named by the
 gap it ends at and the piece's origin); the build walks each group ONCE
@@ -2015,9 +2020,11 @@ piece by piece and zone by zone, each asked again from its start, the
 contradictions the walk names equal to `eachWideConflict`'s) and to Codex's
 R140–R142, R150–R152 sequences; `contactUnionSweep.test.ts` drives the REAL
 sweep (a Ø20 tool past a vise, the tool unknown on random stretches, zero-time
-clusters of restarts) and requires the earlier generation's events — keys,
-places, ends, kinds — unchanged by an empty and by an identical rerun (300
-passes; the named limit counted apart, its keys handed over);
+clusters of restarts; a 32-bit generator — a product of doubles past 2^53
+loses its low bits) and requires the earlier generation's events — keys,
+places, ends, kinds — unchanged by an empty and by an identical rerun, every
+earlier key answering in both (1000 passes; the named limit counted apart,
+at most one merge per boundary);
 `contactViewUnion.test.ts` holds the view through real tables (keys, gaps,
 separators, the handover, near misses, the reported coverage in three steps,
 conflicts, origin groups, a point gap inside a longer one, the budget);
