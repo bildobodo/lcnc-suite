@@ -243,10 +243,29 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
       .toEqual([[0, 0, 1, START_ENTER], [1, 1, 2, START_SEP]]);
   });
 
-  it("a point interval on a point separator belongs after it when it began after the unknown tool, else before it", () => {
-    const at = (after: boolean) => pieces(sidesOf({ ivs: [{ enter: 1, end: 1, witness: 1, after }] }, { ivs: [] }), sepArray([1, 1])).map(x => [x.zone, x.start, x.end]);
+  /** Every piece's evidence names its zone and start, and asked again from it gives the piece. */
+  const reasked = (sides: UnionSide[], seps: UnionSeps) => pieces(sides, seps).every(p => {
+    const z = evidenceZone(sides, seps, p.startSide, p.startKind, p.startIdx), pos = evidencePos(sides, seps, p.startSide, p.startKind, p.startIdx);
+    const q = pieceFrom(sides, seps, z, pos, true);
+    return z === p.zone && pos === p.start && !!q && q.start === p.start && q.end === p.end && q.zone === p.zone;
+  });
+
+  it("a point interval on a point separator belongs after it when it began after the unknown tool, else before it — first of its side too", () => {
+    const sides = (after: boolean) => sidesOf({ ivs: [{ enter: 1, end: 1, witness: 1, after }] }, { ivs: [] });
+    const at = (after: boolean) => pieces(sides(after), sepArray([1, 1])).map(x => [x.zone, x.start, x.end]);
     expect(at(true)).toEqual([[1, 1, 1]]);
     expect(at(false)).toEqual([[0, 1, 1]]);
+    expect([reasked(sides(true), sepArray([1, 1])), reasked(sides(false), sepArray([1, 1]))], "asked again from the start").toEqual([true, true]);
+  });
+
+  it("a point contact in a zone between separators, then a restart at a later point: the later contact one zone further (the side's order across both)", () => {
+    // unknown [0.25, 0.5]; a point touch at 1 (known stretch, zone 1); unknown again at 2 for an instant; a point touch at 2 after it
+    const held: Plain = { ivs: [{ enter: 0, end: 0.2, witness: 0.1, xd: false }, { enter: 1, end: 1, witness: 1, after: true, freeAt: 1.5, freeR: 0 },
+                                { enter: 2, end: 2, witness: 2, after: true }], gaps: [[0.25, 0.5], [2, 2]] };
+    const sides = sidesOf(held, { ivs: [] }), seps = sepsOf(held, { ivs: [] });
+    expect(pieces(sides, seps).map(x => [x.zone, x.start, x.end]), "1 in the zone after [0.25, 0.5]; 2 after the point restart at 2")
+      .toEqual([[0, 0, 0.2], [1, 1, 1], [2, 2, 2]]);
+    expect(reasked(sides, seps), "asked again from the start: the zone of 2 from the touch at 1").toBe(true);
   });
 
   it("aligns separators: never two gaps of one generation; across generations the same gap — equal or overlapping — is one (Codex R152 VP-I113)", () => {
@@ -305,9 +324,16 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
           // a tool gap where the last contact ended: ended at the gap (no exit
           // claimed, no free sample), the next begins after it — at its end or later
           const last = ivs[ivs.length - 1];
-          if (last && rnd() < 0.25) {
-            const s0 = last.end;
-            last.xd = false; delete last.freeAt; delete last.freeR;
+          if (rnd() < 0.25 && (last || rnd() < 0.3)) {
+            // the tool becomes unknown where the last contact ended (it ended at the gap), or later — after its free
+            // sample, or before any contact
+            let s0: number;
+            if (last && rnd() < 0.5) { s0 = last.end; last.xd = false; delete last.freeAt; delete last.freeR; }
+            else if (last) {
+              const after0 = last.freeAt !== undefined ? last.freeAt + Math.max(0, last.freeR ?? 0) : last.end;
+              s0 = Math.max(after0, x - 0.0625);
+              if (s0 < last.end || s0 > x) { s0 = last.end; last.xd = false; delete last.freeAt; delete last.freeR; }
+            } else s0 = x - 0.5;
             const e0 = rnd() < 0.4 ? s0 : s0 + Math.max(0.125, grid(rnd()));
             gaps.push([s0, e0]);
             x = rnd() < 0.5 ? e0 : e0 + Math.max(0.125, grid(rnd()));
