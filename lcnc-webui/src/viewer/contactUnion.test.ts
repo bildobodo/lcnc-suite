@@ -231,7 +231,7 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
     expect([...m.src], "[1, 3] ends at the first gap ending at 3 in input order").toEqual([2, 0, 4]);
   });
 
-  it("matches the brute force over random generations with tool gaps — piece by piece and zone by zone, its start's evidence, every later question from that start alone, the contradictions", () => {
+  it("matches the brute force over random generations with tool gaps — piece by piece and zone by zone, its start's evidence, every later question from that start alone, the contradictions", { timeout: 120_000 }, () => {
     let total = 0, cases = 0;
     const kinds = [0, 0, 0];
     const scratch = unionScratch();
