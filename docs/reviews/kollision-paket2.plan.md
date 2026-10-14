@@ -222,9 +222,9 @@ T = 19,3 MB nach 1.4; S = T/8 = 2,4 MB für die Seitenläufe.
 | Koordinator → Viewer | höchstens ein unbestätigtes Delta | ≤ T |
 | Viewer, aktuelle Generation | Tabellen des Auftrags | ≤ T |
 | Viewer, gehaltene Generation | die Belege der vorigen Generation (3.5) | ≤ T |
-| Viewer, Ableitungen über **beide** Generationen und den Seitenlauf, ohne Zuordnung gerechnet (der Seitenlauf mit einem Achtel beider Generationen, Codex' Rechnung R141) | Zielindex u32 je Ziel: 2,6 + 0,3 MB · Anzeige-IDs u32 je Zeile samt ihrer Bindung: 2,9 MB · Intervallindex je Paar u32: 2,1 + 0,3 MB · Bänder in Anzeigeauflösung, höchstens 8192 f64-Paare: 0,1 MB | ≤ 8,4 MB |
+| Viewer, Ableitungen über **beide** Generationen von Auftrag und Seitenlauf, nach einem Rückfall als Vereinigung (der Seitenlauf mit einem Achtel; hergeleitet nach Codex R152 VP-I112, `derivationBound` neben `heldBytes`) | Ziele und Hilfsintervalle, 4,25 B je Stück und Beinahe-Kollision — Stücke ≤ 2·(I₀+I₁) + 4·(G₀+G₁) (Eintritt, Freiraumende, Zonenanfang), Beinahe-Kollisionen ≤ E₀+E₁: 6,27 MB · Episoden nach Beginn: 0,63 MB · Gruppenindex u32 je Intervall: 2,36 MB · Lückenindex 12 B je Lücke (Zeile und weitestes Ende des Paars): 0,44 MB · Trenner 8 B: 0,29 MB · Zuordnung der Beinahe-Kollisionen: 0,59 MB · Joins: 0,33 MB · Bänder in Anzeigeauflösung werden nicht gehalten. Die zuerst vereinbarten 8,4 MB kannten keine Teilung durch Freiräume, keine Lücken, keine Trenner und keine Zuordnung. | ≤ 10,91 MB |
 | Seitenläufe | dieselben sechs Halter mit Budget S | ≤ 6 · S = 14,5 MB |
-| **Summe im ungünstigsten Fall** | | **etwa 139 MB** |
+| **Summe im ungünstigsten Fall** | | **etwa 141,5 MB** (bis R152: 139 MB mit 8,4 MB Ableitungen) |
 
 **Nicht materialisiert** (VP139-03), damit die Ableitungen begrenzt bleiben:
 - die Vereinigung der Berührungen für die Bänder: Sie wird in Anzeigeauflösung berechnet (4.3);

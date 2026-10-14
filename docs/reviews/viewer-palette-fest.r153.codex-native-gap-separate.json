@@ -1,0 +1,127 @@
+{
+  "times": [
+    0,
+    10000,
+    10001,
+    10001.01,
+    10002,
+    10003
+  ],
+  "trackCum": [
+    0,
+    10000,
+    10001,
+    10001.009765625,
+    10002,
+    10003
+  ],
+  "truncated": null,
+  "ivs": [
+    {
+      "enter": 0,
+      "exit": null,
+      "witness": 0,
+      "flags": 18,
+      "freeAt": null
+    },
+    {
+      "enter": 10001,
+      "exit": null,
+      "witness": 10001,
+      "flags": 26,
+      "freeAt": null
+    },
+    {
+      "enter": 10002,
+      "exit": null,
+      "witness": 10002,
+      "flags": 10,
+      "freeAt": null
+    }
+  ],
+  "gaps": [
+    {
+      "start": 10000,
+      "end": 10001,
+      "reason": 2
+    },
+    {
+      "start": 10001.009765625,
+      "end": 10002,
+      "reason": 2
+    }
+  ],
+  "before": [
+    {
+      "cum": 0,
+      "cumEnd": 10000,
+      "key": "C0|0|0",
+      "line": 0,
+      "a": "tool",
+      "b": "vise",
+      "dist": 0,
+      "near": false,
+      "rapid": true,
+      "atStart": true
+    },
+    {
+      "cum": 10001,
+      "cumEnd": 10001.009765625,
+      "key": "C0|1|0",
+      "line": 0,
+      "a": "tool",
+      "b": "vise",
+      "dist": 0,
+      "near": false,
+      "rapid": true
+    },
+    {
+      "cum": 10002,
+      "cumEnd": 10003,
+      "key": "C0|2|0",
+      "line": 0,
+      "a": "tool",
+      "b": "vise",
+      "dist": 0,
+      "near": false,
+      "rapid": true
+    }
+  ],
+  "after": [
+    {
+      "cum": 0,
+      "cumEnd": 10000,
+      "key": "C0|0|0",
+      "line": 0,
+      "a": "tool",
+      "b": "vise",
+      "dist": 0,
+      "near": false,
+      "rapid": true,
+      "atStart": true
+    },
+    {
+      "cum": 10001,
+      "cumEnd": 10001.009765625,
+      "key": "C0|1|0",
+      "line": 0,
+      "a": "tool",
+      "b": "vise",
+      "dist": 0,
+      "near": false,
+      "rapid": true
+    },
+    {
+      "cum": 10002,
+      "cumEnd": 10003,
+      "key": "C0|2|0",
+      "line": 0,
+      "a": "tool",
+      "b": "vise",
+      "dist": 0,
+      "near": false,
+      "rapid": true
+    }
+  ],
+  "selectedIndex": 1
+}

@@ -1,0 +1,29 @@
+{
+  "main": {
+    "id": 2,
+    "end": 10
+  },
+  "side": {
+    "id": -1,
+    "end": 100
+  },
+  "before": {
+    "rows": [
+      {
+        "key": "E0|0|0",
+        "text": "entrySpindle nose ↔ A yoke casting · Rapid · through L2Rapid18 %"
+      }
+    ],
+    "summary": "1 collision on the entry move so far · 95 % checked\n0\n0"
+  },
+  "after": {
+    "rows": [
+      {
+        "key": "E0|0|0",
+        "text": "entrySpindle nose ↔ A yoke casting · Rapid · through L2Rapid18 %"
+      }
+    ],
+    "summary": "1 collision on the entry move so far · 95 % checked\n0\n0"
+  },
+  "errors": []
+}

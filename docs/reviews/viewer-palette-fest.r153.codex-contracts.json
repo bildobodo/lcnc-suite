@@ -1,0 +1,280 @@
+{
+  "join": {
+    "before": [
+      {
+        "cum": 2,
+        "cumEnd": 13,
+        "key": "E0|0|0",
+        "line": 3,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "entry": true,
+        "entryMove": true,
+        "spanEndLine": 14
+      }
+    ],
+    "after": [
+      {
+        "cum": 2,
+        "cumEnd": 13,
+        "key": "E0|0|0",
+        "line": 3,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "entry": true,
+        "entryMove": true,
+        "spanEndLine": 14
+      }
+    ],
+    "counts": {
+      "collisions": 0,
+      "entryCollisions": 1,
+      "nearMisses": 0,
+      "possible": 0,
+      "startsIn": false
+    },
+    "tint": [
+      "tool",
+      "work"
+    ]
+  },
+  "separate": {
+    "before": [
+      {
+        "cum": 0,
+        "cumEnd": 1,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 2
+      },
+      {
+        "cum": 3,
+        "cumEnd": 4,
+        "key": "C0|1|0",
+        "line": 4,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 5
+      }
+    ],
+    "after": [
+      {
+        "cum": 0,
+        "cumEnd": 1,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 2
+      },
+      {
+        "cum": 3,
+        "cumEnd": 4,
+        "key": "C0|1|0",
+        "line": 4,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 5
+      }
+    ],
+    "counts": {
+      "collisions": 2,
+      "entryCollisions": 0,
+      "nearMisses": 0,
+      "possible": 0,
+      "startsIn": false
+    }
+  },
+  "pointFree": {
+    "targets": [
+      {
+        "cum": 0,
+        "cumEnd": 1,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 2
+      },
+      {
+        "cum": 1,
+        "cumEnd": 2,
+        "key": "C0|1|0",
+        "line": 2,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 3
+      }
+    ],
+    "tintAtFree": [],
+    "left": [
+      "tool",
+      "work"
+    ],
+    "right": [
+      "tool",
+      "work"
+    ],
+    "bands": [
+      [
+        0,
+        1
+      ]
+    ]
+  },
+  "pointGapIdentity": {
+    "before": [
+      {
+        "cum": 0,
+        "cumEnd": 1,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 2
+      },
+      {
+        "cum": 1,
+        "cumEnd": 2,
+        "key": "C0|1|0",
+        "line": 2,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 3
+      }
+    ],
+    "after": [
+      {
+        "cum": 0,
+        "cumEnd": 1,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 2
+      },
+      {
+        "cum": 1,
+        "cumEnd": 2,
+        "key": "C0|1|0",
+        "line": 2,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 3
+      }
+    ],
+    "selected": "C0|1|0",
+    "selectedIndex": 1,
+    "atGap": []
+  },
+  "conflictThreshold": {
+    "radius": 0.001500000013038516,
+    "witness": 1.5,
+    "freeProbe": 1.5,
+    "conflicts": {
+      "count": 1,
+      "at": 1.5
+    },
+    "tint": [
+      "tool",
+      "work"
+    ]
+  },
+  "touchingToolGaps": {
+    "before": [
+      {
+        "cum": 0,
+        "cumEnd": 1,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 2
+      },
+      {
+        "cum": 2,
+        "cumEnd": 2,
+        "key": "C0|1|0",
+        "line": 3,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false
+      },
+      {
+        "cum": 3,
+        "cumEnd": 4,
+        "key": "C0|2|0",
+        "line": 4,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 5
+      }
+    ],
+    "after": [
+      {
+        "cum": 0,
+        "cumEnd": 1,
+        "key": "C0|0|0",
+        "line": 1,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 2
+      },
+      {
+        "cum": 2,
+        "cumEnd": 2,
+        "key": "C0|1|0",
+        "line": 3,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false
+      },
+      {
+        "cum": 3,
+        "cumEnd": 4,
+        "key": "C0|2|0",
+        "line": 4,
+        "a": "tool",
+        "b": "work",
+        "dist": 0,
+        "near": false,
+        "spanEndLine": 5
+      }
+    ],
+    "selectedIndex": 1
+  }
+}

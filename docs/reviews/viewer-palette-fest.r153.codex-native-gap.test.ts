@@ -1,0 +1,25 @@
+import {it,expect} from 'vitest';
+import {writeFileSync} from 'node:fs';
+import {buildCollisionModel,sweepCollisions,toolCylinderPositions,type CollisionMachine} from './collision';
+import {boxPositions} from './collisionFixtures';
+import {buildScrubTrack} from './scrubTrack';
+import {ContactStore} from './contactStore';
+import {buildContactView,targetAt,targetKey,findKey} from './contactView';
+it.each([false,true])('real sweep retains the known tool phase; time-axis collapse=%s',(collapse)=>{
+ const machine:CollisionMachine={groups:[{id:'table',parent:'root'},{id:'part',parent:'table'},{id:'head',parent:'root'}],kinematics:[{group:'head',joint:0,type:'translate',direction:'x',sign:1}],workGroup:'part',toolGroup:'head',unitScale:1,axes:['X','Y','Z']};
+ const model=buildCollisionModel(machine,[{id:'vise',group:'table',positions:boxPositions(2,2,2,0,0,1)},{id:'tool',group:'head',positions:toolCylinderPositions(20,2),tool:true}]);
+ const xs=[6,7,8,8.001,9,10]; const times=[0,10000,10001,collapse?10001.00001:10001.01,10002,10003];
+ const events:NonNullable<Parameters<typeof sweepCollisions>[3]['tloEvents']>=[{seq:0,xyz:[0,0,0],tool:1},{seq:1,xyz:[0,0,0],tool:3}];
+ const track=buildScrubTrack({pos:new Float32Array()}, {pos:new Float32Array(xs.flatMap(x=>[x,0,0])),abc:new Float32Array(xs.length*3),lines:new Uint32Array([1,2,3,4,5,6]),seq:new Uint32Array([1,2,3,4,5,6]),tcum:new Float32Array(times),tlo:new Uint32Array([0,0,1,0,1,0])},undefined,undefined,undefined,events)!;
+ const old=new ContactStore(1,0);
+ const result=sweepCollisions(model,track,{g5x:[0,0,0,0,0,0],g92:[],rotationDeg:0},{margin:.1,linStepMm:.1,rotStepDeg:.1,tloEvents:[{seq:0,xyz:[0,0,0],tool:1},{seq:1,xyz:[0,0,0],tool:3}],toolDims:{1:{diam:20,len:2}},liveTool:1,unknownTools:[3],contacts:{store:old}});
+ const end=track.cum[track.count-1]!;
+ const pairName=(p:number)=>({a:model.bodies[model.pairs[p]![0]]!.id,b:model.bodies[model.pairs[p]![1]]!.id});
+ const before=buildContactView({sources:[{stores:[old],at:x=>x,ownCoverage:end}],coverage:end,pairName});
+ const after=buildContactView({sources:[{stores:[new ContactStore(1,1)],held:[old],heldCoverage:[end],at:x=>x,ownCoverage:0}],coverage:end,pairName});
+ const rows=(v:typeof before)=>Array.from({length:v.n},(_,i)=>targetAt(v,i,()=>0));
+ const ivs=Array.from({length:old.intervals.rows},(_,i)=>Object.fromEntries(['enter','exit','witness','flags','freeAt'].map(k=>[k,old.intervals.get(i,k)])));
+ const gaps=Array.from({length:old.gaps.rows},(_,i)=>Object.fromEntries(['start','end','reason'].map(k=>[k,old.gaps.get(i,k)])));
+ writeFileSync(`/tmp/codex-r153-rt47y2tc/native-gap-${collapse?'collapsed':'separate'}.json`,JSON.stringify({times,trackCum:[...track.cum],truncated:result.truncated,ivs,gaps,before:rows(before),after:rows(after),selectedIndex:before.n>1?findKey(after,targetKey(before,1)):null},null,2)+'\n');
+ expect(result.truncated).toBeNull();expect(before.n).toBe(3);expect(after.n).toBe(before.n);expect(findKey(after,targetKey(before,1))).toBeGreaterThanOrEqual(0);
+});

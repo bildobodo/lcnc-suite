@@ -1,0 +1,14 @@
+[2m[WebServer] [22m(node:534861) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 3 tests using 1 worker
+
+(node:534873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:534873) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:1707:1 › the base falls back after the entry move's side run ended: its continuation stays the entry's finding; a later contact stays its own (Codex R151 VP-I111) (3.9s)
+  ✓  2 e2e/collisions.viewer.spec.ts:1731:1 › one failure falls back both, the side still running: its rerun swept whole, the base's continuation stays the entry's finding (Codex R151 VP-I111) (3.6s)
+  ✓  3 e2e/collisions.viewer.spec.ts:1756:1 › Codex R153: a joined entry contact is not duplicated by base fallback (3.5s)
+
+  3 passed (12.0s)
