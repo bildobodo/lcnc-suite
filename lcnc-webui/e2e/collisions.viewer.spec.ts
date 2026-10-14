@@ -41,7 +41,7 @@ async function prepare(page: Page, context: BrowserContext, o: {
 }
 const nextHit = (page: Page) => simStepBtn(page, "Next collision");
 /** The list's collision rows (the list is filtered to collisions). */
-const clashRows = (page: Page) => page.locator(".simPanel tbody tr");
+const clashRows = (page: Page) => page.locator(".simPanel tbody tr[data-sim-row]");
 const slider = (page: Page) => page.locator(".scrubBar .sliderInput");
 const at = async (page: Page) => Number(await slider(page).inputValue());
 /** The collision count the findings button reads ("9 collisions"). */

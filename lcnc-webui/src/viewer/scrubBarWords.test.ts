@@ -5,8 +5,9 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import ts from "typescript";
 import { describe, expect, it } from "vitest";
-import { findingWords } from "./sweepWords";
-import { clashTargets, isNearMiss } from "./clashTargets";
+import { countTargets, wordsOfCounts } from "./sweepWords";
+import { clashIndexOfList, clashTicks } from "./simWindow";
+import { clashTargets, isNearMiss, type ClashTarget } from "./clashTargets";
 import { partLabel } from "./simRows";
 import { beginSentence, depTimeSentence } from "./startDep";
 import type { CollisionHit, CollisionResult } from "./collision";
@@ -22,6 +23,15 @@ function barComputed(name: string, refs: Record<string, unknown>) {
   return new Function(...Object.keys(all), body)(...Object.values(all));
 }
 
+/** The bar's collision inputs from a list of targets (plan 4.4): the index,
+ *  the counts and the start pairs — the bar's own filter, on that list. */
+const clashRefs = (ts: ClashTarget[]) => ({
+  clashIndex: { value: clashIndexOfList(ts) }, clashCounts: { value: countTargets(ts) }, clashTicks, bandCols: { value: 1000 },
+  startPairNames: { value: barComputed("startPairNames", { shownView: { value: { view: ts, lineAt: null } },
+    startTargets: (l: ClashTarget[]) => l.flatMap((t, i) => (t.atStart ? [i] : [])), targetAt: (l: ClashTarget[], i: number) => l[i],
+    isNearMiss, partLabel }) },
+});
+
 const pctOf = (x: number) => `${Math.round(x * 100)} %`;
 const result = (over: Partial<CollisionResult> = {}): CollisionResult => ({
   hits: [], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
@@ -32,12 +42,12 @@ const view = (r: CollisionResult, o: { busy?: boolean; frac?: number; caveat?: s
   shownResult: { value: r },
   props: { collisionBusy: !!o.busy, collisionRunCheck: null, collisionStopped: null, collisionResumable: false, collisionProgress: 0,
            collisionEntryResult: o.entryChecking ? { checking: true, result: r } : null },
-  hitTargets: { value: clashTargets(r.hits) }, sweepToolSentence: { value: "" }, verdictDetail: { value: "" },
-  sweepCaveat: { value: o.caveat ?? null }, boundaryDetail: { value: "" }, sweptFrac: { value: o.frac ?? 1 }, pctOf, findingWords,
+  ...clashRefs(clashTargets(r.hits)), sweepToolSentence: { value: "" }, verdictDetail: { value: "" },
+  sweepCaveat: { value: o.caveat ?? null }, boundaryDetail: { value: "" }, sweptFrac: { value: o.frac ?? 1 }, pctOf, wordsOfCounts,
 }) as { verdict: string; tone: string; result: string; coverage: string; coverageShort: string; short: string; state: string };
 const detail = (r: CollisionResult) => barComputed("verdictDetail", {
   shownResult: { value: r }, props: { collisionBusy: false, collisionRunCheck: null, collisionStopped: null, collisionResumable: false },
-  track: { value: null }, provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hitTargets: { value: clashTargets(r.hits) },
+  track: { value: null }, provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, ...clashRefs(clashTargets(r.hits)),
   sweepCaveat: { value: null }, pctOf, beginSentence, depTimeSentence, partLabel, isNearMiss }) as string;
 
 describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () => {
@@ -100,12 +110,12 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
   it("a timeline mark is a near miss only where nothing touched — a margin entry that touched later is a collision's", () => {
     const hits = [hit(10, 0), hit(40, 1.5), hit(70, 1.5, { touches: true })];
     const marks = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss,
-      hitTargets: { value: clashTargets(hits) } }) as Array<{ pct: number; near: boolean }>;
+      ...clashRefs(clashTargets(hits)) }) as Array<{ pct: number; near: boolean }>;
     expect(marks.map(m => [m.pct, m.near])).toEqual([[10, false], [40, true], [70, false]]);
     // a target from the contact view says it itself, by the sweep's class (plan 4.1)
     const fromView = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss,
-      hitTargets: { value: [{ cum: 20, cumEnd: 20, key: "C1|0|n", line: 3, a: "t", b: "w", dist: 5e-4, near: true },
-                            { cum: 30, cumEnd: 31, key: "C2|0|0", line: 4, a: "t", b: "w", dist: 0, near: false }] } }) as Array<{ pct: number; near: boolean }>;
+      ...clashRefs([{ cum: 20, cumEnd: 20, key: "C1|0|n", line: 3, a: "t", b: "w", dist: 5e-4, near: true },
+                            { cum: 30, cumEnd: 31, key: "C2|0|0", line: 4, a: "t", b: "w", dist: 0, near: false }]) }) as Array<{ pct: number; near: boolean }>;
     expect(fromView.map(m => [m.pct, m.near]), "a stay at 0.5 µm without a touch is a near miss").toEqual([[20, true], [30, false]]);
   });
 

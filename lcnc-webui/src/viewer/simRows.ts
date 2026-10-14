@@ -64,7 +64,7 @@ export interface SimRowInput {
   measurements?: readonly { cum: number; line: number }[];
 }
 
-const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
+export const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
 
 /** The measurement note of a tool-change row: its line's, for its tool. */
 function toolNote(notes: SimRowInput["toolNotes"], t: { line: number; tool: number }): string {

@@ -22,9 +22,10 @@ import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { beginSentence, bindBeginning, depTimeSentence, earlierTime, moveTime, runBeginOf, runBeginView } from "./startDep";
 import ts from "typescript";
 import { epochTermsFor } from "./wcsEpochs";
-import { findingWords } from "./sweepWords";
+import { countTargets, wordsOfCounts } from "./sweepWords";
+import { clashIndexOfList, clashTicks } from "./simWindow";
 import { firstOnly } from "./firstContact";
-import { clashTargets, isNearMiss } from "./clashTargets";
+import { clashTargets, isNearMiss, type ClashTarget } from "./clashTargets";
 import { partLabel } from "./simRows";
 import { ContactStore } from "./contactStore";
 import { buildContactView, lineMark, lineRuns, runsOf, targetAt, trackLineAt } from "./contactView";
@@ -277,18 +278,27 @@ function barComputed(name: string, refs: Record<string, unknown>) {
   const all = { computed: (f: () => unknown) => f(), ...refs };
   return new Function(...Object.keys(all), body)(...Object.values(all));
 }
+
+/** The bar's collision inputs from a list of targets (plan 4.4): the index,
+ *  the counts and the start pairs — the bar's own filter, on that list. */
+const clashRefs = (ts: ClashTarget[]) => ({
+  clashIndex: { value: clashIndexOfList(ts) }, clashCounts: { value: countTargets(ts) }, clashTicks, bandCols: { value: 1000 },
+  startPairNames: { value: barComputed("startPairNames", { shownView: { value: { view: ts, lineAt: null } },
+    startTargets: (l: ClashTarget[]) => l.flatMap((t, i) => (t.atStart ? [i] : [])), targetAt: (l: ClashTarget[], i: number) => l[i],
+    isNearMiss, partLabel }) },
+});
 const sweepView = (result: any, run: any) => barComputed("sweepView", {
-  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, hitTargets: { value: [] },
+  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, ...clashRefs([]),
   sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
-  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, findingWords });
+  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, wordsOfCounts });
 /** The bar's verdict with the result's own targets (sweepView above lists none). */
 const sweepViewOf = (result: any, run: any) => barComputed("sweepView", {
-  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, hitTargets: { value: clashTargets(result.hits) },
+  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, ...clashRefs(clashTargets(result.hits)),
   sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
-  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, findingWords });
+  boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, wordsOfCounts });
 const verdictDetail = (result: any, run: any, track: any) => barComputed("verdictDetail", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, track: { value: track },
-  provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, hitTargets: { value: clashTargets(result.hits) },
+  provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, ...clashRefs(clashTargets(result.hits)),
   sweepCaveat: { value: result.uncertified }, pctOf: (x: number) => `${x * 100} %`, beginSentence, depTimeSentence, partLabel, isNearMiss });
 
 describe("Codex R133", () => {

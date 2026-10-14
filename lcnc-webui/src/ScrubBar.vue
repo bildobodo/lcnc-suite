@@ -26,11 +26,11 @@ import { runLineState, subExecState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
-import { isNearMiss, type ClashTarget } from "./viewer/clashTargets";
-import { boundaryStretches, contactBands, targetAt } from "./viewer/contactView";
+import { isNearMiss } from "./viewer/clashTargets";
+import { boundaryStretches, contactBands, startTargets, targetAt, viewCounts } from "./viewer/contactView";
 import type { ShownContacts } from "./viewer/shownContacts";
-import { findingWords } from "./viewer/sweepWords";
-import { mapAcrossEntry, sampleCum, targetAfter, targetBefore, type NavSelection } from "./viewer/findingNav";
+import { wordsOfCounts } from "./viewer/sweepWords";
+import { mapAcrossEntry, sampleCum, type NavSelection } from "./viewer/findingNav";
 import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
@@ -41,10 +41,11 @@ import { fmtElapsed } from "./format";
 import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, limitStopOf, measurementsOf, nextRowKey, simRowOrder, type SimRowKind, partLabel } from "./viewer/simRows";
+import { buildSimRows, limitStopOf, measurementsOf, type SimRowKind, partLabel } from "./viewer/simRows";
+import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
-import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
+import { simRows, simView, claimSimActions, SIM_FILTER_KINDS, type SimSweepView } from "./simPanelStore";
 import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
 import { checkCard, type CheckContext } from "./viewer/checkContext";
 import MachineToggle from "./MachineToggle.vue";
@@ -762,11 +763,10 @@ const verdictDetail = computed<string>(() => {
     ? `Stopped at ${pctOf(r.truncated.covered)} of the program — the rest is unchecked.`
     : `${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
   if (r.pairCount === 0) parts.push(r.uncertified ? "No part that could be checked moves against another." : "No parts move against each other — nothing to check.");
-  if (hitTargets.value.length) parts.push("A stop shows the first contact (machine off).");
+  if (clashIndex.value.n) parts.push("A stop shows the first contact (machine off).");
   // step 4 plan 1d: a start in contact is said with its pair; pairs touching
   // at rest too are the model's mounts, excluded (each one in Check basis)
-  const startPairs = [...new Set(hitTargets.value.filter(h => h.atStart && !h.entry && !h.possible && !isNearMiss(h))
-    .map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
+  const startPairs = startPairNames.value;
   if (startPairs.length) parts.push(`The program starts in contact: ${startPairs.join(", ")}.`);
   if (r.staticContacts.length) {
     const k = r.staticContacts.length;
@@ -862,16 +862,40 @@ const sweptFrom = computed(() => {
 
 // One navigation target per contact INTERVAL (a re-entry is a stop of its
 // own) and per near miss, from the contact view (step 4 package 2, plan
-// 4.1): the COUNT, the timeline marks, the list and prev/next all read THIS
-// list. A contact carried across lines is one interval — the tint and the
-// code marks show its whole extent.
-const hitTargets = computed<ClashTarget[]>(() => {
+// 4.1) — read BY INDEX (plan 4.4): the count, the marks, the list's window
+// and prev/next all read the view; nothing lists every target (at the budget
+// a row and a mark per target held the page for minutes). A contact carried
+// across lines is one interval — the tint and the code marks show its whole
+// extent.
+const clashIndex = computed<ClashIndex>(() => {
+  const sv = shownView.value;
+  return sv ? clashIndexOfView(sv.view, sv.lineAt) : NO_CLASH;
+});
+/** The words' counts, from the index (once per view). */
+const clashCounts = computed(() => {
+  const sv = shownView.value;
+  return sv ? viewCounts(sv.view) : { collisions: 0, entryCollisions: 0, nearMisses: 0, possible: 0, startsIn: false };
+});
+/** The pairs the program starts in contact by (step 4 plan 1d): proven at
+ *  the first pose — never the entry move's, a possible contact or a near miss. */
+const startPairNames = computed<string[]>(() => {
   const sv = shownView.value;
   if (!sv) return [];
-  const out: ClashTarget[] = [];
-  for (let i = 0; i < sv.view.n; i++) out.push(targetAt(sv.view, i, sv.lineAt));
-  return out;
+  const hs = startTargets(sv.view).map(i => targetAt(sv.view, i, sv.lineAt)).filter(h => !h.entry && !h.possible && !isNearMiss(h));
+  return [...new Set(hs.map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
 });
+/** What the tab lists and the steps reach, by kind. */
+const simTargets = computed<SimTargets<FindingTarget, FindingTarget & { tool: number }>>(() => ({ clash: clashIndex.value, limit: violationTargets.value, tool: toolTargets.value }));
+/** A picked target as the jump takes it. */
+function targetOfPick(p: Pick): FindingTarget {
+  return p.kind === "clash" ? clashIndex.value.target(p.index) : otherTargets(p.kind)[p.index]!;
+}
+/** A target by its key; `near` where it should be (a collision is found there). */
+function targetByKey(kind: SimRowKind, key: string, near?: number): FindingTarget | null {
+  if (kind !== "clash") return otherTargets(kind).find(f => f.key === key) ?? null;
+  const c = clashIndex.value, i = c.find(key, near);
+  return i >= 0 ? c.target(i) : null;
+}
 
 
 /** The entry move's length on a track built from the base (0 = the base). */
@@ -894,8 +918,8 @@ function jumpTo(pick: FindingTarget | null, kind: SimRowKind) {
   const t = track.value;
   let target = pick;
   if (t && from && t !== from) {
-    target = targetsOf(kind).find(f => f.key === pick.key)
-      ?? mapAcrossEntry(pick, entryLenOf(from), entryLenOf(t));
+    const moved = mapAcrossEntry(pick, entryLenOf(from), entryLenOf(t));
+    target = targetByKey(kind, pick.key, moved.cum) ?? moved;
   }
   // Inside the finding's extent: its start cum is the previous move's end,
   // whose sample names the previous line and misses the contact tint.
@@ -971,7 +995,8 @@ const marks = computed(() => {
   const pctOfCum = (c: number) => Math.min(100, (c / max) * 100);
   for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
   for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
-  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: isNearMiss(x) });
+  // one mark per occupied column of the timeline, never one per target (plan 4.4)
+  for (const x of clashTicks(clashIndex.value, bandCols.value, max)) out.push({ pct: x.pct, kind: "clash", near: x.near });
   return out;
 });
 // Extent bands (timeline percentages): where a soft-limit line runs (warn)
@@ -1042,8 +1067,8 @@ onUnmounted(() => {
 // component's jumps (simPanelStore.ts), so the marks, the list and prev/next
 // are one navigation. The bar has no compact form any more: nothing in it
 // changes its width with the content.
-function targetsOf(kind: SimRowKind): FindingTarget[] {
-  return kind === "limit" ? violationTargets.value : kind === "clash" ? hitTargets.value : toolTargets.value;
+function otherTargets(kind: "limit" | "tool"): FindingTarget[] {
+  return kind === "limit" ? violationTargets.value : toolTargets.value;
 }
 /** The first point of the displayed track a move ends beyond the joint
  *  window at — the first predicted limit crossing, not where the run stops
@@ -1054,18 +1079,36 @@ const limitStop = computed(() => limitStopOf(track.value));
 // one's trip point is conditional on it (parity-ef plan F3).
 const measurements = computed(() => measurementsOf(track.value,
   parseProbeBands(viewerGcode.value?.probe_bands).map(b => b.line)));
-const rowsNow = computed(() => buildSimRows({
-  clash: hitTargets.value, limit: violationTargets.value, tool: toolTargets.value,
-  violations: violations.value ?? [], unit: linearUnit.value,
-  timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
-  stop: limitStop.value,
-  toolNotes: m600Notes.value.byLine,
-  measurements: measurements.value,
-}));
-watch(rowsNow, r => { simRows.value = r; }, { immediate: true });
+// The list is a WINDOW of the filter's kinds (plan 4.4): at most
+// LIST_WINDOW rows around the shown row, else the next one ahead. Where it
+// begins is a number that changes only when that row comes near the
+// window's edge — the rows are built then, never per frame.
+const listKinds = computed(() => SIM_FILTER_KINDS[simView.filter]);
+const mergedList = computed(() => new MergedList(simTargets.value, listKinds.value));
+let _winFirst: number | null = null;
+// another filter: a window of its own, centred afresh
+watch(listKinds, () => { _winFirst = null; }, { flush: "sync" });
+const winFirst = computed(() => {
+  const m = mergedList.value;
+  _winFirst = windowFirst(m.total, windowCenter(m, listKinds.value, sPos.value, navSel.value), _winFirst);
+  return _winFirst;
+});
+const rowsNow = computed(() => {
+  const m = mergedList.value, first = winFirst.value, part = m.slice(first, first + LIST_WINDOW_ROWS);
+  const rows = buildSimRows({
+    clash: part.clash, limit: part.limit, tool: part.tool,
+    violations: violations.value ?? [], unit: linearUnit.value,
+    timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
+    stop: limitStop.value,
+    toolNotes: m600Notes.value.byLine,
+    measurements: measurements.value,
+  });
+  return { rows, before: first, after: m.total - first - rows.length };
+});
+watch(rowsNow, r => { simRows.value = r.rows; simView.window = { before: r.before, after: r.after }; }, { immediate: true });
 // Per frame while playing, but it only CHANGES where the playhead passes a
-// row — the tab re-renders then, not per frame.
-const nextKeyNow = computed(() => nextRowKey(rowsNow.value, sPos.value));
+// target — the tab re-renders then, not per frame.
+const nextKeyNow = computed(() => nextTarget(simTargets.value, SIM_FILTER_KINDS.all, sPos.value)?.key ?? null);
 /** What the collision check has done, in the tab's words. */
 const sweepView = computed<SimSweepView | null>(() => {
   const r = shownResult.value;
@@ -1077,8 +1120,8 @@ const sweepView = computed<SimSweepView | null>(() => {
   // ended: never while it runs ("No contact so far"), never for a part.
   // The parts go to the tab apart, so it can shorten the result and keep the
   // coverage (Codex R136 VP-I94).
-  const n = hitTargets.value.length;
-  const fw = findingWords(hitTargets.value);
+  const n = clashIndex.value.n;
+  const fw = wordsOfCounts(clashCounts.value);
   const findTone = fw.danger ? "danger" : "warn";
   const startsIn = fw.startsIn ? " · starts in contact" : "";
   const result = (none: string, running = false) =>
@@ -1260,19 +1303,20 @@ watchEffect(() => {
   const ts = confirmedToolsetter();
   simView.basis = toolsetterBasisLine(viewerGcode.value?.toolsetter_basis, ts.ok ? toolsetterVarMap(ts.values) : null);
   simView.jumpReason = hitNavReason.value;
+  simView.counts = { clash: clashIndex.value.n, limit: violationTargets.value.length, tool: toolTargets.value.length };
 });
 const releaseSim = claimSimActions({
-  jump(key: string) {
+  jump(key: string, near?: number) {
     for (const kind of ["clash", "limit", "tool"] as const) {
-      const t = targetsOf(kind).find(x => x.key === key);
+      const t = targetByKey(kind, key, near);
       if (t) { jumpTo(t, kind); return; }
     }
   },
   step(kinds, dir) {
-    // the list's own order (simRowOrder), ties included — Codex R78 VP-I38
-    const list = kinds.flatMap(k => targetsOf(k).map(t => ({ ...t, kind: k }))).sort(simRowOrder);
-    const t = dir > 0 ? targetAfter(list, sPos.value, navSel.value) : targetBefore(list, sPos.value, navSel.value);
-    if (t) jumpTo(t, t.kind);
+    // the list's own order (simRowOrder), ties included — Codex R78 VP-I38 —
+    // each kind's candidate from its index (plan 4.4)
+    const p = stepTarget(simTargets.value, kinds, dir, sPos.value, navSel.value);
+    if (p) jumpTo(targetOfPick(p), p.kind);
   },
 });
 // Only this bar's claim: a re-mounted bar has claimed the tab before this

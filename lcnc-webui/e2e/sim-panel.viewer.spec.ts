@@ -37,7 +37,7 @@ async function prepare(page: Page, context: BrowserContext, vp = "desktop", prev
     [{ line: 12 }, { line: 26, rapid: true }]) ?? false)).toBe(true);
   await openSimTab(page);
 }
-const rows = (page: Page) => page.locator(".simPanel tbody tr");
+const rows = (page: Page) => page.locator(".simPanel tbody tr[data-sim-row]");
 const rowKeys = (page: Page) => rows(page).evaluateAll(trs => trs.map(t => t.getAttribute("data-sim-row")));
 
 test("the list is the timeline's marks: one row each, in timeline order, each kind in its words", async ({ page, context }) => {
@@ -96,8 +96,109 @@ test("a row shows its finding; the steps go through the shown kind; the next row
     el.value = "50"; el.dispatchEvent(new Event("input", { bubbles: true })); });
   await expect(page.locator(".simPanel .shownRow")).toHaveCount(0);
   const next = await page.locator(".simPanel .nextRow").getAttribute("data-sim-row");
-  const all = await page.locator(".simPanel tbody tr").evaluateAll(trs => trs.map(t => t.getAttribute("data-sim-row")));
+  const all = await page.locator(".simPanel tbody tr[data-sim-row]").evaluateAll(trs => trs.map(t => t.getAttribute("data-sim-row")));
   expect(all.indexOf(next), "the next row is the first past the position").toBeGreaterThan(0);
+});
+
+// Step 4 package 2, plan 4.4: the list is a WINDOW of at most 400 rows around
+// the shown (else the next) row; the count and ‹ › reach every target, and the
+// timeline marks one occupied column, never one target each — at the budget a
+// row and a mark per target held the page for minutes.
+test("a long list is a window: 400 rows, the count and the steps reach every target, one mark per column (plan 4.4)", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  const N = 1000, key = (k: number) => `C0|${k}|0`;
+  await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
+    Array.from({ length: n }, (_, k) => ({ line: 12, frac: 0.01 + (0.98 * k) / n }))) ?? false, N)).toBe(true);
+  await simShow(page, "clash");
+  const option = page.locator('.simPanel select[name="simFilter"] option[value="clash"]');
+  const more = page.locator(".simPanel .windowMore");
+  await expect(option).toHaveText(`Collisions (${N})`);
+  await expect(rows(page)).toHaveCount(400);
+  await expect(more, "what lies after the window, counted; nothing before it").toHaveText(["600 later"]);
+  expect((await rowKeys(page))[0]).toBe(key(0));
+  await expect(more.locator(".rowPick, [data-sim-row]"), "the count rows are no list rows").toHaveCount(0);
+  // the marks: one per occupied column, each at its own place — fewer than the targets
+  const ticks = await page.locator(".scrubBar .scrubTick.clash").evaluateAll(ts => ts.map(t => t.getBoundingClientRect().left));
+  expect(ticks.length, "marks").toBeGreaterThan(50);
+  expect(ticks.length, "never one per target").toBeLessThan(N);
+  const sorted = [...ticks].sort((a, b) => a - b);
+  expect(sorted.every((x, i) => !i || x - sorted[i - 1]! > 0.4), "no two marks in one column").toBe(true);
+  // ‹ › reach a target outside the window: back from the start wraps to the last
+  await simStepBtn(page, "Previous collision").click();
+  await expect(page.locator(`.simPanel [data-sim-row="${key(N - 1)}"]`)).toHaveClass(/shownRow/);
+  await expect(rows(page)).toHaveCount(400);
+  await expect(more, "the window moved to it").toHaveText(["600 earlier"]);
+  await expect(option, "the count stays every target").toHaveText(`Collisions (${N})`);
+  // a focused row the window moves away from: the focus goes to the row now
+  // at its place, held inside the window — never to the page (R78: an arrow
+  // on the page would jog)
+  await page.locator(`.simPanel [data-sim-row="${key(600)}"] .rowPick`).focus();
+  await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
+    el.value = "0.5"; el.dispatchEvent(new Event("input", { bubbles: true })); });
+  await expect(more, "the window follows the position back to the start").toHaveText(["600 later"]);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? document.activeElement?.tagName))
+    .toBe(key(399));
+  // and on from the shown one: the first again
+  await simStepBtn(page, "Previous collision").click();
+  await simStepBtn(page, "Next collision").click();
+  await expect(page.locator(`.simPanel [data-sim-row="${key(0)}"]`)).toHaveClass(/shownRow/);
+  await expect(more).toHaveText(["600 later"]);
+  // a new result under a focused row in a moved window: the row at its place
+  // in the WHOLE list takes the focus (its global index, not its place on
+  // screen) — the same targets, every key new
+  await simStepBtn(page, "Previous collision").click();
+  await expect(more).toHaveText(["600 earlier"]);
+  await page.locator(`.simPanel [data-sim-row="${key(650)}"] .rowPick`).focus();
+  await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
+    Array.from({ length: n }, (_, k) => ({ line: 12, frac: 0.01 + (0.98 * k) / n, ordinal: 5000 + k }))) ?? false, N)).toBe(true);
+  await expect.poll(() => page.evaluate(() => document.activeElement?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? document.activeElement?.tagName))
+    .toBe(key(5650));
+  await expect(more).toHaveText(["600 earlier"]);
+});
+
+test("a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4)", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  // the list glides (openLayout emulates reduced motion, where it snaps), and
+  // the browser's own scroll anchoring is off: the panel keeps the picture
+  // itself — a browser without it (Safari) gets the same list
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addStyleTag({ content: ".simPanel .simTable { overflow-anchor: none; }" });
+  const N = 1000, key = (k: number) => `C0|${k}|0`;
+  await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
+    Array.from({ length: n }, (_, k) => ({ line: 12, frac: 0.01 + (0.98 * k) / n }))) ?? false, N)).toBe(true);
+  await simShow(page, "clash");
+  // the last row before the window's margin, shown and settled in the middle of the list
+  await page.locator(`.simPanel [data-sim-row="${key(349)}"]`).click();
+  await expect(page.locator(`.simPanel [data-sim-row="${key(349)}"]`)).toHaveClass(/shownRow/);
+  const yOf = (k: string) => page.evaluate(k => {
+    const sc = document.querySelector(".simPanel .simTable")!, tr = sc.querySelector(`tr[data-sim-row="${k}"]`);
+    return tr ? tr.getBoundingClientRect().top - sc.getBoundingClientRect().top : null;
+  }, k);
+  let last = NaN;
+  await expect.poll(async () => { const y = await yOf(key(349)); const still = y === last; last = y ?? NaN; return still; }, { intervals: [200] }).toBe(true);
+  const y0 = last, rowH = await page.locator(`.simPanel [data-sim-row="${key(349)}"]`).evaluate(e => e.getBoundingClientRect().height);
+  // every frame from here: where that row is, and whether the window has moved
+  await page.evaluate(k => {
+    const w = window as any;
+    w.__frames = [];
+    const tick = () => {
+      const sc = document.querySelector(".simPanel .simTable")!, tr = sc.querySelector(`tr[data-sim-row="${k}"]`);
+      w.__frames.push({ y: tr ? tr.getBoundingClientRect().top - sc.getBoundingClientRect().top : null,
+                        moved: /150 earlier/.test(sc.querySelector(".windowMore")?.textContent ?? "") });
+      if (w.__frames.length < 90) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, key(349));
+  await simStepBtn(page, "Next collision").click();
+  await expect(page.locator(".simPanel .windowMore"), "the next row passed the margin: the window moved").toHaveText(["150 earlier", "450 later"]);
+  await expect.poll(() => page.evaluate(() => (window as any).__frames.length)).toBe(90);
+  const frames: Array<{ y: number | null; moved: boolean }> = await page.evaluate(() => (window as any).__frames);
+  const at = frames.findIndex(f => f.moved);
+  expect(at, "a frame after the move").toBeGreaterThan(0);
+  expect(Math.abs(frames[at]!.y! - y0), "the first frame after the move: the row where it was").toBeLessThan(3);
+  for (let i = at + 1; i < frames.length; i++) {
+    expect(Math.abs(frames[i]!.y! - frames[i - 1]!.y!), `frame ${i}: a glide, never a jump`).toBeLessThan(rowH);
+  }
 });
 
 // Keyboard jog ON with the navigation keys bound to jog (tabs.spec's map): a
@@ -207,7 +308,7 @@ test("a result change under the focus keeps it in the panel; no arrow jogs", asy
   await simShow(page, "clash");
   await page.locator(".simPanel .rowPick").first().focus();
   await page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([]));
-  await expect(page.locator(".simPanel tbody tr")).toHaveCount(0);
+  await expect(page.locator(".simPanel tbody tr[data-sim-row]")).toHaveCount(0);
   await expect(page.locator('.simPanel select[name="simFilter"]'), "an empty list: the filter holds the focus").toBeFocused();
   expect(await tryJog(), "no arrow reached the jog map").toEqual([]);
 });

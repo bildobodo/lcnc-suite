@@ -6,14 +6,14 @@ import {
 import {
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
   heldBytes, indexAfter, indexBefore, lineMark, lineRuns, runsOf, targetAt, targetEnd, targetKey, targetKind, targetPos,
-  targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
+  startTargets, targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
 } from "./contactView";
 import { findingWords } from "./sweepWords";
 
 interface Ep { pair: number; flags?: number; onset?: number; end?: number; close?: [number, number]; ivs?: Array<[number, number, number?]> }
 /** A store with the given episodes (each with its intervals [enter, exit, flags]; NaN = open). */
-function store(eps: Ep[], gaps: Array<[number, number, number, number]> = []): ContactStore {
-  const s = new ContactStore(1, 0);
+function store(eps: Ep[], gaps: Array<[number, number, number, number]> = [], generation = 0): ContactStore {
+  const s = new ContactStore(1, generation);
   const ord = new Map<number, number>();
   for (const e of eps) {
     const o = ord.get(e.pair) ?? 0; ord.set(e.pair, o + 1);
@@ -54,6 +54,31 @@ describe("the target index (plan 4.1)", () => {
     expect(findingWords(objs).text).toBe("2 collisions · 2 possible contacts · 1 near miss");
     expect(objs[1]).toMatchObject({ a: "t2", b: "w2", line: 4, cum: 3.5, cumEnd: 3.5 });
     expect(objs[1]!.dist).toBeCloseTo(1.2, 6);
+  });
+
+  it("the targets a program starts in, found at their tables' first sample — the same as asking every target (plan 4.4)", () => {
+    const st = store([
+      { pair: 1, flags: EP_AT_START, ivs: [[0, 2], [5, 6]] },
+      { pair: 2, flags: EP_AT_START | EP_POSSIBLE, ivs: [[0, 1, IV_POSSIBLE]] },
+      { pair: 3, ivs: [[0, 1]] },        // at the first sample, not proven at the first pose
+      { pair: 4, close: [0, 0.5] },
+      { pair: 5, ivs: [[3, 4]] },
+    ]);
+    // (an episode is at the start only when its pair touched at the first
+    // pose — at the table's first sample: the sweep's own rows hold it,
+    // collision.test and contactViewCross.test)
+    const other = store([{ pair: 6, flags: EP_AT_START, ivs: [[0.5, 1]] }, { pair: 7, ivs: [[2, 3]] }]);
+    const every = (v: ContactView) => Array.from({ length: v.n }, (_, i) => i).filter(i => targetKind(v, i) & T_AT_START);
+    const v = buildContactView({ sources: [src(st), src(other, { at: c => c + 0.25 })], pairName: names, coverage: 10 });
+    expect(startTargets(v)).toEqual(every(v));
+    expect(startTargets(v).map(i => targetKey(v, i))).toEqual(["C1|0|0", "C2|0|0", "C6|0|0"]);
+    // after a fallback: the earlier generation and the current one, both starting in contact (union pieces)
+    const held = store([{ pair: 1, flags: EP_AT_START, ivs: [[0, 2]] }, { pair: 2, ivs: [[4, 5]] }]);
+    const cur = store([{ pair: 1, flags: EP_AT_START, ivs: [[0, 2]] }, { pair: 2, ivs: [[4, 5]] }], [], 1);
+    const u = buildContactView({ sources: [src(cur, { held: [held], heldCoverage: [10], ownCoverage: 10 })], pairName: names, coverage: 10 });
+    expect(startTargets(u)).toEqual(every(u));
+    expect(startTargets(u).length, "the union's start contact").toBe(1);
+    expect(startTargets(buildContactView({ sources: [src(store([]))], pairName: names, coverage: 10 }))).toEqual([]);
   });
 
   it("keys are the identity (origin, pair, episode number, interval number), stable as the tables grow", () => {

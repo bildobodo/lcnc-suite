@@ -1065,6 +1065,38 @@ export function viewCounts(v: ContactView): ViewCounts {
   return c;
 }
 
+/** The targets a program starts in (T_AT_START, any source) — the "?"'s
+ *  "starts in contact" names them. An episode is at the start only when its
+ *  pair touched at the sweep's first pose, so its first interval enters at
+ *  the table's first sample: the smallest enter of its table. Only the
+ *  targets at those positions are asked for their kind — never every target
+ *  (a union piece's kind is a walk of its own; plan 4.4). */
+export function startTargets(v: ContactView): number[] {
+  check(v);
+  const xs = new Set<number>();
+  for (const t of v.tables) {
+    if (!t) continue;
+    const rows = t.st.intervals.rows;
+    let m = Infinity;
+    t.c.enter.forEach((b, k) => {
+      for (let j = 0, n = Math.min(b.length, rows - k * STORE_BLOCK); j < n; j++) if (b[j]! < m) m = b[j]!;
+    });
+    if (m < Infinity) xs.add(t.source.at(m));
+  }
+  const out = new Set<number>();
+  for (const x of xs) {
+    for (let i = firstAfter(v, x, false); i < v.n && posOf(v, i) === x; i++) if (kindOf(v, i) & T_AT_START) out.add(i);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+/** The first target whose position is past `x` (strict), or at or past it —
+ *  the list's window, the marks' columns and the look-ahead (plan 4.4). */
+export function indexAtOrAfter(v: ContactView, x: number, strict: boolean): number {
+  check(v);
+  return firstAfter(v, x, strict);
+}
+
 const sampleAt = (v: ContactView, i: number) => {
   const p = posOf(v, i), room = endOf(v, i) - p;
   return room > 0 ? p + Math.min(JUMP_NUDGE, room / 2) : p;

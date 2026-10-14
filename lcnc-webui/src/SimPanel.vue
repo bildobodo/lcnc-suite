@@ -18,24 +18,28 @@ import { explainAt } from "./gateExplain";
 import { fmtPct, NO_VALUE } from "./format";
 import { cssZoomOf } from "./helpPlacement";
 import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
-import { SIM_SPEEDS, simJump, simRows, simStep, simView } from "./simPanelStore";
+import { SIM_FILTER_KINDS, SIM_SPEEDS, simJump, simRows, simStep, simView, type SimFilter } from "./simPanelStore";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
 
 const can = usePermissions();
 /** The card before any check (step 4 plan 1c). */
 const NO_CHECK = "No check has run on this program yet.";
 
-type Filter = "all" | SimRowKind;
-const filter = ref<Filter>("all");
-const KINDS: Record<Filter, readonly SimRowKind[]> = { all: ["clash", "limit", "tool"], clash: ["clash"], limit: ["limit"], tool: ["tool"] };
-const count = (k: SimRowKind) => simRows.value.filter(r => r.kind === k).length;
+// The filter is the bar's too: it builds the list's window of these kinds
+// (plan 4.4 — the list shows at most a window, the counts every target).
+type Filter = SimFilter;
+const filter = computed<Filter>({ get: () => simView.filter, set: f => { simView.filter = f; } });
+const KINDS = SIM_FILTER_KINDS;
+const count = (k: SimRowKind) => simView.counts[k];
+const total = computed(() => count("clash") + count("limit") + count("tool"));
 const filterOptions = computed(() => [
-  { value: "all", label: `All (${simRows.value.length})` },
+  { value: "all", label: `All (${total.value})` },
   { value: "clash", label: `Collisions (${count("clash")})` },
   { value: "limit", label: `Limit violations (${count("limit")})` },
   { value: "tool", label: `Tool changes (${count("tool")})` },
 ]);
-const rows = computed(() => simRows.value.filter(r => KINDS[filter.value].includes(r.kind)));
+/** The window's rows (the filter's kinds): the bar builds it. */
+const rows = computed(() => simRows.value);
 /** The step buttons are named for what they step through. */
 const NAV: Record<Filter, [string, string]> = {
   all: ["Previous on the timeline", "Next on the timeline"],
@@ -155,7 +159,7 @@ function pickEl(key: string): HTMLElement | null {
 function show(r: SimRow, at: Event | HTMLElement) {
   if (!can.value.armed) return;
   if (simView.jumpReason) { explainAt(at, simView.jumpReason); return; }
-  simJump(r.key);
+  simJump(r.key, r.cum);
 }
 function onPickKey(e: KeyboardEvent, r: SimRow) {
   if (e.key === "Enter" || e.key === " ") {
@@ -185,12 +189,16 @@ const rowName = (r: SimRow) => `Show ${r.lineLabel}: ${r.what}`;
 // navigation keys (onRootKey).
 const renders = () => [rows.value, simView.available, simView.jumpReason, stepReason.value] as const;
 let held: { key: string | null; label: string | null; index: number } | null = null;
+/** Where the window began for the rows on screen (noted after each render). */
+let shownBefore = 0;
 watch(renders, (_now, before) => {
   const r = root.value, a = document.activeElement as HTMLElement | null;
   if (!r || !a || !r.contains(a)) { held = null; return; }
   const key = a.closest<HTMLElement>("[data-sim-row]")?.dataset.simRow ?? null;
   const old = (before?.[0] ?? []) as readonly SimRow[];
-  held = { key, label: key ? null : a.getAttribute("aria-label"), index: key ? old.findIndex(x => x.key === key) : -1 };
+  // its place in the WHOLE list (plan 4.4): the window may move under it
+  const local = key ? old.findIndex(x => x.key === key) : -1;
+  held = { key, label: key ? null : a.getAttribute("aria-label"), index: local >= 0 ? shownBefore + local : -1 };
 }, { flush: "pre" });
 watch(renders, () => {
   const h = held, r = root.value;
@@ -200,13 +208,16 @@ watch(renders, () => {
   const tries: (HTMLElement | null)[] = [];
   if (h.key && keys.includes(h.key)) tries.push(pickEl(h.key));
   if (h.label) tries.push(r.querySelector<HTMLElement>(`[aria-label="${CSS.escape(h.label)}"]`));
-  if (keys.length && h.index >= 0) tries.push(pickEl(keys[Math.min(h.index, keys.length - 1)]!));
+  // the row now at its place in the whole list, held inside the window
+  if (keys.length && h.index >= 0) tries.push(pickEl(keys[Math.max(0, Math.min(h.index - simView.window.before, keys.length - 1))]!));
   tries.push(r.querySelector<HTMLElement>('select[name="simFilter"]'), r);
   for (const el of tries) {
     el?.focus();
     if (el && document.activeElement === el) return;
   }
 }, { flush: "post" });
+// after the focus watcher (a later post job): the rows now on screen
+watch(renders, () => { shownBefore = simView.window.before; }, { flush: "post" });
 // ── The list FOLLOWS the position (operator 2026-10-06: "like the code
 // panel when the program runs"): the marked row — the shown finding, else
 // the next one ahead — stands in the middle of the list's view while the
@@ -231,10 +242,11 @@ function glideStep() {
   if (done) glide = null;
   else glideRaf = requestAnimationFrame(glideStep);
 }
+const rowEl = (sc: HTMLElement, key: string) => sc.querySelector<HTMLElement>(`tr[data-sim-row="${CSS.escape(key)}"]`);
 function follow(animate: boolean) {
   const sc = scroller.value, key = marked.value;
   if (!sc || !key || !sc.clientHeight) return;
-  const tr = sc.querySelector<HTMLElement>(`tr[data-sim-row="${CSS.escape(key)}"]`);
+  const tr = rowEl(sc, key);
   if (!tr) return;
   // In the list's own px: the row's place in the scrolled content; the view
   // is what the sticky head leaves.
@@ -254,7 +266,25 @@ function follow(animate: boolean) {
   glide = plan;
   glideRaf = requestAnimationFrame(glideStep);
 }
-watch([marked, rows], () => follow(true), { flush: "post" });
+// The list is a window (plan 4.4): when it moves — or rows arrive above —
+// the rows shift under the scroll position. The row marked before keeps its
+// place on screen across the change, then the list glides as ever — never a
+// jump of the whole list.
+let shownMarked: string | null = null;
+let anchor: { key: string; y: number } | null = null;
+watch(rows, () => {
+  anchor = null;
+  const sc = scroller.value, key = shownMarked;
+  const tr = sc && key ? rowEl(sc, key) : null;
+  if (tr && key) anchor = { key, y: tr.getBoundingClientRect().top };
+}, { flush: "pre" });
+function restoreAnchor() {
+  const sc = scroller.value, a = anchor;
+  anchor = null;
+  const tr = sc && a ? rowEl(sc, a.key) : null;
+  if (sc && a && tr) sc.scrollTop += (tr.getBoundingClientRect().top - a.y) / cssZoomOf(sc);
+}
+watch([marked, rows], () => { restoreAnchor(); follow(true); shownMarked = marked.value; }, { flush: "post" });
 // A hidden tab has no height: it catches up when it shows (or resizes).
 const sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => follow(false)) : null;
 watch(scroller, (el, old) => {
@@ -352,12 +382,17 @@ function onRootKey(e: KeyboardEvent) {
         <HelpIcon label="Timeline list">One row per mark on the timeline: × collision, ▲ soft limit (offsets as parsed), ● tool change.</HelpIcon>
       </div>
 
-      <div v-if="!rows.length" class="emptyState">{{ simRows.length ? "None of this kind." : "No collisions, limit violations or tool changes." }}</div>
+      <div v-if="!rows.length" class="emptyState">{{ total ? "None of this kind." : "No collisions, limit violations or tool changes." }}</div>
       <div v-else ref="scroller" v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }">
         <table>
           <thead>
             <tr><th class="colKind" aria-label="Kind"></th><th class="colLine">Line</th><th class="colWhat">What</th><th class="colMove">Move</th><th class="colAt">Time</th></tr>
           </thead>
+          <!-- the list is a window (plan 4.4): what lies before and after it,
+               counted — ‹ › reach every row -->
+          <tbody v-if="simView.window.before" class="windowMore">
+            <tr><td colspan="5" class="text-muted">{{ simView.window.before }} earlier</td></tr>
+          </tbody>
           <tbody>
             <tr v-for="r in rows" :key="r.key" :data-sim-row="r.key" :data-sim-at="r.kind === 'clash' ? `${r.key[0]}${r.line}` : r.key"
                 :class="{ shownRow: shown(r), nextRow: isNext(r) }" @click="show(r, $event)">
@@ -376,6 +411,9 @@ function onRootKey(e: KeyboardEvent) {
               <td class="colMove" :class="r.rapid ? 'text-warn' : 'text-muted'">{{ r.rapid == null ? "" : r.rapid ? "Rapid" : "Feed" }}</td>
               <td class="colAt mono text-muted">{{ r.at }}</td>
             </tr>
+          </tbody>
+          <tbody v-if="simView.window.after" class="windowMore">
+            <tr><td colspan="5" class="text-muted">{{ simView.window.after }} later</td></tr>
           </tbody>
         </table>
       </div>
@@ -413,8 +451,8 @@ function onRootKey(e: KeyboardEvent) {
 .simSummary.form3 .checkVerdict { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .filterSelect { flex: 1; min-width: 0; }
 .simTable { flex: 1; min-height: 0; overflow: auto; }
-tbody tr { cursor: pointer; }
-.locked tbody tr { cursor: default; }
+tbody tr[data-sim-row] { cursor: pointer; }
+.locked tbody tr[data-sim-row] { cursor: default; }
 /* The shown finding: the selection tint and a bar; the next one ahead (no
    finding shown — a run's look-ahead): the bar alone. */
 .shownRow { background: var(--hl-selected); }

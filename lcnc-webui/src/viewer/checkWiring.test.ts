@@ -10,14 +10,14 @@ import ts from "typescript";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CollisionHit, CollisionResult } from "./collision";
 import { clashTargets } from "./clashTargets";
-import { findingWords } from "./sweepWords";
+import { findingWords, wordsOfCounts } from "./sweepWords";
 import { firstOnly, holdsFirst, withFirstContact } from "./firstContact";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { captureCheckContext } from "./checkContext";
 import { semanticKinsMode } from "./kins";
 import { basisFromLive, type CheckBasis } from "./checkBasis";
 import { ContactStore, NONE } from "./contactStore";
-import { buildContactView, contactBands, lineMark, targetAt, tintAt, trackLineAt } from "./contactView";
+import { buildContactView, contactBands, lineMark, targetAt, tintAt, trackLineAt, viewCounts } from "./contactView";
 import { shownContactView } from "./shownContacts";
 import type { GenerationTables } from "./contactsReceiver";
 import { ContactsReceiver, contactOwners } from "./contactsReceiver";
@@ -272,7 +272,7 @@ describe("the earlier preview's verdict in words (step 4 plan 1a, _colPreviousOf
   const VIEW = { view: buildContactView({ sources: [{ stores: [st], at: c => c }], pairName: p => ({ a: "spindle_nose", b: `part_${p}` }), coverage: 20 }),
                  lineAt: (pos: number) => Math.floor(pos) };
   const fns = (view: unknown) => viewerFns(["_colPreviousOf"], "const collisionTrack = { value: {} };",
-    { clashTargets, findingWords, targetAt, contactViewFor: () => view, console: { warn: () => {} } });
+    { clashTargets, findingWords, wordsOfCounts, viewCounts, contactViewFor: () => view, console: { warn: () => {} } });
   it("its words are the summary's, from the shown contact view: kinds apart, a near miss never a collision", () => {
     expect(fns(VIEW)._colPreviousOf(result([]), 12)).toEqual(
       { collisions: 2, text: "1 collision · 1 near miss", complete: true, version: 12 });

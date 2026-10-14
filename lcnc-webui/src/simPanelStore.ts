@@ -36,6 +36,15 @@ export interface SimSweepView {
   short: string;
 }
 
+/** What the list shows: every kind, or one. */
+export type SimFilter = "all" | SimRowKind;
+export const SIM_FILTER_KINDS: Record<SimFilter, readonly SimRowKind[]> = {
+  all: ["clash", "limit", "tool"], clash: ["clash"], limit: ["limit"], tool: ["tool"],
+};
+
+/** The list's rows: a WINDOW of at most simWindow.LIST_WINDOW rows of the
+ *  filter's kinds around the shown or next one (step 4 package 2, plan 4.4) —
+ *  ‹ › and the counts reach every target, the list shows a window. */
 export const simRows = shallowRef<SimRow[]>([]);
 
 export const simView = reactive({
@@ -79,6 +88,12 @@ export const simView = reactive({
   jumpReason: undefined as string | undefined,
   /** Playback speed, ×0.1 … ×100 in fixed steps. */
   speed: 1,
+  /** What the list shows. */
+  filter: "all" as SimFilter,
+  /** Every target of each kind — the window shows some of them. */
+  counts: { clash: 0, limit: 0, tool: 0 } as Record<SimRowKind, number>,
+  /** How many rows of the filter's kinds lie before and after the window. */
+  window: { before: 0, after: 0 },
 });
 
 /** The speed steps the tab offers (operator 2026-10-05: fixed steps, not a
@@ -86,8 +101,9 @@ export const simView = reactive({
 export const SIM_SPEEDS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50, 100] as const;
 
 interface SimActions {
-  /** Show the row's finding (enters the simulation when it can). */
-  jump(key: string): void;
+  /** Show the row's finding (enters the simulation when it can); `near`
+   *  where it lies — a key is found there without a walk over every target. */
+  jump(key: string, near?: number): void;
   /** The next / previous row of these kinds from the current position. */
   step(kinds: readonly SimRowKind[], dir: 1 | -1): void;
 }
@@ -107,8 +123,10 @@ export function claimSimActions(a: SimActions): () => void {
     _owner = null;
     _actions = null;
     simView.available = false;
+    simView.counts = { clash: 0, limit: 0, tool: 0 };
+    simView.window = { before: 0, after: 0 };
     simRows.value = [];
   };
 }
-export function simJump(key: string): void { _actions?.jump(key); }
+export function simJump(key: string, near?: number): void { _actions?.jump(key, near); }
 export function simStep(kinds: readonly SimRowKind[], dir: 1 | -1): void { _actions?.step(kinds, dir); }

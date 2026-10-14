@@ -58,9 +58,9 @@ import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/b
 import { clashTargets } from "./viewer/clashTargets";
 import { ContactsReceiver, contactOwners } from "./viewer/contactsReceiver";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
-import { lineMark, lineRuns, runsOf, targetAt, tintAt, trackLineAt, type LineAt, type LineRuns } from "./viewer/contactView";
+import { lineMark, lineRuns, runsOf, tintAt, trackLineAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
 import { shownContactView, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
-import { findingWords } from "./viewer/sweepWords";
+import { findingWords, wordsOfCounts } from "./viewer/sweepWords";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -2331,7 +2331,7 @@ async function buildFromInit(init: ViewerInit) {
         // in the middle of its line's first move, or at `frac` of the track
         // (its line is then the track's there) — a possible one, a near miss
         // `near` mm apart, one the program starts in.
-        setCollisionHits: (hits: { line: number; frac?: number; rapid?: boolean; possible?: boolean; near?: number; atStart?: boolean }[]) => {
+        setCollisionHits: (hits: { line: number; frac?: number; rapid?: boolean; possible?: boolean; near?: number; atStart?: boolean; ordinal?: number }[]) => {
           const r = collisionResult.value, t = collisionTrack.value;
           if (!r || !t || !t.count) return false;
           const end = t.cum[t.count - 1]!;
@@ -2352,7 +2352,7 @@ async function buildFromInit(init: ViewerInit) {
           const st = new ContactStore(_colResultReq, 0);
           hits.forEach((h, k) => {
             const c = at[k]!, near = (h.near ?? 0) > 0;
-            const ep = st.episodes.append({ pair: 0, ordinal: k, flags: (h.rapid ? EP_RAPID : 0) | (h.atStart ? EP_AT_START : 0),
+            const ep = st.episodes.append({ pair: 0, ordinal: h.ordinal ?? k, flags: (h.rapid ? EP_RAPID : 0) | (h.atStart ? EP_AT_START : 0),
                                             onset: c, end: c, closeAt: c, closeDist: near ? h.near! : 0, firstIv: NONE, ivCount: near ? 0 : 1 });
             if (near) return;
             st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: c, exit: c,
@@ -3341,12 +3341,10 @@ const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResu
  *  Lauf“ 1c): its marks' number and their kinds in words (step 4 plan 1a). */
 function _colPreviousOf(prev: CollisionResult, version: number | null) {
   const sv = contactViewFor(collisionTrack.value);
-  let targets;
-  if (sv) targets = Array.from({ length: sv.view.n }, (_, i) => targetAt(sv.view, i, sv.lineAt));
-  else {
-    console.warn("[contacts] the earlier preview's verdict from its records — its contact tables are gone");
-    targets = clashTargets(prev.hits);
-  }
+  // counted from the view's index (plan 4.4), never a list of every target
+  if (sv) return { collisions: sv.view.n, text: wordsOfCounts(viewCounts(sv.view)).text, complete: !prev.truncated, version };
+  console.warn("[contacts] the earlier preview's verdict from its records — its contact tables are gone");
+  const targets = clashTargets(prev.hits);
   return { collisions: targets.length, text: findingWords(targets).text, complete: !prev.truncated, version };
 }
 

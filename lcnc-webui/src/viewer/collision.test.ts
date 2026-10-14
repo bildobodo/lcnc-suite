@@ -12,6 +12,7 @@ import { runSweepSlice } from "./sweepPump";
 import { clashTargets } from "./clashTargets";
 import { ContactStore, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE } from "./contactStore";
 import { boxPositions as boxAt } from "./collisionFixtures";
+import { buildContactView, startTargets, targetKey, targetKind, T_AT_START } from "./contactView";
 
 /** A store's intervals as plain rows (step 4 package 2). */
 const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (_, k) => ({
@@ -2178,6 +2179,14 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(iv(r.hits[0]!)).toEqual([[0, 30.5]]);
     // proven at the first pose: the program STARTS in contact (step 4 plan 1d)
     expect(r.hits[0]!.atStart).toBe(true);
+    // the contact tables say it at the table's first sample: the view finds it there (plan 4.4)
+    const model = buildCollisionModel(machine(40), [post(), nub]), store = new ContactStore(1, 0);
+    sweepCollisions(model, xs([-40, 0]), WCS0, { margin: 0.1, contacts: { store } });
+    const v = buildContactView({ sources: [{ stores: [store], at: c => c }], coverage: 100,
+                                 pairName: p => ({ a: model.bodies[model.pairs[p]![0]]!.id, b: model.bodies[model.pairs[p]![1]]!.id }) });
+    expect(startTargets(v).map(i => targetKey(v, i))).toEqual(Array.from({ length: v.n }, (_, i) => i)
+      .filter(i => targetKind(v, i) & T_AT_START).map(i => targetKey(v, i)));
+    expect(startTargets(v).length).toBe(1);
   });
 
   it("inside the margin at the first pose but not touching: the touch on the first move is an onset, not a start in contact", () => {

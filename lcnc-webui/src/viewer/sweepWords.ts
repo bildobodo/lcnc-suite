@@ -22,7 +22,12 @@ export interface FindingWords {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-export function findingWords(targets: readonly ClashTarget[]): FindingWords {
+/** What the words count, by kind — the contact view counts the same from its
+ *  index (contactView.viewCounts, plan 4.1), never from a list of every
+ *  target (plan 4.4). */
+export interface FindingCounts { collisions: number; entryCollisions: number; nearMisses: number; possible: number; startsIn: boolean }
+
+export function countTargets(targets: readonly ClashTarget[]): FindingCounts {
   let collisions = 0, entryCollisions = 0, nearMisses = 0, possible = 0, startsIn = false;
   for (const t of targets) {
     if (t.possible) { possible++; continue; }
@@ -31,6 +36,11 @@ export function findingWords(targets: readonly ClashTarget[]): FindingWords {
     else collisions++;
     if (t.atStart && !t.entry) startsIn = true;
   }
+  return { collisions, entryCollisions, nearMisses, possible, startsIn };
+}
+
+export function wordsOfCounts(c: FindingCounts): FindingWords {
+  const { collisions, entryCollisions, nearMisses, possible, startsIn } = c;
   const parts: string[] = [];
   if (collisions) parts.push(plural(collisions, "collision", "collisions"));
   if (entryCollisions) parts.push(plural(entryCollisions, "collision on the entry move", "collisions on the entry move"));
@@ -38,4 +48,8 @@ export function findingWords(targets: readonly ClashTarget[]): FindingWords {
   if (nearMisses) parts.push(plural(nearMisses, "near miss", "near misses"));
   return { text: parts.join(" · "), collisions, entryCollisions, nearMisses, possible, startsIn,
            danger: collisions + entryCollisions > 0 };
+}
+
+export function findingWords(targets: readonly ClashTarget[]): FindingWords {
+  return wordsOfCounts(countTargets(targets));
 }

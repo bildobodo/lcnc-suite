@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 import { CONTACT_EPS, sweepCollisions, type CollisionModel, type CollisionTrack } from "./collision";
 import { ContactStore } from "./contactStore";
 import { clashTargets, isNearMiss, type ClashTarget } from "./clashTargets";
-import { buildContactView, contactBands, targetAt, trackLineAt, viewCounts } from "./contactView";
+import { buildContactView, contactBands, startTargets, targetAt, targetKind, trackLineAt, T_AT_START, viewCounts } from "./contactView";
 import { findingWords } from "./sweepWords";
 import { MARGIN, MIN_ADV, generatedCase, loadShippedModel, randomTrack, rng, shippedCases, type Case, type FixtureFiles } from "./collisionFixtures";
 
@@ -28,7 +28,7 @@ const FILES: FixtureFiles = {
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 } as any;
 const TOL = 3e-3;   // boundaries are bisected to 1e-3 in both sinks
 
-interface Tally { compared: number; contacts: number; nears: number; bridged: number; floored: number; touchedLater: number; reclassed: number; extraNear: number }
+interface Tally { startsIn: number; compared: number; contacts: number; nears: number; bridged: number; floored: number; touchedLater: number; reclassed: number; extraNear: number }
 
 function compare(model: CollisionModel, track: CollisionTrack, where: string, t: Tally) {
   const store = new ContactStore(1, 0);
@@ -116,6 +116,10 @@ function compare(model: CollisionModel, track: CollisionTrack, where: string, t:
     t.nears++;
   }
   t.extraNear += vt.filter(x => !used.has(x) && x.near).length;
+  // the targets it starts in: found at the tables' first sample, the same as asking every target (plan 4.4)
+  const starts = startTargets(v);
+  expect(starts, `${where}: the start contacts`).toEqual(Array.from({ length: v.n }, (_, i) => i).filter(i => targetKind(v, i) & T_AT_START));
+  t.startsIn += starts.length;
   // the words: the index's count and the objects' words say the same
   const vc = viewCounts(v), vw = findingWords(vt);
   expect([vc.collisions, vc.entryCollisions, vc.nearMisses, vc.possible], `${where}: the counts`)
@@ -135,7 +139,7 @@ describe("the views from the contact tables against the records' views, one swee
     ...shippedCases(FILES).map(c => ({ c, load: () => loadShippedModel(c, FILES) })),
     ...Array.from({ length: 10 }, (_, k) => { const g = generatedCase(20261013 + k); return { c: g.c, load: () => g }; }),
   ];
-  const tally: Tally = { compared: 0, contacts: 0, nears: 0, bridged: 0, floored: 0, touchedLater: 0, reclassed: 0, extraNear: 0 };
+  const tally: Tally = { startsIn: 0, compared: 0, contacts: 0, nears: 0, bridged: 0, floored: 0, touchedLater: 0, reclassed: 0, extraNear: 0 };
   for (const { c, load } of cases) {
     it(`${c.name}: the same findings and lines, the named differences only`, { timeout: 600_000 }, () => {
       const { model } = load();
