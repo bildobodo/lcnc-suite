@@ -38,12 +38,16 @@
 //
 // AFTER A FALLBACK (round B4, plan 3.5): a source that carries the earlier
 // generation's tables (`held`) shows, per pair and origin, the union of both
-// generations' intervals less the free stretches of both (contactUnion.ts).
+// generations' intervals less the free stretches of both, a tool gap of
+// either generation separating events (contactUnion.ts, Codex R151 VP-I113).
 // Its events are PIECES of that union — a target is the piece's start
 // evidence, one u32; its end, what it holds and its identity are asked of
-// the union from that start when needed. A piece holding an earlier event's
-// witness keeps that event's key; every other piece is keyed by its
-// generation, its lead row and the evidence its start stands on. Its contact
+// the union from that start when needed (the build walks each group once).
+// A piece holding an earlier event's witness keeps that event's key; every
+// other piece is keyed by its generation, its lead row and the evidence its
+// start stands on; an earlier event a piece holds without its key is handed
+// over to that piece (`findKey`). A base contact an entry contact continues is
+// the entry's finding in every generation of either side (VP-I111). Its contact
 // on screen is its intervals' own, less each one's generation's gaps. The
 // earlier generation's coverage is how far each of its shards swept, as the
 // pool reported it when it fell back (Codex R150 VP150-02: an open contact's
@@ -52,12 +56,12 @@
 // one per pair and origin by overlap in order: a matched one keeps the
 // earlier key, an earlier one found no more is shown "from the earlier run".
 import {
-  EP_AT_START, EP_ORIGIN_MASK, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_ENTER_DECIDED,
-  IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, BLOCK as STORE_BLOCK, BLOCK_SHIFT, type ContactStore,
+  EP_AT_START, EP_ORIGIN_MASK, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_GAP,
+  IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, BLOCK as STORE_BLOCK, BLOCK_SHIFT, type ContactStore,
 } from "./contactStore";
 import {
-  eachPiece, eachWideConflict, evidencePos, pieceFrom, pieceIntervals, START_ENTER, unionReach, type FreeMemo, type UnionPiece,
-  type UnionSide,
+  eachPiece, evidencePos, evidenceZone, mergeSeps, pieceFrom, pieceIntervals, START_ENTER, START_SEP, unionReach, unionScratch,
+  type UnionPiece, type UnionScratch, type UnionSide,
 } from "./contactUnion";
 import type { ClashTarget } from "./clashTargets";
 import type { CollisionLineMark } from "./collision";
@@ -100,8 +104,13 @@ export interface ContactSource {
 }
 
 /** A base interval that continues an entry contact (contactMerge.entryJoins):
- *  counted once, as the entry's; its extent reaches the base interval's exit. */
-export interface SourceJoin { entrySrc: number; baseSrc: number; joins: ReadonlyMap<number, number>; baseShard: number; entryShard: number }
+ *  counted once, as the entry's; its extent reaches the base interval's exit.
+ *  After a fallback either side's rows may be its EARLIER generation's
+ *  (`entryHeld` / `baseHeld`; Codex R151 VP-I111). */
+export interface SourceJoin {
+  entrySrc: number; baseSrc: number; joins: ReadonlyMap<number, number>; baseShard: number; entryShard: number;
+  entryHeld?: boolean; baseHeld?: boolean;
+}
 
 export interface ContactViewInput {
   sources: readonly ContactSource[];
@@ -141,6 +150,8 @@ interface TableIndex {
   hOff: Uint32Array;
   hSpan: Float64Array;
   hReason: Uint8Array;
+  /** Each gap's row in its table (a separator's evidence names it). */
+  hRow: Uint32Array;
 }
 
 type Col = readonly ArrayLike<number>[];
@@ -193,8 +204,11 @@ export interface ContactView {
 /** One generation of a union source: its intervals by group (pair, origin)
  *  and enter, as packed references, with its search bounds. */
 interface UnionGen { uIdx: Uint32Array; back: number; front: number }
-/** A source's union: [held, current] — contactUnion's side order. */
-interface UnionIndex { gens: [UnionGen, UnionGen] }
+/** A source's union: [held, current] — contactUnion's side order — and its
+ *  separators by pair (the tool gaps of both generations, merged; CSR:
+ *  `sPairs` ascending, the pair's at [sOff[k], sOff[k + 1]) of `sSpan`'s
+ *  [start, end] pairs, `sEv` the gap — packed — whose end each ends at). */
+interface UnionIndex { gens: [UnionGen, UnionGen]; sPairs: Uint32Array; sOff: Uint32Array; sSpan: Float64Array; sEv: Uint32Array }
 
 const EP_MARK_CONTACT = 0, EP_MARK_POSSIBLE = 1, EP_MARK_BOUNDARY = 2;
 const BLOCK = 64;
@@ -205,9 +219,10 @@ const ON_ENTRY_TOL = 1e-9;
 const LINE_TOL = 1e-3;
 
 // packed reference: row (22 bits) · table (3) · source (2) · near (1) · held
-// generation (1) · piece (3: 0 a row, else 1 + the piece's START_* kind — the
-// row is then its start evidence's interval). The budget's tables hold 2^18
-// rows; 2^22 is the limit the build refuses past.
+// generation (1) · piece (3: 0 a row; 1 + START_ENTER / START_FREE — the row
+// is then its start evidence's interval; 4 + the piece's origin for a
+// START_SEP — the row is then the gap its separator ends at). The budget's
+// tables hold 2^18 rows; 2^22 is the limit the build refuses past.
 const ROW_MASK = 0x3fffff, TABLE_SHIFT = 22, SRC_SHIFT = 25, NEAR_BIT = 1 << 27, HELD_BIT = 1 << 28, PIECE_SHIFT = 29;
 const MAX_TABLES = 8, MAX_SOURCES = 4;
 const pack = (src: number, shard: number, row: number, near = false, held = false, piece = 0) =>
@@ -217,7 +232,9 @@ const isNearRef = (ref: number) => (ref & NEAR_BIT) !== 0;
 const isHeldRef = (ref: number) => (ref & HELD_BIT) !== 0;
 const isPieceRef = (ref: number) => ref >>> PIECE_SHIFT !== 0;
 /** A piece reference's start kind (START_*). */
-const pieceKindOf = (ref: number) => (ref >>> PIECE_SHIFT) - 1;
+const pieceKindOf = (ref: number) => (ref >>> PIECE_SHIFT >= 4 ? START_SEP : (ref >>> PIECE_SHIFT) - 1);
+/** The piece field of a piece begun at a separator, for its origin. */
+const SEP_FIELD = 4;
 /** The row reference a piece reference names (its start evidence's interval). */
 const rowRefOf = (ref: number) => (ref & ((1 << PIECE_SHIFT) - 1)) >>> 0;
 const slotOf = (src: number, held: boolean, shard: number) => (src * 2 + (held ? 1 : 0)) * MAX_TABLES + shard;
@@ -361,16 +378,20 @@ function epOwn(t: TableIndex, row: number): [number, number] {
 
 function refList(refs: Uint32Array, pos: Float64Array, end: Float64Array): RefList {
   const n = refs.length;
-  const order = new Uint32Array(n);
-  for (let i = 0; i < n; i++) order[i] = i;
-  order.sort((a, b) => pos[a]! - pos[b]! || refs[a]! - refs[b]!);
+  // by position, then reference — a union's pieces come group by group, each
+  // group in order: already sorted often, else a run-adaptive sort
+  const before = (a: number, b: number) => pos[a]! - pos[b]! || refs[a]! - refs[b]!;
+  let sorted = true;
+  for (let i = 1; i < n && sorted; i++) if (before(i - 1, i) > 0) sorted = false;
+  const order = sorted ? null : Uint32Array.from(Array.from({ length: n }, (_, i) => i).sort(before));
   const out = new Uint32Array(n);
   const blocks = Math.ceil(n / BLOCK);
   const max = new Float64Array(blocks).fill(-Infinity), pre = new Float64Array(blocks);
   for (let i = 0; i < n; i++) {
-    out[i] = refs[order[i]!]!;
+    const k = order ? order[i]! : i;
+    out[i] = refs[k]!;
     const b = (i / BLOCK) | 0;
-    max[b] = Math.max(max[b]!, end[order[i]!]!);
+    max[b] = Math.max(max[b]!, end[k]!);
   }
   let m = -Infinity;
   for (let b = 0; b < blocks; b++) { m = Math.max(m, max[b]!); pre[b] = m; }
@@ -389,9 +410,21 @@ function groupOf(t: TableIndex, row: number): number {
   return rd(t.c.epPair, ep) * 4 + (rd(t.c.epFlags, ep) & EP_ORIGIN_MASK);
 }
 const groupOfRef = (tables: Tables, ref: number) => groupOf(tableAt(tables, ref), rowOf(ref));
+/** A piece reference's group: its evidence row's, or for a piece begun at a
+ *  separator the gap's pair and the origin the reference carries. */
+function pieceGroup(tables: Tables, ref: number): number {
+  if (pieceKindOf(ref) !== START_SEP) return groupOfRef(tables, ref);
+  return tableAt(tables, ref).st.gaps.get(rowOf(ref), "pair") * 4 + ((ref >>> PIECE_SHIFT) - SEP_FIELD);
+}
 
 /** An interval's end in the union, closed: its own end, never before it enters. */
 const unionEnd = (t: TableIndex, row: number) => Math.max(rd(t.c.enter, row), ownEnd(t, row).end);
+
+/** A gap's closed stretch as its table's index holds it (an open one to the coverage). */
+function gapSpan(t: TableIndex, gRow: number): [number, number] {
+  const G = t.st.gaps, s0 = G.get(gRow, "start"), e0 = G.get(gRow, "end");
+  return [s0, Math.max(s0, Number.isNaN(e0) ? t.ownCov : Math.min(e0, t.ownCov))];
+}
 
 /** One generation's intervals of one group, [lo, hi) of its index, as the
  *  union reads them. */
@@ -408,6 +441,7 @@ function sideOf(tables: Tables, g: UnionGen, lo: number, hi: number): UnionSide 
     witness: k => rd(tab(k).c.witness, row(k)),
     enterDecided: k => (rd(tab(k).c.flags, row(k)) & IV_ENTER_DECIDED) !== 0,
     exitDecided: k => (rd(tab(k).c.flags, row(k)) & IV_EXIT_DECIDED) !== 0,
+    afterTool: k => (rd(tab(k).c.flags, row(k)) & IV_AFTER_UNKNOWN_TOOL) !== 0,
     freeAt: k => rd(tab(k).c.freeAt, row(k)),
     freeR: k => rd(tab(k).c.freeR, row(k)),
     back: g.back, front: g.front,
@@ -428,9 +462,21 @@ function groupRange(tables: Tables, g: UnionGen, group: number): [number, number
   return [lo, a];
 }
 
-/** Every group of a union source in order: its two sides and their starts in
- *  the generations' indexes. */
-function eachGroup(tables: Tables, u: UnionIndex, each: (sides: UnionSide[], los: readonly [number, number]) => void): void {
+const NO_SEPS = new Float64Array(0);
+/** A pair's separators in a union (a view on the index, no copy) and where
+ *  its evidence starts in `sEv`. */
+function sepsOf(u: UnionIndex, pair: number): { seps: Float64Array; ev0: number } {
+  let lo = 0, hi = u.sPairs.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (u.sPairs[m]! < pair) lo = m + 1; else hi = m; }
+  if (lo >= u.sPairs.length || u.sPairs[lo] !== pair) return { seps: NO_SEPS, ev0: 0 };
+  const a = u.sOff[lo]!, b = u.sOff[lo + 1]!;
+  return { seps: u.sSpan.subarray(2 * a, 2 * b), ev0: a };
+}
+
+/** Every group of a union source in order: its two sides, their starts in
+ *  the generations' indexes, its pair's separators and the group. */
+function eachGroup(tables: Tables, u: UnionIndex,
+                   each: (sides: UnionSide[], los: readonly [number, number], seps: Float64Array, group: number, ev0: number) => void): void {
   const [gH, gC] = u.gens;
   let i = 0, j = 0;
   while (i < gH.uIdx.length || j < gC.uIdx.length) {
@@ -440,7 +486,8 @@ function eachGroup(tables: Tables, u: UnionIndex, each: (sides: UnionSide[], los
     let i2 = i, j2 = j;
     while (i2 < gH.uIdx.length && groupOfRef(tables, gH.uIdx[i2]!) === group) i2++;
     while (j2 < gC.uIdx.length && groupOfRef(tables, gC.uIdx[j2]!) === group) j2++;
-    each([sideOf(tables, gH, i, i2), sideOf(tables, gC, j, j2)], [i, j]);
+    const { seps, ev0 } = sepsOf(u, group >> 2);
+    each([sideOf(tables, gH, i, i2), sideOf(tables, gC, j, j2)], [i, j], seps, group, ev0);
     i = i2; j = j2;
   }
 }
@@ -448,21 +495,66 @@ function eachGroup(tables: Tables, u: UnionIndex, each: (sides: UnionSide[], los
 /** A source's union index over its tables of both generations. */
 function unionIndex(tables: Tables, src: number): UnionIndex {
   const gen = (held: boolean): UnionGen => {
-    const refs: number[] = [];
-    for (let sh = 0; sh < MAX_TABLES; sh++) {
-      const t = tables[slotOf(src, held, sh)];
-      if (t) for (let iv = 0; iv < t.st.intervals.rows; iv++) refs.push(pack(src, sh, iv, false, held));
+    const ts: TableIndex[] = [];
+    let n = 0;
+    for (let sh = 0; sh < MAX_TABLES; sh++) { const t = tables[slotOf(src, held, sh)]; if (t) { ts.push(t); n += t.st.intervals.rows; } }
+    const refs = new Uint32Array(n), grp = new Uint32Array(n), ent = new Float64Array(n);
+    let i = 0, maxG = 0;
+    for (const t of ts) {
+      for (let iv = 0; iv < t.st.intervals.rows; iv++, i++) {
+        refs[i] = pack(src, t.shard, iv, false, held);
+        grp[i] = groupOf(t, iv);
+        ent[i] = rd(t.c.enter, iv);
+        if (grp[i]! > maxG) maxG = grp[i]!;
+      }
     }
-    const grp = refs.map(r => groupOfRef(tables, r));
-    const ent = refs.map(r => tableAt(tables, r).st.intervals.get(rowOf(r), "enter"));
-    const order = refs.map((_, k) => k).sort((x, y) => grp[x]! - grp[y]! || ent[x]! - ent[y]! || refs[x]! - refs[y]!);
-    const uIdx = Uint32Array.from(order, k => refs[k]!);
-    const col = (k: number, c: string) => tableAt(tables, uIdx[k]!).st.intervals.get(rowOf(uIdx[k]!), c);
-    const r = unionReach(uIdx.length, k => col(k, "enter"), k => col(k, "freeAt"), k => col(k, "freeR"),
-                         (k, k2) => grp[order[k]!] === grp[order[k2]!]);
+    // by group (a counting sort, stable), then by enter — the sweep wrote each
+    // pair's rows in that order already; checked, else sorted
+    const cnt = new Uint32Array(maxG + 2);
+    for (let k = 0; k < n; k++) cnt[grp[k]! + 1]!++;
+    for (let g = 1; g < cnt.length; g++) cnt[g]! += cnt[g - 1]!;
+    let order = new Uint32Array(n);
+    for (let k = 0; k < n; k++) order[cnt[grp[k]!]!++] = k;
+    for (let k = 1; k < n; k++) {
+      const a = order[k - 1]!, b = order[k]!;
+      if (grp[a] === grp[b] && (ent[a]! > ent[b]! || (ent[a] === ent[b] && refs[a]! > refs[b]!))) {
+        order = Uint32Array.from(Array.from(order).sort((x, y) => grp[x]! - grp[y]! || ent[x]! - ent[y]! || refs[x]! - refs[y]!));
+        break;
+      }
+    }
+    const uIdx = new Uint32Array(n);
+    for (let k = 0; k < n; k++) uIdx[k] = refs[order[k]!]!;
+    const col = (k: number, c: "freeAt" | "freeR") => { const r = uIdx[k]!; return rd(tableAt(tables, r).c[c], rowOf(r)); };
+    const r = unionReach(n, k => ent[order[k]!]!, k => col(k, "freeAt"), k => col(k, "freeR"), (k, k2) => grp[order[k]!] === grp[order[k2]!]);
     return { uIdx, back: r.back, front: r.front };
   };
-  return { gens: [gen(true), gen(false)] };
+  // the separators: every tool gap of both generations, by pair, merged
+  const byPair = new Map<number, { spans: number[]; refs: number[] }>();
+  for (const held of [true, false]) {
+    for (let sh = 0; sh < MAX_TABLES; sh++) {
+      const t = tables[slotOf(src, held, sh)];
+      if (!t) continue;
+      for (let k = 0; k < t.hPairs.length; k++) {
+        for (let g = t.hOff[k]!; g < t.hOff[k + 1]!; g++) {
+          if (t.hReason[g] !== GAP_TOOL_UNKNOWN) continue;
+          const e = byPair.get(t.hPairs[k]!) ?? { spans: [], refs: [] };
+          e.spans.push(t.hSpan[2 * g]!, t.hSpan[2 * g + 1]!);
+          e.refs.push(pack(src, sh, t.hRow[g]!, false, held));
+          byPair.set(t.hPairs[k]!, e);
+        }
+      }
+    }
+  }
+  const pairs = [...byPair.keys()].sort((x, y) => x - y);
+  const off: number[] = [0], span: number[] = [], ev: number[] = [];
+  for (const p of pairs) {
+    const { spans, refs } = byPair.get(p)!;
+    const m = mergeSeps(spans);
+    for (let i = 0; i < m.src.length; i++) { span.push(m.seps[2 * i]!, m.seps[2 * i + 1]!); ev.push(refs[m.src[i]!]!); }
+    off.push(ev.length);
+  }
+  return { gens: [gen(true), gen(false)], sPairs: Uint32Array.from(pairs), sOff: Uint32Array.from(off),
+           sSpan: Float64Array.from(span), sEv: Uint32Array.from(ev) };
 }
 
 /** What a piece holds and is: its intervals' classes, its lead (the earliest
@@ -473,35 +565,41 @@ interface PieceInfo {
   piece: UnionPiece;
   lead: number;
   heir: number;
-  /** Every interval it holds is a boundary contact, a cutting contact's
-   *  later rapid part or a base contact an entry contact continues. */
+  /** Every interval it holds is a boundary contact or a cutting contact's
+   *  later rapid part — or it holds where a base contact an entry contact
+   *  continues begins: that contact's continuation (Codex R151 VP-I111: of
+   *  any generation, whatever else the piece holds). */
   aux: boolean;
   possible: boolean;
   /** It ends where an open interval of it runs to its coverage. */
   openEnd: boolean;
   /** Its intervals (row references), for the tint, the bands and the joins. */
   rows: number[];
+  /** The joined base rows whose enter it holds (their continuation's end). */
+  joinedHere: number[];
 }
 
 function describePiece(tables: Tables, u: UnionIndex, los: readonly [number, number], sides: readonly UnionSide[],
-                       piece: UnionPiece, joined: Uint32Array): PieceInfo {
-  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, openEnd: false, rows: [] };
+                       seps: ArrayLike<number>, piece: UnionPiece, joined: Uint32Array): PieceInfo {
+  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, openEnd: false, rows: [], joinedHere: [] };
   let leadEnter = Infinity, heirW = Infinity;
-  pieceIntervals(sides, piece, (sd, k, holdsStart) => {
+  const inside = (x: number) => (x > piece.start || (x === piece.start && !piece.startOpen)) && (x < piece.end || (x === piece.end && !piece.endOpen));
+  pieceIntervals(sides, seps, piece, (sd, k, holdsStart) => {
     const r = u.gens[sd]!.uIdx[los[sd]! + k]!, t = tableAt(tables, r), row = rowOf(r), c = t.c;
     const flags = rd(c.flags, row), epFlags = rd(c.epFlags, rd(c.episode, row));
     info.rows.push(r);
-    if (!((epFlags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY || (flags & IV_CONTINUES_CUT) || findSorted(joined, r) >= 0)) info.aux = false;
+    if (!((epFlags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY || (flags & IV_CONTINUES_CUT))) info.aux = false;
     if (!(flags & IV_POSSIBLE)) info.possible = false;
     const enter = rd(c.enter, row);
+    if (findSorted(joined, r) >= 0 && inside(enter)) info.joinedHere.push(r);
     if (holdsStart && enter < leadEnter) { leadEnter = enter; info.lead = r; }
     if (sd === 0) {
       const w = rd(c.witness, row);
-      const inside = (w > piece.start || (w === piece.start && !piece.startOpen)) && (w < piece.end || (w === piece.end && !piece.endOpen));
-      if (inside && w < heirW) { heirW = w; info.heir = r; }
+      if (inside(w) && w < heirW) { heirW = w; info.heir = r; }
     }
     if (!piece.endOpen && ownEnd(t, row).open && unionEnd(t, row) === piece.end) info.openEnd = true;
   });
+  if (info.joinedHere.length) info.aux = true;
   return info;
 }
 
@@ -515,27 +613,42 @@ function indexIn(tables: Tables, g: UnionGen, lo: number, hi: number, ref: numbe
   return a - lo;
 }
 
-/** A view's last asked group (a list asks of one group's pieces in turn): its
- *  ranges, sides and free stretches. The view never changes (VP-I107), so
- *  neither does what it caches. */
-interface GroupCtx { src: number; group: number; r0: [number, number]; r1: [number, number]; sides: UnionSide[]; memo: FreeMemo }
+/** A view's last asked group (a list asks of one group's pieces in turn):
+ *  its ranges, its sides and its separators (a view on the index) — a fixed
+ *  handful of objects, nothing per row (Codex R151 VP-I112: a memo of free
+ *  stretches per interval grew with the group, outside the budget). */
+interface GroupCtx { src: number; group: number; r0: [number, number]; r1: [number, number]; sides: UnionSide[]; seps: Float64Array }
 const lastGroup = new WeakMap<ContactView, GroupCtx>();
 
 /** A piece reference's union, sides and piece, asked from its start. */
 function pieceCtx(v: ContactView, ref: number): { info: PieceInfo; t: TableIndex } {
   const t = tableOf(v, ref), u = v.unions[t.src]!;
-  const group = groupOf(t, rowOf(ref));
+  const group = pieceGroup(v.tables, ref);
   let g = lastGroup.get(v);
   if (!g || g.src !== t.src || g.group !== group) {
     const r0 = groupRange(v.tables, u.gens[0], group), r1 = groupRange(v.tables, u.gens[1], group);
-    g = { src: t.src, group, r0, r1, sides: [sideOf(v.tables, u.gens[0], r0[0], r0[1]), sideOf(v.tables, u.gens[1], r1[0], r1[1])], memo: [] };
+    g = { src: t.src, group, r0, r1, sides: [sideOf(v.tables, u.gens[0], r0[0], r0[1]), sideOf(v.tables, u.gens[1], r1[0], r1[1])],
+          seps: sepsOf(u, group >> 2).seps };
     lastGroup.set(v, g);
   }
-  // its start, as the build named it: the evidence row's place in its side
-  const sd = t.held ? 0 : 1, r = sd === 0 ? g.r0 : g.r1, ev = rowRefOf(ref);
-  const pos = evidencePos(g.sides, sd, pieceKindOf(ref), indexIn(v.tables, u.gens[sd]!, r[0], r[1], ev), g.memo);
-  const piece = pieceFrom(g.sides, pos, true, g.memo)!;
-  return { info: describePiece(v.tables, u, [g.r0[0], g.r1[0]], g.sides, piece, v.joined), t };
+  // its start, as the build named it: the evidence row's place in its side,
+  // or the separator its gap ends
+  const kind = pieceKindOf(ref);
+  let sd: number, idx: number;
+  if (kind === START_SEP) {
+    sd = -1;
+    const end = gapSpan(t, rowOf(ref))[1];
+    let lo = 0, hi = g.seps.length >> 1;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (g.seps[2 * m + 1]! < end) lo = m + 1; else hi = m; }
+    idx = lo;
+  } else {
+    sd = t.held ? 0 : 1;
+    const r = sd === 0 ? g.r0 : g.r1;
+    idx = indexIn(v.tables, u.gens[sd]!, r[0], r[1], rowRefOf(ref));
+  }
+  const z = evidenceZone(g.sides, g.seps, sd, kind, idx);
+  const piece = pieceFrom(g.sides, g.seps, z, evidencePos(g.sides, g.seps, sd, kind, idx), true)!;
+  return { info: describePiece(v.tables, u, [g.r0[0], g.r1[0]], g.sides, g.seps, piece, v.joined), t };
 }
 
 /** A union piece's kind bits (T_*), from what it holds: the earlier event's
@@ -613,7 +726,7 @@ export function buildContactView(input: ContactViewInput): ContactView {
         const G = st.gaps, idx: number[] = [];
         for (let g = 0; g < G.rows; g++) if (G.get(g, "start") <= ownCov) idx.push(g);
         idx.sort((x, y) => G.get(x, "pair") - G.get(y, "pair") || G.get(x, "start") - G.get(y, "start"));
-        const hSpan = new Float64Array(2 * idx.length), hReason = new Uint8Array(idx.length);
+        const hSpan = new Float64Array(2 * idx.length), hReason = new Uint8Array(idx.length), hRow = Uint32Array.from(idx);
         const pairs: number[] = [], off: number[] = [];
         idx.forEach((g, k) => {
           const pair = G.get(g, "pair"), s0 = G.get(g, "start"), e0 = G.get(g, "end");
@@ -624,19 +737,20 @@ export function buildContactView(input: ContactViewInput): ContactView {
         });
         off.push(idx.length);
         const t: TableIndex = { st, source, src: si, shard: sh, held, c: colsOf(st), revision: st.revision, ownCov, cov,
-          hPairs: Uint32Array.from(pairs), hOff: Uint32Array.from(off), hSpan, hReason };
+          hPairs: Uint32Array.from(pairs), hOff: Uint32Array.from(off), hSpan, hReason, hRow };
         tables[slotOf(si, held, sh)] = t;
         list.push(t);
       });
     }
   });
-  // the joins: the base intervals counted as the entry's (between the
-  // current generations — the entry side's tables and the base's)
-  const joins = input.joins ?? [];
-  const joined = Uint32Array.from(joins.flatMap(j => tables[slotOf(j.baseSrc, false, j.baseShard)]
-    ? [...j.joins.keys()].map(biv => pack(j.baseSrc, j.baseShard, biv)) : [])).sort();
-  const entryRows = Uint32Array.from(joins.flatMap(j => [...j.joins.values()].map(eiv => pack(j.entrySrc, j.entryShard, eiv)))).sort();
-  // a union piece holding a joined row: its end (the reach), the entry piece holding an entry row
+  // the joins: the base intervals counted as the entry's — of either
+  // generation on either side (Codex R151 VP-I111)
+  const joins = (input.joins ?? []).filter(j => tables[slotOf(j.baseSrc, !!j.baseHeld, j.baseShard)]
+                                            && tables[slotOf(j.entrySrc, !!j.entryHeld, j.entryShard)]);
+  const joined = Uint32Array.from(joins.flatMap(j => [...j.joins.keys()].map(biv => pack(j.baseSrc, j.baseShard, biv, false, !!j.baseHeld)))).sort();
+  const entryRows = Uint32Array.from(joins.flatMap(j => [...j.joins.values()].map(eiv => pack(j.entrySrc, j.entryShard, eiv, false, !!j.entryHeld)))).sort();
+  // the union piece holding where a joined row begins: its end (the reach);
+  // the entry piece holding an entry row (the last: its end)
   const baseEnd = new Map<number, number>(), entryPiece = new Map<number, number>();
   // the targets and the other intervals (temporary positions, then sorted)
   const tR: number[] = [], tP: number[] = [], tE: number[] = [];
@@ -647,6 +761,8 @@ export function buildContactView(input: ContactViewInput): ContactView {
   let ei = 0;
   const unions: Array<UnionIndex | undefined> = [];
   const unionCounts = NO_COUNTS();
+  let walkScratch: UnionScratch | null = null;
+  const scratchOf = () => (walkScratch ??= unionScratch());
   const nearPairs: Array<[number, number]> = [];
   let conflicts = 0, conflictAt = Infinity;
   sources.forEach((source, si) => {
@@ -681,25 +797,26 @@ export function buildContactView(input: ContactViewInput): ContactView {
       }
       return;
     }
-    // after a fallback: the pieces of both generations' union, per group
+    // after a fallback: the pieces of both generations' union, per group —
+    // one walk each (Codex R151), its scratch shared group after group
     const u = unionIndex(tables, si);
     unions[si] = u;
-    eachGroup(tables, u, (sides, los) => {
-      eachPiece(sides, piece => {
-        if (piece.startKind < 0) throw new Error("contactView: a union piece whose start no evidence names");
-        const ev = u.gens[piece.startSide]!.uIdx[los[piece.startSide]! + piece.startIdx]!;
-        const ref = (ev | ((piece.startKind + 1) << PIECE_SHIFT)) >>> 0;
-        const info = describePiece(tables, u, los, sides, piece, joined);
+    eachGroup(tables, u, (sides, los, seps, group, ev0) => {
+      eachPiece(sides, seps, piece => {
+        let ref: number;
+        if (piece.startKind === START_SEP) ref = (u.sEv[ev0 + piece.startIdx]! | ((SEP_FIELD + (group & 3)) << PIECE_SHIFT)) >>> 0;
+        else if (piece.startKind >= 0) {
+          const ev = u.gens[piece.startSide]!.uIdx[los[piece.startSide]! + piece.startIdx]!;
+          ref = (ev | ((piece.startKind + 1) << PIECE_SHIFT)) >>> 0;
+        } else throw new Error("contactView: a union piece whose start no evidence names");
+        const info = describePiece(tables, u, los, sides, seps, piece, joined);
         const p = source.at(piece.start), e = Math.max(p, Math.min(source.at(piece.end), coverage));
-        for (const r of info.rows) {
-          if (findSorted(joined, r) >= 0) baseEnd.set(r, e);
-          if (findSorted(entryRows, r) >= 0) entryPiece.set(r, ref);
-        }
+        for (const r of info.joinedHere) baseEnd.set(r, e);
+        for (const r of info.rows) if (findSorted(entryRows, r) >= 0) entryPiece.set(r, ref);
         if (info.aux) { aR.push(ref); aP.push(p); aE.push(e); return; }
         tR.push(ref); tP.push(p); tE.push(e);
         countKind(unionCounts, pieceKindBits(tables, info, piece.startKind, source, info.rows.some(r => findSorted(entryRows, r) >= 0)));
-      });
-      eachWideConflict(sides, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); });
+      }, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); }, scratchOf());
     });
     // the near misses of both generations: one to one per group by overlap, in order
     const nears = (held: boolean) => {
@@ -727,19 +844,19 @@ export function buildContactView(input: ContactViewInput): ContactView {
       else { show(c.ref); b++; }
     }
   });
-  // the reach of every entry contact a base contact continues (its finding's extent)
-  const jRef: number[] = [], jVal: number[] = [];
+  // the reach of every entry contact a base contact continues (its finding's
+  // extent): one per entry target, the furthest of its joins
+  const reach = new Map<number, number>();
   for (const j of joins) {
-    const bt = tables[slotOf(j.baseSrc, false, j.baseShard)];
-    if (!bt) continue;
+    const bt = tables[slotOf(j.baseSrc, !!j.baseHeld, j.baseShard)]!;
     for (const [biv, eiv] of j.joins) {
-      const b = pack(j.baseSrc, j.baseShard, biv), e = pack(j.entrySrc, j.entryShard, eiv);
-      jRef.push(entryPiece.get(e) ?? e);
-      jVal.push(baseEnd.get(b) ?? shownStretch(bt, biv)[1]);
+      const b = pack(j.baseSrc, j.baseShard, biv, false, !!j.baseHeld), e = pack(j.entrySrc, j.entryShard, eiv, false, !!j.entryHeld);
+      const key = entryPiece.get(e) ?? e, val = baseEnd.get(b) ?? shownStretch(bt, biv)[1];
+      reach.set(key, Math.max(reach.get(key) ?? -Infinity, val));
     }
   }
-  const rOrder = jRef.map((_, k) => k).sort((x, y) => jRef[x]! - jRef[y]!);
-  const reachRef = Uint32Array.from(rOrder, k => jRef[k]!), reachVal = Float64Array.from(rOrder, k => jVal[k]!);
+  const rKeys = Uint32Array.from(reach.keys()).sort();
+  const reachRef = rKeys, reachVal = Float64Array.from(rKeys, k => reach.get(k)!);
   const tgt = refList(Uint32Array.from(tR), Float64Array.from(tP), Float64Array.from(tE));
   const aux = refList(Uint32Array.from(aR), Float64Array.from(aP), Float64Array.from(aE));
   const ep = refList(eRefs, eOn, eEnd);
@@ -814,7 +931,9 @@ function pieceKey(v: ContactView, ref: number, info: PieceInfo): string {
   const lt = tableOf(v, info.lead), lead = rowKey(lt, rowOf(info.lead), false);
   const ev = rowRefOf(ref), kind = pieceKindOf(ref);
   const et = tableOf(v, ev);
-  const evKey = kind === START_ENTER && ev === info.lead ? "b" : `${"ef"[kind]}${et.st.generation}:${rowKey(et, rowOf(ev), false)}`;
+  // a separator's evidence is its gap, by its row in its table
+  const evKey = kind === START_SEP ? `s${et.st.generation}:${rowOf(ev)}`
+    : kind === START_ENTER && ev === info.lead ? "b" : `${"ef"[kind]}${et.st.generation}:${rowKey(et, rowOf(ev), false)}`;
   return `${lead}#g${lt.st.generation}/${evKey}`;
 }
 
@@ -927,6 +1046,36 @@ function findKeyOf(v: ContactView, key: string, near?: number): number {
     }
   }
   for (let i = 0; i < v.n; i++) if (keyOf(v, i) === key) return i;
+  return handedOver(v, key);
+}
+
+/** An earlier event whose key no target carries any more — its witness lies
+ *  in a piece another earlier event's witness keeps (a free stretch between
+ *  them refuted on its sample): the piece holding its interval, the
+ *  selection's defined handover (Codex R151 VP-I113); −1: none. */
+function handedOver(v: ContactView, key: string): number {
+  const m = /^([EC])(\d+)\|(\d+)\|(\d+)$/.exec(key);
+  if (!m) return -1;
+  const entry = m[1] === "E", pair = +m[2]!, ordinal = +m[3]!, nth = +m[4]!;
+  for (const t of v.tables) {
+    if (!t || !t.held || !!t.source.entry !== entry || !v.unions[t.src]) continue;
+    const E = t.st.episodes, I = t.st.intervals;
+    for (let e = 0; e < E.rows; e++) {
+      if (E.get(e, "pair") !== pair || E.get(e, "ordinal") !== ordinal || E.get(e, "ivCount") === 0) continue;
+      let row = E.get(e, "firstIv");
+      for (let k = 0; k < nth && row !== NONE; k++) row = I.get(row, "next");
+      if (row === NONE) return -1;
+      const ref = pack(t.src, t.shard, row, false, true), pos = t.source.at(I.get(row, "witness"));
+      let found = -1;
+      walkBackIdx(v.tgt, pos, r => refPos(v, r), i => {
+        const r = v.tgt.refs[i]!;
+        if (!isPieceRef(r) || tableOf(v, r).src !== t.src || !pieceCtx(v, r).info.rows.includes(ref)) return false;
+        found = i;
+        return true;
+      });
+      return found;
+    }
+  }
   return -1;
 }
 
@@ -979,16 +1128,20 @@ export function targetWindow(v: ContactView, center: number, max: number, lineAt
 }
 
 /** Walks back from `pos` over the entries of `list` whose shown stretch may
- *  hold it (block maxima skip the rest); `each` gets every candidate ref. */
-function walkBack(list: RefList, pos: number, startOf: (ref: number) => number, each: (ref: number) => void): void {
+ *  hold it (block maxima skip the rest); `each` gets every candidate's index
+ *  and ends the walk by returning true. */
+function walkBackIdx(list: RefList, pos: number, startOf: (ref: number) => number, each: (i: number) => boolean | void): void {
   let lo = 0, hi = list.refs.length;
   while (lo < hi) { const mid = (lo + hi) >> 1; if (startOf(list.refs[mid]!) <= pos) lo = mid + 1; else hi = mid; }
   for (let i = lo - 1; i >= 0; i--) {
     const blk = (i / BLOCK) | 0;
     if (list.pre[blk]! < pos) break;
     if (list.max[blk]! < pos) { i = blk * BLOCK; continue; }
-    each(list.refs[i]!);
+    if (each(i)) return;
   }
+}
+function walkBack(list: RefList, pos: number, startOf: (ref: number) => number, each: (ref: number) => void): void {
+  walkBackIdx(list, pos, startOf, i => { each(list.refs[i]!); });
 }
 
 /** The shown point `pos` is the image of an own point of interval `row`'s
@@ -1156,15 +1309,16 @@ export function contactBands(v: ContactView, columns: number, axisEnd: number): 
   };
   v.tgt.refs.forEach(band);
   v.aux.refs.forEach(band);
-  // a union's pieces in one pass per group: each piece's intervals' own contact within it
+  // a union's pieces in one walk per group: each piece's intervals' own contact within it
+  const scratch = unionScratch();
   for (const u of v.unions) {
     if (!u) continue;
-    eachGroup(v.tables, u, (sides, los) => eachPiece(sides, p => {
-      for (const r of describePiece(v.tables, u, los, sides, p, v.joined).rows) {
-        const t = tableOf(v, r), row = rowOf(r);
+    eachGroup(v.tables, u, (sides, los, seps) => eachPiece(sides, seps, p => {
+      pieceIntervals(sides, seps, p, (sd, k) => {
+        const r = u.gens[sd]!.uIdx[los[sd]! + k]!, t = tableOf(v, r), row = rowOf(r);
         light(t, row, Math.max(rd(t.c.enter, row), p.start), Math.min(ownEnd(t, row).end, p.end));
-      }
-    }));
+      });
+    }, undefined, scratch));
   }
   const out: Array<[number, number]> = [];
   for (let c = 0; c < W; c++) {
@@ -1203,11 +1357,15 @@ export function boundaryStretches(v: ContactView): Array<{ a: string; b: string;
  *  typed array of it — it holds nothing else per row, pair or gap. */
 export function heldBytes(v: ContactView): number {
   let n = v.joined.byteLength + v.reachRef.byteLength + v.reachVal.byteLength + v.nearCur.byteLength + v.nearHeld.byteLength;
-  for (const u of v.unions) if (u) for (const g of u.gens) n += g.uIdx.byteLength;
+  for (const u of v.unions) {
+    if (!u) continue;
+    for (const g of u.gens) n += g.uIdx.byteLength;
+    n += u.sPairs.byteLength + u.sOff.byteLength + u.sSpan.byteLength + u.sEv.byteLength;
+  }
   for (const l of [v.tgt, v.aux, v.ep]) n += l.refs.byteLength + l.max.byteLength + l.pre.byteLength;
   for (const t of v.tables) {
     if (!t) continue;
-    n += t.hPairs.byteLength + t.hOff.byteLength + t.hSpan.byteLength + t.hReason.byteLength;
+    n += t.hPairs.byteLength + t.hOff.byteLength + t.hSpan.byteLength + t.hReason.byteLength + t.hRow.byteLength;
   }
   return n;
 }

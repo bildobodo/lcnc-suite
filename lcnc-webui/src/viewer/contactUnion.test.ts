@@ -2,12 +2,17 @@
 // the fast search against a brute force over plain sets of spans.
 import { describe, expect, it } from "vitest";
 import {
-  eachPiece, eachWideConflict, evidencePos, pieceFrom, pieceIntervals, PROTECT, START_ENTER, START_FREE, unionReach, type UnionPiece,
-  type UnionSide,
+  eachPiece, eachWideConflict, evidencePos, evidenceZone, mergeSeps, pieceFrom, pieceIntervals, PROTECT, START_ENTER, START_FREE,
+  START_SEP, unionScratch, unionReach, type UnionPiece, type UnionSide,
 } from "./contactUnion";
 
-interface Iv { enter: number; end: number; open?: boolean; witness?: number; ed?: boolean; xd?: boolean; freeAt?: number; freeR?: number }
-interface Plain { ivs: Iv[] }
+interface Iv {
+  enter: number; end: number; open?: boolean; witness?: number; ed?: boolean; xd?: boolean; freeAt?: number; freeR?: number;
+  /** Began after the unknown tool. */
+  after?: boolean;
+}
+/** A generation's intervals of one group and its tool gaps (closed spans). */
+interface Plain { ivs: Iv[]; gaps?: Array<[number, number]> }
 
 function side(p: Plain): UnionSide {
   const ivs = p.ivs;
@@ -17,21 +22,26 @@ function side(p: Plain): UnionSide {
     n: ivs.length,
     enter: k => ivs[k]!.enter, end: k => ivs[k]!.end, open: k => !!ivs[k]!.open,
     witness: k => ivs[k]!.witness ?? (ivs[k]!.enter + ivs[k]!.end) / 2,
-    enterDecided: k => ivs[k]!.ed ?? true, exitDecided: k => ivs[k]!.xd ?? true,
+    enterDecided: k => ivs[k]!.ed ?? true, exitDecided: k => ivs[k]!.xd ?? true, afterTool: k => !!ivs[k]!.after,
     freeAt: k => ivs[k]!.freeAt ?? NaN, freeR: k => ivs[k]!.freeR ?? NaN,
     back: r.back, front: r.front,
   };
 }
 const sidesOf = (held: Plain, cur: Plain) => [side(held), side(cur)];
+const sepsOf = (held: Plain, cur: Plain) => mergeSeps([...(held.gaps ?? []), ...(cur.gaps ?? [])].flat()).seps;
 
-const pieces = (sides: UnionSide[]) => { const out: UnionPiece[] = []; eachPiece(sides, p => out.push(p)); return out; };
+const pieces = (sides: UnionSide[], seps: ArrayLike<number> = []) => {
+  const out: UnionPiece[] = [];
+  eachPiece(sides, seps, p => out.push({ ...p }));
+  return out;
+};
 const spans = (ps: UnionPiece[]) => ps.map(p => [p.start, p.end]);
 const r4 = (x: number) => Math.round(x * 1e4) / 1e4;
 
 /** The held interval whose witness the piece holds (the earliest), else −1. */
-function heir(sides: UnionSide[], p: UnionPiece): number {
+function heir(sides: UnionSide[], p: UnionPiece, seps: ArrayLike<number> = []): number {
   let h = -1, w = Infinity;
-  pieceIntervals(sides, p, (si, k) => {
+  pieceIntervals(sides, seps, p, (si, k) => {
     const x = sides[si]!.witness(k);
     const inside = (x > p.start || (x === p.start && !p.startOpen)) && (x < p.end || (x === p.end && !p.endOpen));
     if (si === 0 && inside && x < w) { w = x; h = k; }
@@ -65,10 +75,25 @@ function minus(set: Sp[], f: Sp): Sp[] {
   }
   return out.filter(s => !empty(s));
 }
-function oracle(held: Plain, cur: Plain): Sp[] {
+/** Interval iv's part in zone z of the merged separators — the rule written
+ *  out apart: a point at a zone's bound belongs where the interval goes on; a
+ *  point interval on a point separator after it when it began after the
+ *  unknown tool. */
+function zonePart(iv: Iv, seps: ArrayLike<number>, z: number): Sp | null {
+  const m = seps.length / 2;
+  const lo = z === 0 ? -Infinity : seps[2 * z - 1]!, hi = z < m ? seps[2 * z]! : Infinity;
+  const A = Math.max(iv.enter, lo), B = Math.min(iv.end, hi);
+  if (A > B) return null;
+  if (A === B) {
+    const point = iv.enter === iv.end;
+    if (z > 0 && A === lo && (iv.enter < lo || (point && seps[2 * z - 2] === lo && !iv.after))) return null;
+    if (z < m && B === hi && (iv.end > hi || (point && seps[2 * z + 1] === hi && !!iv.after))) return null;
+  }
+  return { a: A, ao: false, b: B, bo: false };
+}
+function oracle(held: Plain, cur: Plain): Array<Sp & { z: number }> {
   const gens = [held, cur];
-  const parts: Sp[] = [];
-  for (const g of gens) for (const iv of g.ivs) parts.push({ a: iv.enter, ao: false, b: iv.end, bo: false });
+  const seps = sepsOf(held, cur);
   const frags: Sp[] = [];
   for (const g of gens) for (const iv of g.ivs) {
     if (iv.freeAt === undefined || Number.isNaN(iv.freeAt)) continue;
@@ -84,9 +109,15 @@ function oracle(held: Plain, cur: Plain): Sp[] {
     }
     if (!onSample) frags.push(r > 0 ? { a: p - r, ao: true, b: p + r, bo: true } : { a: p, ao: false, b: p, bo: false });
   }
-  let s = union(parts);
-  for (const f of union(frags)) s = minus(s, f);
-  return union(s);
+  const free = union(frags), out: Array<Sp & { z: number }> = [];
+  for (let z = 0; z <= seps.length / 2; z++) {
+    const parts: Sp[] = [];
+    for (const g of gens) for (const iv of g.ivs) { const x = zonePart(iv, seps, z); if (x) parts.push(x); }
+    let s = union(parts);
+    for (const f of free) s = minus(s, f);
+    for (const x of union(s)) out.push({ ...x, z });
+  }
+  return out;
 }
 
 describe("the union of two generations less the proven free stretches (plan 3.5)", () => {
@@ -145,67 +176,146 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
     expect(spans(onSample)).toEqual([[0, 0.5], [1, 2]]);
   });
 
-  it("a point free sample (r = 0) splits at the point; a gap is none of this module's business", () => {
+  it("a point free sample (r = 0) splits at the point", () => {
     const p = pieces(sidesOf({ ivs: [{ enter: 0, end: 2, witness: 0.5 }] }, { ivs: [{ enter: 5, end: 6, freeAt: 1, freeR: 0 }] }));
     expect(spans(p)).toEqual([[0, 1], [1, 2], [5, 6]]);
     expect([p[0]!.endOpen, p[1]!.startOpen, p[1]!.startKind]).toEqual([true, true, START_FREE]);
   });
 
-  it("matches the brute force over random generations — piece by piece, its start's evidence, and every later question from that start alone", () => {
-    let seed = 12345;
-    const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-    const grid = (x: number) => Math.round(x * 8) / 8 + (rnd() < 0.1 ? (rnd() < 0.5 ? PROTECT : -PROTECT) * rnd() : 0);
-    const gen = (): Plain => {
-      const ivs: Iv[] = [];
-      let x = grid(rnd() * 2);
-      const n = Math.floor(rnd() * 6);
-      for (let i = 0; i < n; i++) {
-        const len = rnd() < 0.15 ? 0 : Math.max(0, grid(rnd() * 2));
-        const enter = x, end = x + len;
-        const iv: Iv = { enter, end, witness: enter + (end - enter) * (rnd() < 0.3 ? 0 : rnd() < 0.3 ? 1 : rnd()), ed: rnd() < 0.7, xd: rnd() < 0.7 };
-        x = end + grid(0.125 + rnd() * 2);
-        if (rnd() < 0.6) {
-          // a free sample after its exit; sometimes reaching past the next enter or before its own
-          iv.freeAt = end + (x - end) * rnd();
-          iv.freeR = rnd() < 0.2 ? 0 : rnd() < 0.15 ? 2 * rnd() : Math.min(iv.freeAt - end, x - iv.freeAt) * rnd();
-        }
-        ivs.push(iv);
-      }
-      if (ivs.length && rnd() < 0.3) ivs[ivs.length - 1]!.open = true;
-      return { ivs };
+  it("Codex R151 VP-I114: a confirmed point deeper than the tolerance from both edges is named as soon as the radius exceeds it — below, at and above the threshold, on the free sample and beside it", () => {
+    const named = (r: number, w: number) => {
+      // the new run proves (1.5 − r, 1.5 + r) free; the old one confirmed a touch at w
+      const sides = sidesOf({ ivs: [{ enter: 1, end: 2, witness: w, ed: false, xd: false }] }, { ivs: [{ enter: 0, end: 0.5, freeAt: 1.5, freeR: r }] });
+      const wide: number[] = [], walked: number[] = [];
+      eachWideConflict(sides, x => wide.push(x));
+      eachPiece(sides, [], () => {}, x => walked.push(x));
+      expect(walked, "the walk names what eachWideConflict names").toEqual(wide);
+      return wide.length;
     };
-    let cases = 0, total = 0;
-    const kinds = [0, 0];
-    for (let c = 0; c < 4000; c++) {
-      const held = gen(), cur = gen();
-      const sides = sidesOf(held, cur);
-      const want = oracle(held, cur);
-      const got = pieces(sides);
-      expect(got.map(p => ({ a: p.start, ao: p.startOpen, b: p.end, bo: p.endOpen })), `case ${c}: ${JSON.stringify({ held, cur })}`).toEqual(want);
-      for (const p of got) {
-        expect(p.startKind, `case ${c}: a start the build names`).toBeGreaterThanOrEqual(0);
-        kinds[p.startKind]!++;
-        const pos = evidencePos(sides, p.startSide, p.startKind, p.startIdx);
-        expect(pos, `case ${c}: the evidence names the start`).toBe(p.start);
-        const again = pieceFrom(sides, pos, true)!;
-        expect([again.start, again.startOpen, again.end, again.endOpen], `case ${c}: asked again from its start`).toEqual([p.start, p.startOpen, p.end, p.endOpen]);
-        // what it holds: every interval whose own contact meets it, by brute force
-        const holds: string[] = [];
-        let leads = 0;
-        pieceIntervals(sides, p, (si, k, holdsStart) => { holds.push(`${si}:${k}`); if (holdsStart) leads++; });
-        expect(leads, `case ${c}: some interval holds the piece's start`).toBeGreaterThan(0);
-        const brute: string[] = [];
-        const span: Sp = { a: p.start, ao: p.startOpen, b: p.end, bo: p.endOpen };
-        [held, cur].forEach((g, si) => g.ivs.forEach((iv, k) => {
-          if (meets({ a: iv.enter, ao: false, b: iv.end, bo: false }, span)) brute.push(`${si}:${k}`);
-        }));
-        expect(holds, `case ${c}: what the piece holds ${JSON.stringify({ held, cur, p })}`).toEqual(brute);
+    expect(named(0.0009, 1.5), "below: no point can lie deeper than the radius").toBe(0);
+    expect(named(PROTECT, 1.5), "at: the sample lies exactly the tolerance from both edges — not deeper").toBe(0);
+    expect(named(0.0011, 1.5), "just above, on the sample").toBe(1);
+    expect(named(0.0015, 1.5), "Codex's probe: 0.0015 on the sample").toBe(1);
+    expect(named(0.0015, 1.5002), "beside the sample: 0.0013 from the nearer edge").toBe(1);
+    expect(named(0.0015, 1.4996), "beside the sample: 0.0011 from the nearer edge").toBe(1);
+    expect(named(0.0015, 1.4994), "0.0009 from the nearer edge: the plan's numerical conflict").toBe(0);
+    expect(named(0.0015, 1.5008), "0.0007 from the right edge: the numerical conflict too").toBe(0);
+  });
+
+  it("Codex R151 VP-I113: a tool gap separates the events — two old contacts at a point gap stay two after an empty rerun, each its identity, both zones", () => {
+    // before the unknown tool [0, 1] (ended at the gap, no exit claimed), after it [1, 2]
+    const held: Plain = { ivs: [{ enter: 0, end: 1, witness: 0.5, xd: false }, { enter: 1, end: 2, witness: 1.5, after: true }], gaps: [[1, 1]] };
+    const cur: Plain = { ivs: [] };
+    const sides = sidesOf(held, cur), seps = sepsOf(held, cur), p = pieces(sides, seps);
+    expect(p.map(x => [x.zone, x.start, x.end, x.startKind]), "two pieces, one per zone, each from its enter").toEqual([[0, 0, 1, START_ENTER], [1, 1, 2, START_ENTER]]);
+    expect(p.map(x => heir(sides, x, seps)), "each the earlier event whose witness it holds").toEqual([0, 1]);
+    // a wide gap: the same
+    const wide: Plain = { ivs: [{ enter: 0, end: 1, witness: 0.5, xd: false }, { enter: 3, end: 4, witness: 3.5, after: true }], gaps: [[1, 3]] };
+    expect(pieces(sidesOf(wide, cur), sepsOf(wide, cur)).map(x => [x.zone, x.start, x.end])).toEqual([[0, 0, 1], [1, 3, 4]]);
+    // the current run's gap separates the earlier run's contacts too: one coarse contact over both
+    const coarse: Plain = { ivs: [{ enter: 0, end: 2, witness: 0.25 }] };
+    const both = pieces(sidesOf(coarse, { ivs: [], gaps: [[1, 1]] }), [1, 1]);
+    expect(both.map(x => [x.zone, x.start, x.end, x.startKind]), "an interval reaching over a separator: its part after begins at the zone's start")
+      .toEqual([[0, 0, 1, START_ENTER], [1, 1, 2, START_SEP]]);
+  });
+
+  it("a point interval on a point separator belongs after it when it began after the unknown tool, else before it", () => {
+    const at = (after: boolean) => pieces(sidesOf({ ivs: [{ enter: 1, end: 1, witness: 1, after }] }, { ivs: [] }), [1, 1]).map(x => [x.zone, x.start, x.end]);
+    expect(at(true)).toEqual([[1, 1, 1]]);
+    expect(at(false)).toEqual([[0, 1, 1]]);
+  });
+
+  it("merges separators: overlapping and touching ones join, each with the gap its end comes from", () => {
+    const m = mergeSeps([5, 6, 1, 2, 2, 3, 1.5, 3, 8, 8]);
+    expect([...m.seps]).toEqual([1, 3, 5, 6, 8, 8]);
+    expect([...m.src], "[1, 3] ends at the first gap ending at 3 in input order").toEqual([2, 0, 4]);
+  });
+
+  it("matches the brute force over random generations with tool gaps — piece by piece and zone by zone, its start's evidence, every later question from that start alone, the contradictions", () => {
+    let total = 0, cases = 0;
+    const kinds = [0, 0, 0];
+    const scratch = unionScratch();
+    for (const seed0 of [12345, 777, 31337, 4242, 99, 2026, 151]) {
+      let seed = seed0;
+      const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+      const grid = (x: number) => Math.round(x * 8) / 8 + (rnd() < 0.1 ? (rnd() < 0.5 ? PROTECT : -PROTECT) * rnd() : 0);
+      const gen = (): Plain => {
+        const ivs: Iv[] = [], gaps: Array<[number, number]> = [];
+        let x = grid(rnd() * 2);
+        const n = Math.floor(rnd() * 6);
+        for (let i = 0; i < n; i++) {
+          let after = rnd() < 0.05;
+          // a tool gap where the last contact ended: ended at the gap (no exit
+          // claimed, no free sample), the next begins after it — at its end or later
+          const last = ivs[ivs.length - 1];
+          if (last && rnd() < 0.25) {
+            const s0 = last.end;
+            last.xd = false; delete last.freeAt; delete last.freeR;
+            const e0 = rnd() < 0.4 ? s0 : s0 + Math.max(0.125, grid(rnd()));
+            gaps.push([s0, e0]);
+            x = rnd() < 0.5 ? e0 : e0 + Math.max(0.125, grid(rnd()));
+            after = true;
+          }
+          const len = rnd() < 0.15 ? 0 : Math.max(0, grid(rnd() * 2));
+          const enter = x, end = x + len;
+          const iv: Iv = { enter, end, witness: enter + (end - enter) * (rnd() < 0.3 ? 0 : rnd() < 0.3 ? 1 : rnd()), ed: rnd() < 0.7, xd: rnd() < 0.7, after };
+          x = end + grid(0.125 + rnd() * 2);
+          if (rnd() < 0.6) {
+            // a free sample after its exit; sometimes reaching past the next enter or before its own
+            iv.freeAt = end + (x - end) * rnd();
+            iv.freeR = rnd() < 0.2 ? 0 : rnd() < 0.15 ? 2 * rnd() : Math.min(iv.freeAt - end, x - iv.freeAt) * rnd();
+          }
+          ivs.push(iv);
+        }
+        if (ivs.length && rnd() < 0.3) ivs[ivs.length - 1]!.open = true;
+        // a gap the other generation does not share, anywhere (an interval reaches over it)
+        if (rnd() < 0.2) { const s0 = grid(rnd() * 8); gaps.push([s0, rnd() < 0.3 ? s0 : s0 + Math.max(0.125, grid(rnd()))]); }
+        return { ivs, gaps };
+      };
+      for (let c = 0; c < 3000; c++) {
+        const held = gen(), cur = gen();
+        const sides = sidesOf(held, cur), seps = sepsOf(held, cur);
+        const tag = `seed ${seed0} case ${c}: ${JSON.stringify({ held, cur })}`;
+        const want = oracle(held, cur);
+        const got = pieces(sides, seps);
+        expect(got.map(p => ({ z: p.zone, a: p.start, ao: p.startOpen, b: p.end, bo: p.endOpen })), tag).toEqual(want);
+        // a scratch shared group after group gives the same walk
+        const again: UnionPiece[] = [];
+        eachPiece(sides, seps, p => again.push({ ...p }), undefined, scratch);
+        expect(again, `${tag}: the shared scratch`).toEqual(got);
+        // the contradictions the walk names are eachWideConflict's
+        const wide: number[] = [], walked: number[] = [];
+        eachWideConflict(sides, x => wide.push(x));
+        eachPiece(sides, seps, () => {}, x => walked.push(x));
+        expect(walked.sort((a, b) => a - b), `${tag}: the contradictions`).toEqual(wide.sort((a, b) => a - b));
+        for (const p of got) {
+          expect(p.startKind, `${tag}: a start the build names`).toBeGreaterThanOrEqual(0);
+          kinds[p.startKind]!++;
+          expect(evidenceZone(sides, seps, p.startSide, p.startKind, p.startIdx), `${tag}: the evidence names the zone`).toBe(p.zone);
+          const pos = evidencePos(sides, seps, p.startSide, p.startKind, p.startIdx);
+          expect(pos, `${tag}: the evidence names the start`).toBe(p.start);
+          const q = pieceFrom(sides, seps, p.zone, pos, true)!;
+          expect([q.zone, q.start, q.startOpen, q.end, q.endOpen, q.from0, q.to0, q.from1, q.to1], `${tag}: asked again from its start ${JSON.stringify(p)}`)
+            .toEqual([p.zone, p.start, p.startOpen, p.end, p.endOpen, p.from0, p.to0, p.from1, p.to1]);
+          // what it holds: every interval whose zone part meets it, by brute force
+          const holds: string[] = [];
+          let leads = 0;
+          pieceIntervals(sides, seps, p, (si, k, holdsStart) => { holds.push(`${si}:${k}`); if (holdsStart) leads++; });
+          expect(leads, `${tag}: some interval holds the piece's start`).toBeGreaterThan(0);
+          const brute: string[] = [];
+          const span: Sp = { a: p.start, ao: p.startOpen, b: p.end, bo: p.endOpen };
+          [held, cur].forEach((g, si) => g.ivs.forEach((iv, k) => {
+            const x = zonePart(iv, seps, p.zone);
+            if (x && meets(x, span)) brute.push(`${si}:${k}`);
+          }));
+          expect(holds, `${tag}: what the piece holds ${JSON.stringify(p)}`).toEqual(brute);
+        }
+        total += got.length;
+        if (got.length) cases++;
       }
-      total += got.length;
-      if (got.length) cases++;
     }
-    console.log(`[B4 union] ${cases} cases with pieces, ${total} pieces; starts by kind (enter, free): ${kinds.join(" ")}`);
-    expect([kinds[START_ENTER]!, kinds[START_FREE]!].every(k => k > 0), "an enter and a free stretch start pieces").toBe(true);
+    console.log(`[B4 union] ${cases} cases with pieces, ${total} pieces; starts by kind (enter, free, separator): ${kinds.join(" ")}`);
+    expect(kinds.every(k => k > 0), "an enter, a free stretch and a separator start pieces").toBe(true);
   });
 });
 

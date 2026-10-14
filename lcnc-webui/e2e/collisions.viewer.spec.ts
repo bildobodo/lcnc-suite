@@ -1642,3 +1642,110 @@ test("a sweep worker fails mid-run: the earlier run's finding stays listed throu
   expect(new Set(pairs).size, `each contact once: ${pairs.join(" | ")}`).toBe(pairs.length);
   await ctl({ op: "reset" });
 });
+
+// Codex R151 VP-I111: an entry contact the base continues is ONE finding
+// after a fallback — the base's alone (the side had ended), both at one
+// failure (the side still running) — and a later separate contact of the pair
+// stays a finding of its own. Both requests are answered here (no sweep
+// runs): the page, the tables' receiver and the view are the product's.
+async function joinPage(page: Page, context: BrowserContext, file: string) {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { main: null, side: null, deliver: null };
+    (window as any).__r151 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      w.addEventListener("message", e => handler?.(e));
+      tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      // both requests are this spec's: no worker answer races them
+      w.postMessage = ((m: any) => { if (m?.track) { if (m.side) tap.side = m; else tap.main = m; } }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  await prepare(page, context, { file, version: 29151, lines: [1, 2], joints: [-100, 0, -100, 0, 0], feed: [[0, 0, -100], [10, 0, -100]] });
+  await expect.poll(() => page.evaluate(() => (window as any).__r151.main?.id ?? null)).not.toBeNull();
+  const main = await page.evaluate(() => { const m = (window as any).__r151.main; return { id: m.id as number, end: m.track.cum[m.track.count - 1] as number }; });
+  const pairs = [["spindle_nose", "a_yoke_casting"]];
+  const hit = { line: 2, cum: 0, cumEnd: 0.3 * main.end, a: pairs[0]![0], b: pairs[0]![1], dist: 0, rapid: true, intervals: [[0, 0.3 * main.end]] };
+  const result = { hits: [hit], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 10,
+                   truncated: { covered: 0.5, reason: "running" } };
+  const deliver = (d: Record<string, unknown>, w?: ReturnType<typeof wireDelta>) => page.evaluate(([d, w]) => {
+    (window as any).__r151.deliver({ ...d, ...(w ? { contacts: [(window as any).__fromWire(w)] } : {}) });
+  }, [d, w ?? null] as const);
+  // the base in contact from its start to 30 %, running at 50 %
+  await deliver({ id: main.id, contactPairs: pairs, progress: 0.5, partial: result }, wireDelta(contactIn(new ContactStore(main.id, 0), 0, 0, 0.3 * main.end)));
+  await expect(clashRows(page)).toHaveCount(1);
+  await page.locator(".scrubBar").getByRole("checkbox", { name: "Sim" }).check();
+  await expect.poll(() => page.evaluate(() => (window as any).__r151.side?.id ?? null)).not.toBeNull();
+  const side = await page.evaluate(() => { const m = (window as any).__r151.side; return { id: m.id as number, end: m.track.cum[m.track.count - 1] as number }; });
+  // the entry move touches from 20 % to its end: swept whole, it continues into the base's contact
+  const entryResult = { ...result, hits: [{ ...hit, line: 0, cum: 0.2 * side.end, cumEnd: side.end, intervals: [[0.2 * side.end, side.end]] }], truncated: null };
+  const rows = () => clashRows(page).evaluateAll(rs => rs.map(r => r.getAttribute("data-sim-row")));
+  const generation = (which: "main" | "entry") => page.evaluate(w => {
+    const c = window.__viewerDiag?.getContacts?.();
+    // a running side run's tables, else the shown entry result's
+    return w === "main" ? c?.main?.generation : c?.side?.generation ?? c?.entry?.tables?.generation;
+  }, which);
+  const frames = () => page.evaluate(() => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+  return { errors, main, side, pairs, result, entryResult, deliver, rows, generation, frames };
+}
+/** One more contact of pair 0 in a request's table of a generation. */
+function contactIn(st: ContactStore, ordinal: number, at: number, exit: number) {
+  const ep = st.episodes.append({ pair: 0, ordinal, flags: 4, onset: at, end: exit, closeAt: at, closeDist: 0, firstIv: 0xffffffff, ivCount: 1 });
+  st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: at, exit, flags: Number.isNaN(exit) ? 2 : 6, next: 0xffffffff, witness: at, freeAt: NaN }));
+  return st;
+}
+
+test("the base falls back after the entry move's side run ended: its continuation stays the entry's finding; a later contact stays its own (Codex R151 VP-I111)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const j = await joinPage(page, context, "/r151-join.ngc");
+  await j.deliver({ id: j.side.id, contactPairs: j.pairs, result: j.entryResult }, wireDelta(oneContact(j.side.id, 0, 0.2 * j.side.end)));
+  await expect.poll(j.rows).toEqual(["E0|0|0"]);
+  const summary = () => page.locator(".simPanel .simSummary .sumItem").first().getAttribute("aria-label");
+  const words = await summary();
+  // the base falls back: its coverage, then its rerun's first words — the same contact
+  await j.deliver({ id: j.main.id, heldCoverage: { generation: 0, covered: [0.5] } });
+  await j.deliver({ id: j.main.id, contactPairs: j.pairs }, wireDelta(contactIn(new ContactStore(j.main.id, 1), 0, 0, 0.3 * j.main.end)));
+  await expect.poll(() => j.generation("main")).toBe(1);
+  await j.frames();
+  expect(await j.rows(), "no second finding").toEqual(["E0|0|0"]);
+  expect(await summary(), "the words unchanged").toBe(words);
+  // a later contact of the pair, apart from the first (a second fallback): a finding of its own
+  await j.deliver({ id: j.main.id, heldCoverage: { generation: 1, covered: [0.5] } });
+  await j.deliver({ id: j.main.id, contactPairs: j.pairs, progress: 0.8 },
+                  wireDelta(contactIn(contactIn(new ContactStore(j.main.id, 2), 0, 0, 0.3 * j.main.end), 1, 0.6 * j.main.end, 0.7 * j.main.end)));
+  await expect.poll(() => j.generation("main")).toBe(2);
+  await expect.poll(async () => (await j.rows()).map(k => k?.replace(/#.*/, ""))).toEqual(["E0|0|0", "C0|1|0"]);
+  expect(j.errors).toEqual([]);
+  await ctl({ op: "reset" });
+});
+
+test("one failure falls back both, the side still running: its rerun swept whole, the base's continuation stays the entry's finding (Codex R151 VP-I111)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const j = await joinPage(page, context, "/r151-join-both.ngc");
+  // the side runs: its contact open from 20 %, half swept
+  await j.deliver({ id: j.side.id, contactPairs: j.pairs, progress: 0.5 }, wireDelta(oneContact(j.side.id, 0, 0.2 * j.side.end)));
+  await expect.poll(() => j.generation("entry")).toBe(0);
+  // the pool fails: both coverages first, then both reruns — the side's swept whole
+  await j.deliver({ id: j.main.id, heldCoverage: { generation: 0, covered: [0.5] } });
+  await j.deliver({ id: j.side.id, heldCoverage: { generation: 0, covered: [0.5] } });
+  await j.deliver({ id: j.main.id, contactPairs: j.pairs }, wireDelta(contactIn(new ContactStore(j.main.id, 1), 0, 0, 0.3 * j.main.end)));
+  await j.deliver({ id: j.side.id, contactPairs: j.pairs, result: j.entryResult },
+                  wireDelta(contactIn(new ContactStore(j.side.id, 1), 0, 0.2 * j.side.end, NaN)));
+  await expect.poll(() => j.generation("main")).toBe(1);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getContacts?.().entry?.tables?.generation ?? null)).toBe(1);
+  await j.frames();
+  await expect.poll(j.rows).toEqual(["E0|0|0"]);
+  await j.frames();
+  expect(await j.rows(), "both fell back: one finding").toEqual(["E0|0|0"]);
+  expect(j.errors).toEqual([]);
+  await ctl({ op: "reset" });
+});

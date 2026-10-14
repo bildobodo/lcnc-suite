@@ -2,12 +2,12 @@
 // generation's tables shows the union of both, through the real tables.
 import { describe, expect, it } from "vitest";
 import {
-  ContactStore, EP_RAPID, GAP_UNDECIDABLE, IV_ENTER_DECIDED, IV_EXIT_DECIDED, NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
-  type StoreBudget,
+  ContactStore, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED,
+  NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf, type StoreBudget,
 } from "./contactStore";
 import {
-  buildContactView, contactBands, findKey, heldBytes, lineMark, T_EARLIER, T_REENTRY, targetAt, targetEnd, targetKey, targetKind,
-  targetPos, tintAt, viewCounts, type ContactSource,
+  buildContactView, contactBands, findKey, heldBytes, indexAfter, indexBefore, lineMark, T_EARLIER, T_REENTRY, targetAt, targetEnd, targetKey,
+  targetKind, targetPos, targetWindow, tintAt, viewCounts, type ContactSource,
 } from "./contactView";
 
 const names = (p: number) => ({ a: `t${p}`, b: `w${p}` });
@@ -16,7 +16,7 @@ const D = IV_ENTER_DECIDED | IV_EXIT_DECIDED;
 interface Iv { pair: number; enter: number; exit: number; witness?: number; flags?: number; freeAt?: number; freeR?: number }
 /** A generation's table: each interval its own episode unless `episodes` groups them. */
 function gen(generation: number, ivs: Iv[], o: { near?: Array<{ pair: number; onset: number; end: number; at: number; dist?: number }>;
-                                                 gaps?: Array<[number, number, number]>; budget?: StoreBudget } = {}): ContactStore {
+                                                 gaps?: Array<[number, number, number, number?]>; budget?: StoreBudget } = {}): ContactStore {
   const st = new ContactStore(1, generation, o.budget ?? REQUEST_BUDGET);
   const ord = new Map<number, number>();
   const next = (p: number) => { const k = ord.get(p) ?? 0; ord.set(p, k + 1); return k; };
@@ -30,7 +30,7 @@ function gen(generation: number, ivs: Iv[], o: { near?: Array<{ pair: number; on
     st.episodes.append({ pair: n.pair, ordinal: next(n.pair), flags: 0, onset: n.onset, end: n.end, closeAt: n.at, closeDist: n.dist ?? 1,
                          firstIv: NONE, ivCount: 0 });
   }
-  for (const [pair, s, e] of o.gaps ?? []) st.gaps.append({ pair, start: s, end: e, reason: GAP_UNDECIDABLE });
+  for (const [pair, s, e, reason] of o.gaps ?? []) st.gaps.append({ pair, start: s, end: e, reason: reason ?? GAP_UNDECIDABLE });
   return st;
 }
 /** The current generation swept to `own`; the shown axis runs to 100. */
@@ -162,7 +162,82 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
     expect(lineMark(v, 3, [[0, 3]]), "the marks read both generations' stays").toEqual({ line: 3 });
   });
 
-  it("at the budget: two generations of the request and of a side run, as one union each — held within 8.4 MB", { timeout: 300_000 }, () => {
+  it("Codex R151 VP-I113: two old contacts a tool gap apart stay two after an empty rerun — a wide gap and a point gap, both keys, the second selectable and navigable", () => {
+    const empty = gen(1, []);
+    for (const [label, s0, e0] of [["a wide gap", 1, 3], ["a point gap", 1, 1]] as const) {
+      // ended where the tool became unknown (no exit claimed); after it a contact begins anew
+      const old = gen(0, [{ pair: 0, enter: 0, exit: NaN, witness: 0.5, flags: IV_ENTER_DECIDED | IV_ENDED_AT_GAP },
+                          { pair: 0, enter: e0, exit: e0 + 1, witness: e0 + 0.5, flags: D | IV_AFTER_UNKNOWN_TOOL }],
+                     { gaps: [[0, s0, e0, GAP_TOOL_UNKNOWN]] });
+      const before = buildContactView({ sources: [{ stores: [old], at: c => c, ownCoverage: 5 }], pairName: names, coverage: 5 });
+      const after = buildContactView({ sources: [{ stores: [empty], held: [old], heldCoverage: [5], at: c => c, ownCoverage: 0 }], pairName: names, coverage: 5 });
+      expect([before.n, after.n], label).toEqual([2, 2]);
+      expect(list(after).map(t => [t.pos, t.end, t.key]), label).toEqual(list(before).map(t => [t.pos, t.end, t.key]));
+      const second = targetKey(before, 1);
+      expect(findKey(after, second), `${label}: the second event selectable`).toBe(1);
+      // navigation from the second event, shown where the timeline stands
+      const at = targetPos(after, 1);
+      expect(indexAfter(after, at, { key: second, pos: at }), `${label}: the next after it, wrapping`).toBe(0);
+      expect([...tintAt(after, s0)], `${label}: the gap itself stays dark`).toEqual([]);
+    }
+  });
+
+  it("a separator only one generation saw: the other's interval reaching over it is two events — the part after begins at the zone's start, named by the gap", () => {
+    // the rerun's contact ended where the tool became unknown at 1 (known again at 1.5); the earlier run, coarser, [0, 3]
+    const cur = gen(1, [{ pair: 0, enter: 0, exit: NaN, witness: 0.25, flags: IV_ENTER_DECIDED | IV_ENDED_AT_GAP }], { gaps: [[0, 1, 1.5, GAP_TOOL_UNKNOWN]] });
+    const held = gen(0, [{ pair: 0, enter: 0, exit: 3, witness: 0.25 }]);
+    const v = view([held], [cur], 3);
+    expect(list(v).map(t => [t.pos, t.end, t.key]), "before the gap the earlier event; after it a piece of its own, begun at the gap's end")
+      .toEqual([[0, 1, "C0|0|0"], [1.5, 3, "C0|0|0#g0/s1:0"]]);
+    expect(findKey(v, "C0|0|0#g0/s1:0")).toBe(1);
+    expect(targetKind(v, 1) & T_REENTRY, "not begun at an enter").toBe(T_REENTRY);
+    // inside a separator lies no event (the two runs of one request cannot differ on the tool — this is the defensive case)
+    expect([...tintAt(v, 1.25)], "inside the separator: dark").toEqual([]);
+    expect([[...tintAt(v, 0.5)].length, [...tintAt(v, 2)].length], "beside it: contact").toEqual([2, 2]);
+  });
+
+  it("Codex R151 VP-I113 at one shown position: a point contact ended at a point gap and the contact after it — two events, each selectable, navigation between them", () => {
+    // the earlier run touched at 1 only and the tool became unknown there; known again at once, a contact [1, 2]
+    const old = gen(0, [{ pair: 0, enter: 1, exit: NaN, witness: 1, flags: IV_ENTER_DECIDED | IV_ENDED_AT_GAP },
+                        { pair: 0, enter: 1, exit: 2, witness: 1.5, flags: D | IV_AFTER_UNKNOWN_TOOL }], { gaps: [[0, 1, 1, GAP_TOOL_UNKNOWN]] });
+    const before = buildContactView({ sources: [{ stores: [old], at: c => c, ownCoverage: 5 }], pairName: names, coverage: 5 });
+    const after = buildContactView({ sources: [{ stores: [gen(1, [])], held: [old], heldCoverage: [5], at: c => c, ownCoverage: 0 }], pairName: names, coverage: 5 });
+    for (const [label, v] of [["before the fallback", before], ["after it", after]] as const) {
+      expect(list(v).map(t => [t.pos, t.end, t.key]), label).toEqual([[1, 1, "C0|0|0"], [1, 2, "C0|1|0"]]);
+      expect([findKey(v, "C0|0|0", 1), findKey(v, "C0|1|0", 1)], `${label}: each by its key at the one position`).toEqual([0, 1]);
+      expect(indexAfter(v, 1, { key: "C0|0|0", pos: 1 }), `${label}: next from the first`).toBe(1);
+      expect(indexBefore(v, 1, { key: "C0|1|0", pos: 1 }), `${label}: previous from the second`).toBe(0);
+    }
+  });
+
+  it("Codex R151 VP-I113, the defined handover: two old events one piece holds (a confirmed point on the free sample between them) — the second key selects that piece", () => {
+    // old: [0, 1] and [1.25, 2] apart by a point free sample at 1.125; the new run touched exactly there
+    const old = gen(0, [{ pair: 0, enter: 0, exit: 1, witness: 0.5, freeAt: 1.125, freeR: 0 }, { pair: 0, enter: 1.25, exit: 2, witness: 1.5 }]);
+    const cur = gen(1, [{ pair: 0, enter: 0.75, exit: 1.5, witness: 1.125, flags: 0 }]);
+    const v = view([old], [cur]);
+    expect(list(v).map(t => [t.pos, t.end, t.key]), "one piece, the earlier witness's key").toEqual([[0, 2, "C0|0|0"]]);
+    expect(findKey(v, "C0|1|0"), "the second event's key: the piece holding its interval").toBe(0);
+    expect(indexAfter(v, 0, { key: "C0|1|0", pos: 0 }), "and navigation from it").toBe(0);
+    expect(findKey(v, "C0|2|0"), "an event never there: none").toBe(-1);
+  });
+
+  it("Codex R151: an exact point free sample stays dark after the union — its two neighbours touch, two events", () => {
+    const old = gen(0, [{ pair: 0, enter: 0, exit: 0.5, witness: 0.25, freeAt: 1, freeR: 0 }, { pair: 0, enter: 1.5, exit: 2, witness: 1.75 }]);
+    const cur = gen(1, [{ pair: 0, enter: 0, exit: 2, witness: 0.25 }]);
+    const v = view([old], [cur], 2);
+    expect(v.n).toBe(2);
+    expect([[...tintAt(v, 1)], [...tintAt(v, 0.999)].length, [...tintAt(v, 1.001)].length]).toEqual([[], 2, 2]);
+  });
+
+  it("Codex R151 VP-I114 through the tables: a touch on a free sample of radius 0.0015 — 0.0015 from both edges — is named", () => {
+    const held = gen(0, [{ pair: 0, enter: 1, exit: 2, witness: 1.5, flags: 0 }]);
+    const near = (r: number) => view([held], [gen(1, [{ pair: 0, enter: 0, exit: 0.5, witness: 0.25, freeAt: 1.5, freeR: r }])], 2);
+    expect(near(0.0015).conflicts.count, "above the tolerance (f32 0.0015000000130…)").toBe(1);
+    expect(near(0.0009).conflicts.count, "below it").toBe(0);
+    expect([...tintAt(near(0.0015), 1.5)].length, "kept as contact").toBe(2);
+  });
+
+  it("at the budget: two generations of the request and of a side run, as one union each — held within 8.4 MB after the queries, one pair holding the budget too", { timeout: 300_000 }, () => {
     const full = (generation: number, b: StoreBudget, shift: number, free: boolean) => {
       const st = new ContactStore(1, generation, b);
       const per = Math.floor(b.intervals / b.episodes);
@@ -183,6 +258,38 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
       return st;
     };
     const side = shareOf(REQUEST_BUDGET, 8);
+    /** One pair holding the whole interval budget (Codex R151): 4 contacts an episode, a free sample between. */
+    const onePair = (generation: number, b: StoreBudget) => {
+      const st = new ContactStore(1, generation, b);
+      let ep = -1, last = -1;
+      for (let i = 0; i < b.intervals; i++) {
+        if (i % 4 === 0) { ep = st.episodes.append({ pair: 0, ordinal: i / 4, flags: 0, onset: 3 * i, end: 3 * i + 12, closeAt: 3 * i, closeDist: 0, firstIv: NONE, ivCount: 4 }); last = -1; }
+        const iv = st.intervals.append({ episode: ep, enter: 3 * i, exit: 3 * i + 1, flags: D, next: NONE, witness: 3 * i + 0.5, freeAt: 3 * i + 2, freeR: 0.25 });
+        if (last < 0) st.episodes.set(ep, "firstIv", iv); else st.intervals.set(last, "next", iv);
+        last = iv;
+      }
+      return st;
+    };
+    const queries = (v: ReturnType<typeof buildContactView>, end: number) => {
+      // what the views ask: the window, the bands, the tint, a target in every 64th, a key
+      targetWindow(v, v.n >> 1, 50, () => 1);
+      contactBands(v, 8192, end);
+      for (let q = 0; q < 200; q++) tintAt(v, (q * 7919.37) % end);
+      for (let i = 0; i < v.n; i += 64) targetAt(v, i, () => 1);
+      findKey(v, targetKey(v, v.n - 1));
+    };
+    {
+      const cov1 = 3 * REQUEST_BUDGET.intervals + 10, covS = 3 * side.intervals + 10;
+      const v = buildContactView({ sources: [
+        { stores: [onePair(1, REQUEST_BUDGET)], held: [onePair(0, REQUEST_BUDGET)], heldCoverage: [cov1], at: c => c, ownCoverage: cov1 },
+        { stores: [onePair(1, side)], held: [onePair(0, side)], heldCoverage: [covS], at: c => c, entry: true, ownCoverage: covS },
+      ], pairName: names, coverage: cov1 });
+      const before = heldBytes(v);
+      queries(v, cov1);
+      console.log(`[B4 union budget] one pair holding the budget: targets ${v.n}, held ${(heldBytes(v) / 1e6).toFixed(2)} MB after the queries`);
+      expect(heldBytes(v), "the queries hold nothing more").toBe(before);
+      expect(heldBytes(v)).toBeLessThanOrEqual(8_400_000);
+    }
     for (const [name, shift, free] of [["the same contacts twice", 0, false], ["shifted, every free sample cutting", 0.5, true]] as const) {
       const t0 = performance.now();
       const v = buildContactView({ sources: [
@@ -190,11 +297,12 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
         { stores: [full(1, side, shift, free)], held: [full(0, side, 0, free)], at: c => c, entry: true, ownCoverage: 4 * side.episodes + 1 },
       ], pairName: names, coverage: 4 * REQUEST_BUDGET.episodes + 1 });
       const ms = performance.now() - t0;
-      const held = heldBytes(v);
       const t1 = performance.now();
       const c = viewCounts(v);
       const bands = contactBands(v, 8192, 4 * REQUEST_BUDGET.episodes + 1);
       const t2 = performance.now();
+      queries(v, 4 * REQUEST_BUDGET.episodes + 1);
+      const held = heldBytes(v);
       console.log(`[B4 union budget] ${name}: targets ${v.n}, held ${(held / 1e6).toFixed(2)} MB (limit 8.4), build ${ms.toFixed(0)} ms, ` +
                   `counts + bands ${(t2 - t1).toFixed(0)} ms (${c.collisions} collisions, ${bands.length} band runs)`);
       expect(held).toBeLessThanOrEqual(8_400_000);

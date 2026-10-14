@@ -9,6 +9,7 @@
 import { entryJoins } from "./contactMerge";
 import { buildContactView, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin } from "./contactView";
 import type { GenerationTables } from "./contactsReceiver";
+import type { ContactStore } from "./contactStore";
 
 /** How a source's cum lands on the shown axis: as it is; shifted by the
  *  entry move in front of it (`plus`); a run check's bound beginning mapped
@@ -102,13 +103,29 @@ export function shownContactView(tables: (id: number) => GenerationTables | null
       warn(`[contacts] requests ${parts[0]!.s.id} and ${parts[1]!.s.id} do not name one model's pairs — no entry contact joined`);
     }
   }
+  // the joins, between every generation of the side that swept to its end
+  // and every generation of the base: after a fallback the earlier
+  // generation's rows are shown too, and a continuation they hold is the
+  // entry's all the same (Codex R151 VP-I111)
   const joins: SourceJoin[] = [];
   const bi = parts.findIndex(p => p.s === spec.base), si = parts.findIndex(p => p.s === spec.side);
-  if (bi >= 0 && si >= 0 && spec.side!.sweptToEnd && oneModel) {
-    parts[si]!.t.stores.forEach((es, ek) => parts[bi]!.t.stores.forEach((bs, bk) => {
-      const j = entryJoins(es, bs, 0);
-      if (j.size) joins.push({ entrySrc: si, baseSrc: bi, joins: j, entryShard: ek, baseShard: bk });
-    }));
+  if (bi >= 0 && si >= 0 && oneModel) {
+    const gensOf = (k: number) => {
+      const p = parts[k]!, h = held(p.s.id);
+      const out: Array<{ stores: readonly ContactStore[]; held: boolean; whole: boolean }> = [{ stores: p.t.stores, held: false, whole: !!p.s.sweptToEnd }];
+      // an earlier generation swept to its end when every shard of it did
+      if (h?.stores.length) out.push({ stores: h.stores, held: true, whole: !!h.covered?.length && h.covered.every(f => f >= 1) });
+      return out;
+    };
+    for (const eg of gensOf(si)) {
+      if (!eg.whole) continue;
+      for (const bg of gensOf(bi)) {
+        eg.stores.forEach((es, ek) => bg.stores.forEach((bs, bk) => {
+          const j = entryJoins(es, bs, 0);
+          if (j.size) joins.push({ entrySrc: si, baseSrc: bi, joins: j, entryShard: ek, baseShard: bk, entryHeld: eg.held, baseHeld: bg.held });
+        }));
+      }
+    }
   }
   return buildContactView({
     sources,

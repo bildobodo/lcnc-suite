@@ -1,7 +1,7 @@
 // Step 4 package 2, round B4: what a request shows after its pool fell back
 // to one core (plan docs/reviews/kollision-paket2.plan.md Fassung 5, 3.5;
-// Codex R140–R143). The local run computes the request again as a new
-// generation; the earlier one's evidence stays. Per pair and origin (plan
+// Codex R140–R143, R150, R151). The local run computes the request again as a
+// new generation; the earlier one's evidence stays. Per pair and origin (plan
 // 3.5: "Je Paar und Herkunft") the shown contacts are the UNION of both
 // generations' intervals LESS the proven free stretches of both: a free
 // sample's open stretch (p − r, p + r), the point p alone when r = 0.
@@ -19,6 +19,18 @@
 // resolved in silence. Reaching a place is no refutation: a confirmed
 // interval of either generation stays wherever the other passed without a hit.
 //
+// A stretch with the TOOL UNKNOWN separates events: the contact before it
+// ended there and one after it begins anew (no geometric re-entry, Codex
+// R140), so no shown event spans one (Codex R151 VP-I113 — an empty rerun
+// joined the two events of a point gap into one and lost the second's
+// identity). The tool gaps of both generations, merged, are the SEPARATORS;
+// they cut the axis into ZONES, closed at both ends ([e_{i−1}, s_i]), and each
+// zone is a union of its own. An interval's part in a zone is its stretch
+// there; a point part at a zone's bound belongs where the interval goes on,
+// and a point interval ON a point separator belongs after it when it began
+// after the unknown tool, else before it. An undecidable answer is no
+// separator: it suspends an interval, never ends one.
+//
 // The pieces are the EVENTS (targets, identity): a knowledge gap does not
 // split one, as it does not split an interval without a fallback. What a
 // piece shows as contact — the tint, the bands, the marks — is its
@@ -26,10 +38,17 @@
 // no freedom); the view reads that from its tables.
 //
 // Pure, on ONE group's intervals per generation through accessors (the view
-// reads its tables, nothing is copied). ONE search, `pieceFrom`, answers both
-// the build (piece after piece) and every later question about a piece (its
-// end, what it holds) from the piece's start alone — so the view holds one
-// u32 per piece, and what it shows is what the build found.
+// reads its tables, nothing is copied). The build walks a group ONCE
+// (`eachPiece`: its intervals read into scratch, every free stretch computed
+// once, both generations merged in order — Codex R151); every later question
+// about one piece asks `pieceFrom` from the piece's start evidence alone, the
+// same set by a search — so the view holds one u32 per piece. The two are held
+// to each other and to a brute force by contactUnion.test.ts.
+//
+// The structure both rely on (the sweep's own, and the generator's in the
+// test): per generation the intervals are disjoint and by enter; an interval's
+// confirmed points lie in [its enter, the next one's enter); its free sample
+// lies after its own confirmed points and before the next interval's enter.
 
 /** The refinement's tolerance: a confirmed point closer than this to a free
  *  stretch's edge is the plan's numerical conflict; deeper, a contradiction
@@ -49,6 +68,8 @@ export interface UnionSide {
   witness(k: number): number;
   enterDecided(k: number): boolean;
   exitDecided(k: number): boolean;
+  /** It began after a stretch with the tool unknown (IV_AFTER_UNKNOWN_TOOL). */
+  afterTool(k: number): boolean;
   /** The free sample after its exit (NaN: none) and its proven radius. */
   freeAt(k: number): number;
   freeR(k: number): number;
@@ -59,24 +80,35 @@ export interface UnionSide {
   readonly front: number;
 }
 
-/** What a piece's start is: an interval's enter, or the end of an interval's
- *  free stretch (p + r'; the point p itself for r' = 0). */
-export const START_ENTER = 0, START_FREE = 1;
+/** The group's separators: closed spans [s0, e0, s1, e1, …], by start, apart
+ *  (`mergeSeps`); zone z is [e_{z−1}, s_z] (−∞ / +∞ at the ends). */
+export type UnionSeps = ArrayLike<number>;
 
-/** One shown event of the group: a connected piece of the union less the
- *  free stretches, on the own axis. */
+/** What a piece's start is: an interval's enter, the end of an interval's
+ *  free stretch (p + r'; the point p itself for r' = 0), or a zone's start
+ *  (an interval of the other generation reaching over a separator). */
+export const START_ENTER = 0, START_FREE = 1, START_SEP = 2;
+
+/** One shown event of the group: a connected piece of its zone's union less
+ *  the free stretches, on the own axis. */
 export interface UnionPiece {
+  zone: number;
   start: number;
   startOpen: boolean;
   end: number;
   endOpen: boolean;
   /** Its start's evidence: kind (START_*; −1 when the search began inside a
    *  piece — a later question asks from its start, never from inside), the
-   *  side (0 the earlier, held generation, 1 the current) and the interval
-   *  index there. */
+   *  side (0 the earlier, held generation, 1 the current; −1 for a
+   *  separator) and the interval index there (the separator's index). */
   startKind: number;
   startSide: number;
   startIdx: number;
+  /** The intervals of each side whose part meets it: [from, to) by index. */
+  from0: number;
+  to0: number;
+  from1: number;
+  to1: number;
 }
 
 interface Span { a: number; ao: boolean; b: number; bo: boolean }
@@ -84,18 +116,68 @@ interface Span { a: number; ao: boolean; b: number; bo: boolean }
 /** A free sample's proven radius (none: 0). */
 export const freeRadius = (r: number) => (r > 0 ? r : 0);
 
-/** One group's free stretches, computed once per interval while a build
- *  walks its pieces or a view asks of one group's pieces in turn (by side, by
- *  interval; undefined: not computed yet). */
-export type FreeMemo = Array<Array<Span | null | undefined>>;
+// ---- separators and zones -------------------------------------------------------------------------
 
-/** The position a piece's start evidence names — the build and every later
- *  question compute it with this one function (NaN: the evidence names none). */
-export function evidencePos(sides: readonly UnionSide[], side: number, kind: number, idx: number, memo?: FreeMemo): number {
-  if (kind === START_ENTER) return sides[side]!.enter(idx);
-  const f = freeOf(sides, side, idx, memo);
-  return f ? f.b : NaN;
+/** Closed spans [s, e, …] in any order merged into sorted spans apart from
+ *  each other (touching ones join); `src[i]` is the input span whose end is
+ *  merged span i's (the first such in input order). */
+export function mergeSeps(spans: ArrayLike<number>): { seps: Float64Array; src: Int32Array } {
+  const n = spans.length >> 1;
+  const order = Array.from({ length: n }, (_, k) => k).sort((x, y) => spans[2 * x]! - spans[2 * y]! || x - y);
+  const out: number[] = [], src: number[] = [];
+  for (const k of order) {
+    const s = spans[2 * k]!, e = Math.max(s, spans[2 * k + 1]!);
+    const m = out.length;
+    if (m && s <= out[m - 1]!) {
+      if (e > out[m - 1]! || (e === out[m - 1]! && k < src[src.length - 1]!)) { out[m - 1] = e; src[src.length - 1] = k; }
+    } else { out.push(s, e); src.push(k); }
+  }
+  return { seps: Float64Array.from(out), src: Int32Array.from(src) };
 }
+
+const zoneLo = (seps: UnionSeps, z: number) => (z === 0 ? -Infinity : seps[2 * z - 1]!);
+const zoneHi = (seps: UnionSeps, z: number) => (2 * z < seps.length ? seps[2 * z]! : Infinity);
+const pointSep = (seps: UnionSeps, i: number) => seps[2 * i] === seps[2 * i + 1];
+/** The separators ending before x (at or before it, with `incl`). */
+function sepsEnding(seps: UnionSeps, x: number, incl: boolean): number {
+  let lo = 0, hi = seps.length >> 1;
+  while (lo < hi) { const m = (lo + hi) >> 1; const e = seps[2 * m + 1]!; if (e < x || (incl && e === x)) lo = m + 1; else hi = m; }
+  return lo;
+}
+
+/** Interval k's part in zone z, closed; null: none. A point part at a zone's
+ *  bound belongs to the zone the interval goes on in; a point interval on a
+ *  point separator after it when it began after the unknown tool. */
+function partOf(s: UnionSide, k: number, seps: UnionSeps, z: number, out?: Span): Span | null {
+  return clipPart(s.enter(k), s.end(k), s.afterTool(k), seps, z, out);
+}
+/** partOf's rule on an interval's values. */
+function clipPart(a: number, b: number, after: boolean, seps: UnionSeps, z: number, out?: Span): Span | null {
+  const lo = zoneLo(seps, z), hi = zoneHi(seps, z);
+  const A = a > lo ? a : lo, B = b < hi ? b : hi;
+  if (A > B) return null;
+  if (A === B) {
+    if (z > 0 && A === lo && (a < lo || (a === b && pointSep(seps, z - 1) && !after))) return null;
+    if (2 * z < seps.length && B === hi && (b > hi || (a === b && pointSep(seps, z) && after))) return null;
+  }
+  if (!out) return { a: A, ao: false, b: B, bo: false };
+  out.a = A; out.ao = false; out.b = B; out.bo = false;
+  return out;
+}
+/** A span the hot loops reuse (never held across a call that reuses it). */
+const TMP: Span = { a: 0, ao: false, b: 0, bo: false };
+
+/** Interval k's part in zone z at or after y (after y with !incl); null: none. */
+function partFrom(s: UnionSide, k: number, seps: UnionSeps, z: number, y: number, incl: boolean, out?: Span): Span | null {
+  const p = partOf(s, k, seps, z, out);
+  if (!p) return null;
+  if (y < p.a || (y === p.a && incl)) return p;
+  if (y > p.b || (y === p.b && !incl)) return null;
+  p.a = y; p.ao = !incl;
+  return p;
+}
+
+// ---- free stretches -------------------------------------------------------------------------------
 
 /** Last interval with enter ≤ y (−1: none). */
 function predEnter(s: UnionSide, y: number): number {
@@ -124,15 +206,6 @@ function meet(x: Span, y: Span): boolean {
   return true;
 }
 
-/** Interval k at or after y (after y with !incl), clipped to it; null: none. */
-function intervalFrom(s: UnionSide, k: number, y: number, incl: boolean): Span | null {
-  const enter = s.enter(k), end = s.end(k);
-  let a: number, ao: boolean;
-  if (y < enter || (y === enter && incl)) { a = enter; ao = false; } else { a = y; ao = !incl; }
-  if (a > end || (a === end && ao)) return null;
-  return { a, ao, b: end, bo: false };
-}
-
 const inSpan = (f: Span, x: number) => (f.a === f.b ? x === f.a : x > f.a && x < f.b);
 
 /** The confirmed points of interval k inside the free stretch f — its
@@ -142,6 +215,16 @@ function confirmedIn(s: UnionSide, k: number, f: Span, each: (x: number) => void
   if (inSpan(f, w)) each(w);
   if (s.enterDecided(k) && inSpan(f, s.enter(k))) each(s.enter(k));
   if (s.exitDecided(k) && !s.open(k) && inSpan(f, s.end(k))) each(s.end(k));
+}
+
+/** Every confirmed point of both sides inside f: an interval's points lie in
+ *  [its enter, the next enter), so the intervals from the one before the last
+ *  entering at or before f's start on hold all of them (two intervals of one
+ *  generation touch at a point separator). */
+function eachConfirmedIn(sides: readonly UnionSide[], f: Span, each: (x: number) => void): void {
+  for (const t of sides) {
+    for (let k = Math.max(0, predEnter(t, f.a) - 1); k < t.n && t.enter(k) <= f.b; k++) confirmedIn(t, k, f, each);
+  }
 }
 
 /** Interval j's (side `fs`) proven free stretch: the open (p − r', p + r'),
@@ -154,30 +237,18 @@ function freeStretch(sides: readonly UnionSide[], fs: number, j: number): Span |
   let r = freeRadius(s.freeR(j));
   const f: Span = r > 0 ? { a: p - r, ao: true, b: p + r, bo: true } : { a: p, ao: false, b: p, bo: false };
   let onSample = false;
-  for (const t of sides) {
-    // the intervals of t overlapping [f.a, f.b]
-    let k = predEnter(t, f.a);
-    if (k < 0) k = 0;
-    else if (t.end(k) < f.a) k++;
-    for (; k < t.n && t.enter(k) <= f.b; k++) {
-      confirmedIn(t, k, f, x => { if (x === p) onSample = true; r = Math.min(r, Math.abs(x - p)); });
-    }
-  }
+  eachConfirmedIn(sides, f, x => { if (x === p) onSample = true; r = Math.min(r, Math.abs(x - p)); });
   if (onSample) return null;
   return r > 0 ? { a: p - r, ao: true, b: p + r, bo: true } : { a: p, ao: false, b: p, bo: false };
 }
 
-/** freeStretch, through the build's memo where there is one. */
-function freeOf(sides: readonly UnionSide[], fs: number, j: number, memo?: FreeMemo): Span | null {
-  if (!memo) return freeStretch(sides, fs, j);
-  const m = (memo[fs] ??= []);
-  let f = m[j];
-  if (f === undefined) m[j] = f = freeStretch(sides, fs, j);
-  return f;
+/** The zone a free stretch's end starts a piece in: the last zone it meets. */
+function freeZone(seps: UnionSeps, f: Span): number {
+  return f.a === f.b ? sepsEnding(seps, f.b, true) : sepsEnding(seps, f.b, false);
 }
 
 /** Every proven free stretch of both sides that may meet [lo, hi], through `each`. */
-function eachFreeNear(sides: readonly UnionSide[], lo: number, hi: number, each: (g: Span) => void, memo?: FreeMemo): void {
+function eachFreeNear(sides: readonly UnionSide[], lo: number, hi: number, each: (g: Span) => void): void {
   for (let fs = 0; fs < sides.length; fs++) {
     const s = sides[fs]!;
     // a free stretch of j lies in (enter_j − front, enter_{j+1} + back)
@@ -188,24 +259,56 @@ function eachFreeNear(sides: readonly UnionSide[], lo: number, hi: number, each:
       if (Number.isNaN(p)) continue;
       const r = freeRadius(s.freeR(j));
       if (p + r < lo || p - r > hi) continue;
-      const g = freeOf(sides, fs, j, memo);
+      const g = freeStretch(sides, fs, j);
       if (g) each(g);
     }
   }
 }
 
-/** The first piece starting at y or after it (after it with !incl): the
- *  component of the union less the free stretches that y opens, or the next
- *  one; null: none. */
-export function pieceFrom(sides: readonly UnionSide[], y: number, incl = true, memo?: FreeMemo): UnionPiece | null {
+// ---- one piece, asked from its start ----------------------------------------------------------------
+
+/** The zone a piece's start evidence names (−1: none). */
+export function evidenceZone(sides: readonly UnionSide[], seps: UnionSeps, side: number, kind: number, idx: number): number {
+  if (kind === START_SEP) return idx + 1;
+  const s = sides[side]!;
+  if (kind === START_ENTER) {
+    const a = s.enter(idx), z = sepsEnding(seps, a, true);
+    for (const c of [z, z - 1]) {
+      if (c < 0) continue;
+      const p = partOf(s, idx, seps, c);
+      if (p && p.a === a) return c;
+    }
+    return -1;
+  }
+  const f = freeStretch(sides, side, idx);
+  return f ? freeZone(seps, f) : -1;
+}
+
+/** The position a piece's start evidence names — the build and every later
+ *  question compute it with this one function (NaN: the evidence names none). */
+export function evidencePos(sides: readonly UnionSide[], seps: UnionSeps, side: number, kind: number, idx: number): number {
+  if (kind === START_ENTER) return sides[side]!.enter(idx);
+  if (kind === START_SEP) return seps[2 * idx + 1]!;
+  const f = freeStretch(sides, side, idx);
+  return f ? f.b : NaN;
+}
+
+/** The first piece of zone z starting at y or after it (after it with
+ *  !incl): the component of the zone's union less the free stretches that y
+ *  opens, or the next one; null: none. */
+export function pieceFrom(sides: readonly UnionSide[], seps: UnionSeps, z: number, y: number, incl = true): UnionPiece | null {
+  const lo = zoneLo(seps, z), hi = zoneHi(seps, z);
+  if (y < lo) { y = lo; incl = true; }
   let start: Span, startSide: number, startK: number;
-  // the start: the earliest interval point at or after y outside every free stretch
+  // the start: the earliest part point at or after y outside every free stretch
   for (;;) {
     let best: Span | null = null, bSide = 0, bK = 0;
     for (let si = 0; si < sides.length; si++) {
       const s = sides[si]!;
-      for (let k = Math.max(0, predEnter(s, y)); k < s.n; k++) {
-        const p = intervalFrom(s, k, y, incl);
+      // from the one before the last entering at or before y (two intervals
+      // of a generation touch at a point separator, in two zones)
+      for (let k = Math.max(0, predEnter(s, y) - 1); k < s.n && s.enter(k) <= hi; k++) {
+        const p = partFrom(s, k, seps, z, y, incl);
         if (!p) continue;
         if (!best || p.a < best.a || (p.a === best.a && best.ao && !p.ao)) { best = p; bSide = si; bK = k; }
         break;
@@ -216,24 +319,26 @@ export function pieceFrom(sides: readonly UnionSide[], y: number, incl = true, m
     let hit: Span | null = null;
     eachFreeNear(sides, cand.a, cand.a, g => {
       if (holds(g, cand.a, !cand.ao) && (!hit || g.b > hit.b || (g.b === hit.b && !g.bo))) hit = g;
-    }, memo);
+    });
     if (!hit) { start = cand; startSide = bSide; startK = bK; break; }
     // past the fragment: its end point is no proof of freedom when open
     y = (hit as Span).b; incl = (hit as Span).bo;
   }
   const st = start;
-  // the start's evidence
+  // the start's evidence: an enter, else a free stretch's end in this zone, else the zone's start
   let kind = -1, side = startSide, idx = startK;
   if (!st.ao && st.a === sides[startSide]!.enter(startK)) kind = START_ENTER;
   else {
-    // a free stretch's end (its j lies within the search bounds)
     for (let ti = 0; ti < sides.length && kind < 0; ti++) {
       const t = sides[ti]!;
       const j1 = predEnter(t, st.a + t.front);
       for (let j = Math.max(0, firstEnterFrom(t, st.a - t.back) - 1); j <= j1; j++) {
-        if (!Number.isNaN(t.freeAt(j)) && evidencePos(sides, ti, START_FREE, j, memo) === st.a) { kind = START_FREE; side = ti; idx = j; break; }
+        if (Number.isNaN(t.freeAt(j))) continue;
+        const f = freeStretch(sides, ti, j);
+        if (f && f.b === st.a && freeZone(seps, f) === z) { kind = START_FREE; side = ti; idx = j; break; }
       }
     }
+    if (kind < 0 && z > 0 && !st.ao && st.a === lo) { kind = START_SEP; side = -1; idx = z - 1; }
   }
   // the end: the first fragment from the start on — by side in order, each
   // side's search ends past the best one found (a stretch of j begins after
@@ -243,25 +348,27 @@ export function pieceFrom(sides: readonly UnionSide[], y: number, incl = true, m
   for (let fs = 0; fs < sides.length; fs++) {
     const s = sides[fs]!;
     for (let j = Math.max(0, firstEnterFrom(s, st.a - s.back) - 1); j < s.n; j++) {
-      if (cut && s.enter(j) - s.front > (cut as Span).a) break;
+      const from = s.enter(j) - s.front;
+      if (from > hi || (cut && from > (cut as Span).a)) break;
       const p = s.freeAt(j);
       if (Number.isNaN(p) || p + freeRadius(s.freeR(j)) < st.a) continue;
-      const g = freeOf(sides, fs, j, memo);
+      const g = freeStretch(sides, fs, j);
       if (!g || !meet(g, after)) continue;
       if (!cut || g.a < cut.a || (g.a === cut.a && !g.ao && cut.ao)) cut = g;
     }
   }
-  // … and the union's reach from the start, up to it
+  // … and the zone union's reach from the start, up to it
   const stop = cut ? (cut as Span).a : Infinity;
   let b = st.b, bo = st.bo;
   for (let grew = true; grew && b < stop;) {
     grew = false;
     for (const s of sides) {
       const k = predEnter(s, b);
-      if (k < 0) continue;
-      const p = intervalFrom(s, k, b, true);
-      if (!p || p.a !== b) continue;
-      if (p.b > b || (p.b === b && bo && !p.bo)) { b = p.b; bo = p.bo; grew = true; }
+      for (let q = Math.max(0, k - 1); q <= k; q++) {
+        const p = partFrom(s, q, seps, z, b, true);
+        if (!p || p.a !== b) continue;
+        if (p.b > b || (p.b === b && bo && !p.bo)) { b = p.b; bo = p.bo; grew = true; }
+      }
     }
   }
   if (cut) {
@@ -269,37 +376,356 @@ export function pieceFrom(sides: readonly UnionSide[], y: number, incl = true, m
     // the fragment cuts the piece where it meets it: before the reach's end
     if (c.a < b || (c.a === b && !c.ao && !bo)) { b = c.a; bo = !c.ao; }
   }
-  return { start: st.a, startOpen: st.ao, end: b, endOpen: bo, startKind: kind, startSide: side, startIdx: idx };
+  const piece: UnionPiece = { zone: z, start: st.a, startOpen: st.ao, end: b, endOpen: bo, startKind: kind, startSide: side, startIdx: idx,
+                              from0: 0, to0: 0, from1: 0, to1: 0 };
+  rangesOf(sides, seps, piece);
+  return piece;
 }
 
-/** Every interval (side, index) that meets the piece — by side, by enter —
- *  and whether it holds the piece's start (its earliest such is the piece's
- *  lead, plan 3.5's "Ursprungszeile"). */
-export function pieceIntervals(sides: readonly UnionSide[], p: UnionPiece, each: (side: number, k: number, holdsStart: boolean) => void): void {
+/** The intervals of each side whose zone part meets the piece, as index
+ *  ranges (contiguous: the parts are apart, by enter). */
+function rangesOf(sides: readonly UnionSide[], seps: UnionSeps, p: UnionPiece): void {
   const span: Span = { a: p.start, ao: p.startOpen, b: p.end, bo: p.endOpen };
+  for (let si = 0; si < 2; si++) {
+    const s = sides[si];
+    let from = 0, to = 0;
+    if (s) {
+      from = -1;
+      for (let k = Math.max(0, predEnter(s, p.start) - 1); k < s.n && s.enter(k) <= p.end; k++) {
+        const iv = partOf(s, k, seps, p.zone, TMP);
+        if (!iv || !meet(iv, span)) continue;
+        if (from < 0) from = k;
+        to = k + 1;
+      }
+      if (from < 0) from = to = 0;
+    }
+    if (si === 0) { p.from0 = from; p.to0 = to; } else { p.from1 = from; p.to1 = to; }
+  }
+}
+
+/** Every interval (side, index) whose zone part meets the piece — by side,
+ *  by enter — and whether it holds the piece's start (its earliest such is
+ *  the piece's lead, plan 3.5's "Ursprungszeile"). */
+export function pieceIntervals(sides: readonly UnionSide[], seps: UnionSeps, p: UnionPiece,
+                               each: (side: number, k: number, holdsStart: boolean) => void): void {
   for (let si = 0; si < sides.length; si++) {
-    const s = sides[si]!;
-    for (let k = Math.max(0, predEnter(s, p.start)); k < s.n && s.enter(k) <= p.end; k++) {
-      const iv = intervalFrom(s, k, p.start, !p.startOpen);
-      if (iv && meet(iv, span)) each(si, k, iv.a === p.start && iv.ao === p.startOpen);
+    const s = sides[si]!, from = si === 0 ? p.from0 : p.from1, to = si === 0 ? p.to0 : p.to1;
+    for (let k = from; k < to; k++) {
+      const iv = partFrom(s, k, seps, p.zone, p.start, !p.startOpen, TMP);
+      each(si, k, !!iv && iv.a === p.start && iv.ao === p.startOpen);
     }
   }
 }
 
-/** Every piece of the group, in order. */
-export function eachPiece(sides: readonly UnionSide[], each: (p: UnionPiece) => void): void {
-  let y = -Infinity, incl = true;
-  const memo: FreeMemo = [];
-  for (let p = pieceFrom(sides, y, incl, memo); p; p = pieceFrom(sides, y, incl, memo)) {
-    each(p);
-    y = p.end; incl = p.endOpen;
+// ---- the build: one walk per group ------------------------------------------------------------------
+
+/** One side read once (the walk's scratch; grows, never shrinks). */
+interface SideScratch {
+  n: number;
+  enter: Float64Array; end: Float64Array; witness: Float64Array; freeAt: Float64Array; freeR: Float64Array;
+  /** 1 enter decided, 2 exit decided, 4 open, 8 after the unknown tool. */
+  flags: Uint8Array;
+  /** Its free stretches by interval order: count, start, end, a point, the interval. */
+  fn: number;
+  fLo: Float64Array; fHi: Float64Array; fPt: Uint8Array; fJ: Int32Array;
+  /** The stretches' order by end (identity unless the structure is broken). */
+  fByHi: Int32Array | null;
+}
+/** A build's scratch, reused group after group (dropped with the build). */
+export interface UnionScratch { sides: SideScratch[]; fLo: Float64Array; fHi: Float64Array; fLoOpen: Uint8Array; fHiOpen: Uint8Array }
+export function unionScratch(): UnionScratch {
+  const side = (): SideScratch => ({ n: 0, enter: new Float64Array(0), end: new Float64Array(0), witness: new Float64Array(0),
+                                     freeAt: new Float64Array(0), freeR: new Float64Array(0), flags: new Uint8Array(0),
+                                     fn: 0, fLo: new Float64Array(0), fHi: new Float64Array(0), fPt: new Uint8Array(0), fJ: new Int32Array(0), fByHi: null });
+  return { sides: [side(), side()], fLo: new Float64Array(0), fHi: new Float64Array(0), fLoOpen: new Uint8Array(0), fHiOpen: new Uint8Array(0) };
+}
+const F_ED = 1, F_XD = 2, F_OPEN = 4, F_AFTER = 8;
+const grow64 = (a: Float64Array, n: number) => (a.length >= n ? a : new Float64Array(Math.max(n, 2 * a.length)));
+const grow8 = (a: Uint8Array, n: number) => (a.length >= n ? a : new Uint8Array(Math.max(n, 2 * a.length)));
+const grow32 = (a: Int32Array, n: number) => (a.length >= n ? a : new Int32Array(Math.max(n, 2 * a.length)));
+
+function readSide(s: UnionSide, x: SideScratch): void {
+  const n = s.n;
+  x.n = n;
+  x.enter = grow64(x.enter, n); x.end = grow64(x.end, n); x.witness = grow64(x.witness, n); x.flags = grow8(x.flags, n);
+  x.freeAt = grow64(x.freeAt, n); x.freeR = grow64(x.freeR, n);
+  for (let k = 0; k < n; k++) {
+    x.enter[k] = s.enter(k); x.end[k] = s.end(k); x.witness[k] = s.witness(k); x.freeAt[k] = s.freeAt(k); x.freeR[k] = s.freeR(k);
+    x.flags[k] = (s.enterDecided(k) ? F_ED : 0) | (s.exitDecided(k) ? F_XD : 0) | (s.open(k) ? F_OPEN : 0) | (s.afterTool(k) ? F_AFTER : 0);
   }
+}
+
+/** partOf from a side's scratch. */
+const partX = (x: SideScratch, k: number, seps: UnionSeps, z: number, out: Span) =>
+  clipPart(x.enter[k]!, x.end[k]!, (x.flags[k]! & F_AFTER) !== 0, seps, z, out);
+
+/** Last index with enter ≤ y in a side's scratch (−1: none). */
+function predEnterX(x: SideScratch, y: number): number {
+  let lo = 0, hi = x.n;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (x.enter[m]! <= y) lo = m + 1; else hi = m; }
+  return lo - 1;
+}
+
+/** The distance from p to the nearest confirmed point of interval k (Infinity:
+ *  none; 0: one on p). */
+function nearestIn(x: SideScratch, k: number, p: number): number {
+  if (k < 0 || k >= x.n) return Infinity;
+  const f = x.flags[k]!;
+  let d = Math.abs(x.witness[k]! - p);
+  if (f & F_ED) d = Math.min(d, Math.abs(x.enter[k]! - p));
+  if ((f & F_XD) && !(f & F_OPEN)) d = Math.min(d, Math.abs(x.end[k]! - p));
+  return d;
+}
+
+/** Side `si`'s free stretches, cut back (freeStretch's rule from the
+ *  scratch: the nearest confirmed points around p lie in the intervals
+ *  k − 1 … k + 1 of each side, k the last entering at or before p). The
+ *  contradictions deeper than the tolerance go to `conflict`. */
+function readStretches(xs: SideScratch[], si: number, conflict?: (x: number) => void): void {
+  const x = xs[si]!;
+  x.fLo = grow64(x.fLo, x.n); x.fHi = grow64(x.fHi, x.n); x.fPt = grow8(x.fPt, x.n); x.fJ = grow32(x.fJ, x.n);
+  let fn = 0, sorted = true;
+  // the last interval of each side entering at or before p: the samples come
+  // in order (the structure), so it only moves on — else it is searched
+  const kp = [-1, -1], lastP = [-Infinity, -Infinity];
+  const pred = (ti: number, p: number) => {
+    const t = xs[ti]!;
+    if (p < lastP[ti]!) kp[ti] = predEnterX(t, p);
+    else while (kp[ti]! + 1 < t.n && t.enter[kp[ti]! + 1]! <= p) kp[ti]!++;
+    lastP[ti] = p;
+    return kp[ti]!;
+  };
+  for (let j = 0; j < x.n; j++) {
+    const p = x.freeAt[j]!;
+    if (Number.isNaN(p)) continue;
+    const r0 = freeRadius(x.freeR[j]!);
+    let r = r0;
+    for (let ti = 0; ti < xs.length; ti++) {
+      const t = xs[ti]!, k = pred(ti, p);
+      for (let q = k - 1; q <= k + 1; q++) r = Math.min(r, nearestIn(t, q, p));
+    }
+    // a contradiction needs a confirmed point inside the stretch: only then is
+    // r cut below r0 (the nearest points around p, by the structure)
+    if (conflict && r0 > PROTECT && r < r0) wideX(xs, p, r0, conflict);
+    if (r === 0 && r0 > 0) continue;   // a confirmed point on the sample
+    if (r0 === 0) {
+      // a point stretch: none where a confirmed point lies on it
+      let on = false;
+      for (let ti = 0; ti < xs.length; ti++) { const t = xs[ti]!, k = pred(ti, p); for (let q = k - 1; q <= k + 1; q++) if (nearestIn(t, q, p) === 0) on = true; }
+      if (on) continue;
+    }
+    x.fLo[fn] = p - r; x.fHi[fn] = p + r; x.fPt[fn] = r > 0 ? 0 : 1; x.fJ[fn] = j;
+    if (fn > 0 && (x.fLo[fn]! < x.fLo[fn - 1]! || x.fHi[fn]! < x.fHi[fn - 1]!)) sorted = false;
+    fn++;
+  }
+  x.fn = fn;
+  x.fByHi = null;
+  if (!sorted) {
+    // the structure is broken: order by start for the union, by end for the evidence
+    const ord = Array.from({ length: fn }, (_, i) => i).sort((a, b) => x.fLo[a]! - x.fLo[b]! || x.fPt[b]! - x.fPt[a]! || a - b);
+    const lo = Float64Array.from(ord, i => x.fLo[i]!), hi = Float64Array.from(ord, i => x.fHi[i]!);
+    const pt = Uint8Array.from(ord, i => x.fPt[i]!), jj = Int32Array.from(ord, i => x.fJ[i]!);
+    x.fLo.set(lo); x.fHi.set(hi); x.fPt.set(pt); x.fJ.set(jj);
+    x.fByHi = Int32Array.from(Array.from({ length: fn }, (_, i) => i).sort((a, b) => x.fHi[a]! - x.fHi[b]! || x.fJ[a]! - x.fJ[b]!));
+  }
+}
+
+/** wideIn from the scratch: the same points, the same test. */
+function wideX(xs: SideScratch[], p: number, r: number, each: (x: number) => void): void {
+  const a = p - r, b = p + r;
+  const deep = (x: number) => { if (x > a && x < b && x - a > PROTECT && b - x > PROTECT) each(x); };
+  for (const t of xs) {
+    for (let k = Math.max(0, predEnterX(t, a) - 1); k < t.n && t.enter[k]! <= b; k++) {
+      const f = t.flags[k]!;
+      deep(t.witness[k]!);
+      if (f & F_ED) deep(t.enter[k]!);
+      if ((f & F_XD) && !(f & F_OPEN)) deep(t.end[k]!);
+    }
+  }
+}
+
+/** The contradictions inside the original stretch (p − r, p + r): confirmed
+ *  points deeper than the tolerance from both edges. */
+function wideIn(sides: readonly UnionSide[], p: number, r: number, each: (x: number) => void): void {
+  const f: Span = { a: p - r, ao: true, b: p + r, bo: true };
+  eachConfirmedIn(sides, f, x => { if (x - f.a > PROTECT && f.b - x > PROTECT) each(x); });
+}
+
+/** Both sides' free stretches as one union, by start: sorted spans apart. */
+function mergeFree(xs: SideScratch[], sc: UnionScratch): number {
+  const total = xs[0]!.fn + xs[1]!.fn;
+  sc.fLo = grow64(sc.fLo, total); sc.fHi = grow64(sc.fHi, total); sc.fLoOpen = grow8(sc.fLoOpen, total); sc.fHiOpen = grow8(sc.fHiOpen, total);
+  let i = 0, j = 0, m = 0;
+  const A = xs[0]!, B = xs[1]!;
+  while (i < A.fn || j < B.fn) {
+    // by start, a closed (point) start first
+    let take0: boolean;
+    if (j >= B.fn) take0 = true;
+    else if (i >= A.fn) take0 = false;
+    else take0 = A.fLo[i]! < B.fLo[j]! || (A.fLo[i] === B.fLo[j] && A.fPt[i]! >= B.fPt[j]!);
+    const X = take0 ? A : B, q = take0 ? i++ : j++;
+    const a = X.fLo[q]!, b = X.fHi[q]!, pt = X.fPt[q] === 1;
+    const ao = !pt, bo = !pt;
+    if (m > 0) {
+      const lb = sc.fHi[m - 1]!, lbo = sc.fHiOpen[m - 1] === 1;
+      // they share a point, or one holds the point between them
+      if (a < lb || (a === lb && !(ao && lbo))) {
+        if (b > lb) { sc.fHi[m - 1] = b; sc.fHiOpen[m - 1] = bo ? 1 : 0; }
+        else if (b === lb && !bo) sc.fHiOpen[m - 1] = 0;
+        continue;
+      }
+    }
+    sc.fLo[m] = a; sc.fLoOpen[m] = ao ? 1 : 0; sc.fHi[m] = b; sc.fHiOpen[m] = bo ? 1 : 0;
+    m++;
+  }
+  return m;
+}
+
+/** Side x's stretch ending at `at` in zone z, the first by interval (−1: none). */
+function freeEndingAt(x: SideScratch, seps: UnionSeps, z: number, at: number): number {
+  const hiAt = (i: number) => x.fHi[x.fByHi ? x.fByHi[i]! : i]!;
+  let lo = 0, hi = x.fn;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (hiAt(m) < at) lo = m + 1; else hi = m; }
+  for (let i = lo; i < x.fn && hiAt(i) === at; i++) {
+    const q = x.fByHi ? x.fByHi[i]! : i;
+    const f: Span = { a: x.fLo[q]!, ao: x.fPt[q] === 0, b: x.fHi[q]!, bo: x.fPt[q] === 0 };
+    if (freeZone(seps, f) === z) return x.fJ[q]!;
+  }
+  return -1;
+}
+
+/** Every piece of the group, zone by zone, in order — ONE walk (Codex R151):
+ *  the intervals read once, each free stretch computed once, both
+ *  generations' parts merged by start and their free stretches cut out. The
+ *  contradictions deeper than the tolerance go to `conflict` (as
+ *  `eachWideConflict` names them). `each` may not keep the piece past its
+ *  call. */
+export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p: UnionPiece) => void,
+                          conflict?: (x: number) => void, scratch: UnionScratch = unionScratch()): void {
+  const xs = scratch.sides;
+  for (let si = 0; si < 2; si++) {
+    const s = sides[si];
+    if (s) readSide(s, xs[si]!); else { xs[si]!.n = 0; }
+  }
+  for (let si = 0; si < 2; si++) { if (sides[si]) readStretches(xs, si, conflict); else xs[si]!.fn = 0; }
+  const fm = mergeFree(xs, scratch);
+  const fLo = scratch.fLo, fHi = scratch.fHi, fLoOpen = scratch.fLoOpen, fHiOpen = scratch.fHiOpen;
+  const zones = (seps.length >> 1) + 1;
+  // per side: the first interval that may have a part in the zone (an
+  // interval reaching over a separator has parts on both sides of it)
+  const kz = [0, 0];
+  let fp = 0;   // the first free stretch that may still meet a part
+  const parts: Array<Span | null> = [null, null], pk = [0, 0];
+  const own: Span[] = [{ a: 0, ao: false, b: 0, bo: false }, { a: 0, ao: false, b: 0, bo: false }];
+  for (let z = 0; z < zones; z++) {
+    const lo = zoneLo(seps, z), hi = zoneHi(seps, z);
+    // the parts of each side in the zone, in order: pk[s] the next index
+    for (let si = 0; si < 2; si++) {
+      const x = xs[si]!;
+      while (kz[si]! < x.n && x.end[kz[si]!]! < lo) kz[si]!++;
+      pk[si] = kz[si]!;
+    }
+    const nextPart = (si: number): Span | null => {
+      const x = xs[si]!;
+      while (pk[si]! < x.n && x.enter[pk[si]!]! <= hi) {
+        const p = partX(x, pk[si]!, seps, z, own[si]!);
+        if (p) return p;
+        pk[si]!++;
+      }
+      return null;
+    };
+    parts[0] = nextPart(0); parts[1] = nextPart(1);
+    // for the ranges: the first part of each side that may meet the next piece
+    const rp = [pk[0]!, pk[1]!];
+    // the union's components: closed spans of parts that share points
+    for (;;) {
+      const s0 = parts[0], s1 = parts[1];
+      if (!s0 && !s1) break;
+      const take0 = !!s0 && (!s1 || s0.a <= s1.a);
+      const first = (take0 ? s0 : s1)!;
+      const ca = first.a;
+      let cb = first.b;
+      // advance the taken part, then absorb every part starting within the component
+      const adv = (si: number) => { pk[si]!++; parts[si] = nextPart(si); };
+      adv(take0 ? 0 : 1);
+      for (;;) {
+        const n0 = parts[0], n1 = parts[1];
+        if (n0 && n0.a <= cb) { if (n0.b > cb) cb = n0.b; adv(0); continue; }
+        if (n1 && n1.a <= cb) { if (n1.b > cb) cb = n1.b; adv(1); continue; }
+        break;
+      }
+      // the component [ca, cb] less the free stretches: its pieces
+      while (fp < fm && (fHi[fp]! < ca || (fHi[fp] === ca && fHiOpen[fp] === 1))) fp++;
+      let x = ca, xo = false;
+      let fi = fp;
+      const emit = (b: number, bo: boolean) => {
+        if (x > b || (x === b && (xo || bo))) return;
+        emitPiece(sides, seps, xs, z, lo, x, xo, b, bo, rp, each);
+      };
+      for (; fi < fm && (fLo[fi]! < cb || (fLo[fi] === cb && fLoOpen[fi] === 0)); fi++) {
+        emit(fLo[fi]!, fLoOpen[fi] === 0);
+        if (fHi[fi]! > x || (fHi[fi] === x && !xo)) { x = fHi[fi]!; xo = fHiOpen[fi] === 0; }
+        if (x > cb) break;
+      }
+      if (x < cb || (x === cb && !xo)) emit(cb, false);
+      // a stretch reaching past the component may meet the next one too
+      fp = Math.max(fp, fi > fp ? fi - 1 : fp);
+    }
+    // the next zone starts its parts from this one's first: an interval may
+    // reach over the separator, and a point part this zone left out may be
+    // the next one's (the skip by end is linear over all zones)
+  }
+}
+
+/** A piece found by the walk: its start evidence, its ranges, then `each`. */
+function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch[], z: number, lo: number,
+                   a: number, ao: boolean, b: number, bo: boolean, rp: number[], each: (p: UnionPiece) => void): void {
+  const span: Span = { a, ao, b, bo };
+  const piece: UnionPiece = { zone: z, start: a, startOpen: ao, end: b, endOpen: bo, startKind: -1, startSide: -1, startIdx: -1,
+                              from0: 0, to0: 0, from1: 0, to1: 0 };
+  // the ranges, and the part holding the start: pieces come in order, so the
+  // first part that may meet one only moves on
+  let holder = -1, holderSide = -1;
+  for (let si = 0; si < 2; si++) {
+    const s = sides[si], x = xs[si]!;
+    let from = -1, to = 0;
+    if (s) {
+      while (rp[si]! < x.n && x.enter[rp[si]!]! <= b) {
+        const p = partX(x, rp[si]!, seps, z, TMP);
+        if (p && (p.b > a || (p.b === a && !ao))) break;
+        rp[si]!++;
+      }
+      for (let k = rp[si]!; k < x.n && x.enter[k]! <= b; k++) {
+        const p = partX(x, k, seps, z, TMP);
+        if (!p || !meet(p, span)) continue;
+        if (from < 0) from = k;
+        to = k + 1;
+        // the start's holder: the earliest side whose part holds the start
+        if (holderSide < 0 && holds(p, a, !ao)) { holder = k; holderSide = si; }
+      }
+    }
+    if (from < 0) from = to = 0;
+    if (si === 0) { piece.from0 = from; piece.to0 = to; } else { piece.from1 = from; piece.to1 = to; }
+  }
+  // the evidence, pieceFrom's rule: the holding side's enter, else a free
+  // stretch's end in this zone (side by side, by interval), else the zone's start
+  if (!ao && holderSide >= 0 && xs[holderSide]!.enter[holder] === a) { piece.startKind = START_ENTER; piece.startSide = holderSide; piece.startIdx = holder; }
+  else {
+    for (let si = 0; si < 2 && piece.startKind < 0; si++) {
+      const j = freeEndingAt(xs[si]!, seps, z, a);
+      if (j >= 0) { piece.startKind = START_FREE; piece.startSide = si; piece.startIdx = j; }
+    }
+    if (piece.startKind < 0 && z > 0 && !ao && a === lo) { piece.startKind = START_SEP; piece.startSide = -1; piece.startIdx = z - 1; }
+  }
+  each(piece);
 }
 
 /** The places where the two generations contradict each other on one
  *  geometry: a confirmed point inside a free stretch deeper than the
- *  refinement's tolerance (plan 3.5's conflict is the tolerance case). Kept as
- *  contact all the same; `each` gets the point (own axis). */
+ *  refinement's tolerance from both edges (plan 3.5's conflict is the
+ *  tolerance case) — possible as soon as the radius exceeds the tolerance
+ *  (Codex R151 VP-I114). Kept as contact all the same; `each` gets the point
+ *  (own axis). */
 export function eachWideConflict(sides: readonly UnionSide[], each: (x: number) => void): void {
   for (let fs = 0; fs < sides.length; fs++) {
     const s = sides[fs]!;
@@ -307,14 +733,7 @@ export function eachWideConflict(sides: readonly UnionSide[], each: (x: number) 
       const p = s.freeAt(j);
       if (Number.isNaN(p)) continue;
       const r = freeRadius(s.freeR(j));
-      if (!(r > 2 * PROTECT)) continue;
-      const f: Span = { a: p - r, ao: true, b: p + r, bo: true };
-      for (const t of sides) {
-        let k = predEnter(t, f.a);
-        if (k < 0) k = 0;
-        else if (t.end(k) < f.a) k++;
-        for (; k < t.n && t.enter(k) <= f.b; k++) confirmedIn(t, k, f, x => { if (x - f.a > PROTECT && f.b - x > PROTECT) each(x); });
-      }
+      if (r > PROTECT) wideIn(sides, p, r, each);
     }
   }
 }

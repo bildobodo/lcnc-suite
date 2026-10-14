@@ -1942,8 +1942,8 @@ truth), `contactStore.test.ts`, `contactMerge.test.ts`,
 distance probes away from the main step (refinement, re-sampling, the store's
 bisections) — the sink's cost without the load.
 
-**After a fallback (round B4, plan 3.5; Codex R140–R143, R150)**: a pool that
-falls back to one core reruns the request as its next generation; the
+**After a fallback (round B4, plan 3.5; Codex R140–R143, R150, R151)**: a pool
+that falls back to one core reruns the request as its next generation; the
 receiver keeps the earlier one (`held`) together with how far each of its
 shards swept — the coordinator's `{id, heldCoverage: {generation, covered[]}}`
 (track fractions by shard; the side run on shard 0 its own), posted before any
@@ -1958,31 +1958,57 @@ r' its radius cut back to the nearest confirmed point (a witness, a decided
 boundary) of either generation inside it — none where one lies on the sample
 itself; the point stays contact, the sample free, and no neighbourhood of the
 point is made contact (VP150-01: ±1e-3 around a point swallowed a whole free
-gap). A confirmed point deeper than the refinement's 1e-3 inside the original
-stretch is a contradiction of the two runs, kept and NAMED in the sweep's
-caveat ("its two runs disagree at N places (from L…) — kept as contact"). The
-pieces are the events — a knowledge gap does not split one, as it splits no
-interval without a fallback; a piece's contact on screen is its intervals'
-own less each one's generation's gaps. A piece is ONE u32 in the target list
-(its start evidence: an interval's enter or a free stretch's end); its end,
-what it holds, its kind and its key are asked of the union from that start
-(`pieceFrom`, the one search of the build and of every question; a build walks
-a group with its free stretches memoized, a view keeps its last group). Its
-identity: the earlier event's key where it holds that event's witness, else
-`<lead row key>#g<generation>/<b | f<gen>:<evidence row key>>`. Near misses of
-the two generations are matched one to one per group by overlap in order: a
-matched one shows the current approach under the earlier key, an earlier one
-not found again is `earlier` (the Sim tab: "from the earlier run"). Code marks
-read both generations' episodes (a free stretch proves no touch, not that the
-pair left the margin). `contactUnion.test.ts` holds the search to a brute
-force over open and closed spans (7 seeds × 4000 random generation pairs,
-piece by piece, each asked again from its start) and to Codex's R140–R142 and
-R150 sequences; `contactViewUnion.test.ts` holds the view through real tables
-(keys, gaps, near misses, the reported coverage in three steps, conflicts,
-origin groups, the budget); `collisions.viewer.spec` fails a real sub-worker
-(the worker script served with a hook that holds the pool's words after its
-first contact, then fails shard 0): the earlier finding stays listed under its
-key through the paused rerun, each contact once after it.
+gap). A confirmed point deeper than the refinement's 1e-3 from both edges of
+the original stretch — possible once its radius exceeds 1e-3 (VP-I114) — is a
+contradiction of the two runs, kept and NAMED in the sweep's caveat ("its two
+runs disagree at N places (from L…) — kept as contact"). A TOOL gap (the tool
+unknown) of either generation SEPARATES events (VP-I113: the contact before it
+ended, one after it begins anew — an empty rerun joined two old events at a
+point gap and lost the second's key): the pair's tool gaps of both
+generations, merged (`mergeSeps`), cut the axis into ZONES closed at both ends,
+each its own union; a point part at a zone's bound belongs where its interval
+goes on, a point interval on a point separator after it when it began after
+the unknown tool. An undecidable gap separates nothing; a knowledge gap does
+not split a piece, and a piece's contact on screen is its intervals' own less
+each one's generation's gaps. A piece is ONE u32 in the target list (its start
+evidence: an interval's enter, a free stretch's end, or — an interval of the
+other generation reaching over a separator — the zone's start, named by the
+gap it ends at and the piece's origin); the build walks each group ONCE
+(`eachPiece`, VP-I112/R151: the intervals read into a scratch reused group
+after group, each free stretch computed once, both generations' parts merged
+by start and the free union cut out), and every later question asks
+`pieceFrom` from the piece's start evidence alone — the view keeps a fixed
+context of its last group, nothing per row (a memo of free stretches per
+interval grew with the group, outside the budget). Its identity: the earlier
+event's key where it holds that event's witness, else `<lead row key>#g<generation>/<b |
+f<gen>:<evidence row key> | s<gen>:<gap row>>`; an earlier event whose witness
+a piece another earlier event keeps holds (a free stretch refuted on its
+sample) is HANDED OVER — `findKey` with its key answers that piece. A base
+contact an entry contact continues is that entry's finding in every generation
+of either side (VP-I111): the joins are formed between each side generation
+swept to its end (the current one by the side's result, an earlier one when
+every shard of it reached 1) and each base generation, and the piece holding
+where a joined base row begins is the continuation, whatever else it holds;
+a later piece of the pair stays a finding of its own. Near misses of the two
+generations are matched one to one per group by overlap in order: a matched
+one shows the current approach under the earlier key, an earlier one not found
+again is `earlier` (the Sim tab: "from the earlier run"). Code marks read both
+generations' episodes (a free stretch proves no touch, not that the pair left
+the margin). `contactUnion.test.ts` holds the walk AND the search to a brute
+force over open and closed spans with zones (7 seeds × 3000 random generation
+pairs with tool gaps — realistic ones where a contact ended and point gaps
+— piece by piece and zone by zone, each asked again from its start, the
+contradictions the walk names equal to `eachWideConflict`'s) and to Codex's
+R140–R142, R150 and R151 sequences; `contactViewUnion.test.ts` holds the view
+through real tables (keys, gaps, separators, the handover, near misses, the
+reported coverage in three steps, conflicts, origin groups, the budget);
+`shownContacts.test` the joins (base, side, both, a side not swept whole, a
+later contact); `collisions.viewer.spec` fails a real sub-worker (the worker
+script served with a hook that holds the pool's words after its first
+contact, then fails shard 0): the earlier finding stays listed under its key
+through the paused rerun, each contact once after it — and answers both
+requests itself for the joins (the base's fallback after the side ended, both
+at one failure, a later contact).
 
 ## Key Patterns
 
