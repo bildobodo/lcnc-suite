@@ -55,6 +55,11 @@
 // confirmed points lie in [its enter, the next one's enter); its free sample
 // lies after its own confirmed points and before the next interval's enter.
 
+import { STEP_OPS, runToEnd, sortSteps, type Steps } from "./steps";
+
+/** A job's operations since its last yield (plan 3.6). */
+export interface Ops { n: number }
+
 /** The refinement's tolerance: a confirmed point closer than this to a free
  *  stretch's edge is the plan's numerical conflict; deeper, a contradiction
  *  that is named. */
@@ -539,7 +544,7 @@ const grow64 = (a: Float64Array, n: number) => (a.length >= n ? a : new Float64A
 const grow8 = (a: Uint8Array, n: number) => (a.length >= n ? a : new Uint8Array(Math.max(n, 2 * a.length)));
 const grow32 = (a: Int32Array, n: number) => (a.length >= n ? a : new Int32Array(Math.max(n, 2 * a.length)));
 
-function readSide(s: UnionSide, x: SideScratch): void {
+function* readSide(s: UnionSide, x: SideScratch, c: Ops): Steps<void> {
   const n = s.n;
   x.n = n;
   x.enter = grow64(x.enter, n); x.end = grow64(x.end, n); x.witness = grow64(x.witness, n); x.flags = grow8(x.flags, n);
@@ -547,6 +552,7 @@ function readSide(s: UnionSide, x: SideScratch): void {
   for (let k = 0; k < n; k++) {
     x.enter[k] = s.enter(k); x.end[k] = s.end(k); x.witness[k] = s.witness(k); x.freeAt[k] = s.freeAt(k); x.freeR[k] = s.freeR(k);
     x.flags[k] = (s.enterDecided(k) ? F_ED : 0) | (s.exitDecided(k) ? F_XD : 0) | (s.open(k) ? F_OPEN : 0) | (s.afterTool(k) ? F_AFTER : 0);
+    if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
   }
 }
 
@@ -559,7 +565,7 @@ const partX = (x: SideScratch, k: number, seps: UnionSeps, z: number, out: Span,
 
 /** Every point interval's zone, forward in the side's order — pointZone's
  *  rule, each from the one before. */
-function readPointZones(x: SideScratch, seps: UnionSeps): void {
+function* readPointZones(x: SideScratch, seps: UnionSeps, c: Ops): Steps<void> {
   x.pz = x.pz.length >= x.n ? x.pz : new Int32Array(Math.max(x.n, 2 * x.pz.length));
   if (!seps.count) return;
   let prev = 0;
@@ -567,6 +573,7 @@ function readPointZones(x: SideScratch, seps: UnionSeps): void {
     const a = x.enter[k]!, b = x.end[k]!;
     if (a === b) { prev = pointZoneAt(seps, a, (x.flags[k]! & F_AFTER) !== 0, prev); x.pz[k] = prev; }
     else prev = endZone(seps, b);
+    if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
   }
 }
 
@@ -592,7 +599,7 @@ function nearestIn(x: SideScratch, k: number, p: number): number {
  *  scratch: the nearest confirmed points around p lie in the intervals
  *  k − 1 … k + 1 of each side, k the last entering at or before p). The
  *  contradictions deeper than the tolerance go to `conflict`. */
-function readStretches(xs: SideScratch[], si: number, conflict?: (x: number) => void): void {
+function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: number) => void): Steps<void> {
   const x = xs[si]!;
   x.fLo = grow64(x.fLo, x.n); x.fHi = grow64(x.fHi, x.n); x.fPt = grow8(x.fPt, x.n); x.fJ = grow32(x.fJ, x.n);
   let fn = 0, sorted = true;
@@ -628,16 +635,18 @@ function readStretches(xs: SideScratch[], si: number, conflict?: (x: number) => 
     x.fLo[fn] = p - r; x.fHi[fn] = p + r; x.fPt[fn] = r > 0 ? 0 : 1; x.fJ[fn] = j;
     if (fn > 0 && (x.fLo[fn]! < x.fLo[fn - 1]! || x.fHi[fn]! < x.fHi[fn - 1]!)) sorted = false;
     fn++;
+    if ((c.n += 16) >= STEP_OPS) { c.n = 0; yield; }
   }
   x.fn = fn;
   x.fByHi = null;
   if (!sorted) {
     // the structure is broken: order by start for the union, by end for the evidence
-    const ord = Array.from({ length: fn }, (_, i) => i).sort((a, b) => x.fLo[a]! - x.fLo[b]! || x.fPt[b]! - x.fPt[a]! || a - b);
+    // (stable, in steps: ties keep their index order, as the engine's sort did)
+    const ord = yield* sortSteps(fn, (a, b) => x.fLo[a]! - x.fLo[b]! || x.fPt[b]! - x.fPt[a]!);
     const lo = Float64Array.from(ord, i => x.fLo[i]!), hi = Float64Array.from(ord, i => x.fHi[i]!);
     const pt = Uint8Array.from(ord, i => x.fPt[i]!), jj = Int32Array.from(ord, i => x.fJ[i]!);
     x.fLo.set(lo); x.fHi.set(hi); x.fPt.set(pt); x.fJ.set(jj);
-    x.fByHi = Int32Array.from(Array.from({ length: fn }, (_, i) => i).sort((a, b) => x.fHi[a]! - x.fHi[b]! || x.fJ[a]! - x.fJ[b]!));
+    x.fByHi = Int32Array.from(yield* sortSteps(fn, (a, b) => x.fHi[a]! - x.fHi[b]! || x.fJ[a]! - x.fJ[b]!));
   }
 }
 
@@ -663,7 +672,7 @@ function wideIn(sides: readonly UnionSide[], p: number, r: number, each: (x: num
 }
 
 /** Both sides' free stretches as one union, by start: sorted spans apart. */
-function mergeFree(xs: SideScratch[], sc: UnionScratch): number {
+function* mergeFree(xs: SideScratch[], sc: UnionScratch, c: Ops): Steps<number> {
   const total = xs[0]!.fn + xs[1]!.fn;
   sc.fLo = grow64(sc.fLo, total); sc.fHi = grow64(sc.fHi, total); sc.fLoOpen = grow8(sc.fLoOpen, total); sc.fHiOpen = grow8(sc.fHiOpen, total);
   let i = 0, j = 0, m = 0;
@@ -675,6 +684,7 @@ function mergeFree(xs: SideScratch[], sc: UnionScratch): number {
     else if (i >= A.fn) take0 = false;
     else take0 = A.fLo[i]! < B.fLo[j]! || (A.fLo[i] === B.fLo[j] && A.fPt[i]! >= B.fPt[j]!);
     const X = take0 ? A : B, q = take0 ? i++ : j++;
+    if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
     const a = X.fLo[q]!, b = X.fHi[q]!, pt = X.fPt[q] === 1;
     const ao = !pt, bo = !pt;
     if (m > 0) {
@@ -713,13 +723,20 @@ function freeEndingAt(x: SideScratch, seps: UnionSeps, z: number, at: number): n
  *  call. */
 export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p: UnionPiece) => void,
                           conflict?: (x: number) => void, scratch: UnionScratch = unionScratch()): void {
+  runToEnd(eachPieceSteps(sides, seps, each, conflict, scratch));
+}
+/** eachPiece in bounded steps (plan 3.6): it yields inside a group too — one
+ *  group may hold a request's every interval. `c` counts the work since the
+ *  caller's last yield; `each` reports its own work as a number. */
+export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, each: (p: UnionPiece) => number | void,
+                                conflict?: (x: number) => void, scratch: UnionScratch = unionScratch(), c: Ops = { n: 0 }): Steps<void> {
   const xs = scratch.sides;
   for (let si = 0; si < 2; si++) {
     const s = sides[si];
-    if (s) { readSide(s, xs[si]!); readPointZones(xs[si]!, seps); } else { xs[si]!.n = 0; }
+    if (s) { yield* readSide(s, xs[si]!, c); yield* readPointZones(xs[si]!, seps, c); } else { xs[si]!.n = 0; }
   }
-  for (let si = 0; si < 2; si++) { if (sides[si]) readStretches(xs, si, conflict); else xs[si]!.fn = 0; }
-  const fm = mergeFree(xs, scratch);
+  for (let si = 0; si < 2; si++) { if (sides[si]) yield* readStretches(xs, si, c, conflict); else xs[si]!.fn = 0; }
+  const fm = yield* mergeFree(xs, scratch, c);
   const fLo = scratch.fLo, fHi = scratch.fHi, fLoOpen = scratch.fLoOpen, fHiOpen = scratch.fHiOpen;
   const zones = seps.count + 1;
   // per side: the first interval that may have a part in the zone (an
@@ -733,7 +750,7 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
     // the parts of each side in the zone, in order: pk[s] the next index
     for (let si = 0; si < 2; si++) {
       const x = xs[si]!;
-      while (kz[si]! < x.n && x.end[kz[si]!]! < lo) kz[si]!++;
+      while (kz[si]! < x.n && x.end[kz[si]!]! < lo) { kz[si]!++; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
       pk[si] = kz[si]!;
     }
     const nextPart = (si: number): Span | null => {
@@ -750,6 +767,7 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
     const rp = [pk[0]!, pk[1]!];
     // the union's components: closed spans of parts that share points
     for (;;) {
+      if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
       const s0 = parts[0], s1 = parts[1];
       if (!s0 && !s1) break;
       const take0 = !!s0 && (!s1 || s0.a <= s1.a);
@@ -771,12 +789,13 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
       let fi = fp;
       const emit = (b: number, bo: boolean) => {
         if (x > b || (x === b && (xo || bo))) return;
-        emitPiece(sides, seps, xs, z, lo, hi, x, xo, b, bo, rp, each);
+        c.n += emitPiece(sides, seps, xs, z, lo, hi, x, xo, b, bo, rp, each);
       };
       for (; fi < fm && (fLo[fi]! < cb || (fLo[fi] === cb && fLoOpen[fi] === 0)); fi++) {
         emit(fLo[fi]!, fLoOpen[fi] === 0);
         if (fHi[fi]! > x || (fHi[fi] === x && !xo)) { x = fHi[fi]!; xo = fHiOpen[fi] === 0; }
         if (x > cb) break;
+        if (++c.n >= STEP_OPS) { c.n = 0; yield; }
       }
       if (x < cb || (x === cb && !xo)) emit(cb, false);
       // a stretch reaching past the component may meet the next one too
@@ -790,7 +809,8 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
 
 /** A piece found by the walk: its start evidence, its ranges, then `each`. */
 function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch[], z: number, lo: number, hi: number,
-                   a: number, ao: boolean, b: number, bo: boolean, rp: number[], each: (p: UnionPiece) => void): void {
+                   a: number, ao: boolean, b: number, bo: boolean, rp: number[], each: (p: UnionPiece) => number | void): number {
+  let work = 8;
   const span: Span = { a, ao, b, bo };
   const piece: UnionPiece = { zone: z, start: a, startOpen: ao, end: b, endOpen: bo, startKind: -1, startSide: -1, startIdx: -1,
                               from0: 0, to0: 0, from1: 0, to1: 0 };
@@ -805,8 +825,10 @@ function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch
         const p = partX(x, rp[si]!, seps, z, TMP, lo, hi);
         if (p && (p.b > a || (p.b === a && !ao))) break;
         rp[si]!++;
+        work++;
       }
       for (let k = rp[si]!; k < x.n && x.enter[k]! <= b; k++) {
+        work++;
         const p = partX(x, k, seps, z, TMP, lo, hi);
         if (!p || !meet(p, span)) continue;
         if (from < 0) from = k;
@@ -828,7 +850,7 @@ function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch
     }
     if (piece.startKind < 0 && z > 0 && !ao && a === lo) { piece.startKind = START_SEP; piece.startSide = -1; piece.startIdx = z - 1; }
   }
-  each(piece);
+  return work + (each(piece) ?? 0);
 }
 
 /** The places where the two generations contradict each other on one
@@ -853,8 +875,15 @@ export function eachWideConflict(sides: readonly UnionSide[], each: (x: number) 
  *  source's intervals sorted by group and enter. */
 export function unionReach(n: number, enter: (k: number) => number, freeAt: (k: number) => number,
                            freeR: (k: number) => number, sameGroup: (k: number, k2: number) => boolean): { back: number; front: number } {
+  return runToEnd(unionReachSteps(n, enter, freeAt, freeR, sameGroup));
+}
+/** unionReach in bounded steps (plan 3.6). */
+export function* unionReachSteps(n: number, enter: (k: number) => number, freeAt: (k: number) => number,
+                                 freeR: (k: number) => number, sameGroup: (k: number, k2: number) => boolean,
+                                 c: Ops = { n: 0 }): Steps<{ back: number; front: number }> {
   let back = 0, front = 0;
   for (let k = 0; k < n; k++) {
+    if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
     const p = freeAt(k);
     if (Number.isNaN(p)) continue;
     const r = freeRadius(freeR(k));

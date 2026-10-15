@@ -10,6 +10,7 @@ import { isNearMiss, type ClashTarget } from "./clashTargets";
 import { findKey, indexAtOrAfter, targetAt, targetEnd, targetKey, targetKind, targetPos, T_NEAR, TIMELINE_COLUMNS, type ContactView, type LineAt } from "./contactView";
 import { JUMP_NUDGE, sampleCum, type NavSelection, type NavTarget } from "./findingNav";
 import { KIND_ORDER, type SimRowKind } from "./simRows";
+import { STEP_OPS, runToEnd, type Steps } from "./steps";
 
 /** The most rows the list shows. */
 export const LIST_WINDOW = 400;
@@ -229,6 +230,11 @@ export function windowCenter(m: MergedList, kinds: readonly SimRowKind[], s: num
  *  pixel of the timeline, at most TIMELINE_COLUMNS like the bands (plan 4.3 /
  *  4.4: at most min(targets, columns) marks). */
 export function clashTicks(c: ClashIndex, columns: number, axisEnd: number): Array<{ pct: number; near: boolean }> {
+  return runToEnd(clashTicksSteps(c, columns, axisEnd));
+}
+/** clashTicks in bounded steps (plan 3.6: the marks are published with the
+ *  view; a union piece's position is a walk of its own). */
+export function* clashTicksSteps(c: ClashIndex, columns: number, axisEnd: number, ops: { n: number } = { n: 0 }): Steps<Array<{ pct: number; near: boolean }>> {
   const out: Array<{ pct: number; near: boolean }> = [];
   const cols = Math.min(TIMELINE_COLUMNS, Math.floor(columns));
   if (!c.n || cols < 1 || !(axisEnd > 0)) return out;
@@ -236,9 +242,13 @@ export function clashTicks(c: ClashIndex, columns: number, axisEnd: number): Arr
   for (let col = 0, i = 0; col < cols && i < c.n; col++) {
     const hi = col === cols - 1 ? Infinity : (col + 1) * w;
     i = c.atOrAfter(col * w, false);
+    if ((ops.n += 64) >= STEP_OPS) { ops.n = 0; yield; }
     if (i >= c.n || !(c.pos(i) < hi)) continue;
     let near = true;
-    for (let j = i; j < c.n && c.pos(j) < hi; j++) if (!c.near(j)) { near = false; break; }
+    for (let j = i; j < c.n && c.pos(j) < hi; j++) {
+      if (!c.near(j)) { near = false; break; }
+      if ((ops.n += 16) >= STEP_OPS) { ops.n = 0; yield; }
+    }
     out.push({ pct: Math.min(100, (c.pos(i) / axisEnd) * 100), near });
   }
   return out;

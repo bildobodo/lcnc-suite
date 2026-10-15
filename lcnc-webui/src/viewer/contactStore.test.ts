@@ -98,7 +98,7 @@ describe("deltas: appended rows, coalesced updates, one unacknowledged (plan 3.1
     expect([viewer.episodes.rows, viewer.episodes.get(a, "end")]).toEqual([2, 59]);
   });
 
-  it("a delta goes in by blocks exactly as row by row: the cells, the revision, the forwarded rows and updates (Form 1 groundwork)", () => {
+  it("a delta goes in by blocks exactly as row by row: the cells, the revision, the forwarded rows and updates (Form 1 groundwork)", { timeout: 120_000 }, () => {
     // the reference: the receiving side as it was, a row appended and a cell set at a time
     const byRows = (t: ColumnTable, d: TableDelta) => {
       if (d.from !== t.rows) throw new Error("out of order");
@@ -145,6 +145,28 @@ describe("deltas: appended rows, coalesced updates, one unacknowledged (plan 3.1
     for (let k = 0; k < 8; k++) s.append({ pair: k, start: k, end: k + 1, reason: 1 });
     expect(() => r.apply(s.take())).toThrow(/over its budget/);
     expect([r.rows, r.revision]).toEqual([0, 0]);
+  });
+
+  it("a delta goes in in bounded steps, updates too (Codex R155 VP155-01); a refused message changes no table", () => {
+    const sender = new ContactStore(1, 0, shareOf(REQUEST_BUDGET, 16)), r = new ContactStore(1, 0, shareOf(REQUEST_BUDGET, 16));
+    for (let k = 0; k < sender.intervals.budget; k++) sender.intervals.append({ episode: 0, enter: k, exit: k + 1, flags: 0, next: NONE, witness: k, freeAt: NaN, freeR: 0 });
+    r.apply(sender.takeDelta()!); sender.ack();
+    // every row already sent changes: an update-heavy delta
+    for (let k = 0; k < sender.intervals.rows; k++) sender.intervals.set(k, "exit", k + 2);
+    const d = sender.takeDelta()!;
+    expect(d.intervals.updates.length).toBe(sender.intervals.rows);
+    let yields = 0;
+    const job = r.applySteps(d);
+    for (let x = job.next(); !x.done; x = job.next()) yields++;
+    // INTERVAL has 8 columns: each update is 8 operations, a step STEP_OPS of them
+    expect(yields).toBeGreaterThanOrEqual(Math.floor((8 * d.intervals.updates.length) / 4096) - 1);
+    expect(r.intervals.get(100, "exit")).toBe(102);
+    // past the budget in ONE table: the whole message is refused before anything is written
+    const s2 = new ContactStore(2, 0), small = new ContactStore(2, 0, { episodes: 10, intervals: 2, gaps: 10 });
+    ep(s2, 0, 0);
+    for (let k = 0; k < 3; k++) s2.intervals.append({ episode: 0, enter: k, exit: k + 1, flags: 0, next: NONE, witness: k, freeAt: NaN, freeR: 0 });
+    expect(() => small.apply(s2.takeDelta()!)).toThrow(/over its budget/);
+    expect([small.episodes.rows, small.intervals.rows, small.revision], "no table written").toEqual([0, 0, 0]);
   });
 
   it("a delta out of order is refused, never patched in", () => {

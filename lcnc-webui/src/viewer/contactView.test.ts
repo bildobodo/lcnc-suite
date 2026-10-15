@@ -7,7 +7,9 @@ import {
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
   heldBytes, indexAfter, indexBefore, lineMark, lineRuns, runsOf, targetAt, targetEnd, targetKey, targetKind, targetPos,
   startTargets, targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
+  buildContactViewSteps, contactBandsSteps, startTargetsSteps, viewCountsSteps,
 } from "./contactView";
+import type { Steps } from "./steps";
 import { findingWords } from "./sweepWords";
 
 interface Ep { pair: number; flags?: number; onset?: number; end?: number; close?: [number, number]; ivs?: Array<[number, number, number?]> }
@@ -363,5 +365,28 @@ describe("lines on the shown track (plan 1.3, 4.2)", () => {
     const at = trackLineAt(t);
     expect(lineMark(v, 5, [[2, 3]], at), "the second run of L5: carried in from L5's first").toEqual({ line: 5, continuation: 5 });
     expect(lineMark(v, 6, [[1, 2]], at), "pair 2 begins on L6").toEqual({ line: 6 });
+  });
+});
+
+describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
+  /** Runs a job, counting its yields. */
+  const yieldsOf = <T,>(job: Steps<T>): { value: T; yields: number } => {
+    let yields = 0;
+    for (;;) { const r = job.next(); if (r.done) return { value: r.value, yields }; yields++; }
+  };
+  it("a union of one pair's 8192 contacts per generation: the build, the counts, the bands and the start targets each yield", () => {
+    const mk = (g: number, shift: number) => store([{ pair: 1, flags: EP_AT_START,
+      ivs: Array.from({ length: 8192 }, (_, i) => [3 * i + shift, 3 * i + shift + 1] as [number, number]) }], [], g);
+    const held = mk(0, 0), cur = mk(1, 1.5);
+    const input = { sources: [src(cur, { held: [held], heldCoverage: [3 * 8192 + 5], ownCoverage: 3 * 8192 + 5 })], pairName: names, coverage: 3 * 8192 + 5 };
+    const b = yieldsOf(buildContactViewSteps(input));
+    expect(b.value.n).toBeGreaterThan(8192);
+    expect(b.yields, "the build").toBeGreaterThan(20);
+    expect(yieldsOf(viewCountsSteps(b.value)).yields, "the counts").toBeGreaterThan(10);
+    expect(yieldsOf(contactBandsSteps(b.value, 4000, input.coverage)).yields, "the bands").toBeGreaterThan(10);
+    expect(yieldsOf(startTargetsSteps(b.value)).yields, "the start targets").toBeGreaterThanOrEqual(0);
+    // and the same view as at once
+    const once = buildContactView(input);
+    expect([once.n, Array.from(once.tgt.refs)]).toEqual([b.value.n, Array.from(b.value.tgt.refs)]);
   });
 });

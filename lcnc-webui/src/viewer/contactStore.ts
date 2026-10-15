@@ -10,6 +10,8 @@
 // state however often it changed (3.1); a sender holds at most one
 // unacknowledged delta (VP139-03), so a slow receiver queues nothing — the
 // changes wait as marks in the sender's own table.
+import { STEP_OPS, runToEnd, type Steps } from "./steps";
+
 export const BLOCK = 4096;
 export const BLOCK_SHIFT = 12;
 
@@ -140,15 +142,31 @@ export class ColumnTable {
     return delta;
   }
 
+  /** Why `d` cannot go in here (null: it can) — before anything is written:
+   *  out of order is refused, never patched; past the budget, refused. */
+  refusal(d: TableDelta): string | null {
+    if (d.from !== this.rows) return `contactStore: delta from row ${d.from}, table has ${this.rows}`;
+    if (this.rows + d.count > this.budget) return "contactStore: receiving table over its budget";
+    return null;
+  }
   /** A sender's delta on a receiving table: new rows appended where the
-   *  sender's were (out of order is refused, never patched), updates set. */
+   *  sender's were (out of order is refused, never patched in), updates set. */
   apply(d: TableDelta): void {
-    if (d.from !== this.rows) throw new Error(`contactStore: delta from row ${d.from}, table has ${this.rows}`);
-    if (this.rows + d.count > this.budget) throw new Error("contactStore: receiving table over its budget");
+    runToEnd(this.applySteps(d));
+  }
+  /** apply() in bounded steps (plan 3.6, Codex R155 VP155-01): the new rows
+   *  column by column, a block's stretch at a time, the updates in pieces —
+   *  a budget's updates took 68–78 ms at once. The table is half written
+   *  between the steps: no one may read it then (plan 3.6: never the
+   *  published copy). */
+  *applySteps(d: TableDelta, c: { n: number } = { n: 0 }): Steps<void> {
+    const why = this.refusal(d);
+    if (why) throw new Error(why);
     // the new rows column by column, a block's stretch at a time (a row at a
     // time built an object per row: 175 ms for a budget's delta, on the page)
+    const base = this.rows;
     for (let done = 0; done < d.count;) {
-      const row = this.rows + done, b = row >>> BLOCK_SHIFT, o = row & (BLOCK - 1), n = Math.min(BLOCK - o, d.count - done);
+      const row = base + done, b = row >>> BLOCK_SHIFT, o = row & (BLOCK - 1), n = Math.min(BLOCK - o, d.count - done);
       if (o === 0) {
         for (const [name, type] of this.schema) this.col(name).push(new CTOR[type](BLOCK));
         this.dirtyBlocks.push(new Uint8Array(BLOCK));
@@ -159,9 +177,10 @@ export class ColumnTable {
         blk.set(ArrayBuffer.isView(src) ? src.subarray(done, done + n) : Array.prototype.slice.call(src, done, done + n), o);
       }
       done += n;
+      this.rows += n;
+      this.revision += n;
+      if ((c.n += n * this.schema.length) >= STEP_OPS) { c.n = 0; yield; }
     }
-    this.rows += d.count;
-    this.revision += d.count;
     // the updates as set() writes them: a receiver that forwards (the
     // coordinator) sends the new rows as its own new rows and the updates of
     // rows it already forwarded as its own updates — once each, coalesced
@@ -174,6 +193,7 @@ export class ColumnTable {
         this.dirtyBlocks[b]![o] = 1;
         this.dirtyList.push(r);
       }
+      if ((c.n += cols.length) >= STEP_OPS) { c.n = 0; yield; }
     }
   }
 
@@ -248,10 +268,18 @@ export class ContactStore {
   /** A sender's delta on this (receiving) store; another request or
    *  generation is refused (the caller drops it). */
   apply(d: StoreDelta): boolean {
+    return runToEnd(this.applySteps(d));
+  }
+  /** apply() in bounded steps (plan 3.6). Every table's bounds are checked
+   *  before anything is written: a refused delta changes no table — the whole
+   *  message, not one table (Codex R155). */
+  *applySteps(d: StoreDelta, c: { n: number } = { n: 0 }): Steps<boolean> {
     if (d.request !== this.request || d.generation !== this.generation) return false;
-    this.episodes.apply(d.episodes);
-    this.intervals.apply(d.intervals);
-    this.gaps.apply(d.gaps);
+    const why = this.episodes.refusal(d.episodes) ?? this.intervals.refusal(d.intervals) ?? this.gaps.refusal(d.gaps);
+    if (why) throw new Error(why);
+    yield* this.episodes.applySteps(d.episodes, c);
+    yield* this.intervals.applySteps(d.intervals, c);
+    yield* this.gaps.applySteps(d.gaps, c);
     return true;
   }
 

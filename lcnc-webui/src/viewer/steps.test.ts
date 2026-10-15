@@ -1,0 +1,98 @@
+// Bounded steps (plan 3.6): the sort in steps against the engine's stable sort,
+// the work between two yields counted (never timed), and the runner's slices.
+import { describe, expect, it } from "vitest";
+import { runSteps, runToEnd, sortSteps, type Steps } from "./steps";
+
+let seed = 3601;
+const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+
+/** Runs a job and returns its result and the most comparisons between two yields. */
+function counted(n: number, keys: number[], budget: number): { order: number[]; most: number; yields: number } {
+  let calls = 0, most = 0, yields = 0;
+  const job = sortSteps(n, (x, y) => { calls++; return keys[x]! - keys[y]!; }, budget);
+  for (;;) {
+    const r = job.next();
+    most = Math.max(most, calls);
+    calls = 0;
+    if (r.done) return { order: Array.from(r.value), most, yields };
+    yields++;
+  }
+}
+
+describe("a sort in bounded steps (plan 3.6)", () => {
+  it("is the stable sort: random keys with ties, runs already in order, reversed, all equal", () => {
+    let cases = 0, withYields = 0;
+    for (let c = 0; c < 400; c++) {
+      const n = Math.floor(rnd() * (c % 10 === 0 ? 6000 : 300));
+      const shape = c % 5;
+      const keys = Array.from({ length: n }, (_, i) =>
+        shape === 0 ? Math.floor(rnd() * 20)                       // many ties
+        : shape === 1 ? (i % 97) + Math.floor(i / 97) * 1000        // ascending runs of 97
+        : shape === 2 ? n - i                                       // reversed
+        : shape === 3 ? 7                                           // all equal
+        : rnd());
+      const want = Array.from({ length: n }, (_, i) => i).sort((x, y) => keys[x]! - keys[y]!);
+      const budget = 1 + Math.floor(rnd() * 64);
+      const got = counted(n, keys, budget);
+      expect(got.order, `case ${c} (shape ${shape}, n ${n})`).toEqual(want);
+      expect(got.most, "comparisons between two yields").toBeLessThanOrEqual(budget + 1);
+      cases++;
+      if (got.yields > 10) withYields++;
+    }
+    expect([cases, withYields > 150], "most cases yield many times").toEqual([400, true]);
+  });
+
+  it("runs already in order cost a pass and the merges, not a full sort", () => {
+    // a pair's rows come in order: 64 runs of 1000 ascending keys, interleaved
+    const n = 64_000, keys = Array.from({ length: n }, (_, i) => (i % 1000) * 64 + Math.floor(i / 1000));
+    let calls = 0;
+    const order = runToEnd(sortSteps(n, (x, y) => { calls++; return keys[x]! - keys[y]!; }));
+    expect(order.every((v, i) => !i || keys[order[i - 1]!]! <= keys[v]!)).toBe(true);
+    // a pass over the runs, then log2(64) = 6 merge levels: about 7·n comparisons, not n·log2(n) ≈ 16·n
+    expect(calls).toBeLessThan(8 * n);
+  });
+});
+
+describe("the runner: slices, a macrotask between them, cancel", () => {
+  it("drives a job in slices of about sliceMs and settles with its result", async () => {
+    const queue: Array<() => void> = [];
+    let clock = 0;
+    const seen = { steps: 0 };
+    function* timed(): Steps<string> { for (let i = 0; i < 100; i++) { seen.steps++; clock += 1; yield; } return "done"; }
+    const run = runSteps(timed(), { sliceMs: 10, schedule: f => queue.push(f), now: () => clock });
+    const perSlice: number[] = [];
+    while (queue.length) { const before = seen.steps; queue.shift()!(); perSlice.push(seen.steps - before); }
+    expect(await run.promise).toBe("done");
+    expect(run.running).toBe(false);
+    expect(perSlice.slice(0, -1).every(k => k === 10), "ten 1-ms steps a 10-ms slice").toBe(true);
+    expect(perSlice.length).toBe(11);
+  });
+
+  it("a slice ends when its time is up; the rest waits for the next macrotask", () => {
+    const queue: Array<() => void> = [];
+    let clock = 0;
+    const seen = { steps: 0 };
+    function* timed(): Steps<number> { for (let i = 0; i < 50; i++) { seen.steps++; clock += 2; yield; } return 7; }
+    runSteps(timed(), { sliceMs: 10, schedule: f => queue.push(f), now: () => clock });
+    queue.shift()!();
+    expect(seen.steps, "five steps of 2 ms fill a 10 ms slice").toBe(5);
+    expect(queue.length, "the next slice is scheduled").toBe(1);
+  });
+
+  it("cancel ends the job at its next yield; nothing settles", async () => {
+    const queue: Array<() => void> = [];
+    const seen = { steps: 0 };
+    let clock = 0;
+    function* timed(): Steps<number> { try { for (let i = 0; i < 50; i++) { seen.steps++; clock += 2; yield; } return 1; } finally { seen.steps += 1000; } }
+    const run = runSteps(timed(), { sliceMs: 10, schedule: f => queue.push(f), now: () => clock });
+    queue.shift()!();
+    run.cancel();
+    expect(seen.steps, "its finally ran: the generator was closed").toBeGreaterThan(1000);
+    while (queue.length) queue.shift()!();
+    expect(run.running).toBe(false);
+    let settled = false;
+    run.promise.then(() => { settled = true; }, () => { settled = true; });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+  });
+});

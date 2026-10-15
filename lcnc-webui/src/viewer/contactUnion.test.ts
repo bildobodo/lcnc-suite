@@ -2,9 +2,10 @@
 // the fast search against a brute force over plain sets of spans.
 import { describe, expect, it } from "vitest";
 import {
-  eachPiece, eachWideConflict, evidencePos, evidenceZone, mergeSeps, NO_SEPARATORS, pieceFrom, pieceIntervals, PROTECT, sepArray, START_ENTER, START_FREE,
+  eachPiece, eachPieceSteps, eachWideConflict, evidencePos, evidenceZone, mergeSeps, NO_SEPARATORS, pieceFrom, pieceIntervals, PROTECT, sepArray, START_ENTER, START_FREE,
   START_SEP, unionScratch, unionReach, type UnionPiece, type UnionSeps, type UnionSide,
 } from "./contactUnion";
+import { STEP_OPS } from "./steps";
 
 interface Iv {
   enter: number; end: number; open?: boolean; witness?: number; ed?: boolean; xd?: boolean; freeAt?: number; freeR?: number;
@@ -416,3 +417,22 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
 function meets(x: Sp, y: Sp): boolean {
   return !(x.b < y.a || y.b < x.a || (x.b === y.a && (x.bo || y.ao)) || (y.b === x.a && (y.bo || x.ao)));
 }
+
+describe("the walk of ONE group in bounded steps (plan 3.6: a request whose every interval is one pair's is no single task)", () => {
+  it("yields inside the group: at most STEP_OPS / 8 pieces between two yields, the same pieces as the walk at once", () => {
+    // one pair, 20 000 contacts in each generation, every free sample cutting the other's contact
+    const n = 20_000;
+    const held: Plain = { ivs: Array.from({ length: n }, (_, i) => ({ enter: 3 * i, end: 3 * i + 1, witness: 3 * i + 0.5, freeAt: 3 * i + 2, freeR: 0.25 })) };
+    const cur: Plain = { ivs: Array.from({ length: n }, (_, i) => ({ enter: 3 * i + 1.5, end: 3 * i + 2.5, witness: 3 * i + 1.6, freeAt: 3 * i + 3.2, freeR: 0.1 })) };
+    const sides = sidesOf(held, cur);
+    const stepped: Array<[number, number]> = [];
+    let since = 0, most = 0, yields = 0;
+    const job = eachPieceSteps(sides, NO_SEPARATORS, p => { stepped.push([p.start, p.end]); since++; });
+    for (let r = job.next(); !r.done; r = job.next()) { most = Math.max(most, since); since = 0; yields++; }
+    most = Math.max(most, since);
+    expect(stepped).toEqual(spans(pieces(sides)));
+    expect(stepped.length).toBeGreaterThan(2 * n - 10);
+    expect(most, "pieces between two yields").toBeLessThanOrEqual(STEP_OPS / 8);
+    expect(yields, "a yield every few hundred pieces, and in the reading passes").toBeGreaterThan(stepped.length / (STEP_OPS / 8));
+  });
+});

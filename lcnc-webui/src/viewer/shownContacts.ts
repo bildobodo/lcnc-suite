@@ -7,7 +7,8 @@
 // entry contacts the base continues joined (contactMerge.entryJoins). Pure
 // apart from the receiver it reads.
 import { entryJoins } from "./contactMerge";
-import { buildContactView, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin } from "./contactView";
+import { buildContactViewSteps, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin } from "./contactView";
+import { runToEnd, type Steps } from "./steps";
 import type { GenerationTables } from "./contactsReceiver";
 import type { ContactStore } from "./contactStore";
 
@@ -77,6 +78,12 @@ export interface ShownSpec { base: ShownSource | null; side: ShownSource | null;
 export function shownContactView(tables: (id: number) => GenerationTables | null, spec: ShownSpec,
                                  warn: (msg: string) => void = m => console.error(m),
                                  held: (id: number) => GenerationTables | null = () => null): ContactView | null {
+  return runToEnd(shownContactViewSteps(tables, spec, warn, held));
+}
+/** shownContactView in bounded steps (plan 3.6). */
+export function* shownContactViewSteps(tables: (id: number) => GenerationTables | null, spec: ShownSpec,
+                                       warn: (msg: string) => void = m => console.error(m),
+                                       held: (id: number) => GenerationTables | null = () => null): Steps<ContactView | null> {
   const sources: ContactSource[] = [];
   const parts: Array<{ s: ShownSource; t: GenerationTables }> = [];
   for (const s of [spec.base, spec.side]) {
@@ -120,14 +127,18 @@ export function shownContactView(tables: (id: number) => GenerationTables | null
     for (const eg of gensOf(si)) {
       if (!eg.whole) continue;
       for (const bg of gensOf(bi)) {
-        eg.stores.forEach((es, ek) => bg.stores.forEach((bs, bk) => {
-          const j = entryJoins(es, bs, 0);
-          if (j.size) joins.push({ entrySrc: si, baseSrc: bi, joins: j, entryShard: ek, baseShard: bk, entryHeld: eg.held, baseHeld: bg.held });
-        }));
+        for (let ek = 0; ek < eg.stores.length; ek++) {
+          for (let bk = 0; bk < bg.stores.length; bk++) {
+            // a pass over the base's episodes: one step
+            const j = entryJoins(eg.stores[ek]!, bg.stores[bk]!, 0);
+            if (j.size) joins.push({ entrySrc: si, baseSrc: bi, joins: j, entryShard: ek, baseShard: bk, entryHeld: eg.held, baseHeld: bg.held });
+            yield;
+          }
+        }
       }
     }
   }
-  return buildContactView({
+  return yield* buildContactViewSteps({
     sources,
     pairName: p => { const n = pairs?.[p]; return n ? { a: n[0], b: n[1] } : { a: `pair ${p}`, b: "" }; },
     coverage: spec.axisEnd,
