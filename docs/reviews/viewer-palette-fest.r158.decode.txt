@@ -1,0 +1,6 @@
+free samples true, intervals 16384 a generation, pairs 1: targets 32768, cells a query avg 357, max 492, slowest 2.75 ms
+free samples true, intervals 65536 a generation, pairs 1: targets 131072, cells a query avg 393, max 550, slowest 1.37 ms
+free samples true, intervals 65536 a generation, pairs 64: targets 131072, cells a query avg 313, max 498, slowest 1.00 ms
+free samples false, intervals 16384 a generation, pairs 1: targets 32768, cells a query avg 33043, max 65980, slowest 64.99 ms
+free samples false, intervals 65536 a generation, pairs 1: targets 131072, cells a query avg 131377, max 262642, slowest 88.58 ms
+free samples false, intervals 65536 a generation, pairs 64: targets 131072, cells a query avg 2291, max 4534, slowest 46.51 ms

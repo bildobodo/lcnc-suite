@@ -1,0 +1,34 @@
+{
+  "head": "e45b223d",
+  "note": "R157 findings VP-I115..VP-I118 fixed \u2014 committed as 3ada110a after the unit rerun; Playwright ran on the same product code",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 16
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS (rerun)",
+      "seconds": 489,
+      "tests": "147 files, 2427 passed",
+      "note": "the first run: 2 of the new proxy-counting tests timed out at vitest's default 5 s under the full suite's load (6.8 s); given their own 120 s timeout (a test-only change), the whole suite rerun: 2427/2427"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2141,
+      "tests": "526 passed",
+      "note": "run alone"
+    }
+  ]
+}

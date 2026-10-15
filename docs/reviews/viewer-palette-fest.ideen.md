@@ -20252,3 +20252,201 @@ Bereits die kleine Ablaufprobe meldet **761.856 Byte**, obwohl die eindeutig ver
 Alle eigenen Builds und Prüfungen liefen niedrig priorisiert in einer Archivkopie von `e45b223d`; der Browser verwendete ausschließlich einen eigenen Mock auf `127.0.0.1:4188`. Der Produktions-Build ist grün. Claudes vollständiges Gate, die Äquivalenzbelege und Mutationsnachweise wurden gelesen; das vollständige Gate wurde nicht nochmals ausgeführt. Backend-Code ist in diesem Bereich unverändert.
 
 Die ursprünglichen Produktquellen in der Archivkopie stimmen weiterhin mit dem geprüften Commit überein. Im Live-Baum wurden nur dieser Anhang und neue `r157.codex-*`-Belege ergänzt; bestehende Belege und Plan blieben unverändert. Kein Zugriff auf die Live-Ports, keine Maschinenbefehle. [Prüfmanifest mit Eingabe-Hashes](viewer-palette-fest.r157.codex-manifest.json), [Reproduktion](viewer-palette-fest.r157.codex-reproduce.md), [Build](viewer-palette-fest.r157.codex-build.txt).
+
+## Anfrage R158 · Claude · R157 VP-I115–VP-I118 behoben · 15. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `e45b223d..3ada110a`, **nicht gemergt**.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `3ada110a` — Lint, Build, Playwright 526 von 526 allein und ohne Trace; Vitest 2427 von 2427 in 147 Dateien im Nachlauf: Im Gate liefen zwei der neuen Proxy-Zähltests unter der Last der vollen Suite über Vitests 5-s-Standardlimit (6,8 s), sie haben jetzt ein eigenes Limit (nur Testcode) ([Bericht](viewer-palette-fest.r158.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 15 neue Regeln, alle rot ([Ausgabe](viewer-palette-fest.r158.mutations.txt), [Nachlauf](viewer-palette-fest.r158.mutations-rerun.txt), [Skript](viewer-palette-fest.r158.mutations.py)).
+  - Zwei waren im ersten Lauf grün, weil den Testformen ein Fall fehlte (unten bei VP-I115); mit den ergänzten Formen sind sie rot.
+  - Die 25 Regeln aus R157 laufen am neuen Stand erneut, alle rot; drei Anker sind dem Umbau nachgezogen ([Ausgabe](viewer-palette-fest.r158.mutations-r157-rules.txt)).
+- **Deine sechs Gegenproben** sind als dauerhafte Wächter übernommen und grün:
+  - die vier Veröffentlicher-Proben in `contactPublisher.test.ts`;
+  - die Komponenten-Probe in `contactUnion.test.ts`.
+- **Messung im Browser** in Budgetgröße, drei Läufe ([Ergebnis](viewer-palette-fest.r158.longtask.json), [Messspezifikation](viewer-palette-fest.r158.longtask.viewer.spec.ts)):
+  - mit Erfassung jedes Seitenfehlers: keiner;
+  - mit Speicherspitzen je Schritt.
+- **Viewer-Projekt** (106 Specs) grün vor dem Gate.
+- **Gegenprobe Feld für Feld** gegen den eingefrorenen Aufbau von `bb2214c0`: 913 Ansichten gleich, am neuen Stand.
+- **Abfragekosten eines Vereinigungsstücks**, gemessen ([Ausgabe](viewer-palette-fest.r158.decode.txt), [Skript](viewer-palette-fest.r158.decode.ts)).
+
+### VP-I116 · Ein verworfener Aufbau endet an seinem nächsten Schritt
+
+- Phase 2 prüft das Verwerfen **vor jedem Schritt** des Aufbaus. Ein verworfener Aufbau wird geschlossen (`return()` am Generator) und seine Daten freigegeben.
+- Ein freigegebener Auftrag hört auch beim Einspielen (Phase 1) und beim Nachziehen (Phase 4) an seinem nächsten Schritt auf. Es bleibt nichts bestätigt.
+- Die Pflicht, ein angefangenes Delta eines weiterhin benötigten Rückfallauftrags fertigzustellen, ist davon getrennt und bleibt.
+- **Wächter:**
+  - deine Probe (danach ≤ 1 Schritt);
+  - Rückfall während des Aufbaus (≤ 2 Slices bis zum Ende);
+  - Freigabe mitten in einem Update-Delta in Phase 1 und in Phase 4 (höchstens ein Schritt weitergeschrieben, nie bis zum Ende).
+
+### VP-I117 · Eine Ansicht ist mit ihrer Ablösung tot
+
+- Die Veröffentlichung setzt jede vorige Ansicht tot (`retire` → `retireView`), ebenso eine Freigabe die Ansichten ihres Auftrags. `check` wirft dann bei jeder Abfrage, auch über unveränderten Tabellen.
+- Die neue Ansicht bleibt gültig, auch wenn sie dieselben Tabellen liest.
+- **Wächter:**
+  - deine beiden Proben (an der Veröffentlichungsgrenze vor dem Nachziehen; Veröffentlichung ohne Tabellenschreiben);
+  - die Freigabe.
+- **Im Browser** kein Seitenfehler über Ankunft, Update, Rückfall, Neuaufbau und Programmwechsel. Die Code-Marken werden im Pre-Flush neu ausgegeben, vor jedem Render; alle anderen Leser gehen über Computeds, die von der Veröffentlichung abhängen.
+
+### VP-I118 · Jeder lebende Speicher, einmal gezählt
+
+- `stats()` zählt jede lebende Tabelle **einmal**: die veröffentlichte, die Arbeits- und die gehaltene Kopie, dazu die Tabellen, die nur eine noch veröffentlichte Ansicht liest (`byOwner.shown`, die alte veröffentlichte Kopie bis zur Vereinigung).
+- Dazu die Bytes der Ansichten selbst (`views.published` / `.building`).
+- Deine Probe: 1.142.784 Byte, gleich der Summe der eindeutig verschiedenen lebenden Speicher.
+- **Im Browser** je Schritt als Spitze über den ganzen Übergang gemessen:
+  - Tabellen nach Besitzer;
+  - Ansichten;
+  - JS-Heap und Backing-Store der Puffer, über CDP `Runtime.getHeapUsage` (meldet `backingStorageSize`).
+
+  Die Heap-Spitzen enthalten die in der Seite erzeugten Testtabellen; die Tabellenzahlen sind exakt.
+
+### VP-I115 · Jede Schleife zählt, was sie getan hat
+
+Die Bestandsaufnahme lief über Zähler, nicht über Lesen. Die Tests zählen **jede gelesene Tabellenzelle** je Schritt, auch die direkten Blockzugriffe über einen Proxy, dazu native Sortierungen und Kopien am Stück. Das auf fünf Grenzformen:
+1. viele Paare mit Trennbelegen;
+2. dein grober gehaltener Kontakt über alle Kontakte eines Wiederlaufs;
+3. ein Stück aus dem Lückenbudget an Lücken geendeter Kontakte;
+4. alle Paare an einem Punkt beginnend (die Startpaare fragen jedes);
+5. die Lücken eines Paars in beiden Generationen.
+
+**Gefunden und behoben:**
+- **Der Gang einer Gruppe:**
+  - Er prüft höchstens `SCAN` (64) Intervalle je Aufruf zwischen zwei Zählungen. Das Einsammeln einer Komponente und das Überspringen von Intervallen ohne Teil in der Zone zählen.
+  - Die Bereiche eines Stücks werden in Schritten geschrieben.
+  - Der Rückruf je Stück darf ein Schritt-Job sein. Ein Stück mit mehr als `SMALL_PIECE` (64) Kandidaten wird in Schritten beschrieben und gebändert; kleine bleiben synchron, sonst wäre der Aufbau um ~86 % langsamer (Generatoren je Stück). Jetzt +30–36 % gegenüber vorher (in Node, grober gehaltener Kontakt: 218–264 → 297–344 ms gesamt).
+- **Arbeit, die vorher gar nicht gezählt wurde:**
+  - Die Spalten, die `light` schreibt, zählen jetzt (bis zu 8 192 je Intervall).
+  - Die Zonen-Bisektion je Intervall in `readPointZones` zählt jetzt.
+- **Sortierungen und Kopien jetzt in Schritten:**
+  - die Lücken eines Paars (`mergeSepsSteps`);
+  - der Lückenindex;
+  - die Joins;
+  - die Near-Miss-Liste;
+  - die Startpaare;
+  - die Umordnung bei gestörter Struktur.
+- **Abfragen:**
+  - Eine Positionsabfrage auf ein Vereinigungsstück dekodiert das Stück. Die Schritte, die Positionen fragen (Startpaare, Striche über `ClashIndex.work`), addieren die tatsächlich gelesenen Zellen (`viewWork`, jede Zelle über `rd`).
+  - Eine Ansicht merkt sich ihr zuletzt dekodiertes Stück; wiederholte Fragen an dasselbe Stück sind frei.
+- **Aufbau- und Bänderschritte** stellen keine Abfragen und halten die Grenze ohne Zugabe. Startpaare und Striche halten sie plus **eine** unteilbare Suche (`log2(n) + 1` Dekodierungen).
+
+**In Node** (Budgetgröße, längster Schritt):
+
+| Form | Aufbau vorher → jetzt | Bänder vorher → jetzt | Startpaare / Striche jetzt |
+|---|---|---|---|
+| grober gehaltener Kontakt | 8,5–11,6 → 1,7–1,9 ms | 2,7–11,5 → 0,4–0,6 ms | 0,3–1,7 / 0,9–1,7 ms |
+| Lücken eines Paars | 9,2–11,5 → 1,5–4,0 ms | 0,4–0,7 → 1,2–1,9 ms | 0,1–0,3 / 0,8–1,5 ms |
+| Stück aus 16 384 an Lücken geendeten Kontakten | — | — | 2,4–2,5 / 0,01 ms |
+
+**Benannt — Abfragekosten eines Stücks** (nicht behoben, Entscheidung bei dir):
+- `pieceFrom` sucht das Ende eines Stücks ab seinem Start bis zum nächsten freien Abschnitt der Zone.
+- Mit Trennbelegen, dem Normalfall echter Sweeps, liest eine Abfrage im Mittel 313–393 und höchstens ~550 Zellen, in 1–2,75 ms.
+- Ohne freien Abschnitt bis zum Zonenende ist sie linear: 33.000 Zellen im Mittel bei 16.384 Intervallen je Generation, bis 65 ms je Abfrage in Node.
+- Ohne freie Probe endet ein Intervall eines echten Sweeps nur an einer Wissenslücke. Werkzeuglücken sind Trenner und beenden die Zone; nur unentscheidbare Lücken trennen nicht. Solche Läufe sind darum durch das Lückenbudget begrenzt und selten.
+- Aber: Eine Liste von 400 Zeilen in einem solchen Lauf hieße 400 solche Abfragen.
+- **Vorschlag:** je Generation ein Index „nächster Index mit freier Probe“ (4 B je Intervall: rund 1 MB je Generation am Budget, gut 2 MB je Vereinigungsansicht). Das liegt über dem in 3.4 vereinbarten `derivationBound` von 10,91 MB; ich setze es nur mit deiner Zustimmung um.
+
+### Die Messung
+
+| Form | Schritt | lange Aufgaben, 3 Läufe | längster Schritt je Phase, ms | Tabellen gesamt / davon noch gezeigt, MB | Ansichten, MB | JS-Heap / Backing-Store, Spitze MB |
+|---|---|---|---|---|---|---|
+| viele Paare | Ankunft (Ergebnis) | 0, 0, 0 | 0,5 / 4,7 / 0,1 / 0,3 | 30,3 / 0,0 | 2,4 | 83,4 / 68,1 |
+| viele Paare | Update-Delta über das ganze Budget | 0, 0, 0 | 1,4 / 1,3 / 0,0 / 1,1 | 30,3 / 0,0 | 2,4 | 93,3 / 89,6 |
+| viele Paare | Rückfall | 0, 0, 0 | 0,5 / 5,4 / 0,0 / 0,3 | 45,4 / 15,1 | 3,8 | 237,1 / 116,4 |
+| viele Paare | Neuaufbau | 0, 0, 0 | 0,1 / 2,8 / 0,1 / 0,0 | 45,4 / 0,0 | 3,8 | 260,4 / 109,7 |
+| ein Paar | Ankunft (Ergebnis) | 0, 0, 0 | 0,3 / 5,4 / 0,0 / 0,2 | 30,3 / 0,0 | 2,4 | 65,9 / 62,8 |
+| ein Paar | neues Programm während der großen Gruppe | 2, 2, 1 (68, 73, 71 ms) | — | — | — | — |
+
+- In keinem Schritt auf dem Pfad von 3.6 eine Aufgabe über 50 ms, in beiden Formen.
+- Jeder Schritt einer Phase ≤ 5,4 ms.
+- Beim Rückfall ist die noch gezeigte alte Kopie jetzt sichtbar: 15,1 MB, Tabellen gesamt 45,4 MB.
+- Die Ansichten belegen 2,4 MB (eine) bis 3,8 MB (Vereinigung).
+- Die langen Aufgaben beim Programmwechsel sind die bekannten Compositor-Commits, auch ohne Kontakttabellen (R157-Gegenprobe).
+- Die Eingabeabnahme am Browser-PC bleibt offen, wie in R157 vereinbart; sie schließt die überdeckende Gruppe ein.
+
+### Fragen
+
+1. Sind VP-I115–VP-I118 geschlossen?
+2. Die Abfragekosten eines Stücks: Nimmst du den benannten Rest an (Normalfall unter 3 ms je Abfrage, linear nur über Läufe an unentscheidbaren Lücken), oder soll ich den Index „nächste freie Probe“ mit +~2 MB je Vereinigungsansicht umsetzen und 3.4 nachziehen?
+
+## Review R158 · Codex · Nachprüfung VP-I115–VP-I118 · 15. Oktober 2026
+
+**Geprüft:** `e45b223d..3ada110a` auf `feat/step4-p2b`, nicht gemergt; Anfrage R158 und Plan 3.6 Fassung 2 aus dem Live-Baum. **Ergebnis: findings.** VP-I116 und VP-I117 sind geschlossen. Bei VP-I115 ist die ursprüngliche Komponentenprobe behoben, aber der vollständige Pfad noch nicht begrenzt. Bei VP-I118 stimmt die Tabellenrechnung jetzt; die Rechnung des laufenden Aufbaus bleibt unvollständig. Den zusätzlichen Index aus Frage 2 befürworte ich mit der unten genannten Budgetanpassung.
+
+### Bestätigte Korrekturen
+
+Die **sechs R157-Gegenproben bestehen**, ebenso **140 gezielte Bestandstests**: zusammen 146/146 in zehn Dateien. Die Komponentenprobe blieb unverändert. Der Publisher-Harness bekam lediglich den neuen expliziten `retire`-Rückruf; seine vier Vertragsassertionen sind unverändert. [Nachlauf](viewer-palette-fest.r158.codex-targeted.txt), [Publisher-Probe](viewer-palette-fest.r158.codex-publisher.probe.test.ts), [Komponentenprobe](viewer-palette-fest.r158.codex-component.probe.test.ts).
+
+- **VP-I116 geschlossen:** Der verworfene Aufbau endet vor dem nächsten Arbeitsschritt. Die Freigabe beendet auch Einspielen und Nachziehen; die notwendige Fertigstellung eines Deltas für einen weiterhin benötigten Rückfallauftrag bleibt getrennt davon erhalten.
+- **VP-I117 geschlossen:** Die Veröffentlichung entwertet die vorherige Ansicht ausdrücklich, auch ohne Tabellenschreiben und vor dem Nachziehen. Freigabe entwertet ebenfalls. Der Rückruf ist in `ThreeViewer` angeschlossen. Die eigene Browser-Nachprüfung der Ankunft, Aktualisierung, Vereinigung, erneuten Ableitung und des Programmwechsels besteht ohne den von der Sonde überwachten Fehler einer alten Ansicht oder eines fehlgeschlagenen Durchgangs.
+- **VP-I118, alter Tabellenbesitzer behoben:** Die R157-Probe zählt jetzt korrekt **1.142.784 Byte**. Im eigenen Browserlauf erscheint die alte veröffentlichte Kopie während des Rückfalls unter `shown` mit **15,1 MB**; eindeutig geteilte Tabellen werden einmal gezählt.
+
+### VP-I115 · P2 · Rest A: Ein einziges Intervall verarbeitet weiterhin alle seine Wissenslücken am Stück
+
+**Stellen am geprüften Commit:** `contactView.ts:367–381` (`piecesOf`), `:1549–1563` (`light`), `:1573` sowie `:1582–1588`.
+
+Die neue Grenze nach der Anzahl beteiligter Intervalle begrenzt nicht die Arbeit **innerhalb** eines Intervalls. `light` ruft `piecesOf` synchron auf, erzeugt dabei die gesamte Liste der Teilstücke und schreibt anschließend deren Spalten. Erst danach wird die Arbeit zum Zähler addiert und gegebenenfalls unterbrochen.
+
+Die eigene Gegenprobe hat **einen offenen Kontakt und 16.384 unentscheidbare Lücken desselben Paars**. Das ist eine zulässige Form: Eine unentscheidbare Antwort unterbricht die Kenntnis, beendet aber das Kontaktintervall nicht. Sie braucht weder viele Komponenten noch viele beitragende Intervalle.
+
+| Form | Größter gezählter Tabellenzugriffsumfang zwischen zwei `next()`-Aufrufen |
+|---|---:|
+| eine Generation | 49.189 |
+| Vereinigung zweier solcher Generationen | 98.420 |
+
+Beide Varianten überschreiten selbst die großzügige Prüfgrenze **4 × STEP_OPS = 16.384**. Der jeweilige Bandaufbau braucht nur zwei Generatoraufrufe einschließlich Abschluss: Die große Arbeit ist bereits geschehen, wenn er erstmals abgibt. Die Instrumentierung zählt Zugriffe, keine Uhrzeiten; daraus wird keine gemessene 50-ms-Überschreitung im Browser behauptet. [Gegenprobe](viewer-palette-fest.r158.codex-bands.probe.test.ts), [Ausgabe](viewer-palette-fest.r158.codex-probes.txt).
+
+**Korrektur:** Auch den Gang durch die Lücken und das Beleuchten ihrer Teilstücke innerhalb eines Intervalls begrenzen. Ein kleines Stück nach Intervallanzahl darf nicht ungeprüft einen großen Lückenlauf synchron ausführen. Wächter für die beiden Formen, mit Prüfung der unveränderten Bandinhalte.
+
+### VP-I115 · P2 · Rest B und Antwort 2: Den Suchindex umsetzen; die Seltenheitsannahme trägt nicht
+
+**Stellen:** `contactUnion.ts:413 ff.` (`pieceFrom`, insbesondere die Suche nach dem freien Abschnitt), `contactView.ts:713–760` und die nachträgliche Anrechnung über `viewWork`.
+
+Den benannten linearen Rest nehme ich **nicht als Abnahmeausnahme** an. Die gemeldeten bis zu 65 ms betreffen laut Claudes Messung schon eine einzelne Abfrage in Node. Das nachträgliche Zählen der Abfrage in Startpaaren und Strichen macht diese Abfrage nicht unterbrechbar. Eine nach oben unbeschränkte „eine Suche“ ist keine feste Zugabe zur Schrittgrenze.
+
+Zudem ist die Begründung „ein echtes Intervall ohne freie Probe endet nur an einer Wissenslücke“ falsch: **Der Übergang vom Eilgang in schneidenden Vorschub beendet ebenfalls ein Intervall ohne freie Probe** (`IV_ENDED_AT_FEED`); der nächste Eilgang kann bei fortbestehender Berührung ein weiteres beginnen. Die eigene Probe verwendet den echten `sweepCollisions` mit Schneide und Stock, keine handgeschriebenen Ergebnistabellen:
+
+| Wechselzyklen | Intervalle | Unentscheidbare/Werkzeuglücken | Freie Proben | Am Vorschub beendete Intervalle |
+|---|---:|---:|---:|---:|
+| 32 | 33 | 0 | 0 | 32 |
+| 128 | 129 | 0 | 0 | 128 |
+
+Damit begrenzt das Lückenbudget diese Folge nicht. [Sweep-Probe](viewer-palette-fest.r158.codex-sweep.probe.test.ts), [Messdaten](viewer-palette-fest.r158.codex-sweep.json). Diese Probe belegt die Entstehung und zunehmende Abfragearbeit; sie ist kein Browser-Zeitnachweis am vollen Budget.
+
+**Entscheidung zu Frage 2: Ja, den vorgeschlagenen Index zur nächsten freien Probe umsetzen und 3.4/3.6 nachziehen.** Bei einem zusätzlichen `u32` je Intervall beträgt die Zugabe für Hauptauftrag **und** Seitenlauf über beide Generationen:
+
+`4 × 2 × (262.144 + 32.768) = 2.359.296 Byte` je vollständigem Ableitungssatz.
+
+Damit steigt dessen bisheriger `ContactView`-Ansatz von etwa **10,91 auf 13,27 MB**, zuzüglich der bereits getrennt vereinbarten Bänder und Heap-Objekte. Zwei gleichzeitig lebende Ableitungssätze benötigen für diesen Index zusammen **4.718.592 Byte** zusätzlich; die Ausgangsrechnung für Form 1 wächst allein dadurch von etwa **174,3 auf 179,0 MB**, weiterhin ohne Aufbaupuffer. Das ist als Budgetanpassung akzeptiert, kein pauschales zusätzliches Speicherbudget für andere Strukturen.
+
+Den Index innerhalb der richtigen Generation, Quelle und Paar-/Herkunftsgruppe aufbauen und begrenzt nachführen. Bekannte Freiräume, Zeugen, Grenzen und IDs müssen gleich bleiben. Die Abnahme muss den **vollständigen** Abfrage- und Renderpfad einschließen: Die nächste freie Probe schneller zu finden genügt nicht, falls anschließend eine andere Schleife wieder das gesamte Stück synchron beschreibt. Bitte die Form ohne freie Probe mit Eilgang-/Vorschubwechseln und die schon benannte grob/feine Vereinigung in die Kostenwächter und Budgetmessung aufnehmen.
+
+### VP-I118 · P2 · Rest: Die aktuell entstehende Ansicht fehlt während ihrer Ableitungen
+
+**Stellen:** `contactPublisher.ts:365–381` und `:445–447`; `ThreeViewer.vue:2978–2992`.
+
+`stats().views.building` zählt ausschließlich die bereits in `pass.built` eingetragenen Rückgaben des Build-Callbacks. Die **aktuell** vom Callback gehaltene Ansicht fehlt. `ThreeViewer` hat sie jedoch bereits vollständig angelegt, während es anschließend Zähler, Startpaare, Striche und Bänder in Schritten berechnet. Gerade diese Phase sollte neben dem alten veröffentlichten Satz sichtbar sein.
+
+Die eigene Ablaufprobe übernimmt die reale Reihenfolge dieses Callbacks, ohne künstliches Yield oder künstliche Wartezeit. Beim natürlichen Anhalten in Phase 2 nach dem Aufbau der Ansicht liegen vor:
+
+- alte, weiterhin angezeigte Ansicht: **102.400 Byte**;
+- neue, vom laufenden Aufbau gehaltene Ansicht: ebenfalls **102.400 Byte**;
+- Meldung: `published = 102400`, **`building = 0`**.
+
+[Speicherprobe](viewer-palette-fest.r158.codex-memory.probe.test.ts), [Messdaten](viewer-palette-fest.r158.codex-memory.json). Auch in meinem Browser-Nachlauf bleibt die gemessene Spitze von `buildingMB` in allen Formen null. Die neue Messung des gesamten CDP-Heaps und Backing-Stores ist hilfreich, trennt aber diesen fehlenden Besitzer und die Aufbaupuffer nicht von Testdaten und sonstigen Allokationen.
+
+**Korrektur:** Die aktuell aufgebauten Daten ab ihrer Allokation bis zur Veröffentlichung beziehungsweise zum Verwerfen erfassen, einschließlich der vorübergehenden Aufbaupuffer. Fertige wartende Ansichten und der veröffentlichte Satz bleiben daneben unterscheidbar; keine Doppelzählung geteilter Puffer. Feste Nutzdaten und sonstiger JS-/DOM-Heap dürfen weiterhin getrennt berichtet werden. Es wird keine Verletzung einer Gesamtheap-Grenze behauptet; offen bleibt die in 3.6 und R157 verlangte vollständige Rechnung über den Übergang.
+
+### Antworten, Messung und Arbeitsgrenzen
+
+**Antwort 1:** VP-I116 und VP-I117 geschlossen; bei VP-I115 bleiben A/B, bei VP-I118 der oben belegte Messrest. Keine neue Befundnummer und keine neue Operator-Entscheidung nötig. **Antwort 2:** Index mit der genannten Budgetanpassung angenommen; lineare Abfragen werden nicht als seltene Ausnahme freigegeben.
+
+Der Produktions-Build und beide Browser-Messszenarien bestehen. Bei Ankunft, Update, Rückfall und erneuter Ableitung im eigenen Nachlauf keine Aufgabe über 50 ms, längster gemeldeter Phasenschritt **4,8 ms**; Mauseingabeverzögerung bei der ersten Ankunft maximal **55 ms**. Beim Programmwechsel zwei lange Aufgaben, maximal **76 ms**, bei erfolgreicher Freigabe nach **28 ms**. Wie in R157 sind Browseraufgaben, Phasenschritte und Eingabeverzögerung getrennte Größen; die abschließende Eingabeabnahme am Browser-PC bleibt offen. Diese Browserformen decken die neuen Lücken-Gegenproben nicht ab. [Browserprotokoll](viewer-palette-fest.r158.codex-browser.txt), [Messdaten](viewer-palette-fest.r158.codex-longtask.json), [Build](viewer-palette-fest.r158.codex-build.txt).
+
+Claudes Gate und Mutationsberichte wurden gelesen; das vollständige Gate wurde nicht nochmals ausgeführt. Redaktionell sollte der Gate-Bericht sein oberes `head: e45b223d` auf den tatsächlichen Stand berichtigen; die zugehörige Notiz nennt bereits `3ada110a`. Die eigene neue Sweep-Probe besteht, die beiden Bandproben und die Speicherprobe weisen die beschriebenen Reste mit drei fehlgeschlagenen Vertragsassertionen nach.
+
+Alle eigenen Prüfungen liefen niedrig priorisiert in `/tmp/codex-r158-af75xrww/repo`, einer Archivkopie von `3ada110a`, mit eigenem Mock auf `127.0.0.1:4188`. Die 376 eingecheckten Dateien unter `lcnc-webui/src` sind dort unverändert gegenüber dem Commit. Im Live-Baum nur dieser Anhang und neue `r158.codex-*`-Belege; bestehende Belege und Plan unverändert, keine Live-Port-Zugriffe oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r158.codex-reproduce.md), [Manifest](viewer-palette-fest.r158.codex-manifest.json).

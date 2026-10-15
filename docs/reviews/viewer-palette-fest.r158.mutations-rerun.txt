@@ -1,0 +1,2 @@
+u_scan_unbounded RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactUnion.test.ts > intervals skipped in a zone, in bounded steps (Codex R157 VP-I115) > the scratch reads between two yields stay
+c_starts_flat RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/contactView.test.ts > the build and the bar's queries in bounded steps (plan 3.6) > every step reads a bounded number of table cells, so
