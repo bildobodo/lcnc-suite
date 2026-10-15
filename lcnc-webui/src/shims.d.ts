@@ -39,6 +39,8 @@ interface ViewerDiag {
   setCollisionHits?: (hits: { line: number; frac?: number; rapid?: boolean; possible?: boolean; near?: number; atStart?: boolean; ordinal?: number }[]) => boolean;
   setCollisionNote?: (note: string | null) => boolean;
   setCollisionShards?: (n: number | null) => void;
+  /** The published main view's questions, each kind's worst time in ms (Codex R158's measurement). */
+  timeContactQueries?: () => { targets: number; ms: Record<string, number> } | null;
   getContacts?: () => {
     main: ContactsDiag | null; side: ContactsDiag | null; dropped: number; messages: number; acks: number; maxDeltaRows: number;
     /** The shown side results and their tables (Codex R147 VP-I106), every request held. */

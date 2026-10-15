@@ -58,7 +58,8 @@ import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/b
 import { clashTargets } from "./viewer/clashTargets";
 import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
-import { boundaryStretchesSteps, contactBandsSteps, heldBytes, lineMark, lineRuns, retireView, runsOf, startTargetsSteps, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
+import { unionScratch } from "./viewer/contactUnion";
+import { boundaryStretchesSteps, contactBandsSteps, findKey, heldBytes, indexAfter, lineMark, lineRuns, retireView, runsOf, startTargetsSteps, targetAt, targetKey, targetPos, targetWindow, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
 import { clashIndexOfView, clashTicksSteps } from "./viewer/simWindow";
 import { shownContactViewSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
 import { findingWords, wordsOfCounts } from "./viewer/sweepWords";
@@ -2260,6 +2261,30 @@ async function buildFromInit(init: ViewerInit) {
         // sweep), what it found and left out.
         // The contact tables held here (round B2): per request and generation
         // the rows, the pairs named, the deltas; the memory they take.
+        /** Every kind of question of the published main view, each timed —
+         *  the worst of its kind in ms (Codex R158's budget measurement): a
+         *  target's words, its key where it stood, moved and anywhere, the
+         *  steps, the tint, a line's mark, the list's window, a gone key. */
+        timeContactQueries: () => {
+          const trk = collisionTrack.value, sv = trk ? _contacts.viewOf(trk) : null;
+          if (!sv) return null;
+          const v = sv.view, out: Record<string, number> = {}, end = sv.derived?.axisEnd ?? 1;
+          const t = (k: string, f: () => unknown) => { const t0 = performance.now(); f(); const ms = performance.now() - t0; out[k] = Math.max(out[k] ?? 0, Math.round(ms * 100) / 100); };
+          const step = Math.max(1, Math.floor(v.n / 64));
+          for (let i = 0; i < v.n; i += step) {
+            t("target", () => targetAt(v, i, sv.lineAt));
+            const key = targetKey(v, i), pos = targetPos(v, i);
+            t("key where it stood", () => findKey(v, key, pos)); t("key moved", () => findKey(v, key, pos + end / 3)); t("key anywhere", () => findKey(v, key));
+            t("next", () => indexAfter(v, pos, { key, pos }));
+          }
+          for (let s = 0; s < 64; s++) {
+            const x = (s / 64) * end;
+            t("tint", () => tintAt(v, x)); t("mark", () => lineMark(v, s, [[x, x + end / 64]], sv.lineAt)); t("next from a position", () => indexAfter(v, x, null));
+          }
+          t("window of 400", () => targetWindow(v, v.n >> 1, 400, sv.lineAt));
+          t("key gone", () => findKey(v, "C0|999999|0"));
+          return { targets: v.n, ms: out };
+        },
         getContacts: () => {
           const one = (id: number) => {
             const tb = _contacts.tablesOf(id), cur = tb?.pub ?? null, held = tb?.held ?? null;
@@ -2976,13 +3001,15 @@ const _contacts: ContactPublisher<ScrubTrack, ShownContacts, ColShown> = new Con
     return { key: `${specKey(spec)}|${_colTimelineCols}`, ids: [spec.base?.id, spec.side?.id].filter((x): x is number => x != null), spec };
   },
   *build(trk, spec, tables, held) {
-    const view = yield* shownContactViewSteps(tables, spec as ShownSpec, undefined, held);
+    // one set of the union walk's buffers for the view and its bands
+    const scratch = unionScratch();
+    const view = yield* shownContactViewSteps(tables, spec as ShownSpec, undefined, held, scratch);
     if (!view) return null;
     const lineAt = _lineAtOf(trk), cols = _colTimelineCols, axisEnd = _sliceEnd(trk);
     const counts = yield* viewCountsSteps(view);
     const starts = yield* startTargetsSteps(view);
     const ticks = yield* clashTicksSteps(clashIndexOfView(view, lineAt), cols, axisEnd);
-    const bands = yield* contactBandsSteps(view, cols, axisEnd);
+    const bands = yield* contactBandsSteps(view, cols, axisEnd, undefined, scratch);
     const boundaries = yield* boundaryStretchesSteps(view);
     return { view, lineAt, derived: { counts, starts, ticks, bands, cols, axisEnd, boundaries } };
   },

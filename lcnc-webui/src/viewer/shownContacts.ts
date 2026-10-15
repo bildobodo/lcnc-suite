@@ -6,6 +6,7 @@
 // the base request's tables on the shown axis, a side run's beside them, the
 // entry contacts the base continues joined (contactMerge.entryJoins). Pure
 // apart from the receiver it reads.
+import type { UnionScratch } from "./contactUnion";
 import { entryJoins } from "./contactMerge";
 import { buildContactViewSteps, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin, type ViewCounts } from "./contactView";
 import { runToEnd, type Steps } from "./steps";
@@ -93,7 +94,9 @@ export function shownContactView(tables: (id: number) => GenerationTables | null
 /** shownContactView in bounded steps (plan 3.6). */
 export function* shownContactViewSteps(tables: (id: number) => GenerationTables | null, spec: ShownSpec,
                                        warn: (msg: string) => void = m => console.error(m),
-                                       held: (id: number) => GenerationTables | null = () => null): Steps<ContactView | null> {
+                                       held: (id: number) => GenerationTables | null = () => null,
+                                       /** The union walk's buffers (buildContactViewSteps). */
+                                       scratch?: UnionScratch): Steps<ContactView | null> {
   const sources: ContactSource[] = [];
   const parts: Array<{ s: ShownSource; t: GenerationTables }> = [];
   for (const s of [spec.base, spec.side]) {
@@ -153,5 +156,5 @@ export function* shownContactViewSteps(tables: (id: number) => GenerationTables 
     pairName: p => { const n = pairs?.[p]; return n ? { a: n[0], b: n[1] } : { a: `pair ${p}`, b: "" }; },
     coverage: spec.axisEnd,
     joins,
-  });
+  }, scratch);
 }

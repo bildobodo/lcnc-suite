@@ -1018,7 +1018,9 @@ function* packedSorted(joins: readonly SourceJoin[], rows: (j: SourceJoin) => It
   return out;
 }
 
-export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactView> {
+/** `scratch`: the union walk's buffers, shared with the bands built after the
+ *  view (the caller's: one set, not two — Codex R158 VP-I118's measurement). */
+export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionScratch): Steps<ContactView> {
   const { sources, coverage } = input;
   if (sources.length > MAX_SOURCES) throw new Error(`contactView: ${sources.length} sources (at most ${MAX_SOURCES})`);
   const c: Ops = { n: 0 };
@@ -1096,7 +1098,7 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
   let ei = 0;
   const unions: Array<UnionIndex | undefined> = [], indexes: UnionIndex[] = [];
   const unionCounts = NO_COUNTS();
-  let walkScratch: UnionScratch | null = null;
+  let walkScratch: UnionScratch | null = scratch ?? null;
   const scratchOf = () => (walkScratch ??= unionScratch());
   const nearCur0 = growU32(), nearHeld0 = growU32();
   let conflicts = 0, conflictAt = Infinity;
@@ -1867,7 +1869,8 @@ export function contactBands(v: ContactView, columns: number, axisEnd: number): 
 }
 /** contactBands in bounded steps (plan 3.6: the bands are published with the
  *  view; a union's walk took 250–410 ms at the budget). */
-export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: number, ops: Ops = { n: 0 }): Steps<Array<[number, number]>> {
+export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: number, ops: Ops = { n: 0 },
+                                   scratch?: UnionScratch): Steps<Array<[number, number]>> {
   check(v);
   const W = Math.max(1, Math.min(TIMELINE_COLUMNS, Math.floor(columns)));
   if (!(axisEnd > 0)) return [];
@@ -1915,7 +1918,7 @@ export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: num
   // a union's pieces in one walk per group: each piece's intervals' own
   // contact within it — by the piece's ranges, every interval's lighting a
   // job when its gaps are many
-  const scratch = unionScratch();
+  const sc = scratch ?? (v.unions.some(u => u) ? unionScratch() : null);
   for (const u of v.unions) {
     if (!u) continue;
     yield* eachGroupSteps(v.tables, u, (sides, los, seps) => eachPieceSteps(sides, seps, p => {
@@ -1941,7 +1944,7 @@ export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: num
       return (function* (): Steps<void> {
         for (let sd = 0; sd < 2; sd++) for (let k = ranges[sd]![0]; k < ranges[sd]![1]; k++) yield* run(lit1(sd, k));
       })();
-    }, undefined, scratch, ops), ops);
+    }, undefined, sc!, ops), ops);
   }
   const out: Array<[number, number]> = [];
   let lit = 0;
