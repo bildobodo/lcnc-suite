@@ -25,6 +25,16 @@ function update() {
   }
 }
 
+let raf = 0
+/** The re-check after a DOM change, in the next animation frame: before it
+ *  paints, where its layout is due anyway. Read in the task that changed the
+ *  DOM, it forced the layout of every change there — the Sim tab's 400 rows
+ *  at their first arrival took 25 ms of a long task (plan 3.6). */
+function updateSoon() {
+  if (raf) return
+  raf = requestAnimationFrame(() => { raf = 0; update() })
+}
+
 function attach(el: HTMLElement) {
   if (attached.has(el)) return
   attached.add(el)
@@ -33,7 +43,7 @@ function attach(el: HTMLElement) {
   el.addEventListener('scroll', update, { passive: true })
   ro.observe(el)
   for (const c of el.children) ro.observe(c)
-  update()
+  updateSoon()
 }
 
 function scanAndAttach(root: Element | Document = document) {
@@ -59,9 +69,9 @@ export function initScrollFade() {
       }
     }
     // Content changes (rows added by v-for, file loaded) alter
-    // scrollHeight without any observed element resizing — cheap
-    // re-check on every batch keeps sf-up/sf-down honest.
-    update()
+    // scrollHeight without any observed element resizing — a re-check per
+    // batch keeps sf-up/sf-down honest (in the next frame: updateSoon).
+    updateSoon()
   })
   _observer.observe(document.body, { childList: true, subtree: true })
 }
@@ -69,6 +79,8 @@ export function initScrollFade() {
 export function stopScrollFade() {
   _observer?.disconnect()
   _observer = null
+  cancelAnimationFrame(raf)
+  raf = 0
   ro?.disconnect()
   ro = null
   els.clear()

@@ -7,9 +7,9 @@
 // entry contacts the base continues joined (contactMerge.entryJoins). Pure
 // apart from the receiver it reads.
 import { entryJoins } from "./contactMerge";
-import { buildContactViewSteps, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin } from "./contactView";
+import { buildContactViewSteps, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin, type ViewCounts } from "./contactView";
 import { runToEnd, type Steps } from "./steps";
-import type { GenerationTables } from "./contactsReceiver";
+import type { GenerationTables } from "./contactPublisher";
 import type { ContactStore } from "./contactStore";
 
 /** How a source's cum lands on the shown axis: as it is; shifted by the
@@ -65,8 +65,16 @@ function ownTrackOf(t: OwnTrack): NonNullable<ContactSource["ownTrack"]> {
 /** The spec as a cache key: its data, never a track's arrays. */
 export const specKey = (spec: ShownSpec): string => JSON.stringify(spec, (k, v) => (k === "track" ? undefined : v));
 
-/** A shown track's contact view and the track's line at a position. */
-export interface ShownContacts { view: ContactView; lineAt: LineAt }
+/** A shown track's contact view and the track's line at a position — and
+ *  what the bar reads of it, built with it in bounded steps and published
+ *  with it (plan 3.6): the counts, the start targets, the timeline's marks and
+ *  bands at `cols` columns over `axisEnd`. */
+export interface ShownContacts {
+  view: ContactView;
+  lineAt: LineAt;
+  derived?: { counts: ViewCounts; starts: number[]; ticks: Array<{ pct: number; near: boolean }>; bands: Array<[number, number]>;
+              cols: number; axisEnd: number };
+}
 
 export interface ShownSpec { base: ShownSource | null; side: ShownSource | null; axisEnd: number }
 

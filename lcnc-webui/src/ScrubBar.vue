@@ -132,6 +132,9 @@ const emit = defineEmits<{
   /** A sim-time input edge (the WCS rows this track re-adds): nothing is
    *  current — followed by check-entry with the rebuilt entry track. */
   (e: "cancel-check"): void;
+  // the timeline's width in columns: the marks and bands are built at it with
+  // the contact view (plan 3.6)
+  (e: "timeline-columns", n: number): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
@@ -874,14 +877,15 @@ const clashIndex = computed<ClashIndex>(() => {
 /** The words' counts, from the index (once per view). */
 const clashCounts = computed(() => {
   const sv = shownView.value;
-  return sv ? viewCounts(sv.view) : { collisions: 0, entryCollisions: 0, nearMisses: 0, possible: 0, startsIn: false };
+  // built with the view in bounded steps and published with it (plan 3.6)
+  return sv ? sv.derived?.counts ?? viewCounts(sv.view) : { collisions: 0, entryCollisions: 0, nearMisses: 0, possible: 0, startsIn: false };
 });
 /** The pairs the program starts in contact by (step 4 plan 1d): proven at
  *  the first pose — never the entry move's, a possible contact or a near miss. */
 const startPairNames = computed<string[]>(() => {
   const sv = shownView.value;
   if (!sv) return [];
-  const hs = startTargets(sv.view).map(i => targetAt(sv.view, i, sv.lineAt)).filter(h => !h.entry && !h.possible && !isNearMiss(h));
+  const hs = (sv.derived?.starts ?? startTargets(sv.view)).map(i => targetAt(sv.view, i, sv.lineAt)).filter(h => !h.entry && !h.possible && !isNearMiss(h));
   return [...new Set(hs.map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
 });
 /** What the tab lists and the steps reach, by kind. */
@@ -996,7 +1000,8 @@ const marks = computed(() => {
   for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
   for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
   // one mark per occupied column of the timeline, never one per target (plan 4.4)
-  for (const x of clashTicks(clashIndex.value, bandCols.value, max)) out.push({ pct: x.pct, kind: "clash", near: x.near });
+  const sv = shownView.value;
+  for (const x of sv?.derived?.ticks ?? clashTicks(clashIndex.value, bandCols.value, max)) out.push({ pct: x.pct, kind: "clash", near: x.near });
   return out;
 });
 // Extent bands (timeline percentages): where a soft-limit line runs (warn)
@@ -1040,6 +1045,7 @@ function measureBandCols() {
   const thumb = parseFloat(getComputedStyle(el).getPropertyValue("--range-thumb")) || 0;
   bandCols.value = Math.max(1, Math.floor(el.clientWidth - thumb));
 }
+watch(bandCols, n => emit("timeline-columns", n), { immediate: true });
 onMounted(() => {
   if (typeof ResizeObserver !== "undefined") {
     _bandRO = new ResizeObserver(measureBandCols);
@@ -1050,7 +1056,9 @@ onUnmounted(() => _bandRO?.disconnect());
 const clashBands = computed(() => {
   const sv = shownView.value, max = cumMax.value;
   if (!sv || max <= 0) return [] as Array<[number, number]>;
-  return contactBands(sv.view, bandCols.value, max).map(([a, b]) => [a * 100, b * 100] as [number, number]);
+  // built with the view (plan 3.6); at another axis end the fractions are the view's own
+  const bands = sv.derived && sv.derived.axisEnd === max ? sv.derived.bands : contactBands(sv.view, bandCols.value, max);
+  return bands.map(([a, b]) => [a * 100, b * 100] as [number, number]);
 });
 
 onUnmounted(() => {

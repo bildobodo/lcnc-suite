@@ -14,6 +14,10 @@ import { STEP_OPS, runToEnd, type Steps } from "./steps";
 
 /** The most rows the list shows. */
 export const LIST_WINDOW = 400;
+/** A target position read through the index, counted in operations: in a
+ *  union view it decodes an evidence piece (Node, the budget's union: ~5 µs a
+ *  read, about 64 plain operations). */
+export const POS_OPS = 64;
 /** The window moves only when the row it is centred on comes this close to
  *  its edge — not with every row the playhead passes. */
 export const WINDOW_MARGIN = 50;
@@ -239,17 +243,22 @@ export function* clashTicksSteps(c: ClashIndex, columns: number, axisEnd: number
   const cols = Math.min(TIMELINE_COLUMNS, Math.floor(columns));
   if (!c.n || cols < 1 || !(axisEnd > 0)) return out;
   const w = axisEnd / cols;
+  // every position read counted as one: in a union it decodes a piece (a
+  // column's binary search read as 64 operations made steps of 11 ms at the
+  // budget, plan 3.6)
+  const search = POS_OPS * (Math.ceil(Math.log2(c.n + 1)) + 1);
   for (let col = 0, i = 0; col < cols && i < c.n; col++) {
     const hi = col === cols - 1 ? Infinity : (col + 1) * w;
     i = c.atOrAfter(col * w, false);
-    if ((ops.n += 64) >= STEP_OPS) { ops.n = 0; yield; }
-    if (i >= c.n || !(c.pos(i) < hi)) continue;
+    if ((ops.n += search) >= STEP_OPS) { ops.n = 0; yield; }
+    const p = i < c.n ? c.pos(i) : NaN;
+    if (!(p < hi)) continue;
     let near = true;
-    for (let j = i; j < c.n && c.pos(j) < hi; j++) {
+    for (let j = i; j < c.n && (j === i || c.pos(j) < hi); j++) {
       if (!c.near(j)) { near = false; break; }
-      if ((ops.n += 16) >= STEP_OPS) { ops.n = 0; yield; }
+      if ((ops.n += POS_OPS) >= STEP_OPS) { ops.n = 0; yield; }
     }
-    out.push({ pct: Math.min(100, (c.pos(i) / axisEnd) * 100), near });
+    out.push({ pct: Math.min(100, (p / axisEnd) * 100), near });
   }
   return out;
 }

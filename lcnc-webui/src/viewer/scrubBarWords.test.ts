@@ -26,7 +26,7 @@ function barComputed(name: string, refs: Record<string, unknown>) {
 /** The bar's collision inputs from a list of targets (plan 4.4): the index,
  *  the counts and the start pairs — the bar's own filter, on that list. */
 const clashRefs = (ts: ClashTarget[]) => ({
-  clashIndex: { value: clashIndexOfList(ts) }, clashCounts: { value: countTargets(ts) }, clashTicks, bandCols: { value: 1000 },
+  clashIndex: { value: clashIndexOfList(ts) }, clashCounts: { value: countTargets(ts) }, clashTicks, bandCols: { value: 1000 }, shownView: { value: null },
   startPairNames: { value: barComputed("startPairNames", { shownView: { value: { view: ts, lineAt: null } },
     startTargets: (l: ClashTarget[]) => l.flatMap((t, i) => (t.atStart ? [i] : [])), targetAt: (l: ClashTarget[], i: number) => l[i],
     isNearMiss, partLabel }) },

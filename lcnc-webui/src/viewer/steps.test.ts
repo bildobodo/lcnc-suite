@@ -1,7 +1,7 @@
 // Bounded steps (plan 3.6): the sort in steps against the engine's stable sort,
 // the work between two yields counted (never timed), and the runner's slices.
 import { describe, expect, it } from "vitest";
-import { runSteps, runToEnd, sortSteps, type Steps } from "./steps";
+import { STEP_OPS, copySteps, runSteps, runToEnd, sortSteps, type Steps } from "./steps";
 
 let seed = 3601;
 const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -94,5 +94,18 @@ describe("the runner: slices, a macrotask between them, cancel", () => {
     run.promise.then(() => { settled = true; }, () => { settled = true; });
     await Promise.resolve();
     expect(settled).toBe(false);
+  });
+});
+
+describe("a copy in bounded steps (plan 3.6)", () => {
+  it("copies every element, at most STEP_OPS between two yields, the work counted in the caller's count", () => {
+    const src = Array.from({ length: 3 * STEP_OPS + 17 }, (_, i) => i * 1.5);
+    const c = { n: 100 };
+    const job = copySteps(new Float64Array(src.length), src, c);
+    let yields = 0, r = job.next();
+    while (!r.done) { yields++; r = job.next(); }
+    expect(Array.from(r.value)).toEqual(src);
+    expect(yields, "one yield per STEP_OPS elements, the count it began with included").toBe(3);
+    expect(c.n).toBe((100 + src.length) % STEP_OPS);
   });
 });

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { ContactStore, IV_ENTER_DECIDED, IV_EXIT_DECIDED, NONE } from "./contactStore";
 import { lineMark, targetAt, targetEnd, tintAt, trackLineAt, viewCounts } from "./contactView";
-import type { GenerationTables } from "./contactsReceiver";
+import type { GenerationTables } from "./contactPublisher";
 import { shownContactView, specKey, type ShownSpec } from "./shownContacts";
 
 function tables(id: number, ivs: Array<[number, number]>, pairs: Array<[string, string]>): GenerationTables {

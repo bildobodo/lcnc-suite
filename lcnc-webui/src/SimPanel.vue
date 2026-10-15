@@ -128,15 +128,23 @@ async function fitSummary() {
     if (!el || el.scrollWidth <= el.clientWidth + 0.5) return;
   }
 }
+// A change of content is fitted in the next animation frame, before it
+// paints: measured in the task that changed it, the read forced the layout of
+// everything changed with it — the list's 400 new rows at a large first
+// arrival (plan 3.6). A resize is fitted where it is seen (after the layout).
+let _sumFitRaf = 0;
+function fitSummarySoon() {
+  if (!_sumFitRaf) _sumFitRaf = requestAnimationFrame(() => { _sumFitRaf = 0; void fitSummary(); });
+}
 const sumFit = typeof ResizeObserver === "function" ? new ResizeObserver(() => { void fitSummary(); }) : null;
 watch(summaryEl, (el, old) => {
   if (old) sumFit?.unobserve(old.parentElement ?? old);
-  if (el) { sumFit?.observe(el.parentElement ?? el); void fitSummary(); }
+  if (el) { sumFit?.observe(el.parentElement ?? el); fitSummarySoon(); }
 });
 watch(() => [simView.sweep?.result, simView.sweep?.coverage, simView.sweep?.short, simView.sweep?.caveat,
              sumClash.value.name, sumLimit.value.name, sumLimit.value.short, sumLimit.value.cut, sumTool.value.name],
-      () => { void fitSummary(); });
-onUnmounted(() => sumFit?.disconnect());
+      () => fitSummarySoon());
+onUnmounted(() => { sumFit?.disconnect(); cancelAnimationFrame(_sumFitRaf); });
 
 /** The row that is shown, else the next one ahead of the position. */
 const shown = (r: SimRow) => r.key === simView.shownKey;
@@ -270,8 +278,15 @@ function follow(animate: boolean) {
 // the rows shift under the scroll position. The row marked before keeps its
 // place on screen across the change, then the list glides as ever — never a
 // jump of the whole list.
+// The picture is kept in the task that changed the rows (every reader after
+// it sees the row where it was — it reads only when a row on screen was
+// anchored, never at a first list); the follow runs in the next animation
+// frame, before it paints: its read of the new rows' layout in the task that
+// made them forced the layout of every new row there — a long task at a
+// large first list (plan 3.6).
 let shownMarked: string | null = null;
 let anchor: { key: string; y: number } | null = null;
+let followRaf = 0;
 watch(rows, () => {
   anchor = null;
   const sc = scroller.value, key = shownMarked;
@@ -284,14 +299,17 @@ function restoreAnchor() {
   const tr = sc && a ? rowEl(sc, a.key) : null;
   if (sc && a && tr) sc.scrollTop += (tr.getBoundingClientRect().top - a.y) / cssZoomOf(sc);
 }
-watch([marked, rows], () => { restoreAnchor(); follow(true); shownMarked = marked.value; }, { flush: "post" });
+watch([marked, rows], () => {
+  restoreAnchor();
+  if (!followRaf) followRaf = requestAnimationFrame(() => { followRaf = 0; follow(true); shownMarked = marked.value; });
+}, { flush: "post" });
 // A hidden tab has no height: it catches up when it shows (or resizes).
 const sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => follow(false)) : null;
 watch(scroller, (el, old) => {
   if (old) sized?.unobserve(old);
   if (el) sized?.observe(el);
 });
-onUnmounted(() => { sized?.disconnect(); cancelAnimationFrame(glideRaf); });
+onUnmounted(() => { sized?.disconnect(); cancelAnimationFrame(glideRaf); cancelAnimationFrame(followRaf); });
 
 /** The panel itself, holding a parked focus, keeps the navigation keys —
  *  one that reached the shortcut map would jog. */

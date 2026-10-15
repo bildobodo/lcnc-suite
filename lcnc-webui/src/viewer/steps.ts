@@ -34,7 +34,9 @@ function defaultSchedule(): (f: () => void) => void {
 }
 
 /** Drives `job` in slices of about `sliceMs`, a macrotask between them. */
-export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f: () => void) => void; now?: () => number } = {}): StepRun<T> {
+export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f: () => void) => void; now?: () => number;
+                                                /** Called in the task the job ends in (the promise settles a microtask later). */
+                                                onDone?: (value: T) => void; onError?: (e: unknown) => void } = {}): StepRun<T> {
   const sliceMs = o.sliceMs ?? 8, schedule = o.schedule ?? defaultSchedule(), now = o.now ?? (() => performance.now());
   let cancelled = false, running = true;
   const promise = new Promise<T>((resolve, reject) => {
@@ -44,11 +46,11 @@ export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f:
       try {
         for (;;) {
           const r = job.next();
-          if (r.done) { running = false; resolve(r.value); return; }
+          if (r.done) { running = false; o.onDone?.(r.value); resolve(r.value); return; }
           if (cancelled) { running = false; return; }
           if (now() - t0 >= sliceMs) break;
         }
-      } catch (e) { running = false; reject(e); return; }
+      } catch (e) { running = false; o.onError?.(e); reject(e); return; }
       schedule(slice);
     };
     schedule(slice);
@@ -58,6 +60,17 @@ export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f:
     cancel() { cancelled = true; try { job.return(undefined as never); } catch { /* ended */ } },
     get running() { return running && !cancelled; },
   };
+}
+
+/** `src` copied into `out` (a typed array of its length), a bounded piece at
+ *  a time, the work counted in `c`: a budget's targets copied at once was one
+ *  step of ~20 ms in the browser (plan 3.6). */
+export function* copySteps<A extends { [i: number]: number; readonly length: number }>(out: A, src: ArrayLike<number>, c: { n: number }): Steps<A> {
+  for (let i = 0; i < src.length; i++) {
+    out[i] = src[i]!;
+    if (++c.n >= STEP_OPS) { c.n = 0; yield; }
+  }
+  return out;
 }
 
 /** The permutation of 0..n−1 that sorts by `cmp`, STABLE (equal elements keep

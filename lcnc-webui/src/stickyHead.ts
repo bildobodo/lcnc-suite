@@ -7,7 +7,10 @@ import type { Directive } from "vue";
  * or scrolled into view lands BELOW the head instead of under it (WCAG 2.4.11
  * Focus Not Obscured; operator 2026-09-27: the tool table's header lost parts
  * of itself to the scrolled rows). The height follows the head (touch
- * padding, zoom, a wrapping heading) through a ResizeObserver.
+ * padding, zoom, a wrapping heading) through a ResizeObserver — whose first
+ * notification comes after the layout, before the paint: a read at mount
+ * forced the layout of the whole new table in the task that made it (a long
+ * task when the Sim tab's list of 400 rows first arrives, plan 3.6).
  */
 const observers = new WeakMap<HTMLElement, ResizeObserver>();
 
@@ -21,7 +24,6 @@ export const vStickyHead: Directive<HTMLElement> = {
     const ro = new ResizeObserver(apply);
     ro.observe(head);
     observers.set(el, ro);
-    apply();
   },
   unmounted(el) {
     observers.get(el)?.disconnect();

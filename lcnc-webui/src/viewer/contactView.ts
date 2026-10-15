@@ -68,7 +68,7 @@ import {
 import type { ClashTarget } from "./clashTargets";
 import type { CollisionLineMark } from "./collision";
 import { JUMP_NUDGE } from "./findingNav";
-import { STEP_OPS, runToEnd, sortSteps, type Steps } from "./steps";
+import { STEP_OPS, copySteps, runToEnd, sortSteps, type Steps } from "./steps";
 
 /** One request's tables as a view reads them. */
 export interface ContactSource {
@@ -741,18 +741,26 @@ function ordinalInEpisode(v: ContactView, t: TableIndex, row: number): number {
 
 /** The furthest position a table's rows name — the least its sweep covered
  *  (a lower bound beside the coverage its pool reported). */
-function provenCoverage(st: ContactStore): number {
+function* provenCoverage(st: ContactStore, c: Ops): Steps<number> {
   let m = 0;
   const take = (x: number) => { if (x > m) m = x; };
   const E = st.episodes, I = st.intervals, G = st.gaps;
-  for (let e = 0; e < E.rows; e++) { take(E.get(e, "onset")); take(E.get(e, "closeAt")); const x = E.get(e, "end"); if (!Number.isNaN(x)) take(x); }
+  // every row read, in counted steps (a held budget's rows at once: a 16 ms step, plan 3.6)
+  for (let e = 0; e < E.rows; e++) {
+    take(E.get(e, "onset")); take(E.get(e, "closeAt")); const x = E.get(e, "end"); if (!Number.isNaN(x)) take(x);
+    if ((c.n += 3) >= STEP_OPS) { c.n = 0; yield; }
+  }
   for (let iv = 0; iv < I.rows; iv++) {
     take(I.get(iv, "enter")); take(I.get(iv, "witness"));
     const x = I.get(iv, "exit"), f = I.get(iv, "freeAt");
     if (!Number.isNaN(x)) take(x);
     if (!Number.isNaN(f)) take(f);
+    if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
   }
-  for (let g = 0; g < G.rows; g++) { take(G.get(g, "start")); const x = G.get(g, "end"); if (!Number.isNaN(x)) take(x); }
+  for (let g = 0; g < G.rows; g++) {
+    take(G.get(g, "start")); const x = G.get(g, "end"); if (!Number.isNaN(x)) take(x);
+    if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+  }
   return m;
 }
 
@@ -792,7 +800,7 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
         if (st.intervals.rows > ROW_MASK || st.episodes.rows > ROW_MASK) throw new Error("contactView: a table past 2^22 rows");
         // the earlier generation's coverage: how far its shard swept, else (and
         // at least) what its own rows prove
-        const ownCov = held ? Math.max(provenCoverage(st), source.heldCoverage?.[sh] ?? -Infinity) : own;
+        const ownCov = held ? Math.max(yield* provenCoverage(st, c), source.heldCoverage?.[sh] ?? -Infinity) : own;
         const cov = Math.min(source.at(ownCov), coverage);
         // the gaps on the own axis, by pair then start: their rows (a table
         // holds at most its gap budget — one sort, its work counted)
@@ -938,16 +946,34 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
       if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
     }
   }
-  const rKeys = Uint32Array.from(reach.keys()).sort();
-  const reachRef = rKeys, reachVal = Float64Array.from(rKeys, k => reach.get(k)!);
-  const tgt = yield* refList(Uint32Array.from(tR), Float64Array.from(tP), Float64Array.from(tE), c);
-  const aux = yield* refList(Uint32Array.from(aR), Float64Array.from(aP), Float64Array.from(aE), c);
+  // every copy and sort below in counted steps: a budget's lists copied at
+  // once were one step of ~20 ms in the browser (plan 3.6)
+  const keys0 = new Uint32Array(reach.size);
+  let kn = 0;
+  for (const k of reach.keys()) { keys0[kn++] = k; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+  const ko = yield* sortSteps(keys0.length, (x, y) => keys0[x]! - keys0[y]!);
+  const rKeys = new Uint32Array(ko.length), reachVal = new Float64Array(ko.length);
+  for (let k = 0; k < ko.length; k++) {
+    rKeys[k] = keys0[ko[k]!]!; reachVal[k] = reach.get(rKeys[k]!)!;
+    if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+  }
+  const reachRef = rKeys;
+  const typed = function* (R: readonly number[], P: readonly number[], E: readonly number[]) {
+    return yield* refList(yield* copySteps(new Uint32Array(R.length), R, c), yield* copySteps(new Float64Array(P.length), P, c),
+                          yield* copySteps(new Float64Array(E.length), E, c), c);
+  };
+  const tgt = yield* typed(tR, tP, tE);
+  const aux = yield* typed(aR, aP, aE);
   const ep = yield* refList(eRefs, eOn, eEnd, c);
   const np = yield* sortSteps(nearPairs.length, (x, y) => nearPairs[x]![0] - nearPairs[y]![0]);
-  const nearSorted = Array.from(np, i => nearPairs[i]!);
+  const nearCur = new Uint32Array(np.length), nearHeld = new Uint32Array(np.length);
+  for (let k = 0; k < np.length; k++) {
+    const x = nearPairs[np[k]!]!;
+    nearCur[k] = x[0]; nearHeld[k] = x[1];
+    if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+  }
   return { input, n: tgt.refs.length, tgt, aux, ep, tables, joined, reachRef, reachVal, unions, indexes, unionCounts,
-           nearCur: Uint32Array.from(nearSorted, x => x[0]), nearHeld: Uint32Array.from(nearSorted, x => x[1]),
-           conflicts: { count: conflicts, at: conflicts ? conflictAt : NaN } };
+           nearCur, nearHeld, conflicts: { count: conflicts, at: conflicts ? conflictAt : NaN } };
 }
 
 /** A reference's position on the shown axis (unchecked): an interval at its

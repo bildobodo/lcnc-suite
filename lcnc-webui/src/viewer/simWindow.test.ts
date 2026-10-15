@@ -8,9 +8,10 @@ import { TIMELINE_COLUMNS } from "./contactView";
 import { targetAfter, targetBefore, type NavSelection, type NavTarget } from "./findingNav";
 import { simRowOrder, type SimRowKind } from "./simRows";
 import {
-  LIST_WINDOW, MergedList, WINDOW_MARGIN, clashIndexOfList, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst,
-  type SimTargets,
+  LIST_WINDOW, MergedList, POS_OPS, WINDOW_MARGIN, clashIndexOfList, clashTicks, clashTicksSteps, nextTarget, stepTarget, windowCenter, windowFirst,
+  type ClashIndex, type SimTargets,
 } from "./simWindow";
+import { STEP_OPS } from "./steps";
 
 const KINDS: SimRowKind[][] = [["clash", "limit", "tool"], ["clash"], ["limit"], ["tool"], ["clash", "tool"], ["limit", "tool"]];
 let seed = 4401;
@@ -147,5 +148,26 @@ describe("the list on the index against the full list (plan 4.4)", () => {
     const many: ClashTarget[] = Array.from({ length: 20_000 }, (_, i) => ({ cum: i / 200, cumEnd: i / 200, key: `C${i}|0|0`, line: 1, a: "t", b: "w" }));
     const ticks = clashTicks(clashIndexOfList(many), 1e6, 100);
     expect(ticks.length).toBe(TIMELINE_COLUMNS);
+  });
+});
+
+// Plan 3.6: a position read through the index decodes an evidence piece in a
+// union — every one counts, or a column's binary search read as a flat 64 made
+// steps of 11 ms at the budget. The reads between two yields, counted.
+describe("the timeline's collision marks in bounded steps (plan 3.6)", () => {
+  it("every position read counts: a step reads at most the budget's share, in many columns and in one dense one", () => {
+    for (const [n, dense] of [[100_000, false], [100_000, true]] as Array<[number, boolean]>) {
+      let reads = 0;
+      const pos = (i: number) => { reads++; return dense ? 500 + i * 1e-6 : i * (1000 / n); };
+      const c: ClashIndex = { n, pos, end: pos, key: i => `C${i}`, near: () => true,
+        atOrAfter: (x, strict) => { let lo = 0, hi = n; while (lo < hi) { const m = (lo + hi) >> 1, p = pos(m); if (strict ? p <= x : p < x) lo = m + 1; else hi = m; } return lo; },
+        find: () => -1, target: () => { throw new Error("not read"); } };
+      const job = clashTicksSteps(c, 1200, 1000);
+      let worst = 0, ticks: Array<{ pct: number; near: boolean }> | null = null;
+      while (!ticks) { reads = 0; const r = job.next(); worst = Math.max(worst, reads); if (r.done) ticks = r.value; }
+      expect(worst, `${dense ? "one dense column" : "many columns"}: reads in one step`).toBeLessThanOrEqual(2 * Math.ceil(STEP_OPS / POS_OPS) + 2 * (Math.ceil(Math.log2(n + 1)) + 1));
+      expect(ticks.length).toBe(dense ? 1 : 1200);
+      expect(ticks.every(t => t.near)).toBe(true);
+    }
   });
 });

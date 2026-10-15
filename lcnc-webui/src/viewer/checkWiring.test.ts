@@ -19,8 +19,7 @@ import { basisFromLive, type CheckBasis } from "./checkBasis";
 import { ContactStore, NONE } from "./contactStore";
 import { buildContactView, contactBands, lineMark, targetAt, tintAt, trackLineAt, viewCounts } from "./contactView";
 import { shownContactView } from "./shownContacts";
-import type { GenerationTables } from "./contactsReceiver";
-import { ContactsReceiver, contactOwners } from "./contactsReceiver";
+import { ContactPublisher, contactOwners, type GenerationTables } from "./contactPublisher";
 
 function viewerFns(names: string[], prelude: string, refs: Record<string, unknown>, exports: string[] = []): Record<string, any> {
   const file = fs.readFileSync(path.resolve(__dirname, "../ThreeViewer.vue"), "utf8");
@@ -48,11 +47,21 @@ const result = (hits: CollisionHit[], over: Partial<CollisionResult> = {}): Coll
  *  handler a worker message of request `_colReqId`; `nextRequest` is a new
  *  request (its id). */
 function owner() {
-  return viewerFns(["_colGetWorker", "_colShowFirst", "_colEmitMarks"], `
+  return viewerFns(["_colGetWorker", "_colOnMessage", "_colKick", "_colShowFirst", "_colEmitMarks"], `
     let _colWorker = null, _colModelSent = null, _colSide = null, _colReqId = 12, _colKeepShown = false, _colFirstHeld = null;
     // the contact tables (round B3): none in this harness — the marks read them, so they say nothing here
     let _colPartialReq = null;
-    const _contactsBump = () => {}, contactViewFor = () => null, _lineRunsOf = () => null;
+    const contactViewFor = () => null, _lineRunsOf = () => null, colShown = { value: null };
+    // the publisher as the viewer has it (plan 3.6): a request's messages are
+    // taken in a pass and published with what is shown; the code panel's
+    // marks follow the publication (the viewer's contactsVersion watcher). On
+    // a clock that stands every pass is one slice, run at once.
+    const CONTACTS_VIEW_MS = 500, _contactsLog = { messages: 0, acks: 0, maxDeltaRows: 0 };
+    let _contactsTimer;
+    const _contacts = new ContactPublisher({ tracks: () => [], specOf: () => null, *build() { return null; }, effect: m => _colOnMessage(m),
+      stage: () => ({ result: collisionResultShown.value, track: collisionTrack.value, partialTrack: collisionPartialTrackShown.value }),
+      publish: s => { colShown.value = s; _colEmitMarks(); }, ack: () => {}, owners: () => new Set([_colReqId]), now: () => 0, schedule: f => f() });
+    const _intervalRows = () => 0;
     const collisionResult = { value: null }, collisionTrack = { value: null }, collisionPartialTrackShown = { value: null };
     const TRACK = {};
     let _colPendingTrack = TRACK;
@@ -69,7 +78,7 @@ function owner() {
     const post = (data) => _colGetWorker().onmessage({ data });
     const shown = () => collisionPartial.value;
     const nextRequest = () => ++_colReqId;`,
-    { holdsFirst, withFirstContact, firstOnly }, ["post", "shown", "nextRequest", "emitted", "newTrack"]);
+    { holdsFirst, withFirstContact, firstOnly, ContactPublisher }, ["post", "shown", "nextRequest", "emitted", "newTrack"]);
 }
 const words = (r: CollisionResult | null) => findingWords(clashTargets(r?.hits ?? []));
 const running = (hits: CollisionHit[], covered = 0.1) => result(hits, { truncated: { covered, reason: "running" } });
@@ -140,10 +149,10 @@ describe("the first confirmed contact at once, through the viewer's worker handl
     const ui = owner();
     const newer = hit(7, 0, { cumEnd: 30 });
     ui.post({ id: 12, progress: 0.3, partial: running([newer], 0.3) });
-    const before = ui.emitted.length;
+    const before = ui.shown();
     ui.post({ id: 12, progress: 0.2, first: hit(7, 0, { cumEnd: 7 }) });
     expect(ui.shown().hits).toEqual([newer]);
-    expect(ui.emitted.length, "nothing redrawn").toBe(before);
+    expect(ui.shown(), "the shown partial stays as it was").toBe(before);
   });
   it("positive controls: another onset's near miss stays beside it; progress and a stale request's partial change nothing", () => {
     const ui = owner();
@@ -238,7 +247,7 @@ describe("the side sweep's first contact on the entry track (Codex R136 VP-I93)"
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
     const emitTelemetry = () => {}, _colRetint = () => {}, _colPostSide = () => {}, _colRunSideFailed = () => {}, _colEmitMarks = () => {};
     let _colSideProgress = 0;
-    const _contactsBump = () => {}, _sliceEnd = (t) => t.count ? t.cum[t.count - 1] : 0;
+    const _sliceEnd = (t) => t.count ? t.cum[t.count - 1] : 0;
     const _colRunLog = [];
     const post = (data) => _colOnSideMessage({ id: -1, ...data });
     const entryShown = () => collisionEntryResult.value;`,
@@ -323,30 +332,75 @@ describe("the card's context, taken at the request (step 4 plan 1c, _colContextF
 // tables and its waiting deltas go at once — not with a later message. The
 // viewer's own cancelCollisionCheck, owner set and release, as written.
 describe("a cancel releases what no one shows (Codex R148 VP-I106)", () => {
-  const harness = () => viewerFns(["cancelCollisionCheck", "_colReleaseContacts", "_colContactOwners"], `
+  const harness = () => viewerFns(["cancelCollisionCheck", "_colReleaseContacts", "_colContactOwners", "_colKick"], `
     let _colWorker = { postMessage() {} }, _colReqId = 7, _colSide = null, _colStopPending = false, _colSettleTimer, _colStartedAt = 0;
     let _colResultReq = null;
     const collisionBusy = { value: true }, collisionResumable = { value: false }, collisionProgress = { value: 0.3 };
     const collisionPartial = { value: null }, collisionStopped = { value: null }, collisionResult = { value: null };
     const collisionEntry = { value: null }, collisionRunSide = { value: null }, collisionSideFirst = { value: null };
-    const _pendingContacts = [], emitTelemetry = () => {};
-    const _contacts = new ContactsReceiver();
+    const emitTelemetry = () => {};
+    const CONTACTS_VIEW_MS = 500, acks = [];
+    let _contactsTimer;
+    // the publisher as the viewer has it, its owners the viewer's; a pass runs at once
+    const _contacts = new ContactPublisher({ tracks: () => [], specOf: () => null, *build() { return null; }, effect: () => {}, stage: () => ({}), publish: () => {},
+      ack: a => acks.push(a), owners: () => _colContactOwners(), now: () => 0, schedule: f => f() });
     const show = (id) => { collisionResult.value = { hits: [] }; _colResultReq = id; };
-    const reqId = () => _colReqId;`, { ContactsReceiver, contactOwners }, ["_contacts", "_pendingContacts", "show", "reqId"]);
-  const table = (id: number) => { const st = new ContactStore(id, 0); st.episodes.append({ pair: 0, ordinal: 0, onset: 1, end: 2, closeAt: 1, closeDist: 1, firstIv: NONE, ivCount: 0 }); return st.takeDelta()!; };
-  it("a running request cancelled: its tables and waiting deltas go", () => {
-    const f = harness();
-    f._contacts.apply({ id: 7, contacts: [table(7)] });
-    f._pendingContacts.push({ id: 7, contacts: [table(7)] });
+    const reqId = () => _colReqId;`, { ContactPublisher, contactOwners }, ["_contacts", "acks", "show", "reqId"]);
+  const sender = (id: number) => {
+    const st = new ContactStore(id, 0);
+    return () => { st.episodes.append({ pair: 0, ordinal: st.episodes.rows, onset: 1, end: 2, closeAt: 1, closeDist: 1, firstIv: NONE, ivCount: 0 });
+                   const d = st.takeDelta()!; st.ack(); return d; };
+  };
+  it("a running request cancelled: its tables, its waiting deltas and their tickets go", () => {
+    const f = harness(), next = sender(7);
+    f._contacts.receive({ id: 7, contacts: [next()] });
+    f._contacts.kick(true);
+    expect([f._contacts.ids(), f.acks.length], "taken, caught up, acknowledged").toEqual([[7], 1]);
+    f._contacts.receive({ id: 7, contacts: [next()] });   // waiting for the next pass
     f.cancelCollisionCheck();
-    expect([f.reqId(), f._contacts.ids(), f._pendingContacts.length]).toEqual([8, [], 0]);
+    expect([f.reqId(), f._contacts.ids(), f._contacts.pending, f.acks.length], "its cancel went out: nothing acknowledged for it").toEqual([8, [], false, 1]);
   });
   it("a result still shown keeps its request's tables through the cancel", () => {
-    const f = harness();
-    f._contacts.apply({ id: 7, contacts: [table(7)] });
+    const f = harness(), next = sender(7);
+    f._contacts.receive({ id: 7, contacts: [next()] });
+    f._contacts.kick(true);
     f.show(7);
     f.cancelCollisionCheck();
     expect(f._contacts.ids()).toEqual([7]);
+    expect(f._contacts.tablesOf(7)!.pub!.stores[0]!.episodes.rows).toBe(1);
+  });
+});
+
+// Plan 3.6: a pass's own effects never mark it again — while it takes and
+// builds, its publication stages the state then; after it, a change of what
+// the bar shows starts the next pass. The viewer's own rule, as written.
+describe("what the bar shows changes outside a pass (plan 3.6, _colOnStageChange)", () => {
+  const harness = (pub: { running: boolean; phase: number; shown: Record<string, unknown> | null }) => viewerFns(["_colOnStageChange", "_colKick"], `
+    const CONTACTS_VIEW_MS = 500;
+    let _contactsTimer;
+    const log = [];
+    const _contacts = { ...PUB, lastPassMs: 0, markDirty: () => log.push("dirty"), kick: () => log.push("kick") };`,
+    { PUB: pub }, ["log"]);
+  const A = { busy: true, progress: 0.2 }, B = { busy: true, progress: 0.3 };
+  it("while a pass takes or builds: nothing — its publication stages the state then", () => {
+    for (const phase of [1, 2]) {
+      const f = harness({ running: true, phase, shown: A });
+      f._colOnStageChange(B);
+      expect(f.log, `phase ${phase}`).toEqual([]);
+    }
+  });
+  it("after the publication (catching up) or between passes: a changed state starts the next pass; an unchanged one nothing", () => {
+    for (const pub of [{ running: true, phase: 4 }, { running: false, phase: 0 }]) {
+      const f = harness({ ...pub, shown: A });
+      f._colOnStageChange(B);
+      expect(f.log).toEqual(["dirty", "kick"]);
+      const g = harness({ ...pub, shown: A });
+      g._colOnStageChange({ ...A });
+      expect(g.log, "every value the same").toEqual([]);
+    }
+    const first = harness({ running: false, phase: 0, shown: null });
+    first._colOnStageChange(A);
+    expect(first.log, "nothing published yet").toEqual(["dirty", "kick"]);
   });
 });
 
@@ -363,7 +417,8 @@ function specs(o: { run: boolean; done: boolean; progress: number }) {
     const collisionRun = { value: { gen: 1 } }, collisionRunSide = { value: null }, collisionSideFirst = { value: null }, collisionEntry = { value: null };
     const collisionResult = { value: { truncated: null } }, collisionTrack = { value: base };
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
-    let _colResultReq = 1, _colPartialReq = null, _colReqId = 1, _viewProgress = 1, _viewSideProgress = o.progress;
+    let _colResultReq = 1, _colPartialReq = null, _colReqId = 1, _colSideProgress = o.progress;
+    const collisionProgress = { value: 1 };
     const _colRunSideBase = () => null;
     const shift = 10, sliceEnd = 10;
     if (o.run) {

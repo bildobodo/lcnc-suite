@@ -56,10 +56,11 @@ import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./vi
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { clashTargets } from "./viewer/clashTargets";
-import { ContactsReceiver, contactOwners } from "./viewer/contactsReceiver";
+import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
-import { lineMark, lineRuns, runsOf, tintAt, trackLineAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
-import { shownContactView, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
+import { contactBandsSteps, lineMark, lineRuns, runsOf, startTargetsSteps, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
+import { clashIndexOfView, clashTicksSteps } from "./viewer/simWindow";
+import { shownContactViewSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
 import { findingWords, wordsOfCounts } from "./viewer/sweepWords";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
@@ -2261,7 +2262,7 @@ async function buildFromInit(init: ViewerInit) {
         // the rows, the pairs named, the deltas; the memory they take.
         getContacts: () => {
           const one = (id: number) => {
-            const cur = _contacts.current(id), held = _contacts.held(id);
+            const tb = _contacts.tablesOf(id), cur = tb?.pub ?? null, held = tb?.held ?? null;
             const rows = (t: typeof cur) => t ? t.stores.reduce((a, st) => ({ episodes: a.episodes + st.episodes.rows,
               intervals: a.intervals + st.intervals.rows, gaps: a.gaps + st.gaps.rows }), { episodes: 0, intervals: 0, gaps: 0 }) : null;
             return cur ? { id, generation: cur.generation, shards: cur.stores.length, pairs: cur.pairs?.length ?? 0,
@@ -2272,7 +2273,9 @@ async function buildFromInit(init: ViewerInit) {
           return { main: one(_colReqId), side: _colSide ? one(_colSide.id) : null,
                    entry: collisionEntry.value ? { id: collisionEntry.value.id, tables: one(collisionEntry.value.id) } : null,
                    runSide: collisionRunSide.value ? { id: collisionRunSide.value.id, tables: one(collisionRunSide.value.id) } : null,
-                   ids: _contacts.ids(), stats: _contacts.stats(), dropped: _contacts.dropped, ...(_contactsLog) };
+                   ids: _contacts.ids(), stats: _contacts.stats(), dropped: _contacts.dropped, ...(_contactsLog),
+                   passes: _contacts.passes, discards: _contacts.discards, publications: _contacts.version, lastPassMs: _contacts.lastPassMs,
+                   running: _contacts.running, pending: _contacts.pending, phase: _contacts.phase, longestStepMs: _contacts.longestStepMs.slice() };
         },
         // The bodies the clash tint lights now (round B3: from the contact view).
         getClashTint: () => [..._clashOnIds].sort(),
@@ -2280,7 +2283,7 @@ async function buildFromInit(init: ViewerInit) {
         // the request in flight's.
         getContactRows: (which: "result" | "main" = "result") => {
           const id = which === "main" ? _colReqId : (_colResultReq ?? _colReqId);
-          const cur = _contacts.current(id);
+          const cur = _contacts.tablesOf(id)?.pub ?? null;
           if (!cur) return null;
           return cur.stores.flatMap(st => {
             const E = st.episodes, I = st.intervals, out = [];
@@ -2358,8 +2361,8 @@ async function buildFromInit(init: ViewerInit) {
             st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: c, exit: c,
               flags: IV_ENTER_DECIDED | IV_EXIT_DECIDED | (h.possible ? IV_POSSIBLE : 0), next: NONE, witness: c, freeAt: NaN }));
           });
-          _contacts.inject(_colResultReq, [st], [["tool", "table"]]);
-          _contactsBump(true);
+          _contacts.inject(_colResultReq, [st], [["tool", "table"]], x => x.copy());
+          _colKick(true);
           return true;
         },
         getAppearance: () => ({
@@ -2945,10 +2948,49 @@ function _pfWcs(): PartFrameWcs {
 const COLLISION_MARGIN_MM = 2;
 let _colWorker: Worker | null = null;
 let _colReqId = 0;
-// The contact tables of step 4 package 2 (round B2): every request asks the
-// sweep for them, the deltas land here and are acknowledged by their own
-// generation; the views still read the records until round B3 switches them.
-const _contacts = new ContactsReceiver();
+// The contact tables of step 4 package 2: every request asks the sweep for
+// them; they land in two copies per request, the views are built from the
+// work copy in bounded steps and published with what the bar shows, the
+// other copy catches up and only then are the deltas acknowledged (plan 3.6,
+// viewer/contactPublisher.ts).
+/** What the bar shows of the check — published with the views it reads, never ahead of them (plan 3.6). */
+interface ColShown {
+  busy: boolean; progress: number; result: CollisionResult | null; track: ScrubTrack | null;
+  stopped: { covered: number; reason: "motion" } | null; resumable: boolean;
+  partial: CollisionResult | null; partialTrack: ScrubTrack | null;
+  entryResult: { track: ScrubTrack; result: CollisionResult; checking?: boolean } | null;
+  previous: { collisions: number; text: string; complete: boolean; version: number | null } | null;
+  context: CheckContext | null; contextStale: boolean; runCheck: typeof collisionRunCheckView.value;
+}
+const _contacts: ContactPublisher<ScrubTrack, ShownContacts, ColShown> = new ContactPublisher<ScrubTrack, ShownContacts, ColShown>({
+  // every track _colViewSpec may show something on: the result's, the
+  // partial's, the one a run check's beginning stands on, the entry track
+  tracks: () => {
+    const sf = collisionSideFirst.value;
+    return [collisionTrack.value, collisionPartialTrack.value, _colRunSideBase()?.trk, collisionEntry.value?.track, sf && !sf.run ? sf.entry : null]
+      .filter((t): t is ScrubTrack => !!t);
+  },
+  specOf: trk => {
+    const spec = trk.count >= 1 ? _colViewSpec(trk) : null;
+    if (!spec) return null;
+    return { key: `${specKey(spec)}|${_colTimelineCols}`, ids: [spec.base?.id, spec.side?.id].filter((x): x is number => x != null), spec };
+  },
+  *build(trk, spec, tables, held) {
+    const view = yield* shownContactViewSteps(tables, spec as ShownSpec, undefined, held);
+    if (!view) return null;
+    const lineAt = _lineAtOf(trk), cols = _colTimelineCols, axisEnd = _sliceEnd(trk);
+    const counts = yield* viewCountsSteps(view);
+    const starts = yield* startTargetsSteps(view);
+    const ticks = yield* clashTicksSteps(clashIndexOfView(view, lineAt), cols, axisEnd);
+    const bands = yield* contactBandsSteps(view, cols, axisEnd);
+    return { view, lineAt, derived: { counts, starts, ticks, bands, cols, axisEnd } };
+  },
+  effect: m => _colOnMessage(m as never),
+  stage: () => _colStage(),
+  publish: s => { colShown.value = s; contactsVersion.value++; },
+  ack: a => { _colWorker?.postMessage(a); _contactsLog.acks++; },
+  owners: () => _colContactOwners(),
+});
 /** Whose contact tables stay (Codex R147 VP-I106): the request and side run
  *  in flight and every request behind what is shown. */
 function _colContactOwners(): Set<number> {
@@ -3176,47 +3218,54 @@ const collisionPartialTrackShown = computed(() => collisionPartial.value ? colli
 // partial cadence, at once for a request's first touch and for a result.
 const CONTACTS_VIEW_MS = 500;
 const contactsVersion = ref(0);
+/** What the bar shows, published with the views (plan 3.6); null before the first. */
+const colShown = shallowRef<ColShown | null>(null);
+/** The bar's timeline columns (its marks and bands are built at them). */
+let _colTimelineCols = 1024;
 let _contactsTimer: ReturnType<typeof setTimeout> | undefined;
-/** The progress the views were built with — a snapshot, never live. */
-let _viewProgress = 0, _viewSideProgress = 0;
-/** Deltas waiting for the next rebuild, in arrival order (Codex R148
- *  VP-I107). Each holds its path: the worker sends the next only after the
- *  acknowledgement, its changes waiting as marks in its own table. */
-const _pendingContacts: Array<{ id: number; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
-                                 heldCoverage?: { generation: number; covered: number[] } }> = [];
-/** How long the last rebuild took: the cadence follows it — a table the size
- *  of a real program's rebuilds at once, only a budget-size one waits. */
-let _lastViewBuildMs = 0;
-/** Apply every waiting delta of a request someone owns, acknowledge it, and
- *  bump the version: the tables and the views change in one step. */
-function _contactsFire() {
-  clearTimeout(_contactsTimer);
-  _contactsTimer = undefined;
-  const owners = _colContactOwners();
-  _contacts.keepOnly(owners);
-  for (const p of _pendingContacts.splice(0)) {
-    if (!owners.has(p.id)) continue;   // superseded: its cancel went out
-    const ack = _contacts.apply(p);
-    if (ack) { _colWorker?.postMessage(ack); _contactsLog.acks++; }
-  }
-  _viewProgress = collisionProgress.value;
-  _viewSideProgress = _colSideProgress;
-  contactsVersion.value++;
+/** A pass now (its first slice in this task: a small table publishes at
+ *  once) or, for progress and plain deltas, at the cadence the last pass
+ *  allows — a table the size of a real program's publishes at once, only a
+ *  budget-size one waits. */
+function _colKick(urgent: boolean) {
+  const hold = Math.min(CONTACTS_VIEW_MS, 10 * _contacts.lastPassMs);
+  if (urgent || hold < 1) { clearTimeout(_contactsTimer); _contactsTimer = undefined; _contacts.kick(true); return; }
+  if (_contactsTimer === undefined) _contactsTimer = setTimeout(() => { _contactsTimer = undefined; _contacts.kick(true); }, hold);
 }
-function _contactsBump(now: boolean) {
-  const hold = Math.min(CONTACTS_VIEW_MS, 10 * _lastViewBuildMs);
-  if (now || hold < 1) { _contactsFire(); return; }
-  if (_contactsTimer === undefined) _contactsTimer = setTimeout(_contactsFire, hold);
+/** What the bar shows now, as the next publication will carry it. */
+function _colStage(): ColShown {
+  return { busy: collisionBusy.value, progress: collisionProgress.value, result: collisionResultShown.value, track: collisionTrack.value,
+           stopped: collisionStopped.value, resumable: collisionResumable.value, partial: collisionPartialShown.value,
+           partialTrack: collisionPartialTrackShown.value, entryResult: collisionEntryResult.value, previous: collisionPrevious.value,
+           context: collisionContext.value, contextStale: collisionContextStale.value, runCheck: collisionRunCheckView.value };
+}
+// Something the bar shows changed outside a pass (a new request, a cancel, a
+// program change): the next pass publishes it. While a pass takes and builds,
+// its publication stages the state then (and begins its build anew when what
+// is shown changed under it) — a pass's own effects never mark it again.
+function _colOnStageChange(now: ColShown) {
+  if (_contacts.running && _contacts.phase <= 2) return;
+  const was = _contacts.shown;
+  if (was && (Object.keys(now) as Array<keyof ColShown>).every(k => now[k] === was[k])) return;
+  _contacts.markDirty();
+  _colKick(true);
+}
+watch(() => _colStage(), _colOnStageChange);
+/** The bar's timeline width in columns: its marks and bands are built at it. */
+function onTimelineColumns(n: number) {
+  if (n === _colTimelineCols) return;
+  _colTimelineCols = n;
+  _contacts.markDirty();
+  _colKick(false);
 }
 /** A request moved on or a side run was replaced (Codex R148 VP-I106): what
- *  no one owns goes now — its tables and its waiting deltas. */
+ *  no one owns goes now — its tables, its queued messages, its tickets. */
 function _colReleaseContacts() {
-  const owners = _colContactOwners();
-  _contacts.keepOnly(owners);
-  for (let i = _pendingContacts.length - 1; i >= 0; i--) if (!owners.has(_pendingContacts[i]!.id)) _pendingContacts.splice(i, 1);
+  _contacts.release();
+  _colKick(true);
 }
 function _intervalRows(id: number): number {
-  return _contacts.current(id)?.stores.reduce((n, st) => n + st.intervals.rows, 0) ?? 0;
+  return _contacts.tablesOf(id)?.work?.stores.reduce((n, st) => n + st.intervals.rows, 0) ?? 0;
 }
 function _sliceEnd(t: ScrubTrack): number { return t.count ? t.cum[t.count - 1]! : 0; }
 const _lineAtCache = new WeakMap<ScrubTrack, LineAt>();
@@ -3240,10 +3289,10 @@ function _colBaseSpec(trk: ScrubTrack): ShownSource | null {
     return _colResultReq === null ? null : { id: _colResultReq, map: null, coverage: end * (r.truncated ? r.truncated.covered : 1), ownEnd: end };
   }
   if (collisionPartial.value && collisionPartialTrack.value === trk) {
-    return _colPartialReq === null ? null : { id: _colPartialReq, map: null, coverage: end * _viewProgress, ownEnd: end };
+    return _colPartialReq === null ? null : { id: _colPartialReq, map: null, coverage: end * collisionProgress.value, ownEnd: end };
   }
   const s = _colRunSideBase();
-  return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * _viewProgress, ownEnd: end } : null;
+  return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * collisionProgress.value, ownEnd: end } : null;
 }
 /** How far a side result swept its own track: all of it, else what its
  *  `truncated` names (a stop, its budget) — an answer is not a whole check
@@ -3263,7 +3312,7 @@ function _colRunSideSpec(trk: ScrubTrack): ShownSource | null {
   }
   const sf = collisionSideFirst.value;
   if (sf?.run && sf.base === trk && gen === sf.run.gen) {
-    const own = _viewSideProgress * sf.sliceEnd;
+    const own = _colSideProgress * sf.sliceEnd;
     return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, own - sf.shift), ownCoverage: own, ownEnd: sf.sliceEnd,
              entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, track: sf.entry };
   }
@@ -3277,7 +3326,7 @@ function _colViewSpec(trk: ScrubTrack): ShownSpec | null {
   if (base) return { base, side: _colRunSideSpec(trk), axisEnd: _sliceEnd(trk) };
   const e = collisionEntry.value, sf = collisionSideFirst.value;
   const ent = e ? { id: e.id, track: e.track, base: e.base, shift: e.shift, sliceEnd: e.sliceEnd, covered: _sideCovered(e.result), whole: !e.result.truncated }
-    : sf && !sf.run ? { id: sf.id, track: sf.entry, base: sf.base, shift: sf.shift, sliceEnd: sf.sliceEnd, covered: _viewSideProgress, whole: false } : null;
+    : sf && !sf.run ? { id: sf.id, track: sf.entry, base: sf.base, shift: sf.shift, sliceEnd: sf.sliceEnd, covered: _colSideProgress, whole: false } : null;
   if (!ent || ent.track !== trk) return null;
   const b = _colBaseSpec(ent.base);
   if (!b) return null;   // no entry overlay without its base (collisionEntryResult)
@@ -3286,26 +3335,18 @@ function _colViewSpec(trk: ScrubTrack): ShownSpec | null {
                    entryEnd: ent.track.cum[1], sweptToEnd: ent.whole },
            axisEnd: _sliceEnd(trk) };
 }
-const _viewCache = new WeakMap<ScrubTrack, { key: string; v: ShownContacts | null }>();
-/** The contact view of what `trk` shows (null: nothing), and the track's
- *  line at a position. Rebuilt when the tables' version or what is shown
- *  changes; reactive inside a computed. */
+/** The published contact view of `trk` (null: nothing), and the track's line
+ *  at a position — what the last publication showed on it; a track shown
+ *  anew is built by the pass its change starts. Reactive inside a computed
+ *  through the publication's version. */
 function contactViewFor(trk: ScrubTrack | null): ShownContacts | null {
   if (!trk || trk.count < 1) return null;
-  const ver = contactsVersion.value;
-  const spec = _colViewSpec(trk);
-  if (!spec) return null;
-  const key = `${ver}|${specKey(spec)}`;
-  const c = _viewCache.get(trk);
-  if (c && c.key === key) return c.v;
-  const t0 = performance.now();
-  const view = shownContactView(id => _contacts.current(id), spec, undefined, id => _contacts.held(id));
-  _lastViewBuildMs = performance.now() - t0;
-  const v = view ? { view, lineAt: _lineAtOf(trk) } : null;
-  _viewCache.set(trk, { key, v });
-  return v;
+  void contactsVersion.value;
+  return _contacts.viewOf(trk);
 }
-// a new view: the code panel's marks and the tint follow
+// a publication: the code panel's marks and the tint follow — the one place
+// they change with a message (a worker message's effects are published with
+// its tables, plan 3.6)
 watch(contactsVersion, () => { _colEmitMarks(); _colRetint(); });
 // What is shown changed: the tables no one reads any more go at once — not
 // with the next message, which may never come (a replaced entry result after
@@ -3314,17 +3355,13 @@ watch([collisionResult, collisionEntry, collisionRunSide, collisionSideFirst], (
 /** The code panel's marks of what is shown: a query per visible line (plan
  *  4.2), a new function per change. */
 function _colEmitMarks() {
-  const trk = collisionResult.value ? collisionTrack.value : collisionPartialTrackShown.value;
+  const sh = colShown.value;
+  const trk = sh?.result ? sh.track : sh?.partialTrack ?? null;
   const sv = contactViewFor(trk);
   if (!sv || !trk) { emit("collision-lines", null); return; }
   const runs = _lineRunsOf(trk);
   emit("collision-lines", (line: number) => lineMark(sv.view, line, runsOf(runs, line), sv.lineAt));
 }
-// A run's side sweep ended without a result: its early contact leaves the
-// marks and the tint too (every path that ends it clears collisionSideFirst).
-watch(collisionSideFirst, (now, before) => {
-  if (before?.run && !now) { _colEmitMarks(); _colRetint(); }
-});
 const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResult; checking?: boolean } | null>(() => {
   // the entry move's result, or — while its side sweep runs — the first
   // contact it found (Codex R136 VP-I93), said still checking
@@ -3342,7 +3379,7 @@ const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResu
 function _colPreviousOf(prev: CollisionResult, version: number | null) {
   const sv = contactViewFor(collisionTrack.value);
   // counted from the view's index (plan 4.4), never a list of every target
-  if (sv) return { collisions: sv.view.n, text: wordsOfCounts(viewCounts(sv.view)).text, complete: !prev.truncated, version };
+  if (sv) return { collisions: sv.view.n, text: wordsOfCounts(sv.derived?.counts ?? viewCounts(sv.view)).text, complete: !prev.truncated, version };
   console.warn("[contacts] the earlier preview's verdict from its records — its contact tables are gone");
   const targets = clashTargets(prev.hits);
   return { collisions: targets.length, text: findingWords(targets).text, complete: !prev.truncated, version };
@@ -3367,8 +3404,6 @@ function _colShowFirst(first: CollisionHit, progress?: number) {
   _colPartialReq = _colReqId;
   collisionPartial.value = shown;
   collisionPartialTrack.value = _colPendingTrack;
-  _colEmitMarks();
-  _colRetint();
 }
 
 function _colGetWorker(): Worker {
@@ -3376,32 +3411,45 @@ function _colGetWorker(): Worker {
     _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean;
-                             contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
-                             heldCoverage?: { generation: number; covered: number[] } };
-      if (m.heldCoverage) {
-        // a pool fell back: its generation's coverage, in order with its tables
-        if (m.id === _colReqId || (_colSide && m.id === _colSide.id)) { _pendingContacts.push({ id: m.id, heldCoverage: m.heldCoverage }); _contactsBump(true); }
-        return;
-      }
+      const m = ev.data as ColMessage;
+      const mine = m.id === _colReqId || (!!_colSide && m.id === _colSide.id);
+      // a superseded request's (its cancel went out), the bodies again, our
+      // own cancel: at once — everything else of a request's path goes
+      // through the publisher, its effects taken in order with its tables
+      // (plan 3.6: what the bar shows never runs ahead of them)
+      if (!mine || m.needBodies || m.cancelled) { _colOnMessage(m); return; }
+      let first = false;
       if (m.contacts) {
-        // the tables of the current request or the current side run; a
-        // superseded one's are no one's (its cancel went out)
-        if (m.id === _colReqId || (_colSide && m.id === _colSide.id)) {
-          // waits, unapplied and unacknowledged, for the next rebuild (Codex
-          // R148 VP-I107: the tables change only where the view is built anew)
-          const first = _intervalRows(m.id) === 0 && !_pendingContacts.some(p => p.id === m.id && p.contacts?.some(d => d.intervals.count > 0))
-            && m.contacts.some(d => d.intervals.count > 0);
-          _pendingContacts.push({ id: m.id, contacts: m.contacts, ...(m.contactPairs ? { contactPairs: m.contactPairs } : {}) });
-          _contactsLog.messages++;
-          _contactsLog.maxDeltaRows = Math.max(_contactsLog.maxDeltaRows,
-            m.contacts.reduce((n, d) => n + d.episodes.count + d.intervals.count + d.gaps.count, 0));
-          // at once for a request's first touch and for a result (plan 1b,
-          // 4.5), else at the partial cadence
-          _contactsBump(!!(m.result || m.stopped) || first);
-        }
-        if (m.progress == null && !m.result && !m.stopped && !m.first && !m.error) return;   // a delta alone
+        // a request's first touch shows at once (plan 1b, 4.5)
+        first = _intervalRows(m.id) === 0 && m.contacts.some(d => d.intervals.count > 0);
+        _contactsLog.messages++;
+        _contactsLog.maxDeltaRows = Math.max(_contactsLog.maxDeltaRows,
+          m.contacts.reduce((n, d) => n + d.episodes.count + d.intervals.count + d.gaps.count, 0));
       }
+      _contacts.receive(m as PublisherMessage);
+      _colKick(!!(m.result || m.stopped || m.first || m.error || m.heldCoverage) || first);
+    };
+    // A worker-level failure (module load, OOM, uncaught throw) never
+    // replies — without this the busy flag stayed set and the Check chip
+    // read 0% until a program change (the part-frame worker already had it).
+    _colWorker.onerror = (ev: ErrorEvent) => {
+      console.error("[collision] worker error:", ev.message);
+      emitTelemetry("collision.sweep_failed", { msg: `worker error: ${ev.message}` });
+      _colFail();
+    };
+  }
+  return _colWorker;
+}
+/** A message of the collision worker. */
+type ColMessage = { id: number; progress?: number; partial?: CollisionResult; first?: CollisionHit; error?: string; result?: CollisionResult;
+                    needBodies?: boolean; cancelled?: boolean; stopped?: boolean; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
+                    heldCoverage?: { generation: number; covered: number[] } };
+
+/** A worker message's effects on the live state — for a request's path when
+ *  a pass takes it (its deltas are in the tables then), at once otherwise. */
+function _colOnMessage(m: ColMessage) {
+      if (m.heldCoverage && m.progress == null && !m.result) return;   // tables only
+      if (m.contacts && m.progress == null && !m.result && !m.stopped && !m.first && !m.error) return;   // a delta alone
       if (_colSide && m.id === _colSide.id) { _colOnSideMessage(m); return; }
       if (m.id !== _colReqId) return;  // superseded
       if (m.cancelled) return;         // our own cancel, acknowledged
@@ -3437,9 +3485,6 @@ function _colGetWorker(): Worker {
       }
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;
-        // an open contact runs to the coverage: the view follows the
-        // progress at the partial cadence, new rows or not
-        _contactsBump(false);
         if (m.partial && !_colKeepShown) {
           let p = m.partial;
           // the request's first contact, in every partial of it that does not
@@ -3449,10 +3494,8 @@ function _colGetWorker(): Worker {
           const held = _colFirstHeld?.id === m.id ? _colFirstHeld.first : null;
           if (held && !holdsFirst(p, held)) p = withFirstContact(p, held);
           _colPartialReq = m.id;
-          collisionPartial.value = p;
+          collisionPartial.value = p;   // the held contact in it (VP-I92 A)
           collisionPartialTrack.value = _colPendingTrack;
-          _colEmitMarks();   // what is shown, the held contact in it (VP-I92 A)
-          _colRetint();
         }
         return;
       }
@@ -3473,8 +3516,6 @@ function _colGetWorker(): Worker {
           reason: "motion", covered: m.result!.truncated?.covered ?? 0, hits: m.result!.hits.length,
           ms: Math.round(performance.now() - _colStartedAt),
         });
-        _colEmitMarks();
-        _colRetint();
         return;
       }
       collisionBusy.value = false;
@@ -3485,7 +3526,6 @@ function _colGetWorker(): Worker {
         emitTelemetry("collision.sweep_failed", { msg: m.error });
         collisionResult.value = null;
         collisionTrack.value = null;
-        emit("collision-lines", null);
         return;
       }
       const result = m.result!;
@@ -3510,8 +3550,6 @@ function _colGetWorker(): Worker {
         hits: result.hits.length, pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
         points: _colPendingTrack?.count ?? null,
       });
-      _colEmitMarks();
-      _colRetint();
       _colKeepShown = false;
       if (run0 && _colReqRunGen === run0.gen && run0.phase === "full") _colRunLog.push("done");
       // The provisional check is on screen; the full one follows on the same
@@ -3526,17 +3564,6 @@ function _colGetWorker(): Worker {
           runCollisionCheck(t, { basis: run.basis, gen: run.gen, keepShown: true });
         }, 0);
       }
-    };
-    // A worker-level failure (module load, OOM, uncaught throw) never
-    // replies — without this the busy flag stayed set and the Check chip
-    // read 0% until a program change (the part-frame worker already had it).
-    _colWorker.onerror = (ev: ErrorEvent) => {
-      console.error("[collision] worker error:", ev.message);
-      emitTelemetry("collision.sweep_failed", { msg: `worker error: ${ev.message}` });
-      _colFail();
-    };
-  }
-  return _colWorker;
 }
 
 // Reset every sweep state the busy flag guards — the one place a failed
@@ -3663,13 +3690,11 @@ function _colInvalidate() {
 
 function _colOnSideMessage(m: { id: number; progress?: number; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean }) {
   const side = _colSide!;
-  if (m.progress != null) { _colSideProgress = m.progress; _contactsBump(false); }
+  if (m.progress != null) _colSideProgress = m.progress;
   // its first confirmed contact, before its result (Codex R136 VP-I93)
   if (m.first) {
     collisionSideFirst.value = { id: side.id, entry: side.entry, base: side.base, shift: side.shift, sliceEnd: _sliceEnd(side.slice),
                                  ...(side.run ? { run: { gen: side.run.gen } } : {}), first: m.first };
-    if (side.run) _colEmitMarks();
-    _colRetint();
     if (m.progress == null) return;
   }
   if (m.progress != null && !m.result) return;
@@ -3703,8 +3728,6 @@ function _colOnSideMessage(m: { id: number; progress?: number; first?: Collision
     if (collisionRun.value?.gen === side.run.gen) {
       collisionRunSide.value = { id: side.id, gen: side.run.gen, base: side.base, bound: side.entry, result, shift: side.shift, sliceEnd: _sliceEnd(side.slice) };
       collisionRunSideState.value = null;
-      _colEmitMarks();
-      _colRetint();
       _colRunLog.push("beginning");
     }
     return;
@@ -3714,7 +3737,6 @@ function _colOnSideMessage(m: { id: number; progress?: number; first?: Collision
     ms: Math.round(performance.now() - side.startedAt), hits: result.hits.length,
     static: result.staticContacts.length, samples: result.samples,
   });
-  _colRetint();
 }
 
 /** Re-apply the clash tint at the current scrub position after a result
@@ -5683,21 +5705,23 @@ defineExpose({
     </div>
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
+    <!-- the check as published with its contact views (plan 3.6): never ahead of them -->
     <ScrubBar
-      :collisionBusy="collisionBusy"
-      :collisionProgress="collisionProgress"
+      :collisionBusy="colShown?.busy ?? false"
+      :collisionProgress="colShown?.progress ?? 0"
       :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"
-      :collisionResult="collisionResultShown"
-      :collisionTrack="collisionTrack"
-      :collisionStopped="collisionStopped"
-      :collisionResumable="collisionResumable"
-      :collisionPartial="collisionPartialShown"
-      :collisionPartialTrack="collisionPartialTrackShown"
-      :collisionEntryResult="collisionEntryResult"
-      :collisionPrevious="collisionPrevious"
-      :collisionContext="collisionContext"
-      :collisionContextStale="collisionContextStale"
-      :collisionRunCheck="collisionRunCheckView"
+      :collisionResult="colShown?.result ?? null"
+      :collisionTrack="colShown?.track ?? null"
+      :collisionStopped="colShown?.stopped ?? null"
+      :collisionResumable="colShown?.resumable ?? false"
+      :collisionPartial="colShown?.partial ?? null"
+      :collisionPartialTrack="colShown?.partialTrack ?? null"
+      :collisionEntryResult="colShown?.entryResult ?? null"
+      :collisionPrevious="colShown?.previous ?? null"
+      :collisionContext="colShown?.context ?? null"
+      :collisionContextStale="colShown?.contextStale ?? false"
+      :collisionRunCheck="colShown?.runCheck ?? null"
+      @timeline-columns="onTimelineColumns"
       @check-entry="runEntryCheck"
       @pose="onScrubPose"
       @finding="onFinding"

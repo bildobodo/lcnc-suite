@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_POSSIBLE,
+  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_POSSIBLE,
   NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
 } from "./contactStore";
 import {
@@ -9,7 +9,7 @@ import {
   startTargets, targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
   buildContactViewSteps, contactBandsSteps, startTargetsSteps, viewCountsSteps,
 } from "./contactView";
-import type { Steps } from "./steps";
+import { STEP_OPS, type Steps } from "./steps";
 import { findingWords } from "./sweepWords";
 
 interface Ep { pair: number; flags?: number; onset?: number; end?: number; close?: [number, number]; ivs?: Array<[number, number, number?]> }
@@ -389,4 +389,43 @@ describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
     const once = buildContactView(input);
     expect([once.n, Array.from(once.tgt.refs)]).toEqual([b.value.n, Array.from(b.value.tgt.refs)]);
   });
+  // Plan 3.6: the work of every STEP is bounded, not only the number of steps
+  // — counted, never timed: the table reads between two yields, and no list
+  // copied into a typed array at once. A held generation's coverage read all
+  // its rows in the build's first step, and the target lists were copied at
+  // once — 16 and 20 ms steps in the browser at the budget.
+  it("every step of the build, held generations and all, reads a bounded number of rows and copies no list at once", () => {
+    const mk = (g: number, shift: number) => store(Array.from({ length: 2048 }, (_, e) => ({ pair: e % 7,
+      ivs: [0, 1, 2, 3].map(k => [12 * e + 3 * k + shift, 12 * e + 3 * k + shift + 1] as [number, number]) })), [], g);
+    const held = mk(0, 0), cur = mk(1, 1.5);
+    const cov = 12 * 2048 + 5;
+    const input = { sources: [src(cur, { held: [held], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov };
+    const proto = ColumnTable.prototype as unknown as { get: (...a: unknown[]) => number };
+    const get = proto.get;
+    const froms = [Float64Array.from, Uint32Array.from] as const;
+    let reads = 0, worst = 0, copied = 0;
+    proto.get = function (...a: unknown[]) { reads++; return get.apply(this, a); };
+    for (const T of [Float64Array, Uint32Array]) {
+      const from = T.from;
+      (T as unknown as { from: unknown }).from = function (src: ArrayLike<number>, ...rest: unknown[]) {
+        copied = Math.max(copied, (src as ArrayLike<number>).length ?? 0);
+        return (from as (...x: unknown[]) => unknown).call(this, src, ...rest);
+      };
+    }
+    try {
+      const job = buildContactViewSteps(input);
+      for (;;) {
+        reads = 0;
+        const r = job.next();
+        worst = Math.max(worst, reads);
+        if (r.done) break;
+      }
+    } finally {
+      proto.get = get;
+      Float64Array.from = froms[0]; Uint32Array.from = froms[1];
+    }
+    expect(worst, "table reads in one step").toBeLessThanOrEqual(4 * STEP_OPS);
+    expect(copied, "the longest list copied into a typed array at once").toBeLessThanOrEqual(STEP_OPS);
+  });
+
 });

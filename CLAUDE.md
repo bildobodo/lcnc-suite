@@ -19,7 +19,7 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 
 - `App.vue` — Root component, sidebar + multi-panel tab layout, state management
 - `ChoiceGroup.vue` + `MachineChoice.vue` (+ `choiceGroup.ts`) — the strip's choice groups (operator point P7, Codex R21–R24; the 18 px radio rows are gone): options are `MachineChoice` buttons (`role="radio"`, catalog gate from INPUT_DEFS, `min-height`/`min-width` `--control-h` — 28 / 36 px in the strip), ONE Tab stop (roving tabindex, kept where the operator left it: a status change never pulls focus), every navigation key default-prevented with a modifier too (the TabNav rule — a focused option once sent `set_mode`/`set_kins_mode`/`mdi G55` on one arrow). `activation="manual"` (default) = a MACHINE command: radios in a `role="toolbar"` (APG) — the arrows only move focus, click/Enter/Space choose; the group SENDS through `act` (the caller's `fire()`, which returns the `req_id`; not sent = no pending) and waits for THAT reply (`lcncWs.awaitReply`): the checked option is the CONFIRMED state, a chosen one is `pending` (warn bar, `aria-busy`) until the status shows it or `PENDING_MS` (5 s) → "Not confirmed — the machine shows X" at the option (never "failed", no retry), cleared on disconnect; a REFUSAL of its own request ends the pending at once and says why at the option (+ a quiet log line) — an older request's refusal never cancels a newer choice (Codex R25 OP-I04). `activation="auto"` = a LOCAL setting (the jog step): a plain radiogroup, the arrows choose. A row by default; `columns` = a grid by row (Up/Down a row), `rows` = a grid by column, `fill` = a grid as wide as its container that adds nothing to the container's own width (`width: 0; min-width: 100%`). Checked = a tint AND a 3 px bar, never colour alone.
-- `stickyHead.ts` — `v-sticky-head` on a `.dataTable` scroller: keeps `--sticky-head-h` at the head's `offsetHeight` (ResizeObserver), the table's `scroll-padding-top` — a row focused by Tab lands below the head (WCAG 2.4.11). The head sits over every cell (`--z-sticky-head`) and draws its bottom rule as an inset shadow (a border scrolls away with a sticky head) — operator P2.
+- `stickyHead.ts` — `v-sticky-head` on a `.dataTable` scroller: keeps `--sticky-head-h` at the head's `offsetHeight` (read from its ResizeObserver only, after the layout — never at mount: that read forced the layout of a whole new table, plan 3.6), the table's `scroll-padding-top` — a row focused by Tab lands below the head (WCAG 2.4.11). The head sits over every cell (`--z-sticky-head`) and draws its bottom rule as an inset shadow (a border scrolls away with a sticky head) — operator P2.
 - `TabPanel.vue` — A `TabNav` over v-show panes (`role="tabpanel"`, named by the tab; a hidden pane is display:none, never focusable). Props: tabs, modelValue, `label` (the navigation's accessible name), `variant` (main = the side pane, sub = Settings), `narrow` (a labelled select instead of the list, with the `bar` slot beside it on the same row)
 - `TabNav.vue` — the ONE tab navigation (design wave D3, UI-K17/K12): `tablist` of `tab` buttons (`MachineBtn` `tabMain`/`tabSub` — the look lives in Btn.vue's `tab` prop, the layout in style.css `.tabNav`), ONE Tab stop (roving tabindex on the selected tab), MANUAL activation (arrows move focus, Enter/Space select). Left/Right in reading order with wrap, Home/End, Up/Down a grid row (`columns`, Probing's 4 × 2); ALL six are default-prevented, WITH a modifier too — the shortcut map listens on window (bubble), matches `e.key` alone and returns on `defaultPrevented`, and with the default mapping the arrows jog (`tabs.spec` mutation-checked: without it a focused tab sent 16 jog commands; Ctrl/Alt/Meta+Arrow on a focused tab still jogged until round 4, UI-DI06); only the bare key (or Shift) moves focus. Selection is a SHAPE (main: top-rounded, the selected tab open to the content, a cover shadow over the list's baseline; sub: a 2 px bar), focus the global `:focus-visible` ring — never the same signal. Height `--control-h` (32 / 44 px touch). `tabIds(base, id)` names a tab and its panel; the caller renders the panel with `role="tabpanel"` + `aria-labelledby`. Used by TabPanel (side pane, Settings), ProbePanel (`probeViews.ts`, 4 × 2), HalshowTab (Pins/Signals/Params). NARROW side pane (content width < `NARROW_PANE_PX` — 498 px since the seventh tab, Sim; 432 with six, DR decision, 150 % portrait): App's ResizeObserver on `.sidePane` (clientWidth, layout px) switches the area list and Probing's grid to two `MachineSelect`s (`tabSelect`) on one row and marks the pane `.sidePane.narrow` — the ONE narrow flag every narrow rule hangs on (no container query: one threshold, so the selects and every narrow rule flip together); `probeView` lives in App (`v-model:view`). A tab switch sends nothing; a jog still running (keyboard or pointer) stops at the switch — the main tab AND the Probing procedure, grid or narrow select (`stopJogOnNavigation`; the procedure kept jogging until the keyup, round 4, UI-DI11) — only then, `stopAllJog` sends a stop per axis whenever jogging is allowed.
 - `ThreeViewer.vue` — Three.js 3D viewer (Z-up, OrbitControls, ResizeObserver)
@@ -1919,9 +1919,11 @@ shards' minimum — R144/R145 VP-I100). Transport (`collisionWorker`, a request'
 plus rows changed since, each once with its latest state — at most ONE
 unacknowledged per path (`{contactsAck: id, generation}` — bound to the
 generation it acknowledges), the last delta with the result; a receiver writes a
-delta column by column, a block's stretch at a time (a budget's delta 2.7 ms in
-Node, 175 ms a row at a time) and refuses one past its budget whole, nothing
-written; the coordinator
+delta column by column, a block's stretch at a time, its updates in pieces, in
+counted steps (`ContactStore.applySteps`: a budget's delta 2.7 ms in Node, 175 ms
+a row at a time; an update delta over the whole budget took 68–78 ms at once on
+the page, Codex R155), and checks all three tables' bounds before it writes — a
+message out of order or past its budget is refused WHOLE, nothing written; the coordinator
 applies and acknowledges each shard's delta at once and sends the owner one
 message per round; a fall back to this core is the next generation, a side run
 started again too. A failed pool still DRAINS its generation: what the
@@ -2055,6 +2057,69 @@ contact, then fails shard 0): the earlier finding stays listed under its key
 through the paused rerun, each contact once after it — and answers both
 requests itself for the joins (the base's fallback after the side ended, both
 at one failure, a later contact).
+
+**The view built in steps, published with what the bar shows (plan 3.6 Form 1,
+Codex R152–R156; `viewer/contactPublisher.ts`, `viewer/steps.ts`)**: the view's
+build ran on the page in one task — 0.3–1.2 s at the budget, and a long task
+holds the handlers of Escape and the E-Stop button too (the heartbeat runs in
+the WebSocket worker). Every job is a generator that yields after `STEP_OPS`
+(4096) COUNTED operations — never a time: `runSteps` drives it in slices of
+about 8 ms with a macrotask between, `sortSteps` sorts (stable, natural runs),
+`copySteps` copies a list into a typed array, a target position read through a
+`ClashIndex` counts `POS_OPS` (64: in a union it decodes a piece), and every
+loop over a budget's rows counts — a held table's coverage read at once
+(`provenCoverage`, 16 ms) and the target lists copied at once (20 ms) were
+single steps in the browser. The publisher holds each request's current
+generation in TWO copies — `pub`, which the published views read and nothing
+writes, and `work` — and the held generation shared. A PASS: 1 takes the
+messages received so far in arrival order, each one's deltas into `work` in
+steps, then its effects on the viewer's live state (`_colOnMessage`); 2 builds
+the views of the tracks the live state shows (`deps.tracks()`: the result's,
+the partial's, the track a run check's beginning stands on, the entry track)
+from `work`; 3 publishes in ONE task, and only when the live state still shows
+exactly the specs it built (else the build begins anew, the messages stay
+taken): `work` becomes `pub`, the views and the state the viewer stages THEN
+(`colShown`: what the bar shows, bound by ScrubBar — never ahead of its
+tables); 4 catches the dead copy up in steps, and only then acknowledges. A
+fallback (`heldCoverage`) discards a build, never evidence: the complete copy
+that is not published takes the drain (acknowledged as each delta lands) and is
+held from the new generation's first delta; `pub` stays shown until the union
+is published. Every ticket closes once (the catch-up, the fallback's
+transition, or a request let go — whose tables, queue, tickets and views go).
+`viewOf` is a PURE read of the last publication (a request without tables yet
+— nothing found so far — reads as one). A pass never discards itself: the
+viewer's stage watcher (`_colOnStageChange`) does nothing while a pass takes or
+builds — its publication stages the state then — and the code panel's marks
+and the tint follow the publication alone (the `contactsVersion` watcher), so
+a taken message's effects re-emit nothing early; only the clears (a failed
+worker, a program change) go at once. The page's own layout reads after a DOM
+change were forced in the task that made it: `v-sticky-head` reads the head's
+height from its ResizeObserver only, the scroll fades re-check in the next
+animation frame, and the Sim tab follows the marked row and fits its summary
+line in the next frame, before it paints (each forced 22–25 ms at the list's
+first arrival); the kept picture stays in the task that changed the rows (every
+reader after it sees the row where it was) and reads only when a row on screen
+was anchored — never at a first list. `__viewerDiag.getContacts()`:
+`passes`, `discards`, `publications`, `lastPassMs`, `longestStepMs` (per phase),
+`running` / `pending` / `phase`, `stats.byOwner` (pub / work / held). Measured
+(Chromium in the VM, 262 144 targets, the page at rest; R157): no script task
+over 50 ms at the tables' arrival, an update delta over the whole budget, a
+fallback and a rebuild; the longest step of a phase ≤ 6 ms; the publication a
+task of 34–45 ms (Vue's render of the 400 rows and the marks), and once in six
+first arrivals the rendering after it (layout and paint of ~9000 new elements,
+software GL) a task of 54 ms; a key's input delay p95 2–8 ms, at most 16–35 ms
+in an update, a fallback or a rebuild and 65–84 ms at a budget's first arrival;
+a cancel inside one big group takes effect (one discard, nothing of the old
+request acknowledged); 15.1 MB per copy at the budget. A program change's own
+long tasks (64–88 ms, compositor commits under software GL) occur with no
+contact tables at all — outside 3.6; the browser-PC measurement is owed. Tests:
+`contactPublisher.test.ts` (the phases, both copies, a fallback in every phase,
+tickets, release, no self-discard, a spec changed under the build, the
+transport's rules and owners carried over from the removed `contactsReceiver`),
+`checkWiring.test.ts` (the worker handler through the real publisher,
+`_colOnStageChange`, the cancel), `steps.test.ts`, `contactView.test.ts` and
+`simWindow.test.ts` (table reads and position reads per step, no list copied
+at once), `stickyHead.test.ts`, `scrollFade.test.ts`, `contactStore.test.ts`.
 
 ## Key Patterns
 
@@ -2216,6 +2281,8 @@ The stored tool-change position lives in the INTERPRETER; the parameter file hol
 - Lazy conservative advancement must CARRY its certificates across chunk boundaries in clearance terms (d − margin, decremented by each chunk's V × L); resetting them per chunk makes the cost O(segments × pairs) regardless of geometry
 - Never probe a server's liveness with a WebSocket and never cancel a CONNECTING socket on a short timer: the browser remembers failed WebSocket connections (Firefox: per IP:port, ×1.5 up to 60 s, surviving reloads) and holds the next attempt, and Firefox admits one connecting WebSocket per IP across ports — blind retries through an outage plus a 3 s timeout kept tabs 35–58 s on "reconnecting" after every restart, and Vite's WebSocket restart ping on :5173 queued the gateway socket on :8000. Ask over HTTP first (`/ready`)
 - An invisible hit area is real overflow: a `::before` larger than its element (the "?"'s `--help-hit`) counts as scrollable overflow in any scroll container around it — a scroller whose lines end in a "?" needs end padding for the reach (a negative margin keeps its size), or it shows a scrollbar for 3–6 px and clips the target. `overflow-y: auto` alone turns `overflow-x` to auto too
+- A layout read (`offsetHeight`, `scrollHeight`, `scrollWidth`, `getBoundingClientRect`) in the task that changed the DOM forces the layout of EVERY pending change there: the scroll fades' MutationObserver re-read every scroller on each batch, `v-sticky-head` read its head at mount, the Sim tab measured its summary after `nextTick` — 22–25 ms each when 400 rows arrived (plan 3.6). Read layout from a ResizeObserver (after the layout) or in the next `requestAnimationFrame` (before the paint: no frame shows the unfitted state); find the reader in a Chromium trace (`UpdateLayoutTree` / `Layout` events carry the forcing stack)
+- An operation count bounds a step only if every expensive call is counted: a binary search costed as 64 operations, a whole-list `TypedArray.from`, a coverage scan outside the counter each made a single 10–20 ms step in the browser while the step count looked healthy — test the work PER STEP (reads between two yields), not the number of steps
 - Profile before vectorizing: 40 % of the 46 s plane-mode parse was 2.36 M pure-Python inverse-kinematics solves, another ~40 % three passes that re-stripped comments character by character; the interpreter itself was a quarter. cProfile inflates Python-call-heavy code ~2× — use it for proportions, the trace for absolute numbers
 
 ## Production DISPLAY Integration

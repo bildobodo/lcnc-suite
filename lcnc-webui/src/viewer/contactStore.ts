@@ -197,6 +197,18 @@ export class ColumnTable {
     }
   }
 
+  /** Every row as a delta, nothing marked sent (a copy's source). */
+  snapshot(): TableDelta {
+    const rows: Record<string, Typed> = {}, updated: Record<string, Typed> = {};
+    for (const [name, type] of this.schema) {
+      const a = new CTOR[type](this.rows), col = this.col(name);
+      for (let b = 0; b * BLOCK < this.rows; b++) a.set(col[b]!.subarray(0, Math.min(BLOCK, this.rows - b * BLOCK)), b * BLOCK);
+      rows[name] = a;
+      updated[name] = new CTOR[type](0);
+    }
+    return { from: 0, count: this.rows, rows, updates: new Uint32Array(0), updated };
+  }
+
   /** Allocated bytes: whole blocks of every column and the dirty marks —
    *  what the budget accounts (plan 3.4), not the used rows alone. */
   allocatedBytes(): number {
@@ -284,6 +296,15 @@ export class ContactStore {
   }
 
   pending(): number { return this.episodes.pending() + this.intervals.pending() + this.gaps.pending(); }
+  /** A separate store with the same rows (the second copy of plan 3.6). */
+  copy(): ContactStore {
+    const c = new ContactStore(this.request, this.generation,
+      { episodes: this.episodes.budget, intervals: this.intervals.budget, gaps: this.gaps.budget });
+    c.episodes.apply(this.episodes.snapshot());
+    c.intervals.apply(this.intervals.snapshot());
+    c.gaps.apply(this.gaps.snapshot());
+    return c;
+  }
   /** Bumped by every write to any of its tables. */
   get revision(): number { return this.episodes.revision + this.intervals.revision + this.gaps.revision; }
   allocatedBytes(): number {
