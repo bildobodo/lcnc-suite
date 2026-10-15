@@ -38,7 +38,7 @@ import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
 import { fmtElapsed } from "./format";
-import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
+import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, measurementsOf, type SimRowKind, partLabel } from "./viewer/simRows";
@@ -1380,10 +1380,13 @@ onUnmounted(releaseSim);
              :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${b[0] / 100})`, width: `calc((100% - var(--range-thumb)) * ${(b[1] - b[0]) / 100})` }"></div>
         <div v-for="(m, i) in marks" :key="m.kind + i" class="scrubTick" :class="[m.kind, { near: m.near }]"
              :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${m.pct / 100})` }">
+          <!-- lucide's own X, Triangle and Circle, as the components render
+               them, written out: a component per mark (one per occupied
+               column) cost ~18 ms of a large first publication (plan 3.6) -->
           <span class="scrubGlyph">
-            <X v-if="m.kind === 'clash'" :size="9" :stroke-width="3" />
-            <Triangle v-else-if="m.kind === 'limit'" :size="9" fill="currentColor" />
-            <Circle v-else :size="9" fill="currentColor" />
+            <template v-if="m.kind === 'clash'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="none" stroke-width="3" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></template>
+            <template v-else-if="m.kind === 'limit'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="currentColor" stroke-width="2" class="lucide lucide-triangle-icon lucide-triangle"><path d="M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /></svg></template>
+            <template v-else><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="currentColor" stroke-width="2" class="lucide lucide-circle-icon lucide-circle"><circle cx="12" cy="12" r="10" /></svg></template>
           </span>
         </div>
       </div>

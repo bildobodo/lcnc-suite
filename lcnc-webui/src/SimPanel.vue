@@ -415,9 +415,11 @@ function onRootKey(e: KeyboardEvent) {
             <tr v-for="r in rows" :key="r.key" :data-sim-row="r.key" :data-sim-at="r.kind === 'clash' ? `${r.key[0]}${r.line}` : r.key"
                 :class="{ shownRow: shown(r), nextRow: isNext(r) }" @click="show(r, $event)">
               <td class="colKind" :class="r.kind">
-                <X v-if="r.kind === 'clash'" :size="12" :stroke-width="3" aria-hidden="true" />
-                <Triangle v-else-if="r.kind === 'limit'" :size="11" fill="currentColor" aria-hidden="true" />
-                <Circle v-else :size="10" fill="currentColor" aria-hidden="true" />
+                <!-- lucide's own glyphs written out, as the components render
+                     them: one component per row cost the first 400 rows' render (plan 3.6) -->
+                <template v-if="r.kind === 'clash'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="12" height="12" fill="none" stroke-width="3" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></template>
+                <template v-else-if="r.kind === 'limit'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="11" height="11" fill="currentColor" stroke-width="2" class="lucide lucide-triangle-icon lucide-triangle"><path d="M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /></svg></template>
+                <template v-else><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="10" height="10" fill="currentColor" stroke-width="2" class="lucide lucide-circle-icon lucide-circle"><circle cx="12" cy="12" r="10" /></svg></template>
               </td>
               <td class="colLine mono">
                 <span class="rowPick" role="button" :aria-label="rowName(r)" :aria-current="shown(r) ? 'true' : undefined"

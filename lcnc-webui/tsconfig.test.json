@@ -39,6 +39,7 @@
     "src/viewer/insideCheck.test.ts",
     "src/shims.d.ts",
     "src/bundledFonts.test.ts",
+    "src/glyphMarkup.test.ts",
     "src/viewer/toolBasis.test.ts",
     "src/themeTokens.test.ts",
     "src/playwrightProjects.test.ts",

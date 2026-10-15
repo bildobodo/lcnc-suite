@@ -2102,15 +2102,17 @@ reader after it sees the row where it was) and reads only when a row on screen
 was anchored — never at a first list. `__viewerDiag.getContacts()`:
 `passes`, `discards`, `publications`, `lastPassMs`, `longestStepMs` (per phase),
 `running` / `pending` / `phase`, `stats.byOwner` (pub / work / held). Measured
-(Chromium in the VM, 262 144 targets, the page at rest; R157): no script task
-over 50 ms at the tables' arrival, an update delta over the whole budget, a
-fallback and a rebuild; the longest step of a phase ≤ 6 ms; the publication a
-task of 34–45 ms (Vue's render of the 400 rows and the marks), and once in six
-first arrivals the rendering after it (layout and paint of ~9000 new elements,
-software GL) a task of 54 ms; a key's input delay p95 2–8 ms, at most 16–35 ms
-in an update, a fallback or a rebuild and 65–84 ms at a budget's first arrival;
-a cancel inside one big group takes effect (one discard, nothing of the old
-request acknowledged); 15.1 MB per copy at the budget. A program change's own
+(Chromium in the VM, 262 144 targets, the page at rest; R157): no task over
+50 ms at the tables' arrival, an update delta over the whole budget, a
+fallback and a rebuild; the longest step of a phase ≤ 5 ms; the publication a
+task of 30–33 ms (Vue's render of the 400 rows and the marks — the marks' and
+the rows' lucide glyphs are WRITTEN OUT as the components render them, a
+component per mark cost ~18 ms there; `glyphMarkup.test.ts` renders the
+components and holds the markup to them); a key's input delay p95 2–8 ms, at
+most 20–34 ms in an update, a fallback or a rebuild and 15–89 ms at a budget's
+first arrival (its frame: the publication, layout and paint of ~9000 new
+elements); a cancel inside one big group takes effect (one discard, nothing of
+the old request acknowledged); 15.1 MB per copy at the budget. A program change's own
 long tasks (64–88 ms, compositor commits under software GL) occur with no
 contact tables at all — outside 3.6; the browser-PC measurement is owed. Tests:
 `contactPublisher.test.ts` (the phases, both copies, a fallback in every phase,
@@ -2119,7 +2121,8 @@ transport's rules and owners carried over from the removed `contactsReceiver`),
 `checkWiring.test.ts` (the worker handler through the real publisher,
 `_colOnStageChange`, the cancel), `steps.test.ts`, `contactView.test.ts` and
 `simWindow.test.ts` (table reads and position reads per step, no list copied
-at once), `stickyHead.test.ts`, `scrollFade.test.ts`, `contactStore.test.ts`.
+at once), `stickyHead.test.ts`, `scrollFade.test.ts`, `glyphMarkup.test.ts`,
+`contactStore.test.ts`.
 
 ## Key Patterns
 
