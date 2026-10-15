@@ -202,6 +202,41 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
     expect(worst[1]!).toBeLessThanOrEqual(1.5 * worst[0]! + 256);
   });
 
+  it("an earlier event's key late in a run without free samples: its piece from the indexes — the same at 1024 and at 8192 contacts", { timeout: 300_000 }, () => {
+    // one pair, contacts ended at the feed (no free sample between them), the
+    // current run the same: the key of the earlier run's last contact
+    const feedRun = (gen: number, n: number) => {
+      const st = new ContactStore(1, gen, REQUEST_BUDGET);
+      const ep = st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 0, end: 4 * n, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: n });
+      let last = -1;
+      for (let k = 0; k < n; k++) {
+        const iv = st.intervals.append({ episode: ep, enter: 4 * k, exit: 4 * k + 1, flags: IV_ENTER_DECIDED | IV_ENDED_AT_FEED, next: NONE,
+                                         witness: 4 * k + 0.5, freeAt: NaN, freeR: 0 });
+        if (last < 0) st.episodes.set(ep, "firstIv", iv); else st.intervals.set(last, "next", iv);
+        last = iv;
+      }
+      return st;
+    };
+    const worst: number[] = [];
+    for (const n of [1024, 8192]) {
+      // (the counter before the builds: the views read the cells it counts)
+      const c = counter();
+      try {
+        const held = feedRun(0, n), cov = 4 * n + 2;
+        const before = buildContactView({ sources: [{ stores: [held], ownCoverage: cov, at: (x: number) => x }], pairName: names, coverage: cov });
+        const v = buildContactView({ sources: [{ stores: [feedRun(1, n)], held: [held], heldCoverage: [cov], ownCoverage: cov, at: (x: number) => x }], pairName: names, coverage: cov });
+        const key = targetKey(before, before.n - 1);
+        c.box.reads = 0;
+        const i = findKey(v, key);
+        worst.push(c.box.reads);
+        expect(i, "found").toBeGreaterThanOrEqual(0);
+        expect(targetKey(v, i)).toBe(key);
+      } finally { c.restore(); }
+    }
+    console.log(`[R159 late key] ${worst[0]} → ${worst[1]} reads`);
+    expect(worst[1]!).toBeLessThanOrEqual(1.5 * worst[0]! + 256);
+  });
+
   it.each([["one run", false], ["a union, the earlier run's keys", true]])("%s: at its place, moved, anywhere — the same at 1024 and at 8192 pairs", { timeout: 300_000 }, (_, union) => {
     const worst: Array<Record<string, number>> = [];
     for (const n of [1024, 8192]) {
