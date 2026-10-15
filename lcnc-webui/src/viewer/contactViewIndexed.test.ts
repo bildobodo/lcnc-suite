@@ -177,6 +177,31 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
     };
     return { box, restore: () => { proto.get = get; proto.blocksOf = blocksOf; } };
   };
+  it("the steps from a position over n pairs' findings at one point — the same at 1024 and at 8192 pairs", { timeout: 300_000 }, () => {
+    // every pair's contact [0, 1] (its jump point a hair past 0) and every pair's near miss at 0 (its jump point 0)
+    const worst: number[] = [];
+    for (const n of [1024, 8192]) {
+      const st = run(0, n, 0);
+      for (let i = 0; i < n; i++) st.episodes.append({ pair: n + i, ordinal: 0, flags: 0, onset: 0, end: 0, closeAt: 0, closeDist: 1, firstIv: NONE, ivCount: 0 });
+      const v = buildContactView({ sources: [{ stores: [st], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
+      expect(v.n).toBe(2 * n);
+      const c = counter();
+      let w = 0;
+      try {
+        for (const [f, want] of [[() => indexAfter(v, 0, null), (i: number) => targetPos(v, i) === 0 && targetEnd(v, i) > 0],
+                                  [() => indexBefore(v, 1e-3, null), (i: number) => targetEnd(v, i) === 0]] as const) {
+          c.box.reads = 0;
+          const i = f();
+          w = Math.max(w, c.box.reads);
+          expect(want(i), "the answer: a contact past 0, a near miss before the hair").toBe(true);
+        }
+      } finally { c.restore(); }
+      worst.push(w);
+    }
+    console.log(`[R159 steps] ${worst[0]} → ${worst[1]} reads`);
+    expect(worst[1]!).toBeLessThanOrEqual(1.5 * worst[0]! + 256);
+  });
+
   it.each([["one run", false], ["a union, the earlier run's keys", true]])("%s: at its place, moved, anywhere — the same at 1024 and at 8192 pairs", { timeout: 300_000 }, (_, union) => {
     const worst: Array<Record<string, number>> = [];
     for (const n of [1024, 8192]) {

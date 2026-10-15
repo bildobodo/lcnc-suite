@@ -194,7 +194,13 @@ function colsOf(st: ContactStore): Cols {
 
 /** A sorted list of packed references with the largest shown end per block
  *  and up to it — the tint's and the marks' walk back from a position. */
-interface RefList { refs: Uint32Array; max: Float64Array; pre: Float64Array }
+interface RefList {
+  refs: Uint32Array; max: Float64Array; pre: Float64Array;
+  /** The targets' list: per block the least and the largest point a jump
+   *  lands at (`sampleAt`) — the steps from a position skip a block of ties
+   *  that cannot hold the answer (Codex R159 VP-I115). */
+  sMin?: Float64Array; sMax?: Float64Array;
+}
 
 export interface ContactView {
   readonly input: ContactViewInput;
@@ -512,7 +518,13 @@ function epOwn(t: TableIndex, row: number): [number, number] {
   return [s, Math.max(s, Number.isNaN(e) ? t.ownCov : Math.min(e, t.ownCov))];
 }
 
-function* refList(refs: Uint32Array, pos: Float64Array, end: Float64Array, c: Ops): Steps<RefList> {
+/** The point a jump to a finding lands at (findingNav's rule): a hair past
+ *  its start, never past its middle. */
+const sampleOf = (p: number, e: number) => (e > p ? p + Math.min(JUMP_NUDGE, (e - p) / 2) : p);
+
+function* refList(refs: Uint32Array, pos: Float64Array, end: Float64Array, c: Ops,
+                  /** The targets' list: an entry finding's extent past its end (its reach), for the jumps' points. */
+                  reach?: (ref: number) => number | undefined): Steps<RefList> {
   const n = refs.length;
   // by position; at one position a contact before a near miss, then by
   // source, table and row — never by a piece's or a generation's bits, so a
@@ -532,16 +544,21 @@ function* refList(refs: Uint32Array, pos: Float64Array, end: Float64Array, c: Op
   const out = allocU32(n);
   const blocks = Math.ceil(n / BLOCK);
   const max = allocF64(blocks).fill(-Infinity), pre = allocF64(blocks);
+  const sMin = reach ? allocF64(blocks).fill(Infinity) : null, sMax = reach ? allocF64(blocks).fill(-Infinity) : null;
   for (let i = 0; i < n; i++) {
     const k = order ? order[i]! : i;
     out[i] = refs[k]!;
     const b = (i / BLOCK) | 0;
     max[b] = Math.max(max[b]!, end[k]!);
+    if (sMin && sMax) {
+      const sm = sampleOf(pos[k]!, Math.max(end[k]!, reach!(refs[k]!) ?? -Infinity));
+      sMin[b] = Math.min(sMin[b]!, sm); sMax[b] = Math.max(sMax[b]!, sm);
+    }
     if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
   }
   let m = -Infinity;
   for (let b = 0; b < blocks; b++) { m = Math.max(m, max[b]!); pre[b] = m; }
-  return { refs: out, max, pre };
+  return { refs: out, max, pre, ...(sMin && sMax ? { sMin, sMax } : {}) };
 }
 
 // ---- the fallback's union (round B4, plan 3.5) ----------------------------------------------------
@@ -1273,7 +1290,7 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
   }
   const reachRef = rKeys;
   // (each list made one array a block a step, then refList writes its own)
-  const tgt = yield* refList(yield* tR.done(c), yield* tP.done(c), yield* tE.done(c), c);
+  const tgt = yield* refList(yield* tR.done(c), yield* tP.done(c), yield* tE.done(c), c, r => reach.get(r));
   const aux = yield* refList(yield* aR.done(c), yield* aP.done(c), yield* aE.done(c), c);
   const ep = yield* refList(eRefs, eOn, eEnd, c);
   const nc = yield* nearCur0.done(c), nh = yield* nearHeld0.done(c);
@@ -1503,10 +1520,7 @@ export function indexAtOrAfter(v: ContactView, x: number, strict: boolean): numb
   return firstAfter(v, x, strict);
 }
 
-const sampleAt = (v: ContactView, i: number) => {
-  const p = posOf(v, i), room = endOf(v, i) - p;
-  return room > 0 ? p + Math.min(JUMP_NUDGE, room / 2) : p;
-};
+const sampleAt = (v: ContactView, i: number) => sampleOf(posOf(v, i), endOf(v, i));
 
 /** The first target whose position is past `x` (at or past with !strict). */
 function firstAfter(v: ContactView, x: number, strict: boolean): number {
@@ -1709,8 +1723,15 @@ export function indexAfter(v: ContactView, s: number, sel: { key: string; pos: n
     const i = findKeyOf(v, sel.key, s);
     if (i >= 0) return (i + 1) % v.n;
   }
-  // the first with pos > s − JUMP_NUDGE, then the first whose sample lies past s
-  for (let i = firstAfter(v, s - JUMP_NUDGE, true); i < v.n; i++) if (sampleAt(v, i) > s) return i;
+  // the first with pos > s − JUMP_NUDGE, then the first whose sample lies
+  // past s — a block whose every sample lies at or before s skipped at once
+  // (at one position every pair's finding may stand, Codex R159 VP-I115)
+  const { sMax } = v.tgt;
+  for (let i = firstAfter(v, s - JUMP_NUDGE, true); i < v.n; i++) {
+    const b = (i / BLOCK) | 0;
+    if (sMax && !(sMax[b]! > s)) { i = (b + 1) * BLOCK - 1; continue; }
+    if (sampleAt(v, i) > s) return i;
+  }
   return 0;
 }
 
@@ -1721,7 +1742,15 @@ export function indexBefore(v: ContactView, s: number, sel: { key: string; pos: 
     const i = findKeyOf(v, sel.key, s);
     if (i >= 0) return (i - 1 + v.n) % v.n;
   }
-  for (let i = Math.min(firstAfter(v, s, false), v.n - 1); i >= 0; i--) if (sampleAt(v, i) < s) return i;
+  // the last whose sample lies before s: from the last starting before s
+  // (those at or past it land at or past it), a block whose every sample lies
+  // at or past s skipped at once
+  const { sMin } = v.tgt;
+  for (let i = firstAfter(v, s, false) - 1; i >= 0; i--) {
+    const b = (i / BLOCK) | 0;
+    if (sMin && !(sMin[b]! < s)) { i = b * BLOCK; continue; }
+    if (sampleAt(v, i) < s) return i;
+  }
   return v.n - 1;
 }
 
@@ -2091,10 +2120,13 @@ export function* boundaryStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): St
  *  The 8.4 MB first agreed held no union splits, gaps, separators or near
  *  matching. */
 export function derivationBound(main: StoreBudget, side: StoreBudget | null): { bytes: number; terms: Record<string, number> } {
-  const ref = 4 + 16 / BLOCK, terms: Record<string, number> = {};
+  // a reference, its block's largest end and the running one; the targets
+  // also the least and the largest jump point per block (Codex R159 — the
+  // term counts them for the other intervals too)
+  const ref = 4 + 16 / BLOCK, refT = 4 + 32 / BLOCK, terms: Record<string, number> = {};
   const add = (name: string, n: number) => { terms[name] = (terms[name] ?? 0) + Math.ceil(n); };
   for (const b of side ? [main, side] : [main]) {
-    add("targets", ref * (4 * b.intervals + 8 * b.gaps + 2 * b.episodes) + 2 * 16);
+    add("targets", refT * (4 * b.intervals + 8 * b.gaps + 2 * b.episodes) + 2 * 16);
     add("episodes", ref * 2 * b.episodes + 16);
     add("unionIndex", 4 * 2 * b.intervals);
     add("componentEnds", 4 * 2 * b.intervals);
@@ -2117,7 +2149,7 @@ export function heldBytes(v: ContactView): number {
     n += u.sRef.byteLength;
   }
   n += v.nearByHeld.byteLength;
-  for (const l of [v.tgt, v.aux, v.ep]) n += l.refs.byteLength + l.max.byteLength + l.pre.byteLength;
+  for (const l of [v.tgt, v.aux, v.ep]) n += l.refs.byteLength + l.max.byteLength + l.pre.byteLength + (l.sMin?.byteLength ?? 0) + (l.sMax?.byteLength ?? 0);
   for (const t of v.tables) {
     if (!t) continue;
     n += t.hIdx.byteLength + t.hReach.byteLength + t.hTool.byteLength + t.hComp.byteLength + t.eIdx.byteLength;

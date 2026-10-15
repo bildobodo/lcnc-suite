@@ -352,7 +352,9 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
     const perEpisode = 4 * [genA, genB, sideA, sideB].reduce((n, s) => n + s.episodes.rows, 0);
     // and the three block indexes, 4 B a block of 64 positions and one more, an empty earlier generation's too
     const perBlock = 3 * 4 * [genA, genB, sideA, sideB].reduce((n, s) => n + Math.ceil(s.intervals.rows / 64) + 2, 0);
-    expect(held + reserve).toBeLessThanOrEqual(8_400_000 + perGap + perEpisode + perBlock);
+    // and the targets' least and largest jump point per block of 64
+    const perTargetBlock = 16 * Math.ceil(v.n / 64);
+    expect(held + reserve).toBeLessThanOrEqual(8_400_000 + perGap + perEpisode + perBlock + perTargetBlock);
     expect(genA.allocatedBytes(), "one generation's tables within T = 19.3 MB").toBeLessThanOrEqual(19_300_000);
     expect(v.n).toBe(2 * REQUEST_BUDGET.intervals + 2 * side.intervals);
     // what it answers stays exact at that size: a contact, a gap of its pair, the free stretch after it
