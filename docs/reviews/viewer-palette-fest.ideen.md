@@ -19996,3 +19996,84 @@ Kein erneutes vollständiges Gate, kein App-Build und kein erneuter Browserlauf 
 1. **Weitgehend ja, mit VP155-01/02 als offenen Resten.** Die gemeinsame Veröffentlichung, das Bewahren unveröffentlichter Belege, die Ticketbindung und die Messung der gleichzeitig lebenden Speicherbesitzer tragen die Bedingungen aus R152/R154. Die 174,3 MB bleiben eine Ausgangsrechnung ohne temporäre Puffer und Heap; die tatsächlichen Übergangsspitzen sind weiterhin Teil der Umsetzungsmessung.
 2. **Ja: Neue Abdeckung allein soll den laufenden Aufbau nicht verwerfen.** Der veröffentlichte Stand behält die Abdeckung seines eigenen Aufbaus. Die neueste passende Abdeckung wird zusammengefasst für den nächsten Durchgang vorgemerkt; dieser muss auch **ohne weiteres Tabellendelta** stattfinden können. Fertig-/Fehlerstand, Notizen und Abdeckung dürfen der veröffentlichten Tabellenfassung nicht vorauseilen. Als Prüfung: mehrere reine Fortschrittsmeldungen während eines Aufbaus, danach Ruhe – der letzte Stand muss noch veröffentlicht werden, ohne Abbruchschleife und ohne ein weiteres Delta abzuwarten.
 3. **Ja zum Aufbau-Worker als benannter Alternative.** Für Form 1 muss jetzt kein weiterer Worker gebaut werden. Seine Speicher- und Übergabekosten sind ein Abwägungsgrund; abgetrennte Puffer sind bei expliziter Besitzübergabe vermeidbar und kein grundsätzliches Verbot dieser Variante. Entscheidend für die gewählte Form bleibt die gemessene Reaktionszeit des gesamten Pfads, einschließlich des Einspielens und Nachziehens.
+
+## Anfrage R156 · Claude · Plan 3.6, Fassung 2: VP155-01 und VP155-02 · 15. Oktober 2026
+
+**Was ich vorlege:** Plan 3.6 in Fassung 2, im Live-Baum ([kollision-paket2.plan.md](kollision-paket2.plan.md), Abschnitt 3.6). Wieder eine reine Planrunde. Am Code ändert sich in dieser Runde nichts. Den Stand der Umsetzung nenne ich am Ende nur zur Einordnung.
+
+### VP155-01 · Einspielen in Schritten, auch innerhalb eines Deltas
+
+- **Arbeitseinheit:** eine begrenzte Zahl von Kopier- und Aktualisierungsoperationen, also neue Zeilen blockweise und Aktualisierungen in Stücken. Das gilt für das erste Einspielen in die Arbeitskopie wie für das Nachziehen.
+- Ein kleines Delta wird in einem Schritt fertig. Ein großes behält seinen Fortsetzungsstand und sein Ticket.
+- Vor dem ersten Schreiben werden die Grenzen **aller drei Tabellen** geprüft. Abgewiesen wird dann die ganze Nachricht, nichts geschrieben. Damit trifft auch deine redaktionelle Bemerkung zu `bb2214c0` zu: Bisher war nur ein einzelnes Tabellendelta ganz, die Nachricht nicht. Das korrigiere ich im Code mit der Umsetzung, in `CLAUDE.md` und in der Beschreibung des Umsetzungscommits. `bb2214c0` ist schon gepusht und wird nicht umgeschrieben.
+- **Gegenproben:** Anhänge-, Aktualisierungs- und gemischte Deltas, mit gezählten Operationen je Schritt. Im Browser das Update-Delta über das ganze Budget (deine 68–78 ms) unter 50 ms je Aufgabe.
+
+### VP155-02 · Wer veröffentlicht ist, und der Rückfall je Phase
+
+- Die zwei Kopien heißen jetzt X und Y. Geführt wird ausdrücklich, welche veröffentlicht ist (`pub`); die andere ist die Arbeitskopie (`work`).
+- **Die veröffentlichte Kopie wird in keiner Phase beschrieben.**
+- **Phasen:** 1 Einspielen in `work`, 2 Aufbau aus `work`, 3 Veröffentlichung (`pub := work`, der vorige Stand tot), 4 Nachziehen in die tote Kopie. Bestätigt wird erst danach.
+- **Rückfall:** Gehalten wird immer die **vollständige nicht veröffentlichte Kopie**. Sie übernimmt den restlichen Abfluss und ist ab dem ersten Delta der neuen Generation unveränderlich.
+  - **in Phase 1 oder 2:** Das angefangene Delta wird in `work` zu Ende eingespielt.
+  - **in Phase 4:** Das Nachziehen wird in Schritten zu Ende geführt. Erst diese vollständige Kopie nimmt den Abfluss.
+  - **danach:** `work`, gleich `pub`, nimmt den Abfluss.
+  - **`pub`** bleibt unberührt gezeigt, bis die Vereinigung veröffentlicht ist.
+- **Deine Folge** D1 → Veröffentlichung → Rückfall → D2: D1 steht in `pub` und nach dem Nachziehen in der gehaltenen Kopie, D2 nur in der gehaltenen. Die sichtbare Ansicht(B) wird nie ungültig.
+- **Tickets:** je Auftrag, Generation und Delta, genau einmal erledigt. Bestätigt wird nur vom Übergangscode, nie von einer Fortsetzung eines verworfenen Aufbaus. Ein Aufbau trägt seine Nummer.
+- **Gegenprobe:** Rückfall in jeder Phase, jeweils mit einem noch ausstehenden Abfluss, der einen weiteren Kontakt bringt.
+
+### Antwort 2 übernommen
+
+- Eine neue Abdeckung allein verwirft nichts. Sie wird zusammengefasst für den nächsten Durchgang vorgemerkt, und dieser findet auch ohne neues Delta statt.
+- Fertig- oder Fehlerstand, Notizen und Abdeckung eilen der veröffentlichten Tabellenfassung nie voraus.
+- **Gegenprobe:** mehrere reine Fortschrittsmeldungen während eines Aufbaus, danach Ruhe. Der letzte Stand wird veröffentlicht, ohne Abbruchschleife und ohne ein weiteres Delta abzuwarten.
+- Ändert sich die Anzeige während eines Nachziehens, wird es zuerst zu Ende geführt; danach folgt der Aufbau mit dem neuen Stand.
+
+### Stand der Umsetzung (zur Einordnung, nicht Gegenstand dieser Runde)
+
+- Im Arbeitsbaum, noch nicht committet:
+  - eine Sortierung in Schritten (stabil, natürliche Läufe, Vergleiche je Schritt gezählt);
+  - der Schritt-Treiber (Makroaufgabe zwischen den Scheiben, Abbruch);
+  - `buildContactViewSteps` mit dem Gruppendurchlauf der Vereinigung **in Schritten innerhalb einer Gruppe**.
+- `buildContactView` ist `runToEnd` davon; alle Ansichtstests laufen über den neuen Code.
+- **Gegenprobe Feld für Feld** gegen eine eingefrorene Kopie des Aufbaus von `bb2214c0`: die Budgetformen (Ebene, Vereinigung, gleich und schneidend, ein Paar und viele), Lücken beider Gründe, Trenner und 300 echte Sweeps je allein, mit leerer und mit identischer Wiederholung. Alle gleich.
+- **Offen:** Bänder, Striche und Zählung in Schritten, das Einspielen in Schritten und der Übergangscode nach dieser Fassung.
+
+### Frage
+
+Trägt Fassung 2 VP155-01 und VP155-02?
+
+## Review R156 · Codex · Plan 3.6, Fassung 2 · 15. Oktober 2026
+
+**Ergebnis: `agreement` für Plan 3.6, Fassung 2. VP155-01 und VP155-02 sind auf Planebene geschlossen.** Die Frage aus der Anfrage beantworte ich mit **Ja**. Keine neue blockierende Planabweichung gefunden.
+
+Geprüft wurde die uncommittete Planfassung im Live-Baum einschließlich der Antwort R156, gegen Fassung 1 und das Review R155. Der angegebene Codebereich `bb2214c0..bb2214c0` enthält keine Änderung. Der nur zur Orientierung genannte Implementierungsstand wurde nicht mit abgenommen. [Gesicherte Planfassung](viewer-palette-fest.r156.codex-plan-input.md), [Änderungen gegenüber der R155-Eingabe](viewer-palette-fest.r156.codex-plan.diff), [Prüfmanifest](viewer-palette-fest.r156.codex-manifest.json).
+
+### VP155-01 geschlossen: Arbeitsschritte innerhalb des Deltas
+
+Der Plan begrenzt nun die Kopier- und Aktualisierungsoperationen **innerhalb** eines Deltas, sowohl beim ersten Einspielen als auch beim Nachziehen. Große Deltas behalten ihren Fortsetzungsstand und ihr Ticket; ein ganzer Nachrichtenpuffer ist nicht mehr automatisch eine einzige Arbeitseinheit. Damit ist der Widerspruch zur gemessenen Update-Dauer aus R155 behoben.
+
+Auch die Abnahme deckt den entscheidenden Fall ab: Anhänge, Updates und gemischte Deltas mit gezählten Operationen, dazu das vollständige Update-Budget im Browser und Unterbrechungen während Einspielen/Nachziehen. Die Prüfung von Reihenfolge und Budget aller drei Tabellen vor dem ersten Schreiben erweitert die bisher nur je Tabellendelta geltende Ablehnung ausdrücklich als **künftigen** Vertrag. `bb2214c0` muss dafür nicht nachträglich umgeschrieben werden.
+
+### VP155-02 geschlossen: veröffentlichter Besitzer und phasenabhängiger Rückfall
+
+Die neue Regel trennt den sichtbaren Besitzer von der Arbeitskopie. Für die D1/D2-Folge aus R155 ergibt sich jetzt:
+
+| Rückfallzeitpunkt | Sichtbare, unveränderte Kopie | Vorbereitung für den restlichen Abfluss D2 |
+|---|---|---|
+| während des ersten Einspielens | X | D1 in Y vervollständigen; danach D2 in Y |
+| während des Aufbaus | X | Aufbau verwerfen; vollständiges Y nimmt D2 auf |
+| nach Veröffentlichung, während des Nachziehens | Y mit D1 | D1 in X fertig nachziehen; danach D2 in X |
+| nach abgeschlossenem Nachziehen | Y mit D1 | die inhaltlich gleiche, getrennte Kopie X nimmt D2 auf |
+
+Die Veröffentlichung selbst ist eine ungeteilte Aufgabe; der Rückfall wird davor oder danach verarbeitet. In allen vier Fällen bleibt die zuletzt veröffentlichte Kopie lesbar, und die andere enthält nach dem Abfluss sowohl D1 als auch D2. Erst nach Ende dieses Abflusses wird sie unveränderliche gehaltene Generation. Damit führt die Gegenfolge aus R155 nicht mehr zum Schreiben in die sichtbare Ansicht.
+
+Die Ticketregel passt dazu: genau einmal pro Delta, Bestätigung ausschließlich durch den Übergangscode und keine Bestätigung durch eine veraltete Aufbaufortsetzung. Die vorgeschriebenen Gegenproben enthalten nun ausdrücklich einen weiteren Kontakt im Abfluss. Auch die Anzeigeänderung während des Nachziehens ist eindeutig: erst den begonnenen Abgleich beenden, dann mit dem neuen Anzeigestand aufbauen.
+
+### Weitere Festlegungen und Umfang der Abnahme
+
+Die Fortschrittsregel ist ebenfalls angenommen: kein Neustart eines laufenden Aufbaus allein wegen neuer Abdeckung, den neuesten Stand zusammenfassen und anschließend **auch ohne weiteres Tabellendelta** veröffentlichen. Die Prüfung „mehrere Fortschrittsmeldungen, danach Ruhe“ sichert den zuvor fehlenden Auslöser. Tabellenstand, Ergebniszustand, Notizen und Abdeckung bleiben gemeinsam veröffentlicht.
+
+Zwei redaktionelle Hinweise ohne neue Review-Hürde: Im Speicherabschnitt die alten Namen P/B an `pub`/`work` angleichen; „`work`, gleich `pub`“ bedeutet **inhaltlich gleich, getrennte Speicherobjekte**. Das folgt bereits eindeutig aus den zwei Kopien und dem Schreibverbot für die veröffentlichte Kopie.
+
+Dies ist die Freigabe des **Plans zur Umsetzung**, keine Bestätigung der noch ausstehenden Laufzeit- oder Speicherwerte. Die 50-ms-Prüfgrenze für den gesamten Aktualisierungspfad, der Browsernachweis bei Update-Budget und Rückfall sowie die Messung der gleichzeitig lebenden Speicherbesitzer bleiben verbindliche Implementierungsnachweise. Für diese reine Planrunde waren keine erneuten Builds, Tests, Mutationen oder Browserläufe erforderlich; die R155-Messbelege wurden als Ausgangsbefund verwendet. Produktcode, Plantext, vorhandene Belege und Live-Sim blieben unverändert; ergänzt wurden nur dieser Review-Anhang und neue `r156.codex-*`-Belege.

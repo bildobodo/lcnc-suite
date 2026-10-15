@@ -274,7 +274,7 @@ Die verfeinerten Grenzen eines Laufs sind **kein** Freiraumzertifikat für die S
 
 Der gehaltene erste Kontakt aus Paket 1 (`_colFirstHeld`, `withFirstContact`, `holdsFirst`) wird ein Sonderfall dieser Regel und entfällt als eigener Code. Die gehaltenen Belege und die ID-Zuordnung stehen im Budget (3.4).
 
-### 3.6 Aufbau in Schritten: zwei Tabellenfassungen (Form 1; Codex R152, R154)
+### 3.6 Aufbau in Schritten: zwei Tabellenfassungen (Form 1; Codex R152, R154, R155 — Fassung 2)
 
 **Warum.** Nach dem Listenfenster (4.4, R154) hält die Seite noch lange Aufgaben, gemessen im Browser in Budgetgröße (262 144 Ziele): Ankunft 0,29–0,46 s, nach einem Rückfall bis 1,24 s. In Node, Budget, Vereinigung:
 
@@ -284,50 +284,71 @@ Der gehaltene erste Kontakt aus Paket 1 (`_colFirstHeld`, `withFirstContact`, `h
 | Bänder | 250–410 ms |
 | Kollisionsstriche (`posOf` der Stücke) | 85–105 ms |
 | Zählung | bis 13 ms |
-| Delta einspielen | 175 ms, jetzt blockweise 2,7 ms (`bb2214c0`) |
+| Delta einspielen | 175 ms; neue Zeilen jetzt blockweise 2,7 ms (`bb2214c0`), Aktualisierungen über das ganze Budget am Stück aber 68–78 ms im Browser (Codex R155) |
 
 Eine lange Aufgabe hält auch die Handler von Escape und des E-Stop-Knopfs auf; der Herzschlag der Seite läuft im WebSocket-Worker und ist nicht betroffen.
 
-**Zwei Fassungen.**
-- Je Auftrag (Haupt- und Seitenlauf) hält der Viewer die aktuelle Generation zweimal:
-  - **P**, die veröffentlichte: aus ihr liest die gezeigte Ansicht;
-  - **B**, die vorbereitete: aus ihr wird aufgebaut.
+**Zwei Fassungen und wer veröffentlicht ist** (Fassung 2 nach Codex R155 VP155-02).
+- Je Auftrag (Haupt- und Seitenlauf) hält der Viewer die aktuelle Generation in **zwei Kopien X und Y**.
+- Geführt wird ausdrücklich, **welche veröffentlicht ist** (`pub`), unabhängig von den Arbeitsnamen. Die andere ist die Arbeitskopie (`work`).
+- **Die veröffentlichte Kopie wird nie beschrieben**, in keiner Phase.
 - Die gehaltene Generation (3.5) ist unveränderlich und wird von beiden geteilt.
 
-**Ein Durchgang** (höchstens einer in Arbeit; keine anwachsende Delta-Warteschlange):
-1. Die wartenden Deltas (je Weg höchstens eines, unbestätigt) gehen zu Beginn in **B**.
-2. Der Aufbau liest B unverändert, in Schritten: Ziele samt Sortierung, Gruppenindex, Vereinigung, auch **innerhalb einer großen Gruppe**, Bänder, Striche, Zählung und Startpaare. Die Seite zeigt währenddessen den letzten zusammenpassenden Stand: Navigation, Fenster und Färbung auf P.
-3. **Veröffentlichung in einer Aufgabe:** Ansicht, Tabellenrevision, Bindung an Spur und Auftrag, Abdeckung, Ergebniszustand und Notizen, Bänder, Striche und Zählung gemeinsam.
+**Einspielen in Schritten, auch innerhalb eines Deltas** (Codex R155 VP155-01).
+- Die Arbeitseinheit ist eine begrenzte Zahl von Kopier- und Aktualisierungsoperationen:
+  - neue Zeilen blockweise;
+  - Aktualisierungen in Stücken.
+- Ein kleines Delta wird in einem Schritt fertig. Ein großes hält seinen Fortsetzungsstand und sein Ticket.
+- Vor dem ersten Schreiben werden die Grenzen **aller drei Tabellen** eines Deltas geprüft (Reihenfolge, Budget). Abgewiesen wird die ganze Nachricht, nichts geschrieben.
+- Gemessen in R155: Ein Update-Delta über das ganze Budget kostet am Stück 68–78 ms im Browser.
+- Das gilt für das erste Einspielen in `work` wie für das Nachziehen.
+
+**Die Phasen eines Durchgangs** (höchstens einer in Arbeit; keine anwachsende Delta-Warteschlange):
+1. **Einspielen:** Die wartenden Deltas (je Weg höchstens eines, unbestätigt) gehen in Schritten in `work`. `pub` und seine Ansicht bleiben gezeigt.
+2. **Aufbau** aus `work`, unverändert gelesen, in Schritten: Ziele samt Sortierung, Gruppenindex, Vereinigung, auch **innerhalb einer großen Gruppe**, Bänder, Striche, Zählung und Startpaare.
+3. **Veröffentlichung in einer Aufgabe:** `pub := work`. Ansicht, Tabellenrevision, Bindung an Spur und Auftrag, Abdeckung, Ergebniszustand und Notizen, Bänder, Striche und Zählung gehen gemeinsam hinaus.
    - Jede Abfrage geht über diesen veröffentlichten Stand.
    - Der vorige Stand wird **tot** gesetzt: Jede Abfrage an ihm wirft (`check`), auch aus einem Vue-Cache, der ihn noch hält (Codex R154, Bedingung 1).
-4. **Erst danach** gehen dieselben Deltas in das alte P (Nachziehen, ein Schritt je Delta). P und B tauschen die Rollen, und erst jetzt gehen die Bestätigungen hinaus, je Auftrag und Generation.
+4. **Nachziehen:** Dieselben Deltas gehen in Schritten in die andere, nun tote Kopie. Erst wenn sie vollständig darin sind, gehen die Bestätigungen hinaus, je Auftrag und Generation. Danach sind beide Kopien gleich, und die tote ist die nächste `work`.
+
+**Rückfall** (Generationswechsel desselben Auftrags): **Der Aufbau wird verworfen, nicht die Belege.**
+- **Die gehaltene Generation wird immer die vollständige nicht veröffentlichte Kopie.** Sie übernimmt den restlichen Abfluss der alten Generation (Runde A) und ist ab dem ersten Delta der neuen Generation unveränderlich.
+- Je Phase:
+  - **in 1 oder 2:** Ein angefangenes Delta wird in `work` zu Ende eingespielt; `work` übernimmt den Abfluss und wird gehalten.
+  - **in 4:** Das Nachziehen in die tote Kopie wird in Schritten zu Ende geführt; diese vollständige Kopie übernimmt den Abfluss und wird gehalten.
+  - **danach:** `work` — inhaltlich gleich `pub`, ein getrenntes Speicherobjekt — übernimmt den Abfluss und wird gehalten.
+- `pub` bleibt bis zur Veröffentlichung der Vereinigung unberührt und gezeigt; dann wird es frei, ebenso eine vorige gehaltene Generation.
+- Die neue Generation beginnt in zwei leeren Kopien.
+- So bleiben D1 (veröffentlicht oder nicht) und D2 (der Abfluss) vollständig, und die sichtbare Kopie wird nie beschrieben (Codex' Folge D1 → Veröffentlichung → Rückfall → D2).
 
 **Abbruch und Wechsel.**
-- **Neuer Auftrag oder ungültige Prüfgrundlage:** Ein laufender Aufbau wird verworfen. Die Tabellen eines Auftrags, den niemand mehr besitzt, gehen samt ihrem Bestätigungsticket; dessen Abbruch ging an den Worker.
-- **Was gezeigt wird, ändert sich, derselbe Auftrag** (andere Spur, ein Seitenlauf kommt dazu oder geht): Der Aufbau beginnt neu aus B. Die Deltas darin bleiben, P zieht bei der nächsten Veröffentlichung nach.
-- **Eine neue Abdeckung allein verwirft nichts.** Jeder Aufbau nimmt die Abdeckung bei seinem Beginn, die nächste kommt mit dem nächsten Durchgang; sonst würde ein Aufbau in Budgetgröße im Takt der Teilstände nie fertig.
-- **Rückfall** (Generationswechsel desselben Auftrags; Codex R154, Bedingung 2): **Der Aufbau wird verworfen, nicht die Belege.**
-  - B mit **jedem** eingespielten Delta, auch einem unveröffentlichten, wird die gehaltene Generation mit ihrer eigenen Abdeckung, nie das zuletzt gezeigte P.
-  - Die neue Generation beginnt in beiden Fassungen leer.
-  - Das alte P bleibt, bis die Vereinigung veröffentlicht ist; dann wird es frei, ebenso eine vorige gehaltene Generation.
-  - Ein Delta der nun gehaltenen Generation (ihr Abfluss, Runde A) wird bestätigt, sobald es in B ist; ein Nachziehen in P entfällt. So blockiert der Abfluss nicht.
+- **Neuer Auftrag oder ungültige Prüfgrundlage:** Ein laufender Aufbau wird verworfen. Die Tabellen eines Auftrags, den niemand mehr besitzt, gehen samt ihrem Ticket; dessen Abbruch ging an den Worker.
+- **Was gezeigt wird, ändert sich, derselbe Auftrag** (andere Spur, ein Seitenlauf kommt dazu oder geht):
+  - Ein laufender Aufbau beginnt neu aus `work`.
+  - Ein laufendes Nachziehen wird zuerst zu Ende geführt; danach folgt der Aufbau mit dem neuen Stand.
+- **Eine neue Abdeckung allein verwirft nichts** (Codex R155, Antwort 2):
+  - Der veröffentlichte Stand behält die Abdeckung seines Aufbaus.
+  - Die neueste Abdeckung wird für den nächsten Durchgang vorgemerkt, zusammengefasst. Dieser Durchgang findet **auch ohne neues Delta** statt.
+  - Fertig- oder Fehlerstand, Notizen und Abdeckung eilen der veröffentlichten Tabellenfassung nie voraus.
 - **Ein später Fertig- oder Fehlerstand** geht mit der nächsten Veröffentlichung hinaus; ein Fehler beendet den Auftrag wie heute.
 
 **Bestätigungstickets** (Codex R154, Bedingung 3):
-- Je Auftrag und Generation höchstens eines je Weg.
-- Es wird erledigt durch das Nachziehen (der Normalfall), durch den Rückfall (das alte Ticket, sobald das Delta in B ist) oder durch das Ende des Auftrags (das Ticket verfällt; der Worker wartet für einen abgebrochenen Auftrag auf nichts).
-- Nie wird dabei ein neues Ticket bestätigt.
-- Gegenproben: eine Unterbrechung vor der Veröffentlichung und eine nach der Veröffentlichung, aber vor dem Nachziehen.
+- Je Auftrag, Generation und Delta, höchstens eines je Weg.
+- Es wird **genau einmal** erledigt:
+  - durch das vollständige Nachziehen (der Normalfall);
+  - beim Rückfall, sobald das Delta vollständig in der Kopie steht, die gehalten wird;
+  - durch das Ende des Auftrags (es verfällt; der Worker wartet für einen abgebrochenen Auftrag auf nichts).
+- Bestätigt wird nur vom Übergangscode selbst, nie von einer Fortsetzung eines verworfenen Aufbaus. Ein Aufbau trägt seine Nummer, ein später Rest von ihm bestätigt nichts, auch kein Folgeticket.
 
 **Schritte.**
-- Arbeitsziel etwa 8–16 ms je Schritt.
+- Arbeitsziel etwa 8–16 ms je Schritt; ein Schritt ist eine begrenzte Zahl von Operationen, auch innerhalb eines Deltas.
 - **50 ms ist die gemessene Obergrenze je Aufgabe im Browser**, kein Takt; darunter bleibt Reserve für Vue, DOM und Eingaben (Codex R154, Bedingung 4).
 - Der ganze Pfad ist eingeschlossen: Einspielen, Aufbau, Sortierung, die große Einzelgruppe, Bänder, Striche, Startpaare, Nachziehen, und am Ende das Rendern der 400 Zeilen und der Striche.
 - In Unit-Tests werden **Operationen je Schritt gezählt**, keine Uhrzeiten.
 
 **Speicher, je gleichzeitig lebendem Besitzer gemessen** (Codex R154, Bedingung 5):
-- **Im Regelfall:** P + B der aktuellen Generation (zusätzlich T + S ≈ 21,7 MB gegenüber 3.4), die geteilte gehaltene, der veröffentlichte und der entstehende Ableitungssatz (zusätzlich bis 10,98 MB), dazu die vorübergehenden Sortier- und Aufbaupuffer, getrennt ausgewiesen.
-- **Beim Rückfall:** altes P, B (jetzt gehalten), die neue aktuelle Generation, die vorige gehaltene bis zur Veröffentlichung, der entstehende Vereinigungsaufbau.
+- **Im Regelfall:** `pub` + `work` der aktuellen Generation (zusätzlich T + S ≈ 21,7 MB gegenüber 3.4), die geteilte gehaltene, der veröffentlichte und der entstehende Ableitungssatz (zusätzlich bis 10,98 MB), dazu die vorübergehenden Sortier- und Aufbaupuffer, getrennt ausgewiesen.
+- **Beim Rückfall:** `pub`, die vollständige nicht veröffentlichte Kopie (jetzt gehalten), die neue aktuelle Generation, die vorige gehaltene bis zur Veröffentlichung, der entstehende Vereinigungsaufbau.
 - Die Ausgangsrechnung ist etwa 174,3 MB (141,6 + 21,7 + 10,98) ohne Aufbaupuffer; gemessen wird jeder Übergang.
 - Die Zeilen-, Strich- und DOM-Objekte der Liste werden als Heap getrennt berichtet.
 
@@ -335,16 +356,19 @@ Eine lange Aufgabe hält auch die Handler von Escape und des E-Stop-Knopfs auf; 
 - Er hielte die Seite ganz frei, aber:
   - Ohne `SharedArrayBuffer` gäbe es die gehaltene Generation zweimal (zusätzlich T + S). Über LAN-HTTP fehlt der sichere Kontext dafür.
   - Übertragene Tabellenpuffer hinterließen auf der Seite tote Speicherobjekte mit noch passender Revision; ein später Leser läse Unsinn (VP-I107 in neuer Form).
-  - Sein bester Grund, das teure Nachziehen, entfällt mit dem blockweisen Einspielen.
+  - Sein bester Grund, das teure Nachziehen, ist mit dem Einspielen in Schritten (oben) auch auf der Seite begrenzt.
 - Er bleibt als Alternative benannt.
 
 **Abnahme 3.6:**
 - Der Aufbau in Schritten ergibt **Feld für Feld** dieselbe Ansicht wie der Aufbau am Stück: auf allen Ansichtstests und den Budgetformen.
-- Die Operationen je Schritt sind begrenzt, auch in einer einzigen großen Gruppe.
+- Die Operationen je Schritt sind begrenzt: in einer einzigen großen Gruppe und beim Einspielen und Nachziehen von Anhänge-, Aktualisierungs- und gemischten Deltas.
 - Eine alte Ansicht, über Veröffentlichung und Nachziehen gehalten, wirft bei jeder Abfrage.
-- Ein Rückfall mit unveröffentlichtem Delta in B: Das Delta steht in der gehaltenen Generation, mit eigener Abdeckung.
-- Die Tickets in beiden Unterbrechungen, wie oben.
-- Im Browser in Budgetgröße, eine Generation und Rückfall: keine Aufgabe über 50 ms. Eine Eingabe zwischen den Phasen wird innerhalb eines Schritts bedient. Ein Abbruch in einer großen Gruppe greift.
+- Die veröffentlichte Kopie wird nie beschrieben, in jeder Phase.
+- **Rückfall in jeder Phase** (vor der Veröffentlichung, nach ihr während des Nachziehens, danach), jeweils mit einem noch ausstehenden Abfluss, der einen weiteren Kontakt bringt: Beide Deltas stehen in der gehaltenen Generation mit eigener Abdeckung; das alte Ticket ist genau einmal erledigt.
+- Abbruch während des Einspielens und während des Nachziehens.
+- Die Tickets: keine Bestätigung durch einen verworfenen Aufbau, kein Folgeticket bestätigt.
+- Mehrere reine Fortschrittsmeldungen während eines Aufbaus, danach Ruhe: Der letzte Stand wird veröffentlicht, ohne Abbruchschleife und ohne ein weiteres Delta abzuwarten.
+- Im Browser in Budgetgröße, eine Generation und Rückfall: keine Aufgabe über 50 ms, das Einspielen eines Update-Deltas über das ganze Budget eingeschlossen. Eine Eingabe zwischen den Phasen wird innerhalb eines Schritts bedient. Ein Abbruch in einer großen Gruppe greift.
 - Speicher je Besitzer und Übergang.
 
 ## 4 · Eine Ableitung für alle Ansichten
