@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r159-_y__3tra/repo/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed | 3 skipped (4)
+   Start at  20:10:39
+   Duration  303ms (transform 101ms, setup 0ms, import 113ms, tests 140ms, environment 0ms)
+

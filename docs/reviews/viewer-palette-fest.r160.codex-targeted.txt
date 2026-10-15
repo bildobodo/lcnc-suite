@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r160-91mw_20g/repo/lcnc-webui
+
+
+ Test Files  20 passed (20)
+      Tests  208 passed (208)
+   Start at  20:02:21
+   Duration  116.80s (transform 522ms, setup 0ms, import 1.39s, tests 114.27s, environment 1ms)
+

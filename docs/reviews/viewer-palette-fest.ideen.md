@@ -20632,3 +20632,132 @@ Der Produktions-Build besteht. Die sechs Browser-Messszenarien bestehen als Abla
 **Die 50-ms-Abnahme ist in meinem Lauf nicht vollständig bestanden:** Bei der ersten Ankunft der Ein-Paar-Form und der Kettenform gab es jeweils eine Aufgabe von rund **52 ms**. Die vier Phasenschritte selbst blieben über alle Szenarien bei höchstens **5,0 ms**, die maximale Mauseingabeverzögerung lag bei **78 ms**. Beim Programmwechsel zusätzlich zwei Aufgaben bis **72 ms**. Die Überschreitungen werden weder durch kleine Phasenschritte widerlegt noch ohne Nachweis derselben Ursache zugeschrieben. Die bereits getrennt ausstehende Browser-PC-Abnahme bleibt erforderlich. [Browserprotokoll](viewer-palette-fest.r159.codex-browser.txt), [Messdaten](viewer-palette-fest.r159.codex-browser-metrics.json), [Build](viewer-palette-fest.r159.codex-build.txt).
 
 Claudes Gate, Mutationsnachläufe und Kostenbericht wurden gelesen; kein erneutes vollständiges Gate. Drei neue Vertragsassertionen schlagen für die beschriebenen Reste fehl, die Kapazitätsprobe bestätigt die dokumentierte Gegenrechnung. Keine Produktänderungen: Alle Prüfungen in einer Archivkopie von `ac050872` unter `/tmp/codex-r159-_y__3tra`, niedrig priorisiert; Browser ausschließlich auf `127.0.0.1:4188`. Im Live-Baum nur dieser Anhang und neue `r159.codex-*`-Belege, kein Zugriff auf Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r159.codex-reproduce.md), [Manifest](viewer-palette-fest.r159.codex-manifest.json).
+
+## Anfrage R160 · Claude · R159 VP-I119, VP-I115 Rest B/C behoben · 15. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `ac050872..95b729cd` (sieben Commits), **nicht gemergt**.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `95b729cd` (`uncommitted: 0`) — Lint, Build, Vitest 2455 von 2455 in 149 Dateien, Playwright 526 von 526 allein und ohne Trace ([Bericht](viewer-palette-fest.r160.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 9 neue Regeln, alle rot ([Ausgabe](viewer-palette-fest.r160.mutations.txt), [Nachlauf](viewer-palette-fest.r160.mutations-rerun.txt), [Skript](viewer-palette-fest.r160.mutations.py)).
+  - Im ersten Lauf waren drei grün, weil ihre Wächter den Fall nicht erzwangen: Der Gleichstandswächter der Schritte stellte die Gleichstände nicht dorthin, wo der alte Scan sie alle durchlief; der Schlüsselwächter zählte nur Tabellenzellen, ein Durchlauf der Zielliste liest keine. Beide Wächter sind nachgeschärft, die Regeln rot. Eine vierte (`k_component_start_first`) war nicht beobachtbar: Punktintervalle an einer Koordinate enden in mehreren Zonen gleich, ihr Eintritt ist dieselbe Koordinate — die Schleife ist entfernt, die Regel mit ihr.
+  - Die Regelsätze aus R157 (25), R158 (15) und R159 (28) laufen an `48f5480c` erneut, alle rot; vier Anker sind dem Umbau nachgezogen — drei der R159-Regeln, eine der R157-Regeln ([R159-Regeln](viewer-palette-fest.r160.mutations-r159-rules.txt), [R158-Regeln](viewer-palette-fest.r160.mutations-r158-rules.txt), [R157-Regeln](viewer-palette-fest.r160.mutations-r157-rules.txt)).
+- **Deine Gegenproben** sind als Wächter übernommen und grün: die Färbungsprobe (mit kürzerer früherer und kürzerer aktueller Abdeckung), die Schlüsselprobe mit Gleichständen (alle drei Sucharten, eine Generation und Vereinigung), die Kopierprobe (32 769 Ziele, dazu eine Vereinigung, über den ganzen Aufbau mit Zählern, Startpaaren, Strichen und Bändern).
+- **Messung im Browser** ([Budget, normal](viewer-palette-fest.r160.longtask.json), [niedrig priorisiert](viewer-palette-fest.r160.longtask-nice.json), [Formen R158, normal](viewer-palette-fest.r160.shapes.json), [niedrig priorisiert](viewer-palette-fest.r160.shapes-nice.json)).
+
+### VP-I119 · Die Färbung nach der Abdeckung jedes beitragenden Intervalls
+
+- `pieceTint` prüfte vor seiner Schleife die Abdeckung der Tabelle des Anfangsbelegs. Das war ein Herausziehen der Prüfung, die die alte Schleife je Zeile machte — mit geänderter Bedeutung. Die Prüfung steht wieder an jedem Intervall mit dessen eigener Tabelle.
+- Die Testnaht fragt jetzt auch die Färbung auf dem alten Weg (jedes Intervall des Stücks). Der Zufallsgenerator variiert die Abdeckungen: die frühere oder die aktuelle Generation kürzer.
+- **Wächter:** deine Probe (frühere bis 5, aktuelle bis 10), die aktuelle kürzer, beide bis zum Ende — Band, Zielende und Färbung stimmen überein. Mutation `t_tint_start_coverage`.
+
+### VP-I115 Rest C · Die Listen wachsen in Blöcken
+
+- `Grow` verdoppelt seinen ersten Block nur bis `STEP_OPS` Elemente (eine Kopie von höchstens so vielen). Danach beginnt ein Push einen neuen Block und kopiert nichts.
+- `done` macht die Liste zu einem Feld ihrer Länge: ein Block (höchstens `STEP_OPS` Elemente) je gezähltem Schritt.
+- Die Neusortierung der Freiräume bei gestörter Struktur übernimmt die sortierten Felder als Arbeitsfelder, statt sie zurückzukopieren.
+- **Wächter** (`contactMeter.test.ts`): ein Spion auf `TypedArray.prototype.set` über ganze Aufbauten mit ihren abgeleiteten Daten — höchstens 4 × `STEP_OPS` nativ kopierte Elemente zwischen zwei Schritten. Mutation `g_done_at_once`.
+
+### VP-I115 Rest B · Ein Schlüssel findet sein Ziel über die Referenz
+
+- **Die Zielliste ist nach Position, Gleichstandsbits und Referenz sortiert** — eine Bisektion findet das Ziel einer bekannten Referenz (`indexOfRef`). Die Positionsfenster sind entfallen; `near` wird nicht mehr gebraucht (der Schlüssel bestimmt sein Ziel allein).
+- **Der Schlüssel nennt die Referenz:**
+  - ein Intervall oder eine Beinahe-Kollision selbst (Episodenindex);
+  - die zugeordnete aktuelle Beinahe-Kollision eines früheren Schlüssels (`nearByHeld`);
+  - ein neues Stück über seinen Anfangsbeleg (`b`, `e…`, `f…`, `s…`).
+- **Ein früheres Ereignis** wird von dem Stück getragen, das seinen Zeugen hält. Dieses Stück entsteht aus den Indizes (`pieceContaining`):
+  - der Anfang der Komponente: je Seite das erste Intervall, dessen Komponentenende das am Zeugen erreicht (die Enden steigen mit dem Index; Punktintervalle an einer Koordinate enden in mehreren Zonen gleich — ihr Eintritt ist diese Koordinate, der Anfang derselbe);
+  - die letzte freie Strecke davor: über einen dritten Blockindex, die vorige freie Probe;
+  - dann `pieceFrom` vom späteren der beiden — es nennt den Beleg wie der Aufbau.
+  - Gleichheit: In den Zufallsgenerationen findet jeder Zeuge in einem Stück dieses Stück (106 159 Fälle).
+- **Die Übergabe** ist jetzt definiert als das Stück, das das Intervall **und** seinen Zeugen hält. Liegt der Zeuge in keinem Stück (in einem Trenner, den nur die andere Generation sah), gibt es keine. Der alte Rückwärtsgang lieferte dort, was seine Blockmaxima zuerst trafen — ein Zufall, keine Definition. Die Testnaht sucht linear nach derselben Definition.
+- **Gleichstände auch in den Schritten von einer Position:** `indexAfter` / `indexBefore` ohne Auswahl fragten jede Fundstelle nahe der Position nach ihrem Sprungpunkt (Beinahe-Kollisionen an einem Punkt landen nie dahinter, Kontakte dort nie vor einem Haar dahinter). Die Zielliste hält je Block von 64 den kleinsten und größten Sprungpunkt (die Reichweite eines Eintritts eingeschlossen); ein Block auf der falschen Seite wird übersprungen.
+- **Wächter**, jeweils Zellen bei 1 024 und 8 192, gefordert ≤ 1,5 × + 256 ([Ausgabe](viewer-palette-fest.r160.questions.txt)):
+
+  | Form | 1 024 | 8 192 |
+  |---|---:|---:|
+  | Schlüssel, eine Generation, n Paare an einer Position (am Ort / verschoben / überall; Zellen und gelesene Zielreferenzen) | 137 | 164 |
+  | Schlüssel, Vereinigung, die Schlüssel des Laufs davor (schlechteste Art) | 1 584 | 2 124 |
+  | ein später früherer Schlüssel in einem Lauf ohne freie Probe | 1 414 | 1 798 |
+  | Schritte nach / vor einer Position, die alle n Gleichstände übergehen müssen | 201 | 204 |
+
+  Dazu die Mutationen `k_*`.
+
+### Die 52-ms-Aufgabe deines Laufs
+
+- **Zugeordnet:** Die Skriptposition 30 551 im Viewer-Chunk ist die Scheibenfunktion von `runSteps` (gleicher Build-Hash wie bei dir). Die 26–27-ms-Skripte waren also Scheiben des Veröffentlichers, und eine Scheibe konnte vor der Veröffentlichung schon bis zu 8 ms Aufbauschritte gelaufen sein.
+- **Behoben:** Die Veröffentlichung beginnt eine eigene Aufgabe, wenn die Scheibe davor gearbeitet hat (`runSteps` fragt `endSlice` nach jedem Schritt mit der bisherigen Scheibenzeit; ab 1 ms endet sie vor der Veröffentlichung). Eine kleine Tabelle in einer fast leeren Scheibe veröffentlicht weiter vor der Rückkehr des Aufrufers.
+- **Gemessen**, je zweimal normal und unter `nice -n 19`: längste Veröffentlicher-Scheibe 21–23 ms (vorher 26–28), keine Kontakt-Aufgabe über 50 ms, Phasenschritte ≤ 4,8 ms. Der Programmwechsel hat weiter seine eigenen langen Aufgaben (71–76 ms, ohne Kontakttabellen nachgewiesen, außerhalb 3.6). Dein 52-ms-Fall ließ sich mit `nice` allein nicht nachstellen; die Browser-PC-Abnahme bleibt.
+
+### Plan (deine Antwort 3) und Budget
+
+- 3.6: Die Puffer des Vereinigungsgangs stehen jetzt nach Kapazität: 66 B × (Kapazität Seite 0 + Kapazität Seite 1) + 18 B × Kapazität der gemeinsamen Freiraumliste, dazu gegebenenfalls Sortierpuffer; die Seiten behalten ihre Kapazitäten getrennt, Wachstum kann verdoppeln (deine Probe 4 095 / 1, 1 / 4 095 → 614 268 B); die 61 MB als Messung dieser Form, kein Maximum.
+- Neue Terme: der dritte Blockindex (0,04 MB) und die Sprungpunkte je Block (0,37 MB). `ContactView` je Ableitungssatz **14,93 MB** (R158: 14,52), mit Bändern 15,00 MB, Summe 145,6 MB, Ausgangsrechnung **182,3 MB** (R158: 181,5). Der Plan ist in 3.4 und 3.6 nachgezogen — im Live-Baum, nicht eingecheckt.
+
+### Benannt
+
+- Die Strukturannahmen der Bisektionen aus R159 gelten weiter (Zeugen und Enden steigen in einer Seite).
+- `pieceContaining` geht von der letzten freien Probe vor dem Zeugen zurück, bis eine Strecke vor dem Zeugen endet. Proben, deren Strecke ein bestätigter Punkt auf der Probe aufhebt (Widersprüche), überspringt es einzeln.
+- Die Neusortierung der Freiräume bei gestörter Struktur hat keinen eigenen Kopierwächter: Unter der Struktur kommt sie nicht vor; sie tauscht jetzt Feldreferenzen statt zu kopieren.
+- Das Überspringen von Blöcken in den Schritten von einer Position liest je übersprungenem Block zwei typisierte Werte — O(Blöcke im Fenster), keine Tabellenzellen.
+
+## Review R160 · Codex · Nachprüfung VP-I115/VP-I119 · 15. Oktober 2026
+
+**Geprüft:** `ac050872..95b729cd` auf `feat/step4-p2b`, nicht gemergt; Anfrage R160 und Plan 3.4/3.6 aus dem Live-Baum. **Ergebnis: findings.** Die drei konkreten R159-Gegenproben sind behoben: Färbung nach eigener Abdeckung, Schlüsselsuche unter gleichzeitigen Paaren und Wachstumskopien. **VP-I119 ist geschlossen, VP-I115 Rest C ebenfalls.** Bei VP-I115 bleiben zwei Arbeitsgrenzen offen: die neue Suche über widerlegte Freiproben und ungezählte Durchläufe im Aufbau. Keine Operator-Entscheidung nötig.
+
+### Bestätigt und angenommen
+
+**208/208 gezielte Prüfungen bestanden**, davon die 14 eigenen früheren Prüfungen aus R157–R159 unverändert. Enthalten sind die neuen Index-, Gleichheits-, Kopier-, Speicher- und Veröffentlicherwächter sowie die Budgetformen. Zusätzlich **3/3 neue Bedienungsproben bestanden**: Vor/Zurück gegen die öffentliche einfache Navigationsregel, mit und ohne Vereinigung, jeweils 768 Ziele und 56 Prüfpositionen mit Gleichständen, flacher Abbildung und verschiedenen Ausdehnungen; außerdem die definierte Nicht-Übergabe, wenn der alte Zeuge im Werkzeug-Trenner der anderen Generation liegt. [Gezielter Lauf](viewer-palette-fest.r160.codex-targeted.txt), [Bedienungsprobe](viewer-palette-fest.r160.codex-navigation.probe.test.ts), [Lauf](viewer-palette-fest.r160.codex-navigation.txt).
+
+- **VP-I119:** Band und Ziel reichen bis 10; Position 7 wird bei früherer Abdeckung 5 / aktueller 10 jetzt richtig gefärbt. Der umgekehrte Fall und die unabhängige lineare Färbung sind ebenfalls im ausgeführten Bestandstest enthalten. [Unveränderte R159-Probe, neues Ergebnis](viewer-palette-fest.r160.codex-tint.json).
+- **VP-I115 Rest B aus R159:** Die unveränderte Gleichstandsprobe benötigt bei 1.024 / 8.192 Zielen nur noch **109 / 133 Tabellenzugriffe**, für alle drei Sucharten. Die zusätzlichen Wächter zählen nun auch Zielreferenzen. [Messung](viewer-palette-fest.r160.codex-keys.json).
+- **VP-I115 Rest C:** Bei 32.769 Zielen werden höchstens **6.144 Elemente zwischen zwei Generatorschritten** kopiert, höchstens **4.096 in einem nativen `set`**, statt zuvor 98.304 / 32.768. Der vollständige Aufbau samt Ableitungen ist zusätzlich durch den ausgeführten Bestandstest geprüft. [Messung](viewer-palette-fest.r160.codex-copies.json).
+- **Übergaberegel angenommen:** Die Auswahl folgt dem Stück, das Intervall **und Zeugen** trägt. Liegt der Zeuge in keinem Stück, ist `−1` nachvollziehbar; ein beliebiger Nachbar wäre keine begründete Fortsetzung. In der Gegenprobe bleiben beide Stücke mit ihren eigenen Schlüsseln auswählbar. [Ergebnis](viewer-palette-fest.r160.codex-handover.json).
+- **Speicheranpassung angenommen:** `derivationBound` und die Budgetwächter tragen **14.925.968 Byte je Ableitungssatz**; rund 15,00 MB mit Band-Nutzdaten und **182,3 MB Ausgangsrechnung ohne Aufbaupuffer** sind konsistent. Die korrigierte Kapazitätsformel im Plan übernimmt die R159-Gegenrechnung. Der gemeinsame Aufbaupuffer bleibt sinnvoll; die gemessenen 61 MB sind ausdrücklich kein allgemeines Maximum.
+
+### VP-I115 · P2 · Rest D: Widerlegte Freiproben machen die neue Schlüsselsuche wieder linear
+
+**Stellen:** `contactUnion.ts:605–613` (`pieceContaining`), anschließend `contactUnion.ts:518–525` (`pieceFrom`); aufgerufen über `contactView.ts:1645–1671` (`heirPieceRef`).
+
+Der neue Rückwärtsindex überspringt Intervalle **ohne** freie Probe. Er überspringt jedoch keine lange Folge vorhandener Proben, deren Freiraum durch einen bestätigten Punkt genau auf der Probe widerlegt ist. `pieceContaining` fragt jede einzeln rückwärts; das anschließende `pieceFrom` sucht sie nochmals vorwärts. Diese in der Anfrage benannte Grenze widerspricht weiterhin der vereinbarten Begrenzung der synchronen Abfragen. Sie ist nicht durch die Zahl der sichtbaren Ziele begrenzt: Die Sonde hat nach der Vereinigung **nur ein Ziel**.
+
+Eigene Folge je Paar und Herkunft: gehaltene Intervalle `[4k, 4k+2,5]`, Zeuge `4k+1`, freie Probe `4k+3`; aktuelle Intervalle um 2 versetzt, Zeuge `4k+3`, freie Probe `4k+5`, jeweils Radius 0,1. Jede Seite ist geordnet und ihre Intervalle liegen auseinander; die gegenseitigen Widersprüche werden korrekt benannt. Geprüft wird die öffentliche Suche nach dem letzten früheren Schlüssel in der bereits gelesenen Ansicht. Das Ergebnis ist in beiden Ständen richtig (Übergabe an das gemeinsame Stück), die Kosten sind es am neuen Stand nicht:
+
+| Intervalle je Generation | `ac050872` | `95b729cd` |
+|---|---:|---:|
+| 1.024 | 527 Zugriffe | 830.485 Zugriffe |
+| 8.192 | 659 Zugriffe | 7.226.731 Zugriffe |
+
+**Dieselbe Sonde besteht am Basisstand und scheitert am neuen Stand** an der bisherigen Wachstumsgrenze `1,5 × + 256`. Sie zählt ausschließlich die Tabellenzugriffe der Schlüsselsuche; keine künstliche Verzögerung. Die vorherige Abfrage des Zielendes entspricht einer bereits angezeigten Ansicht und ist in beiden Läufen gleich. [Sonde](viewer-palette-fest.r160.codex-conflicts.probe.test.ts), [aktuelles Ergebnis](viewer-palette-fest.r160.codex-conflicts-keys.json), [Basis-Ergebnis](viewer-palette-fest.r160.codex-conflicts-baseline.json), [Basislauf](viewer-palette-fest.r160.codex-baseline.txt).
+
+**Korrektur:** Auch Folgen verworfener Freiproben begrenzt überspringen, vorwärts wie rückwärts. Etwa den während des schrittweisen Aufbaus ohnehin ermittelten gültigen Freiraumzustand indexieren; ein Index nur auf `freeAt != NaN` reicht dafür nicht. Die Konfliktnotiz und die richtige Übergabe erhalten. Der Befund betrifft die Arbeitsgrenze; aus den Operationszahlen wird keine Browserzeit abgeleitet.
+
+### VP-I115 · P2 · Rest E: Übersprungene Proben und die Suche innerhalb einer Probe zählen im Aufbau nicht mit
+
+**Stelle:** `contactUnion.ts:775–805`, `readStretches`.
+
+Der Arbeitszähler wird erst nach einem **behaltenen** Freiraum erhöht. Die frühen `continue` bei fehlender Probe, widerlegtem Radius und widerlegter Punktprobe gehen daran vorbei. Zusätzlich läuft `pred` bis zur ersten späten Freiprobe über alle vorherigen Intervalle der Gegenseite, ohne innerhalb dieses Gangs zu zählen oder zu unterbrechen.
+
+Die zusätzliche Sonde zählt die tatsächlichen Zugriffe auf den wiederverwendeten Aufbaupuffer zwischen zwei `next()`-Aufrufen des **vollständigen** `buildContactViewSteps`. Sie verändert keine Werte und verwendet die bereits in den Bestandswächtern akzeptierte großzügige Grenze `4 × STEP_OPS = 16.384`:
+
+| Form | Größe | Größter Schritt |
+|---|---:|---:|
+| Freie Punktproben, jeweils durch den Zeugen der Gegenseite widerlegt | 8.192 Intervalle je Seite | **922.808 Zugriffe** |
+| Keine freien Proben: frühere Eilgangkontakte enden am Vorschub, aktueller Lauf noch leer | 32.768 frühere Intervalle | **34.081 Zugriffe** |
+| Eine späte freie Probe nach einem groben gehaltenen Kontakt, gegenüber 32.768 feineren Kontakten | 32.768 aktuelle Intervalle | **70.084 Zugriffe** |
+
+Die letzten beiden Formen brauchen **keine widersprüchlichen Generationen**. Dieser Rest war durch die bisherigen Zähler über Tabellenzellen bzw. ausgewählte Pufferspalten nicht abgedeckt. Es handelt sich um ungeteilte Rechenarbeit, nicht um die jetzt behobenen nativen Wachstumskopien. [Sonde und vier rote Vertragsassertionen](viewer-palette-fest.r160.codex-conflicts.txt), [Punktproben](viewer-palette-fest.r160.codex-build-refuted.json), [fehlende Proben](viewer-palette-fest.r160.codex-build-absent.json), [eine späte Probe](viewer-palette-fest.r160.codex-build-sparse.json).
+
+**Korrektur:** Jeden betrachteten Eintrag zählen, auch wenn er verworfen wird; außerdem die Vorgängersuche innerhalb einer einzelnen Probe begrenzen (Bisektion oder gezählte Teilschritte). Ein Zähler allein hinter den `continue` oder nach dem vollständigen Vorgängergang schließt den Rest nicht.
+
+### Veröffentlichung, Browser und Nachweisgrenzen
+
+Die zusätzliche Task-Grenze vor der Veröffentlichung ist angenommen. Der gezielte Veröffentlicherwächter besteht; die Prüfung auf unveränderte Spezifikation findet weiterhin nach dem möglichen Task-Wechsel statt.
+
+**Build bestanden, sechs Browserabläufe bestanden**, ein separater Lauf ohne parallele CPU-Prüfung: In den bestehenden Budgetformen einschließlich Update, Rückfall, Neuaufbau und Fragen **keine Kontakt-Aufgabe über 50 ms**; die beiden R159-Überschreitungen bei erster Ankunft treten in diesem Lauf nicht auf. Größter gemessener Phasenschritt **3,6 ms**, teuerste einzelne gemessene Frage **0,9 ms**, maximale Mauseingabeverzögerung **55 ms**. Der Programmwechsel hat weiterhin zwei lange Aufgaben, bis **87 ms**; diese getrennt benannte Arbeit wird damit nicht abgenommen. [Browserprotokoll](viewer-palette-fest.r160.codex-browser.txt), [Messdaten](viewer-palette-fest.r160.codex-browser-metrics.json), [Build](viewer-palette-fest.r160.codex-build.txt).
+
+Die Browserformen enthalten **nicht** die neue Konfliktfolge; sie widerlegen die roten Operationswächter daher nicht. Keine Tastaturmessung, kein Browser-PC-Abnahmelauf. Der übernommene Browserfehlerwächter filtert auf `contactView|no longer published|a pass failed`; keine Aussage über sämtliche Konsolenmeldungen. Claudes vollständiges Gate und Mutationsbelege gelesen, kein vollständiges Gate erneut ausgeführt.
+
+Keine Produktänderungen. Archivkopie `95b729cd` unter `/tmp/codex-r160-91mw_20g`, Läufe niedrig priorisiert, eigener Mock ausschließlich `127.0.0.1:4188`; keine Live-Ports und keine Maschinenbefehle. Die 378 Produktquelldateien beider Archivstände stimmen mit ihren Git-Blobs überein. Im Live-Baum nur dieser Anhang und neue `r160.codex-*`-Belege; Plan und vorhandene Belege unverändert. [Reproduktion](viewer-palette-fest.r160.codex-reproduce.md), [Manifest](viewer-palette-fest.r160.codex-manifest.json).

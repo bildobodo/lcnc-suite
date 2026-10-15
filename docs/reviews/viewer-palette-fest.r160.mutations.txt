@@ -1,0 +1,10 @@
+t_tint_start_coverage RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: seed 1 case 0: expected { targets: [ …(23) ], …(4) } to deeply equal { targets: [ …(23) ], …(4) }[39m | [31m[1mAssertionError[22m: the tint at 6: expected [] to deeply equal [ 'stock', 'tool' ][3 8s
+g_done_at_once RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: elements copied natively in one step: expected 98307 to be less than or equal to 16384[39m 7s
+k_ref_scan GREEN! [2m      Tests [22m [1m[32m13 passed[39m[22m[90m (13)[39m  61s
+k_heir_piece_by_piece RED (timeout: the run never ended) 306s
+k_prev_free_scan RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: expected 34594 to be less than or equal to 8563[39m | [31m[1mAssertionError[22m: coarseFine: navigation: expected 8834 to be less than or equal to 2620[39m 81s
+k_after_ties_scan GREEN! [2m      Tests [22m [1m[32m13 passed[39m[22m[90m (13)[39m  79s
+k_before_ties_scan GREEN! [2m      Tests [22m [1m[32m13 passed[39m[22m[90m (13)[39m  77s
+k_component_start_first GREEN! [2m      Tests [22m [1m[32m20 passed[39m[22m[90m (20)[39m  22s
+k_free_end_ignored RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: seed 12345 case 0: {"held":{"ivs":[{"enter":-0.0006349040560889989,"end":1.249365095943911,"witness":-0.0006349040560889989,"ed":false,"xd":false,"after":false,"freeAt":1.348485974791227,"freeR":0.094 10s
+p_publish_in_slice RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: the first slice: the take and the build, not the publication: expected [ 1, +0 ] to deeply equal [ +0, 2 ][39m 10s
