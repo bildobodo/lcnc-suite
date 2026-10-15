@@ -1,0 +1,105 @@
+{
+  "note": "Before the list window (feat/step4-p2b at e93cdcb0, the dist built from it): the longest browser tasks when a request's contact tables reach the page (zz_longtask spec, headless Chromium, serial-viewer). Transcribed from the run's log lines (the JSON file was lost with /tmp at a VM reboot). 16 384 and 65 536 pairs: the page did not answer.",
+  "runs": [
+    {
+      "pairs": 1024,
+      "targets": 4096,
+      "shape": "one generation",
+      "phases": [
+        {
+          "name": "the tables arrive (a result)",
+          "longTasks": 3,
+          "longestMs": 455,
+          "sumMs": 655
+        },
+        {
+          "name": "a rebuild: one more (empty) delta",
+          "longTasks": 0,
+          "longestMs": 0,
+          "sumMs": 0
+        }
+      ]
+    },
+    {
+      "pairs": 1024,
+      "targets": 4096,
+      "shape": "after a fallback",
+      "phases": [
+        {
+          "name": "the tables arrive (a result)",
+          "longTasks": 2,
+          "longestMs": 469,
+          "sumMs": 545
+        },
+        {
+          "name": "the pool falls back: the same tables as the next generation",
+          "longTasks": 1,
+          "longestMs": 101,
+          "sumMs": 101
+        },
+        {
+          "name": "a rebuild: one more (empty) delta",
+          "longTasks": 1,
+          "longestMs": 86,
+          "sumMs": 86
+        }
+      ]
+    },
+    {
+      "pairs": 4096,
+      "targets": 16384,
+      "shape": "one generation",
+      "phases": [
+        {
+          "name": "the tables arrive (a result)",
+          "longTasks": 7,
+          "longestMs": 1828,
+          "sumMs": 2501
+        },
+        {
+          "name": "a rebuild: one more (empty) delta",
+          "longTasks": 1,
+          "longestMs": 169,
+          "sumMs": 169
+        }
+      ]
+    },
+    {
+      "pairs": 4096,
+      "targets": 16384,
+      "shape": "after a fallback",
+      "phases": [
+        {
+          "name": "the tables arrive (a result)",
+          "longTasks": 6,
+          "longestMs": 1943,
+          "sumMs": 2550
+        },
+        {
+          "name": "the pool falls back: the same tables as the next generation",
+          "longTasks": 1,
+          "longestMs": 268,
+          "sumMs": 268
+        },
+        {
+          "name": "a rebuild: one more (empty) delta",
+          "longTasks": 1,
+          "longestMs": 221,
+          "sumMs": 221
+        }
+      ]
+    },
+    {
+      "pairs": 16384,
+      "targets": 65536,
+      "shape": "one generation",
+      "result": "no answer: the rows did not appear within 300 s (the page held)"
+    },
+    {
+      "pairs": 65536,
+      "targets": 262144,
+      "shape": "one generation",
+      "result": "no answer: page.evaluate did not return within 600 s (the delivery was synchronous then)"
+    }
+  ]
+}

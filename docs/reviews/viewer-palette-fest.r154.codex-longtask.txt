@@ -1,0 +1,15 @@
+[2m[WebServer] [22m(node:68605) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:68617) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:68617) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[longtask] one generation: [{"name":"the tables arrive (a result)","wallMs":3518,"longTasks":1,"longestMs":226,"sumMs":226},{"name":"a rebuild: one more (empty) delta","wallMs":3011,"longTasks":1,"longestMs":103,"sumMs":103}] rows 400
+  ✓  1 e2e/r154.codex-longtask.viewer.spec.ts:38:3 › long tasks at the budget: one generation (10.2s)
+[longtask] after a fallback: [{"name":"the tables arrive (a result)","wallMs":3471,"longTasks":1,"longestMs":170,"sumMs":170},{"name":"the pool falls back: the same tables as the next generation","wallMs":3523,"longTasks":1,"longestMs":338,"sumMs":338},{"name":"a rebuild: one more (empty) delta","wallMs":3009,"longTasks":1,"longestMs":239,"sumMs":239}] rows 400
+  ✓  2 e2e/r154.codex-longtask.viewer.spec.ts:38:3 › long tasks at the budget: after a fallback (13.6s)
+
+  2 passed (24.3s)

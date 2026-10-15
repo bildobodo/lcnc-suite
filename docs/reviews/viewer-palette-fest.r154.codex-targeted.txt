@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r154-ga9vp4vu/repo/lcnc-webui
+
+
+ Test Files  9 passed (9)
+      Tests  126 passed (126)
+   Start at  06:36:16
+   Duration  150.78s (transform 374ms, setup 0ms, import 1.29s, tests 149.04s, environment 0ms)
+
