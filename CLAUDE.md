@@ -2113,7 +2113,15 @@ by a bisection over the rising component ends, the last free stretch before
 it through a third block index — the previous free sample —, then `pieceFrom`
 names its evidence), and the handover is that piece (one holding the interval
 AND its witness; none for a witness inside a separator only the other run
-saw). The steps from a position skip a block of tied findings by the least and
+saw). After a fallback the free block indexes hold only the samples whose
+stretch the UNION keeps — the walk's verdict, written into the spare top bit
+of `comp` (`FREE_HOLDS`) and the blocks rebuilt from it (`freeHeld`): a run of
+samples each refuted by a confirmed point of the other run was asked one by
+one, back and forth (R160 rest D: 7.2 M reads for one key at 8 192 contacts).
+The walk counts every sample it looks at, a dropped one too, and finds the
+other run's interval before a sample by galloping from the last one, each probe
+counted (R160 rest E: an empty rerun's 32 768 samples, a late sample after a
+coarse contact's 32 768 finer ones, were each one step). The steps from a position skip a block of tied findings by the least and
 largest jump point per block of 64 (`RefList.sMin/sMax`). A union piece is
 tinted where each interval's OWN table proves contact (R159 VP-I119: cut at
 the start evidence's coverage, the current run past the earlier one's went

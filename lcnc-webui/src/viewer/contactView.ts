@@ -250,7 +250,9 @@ interface UnionGen {
   /** Per block of BLOCK positions of uIdx, the first block from it holding an
    *  interval with a free sample (`free`), or one that is not a possible
    *  contact (`notPossible`) — their count: the blocks (Codex R158 VP-I115:
-   *  a search for either stepped over every interval without). */
+   *  a search for either stepped over every interval without). After a
+   *  fallback's walk, `free` and `freePrev` count only the samples whose
+   *  stretch the union keeps (`freeHeld`). */
   free: Uint32Array; notPossible: Uint32Array;
   /** Per block, the last block up to it holding an interval with a free
    *  sample (NO_BLOCK: none) — the free sample before a point (a key's piece,
@@ -258,9 +260,19 @@ interface UnionGen {
   freePrev: Uint32Array;
   /** After a fallback, per position of uIdx, where the union's component
    *  holding its interval's last part ends (UnionSide.comp — the build's walk
-   *  writes it); empty without one. */
+   *  writes it, COMP_VALUE) and whether its free stretch holds in the union
+   *  (FREE_HOLDS, the walk's verdict — the top bit, which a comp value never
+   *  sets); empty without one. */
   comp: Uint32Array;
+  /** `free` / `freePrev` index the samples whose stretch holds (FREE_HOLDS) —
+   *  set once the walk wrote them; before, any free sample (Codex R160
+   *  VP-I115 rest D: a run of samples a confirmed point refutes was asked one
+   *  by one). */
+  freeHeld: boolean;
 }
+
+/** UnionGen.comp: the component end's bits, and the free stretch's verdict. */
+const COMP_VALUE = 0x7fffffff, FREE_HOLDS = 0x80000000;
 
 /** No block (UnionGen.freePrev). */
 const NO_BLOCK = 0xffffffff;
@@ -602,10 +614,33 @@ function sideOf(tables: Tables, g: UnionGen, lo: number, hi: number): UnionSide 
     freeAt: k => rd(tab(k).c.freeAt, row(k)),
     freeR: k => rd(tab(k).c.freeR, row(k)),
     back: g.back, front: g.front,
-    nextFree: k => nextOf(g.free, lo + k, hi, a => !Number.isNaN(rd(tableAt(tables, u[a]!).c.freeAt, u[a]! & ROW_MASK))) - lo,
-    prevFree: k => prevOf(g.freePrev, lo + k, lo, a => !Number.isNaN(rd(tableAt(tables, u[a]!).c.freeAt, u[a]! & ROW_MASK))) - lo,
-    ...(g.comp.length ? { comp: (k: number) => g.comp[lo + k]! } : {}),
+    nextFree: k => nextOf(g.free, lo + k, hi, a => freeIndexed(tables, g, a)) - lo,
+    prevFree: k => prevOf(g.freePrev, lo + k, lo, a => freeIndexed(tables, g, a)) - lo,
+    ...(g.comp.length ? { comp: (k: number) => g.comp[lo + k]! & COMP_VALUE } : {}),
   };
+}
+/** What a generation's free index holds at position a: a sample whose stretch
+ *  the union keeps once the walk said so, else any free sample. */
+const freeIndexed = (tables: Tables, g: UnionGen, a: number) =>
+  (g.freeHeld ? (g.comp[a]! & FREE_HOLDS) !== 0 : !Number.isNaN(rd(tableAt(tables, g.uIdx[a]!).c.freeAt, g.uIdx[a]! & ROW_MASK)));
+
+/** A generation's free block indexes (`free`, `freePrev`) from what each
+ *  position holds — at its index's build, and again after a fallback's walk. */
+function* freeBlocks(g: UnionGen, holds: (k: number) => boolean, c: Ops): Steps<void> {
+  const n = g.uIdx.length, nb = g.free.length - 1, free = g.free, freePrev = g.freePrev;
+  // which blocks hold one, then from the last back the next that does
+  for (let b = 0; b < nb; b++) {
+    let any = 0;
+    for (let k = b * BLOCK, e = Math.min(n, k + BLOCK); k < e; k++) { c.n++; if (holds(k)) { any = 1; break; } }
+    free[b] = any;
+    if (c.n >= STEP_OPS) { c.n = 0; yield; }
+  }
+  let nf = nb;
+  free[nb] = nb;
+  for (let b = nb - 1; b >= 0; b--) { if (free[b]) nf = b; free[b] = nf; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+  // backwards: the last block up to each holding one
+  let pf = NO_BLOCK;
+  for (let b = 0; b < nb; b++) { if (free[b] === b) pf = b; freePrev[b] = pf; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
 }
 
 /** The range of `group` in a generation's index: its start by bisection, its
@@ -697,26 +732,20 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
     const col = (k: number, cn: "freeAt" | "freeR") => { const r = uIdx[k]!; return rd(tableAt(tables, r).c[cn], rowOf(r)); };
     const r = yield* unionReachSteps(n, k => ent[order[k]!]!, k => col(k, "freeAt"), k => col(k, "freeR"), (k, k2) => grp[order[k]!] === grp[order[k2]!], c);
     // the block indexes: which blocks hold one, then from the last back the next that does
-    const nb = Math.ceil(n / BLOCK), free = allocU32(nb + 1), notPossible = allocU32(nb + 1);
+    const nb = Math.ceil(n / BLOCK), notPossible = allocU32(nb + 1);
     for (let k = 0; k < n; k++) {
       const ref = uIdx[k]!, t = tableAt(tables, ref), row = rowOf(ref), b = (k / BLOCK) | 0;
-      if (!Number.isNaN(rd(t.c.freeAt, row))) free[b] = 1;
       if (!(rd(t.c.flags, row) & IV_POSSIBLE)) notPossible[b] = 1;
-      if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
-    }
-    let nf = nb, np = nb;
-    free[nb] = nb; notPossible[nb] = nb;
-    for (let b = nb - 1; b >= 0; b--) {
-      if (free[b]) nf = b;
-      if (notPossible[b]) np = b;
-      free[b] = nf; notPossible[b] = np;
       if (++c.n >= STEP_OPS) { c.n = 0; yield; }
     }
-    // backwards: the last block up to each holding a free sample
-    const freePrev = allocU32(nb + 1);
-    let pf = NO_BLOCK;
-    for (let b = 0; b < nb; b++) { if (free[b] === b) pf = b; freePrev[b] = pf; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-    return { uIdx, back: r.back, front: r.front, free, notPossible, freePrev, comp: allocU32(withSeps ? n : 0) };
+    let np = nb;
+    notPossible[nb] = nb;
+    for (let b = nb - 1; b >= 0; b--) { if (notPossible[b]) np = b; notPossible[b] = np; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+    // any free sample — after a fallback the walk narrows it to the ones that hold
+    const g: UnionGen = { uIdx, back: r.back, front: r.front, free: allocU32(nb + 1), notPossible, freePrev: allocU32(nb + 1),
+                          comp: allocU32(withSeps ? n : 0), freeHeld: false };
+    yield* freeBlocks(g, k => !Number.isNaN(col(k, "freeAt")), c);
+    return g;
   };
   // the separators: the tool gaps of each generation, by pair, aligned
   // across the generations (contactUnion.mergeSeps — never two of one)
@@ -1223,7 +1252,11 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
       })();
     }, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); }, scratchOf(), c,
     // every interval's component end, for the questions later (Codex R158 VP-I115)
-    (sd, k, value) => { u.gens[sd]!.comp[los[sd]! + k] = value; }), c);
+    (sd, k, value) => { const cp = u.gens[sd]!.comp, i = los[sd]! + k; cp[i] = (cp[i]! & FREE_HOLDS) | value; },
+    // and whether its free stretch holds in the union (Codex R160 VP-I115 rest D)
+    (sd, k) => { const cp = u.gens[sd]!.comp, i = los[sd]! + k; cp[i] = cp[i]! | FREE_HOLDS; }), c);
+    // the free indexes now skip every sample the union refutes
+    for (const g of u.gens) { yield* freeBlocks(g, k => (g.comp[k]! & FREE_HOLDS) !== 0, c); g.freeHeld = true; }
     // the near misses of both generations: one to one per group by overlap, in order
     // (typed lists, by group then start — every build buffer counted: plan 3.6, Codex R158 VP-I118)
     type Nears = { ref: Uint32Array; group: Uint32Array; s: Float64Array; e: Float64Array; n: number };

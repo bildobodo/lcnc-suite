@@ -88,12 +88,17 @@ export interface UnionSide {
    *  (`back`) and before its own interval's enter (`front`). */
   readonly back: number;
   readonly front: number;
-  /** The first interval from k on with a free sample (n: none) — an index's
-   *  answer (the view's: by blocks); absent, the searches step one by one
-   *  (Codex R158 VP-I115: a walk over every interval without one). */
+  /** The first interval from k on whose free stretch may hold (n: none) — an
+   *  index's answer (the view's: by blocks); absent, the searches step one by
+   *  one (Codex R158 VP-I115: a walk over every interval without one). It may
+   *  name an interval whose stretch a confirmed point refutes (freeStretch:
+   *  null) — the searches skip it — but never skip one that holds; the view's
+   *  index holds exactly those the build's walk kept (Codex R160 VP-I115 rest
+   *  D: a run of refuted samples was asked one by one, both ways). */
   nextFree?(k: number): number;
-  /** The last interval up to k with a free sample (−1: none) — the index's
-   *  answer backwards; absent, the search steps one by one. */
+  /** The last interval up to k whose free stretch may hold (−1: none) — the
+   *  index's answer backwards, by the same rule; absent, the search steps one
+   *  by one. */
   prevFree?(k: number): number;
   /** Where the union's component holding interval k's LAST part ends, as the
    *  walk found it (`eachPieceSteps`' `comp`): the interval whose end it is,
@@ -326,14 +331,14 @@ function firstEnterFrom(s: UnionSide, y: number): number {
   return lo;
 }
 
-/** The first interval of side s from k on with a free sample (s.n: none). */
+/** The first interval of side s from k on whose free stretch may hold (s.n: none). */
 function nextFreeOf(s: UnionSide, k: number): number {
   if (s.nextFree) return s.nextFree(k);
   while (k < s.n && Number.isNaN(s.freeAt(k))) k++;
   return k;
 }
 
-/** The last interval of side s up to k with a free sample (−1: none). */
+/** The last interval of side s up to k whose free stretch may hold (−1: none). */
 function prevFreeOf(s: UnionSide, k: number): number {
   if (k >= s.n) k = s.n - 1;
   if (s.prevFree) return k < 0 ? -1 : s.prevFree(k);
@@ -771,38 +776,56 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
   x.fLo = grow64(x.fLo, x.n); x.fHi = grow64(x.fHi, x.n); x.fPt = grow8(x.fPt, x.n); x.fJ = grow32(x.fJ, x.n);
   let fn = 0, sorted = true;
   // the last interval of each side entering at or before p: the samples come
-  // in order (the structure), so it only moves on — else it is searched
+  // in order (the structure), so it only moves on — galloping from the last
+  // answer, then a bisection, each probe counted (Codex R160 VP-I115 rest E:
+  // one late sample after a long run of the other side walked over all of
+  // it at once); a sample before the last one is searched
   const kp = [-1, -1], lastP = [-Infinity, -Infinity];
   const pred = (ti: number, p: number) => {
     const t = xs[ti]!;
-    if (p < lastP[ti]!) kp[ti] = predEnterX(t, p);
-    else while (kp[ti]! + 1 < t.n && t.enter[kp[ti]! + 1]! <= p) kp[ti]!++;
-    lastP[ti] = p;
-    return kp[ti]!;
+    let k: number;
+    if (p < lastP[ti]!) { k = predEnterX(t, p); c.n += 2 + Math.ceil(Math.log2(t.n + 1)); }
+    else {
+      // enter[lo] ≤ p (lo = −1: before the first); the answer lies in [lo, lo + step)
+      let lo = kp[ti]!, step = 1;
+      while (lo + step < t.n && t.enter[lo + step]! <= p) { lo += step; step *= 2; c.n++; }
+      let a = lo + 1, b = Math.min(lo + step, t.n);
+      while (a < b) { const m = (a + b) >> 1; c.n++; if (t.enter[m]! <= p) a = m + 1; else b = m; }
+      k = a - 1;
+      c.n++;
+    }
+    kp[ti] = k; lastP[ti] = p;
+    return k;
   };
   for (let j = 0; j < x.n; j++) {
+    // every sample looked at is counted, the ones it keeps and the ones it
+    // drops alike (Codex R160 VP-I115 rest E: an interval without a sample,
+    // a refuted one, passed uncounted)
     const p = x.freeAt[j]!;
-    if (Number.isNaN(p)) continue;
+    if (Number.isNaN(p)) { if (++c.n >= STEP_OPS) { c.n = 0; yield; } continue; }
     const r0 = freeRadius(x.freeR[j]!);
-    let r = r0;
+    // freeStretch's rule: the nearest confirmed point around p, in the
+    // intervals k − 1 … k + 1 of each side (by the structure)
+    let d = Infinity;
     for (let ti = 0; ti < xs.length; ti++) {
       const t = xs[ti]!, k = pred(ti, p);
-      for (let q = k - 1; q <= k + 1; q++) r = Math.min(r, nearestIn(t, q, p));
+      for (let q = k - 1; q <= k + 1; q++) d = Math.min(d, nearestIn(t, q, p));
     }
+    // (its reads: the sample, then four a neighbour — witness, flags, enter, end)
+    c.n += 2 + 4 * 3 * xs.length;
     // a contradiction needs a confirmed point inside the stretch: only then is
-    // r cut below r0 (the nearest points around p, by the structure)
-    if (conflict && r0 > PROTECT && r < r0) yield* wideX(xs, p, r0, conflict, c);
-    if (r === 0 && r0 > 0) continue;   // a confirmed point on the sample
-    if (r0 === 0) {
-      // a point stretch: none where a confirmed point lies on it
-      let on = false;
-      for (let ti = 0; ti < xs.length; ti++) { const t = xs[ti]!, k = pred(ti, p); for (let q = k - 1; q <= k + 1; q++) if (nearestIn(t, q, p) === 0) on = true; }
-      if (on) continue;
+    // the radius cut (the nearest points around p, by the structure)
+    if (conflict && r0 > PROTECT && d < r0) yield* wideX(xs, p, r0, conflict, c);
+    // none where a confirmed point lies on the sample
+    if (d !== 0) {
+      const r = Math.min(r0, d);
+      if (r > 0) { x.fLo[fn] = p - r; x.fHi[fn] = p + r; x.fPt[fn] = 0; } else { x.fLo[fn] = p; x.fHi[fn] = p; x.fPt[fn] = 1; }
+      x.fJ[fn] = j;
+      if (fn > 0 && (x.fLo[fn]! < x.fLo[fn - 1]! || x.fHi[fn]! < x.fHi[fn - 1]!)) sorted = false;
+      fn++;
+      c.n += 8;
     }
-    x.fLo[fn] = p - r; x.fHi[fn] = p + r; x.fPt[fn] = r > 0 ? 0 : 1; x.fJ[fn] = j;
-    if (fn > 0 && (x.fLo[fn]! < x.fLo[fn - 1]! || x.fHi[fn]! < x.fHi[fn - 1]!)) sorted = false;
-    fn++;
-    if ((c.n += 16) >= STEP_OPS) { c.n = 0; yield; }
+    if (c.n >= STEP_OPS) { c.n = 0; yield; }
   }
   x.fn = fn;
   x.fByHi = null;
@@ -878,15 +901,19 @@ function* mergeFree(xs: SideScratch[], sc: UnionScratch, c: Ops): Steps<number> 
   return m;
 }
 
-/** Side x's stretch ending at `at` in zone z, the first by interval (−1: none). */
-function freeEndingAt(x: SideScratch, seps: UnionSeps, z: number, at: number): number {
+/** Side x's stretch ending at `at` in zone z, the first by interval (−1:
+ *  none) — the stretches ending there counted one by one (a collapsed axis
+ *  may end many at one point). */
+function* freeEndingAt(x: SideScratch, seps: UnionSeps, z: number, at: number, c: Ops): Steps<number> {
   const hiAt = (i: number) => x.fHi[x.fByHi ? x.fByHi[i]! : i]!;
   let lo = 0, hi = x.fn;
   while (lo < hi) { const m = (lo + hi) >> 1; if (hiAt(m) < at) lo = m + 1; else hi = m; }
+  c.n += 2 + Math.ceil(Math.log2(x.fn + 1));
   for (let i = lo; i < x.fn && hiAt(i) === at; i++) {
     const q = x.fByHi ? x.fByHi[i]! : i;
     const f: Span = { a: x.fLo[q]!, ao: x.fPt[q] === 0, b: x.fHi[q]!, bo: x.fPt[q] === 0 };
     if (freeZone(seps, f) === z) return x.fJ[q]!;
+    if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
   }
   return -1;
 }
@@ -914,13 +941,22 @@ export type PieceEach = (p: UnionPiece) => number | void | Steps<void>;
 export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, each: PieceEach,
                                 conflict?: (x: number) => void, scratch: UnionScratch = unionScratch(), c: Ops = { n: 0 },
                                 /** Each interval's component end (UnionSide.comp's value), as the walk finds it. */
-                                comp?: (si: number, k: number, value: number) => void): Steps<void> {
+                                comp?: (si: number, k: number, value: number) => void,
+                                /** Each interval whose free stretch holds (freeStretch ≠ null) — the
+                                 *  index UnionSide.nextFree / prevFree may answer from. */
+                                holds?: (si: number, k: number) => void): Steps<void> {
   const xs = scratch.sides;
   for (let si = 0; si < 2; si++) {
     const s = sides[si];
     if (s) { yield* readSide(s, xs[si]!, c); yield* readPointZones(xs[si]!, seps, c); } else { xs[si]!.n = 0; }
   }
   for (let si = 0; si < 2; si++) { if (sides[si]) yield* readStretches(xs, si, c, conflict); else xs[si]!.fn = 0; }
+  if (holds) {
+    for (let si = 0; si < 2; si++) {
+      const x = xs[si]!;
+      for (let q = 0; q < x.fn; q++) { holds(si, x.fJ[q]!); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
+    }
+  }
   const fm = yield* mergeFree(xs, scratch, c);
   const fLo = scratch.fLo, fHi = scratch.fHi, fLoOpen = scratch.fLoOpen, fHiOpen = scratch.fHiOpen;
   const zones = seps.count + 1;
@@ -1057,7 +1093,7 @@ function* emitPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, xs: SideS
   if (!ao && holderSide >= 0 && xs[holderSide]!.enter[holder] === a) { piece.startKind = START_ENTER; piece.startSide = holderSide; piece.startIdx = holder; }
   else {
     for (let si = 0; si < 2 && piece.startKind < 0; si++) {
-      const j = freeEndingAt(xs[si]!, seps, z, a);
+      const j = yield* freeEndingAt(xs[si]!, seps, z, a, c);
       if (j >= 0) { piece.startKind = START_FREE; piece.startSide = si; piece.startIdx = j; }
     }
     if (piece.startKind < 0 && z > 0 && !ao && a === lo) { piece.startKind = START_SEP; piece.startSide = -1; piece.startIdx = z - 1; }

@@ -59,7 +59,9 @@ function generation(rnd: () => number, req: number, gen: number): ContactStore {
           const room = 0.25 + grid(rnd() * 1.5);
           let freeAt = NaN, freeR = 0;
           if (!open && !atGap && !atFeed && rnd() < 0.7) {
-            freeAt = exit + room * rnd();
+            // now and then on the grid, where the other run's decided enters lie:
+            // a sample a confirmed point refutes (Codex R160 VP-I115 rest D)
+            freeAt = exit + (rnd() < 0.5 ? grid(room * rnd()) : room * rnd());
             freeR = rnd() < 0.2 ? 0 : rnd() < 0.1 ? 3 * rnd() : Math.min(freeAt - exit, exit + room - freeAt) * rnd();
           }
           const witness = enter + len * (rnd() < 0.3 ? 0 : rnd());
@@ -89,6 +91,22 @@ function generation(rnd: () => number, req: number, gen: number): ContactStore {
   return st;
 }
 
+/** The free samples of one generation a confirmed point of the other refutes
+ *  (on the sample itself, same pair and origin) — the cases the free index skips. */
+function refutedSamples(a: ContactStore, b: ContactStore): number {
+  const group = (st: ContactStore, k: number) => { const e = st.intervals.get(k, "episode"); return st.episodes.get(e, "pair") * 4 + (st.episodes.get(e, "flags") & ORIGIN_BOUNDARY); };
+  const points = new Set<string>();
+  for (let k = 0; k < b.intervals.rows; k++) {
+    const g = group(b, k), f = b.intervals.get(k, "flags");
+    points.add(`${g}:${b.intervals.get(k, "witness")}`);
+    if (f & IV_ENTER_DECIDED) points.add(`${g}:${b.intervals.get(k, "enter")}`);
+    if (f & IV_EXIT_DECIDED) points.add(`${g}:${b.intervals.get(k, "exit")}`);
+  }
+  let n = 0;
+  for (let k = 0; k < a.intervals.rows; k++) if (points.has(`${group(a, k)}:${a.intervals.get(k, "freeAt")}`)) n++;
+  return n;
+}
+
 /** Everything a page asks of a view, as plain data. */
 function answers(v: ContactView, cov: number, earlier: Array<[string, number]> = []): unknown {
   const lineAt = (p: number) => Math.floor(p);
@@ -103,12 +121,13 @@ function answers(v: ContactView, cov: number, earlier: Array<[string, number]> =
 
 describe("a union piece asked of the indexes answers as the walk over its intervals did (Codex R158 VP-I115)", () => {
   it("random generations: every target, the tint, the marks, the keys", { timeout: 600_000 }, () => {
-    let pieces = 0, found = 0, asked = 0;
+    let pieces = 0, found = 0, asked = 0, refuted = 0;
     for (const seed0 of [1, 2, 3, 58, 158, 2026]) {
       let seed = seed0;
       const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
       for (let c = 0; c < 100; c++) {
         const held = generation(rnd, 1, 0), cur = generation(rnd, 1, 1);
+        refuted += refutedSamples(held, cur) + refutedSamples(cur, held);
         // an entry move's union beside it, some of the base's intervals its continuation
         const eHeld = generation(rnd, 2, 0), eCur = generation(rnd, 2, 1);
         let cov = 1;
@@ -142,8 +161,9 @@ describe("a union piece asked of the indexes answers as the walk over its interv
         } finally { linearPiecesForTest.on = false; }
       }
     }
-    console.log(`[R158 indexed] ${pieces} targets compared; of ${asked} earlier keys ${found} found again after the fallback`);
+    console.log(`[R158 indexed] ${pieces} targets compared; of ${asked} earlier keys ${found} found again after the fallback; ${refuted} free samples on the other run's confirmed points`);
     expect(pieces).toBeGreaterThan(1000);
+    expect(refuted, "samples the other run refutes: the free index skips them (Codex R160 VP-I115 rest D)").toBeGreaterThan(100);
     expect(found, "earlier keys found again: the lookup is exercised").toBeGreaterThan(asked / 4);
   });
 });
@@ -248,6 +268,30 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
     expect(worst[1]!).toBeLessThanOrEqual(1.5 * worst[0]! + 256);
   });
 
+  it("an earlier event's key over a chain of refuted free samples: its piece from the indexes — the same at 1024 and at 8192 contacts (Codex R160 VP-I115 rest D)", { timeout: 300_000 }, () => {
+    // Codex R160's probe: every free sample of both runs refuted by the other
+    // run's witness — the index skips them, both ways; the answer the walk's
+    const worst: number[] = [];
+    for (const n of [1024, 8192]) {
+      const c = counter();
+      try {
+        const { input } = refutedChain(n, 0.1);
+        const v = buildContactView(input);
+        expect(v.n, "one piece").toBe(1);
+        expect(targetEnd(v, 0)).toBe(4 * n + 0.5);
+        const key = `C0|${n - 1}|0`;
+        c.box.reads = 0;
+        const i = findKey(v, key);
+        worst.push(c.box.reads);
+        expect(i, "handed over to the one piece").toBe(0);
+        linearPiecesForTest.on = true;
+        try { expect(findKey(buildContactView(input), key), "as the walk over every interval").toBe(i); } finally { linearPiecesForTest.on = false; }
+      } finally { c.restore(); }
+    }
+    console.log(`[R160 refuted key] ${worst[0]} → ${worst[1]} reads`);
+    expect(worst[1]!).toBeLessThanOrEqual(1.5 * worst[0]! + 256);
+  });
+
   it.each([["one run", false], ["a union, the earlier run's keys", true]])("%s: at its place, moved, anywhere — the same at 1024 and at 8192 pairs", { timeout: 300_000 }, (_, union) => {
     const worst: Array<Record<string, number>> = [];
     for (const n of [1024, 8192]) {
@@ -314,6 +358,22 @@ function table(req: number, generation: number, n: number): ContactStore {
   }
   return st;
 }
+/** Codex R160's chain: each run's contacts overlapping the other's, each run's
+ *  free sample on the other run's witness — every one refuted (named as a
+ *  conflict where its radius reaches past the tolerance), the union one piece. */
+function refutedChain(n: number, r: number): { input: ContactViewInput; cov: number } {
+  const mk = (gen: number) => {
+    const st = new ContactStore(1, gen, REQUEST_BUDGET);
+    for (let k = 0; k < n; k++) {
+      const a = 4 * k + 2 * gen;
+      const ep = st.episodes.append({ pair: 0, ordinal: k, flags: 0, onset: a, end: a + 2.5, closeAt: a + 1, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: a, exit: a + 2.5, flags: D, next: NONE, witness: a + 1, freeAt: a + 3, freeR: r }));
+    }
+    return st;
+  };
+  const cov = 4 * n + 4;
+  return { input: { sources: [{ stores: [mk(1)], held: [mk(0)], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
+}
 /** The shapes of the questions' costs (Codex R158 VP-I115 rest B). */
 const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: number }> = {
   pieces: n => { const cov = 3 * n + 10; return { input: { sources: [{ stores: [table(1, 1, n)], held: [table(1, 0, n)], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov }; },
@@ -331,6 +391,8 @@ const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: 
     const cov = 4 * n + 5;
     return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
   },
+  refuted: n => refutedChain(n, 0.1),
+  refutedPoints: n => refutedChain(n, 0),
   gaps: n => {
     const mk = (g: number) => { const st = new ContactStore(1, g, REQUEST_BUDGET);
       const ep = st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
@@ -369,7 +431,8 @@ describe("every question about a union piece reads a bounded number of cells (Co
   // counted, never timed (contactView.test's proxy over every table cell):
   // the worst single question at a size and at eight times it — bounded by
   // bisections, never by the intervals a piece holds or a search passes
-  const sizes: Record<string, [number, number]> = { sweep: [256, 2048], pieces: [1024, 8192], coarseFine: [2048, 16384], chain: [2048, 16384], gaps: [2048, 16384] };
+  const sizes: Record<string, [number, number]> = { sweep: [256, 2048], pieces: [1024, 8192], coarseFine: [2048, 16384], chain: [2048, 16384], gaps: [2048, 16384],
+                                                  refuted: [1024, 8192], refutedPoints: [1024, 8192] };
   const ask = (v: ContactView, cov: number, q: (k: string, f: () => unknown) => void) => {
     const lineAt = (p: number) => Math.floor(p), step = Math.max(1, Math.floor(v.n / 64));
     for (let i = 0; i < v.n; i += step) {

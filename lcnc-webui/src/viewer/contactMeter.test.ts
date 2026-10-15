@@ -5,8 +5,9 @@
 // of a build escapes the count, and no JS array grows with the rows.
 import { describe, expect, it } from "vitest";
 import {
-  ContactStore, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_ENTER_DECIDED, IV_EXIT_DECIDED, NONE, REQUEST_BUDGET, shareOf, type StoreBudget,
+  ContactStore, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_ENDED_AT_FEED, IV_ENTER_DECIDED, IV_EXIT_DECIDED, NONE, REQUEST_BUDGET, shareOf, type StoreBudget,
 } from "./contactStore";
+import { unionScratch } from "./contactUnion";
 import { ContactPublisher } from "./contactPublisher";
 import { shownContactViewSteps, type ShownContacts, type ShownSpec } from "./shownContacts";
 import {
@@ -252,5 +253,59 @@ describe("a build's memory is counted where it is made (plan 3.6, Codex R158 VP-
     for (let k = 0; k < 100_000 && queue.length; k++) queue.shift()!();
     expect(p.running).toBe(false);
     expect(p.stats().views).toEqual({ published: 0, waiting: 0, inProgress: 0, building: 0 });
+  });
+});
+
+describe("the build's walk counts every sample it looks at (Codex R160 VP-I115 rest E)", () => {
+  // Codex R160's probes: the reads of the walk's reusable scratch (six of its
+  // columns) between two steps of the build — the view, then its bands on the
+  // same scratch, as ThreeViewer runs them — never more than 4 × STEP_OPS,
+  // whatever the samples are (a dropped one was not counted, and the search
+  // for the other side's interval before a sample walked inside one step)
+  const one = (st: ContactStore, a: number, b: number, w: number, flags: number, freeAt: number, freeR: number) => {
+    const ep = st.episodes.append({ pair: 0, ordinal: st.episodes.rows, flags: 0, onset: a, end: b, closeAt: a, closeDist: 0, firstIv: NONE, ivCount: 1 });
+    st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: a, exit: b, flags, next: NONE, witness: w, freeAt, freeR }));
+  };
+  const union = (held: ContactStore, cur: ContactStore, cov: number): ContactViewInput =>
+    ({ sources: [{ stores: [cur], held: [held], heldCoverage: [cov], ownCoverage: cov, at: x => x }], pairName: names, coverage: cov });
+  const shapes: Array<[string, number[], (n: number) => ContactViewInput]> = [
+    // each run's free point sample on the other run's witness: every one refuted
+    ["free point samples, each refuted by the other run's witness", [1024, 8192], n => {
+      const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+      for (let k = 0; k < n; k++) { one(h, 4 * k, 4 * k + 2.5, 4 * k + 1, D, 4 * k + 3, 0); one(c, 4 * k + 2, 4 * k + 4.5, 4 * k + 3, D, 4 * k + 5, 0); }
+      return union(h, c, 4 * n + 4);
+    }],
+    // an empty rerun beside contacts that ended at the feed: no free sample at all
+    ["no free samples: the earlier run's contacts end at the feed, the rerun is empty", [1024, 32768], n => {
+      const h = new ContactStore(1, 0, REQUEST_BUDGET);
+      for (let k = 0; k < n; k++) one(h, 4 * k, 4 * k + 2.5, 4 * k + 1, IV_ENTER_DECIDED | IV_ENDED_AT_FEED, NaN, 0);
+      return union(h, new ContactStore(1, 1, REQUEST_BUDGET), 4 * n + 4);
+    }],
+    // one coarse earlier contact, its free sample after n finer current ones
+    ["one late free sample after a coarse earlier contact, over n finer current ones", [1024, 32768], n => {
+      const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+      one(h, 0, 4 * n, 0.5, D, 4 * n + 1, 0.25);
+      for (let k = 0; k < n; k++) one(c, 4 * k, 4 * k + 1, 4 * k + 0.5, IV_ENTER_DECIDED | IV_ENDED_AT_FEED, NaN, 0);
+      return union(h, c, 4 * n + 2);
+    }],
+  ];
+  it.each(shapes)("%s", { timeout: 120_000 }, (_, sizes, make) => {
+    for (const n of sizes) {
+      const input = make(n), cov = input.coverage, scratch = unionScratch();
+      const build = function* (): Steps<void> {
+        const v = yield* buildContactViewSteps(input, scratch);
+        yield* contactBandsSteps(v, 1200, cov, { n: 0 }, scratch);
+      };
+      // its capacities first, then the reads of the scratch it reuses
+      for (const job = build(); !job.next().done;);
+      let reads = 0, most = 0;
+      for (const side of scratch.sides) {
+        for (const key of ["enter", "end", "witness", "freeAt", "freeR", "flags"] as const) {
+          side[key] = new Proxy(side[key], { get(t, k) { if (typeof k === "string" && /^\d+$/.test(k)) reads++; return Reflect.get(t, k, t); } }) as never;
+        }
+      }
+      for (const job = build(); ;) { reads = 0; const r = job.next(); most = Math.max(most, reads); if (r.done) break; }
+      expect(most, `scratch reads between two steps at ${n}`).toBeLessThanOrEqual(4 * STEP_OPS);
+    }
   });
 });
