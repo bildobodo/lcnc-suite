@@ -69,7 +69,7 @@ import {
 import type { ClashTarget } from "./clashTargets";
 import type { CollisionLineMark } from "./collision";
 import { JUMP_NUDGE } from "./findingNav";
-import { STEP_OPS, allocF64, allocI32, allocU32, copySteps, growF64, growU32, runToEnd, sortSteps, type Steps } from "./steps";
+import { STEP_OPS, allocF64, allocI32, allocU32, growF64, growU32, runToEnd, sortSteps, type Steps } from "./steps";
 
 /** One request's tables as a view reads them. */
 export interface ContactSource {
@@ -703,17 +703,17 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
   // gap (Codex R157 VP-I115)
   const pairs = growU32();
   for (const p of byPair.keys()) { pairs.push(p, c); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-  const pa = pairs.view(), po = yield* sortSteps(pa.length, (x, y) => pa[x]! - pa[y]!);
+  const pa = yield* pairs.done(c), po = yield* sortSteps(pa.length, (x, y) => pa[x]! - pa[y]!);
   const sRef = growU32();
   for (let pi = 0; pi < po.length; pi++) {
     const { spans, refs } = byPair.get(pa[po[pi]!]!)!;
-    const m = yield* mergeSepsSteps([spans[0].view(), spans[1].view()], c), n0 = refs[0].length;
-    const r0 = refs[0].view(), r1 = refs[1].view();
+    const m = yield* mergeSepsSteps([yield* spans[0].done(c), yield* spans[1].done(c)], c), n0 = refs[0].length;
+    const r0 = yield* refs[0].done(c), r1 = yield* refs[1].done(c);
     const ref = (k: number) => (k < n0 ? r0[k]! : r1[k - n0]!);
     for (let i = 0; i < m.first.length; i++) { sRef.push(ref(m.first[i]!), c); sRef.push(ref(m.last[i]!), c); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
   }
   const gH = yield* gen(true), gC = yield* gen(false);
-  return { gens: [gH, gC], sRef: yield* copySteps(allocU32(sRef.length), sRef.view(), c) };
+  return { gens: [gH, gC], sRef: yield* sRef.done(c) };
 }
 
 /** What a piece holds and is: its intervals' classes, its lead (the earliest
@@ -1012,7 +1012,7 @@ function* packedSorted(joins: readonly SourceJoin[], rows: (j: SourceJoin) => It
                        c: Ops): Steps<Uint32Array> {
   const g = growU32();
   for (const j of joins) for (const r of rows(j)) { g.push(packOf(j, r), c); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-  const all = g.view(), o = yield* sortSteps(all.length, (a, b) => all[a]! - all[b]!);
+  const all = yield* g.done(c), o = yield* sortSteps(all.length, (a, b) => all[a]! - all[b]!);
   const out = allocU32(o.length);
   for (let k = 0; k < o.length; k++) { out[k] = all[o[k]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
   return out;
@@ -1045,7 +1045,7 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
         // holds at most its gap budget — one sort, its work counted)
         const G = st.gaps, rg = growU32();
         for (let g = 0; g < G.rows; g++) { if (G.get(g, "start") <= ownCov) rg.push(g, c); if (tick()) { c.n = 0; yield; } }
-        const rows0 = rg.view();
+        const rows0 = yield* rg.done(c);
         // (the row breaks every tie: the order is total)
         const go = yield* sortSteps(rows0.length, (x, y) => G.get(rows0[x]!, "pair") - G.get(rows0[y]!, "pair")
           || G.get(rows0[x]!, "start") - G.get(rows0[y]!, "start") || rows0[x]! - rows0[y]!);
@@ -1193,7 +1193,7 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
           S.push(s0, c); X.push(x, c);
         }
       }
-      const r = R.view(), g = Gp.view(), sv = S.view(), xv = X.view(), n = r.length;
+      const r = yield* R.done(c), g = yield* Gp.done(c), sv = yield* S.done(c), xv = yield* X.done(c), n = r.length;
       const ord = yield* sortSteps(n, (a, b) => g[a]! - g[b]! || sv[a]! - sv[b]! || r[a]! - r[b]!);
       const out: Nears = { ref: allocU32(n), group: allocU32(n), s: allocF64(n), e: allocF64(n), n };
       for (let k = 0; k < n; k++) {
@@ -1242,11 +1242,11 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
     if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
   }
   const reachRef = rKeys;
-  // (refList reads the lists and writes its own: no copy before it)
-  const tgt = yield* refList(tR.view(), tP.view(), tE.view(), c);
-  const aux = yield* refList(aR.view(), aP.view(), aE.view(), c);
+  // (each list made one array a block a step, then refList writes its own)
+  const tgt = yield* refList(yield* tR.done(c), yield* tP.done(c), yield* tE.done(c), c);
+  const aux = yield* refList(yield* aR.done(c), yield* aP.done(c), yield* aE.done(c), c);
   const ep = yield* refList(eRefs, eOn, eEnd, c);
-  const nc = nearCur0.view(), nh = nearHeld0.view();
+  const nc = yield* nearCur0.done(c), nh = yield* nearHeld0.done(c);
   const np = yield* sortSteps(nc.length, (x, y) => nc[x]! - nc[y]!);
   const nearCur = allocU32(np.length), nearHeld = allocU32(np.length);
   for (let k = 0; k < np.length; k++) {

@@ -13,7 +13,7 @@ import {
   buildContactViewSteps, contactBandsSteps, heldBytes, retireView, startTargetsSteps, viewCountsSteps, type ContactView, type ContactViewInput,
 } from "./contactView";
 import { clashIndexOfView, clashTicksSteps } from "./simWindow";
-import { withMeter, type Steps } from "./steps";
+import { STEP_OPS, withMeter, type Steps } from "./steps";
 
 const D = IV_ENTER_DECIDED | IV_EXIT_DECIDED;
 const names = (p: number) => ({ a: `t${p}`, b: `w${p}` });
@@ -142,6 +142,32 @@ describe("a build's memory is counted where it is made (plan 3.6, Codex R158 VP-
       const { bytes, longest } = spy(() => { for (;;) { const r = withMeter(m, () => job.next()); if (r.done) return r.value; } });
       expect(m.bytes).toBe(bytes);
       expect(longest, "the pieces between the gaps are lit as found, never listed").toBeLessThanOrEqual(2 * cols);
+    }
+  });
+
+  it("no native copy longer than the steps' share between two steps — the lists grow by blocks (Codex R159 VP-I115 rest C)", { timeout: 120_000 }, () => {
+    // Codex R159's probe: 32 769 targets cross a power of two in every growing list; and the unions above
+    const many = (n: number): ContactViewInput => {
+      const st = new ContactStore(1, 0);
+      for (let i = 0; i < n; i++) {
+        const ep = st.episodes.append({ pair: i, ordinal: 0, flags: 0, onset: 4 * i, end: 4 * i + 1, closeAt: 4 * i, closeDist: 0, firstIv: NONE, ivCount: 1 });
+        st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 4 * i, exit: 4 * i + 1, flags: D, next: NONE, witness: 4 * i + 0.5, freeAt: 4 * i + 2, freeR: 0.1 }));
+      }
+      return { sources: [{ stores: [st], ownCoverage: 4 * n, at: x => x }], pairName: names, coverage: 4 * n };
+    };
+    const end = endOf(B);
+    const union: ContactViewInput = { sources: [{ stores: [table(1, 1, B, { nears: true })], held: [table(1, 0, B, { nears: true })], heldCoverage: [end], at: x => x, ownCoverage: end }],
+                                      pairName: names, coverage: end };
+    const proto = Object.getPrototypeOf(Uint8Array).prototype as { set: (a: ArrayLike<number>, ...r: unknown[]) => void };
+    const set = proto.set;
+    for (const [input, cov] of [[many(32_769), 4 * 32_769], [union, end]] as const) {
+      let copied = 0, most = 0;
+      proto.set = function (a: ArrayLike<number>, ...r: unknown[]) { copied += a.length; return set.call(this, a, ...r); };
+      try {
+        const job = fullBuild(input, 1200, cov);
+        for (;;) { copied = 0; const r = job.next(); most = Math.max(most, copied); if (r.done) break; }
+      } finally { proto.set = set; }
+      expect(most, "elements copied natively in one step").toBeLessThanOrEqual(4 * STEP_OPS);
     }
   });
 

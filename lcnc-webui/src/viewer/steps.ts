@@ -40,26 +40,49 @@ export const allocI32 = (n: number): Int32Array => metered(new Int32Array(n));
 export const allocU8 = (n: number): Uint8Array => metered(new Uint8Array(n));
 
 type Typed = Float64Array | Uint32Array | Int32Array;
-/** A list of numbers in a typed array that grows by doubling — the build's
- *  per-row buffers (a JS array's backing store is no count; plan 3.6). A
- *  growth's copy is counted into `c` like any other step's work. */
+/** Elements of a `Grow` block: one step's operations. */
+const GROW_BLOCK = STEP_OPS, GROW_SHIFT = 12;
+/** A list of numbers in typed BLOCKS — the build's per-row buffers (a JS
+ *  array's backing store is no count; plan 3.6). Its first block grows by
+ *  doubling up to GROW_BLOCK elements (a copy of at most that many, counted
+ *  into `c`); past it a push starts a new block and never copies (a growing
+ *  array's copy of its whole buffer was one step, Codex R159 VP-I115). `done`
+ *  makes it one array of its length, a block a counted step. */
 export class Grow<A extends Typed> {
-  a: A;
+  private blocks: A[];
   n = 0;
   private readonly make: (n: number) => A;
-  constructor(make: (n: number) => A, cap = 16) { this.make = make; this.a = make(cap); }
+  constructor(make: (n: number) => A, cap = 16) { this.make = make; this.blocks = [make(Math.min(Math.max(1, cap), GROW_BLOCK))]; }
   push(x: number, c?: { n: number }): void {
-    if (this.n === this.a.length) {
-      const b = this.make(2 * this.a.length);
-      b.set(this.a);
-      if (c) c.n += this.n;
-      this.a = b;
+    const k = this.blocks.length - 1, last = this.blocks[k]!, i = this.n - k * GROW_BLOCK;
+    if (i < last.length) { last[i] = x; this.n++; return; }
+    if (last.length < GROW_BLOCK) {
+      // the first block, doubled (k = 0 here): a copy of fewer than GROW_BLOCK elements
+      const b = this.make(Math.min(GROW_BLOCK, 2 * last.length));
+      b.set(last);
+      if (c) c.n += i;
+      this.blocks[k] = b;
+      b[i] = x;
+    } else {
+      const b = this.make(GROW_BLOCK);
+      this.blocks.push(b);
+      b[0] = x;
     }
-    this.a[this.n++] = x;
+    this.n++;
   }
   get length(): number { return this.n; }
-  /** The numbers so far (a view, no copy). */
-  view(): A { return this.a.subarray(0, this.n) as A; }
+  /** Element i. */
+  at(i: number): number { return this.blocks[i >>> GROW_SHIFT]![i & (GROW_BLOCK - 1)]!; }
+  /** The list as one array of its length — a block copied a counted step. */
+  *done(c: { n: number }): Steps<A> {
+    const out = this.make(this.n);
+    for (let b = 0; b * GROW_BLOCK < this.n; b++) {
+      const m = Math.min(GROW_BLOCK, this.n - b * GROW_BLOCK), blk = this.blocks[b]!;
+      out.set(m === blk.length ? blk : blk.subarray(0, m), b * GROW_BLOCK);
+      if ((c.n += m) >= STEP_OPS) { c.n = 0; yield; }
+    }
+    return out;
+  }
 }
 export const growF64 = (cap?: number) => new Grow<Float64Array>(allocF64, cap);
 export const growU32 = (cap?: number) => new Grow<Uint32Array>(allocU32, cap);

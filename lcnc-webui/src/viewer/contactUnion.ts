@@ -214,8 +214,7 @@ export function* mergeSepsSteps(gens: ReadonlyArray<ArrayLike<number>>, c: Ops):
     out.push(S, c); out.push(E, c); first.push(f, c); last.push(l, c);
     if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
   }
-  return { seps: yield* copySteps(allocF64(out.length), out.view(), c), first: yield* copySteps(allocI32(first.length), first.view(), c),
-           last: yield* copySteps(allocI32(last.length), last.view(), c) };
+  return { seps: yield* out.done(c), first: yield* first.done(c), last: yield* last.done(c) };
 }
 
 const zoneLo = (seps: UnionSeps, z: number) => (z === 0 ? -Infinity : seps.e(z - 1));
@@ -744,7 +743,8 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
       lo[k] = x.fLo[i]!; hi[k] = x.fHi[i]!; pt[k] = x.fPt[i]!; jj[k] = x.fJ[i]!;
       if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
     }
-    x.fLo.set(lo); x.fHi.set(hi); x.fPt.set(pt); x.fJ.set(jj);
+    // the sorted arrays are the scratch's now (copying them back was one step, Codex R159 VP-I115)
+    x.fLo = lo; x.fHi = hi; x.fPt = pt; x.fJ = jj;
     const byHi = yield* sortSteps(fn, (a, b) => x.fHi[a]! - x.fHi[b]! || x.fJ[a]! - x.fJ[b]!);
     x.fByHi = yield* copySteps(allocI32(fn), byHi, c);
   }
