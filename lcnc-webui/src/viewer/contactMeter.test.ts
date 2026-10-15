@@ -288,8 +288,17 @@ describe("the build's walk counts every sample it looks at (Codex R160 VP-I115 r
       for (let k = 0; k < n; k++) one(c, 4 * k, 4 * k + 1, 4 * k + 0.5, IV_ENTER_DECIDED | IV_ENDED_AT_FEED, NaN, 0);
       return union(h, c, 4 * n + 2);
     }],
+    // the earlier run's every free sample with a raw radius over everything,
+    // the rerun's contacts between: every sample contradicted — named once,
+    // its first point by bisections (every point of every stretch was asked)
+    ["a raw radius over everything, contradicted by every contact of the rerun", [1024, 8192], n => {
+      const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+      for (let k = 0; k < n; k++) { one(h, 4 * k, 4 * k + 1, 4 * k + 0.5, D, 4 * k + 2, 1e7); one(c, 4 * k + 2.5, 4 * k + 3, 4 * k + 2.75, D, 4 * k + 3.5, 0.1); }
+      return union(h, c, 4 * n + 4);
+    }],
   ];
   it.each(shapes)("%s", { timeout: 120_000 }, (_, sizes, make) => {
+    const total: number[] = [];
     for (const n of sizes) {
       const input = make(n), cov = input.coverage, scratch = unionScratch();
       const build = function* (): Steps<void> {
@@ -304,8 +313,13 @@ describe("the build's walk counts every sample it looks at (Codex R160 VP-I115 r
           side[key] = new Proxy(side[key], { get(t, k) { if (typeof k === "string" && /^\d+$/.test(k)) reads++; return Reflect.get(t, k, t); } }) as never;
         }
       }
-      for (const job = build(); ;) { reads = 0; const r = job.next(); most = Math.max(most, reads); if (r.done) break; }
+      let all = 0;
+      for (const job = build(); ;) { reads = 0; const r = job.next(); most = Math.max(most, reads); all += reads; if (r.done) break; }
       expect(most, `scratch reads between two steps at ${n}`).toBeLessThanOrEqual(4 * STEP_OPS);
+      total.push(all);
     }
+    // and the whole build: n log n at most, never the samples times the intervals
+    const f = sizes[1]! / sizes[0]!;
+    expect(total[1]!, `the whole build's scratch reads at ${sizes[1]} against ${sizes[0]}`).toBeLessThanOrEqual(1.5 * f * total[0]! + 4 * STEP_OPS);
   });
 });

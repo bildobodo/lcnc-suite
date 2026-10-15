@@ -523,9 +523,15 @@ describe("a contradiction over the other generation's every interval, in bounded
     const cur: UnionSide = { n, enter: k => 3 + 2 * k, end: k => 4 + 2 * k, open: () => false, witness: k => 3.5 + 2 * k,
       enterDecided: () => true, exitDecided: () => true, afterTool: () => false, freeAt: () => NaN, freeR: () => NaN, back: 0, front: 0 };
     const scratch = unionScratch();
-    let named = 0;
-    runToEnd(eachPieceSteps([held, cur], NO_SEPARATORS, () => {}, () => { named++; }, scratch));
-    expect(named, "every confirmed point deep inside the radius is named").toBeGreaterThan(n);
+    const named: number[] = [];
+    runToEnd(eachPieceSteps([held, cur], NO_SEPARATORS, () => {}, x => { named.push(x); }, scratch));
+    // the sample once, at its least confirmed point deep inside the radius — its
+    // own interval's decided enter; every point was named, samples × points of
+    // work (beside Codex R160 VP-I115 rest D)
+    expect(named, "the contradicted sample named once, at its first deep point").toEqual([0]);
+    const wide: number[] = [];
+    eachWideConflict([held, cur], x => wide.push(x));
+    expect(wide, "as eachWideConflict names it").toEqual(named);
     let reads = 0, most = 0;
     for (const x of scratch.sides) for (const key of ["enter", "end", "witness"] as const) {
       x[key] = new Proxy(x[key], { get(t, p) { if (typeof p === "string" && /^\d+$/.test(p)) reads++; return Reflect.get(t, p, t); } });

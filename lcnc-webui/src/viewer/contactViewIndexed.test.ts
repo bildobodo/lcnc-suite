@@ -393,6 +393,15 @@ const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: 
   },
   refuted: n => refutedChain(n, 0.1),
   refutedPoints: n => refutedChain(n, 0),
+  // the earlier run's every free sample with a raw radius over everything,
+  // cut back by the rerun's contacts between: the searches' windows are the
+  // kept stretches' reach, never the raw radius (beside Codex R160 VP-I115 rest D)
+  wideRadius: n => {
+    const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+    for (let k = 0; k < n; k++) { iv(h, 0, 4 * k, 4 * k + 1, D, 4 * k + 2, 1e7); iv(c, 0, 4 * k + 2.5, 4 * k + 3, D, 4 * k + 3.5, 0.1); }
+    const cov = 4 * n + 4;
+    return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
+  },
   gaps: n => {
     const mk = (g: number) => { const st = new ContactStore(1, g, REQUEST_BUDGET);
       const ep = st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
@@ -432,7 +441,7 @@ describe("every question about a union piece reads a bounded number of cells (Co
   // the worst single question at a size and at eight times it — bounded by
   // bisections, never by the intervals a piece holds or a search passes
   const sizes: Record<string, [number, number]> = { sweep: [256, 2048], pieces: [1024, 8192], coarseFine: [2048, 16384], chain: [2048, 16384], gaps: [2048, 16384],
-                                                  refuted: [1024, 8192], refutedPoints: [1024, 8192] };
+                                                  refuted: [1024, 8192], refutedPoints: [1024, 8192], wideRadius: [1024, 8192] };
   const ask = (v: ContactView, cov: number, q: (k: string, f: () => unknown) => void) => {
     const lineAt = (p: number) => Math.floor(p), step = Math.max(1, Math.floor(v.n / 64));
     for (let i = 0; i < v.n; i += step) {

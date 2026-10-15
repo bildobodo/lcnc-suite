@@ -239,12 +239,15 @@ export interface ContactView {
   /** The matched pairs by the earlier one's reference (indices into the two). */
   readonly nearByHeld: Uint32Array;
   /** Where the two generations contradict each other (plan 3.5; kept as
-   *  contact and named): how many, and the first on the shown axis. */
+   *  contact and named): how many free samples a confirmed point of either
+   *  run contradicts, and the first such point on the shown axis. */
   readonly conflicts: { count: number; at: number };
 }
 
 /** One generation of a union source: its intervals by group (pair, origin)
- *  and enter, as packed references, with its search bounds. */
+ *  and enter, as packed references, with its search bounds (UnionSide.back /
+ *  front: of every free sample's raw stretch, after a fallback's walk of the
+ *  stretches the union keeps). */
 interface UnionGen {
   uIdx: Uint32Array; back: number; front: number;
   /** Per block of BLOCK positions of uIdx, the first block from it holding an
@@ -1220,6 +1223,8 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
     // one walk each (Codex R151), its scratch shared group after group, in
     // steps inside a group too
     unions[si] = u;
+    // how far the stretches the union keeps reach (UnionSide.back / front, per generation)
+    const reach = [{ back: 0, front: 0 }, { back: 0, front: 0 }];
     yield* eachGroupSteps(tables, u, (sides, los, seps, group, ev0) => eachPieceSteps(sides, seps, piece => {
       let ref: number;
       if (piece.startKind === START_SEP) ref = (u.sRef[2 * (ev0 + piece.startIdx) + 1]! | ((SEP_FIELD + (group & 3)) << PIECE_SHIFT)) >>> 0;
@@ -1253,10 +1258,20 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
     }, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); }, scratchOf(), c,
     // every interval's component end, for the questions later (Codex R158 VP-I115)
     (sd, k, value) => { const cp = u.gens[sd]!.comp, i = los[sd]! + k; cp[i] = (cp[i]! & FREE_HOLDS) | value; },
-    // and whether its free stretch holds in the union (Codex R160 VP-I115 rest D)
-    (sd, k) => { const cp = u.gens[sd]!.comp, i = los[sd]! + k; cp[i] = cp[i]! | FREE_HOLDS; }), c);
-    // the free indexes now skip every sample the union refutes
-    for (const g of u.gens) { yield* freeBlocks(g, k => (g.comp[k]! & FREE_HOLDS) !== 0, c); g.freeHeld = true; }
+    // and whether its free stretch holds in the union (Codex R160 VP-I115 rest D), how far it reaches
+    (sd, k, front, back) => {
+      const cp = u.gens[sd]!.comp, i = los[sd]! + k, r = reach[sd]!;
+      cp[i] = cp[i]! | FREE_HOLDS;
+      if (front > r.front) r.front = front;
+      if (back > r.back) r.back = back;
+    }), c);
+    // the free indexes now skip every sample the union refutes, and the
+    // searches' windows reach as far as the kept stretches do
+    for (let sd = 0; sd < 2; sd++) {
+      const g = u.gens[sd]!;
+      yield* freeBlocks(g, k => (g.comp[k]! & FREE_HOLDS) !== 0, c);
+      g.freeHeld = true; g.back = reach[sd]!.back; g.front = reach[sd]!.front;
+    }
     // the near misses of both generations: one to one per group by overlap, in order
     // (typed lists, by group then start — every build buffer counted: plan 3.6, Codex R158 VP-I118)
     type Nears = { ref: Uint32Array; group: Uint32Array; s: Float64Array; e: Float64Array; n: number };

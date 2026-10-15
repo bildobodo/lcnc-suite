@@ -85,7 +85,11 @@ export interface UnionSide {
   freeR(k: number): number;
   /** Bounds of the searches, over the whole source (`unionReach`): how far a
    *  free stretch of this generation reaches past the NEXT interval's enter
-   *  (`back`) and before its own interval's enter (`front`). */
+   *  (`back`) and before its own interval's enter (`front`) — the stretch as
+   *  the searches cut it (freeStretch). The view's, after its walk: of the
+   *  stretches the union keeps (`eachPieceSteps`' `holds`) — a raw radius
+   *  reaching over everything, refuted or cut back, opened every search's
+   *  window over every sample (found beside Codex R160 VP-I115 rest D). */
   readonly back: number;
   readonly front: number;
   /** The first interval from k on whose free stretch may hold (n: none) — an
@@ -769,8 +773,9 @@ function nearestIn(x: SideScratch, k: number, p: number): number {
 
 /** Side `si`'s free stretches, cut back (freeStretch's rule from the
  *  scratch: the nearest confirmed points around p lie in the intervals
- *  k − 1 … k + 1 of each side, k the last entering at or before p). The
- *  contradictions deeper than the tolerance go to `conflict`. */
+ *  k − 1 … k + 1 of each side, k the last entering at or before p). A
+ *  sample a confirmed point contradicts deeper than the tolerance goes to
+ *  `conflict`, once, at its least such point. */
 function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: number) => void): Steps<void> {
   const x = xs[si]!;
   x.fLo = grow64(x.fLo, x.n); x.fHi = grow64(x.fHi, x.n); x.fPt = grow8(x.fPt, x.n); x.fJ = grow32(x.fJ, x.n);
@@ -814,8 +819,9 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
     // (its reads: the sample, then four a neighbour — witness, flags, enter, end)
     c.n += 2 + 4 * 3 * xs.length;
     // a contradiction needs a confirmed point inside the stretch: only then is
-    // the radius cut (the nearest points around p, by the structure)
-    if (conflict && r0 > PROTECT && d < r0) yield* wideX(xs, p, r0, conflict, c);
+    // the radius cut (the nearest points around p, by the structure) — the
+    // sample is named once, at its first point deeper than the tolerance
+    if (conflict && r0 > PROTECT && d < r0) { const x = firstDeepX(xs, p, r0, c); if (!Number.isNaN(x)) conflict(x); }
     // none where a confirmed point lies on the sample
     if (d !== 0) {
       const r = Math.min(r0, d);
@@ -846,28 +852,40 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
   }
 }
 
-/** wideIn from the scratch: the same points, the same test — in counted
- *  steps (a radius may reach over the other generation's every interval,
- *  Codex R158 VP-I115). */
-function* wideX(xs: SideScratch[], p: number, r: number, each: (x: number) => void, c: Ops): Steps<void> {
+/** firstDeep from the scratch, by bisections — never interval by interval:
+ *  a radius may reach over the other generation's every interval, and every
+ *  sample of such a run asked them all (Codex R158 VP-I115 counted the steps;
+ *  the work stayed samples × intervals — 2.6 s for 8 192 in Node). By the
+ *  structure a side's witnesses, enters and ends rise with the index: its
+ *  first point past the tolerance is the first witness past it, the enter of
+ *  the first interval entering past it, or the end of the first ending past it
+ *  — any later decided enter or end lies beyond a witness already past. NaN:
+ *  none deeper than the tolerance from both edges. */
+function firstDeepX(xs: SideScratch[], p: number, r: number, c: Ops): number {
   const a = p - r, b = p + r;
-  const deep = (x: number) => { if (x > a && x < b && x - a > PROTECT && b - x > PROTECT) each(x); };
+  let x = Infinity;
   for (const t of xs) {
-    for (let k = Math.max(0, predEnterX(t, a) - 1); k < t.n && t.enter[k]! <= b; k++) {
-      if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
-      const f = t.flags[k]!;
-      deep(t.witness[k]!);
-      if (f & F_ED) deep(t.enter[k]!);
-      if ((f & F_XD) && !(f & F_OPEN)) deep(t.end[k]!);
-    }
+    const first = (col: Float64Array) => {
+      let lo = 0, hi = t.n;
+      while (lo < hi) { const m = (lo + hi) >> 1; c.n++; if (col[m]! - a > PROTECT) hi = m; else lo = m + 1; }
+      return lo;
+    };
+    const w = first(t.witness), e = first(t.enter), m = first(t.end);
+    if (w < t.n) x = Math.min(x, t.witness[w]!);
+    if (e < t.n && (t.flags[e]! & F_ED)) x = Math.min(x, t.enter[e]!);
+    if (m < t.n && (t.flags[m]! & F_XD) && !(t.flags[m]! & F_OPEN)) x = Math.min(x, t.end[m]!);
+    c.n += 4;
   }
+  return b - x > PROTECT ? x : NaN;
 }
 
-/** The contradictions inside the original stretch (p − r, p + r): confirmed
- *  points deeper than the tolerance from both edges. */
-function wideIn(sides: readonly UnionSide[], p: number, r: number, each: (x: number) => void): void {
+/** The first contradiction inside the original stretch (p − r, p + r): the
+ *  least confirmed point deeper than the tolerance from both edges (NaN: none). */
+function firstDeep(sides: readonly UnionSide[], p: number, r: number): number {
   const f: Span = { a: p - r, ao: true, b: p + r, bo: true };
-  eachConfirmedIn(sides, f, x => { if (x - f.a > PROTECT && f.b - x > PROTECT) each(x); });
+  let first = NaN;
+  eachConfirmedIn(sides, f, x => { if (x - f.a > PROTECT && f.b - x > PROTECT && !(x >= first)) first = x; });
+  return first;
 }
 
 /** Both sides' free stretches as one union, by start: sorted spans apart. */
@@ -921,7 +939,7 @@ function* freeEndingAt(x: SideScratch, seps: UnionSeps, z: number, at: number, c
 /** Every piece of the group, zone by zone, in order — ONE walk (Codex R151):
  *  the intervals read once, each free stretch computed once, both
  *  generations' parts merged by start and their free stretches cut out. The
- *  contradictions deeper than the tolerance go to `conflict` (as
+ *  samples contradicted deeper than the tolerance go to `conflict` (as
  *  `eachWideConflict` names them). `each` may not keep the piece past its
  *  call. */
 export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p: UnionPiece) => void,
@@ -943,8 +961,10 @@ export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, ea
                                 /** Each interval's component end (UnionSide.comp's value), as the walk finds it. */
                                 comp?: (si: number, k: number, value: number) => void,
                                 /** Each interval whose free stretch holds (freeStretch ≠ null) — the
-                                 *  index UnionSide.nextFree / prevFree may answer from. */
-                                holds?: (si: number, k: number) => void): Steps<void> {
+                                 *  index UnionSide.nextFree / prevFree may answer from — with how far
+                                 *  that stretch reaches before its own enter and past the next
+                                 *  interval's (−Infinity: none) — UnionSide.front / back. */
+                                holds?: (si: number, k: number, front: number, back: number) => void): Steps<void> {
   const xs = scratch.sides;
   for (let si = 0; si < 2; si++) {
     const s = sides[si];
@@ -954,7 +974,11 @@ export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, ea
   if (holds) {
     for (let si = 0; si < 2; si++) {
       const x = xs[si]!;
-      for (let q = 0; q < x.fn; q++) { holds(si, x.fJ[q]!); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
+      for (let q = 0; q < x.fn; q++) {
+        const j = x.fJ[q]!;
+        holds(si, j, x.enter[j]! - x.fLo[q]!, j + 1 < x.n ? x.fHi[q]! - x.enter[j + 1]! : -Infinity);
+        if ((c.n += 6) >= STEP_OPS) { c.n = 0; yield; }
+      }
     }
   }
   const fm = yield* mergeFree(xs, scratch, c);
@@ -1104,11 +1128,12 @@ function* emitPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, xs: SideS
 }
 
 /** The places where the two generations contradict each other on one
- *  geometry: a confirmed point inside a free stretch deeper than the
- *  refinement's tolerance from both edges (plan 3.5's conflict is the
+ *  geometry: a free sample whose stretch holds a confirmed point deeper than
+ *  the refinement's tolerance from both edges (plan 3.5's conflict is the
  *  tolerance case) — possible as soon as the radius exceeds the tolerance
- *  (Codex R151 VP-I114). Kept as contact all the same; `each` gets the point
- *  (own axis). */
+ *  (Codex R151 VP-I114). Kept as contact all the same; `each` gets each such
+ *  sample once, at its least such point (own axis) — every point of every
+ *  stretch was a count of samples × points. */
 export function eachWideConflict(sides: readonly UnionSide[], each: (x: number) => void): void {
   for (let fs = 0; fs < sides.length; fs++) {
     const s = sides[fs]!;
@@ -1116,7 +1141,7 @@ export function eachWideConflict(sides: readonly UnionSide[], each: (x: number) 
       const p = s.freeAt(j);
       if (Number.isNaN(p)) continue;
       const r = freeRadius(s.freeR(j));
-      if (r > PROTECT) wideIn(sides, p, r, each);
+      if (r > PROTECT) { const x = firstDeep(sides, p, r); if (!Number.isNaN(x)) each(x); }
     }
   }
 }

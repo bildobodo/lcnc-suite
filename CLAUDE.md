@@ -2121,7 +2121,15 @@ one, back and forth (R160 rest D: 7.2 M reads for one key at 8 192 contacts).
 The walk counts every sample it looks at, a dropped one too, and finds the
 other run's interval before a sample by galloping from the last one, each probe
 counted (R160 rest E: an empty rerun's 32 768 samples, a late sample after a
-coarse contact's 32 768 finer ones, were each one step). The steps from a position skip a block of tied findings by the least and
+coarse contact's 32 768 finer ones, were each one step). The searches' windows
+(`UnionSide.back` / `front`) are the KEPT stretches' reach, which the walk
+reports with each (a raw radius over everything, cut back or refuted, opened
+every window over every sample: 1.2 M reads for a target's end at 8 192); a
+sample a confirmed point contradicts is named ONCE, at its least deep point,
+found by three bisections a side (`firstDeepX` — witnesses, enters and ends
+rise with the index): the count is of contradicted samples, no longer of
+(sample, point) pairs — samples × intervals of work, 402 M "places" for 8 192
+such samples. The steps from a position skip a block of tied findings by the least and
 largest jump point per block of 64 (`RefList.sMin/sMax`). A union piece is
 tinted where each interval's OWN table proves contact (R159 VP-I119: cut at
 the start evidence's coverage, the current run past the earlier one's went
