@@ -1,0 +1,36 @@
+{
+  "live_head": "ae4e3bf642d5253d45aa7d6f5410bd151148f71d",
+  "code_ref": "bb2214c0",
+  "scope": "Plan 3.6 Fassung 2 only; uncommitted live inputs",
+  "inputs": {
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 65244,
+      "sha256": "28c790b42339ba736641efde06b157e23cb48fbebbcdea88d06cba966ad5158d"
+    },
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1712343,
+      "sha256": "5bd8b3f62bc4bfd463f0921102ebeddbd9cf9b97be57bd585a71ebf20c30afdc"
+    }
+  },
+  "verdict": "agreement",
+  "closed_on_plan_level": [
+    "VP155-01",
+    "VP155-02"
+  ],
+  "implementation_reviewed": false,
+  "tests_builds_browser_run": false,
+  "existing_evidence_edited": false,
+  "plan_edited": false,
+  "review_prefix_preserved": true,
+  "review_append_bytes": 4644,
+  "artifacts": {
+    "viewer-palette-fest.r156.codex-plan-input.md": {
+      "bytes": 65244,
+      "sha256": "28c790b42339ba736641efde06b157e23cb48fbebbcdea88d06cba966ad5158d"
+    },
+    "viewer-palette-fest.r156.codex-plan.diff": {
+      "bytes": 12343,
+      "sha256": "19603f72e4206b9ff920610e325c5f7586e3613f3d764020417484f4869bdc9e"
+    }
+  }
+}
