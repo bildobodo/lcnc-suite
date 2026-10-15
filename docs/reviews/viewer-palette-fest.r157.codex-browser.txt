@@ -1,0 +1,17 @@
+[2m[WebServer] [22m(node:201621) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:201633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:201633) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/sim-panel.viewer.spec.ts:107:1 › a long list is a window: 400 rows, the count and the steps reach every target, one mark per column (plan 4.4) (2.9s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:159:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (4.6s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:453:1 › the list follows the position: the marked row stays in the middle of its view (1.9s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:494:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (4.0s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:534:1 › the summary line is always there: a re-check moves nothing under it (3.4s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:560:1 › the summary names each kind: words in the wide pane, the glyph and the number narrow; a capped list says so (4.3s)
+
+  6 passed (21.8s)

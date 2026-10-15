@@ -1,0 +1,33 @@
+{
+  "head": "e45b223d",
+  "note": "plan 3.6 Form 1 \u2014 final with the written-out lucide glyphs \u2014 run on the working tree committed right after as e45b223d (HEAD at the run: e497e11d)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 7
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 14
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 406,
+      "tests": "147 files, 2412 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2121,
+      "tests": "526 passed",
+      "note": "run alone"
+    }
+  ]
+}

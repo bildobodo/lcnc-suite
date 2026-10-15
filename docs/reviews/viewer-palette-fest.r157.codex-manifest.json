@@ -1,0 +1,138 @@
+{
+  "live_head": "c4964650a47d62644c7349206704a7a20003f25b",
+  "review_commit": "e45b223d267774ab0c0abf302d43ea65867258a8",
+  "inputs": {
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 65344,
+      "sha256": "08ead72bf749c8a6a7082ed739f55382c23935e5b69bb4f4874b6c846a755ac3"
+    },
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1729326,
+      "sha256": "d03139133eaebeddc69570b933a85eeef14f01c58257def2de8c9bff353c581b"
+    },
+    "docs/reviews/viewer-palette-fest.r157.ctrl.viewer.spec.ts": {
+      "bytes": 2845,
+      "sha256": "b196b6d9159e29e6dc30532d1b9047fb81f261051329d8a7935e359714dc4cf7"
+    },
+    "docs/reviews/viewer-palette-fest.r157.equiv.probe.test.ts": {
+      "bytes": 10884,
+      "sha256": "9e304f3dd05927ad06474c5663e35ec115f7d8b68e963a469002466bd03ad3aa"
+    },
+    "docs/reviews/viewer-palette-fest.r157.equiv.txt": {
+      "bytes": 733,
+      "sha256": "1caca76b1b16f34746e8ea9f56ba1fa3467445de22736679f6970d006d3b07af"
+    },
+    "docs/reviews/viewer-palette-fest.r157.gate-frontend.json": {
+      "bytes": 831,
+      "sha256": "9f448682157c49e5c28de2f12b9da0215e5995e4fa10a24186ff82e95b20091f"
+    },
+    "docs/reviews/viewer-palette-fest.r157.longtask-keys.json": {
+      "bytes": 18892,
+      "sha256": "6212a1a0a5cc9ef25dc7e48dff9fc9c25782c7e22a7ff009fecfd34715b908ab"
+    },
+    "docs/reviews/viewer-palette-fest.r157.longtask.json": {
+      "bytes": 17151,
+      "sha256": "716148ac65ba25854ee6dbbc85ceaec53cc468f2438b156b17313fc02f7f1a9d"
+    },
+    "docs/reviews/viewer-palette-fest.r157.longtask.viewer.spec.ts": {
+      "bytes": 22735,
+      "sha256": "179e36d5b30e168f6c6e9f95b9b516742a1ca7bbc4585687e4fc6a90325f5129"
+    },
+    "docs/reviews/viewer-palette-fest.r157.mutations-rerun.txt": {
+      "bytes": 789,
+      "sha256": "074792f8fb191e6663661845fc8eb90fb191b36f83e2ca70dc1934fe047d2049"
+    },
+    "docs/reviews/viewer-palette-fest.r157.mutations.py": {
+      "bytes": 8802,
+      "sha256": "d217bd470f4bb6a37964409c8fb0ae47c7ef7736cb93e59624afc343fcf032df"
+    },
+    "docs/reviews/viewer-palette-fest.r157.mutations.txt": {
+      "bytes": 4285,
+      "sha256": "e76cf636d97aca3cc9af95d272d03ed2b0b5404161f3fe08bf06a82a07b66e9f"
+    }
+  },
+  "base": "bb2214c0",
+  "archive": "/tmp/codex-r157-83_h3jv8/repo",
+  "review_type": "implementation",
+  "code_source": "git archive e45b223d; all tracked lcnc-webui/src files match this commit",
+  "live_changes_allowed": [
+    "append docs/reviews/viewer-palette-fest.ideen.md",
+    "new docs/reviews/viewer-palette-fest.r157.codex-*",
+    "done R157 handshake"
+  ],
+  "live_head_at_end": "c4964650a47d62644c7349206704a7a20003f25b",
+  "execution": {
+    "build": "PASS (own copied probe helper unused imports removed before successful build; no product edits)",
+    "repository_unit": "129/129 PASS, 11 files, targeted.txt",
+    "own_counterprobes": "6/6 contract assertions FAIL, reproducing four findings; no product mutation",
+    "browser": "6/6 focused behavior tests PASS; private mock 127.0.0.1:4188, Chromium, production build, one worker, nice 15",
+    "budget": "1 original supplied measurement test (many pairs, four phases), PASS; LT_KEYS/LT_PROFILE/LT_TRACE unset; LT_OUT separate; no task >50ms; first input-delay max70ms",
+    "full_gate": "Claude report read, not repeated; backend unchanged; no live machine tests"
+  },
+  "input_hashes_unchanged_before_append": true,
+  "evidence": {
+    "viewer-palette-fest.r157.codex-publisher.probe.test.ts": {
+      "bytes": 6864,
+      "sha256": "e0846585589e8f6b870b25688f7a468ae37cf1c396f83bef3f250e649a0881ad"
+    },
+    "viewer-palette-fest.r157.codex-bounds.probe.test.ts": {
+      "bytes": 1710,
+      "sha256": "79af43826fd6405b29c30e560053a89f35cc47796692fb0934d4224570953bea"
+    },
+    "viewer-palette-fest.r157.codex-counterprobes.txt": {
+      "bytes": 6430,
+      "sha256": "cbf66829959466b03b5e819c434fcf98df62533fe9d36573d7aa293f35acc850"
+    },
+    "viewer-palette-fest.r157.codex-targeted.txt": {
+      "bytes": 232,
+      "sha256": "6209fd9fc0c26819a89fd4c69da37dd9d9310d114837ecb9cad711b46ef158e9"
+    },
+    "viewer-palette-fest.r157.codex-build.txt": {
+      "bytes": 2438,
+      "sha256": "e22fcecfbacebf4fcd7a852c60105ba523c1a1df239072987d4483346832cca6"
+    },
+    "viewer-palette-fest.r157.codex-browser.txt": {
+      "bytes": 1473,
+      "sha256": "a56cf6ae25481d752ed71d9db7e8470e727ec6f56f7fc501322963c054df978a"
+    },
+    "viewer-palette-fest.r157.codex-longtask.txt": {
+      "bytes": 2949,
+      "sha256": "5f078231662b134fb1e3e29d8420b913558fa5ecd82301853db21c609fc4af7b"
+    },
+    "viewer-palette-fest.r157.codex-longtask.json": {
+      "bytes": 4377,
+      "sha256": "e76e31d789a608fffc93cd478886835eb5b27c91f4b4a15fd519b1d31c9e16ed"
+    },
+    "viewer-palette-fest.r157.codex-vitest.config.ts": {
+      "bytes": 173,
+      "sha256": "f854d5b4a6783f993419c89cce6be794a78d9c9d15c39c68313810e2cd8f3bbd"
+    },
+    "viewer-palette-fest.r157.codex-playwright.config.ts": {
+      "bytes": 587,
+      "sha256": "a9189cd84dab3a4172354d33f7f8c7c4958887ade2fd00969a8f5a04b6e6445f"
+    },
+    "viewer-palette-fest.r157.codex-reproduce.md": {
+      "bytes": 3468,
+      "sha256": "60f131d5aab659caf9d1edfdac483d7fb1235247075c722e015a3ff836a8cd66"
+    }
+  },
+  "verification_after_append": {
+    "original_inputs_preserved": {
+      "docs/reviews/kollision-paket2.plan.md": true,
+      "docs/reviews/viewer-palette-fest.ideen.md": true,
+      "docs/reviews/viewer-palette-fest.r157.ctrl.viewer.spec.ts": true,
+      "docs/reviews/viewer-palette-fest.r157.equiv.probe.test.ts": true,
+      "docs/reviews/viewer-palette-fest.r157.equiv.txt": true,
+      "docs/reviews/viewer-palette-fest.r157.gate-frontend.json": true,
+      "docs/reviews/viewer-palette-fest.r157.longtask-keys.json": true,
+      "docs/reviews/viewer-palette-fest.r157.longtask.json": true,
+      "docs/reviews/viewer-palette-fest.r157.longtask.viewer.spec.ts": true,
+      "docs/reviews/viewer-palette-fest.r157.mutations-rerun.txt": true,
+      "docs/reviews/viewer-palette-fest.r157.mutations.py": true,
+      "docs/reviews/viewer-palette-fest.r157.mutations.txt": true
+    },
+    "append_bytes": 10669,
+    "append_sha256": "c6c12bfad2c340c7ad8ee08f361142fedb9bef924cd9ef0d2b738553912cbff1",
+    "review_line": 20187
+  }
+}

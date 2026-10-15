@@ -1,0 +1,111 @@
+
+ RUN  v4.1.8 /tmp/codex-r157-83_h3jv8/repo/lcnc-webui
+
+stdout | src/viewer/codexR157Bounds.test.ts > bounds scratch reads inside a single connected component (n=20000)
+r157 component {"n":20000,"steps":196,"pieces":20001,"most":61634,"budget":4096}
+
+stdout | src/viewer/codexR157Bounds.test.ts > bounds scratch reads inside a single connected component (n=262144)
+r157 component {"n":262144,"steps":2559,"pieces":262145,"most":792248,"budget":4096}
+
+ ❯ src/viewer/codexR157Bounds.test.ts (2 tests | 2 failed) 978ms
+   × bounds scratch reads inside a single connected component (n=20000) 94ms
+   × bounds scratch reads inside a single connected component (n=262144) 884ms
+stdout | src/viewer/codexR157Publisher.test.ts > Codex R157 lifecycle and memory > accounts for the still displayed old-generation copy during the new-generation build
+r157 memory {"reported":761856,"live":1142784,"omitted":380928}
+
+stdout | src/viewer/codexR157Publisher.test.ts > Codex R157 lifecycle and memory > stops a released request build at the next bounded step
+r157 cancel {"atCancel":5,"after":100,"extra":95}
+
+ ❯ src/viewer/codexR157Publisher.test.ts (4 tests | 4 failed) 89ms
+     × retires an old view at publication, before its backing table is written 5ms
+     × retires the old view even on a publication without table writes 79ms
+     × accounts for the still displayed old-generation copy during the new-generation build 3ms
+     × stops a released request build at the next bounded step 1ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/codexR157Bounds.test.ts > bounds scratch reads inside a single connected component (n=20000)
+AssertionError: no whole connected component before the next yield (same 4x allowance as existing read guard): expected 61634 to be less than or equal to 16384
+ ❯ src/viewer/codexR157Bounds.test.ts:22:111
+     20|  console.log('r157 component',JSON.stringify({n,steps,pieces,most,budg…
+     21|  expect(pieces).toBeGreaterThan(n);
+     22|  expect(most,'no whole connected component before the next yield (same…
+       |                                                                                                               ^
+     23| });
+     24|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  src/viewer/codexR157Bounds.test.ts > bounds scratch reads inside a single connected component (n=262144)
+AssertionError: no whole connected component before the next yield (same 4x allowance as existing read guard): expected 792248 to be less than or equal to 16384
+ ❯ src/viewer/codexR157Bounds.test.ts:22:111
+     20|  console.log('r157 component',JSON.stringify({n,steps,pieces,most,budg…
+     21|  expect(pieces).toBeGreaterThan(n);
+     22|  expect(most,'no whole connected component before the next yield (same…
+       |                                                                                                               ^
+     23| });
+     24|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  src/viewer/codexR157Publisher.test.ts > Codex R157 lifecycle and memory > retires an old view at publication, before its backing table is written
+AssertionError: plan 3.6: dead at publication: expected [Function] to throw an error
+ ❯ src/viewer/codexR157Publisher.test.ts:79:64
+     77|   h.p.receive(s.contact(1,20).msg());h.p.kick();h.run(()=>h.p.phase===…
+     78|   expect(posOf(h.views())).toEqual([10,20]);
+     79|   expect(()=>targetPos(old,0),'plan 3.6: dead at publication').toThrow…
+       |                                                                ^
+     80|  });
+     81|  it('retires the old view even on a publication without table writes',…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  src/viewer/codexR157Publisher.test.ts > Codex R157 lifecycle and memory > retires the old view even on a publication without table writes
+AssertionError: old references must not survive a metadata-only publication: expected [Function] to throw an error
+ ❯ src/viewer/codexR157Publisher.test.ts:86:94
+     84|   h.p.receive({id:1,tag:'coverage changed'});h.p.kick();h.run();
+     85|   expect(h.views()).not.toBe(old);
+     86|   expect(()=>targetPos(old,0),'old references must not survive a metad…
+       |                                                                                              ^
+     87|  });
+     88|  it('accounts for the still displayed old-generation copy during the n…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  src/viewer/codexR157Publisher.test.ts > Codex R157 lifecycle and memory > accounts for the still displayed old-generation copy during the new-generation build
+AssertionError: all simultaneously live owner buffers: expected 761856 to be 1142784 // Object.is equality
+
+- Expected
++ Received
+
+- 1142784
++ 761856
+
+ ❯ src/viewer/codexR157Publisher.test.ts:100:73
+     98|   const actual=[...live].reduce((n,st)=>n+st.allocatedBytes(),0);
+     99|   console.log('r157 memory',JSON.stringify({reported:h.p.stats().alloc…
+    100|   expect(h.p.stats().allocated,'all simultaneously live owner buffers'…
+       |                                                                         ^
+    101|  });
+    102|  it('stops a released request build at the next bounded step',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  src/viewer/codexR157Publisher.test.ts > Codex R157 lifecycle and memory > stops a released request build at the next bounded step
+AssertionError: an abandoned build must stop; no full stale build before the new request: expected 95 to be less than or equal to 1
+ ❯ src/viewer/codexR157Publisher.test.ts:112:104
+    110|   for(let i=0;i<1000&&tasks.length;i++)tasks.shift()!();
+    111|   console.log('r157 cancel',JSON.stringify({atCancel,after:oldSteps,ex…
+    112|   expect(oldSteps-atCancel,'an abandoned build must stop; no full stal…
+       |                                                                                                        ^
+    113|  });
+    114| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  6 failed (6)
+   Start at  12:35:02
+   Duration  1.29s (transform 92ms, setup 0ms, import 112ms, tests 1.07s, environment 0ms)
+

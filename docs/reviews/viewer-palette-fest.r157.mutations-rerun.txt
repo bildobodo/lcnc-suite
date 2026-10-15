@@ -1,0 +1,3 @@
+p_drain_unacked (after the drain-ack assertion) RED — Failed Tests 4 (the fallback in every phase: D0, D1 and the drain's D2 before any word of generation 1)
+g_glyph_drift RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/glyphMarkup.test.ts > the written-out lucide glyphs (plan 3.6) > ScrubBar.vue: each glyph is what the lucide component renders | AssertionError: x: expected { svg: { tag: 'svg', …(1) }, …(1) } to deeply equal { svg: { ta 6s
+g_glyph_size RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/glyphMarkup.test.ts > the written-out lucide glyphs (plan 3.6) > SimPanel.vue: each glyph is what the lucide component renders | AssertionError: triangle: expected { svg: { tag: 'svg', …(1) }, …(1) } to deeply equal { sv 6s

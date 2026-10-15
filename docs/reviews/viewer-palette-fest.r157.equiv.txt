@@ -1,0 +1,5 @@
+ ✓ src/viewer/zz_equiv.test.ts > the stepped build is the build as it was (plan 3.6 evidence) > the budget shapes: plain and union, identical and cutting, one pair and many 1468ms
+ ✓ src/viewer/zz_equiv.test.ts > the stepped build is the build as it was (plan 3.6 evidence) > gaps of both reasons, separators where the generations disagree on the tool 389ms
+[3.6 evidence] 913 views compared field for field, 321903 targets; at most 1033 yields in one build
+ ✓ src/viewer/zz_equiv.test.ts > the stepped build is the build as it was (plan 3.6 evidence) > real sweeps: a head past a vise, the tool unknown on random stretches, collapsed times — alone, with an empty and with an identical rerun 5862ms
+      Tests  3 passed (3)
