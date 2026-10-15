@@ -379,7 +379,7 @@ function onRootKey(e: KeyboardEvent) {
                     :disabled="!!stepReason" :reason="stepReason" @click="simStep(KINDS[filter], -1)"><ChevronLeft :size="14" /></MachineBtn>
         <MachineBtn type="scrub" :aria-label="NAV[filter][1]" :title="NAV[filter][1]"
                     :disabled="!!stepReason" :reason="stepReason" @click="simStep(KINDS[filter], 1)"><ChevronRight :size="14" /></MachineBtn>
-        <HelpIcon label="Timeline list">One row per mark on the timeline: × collision, ▲ soft limit (offsets as parsed), ● tool change.</HelpIcon>
+        <HelpIcon label="Timeline list">Up to 400 rows near the shown one; ‹ › reach all. × collision, ▲ soft limit (offsets as parsed), ● tool change.</HelpIcon>
       </div>
 
       <div v-if="!rows.length" class="emptyState">{{ total ? "None of this kind." : "No collisions, limit violations or tool changes." }}</div>

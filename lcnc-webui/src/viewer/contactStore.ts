@@ -144,17 +144,36 @@ export class ColumnTable {
    *  sender's were (out of order is refused, never patched), updates set. */
   apply(d: TableDelta): void {
     if (d.from !== this.rows) throw new Error(`contactStore: delta from row ${d.from}, table has ${this.rows}`);
-    for (let i = 0; i < d.count; i++) {
-      const v: Record<string, number> = {};
-      for (const [name] of this.schema) v[name] = d.rows[name]![i]!;
-      if (this.append(v) < 0) throw new Error("contactStore: receiving table over its budget");
+    if (this.rows + d.count > this.budget) throw new Error("contactStore: receiving table over its budget");
+    // the new rows column by column, a block's stretch at a time (a row at a
+    // time built an object per row: 175 ms for a budget's delta, on the page)
+    for (let done = 0; done < d.count;) {
+      const row = this.rows + done, b = row >>> BLOCK_SHIFT, o = row & (BLOCK - 1), n = Math.min(BLOCK - o, d.count - done);
+      if (o === 0) {
+        for (const [name, type] of this.schema) this.col(name).push(new CTOR[type](BLOCK));
+        this.dirtyBlocks.push(new Uint8Array(BLOCK));
+      }
+      for (const [name] of this.schema) {
+        const src = d.rows[name], blk = this.col(name)[b]!;
+        if (!src) continue;   // a missing column is 0, as append() writes it
+        blk.set(ArrayBuffer.isView(src) ? src.subarray(done, done + n) : Array.prototype.slice.call(src, done, done + n), o);
+      }
+      done += n;
     }
-    // through set(): a receiver that forwards (the coordinator) sends the new
-    // rows as its own new rows and the updates of rows it already forwarded
-    // as its own updates — once each, coalesced like the sender's
+    this.rows += d.count;
+    this.revision += d.count;
+    // the updates as set() writes them: a receiver that forwards (the
+    // coordinator) sends the new rows as its own new rows and the updates of
+    // rows it already forwarded as its own updates — once each, coalesced
+    const cols = this.schema.map(([name]) => [this.col(name), d.updated[name]] as const);
     for (let i = 0; i < d.updates.length; i++) {
-      const r = d.updates[i]!;
-      for (const [name] of this.schema) this.set(r, name, d.updated[name]![i]!);
+      const r = d.updates[i]!, b = Math.floor(r / BLOCK), o = r % BLOCK;
+      for (const [blocks, vals] of cols) blocks[b]![o] = vals![i]!;
+      this.revision += cols.length;
+      if (r < this.sent && !this.dirtyBlocks[b]![o]) {
+        this.dirtyBlocks[b]![o] = 1;
+        this.dirtyList.push(r);
+      }
     }
   }
 

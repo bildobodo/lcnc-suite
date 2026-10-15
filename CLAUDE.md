@@ -565,9 +565,10 @@ for the shown kind, anchored to the CURRENT timeline position — scrubbing
 re-anchors it; collisions and tool changes in the same list) and the
 scrub bar's timeline marks — one tick per kind plus a lucide glyph
 under the track in the tick's colour (the collisions one per OCCUPIED
-column of the timeline's pixels, at its first target, a near miss only
-where every target in it is one — `simWindow.clashTicks`, never one per
-target; ▲ limit, × clash, ● tool change;
+column of the timeline's pixels — at most `TIMELINE_COLUMNS` (8192) like
+the bands, so at most min(targets, columns) marks — at its first target, a
+near miss only where every target in it is one — `simWindow.clashTicks`,
+never one per target; ▲ limit, × clash, ● tool change;
 the dark theme cannot separate red from amber) and extent BANDS (warn over
 the violating line's cum span, danger over every contact interval, red
 wins) — plus warn-tinted line numbers in GcodePanel (`.codeLine.violation`,
@@ -1917,7 +1918,10 @@ shards' minimum — R144/R145 VP-I100). Transport (`collisionWorker`, a request'
 `contacts: {generation}`): deltas `{id, contacts: StoreDelta[]}` — new rows
 plus rows changed since, each once with its latest state — at most ONE
 unacknowledged per path (`{contactsAck: id, generation}` — bound to the
-generation it acknowledges), the last delta with the result; the coordinator
+generation it acknowledges), the last delta with the result; a receiver writes a
+delta column by column, a block's stretch at a time (a budget's delta 2.7 ms in
+Node, 175 ms a row at a time) and refuses one past its budget whole, nothing
+written; the coordinator
 applies and acknowledges each shard's delta at once and sends the owner one
 message per round; a fall back to this core is the next generation, a side run
 started again too. A failed pool still DRAINS its generation: what the

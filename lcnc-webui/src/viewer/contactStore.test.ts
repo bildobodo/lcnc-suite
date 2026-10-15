@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BLOCK, ColumnTable, ContactStore, EPISODE, GAP, INTERVAL, NONE, REQUEST_BUDGET, deltaTransfer, f32Inward, rowBytes, shareOf,
+  type TableDelta,
 } from "./contactStore";
 
 describe("the contact store's tables (step 4 package 2, plan 1.4)", () => {
@@ -95,6 +96,55 @@ describe("deltas: appended rows, coalesced updates, one unacknowledged (plan 3.1
     expect([d.episodes.from, d.episodes.count, Array.from(d.episodes.updates)]).toEqual([1, 1, [a]]);
     viewer.apply(d);
     expect([viewer.episodes.rows, viewer.episodes.get(a, "end")]).toEqual([2, 59]);
+  });
+
+  it("a delta goes in by blocks exactly as row by row: the cells, the revision, the forwarded rows and updates (Form 1 groundwork)", () => {
+    // the reference: the receiving side as it was, a row appended and a cell set at a time
+    const byRows = (t: ColumnTable, d: TableDelta) => {
+      if (d.from !== t.rows) throw new Error("out of order");
+      for (let i = 0; i < d.count; i++) {
+        const v: Record<string, number> = {};
+        for (const [name] of t.schema) v[name] = d.rows[name]![i]!;
+        if (t.append(v) < 0) throw new Error("over budget");
+      }
+      for (let i = 0; i < d.updates.length; i++) for (const [name] of t.schema) t.set(d.updates[i]!, name, d.updated[name]![i]!);
+    };
+    let seed = 1501;
+    const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    const cells = (t: ColumnTable) => t.schema.map(([name]) => Array.from({ length: t.rows }, (_, r) => t.get(r, name)));
+    let rows = 0, updates = 0, crossings = 0;
+    for (let c = 0; c < 40; c++) {
+      const sender = new ColumnTable(INTERVAL, 3 * BLOCK), fast = new ColumnTable(INTERVAL, 3 * BLOCK), ref = new ColumnTable(INTERVAL, 3 * BLOCK);
+      for (let step = 0; step < 12; step++) {
+        // the sender writes: new rows (across blocks, at times many), changes to rows already sent
+        const add = rnd() < 0.2 ? Math.floor(rnd() * 2 * BLOCK) : Math.floor(rnd() * 300);
+        for (let k = 0; k < add && sender.rows < sender.budget; k++) {
+          sender.append({ episode: Math.floor(rnd() * 99), enter: rnd() * 1e3, exit: rnd() * 1e3, flags: Math.floor(rnd() * 128),
+                          next: rnd() < 0.5 ? NONE : Math.floor(rnd() * 1e4), witness: rnd(), freeAt: rnd(), freeR: rnd() });
+        }
+        for (let k = Math.floor(rnd() * 40); k > 0 && sender.sent; k--) sender.set(Math.floor(rnd() * sender.sent), "exit", rnd() * 1e3);
+        const before = fast.rows;
+        const d = sender.take();
+        fast.apply(d);
+        byRows(ref, d);
+        rows += d.count; updates += d.updates.length;
+        if (Math.floor(before / BLOCK) !== Math.floor(fast.rows / BLOCK)) crossings++;
+        expect([fast.rows, fast.revision, fast.pending()], `case ${c} step ${step}`).toEqual([ref.rows, ref.revision, ref.pending()]);
+        expect(cells(fast)).toEqual(cells(ref));
+        // as a forwarder (the coordinator): what each sends on is the same
+        if (rnd() < 0.5) {
+          const a = fast.take(), b = ref.take();
+          expect([a.from, a.count, Array.from(a.updates)]).toEqual([b.from, b.count, Array.from(b.updates)]);
+          for (const [name] of INTERVAL) expect([Array.from(a.rows[name]!), Array.from(a.updated[name]!)]).toEqual([Array.from(b.rows[name]!), Array.from(b.updated[name]!)]);
+        }
+      }
+    }
+    expect([rows > 50_000, updates > 2_000, crossings > 20], "rows, updates, block crossings").toEqual([true, true, true]);
+    // past its budget the delta is refused whole — nothing of it is written
+    const s = new ColumnTable(GAP, 10), r = new ColumnTable(GAP, 6);
+    for (let k = 0; k < 8; k++) s.append({ pair: k, start: k, end: k + 1, reason: 1 });
+    expect(() => r.apply(s.take())).toThrow(/over its budget/);
+    expect([r.rows, r.revision]).toEqual([0, 0]);
   });
 
   it("a delta out of order is refused, never patched in", () => {

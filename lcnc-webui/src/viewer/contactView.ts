@@ -1347,6 +1347,10 @@ export function lineMark(v: ContactView, line: number, spans: ReadonlyArray<read
   return mark;
 }
 
+/** The timeline's resolution limit, the bands' and the collision marks' alike
+ *  (plan 4.3 / 4.4): at most this many columns. */
+export const TIMELINE_COLUMNS = 8192;
+
 /** The timeline's contact bands at display resolution (plan 4.3): `columns`
  *  pixel columns over [0, axisEnd]; a column is lit when a contact of any
  *  pair reaches into it — its source's gaps cut out on its own axis, then
@@ -1356,7 +1360,7 @@ export function lineMark(v: ContactView, line: number, spans: ReadonlyArray<read
  *  [startFraction, endFraction] runs. */
 export function contactBands(v: ContactView, columns: number, axisEnd: number): Array<[number, number]> {
   check(v);
-  const W = Math.max(1, Math.min(8192, Math.floor(columns)));
+  const W = Math.max(1, Math.min(TIMELINE_COLUMNS, Math.floor(columns)));
   if (!(axisEnd > 0)) return [];
   const lit = new Uint8Array(W);
   const col = (x: number) => Math.max(0, Math.min(W - 1, Math.floor((x / axisEnd) * W)));

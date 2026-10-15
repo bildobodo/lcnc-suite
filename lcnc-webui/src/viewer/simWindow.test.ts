@@ -4,6 +4,7 @@
 // findingNav's targetAfter / targetBefore, the look-ahead by nextRowKey.
 import { describe, expect, it } from "vitest";
 import type { ClashTarget } from "./clashTargets";
+import { TIMELINE_COLUMNS } from "./contactView";
 import { targetAfter, targetBefore, type NavSelection, type NavTarget } from "./findingNav";
 import { simRowOrder, type SimRowKind } from "./simRows";
 import {
@@ -142,5 +143,9 @@ describe("the list on the index against the full list (plan 4.4)", () => {
       expect(clashTicks(t.clash, cols, end)).toEqual(want);
       expect(clashTicks(t.clash, cols, end).length).toBeLessThanOrEqual(Math.min(cols, t.clashList.length));
     }
+    // a wider timeline than the bands' resolution: at most TIMELINE_COLUMNS marks (Codex R154)
+    const many: ClashTarget[] = Array.from({ length: 20_000 }, (_, i) => ({ cum: i / 200, cumEnd: i / 200, key: `C${i}|0|0`, line: 1, a: "t", b: "w" }));
+    const ticks = clashTicks(clashIndexOfList(many), 1e6, 100);
+    expect(ticks.length).toBe(TIMELINE_COLUMNS);
   });
 });

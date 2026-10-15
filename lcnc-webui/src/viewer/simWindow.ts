@@ -7,7 +7,7 @@
 // then tool → limit → collision), the collisions among themselves in the
 // view's own order. Pure; unit-tested against the full list.
 import { isNearMiss, type ClashTarget } from "./clashTargets";
-import { findKey, indexAtOrAfter, targetAt, targetEnd, targetKey, targetKind, targetPos, T_NEAR, type ContactView, type LineAt } from "./contactView";
+import { findKey, indexAtOrAfter, targetAt, targetEnd, targetKey, targetKind, targetPos, T_NEAR, TIMELINE_COLUMNS, type ContactView, type LineAt } from "./contactView";
 import { JUMP_NUDGE, sampleCum, type NavSelection, type NavTarget } from "./findingNav";
 import { KIND_ORDER, type SimRowKind } from "./simRows";
 
@@ -226,9 +226,11 @@ export function windowCenter(m: MergedList, kinds: readonly SimRowKind[], s: num
 /** The timeline's collision marks: one per occupied column of `cols` over the
  *  axis — at its first target, a near miss only where every target in it is
  *  one (a contact beats a near miss). Never one per target: a column is a
- *  pixel of the timeline (plan 4.3's resolution). */
-export function clashTicks(c: ClashIndex, cols: number, axisEnd: number): Array<{ pct: number; near: boolean }> {
+ *  pixel of the timeline, at most TIMELINE_COLUMNS like the bands (plan 4.3 /
+ *  4.4: at most min(targets, columns) marks). */
+export function clashTicks(c: ClashIndex, columns: number, axisEnd: number): Array<{ pct: number; near: boolean }> {
   const out: Array<{ pct: number; near: boolean }> = [];
+  const cols = Math.min(TIMELINE_COLUMNS, Math.floor(columns));
   if (!c.n || cols < 1 || !(axisEnd > 0)) return out;
   const w = axisEnd / cols;
   for (let col = 0, i = 0; col < cols && i < c.n; col++) {
