@@ -2099,16 +2099,29 @@ position from its start evidence alone (`pieceStart`); a free stretch is cut
 back by the k−1…k+1 rule at every question as the walk does; per gap the next
 tool gap (`hTool`: `ownEnd`) and the last gap of its touching stretch
 (`hComp`: `freeOf` by two bisections); `lineMark` stops at a contact beginning
-on the line and asks an episode's kind of the block index; a KEY not found
-where it was looked for is found from the event it names — the episode index
-per table (`eIdx`, by pair, number, row), the matched near misses by the
-earlier reference (`nearByHeld`), the start a new piece's evidence names — no
-longer by asking every target (5 s at the budget in Node, reachable when a
-fallback moved a shown finding). The test seam `linearPiecesForTest` asks the
-old way, and `contactViewIndexed.test.ts` holds every answer to it.
-`derivationBound` 14.52 MB (R152's 10.91 + the component ends 2.36 + the block
-indexes 0.07 + two u32 a gap 0.29 + the episode index 0.59 + the near misses'
-order 0.29). The steps that ask positions — the start pairs, the timeline
+on the line and asks an episode's kind of the block index; a KEY is found
+from the event it names, never by asking targets (5 s at the budget in Node
+when a fallback moved a shown finding; R159: at ONE position every pair's
+finding may stand, so not even the targets there): the episode index per
+table (`eIdx`, by pair, number, row) gives the interval or near miss, the
+matched near misses by the earlier reference (`nearByHeld`) the current one,
+a new piece's evidence its reference, and the reference its place in the
+target list — sorted by position, tie bits and reference, one bisection
+(`indexOfRef`); an earlier event's key is carried by the piece holding its
+witness, derived from the indexes (`pieceContaining`: the component's start
+by a bisection over the rising component ends, the last free stretch before
+it through a third block index — the previous free sample —, then `pieceFrom`
+names its evidence), and the handover is that piece (one holding the interval
+AND its witness; none for a witness inside a separator only the other run
+saw). The steps from a position skip a block of tied findings by the least and
+largest jump point per block of 64 (`RefList.sMin/sMax`). A union piece is
+tinted where each interval's OWN table proves contact (R159 VP-I119: cut at
+the start evidence's coverage, the current run past the earlier one's went
+dark). The test seam `linearPiecesForTest` asks the old way, and
+`contactViewIndexed.test.ts` holds every answer to it. `derivationBound`
+14.93 MB (R152's 10.91 + the component ends 2.36 + three block indexes 0.11 +
+two u32 a gap 0.29 + the episode index 0.59 + the near misses' order 0.29 +
+the jump points per block 0.37). The steps that ask positions — the start pairs, the timeline
 marks (`ClashIndex.work`) — count what each query read (`viewWork`, every cell
 `rd` reads), and a view keeps its last decoded piece. The boundary contacts'
 stretches are built with the view and published with it
@@ -2145,7 +2158,16 @@ the view and of its derived data and every build buffer, counted where it is
 made — `steps.withMeter` around each step, `allocF64/U32/I32/U8`, the growable
 `Grow` lists the build's per-row buffers became; an upper bound, the toolpath
 ledger's rule; Codex R158 VP-I118), `.building` = waiting + in progress
-(`heldBytes` for a built view). A pass never discards itself: the
+(`heldBytes` for a built view). The build's lists grow by BLOCKS (`Grow`: the
+first doubles up to `STEP_OPS` elements, then a push starts a new block and
+copies nothing; `done` makes one array a block a counted step — a doubling
+copied 32 768 elements in one `TypedArray.set`, Codex R159). The union walk's
+buffers (66 B × the capacities of both sides + 18 B × the merged free list's,
+kept per side, reused group to group) are made once a build and shared by
+the view and its bands. The publication begins a task of its own when the
+slice before it has worked (`runSteps`' `endSlice`): its task held up to a
+slice of build steps before it (52 ms in Codex R159's run under a low
+priority). A pass never discards itself: the
 viewer's stage watcher (`_colOnStageChange`) does nothing while a pass takes or
 builds — its publication stages the state then — and the code panel's marks
 and the tint follow the publication alone (the `contactsVersion` watcher), so

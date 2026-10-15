@@ -111,6 +111,9 @@ function defaultSchedule(): (f: () => void) => void {
 
 /** Drives `job` in slices of about `sliceMs`, a macrotask between them. */
 export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f: () => void) => void; now?: () => number;
+                                                /** Asked after each step with the slice's time so far: true ends the slice
+                                                 *  there (the next step begins a task of its own). */
+                                                endSlice?: (elapsedMs: number) => boolean;
                                                 /** Called in the task the job ends in (the promise settles a microtask later). */
                                                 onDone?: (value: T) => void; onError?: (e: unknown) => void } = {}): StepRun<T> {
   const sliceMs = o.sliceMs ?? 8, schedule = o.schedule ?? defaultSchedule(), now = o.now ?? (() => performance.now());
@@ -124,7 +127,8 @@ export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f:
           const r = job.next();
           if (r.done) { running = false; o.onDone?.(r.value); resolve(r.value); return; }
           if (cancelled) { running = false; return; }
-          if (now() - t0 >= sliceMs) break;
+          const dt = now() - t0;
+          if (dt >= sliceMs || o.endSlice?.(dt)) break;
         }
       } catch (e) { running = false; o.onError?.(e); reject(e); return; }
       schedule(slice);

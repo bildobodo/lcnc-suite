@@ -71,6 +71,32 @@ function harness(o: { owners?: Set<number> } = {}) {
 const keysOf = (v: ContactView | null) => v ? Array.from({ length: v.n }, (_, i) => targetKey(v, i)) : [];
 const posOf = (v: ContactView | null) => v ? Array.from({ length: v.n }, (_, i) => targetPos(v, i)) : [];
 
+describe("the publication begins a task of its own (Codex R159: a slice's build steps before it made its task longer)", () => {
+  it("with time for every step in one slice, a slice that has worked ends before the publication", () => {
+    const queue: Array<() => void> = [], track = {};
+    let clock = 0;
+    const st = new ContactStore(1, 0);
+    for (let i = 0; i < 64; i++) {
+      const ep = st.episodes.append({ pair: i, ordinal: 0, onset: 4 * i, end: 4 * i + 1, closeAt: 4 * i, closeDist: 0, firstIv: NONE, ivCount: 1, flags: 0 });
+      st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 4 * i, exit: 4 * i + 1, flags: D, next: NONE, witness: 4 * i + 0.5, freeAt: NaN, freeR: 0 }));
+    }
+    let published = 0;
+    const p = new ContactPublisher<object, ContactView, object>({
+      tracks: () => [track], specOf: () => ({ key: "one", ids: [1], spec: null }),
+      *build(_t, _s, tables) { const t = tables(1); return t ? yield* buildContactViewSteps({ sources: [{ stores: t.stores, at: c => c, ownCoverage: 1e9 }], pairName: names, coverage: 1e9 }) : null; },
+      viewBytes: v => heldBytes(v), retire: v => retireView(v),
+      effect: () => {}, stage: () => ({}), publish: () => { published++; }, ack: () => {}, owners: () => new Set([1]),
+      schedule: f => queue.push(f), sliceMs: 1e9, now: () => (clock += 1),
+    });
+    p.receive({ id: 1, contacts: [st.takeDelta(true)!], contactPairs: [["t", "w"]] });
+    p.kick();
+    queue.shift()!();
+    expect([published, p.phase], "the first slice: the take and the build, not the publication").toEqual([0, 2]);
+    queue.shift()!();
+    expect(published, "the next task publishes").toBe(1);
+  });
+});
+
 describe("the publisher: two copies, one published, never written (plan 3.6)", () => {
   it("a delta: into the work copy, the views from it, published in one step; the other copy catches up; acknowledged only then", () => {
     const h = harness(), s = new Sender(1, 0);

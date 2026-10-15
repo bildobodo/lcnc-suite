@@ -119,6 +119,9 @@ export interface PublisherDeps<T extends object, V, S> {
   sliceMs?: number;
 }
 
+/** A slice that has worked this long ends before the publication. */
+const PUBLISH_ALONE_MS = 1;
+
 interface Pass {
   run: StepRun<void> | null;
   /** 1 take, 2 build, 3 publish, 4 catch up. */
@@ -148,6 +151,8 @@ export class ContactPublisher<T extends object, V, S> {
   private again = false;
   private dirty = false;
   private staged: S | null = null;
+  /** The next step begins a task of its own (the publication). */
+  private sliceEnd = false;
   /** Deltas dropped: an older generation's after a switch, or refused by a table. */
   dropped = 0;
   /** Publications so far. */
@@ -227,6 +232,10 @@ export class ContactPublisher<T extends object, V, S> {
       schedule: f => { if (first) { first = false; f(); } else if (schedule) schedule(f); else setTimeout(f, 0); },
       // in the task the pass ends in: the next one may start right after
       onDone: done, onError: e => { console.error("[contacts] a pass failed:", e); done(); },
+      // the publication begins its own task when the slice has done work
+      // before it (its task was up to a slice longer — 52 ms in Codex R159's
+      // run); a small table's, in a slice that took next to nothing, goes on
+      endSlice: (ms: number) => { const e = this.sliceEnd && ms >= PUBLISH_ALONE_MS; this.sliceEnd = false; return e; },
     });
     void me.run.promise.catch(() => {});
   }
@@ -379,6 +388,7 @@ export class ContactPublisher<T extends object, V, S> {
         if (!out) { discarded(); return; }
         built.set(track, { key: s.key, ids: s.ids, view: out.value, uses });
       }
+      this.sliceEnd = true;
       yield;
       if (me.discard) { discarded(); return; }
       // 3 — one task, and only for what is shown now: a spec changed or a

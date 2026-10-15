@@ -79,6 +79,18 @@ describe("the runner: slices, a macrotask between them, cancel", () => {
     expect(queue.length, "the next slice is scheduled").toBe(1);
   });
 
+  it("a step can end its slice (endSlice): the next step begins the next macrotask", () => {
+    const queue: Array<() => void> = [];
+    const seen = { steps: 0 };
+    let end = false;
+    function* job(): Steps<number> { for (let i = 0; i < 10; i++) { seen.steps++; end = i === 3; yield; } return 1; }
+    runSteps(job(), { sliceMs: 1e9, now: () => 0, schedule: f => queue.push(f), endSlice: ms => { const e = end && ms >= 0; end = false; return e; } });
+    queue.shift()!();
+    expect(seen.steps, "the fourth step ended the slice").toBe(4);
+    queue.shift()!();
+    expect(seen.steps, "the rest in the next").toBe(10);
+  });
+
   it("cancel ends the job at its next yield; nothing settles", async () => {
     const queue: Array<() => void> = [];
     const seen = { steps: 0 };
