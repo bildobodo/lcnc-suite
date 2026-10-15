@@ -1,0 +1,256 @@
+// Codex R158 VP-I115 rest B: a union piece's questions answered from indexes
+// — the next free sample by blocks, the component's end the build's walk
+// wrote, the piece's facts by bisections — give exactly what the walk over
+// every interval gave (the test seam `linearPiecesForTest`), on random
+// generations: positions, ends, kinds, keys, the objects, the tint, the
+// marks, a key found again.
+import { describe, expect, it } from "vitest";
+import { buildCollisionModel, sweepCollisions, type CollisionMachine } from "./collision";
+import { boxPositions } from "./collisionFixtures";
+import { emptyLineIndex } from "./lineIndex";
+import {
+  ColumnTable, ContactStore, REQUEST_BUDGET, EP_AT_START, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP,
+  IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY,
+} from "./contactStore";
+import {
+  buildContactView, findKey, indexAfter, indexBefore, lineMark, linearPiecesForTest, targetAt, targetEnd, targetKey, targetKind, targetPos, targetWindow,
+  tintAt, type ContactView, type ContactViewInput, type SourceJoin,
+} from "./contactView";
+
+const names = (p: number) => ({ a: `t${p}`, b: `w${p}` });
+
+/** One generation: per pair and origin, episodes of intervals in time order
+ *  (apart, a witness in each, a free sample between them mostly — its radius
+ *  within the room, now and then past it), ended at a tool gap or at a feed
+ *  now and then, possible ones, undecidable gaps inside contacts, near misses. */
+function generation(rnd: () => number, req: number, gen: number): ContactStore {
+  const st = new ContactStore(req, gen);
+  const E = st.episodes, I = st.intervals;
+  const grid = (x: number) => Math.round(x * 8) / 8;
+  for (let pair = 0; pair < 3; pair++) {
+    for (const origin of [0, ORIGIN_BOUNDARY]) {
+      if (origin && rnd() < 0.7) continue;
+      let x = grid(rnd() * 3), ordinal = 0;
+      const eps = Math.floor(rnd() * 5);
+      for (let e = 0; e < eps; e++) {
+        if (rnd() < 0.15) {
+          // a near miss
+          E.append({ pair, ordinal: ordinal++, flags: origin, onset: x, end: x + 0.5, closeAt: x + 0.25, closeDist: 1, firstIv: NONE, ivCount: 0 });
+          x += 1 + grid(rnd());
+          continue;
+        }
+        const allPossible = rnd() < 0.25;
+        const ep = E.append({ pair, ordinal: ordinal++, flags: origin | (rnd() < 0.2 ? EP_RAPID : 0) | (e === 0 && rnd() < 0.2 ? EP_AT_START : 0),
+                              onset: x, end: NaN, closeAt: x, closeDist: 0, firstIv: NONE, ivCount: 0 });
+        const ivs = 1 + Math.floor(rnd() * 4);
+        let last = -1, count = 0, epEnd = x, after = false;
+        for (let k = 0; k < ivs; k++) {
+          const len = rnd() < 0.1 ? 0 : grid(0.125 + rnd() * 2);
+          const enter = x, exit = x + len;
+          const lastOne = e === eps - 1 && k === ivs - 1;
+          const open = lastOne && rnd() < 0.3;
+          const atGap = !open && rnd() < 0.15, atFeed = !open && !atGap && rnd() < 0.1;
+          let flags = (rnd() < 0.7 ? IV_ENTER_DECIDED : 0) | (!open && !atGap && rnd() < 0.7 ? IV_EXIT_DECIDED : 0);
+          if (allPossible || rnd() < 0.1) flags |= IV_POSSIBLE;
+          if (atGap) flags |= IV_ENDED_AT_GAP;
+          if (atFeed) flags |= IV_ENDED_AT_FEED;
+          if (k > 0 && rnd() < 0.1) flags |= IV_CONTINUES_CUT;
+          if (after) flags |= IV_AFTER_UNKNOWN_TOOL;
+          const room = 0.25 + grid(rnd() * 1.5);
+          let freeAt = NaN, freeR = 0;
+          if (!open && !atGap && !atFeed && rnd() < 0.7) {
+            freeAt = exit + room * rnd();
+            freeR = rnd() < 0.2 ? 0 : rnd() < 0.1 ? 3 * rnd() : Math.min(freeAt - exit, exit + room - freeAt) * rnd();
+          }
+          const witness = enter + len * (rnd() < 0.3 ? 0 : rnd());
+          const iv = I.append({ episode: ep, enter, exit: open || atGap ? NaN : exit, flags, next: NONE, witness, freeAt, freeR });
+          if (last < 0) E.set(ep, "firstIv", iv); else I.set(last, "next", iv);
+          last = iv; count++; epEnd = exit;
+          // undecidable answers inside the contact, now and then many
+          if (len > 0 && rnd() < 0.3) for (let g = Math.floor(rnd() * 12); g > 0; g--) {
+            const s0 = enter + len * rnd();
+            st.gaps.append({ pair, start: s0, end: Math.min(exit, s0 + 0.05 * rnd()), reason: GAP_UNDECIDABLE });
+          }
+          if (atGap) {
+            // the tool became unknown where it ended; the next begins after it
+            const ge = exit + (rnd() < 0.3 ? 0 : 0.125 + grid(rnd()));
+            st.gaps.append({ pair, start: exit, end: ge, reason: GAP_TOOL_UNKNOWN });
+            x = ge + (rnd() < 0.5 ? 0 : grid(0.125 + rnd()));
+          } else x = exit + room;
+          after = atGap;
+          if (open) break;
+        }
+        E.set(ep, "ivCount", count);
+        E.set(ep, "end", epEnd);
+        x += grid(rnd());
+      }
+    }
+  }
+  return st;
+}
+
+/** Everything a page asks of a view, as plain data. */
+function answers(v: ContactView, cov: number): unknown {
+  const lineAt = (p: number) => Math.floor(p);
+  const targets = Array.from({ length: v.n }, (_, i) => [targetPos(v, i), targetEnd(v, i), targetKind(v, i), targetKey(v, i), targetAt(v, i, lineAt)]);
+  const tint = Array.from({ length: 80 }, (_, q) => [...tintAt(v, (q / 80) * cov)].sort());
+  const marks = Array.from({ length: 30 }, (_, l) => lineMark(v, l, [[l * cov / 30, (l + 0.7) * cov / 30]], lineAt));
+  const keys = Array.from({ length: v.n }, (_, i) => findKey(v, targetKey(v, i)));
+  return { targets, tint, marks, keys };
+}
+
+describe("a union piece asked of the indexes answers as the walk over its intervals did (Codex R158 VP-I115)", () => {
+  it("random generations: every target, the tint, the marks, the keys", { timeout: 600_000 }, () => {
+    let pieces = 0;
+    for (const seed0 of [1, 2, 3, 58, 158, 2026]) {
+      let seed = seed0;
+      const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+      for (let c = 0; c < 100; c++) {
+        const held = generation(rnd, 1, 0), cur = generation(rnd, 1, 1);
+        // an entry move's union beside it, some of the base's intervals its continuation
+        const eHeld = generation(rnd, 2, 0), eCur = generation(rnd, 2, 1);
+        let cov = 1;
+        for (const st of [held, cur, eHeld, eCur]) for (let k = 0; k < st.intervals.rows; k++) cov = Math.max(cov, st.intervals.get(k, "enter") + 4);
+        const joins: SourceJoin[] = [];
+        for (const [base, baseHeld] of [[held, true], [cur, false]] as const) {
+          for (const [entry, entryHeld] of [[eHeld, true], [eCur, false]] as const) {
+            const m = new Map<number, number>();
+            for (let k = 0; k < base.intervals.rows && entry.intervals.rows; k++) if (rnd() < 0.15) m.set(k, Math.floor(rnd() * entry.intervals.rows));
+            if (m.size) joins.push({ entrySrc: 1, baseSrc: 0, joins: m, baseShard: 0, entryShard: 0, entryHeld, baseHeld });
+          }
+        }
+        const input = { sources: [{ stores: [cur], held: [held], heldCoverage: [cov], at: (x: number) => x, ownCoverage: cov },
+                                  { stores: [eCur], held: [eHeld], heldCoverage: [cov], at: (x: number) => x, ownCoverage: cov, entry: true }],
+                        pairName: names, coverage: cov, joins };
+        const v = buildContactView(input);
+        pieces += v.n;
+        const tag = `seed ${seed0} case ${c}`;
+        const indexed = answers(v, cov);
+        linearPiecesForTest.on = true;
+        try {
+          const w = buildContactView(input);
+          expect(indexed, tag).toEqual(answers(w, cov));
+        } finally { linearPiecesForTest.on = false; }
+      }
+    }
+    console.log(`[R158 indexed] ${pieces} targets compared`);
+    expect(pieces).toBeGreaterThan(1000);
+  });
+});
+
+const D = IV_ENTER_DECIDED | IV_EXIT_DECIDED;
+/** One interval of its own episode. */
+function iv(st: ContactStore, pair: number, a: number, b: number, flags: number, free = NaN, r = 0) {
+  const ep = st.episodes.append({ pair, ordinal: st.episodes.rows, flags: 0, onset: a, end: b, closeAt: a, closeDist: 0, firstIv: NONE, ivCount: 1 });
+  st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: a, exit: flags & IV_ENDED_AT_FEED ? b : b, flags, next: NONE, witness: a + (b - a) / 2, freeAt: free, freeR: r }));
+}
+/** A real cutting sweep (Codex R158's probe): the cutter into the stock on a
+ *  rapid, then a feed, then a rapid again — every contact ended at the feed,
+ *  none with a free sample, no gap. */
+function sweepStore(cycles: number): { st: ContactStore; end: number } {
+  const machine: CollisionMachine = { groups: [{ id: "table", parent: "root" }, { id: "part", parent: "table" }, { id: "head", parent: "root", translate: [0, 0, 50] }],
+    kinematics: [{ group: "head", joint: 2, type: "translate", direction: "z", sign: 1 }], workGroup: "part", toolGroup: "head", unitScale: 1, axes: ["X", "Y", "Z"] };
+  const model = buildCollisionModel(machine, [{ id: "stock", group: "part", positions: boxPositions(10, 10, 10), stock: true }, { id: "tool", group: "head", positions: boxPositions(10, 10, 10), tool: true }]);
+  const zs = [0, -43], rr = [0, 1];
+  for (let i = 0; i < cycles; i++) { zs.push(-44, -43); rr.push(0, 1); }
+  const n = zs.length, cum = new Float32Array(n);
+  for (let i = 1; i < n; i++) cum[i] = cum[i - 1]! + Math.abs(zs[i]! - zs[i - 1]!);
+  const track = { pos: Float32Array.from(zs.flatMap(z => [0, 0, z])), abc: new Float32Array(n * 3), lines: Uint32Array.from(zs, (_, i) => i + 1), rapid: Uint8Array.from(rr), cum, count: n, lineIndex: emptyLineIndex(), timeBased: false };
+  const st = new ContactStore(1, 0, REQUEST_BUDGET);
+  sweepCollisions(model, track as never, { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 }, { margin: 2, contacts: { store: st } });
+  return { st, end: cum[n - 1]! };
+}
+/** Two generations apart by 1.5, each free sample cutting the other's contact: many pieces. */
+function table(req: number, generation: number, n: number): ContactStore {
+  const st = new ContactStore(req, generation, REQUEST_BUDGET);
+  const later = generation === 1;
+  let ep = -1, last = -1, used = 0;
+  for (let i = 0; i < n; i++) {
+    if (i % 4 === 0) { const at = 3 * i + (later ? 1.5 : 0); ep = st.episodes.append({ pair: 0, ordinal: used++, flags: 0, onset: at, end: at + 12, closeAt: at, closeDist: 0, firstIv: NONE, ivCount: 4 }); last = -1; }
+    const enter = 3 * i + (later ? 1.5 : 0);
+    const iv = st.intervals.append({ episode: ep, enter, exit: enter + 1, flags: D, next: NONE, witness: later ? enter + 0.1 : enter + 0.5, freeAt: later ? 3 * i + 3.2 : 3 * i + 2, freeR: 0.1 });
+    if (last < 0) st.episodes.set(ep, "firstIv", iv); else st.intervals.set(last, "next", iv);
+    last = iv;
+  }
+  return st;
+}
+/** The shapes of the questions' costs (Codex R158 VP-I115 rest B). */
+const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: number }> = {
+  pieces: n => { const cov = 3 * n + 10; return { input: { sources: [{ stores: [table(1, 1, n)], held: [table(1, 0, n)], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov }; },
+  sweep: n => { const { st, end } = sweepStore(n); return { input: { sources: [{ stores: [new ContactStore(1, 1)], held: [st], heldCoverage: [end], at: x => x, ownCoverage: end }], pairName: names, coverage: end }, cov: end }; },
+  coarseFine: n => {
+    const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+    iv(h, 0, 0, 4 * n, D);
+    for (let k = 0; k < n; k++) iv(c, 0, 4 * k, 4 * k + 1, IV_ENTER_DECIDED | IV_ENDED_AT_FEED);
+    const cov = 4 * n + 5;
+    return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
+  },
+  chain: n => {
+    const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+    for (let k = 0; k < n; k++) { iv(h, 0, 4 * k, 4 * k + 2.5, IV_ENTER_DECIDED | IV_ENDED_AT_FEED); iv(c, 0, 4 * k + 2, 4 * k + 4.5, IV_ENTER_DECIDED | IV_ENDED_AT_FEED); }
+    const cov = 4 * n + 5;
+    return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
+  },
+  gaps: n => {
+    const mk = (g: number) => { const st = new ContactStore(1, g, REQUEST_BUDGET);
+      const ep = st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 0, exit: NaN, flags: IV_ENTER_DECIDED, next: NONE, witness: 0, freeAt: NaN, freeR: 0 }));
+      for (let i = 0; i < n; i++) st.gaps.append({ pair: 0, start: 4 * i + 1, end: 4 * i + 2, reason: GAP_UNDECIDABLE });
+      return st; };
+    const cov = 4 * n + 1;
+    return { input: { sources: [{ stores: [mk(1)], held: [mk(0)], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
+  },
+};
+
+describe("every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B)", () => {
+  // counted, never timed (contactView.test's proxy over every table cell):
+  // the worst single question at a size and at eight times it — bounded by
+  // bisections, never by the intervals a piece holds or a search passes
+  const sizes: Record<string, [number, number]> = { sweep: [256, 2048], pieces: [1024, 8192], coarseFine: [2048, 16384], chain: [2048, 16384], gaps: [2048, 16384] };
+  const ask = (v: ContactView, cov: number, q: (k: string, f: () => unknown) => void) => {
+    const lineAt = (p: number) => Math.floor(p), step = Math.max(1, Math.floor(v.n / 64));
+    for (let i = 0; i < v.n; i += step) {
+      q("one target", () => targetPos(v, i)); q("one target", () => targetEnd(v, i)); q("one target", () => targetKind(v, i));
+      q("one target", () => targetKey(v, i)); q("one target", () => targetAt(v, i, lineAt));
+      const key = targetKey(v, i), pos = targetPos(v, i);
+      q("navigation", () => findKey(v, key, pos)); q("navigation", () => indexAfter(v, pos, { key, pos })); q("navigation", () => indexBefore(v, pos, { key, pos }));
+    }
+    for (let s = 0; s < 64; s++) {
+      const x = (s / 64) * cov;
+      q("tint", () => tintAt(v, x)); q("mark", () => lineMark(v, s, [[x, x + cov / 64]], lineAt)); q("navigation", () => indexAfter(v, x, null));
+    }
+    q("window of 50", () => targetWindow(v, v.n >> 1, 50, lineAt));
+  };
+  for (const [name, [n0, n1]] of Object.entries(sizes)) {
+    it(`${name}: the same at ${n0} and at ${n1}`, { timeout: 300_000 }, () => {
+      const proto = ColumnTable.prototype as unknown as { get: (...a: unknown[]) => number; blocksOf: (n: string) => ArrayLike<number>[] };
+      const get = proto.get, blocksOf = proto.blocksOf;
+      let reads = 0;
+      const counted = new WeakMap<object, object>();
+      const cell = <A extends object>(a: A): A => {
+        let w = counted.get(a) as A | undefined;
+        if (!w) counted.set(a, w = new Proxy(a, { get(t, k) { if (typeof k === "string" && /^\d+$/.test(k)) reads++; return Reflect.get(t, k, t); } }));
+        return w;
+      };
+      proto.get = function (...a: unknown[]) { reads++; return get.apply(this, a); };
+      proto.blocksOf = function (nm: string) {
+        const blocks = blocksOf.call(this, nm) as object[];
+        return new Proxy(blocks, { get(t, k) { const x = Reflect.get(t, k, t); return typeof k === "string" && /^\d+$/.test(k) && x ? cell(x as object) : x; } }) as never;
+      };
+      const worst = [n0, n1].map(n => {
+        const { input, cov } = costShapes[name]!(n);
+        const v = buildContactView(input), w: Record<string, number> = {};
+        ask(v, cov, (k, f) => { reads = 0; f(); w[k] = Math.max(w[k] ?? 0, reads); });
+        return w;
+      });
+      proto.get = get; proto.blocksOf = blocksOf;
+      console.log(`[R158 questions] ${name}: ${JSON.stringify(worst[0])} → ${JSON.stringify(worst[1])}`);
+      for (const k of Object.keys(worst[0]!)) {
+        // eight times the rows: three more bisection steps at most, never eight times the reads
+        expect(worst[1]![k]!, `${name}: ${k}`).toBeLessThanOrEqual(1.5 * worst[0]![k]! + 256);
+      }
+      const limit: Record<string, number> = { "one target": 2048, navigation: 4096, tint: 64 * 2048, mark: 2048, "window of 50": 50 * 2048 };
+      for (const [k, x] of Object.entries(worst[1]!)) expect(x, `${name}: ${k} at ${n1}`).toBeLessThanOrEqual(limit[k]!);
+    });
+  }
+});

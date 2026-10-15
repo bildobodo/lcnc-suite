@@ -370,6 +370,13 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
       for (let c = 0; c < 3000; c++) {
         const held = gen(), cur = gen();
         const sides = sidesOf(held, cur), seps = sepsOf(held, cur);
+        // the indexes the view gives (Codex R158 VP-I115): the next free
+        // sample, and every interval's component end as the walk writes it
+        const comps = [new Uint32Array(held.ivs.length), new Uint32Array(cur.ivs.length)];
+        runToEnd(eachPieceSteps(sides, seps, () => {}, undefined, scratch, { n: 0 }, (si, k, value) => { comps[si]![k] = value; }));
+        const indexed: UnionSide[] = sides.map((s, si) => ({
+          ...s, nextFree: (k: number) => { while (k < s.n && Number.isNaN(s.freeAt(k))) k++; return k; }, comp: (k: number) => comps[si]![k]!,
+        }));
         const tag = `seed ${seed0} case ${c}: ${JSON.stringify({ held, cur })}`;
         const want = oracle(held, cur);
         const got = pieces(sides, seps);
@@ -392,6 +399,14 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
           const q = pieceFrom(sides, seps, p.zone, pos, true)!;
           expect([q.zone, q.start, q.startOpen, q.end, q.endOpen, q.from0, q.to0, q.from1, q.to1], `${tag}: asked again from its start ${JSON.stringify(p)}`)
             .toEqual([p.zone, p.start, p.startOpen, p.end, p.endOpen, p.from0, p.to0, p.from1, p.to1]);
+          // and with the indexes: the same piece
+          const qi = pieceFrom(indexed, seps, p.zone, pos, true)!;
+          expect([qi.zone, qi.start, qi.startOpen, qi.end, qi.endOpen, qi.from0, qi.to0, qi.from1, qi.to1], `${tag}: asked with the indexes ${JSON.stringify(p)}`)
+            .toEqual([p.zone, p.start, p.startOpen, p.end, p.endOpen, p.from0, p.to0, p.from1, p.to1]);
+          // every interval the walk passed has its component end written
+          for (const [si, x] of [[0, p.from0, p.to0], [1, p.from1, p.to1]].map(([sd, a, b]) => [sd!, comps[sd!]!.subarray(a!, b!)] as const)) {
+            expect(x.every(v => v > 0), `${tag}: side ${si}'s component ends written`).toBe(true);
+          }
           // what it holds: every interval whose zone part meets it, by brute force
           const holds: string[] = [];
           let leads = 0;

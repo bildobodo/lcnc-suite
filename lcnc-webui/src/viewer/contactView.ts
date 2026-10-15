@@ -61,7 +61,8 @@ import {
   type StoreBudget,
 } from "./contactStore";
 import {
-  eachPieceSteps, evidencePos, evidenceZone, mergeSepsSteps, NO_SEPARATORS, pieceFrom, pieceIntervals, pieceIntervalsSteps, START_ENTER, START_SEP, unionReachSteps,
+  eachPieceSteps, evidencePos, evidenceZone, mergeSepsSteps, NO_SEPARATORS, pieceFrom, pieceIntervals, pieceIntervalsSteps, pieceStartHolders, START_ENTER, START_SEP,
+  unionReachSteps,
   type Ops,
   unionScratch, type UnionPiece, type UnionScratch, type UnionSeps, type UnionSide,
 } from "./contactUnion";
@@ -231,7 +232,30 @@ export interface ContactView {
 
 /** One generation of a union source: its intervals by group (pair, origin)
  *  and enter, as packed references, with its search bounds. */
-interface UnionGen { uIdx: Uint32Array; back: number; front: number }
+interface UnionGen {
+  uIdx: Uint32Array; back: number; front: number;
+  /** Per block of BLOCK positions of uIdx, the first block from it holding an
+   *  interval with a free sample (`free`), or one that is not a possible
+   *  contact (`notPossible`) — their count: the blocks (Codex R158 VP-I115:
+   *  a search for either stepped over every interval without). */
+  free: Uint32Array; notPossible: Uint32Array;
+  /** After a fallback, per position of uIdx, where the union's component
+   *  holding its interval's last part ends (UnionSide.comp — the build's walk
+   *  writes it); empty without one. */
+  comp: Uint32Array;
+}
+
+/** The first position from k (below end) of a generation's index whose
+ *  interval `test` holds for (end: none) — by `next`, a UnionGen block index:
+ *  at most two blocks read (Codex R158 VP-I115). */
+function nextOf(next: Uint32Array, k: number, end: number, test: (k: number) => boolean): number {
+  while (k < end) {
+    const b = (k / BLOCK) | 0, nb = next[b]!;
+    if (nb !== b) { k = nb * BLOCK; continue; }
+    for (const stop = Math.min(end, (b + 1) * BLOCK); k < stop; k++) if (test(k)) return k;
+  }
+  return end;
+}
 /** A source's union: [held, current] — contactUnion's side order — and its
  *  separators (the tool gaps of both generations, merged) by pair, then
  *  start: each as the two gaps — packed — it starts and ends with, their
@@ -536,6 +560,8 @@ function sideOf(tables: Tables, g: UnionGen, lo: number, hi: number): UnionSide 
     freeAt: k => rd(tab(k).c.freeAt, row(k)),
     freeR: k => rd(tab(k).c.freeR, row(k)),
     back: g.back, front: g.front,
+    nextFree: k => nextOf(g.free, lo + k, hi, a => !Number.isNaN(rd(tableAt(tables, u[a]!).c.freeAt, u[a]! & ROW_MASK))) - lo,
+    ...(g.comp.length ? { comp: (k: number) => g.comp[lo + k]! } : {}),
   };
 }
 
@@ -627,7 +653,23 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
     for (let k = 0; k < n; k++) { uIdx[k] = refs[order[k]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
     const col = (k: number, cn: "freeAt" | "freeR") => { const r = uIdx[k]!; return rd(tableAt(tables, r).c[cn], rowOf(r)); };
     const r = yield* unionReachSteps(n, k => ent[order[k]!]!, k => col(k, "freeAt"), k => col(k, "freeR"), (k, k2) => grp[order[k]!] === grp[order[k2]!], c);
-    return { uIdx, back: r.back, front: r.front };
+    // the block indexes: which blocks hold one, then from the last back the next that does
+    const nb = Math.ceil(n / BLOCK), free = allocU32(nb + 1), notPossible = allocU32(nb + 1);
+    for (let k = 0; k < n; k++) {
+      const ref = uIdx[k]!, t = tableAt(tables, ref), row = rowOf(ref), b = (k / BLOCK) | 0;
+      if (!Number.isNaN(rd(t.c.freeAt, row))) free[b] = 1;
+      if (!(rd(t.c.flags, row) & IV_POSSIBLE)) notPossible[b] = 1;
+      if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+    }
+    let nf = nb, np = nb;
+    free[nb] = nb; notPossible[nb] = nb;
+    for (let b = nb - 1; b >= 0; b--) {
+      if (free[b]) nf = b;
+      if (notPossible[b]) np = b;
+      free[b] = nf; notPossible[b] = np;
+      if (++c.n >= STEP_OPS) { c.n = 0; yield; }
+    }
+    return { uIdx, back: r.back, front: r.front, free, notPossible, comp: allocU32(withSeps ? n : 0) };
   };
   // the separators: the tool gaps of each generation, by pair, aligned
   // across the generations (contactUnion.mergeSeps — never two of one)
@@ -684,40 +726,39 @@ interface PieceInfo {
   possible: boolean;
   /** It ends where an open interval of it runs to its coverage. */
   openEnd: boolean;
-  /** Its intervals (row references), for the tint, the bands and the joins. */
-  rows: number[];
   /** The joined base rows whose enter it holds (their continuation's end). */
   joinedHere: number[];
 }
 
+/** A piece described interval by interval (the build — it walks them anyway;
+ *  each interval to `onRow`). A later question asks `pieceFacts`. */
 function describePiece(tables: Tables, u: UnionIndex, los: readonly [number, number], sides: readonly UnionSide[],
-                       seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, onRow?: (r: number) => void): PieceInfo {
+                       seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, onRow: (r: number) => void): PieceInfo {
   const d = describer(tables, u, los, piece, joined, onRow);
   pieceIntervals(sides, seps, piece, d.row);
   return d.done();
 }
 /** describePiece in bounded steps (the build: a piece may hold a group's every interval). */
 function* describePieceSteps(tables: Tables, u: UnionIndex, los: readonly [number, number], sides: readonly UnionSide[],
-                             seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, onRow: ((r: number) => void) | undefined, c: Ops): Steps<PieceInfo> {
+                             seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, onRow: (r: number) => void, c: Ops): Steps<PieceInfo> {
   const d = describer(tables, u, los, piece, joined, onRow);
   yield* pieceIntervalsSteps(sides, seps, piece, d.row, c);
   return d.done();
 }
-/** A piece's description, interval by interval (`row`), then `done`. With
- *  `onRow` (the build) each interval goes there and `rows` stays empty — a
- *  piece may hold a group's every interval, and the build needs no list of
- *  them (plan 3.6: no build buffer per row uncounted, Codex R158 VP-I118). */
+/** A piece's description, interval by interval (`row`, each to `onRow`),
+ *  then `done` — no list of them: a piece may hold a group's every interval
+ *  (plan 3.6, Codex R158 VP-I118). */
 function describer(tables: Tables, u: UnionIndex, los: readonly [number, number], piece: UnionPiece, joined: Uint32Array,
-                   onRow?: (r: number) => void):
+                   onRow: (r: number) => void):
     { row: (sd: number, k: number, holdsStart: boolean) => void; done: () => PieceInfo } {
-  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, openEnd: false, rows: [], joinedHere: [] };
+  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, openEnd: false, joinedHere: [] };
   let leadEnter = Infinity, heirW = Infinity;
   const inside = (x: number) => (x > piece.start || (x === piece.start && !piece.startOpen)) && (x < piece.end || (x === piece.end && !piece.endOpen));
   return {
     row: (sd, k, holdsStart) => {
     const r = u.gens[sd]!.uIdx[los[sd]! + k]!, t = tableAt(tables, r), row = rowOf(r), c = t.c;
     const flags = rd(c.flags, row), epFlags = rd(c.epFlags, rd(c.episode, row));
-    if (onRow) onRow(r); else info.rows.push(r);
+    onRow(r);
     if (!((epFlags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY || (flags & IV_CONTINUES_CUT))) info.aux = false;
     if (!(flags & IV_POSSIBLE)) info.possible = false;
     const enter = rd(c.enter, row);
@@ -753,17 +794,26 @@ const lastGroup = new WeakMap<ContactView, GroupCtx>();
 /** The last piece a view was asked about, decoded: a list, its marks and a
  *  target's words ask one piece several times in a row, and decoding one is
  *  linear in its intervals (Codex R157 VP-I115). */
-const lastPiece = new WeakMap<ContactView, { ref: number; out: { info: PieceInfo; t: TableIndex } }>();
+const lastPiece = new WeakMap<ContactView, { ref: number; linear: boolean; out: PieceCtx }>();
+/** A TEST SEAM (contactViewUnion.test): a union piece asked the way before the
+ *  indexes — its end searched interval by interval, the piece described
+ *  interval by interval, an episode's kind by its chain — to hold the indexed
+ *  answers to them. Nothing in the product sets it. */
+export const linearPiecesForTest = { on: false };
+/** A decoded piece: what it is, its table, its group's sides (its ranges index them). */
+interface PieceCtx { info: PieceInfo; t: TableIndex; g: GroupCtx; u: UnionIndex }
 
 /** A piece reference's union, sides and piece, asked from its start. */
-function pieceCtx(v: ContactView, ref: number): { info: PieceInfo; t: TableIndex } {
-  const m = lastPiece.get(v);
-  if (m && m.ref === ref) return m.out;
+function pieceCtx(v: ContactView, ref: number): PieceCtx {
+  const m = lastPiece.get(v), linear = linearPiecesForTest.on;
+  if (m && m.ref === ref && m.linear === linear) return m.out;
   const out = decodePiece(v, ref);
-  lastPiece.set(v, { ref, out });
+  lastPiece.set(v, { ref, linear, out });
   return out;
 }
-function decodePiece(v: ContactView, ref: number): { info: PieceInfo; t: TableIndex } {
+/** A piece reference's start evidence in its group: its table, the union,
+ *  the group's sides, and the evidence's side and index there. */
+function pieceEvidence(v: ContactView, ref: number): { t: TableIndex; u: UnionIndex; g: GroupCtx; sd: number; kind: number; idx: number } {
   const t = tableOf(v, ref), u = v.unions[t.src]!;
   const group = pieceGroup(v.tables, ref);
   let g = lastGroup.get(v);
@@ -791,9 +841,82 @@ function decodePiece(v: ContactView, ref: number): { info: PieceInfo; t: TableIn
     const r = sd === 0 ? g.r0 : g.r1;
     idx = indexIn(v.tables, u.gens[sd]!, r[0], r[1], rowRefOf(ref));
   }
+  return { t, u, g, sd, kind, idx };
+}
+/** A piece's start on its own axis — its evidence's, without asking the piece
+ *  (the searches by position ask it of many). */
+function pieceStart(v: ContactView, ref: number): number {
+  const m = lastPiece.get(v);
+  if (m && m.ref === ref) return m.out.info.piece.start;
+  const { g, sd, kind, idx } = pieceEvidence(v, ref);
+  return evidencePos(g.sides, g.seps, sd, kind, idx);
+}
+function decodePiece(v: ContactView, ref: number): PieceCtx {
+  const { t, u, g, sd, kind, idx } = pieceEvidence(v, ref);
   const z = evidenceZone(g.sides, g.seps, sd, kind, idx);
+  if (linearPiecesForTest.on) {
+    const plain = g.sides.map(s => ({ ...s, nextFree: undefined, comp: undefined }));
+    const piece = pieceFrom(plain, g.seps, z, evidencePos(plain, g.seps, sd, kind, idx), true)!;
+    return { info: describePiece(v.tables, u, [g.r0[0], g.r1[0]], plain, g.seps, piece, v.joined, () => {}), t, g, u };
+  }
   const piece = pieceFrom(g.sides, g.seps, z, evidencePos(g.sides, g.seps, sd, kind, idx), true)!;
-  return { info: describePiece(v.tables, u, [g.r0[0], g.r1[0]], g.sides, g.seps, piece, v.joined), t };
+  return { info: pieceFacts(v, u, g, piece), t, g, u };
+}
+
+/** What a piece is, asked of the index — never interval by interval (Codex
+ *  R158 VP-I115: a piece may hold a group's every interval): the lead among
+ *  the few holding its start, the heir by a bisection on the witnesses
+ *  (rising with enter in a side: the intervals are apart), whether every
+ *  interval is a possible contact by the block index, an open end among the
+ *  intervals ending where it ends (a bisection). describer's answers (the
+ *  build) a question reads — not its `aux` (which list a target is in says
+ *  that) nor its joined rows (the build's reach). */
+function pieceFacts(v: ContactView, u: UnionIndex, g: GroupCtx, piece: UnionPiece): PieceInfo {
+  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: false, possible: true, openEnd: false, joinedHere: [] };
+  const los = [g.r0[0], g.r1[0]] as const;
+  const range = (sd: number): [number, number] => (sd === 0 ? [piece.from0, piece.to0] : [piece.from1, piece.to1]);
+  const refAt = (sd: number, k: number) => u.gens[sd]!.uIdx[los[sd]! + k]!;
+  const inside = (x: number) => (x > piece.start || (x === piece.start && !piece.startOpen)) && (x < piece.end || (x === piece.end && !piece.endOpen));
+  // the lead: the earliest enter among the intervals holding its start (side 0 first, by index)
+  let leadEnter = Infinity;
+  pieceStartHolders(g.sides, g.seps, piece, (sd, k) => {
+    const e = g.sides[sd]!.enter(k);
+    if (e < leadEnter) { leadEnter = e; info.lead = refAt(sd, k); }
+  });
+  // the heir: the earlier generation's first interval whose witness lies inside
+  {
+    const s = g.sides[0]!, [from, to] = range(0);
+    let lo = from, hi = to;
+    while (lo < hi) { const m = (lo + hi) >> 1; if (s.witness(m) < piece.start) lo = m + 1; else hi = m; }
+    while (lo < to && !inside(s.witness(lo)) && s.witness(lo) <= piece.start) lo++;
+    if (lo < to && inside(s.witness(lo))) info.heir = refAt(0, lo);
+  }
+  for (let sd = 0; sd < 2; sd++) {
+    const [from, to] = range(sd), s = g.sides[sd]!, gen = u.gens[sd]!, lo = los[sd]!;
+    if (from >= to) continue;
+    // every interval a possible contact: none that is not
+    if (info.possible && nextOf(gen.notPossible, lo + from, lo + to, a => {
+      const r = gen.uIdx[a]!;
+      return !(rd(tableAt(v.tables, r).c.flags, rowOf(r)) & IV_POSSIBLE);
+    }) < lo + to) info.possible = false;
+    // an open interval ending where the piece ends (the ends rise with enter in a side)
+    if (!piece.endOpen && !info.openEnd) {
+      let a = from, b = to;
+      while (a < b) { const m = (a + b) >> 1; if (s.end(m) < piece.end) a = m + 1; else b = m; }
+      for (; a < to && s.end(a) === piece.end; a++) if (s.open(a)) { info.openEnd = true; break; }
+    }
+  }
+  return info;
+}
+
+/** Row `r` is one of the piece's intervals: of its source and group, within a
+ *  side's range by its place in the index (a bisection). */
+function pieceHoldsRow(v: ContactView, u: UnionIndex, g: GroupCtx, piece: UnionPiece, r: number): boolean {
+  const t = tableAt(v.tables, r);
+  if (t.src !== g.src || groupOf(t, rowOf(r)) !== g.group) return false;
+  const sd = t.held ? 0 : 1, [lo, hi] = sd === 0 ? g.r0 : g.r1;
+  const k = indexIn(v.tables, u.gens[sd]!, lo, hi, r);
+  return sd === 0 ? k >= piece.from0 && k < piece.to0 : k >= piece.from1 && k < piece.to1;
 }
 
 /** A union piece's kind bits (T_*), from what it holds: the earlier event's
@@ -1037,7 +1160,9 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
         for (const r of info.joinedHere) { baseEnd.set(r, e); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
         shown(info, entryHere);
       })();
-    }, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); }, scratchOf(), c), c);
+    }, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); }, scratchOf(), c,
+    // every interval's component end, for the questions later (Codex R158 VP-I115)
+    (sd, k, value) => { u.gens[sd]!.comp[los[sd]! + k] = value; }), c);
     // the near misses of both generations: one to one per group by overlap, in order
     // (typed lists, by group then start — every build buffer counted: plan 3.6, Codex R158 VP-I118)
     type Nears = { ref: Uint32Array; group: Uint32Array; s: Float64Array; e: Float64Array; n: number };
@@ -1122,7 +1247,7 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
  *  entry, a near miss at its closest approach, a union piece at its start. */
 function refPos(v: ContactView, ref: number): number {
   const t = tableOf(v, ref), row = rowOf(ref);
-  if (isPieceRef(ref)) return t.source.at(pieceCtx(v, ref).info.piece.start);
+  if (isPieceRef(ref)) return t.source.at(pieceStart(v, ref));
   return t.source.at(isNearRef(ref) ? t.st.episodes.get(row, "closeAt") : t.st.intervals.get(row, "enter"));
 }
 
@@ -1379,7 +1504,9 @@ function handedOver(v: ContactView, key: string): number {
       let found = -1;
       walkBackIdx(v.tgt, pos, r => refPos(v, r), i => {
         const r = v.tgt.refs[i]!;
-        if (!isPieceRef(r) || tableOf(v, r).src !== t.src || !pieceCtx(v, r).info.rows.includes(ref)) return false;
+        if (!isPieceRef(r) || tableOf(v, r).src !== t.src) return false;
+        const pc = pieceCtx(v, r);
+        if (!pieceHoldsRow(v, pc.u, pc.g, pc.info.piece, ref)) return false;
         found = i;
         return true;
       });
@@ -1473,15 +1600,26 @@ function contactAt(t: TableIndex, row: number, pos: number): boolean {
  *  contact there by its own table (its generation's gaps cut out on its own
  *  axis), within the piece (a free stretch beside it cut away). */
 function pieceTint(v: ContactView, ref: number, pos: number, out: Set<string>): void {
-  const { info } = pieceCtx(v, ref), p = info.piece, rows = info.rows;
-  for (const r of rows) {
-    const t = tableOf(v, r), row = rowOf(r), I = t.st.intervals;
-    const pair = t.st.episodes.get(I.get(row, "episode"), "pair");
-    const { a, b } = nameOf(v, t, pair);
-    if ((out.has(a) && out.has(b)) || pos > t.cov) continue;
-    const pre = preimage(t.source.at, pos, pos, Math.max(I.get(row, "enter"), p.start), Math.min(ownEnd(t, row).end, p.end));
-    if (!pre || (p.startOpen && pre[1] <= p.start) || (p.endOpen && pre[0] >= p.end)) continue;
-    if (freeOf(t, pair, pre[0], pre[1])) { out.add(a); out.add(b); }
+  const { info, t, g, u } = pieceCtx(v, ref), p = info.piece;
+  // one pair (a piece is one group's): its names once lit, nothing more to ask
+  if (pos > t.cov) return;
+  const pre = preimage(t.source.at, pos, pos, p.start, p.end);
+  if (!pre || (p.startOpen && pre[1] <= p.start) || (p.endOpen && pre[0] >= p.end)) return;
+  // the piece's intervals whose contact meets the own points there: from a bisection on each side
+  for (let sd = 0; sd < 2; sd++) {
+    const s = g.sides[sd]!, [from, to] = sd === 0 ? [p.from0, p.to0] : [p.from1, p.to1], lo = sd === 0 ? g.r0[0] : g.r1[0];
+    let k = from, hi = to;
+    while (k < hi) { const m = (k + hi) >> 1; if (s.enter(m) < pre[0]) k = m + 1; else hi = m; }
+    for (k = Math.max(from, k - 1); k < to && s.enter(k) <= pre[1]; k++) {
+      const r = u.gens[sd]!.uIdx[lo + k]!, it = tableAt(v.tables, r), row = rowOf(r), I = it.st.intervals;
+      const pair = it.st.episodes.get(I.get(row, "episode"), "pair");
+      const { a, b } = nameOf(v, it, pair);
+      if (out.has(a) && out.has(b)) return;
+      if (pos > it.cov) continue;
+      const q = preimage(it.source.at, pos, pos, Math.max(I.get(row, "enter"), p.start), Math.min(ownEnd(it, row).end, p.end));
+      if (!q || (p.startOpen && q[1] <= p.start) || (p.endOpen && q[0] >= p.end)) continue;
+      if (freeOf(it, pair, q[0], q[1])) { out.add(a); out.add(b); return; }
+    }
   }
 }
 
@@ -1520,11 +1658,21 @@ export function lineMark(v: ContactView, line: number, spans: ReadonlyArray<read
   const rank = (t: TableIndex, row: number): number => {
     const E = t.st.episodes, flags = E.get(row, "flags");
     if ((flags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) return EP_MARK_BOUNDARY;
-    if (E.get(row, "ivCount") === 0) return flags & EP_POSSIBLE ? EP_MARK_POSSIBLE : EP_MARK_CONTACT;
-    for (let iv = E.get(row, "firstIv"); iv !== NONE; iv = t.st.intervals.get(iv, "next")) {
-      if (!(t.st.intervals.get(iv, "flags") & IV_POSSIBLE)) return EP_MARK_CONTACT;
+    const n = E.get(row, "ivCount");
+    if (n === 0) return flags & EP_POSSIBLE ? EP_MARK_POSSIBLE : EP_MARK_CONTACT;
+    // a contact unless every interval of it is a possible one: its first,
+    // else the rest — they stand together in the group index, and the block
+    // index answers (Codex R158 VP-I115: the episode's chain was walked)
+    const first = E.get(row, "firstIv");
+    if (!(t.st.intervals.get(first, "flags") & IV_POSSIBLE)) return EP_MARK_CONTACT;
+    if (linearPiecesForTest.on) {
+      for (let iv = first; iv !== NONE; iv = t.st.intervals.get(iv, "next")) if (!(t.st.intervals.get(iv, "flags") & IV_POSSIBLE)) return EP_MARK_CONTACT;
+      return EP_MARK_POSSIBLE;
     }
-    return EP_MARK_POSSIBLE;
+    const g = v.indexes[t.src]!.gens[t.held ? 0 : 1], [lo, hi] = groupRange(v.tables, g, groupOf(t, first));
+    const at = lo + indexIn(v.tables, g, lo, hi, pack(t.src, t.shard, first, false, t.held)), end = Math.min(hi, at + n);
+    const notPossible = (a: number) => { const r = g.uIdx[a]!; return !(rd(tableAt(v.tables, r).c.flags, rowOf(r)) & IV_POSSIBLE); };
+    return nextOf(g.notPossible, at, end, notPossible) < end ? EP_MARK_CONTACT : EP_MARK_POSSIBLE;
   };
   // a folded source's episodes, by the line's runs on its own track
   for (const t of v.tables) {
@@ -1568,6 +1716,9 @@ export function lineMark(v: ContactView, line: number, spans: ReadonlyArray<read
       if (best < 0 || m < best) { best = m; own = begins; contOnset = begins ? NaN : s; contEntry = !begins && entryMove; contLine = null; }
       else if (m === best && begins) own = true;
       else if (m === best && !own && contLine === null && s < contOnset) { contOnset = s; contEntry = entryMove; }
+      // a contact beginning on the line: nothing can change the mark any more
+      // (Codex R158 VP-I115: every episode over a long line was asked)
+      if (best === EP_MARK_CONTACT && own) break;
     }
     if (best === EP_MARK_CONTACT && own) break;
   }
@@ -1720,9 +1871,15 @@ export function boundaryStretches(v: ContactView): Array<{ a: string; b: string;
  *    start (one a separator a group, four origins a pair), every near miss is
  *    one — 2·(I₀+I₁) + 4·(G₀+G₁) + (E₀+E₁);
  *  - the episodes by onset: E₀+E₁ at the same 4.25 B;
- *  - the union index: 4 B an interval of both generations;
- *  - the gap index: 4 B a gap and 8 B its pair's furthest end so far; the
- *    separators: 8 B one, at most one a gap;
+ *  - the union index: 4 B an interval of both generations; after Codex R158
+ *    (VP-I115) the component end the walk writes, 4 B an interval of both
+ *    generations — the u32 an interval Codex accepted (for the next free
+ *    sample, which is found by blocks instead) — and two block indexes (the
+ *    next free sample, the next interval not a possible contact): 4 B each a
+ *    block of 64 positions of a generation, and one more;
+ *  - the gap index: 4 B a gap, 8 B its pair's furthest end so far and, after
+ *    Codex R158, 4 B its pair's next tool gap and 4 B the last gap of its
+ *    touching stretch; the separators: 8 B one, at most one a gap;
  *  - the near misses matched: 8 B a pair, at most one an episode;
  *  - the joins: a base row per entry interval open at its end and pair of
  *    generations (4 B), a reach per entry target (12 B).
@@ -1735,7 +1892,9 @@ export function derivationBound(main: StoreBudget, side: StoreBudget | null): { 
     add("targets", ref * (4 * b.intervals + 8 * b.gaps + 2 * b.episodes) + 2 * 16);
     add("episodes", ref * 2 * b.episodes + 16);
     add("unionIndex", 4 * 2 * b.intervals);
-    add("gapIndex", 12 * 2 * b.gaps);
+    add("componentEnds", 4 * 2 * b.intervals);
+    add("blockIndexes", 2 * 4 * 2 * (Math.ceil(b.intervals / BLOCK) + 1));
+    add("gapIndex", 20 * 2 * b.gaps);
     add("separators", 8 * 2 * b.gaps);
     add("nearMatching", 8 * b.episodes);
   }
@@ -1748,7 +1907,7 @@ export function derivationBound(main: StoreBudget, side: StoreBudget | null): { 
 export function heldBytes(v: ContactView): number {
   let n = v.joined.byteLength + v.reachRef.byteLength + v.reachVal.byteLength + v.nearCur.byteLength + v.nearHeld.byteLength;
   for (const u of v.indexes) {
-    for (const g of u.gens) n += g.uIdx.byteLength;
+    for (const g of u.gens) n += g.uIdx.byteLength + g.free.byteLength + g.notPossible.byteLength + g.comp.byteLength;
     n += u.sRef.byteLength;
   }
   for (const l of [v.tgt, v.aux, v.ep]) n += l.refs.byteLength + l.max.byteLength + l.pre.byteLength;

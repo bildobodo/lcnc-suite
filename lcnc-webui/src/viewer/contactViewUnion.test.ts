@@ -5,7 +5,7 @@ import {
   ContactStore, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED,
   NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf, type StoreBudget,
 } from "./contactStore";
-import {
+import { derivationBound,
   buildContactView, contactBands, findKey, heldBytes, indexAfter, indexBefore, lineMark, T_EARLIER, T_REENTRY, targetAt, targetEnd, targetKey,
   targetKind, targetPos, targetWindow, tintAt, viewCounts, type ContactSource,
 } from "./contactView";
@@ -267,6 +267,10 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
       return st;
     };
     const side = shareOf(REQUEST_BUDGET, 8);
+    // the 8.4 MB of R148, and what Codex R158 (VP-I115) added — the component
+    // ends, the block indexes, two u32 a gap (derivationBound's terms)
+    const terms = derivationBound(REQUEST_BUDGET, side).terms;
+    const LIMIT = 8_400_000 + terms.componentEnds! + terms.blockIndexes! + 8 * 2 * (REQUEST_BUDGET.gaps + side.gaps);
     /** One pair holding the whole interval budget (Codex R151): 4 contacts an episode, a free sample between. */
     const onePair = (generation: number, b: StoreBudget) => {
       const st = new ContactStore(1, generation, b);
@@ -297,7 +301,7 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
       queries(v, cov1);
       console.log(`[B4 union budget] one pair holding the budget: targets ${v.n}, held ${(heldBytes(v) / 1e6).toFixed(2)} MB after the queries`);
       expect(heldBytes(v), "the queries hold nothing more").toBe(before);
-      expect(heldBytes(v)).toBeLessThanOrEqual(8_400_000);
+      expect(heldBytes(v)).toBeLessThanOrEqual(LIMIT);
     }
     for (const [name, shift, free] of [["the same contacts twice", 0, false], ["shifted, every free sample cutting", 0.5, true]] as const) {
       const t0 = performance.now();
@@ -314,7 +318,7 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
       const held = heldBytes(v);
       console.log(`[B4 union budget] ${name}: targets ${v.n}, held ${(held / 1e6).toFixed(2)} MB (limit 8.4), build ${ms.toFixed(0)} ms, ` +
                   `counts + bands ${(t2 - t1).toFixed(0)} ms (${c.collisions} collisions, ${bands.length} band runs)`);
-      expect(held).toBeLessThanOrEqual(8_400_000);
+      expect(held).toBeLessThanOrEqual(LIMIT);
       // what it answers stays exact at that size: pair 1000's contact; shifted, pair 999's new one reaches it too
       expect([...tintAt(v, 4 * 1000 + 0.1)].sort()).toEqual(shift ? ["t1000", "t999", "w1000", "w999"] : ["t1000", "w1000"]);
     }
