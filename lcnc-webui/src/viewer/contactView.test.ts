@@ -290,6 +290,17 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
     expect(lineMark(covered, 1, [[0, 0]])).toBeNull();
   });
 
+  it("touching gaps cover a stretch together (Codex R158: their stretch's end by one bisection) — a line inside them unmarked, one past them marked", () => {
+    // a contact [0, 10] whose pair's undecidable gaps [2, 4], [4, 6], [5, 8] touch and overlap: [2, 8] is dark
+    const v = buildContactView({ sources: [src(store([{ pair: 1, ivs: [[0, 10]], end: 10 }], [[1, 2, 4, GAP_UNDECIDABLE], [1, 4, 6, GAP_UNDECIDABLE],
+      [1, 5, 8, GAP_UNDECIDABLE]]), { ownCoverage: 10 })], pairName: names, coverage: 10 });
+    expect(lineMark(v, 3, [[2.5, 7.5]]), "inside the touching gaps: no free point").toBeNull();
+    expect(lineMark(v, 4, [[3, 8]]), "to the last gap's end: still none").toBeNull();
+    expect(lineMark(v, 5, [[3, 8.5]]), "past them: contact").not.toBeNull();
+    expect([...tintAt(v, 4)], "the point they share: dark").toEqual([]);
+    expect(contactBands(v, 10, 10), "the bands: the contact less [2, 8]").toEqual([[0, 0.2], [0.8, 1]]);
+  });
+
   it("VP-I104 (R148): a join extends the entry FINDING to the base's end — the contact there is the base's own, with the base's gaps", () => {
     const side = store([{ pair: 1, ivs: [[3, NaN]] }]), base = store([{ pair: 1, ivs: [[0, 5]], end: 5 }], [[1, 1, 2, GAP_UNDECIDABLE]]);
     const sources = [src(side, { entry: true, entryEnd: 10, ownCoverage: 10 }), src(base, { at: c => c + 10, ownCoverage: 5 })];

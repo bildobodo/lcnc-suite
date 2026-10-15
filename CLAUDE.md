@@ -2076,15 +2076,43 @@ steps, and a piece's callback may be a job (`PieceEach`; a piece of more than
 `SMALL_PIECE` (64) candidate intervals is described and banded in steps —
 `describePieceSteps`, `pieceIntervalsSteps`); one pair's gaps merge in steps
 (`mergeSepsSteps`), the gap index, the joins and the near-miss list sort and
-copy in steps. A QUERY on a union piece decodes the piece (`pieceFrom` from its
-start evidence), so the steps that ask positions — the start pairs, the
-timeline marks (`ClashIndex.work`) — count what each query read (`viewWork`,
-every cell `rd` reads), and a view keeps its last decoded piece (repeated
-questions of one piece are free). Named: one query is one decode, unsplittable,
-and `pieceFrom`'s search for the piece's end runs to the zone's next free
-stretch — linear in the intervals up to it; real sweeps give nearly every
-interval its separation's free sample, the runs without one are bounded by the
-gaps' budget (16 384: a decode ~2.5 ms in Node there). The publisher holds each request's current
+copy in steps. ONE interval's own contact less its pair's gaps is walked in
+steps too (`piecesOfSteps`; Codex R158 VP-I115 rest A: one open contact over
+the gap budget of undecidable gaps — an undecidable answer suspends a
+contact, never ends it — was one step of 49 189 reads, 98 420 as a union of
+two), and the bands light by DIFFERENCES (+1 where a run begins, −1 after it:
+a piece lights its run at once, however wide). Every QUESTION is bounded by
+bisections, never by the intervals a piece holds or a search passes (R158
+rest B: a rapid/feed alternation — every contact ended at the feed, no free
+sample, Codex's real sweep — made `pieceFrom`'s end search walk every later
+interval, 65–89 ms; a piece was described interval by interval): a block index
+per generation (the next block of 64 positions holding a free sample; another
+for an interval that is not a possible contact) finds the next free sample in
+at most two blocks; the union's reach from a piece's start is the COMPONENT END
+the build's walk wrote per interval (`UnionGen.comp`, its last part's zone; an
+interval reaching past the zone: the zone's end) — the u32 an interval Codex
+accepted for the free-sample index, spent there; a piece's facts
+(`pieceFacts`: the lead among the few holding its start, the heir by a
+bisection on the witnesses, possible by the block index, an open end among
+those ending where it ends) and its ranges come from bisections; a target's
+position from its start evidence alone (`pieceStart`); a free stretch is cut
+back by the k−1…k+1 rule at every question as the walk does; per gap the next
+tool gap (`hTool`: `ownEnd`) and the last gap of its touching stretch
+(`hComp`: `freeOf` by two bisections); `lineMark` stops at a contact beginning
+on the line and asks an episode's kind of the block index; a KEY not found
+where it was looked for is found from the event it names — the episode index
+per table (`eIdx`, by pair, number, row), the matched near misses by the
+earlier reference (`nearByHeld`), the start a new piece's evidence names — no
+longer by asking every target (5 s at the budget in Node, reachable when a
+fallback moved a shown finding). The test seam `linearPiecesForTest` asks the
+old way, and `contactViewIndexed.test.ts` holds every answer to it.
+`derivationBound` 14.52 MB (R152's 10.91 + the component ends 2.36 + the block
+indexes 0.07 + two u32 a gap 0.29 + the episode index 0.59 + the near misses'
+order 0.29). The steps that ask positions — the start pairs, the timeline
+marks (`ClashIndex.work`) — count what each query read (`viewWork`, every cell
+`rd` reads), and a view keeps its last decoded piece. The boundary contacts'
+stretches are built with the view and published with it
+(`derived.boundaries`). The publisher holds each request's current
 generation in TWO copies — `pub`, which the published views read and nothing
 writes, and `work` — and the held generation shared. A PASS: 1 takes the
 messages received so far in arrival order, each one's deltas into `work` in
@@ -2110,8 +2138,14 @@ every query of a retired view throws (`check`), even over unchanged tables
 tables yet — nothing found so far — reads as one). `stats()` counts every live
 store ONCE — the published, work and held copies and the tables only a still
 published view reads (`byOwner.shown`: the old generation's published copy
-until the union replaces it, VP-I118) — and the views' own bytes
-(`views.published` / `.building`, `heldBytes`). A pass never discards itself: the
+until the union replaces it, VP-I118) — and the views' own bytes apart:
+`views.published`, `.waiting` (built, not yet published), `.inProgress` (what
+the build running now has ALLOCATED from its first step: every typed array of
+the view and of its derived data and every build buffer, counted where it is
+made — `steps.withMeter` around each step, `allocF64/U32/I32/U8`, the growable
+`Grow` lists the build's per-row buffers became; an upper bound, the toolpath
+ledger's rule; Codex R158 VP-I118), `.building` = waiting + in progress
+(`heldBytes` for a built view). A pass never discards itself: the
 viewer's stage watcher (`_colOnStageChange`) does nothing while a pass takes or
 builds — its publication stages the state then — and the code panel's marks
 and the tint follow the publication alone (the `contactsVersion` watcher), so
@@ -2143,13 +2177,20 @@ contact tables at all — outside 3.6; the browser-PC measurement is owed. Tests
 tickets, release, no self-discard, a spec changed under the build, the
 transport's rules and owners carried over from the removed `contactsReceiver`,
 Codex R157's lifecycle, cancel and memory probes as guards),
+`contactMeter.test.ts` (a constructor spy over whole builds equals the meter,
+no JS array grows past the columns, Codex R158's memory probe),
+`contactViewIndexed.test.ts` (the indexed answers equal to the old walk on
+random generations with an entry union, joins and the keys of the run before
+a fallback; the worst reads of one question on five shapes the same at a size
+and at eight times it),
 `checkWiring.test.ts` (the worker handler through the real publisher,
 `_colOnStageChange`, the cancel), `steps.test.ts`, `contactView.test.ts` and
 `simWindow.test.ts` (every table cell read per step — the direct block reads
 too — on five edge shapes: the build and the bands within the step's share, the
 start pairs and the marks within it and one search; no list sorted or copied at
-once), `contactUnion.test.ts` (Codex R157's component probe, a piece over every
-part, a zone that skips every interval), `stickyHead.test.ts`, `scrollFade.test.ts`, `glyphMarkup.test.ts`,
+once — Codex R158's gap shape too), `contactUnion.test.ts` (Codex R157's component probe, a piece over every
+part, a zone that skips every interval, the indexed search against the walk
+and the brute force, a radius over the other run's every confirmed point), `stickyHead.test.ts`, `scrollFade.test.ts`, `glyphMarkup.test.ts`,
 `contactStore.test.ts`.
 
 ## Key Patterns
