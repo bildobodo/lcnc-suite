@@ -1,0 +1,3 @@
+k_ref_scan RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: at its place: expected 8339 to be less than or equal to 1972[39m | [31m[1mAssertionError[22m: at its place: expected 10070 to be less than or equal to 3853[39m 56s
+k_after_ties_scan RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: expected 16401 to be less than or equal to 3349[39m 62s
+k_before_ties_scan RED [31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 1 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m [31m[1mAssertionError[22m: expected 24591 to be less than or equal to 4882[39m 62s

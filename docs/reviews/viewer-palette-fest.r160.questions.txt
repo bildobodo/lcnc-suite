@@ -1,0 +1,26 @@
+stdout | src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > the steps from a position over n pairs' findings at one point — the same at 1024 and at 8192 pairs
+[R159 steps] 201 → 204 reads
+stdout | src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > an earlier event's key late in a run without free samples: its piece from the indexes — the same at 1024 and at 8192 contacts
+[R159 late key] 1414 → 1798 reads
+ ✓ src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > the steps from a position over n pairs' findings at one point — the same at 1024 and at 8192 pairs 79ms
+ ✓ src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > an earlier event's key late in a run without free samples: its piece from the indexes — the same at 1024 and at 8192 contacts 179ms
+stdout | src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > one run: at its place, moved, anywhere — the same at 1024 and at 8192 pairs
+[R159 keys] one run: {"at its place":137,"moved":137,"anywhere":137} → {"at its place":164,"moved":164,"anywhere":164}
+stdout | src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > a union, the earlier run's keys: at its place, moved, anywhere — the same at 1024 and at 8192 pairs
+[R159 keys] union: {"at its place":1584,"moved":1294,"anywhere":1372} → {"at its place":2124,"moved":1798,"anywhere":1894}
+ ✓ src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > one run: at its place, moved, anywhere — the same at 1024 and at 8192 pairs 35ms
+ ✓ src/viewer/contactViewIndexed.test.ts > a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B) > a union, the earlier run's keys: at its place, moved, anywhere — the same at 1024 and at 8192 pairs 260ms
+[R158 questions] sweep: {"one target":132,"navigation":264,"tint":8317,"mark":8,"window of 50":222} → {"one target":162,"navigation":336,"tint":10264,"mark":8,"window of 50":276}
+ ✓ src/viewer/contactViewIndexed.test.ts > the tint by each interval's own coverage (Codex R159 VP-I119) > the earlier run shorter (Codex's probe): the band, the target's end and the tint agree 3ms
+ ✓ src/viewer/contactViewIndexed.test.ts > the tint by each interval's own coverage (Codex R159 VP-I119) > the current run shorter: the band, the target's end and the tint agree 1ms
+ ✓ src/viewer/contactViewIndexed.test.ts > the tint by each interval's own coverage (Codex R159 VP-I119) > both to the end: the band, the target's end and the tint agree 0ms
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > sweep: the same at 256 and at 2048 291ms
+[R158 questions] pieces: {"one target":767,"navigation":3454,"tint":7487,"mark":16,"window of 50":33218} → {"one target":869,"navigation":4132,"tint":8585,"mark":19,"window of 50":38474}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > pieces: the same at 1024 and at 8192 671ms
+[R158 questions] coarseFine: {"one target":172,"navigation":520,"tint":6,"mark":19,"window of 50":23} → {"one target":199,"navigation":610,"tint":6,"mark":22,"window of 50":23}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > coarseFine: the same at 2048 and at 16384 161ms
+[R158 questions] chain: {"one target":289,"navigation":853,"tint":33,"mark":19,"window of 50":111} → {"one target":349,"navigation":1033,"tint":39,"mark":22,"window of 50":135}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > chain: the same at 2048 and at 16384 318ms
+[R158 questions] gaps: {"one target":84,"navigation":224,"tint":42,"mark":83,"window of 50":23} → {"one target":84,"navigation":224,"tint":51,"mark":101,"window of 50":23}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > gaps: the same at 2048 and at 16384 56ms
+      Tests  12 passed | 1 skipped (13)

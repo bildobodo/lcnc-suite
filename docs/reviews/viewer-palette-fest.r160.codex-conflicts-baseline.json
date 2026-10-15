@@ -1,0 +1,18 @@
+[
+  {
+    "n": 1024,
+    "key": "C0|1023|0",
+    "found": 0,
+    "carriedKey": "C0|0|0",
+    "reads": 527,
+    "conflicts": 2047
+  },
+  {
+    "n": 8192,
+    "key": "C0|8191|0",
+    "found": 0,
+    "carriedKey": "C0|0|0",
+    "reads": 659,
+    "conflicts": 16383
+  }
+]

@@ -1,0 +1,394 @@
+[
+  {
+    "shape": "many pairs",
+    "name": "the tables arrive (a result)",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.4,
+      3.6,
+      0,
+      0.1
+    ],
+    "pointerMaxMs": 40,
+    "peak": {
+      "tablesMB": 30.3,
+      "shownMB": 0,
+      "viewsMB": 21.3,
+      "buildingMB": 21.3,
+      "heapMB": 50.6,
+      "backingMB": 68.5
+    },
+    "queries": null
+  },
+  {
+    "shape": "many pairs",
+    "name": "an update delta over the whole budget",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      2,
+      1.3,
+      0,
+      0.7
+    ],
+    "pointerMaxMs": 18,
+    "peak": {
+      "tablesMB": 30.3,
+      "shownMB": 0,
+      "viewsMB": 24.1,
+      "buildingMB": 21.3,
+      "heapMB": 71.3,
+      "backingMB": 101.2
+    },
+    "queries": null
+  },
+  {
+    "shape": "many pairs",
+    "name": "the pool falls back: the same tables as the next generation",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.1,
+      2.4,
+      0,
+      0.2
+    ],
+    "pointerMaxMs": 24,
+    "peak": {
+      "tablesMB": 45.4,
+      "shownMB": 15.1,
+      "viewsMB": 36.8,
+      "buildingMB": 34,
+      "heapMB": 214.4,
+      "backingMB": 122.3
+    },
+    "queries": null
+  },
+  {
+    "shape": "many pairs",
+    "name": "a rebuild: one more (empty) delta",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.1,
+      2.7,
+      0.1,
+      0
+    ],
+    "pointerMaxMs": 18,
+    "peak": {
+      "tablesMB": 45.4,
+      "shownMB": 0,
+      "viewsMB": 40.5,
+      "buildingMB": 34,
+      "heapMB": 219.1,
+      "backingMB": 114.5
+    },
+    "queries": null
+  },
+  {
+    "shape": "one pair",
+    "name": "the tables of one pair arrive (a result)",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.3,
+      2.3,
+      0,
+      0.1
+    ],
+    "pointerMaxMs": 52,
+    "peak": {
+      "tablesMB": 30.3,
+      "shownMB": 0,
+      "viewsMB": 20.2,
+      "buildingMB": 20.2,
+      "heapMB": 33,
+      "backingMB": 70.5
+    },
+    "queries": null
+  },
+  {
+    "shape": "one pair",
+    "name": "a new program while the one big group builds",
+    "longTasks": 2,
+    "longestMs": 87,
+    "longestStepMs": null,
+    "pointerMaxMs": null,
+    "peak": null,
+    "queries": null
+  },
+  {
+    "shape": "alternation",
+    "name": "alternation: the first run arrives",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.2,
+      2.2,
+      0,
+      0.1
+    ],
+    "pointerMaxMs": 14,
+    "peak": {
+      "tablesMB": 24.5,
+      "shownMB": 0,
+      "viewsMB": 18,
+      "buildingMB": 18,
+      "heapMB": 32,
+      "backingMB": 57.7
+    },
+    "queries": null
+  },
+  {
+    "shape": "alternation",
+    "name": "alternation: the pool falls back \u2014 the second run, the union",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.2,
+      3.3,
+      0,
+      0.2
+    ],
+    "pointerMaxMs": 23,
+    "peak": {
+      "tablesMB": 36.8,
+      "shownMB": 12.3,
+      "viewsMB": 63.3,
+      "buildingMB": 61.1,
+      "heapMB": 90,
+      "backingMB": 113.9
+    },
+    "queries": null
+  },
+  {
+    "shape": "alternation",
+    "name": "alternation: the questions",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": null,
+    "pointerMaxMs": null,
+    "peak": null,
+    "queries": {
+      "targets": 1,
+      "ms": {
+        "target": 0,
+        "key where it stood": 0.6,
+        "key moved": 0.2,
+        "key anywhere": 0.1,
+        "next": 0,
+        "tint": 0.9,
+        "mark": 0.1,
+        "next from a position": 0,
+        "window of 400": 0.1,
+        "key gone": 0.1
+      }
+    }
+  },
+  {
+    "shape": "coarseFine",
+    "name": "coarseFine: the first run arrives",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.4,
+      1.2,
+      0,
+      0
+    ],
+    "pointerMaxMs": 12,
+    "peak": {
+      "tablesMB": 0.8,
+      "shownMB": 0,
+      "viewsMB": 0,
+      "buildingMB": 0,
+      "heapMB": 27.6,
+      "backingMB": 18.5
+    },
+    "queries": null
+  },
+  {
+    "shape": "coarseFine",
+    "name": "coarseFine: the pool falls back \u2014 the second run, the union",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.1,
+      2,
+      0,
+      0.1
+    ],
+    "pointerMaxMs": 23,
+    "peak": {
+      "tablesMB": 24.9,
+      "shownMB": 0.4,
+      "viewsMB": 24.7,
+      "buildingMB": 24.7,
+      "heapMB": 34.8,
+      "backingMB": 72.6
+    },
+    "queries": null
+  },
+  {
+    "shape": "coarseFine",
+    "name": "coarseFine: the questions",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": null,
+    "pointerMaxMs": null,
+    "peak": null,
+    "queries": {
+      "targets": 1,
+      "ms": {
+        "target": 0.1,
+        "key where it stood": 0.4,
+        "key moved": 0.2,
+        "key anywhere": 0,
+        "next": 0.1,
+        "tint": 0.1,
+        "mark": 0.1,
+        "next from a position": 0.1,
+        "window of 400": 0,
+        "key gone": 0.1
+      }
+    }
+  },
+  {
+    "shape": "chain",
+    "name": "chain: the first run arrives",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.2,
+      2.2,
+      0.1,
+      0.2
+    ],
+    "pointerMaxMs": 55,
+    "peak": {
+      "tablesMB": 24.5,
+      "shownMB": 0,
+      "viewsMB": 18.1,
+      "buildingMB": 18.1,
+      "heapMB": 34.5,
+      "backingMB": 57.8
+    },
+    "queries": null
+  },
+  {
+    "shape": "chain",
+    "name": "chain: the pool falls back \u2014 the second run, the union",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.2,
+      2.7,
+      0,
+      0.2
+    ],
+    "pointerMaxMs": 22,
+    "peak": {
+      "tablesMB": 36.8,
+      "shownMB": 12.3,
+      "viewsMB": 51.7,
+      "buildingMB": 49.4,
+      "heapMB": 43.5,
+      "backingMB": 128.8
+    },
+    "queries": null
+  },
+  {
+    "shape": "chain",
+    "name": "chain: the questions",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": null,
+    "pointerMaxMs": null,
+    "peak": null,
+    "queries": {
+      "targets": 1,
+      "ms": {
+        "target": 0,
+        "key where it stood": 0.7,
+        "key moved": 0.1,
+        "key anywhere": 0.2,
+        "next": 0,
+        "tint": 0.1,
+        "mark": 0.1,
+        "next from a position": 0,
+        "window of 400": 0,
+        "key gone": 0
+      }
+    }
+  },
+  {
+    "shape": "gaps",
+    "name": "gaps: the first run arrives",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.3,
+      0.8,
+      0,
+      0.3
+    ],
+    "pointerMaxMs": 9,
+    "peak": {
+      "tablesMB": 1.5,
+      "shownMB": 0,
+      "viewsMB": 0.3,
+      "buildingMB": 0,
+      "heapMB": 30.9,
+      "backingMB": 20.2
+    },
+    "queries": null
+  },
+  {
+    "shape": "gaps",
+    "name": "gaps: the pool falls back \u2014 the second run, the union",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": [
+      0.1,
+      0.7,
+      0,
+      0.1
+    ],
+    "pointerMaxMs": 12,
+    "peak": {
+      "tablesMB": 2.2,
+      "shownMB": 0.7,
+      "viewsMB": 1,
+      "buildingMB": 0.7,
+      "heapMB": 36.3,
+      "backingMB": 23.6
+    },
+    "queries": null
+  },
+  {
+    "shape": "gaps",
+    "name": "gaps: the questions",
+    "longTasks": 0,
+    "longestMs": 0,
+    "longestStepMs": null,
+    "pointerMaxMs": null,
+    "peak": null,
+    "queries": {
+      "targets": 1,
+      "ms": {
+        "target": 0,
+        "key where it stood": 0.5,
+        "key moved": 0.2,
+        "key anywhere": 0,
+        "next": 0.1,
+        "tint": 0.2,
+        "mark": 0.1,
+        "next from a position": 0,
+        "window of 400": 0,
+        "key gone": 0.2
+      }
+    }
+  }
+]

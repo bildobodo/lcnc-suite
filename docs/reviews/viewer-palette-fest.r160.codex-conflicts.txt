@@ -1,0 +1,65 @@
+
+ RUN  v4.1.8 /tmp/codex-r160-91mw_20g/repo/lcnc-webui
+
+ ❯ src/viewer/codexR160Conflicts.test.ts (4 tests | 4 failed) 980ms
+   × a handed-over key is bounded even when free samples are refuted on their point 347ms
+   × the build counts scratch reads even for refuted point samples 196ms
+   × the build counts scratch reads even for no free samples 280ms
+   × one free sample after a long opposite run counts the predecessor walk inside that sample 156ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/codexR160Conflicts.test.ts > a handed-over key is bounded even when free samples are refuted on their point
+AssertionError: same 1.5x+256 query-cost contract: expected 7226731 to be less than or equal to 1245983.5
+ ❯ src/viewer/codexR160Conflicts.test.ts:36:64
+     34|  }
+     35|  writeFileSync(`${process.env.R160_OUT}/conflicts-keys.json`,JSON.stri…
+     36|  expect(results[1]!.reads,'same 1.5x+256 query-cost contract').toBeLes…
+       |                                                                ^
+     37| });
+     38| it.each([['refuted point samples',0],['no free samples',NaN]] as const…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+ FAIL  src/viewer/codexR160Conflicts.test.ts > the build counts scratch reads even for refuted point samples
+AssertionError: scratch reads between two generator steps: expected 922808 to be less than or equal to 16384
+ ❯ src/viewer/codexR160Conflicts.test.ts:62:71
+     60|  }
+     61|  writeFileSync(`${process.env.R160_OUT}/build-${Number.isNaN(radius)?'…
+     62|  expect(results[1]!.most,'scratch reads between two generator steps').…
+       |                                                                       ^
+     63| });
+     64|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/4]⎯
+
+ FAIL  src/viewer/codexR160Conflicts.test.ts > the build counts scratch reads even for no free samples
+AssertionError: scratch reads between two generator steps: expected 34081 to be less than or equal to 16384
+ ❯ src/viewer/codexR160Conflicts.test.ts:62:71
+     60|  }
+     61|  writeFileSync(`${process.env.R160_OUT}/build-${Number.isNaN(radius)?'…
+     62|  expect(results[1]!.most,'scratch reads between two generator steps').…
+       |                                                                       ^
+     63| });
+     64|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/4]⎯
+
+ FAIL  src/viewer/codexR160Conflicts.test.ts > one free sample after a long opposite run counts the predecessor walk inside that sample
+AssertionError: predecessor walk inside one free sample: expected 70084 to be less than or equal to 16384
+ ❯ src/viewer/codexR160Conflicts.test.ts:86:69
+     84|  }
+     85|  writeFileSync(`${process.env.R160_OUT}/build-sparse.json`,JSON.string…
+     86|  expect(results[1]!.most,'predecessor walk inside one free sample').to…
+       |                                                                     ^
+     87| });
+     88|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/4]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  4 failed (4)
+   Start at  20:10:27
+   Duration  1.15s (transform 104ms, setup 0ms, import 117ms, tests 980ms, environment 0ms)
+
