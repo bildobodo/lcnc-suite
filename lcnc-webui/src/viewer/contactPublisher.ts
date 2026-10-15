@@ -31,7 +31,7 @@
 //
 // Pure apart from the scheduler and the callbacks it is given.
 import { ContactStore, REQUEST_BUDGET, type StoreDelta } from "./contactStore";
-import { runSteps, type StepRun, type Steps } from "./steps";
+import { runSteps, withMeter, type AllocMeter, type StepRun, type Steps } from "./steps";
 
 /** One generation's tables of a request, one store per shard. */
 export interface GenerationTables {
@@ -127,6 +127,10 @@ interface Pass {
   discard: boolean;
   /** The views built so far (not published yet). */
   built: Map<unknown, Built<unknown>>;
+  /** What the build running now has allocated (its view, its derived data,
+   *  its buffers) — from its first step to its end; then its view counts as
+   *  built (Codex R158 VP-I118). */
+  meter: AllocMeter | null;
 }
 
 /** A built view: the spec it was built for, the requests it reads, the
@@ -205,7 +209,7 @@ export class ContactPublisher<T extends object, V, S> {
     if (this.pass) { this.again = true; return; }
     if (!this.pending) return;
     this.dirty = false;
-    const me: Pass = { run: null, phase: 1, discard: false, built: new Map() };
+    const me: Pass = { run: null, phase: 1, discard: false, built: new Map(), meter: null };
     this.pass = me;
     this.passes++;
     const now = this.deps.now ?? (() => performance.now()), t0 = now();
@@ -259,10 +263,10 @@ export class ContactPublisher<T extends object, V, S> {
   private clock(): number { return (this.deps.now ?? (() => performance.now()))(); }
   /** Runs a job's steps, each one's time into `longestStepMs[k]`; `stop`
    *  ends it before its next step (closed — its data goes): null then. */
-  private *timed<R>(job: Steps<R>, k: number, stop?: () => boolean): Steps<{ value: R } | null> {
+  private *timed<R>(job: Steps<R>, k: number, stop?: () => boolean, meter: AllocMeter | null = null): Steps<{ value: R } | null> {
     for (;;) {
       if (stop?.()) { job.return(undefined as never); return null; }
-      const t0 = this.clock(), r = job.next(), dt = this.clock() - t0;
+      const t0 = this.clock(), r = withMeter(meter, () => job.next()), dt = this.clock() - t0;
       if (dt > this.longestStepMs[k]!) this.longestStepMs[k] = dt;
       if (r.done) return { value: r.value };
       yield;
@@ -367,7 +371,11 @@ export class ContactPublisher<T extends object, V, S> {
         const held = (id: number) => { const h = this.reqs.get(id)?.held ?? null; if (h) uses.add(h); return h; };
         // a discarded build (a fallback, a request let go) stops at its next
         // step — never run to its end (Codex R157 VP-I116)
-        const out = yield* this.timed(this.deps.build(track, s.spec, tables, held), 1, () => me.discard);
+        // what it allocates is counted from its first step (its view and its
+        // buffers while it builds them), then as a built view
+        me.meter = { bytes: 0 };
+        const out = yield* this.timed(this.deps.build(track, s.spec, tables, held), 1, () => me.discard, me.meter);
+        me.meter = null;
         if (!out) { discarded(); return; }
         built.set(track, { key: s.key, ids: s.ids, view: out.value, uses });
       }
@@ -420,7 +428,8 @@ export class ContactPublisher<T extends object, V, S> {
    *  use), in all and by owner — the published copies, the work copies, the
    *  held generations (plan 3.4 / 3.6: each owner measured). */
   stats(): { requests: number; rows: { episodes: number; intervals: number; gaps: number }; allocated: number; used: number;
-             byOwner: { pub: number; work: number; held: number; shown: number }; views: { published: number; building: number } } {
+             byOwner: { pub: number; work: number; held: number; shown: number };
+             views: { published: number; waiting: number; inProgress: number; building: number } } {
     // every store that lives counted ONCE, by its first owner: the request's
     // published copy, its work copy, its held generation — and the tables only
     // a published view still reads (the old generation's published copy until
@@ -443,8 +452,12 @@ export class ContactPublisher<T extends object, V, S> {
     }
     for (const p of this.views.values()) for (const t of p.uses) add(t, "shown", false);
     const bytes = (ps: Iterable<Built<V>>) => { let n = 0; for (const p of ps) if (p.view !== null) n += this.deps.viewBytes?.(p.view) ?? 0; return n; };
-    const building = this.pass ? (this.pass.built as Map<T, Built<V>>).values() : [];
-    return { requests: this.reqs.size, rows, allocated, used, byOwner, views: { published: bytes(this.views.values()), building: bytes(building) } };
+    // apart: the published views, the built ones waiting for their
+    // publication, and what the build running now has allocated so far
+    // (Codex R158 VP-I118); building = the two of this pass
+    const waiting = bytes(this.pass ? (this.pass.built as Map<T, Built<V>>).values() : []), inProgress = this.pass?.meter?.bytes ?? 0;
+    return { requests: this.reqs.size, rows, allocated, used, byOwner,
+             views: { published: bytes(this.views.values()), waiting, inProgress, building: waiting + inProgress } };
   }
   /** Puts tables in as a request's current generation, both copies (the
    *  diagnostic seam that lays made-up findings over a result). */

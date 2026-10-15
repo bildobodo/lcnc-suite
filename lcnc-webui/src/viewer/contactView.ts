@@ -68,7 +68,7 @@ import {
 import type { ClashTarget } from "./clashTargets";
 import type { CollisionLineMark } from "./collision";
 import { JUMP_NUDGE } from "./findingNav";
-import { STEP_OPS, copySteps, runToEnd, sortSteps, type Steps } from "./steps";
+import { STEP_OPS, allocF64, allocU32, allocU8, copySteps, growF64, growU32, runToEnd, sortSteps, type Steps } from "./steps";
 
 /** One request's tables as a view reads them. */
 export interface ContactSource {
@@ -442,9 +442,9 @@ function* refList(refs: Uint32Array, pos: Float64Array, end: Float64Array, c: Op
   }
   // (the stable sort in steps: equal by position, tie and ref means the same ref)
   const order = sorted ? null : yield* sortSteps(n, before);
-  const out = new Uint32Array(n);
+  const out = allocU32(n);
   const blocks = Math.ceil(n / BLOCK);
-  const max = new Float64Array(blocks).fill(-Infinity), pre = new Float64Array(blocks);
+  const max = allocF64(blocks).fill(-Infinity), pre = allocF64(blocks);
   for (let i = 0; i < n; i++) {
     const k = order ? order[i]! : i;
     out[i] = refs[k]!;
@@ -558,7 +558,7 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
     const ts: TableIndex[] = [];
     let n = 0;
     for (let sh = 0; sh < MAX_TABLES; sh++) { const t = tables[slotOf(src, held, sh)]; if (t) { ts.push(t); n += t.st.intervals.rows; } }
-    const refs = new Uint32Array(n), grp = new Uint32Array(n), ent = new Float64Array(n);
+    const refs = allocU32(n), grp = allocU32(n), ent = allocF64(n);
     let i = 0, maxG = 0;
     for (const t of ts) {
       for (let iv = 0; iv < t.st.intervals.rows; iv++, i++) {
@@ -571,10 +571,10 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
     }
     // by group (a counting sort, stable), then by enter — the sweep wrote each
     // pair's rows in that order already; checked, else sorted
-    const cnt = new Uint32Array(maxG + 2);
+    const cnt = allocU32(maxG + 2);
     for (let k = 0; k < n; k++) { cnt[grp[k]! + 1]!++; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
     for (let g = 1; g < cnt.length; g++) { cnt[g]! += cnt[g - 1]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-    let order: Uint32Array = new Uint32Array(n);
+    let order: Uint32Array = allocU32(n);
     for (let k = 0; k < n; k++) { order[cnt[grp[k]!]!++] = k; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
     for (let k = 1; k < n; k++) {
       const a = order[k - 1]!, b = order[k]!;
@@ -585,7 +585,7 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
       }
       if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
     }
-    const uIdx = new Uint32Array(n);
+    const uIdx = allocU32(n);
     for (let k = 0; k < n; k++) { uIdx[k] = refs[order[k]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
     const col = (k: number, cn: "freeAt" | "freeR") => { const r = uIdx[k]!; return rd(tableAt(tables, r).c[cn], rowOf(r)); };
     const r = yield* unionReachSteps(n, k => ent[order[k]!]!, k => col(k, "freeAt"), k => col(k, "freeR"), (k, k2) => grp[order[k]!] === grp[order[k2]!], c);
@@ -593,7 +593,9 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
   };
   // the separators: the tool gaps of each generation, by pair, aligned
   // across the generations (contactUnion.mergeSeps — never two of one)
-  const byPair = new Map<number, { spans: [number[], number[]]; refs: [number[], number[]] }>();
+  // (typed lists: every build buffer counted — plan 3.6, Codex R158 VP-I118)
+  type Lists = { spans: [ReturnType<typeof growF64>, ReturnType<typeof growF64>]; refs: [ReturnType<typeof growU32>, ReturnType<typeof growU32>] };
+  const byPair = new Map<number, Lists>();
   for (const held of withSeps ? [true, false] : []) {
     const gi = held ? 0 : 1;
     for (let sh = 0; sh < MAX_TABLES; sh++) {
@@ -603,27 +605,29 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
         if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
         const row = t.hIdx[k]!;
         if (rd(t.c.gReason, row) !== GAP_TOOL_UNKNOWN) continue;
-        const pair = rd(t.c.gPair, row), e = byPair.get(pair) ?? { spans: [[], []], refs: [[], []] };
-        e.spans[gi].push(...gapSpan(t, row));
-        e.refs[gi].push(pack(src, sh, row, false, held));
+        const pair = rd(t.c.gPair, row), e = byPair.get(pair) ?? { spans: [growF64(4), growF64(4)], refs: [growU32(2), growU32(2)] };
+        const [gs, ge] = gapSpan(t, row);
+        e.spans[gi].push(gs, c); e.spans[gi].push(ge, c);
+        e.refs[gi].push(pack(src, sh, row, false, held), c);
         byPair.set(pair, e);
       }
     }
   }
   // every pair's gaps in counted steps — one pair may hold a request's every
   // gap (Codex R157 VP-I115)
-  const pairs: number[] = [];
-  for (const p of byPair.keys()) { pairs.push(p); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-  const po = yield* sortSteps(pairs.length, (x, y) => pairs[x]! - pairs[y]!);
-  const sRef: number[] = [];
+  const pairs = growU32();
+  for (const p of byPair.keys()) { pairs.push(p, c); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+  const pa = pairs.view(), po = yield* sortSteps(pa.length, (x, y) => pa[x]! - pa[y]!);
+  const sRef = growU32();
   for (let pi = 0; pi < po.length; pi++) {
-    const { spans, refs } = byPair.get(pairs[po[pi]!]!)!;
-    const m = yield* mergeSepsSteps(spans, c), n0 = refs[0].length;
-    const ref = (k: number) => (k < n0 ? refs[0][k]! : refs[1][k - n0]!);
-    for (let i = 0; i < m.first.length; i++) { sRef.push(ref(m.first[i]!), ref(m.last[i]!)); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
+    const { spans, refs } = byPair.get(pa[po[pi]!]!)!;
+    const m = yield* mergeSepsSteps([spans[0].view(), spans[1].view()], c), n0 = refs[0].length;
+    const r0 = refs[0].view(), r1 = refs[1].view();
+    const ref = (k: number) => (k < n0 ? r0[k]! : r1[k - n0]!);
+    for (let i = 0; i < m.first.length; i++) { sRef.push(ref(m.first[i]!), c); sRef.push(ref(m.last[i]!), c); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
   }
   const gH = yield* gen(true), gC = yield* gen(false);
-  return { gens: [gH, gC], sRef: yield* copySteps(new Uint32Array(sRef.length), sRef, c) };
+  return { gens: [gH, gC], sRef: yield* copySteps(allocU32(sRef.length), sRef.view(), c) };
 }
 
 /** What a piece holds and is: its intervals' classes, its lead (the earliest
@@ -649,20 +653,24 @@ interface PieceInfo {
 }
 
 function describePiece(tables: Tables, u: UnionIndex, los: readonly [number, number], sides: readonly UnionSide[],
-                       seps: UnionSeps, piece: UnionPiece, joined: Uint32Array): PieceInfo {
-  const d = describer(tables, u, los, piece, joined);
+                       seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, onRow?: (r: number) => void): PieceInfo {
+  const d = describer(tables, u, los, piece, joined, onRow);
   pieceIntervals(sides, seps, piece, d.row);
   return d.done();
 }
 /** describePiece in bounded steps (the build: a piece may hold a group's every interval). */
 function* describePieceSteps(tables: Tables, u: UnionIndex, los: readonly [number, number], sides: readonly UnionSide[],
-                             seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, c: Ops): Steps<PieceInfo> {
-  const d = describer(tables, u, los, piece, joined);
+                             seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, onRow: ((r: number) => void) | undefined, c: Ops): Steps<PieceInfo> {
+  const d = describer(tables, u, los, piece, joined, onRow);
   yield* pieceIntervalsSteps(sides, seps, piece, d.row, c);
   return d.done();
 }
-/** A piece's description, interval by interval (`row`), then `done`. */
-function describer(tables: Tables, u: UnionIndex, los: readonly [number, number], piece: UnionPiece, joined: Uint32Array):
+/** A piece's description, interval by interval (`row`), then `done`. With
+ *  `onRow` (the build) each interval goes there and `rows` stays empty — a
+ *  piece may hold a group's every interval, and the build needs no list of
+ *  them (plan 3.6: no build buffer per row uncounted, Codex R158 VP-I118). */
+function describer(tables: Tables, u: UnionIndex, los: readonly [number, number], piece: UnionPiece, joined: Uint32Array,
+                   onRow?: (r: number) => void):
     { row: (sd: number, k: number, holdsStart: boolean) => void; done: () => PieceInfo } {
   const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, openEnd: false, rows: [], joinedHere: [] };
   let leadEnter = Infinity, heirW = Infinity;
@@ -671,7 +679,7 @@ function describer(tables: Tables, u: UnionIndex, los: readonly [number, number]
     row: (sd, k, holdsStart) => {
     const r = u.gens[sd]!.uIdx[los[sd]! + k]!, t = tableAt(tables, r), row = rowOf(r), c = t.c;
     const flags = rd(c.flags, row), epFlags = rd(c.epFlags, rd(c.episode, row));
-    info.rows.push(r);
+    if (onRow) onRow(r); else info.rows.push(r);
     if (!((epFlags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY || (flags & IV_CONTINUES_CUT))) info.aux = false;
     if (!(flags & IV_POSSIBLE)) info.possible = false;
     const enter = rd(c.enter, row);
@@ -833,10 +841,10 @@ const SMALL_PIECE = 64;
 /** The joins' packed rows, sorted, in counted steps. */
 function* packedSorted(joins: readonly SourceJoin[], rows: (j: SourceJoin) => Iterable<number>, packOf: (j: SourceJoin, row: number) => number,
                        c: Ops): Steps<Uint32Array> {
-  const all: number[] = [];
-  for (const j of joins) for (const r of rows(j)) { all.push(packOf(j, r)); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-  const o = yield* sortSteps(all.length, (a, b) => all[a]! - all[b]!);
-  const out = new Uint32Array(o.length);
+  const g = growU32();
+  for (const j of joins) for (const r of rows(j)) { g.push(packOf(j, r), c); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+  const all = g.view(), o = yield* sortSteps(all.length, (a, b) => all[a]! - all[b]!);
+  const out = allocU32(o.length);
   for (let k = 0; k < o.length; k++) { out[k] = all[o[k]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
   return out;
 }
@@ -864,14 +872,15 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
         const cov = Math.min(source.at(ownCov), coverage);
         // the gaps on the own axis, by pair then start: their rows (a table
         // holds at most its gap budget — one sort, its work counted)
-        const G = st.gaps, rows0: number[] = [];
-        for (let g = 0; g < G.rows; g++) { if (G.get(g, "start") <= ownCov) rows0.push(g); if (tick()) { c.n = 0; yield; } }
+        const G = st.gaps, rg = growU32();
+        for (let g = 0; g < G.rows; g++) { if (G.get(g, "start") <= ownCov) rg.push(g, c); if (tick()) { c.n = 0; yield; } }
+        const rows0 = rg.view();
         // (the row breaks every tie: the order is total)
         const go = yield* sortSteps(rows0.length, (x, y) => G.get(rows0[x]!, "pair") - G.get(rows0[y]!, "pair")
           || G.get(rows0[x]!, "start") - G.get(rows0[y]!, "start") || rows0[x]! - rows0[y]!);
-        const idx = new Uint32Array(rows0.length);
+        const idx = allocU32(rows0.length);
         for (let k = 0; k < go.length; k++) { idx[k] = rows0[go[k]!]!; if (tick()) { c.n = 0; yield; } }
-        const hReach = new Float64Array(idx.length);
+        const hReach = allocF64(idx.length);
         for (let k = 0; k < idx.length; k++) {
           const g = idx[k]!, s0 = G.get(g, "start"), e0 = G.get(g, "end");
           const end = Math.max(s0, Number.isNaN(e0) ? ownCov : Math.min(e0, ownCov));
@@ -895,17 +904,17 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
   // the entry piece holding an entry row (the last: its end)
   const baseEnd = new Map<number, number>(), entryPiece = new Map<number, number>();
   // the targets and the other intervals (temporary positions, then sorted)
-  const tR: number[] = [], tP: number[] = [], tE: number[] = [];
-  const aR: number[] = [], aP: number[] = [], aE: number[] = [];
+  const tR = growU32(), tP = growF64(), tE = growF64();
+  const aR = growU32(), aP = growF64(), aE = growF64();
   let nE = 0;
   for (const t of list) nE += t.st.episodes.rows;
-  const eRefs = new Uint32Array(nE), eOn = new Float64Array(nE), eEnd = new Float64Array(nE);
+  const eRefs = allocU32(nE), eOn = allocF64(nE), eEnd = allocF64(nE);
   let ei = 0;
   const unions: Array<UnionIndex | undefined> = [], indexes: UnionIndex[] = [];
   const unionCounts = NO_COUNTS();
   let walkScratch: UnionScratch | null = null;
   const scratchOf = () => (walkScratch ??= unionScratch());
-  const nearPairs: Array<[number, number]> = [];
+  const nearCur0 = growU32(), nearHeld0 = growU32();
   let conflicts = 0, conflictAt = Infinity;
   for (let si = 0; si < sources.length; si++) {
     const source = sources[si]!;
@@ -932,15 +941,15 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
           // range sweep's start) is no finding of its own — all of them touch
           if ((E.get(I.get(iv, "episode"), "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY
               || findSorted(joined, ref) >= 0 || (I.get(iv, "flags") & IV_CONTINUES_CUT)) {
-            aR.push(ref); aP.push(p); aE.push(e);
-          } else { tR.push(ref); tP.push(p); tE.push(e); }
+            aR.push(ref, c); aP.push(p, c); aE.push(e, c);
+          } else { tR.push(ref, c); tP.push(p, c); tE.push(e, c); }
           if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
         }
         for (let e = 0; e < E.rows; e++) {
           if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
           if (E.get(e, "ivCount") !== 0 || (E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) continue;
           const p = source.at(E.get(e, "closeAt"));
-          tR.push(pack(si, t.shard, e, true)); tP.push(p); tE.push(p);
+          tR.push(pack(si, t.shard, e, true), c); tP.push(p, c); tE.push(p, c);
         }
       }
       continue;
@@ -958,34 +967,33 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
       } else throw new Error("contactView: a union piece whose start no evidence names");
       const p = source.at(piece.start), e = Math.max(p, Math.min(source.at(piece.end), coverage));
       const shown = (info: PieceInfo, entryHere: boolean) => {
-        if (info.aux) { aR.push(ref); aP.push(p); aE.push(e); return; }
-        tR.push(ref); tP.push(p); tE.push(e);
+        if (info.aux) { aR.push(ref, c); aP.push(p, c); aE.push(e, c); return; }
+        tR.push(ref, c); tP.push(p, c); tE.push(e, c);
         countKind(unionCounts, pieceKindBits(tables, info, piece.startKind, source, entryHere));
       };
+      // an interval holding an entry contact's row: the piece is that contact's
+      let entryHere = false;
+      const onRow = (r: number) => { if (findSorted(entryRows, r) >= 0) { entryPiece.set(r, ref); entryHere = true; } };
       // a small piece at once (its work counted), a large one — a piece may
       // hold a group's every interval — in counted steps (Codex R157 VP-I115)
-      if ((piece.to0 - piece.from0) + (piece.to1 - piece.from1) <= SMALL_PIECE) {
-        const info = describePiece(tables, u, los, sides, seps, piece, joined);
+      const count = (piece.to0 - piece.from0) + (piece.to1 - piece.from1);
+      if (count <= SMALL_PIECE) {
+        const info = describePiece(tables, u, los, sides, seps, piece, joined, onRow);
         for (const r of info.joinedHere) baseEnd.set(r, e);
-        let entryHere = false;
-        for (const r of info.rows) if (findSorted(entryRows, r) >= 0) { entryPiece.set(r, ref); entryHere = true; }
         shown(info, entryHere);
-        return 8 + 4 * info.rows.length;
+        return 8 + 6 * count + 2 * info.joinedHere.length;
       }
       return (function* (): Steps<void> {
-        const info = yield* describePieceSteps(tables, u, los, sides, seps, piece, joined, c);
+        const info = yield* describePieceSteps(tables, u, los, sides, seps, piece, joined, onRow, c);
         for (const r of info.joinedHere) { baseEnd.set(r, e); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
-        let entryHere = false;
-        for (const r of info.rows) {
-          if (findSorted(entryRows, r) >= 0) { entryPiece.set(r, ref); entryHere = true; }
-          if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
-        }
         shown(info, entryHere);
       })();
     }, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); }, scratchOf(), c), c);
     // the near misses of both generations: one to one per group by overlap, in order
-    const nears = function* (held: boolean): Steps<Array<{ ref: number; group: number; s: number; e: number }>> {
-      const out: Array<{ ref: number; group: number; s: number; e: number }> = [];
+    // (typed lists, by group then start — every build buffer counted: plan 3.6, Codex R158 VP-I118)
+    type Nears = { ref: Uint32Array; group: Uint32Array; s: Float64Array; e: Float64Array; n: number };
+    const nears = function* (held: boolean): Steps<Nears> {
+      const R = growU32(), Gp = growU32(), S = growF64(), X = growF64();
       for (const t of mine) {
         if (t.held !== held) continue;
         const E = t.st.episodes;
@@ -993,25 +1001,33 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
           if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
           if (E.get(e, "ivCount") !== 0 || (E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) continue;
           const [s0, x] = epOwn(t, e);
-          out.push({ ref: pack(si, t.shard, e, true, held), group: E.get(e, "pair") * 4 + (E.get(e, "flags") & EP_ORIGIN_MASK), s: s0, e: x });
+          R.push(pack(si, t.shard, e, true, held), c); Gp.push(E.get(e, "pair") * 4 + (E.get(e, "flags") & EP_ORIGIN_MASK), c);
+          S.push(s0, c); X.push(x, c);
         }
       }
-      const ord = yield* sortSteps(out.length, (a, b) => out[a]!.group - out[b]!.group || out[a]!.s - out[b]!.s || out[a]!.ref - out[b]!.ref);
-      const sorted = new Array<{ ref: number; group: number; s: number; e: number }>(ord.length);
-      for (let k = 0; k < ord.length; k++) { sorted[k] = out[ord[k]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-      return sorted;
+      const r = R.view(), g = Gp.view(), sv = S.view(), xv = X.view(), n = r.length;
+      const ord = yield* sortSteps(n, (a, b) => g[a]! - g[b]! || sv[a]! - sv[b]! || r[a]! - r[b]!);
+      const out: Nears = { ref: allocU32(n), group: allocU32(n), s: allocF64(n), e: allocF64(n), n };
+      for (let k = 0; k < n; k++) {
+        const o = ord[k]!;
+        out.ref[k] = r[o]!; out.group[k] = g[o]!; out.s[k] = sv[o]!; out.e[k] = xv[o]!;
+        if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
+      }
+      return out;
     };
     const hn = yield* nears(true), cn = yield* nears(false);
     const at = (r: number) => { const t = tableAt(tables, r); return source.at(t.st.episodes.get(rowOf(r), "closeAt")); };
     let a = 0, b = 0;
-    const show = (r: number) => { const p = at(r); tR.push(r); tP.push(p); tE.push(p); };
-    while (a < hn.length || b < cn.length) {
+    const show = (r: number) => { const p = at(r); tR.push(r, c); tP.push(p, c); tE.push(p, c); };
+    while (a < hn.n || b < cn.n) {
       if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
-      const h = hn[a], cc = cn[b];
-      if (h && cc && h.group === cc.group && h.s <= cc.e && cc.s <= h.e) { nearPairs.push([cc.ref, h.ref]); show(cc.ref); a++; b++; continue; }
+      const h = a < hn.n, cc = b < cn.n;
+      if (h && cc && hn.group[a] === cn.group[b] && hn.s[a]! <= cn.e[b]! && cn.s[b]! <= hn.e[a]!) {
+        nearCur0.push(cn.ref[b]!, c); nearHeld0.push(hn.ref[a]!, c); show(cn.ref[b]!); a++; b++; continue;
+      }
       // the one that ends first (or the lower group) has no partner
-      if (!cc || (h && (h.group < cc.group || (h.group === cc.group && h.e < cc.e)))) { show(h!.ref); a++; }
-      else { show(cc.ref); b++; }
+      if (!cc || (h && (hn.group[a]! < cn.group[b]! || (hn.group[a] === cn.group[b] && hn.e[a]! < cn.e[b]!)))) { show(hn.ref[a]!); a++; }
+      else { show(cn.ref[b]!); b++; }
     }
   }
   // the reach of every entry contact a base contact continues (its finding's
@@ -1028,28 +1044,25 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
   }
   // every copy and sort below in counted steps: a budget's lists copied at
   // once were one step of ~20 ms in the browser (plan 3.6)
-  const keys0 = new Uint32Array(reach.size);
+  const keys0 = allocU32(reach.size);
   let kn = 0;
   for (const k of reach.keys()) { keys0[kn++] = k; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
   const ko = yield* sortSteps(keys0.length, (x, y) => keys0[x]! - keys0[y]!);
-  const rKeys = new Uint32Array(ko.length), reachVal = new Float64Array(ko.length);
+  const rKeys = allocU32(ko.length), reachVal = allocF64(ko.length);
   for (let k = 0; k < ko.length; k++) {
     rKeys[k] = keys0[ko[k]!]!; reachVal[k] = reach.get(rKeys[k]!)!;
     if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
   }
   const reachRef = rKeys;
-  const typed = function* (R: readonly number[], P: readonly number[], E: readonly number[]) {
-    return yield* refList(yield* copySteps(new Uint32Array(R.length), R, c), yield* copySteps(new Float64Array(P.length), P, c),
-                          yield* copySteps(new Float64Array(E.length), E, c), c);
-  };
-  const tgt = yield* typed(tR, tP, tE);
-  const aux = yield* typed(aR, aP, aE);
+  // (refList reads the lists and writes its own: no copy before it)
+  const tgt = yield* refList(tR.view(), tP.view(), tE.view(), c);
+  const aux = yield* refList(aR.view(), aP.view(), aE.view(), c);
   const ep = yield* refList(eRefs, eOn, eEnd, c);
-  const np = yield* sortSteps(nearPairs.length, (x, y) => nearPairs[x]![0] - nearPairs[y]![0]);
-  const nearCur = new Uint32Array(np.length), nearHeld = new Uint32Array(np.length);
+  const nc = nearCur0.view(), nh = nearHeld0.view();
+  const np = yield* sortSteps(nc.length, (x, y) => nc[x]! - nc[y]!);
+  const nearCur = allocU32(np.length), nearHeld = allocU32(np.length);
   for (let k = 0; k < np.length; k++) {
-    const x = nearPairs[np[k]!]!;
-    nearCur[k] = x[0]; nearHeld[k] = x[1];
+    nearCur[k] = nc[np[k]!]!; nearHeld[k] = nh[np[k]!]!;
     if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
   }
   return { input, n: tgt.refs.length, tgt, aux, ep, tables, joined, reachRef, reachVal, unions, indexes, unionCounts,
@@ -1541,7 +1554,7 @@ export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: num
   check(v);
   const W = Math.max(1, Math.min(TIMELINE_COLUMNS, Math.floor(columns)));
   if (!(axisEnd > 0)) return [];
-  const lit = new Uint8Array(W);
+  const lit = allocU8(W);
   const col = (x: number) => Math.max(0, Math.min(W - 1, Math.floor((x / axisEnd) * W)));
   const pieces: number[] = [];
   /** Interval `row`'s own contact within [lo, hi] (own axis), its gaps cut out, lit. */

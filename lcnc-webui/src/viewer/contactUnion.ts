@@ -55,7 +55,7 @@
 // confirmed points lie in [its enter, the next one's enter); its free sample
 // lies after its own confirmed points and before the next interval's enter.
 
-import { STEP_OPS, copySteps, runToEnd, sortSteps, type Steps } from "./steps";
+import { STEP_OPS, allocF64, allocI32, allocU8, copySteps, growF64, growI32, runToEnd, sortSteps, type Steps } from "./steps";
 
 /** A job's operations since its last yield (plan 3.6). */
 export interface Ops { n: number }
@@ -151,57 +151,58 @@ export function mergeSeps(gens: ReadonlyArray<ArrayLike<number>>): { seps: Float
  *  (Codex R157 VP-I115). `c` counts the work since the caller's last yield. */
 export function* mergeSepsSteps(gens: ReadonlyArray<ArrayLike<number>>, c: Ops): Steps<{ seps: Float64Array; first: Int32Array; last: Int32Array }> {
   let base = 0;
-  const lists: Array<Array<{ s: number; e: number; k: number }>> = [];
+  // each generation's gaps as typed lists (plan 3.6: every build buffer counted, Codex R158 VP-I118)
+  const lists: Array<{ s: Float64Array; e: Float64Array; k: Int32Array; n: number }> = [];
   for (const g of gens) {
-    const n = g.length >> 1, out: Array<{ s: number; e: number; k: number }> = [];
+    const n = g.length >> 1, S = allocF64(n), E = allocF64(n), K = allocI32(n);
     for (let i = 0; i < n; i++) {
-      out.push({ s: g[2 * i]!, e: Math.max(g[2 * i]!, g[2 * i + 1]!), k: base + i });
+      S[i] = g[2 * i]!; E[i] = Math.max(g[2 * i]!, g[2 * i + 1]!); K[i] = base + i;
       if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
     }
     base += n;
     // by start, end, input order — every key differs by k: the order is total
-    const ord = yield* sortSteps(out.length, (x, y) => out[x]!.s - out[y]!.s || out[x]!.e - out[y]!.e || out[x]!.k - out[y]!.k);
-    const sorted = new Array<{ s: number; e: number; k: number }>(out.length);
-    for (let i = 0; i < out.length; i++) { sorted[i] = out[ord[i]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
-    lists.push(sorted);
+    const ord = yield* sortSteps(n, (x, y) => S[x]! - S[y]! || E[x]! - E[y]! || K[x]! - K[y]!);
+    const s2 = allocF64(n), e2 = allocF64(n), k2 = allocI32(n);
+    for (let i = 0; i < n; i++) { const o = ord[i]!; s2[i] = S[o]!; e2[i] = E[o]!; k2[i] = K[o]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+    lists.push({ s: s2, e: e2, k: k2, n });
   }
-  const ptr = lists.map(() => 0), head = (i: number) => lists[i]![ptr[i]!];
+  const ptr = lists.map(() => 0), has = (i: number) => ptr[i]! < lists[i]!.n;
+  const hs = (i: number) => lists[i]!.s[ptr[i]!]!, he = (i: number) => lists[i]!.e[ptr[i]!]!, hk = (i: number) => lists[i]!.k[ptr[i]!]!;
   // overlap with positive length, or a point strictly inside the other
-  const overlaps = (h: { s: number; e: number }, S: number, E: number) =>
-    Math.max(h.s, S) < Math.min(h.e, E) || (h.s === h.e && S < h.s && h.s < E) || (S === E && h.s < S && S < h.e);
-  const out: number[] = [], first: number[] = [], last: number[] = [];
+  const overlaps = (i: number, S: number, E: number) => {
+    const s0 = hs(i), e0 = he(i);
+    return Math.max(s0, S) < Math.min(e0, E) || (s0 === e0 && S < s0 && s0 < E) || (S === E && s0 < S && S < e0);
+  };
+  const out = growF64(), first = growI32(), last = growI32();
   for (;;) {
     let li = -1;
     for (let i = 0; i < lists.length; i++) {
-      const h = head(i);
-      if (h && (li < 0 || h.s < head(li)!.s || (h.s === head(li)!.s && h.e < head(li)!.e))) li = i;
+      if (has(i) && (li < 0 || hs(i) < hs(li) || (hs(i) === hs(li) && he(i) < he(li)))) li = i;
     }
     if (li < 0) break;
-    const h = head(li)!;
+    let S = hs(li), E = he(li), f = hk(li), l = f;
     ptr[li]!++;
-    let S = h.s, E = h.e, f = h.k, l = h.k;
     const take = (i: number) => {
-      const t = head(i)!;
+      const ts = hs(i), te = he(i), tk = hk(i);
       ptr[i]!++;
-      if (t.s < S) { S = t.s; f = t.k; }
-      if (t.e > E || (t.e === E && t.k < l)) { if (t.e > E) E = t.e; l = t.k; }
+      if (ts < S) { S = ts; f = tk; }
+      if (te > E || (te === E && tk < l)) { if (te > E) E = te; l = tk; }
     };
     // the same gap in another generation
     for (let i = 0; i < lists.length; i++) {
-      const t = head(i);
-      if (i !== li && t && ((t.s === S && t.e === E) || overlaps(t, S, E))) take(i);
+      if (i !== li && has(i) && ((hs(i) === S && he(i) === E) || overlaps(i, S, E))) take(i);
     }
     // tables that disagree: whatever overlaps it joins it (each round takes one)
     for (let again = true; again;) {
       again = false;
-      for (let i = 0; i < lists.length; i++) { const t = head(i); if (t && overlaps(t, S, E)) { take(i); again = true; } }
+      for (let i = 0; i < lists.length; i++) { if (has(i) && overlaps(i, S, E)) { take(i); again = true; } }
       if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
     }
-    out.push(S, E); first.push(f); last.push(l);
+    out.push(S, c); out.push(E, c); first.push(f, c); last.push(l, c);
     if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
   }
-  return { seps: yield* copySteps(new Float64Array(out.length), out, c), first: yield* copySteps(new Int32Array(first.length), first, c),
-           last: yield* copySteps(new Int32Array(last.length), last, c) };
+  return { seps: yield* copySteps(allocF64(out.length), out.view(), c), first: yield* copySteps(allocI32(first.length), first.view(), c),
+           last: yield* copySteps(allocI32(last.length), last.view(), c) };
 }
 
 const zoneLo = (seps: UnionSeps, z: number) => (z === 0 ? -Infinity : seps.e(z - 1));
@@ -563,15 +564,16 @@ interface SideScratch {
 /** A build's scratch, reused group after group (dropped with the build). */
 export interface UnionScratch { sides: SideScratch[]; fLo: Float64Array; fHi: Float64Array; fLoOpen: Uint8Array; fHiOpen: Uint8Array }
 export function unionScratch(): UnionScratch {
-  const side = (): SideScratch => ({ n: 0, enter: new Float64Array(0), end: new Float64Array(0), witness: new Float64Array(0),
-                                     freeAt: new Float64Array(0), freeR: new Float64Array(0), flags: new Uint8Array(0), pz: new Int32Array(0),
-                                     fn: 0, fLo: new Float64Array(0), fHi: new Float64Array(0), fPt: new Uint8Array(0), fJ: new Int32Array(0), fByHi: null });
-  return { sides: [side(), side()], fLo: new Float64Array(0), fHi: new Float64Array(0), fLoOpen: new Uint8Array(0), fHiOpen: new Uint8Array(0) };
+  const side = (): SideScratch => ({ n: 0, enter: allocF64(0), end: allocF64(0), witness: allocF64(0),
+                                     freeAt: allocF64(0), freeR: allocF64(0), flags: allocU8(0), pz: allocI32(0),
+                                     fn: 0, fLo: allocF64(0), fHi: allocF64(0), fPt: allocU8(0), fJ: allocI32(0), fByHi: null });
+  return { sides: [side(), side()], fLo: allocF64(0), fHi: allocF64(0), fLoOpen: allocU8(0), fHiOpen: allocU8(0) };
 }
 const F_ED = 1, F_XD = 2, F_OPEN = 4, F_AFTER = 8;
-const grow64 = (a: Float64Array, n: number) => (a.length >= n ? a : new Float64Array(Math.max(n, 2 * a.length)));
-const grow8 = (a: Uint8Array, n: number) => (a.length >= n ? a : new Uint8Array(Math.max(n, 2 * a.length)));
-const grow32 = (a: Int32Array, n: number) => (a.length >= n ? a : new Int32Array(Math.max(n, 2 * a.length)));
+// (the scratch's growth counted where it is made: plan 3.6, Codex R158 VP-I118)
+const grow64 = (a: Float64Array, n: number) => (a.length >= n ? a : allocF64(Math.max(n, 2 * a.length)));
+const grow8 = (a: Uint8Array, n: number) => (a.length >= n ? a : allocU8(Math.max(n, 2 * a.length)));
+const grow32 = (a: Int32Array, n: number) => (a.length >= n ? a : allocI32(Math.max(n, 2 * a.length)));
 
 function* readSide(s: UnionSide, x: SideScratch, c: Ops): Steps<void> {
   const n = s.n;
@@ -595,7 +597,7 @@ const partX = (x: SideScratch, k: number, seps: UnionSeps, z: number, out: Span,
 /** Every point interval's zone, forward in the side's order — pointZone's
  *  rule, each from the one before. */
 function* readPointZones(x: SideScratch, seps: UnionSeps, c: Ops): Steps<void> {
-  x.pz = x.pz.length >= x.n ? x.pz : new Int32Array(Math.max(x.n, 2 * x.pz.length));
+  x.pz = grow32(x.pz, x.n);
   if (!seps.count) return;
   let prev = 0;
   // an interval's zone: a bisection or two over the separators (each probe a gap read)
@@ -674,7 +676,7 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
     // the structure is broken: order by start for the union, by end for the evidence
     // (stable, in steps: ties keep their index order, as the engine's sort did)
     const ord = yield* sortSteps(fn, (a, b) => x.fLo[a]! - x.fLo[b]! || x.fPt[b]! - x.fPt[a]!);
-    const lo = new Float64Array(fn), hi = new Float64Array(fn), pt = new Uint8Array(fn), jj = new Int32Array(fn);
+    const lo = allocF64(fn), hi = allocF64(fn), pt = allocU8(fn), jj = allocI32(fn);
     for (let k = 0; k < fn; k++) {
       const i = ord[k]!;
       lo[k] = x.fLo[i]!; hi[k] = x.fHi[i]!; pt[k] = x.fPt[i]!; jj[k] = x.fJ[i]!;
@@ -682,7 +684,7 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
     }
     x.fLo.set(lo); x.fHi.set(hi); x.fPt.set(pt); x.fJ.set(jj);
     const byHi = yield* sortSteps(fn, (a, b) => x.fHi[a]! - x.fHi[b]! || x.fJ[a]! - x.fJ[b]!);
-    x.fByHi = yield* copySteps(new Int32Array(fn), byHi, c);
+    x.fByHi = yield* copySteps(allocI32(fn), byHi, c);
   }
 }
 

@@ -12,6 +12,59 @@ export const STEP_OPS = 4096;
 /** A job: yields between bounded pieces of work, returns its result. */
 export type Steps<T> = Generator<void, T, void>;
 
+// ---- what a build allocates (plan 3.6, Codex R158 VP-I118) ----------------------------------------
+
+/** The bytes a running build has allocated so far: every typed array of the
+ *  view and every build buffer from the moment it is made — counted where it
+ *  is MADE, never read off the result (a buffer dropped before the end is
+ *  counted all the same: an upper bound on what the build holds, the toolpath
+ *  ledger's rule). Growth counts the new capacity. */
+export interface AllocMeter { bytes: number }
+let meter: AllocMeter | null = null;
+/** Runs `f` with every allocation through the helpers below counted into `m`
+ *  — the publisher wraps each step of a build (a step is synchronous: nothing
+ *  else allocates in it). */
+export function withMeter<R>(m: AllocMeter | null, f: () => R): R {
+  const prev = meter;
+  meter = m;
+  try { return f(); } finally { meter = prev; }
+}
+/** An array made elsewhere, counted. */
+export function metered<A extends ArrayBufferView>(a: A): A {
+  if (meter) meter.bytes += a.byteLength;
+  return a;
+}
+export const allocF64 = (n: number): Float64Array => metered(new Float64Array(n));
+export const allocU32 = (n: number): Uint32Array => metered(new Uint32Array(n));
+export const allocI32 = (n: number): Int32Array => metered(new Int32Array(n));
+export const allocU8 = (n: number): Uint8Array => metered(new Uint8Array(n));
+
+type Typed = Float64Array | Uint32Array | Int32Array;
+/** A list of numbers in a typed array that grows by doubling — the build's
+ *  per-row buffers (a JS array's backing store is no count; plan 3.6). A
+ *  growth's copy is counted into `c` like any other step's work. */
+export class Grow<A extends Typed> {
+  a: A;
+  n = 0;
+  private readonly make: (n: number) => A;
+  constructor(make: (n: number) => A, cap = 16) { this.make = make; this.a = make(cap); }
+  push(x: number, c?: { n: number }): void {
+    if (this.n === this.a.length) {
+      const b = this.make(2 * this.a.length);
+      b.set(this.a);
+      if (c) c.n += this.n;
+      this.a = b;
+    }
+    this.a[this.n++] = x;
+  }
+  get length(): number { return this.n; }
+  /** The numbers so far (a view, no copy). */
+  view(): A { return this.a.subarray(0, this.n) as A; }
+}
+export const growF64 = (cap?: number) => new Grow<Float64Array>(allocF64, cap);
+export const growU32 = (cap?: number) => new Grow<Uint32Array>(allocU32, cap);
+export const growI32 = (cap?: number) => new Grow<Int32Array>(allocI32, cap);
+
 /** Runs a job to its end at once (the build without a page: tests, Node). */
 export function runToEnd<T>(job: Steps<T>): T {
   for (;;) {
@@ -77,9 +130,10 @@ export function* copySteps<A extends { [i: number]: number; readonly length: num
  *  their order), yielding after about `budget` operations: a natural merge
  *  sort — runs already in order (a sweep writes a pair's rows in order) are
  *  taken as they are, short ones grown by insertion to MIN_RUN, then merged
- *  pairwise. Two u32 arrays of n — the temporary sort buffer plan 3.6 names. */
+ *  pairwise. Two u32 arrays of n — the temporary sort buffer plan 3.6 names —
+ *  and two of the runs' starts (n / 32 each). */
 export function* sortSteps(n: number, cmp: (a: number, b: number) => number, budget = STEP_OPS): Steps<Uint32Array> {
-  let a = new Uint32Array(n), ops = 0;
+  let a = allocU32(n), ops = 0;
   for (let i = 0; i < n; i++) {
     a[i] = i;
     if (++ops >= budget) { ops = 0; yield; }
@@ -87,8 +141,11 @@ export function* sortSteps(n: number, cmp: (a: number, b: number) => number, bud
   if (n < 2) return a;
   const MIN_RUN = 32;
   // the runs: each ascending (a descending stretch is not reversed — that
-  // would break stability for equal neighbours; it becomes short runs)
-  const starts: number[] = [0];
+  // would break stability for equal neighbours; it becomes short runs) —
+  // their starts, then n (one at most per MIN_RUN elements)
+  const cap = Math.ceil(n / MIN_RUN) + 2;
+  let runs = allocU32(cap), nr = 0, next = allocU32(cap);
+  runs[nr++] = 0;
   let s = 0;
   while (s < n) {
     let e = s + 1;
@@ -106,14 +163,15 @@ export function* sortSteps(n: number, cmp: (a: number, b: number) => number, bud
       e = end;
     }
     s = e;
-    if (s < n) starts.push(s);
+    if (s < n) runs[nr++] = s;
   }
-  let runs = starts.concat(n);
-  let b = new Uint32Array(n);
-  while (runs.length > 2) {
-    const next: number[] = [0];
-    for (let r = 0; r + 1 < runs.length; r += 2) {
-      const lo = runs[r]!, mid = runs[r + 1]!, hi = r + 2 < runs.length ? runs[r + 2]! : mid;
+  runs[nr++] = n;
+  let b = allocU32(n);
+  while (nr > 2) {
+    let nn = 0;
+    next[nn++] = 0;
+    for (let r = 0; r + 1 < nr; r += 2) {
+      const lo = runs[r]!, mid = runs[r + 1]!, hi = r + 2 < nr ? runs[r + 2]! : mid;
       let i = lo, j = mid, k = lo;
       // the left one first on a tie: stable
       while (i < mid && j < hi) {
@@ -122,10 +180,11 @@ export function* sortSteps(n: number, cmp: (a: number, b: number) => number, bud
       }
       while (i < mid) { b[k++] = a[i++]!; if (++ops >= budget) { ops = 0; yield; } }
       while (j < hi) { b[k++] = a[j++]!; if (++ops >= budget) { ops = 0; yield; } }
-      next.push(hi);
+      next[nn++] = hi;
     }
-    if (next[next.length - 1] !== n) next.push(n);
-    runs = next;
+    if (next[nn - 1] !== n) next[nn++] = n;
+    [runs, next] = [next, runs];
+    nr = nn;
     [a, b] = [b, a];
   }
   return a;
