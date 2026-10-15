@@ -1720,8 +1720,26 @@ function contactAt(t: TableIndex, row: number, pos: number): boolean {
  *  axis), within the piece (a free stretch beside it cut away). */
 function pieceTint(v: ContactView, ref: number, pos: number, out: Set<string>): void {
   const { info, t, g, u } = pieceCtx(v, ref), p = info.piece;
-  // one pair (a piece is one group's): its names once lit, nothing more to ask
-  if (pos > t.cov) return;
+  // an interval of it, lit where its own table proves contact (its own
+  // coverage — never the start evidence's: after a fallback the current run
+  // reaches past the earlier one's coverage, Codex R159 VP-I119)
+  const lightRow = (r: number): boolean => {
+    const it = tableAt(v.tables, r), row = rowOf(r), I = it.st.intervals;
+    const pair = it.st.episodes.get(I.get(row, "episode"), "pair");
+    const { a, b } = nameOf(v, it, pair);
+    if ((out.has(a) && out.has(b)) || pos > it.cov) return out.has(a) && out.has(b);
+    const q = preimage(it.source.at, pos, pos, Math.max(I.get(row, "enter"), p.start), Math.min(ownEnd(it, row).end, p.end));
+    if (!q || (p.startOpen && q[1] <= p.start) || (p.endOpen && q[0] >= p.end)) return false;
+    if (!freeOf(it, pair, q[0], q[1])) return false;
+    out.add(a); out.add(b);
+    return true;
+  };
+  if (linearPiecesForTest.on) {
+    // the walk before the indexes: every interval of the piece
+    pieceIntervals(g.sides, g.seps, p, (sd, k) => { lightRow(u.gens[sd]!.uIdx[(sd === 0 ? g.r0[0] : g.r1[0]) + k]!); });
+    return;
+  }
+  // one pair (a piece is one group's): once lit, nothing more to ask
   const pre = preimage(t.source.at, pos, pos, p.start, p.end);
   if (!pre || (p.startOpen && pre[1] <= p.start) || (p.endOpen && pre[0] >= p.end)) return;
   // the piece's intervals whose contact meets the own points there: from a bisection on each side
@@ -1729,16 +1747,7 @@ function pieceTint(v: ContactView, ref: number, pos: number, out: Set<string>): 
     const s = g.sides[sd]!, [from, to] = sd === 0 ? [p.from0, p.to0] : [p.from1, p.to1], lo = sd === 0 ? g.r0[0] : g.r1[0];
     let k = from, hi = to;
     while (k < hi) { const m = (k + hi) >> 1; if (s.enter(m) < pre[0]) k = m + 1; else hi = m; }
-    for (k = Math.max(from, k - 1); k < to && s.enter(k) <= pre[1]; k++) {
-      const r = u.gens[sd]!.uIdx[lo + k]!, it = tableAt(v.tables, r), row = rowOf(r), I = it.st.intervals;
-      const pair = it.st.episodes.get(I.get(row, "episode"), "pair");
-      const { a, b } = nameOf(v, it, pair);
-      if (out.has(a) && out.has(b)) return;
-      if (pos > it.cov) continue;
-      const q = preimage(it.source.at, pos, pos, Math.max(I.get(row, "enter"), p.start), Math.min(ownEnd(it, row).end, p.end));
-      if (!q || (p.startOpen && q[1] <= p.start) || (p.endOpen && q[0] >= p.end)) continue;
-      if (freeOf(it, pair, q[0], q[1])) { out.add(a); out.add(b); return; }
-    }
+    for (k = Math.max(from, k - 1); k < to && s.enter(k) <= pre[1]; k++) if (lightRow(u.gens[sd]!.uIdx[lo + k]!)) return;
   }
 }
 

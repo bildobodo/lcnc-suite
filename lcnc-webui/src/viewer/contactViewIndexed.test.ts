@@ -13,7 +13,7 @@ import {
   IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY,
 } from "./contactStore";
 import {
-  buildContactView, findKey, indexAfter, indexBefore, lineMark, linearPiecesForTest, targetAt, targetEnd, targetKey, targetKind, targetPos, targetWindow,
+  buildContactView, contactBands, findKey, indexAfter, indexBefore, lineMark, linearPiecesForTest, targetAt, targetEnd, targetKey, targetKind, targetPos, targetWindow,
   tintAt, type ContactView, type ContactViewInput, type SourceJoin,
 } from "./contactView";
 
@@ -121,7 +121,9 @@ describe("a union piece asked of the indexes answers as the walk over its interv
             if (m.size) joins.push({ entrySrc: 1, baseSrc: 0, joins: m, baseShard: 0, entryShard: 0, entryHeld, baseHeld });
           }
         }
-        const input = { sources: [{ stores: [cur], held: [held], heldCoverage: [cov], at: (x: number) => x, ownCoverage: cov },
+        // either run may have swept less far than the other (Codex R159 VP-I119)
+        const covH = rnd() < 0.35 ? cov * (0.3 + 0.6 * rnd()) : cov, covC = rnd() < 0.35 ? cov * (0.3 + 0.6 * rnd()) : cov;
+        const input = { sources: [{ stores: [cur], held: [held], heldCoverage: [covH], at: (x: number) => x, ownCoverage: covC },
                                   { stores: [eCur], held: [eHeld], heldCoverage: [cov], at: (x: number) => x, ownCoverage: cov, entry: true }],
                         pairName: names, coverage: cov, joins };
         const v = buildContactView(input);
@@ -209,6 +211,29 @@ const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: 
     return { input: { sources: [{ stores: [mk(1)], held: [mk(0)], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
   },
 };
+
+describe("the tint by each interval's own coverage (Codex R159 VP-I119)", () => {
+  // one open contact from 0 in both runs: the earlier swept to `held`, the current to `cur`
+  const view = (held: number, cur: number) => {
+    const mk = (gen: number) => {
+      const st = new ContactStore(1, gen);
+      const e = st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      st.episodes.set(e, "firstIv", st.intervals.append({ episode: e, enter: 0, exit: NaN, flags: IV_ENTER_DECIDED, next: NONE, witness: 0, freeAt: NaN, freeR: 0 }));
+      return st;
+    };
+    return buildContactView({ sources: [{ stores: [mk(1)], held: [mk(0)], heldCoverage: [held], ownCoverage: cur, at: (x: number) => x }],
+                              pairName: () => ({ a: "tool", b: "stock" }), coverage: 10 });
+  };
+  it.each([["the earlier run shorter (Codex's probe)", 5, 10], ["the current run shorter", 10, 5], ["both to the end", 10, 10]])(
+    "%s: the band, the target's end and the tint agree", (_, held, cur) => {
+      const v = view(held, cur), reach = Math.max(held, cur);
+      expect(contactBands(v, 100, 10), "the band").toEqual([[0, reach / 10]]);
+      expect(targetEnd(v, 0), "the target's end").toBe(reach);
+      for (const x of [1, 4, 4.9, 6, 7, 9.9]) {
+        expect([...tintAt(v, x)].sort(), `the tint at ${x}`).toEqual(x <= reach ? ["stock", "tool"] : []);
+      }
+    });
+});
 
 describe("every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B)", () => {
   // counted, never timed (contactView.test's proxy over every table cell):
