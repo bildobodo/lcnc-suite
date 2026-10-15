@@ -177,23 +177,34 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
     };
     return { box, restore: () => { proto.get = get; proto.blocksOf = blocksOf; } };
   };
+  /** The target list's references read too (a search that steps through them reads no table cell). */
+  const countRefs = (v: ContactView, box: { reads: number }) => {
+    const l = v.tgt as unknown as { refs: Uint32Array };
+    l.refs = new Proxy(l.refs, { get(t, k) { if (typeof k === "string" && /^\d+$/.test(k)) box.reads++; return Reflect.get(t, k, t); } });
+  };
   it("the steps from a position over n pairs' findings at one point — the same at 1024 and at 8192 pairs", { timeout: 300_000 }, () => {
-    // every pair's contact [0, 1] (its jump point a hair past 0) and every pair's near miss at 0 (its jump point 0)
+    // n near misses at 0 (their jump point 0) and a contact at 1: the step
+    // after 0 passes them all; n contacts [0, 1] (their jump point a hair
+    // past 0) and a near miss at −1: the step before the hair passes them all
     const worst: number[] = [];
     for (const n of [1024, 8192]) {
-      const st = run(0, n, 0);
-      for (let i = 0; i < n; i++) st.episodes.append({ pair: n + i, ordinal: 0, flags: 0, onset: 0, end: 0, closeAt: 0, closeDist: 1, firstIv: NONE, ivCount: 0 });
-      const v = buildContactView({ sources: [{ stores: [st], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
-      expect(v.n).toBe(2 * n);
       const c = counter();
       let w = 0;
       try {
-        for (const [f, want] of [[() => indexAfter(v, 0, null), (i: number) => targetPos(v, i) === 0 && targetEnd(v, i) > 0],
-                                  [() => indexBefore(v, 1e-3, null), (i: number) => targetEnd(v, i) === 0]] as const) {
+        const nears = new ContactStore(1, 0, REQUEST_BUDGET);
+        for (let i = 0; i < n; i++) nears.episodes.append({ pair: i, ordinal: 0, flags: 0, onset: 0, end: 0, closeAt: 0, closeDist: 1, firstIv: NONE, ivCount: 0 });
+        const ep = nears.episodes.append({ pair: n, ordinal: 0, flags: 0, onset: 1, end: 2, closeAt: 1, closeDist: 0, firstIv: NONE, ivCount: 1 });
+        nears.episodes.set(ep, "firstIv", nears.intervals.append({ episode: ep, enter: 1, exit: 2, flags: D, next: NONE, witness: 1.5, freeAt: NaN, freeR: 0 }));
+        const contacts = run(0, n, 0);
+        contacts.episodes.append({ pair: n, ordinal: 0, flags: 0, onset: -1, end: -1, closeAt: -1, closeDist: 1, firstIv: NONE, ivCount: 0 });
+        const va = buildContactView({ sources: [{ stores: [nears], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
+        const vb = buildContactView({ sources: [{ stores: [contacts], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
+        for (const [f, want] of [[() => indexAfter(va, 0, null), (i: number) => targetPos(va, i) === 1],
+                                  [() => indexBefore(vb, 1e-3, null), (i: number) => targetPos(vb, i) === -1]] as const) {
           c.box.reads = 0;
           const i = f();
           w = Math.max(w, c.box.reads);
-          expect(want(i), "the answer: a contact past 0, a near miss before the hair").toBe(true);
+          expect(want(i), "past all the ties: the contact at 1, the near miss at −1").toBe(true);
         }
       } finally { c.restore(); }
       worst.push(w);
@@ -246,6 +257,7 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
         const v = union
           ? buildContactView({ sources: [{ stores: [run(1, n, 0.25)], held: [held], heldCoverage: [3], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 })
           : buildContactView({ sources: [{ stores: [held], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
+        countRefs(v, c.box);
         const keys = union ? (() => { const b = buildContactView({ sources: [{ stores: [held], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
                                       return [0, b.n >> 1, b.n - 1].map(i => targetKey(b, i)); })()
                            : [0, v.n >> 1, v.n - 1].map(i => targetKey(v, i));

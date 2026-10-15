@@ -590,8 +590,8 @@ export function pieceContaining(sides: readonly UnionSide[], seps: UnionSeps, z:
     const upper = predEnter(s, w) + 1;
     let a = 0, b = upper;
     while (a < b) { const m = (a + b) >> 1; if (endOf(s, m) < E) a = m + 1; else b = m; }
-    // (point intervals at one coordinate end alike in several zones: the first of this one)
-    while (a < upper && endOf(s, a) === E && !partOf(s, a, seps, z, TMP)) a++;
+    // (point intervals at one coordinate end alike in several zones: whichever
+    // comes first, its enter is that coordinate — the start the same)
     if (a < upper && endOf(s, a) === E) start = Math.min(start, Math.max(lo, s.enter(a)));
   }
   if (start === Infinity) return null;
