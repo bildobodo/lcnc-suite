@@ -68,7 +68,7 @@ import {
 import type { ClashTarget } from "./clashTargets";
 import type { CollisionLineMark } from "./collision";
 import { JUMP_NUDGE } from "./findingNav";
-import { STEP_OPS, allocF64, allocU32, allocU8, copySteps, growF64, growU32, runToEnd, sortSteps, type Steps } from "./steps";
+import { STEP_OPS, allocF64, allocI32, allocU32, copySteps, growF64, growU32, runToEnd, sortSteps, type Steps } from "./steps";
 
 /** One request's tables as a view reads them. */
 export interface ContactSource {
@@ -155,6 +155,15 @@ interface TableIndex {
    *  a bisection's point gap may lie inside a longer one, so ends need not
    *  rise with starts; this does, and a search by it is exact. */
   hReach: Float64Array;
+  /** Per gap of the index, the next gap of its pair from it on whose tool
+   *  was unknown (NO_GAP: none) — where an interval ended at a gap ends
+   *  (`ownEnd`), found by one bisection (Codex R158 VP-I115: a walk over the
+   *  undecidable gaps before it). */
+  hTool: Uint32Array;
+  /** Per gap of the index, the last gap of the stretch of its pair's gaps
+   *  that touch or overlap it — a free point beyond the stretch, found by
+   *  one bisection (`freeOf`; Codex R158 VP-I115: a walk over the gaps). */
+  hComp: Uint32Array;
 }
 
 type Col = readonly ArrayLike<number>[];
@@ -230,6 +239,8 @@ interface UnionGen { uIdx: Uint32Array; back: number; front: number }
 interface UnionIndex { gens: [UnionGen, UnionGen]; sRef: Uint32Array }
 
 const EP_MARK_CONTACT = 0, EP_MARK_POSSIBLE = 1, EP_MARK_BOUNDARY = 2;
+/** No gap (TableIndex.hTool). */
+const NO_GAP = 0xffffffff;
 const BLOCK = 64;
 /** The sweep's position tolerance (findings at or before the entry move's end). */
 const ON_ENTRY_TOL = 1e-9;
@@ -344,41 +355,69 @@ function firstHoleReaching(t: TableIndex, from: number, to: number, x: number): 
   return lo;
 }
 
-/** The closed own stretch [x, y] holds a point outside every closed gap of
- *  `pair` (sorted by start): a gap may cover a contact wholly, a point gap a
- *  point. */
-function freeOf(t: TableIndex, pair: number, x: number, y: number): boolean {
-  const [from, to] = holeRange(t, pair);
-  let reach = -Infinity, started = false;
-  for (let k = firstHoleReaching(t, from, to, x); k < to; k++) {
-    const s = holeStart(t, k);
-    if (s > y) break;
-    const e = holeEnd(t, k);
-    if (e < x) continue;
-    if (!started) { if (s > x) return true; started = true; reach = e; }
-    else { if (s > reach) return true; reach = Math.max(reach, e); }
-    if (reach >= y) return false;
-  }
-  return !started || reach < y;
+/** The last gap of [from, to) starting at or before x (from − 1: none). */
+function lastHoleStartingBy(t: TableIndex, from: number, to: number, x: number): number {
+  let lo = from, hi = to;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (holeStart(t, m) <= x) lo = m + 1; else hi = m; }
+  return lo - 1;
 }
 
-/** The own stretch [x, y] less the gaps of `pair`, as pieces (a point outside
- *  every gap is a piece of its own): for the bands, at display resolution. */
-function piecesOf(t: TableIndex, pair: number, x: number, y: number, out: number[]): void {
+/** The closed own stretch [x, y] holds a point outside every closed gap of
+ *  `pair` (sorted by start): a gap may cover a contact wholly, a point gap a
+ *  point. Two bisections: x is free, or the stretch of touching gaps that
+ *  holds x ends before y (Codex R158 VP-I115: the gaps walked one by one). */
+function freeOf(t: TableIndex, pair: number, x: number, y: number): boolean {
   const [from, to] = holeRange(t, pair);
-  let cur = x, inside = false;
-  for (let k = firstHoleReaching(t, from, to, x); k < to; k++) {
-    const s = holeStart(t, k);
-    if (s > y) break;
+  const p = lastHoleStartingBy(t, from, to, x);
+  if (p < from || t.hReach[p]! < x) return true;
+  return t.hReach[t.hComp[p]!]! < y;
+}
+
+/** The gaps a band's stretch [x, y] of `pair` meets: [k0, k1) of the gap index. */
+function holesMeeting(t: TableIndex, pair: number, x: number, y: number): [number, number] {
+  const [from, to] = holeRange(t, pair);
+  const k0 = firstHoleReaching(t, from, to, x);
+  let lo = k0, hi = to;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (holeStart(t, m) <= y) lo = m + 1; else hi = m; }
+  return [k0, lo];
+}
+
+/** The own stretch [x, y] less the gaps [k0, k1) that meet it (holesMeeting),
+ *  as pieces, each to `each` as the walk finds it (a point outside every gap
+ *  is a piece of its own): for the bands, at display resolution. Its work:
+ *  the gaps read. */
+function piecesOf(t: TableIndex, x: number, y: number, k0: number, k1: number, each: (a: number, b: number) => void): number {
+  let cur = x, inside = false, work = 0;
+  for (let k = k0; k < k1; k++) {
+    work += 6;
     const e = holeEnd(t, k);
     if (e < cur) continue;
     if (x === y) { inside = true; break; }   // a point inside a gap
-    if (s > cur) out.push(cur, s);
+    const s = holeStart(t, k);
+    if (s > cur) each(cur, s);
+    cur = Math.max(cur, e);
+    if (cur >= y) return work;
+  }
+  if (x === y) { if (!inside) each(x, x); return work; }
+  if (cur < y) each(cur, y);
+  return work;
+}
+/** piecesOf in counted steps: one contact may hold its pair's every gap
+ *  (Codex R158 VP-I115) — the same walk. */
+function* piecesOfSteps(t: TableIndex, x: number, y: number, k0: number, k1: number, each: (a: number, b: number) => void, c: Ops): Steps<void> {
+  let cur = x, inside = false;
+  for (let k = k0; k < k1; k++) {
+    if ((c.n += 6) >= STEP_OPS) { c.n = 0; yield; }
+    const e = holeEnd(t, k);
+    if (e < cur) continue;
+    if (x === y) { inside = true; break; }
+    const s = holeStart(t, k);
+    if (s > cur) each(cur, s);
     cur = Math.max(cur, e);
     if (cur >= y) return;
   }
-  if (x === y) { if (!inside) out.push(x, x); return; }
-  if (cur < y) out.push(cur, y);
+  if (x === y) { if (!inside) each(x, x); return; }
+  if (cur < y) each(cur, y);
 }
 
 /** Where an interval ends on its OWN axis, within its source's coverage: its
@@ -393,13 +432,12 @@ function ownEnd(t: TableIndex, row: number): { end: number; open: boolean } {
     const pair = rd(t.c.epPair, rd(t.c.episode, row));
     const w = rd(t.c.witness, row);
     const [from, to] = holeRange(t, pair);
-    // the first gap starting at or after the witness (by start), then the first tool gap from there
+    // the first gap starting at or after the witness (by start), then the
+    // first tool gap from there (the index's own: one bisection)
     let lo = from, hi = to;
     while (lo < hi) { const m = (lo + hi) >> 1; if (holeStart(t, m) < w) lo = m + 1; else hi = m; }
-    for (let k = lo; k < to; k++) {
-      const row = t.hIdx[k]!;
-      if (rd(t.c.gReason, row) === GAP_TOOL_UNKNOWN) return { end: Math.min(rd(t.c.gStart, row), t.ownCov), open: false };
-    }
+    const k = lo < to ? t.hTool[lo]! : NO_GAP;
+    if (k !== NO_GAP) return { end: Math.min(rd(t.c.gStart, t.hIdx[k]!), t.ownCov), open: false };
   }
   return { end: t.ownCov, open: true };
 }
@@ -837,6 +875,8 @@ export function buildContactView(input: ContactViewInput): ContactView {
  *  tables unchanged from start to end; the caller keeps them so. */
 /** A piece described at once up to this many candidate intervals, else in steps. */
 const SMALL_PIECE = 64;
+/** An interval's band lit at once up to this many gaps of its pair over it, else in steps. */
+const SMALL_HOLES = 64;
 
 /** The joins' packed rows, sorted, in counted steps. */
 function* packedSorted(joins: readonly SourceJoin[], rows: (j: SourceJoin) => Iterable<number>, packOf: (j: SourceJoin, row: number) => number,
@@ -887,8 +927,17 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
           hReach[k] = k > 0 && G.get(idx[k - 1]!, "pair") === G.get(g, "pair") ? Math.max(hReach[k - 1]!, end) : end;
           if (tick()) { c.n = 0; yield; }
         }
+        // per gap, from the pair's last one back: the next tool gap, and the
+        // last gap of the touching stretch it lies in
+        const hTool = allocU32(idx.length), hComp = allocU32(idx.length);
+        for (let k = idx.length - 1; k >= 0; k--) {
+          const g = idx[k]!, same = k + 1 < idx.length && G.get(idx[k + 1]!, "pair") === G.get(g, "pair");
+          hTool[k] = G.get(g, "reason") === GAP_TOOL_UNKNOWN ? k : same ? hTool[k + 1]! : NO_GAP;
+          hComp[k] = same && G.get(idx[k + 1]!, "start") <= hReach[k]! ? hComp[k + 1]! : k;
+          if ((c.n += 6) >= STEP_OPS) { c.n = 0; yield; }
+        }
         const t: TableIndex = { st, source, src: si, shard: sh, held, c: colsOf(st), revision: st.revision, ownCov, cov,
-          hIdx: idx, hReach };
+          hIdx: idx, hReach, hTool, hComp };
         tables[slotOf(si, held, sh)] = t;
         list.push(t);
       }
@@ -1554,61 +1603,88 @@ export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: num
   check(v);
   const W = Math.max(1, Math.min(TIMELINE_COLUMNS, Math.floor(columns)));
   if (!(axisEnd > 0)) return [];
-  const lit = allocU8(W);
   const col = (x: number) => Math.max(0, Math.min(W - 1, Math.floor((x / axisEnd) * W)));
-  const pieces: number[] = [];
-  /** Interval `row`'s own contact within [lo, hi] (own axis), its gaps cut out, lit. */
-  /** Lights a row's shown stretch; its work (pieces and columns written). */
-  const light = (t: TableIndex, row: number, lo: number, hi: number): number => {
-    const pair = t.st.episodes.get(t.st.intervals.get(row, "episode"), "pair");
-    pieces.length = 0;
-    if (hi < lo) return 4;
-    piecesOf(t, pair, lo, hi, pieces);
-    let work = 4 + pieces.length;
-    for (let i = 0; i < pieces.length; i += 2) {
-      const x = t.source.at(pieces[i]!), y = Math.min(t.source.at(pieces[i + 1]!), t.cov);
-      if (y < x || y < 0 || x > axisEnd) continue;
-      // a stretch ending ON a column's left edge does not reach into it
-      const c0 = col(x), e = Math.max(c0, Math.min(W - 1, Math.ceil((y / axisEnd) * W) - 1));
-      for (let c = c0; c <= e; c++) lit[c] = 1;
-      work += e - c0 + 1;
-    }
-    return work;
+  // the lit columns as differences (+1 where a run begins, −1 after it): a
+  // piece lights its run at once, however wide (Codex R158 VP-I115)
+  const diff = allocI32(W + 1);
+  const mark = (t: TableIndex, a: number, b: number) => {
+    const x = t.source.at(a), y = Math.min(t.source.at(b), t.cov);
+    if (y < x || y < 0 || x > axisEnd) return;
+    // a stretch ending ON a column's left edge does not reach into it
+    const c0 = col(x), e = Math.max(c0, Math.min(W - 1, Math.ceil((y / axisEnd) * W) - 1));
+    diff[c0]!++; diff[e + 1]!--;
   };
-  const band = (ref: number): number => {
-    // a union piece: below, group by group
-    if (isNearRef(ref) || isPieceRef(ref)) return 4;
-    const t = tableOf(v, ref), row = rowOf(ref);
-    return light(t, row, t.st.intervals.get(row, "enter"), ownEnd(t, row).end);
+  /** Interval `row`'s own contact within [lo, hi] (own axis), its gaps cut
+   *  out, lit: a few gaps at once (its work), a run of them in counted steps
+   *  — one contact may hold its pair's every gap (Codex R158 VP-I115). */
+  const light = (t: TableIndex, row: number, lo: number, hi: number): number | Steps<void> => {
+    if (hi < lo) return 4;
+    const pair = t.st.episodes.get(t.st.intervals.get(row, "episode"), "pair");
+    const [k0, k1] = holesMeeting(t, pair, lo, hi);
+    // the bisections: the pair's range, the first gap reaching, the first past
+    const search = 8 + 4 * (32 - Math.clz32(t.hIdx.length + 1));
+    const each = (a: number, b: number) => mark(t, a, b);
+    if (k1 - k0 <= SMALL_HOLES) return search + 2 + piecesOf(t, lo, hi, k0, k1, each);
+    return (function* (): Steps<void> {
+      if ((ops.n += search) >= STEP_OPS) { ops.n = 0; yield; }
+      yield* piecesOfSteps(t, lo, hi, k0, k1, each, ops);
+    })();
+  };
+  const run = function* (w: number | Steps<void>): Steps<void> {
+    if (typeof w !== "number") yield* w;
+    else if ((ops.n += w) >= STEP_OPS) { ops.n = 0; yield; }
   };
   for (const refs of [v.tgt.refs, v.aux.refs]) {
     for (let i = 0; i < refs.length; i++) {
-      if ((ops.n += band(refs[i]!)) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+      const ref = refs[i]!;
+      // a union piece: below, group by group
+      if (isNearRef(ref) || isPieceRef(ref)) { if ((ops.n += 4) >= STEP_OPS) { ops.n = 0; yield; check(v); } continue; }
+      const t = tableOf(v, ref), row = rowOf(ref);
+      yield* run(light(t, row, t.st.intervals.get(row, "enter"), ownEnd(t, row).end));
+      check(v);
     }
   }
-  // a union's pieces in one walk per group: each piece's intervals' own contact within it
+  // a union's pieces in one walk per group: each piece's intervals' own
+  // contact within it — by the piece's ranges, every interval's lighting a
+  // job when its gaps are many
   const scratch = unionScratch();
   for (const u of v.unions) {
     if (!u) continue;
     yield* eachGroupSteps(v.tables, u, (sides, los, seps) => eachPieceSteps(sides, seps, p => {
-      let work = 0;
       const lit1 = (sd: number, k: number) => {
         const r = u.gens[sd]!.uIdx[los[sd]! + k]!, t = tableOf(v, r), row = rowOf(r);
-        work += light(t, row, Math.max(rd(t.c.enter, row), p.start), Math.min(ownEnd(t, row).end, p.end));
+        return light(t, row, Math.max(rd(t.c.enter, row), p.start), Math.min(ownEnd(t, row).end, p.end));
       };
-      // a small piece at once, a large one in counted steps (Codex R157 VP-I115)
-      if ((p.to0 - p.from0) + (p.to1 - p.from1) <= SMALL_PIECE) { pieceIntervals(sides, seps, p, lit1); return work; }
-      return pieceIntervalsSteps(sides, seps, p, (sd, k) => { work = 0; lit1(sd, k); ops.n += work; }, ops);
+      const ranges = [[p.from0, p.to0], [p.from1, p.to1]] as const;
+      // a small piece at once — unless an interval's gaps are many
+      if ((p.to0 - p.from0) + (p.to1 - p.from1) <= SMALL_PIECE) {
+        let work = 0;
+        let later: Array<Steps<void>> | null = null;
+        for (let sd = 0; sd < 2; sd++) {
+          for (let k = ranges[sd]![0]; k < ranges[sd]![1]; k++) {
+            const w = lit1(sd, k);
+            if (typeof w === "number") work += w; else (later ??= []).push(w);
+          }
+        }
+        if (!later) return work;
+        const jobs = later;
+        return (function* (): Steps<void> { if ((ops.n += work) >= STEP_OPS) { ops.n = 0; yield; } for (const j of jobs) yield* j; })();
+      }
+      return (function* (): Steps<void> {
+        for (let sd = 0; sd < 2; sd++) for (let k = ranges[sd]![0]; k < ranges[sd]![1]; k++) yield* run(lit1(sd, k));
+      })();
     }, undefined, scratch, ops), ops);
   }
   const out: Array<[number, number]> = [];
+  let lit = 0;
   for (let c = 0; c < W; c++) {
-    if (!lit[c]) continue;
-    let e = c;
-    while (e + 1 < W && lit[e + 1]) e++;
-    out.push([c / W, (e + 1) / W]);
-    c = e;
+    const was = lit > 0;
+    lit += diff[c]!;
+    if (lit > 0 && !was) out.push([c / W, 0]);
+    else if (lit <= 0 && was) out[out.length - 1]![1] = c / W;
+    if (++ops.n >= STEP_OPS) { ops.n = 0; yield; }
   }
+  if (lit > 0) out[out.length - 1]![1] = 1;
   return out;
 }
 
@@ -1678,7 +1754,7 @@ export function heldBytes(v: ContactView): number {
   for (const l of [v.tgt, v.aux, v.ep]) n += l.refs.byteLength + l.max.byteLength + l.pre.byteLength;
   for (const t of v.tables) {
     if (!t) continue;
-    n += t.hIdx.byteLength + t.hReach.byteLength;
+    n += t.hIdx.byteLength + t.hReach.byteLength + t.hTool.byteLength + t.hComp.byteLength;
   }
   return n;
 }

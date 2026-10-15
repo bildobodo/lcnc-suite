@@ -334,7 +334,10 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
     const reserve = 4 * v.n;
     console.log(`[R148 VP-I105] targets ${v.n}, held ${(held / 1e6).toFixed(2)} MB + ${(reserve / 1e6).toFixed(2)} MB reserved for B4 (limit 8.4), ` +
                 `build ${ms.toFixed(0)} ms; tables ${([genA, genB, sideA, sideB].reduce((n, s) => n + s.allocatedBytes(), 0) / 1e6).toFixed(1)} MB`);
-    expect(held + reserve).toBeLessThanOrEqual(8_400_000);
+    // + two u32 a gap since Codex R158 (the next tool gap and the end of the
+    // touching gaps' stretch: ownEnd and freeOf by bisection), named in 3.4
+    const perGap = 8 * [genA, genB, sideA, sideB].reduce((n, s) => n + s.gaps.rows, 0);
+    expect(held + reserve).toBeLessThanOrEqual(8_400_000 + perGap);
     expect(genA.allocatedBytes(), "one generation's tables within T = 19.3 MB").toBeLessThanOrEqual(19_300_000);
     expect(v.n).toBe(2 * REQUEST_BUDGET.intervals + 2 * side.intervals);
     // what it answers stays exact at that size: a contact, a gap of its pair, the free stretch after it
@@ -457,6 +460,21 @@ describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
       const cov = 10;
       return { input: { sources: [src(mk(1), { held: [mk(0)], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
     }],
+    // Codex R158 VP-I115 rest A: an undecidable answer suspends a contact,
+    // never ends it — one open contact over its pair's every gap, alone and
+    // as a union of two such generations
+    ...[false, true].map((union): [string, () => { input: Parameters<typeof buildContactViewSteps>[0]; cov: number }] => [
+      `one open contact over the gap budget of undecidable gaps${union ? ", a union of two" : ""} (Codex R158)`, () => {
+        const n = REQUEST_BUDGET.gaps, cov = 4 * n + 1;
+        const mk = (g: number) => {
+          const st = new ContactStore(1, g, REQUEST_BUDGET);
+          const ep = st.episodes.append({ pair: 0, ordinal: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
+          st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 0, exit: NaN, flags: IV_ENTER_DECIDED, next: NONE, witness: 0, freeAt: NaN, freeR: 0 }));
+          for (let i = 0; i < n; i++) st.gaps.append({ pair: 0, start: 4 * i + 1, end: 4 * i + 2, reason: GAP_UNDECIDABLE });
+          return st;
+        };
+        return { input: { sources: [src(mk(1), { ...(union ? { held: [mk(0)], heldCoverage: [cov] } : {}), ownCoverage: cov })], pairName: names, coverage: cov }, cov };
+      }]),
     ["one pair's gaps, both generations", () => {
       const n = 4096, gens = [0, 1].map(g => new ContactStore(1, g, REQUEST_BUDGET));
       gens.forEach((st, g) => {

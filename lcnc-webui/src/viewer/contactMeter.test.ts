@@ -126,6 +126,25 @@ describe("a build's memory is counted where it is made (plan 3.6, Codex R158 VP-
     expect(longest, "a JS array grows with the columns or the pairs only").toBeLessThanOrEqual(2 * cols);
   });
 
+  it("one open contact over its pair's every gap (Codex R158 VP-I115): no buffer grows with the gaps", () => {
+    const n = REQUEST_BUDGET.gaps, end = 4 * n + 1, cols = 1200;
+    const mk = (g: number) => {
+      const st = new ContactStore(1, g, REQUEST_BUDGET);
+      const ep = st.episodes.append({ pair: 0, ordinal: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 0, exit: NaN, flags: IV_ENTER_DECIDED, next: NONE, witness: 0, freeAt: NaN, freeR: 0 }));
+      for (let i = 0; i < n; i++) st.gaps.append({ pair: 0, start: 4 * i + 1, end: 4 * i + 2, reason: GAP_UNDECIDABLE });
+      return st;
+    };
+    for (const union of [false, true]) {
+      const input: ContactViewInput = { sources: [{ stores: [mk(1)], ...(union ? { held: [mk(0)], heldCoverage: [end] } : {}), at: x => x, ownCoverage: end }],
+                                        pairName: names, coverage: end };
+      const m = { bytes: 0 }, job = fullBuild(input, cols, end);
+      const { bytes, longest } = spy(() => { for (;;) { const r = withMeter(m, () => job.next()); if (r.done) return r.value; } });
+      expect(m.bytes).toBe(bytes);
+      expect(longest, "the pieces between the gaps are lit as found, never listed").toBeLessThanOrEqual(2 * cols);
+    }
+  });
+
   it("Codex R158's probe: the view in the making counts while its derived data are built — beside the published one", () => {
     const queue: Array<() => void> = [], track = {}, n = 8192, end = n * 4;
     const st = new ContactStore(1, 0);
