@@ -1,0 +1,69 @@
+{
+  "commit": "bb2214c0",
+  "differential": [
+    {
+      "schema": "episodes",
+      "steps": 7,
+      "rows": 12295,
+      "result": "PASS"
+    },
+    {
+      "schema": "intervals",
+      "steps": 7,
+      "rows": 12295,
+      "result": "PASS"
+    },
+    {
+      "schema": "gaps",
+      "steps": 7,
+      "rows": 12295,
+      "result": "PASS"
+    }
+  ],
+  "budget": [
+    {
+      "schema": "episodes",
+      "result": "PASS: populated table unchanged"
+    },
+    {
+      "schema": "intervals",
+      "result": "PASS: populated table unchanged"
+    },
+    {
+      "schema": "gaps",
+      "result": "PASS: populated table unchanged"
+    }
+  ],
+  "timingsMs": {
+    "append": 2.513502000000017,
+    "allRowUpdates": [
+      88.99872599999992,
+      94.82982600000003,
+      97.7546890000001,
+      95.23193600000013
+    ],
+    "tableUpdates": [
+      {
+        "episodes": 20.377825999999914,
+        "intervals": 74.1476869999999,
+        "gaps": 2.4438310000000456
+      },
+      {
+        "episodes": 20.535546000000068,
+        "intervals": 74.57704899999999,
+        "gaps": 2.641219000000092
+      },
+      {
+        "episodes": 20.932405000000017,
+        "intervals": 75.60324300000002,
+        "gaps": 2.663470999999845
+      }
+    ]
+  },
+  "scope": "Node measurements only; no browser response-time acceptance",
+  "rows": {
+    "episodes": 65536,
+    "intervals": 262144,
+    "gaps": 16384
+  }
+}

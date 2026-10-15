@@ -1,0 +1,16 @@
+{
+  "commit": "bb2214c0",
+  "scope": "Literal plan ordering with real store/view primitives; Form 1 is not implemented",
+  "order": [
+    "P shows one contact; B matches P",
+    "D1 applied only to B; B has two contacts",
+    "publish view(B); retire view(P), catch-up not started",
+    "fallback: B becomes held, acknowledge D1",
+    "old generation drains D2 into held B; B has three contacts",
+    "query displayed view(B) throws tables changed"
+  ],
+  "oldPContacts": 1,
+  "heldBContacts": 3,
+  "displayedQuery": "throws",
+  "conclusion": "The post-publication fallback must keep the displayed buffer immutable and finish catch-up into the other buffer before that buffer takes the drain."
+}

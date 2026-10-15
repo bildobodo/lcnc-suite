@@ -1,0 +1,108 @@
+{
+  "live_head": "ac6a72fb733ac8b1fd45114a05085b3e456415df",
+  "commit": "bb2214c0475a32a33fbac0da5d8865cada2f1682",
+  "inputs": {
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 62650,
+      "sha256": "999a541dc6500d2da3e25b000a94ecc9b45e085fbf3ba088fb375200abe863eb"
+    },
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1697797,
+      "sha256": "5446cdce2333f78a864cf0b9a3ea24ca6a992106fed0c3a6a4c48cc9f58bf84e"
+    },
+    "docs/reviews/viewer-palette-fest.r155.mutations.py": {
+      "bytes": 4384,
+      "sha256": "980fc5ef162c18a0643dad4a34d1054655ad20999888abb5797947603113fb6c"
+    },
+    "docs/reviews/viewer-palette-fest.r155.mutations.txt": {
+      "bytes": 1005,
+      "sha256": "a5cec2dc481cc0068a77622803cc5c5f2795ce282a95d6b4d35d371b12d542ee"
+    },
+    "docs/reviews/viewer-palette-fest.r155.targeted.txt": {
+      "bytes": 56,
+      "sha256": "de854990cc850a2c1191bb72c8171e0692bf3d10894a87c653238bca0abe5bb9"
+    }
+  },
+  "archive_changed_files_match_commit": {
+    "CLAUDE.md": true,
+    "lcnc-webui/src/SimPanel.vue": true,
+    "lcnc-webui/src/viewer/contactStore.test.ts": true,
+    "lcnc-webui/src/viewer/contactStore.ts": true,
+    "lcnc-webui/src/viewer/contactView.ts": true,
+    "lcnc-webui/src/viewer/simWindow.test.ts": true,
+    "lcnc-webui/src/viewer/simWindow.ts": true
+  },
+  "artifacts": {
+    "viewer-palette-fest.r155.codex-apply-probe.mjs": {
+      "bytes": 4083,
+      "sha256": "e790a12d6220633dc6c2c071af8f00ed33bc32bd9f0fee36d2dc7565089624b5"
+    },
+    "viewer-palette-fest.r155.codex-apply-probe.json": {
+      "bytes": 1405,
+      "sha256": "2c1868e5ba603ca64acd1a5f5e5002c5000751d8dac3e90c756600a8c3620a08"
+    },
+    "viewer-palette-fest.r155.codex-apply-probe.txt": {
+      "bytes": 1405,
+      "sha256": "2c1868e5ba603ca64acd1a5f5e5002c5000751d8dac3e90c756600a8c3620a08"
+    },
+    "viewer-palette-fest.r155.codex-browser-apply.mjs": {
+      "bytes": 2593,
+      "sha256": "acc0d5c249fa0caf2e642da0de6d6cb532fc6e568e03e1bc8567e1644c7f419d"
+    },
+    "viewer-palette-fest.r155.codex-browser-apply.json": {
+      "bytes": 898,
+      "sha256": "7042a71fffbc959a9dc933d0fd0af2fc84907029021aaf5f6c6b306a43fb44ce"
+    },
+    "viewer-palette-fest.r155.codex-browser-apply.txt": {
+      "bytes": 898,
+      "sha256": "7042a71fffbc959a9dc933d0fd0af2fc84907029021aaf5f6c6b306a43fb44ce"
+    },
+    "viewer-palette-fest.r155.codex-plan-trace.test.ts": {
+      "bytes": 2477,
+      "sha256": "540d9f53900eab8d2698675a92f77e9b5a58ed580b99f4575d9345bb88667015"
+    },
+    "viewer-palette-fest.r155.codex-plan-trace.json": {
+      "bytes": 696,
+      "sha256": "72c6b4ac35eefb3bfead55792927e0bd0b24ecba15a86d25a9968744c75bb974"
+    },
+    "viewer-palette-fest.r155.codex-plan-trace.txt": {
+      "bytes": 222,
+      "sha256": "7ab159b6b0fc77301533ed12b7217cdc09db2b0472adff6636ee1d116b3ad0c8"
+    },
+    "viewer-palette-fest.r155.codex-targeted.txt": {
+      "bytes": 230,
+      "sha256": "07bfebd0f7b135c7f1d706fc268afe849c80956069727b6d8a9677e45f9a265f"
+    },
+    "viewer-palette-fest.r155.codex-transport.txt": {
+      "bytes": 239,
+      "sha256": "032a0ea982e01f49272f1ca452c8f431b43e1c2beceb2a6978c9f7f5f3d7ab03"
+    },
+    "viewer-palette-fest.r155.codex-vitest.config.ts": {
+      "bytes": 173,
+      "sha256": "f854d5b4a6783f993419c89cce6be794a78d9c9d15c39c68313810e2cd8f3bbd"
+    },
+    "viewer-palette-fest.r155.codex-typecheck.txt": {
+      "bytes": 135,
+      "sha256": "467a1699721dffe33009116f8dcdfc42cffff6782c7c3c23168171975cb47b5e"
+    },
+    "viewer-palette-fest.r155.codex-plan-input.md": {
+      "bytes": 62650,
+      "sha256": "999a541dc6500d2da3e25b000a94ecc9b45e085fbf3ba088fb375200abe863eb"
+    }
+  },
+  "review_prefix_preserved": true,
+  "review_append_bytes": 10031,
+  "repository_tests": {
+    "passed": 92,
+    "worker_tests_not_selected": 26
+  },
+  "additional_plan_trace_passed": 1,
+  "full_gate_rerun": false,
+  "live_endpoints_accessed": false,
+  "browser": "Isolated about:blank page; all page network requests blocked",
+  "verdict": "findings",
+  "findings": [
+    "VP155-01",
+    "VP155-02"
+  ]
+}

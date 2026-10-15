@@ -274,6 +274,79 @@ Die verfeinerten Grenzen eines Laufs sind **kein** Freiraumzertifikat für die S
 
 Der gehaltene erste Kontakt aus Paket 1 (`_colFirstHeld`, `withFirstContact`, `holdsFirst`) wird ein Sonderfall dieser Regel und entfällt als eigener Code. Die gehaltenen Belege und die ID-Zuordnung stehen im Budget (3.4).
 
+### 3.6 Aufbau in Schritten: zwei Tabellenfassungen (Form 1; Codex R152, R154)
+
+**Warum.** Nach dem Listenfenster (4.4, R154) hält die Seite noch lange Aufgaben, gemessen im Browser in Budgetgröße (262 144 Ziele): Ankunft 0,29–0,46 s, nach einem Rückfall bis 1,24 s. In Node, Budget, Vereinigung:
+
+| Phase | Kosten |
+|---|---:|
+| Aufbau | 330–570 ms |
+| Bänder | 250–410 ms |
+| Kollisionsstriche (`posOf` der Stücke) | 85–105 ms |
+| Zählung | bis 13 ms |
+| Delta einspielen | 175 ms, jetzt blockweise 2,7 ms (`bb2214c0`) |
+
+Eine lange Aufgabe hält auch die Handler von Escape und des E-Stop-Knopfs auf; der Herzschlag der Seite läuft im WebSocket-Worker und ist nicht betroffen.
+
+**Zwei Fassungen.**
+- Je Auftrag (Haupt- und Seitenlauf) hält der Viewer die aktuelle Generation zweimal:
+  - **P**, die veröffentlichte: aus ihr liest die gezeigte Ansicht;
+  - **B**, die vorbereitete: aus ihr wird aufgebaut.
+- Die gehaltene Generation (3.5) ist unveränderlich und wird von beiden geteilt.
+
+**Ein Durchgang** (höchstens einer in Arbeit; keine anwachsende Delta-Warteschlange):
+1. Die wartenden Deltas (je Weg höchstens eines, unbestätigt) gehen zu Beginn in **B**.
+2. Der Aufbau liest B unverändert, in Schritten: Ziele samt Sortierung, Gruppenindex, Vereinigung, auch **innerhalb einer großen Gruppe**, Bänder, Striche, Zählung und Startpaare. Die Seite zeigt währenddessen den letzten zusammenpassenden Stand: Navigation, Fenster und Färbung auf P.
+3. **Veröffentlichung in einer Aufgabe:** Ansicht, Tabellenrevision, Bindung an Spur und Auftrag, Abdeckung, Ergebniszustand und Notizen, Bänder, Striche und Zählung gemeinsam.
+   - Jede Abfrage geht über diesen veröffentlichten Stand.
+   - Der vorige Stand wird **tot** gesetzt: Jede Abfrage an ihm wirft (`check`), auch aus einem Vue-Cache, der ihn noch hält (Codex R154, Bedingung 1).
+4. **Erst danach** gehen dieselben Deltas in das alte P (Nachziehen, ein Schritt je Delta). P und B tauschen die Rollen, und erst jetzt gehen die Bestätigungen hinaus, je Auftrag und Generation.
+
+**Abbruch und Wechsel.**
+- **Neuer Auftrag oder ungültige Prüfgrundlage:** Ein laufender Aufbau wird verworfen. Die Tabellen eines Auftrags, den niemand mehr besitzt, gehen samt ihrem Bestätigungsticket; dessen Abbruch ging an den Worker.
+- **Was gezeigt wird, ändert sich, derselbe Auftrag** (andere Spur, ein Seitenlauf kommt dazu oder geht): Der Aufbau beginnt neu aus B. Die Deltas darin bleiben, P zieht bei der nächsten Veröffentlichung nach.
+- **Eine neue Abdeckung allein verwirft nichts.** Jeder Aufbau nimmt die Abdeckung bei seinem Beginn, die nächste kommt mit dem nächsten Durchgang; sonst würde ein Aufbau in Budgetgröße im Takt der Teilstände nie fertig.
+- **Rückfall** (Generationswechsel desselben Auftrags; Codex R154, Bedingung 2): **Der Aufbau wird verworfen, nicht die Belege.**
+  - B mit **jedem** eingespielten Delta, auch einem unveröffentlichten, wird die gehaltene Generation mit ihrer eigenen Abdeckung, nie das zuletzt gezeigte P.
+  - Die neue Generation beginnt in beiden Fassungen leer.
+  - Das alte P bleibt, bis die Vereinigung veröffentlicht ist; dann wird es frei, ebenso eine vorige gehaltene Generation.
+  - Ein Delta der nun gehaltenen Generation (ihr Abfluss, Runde A) wird bestätigt, sobald es in B ist; ein Nachziehen in P entfällt. So blockiert der Abfluss nicht.
+- **Ein später Fertig- oder Fehlerstand** geht mit der nächsten Veröffentlichung hinaus; ein Fehler beendet den Auftrag wie heute.
+
+**Bestätigungstickets** (Codex R154, Bedingung 3):
+- Je Auftrag und Generation höchstens eines je Weg.
+- Es wird erledigt durch das Nachziehen (der Normalfall), durch den Rückfall (das alte Ticket, sobald das Delta in B ist) oder durch das Ende des Auftrags (das Ticket verfällt; der Worker wartet für einen abgebrochenen Auftrag auf nichts).
+- Nie wird dabei ein neues Ticket bestätigt.
+- Gegenproben: eine Unterbrechung vor der Veröffentlichung und eine nach der Veröffentlichung, aber vor dem Nachziehen.
+
+**Schritte.**
+- Arbeitsziel etwa 8–16 ms je Schritt.
+- **50 ms ist die gemessene Obergrenze je Aufgabe im Browser**, kein Takt; darunter bleibt Reserve für Vue, DOM und Eingaben (Codex R154, Bedingung 4).
+- Der ganze Pfad ist eingeschlossen: Einspielen, Aufbau, Sortierung, die große Einzelgruppe, Bänder, Striche, Startpaare, Nachziehen, und am Ende das Rendern der 400 Zeilen und der Striche.
+- In Unit-Tests werden **Operationen je Schritt gezählt**, keine Uhrzeiten.
+
+**Speicher, je gleichzeitig lebendem Besitzer gemessen** (Codex R154, Bedingung 5):
+- **Im Regelfall:** P + B der aktuellen Generation (zusätzlich T + S ≈ 21,7 MB gegenüber 3.4), die geteilte gehaltene, der veröffentlichte und der entstehende Ableitungssatz (zusätzlich bis 10,98 MB), dazu die vorübergehenden Sortier- und Aufbaupuffer, getrennt ausgewiesen.
+- **Beim Rückfall:** altes P, B (jetzt gehalten), die neue aktuelle Generation, die vorige gehaltene bis zur Veröffentlichung, der entstehende Vereinigungsaufbau.
+- Die Ausgangsrechnung ist etwa 174,3 MB (141,6 + 21,7 + 10,98) ohne Aufbaupuffer; gemessen wird jeder Übergang.
+- Die Zeilen-, Strich- und DOM-Objekte der Liste werden als Heap getrennt berichtet.
+
+**Nicht gewählt: ein Aufbau-Worker.**
+- Er hielte die Seite ganz frei, aber:
+  - Ohne `SharedArrayBuffer` gäbe es die gehaltene Generation zweimal (zusätzlich T + S). Über LAN-HTTP fehlt der sichere Kontext dafür.
+  - Übertragene Tabellenpuffer hinterließen auf der Seite tote Speicherobjekte mit noch passender Revision; ein später Leser läse Unsinn (VP-I107 in neuer Form).
+  - Sein bester Grund, das teure Nachziehen, entfällt mit dem blockweisen Einspielen.
+- Er bleibt als Alternative benannt.
+
+**Abnahme 3.6:**
+- Der Aufbau in Schritten ergibt **Feld für Feld** dieselbe Ansicht wie der Aufbau am Stück: auf allen Ansichtstests und den Budgetformen.
+- Die Operationen je Schritt sind begrenzt, auch in einer einzigen großen Gruppe.
+- Eine alte Ansicht, über Veröffentlichung und Nachziehen gehalten, wirft bei jeder Abfrage.
+- Ein Rückfall mit unveröffentlichtem Delta in B: Das Delta steht in der gehaltenen Generation, mit eigener Abdeckung.
+- Die Tickets in beiden Unterbrechungen, wie oben.
+- Im Browser in Budgetgröße, eine Generation und Rückfall: keine Aufgabe über 50 ms. Eine Eingabe zwischen den Phasen wird innerhalb eines Schritts bedient. Ein Abbruch in einer großen Gruppe greift.
+- Speicher je Besitzer und Übergang.
+
 ## 4 · Eine Ableitung für alle Ansichten
 
 Alle Ansichten lesen die Tabellen über **ein** Modul (`viewer/contactView.ts`).
@@ -304,6 +377,7 @@ Alle Ansichten lesen die Tabellen über **ein** Modul (`viewer/contactView.ts`).
 
 - Die Liste zeigt ein **Fenster** von höchstens 400 Zeilen um die gezeigte bzw. nächste Zeile. Davor und danach steht je eine Zeile „N frühere“ / „N spätere“.
 - ‹ › und die Zählung erreichen jedes Ziel; nur die Liste ist begrenzt (R84).
+- **Kollisionsstriche** der Zeitleiste (Codex R154, Antwort 2): einer je belegter Spalte der Leiste, an seinem ersten Ziel, eine Beinahe-Kollision nur, wo jedes Ziel der Spalte eine ist; höchstens min(Ziele, Spalten), die Spalten höchstens `TIMELINE_COLUMNS` = 8192 wie die Bänder. Werkzeug- und Limitstriche getrennt, einer je Ziel. Gehalten in `marks` und als DOM-Knoten; `derivationBound` bleibt, der Heap dieser Objekte wird mit 3.6 gemessen.
 - Fokusführung (R78) und Mitlaufen (R81) gelten für das Fenster. Der Fokus hängt an der **Ereignisidentität** (3.5), nicht an der Quellzeile. Verschiebt sich das Fenster unter einem fokussierten Element, gilt die heutige Regel: dasselbe Ereignis, sonst das an seiner Stelle, sonst der Filter.
 
 ### 4.5 Erster Kontakt (Paket 1)
