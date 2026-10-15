@@ -58,7 +58,7 @@ import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/b
 import { clashTargets } from "./viewer/clashTargets";
 import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
-import { contactBandsSteps, lineMark, lineRuns, runsOf, startTargetsSteps, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
+import { contactBandsSteps, heldBytes, lineMark, lineRuns, retireView, runsOf, startTargetsSteps, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
 import { clashIndexOfView, clashTicksSteps } from "./viewer/simWindow";
 import { shownContactViewSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
 import { findingWords, wordsOfCounts } from "./viewer/sweepWords";
@@ -2988,6 +2988,8 @@ const _contacts: ContactPublisher<ScrubTrack, ShownContacts, ColShown> = new Con
   effect: m => _colOnMessage(m as never),
   stage: () => _colStage(),
   publish: s => { colShown.value = s; contactsVersion.value++; },
+  retire: sv => retireView(sv.view),
+  viewBytes: sv => heldBytes(sv.view),
   ack: a => { _colWorker?.postMessage(a); _contactsLog.acks++; },
   owners: () => _colContactOwners(),
 });

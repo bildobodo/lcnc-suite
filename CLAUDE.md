@@ -2065,11 +2065,26 @@ holds the handlers of Escape and the E-Stop button too (the heartbeat runs in
 the WebSocket worker). Every job is a generator that yields after `STEP_OPS`
 (4096) COUNTED operations — never a time: `runSteps` drives it in slices of
 about 8 ms with a macrotask between, `sortSteps` sorts (stable, natural runs),
-`copySteps` copies a list into a typed array, a target position read through a
-`ClashIndex` counts `POS_OPS` (64: in a union it decodes a piece), and every
-loop over a budget's rows counts — a held table's coverage read at once
+`copySteps` copies a list into a typed array, and every loop counts the work
+it DID, never a flat figure after it: a held table's coverage read at once
 (`provenCoverage`, 16 ms) and the target lists copied at once (20 ms) were
-single steps in the browser. The publisher holds each request's current
+single steps in the browser, and Codex R157 VP-I115 found more — a coarse held
+contact over a rerun's every contact was gathered as one component at once
+(792 248 scratch reads between two yields): the union walk now scans at most
+`SCAN` (64) intervals a call between its counts, writes a piece's ranges in
+steps, and a piece's callback may be a job (`PieceEach`; a piece of more than
+`SMALL_PIECE` (64) candidate intervals is described and banded in steps —
+`describePieceSteps`, `pieceIntervalsSteps`); one pair's gaps merge in steps
+(`mergeSepsSteps`), the gap index, the joins and the near-miss list sort and
+copy in steps. A QUERY on a union piece decodes the piece (`pieceFrom` from its
+start evidence), so the steps that ask positions — the start pairs, the
+timeline marks (`ClashIndex.work`) — count what each query read (`viewWork`,
+every cell `rd` reads), and a view keeps its last decoded piece (repeated
+questions of one piece are free). Named: one query is one decode, unsplittable,
+and `pieceFrom`'s search for the piece's end runs to the zone's next free
+stretch — linear in the intervals up to it; real sweeps give nearly every
+interval its separation's free sample, the runs without one are bounded by the
+gaps' budget (16 384: a decode ~2.5 ms in Node there). The publisher holds each request's current
 generation in TWO copies — `pub`, which the published views read and nothing
 writes, and `work` — and the held generation shared. A PASS: 1 takes the
 messages received so far in arrival order, each one's deltas into `work` in
@@ -2086,8 +2101,17 @@ that is not published takes the drain (acknowledged as each delta lands) and is
 held from the new generation's first delta; `pub` stays shown until the union
 is published. Every ticket closes once (the catch-up, the fallback's
 transition, or a request let go — whose tables, queue, tickets and views go).
-`viewOf` is a PURE read of the last publication (a request without tables yet
-— nothing found so far — reads as one). A pass never discards itself: the
+A discarded build (a fallback, a request let go) stops at its NEXT step and is
+closed, and a let-go request's delta stops going in at its next step too — it
+used to run to its end (Codex R157 VP-I116). A view's life ends at the
+publication that replaces it or with its request: `retire` → `retireView`, and
+every query of a retired view throws (`check`), even over unchanged tables
+(VP-I117). `viewOf` is a PURE read of the last publication (a request without
+tables yet — nothing found so far — reads as one). `stats()` counts every live
+store ONCE — the published, work and held copies and the tables only a still
+published view reads (`byOwner.shown`: the old generation's published copy
+until the union replaces it, VP-I118) — and the views' own bytes
+(`views.published` / `.building`, `heldBytes`). A pass never discards itself: the
 viewer's stage watcher (`_colOnStageChange`) does nothing while a pass takes or
 builds — its publication stages the state then — and the code panel's marks
 and the tint follow the publication alone (the `contactsVersion` watcher), so
@@ -2117,11 +2141,15 @@ long tasks (64–88 ms, compositor commits under software GL) occur with no
 contact tables at all — outside 3.6; the browser-PC measurement is owed. Tests:
 `contactPublisher.test.ts` (the phases, both copies, a fallback in every phase,
 tickets, release, no self-discard, a spec changed under the build, the
-transport's rules and owners carried over from the removed `contactsReceiver`),
+transport's rules and owners carried over from the removed `contactsReceiver`,
+Codex R157's lifecycle, cancel and memory probes as guards),
 `checkWiring.test.ts` (the worker handler through the real publisher,
 `_colOnStageChange`, the cancel), `steps.test.ts`, `contactView.test.ts` and
-`simWindow.test.ts` (table reads and position reads per step, no list copied
-at once), `stickyHead.test.ts`, `scrollFade.test.ts`, `glyphMarkup.test.ts`,
+`simWindow.test.ts` (every table cell read per step — the direct block reads
+too — on five edge shapes: the build and the bands within the step's share, the
+start pairs and the marks within it and one search; no list sorted or copied at
+once), `contactUnion.test.ts` (Codex R157's component probe, a piece over every
+part, a zone that skips every interval), `stickyHead.test.ts`, `scrollFade.test.ts`, `glyphMarkup.test.ts`,
 `contactStore.test.ts`.
 
 ## Key Patterns

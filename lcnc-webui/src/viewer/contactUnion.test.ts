@@ -5,7 +5,7 @@ import {
   eachPiece, eachPieceSteps, eachWideConflict, evidencePos, evidenceZone, mergeSeps, NO_SEPARATORS, pieceFrom, pieceIntervals, PROTECT, sepArray, START_ENTER, START_FREE,
   START_SEP, unionScratch, unionReach, type UnionPiece, type UnionSeps, type UnionSide,
 } from "./contactUnion";
-import { STEP_OPS } from "./steps";
+import { STEP_OPS, runToEnd } from "./steps";
 
 interface Iv {
   enter: number; end: number; open?: boolean; witness?: number; ed?: boolean; xd?: boolean; freeAt?: number; freeR?: number;
@@ -435,4 +435,52 @@ describe("the walk of ONE group in bounded steps (plan 3.6: a request whose ever
     expect(most, "pieces between two yields").toBeLessThanOrEqual(STEP_OPS / 8);
     expect(yields, "a yield every few hundred pieces, and in the reading passes").toBeGreaterThan(stepped.length / (STEP_OPS / 8));
   });
+});
+
+// Codex R157 VP-I115, kept as the guard: one coarse held contact over a finer
+// rerun — disjoint current contacts, a proven free sample after every one, no
+// contradiction — is ONE component of every part; it was gathered at once
+// (792 248 scratch reads between two yields at the budget). The reads of the
+// walk's own scratch counted, nothing slowed down or changed.
+describe("a component of every part, in bounded steps (Codex R157 VP-I115)", () => {
+  it.each([[20_000, true], [262_144, true], [20_000, false]])("the scratch reads between two yields stay bounded (n = %i, free samples: %s)", (n, free) => {
+    const held: UnionSide = { n: 1, enter: () => 0, end: () => 4 * n, open: () => false, witness: () => 0.5,
+      enterDecided: () => false, exitDecided: () => false, afterTool: () => false, freeAt: () => NaN, freeR: () => NaN, back: 0, front: 0 };
+    const cur: UnionSide = { n, enter: k => 4 * k, end: k => 4 * k + 1, open: () => false, witness: k => 4 * k + 0.5,
+      enterDecided: () => true, exitDecided: () => free, afterTool: () => false, freeAt: k => (free ? 4 * k + 2 : NaN), freeR: () => (free ? 0.25 : NaN),
+      back: 0, front: 0 };
+    const scratch = unionScratch();
+    runToEnd(eachPieceSteps([held, cur], NO_SEPARATORS, () => {}, undefined, scratch));   // the scratch, grown
+    let reads = 0, most = 0, pieces = 0;
+    for (const x of scratch.sides) for (const key of ["enter", "end"] as const) {
+      x[key] = new Proxy(x[key], { get(t, p) { if (typeof p === "string" && /^\d+$/.test(p)) reads++; return Reflect.get(t, p, t); } });
+    }
+    const job = eachPieceSteps([held, cur], NO_SEPARATORS, () => { pieces++; }, undefined, scratch);
+    for (;;) { reads = 0; const r = job.next(); most = Math.max(most, reads); if (r.done) break; }
+    // with the free samples more pieces than contacts, else ONE piece over every part
+    if (free) expect(pieces).toBeGreaterThan(n); else expect(pieces).toBe(1);
+    expect(most, "scratch reads in one step").toBeLessThanOrEqual(4 * STEP_OPS);
+  }, 120_000);
+});
+
+// The skip of intervals without a part in the zone is the walk's work too:
+// intervals ending exactly where a separator ends have no part in the zone
+// after it (a part at a zone's bound with length elsewhere belongs where its
+// interval goes on) — every one looked at, none a piece (Codex R157 VP-I115).
+describe("intervals skipped in a zone, in bounded steps (Codex R157 VP-I115)", () => {
+  it("the scratch reads between two yields stay bounded while a zone skips every interval", () => {
+    const n = 100_000;
+    const seps: UnionSeps = { count: 1, s: () => 5, e: () => 10 };
+    const cur: UnionSide = { n, enter: k => 6 + k * 1e-6, end: () => 10, open: () => false, witness: k => 6 + k * 1e-6,
+      enterDecided: () => true, exitDecided: () => true, afterTool: () => false, freeAt: () => NaN, freeR: () => NaN, back: 0, front: 0 };
+    const scratch = unionScratch();
+    runToEnd(eachPieceSteps([null as never, cur], seps, () => {}, undefined, scratch));
+    let reads = 0, most = 0;
+    for (const x of scratch.sides) for (const key of ["enter", "end"] as const) {
+      x[key] = new Proxy(x[key], { get(t, p) { if (typeof p === "string" && /^\d+$/.test(p)) reads++; return Reflect.get(t, p, t); } });
+    }
+    const job = eachPieceSteps([null as never, cur], seps, () => {}, undefined, scratch);
+    for (;;) { reads = 0; const r = job.next(); most = Math.max(most, reads); if (r.done) break; }
+    expect(most, "scratch reads in one step").toBeLessThanOrEqual(4 * STEP_OPS);
+  }, 120_000);
 });

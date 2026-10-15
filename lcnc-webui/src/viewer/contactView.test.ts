@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_POSSIBLE,
-  NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
+  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_CONTINUES_CUT, IV_ENDED_AT_GAP,
+  IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
 } from "./contactStore";
 import {
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
@@ -9,7 +9,8 @@ import {
   startTargets, targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
   buildContactViewSteps, contactBandsSteps, startTargetsSteps, viewCountsSteps,
 } from "./contactView";
-import { STEP_OPS, type Steps } from "./steps";
+import { STEP_OPS, runToEnd, type Steps } from "./steps";
+import { clashIndexOfView, clashTicksSteps } from "./simWindow";
 import { findingWords } from "./sweepWords";
 
 interface Ep { pair: number; flags?: number; onset?: number; end?: number; close?: [number, number]; ivs?: Array<[number, number, number?]> }
@@ -390,42 +391,146 @@ describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
     expect([once.n, Array.from(once.tgt.refs)]).toEqual([b.value.n, Array.from(b.value.tgt.refs)]);
   });
   // Plan 3.6: the work of every STEP is bounded, not only the number of steps
-  // — counted, never timed: the table reads between two yields, and no list
-  // copied into a typed array at once. A held generation's coverage read all
-  // its rows in the build's first step, and the target lists were copied at
-  // once — 16 and 20 ms steps in the browser at the budget.
-  it("every step of the build, held generations and all, reads a bounded number of rows and copies no list at once", () => {
-    const mk = (g: number, shift: number) => store(Array.from({ length: 2048 }, (_, e) => ({ pair: e % 7,
-      ivs: [0, 1, 2, 3].map(k => [12 * e + 3 * k + shift, 12 * e + 3 * k + shift + 1] as [number, number]) })), [], g);
-    const held = mk(0, 0), cur = mk(1, 1.5);
-    const cov = 12 * 2048 + 5;
-    const input = { sources: [src(cur, { held: [held], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov };
-    const proto = ColumnTable.prototype as unknown as { get: (...a: unknown[]) => number };
-    const get = proto.get;
-    const froms = [Float64Array.from, Uint32Array.from] as const;
-    let reads = 0, worst = 0, copied = 0;
-    proto.get = function (...a: unknown[]) { reads++; return get.apply(this, a); };
-    for (const T of [Float64Array, Uint32Array]) {
-      const from = T.from;
-      (T as unknown as { from: unknown }).from = function (src: ArrayLike<number>, ...rest: unknown[]) {
-        copied = Math.max(copied, (src as ArrayLike<number>).length ?? 0);
-        return (from as (...x: unknown[]) => unknown).call(this, src, ...rest);
+  // — counted, never timed: every table cell read between two yields (the
+  // build's direct block reads too), and no list sorted or copied at once. A
+  // held generation's coverage read all its rows in the build's first step,
+  // the target lists were copied at once (16 and 20 ms in the browser); a
+  // coarse held contact over a rerun's every contact was gathered at once, a
+  // piece's intervals described at once, one pair's gaps sorted at once
+  // (Codex R157 VP-I115).
+  const D = IV_ENTER_DECIDED | IV_EXIT_DECIDED;
+  const shapes: Array<[string, () => { input: Parameters<typeof buildContactViewSteps>[0]; cov: number }]> = [
+    ["many pairs, both generations, every contact with its separation's free sample", () => {
+      const mk = (g: number, shift: number) => {
+        const st = new ContactStore(1, g, REQUEST_BUDGET);
+        for (let e = 0; e < 2048; e++) {
+          const ep = st.episodes.append({ pair: e % 7, ordinal: Math.floor(e / 7), onset: 12 * e + shift, end: 12 * e + 10 + shift, closeAt: 12 * e + shift,
+            closeDist: 0, firstIv: NONE, ivCount: 4 });
+          let last = -1;
+          for (let k = 0; k < 4; k++) {
+            const a = 12 * e + 3 * k + shift;
+            const iv = st.intervals.append({ episode: ep, enter: a, exit: a + 1, flags: D, next: NONE, witness: a + 0.5, freeAt: a + 1.25, freeR: 0.2 });
+            if (last < 0) st.episodes.set(ep, "firstIv", iv); else st.intervals.set(last, "next", iv);
+            last = iv;
+          }
+        }
+        return st;
       };
-    }
-    try {
-      const job = buildContactViewSteps(input);
-      for (;;) {
-        reads = 0;
-        const r = job.next();
-        worst = Math.max(worst, reads);
-        if (r.done) break;
+      const cov = 12 * 2048 + 5;
+      return { input: { sources: [src(mk(1, 1.5), { held: [mk(0, 0)], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
+    }],
+    ["a coarse held contact over a rerun's every contact (Codex R157)", () => {
+      const n = 16384, held = new ContactStore(1, 0, REQUEST_BUDGET), cur = new ContactStore(1, 1, REQUEST_BUDGET);
+      const e0 = held.episodes.append({ pair: 0, ordinal: 0, onset: 0, end: 4 * n, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      held.episodes.set(e0, "firstIv", held.intervals.append({ episode: e0, enter: 0, exit: 4 * n, flags: D, next: NONE, witness: 0.5, freeAt: NaN, freeR: 0 }));
+      for (let k = 0; k < n; k++) {
+        const e = cur.episodes.append({ pair: 0, ordinal: k, onset: 4 * k, end: 4 * k + 1, closeAt: 4 * k, closeDist: 0, firstIv: NONE, ivCount: 1 });
+        cur.episodes.set(e, "firstIv", cur.intervals.append({ episode: e, enter: 4 * k, exit: 4 * k + 1, flags: D, next: NONE, witness: 4 * k + 0.5, freeAt: 4 * k + 2, freeR: 0.25 }));
       }
-    } finally {
-      proto.get = get;
-      Float64Array.from = froms[0]; Uint32Array.from = froms[1];
-    }
-    expect(worst, "table reads in one step").toBeLessThanOrEqual(4 * STEP_OPS);
-    expect(copied, "the longest list copied into a typed array at once").toBeLessThanOrEqual(STEP_OPS);
-  });
+      const cov = 4 * n + 5;
+      return { input: { sources: [src(cur, { held: [held], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
+    }],
+    ["one piece of the gaps' budget of contacts ended at gaps", () => {
+      const n = 4096, held = new ContactStore(1, 0, REQUEST_BUDGET), cur = new ContactStore(1, 1, REQUEST_BUDGET);
+      const e0 = held.episodes.append({ pair: 0, ordinal: 0, onset: 0, end: 4 * n + 8, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      held.episodes.set(e0, "firstIv", held.intervals.append({ episode: e0, enter: 0, exit: 4 * n + 8, flags: D, next: NONE, witness: 0.5, freeAt: NaN, freeR: 0 }));
+      for (let k = 0; k < n; k++) {
+        const e = cur.episodes.append({ pair: 0, ordinal: k, onset: 4 * k, end: 4 * k + 1, closeAt: 4 * k, closeDist: 0, firstIv: NONE, ivCount: 1 });
+        cur.episodes.set(e, "firstIv", cur.intervals.append({ episode: e, enter: 4 * k, exit: 4 * k + 1, flags: IV_ENTER_DECIDED | IV_ENDED_AT_GAP, next: NONE,
+          witness: 4 * k + 0.5, freeAt: NaN, freeR: 0 }));
+        cur.gaps.append({ pair: 0, start: 4 * k + 1, end: 4 * k + 2, reason: GAP_UNDECIDABLE });
+      }
+      const cov = 4 * n + 13;
+      return { input: { sources: [src(cur, { held: [held], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
+    }],
+    ["every pair starting at one point, both generations alike (the start pairs ask each)", () => {
+      const mk = (g: number) => {
+        const st = new ContactStore(1, g, REQUEST_BUDGET);
+        for (let e = 0; e < 4096; e++) {
+          const ep = st.episodes.append({ pair: e, ordinal: 0, onset: 0, end: 3, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 2 });
+          const a = st.intervals.append({ episode: ep, enter: 0, exit: 1, flags: D, next: NONE, witness: 0.5, freeAt: 1.5, freeR: 0.2 });
+          const b = st.intervals.append({ episode: ep, enter: 2, exit: 3, flags: D, next: NONE, witness: 2.5, freeAt: 3.5, freeR: 0.2 });
+          st.episodes.set(ep, "firstIv", a); st.intervals.set(a, "next", b);
+        }
+        return st;
+      };
+      const cov = 10;
+      return { input: { sources: [src(mk(1), { held: [mk(0)], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
+    }],
+    ["one pair's gaps, both generations", () => {
+      const n = 4096, gens = [0, 1].map(g => new ContactStore(1, g, REQUEST_BUDGET));
+      gens.forEach((st, g) => {
+        for (let k = 0; k < n; k++) {
+          st.gaps.append({ pair: 0, start: 10 * k + 5 + g / 2, end: 10 * k + 6 + g / 2, reason: GAP_TOOL_UNKNOWN });
+          const e = st.episodes.append({ pair: 0, ordinal: k, onset: 10 * k + 1, end: 10 * k + 2, closeAt: 10 * k + 1, closeDist: 0, firstIv: NONE, ivCount: 1 });
+          st.episodes.set(e, "firstIv", st.intervals.append({ episode: e, enter: 10 * k + 1, exit: 10 * k + 2, flags: D, next: NONE, witness: 10 * k + 1.5, freeAt: NaN, freeR: 0 }));
+        }
+      });
+      const cov = 10 * n + 5;
+      return { input: { sources: [src(gens[1]!, { held: [gens[0]!], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
+    }],
+  ];
+  for (const [name, make] of shapes) {
+    it(`every step reads a bounded number of table cells, sorts and copies no list at once — ${name}`, () => {
+      const { input, cov } = make();
+      const proto = ColumnTable.prototype as unknown as { get: (...a: unknown[]) => number; blocksOf: (n: string) => ArrayLike<number>[] };
+      const get = proto.get, blocksOf = proto.blocksOf;
+      let reads = 0, sorted = 0, copied = 0;
+      const counted = new WeakMap<object, object>();
+      const cell = <A extends object>(a: A): A => {
+        let w = counted.get(a) as A | undefined;
+        if (!w) counted.set(a, w = new Proxy(a, { get(t, k) { if (typeof k === "string" && /^\d+$/.test(k)) reads++; return Reflect.get(t, k, t); } }));
+        return w;
+      };
+      proto.get = function (...a: unknown[]) { reads++; return get.apply(this, a); };
+      proto.blocksOf = function (n: string) {
+        const blocks = blocksOf.call(this, n) as object[];
+        return new Proxy(blocks, { get(t, k) { const x = Reflect.get(t, k, t); return typeof k === "string" && /^\d+$/.test(k) && x ? cell(x as object) : x; } }) as never;
+      };
+      const restore: Array<() => void> = [];
+      for (const P of [Array.prototype, Float64Array.prototype, Uint32Array.prototype, Int32Array.prototype] as Array<{ sort: (...a: unknown[]) => unknown }>) {
+        const o = P.sort;
+        P.sort = function (this: { length: number }, ...a: unknown[]) { sorted = Math.max(sorted, this.length); return o.apply(this, a); };
+        restore.push(() => { P.sort = o; });
+      }
+      for (const T of [Float64Array, Uint32Array, Int32Array] as unknown as Array<{ from: (...a: unknown[]) => unknown }>) {
+        const o = T.from;
+        T.from = function (src: unknown, ...r: unknown[]) { copied = Math.max(copied, (src as { length?: number })?.length ?? 0); return o.call(this, src, ...r); };
+        restore.push(() => { T.from = o; });
+      }
+      let worst = 0, worstQueries = 0, oneQuery = 0;
+      let fresh: ContactView | undefined;
+      const drive = <R,>(job: Steps<R>, queries = false): R => {
+        for (;;) {
+          reads = 0;
+          const r = job.next();
+          if (queries) worstQueries = Math.max(worstQueries, reads); else worst = Math.max(worst, reads);
+          if (r.done) return r.value;
+        }
+      };
+      try {
+        // the build and the bands ask no query: the step's share alone
+        const v = drive(buildContactViewSteps(input));
+        drive(contactBandsSteps(v, 1200, cov));
+        // the start pairs and the marks ask positions: one search past it at most
+        drive(startTargetsSteps(v), true);
+        drive(clashTicksSteps(clashIndexOfView(v, () => 1), 1200, cov), true);
+        // one query cannot be split: the most one target's position and kind
+        // read (a union piece decodes its piece — linear in its intervals)
+        // (a fresh view: the build's queries left a piece decoded in the first)
+        fresh = runToEnd(buildContactViewSteps(input));
+        for (let i = 0; i < fresh.n; i++) { reads = 0; targetPos(fresh, i); targetKind(fresh, i); oneQuery = Math.max(oneQuery, reads); }
+      } finally {
+        proto.get = get; proto.blocksOf = blocksOf;
+        for (const r of restore) r();
+      }
+      // a binary search over the targets is one query of up to log2(n) + 1 positions
+      const search = (Math.ceil(Math.log2(fresh!.n + 1)) + 1) * oneQuery;
+      expect(worst, "table cells read in one step of the build or the bands").toBeLessThanOrEqual(4 * STEP_OPS);
+      expect(worstQueries, "in one step of the start pairs or the marks: the share and at most one search past it").toBeLessThanOrEqual(4 * STEP_OPS + search);
+      expect(sorted, "the longest list sorted natively at once").toBeLessThanOrEqual(64);
+      expect(copied, "the longest list copied into a typed array at once").toBeLessThanOrEqual(STEP_OPS);
+    }, 120_000);   // every cell read through a counting proxy: slow on purpose
+  }
 
 });

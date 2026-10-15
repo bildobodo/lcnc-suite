@@ -55,7 +55,7 @@
 // confirmed points lie in [its enter, the next one's enter); its free sample
 // lies after its own confirmed points and before the next interval's enter.
 
-import { STEP_OPS, runToEnd, sortSteps, type Steps } from "./steps";
+import { STEP_OPS, copySteps, runToEnd, sortSteps, type Steps } from "./steps";
 
 /** A job's operations since its last yield (plan 3.6). */
 export interface Ops { n: number }
@@ -145,17 +145,30 @@ export const freeRadius = (r: number) => (r > 0 ? r : 0);
  *  `first[i]` / `last[i]`: the gaps separator i starts and ends with, as
  *  indices into the generations' spans one after the other (the first such). */
 export function mergeSeps(gens: ReadonlyArray<ArrayLike<number>>): { seps: Float64Array; first: Int32Array; last: Int32Array } {
+  return runToEnd(mergeSepsSteps(gens, { n: 0 }));
+}
+/** mergeSeps in bounded steps: one pair may hold a request's every gap
+ *  (Codex R157 VP-I115). `c` counts the work since the caller's last yield. */
+export function* mergeSepsSteps(gens: ReadonlyArray<ArrayLike<number>>, c: Ops): Steps<{ seps: Float64Array; first: Int32Array; last: Int32Array }> {
   let base = 0;
-  const lists = gens.map(g => {
+  const lists: Array<Array<{ s: number; e: number; k: number }>> = [];
+  for (const g of gens) {
     const n = g.length >> 1, out: Array<{ s: number; e: number; k: number }> = [];
-    for (let i = 0; i < n; i++) out.push({ s: g[2 * i]!, e: Math.max(g[2 * i]!, g[2 * i + 1]!), k: base + i });
+    for (let i = 0; i < n; i++) {
+      out.push({ s: g[2 * i]!, e: Math.max(g[2 * i]!, g[2 * i + 1]!), k: base + i });
+      if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+    }
     base += n;
-    return out.sort((x, y) => x.s - y.s || x.e - y.e || x.k - y.k);
-  });
+    // by start, end, input order — every key differs by k: the order is total
+    const ord = yield* sortSteps(out.length, (x, y) => out[x]!.s - out[y]!.s || out[x]!.e - out[y]!.e || out[x]!.k - out[y]!.k);
+    const sorted = new Array<{ s: number; e: number; k: number }>(out.length);
+    for (let i = 0; i < out.length; i++) { sorted[i] = out[ord[i]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+    lists.push(sorted);
+  }
   const ptr = lists.map(() => 0), head = (i: number) => lists[i]![ptr[i]!];
   // overlap with positive length, or a point strictly inside the other
-  const overlaps = (c: { s: number; e: number }, S: number, E: number) =>
-    Math.max(c.s, S) < Math.min(c.e, E) || (c.s === c.e && S < c.s && c.s < E) || (S === E && c.s < S && S < c.e);
+  const overlaps = (h: { s: number; e: number }, S: number, E: number) =>
+    Math.max(h.s, S) < Math.min(h.e, E) || (h.s === h.e && S < h.s && h.s < E) || (S === E && h.s < S && S < h.e);
   const out: number[] = [], first: number[] = [], last: number[] = [];
   for (;;) {
     let li = -1;
@@ -168,24 +181,27 @@ export function mergeSeps(gens: ReadonlyArray<ArrayLike<number>>): { seps: Float
     ptr[li]!++;
     let S = h.s, E = h.e, f = h.k, l = h.k;
     const take = (i: number) => {
-      const c = head(i)!;
+      const t = head(i)!;
       ptr[i]!++;
-      if (c.s < S) { S = c.s; f = c.k; }
-      if (c.e > E || (c.e === E && c.k < l)) { if (c.e > E) E = c.e; l = c.k; }
+      if (t.s < S) { S = t.s; f = t.k; }
+      if (t.e > E || (t.e === E && t.k < l)) { if (t.e > E) E = t.e; l = t.k; }
     };
     // the same gap in another generation
     for (let i = 0; i < lists.length; i++) {
-      const c = head(i);
-      if (i !== li && c && ((c.s === S && c.e === E) || overlaps(c, S, E))) take(i);
+      const t = head(i);
+      if (i !== li && t && ((t.s === S && t.e === E) || overlaps(t, S, E))) take(i);
     }
-    // tables that disagree: whatever overlaps it joins it
+    // tables that disagree: whatever overlaps it joins it (each round takes one)
     for (let again = true; again;) {
       again = false;
-      for (let i = 0; i < lists.length; i++) { const c = head(i); if (c && overlaps(c, S, E)) { take(i); again = true; } }
+      for (let i = 0; i < lists.length; i++) { const t = head(i); if (t && overlaps(t, S, E)) { take(i); again = true; } }
+      if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
     }
     out.push(S, E); first.push(f); last.push(l);
+    if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
   }
-  return { seps: Float64Array.from(out), first: Int32Array.from(first), last: Int32Array.from(last) };
+  return { seps: yield* copySteps(new Float64Array(out.length), out, c), first: yield* copySteps(new Int32Array(first.length), first, c),
+           last: yield* copySteps(new Int32Array(last.length), last, c) };
 }
 
 const zoneLo = (seps: UnionSeps, z: number) => (z === 0 ? -Infinity : seps.e(z - 1));
@@ -514,6 +530,19 @@ export function pieceIntervals(sides: readonly UnionSide[], seps: UnionSeps, p: 
     }
   }
 }
+/** pieceIntervals in bounded steps: a piece may hold a group's every interval
+ *  (Codex R157 VP-I115). `c` counts the work since the caller's last yield. */
+export function* pieceIntervalsSteps(sides: readonly UnionSide[], seps: UnionSeps, p: UnionPiece,
+                                     each: (side: number, k: number, holdsStart: boolean) => void, c: Ops): Steps<void> {
+  for (let si = 0; si < sides.length; si++) {
+    const s = sides[si]!, from = si === 0 ? p.from0 : p.from1, to = si === 0 ? p.to0 : p.to1;
+    for (let k = from; k < to; k++) {
+      const iv = partFrom(s, k, seps, p.zone, p.start, !p.startOpen, TMP);
+      each(si, k, !!iv && iv.a === p.start && iv.ao === p.startOpen);
+      if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
+    }
+  }
+}
 
 // ---- the build: one walk per group ------------------------------------------------------------------
 
@@ -569,11 +598,13 @@ function* readPointZones(x: SideScratch, seps: UnionSeps, c: Ops): Steps<void> {
   x.pz = x.pz.length >= x.n ? x.pz : new Int32Array(Math.max(x.n, 2 * x.pz.length));
   if (!seps.count) return;
   let prev = 0;
+  // an interval's zone: a bisection or two over the separators (each probe a gap read)
+  const zone = 4 + 8 * Math.ceil(Math.log2(seps.count + 1));
   for (let k = 0; k < x.n; k++) {
     const a = x.enter[k]!, b = x.end[k]!;
     if (a === b) { prev = pointZoneAt(seps, a, (x.flags[k]! & F_AFTER) !== 0, prev); x.pz[k] = prev; }
     else prev = endZone(seps, b);
-    if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
+    if ((c.n += zone) >= STEP_OPS) { c.n = 0; yield; }
   }
 }
 
@@ -643,10 +674,15 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
     // the structure is broken: order by start for the union, by end for the evidence
     // (stable, in steps: ties keep their index order, as the engine's sort did)
     const ord = yield* sortSteps(fn, (a, b) => x.fLo[a]! - x.fLo[b]! || x.fPt[b]! - x.fPt[a]!);
-    const lo = Float64Array.from(ord, i => x.fLo[i]!), hi = Float64Array.from(ord, i => x.fHi[i]!);
-    const pt = Uint8Array.from(ord, i => x.fPt[i]!), jj = Int32Array.from(ord, i => x.fJ[i]!);
+    const lo = new Float64Array(fn), hi = new Float64Array(fn), pt = new Uint8Array(fn), jj = new Int32Array(fn);
+    for (let k = 0; k < fn; k++) {
+      const i = ord[k]!;
+      lo[k] = x.fLo[i]!; hi[k] = x.fHi[i]!; pt[k] = x.fPt[i]!; jj[k] = x.fJ[i]!;
+      if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
+    }
     x.fLo.set(lo); x.fHi.set(hi); x.fPt.set(pt); x.fJ.set(jj);
-    x.fByHi = Int32Array.from(yield* sortSteps(fn, (a, b) => x.fHi[a]! - x.fHi[b]! || x.fJ[a]! - x.fJ[b]!));
+    const byHi = yield* sortSteps(fn, (a, b) => x.fHi[a]! - x.fHi[b]! || x.fJ[a]! - x.fJ[b]!);
+    x.fByHi = yield* copySteps(new Int32Array(fn), byHi, c);
   }
 }
 
@@ -725,10 +761,17 @@ export function eachPiece(sides: readonly UnionSide[], seps: UnionSeps, each: (p
                           conflict?: (x: number) => void, scratch: UnionScratch = unionScratch()): void {
   runToEnd(eachPieceSteps(sides, seps, each, conflict, scratch));
 }
-/** eachPiece in bounded steps (plan 3.6): it yields inside a group too — one
- *  group may hold a request's every interval. `c` counts the work since the
- *  caller's last yield; `each` reports its own work as a number. */
-export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, each: (p: UnionPiece) => number | void,
+/** Intervals the walk looks at between two counts of its work. */
+const SCAN = 64;
+/** A piece's callback: its work as a number, or a job of bounded steps that
+ *  counts its own work (a piece may hold a group's every interval — a number
+ *  added after the work bounded nothing, Codex R157 VP-I115). */
+export type PieceEach = (p: UnionPiece) => number | void | Steps<void>;
+/** eachPiece in bounded steps (plan 3.6): it yields inside a group, inside a
+ *  component and inside a piece too — one group may hold a request's every
+ *  interval, one component every part of it. `c` counts the work since the
+ *  caller's last yield. */
+export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, each: PieceEach,
                                 conflict?: (x: number) => void, scratch: UnionScratch = unionScratch(), c: Ops = { n: 0 }): Steps<void> {
   const xs = scratch.sides;
   for (let si = 0; si < 2; si++) {
@@ -753,16 +796,25 @@ export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, ea
       while (kz[si]! < x.n && x.end[kz[si]!]! < lo) { kz[si]!++; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
       pk[si] = kz[si]!;
     }
-    const nextPart = (si: number): Span | null => {
+    // the next part of a side in the zone from pk[si] on, at most SCAN
+    // intervals looked at a call: false — not found yet. The walk counts each
+    // call and yields between them (Codex R157 VP-I115: a component's parts
+    // were gathered at once — a coarse held contact over a finer rerun's
+    // every contact); no generator a part on the common path
+    const scan = (si: number): boolean => {
       const x = xs[si]!;
-      while (pk[si]! < x.n && x.enter[pk[si]!]! <= hi) {
+      for (let m = 0; m < SCAN; m++) {
+        if (!(pk[si]! < x.n && x.enter[pk[si]!]! <= hi)) { parts[si] = null; return true; }
         const p = partX(x, pk[si]!, seps, z, own[si]!, lo, hi);
-        if (p) return p;
+        if (p) { parts[si] = p; return true; }
         pk[si]!++;
       }
-      return null;
+      return false;
     };
-    parts[0] = nextPart(0); parts[1] = nextPart(1);
+    for (let si = 0; si < 2; si++) {
+      while (!scan(si)) if ((c.n += 2 * SCAN) >= STEP_OPS) { c.n = 0; yield; }
+      if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+    }
     // for the ranges: the first part of each side that may meet the next piece
     const rp = [pk[0]!, pk[1]!];
     // the union's components: closed spans of parts that share points
@@ -775,29 +827,31 @@ export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, ea
       const ca = first.a;
       let cb = first.b;
       // advance the taken part, then absorb every part starting within the component
-      const adv = (si: number) => { pk[si]!++; parts[si] = nextPart(si); };
-      adv(take0 ? 0 : 1);
+      let si = take0 ? 0 : 1;
       for (;;) {
+        pk[si]!++;
+        while (!scan(si)) if ((c.n += 2 * SCAN) >= STEP_OPS) { c.n = 0; yield; }
+        if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
         const n0 = parts[0], n1 = parts[1];
-        if (n0 && n0.a <= cb) { if (n0.b > cb) cb = n0.b; adv(0); continue; }
-        if (n1 && n1.a <= cb) { if (n1.b > cb) cb = n1.b; adv(1); continue; }
-        break;
+        if (n0 && n0.a <= cb) { if (n0.b > cb) cb = n0.b; si = 0; }
+        else if (n1 && n1.a <= cb) { if (n1.b > cb) cb = n1.b; si = 1; }
+        else break;
       }
       // the component [ca, cb] less the free stretches: its pieces
-      while (fp < fm && (fHi[fp]! < ca || (fHi[fp] === ca && fHiOpen[fp] === 1))) fp++;
+      while (fp < fm && (fHi[fp]! < ca || (fHi[fp] === ca && fHiOpen[fp] === 1))) { fp++; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
       let x = ca, xo = false;
       let fi = fp;
-      const emit = (b: number, bo: boolean) => {
+      const emit = function* (b: number, bo: boolean): Steps<void> {
         if (x > b || (x === b && (xo || bo))) return;
-        c.n += emitPiece(sides, seps, xs, z, lo, hi, x, xo, b, bo, rp, each);
+        yield* emitPieceSteps(sides, seps, xs, z, lo, hi, x, xo, b, bo, rp, each, c);
       };
       for (; fi < fm && (fLo[fi]! < cb || (fLo[fi] === cb && fLoOpen[fi] === 0)); fi++) {
-        emit(fLo[fi]!, fLoOpen[fi] === 0);
+        yield* emit(fLo[fi]!, fLoOpen[fi] === 0);
         if (fHi[fi]! > x || (fHi[fi] === x && !xo)) { x = fHi[fi]!; xo = fHiOpen[fi] === 0; }
         if (x > cb) break;
         if (++c.n >= STEP_OPS) { c.n = 0; yield; }
       }
-      if (x < cb || (x === cb && !xo)) emit(cb, false);
+      if (x < cb || (x === cb && !xo)) yield* emit(cb, false);
       // a stretch reaching past the component may meet the next one too
       fp = Math.max(fp, fi > fp ? fi - 1 : fp);
     }
@@ -807,10 +861,11 @@ export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, ea
   }
 }
 
-/** A piece found by the walk: its start evidence, its ranges, then `each`. */
-function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch[], z: number, lo: number, hi: number,
-                   a: number, ao: boolean, b: number, bo: boolean, rp: number[], each: (p: UnionPiece) => number | void): number {
-  let work = 8;
+/** A piece found by the walk: its start evidence, its ranges, then `each` —
+ *  every part read counted, `each`'s work too (in steps when it is a job). */
+function* emitPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch[], z: number, lo: number, hi: number,
+                         a: number, ao: boolean, b: number, bo: boolean, rp: number[], each: PieceEach, c: Ops): Steps<void> {
+  if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
   const span: Span = { a, ao, b, bo };
   const piece: UnionPiece = { zone: z, start: a, startOpen: ao, end: b, endOpen: bo, startKind: -1, startSide: -1, startIdx: -1,
                               from0: 0, to0: 0, from1: 0, to1: 0 };
@@ -825,10 +880,10 @@ function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch
         const p = partX(x, rp[si]!, seps, z, TMP, lo, hi);
         if (p && (p.b > a || (p.b === a && !ao))) break;
         rp[si]!++;
-        work++;
+        if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
       }
       for (let k = rp[si]!; k < x.n && x.enter[k]! <= b; k++) {
-        work++;
+        if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
         const p = partX(x, k, seps, z, TMP, lo, hi);
         if (!p || !meet(p, span)) continue;
         if (from < 0) from = k;
@@ -850,7 +905,9 @@ function emitPiece(sides: readonly UnionSide[], seps: UnionSeps, xs: SideScratch
     }
     if (piece.startKind < 0 && z > 0 && !ao && a === lo) { piece.startKind = START_SEP; piece.startSide = -1; piece.startIdx = z - 1; }
   }
-  return work + (each(piece) ?? 0);
+  const r = each(piece);
+  if (typeof r === "object" && r !== null) yield* r;
+  else if ((c.n += r ?? 0) >= STEP_OPS) { c.n = 0; yield; }
 }
 
 /** The places where the two generations contradict each other on one

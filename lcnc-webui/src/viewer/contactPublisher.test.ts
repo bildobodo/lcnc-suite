@@ -2,7 +2,7 @@
 // transitions with real tables and deltas, its steps driven one at a time.
 import { describe, expect, it } from "vitest";
 import { ContactStore, IV_ENTER_DECIDED, IV_EXIT_DECIDED, NONE, shareOf, REQUEST_BUDGET } from "./contactStore";
-import { buildContactViewSteps, targetKey, targetPos, type ContactView } from "./contactView";
+import { buildContactViewSteps, heldBytes, retireView, targetKey, targetPos, type ContactView } from "./contactView";
 import { ContactPublisher, contactOwners, type GenerationTables, type PublisherMessage } from "./contactPublisher";
 
 const D = IV_ENTER_DECIDED | IV_EXIT_DECIDED;
@@ -54,6 +54,8 @@ function harness(o: { owners?: Set<number> } = {}) {
     effect: m => { effects.push(m); events.push(m.heldCoverage ? "effect:held" : "effect"); if (typeof m.tag === "string") live = { tag: m.tag, n: effects.length }; },
     stage: () => { events.push("stage"); return { ...live }; },
     publish: s => { events.push("publish"); views = p.viewOf(track); published.push({ shown: s, views }); },
+    retire: v => retireView(v),
+    viewBytes: v => heldBytes(v),
     ack: a => { events.push("ack"); acks.push(a); },
     owners: () => owners,
     schedule: f => queue.push(f),
@@ -101,8 +103,8 @@ describe("the publisher: two copies, one published, never written (plan 3.6)", (
     expect(pub1.stores[0]!.revision, "never written while published").toBe(rev1);
     h.run();
     expect(posOf(h.views())).toEqual([10, 20]);
-    // the old copy caught up: the view built on it is dead
-    expect(() => targetPos(old, 0)).toThrow(/stale|revision|changed/);
+    // dead since the publication that replaced it
+    expect(() => targetPos(old, 0)).toThrow(/no longer published|changed/);
   });
 
   it("an update-heavy delta goes in in steps, in both copies (Codex R155 VP155-01)", () => {
@@ -431,3 +433,102 @@ describe("whose tables stay (Codex R147 VP-I106)", () => {
   });
 });
 void shareOf; void REQUEST_BUDGET;
+
+// Codex R157's counterexamples (VP-I116–VP-I118), kept as guards: a view's
+// life ends at the publication that replaces it, a discarded build stops at
+// its next step, and the memory counts every store that lives — the old
+// generation's published copy too while a view still shows it.
+describe("a view's life, a discarded build, the live memory (Codex R157)", () => {
+  it("VP-I117: an old view is dead at the publication that replaces it — before its tables are written", () => {
+    const h = harness(), s = new Sender(1, 0);
+    h.p.receive(s.contact(0, 10).msg()); h.p.kick(); h.run();
+    const old = h.views()!;
+    h.p.receive(s.contact(1, 20).msg()); h.p.kick(); h.run(() => h.p.phase === 4);
+    expect(posOf(h.views())).toEqual([10, 20]);
+    expect(() => targetPos(old, 0), "dead at the publication").toThrow(/no longer published/);
+  });
+  it("VP-I117: and at a publication without any table write", () => {
+    const h = harness(), s = new Sender(1, 0);
+    h.p.receive(s.contact(0, 10).msg()); h.p.kick(); h.run();
+    const old = h.views()!;
+    h.p.receive({ id: 1, tag: "coverage changed" }); h.p.kick(); h.run();
+    expect(h.views()).not.toBe(old);
+    expect(() => targetPos(old, 0)).toThrow(/no longer published/);
+    expect(posOf(h.views()), "the new view reads the same tables").toEqual([10]);
+  });
+  it("VP-I117: a request let go takes its views — dead at once", () => {
+    const owners = new Set([1]);
+    const h = harness({ owners }), s = new Sender(1, 0);
+    h.p.receive(s.contact(0, 10).msg()); h.p.kick(); h.run();
+    const old = h.views()!;
+    owners.clear(); h.p.release();
+    expect(h.p.viewOf(h.track)).toBeNull();
+    expect(() => targetPos(old, 0)).toThrow(/no longer published/);
+  });
+  it("VP-I118: the old generation's published copy counts while a view still shows it — every live store once", () => {
+    const h = harness(), s = new Sender(1, 0);
+    h.p.receive(s.contact(0, 10).msg()); h.p.kick(); h.run();
+    h.p.receive({ id: 1, heldCoverage: { generation: 0, covered: [1] } }); h.p.kick(); h.run();
+    const shown = h.p.viewOf(h.track)!;
+    h.p.receive(new Sender(1, 1).contact(0, 10).msg()); h.p.kick(); h.run(() => h.p.phase === 2);
+    expect(h.p.viewOf(h.track), "the old view still shown").toBe(shown);
+    const t = h.p.tablesOf(1)!, live = new Set<ContactStore>();
+    for (const g of [t.pub, t.work, t.held]) for (const st of g?.stores ?? []) live.add(st);
+    for (const ti of shown.tables) if (ti) live.add(ti.st);
+    const actual = [...live].reduce((n, st) => n + st.allocatedBytes(), 0), st = h.p.stats();
+    expect(st.allocated, "all simultaneously live owners").toBe(actual);
+    expect(st.byOwner.shown, "the shown old copy, named").toBeGreaterThan(0);
+    expect(st.views.published, "the published view's own bytes").toBe(heldBytes(shown));
+  });
+  it("VP-I116: a request let go stops its build at the next step — no stale build to its end", () => {
+    const tasks: Array<() => void> = [], owners = new Set([1]);
+    let steps = 0;
+    const track = {};
+    const p = new ContactPublisher<object, object, object>({ tracks: () => (owners.size ? [track] : []), specOf: () => ({ key: "one", ids: [1], spec: null }),
+      *build() { for (let i = 0; i < 100; i++) { steps++; yield; } return {}; }, effect: () => {}, stage: () => ({}), publish: () => {}, ack: () => {},
+      owners: () => owners, schedule: f => tasks.push(f), sliceMs: 0, now: () => 0 });
+    p.receive({ id: 1 }); p.kick();
+    while (tasks.length && steps < 5) tasks.shift()!();
+    const atCancel = steps;
+    owners.clear(); p.release(); p.kick();
+    for (let i = 0; i < 1000 && tasks.length; i++) tasks.shift()!();
+    expect(steps - atCancel, "steps after it was let go").toBeLessThanOrEqual(1);
+    expect([p.discards, p.running], "discarded, ended").toEqual([1, false]);
+  });
+  it("VP-I116: a request let go while its delta goes in, or while the other copy catches up, stops there", () => {
+    for (const at of [1, 4]) {
+      const owners = new Set([1]);
+      const h = harness({ owners }), s = new Sender(1, 0);
+      for (let i = 0; i < 3000; i++) s.contact(i % 64, 3 * i);
+      h.p.receive(s.msg()); h.p.kick(); h.run();
+      const acks = h.acks.length;
+      // an update over every row goes in in pieces: let go inside it
+      s.touchAll();
+      h.p.receive(s.msg()); h.p.kick();
+      h.run(() => h.p.phase === at);
+      const st = h.p.tablesOf(1)!.work!.stores[0]!, rev0 = st.revision;
+      h.queue.shift()!();
+      expect(st.revision > rev0, `phase ${at}: the update under way`).toBe(true);
+      const atRelease = st.revision;
+      owners.clear(); h.p.release();
+      for (let k = 0; k < 1000 && h.queue.length; k++) h.queue.shift()!();
+      expect(st.revision - atRelease, `phase ${at}: at most one step more written`).toBeLessThanOrEqual(4096);
+      expect(st.revision - rev0, `phase ${at}: never written to its end`).toBeLessThan(3000 * 8);
+      expect(h.acks.length, `phase ${at}: nothing more acknowledged`).toBe(acks);
+    }
+  });
+
+  it("VP-I116: a fallback during the build stops it at the next step too; its drain is taken by the next pass", () => {
+    const h = harness(), s = new Sender(1, 0);
+    for (let i = 0; i < 3000; i++) s.contact(i % 64, 3 * i);
+    h.p.receive(s.msg()); h.p.kick();
+    h.run(() => h.p.phase === 2);
+    let after = 0;
+    h.p.receive({ id: 1, heldCoverage: { generation: 0, covered: [1] } });
+    const at = h.p.discards;
+    while (h.queue.length && h.p.discards === at) { h.queue.shift()!(); after++; }
+    expect(after, "slices until the build stopped").toBeLessThanOrEqual(2);
+    h.p.kick(); h.run();
+    expect(h.p.tablesOf(1)!.fallen, "the fallback taken").toBe(true);
+  });
+});

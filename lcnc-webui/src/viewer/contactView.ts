@@ -61,7 +61,7 @@ import {
   type StoreBudget,
 } from "./contactStore";
 import {
-  eachPieceSteps, evidencePos, evidenceZone, mergeSeps, NO_SEPARATORS, pieceFrom, pieceIntervals, START_ENTER, START_SEP, unionReachSteps,
+  eachPieceSteps, evidencePos, evidenceZone, mergeSepsSteps, NO_SEPARATORS, pieceFrom, pieceIntervals, pieceIntervalsSteps, START_ENTER, START_SEP, unionReachSteps,
   type Ops,
   unionScratch, type UnionPiece, type UnionScratch, type UnionSeps, type UnionSide,
 } from "./contactUnion";
@@ -159,7 +159,12 @@ interface TableIndex {
 
 type Col = readonly ArrayLike<number>[];
 /** A column's value at `row`. */
-const rd = (c: Col, row: number) => c[row >>> BLOCK_SHIFT]![row & (STORE_BLOCK - 1)]!;
+/** Table cells a view has read, in all — the work a query did: a union
+ *  piece's position decodes the piece, and a step that asks such queries
+ *  counts what they read (Codex R157 VP-I115: counted as a flat few, they
+ *  made steps of thousands of reads). */
+export const viewWork = { n: 0 };
+const rd = (c: Col, row: number) => { viewWork.n++; return c[row >>> BLOCK_SHIFT]![row & (STORE_BLOCK - 1)]!; };
 interface Cols {
   enter: Col; exit: Col; witness: Col; flags: Col; freeAt: Col; freeR: Col; episode: Col; epPair: Col; epFlags: Col;
   gPair: Col; gStart: Col; gEnd: Col; gReason: Col;
@@ -178,6 +183,9 @@ interface RefList { refs: Uint32Array; max: Float64Array; pre: Float64Array }
 
 export interface ContactView {
   readonly input: ContactViewInput;
+  /** No longer published (replaced, or its request let go): every query
+   *  fails (plan 3.6, Codex R157 VP-I117) — `retireView`. */
+  retired?: boolean;
   /** The targets: an interval at its refined entry, a near miss at its
    *  closest approach — `targetPos` / `targetEnd` / `targetKind` read them. */
   readonly n: number;
@@ -264,8 +272,15 @@ function findSorted(a: Uint32Array, x: number): number {
   return lo < a.length && a[lo] === x ? lo : -1;
 }
 
-/** The view still reads what it was built from — else it throws (VP-I107). */
+/** A view no longer published: every later query of it fails, wherever it is
+ *  still held (a cache, a closure) — the tables it reads may be unchanged
+ *  (plan 3.6, Codex R157 VP-I117). */
+export function retireView(v: ContactView): void { v.retired = true; }
+
+/** The view is the published one and still reads what it was built from —
+ *  else it throws (VP-I107, R157 VP-I117). */
 function check(v: ContactView): void {
+  if (v.retired) throw new Error("contactView: a view no longer published — read the published one");
   for (const t of v.tables) {
     if (t && t.st.revision !== t.revision) {
       throw new Error("contactView: its tables changed since it was built — build it anew");
@@ -595,16 +610,20 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
       }
     }
   }
+  // every pair's gaps in counted steps — one pair may hold a request's every
+  // gap (Codex R157 VP-I115)
+  const pairs: number[] = [];
+  for (const p of byPair.keys()) { pairs.push(p); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+  const po = yield* sortSteps(pairs.length, (x, y) => pairs[x]! - pairs[y]!);
   const sRef: number[] = [];
-  for (const p of [...byPair.keys()].sort((x, y) => x - y)) {
-    const { spans, refs } = byPair.get(p)!;
-    const m = mergeSeps(spans), all = [...refs[0], ...refs[1]];
-    for (let i = 0; i < m.first.length; i++) sRef.push(all[m.first[i]!]!, all[m.last[i]!]!);
-    c.n += 8 * (spans[0].length + spans[1].length + 1);
-    if (c.n >= STEP_OPS) { c.n = 0; yield; }
+  for (let pi = 0; pi < po.length; pi++) {
+    const { spans, refs } = byPair.get(pairs[po[pi]!]!)!;
+    const m = yield* mergeSepsSteps(spans, c), n0 = refs[0].length;
+    const ref = (k: number) => (k < n0 ? refs[0][k]! : refs[1][k - n0]!);
+    for (let i = 0; i < m.first.length; i++) { sRef.push(ref(m.first[i]!), ref(m.last[i]!)); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
   }
   const gH = yield* gen(true), gC = yield* gen(false);
-  return { gens: [gH, gC], sRef: Uint32Array.from(sRef) };
+  return { gens: [gH, gC], sRef: yield* copySteps(new Uint32Array(sRef.length), sRef, c) };
 }
 
 /** What a piece holds and is: its intervals' classes, its lead (the earliest
@@ -631,10 +650,25 @@ interface PieceInfo {
 
 function describePiece(tables: Tables, u: UnionIndex, los: readonly [number, number], sides: readonly UnionSide[],
                        seps: UnionSeps, piece: UnionPiece, joined: Uint32Array): PieceInfo {
+  const d = describer(tables, u, los, piece, joined);
+  pieceIntervals(sides, seps, piece, d.row);
+  return d.done();
+}
+/** describePiece in bounded steps (the build: a piece may hold a group's every interval). */
+function* describePieceSteps(tables: Tables, u: UnionIndex, los: readonly [number, number], sides: readonly UnionSide[],
+                             seps: UnionSeps, piece: UnionPiece, joined: Uint32Array, c: Ops): Steps<PieceInfo> {
+  const d = describer(tables, u, los, piece, joined);
+  yield* pieceIntervalsSteps(sides, seps, piece, d.row, c);
+  return d.done();
+}
+/** A piece's description, interval by interval (`row`), then `done`. */
+function describer(tables: Tables, u: UnionIndex, los: readonly [number, number], piece: UnionPiece, joined: Uint32Array):
+    { row: (sd: number, k: number, holdsStart: boolean) => void; done: () => PieceInfo } {
   const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, openEnd: false, rows: [], joinedHere: [] };
   let leadEnter = Infinity, heirW = Infinity;
   const inside = (x: number) => (x > piece.start || (x === piece.start && !piece.startOpen)) && (x < piece.end || (x === piece.end && !piece.endOpen));
-  pieceIntervals(sides, seps, piece, (sd, k, holdsStart) => {
+  return {
+    row: (sd, k, holdsStart) => {
     const r = u.gens[sd]!.uIdx[los[sd]! + k]!, t = tableAt(tables, r), row = rowOf(r), c = t.c;
     const flags = rd(c.flags, row), epFlags = rd(c.epFlags, rd(c.episode, row));
     info.rows.push(r);
@@ -648,9 +682,9 @@ function describePiece(tables: Tables, u: UnionIndex, los: readonly [number, num
       if (inside(w) && w < heirW) { heirW = w; info.heir = r; }
     }
     if (!piece.endOpen && ownEnd(t, row).open && unionEnd(t, row) === piece.end) info.openEnd = true;
-  });
-  if (info.joinedHere.length) info.aux = true;
-  return info;
+    },
+    done: () => { if (info.joinedHere.length) info.aux = true; return info; },
+  };
 }
 
 /** Where `ref` (a row of the generation) stands in its group's range of the
@@ -670,8 +704,20 @@ function indexIn(tables: Tables, g: UnionGen, lo: number, hi: number, ref: numbe
 interface GroupCtx { src: number; group: number; r0: [number, number]; r1: [number, number]; sides: UnionSide[]; seps: UnionSeps }
 const lastGroup = new WeakMap<ContactView, GroupCtx>();
 
+/** The last piece a view was asked about, decoded: a list, its marks and a
+ *  target's words ask one piece several times in a row, and decoding one is
+ *  linear in its intervals (Codex R157 VP-I115). */
+const lastPiece = new WeakMap<ContactView, { ref: number; out: { info: PieceInfo; t: TableIndex } }>();
+
 /** A piece reference's union, sides and piece, asked from its start. */
 function pieceCtx(v: ContactView, ref: number): { info: PieceInfo; t: TableIndex } {
+  const m = lastPiece.get(v);
+  if (m && m.ref === ref) return m.out;
+  const out = decodePiece(v, ref);
+  lastPiece.set(v, { ref, out });
+  return out;
+}
+function decodePiece(v: ContactView, ref: number): { info: PieceInfo; t: TableIndex } {
   const t = tableOf(v, ref), u = v.unions[t.src]!;
   const group = pieceGroup(v.tables, ref);
   let g = lastGroup.get(v);
@@ -781,6 +827,20 @@ export function buildContactView(input: ContactViewInput): ContactView {
  *  tables yields after about STEP_OPS operations — a group's walk too, so a
  *  request whose every interval is one pair's is no single task. Reads its
  *  tables unchanged from start to end; the caller keeps them so. */
+/** A piece described at once up to this many candidate intervals, else in steps. */
+const SMALL_PIECE = 64;
+
+/** The joins' packed rows, sorted, in counted steps. */
+function* packedSorted(joins: readonly SourceJoin[], rows: (j: SourceJoin) => Iterable<number>, packOf: (j: SourceJoin, row: number) => number,
+                       c: Ops): Steps<Uint32Array> {
+  const all: number[] = [];
+  for (const j of joins) for (const r of rows(j)) { all.push(packOf(j, r)); if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+  const o = yield* sortSteps(all.length, (a, b) => all[a]! - all[b]!);
+  const out = new Uint32Array(o.length);
+  for (let k = 0; k < o.length; k++) { out[k] = all[o[k]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+  return out;
+}
+
 export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactView> {
   const { sources, coverage } = input;
   if (sources.length > MAX_SOURCES) throw new Error(`contactView: ${sources.length} sources (at most ${MAX_SOURCES})`);
@@ -804,11 +864,13 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
         const cov = Math.min(source.at(ownCov), coverage);
         // the gaps on the own axis, by pair then start: their rows (a table
         // holds at most its gap budget — one sort, its work counted)
-        const G = st.gaps, idx: number[] = [];
-        for (let g = 0; g < G.rows; g++) { if (G.get(g, "start") <= ownCov) idx.push(g); if (tick()) { c.n = 0; yield; } }
-        idx.sort((x, y) => G.get(x, "pair") - G.get(y, "pair") || G.get(x, "start") - G.get(y, "start") || x - y);
-        c.n += 16 * idx.length;
-        if (c.n >= STEP_OPS) { c.n = 0; yield; }
+        const G = st.gaps, rows0: number[] = [];
+        for (let g = 0; g < G.rows; g++) { if (G.get(g, "start") <= ownCov) rows0.push(g); if (tick()) { c.n = 0; yield; } }
+        // (the row breaks every tie: the order is total)
+        const go = yield* sortSteps(rows0.length, (x, y) => G.get(rows0[x]!, "pair") - G.get(rows0[y]!, "pair")
+          || G.get(rows0[x]!, "start") - G.get(rows0[y]!, "start") || rows0[x]! - rows0[y]!);
+        const idx = new Uint32Array(rows0.length);
+        for (let k = 0; k < go.length; k++) { idx[k] = rows0[go[k]!]!; if (tick()) { c.n = 0; yield; } }
         const hReach = new Float64Array(idx.length);
         for (let k = 0; k < idx.length; k++) {
           const g = idx[k]!, s0 = G.get(g, "start"), e0 = G.get(g, "end");
@@ -817,7 +879,7 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
           if (tick()) { c.n = 0; yield; }
         }
         const t: TableIndex = { st, source, src: si, shard: sh, held, c: colsOf(st), revision: st.revision, ownCov, cov,
-          hIdx: Uint32Array.from(idx), hReach };
+          hIdx: idx, hReach };
         tables[slotOf(si, held, sh)] = t;
         list.push(t);
       }
@@ -827,9 +889,8 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
   // generation on either side (Codex R151 VP-I111)
   const joins = (input.joins ?? []).filter(j => tables[slotOf(j.baseSrc, !!j.baseHeld, j.baseShard)]
                                             && tables[slotOf(j.entrySrc, !!j.entryHeld, j.entryShard)]);
-  const joined = Uint32Array.from(joins.flatMap(j => [...j.joins.keys()].map(biv => pack(j.baseSrc, j.baseShard, biv, false, !!j.baseHeld)))).sort();
-  const entryRows = Uint32Array.from(joins.flatMap(j => [...j.joins.values()].map(eiv => pack(j.entrySrc, j.entryShard, eiv, false, !!j.entryHeld)))).sort();
-  c.n += 16 * (joined.length + entryRows.length);
+  const joined = yield* packedSorted(joins, j => j.joins.keys(), (j, biv) => pack(j.baseSrc, j.baseShard, biv, false, !!j.baseHeld), c);
+  const entryRows = yield* packedSorted(joins, j => j.joins.values(), (j, eiv) => pack(j.entrySrc, j.entryShard, eiv, false, !!j.entryHeld), c);
   // the union piece holding where a joined row begins: its end (the reach);
   // the entry piece holding an entry row (the last: its end)
   const baseEnd = new Map<number, number>(), entryPiece = new Map<number, number>();
@@ -895,15 +956,32 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
         const ev = u.gens[piece.startSide]!.uIdx[los[piece.startSide]! + piece.startIdx]!;
         ref = (ev | ((piece.startKind + 1) << PIECE_SHIFT)) >>> 0;
       } else throw new Error("contactView: a union piece whose start no evidence names");
-      const info = describePiece(tables, u, los, sides, seps, piece, joined);
       const p = source.at(piece.start), e = Math.max(p, Math.min(source.at(piece.end), coverage));
-      for (const r of info.joinedHere) baseEnd.set(r, e);
-      for (const r of info.rows) if (findSorted(entryRows, r) >= 0) entryPiece.set(r, ref);
-      const work = 8 + 4 * info.rows.length;
-      if (info.aux) { aR.push(ref); aP.push(p); aE.push(e); return work; }
-      tR.push(ref); tP.push(p); tE.push(e);
-      countKind(unionCounts, pieceKindBits(tables, info, piece.startKind, source, info.rows.some(r => findSorted(entryRows, r) >= 0)));
-      return work;
+      const shown = (info: PieceInfo, entryHere: boolean) => {
+        if (info.aux) { aR.push(ref); aP.push(p); aE.push(e); return; }
+        tR.push(ref); tP.push(p); tE.push(e);
+        countKind(unionCounts, pieceKindBits(tables, info, piece.startKind, source, entryHere));
+      };
+      // a small piece at once (its work counted), a large one — a piece may
+      // hold a group's every interval — in counted steps (Codex R157 VP-I115)
+      if ((piece.to0 - piece.from0) + (piece.to1 - piece.from1) <= SMALL_PIECE) {
+        const info = describePiece(tables, u, los, sides, seps, piece, joined);
+        for (const r of info.joinedHere) baseEnd.set(r, e);
+        let entryHere = false;
+        for (const r of info.rows) if (findSorted(entryRows, r) >= 0) { entryPiece.set(r, ref); entryHere = true; }
+        shown(info, entryHere);
+        return 8 + 4 * info.rows.length;
+      }
+      return (function* (): Steps<void> {
+        const info = yield* describePieceSteps(tables, u, los, sides, seps, piece, joined, c);
+        for (const r of info.joinedHere) { baseEnd.set(r, e); if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; } }
+        let entryHere = false;
+        for (const r of info.rows) {
+          if (findSorted(entryRows, r) >= 0) { entryPiece.set(r, ref); entryHere = true; }
+          if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+        }
+        shown(info, entryHere);
+      })();
     }, x => { conflicts++; conflictAt = Math.min(conflictAt, source.at(x)); }, scratchOf(), c), c);
     // the near misses of both generations: one to one per group by overlap, in order
     const nears = function* (held: boolean): Steps<Array<{ ref: number; group: number; s: number; e: number }>> {
@@ -919,7 +997,9 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
         }
       }
       const ord = yield* sortSteps(out.length, (a, b) => out[a]!.group - out[b]!.group || out[a]!.s - out[b]!.s || out[a]!.ref - out[b]!.ref);
-      return Array.from(ord, i => out[i]!);
+      const sorted = new Array<{ ref: number; group: number; s: number; e: number }>(ord.length);
+      for (let k = 0; k < ord.length; k++) { sorted[k] = out[ord[k]!]!; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+      return sorted;
     };
     const hn = yield* nears(true), cn = yield* nears(false);
     const at = (r: number) => { const t = tableAt(tables, r); return source.at(t.st.episodes.get(rowOf(r), "closeAt")); };
@@ -1167,12 +1247,21 @@ export function* startTargetsSteps(v: ContactView, ops: Ops = { n: 0 }): Steps<n
   }
   const out = new Set<number>();
   for (const x of xs) {
+    // every query's own reads counted: a union piece's decodes its piece
+    let w0 = viewWork.n;
     for (let i = firstAfter(v, x, false); i < v.n && posOf(v, i) === x; i++) {
       if (kindOf(v, i) & T_AT_START) out.add(i);
-      if ((ops.n += 16) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+      if ((ops.n += 16 + viewWork.n - w0) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+      w0 = viewWork.n;
     }
+    ops.n += viewWork.n - w0;
   }
-  return [...out].sort((a, b) => a - b);
+  const list: number[] = [];
+  for (const i of out) { list.push(i); if (++ops.n >= STEP_OPS) { ops.n = 0; yield; check(v); } }
+  const so = yield* sortSteps(list.length, (a, b) => list[a]! - list[b]!);
+  const sorted = new Array<number>(so.length);
+  for (let k = 0; k < so.length; k++) { sorted[k] = list[so[k]!]!; if (++ops.n >= STEP_OPS) { ops.n = 0; yield; check(v); } }
+  return sorted;
 }
 
 /** The first target whose position is past `x` (strict), or at or past it —
@@ -1456,29 +1545,32 @@ export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: num
   const col = (x: number) => Math.max(0, Math.min(W - 1, Math.floor((x / axisEnd) * W)));
   const pieces: number[] = [];
   /** Interval `row`'s own contact within [lo, hi] (own axis), its gaps cut out, lit. */
-  const light = (t: TableIndex, row: number, lo: number, hi: number) => {
+  /** Lights a row's shown stretch; its work (pieces and columns written). */
+  const light = (t: TableIndex, row: number, lo: number, hi: number): number => {
     const pair = t.st.episodes.get(t.st.intervals.get(row, "episode"), "pair");
     pieces.length = 0;
-    if (hi < lo) return;
+    if (hi < lo) return 4;
     piecesOf(t, pair, lo, hi, pieces);
+    let work = 4 + pieces.length;
     for (let i = 0; i < pieces.length; i += 2) {
       const x = t.source.at(pieces[i]!), y = Math.min(t.source.at(pieces[i + 1]!), t.cov);
       if (y < x || y < 0 || x > axisEnd) continue;
       // a stretch ending ON a column's left edge does not reach into it
       const c0 = col(x), e = Math.max(c0, Math.min(W - 1, Math.ceil((y / axisEnd) * W) - 1));
       for (let c = c0; c <= e; c++) lit[c] = 1;
+      work += e - c0 + 1;
     }
+    return work;
   };
-  const band = (ref: number) => {
+  const band = (ref: number): number => {
     // a union piece: below, group by group
-    if (isNearRef(ref) || isPieceRef(ref)) return;
+    if (isNearRef(ref) || isPieceRef(ref)) return 4;
     const t = tableOf(v, ref), row = rowOf(ref);
-    light(t, row, t.st.intervals.get(row, "enter"), ownEnd(t, row).end);
+    return light(t, row, t.st.intervals.get(row, "enter"), ownEnd(t, row).end);
   };
   for (const refs of [v.tgt.refs, v.aux.refs]) {
     for (let i = 0; i < refs.length; i++) {
-      band(refs[i]!);
-      if ((ops.n += 8) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+      if ((ops.n += band(refs[i]!)) >= STEP_OPS) { ops.n = 0; yield; check(v); }
     }
   }
   // a union's pieces in one walk per group: each piece's intervals' own contact within it
@@ -1487,12 +1579,13 @@ export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: num
     if (!u) continue;
     yield* eachGroupSteps(v.tables, u, (sides, los, seps) => eachPieceSteps(sides, seps, p => {
       let work = 0;
-      pieceIntervals(sides, seps, p, (sd, k) => {
+      const lit1 = (sd: number, k: number) => {
         const r = u.gens[sd]!.uIdx[los[sd]! + k]!, t = tableOf(v, r), row = rowOf(r);
-        light(t, row, Math.max(rd(t.c.enter, row), p.start), Math.min(ownEnd(t, row).end, p.end));
-        work += 8;
-      });
-      return work;
+        work += light(t, row, Math.max(rd(t.c.enter, row), p.start), Math.min(ownEnd(t, row).end, p.end));
+      };
+      // a small piece at once, a large one in counted steps (Codex R157 VP-I115)
+      if ((p.to0 - p.from0) + (p.to1 - p.from1) <= SMALL_PIECE) { pieceIntervals(sides, seps, p, lit1); return work; }
+      return pieceIntervalsSteps(sides, seps, p, (sd, k) => { work = 0; lit1(sd, k); ops.n += work; }, ops);
     }, undefined, scratch, ops), ops);
   }
   const out: Array<[number, number]> = [];

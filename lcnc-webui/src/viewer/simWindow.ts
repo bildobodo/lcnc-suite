@@ -7,7 +7,7 @@
 // then tool → limit → collision), the collisions among themselves in the
 // view's own order. Pure; unit-tested against the full list.
 import { isNearMiss, type ClashTarget } from "./clashTargets";
-import { findKey, indexAtOrAfter, targetAt, targetEnd, targetKey, targetKind, targetPos, T_NEAR, TIMELINE_COLUMNS, type ContactView, type LineAt } from "./contactView";
+import { findKey, indexAtOrAfter, targetAt, targetEnd, targetKey, targetKind, targetPos, T_NEAR, TIMELINE_COLUMNS, viewWork, type ContactView, type LineAt } from "./contactView";
 import { JUMP_NUDGE, sampleCum, type NavSelection, type NavTarget } from "./findingNav";
 import { KIND_ORDER, type SimRowKind } from "./simRows";
 import { STEP_OPS, runToEnd, type Steps } from "./steps";
@@ -35,6 +35,10 @@ export interface ClashIndex {
   /** The index of `key` (`near`: where it should be), −1 when gone. */
   find(key: string, near?: number): number;
   target(i: number): ClashTarget;
+  /** The work the index's reads have done so far (a view: its table cells
+   *  read — a union piece's position decodes the piece); none: each read
+   *  counts as POS_OPS. */
+  work?(): number;
 }
 
 export const NO_CLASH: ClashIndex = {
@@ -49,6 +53,7 @@ export function clashIndexOfView(v: ContactView, lineAt: LineAt): ClashIndex {
     near: i => (targetKind(v, i) & T_NEAR) !== 0, atOrAfter: (x, strict) => indexAtOrAfter(v, x, strict),
     // a limit's or a tool change's key is no collision's: never a walk over every target for it
     find: (key, near) => (key[0] === "C" || key[0] === "E" ? findKey(v, key, near) : -1), target: i => targetAt(v, i, lineAt),
+    work: () => viewWork.n,
   };
 }
 
@@ -243,20 +248,23 @@ export function* clashTicksSteps(c: ClashIndex, columns: number, axisEnd: number
   const cols = Math.min(TIMELINE_COLUMNS, Math.floor(columns));
   if (!c.n || cols < 1 || !(axisEnd > 0)) return out;
   const w = axisEnd / cols;
-  // every position read counted as one: in a union it decodes a piece (a
-  // column's binary search read as 64 operations made steps of 11 ms at the
-  // budget, plan 3.6)
+  // every position read counted: in a union it decodes a piece (a column's
+  // binary search read as 64 operations made steps of 11 ms at the budget,
+  // plan 3.6) — what the index's reads did when it says (a view), else POS_OPS a read
   const search = POS_OPS * (Math.ceil(Math.log2(c.n + 1)) + 1);
+  const work = c.work;
+  let w0 = work ? work() : 0;
+  const did = (est: number) => { if (!work) return est; const w = work(), d = w - w0; w0 = w; return 4 + d; };
   for (let col = 0, i = 0; col < cols && i < c.n; col++) {
     const hi = col === cols - 1 ? Infinity : (col + 1) * w;
     i = c.atOrAfter(col * w, false);
-    if ((ops.n += search) >= STEP_OPS) { ops.n = 0; yield; }
     const p = i < c.n ? c.pos(i) : NaN;
+    if ((ops.n += did(search)) >= STEP_OPS) { ops.n = 0; yield; }
     if (!(p < hi)) continue;
     let near = true;
     for (let j = i; j < c.n && (j === i || c.pos(j) < hi); j++) {
       if (!c.near(j)) { near = false; break; }
-      if ((ops.n += POS_OPS) >= STEP_OPS) { ops.n = 0; yield; }
+      if ((ops.n += did(POS_OPS)) >= STEP_OPS) { ops.n = 0; yield; }
     }
     out.push({ pct: Math.min(100, (p / axisEnd) * 100), near });
   }

@@ -105,6 +105,11 @@ export interface PublisherDeps<T extends object, V, S> {
   stage(): S;
   /** The publication (one task): the staged state and the views. */
   publish(s: S): void;
+  /** A view that is no longer published (replaced, or its request let go):
+   *  every later query of it must fail (plan 3.6, Codex R157 VP-I117). */
+  retire?(view: V): void;
+  /** What a view holds itself, in bytes (its index and derived data). */
+  viewBytes?(view: V): number;
   /** An acknowledgement for the worker. */
   ack(a: { contactsAck: number; generation: number }): void;
   /** The requests someone still reads; the others go. */
@@ -118,9 +123,15 @@ interface Pass {
   run: StepRun<void> | null;
   /** 1 take, 2 build, 3 publish, 4 catch up. */
   phase: number;
-  /** A fallback or a released request: its build is discarded. */
+  /** A fallback or a released request: its build is discarded — at its next step. */
   discard: boolean;
+  /** The views built so far (not published yet). */
+  built: Map<unknown, Built<unknown>>;
 }
+
+/** A built view: the spec it was built for, the requests it reads, the
+ *  generations' tables it read (they live while it is shown). */
+interface Built<V> { key: string; ids: readonly number[]; view: V | null; uses: Set<GenerationTables> }
 
 const newTables = (generation: number, pairs: Array<[string, string]> | null): GenerationTables =>
   ({ generation, stores: [], pairs, deltas: 0 });
@@ -128,7 +139,7 @@ const newTables = (generation: number, pairs: Array<[string, string]> | null): G
 export class ContactPublisher<T extends object, V, S> {
   private readonly reqs = new Map<number, Req>();
   private queue: PublisherMessage[] = [];
-  private views = new Map<T, { key: string; ids: readonly number[]; view: V | null }>();
+  private views = new Map<T, Built<V>>();
   private pass: Pass | null = null;
   private again = false;
   private dirty = false;
@@ -182,7 +193,7 @@ export class ContactPublisher<T extends object, V, S> {
     for (const id of [...this.reqs.keys()]) if (!owners.has(id)) { this.reqs.delete(id); gone.add(id); }
     this.queue = this.queue.filter(m => owners.has(m.id));
     if (!gone.size) return;
-    for (const [t, p] of this.views) if (p.ids.some(id => gone.has(id))) this.views.delete(t);
+    for (const [t, p] of this.views) if (p.ids.some(id => gone.has(id))) { this.views.delete(t); this.retire(p); }
     this.markDirty();
     if (this.pass && this.pass.phase <= 2) this.pass.discard = true;
   }
@@ -194,7 +205,7 @@ export class ContactPublisher<T extends object, V, S> {
     if (this.pass) { this.again = true; return; }
     if (!this.pending) return;
     this.dirty = false;
-    const me: Pass = { run: null, phase: 1, discard: false };
+    const me: Pass = { run: null, phase: 1, discard: false, built: new Map() };
     this.pass = me;
     this.passes++;
     const now = this.deps.now ?? (() => performance.now()), t0 = now();
@@ -233,11 +244,12 @@ export class ContactPublisher<T extends object, V, S> {
   /** A message's deltas into one copy, in bounded steps. A refusal is
    *  counted where it is first met (`count`): the copies hold the same rows,
    *  so the catch-up refuses exactly what the work copy refused. */
-  private *applyTo(t: GenerationTables, m: PublisherMessage, c: { n: number }, count = true): Steps<void> {
+  private *applyTo(t: GenerationTables, m: PublisherMessage, c: { n: number }, count = true, live: () => boolean = () => true): Steps<void> {
     const deltas: readonly StoreDelta[] = m.contacts ?? [];
     for (let k = 0; k < deltas.length; k++) {
       while (t.stores.length <= k) t.stores.push(new ContactStore(m.id, t.generation, REQUEST_BUDGET));
-      try { if (!(yield* t.stores[k]!.applySteps(deltas[k]!, c)) && count) this.dropped++; }
+      // a request let go meanwhile: its copy goes with it — stop at the next step (Codex R157 VP-I116)
+      try { const ok = yield* this.whileLive(t.stores[k]!.applySteps(deltas[k]!, c), live); if (ok === null) return; if (!ok && count) this.dropped++; }
       catch (e) { if (count) { this.dropped++; console.error(`[contacts] request ${m.id}: ${String(e)}`); } }
     }
     t.deltas++;
@@ -245,15 +257,27 @@ export class ContactPublisher<T extends object, V, S> {
   }
 
   private clock(): number { return (this.deps.now ?? (() => performance.now()))(); }
-  /** Runs a job's steps, each one's time into `longestStepMs[k]`. */
-  private *timed<R>(job: Steps<R>, k: number): Steps<R> {
+  /** Runs a job's steps, each one's time into `longestStepMs[k]`; `stop`
+   *  ends it before its next step (closed — its data goes): null then. */
+  private *timed<R>(job: Steps<R>, k: number, stop?: () => boolean): Steps<{ value: R } | null> {
     for (;;) {
+      if (stop?.()) { job.return(undefined as never); return null; }
       const t0 = this.clock(), r = job.next(), dt = this.clock() - t0;
       if (dt > this.longestStepMs[k]!) this.longestStepMs[k] = dt;
+      if (r.done) return { value: r.value };
+      yield;
+    }
+  }
+  /** A job while `live` holds: its result, or null — closed at the step it stopped. */
+  private *whileLive<R>(job: Steps<R>, live: () => boolean): Steps<R | null> {
+    for (;;) {
+      if (!live()) { job.return(undefined as never); return null; }
+      const r = job.next();
       if (r.done) return r.value;
       yield;
     }
   }
+  private retire(p: Built<V>): void { if (p.view !== null) this.deps.retire?.(p.view); }
 
   /** Whether the live state shows exactly the built views' specs. */
   private shows(built: ReadonlyMap<T, { key: string }>): boolean {
@@ -309,7 +333,8 @@ export class ContactPublisher<T extends object, V, S> {
           r.gen = g;
           r.fallen = false;
         }
-        yield* this.applyTo(this.workOf(r)!, m, c);
+        yield* this.applyTo(this.workOf(r)!, m, c, true, () => this.reqs.get(m.id) === r);
+        if (this.reqs.get(m.id) !== r) return;   // let go meanwhile: its cancel went out
         if (r.fallen) this.ackOf(m);   // the drain lands in the copy that is held
         else r.ahead.push(m);
       }
@@ -330,15 +355,21 @@ export class ContactPublisher<T extends object, V, S> {
     // 2 — the views of the tracks shown, from the work copies (a fallen
     // request's from `pub`)
     me.phase = 2;
-    const built = new Map<T, { key: string; ids: readonly number[]; view: V | null }>();
+    const built = me.built as Map<T, Built<V>>;
     for (;;) {
       built.clear();
       for (const track of new Set(this.deps.tracks())) {
         const s = this.deps.specOf(track);
         if (!s) continue;
-        const view = yield* this.timed(this.deps.build(track, s.spec, id => this.buildTables(id), id => this.reqs.get(id)?.held ?? null), 1);
-        if (me.discard) { discarded(); return; }
-        built.set(track, { key: s.key, ids: s.ids, view });
+        // the generations' tables it reads: they live while the view is shown
+        const uses = new Set<GenerationTables>();
+        const tables = (id: number) => { const t = this.buildTables(id); if (t) uses.add(t); return t; };
+        const held = (id: number) => { const h = this.reqs.get(id)?.held ?? null; if (h) uses.add(h); return h; };
+        // a discarded build (a fallback, a request let go) stops at its next
+        // step — never run to its end (Codex R157 VP-I116)
+        const out = yield* this.timed(this.deps.build(track, s.spec, tables, held), 1, () => me.discard);
+        if (!out) { discarded(); return; }
+        built.set(track, { key: s.key, ids: s.ids, view: out.value, uses });
       }
       yield;
       if (me.discard) { discarded(); return; }
@@ -353,7 +384,12 @@ export class ContactPublisher<T extends object, V, S> {
     me.phase = 3;
     const staged = this.deps.stage();
     for (const r of this.reqs.values()) if (r.copies && !r.fallen) r.pub = r.pub === 0 ? 1 : 0;
-    this.views = built;
+    // the views published before are dead from here on — every query of one
+    // fails, wherever it is still held (Codex R157 VP-I117)
+    const old = this.views;
+    this.views = new Map(built);
+    built.clear();
+    for (const p of old.values()) this.retire(p);
     this.staged = staged;
     this.version++;
     const p0 = this.clock();
@@ -366,7 +402,7 @@ export class ContactPublisher<T extends object, V, S> {
     for (const [id, r] of [...this.reqs]) {
       if (!r.copies || r.fallen || !r.ahead.length) continue;
       const dead = this.workOf(r)!, ahead = r.ahead;
-      for (const m of ahead) yield* this.timed(this.applyTo(dead, m, c, false), 3);
+      for (const m of ahead) yield* this.timed(this.applyTo(dead, m, c, false, () => this.reqs.get(id) === r), 3);
       if (this.reqs.get(id) !== r || r.ahead !== ahead) continue;   // released, or a fallback closed them
       for (const m of ahead) this.ackOf(m);
       r.ahead = [];
@@ -384,11 +420,18 @@ export class ContactPublisher<T extends object, V, S> {
    *  use), in all and by owner — the published copies, the work copies, the
    *  held generations (plan 3.4 / 3.6: each owner measured). */
   stats(): { requests: number; rows: { episodes: number; intervals: number; gaps: number }; allocated: number; used: number;
-             byOwner: { pub: number; work: number; held: number } } {
-    const rows = { episodes: 0, intervals: 0, gaps: 0 }, byOwner = { pub: 0, work: 0, held: 0 };
+             byOwner: { pub: number; work: number; held: number; shown: number }; views: { published: number; building: number } } {
+    // every store that lives counted ONCE, by its first owner: the request's
+    // published copy, its work copy, its held generation — and the tables only
+    // a published view still reads (the old generation's published copy until
+    // the union replaces it; Codex R157 VP-I118)
+    const rows = { episodes: 0, intervals: 0, gaps: 0 }, byOwner = { pub: 0, work: 0, held: 0, shown: 0 };
+    const seen = new Set<ContactStore>();
     let allocated = 0, used = 0;
     const add = (t: GenerationTables | null, owner: keyof typeof byOwner, count: boolean) => {
       for (const st of t?.stores ?? []) {
+        if (seen.has(st)) continue;
+        seen.add(st);
         if (count) { rows.episodes += st.episodes.rows; rows.intervals += st.intervals.rows; rows.gaps += st.gaps.rows; }
         allocated += st.allocatedBytes(); used += st.usedBytes(); byOwner[owner] += st.allocatedBytes();
       }
@@ -398,7 +441,10 @@ export class ContactPublisher<T extends object, V, S> {
       add(this.workOf(r), "work", false);
       add(r.held, "held", true);
     }
-    return { requests: this.reqs.size, rows, allocated, used, byOwner };
+    for (const p of this.views.values()) for (const t of p.uses) add(t, "shown", false);
+    const bytes = (ps: Iterable<Built<V>>) => { let n = 0; for (const p of ps) if (p.view !== null) n += this.deps.viewBytes?.(p.view) ?? 0; return n; };
+    const building = this.pass ? (this.pass.built as Map<T, Built<V>>).values() : [];
+    return { requests: this.reqs.size, rows, allocated, used, byOwner, views: { published: bytes(this.views.values()), building: bytes(building) } };
   }
   /** Puts tables in as a request's current generation, both copies (the
    *  diagnostic seam that lays made-up findings over a result). */
