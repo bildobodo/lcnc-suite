@@ -92,6 +92,9 @@ export interface UnionSide {
    *  answer (the view's: by blocks); absent, the searches step one by one
    *  (Codex R158 VP-I115: a walk over every interval without one). */
   nextFree?(k: number): number;
+  /** The last interval up to k with a free sample (−1: none) — the index's
+   *  answer backwards; absent, the search steps one by one. */
+  prevFree?(k: number): number;
   /** Where the union's component holding interval k's LAST part ends, as the
    *  walk found it (`eachPieceSteps`' `comp`): the interval whose end it is,
    *  side · 2^30 + index + 1; 0: not written — the search grows it part by
@@ -232,6 +235,12 @@ function sepsStarting(seps: UnionSeps, x: number): number {
   return lo;
 }
 
+/** The zones that hold the point x: [first, last] (between separators that
+ *  only touch, several; x inside a separator: last < first). */
+export function zonesHolding(seps: UnionSeps, x: number): [number, number] {
+  return [sepsStarting(seps, x), sepsEnding(seps, x, true)];
+}
+
 /** The zone a point interval at x lies in, from the zone of the interval
  *  before it (`prev`) and whether it began after the unknown tool. The zones
  *  holding x are [separators starting before x, separators ending at or
@@ -321,6 +330,14 @@ function firstEnterFrom(s: UnionSide, y: number): number {
 function nextFreeOf(s: UnionSide, k: number): number {
   if (s.nextFree) return s.nextFree(k);
   while (k < s.n && Number.isNaN(s.freeAt(k))) k++;
+  return k;
+}
+
+/** The last interval of side s up to k with a free sample (−1: none). */
+function prevFreeOf(s: UnionSide, k: number): number {
+  if (k >= s.n) k = s.n - 1;
+  if (s.prevFree) return k < 0 ? -1 : s.prevFree(k);
+  while (k >= 0 && Number.isNaN(s.freeAt(k))) k--;
   return k;
 }
 
@@ -539,6 +556,62 @@ export function pieceFrom(sides: readonly UnionSide[], seps: UnionSeps, z: numbe
                               from0: 0, to0: 0, from1: 0, to1: 0 };
   rangesOf(sides, seps, piece);
   return piece;
+}
+
+/** The piece of zone z holding the point w of interval `hk` of side `hs`
+ *  (inside its zone part — a confirmed point of it: its witness); null: none.
+ *  From the indexes, never piece by piece from the zone's start (Codex R159
+ *  VP-I115: an earlier event's key, carried by the piece holding its
+ *  witness): its component's start — on each side the first interval whose
+ *  component end reaches the one at w (the ends rise with the index, `comp`)
+ *  —, the last free stretch ending at or before w (the previous free sample
+ *  of each side and the one before it), then `pieceFrom` from the later of
+ *  them, which names its evidence as the build did. Without the walk's
+ *  component ends, piece after piece. */
+export function pieceContaining(sides: readonly UnionSide[], seps: UnionSeps, z: number, w: number, hs: number, hk: number): UnionPiece | null {
+  const lo = zoneLo(seps, z), hi = zoneHi(seps, z);
+  const holds = (p: UnionPiece | null) => !!p && (p.start < w || (p.start === w && !p.startOpen)) && (w < p.end || (w === p.end && !p.endOpen));
+  if (!sides.every(x => !x || x.comp)) {
+    for (let p = pieceFrom(sides, seps, z, lo, true); p && p.start <= w; p = pieceFrom(sides, seps, z, p.end, p.endOpen)) if (holds(p)) return p;
+    return null;
+  }
+  // a part's component end in the zone: the zone's end for one reaching past it
+  const endOf = (s: UnionSide, q: number): number => {
+    if (s.end(q) > hi) return hi;
+    const c = s.comp!(q);
+    if (c === 0) return s.enter(q);   // no part in any zone (a point inside a separator)
+    const [cs, ci] = compOf(c);
+    return Math.min(sides[cs]!.end(ci), hi);
+  };
+  const E = endOf(sides[hs]!, hk);
+  let start = Infinity;
+  for (const s of sides) {
+    if (!s) continue;
+    const upper = predEnter(s, w) + 1;
+    let a = 0, b = upper;
+    while (a < b) { const m = (a + b) >> 1; if (endOf(s, m) < E) a = m + 1; else b = m; }
+    // (point intervals at one coordinate end alike in several zones: the first of this one)
+    while (a < upper && endOf(s, a) === E && !partOf(s, a, seps, z, TMP)) a++;
+    if (a < upper && endOf(s, a) === E) start = Math.min(start, Math.max(lo, s.enter(a)));
+  }
+  if (start === Infinity) return null;
+  // the last free stretch ending at or before w: of each side's two last free samples up to w
+  let y = start, incl = true;
+  for (let fs = 0; fs < sides.length; fs++) {
+    const s = sides[fs]!;
+    if (!s) continue;
+    // back from the last free sample up to w: the first stretch ending at or
+    // before w is the side's latest (they come in order); none past the start
+    for (let j = prevFreeOf(s, predEnter(s, w)); j >= 0; j = prevFreeOf(s, j - 1)) {
+      if (s.freeAt(j) + freeRadius(s.freeR(j)) < start) break;
+      const f = freeStretch(sides, fs, j);
+      if (!f || f.b > w || (f.b === w && !f.bo)) continue;
+      if (f.b > y || (f.b === y && f.bo && incl)) { y = f.b; incl = f.bo; }
+      break;
+    }
+  }
+  const p = pieceFrom(sides, seps, z, y, incl);
+  return holds(p) ? p : null;
 }
 
 /** The intervals of each side whose zone part meets the piece, as index

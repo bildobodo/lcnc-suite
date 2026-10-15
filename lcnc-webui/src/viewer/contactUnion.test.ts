@@ -2,7 +2,7 @@
 // the fast search against a brute force over plain sets of spans.
 import { describe, expect, it } from "vitest";
 import {
-  eachPiece, eachPieceSteps, eachWideConflict, evidencePos, evidenceZone, mergeSeps, NO_SEPARATORS, pieceFrom, pieceIntervals, PROTECT, sepArray, START_ENTER, START_FREE,
+  eachPiece, eachPieceSteps, eachWideConflict, evidencePos, evidenceZone, mergeSeps, NO_SEPARATORS, pieceContaining, pieceFrom, pieceIntervals, PROTECT, sepArray, START_ENTER, START_FREE,
   START_SEP, unionScratch, unionReach, type UnionPiece, type UnionSeps, type UnionSide,
 } from "./contactUnion";
 import { STEP_OPS, runToEnd } from "./steps";
@@ -309,7 +309,7 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
   });
 
   it("matches the brute force over random generations with tool gaps — piece by piece and zone by zone, its start's evidence, every later question from that start alone, the contradictions", { timeout: 120_000 }, () => {
-    let total = 0, cases = 0;
+    let total = 0, cases = 0, containing = 0;
     const kinds = [0, 0, 0];
     const scratch = unionScratch();
     for (const seed0 of [12345, 777, 31337, 4242, 99, 2026, 151]) {
@@ -403,6 +403,18 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
           const qi = pieceFrom(indexed, seps, p.zone, pos, true)!;
           expect([qi.zone, qi.start, qi.startOpen, qi.end, qi.endOpen, qi.from0, qi.to0, qi.from1, qi.to1], `${tag}: asked with the indexes ${JSON.stringify(p)}`)
             .toEqual([p.zone, p.start, p.startOpen, p.end, p.endOpen, p.from0, p.to0, p.from1, p.to1]);
+          // every witness inside it: the piece holding it, found from the indexes (Codex R159 VP-I115)
+          const inside = (x: number) => (x > p.start || (x === p.start && !p.startOpen)) && (x < p.end || (x === p.end && !p.endOpen));
+          for (const [sd, a, b] of [[0, p.from0, p.to0], [1, p.from1, p.to1]] as const) {
+            for (let k = a; k < b; k++) {
+              const w = indexed[sd]!.witness(k);
+              if (!inside(w) || !(indexed[sd]!.enter(k) <= w && w <= indexed[sd]!.end(k))) continue;
+              const h = pieceContaining(indexed, seps, p.zone, w, sd, k);
+              expect(h && [h.zone, h.start, h.startOpen, h.end, h.endOpen, h.startKind, h.startSide, h.startIdx], `${tag}: the piece holding ${sd}:${k}'s witness ${w}`)
+                .toEqual([p.zone, p.start, p.startOpen, p.end, p.endOpen, p.startKind, p.startSide, p.startIdx]);
+              containing++;
+            }
+          }
           // every interval the walk passed has its component end written
           for (const [si, x] of [[0, p.from0, p.to0], [1, p.from1, p.to1]].map(([sd, a, b]) => [sd!, comps[sd!]!.subarray(a!, b!)] as const)) {
             expect(x.every(v => v > 0), `${tag}: side ${si}'s component ends written`).toBe(true);
@@ -424,7 +436,8 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
         if (got.length) cases++;
       }
     }
-    console.log(`[B4 union] ${cases} cases with pieces, ${total} pieces; starts by kind (enter, free, separator): ${kinds.join(" ")}`);
+    console.log(`[B4 union] ${cases} cases with pieces, ${total} pieces; starts by kind (enter, free, separator): ${kinds.join(" ")}; ${containing} witnesses found in their piece`);
+    expect(containing).toBeGreaterThan(1000);
     expect(kinds.every(k => k > 0), "an enter, a free stretch and a separator start pieces").toBe(true);
   });
 });

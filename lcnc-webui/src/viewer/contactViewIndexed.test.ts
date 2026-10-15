@@ -149,6 +149,64 @@ describe("a union piece asked of the indexes answers as the walk over its interv
 });
 
 const D = IV_ENTER_DECIDED | IV_EXIT_DECIDED;
+describe("a key among simultaneous starts is found by its reference (Codex R159 VP-I115 rest B)", () => {
+  // every pair's own contact [0, 1]: at one position, n targets; a union of
+  // two such runs with the earlier run's keys (each carried by the piece
+  // holding its witness)
+  const run = (gen: number, n: number, shift: number) => {
+    const st = new ContactStore(1, gen, REQUEST_BUDGET);
+    for (let i = 0; i < n; i++) {
+      const ep = st.episodes.append({ pair: i, ordinal: 0, flags: 0, onset: 0, end: 1, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 0, exit: 1 + shift, flags: D, next: NONE, witness: 0.5 + shift, freeAt: 2, freeR: 0.1 }));
+    }
+    return st;
+  };
+  const counter = () => {
+    const proto = ColumnTable.prototype as unknown as { get: (...a: unknown[]) => number; blocksOf: (n: string) => ArrayLike<number>[] };
+    const get = proto.get, blocksOf = proto.blocksOf, box = { reads: 0 };
+    const counted = new WeakMap<object, object>();
+    const cell = <A extends object>(a: A): A => {
+      let w = counted.get(a) as A | undefined;
+      if (!w) counted.set(a, w = new Proxy(a, { get(t, k) { if (typeof k === "string" && /^\d+$/.test(k)) box.reads++; return Reflect.get(t, k, t); } }));
+      return w;
+    };
+    proto.get = function (...a: unknown[]) { box.reads++; return get.apply(this, a); };
+    proto.blocksOf = function (nm: string) {
+      const blocks = blocksOf.call(this, nm) as object[];
+      return new Proxy(blocks, { get(t, k) { const x = Reflect.get(t, k, t); return typeof k === "string" && /^\d+$/.test(k) && x ? cell(x as object) : x; } }) as never;
+    };
+    return { box, restore: () => { proto.get = get; proto.blocksOf = blocksOf; } };
+  };
+  it.each([["one run", false], ["a union, the earlier run's keys", true]])("%s: at its place, moved, anywhere — the same at 1024 and at 8192 pairs", { timeout: 300_000 }, (_, union) => {
+    const worst: Array<Record<string, number>> = [];
+    for (const n of [1024, 8192]) {
+      const c = counter();
+      try {
+        const held = run(0, n, 0);
+        const v = union
+          ? buildContactView({ sources: [{ stores: [run(1, n, 0.25)], held: [held], heldCoverage: [3], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 })
+          : buildContactView({ sources: [{ stores: [held], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
+        const keys = union ? (() => { const b = buildContactView({ sources: [{ stores: [held], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
+                                      return [0, b.n >> 1, b.n - 1].map(i => targetKey(b, i)); })()
+                           : [0, v.n >> 1, v.n - 1].map(i => targetKey(v, i));
+        const w: Record<string, number> = {};
+        for (const key of keys) {
+          for (const [mode, near] of [["at its place", 0], ["moved", 123456], ["anywhere", undefined]] as const) {
+            c.box.reads = 0;
+            const i = findKey(v, key, near);
+            w[mode] = Math.max(w[mode] ?? 0, c.box.reads);
+            expect(i, `${key} ${mode}`).toBeGreaterThanOrEqual(0);
+            expect(targetKey(v, i), "the target its key names").toBe(key);
+          }
+        }
+        worst.push(w);
+      } finally { c.restore(); }
+    }
+    console.log(`[R159 keys] ${union ? "union" : "one run"}: ${JSON.stringify(worst[0])} → ${JSON.stringify(worst[1])}`);
+    for (const k of Object.keys(worst[0]!)) expect(worst[1]![k]!, k).toBeLessThanOrEqual(1.5 * worst[0]![k]! + 256);
+  });
+});
+
 /** One interval of its own episode. */
 function iv(st: ContactStore, pair: number, a: number, b: number, flags: number, free = NaN, r = 0) {
   const ep = st.episodes.append({ pair, ordinal: st.episodes.rows, flags: 0, onset: a, end: b, closeAt: a, closeDist: 0, firstIv: NONE, ivCount: 1 });
