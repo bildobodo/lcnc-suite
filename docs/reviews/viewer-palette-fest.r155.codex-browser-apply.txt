@@ -1,0 +1,36 @@
+{
+  "commit": "bb2214c0",
+  "page": "about:blank; all network requests aborted",
+  "scope": "Only ColumnTable / ContactStore apply; excludes Vue, DOM rendering, view build and catch-up",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.0 Safari/537.36",
+  "rows": {
+    "episodes": 65536,
+    "intervals": 262144,
+    "gaps": 16384
+  },
+  "appendMs": 3.099999999627471,
+  "updatesMs": [
+    68.09999999962747,
+    77.5,
+    74.19999999925494,
+    74.69999999925494,
+    78
+  ],
+  "tablesMs": [
+    {
+      "episodes": 14.100000001490116,
+      "intervals": 58.29999999888241,
+      "gaps": 1.400000000372529
+    },
+    {
+      "episodes": 14.400000000372529,
+      "intervals": 59.09999999962747,
+      "gaps": 1.5
+    },
+    {
+      "episodes": 14.099999999627471,
+      "intervals": 58.70000000111759,
+      "gaps": 1.5
+    }
+  ]
+}

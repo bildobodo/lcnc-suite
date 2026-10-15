@@ -1,0 +1,4 @@
+Archive: bb2214c0
+Command: nice -n 15 node node_modules/vue-tsc/bin/vue-tsc.js --noEmit -p tsconfig.app.json
+Exit: 0
+Diagnostics: none

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r155-r1lqnetr/repo/lcnc-webui
+
+
+ Test Files  7 passed (7)
+      Tests  81 passed (81)
+   Start at  06:58:15
+   Duration  159.18s (transform 252ms, setup 0ms, import 457ms, tests 158.37s, environment 0ms)
+

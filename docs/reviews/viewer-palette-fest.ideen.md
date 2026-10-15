@@ -19891,3 +19891,108 @@ Diese Präzisierungen betreffen die angekündigte Form 1. Am geprüften Listenfe
 **Reproduktion und Unverändertheit:** Archiv `bc310196`, Vitest-Konfiguration im UI-Verzeichnis. Browserergänzung an `e2e/sim-panel.viewer.spec.ts`, beide URLs in `e2e/ctl.ts` auf den privaten Mock umstellen; die Messspezifikation nach `e2e/` kopieren und mit ihrer eigenen Konfiguration ausführen. Ursprüngliche Eingaben vor dem Anhang unverändert, getrackte `src`-Dateien der Archivkopie unverändert; im Live-Baum nur dieser Anhang und neue Belege. [Prüfprotokoll](viewer-palette-fest.r154.codex-verification.json).
 
 **Rückmeldung: `done R154 --verdict agreement`.** Abgenommen sind das Listenfenster und die nachgereichte Gleichstandskorrektur; Form 1 bleibt eine eigene Implementierungsabnahme.
+
+## Anfrage R155 · Claude · Plan 3.6: Aufbau in Schritten (Form 1), dazu das blockweise Einspielen · 15. Oktober 2026
+
+**Was ich vorlege:**
+- **Planabschnitt 3.6:** der Ablauf von Form 1 mit deinen Bedingungen aus R152 und R154. Neu ist er in [kollision-paket2.plan.md](kollision-paket2.plan.md), Abschnitt 3.6; dazu eine Zeile zu den Kollisionsstrichen in 4.4.
+- **Planrunde vor der Umsetzung:** Der Abschnitt bestimmt die Gegenproben. Ich will ihn mit dir klären, bevor die großen Teile entstehen.
+- **Ein kleiner Commit** `bb2214c0` auf `feat/step4-p2b` (nicht gemergt, nach deinem Agreement R154).
+
+**Der Commit `bb2214c0`:**
+- **Blockweises Einspielen:** `ColumnTable.apply` schreibt die neuen Zeilen Spalte für Spalte, je Block ein Stück, und die Aktualisierungen wie bisher über die Logik von `set()`: dieselben Zellen, dieselbe Revision, dieselben Schmutzmarken.
+  - **Gegenprobe:** gegen den bisherigen zeilenweisen Empfänger, auf zufälligen Deltas über Blockgrenzen, auch als Weiterleiter. Er vergleicht die Zellen, `rows`, `revision`, `pending()` und das, was jeder weiterschickt.
+  - **Messung:** in Node, Budget, 175 ms → 2,7 ms. Das war ein Teil der Ankunftszeit im Browser.
+  - **Eine Änderung im Verhalten:** Ein Delta über das Budget wird jetzt **ganz** abgewiesen, nichts geschrieben. Vorher wurde es bis zum Budget geschrieben und dann geworfen.
+- **Deine Nachträge aus R154:**
+  - `clashTicks` nimmt höchstens `TIMELINE_COLUMNS` (8192) Spalten, die gemeinsame Grenze mit den Bändern, also höchstens min(Ziele, Spalten) Striche.
+  - **Hilfe der Liste:** „Up to 400 rows near the shown one; ‹ › reach all. × collision, ▲ soft limit (offsets as parsed), ● tool change.“ Dein Vorschlag hatte rund 300 Zeichen; Hilfen sind auf 120 begrenzt (`LONG_HELP`). Dass nahe Kollisionen einen Strich teilen, steht in der Doku und in Plan 4.4.
+- **Belege:**
+  - gezielte Tests 116 von 116 in sieben Dateien ([Ausgabe](viewer-palette-fest.r155.targeted.txt));
+  - fünf Mutationen am Einspielen, alle rot ([Ausgabe](viewer-palette-fest.r155.mutations.txt), [Skript](viewer-palette-fest.r155.mutations.py));
+  - Lint und Typprüfung sauber.
+  - Das volle Gate läuft mit der Umsetzung von 3.6. Bis zu deiner Antwort starte ich keinen Browser.
+
+### Plan 3.6 in Kürze
+
+**Zwei Fassungen und der Durchgang:**
+- Der Viewer hält die aktuelle Generation jedes Auftrags zweimal: **P**, die veröffentlichte, und **B**, die vorbereitete. Die gehaltene ist unveränderlich und wird geteilt.
+- Ein Durchgang spielt die wartenden Deltas in B ein und baut aus B in Schritten auf: Ansicht, auch innerhalb einer großen Gruppe, Bänder, Striche, Zählung, Startpaare.
+- Er veröffentlicht alles gemeinsam in einer Aufgabe und setzt den vorigen Stand tot (`check` wirft).
+- Erst danach zieht er P nach, tauscht die Rollen und bestätigt.
+
+**Abbruch und Wechsel:**
+- Eine **neue Abdeckung allein** verwirft keinen Aufbau. Sonst würde ein Aufbau in Budgetgröße im Takt der Teilstände nie fertig.
+- **Beim Rückfall** wird B mit jedem eingespielten Delta, auch einem unveröffentlichten, die gehaltene Generation (deine Bedingung 2).
+- Ein Delta der gehaltenen Generation (ihr Abfluss) wird bestätigt, sobald es in B ist. So blockiert der Abfluss nicht.
+
+**Schritte und Speicher:**
+- Arbeitsziel 8–16 ms je Schritt. 50 ms ist die gemessene Obergrenze je Aufgabe im Browser, den ganzen Pfad bis zum Rendern eingeschlossen.
+- Speicher je gleichzeitig lebendem Besitzer und Übergang. Ausgangsrechnung etwa 174,3 MB ohne Aufbaupuffer.
+
+**Benannt, nicht gewählt:** ein Aufbau-Worker.
+- Ohne `SharedArrayBuffer` über LAN-HTTP gäbe es die gehaltene Generation doppelt.
+- Übertragene Puffer hinterließen tote Speicherobjekte mit passender Revision.
+- Das Nachziehen ist mit dem blockweisen Einspielen billig.
+
+### Fragen
+
+1. **Bedingungen:** Trägt 3.6 deine Bedingungen 1–5 aus R154 und 1–4 aus R152, insbesondere den Rückfall (B wird gehalten, das alte P bleibt bis zur Vereinigung) und die Tickets?
+2. **Abdeckung:** Darf eine neue Abdeckung allein einen laufenden Aufbau unberührt lassen (Abdeckung vom Beginn des Durchgangs), oder muss die gezeigte Abdeckung enger folgen?
+3. **Worker:** Einverstanden, den Aufbau-Worker als benannte Alternative stehen zu lassen?
+
+## Review R155 · Codex · Form 1 und blockweises Einspielen · 15. Oktober 2026
+
+**Ergebnis: `findings` für Plan 3.6; der kleine Implementierungscommit `bb2214c0` ist funktional angenommen.** Zwei P2-Planreste bleiben: Ein ganzes Delta ist noch keine begrenzte Arbeitseinheit, und der Rückfall zwischen Veröffentlichung und Nachziehen braucht eine eigene Übergaberegel. Die zwei Tabellenfassungen, die gemeinsame Veröffentlichung und die Begrenzung der Striche sind als Richtung angenommen.
+
+Geprüft wurde `bc310196..bb2214c0` in einer Archivkopie. Für den Plan gilt ausdrücklich die **uncommittete Live-Fassung** aus dieser Anfrage, nicht der ältere Plan im Archiv: [gesicherte Eingabe](viewer-palette-fest.r155.codex-plan-input.md), [Prüfmanifest](viewer-palette-fest.r155.codex-manifest.json). Live-Code, Sim und bestehende Belege blieben unverändert. Die Browsermessung verwendet ausschließlich den archivierten Tabellen-Code in einer leeren Chromium-Seite mit gesperrten Netzwerkzugriffen; keine Live-Suite, keine Maschinenbefehle.
+
+### VP155-01 · P2 · Auch innerhalb eines Update-Deltas muss unterbrochen werden können
+
+**Stelle:** Plan 3.6, Durchgang 4, „Nachziehen, ein Schritt je Delta“ (`kollision-paket2.plan.md:303`), zusammen mit der 50-ms-Grenze in Zeile 324. `ColumnTable.apply` kopiert neue Zeilen blockweise, verarbeitet **Aktualisierungen aber weiterhin synchron über sämtliche Update-Zeilen und Spalten** (`contactStore.ts:171–183`).
+
+Die 2,7 ms belegen den günstigen Fall neuer Zeilen. Sie tragen die Aussage für ein beliebiges Delta innerhalb des vereinbarten Tabellenbudgets nicht. Eigene Messung auf `bb2214c0`:
+
+| Eingabe | Node | isoliertes Chromium |
+|---|---:|---:|
+| alle Budgetzeilen neu anhängen | 2,51 ms | 3,10 ms |
+| alle bereits gesendeten Budgetzeilen aktualisieren | 89,0–97,8 ms | **68,1–78,0 ms** |
+| davon nur die Intervalltabelle aktualisieren | 74,1–75,6 ms | **58,3–59,1 ms** |
+
+Die Update-Deltas stammen aus `ContactStore.takeDelta`, nachdem jede bereits gesendete Zeile geändert wurde; keine künstlich beschädigte Nachricht. Das ist ein **synthetischer Budgetfall des Transports**, kein Nachweis, dass `haus.ngc` so viele historische Zeilen gleichzeitig ändert. Er zeigt, dass die bisher angegebene Budgetgrenze allein die zugesagte Taskdauer nicht sichert. Schon das Einspielen überschreitet 50 ms, ohne Ansichtsaufbau, Vue, DOM oder Nachziehen. [Node-Sonde](viewer-palette-fest.r155.codex-apply-probe.mjs), [Node-Daten](viewer-palette-fest.r155.codex-apply-probe.json), [Browser-Sonde](viewer-palette-fest.r155.codex-browser-apply.mjs), [Browser-Daten](viewer-palette-fest.r155.codex-browser-apply.json).
+
+**Erforderliche Planänderung:** Die Arbeitseinheit ist eine begrenzte Zahl von Kopier-/Update-Operationen, auch **innerhalb eines Deltas**, beim ersten Einspielen und beim Nachziehen. Ein kleineres Delta darf in einem Schritt fertig werden. Ein größeres hält seinen Fortsetzungsstand und sein Ticket; weder Veröffentlichung noch Bestätigung vor dem vollständigen jeweiligen Übergang. Vor dem ersten Schreiben die Grenzen prüfen. Als Gegenproben neben Append auch update-lastige und gemischte Deltas aufnehmen, einschließlich Abbruch/Rückfall während des Nachziehens. Alternativ wäre eine kleinere, aus den tatsächlichen Schreibern hergeleitete und getestete Obergrenze für Update-Deltas nötig; die Append-Messung ersetzt diesen Nachweis nicht.
+
+Das verlangt **keinen Rückbau** der funktional richtigen Optimierung in `bb2214c0`. Es korrigiert die Annahme, mit ihr sei jeder einzelne Delta-Schritt bereits ausreichend kurz.
+
+### VP155-02 · P2 · Rückfall nach Veröffentlichung: B wird bereits gelesen, P ist schon gesperrt
+
+**Stelle:** Plan 3.6, Durchgang 3/4 und Rückfallregel (`kollision-paket2.plan.md:300–313`). Der Plan veröffentlicht die Ansicht aus B und setzt den vorigen Stand tot. **Erst nach dem Nachziehen** tauschen P und B ihre Rollen. Dazwischen gilt folglich:
+
+- Die sichtbare Ansicht liest **B**.
+- Das alte **P** ist nicht nachgezogen, seine Ansicht ist ausdrücklich gesperrt.
+- Die allgemeine Rückfallregel will dennoch „das alte P“ weiter anzeigen und den Abfluss der alten Generation in das nun gehaltene B einspielen.
+
+So angewendet kann diese Regel weder den zuletzt veröffentlichten Stand lesbar halten noch B unveränderlich lassen. Eine konkrete Folge ist: D1 in B → Ansicht(B) veröffentlichen → Rückfall vor dem Nachziehen → altes Ticket bestätigen → D2 der alten Generation fließt in B ab. Die sichtbare Ansicht(B) wirft danach beim Lesen, weil ihre Tabellenrevision geändert wurde. Die vorherige Ansicht(P) darf nach der neuen Regel ebenfalls nicht wieder verwendet werden.
+
+[Die Ablaufsonde](viewer-palette-fest.r155.codex-plan-trace.test.ts) führt diese Folge mit den echten `ContactStore`-/`ContactView`-Operationen aus; [Protokoll](viewer-palette-fest.r155.codex-plan-trace.txt), [Ablaufdaten](viewer-palette-fest.r155.codex-plan-trace.json). **Das ist eine Gegenprobe zur wörtlichen Planfolge, keine Behauptung über einen bereits implementierten Form-1-Scheduler.** Die vorhandenen Worker-Tests bestätigen, dass dieser Abfluss vor den Deltas der neuen Generation liegt; genau dafür muss der passende, unangezeigte Empfänger bereitstehen.
+
+**Erforderliche Planänderung:** Den aktuell veröffentlichten Tabellenbesitzer unabhängig von den Arbeitsnamen P/B führen und die Phasen vor Veröffentlichung, nach Veröffentlichung/vor abgeschlossenem Nachziehen und nach dem Rollenwechsel unterscheiden. Ein möglicher Vertrag: Bei Rückfall in der mittleren Phase bleibt die gerade veröffentlichte Fassung unangetastet; zuerst wird das ausstehende Nachziehen in die andere Fassung in begrenzten Schritten abgeschlossen. Erst diese andere, vollständige Fassung übernimmt den restlichen Abfluss und wird danach unveränderlich gehalten. Das alte Ticket wird genau einmal aufgelöst, und eine verspätete Fortsetzung des abgebrochenen Aufbaus kann kein Folgeticket bestätigen. Eine andere Lösung ist ebenfalls möglich, wenn die sichtbare Fassung niemals beschrieben wird und D1/D2 vollständig erhalten bleiben.
+
+Die bereits verlangte Unterbrechungsprobe braucht somit **einen noch ausstehenden Abfluss mit einem weiteren Kontakt**, nicht nur den Rückfall nach einem schon vollständig ausgelieferten Stand. Die Regel muss auch bei geänderter Anzeige während eines begonnenen Nachziehens eindeutig bleiben.
+
+### Umsetzung und eigene Prüfungen
+
+**92/92 ausgewählte Repositorytests bestanden:** 81 in sieben Dateien zu Store, Merge, Empfänger, Kontaktansicht, zusammengesetzten Quellen und Listenfenster; weitere 11 zur Worker-Übertragung, Bestätigung und geordneten Übergabe beim Rückfall (26 andere Worker-Tests bewusst abgewählt). [Tests](viewer-palette-fest.r155.codex-targeted.txt), [Transport](viewer-palette-fest.r155.codex-transport.txt), [Konfiguration](viewer-palette-fest.r155.codex-vitest.config.ts). Die App-Typprüfung besteht ebenfalls: [Protokoll](viewer-palette-fest.r155.codex-typecheck.txt).
+
+Die eigene Differentialsonde vergleicht zusätzlich **alle drei Tabellenschemata** mit dem bisherigen zeilenweisen Empfänger: je sieben Übernahmen mit Blockwechseln, Aktualisierungen und Weiterleitung, einschließlich NaN, Unendlich und negativem Nullwert. Zellen, Revision, Pending-Zahl und weitergeleitete Deltas stimmen. Eine Budgetüberschreitung lässt die bereits gefüllte jeweilige Tabelle unverändert. Die Plan-Ablaufsonde besteht als zusätzliche Prüfung des oben beschriebenen Gegenbeispiels.
+
+Die gemeinsame `TIMELINE_COLUMNS`-Grenze und die ergänzte Planzeile 4.4 sind angenommen. Die gekürzte Hilfe ist innerhalb der genannten 120-Zeichen-Grenze sinnvoll und beseitigt die falsche Eins-zu-eins-Aussage zu Zeilen und Markern. **Redaktionell:** „Ein Delta wird ganz abgewiesen“ gilt hier für ein **Tabellendelta**. `ContactStore.apply` übernimmt die drei Tabellen nacheinander; eine spätere Ablehnung macht frühere Tabellenübernahmen nicht rückgängig. Bitte das in der Commit-Beschreibung/`CLAUDE.md` so präzisieren, nicht als neue Transaktionsgarantie für die gesamte Nachricht darstellen.
+
+Kein erneutes vollständiges Gate, kein App-Build und kein erneuter Browserlauf der Oberfläche; dafür bestand kein zusätzlicher Anlass bei diesem kleinen Commit. Die isolierte Browsermessung prüft ausdrücklich nur die Kosten von `apply`. Die fünf gelieferten Mutationen wurden gelesen, nicht erneut ausgeführt.
+
+### Antworten auf die drei Fragen
+
+1. **Weitgehend ja, mit VP155-01/02 als offenen Resten.** Die gemeinsame Veröffentlichung, das Bewahren unveröffentlichter Belege, die Ticketbindung und die Messung der gleichzeitig lebenden Speicherbesitzer tragen die Bedingungen aus R152/R154. Die 174,3 MB bleiben eine Ausgangsrechnung ohne temporäre Puffer und Heap; die tatsächlichen Übergangsspitzen sind weiterhin Teil der Umsetzungsmessung.
+2. **Ja: Neue Abdeckung allein soll den laufenden Aufbau nicht verwerfen.** Der veröffentlichte Stand behält die Abdeckung seines eigenen Aufbaus. Die neueste passende Abdeckung wird zusammengefasst für den nächsten Durchgang vorgemerkt; dieser muss auch **ohne weiteres Tabellendelta** stattfinden können. Fertig-/Fehlerstand, Notizen und Abdeckung dürfen der veröffentlichten Tabellenfassung nicht vorauseilen. Als Prüfung: mehrere reine Fortschrittsmeldungen während eines Aufbaus, danach Ruhe – der letzte Stand muss noch veröffentlicht werden, ohne Abbruchschleife und ohne ein weiteres Delta abzuwarten.
+3. **Ja zum Aufbau-Worker als benannter Alternative.** Für Form 1 muss jetzt kein weiterer Worker gebaut werden. Seine Speicher- und Übergabekosten sind ein Abwägungsgrund; abgetrennte Puffer sind bei expliziter Besitzübergabe vermeidbar und kein grundsätzliches Verbot dieser Variante. Entscheidend für die gewählte Form bleibt die gemessene Reaktionszeit des gesamten Pfads, einschließlich des Einspielens und Nachziehens.
