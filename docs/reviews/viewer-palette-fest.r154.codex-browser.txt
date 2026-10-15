@@ -1,0 +1,17 @@
+[2m[WebServer] [22m(node:67618) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:67630) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:67630) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/sim-panel.viewer.spec.ts:43:1 › the list is the timeline's marks: one row each, in timeline order, each kind in its words (2.2s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:75:1 › a row shows its finding; the steps go through the shown kind; the next row follows the position (2.6s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:107:1 › a long list is a window: 400 rows, the count and the steps reach every target, one mark per column (plan 4.4) (3.1s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:159:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (4.7s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:795:2 › Codex R154: filters and shrinking results keep a bounded reachable list at zoom 1 (2.9s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:795:2 › Codex R154: filters and shrinking results keep a bounded reachable list at zoom 1.5 (2.9s)
+
+  6 passed (19.1s)

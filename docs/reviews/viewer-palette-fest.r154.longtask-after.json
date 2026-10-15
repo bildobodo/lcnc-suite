@@ -1,0 +1,206 @@
+[
+  {
+    "shape": "one generation",
+    "pairs": 4096,
+    "targets": 16384,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 3143,
+        "longTasks": 1,
+        "longestMs": 84,
+        "sumMs": 84
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3003,
+        "longTasks": 0,
+        "longestMs": 0,
+        "sumMs": 0
+      }
+    ],
+    "rows": 400
+  },
+  {
+    "shape": "after a fallback",
+    "pairs": 4096,
+    "targets": 16384,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 3139,
+        "longTasks": 2,
+        "longestMs": 85,
+        "sumMs": 168
+      },
+      {
+        "name": "the pool falls back: the same tables as the next generation",
+        "wallMs": 3166,
+        "longTasks": 1,
+        "longestMs": 121,
+        "sumMs": 121
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3003,
+        "longTasks": 1,
+        "longestMs": 81,
+        "sumMs": 81
+      }
+    ],
+    "rows": 400
+  },
+  {
+    "shape": "one generation",
+    "pairs": 16384,
+    "targets": 65536,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 3315,
+        "longTasks": 1,
+        "longestMs": 126,
+        "sumMs": 126
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3005,
+        "longTasks": 1,
+        "longestMs": 50,
+        "sumMs": 50
+      }
+    ],
+    "rows": 400
+  },
+  {
+    "shape": "after a fallback",
+    "pairs": 16384,
+    "targets": 65536,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 3340,
+        "longTasks": 1,
+        "longestMs": 128,
+        "sumMs": 128
+      },
+      {
+        "name": "the pool falls back: the same tables as the next generation",
+        "wallMs": 3406,
+        "longTasks": 1,
+        "longestMs": 252,
+        "sumMs": 252
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3004,
+        "longTasks": 1,
+        "longestMs": 176,
+        "sumMs": 176
+      }
+    ],
+    "rows": 400
+  },
+  {
+    "shape": "one generation",
+    "pairs": 65536,
+    "targets": 262144,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 3885,
+        "longTasks": 1,
+        "longestMs": 291,
+        "sumMs": 291
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3004,
+        "longTasks": 1,
+        "longestMs": 107,
+        "sumMs": 107
+      }
+    ],
+    "rows": 400
+  },
+  {
+    "shape": "after a fallback",
+    "pairs": 65536,
+    "targets": 262144,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 4200,
+        "longTasks": 2,
+        "longestMs": 283,
+        "sumMs": 419
+      },
+      {
+        "name": "the pool falls back: the same tables as the next generation",
+        "wallMs": 4412,
+        "longTasks": 1,
+        "longestMs": 749,
+        "sumMs": 749
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3004,
+        "longTasks": 1,
+        "longestMs": 791,
+        "sumMs": 791
+      }
+    ],
+    "rows": 400
+  },
+  {
+    "shape": "one generation",
+    "pairs": 65536,
+    "targets": 262144,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 4562,
+        "longTasks": 2,
+        "longestMs": 462,
+        "sumMs": 689
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3003,
+        "longTasks": 1,
+        "longestMs": 109,
+        "sumMs": 109
+      }
+    ],
+    "rows": 400
+  },
+  {
+    "shape": "after a fallback",
+    "pairs": 65536,
+    "targets": 262144,
+    "phases": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 4436,
+        "longTasks": 1,
+        "longestMs": 444,
+        "sumMs": 444
+      },
+      {
+        "name": "the pool falls back: the same tables as the next generation",
+        "wallMs": 4839,
+        "longTasks": 1,
+        "longestMs": 1237,
+        "sumMs": 1237
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 3004,
+        "longTasks": 1,
+        "longestMs": 603,
+        "sumMs": 603
+      }
+    ],
+    "rows": 400
+  }
+]

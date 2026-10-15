@@ -1,0 +1,70 @@
+{
+  "date": "2026-10-15T04:44:56.183585+00:00",
+  "reviewed": "bc310196",
+  "base": "47412649",
+  "archive": "/tmp/codex-r154-ga9vp4vu/repo",
+  "liveHeadBeforeAfter": "603b5224c8f9720a86824e0698b49fd13be83671",
+  "inputSha256": {
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.ideen.md": "6d8999b7a18a6766438b4c7b58772848a2f98c5036b1ca463e45422648fcba6e",
+    "/home/cnc/lcnc-suite/docs/reviews/kollision-paket2.plan.md": "4a4b737ef1aaaa7e00bdd02281b234ea3e9543f3227deab1ae861a89d1b8e10e",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.gate-frontend.json": "84ae3f20519ad61d62b8ec524ea6af28e62043649a0ecd53afb01db92ecc31b7",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.longtask-after.json": "1fc48e11725f20719321773847d3f4ed84c1b6635ddefa810eb84e8e49492b3d",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.longtask-before.json": "a6c8e962b79e2322f9740bdc5422b9a43e14e28b6a3f0f04491ab1f53eaf43d3",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.longtask.viewer.spec.ts": "e7c003571df425895b97a4c170a8afff31a2626b1c199be221b766cbc8ccd3a7",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.mutations.py": "9a71f99831f44fe197f24a59b6a79d5de23993239fd44c3f43abaeb0243e0d1d",
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.mutations.txt": "2397bf33ad9b498832905cf33588cc655099842b10fb52df0c55ee559cc81d54"
+  },
+  "inputsUnchangedBeforeAppend": {
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.ideen.md": true,
+    "/home/cnc/lcnc-suite/docs/reviews/kollision-paket2.plan.md": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.gate-frontend.json": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.longtask-after.json": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.longtask-before.json": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.longtask.viewer.spec.ts": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.mutations.py": true,
+    "/home/cnc/lcnc-suite/docs/reviews/viewer-palette-fest.r154.mutations.txt": true
+  },
+  "reviewAppendOnly": true,
+  "reviewAppendLine": 19844,
+  "trackedSrcFilesCompared": 371,
+  "trackedSrcMismatches": [],
+  "liveBuildsTestsMachineCommands": false,
+  "browserMock": "http://127.0.0.1:4188",
+  "ownTests": {
+    "targeted": {
+      "passed": 126,
+      "files": 9
+    },
+    "union": {
+      "passed": 17,
+      "files": 2,
+      "nativeRandomCases": 1000
+    },
+    "functionalBrowser": {
+      "passed": 6
+    },
+    "longtaskRuns": {
+      "passed": 2,
+      "targets": 65536
+    },
+    "build": "passed"
+  },
+  "fullGateRerun": false,
+  "evidenceSha256": {
+    "viewer-palette-fest.r154.codex-targeted.txt": "e5ea6d911c51a684023b8837ba2b8f20b654891966134e8eb8cd37d05f1a0cfd",
+    "viewer-palette-fest.r154.codex-vitest.config.ts": "f854d5b4a6783f993419c89cce6be794a78d9c9d15c39c68313810e2cd8f3bbd",
+    "viewer-palette-fest.r154.codex-union.txt": "b6c4e83709978b2e123f3df6d745dc6033ad26d9f4d1b4d2b6f7da24b1c66b31",
+    "viewer-palette-fest.r154.codex-build.txt": "de70cb22b72aaf9b32d9f40fa7960fda474f93191a58ace2a2c026a8632c6568",
+    "viewer-palette-fest.r154.codex-browser.txt": "450fb03e829c94852b71483f3d8008201ade3463775912d5683516f095bd97d3",
+    "viewer-palette-fest.r154.codex-browser.append.ts": "fb7eb02a5b718032535de74a1bd6f9ba1424e003b306c7a2345a9e4088b1057d",
+    "viewer-palette-fest.r154.codex-browser.config.ts": "1d34c8a9d3868edcffeacbf2655d5e9eb626235e01e6f5ff3a265e6f496e1350",
+    "viewer-palette-fest.r154.codex-longtask.json": "785336ecf8c63c8a286b47836864676b79fd2d006637b1c960bb5aa9e123e0bf",
+    "viewer-palette-fest.r154.codex-longtask.txt": "02339cc3c380c17612a7626a1e0ef1e3de4e3d39e02901225d108afddfccf947",
+    "viewer-palette-fest.r154.codex-longtask.viewer.spec.ts": "e7c003571df425895b97a4c170a8afff31a2626b1c199be221b766cbc8ccd3a7",
+    "viewer-palette-fest.r154.codex-longtask.config.ts": "218b6e2c35a0eeba303b99f2d84af5933708e1e21f114dc3a523887c77aa005d",
+    "viewer-palette-fest.r154.codex-browser-1.json": "b0c7cc9f1fd82baaa6d9d6cd87b6353993913d16b8494d669b3cd5c9d656a583",
+    "viewer-palette-fest.r154.codex-browser-1.png": "9e6373a1cbb2c6aba8890fa9b50215d13b1d32236d5c9f3b1c58d66d75df85b6",
+    "viewer-palette-fest.r154.codex-browser-1.5.json": "3072751acb4d9f455a3ccc59dd4f926a53f4c7969335d491df8be762b84b4b90",
+    "viewer-palette-fest.r154.codex-browser-1.5.png": "b4ad2e7eb89b02a3c40c3c05f092b4d4ece4fdd1945f5b89c16c36b64dc4477b"
+  }
+}

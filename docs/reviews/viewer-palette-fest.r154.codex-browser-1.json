@@ -1,0 +1,19 @@
+{
+  "zoom": 1,
+  "selected": "C0|242|0",
+  "oldWindow": {
+    "n": 400,
+    "first": "C0|42|0",
+    "last": "C0|441|0"
+  },
+  "after": [
+    "C0|5000|0",
+    "C0|5001|0",
+    "C0|5002|0"
+  ],
+  "focus": {
+    "inside": true,
+    "key": "C0|5002|0"
+  },
+  "errors": []
+}
