@@ -335,9 +335,11 @@ describe("the derivation's exactness and budget (Codex R147)", () => {
     console.log(`[R148 VP-I105] targets ${v.n}, held ${(held / 1e6).toFixed(2)} MB + ${(reserve / 1e6).toFixed(2)} MB reserved for B4 (limit 8.4), ` +
                 `build ${ms.toFixed(0)} ms; tables ${([genA, genB, sideA, sideB].reduce((n, s) => n + s.allocatedBytes(), 0) / 1e6).toFixed(1)} MB`);
     // + two u32 a gap since Codex R158 (the next tool gap and the end of the
-    // touching gaps' stretch: ownEnd and freeOf by bisection), named in 3.4
+    // touching gaps' stretch: ownEnd and freeOf by bisection), named in 3.4,
+    // and the episode index, 4 B an episode
     const perGap = 8 * [genA, genB, sideA, sideB].reduce((n, s) => n + s.gaps.rows, 0);
-    expect(held + reserve).toBeLessThanOrEqual(8_400_000 + perGap);
+    const perEpisode = 4 * [genA, genB, sideA, sideB].reduce((n, s) => n + s.episodes.rows, 0);
+    expect(held + reserve).toBeLessThanOrEqual(8_400_000 + perGap + perEpisode);
     expect(genA.allocatedBytes(), "one generation's tables within T = 19.3 MB").toBeLessThanOrEqual(19_300_000);
     expect(v.n).toBe(2 * REQUEST_BUDGET.intervals + 2 * side.intervals);
     // what it answers stays exact at that size: a contact, a gap of its pair, the free stretch after it

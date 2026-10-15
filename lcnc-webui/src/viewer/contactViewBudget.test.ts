@@ -103,8 +103,9 @@ describe("what a view holds stays within the bound derived from the budgets (Cod
   it("the bound, term by term", () => {
     console.log(`[B4 bound] ${(bound.bytes / 1e6).toFixed(3)} MB: ${Object.entries(bound.terms).map(([k, x]) => `${k} ${(x / 1e6).toFixed(3)}`).join(", ")}`);
     // 10.91 MB (R152) + Codex R158 VP-I115: the component ends 2.36 MB (the
-    // u32 an interval accepted), the block indexes 0.07 MB, two u32 a gap 0.29 MB
-    expect(bound.bytes, "the derived bound, 13.64 MB").toBe(13_635_712);
+    // u32 an interval accepted), the block indexes 0.07 MB, two u32 a gap
+    // 0.29 MB, the episode index 0.59 MB, the near misses' order 0.29 MB
+    expect(bound.bytes, "the derived bound, 14.52 MB").toBe(14_520_448);
     expect(bound.terms.componentEnds).toBe(2_359_296);
   });
 

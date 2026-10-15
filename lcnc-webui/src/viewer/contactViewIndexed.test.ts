@@ -90,18 +90,20 @@ function generation(rnd: () => number, req: number, gen: number): ContactStore {
 }
 
 /** Everything a page asks of a view, as plain data. */
-function answers(v: ContactView, cov: number): unknown {
+function answers(v: ContactView, cov: number, earlier: Array<[string, number]> = []): unknown {
   const lineAt = (p: number) => Math.floor(p);
   const targets = Array.from({ length: v.n }, (_, i) => [targetPos(v, i), targetEnd(v, i), targetKind(v, i), targetKey(v, i), targetAt(v, i, lineAt)]);
   const tint = Array.from({ length: 80 }, (_, q) => [...tintAt(v, (q / 80) * cov)].sort());
   const marks = Array.from({ length: 30 }, (_, l) => lineMark(v, l, [[l * cov / 30, (l + 0.7) * cov / 30]], lineAt));
   const keys = Array.from({ length: v.n }, (_, i) => findKey(v, targetKey(v, i)));
-  return { targets, tint, marks, keys };
+  // the keys shown before the fallback, asked after it: where they stood, and anywhere
+  const kept = earlier.map(([k, p]) => [findKey(v, k, p), findKey(v, k)]);
+  return { targets, tint, marks, keys, kept };
 }
 
 describe("a union piece asked of the indexes answers as the walk over its intervals did (Codex R158 VP-I115)", () => {
   it("random generations: every target, the tint, the marks, the keys", { timeout: 600_000 }, () => {
-    let pieces = 0;
+    let pieces = 0, found = 0, asked = 0;
     for (const seed0 of [1, 2, 3, 58, 158, 2026]) {
       let seed = seed0;
       const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
@@ -125,16 +127,22 @@ describe("a union piece asked of the indexes answers as the walk over its interv
         const v = buildContactView(input);
         pieces += v.n;
         const tag = `seed ${seed0} case ${c}`;
-        const indexed = answers(v, cov);
+        // what the page showed before the pool fell back: the earlier run alone
+        const before = buildContactView({ sources: [{ stores: [held], at: (x: number) => x, ownCoverage: cov },
+                                                    { stores: [eHeld], at: (x: number) => x, ownCoverage: cov, entry: true }], pairName: names, coverage: cov });
+        const earlier = Array.from({ length: before.n }, (_, i): [string, number] => [targetKey(before, i), targetPos(before, i) + 0.5]);
+        const indexed = answers(v, cov, earlier) as { kept: number[][] };
+        for (const [, anywhere] of indexed.kept) { asked++; if (anywhere! >= 0) found++; }
         linearPiecesForTest.on = true;
         try {
           const w = buildContactView(input);
-          expect(indexed, tag).toEqual(answers(w, cov));
+          expect(indexed, tag).toEqual(answers(w, cov, earlier));
         } finally { linearPiecesForTest.on = false; }
       }
     }
-    console.log(`[R158 indexed] ${pieces} targets compared`);
+    console.log(`[R158 indexed] ${pieces} targets compared; of ${asked} earlier keys ${found} found again after the fallback`);
     expect(pieces).toBeGreaterThan(1000);
+    expect(found, "earlier keys found again: the lookup is exercised").toBeGreaterThan(asked / 4);
   });
 });
 
@@ -214,12 +222,15 @@ describe("every question about a union piece reads a bounded number of cells (Co
       q("one target", () => targetKey(v, i)); q("one target", () => targetAt(v, i, lineAt));
       const key = targetKey(v, i), pos = targetPos(v, i);
       q("navigation", () => findKey(v, key, pos)); q("navigation", () => indexAfter(v, pos, { key, pos })); q("navigation", () => indexBefore(v, pos, { key, pos }));
+      // a key asked where it no longer stands (a fallback moved it), and one that is gone
+      q("navigation", () => findKey(v, key, pos + cov / 3)); q("navigation", () => findKey(v, key));
     }
     for (let s = 0; s < 64; s++) {
       const x = (s / 64) * cov;
       q("tint", () => tintAt(v, x)); q("mark", () => lineMark(v, s, [[x, x + cov / 64]], lineAt)); q("navigation", () => indexAfter(v, x, null));
     }
     q("window of 50", () => targetWindow(v, v.n >> 1, 50, lineAt));
+    q("navigation", () => findKey(v, "C0|999999|0")); q("navigation", () => findKey(v, "C0|0|999999"));
   };
   for (const [name, [n0, n1]] of Object.entries(sizes)) {
     it(`${name}: the same at ${n0} and at ${n1}`, { timeout: 300_000 }, () => {
@@ -249,7 +260,7 @@ describe("every question about a union piece reads a bounded number of cells (Co
         // eight times the rows: three more bisection steps at most, never eight times the reads
         expect(worst[1]![k]!, `${name}: ${k}`).toBeLessThanOrEqual(1.5 * worst[0]![k]! + 256);
       }
-      const limit: Record<string, number> = { "one target": 2048, navigation: 4096, tint: 64 * 2048, mark: 2048, "window of 50": 50 * 2048 };
+      const limit: Record<string, number> = { "one target": 2048, navigation: 8192, tint: 64 * 2048, mark: 2048, "window of 50": 50 * 2048 };
       for (const [k, x] of Object.entries(worst[1]!)) expect(x, `${name}: ${k} at ${n1}`).toBeLessThanOrEqual(limit[k]!);
     });
   }

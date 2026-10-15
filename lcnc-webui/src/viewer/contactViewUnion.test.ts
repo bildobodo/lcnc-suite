@@ -268,9 +268,11 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
     };
     const side = shareOf(REQUEST_BUDGET, 8);
     // the 8.4 MB of R148, and what Codex R158 (VP-I115) added — the component
-    // ends, the block indexes, two u32 a gap (derivationBound's terms)
+    // ends, the block indexes, two u32 a gap, the episode index, the near
+    // misses' order (derivationBound's terms)
     const terms = derivationBound(REQUEST_BUDGET, side).terms;
-    const LIMIT = 8_400_000 + terms.componentEnds! + terms.blockIndexes! + 8 * 2 * (REQUEST_BUDGET.gaps + side.gaps);
+    const LIMIT = 8_400_000 + terms.componentEnds! + terms.blockIndexes! + 8 * 2 * (REQUEST_BUDGET.gaps + side.gaps)
+                + terms.episodeIndex! + 4 * (REQUEST_BUDGET.episodes + side.episodes);
     /** One pair holding the whole interval budget (Codex R151): 4 contacts an episode, a free sample between. */
     const onePair = (generation: number, b: StoreBudget) => {
       const st = new ContactStore(1, generation, b);

@@ -165,6 +165,10 @@ interface TableIndex {
    *  that touch or overlap it — a free point beyond the stretch, found by
    *  one bisection (`freeOf`; Codex R158 VP-I115: a walk over the gaps). */
   hComp: Uint32Array;
+  /** Its episodes' rows by pair, then ordinal (their time order) — an event a
+   *  key names, found by a bisection (Codex R158 VP-I115: a key not found
+   *  where it was looked for asked every target). */
+  eIdx: Uint32Array;
 }
 
 type Col = readonly ArrayLike<number>[];
@@ -225,6 +229,8 @@ export interface ContactView {
    *  reference), and the earlier one's — its key. */
   readonly nearCur: Uint32Array;
   readonly nearHeld: Uint32Array;
+  /** The matched pairs by the earlier one's reference (indices into the two). */
+  readonly nearByHeld: Uint32Array;
   /** Where the two generations contradict each other (plan 3.5; kept as
    *  contact and named): how many, and the first on the shown axis. */
   readonly conflicts: { count: number; at: number };
@@ -1059,8 +1065,14 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
           hComp[k] = same && G.get(idx[k + 1]!, "start") <= hReach[k]! ? hComp[k + 1]! : k;
           if ((c.n += 6) >= STEP_OPS) { c.n = 0; yield; }
         }
+        // the episodes by pair, ordinal and row (the sweep writes a pair's in
+        // ordinal order: runs the sort takes as they are)
+        const E = st.episodes;
+        // (a comparison reads up to four cells: a quarter of the steps' operations)
+        const eIdx = yield* sortSteps(E.rows, (x, y) => E.get(x, "pair") - E.get(y, "pair") || E.get(x, "ordinal") - E.get(y, "ordinal") || x - y,
+                                      STEP_OPS >> 2);
         const t: TableIndex = { st, source, src: si, shard: sh, held, c: colsOf(st), revision: st.revision, ownCov, cov,
-          hIdx: idx, hReach, hTool, hComp };
+          hIdx: idx, hReach, hTool, hComp, eIdx };
         tables[slotOf(si, held, sh)] = t;
         list.push(t);
       }
@@ -1239,8 +1251,9 @@ export function* buildContactViewSteps(input: ContactViewInput): Steps<ContactVi
     nearCur[k] = nc[np[k]!]!; nearHeld[k] = nh[np[k]!]!;
     if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
   }
+  const nearByHeld = yield* sortSteps(nearHeld.length, (x, y) => nearHeld[x]! - nearHeld[y]!);
   return { input, n: tgt.refs.length, tgt, aux, ep, tables, joined, reachRef, reachVal, unions, indexes, unionCounts,
-           nearCur, nearHeld, conflicts: { count: conflicts, at: conflicts ? conflictAt : NaN } };
+           nearCur, nearHeld, nearByHeld, conflicts: { count: conflicts, at: conflicts ? conflictAt : NaN } };
 }
 
 /** A reference's position on the shown axis (unchecked): an interval at its
@@ -1474,33 +1487,137 @@ function firstAfter(v: ContactView, x: number, strict: boolean): number {
 }
 
 function findKeyOf(v: ContactView, key: string, near?: number): number {
-  if (near !== undefined) {
-    for (let i = firstAfter(v, near - 2 * JUMP_NUDGE, false); i < v.n && posOf(v, i) <= near + 2 * JUMP_NUDGE; i++) {
-      if (keyOf(v, i) === key) return i;
+  const look = (lo: number, hi: number) => {
+    for (let i = firstAfter(v, lo - 2 * JUMP_NUDGE, false); i < v.n && posOf(v, i) <= hi + 2 * JUMP_NUDGE; i++) if (keyOf(v, i) === key) return i;
+    return -1;
+  };
+  if (near !== undefined) { const i = look(near, near); if (i >= 0) return i; }
+  if (linearPiecesForTest.on) {
+    for (let i = 0; i < v.n; i++) if (keyOf(v, i) === key) return i;
+    return handedOver(v, key);
+  }
+  // anywhere: where the event the key names stands — read through the
+  // tables' episode index, never by asking every target (Codex R158 VP-I115:
+  // 5 s at the budget, after a fallback moved a shown finding)
+  const places = keyPlaces(v, key);
+  for (const [lo, hi] of places.windows) { const i = look(lo, hi); if (i >= 0) return i; }
+  for (const pos of places.holds) {
+    let found = -1;
+    walkBackIdx(v.tgt, pos, r => refPos(v, r), i => { if (keyOf(v, i) !== key) return false; found = i; return true; });
+    if (found >= 0) return found;
+  }
+  return handedOver(v, key);
+}
+
+/** A key's parts: origin, pair, episode number, interval number (−1: a near
+ *  miss), the generation a new piece or near miss names, its evidence. */
+const KEY = /^([EC])(\d+)\|(\d+)\|(\d+|n)(?:#g(\d+)(?:\/(.+))?)?$/;
+
+/** The episodes of `pair` numbered `ordinal` in table t: [from, to) of its episode index. */
+function episodesOf(t: TableIndex, pair: number, ordinal: number): [number, number] {
+  const E = t.st.episodes, x = t.eIdx;
+  let lo = 0, hi = x.length;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1, r = x[m]!, p = E.get(r, "pair");
+    if (p < pair || (p === pair && E.get(r, "ordinal") < ordinal)) lo = m + 1; else hi = m;
+  }
+  let to = lo;
+  while (to < x.length && E.get(x[to]!, "pair") === pair && E.get(x[to]!, "ordinal") === ordinal) to++;
+  return [lo, to];
+}
+
+/** Episode e's nth interval of table t (its group index's order), as a
+ *  reference; −1: it has no nth, −2: its group ends before it. */
+function nthInterval(v: ContactView, t: TableIndex, e: number, nth: number): number {
+  const E = t.st.episodes;
+  if (E.get(e, "ivCount") <= nth) return -1;
+  const first = E.get(e, "firstIv"), g = v.indexes[t.src]!.gens[t.held ? 0 : 1], [lo, hi] = groupRange(v.tables, g, groupOf(t, first));
+  const at = lo + indexIn(v.tables, g, lo, hi, pack(t.src, t.shard, first, false, t.held)) + nth;
+  return at < hi ? g.uIdx[at]! : -2;
+}
+
+/** Where the target a key names may stand on the shown axis: windows of
+ *  positions (its own interval or near miss, the matched near miss carrying
+ *  an earlier one's key, the start its evidence names) and positions a piece
+ *  holding it reaches over (an earlier interval's witness: its heir). */
+function keyPlaces(v: ContactView, key: string): { windows: Array<[number, number]>; holds: number[] } {
+  const windows: Array<[number, number]> = [], holds: number[] = [];
+  const m = KEY.exec(key);
+  if (!m) return { windows, holds };
+  const entry = m[1] === "E", pair = +m[2]!, ordinal = +m[3]!, near = m[4] === "n", nth = near ? -1 : +m[4]!;
+  const gen = m[5] !== undefined ? +m[5] : null, ev = m[6] ?? null;
+  const at = (t: TableIndex, x: number) => t.source.at(x);
+  for (const t of v.tables) {
+    if (!t || !!t.source.entry !== entry || (gen !== null && t.st.generation !== gen)) continue;
+    const E = t.st.episodes, I = t.st.intervals, [a, b] = episodesOf(t, pair, ordinal);
+    for (let k = a; k < b; k++) {
+      const e = t.eIdx[k]!;
+      if (near) {
+        if (E.get(e, "ivCount") !== 0) continue;
+        const p = at(t, E.get(e, "closeAt"));
+        windows.push([p, p]);
+        // matched: the current near miss shows its key
+        const held = pack(t.src, t.shard, e, true, t.held), nb = v.nearByHeld;
+        let lo = 0, hi = nb.length;
+        while (lo < hi) { const q = (lo + hi) >> 1; if (v.nearHeld[nb[q]!]! < held) lo = q + 1; else hi = q; }
+        if (lo < nb.length && v.nearHeld[nb[lo]!] === held) {
+          const cur = v.nearCur[nb[lo]!]!, ct = tableOf(v, cur), cp = at(ct, ct.st.episodes.get(rowOf(cur), "closeAt"));
+          windows.push([cp, cp]);
+        }
+        continue;
+      }
+      const r = nthInterval(v, t, e, nth);
+      if (r < 0) continue;
+      const row = rowOf(r), p = at(t, I.get(row, "enter"));
+      windows.push([p, p]);
+      holds.push(at(t, I.get(row, "witness")));
+      if (ev !== null) {
+        // a new piece: where its evidence says it begins
+        const sep = /^s(\d+):(\d+)$/.exec(ev), iv = /^([ef])(\d+):(.+)$/.exec(ev);
+        for (const et of v.tables) {
+          if (!et || et.src !== t.src) continue;
+          if (sep && et.st.generation === +sep[1]! && +sep[2]! < et.st.gaps.rows) {
+            const x = at(et, gapSpan(et, +sep[2]!)[1]);
+            windows.push([x, x]);
+          }
+          const im = iv ? KEY.exec(iv[3]!) : null;
+          if (iv && im && et.st.generation === +iv[2]!) {
+            const [ea, eb] = episodesOf(et, +im[2]!, +im[3]!);
+            for (let q = ea; q < eb; q++) {
+              const er = nthInterval(v, et, et.eIdx[q]!, +im[4]!);
+              if (er < 0) continue;
+              const erow = rowOf(er), EI = et.st.intervals;
+              if (iv[1] === "e") { const x = at(et, EI.get(erow, "enter")); windows.push([x, x]); }
+              else {
+                const f = EI.get(erow, "freeAt"), rr = EI.get(erow, "freeR");
+                if (!Number.isNaN(f)) windows.push([at(et, f), at(et, f + (rr > 0 ? rr : 0))]);
+              }
+            }
+          }
+        }
+      }
     }
   }
-  for (let i = 0; i < v.n; i++) if (keyOf(v, i) === key) return i;
-  return handedOver(v, key);
+  return { windows, holds };
 }
 
 /** An earlier event whose key no target carries any more — its witness lies
  *  in a piece another earlier event's witness keeps (a free stretch between
  *  them refuted on its sample): the piece holding its interval, the
- *  selection's defined handover (Codex R151 VP-I113); −1: none. */
+ *  selection's defined handover (Codex R151 VP-I113); −1: none. Its episode
+ *  by the episode index (Codex R158 VP-I115: by every episode). */
 function handedOver(v: ContactView, key: string): number {
   const m = /^([EC])(\d+)\|(\d+)\|(\d+)$/.exec(key);
   if (!m) return -1;
   const entry = m[1] === "E", pair = +m[2]!, ordinal = +m[3]!, nth = +m[4]!;
   for (const t of v.tables) {
     if (!t || !t.held || !!t.source.entry !== entry || !v.unions[t.src]) continue;
-    const E = t.st.episodes, I = t.st.intervals;
-    for (let e = 0; e < E.rows; e++) {
-      if (E.get(e, "pair") !== pair || E.get(e, "ordinal") !== ordinal || E.get(e, "ivCount") <= nth) continue;
-      // its nth interval: nth places after its first in the group index
-      const first = E.get(e, "firstIv"), g = v.indexes[t.src]!.gens[0], [lo, hi] = groupRange(v.tables, g, groupOf(t, first));
-      const at = lo + indexIn(v.tables, g, lo, hi, pack(t.src, t.shard, first, false, true)) + nth;
-      if (at >= hi) return -1;
-      const ref = g.uIdx[at]!, row = rowOf(ref), pos = t.source.at(I.get(row, "witness"));
+    const [a, b] = episodesOf(t, pair, ordinal);
+    for (let k = a; k < b; k++) {
+      const ref = nthInterval(v, t, t.eIdx[k]!, nth);
+      if (ref === -1) continue;
+      if (ref < 0) return -1;
+      const pos = t.source.at(t.st.intervals.get(rowOf(ref), "witness"));
       let found = -1;
       walkBackIdx(v.tgt, pos, r => refPos(v, r), i => {
         const r = v.tgt.refs[i]!;
@@ -1880,7 +1997,10 @@ export function boundaryStretches(v: ContactView): Array<{ a: string; b: string;
  *  - the gap index: 4 B a gap, 8 B its pair's furthest end so far and, after
  *    Codex R158, 4 B its pair's next tool gap and 4 B the last gap of its
  *    touching stretch; the separators: 8 B one, at most one a gap;
- *  - the near misses matched: 8 B a pair, at most one an episode;
+ *  - the near misses matched: 8 B a pair, at most one an episode, and 4 B
+ *    their order by the earlier one (Codex R158: a key found by its event);
+ *  - the episode index: 4 B an episode (Codex R158: an event a key names, by
+ *    a bisection — every target was asked);
  *  - the joins: a base row per entry interval open at its end and pair of
  *    generations (4 B), a reach per entry target (12 B).
  *  The 8.4 MB first agreed held no union splits, gaps, separators or near
@@ -1896,7 +2016,8 @@ export function derivationBound(main: StoreBudget, side: StoreBudget | null): { 
     add("blockIndexes", 2 * 4 * 2 * (Math.ceil(b.intervals / BLOCK) + 1));
     add("gapIndex", 20 * 2 * b.gaps);
     add("separators", 8 * 2 * b.gaps);
-    add("nearMatching", 8 * b.episodes);
+    add("nearMatching", 12 * b.episodes);
+    add("episodeIndex", 4 * 2 * b.episodes);
   }
   if (side) add("joins", 4 * 4 * side.episodes + 12 * 2 * side.episodes);
   return { bytes: Object.values(terms).reduce((x, y) => x + y, 0), terms };
@@ -1910,10 +2031,11 @@ export function heldBytes(v: ContactView): number {
     for (const g of u.gens) n += g.uIdx.byteLength + g.free.byteLength + g.notPossible.byteLength + g.comp.byteLength;
     n += u.sRef.byteLength;
   }
+  n += v.nearByHeld.byteLength;
   for (const l of [v.tgt, v.aux, v.ep]) n += l.refs.byteLength + l.max.byteLength + l.pre.byteLength;
   for (const t of v.tables) {
     if (!t) continue;
-    n += t.hIdx.byteLength + t.hReach.byteLength + t.hTool.byteLength + t.hComp.byteLength;
+    n += t.hIdx.byteLength + t.hReach.byteLength + t.hTool.byteLength + t.hComp.byteLength + t.eIdx.byteLength;
   }
   return n;
 }
