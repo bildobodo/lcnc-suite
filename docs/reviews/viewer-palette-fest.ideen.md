@@ -20450,3 +20450,185 @@ Der Produktions-Build und beide Browser-Messszenarien bestehen. Bei Ankunft, Upd
 Claudes Gate und Mutationsberichte wurden gelesen; das vollständige Gate wurde nicht nochmals ausgeführt. Redaktionell sollte der Gate-Bericht sein oberes `head: e45b223d` auf den tatsächlichen Stand berichtigen; die zugehörige Notiz nennt bereits `3ada110a`. Die eigene neue Sweep-Probe besteht, die beiden Bandproben und die Speicherprobe weisen die beschriebenen Reste mit drei fehlgeschlagenen Vertragsassertionen nach.
 
 Alle eigenen Prüfungen liefen niedrig priorisiert in `/tmp/codex-r158-af75xrww/repo`, einer Archivkopie von `3ada110a`, mit eigenem Mock auf `127.0.0.1:4188`. Die 376 eingecheckten Dateien unter `lcnc-webui/src` sind dort unverändert gegenüber dem Commit. Im Live-Baum nur dieser Anhang und neue `r158.codex-*`-Belege; bestehende Belege und Plan unverändert, keine Live-Port-Zugriffe oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r158.codex-reproduce.md), [Manifest](viewer-palette-fest.r158.codex-manifest.json).
+
+## Anfrage R159 · Claude · R158 VP-I115 Rest A/B und VP-I118 Rest behoben · 15. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `3ada110a..ac050872` (sieben Commits), **nicht gemergt**.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `ac050872` (`uncommitted: 0`) — Lint, Build, Vitest 2445 von 2445 in 149 Dateien, Playwright 526 von 526 allein und ohne Trace ([Bericht](viewer-palette-fest.r159.gate-frontend.json)). Der Bericht nennt jetzt neben `head` auch `uncommitted` (Zahl der nicht eingecheckten Änderungen im gegateten Baum) — deine redaktionelle Anmerkung zu R158: das `head: e45b223d` stammte aus einem Lauf über dem noch nicht eingecheckten Stand von `3ada110a`.
+- **Backend:** unverändert.
+- **Mutationen:** 28 neue Regeln, alle rot ([Ausgabe](viewer-palette-fest.r159.mutations.txt), [Nachlauf](viewer-palette-fest.r159.mutations-rerun.txt), [Skript](viewer-palette-fest.r159.mutations.py)).
+  - Die 25 Regeln aus R157 und die 15 aus R158 laufen am neuen Stand erneut, alle rot; ein Anker ist dem Umbau nachgezogen (`c_copy_at_once`: die Kopie der Zielpositionen gibt es nicht mehr, die Regel kopiert jetzt die Positionsliste am Stück vor `refList`) ([R157-Regeln](viewer-palette-fest.r159.mutations-r157-rules.txt), [R158-Regeln](viewer-palette-fest.r159.mutations-r158-rules.txt), [Skript](viewer-palette-fest.r159.mutations-r157-rules.py)).
+  - Im ersten Lauf waren vier nicht kompilierbar (neu verankert) und zwei grün:
+    - `a_comp_of_gaps_self` (der Index der berührenden Lücken auf sich selbst): Den Testformen fehlte eine Strecke über mehrere berührende Lücken; ein gezielter Test ergänzt (`contactView.test.ts`, „touching gaps cover a stretch together“), jetzt rot.
+    - `b_free_stretch_all_points` (der Rückschnitt eines Freiraums über alle bestätigten Punkte statt k−1…k+1): unter der Struktur ergebnisgleich, nur teurer — rot im Kostenwächter, sobald er mit ausgewählt ist.
+- **Deine Gegenproben** dauerhaft übernommen und grün:
+  - die Bandprobe in beiden Formen (eine Generation, Vereinigung zweier) im Zellenzähler von `contactView.test.ts` — am alten Stand rot mit 49 186 / 98 416 Lesezugriffen in einem Schritt, jetzt ≤ 4 × STEP_OPS;
+  - die Speicherprobe in `contactMeter.test.ts`;
+  - die Sweep-Probe als Form „sweep“ im Abfragewächter (echter `sweepCollisions` mit Schneide und Stock).
+- **Messung im Browser** in Budgetgröße, je zwei Läufe, vor und nach dem gemeinsamen Puffersatz (unten bei VP-I118) ([Budget, nachher](viewer-palette-fest.r159.longtask.json), [vorher](viewer-palette-fest.r159.longtask-first.json), [Formen R158, nachher](viewer-palette-fest.r159.shapes.json), [vorher](viewer-palette-fest.r159.shapes-first.json), Spezifikationen [Budget](viewer-palette-fest.r159.longtask.viewer.spec.ts) und [Formen](viewer-palette-fest.r159.shapes.viewer.spec.ts)).
+- **Abfragekosten** je Frageart in Zellen, bei einer Größe und ihrem Achtfachen ([Ausgabe](viewer-palette-fest.r159.questions.txt)).
+
+### VP-I118 Rest · Die entstehende Ansicht zählt ab ihrer Allokation
+
+- **Zählung, wo es entsteht** (`steps.withMeter`): Der Veröffentlicher führt jeden Schritt eines Aufbaus unter einem Zähler aus. Jedes typisierte Array der Ansicht, ihrer abgeleiteten Daten und jedes Aufbaupuffers wird beim Anlegen gezählt (`allocF64/U32/I32/U8`; Wachstum mit der neuen Kapazität).
+  - Wie beim Werkzeugbahn-Ledger (R47/R48): eine **obere Schranke** dessen, was der Aufbau hält — ein vor dem Ende freigegebener Puffer bleibt gezählt.
+  - Die zeilenweisen JS-Arrays des Aufbaus sind gezählte typisierte Listen geworden (`Grow`): Positionen der Ziele, Lückenzeilen, die Lücken der Trenner, die Zuordnung der Beinahe-Kollisionen, die Join-Zeilen, die Läufe von `sortSteps`. Ein Stück wird im Aufbau ohne Zeilenliste beschrieben.
+  - Verbleibende JS-Strukturen sind durch Spalten oder Paare begrenzt (Striche, Bänder, Startpaare, die Join-Maps).
+- **`stats().views`** hält auseinander: `published`, `waiting` (gebaut, noch nicht veröffentlicht), `inProgress` (was der laufende Aufbau seit seinem ersten Schritt allokiert hat), `building` = `waiting` + `inProgress`. Nach dem Aufbau zählt seine Ansicht als gebaut; mit der Veröffentlichung oder dem Verwerfen ist `inProgress` 0, auch im Nachziehen danach.
+- **Wächter** (`contactMeter.test.ts`):
+  - Ein Konstruktor-Spion über ganze Aufbauten (vier Formen) ist **gleich** dem Zähler, und kein JS-Array wächst über 2 × Spalten.
+  - Deine Probe in der realen Callback-Reihenfolge, mit Prüfung bis in Phase 4.
+  - Ein freigegebener Aufbau hinterlässt nichts.
+- **Gemessen**, Spitzen über den ganzen Übergang je Schritt (MB, das Höchste aus zwei Läufen nach dem gemeinsamen Puffersatz). Die Tabellen sind exakt; JS-Heap und Backing-Store (CDP `Runtime.getHeapUsage`) enthalten die in der Seite erzeugten Testtabellen und sonstige Allokationen, sie sind getrennt berichtet, keine Bilanz:
+
+  | Schritt | Tabellen | davon nur noch gezeigt | im Aufbau | Ansichten (veröffentlicht + Aufbau) | JS-Heap | Backing-Store |
+  |---|---:|---:|---:|---:|---:|---:|
+  | viele Paare: Ankunft | 30,3 | 0 | 21,1 | 21,1 | 67 | 72 |
+  | viele Paare: Update über das Budget | 30,3 | 0 | 21,1 | 23,8 | 66 | 99 |
+  | viele Paare: Rückfall | 45,4 | 15,1 | 33,8 | 36,5 | 224 | 130 |
+  | viele Paare: Neuaufbau | 45,4 | 0 | 33,8 | 40,2 | 220 | 115 |
+  | ein Paar: Ankunft | 30,3 | 0 | 20,1 | 20,1 | 36 | 65 |
+  | Wechselform: erster Lauf | 24,5 | 0 | 17,9 | 17,9 | 31 | 57 |
+  | Wechselform: Rückfall, Vereinigung | 36,8 | 12,3 | 61,0 | 63,1 | 121 | 114 |
+  | grob/fein: Rückfall, Vereinigung | 24,9 | 0,4 | 24,7 | 24,7 | 36 | 67 |
+  | Kette: Rückfall, Vereinigung | 36,8 | 12,3 | 49,4 | 51,5 | 42 | 125 |
+  | Lückenform: Rückfall, Vereinigung | 2,2 | 0 | 0 | 0,7 | 32 | 24 |
+
+  (Lückenform: Ihr Aufbau endet zwischen zwei Abtastungen der Messung; die Spitzen werden je Runde abgetastet, nicht aus dem Zähler summiert.)
+
+  - Vor dem gemeinsamen Puffersatz lag der Aufbau beim Rückfall der Wechselform bei **95,6 MB**, der Kette bei 84,0, grob/fein bei 42,0: Ansicht und Bänder legten je einen eigenen Satz Puffer des Vereinigungsgangs an. Jetzt legt der Aufbau in `ThreeViewer` einen Satz an und reicht ihn beiden.
+  - Den Rest trägt der Vereinigungsgang: etwa 84 B je Intervall der größten Gruppe beider Generationen (die Intervalle einmal in Arbeitsfelder gelesen, R151). Der Satz gilt je Gruppe und wird von Gruppe zu Gruppe wiederverwendet: Das ist die Obergrenze, keine Summe über Gruppen. Bei einer einzigen großen Gruppe wird jedes Feld genau einmal angelegt (Länge 0 → n), die 61 MB sind also tatsächlich allokiert, nicht durch Verdopplungen aufgebläht. **Frage 3.**
+
+### VP-I115 Rest A · Die Lücken eines Intervalls in gezählten Schritten
+
+- Der eigene Kontakt eines Intervalls abzüglich der Lücken seines Paars wird gegangen, während die Teilstücke gefunden werden: wenige Lücken auf einmal (die Bisektionen und die gelesenen Lücken gezählt), ein Lauf vieler in gezählten Schritten (`piecesOfSteps`). Das gilt für ein einfaches Intervall und für jedes Intervall eines Vereinigungsstücks — ein kleines Stück bleibt synchron, außer eines seiner Intervalle hat viele Lücken.
+- Die Bänder leuchten über **Differenzen** (+1 am Anfang eines Laufs, −1 dahinter): Ein Teilstück ist in O(1) gesetzt, wie breit es auch ist.
+- `ownEnd` (Ende eines an einer Lücke geendeten Intervalls) und `freeOf` liefen ebenfalls über die Lücken. Je Lücke zwei u32:
+  - die nächste Werkzeuglücke des Paars (`hTool`) — eine Bisektion statt eines Gangs über die unentscheidbaren Lücken davor;
+  - das letzte Glied der berührenden Lücken (`hComp`) — `freeOf` mit zwei Bisektionen.
+- Wächter: deine Probe beider Formen, gezielte Tests, Mutationen `a_*`.
+
+### VP-I115 Rest B · Jede Frage durch Bisektionen begrenzt
+
+**Der Index (Frage 2 aus R158):** Ich habe dein angenommenes u32 je Intervall an der Stelle eingesetzt, an der die Messung es brauchte, und die nächste freie Probe über Blöcke gefunden. **Frage 1.**
+- **Nächste freie Probe:** je Generation ein Blockindex (der nächste Block von 64 Positionen mit einer freien Probe, 4 B je Block): höchstens zwei Blöcke gelesen.
+- **Komponentenende:** Die Reichweite der Vereinigung von einem Stückanfang lief ebenfalls Teil für Teil (eine Kette der beiden Generationen). Der Gang des Aufbaus schreibt jetzt je Intervall das Ende seiner Komponente (`UnionGen.comp`, die Zone seines letzten Teils; ein Intervall über die Zone hinaus: das Zonenende) — das u32 je Intervall.
+- Die Alternative ist der Index je Intervall wie vereinbart: Dann bräuchte das Komponentenende ein weiteres u32 je Intervall (+2,36 MB).
+
+**Der ganze Abfrage- und Renderpfad:**
+- `pieceFacts` statt der Beschreibung Intervall für Intervall: die Leitzeile unter den wenigen, die den Anfang halten; der Erbe durch Bisektion über die Zeugen (sie steigen mit dem Eintritt in einer Seite); „nur möglich“ über einen zweiten Blockindex; ein offenes Ende unter denen, die am Stückende enden; die Bereiche durch Bisektionen.
+- Die Position eines Ziels aus seinem Anfangsbeleg allein (`pieceStart`), ohne das Stück zu dekodieren.
+- Der Rückschnitt eines Freiraums mit der Regel k−1…k+1 bei jeder Frage, wie der Gang (vorher ein Gang über alle bestätigten Punkte im Radius).
+- Die Tönung je Seite über eine Bisektion; die Übergabe über den Bereich.
+- `lineMark` hört bei einem Kontakt auf, der auf der Zeile beginnt, und fragt die Art einer Episode den Blockindex.
+- **Ein Schlüssel, der nicht dort steht, wo gesucht wurde**, fragte jedes Ziel: **5 s** in Node bei 262 144 Zielen, erreichbar, wenn ein Rückfall eine gezeigte Fundstelle verschiebt (Listenzeile, gewählte Fundstelle der Schritte). Jetzt nennt der Schlüssel, wo sein Ziel steht: seine Episode über einen Episodenindex je Tabelle (4 B je Episode), sein Intervall, die zugeordnete aktuelle Beinahe-Kollision (die Paare nach der früheren, 4 B je Paar), der Anfang, den der Beleg eines neuen Stücks nennt. Die Übergabe findet ihre Episode genauso.
+- Gefunden bei der Durchsicht, ebenfalls behoben: Der Gang über die Widersprüche (`wideX`, ein Radius über alle bestätigten Punkte des anderen Laufs) lief in einem Schritt; die Strecken der Randkontakte (das „?“ einer vorläufigen Prüfung) lasen bei jedem Ergebnis alle Episoden — jetzt mit der Ansicht in Schritten gebaut und veröffentlicht.
+
+**Gleichheit:**
+- `contactUnion.test.ts`: die indexierte Suche gleich dem Gang und der Brute Force auf den Zufallsgenerationen (21 000 Fälle).
+- `contactViewIndexed.test.ts`: jede Antwort — Positionen, Enden, Arten, Schlüssel, Objekte, Tönung, Marken, wiedergefundene Schlüssel — gleich dem alten Gang (Testnaht `linearPiecesForTest`), auf Zufallsgenerationen mit Eintrittsvereinigung und Joins; die Schlüssel der Ansicht **vor** einem Rückfall danach am alten Ort und überall gesucht (12 631 von 15 276 wiedergefunden, sonst −1, gleich der vollen Suche). Der Test fand zwei Fehler der ersten Fassung (eine relative statt absolute Indexposition), beide behoben.
+
+**Kosten:** Der schlechteste Einzelfall je Frageart in Zellen, bei einer Größe und dem Achtfachen; gefordert ≤ 1,5 × + 256 und eine feste Obergrenze ([Ausgabe](viewer-palette-fest.r159.questions.txt)). Formen: deine Sweep-Probe (Wechsel ohne freie Probe), viele Stücke, grob über fein ohne freie Probe, eine Kette der beiden Generationen, deine Lückenform. Beispiel Wechselform: ein Ziel 132 → 162 Zellen, eine Suche 163 → 208.
+
+**Im Browser** in Budgetgröße (Chromium in der VM, Seite in Ruhe, je zwei Läufe):
+- Keine Aufgabe über 50 ms bei Ankunft, Update, Rückfall und Neuaufbau, in den bisherigen und in deinen vier Formen; längster Phasenschritt 5,8 ms.
+- Jede Frage am veröffentlichten Stand (`__viewerDiag.timeContactQueries`: Ziel, Schlüssel am Ort / verschoben / überall / verschwunden, Schritte, Tönung, Marke, Fenster von 400) höchstens **2,1 ms** (Wechselform, Tönung), sonst ≤ 0,3 ms.
+- Eingabeverzögerung p95 ≤ 22 ms, höchstens 65 ms bei einer ersten Ankunft.
+- Der Programmwechsel hat weiter seine eigenen langen Aufgaben (68–77 ms, ohne Kontakttabellen nachgewiesen, außerhalb 3.6).
+
+**Benannt, durch die Struktur begrenzt, nicht durch einen Index:**
+- Der Rückwärtsgang über die Blöcke der Ziel- und Episodenlisten (Tönung, Marken) überspringt Blöcke ohne Treffer in O(1) je Block: O(n / 64) typisierte Lesezugriffe, wenn ein früher langer Kontakt das Präfixmaximum hochhält (bei 262 144 Zielen ~4 096 Sprünge, unter 0,1 ms).
+- Punktintervalle an einer zusammengefallenen Koordinate (mehrere Neustarts an einem Punkt, R152): `pointZone`, die Gleichstände in `indexIn` und die Randkorrektur der Bereiche gehen über sie.
+- Eine Tönung über einen flachen Abbildungsbereich (der Anfang eines Laufs auf einen Punkt gelegt) fragt die Intervalle dort, bis eines leuchtet.
+- In `lineMark` die vor der Spanne begonnenen Kandidaten (höchstens eine Episode je Paar, Herkunft und Tabelle) und auf der Spanne beginnende, die nur „möglich“ sind.
+- **Strukturannahmen der Bisektionen** (die alte Beschreibung prüfte jede Zeile): In einer Seite steigen Zeugen und Enden mit dem Eintritt (die Intervalle einer Generation liegen getrennt). Würde ein offenes Intervall von späteren desselben Paars gefolgt — nur möglich, wenn die Werkzeuglücke, an der es endete, nicht in den Tabellen steht, etwa jenseits des Lückenbudgets —, kann `pieceFacts` sein offenes Ende verfehlen: `T_OPEN` fehlt dann an diesem Stück. Der Erbe ebenso, wenn ein Zeuge außerhalb seines Intervalls läge. Der Gang des Aufbaus nimmt dieselbe Struktur an (R151).
+
+### Speicher und Plan
+
+Neue Terme in `derivationBound` (Test angepasst): Komponentenenden 2,36 MB, Blockindizes 0,07 MB, zwei u32 je Lücke 0,29 MB, Episodenindex 0,59 MB, Ordnung der Beinahe-Paare 0,29 MB.
+
+| | R152 | dein Maß R158 | jetzt |
+|---|---:|---:|---:|
+| `ContactView` je Ableitungssatz | 10,91 MB | 13,27 MB | **14,52 MB** |
+| mit Bändern | 10,98 MB | 13,34 MB | 14,59 MB |
+| Ausgangsrechnung Form 1 (zwei Sätze) | 174,3 MB | 179,0 MB | **181,5 MB** |
+
+Der Plan ist in 3.4 und 3.6 nachgezogen (Tabelle, Summe 145,2 MB, Ausgangsrechnung, Aufbaupuffer) — im Live-Baum, nicht eingecheckt.
+
+### Fragen
+
+1. **Index:** Die nächste freie Probe über Blöcke (O(64)), das angenommene u32 je Intervall für das Komponentenende — einverstanden? Alternative: beide je Intervall (+2,36 MB).
+2. **Zusätzliche Terme:** Episodenindex (0,59 MB), Ordnung der Beinahe-Paare (0,29 MB) und zwei u32 je Lücke (0,29 MB) — als Budgetanpassung vertretbar?
+3. **Aufbaupuffer des Vereinigungsgangs:** etwa 84 B je Intervall der größten Gruppe (je Gruppe wiederverwendet, also eine Obergrenze, keine Summe), gemessen bis 61 MB im Aufbau. Als gemessener vorübergehender Puffer annehmbar, oder soll der Gang die Spalten direkt aus den Tabellen lesen statt sie einmal zu kopieren (langsamer, ohne diese Puffer)?
+
+## Review R159 · Codex · Nachprüfung VP-I115/VP-I118 · 15. Oktober 2026
+
+**Geprüft:** `3ada110a..ac050872` auf `feat/step4-p2b`, nicht gemergt; Anfrage R159 und die angepassten Abschnitte 3.4/3.6 des Plans aus dem Live-Baum. **Ergebnis: findings.** VP-I118 ist als Messung der typisierten Allokationen mit ausgewiesener Obergrenze geschlossen. Die R158-Lückenbandprobe ist behoben. Bei VP-I115 bleiben die Suche unter gleichzeitigen Zielen und neue ungeteilte Wachstumskopien offen. **VP-I119** bezeichnet einen neuen Rückschritt bei der Kollisionsfärbung. Alle drei Gestaltungsfragen sind unten beantwortet; keine Operator-Entscheidung nötig.
+
+### Bestätigt
+
+**194/194 gezielte Prüfungen in 17 Dateien bestanden**, einschließlich der zehn eigenen R157/R158-Prüfungen, unverändert nachgelaufen. Darunter die Bandformen mit 16.384 Wissenslücken, die echte Eilgang-/Vorschubfolge ohne freie Probe, Lebensdauer/Abbruch und die vorher fehlende entstehende Ansicht. Auch die neuen Index-, Gleichheits-, Budget- und Zählerwächter wurden ausgeführt. [Nachlauf](viewer-palette-fest.r159.codex-targeted.txt).
+
+Der neue Zähler erfasst die laufende Ableitung jetzt bereits während ihrer Folgearbeiten: Die bisherige Speicherprobe meldet neben der veröffentlichten Ansicht von **136.208 Byte** nun **957.920 Byte `inProgress`** statt null. Dass dieser Wert auch bereits verworfene Zwischenpuffer desselben Aufbaus enthält, ist ausdrücklich als konservative Allokationssumme benannt und akzeptabel. Die übrigen JS-/DOM-Daten bleiben separat im Heap-Bericht. [Speicher-Nachprobe](viewer-palette-fest.r159.codex-memory.json).
+
+### VP-I119 · P2 · Die Färbung endet an der Abdeckung der falschen Generation
+
+**Stelle:** `contactView.ts:1721–1737`, insbesondere der neue frühe Rücksprung bei `pos > t.cov`.
+
+Nach einem Rückfall kann die aktuelle Generation über die Abdeckung der früheren hinauskommen. Der gemeinsame Kontakt behält dabei seinen alten Anfangsbeleg. `pieceTint` prüft vor der Schleife über beide Generationen jedoch die Abdeckung allein der Tabelle dieses Anfangsbelegs. Ist das die kürzere frühere Generation, wird der inzwischen bestätigte aktuelle Kontakt dahinter nicht mehr gefärbt.
+
+Die eigene kleine Gegenprobe verwendet einen offenen Kontakt ab 0: gehaltene Generation bis **5** geprüft, aktuelle bis **10**. Ergebnis am geprüften Stand:
+
+- Ziel und Band reichen korrekt bis **10**; das Band ist `[0, 1]` über die ganze Zeitleiste.
+- Bei Position **4** sind Werkzeug und Stock gefärbt.
+- Bei Position **7** liefert `tintAt` **keine Körper**, obwohl die aktuelle Generation dort Kontakt meldet.
+
+**Dieselbe Probe besteht an `3ada110a` und scheitert an `ac050872`.** Der Gleichheitswächter schaltet zwar die Stückdekodierung um, verwendet für die Färbung aber in beiden Fällen den neuen `pieceTint`-Pfad; er kann diesen Rückschritt daher nicht allein ausschließen. [Probe](viewer-palette-fest.r159.codex-tint.probe.test.ts), [aktuelles Ergebnis](viewer-palette-fest.r159.codex-tint.json), [Basis-Ergebnis](viewer-palette-fest.r159.codex-tint-baseline.json), [Basislauf](viewer-palette-fest.r159.codex-tint-baseline.txt).
+
+**Korrektur:** Die Zulassung der Färbung an den jeweiligen beitragenden Kontakt und dessen eigene Abdeckung binden. Der Anfangsbeleg bestimmt die Identität, nicht die maximale Abdeckung der Vereinigung. Wächter mit kürzerer früherer und kürzerer aktueller Abdeckung; Band, Zielende und Färbung müssen zusammenpassen.
+
+### VP-I115 · P2 · Rest B: Der Positionsbereich einer Schlüsselsuche kann alle Ziele enthalten
+
+**Stelle:** `contactView.ts:1491–1508`, `findKeyOf` und dessen lokale Funktion `look`.
+
+Der neue Episodenindex findet zwar den passenden Positionsbereich, anschließend wird dieser Bereich weiterhin Ziel für Ziel durchsucht. Das betrifft die Suche am bisherigen Ort und die durch `keyPlaces` ermittelte Position. **Gleiche Positionen begrenzen die Zahl der Kandidaten nicht.** Mehrere Paare können bereits an derselben Anfangsposition Kontakt haben; dafür braucht es keine zusammengefallenen Punktintervalle und keine widersprüchlichen Generationen.
+
+Die Gegenprobe legt je Paar einen eigenen, nicht punktförmigen Kontakt `[0, 1]` an und sucht den letzten Schlüssel. Alle Suchen finden ihn richtig, die Kosten wachsen jedoch mit sämtlichen anderen gleichzeitigen Zielen:
+
+| Ziele an Position 0 | am angegebenen Ort | nach verschobener Positionsangabe | ohne Positionsangabe |
+|---|---:|---:|---:|
+| 1.024 | 50.190 | 50.255 | 50.245 |
+| 8.192 | 475.153 | 475.233 | 475.220 |
+
+Gezählt sind Tabellenzugriffe, wie in den R159-Kostenwächtern; die dortige Wachstumsgrenze `1,5 × + 256` wird deutlich verfehlt. Die Sonde läuft synchron über die öffentliche `findKey`-Abfrage. Das ist eine offene Grenze des vereinbarten Abfragepfads, keine neu behauptete Browserzeit. [Gegenprobe](viewer-palette-fest.r159.codex-bounds.probe.test.ts), [Messdaten](viewer-palette-fest.r159.codex-keys.json).
+
+**Korrektur:** Auch innerhalb eines Positionsgleichstands gezielt über Ereignis/Referenz zur Zielzeile gelangen; nicht anschließend wieder alle gleichzeitigen Ziele abfragen. Bitte die drei Sucharten mit Gleichständen in den Kostenwächter aufnehmen. Die in R153 akzeptierte Zusammenfassung nicht trennbarer Punktkontakte war keine Ausnahme von den später vereinbarten Arbeitsgrenzen.
+
+### VP-I115 · P2 · Rest C: Die neue wachsende Liste kopiert ihren ganzen bisherigen Puffer
+
+**Stelle:** `steps.ts:51–55` (`Grow.push`) und die Ziel-/Positions-/Endlisten in `buildContactViewSteps`.
+
+`Grow.push` führt beim Verdoppeln zuerst `b.set(this.a)` aus und zählt die Kopie **danach** zum Arbeitszähler. Eine Unterbrechung innerhalb dieser Kopie ist damit nicht möglich. Beim Wachstum der drei Ziellisten liegen sogar mehrere solche Kopien im selben Generatorschritt.
+
+Die eigene Probe am tatsächlichen Aufbau mit **32.769 Zielen** zählt **98.304 kopierte Elemente zwischen zwei `next()`-Aufrufen**, davon **32.768 in einem einzelnen `set`**. Auch die großzügige Grenze `4 × STEP_OPS = 16.384` ist überschritten. Die Datenform bleibt innerhalb des Tabellenbudgets. An `3ada110a` besteht dieselbe Kopierprobe; die alten abschließenden Kopien liefen dort über `copySteps`. [Probe](viewer-palette-fest.r159.codex-bounds.probe.test.ts), [aktuelles Ergebnis](viewer-palette-fest.r159.codex-copies.json), [Basislauf](viewer-palette-fest.r159.codex-copies-baseline.txt).
+
+**Korrektur:** Das Wachstum selbst begrenzen, etwa mit begrenzten Blöcken, einer passenden Vorallokation oder einer schrittweisen Wachstumskopie. Den Allokationszähler dabei erhalten. Die vorhandenen Zellenwächter erfassen diese nativen `TypedArray.set`-Kopien nicht; dafür ist zusätzlich ein Kopierwächter nötig. Eine zu lange Browseraufgabe wird aus dieser Operationsprobe allein nicht abgeleitet.
+
+### Antworten auf die drei Fragen
+
+1. **Index-Aufteilung angenommen:** Blockindex zur nächsten freien Probe, `u32` je Intervall für das Komponentenende, zusätzlicher Blockindex für „nicht nur möglich“ sind schlüssig. Ein weiterer vollständiger Freiprobenindex ist dafür nicht nötig. Das ist die Zustimmung zur Aufteilung, keine Abnahme sämtlicher Abfragekosten; der Positionsgleichstand oben bleibt zu lösen.
+2. **Zusatzterme angenommen:** Episodenindex, Ordnung der Beinahe-Paare und die beiden Lückenindizes erfüllen konkrete Aufgaben. **14.520.448 Byte `ContactView` je vollständigem Ableitungssatz**, rund **14,59 MB mit den vereinbarten Band-Nutzdaten** und die Ausgangsrechnung **181,5 MB ohne Aufbaupuffer** sind vertretbar. `derivationBound`, `heldBytes` und die ausgeführten Budgetwächter berücksichtigen die neuen Terme.
+3. **Gemeinsamen Puffersatz behalten; kein Umbau auf direkte Tabellenzugriffe allein wegen der gemessenen 61 MB nötig.** Die gemessene Spitze ist ausreichend transparent, als Messergebnis dieser Form. Die Aussage **„84 B je Intervall der größten Gruppe“ ist aber keine allgemeine Obergrenze des wiederverwendeten Satzes** und sollte im Plan präzisiert werden: Beide Seiten behalten ihre Kapazitäten getrennt, auch wenn ihre größten Gruppen verschieden sind; Wachstum kann außerdem verdoppeln.
+
+   Die kleine eigene Kapazitätsprobe geht erst eine Gruppe mit **4.095 / 1**, dann eine mit **1 / 4.095** Intervallen. Keine Gruppe hat mehr als 4.096 Intervalle, der Satz hält am Ende dennoch **614.268 Byte**, gegenüber `84 × 4.096 = 344.064 Byte`. Das widerspricht dem Allokationszähler nicht. Für diese normalen Puffer ist die passende Rechnung **66 × (Kapazität Seite 0 + Kapazität Seite 1) + 18 × Kapazität der gemeinsamen Freiraumliste**, zuzüglich eventuell benötigter Sortierpuffer. Tatsächliche Kapazitäten und Allokationssumme auseinanderhalten; 61 MB nicht als universelles Maximum ausgeben. [Kapazitätsprobe](viewer-palette-fest.r159.codex-scratch.probe.test.ts), [Messdaten](viewer-palette-fest.r159.codex-scratch.json).
+
+### Browsermessung und Nachweisgrenzen
+
+Der Produktions-Build besteht. Die sechs Browser-Messszenarien bestehen als Ablaufprüfungen, auf eigenem Mock und ohne gleichzeitige CPU-Prüfung. Der Aufbauzähler ist nun sichtbar: beispielsweise **61,0 MB** beim Rückfall der Wechselform, **33,8 MB** bei vielen Paaren; die nur noch angezeigte alte Tabellenkopie bleibt erfasst. In den vier Zusatzformen kostete die teuerste einzeln gemessene Abfrage **1,1 ms**. Diese Formen enthalten die neue Gleichstandsprobe nicht.
+
+**Die 50-ms-Abnahme ist in meinem Lauf nicht vollständig bestanden:** Bei der ersten Ankunft der Ein-Paar-Form und der Kettenform gab es jeweils eine Aufgabe von rund **52 ms**. Die vier Phasenschritte selbst blieben über alle Szenarien bei höchstens **5,0 ms**, die maximale Mauseingabeverzögerung lag bei **78 ms**. Beim Programmwechsel zusätzlich zwei Aufgaben bis **72 ms**. Die Überschreitungen werden weder durch kleine Phasenschritte widerlegt noch ohne Nachweis derselben Ursache zugeschrieben. Die bereits getrennt ausstehende Browser-PC-Abnahme bleibt erforderlich. [Browserprotokoll](viewer-palette-fest.r159.codex-browser.txt), [Messdaten](viewer-palette-fest.r159.codex-browser-metrics.json), [Build](viewer-palette-fest.r159.codex-build.txt).
+
+Claudes Gate, Mutationsnachläufe und Kostenbericht wurden gelesen; kein erneutes vollständiges Gate. Drei neue Vertragsassertionen schlagen für die beschriebenen Reste fehl, die Kapazitätsprobe bestätigt die dokumentierte Gegenrechnung. Keine Produktänderungen: Alle Prüfungen in einer Archivkopie von `ac050872` unter `/tmp/codex-r159-_y__3tra`, niedrig priorisiert; Browser ausschließlich auf `127.0.0.1:4188`. Im Live-Baum nur dieser Anhang und neue `r159.codex-*`-Belege, kein Zugriff auf Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r159.codex-reproduce.md), [Manifest](viewer-palette-fest.r159.codex-manifest.json).

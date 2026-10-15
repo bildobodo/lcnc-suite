@@ -1,0 +1,11 @@
+[R158 questions] sweep: {"one target":132,"navigation":163,"tint":8317,"mark":8,"window of 50":222} → {"one target":162,"navigation":208,"tint":10264,"mark":8,"window of 50":276}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > sweep: the same at 256 and at 2048 280ms
+[R158 questions] pieces: {"one target":767,"navigation":3568,"tint":7487,"mark":16,"window of 50":33218} → {"one target":869,"navigation":4318,"tint":8585,"mark":19,"window of 50":38474}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > pieces: the same at 1024 and at 8192 556ms
+[R158 questions] coarseFine: {"one target":172,"navigation":157,"tint":6,"mark":19,"window of 50":23} → {"one target":199,"navigation":184,"tint":6,"mark":22,"window of 50":23}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > coarseFine: the same at 2048 and at 16384 143ms
+[R158 questions] chain: {"one target":289,"navigation":346,"tint":33,"mark":19,"window of 50":111} → {"one target":349,"navigation":424,"tint":39,"mark":22,"window of 50":135}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > chain: the same at 2048 and at 16384 288ms
+[R158 questions] gaps: {"one target":84,"navigation":56,"tint":42,"mark":83,"window of 50":23} → {"one target":84,"navigation":56,"tint":51,"mark":101,"window of 50":23}
+ ✓ src/viewer/contactViewIndexed.test.ts > every question about a union piece reads a bounded number of cells (Codex R158 VP-I115 rest B) > gaps: the same at 2048 and at 16384 53ms
+      Tests  5 passed | 1 skipped (6)

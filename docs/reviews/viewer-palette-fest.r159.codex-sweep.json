@@ -1,0 +1,22 @@
+[
+  {
+    "cycles": 32,
+    "episodes": 1,
+    "intervals": 33,
+    "gaps": 0,
+    "free": 0,
+    "endedAtFeed": 32,
+    "targets": 1,
+    "firstQueryReads": 50
+  },
+  {
+    "cycles": 128,
+    "episodes": 1,
+    "intervals": 129,
+    "gaps": 0,
+    "free": 0,
+    "endedAtFeed": 128,
+    "targets": 1,
+    "firstQueryReads": 64
+  }
+]

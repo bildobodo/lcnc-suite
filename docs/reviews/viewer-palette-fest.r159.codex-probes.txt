@@ -1,0 +1,63 @@
+
+ RUN  v4.1.8 /tmp/codex-r159-_y__3tra/repo/lcnc-webui
+
+ ❯ src/viewer/codexR159Bounds.test.ts (2 tests | 2 failed) 161ms
+   × a key among simultaneous starts is found without scanning all their targets 83ms
+   × growth copies inside the real view build also stay within a step 77ms
+ ❯ src/viewer/codexR159Tint.test.ts (1 test | 1 failed) 7ms
+   × the current generation tints its proven contact beyond the held generation coverage 7ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/codexR159Bounds.test.ts > a key among simultaneous starts is found without scanning all their targets
+AssertionError: at: eight times the simultaneous starts; same R159 cost-growth contract: expected 475153 to be less than or equal to 75541
+ ❯ src/viewer/codexR159Bounds.test.ts:30:99
+     28|  for (const mode of ['at','moved','anywhere']) {
+     29|  const m=measured.filter(x=>x.mode===mode);
+     30|  expect(m[1]!.reads,mode+': eight times the simultaneous starts; same …
+       |                                                                                                   ^
+     31|  }
+     32| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  src/viewer/codexR159Bounds.test.ts > growth copies inside the real view build also stay within a step
+AssertionError: copies counted after Grow.push must still be interruptible within the step: expected 98304 to be less than or equal to 16384
+ ❯ src/viewer/codexR159Bounds.test.ts:43:92
+     41|  writeFileSync(`${process.env.R159_OUT}/copies.json`,JSON.stringify({t…
+     42|  expect(targets).toBe(32769);
+     43|  expect(most,'copies counted after Grow.push must still be interruptib…
+       |                                                                                            ^
+     44| });
+     45|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  src/viewer/codexR159Tint.test.ts > the current generation tints its proven contact beyond the held generation coverage
+AssertionError: current contact is proven beyond the older coverage: expected [] to deeply equal [ 'stock', 'tool' ]
+
+- Expected
++ Received
+
+- [
+-   "stock",
+-   "tool",
+- ]
++ []
+
+ ❯ src/viewer/codexR159Tint.test.ts:13:81
+     11|  writeFileSync(`${process.env.R159_OUT}/tint.json`,JSON.stringify(out,…
+     12|  expect(out.bands).toEqual([[0,1]]);expect(out.tint4.sort()).toEqual([…
+     13|  expect(out.tint7.sort(),'current contact is proven beyond the older c…
+       |                                                                                 ^
+     14| });
+     15|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed | 1 passed (3)
+      Tests  3 failed | 1 passed (4)
+   Start at  17:47:42
+   Duration  478ms (transform 106ms, setup 0ms, import 135ms, tests 194ms, environment 0ms)
+
