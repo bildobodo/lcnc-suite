@@ -1251,7 +1251,7 @@ const boundaryDetail = computed(() => {
   // off), with the last line its contact stays on — provisional (the
   // boundary stays in the contact view, round B3)
   const sv = shownView.value;
-  const stretches = sv ? boundaryStretches(sv.view) : [];
+  const stretches = sv ? sv.derived?.boundaries ?? boundaryStretches(sv.view) : [];
   const lastLine = (b: { a: string; b: string }) => stretches
     .filter(x => (x.a === b.a && x.b === b.b) || (x.a === b.b && x.b === b.a))
     .reduce((m, x) => Math.max(m, sv!.lineAt(x.e, true) ?? 0), 0);

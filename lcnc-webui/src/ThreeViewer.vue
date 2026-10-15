@@ -58,7 +58,7 @@ import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/b
 import { clashTargets } from "./viewer/clashTargets";
 import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
-import { contactBandsSteps, heldBytes, lineMark, lineRuns, retireView, runsOf, startTargetsSteps, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
+import { boundaryStretchesSteps, contactBandsSteps, heldBytes, lineMark, lineRuns, retireView, runsOf, startTargetsSteps, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
 import { clashIndexOfView, clashTicksSteps } from "./viewer/simWindow";
 import { shownContactViewSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
 import { findingWords, wordsOfCounts } from "./viewer/sweepWords";
@@ -2983,7 +2983,8 @@ const _contacts: ContactPublisher<ScrubTrack, ShownContacts, ColShown> = new Con
     const starts = yield* startTargetsSteps(view);
     const ticks = yield* clashTicksSteps(clashIndexOfView(view, lineAt), cols, axisEnd);
     const bands = yield* contactBandsSteps(view, cols, axisEnd);
-    return { view, lineAt, derived: { counts, starts, ticks, bands, cols, axisEnd } };
+    const boundaries = yield* boundaryStretchesSteps(view);
+    return { view, lineAt, derived: { counts, starts, ticks, bands, cols, axisEnd, boundaries } };
   },
   effect: m => _colOnMessage(m as never),
   stage: () => _colStage(),

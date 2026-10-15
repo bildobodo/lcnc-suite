@@ -73,7 +73,9 @@ export interface ShownContacts {
   view: ContactView;
   lineAt: LineAt;
   derived?: { counts: ViewCounts; starts: number[]; ticks: Array<{ pct: number; near: boolean }>; bands: Array<[number, number]>;
-              cols: number; axisEnd: number };
+              cols: number; axisEnd: number;
+              /** The boundary contacts' stretches (boundaryStretches). */
+              boundaries?: Array<{ a: string; b: string; s: number; e: number }> };
 }
 
 export interface ShownSpec { base: ShownSource | null; side: ShownSource | null; axisEnd: number }

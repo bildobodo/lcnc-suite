@@ -1960,6 +1960,11 @@ export function* contactBandsSteps(v: ContactView, columns: number, axisEnd: num
  *  contacts in progress at its start — provisional): the "?" names the lines
  *  each stays on. */
 export function boundaryStretches(v: ContactView): Array<{ a: string; b: string; s: number; e: number }> {
+  return runToEnd(boundaryStretchesSteps(v));
+}
+/** boundaryStretches in counted steps — published with the view (plan 3.6):
+ *  it reads every episode (Codex R158 VP-I115: a question at every result). */
+export function* boundaryStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): Steps<Array<{ a: string; b: string; s: number; e: number }>> {
   check(v);
   const out: Array<{ a: string; b: string; s: number; e: number }> = [];
   const earlier: typeof out = [];
@@ -1967,6 +1972,7 @@ export function boundaryStretches(v: ContactView): Array<{ a: string; b: string;
     if (!t) continue;
     const E = t.st.episodes;
     for (let row = 0; row < E.rows; row++) {
+      if ((ops.n += 2) >= STEP_OPS) { ops.n = 0; yield; check(v); }
       if ((E.get(row, "flags") & EP_ORIGIN_MASK) !== ORIGIN_BOUNDARY) continue;
       const [s, e] = epOwn(t, row);
       (t.held ? earlier : out).push({ ...nameOf(v, t, E.get(row, "pair")), s: t.source.at(s), e: Math.min(t.source.at(e), t.cov) });
@@ -1974,7 +1980,10 @@ export function boundaryStretches(v: ContactView): Array<{ a: string; b: string;
   }
   // after a fallback the current run holds the same contacts again: an
   // earlier one only where the current one has none of its pair over it
-  for (const h of earlier) if (!out.some(c => c.a === h.a && c.b === h.b && c.s <= h.e && h.s <= c.e)) out.push(h);
+  for (const h of earlier) {
+    if (!out.some(c => c.a === h.a && c.b === h.b && c.s <= h.e && h.s <= c.e)) out.push(h);
+    if ((ops.n += out.length) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+  }
   return out;
 }
 

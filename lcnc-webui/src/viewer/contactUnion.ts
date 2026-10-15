@@ -719,7 +719,7 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
     }
     // a contradiction needs a confirmed point inside the stretch: only then is
     // r cut below r0 (the nearest points around p, by the structure)
-    if (conflict && r0 > PROTECT && r < r0) wideX(xs, p, r0, conflict);
+    if (conflict && r0 > PROTECT && r < r0) yield* wideX(xs, p, r0, conflict, c);
     if (r === 0 && r0 > 0) continue;   // a confirmed point on the sample
     if (r0 === 0) {
       // a point stretch: none where a confirmed point lies on it
@@ -750,12 +750,15 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
   }
 }
 
-/** wideIn from the scratch: the same points, the same test. */
-function wideX(xs: SideScratch[], p: number, r: number, each: (x: number) => void): void {
+/** wideIn from the scratch: the same points, the same test — in counted
+ *  steps (a radius may reach over the other generation's every interval,
+ *  Codex R158 VP-I115). */
+function* wideX(xs: SideScratch[], p: number, r: number, each: (x: number) => void, c: Ops): Steps<void> {
   const a = p - r, b = p + r;
   const deep = (x: number) => { if (x > a && x < b && x - a > PROTECT && b - x > PROTECT) each(x); };
   for (const t of xs) {
     for (let k = Math.max(0, predEnterX(t, a) - 1); k < t.n && t.enter[k]! <= b; k++) {
+      if ((c.n += 4) >= STEP_OPS) { c.n = 0; yield; }
       const f = t.flags[k]!;
       deep(t.witness[k]!);
       if (f & F_ED) deep(t.enter[k]!);

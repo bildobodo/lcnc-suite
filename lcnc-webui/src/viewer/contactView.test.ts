@@ -3,7 +3,7 @@ import {
   ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_CONTINUES_CUT, IV_ENDED_AT_GAP,
   IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
 } from "./contactStore";
-import {
+import { boundaryStretchesSteps,
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
   heldBytes, indexAfter, indexBefore, lineMark, lineRuns, runsOf, targetAt, targetEnd, targetKey, targetKind, targetPos,
   startTargets, targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
@@ -395,6 +395,22 @@ describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
     const once = buildContactView(input);
     expect([once.n, Array.from(once.tgt.refs)]).toEqual([b.value.n, Array.from(b.value.tgt.refs)]);
   });
+  it("the boundary contacts' stretches read every episode in counted steps (Codex R158 VP-I115)", () => {
+    const st = new ContactStore(1, 0, REQUEST_BUDGET);
+    for (let e = 0; e < REQUEST_BUDGET.episodes; e++) {
+      st.episodes.append({ pair: e % 64, ordinal: e, flags: e % 1000 === 0 ? ORIGIN_BOUNDARY : 0, onset: e, end: e + 0.5, closeAt: e, closeDist: 1, firstIv: NONE, ivCount: 0 });
+    }
+    const v = buildContactView({ sources: [src(st, { ownCoverage: REQUEST_BUDGET.episodes + 1 })], pairName: names, coverage: REQUEST_BUDGET.episodes + 1 });
+    const proto = ColumnTable.prototype as unknown as { get: (...a: unknown[]) => number };
+    const get = proto.get;
+    let reads = 0, most = 0;
+    proto.get = function (...a: unknown[]) { reads++; return get.apply(this, a); };
+    try {
+      const job = boundaryStretchesSteps(v);
+      for (;;) { reads = 0; const r = job.next(); most = Math.max(most, reads); if (r.done) { expect(r.value.length).toBe(Math.ceil(REQUEST_BUDGET.episodes / 1000)); break; } }
+    } finally { proto.get = get; }
+    expect(most, "episode cells read in one step").toBeLessThanOrEqual(4 * STEP_OPS);
+  });
   // Plan 3.6: the work of every STEP is bounded, not only the number of steps
   // — counted, never timed: every table cell read between two yields (the
   // build's direct block reads too), and no list sorted or copied at once. A
@@ -532,6 +548,7 @@ describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
         // the build and the bands ask no query: the step's share alone
         const v = drive(buildContactViewSteps(input));
         drive(contactBandsSteps(v, 1200, cov));
+        drive(boundaryStretchesSteps(v));
         // the start pairs and the marks ask positions: one search past it at most
         drive(startTargetsSteps(v), true);
         drive(clashTicksSteps(clashIndexOfView(v, () => 1), 1200, cov), true);

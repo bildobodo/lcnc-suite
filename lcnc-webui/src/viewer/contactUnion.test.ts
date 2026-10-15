@@ -499,3 +499,26 @@ describe("intervals skipped in a zone, in bounded steps (Codex R157 VP-I115)", (
     expect(most, "scratch reads in one step").toBeLessThanOrEqual(4 * STEP_OPS);
   }, 120_000);
 });
+
+describe("a contradiction over the other generation's every interval, in bounded steps (Codex R158 VP-I115)", () => {
+  it("the scratch reads between two yields stay bounded while a radius reaches over every confirmed point of the other run", () => {
+    const n = 100_000;
+    // the earlier run: one contact, a free sample whose radius reaches over the whole later run
+    const held: UnionSide = { n: 1, enter: () => 0, end: () => 1, open: () => false, witness: () => 0.5, enterDecided: () => true, exitDecided: () => true,
+      afterTool: () => false, freeAt: () => 2, freeR: () => 1e6, back: 0, front: 0 };
+    // the later run: a contact every 2 from 3 on, each a confirmed point inside that radius
+    const cur: UnionSide = { n, enter: k => 3 + 2 * k, end: k => 4 + 2 * k, open: () => false, witness: k => 3.5 + 2 * k,
+      enterDecided: () => true, exitDecided: () => true, afterTool: () => false, freeAt: () => NaN, freeR: () => NaN, back: 0, front: 0 };
+    const scratch = unionScratch();
+    let named = 0;
+    runToEnd(eachPieceSteps([held, cur], NO_SEPARATORS, () => {}, () => { named++; }, scratch));
+    expect(named, "every confirmed point deep inside the radius is named").toBeGreaterThan(n);
+    let reads = 0, most = 0;
+    for (const x of scratch.sides) for (const key of ["enter", "end", "witness"] as const) {
+      x[key] = new Proxy(x[key], { get(t, p) { if (typeof p === "string" && /^\d+$/.test(p)) reads++; return Reflect.get(t, p, t); } });
+    }
+    const job = eachPieceSteps([held, cur], NO_SEPARATORS, () => {}, () => {}, scratch);
+    for (;;) { reads = 0; const r = job.next(); most = Math.max(most, reads); if (r.done) break; }
+    expect(most, "scratch reads in one step").toBeLessThanOrEqual(4 * STEP_OPS);
+  }, 120_000);
+});
