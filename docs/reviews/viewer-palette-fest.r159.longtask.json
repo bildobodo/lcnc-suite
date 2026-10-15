@@ -1,0 +1,638 @@
+[
+  {
+    "shape": "many pairs",
+    "pairs": 65536,
+    "targets": 262144,
+    "steps": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 286,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 10,
+        "inputDelayMaxMs": 41,
+        "inputDelayP95Ms": 17,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 30.3,
+        "heapMB": 40,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 30.3,
+          "shownMB": 0,
+          "viewsMB": 21.1,
+          "buildingMB": 21.1,
+          "heapMB": 59.4,
+          "backingMB": 71.8
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.4,
+          2.9,
+          0,
+          0.1
+        ],
+        "lastPassMs": 175,
+        "loaf": [
+          {
+            "ms": 132,
+            "blocking": 0,
+            "render": 1,
+            "styleLayout": 0,
+            "scripts": []
+          },
+          {
+            "ms": 61,
+            "blocking": 11,
+            "render": 33,
+            "styleLayout": 9,
+            "scripts": [
+              {
+                "inv": "TimerHandler:setTimeout",
+                "fn": "p",
+                "url": "ThreeViewer-CoJAIIy-.js",
+                "at": 30551,
+                "ms": 27,
+                "forced": 0
+              },
+              {
+                "inv": "FrameRequestCallback",
+                "fn": "",
+                "url": "index-BtbxorpY.js",
+                "at": 287450,
+                "ms": 22,
+                "forced": 22
+              }
+            ]
+          }
+        ],
+        "domBefore": 1271
+      },
+      {
+        "name": "an update delta over the whole budget",
+        "wallMs": 280,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 13,
+        "inputDelayMaxMs": 17,
+        "inputDelayP95Ms": 12,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 30.3,
+        "heapMB": 40,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 30.3,
+          "shownMB": 0,
+          "viewsMB": 23.8,
+          "buildingMB": 21.1,
+          "heapMB": 60.7,
+          "backingMB": 93.8
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          1.3,
+          0.9,
+          0,
+          0.7
+        ],
+        "lastPassMs": 238,
+        "loaf": []
+      },
+      {
+        "name": "the pool falls back: the same tables as the next generation",
+        "wallMs": 1746,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 75,
+        "inputDelayMaxMs": 26,
+        "inputDelayP95Ms": 15,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 2,
+        "discards": 0,
+        "publications": 2,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 15.1,
+          "shown": 0
+        },
+        "allocatedMB": 45.4,
+        "heapMB": 40,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 45.4,
+          "shownMB": 15.1,
+          "viewsMB": 36.5,
+          "buildingMB": 33.8,
+          "heapMB": 224.3,
+          "backingMB": 129.7
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          4.8,
+          0,
+          0.4
+        ],
+        "lastPassMs": 1515,
+        "loaf": [
+          {
+            "ms": 120,
+            "blocking": 0,
+            "render": 1,
+            "styleLayout": 0,
+            "scripts": []
+          }
+        ]
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 1491,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 66,
+        "inputDelayMaxMs": 24,
+        "inputDelayP95Ms": 22,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 15.1,
+          "shown": 0
+        },
+        "allocatedMB": 45.4,
+        "heapMB": 40,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 45.4,
+          "shownMB": 0,
+          "viewsMB": 40.2,
+          "buildingMB": 33.8,
+          "heapMB": 208.6,
+          "backingMB": 113.5
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0,
+          2.2,
+          0,
+          0
+        ],
+        "lastPassMs": 1450,
+        "loaf": []
+      }
+    ]
+  },
+  {
+    "shape": "one pair",
+    "pairs": 1,
+    "targets": 262144,
+    "steps": [
+      {
+        "name": "the tables of one pair arrive (a result)",
+        "wallMs": 289,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 13,
+        "inputDelayMaxMs": 50,
+        "inputDelayP95Ms": 12,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 30.3,
+        "heapMB": 42,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 30.3,
+          "shownMB": 0,
+          "viewsMB": 20.1,
+          "buildingMB": 20.1,
+          "heapMB": 35.7,
+          "backingMB": 65.2
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          2.4,
+          0,
+          0.2
+        ],
+        "lastPassMs": 189,
+        "loaf": [
+          {
+            "ms": 58,
+            "blocking": 0,
+            "render": 6,
+            "styleLayout": 5,
+            "scripts": [
+              {
+                "inv": "TimerHandler:setTimeout",
+                "fn": "p",
+                "url": "ThreeViewer-CoJAIIy-.js",
+                "at": 30551,
+                "ms": 22,
+                "forced": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "a new program while the one big group builds",
+        "goneMs": 27,
+        "longTasks": 2,
+        "longestMs": 68,
+        "loaf": [],
+        "passes": 2,
+        "discards": 1,
+        "ids": [],
+        "acksOfOld": 0
+      }
+    ]
+  },
+  {
+    "shape": "many pairs",
+    "pairs": 65536,
+    "targets": 262144,
+    "steps": [
+      {
+        "name": "the tables arrive (a result)",
+        "wallMs": 310,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 10,
+        "inputDelayMaxMs": 45,
+        "inputDelayP95Ms": 19,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 30.3,
+        "heapMB": 47,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 30.3,
+          "shownMB": 0,
+          "viewsMB": 21.1,
+          "buildingMB": 21.1,
+          "heapMB": 67.4,
+          "backingMB": 69.2
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.4,
+          4.6,
+          0,
+          0.1
+        ],
+        "lastPassMs": 253,
+        "loaf": [
+          {
+            "ms": 128,
+            "blocking": 0,
+            "render": 1,
+            "styleLayout": 0,
+            "scripts": []
+          },
+          {
+            "ms": 63,
+            "blocking": 13,
+            "render": 35,
+            "styleLayout": 10,
+            "scripts": [
+              {
+                "inv": "TimerHandler:setTimeout",
+                "fn": "p",
+                "url": "ThreeViewer-CoJAIIy-.js",
+                "at": 30551,
+                "ms": 27,
+                "forced": 0
+              },
+              {
+                "inv": "FrameRequestCallback",
+                "fn": "",
+                "url": "index-BtbxorpY.js",
+                "at": 287450,
+                "ms": 24,
+                "forced": 24
+              }
+            ]
+          }
+        ],
+        "domBefore": 1271
+      },
+      {
+        "name": "an update delta over the whole budget",
+        "wallMs": 256,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 10,
+        "inputDelayMaxMs": 21,
+        "inputDelayP95Ms": 16,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 30.3,
+        "heapMB": 47,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 30.3,
+          "shownMB": 0,
+          "viewsMB": 23.8,
+          "buildingMB": 21.1,
+          "heapMB": 66.3,
+          "backingMB": 99.1
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          1.6,
+          1.2,
+          0,
+          1.1
+        ],
+        "lastPassMs": 229,
+        "loaf": []
+      },
+      {
+        "name": "the pool falls back: the same tables as the next generation",
+        "wallMs": 2126,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 92,
+        "inputDelayMaxMs": 26,
+        "inputDelayP95Ms": 18,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 2,
+        "discards": 0,
+        "publications": 2,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 15.1,
+          "shown": 0
+        },
+        "allocatedMB": 45.4,
+        "heapMB": 47,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 45.4,
+          "shownMB": 15.1,
+          "viewsMB": 36.5,
+          "buildingMB": 33.8,
+          "heapMB": 201.7,
+          "backingMB": 124.3
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          4.5,
+          0,
+          0.1
+        ],
+        "lastPassMs": 1854,
+        "loaf": [
+          {
+            "ms": 104,
+            "blocking": 0,
+            "render": 1,
+            "styleLayout": 0,
+            "scripts": []
+          }
+        ]
+      },
+      {
+        "name": "a rebuild: one more (empty) delta",
+        "wallMs": 1688,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 71,
+        "inputDelayMaxMs": 24,
+        "inputDelayP95Ms": 15,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 15.1,
+          "shown": 0
+        },
+        "allocatedMB": 45.4,
+        "heapMB": 47,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 45.4,
+          "shownMB": 0,
+          "viewsMB": 40.2,
+          "buildingMB": 33.8,
+          "heapMB": 219.5,
+          "backingMB": 114.6
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0,
+          2.7,
+          0.1,
+          0
+        ],
+        "lastPassMs": 1633,
+        "loaf": []
+      }
+    ]
+  },
+  {
+    "shape": "one pair",
+    "pairs": 1,
+    "targets": 262144,
+    "steps": [
+      {
+        "name": "the tables of one pair arrive (a result)",
+        "wallMs": 279,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 9,
+        "inputDelayMaxMs": 65,
+        "inputDelayP95Ms": 12,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 15.1,
+          "work": 15.1,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 30.3,
+        "heapMB": 42,
+        "dom": 10325,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 30.3,
+          "shownMB": 0,
+          "viewsMB": 20.1,
+          "buildingMB": 20.1,
+          "heapMB": 36.5,
+          "backingMB": 58.7
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          2.2,
+          0,
+          0.2
+        ],
+        "lastPassMs": 244,
+        "loaf": [
+          {
+            "ms": 69,
+            "blocking": 0,
+            "render": 6,
+            "styleLayout": 5,
+            "scripts": [
+              {
+                "inv": "TimerHandler:setTimeout",
+                "fn": "p",
+                "url": "ThreeViewer-CoJAIIy-.js",
+                "at": 30551,
+                "ms": 28,
+                "forced": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "a new program while the one big group builds",
+        "goneMs": 103,
+        "longTasks": 2,
+        "longestMs": 75,
+        "loaf": [],
+        "passes": 2,
+        "discards": 1,
+        "ids": [],
+        "acksOfOld": 0
+      }
+    ]
+  }
+]
