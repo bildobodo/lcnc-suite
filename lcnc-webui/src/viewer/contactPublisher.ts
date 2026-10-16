@@ -31,7 +31,7 @@
 //
 // Pure apart from the scheduler and the callbacks it is given.
 import { ContactStore, REQUEST_BUDGET, type StoreDelta } from "./contactStore";
-import { runSteps, withMeter, type AllocMeter, type StepRun, type Steps } from "./steps";
+import { macrotaskSchedule, runSteps, withMeter, type AllocMeter, type StepRun, type Steps } from "./steps";
 
 /** One generation's tables of a request, one store per shard. */
 export interface GenerationTables {
@@ -153,6 +153,8 @@ export class ContactPublisher<T extends object, V, S> {
   private staged: S | null = null;
   /** The next step begins a task of its own (the publication). */
   private sliceEnd = false;
+  /** The macrotask the passes' later slices go in (made once). */
+  private nextTask: ((f: () => void) => void) | null = null;
   /** Deltas dropped: an older generation's after a switch, or refused by a table. */
   dropped = 0;
   /** Publications so far. */
@@ -229,7 +231,8 @@ export class ContactPublisher<T extends object, V, S> {
     me.run = runSteps(this.passSteps(me), {
       ...(this.deps.sliceMs !== undefined ? { sliceMs: this.deps.sliceMs } : {}),
       ...(this.deps.now ? { now: this.deps.now } : {}),
-      schedule: f => { if (first) { first = false; f(); } else if (schedule) schedule(f); else setTimeout(f, 0); },
+      // (a macrotask, never a timer: Chromium held the slices back under key input)
+      schedule: f => { if (first) { first = false; f(); } else (schedule ?? (this.nextTask ??= macrotaskSchedule()))(f); },
       // in the task the pass ends in: the next one may start right after
       onDone: done, onError: e => { console.error("[contacts] a pass failed:", e); done(); },
       // the publication begins its own task when the slice has done work

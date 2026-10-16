@@ -2192,7 +2192,14 @@ kept per side, reused group to group) are made once a build and shared by
 the view and its bands. The publication begins a task of its own when the
 slice before it has worked (`runSteps`' `endSlice`): its task held up to a
 slice of build steps before it (52 ms in Codex R159's run under a low
-priority). A pass never discards itself: the
+priority). A pass's later slices go in a macrotask
+(`steps.macrotaskSchedule`: a MessageChannel, one message out at a time, and
+the next animation frame takes a slice over once its message has waited
+`STARVED_MS` = 32 — never a timer): under continuous key input Chromium held
+the page's posted tasks back behind input and frames, a pass's slices waited
+up to 20 s each with the main thread idle (24–52 s per publication, R163); a
+slice in every frame instead delayed the pointer to 123 ms, a frame or a
+message per slice piled up into 332 ms tasks. A pass never discards itself: the
 viewer's stage watcher (`_colOnStageChange`) does nothing while a pass takes or
 builds — its publication stages the state then — and the code panel's marks
 and the tint follow the publication alone (the `contactsVersion` watcher), so

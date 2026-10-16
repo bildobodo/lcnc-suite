@@ -101,13 +101,38 @@ export function runToEnd<T>(job: Steps<T>): T {
 export interface StepRun<T> { readonly promise: Promise<T>; cancel(): void; readonly running: boolean }
 
 /** A macrotask between slices: the page handles its input and paints in
- *  between (a MessageChannel, not a timer — timers are clamped to 4 ms). */
-function defaultSchedule(): (f: () => void) => void {
+ *  between (a MessageChannel, not a timer — timers are clamped to 4 ms, and
+ *  Chromium holds back a timer task it expects to be long while input is
+ *  expected: under continuous key input a pass's slices sat idle for 46 s,
+ *  R163). */
+export function macrotaskSchedule(): (f: () => void) => void {
   if (typeof MessageChannel === "undefined") return f => { setTimeout(f, 0); };
-  const ch = new MessageChannel(), queue: Array<() => void> = [];
-  ch.port1.onmessage = () => { queue.shift()?.(); };
-  return f => { queue.push(f); ch.port2.postMessage(0); };
+  const ch = new MessageChannel(), queue: Array<() => void> = [], at: number[] = [];
+  const next = () => { at.shift(); queue.shift()?.(); };
+  // one message out at a time, one slice a message: held-back messages piled
+  // up and then ran a slice each, back to back
+  let posted = false;
+  const post = () => { if (!posted && queue.length) { posted = true; ch.port2.postMessage(0); } };
+  ch.port1.onmessage = () => { posted = false; next(); post(); };
+  // A frame takes a slice over once its message has waited STARVED_MS: under
+  // continuous key input Chromium held the page's posted messages back behind
+  // input and frames — a pass's slices waited up to 20 s each with the main
+  // thread idle (R163). Frames still run then; in a hidden tab (no frames) the
+  // message does. Only a starved slice: a slice in every frame delayed the
+  // pointer up to 123 ms; one frame asked at a time — a request a slice piled
+  // up and one frame ran them all (332 ms); one message out at a time, below.
+  const frame = typeof requestAnimationFrame === "function" ? requestAnimationFrame : null;
+  let asked = false;
+  const ask = () => { if (frame && !asked && queue.length) { asked = true; frame(onFrame); } };
+  const onFrame = () => {
+    asked = false;
+    if (queue.length && performance.now() - at[0]! >= STARVED_MS) next();
+    ask();
+  };
+  return f => { queue.push(f); at.push(performance.now()); post(); ask(); };
 }
+/** How long a slice's message may wait before a frame runs it. */
+export const STARVED_MS = 32;
 
 /** Drives `job` in slices of about `sliceMs`, a macrotask between them. */
 export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f: () => void) => void; now?: () => number;
@@ -116,7 +141,7 @@ export function runSteps<T>(job: Steps<T>, o: { sliceMs?: number; schedule?: (f:
                                                 endSlice?: (elapsedMs: number) => boolean;
                                                 /** Called in the task the job ends in (the promise settles a microtask later). */
                                                 onDone?: (value: T) => void; onError?: (e: unknown) => void } = {}): StepRun<T> {
-  const sliceMs = o.sliceMs ?? 8, schedule = o.schedule ?? defaultSchedule(), now = o.now ?? (() => performance.now());
+  const sliceMs = o.sliceMs ?? 8, schedule = o.schedule ?? macrotaskSchedule(), now = o.now ?? (() => performance.now());
   let cancelled = false, running = true;
   const promise = new Promise<T>((resolve, reject) => {
     const slice = () => {

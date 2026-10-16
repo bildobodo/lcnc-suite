@@ -292,6 +292,23 @@ describe("cancel and the shown state (plan 3.6)", () => {
     expect(h.p.viewOf(h.track), "request 1's tables went: its view with them").toBeNull();
   });
 
+  it("its later slices go in a macrotask, never a timer (R163: Chromium held timers and posted messages back under key input)", async () => {
+    const g = globalThis as unknown as Record<string, unknown>, saved = g.setTimeout;
+    const s = new Sender(1, 0), tk = {};
+    let pub = false;
+    const p2 = new ContactPublisher<object, number, string>({
+      tracks: () => [tk], specOf: () => ({ key: "k", ids: [1], spec: null }), *build() { for (let i = 0; i < 4; i++) yield; return 1; }, effect: () => {},
+      stage: () => "s", publish: () => { pub = true; }, ack: () => {}, owners: () => new Set([1]), sliceMs: 0, now: () => 0,
+    });
+    g.setTimeout = () => { throw new Error("a slice in a timer"); };
+    try {
+      p2.receive(s.contact(0, 20).msg());
+      p2.kick(true);
+      for (let i = 0; i < 50 && !pub; i++) await new Promise<void>(r => { const ch = new MessageChannel(); ch.port1.onmessage = () => { ch.port1.close(); r(); }; ch.port2.postMessage(0); });
+    } finally { g.setTimeout = saved; }
+    expect(pub, "published through macrotasks").toBe(true);
+  });
+
   it("a small table publishes before the caller returns when the first slice runs inline", () => {
     const h = harness(), s = new Sender(1, 0);
     h.p.viewOf(h.track);
