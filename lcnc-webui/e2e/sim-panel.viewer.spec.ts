@@ -185,8 +185,11 @@ async function watchFill(page: Page, onFirst: string | null = null) {
 }
 const fillOf = (page: Page) => page.evaluate(() => (window as unknown as { __fill: { first: number | null; frames: Array<{ n: number; h: number; w: string }>; ran: unknown } }).__fill);
 const complete = (page: Page) => expect(page.locator(".simPanel .simTable[data-list-complete='1']")).toHaveCount(1);
+/** n collisions in timeline order — on line 5 up to the 300th, then on line
+ *  30: the later portions bring a wider line label (the columns must not
+ *  move for it). */
 const hits = (page: Page, n: number, ordinal = 0) => expect.poll(() => page.evaluate(([n, o]) => window.__viewerDiag?.setCollisionHits?.(
-  Array.from({ length: n }, (_, k) => ({ line: 12, frac: 0.01 + (0.98 * k) / n, ...(o ? { ordinal: o + k } : {}) }))) ?? false, [n, ordinal] as const)).toBe(true);
+  Array.from({ length: n }, (_, k) => ({ line: k < 300 ? 5 : 30, frac: 0.01 + (0.98 * k) / n, ...(o ? { ordinal: o + k } : {}) }))) ?? false, [n, ordinal] as const)).toBe(true);
 
 test("a long list fills in portions: the first at once, the rest a portion a frame — the height and the columns never move (Codex R164 VP-I120)", async ({ page, context }) => {
   await prepare(page, context, "desktop", PREVIEW, false);
