@@ -1,0 +1,10 @@
+{
+  "maxIntervalsInOneGroup": 4096,
+  "sideCapacities": [
+    4095,
+    4095
+  ],
+  "combinedFreeCapacity": 4096,
+  "scratchBytes": 614268,
+  "formula84TimesLargestGroup": 344064
+}

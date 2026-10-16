@@ -1,0 +1,17 @@
+Codex R161's probe (viewer-palette-fest.r161.codex-edges.probe.test.ts), unchanged, at bacbb90f:
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut2/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  18:11:32
+   Duration  916ms (transform 217ms, setup 0ms, import 241ms, tests 589ms, environment 0ms)
+
+== conflict-enumeration.json
+{
+  "seed": 161,
+  "cases": 2500,
+  "named": 11190,
+  "held": 19226
+}

@@ -1,0 +1,35 @@
+{
+  "targets": [
+    {
+      "cum": 0,
+      "cumEnd": 10,
+      "key": "C0|0|0",
+      "line": 1,
+      "a": "tool",
+      "b": "stock",
+      "dist": 0,
+      "near": false
+    }
+  ],
+  "counts": {
+    "collisions": 1,
+    "entryCollisions": 0,
+    "nearMisses": 0,
+    "possible": 0,
+    "startsIn": false
+  },
+  "bands": [
+    [
+      0,
+      1
+    ]
+  ],
+  "tint4": [
+    "tool",
+    "stock"
+  ],
+  "tint7": [
+    "tool",
+    "stock"
+  ]
+}

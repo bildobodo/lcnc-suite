@@ -1,0 +1,15 @@
+[2m[WebServer] [22m(node:506779) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:506794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:506794) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/collisions.viewer.spec.ts:482:1 › a preview published in the run names the earlier verdict only, until it is checked at idle (plan „Prüfung im Lauf“ 1c) (7.5s)
+  ✓  2 e2e/collisions.viewer.spec.ts:527:1 › the check basis card says what the check read when it began — a later status does not change it, a run's own change is named; keys, Escape is E-Stop (step 4 plan 1c) (8.2s)
+  ✓  3 e2e/collisions.viewer.spec.ts:1304:1 › a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93) (6.0s)
+  ✓  4 e2e/viewer.spec.ts:129:1 › the viewer's setup reads nothing before it is declared: no ReferenceError in the console (852ms)
+
+  4 passed (23.4s)

@@ -1,0 +1,8 @@
+t_tint_start_coverage RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 1: expected { …(5) } to deeply equal { …(5) } | AssertionError: the tint at 6: expected [] to deeply equal [ 'stock', 'tool' ] 14s
+g_done_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: elements copied natively in one step: expected 98307 to be less than or equal to 16384 11s
+k_ref_scan RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: at its place: expected 8339 to be less than or equal to 1972 | AssertionError: at its place: expected 10071 to be less than or equal to 3854.5 67s
+k_prev_free_scan RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 34627 to be less than or equal to 8594.5 | AssertionError: expected 51671 to be less than or equal to 12656.5 74s
+k_after_ties_scan RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 16401 to be less than or equal to 3349 74s
+k_before_ties_scan RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 24591 to be less than or equal to 4882 71s
+k_free_end_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 0: {"held":{"ivs":[{"enter":-0.0006349040560889989,"end":1.249365095943911,"witness":-0.0006349040560889989,"ed":false,"xd":false,"after":false,"freeAt":1.348485974791227,"freeR":0.094 10s
+p_publish_in_slice RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the first slice: the take and the build, not the publication: expected [ 1, +0 ] to deeply equal [ +0, 2 ] 9s

@@ -1,0 +1,33 @@
+{
+  "head": "7d2d9ac9",
+  "uncommitted": 0,
+  "note": "R162: R161 VP-I115 rest F, the stage watch (b413fcc8..7d2d9ac9)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "FAIL",
+      "seconds": 396
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2140,
+      "tests": "527 passed",
+      "note": "run alone"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+
+ RUN  v4.1.8 /tmp/codex-r162-206v0cgx/repo/lcnc-webui
+
+ ❯ src/viewer/codexR162Roundoff.test.ts (1 test | 1 failed) 237ms
+   × rounding at a confirmed point must not disable the bounded windows for the entire generation 236ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/codexR162Roundoff.test.ts > rounding at a confirmed point must not disable the bounded windows for the entire generation
+AssertionError: decimal: the local key query stays bounded: expected 116574 to be less than or equal to 24053.5
+ ❯ src/viewer/codexR162Roundoff.test.ts:42:73
+     40|  for(const kind of ['control','exact-binary','decimal']){
+     41|   const [small,large]=results.filter(x=>x.kind===kind);
+     42|   expect.soft(large!.cost,`${kind}: the local key query stays bounded`…
+       |                                                                         ^
+     43|  }
+     44| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  20:20:11
+   Duration  414ms (transform 110ms, setup 0ms, import 123ms, tests 237ms, environment 0ms)
+
