@@ -1,0 +1,5 @@
+h_no_clamp_below RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: 0.1: expected [ [ +0, +0, false ] ] to deeply equal [ [ +0, +0, true ] ] 7s
+h_no_clamp_above RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ +0, +0, false ] ] to deeply equal [ [ +0, +0, true ] ] 7s
+h_walk_unclamped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: 0.1: expected [ [ +0, +0, false ] ] to deeply equal [ [ +0, +0, true ] ] | AssertionError: expected [ [ +0, +0, false ] ] to deeply equal [ [ +0, +0, true ] ] 7s
+h_query_unclamped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 151 case 300: {"held":{"ivs":[{"enter":0.4996984260070603,"end":0.4996984260070603,"witness":0.4996984260070603,"ed":false,"xd":true,"after":false,"freeAt":1.1192864235055167,"freeR":0.9809528063 19s
+h_below_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the radius cut back to the confirmed exit: (1.0001, 1.0009) free: expected [ [ +0, 1 ], [ 1.001, 2 ] ] to deeply equal [ [ +0, 1.0001 ], [ 1.0009, 2 ] ] | AssertionError: expected [ 11s

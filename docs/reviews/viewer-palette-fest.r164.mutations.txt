@@ -1,0 +1,8 @@
+s_publisher_timer RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: published through macrotasks: expected false to be true // Object.is equality 7s
+s_messages_pile NOCOMPILE ["src/viewer/steps.ts(114,7): error TS6133: 'posted' is declared but its value is never read."] 7s
+s_frame_every_slice RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: not starved yet: the message's turn: expected [ 'a' ] to deeply equal [] 7s
+s_frames_pile NOCOMPILE ["src/viewer/steps.ts(125,7): error TS6133: 'asked' is declared but its value is never read."] 7s
+s_no_frame RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one frame asked: expected +0 to be 1 // Object.is equality 8s
+== re-anchored (TS6133 before: the mutated variable must still be read):
+s_messages_pile RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/steps.test.ts > the macrotask between slices (R163: Chromium held a pass's posted messages back under key input) > one messa
+s_frames_pile RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/steps.test.ts > the macrotask between slices (R163: Chromium held a pass's posted messages back under key input) > a frame tak

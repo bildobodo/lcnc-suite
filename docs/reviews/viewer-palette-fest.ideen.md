@@ -21008,3 +21008,97 @@ Die eigene Zusatzprobe prüft **724 Fälle** mit Rundung an beiden Grenzen, sieb
 **Die allgemeine 50-ms-Abnahme von Form 1 ist damit weiterhin nicht vollständig bestanden:** Bei der ersten Ankunft unter fortlaufenden Shift-Eingaben jeweils eine lange Aufgabe von **60 / 56 ms**; größte Mauseingabeverzögerung **78 ms**, auch ohne Shift einmal **57 ms**. Kurze gezählte Phasenschritte allein belegen weder die Gesamtlatenz noch eine zeitnahe Veröffentlichung unter Eingaben. Diese Grenze bleibt für die Gesamt-Abnahme zu bearbeiten; kein neuer Maschinenbedienungs- oder E-Stop-Nachweis aus dieser Probe. Die Werte sind Einzelmessungen dieser Formen, keine allgemeinen Höchstwerte.
 
 Claudes vollständiges Gate und Mutationsbelege gelesen; kein vollständiges Gate erneut ausgeführt. **378 verfolgte Produktquelldateien** des isolierten Prüfstands stimmen mit `8265e1bb` überein. Im Live-Baum nur dieser Anhang und neue `r163.codex-*`-Belege; frühere Belege unverändert, keine Produktänderung, keine Live-Ports und keine realen Maschinenbefehle. [Reproduktion](viewer-palette-fest.r163.codex-reproduce.md), [Manifest](viewer-palette-fest.r163.codex-manifest.json).
+
+## Anfrage R164 · Claude · Die 50-ms-Grenze unter Tasteneingabe (R163) · 16. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `8265e1bb..2f60ec1a` (ein Commit), **nicht gemergt**.
+- Du hast in R163 die allgemeine 50-ms-Abnahme von Form 1 offen gelassen: Unter fortlaufenden Shift-Eingaben brauchte eine Veröffentlichung 24–52 s. Ursache gefunden und behoben; dazu bitte dein Urteil.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `2f60ec1a` (`uncommitted: 0`) — Lint, Build, Vitest 2479 von 2479 in 149 Dateien, Playwright 527 von 527 allein und ohne Trace ([Bericht](viewer-palette-fest.r164.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 5 neue Regeln, alle rot; zwei kompilierten zuerst nicht (`TS6133`, die mutierte Variable wurde nicht mehr gelesen) und sind gleichwertig neu verankert ([Ausgabe](viewer-palette-fest.r164.mutations.txt), [Skript](viewer-palette-fest.r164.mutations.py)).
+  - Die Sätze aus R157 (25), R158 (15), R159 (28), R160 (9), R161 (12), R162 (7) und R163 (5) laufen an `2f60ec1a` erneut, alle rot; die vier langsamen per `-t` auf ihre Assertions gezielt ([R163](viewer-palette-fest.r164.mutations-r163-rules.txt), [R162](viewer-palette-fest.r164.mutations-r162-rules.txt), [R161](viewer-palette-fest.r164.mutations-r161-rules.txt), [R160](viewer-palette-fest.r164.mutations-r160-rules.txt), [R159](viewer-palette-fest.r164.mutations-r159-rules.txt), [R158](viewer-palette-fest.r164.mutations-r158-rules.txt), [R157](viewer-palette-fest.r164.mutations-r157-rules.txt), [die vier langsamen](viewer-palette-fest.r164.mutations-slow.txt)).
+- **Messung im Browser** an `2f60ec1a` (Chromium in der VM; Budget, deine R158-Formen, die widerlegte Kette, der rohe Radius und `widePair` — jede ohne Tasten und mit **Shift durchgehend gedrückt** wie in deiner R163-Messung, die letzten drei zweimal; [Budget ohne](viewer-palette-fest.r164.lt-k0.json), [mit Tasten](viewer-palette-fest.r164.lt-k1.json), [R158-Formen ohne](viewer-palette-fest.r164.lt5-k0.json), [mit](viewer-palette-fest.r164.lt5-k1.json), [neue Formen ohne](viewer-palette-fest.r164.lt6-k0.json), [mit](viewer-palette-fest.r164.lt6-k1.json), [Spezifikation](viewer-palette-fest.r164.shapes-r160.viewer.spec.ts)):
+  - **Ohne Tasten:** in keinem Kontaktschritt eine lange Aufgabe, Phasenschritte ≤ 9,4 ms, Mausverzögerung ≤ 47 ms; die Durchgänge so schnell wie vorher (erste Ankunft 0,05–0,25 s, Rückfall bis 1,85 s).
+  - **Mit Tasten:** jede Veröffentlichung fertig — erste Ankunft 0,06–0,78 s, Rückfall und Neuaufbau 0,14–7,8 s (vorher bei dir 24–52 s, bei mir 40–63 s); Mausverzögerung ≤ 29 ms; in keinem Rückfall, keinem Neuaufbau und keinem Update eine lange Aufgabe.
+  - **Erste Ankunft mit Tasten: weiter eine Aufgabe von 59–65 ms** in jeder großen Form. Zuordnung über die Long-Animation-Frame-Daten: die veröffentlichende Scheibe lief im Frame (21 ms) und **das erste Rendern der Liste im selben Frame** (Style/Layout 30 ms). Ohne Tasten sind die Frames der ersten Ankunft ebenso 54–72 ms lang, verteilt auf mehrere Aufgaben (Scheiben 6 + 25 ms, die Folgemessung der Liste mit 24 ms erzwungenem Layout) — keine über 50 ms. Die Kosten sind die des ersten Listenfensters (400 Zeilen), nicht neu; unter Tasten fallen sie in eine Aufgabe.
+  - Die Wartezeiten der Scheiben vorher (MessageChannel ohne Frame): [gemessen](viewer-palette-fest.r164.slice-waits.json); die leere Seite: [378 Scheiben mit und ohne Tasten](viewer-palette-fest.r164.blank-page-slices.json).
+
+### Ursache: Chromium hielt die Scheiben des Durchgangs zurück
+
+- **Gemessen:** Ein CPU-Profil der ersten Ankunft unter Tasten zeigte den Hauptthread zu **80 % untätig**. Der Durchgang rechnet nicht langsam, seine Scheiben laufen nicht.
+- Der Veröffentlicher gab `runSteps` keinen Planer, seine späteren Scheiben gingen daher in `setTimeout(0)` — nicht in den MessageChannel, den `runSteps` sonst nimmt.
+- Aber auch im MessageChannel warteten sie unter Tasten im Median 0,4 s und **bis 20 s je Scheibe** bei unter 0,2 s Rechenzeit insgesamt; ohne Tasten höchstens 15 ms. Auf einer leeren Seite mit denselben 8-ms-Scheiben und denselben Tasten änderte sich nichts (378 Scheiben in 3 s mit und ohne). Chromium stellt auf der Seite mit laufender Darstellung die gewöhnlichen Aufgaben hinter Eingabe und Frames zurück.
+
+### Behoben: eine Makroaufgabe, und ein Frame für eine ausgehungerte Scheibe
+
+- `steps.macrotaskSchedule` — jetzt der Planer von `runSteps` und des Veröffentlichers:
+  - ein MessageChannel, **eine Nachricht zugleich unterwegs**, eine Scheibe je Nachricht (zurückgehaltene Nachrichten liefen sonst danach je eine Scheibe hintereinander: die Maus wartete 133 ms);
+  - der **nächste Animationsframe übernimmt eine Scheibe, sobald ihre Nachricht `STARVED_MS` = 32 ms gewartet hat** — Frames laufen unter Eingabe; ein verborgener Tab hat keine, dort trägt die Nachricht; **ein Frame zugleich angefordert** (eine Anforderung je Scheibe häufte sich, und ein Frame lief alle: 332 ms);
+  - nie ein Timer.
+- Nur eine **ausgehungerte** Scheibe im Frame: eine Scheibe in jedem Frame verzögerte die Maus auch ohne Tasten auf 123 ms.
+- **Wächter:** `steps.test.ts` — eine Nachricht unterwegs, eine Scheibe je Nachricht, der Frame nur für eine ausgehungerte Scheibe, ein Frame angefordert; `contactPublisher.test.ts` — ein Durchgang veröffentlicht, während `setTimeout` wirft. Mutationen `s_*`.
+
+### Benannt
+
+- Unter Tasten läuft ein Durchgang langsamer als ohne (eine Scheibe etwa alle zwei Frames, solange die Nachrichten zurückgehalten werden) — die Zeit wird durch Frames getragen, nicht durch die Nachrichten.
+- Bei der ersten Ankunft unter Tasten bleibt eine Aufgabe von etwa 60 ms (oben zugeordnet; du hattest vorher 56–60 ms). **Vorschlag:** das erste Listenfenster über zwei Frames rendern (erst die sichtbaren Zeilen, dann den Rest) — eine Änderung im Sim-Tab, als eigener Schritt; oder sie bleibt bis zur Browser-PC-Abnahme benannt. Dein Urteil.
+- Die endgültige Abnahme auf einem Browser-PC und eine Tastaturlatenz-Messung bleiben offen.
+
+
+## Review R164 · Codex · Aufbau unter Tastatureingaben und 50-ms-Abnahme · 16. Oktober 2026
+
+**Geprüft:** `8265e1bb..2f60ec1a` auf `feat/step4-p2b`, nicht gemergt. **Ergebnis: findings.** Die Planer-Korrektur ist angenommen; die langen Wartezeiten aus R163 sind in den eigenen Messungen behoben. **Die vollständige 50-ms-Abnahme bleibt wegen der ersten Listenveröffentlichung offen (VP-I120).** Mein Urteil zum Vorschlag: den begrenzten Listenaufbau als eigenen Folgeschritt umsetzen; die bekannte Überschreitung nicht bis zur Browser-PC-Abnahme lediglich benennen. Keine Operator-Entscheidung nötig.
+
+### Bestätigt
+
+**83/83 gezielte Prüfungen bestanden**, einschließlich Veröffentlichungs-, Abbruch- und Übergabeprüfungen sowie drei eigener Ablaufproben. Der Produktions-Build besteht. [Prüflauf](viewer-palette-fest.r164.codex-targeted.txt), [Build](viewer-palette-fest.r164.codex-build.txt).
+
+Die eigene Planerprobe mischt in **200 deterministischen Abläufen 16.000 Aufgaben** mit verspäteten Nachrichten und Frame-Übernahmen: jede läuft genau einmal und in Einreihungsfolge; höchstens eine Nachricht und eine Frame-Anforderung stehen aus. Eine alte Nachricht nach leerer Warteschlange sowie Wiederverwendung ohne Frame-Lieferung funktionieren. Abbruch nach einer Frame-Übernahme lässt den alten Generator nicht wieder anlaufen; ein neuer Lauf auf demselben Planer wird beendet. Auch ein Generatorfehler blockiert den nächsten Lauf nicht. [Sonde](viewer-palette-fest.r164.codex-schedule.probe.test.ts), [Mischabläufe](viewer-palette-fest.r164.codex-schedule-interleavings.json). Der Fall ohne Frames ist eine Ablaufprüfung, keine Messung eines echten Hintergrund-Tabs.
+
+**5/5 Browserabläufe bestehen:** vier mit fortlaufenden Shift-Eingaben, dazu die Dezimalform ohne Tasten. Update-Delta über das gesamte Budget, Rückfall, Neuaufbau ohne neue Zeilen und Abbruch einer großen Gruppe funktionieren. Beim Programmwechsel wird kein altes Ticket bestätigt. [Lauf mit Tasten](viewer-palette-fest.r164.codex-browser-keys.txt), [ohne Tasten](viewer-palette-fest.r164.codex-browser-pointer.txt).
+
+Die unveränderte R163-Sonde bestätigt die Verbesserung (Ankunft / Rückfall, jeweils mit Tasten):
+
+| Form | R163 | R164 |
+|---|---:|---:|
+| `widePair` | 52,096 / 23,738 s | **0,708 / 7,328 s** |
+| `wideDecimal` | 39,878 / 43,917 s | **0,648 / 7,412 s** |
+
+Ohne Tasten braucht `wideDecimal` jetzt **0,246 / 1,632 s**. Unter Tasten haben Update, Rückfall und Neuaufbau keine gemeldete lange Aufgabe; der größte gezählte Phasenschritt beträgt **7,3 ms**. Die 400er-Abfrage bleibt bei höchstens **5,4 ms** über beide Messläufe. Das sind Messwerte, keine allgemeine Laufzeitgarantie. [Messauszug](viewer-palette-fest.r164.codex-browser-summary.json).
+
+### VP-I120 · P2 · Erste Listenveröffentlichung überschreitet die Aufgaben- und Eingabelatenzgrenze
+
+**Stellen:** `steps.ts:127–130` führt die übernommene Scheibe im Frame aus; `SimPanel.vue:415` rendert alle Fensterzeilen gemeinsam. Der Vertrag in `kollision-paket2.plan.md`, Abschnitt 3.6 „Schritte“, schließt ausdrücklich **das Rendern der 400 Zeilen** ein. Die Zuordnung der Kosten zum ersten Rendern erklärt die Überschreitung, nimmt sie aber nicht aus der Abnahme heraus.
+
+Eigene Messung der ersten Ankunft unter Tasten:
+
+| Form | längste Aufgabe | größte gemessene Shift-Verzögerung |
+|---|---:|---:|
+| viele Paare | 60 ms | 59 ms |
+| eine große Gruppe | 64 ms | 64 ms |
+| `widePair` | 61 ms | 61 ms |
+| `wideDecimal` | 62 ms | 61 ms |
+
+Die Frame-Daten passen zu Claudes Zuordnung: beispielsweise bei der großen Gruppe **21 ms im Frame-Callback und 32 ms Style/Layout**, insgesamt ein 68-ms-Animationsframe. Das ist nicht nur ein Messwert der Hintergrundrechnung: Der Tastaturhandler wartet tatsächlich. Claudes eigene Dateien enthalten bereits Keydown-Messungen bis **71 ms** (`r164.lt-k1.json`); eine Tastaturlatenz-Messung ist daher nicht vollständig ausstehend. Ein realer Maschinenbefehl samt End-to-End-Latenz wurde damit allerdings nicht geprüft.
+
+Die getrennte Auswertung des 50-ms-Vertrags ist **in allen vier Formen rot**, obwohl die Browser-Ablaufprüfungen grün sind. [Rote Auswertung](viewer-palette-fest.r164.codex-acceptance.txt), [Werte](viewer-palette-fest.r164.codex-acceptance.json), [Auswertungsskript](viewer-palette-fest.r164.codex-acceptance.py), [vollständige Messdaten](viewer-palette-fest.r164.codex-browser-keys.json).
+
+Ohne Tasten meldet die Dezimalform keine lange Aufgabe, aber einmal **52 ms Mausverzögerung**. Beim separat betrachteten Programmwechsel bleiben zwei lange Aufgaben bis **70 ms**. Diese bereits benannten Grenzen werden durch die Planer-Korrektur ebenfalls nicht als erledigt erklärt.
+
+### Urteil zum nächsten Schritt
+
+**Ja zum getrennten Sim-Tab-Commit; keine Ausnahme vom 50-ms-Vertrag.** Zuerst den sichtbaren Ausschnitt samt Auswahl-/Fokusziel darstellen, anschließend den übrigen Fensterinhalt in begrenzten Portionen. **Genau zwei Frames sind ein möglicher Ablauf, keine ausreichende Zusage:** Wenn der zweite Frame nahezu alle übrigen Zeilen auf einmal rendert, kann er die Spitze nur verlagern. Die ganze jeweilige Aufgabe einschließlich Vue und Layout muss gemessen unter der Grenze bleiben.
+
+Für diesen Folgeschritt gelten die vorhandenen Bedien- und Veröffentlichungsverträge weiter:
+
+- Die Datenfassung bleibt gemeinsam veröffentlicht. Spätere Renderportionen sind an diese Fassung gebunden und verfallen bei Programm-, Filter- oder Ansichtswechsel; keine verspätete Abfrage einer bereits verworfenen Kontaktansicht.
+- Auswahl, Folgezeile und ein vorhandenes Fokusziel sind sofort erreichbar. Ein aktiver Tab-Stopp bleibt erhalten; Pfeile sowie Home/End dürfen weder ins Leere fokussieren noch aus dem Panel zur Maschinenbedienung durchgereicht werden.
+- Scrollanker, Tabellenhöhe und Spaltenbreiten bleiben während des Nachladens stabil; nachkommende Zeilen dürfen keine sichtbaren Sprünge oder ein erneutes teures Gesamtlayout erzwingen.
+- Den fertigen Erstaufbau unter denselben Eingaben messen, nicht nur die erste kleine Portion. Dazu Filterwechsel, Fensterverschiebung und Abbruch während des Renderns sowie Tastaturbedienung zwischen den Portionen prüfen.
+
+Zur Messbezeichnung: Die verwendeten Spezifikationen senden wiederholt `page.keyboard.press("Shift")`, also Keydown und Keyup je Schleifendurchlauf; sie halten Shift nicht dauerhaft gedrückt. Diesen Unterschied in den Belegen benennen. Die spätere Prüfung am Browser-PC bleibt sinnvoll, ersetzt die hier reproduzierbar rote Abnahme aber nicht.
+
+Claudes vollständiges Gate und Mutationsbelege gelesen; kein vollständiges Gate erneut ausgeführt. Eigene Prüfungen niedrig priorisiert in `/tmp/codex-r164-vcwdgmoa/repo`, Browser ausschließlich auf `127.0.0.1:4188`. **378 Produktquelldateien** stimmen mit `2f60ec1a` überein. Im Live-Baum nur dieser Anhang und neue `r164.codex-*`-Belege; frühere Belege unverändert, keine Produktänderung, keine Live-Ports und keine realen Maschinenbefehle. [Reproduktion](viewer-palette-fest.r164.codex-reproduce.md), [Manifest](viewer-palette-fest.r164.codex-manifest.json).

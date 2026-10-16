@@ -1,0 +1,173 @@
+{
+  "reviewCommit": "2f60ec1a",
+  "archive": "/tmp/codex-r164-vcwdgmoa/repo",
+  "liveHeadAtStart": "7d543e95a9e571363f6f5b294d43c58fc10ba343",
+  "liveHeadAtEnd": "7d543e95a9e571363f6f5b294d43c58fc10ba343",
+  "reviewPrefixBytes": 1854364,
+  "reviewPrefixSha256": "e3b91114bbcbfa7aee87c06e4889288cef46ebfb2d76387893cea3825de84aec",
+  "reviewAppendSha256": "7b19abe0fb0a66b9b8d4a0ede559a8cbf3a32cc0c41f5535a1f4ba0ca63abbdf",
+  "inputsUnchangedBeforeAppend": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "sha256": "e3b91114bbcbfa7aee87c06e4889288cef46ebfb2d76387893cea3825de84aec",
+      "bytes": 1854364
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "sha256": "9ce11283fc56cd25554c5559e6c1b00580ce21adf02206fe41c35540bb32426e",
+      "bytes": 67306
+    },
+    "docs/reviews/viewer-palette-fest.r164.blank-page-slices.json": {
+      "sha256": "09c8124ca505dd7953446a60679ddea29f9d015d6cbb9641b11866c307d05b5d",
+      "bytes": 178
+    },
+    "docs/reviews/viewer-palette-fest.r164.gate-frontend.json": {
+      "sha256": "d06769ef0ab32f6eef33363a1772044da2a08a46e223474d2fb9367dde3cbf0d",
+      "bytes": 758
+    },
+    "docs/reviews/viewer-palette-fest.r164.lt-k0.json": {
+      "sha256": "27706dbb1c73469520b022d63e12172381299d3b8863540f1ca6871205f98d74",
+      "bytes": 6783
+    },
+    "docs/reviews/viewer-palette-fest.r164.lt-k1.json": {
+      "sha256": "a7554931fe14afc7c33ddf762c247356220175f654df0b66910dc4dd2e16d9b9",
+      "bytes": 6814
+    },
+    "docs/reviews/viewer-palette-fest.r164.lt5-k0.json": {
+      "sha256": "e402c1e843eb39810d3b0c3bccfdfc33fe763fd1c1dc79211745d412f61f0bb1",
+      "bytes": 11064
+    },
+    "docs/reviews/viewer-palette-fest.r164.lt5-k1.json": {
+      "sha256": "9e8ce823126cfd4aecda59cf5cc4a817ab3bdc12572e860970695152e1645ad0",
+      "bytes": 10871
+    },
+    "docs/reviews/viewer-palette-fest.r164.lt6-k0.json": {
+      "sha256": "7be2081af44f4fdfb7292966ee445decd0cb083ef87fb2bd6132ca1edd1cd686",
+      "bytes": 9856
+    },
+    "docs/reviews/viewer-palette-fest.r164.lt6-k1.json": {
+      "sha256": "031fcee7c639e2fe3859293034be08a0644c05a3f1731dae31ff7c56f50ebcd4",
+      "bytes": 17954
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-r157-rules.txt": {
+      "sha256": "ad5969d063b21e1cf9a7700e69d72d63e64df59b6181970689e232679acfa359",
+      "bytes": 5043
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-r158-rules.txt": {
+      "sha256": "a452b2138808301efeaafae5c7ed859bd7763ca4790a743a24d43b52a0d5e578",
+      "bytes": 3305
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-r159-rules.txt": {
+      "sha256": "eb2387b7df1f1d936ac0bf7b4711c4c5f6c0b53e9273824af5f691252f23b829",
+      "bytes": 5848
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-r160-rules.txt": {
+      "sha256": "cba5af822b834d8c9dce90dd85573c14341fe81247f6e12201b757cf8b595be6",
+      "bytes": 1699
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-r161-rules.txt": {
+      "sha256": "aa51e1a5b330882d57177762c0aadc85f646c85a5bf81d79852ec61234f97bfe",
+      "bytes": 2608
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-r162-rules.txt": {
+      "sha256": "e7bc805a0863fdeac1bd1d7b22489863032cc96e556564113f2d6ab457db17aa",
+      "bytes": 1643
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-r163-rules.txt": {
+      "sha256": "e9f73cc08efbb8ac9b67287cbd3e670a0ee69cf327684bc06df6a224073d36d9",
+      "bytes": 1180
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations-slow.txt": {
+      "sha256": "ba58c114dc2dcd6e29468d3815690f474758196873cb772118d156905c20a325",
+      "bytes": 739
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations.py": {
+      "sha256": "1123f58dc81b8e5e41f22a64abab97a28a79cbd4f4ed97a986e4b5cbec1a333a",
+      "bytes": 5603
+    },
+    "docs/reviews/viewer-palette-fest.r164.mutations.txt": {
+      "sha256": "fe7ac066d74b42be9784c11c5bcc4a6f8f0ac2aba84061ca21e02d688f6effa0",
+      "bytes": 1267
+    },
+    "docs/reviews/viewer-palette-fest.r164.shapes-r160.viewer.spec.ts": {
+      "sha256": "7b7fa7c7bc9a639cc725a3c8542768de0e06ca0bfa569a88385d5f3c81219843",
+      "bytes": 22957
+    },
+    "docs/reviews/viewer-palette-fest.r164.slice-waits.json": {
+      "sha256": "935b0ac742e2fac8f5349453a139f3630086be728812f6f695fbbfb4e6e2445b",
+      "bytes": 845
+    }
+  },
+  "sourceVerification": {
+    "productFiles": 378,
+    "commit": "2f60ec1a",
+    "inputsUnchanged": true
+  },
+  "newEvidence": {
+    "viewer-palette-fest.r164.codex-acceptance.json": {
+      "sha256": "17f390c4ca50aaf31bff167673492f7150ae57950aa3ceeb3a41d7b452b1f0a7",
+      "bytes": 892
+    },
+    "viewer-palette-fest.r164.codex-acceptance.py": {
+      "sha256": "f2402d5fbfd82ac87a80609f839660574421651bf1ecf11a5bf208d7d03a41c1",
+      "bytes": 1251
+    },
+    "viewer-palette-fest.r164.codex-acceptance.txt": {
+      "sha256": "21ae9c645e5ca5b2eb477e94c20f1264508bcbb854272baab10a240409f1a6c6",
+      "bytes": 1202
+    },
+    "viewer-palette-fest.r164.codex-browser-keys.json": {
+      "sha256": "f79e26938793fad148cccf5b5c0074b7e0c7612f04017d188843a67e83c479d2",
+      "bytes": 12954
+    },
+    "viewer-palette-fest.r164.codex-browser-keys.txt": {
+      "sha256": "92fb3a01ee93264f9cb665cd9e215e00114541e9506aae5330c182e160f2a0e1",
+      "bytes": 7842
+    },
+    "viewer-palette-fest.r164.codex-browser-pointer.json": {
+      "sha256": "a41e68345ee38c602264a119efc6a83f8a47a6946d137eec1800320a35be6a07",
+      "bytes": 3307
+    },
+    "viewer-palette-fest.r164.codex-browser-pointer.txt": {
+      "sha256": "e1d167250fc722abd78ee915528cc339b31737083e868410ef771e3c5302d385",
+      "bytes": 2425
+    },
+    "viewer-palette-fest.r164.codex-browser-summary.json": {
+      "sha256": "4ea88e438b92a7378bf8acc020a7f45957f99f5a78212922b5e898f86c4e832e",
+      "bytes": 5492
+    },
+    "viewer-palette-fest.r164.codex-build.txt": {
+      "sha256": "ec15da60ec8c884e679c082af2f925c9672ae0fcafee6b2121f28984dfed4ea5",
+      "bytes": 2438
+    },
+    "viewer-palette-fest.r164.codex-playwright.config.ts": {
+      "sha256": "42718c83a756a5a9d00ebc9784722c745369604cb9bef0987474455cf421c35d",
+      "bytes": 597
+    },
+    "viewer-palette-fest.r164.codex-reproduce.md": {
+      "sha256": "43c693bf73451819a4ce661a69cd126cbb8f97dd24d41ec99d32a82484d77f95",
+      "bytes": 4148
+    },
+    "viewer-palette-fest.r164.codex-schedule-interleavings.json": {
+      "sha256": "1d00ea4d74af260840a604dced09b83580ea11b121bed660c37f3bae216d8e74",
+      "bytes": 23695
+    },
+    "viewer-palette-fest.r164.codex-schedule.probe.test.ts": {
+      "sha256": "e2f6f9c66b869d4b98bebf4e02557161a4894d1e62710d0168e17381b8678135",
+      "bytes": 3861
+    },
+    "viewer-palette-fest.r164.codex-targeted.txt": {
+      "sha256": "de45cf20894fcc4d8bdabec83b61733074b63b6771024fbfcc77977b3c73f685",
+      "bytes": 226
+    },
+    "viewer-palette-fest.r164.codex-vitest.config.ts": {
+      "sha256": "f854d5b4a6783f993419c89cce6be794a78d9c9d15c39c68313810e2cd8f3bbd",
+      "bytes": 173
+    }
+  },
+  "counts": {
+    "targetedTests": 83,
+    "schedulerInterleavings": 200,
+    "scheduledJobs": 16000,
+    "browserRuns": 5
+  },
+  "verdict": "findings; scheduler correction accepted, first-arrival 50-ms limit remains open as VP-I120"
+}

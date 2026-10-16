@@ -1,0 +1,29 @@
+{
+  "an intermediate build (the publisher on a MessageChannel, no frame fallback yet), widePair first arrival": {
+    "no keys": {
+      "name": "widePair: the first run arrives",
+      "wallMs": 271,
+      "keys": false,
+      "slices": 13,
+      "runMs": 98,
+      "waitMs": 61,
+      "waitP50": 3,
+      "waitP95": 15,
+      "waitMax": 15,
+      "runP50": 8
+    },
+    "Shift held": {
+      "name": "widePair: the first run arrives",
+      "wallMs": 63672,
+      "keys": true,
+      "slices": 15,
+      "runMs": 117,
+      "waitMs": 63408,
+      "waitP50": 398,
+      "waitP95": 18892,
+      "waitMax": 20625,
+      "runP50": 8
+    }
+  },
+  "note": "the waits are post \u2192 handler of the publisher's slices on the page (an init script wraps MessagePort); measured on the macrotask build before the frame fallback (a MessageChannel only)"
+}

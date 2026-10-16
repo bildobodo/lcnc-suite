@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r164-vcwdgmoa/repo/lcnc-webui
+
+
+ Test Files  6 passed (6)
+      Tests  83 passed (83)
+   Start at  23:44:20
+   Duration  2.44s (transform 335ms, setup 0ms, import 623ms, tests 1.53s, environment 0ms)
+
