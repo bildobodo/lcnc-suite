@@ -463,6 +463,16 @@ const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: 
     const cov = 4 * n + 4;
     return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
   },
+  // the same, and in pair 1 a sample past its next interval's enter: the
+  // structure fails, the generation asks by the kept stretches' reach — which
+  // never takes a raw radius (beside Codex R160 VP-I115 rest D)
+  wideRadiusUnchecked: n => {
+    const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+    for (let k = 0; k < n; k++) { iv(h, 0, 4 * k, 4 * k + 1, D, 4 * k + 2, 1e7); iv(c, 0, 4 * k + 2.5, 4 * k + 3, D, 4 * k + 3.5, 0.1); }
+    iv(h, 1, 0, 1, 0, 3, 10); iv(h, 1, 2, 2.5, 0); iv(h, 1, 6, 7, 0);
+    const cov = 4 * n + 4;
+    return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
+  },
   gaps: n => {
     const mk = (g: number) => { const st = new ContactStore(1, g, REQUEST_BUDGET);
       const ep = st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 0, firstIv: NONE, ivCount: 1 });
@@ -503,7 +513,8 @@ describe("every question about a union piece reads a bounded number of cells (Co
   // bisections, never by the intervals a piece holds or a search passes
   const sizes: Record<string, [number, number]> = { sweep: [256, 2048], pieces: [1024, 8192], coarseFine: [2048, 16384], chain: [2048, 16384], gaps: [2048, 16384],
                                                   refuted: [1024, 8192], refutedPoints: [1024, 8192], wideRadius: [1024, 8192],
-                                                  widePair: [1024, 8192], wideLater: [1024, 8192] };
+                                                  widePair: [1024, 8192], wideLater: [1024, 8192],
+                                                  wideRadiusUnchecked: [1024, 8192] };
   const ask = (v: ContactView, cov: number, q: (k: string, f: () => unknown) => void) => {
     const lineAt = (p: number) => Math.floor(p), step = Math.max(1, Math.floor(v.n / 64));
     for (let i = 0; i < v.n; i += step) {
