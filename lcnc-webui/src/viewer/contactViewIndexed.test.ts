@@ -304,6 +304,31 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
     expect(worst[1]!).toBeLessThanOrEqual(1.5 * worst[0]! + 256);
   });
 
+  it.each([["other pair"], ["later, same pair"]] as const)("the earlier run's last key beside one long valid free stretch (%s): the same at 1024 and at 8192 contacts (Codex R161 VP-I115 rest F)", { timeout: 300_000 }, wide => {
+    // Codex R161's probe: the windows came from the generation's reach — one
+    // long free stretch anywhere made every local search scan every sample
+    const worst: number[] = [], plain: number[] = [];
+    for (const n of [1024, 8192]) {
+      for (const w of [wide, "none"] as const) {
+        const c = counter();
+        try {
+          const { input } = wideStretch(n, w);
+          const v = buildContactView(input);
+          countIndex(v, () => { c.box.reads++; });
+          expect(v.conflicts.count, "no conflict").toBe(0);
+          const key = `C0|${n - 1}|0`, i = findKey(v, key);
+          expect(targetKey(v, i), "found").toBe(key);
+          c.box.reads = 0;
+          expect(findKey(v, key)).toBe(i);
+          (w === "none" ? plain : worst).push(c.box.reads);
+        } finally { c.restore(); }
+      }
+    }
+    console.log(`[R161 wide] ${wide}: ${worst[0]} → ${worst[1]} reads (without it ${plain[0]} → ${plain[1]})`);
+    expect(worst[1]!, "the local key query stays bounded").toBeLessThanOrEqual(1.5 * worst[0]! + 256);
+    expect(worst[1]!, "and as cheap as without the long stretch, near enough").toBeLessThanOrEqual(1.5 * plain[1]! + 256);
+  });
+
   it.each([["one run", false], ["a union, the earlier run's keys", true]])("%s: at its place, moved, anywhere — the same at 1024 and at 8192 pairs", { timeout: 300_000 }, (_, union) => {
     const worst: Array<Record<string, number>> = [];
     for (const n of [1024, 8192]) {
@@ -387,6 +412,26 @@ function refutedChain(n: number, r: number): { input: ContactViewInput; cov: num
   const cov = 4 * n + 4;
   return { input: { sources: [{ stores: [mk(1)], held: [mk(0)], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
 }
+/** Codex R161's shape: pair 0's n short contacts in both runs, small free
+ *  stretches between, and — `wide` — one long VALID free stretch of the
+ *  earlier run, in pair 1 or later in pair 0 (a contact [s, s+1], its free
+ *  sample at s+1e6 with radius 999 999, then a contact to s+4e6 whose enter is
+ *  undecided and whose witness lies past the stretch): no conflict. */
+function wideStretch(n: number, wide: "none" | "other pair" | "later, same pair"): { input: ContactViewInput; cov: number } {
+  const h = new ContactStore(1, 0, REQUEST_BUDGET), c = new ContactStore(1, 1, REQUEST_BUDGET);
+  const one = (st: ContactStore, pair: number, a: number, b: number, w: number, p: number, r: number, flags = D) => {
+    const ep = st.episodes.append({ pair, ordinal: st.episodes.rows, flags: 0, onset: a, end: b, closeAt: w, closeDist: 0, firstIv: NONE, ivCount: 1 });
+    st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: a, exit: b, flags, next: NONE, witness: w, freeAt: p, freeR: r }));
+  };
+  for (let k = 0; k < n; k++) { one(h, 0, 4 * k, 4 * k + 1, 4 * k + 0.5, 4 * k + 2, 0.1); one(c, 0, 4 * k + 0.1, 4 * k + 0.9, 4 * k + 0.4, 4 * k + 2, 0.1); }
+  if (wide !== "none") {
+    const pair = wide === "other pair" ? 1 : 0, s = wide === "other pair" ? 0 : 1e6;
+    one(h, pair, s, s + 1, s + 0.5, s + 1e6, 999999);
+    one(h, pair, s + 1e6 + 1, s + 4e6, s + 3e6, NaN, 0, IV_EXIT_DECIDED);
+  }
+  const cov = 5e6;
+  return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
+}
 /** The shapes of the questions' costs (Codex R158 VP-I115 rest B). */
 const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: number }> = {
   pieces: n => { const cov = 3 * n + 10; return { input: { sources: [{ stores: [table(1, 1, n)], held: [table(1, 0, n)], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov }; },
@@ -405,6 +450,9 @@ const costShapes: Record<string, (n: number) => { input: ContactViewInput; cov: 
     return { input: { sources: [{ stores: [c], held: [h], heldCoverage: [cov], at: x => x, ownCoverage: cov }], pairName: names, coverage: cov }, cov };
   },
   refuted: n => refutedChain(n, 0.1),
+  // one long valid free stretch elsewhere: the windows are the witnesses around a range (Codex R161 VP-I115 rest F)
+  widePair: n => wideStretch(n, "other pair"),
+  wideLater: n => wideStretch(n, "later, same pair"),
   refutedPoints: n => refutedChain(n, 0),
   // the earlier run's every free sample with a raw radius over everything,
   // cut back by the rerun's contacts between: the searches' windows are the
@@ -454,7 +502,8 @@ describe("every question about a union piece reads a bounded number of cells (Co
   // the worst single question at a size and at eight times it — bounded by
   // bisections, never by the intervals a piece holds or a search passes
   const sizes: Record<string, [number, number]> = { sweep: [256, 2048], pieces: [1024, 8192], coarseFine: [2048, 16384], chain: [2048, 16384], gaps: [2048, 16384],
-                                                  refuted: [1024, 8192], refutedPoints: [1024, 8192], wideRadius: [1024, 8192] };
+                                                  refuted: [1024, 8192], refutedPoints: [1024, 8192], wideRadius: [1024, 8192],
+                                                  widePair: [1024, 8192], wideLater: [1024, 8192] };
   const ask = (v: ContactView, cov: number, q: (k: string, f: () => unknown) => void) => {
     const lineAt = (p: number) => Math.floor(p), step = Math.max(1, Math.floor(v.n / 64));
     for (let i = 0; i < v.n; i += step) {

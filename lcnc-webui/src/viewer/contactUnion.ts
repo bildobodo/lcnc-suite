@@ -92,6 +92,15 @@ export interface UnionSide {
    *  window over every sample (found beside Codex R160 VP-I115 rest D). */
   readonly back: number;
   readonly front: number;
+  /** Every free stretch the searches keep lies between its own interval's
+   *  witness and the next one's, and the witnesses rise with the index — the
+   *  structure, checked by the build's walk for every stretch it keeps (the
+   *  view's: `eachPieceSteps`' `holds`). Then a search's window over the
+   *  samples is the intervals whose witnesses bound its range, two
+   *  bisections, never a reach (Codex R161 VP-I115 rest F: one long VALID free
+   *  stretch, in another pair or later in the same one, widened every window
+   *  by the generation's `back`); without it, `back` / `front`. */
+  readonly local?: boolean;
   /** The first interval from k on whose free stretch may hold (n: none) — an
    *  index's answer (the view's: by blocks); absent, the searches step one by
    *  one (Codex R158 VP-I115: a walk over every interval without one). It may
@@ -335,6 +344,29 @@ function firstEnterFrom(s: UnionSide, y: number): number {
   return lo;
 }
 
+/** First interval with witness ≥ y (s.n: none). */
+function firstWitnessFrom(s: UnionSide, y: number): number {
+  let lo = 0, hi = s.n;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (s.witness(m) < y) lo = m + 1; else hi = m; }
+  return lo;
+}
+/** The first interval whose free stretch may reach y or past it: by the
+ *  witnesses where the side is `local` (a stretch of j ends at w_{j+1} at
+ *  most), else by the generation's reach. */
+function windowFrom(s: UnionSide, y: number): number {
+  return Math.max(0, (s.local ? firstWitnessFrom(s, y) : firstEnterFrom(s, y - s.back)) - 1);
+}
+/** The last interval whose free stretch may begin at or before y (a stretch
+ *  of j begins after w_j where the side is `local`). */
+function windowTo(s: UnionSide, y: number): number {
+  if (!s.local) return predEnter(s, y + s.front);
+  let lo = 0, hi = s.n;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (s.witness(m) <= y) lo = m + 1; else hi = m; }
+  return lo - 1;
+}
+/** Where interval j's free stretch begins at the earliest. */
+const stretchFloor = (s: UnionSide, j: number) => (s.local ? s.witness(j) : s.enter(j) - s.front);
+
 /** The first interval of side s from k on whose free stretch may hold (s.n: none). */
 function nextFreeOf(s: UnionSide, k: number): number {
   if (s.nextFree) return s.nextFree(k);
@@ -428,8 +460,8 @@ function eachFreeNear(sides: readonly UnionSide[], lo: number, hi: number, each:
   for (let fs = 0; fs < sides.length; fs++) {
     const s = sides[fs]!;
     // a free stretch of j lies in (enter_j − front, enter_{j+1} + back)
-    const j1 = predEnter(s, hi + s.front);
-    for (let j = nextFreeOf(s, Math.max(0, firstEnterFrom(s, lo - s.back) - 1)); j <= j1; j = nextFreeOf(s, j + 1)) {
+    const j1 = windowTo(s, hi);
+    for (let j = nextFreeOf(s, windowFrom(s, lo)); j <= j1; j = nextFreeOf(s, j + 1)) {
       // the raw stretch first: one that misses [lo, hi] has nothing in it
       const p = s.freeAt(j);
       const r = freeRadius(s.freeR(j));
@@ -508,8 +540,8 @@ export function pieceFrom(sides: readonly UnionSide[], seps: UnionSeps, z: numbe
   else {
     for (let ti = 0; ti < sides.length && kind < 0; ti++) {
       const t = sides[ti]!;
-      const j1 = predEnter(t, st.a + t.front);
-      for (let j = nextFreeOf(t, Math.max(0, firstEnterFrom(t, st.a - t.back) - 1)); j <= j1; j = nextFreeOf(t, j + 1)) {
+      const j1 = windowTo(t, st.a);
+      for (let j = nextFreeOf(t, windowFrom(t, st.a)); j <= j1; j = nextFreeOf(t, j + 1)) {
         const f = freeStretch(sides, ti, j);
         if (f && f.b === st.a && freeZone(seps, f) === z) { kind = START_FREE; side = ti; idx = j; break; }
       }
@@ -517,15 +549,15 @@ export function pieceFrom(sides: readonly UnionSide[], seps: UnionSeps, z: numbe
     if (kind < 0 && z > 0 && !st.ao && st.a === lo) { kind = START_SEP; side = -1; idx = z - 1; }
   }
   // the end: the first fragment from the start on — by side in order, each
-  // side's search ends past the best one found (a stretch of j begins after
-  // enter_j − front) …
+  // side's search ends past the best one found (a stretch of j begins at its
+  // floor or after, stretchFloor) …
   const after: Span = { a: st.a, ao: st.ao, b: Infinity, bo: false };
   let cut: Span | null = null;
   for (let fs = 0; fs < sides.length; fs++) {
     const s = sides[fs]!;
     // (only the intervals with a free sample: the next one by the index)
-    for (let j = nextFreeOf(s, Math.max(0, firstEnterFrom(s, st.a - s.back) - 1)); j < s.n; j = nextFreeOf(s, j + 1)) {
-      const from = s.enter(j) - s.front;
+    for (let j = nextFreeOf(s, windowFrom(s, st.a)); j < s.n; j = nextFreeOf(s, j + 1)) {
+      const from = stretchFloor(s, j);
       if (from > hi || (cut && from > (cut as Span).a)) break;
       const p = s.freeAt(j);
       if (p + freeRadius(s.freeR(j)) < st.a) continue;
@@ -696,6 +728,8 @@ interface SideScratch {
   enter: Float64Array; end: Float64Array; witness: Float64Array; freeAt: Float64Array; freeR: Float64Array;
   /** 1 enter decided, 2 exit decided, 4 open, 8 after the unknown tool. */
   flags: Uint8Array;
+  /** The witnesses rise with the index (UnionSide.local's premise). */
+  rising: boolean;
   /** A point interval's zone (pointZone, computed forward once). */
   pz: Int32Array;
   /** Its free stretches by interval order: count, start, end, a point, the interval. */
@@ -709,7 +743,7 @@ export interface UnionScratch { sides: SideScratch[]; fLo: Float64Array; fHi: Fl
 export function unionScratch(): UnionScratch {
   const side = (): SideScratch => ({ n: 0, enter: allocF64(0), end: allocF64(0), witness: allocF64(0),
                                      freeAt: allocF64(0), freeR: allocF64(0), flags: allocU8(0), pz: allocI32(0),
-                                     fn: 0, fLo: allocF64(0), fHi: allocF64(0), fPt: allocU8(0), fJ: allocI32(0), fByHi: null });
+                                     fn: 0, fLo: allocF64(0), fHi: allocF64(0), fPt: allocU8(0), fJ: allocI32(0), fByHi: null, rising: true });
   return { sides: [side(), side()], fLo: allocF64(0), fHi: allocF64(0), fLoOpen: allocU8(0), fHiOpen: allocU8(0) };
 }
 const F_ED = 1, F_XD = 2, F_OPEN = 4, F_AFTER = 8;
@@ -723,8 +757,10 @@ function* readSide(s: UnionSide, x: SideScratch, c: Ops): Steps<void> {
   x.n = n;
   x.enter = grow64(x.enter, n); x.end = grow64(x.end, n); x.witness = grow64(x.witness, n); x.flags = grow8(x.flags, n);
   x.freeAt = grow64(x.freeAt, n); x.freeR = grow64(x.freeR, n);
+  x.rising = true;
   for (let k = 0; k < n; k++) {
     x.enter[k] = s.enter(k); x.end[k] = s.end(k); x.witness[k] = s.witness(k); x.freeAt[k] = s.freeAt(k); x.freeR[k] = s.freeR(k);
+    if (k > 0 && !(x.witness[k]! >= x.witness[k - 1]!)) x.rising = false;
     x.flags[k] = (s.enterDecided(k) ? F_ED : 0) | (s.exitDecided(k) ? F_XD : 0) | (s.open(k) ? F_OPEN : 0) | (s.afterTool(k) ? F_AFTER : 0);
     if ((c.n += 8) >= STEP_OPS) { c.n = 0; yield; }
   }
@@ -963,8 +999,10 @@ export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, ea
                                 /** Each interval whose free stretch holds (freeStretch ≠ null) — the
                                  *  index UnionSide.nextFree / prevFree may answer from — with how far
                                  *  that stretch reaches before its own enter and past the next
-                                 *  interval's (−Infinity: none) — UnionSide.front / back. */
-                                holds?: (si: number, k: number, front: number, back: number) => void): Steps<void> {
+                                 *  interval's (−Infinity: none) — UnionSide.front / back — and
+                                 *  whether it lies between its witness and the next one's on a side
+                                 *  whose witnesses rise (UnionSide.local). */
+                                holds?: (si: number, k: number, front: number, back: number, local: boolean) => void): Steps<void> {
   const xs = scratch.sides;
   for (let si = 0; si < 2; si++) {
     const s = sides[si];
@@ -976,7 +1014,8 @@ export function* eachPieceSteps(sides: readonly UnionSide[], seps: UnionSeps, ea
       const x = xs[si]!;
       for (let q = 0; q < x.fn; q++) {
         const j = x.fJ[q]!;
-        holds(si, j, x.enter[j]! - x.fLo[q]!, j + 1 < x.n ? x.fHi[q]! - x.enter[j + 1]! : -Infinity);
+        const local = x.rising && x.fLo[q]! >= x.witness[j]! && (j + 1 >= x.n || x.fHi[q]! <= x.witness[j + 1]!);
+        holds(si, j, x.enter[j]! - x.fLo[q]!, j + 1 < x.n ? x.fHi[q]! - x.enter[j + 1]! : -Infinity, local);
         if ((c.n += 6) >= STEP_OPS) { c.n = 0; yield; }
       }
     }

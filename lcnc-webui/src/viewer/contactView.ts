@@ -267,6 +267,10 @@ interface UnionGen {
    *  (FREE_HOLDS, the walk's verdict — the top bit, which a comp value never
    *  sets); empty without one. */
   comp: Uint32Array;
+  /** Every stretch the walk kept lies between its witness and the next one's
+   *  on a side whose witnesses rise (UnionSide.local) — set by the walk;
+   *  before it, false. */
+  local: boolean;
   /** `free` / `freePrev` index the samples whose stretch holds (FREE_HOLDS) —
    *  set once the walk wrote them; before, any free sample (Codex R160
    *  VP-I115 rest D: a run of samples a confirmed point refutes was asked one
@@ -616,7 +620,7 @@ function sideOf(tables: Tables, g: UnionGen, lo: number, hi: number): UnionSide 
     afterTool: k => (rd(tab(k).c.flags, row(k)) & IV_AFTER_UNKNOWN_TOOL) !== 0,
     freeAt: k => rd(tab(k).c.freeAt, row(k)),
     freeR: k => rd(tab(k).c.freeR, row(k)),
-    back: g.back, front: g.front,
+    back: g.back, front: g.front, local: g.local,
     nextFree: k => nextOf(g.free, lo + k, hi, a => freeIndexed(tables, g, a)) - lo,
     prevFree: k => prevOf(g.freePrev, lo + k, lo, a => freeIndexed(tables, g, a)) - lo,
     ...(g.comp.length ? { comp: (k: number) => g.comp[lo + k]! & COMP_VALUE } : {}),
@@ -747,7 +751,7 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
     for (let b = nb - 1; b >= 0; b--) { if (notPossible[b]) np = b; notPossible[b] = np; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
     // any free sample — after a fallback the walk narrows it to the ones that hold
     const g: UnionGen = { uIdx, back: r.back, front: r.front, free: allocU32(nb + 1), notPossible, freePrev: allocU32(nb + 1),
-                          comp: allocU32(withSeps ? n : 0), freeHeld: false };
+                          comp: allocU32(withSeps ? n : 0), freeHeld: false, local: false };
     yield* freeBlocks(g, k => !Number.isNaN(col(k, "freeAt")), c);
     return g;
   };
@@ -941,7 +945,7 @@ function decodePiece(v: ContactView, ref: number): PieceCtx {
   const { t, u, g, sd, kind, idx } = pieceEvidence(v, ref);
   const z = evidenceZone(g.sides, g.seps, sd, kind, idx);
   if (linearPiecesForTest.on) {
-    const plain = g.sides.map(s => ({ ...s, nextFree: undefined, comp: undefined }));
+    const plain = g.sides.map(s => ({ ...s, nextFree: undefined, comp: undefined, local: undefined }));
     const piece = pieceFrom(plain, g.seps, z, evidencePos(plain, g.seps, sd, kind, idx), true)!;
     return { info: describePiece(v.tables, u, [g.r0[0], g.r1[0]], plain, g.seps, piece, v.joined, () => {}), t, g, u };
   }
@@ -1225,7 +1229,7 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
     // steps inside a group too
     unions[si] = u;
     // how far the stretches the union keeps reach (UnionSide.back / front, per generation)
-    const reach = [{ back: 0, front: 0 }, { back: 0, front: 0 }];
+    const reach = [{ back: 0, front: 0, local: true }, { back: 0, front: 0, local: true }];
     yield* eachGroupSteps(tables, u, (sides, los, seps, group, ev0) => eachPieceSteps(sides, seps, piece => {
       let ref: number;
       if (piece.startKind === START_SEP) ref = (u.sRef[2 * (ev0 + piece.startIdx) + 1]! | ((SEP_FIELD + (group & 3)) << PIECE_SHIFT)) >>> 0;
@@ -1260,18 +1264,20 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
     // every interval's component end, for the questions later (Codex R158 VP-I115)
     (sd, k, value) => { const cp = u.gens[sd]!.comp, i = los[sd]! + k; cp[i] = (cp[i]! & FREE_HOLDS) | value; },
     // and whether its free stretch holds in the union (Codex R160 VP-I115 rest D), how far it reaches
-    (sd, k, front, back) => {
+    (sd, k, front, back, local) => {
       const cp = u.gens[sd]!.comp, i = los[sd]! + k, r = reach[sd]!;
       cp[i] = cp[i]! | FREE_HOLDS;
       if (front > r.front) r.front = front;
       if (back > r.back) r.back = back;
+      if (!local) r.local = false;
     }), c);
     // the free indexes now skip every sample the union refutes, and the
-    // searches' windows reach as far as the kept stretches do
+    // searches' windows reach as far as the kept stretches do — or, where every
+    // kept stretch lies between its witnesses, are the witnesses around a range
     for (let sd = 0; sd < 2; sd++) {
       const g = u.gens[sd]!;
       yield* freeBlocks(g, k => (g.comp[k]! & FREE_HOLDS) !== 0, c);
-      g.freeHeld = true; g.back = reach[sd]!.back; g.front = reach[sd]!.front;
+      g.freeHeld = true; g.back = reach[sd]!.back; g.front = reach[sd]!.front; g.local = reach[sd]!.local;
     }
     // the near misses of both generations: one to one per group by overlap, in order
     // (typed lists, by group then start — every build buffer counted: plan 3.6, Codex R158 VP-I118)

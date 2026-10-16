@@ -309,7 +309,7 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
   });
 
   it("matches the brute force over random generations with tool gaps — piece by piece and zone by zone, its start's evidence, every later question from that start alone, the contradictions", { timeout: 120_000 }, () => {
-    let total = 0, cases = 0, containing = 0;
+    let total = 0, cases = 0, containing = 0, localCases = 0;
     const kinds = [0, 0, 0];
     const scratch = unionScratch();
     for (const seed0 of [12345, 777, 31337, 4242, 99, 2026, 151]) {
@@ -373,9 +373,15 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
         // the indexes the view gives (Codex R158 VP-I115): the next free
         // sample, and every interval's component end as the walk writes it
         const comps = [new Uint32Array(held.ivs.length), new Uint32Array(cur.ivs.length)];
-        runToEnd(eachPieceSteps(sides, seps, () => {}, undefined, scratch, { n: 0 }, (si, k, value) => { comps[si]![k] = value; }));
+        // and the walk's verdict on the kept stretches: their reach, and whether every one lies
+        // between its witnesses (the windows by witnesses — Codex R161 VP-I115 rest F)
+        const kept = [{ back: 0, front: 0, local: true }, { back: 0, front: 0, local: true }];
+        runToEnd(eachPieceSteps(sides, seps, () => {}, undefined, scratch, { n: 0 }, (si, k, value) => { comps[si]![k] = value; },
+          (si, _k, front, back, local) => { const r = kept[si]!; r.front = Math.max(r.front, front); r.back = Math.max(r.back, back); r.local &&= local; }));
+        if (kept.every(r => r.local)) localCases++;
         const indexed: UnionSide[] = sides.map((s, si) => ({
           ...s, nextFree: (k: number) => { while (k < s.n && Number.isNaN(s.freeAt(k))) k++; return k; }, comp: (k: number) => comps[si]![k]!,
+          back: kept[si]!.back, front: kept[si]!.front, local: kept[si]!.local,
         }));
         const tag = `seed ${seed0} case ${c}: ${JSON.stringify({ held, cur })}`;
         const want = oracle(held, cur);
@@ -436,8 +442,9 @@ describe("the union of two generations less the proven free stretches (plan 3.5)
         if (got.length) cases++;
       }
     }
-    console.log(`[B4 union] ${cases} cases with pieces, ${total} pieces; starts by kind (enter, free, separator): ${kinds.join(" ")}; ${containing} witnesses found in their piece`);
+    console.log(`[B4 union] ${cases} cases with pieces, ${total} pieces; starts by kind (enter, free, separator): ${kinds.join(" ")}; ${containing} witnesses found in their piece; ${localCases} cases asked by the witnesses' windows`);
     expect(containing).toBeGreaterThan(1000);
+    expect(localCases, "the windows by witnesses are exercised").toBeGreaterThan(1000);
     expect(kinds.every(k => k > 0), "an enter, a free stretch and a separator start pieces").toBe(true);
   });
 });
@@ -511,6 +518,32 @@ describe("intervals skipped in a zone, in bounded steps (Codex R157 VP-I115)", (
     for (;;) { reads = 0; const r = job.next(); most = Math.max(most, reads); if (r.done) break; }
     expect(most, "scratch reads in one step").toBeLessThanOrEqual(4 * STEP_OPS);
   }, 120_000);
+});
+
+describe("the walk calls a kept stretch local only where the structure holds (Codex R161 VP-I115 rest F)", () => {
+  const verdicts = (held: Plain, cur: Plain) => {
+    const out: Array<[number, number, boolean]> = [];
+    runToEnd(eachPieceSteps(sidesOf(held, cur), NO_SEPARATORS, () => {}, undefined, unionScratch(), { n: 0 }, undefined,
+      (si, k, _f, _b, local) => { out.push([si, k, local]); }));
+    return out;
+  };
+  const none: Plain = { ivs: [] };
+  it("between its witness and the next one's, the witnesses rising: local", () => {
+    const held: Plain = { ivs: [{ enter: 0, end: 1, witness: 0.5, freeAt: 3, freeR: 10, ed: false, xd: false }, { enter: 4, end: 5, witness: 4.5, ed: false, xd: false }] };
+    expect(verdicts(held, none)).toEqual([[0, 0, true]]);
+  });
+  it("a sample past the next interval's enter — its stretch past that interval's witness: not local", () => {
+    // the sample at 3 lies after interval 1's enter at 2: cut at 2.2 and 6.5, it reaches 3.8 > 2.2
+    const held: Plain = { ivs: [{ enter: 0, end: 1, witness: 0.5, freeAt: 3, freeR: 10, ed: false, xd: false },
+                                { enter: 2, end: 2.5, witness: 2.2, ed: false, xd: false }, { enter: 6, end: 7, witness: 6.5, ed: false, xd: false }] };
+    expect(verdicts(held, none)).toEqual([[0, 0, false]]);
+  });
+  it("witnesses that fall: not local, whatever the stretch", () => {
+    // the stretch (1.4, 1.6) lies between its witnesses; a later witness falls (2.4 after 2.5)
+    const held: Plain = { ivs: [{ enter: 0, end: 1, witness: 0.5, freeAt: 1.5, freeR: 0.1, ed: false, xd: false },
+                                { enter: 2, end: 3, witness: 2.5, ed: false, xd: false }, { enter: 4, end: 5, witness: 2.4, ed: false, xd: false }] };
+    expect(verdicts(held, none)).toEqual([[0, 0, false]]);
+  });
 });
 
 describe("a contradiction over the other generation's every interval, in bounded steps (Codex R158 VP-I115)", () => {

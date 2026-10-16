@@ -2122,7 +2122,12 @@ The walk counts every sample it looks at, a dropped one too, and finds the
 other run's interval before a sample by galloping from the last one, each probe
 counted (R160 rest E: an empty rerun's 32 768 samples, a late sample after a
 coarse contact's 32 768 finer ones, were each one step). The searches' windows
-(`UnionSide.back` / `front`) are the KEPT stretches' reach, which the walk
+over the free samples are, where the walk found every kept stretch between its
+own witness and the next one's on a side whose witnesses rise
+(`UnionSide.local`), the witnesses around the asked range — two bisections, no
+reach (R161 rest F: one long VALID free stretch in another pair, or later in
+the same one, widened every window to every sample: 116 568 reads for a key at
+8 192); else the KEPT stretches' reach (`back` / `front`), which the walk
 reports with each (a raw radius over everything, cut back or refuted, opened
 every window over every sample: 1.2 M reads for a target's end at 8 192); a
 sample a confirmed point contradicts is named ONCE, at its least deep point,
