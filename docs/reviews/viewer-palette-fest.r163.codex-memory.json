@@ -1,0 +1,11 @@
+{
+  "phase": 2,
+  "oldViewBytes": 138776,
+  "pendingViewBytes": 138776,
+  "reported": {
+    "published": 138776,
+    "waiting": 0,
+    "inProgress": 1042408,
+    "building": 1042408
+  }
+}

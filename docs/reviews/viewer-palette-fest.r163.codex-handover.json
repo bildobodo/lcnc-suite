@@ -1,0 +1,27 @@
+{
+  "targets": [
+    {
+      "cum": 0,
+      "cumEnd": 4,
+      "key": "C0|0|0#g0/b",
+      "line": 1,
+      "a": "tool",
+      "b": "stock",
+      "dist": 0,
+      "near": false
+    },
+    {
+      "cum": 6,
+      "cumEnd": 10,
+      "key": "C0|0|0#g0/s1:0",
+      "line": 1,
+      "a": "tool",
+      "b": "stock",
+      "dist": 0,
+      "near": false,
+      "reentry": true
+    }
+  ],
+  "earlierKey": "C0|0|0",
+  "found": -1
+}

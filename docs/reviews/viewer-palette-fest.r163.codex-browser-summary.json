@@ -1,0 +1,164 @@
+[
+  {
+    "run": "browser-metrics",
+    "shape": "widePair",
+    "steps": [
+      {
+        "name": "widePair: the first run arrives",
+        "wallMs": 52096,
+        "longTasks": 1,
+        "longestMs": 60,
+        "inputDelayMaxMs": 78,
+        "keyDelayMaxMs": 19,
+        "longestStepMs": [
+          0.7,
+          3.6,
+          0,
+          0.3
+        ]
+      },
+      {
+        "name": "widePair: the pool falls back \u2014 the second run, the union",
+        "wallMs": 23738,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputDelayMaxMs": 25,
+        "keyDelayMaxMs": 19,
+        "longestStepMs": [
+          0.2,
+          3.4,
+          0,
+          0.2
+        ]
+      },
+      {
+        "name": "widePair: the questions",
+        "longTasks": 0,
+        "longestMs": 0,
+        "worstMs": {
+          "targets": 524290,
+          "ms": {
+            "target": 0.1,
+            "key where it stood": 0.4,
+            "key moved": 0.2,
+            "key anywhere": 0.2,
+            "next": 0.3,
+            "tint": 1.9,
+            "mark": 0.1,
+            "next from a position": 0.6,
+            "window of 400": 4.8,
+            "key gone": 0.1
+          }
+        }
+      }
+    ]
+  },
+  {
+    "run": "browser-metrics",
+    "shape": "wideDecimal",
+    "steps": [
+      {
+        "name": "wideDecimal: the first run arrives",
+        "wallMs": 39878,
+        "longTasks": 1,
+        "longestMs": 56,
+        "inputDelayMaxMs": 55,
+        "keyDelayMaxMs": 10,
+        "longestStepMs": [
+          0.3,
+          3.3,
+          0,
+          0.2
+        ]
+      },
+      {
+        "name": "wideDecimal: the pool falls back \u2014 the second run, the union",
+        "wallMs": 43917,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputDelayMaxMs": 26,
+        "keyDelayMaxMs": 20,
+        "longestStepMs": [
+          0.7,
+          7.7,
+          0.1,
+          0.2
+        ]
+      },
+      {
+        "name": "wideDecimal: the questions",
+        "longTasks": 0,
+        "longestMs": 0,
+        "worstMs": {
+          "targets": 524290,
+          "ms": {
+            "target": 0.2,
+            "key where it stood": 0.4,
+            "key moved": 0.2,
+            "key anywhere": 0.2,
+            "next": 6.3,
+            "tint": 1.8,
+            "mark": 0.1,
+            "next from a position": 0.5,
+            "window of 400": 4.5,
+            "key gone": 0.1
+          }
+        }
+      }
+    ]
+  },
+  {
+    "run": "browser-pointer-metrics",
+    "shape": "wideDecimal",
+    "steps": [
+      {
+        "name": "wideDecimal: the first run arrives",
+        "wallMs": 271,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputDelayMaxMs": 57,
+        "keyDelayMaxMs": 0,
+        "longestStepMs": [
+          0.3,
+          2,
+          0,
+          0.2
+        ]
+      },
+      {
+        "name": "wideDecimal: the pool falls back \u2014 the second run, the union",
+        "wallMs": 2671,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputDelayMaxMs": 25,
+        "keyDelayMaxMs": 0,
+        "longestStepMs": [
+          0.2,
+          4,
+          0,
+          0.2
+        ]
+      },
+      {
+        "name": "wideDecimal: the questions",
+        "longTasks": 0,
+        "longestMs": 0,
+        "worstMs": {
+          "targets": 524290,
+          "ms": {
+            "target": 0.1,
+            "key where it stood": 0.3,
+            "key moved": 0.2,
+            "key anywhere": 0.2,
+            "next": 0.2,
+            "tint": 1,
+            "mark": 0.1,
+            "next from a position": 1.4,
+            "window of 400": 4.1,
+            "key gone": 0.1
+          }
+        }
+      }
+    ]
+  }
+]
