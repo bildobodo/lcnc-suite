@@ -1,0 +1,5 @@
+The four rules red only by a wall-clock timeout overnight (the VM was paused: 34 min of guest time in 9 h of wall time), run again at b413fcc8, each aimed with -t at the guard that asserts:
+b_findkey_scan RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: at its place: expected 475139 to be less than or equal to 75524.5 6s
+b_free_stretch_all_points RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: pieces: one target: expected 918038 to be less than or equal to 172936 146s
+k_heir_piece_by_piece RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 3245105 to be less than or equal to 499169.5 7s
+b_no_comp RED (aimed at the late key and the chain shape; first aimed at coarseFine, which it does not reach: GREEN there) — AssertionError: expected 4146288 to be less than or equal to 631342 | AssertionError: chain: one target: expected 1016221 to be less than or equal to 154367.5 10s

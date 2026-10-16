@@ -1,0 +1,8 @@
+Questions over one raw radius past everything (the earlier run's contacts [4k, 4k+1], free sample 4k+2 radius 1e7;
+the rerun's [4k+2.5, 4k+3], free 4k+3.5 radius 0.1) — the most cells any one question read (ColumnTable.get + viewWork),
+1 024 and 8 192 contacts per run (2 048 / 16 384 targets):
+  d6dff35c (rest D/E fixed, the windows still from the raw radii): {"pos":148,"end":136339,"key":546774,"tint":4500414,"after":136519,"before":136570} -> {"pos":187,"end":1188029,"key":4753933,"tint":1188298,"after":254,"before":1188353}
+  63e79628: {"pos":148,"end":476,"key":3190,"tint":15879,"after":656,"before":641} -> {"pos":187,"end":542,"key":3841,"tint":800,"after":254,"before":794}
+The whole build of that shape in Node (buildContactViewSteps), 1 024 / 8 192:
+  d6dff35c + the windows (the conflict scan as since R158): 64 ms, 2 116 steps, conflicts 6 291 456 / 2 578 ms, 131 623 steps, conflicts 402 653 184
+  63e79628: 86 ms, 87 steps, conflicts 1 024 / 273 ms, 728 steps, conflicts 8 192   (measured beside the mutation runs: step times not comparable)

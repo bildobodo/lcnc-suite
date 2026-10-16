@@ -1,0 +1,38 @@
+
+ RUN  v4.1.8 /tmp/codex-r160-91mw_20g/repo/lcnc-webui
+
+ ❯ src/viewer/codexR161Edges.test.ts (2 tests | 1 failed | 1 skipped) 219ms
+   × an unrelated kept wide stretch must not make a local key search scan every sample 219ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/codexR161Edges.test.ts > an unrelated kept wide stretch must not make a local key search scan every sample
+AssertionError: other-pair: the local key query stays bounded: expected 116568 to be less than or equal to 24044.5
+ ❯ src/viewer/codexR161Edges.test.ts:41:73
+     39|  for(const wide of ['none','other-pair','later-same-pair']){
+     40|   const [small,large]=results.filter(x=>x.wide===wide);
+     41|   expect.soft(large!.cost,`${wide}: the local key query stays bounded`…
+       |                                                                         ^
+     42|  }
+     43| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/viewer/codexR161Edges.test.ts > an unrelated kept wide stretch must not make a local key search scan every sample
+AssertionError: later-same-pair: the local key query stays bounded: expected 116626 to be less than or equal to 24131.5
+ ❯ src/viewer/codexR161Edges.test.ts:41:73
+     39|  for(const wide of ['none','other-pair','later-same-pair']){
+     40|   const [small,large]=results.filter(x=>x.wide===wide);
+     41|   expect.soft(large!.cost,`${wide}: the local key query stays bounded`…
+       |                                                                         ^
+     42|  }
+     43| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 skipped (2)
+   Start at  17:32:47
+   Duration  394ms (transform 104ms, setup 0ms, import 120ms, tests 219ms, environment 0ms)
+
