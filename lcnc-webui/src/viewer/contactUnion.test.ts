@@ -125,13 +125,17 @@ function oracle(held: Plain, cur: Plain): Array<Sp & { z: number }> {
     let r = (iv.freeR ?? 0) > 0 ? iv.freeR! : 0;
     const p = iv.freeAt, r0 = r;
     const inF = (x: number) => (r0 > 0 ? x > p - r0 && x < p + r0 : x === p);
-    let onSample = false;
+    // and never past the nearest confirmed point on either side (p − (p − x) may round below x)
+    let onSample = false, below = -Infinity, above = Infinity;
     for (const h of gens) for (const k of h.ivs) {
       const w = k.witness ?? (k.enter + k.end) / 2;
       const xs = [w, ...((k.ed ?? true) ? [k.enter] : []), ...((k.xd ?? true) && !k.open ? [k.end] : [])];
-      for (const x of xs) if (inF(x)) { if (x === p) onSample = true; r = Math.min(r, Math.abs(x - p)); }
+      for (const x of xs) {
+        if (inF(x)) { if (x === p) onSample = true; r = Math.min(r, Math.abs(x - p)); }
+        if (x < p) below = Math.max(below, x); else if (x > p) above = Math.min(above, x);
+      }
     }
-    if (!onSample) frags.push(r > 0 ? { a: p - r, ao: true, b: p + r, bo: true } : { a: p, ao: false, b: p, bo: false });
+    if (!onSample) frags.push(r > 0 ? { a: Math.max(p - r, below), ao: true, b: Math.min(p + r, above), bo: true } : { a: p, ao: false, b: p, bo: false });
   }
   const free = union(frags), out: Array<Sp & { z: number }> = [];
   const pzs = gens.map(g => pointZones(g, seps));
@@ -537,6 +541,23 @@ describe("the walk calls a kept stretch local only where the structure holds (Co
     const held: Plain = { ivs: [{ enter: 0, end: 1, witness: 0.5, freeAt: 3, freeR: 10, ed: false, xd: false },
                                 { enter: 2, end: 2.5, witness: 2.2, ed: false, xd: false }, { enter: 6, end: 7, witness: 6.5, ed: false, xd: false }] };
     expect(verdicts(held, none)).toEqual([[0, 0, false]]);
+  });
+  it("a radius cut back to a decimal point: the confirmed point stays contact, and the stretch is local (Codex R162 VP-I115 rest F)", () => {
+    // [0, 0.1] with its witness at 0.1, the free sample at 0.9 with an f32 radius of 0.8: in doubles
+    // 0.9 − (0.9 − 0.1) is 0.09999999999999998 — the open stretch held the confirmed exit 0.1
+    for (const [w, p, r] of [[0.1, 0.9, 0.8], [0.125, 0.875, 0.75]] as const) {
+      const held: Plain = { ivs: [{ enter: 0, end: w, witness: w, freeAt: p, freeR: Math.fround(r) }, { enter: 2, end: 2.5, witness: 2.25 }] };
+      expect(verdicts(held, none), `${w}`).toEqual([[0, 0, true]]);
+      const ps = pieces(sidesOf(held, none));
+      expect(ps.map(x => [x.start, x.end, x.endOpen]), `${w}: the confirmed exit ${w} is contact`).toEqual([[0, w, false], [2, 2.5, false]]);
+    }
+  });
+  it("a radius cut back to the next confirmed point above: it stays contact (0.3 + 0.6 rounds above 0.9)", () => {
+    // the sample at 0.3, its nearest confirmed point the next interval's decided enter 0.9
+    const held: Plain = { ivs: [{ enter: -1, end: -0.9, witness: -0.95, freeAt: 0.3, freeR: Math.fround(0.7) }, { enter: 0.9, end: 1.5, witness: 0.9 }] };
+    expect(verdicts(held, none)).toEqual([[0, 0, true]]);
+    const ps = pieces(sidesOf(held, none));
+    expect(ps.map(x => [x.start, x.startOpen, x.end]), "the confirmed enter 0.9 is contact").toEqual([[-1, false, -0.9], [0.9, false, 1.5]]);
   });
   it("witnesses that fall: not local, whatever the stretch", () => {
     // the stretch (1.4, 1.6) lies between its witnesses; a later witness falls (2.4 after 2.5)

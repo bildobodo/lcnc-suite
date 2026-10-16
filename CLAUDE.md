@@ -2127,7 +2127,11 @@ own witness and the next one's on a side whose witnesses rise
 (`UnionSide.local`), the witnesses around the asked range — two bisections, no
 reach (R161 rest F: one long VALID free stretch in another pair, or later in
 the same one, widened every window to every sample: 116 568 reads for a key at
-8 192); else the KEPT stretches' reach (`back` / `front`), which the walk
+8 192). A stretch never reaches past the nearest confirmed point on either side
+(`cutStretch`, the build's and every question's one rule: max(p − r', below),
+min(p + r', above)) — p − (p − x) rounds below x (0.9 − 0.8 < 0.1), the open
+stretch held the confirmed point and the structure check failed for the whole
+generation (R162); else the KEPT stretches' reach (`back` / `front`), which the walk
 reports with each (a raw radius over everything, cut back or refuted, opened
 every window over every sample: 1.2 M reads for a target's end at 8 192); a
 sample a confirmed point contradicts is named ONCE, at its least deep point,
@@ -2373,6 +2377,7 @@ The stored tool-change position lives in the INTERPRETER; the parameter file hol
 - A flex item that holds single-line (`nowrap`) text needs `min-width: 0`, or its automatic minimum width is the full text and it pushes its siblings out of the container — the status banner's action buttons (messages, Refresh, Home All, Abort) vanished behind the right edge whenever a long banner showed. Compact banner texts to the state plus one recovery verb; the explanation goes in the `title`
 - A `min-width` floor on a readout slot is not a fixed slot: content past the floor still grows it and `text-overflow: ellipsis` never engages. A readout that must not move its siblings gets `flex: 0 0 <w>` + `overflow: hidden` (ScrubBar row 1 ate the timeline). Same family: a control that changes state must keep its geometry — one slot, one button position, variable-width text AFTER the last button of its group
 - Every overlay on the 3D viewer keeps `--gap-section` from the frame and floats on the global `.overlay-card` (92 % panel + blur: HUD card, sim bar) — never hard-code the 12px or copy the chrome into a component; the bar sat 8px in on an opaque panel while the HUD sat 12px in on a translucent one
+- A `watch` reads its source at once: register it below every `computed` / `ref` that source reads. A binding declared after it is in its temporal dead zone — Vue catches the throw and logs it (`console.error`, no `pageerror`), and the watcher tracks only what it read before the throw. The contact bar's stage watch did this from Form 1 to R162; `viewer.spec` now fails on a ReferenceError in the console at load
 - Use direct child selectors (`.grid > label`) not descendant selectors (`.grid label`) when styling grid/container labels — descendant selectors mute nested form controls (radios, checkboxes) inside those containers
 - When adding server-synced settings sections, update `_VALID_SETTINGS_SECTIONS` in `gateway.py` — the gateway rejects unknown sections with "Unknown settings section" error
 - Don't hack around permission issues in the backend — use the proper frontend permission gate so the UI reflects machine state (dimming). The gate IS the fix, not a workaround.

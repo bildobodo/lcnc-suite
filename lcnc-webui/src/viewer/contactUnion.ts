@@ -417,37 +417,60 @@ function eachConfirmedIn(sides: readonly UnionSide[], f: Span, each: (x: number)
   }
 }
 
-/** Interval j's (side `fs`) proven free stretch: the open (p − r', p + r'),
- *  r' its radius cut back to the nearest confirmed point (either side)
- *  inside the stretch; the point {p} where r' = 0 from r = 0; null where it
+/** The confirmed points around a free sample p: the nearest below and above
+ *  it, and whether one lies on it — folded point by point. */
+interface Cut { below: number; above: number; on: boolean }
+const cutAt = (c: Cut): Cut => { c.below = -Infinity; c.above = Infinity; c.on = false; return c; };
+function foldPoint(c: Cut, x: number, p: number): void {
+  if (x === p) c.on = true;
+  else if (x < p) { if (x > c.below) c.below = x; }
+  else if (x < c.above) c.above = x;
+}
+/** The distance from p to its nearest confirmed point (0: one on it). */
+const cutDist = (c: Cut, p: number) => (c.on ? 0 : Math.min(p - c.below, c.above - p));
+/** The stretch a sample keeps, into `out`: its radius cut back to the nearest
+ *  confirmed point — the open (p − r', p + r'), and never past the nearest
+ *  confirmed point on either side: p − (p − x) may round below x, and the
+ *  open stretch then held the confirmed point x (Codex R162 VP-I115 rest F:
+ *  0.9 − 0.8 < 0.1 — the point lost, and the stretch below its own witness
+ *  turned the generation's windows off); the point {p} where r' = 0; false
+ *  where a confirmed point lies on the sample. The build and every later
+ *  question cut with this one rule. */
+function cutStretch(c: Cut, p: number, r0: number, out: Span): boolean {
+  if (c.on) return false;
+  const r = Math.min(r0, cutDist(c, p));
+  if (r > 0) { out.a = Math.max(p - r, c.below); out.ao = true; out.b = Math.min(p + r, c.above); out.bo = true; }
+  else { out.a = p; out.ao = false; out.b = p; out.bo = false; }
+  return true;
+}
+const CUT: Cut = { below: -Infinity, above: Infinity, on: false };
+
+/** Interval j's (side `fs`) proven free stretch (cutStretch); null where it
  *  has no sample or a confirmed point lies on the sample itself. */
 function freeStretch(sides: readonly UnionSide[], fs: number, j: number): Span | null {
   const s = sides[fs]!, p = s.freeAt(j);
   if (Number.isNaN(p)) return null;
-  const r0 = freeRadius(s.freeR(j));
   // the nearest confirmed points around p lie in the intervals k − 1 … k + 1
   // of each side, k the last entering at or before p — the structure, and the
   // walk's rule (readStretches): the build and every later question cut back
   // alike, by three intervals a side (Codex R158 VP-I115: every confirmed
   // point inside the radius was visited)
-  let d = Infinity;
+  const c = cutAt(CUT);
   for (const t of sides) {
     if (!t) continue;
     const k = predEnter(t, p);
-    for (let q = k - 1; q <= k + 1; q++) d = Math.min(d, nearestSide(t, q, p));
+    for (let q = k - 1; q <= k + 1; q++) foldSide(c, t, q, p);
   }
-  if (d === 0) return null;   // a confirmed point on the sample
-  const r = Math.min(r0, d);
-  return r > 0 ? { a: p - r, ao: true, b: p + r, bo: true } : { a: p, ao: false, b: p, bo: false };
+  const out: Span = { a: 0, ao: false, b: 0, bo: false };
+  return cutStretch(c, p, freeRadius(s.freeR(j)), out) ? out : null;
 }
-/** The distance from p to the nearest confirmed point of interval k of side s
- *  (Infinity: none; 0: one on p) — nearestIn's rule on a side. */
-function nearestSide(s: UnionSide, k: number, p: number): number {
-  if (k < 0 || k >= s.n) return Infinity;
-  let d = Math.abs(s.witness(k) - p);
-  if (s.enterDecided(k)) d = Math.min(d, Math.abs(s.enter(k) - p));
-  if (s.exitDecided(k) && !s.open(k)) d = Math.min(d, Math.abs(s.end(k) - p));
-  return d;
+/** Interval k's confirmed points of side s folded into the cut around p —
+ *  foldIn's rule on a side. */
+function foldSide(c: Cut, s: UnionSide, k: number, p: number): void {
+  if (k < 0 || k >= s.n) return;
+  foldPoint(c, s.witness(k), p);
+  if (s.enterDecided(k)) foldPoint(c, s.enter(k), p);
+  if (s.exitDecided(k) && !s.open(k)) foldPoint(c, s.end(k), p);
 }
 
 /** The zone a free stretch's end starts a piece in: the last zone it meets. */
@@ -796,16 +819,17 @@ function predEnterX(x: SideScratch, y: number): number {
   return lo - 1;
 }
 
-/** The distance from p to the nearest confirmed point of interval k (Infinity:
- *  none; 0: one on p). */
-function nearestIn(x: SideScratch, k: number, p: number): number {
-  if (k < 0 || k >= x.n) return Infinity;
+/** Interval k's confirmed points folded into the cut around p (from the scratch). */
+function foldIn(c: Cut, x: SideScratch, k: number, p: number): void {
+  if (k < 0 || k >= x.n) return;
   const f = x.flags[k]!;
-  let d = Math.abs(x.witness[k]! - p);
-  if (f & F_ED) d = Math.min(d, Math.abs(x.enter[k]! - p));
-  if ((f & F_XD) && !(f & F_OPEN)) d = Math.min(d, Math.abs(x.end[k]! - p));
-  return d;
+  foldPoint(c, x.witness[k]!, p);
+  if (f & F_ED) foldPoint(c, x.enter[k]!, p);
+  if ((f & F_XD) && !(f & F_OPEN)) foldPoint(c, x.end[k]!, p);
 }
+/** The walk's own cut and stretch (never held across a yield). */
+const WALK_CUT: Cut = { below: -Infinity, above: Infinity, on: false };
+const WALK_SPAN: Span = { a: 0, ao: false, b: 0, bo: false };
 
 /** Side `si`'s free stretches, cut back (freeStretch's rule from the
  *  scratch: the nearest confirmed points around p lie in the intervals
@@ -845,13 +869,14 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
     const p = x.freeAt[j]!;
     if (Number.isNaN(p)) { if (++c.n >= STEP_OPS) { c.n = 0; yield; } continue; }
     const r0 = freeRadius(x.freeR[j]!);
-    // freeStretch's rule: the nearest confirmed point around p, in the
+    // freeStretch's rule: the nearest confirmed points around p, in the
     // intervals k − 1 … k + 1 of each side (by the structure)
-    let d = Infinity;
+    const cut = cutAt(WALK_CUT);
     for (let ti = 0; ti < xs.length; ti++) {
       const t = xs[ti]!, k = pred(ti, p);
-      for (let q = k - 1; q <= k + 1; q++) d = Math.min(d, nearestIn(t, q, p));
+      for (let q = k - 1; q <= k + 1; q++) foldIn(cut, t, q, p);
     }
+    const d = cutDist(cut, p);
     // (its reads: the sample, then four a neighbour — witness, flags, enter, end)
     c.n += 2 + 4 * 3 * xs.length;
     // a contradiction needs a confirmed point inside the stretch: only then is
@@ -859,9 +884,8 @@ function* readStretches(xs: SideScratch[], si: number, c: Ops, conflict?: (x: nu
     // sample is named once, at its first point deeper than the tolerance
     if (conflict && r0 > PROTECT && d < r0) { const x = firstDeepX(xs, p, r0, c); if (!Number.isNaN(x)) conflict(x); }
     // none where a confirmed point lies on the sample
-    if (d !== 0) {
-      const r = Math.min(r0, d);
-      if (r > 0) { x.fLo[fn] = p - r; x.fHi[fn] = p + r; x.fPt[fn] = 0; } else { x.fLo[fn] = p; x.fHi[fn] = p; x.fPt[fn] = 1; }
+    if (cutStretch(cut, p, r0, WALK_SPAN)) {
+      x.fLo[fn] = WALK_SPAN.a; x.fHi[fn] = WALK_SPAN.b; x.fPt[fn] = WALK_SPAN.ao ? 0 : 1;
       x.fJ[fn] = j;
       if (fn > 0 && (x.fLo[fn]! < x.fLo[fn - 1]! || x.fHi[fn]! < x.fHi[fn - 1]!)) sorted = false;
       fn++;
