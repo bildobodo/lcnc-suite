@@ -3280,7 +3280,10 @@ function _colOnStageChange(now: ColShown) {
   _contacts.markDirty();
   _colKick(true);
 }
-watch(() => _colStage(), _colOnStageChange);
+// (watched below collisionEntryResult — a watch reads its source at once, and
+// a computed declared after it is in its temporal dead zone: the first run
+// threw, tracked only the inputs read before, and logged a ReferenceError at
+// every load since Form 1)
 /** The bar's timeline width in columns: its marks and bands are built at it. */
 function onTimelineColumns(n: number) {
   if (n === _colTimelineCols) return;
@@ -3403,6 +3406,8 @@ const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResu
   return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!, e.track.cum[1]),
            ...(e !== collisionEntry.value ? { checking: true } : {}) };
 });
+// what the bar shows, watched once every input of it is declared (_colStage)
+watch(() => _colStage(), _colOnStageChange);
 
 /** The verdict of a preview no longer shown, kept named (plan „Prüfung im
  *  Lauf“ 1c): its marks' number and their kinds in words (step 4 plan 1a). */

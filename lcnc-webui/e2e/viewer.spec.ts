@@ -126,6 +126,21 @@ test("a clean rebuild frees AND re-applies the loaded program's toolpath geometr
 // 2026-09-25 with the bundled UI font). Every request to another host is
 // aborted and recorded; the loaded program's labels must still lay out (the
 // glyph atlas is a texture that exists only once a label has glyphs).
+test("the viewer's setup reads nothing before it is declared: no ReferenceError in the console", async ({ page }) => {
+  // Vue catches an error in a watcher's first run and logs it (console.error):
+  // no pageerror fires. The bar's stage watch read collisionEntryResult,
+  // declared below it — every load since Form 1 logged "Cannot access … before
+  // initialization", and the watch tracked only what it read before the throw.
+  const logged: string[] = [];
+  page.on("console", m => { if (m.type() === "error" && /ReferenceError|before initialization|is not defined/.test(m.text())) logged.push(m.text()); });
+  page.on("pageerror", e => { if (/ReferenceError|before initialization|is not defined/.test(e.message)) logged.push(e.message); });
+  await page.goto(MOCK);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.ready), { timeout: 15000, message: "the viewer never got ready" }).toBe(true);
+  await ctl({ op: "loadGcode" });
+  await page.waitForTimeout(500);
+  expect(logged, "a binding read before its declaration").toEqual([]);
+});
+
 test("the viewer fetches nothing from outside the gateway (an offline machine)", async ({ page, context }) => {
   const outside: string[] = [];
   await context.route(url => !["localhost", "127.0.0.1"].includes(url.hostname) && url.protocol.startsWith("http"), route => {
