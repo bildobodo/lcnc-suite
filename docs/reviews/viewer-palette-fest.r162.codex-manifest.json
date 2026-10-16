@@ -1,0 +1,154 @@
+{
+  "round": "R162",
+  "verdict": "findings",
+  "review_commit": "668b39f5a854d9544c77bff1e23d26584bf53ce8",
+  "live_head": "f04a3503a4fdc2d1b311f2e54848cfc979c31b98",
+  "inputs_sha256": {
+    "docs/reviews/viewer-palette-fest.ideen.md": "89964d305b8ff26743240122920e6debf8af4e7c37d88232917da216d21c26c7",
+    "docs/reviews/kollision-paket2.plan.md": "9ce11283fc56cd25554c5559e6c1b00580ce21adf02206fe41c35540bb32426e",
+    "docs/reviews/viewer-palette-fest.r162.gate-frontend-7d2d9ac9.json": "b8cd54bcf8e58a32468e6ed582ad3880e68c287b494d620af761b26581f1045c",
+    "docs/reviews/viewer-palette-fest.r162.gate-frontend.json": "d7594c1c1c0b8cf7437063cbc2d372e5cfd197027c009e173d60801f57f89e39",
+    "docs/reviews/viewer-palette-fest.r162.longtask.json": "3d508e3251f7c4ced0cdcb547e8a53bc9266d3547f4bb4f44a393410c7024445",
+    "docs/reviews/viewer-palette-fest.r162.mutations-r157-rules.txt": "1141cead66e837e4d89930ce0e93af1649d480b6b0cdd2183d057b9896ee3be4",
+    "docs/reviews/viewer-palette-fest.r162.mutations-r158-rules.txt": "04cb6a9e0b5b843157e109c302c2d3142d5d4b8bbe313d238f9deb9beec5cbc4",
+    "docs/reviews/viewer-palette-fest.r162.mutations-r159-rules.txt": "8e169906c76cafb09afee83caaf1d788e7846158148bbd3bf4e19e6c821ea2a6",
+    "docs/reviews/viewer-palette-fest.r162.mutations-r160-rules.txt": "8867e3e5ad0a4c32a2582245ffdef8feb5617dd18ad1753740da864f86ac2ef6",
+    "docs/reviews/viewer-palette-fest.r162.mutations-r161-rules.txt": "742d0388a2e5ba8fc3892bbc249c15a1226cbf70843d2e2a916bedc0ffd98d6a",
+    "docs/reviews/viewer-palette-fest.r162.mutations-reach.txt": "de0cf2d603203ebc7f40ccd5fd636f72ccbbea28bc756df566b326bb505d82bc",
+    "docs/reviews/viewer-palette-fest.r162.mutations-slow.py": "59033a8d894f6b991f22aebd86586d12f6d58c8768064b7471cdec77664adbab",
+    "docs/reviews/viewer-palette-fest.r162.mutations-slow.txt": "ba58c114dc2dcd6e29468d3815690f474758196873cb772118d156905c20a325",
+    "docs/reviews/viewer-palette-fest.r162.mutations.py": "9ed39b6c0cf2457738b2867914208a5c3fc5fe54abfad935ae5220c0bfc60c89",
+    "docs/reviews/viewer-palette-fest.r162.mutations.txt": "975fb5a88eb5dcdc672d3ffa587e8e0c4e02545aa495647377649e6d83dfd203",
+    "docs/reviews/viewer-palette-fest.r162.probe.txt": "66effec88cda4741cab030936241aa40110dae0ccd00b8856574d8b3e6f28c6a",
+    "docs/reviews/viewer-palette-fest.r162.search-windows.json": "34fff85809c2d5046f57e441475b1de7c4a384cd977295da52a7db18e5c71abf",
+    "docs/reviews/viewer-palette-fest.r162.shapes-r160-nice.json": "d68beb93600eef181e67d8acdc79708bde9616b3113193483aefcdc21ac8d203",
+    "docs/reviews/viewer-palette-fest.r162.shapes-r160.json": "0f09ed85df808e76c23ab8a1de62faf56223e5be200a93564066c3b20fa49d8f",
+    "docs/reviews/viewer-palette-fest.r162.shapes-r160.viewer.spec.ts": "7b7fa7c7bc9a639cc725a3c8542768de0e06ca0bfa569a88385d5f3c81219843",
+    "docs/reviews/viewer-palette-fest.r162.shapes.json": "f29f18141307b97d48acb004402d02a79da7963c4cd948c6f121c46e9dd03971"
+  },
+  "inputs_unchanged_before_append": true,
+  "source_verification": {
+    "files": 380,
+    "differences": []
+  },
+  "review_append": {
+    "start_line": 20916,
+    "old_bytes": 1831830,
+    "sha256": "1c8b996d14cb9ffaa93152d0038982524623d4a7cbc1488b85bc8f38a59551b5",
+    "old_prefix_unchanged": true
+  },
+  "artifacts": {
+    "viewer-palette-fest.r162.codex-browser-metrics.json": {
+      "bytes": 27270,
+      "sha256": "cec5cfa1d8d616e5d74abc37a4c76d3da11cc84a77937d5bb952afc7e54facf6"
+    },
+    "viewer-palette-fest.r162.codex-browser-summary.json": {
+      "bytes": 11505,
+      "sha256": "280b6b694ba6fa872c793b1f35696478f58e625ffc41d3d07062d6e254ac3f2d"
+    },
+    "viewer-palette-fest.r162.codex-browser.txt": {
+      "bytes": 15936,
+      "sha256": "3b8afefa45bd6a058d3333e44c0a3c531f5ea633bac7397e3bdcaba4b5acfbd9"
+    },
+    "viewer-palette-fest.r162.codex-build-absent.json": {
+      "bytes": 206,
+      "sha256": "661d284ea83cdc38c7fcb706a38eb8ee4b2b3d297ce2e8008ebd6d9be38d46ca"
+    },
+    "viewer-palette-fest.r162.codex-build-refuted.json": {
+      "bytes": 198,
+      "sha256": "ba7bebe8ebeeb1954ef782eecf604c8d12a9303b585be587411644260b01c459"
+    },
+    "viewer-palette-fest.r162.codex-build-sparse.json": {
+      "bytes": 164,
+      "sha256": "b8b9034a0952755cc6fc446bdbd328f301ab3c607bffa2233699151b769979ef"
+    },
+    "viewer-palette-fest.r162.codex-build.txt": {
+      "bytes": 2438,
+      "sha256": "a3257a013d0c8707d2e85beb38fa5844481d77b55700254940ff815d12443aa6"
+    },
+    "viewer-palette-fest.r162.codex-conflict-enumeration.json": {
+      "bytes": 70,
+      "sha256": "2adf406d219d5662d9cdb4e42bb683993300e6216b97c321e94ec04d130d8d73"
+    },
+    "viewer-palette-fest.r162.codex-conflicts-keys.json": {
+      "bytes": 270,
+      "sha256": "53144ca144b5a3bc25d90c131db49f03007ecfd3eaa478fea8af8fb6dc3e847c"
+    },
+    "viewer-palette-fest.r162.codex-copies.json": {
+      "bytes": 96,
+      "sha256": "36c4cfef0908c4aeb418d8f9d3fe96917c2098342ae37a64e952e1ffb2e05127"
+    },
+    "viewer-palette-fest.r162.codex-guards-browser.txt": {
+      "bytes": 1310,
+      "sha256": "b2c171ebd5a6641640bc52d9c91c40ef919f44659920a1121564ac54404fd0f1"
+    },
+    "viewer-palette-fest.r162.codex-handover.json": {
+      "bytes": 428,
+      "sha256": "89db103098bf52a989b83ac181df52edba400c066456d1c0e00085c5f5152b0e"
+    },
+    "viewer-palette-fest.r162.codex-keys.json": {
+      "bytes": 675,
+      "sha256": "6fd6588da3d0a43f57b8424cf72bae259227c28e96c5657f6af590388546184f"
+    },
+    "viewer-palette-fest.r162.codex-memory.json": {
+      "bytes": 188,
+      "sha256": "2ce17aec590c164f5ee0a92c318509e93fbd5c43200185d8ddd0b6a27e7d6119"
+    },
+    "viewer-palette-fest.r162.codex-navigation-plain.json": {
+      "bytes": 31,
+      "sha256": "6938fc229b2ce7f2e16605fad92a22dcca69952e9168624505cf6601cabca38c"
+    },
+    "viewer-palette-fest.r162.codex-navigation-union.json": {
+      "bytes": 31,
+      "sha256": "6938fc229b2ce7f2e16605fad92a22dcca69952e9168624505cf6601cabca38c"
+    },
+    "viewer-palette-fest.r162.codex-playwright-guards.config.ts": {
+      "bytes": 588,
+      "sha256": "70ae3efc8567c5ec44c8a51c07f760f733f34fa2b33b72af189d122f64e52fa4"
+    },
+    "viewer-palette-fest.r162.codex-playwright.config.ts": {
+      "bytes": 622,
+      "sha256": "cef8afcf80a15252ba4b30b9e291cb9e9f4d46032db1d22fe2f1c59ed96b2fdf"
+    },
+    "viewer-palette-fest.r162.codex-query.json": {
+      "bytes": 334,
+      "sha256": "9ee9dbd84aacac94296a51ed65e4fbbc91a64d0422048601eb7fc802f03f2a2c"
+    },
+    "viewer-palette-fest.r162.codex-reproduce.md": {
+      "bytes": 4502,
+      "sha256": "d774909ec0f969a322743aaff03cad089cccf886576a384a23da5961595e89ea"
+    },
+    "viewer-palette-fest.r162.codex-roundoff.json": {
+      "bytes": 1762,
+      "sha256": "50b63eea5a6f76813a2df065f27e64d3684d678d579357f9b18aca6adbf2ef89"
+    },
+    "viewer-palette-fest.r162.codex-roundoff.probe.test.ts": {
+      "bytes": 2856,
+      "sha256": "bc623fc410790cb8d10b374f9bd0df1a2fd5cf66791aad9900be84a6f280c57c"
+    },
+    "viewer-palette-fest.r162.codex-roundoff.txt": {
+      "bytes": 1163,
+      "sha256": "3588b0f83fe08481c7a720fa129fa308b8c57278b99dcf1c84c4a08555db5c47"
+    },
+    "viewer-palette-fest.r162.codex-scratch.json": {
+      "bytes": 181,
+      "sha256": "845c60b8d3f9d06bf4dca4083e7d7a0747760442ac7b64296a4273fc3ea2b85e"
+    },
+    "viewer-palette-fest.r162.codex-search-windows.json": {
+      "bytes": 781,
+      "sha256": "34fff85809c2d5046f57e441475b1de7c4a384cd977295da52a7db18e5c71abf"
+    },
+    "viewer-palette-fest.r162.codex-targeted.txt": {
+      "bytes": 234,
+      "sha256": "981dca0475c440c8d6f71267d0777531b182925f2a45d87b1952e6110e5ced71"
+    },
+    "viewer-palette-fest.r162.codex-tint.json": {
+      "bytes": 446,
+      "sha256": "bd5102a6eff88e64ef891b77c2f482141ff5c510b3c52c36104ce8416062dd32"
+    },
+    "viewer-palette-fest.r162.codex-vitest.config.ts": {
+      "bytes": 173,
+      "sha256": "f854d5b4a6783f993419c89cce6be794a78d9c9d15c39c68313810e2cd8f3bbd"
+    }
+  }
+}

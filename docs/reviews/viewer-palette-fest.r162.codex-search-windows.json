@@ -1,0 +1,50 @@
+[
+  {
+    "n": 1024,
+    "wide": "none",
+    "key": "C0|1023|0",
+    "index": 1023,
+    "cost": 1531,
+    "conflicts": 0
+  },
+  {
+    "n": 1024,
+    "wide": "other-pair",
+    "key": "C0|1023|0",
+    "index": 1024,
+    "cost": 1543,
+    "conflicts": 0
+  },
+  {
+    "n": 1024,
+    "wide": "later-same-pair",
+    "key": "C0|1023|0",
+    "index": 1023,
+    "cost": 1599,
+    "conflicts": 0
+  },
+  {
+    "n": 8192,
+    "wide": "none",
+    "key": "C0|8191|0",
+    "index": 8191,
+    "cost": 1888,
+    "conflicts": 0
+  },
+  {
+    "n": 8192,
+    "wide": "other-pair",
+    "key": "C0|8191|0",
+    "index": 8192,
+    "cost": 1900,
+    "conflicts": 0
+  },
+  {
+    "n": 8192,
+    "wide": "later-same-pair",
+    "key": "C0|8191|0",
+    "index": 8191,
+    "cost": 1956,
+    "conflicts": 0
+  }
+]
