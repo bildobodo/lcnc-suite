@@ -20,6 +20,7 @@ import { cssZoomOf } from "./helpPlacement";
 import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
 import { SIM_FILTER_KINDS, SIM_SPEEDS, simJump, simRows, simStep, simView, type SimFilter } from "./simPanelStore";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
+import { admit, grow, isComplete, nextRange, widestOf, type ListRange } from "./viewer/simListRange";
 
 const can = usePermissions();
 /** The card before any check (step 4 plan 1c). */
@@ -183,7 +184,11 @@ function onPickKey(e: KeyboardEvent, r: SimRow) {
   const to = e.key === "ArrowDown" ? keys[Math.min(i + 1, n - 1)]
     : e.key === "ArrowUp" ? keys[Math.max(i - 1, 0)]
     : e.key === "Home" ? keys[0] : e.key === "End" ? keys[n - 1] : null;
-  if (to) void nextTick(() => pickEl(to)?.focus());
+  if (!to) return;
+  // the target rendered first — a portion of its own when it lies far
+  // (Codex R164 VP-I120): never a focus into the void
+  admitRow(keys.indexOf(to));
+  void nextTick(() => pickEl(to)?.focus());
 }
 const rowName = (r: SimRow) => `Show ${r.lineLabel}: ${r.what}`;
 
@@ -226,6 +231,58 @@ watch(renders, () => {
 }, { flush: "post" });
 // after the focus watcher (a later post job): the rows now on screen
 watch(renders, () => { shownBefore = simView.window.before; }, { flush: "post" });
+
+// ── The rows in PORTIONS (Codex R164 VP-I120): the window's rows are one
+// published version, but their DOM fills a portion a frame (viewer/
+// simListRange.ts) — the whole first list in one frame cost 21 ms of script
+// and 30 ms of style and layout, one 60–64 ms task under key input. The first
+// portion holds the row with the focus, the row the focus was on (its place
+// in the whole list) and the tab stop; spacers of the rows' height hold the
+// table's height and the rows' places; a sizer row of the window's widest
+// line, time and move holds the columns' widths. Every change of the rows
+// begins anew (a pending portion of an older list never lands).
+const range = ref<ListRange>({ lo: 0, hi: 0 });
+const renderedRows = computed(() => rows.value.slice(range.value.lo, range.value.hi));
+const listComplete = computed(() => isComplete(range.value, rows.value.length));
+const widest = computed(() => widestOf(rows.value));
+let renderedKeys: ReadonlySet<string> = new Set();
+let rangeVer = 0, growRaf = 0;
+function growSoon() {
+  if (growRaf || isComplete(range.value, rows.value.length)) return;
+  const ver = rangeVer;
+  growRaf = requestAnimationFrame(() => {
+    growRaf = 0;
+    if (ver !== rangeVer) return;
+    range.value = grow(range.value, rows.value.length);
+    growSoon();
+  });
+}
+/** Row i rendered now (the keys' target, the marked row) — never at the cost
+ *  of row `keep` (the row holding the focus): a far row then comes with the
+ *  portions. */
+function admitRow(i: number, keep = -1) {
+  const next = admit(range.value, rows.value.length, i);
+  if (next !== range.value && (keep < 0 || (keep >= next.lo && keep < next.hi))) range.value = next;
+  growSoon();
+}
+/** Where the row holding the focus stands in the rows (−1: none). */
+function focusedIndex(): number {
+  const key = (document.activeElement as HTMLElement | null)?.closest<HTMLElement>("[data-sim-row]")?.dataset.simRow;
+  return key ? rows.value.findIndex(r => r.key === key) : -1;
+}
+// (after the focus watcher above: `held` names the row the focus is on)
+watch(rows, now => {
+  cancelAnimationFrame(growRaf);
+  growRaf = 0;
+  rangeVer++;
+  const keys = now.map(r => r.key), at = (k: string | null | undefined) => (k ? keys.indexOf(k) : -1);
+  const placed = held && held.index >= 0 && keys.length ? Math.max(0, Math.min(held.index - simView.window.before, keys.length - 1)) : -1;
+  range.value = nextRange(renderedKeys, keys, [at(held?.key), placed, at(rowStop.value)]);
+  growSoon();
+}, { flush: "pre", immediate: true });
+watch(renderedRows, rr => { renderedKeys = new Set(rr.map(r => r.key)); }, { flush: "post", immediate: true });
+onUnmounted(() => cancelAnimationFrame(growRaf));
+
 // ── The list FOLLOWS the position (operator 2026-10-06: "like the code
 // panel when the program runs"): the marked row — the shown finding, else
 // the next one ahead — stands in the middle of the list's view while the
@@ -299,16 +356,41 @@ function restoreAnchor() {
   const tr = sc && a ? rowEl(sc, a.key) : null;
   if (sc && a && tr) sc.scrollTop += (tr.getBoundingClientRect().top - a.y) / cssZoomOf(sc);
 }
-watch([marked, rows], () => {
-  restoreAnchor();
+function followSoon() {
   if (!followRaf) followRaf = requestAnimationFrame(() => { followRaf = 0; follow(true); shownMarked = marked.value; });
+}
+watch([marked, rows], () => {
+  // the marked row rendered — unless that would drop the focused row: it then
+  // comes with the portions, and the list follows once it is whole
+  if (marked.value) admitRow(rows.value.findIndex(r => r.key === marked.value), focusedIndex());
+  restoreAnchor();
+  followSoon();
 }, { flush: "post" });
+watch(listComplete, whole => { if (whole) followSoon(); });
 // A hidden tab has no height: it catches up when it shows (or resizes).
 const sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => follow(false)) : null;
 watch(scroller, (el, old) => {
   if (old) sized?.unobserve(old);
   if (el) sized?.observe(el);
 });
+// The spacers' row height: one row measured while a portion is out — a
+// layout of at most the first portion — once per density (cached). (Below
+// `scroller`: an immediate watch reads it at once.)
+let rowHFor: { touch: boolean; h: number } | null = null;
+const rowH = ref(0);
+watch(range, () => {
+  const sc = scroller.value;
+  if (!sc || listComplete.value) return;
+  const touch = document.documentElement.classList.contains("touch-device");
+  if (rowHFor?.touch === touch) { rowH.value = rowHFor.h; return; }
+  // the rows' pitch: first to last row of the portion (a collapsed rule is
+  // shared — one row's own box is not the distance to the next)
+  const trs = sc.querySelectorAll<HTMLElement>("tr[data-sim-row]");
+  if (!trs.length) return;
+  const a = trs[0]!.getBoundingClientRect(), b = trs[trs.length - 1]!.getBoundingClientRect();
+  rowHFor = { touch, h: (trs.length > 1 ? (b.top - a.top) / (trs.length - 1) : a.height) / cssZoomOf(sc) };
+  rowH.value = rowHFor.h;
+}, { flush: "post", immediate: true });
 onUnmounted(() => { sized?.disconnect(); cancelAnimationFrame(glideRaf); cancelAnimationFrame(followRaf); });
 
 /** The panel itself, holding a parked focus, keeps the navigation keys —
@@ -401,7 +483,8 @@ function onRootKey(e: KeyboardEvent) {
       </div>
 
       <div v-if="!rows.length" class="emptyState">{{ total ? "None of this kind." : "No collisions, limit violations or tool changes." }}</div>
-      <div v-else ref="scroller" v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }">
+      <div v-else ref="scroller" v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }"
+           :style="{ '--sim-row-h': `${rowH}px` }" :data-rendered="`${range.hi - range.lo}/${rows.length}`" :data-list-complete="listComplete ? 1 : 0">
         <table>
           <thead>
             <tr><th class="colKind" aria-label="Kind"></th><th class="colLine">Line</th><th class="colWhat">What</th><th class="colMove">Move</th><th class="colAt">Time</th></tr>
@@ -412,7 +495,13 @@ function onRootKey(e: KeyboardEvent) {
             <tr><td colspan="5" class="text-muted">{{ simView.window.before }} earlier</td></tr>
           </tbody>
           <tbody>
-            <tr v-for="r in rows" :key="r.key" :data-sim-row="r.key" :data-sim-at="r.kind === 'clash' ? `${r.key[0]}${r.line}` : r.key"
+            <!-- the widest line, time and move of the whole window: the columns' widths from the first portion on -->
+            <tr class="sizerRow" aria-hidden="true">
+              <td class="colKind"></td><td class="colLine mono">{{ widest.line }}</td><td class="colWhat"></td>
+              <td class="colMove">{{ widest.move }}</td><td class="colAt mono">{{ widest.at }}</td>
+            </tr>
+            <tr v-if="range.lo > 0" class="listSpacer" aria-hidden="true"><td colspan="5" :style="{ height: `calc(var(--sim-row-h) * ${range.lo})` }"></td></tr>
+            <tr v-for="r in renderedRows" :key="r.key" :data-sim-row="r.key" :data-sim-at="r.kind === 'clash' ? `${r.key[0]}${r.line}` : r.key"
                 :class="{ shownRow: shown(r), nextRow: isNext(r) }" @click="show(r, $event)">
               <td class="colKind" :class="r.kind">
                 <!-- lucide's own glyphs written out, as the components render
@@ -431,6 +520,7 @@ function onRootKey(e: KeyboardEvent) {
               <td class="colMove" :class="r.rapid ? 'text-warn' : 'text-muted'">{{ r.rapid == null ? "" : r.rapid ? "Rapid" : "Feed" }}</td>
               <td class="colAt mono text-muted">{{ r.at }}</td>
             </tr>
+            <tr v-if="range.hi < rows.length" class="listSpacer" aria-hidden="true"><td colspan="5" :style="{ height: `calc(var(--sim-row-h) * ${rows.length - range.hi})` }"></td></tr>
           </tbody>
           <tbody v-if="simView.window.after" class="windowMore">
             <tr><td colspan="5" class="text-muted">{{ simView.window.after }} later</td></tr>
@@ -471,6 +561,12 @@ function onRootKey(e: KeyboardEvent) {
 .simSummary.form3 .checkVerdict { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .filterSelect { flex: 1; min-width: 0; }
 .simTable { flex: 1; min-height: 0; overflow: auto; }
+/* The rows in portions (Codex R164 VP-I120): the sizer row takes no height
+   and gives the columns the window's widest values; a spacer is the height of
+   the rows not yet rendered (no padding, no rule — its height is theirs). */
+.sizerRow { visibility: collapse; }
+.listSpacer { pointer-events: none; }
+.listSpacer td { padding: 0; border-bottom: 0; }
 tbody tr[data-sim-row] { cursor: pointer; }
 .locked tbody tr[data-sim-row] { cursor: default; }
 /* The shown finding: the selection tint and a bar; the next one ahead (no
