@@ -1,0 +1,434 @@
+[
+  {
+    "shape": "refuted",
+    "steps": [
+      {
+        "name": "refuted: the first run arrives",
+        "wallMs": 247,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 7,
+        "inputDelayMaxMs": 47,
+        "inputDelayP95Ms": 17,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 12.3,
+          "work": 12.3,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 24.5,
+        "heapMB": 47,
+        "dom": 10424,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 24.5,
+          "shownMB": 0,
+          "viewsMB": 18.1,
+          "buildingMB": 18.1,
+          "heapMB": 31,
+          "backingMB": 57.8
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          1.8,
+          0,
+          0.7
+        ],
+        "lastPassMs": 135,
+        "loaf": [
+          {
+            "ms": 72,
+            "blocking": 14,
+            "render": 38,
+            "styleLayout": 13,
+            "scripts": [
+              {
+                "inv": "MessagePort.onmessage",
+                "fn": "",
+                "url": "ThreeViewer-BSMB01n5.js",
+                "at": 30828,
+                "ms": 6,
+                "forced": 0
+              },
+              {
+                "inv": "MessagePort.onmessage",
+                "fn": "",
+                "url": "ThreeViewer-BSMB01n5.js",
+                "at": 30828,
+                "ms": 25,
+                "forced": 0
+              },
+              {
+                "inv": "FrameRequestCallback",
+                "fn": "",
+                "url": "index-CD4EUauP.js",
+                "at": 287450,
+                "ms": 24,
+                "forced": 24
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "refuted: the pool falls back — the second run, the union",
+        "wallMs": 730,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 24,
+        "inputDelayMaxMs": 19,
+        "inputDelayP95Ms": 18,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 2,
+        "discards": 0,
+        "publications": 2,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 12.3,
+          "work": 12.3,
+          "held": 12.3,
+          "shown": 0
+        },
+        "allocatedMB": 36.8,
+        "heapMB": 47,
+        "dom": 1299,
+        "rows": 1,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 36.8,
+          "shownMB": 12.3,
+          "viewsMB": 51.7,
+          "buildingMB": 49.4,
+          "heapMB": 42.4,
+          "backingMB": 128.7
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          0.9,
+          0,
+          0.2
+        ],
+        "lastPassMs": 556,
+        "loaf": []
+      },
+      {
+        "name": "refuted: the questions",
+        "worstMs": {
+          "targets": 1,
+          "ms": {
+            "target": 0,
+            "key where it stood": 0.5,
+            "key moved": 0.1,
+            "key anywhere": 0.1,
+            "next": 0.1,
+            "tint": 0.1,
+            "mark": 0.1,
+            "next from a position": 0,
+            "window of 400": 0,
+            "key gone": 0.1
+          }
+        },
+        "longTasks": 0,
+        "longestMs": 0
+      }
+    ]
+  },
+  {
+    "shape": "wideRadius",
+    "steps": [
+      {
+        "name": "wideRadius: the first run arrives",
+        "wallMs": 233,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 6,
+        "inputDelayMaxMs": 19,
+        "inputDelayP95Ms": 17,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 12.3,
+          "work": 12.3,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 24.5,
+        "heapMB": 42,
+        "dom": 10424,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 24.5,
+          "shownMB": 0,
+          "viewsMB": 18.1,
+          "buildingMB": 18.1,
+          "heapMB": 32.7,
+          "backingMB": 63.2
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.3,
+          1.8,
+          0,
+          1
+        ],
+        "lastPassMs": 132,
+        "loaf": [
+          {
+            "ms": 59,
+            "blocking": 9,
+            "render": 32,
+            "styleLayout": 9,
+            "scripts": [
+              {
+                "inv": "MessagePort.onmessage",
+                "fn": "",
+                "url": "ThreeViewer-BSMB01n5.js",
+                "at": 30828,
+                "ms": 26,
+                "forced": 0
+              },
+              {
+                "inv": "FrameRequestCallback",
+                "fn": "",
+                "url": "index-CD4EUauP.js",
+                "at": 287450,
+                "ms": 22,
+                "forced": 22
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "wideRadius: the pool falls back — the second run, the union",
+        "wallMs": 1849,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 55,
+        "inputDelayMaxMs": 38,
+        "inputDelayP95Ms": 19,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 2,
+        "discards": 0,
+        "publications": 2,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 12.3,
+          "work": 12.3,
+          "held": 12.3,
+          "shown": 0
+        },
+        "allocatedMB": 36.8,
+        "heapMB": 42,
+        "dom": 10424,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 36.8,
+          "shownMB": 12.3,
+          "viewsMB": 84.5,
+          "buildingMB": 82.2,
+          "heapMB": 133.7,
+          "backingMB": 133.3
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          4.8,
+          0,
+          0.2
+        ],
+        "lastPassMs": 1659,
+        "loaf": []
+      },
+      {
+        "name": "wideRadius: the questions",
+        "worstMs": {
+          "targets": 524288,
+          "ms": {
+            "target": 0.1,
+            "key where it stood": 0.7,
+            "key moved": 0.1,
+            "key anywhere": 0.2,
+            "next": 0.2,
+            "tint": 0.3,
+            "mark": 0.1,
+            "next from a position": 1.5,
+            "window of 400": 4.5,
+            "key gone": 0
+          }
+        },
+        "longTasks": 0,
+        "longestMs": 0
+      }
+    ]
+  },
+  {
+    "shape": "widePair",
+    "steps": [
+      {
+        "name": "widePair: the first run arrives",
+        "wallMs": 235,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 7,
+        "inputDelayMaxMs": 47,
+        "inputDelayP95Ms": 18,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 1,
+        "discards": 0,
+        "publications": 1,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 12.3,
+          "work": 12.3,
+          "held": 0,
+          "shown": 0
+        },
+        "allocatedMB": 24.5,
+        "heapMB": 42,
+        "dom": 10423,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 24.5,
+          "shownMB": 0,
+          "viewsMB": 20.3,
+          "buildingMB": 20.3,
+          "heapMB": 35.1,
+          "backingMB": 57.8
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.3,
+          1.7,
+          0,
+          0.2
+        ],
+        "lastPassMs": 137,
+        "loaf": [
+          {
+            "ms": 54,
+            "blocking": 0,
+            "render": 6,
+            "styleLayout": 5,
+            "scripts": [
+              {
+                "inv": "MessagePort.onmessage",
+                "fn": "",
+                "url": "ThreeViewer-BSMB01n5.js",
+                "at": 30828,
+                "ms": 21,
+                "forced": 0
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "widePair: the pool falls back — the second run, the union",
+        "wallMs": 1835,
+        "longTasks": 0,
+        "longestMs": 0,
+        "inputs": 56,
+        "inputDelayMaxMs": 20,
+        "inputDelayP95Ms": 19,
+        "keys": 0,
+        "keyDelayMaxMs": 0,
+        "keyDelayP95Ms": 0,
+        "passes": 2,
+        "discards": 0,
+        "publications": 2,
+        "acks": 1,
+        "byOwnerMB": {
+          "pub": 12.3,
+          "work": 12.3,
+          "held": 12.3,
+          "shown": 0
+        },
+        "allocatedMB": 36.8,
+        "heapMB": 42,
+        "dom": 10423,
+        "rows": 400,
+        "ids": [
+          2
+        ],
+        "peak": {
+          "tablesMB": 36.8,
+          "shownMB": 12.3,
+          "viewsMB": 88.9,
+          "buildingMB": 86.6,
+          "heapMB": 151.6,
+          "backingMB": 137.7
+        },
+        "dropped": 0,
+        "exp": null,
+        "longestStepMs": [
+          0.2,
+          9.4,
+          0,
+          0.2
+        ],
+        "lastPassMs": 1635,
+        "loaf": []
+      },
+      {
+        "name": "widePair: the questions",
+        "worstMs": {
+          "targets": 524290,
+          "ms": {
+            "target": 0.1,
+            "key where it stood": 0.5,
+            "key moved": 0.1,
+            "key anywhere": 0.2,
+            "next": 0.2,
+            "tint": 0.6,
+            "mark": 0.1,
+            "next from a position": 0.9,
+            "window of 400": 4.3,
+            "key gone": 0.1
+          }
+        },
+        "longTasks": 0,
+        "longestMs": 0
+      }
+    ]
+  }
+]

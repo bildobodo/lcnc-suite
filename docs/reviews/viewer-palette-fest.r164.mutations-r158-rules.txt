@@ -1,0 +1,15 @@
+p_build_runs_on RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: steps after it was let go: expected 95 to be less than or equal to 1 | AssertionError: slices until the build stopped: expected 52 to be less than or equal to 2 8s
+p_apply_runs_on RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: phase 1: at most one step more written: expected 19904 to be less than or equal to 4096 8s
+p_no_retire RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: dead at the publication: expected [Function] to throw an error | AssertionError: expected [Function] to throw an error 7s
+p_release_no_retire RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [Function] to throw an error 7s
+v_retired_reads RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: dead at the publication: expected [Function] to throw an error | AssertionError: expected [Function] to throw an error 7s
+p_stats_no_shown RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: all simultaneously live owners: expected 761856 to be 1142784 // Object.is equality 7s
+u_scan_unbounded RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads in one step: expected 300003 to be less than or equal to 16384 19s
+u_absorb_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads in one step: expected 60937 to be less than or equal to 16384 | AssertionError: scratch reads in one step: expected 787803 to be less than or equal to 16384 20s
+u_emit_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads in one step: expected 64402 to be less than or equal to 16384 19s
+u_piece_rows_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 32780 to be less than or equal to 16384 16s
+u_zone_flat RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 24580 to be less than or equal to 16384 16s
+c_gaps_native_sort RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 98304 to be less than or equal to 16384 | AssertionError: table cells read in one step of the build or the bands: ex 16s
+c_meter_off RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: in one step of the start pairs or the marks: the share and at most one search past it: expected 889827 to be less than or equal to 24912 | AssertionError: in one step of the start p 16s
+c_starts_flat RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: in one step of the start pairs or the marks: the share and at most one search past it: expected 72604 to be less than or equal to 20914 16s
+w_ticks_estimate RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: in one step of the start pairs or the marks: the share and at most one search past it: expected 2987898 to be less than or equal to 24912 | AssertionError: in one step of the start  17s
