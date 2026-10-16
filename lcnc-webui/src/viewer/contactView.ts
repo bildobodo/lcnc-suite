@@ -625,7 +625,8 @@ function sideOf(tables: Tables, g: UnionGen, lo: number, hi: number): UnionSide 
 /** What a generation's free index holds at position a: a sample whose stretch
  *  the union keeps once the walk said so, else any free sample. */
 const freeIndexed = (tables: Tables, g: UnionGen, a: number) =>
-  (g.freeHeld ? (g.comp[a]! & FREE_HOLDS) !== 0 : !Number.isNaN(rd(tableAt(tables, g.uIdx[a]!).c.freeAt, g.uIdx[a]! & ROW_MASK)));
+  // (the verdict's read counted like a cell's: the steps that ask bound their work by viewWork)
+  (g.freeHeld ? (viewWork.n++, (g.comp[a]! & FREE_HOLDS) !== 0) : !Number.isNaN(rd(tableAt(tables, g.uIdx[a]!).c.freeAt, g.uIdx[a]! & ROW_MASK)));
 
 /** A generation's free block indexes (`free`, `freePrev`) from what each
  *  position holds — at its index's build, and again after a fallback's walk. */

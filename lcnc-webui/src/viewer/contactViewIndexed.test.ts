@@ -107,6 +107,16 @@ function refutedSamples(a: ContactStore, b: ContactStore): number {
   return n;
 }
 
+/** The view's free block index reads too: after a fallback its test reads
+ *  the walk's verdict in the component ends, no table cell — a search that
+ *  steps through it reads none (R161: three block-skip mutations went green). */
+function countIndex(v: ContactView, inc: () => void): void {
+  for (const u of (v as unknown as { unions: Array<{ gens: Array<{ comp: Uint32Array }> } | undefined> }).unions) {
+    if (!u) continue;
+    for (const g of u.gens) g.comp = new Proxy(g.comp, { get(t, k) { if (typeof k === "string" && /^\d+$/.test(k)) inc(); return Reflect.get(t, k, t); } });
+  }
+}
+
 /** Everything a page asks of a view, as plain data. */
 function answers(v: ContactView, cov: number, earlier: Array<[string, number]> = []): unknown {
   const lineAt = (p: number) => Math.floor(p);
@@ -256,6 +266,7 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
         const held = feedRun(0, n), cov = 4 * n + 2;
         const before = buildContactView({ sources: [{ stores: [held], ownCoverage: cov, at: (x: number) => x }], pairName: names, coverage: cov });
         const v = buildContactView({ sources: [{ stores: [feedRun(1, n)], held: [held], heldCoverage: [cov], ownCoverage: cov, at: (x: number) => x }], pairName: names, coverage: cov });
+        countIndex(v, () => { c.box.reads++; });
         const key = targetKey(before, before.n - 1);
         c.box.reads = 0;
         const i = findKey(v, key);
@@ -277,6 +288,7 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
       try {
         const { input } = refutedChain(n, 0.1);
         const v = buildContactView(input);
+        countIndex(v, () => { c.box.reads++; });
         expect(v.n, "one piece").toBe(1);
         expect(targetEnd(v, 0)).toBe(4 * n + 0.5);
         const key = `C0|${n - 1}|0`;
@@ -302,6 +314,7 @@ describe("a key among simultaneous starts is found by its reference (Codex R159 
           ? buildContactView({ sources: [{ stores: [run(1, n, 0.25)], held: [held], heldCoverage: [3], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 })
           : buildContactView({ sources: [{ stores: [held], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
         countRefs(v, c.box);
+        countIndex(v, () => { c.box.reads++; });
         const keys = union ? (() => { const b = buildContactView({ sources: [{ stores: [held], ownCoverage: 3, at: (x: number) => x }], pairName: names, coverage: 3 });
                                       return [0, b.n >> 1, b.n - 1].map(i => targetKey(b, i)); })()
                            : [0, v.n >> 1, v.n - 1].map(i => targetKey(v, i));
@@ -478,6 +491,7 @@ describe("every question about a union piece reads a bounded number of cells (Co
       const worst = [n0, n1].map(n => {
         const { input, cov } = costShapes[name]!(n);
         const v = buildContactView(input), w: Record<string, number> = {};
+        countIndex(v, () => { reads++; });
         ask(v, cov, (k, f) => { reads = 0; f(); w[k] = Math.max(w[k] ?? 0, reads); });
         return w;
       });
