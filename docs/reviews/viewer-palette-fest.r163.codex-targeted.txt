@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r163-ogu16214/repo/lcnc-webui
+
+
+ Test Files  24 passed (24)
+      Tests  239 passed (239)
+   Start at  21:50:37
+   Duration  121.01s (transform 501ms, setup 0ms, import 1.35s, tests 118.40s, environment 1ms)
+

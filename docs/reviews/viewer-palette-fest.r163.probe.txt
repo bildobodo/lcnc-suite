@@ -1,0 +1,10 @@
+Codex R162's probe (viewer-palette-fest.r162.codex-roundoff.probe.test.ts), unchanged, at 8265e1bb:
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut2/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  21:01:59
+   Duration  377ms (transform 110ms, setup 0ms, import 123ms, tests 198ms, environment 0ms)
+
