@@ -296,12 +296,14 @@ describe("cancel and the shown state (plan 3.6)", () => {
     const h = harness(), s = new Sender(1, 0);
     h.p.viewOf(h.track);
     h.p.receive(s.contact(0, 10).msg({ tag: "x" }));
-    // inline with a slice long enough for the whole pass
+    // inline with a slice long enough for the whole pass — on a standing clock:
+    // a slice that worked 1 ms publishes in a task of its own (R160), and a
+    // loaded gate once took that long for this table (R162, 17 ms)
     const q: Array<() => void> = [];
     const tk = {};
     const p2 = new ContactPublisher<object, number, string>({
       tracks: () => [tk], specOf: () => ({ key: "k", ids: [1], spec: null }), *build() { yield; return 1; }, effect: () => {}, stage: () => "s",
-      publish: () => { pub = true; }, ack: () => {}, owners: () => new Set([1]), schedule: f => q.push(f), sliceMs: 1e9,
+      publish: () => { pub = true; }, ack: () => {}, owners: () => new Set([1]), schedule: f => q.push(f), sliceMs: 1e9, now: () => 0,
     });
     let pub = false;
     p2.receive(s.contact(0, 20).msg());
