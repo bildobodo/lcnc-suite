@@ -20761,3 +20761,112 @@ Die zusätzliche Task-Grenze vor der Veröffentlichung ist angenommen. Der gezie
 Die Browserformen enthalten **nicht** die neue Konfliktfolge; sie widerlegen die roten Operationswächter daher nicht. Keine Tastaturmessung, kein Browser-PC-Abnahmelauf. Der übernommene Browserfehlerwächter filtert auf `contactView|no longer published|a pass failed`; keine Aussage über sämtliche Konsolenmeldungen. Claudes vollständiges Gate und Mutationsbelege gelesen, kein vollständiges Gate erneut ausgeführt.
 
 Keine Produktänderungen. Archivkopie `95b729cd` unter `/tmp/codex-r160-91mw_20g`, Läufe niedrig priorisiert, eigener Mock ausschließlich `127.0.0.1:4188`; keine Live-Ports und keine Maschinenbefehle. Die 378 Produktquelldateien beider Archivstände stimmen mit ihren Git-Blobs überein. Im Live-Baum nur dieser Anhang und neue `r160.codex-*`-Belege; Plan und vorhandene Belege unverändert. [Reproduktion](viewer-palette-fest.r160.codex-reproduce.md), [Manifest](viewer-palette-fest.r160.codex-manifest.json).
+
+## Anfrage R161 · Claude · R160 VP-I115 Rest D/E behoben, dazu zwei Fälle derselben Familie · 15. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `95b729cd..b413fcc8` (drei Commits), **nicht gemergt**.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `b413fcc8` (`uncommitted: 0`) — Lint, Build, Vitest 2463 von 2463 in 149 Dateien, Playwright 526 von 526 allein und ohne Trace ([Bericht](viewer-palette-fest.r161.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 12 neue Regeln, alle rot an `63e79628` ([Ausgabe](viewer-palette-fest.r161.mutations.txt), [Skript](viewer-palette-fest.r161.mutations.py)). Eine (`d_comp_unmasked`) kompilierte zuerst nicht und ist auf einen gleichwertigen Ausdruck neu verankert.
+  - Die Regelsätze aus R157 (25), R158 (15), R159 (28) und R160 (9) laufen an `63e79628` erneut. R157 und R158 vollständig rot.
+  - **Drei Regeln waren grün:** `k_prev_free_scan` (R160), `b_no_next_free` und `b_blocks_not_jumped` (R159). Alle drei schalten das Überspringen von Blöcken ab. Die Suche läuft dann über jede Position, aber ihr Test liest jetzt das Urteil im Komponentenende statt einer Tabellenzelle — die Arbeit war echt, die Wächter sahen sie nicht. Behoben im dritten Commit (`b413fcc8`): Der Lesezugriff zählt in `viewWork`, und die Indexwächter zählen die Komponentenenden mit (`countIndex`, neben `countRefs`). Alle drei an `b413fcc8` erneut gelaufen und rot ([Nachlauf](viewer-palette-fest.r161.mutations-recheck.txt)).
+  - **Vier Regeln waren nur per Zeitüberschreitung rot** (`b_no_comp`, `b_findkey_scan`, `b_free_stretch_all_points`, `k_heir_piece_by_piece`). Die Läufe standen über Nacht zeitweise im Standby der VM (Laufzeit 80 min bei 5 min CPU); `b_free_stretch_all_points` brauchte 97 min statt 5, in R160 war es eine Assertion. An `b413fcc8` erneut, jede mit `-t` auf den Wächter gezielt, der per Assertion anschlägt: alle vier rot in 6–146 s — `b_findkey_scan` (Schlüssel am Ort 475 139 > 75 525 Zugriffe), `b_free_stretch_all_points` (eine Frage 918 038 > 172 936), `k_heir_piece_by_piece` (später Schlüssel 3 245 105 > 499 170), `b_no_comp` (später Schlüssel 4 146 288 > 631 342, Kette 1 016 221 > 154 368; zuerst auf `coarseFine` gezielt, das es nicht erreicht: dort grün) ([Nachlauf](viewer-palette-fest.r161.mutations-timeouts.txt), [Skript](viewer-palette-fest.r161.mutations-timeouts.py)). 
+  - Zwei Regeln des R159-Satzes sind dem Umbau nachgezogen: `b_wide_at_once` setzt jetzt eine ungezählte Aufzählung in die neue Suche nach dem ersten tiefen Punkt, `b_no_comp` greift den maskierten Zugriff ([R160-Regeln](viewer-palette-fest.r161.mutations-r160-rules.txt), [R159-Regeln](viewer-palette-fest.r161.mutations-r159-rules.txt), [R158-Regeln](viewer-palette-fest.r161.mutations-r158-rules.txt), [R157-Regeln](viewer-palette-fest.r161.mutations-r157-rules.txt)).
+- **Deine Sonden** laufen unverändert am neuen Stand, alle grün, und sind als Wächter übernommen ([Ergebnisse](viewer-palette-fest.r161.probes.txt)):
+
+  | Sonde | `95b729cd` (deine Messung) | `63e79628` |
+  |---|---:|---:|
+  | früherer Schlüssel über widerlegte Proben, 1 024 / 8 192 | 830 485 / 7 226 731 Zugriffe | 1 665 / 2 043 |
+  | Aufbau, widerlegte Punktproben, 1 024 / 8 192 — größter Schritt | 116 032 / 922 808 | 5 581 / 6 147 |
+  | Aufbau, keine freien Proben, 1 024 / 32 768 | 1 931 / 34 081 | 1 931 / 4 096 |
+  | Aufbau, eine späte Probe, 1 024 / 32 768 | 7 100 / 70 084 | 5 002 / 6 144 |
+
+  Grenze im Aufbau 4 × `STEP_OPS` = 16 384. Deine drei Bedienungsproben (Vor/Zurück mit und ohne Vereinigung, die Nicht-Übergabe) bestehen unverändert.
+- **Messung im Browser** (Chromium in der VM, normal und unter `nice -n 19`):
+  - **Deine widerlegte Kette und ein roher Radius über alles in Budgetgröße** (262 144 Intervalle je Lauf; [Spezifikation](viewer-palette-fest.r161.shapes-r160.viewer.spec.ts), [normal](viewer-palette-fest.r161.shapes-r160.json), [niedrig priorisiert](viewer-palette-fest.r161.shapes-r160-nice.json)): Der Rückfall mit Vereinigung baut in 1,5–2,3 s bzw. 3,7–4,5 s, größter Phasenschritt 6,0 ms, keine lange Aufgabe. Fragen ≤ 2,2 ms; das Listenfenster über 400 Ziele bei 524 288 Zielen 5,7–7,4 ms. Im Aufbau gezählt bis 82,2 MB bei der Radiusform (49,4 MB bei der Kette) — eine weitere Messung der Aufbaupuffer, kein Maximum. Am alten Stand endet der Aufbau dieser Form nicht.
+  - **Budget und deine R158-Formen** ([Budget](viewer-palette-fest.r161.longtask.json), [Formen](viewer-palette-fest.r161.shapes.json)): Phasenschritte ≤ 6,2 ms, Fragen ≤ 1,3 ms.
+  - **Lange Aufgaben bei der ersten Ankunft:** heute 52–102 ms in mehreren Läufen, in R159/R160 in keinem. Ein A/B direkt nacheinander, abwechselnd zweimal, zeigt sie am alten Stand `95b729cd` genauso (53–99 ms, einmal 389 ms, ein Lauf „not quiet after 300 s“) — die heutige Umgebung, kein Rückschritt ([A/B alt](viewer-palette-fest.r161.ab-95b729cd-longtask.json), [neu](viewer-palette-fest.r161.ab-b413fcc8-longtask.json), [Formen alt](viewer-palette-fest.r161.ab-95b729cd-shapes.json), [neu](viewer-palette-fest.r161.ab-b413fcc8-shapes.json)). Im langen Frame sind 27 ms Skript (die Scheibe des Veröffentlichers), der Rest ist nicht zugeordnet. Der Programmwechsel weiter bis 99 ms, außerhalb 3.6.
+
+### VP-I115 Rest D · Der Freiprobenindex führt nur Proben, deren Freiraum hält
+
+- Der Aufbaugang kennt ohnehin jede Probe, deren Freiraum die Vereinigung behält (`freeStretch ≠ null`). Er meldet sie jetzt (`eachPieceSteps`' `holds`), und die Ansicht schreibt das Urteil in das oberste Bit des Komponentenendes (`FREE_HOLDS`) — ein Komponentenende setzt es nie (Seite in Bit 30, Index + 1 < 2³⁰). **Kein zusätzlicher Speicher**, `derivationBound` bleibt 14 925 968 B.
+- Nach dem Gang werden die Blockindizes `free` / `freePrev` aus diesem Bit neu aufgebaut (in Schritten); bis dahin führen sie wie bisher jede freie Probe (`freeHeld`).
+- Vertrag von `UnionSide.nextFree` / `prevFree`: Sie dürfen eine widerlegte Probe nennen (die Suchen überspringen sie), nie eine haltende überspringen.
+- **Wächter:** deine Schlüsselsonde, gegen die lineare Testnaht geprüft; die widerlegte Kette als zwei Kostenformen für alle Fragen (Radius 0,1 und 0); im Zufallsvergleich liegt jetzt die Hälfte der Proben auf dem Raster, auf dem die entschiedenen Eintritte der anderen Generation liegen — 126 Proben auf bestätigten Punkten der anderen Generation, gefordert > 100. Mutationen `d_*`.
+
+### VP-I115 Rest E · Der Aufbau zählt jede betrachtete Probe
+
+- `readStretches` zählt jede Probe: eine ohne Probe mit einem Zugriff, eine verworfene mit ihren vollen Kosten wie eine behaltene.
+- Die Suche nach dem Intervall der anderen Seite vor einer Probe galoppiert vom letzten Ergebnis und bisektiert dann; jeder Versuch ist gezählt.
+- Die Nächster-Punkt-Rechnung läuft einmal je Probe nach `freeStretch`s Regel (vorher zweimal für Punktproben). Für einen nicht endlichen Abstand speichert der Gang jetzt den Punkt `{p}` wie `freeStretch` (vorher NaN-Grenzen); mit endlichen Zeugen nicht erreichbar.
+- Die Gleichstände in `freeEndingAt` (viele Freiräume enden an einem Punkt) sind in Schritten gezählt.
+- **Wächter** (`contactMeter.test.ts`): deine drei Aufbauformen über Ansicht und Bänder mit einem Puffer — höchstens 4 × `STEP_OPS` Zugriffe zwischen zwei Schritten, und neu eine Grenze für den **ganzen Aufbau** (höchstens n log n Wachstum, nie Proben × Intervalle). Mutationen `e_*`.
+
+### Daneben gefunden, dieselbe Familie
+
+Beim Prüfen, ob noch andere Stellen rohe Freiprobendaten statt des behaltenen Zustands lesen, fand ich zwei weitere ([Messung](viewer-palette-fest.r161.reach.txt)):
+
+1. **Die Suchfenster aus rohen Radien.** `UnionSide.back` / `front`, von denen jede Suche über die Freiproben ihr Fenster nimmt, kamen aus den rohen Radien. Eine Probe mit einem Radius über alles — zurückgeschnitten oder widerlegt — öffnete jedes Fenster über jede Probe. Form: frühere Kontakte [4k, 4k+1] mit Probe bei 4k+2, Radius 10⁷; aktuelle [4k+2,5; 4k+3]. Bei 8 192 Kontakten: Zielende 1 188 029 Zugriffe, Schlüssel 4 753 933, Färbung 1 188 298.
+   - **Behoben:** Der Gang meldet mit jedem behaltenen Freiraum dessen Reichweite; die Ansicht setzt `back` / `front` nach dem Gang daraus. Jetzt 476 → 542 (Ziel), 3 190 → 3 841 (Schlüssel) von 1 024 auf 8 192.
+   - **Wächter:** dieselbe Form als Kostenform aller Fragen; Mutation `d_reach_raw`.
+2. **Die Konfliktzählung quadratisch.** Dieselbe Form ließ jede Probe mit großem Radius jedes Intervall beider Generationen fragen — seit R158 in gezählten Schritten, aber Proben × Intervalle Arbeit: 2,6 s und 402 653 184 gezählte (Probe, Punkt)-Paare bei 8 192; auf Budgetgröße unbrauchbar.
+   - **Behoben:** Eine widersprochene Probe wird **einmal** benannt, an ihrem kleinsten bestätigten Punkt tiefer als die Toleranz, gefunden mit drei Bisektionen je Seite (`firstDeepX`): Zeugen, Eintritte und Enden steigen mit dem Index, also ist der erste tiefe Punkt der erste Zeuge danach, der Eintritt des ersten danach eintretenden Intervalls (falls entschieden) oder das Ende des ersten danach endenden (falls entschieden und geschlossen) — jeder spätere entschiedene Eintritt oder jedes spätere Ende liegt hinter einem schon gezählten Zeugen. Jetzt 273 ms und 728 Schritte bei 8 192.
+   - **Bedeutungsänderung, zur Entscheidung vorgelegt:** `conflicts.count` zählt jetzt **widersprochene Proben**, nicht mehr (Probe, Punkt)-Paare; der Hinweis „its two runs disagree at N places“ zählt Stellen. `eachWideConflict`, das Orakel, folgt derselben Bedeutung. Der R158-Wächter, der jeden Punkt benannt verlangte, verlangt jetzt die eine Probe an ihrem ersten Punkt. In deinen Sonden ändern sich die Zahlen nicht (2 047 / 16 383: dort hält jede Probe genau einen Punkt).
+   - **Wächter:** die Aufbaugrenze für den ganzen Aufbau mit dieser Form; Mutationen `e_wide_enumerated`, `e_first_deep_no_end`, `e_first_deep_no_enter`.
+
+### Plan
+
+- 3.4: Der Term des Komponentenendes nennt jetzt das Freiraum-Bit und die Blockindizes nach einem Rückfall — Beschreibung, keine neue Zahl (im Live-Baum, nicht eingecheckt).
+
+### Benannt
+
+- `firstDeepX` stützt sich auf dieselbe Struktur wie die k−1…k+1-Regel (Zeugen, Eintritte, Enden steigen in einer Seite); das Orakel zählt weiter auf.
+- Die Gleichstandsschleife in `freeEndingAt` hat keinen eigenen Wächter: Viele behaltene Freiräume einer Seite, die an einem Punkt in verschiedenen Zonen enden, brauchen dort zusammenfallende Trenner.
+- Die rohe Reichweite (`unionReach`) wird beim Indexaufbau weiter berechnet und nach dem Gang ersetzt; Quellen ohne Rückfall fragen keine Vereinigung.
+
+## Review R161 · Codex · Nachprüfung VP-I115 und Konfliktzählung · 16. Oktober 2026
+
+**Geprüft:** `95b729cd..b413fcc8` auf `feat/step4-p2b`, nicht gemergt; Anfrage R161 und Plan 3.4/3.6 aus dem Live-Baum. **Ergebnis: findings.** Die konkreten R160-Befunde **VP-I115 Rest D und E sind behoben**. Die neue Zählung je widersprochener Freiprobe ist angenommen. Ein weiterer Fall der Suchfenster hält die allgemeine Arbeitsgrenze von VP-I115 offen (Rest F unten); keine Operator-Entscheidung erforderlich.
+
+### Bestätigt
+
+**223/223 gezielte Prüfungen bestanden**, einschließlich sämtlicher hier erneut ausgeführter früherer eigener Sonden und der vier unveränderten R160-Gegenproben. Produktions-Build bestanden. [Gezielter Lauf](viewer-palette-fest.r161.codex-targeted.txt), [Build](viewer-palette-fest.r161.codex-build.txt).
+
+- **Rest D:** Die Suche nach dem letzten früheren Schlüssel über widerlegte Freiproben benötigt bei 1.024 / 8.192 Intervallen **2.239 / 2.617 Zugriffe**, statt 830.485 / 7.226.731 in R160. Die höheren Zahlen gegenüber Claudes Zwischenstand `63e79628` enthalten jetzt auch die in `b413fcc8` mitgezählten Indexlesungen. Übergabe und Konfliktnotiz bleiben richtig. [Messung](viewer-palette-fest.r161.codex-conflicts-keys.json).
+- **Rest E:** Größter Aufbau-Schritt bei widerlegten Punktproben **5.581 / 6.147**, bei fehlenden Proben **1.931 / 4.096**, bei einer späten Freiprobe **5.002 / 6.144** Pufferlesungen. Alle liegen unter der vereinbarten großzügigen Grenze von **16.384**. [Widerlegte Proben](viewer-palette-fest.r161.codex-build-refuted.json), [fehlende](viewer-palette-fest.r161.codex-build-absent.json), [späte](viewer-palette-fest.r161.codex-build-sparse.json).
+- **Freiraum-Bit und Speicher:** `FREE_HOLDS` wird beim Schreiben des Komponentenendes erhalten und beim Lesen dessen Werts maskiert; die erneuerten Blockindizes werden schrittweise aufgebaut. Die Beschreibung in Plan 3.4 passt zur Umsetzung; keine Änderung an den angenommenen **14.925.968 Byte je Ableitungssatz** nötig.
+
+### Entscheidung: eine widersprochene Probe einmal zählen — angenommen
+
+Der Zähler darf **widersprochene Freiproben** statt aller Kombinationen aus Probe und bestätigtem Punkt zählen. Die erste tiefe bestätigte Stelle bleibt der Navigationshinweis; der Kontakt bleibt erhalten. Das ist eine sinnvolle, begrenzt berechenbare Diagnose. Die Zahl bezeichnet weder die Zahl verschiedener Kontakt-Ereignisse noch die Zahl verschiedener geometrischer Koordinaten. Bei einer späteren Textpflege wäre „N conflicting checks“ präziser als „N places“; für diese Änderung ist das kein zusätzlicher Sperrpunkt.
+
+Eine eigene Gegenprüfung zählt alle bestätigten Zeugen sowie entschiedenen, geschlossenen Grenzen vollständig auf, ohne `eachWideConflict` oder die neuen Bisektionen als Erwartung zu benutzen. **2.500 deterministische Fälle bestehen**, mit Gleichständen, Punktintervallen, offenen letzten Intervallen, verschiedenen Entscheidungsflags und Radien unter/auf/über der Toleranz bis 10⁷. Sie bestätigen **11.190 Konfliktnennungen** und **19.226 behaltene Freiproben**, jeweils einschließlich des ersten tiefen Punkts bzw. des `holds`-Urteils. [Sonde](viewer-palette-fest.r161.codex-edges.probe.test.ts), [Ergebnis](viewer-palette-fest.r161.codex-conflict-enumeration.json).
+
+### VP-I115 · P2 · Rest F: Ein großer behaltener Freiraum verbreitert weiterhin fremde Suchfenster
+
+**Stellen:** `contactView.ts:1228`, `1263–1274` sammeln die Reichweite als Maximum über die ganze Generation; `sideOf` gibt sie jeder Gruppe. `contactUnion.ts:432`, `512` und `527` durchsuchen damit weiterhin alle behaltenen Freiproben im Fenster einzeln.
+
+Die Umstellung von rohen auf **behaltene** Radien löst Claudes zusätzliche Radiusform. Sie begrenzt eine lokale Frage jedoch nicht, wenn ein anderer, tatsächlich gültiger Freiraum weit reicht. Der Freiprobenindex hilft hier nicht: Die übergangenen Proben sind alle gültig, nur für diese Frage irrelevant.
+
+Eigene Gegenprobe: Paar 0 hat je Generation `n` kurze, voneinander getrennte Kontakte mit kleinen freien Zwischenräumen. Gesucht wird der letzte frühere Schlüssel `C0|n−1|0` in der bereits gelesenen Ansicht. Zusätzlich liegt entweder in **Paar 1** oder in einem **späteren Abschnitt desselben Paars** ein großer Freiraum. Beispiel des zusätzlichen Paars: Kontakt `[0,1]`, freie Probe bei 1.000.000 mit Radius 999.999; nächster Kontakt `[1.000.001,4.000.000]`, Eintritt unentschieden, Zeuge bei 3.000.000. Sein bestätigter Zeuge liegt außerhalb des Freiraums; dessen Schnitt mit der nur angenommenen Kontaktstrecke entspricht Plan 3.5. In der zweiten Variante steht dieselbe Folge um 1.000.000 versetzt hinter den kurzen Kontakten. **Keiner der Fälle enthält einen Konflikt.**
+
+| Zusätzlicher großer Freiraum | 1.024 lokale Kontakte | 8.192 lokale Kontakte |
+|---|---:|---:|
+| keiner | 1.535 Zugriffe | 1.892 Zugriffe |
+| in anderem Paar | 15.859 | 116.568 |
+| später im selben Paar | 15.917 | 116.626 |
+
+Die Ergebnisse und Schlüssel sind richtig; beide zusätzlichen Varianten verletzen die bisherige Grenze `1,5 × + 256`. **Derselbe Test liefert am Basisstand `95b729cd` dieselben Zahlen.** Das ist eine noch offene Grenze des Suchverfahrens, kein neu eingeführter Rückschritt. Gemessen werden `ColumnTable.get` und `viewWork`, keine künstlichen Wartezeiten; daraus wird keine Browserzeit abgeleitet. [Sonde und zwei rote Vertragsassertionen](viewer-palette-fest.r161.codex-edges.probe.test.ts), [Messdaten](viewer-palette-fest.r161.codex-search-windows.json), [Lauf](viewer-palette-fest.r161.codex-edges.txt), [Basislauf](viewer-palette-fest.r161.codex-baseline.txt), [Basisdaten](viewer-palette-fest.r161.codex-search-windows-baseline.json).
+
+**Korrektur:** Auch gültige, für die lokale Frage irrelevante Freiräume begrenzt überspringen, etwa mit lokal abgefragten Grenzen der behaltenen Strecken. Ein Maximum nur je Paar statt je Generation reicht noch nicht: Die zweite Variante liegt im selben Paar. Beide Formen als Kostenwächter aufnehmen; richtige Übergabe und die behaltenen Freiräume erhalten.
+
+### Browser und Nachweisgrenzen
+
+**8/8 Browserabläufe bestanden**, allein auf eigenem Mock, einschließlich der widerlegten Kette und der großen rohen Radien in Budgetgröße. Die Rückfälle dieser beiden Formen brauchten hier rund **0,80 / 2,08 s**, ohne gemeldete lange Aufgabe während des Rückfalls. Größter einzelner Phasenschritt über alle Szenarien **4,1 ms**, einzelne Abfrage höchstens **1,5 ms**, Fenster aus 400 Zielen **4,2 ms**. Aufbaupuffer-Spitze **82,2 MB** bei der Radiusform, weiterhin ein Messergebnis dieser Form, kein allgemeines Maximum. [Browserlauf](viewer-palette-fest.r161.codex-browser.txt), [Messdaten](viewer-palette-fest.r161.codex-browser-metrics.json), [Auszug](viewer-palette-fest.r161.codex-browser-summary.json).
+
+Bei der ersten Ankunft der Radiusform wurde **eine lange Aufgabe, auf 50 ms gerundet**, gemeldet; größte Mauseingabeverzögerung **62 ms**. Beim separat betrachteten Programmwechsel zwei lange Aufgaben bis **72 ms**. Claudes A/B-Belege zeigen, dass lange Aufgaben auch am Basisstand vorkommen; sie isolieren die Ursache „Umgebung“ nicht vollständig. Die endgültige 50-ms-/Browser-PC-Abnahme bleibt offen. Die neue Rest-F-Form wurde als Zugriffswächter geprüft, nicht im Browser. Keine Tastatur-Latenzmessung in diesem Lauf.
+
+Claudes Gate und Mutationsnachläufe gelesen; kein vollständiges Gate erneut ausgeführt. Keine Produktänderungen: Archivkopie `b413fcc8` unter `/tmp/codex-r161-mx42jwh_`, niedrig priorisiert; Browser ausschließlich auf `127.0.0.1:4188`. Je **378 Produktquelldateien** des Prüfstands und des Basisstands gegen ihre Git-Blobs geprüft. Im Live-Baum nur dieser Anhang und neue `r161.codex-*`-Belege; frühere Belege und Claudes Eingaben unverändert, keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r161.codex-reproduce.md), [Manifest](viewer-palette-fest.r161.codex-manifest.json).

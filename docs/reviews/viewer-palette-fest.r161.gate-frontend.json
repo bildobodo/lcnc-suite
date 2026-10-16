@@ -1,0 +1,34 @@
+{
+  "head": "b413fcc8",
+  "uncommitted": 0,
+  "note": "R161: R160 VP-I115 rests D/E and beside them (95b729cd..b413fcc8)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 11
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 21
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 1298,
+      "tests": "149 files, 2463 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2096,
+      "tests": "526 passed",
+      "note": "run alone"
+    }
+  ]
+}

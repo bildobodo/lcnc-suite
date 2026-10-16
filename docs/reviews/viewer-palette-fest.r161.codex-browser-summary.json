@@ -1,0 +1,488 @@
+{
+  "scenarios": 8,
+  "steps": [
+    {
+      "name": "refuted: the first run arrives",
+      "wallMs": 248,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 62,
+      "longestStepMs": [
+        0.4,
+        1.5,
+        0,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 24.5,
+        "shownMB": 0,
+        "viewsMB": 18.1,
+        "buildingMB": 18.1,
+        "heapMB": 34.7,
+        "backingMB": 57.8
+      }
+    },
+    {
+      "name": "refuted: the pool falls back \u2014 the second run, the union",
+      "wallMs": 797,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 24,
+      "longestStepMs": [
+        0.1,
+        1.2,
+        0,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 36.8,
+        "shownMB": 12.3,
+        "viewsMB": 51.7,
+        "buildingMB": 49.4,
+        "heapMB": 39.2,
+        "backingMB": 128.7
+      }
+    },
+    {
+      "name": "refuted: the questions",
+      "longTasks": 0,
+      "longestMs": 0,
+      "worstMs": {
+        "targets": 1,
+        "ms": {
+          "target": 0.1,
+          "key where it stood": 0.5,
+          "key moved": 0.1,
+          "key anywhere": 0.1,
+          "next": 0.1,
+          "tint": 0.1,
+          "mark": 0.1,
+          "next from a position": 0,
+          "window of 400": 0,
+          "key gone": 0.1
+        }
+      }
+    },
+    {
+      "name": "wideRadius: the first run arrives",
+      "wallMs": 266,
+      "longTasks": 1,
+      "longestMs": 50,
+      "inputDelayMaxMs": 48,
+      "longestStepMs": [
+        0.3,
+        1.8,
+        0,
+        0.2
+      ],
+      "peak": {
+        "tablesMB": 24.5,
+        "shownMB": 0,
+        "viewsMB": 18.1,
+        "buildingMB": 18.1,
+        "heapMB": 42.8,
+        "backingMB": 57.8
+      }
+    },
+    {
+      "name": "wideRadius: the pool falls back \u2014 the second run, the union",
+      "wallMs": 2077,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 31,
+      "longestStepMs": [
+        0.9,
+        3.1,
+        0.1,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 36.8,
+        "shownMB": 12.3,
+        "viewsMB": 84.5,
+        "buildingMB": 82.2,
+        "heapMB": 133.9,
+        "backingMB": 133.3
+      }
+    },
+    {
+      "name": "wideRadius: the questions",
+      "longTasks": 0,
+      "longestMs": 0,
+      "worstMs": {
+        "targets": 524288,
+        "ms": {
+          "target": 0.1,
+          "key where it stood": 0.4,
+          "key moved": 1.2,
+          "key anywhere": 0.3,
+          "next": 0.2,
+          "tint": 0.1,
+          "mark": 0.1,
+          "next from a position": 0.2,
+          "window of 400": 4.2,
+          "key gone": 0.1
+        }
+      }
+    },
+    {
+      "name": "the tables arrive (a result)",
+      "wallMs": 281,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 41,
+      "longestStepMs": [
+        0.2,
+        4.1,
+        0,
+        0.2
+      ],
+      "peak": {
+        "tablesMB": 30.3,
+        "shownMB": 0,
+        "viewsMB": 21.3,
+        "buildingMB": 21.3,
+        "heapMB": 63.5,
+        "backingMB": 74
+      }
+    },
+    {
+      "name": "an update delta over the whole budget",
+      "wallMs": 244,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 20,
+      "longestStepMs": [
+        1.5,
+        0.9,
+        0,
+        0.4
+      ],
+      "peak": {
+        "tablesMB": 30.3,
+        "shownMB": 0,
+        "viewsMB": 24.1,
+        "buildingMB": 21.3,
+        "heapMB": 65.1,
+        "backingMB": 100
+      }
+    },
+    {
+      "name": "the pool falls back: the same tables as the next generation",
+      "wallMs": 1690,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 25,
+      "longestStepMs": [
+        0.3,
+        2.5,
+        0,
+        0.3
+      ],
+      "peak": {
+        "tablesMB": 45.4,
+        "shownMB": 15.1,
+        "viewsMB": 36.8,
+        "buildingMB": 34,
+        "heapMB": 205,
+        "backingMB": 136.3
+      }
+    },
+    {
+      "name": "a rebuild: one more (empty) delta",
+      "wallMs": 1488,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 20,
+      "longestStepMs": [
+        0.1,
+        2.4,
+        0,
+        0
+      ],
+      "peak": {
+        "tablesMB": 45.4,
+        "shownMB": 0,
+        "viewsMB": 40.5,
+        "buildingMB": 34,
+        "heapMB": 232.8,
+        "backingMB": 111.6
+      }
+    },
+    {
+      "name": "the tables of one pair arrive (a result)",
+      "wallMs": 298,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 49,
+      "longestStepMs": [
+        0.3,
+        2.7,
+        0,
+        0.2
+      ],
+      "peak": {
+        "tablesMB": 30.3,
+        "shownMB": 0,
+        "viewsMB": 20.2,
+        "buildingMB": 20.2,
+        "heapMB": 37.4,
+        "backingMB": 70.5
+      }
+    },
+    {
+      "name": "a new program while the one big group builds",
+      "goneMs": 32,
+      "longTasks": 2,
+      "longestMs": 72
+    },
+    {
+      "name": "alternation: the first run arrives",
+      "wallMs": 168,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 13,
+      "longestStepMs": [
+        0.3,
+        2.5,
+        0,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 24.5,
+        "shownMB": 0,
+        "viewsMB": 18,
+        "buildingMB": 18,
+        "heapMB": 33.7,
+        "backingMB": 57.7
+      }
+    },
+    {
+      "name": "alternation: the pool falls back \u2014 the second run, the union",
+      "wallMs": 1183,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 22,
+      "longestStepMs": [
+        0.2,
+        2,
+        0,
+        0.2
+      ],
+      "peak": {
+        "tablesMB": 36.8,
+        "shownMB": 12.3,
+        "viewsMB": 63.3,
+        "buildingMB": 61.1,
+        "heapMB": 101.6,
+        "backingMB": 113.9
+      }
+    },
+    {
+      "name": "alternation: the questions",
+      "longTasks": 0,
+      "longestMs": 0,
+      "worstMs": {
+        "targets": 1,
+        "ms": {
+          "target": 0,
+          "key where it stood": 0.7,
+          "key moved": 0.1,
+          "key anywhere": 0.1,
+          "next": 0.1,
+          "tint": 1.5,
+          "mark": 0.1,
+          "next from a position": 0.1,
+          "window of 400": 0.1,
+          "key gone": 0
+        }
+      }
+    },
+    {
+      "name": "coarseFine: the first run arrives",
+      "wallMs": 52,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 12,
+      "longestStepMs": [
+        0.5,
+        1.2,
+        0,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 0.8,
+        "shownMB": 0,
+        "viewsMB": 0,
+        "buildingMB": 0,
+        "heapMB": 29.4,
+        "backingMB": 18.5
+      }
+    },
+    {
+      "name": "coarseFine: the pool falls back \u2014 the second run, the union",
+      "wallMs": 335,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 14,
+      "longestStepMs": [
+        0.3,
+        2.5,
+        0,
+        0.2
+      ],
+      "peak": {
+        "tablesMB": 24.9,
+        "shownMB": 0.4,
+        "viewsMB": 24.7,
+        "buildingMB": 24.7,
+        "heapMB": 35.1,
+        "backingMB": 72.6
+      }
+    },
+    {
+      "name": "coarseFine: the questions",
+      "longTasks": 0,
+      "longestMs": 0,
+      "worstMs": {
+        "targets": 1,
+        "ms": {
+          "target": 0.1,
+          "key where it stood": 0.4,
+          "key moved": 0,
+          "key anywhere": 0.1,
+          "next": 0.1,
+          "tint": 0.1,
+          "mark": 0.1,
+          "next from a position": 0,
+          "window of 400": 0.1,
+          "key gone": 0.1
+        }
+      }
+    },
+    {
+      "name": "chain: the first run arrives",
+      "wallMs": 261,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 57,
+      "longestStepMs": [
+        0.3,
+        1.6,
+        0,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 24.5,
+        "shownMB": 0,
+        "viewsMB": 18.1,
+        "buildingMB": 18.1,
+        "heapMB": 31.7,
+        "backingMB": 57.8
+      }
+    },
+    {
+      "name": "chain: the pool falls back \u2014 the second run, the union",
+      "wallMs": 729,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 21,
+      "longestStepMs": [
+        0.1,
+        0.8,
+        0,
+        0.2
+      ],
+      "peak": {
+        "tablesMB": 36.8,
+        "shownMB": 12.3,
+        "viewsMB": 51.7,
+        "buildingMB": 49.4,
+        "heapMB": 40.6,
+        "backingMB": 128.7
+      }
+    },
+    {
+      "name": "chain: the questions",
+      "longTasks": 0,
+      "longestMs": 0,
+      "worstMs": {
+        "targets": 1,
+        "ms": {
+          "target": 0,
+          "key where it stood": 0.5,
+          "key moved": 0,
+          "key anywhere": 0.1,
+          "next": 0.1,
+          "tint": 0.2,
+          "mark": 0.1,
+          "next from a position": 0,
+          "window of 400": 0,
+          "key gone": 0
+        }
+      }
+    },
+    {
+      "name": "gaps: the first run arrives",
+      "wallMs": 62,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 14,
+      "longestStepMs": [
+        0.3,
+        1,
+        0,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 1.5,
+        "shownMB": 0,
+        "viewsMB": 0.3,
+        "buildingMB": 0,
+        "heapMB": 33.7,
+        "backingMB": 20.1
+      }
+    },
+    {
+      "name": "gaps: the pool falls back \u2014 the second run, the union",
+      "wallMs": 75,
+      "longTasks": 0,
+      "longestMs": 0,
+      "inputDelayMaxMs": 13,
+      "longestStepMs": [
+        0.1,
+        0.7,
+        0,
+        0.1
+      ],
+      "peak": {
+        "tablesMB": 2.2,
+        "shownMB": 0.7,
+        "viewsMB": 1,
+        "buildingMB": 0.7,
+        "heapMB": 36.6,
+        "backingMB": 23.7
+      }
+    },
+    {
+      "name": "gaps: the questions",
+      "longTasks": 0,
+      "longestMs": 0,
+      "worstMs": {
+        "targets": 1,
+        "ms": {
+          "target": 0,
+          "key where it stood": 0.4,
+          "key moved": 0.1,
+          "key anywhere": 0,
+          "next": 0,
+          "tint": 0.1,
+          "mark": 0.1,
+          "next from a position": 0,
+          "window of 400": 0,
+          "key gone": 0.1
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r161-mx42jwh_/repo/lcnc-webui
+
+
+ Test Files  22 passed (22)
+      Tests  223 passed (223)
+   Start at  17:28:14
+   Duration  112.69s (transform 461ms, setup 0ms, import 1.24s, tests 110.37s, environment 1ms)
+
