@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r166-red5e_ov/repo/lcnc-webui
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  18:10:57
+   Duration  413ms (transform 232ms, setup 0ms, import 328ms, tests 19ms, environment 0ms)
+

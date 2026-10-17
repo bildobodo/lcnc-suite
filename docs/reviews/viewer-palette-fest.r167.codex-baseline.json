@@ -1,0 +1,15 @@
+{
+  "case": "rest undecidable, every swept pose decided",
+  "commit": "a53db42e",
+  "tableRows": {
+    "episodes": 1,
+    "intervals": 1,
+    "gaps": 0
+  },
+  "notes": [
+    "inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"
+  ],
+  "uncertified": "inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there",
+  "staticContacts": [],
+  "meaning": "A gap-only note source has no row from which to preserve this caveat. The rest pose is not a program position."
+}

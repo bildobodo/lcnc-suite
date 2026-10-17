@@ -1,0 +1,60 @@
+{
+  "request": "R167",
+  "verdict": "findings",
+  "reviewedCommit": "a53db42e22451e214194f3ed2cab405cf2effe67",
+  "liveHead": "97e1947e0e6d8fc5336734f4da505df8b0b1a5e1",
+  "archive": "/tmp/codex-r166-red5e_ov/repo",
+  "evidenceWork": "/tmp/codex-r167-j22yr_df",
+  "inputs": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 1899118,
+      "sha256": "d9a0d62c51ddefb4d0448c7b0c502842ff64bd2d06fff4f9fa070706efd27bac"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "bytes": 68737,
+      "sha256": "b46fc0a415923dcff2712bf1fcd34fda296123cdb7d628b00a57260dc49f2745"
+    }
+  },
+  "inputsUnchangedBeforeAppend": true,
+  "reviewAppend": {
+    "startsAtLine": 21347,
+    "bytes": 6868,
+    "sha256": "1b63c98110287dd81865d7df7845ac8b4639fa23c4f47d5cb0a19f44244ee5ec"
+  },
+  "productSources": {
+    "commit": "a53db42e22451e214194f3ed2cab405cf2effe67",
+    "trackedSourceFiles": 380,
+    "mismatches": []
+  },
+  "checks": {
+    "planAndCodeReview": true,
+    "ownProbe": {
+      "passed": 1,
+      "files": 1
+    },
+    "browser": "not run (plan only)",
+    "fullGate": "not run (plan only)"
+  },
+  "artifacts": {
+    "viewer-palette-fest.r167.codex-notes.test.ts": {
+      "bytes": 4365,
+      "sha256": "ae4e1775c92c9e036b6d15725915e879d96fc8030b3765bc3bfa0a16eb9fea93"
+    },
+    "viewer-palette-fest.r167.codex-baseline.json": {
+      "bytes": 555,
+      "sha256": "70b7ccc377a6aae982c4a301355bab9bb80fc8b19ee169ab614d70e8f3282bf6"
+    },
+    "viewer-palette-fest.r167.codex-probe.txt": {
+      "bytes": 223,
+      "sha256": "48661c999eb7639f6f80b2e972e5906fea4e16ad4e94c2454089744362bafb80"
+    },
+    "viewer-palette-fest.r167.codex-source-check.json": {
+      "bytes": 108,
+      "sha256": "1b9ba209ad154102f32502a08dc05da5cd1449031b58b39102d5b19ae5d23d4b"
+    },
+    "viewer-palette-fest.r167.codex-reproduce.md": {
+      "bytes": 2062,
+      "sha256": "8683f536962136ef26eef9cd41388b1ea3b7ddf264c056731941152734b45fd1"
+    }
+  }
+}
