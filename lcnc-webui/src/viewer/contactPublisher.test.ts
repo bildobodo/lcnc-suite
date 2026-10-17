@@ -62,9 +62,13 @@ function harness(o: { owners?: Set<number> } = {}) {
     sliceMs: 0,   // every slice one step
     now: () => 0,
   });
-  /** Runs slices until `until` holds (or nothing is left). */
-  const run = (until: () => boolean = () => false, max = 1e6) => {
-    for (let k = 0; k < max && queue.length && !until(); k++) queue.shift()!();
+  /** Runs slices until `until` holds (or nothing is left) — at most `max`:
+   *  a pass that never ends (discarded by every read) fails here, on an
+   *  assertion, not on the worker's memory. */
+  const run = (until: () => boolean = () => false, max = 20_000) => {
+    let k = 0;
+    for (; k < max && queue.length && !until(); k++) queue.shift()!();
+    expect(k < max || !queue.length || until(), `the passes end within ${max} slices`).toBe(true);
   };
   return { p, queue, acks, effects, published, events, track, extra, run, owners, views: () => views, setLive: (tag: string) => { live = { tag, n: effects.length }; } };
 }
@@ -243,8 +247,10 @@ describe("cancel and the shown state (plan 3.6)", () => {
     const before = { passes: h.p.passes, discards: h.p.discards, published: h.published.length };
     for (let i = 0; i < 200; i++) s.contact(i % 9, 2000 + 3 * i);
     h.p.receive(s.msg({ tag: "p1" })); h.p.kick();
-    // the page between every two steps: it renders the published views
-    for (let k = 0; k < 100_000 && h.queue.length; k++) { h.queue.shift()!(); h.p.viewOf(h.track); }
+    // the page between every two steps: it renders the published views (21
+    // steps here; a pass discarded by every read never ends — bounded, so it
+    // fails on the assertion below, not on the worker's memory)
+    for (let k = 0; k < 2_000 && h.queue.length; k++) { h.queue.shift()!(); h.p.viewOf(h.track); }
     expect(h.queue.length, "the passes end").toBe(0);
     expect([h.p.passes - before.passes, h.p.discards - before.discards, h.published.length - before.published, h.p.pending],
       "one pass, no discard, one publication, nothing left").toEqual([1, 0, 1, false]);
