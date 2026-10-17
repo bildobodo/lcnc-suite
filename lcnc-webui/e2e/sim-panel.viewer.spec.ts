@@ -303,6 +303,23 @@ test("the spacers' row height is measured where the rows are seen — never in a
   await expect(shown.locator(".rowPick")).toBeFocused();
 });
 
+test("a list that begins to fill in a hidden tab and is shown between its portions: measured once seen", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".simPanel")).toBeHidden();
+  // the first portion arrives hidden (every box 0: nothing to measure); the
+  // Sim tab shows before the next — the rest of this list fills at the pitch
+  // measured once seen, never at a 0 taken while hidden
+  await watchFill(page, `[...document.querySelectorAll('[role="tab"]')].find(t => t.textContent.trim() === "Sim").click();
+    return document.querySelector(".simPanel tbody tr[data-sim-row]").getBoundingClientRect().height;`);
+  await hits(page, 1000);
+  await complete(page);
+  await expect(page.locator(".simPanel")).toBeVisible();
+  const f = await fillOf(page);
+  expect(f.ran, "the first portion arrived in the hidden tab").toBe(0);
+  expectStillFill(f, "shown between the portions");
+});
+
 test("a size change after a list was measured: the next list fills at its own pitch (Codex R165)", async ({ page, context }) => {
   await prepare(page, context, "desktop", PREVIEW, false);
   await simShow(page, "clash");
