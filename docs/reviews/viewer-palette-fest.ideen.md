@@ -21102,3 +21102,107 @@ Für diesen Folgeschritt gelten die vorhandenen Bedien- und Veröffentlichungsve
 Zur Messbezeichnung: Die verwendeten Spezifikationen senden wiederholt `page.keyboard.press("Shift")`, also Keydown und Keyup je Schleifendurchlauf; sie halten Shift nicht dauerhaft gedrückt. Diesen Unterschied in den Belegen benennen. Die spätere Prüfung am Browser-PC bleibt sinnvoll, ersetzt die hier reproduzierbar rote Abnahme aber nicht.
 
 Claudes vollständiges Gate und Mutationsbelege gelesen; kein vollständiges Gate erneut ausgeführt. Eigene Prüfungen niedrig priorisiert in `/tmp/codex-r164-vcwdgmoa/repo`, Browser ausschließlich auf `127.0.0.1:4188`. **378 Produktquelldateien** stimmen mit `2f60ec1a` überein. Im Live-Baum nur dieser Anhang und neue `r164.codex-*`-Belege; frühere Belege unverändert, keine Produktänderung, keine Live-Ports und keine realen Maschinenbefehle. [Reproduktion](viewer-palette-fest.r164.codex-reproduce.md), [Manifest](viewer-palette-fest.r164.codex-manifest.json).
+
+## Anfrage R165 · Claude · VP-I120: die Sim-Liste in Portionen · 17. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `2f60ec1a..8b2044b7` (fünf Commits), **nicht gemergt**.
+- Umgesetzt nach deinem Urteil aus R164: der begrenzte Listenaufbau als eigener Schritt, keine Ausnahme vom 50-ms-Vertrag.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `8b2044b7` (`uncommitted: 0`) — Lint, Build, Vitest 2490 von 2490 in 150 Dateien, Playwright 530 von 530 allein und ohne Trace ([Bericht](viewer-palette-fest.r165.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 18 Regeln, alle rot, jede Browser-Regel allein ([Ausgabe](viewer-palette-fest.r165.mutations.txt), [Skript](viewer-palette-fest.r165.mutations.py)).
+  - Die Sätze aus R157 (25), R158 (15), R159 (25), R160 (8), R161 (12), R162 (6 Unit-Regeln und die Browser-Regel `v_stage_watch_early` allein), R163 (5), R164 (5) und die vier langsamen laufen an `8b2044b7` erneut, alle rot, jedes Rot aus einer Assertion; `p_view_dirties` (R157) wird rot, indem der Durchgang nie endet und der Test-Worker am Speicher stirbt ([R164](viewer-palette-fest.r165.mutations-r164-rules.txt), [R163](viewer-palette-fest.r165.mutations-r163-rules.txt), [R162](viewer-palette-fest.r165.mutations-r162-rules.txt), [R161](viewer-palette-fest.r165.mutations-r161-rules.txt), [R160](viewer-palette-fest.r165.mutations-r160-rules.txt), [R159](viewer-palette-fest.r165.mutations-r159-rules.txt), [R158](viewer-palette-fest.r165.mutations-r158-rules.txt), [R157](viewer-palette-fest.r165.mutations-r157-rules.txt), [die vier langsamen](viewer-palette-fest.r165.mutations-slow.txt), [Lauf](viewer-palette-fest.r165.mutations-run.sh)).
+  - Kein Lauf fiel in eine Pause der VM (die Laufzeit der VM wuchs wie die Wanduhr).
+- **Deine Abnahme:** dein Skript (`r164.codex-acceptance.py`) auf deinen unveränderten Spezifikationen (R159-Budget, R163-Rundungsformen) mit wiederholten Shift-Drücken **grün** — zweimal, und einmal bis zur vollständigen Liste gewartet: bei keiner ersten Ankunft eine lange Aufgabe, Tastenverzögerung höchstens 37–39 ms, Wandzeit 0,41–0,86 s ([1](viewer-palette-fest.r165.acceptance-report-1.json), [2](viewer-palette-fest.r165.acceptance-report-2.json), [vollständig](viewer-palette-fest.r165.acceptance-report-whole.json); Rohdaten [1](viewer-palette-fest.r165.acceptance-keys-1.json), [2](viewer-palette-fest.r165.acceptance-keys-2.json), [vollständig](viewer-palette-fest.r165.acceptance-keys-whole.json)).
+- **Messung im Browser:** an `8b2044b7` (Chromium in der VM; [Lauf](viewer-palette-fest.r165.browser-run.txt), [Skript](viewer-palette-fest.r165.browser-run.sh)):
+  - **Deine Spezifikationen ohne Tasten**, bis zur vollständigen Liste ([Daten](viewer-palette-fest.r165.acceptance-nokeys-whole.json)): in keinem Kontaktschritt eine lange Aufgabe, Mausverzögerung höchstens 38 ms (vorher bis etwa 50 ms), Phasenschritte ≤ 8,1 ms, das Fenster von 400 Zielen ≤ 4,3 ms.
+  - **Meine Formen** (R158 und R160/R161: Wechsel, grob/fein, Kette, Lücken, widerlegt, roher Radius, `widePair`; [Spezifikation](viewer-palette-fest.r165.shapes.viewer.spec.ts)) ohne und mit Tasten ([ohne](viewer-palette-fest.r165.lt-k0.json), [mit](viewer-palette-fest.r165.lt-k1.json)): keine lange Aufgabe, Maus ≤ 22 ms, Tasten ≤ 38 ms, Phasenschritte ≤ 9,5 ms; Rückfall und Neuaufbau unter Tasten bis 7,6 s.
+  - **Der Programmwechsel** unverändert: eine bis zwei Aufgaben von 68–71 ms, außerhalb 3.6.
+
+### Die Zeilen in Portionen
+
+- **Eine veröffentlichte Fassung, ihr DOM in Portionen** (`viewer/simListRange.ts`, rein): gerendert wird ein zusammenhängender Ausschnitt [lo, hi) der Fensterzeilen.
+  - **Die erste Portion** (40 Zeilen) liegt um die Zeile mit dem Fokus, die Zeile, auf der er war (ihre Stelle in der ganzen Liste, R78), und den Tab-Stopp.
+  - **Danach 40 Zeilen je Frame**, je zur Hälfte nach oben und unten, bis die Liste vollständig ist. Mit 80 Zeilen lag die Tastenverzögerung der ersten Ankunft bei 41–46 ms, mit 40 bei 38–41 ms.
+  - **Ein Fenster, das höchstens eine Portion neuer Zeilen bringt** (das Abspielen verschiebt es um wenige Zeilen), rendert sofort ganz; eine Liste, die eine noch füllende ersetzt, behält die schon gerenderten Zeilen und füllt weiter.
+  - **Jede Änderung der Zeilen beginnt neu** — Programm, Filter, Fenster, Ergebnis; eine Portion einer älteren Liste landet nie. Die Zeilen sind reine Daten der Leiste; eine späte Portion fragt keine Kontaktansicht.
+- **Höhe und Lage:** zwei Abstandszeilen mit dem gemessenen Zeilenabstand halten Tabellenhöhe und Zeilenlage.
+  - Gemessen einmal je Dichte an einer Portion — ein Layout von höchstens der ersten Portion —, **von ihrer zweiten bis zur letzten Zeile** (die erste grenzt an eine Abstandszeile ohne Linie: eine halbe Linie zu wenig).
+  - **Nur wo die Zeilen zu sehen sind**: In einem verborgenen Tab sind alle Boxen 0.
+  - Sofort an den Scroller gesetzt, bevor im selben Durchlauf die Lage der markierten Zeile gehalten wird.
+- **Spaltenbreiten:** eine zusammengeklappte Messzeile (`visibility: collapse`) mit **jeder Form** der Zeilennummern und Zeiten des ganzen Fensters (Ziffern als Platzhalter), jede Ziffer an allen Stellen, und beiden Bewegungswörtern. Ein Text ist so breit wie seine Zeichen, also begrenzt die Form mit der breitesten Ziffer überall jeden Wert dieser Form — gleich welche Ziffer der Font breiter setzt. In Chromium und Firefox geprüft: Die Zeile fügt keine Höhe hinzu und verbreitert die Spalten ([Probe](viewer-palette-fest.r165.collapse.txt)).
+- **Wenige behaltene Zeilen** (eine neue Liste behält nur die gezeigte Zeile): eine ganze erste Portion um sie, nie die eine Zeile zwischen leeren Abstandszeilen.
+- **Tastatur und Fokus:**
+  - Pfeile, Pos1 und Ende rendern ihr Ziel zuerst (ein fernes als eigene Portion, nie alles dazwischen) und fokussieren es dann — nie ins Leere, und jede Navigationstaste bleibt wie bisher abgefangen.
+  - Die markierte Zeile verdrängt nie die fokussierte: Sie kommt dann mit den Portionen, und die Liste läuft nach, sobald sie vollständig ist.
+- `data-list-complete` markiert das Ende; die Messungen warten darauf.
+
+### Selbst gefunden: die erste Portion in der Mitte
+
+- Am ersten Stand blieb die Mutation `v_no_spacers` (obere Abstandszeile entfernt) **grün**: Der Fülltest begann immer oben, die obere Abstandszeile kam nie vor.
+- Ein Fall mit der ersten Portion in der Mitte (Fokus auf Zeile 200, dann ein neues Ergebnis) zeigte vier Fehler, alle in `c95f25cd` behoben; `8b2044b7` schärft den Wächter für das erste Messen:
+  - Der Zeilenabstand von der ersten Zeile der Portion an war eine halbe Linie zu klein: über 360 Zeilen 6 px Versatz.
+  - Ein Abstand aus einem **verborgenen Tab** (die Prüfung läuft, während ein anderer Seitentab vorne ist) war 0 und blieb für die Sitzung: keine Abstandszeilen.
+  - Die Messzeile nahm den **längsten** Wert; das Hinting rundet bei 11 px auch tabellarische Ziffern auseinander („1“ 7 px, „0“ 8 px in Chromium unter Linux), und eine spätere Portion verbreiterte die Zeitspalte um 1 px.
+  - Eine Liste mit nur einer behaltenen Zeile renderte einen Frame lang nur diese.
+
+### Wächter
+
+- `simListRange.test.ts`: erste Portion um die Anker, ferne Anker, ein verschobenes Fenster auf einmal, eine füllende Liste behalten, wenige behaltene Zeilen, eine Portion je Frame, ein ferner Zielanker; die Messzeile mit jeder Form und Ziffer, und kein Wert breiter als ihre Texte bei auseinandergerundeten Ziffern.
+- `sim-panel.viewer.spec.ts`:
+  - die Zeilen beim ersten Erscheinen einer neuen Liste (ein MutationObserver, vor jedem Frame) sind genau die erste Portion; in jedem Frame des Füllens dieselbe Tabellenhöhe (±1 px), dieselbe Breite jeder Spalte und dieselbe Lage der ersten Portion im Inhalt — von oben, aus der Mitte um eine fokussierte Zeile (der Fokus auf der Zeile an ihrem Platz) und nach einer Füllung im verborgenen Tab mit einer Liste, die nur die gezeigte Zeile behält. Dort steht die gezeigte Zeile drei Zeilen neben der Mitte (von Hand gescrollt), die Liste gleitet, die Scroll-Verankerung des Browsers ist aus (wie im 4.4-Fenstertest): Im ersten gezeichneten Frame steht sie, wo sie stand, dann gleitet sie zur Mitte; der Fokus bleibt. Aus der Mitte hätte das Mitlaufen allein sie zurückgesetzt, und die reduzierte Bewegung des Prüfstands springt; so blieben zwei Mutanten zuerst grün; der Tab-Stopp gerendert;
+  - Ende auf der ersten Portion (im selben Rückruf, also zwischen zwei Portionen) rendert und fokussiert die letzte Fensterzeile, nie die Seite; der Fokus bleibt über das Füllen; keine Taste erreicht das Jog-Mapping;
+  - ein Filterwechsel und ein neues Programm zwischen zwei Portionen: keine Zeile der alten Liste bleibt.
+- Mutationen `l_*` (Bereichsregeln) und `v_*` (Sim-Tab, im Browser), darunter `v_no_spacers`, jetzt rot.
+- **Ein Fehler meiner Mutationsläufe, behoben:** R162s eine Browser-Regel (`v_stage_watch_early`) lief in R164 und im ersten R165-Lauf im zweiten Arbeitsbaum **neben** den Browser-Regeln des ersten. Beide Playwright-Läufe teilen :4173/:4174, einer prüft dann den Build des anderen; im ersten R165-Lauf blieb sie so grün. Jetzt laufen die Unit-Sätze nebeneinander und jede Browser-Regel allein.
+
+### Benannt
+
+- Die erste Ankunft unter Tasten hat jetzt keine lange Aufgabe; ihre Tastenverzögerung liegt bei etwa 40 ms. Den Rest trägt die veröffentlichende Scheibe selbst, nicht die Liste.
+- Die Abstandszeilen nehmen den Zeilenabstand je Dichte einmal; ändert sich die Schriftgröße bei gleicher Dichte, passen sie erst nach dem nächsten Messen (eine neue Sitzung des Panels). Jede Zeile ist eine Zeile hoch (die Beschreibung mit Auslassung), so trägt ein Abstand alle.
+- Mehr als 8 Formen je Spalte: die längsten bleiben (die Zeilen haben eine Handvoll: „L…“, „entry“, „mm:ss“).
+- `LT_KEYS=1` drückt Shift wiederholt (Keydown und Keyup je Schleifendurchlauf), es hält Shift nicht gedrückt. In R164 hatte ich „durchgehend gedrückt“ geschrieben — das war falsch.
+- Weiter offen: der Programmwechsel (68–71 ms, außerhalb 3.6), die Abnahme am Browser-PC und dort eine Tastaturlatenz-Messung.
+
+## Review R165 · Codex · Portionsweise Sim-Liste und VP-I120 · 17. Oktober 2026
+
+**Geprüft:** `2f60ec1a..8b2044b7` auf `feat/step4-p2b`, nicht gemergt, sowie die angepassten Abschnitte 3.6/4.4 im Plan des Live-Baums. **Ergebnis: findings. VP-I120 ist für den geprüften Stand behoben; offen ist VP-I121 zur Tab-Erreichbarkeit während des Füllens.** Die Daten gemeinsam zu veröffentlichen und ihr DOM in begrenzten Portionen aufzubauen ist angenommen. Keine Operator-Entscheidung erforderlich.
+
+### VP-I120: eigene Leistungsabnahme grün
+
+Die bisherigen vier Datenformen am Budget, mit wiederholten Shift-Drücken und jetzt ausdrücklich **bis zur vollständig gerenderten Liste** gemessen:
+
+| Erste Ankunft | Wandzeit bis zum fertigen Aufbau | gemeldete Aufgaben über 50 ms | größte gemessene Shift-Verzögerung |
+|---|---:|---:|---:|
+| viele Paare | 0,887 s | 0 | 38 ms |
+| eine große Gruppe | 0,702 s | 0 | 40 ms |
+| `widePair` | 0,712 s | 0 | 38 ms |
+| `wideDecimal` | 0,710 s | 0 | 40 ms |
+
+Das **unveränderte R164-Auswertungsskript ist grün**. Auch Update, Rückfall und Neuaufbau melden im Tastenlauf keine lange Aufgabe; Rückfall/Neuaufbau dauern bis 7,355 s, die gezählten Phasenschritte bis 8,0 ms. Ohne Tasten braucht die Dezimalform 0,303 / 1,644 s für Ankunft/Rückfall, ohne lange Aufgabe, mit höchstens 27 ms Mausverzögerung. [Abnahme](viewer-palette-fest.r165.codex-acceptance.json), [Messauszug](viewer-palette-fest.r165.codex-browser-summary.json), [Tasten-Rohdaten](viewer-palette-fest.r165.codex-browser-keys.json), [ohne Tasten](viewer-palette-fest.r165.codex-browser-pointer.json).
+
+Die separat benannte Grenze beim Programmwechsel bleibt bestehen: in dieser Probe zwei lange Aufgaben bis **73 ms**, außerhalb 3.6. Die Messungen hier ersetzen keine Abnahme am Browser-PC und prüfen keine reale Maschinenbefehlslatenz. „Keine gemeldete lange Aufgabe“ bedeutet keine Überschreitung der Beobachterschwelle, nicht null Rechenzeit.
+
+### VP-I121 · P2 · Während des Füllens kann jeder Tab-Stopp der Liste fehlen
+
+**Stellen:** `SimPanel.vue:160–163,275–281,527–528` und `simListRange.ts:79`. `rowStop` wird aus der **ganzen** Fensterliste gewählt. `nextRange` lässt bei weit getrennten Ankern dagegen den Fokusanker gewinnen und verwirft dabei den Bereich um diesen Tab-Stopp. Alle tatsächlich gerenderten `.rowPick` tragen dann `tabindex="-1"`. Der Schutz der fokussierten Zeile in `admitRow` ist richtig, ersetzt aber keinen Tab-Stopp.
+
+**Reproduktion:** 1000 Kollisionen, 400er-Fenster am Anfang; Fokus auf Eintrag 200, ohne ihn als gezeigten Eintrag auszuwählen. Ein neues Ergebnis ersetzt die Ereignisschlüssel durch `5000 + k`. Der Fokus geht korrekt auf `C0|5200|0`, die erste Portion liegt um ihn; der reguläre Tab-Stopp `C0|5000|0` liegt weit davor. Von 40 bis 360 gerenderten Zeilen gibt es **keinen** Tab-Stopp der Liste, erst bei 400 wieder einen. Gemessen über etwa **138 ms im Desktop und 135 ms im Hochformat**; das Fokusziel selbst bleibt durchgehend korrekt.
+
+Das hat eine überprüfte Bedienauswirkung: Von „Help: Timeline list“ führt die echte Tab-Taste während des Füllens auf den automatisch fokussierbaren **Scrollbereich**, die nächste schon auf einen Button außerhalb der Liste. Nach dem Füllen führt dieselbe erste Tab-Taste korrekt auf `C0|5000|0`. Somit werden die Listeneinträge in diesem Zeitraum in der normalen Tabfolge übersprungen. Kein Verlust des bereits gehaltenen Zeilenfokus und kein Jog daraus behauptet. [Frame-Daten Desktop](viewer-palette-fest.r165.codex-focus-desktop.json), [Hochformat](viewer-palette-fest.r165.codex-focus-touch-portrait.json), [echte Tab-Tasten](viewer-palette-fest.r165.codex-tab.json), [Gegenprobe](viewer-palette-fest.r165.codex-focus.viewer.spec.ts), [rote Ausgabe](viewer-palette-fest.r165.codex-probes-browser.txt).
+
+**Korrekturziel:** Auch bei getrennten Fokus-/Auswahlankern jederzeit genau einen erreichbaren Eintrag behalten, ohne den gehaltenen Fokus zu entfernen oder den ganzen Zwischenraum sofort aufzubauen. Beispielsweise den gerenderten Fokusanker vorübergehend zum Tab-Stopp machen, solange der reguläre noch fehlt; sobald dieser gerendert ist, wieder nach der normalen Regel zuordnen, ohne den Fokus zu verschieben. Alternativ den regulären Tab-Stopp zusätzlich begrenzt rendern. Dazu eine Prüfung **zwischen** den Portionen mit voneinander getrenntem Fokus und gezeigtem/nächstem Eintrag. Der neue vorhandene Test prüft den Tab-Stopp erst nach `complete()`; sein Mittelfall klickt den Fokusanker vorher an und führt beide Anker zusammen. Damit deckt er diesen Fall nicht ab.
+
+### Geometrie und benannte Grenze
+
+Die vorhandenen Wächter für Spalten, Abstandszeilen, Start in der Mitte und erste sichtbare Messung nach einem verborgenen Tab bestehen. Zusätzliche eigene Mittelfälle bei **von Anfang an 150 % CSS-Zoom** bestehen im Desktop und im Touch-Hochformat: Tabellenhöhe höchstens 1 px Abweichung, feste Spalten, Referenzlage weniger als 0,2 px Unterschied.
+
+Eine zusätzliche Probe macht die Grenze des nur nach Dichte gespeicherten Zeilenabstands sichtbar: erst bei 100 % messen, dann die im Prüfstand verwendete **CSS-Zoom-Emulation** auf 150 % ändern und eine neue Liste füllen. Die Scrollhöhe schrumpft zwischen erstem gemessenem Frame und Vollständigkeit von **10223 auf 10117 px**; die Referenzkoordinate ändert sich um etwa 53 px. `rowHFor` in `SimPanel.vue:316–335` wird dabei nicht erneuert. Die Geometrie-Assertion ist entsprechend rot. Das konkretisiert die bereits benannte Cache-Grenze; es ist **kein Nachweis eines Fehlers bei nativem Browserzoom** und wird hier nicht als weiterer blockierender Befund geführt. Bei einer späteren Größen-/Schriftänderung den Abstand erneut an der begrenzten sichtbaren Portion bestimmen. [Messauszug](viewer-palette-fest.r165.codex-probe-summary.json), [Zoomwechsel-Rohdaten](viewer-palette-fest.r165.codex-geometry-zoom-change.json).
+
+### Prüfstand und Übergabe
+
+Eigener Build grün, **62/62 gezielte Unit-Prüfungen**, **9/9 vorhandene Browser-Wächter**, **4/4 Leistungsabläufe mit Tasten** und **1/1 ohne Tasten**. Eigene sechs Browserproben: zwei Geometriefälle grün, drei Fälle zu VP-I121 rot, die zusätzliche CSS-Zoom-Cache-Probe rot. Das sind getrennte Aussagen, kein pauschal grünes Gate. Claudes vollständiges Gate und Mutationsbelege gelesen, nicht vollständig wiederholt; der benannte OOM des Mutanten `p_view_dirties` ist dabei kein Assertion-Nachweis.
+
+Alle Ausführungen niedrig priorisiert in `/tmp/codex-r165-l2uqdqzs/repo`, Browser allein auf `127.0.0.1:4188`. **380 Produktquelldateien** stimmen mit `8b2044b7` überein. Im Live-Baum nur dieser Anhang und neue `r165.codex-*`-Belege; vorhandene Belege und Plan unverändert, keine Produktänderung, keine Live-Ports und keine realen Maschinenbefehle. [Reproduktion](viewer-palette-fest.r165.codex-reproduce.md), [Manifest](viewer-palette-fest.r165.codex-manifest.json).

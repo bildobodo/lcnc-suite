@@ -1,0 +1,20 @@
+[2m[WebServer] [22m(node:703940) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 9 tests using 1 worker
+
+(node:703952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:703952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/sim-panel.viewer.spec.ts:108:1 › a long list is a window: 400 rows, the count and the steps reach every target, one mark per column (plan 4.4) (2.7s)
+  ✓  2 e2e/sim-panel.viewer.spec.ts:243:1 › a long list fills in portions: the first at once, the rest a portion a frame — the height and the columns never move (Codex R164 VP-I120) (2.6s)
+  ✓  3 e2e/sim-panel.viewer.spec.ts:256:1 › the spacers' row height is measured where the rows are seen — never in a hidden tab (3.5s)
+  ✓  4 e2e/sim-panel.viewer.spec.ts:302:1 › between the portions: the keys reach a row not yet rendered, a filter change and a new program begin anew, nothing stale stays (Codex R164 VP-I120) (3.2s)
+  ✓  5 e2e/sim-panel.viewer.spec.ts:336:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (4.5s)
+  ✓  6 e2e/sim-panel.viewer.spec.ts:413:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (2.7s)
+  ✓  7 e2e/sim-panel.viewer.spec.ts:466:1 › a result change under the focus keeps it in the panel; no arrow jogs (2.5s)
+  ✓  8 e2e/sim-panel.viewer.spec.ts:630:1 › the list follows the position: the marked row stays in the middle of its view (1.9s)
+  ✓  9 e2e/sim-panel.viewer.spec.ts:671:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (4.0s)
+
+  9 passed (28.4s)

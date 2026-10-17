@@ -1,0 +1,19 @@
+8b2044b7 The first-measurement guard: the shown row off the middle, the list gliding
+== build
+✓ built in 5.46s
+== keys 1 e2e/zz_codex_lt.viewer.spec.ts e2e/zz_codex_ro.viewer.spec.ts 13:45:51 up 111763.89
+  4 passed (58.8s)
+   acceptance 1: green
+== keys 1 e2e/zz_codex_lt.viewer.spec.ts e2e/zz_codex_ro.viewer.spec.ts 13:46:50 up 111823.12
+  4 passed (59.6s)
+   acceptance 2: green
+== keys 1 e2e/zz_codex_lt.viewer.spec.ts e2e/zz_codex_ro.viewer.spec.ts 13:47:50 up 111883.11
+  4 passed (59.8s)
+   acceptance whole: green
+== keys 0 e2e/zz_codex_lt.viewer.spec.ts e2e/zz_codex_ro.viewer.spec.ts 13:48:50 up 111943.30
+  4 passed (37.4s)
+== keys 0 e2e/zz_longtask5.viewer.spec.ts e2e/zz_longtask6.viewer.spec.ts 13:49:28 up 111981.07
+  7 passed (53.0s)
+== keys 1 e2e/zz_longtask5.viewer.spec.ts e2e/zz_longtask6.viewer.spec.ts 13:50:21 up 112034.48
+  7 passed (1.2m)
+== end 13:51:37 up 112109.71

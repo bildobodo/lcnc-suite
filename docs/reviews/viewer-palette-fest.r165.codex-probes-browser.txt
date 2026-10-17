@@ -1,0 +1,116 @@
+[2m[WebServer] [22m(node:704412) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 6 tests using 1 worker
+
+(node:704424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:704424) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/codex-r165-focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row desktop (2.6s)
+(node:704530) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:704530) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/codex-r165-focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row touch-portrait (2.7s)
+(node:704626) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:704626) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/codex-r165-focus.viewer.spec.ts:162:48 › R165 middle portion geometry touch-portrait zoom150 (2.7s)
+  ✓  4 e2e/codex-r165-focus.viewer.spec.ts:162:48 › R165 middle portion geometry desktop zoom150 (2.5s)
+  ✘  5 e2e/codex-r165-focus.viewer.spec.ts:170:1 › R165 real Tab reaches a row in the filling list (2.7s)
+(node:704782) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:704782) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 e2e/codex-r165-focus.viewer.spec.ts:202:1 › R165 changing zoom after the first row-pitch measurement (3.0s)
+
+
+  1) e2e/codex-r165-focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row desktop 
+
+    Error: the list has one rendered tab stop at every portion
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      158 |   expect(data.length).toBeGreaterThan(2);
+      159 |   expect(data.every((x:any)=>x.active==='C0|5200|0'),'focus preserved at every portion').toBe(true);
+    > 160 |   expect(data.every((x:any)=>x.stops.length===1),'the list has one rendered tab stop at every portion').toBe(true);
+          |                                                                                                         ^
+      161 | });
+      162 | for (const vp of ['touch-portrait','desktop']) test(`R165 middle portion geometry ${vp} zoom150`,async ({page,context})=>{
+      163 |   await prepare(page,context,vp,PREVIEW,false);
+        at /tmp/codex-r165-l2uqdqzs/repo/lcnc-webui/e2e/codex-r165-focus.viewer.spec.ts:160:105
+
+    Error Context: test-results/codex-r165-focus.viewer-R1-d3754-lected-tab-stop-row-desktop/error-context.md
+
+  2) e2e/codex-r165-focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row touch-portrait 
+
+    Error: the list has one rendered tab stop at every portion
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+      158 |   expect(data.length).toBeGreaterThan(2);
+      159 |   expect(data.every((x:any)=>x.active==='C0|5200|0'),'focus preserved at every portion').toBe(true);
+    > 160 |   expect(data.every((x:any)=>x.stops.length===1),'the list has one rendered tab stop at every portion').toBe(true);
+          |                                                                                                         ^
+      161 | });
+      162 | for (const vp of ['touch-portrait','desktop']) test(`R165 middle portion geometry ${vp} zoom150`,async ({page,context})=>{
+      163 |   await prepare(page,context,vp,PREVIEW,false);
+        at /tmp/codex-r165-l2uqdqzs/repo/lcnc-webui/e2e/codex-r165-focus.viewer.spec.ts:160:105
+
+    Error Context: test-results/codex-r165-focus.viewer-R1-82d89-tab-stop-row-touch-portrait/error-context.md
+
+  3) e2e/codex-r165-focus.viewer.spec.ts:170:1 › R165 real Tab reaches a row in the filling list ───
+
+    Error: Tab during filling enters the list too
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeTruthy[2m()[22m
+
+    Received: [31mundefined[39m
+
+      198 |   writeFileSync(`${process.env.R165_OUT}/tab.json`,JSON.stringify({before,after,second,full},null,2));
+      199 |   expect(full.row,'control: after filling, Tab enters the list').toBe('C0|5000|0');
+    > 200 |   expect(after.row,'Tab during filling enters the list too').toBeTruthy();
+          |                                                              ^
+      201 | });
+      202 | test('R165 changing zoom after the first row-pitch measurement',async ({page,context})=>{
+      203 |   await prepare(page,context,'desktop',PREVIEW,false);
+        at /tmp/codex-r165-l2uqdqzs/repo/lcnc-webui/e2e/codex-r165-focus.viewer.spec.ts:200:62
+
+    Error Context: test-results/codex-r165-focus.viewer-R1-d5f5f-s-a-row-in-the-filling-list/error-context.md
+
+  4) e2e/codex-r165-focus.viewer.spec.ts:202:1 › R165 changing zoom after the first row-pitch measurement 
+
+    Error: after changing zoom with a cached pitch: the table's height at 120 rows
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBeLessThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: <= [32m1[39m
+    Received:    [31m14[39m
+
+      91 |   expect(f.frames.length, `${what}: a portion a frame`).toBeGreaterThanOrEqual(4);
+      92 |   for (const fr of f.frames.slice(1)) {
+    > 93 |     expect(Math.abs(fr.h - f.frames[0]!.h), `${what}: the table's height at ${fr.n} rows`).toBeLessThanOrEqual(1);
+         |                                                                                            ^
+      94 |     expect(fr.w, `${what}: the columns at ${fr.n} rows`).toBe(f.frames[0]!.w);
+      95 |     expect(fr.y, `${what}: the first portion's place at ${fr.n} rows`).not.toBeNull();
+      96 |     expect(Math.abs(fr.y! - f.frames[0]!.y!), `${what}: the first portion's place at ${fr.n} rows`).toBeLessThanOrEqual(1);
+        at expectStillFill (/tmp/codex-r165-l2uqdqzs/repo/lcnc-webui/e2e/codex-r165-focus.viewer.spec.ts:93:92)
+        at midFill (/tmp/codex-r165-l2uqdqzs/repo/lcnc-webui/e2e/codex-r165-focus.viewer.spec.ts:120:3)
+        at /tmp/codex-r165-l2uqdqzs/repo/lcnc-webui/e2e/codex-r165-focus.viewer.spec.ts:206:9
+
+    Error Context: test-results/codex-r165-focus.viewer-R1-5a4ed-first-row-pitch-measurement/error-context.md
+
+  4 failed
+    e2e/codex-r165-focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row desktop 
+    e2e/codex-r165-focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row touch-portrait 
+    e2e/codex-r165-focus.viewer.spec.ts:170:1 › R165 real Tab reaches a row in the filling list ────
+    e2e/codex-r165-focus.viewer.spec.ts:202:1 › R165 changing zoom after the first row-pitch measurement 
+  2 passed (17.9s)

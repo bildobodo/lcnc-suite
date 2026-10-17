@@ -1,0 +1,42 @@
+{
+  "rows": [
+    {
+      "shape": "many pairs",
+      "wallMs": 732,
+      "longestTaskMs": 0,
+      "longTasks": 0,
+      "keyDelayMaxMs": 38,
+      "taskWithin50ms": true,
+      "keyWithin50ms": true
+    },
+    {
+      "shape": "one pair",
+      "wallMs": 732,
+      "longestTaskMs": 0,
+      "longTasks": 0,
+      "keyDelayMaxMs": 37,
+      "taskWithin50ms": true,
+      "keyWithin50ms": true
+    },
+    {
+      "shape": "widePair",
+      "wallMs": 621,
+      "longestTaskMs": 0,
+      "longTasks": 0,
+      "keyDelayMaxMs": 37,
+      "taskWithin50ms": true,
+      "keyWithin50ms": true
+    },
+    {
+      "shape": "wideDecimal",
+      "wallMs": 683,
+      "longestTaskMs": 0,
+      "longTasks": 0,
+      "keyDelayMaxMs": 38,
+      "taskWithin50ms": true,
+      "keyWithin50ms": true
+    }
+  ],
+  "allFirstArrivalTasksWithin50ms": true,
+  "allSampledKeysWithin50ms": true
+}
