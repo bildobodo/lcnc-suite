@@ -191,6 +191,10 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
     };
     const v = view([one(0, false, NaN)], [one(1, true, 8)], 10, { heldCoverage: [3] });
     expect(list(v).map(t => [t.key, (t.kind & T_RAPID) !== 0])).toEqual([["C0|0|0", true]]);
+    // ...its bounds the contact's, as the newer generation alone has them
+    const alone = buildContactView({ sources: [{ stores: [one(1, true, 8)], at: c => c, ownCoverage: 10 }], pairName: names, coverage: 100 });
+    expect(list(v).map(t => [t.pos, t.end])).toEqual([[1, 8]]);
+    expect(list(v).map(t => [t.pos, t.end])).toEqual(list(alone).map(t => [t.pos, t.end]));
     // the other way round: an earlier rapid stays rapid
     const w = view([one(0, true, NaN)], [one(1, false, 8)], 10, { heldCoverage: [3] });
     expect(list(w).map(t => (t.kind & T_RAPID) !== 0)).toEqual([true]);

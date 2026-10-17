@@ -12,7 +12,7 @@ import { runSweepSlice } from "./sweepPump";
 import { clashTargets } from "./clashTargets";
 import { ContactStore, EP_AT_START, EP_RAPID, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE, IV_RAPID, NONE } from "./contactStore";
 import { boxPositions as boxAt } from "./collisionFixtures";
-import { buildContactView, startTargets, targetKey, targetKind, T_AT_START, T_RAPID } from "./contactView";
+import { buildContactView, startTargets, targetEnd, targetKey, targetKind, targetPos, T_AT_START, T_RAPID } from "./contactView";
 
 /** A store's intervals as plain rows (step 4 package 2). */
 const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (_, k) => ({
@@ -224,6 +224,11 @@ describe("sweepCollisions", () => {
     expect(union.n, "one contact").toBe(1);
     expect(targetKey(union, 0), "the earlier key").toBe(targetKey(buildContactView({ sources: [{ stores: [held], ownCoverage: heldCoverage, at: c => c }], pairName, coverage: end }), 0));
     expect(targetKind(union, 0) & T_RAPID, "touched on the rapid").toBe(T_RAPID);
+    // its bounds the contact's, as the newer generation alone has them
+    const alone = buildContactView({ sources: [{ stores: [current], ownCoverage: end, at: c => c }], pairName, coverage: end });
+    expect(alone.n).toBe(1);
+    expect([targetPos(union, 0), targetEnd(union, 0)], "the contact's bounds").toEqual([targetPos(alone, 0), targetEnd(alone, 0)]);
+    expect(targetEnd(union, 0) - targetPos(union, 0), "over the drag").toBeGreaterThan(3);
   });
 
   it("the contact store bisects no exit across a jump (step 4 package 2, plan 2.2)", () => {
