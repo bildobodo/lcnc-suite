@@ -3,7 +3,7 @@
 // frame until every row is there, a far row a portion of its own, a list that
 // moved by a few rows at once.
 import { describe, expect, it } from "vitest";
-import { FIRST_ROWS, STEP_ROWS, admit, grow, isComplete, nextRange, widestOf } from "./simListRange";
+import { FIRST_ROWS, SIZER_SHAPES, STEP_ROWS, admit, grow, isComplete, nextRange, sizerTexts, widestOf } from "./simListRange";
 
 const keys = (n: number, from = 0) => Array.from({ length: n }, (_, i) => `k${from + i}`);
 const none = new Set<string>();
@@ -45,6 +45,16 @@ describe("the rows rendered in portions (Codex R164 VP-I120)", () => {
     expect(r).toEqual({ lo: 100, hi: 260 });
   });
 
+  it("a few rows kept — one shown row of an otherwise new list: a whole first portion around them, never one row between spacers", () => {
+    const n = 400, keys0 = keys(n, 5000);
+    keys0[200] = "k200";
+    const r = nextRange(new Set(keys(n)), keys0, [200, 200, 200]);
+    expect(r).toEqual({ lo: 200 - FIRST_ROWS / 2, hi: 200 + FIRST_ROWS / 2 });
+    const top = keys(n, 5000);
+    top[0] = "k0";
+    expect(nextRange(new Set(keys(n)), top, []), "at the list's top").toEqual({ lo: 0, hi: FIRST_ROWS });
+  });
+
   it("a portion a frame — half on each side, the rest to the side with rows left — until every row is there", () => {
     const n = 400;
     let r = { lo: 160, hi: 240 }, frames = 0;
@@ -72,10 +82,31 @@ describe("the rows rendered in portions (Codex R164 VP-I120)", () => {
     expect(admit(r, n, 400), "not a row").toBe(r);
   });
 
-  it("the sizer row: the widest line, time and move of the whole window", () => {
-    expect(widestOf([{ lineLabel: "L7", at: "0:01", rapid: null }, { lineLabel: "L12345", at: "12:34", rapid: false }, { lineLabel: "entry", at: "0:00", rapid: true }]))
-      .toEqual({ line: "L12345", at: "12:34", move: "Rapid" });
-    expect(widestOf([{ lineLabel: "L1", at: "1 %", rapid: false }])).toEqual({ line: "L1", at: "1 %", move: "Feed" });
-    expect(widestOf([])).toEqual({ line: "", at: "", move: "" });
+  it("the sizer row: every shape of the window's values with each digit in all its places, both moves", () => {
+    const w = widestOf([{ lineLabel: "L7", at: "0:01", rapid: null }, { lineLabel: "L12345", at: "12:34", rapid: false }, { lineLabel: "entry", at: "0:00", rapid: true }]);
+    expect(w.line).toEqual(["L00000", "L11111", "L22222", "L33333", "L44444", "L55555", "L66666", "L77777", "L88888", "L99999", "entry",
+      "L0", "L1", "L2", "L3", "L4", "L5", "L6", "L7", "L8", "L9"]);
+    expect(w.at.slice(0, 2), "the longest shape first").toEqual(["00:00", "11:11"]);
+    expect(w.at).toHaveLength(20);
+    expect(w.move, "both words where both moves are listed").toEqual(["Feed", "Rapid"]);
+    expect(widestOf([{ lineLabel: "L1", at: "1 %", rapid: false }])).toEqual({ line: [..."0123456789"].map(d => `L${d}`), at: [..."0123456789"].map(d => `${d} %`), move: ["Feed"] });
+    expect(widestOf([])).toEqual({ line: [], at: [], move: [] });
+  });
+
+  it("a value of a shape is never wider than the shape with its widest digit everywhere", () => {
+    // per-glyph widths as hinting rounds them: the digits apart
+    const glyph: Record<string, number> = { "0": 8, "1": 7, "2": 8, "3": 8, "4": 8, "5": 8, "6": 8, "7": 7, "8": 8, "9": 8, ":": 3, "L": 7 };
+    const width = (t: string) => [...t].reduce((a, c) => a + glyph[c]!, 0);
+    const values = ["00:01", "00:04", "11:17", "L4", "L12", "L300", "07:59"];
+    const texts = sizerTexts(values);
+    for (const v of values) expect(Math.max(...texts.map(width)), v).toBeGreaterThanOrEqual(width(v));
+    // the longest value is not the widest one — the old rule took "00:01" for "00:04"
+    expect(width("00:04")).toBeGreaterThan(width("00:01"));
+  });
+
+  it("many shapes: the longest kept", () => {
+    const texts = sizerTexts(Array.from({ length: 20 }, (_, i) => "x".repeat(i + 1)));
+    expect(texts).toHaveLength(SIZER_SHAPES);
+    expect(texts[0]).toBe("x".repeat(20));
   });
 });

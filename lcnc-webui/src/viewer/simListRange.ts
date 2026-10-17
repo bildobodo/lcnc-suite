@@ -59,7 +59,8 @@ export function grow(r: ListRange, n: number): ListRange {
  *    before (a window that moved by a few rows while playing): every row;
  *  - else the rows rendered before keep their place (from the first to the
  *    last of them in the new list) when at most a portion of new rows lies
- *    between them; else a first portion around the first anchor;
+ *    between them — at least a first portion around them; else a first
+ *    portion around the first anchor;
  *  - the anchors admitted, the first one last of all (it decides where a far
  *    range goes). */
 export function nextRange(rendered: ReadonlySet<string>, keys: readonly string[], anchors: readonly number[]): ListRange {
@@ -70,21 +71,44 @@ export function nextRange(rendered: ReadonlySet<string>, keys: readonly string[]
   if (n - kept <= STEP_ROWS) return { lo: 0, hi: n };
   const valid = anchors.filter(a => a >= 0 && a < n);
   let r: ListRange = lo >= 0 && (hi - lo) - kept <= STEP_ROWS ? { lo, hi } : around(n, valid[0] ?? 0);
+  // a few rows kept (one shown row of an otherwise new list): a whole first
+  // portion around them — a frame of one row between empty spacers otherwise
+  if (r.hi - r.lo < FIRST_ROWS) {
+    const a = around(n, (r.lo + r.hi - 1) >> 1);
+    r = { lo: Math.min(r.lo, a.lo), hi: Math.max(r.hi, a.hi) };
+  }
   for (let k = valid.length - 1; k >= 0; k--) r = admit(r, n, valid[k]!);
   return r;
 }
 
-/** The widest value of each column that takes its width from its rows (one
- *  line each): the sizer row renders them, so the columns have the width of
- *  the whole window from the first portion on. By length — the line and the
- *  time are monospace, the move one of two words. */
-export function widestOf(rows: ReadonlyArray<{ lineLabel: string; at: string; rapid: boolean | null }>): { line: string; at: string; move: string } {
-  let line = "", at = "", move = "";
-  for (const r of rows) {
-    if (r.lineLabel.length > line.length) line = r.lineLabel;
-    if (r.at.length > at.length) at = r.at;
-    if (r.rapid === true) move = "Rapid";
-    else if (r.rapid === false && !move) move = "Feed";
+/** At most this many shapes per column in the sizer row (the longest kept). */
+export const SIZER_SHAPES = 8;
+
+/** The texts the sizer row stacks in one column so the column is as wide as
+ *  any of `values`: every distinct SHAPE (each digit a placeholder) with each
+ *  digit in all its places. A text is as wide as its glyphs, so the shape
+ *  with the widest digit everywhere is at least as wide as any value of that
+ *  shape — whichever digit the font makes widest: hinting rounds even the
+ *  tabular figures apart ("1" 7 px, "0" 8 px at 11 px in Chromium on Linux),
+ *  so the longest value was not always the widest. Past SIZER_SHAPES shapes
+ *  the longest are kept (the rows hold a handful: "L…", "entry", "mm:ss"). */
+export function sizerTexts(values: Iterable<string>): string[] {
+  const shapes = new Set<string>();
+  for (const v of values) if (v) shapes.add(v.replace(/[0-9]/g, "#"));
+  const kept = [...shapes].sort((a, b) => b.length - a.length || (a < b ? -1 : a > b ? 1 : 0)).slice(0, SIZER_SHAPES);
+  const out: string[] = [];
+  for (const sh of kept) {
+    if (!sh.includes("#")) out.push(sh);
+    else for (let d = 0; d <= 9; d++) out.push(sh.replace(/#/g, String(d)));
   }
-  return { line, at, move };
+  return out;
+}
+
+/** The sizer row's texts of each column that takes its width from its rows
+ *  (one line each): it renders them, so the columns have the width of the
+ *  whole window from the first portion on. */
+export function widestOf(rows: ReadonlyArray<{ lineLabel: string; at: string; rapid: boolean | null }>): { line: string[]; at: string[]; move: string[] } {
+  const moves = new Set<string>();
+  for (const r of rows) if (r.rapid != null) moves.add(r.rapid ? "Rapid" : "Feed");
+  return { line: sizerTexts(rows.map(r => r.lineLabel)), at: sizerTexts(rows.map(r => r.at)), move: [...moves].sort() };
 }

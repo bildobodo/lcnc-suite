@@ -162,29 +162,78 @@ test("a long list is a window: 400 rows, the count and the steps reach every tar
  *  any frame), then every frame's rows, table height and column widths until
  *  the list is complete; `onFirst` runs at the first appearance, between the
  *  first portion and the next. */
-async function watchFill(page: Page, onFirst: string | null = null) {
-  await page.evaluate(onFirst => {
-    const w = window as unknown as Record<string, unknown> & { __fill: { first: number | null; frames: Array<{ n: number; h: number; w: string }>; ran: unknown } };
-    w.__fill = { first: null, frames: [], ran: null };
+interface Fill { first: number | null; ref: string | null; frames: Array<{ n: number; h: number; w: string; y: number | null; at: number | null }>; ran: unknown }
+/** Every frame from the first rendered row of a new list until it is
+ *  complete: the rows rendered, the table's height, the column widths, where
+ *  the first portion's first row (`ref`) lies in the table's content
+ *  (scroll-free: it must never move while the portions arrive) and where row
+ *  `track` stands on screen. */
+async function watchFill(page: Page, onFirst: string | null = null, track: string | null = null) {
+  await page.evaluate(([onFirst, track]) => {
+    const w = window as unknown as Record<string, unknown> & { __fill: Fill };
+    w.__fill = { first: null, ref: null, frames: [], ran: null };
     const f = w.__fill;
-    const count = () => document.querySelectorAll(".simPanel tbody tr[data-sim-row]").length;
+    const trs = () => [...document.querySelectorAll(".simPanel tbody tr[data-sim-row]")];
+    const count = () => trs().length;
+    // a NEW list: its first row not on screen before (a list already there
+    // changes its nodes for other reasons — a readout, a shown row)
+    const before = new Set(trs().map(t => t.getAttribute("data-sim-row")));
     const mo = new MutationObserver(() => {
-      if (f.first !== null || !count()) return;
+      if (f.first !== null || !trs().some(t => !before.has(t.getAttribute("data-sim-row")))) return;
       f.first = count();
+      f.ref = document.querySelector(".simPanel tbody tr[data-sim-row]")!.getAttribute("data-sim-row");
       mo.disconnect();
       if (onFirst) f.ran = new Function(onFirst)();
       const frame = () => {
         const sc = document.querySelector<HTMLElement>(".simTable");
-        if (sc) f.frames.push({ n: count(), h: sc.scrollHeight, w: [...sc.querySelectorAll("thead th")].map(th => th.getBoundingClientRect().width.toFixed(1)).join(",") });
+        const tr = sc?.querySelector(`tr[data-sim-row="${f.ref}"]`), tt = track ? sc?.querySelector(`tr[data-sim-row="${track}"]`) : null;
+        if (sc) f.frames.push({ n: count(), h: sc.scrollHeight, w: [...sc.querySelectorAll("thead th")].map(th => th.getBoundingClientRect().width.toFixed(1)).join(","),
+                                y: tr ? tr.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop : null,
+                                at: tt ? tt.getBoundingClientRect().top - sc.getBoundingClientRect().top : null });
         if (sc?.dataset.listComplete !== "1" || f.frames.length < 2) requestAnimationFrame(frame);
       };
       requestAnimationFrame(frame);
     });
     mo.observe(document.querySelector(".simPanel")!, { childList: true, subtree: true });
-  }, onFirst);
+  }, [onFirst, track] as const);
 }
-const fillOf = (page: Page) => page.evaluate(() => (window as unknown as { __fill: { first: number | null; frames: Array<{ n: number; h: number; w: string }>; ran: unknown } }).__fill);
+const fillOf = (page: Page) => page.evaluate(() => (window as unknown as { __fill: Fill }).__fill);
+/** A fill that kept the table still: the first portion, never the whole
+ *  window; then in every frame the height (±1 px), the columns and the first
+ *  portion's place. */
+function expectStillFill(f: Fill, what: string) {
+  expect(f.first, `${what}: the first portion, never the whole window at once`).toBe(FIRST_ROWS);
+  expect(f.frames.length, `${what}: a portion a frame`).toBeGreaterThanOrEqual(4);
+  for (const fr of f.frames.slice(1)) {
+    expect(Math.abs(fr.h - f.frames[0]!.h), `${what}: the table's height at ${fr.n} rows`).toBeLessThanOrEqual(1);
+    expect(fr.w, `${what}: the columns at ${fr.n} rows`).toBe(f.frames[0]!.w);
+    expect(fr.y, `${what}: the first portion's place at ${fr.n} rows`).not.toBeNull();
+    expect(Math.abs(fr.y! - f.frames[0]!.y!), `${what}: the first portion's place at ${fr.n} rows`).toBeLessThanOrEqual(1);
+  }
+}
 const complete = (page: Page) => expect(page.locator(".simPanel .simTable[data-list-complete='1']")).toHaveCount(1);
+/** A first portion in the MIDDLE of the window — around the 200th row, which
+ *  holds the focus (shown, then reached the keyboard's way), when a new result
+ *  brings new rows: the focus goes to the row now at its place (R78), the
+ *  first portion around it, and the rows above are a spacer of their height
+ *  from the first frame on — the portion stands where its rows will stand and
+ *  nothing moves while the rest arrives. */
+async function midFill(page: Page, what: string) {
+  const shown = page.locator('.simPanel [data-sim-row="C0|200|0"]');
+  await shown.click();
+  await expect(shown).toHaveClass(/shownRow/);
+  await shown.locator(".rowPick").focus();
+  await expect(shown.locator(".rowPick")).toBeFocused();
+  await complete(page);
+  await watchFill(page);
+  await hits(page, 1000, 5000);
+  await complete(page);
+  const mid = await fillOf(page), keys = await rowKeys(page);
+  expect(keys.length).toBe(400);
+  await expect(page.locator(`.simPanel [data-sim-row="${keys[200]}"] .rowPick`), `${what}: the focus on the row now at its place`).toBeFocused();
+  expect(keys.indexOf(mid.ref), `${what}: the first portion begins below the window's first row`).toBeGreaterThanOrEqual(FIRST_ROWS);
+  expectStillFill(mid, what);
+}
 /** n collisions in timeline order — on line 5 up to the 300th, then on line
  *  30: the later portions bring a wider line label (the columns must not
  *  move for it). */
@@ -198,15 +247,43 @@ test("a long list fills in portions: the first at once, the rest a portion a fra
   await hits(page, 1000);
   await complete(page);
   await expect(rows(page)).toHaveCount(400);
-  const f = await fillOf(page);
-  expect(f.first, "the first portion, never the whole window at once").toBe(FIRST_ROWS);
-  expect(f.frames.length, "a portion a frame").toBeGreaterThanOrEqual(4);
-  for (const fr of f.frames.slice(1)) {
-    expect(Math.abs(fr.h - f.frames[0]!.h), `the table's height at ${fr.n} rows`).toBeLessThanOrEqual(1);
-    expect(fr.w, `the columns at ${fr.n} rows`).toBe(f.frames[0]!.w);
-  }
+  expectStillFill(await fillOf(page), "from the top");
   // the tab stop is a rendered row from the first portion on, and the first row is it
   expect(await rows(page).first().locator(".rowPick").getAttribute("tabindex")).toBe("0");
+  await midFill(page, "in the middle");
+});
+
+test("the spacers' row height is measured where the rows are seen — never in a hidden tab", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  // another side tab in front: a long list fills while the Sim tab is hidden
+  // (its boxes are all 0 there — a pitch of 0 kept for the session laid every
+  // later portion at the table's top)
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".simPanel")).toBeHidden();
+  await hits(page, 1000);
+  await complete(page);
+  await simShow(page, "clash");
+  // the first measurement where the rows are seen: a new result that keeps
+  // only the shown row — a whole first portion around it (never the one row
+  // between empty spacers), the spacers at the measured height before the
+  // shown row's place on screen is kept, which it keeps in every frame
+  const key = "C0|200|0", shown = page.locator(`.simPanel [data-sim-row="${key}"]`);
+  await shown.click();
+  await expect(shown).toHaveClass(/shownRow/);
+  await shown.locator(".rowPick").focus();
+  await complete(page);
+  let last = NaN;
+  const yOf = () => shown.evaluate(tr => tr.getBoundingClientRect().top - tr.closest(".simTable")!.getBoundingClientRect().top);
+  await expect.poll(async () => { const y = await yOf(); const still = y === last; last = y; return still; }, { intervals: [200] }).toBe(true);
+  await watchFill(page, null, key);
+  await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
+    Array.from({ length: n }, (_, k) => ({ line: k < 300 ? 5 : 30, frac: 0.01 + (0.98 * k) / n, ordinal: k === 200 ? 200 : 5000 + k }))) ?? false, 1000)).toBe(true);
+  await complete(page);
+  const f = await fillOf(page), keys = await rowKeys(page);
+  expect(keys.indexOf(f.ref), "the first portion around the shown row").toBe(keys.indexOf(key) - FIRST_ROWS / 2);
+  expectStillFill(f, "after a fill in a hidden tab");
+  for (const fr of f.frames) expect(Math.abs(fr.at! - last), `the shown row's place on screen at ${fr.n} rows`).toBeLessThanOrEqual(1);
+  await expect(shown.locator(".rowPick")).toBeFocused();
 });
 
 test("between the portions: the keys reach a row not yet rendered, a filter change and a new program begin anew, nothing stale stays (Codex R164 VP-I120)", async ({ page, context }) => {

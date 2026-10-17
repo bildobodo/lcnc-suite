@@ -238,8 +238,9 @@ watch(renders, () => { shownBefore = simView.window.before; }, { flush: "post" }
 // and 30 ms of style and layout, one 60–64 ms task under key input. The first
 // portion holds the row with the focus, the row the focus was on (its place
 // in the whole list) and the tab stop; spacers of the rows' height hold the
-// table's height and the rows' places; a sizer row of the window's widest
-// line, time and move holds the columns' widths. Every change of the rows
+// table's height and the rows' places; a sizer row of every shape of the
+// window's lines and times, each digit in all its places, and both moves holds
+// the columns' widths. Every change of the rows
 // begins anew (a pending portion of an older list never lands).
 const range = ref<ListRange>({ lo: 0, hi: 0 });
 const renderedRows = computed(() => rows.value.slice(range.value.lo, range.value.hi));
@@ -307,6 +308,34 @@ function glideStep() {
   if (done) glide = null;
   else glideRaf = requestAnimationFrame(glideStep);
 }
+// The spacers' row height: the rows' pitch measured while a portion is out —
+// a layout of at most the first portion — once per density (cached). Never
+// in a hidden tab: there every box is 0, and a 0 kept for the session laid
+// every later portion at the table's top. Set on the scroller at once, so a
+// reader in the same flush (the marked row's place, below) sees the spacers.
+let rowHFor: { touch: boolean; h: number } | null = null;
+const rowH = ref(0);
+function measureRowH() {
+  const sc = scroller.value;
+  if (!sc || listComplete.value) return;
+  const touch = document.documentElement.classList.contains("touch-device");
+  if (rowHFor?.touch !== touch) {
+    // the rows' pitch: from the portion's second row to its last (a collapsed
+    // rule is shared — one row's own box is not the distance to the next; the
+    // first row meets a spacer, which has no rule: half a rule off, 6 px over
+    // 360 rows)
+    const trs = sc.querySelectorAll<HTMLElement>("tr[data-sim-row]");
+    if (!trs.length || !sc.clientHeight) return;
+    const n = trs.length, a = trs[Math.min(1, n - 1)]!.getBoundingClientRect(), b = trs[n - 1]!.getBoundingClientRect();
+    const h = (n > 2 ? (b.top - a.top) / (n - 2) : a.height) / cssZoomOf(sc);
+    if (!(h > 0)) return;
+    rowHFor = { touch, h };
+  }
+  rowH.value = rowHFor.h;
+  sc.style.setProperty("--sim-row-h", `${rowHFor.h}px`);
+}
+// (below `scroller`: an immediate watch reads it at once)
+watch(range, measureRowH, { flush: "post", immediate: true });
 const rowEl = (sc: HTMLElement, key: string) => sc.querySelector<HTMLElement>(`tr[data-sim-row="${CSS.escape(key)}"]`);
 function follow(animate: boolean) {
   const sc = scroller.value, key = marked.value;
@@ -362,6 +391,7 @@ function followSoon() {
 watch([marked, rows], () => {
   // the marked row rendered — unless that would drop the focused row: it then
   // comes with the portions, and the list follows once it is whole
+  measureRowH();   // the spacers before the marked row's place is read
   if (marked.value) admitRow(rows.value.findIndex(r => r.key === marked.value), focusedIndex());
   restoreAnchor();
   followSoon();
@@ -373,24 +403,6 @@ watch(scroller, (el, old) => {
   if (old) sized?.unobserve(old);
   if (el) sized?.observe(el);
 });
-// The spacers' row height: one row measured while a portion is out — a
-// layout of at most the first portion — once per density (cached). (Below
-// `scroller`: an immediate watch reads it at once.)
-let rowHFor: { touch: boolean; h: number } | null = null;
-const rowH = ref(0);
-watch(range, () => {
-  const sc = scroller.value;
-  if (!sc || listComplete.value) return;
-  const touch = document.documentElement.classList.contains("touch-device");
-  if (rowHFor?.touch === touch) { rowH.value = rowHFor.h; return; }
-  // the rows' pitch: first to last row of the portion (a collapsed rule is
-  // shared — one row's own box is not the distance to the next)
-  const trs = sc.querySelectorAll<HTMLElement>("tr[data-sim-row]");
-  if (!trs.length) return;
-  const a = trs[0]!.getBoundingClientRect(), b = trs[trs.length - 1]!.getBoundingClientRect();
-  rowHFor = { touch, h: (trs.length > 1 ? (b.top - a.top) / (trs.length - 1) : a.height) / cssZoomOf(sc) };
-  rowH.value = rowHFor.h;
-}, { flush: "post", immediate: true });
 onUnmounted(() => { sized?.disconnect(); cancelAnimationFrame(glideRaf); cancelAnimationFrame(followRaf); });
 
 /** The panel itself, holding a parked focus, keeps the navigation keys —
@@ -495,10 +507,11 @@ function onRootKey(e: KeyboardEvent) {
             <tr><td colspan="5" class="text-muted">{{ simView.window.before }} earlier</td></tr>
           </tbody>
           <tbody>
-            <!-- the widest line, time and move of the whole window: the columns' widths from the first portion on -->
+            <!-- every shape of the window's lines and times with each digit, both moves: the columns' widths from the first portion on -->
             <tr class="sizerRow" aria-hidden="true">
-              <td class="colKind"></td><td class="colLine mono">{{ widest.line }}</td><td class="colWhat"></td>
-              <td class="colMove">{{ widest.move }}</td><td class="colAt mono">{{ widest.at }}</td>
+              <td class="colKind"></td><td class="colLine mono"><span v-for="t in widest.line" :key="t" class="sizerText">{{ t }}</span></td><td class="colWhat"></td>
+              <td class="colMove"><span v-for="t in widest.move" :key="t" class="sizerText">{{ t }}</span></td>
+              <td class="colAt mono"><span v-for="t in widest.at" :key="t" class="sizerText">{{ t }}</span></td>
             </tr>
             <tr v-if="range.lo > 0" class="listSpacer" aria-hidden="true"><td colspan="5" :style="{ height: `calc(var(--sim-row-h) * ${range.lo})` }"></td></tr>
             <tr v-for="r in renderedRows" :key="r.key" :data-sim-row="r.key" :data-sim-at="r.kind === 'clash' ? `${r.key[0]}${r.line}` : r.key"
@@ -565,6 +578,7 @@ function onRootKey(e: KeyboardEvent) {
    and gives the columns the window's widest values; a spacer is the height of
    the rows not yet rendered (no padding, no rule — its height is theirs). */
 .sizerRow { visibility: collapse; }
+.sizerText { display: block; }
 .listSpacer { pointer-events: none; }
 .listSpacer td { padding: 0; border-bottom: 0; }
 tbody tr[data-sim-row] { cursor: pointer; }
