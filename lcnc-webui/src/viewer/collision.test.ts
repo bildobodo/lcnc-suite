@@ -12,7 +12,7 @@ import { runSweepSlice } from "./sweepPump";
 import { clashTargets } from "./clashTargets";
 import { ContactStore, EP_AT_START, EP_RAPID, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE, IV_RAPID, NONE } from "./contactStore";
 import { boxPositions as boxAt } from "./collisionFixtures";
-import { buildContactView, startTargets, targetKey, targetKind, T_AT_START } from "./contactView";
+import { buildContactView, startTargets, targetKey, targetKind, T_AT_START, T_RAPID } from "./contactView";
 
 /** A store's intervals as plain rows (step 4 package 2). */
 const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (_, k) => ({
@@ -200,6 +200,30 @@ describe("sweepCollisions", () => {
     // the same drag on a feed: no rapid anywhere
     const [, F] = sweepT(model, track([[0, 0, 0], [0, 0, -43], [3, 0, -43], [3, 0, 0]], undefined, [6, 7, 8, 9], [0, 0, 0, 0]), WCS0, { margin: 2 });
     expect(F.of("spindle", "vise")[0]!.ivs[0]!.flags & IV_RAPID).toBe(0);
+  });
+
+  it("Codex R168 VP-I122 with real sweeps: a generation stopped after the feed, the next over the rapid drag — the union is one contact, a rapid's", () => {
+    // the drag of the move-kind test above: L7 feeds into the vise, L8 drags
+    // on a rapid, L9 lifts; the earlier generation stops once its feed
+    // contact is written (open, no rapid yet), the next sweeps the whole track
+    const t = track([[0, 0, 0], [0, 0, -43], [3, 0, -43], [3, 0, 0]], undefined, [6, 7, 8, 9], [0, 0, 1, 0]);
+    const held = new ContactStore(1, 0), current = new ContactStore(1, 1);
+    let clock = 0;
+    const it = sweepCollisionsIter(buildCollisionModel(PLUNGE, PLUNGE_BODIES), t, WCS0, { margin: 2, contacts: { store: held }, yieldMs: 0, clock: () => ++clock });
+    let step = it.next(), steps = 0;
+    while (!step.done && !held.intervals.rows && steps++ < 10000) step = it.next();
+    expect(step.done, "stopped while the contact is open").toBe(false);
+    expect(held.intervals.get(0, "flags") & IV_RAPID, "no rapid yet").toBe(0);
+    const heldCoverage = (step.value as number) * t.cum[t.count - 1]!;
+    const m = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
+    sweepCollisions(m, t, WCS0, { margin: 2, contacts: { store: current } });
+    expect(current.intervals.get(0, "flags") & IV_RAPID).toBe(IV_RAPID);
+    const end = t.cum[t.count - 1]!;
+    const pairName = (p: number) => ({ a: m.bodies[m.pairs[p]![0]]!.id, b: m.bodies[m.pairs[p]![1]]!.id });
+    const union = buildContactView({ sources: [{ stores: [current], held: [held], heldCoverage: [heldCoverage], ownCoverage: end, at: c => c }], pairName, coverage: end });
+    expect(union.n, "one contact").toBe(1);
+    expect(targetKey(union, 0), "the earlier key").toBe(targetKey(buildContactView({ sources: [{ stores: [held], ownCoverage: heldCoverage, at: c => c }], pairName, coverage: end }), 0));
+    expect(targetKind(union, 0) & T_RAPID, "touched on the rapid").toBe(T_RAPID);
   });
 
   it("the contact store bisects no exit across a jump (step 4 package 2, plan 2.2)", () => {

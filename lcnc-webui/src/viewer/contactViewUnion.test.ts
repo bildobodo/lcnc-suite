@@ -181,6 +181,26 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
     expect(list(v).map(t => (t.kind & T_RAPID) !== 0)).toEqual([true, false, true]);
   });
 
+  it("Codex R168 VP-I122: a contact the earlier generation held open on a feed, the newer one saw touch on a rapid — one event, its key kept, a rapid's", () => {
+    const one = (g: number, rapid: boolean, end: number) => {
+      const st = new ContactStore(1, g, REQUEST_BUDGET);
+      const ep = st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 1, end, closeAt: 1, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 1, exit: end,
+        flags: IV_ENTER_DECIDED | (Number.isNaN(end) ? 0 : IV_EXIT_DECIDED) | (rapid ? IV_RAPID : 0), next: NONE, witness: 1.5, freeAt: NaN, freeR: 0 }));
+      return st;
+    };
+    const v = view([one(0, false, NaN)], [one(1, true, 8)], 10, { heldCoverage: [3] });
+    expect(list(v).map(t => [t.key, (t.kind & T_RAPID) !== 0])).toEqual([["C0|0|0", true]]);
+    // the other way round: an earlier rapid stays rapid
+    const w = view([one(0, true, NaN)], [one(1, false, 8)], 10, { heldCoverage: [3] });
+    expect(list(w).map(t => (t.kind & T_RAPID) !== 0)).toEqual([true]);
+    // a SEPARATE event of the pair (apart by a decided free sample) lends the other nothing, later or earlier
+    const two = (g: number, first: boolean) => gen(g, [{ pair: 0, enter: 1, exit: 2, freeAt: 2.5, freeR: 0.2, flags: D | (first ? IV_RAPID : 0) },
+                                                       { pair: 0, enter: 3, exit: 4, flags: D | (first ? 0 : IV_RAPID) }]);
+    expect(list(view([two(0, false)], [two(1, false)])).map(t => (t.kind & T_RAPID) !== 0)).toEqual([false, true]);
+    expect(list(view([two(0, true)], [two(1, true)])).map(t => (t.kind & T_RAPID) !== 0)).toEqual([true, false]);
+  });
+
   it("Codex R151 VP-I113: two old contacts a tool gap apart stay two after an empty rerun — a wide gap and a point gap, both keys, the second selectable and navigable", () => {
     const empty = gen(1, []);
     for (const [label, s0, e0] of [["a wide gap", 1, 3], ["a point gap", 1, 1]] as const) {
@@ -323,6 +343,10 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
       console.log(`[B4 union budget] one pair holding the budget: targets ${v.n}, held ${(heldBytes(v) / 1e6).toFixed(2)} MB after the queries`);
       expect(heldBytes(v), "the queries hold nothing more").toBe(before);
       expect(heldBytes(v)).toBeLessThanOrEqual(LIMIT);
+      // every block index the union builds is in its term (Codex R168 VP-I122 added the fourth)
+      let blocks = 0;
+      for (const u of v.indexes) for (const g of u.gens) blocks += g.free.byteLength + g.freePrev.byteLength + g.notPossible.byteLength + g.rapid.byteLength;
+      expect(blocks, "the block indexes within derivationBound's term").toBeLessThanOrEqual(terms.blockIndexes!);
     }
     for (const [name, shift, free] of [["the same contacts twice", 0, false], ["shifted, every free sample cutting", 0.5, true]] as const) {
       const t0 = performance.now();

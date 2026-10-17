@@ -255,8 +255,10 @@ interface UnionGen {
    *  contact (`notPossible`) — their count: the blocks (Codex R158 VP-I115:
    *  a search for either stepped over every interval without). After a
    *  fallback's walk, `free` and `freePrev` count only the samples whose
-   *  stretch the union keeps (`freeHeld`). */
-  free: Uint32Array; notPossible: Uint32Array;
+   *  stretch the union keeps (`freeHeld`). `rapid`: one whose move is a
+   *  rapid's (`rapidMove` — a piece's move kind from every interval it holds,
+   *  Codex R168 VP-I122). */
+  free: Uint32Array; notPossible: Uint32Array; rapid: Uint32Array;
   /** Per block, the last block up to it holding an interval with a free
    *  sample (NO_BLOCK: none) — the free sample before a point (a key's piece,
    *  Codex R159 VP-I115). */
@@ -293,6 +295,14 @@ function prevOf(prev: Uint32Array, k: number, start: number, test: (k: number) =
     for (const stop = Math.max(start, b * BLOCK); k >= stop; k--) if (test(k)) return k;
   }
   return start - 1;
+}
+
+/** An interval's move is a rapid's: a touch of it fell on one (IV_RAPID), or
+ *  — its episode's first — the margin was entered on one (R168). */
+function rapidMove(t: TableIndex, row: number): boolean {
+  if (rd(t.c.flags, row) & IV_RAPID) return true;
+  const ep = rd(t.c.episode, row);
+  return (rd(t.c.epFlags, ep) & EP_RAPID) !== 0 && t.st.episodes.get(ep, "firstIv") === row;
 }
 
 /** The first position from k (below end) of a generation's index whose
@@ -740,17 +750,25 @@ function* unionIndex(tables: Tables, src: number, withSeps: boolean, c: Ops): St
     const col = (k: number, cn: "freeAt" | "freeR") => { const r = uIdx[k]!; return rd(tableAt(tables, r).c[cn], rowOf(r)); };
     const r = yield* unionReachSteps(n, k => ent[order[k]!]!, k => col(k, "freeAt"), k => col(k, "freeR"), (k, k2) => grp[order[k]!] === grp[order[k2]!], c);
     // the block indexes: which blocks hold one, then from the last back the next that does
-    const nb = Math.ceil(n / BLOCK), notPossible = allocU32(nb + 1);
+    const nb = Math.ceil(n / BLOCK), notPossible = allocU32(nb + 1), rapid = allocU32(nb + 1);
     for (let k = 0; k < n; k++) {
       const ref = uIdx[k]!, t = tableAt(tables, ref), row = rowOf(ref), b = (k / BLOCK) | 0;
       if (!(rd(t.c.flags, row) & IV_POSSIBLE)) notPossible[b] = 1;
-      if (++c.n >= STEP_OPS) { c.n = 0; yield; }
+      if (rapidMove(t, row)) rapid[b] = 1;
+      if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
     }
-    let np = nb;
+    let np = nb, nr = nb;
     notPossible[nb] = nb;
-    for (let b = nb - 1; b >= 0; b--) { if (notPossible[b]) np = b; notPossible[b] = np; if (++c.n >= STEP_OPS) { c.n = 0; yield; } }
+    rapid[nb] = nb;
+    for (let b = nb - 1; b >= 0; b--) {
+      if (notPossible[b]) np = b;
+      notPossible[b] = np;
+      if (rapid[b]) nr = b;
+      rapid[b] = nr;
+      if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
+    }
     // any free sample — after a fallback the walk narrows it to the ones that hold
-    const g: UnionGen = { uIdx, back: r.back, front: r.front, free: allocU32(nb + 1), notPossible, freePrev: allocU32(nb + 1),
+    const g: UnionGen = { uIdx, back: r.back, front: r.front, free: allocU32(nb + 1), notPossible, rapid, freePrev: allocU32(nb + 1),
                           comp: allocU32(withSeps ? n : 0), freeHeld: false, local: false };
     yield* freeBlocks(g, k => !Number.isNaN(col(k, "freeAt")), c);
     return g;
@@ -808,6 +826,11 @@ interface PieceInfo {
    *  any generation, whatever else the piece holds). */
   aux: boolean;
   possible: boolean;
+  /** One interval it holds — of either generation — is a rapid's move
+   *  (rapidMove): its move kind, whichever interval names it (VP-I122).
+   *  Asked at a query only (pieceFacts): the build's description leaves it
+   *  false — what the build counts (countKind) reads no move kind. */
+  rapid: boolean;
   /** It ends where an open interval of it runs to its coverage. */
   openEnd: boolean;
   /** The joined base rows whose enter it holds (their continuation's end). */
@@ -835,7 +858,7 @@ function* describePieceSteps(tables: Tables, u: UnionIndex, los: readonly [numbe
 function describer(tables: Tables, u: UnionIndex, los: readonly [number, number], piece: UnionPiece, joined: Uint32Array,
                    onRow: (r: number) => void):
     { row: (sd: number, k: number, holdsStart: boolean) => void; done: () => PieceInfo } {
-  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, openEnd: false, joinedHere: [] };
+  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: true, possible: true, rapid: false, openEnd: false, joinedHere: [] };
   let leadEnter = Infinity, heirW = Infinity;
   const inside = (x: number) => (x > piece.start || (x === piece.start && !piece.startOpen)) && (x < piece.end || (x === piece.end && !piece.endOpen));
   return {
@@ -962,7 +985,7 @@ function decodePiece(v: ContactView, ref: number): PieceCtx {
  *  build) a question reads — not its `aux` (which list a target is in says
  *  that) nor its joined rows (the build's reach). */
 function pieceFacts(v: ContactView, u: UnionIndex, g: GroupCtx, piece: UnionPiece): PieceInfo {
-  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: false, possible: true, openEnd: false, joinedHere: [] };
+  const info: PieceInfo = { piece, lead: -1, heir: -1, aux: false, possible: true, rapid: false, openEnd: false, joinedHere: [] };
   const los = [g.r0[0], g.r1[0]] as const;
   const range = (sd: number): [number, number] => (sd === 0 ? [piece.from0, piece.to0] : [piece.from1, piece.to1]);
   const refAt = (sd: number, k: number) => u.gens[sd]!.uIdx[los[sd]! + k]!;
@@ -989,6 +1012,9 @@ function pieceFacts(v: ContactView, u: UnionIndex, g: GroupCtx, piece: UnionPiec
       const r = gen.uIdx[a]!;
       return !(rd(tableAt(v.tables, r).c.flags, rowOf(r)) & IV_POSSIBLE);
     }) < lo + to) info.possible = false;
+    // one interval a rapid's move: the piece's kind (VP-I122), by the block index
+    if (!info.rapid && nextOf(gen.rapid, lo + from, lo + to, a => { const r = gen.uIdx[a]!; return rapidMove(tableAt(v.tables, r), rowOf(r)); }) < lo + to)
+      info.rapid = true;
     // an open interval ending where the piece ends (the ends rise with enter in a side)
     if (!piece.endOpen && !info.openEnd) {
       let a = from, b = to;
@@ -1015,13 +1041,13 @@ function pieceHoldsRow(v: ContactView, u: UnionIndex, g: GroupCtx, piece: UnionP
 function pieceKindBits(tables: Tables, info: PieceInfo, kind: number, source: ContactSource, reached: boolean): number {
   const rep = info.heir >= 0 ? info.heir : info.lead;
   const t = tableAt(tables, rep), row = rowOf(rep), E = t.st.episodes, ep = t.st.intervals.get(row, "episode");
-  const epFlags = E.get(ep, "flags"), first = E.get(ep, "firstIv") === row, ivFlags = t.st.intervals.get(row, "flags");
+  const epFlags = E.get(ep, "flags"), first = E.get(ep, "firstIv") === row;
   let bits = 0;
   if (info.possible) bits |= T_POSSIBLE;
   const begun = info.heir >= 0 || kind === START_ENTER;
   if (!first || !begun) bits |= T_REENTRY;
   if (first && begun && (epFlags & EP_AT_START)) bits |= T_AT_START;
-  if ((ivFlags & IV_RAPID) || (first && (epFlags & EP_RAPID))) bits |= T_RAPID;
+  if (info.rapid) bits |= T_RAPID;
   if (info.openEnd && !reached) bits |= T_OPEN;
   if (source.entry) { bits |= T_ENTRY; if (onEntryMove(source, info.piece.start)) bits |= T_ENTRY_MOVE; }
   return bits;
@@ -2187,7 +2213,8 @@ export function derivationBound(main: StoreBudget, side: StoreBudget | null): { 
     add("episodes", ref * 2 * b.episodes + 16);
     add("unionIndex", 4 * 2 * b.intervals);
     add("componentEnds", 4 * 2 * b.intervals);
-    add("blockIndexes", 3 * 4 * 2 * (Math.ceil(b.intervals / BLOCK) + 1));
+    // free, freePrev, notPossible and rapid (Codex R168 VP-I122), each generation
+    add("blockIndexes", 4 * 4 * 2 * (Math.ceil(b.intervals / BLOCK) + 1));
     add("gapIndex", 20 * 2 * b.gaps);
     add("separators", 8 * 2 * b.gaps);
     add("nearMatching", 12 * b.episodes);
@@ -2202,7 +2229,7 @@ export function derivationBound(main: StoreBudget, side: StoreBudget | null): { 
 export function heldBytes(v: ContactView): number {
   let n = v.joined.byteLength + v.reachRef.byteLength + v.reachVal.byteLength + v.nearCur.byteLength + v.nearHeld.byteLength;
   for (const u of v.indexes) {
-    for (const g of u.gens) n += g.uIdx.byteLength + g.free.byteLength + g.notPossible.byteLength + g.freePrev.byteLength + g.comp.byteLength;
+    for (const g of u.gens) n += g.uIdx.byteLength + g.free.byteLength + g.notPossible.byteLength + g.rapid.byteLength + g.freePrev.byteLength + g.comp.byteLength;
     n += u.sRef.byteLength;
   }
   n += v.nearByHeld.byteLength;
