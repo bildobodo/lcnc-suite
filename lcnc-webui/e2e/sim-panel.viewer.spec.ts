@@ -162,12 +162,14 @@ test("a long list is a window: 400 rows, the count and the steps reach every tar
  *  any frame), then every frame's rows, table height and column widths until
  *  the list is complete; `onFirst` runs at the first appearance, between the
  *  first portion and the next. */
-interface Fill { first: number | null; ref: string | null; frames: Array<{ n: number; h: number; w: string; y: number | null; at: number | null }>; ran: unknown }
+interface Fill { first: number | null; ref: string | null; ran: unknown;
+  frames: Array<{ n: number; h: number; w: string; y: number | null; at: number | null; stops: Array<string | null>; active: string | null }> }
 /** Every frame from the first rendered row of a new list until it is
  *  complete: the rows rendered, the table's height, the column widths, where
  *  the first portion's first row (`ref`) lies in the table's content
- *  (scroll-free: it must never move while the portions arrive) and where row
- *  `track` stands on screen. */
+ *  (scroll-free: it must never move while the portions arrive), where row
+ *  `track` stands on screen, the rendered rows that are a tab stop and the
+ *  row holding the focus. */
 async function watchFill(page: Page, onFirst: string | null = null, track: string | null = null) {
   await page.evaluate(([onFirst, track]) => {
     const w = window as unknown as Record<string, unknown> & { __fill: Fill };
@@ -184,12 +186,14 @@ async function watchFill(page: Page, onFirst: string | null = null, track: strin
       f.ref = document.querySelector(".simPanel tbody tr[data-sim-row]")!.getAttribute("data-sim-row");
       mo.disconnect();
       if (onFirst) f.ran = new Function(onFirst)();
+      const keyOf = (e: Element | null | undefined) => e?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? null;
       const frame = () => {
         const sc = document.querySelector<HTMLElement>(".simTable");
         const tr = sc?.querySelector(`tr[data-sim-row="${f.ref}"]`), tt = track ? sc?.querySelector(`tr[data-sim-row="${track}"]`) : null;
         if (sc) f.frames.push({ n: count(), h: sc.scrollHeight, w: [...sc.querySelectorAll("thead th")].map(th => th.getBoundingClientRect().width.toFixed(1)).join(","),
                                 y: tr ? tr.getBoundingClientRect().top - sc.getBoundingClientRect().top + sc.scrollTop : null,
-                                at: tt ? tt.getBoundingClientRect().top - sc.getBoundingClientRect().top : null });
+                                at: tt ? tt.getBoundingClientRect().top - sc.getBoundingClientRect().top : null,
+                                stops: [...(sc?.querySelectorAll('.rowPick[tabindex="0"]') ?? [])].map(keyOf), active: keyOf(document.activeElement) });
         if (sc?.dataset.listComplete !== "1" || f.frames.length < 2) requestAnimationFrame(frame);
       };
       requestAnimationFrame(frame);
@@ -299,6 +303,17 @@ test("the spacers' row height is measured where the rows are seen — never in a
   await expect(shown.locator(".rowPick")).toBeFocused();
 });
 
+test("a size change after a list was measured: the next list fills at its own pitch (Codex R165)", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  await simShow(page, "clash");
+  await hits(page, 1000);
+  await complete(page);
+  // the pitch measured at 100 %; then 150 % (the bench's CSS zoom) — a pitch
+  // kept per density shrank the table by 106 px while the next list filled
+  await page.addStyleTag({ content: ":root { zoom: 1.5 }" });
+  await midFill(page, "after a zoom change");
+});
+
 test("between the portions: the keys reach a row not yet rendered, a filter change and a new program begin anew, nothing stale stays (Codex R164 VP-I120)", async ({ page, context }) => {
   await prepare(page, context, "desktop", PREVIEW, false);
   await simShow(page, "clash");
@@ -331,6 +346,45 @@ test("between the portions: the keys reach a row not yet rendered, a filter chan
   await hits(page, 1000, 9000);
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5101, file: "/sim.ngc" } });
   await expect.poll(() => rowKeys(page).then(k => k.filter(x => /^C0\|9\d{3}\|0$/.test(x!)).length), { timeout: 15_000 }).toBe(0);
+});
+
+test("the list keeps ONE tab stop while it fills around a focus far from the regular one — Tab enters it, the focus stays (Codex R165 VP-I121)", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  await simShow(page, "clash");
+  await hits(page, 1000);
+  await complete(page);
+  // the focus on the 200th row — not shown: the tab stop stays the first row
+  await page.locator('.simPanel [data-sim-row="C0|200|0"] .rowPick').focus();
+  await expect(page.locator('.simPanel .rowPick[tabindex="0"]')).toHaveCount(1);
+  expect(await page.locator('.simPanel .rowPick[tabindex="0"]').evaluate(e => e.closest("tr")!.getAttribute("data-sim-row"))).toBe("C0|0|0");
+  // a new result: the focus goes to the row at its place, the first portion
+  // around it — far from the regular tab stop, the new list's first row; at
+  // the first portion the focus goes to the list's help, from where Tab must
+  // enter the list
+  await watchFill(page, `document.querySelector(".simPanel .listHead .helpIcon").focus(); return document.activeElement.getAttribute("aria-label");`);
+  await hits(page, 1000, 5000);
+  // (the list is published in slices after the tables went in: Tab only once
+  // the first portion is there and the help holds the focus)
+  await expect.poll(() => fillOf(page).then(f => f.ran)).toMatch(/^Help: /);
+  await page.keyboard.press("Tab");
+  const tabbed = await page.evaluate(() => ({ row: document.activeElement?.closest("[data-sim-row]")?.getAttribute("data-sim-row") ?? document.activeElement?.className ?? null,
+    filling: document.querySelector<HTMLElement>(".simTable")!.dataset.listComplete !== "1" }));
+  await complete(page);
+  const f = await fillOf(page);
+  expect(f.ran, "the list's help held the focus at the first portion").toMatch(/^Help: /);
+  expect(f.first).toBe(FIRST_ROWS);
+  expect(f.frames.length, "a portion a frame").toBeGreaterThanOrEqual(4);
+  for (const fr of f.frames) expect(fr.stops, `one rendered tab stop at ${fr.n} rows`).toHaveLength(1);
+  const filling = f.frames.filter(fr => fr.n < 400);
+  expect(filling.length, "frames between the portions").toBeGreaterThanOrEqual(3);
+  for (const fr of filling) expect(fr.stops[0], `the row that held the focus is the stop at ${fr.n} rows`).toBe("C0|5200|0");
+  expect(f.frames.at(-1)!.stops, "the regular stop once it is rendered").toEqual(["C0|5000|0"]);
+  expect(tabbed.row, `Tab from the list's help enters the list (${tabbed.filling ? "while it fills" : "after it filled"})`).toMatch(/^C0\|5(000|200)\|0$/);
+  // the focus was never moved for the tab stop: from the row back to the help
+  // and Tab again — now the regular stop
+  await page.locator(".simPanel .listHead .helpIcon").focus();
+  await page.keyboard.press("Tab");
+  await expect(page.locator('.simPanel [data-sim-row="C0|5000|0"] .rowPick')).toBeFocused();
 });
 
 test("a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4)", async ({ page, context }) => {

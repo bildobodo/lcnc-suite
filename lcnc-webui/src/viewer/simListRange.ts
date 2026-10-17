@@ -81,6 +81,19 @@ export function nextRange(rendered: ReadonlySet<string>, keys: readonly string[]
   return r;
 }
 
+/** The list's ONE tab stop among the rendered rows [r.lo, r.hi) of `keys`
+ *  (Codex R165 VP-I121): the regular one (`stop`) once it is rendered; while
+ *  the portions fill around a focus far from it, the row that last held the
+ *  focus (`focused`) if it is rendered, else the rendered row nearest to the
+ *  regular one — never none while a row is rendered. */
+export function renderedStop(r: ListRange, keys: readonly string[], stop: string | null, focused: string | null): string | null {
+  const s = stop ? keys.indexOf(stop) : -1;
+  if (s >= r.lo && s < r.hi) return stop;
+  const f = focused ? keys.indexOf(focused) : -1;
+  if (f >= r.lo && f < r.hi) return focused;
+  return r.hi > r.lo ? keys[Math.max(r.lo, Math.min(r.hi - 1, s))]! : null;
+}
+
 /** At most this many shapes per column in the sizer row (the longest kept). */
 export const SIZER_SHAPES = 8;
 

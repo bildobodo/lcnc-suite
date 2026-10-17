@@ -3,7 +3,7 @@
 // frame until every row is there, a far row a portion of its own, a list that
 // moved by a few rows at once.
 import { describe, expect, it } from "vitest";
-import { FIRST_ROWS, SIZER_SHAPES, STEP_ROWS, admit, grow, isComplete, nextRange, sizerTexts, widestOf } from "./simListRange";
+import { FIRST_ROWS, SIZER_SHAPES, STEP_ROWS, admit, grow, isComplete, nextRange, renderedStop, sizerTexts, widestOf } from "./simListRange";
 
 const keys = (n: number, from = 0) => Array.from({ length: n }, (_, i) => `k${from + i}`);
 const none = new Set<string>();
@@ -80,6 +80,17 @@ describe("the rows rendered in portions (Codex R164 VP-I120)", () => {
     expect(admit(r, n, 0), "Home: far").toEqual({ lo: 0, hi: FIRST_ROWS });
     expect(admit({ lo: 0, hi: 0 }, n, 5), "nothing rendered: a portion around it").toEqual({ lo: 0, hi: FIRST_ROWS });
     expect(admit(r, n, 400), "not a row").toBe(r);
+  });
+
+  it("the tab stop among the rendered rows: the regular one once rendered, else the row that held the focus, else the nearest (Codex R165 VP-I121)", () => {
+    const k = keys(400), mid = { lo: 180, hi: 220 };
+    expect(renderedStop({ lo: 0, hi: 400 }, k, "k0", "k200"), "the regular one, rendered").toBe("k0");
+    expect(renderedStop(mid, k, "k0", "k200"), "far from the focus: the row that held it").toBe("k200");
+    expect(renderedStop(mid, k, "k0", "k390"), "the focused row not rendered: the nearest to the regular one").toBe("k180");
+    expect(renderedStop(mid, k, "k300", null)).toBe("k219");
+    expect(renderedStop(mid, k, null, "gone"), "no regular one, a focus no longer listed").toBe("k180");
+    expect(renderedStop(mid, k, "k190", "k200"), "the regular one rendered wins over the focus").toBe("k190");
+    expect(renderedStop({ lo: 0, hi: 0 }, k, "k0", null), "nothing rendered").toBeNull();
   });
 
   it("the sizer row: every shape of the window's values with each digit in all its places, both moves", () => {

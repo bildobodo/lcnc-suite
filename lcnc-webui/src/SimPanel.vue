@@ -20,7 +20,7 @@ import { cssZoomOf } from "./helpPlacement";
 import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
 import { SIM_FILTER_KINDS, SIM_SPEEDS, simJump, simRows, simStep, simView, type SimFilter } from "./simPanelStore";
 import type { SimRow, SimRowKind } from "./viewer/simRows";
-import { admit, grow, isComplete, nextRange, widestOf, type ListRange } from "./viewer/simListRange";
+import { admit, grow, isComplete, nextRange, renderedStop, widestOf, type ListRange } from "./viewer/simListRange";
 
 const can = usePermissions();
 /** The card before any check (step 4 plan 1c). */
@@ -152,7 +152,8 @@ const shown = (r: SimRow) => r.key === simView.shownKey;
 const isNext = (r: SimRow) => !simView.shownKey && r.key === simView.nextKey;
 
 // ── The rows: a tap shows the finding; the keyboard's way is the row's line
-// (ONE Tab stop — the shown row, else the next, else the first): Enter /
+// (ONE Tab stop — the shown row, else the next, else the first; among the
+// rows rendered so far, `tabStop`): Enter /
 // Space show it, Up / Down / Home / End move the focus. EVERY navigation key
 // is default-prevented, with a modifier too — one that reached the shortcut
 // map would jog (the TabNav rule).
@@ -283,6 +284,17 @@ watch(rows, now => {
 }, { flush: "pre", immediate: true });
 watch(renderedRows, rr => { renderedKeys = new Set(rr.map(r => r.key)); }, { flush: "post", immediate: true });
 onUnmounted(() => cancelAnimationFrame(growRaf));
+// The list's ONE tab stop among the RENDERED rows (Codex R165 VP-I121): the
+// regular one (rowStop) once it is rendered; while the portions fill around a
+// focus far from it, the row that last held the focus, else the rendered row
+// nearest to it — the list never leaves the tab order (Tab used to pass over
+// it to the scroller for ~140 ms), and the focus never moves for it.
+const lastFocused = ref<string | null>(null);
+function onListFocusIn(e: FocusEvent) {
+  const key = (e.target as HTMLElement | null)?.closest<HTMLElement>("[data-sim-row]")?.dataset.simRow;
+  if (key) lastFocused.value = key;
+}
+const tabStop = computed(() => renderedStop(range.value, rows.value.map(r => r.key), rowStop.value, lastFocused.value));
 
 // ── The list FOLLOWS the position (operator 2026-10-06: "like the code
 // panel when the program runs"): the marked row — the shown finding, else
@@ -308,31 +320,30 @@ function glideStep() {
   if (done) glide = null;
   else glideRaf = requestAnimationFrame(glideStep);
 }
-// The spacers' row height: the rows' pitch measured while a portion is out —
-// a layout of at most the first portion — once per density (cached). Never
-// in a hidden tab: there every box is 0, and a 0 kept for the session laid
-// every later portion at the table's top. Set on the scroller at once, so a
-// reader in the same flush (the marked row's place, below) sees the spacers.
-let rowHFor: { touch: boolean; h: number } | null = null;
+// The spacers' row height: the rows' pitch, measured once per LIST that
+// fills in portions, from its first portion — a layout of at most that
+// portion (a pitch kept per density missed a zoom or font change since:
+// Codex R165). Never in a hidden tab: there every box is 0, and a 0 kept for
+// the session laid every later portion at the table's top — a hidden list is
+// measured once it is seen. Set on the scroller at once, so a reader in the
+// same flush (the marked row's place, below) sees the spacers.
+let measuredVer = -1;
 const rowH = ref(0);
 function measureRowH() {
   const sc = scroller.value;
-  if (!sc || listComplete.value) return;
-  const touch = document.documentElement.classList.contains("touch-device");
-  if (rowHFor?.touch !== touch) {
-    // the rows' pitch: from the portion's second row to its last (a collapsed
-    // rule is shared — one row's own box is not the distance to the next; the
-    // first row meets a spacer, which has no rule: half a rule off, 6 px over
-    // 360 rows)
-    const trs = sc.querySelectorAll<HTMLElement>("tr[data-sim-row]");
-    if (!trs.length || !sc.clientHeight) return;
-    const n = trs.length, a = trs[Math.min(1, n - 1)]!.getBoundingClientRect(), b = trs[n - 1]!.getBoundingClientRect();
-    const h = (n > 2 ? (b.top - a.top) / (n - 2) : a.height) / cssZoomOf(sc);
-    if (!(h > 0)) return;
-    rowHFor = { touch, h };
-  }
-  rowH.value = rowHFor.h;
-  sc.style.setProperty("--sim-row-h", `${rowHFor.h}px`);
+  if (!sc || listComplete.value || measuredVer === rangeVer) return;
+  // the rows' pitch: from the portion's second row to its last (a collapsed
+  // rule is shared — one row's own box is not the distance to the next; the
+  // first row meets a spacer, which has no rule: half a rule off, 6 px over
+  // 360 rows)
+  const trs = sc.querySelectorAll<HTMLElement>("tr[data-sim-row]");
+  if (!trs.length || !sc.clientHeight) return;
+  const n = trs.length, a = trs[Math.min(1, n - 1)]!.getBoundingClientRect(), b = trs[n - 1]!.getBoundingClientRect();
+  const h = (n > 2 ? (b.top - a.top) / (n - 2) : a.height) / cssZoomOf(sc);
+  if (!(h > 0)) return;
+  measuredVer = rangeVer;
+  rowH.value = h;
+  sc.style.setProperty("--sim-row-h", `${h}px`);
 }
 // (below `scroller`: an immediate watch reads it at once)
 watch(range, measureRowH, { flush: "post", immediate: true });
@@ -495,7 +506,7 @@ function onRootKey(e: KeyboardEvent) {
       </div>
 
       <div v-if="!rows.length" class="emptyState">{{ total ? "None of this kind." : "No collisions, limit violations or tool changes." }}</div>
-      <div v-else ref="scroller" v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }"
+      <div v-else ref="scroller" v-sticky-head class="simTable dataTable scroll-thin fade-scroll" :class="{ locked: !can.armed }" @focusin="onListFocusIn"
            :style="{ '--sim-row-h': `${rowH}px` }" :data-rendered="`${range.hi - range.lo}/${rows.length}`" :data-list-complete="listComplete ? 1 : 0">
         <table>
           <thead>
@@ -525,7 +536,7 @@ function onRootKey(e: KeyboardEvent) {
               </td>
               <td class="colLine mono">
                 <span class="rowPick" role="button" :aria-label="rowName(r)" :aria-current="shown(r) ? 'true' : undefined"
-                      :tabindex="rowStop === r.key ? 0 : -1" @keydown="onPickKey($event, r)">{{ r.lineLabel }}</span>
+                      :tabindex="tabStop === r.key ? 0 : -1" @keydown="onPickKey($event, r)">{{ r.lineLabel }}</span>
               </td>
               <td class="colWhat" :title="r.note ? `${r.what} · ${r.note}` : r.what">
                 <span class="whatText">{{ r.what }}</span><span v-if="r.rapid != null" class="moveInline text-muted"> · {{ r.rapid ? "Rapid" : "Feed" }}</span><span v-if="r.note" class="text-muted"> · {{ r.note }}</span>
