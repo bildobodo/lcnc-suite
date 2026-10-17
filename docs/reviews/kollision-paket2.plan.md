@@ -108,7 +108,7 @@ Drei Tabellen in Spalten (SoA), in Blöcken zu 4096 Zeilen. Ein Block wird angeh
 | Tabelle | Spalten | Bytes je Zeile |
 |---|---|---|
 | Episode | Paar u32, Nummer u32, Kennzeichen u16, Eintritt f64, Ende f64 (letzte Probe im Rand; NaN = offen), nächste Stelle f64, nächster Abstand f32, erstes Intervall u32, Zahl der Intervalle u32 | 46 |
-| Intervall | Episode u32, Eintritt f64, Austritt f64 (NaN = offen oder ausgesetzt), Kennzeichen u8 (möglich, ausgesetzt, nach Lücke, nach unbekanntem Werkzeug, Eintritt entschieden, Austritt entschieden), nächstes Intervall derselben Episode u32, **Zeuge** f64 (die entdeckende bestätigte Berührungsprobe, 2.2), freie Probe danach f64 und ihr Freiradius f32 (der Trennbeleg nach dem Austritt; NaN = keiner) | 45 |
+| Intervall | Episode u32, Eintritt f64, Austritt f64 (NaN = offen oder ausgesetzt), Kennzeichen u8 (möglich, ausgesetzt, nach Lücke, nach unbekanntem Werkzeug, Eintritt entschieden, Austritt entschieden; seit R168 auch „eine Berührung im Eilgang“ — Bit 128, keine neuen Bytes), nächstes Intervall derselben Episode u32, **Zeuge** f64 (die entdeckende bestätigte Berührungsprobe, 2.2), freie Probe danach f64 und ihr Freiradius f32 (der Trennbeleg nach dem Austritt; NaN = keiner) | 45 |
 | Lücke | Paar u32, Beginn f64, Ende f64 (NaN = offen), Grund u8 | 21 |
 
 Die Intervalle verschachtelter Paare liegen nicht zusammenhängend (A1, B1, A2). Jede Episode verkettet ihre Intervalle deshalb über „nächstes Intervall“ (Hinweis a); die vier Bytes stehen im Budget.
@@ -159,7 +159,7 @@ Weil die Grenzen beim Schreiben schon verfeinert sind, gibt es keine späteren V
 ### 2.3 Sonderfälle, unverändert in der Bedeutung
 
 - **Schneidpaar:** Ein im Vorschub begonnener Kontakt schreibt nichts, ein im Eilgang begonnener eine Episode. Der Eilgang nach einem Vorschubkontakt folgt der heutigen Regel (R87/R88).
-- **Bremsbereich** (`possible`): Ein Intervall, dessen Proben alle im Bereich liegen, ist „möglich“; eine sichere Probe macht es sicher. Ein mögliches Intervall öffnet keine Wiedereintritts-Regel (R126).
+- **Bremsbereich** (`possible`): Ein Intervall, dessen Proben alle im Bereich liegen, ist „möglich“; eine sichere Probe macht es sicher. Ein mögliches Intervall öffnet keine Wiedereintritts-Regel (R126). Eine Vorschubberührung eines Schneidpaars im Bereich schreibt nichts und schaltet nichts stumm: Der Bereich ändert keinen Kontaktzustand, ein Eilgang ins Rohteil danach ist der Befund, der er ist (R168).
 - **Grenzkontakt** eines Bereichs-Checks: eine Episode der Herkunft „Grenze“, offen ab dem Bereichsbeginn. Sie zählt nirgends und endet mit einer bestätigten Trennung; ein Eintritt danach ist ein eigener Befund, wie heute.
 - **`atStart`:** Eine Episode, die an der ersten Pose schon berührt, beginnt bei cum 0 mit dem Kennzeichen.
 - **Unbekanntes Werkzeug und unentscheidbare Innenprüfung:** Wissenslücken nach 1.1.
@@ -382,6 +382,7 @@ Alle Ansichten lesen die Tabellen über **ein** Modul (`viewer/contactView.ts`).
 - Ein **Index** führt sie nach Stelle sortiert als typisierte Felder (Reihenfolge, Art).
 - `findingWords` zählt aus dem Index.
 - Navigation: `targetAfter` / `targetBefore` suchen binär im Index. Der Schlüssel ist die Identität (1.2), nicht mehr die Zeile.
+- **Bewegungsart eines Ziels:** Eilgang, wenn eine Berührung des Intervalls im Eilgang lag oder — beim ersten Intervall der Episode — der Rand im Eilgang betreten wurde; ein Wiedereintritt erbt nie den Randeintritt seiner Episode (R168).
 - „touch“ heißt überall: das Ziel ist ein Berührungsintervall. Die Schwelle 1e-3 der Ansichten neben 1e-4 im Sweep entfällt; es gilt eine Klasse, die des Sweeps.
 
 ### 4.2 Code-Marken
