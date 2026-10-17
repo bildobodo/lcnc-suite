@@ -828,8 +828,9 @@ interface PieceInfo {
   possible: boolean;
   /** One interval it holds — of either generation — is a rapid's move
    *  (rapidMove): its move kind, whichever interval names it (VP-I122).
-   *  Asked at a query only (pieceFacts): the build's description leaves it
-   *  false — what the build counts (countKind) reads no move kind. */
+   *  The walk over the piece's intervals (describer) and the indexed query
+   *  (pieceFacts) both answer it: the walk is what the indexes are held to
+   *  (contactViewIndexed.test). */
   rapid: boolean;
   /** It ends where an open interval of it runs to its coverage. */
   openEnd: boolean;
@@ -868,6 +869,7 @@ function describer(tables: Tables, u: UnionIndex, los: readonly [number, number]
     onRow(r);
     if (!((epFlags & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY || (flags & IV_CONTINUES_CUT))) info.aux = false;
     if (!(flags & IV_POSSIBLE)) info.possible = false;
+    if (!info.rapid && rapidMove(t, row)) info.rapid = true;
     const enter = rd(c.enter, row);
     if (findSorted(joined, r) >= 0 && inside(enter)) info.joinedHere.push(r);
     if (holdsStart && enter < leadEnter) { leadEnter = enter; info.lead = r; }
@@ -2187,10 +2189,11 @@ export function* boundaryStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): St
  *  - the union index: 4 B an interval of both generations; after Codex R158
  *    (VP-I115) the component end the walk writes, 4 B an interval of both
  *    generations — the u32 an interval Codex accepted (for the next free
- *    sample, which is found by blocks instead) — and three block indexes (the
+ *    sample, which is found by blocks instead) — and four block indexes (the
  *    next free sample, the next interval not a possible contact; after R159
- *    the previous free sample): 4 B each a block of 64 positions of a
- *    generation, and one more;
+ *    the previous free sample; after R168 VP-I122 the next interval of a
+ *    rapid's move): 4 B each a block of 64 positions of a generation, and
+ *    one more;
  *  - the gap index: 4 B a gap, 8 B its pair's furthest end so far and, after
  *    Codex R158, 4 B its pair's next tool gap and 4 B the last gap of its
  *    touching stretch; the separators: 8 B one, at most one a gap;

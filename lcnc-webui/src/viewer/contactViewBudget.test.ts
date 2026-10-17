@@ -106,8 +106,9 @@ describe("what a view holds stays within the bound derived from the budgets (Cod
     // u32 an interval accepted), the block indexes 0.07 MB, two u32 a gap
     // 0.29 MB, the episode index 0.59 MB, the near misses' order 0.29 MB;
     // R159: the third block index (the previous free sample) 0.04 MB, the
-    // targets' least and largest jump point per block 0.37 MB
-    expect(bound.bytes, "the derived bound, 14.93 MB").toBe(14_925_968);
+    // targets' least and largest jump point per block 0.37 MB; R168 VP-I122:
+    // the fourth block index (the next interval of a rapid's move) 0.04 MB
+    expect(bound.bytes, "the derived bound, 14.96 MB").toBe(14_962_848);
     expect(bound.terms.componentEnds).toBe(2_359_296);
   });
 
