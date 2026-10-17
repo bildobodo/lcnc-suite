@@ -266,15 +266,27 @@ test("the spacers' row height is measured where the rows are seen — never in a
   // the first measurement where the rows are seen: a new result that keeps
   // only the shown row — a whole first portion around it (never the one row
   // between empty spacers), the spacers at the measured height before the
-  // shown row's place on screen is kept, which it keeps in every frame
+  // shown row's place on screen is kept: it stands where it stood in the
+  // first frame drawn — three rows off the middle, scrolled by hand (the
+  // list follows to the middle; from there the follow alone would put it
+  // back) — and glides to the middle from there
   const key = "C0|200|0", shown = page.locator(`.simPanel [data-sim-row="${key}"]`);
+  // the list glides (openLayout emulates reduced motion, where it snaps), and
+  // the browser's own scroll anchoring is off: the panel keeps the place itself
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addStyleTag({ content: ".simPanel .simTable { overflow-anchor: none; }" });
   await shown.click();
   await expect(shown).toHaveClass(/shownRow/);
   await shown.locator(".rowPick").focus();
   await complete(page);
   let last = NaN;
   const yOf = () => shown.evaluate(tr => tr.getBoundingClientRect().top - tr.closest(".simTable")!.getBoundingClientRect().top);
-  await expect.poll(async () => { const y = await yOf(); const still = y === last; last = y; return still; }, { intervals: [200] }).toBe(true);
+  const settled = () => expect.poll(async () => { const y = await yOf(); const still = Math.abs(y - last) < 0.5; last = y; return still; }, { intervals: [200] }).toBe(true);
+  await settled();
+  const middle = last;
+  await shown.evaluate(tr => { const sc = tr.closest(".simTable")!; sc.scrollTop += 3 * tr.getBoundingClientRect().height; });
+  await settled();
+  expect(middle - last, "three rows off the middle").toBeGreaterThan(60);
   await watchFill(page, null, key);
   await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
     Array.from({ length: n }, (_, k) => ({ line: k < 300 ? 5 : 30, frac: 0.01 + (0.98 * k) / n, ordinal: k === 200 ? 200 : 5000 + k }))) ?? false, 1000)).toBe(true);
@@ -282,7 +294,8 @@ test("the spacers' row height is measured where the rows are seen — never in a
   const f = await fillOf(page), keys = await rowKeys(page);
   expect(keys.indexOf(f.ref), "the first portion around the shown row").toBe(keys.indexOf(key) - FIRST_ROWS / 2);
   expectStillFill(f, "after a fill in a hidden tab");
-  for (const fr of f.frames) expect(Math.abs(fr.at! - last), `the shown row's place on screen at ${fr.n} rows`).toBeLessThanOrEqual(1);
+  expect(Math.abs(f.frames[0]!.at! - last), "the shown row where it stood, in the first frame drawn").toBeLessThanOrEqual(1);
+  await expect.poll(yOf, { message: "then the list glides it to the middle" }).toBeCloseTo(middle, 0);
   await expect(shown.locator(".rowPick")).toBeFocused();
 });
 
