@@ -1,0 +1,33 @@
+
+ RUN  v4.1.8 /tmp/codex-r168-pxyqpr1x/repo/lcnc-webui
+
+ ❯ src/viewer/r168.codex-sweep.test.ts (1 test | 1 failed) 55ms
+   × R168: real sweep continued after fallback keeps the rapid fact with the earlier key 54ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/r168.codex-sweep.test.ts > R168: real sweep continued after fallback keeps the rapid fact with the earlier key
+AssertionError: the continued real contact touched during the rapid: expected +0 to be 64 // Object.is equality
+
+- Expected
++ Received
+
+- 64
++ 0
+
+ ❯ src/viewer/r168.codex-sweep.test.ts:89:94
+     87|   expect(union.n).toBe(1);
+     88|   expect(targetKind(alone,0)&T_RAPID).toBe(T_RAPID);
+     89|   expect(targetKind(union,0)&T_RAPID, "the continued real contact touc…
+       |                                                                                              ^
+     90| });
+     91|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  20:26:37
+   Duration  428ms (transform 216ms, setup 0ms, import 307ms, tests 55ms, environment 0ms)
+

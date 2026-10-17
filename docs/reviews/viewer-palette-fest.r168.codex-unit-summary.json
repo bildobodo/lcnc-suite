@@ -1,0 +1,93 @@
+{
+  "numTotalTests": 292,
+  "numPassedTests": 292,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "success": true,
+  "files": [
+    {
+      "name": "collision.test.ts",
+      "status": "passed",
+      "tests": 126,
+      "seconds": 2.99
+    },
+    {
+      "name": "collisionHorizon.test.ts",
+      "status": "passed",
+      "tests": 1,
+      "seconds": 2.41
+    },
+    {
+      "name": "collisionInside.test.ts",
+      "status": "passed",
+      "tests": 9,
+      "seconds": 0.12
+    },
+    {
+      "name": "collisionOracle.test.ts",
+      "status": "passed",
+      "tests": 16,
+      "seconds": 93.25
+    },
+    {
+      "name": "collisionRange.test.ts",
+      "status": "passed",
+      "tests": 12,
+      "seconds": 0.2
+    },
+    {
+      "name": "collisionRangeOracle.test.ts",
+      "status": "passed",
+      "tests": 4,
+      "seconds": 192.19
+    },
+    {
+      "name": "contactView.test.ts",
+      "status": "passed",
+      "tests": 35,
+      "seconds": 9.98
+    },
+    {
+      "name": "contactViewUnion.test.ts",
+      "status": "passed",
+      "tests": 20,
+      "seconds": 10.42
+    },
+    {
+      "name": "machineGantry.test.ts",
+      "status": "passed",
+      "tests": 10,
+      "seconds": 0.84
+    },
+    {
+      "name": "machineModel.test.ts",
+      "status": "passed",
+      "tests": 1,
+      "seconds": 2.17
+    },
+    {
+      "name": "machineTrsrn.test.ts",
+      "status": "passed",
+      "tests": 12,
+      "seconds": 21.32
+    },
+    {
+      "name": "sweepShards.test.ts",
+      "status": "passed",
+      "tests": 13,
+      "seconds": 149.02
+    },
+    {
+      "name": "toolBasis.test.ts",
+      "status": "passed",
+      "tests": 5,
+      "seconds": 0.11
+    },
+    {
+      "name": "toolChangePayloads.test.ts",
+      "status": "passed",
+      "tests": 28,
+      "seconds": 0.12
+    }
+  ]
+}
