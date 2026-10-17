@@ -1,0 +1,21 @@
+A collapsed sizer row (visibility: collapse) in a border-collapse table with width:1% nowrap columns — the Sim table's structure — measured in Chromium and Firefox (Playwright's builds), without and with the sizer row (it holds 'L1234567' and '123:45', the one real row 'L1' and '0:01'):
+import { chromium, firefox } from "@playwright/test";
+const html = (sizer) => `<style>table{width:400px;border-collapse:collapse} td,th{padding:4px 8px;border-bottom:1px solid #ccc} .w1{width:1%;white-space:nowrap} .what{width:100%;max-width:0;white-space:nowrap;overflow:hidden} .sizer{visibility:collapse}</style>
+<table><thead><tr><th class="w1">K</th><th class="w1" id="line">Line</th><th class="what">What</th><th class="w1" id="at">Time</th></tr></thead>
+<tbody>${sizer ? '<tr class="sizer"><td class="w1"></td><td class="w1">L1234567</td><td class="what"></td><td class="w1">123:45</td></tr>' : ''}
+<tr><td class="w1">x</td><td class="w1">L1</td><td class="what">a</td><td class="w1">0:01</td></tr></tbody></table>`;
+for (const [name, b] of [["chromium", chromium], ["firefox", firefox]]) {
+  const br = await b.launch(); const p = await br.newPage();
+  const out = {};
+  for (const sizer of [false, true]) {
+    await p.setContent(html(sizer));
+    out[sizer ? "with" : "without"] = await p.evaluate(() => ({ line: document.getElementById("line").getBoundingClientRect().width, at: document.getElementById("at").getBoundingClientRect().width, rowH: document.querySelector("tbody tr:last-child").getBoundingClientRect().height, tableH: document.querySelector("table").getBoundingClientRect().height }));
+  }
+  console.log(name, JSON.stringify(out));
+  await br.close();
+}
+
+== result
+chromium {"without":{"line":47.125,"at":51.265625,"rowH":27,"tableH":54},"with":{"line":81.78125,"at":60.453125,"rowH":27,"tableH":54}}
+firefox {"without":{"line":55.15000915527344,"at":61.100006103515625,"rowH":28,"tableH":57},"with":{"line":97.91667175292969,"at":72.30000305175781,"rowH":28,"tableH":57}}
+The sizer row widens both columns and adds no height in either browser.

@@ -1,0 +1,23 @@
+{
+  "before": {
+    "complete": "0",
+    "stops": 0,
+    "active": "SPAN.helpIcon",
+    "time": 2279.7000000029802
+  },
+  "after": {
+    "complete": "0",
+    "active": "DIV.simTable dataTable scroll-thin fade-scroll sf-down sf-up",
+    "time": 2290.9000000059605
+  },
+  "second": {
+    "complete": "0",
+    "active": "BUTTON.b lg default active block safetyBtn",
+    "label": null,
+    "time": 2302
+  },
+  "full": {
+    "active": "SPAN.rowPick",
+    "row": "C0|5000|0"
+  }
+}
