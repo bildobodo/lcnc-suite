@@ -1,0 +1,24 @@
+{
+  "before": {
+    "complete": "0",
+    "stops": 1,
+    "active": "SPAN.helpIcon",
+    "time": 2305
+  },
+  "after": {
+    "complete": "0",
+    "active": "SPAN.rowPick",
+    "row": "C0|5200|0",
+    "time": 2316.1000000089407
+  },
+  "second": {
+    "complete": "0",
+    "active": "BUTTON.b lg default active block safetyBtn",
+    "label": null,
+    "time": 2318.9000000059605
+  },
+  "full": {
+    "active": "SPAN.rowPick",
+    "row": "C0|5000|0"
+  }
+}

@@ -1,0 +1,42 @@
+
+Running 6 tests using 1 worker
+
+  ✓  1 [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row desktop (2.7s)
+  ✓  2 [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:130:48 › R165 focus separate from the selected/tab-stop row touch-portrait (2.8s)
+  ✘  3 [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:162:48 › R165 middle portion geometry touch-portrait zoom150 (30.1s)
+  ✓  4 [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:162:48 › R165 middle portion geometry desktop zoom150 (2.7s)
+  ✓  5 [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:170:1 › R165 real Tab reaches a row in the filling list (2.5s)
+  ✓  6 [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:202:1 › R165 changing zoom after the first row-pitch measurement (2.8s)
+
+
+  1) [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:162:48 › R165 middle portion geometry touch-portrait zoom150 
+
+    Test timeout of 30000ms exceeded.
+
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    Call log:
+      - waiting for getByRole('tab', { name: 'Sim', exact: true })
+
+
+       at simTab.ts:12
+
+      10 | export async function openSimTab(page: Page): Promise<void> {
+      11 |   const tab = page.getByRole("tab", { name: "Sim", exact: true });
+    > 12 |   if (await tab.isVisible()) await tab.click();
+         |                                        ^
+      13 |   else await page.getByRole("combobox", { name: "Side panel" }).selectOption("sim");
+      14 |   await expect(page.locator(".simPanel")).toBeVisible();
+      15 | }
+        at openSimTab (/home/cnc/lcnc-suite-mut/lcnc-webui/e2e/simTab.ts:12:40)
+        at simShow (/home/cnc/lcnc-suite-mut/lcnc-webui/e2e/simTab.ts:19:3)
+        at /home/cnc/lcnc-suite-mut/lcnc-webui/e2e/zz_codex_focus.viewer.spec.ts:165:3
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/zz_codex_focus.viewer-R165-5dd64-etry-touch-portrait-zoom150-serial-viewer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/zz_codex_focus.viewer-R165-5dd64-etry-touch-portrait-zoom150-serial-viewer/error-context.md
+
+  1 failed
+    [serial-viewer] › e2e/zz_codex_focus.viewer.spec.ts:162:48 › R165 middle portion geometry touch-portrait zoom150 
+  5 passed (46.6s)
