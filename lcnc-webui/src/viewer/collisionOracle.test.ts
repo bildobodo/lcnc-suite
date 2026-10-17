@@ -16,7 +16,9 @@
 // collisionBounds.test.ts proves and the library's bounded query — a search
 // tool, not an independent proof (Codex R86); the stepping, the certificates,
 // the in-margin cadence, the records and their refinement are what it
-// checks. A body wholly inside another is a touch too (collision-inside.plan.md
+// checks — in BOTH sinks of the same sweep: the records and the contact
+// tables (step 4 package 2, plan 7.3: the oracle moves to the new model while
+// both sinks write; the records' half goes with them). A body wholly inside another is a touch too (collision-inside.plan.md
 // §5): its truth is the winding number (collisionFixtures.insideTruth — no
 // BVH, no rays, apart from the product's way), and every case also sweeps a
 // track through a pose where one body lies wholly inside another.
@@ -25,8 +27,9 @@ import * as path from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { geometryNote, sweepCollisions, type CollisionHit, type CollisionTrack } from "./collision";
-import { CONTACT, MARGIN, MIN_ADV, generatedCase, insideAt, insidePose, insideTrack, insideTruth, loadShippedModel, randomTrack, rng, shippedCases, trackTruth,
-         type Case, type FixtureFiles } from "./collisionFixtures";
+import { CONTACT, MARGIN, MIN_ADV, generatedCase, inSpans, insideAt, insidePose, insideTrack, insideTruth, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases,
+         tablesByPair, trackTruth, type Case, type FixtureFiles, type PairTables } from "./collisionFixtures";
+import { ContactStore } from "./contactStore";
 import type { CollisionModel } from "./collision";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -79,7 +82,8 @@ function oracleWalk(c: Case, model: CollisionModel, stock: Set<string>,
     insideCases.push(c.name);
   }
   for (const { track, where } of tracks) {
-    const r = sweepCollisions(model, track, WCS0, { margin: MARGIN });
+    const store = new ContactStore(1, 0);
+    const r = sweepCollisions(model, track, WCS0, { margin: MARGIN, contacts: { store } });
     const { poseAt, below, runWide, lineSpan, WIDE } = trackTruth(model, c, track);
     expect(r.truncated, `${where}: swept whole`).toBeNull();
     // certified but for what the model itself cannot promise (a surface
@@ -134,6 +138,9 @@ function oracleWalk(c: Case, model: CollisionModel, stock: Set<string>,
       (h.intervals ?? []).some(([a, b]) => s >= a - TOL && s <= b + TOL)
       || (h.spanCumEnd !== undefined && s >= h.cum - TOL && s <= h.spanCumEnd + TOL));
     const end = track.cum[track.count - 1]!;
+    // the tables: per pair its touch intervals, its stays in the margin,
+    // its witnesses, decided entries and near misses
+    const tabs = tablesByPair(store, end), NO_TABLES: PairTables = { touches: [], stays: [], gaps: [], witnesses: [], enters: [], nears: [], boundary: 0 };
     for (let s = STEP / 2; s < end; s += STEP) {
       if (performance.now() - t0 > BUDGET_MS) expect.fail(`${where}: over the case's budget at s ${s.toFixed(1)} of ${end.toFixed(1)}`);
       const seg = poseAt(s), line = track.lines[seg]!;
@@ -142,20 +149,33 @@ function oracleWalk(c: Case, model: CollisionModel, stock: Set<string>,
         const d = belowMargin(pi);
         const inside = d === null || d > CONTACT ? insideNow(pi) === true : false;
         if (d === null && !inside) continue;
-        const recs = byPair.get(ids(pi)) ?? [];
+        const recs = byPair.get(ids(pi)) ?? [], tab = tabs.get(pi) ?? NO_TABLES;
         const what = `${where} s ${s.toFixed(2)} (L${line}) ${ids(pi)} true ${inside ? "inside" : d!.toFixed(4)}`;
         if (inside || d! <= CONTACT) {
           touches++;
           if (inside) insides++;
-          if (!inInterval(recs, s)) {
-            if (runWide(pi, s, CONTACT * 10, true)) expect.fail(`${what}: a touch wider than ${WIDE} of path outside every contact interval — ${JSON.stringify(recs.map(h => [h.line, h.dist, h.intervals]))}`);
+          const recMiss = !inInterval(recs, s), tabMiss = !inSpans(tab.touches, s, TOL);
+          if (recMiss || tabMiss) {
+            if (runWide(pi, s, CONTACT * 10, true)) {
+              if (recMiss) expect.fail(`${what}: a touch wider than ${WIDE} of path outside every contact interval — ${JSON.stringify(recs.map(h => [h.line, h.dist, h.intervals]))}`);
+              expect.fail(`${what}: a touch wider than ${WIDE} of path outside every touch interval of the tables — ${JSON.stringify(tab.touches)}`);
+            }
             narrow++;
             poseAt(s);
           }
         } else {
           nears++;
-          if (!recs.some(h => h.line === line) && !inInterval(recs, s)) {
-            if (runWide(pi, s, MARGIN, false, lineSpan(seg))) expect.fail(`${what}: inside the margin wider than ${WIDE} of path on its line with no record on it`);
+          // the tables: a stay of the pair reaching into the pose's line (the
+          // records' line-level statement: the stay runs from the sample that
+          // found it to its last sample in the margin), or a touch around it
+          const [l0, l1] = lineSpan(seg);
+          const recMiss = !recs.some(h => h.line === line) && !inInterval(recs, s);
+          const tabMiss = !meetsSpan(tab.stays, l0, l1) && !inSpans(tab.touches, s, TOL);
+          if (recMiss || tabMiss) {
+            if (runWide(pi, s, MARGIN, false, lineSpan(seg))) {
+              if (recMiss) expect.fail(`${what}: inside the margin wider than ${WIDE} of path on its line with no record on it`);
+              expect.fail(`${what}: inside the margin wider than ${WIDE} of path on its line with no stay of the tables reaching it — ${JSON.stringify(tab.stays)}`);
+            }
             narrow++;
             poseAt(s);
           }
@@ -181,6 +201,24 @@ function oracleWalk(c: Case, model: CollisionModel, stock: Set<string>,
         const d = below(A, B, MARGIN + 1e-3);
         expect(d, `${where} L${h.line} ${h.a}/${h.b}: near miss at ${h.cum.toFixed(3)}`).not.toBeNull();
         expect(Math.abs(d! - h.dist), `${where} L${h.line} ${h.a}/${h.b}: near miss ${h.dist} is the true ${d}`).toBeLessThanOrEqual(1e-3);
+      }
+    }
+    // ...and in the tables: every witness and every decided entry touches
+    // (or lies inside), every near miss is as near as it says
+    for (const [pi, tab] of tabs) {
+      const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
+      for (const x of [...tab.witnesses, ...tab.enters]) {
+        poseAt(x);
+        const d = below(A, B, MARGIN);
+        const real = (d !== null && d <= 1e-3) || insideTruth(A, B) === true || insideTruth(B, A) === true;
+        expect(real, `${where} ${ids(pi)}: the tables' touch at ${x.toFixed(3)} touches or lies inside (distance ${d})`).toBe(true);
+        onsets++;
+      }
+      for (const n of tab.nears) {
+        poseAt(n.at);
+        const d = below(A, B, MARGIN + 1e-3);
+        expect(d, `${where} ${ids(pi)}: the tables' near miss at ${n.at.toFixed(3)}`).not.toBeNull();
+        expect(Math.abs(d! - n.dist), `${where} ${ids(pi)}: the tables' near miss ${n.dist} is the true ${d}`).toBeLessThanOrEqual(1e-3);
       }
     }
   }

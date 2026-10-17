@@ -10,13 +10,17 @@
 //      does not exclude;
 //  (d) nothing before h: no record, no interval;
 //  (e) the static exclusions are the program's (the full sweep's).
+// Each in BOTH sinks of the same sweep — the records and the contact tables
+// (step 4 package 2, plan 7.3); in the tables a boundary contact is an
+// episode of origin "boundary", and a cutting one writes nothing there.
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { sweepCollisions, type CollisionHit, type CollisionTrack } from "./collision";
-import { CONTACT, MARGIN, insideAt, insideTruth, loadShippedModel, randomTrack, rng, shippedCases, trackOf, trackTruth,
-  type FixtureFiles } from "./collisionFixtures";
+import { CONTACT, MARGIN, inSpans, insideAt, insideTruth, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases, tablesByPair, trackOf, trackTruth,
+  type FixtureFiles, type PairTables } from "./collisionFixtures";
+import { ContactStore } from "./contactStore";
 
 const ROOT = path.resolve(__dirname, "../../..");
 const TOL = 0.01;
@@ -85,7 +89,7 @@ describe("the range sweep against the brute-force oracle", () => {
       let boundaries = 0, checked = 0;
       for (const { track, where, from } of tracks) {
         const full = fullSweep(track);
-        const { poseAt, below, runWide, WIDE } = trackTruth(model, c, track);
+        const { poseAt, below, runWide, lineSpan, WIDE } = trackTruth(model, c, track);
         const staticPairs = new Set(full.staticContacts.map(sc => [sc.a, sc.b].sort().join("/")));
         const ids = (pi: number) => [model.bodies[model.pairs[pi]![0]]!.id, model.bodies[model.pairs[pi]![1]]!.id].sort().join("/");
         const isCutting = (pi: number) => {
@@ -117,7 +121,10 @@ describe("the range sweep against the brute-force oracle", () => {
         };
         for (const h of from) {
           const hCum = track.cum[h]!;
-          const r = sweepCollisions(model, track, WCS0, { margin: MARGIN, range: { from: h } });
+          const store = new ContactStore(1, 0);
+          const r = sweepCollisions(model, track, WCS0, { margin: MARGIN, range: { from: h }, contacts: { store } });
+          const tabs = tablesByPair(store, track.cum[track.count - 1]!);
+          const NO_TABLES: PairTables = { touches: [], stays: [], gaps: [], witnesses: [], enters: [], nears: [], boundary: 0 };
           const w = `${where} from ${h}`;
           checked++;
           expect(r.truncated, `${w}: swept to the end`).toBeNull();
@@ -128,6 +135,10 @@ describe("the range sweep against the brute-force oracle", () => {
           for (const hit of r.hits) {
             expect(hit.cum, `${w} L${hit.line}: no record before the start`).toBeGreaterThanOrEqual(hCum - TOL);
             for (const [a] of hit.intervals ?? []) expect(a, `${w} L${hit.line}: no interval before the start`).toBeGreaterThanOrEqual(hCum - TOL);
+          }
+          for (const [pi, tab] of tabs) {
+            for (const [a] of tab.stays) expect(a, `${w} ${ids(pi)}: no stay of the tables before the start`).toBeGreaterThanOrEqual(hCum - TOL);
+            for (const [a] of tab.touches) expect(a, `${w} ${ids(pi)}: no touch interval of the tables before the start`).toBeGreaterThanOrEqual(hCum - TOL);
           }
           // (c) the boundary contacts: the pose at h as the range's first
           // segment labels it (a hair past h on the next segment)
@@ -147,6 +158,13 @@ describe("the range sweep against the brute-force oracle", () => {
             const pi = model.pairs.findIndex((_, i) => ids(i) === [b.a, b.b].sort().join("/"));
             expect(b.cutting, `${w} ${b.a}/${b.b}: cutting as the model says`).toBe(isCutting(pi));
           }
+          // ...in the tables: an episode of origin "boundary" for each but the
+          // cutting ones (a cutting boundary contact is taken as feed-begun
+          // and writes nothing)
+          const gotTables = new Set([...tabs].filter(([, t]) => t.boundary > 0).map(([pi]) => ids(pi)));
+          for (const k of unsure) gotTables.delete(k);
+          const expectedTables = [...expected].filter(k => !isCutting(model.pairs.findIndex((_, i) => ids(i) === k)));
+          expect([...gotTables].sort(), `${w}: the tables' boundary episodes are the pairs inside the margin at the start, cutting ones apart`).toEqual(expectedTables.sort());
           boundaries += got.size;
           // (a) every touch and in-margin pose after h reported
           const byPair = new Map<string, CollisionHit[]>();
@@ -163,18 +181,42 @@ describe("the range sweep against the brute-force oracle", () => {
               if (staticPairs.has(k) || isCutting(pi)) continue;   // cutting: its own tests
               const { d, inside } = cached(pi);
               if (d === null && !inside) continue;
-              const recs = byPair.get(k) ?? [];
+              const recs = byPair.get(k) ?? [], tab = tabs.get(pi) ?? NO_TABLES;
               const what = `${w} s ${s.toFixed(2)} (L${line}) ${k} true ${inside ? "inside" : d!.toFixed(4)}`;
+              let walked = false;
               if (inside || d! <= CONTACT) {
-                if (!inInterval(recs, s) && runWide(pi, s, CONTACT * 10, true))
-                  expect.fail(`${what}: a touch wider than ${WIDE} after the start outside every interval — ${JSON.stringify(recs.map(x => [x.line, x.boundary ?? false, x.intervals]))}`);
-              } else if (!recs.some(x => x.line === line) && !inInterval(recs, s) && runWide(pi, s, MARGIN)) {
-                expect.fail(`${what}: inside the margin wider than ${WIDE} after the start with no record on its line${boundaryPairs.has(k) ? " (a boundary pair)" : ""}`);
+                const recMiss = !inInterval(recs, s), tabMiss = !inSpans(tab.touches, s, TOL);
+                if (recMiss || tabMiss) {
+                  walked = true;
+                  if (runWide(pi, s, CONTACT * 10, true)) {
+                    if (recMiss) expect.fail(`${what}: a touch wider than ${WIDE} after the start outside every interval — ${JSON.stringify(recs.map(x => [x.line, x.boundary ?? false, x.intervals]))}`);
+                    expect.fail(`${what}: a touch wider than ${WIDE} after the start outside every touch interval of the tables — ${JSON.stringify(tab.touches)}`);
+                  }
+                }
+              } else {
+                const [l0, l1] = lineSpan(seg);
+                const recMiss = !recs.some(x => x.line === line) && !inInterval(recs, s);
+                const tabMiss = !meetsSpan(tab.stays, l0, l1) && !inSpans(tab.touches, s, TOL);
+                if (recMiss || tabMiss) {
+                  walked = true;
+                  if (runWide(pi, s, MARGIN)) {
+                    if (recMiss) expect.fail(`${what}: inside the margin wider than ${WIDE} after the start with no record on its line${boundaryPairs.has(k) ? " (a boundary pair)" : ""}`);
+                    expect.fail(`${what}: inside the margin wider than ${WIDE} after the start with no stay of the tables reaching its line${boundaryPairs.has(k) ? " (a boundary pair)" : ""}`);
+                  }
+                }
               }
-              if (!inInterval(recs, s)) { lastRel[pi]!.fill(NaN); poseAt(s); }   // runWide re-posed the model
+              if (walked || !inInterval(recs, s)) { lastRel[pi]!.fill(NaN); poseAt(s); }   // runWide re-posed the model
             }
           }
-          // (b) every reported interval begins with a real touch (or inside)
+          // (b) every reported interval begins with a real touch (or inside) —
+          // in the tables every witness and every decided entry
+          for (const [pi, tab] of tabs) {
+            for (const x of [...tab.witnesses, ...tab.enters]) {
+              poseAt(x + (x <= hCum + 1e-9 ? 1e-9 : 0));
+              const d = below(model.bodies[model.pairs[pi]![0]]!, model.bodies[model.pairs[pi]![1]]!, MARGIN);
+              expect((d !== null && d <= 1e-3) || insideEither(pi), `${w} ${ids(pi)}: the tables' touch at ${x.toFixed(3)} touches or lies inside (distance ${d})`).toBe(true);
+            }
+          }
           for (const hit of r.hits) {
             const pi = model.pairs.findIndex((_, i) => ids(i) === [hit.a, hit.b].sort().join("/"));
             const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;

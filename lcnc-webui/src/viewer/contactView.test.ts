@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_CONTINUES_CUT, IV_ENDED_AT_GAP,
-  IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
+  IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, IV_RAPID, NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf,
 } from "./contactStore";
 import { boundaryStretchesSteps,
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
@@ -43,7 +43,7 @@ const kinds = (v: ContactView) => Array.from({ length: v.n }, (_, i) => targetKi
 describe("the target index (plan 4.1)", () => {
   it("an interval at its entry, a near miss at its closest approach, sorted; re-entry, possible, at start, rapid", () => {
     const st = store([
-      { pair: 1, flags: EP_AT_START | EP_RAPID, ivs: [[0, 2], [5, 6]] },
+      { pair: 1, flags: EP_AT_START | EP_RAPID, ivs: [[0, 2], [5, 6, IV_RAPID]] },
       { pair: 2, close: [3.5, 1.2] },
       { pair: 3, flags: EP_POSSIBLE, close: [4, 0.5] },
       { pair: 4, ivs: [[7, 8, IV_POSSIBLE]] },
@@ -57,6 +57,15 @@ describe("the target index (plan 4.1)", () => {
     expect(findingWords(objs).text).toBe("2 collisions · 2 possible contacts · 1 near miss");
     expect(objs[1]).toMatchObject({ a: "t2", b: "w2", line: 4, cum: 3.5, cumEnd: 3.5 });
     expect(objs[1]!.dist).toBeCloseTo(1.2, 6);
+  });
+
+  it("a target's move kind: a touch on a rapid (IV_RAPID), or the episode's first entered on one — a re-entry never inherits its episode's margin entry", () => {
+    const st = store([
+      { pair: 1, flags: EP_RAPID, ivs: [[0, 1], [2, 3], [4, 5, IV_RAPID]] },   // entered on a rapid; a feed re-entry, a rapid one
+      { pair: 2, ivs: [[6, 7, IV_RAPID], [8, 9]] },                         // entered on a feed, touched on a rapid; a feed re-entry
+    ]);
+    const v = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
+    expect(kinds(v).map(k => k & (T_RAPID | T_REENTRY))).toEqual([T_RAPID, T_REENTRY, T_REENTRY | T_RAPID, T_RAPID, T_REENTRY]);
   });
 
   it("the targets a program starts in, found at their tables' first sample — the same as asking every target (plan 4.4)", () => {

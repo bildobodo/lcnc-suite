@@ -9,6 +9,7 @@ import {
   boxLowerBound, buildCollisionModel, partCollides, partCollisionFile, poseModel, toolCylinderPositions,
   type BuiltBody, type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionTrack,
 } from "./collision";
+import { EP_ORIGIN_MASK, IV_ENTER_DECIDED, NONE, ORIGIN_BOUNDARY, type ContactStore } from "./contactStore";
 import { windingNumber } from "./insideCheck";
 import { kinsForSegment, type KinsSpec } from "./kins";
 
@@ -390,3 +391,46 @@ export function insideAt(model: CollisionModel, c: Case, at: number[]): { at: nu
   }
   return null;
 }
+
+/** The contact tables (step 4 package 2) per pair index, as plain spans on
+ *  the sweep's axis — what the oracles hold to the truth (plan 7.3): the
+ *  touch intervals (an open or suspended one reaching `end` — the cautious
+ *  side), the stays inside the margin (an episode from the sample that found
+ *  it to its last sample in the margin; an open one to `end`), the knowledge
+ *  gaps, every witness, the entries the bisection decided, and the near
+ *  misses (an episode without a touch, at its closest approach). Boundary
+ *  episodes (a range check's contacts begun before its start) are listed
+ *  apart: they are no finding of the range. */
+export interface PairTables {
+  touches: Array<[number, number]>; stays: Array<[number, number]>; gaps: Array<[number, number]>;
+  witnesses: number[]; enters: number[]; nears: Array<{ at: number; dist: number }>; boundary: number;
+}
+export function tablesByPair(store: ContactStore, end: number): Map<number, PairTables> {
+  const E = store.episodes, I = store.intervals, G = store.gaps;
+  const out = new Map<number, PairTables>();
+  const of = (pi: number): PairTables => {
+    let t = out.get(pi);
+    if (!t) out.set(pi, t = { touches: [], stays: [], gaps: [], witnesses: [], enters: [], nears: [], boundary: 0 });
+    return t;
+  };
+  const upTo = (x: number) => (Number.isNaN(x) ? end : x);
+  for (let e = 0; e < E.rows; e++) {
+    const t = of(E.get(e, "pair"));
+    if ((E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) t.boundary++;
+    t.stays.push([E.get(e, "onset"), upTo(E.get(e, "end"))]);
+    if (E.get(e, "ivCount") === 0) t.nears.push({ at: E.get(e, "closeAt"), dist: E.get(e, "closeDist") });
+    for (let iv = E.get(e, "firstIv"); iv !== NONE; iv = I.get(iv, "next")) {
+      t.touches.push([I.get(iv, "enter"), upTo(I.get(iv, "exit"))]);
+      t.witnesses.push(I.get(iv, "witness"));
+      if (I.get(iv, "flags") & IV_ENTER_DECIDED) t.enters.push(I.get(iv, "enter"));
+    }
+  }
+  for (let g = 0; g < G.rows; g++) of(G.get(g, "pair")).gaps.push([G.get(g, "start"), upTo(G.get(g, "end"))]);
+  return out;
+}
+/** Does one of `spans` hold s (within `tol`)? */
+export const inSpans = (spans: ReadonlyArray<readonly [number, number]>, s: number, tol: number): boolean =>
+  spans.some(([a, b]) => s >= a - tol && s <= b + tol);
+/** Does one of `spans` reach into [lo, hi]? */
+export const meetsSpan = (spans: ReadonlyArray<readonly [number, number]>, lo: number, hi: number): boolean =>
+  spans.some(([a, b]) => a <= hi && b >= lo);

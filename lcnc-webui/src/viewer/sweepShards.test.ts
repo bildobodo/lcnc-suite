@@ -15,7 +15,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 import { MAX_HITS, sweepCollisions, type CollisionHit, type CollisionOptions, type CollisionResult } from "./collision";
 import { ContactStore } from "./contactStore";
-import { CONTACT, MARGIN, insideTrack, loadShippedModel, randomTrack, rng, shippedCases, trackTruth, type FixtureFiles } from "./collisionFixtures";
+import { CONTACT, MARGIN, inSpans, insideTrack, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases, tablesByPair, trackTruth, type FixtureFiles, type PairTables } from "./collisionFixtures";
 import { assignPairs, mergeShardResults } from "./sweepShards";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -213,6 +213,38 @@ describe("the merged shards against the single sweep", () => {
           }
         }
         expect(compared, `${where}: touch intervals compared`).toBeGreaterThan(0);
+        // ...and the stays in the margin (the records' near misses, per line):
+        // every closest approach of one run lies on a line the other run's
+        // stays of the pair reach, else the truth shows a margin run on that
+        // line no wider than MIN_ADV
+        const end = track.cum[track.count - 1]!;
+        const tablesOf = (stores: ContactStore[]) => {
+          const m = new Map<number, PairTables>();
+          for (const st of stores) for (const [pi, t] of tablesByPair(st, end)) m.set(pi, t);
+          return m;
+        };
+        const closest = (st: ContactStore[]) => {
+          const m = new Map<number, number[]>();
+          for (const x of st) for (let e = 0; e < x.episodes.rows; e++) {
+            const pair = x.episodes.get(e, "pair");
+            m.set(pair, [...(m.get(pair) ?? []), x.episodes.get(e, "closeAt")]);
+          }
+          return m;
+        };
+        const TS = tablesOf([singleOf.st]), TM = tablesOf(shardRuns.map(x => x.st));
+        let stays = 0;
+        for (const [X, Y, side] of [[closest([singleOf.st]), TM, "the single sweep"], [closest(shardRuns.map(x => x.st)), TS, "the merged shards"]] as const) {
+          for (const [pair, xs] of X) {
+            const other = Y.get(pair);
+            const ids = `${model.bodies[model.pairs[pair]![0]]!.id}/${model.bodies[model.pairs[pair]![1]]!.id}`;
+            for (const x of xs) {
+              const line = truth.lineSpan(truth.poseAt(x));
+              if (other && (meetsSpan(other.stays, line[0], line[1]) || inSpans(other.touches, x, TOL))) { stays++; continue; }
+              expect(truth.runWide(pair, x, MARGIN, false, line), `${where}: ${ids} in the margin at ${x.toFixed(4)} only in ${side}`).toBe(false);
+            }
+          }
+        }
+        expect(stays, `${where}: stays compared`).toBeGreaterThan(0);
       }
       }
     });

@@ -12,6 +12,7 @@
 // If a test here fails after touching scripts/vismach_to_stl_trsrn.py, the
 // model is wrong — regenerate with sound dimensions, don't loosen the gate.
 import * as fs from "node:fs";
+import { ContactStore } from "./contactStore";
 import { emptyLineIndex } from "./lineIndex";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -328,7 +329,10 @@ describe("machine-xyzacb-trsrn envelope acceptance", () => {
   it("working envelope has zero self-collisions; static contacts are the designed bearings only", { timeout: 300_000 }, () => {
     const track = envelopeTrack(ENVELOPE);
     const model = buildCollisionModel(machine, bodies);
-    const r = sweepCollisions(model, track, WCS0, { margin: 2, maxSamples: 400_000 });
+    const store = new ContactStore(1, 0);
+    const r = sweepCollisions(model, track, WCS0, { margin: 2, maxSamples: 400_000, contacts: { store } });
+    // the contact tables (step 4 package 2): no stay inside the margin
+    expect(store.episodes.rows, "the tables: no self-collision or near miss").toBe(0);
 
     const staticPairs = r.staticContacts.map(c => [c.a, c.b].sort().join("/"));
     for (const p of staticPairs) {

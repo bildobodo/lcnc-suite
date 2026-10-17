@@ -2,11 +2,11 @@
 // generation's tables shows the union of both, through the real tables.
 import { describe, expect, it } from "vitest";
 import {
-  ContactStore, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED,
+  ContactStore, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_RAPID,
   NONE, ORIGIN_BOUNDARY, REQUEST_BUDGET, shareOf, type StoreBudget,
 } from "./contactStore";
 import { derivationBound,
-  buildContactView, contactBands, findKey, heldBytes, indexAfter, indexBefore, lineMark, T_EARLIER, T_REENTRY, targetAt, targetEnd, targetKey,
+  buildContactView, contactBands, findKey, heldBytes, indexAfter, indexBefore, lineMark, T_EARLIER, T_RAPID, T_REENTRY, targetAt, targetEnd, targetKey,
   targetKind, targetPos, targetWindow, tintAt, viewCounts, type ContactSource,
 } from "./contactView";
 
@@ -160,6 +160,25 @@ describe("the view after a fallback: both generations' union (plan 3.5)", () => 
     expect(viewCounts(v)).toEqual({ collisions: 1, entryCollisions: 0, nearMisses: 0, possible: 0, startsIn: false });
     expect(targetAt(v, 0, () => 3).rapid).toBe(true);
     expect(lineMark(v, 3, [[0, 3]]), "the marks read both generations' stays").toEqual({ line: 3 });
+  });
+
+  it("a piece's move kind: a re-entry is a rapid's only by its own touch (IV_RAPID) — never by its episode's margin entry (R168)", () => {
+    // one episode entered on a rapid, three touches: the first, a feed
+    // re-entry, a rapid re-entry — in both generations, so every target is a
+    // union piece of the two
+    const twoGen = (g: number) => {
+      const st = new ContactStore(1, g, REQUEST_BUDGET);
+      const ep = st.episodes.append({ pair: 0, ordinal: 0, flags: EP_RAPID, onset: 1, end: 6, closeAt: 1, closeDist: 0, firstIv: NONE, ivCount: 3 });
+      let last = -1;
+      for (const [a, b, f] of [[1, 2, 0], [3, 4, 0], [5, 6, IV_RAPID]] as const) {
+        const iv = st.intervals.append({ episode: ep, enter: a + g * 0.01, exit: b, flags: D | f, next: NONE, witness: a + 0.5, freeAt: b + 0.25, freeR: 0.1 });
+        if (last < 0) st.episodes.set(ep, "firstIv", iv); else st.intervals.set(last, "next", iv);
+        last = iv;
+      }
+      return st;
+    };
+    const v = view([twoGen(0)], [twoGen(1)]);
+    expect(list(v).map(t => (t.kind & T_RAPID) !== 0)).toEqual([true, false, true]);
   });
 
   it("Codex R151 VP-I113: two old contacts a tool gap apart stay two after an empty rerun — a wide gap and a point gap, both keys, the second selectable and navigable", () => {

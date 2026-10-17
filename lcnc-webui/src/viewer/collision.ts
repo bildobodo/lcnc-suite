@@ -62,7 +62,7 @@ import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./in
 import { displayLineForPoint } from "./scrubTrack";
 import { probeStopTitle, type ProbeStop } from "./probeStop";
 import {
-  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT,
+  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_RAPID,
   IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, ORIGIN_PROGRAM, f32Inward,
 } from "./contactStore";
 
@@ -2193,9 +2193,12 @@ export function* sweepCollisionsIter(
         if (d <= opts.margin) {
           if (epRow[pi]! < 0 && !cutMute[pi]) {
             // a cutting pair's contact begun on a feed (or before a range) is
-            // machining: nothing is written until it separates (plan 2.3)
+            // machining: nothing is written until it separates (plan 2.3) — but
+            // a feed touch on a probe's braking range changes no contact state
+            // (R126 VP-I74): it writes nothing and mutes nothing, so a rapid
+            // into the stock after the range is the gouge it is
             const boundary = !!opts.range && s <= rangeStart + 1e-9;
-            if (cutting && (!isRapid || boundary)) cutMute[pi] = 1;
+            if (cutting && (!isRapid || boundary)) { if (!inBand) cutMute[pi] = 1; }
             else {
               const flags = (boundary ? ORIGIN_BOUNDARY : origin) | (isRapid ? EP_RAPID : 0)
                 | (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !opts.range ? EP_AT_START : 0) | (inBand ? EP_POSSIBLE : 0);
@@ -2254,7 +2257,7 @@ export function* sweepCollisionsIter(
               enter = k === 0 ? bisect(s, floor, pi) : { at: floor, decided: k === 1 };
             } else enter = bisect(s, floor, pi);
             const flags = (inBand ? IV_POSSIBLE : 0) | (enter.decided ? IV_ENTER_DECIDED : 0)
-              | (afterTool[pi] ? IV_AFTER_UNKNOWN_TOOL : 0) | (cutPart[pi] ? IV_CONTINUES_CUT : 0);
+              | (afterTool[pi] ? IV_AFTER_UNKNOWN_TOOL : 0) | (cutPart[pi] ? IV_CONTINUES_CUT : 0) | (isRapid ? IV_RAPID : 0);
             const iv = add(store.intervals, { episode: ep, enter: T(enter.at), exit: NaN, flags, next: NONE,
                                               witness: T(s), freeAt: NaN, freeR: 0 }, enter.at);
             if (iv >= 0) {
@@ -2265,10 +2268,11 @@ export function* sweepCollisionsIter(
               ivRow[pi] = iv;
             }
             afterTool[pi] = 0;
-          } else if (!inBand) {
+          } else {
+            // a certain sample makes it certain; a touch on a rapid marks its move's kind
             const iv = ivRow[pi]!;
-            const f = store.intervals.get(iv, "flags");
-            if (f & IV_POSSIBLE) store.intervals.set(iv, "flags", f & ~IV_POSSIBLE);   // a certain sample
+            const f = store.intervals.get(iv, "flags"), g = (inBand ? f : f & ~IV_POSSIBLE) | (isRapid ? IV_RAPID : 0);
+            if (g !== f) store.intervals.set(iv, "flags", g);
           }
           lastTouchD[pi] = s;
         } else if (ivRow[pi]! >= 0 && freeDecided) {

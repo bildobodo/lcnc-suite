@@ -1,6 +1,7 @@
 // The wall gantry is the supported six-axis TWP example. Exercise the shipped assets
 // through the same chain and collision engine used by the running viewer.
 import * as fs from "node:fs";
+import { ContactStore } from "./contactStore";
 import * as path from "node:path";
 import { Box3, Vector3 } from "three";
 import { describe, expect, it } from "vitest";
@@ -260,8 +261,11 @@ it("sweeps linear limits and parked rotary moves without machine self-collisions
     [0, -1300, 0, 0, 0, 0], [0, 1300, 0, 0, 0, 0],
     [0, 1000, 0, 0, 0, 0], [0, 1000, -1325, 0, 0, 0],
     [0, 1000, 0, 0, 0, 0], [0, 140, -475, 0, 0, 0], [0, 140, 0, 0, 0, 0]];
+  const store = new ContactStore(1, 0);
   const result = sweepCollisions(buildCollisionModel(machine, bodies), track(points),
-    { g5x: [], g92: [], rotationDeg: 0 }, { margin: 2, maxSamples: 400_000 });
+    { g5x: [], g92: [], rotationDeg: 0 }, { margin: 2, maxSamples: 400_000, contacts: { store } });
+  // the contact tables (step 4 package 2): no stay inside the margin
+  expect(store.episodes.rows, "the tables: no self-collision or near miss").toBe(0);
   const allowed = new Set(["a_bearing_ring/a_faceplate", "c_head/c_mount_ring",
     "b_head/c_head", "b_joint_ring/c_head", // independently bounded above
     ...["x", "y", "z"].flatMap(a => [`${a}_guide_blocks/${a}_guide_rails`, `${a}_guide_endcaps/${a}_guide_rails`])]);

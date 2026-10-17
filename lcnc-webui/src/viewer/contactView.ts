@@ -56,7 +56,7 @@
 // one per pair and origin by overlap in order: a matched one keeps the
 // earlier key, an earlier one found no more is shown "from the earlier run".
 import {
-  EP_AT_START, EP_ORIGIN_MASK, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_GAP,
+  EP_AT_START, EP_ORIGIN_MASK, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_RAPID,
   IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, BLOCK as STORE_BLOCK, BLOCK_SHIFT, type ContactStore,
   type StoreBudget,
 } from "./contactStore";
@@ -1015,13 +1015,13 @@ function pieceHoldsRow(v: ContactView, u: UnionIndex, g: GroupCtx, piece: UnionP
 function pieceKindBits(tables: Tables, info: PieceInfo, kind: number, source: ContactSource, reached: boolean): number {
   const rep = info.heir >= 0 ? info.heir : info.lead;
   const t = tableAt(tables, rep), row = rowOf(rep), E = t.st.episodes, ep = t.st.intervals.get(row, "episode");
-  const epFlags = E.get(ep, "flags"), first = E.get(ep, "firstIv") === row;
+  const epFlags = E.get(ep, "flags"), first = E.get(ep, "firstIv") === row, ivFlags = t.st.intervals.get(row, "flags");
   let bits = 0;
   if (info.possible) bits |= T_POSSIBLE;
   const begun = info.heir >= 0 || kind === START_ENTER;
   if (!first || !begun) bits |= T_REENTRY;
   if (first && begun && (epFlags & EP_AT_START)) bits |= T_AT_START;
-  if (epFlags & EP_RAPID) bits |= T_RAPID;
+  if ((ivFlags & IV_RAPID) || (first && (epFlags & EP_RAPID))) bits |= T_RAPID;
   if (info.openEnd && !reached) bits |= T_OPEN;
   if (source.entry) { bits |= T_ENTRY; if (onEntryMove(source, info.piece.start)) bits |= T_ENTRY_MOVE; }
   return bits;
@@ -1411,7 +1411,9 @@ function kindOf(v: ContactView, i: number): number {
   if (ivFlags & IV_POSSIBLE) kind |= T_POSSIBLE;
   if (!first) kind |= T_REENTRY;
   if (first && (flags & EP_AT_START)) kind |= T_AT_START;
-  if (flags & EP_RAPID) kind |= T_RAPID;
+  // its move's kind: a touch on a rapid, or — the episode's first — the
+  // margin entered on one (a re-entry is its own move, never its episode's)
+  if ((ivFlags & IV_RAPID) || (first && (flags & EP_RAPID))) kind |= T_RAPID;
   if (ownEnd(t, row).open && reachOf(v, ref) === undefined) kind |= T_OPEN;
   if (t.source.entry) { kind |= T_ENTRY; if (onEntryMove(t.source, I.get(row, "enter"))) kind |= T_ENTRY_MOVE; }
   return kind;

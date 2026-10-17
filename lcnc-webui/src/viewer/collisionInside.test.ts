@@ -50,6 +50,12 @@ const xs = (points: number[]): ScrubTrack => {
 const onsets = (r: CollisionResult) => r.hits.filter(h => h.continuation === undefined).map(h => h.line);
 const iv = (r: CollisionResult, line: number) =>
   r.hits.find(h => h.line === line)!.intervals!.map(([a, b]) => [Number(a.toFixed(2)), Number(b.toFixed(2))]);
+/** The contact tables of a sweep (step 4 package 2), rounded to 0.01. */
+const tables = (st: ContactStore) => ({
+  intervals: Array.from({ length: st.intervals.rows }, (_, k) => [Number(st.intervals.get(k, "enter").toFixed(2)), Number(st.intervals.get(k, "exit").toFixed(2))]),
+  gaps: Array.from({ length: st.gaps.rows }, (_, k) => ({ at: [Number(st.gaps.get(k, "start").toFixed(2)), Number(st.gaps.get(k, "end").toFixed(2))], reason: st.gaps.get(k, "reason") })),
+  episodes: st.episodes.rows,
+});
 
 describe("an undecidable inside check in the sweep", () => {
   it("in the contact store an undecidable answer opens, separates and certifies nothing: one interval through it, the stretch a gap (package 2, Codex VP139-01)", () => {
@@ -127,9 +133,15 @@ describe("an undecidable inside check in the sweep", () => {
   it("is no record, no separation, and its stretch is named; the refinement counts it as contact", () => {
     ctl.when = () => true;
     try {
-      const r = sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([60, 0, 60]), WCS0, { margin: 0.1 });
+      const st = new ContactStore(1, 0);
+      const r = sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([60, 0, 60]), WCS0, { margin: 0.1, contacts: { store: st } });
       // in through the face (decided by the surfaces), never separated
       // inside, out through the face: one contact, line 3 its continuation
+      // — in the tables one interval through it, the undecidable stretch a gap
+      const t = tables(st);
+      expect(t.intervals).toEqual([[29.5, 90.5]]);
+      expect(t.gaps.length).toBeGreaterThan(0);
+      expect(t.gaps.every(g => g.reason === GAP_UNDECIDABLE && g.at[0]! > 29.5 && g.at[1]! < 90.5), "the undecidable stretch inside it").toBe(true);
       expect(onsets(r)).toEqual([2]);
       expect(r.hits.find(h => h.line === 3)?.continuation).toBe(2);
       expect(iv(r, 2)).toEqual([[29.5, 60]]);
@@ -145,8 +157,11 @@ describe("an undecidable inside check in the sweep", () => {
     // every 5 mm — a certificate would stride the whole move at once.
     ctl.when = () => true;
     try {
-      const r = sweepCollisions(buildCollisionModel(machine(40), [POST, nub()]), xs([-40, -20]), WCS0, { margin: 0.1 });
+      const st = new ContactStore(1, 0);
+      const r = sweepCollisions(buildCollisionModel(machine(40), [POST, nub()]), xs([-40, -20]), WCS0, { margin: 0.1, contacts: { store: st } });
       expect(r.hits).toEqual([]);
+      // in the tables no finding, the whole move a gap
+      expect(tables(st)).toEqual({ intervals: [], gaps: [{ at: [0, 20], reason: GAP_UNDECIDABLE }], episodes: 0 });
       expect(r.staticContacts).toEqual([]);
       expect(r.notes).toEqual(["inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"]);
       expect(r.samples).toBeGreaterThanOrEqual(5);
@@ -163,10 +178,20 @@ describe("an undecidable inside check in the sweep", () => {
     // line, and the rest pose's question named.
     ctl.when = p => Math.abs(p.x) < 1;   // the cube's corner at rest: x ±0.5
     try {
-      const r = sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([2, 4]), WCS0, { margin: 0.1 });
+      const st = new ContactStore(1, 0);
+      const r = sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([2, 4]), WCS0, { margin: 0.1, contacts: { store: st } });
       expect(r.staticContacts).toEqual([]);
       expect(onsets(r)).toEqual([2]);
       expect(r.notes).toEqual(["inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"]);
+      expect(r.uncertified, "the rest pose's question is the result's caveat").toBe(r.notes![0]);
+      // in the tables: the contact from the first point, and NO gap — the rest
+      // pose is no point of the program; its caveat lives in the result's
+      // notes alone and must stay there (Codex R167 VP167-01)
+      expect(tables(st)).toEqual({ intervals: [[0, NaN]], gaps: [], episodes: 1 });
+      // ...and through the parallel sweep's merge
+      const model = buildCollisionModel(machine(), [POST, nub()]);
+      const parts = [0, 1].map(index => sweepCollisions(model, xs([2, 4]), WCS0, { margin: 0.1, shard: { index, of: 2 }, contacts: { store: new ContactStore(1, 0) } }));
+      expect(mergeShardResults(parts).notes, "the merge keeps the rest pose's caveat").toEqual(r.notes);
     } finally { ctl.when = null; }
   });
 
