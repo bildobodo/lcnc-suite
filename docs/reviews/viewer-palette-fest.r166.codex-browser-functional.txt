@@ -1,0 +1,23 @@
+[2m[WebServer] [22m(node:807824) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 12 tests using 1 worker
+
+(node:807836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:807836) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/sim-panel.viewer.spec.ts:108:1 › a long list is a window: 400 rows, the count and the steps reach every target, one mark per column (plan 4.4) (3.1s)
+  ✓   2 e2e/sim-panel.viewer.spec.ts:247:1 › a long list fills in portions: the first at once, the rest a portion a frame — the height and the columns never move (Codex R164 VP-I120) (2.6s)
+  ✓   3 e2e/sim-panel.viewer.spec.ts:260:1 › the spacers' row height is measured where the rows are seen — never in a hidden tab (3.5s)
+  ✓   4 e2e/sim-panel.viewer.spec.ts:306:1 › a list that begins to fill in a hidden tab and is shown between its portions: measured once seen (2.4s)
+  ✓   5 e2e/sim-panel.viewer.spec.ts:323:1 › a size change after a list was measured: the next list fills at its own pitch (Codex R165) (2.7s)
+  ✓   6 e2e/sim-panel.viewer.spec.ts:334:1 › between the portions: the keys reach a row not yet rendered, a filter change and a new program begin anew, nothing stale stays (Codex R164 VP-I120) (3.4s)
+  ✓   7 e2e/sim-panel.viewer.spec.ts:368:1 › the list keeps ONE tab stop while it fills around a focus far from the regular one — Tab enters it, the focus stays (Codex R165 VP-I121) (2.6s)
+  ✓   8 e2e/sim-panel.viewer.spec.ts:407:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4) (4.6s)
+  ✓   9 e2e/sim-panel.viewer.spec.ts:484:1 › the rows' keys move the focus, never a jog; Enter shows; the machine on explains at the row (2.6s)
+  ✓  10 e2e/sim-panel.viewer.spec.ts:537:1 › a result change under the focus keeps it in the panel; no arrow jogs (3.1s)
+  ✓  11 e2e/sim-panel.viewer.spec.ts:701:1 › the list follows the position: the marked row stays in the middle of its view (2.1s)
+  ✓  12 e2e/sim-panel.viewer.spec.ts:742:1 › playback at ×100 with normal motion: the marked row never leaves the list's view (4.1s)
+
+  12 passed (37.5s)

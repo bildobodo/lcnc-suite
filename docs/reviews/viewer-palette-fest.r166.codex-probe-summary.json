@@ -1,0 +1,180 @@
+{
+  "focus": [
+    {
+      "case": "focus-desktop",
+      "portionSizes": [
+        40,
+        80,
+        120,
+        160,
+        200,
+        240,
+        280,
+        320,
+        360,
+        400
+      ],
+      "stops": [
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5000|0"
+        ]
+      ],
+      "focusKeys": [
+        "C0|5200|0"
+      ],
+      "completeAtMs": 133.6
+    },
+    {
+      "case": "focus-touch-portrait",
+      "portionSizes": [
+        40,
+        80,
+        120,
+        160,
+        200,
+        240,
+        280,
+        320,
+        360,
+        400
+      ],
+      "stops": [
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5200|0"
+        ],
+        [
+          "C0|5000|0"
+        ]
+      ],
+      "focusKeys": [
+        "C0|5200|0"
+      ],
+      "completeAtMs": 137.9
+    }
+  ],
+  "tab": {
+    "before": {
+      "complete": "0",
+      "stops": 1,
+      "active": "SPAN.helpIcon",
+      "time": 2305
+    },
+    "after": {
+      "complete": "0",
+      "active": "SPAN.rowPick",
+      "row": "C0|5200|0",
+      "time": 2316.1000000089407
+    },
+    "second": {
+      "complete": "0",
+      "active": "BUTTON.b lg default active block safetyBtn",
+      "label": null,
+      "time": 2318.9000000059605
+    },
+    "full": {
+      "active": "SPAN.rowPick",
+      "row": "C0|5000|0"
+    }
+  },
+  "geometry": [
+    {
+      "case": "geometry-desktop",
+      "first": 40,
+      "frames": 9,
+      "scrollHeightRange": [
+        10116,
+        10117
+      ],
+      "columnForms": [
+        "42.0,57.0,533.0,70.0,72.0"
+      ],
+      "referenceYRange": [
+        4322.25,
+        4322.41650390625
+      ]
+    },
+    {
+      "case": "geometry-touch-portrait",
+      "first": 40,
+      "frames": 9,
+      "scrollHeightRange": [
+        13332,
+        13333
+      ],
+      "columnForms": [
+        "42.0,57.0,237.0,0.0,72.0"
+      ],
+      "referenceYRange": [
+        5699.25,
+        5699.41650390625
+      ]
+    },
+    {
+      "case": "geometry-zoom-change",
+      "first": 40,
+      "frames": 9,
+      "scrollHeightRange": [
+        10116,
+        10117
+      ],
+      "columnForms": [
+        "42.0,57.0,533.0,70.0,72.0"
+      ],
+      "referenceYRange": [
+        4322.25,
+        4322.41650390625
+      ]
+    }
+  ]
+}

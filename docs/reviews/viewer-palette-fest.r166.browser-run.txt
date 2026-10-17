@@ -1,0 +1,16 @@
+5c78c011 The Sim list keeps one tab stop among its rendered rows while it fills (Codex R165 VP-I121)
+== build
+✓ built in 4.92s
+== keys 1 e2e/zz_codex_lt.viewer.spec.ts e2e/zz_codex_ro.viewer.spec.ts 15:36:00 up 118372.55
+  4 passed (58.5s)
+   acceptance 1: green
+== keys 1 e2e/zz_codex_lt.viewer.spec.ts e2e/zz_codex_ro.viewer.spec.ts 15:36:58 up 118431.49
+  4 passed (58.8s)
+   acceptance 2: green
+== keys 0 e2e/zz_codex_lt.viewer.spec.ts e2e/zz_codex_ro.viewer.spec.ts 15:37:58 up 118490.70
+  4 passed (35.8s)
+== keys 0 e2e/zz_longtask5.viewer.spec.ts e2e/zz_longtask6.viewer.spec.ts 15:38:34 up 118526.92
+  7 passed (53.1s)
+== keys 1 e2e/zz_longtask5.viewer.spec.ts e2e/zz_longtask6.viewer.spec.ts 15:39:27 up 118580.46
+  7 passed (1.3m)
+== end 15:40:43 up 118655.89

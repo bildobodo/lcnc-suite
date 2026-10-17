@@ -1,0 +1,252 @@
+[
+  {
+    "run": "browser-keys.json",
+    "shape": "many pairs",
+    "name": "the tables arrive (a result)",
+    "wallMs": 811,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 15,
+    "keyDelayMaxMs": 36,
+    "longestStepMs": [
+      0.4,
+      4.1,
+      0,
+      0.2
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "many pairs",
+    "name": "an update delta over the whole budget",
+    "wallMs": 760,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 13,
+    "keyDelayMaxMs": 15,
+    "longestStepMs": [
+      1.1,
+      1.1,
+      0,
+      0.4
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "many pairs",
+    "name": "the pool falls back: the same tables as the next generation",
+    "wallMs": 6151,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 21,
+    "keyDelayMaxMs": 13,
+    "longestStepMs": [
+      0.2,
+      4.3,
+      0.1,
+      0.2
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "many pairs",
+    "name": "a rebuild: one more (empty) delta",
+    "wallMs": 5734,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 22,
+    "keyDelayMaxMs": 17,
+    "longestStepMs": [
+      0,
+      4.9,
+      0,
+      0
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "one pair",
+    "name": "the tables of one pair arrive (a result)",
+    "wallMs": 490,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 21,
+    "keyDelayMaxMs": 16,
+    "longestStepMs": [
+      0.3,
+      1.8,
+      0,
+      0.2
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "one pair",
+    "name": "a new program while the one big group builds",
+    "goneMs": 28,
+    "longTasks": 2,
+    "longestMs": 71
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "widePair",
+    "name": "widePair: the first run arrives",
+    "wallMs": 857,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 18,
+    "keyDelayMaxMs": 40,
+    "longestStepMs": [
+      0.4,
+      1.9,
+      0.1,
+      0.3
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "widePair",
+    "name": "widePair: the pool falls back \u2014 the second run, the union",
+    "wallMs": 7660,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 21,
+    "keyDelayMaxMs": 21,
+    "longestStepMs": [
+      0.2,
+      4.5,
+      0,
+      0.2
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "widePair",
+    "name": "widePair: the questions",
+    "longTasks": 0,
+    "longestMs": 0,
+    "worstMs": {
+      "targets": 524290,
+      "ms": {
+        "target": 0.1,
+        "key where it stood": 0.4,
+        "key moved": 0.2,
+        "key anywhere": 0.3,
+        "next": 0.2,
+        "tint": 0.6,
+        "mark": 0.1,
+        "next from a position": 1.7,
+        "window of 400": 4.2,
+        "key gone": 0.1
+      }
+    }
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "wideDecimal",
+    "name": "wideDecimal: the first run arrives",
+    "wallMs": 848,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 17,
+    "keyDelayMaxMs": 40,
+    "longestStepMs": [
+      0.2,
+      1.7,
+      0,
+      0.2
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "wideDecimal",
+    "name": "wideDecimal: the pool falls back \u2014 the second run, the union",
+    "wallMs": 7814,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 20,
+    "keyDelayMaxMs": 20,
+    "longestStepMs": [
+      0.2,
+      11.7,
+      0,
+      0.3
+    ]
+  },
+  {
+    "run": "browser-keys.json",
+    "shape": "wideDecimal",
+    "name": "wideDecimal: the questions",
+    "longTasks": 0,
+    "longestMs": 0,
+    "worstMs": {
+      "targets": 524290,
+      "ms": {
+        "target": 0.1,
+        "key where it stood": 1.6,
+        "key moved": 0.2,
+        "key anywhere": 0.2,
+        "next": 0.2,
+        "tint": 1.1,
+        "mark": 0.1,
+        "next from a position": 2,
+        "window of 400": 4.3,
+        "key gone": 0.2
+      }
+    }
+  },
+  {
+    "run": "browser-pointer.json",
+    "shape": "wideDecimal",
+    "name": "wideDecimal: the first run arrives",
+    "wallMs": 307,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 34,
+    "keyDelayMaxMs": 0,
+    "longestStepMs": [
+      0.2,
+      2.2,
+      0,
+      0.8
+    ]
+  },
+  {
+    "run": "browser-pointer.json",
+    "shape": "wideDecimal",
+    "name": "wideDecimal: the pool falls back \u2014 the second run, the union",
+    "wallMs": 1676,
+    "longTasks": 0,
+    "longestMs": 0,
+    "inputDelayMaxMs": 26,
+    "keyDelayMaxMs": 0,
+    "longestStepMs": [
+      0.1,
+      7.3,
+      0.1,
+      0.2
+    ]
+  },
+  {
+    "run": "browser-pointer.json",
+    "shape": "wideDecimal",
+    "name": "wideDecimal: the questions",
+    "longTasks": 0,
+    "longestMs": 0,
+    "worstMs": {
+      "targets": 524290,
+      "ms": {
+        "target": 0.2,
+        "key where it stood": 0.3,
+        "key moved": 0.2,
+        "key anywhere": 0.2,
+        "next": 1.7,
+        "tint": 0.9,
+        "mark": 0.1,
+        "next from a position": 0.5,
+        "window of 400": 4.1,
+        "key gone": 0.1
+      }
+    }
+  }
+]

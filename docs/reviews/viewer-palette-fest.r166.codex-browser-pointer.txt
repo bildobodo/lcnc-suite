@@ -1,0 +1,13 @@
+[2m[WebServer] [22m(node:809323) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:809335) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:809335) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[longtask6] wideDecimal: [{"name":"wideDecimal: the first run arrives","wallMs":307,"longTasks":0,"longestMs":0,"inputs":11,"inputDelayMaxMs":34,"inputDelayP95Ms":18,"keys":0,"keyDelayMaxMs":0,"keyDelayP95Ms":0,"passes":1,"discards":0,"publications":1,"acks":1,"byOwnerMB":{"pub":12.3,"work":12.3,"held":0,"shown":0},"allocatedMB":24.5,"heapMB":45,"dom":10449,"rows":400,"ids":[2],"peak":{"tablesMB":24.5,"shownMB":0,"viewsMB":20.3,"buildingMB":20.3,"heapMB":31.9,"backingMB":57.8},"dropped":0,"exp":null,"longestStepMs":[0.2,2.2,0,0.8],"lastPassMs":135,"loaf":[]},{"name":"wideDecimal: the pool falls back — the second run, the union","wallMs":1676,"longTasks":0,"longestMs":0,"inputs":51,"inputDelayMaxMs":26,"inputDelayP95Ms":19,"keys":0,"keyDelayMaxMs":0,"keyDelayP95Ms":0,"passes":2,"discards":0,"publications":2,"acks":1,"byOwnerMB":{"pub":12.3,"work":12.3,"held":12.3,"shown":0},"allocatedMB":36.8,"heapMB":45,"dom":10449,"rows":400,"ids":[2],"peak":{"tablesMB":36.8,"shownMB":12.3,"viewsMB":88.9,"buildingMB":86.6,"heapMB":141.3,"backingMB":137.8},"dropped":0,"exp":null,"longestStepMs":[0.1,7.3,0.1,0.2],"lastPassMs":1493,"loaf":[]},{"name":"wideDecimal: the questions","worstMs":{"targets":524290,"ms":{"target":0.2,"key where it stood":0.3,"key moved":0.2,"key anywhere":0.2,"next":1.7,"tint":0.9,"mark":0.1,"next from a position":0.5,"window of 400":4.1,"key gone":0.1}},"longTasks":0,"longestMs":0}]
+  ✓  1 e2e/codex-r166-roundoff.viewer.spec.ts:306:3 › R163 roundoff at the budget: wideDecimal — the first run, the fallback's union, the questions (7.6s)
+
+  1 passed (8.1s)

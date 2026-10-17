@@ -1,0 +1,10 @@
+--- r165.codex-focus.viewer.spec.ts
++++ r166.codex-focus.viewer.spec.ts
+@@ -162,6 +162,7 @@
+ for (const vp of ['touch-portrait','desktop']) test(`R165 middle portion geometry ${vp} zoom150`,async ({page,context})=>{
+   await prepare(page,context,vp,PREVIEW,false);
+   await page.addStyleTag({content:':root {zoom:1.5}'});
++  await settleLayout(page);
+   await simShow(page,'clash');await hits(page,1000);await complete(page);
+   await midFill(page,`${vp} zoom150`);
+   writeFileSync(`${process.env.R165_OUT}/geometry-${vp}.json`,JSON.stringify(await fillOf(page),null,2));
