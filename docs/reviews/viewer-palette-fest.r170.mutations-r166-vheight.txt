@@ -1,0 +1,27 @@
+# R166's v_height_not_at_once (the spacers' pitch set on the scroller at once) — why it was green in R169, 2026-10-18
+# The guard's case needs NO pitch measured when the new list comes. After hits(page, 1000) the test waited with complete(page),
+# which the list before it (whole too) already satisfied: under load the new list arrived after the tab showed, filled where it
+# was seen and was measured there — the mutant then harmless.
+
+## the mutant, instrumented (SimPanel logs: rows-pre, post, measure [rows, first key, focus, t, h, ver, lo, hi, --sim-row-h before], restore, follow)
+### C2 tree, idle — red, the pitch 0px at the measurement, measurement and restore in one flush:
+VH [["start",3343.699999988079],["rows-pre","C0|200|0",401.5,400],["post","C0|200|0",400,180,220],["measure",25.5,7,180,220,"0px"],["restore","C0|200|0",401.5,146.5,664,409,401.5,"0px"],["follow","C0|200|0",5099,4921,null,409],["follow","C0|200|0",5099.5,4921.5,4921,4921]]
+### C2 tree beside a full vitest run — 3 of 4 green: the pitch already 25.5px when the new list came:
+run 1:   1 passed (9.5s)
+["measure",5701.5,25.5,7,180,220,"25.5px"]
+run 2:   1 failed
+["measure",5725.899999976158,25.5,7,180,220,"0px"]
+run 3:   1 passed (9.6s)
+["measure",5701.0999999940395,25.5,7,180,220,"25.5px"]
+run 4:   1 passed (10.3s)
+["measure",6335,25.5,7,180,220,"25.5px"]
+### the whole history beside vitest (another 4 runs, all red here): the new list's first rows after 'show'
+VH [["rows-pre",634.3000000119209,null,null,0,null],["post",726.8000000119209,null,0,0,0],["restore",726.8000000119209,null,null,null,null,null,null],["rows-pre",12548.90000000596,null,null,4,"T10"],["post",12568.200000017881,"T10",4,0,4],["restore",12570.200000017881,null,null,null,0,0,"0px"],["rows-pre",14816.300000011921,"T10",0,4,"T10"],["post",14816.800000011921,"T10",4,0,4],["restore",14816.800000011921,"T10",0,0,0,0,"0px"],["follow",15234.800000011921,"T10",-0.5,0,null,0],["hits1000",15926.300000011921],["show",16146.600000023842],["rows-pre",16371.600000023842,"T10",0,400,"C0|0|0"],["post",16380.300000011921,"C0|0|0",400,0,40],["restore",16380.300000011921,"T10",0,null,0,0,"0px"],["follow",17099.20000001788,"C0|0|0",-0.5,0,null,0],["follow",17188.5,"C0|0|0",-0.5,0,null,0],["rows-pre",17763.20000001788,"C0|0|0",300.5,400,"C0|0|0"],["post",17766.70000001788,"C0|0|0",400,0,400],["restore",17768,"C0|0|0",300.5,300.5,0,0,"0px"],["follow",17780.5,"C0|0|0",-0.5,0,null,0],["post",18835.5,"C0|200|0",400,0,400],["restore",18841.5,null,null,null,4921,4921,"0px"],["follow",18881.20000001788,"C0|200|0",5099.5,4921.5,4921,4921],["start",20906.600000023842],["rows-pre",21055.20000001788,"C0|200|0",401.5,400,"C0|5000|0"],["post",21068.80000001192,"C0|200|0",400,180,220],["measure",400,"C
+
+## plain mutant, idle, 2026-10-18 (each a build, then the test)
+at 334122c7 (~/lcnc-suite-mut2): 3 failed · (~/lcnc-suite-mut, the R166 script): 2 failed · at C2 (~/lcnc-suite-c2): 3 failed — 'the shown row where it stood, in the first frame drawn'
+under pure CPU load (5 busy loops), instrumented: 3 failed
+
+## the guard fixed (waits for the new list, 400 rows while hidden; states its precondition: --sim-row-h is 0px)
+product idle: 3 passed · product beside vitest: 4 passed
+mutant idle: 3 failed · mutant beside vitest: 4 failed (3 at 'where it stood', 1 at 'a portion a frame')

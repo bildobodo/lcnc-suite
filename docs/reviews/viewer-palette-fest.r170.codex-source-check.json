@@ -1,0 +1,13 @@
+{
+  "head": "f595d2ab520c2a4dc45184094cf7d2571fd3aef8",
+  "trackedSourcesChecked": 374,
+  "mismatches": [],
+  "archiveHarnessEdits": [
+    "lcnc-webui/e2e/ctl.ts: mock endpoint 127.0.0.1:4188"
+  ],
+  "extraFiles": [
+    "src/viewer/r170-codex-undecidable.test.ts",
+    "src/viewer/r170-codex-delta-budget.test.ts",
+    "playwright.codex.config.ts"
+  ]
+}

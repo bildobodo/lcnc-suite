@@ -1,0 +1,14 @@
+head 14023749 C2: the record sink and package 1's hold out — the tables are what a sweep finds
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut/lcnc-webui
+
+ ✓ src/viewer/zz_codex_r168_rapid.test.ts (1 test) 7ms
+ ✓ src/viewer/zz_codex_r168_sweep.test.ts (1 test) 56ms
+ ✓ src/viewer/zz_codex_r169_index.test.ts (2 tests) 362ms
+   ✓ R169: the last rapid in a joined piece is found without reading its interval chain  317ms
+
+ Test Files  3 passed (3)
+      Tests  4 passed (4)
+   Start at  10:50:04
+   Duration  616ms (transform 512ms, setup 0ms, import 689ms, tests 425ms, environment 0ms)
+
