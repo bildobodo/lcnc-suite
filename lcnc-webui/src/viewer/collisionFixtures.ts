@@ -226,6 +226,37 @@ export function trackOf(c: Case, pts: number[][], rand: () => number): Collision
   };
 }
 
+/** The track cut into short lines: every move split into pieces of 0.05–1.5
+ *  of the sweep's parameter, each its own line, its kind the move's but
+ *  flipped for one piece in seven. The path is the same (the pieces
+ *  interpolate the move linearly, as the sweep does), so is the parameter —
+ *  where the per-line sample mattered: a contact's lines shorter than the
+ *  cadence (step 4 package 2, plan 5, B8; haus.ngc's 0.09 mm lines). */
+export function shortLines(t: CollisionTrack, rand: () => number): CollisionTrack {
+  const pos: number[] = [t.pos[0]!, t.pos[1]!, t.pos[2]!], abc: number[] = [t.abc[0]!, t.abc[1]!, t.abc[2]!], cum: number[] = [0];
+  const rapid: number[] = [t.rapid[0]!], mode: number[] = t.mode ? [t.mode[0]!] : [];
+  for (let i = 1; i < t.count; i++) {
+    const c0 = t.cum[i - 1]!, c1 = t.cum[i]!, L = c1 - c0;
+    let u = 0;
+    while (u < 1) {
+      u = Math.min(1, u + (0.05 + rand() * 1.45) / Math.max(L, 1e-9));
+      for (let a = 0; a < 3; a++) {
+        pos.push(t.pos[(i - 1) * 3 + a]! + (t.pos[i * 3 + a]! - t.pos[(i - 1) * 3 + a]!) * u);
+        abc.push(t.abc[(i - 1) * 3 + a]! + (t.abc[i * 3 + a]! - t.abc[(i - 1) * 3 + a]!) * u);
+      }
+      cum.push(c0 + L * u);
+      rapid.push(rand() < 1 / 7 ? 1 - t.rapid[i]! : t.rapid[i]!);
+      if (t.mode) mode.push(t.mode[i]!);
+    }
+  }
+  const n = cum.length;
+  return {
+    pos: Float32Array.from(pos), abc: Float32Array.from(abc), cum: Float32Array.from(cum), count: n,
+    lines: Uint32Array.from({ length: n }, (_, i) => 10 + i), rapid: Uint8Array.from(rapid),
+    ...(t.mode ? { mode: Uint8Array.from(mode) } : {}),
+  };
+}
+
 /** The truth along a track, apart from the sweep's stepping: the model posed
  *  at any point of the track the sweep's way (the segment's kins, program
  *  coords = machine coords — WCS and tool offset zero), a pair's exact

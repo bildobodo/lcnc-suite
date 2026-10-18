@@ -302,6 +302,14 @@ export interface CollisionOptions {
    *  distance probes away from the main step (refinement, the re-sampling
    *  after a touch, the contact store's bisections) — work no load changes. */
   profile?: { queries?: Uint32Array; ms?: Float64Array; probes?: Uint32Array };
+  /** The per-line sample of a pair in contact — GONE (step 4 package 2, plan
+   *  5, B8): its one reason was the continuation record per line, and the
+   *  code marks follow from coverage since (plan 4.2). ON restores the old
+   *  rule exactly — the per-line sample in place of the sample where the kind
+   *  of move changes and of the re-sampling at a near pair's margin exit —
+   *  only to compare a sweep with it and to measure what it cost
+   *  (collisionLineSample.test.ts, haus.ngc Fall B); never in the product. */
+  lineSample?: boolean;
   /** Test seam (step 4 package 2, plan 7.3 check 3): every chunk's speed
    *  bound per pair as the sweep uses it — `V` per unit of the sweep's
    *  distance parameter over [s0, s1]. Absent = nothing called. */
@@ -1607,6 +1615,14 @@ export function* sweepCollisionsIter(
   // Where a pair's last TOUCHING query was (NaN: none yet) — the start of the
   // stretch re-sampled when it is next found not touching (VP-I45).
   const lastTouch = new Float64Array(pairs.length).fill(NaN);
+  // Where a pair's last query found it inside the margin WITHOUT a touch
+  // (NaN: the last query touched or lay outside the margin) — the start of
+  // the stretch re-sampled when it is next found outside the margin (B8) —,
+  // its distance there, and the largest speed bound of the chunks since: the
+  // pair's distance changes no faster than that over the stretch.
+  const nearQ = new Float64Array(pairs.length).fill(NaN);
+  const nearD = new Float64Array(pairs.length);
+  const nearV = new Float64Array(pairs.length);
   // The inside check (collision-inside.plan.md, pairInside): a query that
   // finds the surfaces apart proves the pair apart only where it is known not
   // to lie wholly inside the other. Between two surface contacts the answer
@@ -2165,7 +2181,11 @@ export function* sweepCollisionsIter(
   // collision.test "a world kins' speed").
   const surf = new Float64Array(pairs.length);
   const surfQ = new Float64Array(pairs.length);
-  const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (per-line contact marks)
+  const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (only for `lineSample`)
+  // the KIND of move of that query: 0 feed, 1 rapid, 2 none (a band's end
+  // pose, no query yet) — a pair in contact is asked again where the kind
+  // changes (B8: the cutting and rapid rules read a touch's kind)
+  const qKind = new Uint8Array(pairs.length).fill(2);
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
   const jv0: number[] = new Array(jointVals.length).fill(0);
   const jv1: number[] = new Array(jointVals.length).fill(0);
@@ -2325,7 +2345,7 @@ export function* sweepCollisionsIter(
       sink?.toolKnown(c0);
       for (let pi = 0; pi < pairs.length; pi++) {
         if (!pairTool[pi]) continue;
-        inContact[pi] = 0; seeded[pi] = 0; touching[pi] = 0; onsetRapid[pi] = 0;
+        inContact[pi] = 0; seeded[pi] = 0; touching[pi] = 0; onsetRapid[pi] = 0; nearQ[pi] = NaN;
       }
     }
     prevUnknown = segUnknown;
@@ -2403,6 +2423,7 @@ export function* sweepCollisionsIter(
         // recursion leverTrue ≤ (leverEnd + trans) / (1 − rotRad) with
         // rotRad ≤ 0.4 (22.5° chunks) is bounded by ×1.65; ×2 gives slack.
         pairV[pi] = (trans + rotRadLever * 2) / Lc;
+        if (pairV[pi]! > nearV[pi]!) nearV[pi] = pairV[pi]!;
         opts.onChunkSpeed?.(pi, s0, s1, pairV[pi]!);
       }
 
@@ -2423,15 +2444,22 @@ export function* sweepCollisionsIter(
           if (ch === 0 && (breakBoundary || (toolBoundary && pairTool[pi]))) {
             sSafe[pi] = s0; continue;
           }
-          // Every LINE a pair stays in contact with gets at least one sample
-          // (its continuation record — the G-code panel marks it); within a
-          // line the EXPLORE cadence carries across the chunks. A cutting
-          // pair in FEED-begun contact mints no record at all (machining),
-          // so it owes no per-line sample — the EXPLORE cadence alone keeps
-          // watching for separation (2026-09-13: on a 0.7 mm-line random walk
-          // the per-line rule queried the tool×stock pair 7× more often than
-          // its cadence, a fifth of the whole sweep).
-          if (qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi])) { sSafe[pi] = s0; continue; }
+          // A pair in contact samples at the EXPLORE cadence across the
+          // chunks, re-sampled at MIN_ADV at every separation (R86): no line
+          // owes a sample of its own any more (step 4 package 2, plan 5, B8 —
+          // the per-line sample existed for the continuation record per
+          // line; on haus.ngc it was most of the sweep). What stays is a
+          // sample where the KIND of move changes: a touch's kind decides
+          // the cutting rules (a rapid-begun cut going on as a feed ends its
+          // rapid part there; a feed-begun cut's rapid part begins where the
+          // rapid does) and an interval's rapid flag — a feed or a rapid
+          // shorter than the cadence was never asked (Codex R139: no cutting
+          // or rapid rule may be lost). `lineSample` is the old rule exactly
+          // (it took the kind changes with the lines), for the comparison and
+          // the measurement only.
+          if (opts.lineSample ? qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi]) : qKind[pi] !== (isRapid ? 1 : 0)) {
+            sSafe[pi] = s0; continue;
+          }
           // Not touching at its last query: its clearance (to a touch inside
           // the margin, to the margin past it) was measured in the last
           // chunk's V and is re-expressed in this chunk's, like every carried
@@ -2520,13 +2548,50 @@ export function* sweepCollisionsIter(
           // origin over a separation and a rapid re-entry inside the stretch,
           // the gouge never reported. Feed-only stretches need no look: a
           // re-entry on a feed is machining.
-          const resample = touching[pi] && s - lastTouch[pi]! > MIN_ADV
+          //
+          // The same at a NEAR pair's margin exit (step 4 package 2, plan 5,
+          // B8): inside the margin without a touch, a pair steps to where it
+          // could first touch (d/V, up to EXPLORE), so its stay — which ends
+          // at its last sample inside the margin — could end that far before
+          // the pair left the margin, and lines it was inside the margin on
+          // got no stay (the per-line sample covered them until B8; plan 7.3
+          // check 2 found it). Found outside the margin now, the stretch since
+          // that sample is walked: the stay then reaches every line the pair
+          // is inside the margin on for more than MIN_ADV. Not for an
+          // undecidable answer — no exit is decided. Cheaper than after a
+          // touch: that sample's distance certified no touch up to this one
+          // (`nearQ` names only a DECIDED near sample; the floor's overshoot
+          // is under MIN_ADV), so the inside answer cannot have changed, and
+          // the stretch holds no separation decision — only "inside the
+          // margin?", a query bounded at 2 × margin, anything beyond it short
+          // of a separation (the separation is this sample's own). And the
+          // walk is CERTIFIED, not a grid: the distance changes no faster than
+          // the chunks' largest speed bound since that sample (`nearV`), so
+          // from a sample at distance d the next lies max(MIN_ADV, |d −
+          // margin| / V) on — every run inside the margin wider than MIN_ADV
+          // holds a sample or lies between two (a pair the axes barely move
+          // stays in its margin for long, haus.ngc Fall B: a MIN_ADV grid over
+          // such stretches cost half the sweep).
+          const fromTouch = touching[pi] && s - lastTouch[pi]! > MIN_ADV
             && (d > CONTACT_EPS || (pairCutting[pi] && !onsetRapid[pi] && rapidBetween(lastTouch[pi]!, s)));
-          if (resample) {
+          const fromNear = !opts.lineSample && !touching[pi] && !unknownInside && d > opts.margin && s - nearQ[pi]! > MIN_ADV;
+          if (fromNear && !fromTouch) {
+            const V = Math.max(nearV[pi]!, 1e-9);
+            for (let x = nearQ[pi]!, dx = nearD[pi]!; ;) {
+              x += Math.max(MIN_ADV, Math.abs(dx - opts.margin) / V);
+              if (x >= s - 1e-9) break;
+              done++;
+              const seg = segAtDist(x);
+              dx = Math.min(distAtCum(x, pi, opts.margin * 2), opts.margin * 2);   // beyond the bound: at least 2 × margin
+              noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
+            }
+            interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
+          }
+          if (fromTouch) {
             for (let x = lastTouch[pi]! + MIN_ADV; x < s - 1e-9; x += MIN_ADV) {
               done++;
-              let dx = distAtCum(x, pi, HORIZON);
               const seg = segAtDist(x);
+              let dx = distAtCum(x, pi, HORIZON);
               // Every sample of the stretch is a separation decision.
               const vx = dx > CONTACT_EPS ? insideOf(pi) : null;
               markInside(pi, vx);
@@ -2551,6 +2616,10 @@ export function* sweepCollisionsIter(
             sSafe[pi] = s + EXPLORE;
             sQ[pi] = s;
             qLine[pi] = line;
+            qKind[pi] = isRapid ? 1 : 0;
+            // no certificate: never where a near stretch begins (an
+            // undecidable pair is asked at every chunk start, clear 0)
+            nearQ[pi] = NaN;
           } else if (d <= opts.margin) {
             if (d > CONTACT_EPS) {
               // Inside the margin but not touching: the distance certifies
@@ -2563,21 +2632,26 @@ export function* sweepCollisionsIter(
               // than MIN_ADV of path is missed.
               clear[pi] = d;
               touching[pi] = 0;
+              nearQ[pi] = s; nearD[pi] = d; nearV[pi] = pairV[pi]!;
               sSafe[pi] = s + Math.max(MIN_ADV, Math.min(EXPLORE, d / Math.max(pairV[pi]!, 1e-9)));
             } else {
               clear[pi] = 0;
               touching[pi] = 1;
               lastTouch[pi] = s;
+              nearQ[pi] = NaN;
               sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
             }
             sQ[pi] = s;
             qLine[pi] = line;
+            qKind[pi] = isRapid ? 1 : 0;
           } else {
             touching[pi] = 0;
+            nearQ[pi] = NaN;
             const bound = d === Infinity ? HORIZON : d;
             clear[pi] = bound - opts.margin;
             sQ[pi] = s;
             qLine[pi] = line;
+            qKind[pi] = isRapid ? 1 : 0;
             sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
           }
           if (bandAt(i, s) && !track.band?.[i]) {
@@ -2587,6 +2661,7 @@ export function* sweepCollisionsIter(
             // lies past it: asked again within MIN_ADV, inside the segment
             // (Codex R126 VP-I74: a certain hit there stayed `possible`).
             qLine[pi] = -1;
+            qKind[pi] = 2;
             sSafe[pi] = Math.min(sSafe[pi]!, s + MIN_ADV, c1);
           }
           const remain = sSafe[pi]! - s;

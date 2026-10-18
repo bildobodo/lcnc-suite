@@ -122,3 +122,106 @@ describe("contact windows in closed form, through the product (plan 7.3 check 1)
     expect(bridged, "narrow gaps met").toBeGreaterThan(0);
   });
 });
+
+// A NEAR stay (step 4 package 2, plan 5, B8; found by plan 7.3 check 2): a
+// box passes another at a fixed distance g inside the margin — never a touch
+// — forth and back, over lines of 0.05–0.65. The pair is inside the margin
+// where |x − c| ≤ W + √(margin² − g²), in closed form. A stay ends at its last
+// sample inside the margin; without a sample per line, a near pair steps to
+// where it could first touch (g/V, up to EXPLORE), and its stay ended up to
+// that far before the pair left the margin — lines it was inside the margin
+// on got no stay. Required: every line the pair is inside the margin on for
+// more than MIN_ADV is reached by a stay, and every stay lies inside a window.
+describe("near stays in closed form, through the product (plan 5, B8)", () => {
+  it("a stay reaches every line its pair is inside the margin on for more than MIN_ADV, and lies inside the window", () => {
+    const rand = rng(20261018);
+    const M = 2;
+    let lines = 0, cases = 0;
+    for (let t = 0; t < 24; t++) {
+      const g = 0.8 + rand() * 1.15;                         // the distance across: inside the margin, no touch
+      const af = 0.2 + rand() * 2, am = 0.2 + rand() * 2, W = af + am;
+      const H = W + Math.sqrt(M * M - g * g);                // the window's half-width along X
+      const c = 0;
+      const model = buildCollisionModel(machine, [
+        { id: "fixed", group: "fixed", positions: boxPositions(2 * af, 20, 20, c) },
+        { id: "moving", group: "moving", positions: boxPositions(2 * am, 20, 20, 0, 20 + g) }]);
+      const x0 = -H - 5 - rand() * 3, x1 = H + 5 + rand() * 3;
+      const track = trackThrough([x0, x1, x0 - rand()], rand);
+      const store = new ContactStore(1, 0);
+      const r = sweepCollisions(model, track, WCS0, { margin: M, contacts: { store } });
+      expect(r.truncated).toBeNull();
+      expect(store.intervals.rows, `case ${t}: never a touch`).toBe(0);
+      const cumAt = (x: number, pass: 0 | 1) => pass === 0 ? x - x0 : (x1 - x0) + (x1 - x);
+      const wins = ([0, 1] as const).map(p => [cumAt(c - H, p), cumAt(c + H, p)].sort((a, b) => a - b) as [number, number]);
+      // an open stay (no separation before the track's end) runs to the end
+      const E = store.episodes, stays: Array<[number, number]> = [];
+      for (let e = 0; e < E.rows; e++) { const w = E.get(e, "end"); stays.push([E.get(e, "onset"), Number.isNaN(w) ? track.cum[track.count - 1]! : w]); }
+      const where = `case ${t} (g ${g.toFixed(3)}, half-width ${H.toFixed(3)})`;
+      for (const [a, b] of stays)
+        expect(wins.some(([p, q]) => a >= p - TOL && b <= q + TOL), `${where}: the stay [${a.toFixed(4)}, ${b.toFixed(4)}] lies inside a window`).toBe(true);
+      for (let i = 1; i < track.count; i++) {
+        const a = track.cum[i - 1]!, b = track.cum[i]!;
+        for (const [p, q] of wins) {
+          const lo = Math.max(a, p), hi = Math.min(b, q);
+          if (hi - lo <= MIN_ADV + TOL) continue;
+          lines++;
+          expect(stays.some(([u, w]) => u <= hi && w >= lo), `${where}: L${track.lines[i]} [${a.toFixed(4)}, ${b.toFixed(4)}] is inside the margin over [${lo.toFixed(4)}, ${hi.toFixed(4)}] — no stay reaches it: ${JSON.stringify(stays)}`).toBe(true);
+        }
+      }
+      cases++;
+    }
+    expect(cases).toBe(24);
+    expect(lines, "lines inside the margin for more than MIN_ADV").toBeGreaterThan(100);
+  });
+
+  // The walk over a near stretch steps by the distance's rate bound: the
+  // LARGEST chunk speed since its start sample. Here the stretch begins on a
+  // fast chunk (X alone, V = 1) and the pair leaves the margin on slow ones,
+  // where a rotary no body rides drives the sweep's parameter (1° ≙ 1) and X
+  // creeps — the current chunk's V alone would step past the fast tail.
+  it("the walk over a near stretch takes the largest speed bound since its start (a slow chunk after a fast one)", () => {
+    const rand = rng(20261019);
+    const M = 2;
+    const spun: CollisionMachine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }, { id: "spinner", parent: "root" }],
+      kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 },
+                   { group: "spinner", joint: 3, type: "rotate", direction: "z", sign: 1 }],
+      workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z", "A"] };
+    let lines = 0;
+    for (let t = 0; t < 16; t++) {
+      const g = 0.8 + rand() * 1.15;
+      const af = 0.2 + rand() * 2, am = 0.2 + rand() * 2, H = af + am + Math.sqrt(M * M - g * g);
+      const model = buildCollisionModel(spun, [
+        { id: "fixed", group: "fixed", positions: boxPositions(2 * af, 20, 20) },
+        { id: "moving", group: "moving", positions: boxPositions(2 * am, 20, 20, 0, 20 + g) }]);
+      // fast lines to just before the exit, then slow ones: each 8–12° of A and 0.05–0.35 of X
+      const xs = [-H - 6 - rand() * 2], as = [0];
+      const slowFrom = H - 0.4 - rand() * 1.2;
+      while (xs[xs.length - 1]! < slowFrom) { xs.push(Math.min(slowFrom, xs[xs.length - 1]! + 0.05 + rand() * 0.6)); as.push(0); }
+      while (xs[xs.length - 1]! < H + 3) { xs.push(xs[xs.length - 1]! + 0.05 + rand() * 0.3); as.push(as[as.length - 1]! + 8 + rand() * 4); }
+      const n = xs.length, pos = new Float32Array(n * 3), abc = new Float32Array(n * 3), cum = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        pos[i * 3] = xs[i]!; abc[i * 3] = as[i]!;
+        if (i) cum[i] = cum[i - 1]! + Math.max(Math.abs(xs[i]! - xs[i - 1]!), Math.abs(as[i]! - as[i - 1]!));
+      }
+      const track: CollisionTrack = { pos, abc, cum, count: n, lines: Uint32Array.from({ length: n }, (_, i) => 10 + i), rapid: new Uint8Array(n) };
+      const store = new ContactStore(1, 0);
+      const r = sweepCollisions(model, track, WCS0, { margin: M, contacts: { store } });
+      expect(r.truncated).toBeNull();
+      // an open stay (no separation before the track's end) runs to the end
+      const E = store.episodes, stays: Array<[number, number]> = [];
+      for (let e = 0; e < E.rows; e++) { const w = E.get(e, "end"); stays.push([E.get(e, "onset"), Number.isNaN(w) ? cum[n - 1]! : w]); }
+      const where = `case ${t} (g ${g.toFixed(3)}, half-width ${H.toFixed(3)}, slow from x ${slowFrom.toFixed(3)})`;
+      for (let i = 1; i < n; i++) {
+        // the part of the line inside the margin, |x| ≤ H, on the sweep's parameter (x linear in it)
+        const x0 = xs[i - 1]!, x1 = xs[i]!, c0 = track.cum[i - 1]!, c1 = track.cum[i]!;
+        const u0 = Math.max(0, (-H - x0) / (x1 - x0)), u1 = Math.min(1, (H - x0) / (x1 - x0));
+        if (u1 <= u0) continue;
+        const lo = c0 + (c1 - c0) * u0, hi = c0 + (c1 - c0) * u1;
+        if (hi - lo <= MIN_ADV + TOL) continue;
+        lines++;
+        expect(stays.some(([u, w]) => u <= hi && w >= lo), `${where}: L${track.lines[i]} inside the margin over [${lo.toFixed(4)}, ${hi.toFixed(4)}] — no stay reaches it: ${JSON.stringify(stays)}`).toBe(true);
+      }
+    }
+    expect(lines, "lines inside the margin for more than MIN_ADV").toBeGreaterThan(100);
+  });
+});

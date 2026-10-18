@@ -40,6 +40,7 @@
     "src/viewer/programZero.test.ts",
     "src/viewer/machineModel.test.ts",
     "src/viewer/collisionBounds.test.ts",
+    "src/viewer/collisionLineSample.test.ts",
     "src/viewer/collisionOracle.test.ts",
     "src/viewer/collisionContacts.test.ts",
     "src/viewer/contactViewCross.test.ts",

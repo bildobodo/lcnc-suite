@@ -4,21 +4,25 @@
 // machine models along random tracks every STEP of the sweep's own distance
 // parameter (1° ≙ 1 mm) and asks each pair exactly whether it is inside the
 // margin — and whether it touches. Then:
-//  · every touch the oracle finds lies in a contact interval of its pair,
-//    and every in-margin pose has a record of its pair on its line — unless
-//    the run around it, its ends bisected, is no wider than the sweep's
-//    guarantee (MIN_ADV); for the line's record, the run inside its line (a
-//    run crossing a line's end by less than MIN_ADV is seen on the next). The oracle's own grid sees runs of STEP and wider:
-//    the gate's 0.5, a hunt's 0.25;
+//  · every touch the oracle finds lies in a touch interval of its pair,
+//    and every in-margin pose has a stay of its pair reaching its line —
+//    unless the run around it, its ends bisected, is no wider than the
+//    sweep's guarantee (MIN_ADV); for the line's stay, the run inside its
+//    line (a run crossing a line's end by less than MIN_ADV is seen on the
+//    next). The oracle's own grid sees runs of STEP and wider: the gate's
+//    0.5, a hunt's 0.25, plan 7.3 check 2's 0.05 (COLLISION_STEP);
 //  · every reported onset is a real touch, every near miss a real distance.
 // What the oracle shares with the sweep is the pose (the kinematics mirror
 // and the group-tree compose, each pinned by its own tests), the estimators
 // collisionBounds.test.ts proves and the library's bounded query — a search
 // tool, not an independent proof (Codex R86); the stepping, the certificates,
-// the in-margin cadence, the records and their refinement are what it
-// checks — in BOTH sinks of the same sweep: the records and the contact
-// tables (step 4 package 2, plan 7.3: the oracle moves to the new model while
-// both sinks write; the records' half goes with them). A body wholly inside another is a touch too (collision-inside.plan.md
+// the in-margin cadence, the contact tables and their bisections are what it
+// checks (step 4 package 2, plan 7.3 — the records went with C2).
+// COLLISION_SHORT_LINES=1 cuts every track into short lines (shortLines:
+// 0.05–1.5 each, the kind flipping now and then), where a line has no sample
+// of its own since the per-line sample went (plan 5, B8) — a stay must still
+// reach every line its pair is inside the margin on.
+// A body wholly inside another is a touch too (collision-inside.plan.md
 // §5): its truth is the winding number (collisionFixtures.insideTruth — no
 // BVH, no rays, apart from the product's way), and every case also sweeps a
 // track through a pose where one body lies wholly inside another.
@@ -27,7 +31,7 @@ import * as path from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
 import { geometryNote, sweepCollisions, type CollisionTrack } from "./collision";
-import { CONTACT, MARGIN, MIN_ADV, generatedCase, inSpans, insideAt, insidePose, insideTrack, insideTruth, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases,
+import { CONTACT, MARGIN, MIN_ADV, generatedCase, inSpans, insideAt, insidePose, insideTrack, insideTruth, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases, shortLines,
          tablesByPair, trackTruth, type Case, type FixtureFiles, type PairTables } from "./collisionFixtures";
 import { ContactStore } from "./contactStore";
 import type { CollisionModel } from "./collision";
@@ -39,7 +43,9 @@ const TOL = 0.01;           // interval boundaries are bisected to 1e-3
 // The default is the gate's share: one short track per case — the bugs the
 // hunt found have their own unit tests; this keeps the walk itself honest.
 const DEEP = process.env.COLLISION_HUNT === "deep";
-const STEP = DEEP ? MIN_ADV : 0.5;   // the oracle's stride along the sweep's distance parameter
+// the oracle's stride along the sweep's distance parameter (COLLISION_STEP: plan 7.3 check 2's 0.05)
+const STEP = Number(process.env.COLLISION_STEP) || (DEEP ? MIN_ADV : 0.5);
+const SHORT_LINES = process.env.COLLISION_SHORT_LINES === "1";
 // Per case: a slow run fails by name, never hangs; COLLISION_HUNT_BUDGET=0
 // lifts it (a seed that ran out of time in the gate's search).
 const BUDGET_MS = process.env.COLLISION_HUNT_BUDGET === "0" || DEEP ? Infinity : 60_000;
@@ -70,6 +76,7 @@ function oracleWalk(c: Case, model: CollisionModel, stock: Set<string>,
   const tracks: Array<{ track: CollisionTrack; where: string }> = [];
   for (let ti = 0; ti < (DEEP ? c.tracks : opts.tracks ?? 1); ti++)
     tracks.push({ track: randomTrack(c, rand, DEEP ? c.segments : opts.segments ?? 3, DEEP ? 0.6 : opts.reach ?? 0.25), where: `${c.name} track ${ti}` });
+  if (SHORT_LINES) for (const t of tracks) { t.track = shortLines(t.track, rand); t.where += " (short lines)"; }
   // A body wholly inside another: a pose the winding number finds, and a
   // short track from it (`insideTrack`).
   // The gate takes the case's recorded pose (a case without one has none
@@ -78,7 +85,8 @@ function oracleWalk(c: Case, model: CollisionModel, stock: Set<string>,
   const found = DEEP || insideTries ? insidePose(model, c, rand, DEEP ? 4000 : insideTries) : c.inside ? insideAt(model, c, c.inside) : null;
   if (!DEEP && !insideTries && c.inside && !found) expect.fail(`${c.name}: the recorded inside pose has no body inside another any more — search again (COLLISION_HUNT=deep)`);
   if (found) {
-    tracks.push({ track: insideTrack(c, found.at, rand), where: `${c.name} inside track (${found.a} in ${found.b})` });
+    const t = insideTrack(c, found.at, rand);
+    tracks.push({ track: SHORT_LINES ? shortLines(t, rand) : t, where: `${c.name} inside track (${found.a} in ${found.b})${SHORT_LINES ? " (short lines)" : ""}` });
     insideCases.push(c.name);
   }
   for (const { track, where } of tracks) {

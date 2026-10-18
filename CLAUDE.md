@@ -1634,8 +1634,28 @@ taken for the benign retract, R87); a pair still touching keeps the stretch
 as contact, so an unchecked gap never reads as clear — except a cutter in a
 FEED-begun contact whose stretch reaches a rapid: re-sampled even when the
 next sample touches again, or a separation and a rapid re-entry inside it
-inherited the feed contact's benign origin (R88). Both are sampled at least once on every line they stay in contact
-with (the per-line continuation marks). Facets WITHOUT AREA (three distinct
+inherited the feed contact's benign origin (R88). No LINE owes a pair in
+contact a sample of its own (step 4 package 2, plan 5, B8 — the per-line sample
+existed for the continuation record per line; on haus.ngc it was most of the
+sweep): it samples at the cadence, where the KIND of move changes (feed ↔
+rapid: a touch's kind decides the cutting rules and an interval's rapid flag),
+and re-sampled at MIN_ADV at every separation — a touch's end (above) and a
+NEAR pair's margin exit (`nearQ`): a pair inside the margin without a touch
+steps to where it could first touch (d/V, up to EXPLORE), and its stay, which
+ends at its last sample inside the margin, ended that far before the exit —
+lines it was inside the margin on got no stay (plan 7.3 check 2, the oracle at
+0.05, found it; the per-line sample had covered them). That stretch holds no
+touch (the near sample's distance certified none; `nearQ` names only a DECIDED
+near sample), so it asks only "inside the margin?" — a query bounded at 2 ×
+margin, beyond it short of a separation, no inside check — and it is WALKED,
+not gridded: the distance changes no faster than the largest chunk speed bound
+since the near sample (`nearV`), so the next sample lies max(MIN_ADV, |d −
+margin| / V) on (haus.ngc Fall B: a MIN_ADV grid over the long near stretches
+of pairs the axes barely move cost 158 s of 264). `CollisionOptions.
+lineSample` is the old rule, for the comparison (`collisionLineSample.test.ts`:
+tables, stays per line and views of the run without it cover the run with it,
+else the truth shows a run no wider than MIN_ADV) and the measurement only;
+`collisionWindows.test.ts` holds near stays to closed-form margin windows. Facets WITHOUT AREA (three distinct
 collinear vertices, coincident ones, a coordinate not finite) are dropped
 when the model is built (`withoutArealessFacets`): three-mesh-bvh read a
 collinear facet as touching a triangle 1.5 mm away (VP-I46); a body left
@@ -1668,8 +1688,8 @@ the answer can change only through a surface crossing, so it holds until
 the surfaces' distance at that query (beyond the horizon: the horizon) is
 used up at the pair's speed bound — carried across chunks like a clearance,
 dropped at a break or a tool change (`inClear` / `inQ`): a long inside
-contact owes a sample per line, and those need no query (haus.ngc's end caps
-in the column foot: 268 s → 3.3 s for that pair). Undecidable gives no
+contact's samples need no query (haus.ngc's end caps in the column foot, while
+every line still owed a sample: 268 s → 3.3 s for that pair). Undecidable gives no
 touch, no separation, no clearance certificate (asked again at the contact
 cadence), never a static exclusion: its stretch is a GAP_UNDECIDABLE gap,
 named in the bar's caveat ("inside check undecidable for A ↔ B (L5–L9)") —
@@ -1809,7 +1829,7 @@ box — a wall-spanning inner box prunes nothing: 12.8 ms → 0.02 ms per
 query), each body carries its connected components' AABBs
 (`componentBoxes`) whose box-to-box distance is a valid lower bound that
 answers every above-margin query without the BVH, and a cutting pair in
-feed-begun contact owes no per-line sample. The wall gantry's ~450 pairs
+feed-begun contact owed no per-line sample (since B8 no pair does). The wall gantry's ~450 pairs
 over 236k triangles made a 1.2 M-point sweep take hours; a 20k-point slice
 went 203 s → 5.1 s (docs/decisions.md 2026-09-13). The BVH query runs with
 a horizon (`HORIZON`, 20 mm) and a distance it returns ABOVE the horizon is
