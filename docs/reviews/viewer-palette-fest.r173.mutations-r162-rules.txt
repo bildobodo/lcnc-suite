@@ -1,0 +1,8 @@
+f_local_never RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the local key query stays bounded: expected 116628 to be less than or equal to 24116.5 | AssertionError: the local key query stays bounded: expected 116686 to be less than or equal  36s
+f_window_from_late RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 0: {"held":{"ivs":[{"enter":-0.0006349040560889989,"end":1.249365095943911,"witness":-0.0006349040560889989,"ed":false,"xd":false,"after":false,"freeAt":1.348485974791227,"freeR":0.094 12s
+f_window_to_early RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 0: {"held":{"ivs":[{"enter":-0.0006349040560889989,"end":1.249365095943911,"witness":-0.0006349040560889989,"ed":false,"xd":false,"after":false,"freeAt":1.348485974791227,"freeR":0.094 12s
+f_floor_late RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 5: {"held":{"ivs":[{"enter":1.75,"end":3.25,"witness":3.212617095327005,"ed":true,"xd":false,"after":false},{"enter":3.75,"end":4.125,"witness":4.125,"ed":true,"xd":false,"after":false 12s
+f_rising_unchecked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ +0, +0, true ] ] to deeply equal [ [ +0, +0, false ] ] 11s
+f_bound_unchecked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ +0, +0, true ] ] to deeply equal [ [ +0, +0, false ] ] 12s
+v_stage_watch_early RED   1 failed Error: a binding read before its declaration | - Expected  -  1 32s
+rebuild ok 19s

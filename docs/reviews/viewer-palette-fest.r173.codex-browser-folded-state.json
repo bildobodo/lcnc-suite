@@ -1,0 +1,21 @@
+{
+  "own": {
+    "line": 3,
+    "start": 12.5,
+    "end": 12.8,
+    "lines": [
+      0,
+      2,
+      3,
+      4
+    ],
+    "cum": [
+      0,
+      11,
+      13,
+      70
+    ]
+  },
+  "label": "L3",
+  "help": "A stop shows the first contact (machine off). 9 pairs already in contact at rest — excluded. Not certified: Clearance guarantee not certified for this sweep: inside check undecidable for levelling_feet ↔ y_guide_blocks (L3) — a part wholly inside the other is not found there. No tool loaded: checked with a 6 mm stub."
+}

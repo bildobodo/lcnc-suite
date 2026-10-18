@@ -1,0 +1,12 @@
+d_index_any_sample RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 7226816 to be less than or equal to 1246084 | AssertionError: refuted: one target: expected 1212695 to be less than or equal to 209480.5 31s
+d_reach_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: wideRadiusUnchecked: one target: expected 1204489 to be less than or equal to 207941.5 338s
+d_holds_not_written RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 0: expected { targets: [ …(47) ], …(4) } to deeply equal { targets: [ …(47) ], …(4) } 14s
+d_comp_clears_holds RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 0: expected { targets: [ …(47) ], …(4) } to deeply equal { targets: [ …(47) ], …(4) } 14s
+d_comp_unmasked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯  14s
+e_absent_uncounted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads between two steps at 32768: expected 34561 to be less than or equal to 16384 15s
+e_refuted_uncounted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads between two steps at 1024: expected 21856 to be less than or equal to 16384 12s
+e_pred_walk RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads between two steps at 32768: expected 36835 to be less than or equal to 16384 13s
+e_wide_enumerated RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads between two steps at 1024: expected 16604 to be less than or equal to 16384 15s
+e_first_deep_no_end RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 0: {"held":{"ivs":[{"enter":-0.0006349040560889989,"end":1.249365095943911,"witness":-0.0006349040560889989,"ed":false,"xd":false,"after":false,"freeAt":1.348485974791227,"freeR":0.094 17s
+e_first_deep_no_enter RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 4: {"held":{"ivs":[{"enter":0,"end":0.875,"witness":0.875,"ed":false,"xd":false,"after":true,"freeAt":1.395266972918762,"freeR":0.18140961244342946},{"enter":2.25,"end":3.4996850689763 15s
+e_gallop_no_bisection RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 0: {"held":{"ivs":[{"enter":-0.0006349040560889989,"end":1.249365095943911,"witness":-0.0006349040560889989,"ed":false,"xd":false,"after":false,"freeAt":1.348485974791227,"freeR":0.094 15s

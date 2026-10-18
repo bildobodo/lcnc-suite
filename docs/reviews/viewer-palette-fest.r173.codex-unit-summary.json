@@ -1,0 +1,65 @@
+{
+  "unit": {
+    "total": 195,
+    "passed": 195,
+    "failed": 0,
+    "repository": 191,
+    "r172": 2,
+    "new_r173": 2
+  },
+  "browser": {
+    "startTime": "2026-10-18T16:22:55.755Z",
+    "duration": 34145.231,
+    "expected": 6,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "files": [
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/checkContext.test.ts",
+      "tests": 11,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/checkWiring.test.ts",
+      "tests": 17,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/contactMeter.test.ts",
+      "tests": 12,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/contactView.test.ts",
+      "tests": 47,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/r172-codex-side-notes.test.ts",
+      "tests": 2,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/scrubTrack.test.ts",
+      "tests": 83,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/shownContacts.test.ts",
+      "tests": 9,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/simRows.test.ts",
+      "tests": 12,
+      "status": "passed"
+    },
+    {
+      "name": "/tmp/codex-r173-a8l4sdqz/repo/lcnc-webui/src/viewer/r173-codex-origins.test.ts",
+      "tests": 2,
+      "status": "passed"
+    }
+  ]
+}
