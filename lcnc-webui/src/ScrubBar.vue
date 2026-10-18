@@ -1146,14 +1146,14 @@ const sweepView = computed<SimSweepView | null>(() => {
   const caveat = !!sweepCaveat.value;
   type Tone = SimSweepView["tone"];
   // the coverage in the fewest words — the tab's last form keeps the count,
-  // the check's state and the "+" (Codex R137 VP-I94)
+  // and the check's state (Codex R137 VP-I94)
   const shortCov = (cov: string) => cov
     .replace(/^checked in full$/, "in full").replace(/^checked to the end$/, "to the end")
     .replace(/^(.+%) checked$/, "$1").replace(/^provisional from (.+), stopped at (.+%)$/, "from $1, $2")
     .replace(/^provisional from /, "from ").replace(/^(stopped|paused) at /, "$1 ")
     .replace(/^start still checking$/, "start checking").replace(/^start not checked$/, "start unchecked")
     .replace(/^entry move still checking$/, "entry checking");
-  /** One view: the result, the coverage (with the cap's caveat) and both
+  /** One view: the result, the coverage and both
    *  joined; `short` the result as a count. */
   const view = (state: SimSweepView["state"], frac: number, tone: Tone, cav: boolean, det: string,
                 res: string, cov: string, label?: string): SimSweepView => {

@@ -16,8 +16,10 @@
 //     its own effects are in what it builds, and what changes meanwhile from
 //     outside is either staged with it or a changed spec that restarts it;
 //   4 catches the other, now dead copy up by the same deltas (bounded steps)
-//     and only then acknowledges them — one unacknowledged delta per path,
-//     the sender coalesces meanwhile; no queue grows here.
+//     and only then acknowledges them, each message apart — one
+//     unacknowledged delta per path (the one with a request's first interval
+//     beside it, once: two at most), the sender coalesces meanwhile; no queue
+//     grows here.
 // A FALLBACK (the pool fell back to one core; `heldCoverage`, then the old
 // generation's drain, then a new generation): the build is discarded, never
 // the evidence. The complete copy that is not published takes the drain
@@ -49,7 +51,8 @@ export interface GenerationTables {
 
 /** The collision worker's contact transport (plan Fassung 5, 3.1/3.4/3.5):
  *  each request's tables as deltas, one per shard, at most one
- *  unacknowledged per request; acknowledged as `{contactsAck, generation}`,
+ *  unacknowledged per request (the one with its first interval beside it,
+ *  once — C2); acknowledged as `{contactsAck, generation}`,
  *  the delta's own generation. */
 export interface ContactsMessage {
   id: number; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
