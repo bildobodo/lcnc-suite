@@ -217,7 +217,7 @@ export function checkCard(ctx: CheckContext | null, r: CollisionResult | null,
     if (bodies?.open.length) rows.push({ label: "No inside check (open surface)", value: bodies.open.map(partLabel).join(", ") });
     const bc = r.boundaryContacts ?? [];
     // each at its DISPLAY line (plan 1.3, C3)
-    list(rows, "In contact at the check's start", bc.map(c => `${pairName(c.a, c.b)} (${lineWordAt(o.lineAt, c.cum, c.line)})`), true);
+    list(rows, "In contact at the check's start", bc.map(c => `${pairName(c.a, c.b)} (${lineWordAt(o.lineAt, c.cum)})`), true);
   }
   return { rows, notes };
 }

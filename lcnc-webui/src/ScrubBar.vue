@@ -27,7 +27,7 @@ import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
 import { isNearMiss } from "./viewer/clashTargets";
-import { boundaryStretches, contactBands, startTargets, targetAt, undecidableNote, viewCounts } from "./viewer/contactView";
+import { boundaryStretches, contactBands, displayLineAt, startTargets, targetAt, undecidableNote, viewCounts, type LineAt } from "./viewer/contactView";
 import type { ShownContacts } from "./viewer/shownContacts";
 import { wordsOfCounts } from "./viewer/sweepWords";
 import { mapAcrossEntry, sampleCum, type NavSelection } from "./viewer/findingNav";
@@ -744,6 +744,16 @@ const shownView = computed<ShownContacts | null>(() => {
   void props.contactsVersion;
   return props.contactViewFor?.(track.value) ?? null;
 });
+/** The displayed track's DISPLAY line at a position (plan 1.3, C3): the
+ *  view's, else the track's own — a result's metadata (a range's boundary
+ *  contacts) shows before the first table does, and never by its raw line
+ *  (Codex R172 VP-I126). */
+const displayLineAtShown = computed<LineAt | null>(() => {
+  const sv = shownView.value;
+  if (sv) return sv.lineAt;
+  const t = track.value;
+  return t ? displayLineAt(t, !viewerGcode.value?.lines_untrusted) : null;
+});
 // What the displayed track IS, for the coverage wording: on the entry track
 // a merged result's fraction covers the whole route (TWP-12), never "the
 // program" alone.
@@ -802,7 +812,7 @@ const sweepCaveat = computed<string | null>(() => {
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
   // the track's undecidable inside answers — the contact tables' gaps, named
-  // per pair (C2; lines are the track's, the display lines come with C3)
+  // per pair (C2), each at its display lines — a folded source's own (VP-I125)
   const sv = shownView.value;
   for (const u of sv?.derived?.undecidable ?? []) {
     const note = undecidableNote(u, sv!.lineAt, NO_VALUE);
@@ -1257,16 +1267,16 @@ const boundaryDetail = computed(() => {
   // every one of them (Codex R116 VP-I69: the fourth and fifth were cut
   // off), with the last line its contact stays on — provisional (the
   // boundary stays in the contact view, round B3)
-  const sv = shownView.value;
+  const sv = shownView.value, la = displayLineAtShown.value;
   const stretches = sv ? sv.derived?.boundaries ?? boundaryStretches(sv.view) : [];
   const lastLine = (b: { a: string; b: string }) => stretches
     .filter(x => (x.a === b.a && x.b === b.b) || (x.a === b.b && x.b === b.a))
     .reduce((m, x) => Math.max(m, sv!.lineAt(x.e, true) ?? 0), 0);
   const named = bc.map(b => {
-    // its display line at its place (plan 1.3, C3) — the sweep's own line only without a view
-    const line = sv ? sv.lineAt(b.cum) ?? 0 : b.line, last = lastLine(b);
+    // its display line at its place (plan 1.3, C3) — never the sweep's raw one (VP-I126)
+    const line = la ? la(b.cum) ?? 0 : 0, last = lastLine(b);
     const more = last > line ? `, provisional to L${last}` : "";
-    return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (${lineWordAt(sv?.lineAt, b.cum, b.line)}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
+    return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (${lineWordAt(la, b.cum)}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
   }).join("; ");
   return `In contact at the check's start: ${named} — where each began and what it is, the full check says. `;
 });
@@ -1278,7 +1288,7 @@ const checkCardView = computed(() => {
   if (!sweepView.value) return null;
   const e = props.collisionEntryResult;
   return checkCard(props.collisionContext ?? null, shownResult.value, {
-    stale: !!props.collisionContextStale, unit: linearUnit.value, lineAt: shownView.value?.lineAt ?? null,
+    stale: !!props.collisionContextStale, unit: linearUnit.value, lineAt: displayLineAtShown.value,
     entry: !!e && e.track === track.value && shownResult.value === e.result });
 });
 /** Which tools the check poses — said in the check's "?", not on the bar.

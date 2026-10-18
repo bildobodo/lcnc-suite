@@ -68,10 +68,10 @@ export interface SimRowInput {
 export const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
 
 /** A position's line in words (plan 1.3, C3): "L<n>" for its DISPLAY line,
- *  else its subroutine's name, else "—" — never a raw line. Without a shown
- *  track (`lineAt` none) the sweep's own line `raw`. */
-export function lineWordAt(lineAt: LineAt | null | undefined, pos: number, raw: number): string {
-  if (!lineAt) return `L${raw}`;
+ *  else its subroutine's name, else "—" — never a raw line, not even without
+ *  a resolver (Codex R172 VP-I126). */
+export function lineWordAt(lineAt: LineAt | null | undefined, pos: number): string {
+  if (!lineAt) return NO_VALUE;
   const l = lineAt(pos);
   return l != null && l > 0 ? `L${l}` : lineAt.nameAt?.(pos) ?? NO_VALUE;
 }

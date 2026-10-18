@@ -1339,9 +1339,10 @@ const sideTables = new WeakMap<Page, ContactStore>();
 /** The side sweep's first touch, delivered: its table — one contact of the
  *  model's first pair, inside the move from point `seg` to `seg + 1` of the
  *  side track (the line of that move, kept in `first` for the spec). Point 0
- *  is the start the run stood at: the move to point 1 is the entry — no
- *  program line (prependEntry, W2 P6; plan 1.3, C3) — point 1 → 2 the
- *  beginning's first move of a program line. */
+ *  is the start the run stood at: the move to point 1 is the entry — the
+ *  program's first move from there, whose line the track does not carry
+ *  (prependEntry, W2 P6; plan 1.3, C3) — point 1 → 2 the beginning's next
+ *  move, of a line the track carries. */
 const sideFirst = async (page: Page, seg = 1) => {
   const { id, at, pairs } = await page.evaluate(seg => {
     const t = (window as any).__sideTap;
@@ -1391,10 +1392,11 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   await ctl({ op: "reset" });
 });
 
-// C3 (plan 1.3): a contact on the entry — the move from where the run stood to
-// the program's first point, which no program line commanded (prependEntry,
-// W2 P6) — reads "entry" and marks no code line: never the raw line of the
-// point it ends at.
+// C3 (plan 1.3): a contact on the entry — the program's first move, from where
+// the run stood to its first point, whose display line the track does not
+// carry (prependEntry, W2 P6; Codex R172: a limitation of the line's origin,
+// not a move outside the program) — reads "entry" and marks no code line:
+// never the raw line of the point it ends at.
 test("a run's bound beginning: a contact on the entry reads \"entry\" and marks no code line (C3, plan 1.3)", async ({ page, context }) => {
   test.setTimeout(120_000);
   await sideRunReady(page, context);
@@ -1402,7 +1404,91 @@ test("a run's bound beginning: a contact on the entry reads \"entry\" and marks 
   await expect(clashRows(page), "in the list").toHaveCount(1);
   await expect(clashRows(page).first().locator(".rowPick")).toHaveText("entry");
   await page.getByRole("tab", { name: "Program", exact: true }).click();
-  await expect(page.locator(".codeLine.collision"), "no line commanded it").toHaveCount(0);
+  await expect(page.locator(".codeLine.collision"), "the track carries no display line for it").toHaveCount(0);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// Codex R172 VP-I125: an undecidable stretch on a run's beginning — a folded
+// source — reads its OWN track's lines, as its contact's row does; mapped onto
+// the base's axis it read the base's ("L4–L3").
+test("a run's beginning: an undecidable stretch on its own move reads the line its contact reads (Codex R172 VP-I125)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await sideRunReady(page, context);
+  await sideFirst(page);
+  const own = await page.evaluate(() => {
+    const t = (window as any).__sideTap, c = t.side.track.cum;
+    return { line: t.first.line as number, start: c[1] + (c[2] - c[1]) * 0.75, end: c[1] + (c[2] - c[1]) * 0.9 };
+  });
+  sideTables.get(page)!.gaps.append({ pair: 0, start: own.start, end: own.end, reason: GAP_UNDECIDABLE });
+  await sideResultMsg(page);
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", /checked to the end/);
+  await expect(clashRows(page)).toHaveCount(1);
+  await expect(clashRows(page).first().locator(".rowPick")).toHaveText(`L${own.line}`);
+  await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
+  const help = await page.locator(".helpPopover:popover-open").innerText();
+  await page.keyboard.press("Tab");
+  await page.mouse.click(5, 5);
+  expect(help, "the note reads the side's own line").toContain(`(L${own.line})`);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// Codex R172 VP-I126: a run check's range metadata — a boundary contact —
+// shows before the first table does; its line is the display line of the
+// track there (a move in "touch" with no verified call line: its name), never
+// the sweep's raw L7 — before the first delta and after it alike.
+test("a boundary contact before the first table: the basis card reads its display line, never the raw one (Codex R172 VP-I126)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { main: null, deliver: null };
+    (window as any).__r173 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      w.addEventListener("message", e => handler?.(e));
+      tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      // the range request is this spec's: no worker answer races it
+      w.postMessage = ((m: any, t?: Transferable[]) => { if (m?.track && !m.side && m.options?.range) { tap.main = m; return; } post(m, t ?? []); }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  const file = "/r173-meta.ngc";
+  await runReady(page, context, file, 31731);
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 31731);
+  const payload = { file, preview_schema: 11, feed: RUN_FEED, feed_lines: [1, 6, 7, 8], feed_seq: [1, 2, 3, 4],
+    feed_outside: new Uint8Array(4), rapid: [], violations: [], violations_total: 0,
+    feed_lineok: new Uint8Array([1, 1, 0, 0]), feed_sub: new Uint8Array([255, 255, 0, 0]), sub_names: ["touch"],
+    feed_cline: new Uint8Array(Uint16Array.from([0, 0, 0, 0]).buffer) };
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));
+  await publishInRun(page, file, 31732, pinnedFor(9));
+  await expect.poll(() => page.evaluate(() => (window as any).__r173.main?.id ?? null)).not.toBeNull();
+  const m = await page.evaluate(() => { const m = (window as any).__r173.main; return { id: m.id as number, at: m.track.cum[m.options.range.from] as number, range: m.options.range }; });
+  expect(m.range, "the run's provisional check").toEqual({ from: 1 });
+  const metadata = { staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
+    pairsPrescreened: 0, bvhMs: 0, sweepMs: 10, truncated: { covered: 0.3, reason: "running" },
+    range: { fromCum: m.at, fromLine: 7 },
+    boundaryContacts: [{ a: "tool", b: "work_piece", line: 7, cum: m.at, dist: 0, cutting: true }] };
+  // before the first table: the metadata alone
+  await page.evaluate(d => (window as any).__r173.deliver(d), { id: m.id, progress: 0.3, partial: metadata });
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", /No contact so far · provisional from L7/);
+  expect(await page.evaluate(() => window.__viewerDiag!.getContacts!().main), "no table yet").toBeNull();
+  const before = await basisCard(page);
+  expect(before, "its name — never the raw L7").toContain("Tool ↔ Work piece (touch)");
+  // after the first (empty) table: the same
+  const w = wireDelta(new ContactStore(m.id, 0));
+  await page.evaluate(([d, w]) => (window as any).__r173.deliver({ ...d, contacts: [(window as any).__fromWire(w)] }),
+    [{ id: m.id, progress: 0.4, partial: { ...metadata, truncated: { covered: 0.4, reason: "running" } }, contactPairs: [["tool", "work_piece"]] }, w] as const);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().main)).not.toBeNull();
+  expect(await basisCard(page), "after the first table alike").toContain("Tool ↔ Work piece (touch)");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });

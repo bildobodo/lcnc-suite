@@ -102,6 +102,36 @@ describe("display lines (plan 1.3/4.2, C3): a called file's moves show their cal
   });
 });
 
+describe("a folded source's undecidable stretch reads its own track's lines (Codex R172 VP-I125)", () => {
+  // Codex's probe: the base on its track (L40, L41), a run's beginning folded
+  // onto the base's 0, its own track a called file — with a verified call
+  // line (7) or none ("touch"); a contact and an undecidable stretch on the
+  // same move of the side's own track
+  it.each([true, false])("verified call line %s: the note says what the contact's row says, never the base's L40", call => {
+    const baseTrack = { count: 3, cum: Float64Array.from([0, 10, 20]), lines: Uint32Array.from([40, 40, 41]), lineOk: Uint8Array.from([1, 1, 1]) };
+    const sideTrack = { count: 4, cum: Float64Array.from([0, 2, 4, 5]), lines: Uint32Array.from([0, 2, 3, 4]),
+      lineOk: Uint8Array.from([0, 0, 0, 0]), cline: Uint16Array.from([0, 0, call ? 7 : 0, call ? 7 : 0]), sub: Uint8Array.from([255, 255, 0, 0]), subNames: ["touch"] };
+    const base = new ContactStore(1, 0), side = new ContactStore(2, 0);
+    side.gaps.append({ pair: 0, start: 2.5, end: 3.5, reason: GAP_UNDECIDABLE });
+    const ep = side.episodes.append({ pair: 0, ordinal: 0, onset: 2.1, end: 2.3, closeAt: 2.1, closeDist: 0, firstIv: NONE, ivCount: 1 });
+    side.episodes.set(ep, "firstIv", side.intervals.append({ episode: ep, enter: 2.1, exit: 2.3, flags: IV_ENTER_DECIDED | IV_EXIT_DECIDED, next: NONE, witness: 2.1, freeAt: NaN }));
+    const pairs: Array<[string, string]> = [["spindle", "stock"]];
+    const spec: ShownSpec = { base: { id: 1, map: null, coverage: 20, ownCoverage: 20, ownEnd: 20 },
+      side: { id: 2, map: { kind: "minus", shift: 5 }, coverage: 0, ownCoverage: 5, ownEnd: 5, entry: true, entryEnd: 2, sweptToEnd: false, track: sideTrack, linesTrusted: true }, axisEnd: 20 };
+    const shown = runToEnd(buildShownSteps(id => ({ generation: 0, stores: [id === 1 ? base : side], pairs, deltas: 1 }), spec, () => null, displayLineAt(baseTrack, true), 100, 20))!;
+    const row = targetAt(shown.view, 0, shown.lineAt), u = shown.derived!.undecidable!;
+    expect(row.line).toBe(call ? 7 : 0);
+    expect(u).toHaveLength(1);
+    const text = undecidableNote(u[0]!, shown.lineAt);
+    expect(text).toContain(call ? "(L7)" : "(in touch)");
+    expect(text).not.toContain("L40");
+    // the same pair's stretch on the base stays apart: two notes, each its own track's lines
+    base.gaps.append({ pair: 0, start: 12, end: 13, reason: GAP_UNDECIDABLE });
+    const both = runToEnd(buildShownSteps(id => ({ generation: 0, stores: [id === 1 ? base : side], pairs, deltas: 1 }), spec, () => null, displayLineAt(baseTrack, true), 100, 20))!;
+    expect(both.derived!.undecidable!.map(x => undecidableNote(x, both.lineAt).match(/\(([^)]*)\)/)![1])).toEqual([call ? "L7" : "in touch", "L41"]);
+  });
+});
+
 describe("the track's undecidable stretches: every generation's gaps united (C2, Codex R170 VP-I123)", () => {
   const gapsOf = (g: number, spans: number[][], pair = 0) => {
     const st = new ContactStore(1, g);

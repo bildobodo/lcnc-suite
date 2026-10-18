@@ -3939,8 +3939,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     track: trackCopy,
     wcs: _colWcs(basis),
     side: side || undefined,   // beside the main sweep (entry segment)
-    // the contact tables beside the records (step 4 package 2; a side run's
-    // share is the worker's T/8)
+    // the contact tables — what the sweep finds (step 4 package 2; a side
+    // run's share is the worker's T/8)
     contacts: { generation: 0 },
     // During a run at most two workers (plan „Prüfung im Lauf“ 4: the
     // machine is cutting; the check must not take the cores from the page).

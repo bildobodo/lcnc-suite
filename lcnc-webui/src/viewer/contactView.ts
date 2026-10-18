@@ -2191,7 +2191,13 @@ export function* boundaryStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): St
 /** A pair's undecidable inside answers on the track (step 4 package 2, C2):
  *  its GAP_UNDECIDABLE stretches on the shown axis, merged, the first three
  *  and whether there are more. */
-export interface UndecidableStretches { a: string; b: string; spans: Array<[number, number]>; more: boolean }
+export interface UndecidableStretches {
+  a: string; b: string; spans: Array<[number, number]>; more: boolean;
+  /** A folded source's stretch (a run check's beginning): its spans are on
+   *  that source's OWN axis and its lines are its own track's (Codex R172
+   *  VP-I125: mapped onto the shown axis, a note read the base's lines). */
+  lineAt?: LineAt;
+}
 
 /** Every pair's undecidable inside answers the view's tables hold — the
  *  sweep's samples and the store's bisections alike (the gaps they write) —
@@ -2209,7 +2215,10 @@ export interface UndecidableStretches { a: string; b: string; spans: Array<[numb
 export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): Steps<UndecidableStretches[]> {
   check(v);
   // the pairs by their names (one model's pairs; a source may name them apart)
-  const ids = new Map<string, number>(), names: Array<{ a: string; b: string }> = [];
+  // and by the track their lines come from: the shown track's, or a folded
+  // source's own — a stretch's lines are its own track's, never mixed
+  // (VP-I125), so a folded source's stretches unite on its own axis apart
+  const ids = new Map<string, number>(), names: Array<{ a: string; b: string; own?: TableIndex }> = [];
   const gid = growU32(), gs = growF64(), ge = growF64();
   for (const t of v.tables) {
     if (!t) continue;
@@ -2220,12 +2229,15 @@ export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }):
       const row = t.hIdx[k]!;
       if (G.get(row, "reason") !== GAP_UNDECIDABLE) continue;
       const { a, b } = nameOf(v, t, G.get(row, "pair"));
-      const key = `${a}\u0000${b}`;
+      const own = t.source.ownTrack ? t : undefined;
+      const key = `${a}\u0000${b}\u0000${own ? t.src : -1}`;
       let id = ids.get(key);
-      if (id === undefined) { ids.set(key, id = names.length); names.push({ a, b }); }
+      if (id === undefined) { ids.set(key, id = names.length); names.push(own ? { a, b, own } : { a, b }); }
       const s0 = G.get(row, "start"), e0 = G.get(row, "end");
-      // an open gap reaches as far as its run checked
-      const s = Math.min(t.source.at(s0), t.cov), e = Math.min(Number.isNaN(e0) ? t.cov : t.source.at(e0), t.cov);
+      // an open gap reaches as far as its run checked — on the source's own
+      // axis for a folded source, else on the shown one
+      const s = own ? Math.min(s0, t.ownCov) : Math.min(t.source.at(s0), t.cov);
+      const e = own ? Math.min(Number.isNaN(e0) ? t.ownCov : e0, t.ownCov) : Math.min(Number.isNaN(e0) ? t.cov : t.source.at(e0), t.cov);
       gid.push(id, ops); gs.push(s, ops); ge.push(Math.max(s, e), ops);
     }
   }
@@ -2235,7 +2247,7 @@ export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }):
   const order = yield* sortSteps(n, (x, y) => gid.at(x) - gid.at(y) || gs.at(x) - gs.at(y) || ge.at(x) - ge.at(y) || x - y, STEP_OPS >> 2);
   check(v);
   // one pass: a pair's stretches united as they come, three kept, the rest a flag
-  const out: UndecidableStretches[] = [];
+  const out: UndecidableStretches[] = [], firstAt: number[] = [];
   for (let k = 0; k < n;) {
     const id = gid.at(order[k]!), spans: Array<[number, number]> = [];
     let more = false;
@@ -2247,11 +2259,13 @@ export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }):
       else if (spans.length < 3) spans.push([s, e]);
       else more = true;   // starts past the third: every later one starts later still
     }
-    out.push({ ...names[id]!, spans, more });
+    const n0 = names[id]!;
+    out.push({ a: n0.a, b: n0.b, spans, more, ...(n0.own ? { lineAt: n0.own.source.ownTrack!.lineAt } : {}) });
+    firstAt.push(n0.own ? n0.own.source.at(spans[0]![0]) : spans[0]![0]);
   }
-  // the pairs by their first stretch, then by name
+  // the pairs by their first stretch on the shown axis, then by name
   const nameOf2 = (u: UndecidableStretches) => `${u.a}\u0000${u.b}`;
-  const o = yield* sortSteps(out.length, (x, y) => out[x]!.spans[0]![0] - out[y]!.spans[0]![0]
+  const o = yield* sortSteps(out.length, (x, y) => firstAt[x]! - firstAt[y]!
     || (nameOf2(out[x]!) < nameOf2(out[y]!) ? -1 : nameOf2(out[x]!) > nameOf2(out[y]!) ? 1 : 0), STEP_OPS >> 2);
   const sorted: UndecidableStretches[] = [];
   for (let k = 0; k < o.length; k++) { sorted.push(out[o[k]!]!); if (++ops.n >= STEP_OPS) { ops.n = 0; yield; check(v); } }
@@ -2261,7 +2275,9 @@ export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }):
 /** A pair's undecidable stretches in words — the bar's caveat names them
  *  beside the result's notes. Lines are DISPLAY lines (`lineAt`, plan 1.3):
  *  a position without one reads its subroutine's name, else `none`. */
-export function undecidableNote(u: UndecidableStretches, lineAt: LineAt, none = "—"): string {
+export function undecidableNote(u: UndecidableStretches, shownLineAt: LineAt, none = "—"): string {
+  // a folded source's stretch reads its own track (VP-I125)
+  const lineAt = u.lineAt ?? shownLineAt;
   const at = u.spans.map(([a, b]) => {
     const la = lineAt(a), lb = lineAt(b, true);
     if (la == null) { const n = lineAt.nameAt?.(a); return n ? `in ${n}` : none; }

@@ -114,9 +114,9 @@ describe("simRows", () => {
     expect(rows.map(r => [r.lineLabel, r.note])).toEqual([["(m200)", "in m200, no line of this program"], ["—", "no line of this program"]]);
   });
 
-  it("a position's line in words: its display line, else its subroutine's name, else \"—\"; without a track the sweep's own (C3)", () => {
+  it("a position's line in words: its display line, else its subroutine's name, else \"—\" — never a raw line, not even without a resolver (C3, Codex R172 VP-I126)", () => {
     const at = Object.assign((p: number) => (p < 5 ? 4 : null), { nameAt: (p: number) => (p < 8 ? "touch" : null) });
-    expect([lineWordAt(at, 1, 9), lineWordAt(at, 6, 9), lineWordAt(at, 9, 9), lineWordAt(null, 6, 9)]).toEqual(["L4", "touch", "—", "L9"]);
+    expect([lineWordAt(at, 1), lineWordAt(at, 6), lineWordAt(at, 9), lineWordAt(null, 6)]).toEqual(["L4", "touch", "—", "—"]);
   });
 
   it("the next row is the first after the position, none past the last", () => {
