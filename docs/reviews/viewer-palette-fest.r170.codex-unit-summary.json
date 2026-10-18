@@ -1,0 +1,211 @@
+{
+  "success": true,
+  "numTotalTests": 467,
+  "numPassedTests": 467,
+  "numFailedTests": 0,
+  "numPendingTests": 0,
+  "numTodoTests": 0,
+  "startTime": 1792316629797,
+  "files": [
+    {
+      "name": "src/viewer/checkContext.test.ts",
+      "status": "passed",
+      "passed": 11,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 4.34765625
+    },
+    {
+      "name": "src/viewer/checkWiring.test.ts",
+      "status": "passed",
+      "passed": 17,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 753.425537109375
+    },
+    {
+      "name": "src/viewer/collision.test.ts",
+      "status": "passed",
+      "passed": 119,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 2158.284912109375
+    },
+    {
+      "name": "src/viewer/collisionContacts.test.ts",
+      "status": "passed",
+      "passed": 16,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 196066.34497070312
+    },
+    {
+      "name": "src/viewer/collisionHorizon.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 2164.804443359375
+    },
+    {
+      "name": "src/viewer/collisionInside.test.ts",
+      "status": "passed",
+      "passed": 9,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 95.079345703125
+    },
+    {
+      "name": "src/viewer/collisionOracle.test.ts",
+      "status": "passed",
+      "passed": 16,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 99556.1728515625
+    },
+    {
+      "name": "src/viewer/collisionRange.test.ts",
+      "status": "passed",
+      "passed": 12,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 149.459716796875
+    },
+    {
+      "name": "src/viewer/collisionRangeOracle.test.ts",
+      "status": "passed",
+      "passed": 4,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 219002.0732421875
+    },
+    {
+      "name": "src/viewer/collisionWorker.test.ts",
+      "status": "passed",
+      "passed": 39,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 276.2822265625
+    },
+    {
+      "name": "src/viewer/contactPublisher.test.ts",
+      "status": "passed",
+      "passed": 34,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 549.349365234375
+    },
+    {
+      "name": "src/viewer/contactStore.test.ts",
+      "status": "passed",
+      "passed": 15,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 4428.216064453125
+    },
+    {
+      "name": "src/viewer/contactView.test.ts",
+      "status": "passed",
+      "passed": 35,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 10247.91943359375
+    },
+    {
+      "name": "src/viewer/contactViewCross.test.ts",
+      "status": "passed",
+      "passed": 15,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 146261.20629882812
+    },
+    {
+      "name": "src/viewer/machineGantry.test.ts",
+      "status": "passed",
+      "passed": 10,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 873.20166015625
+    },
+    {
+      "name": "src/viewer/machineModel.test.ts",
+      "status": "passed",
+      "passed": 1,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 2241.429931640625
+    },
+    {
+      "name": "src/viewer/machineTrsrn.test.ts",
+      "status": "passed",
+      "passed": 12,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 21518.118408203125
+    },
+    {
+      "name": "src/viewer/scrubBarWords.test.ts",
+      "status": "passed",
+      "passed": 8,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 200.1787109375
+    },
+    {
+      "name": "src/viewer/simRows.test.ts",
+      "status": "passed",
+      "passed": 10,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 3.127197265625
+    },
+    {
+      "name": "src/viewer/startDepPayloads.test.ts",
+      "status": "passed",
+      "passed": 30,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 871.599365234375
+    },
+    {
+      "name": "src/viewer/sweepMerge.test.ts",
+      "status": "passed",
+      "passed": 7,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 2.515869140625
+    },
+    {
+      "name": "src/viewer/sweepShards.test.ts",
+      "status": "passed",
+      "passed": 10,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 150353.97119140625
+    },
+    {
+      "name": "src/viewer/sweepWords.test.ts",
+      "status": "passed",
+      "passed": 3,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 1.16064453125
+    },
+    {
+      "name": "src/viewer/toolBasis.test.ts",
+      "status": "passed",
+      "passed": 5,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 83.353271484375
+    },
+    {
+      "name": "src/viewer/toolChangePayloads.test.ts",
+      "status": "passed",
+      "passed": 28,
+      "failed": 0,
+      "pending": 0,
+      "duration_ms": 100.56689453125
+    }
+  ]
+}

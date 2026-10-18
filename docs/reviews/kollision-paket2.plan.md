@@ -189,14 +189,15 @@ Eine geänderte Zeile trägt einen Änderungsmerker und wird **einmal** mit ihre
 - Ein langsamer Empfänger erzeugt keine Warteschlange. Die Rechnung aus R139 (1000 wartende Aktualisierungen eines Blocks von 4096 Episoden, 188 MB) wird dann zu einem einzigen Delta von höchstens einer Tabelle.
 - Jedes Delta trägt Auftrag und Generation. Ein Delta einer älteren Generation wird verworfen.
 - Die Felder gehen als übertragbare Puffer an `postMessage`.
+- **Eine Ausnahme, einmal je Auftrag und Generation** (C2, nach Messung, R170): Das Delta, das das **erste Berührungsintervall** trägt, geht sofort hinaus, auch wenn ein früheres noch unbestätigt ist. Dann sind zwei unterwegs, nie mehr. Das frühere trägt in diesem Fall kein Intervall, also höchstens die Episoden- und Lückentabellen (3,0 + 0,3 MB). Gemessen im Browser: Ein Ack, das nach dem Delta einer Beinahe-Kollision gehalten wurde, hielt die erste Berührung um die ganze Haltezeit zurück (+0,4 s bei 0,3 s, +1,2 s bei 1 s; ebenso am Stand vor C2, dessen `first`-Nachricht pünktlich kam, die Zusammenfassung aber nicht mehr erreichte). Mit der Ausnahme ist sie wie ohne Halten sichtbar.
 
 **Das Endergebnis** ist das letzte Delta mit dem Kennzeichen „fertig“ und den Metadaten: Abdeckung, Notizen, statische Kontakte, `incompleteFrom`. Es bezieht sich auf denselben Tabellenstand und erzeugt keine Vollkopie.
 
-Die Erstmeldung aus Paket 1 (1b) ist ein sofortiges Delta, sobald das erste Berührungsintervall geschrieben ist (mit der Verzögerung aus 2.2). Eine eigene Nachrichtenart `first` braucht es dann nicht mehr.
+Die Erstmeldung aus Paket 1 (1b) ist ein sofortiges Delta, sobald das erste Berührungsintervall geschrieben ist (mit der Verzögerung aus 2.2). Eine eigene Nachrichtenart `first` braucht es dann nicht mehr. Sofort heißt: am Ende der Scheibe, die es schreibt, auch neben einem unbestätigten Delta (die Ausnahme oben); der Viewer veröffentlicht es auf der Stelle (`firstTouch`).
 
 ### 3.2 Shards
 
-- Der Koordinator führt je Shard eine Tabelle, wendet deren Deltas an und bestätigt sie. An den Viewer schickt er ein zusammengefasstes Delta, wieder höchstens eines unbestätigt.
+- Der Koordinator führt je Shard eine Tabelle, wendet deren Deltas an und bestätigt sie. An den Viewer schickt er ein zusammengefasstes Delta, wieder höchstens eines unbestätigt; die Nachricht mit dem ersten Berührungsintervall des Auftrags geht daneben (3.1). Fällt der Pool dann zurück, übernimmt sein Nachlauf die Zahl der unbestätigten Nachrichten: Er sagt nichts mehr, bis beide bestätigt sind (die Generationen bleiben in ihrer Reihenfolge).
 - **Er baut keinen zusammengeführten Teilstand mehr aus älteren Worten der Shards.** Daher kamen VP-I91 und VP-I92: Ein zusammengeführter Teilstand ersetzte, was schon gezeigt war. Der Viewer wendet nur noch Deltas an; was gezeigt ist, geht nicht zurück.
 - Die Tabellen des Koordinators bleiben für die Übergabe bei einem Rückfall (VP-I48/I49): Ein angehaltener Lauf wird mit seinem Stand übergeben.
 - Statische Kontakte und die Zahl der vorab ausgeschlossenen Paare kommen wie heute von Shard 0. Die Notizen werden vereinigt (`unitedNotes`); ihre Länge folgt aus den Lücken und Paaren und ist damit begrenzt.
@@ -217,14 +218,14 @@ T = 19,3 MB nach 1.4; S = T/8 = 2,4 MB für die Seitenläufe.
 | Halter | Inhalt | Obergrenze |
 |---|---|---|
 | Sweep je Shard | eigene Tabellen (Teilbudget) | Σ ≤ T |
-| Shards → Koordinator | je Shard höchstens ein unbestätigtes Delta, jedes ≤ seine Tabellen | Σ ≤ T |
+| Shards → Koordinator | je Shard höchstens ein unbestätigtes Delta, jedes ≤ seine Tabellen; daneben einmal das mit dem ersten Intervall (3.1) — das frühere dann ohne Intervall | Σ ≤ T + 3,4 MB |
 | Koordinator | Tabellen je Shard | ≤ T |
-| Koordinator → Viewer | höchstens ein unbestätigtes Delta | ≤ T |
+| Koordinator → Viewer | höchstens ein unbestätigtes Delta; daneben einmal das mit dem ersten Intervall (3.1) — das frühere dann ohne Intervall | ≤ T + 3,4 MB |
 | Viewer, aktuelle Generation | Tabellen des Auftrags | ≤ T |
 | Viewer, gehaltene Generation | die Belege der vorigen Generation (3.5) | ≤ T |
 | Viewer, Ableitungen über **beide** Generationen von Auftrag und Seitenlauf, nach einem Rückfall als Vereinigung (der Seitenlauf mit einem Achtel; hergeleitet nach Codex R152 VP-I112, `derivationBound` neben `heldBytes`) | Ziele und Hilfsintervalle, 4,5 B je Stück und Beinahe-Kollision (nach Codex R159 je Block von 64 Zielen auch der kleinste und der größte Sprungpunkt) — Stücke ≤ 2·(I₀+I₁) + 4·(G₀+G₁) (Eintritt, Freiraumende, Zonenanfang), Beinahe-Kollisionen ≤ E₀+E₁: 6,64 MB · Episoden nach Beginn: 0,63 MB · Gruppenindex u32 je Intervall: 2,36 MB · nach Codex R158 (VP-I115 Rest B) das Komponentenende je Intervall, das der Gang schreibt, u32 je Intervall beider Generationen: 2,36 MB (das angenommene u32 je Intervall; die nächste freie Probe über einen Blockindex; nach Codex R160 VP-I115 Rest D trägt sein oberstes Bit, das ein Komponentenende nie setzt, ob der Freiraum der Probe in der Vereinigung hält — ohne zusätzlichen Speicher) · vier Blockindizes (nächste freie Probe, nächstes nicht nur mögliches Intervall, nach R159 die vorige freie Probe; nach einem Rückfall nur die Proben, deren Freiraum hält; nach Codex R168 VP-I122 das nächste Intervall eines Eilgangs), 4 B je 64 Positionen und Generation: 0,15 MB · Lückenindex 20 B je Lücke (Zeile, weitestes Ende des Paars, nächste Werkzeuglücke, letztes Glied der berührenden Lücken): 0,74 MB · Episodenindex 4 B je Episode (ein Schlüssel findet sein Ereignis): 0,59 MB · Trenner 8 B: 0,29 MB · Zuordnung der Beinahe-Kollisionen, 12 B (mit der Ordnung nach der früheren): 0,88 MB · Joins: 0,33 MB — `ContactView` ≤ 14,96 MB (R152: 10,91 MB; R158: 14,52 MB; bis R168: 14,93 MB). Dazu die gehaltenen Zeitleisten-Bänder (`clashBands`): höchstens 8192 Spalten, zusammenhängende zusammengefasst, also höchstens 4096 Bänder, 65 536 B Zahlen-Nutzdaten (Codex R153; JavaScript-Array- und Heap-Overhead getrennt gemessen); nicht gehalten wird die unbegrenzt genaue geometrische Vereinigung. Die zuerst vereinbarten 8,4 MB kannten keine Teilung durch Freiräume, keine Lücken, keine Trenner und keine Zuordnung. | ≤ 15,00 MB |
 | Seitenläufe | dieselben sechs Halter mit Budget S | ≤ 6 · S = 14,5 MB |
-| **Summe im ungünstigsten Fall** | | **etwa 145,6 MB** (bis R152: 139 MB mit 8,4 MB Ableitungen; R153: 10,91 MB Kontaktansicht + 0,066 MB Bänder → 141,6 MB; R158: 14,52 MB Kontaktansicht + 0,066 MB Bänder → 145,2 MB; R159: 14,93 MB + 0,066 MB) |
+| **Summe im ungünstigsten Fall** | | **etwa 153 MB** (R170: + 2 · 3,4 MB für das zweite Delta auf den beiden Wegen des Auftrags, + 0,4 MB für den Seitenlauf; bis R152: 139 MB mit 8,4 MB Ableitungen; R153: 10,91 MB Kontaktansicht + 0,066 MB Bänder → 141,6 MB; R158: 14,52 MB Kontaktansicht + 0,066 MB Bänder → 145,2 MB; R159: 14,93 MB + 0,066 MB) |
 
 **Nicht materialisiert** (VP139-03), damit die Ableitungen begrenzt bleiben:
 - die Vereinigung der Berührungen für die Bänder: Sie wird in Anzeigeauflösung berechnet (4.3);
@@ -533,7 +534,7 @@ Die erzeugten Maschinen erweitern die empirische Abdeckung. Die Allgemeinheit ü
   - ein neuer Auftrag: übernimmt nichts.
 
   Dazu die R136–R138-Folgen als Wächter.
-- **Zeit:** Erstmeldung mit Verfeinerung und Antwort auf Anhalten und Abbruch, gemessen wie in R138 und alt gegen neu verglichen (2.2).
+- **Zeit:** Erstmeldung mit Verfeinerung und Antwort auf Anhalten und Abbruch, gemessen wie in R138 und alt gegen neu verglichen (2.2). In C2 (R170) gemessen als **sichtbare** erste Berührung, auch mit einem zuvor unbestätigten Delta (eine Beinahe-Kollision kurz davor, das Ack gehalten): Ergebnis und Ausnahme in 3.1.
 - Mutationen für jede Regel, kompilierend und rot.
 
 ## 8 · Runden

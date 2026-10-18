@@ -1,0 +1,23 @@
+[1A[2K[2m[WebServer] [22m(node:1067472) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 8 tests using 1 worker
+
+[1A[2K(node:1067484) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1067484) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/8] e2e/collisions.viewer.spec.ts:211:1 › the first touch shows while the near miss's acknowledgement is held: its delta goes beside the one out (C2, Codex R167)
+[1A[2K[2/8] e2e/collisions.viewer.spec.ts:1432:1 › a run's beginning: its contact before the main request's first partial, then with it, then final (Codex R138 VP-I93)
+[1A[2K[3/8] e2e/collisions.viewer.spec.ts:1613:1 › a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4)
+[1A[2K[4/8] e2e/collisions.viewer.spec.ts:1768:1 › one failure falls back both, the side still running: its rerun swept whole, the base's continuation stays the entry's finding (Codex R151 VP-I111)
+[1A[2K[5/8] e2e/collisions.viewer.spec.ts:1797:3 › the states without a first touch — a near miss alone: progress, park, end, basis and caveats (C2)
+[1A[2K[6/8] e2e/collisions.viewer.spec.ts:1797:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2)
+[1A[2K[7/8] e2e/collisions.viewer.spec.ts:1797:3 › the states without a first touch — no row at all: progress, park, end, basis and caveats (C2)
+[1A[2K[8/8] e2e/sim-panel.viewer.spec.ts:260:1 › the spacers' row height is measured where the rows are seen — never in a hidden tab
+[1A[2K  8 passed (46.8s)
