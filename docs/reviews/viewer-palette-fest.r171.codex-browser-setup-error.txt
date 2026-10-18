@@ -1,0 +1,49 @@
+[1A[2K[2m[WebServer] [22m(node:1123399) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:1123411) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1123411) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] e2e/collisions.viewer.spec.ts:1613:1 › a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4)
+[1A[2K  1) e2e/collisions.viewer.spec.ts:1613:1 › a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4) 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-results/collisions.viewer-a-sweep--a6db9--own-key-plan-3-5-round-B4-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-results/collisions.viewer-a-sweep--a6db9--own-key-plan-3-5-round-B4-/error-context.md
+
+
+[1A[2K(node:1123488) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1123488) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[2/2] e2e/collisions.viewer.spec.ts:1797:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2)
+[1A[2K  2) e2e/collisions.viewer.spec.ts:1797:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) 
+
+    AggregateError: 
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2-/error-context.md
+
+
+[1A[2K  2 failed
+    e2e/collisions.viewer.spec.ts:1613:1 › a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4) 
+    e2e/collisions.viewer.spec.ts:1797:3 › the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2) 

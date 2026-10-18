@@ -1,0 +1,99 @@
+{
+  "review": "R171",
+  "verdict": "agreement",
+  "closed": [
+    "VP-I123",
+    "VP-I124"
+  ],
+  "reviewedRange": "f595d2ab..fe1a153e",
+  "reviewedCommit": "fe1a153e6d9a5ef06c1522bffebc50eef210fbe6",
+  "branch": "feat/step4-p2b (unmerged)",
+  "archive": "/tmp/codex-r171-0leq1zyt/repo",
+  "createdAt": "2026-10-18T11:48:29.072023+00:00",
+  "liveHeadAtAppend": "a894776a4cafe36f9744eb884f59f5154545cca7",
+  "inputSha256": {
+    "docs/reviews/viewer-palette-fest.ideen.md": "50b328b51ac555fb0bb1b9401bb12369210ea12b32688e13d46070342f4fccf1",
+    "docs/reviews/kollision-paket2.plan.md": "81af6a9cad3e45bd3055c048c5bcbbd9596aa1906d282bffbbf216dcd72f0aae",
+    "docs/reviews/viewer-palette-fest.r171.codex-gap-cost.json": "fb620d53ca5ad12f09a667f9325f3b2544fff9e5fcaa77ea3639edf3fa5d3a0b",
+    "docs/reviews/viewer-palette-fest.r171.codex-probes.txt": "3c995f29c790abff98a2d549c3247a03838fb1f4fd1cf0c3166c06c97ed608f9",
+    "docs/reviews/viewer-palette-fest.r171.gate-frontend.json": "fd856c25977e35f0695b9cc1c0517c6592ecf27e4db20c82bfec97cdc10a1146",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r157-rules.txt": "c770c87fca34c1b076cf0e1a7928811c52d98a2026fad7aa9e35d91b5a91daf6",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r158-rules.txt": "fb663eac0a387331f9c26913daace5eb893f0453efbbb4b22591c043222e4dae",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r159-rules.txt": "5edf55fb4efa9eb58fb0a990a6ed8ca10f22dbba4e85debfb9e9e1c28025c391",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r160-rules.txt": "bc59e2a949a4ec87bd6dafdd354afadeccd3fde59beda03021b7ffcc687a1634",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r161-rules.txt": "37377d71060957f59dc575d522b84250d6f3088d0c41f10c2cb9300140a98c90",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r162-rules.txt": "3d3ae442c035b82c0368840e8bf65b1366d12c265550b815c8e2e4262fb641a4",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r163-rules.txt": "6d1104a19a3ada31bb215a2e29d7bee369bc8046784fadb63d909bd3d1ec4d8b",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r164-rules.txt": "d9b28c6f31aba0c3c00bb7c8a4d7f37c4cfda144baf11b64bb0e1f3248b3ddb8",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r166-rules.txt": "f9088d835e31af0daef0a5e153dc8f38c1b1d4abd1df055afae5663a50485271",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r168-rules.txt": "2bf952c7a094c004307e140b3a765c594766b59f1691f9118d3b647611df04ad",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r169-rules.txt": "796b26d53dd30c6ec614852885a9fb6589713d9beb8998652af4eededd88134d",
+    "docs/reviews/viewer-palette-fest.r171.mutations-r170-rules.txt": "cdb5c8bf4a5f29422db8b1feaf1532464359450f48939bb2f9d445d62f9a1893",
+    "docs/reviews/viewer-palette-fest.r171.mutations-run.sh": "dcfeff9f4823ed690be2a9059dc098f3c32c6e231c6cd81c65933456865d82ce",
+    "docs/reviews/viewer-palette-fest.r171.mutations-slow.txt": "9405f62a0eedf2c1971bd54ebb027a8bfe33261092239cd5c309cdf2a750080c",
+    "docs/reviews/viewer-palette-fest.r171.mutations.py": "eaec4c00ed92b01029500274848bc892f76210d1fbf585022c3b3aecfd10db84",
+    "docs/reviews/viewer-palette-fest.r171.mutations.txt": "4b78e242609c3826b67d26999514e13d66e3115d08c65dc9515fd771161e72ab"
+  },
+  "unchangedR170Probes": {
+    "docs/reviews/viewer-palette-fest.r170.codex-undecidable.test.ts": "0e627ee2352c48590bff5dee35ad2c1fb77977519dccdcce7cdcf42b02161cb1",
+    "docs/reviews/viewer-palette-fest.r170.codex-delta-budget.test.ts": "b4dc9f3ba3a39a1421013a954ef1a13c732335d895b5dba526273afb4a26d3d4"
+  },
+  "sourceVerification": {
+    "commit": "fe1a153e6d9a5ef06c1522bffebc50eef210fbe6",
+    "trackedSourcesChecked": 374,
+    "mismatches": [],
+    "archiveHarnessEdits": [
+      "lcnc-webui/e2e/ctl.ts: mock endpoint 127.0.0.1:4188"
+    ],
+    "extraFiles": [
+      "src/viewer/r170-codex-undecidable.test.ts",
+      "src/viewer/r170-codex-delta-budget.test.ts",
+      "src/viewer/r171-codex-notes.test.ts",
+      "playwright.codex.config.ts"
+    ]
+  },
+  "results": {
+    "unitPassed": 130,
+    "unitFailed": 0,
+    "browser": {
+      "startTime": "2026-10-18T11:46:24.869Z",
+      "duration": 8721.022,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "browserSetupError": "Initial run changed HTTP only, left WebSocket on 4174; both tests AggregateError before assertions; corrected only archive ctl.ts and reran."
+  },
+  "artifactSha256": {
+    "viewer-palette-fest.r171.codex-unit-summary.json": "122686a80961066858b85f1c701cf8dba33371a52f09d1a18ea2c24252b9458e",
+    "viewer-palette-fest.r171.codex-unit.json": "4628c03e0260312805a2a38e32a4f82e40acfca4f5c073c0debbd6c8357dd090",
+    "viewer-palette-fest.r171.codex-unit.txt": "ab99732bba906277c68945e044a0a7792ee238df120d54a0d3e3403447dba011",
+    "viewer-palette-fest.r171.codex-unit-files.json": "db4f74239c0e08a48c0557ff61b13b32c61dd36eca1dafbd9b3cc28811312995",
+    "viewer-palette-fest.r171.codex-own.json": "963c3afc3ea51f932acc208e78f44608ccd81c49713007c22fee016f9f73dd29",
+    "viewer-palette-fest.r171.codex-own.txt": "5a815c68fe1a4c884113a5dcc497475977104c28963312b8e79e67284cc71c88",
+    "viewer-palette-fest.r171.codex-notes.test.ts": "e97f5a7ea7dd31459dfa39f1dc12c6873a296bc187d1a3ae9757c8cadfed601b",
+    "viewer-palette-fest.r171.codex-mapped-union.json": "f826f1de3238bc25287cfd1286342a1a97b9efca59932537716bdef4ab00a712",
+    "viewer-palette-fest.r171.codex-bounded-reads.json": "80da54164f88fa5aae58f273ff853f374121fb790f9e96d0bc06ebe900e37282",
+    "viewer-palette-fest.r171.codex-r170-gap-cost.json": "3e944aa930e0feef0ad87cebf3b914027e0272fe5350e98f64de6d1a5659cff1",
+    "viewer-palette-fest.r171.codex-r170-uncertainty-union.json": "668a856941e405577b2e64f90c4170bcaf9f90c10f4d23df61d8965701379bc6",
+    "viewer-palette-fest.r171.codex-r170-held-gap-union.json": "dc961278287bf55c47e556fa55a8d502a1c5d3cd593db5bd29937dc94b184294",
+    "viewer-palette-fest.r171.codex-r170-delta-budget.json": "d00813c038dabf8eb6d9182f0753254dd4fd76a76bf99f3f3bf5aeae732a92bf",
+    "viewer-palette-fest.r171.codex-browser.json": "3ffff6f2b3dfe08a9df47cc1220efbf25a623fbe49e261429e8e4cbcebd0f13b",
+    "viewer-palette-fest.r171.codex-browser.txt": "b23ef61930091f4f85845d84628328091db1f59e9d0ca83b62f95ffb26732b43",
+    "viewer-palette-fest.r171.codex-browser-setup-error.json": "7315ef68ed8adce8e8def485bd5cd50a794395cf5d1e0948da3518f135eb6f0c",
+    "viewer-palette-fest.r171.codex-browser-setup-error.txt": "829dd55919659b6038be493ee1ffcefd5fdae45e301b8e2b37cd9601c1ea5cff",
+    "viewer-palette-fest.r171.codex-browser.config.ts": "aafa8e9c83f20fcc63b0332c68b208ffda46414fc1d81a8aa122bb2681ea1f09",
+    "viewer-palette-fest.r171.codex-build.txt": "f2acc28763b52584469f4616644d34b6e14c3c8714610cdb662f6a18bf67c70f",
+    "viewer-palette-fest.r171.codex-source-check.json": "8ff6fd6f63f3b249cf84a6009d3ec742327a640d4500966662c5fca68e87a0e3",
+    "viewer-palette-fest.r171.codex-reproduce.md": "89d650b643cda3a5595be9fe4fad35cca668dc9417639dc792767ed805c2fbc7"
+  },
+  "reviewAppendSha256": "4656e0eb7d359fc72c120b3a752d18ddd247fb77c263e7d8abb0b9b5ede33e2a",
+  "limits": [
+    "C3/C4/B8 pending",
+    "No live ports or machine commands",
+    "No product edits",
+    "Functional browser check, not a new 50 ms or browser-PC acceptance",
+    "No full gate or historical mutations rerun"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "commit": "fe1a153e6d9a5ef06c1522bffebc50eef210fbe6",
+  "trackedSourcesChecked": 374,
+  "mismatches": [],
+  "archiveHarnessEdits": [
+    "lcnc-webui/e2e/ctl.ts: mock endpoint 127.0.0.1:4188"
+  ],
+  "extraFiles": [
+    "src/viewer/r170-codex-undecidable.test.ts",
+    "src/viewer/r170-codex-delta-budget.test.ts",
+    "src/viewer/r171-codex-notes.test.ts",
+    "playwright.codex.config.ts"
+  ]
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "nPerGeneration": 1024,
+    "steps": 10,
+    "maxReadsPerStep": 4100,
+    "maxNativeArraySort": 0,
+    "allocatedBytes": 98516
+  },
+  {
+    "nPerGeneration": 8192,
+    "steps": 80,
+    "maxReadsPerStep": 4100,
+    "maxNativeArraySort": 0,
+    "allocatedBytes": 544468
+  },
+  {
+    "nPerGeneration": 16384,
+    "steps": 160,
+    "maxReadsPerStep": 4100,
+    "maxNativeArraySort": 0,
+    "allocatedBytes": 1007316
+  }
+]

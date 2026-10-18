@@ -1,0 +1,62 @@
+[
+  {
+    "gapsPerGeneration": 1024,
+    "steps": 10,
+    "maxComparisons": 0,
+    "largestSort": 0,
+    "longestArray": 3,
+    "maxStepMs": 0.6827949999999987,
+    "meteredBytes": 98516,
+    "result": [
+      {
+        "a": "spindle",
+        "b": "stock",
+        "spans": [
+          [
+            0,
+            0.5
+          ],
+          [
+            2,
+            2.5
+          ],
+          [
+            4,
+            4.5
+          ]
+        ],
+        "more": true
+      }
+    ]
+  },
+  {
+    "gapsPerGeneration": 8192,
+    "steps": 80,
+    "maxComparisons": 0,
+    "largestSort": 0,
+    "longestArray": 4,
+    "maxStepMs": 0.6770870000000002,
+    "meteredBytes": 544468,
+    "result": [
+      {
+        "a": "spindle",
+        "b": "stock",
+        "spans": [
+          [
+            0,
+            0.5
+          ],
+          [
+            2,
+            2.5
+          ],
+          [
+            4,
+            4.5
+          ]
+        ],
+        "more": true
+      }
+    ]
+  }
+]

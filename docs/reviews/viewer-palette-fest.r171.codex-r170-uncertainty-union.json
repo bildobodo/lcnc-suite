@@ -1,0 +1,25 @@
+{
+  "held": [
+    1,
+    9
+  ],
+  "heldCoverage": 10,
+  "current": [
+    4,
+    5
+  ],
+  "currentCoverage": 5,
+  "got": [
+    {
+      "a": "spindle",
+      "b": "stock",
+      "spans": [
+        [
+          1,
+          9
+        ]
+      ],
+      "more": false
+    }
+  ]
+}

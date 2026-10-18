@@ -1,0 +1,10 @@
+[
+  "src/viewer/contactView.test.ts",
+  "src/viewer/contactMeter.test.ts",
+  "src/viewer/shownContacts.test.ts",
+  "src/viewer/contactPublisher.test.ts",
+  "src/viewer/contactViewUnion.test.ts",
+  "src/viewer/contactViewBudget.test.ts",
+  "src/viewer/r170-codex-undecidable.test.ts",
+  "src/viewer/r170-codex-delta-budget.test.ts"
+]
