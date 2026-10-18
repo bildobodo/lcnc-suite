@@ -6,9 +6,11 @@
 // the base request's tables on the shown axis, a side run's beside them, the
 // entry contacts the base continues joined (contactMerge.entryJoins). Pure
 // apart from the receiver it reads.
-import type { UnionScratch } from "./contactUnion";
+import { unionScratch, type UnionScratch } from "./contactUnion";
 import { entryJoins } from "./contactMerge";
-import { buildContactViewSteps, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin, type UndecidableStretches, type ViewCounts } from "./contactView";
+import { boundaryStretchesSteps, buildContactViewSteps, contactBandsSteps, lineRuns, runsOf, startTargetsSteps, trackLineAt, undecidableStretchesSteps, viewCountsSteps,
+         type ContactSource, type ContactView, type LineAt, type SourceJoin, type UndecidableStretches, type ViewCounts } from "./contactView";
+import { clashIndexOfView, clashTicksSteps } from "./simWindow";
 import { runToEnd, type Steps } from "./steps";
 import type { GenerationTables } from "./contactPublisher";
 import type { ContactStore } from "./contactStore";
@@ -159,4 +161,27 @@ export function* shownContactViewSteps(tables: (id: number) => GenerationTables 
     coverage: spec.axisEnd,
     joins,
   }, scratch);
+}
+
+/** What the viewer's publisher builds for a shown track (plan 3.6): the view
+ *  of `spec` and everything the bar reads of it, in bounded steps. ONE
+ *  function, called by the page's publisher as it is, so the work and memory
+ *  guards run the build the page runs (Codex R170 VP-I124: a derivation added
+ *  to the page's build alone was in no guard). `lineAt` is the shown track's
+ *  line at a position; `cols` and `axisEnd` the timeline's. */
+export function* buildShownSteps(tables: (id: number) => GenerationTables | null, spec: ShownSpec,
+                                 held: (id: number) => GenerationTables | null, lineAt: LineAt,
+                                 cols: number, axisEnd: number): Steps<ShownContacts | null> {
+  // one set of the union walk's buffers for the view and its bands
+  const scratch = unionScratch();
+  const view = yield* shownContactViewSteps(tables, spec, undefined, held, scratch);
+  if (!view) return null;
+  const counts = yield* viewCountsSteps(view);
+  const starts = yield* startTargetsSteps(view);
+  const ticks = yield* clashTicksSteps(clashIndexOfView(view, lineAt), cols, axisEnd);
+  const bands = yield* contactBandsSteps(view, cols, axisEnd, undefined, scratch);
+  const boundaries = yield* boundaryStretchesSteps(view);
+  // the track's undecidable inside answers, named with the result's notes (C2)
+  const undecidable = yield* undecidableStretchesSteps(view);
+  return { view, lineAt, derived: { counts, starts, ticks, bands, cols, axisEnd, boundaries, undecidable } };
 }

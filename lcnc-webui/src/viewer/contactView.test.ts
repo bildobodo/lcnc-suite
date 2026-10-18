@@ -7,9 +7,11 @@ import { boundaryStretchesSteps,
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
   heldBytes, indexAfter, indexBefore, lineMark, lineRuns, runsOf, targetAt, targetEnd, targetKey, targetKind, targetPos,
   startTargets, targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
-  buildContactViewSteps, contactBandsSteps, startTargetsSteps, viewCountsSteps,
+  buildContactViewSteps, contactBandsSteps, startTargetsSteps, undecidableStretchesSteps, viewCountsSteps,
 } from "./contactView";
 import { STEP_OPS, runToEnd, type Steps } from "./steps";
+import { buildShownSteps, type ShownSpec } from "./shownContacts";
+import type { GenerationTables } from "./contactPublisher";
 import { clashIndexOfView, clashTicksSteps } from "./simWindow";
 import { wordsOfCounts } from "./sweepWords";
 
@@ -39,6 +41,45 @@ const src = (st: ContactStore, o: Partial<ContactSource> = {}): ContactSource =>
 const lineAt = (pos: number) => Math.floor(pos) + 1;
 const poss = (v: ContactView) => Array.from({ length: v.n }, (_, i) => targetPos(v, i));
 const kinds = (v: ContactView) => Array.from({ length: v.n }, (_, i) => targetKind(v, i));
+
+describe("the track's undecidable stretches: every generation's gaps united (C2, Codex R170 VP-I123)", () => {
+  const gapsOf = (g: number, spans: number[][], pair = 0) => {
+    const st = new ContactStore(1, g);
+    for (const [start, end] of spans) st.gaps.append({ pair, start: start!, end: end!, reason: GAP_UNDECIDABLE });
+    return st;
+  };
+  const stretches = (held: number[][], cur: number[][], o: { cov?: number; own?: number } = {}) => {
+    const cov = o.cov ?? 10;
+    const v = buildContactView({ sources: [src(gapsOf(1, cur), { held: [gapsOf(0, held)], heldCoverage: [cov], ownCoverage: o.own ?? cov })],
+                                 pairName: () => ({ a: "spindle", b: "stock" }), coverage: cov });
+    return runToEnd(undecidableStretchesSteps(v)).map(u => [u.spans, u.more]);
+  };
+  it("a shorter current stretch inside an earlier one keeps the earlier one whole — the rerun reached only 5 (Codex's probe)", () => {
+    expect(stretches([[1, 9]], [[4, 5]], { own: 5 })).toEqual([[[[1, 9]], false]]);
+  });
+  it("overlapping earlier stretches unite with no current run at all (Codex's second probe)", () => {
+    expect(stretches([[1, 3], [2, 9]], [])).toEqual([[[[1, 9]], false]]);
+  });
+  it("a partial overlap keeps what lies outside it on either side; apart, both stay", () => {
+    expect(stretches([[3, 8]], [[2, 4]])).toEqual([[[[2, 8]], false]]);
+    expect(stretches([[1, 3]], [[5, 7]])).toEqual([[[[1, 3], [5, 7]], false]]);
+    expect(stretches([[5, 7]], [[1, 3]])).toEqual([[[[1, 3], [5, 7]], false]]);
+  });
+  it("the first three stretches and whether there are more — after a union too", () => {
+    expect(stretches([[0, 1], [4, 5]], [[2, 3], [6, 7], [8, 9]])).toEqual([[[[0, 1], [2, 3], [4, 5]], true]]);
+    expect(stretches([[0, 1], [2, 3]], [[0.5, 2.5], [4, 5]])).toEqual([[[[0, 3], [4, 5]], false]]);
+  });
+  it("pairs by their first stretch, then by name; a gap of another reason is no stretch", () => {
+    const st = new ContactStore(1, 1);
+    // the names' order is not the stretches': w0 last by its start
+    st.gaps.append({ pair: 0, start: 5, end: 6, reason: GAP_UNDECIDABLE });
+    st.gaps.append({ pair: 2, start: 1, end: 2, reason: GAP_UNDECIDABLE });
+    st.gaps.append({ pair: 1, start: 1, end: 2, reason: GAP_UNDECIDABLE });
+    st.gaps.append({ pair: 3, start: 0, end: 9, reason: GAP_TOOL_UNKNOWN });
+    const v = buildContactView({ sources: [src(st, { ownCoverage: 10 })], pairName: p => ({ a: "t", b: `w${p}` }), coverage: 10 });
+    expect(runToEnd(undecidableStretchesSteps(v)).map(u => u.b)).toEqual(["w1", "w2", "w0"]);
+  });
+});
 
 describe("the target index (plan 4.1)", () => {
   it("an interval at its entry, a near miss at its closest approach, sorted; re-entry, possible, at start, rapid", () => {
@@ -530,6 +571,25 @@ describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
       return { input: { sources: [src(gens[1]!, { held: [gens[0]!], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
     }],
   ];
+  /** A shape's one source as the page's publisher holds it: request 1, its
+   *  earlier generation held — for the build the page runs (buildShownSteps). */
+  const asShown = (input: Parameters<typeof buildContactViewSteps>[0], cov: number) => {
+    const s = input.sources[0]!;
+    const tables = (id: number): GenerationTables | null => (id === 1 ? { generation: 1, stores: [...s.stores], pairs: null, deltas: 1 } : null);
+    const held = (id: number): GenerationTables | null => (id === 1 && s.held?.length
+      ? { generation: 0, stores: [...s.held], pairs: null, deltas: 1, covered: (s.heldCoverage ?? []).map(c => c / cov) } : null);
+    const spec: ShownSpec = { base: { id: 1, map: null, coverage: cov, ownEnd: cov, ownCoverage: s.ownCoverage ?? cov }, side: null, axisEnd: cov };
+    return { tables, held, spec };
+  };
+  // Codex R170 VP-I124: one pair's undecidable gaps in both generations, apart
+  shapes.push(["one pair's undecidable gaps, both generations, interleaved (Codex R170)", () => {
+    const n = REQUEST_BUDGET.gaps >> 1, gens = [0, 1].map(g => new ContactStore(1, g, REQUEST_BUDGET));
+    gens.forEach((st, g) => {
+      for (let k = 0; k < n; k++) st.gaps.append({ pair: 0, start: 4 * k + 2 * (1 - g), end: 4 * k + 2 * (1 - g) + 0.5, reason: GAP_UNDECIDABLE });
+    });
+    const cov = 4 * n + 1;
+    return { input: { sources: [src(gens[1]!, { held: [gens[0]!], heldCoverage: [cov], ownCoverage: cov })], pairName: names, coverage: cov }, cov };
+  }]);
   for (const [name, make] of shapes) {
     it(`every step reads a bounded number of table cells, sorts and copies no list at once — ${name}`, () => {
       const { input, cov } = make();
@@ -573,9 +633,14 @@ describe("the build and the bar's queries in bounded steps (plan 3.6)", () => {
         const v = drive(buildContactViewSteps(input));
         drive(contactBandsSteps(v, 1200, cov));
         drive(boundaryStretchesSteps(v));
+        drive(undecidableStretchesSteps(v));
         // the start pairs and the marks ask positions: one search past it at most
         drive(startTargetsSteps(v), true);
         drive(clashTicksSteps(clashIndexOfView(v, () => 1), 1200, cov), true);
+        // the build the page runs, whole (Codex R170 VP-I124: a derivation
+        // added there alone was in no guard) — its steps ask queries too
+        const sh = asShown(input, cov);
+        expect(drive(buildShownSteps(sh.tables, sh.spec, sh.held, () => 1, 1200, cov), true)?.derived?.undecidable, "the page's build derives the notes").toBeDefined();
         // one query cannot be split: the most one target's position and kind
         // read (a union piece decodes its piece — linear in its intervals)
         // (a fresh view: the build's queries left a piece decoded in the first)

@@ -9,7 +9,8 @@ import {
 } from "./contactStore";
 import { unionScratch } from "./contactUnion";
 import { ContactPublisher } from "./contactPublisher";
-import { shownContactViewSteps, type ShownContacts, type ShownSpec } from "./shownContacts";
+import { buildShownSteps, shownContactViewSteps, type ShownContacts, type ShownSpec } from "./shownContacts";
+import type { GenerationTables } from "./contactPublisher";
 import {
   buildContactViewSteps, contactBandsSteps, heldBytes, retireView, startTargetsSteps, viewCountsSteps, type ContactView, type ContactViewInput,
 } from "./contactView";
@@ -54,14 +55,21 @@ function table(req: number, generation: number, b: StoreBudget, o: { nears?: boo
 }
 const endOf = (b: StoreBudget) => 3 * b.intervals + 10 + 4 * b.episodes + 3 * b.gaps + 10;
 
-/** The build ThreeViewer runs (its callback's order): the view, then what the bar reads of it. */
+/** The build the page runs (ThreeViewer's publisher calls buildShownSteps
+ *  as it is — Codex R170 VP-I124: the replica here missed a derivation): the
+ *  request (1) and its side (−1), each with its earlier generation held. */
 function* fullBuild(input: ContactViewInput, cols: number, axisEnd: number): Steps<ContactView> {
-  const view = yield* buildContactViewSteps(input);
-  yield* viewCountsSteps(view);
-  yield* startTargetsSteps(view);
-  yield* clashTicksSteps(clashIndexOfView(view, () => 1), cols, axisEnd);
-  yield* contactBandsSteps(view, cols, axisEnd);
-  return view;
+  const [base, side] = input.sources;
+  const ofId = (id: number) => (id === 1 ? base : id === -1 ? side : undefined);
+  const tables = (id: number): GenerationTables | null => { const s = ofId(id); return s ? { generation: 1, stores: [...s.stores], pairs: null, deltas: 1 } : null; };
+  const held = (id: number): GenerationTables | null => {
+    const s = ofId(id);
+    return s?.held?.length ? { generation: 0, stores: [...s.held], pairs: null, deltas: 1, covered: (s.heldCoverage ?? []).map(c => c / axisEnd) } : null;
+  };
+  const spec: ShownSpec = { base: base ? { id: 1, map: null, coverage: axisEnd, ownEnd: axisEnd, ownCoverage: base.ownCoverage ?? axisEnd } : null,
+    side: side ? { id: -1, map: null, coverage: axisEnd, ownEnd: axisEnd, ownCoverage: side.ownCoverage ?? axisEnd, entry: true } : null, axisEnd };
+  const sv = yield* buildShownSteps(tables, spec, held, () => 1, cols, axisEnd);
+  return sv!.view;
 }
 
 /** Every typed array CONSTRUCTED while `fn` runs (fatPaths.test's spy: a view

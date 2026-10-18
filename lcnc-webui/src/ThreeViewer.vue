@@ -56,10 +56,8 @@ import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
-import { unionScratch } from "./viewer/contactUnion";
-import { boundaryStretchesSteps, undecidableStretchesSteps, contactBandsSteps, findKey, heldBytes, indexAfter, lineMark, lineRuns, retireView, runsOf, startTargetsSteps, targetAt, targetKey, targetPos, targetWindow, tintAt, trackLineAt, viewCounts, viewCountsSteps, type LineAt, type LineRuns } from "./viewer/contactView";
-import { clashIndexOfView, clashTicksSteps } from "./viewer/simWindow";
-import { shownContactViewSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
+import { findKey, heldBytes, indexAfter, lineMark, lineRuns, retireView, runsOf, targetAt, targetKey, targetPos, targetWindow, tintAt, trackLineAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
+import { buildShownSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
 import { wordsOfCounts } from "./viewer/sweepWords";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
@@ -3002,20 +3000,9 @@ const _contacts: ContactPublisher<ScrubTrack, ShownContacts, ColShown> = new Con
     if (!spec) return null;
     return { key: `${specKey(spec)}|${_colTimelineCols}`, ids: [spec.base?.id, spec.side?.id].filter((x): x is number => x != null), spec };
   },
+  // the view and what the bar reads of it — the build the guards run (shownContacts.ts)
   *build(trk, spec, tables, held) {
-    // one set of the union walk's buffers for the view and its bands
-    const scratch = unionScratch();
-    const view = yield* shownContactViewSteps(tables, spec as ShownSpec, undefined, held, scratch);
-    if (!view) return null;
-    const lineAt = _lineAtOf(trk), cols = _colTimelineCols, axisEnd = _sliceEnd(trk);
-    const counts = yield* viewCountsSteps(view);
-    const starts = yield* startTargetsSteps(view);
-    const ticks = yield* clashTicksSteps(clashIndexOfView(view, lineAt), cols, axisEnd);
-    const bands = yield* contactBandsSteps(view, cols, axisEnd, undefined, scratch);
-    const boundaries = yield* boundaryStretchesSteps(view);
-    // the track's undecidable inside answers, named with the result's notes (C2)
-    const undecidable = yield* undecidableStretchesSteps(view);
-    return { view, lineAt, derived: { counts, starts, ticks, bands, cols, axisEnd, boundaries, undecidable } };
+    return yield* buildShownSteps(tables, spec as ShownSpec, held, _lineAtOf(trk), _colTimelineCols, _sliceEnd(trk));
   },
   effect: m => _colOnMessage(m as never),
   stage: () => _colStage(),

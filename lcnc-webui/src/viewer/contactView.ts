@@ -2185,50 +2185,65 @@ export interface UndecidableStretches { a: string; b: string; spans: Array<[numb
  *  sweep's samples and the store's bisections alike (the gaps they write) —
  *  derived with the view, never per render (Codex R167 on decision 3). The
  *  rest pose's answer is no gap: it stays the result's note (VP167-01).
- *  After a fallback an earlier run's stretch counts where the current run
- *  holds none of its pair over it. */
+ *  Every generation's gaps count, an earlier (held) one's beside the current
+ *  one's: their stretches are UNITED, a partial overlap keeps what lies
+ *  outside it — no stretch is lifted by another's presence (Codex R170
+ *  VP-I123: the earlier run's (5, 9] vanished under a current [4, 5] the
+ *  current run had reached only to 5).
+ *  In counted steps (VP-I124): each gap asked once through its table's gap
+ *  index, its pair, start and end into typed blocks (metered), ordered by a
+ *  counted sort, merged in one pass — and only what the note says is held:
+ *  a pair's first three stretches and whether there are more. */
 export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): Steps<UndecidableStretches[]> {
   check(v);
-  const cur = new Map<string, { a: string; b: string; spans: Array<[number, number]> }>();
-  const earlier: Array<{ a: string; b: string; s: number; e: number }> = [];
-  const into = (a: string, b: string, s: number, e: number) => {
-    const key = `${a}\u0000${b}`;
-    let u = cur.get(key);
-    if (!u) cur.set(key, u = { a, b, spans: [] });
-    u.spans.push([s, e]);
-  };
+  // the pairs by their names (one model's pairs; a source may name them apart)
+  const ids = new Map<string, number>(), names: Array<{ a: string; b: string }> = [];
+  const gid = growU32(), gs = growF64(), ge = growF64();
   for (const t of v.tables) {
     if (!t) continue;
     const G = t.st.gaps;
-    for (let row = 0; row < G.rows; row++) {
-      if ((ops.n += 2) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+    // the table's gaps within its coverage, by pair then start (its gap index)
+    for (let k = 0; k < t.hIdx.length; k++) {
+      if ((ops.n += 4) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+      const row = t.hIdx[k]!;
       if (G.get(row, "reason") !== GAP_UNDECIDABLE) continue;
       const { a, b } = nameOf(v, t, G.get(row, "pair"));
+      const key = `${a}\u0000${b}`;
+      let id = ids.get(key);
+      if (id === undefined) { ids.set(key, id = names.length); names.push({ a, b }); }
       const s0 = G.get(row, "start"), e0 = G.get(row, "end");
       // an open gap reaches as far as its run checked
       const s = Math.min(t.source.at(s0), t.cov), e = Math.min(Number.isNaN(e0) ? t.cov : t.source.at(e0), t.cov);
-      if (t.held) earlier.push({ a, b, s, e: Math.max(s, e) });
-      else into(a, b, s, Math.max(s, e));
+      gid.push(id, ops); gs.push(s, ops); ge.push(Math.max(s, e), ops);
     }
   }
-  for (const h of earlier) {
-    const u = cur.get(`${h.a}\u0000${h.b}`);
-    if (!u?.spans.some(([s, e]) => s <= h.e && h.s <= e)) into(h.a, h.b, h.s, h.e);
-    if ((ops.n += 4) >= STEP_OPS) { ops.n = 0; yield; check(v); }
-  }
+  const n = gid.length;
+  if (!n) return [];
+  // by pair, then start (a comparison reads up to six cells: a quarter of the steps' operations)
+  const order = yield* sortSteps(n, (x, y) => gid.at(x) - gid.at(y) || gs.at(x) - gs.at(y) || ge.at(x) - ge.at(y) || x - y, STEP_OPS >> 2);
+  check(v);
+  // one pass: a pair's stretches united as they come, three kept, the rest a flag
   const out: UndecidableStretches[] = [];
-  for (const u of cur.values()) {
-    const sp = u.spans.sort((x, y) => x[0] - y[0]);
-    if ((ops.n += 2 * sp.length) >= STEP_OPS) { ops.n = 0; yield; check(v); }
-    const merged: Array<[number, number]> = [];
-    for (const [s, e] of sp) {
-      const last = merged[merged.length - 1];
-      if (last && s <= last[1] + 1e-9) last[1] = Math.max(last[1], e);
-      else merged.push([s, e]);
+  for (let k = 0; k < n;) {
+    const id = gid.at(order[k]!), spans: Array<[number, number]> = [];
+    let more = false;
+    for (; k < n && gid.at(order[k]!) === id; k++) {
+      if ((ops.n += 4) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+      if (more) continue;
+      const x = order[k]!, s = gs.at(x), e = ge.at(x), last = spans[spans.length - 1];
+      if (last && s <= last[1] + 1e-9) { if (e > last[1]) last[1] = e; }
+      else if (spans.length < 3) spans.push([s, e]);
+      else more = true;   // starts past the third: every later one starts later still
     }
-    out.push({ a: u.a, b: u.b, spans: merged.slice(0, 3), more: merged.length > 3 });
+    out.push({ ...names[id]!, spans, more });
   }
-  return out.sort((x, y) => x.spans[0]![0] - y.spans[0]![0] || (x.a + x.b < y.a + y.b ? -1 : 1));
+  // the pairs by their first stretch, then by name
+  const nameOf2 = (u: UndecidableStretches) => `${u.a}\u0000${u.b}`;
+  const o = yield* sortSteps(out.length, (x, y) => out[x]!.spans[0]![0] - out[y]!.spans[0]![0]
+    || (nameOf2(out[x]!) < nameOf2(out[y]!) ? -1 : nameOf2(out[x]!) > nameOf2(out[y]!) ? 1 : 0), STEP_OPS >> 2);
+  const sorted: UndecidableStretches[] = [];
+  for (let k = 0; k < o.length; k++) { sorted.push(out[o[k]!]!); if (++ops.n >= STEP_OPS) { ops.n = 0; yield; check(v); } }
+  return sorted;
 }
 
 /** A pair's undecidable stretches in words — the bar's caveat names them
