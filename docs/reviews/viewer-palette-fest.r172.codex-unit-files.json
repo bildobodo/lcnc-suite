@@ -1,0 +1,8 @@
+[
+  "src/viewer/contactView.test.ts",
+  "src/viewer/shownContacts.test.ts",
+  "src/viewer/scrubTrack.test.ts",
+  "src/viewer/simRows.test.ts",
+  "src/viewer/checkContext.test.ts",
+  "src/viewer/checkWiring.test.ts"
+]

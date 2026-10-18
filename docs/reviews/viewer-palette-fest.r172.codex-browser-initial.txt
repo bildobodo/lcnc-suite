@@ -1,0 +1,92 @@
+[1A[2K[2m[WebServer] [22m(node:1193903) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 6 tests using 1 worker
+
+[1A[2K(node:1193915) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1193915) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/6] e2e/collisions.viewer.spec.ts:96:3 › a contact in a called file — a verified call line: the list reads L5, the code marks 5 (C3, plan 1.3/4.2)
+[1A[2K[2/6] e2e/collisions.viewer.spec.ts:96:3 › a contact in a called file — no verified call line: the list reads (touch), the code marks nothing (C3, plan 1.3/4.2)
+[1A[2K[3/6] e2e/collisions.viewer.spec.ts:1369:1 › a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93)
+[1A[2K[4/6] e2e/collisions.viewer.spec.ts:1398:1 › a run's bound beginning: a contact on the entry reads "entry" and marks no code line (C3, plan 1.3)
+[1A[2K[5/6] e2e/collisions.viewer.spec.ts:1908:1 › R172 own: a folded side uncertainty note keeps its source line
+[1A[2K  1) e2e/collisions.viewer.spec.ts:1908:1 › R172 own: a folded side uncertainty note keeps its source line 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: [32m"(L3)"[39m
+    Received string:    [31m"A stop shows the first contact (machine off). 9 pairs already in contact at rest — excluded. Not certified: Clearance guarantee not certified for this sweep: inside check undecidable for levelling_feet ↔ y_guide_blocks (L4–L3) — a part wholly inside the other is not found there. No tool loaded: checked with a 6 mm stub."[39m
+
+      1926 |   await ctl({ op: 'reset' });
+      1927 |   expect(label).toBe(`L${own.line}`);
+    > 1928 |   expect(help).toContain(`(L${own.line})`);
+           |                ^
+      1929 | });
+      1930 |
+      1931 | test('R172 own: metadata before the first table never shows the raw boundary line', async ({ page, context }) => {
+        at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1928:16
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-results/collisions.viewer-R172-own-34834--note-keeps-its-source-line/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-results/collisions.viewer-R172-own-34834--note-keeps-its-source-line/error-context.md
+
+
+[1A[2K(node:1194315) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1194315) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[6/6] e2e/collisions.viewer.spec.ts:1931:1 › R172 own: metadata before the first table never shows the raw boundary line
+[1A[2K  2) e2e/collisions.viewer.spec.ts:1931:1 › R172 own: metadata before the first table never shows the raw boundary line 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: not [32m"(L7)"[39m
+    Received string:        [31m"Check basis[39m
+    [31mBasis[39m
+    [31mThe machine when the check started[39m
+    [31mProgram kinematics[39m
+    [31mMachine frame[39m
+    [31mRotary axes[39m
+    [31mA 0.00° C 0.00°[39m
+    [31mWork offset[39m
+    [31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°[39m
+    [31mStart tool[39m
+    [31mNone — the check uses a stub body[39m
+    [31mStart[39m
+    [31mThe program's first point[39m
+    [31mIn contact at the check's start[39m
+    [31mSpindle nose ↔ A yoke casting [7m(L7)[27m[39m
+    [31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub)."[39m
+
+      1970 |   await ctl({ op: 'reset' });
+      1971 |   expect(after).toContain('(L5)');
+    > 1972 |   expect(before).not.toContain('(L7)');
+           |                      ^
+      1973 | });
+      1974 |
+        at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1972:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/error-context.md
+
+
+[1A[2K  2 failed
+    e2e/collisions.viewer.spec.ts:1908:1 › R172 own: a folded side uncertainty note keeps its source line 
+    e2e/collisions.viewer.spec.ts:1931:1 › R172 own: metadata before the first table never shows the raw boundary line 
+  4 passed (29.0s)

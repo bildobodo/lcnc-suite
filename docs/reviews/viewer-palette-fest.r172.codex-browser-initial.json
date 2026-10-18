@@ -1,0 +1,354 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/playwright.codex.config.ts",
+    "rootDir": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r172-p00xom99/browser-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:collisions|sim-panel)\\.viewer\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r172-p00xom99/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "collisions.viewer.spec.ts",
+      "file": "collisions.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a contact in a called file — a verified call line: the list reads L5, the code marks 5 (C3, plan 1.3/4.2)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4024,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:10:01.425Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-adcdec619056820a6882",
+          "file": "collisions.viewer.spec.ts",
+          "line": 96,
+          "column": 3
+        },
+        {
+          "title": "a contact in a called file — no verified call line: the list reads (touch), the code marks nothing (C3, plan 1.3/4.2)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3938,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:10:05.486Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-e17e3a8bd2f69cce8e5a",
+          "file": "collisions.viewer.spec.ts",
+          "line": 96,
+          "column": 3
+        },
+        {
+          "title": "a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5429,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:10:09.428Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-c45643a8e50973471a42",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1369,
+          "column": 1
+        },
+        {
+          "title": "a run's bound beginning: a contact on the entry reads \"entry\" and marks no code line (C3, plan 1.3)",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5687,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:10:14.862Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-10721ef7ea3bb74de0e2",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1398,
+          "column": 1
+        },
+        {
+          "title": "R172 own: a folded side uncertainty note keeps its source line",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 5444,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"(L3)\"\u001b[39m\nReceived string:    \u001b[31m\"A stop shows the first contact (machine off). 9 pairs already in contact at rest — excluded. Not certified: Clearance guarantee not certified for this sweep: inside check undecidable for levelling_feet ↔ y_guide_blocks (L4–L3) — a part wholly inside the other is not found there. No tool loaded: checked with a 6 mm stub.\"\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"(L3)\"\u001b[39m\nReceived string:    \u001b[31m\"A stop shows the first contact (machine off). 9 pairs already in contact at rest — excluded. Not certified: Clearance guarantee not certified for this sweep: inside check undecidable for levelling_feet ↔ y_guide_blocks (L4–L3) — a part wholly inside the other is not found there. No tool loaded: checked with a 6 mm stub.\"\u001b[39m\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1928:16",
+                    "location": {
+                      "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                      "column": 16,
+                      "line": 1928
+                    },
+                    "snippet": "  1926 |   await ctl({ op: 'reset' });\n  1927 |   expect(label).toBe(`L${own.line}`);\n> 1928 |   expect(help).toContain(`(L${own.line})`);\n       |                ^\n  1929 | });\n  1930 |\n  1931 | test('R172 own: metadata before the first table never shows the raw boundary line', async ({ page, context }) => {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                        "column": 16,
+                        "line": 1928
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"(L3)\"\u001b[39m\nReceived string:    \u001b[31m\"A stop shows the first contact (machine off). 9 pairs already in contact at rest — excluded. Not certified: Clearance guarantee not certified for this sweep: inside check undecidable for levelling_feet ↔ y_guide_blocks (L4–L3) — a part wholly inside the other is not found there. No tool loaded: checked with a 6 mm stub.\"\u001b[39m\n\n  1926 |   await ctl({ op: 'reset' });\n  1927 |   expect(label).toBe(`L${own.line}`);\n> 1928 |   expect(help).toContain(`(L${own.line})`);\n       |                ^\n  1929 | });\n  1930 |\n  1931 | test('R172 own: metadata before the first table never shows the raw boundary line', async ({ page, context }) => {\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1928:16"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:10:20.553Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-34834--note-keeps-its-source-line/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-34834--note-keeps-its-source-line/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                    "column": 16,
+                    "line": 1928
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-edf46b69d664671bf947",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1908,
+          "column": 1
+        },
+        {
+          "title": "R172 own: metadata before the first table never shows the raw boundary line",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 3231,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"(L7)\"\u001b[39m\nReceived string:        \u001b[31m\"Check basis\u001b[39m\n\u001b[31mBasis\u001b[39m\n\u001b[31mThe machine when the check started\u001b[39m\n\u001b[31mProgram kinematics\u001b[39m\n\u001b[31mMachine frame\u001b[39m\n\u001b[31mRotary axes\u001b[39m\n\u001b[31mA 0.00° C 0.00°\u001b[39m\n\u001b[31mWork offset\u001b[39m\n\u001b[31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\u001b[39m\n\u001b[31mStart tool\u001b[39m\n\u001b[31mNone — the check uses a stub body\u001b[39m\n\u001b[31mStart\u001b[39m\n\u001b[31mThe program's first point\u001b[39m\n\u001b[31mIn contact at the check's start\u001b[39m\n\u001b[31mSpindle nose ↔ A yoke casting \u001b[7m(L7)\u001b[27m\u001b[39m\n\u001b[31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).\"\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"(L7)\"\u001b[39m\nReceived string:        \u001b[31m\"Check basis\u001b[39m\n\u001b[31mBasis\u001b[39m\n\u001b[31mThe machine when the check started\u001b[39m\n\u001b[31mProgram kinematics\u001b[39m\n\u001b[31mMachine frame\u001b[39m\n\u001b[31mRotary axes\u001b[39m\n\u001b[31mA 0.00° C 0.00°\u001b[39m\n\u001b[31mWork offset\u001b[39m\n\u001b[31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\u001b[39m\n\u001b[31mStart tool\u001b[39m\n\u001b[31mNone — the check uses a stub body\u001b[39m\n\u001b[31mStart\u001b[39m\n\u001b[31mThe program's first point\u001b[39m\n\u001b[31mIn contact at the check's start\u001b[39m\n\u001b[31mSpindle nose ↔ A yoke casting \u001b[7m(L7)\u001b[27m\u001b[39m\n\u001b[31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).\"\u001b[39m\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1972:22",
+                    "location": {
+                      "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                      "column": 22,
+                      "line": 1972
+                    },
+                    "snippet": "  1970 |   await ctl({ op: 'reset' });\n  1971 |   expect(after).toContain('(L5)');\n> 1972 |   expect(before).not.toContain('(L7)');\n       |                      ^\n  1973 | });\n  1974 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                        "column": 22,
+                        "line": 1972
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"(L7)\"\u001b[39m\nReceived string:        \u001b[31m\"Check basis\u001b[39m\n\u001b[31mBasis\u001b[39m\n\u001b[31mThe machine when the check started\u001b[39m\n\u001b[31mProgram kinematics\u001b[39m\n\u001b[31mMachine frame\u001b[39m\n\u001b[31mRotary axes\u001b[39m\n\u001b[31mA 0.00° C 0.00°\u001b[39m\n\u001b[31mWork offset\u001b[39m\n\u001b[31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\u001b[39m\n\u001b[31mStart tool\u001b[39m\n\u001b[31mNone — the check uses a stub body\u001b[39m\n\u001b[31mStart\u001b[39m\n\u001b[31mThe program's first point\u001b[39m\n\u001b[31mIn contact at the check's start\u001b[39m\n\u001b[31mSpindle nose ↔ A yoke casting \u001b[7m(L7)\u001b[27m\u001b[39m\n\u001b[31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).\"\u001b[39m\n\n  1970 |   await ctl({ op: 'reset' });\n  1971 |   expect(after).toContain('(L5)');\n> 1972 |   expect(before).not.toContain('(L7)');\n       |                      ^\n  1973 | });\n  1974 |\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1972:22"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:10:26.330Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                    "column": 22,
+                    "line": 1972
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-4d2182a6653b94bf796f",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1931,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T14:10:00.663Z",
+    "duration": 28970.983,
+    "expected": 4,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

@@ -1,0 +1,5 @@
+head 4cd751b5 C4: the docs after C2/C3 — the contact tables are
+ ✓ src/viewer/zz_codex_r171_notes.test.ts > R171: the full page build agrees with an independent union across sources, shards, generations and folded coordinates 124ms
+ ✓ src/viewer/zz_codex_r171_notes.test.ts > R171: reads of the temporary blocks as well as the source tables stay bounded between yields 149ms
+ Test Files  1 passed (1)
+      Tests  2 passed (2)

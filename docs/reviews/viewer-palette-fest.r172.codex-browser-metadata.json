@@ -1,0 +1,149 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/playwright.codex.config.ts",
+    "rootDir": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r172-p00xom99/browser-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:collisions|sim-panel)\\.viewer\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r172-p00xom99/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "collisions.viewer.spec.ts",
+      "file": "collisions.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R172 own: metadata before the first table never shows the raw boundary line",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4443,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"(L7)\"\u001b[39m\nReceived string:        \u001b[31m\"Check basis\u001b[39m\n\u001b[31mBasis\u001b[39m\n\u001b[31mThe run's start (run 9)\u001b[39m\n\u001b[31mProgram kinematics\u001b[39m\n\u001b[31mMachine frame\u001b[39m\n\u001b[31mRotary axes\u001b[39m\n\u001b[31mNot read\u001b[39m\n\u001b[31mWork offset\u001b[39m\n\u001b[31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\u001b[39m\n\u001b[31mStart tool\u001b[39m\n\u001b[31mNone — the check uses a stub body\u001b[39m\n\u001b[31mStart\u001b[39m\n\u001b[31mFrom L7, provisional\u001b[39m\n\u001b[31mIn contact at the check's start\u001b[39m\n\u001b[31mTool ↔ Work piece \u001b[7m(L7)\u001b[27m\u001b[39m\n\u001b[31mIn a run, the rotary axes are the run's start joints.\u001b[39m\n\u001b[31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).\"\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"(L7)\"\u001b[39m\nReceived string:        \u001b[31m\"Check basis\u001b[39m\n\u001b[31mBasis\u001b[39m\n\u001b[31mThe run's start (run 9)\u001b[39m\n\u001b[31mProgram kinematics\u001b[39m\n\u001b[31mMachine frame\u001b[39m\n\u001b[31mRotary axes\u001b[39m\n\u001b[31mNot read\u001b[39m\n\u001b[31mWork offset\u001b[39m\n\u001b[31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\u001b[39m\n\u001b[31mStart tool\u001b[39m\n\u001b[31mNone — the check uses a stub body\u001b[39m\n\u001b[31mStart\u001b[39m\n\u001b[31mFrom L7, provisional\u001b[39m\n\u001b[31mIn contact at the check's start\u001b[39m\n\u001b[31mTool ↔ Work piece \u001b[7m(L7)\u001b[27m\u001b[39m\n\u001b[31mIn a run, the rotary axes are the run's start joints.\u001b[39m\n\u001b[31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).\"\u001b[39m\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1984:22",
+                    "location": {
+                      "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                      "column": 22,
+                      "line": 1984
+                    },
+                    "snippet": "  1982 |   expect(m.requestRange).toEqual({ from: 1 });\n  1983 |   expect(after).toContain('(touch)');\n> 1984 |   expect(before).not.toContain('(L7)');\n       |                      ^\n  1985 | });\n  1986 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                        "column": 22,
+                        "line": 1984
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mnot\u001b[2m.\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: not \u001b[32m\"(L7)\"\u001b[39m\nReceived string:        \u001b[31m\"Check basis\u001b[39m\n\u001b[31mBasis\u001b[39m\n\u001b[31mThe run's start (run 9)\u001b[39m\n\u001b[31mProgram kinematics\u001b[39m\n\u001b[31mMachine frame\u001b[39m\n\u001b[31mRotary axes\u001b[39m\n\u001b[31mNot read\u001b[39m\n\u001b[31mWork offset\u001b[39m\n\u001b[31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\u001b[39m\n\u001b[31mStart tool\u001b[39m\n\u001b[31mNone — the check uses a stub body\u001b[39m\n\u001b[31mStart\u001b[39m\n\u001b[31mFrom L7, provisional\u001b[39m\n\u001b[31mIn contact at the check's start\u001b[39m\n\u001b[31mTool ↔ Work piece \u001b[7m(L7)\u001b[27m\u001b[39m\n\u001b[31mIn a run, the rotary axes are the run's start joints.\u001b[39m\n\u001b[31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).\"\u001b[39m\n\n  1982 |   expect(m.requestRange).toEqual({ from: 1 });\n  1983 |   expect(after).toContain('(touch)');\n> 1984 |   expect(before).not.toContain('(L7)');\n       |                      ^\n  1985 | });\n  1986 |\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1984:22"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:12:33.839Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                    "column": 22,
+                    "line": 1984
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-4d2182a6653b94bf796f",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1933,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T14:12:33.139Z",
+    "duration": 5206.884,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}
