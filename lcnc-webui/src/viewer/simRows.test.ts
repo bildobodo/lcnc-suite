@@ -39,7 +39,13 @@ describe("simRows", () => {
     });
     expect(a!.lineLabel).toBe("entry");
     expect(b!.note).toBe("re-entry");
-    expect(c!.note).toBe("near miss, 1.5 mm apart · through L9");
+    // the closest SAMPLE: at least that close, never a proven clearance (R175)
+    expect(c!.note).toBe("near miss, within 1.5 mm · through L9");
+    // an upper bound rounds UP at the shown precision (Codex R174)
+    for (const [dist, shown] of [[1.36, "1.4"], [1.31, "1.4"], [1.3, "1.3"], [0.04, "0.1"]] as const) {
+      const [r] = buildSimRows({ clash: [clash({ cum: 3, line: 6, dist, key: "C6|t|w|0" })], limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4 });
+      expect(r!.note, `${dist}`).toBe(`near miss, within ${shown} mm`);
+    }
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
   });
 

@@ -4,7 +4,7 @@
 // (viewer/clashTargets.ts, the limit and tool targets of ScrubBar), so the
 // list, the marks and prev/next can never disagree. Pure; unit-tested.
 import { limitViolationText, type LimitViolation } from "../ws/bulkData";
-import { NO_VALUE, fmtDist, fmtElapsed, fmtPct } from "../format";
+import { NO_VALUE, fmtDistUpper, fmtElapsed, fmtPct } from "../format";
 import { isNearMiss, type ClashTarget } from "./clashTargets";
 import type { LineAt } from "./contactView";
 
@@ -103,8 +103,12 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   for (const t of i.clash) {
     const notes: string[] = [];
     if (t.reentry) notes.push("re-entry");
-    // a near miss by the sweep's class: a stay inside the margin, never a touch
-    if (isNearMiss(t)) notes.push(`near miss, ${fmtDist(t.dist ?? 0, i.unit)} apart`);
+    // a near miss by the sweep's class: a stay inside the margin, never a
+    // touch. Its distance is its closest SAMPLE's: the parts come at least
+    // that close, maybe closer — "within", never "apart", a clearance the
+    // sampling does not prove (step 4 package 2, B8: on haus.ngc Fall B up
+    // to 0.89 mm closer than the sample read; R175) — rounded up (Codex R174)
+    if (isNearMiss(t)) notes.push(`near miss, within ${fmtDistUpper(t.dist ?? 0, i.unit)}`);
     if ((t.spanEndLine ?? t.line) > t.line) notes.push(`through L${t.spanEndLine}`);
     if (t.possible) notes.push("possible — in the probe's braking range");
     if (t.earlier) notes.push("from the earlier run");
