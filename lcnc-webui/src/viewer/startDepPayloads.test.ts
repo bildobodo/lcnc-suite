@@ -22,13 +22,13 @@ import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { beginSentence, bindBeginning, depTimeSentence, earlierTime, moveTime, runBeginOf, runBeginView } from "./startDep";
 import ts from "typescript";
 import { epochTermsFor } from "./wcsEpochs";
-import { countTargets, wordsOfCounts } from "./sweepWords";
+import { wordsOfCounts, type FindingCounts } from "./sweepWords";
 import { clashIndexOfList, clashTicks } from "./simWindow";
-import { firstOnly } from "./firstContact";
-import { clashTargets, isNearMiss, type ClashTarget } from "./clashTargets";
+import { isNearMiss, type ClashTarget } from "./clashTargets";
 import { partLabel } from "./simRows";
 import { ContactStore } from "./contactStore";
 import { buildContactView, lineMark, lineRuns, runsOf, targetAt, trackLineAt } from "./contactView";
+import { shownContactView } from "./shownContacts";
 
 const DIR = path.resolve(__dirname, "../../../scripts/test_fixtures/start_dep_payloads");
 const MACHINE: CollisionMachine = {
@@ -69,6 +69,15 @@ const pts = (t: { pos: Float32Array; count: number }) =>
 const cums = (t: { cum: Float32Array; count: number }) => Array.from(t.cum.subarray(0, t.count)).map(c => Math.round(c * 1e4) / 1e4);
 const sweep = (t: any, at: [number, number, number], raw: Record<string, any>) =>
   sweepCollisions(model(at), { ...t, wcs: t.wcsEpoch }, wcsOf(raw), { margin: 0.1 });
+/** What a sweep found — its contact tables (step 4 package 2, C2: a result
+ *  carries no records): the store and the line of each touch interval at
+ *  its entry, on the track's own axis. */
+const sweepT = (t: any, at: [number, number, number], raw: Record<string, any>, extra: Record<string, unknown> = {}) => {
+  const store = new ContactStore(1, 0);
+  const r = sweepCollisions(model(at), { ...t, wcs: t.wcsEpoch }, wcsOf(raw), { margin: 0.1, contacts: { store }, ...extra });
+  const lineAt = trackLineAt(t);
+  return { r, store, lines: Array.from({ length: store.intervals.rows }, (_, k) => lineAt(store.intervals.get(k, "enter"))) };
+};
 
 describe("the base track: the beginning is a break with no time", () => {
   it("names K, keeps the assumed start, breaks 1..K", () => {
@@ -123,31 +132,50 @@ describe("bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whol
   it("onto the base's axis (a run check): the beginning's findings at the start, the base's where they were", () => {
     const { raw, track, e } = entry("e_g53_rdp", [100, 100, 0]);
     const K = track.depEnd!;
-    const side = sweep(sliceTrack(e, 0, K + 2), [50, 100, 0], raw);
-    const base = sweep(track, [5, 0, 0], raw);                   // on X0 → X10, after K
-    const m = mergeBeginningOntoBase(side, base, e.cum[K + 1]!, track.cum[track.count - 1]!, e.cum[1]);
-    const begin = m.hits.find(h => h.line === 3)!, after = m.hits.find(h => h.line === 5)!;
-    expect(begin.cum).toBe(0);
-    expect(after.cum).toBeCloseTo(base.hits.find(h => h.line === 5)!.cum, 6);
-    expect(m.startDependent).toBeUndefined();
+    const sl = sliceTrack(e, 0, K + 2);
+    const side = sweepT(sl, [50, 100, 0], raw);
+    const base = sweepT(track, [5, 0, 0], raw);                  // on X0 → X10, after K
+    expect([side.lines, base.lines]).toEqual([[3], [5]]);
+    // the view the bar reads (the viewer's _colRunSideSpec): the beginning
+    // folded onto the base's 0, its own lines
+    const shift = e.cum[K + 1]!, end = track.cum[track.count - 1]!, sEnd = sl.cum[sl.count - 1]!;
+    const pairs: Array<[string, string]> = [["obstacle", "head"]];
+    const T = new Map([[1, { generation: 0, stores: [base.store], pairs, deltas: 1 }], [-1, { generation: 0, stores: [side.store], pairs, deltas: 1 }]]);
+    const v = shownContactView(id => T.get(id) ?? null, {
+      base: { id: 1, map: null, coverage: end, ownEnd: end },
+      side: { id: -1, map: { kind: "minus", shift }, coverage: Math.max(0, sEnd - shift), ownCoverage: sEnd, ownEnd: sEnd,
+              entry: true, entryEnd: e.cum[1], sweptToEnd: true, track: sl },
+      axisEnd: end })!;
+    const ts = Array.from({ length: v.n }, (_, i) => targetAt(v, i, trackLineAt(track)));
+    expect(ts.map(x => [x.line, x.cum === 0])).toEqual([[3, true], [5, false]]);
+    expect(ts[1]!.cum).toBeCloseTo(base.store.intervals.get(0, "enter"), 6);
+    expect(mergeBeginningOntoBase(side.r, base.r, shift, end).startDependent).toBeUndefined();
   });
 
   it("the side sweep finds an obstacle on the real path, the base sweep never the believed one", () => {
     const { raw, track, e } = entry("e_g53_rdp", [100, 100, 0]);
     const K = track.depEnd!;
-    const side = sweep(sliceTrack(e, 0, K + 2), [50, 100, 0], raw);   // on X0 with Y still at 100
-    expect(side.hits.some(h => h.line === 3)).toBe(true);
-    const base = sweep(track, [50, 100, 0], raw);
-    expect(base.hits).toHaveLength(0);
-    expect(base.startDependent).toEqual({ fromLine: 2, toLine: 4, whole: false });
-    // merged on the entry axis: the beginning's finding keeps its line
-    const merged = mergeEntryResult(side, base, e.cum[K + 1]!, track.cum[track.count - 1]!, e.cum[1]);
-    const h = merged.hits.find(x => x.line === 3)!;
-    expect([h.entry, h.entryMove]).toEqual([true, undefined]);
-    expect(merged.startDependent).toBeUndefined();
+    const sl = sliceTrack(e, 0, K + 2);
+    const side = sweepT(sl, [50, 100, 0], raw);   // on X0 with Y still at 100
+    expect(side.lines).toEqual([3]);
+    const base = sweepT(track, [50, 100, 0], raw);
+    expect(base.store.episodes.rows).toBe(0);
+    expect(base.r.startDependent).toEqual({ fromLine: 2, toLine: 4, whole: false });
+    // on the entry axis: the beginning's finding keeps its line, an entry
+    // finding (E) but not the entry move's own (it lies past the move's end)
+    const shift = e.cum[K + 1]!, end = track.cum[track.count - 1]!, sEnd = sl.cum[sl.count - 1]!;
+    const pairs: Array<[string, string]> = [["obstacle", "head"]];
+    const T = new Map([[1, { generation: 0, stores: [base.store], pairs, deltas: 1 }], [-1, { generation: 0, stores: [side.store], pairs, deltas: 1 }]]);
+    const v = shownContactView(id => T.get(id) ?? null, {
+      base: { id: 1, map: { kind: "plus", shift }, coverage: end + shift, ownEnd: end },
+      side: { id: -1, map: null, coverage: sEnd, ownEnd: sEnd, entry: true, entryEnd: sl.cum[1], sweptToEnd: true },
+      axisEnd: sEnd })!;
+    const h = targetAt(v, 0, trackLineAt(sl));
+    expect([v.n, h.line, h.entry, h.entryMove]).toEqual([1, 3, true, undefined]);
+    expect(mergeEntryResult(side.r, base.r, shift, end).startDependent).toBeUndefined();
     // the same obstacle on the believed path (Δ = 0) is never met
     const z = entry("e_g53_rdp", [0, 0, 0]);
-    expect(sweep(sliceTrack(z.e, 0, K + 2), [50, 100, 0], raw).hits).toHaveLength(0);
+    expect(sweepT(sliceTrack(z.e, 0, K + 2), [50, 100, 0], raw).store.episodes.rows).toBe(0);
   });
 
   it("the base sweep's first pose is point K, never the assumed start", () => {
@@ -165,9 +193,11 @@ describe("bound to a start (E10 Nr. 15: Codex's RDP counterexample over the whol
     g.dispose();
     const m = buildCollisionModel(MACHINE, [{ id: "bar", group: "table", positions: bar, translate: [5, 0, 0] },
                                             { id: "head", group: "head", positions: cube() }]);
-    const base = sweepCollisions(m, { ...track, wcs: track.wcsEpoch }, wcsOf(raw), { margin: 0.1 });
+    const store = new ContactStore(1, 0);
+    const base = sweepCollisions(m, { ...track, wcs: track.wcsEpoch }, wcsOf(raw), { margin: 0.1, contacts: { store } });
     expect(base.staticContacts).toHaveLength(0);
-    expect(base.hits.some(h => h.line === 4)).toBe(true);
+    const lineAt = trackLineAt(track);
+    expect(Array.from({ length: store.intervals.rows }, (_, k) => lineAt(store.intervals.get(k, "enter")))).toContain(4);
   });
 
   it("writes in a beginning the text cannot place are named, on the base and on the bound track", () => {
@@ -279,10 +309,21 @@ function barComputed(name: string, refs: Record<string, unknown>) {
   return new Function(...Object.keys(all), body)(...Object.values(all));
 }
 
+/** The counts the view's index gives for these targets (contactView.viewCounts' kinds). */
+const countsOf = (ts: ClashTarget[]): FindingCounts => {
+  const c: FindingCounts = { collisions: 0, entryCollisions: 0, nearMisses: 0, possible: 0, startsIn: false };
+  for (const t of ts) {
+    if (t.possible) { c.possible++; continue; }
+    if (isNearMiss(t)) { c.nearMisses++; continue; }
+    if (t.entryMove) c.entryCollisions++; else c.collisions++;
+    if (t.atStart && !t.entry) c.startsIn = true;
+  }
+  return c;
+};
 /** The bar's collision inputs from a list of targets (plan 4.4): the index,
  *  the counts and the start pairs — the bar's own filter, on that list. */
 const clashRefs = (ts: ClashTarget[]) => ({
-  clashIndex: { value: clashIndexOfList(ts) }, clashCounts: { value: countTargets(ts) }, clashTicks, bandCols: { value: 1000 }, shownView: { value: null },
+  clashIndex: { value: clashIndexOfList(ts) }, clashCounts: { value: countsOf(ts) }, clashTicks, bandCols: { value: 1000 }, shownView: { value: null },
   startPairNames: { value: barComputed("startPairNames", { shownView: { value: { view: ts, lineAt: null } },
     startTargets: (l: ClashTarget[]) => l.flatMap((t, i) => (t.atStart ? [i] : [])), targetAt: (l: ClashTarget[], i: number) => l[i],
     isNearMiss, partLabel }) },
@@ -291,14 +332,14 @@ const sweepView = (result: any, run: any) => barComputed("sweepView", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, ...clashRefs([]),
   sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
   boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, wordsOfCounts });
-/** The bar's verdict with the result's own targets (sweepView above lists none). */
-const sweepViewOf = (result: any, run: any) => barComputed("sweepView", {
-  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, ...clashRefs(clashTargets(result.hits)),
+/** The bar's verdict with the targets the view hands it (sweepView above lists none). */
+const sweepViewOf = (result: any, run: any, targets: ClashTarget[]) => barComputed("sweepView", {
+  shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, ...clashRefs(targets),
   sweepToolSentence: { value: "" }, verdictDetail: { value: "" }, sweepCaveat: { value: result.uncertified },
   boundaryDetail: { value: "" }, sweptFrac: { value: 1 }, pctOf: (x: number) => `${x * 100} %`, wordsOfCounts });
 const verdictDetail = (result: any, run: any, track: any) => barComputed("verdictDetail", {
   shownResult: { value: result }, props: { collisionBusy: false, collisionRunCheck: run }, track: { value: track },
-  provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, ...clashRefs(clashTargets(result.hits)),
+  provisionalOnScreen: { value: false }, stoppedTitle: { value: "" }, ...clashRefs([]),
   sweepCaveat: { value: result.uncertified }, pctOf: (x: number) => `${x * 100} %`, beginSentence, depTimeSentence, partLabel, isNearMiss });
 
 describe("Codex R133", () => {
@@ -308,8 +349,10 @@ describe("Codex R133", () => {
     const { raw, e } = entry("r133_g43_before_first", [100, 100, 100]);
     expect(pts(e)[1]).toEqual([10, 100, 90]);
     // a cube on the machine's real X move at Z100 is met on L3
-    const side = sweepFlags(sliceTrack(e, 0, 3), [50, 100, 100], raw);
-    expect(side.hits.some(h => h.line === 3)).toBe(true);
+    const sl = sliceTrack(e, 0, 3), store = new ContactStore(1, 0);
+    sweepFlags(sl, [50, 100, 100], raw, { contacts: { store } });
+    const lineAt = trackLineAt(sl);
+    expect(Array.from({ length: store.intervals.rows }, (_, k) => lineAt(store.intervals.get(k, "enter")))).toContain(3);
     // a fixture switch before the first move: the same shift, the start
     // converted with the epochs' terms as the page does
     const g = load("r133_g55_before_first");
@@ -347,7 +390,7 @@ describe("Codex R133", () => {
     expect(base.range?.fromCum).toBeDefined();
     expect(base.boundaryContacts?.length).toBeGreaterThan(0);
     const side = sweep(sliceTrack(e, 0, K + 2), [500, 0, 0], raw);
-    const m = mergeBeginningOntoBase(side, base, e.cum[K + 1]!, track.cum[track.count - 1]!, e.cum[1]);
+    const m = mergeBeginningOntoBase(side, base, e.cum[K + 1]!, track.cum[track.count - 1]!);
     expect(m.range).toEqual(base.range);
     expect(m.boundaryContacts).toEqual(base.boundaryContacts);
   });
@@ -400,7 +443,7 @@ describe("Codex R133", () => {
     const { e } = entry("e_g53_rdp", [100, 100, 0]);
     const K = rdp.track.depEnd!;
     const side = sweep(sliceTrack(e, 0, K + 2), [500, 0, 0], rdp.raw);
-    const merged = mergeBeginningOntoBase(side, part, e.cum[K + 1]!, rdp.track.cum[rdp.track.count - 1]!, e.cum[1]);
+    const merged = mergeBeginningOntoBase(side, part, e.cum[K + 1]!, rdp.track.cum[rdp.track.count - 1]!);
     expect(sweepView(merged, run("checked")).verdict).toBe("Clear · checked in full");
     // the states the viewer hands the bar
     expect([runBeginOf(0, false, false), runBeginOf(2, true, false), runBeginOf(2, false, true), runBeginOf(2, false, false),
@@ -423,7 +466,7 @@ describe("Codex R133", () => {
 // model) is stubbed. Codex's method (viewer-palette-fest.r134.codex-wiring).
 type Coord = {
   start(): boolean; setBase(r: any): void; mainRunning(progress: number, on?: any): void; mainEnded(): void; reply(data: Record<string, unknown>): void; drop(): void;
-  view(): any; result(): any; side(): any;
+  view(): any; result(): any; side(): any; sideFirst(): any;
 };
 function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why?: string | null;
                      buildFails?: boolean; postThrows?: boolean; noInit?: boolean } = {}): Coord {
@@ -477,65 +520,67 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
     view: () => collisionRunCheckView.value,
     result: () => _colBaseFor(track),
     side: () => _colSide,
+    sideFirst: () => collisionSideFirst.value,
   };`;
   const code = ts.transpileModule(prelude + texts.join("\n") + expose,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const deps = { track, wcs, opts, runBeginOf, runBeginView, buildEntryTrack, sliceTrack, mergeBeginningOntoBase,
-                 displayLineForPoint, firstOnly, startDependentOf, console: { error: () => {} } };
+                 displayLineForPoint, startDependentOf, console: { error: () => {} } };
   return new Function(...Object.keys(deps), code)(...Object.values(deps));
 }
 const swept = (t: any, raw: Record<string, any>) => sweep(t, [500, 0, 0], raw);
 
 describe("Codex R136 VP-I93", () => {
-  it("a run's side sweep shows its first confirmed contact while it runs; the beginning stays checking until its result", () => {
+  it("a run's side sweep shows its contact while it runs (its tables, from its first touch); the beginning stays checking until its result", () => {
     const { raw, track } = load("e_single");
     const base = swept(track, raw);
-    const first = { line: 1, cum: 1, cumEnd: 1, a: "tool", b: "post", dist: 0, rapid: true };
     const h = coordinator(track, wcsOf(raw));
     expect(h.start()).toBe(true);
     h.setBase(base);
     const beginning = sweep(h.side().slice, [500, 0, 0], raw);
-    h.reply({ progress: 0.2, first });
+    // its first touch interval (C2: the delta that brings it)
+    h.reply({ contacts: [], firstTouch: true });
     expect(h.view().begin, "still checking").toBe("checking");
-    expect(h.result().hits.some((x: any) => x.a === "tool" && x.b === "post"), "its contact shown").toBe(true);
-    // through the bar's own verdict: the contact, and the beginning still
-    // checking — one contact answers no coverage (Codex R137 VP-I93 B)
-    const early = sweepViewOf(h.result(), h.view());
+    expect(h.sideFirst(), "its tables are shown from now on").toMatchObject({ id: h.side().id, run: { gen: 1 } });
+    // through the bar's own verdict, with the contact the view hands it: the
+    // beginning still checking — one contact answers no coverage (Codex R137 VP-I93 B)
+    const contact: ClashTarget = { cum: 0, cumEnd: 0, key: "E1|0|0", line: 1, a: "tool", b: "post", dist: 0, near: false, entry: true };
+    const early = sweepViewOf(h.result(), h.view(), [contact]);
     expect(early.verdict).toMatch(/^1 collision.* · start still checking$/);
     expect(early.verdict).not.toContain("checked in full");
-    // its result takes over (here clean): merged, checked, the early contact gone with it
+    // its result takes over: merged, checked
     h.reply({ result: beginning });
     expect(h.view().begin).toBe("checked");
-    expect(h.result().hits.some((x: any) => x.b === "post")).toBe(false);
+    expect(h.sideFirst(), "the side run ended").toBeNull();
     // a side sweep that ends without a result takes its contact with it
     const g = coordinator(track, wcsOf(raw));
     expect(g.start()).toBe(true);
     g.setBase(base);
-    g.reply({ progress: 0.2, first });
+    g.reply({ contacts: [], firstTouch: true });
     g.reply({ error: "injected" });
-    expect(g.result().hits).toEqual(base.hits);
+    expect(g.sideFirst()).toBeNull();
+    expect(g.result()).toBe(base);
   });
 });
 
 describe("Codex R138 VP-I93", () => {
   it("before the main request's first partial: the beginning's contact on the main request as it stands — its progress, its start-dependent beginning, never another track or a finished main request", () => {
     const { raw, track } = load("e_single");
-    const first = { line: 1, cum: 1, cumEnd: 1, a: "tool", b: "post", dist: 0, rapid: true };
     const h = coordinator(track, wcsOf(raw));
     expect(h.start()).toBe(true);
     h.mainRunning(0.1);
     expect(h.result(), "nothing found yet, nothing shown").toBeNull();
-    h.reply({ progress: 0.2, first });
+    h.reply({ contacts: [], firstTouch: true });
     const early = h.result();
-    expect(early.hits.some((x: any) => x.a === "tool" && x.b === "post"), "the side contact shown").toBe(true);
+    expect(early, "the side contact's request shown").not.toBeNull();
+    expect("hits" in early, "no records").toBe(false);
     expect(early.truncated, "the main request's own progress, running").toEqual({ covered: 0.1, reason: "running" });
     expect(early.startDependent, "the beginning the main request names").toEqual(startDependentOf(track));
     expect(early.startDependent).toBeTruthy();
     expect(early.pairCount, "a contact: moving pairs exist").toBeGreaterThan(0);
     // the beginning's result before the main partial: shown the same way
     const beginning = sweep(h.side().slice, [500, 0, 0], raw);
-    h.reply({ result: { ...beginning, hits: [first, ...beginning.hits] } });
-    expect(h.result().hits.some((x: any) => x.b === "post"), "the final side contact shown").toBe(true);
+    h.reply({ result: beginning });
     expect(h.result().truncated).toEqual({ covered: 0.1, reason: "running" });
     // the main request ended without a result (an error, a cancel): nothing is invented
     h.mainEnded();
@@ -544,7 +589,7 @@ describe("Codex R138 VP-I93", () => {
     const g = coordinator(track, wcsOf(raw));
     expect(g.start()).toBe(true);
     g.mainRunning(0.1, { ...track });
-    g.reply({ progress: 0.2, first });
+    g.reply({ contacts: [], firstTouch: true });
     expect(g.result(), "the main request runs on another track").toBeNull();
   });
 });
@@ -609,7 +654,7 @@ describe("Codex R134", () => {
       expect([h.view().begin, h.view().beginWhy], what).toEqual(["failed", why]);
       const shown = sweepView(h.result(), h.view());
       expect([shown.state, shown.verdict, shown.tone], what).toEqual(["done", "Clear · start not checked", "warn"]);
-      expect(h.result().hits, what).toEqual(base.hits);              // the base check's finding stays
+      expect(h.result(), what).toBe(base);                           // the base check stays as it was
       expect(verdictDetail(h.result(), h.view(), track), what)
         .toContain(`not checked: the check from the run's start position did not run to its end (${why}).`);
     }

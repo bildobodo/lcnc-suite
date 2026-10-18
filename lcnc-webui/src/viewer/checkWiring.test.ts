@@ -1,5 +1,6 @@
-// The viewer's own wiring of step 4 package 1, run as written: the first
-// confirmed contact shown at once (_colShowFirst, 1b), the earlier preview's
+// The viewer's own wiring, run as written: a running sweep's metadata and
+// its first touch interval through the worker handler (step 4 package 2,
+// C2 — package 1's first-contact message is gone), the earlier preview's
 // verdict in words (_colPreviousOf, 1a), the card's context taken at the
 // request (_colContextFor, 1c). The functions come unchanged out of
 // ThreeViewer.vue (the method of startDepPayloads.test's coordinator); only
@@ -7,16 +8,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import ts from "typescript";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import type { CollisionHit, CollisionResult } from "./collision";
-import { clashTargets } from "./clashTargets";
-import { findingWords, wordsOfCounts } from "./sweepWords";
-import { firstOnly, holdsFirst, withFirstContact } from "./firstContact";
+import { describe, expect, it } from "vitest";
+import type { CollisionResult } from "./collision";
+import { wordsOfCounts } from "./sweepWords";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./sweepMerge";
 import { captureCheckContext } from "./checkContext";
 import { semanticKinsMode } from "./kins";
 import { basisFromLive, type CheckBasis } from "./checkBasis";
-import { ContactStore, NONE } from "./contactStore";
+import { ContactStore, NONE, type StoreDelta } from "./contactStore";
 import { buildContactView, contactBands, lineMark, targetAt, tintAt, trackLineAt, viewCounts } from "./contactView";
 import { shownContactView } from "./shownContacts";
 import { ContactPublisher, contactOwners, type GenerationTables } from "./contactPublisher";
@@ -36,20 +35,16 @@ function viewerFns(names: string[], prelude: string, refs: Record<string, unknow
   return new Function(...Object.keys(refs), body)(...Object.values(refs));
 }
 
-const hit = (line: number, dist: number, over: Partial<CollisionHit> = {}): CollisionHit =>
-  ({ line, cum: line, cumEnd: line, a: "spindle_nose", b: `part_${line}`, dist, rapid: false, ...over });
-const result = (hits: CollisionHit[], over: Partial<CollisionResult> = {}): CollisionResult => ({
-  hits, staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
+const result = (over: Partial<CollisionResult> = {}): CollisionResult => ({
+  staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
   pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null, ...over });
 
-/** The viewer's own worker handler (_colGetWorker's onmessage) and
- *  _colShowFirst as written, over the refs they read: `post` hands the
- *  handler a worker message of request `_colReqId`; `nextRequest` is a new
- *  request (its id). */
+/** The viewer's own worker handler (_colGetWorker's onmessage) and what it
+ *  calls, as written, over the refs they read: `post` hands the handler a
+ *  worker message; the publisher holds the request's tables (plan 3.6). */
 function owner() {
-  return viewerFns(["_colGetWorker", "_colOnMessage", "_colKick", "_colShowFirst", "_colEmitMarks"], `
-    let _colWorker = null, _colModelSent = null, _colSide = null, _colReqId = 12, _colKeepShown = false, _colFirstHeld = null;
-    // the contact tables (round B3): none in this harness — the marks read them, so they say nothing here
+  return viewerFns(["_colGetWorker", "_colOnMessage", "_colKick", "_colEmitMarks", "_intervalRows"], `
+    let _colWorker = null, _colModelSent = null, _colSide = null, _colReqId = 12, _colKeepShown = false;
     let _colPartialReq = null;
     const contactViewFor = () => null, _lineRunsOf = () => null, colShown = { value: null };
     // the publisher as the viewer has it (plan 3.6): a request's messages are
@@ -57,188 +52,76 @@ function owner() {
     // marks follow the publication (the viewer's contactsVersion watcher). On
     // a clock that stands every pass is one slice, run at once.
     const CONTACTS_VIEW_MS = 500, _contactsLog = { messages: 0, acks: 0, maxDeltaRows: 0 };
-    let _contactsTimer;
+    let _contactsTimer, publications = 0;
     const _contacts = new ContactPublisher({ tracks: () => [], specOf: () => null, *build() { return null; }, effect: m => _colOnMessage(m),
-      stage: () => ({ result: collisionResultShown.value, track: collisionTrack.value, partialTrack: collisionPartialTrackShown.value }),
-      publish: s => { colShown.value = s; _colEmitMarks(); }, ack: () => {}, owners: () => new Set([_colReqId]), now: () => 0, schedule: f => f() });
-    const _intervalRows = () => 0;
-    const collisionResult = { value: null }, collisionTrack = { value: null }, collisionPartialTrackShown = { value: null };
+      stage: () => ({ result: null, track: null, partial: collisionPartial.value, partialTrack: collisionPartialTrack.value }),
+      publish: s => { colShown.value = s; publications++; _colEmitMarks(); }, ack: () => {}, owners: () => new Set([_colReqId]), now: () => 0, schedule: f => f() });
     const TRACK = {};
     let _colPendingTrack = TRACK;
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null }, collisionProgress = { value: 0 };
     const emitted = [], emit = (e, x) => emitted.push([e, x]), _colRetint = () => {};
-    const newTrack = () => { _colPendingTrack = {}; };
-    // no result and no run check here: what is shown is the partial
-    const collisionResultShown = { get value() { return null; } }, collisionPartialShown = { get value() { return collisionPartial.value; } };
-    // the bodies retry: the same request again, under a new id
     let _colNeedBodiesRetried = false, _colPendingRun = undefined;
     const collisionBusy = { value: true }, emitTelemetry = () => {}, _colFail = () => {};
     const runCollisionCheck = () => { _colReqId++; };
     class Worker { postMessage() {} }
-    const post = (data) => _colGetWorker().onmessage({ data });
+    const posted = [];
+    const post = (data) => { posted.push(data); _colGetWorker().onmessage({ data }); };
     const shown = () => collisionPartial.value;
-    const nextRequest = () => ++_colReqId;`,
-    { holdsFirst, withFirstContact, firstOnly, ContactPublisher }, ["post", "shown", "nextRequest", "emitted", "newTrack"]);
+    const keepShown = (on) => { _colKeepShown = on; };
+    const pubs = () => publications;`,
+    { ContactPublisher }, ["post", "posted", "shown", "keepShown", "pubs", "emitted"]);
 }
-const words = (r: CollisionResult | null) => findingWords(clashTargets(r?.hits ?? []));
-const running = (hits: CollisionHit[], covered = 0.1) => result(hits, { truncated: { covered, reason: "running" } });
+/** Request `id`'s sweep side (generation 0): `add` appends a stay of pair 0
+ *  — with a touch interval or a near miss — and gives its delta. */
+function sweepSide(id: number) {
+  const st = new ContactStore(id, 0);
+  return { add(touch: boolean): StoreDelta {
+    const e = st.episodes.rows;
+    const ep = st.episodes.append({ pair: 0, ordinal: e, flags: 0, onset: e, end: e + 0.5, closeAt: e, closeDist: touch ? 0 : 1, firstIv: NONE, ivCount: touch ? 1 : 0 });
+    if (touch) st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: e, exit: e + 0.5, flags: 0, next: NONE, witness: e, freeAt: NaN }));
+    const d = st.takeDelta(true)!;
+    st.ack();
+    return d;
+  } };
+}
 
-describe("the first confirmed contact at once, through the viewer's worker handler (step 4 plan 1b; Codex R136)", () => {
-  const near = hit(7, 1.5);
-  it("VP-I91: the first of an onset shown as a near miss replaces it — one contact, one target, one key", () => {
+describe("a running sweep's metadata and first touch through the viewer's worker handler (step 4 package 2, C2)", () => {
+  it("the metadata partial is the request's shown partial at its progress — never another request's, never over a kept provisional result", () => {
     const ui = owner();
-    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
-    expect(words(ui.shown()).text).toBe("1 near miss");
-    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
-    const t = clashTargets(ui.shown().hits);
-    expect(t.map(x => x.key)).toHaveLength(1);
-    expect(words(ui.shown()).text).toBe("1 collision");
-    expect(ui.shown().truncated, "at the progress the first came with").toEqual({ covered: 0.2, reason: "running" });
-    // the code panel is told at once (its marks read the contact tables since round B3)
-    expect(ui.emitted.at(-1)?.[0]).toBe("collision-lines");
+    ui.post({ id: 12, progress: 0.1, partial: result({ truncated: { covered: 0.1, reason: "running" }, notes: ["n"], uncertified: "n" }) });
+    expect(ui.shown()).toMatchObject({ notes: ["n"], truncated: { covered: 0.1, reason: "running" } });
+    expect("hits" in ui.shown(), "no records").toBe(false);
+    ui.post({ id: 11, progress: 0.2, partial: result({ notes: ["stale"] }) });
+    expect(ui.shown().notes, "a superseded request's partial changes nothing").toEqual(["n"]);
+    ui.keepShown(true);
+    ui.post({ id: 12, progress: 0.3, partial: result({ notes: ["later"] }) });
+    expect(ui.shown().notes, "a provisional result kept on screen").toEqual(["n"]);
   });
-  it("VP-I92: a partial built from older words keeps the shown contact until a partial carries it", () => {
+  it("the delta that brings the request's first touch interval is marked and published at once; a near miss's delta before it is not marked", () => {
     const ui = owner();
-    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
-    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
-    // the pool's merged partial from a shard's older word: the near miss again
-    ui.post({ id: 12, progress: 0.25, partial: running([near], 0.25) });
-    expect(words(ui.shown()).text, "never back to a near miss").toBe("1 collision");
-    expect(ui.shown().truncated).toEqual({ covered: 0.25, reason: "running" });
-    // a newer word carries it: the partial as it is from then on
-    ui.post({ id: 12, progress: 0.3, partial: running([{ ...near, touches: true }, hit(9, 0, { b: "column" })], 0.3) });
-    expect(words(ui.shown()).text).toBe("2 collisions");
-  });
-  it("VP-I92 (R137): the shown partial keeps the held contact after an older partial (the code marks read the contact tables since round B3)", () => {
-    const ui = owner();
-    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
-    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
-    // the pool's merged partial with a shard not heard from yet: no record of the contact at all
-    ui.post({ id: 12, progress: 0.25, partial: running([], 0.25) });
-    expect(words(ui.shown()).text).toBe("1 collision");
-    expect(ui.emitted.at(-1)?.[0], "the code panel told").toBe("collision-lines");
-    expect(ui.shown().hits.some((h: CollisionHit) => h.touches)).toBe(true);
-  });
-  it("VP-I92 (R137): held for the whole request — a fall back to this core starts again after a partial carried it", () => {
-    const ui = owner();
-    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
-    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
-    // a pooled partial carries it ...
-    ui.post({ id: 12, progress: 0.3, partial: running([{ ...near, touches: true, cumEnd: 30 }], 0.3) });
-    expect(ui.shown().hits[0].cumEnd, "a partial that holds it keeps its own, newer record").toBe(30);
-    // ... the pool fails, the sweep starts again here: its partial has the near miss only
-    ui.post({ id: 12, progress: 0.05, partial: running([near], 0.05) });
-    expect(words(ui.shown()).text, "never back to a near miss").toBe("1 collision");
-  });
-  it("a bodies retry is the same request: its first contact stays held under the new id", () => {
-    const ui = owner();
-    ui.post({ id: 12, progress: 0.1, partial: running([near]) });
-    ui.post({ id: 12, progress: 0.2, first: { ...near, touches: true } });
-    ui.post({ id: 12, needBodies: true });
-    ui.post({ id: 13, progress: 0.05, partial: running([near], 0.05) });
-    expect(words(ui.shown()).text).toBe("1 collision");
-  });
-  it("the first stays with its request: a new request's partials are its own", () => {
-    const ui = owner();
-    ui.post({ id: 12, progress: 0.2, first: hit(7, 0) });
-    ui.nextRequest();
-    ui.post({ id: 13, progress: 0.1, partial: running([]) });
-    expect(ui.shown().hits).toEqual([]);
-  });
-  it("a partial that already holds the contact keeps its own, newer record — the first's older copy does not replace it", () => {
-    const ui = owner();
-    const newer = hit(7, 0, { cumEnd: 30 });
-    ui.post({ id: 12, progress: 0.3, partial: running([newer], 0.3) });
-    const before = ui.shown();
-    ui.post({ id: 12, progress: 0.2, first: hit(7, 0, { cumEnd: 7 }) });
-    expect(ui.shown().hits).toEqual([newer]);
-    expect(ui.shown(), "the shown partial stays as it was").toBe(before);
-  });
-  it("positive controls: another onset's near miss stays beside it; progress and a stale request's partial change nothing", () => {
-    const ui = owner();
-    ui.post({ id: 12, progress: 0.1, partial: running([hit(9, 1.5, { b: "table" })]) });
-    ui.post({ id: 12, progress: 0.2, first: hit(7, 0) });
-    ui.post({ id: 12, progress: 0.3 });
-    ui.post({ id: 11, progress: 0.4, partial: running([]) });
-    expect(words(ui.shown()).text).toBe("1 collision · 1 near miss");
-    expect(ui.shown().hits.map((h: CollisionHit) => h.line)).toEqual([7, 9]);
-  });
-  it("a partial of another track is not built upon (the request's track is new — another program)", () => {
-    const ui = owner();
-    ui.post({ id: 12, progress: 0.1, partial: running([hit(9, 1.5, { b: "table" })]) });
-    ui.newTrack();
-    ui.post({ id: 12, progress: 0.2, first: hit(4, 0) });
-    expect(ui.shown().hits.map((h: CollisionHit) => h.line)).toEqual([4]);
-  });
-  it("with nothing on screen: a running partial of the contact alone, at the progress it came with", () => {
-    const ui = owner();
-    ui.post({ id: 12, progress: 0.15, first: hit(7, 0) });
-    expect(ui.shown()).toMatchObject({ hits: [hit(7, 0)], truncated: { covered: 0.15, reason: "running" } });
+    ui.post({ id: 12, progress: 0.1, partial: result() });
+    const sw = sweepSide(12);
+    ui.post({ id: 12, contacts: [sw.add(false)], contactPairs: [["tool", "part"]] });
+    expect(ui.posted.at(-1)!.firstTouch, "a near miss is no touch").toBeUndefined();
+    const before = ui.pubs();
+    ui.post({ id: 12, contacts: [sw.add(true)] });
+    expect(ui.posted.at(-1)!.firstTouch, "the first touch interval").toBe(true);
+    expect(ui.pubs(), "published at once").toBeGreaterThan(before);
+    // its tables are the request's: the next touch of the request is no first touch
+    ui.post({ id: 12, contacts: [sw.add(true)] });
+    expect(ui.posted.at(-1)!.firstTouch).toBeUndefined();
+    expect(ui.shown(), "a delta alone leaves the metadata partial as it was").toMatchObject({ pairCount: 5 });
   });
 });
 
-// The pooled sequence of Codex's R136 probe through the REAL coordinator and
-// the viewer's handler: shard A's near miss, shard B's partial held by the
-// cadence, A's first after it — the merged partial that follows must not
-// take the contact back.
-describe("the pool's whole message sequence into the viewer (Codex R136 VP-I92)", () => {
-  afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); });
-  it("a known contact never reverts to a near miss", async () => {
-    vi.resetModules();
-    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
-    const sent: Record<string, any>[] = [], workers: { onmessage: ((e: { data: unknown }) => void) | null }[] = [];
-    class FakeWorker {
-      onmessage: ((e: { data: unknown }) => void) | null = null;
-      onerror: unknown = null;
-      constructor() { workers.push(this); }
-      postMessage() {}
-      terminate() {}
-    }
-    const scope = { onmessage: null as ((e: { data: unknown }) => void) | null, postMessage: (m: Record<string, any>) => sent.push(structuredClone(m)),
-      navigator: { hardwareConcurrency: 4 }, location: { href: "https://test.invalid/collisionWorker.js" } };
-    vi.stubGlobal("self", scope);
-    vi.stubGlobal("Worker", FakeWorker);
-    await import("./collisionWorker");
-    const machine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }],
-      kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 }],
-      workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z"] };
-    const tri = () => new Float32Array([0, 0, 0, 0, 10, 0, 0, 0, 10]);
-    scope.onmessage!({ data: { id: 12, side: false, modelKey: "simple", machine, tool: null, maxShards: 2,
-      bodies: [{ id: "fixed", group: "fixed", positions: tri() }, { id: "moving", group: "moving", positions: tri() }],
-      track: { pos: new Float32Array([10, 0, 0, 20, 0, 0]), abc: new Float32Array(6), cum: new Float32Array([0, 10]),
-               rapid: new Uint8Array([1, 1]), lines: new Uint32Array([1, 2]), count: 2 },
-      wcs: { g5x: [], g92: [], rotationDeg: 0 }, options: { margin: 2 } } });
-    const emitFrom = (k: number, data: unknown) => workers[k]!.onmessage!({ data: structuredClone(data) });
-    const near = hit(7, 1.5);
-    emitFrom(0, { id: 12, progress: 0.1, partial: running([near]) });
-    await vi.advanceTimersByTimeAsync(100);
-    emitFrom(1, { id: 12, progress: 0.1, partial: running([]) });
-    await vi.advanceTimersByTimeAsync(500);
-    emitFrom(0, { id: 12, progress: 0.2, first: { ...near, touches: true } });
-    // the coordinator does send a merged partial without it after the first
-    expect(sent.findIndex(m => m.first)).toBeGreaterThanOrEqual(0);
-    const ui = owner();
-    const seen: string[] = [];
-    let collided = false;
-    for (const m of sent) {
-      ui.post(m);
-      const w = words(ui.shown());
-      seen.push(w.text);
-      if (w.collisions) collided = true;
-      else if (collided) throw new Error(`a known contact went back: ${seen.join(" → ")}`);
-    }
-    expect(collided).toBe(true);
-    expect(words(ui.shown()).collisions).toBe(1);
-  });
-});
-
-// The side sweep's first confirmed contact (Codex R136 VP-I93): the entry
-// move — the start-dependent beginning with it — shows its contact before
-// its result, said still checking; its end ends it.
-describe("the side sweep's first contact on the entry track (Codex R136 VP-I93)", () => {
+// The side sweep's contact (Codex R136 VP-I93): the entry move — the
+// start-dependent beginning with it — shows its contact before its result,
+// from its tables, said still checking; its end ends it. The trigger is the
+// side run's first touch interval (C2), never its start.
+describe("the side sweep's contact on the entry track (Codex R136 VP-I93)", () => {
   const BASE = { cum: new Float64Array([0, 10, 20]), count: 3 };
   const ENTRY = { cum: new Float64Array([0, 5, 15, 25]), count: 4 };
-  const side = () => viewerFns(["_colOnSideMessage", "_colBaseFor", "_colWithRunSide", "collisionEntryResult"], `
+  const side = () => viewerFns(["_colOnSideMessage", "_colBaseFor", "_colWithRunSide", "collisionEntryResult", "SIDE_RUNNING"], `
     const computed = (f) => ({ get value() { return f(); } });
     let _colSide = { id: -1, entry: ENTRY, base: BASE, slice: ENTRY, shift: 5, retried: false, startedAt: 0 }, _colModelSent = null;
     const collisionEntry = { value: null }, collisionSideFirst = { value: null }, collisionRun = { value: null };
@@ -246,27 +129,29 @@ describe("the side sweep's first contact on the entry track (Codex R136 VP-I93)"
     const collisionResult = { value: BASE_RESULT }, collisionTrack = { value: BASE };
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
     const emitTelemetry = () => {}, _colRetint = () => {}, _colPostSide = () => {}, _colRunSideFailed = () => {}, _colEmitMarks = () => {};
+    const _intervalRows = () => 1;
     let _colSideProgress = 0;
     const _sliceEnd = (t) => t.count ? t.cum[t.count - 1] : 0;
     const _colRunLog = [];
     const post = (data) => _colOnSideMessage({ id: -1, ...data });
     const entryShown = () => collisionEntryResult.value;`,
-    { mergeEntryResult, mergeBeginningOntoBase, firstOnly, ENTRY, BASE, BASE_RESULT: result([]), console: { error: () => {} } },
+    { mergeEntryResult, mergeBeginningOntoBase, ENTRY, BASE, BASE_RESULT: result(), console: { error: () => {} } },
     ["post", "entryShown"]);
-  it("shows the contact while the side sweep runs, said still checking; the result takes over", () => {
+  it("nothing at its start; shown from its first touch while it runs, said still checking; the result takes over", () => {
     const f = side();
-    expect(f.entryShown(), "nothing yet").toBeNull();
-    f.post({ progress: 0.1, first: hit(0, 0, { cum: 2, cumEnd: 2 }) });
+    f.post({ progress: 0.1 });
+    expect(f.entryShown(), "a side run's start shows nothing").toBeNull();
+    f.post({ contacts: [], firstTouch: true });
     const shown = f.entryShown()!;
     expect(shown.checking).toBe(true);
-    expect(shown.result.hits.some((h: CollisionHit) => h.entry && h.dist === 0)).toBe(true);
-    f.post({ result: result([hit(0, 0, { cum: 2, cumEnd: 3 })]) });
+    expect(shown.track).toBe(ENTRY);
+    f.post({ result: result({ samples: 3 }) });
     expect(f.entryShown()!.checking).toBeUndefined();
-    expect(f.entryShown()!.result.hits.some((h: CollisionHit) => h.entry)).toBe(true);
+    expect(f.entryShown()!.result.samples, "the entry's and the base's").toBe(13);
   });
   it("a side sweep that ends without a result takes its contact with it", () => {
     const f = side();
-    f.post({ progress: 0.1, first: hit(0, 0, { cum: 2, cumEnd: 2 }) });
+    f.post({ contacts: [], firstTouch: true });
     f.post({ error: "boom" });
     expect(f.entryShown()).toBeNull();
   });
@@ -280,17 +165,18 @@ describe("the earlier preview's verdict in words (step 4 plan 1a, _colPreviousOf
   st.episodes.append({ pair: 1, ordinal: 0, onset: 9, end: 9.5, closeAt: 9.2, closeDist: 1.5, firstIv: NONE, ivCount: 0 });
   const VIEW = { view: buildContactView({ sources: [{ stores: [st], at: c => c }], pairName: p => ({ a: "spindle_nose", b: `part_${p}` }), coverage: 20 }),
                  lineAt: (pos: number) => Math.floor(pos) };
+  const warned: string[] = [];
   const fns = (view: unknown) => viewerFns(["_colPreviousOf"], "const collisionTrack = { value: {} };",
-    { clashTargets, findingWords, wordsOfCounts, viewCounts, contactViewFor: () => view, console: { warn: () => {} } });
+    { wordsOfCounts, viewCounts, contactViewFor: () => view, console: { warn: (m: string) => warned.push(m) } });
   it("its words are the summary's, from the shown contact view: kinds apart, a near miss never a collision", () => {
-    expect(fns(VIEW)._colPreviousOf(result([]), 12)).toEqual(
+    expect(fns(VIEW)._colPreviousOf(result(), 12)).toEqual(
       { collisions: 2, text: "1 collision · 1 near miss", complete: true, version: 12 });
-    expect(fns(VIEW)._colPreviousOf(result([], { truncated: { covered: 0.5, reason: "time" } }), null))
+    expect(fns(VIEW)._colPreviousOf(result({ truncated: { covered: 0.5, reason: "time" } }), null))
       .toMatchObject({ complete: false, version: null });
   });
-  it("without the tables (gone with their request): from the records, said in the console", () => {
-    expect(fns(null)._colPreviousOf(result([hit(7, 0), hit(9, 1.5)]), 12)).toEqual(
-      { collisions: 2, text: "1 collision · 1 near miss", complete: true, version: 12 });
+  it("without its view (its tables gone with their request): nothing named — said in the console, never guessed", () => {
+    expect(fns(null)._colPreviousOf(result(), 12)).toBeNull();
+    expect(warned.at(-1)).toMatch(/not named/);
   });
 });
 

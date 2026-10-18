@@ -1,108 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { mergeEntryResult, mergedTruncated, mergedSweptFraction } from "./sweepMerge";
-import { clashTargets } from "./clashTargets";
-import { sampleCum, targetAfter, targetBefore } from "./findingNav";
-import type { CollisionHit, CollisionResult } from "./collision";
+import { mergeBeginningOntoBase, mergeEntryResult, mergedTruncated, mergedSweptFraction } from "./sweepMerge";
+import type { CollisionResult } from "./collision";
 
+// The two sweeps' METADATA (step 4 package 2, C2): what they found is their
+// contact tables' — the join of one contact seen by both is contactMerge's
+// (contactMerge.test.ts, contactView.test.ts "the entry move").
 const res = (over: Partial<CollisionResult>): CollisionResult => ({
-  hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null,
+  staticContacts: [], samples: 0, coarsened: false, uncertified: null,
   pairCount: 3, pairsPrescreened: 0, bvhMs: 1, sweepMs: 10, truncated: null, ...over,
 });
 
 describe("mergeEntryResult", () => {
-  it("shifts the base hits onto the entry track's axis and keeps entry hits first", () => {
-    const entry = res({ hits: [{ line: 0, cum: 1.5, cumEnd: 2, a: "tool", b: "column", dist: 0, rapid: true }], samples: 4 });
-    const base = res({
-      hits: [{ line: 7, cum: 3, cumEnd: 4, intervals: [[3, 4]], spanCumEnd: 9, a: "tool", b: "platter", dist: 0, rapid: false }],
-      samples: 100, sweepMs: 50,
-    });
-    const m = mergeEntryResult(entry, base, 10, 90);
-    expect(m.hits.map(h => [h.line, h.cum, h.cumEnd])).toEqual([[0, 1.5, 2], [7, 13, 14]]);
-    expect(m.hits[1]!.intervals).toEqual([[13, 14]]);
-    expect(m.hits[1]!.spanCumEnd).toBe(19);   // the span end shifts with the rest
-    expect(m.hits[0]!.spanCumEnd).toBeUndefined();
+  it("adds the sweeps' counters and unites their notes — the entry move's never hide the program's", () => {
+    const m = mergeEntryResult(res({ samples: 4, notes: ["entry note"], uncertified: "entry note" }),
+                               res({ samples: 100, sweepMs: 50, notes: ["base note"], uncertified: "base note" }), 10, 90);
     expect(m.samples).toBe(104);
     expect(m.sweepMs).toBe(60);
-    expect(m.pairCount).toBe(3);
-  });
-  it("one contact seen by both sweeps counts once: the entry onset takes the base's span, the base's first-line onset becomes its continuation", () => {
-    // 2026-09-12: a contact begun in the entry rapid that never ends was
-    // "2 clashes" — the entry sweep's onset plus the base sweep's onset on
-    // line 1 (a pair clear at rest, touching at the first pose).
-    const entry = res({ hits: [{ line: 0, cum: 6, cumEnd: 10, intervals: [[6, 10]], a: "ram", b: "column", dist: 0, rapid: true }] });
-    const base = res({ hits: [
-      { line: 1, cum: 0, cumEnd: 4, spanCumEnd: 40, spanEndLine: 9, a: "ram", b: "column", dist: 0, rapid: false },
-      { line: 2, cum: 4, cumEnd: 8, continuation: 1, a: "ram", b: "column", dist: 0, rapid: false },
-      { line: 5, cum: 20, cumEnd: 21, a: "tool", b: "vise", dist: 0, rapid: false },   // another pair: untouched
-    ] });
-    const m = mergeEntryResult(entry, base, 10, 90);
-    const onsets = m.hits.filter(h => h.continuation === undefined);
-    expect(onsets.map(h => [h.line, h.a, h.b])).toEqual([[0, "ram", "column"], [5, "tool", "vise"]]);
-    expect(onsets[0]!.spanCumEnd).toBe(50);
-    expect(onsets[0]!.spanEndLine).toBe(9);
-    expect(onsets[0]!.rapid).toBe(true);
-    const l1 = m.hits.find(h => h.line === 1)!;
-    expect(l1.continuation).toBe(0);
-    expect(l1.cum).toBe(10);
-    // An entry contact that ENDS before the first point stays its own clash.
-    const early = res({ hits: [{ line: 0, cum: 2, cumEnd: 5, a: "ram", b: "column", dist: 0, rapid: true }] });
-    expect(mergeEntryResult(early, base, 10, 90).hits.filter(h => h.continuation === undefined)).toHaveLength(3);
-  });
-  it("a contact continuing from the entry that SEPARATES and comes back: only its first interval joins the entry's finding, the re-entry stays the program's under its own key (Codex R34 VP-I09)", () => {
-    // Codex R34's merge probe: the entry contact [2, 10] reaches the first
-    // point (shift 10); the base touches from its first point [0, 4], clears,
-    // and touches again [20, 30] on the same line and pair.
-    const entry = res({ hits: [{ line: 7, cum: 2, cumEnd: 10, intervals: [[2, 10]], a: "tool", b: "work", dist: 0, rapid: true }] });
-    const other: CollisionHit = { line: 9, cum: 50, cumEnd: 55, intervals: [[50, 55]], a: "holder", b: "fixture", dist: 0, rapid: false };
-    const base = res({ hits: [{ line: 7, cum: 0, cumEnd: 30, intervals: [[0, 4], [20, 30]], a: "tool", b: "work", dist: 0, rapid: false }, other] });
-    const alone = clashTargets(base.hits);
-    const m = mergeEntryResult(entry, base, 10, 80);
-    const targets = clashTargets(m.hits);
-    expect(targets.map(t => [t.key, t.cum])).toEqual([["E7|tool|work|0", 2], ["C7|tool|work|1", 30], ["C9|holder|fixture|0", 60]]);
-    // the re-entry has the name it had before the entry result arrived
-    expect(alone.find(t => t.key === "C7|tool|work|1")!.cum).toBe(20);
-    // the entry's contact lasts through the first interval only
-    const e = m.hits.find(h => h.entry)!;
-    expect(e.spanCumEnd).toBe(14);
-    expect(e.spanEndLine).toBe(7);
-    const b = m.hits.find(h => !h.entry && h.line === 7)!;
-    expect(b.continuation).toBeUndefined();
-    expect(b.carried).toBe(true);
-    // ...and a start contact the entry move began is none, the separating
-    // case too (step 4 plan 1d)
-    const startIn = mergeEntryResult(entry, res({ hits: [{ ...base.hits[0]!, atStart: true }, other] }), 10, 80);
-    expect(startIn.hits.find(h => !h.entry && h.line === 7)!.atStart).toBeUndefined();
-    // A contact that does NOT separate still counts once, as before; a jump
-    // chosen on it goes on by position (Codex R34, answer 1)
-    const through = res({ hits: [{ line: 7, cum: 0, cumEnd: 4, intervals: [[0, 4]], a: "tool", b: "work", dist: 0, rapid: false }, other] });
-    const chosen = clashTargets(through.hits)[0]!;
-    const once = clashTargets(mergeEntryResult(entry, through, 10, 80).hits);
-    expect(once.map(t => t.cum)).toEqual([2, 60]);
-    const pos = 10 + sampleCum(chosen), sel = { key: chosen.key, pos };
-    expect(targetAfter(once, pos, sel)!.cum).toBe(60);
-    expect(targetBefore(once, pos, sel)!.entry).toBe(true);
-  });
-  it("a contact the base starts in that the entry move began is no start contact (`atStart` dropped)", () => {
-    const entry = res({ hits: [{ line: 0, cum: 1, cumEnd: 2, a: "tool", b: "column", dist: 0, rapid: true }] });
-    const base = res({ hits: [{ line: 7, cum: 0, cumEnd: 3, a: "tool", b: "column", dist: 0, rapid: false, atStart: true }] });
-    const m = mergeEntryResult(entry, base, 2, 90);
-    const b = m.hits.find(h => h.line === 7)!;
-    expect([b.continuation, b.atStart]).toEqual([0, undefined]);
-    // a base start contact the entry move did not reach keeps it
-    const alone = mergeEntryResult(res({}), base, 2, 90);
-    expect(alone.hits[0]!.atStart).toBe(true);
+    expect(m.notes).toEqual(["entry note", "base note"]);
+    expect(m.uncertified).toBe("entry note; base note");
+    expect("hits" in m, "no records").toBe(false);
   });
   it("keeps the model's body classes (one model for both sweeps)", () => {
     const bodies = { unusable: ["broken"], damaged: [], open: ["frame"] };
     expect(mergeEntryResult(res({}), res({ bodies }), 10, 90).bodies).toEqual(bodies);
     expect(mergeEntryResult(res({ bodies }), res({}), 10, 90).bodies).toEqual(bodies);
-  });
-  it("keeps what either sweep's cap left out (`capped`), applying no cap of its own", () => {
-    expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).capped).toBe(7);
-    expect(mergeEntryResult(res({ capped: 2, cappedOnsets: 1 }), res({ capped: 5, cappedOnsets: 3 }), 10, 90).cappedOnsets).toBe(4);
-    expect(mergeEntryResult(res({ capped: 2 }), res({ capped: 5 }), 10, 90).cappedOnsets).toBeUndefined();
-    expect(mergeEntryResult(res({}), res({ capped: 5 }), 10, 90).capped).toBe(5);
-    expect(mergeEntryResult(res({}), res({}), 10, 90).capped).toBeUndefined();
   });
   it("unions static contacts by pair (two baselines: live pose and first point) and carries the base's partial state", () => {
     const entry = res({ staticContacts: [{ a: "tool", b: "vise", dist: 0.5 }] });
@@ -143,5 +64,15 @@ describe("mergeEntryResult", () => {
     expect(mergedSweptFraction(1, false, 10, 90, 100)).toBe(1);
     expect(mergedSweptFraction(2, true, 10, 90, 100)).toBe(1);
     expect(mergedSweptFraction(0.5, false, 10, 90, 0)).toBe(0);
+  });
+  it("a run check's bound beginning onto the base: a side cut short leaves no checked prefix; the base's range and boundary contacts stay", () => {
+    const base = res({ truncated: null, range: { fromCum: 4, fromLine: 7 }, boundaryContacts: [{ a: "t", b: "w", line: 7, cum: 4, dist: 0, cutting: false }],
+                       startDependent: { fromLine: 1, toLine: 3, whole: false } });
+    const m = mergeBeginningOntoBase(res({ truncated: { covered: 0.4, reason: "stopped" } }), base, 5, 95);
+    expect(m.truncated).toEqual({ covered: 0, reason: "stopped" });
+    expect(m.range).toEqual({ fromCum: 4, fromLine: 7 });
+    expect(m.boundaryContacts).toHaveLength(1);
+    expect(m.startDependent, "answered by the side sweep").toBeUndefined();
+    expect(mergeBeginningOntoBase(res({}), base, 5, 95).truncated, "a whole side: the base's").toBeNull();
   });
 });

@@ -13,7 +13,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import { MAX_HITS, sweepCollisions, type CollisionHit, type CollisionOptions, type CollisionResult } from "./collision";
+import { sweepCollisions, type CollisionOptions, type CollisionResult } from "./collision";
 import { ContactStore } from "./contactStore";
 import { CONTACT, MARGIN, inSpans, insideTrack, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases, tablesByPair, trackTruth, type FixtureFiles, type PairTables } from "./collisionFixtures";
 import { assignPairs, mergeShardResults } from "./sweepShards";
@@ -41,72 +41,43 @@ describe("assignPairs", () => {
   });
 });
 
-describe("mergeShardResults", () => {
-  const hit = (line: number, cum: number, cont?: number): CollisionHit =>
-    ({ line, cum, cumEnd: cum, a: "a", b: `b${line}`, dist: 0, rapid: false, ...(cont !== undefined ? { continuation: cont } : {}) });
-  const result = (hits: CollisionHit[], extra: Partial<CollisionResult> = {}): CollisionResult => ({
-    hits, staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 9,
+describe("mergeShardResults — the shards' metadata (what they found is their contact tables', C2)", () => {
+  const result = (extra: Partial<CollisionResult> = {}): CollisionResult => ({
+    staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 9,
     pairsPrescreened: 2, bvhMs: 5, sweepMs: 100, truncated: null, ...extra });
-  it("concatenates, sums and orders by position", () => {
+  it("concatenates and sums", () => {
     const m = mergeShardResults([
-      result([hit(3, 30), hit(1, 10)], { staticContacts: [{ a: "x", b: "y", dist: 0 }], samples: 7, sweepMs: 80 }),
-      result([hit(2, 20)], { samples: 5, pairsPrescreened: 1, bvhMs: 9, coarsened: true }),
+      result({ staticContacts: [{ a: "x", b: "y", dist: 0 }], samples: 7, sweepMs: 80 }),
+      result({ samples: 5, pairsPrescreened: 1, bvhMs: 9, coarsened: true }),
     ]);
-    expect(m.hits.map(h => h.line)).toEqual([1, 2, 3]);
+    expect("hits" in m, "no records").toBe(false);
     expect(m.staticContacts).toHaveLength(1);
     expect([m.samples, m.pairsPrescreened, m.pairCount, m.bvhMs, m.sweepMs, m.coarsened]).toEqual([12, 3, 9, 9, 100, true]);
   });
   it("keeps the earliest point any shard's contact store stopped writing (Codex R144 VP-I100)", () => {
     const m = mergeShardResults([
-      result([hit(1, 1)], { truncated: { covered: 0.2, reason: "budget" }, incompleteFrom: 4 }),
-      result([hit(2, 2)]),
-      result([], { truncated: { covered: 0.5, reason: "budget" }, incompleteFrom: 9 })]);
+      result({ truncated: { covered: 0.2, reason: "budget" }, incompleteFrom: 4 }),
+      result(),
+      result({ truncated: { covered: 0.5, reason: "budget" }, incompleteFrom: 9 })]);
     expect([m.incompleteFrom, m.truncated]).toEqual([4, { covered: 0.2, reason: "budget" }]);
-    expect(mergeShardResults([result([hit(1, 1)]), result([hit(2, 2)])]).incompleteFrom, "no store stopped").toBeUndefined();
+    expect(mergeShardResults([result(), result()]).incompleteFrom, "no store stopped").toBeUndefined();
   });
   it("keeps the model's body classes — one model for every shard", () => {
     const bodies = { unusable: [], damaged: ["chipped"], open: ["frame"] };
-    expect(mergeShardResults([result([hit(1, 1)], { bodies }), result([hit(2, 2)], { bodies })]).bodies).toEqual(bodies);
+    expect(mergeShardResults([result({ bodies }), result({ bodies })]).bodies).toEqual(bodies);
   });
-  it("caps the single sweep's way: onsets before continuations", () => {
-    const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
-    const conts = Array.from({ length: 50 }, (_, i) => hit(i, i, 1));   // earlier, but continuations
-    const m = mergeShardResults([result(onsets.slice(0, 100)), result([...onsets.slice(100), ...conts])]);
-    expect(m.hits).toHaveLength(MAX_HITS);
-    expect(m.hits.filter(h => h.continuation === undefined)).toHaveLength(MAX_HITS - 10);
-    expect(m.hits.map(h => h.cum)).toEqual([...m.hits.map(h => h.cum)].sort((x, y) => x - y));
-  });
-  it("says what the caps left out: every shard's own and what the merge cuts again (`capped`)", () => {
-    const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
-    const conts = Array.from({ length: 50 }, (_, i) => hit(i, i, 1));
-    const m = mergeShardResults([result(onsets.slice(0, 100), { capped: 7 }), result([...onsets.slice(100), ...conts], { capped: 3 })]);
-    expect(m.capped).toBe(7 + 3 + (MAX_HITS - 10 + 50 - MAX_HITS));
-    expect(mergeShardResults([result([hit(1, 1)]), result([hit(2, 2)])]).capped, "nothing cut").toBeUndefined();
-    expect(m.cappedOnsets, "every onset listed").toBeUndefined();
-  });
-  it("counts the contact beginnings the caps left out apart (`cappedOnsets`): every shard's own and the merge's", () => {
-    const onsets = Array.from({ length: MAX_HITS + 6 }, (_, i) => hit(1000 + i, 1000 + i));
-    const m = mergeShardResults([result(onsets.slice(0, 100), { capped: 4, cappedOnsets: 2 }), result(onsets.slice(100))]);
-    expect(m.hits.filter(h => h.continuation === undefined)).toHaveLength(MAX_HITS);
-    expect(m.cappedOnsets).toBe(2 + 6);
-    expect(m.capped).toBe(4 + 6);
-  });
-  it("carries a range sweep's start and every shard's boundary contacts; a boundary record is no onset for the cap", () => {
+  it("carries a range sweep's start and every shard's boundary contacts", () => {
     const range = { fromCum: 40, fromLine: 7 };
     const bc = (b: string) => ({ a: "a", b, line: 7, cum: 40, dist: 0, cutting: false });
-    const m = mergeShardResults([result([], { range, boundaryContacts: [bc("x")] }),
-      result([], { range, boundaryContacts: [bc("y"), bc("z")] })]);
+    const m = mergeShardResults([result({ range, boundaryContacts: [bc("x")] }),
+      result({ range, boundaryContacts: [bc("y"), bc("z")] })]);
     expect(m.range).toEqual(range);
     expect(m.boundaryContacts?.map(b => b.b)).toEqual(["x", "y", "z"]);
-    expect(mergeShardResults([result([]), result([])]).boundaryContacts, "absent on a full sweep").toBeUndefined();
-    const onsets = Array.from({ length: MAX_HITS - 10 }, (_, i) => hit(1000 + i, 1000 + i));
-    const prov = Array.from({ length: 50 }, (_, i) => ({ ...hit(i, i), boundary: true as const }));
-    const capped = mergeShardResults([result(onsets.slice(0, 100)), result([...onsets.slice(100), ...prov])]);
-    expect(capped.hits.filter(h => !h.boundary)).toHaveLength(MAX_HITS - 10);
+    expect(mergeShardResults([result(), result()]).boundaryContacts, "absent on a full sweep").toBeUndefined();
   });
   it("is only as covered as its least covered shard", () => {
-    const m = mergeShardResults([result([], { truncated: { covered: 0.8, reason: "time" } }), result([]),
-      result([], { truncated: { covered: 0.3, reason: "stopped" } })]);
+    const m = mergeShardResults([result({ truncated: { covered: 0.8, reason: "time" } }), result(),
+      result({ truncated: { covered: 0.3, reason: "stopped" } })]);
     expect(m.truncated).toEqual({ covered: 0.3, reason: "stopped" });
   });
 });
@@ -121,16 +92,11 @@ describe("the merged shards against the single sweep", () => {
       const tracks = [randomTrack(c, rng(c.seed ?? 20261007 + c.name.length), 3, 0.25)];
       if (c.inside) tracks.push(insideTrack(c, c.inside, rng(5)));
       for (const [ti, track] of tracks.entries()) {
-      // every run writes its contact tables beside its records
+      // every run writes its contact tables
       type Run = { r: CollisionResult; st: ContactStore };
       const sweep = (o: CollisionOptions): Run => { const st = new ContactStore(1, 0); return { r: sweepCollisions(model, track, WCS0, { ...o, contacts: { store: st } }), st }; };
       const singleRun = sweep({ margin: MARGIN });
-      const single = singleRun.r;
-      expect(single.hits.length, "under the cap — the comparison is complete").toBeLessThan(MAX_HITS);
       const truth = trackTruth(model, c, track);
-      const pairIndex = new Map(model.pairs.map(([a, b], i) => [[model.bodies[a]!.id, model.bodies[b]!.id].sort().join("/"), i]));
-      const key = (h: CollisionHit) => `${h.boundary ? "B" : ""}${h.line}|${[h.a, h.b].sort().join("/")}`;
-      const byKey = (r: CollisionResult) => new Map(r.hits.map(h => [key(h), h]));
       const rand = rng(7);
       const byMask = (masks: Uint8Array[]) => () => masks.map(m => sweep({ margin: MARGIN, pairMask: m }));
       const splits: Array<[string, () => Run[]]> = [
@@ -162,25 +128,6 @@ describe("the merged shards against the single sweep", () => {
         expect([merged.pairCount, merged.pairsPrescreened], `${where}: pairs and prescreen`).toEqual([single.pairCount, single.pairsPrescreened]);
         const sc = (r: CollisionResult) => r.staticContacts.map(s => `${[s.a, s.b].sort().join("/")} ${s.dist.toFixed(6)}`).sort();
         expect(sc(merged), `${where}: static contacts`).toEqual(sc(single));
-        const A = byKey(single), B = byKey(merged);
-        // A record only one run has, or a touch only one run calls a touch:
-        // the truth must show a run no wider than MIN_ADV there.
-        const narrow = (h: CollisionHit, touch: boolean) => !truth.runWide(pairIndex.get([h.a, h.b].sort().join("/"))!, h.cum, touch ? CONTACT * 10 : MARGIN, touch);
-        for (const [k, h] of A) if (!B.has(k)) expect(narrow(h, h.dist <= CONTACT), `${where}: ${k} only in the single sweep`).toBe(true);
-        for (const [k, h] of B) if (!A.has(k)) expect(narrow(h, h.dist <= CONTACT), `${where}: ${k} only in the merged shards`).toBe(true);
-        for (const [k, a] of A) {
-          const b = B.get(k);
-          if (!b) continue;
-          expect(b.continuation, `${where}: ${k} onset or continuation`).toBe(a.continuation);
-          if ((a.dist <= CONTACT) !== (b.dist <= CONTACT)) {
-            const t = a.dist <= CONTACT ? a : b;
-            expect(narrow(t, true), `${where}: ${k} a touch in one run only`).toBe(true);
-            continue;
-          }
-          const inside = (x: number, ivs?: Array<[number, number]>) => (ivs ?? []).some(([p, q]) => x >= p - TOL && x <= q + TOL);
-          for (const [s] of a.intervals ?? []) expect(inside(s, b.intervals), `${where}: ${k} contact from ${s} in the merged shards`).toBe(true);
-          for (const [s] of b.intervals ?? []) expect(inside(s, a.intervals), `${where}: ${k} contact from ${s} in the single sweep`).toBe(true);
-        }
         // The contact tables: the shards' are the union of their pairs' (disjoint), each pair's
         // touch intervals agree with the single sweep's — witness, entry and a decided exit inside
         // the other run's intervals of the pair, else the truth shows a touch run no wider than MIN_ADV.
@@ -213,8 +160,7 @@ describe("the merged shards against the single sweep", () => {
           }
         }
         expect(compared, `${where}: touch intervals compared`).toBeGreaterThan(0);
-        // ...and the stays in the margin (the records' near misses, per line):
-        // every closest approach of one run lies on a line the other run's
+        // ...and the stays in the margin: every closest approach of one run lies on a line the other run's
         // stays of the pair reach, else the truth shows a margin run on that
         // line no wider than MIN_ADV
         const end = track.cum[track.count - 1]!;

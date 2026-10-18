@@ -11,7 +11,7 @@ import { boundaryStretchesSteps,
 } from "./contactView";
 import { STEP_OPS, runToEnd, type Steps } from "./steps";
 import { clashIndexOfView, clashTicksSteps } from "./simWindow";
-import { findingWords } from "./sweepWords";
+import { wordsOfCounts } from "./sweepWords";
 
 interface Ep { pair: number; flags?: number; onset?: number; end?: number; close?: [number, number]; ivs?: Array<[number, number, number?]> }
 /** A store with the given episodes (each with its intervals [enter, exit, flags]; NaN = open). */
@@ -52,9 +52,9 @@ describe("the target index (plan 4.1)", () => {
     expect(poss(v)).toEqual([0, 3.5, 4, 5, 7]);
     expect(kinds(v)).toEqual([T_AT_START | T_RAPID, T_NEAR, T_NEAR | T_POSSIBLE, T_REENTRY | T_RAPID, T_POSSIBLE]);
     expect(viewCounts(v)).toEqual({ collisions: 2, entryCollisions: 0, nearMisses: 1, possible: 2, startsIn: true });
-    // the same kinds the words count from objects
+    // the words of those counts
     const objs = Array.from({ length: v.n }, (_, i) => targetAt(v, i, lineAt));
-    expect(findingWords(objs).text).toBe("2 collisions · 2 possible contacts · 1 near miss");
+    expect(wordsOfCounts(viewCounts(v)).text).toBe("2 collisions · 2 possible contacts · 1 near miss");
     expect(objs[1]).toMatchObject({ a: "t2", b: "w2", line: 4, cum: 3.5, cumEnd: 3.5 });
     expect(objs[1]!.dist).toBeCloseTo(1.2, 6);
   });

@@ -119,6 +119,30 @@ describe("the publisher: two copies, one published, never written (plan 3.6)", (
     expect([t.pub!.stores[0]!.intervals.rows, t.work!.stores[0]!.intervals.rows], "both copies hold it").toEqual([1, 1]);
   });
 
+  it("two deltas of one request out at once — the first interval beside a near miss's (C2, Codex R167): taken in order, each acknowledged", () => {
+    const h = harness(), st = new ContactStore(1, 0);
+    h.p.viewOf(h.track);
+    st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 5, end: NaN, closeAt: 5, closeDist: 1, firstIv: NONE, ivCount: 0 });
+    const d1 = st.takeDelta()!;                       // a near miss: its acknowledgement not back
+    st.episodes.set(0, "end", 6);
+    const ep = st.episodes.append({ pair: 1, ordinal: 1, flags: 0, onset: 10, end: 11, closeAt: 10, closeDist: 0, firstIv: NONE, ivCount: 1 });
+    st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: 10, exit: 11, flags: D, next: NONE, witness: 10.5, freeAt: 11.5, freeR: 0.1 }));
+    const d2 = st.takeDelta()!;                       // the first interval, beside it
+    expect(d2, "out beside the first").not.toBeNull();
+    h.p.receive({ id: 1, contacts: [d1], contactPairs: [["t", "w"], ["t", "x"]] });
+    h.p.kick();
+    h.run(() => h.p.phase === 2);                     // the near miss's pass builds
+    h.p.receive({ id: 1, contacts: [d2] });           // the touch arrives meanwhile
+    h.p.kick();
+    h.run();
+    expect(h.acks, "each acknowledged, in order").toEqual([{ contactsAck: 1, generation: 0 }, { contactsAck: 1, generation: 0 }]);
+    expect(posOf(h.views()), "the touch published").toContain(10);
+    const t = h.p.tablesOf(1)!;
+    for (const c of [t.pub!, t.work!]) {
+      expect([c.stores[0]!.episodes.rows, c.stores[0]!.intervals.rows, c.stores[0]!.episodes.get(0, "end")], "both copies equal the sender").toEqual([2, 1, 6]);
+    }
+  });
+
   it("the published copy is never written; a view held across the next publication and its catch-up throws", () => {
     const h = harness(), s = new Sender(1, 0);
     h.p.viewOf(h.track);

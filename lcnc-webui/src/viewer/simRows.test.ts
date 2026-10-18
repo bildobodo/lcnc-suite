@@ -43,9 +43,9 @@ describe("simRows", () => {
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
   });
 
-  it("a margin entry whose contact touches on a later line is no near miss (`touches`)", () => {
+  it("a stay with a touch interval is no near miss whatever its margin entry's distance (the sweep's class, `near`)", () => {
     const [r] = buildSimRows({
-      clash: [clash({ cum: 3, line: 6, dist: 2, touches: true, spanEndLine: 9, key: "C6|t|w|0" })],
+      clash: [clash({ cum: 3, line: 6, dist: 2, near: false, spanEndLine: 9, key: "C6|t|w|0" })],
       limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
     });
     expect(r!.note).toBe("through L9");

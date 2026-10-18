@@ -54,7 +54,7 @@ function sweep(name: string, obstacleZ = 500) {
   return { result, track };
 }
 const lines = (t: { lines: Uint32Array; count: number }) => Array.from(t.lines.subarray(0, t.count));
-/** The contact tables (step 4 package 2) of a sweep, beside its records: its
+/** The contact tables (step 4 package 2) of a sweep — what it found: its
  *  stays, the lines its touch intervals begin on (the move beginning there),
  *  its pairs, and whether a touch fell on a rapid (IV_RAPID, or an episode's
  *  first entered on one — the view's reading). */
@@ -74,7 +74,7 @@ function tablesOf(model: CollisionModel, track: { cum: Float32Array; lines: Uint
   }
   return { rows: E.rows, touchLines, pairs: [...pairs].sort(), rapid };
 }
-/** sweepCollisions writing the tables too: the result with `tables`. */
+/** sweepCollisions writing the tables: the result (its metadata) with `tables`. */
 function sweepBoth(model: CollisionModel, track: Parameters<typeof sweepCollisions>[1] & { cum: Float32Array; lines: Uint32Array; count: number },
                    wcs: Parameters<typeof sweepCollisions>[2], opts: Parameters<typeof sweepCollisions>[3]) {
   const st = new ContactStore(1, 0);
@@ -91,16 +91,14 @@ describe("the move after a G43 (a relabel, then the real move)", () => {
     expect(track.cum[2]).toBe(track.cum[1]);                       // the relabel takes no time
     expect(track.cum[3]! - track.cum[2]!).toBeCloseTo(1.5, 5);     // 15 mm at 10 mm/s
     expect(result.uncertified).toBeNull();
-    expect(result.hits.some(h => h.line === 5)).toBe(true);
     expect(result.tables.touchLines, "the tables").toContain(5);
     // and with the obstacle out of the way, nothing
-    expect(sweep("g43_mid").result.hits).toHaveLength(0);
+    expect(sweep("g43_mid").result.tables.rows).toBe(0);
   });
   it("a feed in the G43's block starts at the relabel too", () => {
     // `G43 G1 Z5` (the spindle tool, Z10): joint Z 40 → 15, the obstacle at Z30.
     const { result } = sweep("g43_g1_block", 30);
     expect(result.uncertified).toBeNull();
-    expect(result.hits.some(h => h.line === 4)).toBe(true);
     expect(result.tables.touchLines, "the tables").toContain(4);
   });
 });
@@ -176,7 +174,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
         expect(result.uncertified, name).toMatch(/^5 moves run .*\(L4, L6\)$/);
         expect(track.ustart![last], name).toBe(1);
         expect(track.cum[last], name).toBe(0);
-        expect(result.hits, name).toHaveLength(0);
         expect(result.tables.rows, name).toBe(0);
       }
     });
@@ -184,7 +181,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       const { result, track, last } = sweepXYZ("r94_g76_returns_x", [10, 3, -10]);
       expect(result.uncertified).toMatch(/^23 moves run .*\(L5, L6, L7\)$/);
       expect(track.ustart![last]).toBe(1);
-      expect(result.hits).toHaveLength(0);
       expect(result.tables.rows, "the tables").toBe(0);
     });
     it("an offset set from the unknown position keeps every later move unknown, and the note says why (Codex R95)", () => {
@@ -195,21 +191,18 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       const END = /not checked to the program's end: the offset set from that position at L4 stays unknown whatever is positioned after/;
       let r = sweepXYZ("r95_g92_from_stale", [15, 5, 45]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.result.uncertified).toMatch(END);
       // G10 L20 P2 hidden by a G90 (no canon call sees it): it takes effect
       // at G55 — L9 (X20→X30 at Z25, G55's guessed Z30) stays unknown.
       r = sweepXYZ("r95_l20_inactive_hidden", [25, 5, 55]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.result.uncertified).toMatch(END);
       // An explicit G10 L2 P1 Z30 does not depend on the position: L6 is
       // known, and the box on its real path (Z15 + 30) is a real finding.
       r = sweepXYZ("r95_l2_constant", [15, 5, 45]);
       expect(r.track.ustart![r.last]).toBe(0);
-      expect(r.result.hits.some(h => h.line === 6)).toBe(true);
       expect(r.result.tables.touchLines, "the tables").toContain(6);
       expect(r.result.uncertified).toMatch(/not checked until the position is known again/);
       // A main file with an o-word loop: the text's order is lost — the G92
@@ -221,7 +214,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // the sub file's — the note names none rather than a wrong one.
       r = sweepXYZ("r95_sub_g92", [15, 5, 45]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.result.uncertified).toMatch(/not checked to the program's end: an offset set from that position stays unknown whatever is positioned after \(L5, L6\); in subroutines/);
     });
@@ -229,7 +221,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // G92.0 is G92: L6 stays unknown, no false hit at Z45, L4 named.
       let r = sweepXYZ("r96_g92_decimal", [15, 5, 45]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
       // `o100 if [0]` around a G92: it never runs — L8 is known and timed
@@ -243,7 +234,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // G10 L+20 P1 Z10: L6 stays unknown, no false hit at Z45, L4 named.
       let r = sweepXYZ("r97_l_plus_active", [15, 5, 45]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
       // `o100 if [1]` around G92 Z40 at the believed Z40: the old offset again
@@ -251,7 +241,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // the preview's Z15 path is not hit), L5 named.
       r = sweepXYZ("r97_branch_same_g92", [15, 5, 15]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.result.uncertified).toMatch(/the offset set from that position at L5 stays unknown/);
     });
@@ -263,7 +252,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       for (const name of ["r98_foreign_plain", "r98_foreign_spaced"]) {
         const r = sweepXYZ(name, [15, 5, 15]);
         expect(r.track.ustart![r.last], name).toBe(1);
-        expect(r.result.hits, name).toHaveLength(0);
         expect(r.result.tables.rows, name).toBe(0);
         expect(r.result.uncertified, name).toMatch(/not checked to the program's end: an offset set from that position stays unknown whatever is positioned after \(L6, L7\); in subroutines/);
         expect(r.result.uncertified, name).not.toMatch(/at L2\b/);
@@ -277,13 +265,11 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // the move after it (Codex's box at L7) stay unknown, L4 named.
       let r = sweepXYZ("r107_inactive_negative", [25, 5, 55]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.track.cum[r.last]).toBe(r.track.cum[0]);
       expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
       r = sweepXYZ("r107_store_negative", [10, 0, 40]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.result.uncertified).toMatch(/the offset set from that position at L4 stays unknown/);
     });
@@ -298,7 +284,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
                                   ["r109_py_explicit_and_remap", /^Position read not predicted at L4 \(the program reads a position the preview does not know\) — /]] as const) {
         const r = sweepXYZ(name, [15, 5, 45]);
         expect(r.track.ustart![r.last], name).toBe(1);
-        expect(r.result.hits, name).toHaveLength(0);
         expect(r.result.tables.rows, name).toBe(0);
         expect(r.track.cum[r.last], name).toBe(r.track.cum[0]);
         expect(r.result.uncertified, name).toMatch(note);
@@ -312,7 +297,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       // opaque body may make while X, Y, Z depend on the start (plan E4)
       const r = sweepXYZ("r110_first_tc_g92_percent", [15, 5, 5]);
       expect(r.track.ustart![r.last]).toBe(1);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       expect(r.track.cum[r.last]).toBe(r.track.cum[0]);
       expect(r.result.uncertified).toMatch(/^Position read not predicted at L2 /);
@@ -333,7 +317,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       for (const [name, box] of [["r99_o_plus", [15, 5, 15]], ["r99_plus_skip", [100, 100, 100]]] as const) {
         const r = sweepXYZ(name, [...box]);
         expect(r.track.ustart![r.last], name).toBe(1);
-        expect(r.result.hits, name).toHaveLength(0);
         expect(r.result.tables.rows, name).toBe(0);
         expect(r.result.uncertified, name).toMatch(/^Position read not predicted \(the program reads a position the preview does not know\) — /);
       }
@@ -343,7 +326,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       expect(r.result.uncertified).toMatch(/^3 moves run .*\(L4, L6, L7\)$/);
       expect(r.track.ustart![r.last]).toBe(1);
       expect(r.track.cum[r.last]).toBe(0);
-      expect(r.result.hits).toHaveLength(0);
       expect(r.result.tables.rows, "the tables").toBe(0);
       // the full target: L7 known, timed and swept in the rotated frame —
       // an obstacle on its real path R45·(15, 5) is found
@@ -351,7 +333,6 @@ describe("a move after an M6 the controller moves at (TOOL_CHANGE_POSITION)", ()
       expect(r.result.uncertified).toMatch(/^2 moves run .*\(L4, L6\)$/);
       expect(r.track.ustart![r.last]).toBe(0);
       expect(r.track.cum[r.last]! - r.track.cum[r.last - 1]!).toBeCloseTo(1, 5);
-      expect(r.result.hits.some(h => h.line === 7)).toBe(true);
       expect(r.result.tables.touchLines, "the tables").toContain(7);
     });
   });
@@ -447,7 +428,6 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
       unknownTools: unknownProgramTools(d.tloEvents, [[1, 0, 0, 10, 6], [2, 0, 0, t2Length, 6]]) });
     return { raw, result, track, last: track.count - 1 };
   }
-  const pairs = (r: { hits: { a: string; b: string }[] }) => [...new Set(r.hits.map(h => [h.a, h.b].sort().join("×")))].sort();
 
   it("a predicted measurement is swept along the probe's path, with the new tool", () => {
     // the box at the trip point's height under the setter: the cutter meets
@@ -456,8 +436,6 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
     // the braking range below the trip point is modeled (parity-ef plan F3)
     expect(result.uncertified).toMatch(/^The probe's braking range is modeled/);
     expect(track.unpredicted).toBeUndefined();
-    expect(pairs(result)).toEqual(["cutter×fixed"]);
-    expect(result.hits.every(h => !h.rapid)).toBe(true);
     expect(result.tables.pairs, "the tables").toEqual(["cutter×fixed"]);
     expect(result.tables.rapid, "the tables: on the probe's feeds").toBe(false);
     // the probe moves take their feeds' time: 5 mm at 2000 mm/min
@@ -470,7 +448,6 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
     // the box 15 mm under machine Z0 at the setter: on the way down to the
     // probe start (−30) both bodies pass it — only the spindle is checked
     const { result, track, last } = sweepM600("m600_length_unknown", [10, 10, -15], 0);
-    expect(pairs(result)).toEqual(["fixed×spindle"]);
     expect(result.tables.pairs, "the tables").toEqual(["fixed×spindle"]);
     const notes = result.notes ?? [];
     expect(notes).toContain("Tool measurement not predicted (T2 has no length in the table) — 1 move after it not checked to the program's end (L4)");
@@ -481,7 +458,7 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
     expect(track.cum[last]).toBe(track.cum[last - 1]);
     expect(Array.from(track.unpredicted!.subarray(0, last))).toEqual(new Array(last).fill(0));
     // with T2's length known the same descent finds the cutter too
-    expect(pairs(sweepM600("m600_length_unknown", [10, 10, -15], 80).result)).toEqual(["cutter×fixed", "fixed×spindle"]);
+    expect(sweepM600("m600_length_unknown", [10, 10, -15], 80).result.tables.pairs).toEqual(["cutter×fixed", "fixed×spindle"]);
   });
 
   it("unknown toolsetter values: the routine is not run in the preview, nothing from its start is checked", () => {
@@ -489,7 +466,6 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
     // once (tool_touch_off.ngc -0-) — no tool change, no move of its own —
     // and the program goes on from an unknown position
     const { raw, result, track } = sweepM600("m600_basis_unknown", [10, 10, -15], 80);
-    expect(result.hits).toHaveLength(0);
     expect(result.tables.rows, "the tables").toBe(0);
     expect(raw.tool_change_lines).toEqual([]);
     expect(result.notes).toContain(
@@ -520,7 +496,6 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
     // swept as the page does without an entry: Codex's box on the entry's
     // line is no finding, and the program takes no time
     const { result } = sweepM600("m600_unknown_first", [30, 30, -50], 80);
-    expect(result.hits).toHaveLength(0);
     expect(result.tables.rows, "the tables").toBe(0);
     expect(track.cum[track.count - 1]).toBe(track.cum[0]);
     // positive control: a first point before the routine gets its entry move
@@ -566,7 +541,6 @@ describe("M600 in the preview (docs/reviews/m600-preview.plan.md, Codex R102–R
   // swept: 10 s and a collision at L2 against a box at (50, 50, −50).
   it("a foreign M600 inside another remap: its first move is already unknown", () => {
     const { raw, result, track, last } = sweepM600("foreign_remap_nested", [50, 50, -50], 80);
-    expect(result.hits).toHaveLength(0);
     expect(result.tables.rows, "the tables").toBe(0);
     expect(track.cum[last]).toBe(track.cum[0]);
     const zs = Array.from({ length: track.count }, (_, i) => track.pos[i * 3 + 2]!);

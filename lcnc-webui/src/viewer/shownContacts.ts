@@ -8,7 +8,7 @@
 // apart from the receiver it reads.
 import type { UnionScratch } from "./contactUnion";
 import { entryJoins } from "./contactMerge";
-import { buildContactViewSteps, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin, type ViewCounts } from "./contactView";
+import { buildContactViewSteps, lineRuns, runsOf, trackLineAt, type ContactSource, type ContactView, type LineAt, type SourceJoin, type UndecidableStretches, type ViewCounts } from "./contactView";
 import { runToEnd, type Steps } from "./steps";
 import type { GenerationTables } from "./contactPublisher";
 import type { ContactStore } from "./contactStore";
@@ -76,7 +76,9 @@ export interface ShownContacts {
   derived?: { counts: ViewCounts; starts: number[]; ticks: Array<{ pct: number; near: boolean }>; bands: Array<[number, number]>;
               cols: number; axisEnd: number;
               /** The boundary contacts' stretches (boundaryStretches). */
-              boundaries?: Array<{ a: string; b: string; s: number; e: number }> };
+              boundaries?: Array<{ a: string; b: string; s: number; e: number }>;
+              /** The track's undecidable inside answers by pair (undecidableStretches, C2). */
+              undecidable?: UndecidableStretches[] };
 }
 
 export interface ShownSpec { base: ShownSource | null; side: ShownSource | null; axisEnd: number }

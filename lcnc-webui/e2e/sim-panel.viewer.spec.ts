@@ -265,6 +265,10 @@ test("the spacers' row height is measured where the rows are seen — never in a
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".simPanel")).toBeHidden();
   await hits(page, 1000);
+  // the NEW list, whole, while hidden — `complete` alone is the list before it
+  // (whole too): under load the new one arrived after the tab showed, filled
+  // where it was seen, and the pitch was measured before the case below
+  await expect(rows(page)).toHaveCount(400);
   await complete(page);
   await simShow(page, "clash");
   // the first measurement where the rows are seen: a new result that keeps
@@ -291,6 +295,9 @@ test("the spacers' row height is measured where the rows are seen — never in a
   await shown.evaluate(tr => { const sc = tr.closest(".simTable")!; sc.scrollTop += 3 * tr.getBoundingClientRect().height; });
   await settled();
   expect(middle - last, "three rows off the middle").toBeGreaterThan(60);
+  // the case: no pitch measured yet — this is the first list measured where seen
+  expect(await page.locator(".simPanel .simTable").evaluate(sc => (sc as HTMLElement).style.getPropertyValue("--sim-row-h")),
+    "no row pitch measured before the new list").toBe("0px");
   await watchFill(page, null, key);
   await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
     Array.from({ length: n }, (_, k) => ({ line: k < 300 ? 5 : 30, frac: 0.01 + (0.98 * k) / n, ordinal: k === 200 ? 200 : 5000 + k }))) ?? false, 1000)).toBe(true);

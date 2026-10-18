@@ -6,12 +6,13 @@
 // also through the parallel sweep's merge.
 import * as THREE from "three";
 import { describe, expect, it, vi } from "vitest";
-import { buildCollisionModel, sweepCollisions, type CollisionBody, type CollisionMachine, type CollisionResult } from "./collision";
+import { buildCollisionModel, sweepCollisions, type CollisionBody, type CollisionMachine, type CollisionModel } from "./collision";
 import { emptyLineIndex } from "./lineIndex";
 import { mergeShardResults } from "./sweepShards";
 import type { ScrubTrack } from "../ws/bulkData";
-import { ContactStore, GAP_UNDECIDABLE, IV_EXIT_DECIDED } from "./contactStore";
-import { buildContactView, lineMark, tintAt } from "./contactView";
+import { ContactStore, GAP_UNDECIDABLE, IV_ENTER_DECIDED, IV_EXIT_DECIDED } from "./contactStore";
+import { buildContactView, lineMark, tintAt, trackLineAt, undecidableNote, undecidableStretchesSteps } from "./contactView";
+import { runToEnd } from "./steps";
 
 // undecidable where `when` says (the point in the container's frame)
 const ctl = vi.hoisted(() => ({ when: null as ((p: { x: number; y: number; z: number }) => boolean) | null }));
@@ -47,9 +48,13 @@ const xs = (points: number[]): ScrubTrack => {
            lines: Uint32Array.from({ length: n }, (_, i) => i + 1), rapid: new Uint8Array(n), cum, count: n,
            lineIndex: emptyLineIndex(), timeBased: false };
 };
-const onsets = (r: CollisionResult) => r.hits.filter(h => h.continuation === undefined).map(h => h.line);
-const iv = (r: CollisionResult, line: number) =>
-  r.hits.find(h => h.line === line)!.intervals!.map(([a, b]) => [Number(a.toFixed(2)), Number(b.toFixed(2))]);
+/** What the bar names of the stores' undecidable stretches — their gaps
+ *  (step 4 package 2, C2), through the view. */
+const named = (stores: ContactStore[], t: ScrubTrack, model: CollisionModel) => {
+  const v = buildContactView({ sources: [{ stores, at: c => c }], coverage: t.cum[t.count - 1]!,
+    pairName: i => ({ a: model.bodies[model.pairs[i]![0]]!.id, b: model.bodies[model.pairs[i]![1]]!.id }) });
+  return runToEnd(undecidableStretchesSteps(v)).map(u => undecidableNote(u, trackLineAt(t)));
+};
 /** The contact tables of a sweep (step 4 package 2), rounded to 0.01. */
 const tables = (st: ContactStore) => ({
   intervals: Array.from({ length: st.intervals.rows }, (_, k) => [Number(st.intervals.get(k, "enter").toFixed(2)), Number(st.intervals.get(k, "exit").toFixed(2))]),
@@ -130,11 +135,11 @@ describe("an undecidable inside check in the sweep", () => {
     }
   });
 
-  it("is no record, no separation, and its stretch is named; the refinement counts it as contact", () => {
+  it("is no contact of its own, no separation, and its stretch is named", () => {
     ctl.when = () => true;
     try {
-      const st = new ContactStore(1, 0);
-      const r = sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([60, 0, 60]), WCS0, { margin: 0.1, contacts: { store: st } });
+      const st = new ContactStore(1, 0), model = buildCollisionModel(machine(), [POST, nub()]), t0 = xs([60, 0, 60]);
+      const r = sweepCollisions(model, t0, WCS0, { margin: 0.1, contacts: { store: st } });
       // in through the face (decided by the surfaces), never separated
       // inside, out through the face: one contact, line 3 its continuation
       // — in the tables one interval through it, the undecidable stretch a gap
@@ -142,11 +147,9 @@ describe("an undecidable inside check in the sweep", () => {
       expect(t.intervals).toEqual([[29.5, 90.5]]);
       expect(t.gaps.length).toBeGreaterThan(0);
       expect(t.gaps.every(g => g.reason === GAP_UNDECIDABLE && g.at[0]! > 29.5 && g.at[1]! < 90.5), "the undecidable stretch inside it").toBe(true);
-      expect(onsets(r)).toEqual([2]);
-      expect(r.hits.find(h => h.line === 3)?.continuation).toBe(2);
-      expect(iv(r, 2)).toEqual([[29.5, 60]]);
-      expect(iv(r, 3)).toEqual([[60, 90.5]]);
-      expect(r.notes).toEqual(["inside check undecidable for nub ↔ post (L2–L3) — a part wholly inside the other is not found there"]);
+      // named from the gaps, beside the result's notes (it has none of its own)
+      expect(r.notes).toEqual([]);
+      expect(named([st], t0, model)).toEqual(["inside check undecidable for nub ↔ post (L2–L3) — a part wholly inside the other is not found there"]);
     } finally { ctl.when = null; }
   });
 
@@ -157,18 +160,20 @@ describe("an undecidable inside check in the sweep", () => {
     // every 5 mm — a certificate would stride the whole move at once.
     ctl.when = () => true;
     try {
-      const st = new ContactStore(1, 0);
-      const r = sweepCollisions(buildCollisionModel(machine(40), [POST, nub()]), xs([-40, -20]), WCS0, { margin: 0.1, contacts: { store: st } });
-      expect(r.hits).toEqual([]);
-      // in the tables no finding, the whole move a gap
+      const st = new ContactStore(1, 0), model = buildCollisionModel(machine(40), [POST, nub()]);
+      const r = sweepCollisions(model, xs([-40, -20]), WCS0, { margin: 0.1, contacts: { store: st } });
+      // in the tables no finding, the whole move a gap — named from it
       expect(tables(st)).toEqual({ intervals: [], gaps: [{ at: [0, 20], reason: GAP_UNDECIDABLE }], episodes: 0 });
       expect(r.staticContacts).toEqual([]);
-      expect(r.notes).toEqual(["inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"]);
+      expect(r.notes).toEqual([]);
+      expect(named([st], xs([-40, -20]), model)).toEqual(["inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"]);
       expect(r.samples).toBeGreaterThanOrEqual(5);
     } finally { ctl.when = null; }
     // decided, the same move is a crash from the first line
-    const d = sweepCollisions(buildCollisionModel(machine(40), [POST, nub()]), xs([-40, -20]), WCS0, { margin: 0.1 });
-    expect(onsets(d)).toEqual([2]);
+    const sd = new ContactStore(1, 0);
+    const d = sweepCollisions(buildCollisionModel(machine(40), [POST, nub()]), xs([-40, -20]), WCS0, { margin: 0.1, contacts: { store: sd } });
+    expect(tables(sd).intervals, "a contact from the first point").toEqual([[0, NaN]]);
+    expect(tables(sd).gaps).toEqual([]);
     expect(d.notes).toEqual([]);
   });
 
@@ -181,7 +186,6 @@ describe("an undecidable inside check in the sweep", () => {
       const st = new ContactStore(1, 0);
       const r = sweepCollisions(buildCollisionModel(machine(), [POST, nub()]), xs([2, 4]), WCS0, { margin: 0.1, contacts: { store: st } });
       expect(r.staticContacts).toEqual([]);
-      expect(onsets(r)).toEqual([2]);
       expect(r.notes).toEqual(["inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"]);
       expect(r.uncertified, "the rest pose's question is the result's caveat").toBe(r.notes![0]);
       // in the tables: the contact from the first point, and NO gap — the rest
@@ -195,43 +199,48 @@ describe("an undecidable inside check in the sweep", () => {
     } finally { ctl.when = null; }
   });
 
-  it("met only by the refinement, it is named too (Codex R101 VP-I58)", () => {
+  it("an undecidable stretch the store never asks is not named: the entry is decided past it (Codex R101 VP-I58, R168)", () => {
     // A 1 mm cube in a closed post with a 40 mm cavity, from the cavity's
     // centre to its wall (contact from cube X 19.5). Undecidable only where
-    // the cube's corner lies between X 18 and 19.5: the refinement walking
-    // back from the touch meets it and grows the interval conservatively —
-    // and the result must say why.
+    // the cube's corner lies between X 18 and 19.5. The records' refinement
+    // walked back from the touch to its line's start, met that stretch and
+    // named it (VP-I58); the store bisects between the last DECIDED free
+    // sample and the witness and never meets it — its entry is decided at
+    // 19.5, no gap, nothing to name (C2, accepted in Codex R168).
     const outer = box(60), inner = box(40);
     for (let i = 0; i < inner.length; i += 9) for (let k = 0; k < 3; k++) {   // the cavity's faces point in
       const v = inner[i + k]!; inner[i + k] = inner[i + 3 + k]!; inner[i + 3 + k] = v;
     }
     const hollow: CollisionBody = { ...POST, positions: new Float32Array([...outer, ...inner]) };
-    const run = () => sweepCollisions(buildCollisionModel(machine(40), [hollow, nub()]), xs([-40, -20]), WCS0, { margin: 0.1 });
+    const model = buildCollisionModel(machine(40), [hollow, nub()]), t = xs([-40, -20]);
+    const run = () => { const st = new ContactStore(1, 0); return { r: sweepCollisions(model, t, WCS0, { margin: 0.1, contacts: { store: st } }), st }; };
     const control = run();
-    expect(control.hits.map(h => +h.cum.toFixed(2))).toEqual([19.5]);
-    expect(control.notes).toEqual([]);
+    expect(tables(control.st).intervals.map(([a]) => a)).toEqual([19.5]);
     ctl.when = p => p.x > 18 && p.x < 19.5;
     try {
-      const r = run();
-      expect(r.hits[0]!.cum).toBeLessThan(19);
-      expect(r.notes).toEqual(["inside check undecidable for nub ↔ post (L2) — a part wholly inside the other is not found there"]);
+      const { r, st } = run();
+      expect(tables(st).intervals.map(([a]) => a), "the same entry").toEqual([19.5]);
+      expect(st.intervals.get(0, "flags") & IV_ENTER_DECIDED, "decided").toBe(IV_ENTER_DECIDED);
+      expect(st.gaps.rows, "no gap").toBe(0);
+      expect([r.notes, named([st], t, model)]).toEqual([[], []]);
     } finally { ctl.when = null; }
   });
 
-  it("is named by the shard that sweeps the pair, and the merge names every one", () => {
-    // Two cubes in the post, two pairs, one per shard: each shard names its
-    // own pair only, the merge both — as the single sweep does.
+  it("is named by the shard that sweeps the pair, and the shards' tables name every one", () => {
+    // Two cubes in the post, two pairs, one per shard: each shard's tables
+    // name its own pair only, both shards' both — as the single sweep's do.
     ctl.when = () => true;
     try {
       const model = buildCollisionModel(machine(40), [POST, nub("a", -10), nub("b", 10)]);
       const t = xs([-40, -20]);
-      const one = sweepCollisions(model, t, WCS0, { margin: 0.1 });
-      const parts = [0, 1].map(index => sweepCollisions(model, t, WCS0, { margin: 0.1, shard: { index, of: 2 } }));
-      expect(parts.map(p => p.notes!.length)).toEqual([1, 1]);
-      const merged = mergeShardResults(parts);
-      expect([...merged.notes!].sort()).toEqual([...one.notes!].sort());
-      expect(merged.uncertified).toBe(merged.notes!.join("; "));
-      expect(one.notes!.map(n => n.slice(0, 40))).toEqual(["inside check undecidable for a ↔ post (L", "inside check undecidable for b ↔ post (L"]);
+      const st1 = new ContactStore(1, 0), sts = [new ContactStore(1, 0), new ContactStore(1, 0)];
+      sweepCollisions(model, t, WCS0, { margin: 0.1, contacts: { store: st1 } });
+      const parts = [0, 1].map(index => sweepCollisions(model, t, WCS0, { margin: 0.1, shard: { index, of: 2 }, contacts: { store: sts[index]! } }));
+      // each shard's tables name its own pair, the shards' together both — as the single sweep's
+      expect(sts.map(st => named([st], t, model).length)).toEqual([1, 1]);
+      expect(named(sts, t, model)).toEqual(named([st1], t, model));
+      expect(named([st1], t, model).map(n => n.slice(0, 40))).toEqual(["inside check undecidable for a ↔ post (L", "inside check undecidable for b ↔ post (L"]);
+      expect(mergeShardResults(parts).notes, "no note of the track's in the results").toEqual([]);
     } finally { ctl.when = null; }
   });
 });

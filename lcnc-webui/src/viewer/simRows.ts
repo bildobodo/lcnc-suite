@@ -93,7 +93,7 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   for (const t of i.clash) {
     const notes: string[] = [];
     if (t.reentry) notes.push("re-entry");
-    // a margin entry whose contact touches later is a collision (`touches`)
+    // a near miss by the sweep's class: a stay inside the margin, never a touch
     if (isNearMiss(t)) notes.push(`near miss, ${fmtDist(t.dist ?? 0, i.unit)} apart`);
     if ((t.spanEndLine ?? t.line) > t.line) notes.push(`through L${t.spanEndLine}`);
     if (t.possible) notes.push("possible — in the probe's braking range");

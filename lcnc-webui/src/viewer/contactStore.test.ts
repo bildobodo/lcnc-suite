@@ -60,6 +60,45 @@ describe("deltas: appended rows, coalesced updates, one unacknowledged (plan 3.1
     expect(d.episodes.updated["end"]![0]).toBe(4999);
   });
 
+  it("the delta with the store's first interval goes beside the one out — once, so at most two (C2, Codex R167)", () => {
+    const s = new ContactStore(5, 0), r = new ContactStore(5, 0);
+    const near = ep(s, 0, 0);
+    const d1 = s.takeDelta()!;                // a near miss: out, its acknowledgement held
+    s.episodes.set(near, "end", 4);
+    ep(s, 1, 10);
+    expect(s.takeDelta(), "no interval: it waits").toBeNull();
+    s.intervals.append({ episode: 1, enter: 12, exit: NaN, next: NONE, witness: 12, freeAt: NaN });
+    const d2 = s.takeDelta();
+    expect(d2, "the first interval goes at once").not.toBeNull();
+    expect([d2!.episodes.count, d2!.episodes.updates.length, d2!.intervals.count], "with everything that waited").toEqual([1, 1, 1]);
+    ep(s, 2, 20);
+    s.intervals.append({ episode: 2, enter: 21, exit: NaN, next: NONE, witness: 21, freeAt: NaN });
+    expect(s.takeDelta(), "two out: nothing more").toBeNull();
+    s.ack();
+    expect(s.takeDelta(), "one still out, the first interval sent: it waits").toBeNull();
+    s.ack();
+    const d3 = s.takeDelta()!;
+    expect([d3.episodes.count, d3.intervals.count]).toEqual([1, 1]);
+    // the receiver applies them in order — the tables equal the sender's
+    for (const d of [d1, d2!, d3]) expect(r.apply(d)).toBe(true);
+    expect([r.episodes.rows, r.intervals.rows, r.episodes.get(near, "end")]).toEqual([3, 2, 4]);
+    // a late or doubled acknowledgement frees nothing that is out
+    s.ack(); s.ack();
+    ep(s, 3, 30);
+    expect(s.takeDelta()).not.toBeNull();
+    ep(s, 4, 40);
+    expect(s.takeDelta(), "one out, never below none").toBeNull();
+  });
+
+  it("an interval written before anything went out goes in the first delta, alone on the path", () => {
+    const s = new ContactStore(6, 0);
+    ep(s, 0, 0);
+    s.intervals.append({ episode: 0, enter: 1, exit: NaN, next: NONE, witness: 1, freeAt: NaN });
+    expect(s.takeDelta()!.intervals.count).toBe(1);
+    ep(s, 1, 5);
+    expect(s.takeDelta(), "its first interval sent: one out").toBeNull();
+  });
+
   it("a receiver built from the deltas equals the sender; another request or generation is refused", () => {
     const s = new ContactStore(9, 2), r = new ContactStore(9, 2);
     for (let k = 0; k < 3; k++) ep(s, k, k);

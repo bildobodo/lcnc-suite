@@ -17,7 +17,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as THREE from "three";
 import { describe, expect, it } from "vitest";
-import { sweepCollisions, type CollisionHit, type CollisionTrack } from "./collision";
+import { sweepCollisions, type CollisionTrack } from "./collision";
 import { CONTACT, MARGIN, inSpans, insideAt, insideTruth, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases, tablesByPair, trackOf, trackTruth,
   type FixtureFiles, type PairTables } from "./collisionFixtures";
 import { ContactStore } from "./contactStore";
@@ -72,15 +72,19 @@ describe("the range sweep against the brute-force oracle", () => {
       }
       // A point inside a contact as a vertex of its own (the segment split
       // there — the same path): a range can start there.
-      const fullOf = new Map<CollisionTrack, ReturnType<typeof sweepCollisions>>();
+      const fullOf = new Map<CollisionTrack, { r: ReturnType<typeof sweepCollisions>; store: ContactStore }>();
       const fullSweep = (t: CollisionTrack) => {
         let f = fullOf.get(t);
-        if (!f) fullOf.set(t, f = sweepCollisions(model, t, WCS0, { margin: MARGIN }));
+        if (!f) {
+          const store = new ContactStore(1, 0);
+          fullOf.set(t, f = { r: sweepCollisions(model, t, WCS0, { margin: MARGIN, contacts: { store } }), store });
+        }
         return f;
       };
       for (const t of tracks.slice()) {
         const f = fullSweep(t.track);
-        const iv = f.hits.flatMap(x => x.intervals ?? []).find(([a, b]) => b - a > 1);
+        const end = t.track.cum[t.track.count - 1]!;
+        const iv = [...tablesByPair(f.store, end).values()].flatMap(x => x.touches).find(([a, b]) => b - a > 1);
         if (iv) {
           const sp = splitAt(t.track, (iv[0] + iv[1]) / 2);
           tracks.push({ track: sp.track, where: `${t.where} split in a contact`, from: [sp.at] });
@@ -88,7 +92,7 @@ describe("the range sweep against the brute-force oracle", () => {
       }
       let boundaries = 0, checked = 0;
       for (const { track, where, from } of tracks) {
-        const full = fullSweep(track);
+        const full = fullSweep(track).r;
         const { poseAt, below, runWide, lineSpan, WIDE } = trackTruth(model, c, track);
         const staticPairs = new Set(full.staticContacts.map(sc => [sc.a, sc.b].sort().join("/")));
         const ids = (pi: number) => [model.bodies[model.pairs[pi]![0]]!.id, model.bodies[model.pairs[pi]![1]]!.id].sort().join("/");
@@ -132,10 +136,6 @@ describe("the range sweep against the brute-force oracle", () => {
           // (e) the program's static exclusions
           expect(r.staticContacts, `${w}: the program's static contacts`).toEqual(full.staticContacts);
           // (d) nothing before h
-          for (const hit of r.hits) {
-            expect(hit.cum, `${w} L${hit.line}: no record before the start`).toBeGreaterThanOrEqual(hCum - TOL);
-            for (const [a] of hit.intervals ?? []) expect(a, `${w} L${hit.line}: no interval before the start`).toBeGreaterThanOrEqual(hCum - TOL);
-          }
           for (const [pi, tab] of tabs) {
             for (const [a] of tab.stays) expect(a, `${w} ${ids(pi)}: no stay of the tables before the start`).toBeGreaterThanOrEqual(hCum - TOL);
             for (const [a] of tab.touches) expect(a, `${w} ${ids(pi)}: no touch interval of the tables before the start`).toBeGreaterThanOrEqual(hCum - TOL);
@@ -167,12 +167,7 @@ describe("the range sweep against the brute-force oracle", () => {
           expect([...gotTables].sort(), `${w}: the tables' boundary episodes are the pairs inside the margin at the start, cutting ones apart`).toEqual(expectedTables.sort());
           boundaries += got.size;
           // (a) every touch and in-margin pose after h reported
-          const byPair = new Map<string, CollisionHit[]>();
-          for (const hit of r.hits) { const k = [hit.a, hit.b].sort().join("/"); byPair.set(k, [...(byPair.get(k) ?? []), hit]); }
           const boundaryPairs = new Set((r.boundaryContacts ?? []).map(b => [b.a, b.b].sort().join("/")));
-          const inInterval = (recs: CollisionHit[], s: number) => recs.some(hit =>
-            (hit.intervals ?? []).some(([a, b]) => s >= a - TOL && s <= b + TOL)
-            || (hit.spanCumEnd !== undefined && s >= hit.cum - TOL && s <= hit.spanCumEnd + TOL));
           const end = track.cum[track.count - 1]!;
           for (let s = hCum + STEP / 2; s < end; s += STEP) {
             const seg = poseAt(s), line = track.lines[seg]!;
@@ -181,50 +176,35 @@ describe("the range sweep against the brute-force oracle", () => {
               if (staticPairs.has(k) || isCutting(pi)) continue;   // cutting: its own tests
               const { d, inside } = cached(pi);
               if (d === null && !inside) continue;
-              const recs = byPair.get(k) ?? [], tab = tabs.get(pi) ?? NO_TABLES;
+              const tab = tabs.get(pi) ?? NO_TABLES;
               const what = `${w} s ${s.toFixed(2)} (L${line}) ${k} true ${inside ? "inside" : d!.toFixed(4)}`;
               let walked = false;
               if (inside || d! <= CONTACT) {
-                const recMiss = !inInterval(recs, s), tabMiss = !inSpans(tab.touches, s, TOL);
-                if (recMiss || tabMiss) {
+                if (!inSpans(tab.touches, s, TOL)) {
                   walked = true;
                   if (runWide(pi, s, CONTACT * 10, true)) {
-                    if (recMiss) expect.fail(`${what}: a touch wider than ${WIDE} after the start outside every interval — ${JSON.stringify(recs.map(x => [x.line, x.boundary ?? false, x.intervals]))}`);
                     expect.fail(`${what}: a touch wider than ${WIDE} after the start outside every touch interval of the tables — ${JSON.stringify(tab.touches)}`);
                   }
                 }
               } else {
                 const [l0, l1] = lineSpan(seg);
-                const recMiss = !recs.some(x => x.line === line) && !inInterval(recs, s);
-                const tabMiss = !meetsSpan(tab.stays, l0, l1) && !inSpans(tab.touches, s, TOL);
-                if (recMiss || tabMiss) {
+                if (!meetsSpan(tab.stays, l0, l1) && !inSpans(tab.touches, s, TOL)) {
                   walked = true;
                   if (runWide(pi, s, MARGIN)) {
-                    if (recMiss) expect.fail(`${what}: inside the margin wider than ${WIDE} after the start with no record on its line${boundaryPairs.has(k) ? " (a boundary pair)" : ""}`);
                     expect.fail(`${what}: inside the margin wider than ${WIDE} after the start with no stay of the tables reaching its line${boundaryPairs.has(k) ? " (a boundary pair)" : ""}`);
                   }
                 }
               }
-              if (walked || !inInterval(recs, s)) { lastRel[pi]!.fill(NaN); poseAt(s); }   // runWide re-posed the model
+              if (walked || !inSpans(tab.touches, s, TOL)) { lastRel[pi]!.fill(NaN); poseAt(s); }   // runWide re-posed the model
             }
           }
-          // (b) every reported interval begins with a real touch (or inside) —
-          // in the tables every witness and every decided entry
+          // (b) every reported interval begins with a real touch (or inside):
+          // every witness and every decided entry of the tables
           for (const [pi, tab] of tabs) {
             for (const x of [...tab.witnesses, ...tab.enters]) {
               poseAt(x + (x <= hCum + 1e-9 ? 1e-9 : 0));
               const d = below(model.bodies[model.pairs[pi]![0]]!, model.bodies[model.pairs[pi]![1]]!, MARGIN);
               expect((d !== null && d <= 1e-3) || insideEither(pi), `${w} ${ids(pi)}: the tables' touch at ${x.toFixed(3)} touches or lies inside (distance ${d})`).toBe(true);
-            }
-          }
-          for (const hit of r.hits) {
-            const pi = model.pairs.findIndex((_, i) => ids(i) === [hit.a, hit.b].sort().join("/"));
-            const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
-            for (const [a] of hit.intervals ?? []) {
-              poseAt(a + (a <= hCum + 1e-9 ? 1e-9 : 0));
-              const d = below(A, B, MARGIN);
-              const real = (d !== null && d <= 1e-3) || insideEither(pi);
-              expect(real, `${w} L${hit.line} ${hit.a}/${hit.b}: touches or lies inside where its interval begins (${a.toFixed(3)}, distance ${d})`).toBe(true);
             }
           }
         }

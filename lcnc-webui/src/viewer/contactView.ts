@@ -56,7 +56,7 @@
 // one per pair and origin by overlap in order: a matched one keeps the
 // earlier key, an earlier one found no more is shown "from the earlier run".
 import {
-  EP_AT_START, EP_ORIGIN_MASK, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_RAPID,
+  EP_AT_START, EP_ORIGIN_MASK, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_GAP, IV_RAPID,
   IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, BLOCK as STORE_BLOCK, BLOCK_SHIFT, type ContactStore,
   type StoreBudget,
 } from "./contactStore";
@@ -1539,7 +1539,7 @@ export function targetAt(v: ContactView, i: number, lineAt: LineAt): ClashTarget
 
 export interface ViewCounts { collisions: number; entryCollisions: number; nearMisses: number; possible: number; startsIn: boolean }
 
-/** What the words count (sweepWords.findingWords' kinds), from the index;
+/** What the words count (sweepWords' kinds), from the index;
  *  a union piece's kind was counted at the build. */
 export function viewCounts(v: ContactView): ViewCounts {
   return runToEnd(viewCountsSteps(v));
@@ -2174,6 +2174,73 @@ export function* boundaryStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): St
     if ((ops.n += out.length) >= STEP_OPS) { ops.n = 0; yield; check(v); }
   }
   return out;
+}
+
+/** A pair's undecidable inside answers on the track (step 4 package 2, C2):
+ *  its GAP_UNDECIDABLE stretches on the shown axis, merged, the first three
+ *  and whether there are more. */
+export interface UndecidableStretches { a: string; b: string; spans: Array<[number, number]>; more: boolean }
+
+/** Every pair's undecidable inside answers the view's tables hold — the
+ *  sweep's samples and the store's bisections alike (the gaps they write) —
+ *  derived with the view, never per render (Codex R167 on decision 3). The
+ *  rest pose's answer is no gap: it stays the result's note (VP167-01).
+ *  After a fallback an earlier run's stretch counts where the current run
+ *  holds none of its pair over it. */
+export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }): Steps<UndecidableStretches[]> {
+  check(v);
+  const cur = new Map<string, { a: string; b: string; spans: Array<[number, number]> }>();
+  const earlier: Array<{ a: string; b: string; s: number; e: number }> = [];
+  const into = (a: string, b: string, s: number, e: number) => {
+    const key = `${a}\u0000${b}`;
+    let u = cur.get(key);
+    if (!u) cur.set(key, u = { a, b, spans: [] });
+    u.spans.push([s, e]);
+  };
+  for (const t of v.tables) {
+    if (!t) continue;
+    const G = t.st.gaps;
+    for (let row = 0; row < G.rows; row++) {
+      if ((ops.n += 2) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+      if (G.get(row, "reason") !== GAP_UNDECIDABLE) continue;
+      const { a, b } = nameOf(v, t, G.get(row, "pair"));
+      const s0 = G.get(row, "start"), e0 = G.get(row, "end");
+      // an open gap reaches as far as its run checked
+      const s = Math.min(t.source.at(s0), t.cov), e = Math.min(Number.isNaN(e0) ? t.cov : t.source.at(e0), t.cov);
+      if (t.held) earlier.push({ a, b, s, e: Math.max(s, e) });
+      else into(a, b, s, Math.max(s, e));
+    }
+  }
+  for (const h of earlier) {
+    const u = cur.get(`${h.a}\u0000${h.b}`);
+    if (!u?.spans.some(([s, e]) => s <= h.e && h.s <= e)) into(h.a, h.b, h.s, h.e);
+    if ((ops.n += 4) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+  }
+  const out: UndecidableStretches[] = [];
+  for (const u of cur.values()) {
+    const sp = u.spans.sort((x, y) => x[0] - y[0]);
+    if ((ops.n += 2 * sp.length) >= STEP_OPS) { ops.n = 0; yield; check(v); }
+    const merged: Array<[number, number]> = [];
+    for (const [s, e] of sp) {
+      const last = merged[merged.length - 1];
+      if (last && s <= last[1] + 1e-9) last[1] = Math.max(last[1], e);
+      else merged.push([s, e]);
+    }
+    out.push({ a: u.a, b: u.b, spans: merged.slice(0, 3), more: merged.length > 3 });
+  }
+  return out.sort((x, y) => x.spans[0]![0] - y.spans[0]![0] || (x.a + x.b < y.a + y.b ? -1 : 1));
+}
+
+/** A pair's undecidable stretches in words — the bar's caveat names them
+ *  beside the result's notes. Lines are the track's own (`lineAt`); the
+ *  display lines of calls and remaps come with C3. `none` stands for a
+ *  position without a line. */
+export function undecidableNote(u: UndecidableStretches, lineAt: (pos: number) => number | null, none = "—"): string {
+  const at = u.spans.map(([a, b]) => {
+    const la = lineAt(a), lb = lineAt(b);
+    return la == null ? none : la === lb || lb == null ? `L${la}` : `L${la}–L${lb}`;
+  }).join(", ") + (u.more ? " …" : "");
+  return `inside check undecidable for ${u.a} ↔ ${u.b} (${at}) — a part wholly inside the other is not found there`;
 }
 
 /** The most a view can hold besides its tables (plan 3.4, derived after

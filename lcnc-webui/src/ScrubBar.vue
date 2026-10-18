@@ -27,7 +27,7 @@ import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
 import { isNearMiss } from "./viewer/clashTargets";
-import { boundaryStretches, contactBands, startTargets, targetAt, viewCounts } from "./viewer/contactView";
+import { boundaryStretches, contactBands, startTargets, targetAt, undecidableNote, viewCounts } from "./viewer/contactView";
 import type { ShownContacts } from "./viewer/shownContacts";
 import { wordsOfCounts } from "./viewer/sweepWords";
 import { mapAcrossEntry, sampleCum, type NavSelection } from "./viewer/findingNav";
@@ -37,7 +37,7 @@ import type { ScrubTrack } from "./ws/bulkData";
 import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
-import { fmtElapsed } from "./format";
+import { fmtElapsed, NO_VALUE } from "./format";
 import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
@@ -801,6 +801,13 @@ const sweepCaveat = computed<string | null>(() => {
   if (!r || (props.collisionBusy && !provisionalOnScreen.value)) return null;
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
+  // the track's undecidable inside answers — the contact tables' gaps, named
+  // per pair (C2; lines are the track's, the display lines come with C3)
+  const sv = shownView.value;
+  for (const u of sv?.derived?.undecidable ?? []) {
+    const note = undecidableNote(u, sv!.lineAt, NO_VALUE);
+    if (!why.includes(note)) why.push(note);
+  }
   // after a sweep worker failed the check ran again on one core; where the two
   // runs contradict each other a confirmed contact is kept and named (plan 3.5)
   const cf = shownView.value?.view.conflicts;

@@ -12,7 +12,7 @@ const runBasis = (joints: number[] | null): CheckBasis => ({ ...live(), kind: "r
 const inputs = (over: Partial<ContextInputs> = {}): ContextInputs => ({
   basis: live(), axes: AXES, kins: 1, kinsSwitches: false, rotaryAbc: [61.3, 0, -12.5], fixture: 1, ...over });
 const result = (over: Partial<CollisionResult> = {}): CollisionResult => ({
-  hits: [], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
+  staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
   pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null, ...over });
 const opts = { stale: false, entry: false, unit: "mm" };
 const BODY = "The check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).";

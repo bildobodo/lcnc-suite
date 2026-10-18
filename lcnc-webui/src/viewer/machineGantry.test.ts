@@ -271,7 +271,6 @@ it("sweeps linear limits and parked rotary moves without machine self-collisions
     ...["x", "y", "z"].flatMap(a => [`${a}_guide_blocks/${a}_guide_rails`, `${a}_guide_endcaps/${a}_guide_rails`])]);
   expect(result.staticContacts.map(p => [p.a, p.b].sort().join("/"))
     .filter(p => !allowed.has(p))).toEqual([]);
-  expect(result.hits.map(h => `L${h.line} ${h.a}/${h.b} d=${h.dist}`)).toEqual([]);
   expect(result.coarsened).toBe(false);
   expect(result.uncertified).toBeNull();
 });

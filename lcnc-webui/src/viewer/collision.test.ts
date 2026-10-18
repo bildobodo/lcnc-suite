@@ -4,12 +4,11 @@ import { emptyLineIndex } from "./lineIndex";
 import { describe, expect, it } from "vitest";
 import {
   buildCollisionModel, sweepCollisions, withoutArealessFacets, poseModel, pairDistance, sweepCollisionsIter, toolCylinderPositions, restoreBaseTool, type SnapshotHandle,
-  type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionResult, type CollisionOptions, type CollisionHit, mergeContiguousIntervals, componentBoxes, MAX_HITS, confirmedContact } from "./collision";
+  type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionResult, type CollisionOptions, componentBoxes } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
 import { TLO_NONE } from "./tloEvents";
 import { runSweepSlice } from "./sweepPump";
-import { clashTargets } from "./clashTargets";
 import { ContactStore, EP_AT_START, EP_RAPID, GAP_TOOL_UNKNOWN, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_EXIT_DECIDED, IV_POSSIBLE, IV_RAPID, NONE } from "./contactStore";
 import { boxPositions as boxAt } from "./collisionFixtures";
 import { buildContactView, startTargets, targetEnd, targetKey, targetKind, targetPos, T_AT_START, T_RAPID } from "./contactView";
@@ -22,9 +21,8 @@ const ivRows = (st: ContactStore) => Array.from({ length: st.intervals.rows }, (
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
 
 /** A sweep's contact tables per body pair (step 4 package 2): its episodes
- *  with their touch intervals, the line at a track parameter. The tests'
- *  statements move to the tables while both sinks write (plan 7.2/7.3); the
- *  records' half goes with them. */
+ *  with their touch intervals, the line at a track parameter — what a sweep
+ *  found (C2: a result carries no records). */
 function tablesOf(model: CollisionModel, t: ScrubTrack, st: ContactStore) {
   const E = st.episodes, I = st.intervals, end = t.cum[t.count - 1]!;
   const key = (pi: number) => [model.bodies[model.pairs[pi]![0]]!.id, model.bodies[model.pairs[pi]![1]]!.id].sort().join("/");
@@ -53,7 +51,7 @@ function tablesOf(model: CollisionModel, t: ScrubTrack, st: ContactStore) {
 }
 /** Two runs' tables compared: per pair its touch intervals and stays, rounded. */
 const tsig = (T: ReturnType<typeof tablesOf>, digits = 3) => T.eps.map(e => `${e.pair} ${e.onset.toFixed(digits)}–${e.end.toFixed(digits)} [${e.ivs.map(v => `${v.enter.toFixed(digits)}–${v.exit.toFixed(digits)}`).join(" ")}]`).sort();
-/** sweepCollisions writing the contact tables too: [result, tables]. */
+/** sweepCollisions writing the contact tables: [result (its metadata), tables]. */
 function sweepT(model: CollisionModel, t: ScrubTrack, wcs: any, opts: CollisionOptions): [CollisionResult, ReturnType<typeof tablesOf>] {
   const st = new ContactStore(1, 0);
   const r = sweepCollisions(model, t, wcs, { ...opts, contacts: { store: st } });
@@ -152,12 +150,12 @@ describe("buildCollisionModel", () => {
 });
 
 describe("sweepCollisions", () => {
-  it("flags a plunge into the work body with worst-per-line attribution", () => {
+  it("flags a plunge into the work body: one touch interval from the first touch", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     // Plunge to -43: head-box bottom (45+Z) meets vise top (+5) at Z=-40,
     // which falls BETWEEN samples (43/9 ≈ 4.78 mm steps) — the discovering
     // sample sits ~3 mm deep in penetration.
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -43]], undefined, [7, 8]), WCS0, { margin: 2 });
     // the tables: one stay, one touch interval from the first touch (cum 40) on L8, a feed
     expect(T.pairs()).toEqual(["spindle/vise"]);
@@ -166,24 +164,15 @@ describe("sweepCollisions", () => {
     expect(tiv[0]![0]).toBeCloseTo(40, 2);
     expect(T.lineFrom(tiv[0]![0])).toBe(8);
     expect(T.of("spindle", "vise")[0]!.flags & EP_RAPID).toBe(0);
-    expect(r.hits).toHaveLength(1);
-    const h = r.hits[0]!;
-    expect(h.line).toBe(8);
-    expect(h.a).toBe("spindle");
-    expect(h.b).toBe("vise");
-    // Worst sample is the deepest: penetration → distance 0.
-    expect(h.dist).toBeCloseTo(0, 5);
-    expect(h.rapid).toBe(false);
-    // Contact refinement: scrub-to-hit lands at FIRST TOUCH (cum 40), not
-    // at the sample that discovered the penetration (cum ≈ 43).
-    expect(h.cum).toBeCloseTo(40, 2);
+    // the entry at FIRST TOUCH (cum 40), the witness — the sample that found
+    // the touch — at or past it
+    expect(T.of("spindle", "vise")[0]!.ivs[0]!.witness).toBeGreaterThanOrEqual(tiv[0]![0]! - 1e-9);
   });
 
   it("marks contacts that happen during a rapid segment", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -45]], undefined, [7, 8], [0, 1]), WCS0, { margin: 2 });
-    expect(r.hits[0]!.rapid).toBe(true);
     expect(T.of("spindle", "vise")[0]!.flags & EP_RAPID, "the tables: the margin entry fell on the rapid").toBeTruthy();
   });
 
@@ -299,16 +288,13 @@ describe("sweepCollisions", () => {
     // real retract normally.
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const pts = [[-30, 0, -40], [30, 0, -40], [30, 0, 0]];
-    const [control, TC] = sweepT(model, track(pts, undefined, [5, 1029, 8]),
-                                    WCS0, { margin: 2 });
-    expect(control.hits.length).toBeGreaterThan(0);
+    const [, TC] = sweepT(model, track(pts, undefined, [5, 1029, 8]), WCS0, { margin: 2 });
     expect(TC.iv("spindle", "vise").length, "the tables: the real crossing touches").toBeGreaterThan(0);
     const t = track(pts, undefined, [5, 1029, 8]);
     t.brk = new Uint8Array([0, 1, 0]);
     t.cum[1] = t.cum[0]!;                       // buildScrubTrack zeroes brk widths
     t.cum[2] = t.cum[1]! + 40;
-    const [r, T] = sweepT(model, t, WCS0, { margin: 2 });
-    expect(r.hits).toHaveLength(0);
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     expect(T.eps, "the tables: nothing").toEqual([]);
   });
 
@@ -316,7 +302,6 @@ describe("sweepCollisions", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const [r, T] = sweepT(model, track(
       [[-100, 0, 0], [100, 0, 0]]), WCS0, { margin: 2 });
-    expect(r.hits).toHaveLength(0);
     expect(T.eps).toEqual([]);
     // Conservative advancement: distance-driven steps stride through clear
     // space — far fewer samples than the old fixed 5 mm grid (200/5 = 40).
@@ -327,9 +312,8 @@ describe("sweepCollisions", () => {
   it("applies the live WCS offset to the pose", () => {
     // Same plunge program, but g5x lifts Z by +40 → machine never gets close.
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -45]]), { g5x: [0, 0, 40, 0, 0, 0], g92: [], rotationDeg: 0 }, { margin: 2 });
-    expect(r.hits).toHaveLength(0);
     expect(T.eps).toEqual([]);
   });
 
@@ -339,7 +323,6 @@ describe("sweepCollisions", () => {
       [[0, 0, 0], [0, 0, -45]]), WCS0, { margin: 2, maxSamples: 4 });
     expect(r.coarsened).toBe(true);
     expect(r.samples).toBeLessThanOrEqual(6);
-    expect(r.hits.length).toBeGreaterThan(0);  // contact window is wide enough
     expect(T.iv("spindle", "vise").length).toBeGreaterThan(0);
   });
 
@@ -363,7 +346,7 @@ describe("sweepCollisions", () => {
       { id: "tool", group: "spindle", positions: boxPositions(10) },
     ];
     const model = buildCollisionModel(rotary, bodies);
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 180]], [3, 4]), WCS0, { margin: 1 });
     // the tables: one touch interval, entered on the swing before dead centre
     const tiv = T.iv("pillar", "tool");
@@ -371,13 +354,6 @@ describe("sweepCollisions", () => {
     expect(tiv[0]![0]).toBeGreaterThan(30);
     expect(tiv[0]![0]).toBeLessThan(90);
     expect(T.lineFrom(tiv[0]![0])).toBe(4);
-    expect(r.hits).toHaveLength(1);
-    expect(r.hits[0]!.line).toBe(4);
-    expect(r.hits[0]!.dist).toBeCloseTo(0, 5);  // full overlap at 90°
-    // Worst-per-line keeps the FIRST deepest sample, so cum marks first
-    // contact of the swing — before dead center (90°), after the clear start.
-    expect(r.hits[0]!.cum).toBeGreaterThan(30);
-    expect(r.hits[0]!.cum).toBeLessThan(90);
   });
 
   it("aborts early when asked", () => {
@@ -399,7 +375,6 @@ describe("sweepCollisions", () => {
     expect(r.truncated!.reason).toBe("time");
     expect(r.truncated!.covered).toBeGreaterThan(0);
     expect(r.truncated!.covered).toBeLessThan(1);
-    expect(r.hits).toHaveLength(0);
   });
 
   it("the budget runs on the caller's clock — a paused sweep spends none of it", () => {
@@ -432,18 +407,19 @@ describe("sweepCollisions", () => {
     expect(r.truncated).toBeNull();
   });
 
-  it("the iterator yields progress checkpoints and returns the sync sweep's result", () => {
+  it("the iterator yields progress checkpoints and ends as the sync sweep: its result and its tables", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = track([[0, 0, 0], [0, 0, -45]]);
-    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
-    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2 });
+    const st1 = new ContactStore(1, 0), st2 = new ContactStore(1, 0);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store: st1 } });
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, contacts: { store: st2 } });
     const progress: number[] = [];
     let r = it.next();
     while (!r.done) { progress.push(r.value); r = it.next(); }
     expect(progress[0]).toBe(0);
     expect(progress[progress.length - 1]).toBe(1);
-    expect(r.value.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3)]))
-      .toEqual(sync.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3)]));
+    expect(st1.intervals.rows).toBe(1);
+    expect(tsig(tablesOf(model, t, st2))).toEqual(tsig(tablesOf(model, t, st1)));
     expect(r.value.samples).toBe(sync.samples);
     expect(r.value.truncated).toBeNull();
   });
@@ -468,77 +444,36 @@ describe("sweepCollisions", () => {
     expect(progress[3]).toBe(1);
   });
 
-  it("the snapshot hook's first confirmed contact: never a near miss, on the track's axis, the first and only one (step 4 plan 1b)", () => {
-    // the plunge approaches the beam: near misses inside the 2 mm margin
-    // first, then the touch
-    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    const pts: number[][] = [];
-    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
-    const t = track(pts);
-    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
-    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
-    let r = it.next();
-    let firstSeen: CollisionHit | null = null, nearOnlyCheckpoints = 0;
-    while (!r.done) {
-      const f = snap.first!();
-      const live = snap.peek!().hits;
-      if (!f && live.length) {
-        nearOnlyCheckpoints++;
-        expect(live.every(h => h.dist > 1e-4), "records but no first: only near misses so far").toBe(true);
-      }
-      if (f) {
-        // the FINDING: the pair's onset, its contact touching (here on a later
-        // line than its margin entry — `touches`)
-        expect(f.continuation).toBeUndefined();
-        expect(f.dist <= 1e-4 || f.touches).toBe(true);
-        if (firstSeen) expect(f).toEqual(firstSeen);   // the first stays the first
-        firstSeen = f;
-      }
-      r = it.next();
-    }
-    expect(nearOnlyCheckpoints, "a near miss came first").toBeGreaterThan(0);
-    expect(firstSeen).not.toBeNull();
-    const full = r.value as CollisionResult;
-    const finding = full.hits.find(h => h.continuation === undefined && (h.dist <= 1e-4 || h.touches))!;
-    expect([firstSeen!.line, firstSeen!.a, firstSeen!.b]).toEqual([finding.line, finding.a, finding.b]);
-    // on the track's axis
-    expect(firstSeen!.cum).toBeGreaterThanOrEqual(0);
-    expect(firstSeen!.cum).toBeLessThanOrEqual(t.cum[t.count - 1]!);
-    expect(snap.first, "cleared with the sweep").toBeNull();
-  });
-
-  it("stop/continue via the snapshot hook: every snapshot is a truncated sweep-so-far, continuing ends in the uninterrupted result", () => {
+  it("stop/continue via the snapshot hook: every snapshot is the truncated sweep-so-far's metadata, continuing ends in the uninterrupted sweep", () => {
     // 2026-09-12: the worker parks a sweep (budget, operator stop, rotary
     // motion) by simply not resuming the generator, snapshots the sweep-so-
     // far through opts.snapshot, and resumes it later. The snapshots must
-    // not disturb the suspended sweep: the final result equals the sync one.
+    // not disturb the suspended sweep: it ends with the sync one's tables.
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const pts: number[][] = [];
     for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);   // 90 short segments → checkpoints every 16
     const t = track(pts);
-    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
-    expect(sync.hits.length).toBeGreaterThan(0);
-    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
-    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    const st1 = new ContactStore(1, 0), st2 = new ContactStore(1, 0);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store: st1 } });
+    expect(st1.intervals.rows).toBeGreaterThan(0);
+    const snap: SnapshotHandle = { take: null, meta: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap, contacts: { store: st2 } });
     let r = it.next();
     expect(snap.take).not.toBeNull();       // installed before the first checkpoint
-    const covered: number[] = [], hitCounts: number[] = [];
+    const covered: number[] = [];
     while (!r.done) {
       const partial = snap.take!("stopped");   // taken while SUSPENDED at this checkpoint
       expect(partial.truncated?.reason).toBe("stopped");
       expect(partial.truncated!.covered).toBeGreaterThanOrEqual(covered[covered.length - 1] ?? 0);
-      expect(partial.hits.length).toBeGreaterThanOrEqual(hitCounts[hitCounts.length - 1] ?? 0);
-      for (const h of partial.hits) expect(sync.hits.some(x => x.line === h.line && x.a === h.a && x.b === h.b)).toBe(true);
-      covered.push(partial.truncated!.covered); hitCounts.push(partial.hits.length);
+      expect("hits" in partial, "metadata only").toBe(false);
+      covered.push(partial.truncated!.covered);
       r = it.next();
     }
     expect(covered.length).toBeGreaterThan(3);
     expect(covered[0]).toBe(0);
-    expect(hitCounts[hitCounts.length - 1]).toBe(sync.hits.length);   // the last snapshot already knew every hit
     const full = r.value as CollisionResult;
     expect(full.truncated).toBeNull();
-    expect(full.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
-      .toEqual(sync.hits.map(h => [h.line, h.a, h.b, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
+    expect(tsig(tablesOf(model, t, st2)), "the uninterrupted sweep's tables").toEqual(tsig(tablesOf(model, t, st1)));
     expect(full.samples).toBe(sync.samples);
     expect(snap.take).toBeNull();           // cleared when the generator returned
   });
@@ -567,67 +502,32 @@ describe("sweepCollisions", () => {
     expect(advancing[advancing.length - 1]).toBe(1);
   });
 
-  it("refinement memo: repeated snapshots at one checkpoint are identical, later snapshots never move a hit's extent backwards", () => {
-    // 2026-09-12: every park snapshots by refining every record again —
-    // records whose inputs have not changed reuse their refinement. The
-    // memo must be invisible: a second take at the same checkpoint equals
-    // the first, and a record that gained samples refines to an extent at
-    // least as long as before.
+  it("meta: the running sweep's metadata at any checkpoint — no records, `running`, the suspended sweep undisturbed (C2)", () => {
+    // the worker posts it while sweeping beside the contact tables
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const pts: number[][] = [];
     for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
     const t = track(pts);
-    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
-    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
+    const st1 = new ContactStore(1, 0), st2 = new ContactStore(1, 0);
+    const sync = sweepCollisions(model, t, WCS0, { margin: 2, contacts: { store: st1 } });
+    const snap: SnapshotHandle = { take: null, meta: null };
+    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap, contacts: { store: st2 } });
     let r = it.next();
-    const ends = new Map<string, number>();
-    let sawTwo = 0;
+    expect(snap.meta).not.toBeNull();
+    let metas = 0, last = 0;
     while (!r.done) {
-      const a = snap.take!("stopped"), b = snap.take!("stopped");
-      expect(b.hits).toEqual(a.hits);   // the memo answers the second take
-      for (const h of a.hits) {
-        const k = `${h.line}/${h.a}/${h.b}`;
-        const prev = ends.get(k);
-        if (prev !== undefined) { expect(h.cumEnd).toBeGreaterThanOrEqual(prev - 1e-9); sawTwo++; }
-        ends.set(k, h.cumEnd);
-      }
+      const m = snap.meta!();
+      metas++;
+      expect(m.truncated?.reason).toBe("running");
+      expect(m.truncated!.covered).toBeGreaterThanOrEqual(last);
+      last = m.truncated!.covered;
+      expect([m.pairCount, m.staticContacts], "known from the baseline on").toEqual([sync.pairCount, sync.staticContacts]);
+      expect("hits" in m).toBe(false);
       r = it.next();
     }
-    expect(sawTwo).toBeGreaterThan(0);   // some record was snapshotted at two checkpoints
-    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
-    expect((r.value as CollisionResult).hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
-      .toEqual(sync.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
-  });
-
-  it("peek: the unrefined sweep-so-far at any checkpoint — hits ⊆ the final, record count monotonic, the suspended sweep undisturbed", () => {
-    // 2026-09-13: the worker streams these while sweeping so clashes show on
-    // the timeline as they are found; no refinement, no mesh probes.
-    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    const pts: number[][] = [];
-    for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
-    const t = track(pts);
-    const sync = sweepCollisions(model, t, WCS0, { margin: 2 });
-    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
-    const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap });
-    let r = it.next();
-    expect(snap.peek).not.toBeNull();
-    let lastRecords = 0, peeks = 0;
-    while (!r.done) {
-      const recs = snap.records!();
-      expect(recs).toBeGreaterThanOrEqual(lastRecords);
-      lastRecords = recs;
-      const p = snap.peek!();
-      peeks++;
-      expect(p.truncated?.reason).toBe("running");
-      for (const h of p.hits) expect(sync.hits.some(x => x.line === h.line && x.a === h.a && x.b === h.b)).toBe(true);
-      r = it.next();
-    }
-    expect(peeks).toBeGreaterThan(3);
-    const full = r.value as CollisionResult;
-    expect(full.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]))
-      .toEqual(sync.hits.map(h => [h.line, +h.cum.toFixed(3), +h.cumEnd.toFixed(3)]));
-    expect(snap.peek).toBeNull();
-    expect(snap.records).toBeNull();
+    expect(metas).toBeGreaterThan(3);
+    expect(tsig(tablesOf(model, t, st2))).toEqual(tsig(tablesOf(model, t, st1)));
+    expect(snap.meta).toBeNull();
   });
 
   it("next(true) at a checkpoint aborts: baseline only, epilogue still returns a result", () => {
@@ -656,10 +556,6 @@ describe("sweepCollisions", () => {
     expect(r.staticContacts.map(c => [c.a, c.b].sort().join("/"))).toContain("drawbar/spindle");
     expect(T.of("drawbar", "spindle"), "the tables: nothing of the static pair").toEqual([]);
     expect(T.iv("spindle", "vise").length, "the tables: the plunge").toBe(1);
-    // No per-line hits for the static pair …
-    expect(r.hits.every(h => [h.a, h.b].sort().join("/") !== "drawbar/spindle")).toBe(true);
-    // … while the genuine plunge hit is still attributed normally.
-    expect(r.hits.some(h => [h.a, h.b].sort().join("/") === "spindle/vise")).toBe(true);
   });
 
   it("a TOOL body in contact at the first pose is an onset on the first line, never a static exclusion — and a later rapid through the same body still reports", () => {
@@ -689,15 +585,10 @@ describe("sweepCollisions", () => {
     expect(T.lineAt(te[0]!.ivs[0]!.exit), "ends while L8 retracts").toBe(8);
     expect(T.lineFrom(te[1]!.ivs[0]!.enter)).toBe(9);
     expect(te[1]!.flags & EP_RAPID).toBeTruthy();
-    const onsets = r.hits.filter(h => h.continuation === undefined && [h.a, h.b].sort().join("/") === "tool/vise");
-    expect(onsets.map(h => [h.line, h.rapid])).toEqual([[7, false], [9, true]]);
-    expect(onsets[0]!.cum).toBe(0);                       // in contact from the program's first point
-    expect(onsets[0]!.spanEndLine).toBe(8);               // still touching while L8 retracts
     // The control: the same body WITHOUT the flag is a machine part — the
     // old rule: one static contact, and the L9 rapid plunge reports NOTHING.
     const [c, TC] = sweepT(buildCollisionModel(PLUNGE, bodies(false)), prog(), WCS0, { margin: 2 });
     expect(c.staticContacts.map(x => [x.a, x.b].sort().join("/"))).toEqual(["tool/vise"]);
-    expect(c.hits.filter(h => [h.a, h.b].sort().join("/") === "tool/vise")).toEqual([]);
     expect(TC.of("tool", "vise")).toEqual([]);
   });
 
@@ -726,25 +617,12 @@ describe("sweepCollisions", () => {
     expect(be[0]!.ivs[0]!.exit).toBeLessThan(50);
     expect(T.lineFrom(be[1]!.ivs[0]!.enter)).toBe(3);
     expect(be[1]!.flags & EP_RAPID).toBeTruthy();
-    const beam = r.hits.filter(h => [h.a, h.b].sort().join("/") === "beam/spindle");
-    const onsets = beam.filter(h => h.continuation === undefined);
-    expect(onsets.map(h => [h.line, h.rapid])).toEqual([[1, false], [3, true]]);
-    expect(onsets[0]!.cum).toBe(0);
-    expect(onsets[0]!.spanEndLine).toBe(2);
-    // The span end: the contact persists into L2 (rising out of the beam),
-    // so the onset carries where it finally ends — past its own line's end
-    // (L1 ends at cum 10) and before L2's end (cum 50).
-    expect(onsets[0]!.spanCumEnd).toBeGreaterThan(onsets[0]!.cumEnd);
-    expect(onsets[0]!.spanCumEnd!).toBeGreaterThan(10);
-    expect(onsets[0]!.spanCumEnd!).toBeLessThan(50);
-    expect(onsets[1]!.spanCumEnd).toBeUndefined();   // the L3 re-entry ends on its own line
     // Control: the SAME pair touching at rest too (the beam raised to the
     // head's rest height) is a mechanical neighbour — static, never a hit.
     const raised: CollisionBody[] = [bodies[0]!, bodies[1]!, { ...bodies[2]!, translate: [0, 0, 50] }];
     const [c, TC] = sweepT(buildCollisionModel(PLUNGE, raised), track(
       [[0, 0, 0], [10, 0, 0]], undefined, [0, 1], [0, 0]), WCS0, { margin: 2 });
     expect(c.staticContacts.map(x => [x.a, x.b].sort().join("/"))).toEqual(["beam/spindle"]);
-    expect(c.hits.filter(h => [h.a, h.b].sort().join("/") === "beam/spindle")).toEqual([]);
     expect(TC.of("beam", "spindle")).toEqual([]);
   });
 
@@ -758,13 +636,10 @@ describe("sweepCollisions", () => {
       { id: "probe", group: "head", positions: boxPositions(1) },
     ];
     const model = buildCollisionModel(PLUNGE, bodies);
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -43]], undefined, [7, 8]), WCS0, { margin: 2 });
     expect(T.of("plate", "probe").length, "the tables: the graze is a stay").toBeGreaterThan(0);
     expect(T.of("plate", "probe")[0]!.closeDist).toBeLessThanOrEqual(2);
-    const graze = r.hits.find(h => [h.a, h.b].sort().join("/") === "plate/probe");
-    expect(graze).toBeTruthy();
-    expect(graze!.dist).toBeLessThanOrEqual(2);
   });
 
   it("adversarial rotary lever: catches a narrow-angle clash at large radius", () => {
@@ -789,17 +664,16 @@ describe("sweepCollisions", () => {
       { id: "post", group: "frame", positions: boxPositions(2), translate: [0, 100, 0] },
     ];
     const model = buildCollisionModel(rotary, bodies);
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 180]], [3, 4]), WCS0, { margin: 1 });
     const pe = T.of("pillar", "post");
     expect(pe, "the tables: one stay").toHaveLength(1);
     expect(pe[0]!.closeDist).toBeLessThanOrEqual(1);
-    if (pe[0]!.ivs.length) { expect(pe[0]!.ivs[0]!.enter).toBeGreaterThan(85); expect(pe[0]!.ivs[0]!.enter).toBeLessThan(91); }
-    expect(r.hits).toHaveLength(1);
-    expect(r.hits[0]!.dist).toBeLessThanOrEqual(1);
-    // First contact ≈ 90° minus the small angular half-width of the boxes.
-    expect(r.hits[0]!.cum).toBeGreaterThan(85);
-    expect(r.hits[0]!.cum).toBeLessThan(91);
+    // First contact ≈ 90° minus the small angular half-width of the boxes
+    // (a stay without a touch: its closest approach)
+    const at = pe[0]!.ivs.length ? pe[0]!.ivs[0]!.enter : pe[0]!.closeAt;
+    expect(at).toBeGreaterThan(85);
+    expect(at).toBeLessThan(91);
   });
 
   it("cutting semantics: feed contact with an EXPLICIT stock body is machining; rapid onset is a gouge", () => {
@@ -813,22 +687,18 @@ describe("sweepCollisions", () => {
     ];
     const model = buildCollisionModel(PLUNGE, bodies);
     // Feed plunge into the stock, feed retract: pure cutting.
-    let [r, T] = sweepT(model, track(
+    const [r, T0] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 0]), WCS0, { margin: 2 });
-    expect(r.hits).toEqual([]);
-    expect(T.eps).toEqual([]);
+    expect(T0.eps).toEqual([]);
     expect(r.staticContacts).toEqual([]);   // cutting pairs never go static
     // Same plunge as a RAPID: onset in rapid → gouge.
-    [r, T] = sweepT(model, track(
+    let [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -43]], undefined, [7, 8], [0, 1]), WCS0, { margin: 2 });
-    expect(r.hits).toHaveLength(1);
-    expect(r.hits[0]!.rapid).toBe(true);
     expect(T.iv("spindle", "stock")).toHaveLength(1);
     expect(T.of("spindle", "stock")[0]!.flags & EP_RAPID).toBeTruthy();
     // Feed plunge, then RAPID retract out of contact: benign (onset was feed).
-    [r, T] = sweepT(model, track(
+    [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 1]), WCS0, { margin: 2 });
-    expect(r.hits).toEqual([]);
     expect(T.eps).toEqual([]);
   });
 
@@ -841,14 +711,10 @@ describe("sweepCollisions", () => {
       { id: "stock", group: "platter", positions: boxPositions(10), stock: true },
       { id: "housing", group: "head", positions: boxPositions(10) },
     ]);
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -43], [0, 0, 0]], undefined, [7, 8, 9], [0, 0, 0]), WCS0, { margin: 2 });
     expect(T.iv("housing", "stock"), "the tables: the housing's feed into the stock is a touch").toHaveLength(1);
     expect(T.of("housing", "stock")[0]!.flags & EP_RAPID).toBe(0);
-    const onset = r.hits.find(h => h.dist <= 1e-4 && h.continuation === undefined);
-    expect(onset, "the feed into the stock is reported").toBeDefined();
-    expect([onset!.a, onset!.b].sort()).toEqual(["housing", "stock"]);
-    expect(onset!.rapid).toBe(false);
   });
 
   it("the contact store's cutting rule: a feed-begun contact writes nothing; a rapid-begun one its rapid parts (package 2, plan 2.3)", () => {
@@ -888,14 +754,11 @@ describe("sweepCollisions", () => {
     const key = (p: [number, number]) => [model.bodies[p[0]]!.id, model.bodies[p[1]]!.id].sort().join("/");
     expect(model.pairs.map(key).sort()).toContain("base_spindle/spindle");
     // Head box [45+Z, 55+Z] reaches the obstacle top (z=25) at Z=-20.
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, -43]], undefined, [7, 8]), WCS0, { margin: 2 });
     const fiv = T.iv("base_spindle", "spindle");
     expect(fiv.length, "the tables: the frame body").toBeGreaterThan(0);
     expect(fiv[0]![0]).toBeCloseTo(20, 2);
-    const frameHit = r.hits.find(h => [h.a, h.b].sort().join("/") === "base_spindle/spindle");
-    expect(frameHit).toBeTruthy();
-    expect(frameHit!.cum).toBeCloseTo(20, 2);  // refined to first touch
   });
 
   it("catches a same-side pair that straddles a DOF (v1 scope gap closed)", () => {
@@ -922,14 +785,11 @@ describe("sweepCollisions", () => {
     ];
     const model = buildCollisionModel(machine, bodies);
     // C sweeps 0→180°: pillar swings from (20,0) through the post at (0,20).
-    const [r, T] = sweepT(model, track(
+    const [, T] = sweepT(model, track(
       [[0, 0, 0], [0, 0, 0]], [[0, 0, 0], [0, 0, 180]], [3, 4]), WCS0, { margin: 1 });
     expect(T.pairs(), "the tables: the rotary clash").toEqual(["pillar/post"]);
     expect(T.iv("pillar", "post")).toHaveLength(1);
     expect(T.lineFrom(T.iv("pillar", "post")[0]![0])).toBe(4);
-    expect(r.hits).toHaveLength(1);
-    expect([r.hits[0]!.a, r.hits[0]!.b].sort()).toEqual(["pillar", "post"]);
-    expect(r.hits[0]!.line).toBe(4);
   });
 });
 
@@ -952,13 +812,13 @@ describe("contact-window refinement (glow window)", () => {
   // User-reported scenario 2026-08-16: a line that STARTS inside a
   // collision and separates mid-line — the glow window [cum, cumEnd]
   // must end at the separation point, not run to the line's end.
-  it("cumEnd lands at the separation point, not the line end", () => {
+  it("a contact interval ends at the separation point, never the line end", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     // Tool bottom = 45+Z, vise top = +5: touch at Z=-40, 5 deep at -45.
     // L25 plunges 0 -> -45; L26 retracts: separation (dist > eps) at
     // Z=-40, i.e. 5 units into the 45-unit line (cum 50 of 45..90).
     const t = track([[0, 0, 0], [0, 0, -45], [0, 0, 0]], undefined, [25, 25, 26]);
-    const [res, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: one touch interval, from the touch on L25 to the separation on L26
     const tiv = T.iv("spindle", "vise");
     expect(tiv).toHaveLength(1);
@@ -966,20 +826,9 @@ describe("contact-window refinement (glow window)", () => {
     expect(tiv[0]![1]).toBeGreaterThan(49);
     expect(tiv[0]![1]).toBeLessThan(51);
     expect(T.lineAt(tiv[0]![1])).toBe(26);
-    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
-    expect(l26).toBeDefined();
-    expect(l26.cum).toBeLessThan(45.5);       // in contact from line start
-    expect(l26.cumEnd).toBeGreaterThan(49);   // ends at separation (~50)...
-    expect(l26.cumEnd).toBeLessThan(51);      // ...never the line end (90)
-    // The line-26 record is a CONTINUATION of the line-25 onset (the pair
-    // never separated between the lines); the onset spans through 26.
-    expect(l26.continuation).toBe(25);
-    const l25 = res.hits.find(h => h.line === 25 && h.dist < 1e-3)!;
-    expect(l25.continuation).toBeUndefined();
-    expect(l25.spanEndLine).toBe(26);
   });
 
-  it("through-contact across lines: one onset spanning to the last in-contact line, continuations for the rest", () => {
+  it("through-contact across lines: one touch interval from its first line to its last", () => {
     // L25 plunges into contact; L26/L27 traverse INSIDE it; L28 retracts.
     // Operator-caught: a beam rammed into the portal was re-reported on
     // every following line. One clash (the onset), three continuations.
@@ -987,81 +836,44 @@ describe("contact-window refinement (glow window)", () => {
     const t = track(
       [[0, 0, 0], [0, 0, -45], [2, 0, -45], [4, 0, -45], [4, 0, 0]],
       undefined, [25, 25, 26, 27, 28]);
-    const [res, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: ONE touch interval from L25 to L28
     const tiv = T.iv("spindle", "vise");
     expect(tiv).toHaveLength(1);
     expect([T.lineFrom(tiv[0]![0]), T.lineAt(tiv[0]![1])]).toEqual([25, 28]);
-    const contact = res.hits.filter(h => h.dist < 1e-3);
-    const onsets = contact.filter(h => h.continuation === undefined);
-    expect(onsets).toHaveLength(1);
-    expect(onsets[0]!.line).toBe(25);
-    expect(onsets[0]!.spanEndLine).toBe(28);
-    const conts = contact.filter(h => h.continuation !== undefined);
-    expect(conts.map(h => h.line).sort()).toEqual([26, 27, 28]);
-    expect(conts.every(h => h.continuation === 25)).toBe(true);
   });
 
-  it("a contact that enters the margin on one line and touches on a later one is a collision, not a near miss (`touches`)", () => {
+  it("a contact that enters the margin on one line and touches on a later one is a collision: its stay has the touch interval", () => {
     // 2026-10-11 (step 4 package 1): the onset record of such a contact keeps
     // its margin-entry distance — it read "near miss, 2.0 mm apart" while its
     // continuations touched
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const pts: number[][] = [];
     for (let z = 0; z >= -45; z -= 0.5) pts.push([0, 0, z]);
-    const [res, T] = sweepT(model, track(pts), WCS0, { margin: 2 });
+    const [, T] = sweepT(model, track(pts), WCS0, { margin: 2 });
     // the tables: the stay that touches has its touch interval — a collision, never a near miss
     expect(T.of("spindle", "vise").map(e => e.ivs.length)).toEqual([1]);
-    const onsets = res.hits.filter(h => h.continuation === undefined);
-    const crash = onsets.find(h => h.dist > 1e-4 && res.hits.some(c => c.continuation === h.line && c.a === h.a && c.b === h.b && c.dist <= 1e-4))!;
-    expect(crash, "a margin entry whose contact touches later").toBeDefined();
-    expect(crash.touches).toBe(true);
-    expect(confirmedContact(crash)).toBe(true);
     // a contact that only grazes the margin stays a near miss
-    const [graze, TG] = sweepT(model, track([[0, 0, 0], [0, 0, -5]]), WCS0, { margin: 2 });
+    const [, TG] = sweepT(model, track([[0, 0, 0], [0, 0, -5]]), WCS0, { margin: 2 });
     for (const e of TG.eps) expect(e.ivs, "a stay that never touches has no interval").toEqual([]);
-    for (const h of graze.hits) if (h.dist > 1e-4) expect([h.touches, confirmedContact(h)]).toEqual([undefined, false]);
   });
 
-  it("a margin entry's `touches` survives a later pass on its line (a loop, a repeated source line)", () => {
+  it("a stay's touch survives a later pass on its line (a loop, a repeated source line)", () => {
     // L25 enters the margin (1.9 mm), L26 touches and lifts back inside the
     // margin, L25 runs again closer (1.5 mm) without touching: the onset's
     // record is replaced by the closer sample — the touch it led to stays
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = track([[0, 0, -30], [0, 0, -38.1], [0, 0, -45], [0, 0, -39], [0, 0, -38.5], [0, 0, 0]],
       undefined, [24, 25, 26, 26, 25, 27]);
-    const [res, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: the stay's touch on L26 stays its touch interval
     expect(T.iv("spindle", "vise")).toHaveLength(1);
     expect(T.lineFrom(T.iv("spindle", "vise")[0]![0])).toBe(26);
-    const onset = res.hits.find(h => h.line === 25 && h.continuation === undefined)!;
-    expect(onset.dist, "the second pass is the record's sample").toBeLessThan(1.8);
-    expect(onset.dist).toBeGreaterThan(1e-4);
-    expect(onset.touches).toBe(true);
-    expect(confirmedContact(onset)).toBe(true);
   });
 
-  it("the cap says how many records it left out (Codex R84/R118: `capped`)", () => {
-    // one contact over 262 lines is one onset and 261 continuation records:
-    // the cap keeps 200 and says it omitted 62 — records, not collisions
-    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    const pts: number[][] = [[0, 0, 0], [0, 0, -45]];
-    const lines = [25, 25];
-    for (let i = 1; i <= 260; i++) { pts.push([0.01 * i, 0, -45]); lines.push(25 + i); }
-    pts.push([2.6, 0, 0]); lines.push(286);
-    const res = sweepCollisions(model, track(pts, undefined, lines), WCS0, { margin: 2 });
-    expect(res.hits).toHaveLength(MAX_HITS);
-    expect(res.hits.filter(h => h.continuation === undefined && h.dist < 1e-3).map(h => h.line)).toEqual([25]);
-    expect(res.capped).toBe(262 - MAX_HITS);
-    expect(res.cappedOnsets, "every onset listed: the cut records continue it").toBeUndefined();
-    // under the cap: no count at all
-    const short = sweepCollisions(model, track(pts.slice(0, 12), undefined, lines.slice(0, 12)), WCS0, { margin: 2 });
-    expect(short.capped).toBeUndefined();
-  });
-
-  it("past MAX_HITS contact BEGINNINGS the cap cuts contacts, and says how many (`cappedOnsets`)", () => {
+  it("205 contacts: the tables hold every one — there is no cap (step 4 package 2)", () => {
     // 205 plunges, each after a verified separation: 205 contacts (Codex R84:
-    // 201 onsets came back as 200, unsaid)
+    // the records' cap gave back 200, unsaid) — the tables hold every one
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const pts: number[][] = [[0, 0, 0]];
     const lines = [1];
@@ -1069,32 +881,24 @@ describe("contact-window refinement (glow window)", () => {
       pts.push([0, 0, -45], [0, 0, 0]);
       lines.push(10 + 2 * i, 11 + 2 * i);
     }
-    const [res, T] = sweepT(model, track(pts, undefined, lines), WCS0, { margin: 2 });
+    const [, T] = sweepT(model, track(pts, undefined, lines), WCS0, { margin: 2 });
     expect(T.iv("spindle", "vise"), "the tables hold every one of the 205 contacts").toHaveLength(205);
-    const onsets = res.hits.filter(h => h.continuation === undefined && h.dist < 1e-3);
-    expect(onsets).toHaveLength(MAX_HITS);
-    expect(res.cappedOnsets).toBe(5);
-    expect(res.capped).toBeGreaterThanOrEqual(5);
   });
 
-  it("verified separation (>2×margin) then re-entry two lines later yields two onset records", () => {
+  it("verified separation (>2×margin) then re-entry two lines later yields two touch intervals", () => {
     // L25 plunge (contact), L26 retract to clear, L27 lateral clear,
     // L28 plunge again — the second touch is a NEW clash.
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = track(
       [[0, 0, 0], [0, 0, -45], [0, 0, 0], [5, 0, 0], [5, 0, -45]],
       undefined, [25, 25, 26, 27, 28]);
-    const [res, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: two touch intervals, the first ending on L26, the second from L28
     const tiv = T.iv("spindle", "vise");
     expect(tiv.map(([a, b]) => [T.lineFrom(a), T.lineAt(b)])).toEqual([[25, 26], [28, 28]]);
-    const onsets = res.hits.filter(h => h.dist < 1e-3 && h.continuation === undefined).map(h => h.line);
-    expect(onsets.sort()).toEqual([25, 28]);
-    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
-    expect(l26.continuation).toBe(25);
   });
 
-  it("intermittent contact on ONE line yields separate refined intervals", () => {
+  it("intermittent contact on ONE line yields separate touch intervals", () => {
     // The user's line-26 shape: enter contact, leave it, re-enter — all on
     // one source line. One [cum, cumEnd] window would glow across the
     // verified-clear middle; intervals must split it.
@@ -1105,36 +909,10 @@ describe("contact-window refinement (glow window)", () => {
     const t = track(
       [[0, 0, 0], [0, 0, -45], [0, 0, -10], [0, 0, -45], [0, 0, 0]],
       undefined, [25, 25, 26, 26, 26]);
-    const [res, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: two touch intervals — [40, 50] from L25 into L26, [110, 120] on L26
     const tiv = T.iv("spindle", "vise").map(([x, y]) => [Math.round(x), Math.round(y)]);
     expect(tiv).toEqual([[40, 50], [110, 120]]);
-    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
-    expect(l26).toBeDefined();
-    expect(l26.intervals).toHaveLength(2);
-    const [a, b] = l26.intervals!;
-    expect(a![0]).toBeLessThan(45.5);      // in contact from line start
-    expect(a![1]).toBeGreaterThan(49);     // separates at Z=-40 (cum 50)
-    expect(a![1]).toBeLessThan(51);
-    expect(b![0]).toBeGreaterThan(109);    // re-touches at Z=-40 (cum 110)
-    expect(b![0]).toBeLessThan(111);
-    expect(b![1]).toBeGreaterThan(119);    // separates again (cum 120)
-    expect(b![1]).toBeLessThan(121);
-    // compat fields span the whole contact story
-    expect(l26.cum).toBe(a![0]);
-    expect(l26.cumEnd).toBe(b![1]);
-    // L26 carried L25's contact in: its first interval is L25's finding, the
-    // re-entry its own — two findings, not three (Codex R34 VP-I09)
-    expect(l26.continuation).toBeUndefined();
-    expect(l26.carried).toBe(true);
-    const targets = clashTargets(res.hits);
-    expect(targets.map(x => [x.line, x.key])).toEqual([[25, "C25|spindle|vise|0"], [26, "C26|spindle|vise|1"]]);
-    expect(targets[1]!.cum).toBe(b![0]);
-    expect(targets[1]!.reentry).toBe(true);
-    // …and L25's contact reaches through the carried interval
-    const l25 = res.hits.find(h => h.line === 25 && h.dist < 1e-3)!;
-    expect(l25.spanEndLine).toBe(26);
-    expect(l25.spanCumEnd).toBe(a![1]);
   });
 
   it("a program that starts in contact, separates and comes back on the same line: two intervals, two findings (Codex R34 VP-I09)", () => {
@@ -1143,27 +921,14 @@ describe("contact-window refinement (glow window)", () => {
     // from cum 65) — L27 lifts out (clear from cum 75).
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = track([[0, 0, -45], [0, 0, -10], [0, 0, -45], [0, 0, 0]], undefined, [26, 26, 26, 27]);
-    const [res, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: [0, 5] from the program's start, [65, 75] into L27
     const tiv = T.iv("spindle", "vise").map(([x, y]) => [Math.round(x), Math.round(y)]);
     expect(tiv).toEqual([[0, 5], [65, 75]]);
     expect(T.of("spindle", "vise")[0]!.flags & EP_AT_START).toBeTruthy();
-    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
-    expect(l26.cum).toBe(0);
-    expect(l26.carried).toBeUndefined();   // the program's own onset
-    expect(l26.intervals).toHaveLength(2);
-    const [a, b] = l26.intervals!;
-    expect(a![0]).toBe(0);
-    expect(a![1]).toBeGreaterThan(4);
-    expect(a![1]).toBeLessThan(6);
-    expect(b![0]).toBeGreaterThan(64);
-    expect(b![0]).toBeLessThan(66);
-    const targets = clashTargets(res.hits);
-    expect(targets.map(x => x.key)).toEqual(["C26|spindle|vise|0", "C26|spindle|vise|1"]);
-    expect(res.hits.find(h => h.line === 27 && h.dist < 1e-3)!.continuation).toBe(26);
   });
 
-  it("cumEnd lands at separation under world kins (TCP line-26 shape)", () => {
+  it("a contact interval ends at the separation under world kins (TCP line-26 shape)", () => {
     // XYZAC world segments at fixed world (20,0,-45): jx = 20*cos(C), so
     // the table slides -20 -> +20 as C returns 180 -> 0. Vise rides the
     // table at +20: penetrating at C=180, separating near C=120.
@@ -1188,20 +953,13 @@ describe("contact-window refinement (glow window)", () => {
       [[0, 0, 0], [0, 0, 180], [0, 0, 0]],
       [25, 25, 26]);
     t.mode = new Uint8Array([1, 1, 1]);
-    const [res, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: one touch interval, entered on L25's sweep, ending near C 120 (cum ~240)
     const tiv = T.iv("spindle", "vise");
     expect(tiv).toHaveLength(1);
     expect(tiv[0]![0]).toBeLessThan(180);
     expect(tiv[0]![1]).toBeGreaterThan(230);
     expect(tiv[0]![1]).toBeLessThan(250);
-    const l26 = res.hits.find(h => h.line === 26 && h.dist < 1e-3)!;
-    expect(l26).toBeDefined();
-    expect(l26.continuation).toBe(25);   // carried in from the line-25 sweep
-    // L26 spans cum 180..360; contact ends near C=120 -> cum ~240.
-    expect(l26.cum).toBeLessThan(185);
-    expect(l26.cumEnd).toBeGreaterThan(230);
-    expect(l26.cumEnd).toBeLessThan(250);
   });
 });
 
@@ -1234,13 +992,11 @@ describe("a world kins' speed, not its chord deviation (Codex R101 VP-I57)", () 
     const exit = half - Math.acos((x0 + 10.5) / 1000) * 180 / Math.PI;
     return { r, T, exit, end: 2 * half };
   };
-  const ivs = (r: CollisionResult) => r.hits.flatMap(h => h.intervals ?? []).map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]);
   const tivs = (T: ReturnType<typeof tablesOf>) => T.iv("inner", "outer").map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]);
 
   it("one chunk (C ±11.25°): out of the box at the analytic exit, back in at its mirror", () => {
     const { r, T, exit, end } = sweepC(11.25);
     expect(r.uncertified).toBeNull();
-    expect(ivs(r)).toEqual([[0, +exit.toFixed(2)], [+(end - exit).toFixed(2), end]]);
     expect(tivs(T), "the tables").toEqual([[0, +exit.toFixed(2)], [+(end - exit).toFixed(2), end]]);
   });
 
@@ -1263,11 +1019,8 @@ describe("a world kins' speed, not its chord deviation (Codex R101 VP-I57)", () 
       cum: Float32Array.from(cs, c => c - 30), lines: Uint32Array.from(cs, (_, i) => i + 1), rapid: new Uint8Array(n),
       mode: new Uint8Array(n).fill(1), count: n, lineIndex: emptyLineIndex(), timeBased: false,
     };
-    const [r, T] = sweepT(model, t, WCS0, { margin: 0.1 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 0.1 });
     const entry = Math.acos((x0 + 10.5) / 1000) * 180 / Math.PI - 30;
-    const all = r.hits.flatMap(h => h.intervals ?? []);
-    expect(Math.min(...all.map(iv => iv[0]))).toBeCloseTo(entry, 1);
-    expect(Math.max(...all.map(iv => iv[1]))).toBeCloseTo(15, 2);
     const tall = T.iv("inner", "outer");
     expect(Math.min(...tall.map(iv => iv[0])), "the tables").toBeCloseTo(entry, 1);
     expect(Math.max(...tall.map(iv => iv[1])), "the tables: inside to the end").toBeCloseTo(15, 2);
@@ -1276,7 +1029,6 @@ describe("a world kins' speed, not its chord deviation (Codex R101 VP-I57)", () 
   it("four chunks (C ±45°): the budget carried across the chunk boundaries finds the return too", () => {
     const { r, T, exit, end } = sweepC(45);
     expect(r.uncertified).toBeNull();
-    expect(ivs(r)).toEqual([[0, +exit.toFixed(2)], [+(end - exit).toFixed(2), end]]);
     expect(tivs(T), "the tables").toEqual([[0, +exit.toFixed(2)], [+(end - exit).toFixed(2), end]]);
   });
 });
@@ -1323,18 +1075,15 @@ describe("world-kins conservative advancement (sagitta slack)", () => {
     // peak overlap 1.56 — with V = 0 a certificate from the endpoint
     // distance skips the whole chunk and misses the crossing.
     const model = buildCollisionModel(CSWEEP, wallBodies(308.44));
-    const [r, T] = sweepT(model, sweep, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, sweep, WCS0, { margin: 2 });
     expect(T.pairs(), "the tables").toEqual(["mover/wall"]);
-    expect(r.hits).toHaveLength(1);
-    expect([r.hits[0]!.a, r.hits[0]!.b].sort()).toEqual(["mover", "wall"]);
   });
 
   it("adds no false positive when the bulge stays clear", () => {
     // Wall 10 further out: peak gap 8.4 — slack may only shrink steps,
     // never manufacture hits.
     const model = buildCollisionModel(CSWEEP, wallBodies(318.44));
-    const [r, T] = sweepT(model, sweep, WCS0, { margin: 2 });
-    expect(r.hits).toHaveLength(0);
+    const [, T] = sweepT(model, sweep, WCS0, { margin: 2 });
     expect(T.eps, "the tables").toEqual([]);
   });
 });
@@ -1395,8 +1144,6 @@ describe("trsrn (TWP) conservative advancement", () => {
     const model = buildCollisionModel(TSWEEP, wallBodies(J_END + 13));
     const [r, T] = sweepT(model, sweep, WCS0, { margin: 2 });
     expect(T.pairs(), "the tables").toEqual(["mover/wall"]);
-    expect(r.hits).toHaveLength(1);
-    expect([r.hits[0]!.a, r.hits[0]!.b].sort()).toEqual(["mover", "wall"]);
     expect(r.uncertified).toBeNull();
   });
 
@@ -1405,8 +1152,7 @@ describe("trsrn (TWP) conservative advancement", () => {
     // a hit. This is the half of the pair that a merely-larger bound passes
     // trivially — it is here so an over-conservative bound is visible too.
     const model = buildCollisionModel(TSWEEP, wallBodies(J_MID + 22));
-    const [r, T] = sweepT(model, sweep, WCS0, { margin: 2 });
-    expect(r.hits).toHaveLength(0);
+    const [, T] = sweepT(model, sweep, WCS0, { margin: 2 });
     expect(T.eps, "the tables").toEqual([]);
   });
 
@@ -1437,11 +1183,9 @@ describe("per-epoch WCS terms (review P2)", () => {
     const t = { ...track([[0, 0, 0], [0, 0, -13]], undefined, [7, 8]),
                 wcs: new Uint32Array([0, 0]) };
     const epochTerms = [{ ox: 0, oy: 0, oz: -30, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 }];
-    const [hit, TH] = sweepT(model, t, WCS0, { margin: 2, epochTerms });
-    expect(hit.hits.length).toBeGreaterThan(0);
+    const [, TH] = sweepT(model, t, WCS0, { margin: 2, epochTerms });
     expect(TH.iv("spindle", "vise").length, "the tables").toBeGreaterThan(0);
-    const [miss, TM] = sweepT(model, t, WCS0, { margin: 2 });
-    expect(miss.hits).toHaveLength(0);
+    const [, TM] = sweepT(model, t, WCS0, { margin: 2 });
     expect(TM.eps, "the tables").toEqual([]);
   });
 });
@@ -1459,14 +1203,11 @@ describe("per-segment tool offset (schema 8)", () => {
 
   it("the tip lands on the path under a live TLO — same first touch as without", () => {
     const m = buildCollisionModel(PLUNGE, TOOL_BODIES);
-    const [r0, T0] = sweepT(m, plunge, WCS0, { margin: 0.5 });
-    const [r22, T22] = sweepT(m, plunge, { ...WCS0, tool: [0, 0, 22] }, { margin: 0.5 });
+    const [, T0] = sweepT(m, plunge, WCS0, { margin: 0.5 });
+    const [, T22] = sweepT(m, plunge, { ...WCS0, tool: [0, 0, 22] }, { margin: 0.5 });
     expect(T0.iv("tool", "vise")[0]![0], "the tables: the first touch at 45").toBeCloseTo(45, 0.5);
     expect(T22.iv("tool", "vise")[0]![0], "the tables: the same under the TLO").toBeCloseTo(T0.iv("tool", "vise")[0]![0], 1);
-    expect(r0.hits.length).toBe(1);
-    expect(r22.hits.length).toBe(1);
-    expect(r22.hits[0]!.cum).toBeCloseTo(r0.hits[0]!.cum, 1);
-    expect(r0.hits[0]!.cum).toBeCloseTo(45, 0.5);
+    expect([T0.iv("tool", "vise").length, T22.iv("tool", "vise").length]).toEqual([1, 1]);
   });
 
   it("a mid-track event changes the housing height but not the tip", () => {
@@ -1480,14 +1221,11 @@ describe("per-segment tool offset (schema 8)", () => {
     const t = track([[0, 0, 0], [0, 0, -48], [0, 0, 0], [0, 0, -48]], undefined, [1, 2, 3, 4]);
     t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, 0, 0]);
     t.tloEvents = [{ seq: 0, xyz: [0, 0, 22], tool: 3 }];
-    const [r, T] = sweepT(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents });
+    const [, T] = sweepT(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents });
     // the tables: the touch intervals entered on L2 — housing and tool; on L4 the tool alone
     const enteredOn = (line: number) => T.eps.filter(e => e.ivs.some(v => T.lineFrom(v.enter) === line)).map(e => e.pair).sort();
     expect(enteredOn(2)).toEqual(["spindle/vise", "tool/vise"]);
     expect(enteredOn(4)).toEqual(["tool/vise"]);
-    const pairsOn = (line: number) => r.hits.filter(h => h.line === line).map(h => h.a).sort();
-    expect(pairsOn(2)).toEqual(["spindle", "tool"]);
-    expect(pairsOn(4)).toEqual(["tool"]);
   });
 });
 
@@ -1509,41 +1247,21 @@ describe("per-segment tool dims (schema 8)", () => {
     // retract (line 3) still runs under the thin tool.
     t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, TLO_NONE, 0]);
     t.tloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }];
-    const [r, T] = sweepT(m, t, WCS0, {
+    const [, T] = sweepT(m, t, WCS0, {
       margin: 0.5, tloEvents: t.tloEvents, liveTool: 1,
       toolDims: { 1: { diam: 6, len: 20 }, 2: { diam: 30, len: 20 } },
     });
     expect([...new Set(T.iv("pillar", "tool").map(([a]) => T.lineFrom(a)))], "the tables: the fat pass alone").toEqual([4]);
-    const lines = [...new Set(r.hits.map(h => h.line))].sort();
-    expect(lines).toEqual([4]);
     // Without dims the base (thin) body is used throughout: nothing reports.
-    const [r2, T2] = sweepT(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents, liveTool: 1 });
-    expect(r2.hits).toEqual([]);
+    const [, T2] = sweepT(m, t, WCS0, { margin: 0.5, tloEvents: t.tloEvents, liveTool: 1 });
     expect(T2.eps).toEqual([]);
-  });
-});
-
-describe("mergeContiguousIntervals", () => {
-  it("windows meeting at one boundary are one contact (the sample-gap split)", () => {
-    expect(mergeContiguousIntervals([[45, 50], [50, 60]])).toEqual([[45, 60]]);
-    expect(mergeContiguousIntervals([[45, 50.001], [50.0025, 60]])).toEqual([[45, 60]]);
-  });
-  it("keeps a verified separation apart", () => {
-    expect(mergeContiguousIntervals([[45, 50], [110, 120]])).toEqual([[45, 50], [110, 120]]);
-    expect(mergeContiguousIntervals([[45, 50], [50.01, 60]])).toHaveLength(2);
-  });
-  it("chains and never mutates its input", () => {
-    const input: Array<[number, number]> = [[0, 1], [1, 2], [2, 3], [10, 11]];
-    expect(mergeContiguousIntervals(input)).toEqual([[0, 3], [10, 11]]);
-    expect(input).toEqual([[0, 1], [1, 2], [2, 3], [10, 11]]);
-    expect(mergeContiguousIntervals([])).toEqual([]);
   });
 });
 
 describe("whole-program reach prescreen (2026-09-13)", () => {
   // PLUNGE plus a frame post the head and the table can never reach: both
   // of its pairs are dropped before the sweep; the plunge hit is unchanged.
-  it("drops pairs that can provably never come within the margin and keeps the hit", () => {
+  it("drops pairs that can provably never come within the margin and keeps the contact", () => {
     const machine = { ...PLUNGE, groups: [...PLUNGE.groups, { id: "frame", parent: "root" }] };
     const bodies: CollisionBody[] = [
       ...PLUNGE_BODIES,
@@ -1554,7 +1272,6 @@ describe("whole-program reach prescreen (2026-09-13)", () => {
     const [r, T] = sweepT(model, track([[0, 0, 0], [0, 0, -40]]), WCS0, { margin: 2 });
     expect(r.pairCount).toBe(3);
     expect(r.pairsPrescreened).toBe(2);
-    expect(r.hits.map(h => `${h.a}/${h.b}`)).toEqual(["spindle/vise"]);
     expect(T.pairs(), "the tables").toEqual(["spindle/vise"]);
   });
 
@@ -1584,9 +1301,9 @@ describe("whole-program reach prescreen (2026-09-13)", () => {
     const [r, T] = sweepT(buildCollisionModel(ROTARY, pillarAnd([0, 100, 0])), arc, WCS0, { margin: 1 });
     expect(r.pairsPrescreened).toBe(0);
     expect(T.eps, "the tables: the mid-arc stay").toHaveLength(1);
-    expect(r.hits).toHaveLength(1);
-    expect(r.hits[0]!.cum).toBeGreaterThan(85);
-    expect(r.hits[0]!.cum).toBeLessThan(91);
+    const e0 = T.eps[0]!, at = e0.ivs.length ? e0.ivs[0]!.enter : e0.closeAt;
+    expect(at).toBeGreaterThan(85);
+    expect(at).toBeLessThan(91);
   });
 
   it("drops a rotary pair whose whole arc stays clear", () => {
@@ -1594,7 +1311,6 @@ describe("whole-program reach prescreen (2026-09-13)", () => {
     // orbit diameter (2ρ = 200) — still 100 short of the post, minus box radii.
     const [r, T] = sweepT(buildCollisionModel(ROTARY, pillarAnd([0, 300, 0])), arc, WCS0, { margin: 1 });
     expect(r.pairsPrescreened).toBe(1);
-    expect(r.hits).toHaveLength(0);
     expect(T.eps).toEqual([]);
     expect(r.staticContacts).toHaveLength(0);
   });
@@ -1609,7 +1325,6 @@ describe("whole-program reach prescreen (2026-09-13)", () => {
     ];
     const [r, T] = sweepT(buildCollisionModel(machine, bodies),
       track([[0, 0, 0], [30, 0, 0], [60, 0, 0]]), WCS0, { margin: 2 });
-    expect(r.hits.map(h => `${h.a}/${h.b}`)).toContain("vise/post");
     expect(T.pairs(), "the tables").toContain("post/vise");
     // vise/post kept (the X range reaches the post at its far end); the
     // spindle never descends in this track, so BOTH its pairs are dropped.
@@ -1651,21 +1366,18 @@ describe("component boxes + query lower bound (2026-09-13)", () => {
     // reaches 5·√2 ≈ 7.07 toward −x from its centre.
     const [hit, TH] = sweepT(buildCollisionModel(machine, near([0, 0, Math.PI / 4], 5 + 7.07 + 5)),
       track([[0, 0, 0], [3.5, 0, 0]]), WCS0, { margin: 2 });
-    expect(hit.hits.map(h => `${h.a}/${h.b}`)).toContain("vise/post");
     expect(TH.pairs(), "the tables").toContain("post/vise");
     expect(hit.staticContacts).toHaveLength(0);
-    const [clear, TC] = sweepT(buildCollisionModel(machine, near(undefined, 5 + 5 + 5)),
+    const [, TC] = sweepT(buildCollisionModel(machine, near(undefined, 5 + 5 + 5)),
       track([[0, 0, 0], [1.5, 0, 0]]), WCS0, { margin: 2 });
-    expect(clear.hits.filter(h => h.b === "post" || h.a === "post")).toHaveLength(0);
     expect(TC.of("post", "vise")).toEqual([]);
   });
 
-  it("query order does not change the answer: swapping the bodies' declaration order gives the same hits", () => {
+  it("query order does not change the answer: swapping the bodies' declaration order gives the same tables", () => {
     const fwd = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const rev = buildCollisionModel(PLUNGE, [...PLUNGE_BODIES].reverse());
     const t = track([[0, 0, 0], [0, 0, -40]]);
-    const [a, TA] = sweepT(fwd, t, WCS0, { margin: 2 }), [b, TB] = sweepT(rev, t, WCS0, { margin: 2 });
-    expect(a.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)])).toEqual(b.hits.map(h => [h.line, h.cum.toFixed(3), h.dist.toFixed(6)]));
+    const [, TA] = sweepT(fwd, t, WCS0, { margin: 2 }), [, TB] = sweepT(rev, t, WCS0, { margin: 2 });
     expect(tsig(TA), "the tables").toEqual(tsig(TB));
     expect(TA.eps.length).toBeGreaterThan(0);
   });
@@ -1691,8 +1403,6 @@ describe("clearance across a break (R-03, implementation review 2026-09-15)", ()
     const base = track(points.map(x => [x, 0, 0]), undefined, undefined, points.map(() => 1));
     return brk ? { ...base, brk: new Uint8Array(brk) } : base;
   };
-  const pairsOf = (r: CollisionResult) =>
-    [...new Set(r.hits.map(h => [h.a, h.b].sort().join("|")))].sort();
 
   it("does not carry clearance across an unknown-start gap", () => {
     // Exactly the review's probe, through the REAL stream merger: the
@@ -1706,12 +1416,9 @@ describe("clearance across a break (R-03, implementation review 2026-09-15)", ()
       ustart: new Uint8Array([0, 0, 1, 0]),
     })!;
     expect([...merged.brk!]).toEqual([0, 0, 1, 0]);
-    const [combined, TC] = sweepT(makeModel(), merged, WCS0, { margin: 0.1 });
+    const [, TC] = sweepT(makeModel(), merged, WCS0, { margin: 0.1 });
     // The known motion after the gap, swept on its own, is the ground truth.
-    const [suffix, TS] = sweepT(makeModel(), xs([5, 0]), WCS0, { margin: 0.1 });
-    expect(suffix.hits.length).toBe(1);
-    expect(combined.hits.length).toBe(suffix.hits.length);
-    expect(pairsOf(combined)).toEqual(pairsOf(suffix));
+    const [, TS] = sweepT(makeModel(), xs([5, 0]), WCS0, { margin: 0.1 });
     // the tables: the same contact after the gap
     expect(TS.iv("tool", "vise")).toHaveLength(1);
     expect(TC.pairs()).toEqual(TS.pairs());
@@ -1722,12 +1429,8 @@ describe("clearance across a break (R-03, implementation review 2026-09-15)", ()
     // In contact, out of contact, unknown gap, back into contact: the second
     // approach is its own onset and must be reported.
     const tr = xs([0, 10, 9, 0], [0, 0, 1, 0]);
-    const [r, T] = sweepT(makeModel(), tr, WCS0, { margin: 0.1 });
+    const [, T] = sweepT(makeModel(), tr, WCS0, { margin: 0.1 });
     expect(T.iv("tool", "vise").some(([a]) => T.lineFrom(a) === 4), "the tables: the approach after the gap").toBe(true);
-    const onsets = r.hits.filter(h => h.continuation === undefined);
-    expect(onsets.length).toBeGreaterThanOrEqual(1);
-    // The approach AFTER the gap (the last segment, line 4) is found.
-    expect(r.hits.some(h => h.line === 4)).toBe(true);
   });
 
   it("invalidates non-tool pairs too", () => {
@@ -1740,10 +1443,8 @@ describe("clearance across a break (R-03, implementation review 2026-09-15)", ()
       { id: "shroud", group: "head", positions: boxPositions(2), translate: [0, 0, 9] },
       { id: "post", group: "table", positions: boxPositions(6), translate: [0, 0, 8] },
     ];
-    const [combined, TC] = sweepT(makeModel(extra), xs([20, 19, 5, 3], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
-    const [suffix, TS] = sweepT(makeModel(extra), xs([5, 3]), WCS0, { margin: 0.1 });
-    expect(pairsOf(suffix)).toEqual(["post|shroud"]);
-    expect(pairsOf(combined)).toEqual(pairsOf(suffix));
+    const [, TC] = sweepT(makeModel(extra), xs([20, 19, 5, 3], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
+    const [, TS] = sweepT(makeModel(extra), xs([5, 3]), WCS0, { margin: 0.1 });
     expect(TS.pairs(), "the tables").toEqual(["post/shroud"]);
     expect(TC.pairs(), "the tables").toEqual(TS.pairs());
   });
@@ -1751,10 +1452,8 @@ describe("clearance across a break (R-03, implementation review 2026-09-15)", ()
   it("reports the same findings with and without a relabel break", () => {
     // A relabel is a stationary re-expression: invalidating there is
     // conservative (one extra query), never a change of findings.
-    const [withBrk, TW] = sweepT(makeModel(), xs([20, 10, 10, 0], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
-    const [without, TO] = sweepT(makeModel(), xs([20, 10, 10, 0]), WCS0, { margin: 0.1 });
-    expect(pairsOf(withBrk)).toEqual(pairsOf(without));
-    expect(withBrk.hits.length).toBe(without.hits.length);
+    const [, TW] = sweepT(makeModel(), xs([20, 10, 10, 0], [0, 0, 1, 0]), WCS0, { margin: 0.1 });
+    const [, TO] = sweepT(makeModel(), xs([20, 10, 10, 0]), WCS0, { margin: 0.1 });
     expect(tsig(TW), "the tables").toEqual(tsig(TO));
     expect(TO.eps.length).toBeGreaterThan(0);
   });
@@ -1788,7 +1487,6 @@ describe("the move after a G43 or a tool change (operator 2026-10-07, haus.ngc L
     // L1 the first point, L3 `G43 … G0 X-20`: the relabel vertex where the
     // head stands (X20), then the move through the vise.
     const [r, T] = sweepT(model(), rapids([20, 20, -20], [1, 3, 3], { brk: [0, 1, 0] }), WCS0, { margin: 0.1 });
-    expect(r.hits.some(h => h.line === 3 && [h.a, h.b].sort().join("|") === "tool|vise")).toBe(true);
     expect(T.iv("tool", "vise").some(([a]) => T.lineFrom(a) === 3), "the tables: swept along the path").toBe(true);
     expect(r.uncertified).toBeNull();
   });
@@ -1798,7 +1496,6 @@ describe("the move after a G43 or a tool change (operator 2026-10-07, haus.ngc L
     // path into X-20 is not swept and X-20 itself is clear — so nothing is
     // found, and the result must not read as certified.
     const [r, T] = sweepT(model(), rapids([20, -20], [1, 3], { ustart: [1, 1] }), WCS0, { margin: 0.1 });
-    expect(r.hits).toHaveLength(0);
     expect(T.eps).toEqual([]);
     expect(r.uncertified).toBe("1 move runs from a position the preview cannot know — not checked until the position is known again (L3)");
     // the program's own first point is the entry move's, never counted
@@ -1834,23 +1531,17 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
   const finish = (it: ReturnType<typeof sweepCollisionsIter>): CollisionResult => {
     let r = it.next(); while (!r.done) r = it.next(); return r.value;
   };
-  const onsets = (r: CollisionResult) => r.hits.filter(h => h.continuation === undefined).length;
-  const contactLines = (r: CollisionResult) => [...new Set(r.hits.map(h => h.line))].sort((a, b) => a - b);
   // A clock that always says "yieldMs elapsed": checkpoints at every
   // segment and every SAMPLES_PER_CLOCK samples.
   const eagerClock = () => { let t = 0; return () => (t += 1000); };
 
   it("a small→large tool change mid-approach finds the later contact (TWP-06)", () => {
     const t = approach(40); t.tlo.fill(1, 5);          // Ø20 from vertex 5 on
-    const [changed, TC] = sweepT(makeModel(), t, WCS0, opts());
+    const [, TC] = sweepT(makeModel(), t, WCS0, opts());
     const large = approach(40); large.tlo.fill(1);     // Ø20 throughout
-    const [expected, TE] = sweepT(makeModel(), large, WCS0, opts());
+    const [, TE] = sweepT(makeModel(), large, WCS0, opts());
     expect(TE.iv("tool", "vise"), "the tables: one contact").toHaveLength(1);
     expect(tsig(TC), "the tables: the same contact after the change").toEqual(tsig(TE));
-    expect(onsets(expected)).toBe(1);
-    expect(onsets(changed)).toBe(1);
-    expect(contactLines(changed)).toEqual(contactLines(expected));
-    expect(changed.hits[0]!.b).toBe("vise");
   });
 
   it("a tool-offset change mid-approach invalidates the carried clearance, both directions (TWP-06)", () => {
@@ -1860,20 +1551,16 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     // a change to 50, never be carried).
     const ev: TloEvents = [{ seq: 0, xyz: [0, 0, 50], tool: 1 }, { seq: 1, xyz: [0, 0, 0], tool: 1 }];
     const t = approach(40); t.tlo.fill(1, 5);          // TLO 50 → 0 at vertex 5
-    const [r, T] = sweepT(makeModel(), t, WCS0, opts({ tloEvents: ev }));
-    expect(onsets(r)).toBe(1);
+    const [, T] = sweepT(makeModel(), t, WCS0, opts({ tloEvents: ev }));
     expect(T.iv("tool", "vise"), "the tables").toHaveLength(1);
     const back = approach(40); back.tlo.fill(0, 30);   // TLO 0 → 50 at vertex 30 (in contact by then)
     back.tlo.fill(1, 0, 30);
-    const [r2, T2] = sweepT(makeModel(), back, WCS0, opts({ tloEvents: ev }));
-    expect(onsets(r2)).toBe(1);
+    const [, T2] = sweepT(makeModel(), back, WCS0, opts({ tloEvents: ev }));
     const t2ivs = T2.of("tool", "vise").flatMap(e => e.ivs);
     expect(t2ivs, "the tables: one contact").toHaveLength(1);
     expect(T2.lineAt(t2ivs[0]!.exit), "the tables: the contact ends at the lift").toBeLessThanOrEqual(31);
-    expect(Math.max(...contactLines(r2))).toBeLessThanOrEqual(31);   // contact ends at the lift
     // No change at all: no contact under TLO 50.
     const lifted = approach(40);
-    expect(sweepCollisions(makeModel(), lifted, WCS0, opts({ tloEvents: ev })).hits).toEqual([]);
     expect(sweepT(makeModel(), lifted, WCS0, opts({ tloEvents: ev }))[1].eps).toEqual([]);
   });
 
@@ -1901,11 +1588,6 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
       expect(before || v.enter >= t.cum[33]! - 1e-6, `[${v.enter}, ${v.exit}]`).toBe(true);
     }
   };
-  const outsideStretch = (r: CollisionResult, t: ScrubTrack) => {
-    for (const h of r.hits) for (const [a, b] of h.intervals ?? []) {
-      expect(a >= t.cum[33]! - 1e-6 || b <= t.cum[27]! + 1e-6, `L${h.line} [${a}, ${b}]`).toBe(true);
-    }
-  };
 
   it("in the contact store the contact ends where the tool becomes unknown — no exit; the stretch is a gap; the next touch begins after an unknown tool (package 2, Codex R140)", () => {
     const store = new ContactStore(1, 0);
@@ -1926,52 +1608,43 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     const { t, ev, r, T } = unknownT3(undefined, { linStepMm: 0.5, rotStepDeg: 0.5 });
     tablesOutsideStretch(T, t);
     expect(T.iv("tool", "vise"), "the tables: before and after the stretch, two contacts").toHaveLength(2);
-    const lines = contactLines(r);
-    expect(lines.filter(l => l >= 29 && l <= 34)).toEqual([]);
-    expect(lines.some(l => l <= 28)).toBe(true);
-    expect(lines.some(l => l >= 35)).toBe(true);
-    // a touch after the stretch is a new onset, never its continuation
-    expect(onsets(r)).toBe(2);
+    // a touch after the stretch is a new contact, never its continuation
+    const tl = T.iv("tool", "vise").map(([a]) => T.lineFrom(a));
+    expect([tl[0]! <= 28, tl[1]! >= 35], "the lines they begin on").toEqual([true, true]);
     expect(r.notes).toContain("T3 has no length in the table: its own contacts are not checked (L29, L30, L31 …)");
-    outsideStretch(r, t);
     // the same track with T3 known (Ø20): one contact all the way
     const [known, TK] = sweepT(wide(), t, WCS0, opts({ tloEvents: ev, toolDims: { ...DIMS, 3: { diam: 20, len: 2 } },
                                                           linStepMm: 0.5, rotStepDeg: 0.5 }));
-    expect(onsets(known)).toBe(1);
     expect(TK.iv("tool", "vise"), "the tables: one contact all the way").toHaveLength(1);
     expect((known.notes ?? []).some(n => /no length in the table/.test(n))).toBe(false);
   });
 
-  it("one program line across the stretch: its refinement stays out of it", () => {
-    // every point on line 1 — the record's samples sit on both sides of the
-    // stretch, closer than a cluster gap (the default 5 mm cadence), and their
-    // boundaries are walked toward each other
-    const { t, r, T } = unknownT3(new Array(40).fill(1));
-    expect(r.hits.length).toBeGreaterThan(0);
-    outsideStretch(r, t);
+  it("one program line across the stretch: the store's bisections stay out of it", () => {
+    // every point on line 1 — the contact's samples sit on both sides of the
+    // stretch, closer than the default 5 mm cadence, and the store's
+    // bisections are walked toward each other
+    const { t, T } = unknownT3(new Array(40).fill(1));
     expect(T.eps.length).toBeGreaterThan(0);
     tablesOutsideStretch(T, t);
   });
 
   it("interleaving a side run at the initial checkpoint leaves the main run's findings unchanged (TWP-07)", () => {
     const large = approach(2); large.tlo.fill(1);
-    const [standalone, TS] = sweepT(makeModel(), large, WCS0, opts());
+    const [, TS] = sweepT(makeModel(), large, WCS0, opts());
     const shared = makeModel(), mixedStore = new ContactStore(1, 0);
     const main = sweepCollisionsIter(shared, large, WCS0, opts({ contacts: { store: mixedStore } }));
     main.next();                                        // parked at the initial yield, Ø20 installed
     const side = sweepCollisionsIter(shared, approach(2), WCS0, opts());   // Ø2 (live tool)
     side.next();                                        // its baseline re-installed Ø2 on the shared body
-    const mixed = finish(main);
+    finish(main);
     finish(side);
-    expect(mixed.hits.length).toBe(standalone.hits.length);
-    expect(mixed.hits.length).toBe(1);
     expect(tsig(tablesOf(shared, large, mixedStore)), "the tables").toEqual(tsig(TS));
     expect(TS.eps).toHaveLength(1);
   });
 
   it("interleaving a side run at ANY checkpoint of the main run leaves its findings unchanged (TWP-07)", () => {
     const large = approach(40); large.tlo.fill(1);
-    const [standalone, TS] = sweepT(makeModel(), large, WCS0, opts());
+    const [, TS] = sweepT(makeModel(), large, WCS0, opts());
     let total = 0;
     { const it = sweepCollisionsIter(makeModel(), large, WCS0, opts({ yieldMs: 0, clock: eagerClock() }));
       let r = it.next(); while (!r.done) { total++; r = it.next(); } }
@@ -1981,8 +1654,7 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
       const main = sweepCollisionsIter(shared, large, WCS0, opts({ yieldMs: 0, clock: eagerClock(), contacts: { store: st } }));
       for (let i = 0; i < k; i++) main.next();
       finish(sweepCollisionsIter(shared, approach(2), WCS0, opts()));   // poses + re-tools the shared model
-      const m = finish(main);
-      expect(contactLines(m), `interleaved at checkpoint ${k}`).toEqual(contactLines(standalone));
+      finish(main);
       expect(tsig(tablesOf(shared, large, st)), `the tables, interleaved at checkpoint ${k}`).toEqual(tsig(TS));
     }
   });
@@ -1997,11 +1669,10 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
     finish(main); finish(side);
     expect(shared.bodies[shared.toolBodyIdx]!.geom).toBe(original);
     // The response's counterexample: a subsequent sweep with the fallback
-    // (base) tool and no events must agree with a fresh model — 0 hits.
-    const fallback = sweepCollisions(shared, approach(2), WCS0, { margin: 0.1 }).hits.length;
-    expect(fallback).toBe(sweepCollisions(makeModel(), approach(2), WCS0, { margin: 0.1 }).hits.length);
-    expect(fallback).toBe(0);
-    expect(sweepT(shared, approach(2), WCS0, { margin: 0.1 })[1].eps, "the tables").toEqual([]);
+    // (base) tool and no events must agree with a fresh model — no contact.
+    const fallback = sweepT(shared, approach(2), WCS0, { margin: 0.1 })[1];
+    expect(tsig(fallback)).toEqual(tsig(sweepT(makeModel(), approach(2), WCS0, { margin: 0.1 })[1]));
+    expect(fallback.eps, "the tables").toEqual([]);
   });
 
   it("restoreBaseTool puts the base cylinder back on a model a dropped run left mid-sweep (TWP-07)", () => {
@@ -2034,21 +1705,15 @@ describe("tool geometry lifetime (TWP-06/07, review 2026-09-14)", () => {
       if (!idxOf.has(key)) { idxOf.set(key, events.length); events.push({ seq: events.length, xyz: [0, 0, z], tool }); }
       t.tlo[i] = idxOf.get(key)!;
     }
-    const [full, TF] = sweepT(makeModel(), t, WCS0, opts({ tloEvents: events }));
-    const ref = new Set<string>(), tref = new Set<string>();
+    const [, TF] = sweepT(makeModel(), t, WCS0, opts({ tloEvents: events }));
+    const tref = new Set<string>();
     for (let i = 1; i < n; i++) {
       // Every segment alone, under its own tool/TLO: no certificate can
       // carry across a boundary here by construction.
       const seg = track([[t.pos[3 * (i - 1)]!, 0, 0], [t.pos[3 * i]!, 0, 0]], undefined, [i, i + 1], [1, 1]);
       seg.tlo = new Uint32Array([t.tlo[i]!, t.tlo[i]!]);
-      for (const h of sweepCollisions(makeModel(), seg, WCS0, opts({ tloEvents: events })).hits) {
-        ref.add(`${i + 1}/${h.a}/${h.b}`);
-      }
       for (const p of sweepT(makeModel(), seg, WCS0, opts({ tloEvents: events }))[1].pairs()) tref.add(`${i + 1}/${p}`);
     }
-    expect(ref.size).toBeGreaterThan(0);
-    const got = new Set(full.hits.map(h => `${h.line}/${h.a}/${h.b}`));
-    expect([...got].sort()).toEqual([...ref].sort());
     // the tables: the lines the full run's stays reach (a stay beginning at a
     // segment's end belongs to the next segment — open bounds) are the lines
     // whose segment, swept fresh, has a stay of its own
@@ -2077,7 +1742,6 @@ describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
     // 4 in the joint-range scan (every 4096 of 20 k) + the pre-segment one.
     expect(zeros).toBeGreaterThanOrEqual(5);
     while (!r.done) r = it.next();
-    expect(r.value.hits).toEqual([]);
     expect(r.value.truncated).toBeNull();
   });
 
@@ -2134,7 +1798,6 @@ describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
     expect(r.done).toBe(true);
     const res = r.value as CollisionResult;
     expect(res.samples).toBe(0);
-    expect(res.hits).toEqual([]);
     expect(res.truncated).toEqual({ covered: 0, reason: "stopped" });
     expect(m.bodies[m.toolBodyIdx]!.geom).toBe(m.baseTool!.geom);
   });
@@ -2170,7 +1833,6 @@ describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
     expect(r.done).toBe(true);
     const res = r.value as CollisionResult;
     expect(res.samples).toBe(0);
-    expect(res.hits).toEqual([]);
     expect(res.truncated).toEqual({ covered: 0, reason: "stopped" });
     expect(m.bodies[m.toolBodyIdx]!.geom).toBe(m.baseTool!.geom);
     // Through the worker's driver: a cancel lands at the first checkpoint.
@@ -2180,7 +1842,6 @@ describe("initialization checkpoints (TWP-11, review 2026-09-14)", () => {
     expect(slice.checkpoints).toBeLessThanOrEqual(2);
   });
 });
-
 
 describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
   // A thin slide passes 1.5 mm from a wall — inside the 2 mm margin the
@@ -2211,7 +1872,7 @@ describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
     { id: "wall", group: "frame", positions: join(slab(180, 10, 10, 110, 11.5, 0), slab(1, 2.5, 10, 100.5, 5.25, 0)) },
     { id: "slide", group: "xslide", positions: slab(1, 10, 10, 0, 0, 0) },
   ]);
-  const touch = (r: CollisionResult, x0: number, T: ReturnType<typeof tablesOf>) => {
+  const touch = (x0: number, T: ReturnType<typeof tablesOf>) => {
     // the tables: one stay, its touch interval where it touches — never a stay without a touch
     expect(T.eps.map(e => e.ivs.length), "the tables: the touch is a contact").toEqual([1]);
     const tw = T.iv("slide", "wall");
@@ -2219,18 +1880,14 @@ describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
     // boundaries bisected to 1e-3 (the store keeps the touching side)
     expect(Math.abs(tw[0]![0] + x0 - 99.5), "the tables: where it touches").toBeLessThanOrEqual(2e-3);
     expect(Math.abs(tw[0]![1] + x0 - 101.5), "the tables: where it parts").toBeLessThanOrEqual(2e-3);
-    expect(r.hits.filter(h => h.dist > 1e-4), "no near-miss record stands for the touch").toEqual([]);
-    const h = r.hits.find(x => x.dist <= 1e-4)!;
-    expect(h, "the touch is a contact").toBeDefined();
-    expect(h.intervals!.map(([a, b]) => [a + x0, b + x0].map(v => +v.toFixed(3))), "where it touches").toEqual([[99.5, 101.5]]);
   };
 
   it("is a contact wherever the samples fall", () => {
     // Every phase of the old 5-unit cadence against the bump: 48 put the
     // samples at 98 and 103.
     for (const x0 of [48, 48.3, 48.6, 49, 49.5]) {
-      const [r, T] = sweepT(model(), track([[x0, 0, 0], [180, 0, 0]], undefined, [1, 2]), WCS0, { margin: 2 });
-      touch(r, x0, T);
+      const [, T] = sweepT(model(), track([[x0, 0, 0], [180, 0, 0]], undefined, [1, 2]), WCS0, { margin: 2 });
+      touch(x0, T);
     }
   });
 
@@ -2245,18 +1902,12 @@ describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
       { id: "slide", group: "xslide", positions: slab(1, 10, 10, 0, 0, 0) },
     ]);
     for (const x0 of [48, 48.3, 48.6, 49, 49.5]) {
-      const [r, T] = sweepT(twoBumps, track([[x0, 0, 0], [180, 0, 0]], undefined, [1, 2]), WCS0, { margin: 2 });
+      const [, T] = sweepT(twoBumps, track([[x0, 0, 0], [180, 0, 0]], undefined, [1, 2]), WCS0, { margin: 2 });
       const tivs = T.iv("slide", "wall").map(([a, b]) => [a + x0, b + x0] as [number, number]);
       for (const x of [99.6, 101.4, 102.8, 103.9])
         expect(tivs.some(([a, b]) => a <= x && x <= b), `start ${x0}: the tables' touch at X ${x} lies in a touch interval — ${JSON.stringify(tivs)}`).toBe(true);
       expect(Math.min(...tivs.map(iv => iv[0])), `start ${x0}: the tables: no contact before the first bump`).toBeGreaterThan(99.5 - 1e-3);
       expect(Math.max(...tivs.map(iv => iv[1])), `start ${x0}: the tables: no contact past the second`).toBeLessThan(104 + 1e-3);
-      const ivs = r.hits.flatMap(h => (h.intervals ?? []).map(([a, b]) => [a + x0, b + x0] as [number, number]));
-      for (const x of [99.6, 101.4, 102.8, 103.9]) {
-        expect(ivs.some(([a, b]) => a <= x && x <= b), `start ${x0}: the touch at X ${x} lies in a contact interval — ${JSON.stringify(ivs)}`).toBe(true);
-      }
-      expect(Math.min(...ivs.map(iv => iv[0])), `start ${x0}: no contact before the first bump`).toBeGreaterThan(99.5 - 1e-3);
-      expect(Math.max(...ivs.map(iv => iv[1])), `start ${x0}: no contact past the second`).toBeLessThan(104 + 1e-3);
     }
   });
 
@@ -2265,8 +1916,8 @@ describe("a touch inside the margin (the oracle hunt, 2026-10-07)", () => {
     // with the slide 1.5 from the wall, then X into the bump. A certificate
     // carried as an absolute position from the still segment reached 5 past
     // the X segment's start (X 103): the bump lay inside it.
-    const [r, T] = sweepT(model(), track([[98, 0, 0], [98, 10, 0], [180, 10, 0]], undefined, [7, 7, 7]), WCS0, { margin: 2 });
-    touch(r, 98 - 10, T);
+    const [, T] = sweepT(model(), track([[98, 0, 0], [98, 10, 0], [180, 10, 0]], undefined, [7, 7, 7]), WCS0, { margin: 2 });
+    touch(98 - 10, T);
   });
 });
 
@@ -2287,7 +1938,6 @@ describe("re-sampling after a touch follows the contact state (Codex R87 VP-I45)
     for (const x of a) { o.set(x, k); k += x.length; }
     return o;
   };
-  const rapidOnLine3 = (r: CollisionResult) => r.hits.some(h => h.rapid && h.line === 3 && h.dist <= 1e-4);
 
   it("a rotary rapid re-contact after a feed contact and a real separation is a gouge", () => {
     // The cutter on a 1000 mm radius passes two stock blocks: feed A 5→10°
@@ -2311,8 +1961,7 @@ describe("re-sampling after a touch follows the contact state (Codex R87 VP-I45)
       ]);
       const t: ScrubTrack = { ...track([[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]],
         [[5, 0, 0], [10, 0, 0], [15, 0, 0], [20, 0, 0]], [1, 2, 3, 4], [0, 0, 1, 1]) };
-      const [r, T] = sweepT(model, t, WCS0, { margin: 2 });
-      expect(r.hits.some(h => h.rapid && h.line >= 3 && h.dist <= 1e-4), `second block at ${second}°: the rapid gouge — ${JSON.stringify(r.hits.map(h => [h.line, h.rapid, h.dist]))}`).toBe(true);
+      const [, T] = sweepT(model, t, WCS0, { margin: 2 });
       expect(T.iv("stock", "tool").some(([a]) => T.lineFrom(a) >= 3), `second block at ${second}°: the tables' rapid gouge — ${JSON.stringify(T.eps)}`).toBe(true);
     }
   });
@@ -2330,8 +1979,7 @@ describe("re-sampling after a touch follows the contact state (Codex R87 VP-I45)
       { id: "slide", group: "xslide", tool: true, positions: slab(1, 10, 10, 0, 0) },
     ]);
     const t = track([[48, 0, 0], [100, 0, 0], [105, 0, 0], [180, 0, 0]], undefined, [1, 2, 3, 4], [0, 0, 1, 1]);
-    const [r, T] = sweepT(model, t, WCS0, { margin: 0.2 });
-    expect(rapidOnLine3(r)).toBe(true);
+    const [, T] = sweepT(model, t, WCS0, { margin: 0.2 });
     expect(T.iv("slide", "wall").some(([a]) => T.lineFrom(a) === 3), "the tables: the rapid gouge on L3").toBe(true);
   });
 });
@@ -2421,20 +2069,13 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
   const post = (positions = boxPositions(60)): CollisionBody => ({ id: "post", group: "table", positions });
   const nub: CollisionBody = { id: "nub", group: "head", positions: boxPositions(1) };
   const xs = (points: number[]): ScrubTrack => track(points.map(x => [x, 0, 0]));
-  const iv = (h: CollisionHit) => h.intervals!.map(([a, b]) => [Number(a.toFixed(2)), Number(b.toFixed(2))]);
   /** The tables' touch intervals of nub ↔ post, rounded to 0.01. */
   const tiv = (T: ReturnType<typeof tablesOf>) => T.iv("nub", "post").map(([a, b]) => [Number(a.toFixed(2)), Number(b.toFixed(2))]);
 
   it("in, wholly inside and out: one contact, from the surface crossing in to the crossing out", () => {
     const [r, T] = sweepT(buildCollisionModel(machine(), [post(), nub]), xs([60, 0, 60]), WCS0, { margin: 0.1 });
     expect(tiv(T), "the tables: one interval, the surface crossing in to the crossing out").toEqual([[29.5, 90.5]]);
-    const onsets = r.hits.filter(h => h.continuation === undefined);
-    expect(onsets.map(h => h.line)).toEqual([2]);
-    const l3 = r.hits.find(h => h.line === 3)!;
-    expect(l3.continuation).toBe(2);
-    // refined at the surfaces: in at X 30.5 (cum 29.5), out at X 30.5 (90.5)
-    expect(iv(onsets[0]!)).toEqual([[29.5, 60]]);
-    expect(iv(l3)).toEqual([[60, 90.5]]);
+    expect(T.iv("nub", "post").map(([a, b]) => [T.lineFrom(a), T.lineAt(b)]), "from L2 into L3").toEqual([[2, 3]]);
     expect(r.uncertified).toBeNull();
   });
 
@@ -2445,10 +2086,6 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(r.staticContacts).toEqual([]);
     expect(tiv(T), "the tables").toEqual([[0, 30.5]]);
     expect(T.of("nub", "post")[0]!.flags & EP_AT_START, "the tables: proven at the first pose").toBeTruthy();
-    expect(r.hits.map(h => [h.line, h.continuation])).toEqual([[2, undefined]]);
-    expect(iv(r.hits[0]!)).toEqual([[0, 30.5]]);
-    // proven at the first pose: the program STARTS in contact (step 4 plan 1d)
-    expect(r.hits[0]!.atStart).toBe(true);
     // the contact tables say it at the table's first sample: the view finds it there (plan 4.4)
     const model = buildCollisionModel(machine(40), [post(), nub]), store = new ContactStore(1, 0);
     sweepCollisions(model, xs([-40, 0]), WCS0, { margin: 0.1, contacts: { store } });
@@ -2463,22 +2100,17 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     // the head's base at X 40: X −9.45 puts the cube 0.05 clear of the post's
     // face at the first pose (margin 0.1) — seeded; the first move drives in
     // to the centre (X −40): a collision on L2, never "starts in contact"
-    const [r, T] = sweepT(buildCollisionModel(machine(40), [post(), nub]), xs([-9.45, -40]), WCS0, { margin: 0.1 });
+    const [, T] = sweepT(buildCollisionModel(machine(40), [post(), nub]), xs([-9.45, -40]), WCS0, { margin: 0.1 });
     expect(T.of("nub", "post").map(e => [e.ivs.length, e.flags & EP_AT_START]), "the tables: a touch on L2, no start in contact").toEqual([[1, 0]]);
     expect(T.lineFrom(T.iv("nub", "post")[0]![0])).toBe(2);
-    const onset = r.hits.find(h => h.continuation === undefined && h.dist <= 1e-4)!;
-    expect(onset.line).toBe(2);
-    expect(onset.atStart).toBeUndefined();
     // and a contact that begins on the program's move is no start contact either
-    const [later, TL] = sweepT(buildCollisionModel(machine(), [post(), nub]), xs([60, 0, 60]), WCS0, { margin: 0.1 });
-    expect(later.hits.some(h => h.atStart)).toBe(false);
+    const [, TL] = sweepT(buildCollisionModel(machine(), [post(), nub]), xs([60, 0, 60]), WCS0, { margin: 0.1 });
     expect(TL.eps.some(e => e.flags & EP_AT_START)).toBe(false);
   });
 
   it("inside at the first pose and at rest: a static contact, never a finding", () => {
     const [r, T] = sweepT(buildCollisionModel(machine(), [post(), nub]), xs([0, 2]), WCS0, { margin: 0.1 });
     expect(r.staticContacts.map(c => [c.a, c.b].sort().join("|"))).toEqual(["nub|post"]);
-    expect(r.hits).toEqual([]);
     expect(T.eps).toEqual([]);
   });
 
@@ -2490,8 +2122,7 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
                 wcs: new Uint32Array([0, 0, 1, 1]), brk: new Uint8Array([0, 0, 1, 0]) };
     const zero = { ox: 0, oy: 0, oz: 0, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 };
     const epochTerms = [zero, { ...zero, ox: -95 }];
-    const [r, T] = sweepT(buildCollisionModel(machine(), [post(), nub]), t, WCS0, { margin: 0.1, epochTerms });
-    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([4]);
+    const [, T] = sweepT(buildCollisionModel(machine(), [post(), nub]), t, WCS0, { margin: 0.1, epochTerms });
     expect(T.iv("nub", "post").map(([a]) => T.lineFrom(a)), "the tables: asked at once after the jump").toEqual([4]);
   });
 
@@ -2506,11 +2137,10 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     const t = track([[0, 0, -45], [0, 1, -45], [0, 2, -45]], undefined, [1, 2, 3]);
     t.tlo = new Uint32Array([TLO_NONE, TLO_NONE, 0]);
     t.tloEvents = [{ seq: 0, xyz: [0, 0, 0], tool: 2 }];
-    const [r, T] = sweepT(m, t, WCS0, {
+    const [, T] = sweepT(m, t, WCS0, {
       margin: 0.1, tloEvents: t.tloEvents, liveTool: 1,
       toolDims: { 1: { diam: 2, len: 4 }, 2: { diam: 12, len: 4 } },
     });
-    expect(r.hits.filter(h => h.continuation === undefined).map(h => [h.line, h.a])).toEqual([[3, "tool"]]);
     expect(T.iv("pin", "tool").map(([a]) => T.lineFrom(a)), "the tables: a contact at once on L3").toEqual([3]);
   });
 
@@ -2523,9 +2153,7 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     const g = new THREE.BoxGeometry(3, 60, 60).toNonIndexed();
     const wall = new Float32Array(g.getAttribute("position").array as Float32Array);
     g.dispose();
-    const [r, T] = sweepT(buildCollisionModel(machine(), [post(wall), nub]), xs([10, 0, -10]), WCS0, { margin: 0.1 });
-    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2]);
-    expect(r.hits.find(h => h.line === 3)?.continuation).toBe(2);
+    const [, T] = sweepT(buildCollisionModel(machine(), [post(wall), nub]), xs([10, 0, -10]), WCS0, { margin: 0.1 });
     // the tables: one interval through the wall, from L2 into L3
     const tw = T.iv("nub", "post");
     expect(tw.map(([a, b]) => [T.lineFrom(a), T.lineAt(b)])).toEqual([[2, 3]]);
@@ -2537,14 +2165,10 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     // start must be used up by each line's travel: kept whole per line, it
     // would outlast the crossing out (X 29.5) and the contact would never end.
     const pts = Array.from({ length: 21 }, (_, i) => -30 + 2 * i);   // the cube at 10 … 50
-    const [r, T] = sweepT(buildCollisionModel(machine(40), [post(), nub]), xs(pts), WCS0, { margin: 0.1 });
-    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2]);
+    const [, T] = sweepT(buildCollisionModel(machine(40), [post(), nub]), xs(pts), WCS0, { margin: 0.1 });
     // the tables: one interval from the start to the crossing out (cum 20.5, L12)
     expect(tiv(T)).toEqual([[0, 20.5]]);
     expect(T.lineAt(T.iv("nub", "post")[0]![1])).toBe(12);
-    // in contact to the crossing out: the cube at 30.5 (cum 20.5), on line 12
-    expect(Math.max(...r.hits.map(h => h.line))).toBe(12);
-    expect(Math.max(...r.hits.flatMap(h => h.intervals!.map(iv => iv[1])))).toBeCloseTo(20.5, 2);
   });
 
   it("an inside answer does not cross a jump", () => {
@@ -2553,9 +2177,8 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     const t = { ...track([[0, 0, 0], [5, 0, 0], [5, 0, 0], [6, 0, 0]]),
                 wcs: new Uint32Array([0, 0, 1, 1]), brk: new Uint8Array([0, 0, 1, 0]) };
     const zero = { ox: 0, oy: 0, oz: 0, oa: 0, ob: 0, oc: 0, tx: 0, ty: 0, tz: 0, cth: 1, sth: 0 };
-    const [r, T] = sweepT(buildCollisionModel(machine(40), [post(), nub]), t, WCS0,
+    const [, T] = sweepT(buildCollisionModel(machine(40), [post(), nub]), t, WCS0,
                               { margin: 0.1, epochTerms: [{ ...zero, ox: -40 }, { ...zero, ox: 60 }] });
-    expect(r.hits.map(h => h.line)).toEqual([2]);
     // the tables: the contact ends at the jump — nothing on the line after it
     expect(T.iv("nub", "post").map(([a, b]) => [T.lineFrom(a), T.lineAt(b)])).toEqual([[2, 2]]);
   });
@@ -2563,24 +2186,21 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
   it("parked and continued (the worker's snapshots), an inside contact ends as the uninterrupted sweep", () => {
     // In through the face, wholly inside and out again in 0.5 mm lines (240
     // segments: a checkpoint every 16): a snapshot at every checkpoint
-    // refines copies — posing the model, asking the rays — while the sweep
-    // is suspended; continuing must end exactly as the sweep without them.
+    // while the sweep is suspended; continuing must end exactly as the sweep
+    // without them.
     const pts: number[] = [];
     for (let x = 60; x > 0; x -= 0.5) pts.push(x);
     for (let x = 0; x <= 60; x += 0.5) pts.push(x);
     const model = buildCollisionModel(machine(), [post(), nub]);
     const [sync, TS] = sweepT(model, xs(pts), WCS0, { margin: 0.1 });
-    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
+    const snap: SnapshotHandle = { take: null, meta: null };
     const parkedStore = new ContactStore(1, 0);
     const it = sweepCollisionsIter(model, xs(pts), WCS0, { margin: 0.1, snapshot: snap, contacts: { store: parkedStore } });
     let r = it.next(), parks = 0;
-    while (!r.done) { snap.take!("stopped"); snap.peek!(); parks++; r = it.next(); }
+    while (!r.done) { snap.take!("stopped"); snap.meta!(); parks++; r = it.next(); }
     expect(parks).toBeGreaterThan(10);
     const full = r.value as CollisionResult;
-    const shape = (x: CollisionResult) => x.hits.map(h => [h.line, h.continuation, h.intervals?.map(iv => iv.map(v => +v.toFixed(3)))]);
-    expect(shape(full)).toEqual(shape(sync));
     expect([full.samples, full.notes]).toEqual([sync.samples, sync.notes]);
-    expect(sync.hits.filter(h => h.continuation === undefined)).toHaveLength(1);
     // the tables of the parked run: the uninterrupted run's
     expect(tsig(tablesOf(model, xs(pts), parkedStore)), "the tables").toEqual(tsig(TS));
     expect(TS.iv("nub", "post")).toHaveLength(1);
@@ -2594,17 +2214,12 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     // the surfaces 0.22 apart, past twice the margin, which reads as a
     // separation unless the distance measured on line 2 — used up across the
     // boundary — says a crossing may have come, and the inside is asked.
-    const [r, T] = sweepT(buildCollisionModel(machine(), [post(boxPositions(20)), { id: "nub", group: "head", positions: boxPositions(0.01) }]),
+    const [, T] = sweepT(buildCollisionModel(machine(), [post(boxPositions(20)), { id: "nub", group: "head", positions: boxPositions(0.01) }]),
                               xs([15, 9.775, 5]), WCS0, { margin: 0.01 });
     // the tables: one interval from the face on L2 to the end on L3
     const tn = T.iv("nub", "post");
     expect(tn.map(([a, b]) => [T.lineFrom(a), T.lineAt(b)])).toEqual([[2, 3]]);
     expect(tn[0]![1]).toBeCloseTo(10, 2);
-    // one contact from the face to the end, carried onto line 3
-    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2]);
-    expect(r.hits.find(h => h.line === 3)?.continuation).toBe(2);
-    const end = Math.max(...r.hits.flatMap(h => h.intervals?.map(iv => iv[1]) ?? [h.cumEnd]));
-    expect(end).toBeCloseTo(10, 2);
   });
 
   it("a container whose surface is not closed is named once for the model and keeps the surface's guarantee", () => {
@@ -2617,7 +2232,6 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
     expect(m.open).toEqual(["post"]);
     const [r, T] = sweepT(m, xs([60, 0, 60]), WCS0, { margin: 0.1 });
     expect(r.notes).toEqual(["post: surface not closed — a part wholly inside it is not found"]);
-    expect(r.hits.filter(h => h.continuation === undefined).map(h => h.line)).toEqual([2, 3]);
     // the tables: the two surface crossings, two touch intervals, no gap
     expect(T.iv("nub", "post").map(([a]) => T.lineFrom(a))).toEqual([2, 3]);
     expect(T.st.gaps.rows).toBe(0);
@@ -2630,35 +2244,6 @@ describe("a body wholly inside another (the inside check, collision-inside.plan.
 describe("a probe's braking range", () => {
   // the head comes within 4 of the vise at Z −36 (clear), touches at −40
   const BAND_PTS = [[0, 0, 0], [0, 0, -36], [0, 0, -41], [0, 0, -33], [0, 0, 0]];
-
-  it("a contact only inside the range is possible, never certain", () => {
-    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    const t = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
-    t.band = new Uint8Array([0, 0, 1, 1, 0]);
-    t.cond = new Uint8Array([0, 0, 1, 1, 1]);
-    const r = sweepCollisions(model, t, WCS0, { margin: 2, probeBands: [{ tool: 2, line: 3 }] });
-    expect(r.hits.map(h => [h.line, h.possible ?? false])).toEqual([[9, true], [10, true]]);
-    expect(clashTargets(r.hits).every(c => c.possible)).toBe(true);
-    // control: the same path without the range is a certain collision
-    const plain = sweepCollisions(model, track(BAND_PTS, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2 });
-    expect(plain.hits.some(h => h.line === 9 && !h.possible)).toBe(true);
-  });
-
-  it("a touch inside the range is no first confirmed contact (step 4 plan 1b); the same path without it is", () => {
-    const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
-    const firstOf = (t: ReturnType<typeof track>, o: Record<string, unknown> = {}) => {
-      const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
-      const it = sweepCollisionsIter(model, t, WCS0, { margin: 2, snapshot: snap, ...o });
-      let seen: CollisionHit | null = null;
-      for (let r = it.next(); !r.done; r = it.next()) seen = seen ?? snap.first?.() ?? null;
-      return seen;
-    };
-    const t = track(BAND_PTS, undefined, [7, 8, 9, 10, 11]);
-    t.band = new Uint8Array([0, 0, 1, 1, 0]);
-    t.cond = new Uint8Array([0, 0, 1, 1, 1]);
-    expect(firstOf(t, { probeBands: [{ tool: 2, line: 3 }] })).toBeNull();
-    expect(firstOf(track(BAND_PTS, undefined, [7, 8, 9, 10, 11]))?.line).toBe(9);
-  });
 
   it("in the contact store a touch only inside the range is a POSSIBLE interval; without the range a certain one (package 2)", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
@@ -2702,12 +2287,8 @@ describe("a probe's braking range", () => {
       const t = track(pts, undefined, [7, 8, 9, 10, 11], [0, 0, 0, 0, 1]);
       t.band = new Uint8Array([0, 0, 1, 1, 0]);
       t.cond = new Uint8Array([0, 0, 1, 1, 1]);
-      const [r, T] = sweepT(model, t, WCS0, { margin: 2 });
-      const targets = clashTargets(r.hits);
-      expect(targets.some(h => h.line === 11 && !h.possible && h.rapid)).toBe(true);
-      // the cutter's feed into the stock on the range is machining: nothing possible to say
-      if (cutting) expect(targets.some(h => h.possible)).toBe(false);
-      // the tables: a certain rapid contact on L11, apart from the range's
+      const [, T] = sweepT(model, t, WCS0, { margin: 2 });
+      // a certain rapid contact on L11, apart from the range's
       // (a move's kind as the view reads it: a touch on a rapid — IV_RAPID —, or the episode's first, entered on one)
       const tb = T.eps.flatMap(e => e.ivs.map((v, k) => ({ line: T.lineFrom(v.enter), possible: (v.flags & IV_POSSIBLE) !== 0,
         rapid: (v.flags & IV_RAPID) !== 0 || (k === 0 && (e.flags & EP_RAPID) !== 0) })));
@@ -2716,20 +2297,15 @@ describe("a probe's braking range", () => {
     });
   }
 
-  it("a certain hit after a possible one on the range is a finding of its own", () => {
+  it("a certain sample after a possible one on the range makes the interval certain from its entry (plan 2.3)", () => {
     const model = buildCollisionModel(PLUNGE, PLUNGE_BODIES);
     const t = track([[0, 0, 0], [0, 0, -36], [0, 0, -41], [0, 0, -42]], undefined, [7, 8, 9, 10]);
     t.band = new Uint8Array([0, 0, 1, 0]);
-    const [r, T] = sweepT(model, t, WCS0, { margin: 2 });
-    // the tables (plan 2.3, agreed in Fassung 5): ONE interval from the range's
-    // touch on — a certain sample (L10) makes it certain; the records split it
-    // per line, possible on L9 and a finding of its own on L10
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
+    // plan 2.3 (agreed in Fassung 5): ONE interval from the range's touch on —
+    // a certain sample (L10) makes it certain from its entry
     const tb = T.eps.flatMap(e => e.ivs).map(v => [T.lineFrom(v.enter), (v.flags & IV_POSSIBLE) !== 0]);
     expect(tb, "the tables").toEqual([[9, false]]);
-    const l10 = r.hits.find(h => h.line === 10)!;
-    expect(l10.possible).toBeUndefined();
-    expect(l10.continuation).toBeUndefined();
-    expect(clashTargets(r.hits).map(c => [c.line, c.possible ?? false])).toEqual([[9, true], [10, false]]);
   });
 
   it("an external Z offset at the check's basis is named, enabled at 0, disabled with a value, or not read", () => {
@@ -2757,17 +2333,11 @@ describe("a probe's braking range", () => {
     const pts = [[0, 0, 0], [0, 0, -41], [0, 0, -30], [0, 0, -41], [0, 0, -42]];
     const t = track(pts, undefined, [7, 8, 9, 10, 11]);
     t.band = new Uint8Array([0, 0, 1, 1, 0]);
-    const [r, T] = sweepT(model, t, WCS0, { margin: 2 });
+    const [, T] = sweepT(model, t, WCS0, { margin: 2 });
     // the tables: ONE stay from L8 to the end — the range verifies no separation
     expect(T.of("spindle", "vise"), "the tables: one stay").toHaveLength(1);
-    const l11 = r.hits.find(h => h.line === 11)!;
-    expect(l11.continuation).toBe(8);
-    expect(l11.possible).toBeUndefined();
-    // the range's own touches continue the certain contact, possibly
-    expect(r.hits.find(h => h.line === 10)).toMatchObject({ continuation: 8, possible: true });
     // control: without the range the separation is verified, L10 a new onset
-    const [plain, TP] = sweepT(model, track(pts, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2 });
-    expect(plain.hits.find(h => h.line === 10)!.continuation).toBeUndefined();
+    const [, TP] = sweepT(model, track(pts, undefined, [7, 8, 9, 10, 11]), WCS0, { margin: 2 });
     expect(TP.of("spindle", "vise").map(e => e.ivs.map(v => TP.lineFrom(v.enter))), "the tables: two stays, the second from L10").toEqual([[8], [10]]);
   });
 });
@@ -2797,7 +2367,7 @@ describe("the contact store across an unknown tool, a cutting feed and a spent b
 
   it("an unknown tool is a knowledge gap for every tool pair, in contact before or not; the contact after it says so", () => {
     const { store, result } = run([20, 15, 5], [1, 1, 1], [0, 1, 2]);
-    expect(result.notes?.some(t => t.includes("no length")), "the records name the unknown tool").toBe(true);
+    expect(result.notes?.some(t => t.includes("no length")), "the result names the unknown tool").toBe(true);
     expect(gaps(store), "its gap, though no contact came before").toContain(GAP_TOOL_UNKNOWN);
     const ivs = ivRows(store);
     expect(ivs.length, "the contact after it").toBeGreaterThan(0);
@@ -2805,8 +2375,7 @@ describe("the contact store across an unknown tool, a cutting feed and a spent b
   });
 
   it("a muted feed contact before an unknown tool mutes nothing after it: the rapid contact on L4 is written", () => {
-    const { store, result } = run([20, 5, 4, 3], [0, 0, 1, 1], [0, 0, 1, 2], true);
-    expect(result.hits.some(h => h.line === 4), "the records report L4").toBe(true);
+    const { store } = run([20, 5, 4, 3], [0, 0, 1, 1], [0, 0, 1, 2], true);
     const ivs = ivRows(store);
     expect(ivs.length, "the store has it").toBeGreaterThan(0);
     expect(ivs[ivs.length - 1]!.flags & IV_AFTER_UNKNOWN_TOOL).toBeTruthy();

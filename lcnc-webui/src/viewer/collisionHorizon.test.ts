@@ -52,10 +52,9 @@ describe("the sweep's distance horizon", () => {
     };
     const model = buildCollisionModel(machine, bodies);
     const store = new ContactStore(1, 0);
-    const r = sweepCollisions(model, track, { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, 0] } as any, { margin: 2, contacts: { store } });
-    const onset = (b: string) => r.hits.find(h => h.a === "rear_column" && h.b === b && h.dist <= 1e-3)?.cum;
-    // ...and in the contact tables (step 4 package 2): the pair's first
-    // touch interval enters there (the sweep's parameter is the move's mm)
+    sweepCollisions(model, track, { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0, tool: [0, 0, 0] } as any, { margin: 2, contacts: { store } });
+    // the contact tables (step 4 package 2): the pair's first touch interval
+    // enters there (the sweep's parameter is the move's mm)
     const tabs = tablesByPair(store, len);
     const pairOf = (b: string) => model.pairs.findIndex(([x, y]) => [model.bodies[x]!.id, model.bodies[y]!.id].sort().join("/") === ["rear_column", b].sort().join("/"));
     const tableOnset = (b: string) => tabs.get(pairOf(b))?.touches.map(([a]) => a).sort((x, y) => x - y)[0];
@@ -66,9 +65,6 @@ describe("the sweep's distance horizon", () => {
       a_yoke_casting: 275.401, y_saddle: 308.241, a_bearing_pedestals: 366.928, a_bearing_rings: 495.130, a_drive_covers: 561.254,
     };
     for (const [b, at] of Object.entries(TRUE)) {
-      const got = onset(b);
-      expect(got, `rear_column/${b} is reported`).toBeDefined();
-      expect(Math.abs(got! - at), `rear_column/${b} at its first contact (${at} mm), got ${got?.toFixed(1)}`).toBeLessThan(0.01);
       const t = tableOnset(b);
       expect(t, `rear_column/${b}: a touch interval in the tables`).toBeDefined();
       expect(Math.abs(t! - at), `rear_column/${b}: the tables' first touch at its first contact (${at} mm), got ${t?.toFixed(3)}`).toBeLessThan(0.01);

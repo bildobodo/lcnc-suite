@@ -254,8 +254,11 @@ export class ContactStore {
   readonly episodes: ColumnTable;
   readonly intervals: ColumnTable;
   readonly gaps: ColumnTable;
-  /** A delta is out and not acknowledged (VP139-03: at most one). */
-  private inFlight = false;
+  /** Deltas out and not acknowledged (VP139-03: one). The delta that carries
+   *  the store's FIRST interval goes out beside an unacknowledged one — once
+   *  per store, so at most two (C2, Codex R167: an acknowledgement held
+   *  behind a near miss's delta held the first touch back by its whole hold). */
+  private inFlight = 0;
 
   constructor(request: number, generation: number, budget: StoreBudget = REQUEST_BUDGET) {
     this.request = request;
@@ -265,18 +268,21 @@ export class ContactStore {
     this.gaps = new ColumnTable(GAP, budget.gaps);
   }
 
-  /** The next delta, or null while the last one is unacknowledged or
-   *  nothing changed. Its buffers are fresh — transferable. */
+  /** The next delta, or null while the last one is unacknowledged (unless
+   *  this one carries the first interval) or nothing changed. Its buffers are
+   *  fresh — transferable. */
   takeDelta(force = false): StoreDelta | null {
-    if (this.inFlight) return null;
+    if (this.inFlight > (this.firstIntervalUnsent ? 1 : 0)) return null;
     if (!force && !this.pending()) return null;
-    this.inFlight = true;
+    this.inFlight++;
     return { request: this.request, generation: this.generation,
              episodes: this.episodes.take(), intervals: this.intervals.take(), gaps: this.gaps.take() };
   }
-  /** The receiver applied the last delta. */
-  ack(): void { this.inFlight = false; }
-  get waiting(): boolean { return this.inFlight; }
+  /** The receiver applied the oldest delta out. */
+  ack(): void { if (this.inFlight > 0) this.inFlight--; }
+  get waiting(): boolean { return this.inFlight > 0; }
+  /** Its first interval is written and has not gone out. */
+  get firstIntervalUnsent(): boolean { return this.intervals.sent === 0 && this.intervals.rows > 0; }
 
   /** A sender's delta on this (receiving) store; another request or
    *  generation is refused (the caller drops it). */

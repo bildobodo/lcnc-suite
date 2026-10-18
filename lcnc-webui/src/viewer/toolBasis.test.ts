@@ -61,8 +61,7 @@ function consume(raw: Record<string, any>, basis: number[], normalise = true) {
     { id: "tool", group: "head", positions: toolCylinderPositions(6, 10), tool: true },
   ]);
   const store = new ContactStore(1, 0);
-  const hits = sweepCollisions(model, track, wcs, { margin: 0.1, tloEvents: d.tloEvents, contacts: { store } }).hits
-    .map(h => ({ line: h.line, a: h.a, b: h.b }));
+  sweepCollisions(model, track, wcs, { margin: 0.1, tloEvents: d.tloEvents, contacts: { store } });
   // the contact tables (step 4 package 2): every stay and touch interval
   const tables = Array.from({ length: store.episodes.rows }, (_, e) => {
     const ivs: string[] = [];
@@ -78,7 +77,7 @@ function consume(raw: Record<string, any>, basis: number[], normalise = true) {
   });
   const r4 = (a: ArrayLike<number>) => Array.from(a, v => Math.round(v * 1e4) / 1e4);
   return { pos: r4(d.feed.pos).concat(r4(d.rapid.pos)), track: r4(track.pos), joints,
-           path: r4(path.pos), hits, tables, samples };
+           path: r4(path.pos), tables, samples };
 }
 
 function normaliseOrNot(d: ReturnType<typeof decodePreviewStreams>, tloStart: number[], basis: number[], on: boolean) {
@@ -103,14 +102,10 @@ describe("tool-basis normalisation (VP-I20)", () => {
   it("Codex R55: the clash at Z10 is found only with the normalisation", () => {
     const { r55 } = FIXTURE.pairs;
     const fresh10 = consume(r55["10"], [0, 0, 10]);
-    expect(fresh10.hits.length).toBeGreaterThan(0);
-    expect(fresh10.tables.length, "the tables").toBeGreaterThan(0);
-    expect(consume(r55["20"], [0, 0, 20]).hits).toEqual([]);
+    expect(fresh10.tables.length, "a contact in the tables").toBeGreaterThan(0);
     expect(consume(r55["20"], [0, 0, 20]).tables).toEqual([]);
     // the Z20 payload resolved to basis 10 WITHOUT moving its points: no clash
-    expect(consume(r55["20"], [0, 0, 10], false).hits).toEqual([]);
     expect(consume(r55["20"], [0, 0, 10], false).tables).toEqual([]);
-    expect(consume(r55["20"], [0, 0, 10]).hits).toEqual(fresh10.hits);
     expect(consume(r55["20"], [0, 0, 10]).tables).toEqual(fresh10.tables);
   });
 });
