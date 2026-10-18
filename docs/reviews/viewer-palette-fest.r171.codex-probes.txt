@@ -1,0 +1,16 @@
+head fe1a153e VP-I123/I124: the undecidable stretches united, in counted steps; the page's build is the guards' build
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut/lcnc-webui
+
+ ✓ src/viewer/zz_codex_r170_delta.test.ts (1 test) 95ms
+ ✓ src/viewer/zz_codex_r168_rapid.test.ts (1 test) 8ms
+ ✓ src/viewer/zz_codex_r170_undecidable.test.ts (3 tests) 76ms
+ ✓ src/viewer/zz_codex_r168_sweep.test.ts (1 test) 55ms
+ ✓ src/viewer/zz_codex_r169_index.test.ts (2 tests) 368ms
+   ✓ R169: the last rapid in a joined piece is found without reading its interval chain  321ms
+
+ Test Files  5 passed (5)
+      Tests  8 passed (8)
+   Start at  12:57:30
+   Duration  630ms (transform 755ms, setup 0ms, import 951ms, tests 602ms, environment 0ms)
+

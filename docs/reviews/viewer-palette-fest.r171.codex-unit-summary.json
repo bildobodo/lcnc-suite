@@ -1,0 +1,60 @@
+{
+  "passed": 130,
+  "failed": 0,
+  "files": [
+    {
+      "name": "src/viewer/contactMeter.test.ts",
+      "passed": 12,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/contactPublisher.test.ts",
+      "passed": 34,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/contactView.test.ts",
+      "passed": 41,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/contactViewBudget.test.ts",
+      "passed": 7,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/contactViewUnion.test.ts",
+      "passed": 21,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/r170-codex-delta-budget.test.ts",
+      "passed": 1,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/r170-codex-undecidable.test.ts",
+      "passed": 3,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/shownContacts.test.ts",
+      "passed": 9,
+      "failed": 0,
+      "status": "passed"
+    },
+    {
+      "name": "src/viewer/r171-codex-notes.test.ts",
+      "passed": 2,
+      "failed": 0,
+      "status": "passed"
+    }
+  ]
+}

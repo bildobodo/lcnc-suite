@@ -1,0 +1,186 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r171-0leq1zyt/repo/lcnc-webui/playwright.codex.config.ts",
+    "rootDir": "/tmp/codex-r171-0leq1zyt/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r171-0leq1zyt/browser-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r171-0leq1zyt/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:collisions|sim-panel)\\.viewer\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r171-0leq1zyt/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "collisions.viewer.spec.ts",
+      "file": "collisions.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 67,
+                  "error": {
+                    "message": "AggregateError: ",
+                    "stack": "AggregateError: "
+                  },
+                  "errors": [
+                    {
+                      "message": "AggregateError: "
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T11:44:52.529Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r171-0leq1zyt/browser-results/collisions.viewer-a-sweep--a6db9--own-key-plan-3-5-round-B4-/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r171-0leq1zyt/browser-results/collisions.viewer-a-sweep--a6db9--own-key-plan-3-5-round-B4-/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-16152cc7428c78e1fe5e",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1613,
+          "column": 1
+        },
+        {
+          "title": "the states without a first touch — an undecidable gap alone: progress, park, end, basis and caveats (C2)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 70,
+                  "error": {
+                    "message": "AggregateError: ",
+                    "stack": "AggregateError: "
+                  },
+                  "errors": [
+                    {
+                      "message": "AggregateError: "
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T11:44:52.940Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r171-0leq1zyt/browser-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2-/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r171-0leq1zyt/browser-results/collisions.viewer-the-stat-c25c8-k-end-basis-and-caveats-C2-/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-5ec255d95d5429fe6ebd",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1797,
+          "column": 3
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T11:44:51.754Z",
+    "duration": 1315.7949999999998,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 2,
+    "flaky": 0
+  }
+}

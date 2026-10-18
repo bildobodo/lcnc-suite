@@ -1,0 +1,386 @@
+[
+  {
+    "scenario": 0,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 1,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 2,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 3,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 4,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 5,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 6,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 7,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 8,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 9,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 10,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 11,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 12,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 13,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 14,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 15,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 16,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 17,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 18,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 19,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 20,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 21,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 22,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 23,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 24,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 25,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 26,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 27,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 28,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 29,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 30,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 31,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 32,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 33,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 34,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 35,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 36,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 37,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 38,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 39,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 40,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 41,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 42,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 43,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 44,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 45,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 46,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  },
+  {
+    "scenario": 47,
+    "sourceCount": 2,
+    "shardsPerGeneration": 2,
+    "gaps": 256,
+    "pairCount": 4,
+    "pass": true
+  }
+]
