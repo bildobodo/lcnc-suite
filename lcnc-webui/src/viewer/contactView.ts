@@ -70,6 +70,7 @@ import {
 import type { ClashTarget } from "./clashTargets";
 import type { CollisionLineMark } from "./collision";
 import { JUMP_NUDGE } from "./findingNav";
+import { displayLineForPoint, displayLineOf } from "./scrubTrack";
 import { STEP_OPS, allocF64, allocI32, allocU32, growF64, growU32, runToEnd, sortSteps, type Steps } from "./steps";
 
 /** One request's tables as a view reads them. */
@@ -1484,8 +1485,17 @@ export function targetKind(v: ContactView, i: number): number { check(v); return
 export function targetKey(v: ContactView, i: number): string { check(v); return keyOf(v, i); }
 
 /** The line at a position of the shown track; `atEnd` reads a position where
- *  something ENDS (trackLineAt). */
-export type LineAt = (pos: number, atEnd?: boolean) => number | null;
+ *  something ENDS (trackLineAt). Null: the position has no line to show (plan
+ *  1.3, displayLineAt) — `nameAt`, where given, names the subroutine it lies
+ *  in. */
+export interface LineAt { (pos: number, atEnd?: boolean): number | null; nameAt?: (pos: number) => string | null }
+
+/** A target without a line (plan 1.3): line 0, named by its subroutine when
+ *  one is known — never its raw line. */
+function nameTarget(target: ClashTarget, name: string | null | undefined): void {
+  target.noLine = true;
+  if (name) target.subName = name;
+}
 
 /** The kind bits on a views' object. */
 function flagTarget(target: ClashTarget, k: number): ClashTarget {
@@ -1511,6 +1521,7 @@ function objectOf(v: ContactView, i: number, lineAt: LineAt): ClashTarget {
     const pos = t.source.at(p.start), r = reachOf(v, ref), e = pieceShownEnd(v, t, p), end = r === undefined ? e : Math.max(e, r);
     const line = own ? own.lineAt(p.start) : lineAt(pos);
     const target = flagTarget({ cum: pos, cumEnd: end, key: pieceKey(v, ref, info), line: line ?? 0, a, b, dist: 0, near: false }, k);
+    if (line === null) nameTarget(target, own ? own.lineAt.nameAt?.(p.start) : lineAt.nameAt?.(pos));
     const last = own ? own.lineAt(p.end, true) : end > pos ? lineAt(end, true) : null;
     if (last !== null && last > target.line) target.spanEndLine = last;
     return target;
@@ -1524,6 +1535,7 @@ function objectOf(v: ContactView, i: number, lineAt: LineAt): ClashTarget {
   const line = own ? own.lineAt(ownPos) : lineAt(pos);
   const target = flagTarget({ cum: pos, cumEnd: end, key: keyOf(v, i), line: line ?? 0, a, b,
     dist: k & T_NEAR ? t.st.episodes.get(ep, "closeDist") : 0, near: (k & T_NEAR) !== 0 }, k);
+  if (line === null) nameTarget(target, own ? own.lineAt.nameAt?.(ownPos) : lineAt.nameAt?.(pos));
   // the last line the contact reaches: the move its end lies in or ends at
   const last = own && !(k & T_NEAR) ? own.lineAt(ownEnd(t, row).end, true) : end > pos ? lineAt(end, true) : null;
   if (last !== null && last > target.line) target.spanEndLine = last;
@@ -2247,13 +2259,13 @@ export function* undecidableStretchesSteps(v: ContactView, ops: Ops = { n: 0 }):
 }
 
 /** A pair's undecidable stretches in words — the bar's caveat names them
- *  beside the result's notes. Lines are the track's own (`lineAt`); the
- *  display lines of calls and remaps come with C3. `none` stands for a
- *  position without a line. */
-export function undecidableNote(u: UndecidableStretches, lineAt: (pos: number) => number | null, none = "—"): string {
+ *  beside the result's notes. Lines are DISPLAY lines (`lineAt`, plan 1.3):
+ *  a position without one reads its subroutine's name, else `none`. */
+export function undecidableNote(u: UndecidableStretches, lineAt: LineAt, none = "—"): string {
   const at = u.spans.map(([a, b]) => {
-    const la = lineAt(a), lb = lineAt(b);
-    return la == null ? none : la === lb || lb == null ? `L${la}` : `L${la}–L${lb}`;
+    const la = lineAt(a), lb = lineAt(b, true);
+    if (la == null) { const n = lineAt.nameAt?.(a); return n ? `in ${n}` : none; }
+    return la === lb || lb == null ? `L${la}` : `L${la}–L${lb}`;
   }).join(", ") + (u.more ? " …" : "");
   return `inside check undecidable for ${u.a} ↔ ${u.b} (${at}) — a part wholly inside the other is not found there`;
 }
@@ -2333,17 +2345,38 @@ export function heldBytes(v: ContactView): number {
  *  `atEnd` the position is where something ENDS: on a segment's end it is
  *  that move's (a contact leaving at a line boundary ends on the line before). */
 export function trackLineAt(t: { count: number; cum: ArrayLike<number>; lines: ArrayLike<number> }): LineAt {
-  return (pos: number, atEnd = false) => {
-    if (t.count < 1) return null;
-    if (t.count === 1) return t.lines[0]!;
-    // the first point past pos (atEnd: at or past it)
-    let lo = 1, hi = t.count - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (atEnd ? t.cum[mid]! < pos : t.cum[mid]! <= pos) lo = mid + 1; else hi = mid;
-    }
-    return t.lines[lo]!;
-  };
+  return (pos: number, atEnd = false) => (t.count < 1 ? null : t.lines[pointAt(t, pos, atEnd)]!);
+}
+
+/** The track point a position names: the first point past it — the move
+ *  beginning there — or, `atEnd`, at or past it (the move ending there). */
+function pointAt(t: { count: number; cum: ArrayLike<number> }, pos: number, atEnd: boolean): number {
+  if (t.count === 1) return 0;
+  let lo = 1, hi = t.count - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (atEnd ? t.cum[mid]! < pos : t.cum[mid]! <= pos) lo = mid + 1; else hi = mid;
+  }
+  return lo;
+}
+
+/** What a track carries for its display lines (ScrubTrack's fields). */
+export interface DisplayTrack {
+  count: number; cum: ArrayLike<number>; lines: ArrayLike<number>; brk?: ArrayLike<number>;
+  lineOk?: Uint8Array; sub?: Uint8Array; cline?: Uint16Array; subNames?: string[];
+}
+
+/** The DISPLAY line at a position (step 4 package 2, plan 1.3, C3): the
+ *  point there through displayLineForPoint — the ONE rule the run playhead
+ *  and the scrub follow. In a called file it is the call line, never the
+ *  file's own number; an untrusted point without a call line has no line
+ *  (null) — never its raw line. `nameAt` names the marked subroutine there.
+ *  `trusted`: the payload's wholesale trust, for a track without per-point
+ *  trust (`!lines_untrusted`). */
+export function displayLineAt(t: DisplayTrack, trusted: boolean): LineAt {
+  const f: LineAt = (pos: number, atEnd = false) => (t.count < 1 ? null : displayLineForPoint(t, pointAt(t, pos, atEnd), trusted).line);
+  f.nameAt = (pos: number) => (t.count < 1 ? null : displayLineForPoint(t, pointAt(t, pos, false), trusted).subName);
+  return f;
 }
 
 /** Per raw line, the runs of the track's moves it owns — every run apart
@@ -2363,13 +2396,26 @@ export interface LineRuns {
 }
 
 export function lineRuns(t: { count: number; cum: ArrayLike<number>; lines: ArrayLike<number>; brk?: ArrayLike<number> }): LineRuns {
+  return runsBy(t, i => t.lines[i]!);
+}
+
+/** The runs per DISPLAY line (plan 4.2, C3): a call line owns its called
+ *  file's moves — each execution a run of its own (a loop's, a second call's);
+ *  a move without a display line (displayLineAt) is in no run and ends the
+ *  one before it, so a mark never reaches over it. */
+export function displayLineRuns(t: DisplayTrack, trusted: boolean): LineRuns {
+  return runsBy(t, i => displayLineOf(t, i, trusted) || -1);
+}
+
+/** The runs of the moves by `lineOf` (a point's line; negative: none). */
+function runsBy(t: { count: number; cum: ArrayLike<number>; brk?: ArrayLike<number> }, lineOf: (i: number) => number): LineRuns {
   // the runs in track order: consecutive moves of one line
   const runLine: number[] = [], runA: number[] = [], runB: number[] = [];
   let maxLine = 0, broken = false;
   for (let i = 1; i < t.count; i++) {
     // a break ends the run: no run reaches over it
     if (t.brk?.[i]) { broken = true; continue; }
-    const ln = t.lines[i]!;
+    const ln = lineOf(i);
     if (ln > maxLine) maxLine = ln;
     const k = runLine.length - 1;
     if (k >= 0 && runLine[k] === ln && !broken) runB[k] = t.cum[i]!;

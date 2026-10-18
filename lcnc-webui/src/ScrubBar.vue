@@ -41,7 +41,7 @@ import { fmtElapsed, NO_VALUE } from "./format";
 import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, limitStopOf, measurementsOf, type SimRowKind, partLabel } from "./viewer/simRows";
+import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, type SimRowKind, partLabel } from "./viewer/simRows";
 import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
@@ -1263,9 +1263,10 @@ const boundaryDetail = computed(() => {
     .filter(x => (x.a === b.a && x.b === b.b) || (x.a === b.b && x.b === b.a))
     .reduce((m, x) => Math.max(m, sv!.lineAt(x.e, true) ?? 0), 0);
   const named = bc.map(b => {
-    const last = lastLine(b);
-    const more = last > b.line ? `, provisional to L${last}` : "";
-    return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (L${b.line}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
+    // its display line at its place (plan 1.3, C3) — the sweep's own line only without a view
+    const line = sv ? sv.lineAt(b.cum) ?? 0 : b.line, last = lastLine(b);
+    const more = last > line ? `, provisional to L${last}` : "";
+    return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (${lineWordAt(sv?.lineAt, b.cum, b.line)}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
   }).join("; ");
   return `In contact at the check's start: ${named} — where each began and what it is, the full check says. `;
 });
@@ -1277,7 +1278,7 @@ const checkCardView = computed(() => {
   if (!sweepView.value) return null;
   const e = props.collisionEntryResult;
   return checkCard(props.collisionContext ?? null, shownResult.value, {
-    stale: !!props.collisionContextStale, unit: linearUnit.value,
+    stale: !!props.collisionContextStale, unit: linearUnit.value, lineAt: shownView.value?.lineAt ?? null,
     entry: !!e && e.track === track.value && shownResult.value === e.result });
 });
 /** Which tools the check poses — said in the check's "?", not on the bar.

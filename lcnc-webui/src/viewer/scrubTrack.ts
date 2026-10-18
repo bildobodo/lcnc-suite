@@ -613,18 +613,31 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
  *  (`viaCall: true`) — the o-call/remap line the operator wrote — so the
  *  highlight tracks execution through subs instead of going dark. */
 export function displayLineForPoint(
-  t: Pick<ScrubTrack, "lines" | "lineOk" | "sub" | "cline" | "subNames">, i: number, wholesaleTrusted: boolean,
+  t: { lines: ArrayLike<number>; lineOk?: ArrayLike<number>; sub?: ArrayLike<number>; cline?: ArrayLike<number>; subNames?: string[] },
+  i: number, wholesaleTrusted: boolean,
 ): { line: number | null; subName: string | null; viaCall: boolean } {
-  const ln = t.lines[i] ?? 0;
-  const ok = t.lineOk ? t.lineOk[i] === 1 : wholesaleTrusted;
-  const sb = t.sub?.[i];
-  const cl = t.cline?.[i] ?? 0;
-  const own = ok && ln > 0;
+  const line = displayLineOf(t, i, wholesaleTrusted), sb = t.sub?.[i];
   return {
-    line: own ? ln : cl > 0 ? cl : null,
+    line: line > 0 ? line : null,
     subName: (sb != null && sb !== 0xff && t.subNames) ? t.subNames[sb] ?? null : null,
-    viaCall: !own && cl > 0,
+    viaCall: line > 0 && line !== ownLineOf(t, i, wholesaleTrusted),
   };
+}
+
+/** The point's own line when it may show it (its trust), else 0. */
+function ownLineOf(t: { lines: ArrayLike<number>; lineOk?: ArrayLike<number> }, i: number, wholesaleTrusted: boolean): number {
+  const ln = t.lines[i] ?? 0;
+  return (t.lineOk ? t.lineOk[i] === 1 : wholesaleTrusted) && ln > 0 ? ln : 0;
+}
+
+/** displayLineForPoint's line without an object (a pass over every point —
+ *  the code marks' runs, plan 4.2): the point's own line, else its call
+ *  line, else 0 = none. */
+export function displayLineOf(
+  t: { lines: ArrayLike<number>; lineOk?: ArrayLike<number>; cline?: ArrayLike<number> }, i: number, wholesaleTrusted: boolean,
+): number {
+  const own = ownLineOf(t, i, wholesaleTrusted);
+  return own > 0 ? own : t.cline?.[i] ?? 0;
 }
 
 /** True when the scrub parameter sits pinned at the track's very end —

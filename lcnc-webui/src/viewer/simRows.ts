@@ -4,8 +4,9 @@
 // (viewer/clashTargets.ts, the limit and tool targets of ScrubBar), so the
 // list, the marks and prev/next can never disagree. Pure; unit-tested.
 import { limitViolationText, type LimitViolation } from "../ws/bulkData";
-import { fmtDist, fmtElapsed, fmtPct } from "../format";
+import { NO_VALUE, fmtDist, fmtElapsed, fmtPct } from "../format";
 import { isNearMiss, type ClashTarget } from "./clashTargets";
+import type { LineAt } from "./contactView";
 
 export type SimRowKind = "clash" | "limit" | "tool";
 
@@ -66,6 +67,15 @@ export interface SimRowInput {
 
 export const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
 
+/** A position's line in words (plan 1.3, C3): "L<n>" for its DISPLAY line,
+ *  else its subroutine's name, else "—" — never a raw line. Without a shown
+ *  track (`lineAt` none) the sweep's own line `raw`. */
+export function lineWordAt(lineAt: LineAt | null | undefined, pos: number, raw: number): string {
+  if (!lineAt) return `L${raw}`;
+  const l = lineAt(pos);
+  return l != null && l > 0 ? `L${l}` : lineAt.nameAt?.(pos) ?? NO_VALUE;
+}
+
 /** The measurement note of a tool-change row: its line's, for its tool. */
 function toolNote(notes: SimRowInput["toolNotes"], t: { line: number; tool: number }): string {
   const n = notes?.get(t.line);
@@ -98,7 +108,10 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
     if ((t.spanEndLine ?? t.line) > t.line) notes.push(`through L${t.spanEndLine}`);
     if (t.possible) notes.push("possible — in the probe's braking range");
     if (t.earlier) notes.push("from the earlier run");
-    rows.push({ key: t.key, kind: "clash", line: t.line, lineLabel: t.entryMove ? "entry" : `L${t.line}`,
+    // no line to show (plan 1.3): its subroutine's name, else "—" — never its raw line
+    if (t.noLine && !t.entryMove) notes.push(t.subName ? `in ${t.subName}, no line of this program` : "no line of this program");
+    rows.push({ key: t.key, kind: "clash", line: t.line,
+      lineLabel: t.entryMove ? "entry" : t.noLine ? (t.subName ? `(${t.subName})` : NO_VALUE) : `L${t.line}`,
       cum: t.cum, cumEnd: t.cumEnd,
       what: t.a && t.b ? `${partLabel(t.a)} ↔ ${partLabel(t.b)}` : "Collision",
       note: notes.join(" · "), rapid: !!t.rapid, at: at(t.cum) });

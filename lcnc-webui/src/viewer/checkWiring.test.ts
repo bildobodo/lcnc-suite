@@ -324,6 +324,7 @@ function specs(o: { run: boolean; done: boolean; progress: number }) {
     const collisionResult = { value: { truncated: null } }, collisionTrack = { value: base };
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null };
     let _colResultReq = 1, _colPartialReq = null, _colReqId = 1, _colSideProgress = o.progress;
+    const _linesTrusted = () => true;
     const collisionProgress = { value: 1 };
     const _colRunSideBase = () => null;
     const shift = 10, sliceEnd = 10;

@@ -87,6 +87,29 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
   await ctl({ op: "reset" });
 });
 
+// C3 (plan 1.3/4.2): a contact in a called file reads its CALL line — in the
+// list and in the code's marks — never the file's own number; without a
+// verified call line it reads its subroutine's name and marks nothing. The
+// traverse into the yoke and the retract run in sub "touch" whose own
+// numbers (7, 8) are not this program's.
+for (const [name, cline, label, marked] of [["a verified call line", 5, "L5", "5"], ["no verified call line", 0, "(touch)", null]] as const) {
+  test(`a contact in a called file — ${name}: the list reads ${label}, the code marks ${marked ?? "nothing"} (C3, plan 1.3/4.2)`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    await prepare(page, context, { file: `/c3-${cline}.ngc`, version: 3300 + cline, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+      feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]],
+      extra: { feed_lineok: new Uint8Array([1, 1, 0, 0]), feed_sub: new Uint8Array([255, 255, 0, 0]), sub_names: ["touch"],
+               feed_cline: new Uint8Array(Uint16Array.from([0, 0, cline, cline]).buffer) } });
+    await expect(clashRows(page).first(), "the nose in the yoke").toBeVisible({ timeout: 60_000 });
+    await expect(clashRows(page).first().locator(".rowPick")).toHaveText(label);
+    await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+    await page.getByRole("tab", { name: "Program", exact: true }).click();
+    const marks = page.locator(".codeLine.collision .lineNumber");
+    if (marked === null) await expect(marks, "no line, no mark").toHaveCount(0);
+    else await expect(marks, "the call line, never the sub's own 7").toHaveText([marked]);
+    await ctl({ op: "reset" });
+  });
+}
+
 // Round B3: the tint and the timeline's band read the contact tables — the
 // finding's own bodies light where the jump lands, the band covers the
 // contact on the timeline, and both go where the pose leaves it.
@@ -1314,21 +1337,24 @@ async function sideRunReady(page: Page, context: BrowserContext) {
  *  the tables). */
 const sideTables = new WeakMap<Page, ContactStore>();
 /** The side sweep's first touch, delivered: its table — one contact of the
- *  model's first pair, inside the side track's first move (the line of the
- *  move ending at point 1, kept in `first` for the spec). */
-const sideFirst = async (page: Page) => {
-  const { id, at, pairs } = await page.evaluate(() => {
+ *  model's first pair, inside the move from point `seg` to `seg + 1` of the
+ *  side track (the line of that move, kept in `first` for the spec). Point 0
+ *  is the start the run stood at: the move to point 1 is the entry — no
+ *  program line (prependEntry, W2 P6; plan 1.3, C3) — point 1 → 2 the
+ *  beginning's first move of a program line. */
+const sideFirst = async (page: Page, seg = 1) => {
+  const { id, at, pairs } = await page.evaluate(seg => {
     const t = (window as any).__sideTap;
-    return { id: t.side.id as number, at: (t.side.track.cum[0] + t.side.track.cum[1]) / 2 as number, pairs: t.pairs as Array<[string, string]> | null };
-  });
+    return { id: t.side.id as number, at: (t.side.track.cum[seg] + t.side.track.cum[seg + 1]) / 2 as number, pairs: t.pairs as Array<[string, string]> | null };
+  }, seg);
   const st = oneContact(id, 0, at, at);
   sideTables.set(page, st);
-  await page.evaluate(([w, pairs]) => {
-    const t = (window as any).__sideTap, i = 1;
+  await page.evaluate(([w, pairs, seg]) => {
+    const t = (window as any).__sideTap, i = seg + 1;
     const [a, b] = pairs?.[0] ?? ["spindle_nose", "a_yoke"];
     t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a, b, dist: 0, rapid: true };
     t.deliver({ progress: 0.2, contacts: [(window as any).__fromWire(w)], contactPairs: pairs ?? [[a, b]] });
-  }, [wireDelta(st), pairs] as const);
+  }, [wireDelta(st), pairs, seg] as const);
 };
 /** The side request's result, its last (empty) delta riding with it. */
 const sideResultMsg = async (page: Page) => {
@@ -1361,6 +1387,22 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   await expect(clash, "final: checked, the beginning with it").toHaveAttribute("aria-label", /^1 collision.* · checked in full$/);
   await expect(clashRows(page), "final: in the list").toHaveCount(1);
   expect(await runLog(page)).toContain("beginning");
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// C3 (plan 1.3): a contact on the entry — the move from where the run stood to
+// the program's first point, which no program line commanded (prependEntry,
+// W2 P6) — reads "entry" and marks no code line: never the raw line of the
+// point it ends at.
+test("a run's bound beginning: a contact on the entry reads \"entry\" and marks no code line (C3, plan 1.3)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await sideRunReady(page, context);
+  await sideFirst(page, 0);
+  await expect(clashRows(page), "in the list").toHaveCount(1);
+  await expect(clashRows(page).first().locator(".rowPick")).toHaveText("entry");
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".codeLine.collision"), "no line commanded it").toHaveCount(0);
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });

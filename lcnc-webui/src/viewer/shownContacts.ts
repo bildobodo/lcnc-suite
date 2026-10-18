@@ -8,8 +8,9 @@
 // apart from the receiver it reads.
 import { unionScratch, type UnionScratch } from "./contactUnion";
 import { entryJoins } from "./contactMerge";
-import { boundaryStretchesSteps, buildContactViewSteps, contactBandsSteps, lineRuns, runsOf, startTargetsSteps, trackLineAt, undecidableStretchesSteps, viewCountsSteps,
-         type ContactSource, type ContactView, type LineAt, type SourceJoin, type UndecidableStretches, type ViewCounts } from "./contactView";
+import { boundaryStretchesSteps, buildContactViewSteps, contactBandsSteps, displayLineAt, displayLineRuns, runsOf, startTargetsSteps, undecidableStretchesSteps,
+         viewCountsSteps, type ContactSource, type ContactView, type DisplayTrack, type LineAt, type SourceJoin, type UndecidableStretches,
+         type ViewCounts } from "./contactView";
 import { clashIndexOfView, clashTicksSteps } from "./simWindow";
 import { runToEnd, type Steps } from "./steps";
 import type { GenerationTables } from "./contactPublisher";
@@ -49,20 +50,22 @@ export interface ShownSource {
    *  VP-I109); a running side's is open because it runs. */
   sweptToEnd?: boolean;
   /** A folded source's own track (a run check's beginning): its events' lines
-   *  are this track's. Left out of the cache key (`specKey`). */
-  track?: OwnTrack;
+   *  are this track's DISPLAY lines (plan 1.3). Left out of the cache key (`specKey`). */
+  track?: DisplayTrack;
+  /** The payload's wholesale line trust, for a track without its own per
+   *  point (`!lines_untrusted`; default trusted). */
+  linesTrusted?: boolean;
 }
 
-type OwnTrack = { count: number; cum: ArrayLike<number>; lines: ArrayLike<number>; brk?: ArrayLike<number> };
-const ownTracks = new WeakMap<object, NonNullable<ContactSource["ownTrack"]>>();
-function ownTrackOf(t: OwnTrack): NonNullable<ContactSource["ownTrack"]> {
-  let o = ownTracks.get(t);
-  if (!o) {
-    const runs = lineRuns(t);
-    o = { lineAt: trackLineAt(t), runs: (line: number) => runsOf(runs, line) };
-    ownTracks.set(t, o);
+const ownTracks = new WeakMap<object, { trusted: boolean; o: NonNullable<ContactSource["ownTrack"]> }>();
+function ownTrackOf(t: DisplayTrack, trusted: boolean): NonNullable<ContactSource["ownTrack"]> {
+  let c = ownTracks.get(t);
+  if (!c || c.trusted !== trusted) {
+    const runs = displayLineRuns(t, trusted);
+    c = { trusted, o: { lineAt: displayLineAt(t, trusted), runs: (line: number) => runsOf(runs, line) } };
+    ownTracks.set(t, c);
   }
-  return o;
+  return c.o;
 }
 
 /** The spec as a cache key: its data, never a track's arrays. */
@@ -114,7 +117,7 @@ export function* shownContactViewSteps(tables: (id: number) => GenerationTables 
                    ...(h?.stores.length ? { held: h.stores, ...(h.covered ? { heldCoverage: h.covered.map(f => f * s.ownEnd) } : {}) } : {}),
                    ...(s.ownCoverage !== undefined ? { ownCoverage: s.ownCoverage } : {}),
                    ...(own ? { pairName: (p: number) => { const n = own[p]; return n ? { a: n[0], b: n[1] } : { a: `pair ${p}`, b: "" }; } } : {}),
-                   ...(s.track ? { ownTrack: ownTrackOf(s.track) } : {}),
+                   ...(s.track ? { ownTrack: ownTrackOf(s.track, s.linesTrusted ?? true) } : {}),
                    ...(s.entry ? { entry: true, ...(s.entryEnd !== undefined ? { entryEnd: s.entryEnd } : {}) } : {}) });
   }
   if (!sources.length) return null;

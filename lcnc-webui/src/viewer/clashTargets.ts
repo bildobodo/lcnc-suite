@@ -13,7 +13,12 @@ export interface ClashTarget {
   entry?: boolean;
   /** …and began on the entry move itself (not on the bound beginning). */
   entryMove?: boolean;
+  /** Its DISPLAY line (plan 1.3); 0 with `noLine` when it has none. */
   line: number;
+  /** No line to show (plan 1.3, C3): untrusted and outside any call span —
+   *  never its raw line; no code mark. `subName` names its subroutine. */
+  noLine?: boolean;
+  subName?: string;
   rapid?: boolean;
   dist?: number;
   /** A near miss by the sweep's own class (contactView: a stay inside the

@@ -6,6 +6,7 @@ import {
 import { boundaryStretchesSteps,
   T_AT_START, T_ENTRY, T_ENTRY_MOVE, T_NEAR, T_OPEN, T_POSSIBLE, T_RAPID, T_REENTRY, buildContactView, contactBands, findKey,
   heldBytes, indexAfter, indexBefore, lineMark, lineRuns, runsOf, targetAt, targetEnd, targetKey, targetKind, targetPos,
+  displayLineAt, displayLineRuns, undecidableNote,
   startTargets, targetWindow, tintAt, trackLineAt, viewCounts, type ContactSource, type ContactView,
   buildContactViewSteps, contactBandsSteps, startTargetsSteps, undecidableStretchesSteps, viewCountsSteps,
 } from "./contactView";
@@ -41,6 +42,65 @@ const src = (st: ContactStore, o: Partial<ContactSource> = {}): ContactSource =>
 const lineAt = (pos: number) => Math.floor(pos) + 1;
 const poss = (v: ContactView) => Array.from({ length: v.n }, (_, i) => targetPos(v, i));
 const kinds = (v: ContactView) => Array.from({ length: v.n }, (_, i) => targetKind(v, i));
+
+describe("display lines (plan 1.3/4.2, C3): a called file's moves show their call line, an untrusted move none", () => {
+  // points 0..10 at cum 0..10. Main lines 1–3 trusted; L4 calls a sub whose
+  // own numbers (2, 3) collide with the main file's — points 4–5, cline 4;
+  // L6; the loop runs the call at L4 again (points 7–8, cline 4); an
+  // untrusted stretch outside any call span (points 9–10, own number 3, in
+  // remap "m200" with no verified trigger line)
+  const t = {
+    count: 11, cum: Float64Array.from({ length: 11 }, (_, i) => i),
+    lines: Uint32Array.from([1, 1, 2, 3, 2, 3, 6, 2, 3, 3, 3]),
+    lineOk: Uint8Array.from([1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0]),
+    cline: Uint16Array.from([0, 0, 0, 0, 4, 4, 0, 4, 4, 0, 0]),
+    sub: Uint8Array.from([0xff, 0xff, 0xff, 0xff, 0, 0, 0xff, 0, 0, 1, 1]),
+    subNames: ["touch", "m200"],
+  };
+  it("the line a position names: the move beginning there — its call line in a called file; none untrusted, its name instead", () => {
+    const at = displayLineAt(t, true);
+    expect([0.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5].map(p => at(p)), "the moves beginning at 0, 2, 3, 4, 5, 6, 7").toEqual([1, 3, 4, 4, 6, 4, 4]);
+    expect(at(8.5), "untrusted, outside any call span: no line — never its raw 3").toBeNull();
+    expect(at.nameAt!(8.5), "its subroutine's name").toBe("m200");
+    expect(at(4, true), "an end at a vertex: the move ending there (L4's call)").toBe(4);
+    expect(at(3), "an entry AT a vertex: the move beginning there (the call), not L3's ending there").toBe(4);
+    expect(at(5, true), "…the call's last move").toBe(4);
+    expect(at(6, true), "L6's move ends at 6").toBe(6);
+    // the payload's wholesale trust when a track carries none of its own
+    const raw = { count: 3, cum: Float64Array.from([0, 1, 2]), lines: Uint32Array.from([5, 5, 6]) };
+    expect([displayLineAt(raw, true)(0.5), displayLineAt(raw, false)(0.5)]).toEqual([5, null]);
+  });
+  it("the runs per display line: a call line owns its file's moves, each execution apart; an untrusted move is in no run", () => {
+    const r = displayLineRuns(t, true);
+    expect(runsOf(r, 4), "both executions, apart — never one span over L6's move between them (Hinweis b)").toEqual([[3, 5], [6, 8]]);
+    expect(runsOf(r, 2), "the main file's L2 only — never the sub's own 2").toEqual([[1, 2]]);
+    expect(runsOf(r, 3), "L3's own move only — not the sub's 3, not the untrusted 3").toEqual([[2, 3]]);
+  });
+  it("a contact in a called file reads its call line and marks it; untrusted it reads its name, marks nothing", () => {
+    const st = new ContactStore(1, 0);
+    const iv = (pair: number, enter: number, exit: number) => {
+      const e = st.episodes.append({ pair, ordinal: 0, onset: enter, end: exit, closeAt: enter, closeDist: 0, firstIv: NONE, ivCount: 1 });
+      st.episodes.set(e, "firstIv", st.intervals.append({ episode: e, enter, exit, flags: IV_ENTER_DECIDED | IV_EXIT_DECIDED, next: NONE, witness: enter, freeAt: NaN }));
+    };
+    iv(0, 4.2, 4.6);   // in the first call (point 5: the sub's own 3)
+    iv(2, 5.2, 5.6);   // on L6, between the two executions
+    iv(1, 9.2, 9.6);   // untrusted, outside any call span
+    const v = buildContactView({ sources: [src(st, { ownCoverage: 10 })], pairName: names, coverage: 10 });
+    const at = displayLineAt(t, true), runs = displayLineRuns(t, true);
+    const a = targetAt(v, 0, at), b = targetAt(v, 2, at);
+    expect([a.line, a.noLine], "the call line").toEqual([4, undefined]);
+    expect([b.line, b.noLine, b.subName], "no line, its name").toEqual([0, true, "m200"]);
+    expect(lineMark(v, 4, runsOf(runs, 4), at), "the call line marked").toEqual({ line: 4 });
+    expect(lineMark(v, 3, runsOf(runs, 3), at), "never the sub's own number").toBeNull();
+    expect(lineMark(v, 6, runsOf(runs, 6), at), "L6's own contact").toEqual({ line: 6 });
+    expect(targetAt(v, 1, at).line).toBe(6);
+  });
+  it("an undecidable stretch reads display lines: the call line, else the name", () => {
+    const at = displayLineAt(t, true);
+    expect(undecidableNote({ a: "t", b: "w", spans: [[4.2, 5], [9.1, 9.5]], more: false }, at, "—"))
+      .toBe("inside check undecidable for t ↔ w (L4, in m200) — a part wholly inside the other is not found there");
+  });
+});
 
 describe("the track's undecidable stretches: every generation's gaps united (C2, Codex R170 VP-I123)", () => {
   const gapsOf = (g: number, spans: number[][], pair = 0) => {

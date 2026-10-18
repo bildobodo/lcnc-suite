@@ -120,6 +120,12 @@ describe("the check basis card (step 4 plan 1c)", () => {
     expect(row(v, "Partly checked")).toEqual({ label: "Partly checked", value: "Chipped part", warn: true });
     expect(row(v, "No inside check (open surface)")!.value).toBe("Frame");
     expect(row(v, "In contact at the check's start")).toEqual({ label: "In contact at the check's start", value: "Tool ↔ C faceplate (L7)", warn: true });
+    // with the shown track: its DISPLAY line at the contact's place (C3) — a
+    // call line, else the subroutine's name — never the sweep's raw 7
+    const call = Object.assign((_p: number) => 4, { nameAt: () => "touch" });
+    expect(row(checkCard(captureCheckContext(inputs()), r, { ...opts, lineAt: call }), "In contact at the check's start")!.value).toBe("Tool ↔ C faceplate (L4)");
+    const none = Object.assign((_p: number) => null, { nameAt: () => "touch" });
+    expect(row(checkCard(captureCheckContext(inputs()), r, { ...opts, lineAt: none }), "In contact at the check's start")!.value).toBe("Tool ↔ C faceplate (touch)");
     // nothing of the result before it has one
     expect(row(checkCard(captureCheckContext(inputs()), null, opts), "Out of reach — excluded")).toBeUndefined();
   });

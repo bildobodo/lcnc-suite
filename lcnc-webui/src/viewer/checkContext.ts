@@ -7,10 +7,11 @@
 // basis that is no longer the machine's state is said, not hidden. Pure.
 import type { CheckBasis } from "./checkBasis";
 import type { CollisionResult } from "./collision";
+import type { LineAt } from "./contactView";
 import type { TloEvent } from "./tloEvents";
 import { fmtCoord } from "../format";
 import { g5xLabel } from "../wcs";
-import { partLabel } from "./simRows";
+import { lineWordAt, partLabel } from "./simRows";
 
 const CANON = "XYZABCUVW";
 const ROTARY = new Set(["A", "B", "C"]);
@@ -152,7 +153,7 @@ function list(rows: CardRow[], label: string, values: string[], warn = false) {
  * move's own check is merged into what is shown. `unit`: the linear unit.
  */
 export function checkCard(ctx: CheckContext | null, r: CollisionResult | null,
-                          o: { stale: boolean; entry: boolean; unit: string }): CardView {
+                          o: { stale: boolean; entry: boolean; unit: string; lineAt?: LineAt | null }): CardView {
   if (!ctx) return { rows: [], notes: ["No check has run on this program yet."] };
   const b = ctx.basis;
   const rows: CardRow[] = [];
@@ -215,7 +216,8 @@ export function checkCard(ctx: CheckContext | null, r: CollisionResult | null,
     if (bodies?.damaged.length) rows.push({ label: "Partly checked", value: bodies.damaged.map(partLabel).join(", "), warn: true });
     if (bodies?.open.length) rows.push({ label: "No inside check (open surface)", value: bodies.open.map(partLabel).join(", ") });
     const bc = r.boundaryContacts ?? [];
-    list(rows, "In contact at the check's start", bc.map(c => `${pairName(c.a, c.b)} (L${c.line})`), true);
+    // each at its DISPLAY line (plan 1.3, C3)
+    list(rows, "In contact at the check's start", bc.map(c => `${pairName(c.a, c.b)} (${lineWordAt(o.lineAt, c.cum, c.line)})`), true);
   }
   return { rows, notes };
 }

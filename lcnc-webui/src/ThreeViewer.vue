@@ -56,7 +56,7 @@ import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
 import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
 import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
-import { findKey, heldBytes, indexAfter, lineMark, lineRuns, retireView, runsOf, targetAt, targetKey, targetPos, targetWindow, tintAt, trackLineAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
+import { findKey, heldBytes, indexAfter, displayLineAt, displayLineRuns, lineMark, retireView, runsOf, targetAt, targetKey, targetPos, targetWindow, tintAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
 import { buildShownSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
 import { wordsOfCounts } from "./viewer/sweepWords";
 import { createBackplotController } from "./viewer/backplotController";
@@ -3290,17 +3290,23 @@ function _intervalRows(id: number): number {
   return _contacts.tablesOf(id)?.work?.stores.reduce((n, st) => n + st.intervals.rows, 0) ?? 0;
 }
 function _sliceEnd(t: ScrubTrack): number { return t.count ? t.cum[t.count - 1]! : 0; }
-const _lineAtCache = new WeakMap<ScrubTrack, LineAt>();
-const _lineRunsCache = new WeakMap<ScrubTrack, LineRuns>();
+// The DISPLAY lines of a track (plan 1.3/4.2, C3): a call line for a called
+// file's moves, none for an untrusted point without one — never the raw line.
+// The trust is the payload's (a track's own per-point trust wins).
+const _lineAtCache = new WeakMap<ScrubTrack, { trusted: boolean; f: LineAt }>();
+const _lineRunsCache = new WeakMap<ScrubTrack, { trusted: boolean; r: LineRuns }>();
+const _linesTrusted = () => !viewerGcode.value?.lines_untrusted;
 function _lineAtOf(t: ScrubTrack): LineAt {
-  let f = _lineAtCache.get(t);
-  if (!f) _lineAtCache.set(t, f = trackLineAt(t));
-  return f;
+  const trusted = _linesTrusted();
+  let c = _lineAtCache.get(t);
+  if (!c || c.trusted !== trusted) _lineAtCache.set(t, c = { trusted, f: displayLineAt(t, trusted) });
+  return c.f;
 }
 function _lineRunsOf(t: ScrubTrack): LineRuns {
-  let r = _lineRunsCache.get(t);
-  if (!r) _lineRunsCache.set(t, r = lineRuns(t));
-  return r;
+  const trusted = _linesTrusted();
+  let c = _lineRunsCache.get(t);
+  if (!c || c.trusted !== trusted) _lineRunsCache.set(t, c = { trusted, r: displayLineRuns(t, trusted) });
+  return c.r;
 }
 /** The base request shown on `trk`: the result on screen, else the live
  *  partial's, else the request in flight a run check's beginning stands on. */
@@ -3330,13 +3336,13 @@ function _colRunSideSpec(trk: ScrubTrack): ShownSource | null {
   if (rs && rs.base === trk && gen === rs.gen) {
     const own = _sideCovered(rs.result) * rs.sliceEnd;
     return { id: rs.id, map: { kind: "minus", shift: rs.shift }, coverage: Math.max(0, own - rs.shift), ownCoverage: own, ownEnd: rs.sliceEnd,
-             entry: true, entryEnd: rs.bound.cum[1], sweptToEnd: !rs.result.truncated, track: rs.bound };
+             entry: true, entryEnd: rs.bound.cum[1], sweptToEnd: !rs.result.truncated, track: rs.bound, linesTrusted: _linesTrusted() };
   }
   const sf = collisionSideFirst.value;
   if (sf?.run && sf.base === trk && gen === sf.run.gen) {
     const own = _colSideProgress * sf.sliceEnd;
     return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, own - sf.shift), ownCoverage: own, ownEnd: sf.sliceEnd,
-             entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, track: sf.entry };
+             entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, track: sf.entry, linesTrusted: _linesTrusted() };
   }
   return null;
 }
