@@ -1,0 +1,53 @@
+{
+  "numTotalTests": 177,
+  "numPassedTests": 177,
+  "numFailedTests": 0,
+  "success": true,
+  "files": [
+    {
+      "name": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/src/viewer/checkContext.test.ts",
+      "status": "passed",
+      "assertions": 11
+    },
+    {
+      "name": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/src/viewer/checkWiring.test.ts",
+      "status": "passed",
+      "assertions": 17
+    },
+    {
+      "name": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/src/viewer/contactView.test.ts",
+      "status": "passed",
+      "assertions": 45
+    },
+    {
+      "name": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/src/viewer/scrubTrack.test.ts",
+      "status": "passed",
+      "assertions": 83
+    },
+    {
+      "name": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/src/viewer/shownContacts.test.ts",
+      "status": "passed",
+      "assertions": 9
+    },
+    {
+      "name": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/src/viewer/simRows.test.ts",
+      "status": "passed",
+      "assertions": 12
+    }
+  ],
+  "own_counterexamples": {
+    "unit": {
+      "tests": 2,
+      "failed_by_assertion": 2
+    },
+    "browser": {
+      "distinct_cases": 2,
+      "failed_by_assertion": 2
+    },
+    "repository_browser": {
+      "tests": 4,
+      "passed": 4
+    },
+    "note": "The first browser report also includes a preliminary metadata-only case. The final metadata report replaces that case with a genuine provisional run request. A separate waiting error is a test harness expectation, not a product finding."
+  }
+}

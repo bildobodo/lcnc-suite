@@ -1,0 +1,16 @@
+head 4cd751b5 C4: the docs after C2/C3 — the contact tables are what a sweep finds
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut/lcnc-webui
+
+ ✓ src/viewer/zz_codex_r170_delta.test.ts (1 test) 104ms
+ ✓ src/viewer/zz_codex_r168_rapid.test.ts (1 test) 6ms
+ ✓ src/viewer/zz_codex_r170_undecidable.test.ts (3 tests) 70ms
+ ✓ src/viewer/zz_codex_r168_sweep.test.ts (1 test) 59ms
+ ✓ src/viewer/zz_codex_r169_index.test.ts (2 tests) 356ms
+   ✓ R169: the last rapid in a joined piece is found without reading its interval chain  305ms
+
+ Test Files  5 passed (5)
+      Tests  8 passed (8)
+   Start at  15:14:04
+   Duration  686ms (transform 825ms, setup 0ms, import 1.16s, tests 595ms, environment 0ms)
+

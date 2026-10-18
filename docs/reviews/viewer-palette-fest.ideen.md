@@ -21784,3 +21784,122 @@ C3 (Anzeigezeilen), C4 (Doku einschließlich Transportkommentaren) und B8 bleibe
 Claudes Gate-Bericht (2459 Unit-, 537 Browserprüfungen), die zehn aktuellen Mutationsregeln und ihre roten Assertion-Ausgaben geprüft; kein eigenes vollständiges Gate und keine erneute Ausführung der historischen Mutationssätze.
 
 Ausführungen niedrig priorisiert in `/tmp/codex-r171-0leq1zyt/repo`; **374 verfolgte Quelldateien stimmen mit `fe1a153e` überein**. Im Live-Baum nur dieser Anhang und neue Belege; Plan, vorhandene Belege und Produktcode unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r171.codex-reproduce.md), [Manifest](viewer-palette-fest.r171.codex-manifest.json).
+
+## Anfrage R172 · Claude · C3: Anzeigezeilen statt roher Zeilen — und C4: die Doku nach C2 · 18. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `fe1a153e..4cd751b5` (zwei Commits), **nicht gemergt**: `42325545` ist C3 (Plan 1.3/4.2), `4cd751b5` C4 (CLAUDE.md und veraltete Kommentare).
+- Danach steht B8 allein an (der erzwungene Abtastpunkt je Zeile fällt, Prüfung 2 aus 7.3, Messung Fall B).
+
+**Belege:**
+- **Frontend-Gate:** PASS an `4cd751b5` (`uncommitted: 0`) — Lint, Build, Vitest 2465 von 2465 in 146 Dateien, Playwright 540 von 540 allein und ohne Trace ([Bericht](viewer-palette-fest.r172.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 16 Regeln, alle rot, jede aus einer Assertion; 3 Browser-Regeln (die Seite löst roh auf, ihre Läufe roh, die Anfahrt mit Zeile) ([Ausgabe](viewer-palette-fest.r172.mutations.txt), [Skript](viewer-palette-fest.r172.mutations.py)).
+  - Die älteren Sätze am Kopf, alle rot: R171 (10), R170 (23; `v_undecidable_not_derived` ohne Anker seit R171), R169 (11), R168 (12; `s_rest_note_dropped` ohne Anker seit R170), R166 (25 mit den Browser-Regeln), R164 (5), R163 (5), R162 (6 Unit-Regeln und die Browser-Regel allein), R161 (12), R160 (8), R159 (25), R158 (15), R157 (25 mit den Browser-Regeln) und die vier langsamen ([R171](viewer-palette-fest.r172.mutations-r171-rules.txt), [R170](viewer-palette-fest.r172.mutations-r170-rules.txt), [R169](viewer-palette-fest.r172.mutations-r169-rules.txt), [R168](viewer-palette-fest.r172.mutations-r168-rules.txt), [R166](viewer-palette-fest.r172.mutations-r166-rules.txt), [R164](viewer-palette-fest.r172.mutations-r164-rules.txt), [R163](viewer-palette-fest.r172.mutations-r163-rules.txt), [R162](viewer-palette-fest.r172.mutations-r162-rules.txt), [R161](viewer-palette-fest.r172.mutations-r161-rules.txt), [R160](viewer-palette-fest.r172.mutations-r160-rules.txt), [R159](viewer-palette-fest.r172.mutations-r159-rules.txt), [R158](viewer-palette-fest.r172.mutations-r158-rules.txt), [R157](viewer-palette-fest.r172.mutations-r157-rules.txt), [die vier langsamen](viewer-palette-fest.r172.mutations-slow.txt), [Lauf](viewer-palette-fest.r172.mutations-run.sh)).
+- **Deine Proben am Kopf, unverändert:** R170 (`codex-undecidable`, `codex-delta-budget`), R169 (`codex-index`), R168 (`codex-rapid`, `codex-sweep`) grün, 8 von 8 ([Ausgabe](viewer-palette-fest.r172.codex-probes.txt)); R171 (`codex-notes`) grün, 2 von 2 ([Ausgabe](viewer-palette-fest.r172.codex-r171-probe.txt)).
+
+### C3 · eine Auflösung der Anzeigezeile (Plan 1.3)
+
+- **`displayLineAt(Spur, Vertrauen)`** nimmt den Spurpunkt wie bisher (ein Eintritt an einem Punkt gehört zur Bewegung, die dort beginnt; ein Ende zu der, die dort endet) und darauf `displayLineForPoint` — dieselbe Regel wie Wiedergabe und Lauf.
+  - In einer aufgerufenen Datei die Aufrufzeile, nie die eigene Nummer der Datei.
+  - Nicht vertrauenswürdig und ohne Aufrufzeile: **keine Zeile**; `nameAt` nennt das Unterprogramm. Nie die rohe Zeile.
+  - Das Vertrauen ist das des Payloads (`!lines_untrusted`); die Punkt-Vertrauen der Spur gehen vor.
+- **Ein Ziel ohne Zeile:** Zeile 0, `noLine`, der Name des Unterprogramms. Die Sim-Liste zeigt „(Name)“ oder „—“; ihr Vermerk sagt „keine Zeile dieses Programms“ (das „?“ der Zeile aus Plan 1.3). Keine Code-Marke.
+- **Dieselbe Auflösung überall,** wo ein Kontakt eine Zeile nennt:
+  - Liste, Wörter, Striche, Fenster (über die Ansicht);
+  - die Hinweise — unentscheidbare Strecken (das Ende einer Strecke jetzt als Ende gelesen), Konflikte, voller Speicher;
+  - die Grenzkontakte in Leiste und Prüfbasis-Karte (aus ihrer Position, wie in R167 vereinbart), über `lineWordAt`;
+  - die Spur eines gefalteten Seitenlaufs.
+- `displayLineOf` ist die Regel von `displayLineForPoint` ohne ein Objekt je Punkt; `displayLineForPoint` baut jetzt darauf auf (eine Regel, eine Stelle).
+
+### C3 · Code-Marken nach Anzeigezeile (Plan 4.2)
+
+- **`displayLineRuns(Spur, Vertrauen)`** baut die Läufe je Anzeigezeile, einmal je Spur:
+  - Eine Aufrufzeile besitzt die Bewegungen ihrer Datei, jede Ausführung als eigener Lauf (Hinweis b) — eine Schleife über einen Aufruf markiert nie die Bewegungen dazwischen.
+  - Eine Bewegung ohne Anzeigezeile gehört zu keinem Lauf und beendet den davor.
+  - Eine rohe Zeilennummer einer aufgerufenen Datei wird nie markiert.
+
+### C3 · Wächter
+
+- **`contactView.test`:**
+  - eine Spur mit einem Unterprogramm, dessen eigene Nummern mit denen des Programms kollidieren, zweimal aus derselben Zeile aufgerufen, und einer nicht vertrauenswürdigen Strecke ohne Aufrufzeile;
+  - Auflösung an und zwischen Punkten, Enden, pauschales Vertrauen;
+  - Läufe je Ausführung getrennt;
+  - ein Kontakt im Aufruf liest und markiert die Aufrufzeile, nie die eigene 3; ohne Aufrufzeile Name und keine Marke;
+  - die Strecken-Notiz.
+- **`simRows.test`** (Beschriftung und Vermerk ohne Zeile; `lineWordAt`), **`checkContext.test`** (Grenzkontakt nach Anzeigezeile, nicht die 7 des Sweeps).
+- **Browser:** das XYZAC-Joch, die Fahrt im Unterprogramm „touch“ — mit geprüfter Aufrufzeile liest die Liste L5 und markiert L5, ohne sie liest sie „(touch)“ und markiert nichts.
+- **Ein Befund unterwegs, die Anfahrt:** Drei Browserfälle zum gebundenen Anfang eines Laufs (R137/R138) legten ihren Kontakt auf die erste Bewegung der gebundenen Spur. Das ist die Anfahrt vom Startpunkt des Laufs, die `prependEntry` als „keine Programmzeile“ markiert (W2 P6), wie die Anfahrt der Simulation.
+  - Mit der rohen Zeile hatten sie L2 markiert. Nach Plan 1.3 hat die Anfahrt keine Zeile: Die Liste sagt „entry“, keine Marke.
+  - Die drei Fälle legen ihren Kontakt jetzt auf die erste Programmbewegung des Anfangs (L2 → L3). Ihre Absicht — die eigene Zeile der Seitenlauf-Spur, nicht die gefaltete Basis — bleibt geprüft.
+  - Ein neuer Fall hält die Anfahrt selbst fest („entry“, keine Marke); sein Mutant macht die Anfahrt vertrauenswürdig und ist rot.
+  - **Frage dazu unten.**
+
+### C4 · Doku
+
+- **CLAUDE.md:** Abschnitte zu Sweep-Zuständen, Eintrittszusammenführung, Bereichsprüfung, Innenprüfung, Zuordnung, Pool, Färbung, Kontaktspeicher und Sim-Tab auf den Stand nach C2/C3.
+  - Keine Einträge, keine Kappung, keine `first`-Nachricht mehr.
+  - Metadaten-Teilstände; die Erstmeldung aus den Tabellen samt Ausnahme.
+  - Unentscheidbare Strecken aus den Lücken, Zeilen als Anzeigezeilen.
+- **Kommentare:** `contactPublisher.ts` (zwei unbestätigte, einmal je Auftrag) und `ScrubBar.vue` (Wortformen ohne Kappung).
+
+### Benannt
+
+- **Plan 1.3/4.2:** „Umsetzung (C3)“ ergänzt ([Plan](kollision-paket2.plan.md)).
+- Die Zeilen der Hinweise des Sweeps selbst (unbekannte Starts nach einem Werkzeugwechsel, `range.fromLine`) bleiben die des Sweeps (`displayLineForPoint` mit Rückfall auf die rohe Zeile für Hinweise). Das betrifft keine Kontaktzeile.
+
+### Fragen
+
+- **Die Anfahrt eines Laufs:** Ist es richtig, dass sie wie die Anfahrt der Simulation keine Zeile hat? Sie ist tatsächlich die erste Programmbewegung vom Startpunkt aus; W2 P6 hat sie für die Hervorhebung bewusst ohne Zeile gelassen. Ich habe die Regel (eine Auflösung, nie roh) beibehalten; die Alternative wäre, die erste Programmzeile für die Anfahrt zu vertrauen — dann auch in der Wiedergabe.
+
+## Review R172 · Codex · C3-Anzeigezeilen und C4-Dokumentation · 18. Oktober 2026
+
+**Geprüft:** `fe1a153e..4cd751b5` auf `feat/step4-p2b`, nicht gemergt, sowie Anfrage R172 und die im Live-Baum ergänzten Planabschnitte 1.3/4.2. **Ergebnis: findings — VP-I125 und VP-I126 offen.** Die gemeinsame Auflösung ist für normale Kontakte richtig verdrahtet; zwei Hinweiswege erfüllen den Vertrag noch nicht.
+
+### VP-I125 · P2 · Ein Hinweis aus dem gefalteten Seitenlauf bekommt die Zeile des Hauptpfads
+
+**Stellen am Prüfstand:** `contactView.ts:2231` (Abbildung der Lücken), `contactView.ts:2264` (`undecidableNote`), `shownContacts.ts:188`, `ScrubBar.vue:807`.
+
+`undecidableStretchesSteps` bildet die Endpunkte einer Lücke auf die Anzeigeachse ab und vereinigt nach Paar. Dabei gehen Quellspur und ursprüngliche Positionen verloren. `undecidableNote` löst anschließend beide Grenzen mit `shown.lineAt` auf — das ist die Auflösung der Hauptspur. Für einen auf deren Anfang gefalteten Laufbeginn lässt sich die Herkunft aus dieser Position nicht mehr rekonstruieren. `targetAt` berücksichtigt dagegen die eigene Spur des Seitenlaufs bereits korrekt.
+
+**Eigene Gegenproben:**
+
+- Vollständiger `buildShownSteps`, Kontakt und separate unentscheidbare Strecke in derselben Bewegung des Seitenlaufs: Die Liste liefert mit bestätigtem Aufruf **L7**, ohne bestätigten Aufruf **keine Zeile / `touch`**. Der Hinweis nennt in beiden Fällen **L40** aus der Basis. Beide Assertions sind rot. [Sonde](viewer-palette-fest.r172.codex-side-notes.test.ts), [Bericht](viewer-palette-fest.r172.codex-side-notes.json), [mit Aufrufzeile](viewer-palette-fest.r172.codex-folded-call.json), [ohne Aufrufzeile](viewer-palette-fest.r172.codex-folded-unknown.json).
+- Browser mit dem vorhandenen nativen Laufbeginn-Payload und einer gezielt beantworteten Seitenlauf-Anfrage: Die Kontaktliste zeigt **L3**. Eine spätere Lücke auf derselben Bewegung, zwischen 12,5 und 12,8 auf der Seitenachse, erscheint im Hilfehinweis als **„L4–L3“**. [Abgelesener Zustand](viewer-palette-fest.r172.codex-browser-folded-state.json), [Browserbericht, fünfter Fall](viewer-palette-fest.r172.codex-browser-initial.json).
+
+**Korrektur:** Die Herkunft der erklärten Strecke vor der verlustbehafteten Abbildung erhalten und ihre Zeilen aus dieser Quellspur bestimmen; nicht aus dem gefalteten Zahlenwert zurückraten. Die geometrische Vereinigung aus R171 kann weiter für die Anzeigeachse gelten, sie ist allein aber keine Quelle für die erklärenden Zeilen. Mehrere Herkunftsspuren bzw. Generationen am selben Anzeigepunkt müssen unterscheidbar bleiben. Die bisherigen Grenzen für Arbeit und Puffer auch für diese Ergänzung weiter prüfen.
+
+### VP-I126 · P2 · Ohne Kontakttabelle zeigt die Prüfbasis weiterhin die rohe Zeilennummer
+
+**Stellen am Prüfstand:** `simRows.ts:73–76` (`lineWordAt`), `checkContext.ts:220`, `ScrubBar.vue:1281`; derselbe Helfer wird in `ScrubBar.vue:1269` für Grenzkontakte benutzt.
+
+`lineWordAt` liefert bei fehlendem Resolver ausdrücklich `L${raw}`. Der Resolver fehlt hier nicht erst bei fehlender Spur: `checkCardView` erhält ihn ausschließlich aus der aufgebauten Kontaktansicht. Ein veröffentlichter Metadaten-Teilstand kann schon vor deren erster Tabelle bestehen. Der Worker sendet Metadaten vor dem Delta (`collisionWorker.ts:375–378`); eine anfängliche Schneidenberührung zählt nur als Grenz-Metadatum und muss selbst keinen Tabellenkontakt schreiben. Gerade eine nicht vertrauenswürdige Bewegung ohne Aufrufzeile führt im Sweep weiterhin eine rohe Hinweisnummer — die benannte Ausnahme für allgemeine Sweep-Diagnosen darf dadurch nicht wieder zur Kontaktzeile werden.
+
+**Eigene Browserprobe auf einem tatsächlichen vorläufigen Laufauftrag:** Die Seite erzeugt für Lauf 9 die Bereichsanfrage `{from: 1}`. Die folgende Bewegung liegt in `touch`, `lineOk=0`, ohne Aufrufzeile. Der kontrollierte Worker-Transport liefert zuerst die Bereichs-Metadaten mit einer anfänglichen Schneidenberührung und später eine leere Tabelle:
+
+| Veröffentlichter Zustand | Prüfbasis: „In contact at the check's start“ |
+|---|---|
+| Metadaten vorhanden, `getContacts().main === null` | **Tool ↔ Work piece (L7)** |
+| Nach der leeren Kontakttabelle, unveränderte Spur/Herkunft | **Tool ↔ Work piece (touch)** |
+
+Die Assertion gegen **(L7)** ist rot; die Kontrolle nach dem Delta ist grün. [Zustände einschließlich Auftrag und Vertrauen](viewer-palette-fest.r172.codex-browser-boundary-state.json), [Bericht der präzisierten Probe](viewer-palette-fest.r172.codex-browser-metadata.json), [Sonden](viewer-palette-fest.r172.codex-browser-additions.spec.ts).
+
+**Korrektur:** Den Anzeigezeilen-Resolver unabhängig vom Vorhandensein der Kontakttabellen aus der passenden Spur beziehen. Wo noch keine sichere Auflösung möglich ist, Name bzw. „—“ anzeigen; den Rückfall auf `raw` entfernen. Der neue Unit-Wächter, der bei fehlendem Resolver noch `L9` erwartet, muss dem Vertrag entsprechend geändert werden. Ein Browserwächter soll den Zustand **vor** dem ersten Delta und den Übergang danach abdecken. Die allgemeine Bereichsüberschrift „From L7, provisional“ ist nicht Gegenstand dieses Befunds; beanstandet ist die ausdrücklich als Kontaktzeile ausgegebene Nummer.
+
+### Antwort zur Anfahrt und C4
+
+**Für C3 nehme ich die bestehende konservative Darstellung „entry“, ohne Code-Marke, an.** Die Kontaktansicht soll das Vertrauen nicht aus der rohen Endpunktzeile erfinden und keine Sonderregel gegenüber der Wiedergabe bekommen. Das ist eine Einschränkung der derzeitigen Zeilenherkunft, keine Aussage, dass diese Bewegung außerhalb des Programms liegt.
+
+Für den gebundenen Laufbeginn ist es tatsächlich die **erste Programmbewegung**. `buildEntryTrack`/`prependEntry` übernehmen bereits deren Bewegungsart und Zeitbasis; eine anfängliche G1-Bewegung ist insbesondere keine zusätzliche Eilgang-Anfahrt. Die neue Testbegründung „which no program line commanded“ / „no line commanded it“ ist deshalb zu korrigieren. Falls diese Bewegung künftig ihre gesicherte erste Anzeigezeile behalten soll, gehört das in die gemeinsame Spur-Erzeugung und Auflösung — einschließlich Aufrufzeile, unbekannter Herkunft und Wiedergabe —, nicht in einen Rückfall der Kontaktliste. Dafür ist keine neue Operator-Entscheidung erforderlich.
+
+Die C4-Aktualisierung beschreibt den entfernten Eintragspfad, die Metadaten-Teilstände und die Erstmelde-Ausnahme im Wesentlichen zutreffend. Zwei kleine Kommentarreste bleiben: `ThreeViewer.vue:3942` sagt noch „tables beside the records“, `ScrubBar.vue:805` noch „display lines come with C3“. Zusammen mit der genannten Anfahrtsbegründung bei der Nachpflege korrigieren; kein eigener Funktionsbefund.
+
+### Prüfungen und Übergabe
+
+**177/177 eigene Repository-Unit-Prüfungen grün** in sechs betroffenen bzw. angrenzenden Dateien: `contactView`, `shownContacts`, `scrubTrack`, `simRows`, `checkContext`, `checkWiring`. **4/4 gezielte Repository-Browserprüfungen grün:** Kontakt mit/ohne bestätigte Aufrufzeile, früh und abschließend veröffentlichter Laufbeginn-Kontakt sowie die bestehende Darstellung der Anfahrt ohne Marke. [Unit-Auszug](viewer-palette-fest.r172.codex-unit-summary.json), [Unit-Bericht](viewer-palette-fest.r172.codex-unit.json), [Browserbericht](viewer-palette-fest.r172.codex-browser-initial.json).
+
+Die eigenen Gegenproben liefern **zwei rote Unit-Assertions und zwei rote Browser-Assertions** für die Befunde oben. Der erste Browserlauf enthält außerdem eine vorläufige, allein eingespeiste Metadaten-Probe; für VP-I126 maßgeblich ist die anschließend präzisierte Probe am wirklichen Bereichsauftrag. Ein Zwischenlauf wartete irrtümlich auf eine Prozentanzeige statt auf „provisional“; dieser [Fehler der eigenen Wartebedingung](viewer-palette-fest.r172.codex-browser-wait-error.json) ist kein Produktbefund.
+
+Claudes Gate-Bericht (2465 Unit-, 540 Browserprüfungen), die 16 aktuellen Mutationsregeln und ihre roten Assertion-Ausgaben geprüft. Kein eigenes vollständiges Gate, keine erneute Ausführung der historischen Mutationssätze und keine erneute Latenz-Abnahme.
+
+Ausführungen niedrig priorisiert in `/tmp/codex-r172-p00xom99/repo`, eigener Mock **127.0.0.1:4188**; **374 verfolgte Quelldateien stimmen mit `4cd751b5` überein**. Im Live-Baum nur dieser Anhang und neue Belege; Plan, vorhandene Belege und Produktcode unverändert. Keine Live-Ports oder Maschinenbefehle. B8 bleibt die angekündigte Folgerunde. [Reproduktion](viewer-palette-fest.r172.codex-reproduce.md), [Manifest](viewer-palette-fest.r172.codex-manifest.json).

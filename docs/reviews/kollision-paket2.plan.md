@@ -100,6 +100,7 @@ Es zählt `displayLineForPoint`:
 - In einer aufgerufenen Datei ist es die Aufrufzeile, nie die eigene Nummer der Datei.
 - Liefert die Funktion **keine** Zeile (nicht vertrauenswürdig und ohne Aufrufzeile), zeigt das Ereignis den Namen des Unterprogramms, wenn einer bekannt ist, sonst „—“. Es setzt keine Code-Marke, und sein „?“ sagt warum. Auf die rohe Zeile wird nie zurückgegriffen.
 - Weil die Zeile aus dem verfeinerten Eintritt kommt, entfällt der R90/R91-Versatz (siehe 2.2).
+- **Umsetzung (C3, R172):** Eine Stelle löst auf: `displayLineAt(Spur, Vertrauen)` nimmt den Spurpunkt wie bisher (ein Eintritt an einem Punkt gehört zur Bewegung, die dort beginnt, ein Ende zu der, die dort endet) und darauf `displayLineForPoint` — dieselbe Regel wie Wiedergabe und Lauf. Ihr `nameAt` nennt das Unterprogramm. Das Vertrauen ist das des Payloads (`!lines_untrusted`), die Punkt-Vertrauen der Spur gehen vor. Ein Ziel ohne Zeile trägt Zeile 0, `noLine` und den Namen; die Sim-Liste zeigt „(Name)“ oder „—“, ihr Vermerk sagt „keine Zeile dieses Programms“ (das „?“ der Zeile). Dieselbe Auflösung gilt für die Hinweise (unentscheidbare Strecken, Grenzkontakte in Leiste und Prüfbasis-Karte, Konflikte, voller Speicher) und für die Spur eines gefalteten Seitenlaufs.
 
 ### 1.4 Speicher: Blöcke typisierter Felder
 
@@ -394,6 +395,7 @@ Alle Ansichten lesen die Tabellen über **ein** Modul (`viewer/contactView.ts`).
   - Anzeigezeile → ihre Spurbereiche über einen Index der Anzeigezeilen, einmal je Spur gebaut wie `lineIndex.ts`, mit den Aufrufspannen. Eine wiederholte Quellzeile (Schleife, mehrere Aufrufe) behält **jede** ihrer Spannen einzeln; eine Spanne von der ersten bis zur letzten Ausführung würde fremde Bewegungen dazwischen markieren (Hinweis b).
   - Dann Überdeckung, binär gesucht.
 - Es entsteht keine Menge über alle Zeilen. Das Ereignis `collision-lines` übergibt die Tabellen bzw. eine Abfragefunktion statt einer Liste.
+- **Umsetzung (C3, R172):** `displayLineRuns(Spur, Vertrauen)` baut die Läufe je Anzeigezeile, einmal je Spur: Eine Aufrufzeile besitzt die Bewegungen ihrer Datei, jede Ausführung als eigener Lauf; eine Bewegung ohne Anzeigezeile gehört zu keinem Lauf und beendet den davor. Eine rohe Zeilennummer einer aufgerufenen Datei wird nie markiert. Die Zeile je Punkt kommt aus `displayLineOf` — der Regel von `displayLineForPoint` ohne Objekt je Punkt (ein Lauf über eine Million Punkte).
 
 ### 4.3 Färbung, Bänder
 

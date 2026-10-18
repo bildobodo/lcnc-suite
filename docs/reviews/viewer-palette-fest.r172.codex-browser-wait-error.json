@@ -1,0 +1,149 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/playwright.codex.config.ts",
+    "rootDir": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r172-p00xom99/browser-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/(?:collisions|sim-panel)\\.viewer\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r172-p00xom99/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "collisions.viewer.spec.ts",
+      "file": "collisions.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "R172 own: metadata before the first table never shows the raw boundary line",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 14090,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.simPanel .simSummary .sumItem').first()\nExpected pattern: \u001b[32m/30 % checked/\u001b[39m\nReceived string:  \u001b[31m\"No contact so far · provisional from L7\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('.simPanel .simSummary .sumItem').first()\u001b[22m\n\u001b[2m    24 × locator resolved to <span role=\"img\" data-v-59b8096d=\"\" class=\"sumItem sumClash row-tight\" title=\"No contact so far · provisional from L7\" aria-label=\"No contact so far · provisional from L7\">…</span>\u001b[22m\n\u001b[2m       - unexpected value \"No contact so far · provisional from L7\"\u001b[22m\n",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.simPanel .simSummary .sumItem').first()\nExpected pattern: \u001b[32m/30 % checked/\u001b[39m\nReceived string:  \u001b[31m\"No contact so far · provisional from L7\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('.simPanel .simSummary .sumItem').first()\u001b[22m\n\u001b[2m    24 × locator resolved to <span role=\"img\" data-v-59b8096d=\"\" class=\"sumItem sumClash row-tight\" title=\"No contact so far · provisional from L7\" aria-label=\"No contact so far · provisional from L7\">…</span>\u001b[22m\n\u001b[2m       - unexpected value \"No contact so far · provisional from L7\"\u001b[22m\n\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1969:72",
+                    "location": {
+                      "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                      "column": 72,
+                      "line": 1969
+                    },
+                    "snippet": "  1967 |     boundaryContacts: [{ a: 'tool', b: 'work_piece', line: 7, cum: m.at, dist: 0, cutting: true }] };\n  1968 |   await page.evaluate(d => (window as any).__r172.deliver(d), { id: m.id, progress: 0.3, partial: metadata });\n> 1969 |   await expect(page.locator('.simPanel .simSummary .sumItem').first()).toHaveAttribute('aria-label', /30 % checked/);\n       |                                                                        ^\n  1970 |   const before = await basisCard(page);\n  1971 |   const diagnosticsBefore = await page.evaluate(() => window.__viewerDiag!.getContacts!());\n  1972 |   const w = wireDelta(new ContactStore(m.id, 0));"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                        "column": 72,
+                        "line": 1969
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveAttribute\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('.simPanel .simSummary .sumItem').first()\nExpected pattern: \u001b[32m/30 % checked/\u001b[39m\nReceived string:  \u001b[31m\"No contact so far · provisional from L7\"\u001b[39m\nTimeout: 10000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveAttribute\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for locator('.simPanel .simSummary .sumItem').first()\u001b[22m\n\u001b[2m    24 × locator resolved to <span role=\"img\" data-v-59b8096d=\"\" class=\"sumItem sumClash row-tight\" title=\"No contact so far · provisional from L7\" aria-label=\"No contact so far · provisional from L7\">…</span>\u001b[22m\n\u001b[2m       - unexpected value \"No contact so far · provisional from L7\"\u001b[22m\n\n\n  1967 |     boundaryContacts: [{ a: 'tool', b: 'work_piece', line: 7, cum: m.at, dist: 0, cutting: true }] };\n  1968 |   await page.evaluate(d => (window as any).__r172.deliver(d), { id: m.id, progress: 0.3, partial: metadata });\n> 1969 |   await expect(page.locator('.simPanel .simSummary .sumItem').first()).toHaveAttribute('aria-label', /30 % checked/);\n       |                                                                        ^\n  1970 |   const before = await basisCard(page);\n  1971 |   const diagnosticsBefore = await page.evaluate(() => window.__viewerDiag!.getContacts!());\n  1972 |   const w = wireDelta(new ContactStore(m.id, 0));\n    at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1969:72"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-18T14:11:58.419Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r172-p00xom99/browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts",
+                    "column": 72,
+                    "line": 1969
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-4d2182a6653b94bf796f",
+          "file": "collisions.viewer.spec.ts",
+          "line": 1932,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-18T14:11:57.705Z",
+    "duration": 14866.380000000001,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

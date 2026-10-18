@@ -1,0 +1,89 @@
+{
+  "spec": {
+    "base": {
+      "id": 1,
+      "map": null,
+      "coverage": 20,
+      "ownCoverage": 20,
+      "ownEnd": 20
+    },
+    "side": {
+      "id": 2,
+      "map": {
+        "kind": "minus",
+        "shift": 5
+      },
+      "coverage": 0,
+      "ownCoverage": 5,
+      "ownEnd": 5,
+      "entry": true,
+      "entryEnd": 2,
+      "sweptToEnd": false,
+      "track": {
+        "count": 4,
+        "cum": {
+          "0": 0,
+          "1": 2,
+          "2": 4,
+          "3": 5
+        },
+        "lines": {
+          "0": 0,
+          "1": 2,
+          "2": 3,
+          "3": 4
+        },
+        "lineOk": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0
+        },
+        "cline": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0
+        },
+        "sub": {
+          "0": 255,
+          "1": 255,
+          "2": 0,
+          "3": 0
+        },
+        "subNames": [
+          "touch"
+        ]
+      },
+      "linesTrusted": true
+    },
+    "axisEnd": 20
+  },
+  "contact": {
+    "cum": 0,
+    "cumEnd": 0,
+    "key": "E0|0|0",
+    "line": 0,
+    "a": "spindle",
+    "b": "stock",
+    "dist": 0,
+    "near": false,
+    "entry": true,
+    "noLine": true,
+    "subName": "touch"
+  },
+  "gaps": [
+    {
+      "a": "spindle",
+      "b": "stock",
+      "spans": [
+        [
+          0,
+          0
+        ]
+      ],
+      "more": false
+    }
+  ],
+  "note": "inside check undecidable for spindle ↔ stock (L40) — a part wholly inside the other is not found there"
+}

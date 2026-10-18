@@ -1,0 +1,55 @@
+[1A[2K[2m[WebServer] [22m(node:1195211) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:1195223) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1195223) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] e2e/collisions.viewer.spec.ts:1933:1 › R172 own: metadata before the first table never shows the raw boundary line
+[1A[2K  1) e2e/collisions.viewer.spec.ts:1933:1 › R172 own: metadata before the first table never shows the raw boundary line 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mnot[2m.[22mtoContain[2m([22m[32mexpected[39m[2m) // indexOf[22m
+
+    Expected substring: not [32m"(L7)"[39m
+    Received string:        [31m"Check basis[39m
+    [31mBasis[39m
+    [31mThe run's start (run 9)[39m
+    [31mProgram kinematics[39m
+    [31mMachine frame[39m
+    [31mRotary axes[39m
+    [31mNot read[39m
+    [31mWork offset[39m
+    [31mG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°[39m
+    [31mStart tool[39m
+    [31mNone — the check uses a stub body[39m
+    [31mStart[39m
+    [31mFrom L7, provisional[39m
+    [31mIn contact at the check's start[39m
+    [31mTool ↔ Work piece [7m(L7)[27m[39m
+    [31mIn a run, the rotary axes are the run's start joints.[39m
+    [31mThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub)."[39m
+
+      1982 |   expect(m.requestRange).toEqual({ from: 1 });
+      1983 |   expect(after).toContain('(touch)');
+    > 1984 |   expect(before).not.toContain('(L7)');
+           |                      ^
+      1985 | });
+      1986 |
+        at /tmp/codex-r172-p00xom99/repo/lcnc-webui/e2e/collisions.viewer.spec.ts:1984:22
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ../../browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ../../browser-results/collisions.viewer-R172-own-b16cc-shows-the-raw-boundary-line/error-context.md
+
+
+[1A[2K  1 failed
+    e2e/collisions.viewer.spec.ts:1933:1 › R172 own: metadata before the first table never shows the raw boundary line 
