@@ -1,0 +1,42 @@
+{
+  "oldCoverage": 43,
+  "end": 89,
+  "held": [
+    {
+      "enter": 40,
+      "exit": null,
+      "flags": 2,
+      "witness": 40
+    }
+  ],
+  "current": [
+    {
+      "enter": 40,
+      "exit": 49,
+      "flags": 134,
+      "witness": 40
+    }
+  ],
+  "union": {
+    "cum": 40,
+    "cumEnd": 49,
+    "key": "C0|0|0",
+    "line": 7,
+    "a": "spindle",
+    "b": "vise",
+    "dist": 0,
+    "near": false,
+    "rapid": true
+  },
+  "alone": {
+    "cum": 40,
+    "cumEnd": 49,
+    "key": "C0|0|0",
+    "line": 7,
+    "a": "spindle",
+    "b": "vise",
+    "dist": 0,
+    "near": false,
+    "rapid": true
+  }
+}

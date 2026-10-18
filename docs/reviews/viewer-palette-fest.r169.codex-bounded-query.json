@@ -1,0 +1,22 @@
+[
+  {
+    "intervalsPerGeneration": 1024,
+    "rapid": false,
+    "reads": 404
+  },
+  {
+    "intervalsPerGeneration": 1024,
+    "rapid": true,
+    "reads": 594
+  },
+  {
+    "intervalsPerGeneration": 8192,
+    "rapid": false,
+    "reads": 500
+  },
+  {
+    "intervalsPerGeneration": 8192,
+    "rapid": true,
+    "reads": 690
+  }
+]

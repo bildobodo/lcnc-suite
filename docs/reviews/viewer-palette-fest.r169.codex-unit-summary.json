@@ -1,0 +1,68 @@
+{
+  "unit": {
+    "numTotalTests": 217,
+    "numPassedTests": 217,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "success": true,
+    "suites": [
+      {
+        "name": "collision.test.ts",
+        "status": "passed",
+        "tests": 127,
+        "ms": 3881.23583984375
+      },
+      {
+        "name": "contactView.test.ts",
+        "status": "passed",
+        "tests": 35,
+        "ms": 14198.97265625
+      },
+      {
+        "name": "contactViewBudget.test.ts",
+        "status": "passed",
+        "tests": 7,
+        "ms": 34580.516845703125
+      },
+      {
+        "name": "contactViewIndexed.test.ts",
+        "status": "passed",
+        "tests": 25,
+        "ms": 86471.8056640625
+      },
+      {
+        "name": "contactViewUnion.test.ts",
+        "status": "passed",
+        "tests": 21,
+        "ms": 14953.686767578125
+      },
+      {
+        "name": "r169-codex-rapid.test.ts",
+        "status": "passed",
+        "tests": 1,
+        "ms": 5.931884765625
+      },
+      {
+        "name": "r169-codex-sweep.test.ts",
+        "status": "passed",
+        "tests": 1,
+        "ms": 71.11474609375
+      }
+    ]
+  },
+  "own-index": {
+    "numTotalTests": 2,
+    "numPassedTests": 2,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "success": true,
+    "suites": [
+      {
+        "name": "r169-codex-index.test.ts",
+        "status": "passed",
+        "tests": 2,
+        "ms": 565.74560546875
+      }
+    ]
+  }
+}
