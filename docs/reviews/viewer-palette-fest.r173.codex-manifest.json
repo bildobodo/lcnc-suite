@@ -1,0 +1,2311 @@
+{
+  "review": "R173",
+  "scope": "4cd751b5..97c98b5f",
+  "product_branch": "feat/step4-p2b (unmerged)",
+  "archive": "/tmp/codex-r173-a8l4sdqz/repo",
+  "live_head": "f4668ef337940521eb2571c3b6d7cd586c0b4031",
+  "source_files_compared": 374,
+  "source_equal": true,
+  "sources": [
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "git_blob": "e14a0eb6062b1338a8f1db00e2598111099a7485",
+      "archive_blob": "e14a0eb6062b1338a8f1db00e2598111099a7485",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/Btn.vue",
+      "git_blob": "f17ae580d33909d2d0bb3420e4b25cf25b64f680",
+      "archive_blob": "f17ae580d33909d2d0bb3420e4b25cf25b64f680",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/CameraPip.vue",
+      "git_blob": "32dc17e62da6cad65ab73b8f701ec584dec1dc21",
+      "archive_blob": "32dc17e62da6cad65ab73b8f701ec584dec1dc21",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ChoiceGroup.vue",
+      "git_blob": "b9429e7c7a116480d59c6ac8db3533e42c9ea131",
+      "archive_blob": "b9429e7c7a116480d59c6ac8db3533e42c9ea131",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/CodeEditor.vue",
+      "git_blob": "0b473cefa8b5200d4e35e7c624e9babffee5800e",
+      "archive_blob": "0b473cefa8b5200d4e35e7c624e9babffee5800e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/CornerGlyph.vue",
+      "git_blob": "a2ee73b2c30e4c3bb6e5e1884c08b32bc7ce2300",
+      "archive_blob": "a2ee73b2c30e4c3bb6e5e1884c08b32bc7ce2300",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/DebugTab.vue",
+      "git_blob": "c01172e3b889493242cab432bf38fc9490d903b0",
+      "archive_blob": "c01172e3b889493242cab432bf38fc9490d903b0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/DetailsPopover.vue",
+      "git_blob": "af7633a2479d453fb6756e90ba02ddd8cdf317f0",
+      "archive_blob": "af7633a2479d453fb6756e90ba02ddd8cdf317f0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/DialogFrame.vue",
+      "git_blob": "bf9eec7750f750343770c53b2b7715d9ed6c087d",
+      "archive_blob": "bf9eec7750f750343770c53b2b7715d9ed6c087d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/FileBrowser.vue",
+      "git_blob": "2f366d92903bee876fec6bb70a3b983f6e27acb9",
+      "archive_blob": "2f366d92903bee876fec6bb70a3b983f6e27acb9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/FloatingOverlays.vue",
+      "git_blob": "f344a47c2b30f6520efd19924debafb71f44c76b",
+      "archive_blob": "f344a47c2b30f6520efd19924debafb71f44c76b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/FormField.vue",
+      "git_blob": "f6c949ee8b043fd77952a0f37728be7122f256b8",
+      "archive_blob": "f6c949ee8b043fd77952a0f37728be7122f256b8",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/GamepadLiveInput.vue",
+      "git_blob": "1afe87ccc2e41b25a9ede83747c58bc0e92bcde9",
+      "archive_blob": "1afe87ccc2e41b25a9ede83747c58bc0e92bcde9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/GamepadMapWizard.vue",
+      "git_blob": "53248462c9504d093b4cf4f79fdca0497498d06b",
+      "archive_blob": "53248462c9504d093b4cf4f79fdca0497498d06b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/GamepadTab.vue",
+      "git_blob": "abbb52fa0a344fc11afc9e205f9765b675121342",
+      "archive_blob": "abbb52fa0a344fc11afc9e205f9765b675121342",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/Gate.vue",
+      "git_blob": "a88e89e28b467670411dd59864f61f0018f98a78",
+      "archive_blob": "a88e89e28b467670411dd59864f61f0018f98a78",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/GcodePanel.vue",
+      "git_blob": "a3fdd4200be35754ac6281e8aa760eccdd079058",
+      "archive_blob": "a3fdd4200be35754ac6281e8aa760eccdd079058",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/GcodeReferenceDialog.vue",
+      "git_blob": "4dd5fefd11b7541b4cd95bf6056fceeb54b86644",
+      "archive_blob": "4dd5fefd11b7541b4cd95bf6056fceeb54b86644",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/HalshowTab.vue",
+      "git_blob": "0f723bef7dd82463c7000596e71ccab40a7c32b6",
+      "archive_blob": "0f723bef7dd82463c7000596e71ccab40a7c32b6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/HelpIcon.vue",
+      "git_blob": "820fba41f5663f67858668ca46747e61f086ada2",
+      "archive_blob": "820fba41f5663f67858668ca46747e61f086ada2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/JogStrip.vue",
+      "git_blob": "1dfd26fdaff8af60989214468fe7dc9222e152c5",
+      "archive_blob": "1dfd26fdaff8af60989214468fe7dc9222e152c5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/KeyboardTab.vue",
+      "git_blob": "c64688f6c7f6e8753652a870278411223e72d54d",
+      "archive_blob": "c64688f6c7f6e8753652a870278411223e72d54d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineBtn.vue",
+      "git_blob": "f4123df9ac24393aad3dbecc5c9fb40102aa15e5",
+      "archive_blob": "f4123df9ac24393aad3dbecc5c9fb40102aa15e5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineChoice.vue",
+      "git_blob": "f5da020555971d4e3ca07f79125b1770fbc520ce",
+      "archive_blob": "f5da020555971d4e3ca07f79125b1770fbc520ce",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineColor.vue",
+      "git_blob": "fa22b6c78bf114b12245c84794d68d1571e68fa7",
+      "archive_blob": "fa22b6c78bf114b12245c84794d68d1571e68fa7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineInput.vue",
+      "git_blob": "e0013e87dedbb1f24c75070ec5c44f708f024d7f",
+      "archive_blob": "e0013e87dedbb1f24c75070ec5c44f708f024d7f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineRadio.vue",
+      "git_blob": "9efc84f5d210a594c012784f3eb3630facd702aa",
+      "archive_blob": "9efc84f5d210a594c012784f3eb3630facd702aa",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineSelect.vue",
+      "git_blob": "75054f66e7e126874ff9099fec3cfda2d77a9139",
+      "archive_blob": "75054f66e7e126874ff9099fec3cfda2d77a9139",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineSlider.vue",
+      "git_blob": "70288185e525084648612e10cb759724e3ccb7e9",
+      "archive_blob": "70288185e525084648612e10cb759724e3ccb7e9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MachineToggle.vue",
+      "git_blob": "d15080c5feaaa78acc86dfdf7f1d5b03fff5005d",
+      "archive_blob": "d15080c5feaaa78acc86dfdf7f1d5b03fff5005d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MacroBar.vue",
+      "git_blob": "9e2f59bf5ca6b10e642aed34eb765e57227c6f90",
+      "archive_blob": "9e2f59bf5ca6b10e642aed34eb765e57227c6f90",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MacrosPanel.vue",
+      "git_blob": "78be29142f615b24e66665140c571619849aa617",
+      "archive_blob": "78be29142f615b24e66665140c571619849aa617",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MessagesDialog.vue",
+      "git_blob": "75f7ac075021b771bcc38f4674b1f0f92fa36e39",
+      "archive_blob": "75f7ac075021b771bcc38f4674b1f0f92fa36e39",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/MoreMenu.vue",
+      "git_blob": "32bf3db502c34f12953a805fa94d7b3b62fde36e",
+      "archive_blob": "32bf3db502c34f12953a805fa94d7b3b62fde36e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/NumberKeypadStrip.vue",
+      "git_blob": "c5b4fcd50fdc661dd27dfae7d0dec77ec09f8fa7",
+      "archive_blob": "c5b4fcd50fdc661dd27dfae7d0dec77ec09f8fa7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/OffsetPanel.vue",
+      "git_blob": "bd84a244b88630f32c7b5c0541be15b088c9cc14",
+      "archive_blob": "bd84a244b88630f32c7b5c0541be15b088c9cc14",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/OverridesStrip.vue",
+      "git_blob": "6c40f5bff19e5798a90dee1eca038bcffdfa0b28",
+      "archive_blob": "6c40f5bff19e5798a90dee1eca038bcffdfa0b28",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ProbePanel.vue",
+      "git_blob": "27c071b635ce574f33162e4e92c379d1a12a9145",
+      "archive_blob": "27c071b635ce574f33162e4e92c379d1a12a9145",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/SafetyStrip.vue",
+      "git_blob": "2dd9d913bf481b52e8ef0928d6b32437d748afe5",
+      "archive_blob": "2dd9d913bf481b52e8ef0928d6b32437d748afe5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ScrubBar.vue",
+      "git_blob": "4d6b7f3da135827564b7a5e348e907d10498d517",
+      "archive_blob": "4d6b7f3da135827564b7a5e348e907d10498d517",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/SettingsPanel.vue",
+      "git_blob": "1cc9005576570863f879c6b0ab3564d53fda1a43",
+      "archive_blob": "1cc9005576570863f879c6b0ab3564d53fda1a43",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/SetupIcon.vue",
+      "git_blob": "983a83d40b4c12639717b05688e64d1932d51d59",
+      "archive_blob": "983a83d40b4c12639717b05688e64d1932d51d59",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/SetupStrip.vue",
+      "git_blob": "09d1f8be41ce7632d13979ae0f0f7578b748ea64",
+      "archive_blob": "09d1f8be41ce7632d13979ae0f0f7578b748ea64",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/SimPanel.vue",
+      "git_blob": "2ea1fe33230fb536ca676a58c3cdcfae7eaf7933",
+      "archive_blob": "2ea1fe33230fb536ca676a58c3cdcfae7eaf7933",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/SpindleStrip.vue",
+      "git_blob": "f8fe13febbf6e0ad40c2db1459d567a347500b4b",
+      "archive_blob": "f8fe13febbf6e0ad40c2db1459d567a347500b4b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/StatsDonut.vue",
+      "git_blob": "afd964ee9278ff9ce1ebb8b360982f200ed15b35",
+      "archive_blob": "afd964ee9278ff9ce1ebb8b360982f200ed15b35",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/TabNav.vue",
+      "git_blob": "21a11a3626932fe95c1d5ebd91e5a1afbfb858ff",
+      "archive_blob": "21a11a3626932fe95c1d5ebd91e5a1afbfb858ff",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/TabPanel.vue",
+      "git_blob": "29cb52e2ef09e838b581490a2c20e22cb97e30d0",
+      "archive_blob": "29cb52e2ef09e838b581490a2c20e22cb97e30d0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/TextKeypadStrip.vue",
+      "git_blob": "b96ce32802ab56e8fed1590d4d66a4ccaa2ad0a4",
+      "archive_blob": "b96ce32802ab56e8fed1590d4d66a4ccaa2ad0a4",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "git_blob": "d07760e285629e4356b64018a7f7ec03606e8cc3",
+      "archive_blob": "d07760e285629e4356b64018a7f7ec03606e8cc3",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ToolPreview.vue",
+      "git_blob": "5ff87ce76404ea430e1b29391b74f89cbc74ad63",
+      "archive_blob": "5ff87ce76404ea430e1b29391b74f89cbc74ad63",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ToolStrip.vue",
+      "git_blob": "c7a938a317af4dcf55e07dbcf98ed004c4373f8b",
+      "archive_blob": "c7a938a317af4dcf55e07dbcf98ed004c4373f8b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ToolTablePanel.vue",
+      "git_blob": "a638b10276553344b849cfaa13f91b58d3e310ab",
+      "archive_blob": "a638b10276553344b849cfaa13f91b58d3e310ab",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ToolsetterSettings.vue",
+      "git_blob": "997798bb77f003ed66610234e237280d42b8af82",
+      "archive_blob": "997798bb77f003ed66610234e237280d42b8af82",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ViewCube.vue",
+      "git_blob": "7a4e21c1184c83dd38ed67f0c0875a85f96a10e1",
+      "archive_blob": "7a4e21c1184c83dd38ed67f0c0875a85f96a10e1",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/Inter-Regular.woff",
+      "git_blob": "3783632a02787163fe378f722d59fc18a661efcb",
+      "archive_blob": "3783632a02787163fe378f722d59fc18a661efcb",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/InterVariable.woff2",
+      "git_blob": "5a8d3e72ad7ffb62af3b146e1b1f54ab5813a212",
+      "archive_blob": "5a8d3e72ad7ffb62af3b146e1b1f54ab5813a212",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/JetBrainsMono-Regular.woff2",
+      "git_blob": "40da427651937ac3b65ea6842f9448a810f719c6",
+      "archive_blob": "40da427651937ac3b65ea6842f9448a810f719c6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/JetBrainsMono-SemiBold.woff2",
+      "git_blob": "5ead7b0d6fc3c2e270fddf05f27d02d72250c566",
+      "archive_blob": "5ead7b0d6fc3c2e270fddf05f27d02d72250c566",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/OFL-Inter.txt",
+      "git_blob": "9b2ca37b3ffc77391d8b2ebef4a974ef32bf46ea",
+      "archive_blob": "9b2ca37b3ffc77391d8b2ebef4a974ef32bf46ea",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/OFL-JetBrainsMono.txt",
+      "git_blob": "8bee4148c1d54dbf5dae6d6c117fc80414266abb",
+      "archive_blob": "8bee4148c1d54dbf5dae6d6c117fc80414266abb",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/auth.ts",
+      "git_blob": "a941954641f1cfdcf8dd6eb236a069515dca1de2",
+      "archive_blob": "a941954641f1cfdcf8dd6eb236a069515dca1de2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/axisColors.ts",
+      "git_blob": "e712b7f00e29bb667f3097aa4dc9e3fff74ce905",
+      "archive_blob": "e712b7f00e29bb667f3097aa4dc9e3fff74ce905",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/browseFailure.test.ts",
+      "git_blob": "1e89c707e29f4f36ea86ce2083a8005fb8fa31c9",
+      "archive_blob": "1e89c707e29f4f36ea86ce2083a8005fb8fa31c9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/browseFailure.ts",
+      "git_blob": "da85829c86759e2d23dc16a9f20fefb58b8ec59f",
+      "archive_blob": "da85829c86759e2d23dc16a9f20fefb58b8ec59f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/btnHint.test.ts",
+      "git_blob": "a5a3cd666cf1e312bd52347c3b1e7bb22fa6967c",
+      "archive_blob": "a5a3cd666cf1e312bd52347c3b1e7bb22fa6967c",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/btnHint.ts",
+      "git_blob": "7d2d4733f6785ae32bfbc38e944eb8b5290c7643",
+      "archive_blob": "7d2d4733f6785ae32bfbc38e944eb8b5290c7643",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/bundledFonts.test.ts",
+      "git_blob": "e0b6bad5f88312e5dea5a8426d12e8923d2f8da6",
+      "archive_blob": "e0b6bad5f88312e5dea5a8426d12e8923d2f8da6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/choiceGroup.ts",
+      "git_blob": "1db0682f89e131a87381809fafaf3ce91d0d12c6",
+      "archive_blob": "1db0682f89e131a87381809fafaf3ce91d0d12c6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/clientDiag.ts",
+      "git_blob": "24015cfc1fb9b2a835284ca3fa4462d3a0a19190",
+      "archive_blob": "24015cfc1fb9b2a835284ca3fa4462d3a0a19190",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/codeGlide.test.ts",
+      "git_blob": "b4952058476476acd8bbb718d4050ecd18547b65",
+      "archive_blob": "b4952058476476acd8bbb718d4050ecd18547b65",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/codeGlide.ts",
+      "git_blob": "51d7a765b2342bc5ee0612a113c4404f993e9bb2",
+      "archive_blob": "51d7a765b2342bc5ee0612a113c4404f993e9bb2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/commandPath.test.ts",
+      "git_blob": "8030fb87c4b2f0d12d5f9868c415601d1cba565e",
+      "archive_blob": "8030fb87c4b2f0d12d5f9868c415601d1cba565e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/defaults.ts",
+      "git_blob": "31c0b418df3e635f3c80762d98afa2e7d79b0eb0",
+      "archive_blob": "31c0b418df3e635f3c80762d98afa2e7d79b0eb0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/download.ts",
+      "git_blob": "e8febd9bf081cb7fceb0db8136cdca87f6817ebf",
+      "archive_blob": "e8febd9bf081cb7fceb0db8136cdca87f6817ebf",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/dragScroll.ts",
+      "git_blob": "f25f25f35c149ee97e130c2b63eba1a1547f8737",
+      "archive_blob": "f25f25f35c149ee97e130c2b63eba1a1547f8737",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/edgeWorker.ts",
+      "git_blob": "bf3ee41ba4b7e1372dc156f792f9b07c273d4b28",
+      "archive_blob": "bf3ee41ba4b7e1372dc156f792f9b07c273d4b28",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/exampleToolLibrary.test.ts",
+      "git_blob": "259d87b2c1591603cc9f0e12f1fff5470395b34d",
+      "archive_blob": "259d87b2c1591603cc9f0e12f1fff5470395b34d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/flashClock.test.ts",
+      "git_blob": "1d482e60091881007110256e65984d61b9e1cbd2",
+      "archive_blob": "1d482e60091881007110256e65984d61b9e1cbd2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/flashClock.ts",
+      "git_blob": "0e349e95c6e4ef87fad9476c1038cf9083134d2a",
+      "archive_blob": "0e349e95c6e4ef87fad9476c1038cf9083134d2a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/formToolGeometry.test.ts",
+      "git_blob": "9b6db601ae6893ef40e8697f58cfd776f0a2db32",
+      "archive_blob": "9b6db601ae6893ef40e8697f58cfd776f0a2db32",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/format.test.ts",
+      "git_blob": "5ed73464dbf416bfcbb5531b12bf84d97bf39164",
+      "archive_blob": "5ed73464dbf416bfcbb5531b12bf84d97bf39164",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/format.ts",
+      "git_blob": "a74427bc4b5b604db3e8524780885836d2f51f1f",
+      "archive_blob": "a74427bc4b5b604db3e8524780885836d2f51f1f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/freecadGeometry.test.ts",
+      "git_blob": "896373442ba73f54dfb4a6a51b5a29d8d628f69a",
+      "archive_blob": "896373442ba73f54dfb4a6a51b5a29d8d628f69a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/g30Form.test.ts",
+      "git_blob": "4d99b40225066dc14a4d7a16413d9cdeb03bdcec",
+      "archive_blob": "4d99b40225066dc14a4d7a16413d9cdeb03bdcec",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/g30Form.ts",
+      "git_blob": "4716e617d69d118178989a48a4eee68f6eb71765",
+      "archive_blob": "4716e617d69d118178989a48a4eee68f6eb71765",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/g30Shared.ts",
+      "git_blob": "308e64c0d2eabc7a7043f88ceb2c4d7c5c4b3eaf",
+      "archive_blob": "308e64c0d2eabc7a7043f88ceb2c4d7c5c4b3eaf",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gamepadProfile.test.ts",
+      "git_blob": "3c00d56f89c48f29ddaa6047cca70e76f4aec2c0",
+      "archive_blob": "3c00d56f89c48f29ddaa6047cca70e76f4aec2c0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gamepadProfile.ts",
+      "git_blob": "6e9053374b7e77230c49ad7117515fdaf50b2081",
+      "archive_blob": "6e9053374b7e77230c49ad7117515fdaf50b2081",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gateExplain.ts",
+      "git_blob": "0b2ae6562265963ebb31f1b68f07c063af698707",
+      "archive_blob": "0b2ae6562265963ebb31f1b68f07c063af698707",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gcodeCmLanguage.ts",
+      "git_blob": "3570764b335db402272bc43124845fdef0459a19",
+      "archive_blob": "3570764b335db402272bc43124845fdef0459a19",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gcodeHighlight.ts",
+      "git_blob": "709d04ba4063305cc742654d112da5356fbc3aab",
+      "archive_blob": "709d04ba4063305cc742654d112da5356fbc3aab",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRefView.test.ts",
+      "git_blob": "244aa01507b4ab2bf4185d82d7c539fa0dd29c8f",
+      "archive_blob": "244aa01507b4ab2bf4185d82d7c539fa0dd29c8f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRefView.ts",
+      "git_blob": "c65c9b032b56882978f1edbf733491ff0c2597cc",
+      "archive_blob": "c65c9b032b56882978f1edbf733491ff0c2597cc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gcodeReference.ts",
+      "git_blob": "fae3963be15cfa99872a1d53f243b496da6279b2",
+      "archive_blob": "fae3963be15cfa99872a1d53f243b496da6279b2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRfl.test.ts",
+      "git_blob": "1a59346d7387939498248ae5fd3a97dce1d898df",
+      "archive_blob": "1a59346d7387939498248ae5fd3a97dce1d898df",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRfl.ts",
+      "git_blob": "fea96ccb401f84c6b99c7588be99b4384a406da3",
+      "archive_blob": "fea96ccb401f84c6b99c7588be99b4384a406da3",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/geometryCache.ts",
+      "git_blob": "5ed878d9ec115586c5c971e4699a4b614eed749c",
+      "archive_blob": "5ed878d9ec115586c5c971e4699a4b614eed749c",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/glyphMarkup.test.ts",
+      "git_blob": "5a5fc3094cd5719779a22bbf2ff1f75b01449fb7",
+      "archive_blob": "5a5fc3094cd5719779a22bbf2ff1f75b01449fb7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/helpPlacement.test.ts",
+      "git_blob": "cbd0e2b2083011e00bd8c2547b4574f43d5c2bfc",
+      "archive_blob": "cbd0e2b2083011e00bd8c2547b4574f43d5c2bfc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/helpPlacement.ts",
+      "git_blob": "a9aa3f08874e4a508f7466f7b9958182060b734a",
+      "archive_blob": "a9aa3f08874e4a508f7466f7b9958182060b734a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/inputSession.ts",
+      "git_blob": "d7821c52ca1548511d811fec2dac101aed80027d",
+      "archive_blob": "d7821c52ca1548511d811fec2dac101aed80027d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/lcnc.test.ts",
+      "git_blob": "99a755963ce4d38568cfc1919225d833005434c7",
+      "archive_blob": "99a755963ce4d38568cfc1919225d833005434c7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/lcnc.ts",
+      "git_blob": "72596e7b4ffb378ea30a480bd044aa4c8b089dc2",
+      "archive_blob": "72596e7b4ffb378ea30a480bd044aa4c8b089dc2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/lcncApi.ts",
+      "git_blob": "102f9e6829df8bf2454772cf8c4ad33beee714ab",
+      "archive_blob": "102f9e6829df8bf2454772cf8c4ad33beee714ab",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.exports.test.ts",
+      "git_blob": "2575ed920fc0411de47137e7bf9642692f8d3626",
+      "archive_blob": "2575ed920fc0411de47137e7bf9642692f8d3626",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.ts",
+      "git_blob": "73450151ba3d7f9525d98bb5b93f6dd58ec0969d",
+      "archive_blob": "73450151ba3d7f9525d98bb5b93f6dd58ec0969d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/machineControls.ts",
+      "git_blob": "858e218b3d7c29029b726183ee78339f6ee53eb6",
+      "archive_blob": "858e218b3d7c29029b726183ee78339f6ee53eb6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroBar.test.ts",
+      "git_blob": "64e2a0b20e47f4fd16bcb5f28acae566aa9d7ef9",
+      "archive_blob": "64e2a0b20e47f4fd16bcb5f28acae566aa9d7ef9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroBar.ts",
+      "git_blob": "606a4bccbeef9ca779984299268f153a12868999",
+      "archive_blob": "606a4bccbeef9ca779984299268f153a12868999",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroFiles.ts",
+      "git_blob": "2a9ac468e7cc637c2cf6f9c8a7757909686541b9",
+      "archive_blob": "2a9ac468e7cc637c2cf6f9c8a7757909686541b9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroHeader.test.ts",
+      "git_blob": "fbb8402c6ef8da9cbf88b120e480e21b01812f4f",
+      "archive_blob": "fbb8402c6ef8da9cbf88b120e480e21b01812f4f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroHeader.ts",
+      "git_blob": "43dcbd0d9a6d2acaa01f13ae9ab4b7c3d6d154e0",
+      "archive_blob": "43dcbd0d9a6d2acaa01f13ae9ab4b7c3d6d154e0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroParams.ts",
+      "git_blob": "851d717981f011950039c0610986291241c0104f",
+      "archive_blob": "851d717981f011950039c0610986291241c0104f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroTemplate.test.ts",
+      "git_blob": "f64f55aea366041e4469fee49145992a1b37eb85",
+      "archive_blob": "f64f55aea366041e4469fee49145992a1b37eb85",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/macroTemplate.ts",
+      "git_blob": "4b01e7ef2e8a73b72cc831b7d45373de3cdf4270",
+      "archive_blob": "4b01e7ef2e8a73b72cc831b7d45373de3cdf4270",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/main.ts",
+      "git_blob": "155d30f56dd0e115ad772f78a65504728ddeba90",
+      "archive_blob": "155d30f56dd0e115ad772f78a65504728ddeba90",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/mathEval.test.ts",
+      "git_blob": "09ac9887282f2ea39b1047e1775d3b6a889ccc7c",
+      "archive_blob": "09ac9887282f2ea39b1047e1775d3b6a889ccc7c",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/mathEval.ts",
+      "git_blob": "4ef51d457c95a61db8472efb68c7427d57a37891",
+      "archive_blob": "4ef51d457c95a61db8472efb68c7427d57a37891",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/messageView.test.ts",
+      "git_blob": "9dce7ce54fc32b038e55691834fb246821bb864b",
+      "archive_blob": "9dce7ce54fc32b038e55691834fb246821bb864b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/messageView.ts",
+      "git_blob": "e4021914a00acd99bc873ba8f91dc9d6b96569e9",
+      "archive_blob": "e4021914a00acd99bc873ba8f91dc9d6b96569e9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/modalRegistry.ts",
+      "git_blob": "93431c051d0ab394fb1d837554b073ec9f794fa2",
+      "archive_blob": "93431c051d0ab394fb1d837554b073ec9f794fa2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/offsetRows.test.ts",
+      "git_blob": "043bfa86c2a65309413c3348227473bec7498761",
+      "archive_blob": "043bfa86c2a65309413c3348227473bec7498761",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/offsetRows.ts",
+      "git_blob": "769960382e74c3f99ff32f3e7aff726cadaff051",
+      "archive_blob": "769960382e74c3f99ff32f3e7aff726cadaff051",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/permissions.test.ts",
+      "git_blob": "aa9b1a89119d8cb8a5a4c7bce2fd992be741a850",
+      "archive_blob": "aa9b1a89119d8cb8a5a4c7bce2fd992be741a850",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/permissions.ts",
+      "git_blob": "3cb4682cc4449dacc41c6ac8ec0e047befd3258d",
+      "archive_blob": "3cb4682cc4449dacc41c6ac8ec0e047befd3258d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/playwrightProjects.test.ts",
+      "git_blob": "c459d72eb360770fd486a1118536e31c425fab65",
+      "archive_blob": "c459d72eb360770fd486a1118536e31c425fab65",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/previewDecode.test.ts",
+      "git_blob": "3365b2ef88e16e05cd94350e41abd43c9a162335",
+      "archive_blob": "3365b2ef88e16e05cd94350e41abd43c9a162335",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/previewDecode.ts",
+      "git_blob": "60f7420c8ace960b00c3508b8e80f55df18eb4d0",
+      "archive_blob": "60f7420c8ace960b00c3508b8e80f55df18eb4d0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/previewWorker.ts",
+      "git_blob": "34f9d1608c531a9cc49bbc898905e3d4d9ae0600",
+      "archive_blob": "34f9d1608c531a9cc49bbc898905e3d4d9ae0600",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/probeFields.test.ts",
+      "git_blob": "906778ed15fe712f39a52b93c8d9af0bf171b9e9",
+      "archive_blob": "906778ed15fe712f39a52b93c8d9af0bf171b9e9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/probeFields.ts",
+      "git_blob": "64ec3bcc8938746beb1c3eabbbf93bfc3e57664e",
+      "archive_blob": "64ec3bcc8938746beb1c3eabbbf93bfc3e57664e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/probeViews.ts",
+      "git_blob": "474e230e7f7ab89445f529f7455d5a4416ce2728",
+      "archive_blob": "474e230e7f7ab89445f529f7455d5a4416ce2728",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/radioNames.test.ts",
+      "git_blob": "f6e2ec945084e00d2f371e798a2cad18330e0337",
+      "archive_blob": "f6e2ec945084e00d2f371e798a2cad18330e0337",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/runBasis.ts",
+      "git_blob": "87f3aa81fef54c8c79ac9945e46063823b9b2a4e",
+      "archive_blob": "87f3aa81fef54c8c79ac9945e46063823b9b2a4e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/scrollFade.test.ts",
+      "git_blob": "8a84e2ef83b71065657892de5352d4f6a3cc8214",
+      "archive_blob": "8a84e2ef83b71065657892de5352d4f6a3cc8214",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/scrollFade.ts",
+      "git_blob": "877b88877d2a68a423f3b840867e4dd06cec0378",
+      "archive_blob": "877b88877d2a68a423f3b840867e4dd06cec0378",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/settingsSaveStatus.test.ts",
+      "git_blob": "403421a253e23688cbd0f403bb5b6c4423217b4d",
+      "archive_blob": "403421a253e23688cbd0f403bb5b6c4423217b4d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/settingsSaveStatus.ts",
+      "git_blob": "81655104b9dafe30a44ebca3144d3fa38f3a5f85",
+      "archive_blob": "81655104b9dafe30a44ebca3144d3fa38f3a5f85",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/shims.d.ts",
+      "git_blob": "675237cc5930aa1c6e095d22fe1339616f4a2068",
+      "archive_blob": "675237cc5930aa1c6e095d22fe1339616f4a2068",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/sidePaneNarrow.ts",
+      "git_blob": "1338e8d5acf70664ca197b8fc34c730142a13ca5",
+      "archive_blob": "1338e8d5acf70664ca197b8fc34c730142a13ca5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/simMode.ts",
+      "git_blob": "ea7ae9a464d91040005e95271726e4cb724ff707",
+      "archive_blob": "ea7ae9a464d91040005e95271726e4cb724ff707",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/simPanelStore.test.ts",
+      "git_blob": "7a3774ec6186d35b4a478d2d709f09b0d7208a50",
+      "archive_blob": "7a3774ec6186d35b4a478d2d709f09b0d7208a50",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/simPanelStore.ts",
+      "git_blob": "307ebbc336d6bd34022c99e6ebb683e425aa83cf",
+      "archive_blob": "307ebbc336d6bd34022c99e6ebb683e425aa83cf",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/stickyHead.test.ts",
+      "git_blob": "c7ee691e5fc8884946be8f3207a650d0d57ab9aa",
+      "archive_blob": "c7ee691e5fc8884946be8f3207a650d0d57ab9aa",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/stickyHead.ts",
+      "git_blob": "f5a86494998bb5e34f852aef908b21b881b5d5e2",
+      "archive_blob": "f5a86494998bb5e34f852aef908b21b881b5d5e2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/style.css",
+      "git_blob": "aa5bb6cbae2c7365a8b434d6f40265fa225ecfa5",
+      "archive_blob": "aa5bb6cbae2c7365a8b434d6f40265fa225ecfa5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/subRows.test.ts",
+      "git_blob": "fb820d50a2e736aad12be1211adabbe13477ece8",
+      "archive_blob": "fb820d50a2e736aad12be1211adabbe13477ece8",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/subRows.ts",
+      "git_blob": "b671d86e382b4d2962cc63002d107d5dda9023e3",
+      "archive_blob": "b671d86e382b4d2962cc63002d107d5dda9023e3",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/tabIds.ts",
+      "git_blob": "8e90f8c522ee213c6e7d5778b345f26869270554",
+      "archive_blob": "8e90f8c522ee213c6e7d5778b345f26869270554",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/testGlobals.ts",
+      "git_blob": "b7460b4824492c7aa1b7e540375c9a747eb60786",
+      "archive_blob": "b7460b4824492c7aa1b7e540375c9a747eb60786",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/textKeyboardPages.test.ts",
+      "git_blob": "2bd430f1c39c1132d320ea1342123d893938c7aa",
+      "archive_blob": "2bd430f1c39c1132d320ea1342123d893938c7aa",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/textKeyboardPages.ts",
+      "git_blob": "1efc92fc45ce656fe8448a82cf80d6e26c577bd1",
+      "archive_blob": "1efc92fc45ce656fe8448a82cf80d6e26c577bd1",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/themeTokens.test.ts",
+      "git_blob": "17b4315e8d21a2ab3e14e0289c2212273eadb419",
+      "archive_blob": "17b4315e8d21a2ab3e14e0289c2212273eadb419",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolGeometry.test.ts",
+      "git_blob": "155d552b676c7b73b6162ff8a1ab5e4e12aa8f44",
+      "archive_blob": "155d552b676c7b73b6162ff8a1ab5e4e12aa8f44",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolGeometry.ts",
+      "git_blob": "5ba07a8ef934ddc70eb56a4a1746c196c410de98",
+      "archive_blob": "5ba07a8ef934ddc70eb56a4a1746c196c410de98",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolHolder.test.ts",
+      "git_blob": "20b9caf8e1dc952cf7137270a7836c74175cf237",
+      "archive_blob": "20b9caf8e1dc952cf7137270a7836c74175cf237",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolHolder.ts",
+      "git_blob": "55c3be6e92f86025f5615de86a8529120236803f",
+      "archive_blob": "55c3be6e92f86025f5615de86a8529120236803f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolImportSummary.test.ts",
+      "git_blob": "a9eb58ee6ca874f0302f6126e7e6265a5d83c700",
+      "archive_blob": "a9eb58ee6ca874f0302f6126e7e6265a5d83c700",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolImportSummary.ts",
+      "git_blob": "d1a214eb72c80687709c16fc5e30c8ab531a87da",
+      "archive_blob": "d1a214eb72c80687709c16fc5e30c8ab531a87da",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolPreviewNotice.test.ts",
+      "git_blob": "943686392bb07609e1bcc27814ace768c971986b",
+      "archive_blob": "943686392bb07609e1bcc27814ace768c971986b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolPreviewNotice.ts",
+      "git_blob": "a01dd5f1b7a505f8181570f609b525256b7ec07d",
+      "archive_blob": "a01dd5f1b7a505f8181570f609b525256b7ec07d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolSimulationGeometry.test.ts",
+      "git_blob": "673d35e5a24d6e52796db11065375212090df7bc",
+      "archive_blob": "673d35e5a24d6e52796db11065375212090df7bc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolTypes.ts",
+      "git_blob": "49c5725ea56ad27385466a5b1ddc5ae73146c452",
+      "archive_blob": "49c5725ea56ad27385466a5b1ddc5ae73146c452",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolUnits.ts",
+      "git_blob": "829eb4f5e63b4a69026a788ab06bb1d582aa084c",
+      "archive_blob": "829eb4f5e63b4a69026a788ab06bb1d582aa084c",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolsetterSetup.test.ts",
+      "git_blob": "0d6a616efe568efffb55c3119054a2a08e19ace5",
+      "archive_blob": "0d6a616efe568efffb55c3119054a2a08e19ace5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolsetterSetup.ts",
+      "git_blob": "130f8d91bf78e6bf8babd1009984a77e828173de",
+      "archive_blob": "130f8d91bf78e6bf8babd1009984a77e828173de",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/toolsetterVars.ts",
+      "git_blob": "08fbc4daaed7b9aa61dd42498cd61301fbde3833",
+      "archive_blob": "08fbc4daaed7b9aa61dd42498cd61301fbde3833",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/touchDetect.ts",
+      "git_blob": "e02ed1e86fe16503b469a19feda1bf4ee8cabf02",
+      "archive_blob": "e02ed1e86fe16503b469a19feda1bf4ee8cabf02",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/trackHighlight.test.ts",
+      "git_blob": "21c2aa91cc48c7ca546001b9951d3eb135d58d30",
+      "archive_blob": "21c2aa91cc48c7ca546001b9951d3eb135d58d30",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/trackHighlight.ts",
+      "git_blob": "e463eabf150f25e21e7cf95d87df3abea0896f2e",
+      "archive_blob": "e463eabf150f25e21e7cf95d87df3abea0896f2e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/tsconfigCoverage.test.ts",
+      "git_blob": "bf374767af429ed221d22f9becf779e5ef2faee8",
+      "archive_blob": "bf374767af429ed221d22f9becf779e5ef2faee8",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/twpPose.test.ts",
+      "git_blob": "5ee24dd0a3eb43727c3bdad1d2e6f3d8a896f102",
+      "archive_blob": "5ee24dd0a3eb43727c3bdad1d2e6f3d8a896f102",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/twpPose.ts",
+      "git_blob": "e24b8687583efc5e16cbef68480fab9537e15c59",
+      "archive_blob": "e24b8687583efc5e16cbef68480fab9537e15c59",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useAxes.test.ts",
+      "git_blob": "bec005b9007248a41a71fac1eea1e06b9f17beb6",
+      "archive_blob": "bec005b9007248a41a71fac1eea1e06b9f17beb6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useAxes.ts",
+      "git_blob": "217fec4733aab207ddd98b0cf30e492294ebe040",
+      "archive_blob": "217fec4733aab207ddd98b0cf30e492294ebe040",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useDialogState.ts",
+      "git_blob": "1ef76701c47992074f19e80bc4ebe13fdaf3286e",
+      "archive_blob": "1ef76701c47992074f19e80bc4ebe13fdaf3286e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useGamepad.ts",
+      "git_blob": "e5911d651244515cae53ca923a2d50bab4648adc",
+      "archive_blob": "e5911d651244515cae53ca923a2d50bab4648adc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useJogPointers.ts",
+      "git_blob": "32df70e894815922ebe90463f87f558897bc6cdc",
+      "archive_blob": "32df70e894815922ebe90463f87f558897bc6cdc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useKeyboardShortcuts.ts",
+      "git_blob": "104b2ec7113194f0650a58a26fdf58e2eb431e0a",
+      "archive_blob": "104b2ec7113194f0650a58a26fdf58e2eb431e0a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useMacros.test.ts",
+      "git_blob": "f111d0e81fbbd23fbf8a905e2ab2f6283b5b2f1b",
+      "archive_blob": "f111d0e81fbbd23fbf8a905e2ab2f6283b5b2f1b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useMacros.ts",
+      "git_blob": "30765a6d9b35f943b394d0b1ac048328529bf37a",
+      "archive_blob": "30765a6d9b35f943b394d0b1ac048328529bf37a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useMdiHistory.ts",
+      "git_blob": "c15d1947bff725d6c00bf0c8dd19d5611c035b31",
+      "archive_blob": "c15d1947bff725d6c00bf0c8dd19d5611c035b31",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useMediaMql.ts",
+      "git_blob": "3fc2b431c184f9da615f34cb90c46c82a2df8091",
+      "archive_blob": "3fc2b431c184f9da615f34cb90c46c82a2df8091",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useNumberKeypad.test.ts",
+      "git_blob": "1120433bf0e4b585bab8f8f208e36cf07a7de961",
+      "archive_blob": "1120433bf0e4b585bab8f8f208e36cf07a7de961",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useNumberKeypad.ts",
+      "git_blob": "3b921224397482cf4986fcb251b1a6c98da5bd36",
+      "archive_blob": "3b921224397482cf4986fcb251b1a6c98da5bd36",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useTouchoffMath.test.ts",
+      "git_blob": "bf6d199730e68aad5e4f4c783ddfb6c7337a3751",
+      "archive_blob": "bf6d199730e68aad5e4f4c783ddfb6c7337a3751",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/useTouchoffMath.ts",
+      "git_blob": "0ed64f5b808276b2fa3a963c94ef9191d8d94869",
+      "archive_blob": "0ed64f5b808276b2fa3a963c94ef9191d8d94869",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/activeFixtureFrame.test.ts",
+      "git_blob": "aaa7ca0edb9f923c4c2d839cf3aea4ad1e2c0311",
+      "archive_blob": "aaa7ca0edb9f923c4c2d839cf3aea4ad1e2c0311",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/activeFixtureFrame.ts",
+      "git_blob": "eee40429ae1257cc4a46892439d9a1d4d3a051ad",
+      "archive_blob": "eee40429ae1257cc4a46892439d9a1d4d3a051ad",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/allocMeter.test.ts",
+      "git_blob": "ebddf569b56a7545a887f90f991e1a24825ed081",
+      "archive_blob": "ebddf569b56a7545a887f90f991e1a24825ed081",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/allocMeter.ts",
+      "git_blob": "b26240eecb4bfc54f8a1461170c0c25d3fd57c48",
+      "archive_blob": "b26240eecb4bfc54f8a1461170c0c25d3fd57c48",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/backplotController.test.ts",
+      "git_blob": "57ebd7d2fece3e825ebcc1df5dfbd0495c5c412d",
+      "archive_blob": "57ebd7d2fece3e825ebcc1df5dfbd0495c5c412d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/backplotController.ts",
+      "git_blob": "f5e7d3386e5649ef27a13e8daebe9df405acf3be",
+      "archive_blob": "f5e7d3386e5649ef27a13e8daebe9df405acf3be",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/boxLines.test.ts",
+      "git_blob": "5127f2a2fd1e2d742ce0a958718b5eed72cb9a29",
+      "archive_blob": "5127f2a2fd1e2d742ce0a958718b5eed72cb9a29",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/boxLines.ts",
+      "git_blob": "7fa203d362e2b82f3f88cdc066eddba00016f04f",
+      "archive_blob": "7fa203d362e2b82f3f88cdc066eddba00016f04f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/bvhBoxDistance.test.ts",
+      "git_blob": "ecbd5e6ca32e108206f6b63642c27aa6c26fab30",
+      "archive_blob": "ecbd5e6ca32e108206f6b63642c27aa6c26fab30",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/bvhBoxDistance.ts",
+      "git_blob": "fef9a52f1702ab119ec31f186066b5bc8a6ae64f",
+      "archive_blob": "fef9a52f1702ab119ec31f186066b5bc8a6ae64f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cameraFraming.test.ts",
+      "git_blob": "fdf54c2beca45c57adc1d1d82f15c66ae1cb6349",
+      "archive_blob": "fdf54c2beca45c57adc1d1d82f15c66ae1cb6349",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cameraFraming.ts",
+      "git_blob": "c5c60f8bb86ba9d9d114bab139373c32932a713e",
+      "archive_blob": "c5c60f8bb86ba9d9d114bab139373c32932a713e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkBasis.test.ts",
+      "git_blob": "3e227f9140c6734bdd05b4f18f4be4935ba52b1e",
+      "archive_blob": "3e227f9140c6734bdd05b4f18f4be4935ba52b1e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkBasis.ts",
+      "git_blob": "9133d97a8fc2735eff6d0fa1c4141552ee740d07",
+      "archive_blob": "9133d97a8fc2735eff6d0fa1c4141552ee740d07",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkContext.test.ts",
+      "git_blob": "95a2c50577f55f3fc19927c5e55e39f94774c604",
+      "archive_blob": "95a2c50577f55f3fc19927c5e55e39f94774c604",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkContext.ts",
+      "git_blob": "e16f3458295e3625a159324bb2a33b98972ecfae",
+      "archive_blob": "e16f3458295e3625a159324bb2a33b98972ecfae",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkWiring.test.ts",
+      "git_blob": "b141f46cd00171093ffa2201b67f6aafb874aa56",
+      "archive_blob": "b141f46cd00171093ffa2201b67f6aafb874aa56",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/clashTargets.ts",
+      "git_blob": "13480a03c5de74fd423148f17ae993ac57462b15",
+      "archive_blob": "13480a03c5de74fd423148f17ae993ac57462b15",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.test.ts",
+      "git_blob": "18b91d5cb5ea2379798c6b86e1e252f76d715cfe",
+      "archive_blob": "18b91d5cb5ea2379798c6b86e1e252f76d715cfe",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.ts",
+      "git_blob": "316a6ae43ab13f00416609f2f2828830d78f9d9c",
+      "archive_blob": "316a6ae43ab13f00416609f2f2828830d78f9d9c",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionBounds.test.ts",
+      "git_blob": "9e87c780248c20aff8fc2f997101474bb06d3231",
+      "archive_blob": "9e87c780248c20aff8fc2f997101474bb06d3231",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionContacts.test.ts",
+      "git_blob": "3069d666047742ad5500ad90015dcecd084e9339",
+      "archive_blob": "3069d666047742ad5500ad90015dcecd084e9339",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionFixtures.ts",
+      "git_blob": "ee9910c341c3b78c9b3d6ee11527e0a39b4be460",
+      "archive_blob": "ee9910c341c3b78c9b3d6ee11527e0a39b4be460",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionHorizon.test.ts",
+      "git_blob": "523e7996d09059f2e9b2c075c605ab3848577ed2",
+      "archive_blob": "523e7996d09059f2e9b2c075c605ab3848577ed2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionInside.test.ts",
+      "git_blob": "5f8faa03873438b5d6c4e761a27aee82057263be",
+      "archive_blob": "5f8faa03873438b5d6c4e761a27aee82057263be",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionMarks.ts",
+      "git_blob": "1f11ea7fac02b3a88d6ad2d02991557b0c4cf3d8",
+      "archive_blob": "1f11ea7fac02b3a88d6ad2d02991557b0c4cf3d8",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionOracle.test.ts",
+      "git_blob": "60609d21c3c0c2b2f9a0de3e065607e944a58f94",
+      "archive_blob": "60609d21c3c0c2b2f9a0de3e065607e944a58f94",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionRange.test.ts",
+      "git_blob": "0fa35aff83b58b71e97f0358b91b65f2feb41b92",
+      "archive_blob": "0fa35aff83b58b71e97f0358b91b65f2feb41b92",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+      "git_blob": "87093bea88a97024289d1c8842285e9fc6ffd9a7",
+      "archive_blob": "87093bea88a97024289d1c8842285e9fc6ffd9a7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionSpeed.test.ts",
+      "git_blob": "30ea930c23d8250ee548be4905fb6eb5e21cbd89",
+      "archive_blob": "30ea930c23d8250ee548be4905fb6eb5e21cbd89",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWindows.test.ts",
+      "git_blob": "750edb89e09e756b0e98fa4a3a6d4504cd720dbf",
+      "archive_blob": "750edb89e09e756b0e98fa4a3a6d4504cd720dbf",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWorker.test.ts",
+      "git_blob": "8c5fb4baec690a47862c575d7ea416ae0ee80868",
+      "archive_blob": "8c5fb4baec690a47862c575d7ea416ae0ee80868",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWorker.ts",
+      "git_blob": "bb566ac4d50d688c485aaf983631caf9791c733a",
+      "archive_blob": "bb566ac4d50d688c485aaf983631caf9791c733a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/colourMath.ts",
+      "git_blob": "7c41bd68e8da18d1fb67eefe00343a47229449ed",
+      "archive_blob": "7c41bd68e8da18d1fb67eefe00343a47229449ed",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactMerge.test.ts",
+      "git_blob": "c21a37b34317d01075ae97307b265f73a145297f",
+      "archive_blob": "c21a37b34317d01075ae97307b265f73a145297f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactMerge.ts",
+      "git_blob": "0b3b6700e6ed8307ce8649905f176396240156c7",
+      "archive_blob": "0b3b6700e6ed8307ce8649905f176396240156c7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactMeter.test.ts",
+      "git_blob": "ebe9264c591cdf16fdbb3345d2aa3fe0edf7c6f6",
+      "archive_blob": "ebe9264c591cdf16fdbb3345d2aa3fe0edf7c6f6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactPublisher.test.ts",
+      "git_blob": "816590a1b0a43577ae71340460d8ceb4a54e2634",
+      "archive_blob": "816590a1b0a43577ae71340460d8ceb4a54e2634",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactPublisher.ts",
+      "git_blob": "26ddbe7f7ccba97dc2f645b896bdba9814d8ccf5",
+      "archive_blob": "26ddbe7f7ccba97dc2f645b896bdba9814d8ccf5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactStore.test.ts",
+      "git_blob": "67ea80fbf2d678fe4b9e92bb5290b2f6fb7d59ad",
+      "archive_blob": "67ea80fbf2d678fe4b9e92bb5290b2f6fb7d59ad",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactStore.ts",
+      "git_blob": "680862327600b937bb90ecbedbb82a2d94ee25de",
+      "archive_blob": "680862327600b937bb90ecbedbb82a2d94ee25de",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactUnion.test.ts",
+      "git_blob": "bf8a5c39ae5baf699aaa361efeef6a9087fb2336",
+      "archive_blob": "bf8a5c39ae5baf699aaa361efeef6a9087fb2336",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactUnion.ts",
+      "git_blob": "3455d30804c3512a783e1940f9467b072dd1a72b",
+      "archive_blob": "3455d30804c3512a783e1940f9467b072dd1a72b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactUnionSweep.test.ts",
+      "git_blob": "adfdb6728b5208c39076c7b34afea655e4caa384",
+      "archive_blob": "adfdb6728b5208c39076c7b34afea655e4caa384",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactView.test.ts",
+      "git_blob": "564c8eebadc7963b0c2cc48d42ff8a93a1653f81",
+      "archive_blob": "564c8eebadc7963b0c2cc48d42ff8a93a1653f81",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactView.ts",
+      "git_blob": "bce47a279d4ed4ab219abf9f1786648a89535931",
+      "archive_blob": "bce47a279d4ed4ab219abf9f1786648a89535931",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewBudget.test.ts",
+      "git_blob": "f295405d5d24c310dccb8ab613978f589720639f",
+      "archive_blob": "f295405d5d24c310dccb8ab613978f589720639f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewCross.test.ts",
+      "git_blob": "f621e5868452f7ac7ad56a1be8410edbaf6e298d",
+      "archive_blob": "f621e5868452f7ac7ad56a1be8410edbaf6e298d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+      "git_blob": "0b50a922aa5e8a00574b4655b8763ad049679e17",
+      "archive_blob": "0b50a922aa5e8a00574b4655b8763ad049679e17",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewUnion.test.ts",
+      "git_blob": "2bff3351465ad24a0029646581fd25cdbd2e2020",
+      "archive_blob": "2bff3351465ad24a0029646581fd25cdbd2e2020",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cubeFaces.test.ts",
+      "git_blob": "b8558baa25020e067ed92d9ab866524f53e59d5a",
+      "archive_blob": "b8558baa25020e067ed92d9ab866524f53e59d5a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cubeFaces.ts",
+      "git_blob": "3120681c9df9afe85bd03f79a31b2e67b152e473",
+      "archive_blob": "3120681c9df9afe85bd03f79a31b2e67b152e473",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/customContrast.test.ts",
+      "git_blob": "d6d40a165966e0b75f6dc70b8ac156fa9766db87",
+      "archive_blob": "d6d40a165966e0b75f6dc70b8ac156fa9766db87",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/customContrast.ts",
+      "git_blob": "16b88a002ed5e285b1270c659e5e8e0b56faaed9",
+      "archive_blob": "16b88a002ed5e285b1270c659e5e8e0b56faaed9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/displayPipeline.test.ts",
+      "git_blob": "8e0f5bcdf290559bc2c250ce51d07fce65d4f7a6",
+      "archive_blob": "8e0f5bcdf290559bc2c250ce51d07fce65d4f7a6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/displayPipeline.ts",
+      "git_blob": "adc58e68b226de9d4a879a2a1d0278bb480d125d",
+      "archive_blob": "adc58e68b226de9d4a879a2a1d0278bb480d125d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/disposal.test.ts",
+      "git_blob": "af3e1b85a7adbeb9a3cfd0df1e2e0d4825ac54b4",
+      "archive_blob": "af3e1b85a7adbeb9a3cfd0df1e2e0d4825ac54b4",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/disposal.ts",
+      "git_blob": "628c116486a362b89490ab504a4c7f8a2ba5c020",
+      "archive_blob": "628c116486a362b89490ab504a4c7f8a2ba5c020",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/eventIndex.ts",
+      "git_blob": "9d79e2e51fd1b911daff3c80853fab7799280344",
+      "archive_blob": "9d79e2e51fd1b911daff3c80853fab7799280344",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/fatPaths.test.ts",
+      "git_blob": "a448fc836acf79fecdb69d9b05c43855e5348c23",
+      "archive_blob": "a448fc836acf79fecdb69d9b05c43855e5348c23",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/fatPaths.ts",
+      "git_blob": "d5e607a4497fc64553d6b145e4c09bd41db39593",
+      "archive_blob": "d5e607a4497fc64553d6b145e4c09bd41db39593",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/findingNav.test.ts",
+      "git_blob": "18245400a46111d2214710c9372677c110112a6d",
+      "archive_blob": "18245400a46111d2214710c9372677c110112a6d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/findingNav.ts",
+      "git_blob": "250ce1141bf4adbac9c4ab4b3ff47d21147e1f9e",
+      "archive_blob": "250ce1141bf4adbac9c4ab4b3ff47d21147e1f9e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/geoDash.test.ts",
+      "git_blob": "24f199c36cb858f87deb4db9f0efc61b6902d91e",
+      "archive_blob": "24f199c36cb858f87deb4db9f0efc61b6902d91e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/geoDash.ts",
+      "git_blob": "579a40f8eeab504446a6ea0b4d485217b06eb5be",
+      "archive_blob": "579a40f8eeab504446a6ea0b4d485217b06eb5be",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/insideCheck.test.ts",
+      "git_blob": "2f7a89a20c5dfd09b326b3daf184b7a41505f06f",
+      "archive_blob": "2f7a89a20c5dfd09b326b3daf184b7a41505f06f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/insideCheck.ts",
+      "git_blob": "17291f630a364cd7e54bbee6b12b1a3bdd54aa3a",
+      "archive_blob": "17291f630a364cd7e54bbee6b12b1a3bdd54aa3a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinematics.ts",
+      "git_blob": "1ee49d9326eb2f4e5e119007b9d926b21cc6e8b5",
+      "archive_blob": "1ee49d9326eb2f4e5e119007b9d926b21cc6e8b5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kins.test.ts",
+      "git_blob": "f1e62d88fd7100be47354bbd20eca7238a39046f",
+      "archive_blob": "f1e62d88fd7100be47354bbd20eca7238a39046f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kins.ts",
+      "git_blob": "770c7d141bc59720748d6a124df9c04b6e20312a",
+      "archive_blob": "770c7d141bc59720748d6a124df9c04b6e20312a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinsBulge.test.ts",
+      "git_blob": "d89794202d10af2589d71b7029ca642ab79d82df",
+      "archive_blob": "d89794202d10af2589d71b7029ca642ab79d82df",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinsFixtures.gen.ts",
+      "git_blob": "2ab1c45ff43855406403a4773d0a7ea3305c28a1",
+      "archive_blob": "2ab1c45ff43855406403a4773d0a7ea3305c28a1",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinsFixtures.test.ts",
+      "git_blob": "28344c1e174f3f0215f228a821a1d3d7b66989e2",
+      "archive_blob": "28344c1e174f3f0215f228a821a1d3d7b66989e2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/labelFont.test.ts",
+      "git_blob": "6e9092400c800b1e5ffb3462b14e30d5fe214d73",
+      "archive_blob": "6e9092400c800b1e5ffb3462b14e30d5fe214d73",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/labelFont.ts",
+      "git_blob": "d0bd00127b7020185147af54ff0050f48ca54fd3",
+      "archive_blob": "d0bd00127b7020185147af54ff0050f48ca54fd3",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineChunks.test.ts",
+      "git_blob": "fb013c792253856d2f95b3718ed24c76450d0e63",
+      "archive_blob": "fb013c792253856d2f95b3718ed24c76450d0e63",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineChunks.ts",
+      "git_blob": "a5a3b836814d99cf6f98ad5ac73aa169a9a4ac2e",
+      "archive_blob": "a5a3b836814d99cf6f98ad5ac73aa169a9a4ac2e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineIndex.test.ts",
+      "git_blob": "ac9116dfbd66f431578ea5ea2ad5a97d30adee43",
+      "archive_blob": "ac9116dfbd66f431578ea5ea2ad5a97d30adee43",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineIndex.ts",
+      "git_blob": "027a45124e02d3fd952ad218665496c2e716bb6e",
+      "archive_blob": "027a45124e02d3fd952ad218665496c2e716bb6e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineAssetCache.test.ts",
+      "git_blob": "9a143420bba56e4dad38f5a181f395943e1c0860",
+      "archive_blob": "9a143420bba56e4dad38f5a181f395943e1c0860",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineAssetCache.ts",
+      "git_blob": "152709f6633dcb65c17375644ca080e2b94a575c",
+      "archive_blob": "152709f6633dcb65c17375644ca080e2b94a575c",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineBounds.test.ts",
+      "git_blob": "7bd56a5758f4463e350c0645b3047d2b4363e8ee",
+      "archive_blob": "7bd56a5758f4463e350c0645b3047d2b4363e8ee",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineBounds.ts",
+      "git_blob": "e0276eb8b004224f24f1e38ec1b2743930fcd84f",
+      "archive_blob": "e0276eb8b004224f24f1e38ec1b2743930fcd84f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineGantry.test.ts",
+      "git_blob": "967497e26fc1039e3180d3a8ecec5d05dc0913e0",
+      "archive_blob": "967497e26fc1039e3180d3a8ecec5d05dc0913e0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineModel.test.ts",
+      "git_blob": "5b849af1e437dd77936b78024b9917aa3e7f9db7",
+      "archive_blob": "5b849af1e437dd77936b78024b9917aa3e7f9db7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineNormals.test.ts",
+      "git_blob": "2e5d07dca7a9f7e93572ec6e9a093977cc32598b",
+      "archive_blob": "2e5d07dca7a9f7e93572ec6e9a093977cc32598b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineNormals.ts",
+      "git_blob": "72f2aed430d428588e9711405a28ea380bffddca",
+      "archive_blob": "72f2aed430d428588e9711405a28ea380bffddca",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineNormalsWorker.ts",
+      "git_blob": "b0f1164a4dde57c5f4db7a6841818af7ef8fc295",
+      "archive_blob": "b0f1164a4dde57c5f4db7a6841818af7ef8fc295",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineTrsrn.test.ts",
+      "git_blob": "0774618dbb3ac1c6bb024aeb6aa35281cd273221",
+      "archive_blob": "0774618dbb3ac1c6bb024aeb6aa35281cd273221",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/onTop.ts",
+      "git_blob": "ab56d9d96a4e463dddd28ca2ea67904d66f3210e",
+      "archive_blob": "ab56d9d96a4e463dddd28ca2ea67904d66f3210e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pairAssign.ts",
+      "git_blob": "98c9f5ab723d21cfb67d1d5d98bdd15f6d1047eb",
+      "archive_blob": "98c9f5ab723d21cfb67d1d5d98bdd15f6d1047eb",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/palette.test.ts",
+      "git_blob": "84937929b0eed23d02b53c0131ddbb1b0ef6e182",
+      "archive_blob": "84937929b0eed23d02b53c0131ddbb1b0ef6e182",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/palette.ts",
+      "git_blob": "91148439c6b48972ca92308e099dff40302b5d03",
+      "archive_blob": "91148439c6b48972ca92308e099dff40302b5d03",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/palettePairs.ts",
+      "git_blob": "f6d4528a0f3d783ed6d83fb34639d32fabbcd108",
+      "archive_blob": "f6d4528a0f3d783ed6d83fb34639d32fabbcd108",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/partFrame.test.ts",
+      "git_blob": "61ecf51391803644432bf6ae849aa01f1931730f",
+      "archive_blob": "61ecf51391803644432bf6ae849aa01f1931730f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/partFrame.ts",
+      "git_blob": "7831652f16f0291e351345aeca047bb08c8f5583",
+      "archive_blob": "7831652f16f0291e351345aeca047bb08c8f5583",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/partFrameWorker.ts",
+      "git_blob": "531ff8ce9d31f988400df99f1b121e248a835758",
+      "archive_blob": "531ff8ce9d31f988400df99f1b121e248a835758",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pathReveal.test.ts",
+      "git_blob": "31f89af658ba84180c7c529f88706c8eaa54fc3d",
+      "archive_blob": "31f89af658ba84180c7c529f88706c8eaa54fc3d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pathReveal.ts",
+      "git_blob": "d55a02295b11bd2cccbe05322576be5a053f5318",
+      "archive_blob": "d55a02295b11bd2cccbe05322576be5a053f5318",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/planeView.test.ts",
+      "git_blob": "cbd9d830e12501ac65d326a93d67db28b1d94c90",
+      "archive_blob": "cbd9d830e12501ac65d326a93d67db28b1d94c90",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/planeView.ts",
+      "git_blob": "d0e7236074543674bf52473dd6038c1c5822dfc5",
+      "archive_blob": "d0e7236074543674bf52473dd6038c1c5822dfc5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pointMarker.ts",
+      "git_blob": "8a7baea5734dbaac7d20356aec0c20f488a8a796",
+      "archive_blob": "8a7baea5734dbaac7d20356aec0c20f488a8a796",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/probeStop.test.ts",
+      "git_blob": "1b2c73119f12bbcdeedc5915a67f835c91424da7",
+      "archive_blob": "1b2c73119f12bbcdeedc5915a67f835c91424da7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/probeStop.ts",
+      "git_blob": "ca4464ba184bf5aa80959c39b453ad93491a3700",
+      "archive_blob": "ca4464ba184bf5aa80959c39b453ad93491a3700",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/programZero.test.ts",
+      "git_blob": "869fcee218c1eaec3e2f59837c2c91f68227f3a7",
+      "archive_blob": "869fcee218c1eaec3e2f59837c2c91f68227f3a7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/programZero.ts",
+      "git_blob": "dbbfaf2be5cf71123c95e4829b43d5ec694ed8fc",
+      "archive_blob": "dbbfaf2be5cf71123c95e4829b43d5ec694ed8fc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/reachEnvelope.test.ts",
+      "git_blob": "848cdc89537d69ad5851fababb8814f813f5c044",
+      "archive_blob": "848cdc89537d69ad5851fababb8814f813f5c044",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/reachEnvelope.ts",
+      "git_blob": "170d357356170b37b27b6aef6abdd57daeee1e44",
+      "archive_blob": "170d357356170b37b27b6aef6abdd57daeee1e44",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/reachWorker.ts",
+      "git_blob": "5b4fe804456cd260ceae1fae43812a6e19089b11",
+      "archive_blob": "5b4fe804456cd260ceae1fae43812a6e19089b11",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/rs274.test.ts",
+      "git_blob": "fcb7a3c0abad07ef32b75a130bcd624de7c5d8ff",
+      "archive_blob": "fcb7a3c0abad07ef32b75a130bcd624de7c5d8ff",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/rs274Fixtures.gen.ts",
+      "git_blob": "4e59c2eab924ec21cac83c31e2176a356f996c36",
+      "archive_blob": "4e59c2eab924ec21cac83c31e2176a356f996c36",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/runPlayhead.ts",
+      "git_blob": "195bd81e957d79ea5d26205124e98d8bfc6cf5bb",
+      "archive_blob": "195bd81e957d79ea5d26205124e98d8bfc6cf5bb",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/runWatcher.test.ts",
+      "git_blob": "20f54441f967840885e0bb256f5efcc53ca43ece",
+      "archive_blob": "20f54441f967840885e0bb256f5efcc53ca43ece",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/runWatcher.ts",
+      "git_blob": "7b22436ab8ea590501d474fee8adba88cdccbe38",
+      "archive_blob": "7b22436ab8ea590501d474fee8adba88cdccbe38",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sceneAppearance.test.ts",
+      "git_blob": "b21a3fe94c38bbc31d302d6c29dd7c13606698a7",
+      "archive_blob": "b21a3fe94c38bbc31d302d6c29dd7c13606698a7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sceneAppearance.ts",
+      "git_blob": "daa158ffdc038a5c7446588d84fd7d3cc3961dbc",
+      "archive_blob": "daa158ffdc038a5c7446588d84fd7d3cc3961dbc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/scrubBarWords.test.ts",
+      "git_blob": "7bf58231695a13e635779de5a70d29508550b8cb",
+      "archive_blob": "7bf58231695a13e635779de5a70d29508550b8cb",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/scrubTrack.test.ts",
+      "git_blob": "1e4e272437c1bd16a7ea2fe0225ffdc2bedc1493",
+      "archive_blob": "1e4e272437c1bd16a7ea2fe0225ffdc2bedc1493",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/scrubTrack.ts",
+      "git_blob": "a6bc596761f7b8f2c239988d1bea9d7a98ed6816",
+      "archive_blob": "a6bc596761f7b8f2c239988d1bea9d7a98ed6816",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/shownContacts.test.ts",
+      "git_blob": "1c366eef66bd72cf698793bdb65da04ba17cfbf7",
+      "archive_blob": "1c366eef66bd72cf698793bdb65da04ba17cfbf7",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/shownContacts.ts",
+      "git_blob": "de996e4dcdece8832f78fe16778efd1de6713b9f",
+      "archive_blob": "de996e4dcdece8832f78fe16778efd1de6713b9f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simListRange.test.ts",
+      "git_blob": "eac9e5d5172c1d5ccb6eeb665491b5a50a601c50",
+      "archive_blob": "eac9e5d5172c1d5ccb6eeb665491b5a50a601c50",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simListRange.ts",
+      "git_blob": "32cf2b6b8054ff30046aca004da5cb6f1e5a6e79",
+      "archive_blob": "32cf2b6b8054ff30046aca004da5cb6f1e5a6e79",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simReplay.corpus.test.ts",
+      "git_blob": "38c8a491af7f3cbe360c686f2c1b89b28b41f604",
+      "archive_blob": "38c8a491af7f3cbe360c686f2c1b89b28b41f604",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simRows.test.ts",
+      "git_blob": "cdbd95561e5e6b1ce9b8217a22f835b378d40004",
+      "archive_blob": "cdbd95561e5e6b1ce9b8217a22f835b378d40004",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simRows.ts",
+      "git_blob": "3529408c5553c1367207bc67011bc42099012487",
+      "archive_blob": "3529408c5553c1367207bc67011bc42099012487",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simWindow.test.ts",
+      "git_blob": "d5128ed8af4c755b54b82abefc5c2075f9bbaf3b",
+      "archive_blob": "d5128ed8af4c755b54b82abefc5c2075f9bbaf3b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simWindow.ts",
+      "git_blob": "213ff29ee2ec84cac187a334b3559b64db162507",
+      "archive_blob": "213ff29ee2ec84cac187a334b3559b64db162507",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/startDep.ts",
+      "git_blob": "6e30420606fbbee9d5b0da27847b141851ec0d3b",
+      "archive_blob": "6e30420606fbbee9d5b0da27847b141851ec0d3b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+      "git_blob": "129fc2d0977f6fe24b2c3fd8f313960060c0b501",
+      "archive_blob": "129fc2d0977f6fe24b2c3fd8f313960060c0b501",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/steps.test.ts",
+      "git_blob": "e7fa035f28e9ea87f1c07de21b287db8035bd9ff",
+      "archive_blob": "e7fa035f28e9ea87f1c07de21b287db8035bd9ff",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/steps.ts",
+      "git_blob": "13df275c435de0218b5ab30bc1497571a2cf9060",
+      "archive_blob": "13df275c435de0218b5ab30bc1497571a2cf9060",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/surfaceController.test.ts",
+      "git_blob": "97e412da2d143517629831cd04da59746ecd4824",
+      "archive_blob": "97e412da2d143517629831cd04da59746ecd4824",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/surfaceController.ts",
+      "git_blob": "58c91689cabf4af2aae8bfa839ddd7187a97efbf",
+      "archive_blob": "58c91689cabf4af2aae8bfa839ddd7187a97efbf",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepEntry.test.ts",
+      "git_blob": "970bea0f4f71a4bccc5ac130a2c65c02f9491a9f",
+      "archive_blob": "970bea0f4f71a4bccc5ac130a2c65c02f9491a9f",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepEntry.ts",
+      "git_blob": "97244ffe3ae7217848d7936bc3176961f1d64006",
+      "archive_blob": "97244ffe3ae7217848d7936bc3176961f1d64006",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepMerge.test.ts",
+      "git_blob": "c0cb1a65e4c598b77e4a21c0f50374488f664684",
+      "archive_blob": "c0cb1a65e4c598b77e4a21c0f50374488f664684",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepMerge.ts",
+      "git_blob": "7452daf622f93f29cff847bdfbf76379ab3c28e5",
+      "archive_blob": "7452daf622f93f29cff847bdfbf76379ab3c28e5",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepPump.test.ts",
+      "git_blob": "692fed6aaef53f195d928a54a28dea4239852696",
+      "archive_blob": "692fed6aaef53f195d928a54a28dea4239852696",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepPump.ts",
+      "git_blob": "2b9a4d02838270767d2dc832c90987932e58570b",
+      "archive_blob": "2b9a4d02838270767d2dc832c90987932e58570b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepShards.test.ts",
+      "git_blob": "f885204d1668f40af978884becabe9d48c1a00bd",
+      "archive_blob": "f885204d1668f40af978884becabe9d48c1a00bd",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepShards.ts",
+      "git_blob": "b01e8e79a93d6b4db987a26ed614693d4f81d5f8",
+      "archive_blob": "b01e8e79a93d6b4db987a26ed614693d4f81d5f8",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepWords.test.ts",
+      "git_blob": "3a3fb60ba63a2afdd91041f54ea4398a85060579",
+      "archive_blob": "3a3fb60ba63a2afdd91041f54ea4398a85060579",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepWords.ts",
+      "git_blob": "639f5c0dda475299e7d071f6fb4dae99cc4afb19",
+      "archive_blob": "639f5c0dda475299e7d071f6fb4dae99cc4afb19",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/tloEvents.test.ts",
+      "git_blob": "b115282a29870bb4b075d0d00ffbb3a86e8db90b",
+      "archive_blob": "b115282a29870bb4b075d0d00ffbb3a86e8db90b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/tloEvents.ts",
+      "git_blob": "530bd03a0e97f750fecb8afeccb981612c34b656",
+      "archive_blob": "530bd03a0e97f750fecb8afeccb981612c34b656",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolBasis.test.ts",
+      "git_blob": "6cf7375c619feebc63973f168e1330ca9bb5cee8",
+      "archive_blob": "6cf7375c619feebc63973f168e1330ca9bb5cee8",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolChangePayloads.test.ts",
+      "git_blob": "54cb903f604bf1b15715aa259e679554471765fc",
+      "archive_blob": "54cb903f604bf1b15715aa259e679554471765fc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolChangeScan.test.ts",
+      "git_blob": "14031fa5701c656293ddca4972217b4eeaaf5979",
+      "archive_blob": "14031fa5701c656293ddca4972217b4eeaaf5979",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolChangeScan.ts",
+      "git_blob": "1f1c4c73f7fa4c896d9c050cd98ae1b5741a8d7d",
+      "archive_blob": "1f1c4c73f7fa4c896d9c050cd98ae1b5741a8d7d",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolOffsetState.test.ts",
+      "git_blob": "7c92efc84e0efa9295a32da1c35e9a1a048009d2",
+      "archive_blob": "7c92efc84e0efa9295a32da1c35e9a1a048009d2",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolOffsetState.ts",
+      "git_blob": "8fd3d37ad1a8baae4ee4af01ed33aa1c4f36f87b",
+      "archive_blob": "8fd3d37ad1a8baae4ee4af01ed33aa1c4f36f87b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolpathController.test.ts",
+      "git_blob": "da5d3ab6c73bf2549b606a49bc455fc1ea4b18b1",
+      "archive_blob": "da5d3ab6c73bf2549b606a49bc455fc1ea4b18b1",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolpathController.ts",
+      "git_blob": "ad6c339b3ea24d24aec1caf3889062092e83b1fc",
+      "archive_blob": "ad6c339b3ea24d24aec1caf3889062092e83b1fc",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolsetterMarker.test.ts",
+      "git_blob": "c7fd5823073e6687c1f81425fe4dc03b204c315e",
+      "archive_blob": "c7fd5823073e6687c1f81425fe4dc03b204c315e",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolsetterMarker.ts",
+      "git_blob": "008194d5643f104d7c9419152bd0e1e4f2c48545",
+      "archive_blob": "008194d5643f104d7c9419152bd0e1e4f2c48545",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/triDistance.ts",
+      "git_blob": "37ffc61735eb6804d9900e76ada45079685f0749",
+      "archive_blob": "37ffc61735eb6804d9900e76ada45079685f0749",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/twpPlaneFrame.test.ts",
+      "git_blob": "e1bf76f93e0cb810f6b86e45797dc6d3746148f3",
+      "archive_blob": "e1bf76f93e0cb810f6b86e45797dc6d3746148f3",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/twpPlaneFrame.ts",
+      "git_blob": "0effe91247055fc72ef2fe680454f2552e7c2a33",
+      "archive_blob": "0effe91247055fc72ef2fe680454f2552e7c2a33",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/viewerContext.ts",
+      "git_blob": "b70cab0c46a42edff6b57f4093b8a4cb34aead2b",
+      "archive_blob": "b70cab0c46a42edff6b57f4093b8a4cb34aead2b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/viewerPalette.ts",
+      "git_blob": "be9a547a0826f9b82e3cac0d8b2579cb055d29d9",
+      "archive_blob": "be9a547a0826f9b82e3cac0d8b2579cb055d29d9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/wcsEpochs.test.ts",
+      "git_blob": "6aed08282d5df94d34f98668df2042dbe0932e43",
+      "archive_blob": "6aed08282d5df94d34f98668df2042dbe0932e43",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewer/wcsEpochs.ts",
+      "git_blob": "7e97de355862db2f21b5e1b5dfaae112879d1242",
+      "archive_blob": "7e97de355862db2f21b5e1b5dfaae112879d1242",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewerLayerGroups.test.ts",
+      "git_blob": "c591b4b40dd6742ebbc0bc257aaeca0a669487ad",
+      "archive_blob": "c591b4b40dd6742ebbc0bc257aaeca0a669487ad",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewerLayerGroups.ts",
+      "git_blob": "8918c29bc9b3edd8e485d676a115c99798c546a6",
+      "archive_blob": "8918c29bc9b3edd8e485d676a115c99798c546a6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewerPerf.test.ts",
+      "git_blob": "d099799ca314b11ef91177491eb57f85a5630ac8",
+      "archive_blob": "d099799ca314b11ef91177491eb57f85a5630ac8",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewerPerf.ts",
+      "git_blob": "dd647b5c9e33b4aef2044e8681177440c9b0a200",
+      "archive_blob": "dd647b5c9e33b4aef2044e8681177440c9b0a200",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewerSection.test.ts",
+      "git_blob": "6aff8742779545952221ecc3f37e03ed5604cc72",
+      "archive_blob": "6aff8742779545952221ecc3f37e03ed5604cc72",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viewerSection.ts",
+      "git_blob": "d6ba270ba458925d3bfdff1cf77e5e93b41bb4c6",
+      "archive_blob": "d6ba270ba458925d3bfdff1cf77e5e93b41bb4c6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viteHttpRestartPing.test.ts",
+      "git_blob": "c6eeab9f309e58e56ab4055ace48722ad0ef5274",
+      "archive_blob": "c6eeab9f309e58e56ab4055ace48722ad0ef5274",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/viteProxyCoverage.test.ts",
+      "git_blob": "daf2eb9fc5ad72816343d74178130a6b88144cb9",
+      "archive_blob": "daf2eb9fc5ad72816343d74178130a6b88144cb9",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/wakeLock.ts",
+      "git_blob": "556f5194cb14e66dd4a790bb2894089387688034",
+      "archive_blob": "556f5194cb14e66dd4a790bb2894089387688034",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/wcs.ts",
+      "git_blob": "340588251611aa735539793ec6a975b560cb2770",
+      "archive_blob": "340588251611aa735539793ec6a975b560cb2770",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/bulkData.test.ts",
+      "git_blob": "f480628e95aed0510bcfd071136a19a38d1fe72a",
+      "archive_blob": "f480628e95aed0510bcfd071136a19a38d1fe72a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/bulkData.ts",
+      "git_blob": "f3fa66241590ba366ba4d6e721fa19a90c4ae30a",
+      "archive_blob": "f3fa66241590ba366ba4d6e721fa19a90c4ae30a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/halshowStore.test.ts",
+      "git_blob": "b9406dc8a997e1a56c0cb31e6ed12544306a7d60",
+      "archive_blob": "b9406dc8a997e1a56c0cb31e6ed12544306a7d60",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/halshowStore.ts",
+      "git_blob": "b44bbc8471cac1ec9becfd0f5bd520a8ea4c3049",
+      "archive_blob": "b44bbc8471cac1ec9becfd0f5bd520a8ea4c3049",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/statusStore.test.ts",
+      "git_blob": "06a478397409cb534d0591c8676881c7b25c4164",
+      "archive_blob": "06a478397409cb534d0591c8676881c7b25c4164",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/statusStore.ts",
+      "git_blob": "70053920a73bc8f8290c4e4377ed8b613b15228b",
+      "archive_blob": "70053920a73bc8f8290c4e4377ed8b613b15228b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/telemetry.test.ts",
+      "git_blob": "f685bd01d5db58d4a84d7704d7e97f284ba4446b",
+      "archive_blob": "f685bd01d5db58d4a84d7704d7e97f284ba4446b",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/telemetry.ts",
+      "git_blob": "f7a35fcda81239231d421d9c9b90bc22878c5db6",
+      "archive_blob": "f7a35fcda81239231d421d9c9b90bc22878c5db6",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/wsTransport.reload.test.ts",
+      "git_blob": "a1a459cf93d40a891345cc9675a04184a8025fa4",
+      "archive_blob": "a1a459cf93d40a891345cc9675a04184a8025fa4",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/wsTransport.test.ts",
+      "git_blob": "f73b22589426ec856165f16416476eb195c0818a",
+      "archive_blob": "f73b22589426ec856165f16416476eb195c0818a",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/ws/wsTransport.ts",
+      "git_blob": "e3de83117f0bc8cace537cc2ff06339fa53d1e07",
+      "archive_blob": "e3de83117f0bc8cace537cc2ff06339fa53d1e07",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/wsWorker.test.ts",
+      "git_blob": "6a1c782706344be1672cb4fd16087fd1bcdd08d0",
+      "archive_blob": "6a1c782706344be1672cb4fd16087fd1bcdd08d0",
+      "equal": true
+    },
+    {
+      "path": "lcnc-webui/src/wsWorker.ts",
+      "git_blob": "9139b2fd6e1f4fa7182cc77333af6c99f0e82441",
+      "archive_blob": "9139b2fd6e1f4fa7182cc77333af6c99f0e82441",
+      "equal": true
+    }
+  ],
+  "inputs_unchanged_before_append": {
+    "docs/reviews/viewer-palette-fest.ideen.md": true,
+    "docs/reviews/kollision-paket2.plan.md": true,
+    "docs/reviews/viewer-palette-fest.r173.codex-probes.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.gate-frontend.json": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r157-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r158-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r159-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r160-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r161-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r162-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r163-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r164-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r166-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r168-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r169-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r170-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r171-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-r172-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-resume.sh": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-run.sh": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations-slow.txt": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations.py": true,
+    "docs/reviews/viewer-palette-fest.r173.mutations.txt": true
+  },
+  "mock": "127.0.0.1:4188",
+  "no_live_ports_or_machine_commands": true,
+  "harness_edits": [
+    "own unit probes added",
+    "R172 browser cases appended; only JSON destination changed",
+    "e2e/ctl.ts HTTP and WS use own mock",
+    "playwright.codex.config.ts added"
+  ],
+  "r172_unit_probe_byte_identical": true,
+  "artifacts": {
+    "viewer-palette-fest.r173.codex-unit.json": "c1a7a524995a2232d47faaa665c407ac64e1c966edd5f6cedcf2ef5e6ab6e6f3",
+    "viewer-palette-fest.r173.codex-unit.txt": "acf2defc4dfdd794eb6b05de24511946110e149026f32618b09a71f09f620bfb",
+    "viewer-palette-fest.r173.codex-unit-files.json": "a7949918891ca28055781341f3f3eddcd14b2ee73d70dd93650988c98546fa51",
+    "viewer-palette-fest.r173.codex-build.txt": "7c84ddbf4b0ab6651d8bc7ab3a3bc0af1387c8671389ed2101c385c20c0990e5",
+    "viewer-palette-fest.r173.codex-own.json": "3e513e76a636fe2daa3cd6c57d02e9d2de0e5ce422ce3d83f11b45e7092ed6e8",
+    "viewer-palette-fest.r173.codex-own.txt": "2cc5a8194cc8b921293eb13fbb7cda991f8c9c3192607ffc226528207141c3d1",
+    "viewer-palette-fest.r173.codex-origins.test.ts": "da07bb4ec37fcc8bd0bb1bf51f960beeb27edaed280519b207ebee75dffb6e64",
+    "viewer-palette-fest.r173.codex-origins.json": "3ae07d7dd1cda8abc555f8990662495e1bf85a72742c3a466471ec6ddc74228e",
+    "viewer-palette-fest.r173.codex-bounded-reads.json": "d063f791e8875317726fb5c920ad18ca32aa2e6797fbeaa838febbbf3c820515",
+    "viewer-palette-fest.r173.codex-folded-call.json": "ef16aaa3e79a0ea66924c41fd6cbd6d87194d7f9798b65077820f8314a613c93",
+    "viewer-palette-fest.r173.codex-folded-unknown.json": "e347b91c2336eeee6e0f9f5054406fe84483e20396f9291476232a7af9ddbb37",
+    "viewer-palette-fest.r173.codex-browser.json": "9ce5981d62b307c0f607c1304f814e13ff7a4c7740e9ddcc324496be34924abe",
+    "viewer-palette-fest.r173.codex-browser.txt": "8a1ed89ed2abdcba670739cec3376eadc7182c8fbeeb1a1c64c17d728d4fdd5b",
+    "viewer-palette-fest.r173.codex-browser-additions.spec.ts": "8033c0638beb38538db7247bfaad47644a10316a0bcb9c4fac8e4b0d088ce3e9",
+    "viewer-palette-fest.r173.codex-browser-config.ts": "147bd54455a404783efa4d5fc33071aee41fbd8674bdfda7c1ea34104449585d",
+    "viewer-palette-fest.r173.codex-browser-folded-state.json": "c2cd23bc7dab516c0fd6f30d5f68d26d05fb89065bd59518924e5bd63d7c6237",
+    "viewer-palette-fest.r173.codex-browser-boundary-state.json": "6e3c551633f083947e9ef38335773f3574550c907dcf0247fedf63e3558e7e88",
+    "viewer-palette-fest.r173.codex-reproduce.md": "45c373ddeeac65fed0edc5f718a5706c224692126d0e6b0c1d9d19a515f95617",
+    "viewer-palette-fest.r173.codex-input-hashes.json": "48c40c8f89e7cd6ab8a2089e0d1566555a1f6433d1d12425a206f6a0f1732f2c",
+    "viewer-palette-fest.r173.codex-unit-summary.json": "9222d3f8795b2f00509ddbef3ca8545534b103079ac11b3ddfaa2e09cb495ce5"
+  }
+}

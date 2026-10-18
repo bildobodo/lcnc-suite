@@ -1,0 +1,77 @@
+{
+  "m": {
+    "id": 4,
+    "at": 280,
+    "requestRange": {
+      "from": 1
+    },
+    "lines": [
+      1,
+      6,
+      7,
+      8
+    ],
+    "trust": [
+      1,
+      1,
+      0,
+      0
+    ],
+    "call": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "before": "Check basis\nBasis\nThe run's start (run 9)\nProgram kinematics\nMachine frame\nRotary axes\nNot read\nWork offset\nG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\nStart tool\nNone — the check uses a stub body\nStart\nFrom L7, provisional\nIn contact at the check's start\nTool ↔ Work piece (touch)\nIn a run, the rotary axes are the run's start joints.\nThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).",
+  "after": "Check basis\nBasis\nThe run's start (run 9)\nProgram kinematics\nMachine frame\nRotary axes\nNot read\nWork offset\nG54 X 0.000 Y 0.000 Z 0.000 A 0.00° C 0.00°\nStart tool\nNone — the check uses a stub body\nStart\nFrom L7, provisional\nIn contact at the check's start\nTool ↔ Work piece (touch)\nIn a run, the rotary axes are the run's start joints.\nThe check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).",
+  "diagnosticsBefore": {
+    "main": null,
+    "side": null,
+    "entry": null,
+    "runSide": null,
+    "ids": [
+      4
+    ],
+    "stats": {
+      "requests": 1,
+      "rows": {
+        "episodes": 0,
+        "intervals": 0,
+        "gaps": 0
+      },
+      "allocated": 0,
+      "used": 0,
+      "byOwner": {
+        "pub": 0,
+        "work": 0,
+        "held": 0,
+        "shown": 0
+      },
+      "views": {
+        "published": 0,
+        "waiting": 0,
+        "inProgress": 0,
+        "building": 0
+      }
+    },
+    "dropped": 0,
+    "messages": 4,
+    "acks": 4,
+    "maxDeltaRows": 2,
+    "passes": 14,
+    "discards": 0,
+    "publications": 14,
+    "lastPassMs": 0.20000001788139343,
+    "running": false,
+    "pending": false,
+    "phase": 0,
+    "longestStepMs": [
+      0,
+      0.10000002384185791,
+      0,
+      0
+    ]
+  }
+}

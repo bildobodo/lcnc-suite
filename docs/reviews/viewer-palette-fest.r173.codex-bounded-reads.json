@@ -1,0 +1,26 @@
+[
+  {
+    "baseGapsPerGeneration": 1024,
+    "sideGapsPerGeneration": 128,
+    "steps": 14,
+    "maxReadsPerStep": 4100,
+    "maxNativeArraySort": 0,
+    "allocatedBytes": 182584
+  },
+  {
+    "baseGapsPerGeneration": 8192,
+    "sideGapsPerGeneration": 1024,
+    "steps": 108,
+    "maxReadsPerStep": 4100,
+    "maxNativeArraySort": 0,
+    "allocatedBytes": 643320
+  },
+  {
+    "baseGapsPerGeneration": 16384,
+    "sideGapsPerGeneration": 2048,
+    "steps": 216,
+    "maxReadsPerStep": 4100,
+    "maxNativeArraySort": 0,
+    "allocatedBytes": 1123064
+  }
+]

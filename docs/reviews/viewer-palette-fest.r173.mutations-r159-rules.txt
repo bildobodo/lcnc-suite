@@ -1,0 +1,25 @@
+m_meter_off RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the view in the making, from its allocation on: expected 0 to be greater than or equal to 139296 | AssertionError: expected 0 to be greater than 0 17s
+m_in_progress_hidden RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the view in the making, from its allocation on: expected 0 to be greater than or equal to 139296 | AssertionError: expected 0 to be greater than 0 16s
+m_meter_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { Object (published, waiting, ...) } to deeply equal { Object (published, waiting, ...) } 17s
+m_alloc_uncounted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: every typed array the build made is counted: expected 7816332 to be 8148100 // Object.is equality | AssertionError: every typed array the build made is counted: expected 8090848 to  16s
+m_sort_uncounted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: every typed array the build made is counted: expected 7779468 to be 8148100 // Object.is equality | AssertionError: every typed array the build made is counted: expected 8035552 to  14s
+m_js_row_buffer RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: a JS array grows with the columns or the pairs only: expected 73701 to be less than or equal to 2400 | AssertionError: the pieces between the gaps are lit as found, never listed: ex 17s
+a_gaps_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 49200 to be less than or equal to 16384 | AssertionError: table cells read in one step of the build or the bands: ex 34s
+a_small_holes_huge RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 49200 to be less than or equal to 16384 | AssertionError: table cells read in one step of the build or the bands: ex 33s
+a_union_small_sync RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 98436 to be less than or equal to 16384 33s
+a_lit_first_column RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: a 0.04 column cannot show the 0.001 gap: expected [ [ +0, 0.01 ], [ 0.25, 0.26 ], …(1) ] to deeply equal [ [ +0, 0.5 ], [ 0.75, 0.76 ] ] | AssertionError: expected [ [ 0.6, 0.65 ] ] 32s
+a_comp_of_gaps_self RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: inside the touching gaps: no free point: expected { line: 3 } to be null 32s
+a_tool_gap_only_itself RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 10 to be 7 // Object.is equality 38s
+b_no_next_free RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 100631 to be less than or equal to 21584.5 | AssertionError: sweep: one target: expected 4261 to be less than or equal to 1226.5 99s
+b_blocks_not_jumped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 100631 to be less than or equal to 21584.5 | AssertionError: sweep: one target: expected 4261 to be less than or equal to 1226.5 105s
+b_comp_wrong RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 12345 case 0: {"held":{"ivs":[{"enter":-0.0006349040560889989,"end":1.249365095943911,"witness":-0.0006349040560889989,"ed":false,"xd":false,"after":false,"freeAt":1.348485974791227,"freeR":0.094 22s
+b_facts_linear RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: coarseFine: one target: expected 180372 to be less than or equal to 34243 | AssertionError: chain: one target: expected 377068 to be less than or equal to 71207.5 92s
+b_heir_first RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 16: expected { …(5) } to deeply equal { …(5) } 25s
+b_possible_never RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 0: expected { targets: [ …(47) ], …(4) } to deeply equal { targets: [ …(47) ], …(4) } 23s
+b_open_end_off RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 0: expected { targets: [ …(47) ], …(4) } to deeply equal { targets: [ …(47) ], …(4) } 23s
+b_mark_no_break RED ⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: pieces: mark: expected 607 to be less than or equal to 563.5 | AssertionError: coarseFine: mark: expected 1950 to be less than or equal to 920.5 96s
+b_episodes_by_ordinal RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 0: expected { targets: [ …(47) ], …(4) } to deeply equal { targets: [ …(47) ], …(4) } 22s
+b_near_matched_lost RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 93: expected { targets: [ …(42) ], …(4) } to deeply equal { targets: [ …(42) ], …(4) } 36s
+b_rank_first_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 0: expected { targets: [ …(47) ], …(4) } to deeply equal { targets: [ …(47) ], …(4) } 32s
+b_wide_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: scratch reads in one step: expected 400394 to be less than or equal to 16384 30s
+b_boundaries_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: episode cells read in one step: expected 65734 to be less than or equal to 16384 | AssertionError: table cells read in one step of the build or the bands: expected 16385 to be less  31s
