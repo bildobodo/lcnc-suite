@@ -55,7 +55,12 @@ function owner() {
     let _contactsTimer, publications = 0;
     const _contacts = new ContactPublisher({ tracks: () => [], specOf: () => null, *build() { return null; }, effect: m => _colOnMessage(m),
       stage: () => ({ result: null, track: null, partial: collisionPartial.value, partialTrack: collisionPartialTrack.value }),
-      publish: s => { colShown.value = s; publications++; _colEmitMarks(); }, ack: () => {}, owners: () => new Set([_colReqId]), now: () => 0, schedule: f => f() });
+      publish: s => { colShown.value = s; publications++; _colEmitMarks(); }, ack: () => {},
+      owners: () => new Set([_colReqId, ...(_colSide ? [_colSide.id] : [])]), now: () => 0, schedule: f => f() });
+    // passes that took their time: a kick that is not urgent waits for its timer
+    const slow = () => { _contacts.lastPassMs = 50; };
+    // a side run in flight, its handler a stub that notes what reaches it
+    const sideCalls = [], _colOnSideMessage = m => sideCalls.push(m), setSide = id => { _colSide = { id }; };
     const TRACK = {};
     let _colPendingTrack = TRACK;
     const collisionPartial = { value: null }, collisionPartialTrack = { value: null }, collisionProgress = { value: 0 };
@@ -69,7 +74,7 @@ function owner() {
     const shown = () => collisionPartial.value;
     const keepShown = (on) => { _colKeepShown = on; };
     const pubs = () => publications;`,
-    { ContactPublisher }, ["post", "posted", "shown", "keepShown", "pubs", "emitted"]);
+    { ContactPublisher }, ["post", "posted", "shown", "keepShown", "pubs", "emitted", "slow", "sideCalls", "setSide"]);
 }
 /** Request `id`'s sweep side (generation 0): `add` appends a stay of pair 0
  *  — with a touch interval or a near miss — and gives its delta. */
@@ -104,6 +109,7 @@ describe("a running sweep's metadata and first touch through the viewer's worker
     ui.post({ id: 12, contacts: [sw.add(false)], contactPairs: [["tool", "part"]] });
     expect(ui.posted.at(-1)!.firstTouch, "a near miss is no touch").toBeUndefined();
     const before = ui.pubs();
+    ui.slow();   // a delta that is not the first touch would wait for the publication's timer
     ui.post({ id: 12, contacts: [sw.add(true)] });
     expect(ui.posted.at(-1)!.firstTouch, "the first touch interval").toBe(true);
     expect(ui.pubs(), "published at once").toBeGreaterThan(before);
@@ -111,6 +117,20 @@ describe("a running sweep's metadata and first touch through the viewer's worker
     ui.post({ id: 12, contacts: [sw.add(true)] });
     expect(ui.posted.at(-1)!.firstTouch).toBeUndefined();
     expect(ui.shown(), "a delta alone leaves the metadata partial as it was").toMatchObject({ pairCount: 5 });
+  });
+});
+
+describe("a side run's first touch through the viewer's worker handler (C2)", () => {
+  it("its first touch interval, a delta alone, reaches the side's handler; a near miss's delta alone does not", () => {
+    const ui = owner();
+    ui.setSide(-1);
+    const sw = sweepSide(-1);
+    ui.post({ id: -1, contacts: [sw.add(false)], contactPairs: [["tool", "part"]] });
+    expect(ui.sideCalls.length, "a near miss: nothing for the side's handler").toBe(0);
+    ui.post({ id: -1, contacts: [sw.add(true)] });
+    expect(ui.sideCalls.map((m: { firstTouch?: boolean }) => !!m.firstTouch), "its first touch").toEqual([true]);
+    ui.post({ id: -1, contacts: [sw.add(true)] });
+    expect(ui.sideCalls.length, "a later touch, a delta alone: nothing more").toBe(1);
   });
 });
 

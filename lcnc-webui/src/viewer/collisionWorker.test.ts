@@ -291,13 +291,18 @@ describe("the regular flow", () => {
 
 describe("the side id −1 (VP-I50)", () => {
   it("a local sweep posts its METADATA after its first slice, then only when it changes — no records (step 4 package 2, C2)", async () => {
-    // one iterator checkpoint per slice: the real sweep, observable between
+    // one iterator checkpoint per slice: the real sweep, observable between;
+    // each slice 600 ms on the worker's clock — more than META_MS, so a post
+    // per slice would show
+    let clock = 0;
     vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
+      clock += 600;
       const r = it.next();
       return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
                     : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
     } }));
     const { sent, send } = await setup(2);   // one core for the sweep: the local path
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
     // the moving triangle crosses the fixed one's plane: near misses inside
     // the 2 mm margin first, then the touch at X 0
     const n = 201, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
@@ -306,6 +311,7 @@ describe("the side id −1 (VP-I50)", () => {
     for (let i = 0; i < 400 && !sent.some(terminal); i++) await vi.advanceTimersToNextTimerAsync();
     expect(sent.some(m => m.result)).toBe(true);
     const progress = sent.filter(m => m.progress != null);
+    expect(progress.length, "slices more than META_MS apart").toBeGreaterThanOrEqual(3);
     expect(progress[0]!.partial, "the first slice's progress carries it").toBeDefined();
     const partials = sent.filter(m => m.partial).map(m => m.partial as Msg);
     // nothing in it changed while it swept: one
