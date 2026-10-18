@@ -1,0 +1,42 @@
+{
+  "round": "R169",
+  "reviewedCommit": "334122c7c5bfb7946a87a44fb43913ee4c2c9109",
+  "range": "9abc2195..334122c7",
+  "archive": "/tmp/codex-r169-7fcxcy1g/repo",
+  "createdAt": "2026-10-18T08:04:56+02:00",
+  "inputSha256": {
+    "docs/reviews/viewer-palette-fest.ideen.md": "39a7741c456f71bb06ebc571d435a6f8bd113537d384be944fb776d4e4feed5d",
+    "docs/reviews/kollision-paket2.plan.md": "0c1f62d0526541758c015c662d099807e3aa61bb63b5af11fa4ca1f3553676a7",
+    "docs/reviews/viewer-palette-fest.r169.codex-probes.txt": "faf5ffc6c9f4f470185843bfe558fb2c7809cf831e49ac3633a834960968419b",
+    "docs/reviews/viewer-palette-fest.r169.gate-frontend.json": "7880a9b81d4ff8a49b8b6a0ba18d9121e0ffdb2c1d329a96e6eb2a6e3f242d97",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r157-rules.txt": "64310858a2fb2076a15594831806c223db15b10d522e65841d09b0e604dec4e3",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r158-rules.txt": "83cc01dcd3ee0bc81070925e2a7e38a7d47ce332e621e11e9686f6103e4337ab",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r159-rules.txt": "82900a70128b2bb27b2fbf761631e8168afebfcb6822adf1f2919978d7dd7f89",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r160-rules.txt": "aa610b4e35be9ea2ea1c06939d45c413f0562c068c93e0b924df8030b5b1c26c",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r161-rules.txt": "146056c1f19a87f7a0c6f7ec66ba2e6d7e32318e748ff81b93d28abd824ae786",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r162-rules.txt": "3c7689c474c648297d763da9e6d7d9f0e6fd9676401992fce01f63b536a8d010",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r163-rules.txt": "373dd7540f881004e30c7175c667235fa016159ce365b1a8db20699ea8705493",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r164-rules.txt": "cd80827ed76083d1db8d00b5e75934039c8ee682ccf83c4c82ee7804ce1b9e35",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r166-rules.txt": "c1e9f8cf3e42906eb5cc7932d27054e273c673c1ff54fcd9b8f729c50a061a44",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r166-vheight.txt": "81b29c77afe0a2b9fafe7a654f13075402c7042aa06d03c79cc30dba290b9d04",
+    "docs/reviews/viewer-palette-fest.r169.mutations-r168-rules.txt": "df03abd723dc277e3ea08935db488330b4cc5e327aa8b815e2a2bd9b1610bda8",
+    "docs/reviews/viewer-palette-fest.r169.mutations-run.sh": "4d5a91b33fb0d430868983a7c92162bea238c8903e3243a754e83e21877e8c20",
+    "docs/reviews/viewer-palette-fest.r169.mutations-slow.txt": "c006a6ec7deabccf12395f37d8225e1ded570a8e8b129b1989585f8c601ced13",
+    "docs/reviews/viewer-palette-fest.r169.mutations.py": "e88b90e977544fba15600d696e97271387cf7d566dbeb403ef0e8e190b99f2c2",
+    "docs/reviews/viewer-palette-fest.r169.mutations.txt": "1e19999a5f4fe037e02c81fd62b2a54062ff63c65bd8fb990afe354e44635b0f"
+  },
+  "artifactsSha256": {
+    "viewer-palette-fest.r169.codex-unit.json": "8f2aa92c02f3aba58b81a4e2776ac7048cf174d26545c617dfc943b2b047332b",
+    "viewer-palette-fest.r169.codex-unit-summary.json": "e50ecddbeab4b5e081beff7aacbaac85b4541df0168c48a37a7fa3a96584b096",
+    "viewer-palette-fest.r169.codex-unit.txt": "7437fc88045b998b414428b6363f573df2b6660874b451580fa101285246dfa4",
+    "viewer-palette-fest.r169.codex-own-index.json": "3b9bf8197977e850593b90ac5237bda335b7589995c92614fb61941c9df92a09",
+    "viewer-palette-fest.r169.codex-own-index.txt": "9c9d25ff9a6bf2c94ef872d872b8a3e8c8ab38922bf8126b0f532a7e44c8536a",
+    "viewer-palette-fest.r169.codex-index.test.ts": "3bb9bcba3e490b9794d87afe9783495805c2748592a600c805b186036db6eaca",
+    "viewer-palette-fest.r169.codex-rapid-union.json": "44cd3ce77d8499705fb6bc78ec151305bdd81c65d7e7e014ccebb5f199e01ad7",
+    "viewer-palette-fest.r169.codex-sweep-union.json": "ba54de61265d7a4b143406e6855680060967300f8f9219463e0c46879a4d5cac",
+    "viewer-palette-fest.r169.codex-block-boundaries.json": "0035c09e464bcd63a1e8b5f7c8e3bd91863639973ab1a0a780db1078c6c9a897",
+    "viewer-palette-fest.r169.codex-bounded-query.json": "62658d56a44e5bc169754473815409168f93969159c99bb1058e12e3e56a5d25",
+    "viewer-palette-fest.r169.codex-source-check.json": "a7275a45e27f78d837fc7fe93c08ddf015654054fbb02252e767391a2aa5cbe9",
+    "viewer-palette-fest.r169.codex-reproduce.md": "13b05cbf3b68ea8a8622a78bce8944d97a1eb642069bd1b97f1ed977e29240f5"
+  }
+}

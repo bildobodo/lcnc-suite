@@ -1,0 +1,10 @@
+{
+  "reviewedCommit": "334122c7c5bfb7946a87a44fb43913ee4c2c9109",
+  "trackedSourcesChecked": 380,
+  "mismatches": [],
+  "extraProbeFiles": [
+    "r169-codex-rapid.test.ts",
+    "r169-codex-sweep.test.ts",
+    "r169-codex-index.test.ts"
+  ]
+}

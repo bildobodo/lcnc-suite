@@ -1,0 +1,8 @@
+# R166's v_height_not_at_once alone (each a build of the tree, then the rule's Playwright test), 2026-10-17
+## at 334122c7 (~/lcnc-suite-mut)
+v_height_not_at_once GREEN!   1 passed (7.1s)  39s
+v_height_not_at_once GREEN!   1 passed (7.5s)  39s
+v_height_not_at_once GREEN!   1 passed (7.5s)  40s
+## at 9abc2195 (~/lcnc-suite-mut2, R168's head)
+v_height_not_at_once RED   1 failed Error: the shown row where it stood, in the first frame drawn | Expected: <= 1 39s
+v_height_not_at_once RED   1 failed Error: the shown row where it stood, in the first frame drawn | Expected: <= 1 41s

@@ -1,0 +1,26 @@
+{
+  "heldFlags": 2,
+  "currentFlags": 134,
+  "union": {
+    "cum": 1,
+    "cumEnd": 8,
+    "key": "C0|0|0",
+    "line": 2,
+    "a": "head",
+    "b": "stock",
+    "dist": 0,
+    "near": false,
+    "rapid": true
+  },
+  "alone": {
+    "cum": 1,
+    "cumEnd": 8,
+    "key": "C0|0|0",
+    "line": 2,
+    "a": "head",
+    "b": "stock",
+    "dist": 0,
+    "near": false,
+    "rapid": true
+  }
+}

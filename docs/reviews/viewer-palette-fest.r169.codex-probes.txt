@@ -1,0 +1,12 @@
+head 334122c7 VP-I122: the walk answers the piece's move kind too; the bound pinned
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut/lcnc-webui
+
+ ✓ src/viewer/zz_codex_r168_rapid.test.ts (1 test) 6ms
+ ✓ src/viewer/zz_codex_r168_sweep.test.ts (1 test) 56ms
+
+ Test Files  2 passed (2)
+      Tests  2 passed (2)
+   Start at  22:46:10
+   Duration  413ms (transform 333ms, setup 0ms, import 458ms, tests 63ms, environment 0ms)
+
