@@ -252,12 +252,80 @@ describe("near stays in closed form, through the product (plan 5, B8)", () => {
     expect(whole.episodes.rows, "the stay").toBeGreaterThan(0);
   });
 
-  // The walk over a near stretch steps by the distance's rate bound: the
-  // LARGEST chunk speed since its start sample. Here the stretch begins on a
-  // fast chunk (X alone, V = 1) and the pair leaves the margin on slow ones,
-  // where a rotary no body rides drives the sweep's parameter (1° ≙ 1) and X
-  // creeps — the current chunk's V alone would step past the fast tail.
-  it("the walk over a near stretch takes the largest speed bound since its start (a slow chunk after a fast one)", () => {
+  it("a long slow stretch after a fast one costs a handful of samples: each chunk's own bound, not the largest (Codex R174 VP-I127)", () => {
+    // Codex's geometry: X fast to 3.5, then slowly to 5.5 while a rotary no body rides turns
+    const spun: CollisionMachine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }, { id: "spinner", parent: "root" }],
+      kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 },
+                   { group: "spinner", joint: 3, type: "rotate", direction: "z", sign: 1 }],
+      workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z", "A"] };
+    for (const turns of [3600, 36000]) {
+      const model = buildCollisionModel(spun, [{ id: "fixed", group: "fixed", positions: boxPositions(2, 20, 20) },
+                                               { id: "moving", group: "moving", positions: boxPositions(2, 20, 20, 0, 21) }]);
+      const track: CollisionTrack = { count: 3, pos: Float32Array.from([-8, 0, 0, 3.5, 0, 0, 5.5, 0, 0]), abc: Float32Array.from([0, 0, 0, 0, 0, 0, turns, 0, 0]),
+        cum: Float32Array.from([0, 11.5, 11.5 + turns]), lines: Uint32Array.from([10, 11, 12]), rapid: new Uint8Array(3) };
+      const profile: { probes?: Uint32Array } = {}, store = new ContactStore(1, 0);
+      sweepCollisions(model, track, WCS0, { margin: 2, contacts: { store }, profile });
+      expect(probesOf(profile), `${turns}°: the samples away from the main step`).toBeLessThanOrEqual(50);
+      expect(store.episodes.rows, "the stay").toBe(1);
+    }
+  });
+
+  // The search's bounds are the history's, each over its own stretch: here the
+  // stretch begins on slow chunks (a rotary no body rides drives the
+  // parameter, X creeps) and the pair leaves the margin on fast ones (X
+  // alone) — the first entry's slow bound alone would step back past the fast
+  // tail; varying speeds fill the history past its 16 entries (merged at the
+  // larger bound).
+  it("a fast chunk after slow ones: the search takes each entry's own bound, merged at the larger (Codex R174 VP-I127)", () => {
+    const rand = rng(20261020);
+    const M = 2;
+    const spun: CollisionMachine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }, { id: "spinner", parent: "root" }],
+      kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 },
+                   { group: "spinner", joint: 3, type: "rotate", direction: "z", sign: 1 }],
+      workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z", "A"] };
+    let lines = 0;
+    for (let t = 0; t < 16; t++) {
+      const g = 0.8 + rand() * 1.15;
+      const af = 0.2 + rand() * 2, am = 0.2 + rand() * 2, H = af + am + Math.sqrt(M * M - g * g);
+      const model = buildCollisionModel(spun, [
+        { id: "fixed", group: "fixed", positions: boxPositions(2 * af, 20, 20) },
+        { id: "moving", group: "moving", positions: boxPositions(2 * am, 20, 20, 0, 20 + g) }]);
+      // fast to just outside the window, slow lines (each 4–12° of A, 0.02–0.3 of X) into it, fast lines out of it
+      const xs = [-H - 6 - rand() * 2, -H - 0.5], as = [0, 0];
+      const fastFrom = H - 0.4 - rand() * 1.2;
+      while (xs[xs.length - 1]! < fastFrom) { xs.push(Math.min(fastFrom, xs[xs.length - 1]! + 0.02 + rand() * 0.28)); as.push(as[as.length - 1]! + 4 + rand() * 8); }
+      while (xs[xs.length - 1]! < H + 3) { xs.push(xs[xs.length - 1]! + 0.05 + rand() * 0.6); as.push(as[as.length - 1]!); }
+      const n = xs.length, pos = new Float32Array(n * 3), abc = new Float32Array(n * 3), cum = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        pos[i * 3] = xs[i]!; abc[i * 3] = as[i]!;
+        if (i) cum[i] = cum[i - 1]! + Math.max(Math.abs(xs[i]! - xs[i - 1]!), Math.abs(as[i]! - as[i - 1]!));
+      }
+      const track: CollisionTrack = { pos, abc, cum, count: n, lines: Uint32Array.from({ length: n }, (_, i) => 10 + i), rapid: new Uint8Array(n) };
+      const store = new ContactStore(1, 0);
+      expect(sweepCollisions(model, track, WCS0, { margin: M, contacts: { store } }).truncated).toBeNull();
+      const E = store.episodes, stays: Array<[number, number]> = [];
+      for (let e = 0; e < E.rows; e++) { const w = E.get(e, "end"); stays.push([E.get(e, "onset"), Number.isNaN(w) ? cum[n - 1]! : w]); }
+      const where = `case ${t} (g ${g.toFixed(3)}, half-width ${H.toFixed(3)}, fast from x ${fastFrom.toFixed(3)})`;
+      for (let i = 1; i < n; i++) {
+        const x0 = xs[i - 1]!, x1 = xs[i]!, c0 = track.cum[i - 1]!, c1 = track.cum[i]!;
+        const u0 = Math.max(0, (-H - x0) / (x1 - x0)), u1 = Math.min(1, (H - x0) / (x1 - x0));
+        if (u1 <= u0) continue;
+        const lo = c0 + (c1 - c0) * u0, hi = c0 + (c1 - c0) * u1;
+        if (hi - lo <= MIN_ADV + TOL) continue;
+        lines++;
+        expect(stays.some(([u, w]) => u <= hi && w >= lo), `${where}: L${track.lines[i]} inside the margin over [${lo.toFixed(4)}, ${hi.toFixed(4)}] — no stay reaches it: ${JSON.stringify(stays)}`).toBe(true);
+      }
+    }
+    expect(lines, "lines inside the margin for more than MIN_ADV").toBeGreaterThan(100);
+  });
+
+  // The search over a near stretch steps by the distance's rate bounds since
+  // its start sample, each chunk's over its own stretch. Here the stretch
+  // begins on a fast chunk (X alone, V = 1) and the pair leaves the margin on
+  // slow ones, where a rotary no body rides drives the sweep's parameter
+  // (1° ≙ 1) and X creeps — the current chunk's bound alone would step past
+  // the fast tail.
+  it("the search over a near stretch takes the fast chunk's bound where it holds (a slow chunk after a fast one)", () => {
     const rand = rng(20261019);
     const M = 2;
     const spun: CollisionMachine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }, { id: "spinner", parent: "root" }],
