@@ -1,0 +1,26 @@
+l_first_whole RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { lo: +0, hi: 400 } to deeply equal { lo: 180, hi: 220 } | AssertionError: expected 400 to be 40 // Object.is equality 7s
+l_far_between RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { lo: +0, hi: 220 } to deeply equal { lo: 180, hi: 220 } | AssertionError: expected 310 to be 40 // Object.is equality 7s
+l_grow_whole RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { lo: +0, hi: 400 } to deeply equal { lo: 140, hi: 260 } 7s
+l_moved_partial RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { lo: +0, hi: 370 } to deeply equal { lo: +0, hi: 400 } 7s
+l_sizer_one_digit RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 'L11111', 'entry', 'L1' ] to deeply equal [ 'L00000', 'L11111', 'L22222', …(18) ] | AssertionError: 00:01: expected 31 to be greater than or equal to 34 7s
+l_sizer_longest_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 'L00000', 'L11111', 'L22222', …(7) ] to deeply equal [ 'L00000', 'L11111', 'L22222', …(18) ] | AssertionError: expected [ 'xxxxxxxxxxxxxxxxxxxx' ] to have a length of 8 b 7s
+l_tab_stop_unrendered RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: far from the focus: the row that held it: expected 'k0' to be 'k200' // Object.is equality 7s
+l_tab_stop_no_focus RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: far from the focus: the row that held it: expected 'k180' to be 'k200' // Object.is equality 7s
+l_tab_stop_none RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the focused row not rendered: the nearest to the regular one: expected null to be 'k180' // Object.is equality 7s
+l_kept_one_row RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { lo: 200, hi: 201 } to deeply equal { lo: 180, hi: 220 } 7s
+v_no_sizer RED   1 failed Error: in the middle: the columns at 280 rows | Expected: "28.0,39.0,349.0,46.0,50.0" 28s
+v_sizer_one_digit RED   1 failed Error: in the middle: the columns at 280 rows | Expected: "28.0,39.0,349.0,46.0,50.0" 28s
+v_kept_one_row RED   1 failed Error: after a fill in a hidden tab: the first portion, never the whole window at once | Expected: 40 29s
+v_hidden_measured RED 1 passed (8.9s) Error: shown between the portions: the table's height at 120 rows | Expected: <= 1 31s
+v_pitch_first_row RED   2 failed Error: in the middle: the table's height at 200 rows | Expected: <= 1 32s
+v_measure_late RED   1 failed Error: the shown row where it stood, in the first frame drawn | Expected: <= 1 29s
+v_height_not_at_once RED   1 failed Error: the shown row where it stood, in the first frame drawn | Expected: <= 1 29s
+v_pitch_once RED   1 failed Error: after a zoom change: the table's height at 120 rows | Expected: <= 1 28s
+v_tab_stop_unrendered RED   1 failed Error: one rendered tab stop at 80 rows | Expected length: 1 28s
+v_tab_stop_no_focus RED   1 failed Error: the row that held the focus is the stop at 80 rows | Expected: "C0|5200|0" 28s
+v_focus_not_tracked RED   1 failed Error: the row that held the focus is the stop at 80 rows | Expected: "C0|5200|0" 28s
+v_no_spacers RED   1 failed Error: in the middle: the table's height at 120 rows | Expected: <= 1 28s
+v_whole_at_once RED   1 failed Error: from the top: the first portion, never the whole window at once | Expected: 40 27s
+v_key_unadmitted RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: "C0|399|0" 37s
+v_marked_displaces RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: "C0|399|0" 37s
+rebuild ok 52s

@@ -1,0 +1,1959 @@
+{
+  "review": "R175",
+  "commit": "118955dc5e8aa677e5eff4bb12ddcedb5aa00b2c",
+  "archive": "/tmp/codex-r175-27668dv6/repo",
+  "filesMatch": true,
+  "sourceFiles": 377,
+  "checkedFiles": [
+    {
+      "file": "CLAUDE.md",
+      "sha256": "7c9f3c49198e0d4f8565aea05fdd3d7e87ebfdaeeedaf4b094bc9a325c032175",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/App.vue",
+      "sha256": "aaab942a671fef9349d8f976ceddfdae733d517741898a5c5d39827f8be0df28",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/Btn.vue",
+      "sha256": "d58021669c8a361ca65c99ef713081bd46ec63034aa5aeae3bf47590431d47c6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/CameraPip.vue",
+      "sha256": "aefe4ed791111ae0d378f01e201b4abc004b4dfad56eb1387b7bc5878e8e2d76",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ChoiceGroup.vue",
+      "sha256": "e20918c8a742b688230a7392292c14e9fb5e414d59f7582dae5f80064bcaa4c6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/CodeEditor.vue",
+      "sha256": "66239896291683228d6cb53ed312bd92942bcd72200892f3274b78e1b5c1f8f9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/CornerGlyph.vue",
+      "sha256": "e2c8c2440498cf456d9cad8ba38eb53319e24bd2c3d18a91cb5c686ee0c8d969",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/DebugTab.vue",
+      "sha256": "d75fe2114f8301a46b19e37678c84f15f11bc533208808c9c74cf31a203dd9a7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/DetailsPopover.vue",
+      "sha256": "a5522788ae3196c3e2632f2b607d3f28d090fc7c779e6147b3767d8bde17ed91",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/DialogFrame.vue",
+      "sha256": "6a085b036aaa8db36e3c00d03f8bbc5d6d23896458324d29b3b91c0170638098",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/FileBrowser.vue",
+      "sha256": "19c33a638786c31d158e1dc9906ade215b66e1619854829306fa8df35152e73b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/FloatingOverlays.vue",
+      "sha256": "9706d337627f55027b97aaa2ee356cbacedafc66009d28621513cac8a73f2db7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/FormField.vue",
+      "sha256": "5bd9a3c5b481530960aef9ad35fd7e2c96b5a94400336d4900e5cb45ca5af3a8",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/GamepadLiveInput.vue",
+      "sha256": "83ed5fa26644541a98c502ce37d222f9188536f199b35d918995f4efba78a381",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/GamepadMapWizard.vue",
+      "sha256": "be90ad7604ffcdf09e7b378a1bd2f8dbdf3549e18a670c3c0399b0a6bb0ea894",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/GamepadTab.vue",
+      "sha256": "ce5951ea69c64346b02e92ff2e9c57cf6ce00adeeed39d6d621478cf8c32d438",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/Gate.vue",
+      "sha256": "18eb8b3e9e22b00c5ae9e812f3870144b1bcb7404804b6006b9571f228ef8369",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/GcodePanel.vue",
+      "sha256": "0f324a607c4277ac2208a765c42dcd652f97ca4ad2ef66eeebbeb671b8662773",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/GcodeReferenceDialog.vue",
+      "sha256": "120f9c53dbbc9f4c12a57e7830edb449df3c19aa211533fe74fb8b3ce05a7d16",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/HalshowTab.vue",
+      "sha256": "5b4a86fdc6dd012364b34664e0221a730d363445277f998954b3751db42558fd",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/HelpIcon.vue",
+      "sha256": "d54f90d3ec8dfaa09a8934f025da9fadd62a5be3a6e30f375b3e2b4ec0487034",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/JogStrip.vue",
+      "sha256": "e8466b4c1a80500dd18aa884e51d28a63f050a9447525c072bf8e5d08d9ecc9e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/KeyboardTab.vue",
+      "sha256": "763e08a294de66d380f90e9c7e404cb888c3fa8d3824f305f7360e39d56c8457",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineBtn.vue",
+      "sha256": "bfd8fdff98dea9e33b28224fc06d338a30baed2e5b9a0ecf5e20ab897a0a8cb7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineChoice.vue",
+      "sha256": "42594c4413a0c9205d33789456a4d636720d0af1dd6ae80abe9bbf756d24b20b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineColor.vue",
+      "sha256": "61c76700d62a6a8293b3d3c5ef988ba6428c674d1db7d4b51082ca24263dbdce",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineInput.vue",
+      "sha256": "cb1a60fb8c233f6ce92529137b6da153d0fd26dde89c443c9abff6625dec2857",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineRadio.vue",
+      "sha256": "181d0b3b2c9252f89fc696bf47ee41b61c4f1e23c4c81ac57c7c6845ccc97939",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineSelect.vue",
+      "sha256": "0e7950db3b2a33e2dc7de8b07e09d461cfbada9f2926cc8da66f3747aebb6e01",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineSlider.vue",
+      "sha256": "7c5465873da4b7bce4fe57caada25c3d568b5e0e59f7a44068e30e49ef8f5428",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MachineToggle.vue",
+      "sha256": "4a24128ca89e8c4bd3d70d2f17fe4a317376c2199a07b5c49e7ba67d0cfecaab",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MacroBar.vue",
+      "sha256": "81caccd6bea2164bad0c785af364a881a27ff04452c085e9189228067277fc0e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MacrosPanel.vue",
+      "sha256": "8ad4ca5892b553f28961091e698a9f08d2fd279462b0485d8dd5ae14ff58a1aa",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MessagesDialog.vue",
+      "sha256": "fdfdd46327f314e25d5ee9cd2d175ef1e0fa593fe1a75fbb0a642f9a2aab87bf",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/MoreMenu.vue",
+      "sha256": "5c6cba2e2e5186c7dd38d440286de2c5832388e80337e39e14244436662e9076",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/NumberKeypadStrip.vue",
+      "sha256": "009f82d1cb21565ddef1beaf4a74046dae5d732a53b3bdf6b3cda8c15c0fc511",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/OffsetPanel.vue",
+      "sha256": "0795abb52ae6c5f235e29f7335e836fd2de23d9184dd3eefbb5b83af44eb0035",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/OverridesStrip.vue",
+      "sha256": "66eec84f26427907e372c9dbc1253d6780a92c0c7043013efc45a71e10827ba3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ProbePanel.vue",
+      "sha256": "c429d331bbc9012613571833233525d17d615f1c4e166c600ce256ad15dd87f8",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/SafetyStrip.vue",
+      "sha256": "beebc46fdca729dfdbed0dc1b18820115b075fa2c420fbaf4236a2e230a32e25",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ScrubBar.vue",
+      "sha256": "f061f99c54dd4a3136cce0efd7fd325bb3bc81fa215b580d751827fb110e1748",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/SettingsPanel.vue",
+      "sha256": "073d428cfd6fab7d728edb52f62af554ab2a9b8da2acf5e8b83ee6825d838a47",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/SetupIcon.vue",
+      "sha256": "352d10e3565b0465b566a6e64f1ebc8464f83eb5e29bab7d13fb6ae4b926bb22",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/SetupStrip.vue",
+      "sha256": "af91823ecaed5b8374052ef7f7135ada1ab98d7205f8513972490632cf183303",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/SimPanel.vue",
+      "sha256": "bf49c8e69da3ced45f68ff8a398c91812c8dba40860df21636ecbe4c4ec57d75",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/SpindleStrip.vue",
+      "sha256": "ed829ce5d5d6f23a2b57010bc182aecdd03dedfcff85bbc7688e15c39451f92e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/StatsDonut.vue",
+      "sha256": "b2808b70b6fbb44d7dfdac2f342a2c7b20f6ce34de3b984030c54b38d3be723a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/TabNav.vue",
+      "sha256": "ba31cc9fcba5d2da024658dfa19226b38a88bcda76592df5ec066cd28959324e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/TabPanel.vue",
+      "sha256": "0fddf06a0f5b090168ca35ae1a3a859a7cd3132f4b686749fcda307b8e6c6998",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/TextKeypadStrip.vue",
+      "sha256": "e875793e862efa27bedcc3f5eb4e5e46e5962ff63d880b9926bd0eda4a8e98f0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ThreeViewer.vue",
+      "sha256": "8a33a7483fb37768cbf38e45b64492b3b58f5105d84ea3ae164132bb9f58c6b9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ToolPreview.vue",
+      "sha256": "beaed56eef1caf69096a0771e3c3c7f34d2535ec8a261dde297ec2a303b73779",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ToolStrip.vue",
+      "sha256": "9b59c0e4da1149764d733ac624989c736c73218a543448b2246683957fca3b94",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ToolTablePanel.vue",
+      "sha256": "0ed4c90ff0c6cb358aa01dd1fb04fbd094a9f84ecd86d5a13b0fbf39e71f0171",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ToolsetterSettings.vue",
+      "sha256": "1a4d7cb58eede577442a66479c6e8e30de2684988bfeb892e7f67c414758c981",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ViewCube.vue",
+      "sha256": "0ab60c814663ae0c9ce613d5c7ac461eeb1c3e4fffee6a6f1ccd5398f9d7e218",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/assets/fonts/Inter-Regular.woff",
+      "sha256": "b58160a88d6764b1f0887c3d343e38216007f4ef8364a5a5791a99cdf0ef3c1d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/assets/fonts/InterVariable.woff2",
+      "sha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/assets/fonts/JetBrainsMono-Regular.woff2",
+      "sha256": "a9cb1cd82332b23a47e3a1239d25d13c86d16c4220695e34b243effa999f45f2",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/assets/fonts/JetBrainsMono-SemiBold.woff2",
+      "sha256": "918edad542a1da608fd2ba8daebaff9ac802309103fe760eed465b8b4e47faf1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/assets/fonts/OFL-Inter.txt",
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/assets/fonts/OFL-JetBrainsMono.txt",
+      "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/auth.ts",
+      "sha256": "f97fdaa8a685e7b8a1e6cb510ec92b9e4b1c8859aaea96c078b519aa36f03443",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/axisColors.ts",
+      "sha256": "9b212be84521af386760bcabd34c8974e24505dbcec329e4c78acf44337b2b1c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/browseFailure.test.ts",
+      "sha256": "0f461721983c2bf7be2ba0cd654f8726f9ad8e108217bcd5de32051a9fcf8087",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/browseFailure.ts",
+      "sha256": "3372f395ab0e6bcd4339bf135f13de5be1e6160e893a401f8bee0b7bd0ee0562",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/btnHint.test.ts",
+      "sha256": "686c45927c41178aa5d2b5ba18953e1e7dca361693b9be2c6c737040bb3faffa",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/btnHint.ts",
+      "sha256": "e0af53daf390538b358fa1cfbf6f7aad295870d52d66eca3f601be4bd839cd0a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/bundledFonts.test.ts",
+      "sha256": "5d060ae398f50cb852e4a81382497194cd01209410e0e6ac6f32b9948ee85269",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/choiceGroup.ts",
+      "sha256": "f7636af19b7c5adb4a201bda77aeeb343081e9a953b78e8a78655e401eda22c1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/clientDiag.ts",
+      "sha256": "2c05f208a154b35cb33f0739ca0bb1911bf5a6a7dd98db1183e9cad0be56fd72",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/codeGlide.test.ts",
+      "sha256": "97db1483a7e0c0bff9f6841d3f3fb6343b07294c3527bf49ab173126231a70b3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/codeGlide.ts",
+      "sha256": "e1d2433f265caf5da72332a376f71e46eb3d8fafced0c02cb3e3089f7ad7cc6c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/commandPath.test.ts",
+      "sha256": "ea5bf70e9ac5986101f39fde0433f7acb9ebdd8e482804150c70dcf7db99360b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/defaults.ts",
+      "sha256": "cac97459c8ddc4b58843e5a1b30c67d8f24ae7270bde42caf45922c612b5b77c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/download.ts",
+      "sha256": "7a94f678e865d193ab51e20d2b342e3f2583735d49df19d55d93639feaeb8d2e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/dragScroll.ts",
+      "sha256": "7f1ce7aadc533c87ac10b88a77ffbfca70019375e51936a02800729f21f8eafc",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/edgeWorker.ts",
+      "sha256": "b0a09b116961f888cc30acee5cc1d1d02ef1515ac7a5aaebc1f4497ee5b85a84",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/exampleToolLibrary.test.ts",
+      "sha256": "7487a15e2b84b862af84c9deb55712c578913a21d8ef70f8af7b4e4a07a666a1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/flashClock.test.ts",
+      "sha256": "7151312600126d28ffad025a6b91c7e2c020e4f644cc9e8520979d57677b9b06",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/flashClock.ts",
+      "sha256": "080fb6ac05d1c4d78dec01efdf01718c76371d198445191374f6e73a46209270",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/formToolGeometry.test.ts",
+      "sha256": "0f9a5fbbf18cd6f8033b76be47e82e625f88ba778becac27553e7413d471b4ec",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/format.test.ts",
+      "sha256": "cf49999bad9a45fe401343fc6b3c5c8653712fbbed72e4209d9fd4a038ba3f09",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/format.ts",
+      "sha256": "4fbf7c36ecb456a537f155974cdd106ff87b87c910804a85cb0a6c704d311099",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/freecadGeometry.test.ts",
+      "sha256": "d2569f8b6380fd2bd76d3e731517e47bc877a30e0a96b100054e750749794c0b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/g30Form.test.ts",
+      "sha256": "9436c48c6214a7c55fa38fac24bf8b79c348b0e551f3d0f2305bfe2df0df27ee",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/g30Form.ts",
+      "sha256": "e232335f180ab686e20c198adf1c7b26b97da51a631eeeb321a59792f2c60fd1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/g30Shared.ts",
+      "sha256": "fdd6d65c1d0d5a1b2cfeebc9d68d7ede35fd6139869217b4dcb2944578308d5a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gamepadProfile.test.ts",
+      "sha256": "011259519b71a8dd88ea06746dbd5983ccc94e4293c7bf4c61901ff3171d0114",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gamepadProfile.ts",
+      "sha256": "7d9b137b648196b80a0b59c2f18aca33acf723e5b235cc71265b7136bd2fa809",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gateExplain.ts",
+      "sha256": "ad7f79e2935c202e09134fc4eaaab1e7919c6a41fbc328dd7ba44a3cd5131675",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gcodeCmLanguage.ts",
+      "sha256": "80504b7418b277f34bd5bd5dcbddaf3fe847a2ba93142751642b65cf984ef1fc",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gcodeHighlight.ts",
+      "sha256": "fd0ec715046e112b99be7dbe679590444d03cf22c2aa3a87337bec37e6d608ca",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gcodeRefView.test.ts",
+      "sha256": "f0d276e329b9507fa92d91520b1ace932d4a4008d3cc7bfe0f59d4747f0a15b4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gcodeRefView.ts",
+      "sha256": "d9eeb46d8fdc50ca77d7aa55590e8abd4656db458488289a2af0a455e15d33ef",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gcodeReference.ts",
+      "sha256": "e2bfda10b22060517e29dab8afd631a049078f6e8c8a4565b13b5820fee0665c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gcodeRfl.test.ts",
+      "sha256": "2054c579cde015ec1a7be47b7ad31370305f2da77c2ca28382cc6a0799d9a995",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/gcodeRfl.ts",
+      "sha256": "208f6ce504bff2a2de68a8fb6e39ac67797120d24c8c15a3779d7126fa025f7b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/geometryCache.ts",
+      "sha256": "a07bde8adc01eb19ec1a81d59f62479813802b9c036631bd9c5097e7c1c9f134",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/glyphMarkup.test.ts",
+      "sha256": "d2dac59a51a5b52a80143e7efd61c7b8a342d3b09157c6197114f8054d50b168",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/helpPlacement.test.ts",
+      "sha256": "3a3af4d2d31f3618a8395472d977d8a37e0a4a186714677dc521a6e06287baec",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/helpPlacement.ts",
+      "sha256": "d8e31512aec4f75ac152ca44248a5dcdd70e2d07d82a6b4b04db0251dad7c0bc",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/inputSession.ts",
+      "sha256": "8bd5563add599c7175ad92738d7cca6f9d567678d45e56fcf64e965a3c3428da",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/lcnc.test.ts",
+      "sha256": "d106011c09544cf69ad3cbc55c52ea4905cd7953e8711c7329b2af8a9d1d6a20",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/lcnc.ts",
+      "sha256": "1ac72a382c6e2fbcd32aa98fd2b7eee2ee4d911fd0b9092134f56861359f9e4f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/lcncApi.ts",
+      "sha256": "7d32a88efed31e442d73ca57635bfef14190a6c3eac2e70fb263a58a6b8c12c9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/lcncWs.exports.test.ts",
+      "sha256": "9b688f39ac103c34f0b53399b4e7ece317ea5c2bd6ea52596f1834182d64ce30",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/lcncWs.ts",
+      "sha256": "db4fb9d98b07662e6f858e825a177d910422f2f117ad5373478fb67ca486315e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/machineControls.ts",
+      "sha256": "8a15261f3c6a41ae1f3238493ee04cc42568017ebc001899661de8fab33fa095",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroBar.test.ts",
+      "sha256": "5e13884bf6afe7d6e5336c7ca2e78d3ccd9437a9e9bdddd2136337648ccb891d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroBar.ts",
+      "sha256": "2bc1f40988c682b37c2f4acd2e942a45f6223dd8bb6bd5a13b5dd87d3c138477",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroFiles.ts",
+      "sha256": "2a8e17d8fe35cbbe5b673966601e3b7e6738326af93d8cc1b8ced98edd258c3f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroHeader.test.ts",
+      "sha256": "dfbd6466753e59bce0232b43ec41660524a0f22135b32be7d305319b724df6da",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroHeader.ts",
+      "sha256": "e2a54a6e67e110e473d99d2f86f6490b9b946ffbeb8351e7af866cf19f76183d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroParams.ts",
+      "sha256": "581ec4a6275278376789a86470e5dc94e818f365a707927b593ff1e1fe422fab",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroTemplate.test.ts",
+      "sha256": "b3bcdf75fa5d1ca683478a79ef462057716a19065b39892d1d97760e323bb5e6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/macroTemplate.ts",
+      "sha256": "617dd3e290a8e1efb7380af1f7c9e2b1797413370890e3621750766cf3830531",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/main.ts",
+      "sha256": "bb3e5e3db8263d86c88523c6bde4282336cdbaa83a5a3dbd90ef1f1a87cbbf98",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/mathEval.test.ts",
+      "sha256": "cb1aa9fe1a4b0bbf323778b2210849d2eb661b7b12b11a930c334455f0ec59df",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/mathEval.ts",
+      "sha256": "f2a56cfefd589aee6bce029abc6ebf614aafd35e0561fb06925717def84073dc",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/messageView.test.ts",
+      "sha256": "419c62588431b7285ff67b0c689400710a51fe6dd6c595aaf20ec2cc37f484f1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/messageView.ts",
+      "sha256": "c882a25a9e758c347b81d2c746ce3c654db92e0c31f18e281e6ae6bcdbb8908a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/modalRegistry.ts",
+      "sha256": "7001dfaaa7769264a6eb6ce9ec488b87c791c39aee4bbf6d4153eceb54750421",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/offsetRows.test.ts",
+      "sha256": "62972573e84664d7f572248585579bbe48402cf0671ef5f67ea154e80b3d7340",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/offsetRows.ts",
+      "sha256": "ed8cbe813f14cfc34c72f3bca9d071f44e7595c6297f1c4918051527d477dad7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/permissions.test.ts",
+      "sha256": "0e70f24e39458626cc845bce11bec9e98d403deb998d68fa558bf4ca5590b7e2",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/permissions.ts",
+      "sha256": "3921b989ae99f9d911f55ab1a3abe730bc74c14a68e473831dbbee112c6b1523",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/playwrightProjects.test.ts",
+      "sha256": "fcdcaa27a8d93940fdbea7463c7ce87d0e31a17153f30c57fbb40a47478c0c6e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/previewDecode.test.ts",
+      "sha256": "edc4e05f967e5c8b06ee0858d7dc448f875406623229757c45b1e5879fda7768",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/previewDecode.ts",
+      "sha256": "3b6a70f9133a84eb68f2ab0d6245e2a5c364fa78120d36050ee95cfbbb3f385e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/previewWorker.ts",
+      "sha256": "a36c2872bb84fda1924f25648aa187556c30fbd735e71c63e1081c3f041c006b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/probeFields.test.ts",
+      "sha256": "390f6ff6f4c4a27f9b8ea7c750ef07ed618c4f6cf23275554bb99046c75e19ce",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/probeFields.ts",
+      "sha256": "dc5be029c0fb9798de644e718cd54c4314787bb1d3903ca2fd38658f77cfb421",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/probeViews.ts",
+      "sha256": "9a7d4473e20b665ef1f98f858f5dc2ff8ae5faedb5aff767c545611f84367709",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/radioNames.test.ts",
+      "sha256": "406f54e417d7eda82e7d97f37eab9a22ba194fc022a0ea17f0b454cfe24e8a8a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/runBasis.ts",
+      "sha256": "b4ca4664a1e9b11593ca919dbc71e66cc9125fa7ea0a2506d4b452d15e36848d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/scrollFade.test.ts",
+      "sha256": "6eb0abc36b2a8bcfeda8b22791c7a65a0762654473760e4d53f17223e839d159",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/scrollFade.ts",
+      "sha256": "33ce4b19e81068d70f7686bcc7dd8310c833973cec136f17c3fd1c250a93bad6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/settingsSaveStatus.test.ts",
+      "sha256": "85295f5c47146d0d41a939de259ae52913d18af402cd1131caaeca67946a84da",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/settingsSaveStatus.ts",
+      "sha256": "2de2fd7a42abf4df55b6bffa7befbd3be32eef5be2c56886f1e23c408e6584d9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/shims.d.ts",
+      "sha256": "b93e251cdb1afdad344761f1a3951a80dd0f1e0d7b8645848ef1f03f486df473",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/sidePaneNarrow.ts",
+      "sha256": "e4e85aecacec608288a4a7de9715771f0765e730aed30504ef8b5669d114c16d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/simMode.ts",
+      "sha256": "4506af4d25bd4fc83e6f4eba70f94e75d1977626624e9d1f5ff3cc7aa41fe86b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/simPanelStore.test.ts",
+      "sha256": "a4da4fa24e4110753e74d7057db0df3e380ef99246b6619daf2c52c90697ff1d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/simPanelStore.ts",
+      "sha256": "57f908a539b041e1a87c7d587231dfe17979d7bf04d0bc62034868646a0f7ca8",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/stickyHead.test.ts",
+      "sha256": "008f7514ca8a66fc1067d5d82aa4047d2c49a2e47ba0dbd0edf34b46e764d64e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/stickyHead.ts",
+      "sha256": "456c58f525776e05f61c2b95f57507997a14a7fdfb7c6b94d0cd1d538226217b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/style.css",
+      "sha256": "4fe8099de284ca1a4babe7895326a886aba266ccc114cb98cf57744b522199d3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/subRows.test.ts",
+      "sha256": "3ed617ff7253a25abed86b7a1a63f52cd7d5eb6656016ddfd198b5b39922e163",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/subRows.ts",
+      "sha256": "c1f506b383d4024f5070ff0ae32ff28e1d38016b9da0f9dded3d76ffbb4044c1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/tabIds.ts",
+      "sha256": "dde09e29ca7a473685bf69fafa28731c8646de6521c881f005bce63ca923ad47",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/testGlobals.ts",
+      "sha256": "8ded2f35fa955c4120f94068ca0f03e105ca7b190dbb3e9bd884e5a855fa99d6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/textKeyboardPages.test.ts",
+      "sha256": "9613f9d5a7753e2ada3ad33f049093bb4149c26c407584b6cae25a7235e8d745",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/textKeyboardPages.ts",
+      "sha256": "2bda780b0ea2744b5246f5d12dd4a7968e2fc818515702c5520d69d9475a12ac",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/themeTokens.test.ts",
+      "sha256": "ecaa4d10f56706b97d89d2a0e42edda1b5049890f08428bda27852019bf0a516",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolGeometry.test.ts",
+      "sha256": "3beca4811d45e8d038710696e6f1f0f91989790457c881806258bef6c49daf2f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolGeometry.ts",
+      "sha256": "66ed4dba3362a46b968e1112f22d74ddcee095eccf8b802ee311e8874d2a8b16",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolHolder.test.ts",
+      "sha256": "e6d5ffd52d8c993c7fa819a89a3d74f704576c3814ee561fb2e1f7ea40b7988a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolHolder.ts",
+      "sha256": "93d23086be6d8b3b87c0501664905067cd7ec8ab7adbd3e43bc3d33893a53585",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolImportSummary.test.ts",
+      "sha256": "3aa7a4b50dde0b687b534d9c391fb1c513f55edcdfb786a87e0d8e8414a0fd65",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolImportSummary.ts",
+      "sha256": "46634885d09decd7577c96b46d031c8826e7b799cf81524c9dfbb5e9ef80f3d9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolPreviewNotice.test.ts",
+      "sha256": "14f5643772e9a75ca36ee59984b1dbf2dd5506e4b0a096ce1530b0426ad0fbfc",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolPreviewNotice.ts",
+      "sha256": "cdc7cb872af0a8bffbf98074f9e6ac484e0a0cd32d7c8305a3039491757b94a2",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolSimulationGeometry.test.ts",
+      "sha256": "a0934dfcb958970aa5c29ee10fb2e838e1ea1772470ddff23321e76794b16806",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolTypes.ts",
+      "sha256": "dd549b64417d369ab5530df3588cd18390c807b5c3283f557180e0dc9083805a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolUnits.ts",
+      "sha256": "14b88c8ba3d84e5156affc931b7c2b28d157f68b17cffd606b6a30ffde559140",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolsetterSetup.test.ts",
+      "sha256": "37413a3b1813417cee642824fd4a1d464b1c1a4876f2c7bd6dfe24d91b3e5e87",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolsetterSetup.ts",
+      "sha256": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/toolsetterVars.ts",
+      "sha256": "ecf42311df96aca67ca9e3eee9a77d7ba455bc5eb2a4dd766465c5adc87f56e1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/touchDetect.ts",
+      "sha256": "8fb679fa42943889f0afa31788070361bdcbae1e6d08fd30dea754c68b0df24f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/trackHighlight.test.ts",
+      "sha256": "cd36a619a454c474034be42e75bfab575ac90ff518051319f0631f5f1405e538",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/trackHighlight.ts",
+      "sha256": "e3a49ad13780a44980cd944f44c3f1f93c2b1cbb40c23dcfb64e6473cd5115cd",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/tsconfigCoverage.test.ts",
+      "sha256": "e5ec3f814435934b5c29a959cc66507af27d0108247ddba6c58b41327a494037",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/twpPose.test.ts",
+      "sha256": "d3b944fa39af1070783960441bbc62cbb3537254512852ec36c7117a0b3206d2",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/twpPose.ts",
+      "sha256": "60c08506bcc68f046636676e9cc9afe9623cc7d37bb5cb1ac2e553b5456abb40",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useAxes.test.ts",
+      "sha256": "1902121b62b0d5b1e7f623ebde1c2ead3fd999410469485380216ab7f454ad52",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useAxes.ts",
+      "sha256": "4553029aee62e67e2b4754f35a27b33d4752cc7591aeca8d17e44638c4239f87",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useDialogState.ts",
+      "sha256": "cf120b08f1cc4311c6777454ca80170e7f9bf153b646d415dcf7fd1334a4197a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useGamepad.ts",
+      "sha256": "6fe82434babf69adf24b97109cd6e03d3b89fab334619f0f9cc40f56001f7699",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useJogPointers.ts",
+      "sha256": "3a539d7456fd41180da88fee94c20a6499fcd6df9b84914ac472837046f16ee9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useKeyboardShortcuts.ts",
+      "sha256": "808a1d98bc3c4d07674acba1d16e7c6c24d92f637acf119726d7dc9985193f8d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useMacros.test.ts",
+      "sha256": "659937ce981515b63ebbdb2c36fbf92d4fd864d45120a48eefbc2e2f87818514",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useMacros.ts",
+      "sha256": "332d9f80a6dbdb038286727cd1cafa5e70b039979bc6da08386413c6a6d48240",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useMdiHistory.ts",
+      "sha256": "a4857330ec35a2b6b03cc4b832cc69743a8d75ad587274e5d71396a5d29f322c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useMediaMql.ts",
+      "sha256": "f2e4a7d5a4ad347a8d56d91b311ca50181363ead6fd5f201464ef5af805941fb",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useNumberKeypad.test.ts",
+      "sha256": "88a4ab8c6d0c2e07340483136536af6e9e7a7cfdcdd2a366395b11ba3397b626",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useNumberKeypad.ts",
+      "sha256": "0ac88ec1c19c5edde2f183e3a1c796a27074b2bbc9f731ff68951aecc405c3a8",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useTouchoffMath.test.ts",
+      "sha256": "4a133f05439e834abfc64d3a8f53b6fa3ac681833ef8fac06bf6c56f9f3e6baa",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/useTouchoffMath.ts",
+      "sha256": "3c4ede62198beda7be1123717b6acce92c6fe798bc85706f2e9b5b3a82613426",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/activeFixtureFrame.test.ts",
+      "sha256": "c107019cd95348b7221c42bfb59fcb25b03994045ee98c816aeeff89aa4531ea",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/activeFixtureFrame.ts",
+      "sha256": "eba43cff3de12e51a12f6f84031b9cb5f29aa6e77b8c4dfd6c0a96a8a8bb9f5e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/allocMeter.test.ts",
+      "sha256": "af8b8819efa8b12538b3e3e4b5564ce01ac038655764b21b886fd800bded3f2b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/allocMeter.ts",
+      "sha256": "d2e478743c4f9bd313491d85d666e8000f9b17c6cb5118fd9347a137b52926cb",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/backplotController.test.ts",
+      "sha256": "f66bd81ec14fbc055cf2c17dd81b8c3bd5f14c6e5ee0a6608e372a724cb90a00",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/backplotController.ts",
+      "sha256": "a639316155785a2e12d45cfee459ddf2a46253a7092460bed3da2ccdbcd1dd2b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/boxLines.test.ts",
+      "sha256": "29a20cd339bb36d6c5961993dc33c80f61cfca90d147141fd3b87d26399e28b4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/boxLines.ts",
+      "sha256": "d02866e9c2ccea029b71df5fa598c1129660f17d827f94a61e3ed0e800111953",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/bvhBoxDistance.test.ts",
+      "sha256": "6bdc6d1ae99e654647326f42b565a25c7b0e2a7429367cc16cc68bb45c335135",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/bvhBoxDistance.ts",
+      "sha256": "6461f3b768297047cf04e4667acc4f9f3e3bd3f6c4ed8c52a4f7d1b0c8894cfe",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/cameraFraming.test.ts",
+      "sha256": "2fa0346c6cdc3d76085e12e11cbf9458fdee62bf3aec2279b065c106a0fcc7c0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/cameraFraming.ts",
+      "sha256": "b12bbc88be784354a9ff7494f70c858d6b71f91e6a4d6f9695b6e1114ae215fb",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/checkBasis.test.ts",
+      "sha256": "cc1b44e4f36ce9aa45465043363a4b4dc0b81a1ebf1a9f4c7dbc0ec564698d72",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/checkBasis.ts",
+      "sha256": "61d7ff089c5a8d7c33d0607bc67cb79e47e0b88eb31e9f0db9299d02075208fa",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/checkContext.test.ts",
+      "sha256": "ef0d73baacf2338e37debaf2cd28919ae7c3855f4e1e04d70a85c14bc2e4ed90",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/checkContext.ts",
+      "sha256": "b494255ddebbb0d78819d5053d6dea6b0668b63d74e794b3c0009faf34dc25ed",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/checkWiring.test.ts",
+      "sha256": "224717138e87619985db45b58041c707a8b576c55d76ff36576fcbcd20f97140",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/clashTargets.ts",
+      "sha256": "4ffe397b1ca3c1f576a3773d43e1c4f9b99f9d494ea9c9d0a6c7ce5fd7e01d0e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collision.test.ts",
+      "sha256": "6b5552b61fb7c8c4cc996c31aa9640bd81c44b88611e8baa79835ba03ab7dcf1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collision.ts",
+      "sha256": "a48e846daee54cc903a2408d1cbd7bf03394578785d31cb2076a067d02f694a9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionBounds.test.ts",
+      "sha256": "0f3d2f998df2013cb0d4aec5eb69d7db7f379cd169f4a5d46239127647cb26f7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionContacts.test.ts",
+      "sha256": "5412524f71edc8f3d38326991b08ed20f187349dad99045d71f24229545cbd96",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionFixtures.ts",
+      "sha256": "476ef3e5e94d8db67ace454a983b725bea5a3c2d07581984679739a4f6a56734",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionHorizon.test.ts",
+      "sha256": "639dba209e40dac84b29af09762fa1a6bbe08cd1aa274c6144796b8c12de96a2",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionInside.test.ts",
+      "sha256": "cf55c9a8746aaff02585d08fec0cd6542d00371c31563034ddcc435115ac344e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+      "sha256": "08e6140c55862bcab130e51cde019ff8a731d08ca2b56d2c0b04692ac5c566fd",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionMarks.ts",
+      "sha256": "9926c7f4e827889ea9763f14d616d5e79d0f9f261a49fe54fc7a09e51bf821c8",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionOracle.test.ts",
+      "sha256": "adf1dcf3b91e413f514a91dde439c80b0a43f6ac16e41e8626b3660d63fba032",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionRange.test.ts",
+      "sha256": "2c6976475750f297ca712f1133a6756e5b09296bec6772a0cb57596b55166b35",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+      "sha256": "f10b0b1f00d2737ac01baea35c1e11ce26f958bf06d972bda495a0a4cffdd862",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionSpeed.test.ts",
+      "sha256": "ef64c8c53a2024f3a99751f91a5995a1a3b5348d19157d336303d60207130b0c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionWindows.test.ts",
+      "sha256": "eaf553df209c71c0a05233e65bfcd76890178b8927cfc667d3f016c6dd7159df",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionWorker.test.ts",
+      "sha256": "124d761afe95545a5e42bb26797559982109707f56023ed6755c22d7b0a6ded0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/collisionWorker.ts",
+      "sha256": "e098b84c6d96f9ece8a2743263fb48ea650d8d845d134ac7f0379bc1ac3ebe90",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/colourMath.ts",
+      "sha256": "acf19dd07870fa7143adadef947f7d11329771b2e44378115a7602fe341b5b56",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactMerge.test.ts",
+      "sha256": "116db3f9d0605ddc54d713bb7090a33989b9e658b0f808bf98574b1e5ffba43d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactMerge.ts",
+      "sha256": "1aa544b2f86d46d0ad412535ce04cf58b292ad2fb5464c047b2dd05bd51e1d70",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactMeter.test.ts",
+      "sha256": "724755f92f8993874cf5c81ef39c15cecee58d0d950f464f66a3afe754f96ee1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactPublisher.test.ts",
+      "sha256": "d7bf10aa597422322232c56af6e68f7db1b916bbda46b0e7f1ee56fd47ac1cb0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactPublisher.ts",
+      "sha256": "c6a2e8c78ab77bc1939c65dd2f3739c4b5cb9e0e86b1c561a461a76053002181",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactStore.test.ts",
+      "sha256": "686c1107ca5f6fb99fc435157cda5825355bb844e1dbee10fe4c9cc042f84063",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactStore.ts",
+      "sha256": "946e4264b28d20890fc304dedef66c4f9b4bf73b2154a96cb48e4e1efe61d3c4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactUnion.test.ts",
+      "sha256": "e978ee9d28bc03e901a36da4ebec04418710b2af8921dbd3927c48f30f3bd2a4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactUnion.ts",
+      "sha256": "bd123d963dd2182093d62063155c1c0c244e6c9e415f12475ea661162362c483",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactUnionSweep.test.ts",
+      "sha256": "4965bf83c46e04d13b68f6e3e4edb36eac96d6e77e402a0257eb43510bf4ba95",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactView.test.ts",
+      "sha256": "72dec4a13a22384c142bcbbdc63bf89b9893476d72d4316a3ab12c81c37c2fdb",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactView.ts",
+      "sha256": "fdd23540a53b2091804fd3ed0f4785d28851a255a6d93d875e569bf71ea1610f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactViewBudget.test.ts",
+      "sha256": "7e48815ebe985c4a2ec9a8f5b912ecc982765445fb6c0680895948cff3e889d9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactViewCross.test.ts",
+      "sha256": "778572281ddab8b1796aa49f63cbca49f4cb9aea8975f2139f5be4b90d281d46",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+      "sha256": "82dda874de2e01ad243a393d316a5a642e444543dddf45b7fd887117976ab7c6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/contactViewUnion.test.ts",
+      "sha256": "820526904e9d79fad1af70c74e02757545491a635a181731a2b24e89051c81c7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/cubeFaces.test.ts",
+      "sha256": "24e2cad479242def3eb0f19d9cde0962b845657271ab6fee1c733de68ae95ba4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/cubeFaces.ts",
+      "sha256": "798653398ea6041df68a66e83895b016a1d46e58145fb4809f679f1935583e4d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/customContrast.test.ts",
+      "sha256": "cbcd3be3e81f8ef6c0add12eb6fc45db4604535bdc9413709afd07e97e38785c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/customContrast.ts",
+      "sha256": "2b2419e3202223a9c22bf20b0906affec64c7111697b453ec97e5d86342baca4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/displayPipeline.test.ts",
+      "sha256": "b6c392b7a613b475aeb3bd1bc8476a9d4510fbd0c0d9bf00d4e3b257348b8a40",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/displayPipeline.ts",
+      "sha256": "7f44e6c8513894629e72314e36bd62af576ddd8c063c84acbe1e1a974af9577d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/disposal.test.ts",
+      "sha256": "3c5e06645ab6b210447a0a74eef6719373cf8fa9f2373f509a79ad7cc97d33fd",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/disposal.ts",
+      "sha256": "36bf2a4deebd0803014decd096f974c4506e7de36ff954e482d0ddc25c6fa3f1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/eventIndex.ts",
+      "sha256": "0948560991ae675fe7ad9b10dd8d647a005c4d9e83c4fb8da90005711b818c3b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/fatPaths.test.ts",
+      "sha256": "b34b290ccc764842fb2c614e7ee46eb8f4e6a670436078963cec81d1793d6808",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/fatPaths.ts",
+      "sha256": "b506c3fdff40a8e31788c9f06a4a03db056a6507c84f44ab9a9f42ff285873cf",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/findingNav.test.ts",
+      "sha256": "cb1d7d91b1fc00368c518664363b5c85c5b3b91c1e67b0272d759a4d951f7460",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/findingNav.ts",
+      "sha256": "f8395cdf97ea679854acad63708e6daf2ea201f50eedbcbd8b3dc3b0dbe10846",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/geoDash.test.ts",
+      "sha256": "78e9e9468b1e2a2b72738e8c629d1dcf7bdca53726f9108ddf0271e9ff9b63fe",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/geoDash.ts",
+      "sha256": "9d01329bdfe75fe72e8c24f2ecd7a62fecdb9ce7729994124dee73045899b505",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/insideCheck.test.ts",
+      "sha256": "1118d56a155734eeeacd4b18634c560f8ca35f30865d0994fc54ca0848fb456b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/insideCheck.ts",
+      "sha256": "4e32a60d5811e186dfbcadcbba4a0baa032ee741290629f2bd65abe7c45b50d4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/kinematics.ts",
+      "sha256": "4e159ab48146d7a359ba7bc0ec8352df4674a50b2bbf0b9326347659f5362ee1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/kins.test.ts",
+      "sha256": "7c3e437dd95d9040ba37fd276ed830ca16997bb5e314abc670625e58952b4860",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/kins.ts",
+      "sha256": "02f17bce1b93d31555ff560472870a578c207eb1daf92a77df632f1755bfd928",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/kinsBulge.test.ts",
+      "sha256": "4e4f5bfe00e375902b8ce260a6bb075d626e7e8484005cd7b217d23263723e05",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/kinsFixtures.gen.ts",
+      "sha256": "702747d0f7972e6353c78c1bb092e9baeb7ceb3b17e2783a65d57d14d8c55d20",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/kinsFixtures.test.ts",
+      "sha256": "62d087337e3ceeaae4adc9d517027314eb8e4b03672c52a1541a97bbf0634469",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/labelFont.test.ts",
+      "sha256": "6e1596aa3ebf5424f9fb2461163a1bfb681c839933afa649d335faab332bedf0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/labelFont.ts",
+      "sha256": "9316b5ecb6f2323b1173af71145d42bf9eda8878b7622c7feb5b15d06820291f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/lineChunks.test.ts",
+      "sha256": "319abcd82e5a94babe324983e620fd1d5be83faf6e90cee7bbb629d5f8c8cfe0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/lineChunks.ts",
+      "sha256": "2cea5914978f677583bd1203821e2f614aa5c1a0f78b9f5de40ab509e88dc96c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/lineIndex.test.ts",
+      "sha256": "a8f064044474169544f30b5dfa0f8fdd0d7788ef1d003a9a977cc4910f50759d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/lineIndex.ts",
+      "sha256": "c977e9c8589d6f4c2b5603dfe1779b62f37e5d6a8673390a23cce4f63be76130",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineAssetCache.test.ts",
+      "sha256": "dc86dd47591274e79129a7532dc7144fa338c494a5d9145780f97e40c8d1b1e0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineAssetCache.ts",
+      "sha256": "116517c1752d09d97d74ddbdc65d83c1df821e6e7e0eee9f098b7cd6cdec9623",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineBounds.test.ts",
+      "sha256": "7be9fc90dd4c0f6f36dac899b59133bbfff4711286257933bcc2a6f9c79243d9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineBounds.ts",
+      "sha256": "a4b2d47a05efbf3cb5211b2f89938786655679fef79a1096cb9252526ac4977f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineGantry.test.ts",
+      "sha256": "11f02917a998506fd263304db1dcf51270eadf8a388f7d960f762eb216133d3f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineModel.test.ts",
+      "sha256": "af956a47fb744e0efc28cddb2198012598e8bb5f4d5685571e6ecef2485ded04",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineNormals.test.ts",
+      "sha256": "d209aaa5e8ba321ca7b1de645d343a544cac1a456df2714a9ff25a81996a1fc5",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineNormals.ts",
+      "sha256": "f3af7e509829e836a071f681470e02a997b47f801aafc4f6b7c0b781bde9df78",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineNormalsWorker.ts",
+      "sha256": "ef554485c6860b8a131600ddd710c632e35422a549079bba35661918d902eeba",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/machineTrsrn.test.ts",
+      "sha256": "6a7da209fc18ce4f39bd5f2e55a3a2892164259eed447f9e34fd6edadc893448",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/nearHistory.test.ts",
+      "sha256": "02a170abb21a17e614120d2e772b266704a89970608445ecdd94b61cf3dddd77",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/nearHistory.ts",
+      "sha256": "c25592c3228dd374803886bb1d78a511cd4e613e78e75d57d99005f2423dc212",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/onTop.ts",
+      "sha256": "14c372402e1107bff848dd5b061ab561fba750a1e536a022e2322f14e8eb1dea",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/pairAssign.ts",
+      "sha256": "d84d8c65358f61295699c905cda14acfbba216c7cc017e171e7285fe41939679",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/palette.test.ts",
+      "sha256": "d2c49e1c1aafb0b1f82cf4097fef229063a83a2b1bd01110916bd9f66eba6fd0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/palette.ts",
+      "sha256": "e80e7285929b661d74ac756bcac99e7e57002337474f217cb1fcb1a45482e8aa",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/palettePairs.ts",
+      "sha256": "b249f5c6c53b6e92af98a3d3e035746d91c58554a6921237a3e5380081e793c6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/partFrame.test.ts",
+      "sha256": "cecd7d71ffab9ae4a73d8c1145b3b1fa938301253dc2e7c6e206d976ecab0c98",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/partFrame.ts",
+      "sha256": "cd815b564d45fd15f72ce70254e81210f731398a492d52d7c3085a05b3f03831",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/partFrameWorker.ts",
+      "sha256": "6c58679672df781181c884ba9f204fef96c5d41399aea583d9a57eb832f60436",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/pathReveal.test.ts",
+      "sha256": "553d4d5af6c1a241f72802a5b8b805475233da386e84c9ab457fb11021c6671a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/pathReveal.ts",
+      "sha256": "6b17608505a336be4d45c22c529e2b80f1fde82495410a5fbb29aea0bdd2e3b9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/planeView.test.ts",
+      "sha256": "5b7e0ed7fb0a7af4ccf783e19b4d9c06e98b541091b20495cfa70cecb86cf541",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/planeView.ts",
+      "sha256": "5e80bb53bcf512eaa964ab5d349817f9f8ff71666ebfd4b4f85f80d386f4d762",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/pointMarker.ts",
+      "sha256": "b54a259c52787508bd5d85958e1eaff9c318be0fffb4085cae042b4a43f1836a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/probeStop.test.ts",
+      "sha256": "f9043c9f7eddfd5e78763a8e18a104cd61a5ee0b62655c80f6f4e302985ec604",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/probeStop.ts",
+      "sha256": "5c0a7c22cad4f46b5dbde6656551e14f9238f786973ca2c123abb52a74f5679b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/programZero.test.ts",
+      "sha256": "7c861a6cba1ef54eb6f8f7f8de5dccb798f08e3e936ab38f446c85a3199061d2",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/programZero.ts",
+      "sha256": "09d0ccee5e21bb0df0bc5f6e6ac9e63c8b71d64e400ec3cc69592baedb0d733d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/reachEnvelope.test.ts",
+      "sha256": "d50a737da58bd2e3d480b351a48134117f0cfb2f050883577ea844c701b4d7c6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/reachEnvelope.ts",
+      "sha256": "20dedb8ddb973c04d659955b40433b82745289c201b95ce6ce2991366135568b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/reachWorker.ts",
+      "sha256": "bfe09ded8c2455c8071de68fb10f16ccc3a0828d0c113dde5475395779350bea",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/rs274.test.ts",
+      "sha256": "2d229f4fe35203ddb255ccf1c0114b89ef9bd40541266ce629f963c54fec03e9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/rs274Fixtures.gen.ts",
+      "sha256": "b81eec063b28d08771e204a607fd17b12aa7940571828fb2475c31674b43005d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/runPlayhead.ts",
+      "sha256": "0679662c8fd78234095371e6e1ce1f52c276b57625663695c04321f359284c0b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/runWatcher.test.ts",
+      "sha256": "4d8800fb33bd16d2aa09fe1fd02cb9f2cc5033fcadda44f951a9cf8a97ddf4b7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/runWatcher.ts",
+      "sha256": "a38846dad5b0c964c7857e13769f3e44ea388beef0d9346d4f673af622810b19",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sceneAppearance.test.ts",
+      "sha256": "c215f703fd8258ef33b17645dc3a9c2d5f972adeecd3b1d232c15569f21e2fe4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sceneAppearance.ts",
+      "sha256": "5fa04f5810d64aa3ba499f6e827033279e1a17d62ef6145cf4f50acd309cd7b1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/scrubBarWords.test.ts",
+      "sha256": "ecdb57b0a43e3414dc09069a7b99e8e911ec7de0b1d626a3a9b747ad97e23b78",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/scrubTrack.test.ts",
+      "sha256": "19bedbf7dd463bd163962db686f47f96ef3ffc789f25fac0275774e9660508fd",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/scrubTrack.ts",
+      "sha256": "629af831469829c3214a786e313137e0a6620cab5595ac6556eb4905822cab34",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/shownContacts.test.ts",
+      "sha256": "85e97324a4adca5a92b5f25216d3a2650473e36bcc1f9f975bcd4e84a0d8e93e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/shownContacts.ts",
+      "sha256": "d980bd5266457213d4571e7c8e361770baaf919447a18eaa2c2ac7ab58424e28",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/simListRange.test.ts",
+      "sha256": "8a14180ce744b3b1b848c302ea0b0fe6c4b50c96e42ed7970861631b2d3d2527",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/simListRange.ts",
+      "sha256": "7b667e12c06a3678acb7ece55727ec5dca516cfe5399a7963b199a31708b5fc9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/simReplay.corpus.test.ts",
+      "sha256": "269f7bedada408d8b34ad111f189eb74f80527cf6cf8969ddbb9976e73e8a1af",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/simRows.test.ts",
+      "sha256": "526986a627e0abb8ca18e140afef1b971f2bbd4c46f226e7eab2b6aa5e1f9a31",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/simRows.ts",
+      "sha256": "d895d17431d62f068470a043463a7e46d359637d54f68a772870114e5859e9d3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/simWindow.test.ts",
+      "sha256": "6def618500ebeb240523634ebef728368313561d90dc90ff80d2919ba6cb33fb",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/simWindow.ts",
+      "sha256": "e11284c586932ba134b7c9c8a234c0984cdc04db3d2750e3e904bb36608701f6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/startDep.ts",
+      "sha256": "52c612b80e8b8e98f211863d1937527c7dc7b7dba2485d6cdbbdcfbd35a26652",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+      "sha256": "a5de6e19943c62b79c4d1c207892a333ce3f7872afcc03f077b90f0f6efbeb9b",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/steps.test.ts",
+      "sha256": "8216c301225b5bbc1261800dd81489e1fa26f21338e8f3386dab85267cfade0a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/steps.ts",
+      "sha256": "45c17da4179fa2a35b0a8056d53c21f17feb569b4b5644fb6da76e5fd6311fd1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/surfaceController.test.ts",
+      "sha256": "65ea3baa2c8f8b6112cd811ef0f6c49122ce8e947be0cc825588a8c945bc87b6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/surfaceController.ts",
+      "sha256": "e3e86c66480319cd0a9753a2f0cb5f54d9ac372a433163f37cce4916fe9efc97",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepEntry.test.ts",
+      "sha256": "7374ba377ffe50906763d77b902e516202491699460df0e6d154c7dbceedb1e7",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepEntry.ts",
+      "sha256": "9f0667ee4ae9544ebac48fa97a2b35c21314292fadb005c0c1c0d59a1c8c14c3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepMerge.test.ts",
+      "sha256": "f23f19e1f3afe0c0736db2f4480b7829101b8333c9e20503a37ea3dc2f8f359e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepMerge.ts",
+      "sha256": "3f57cbf74058669f0a9ccaffbb07c83c4f5de24a76539f0bb351770445f4bffe",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepPump.test.ts",
+      "sha256": "0f8b99c9447d291011daa2d057dbf5800b50c67c48aac08d5b5e6f8eb4ac0ce6",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepPump.ts",
+      "sha256": "2aa58e45f9f7f9dc97bf21e27e09ed61b9c9adfd903187abb082a7d9130a0bad",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepShards.test.ts",
+      "sha256": "67416f1a2792e9f04233557ddcd15e634e0e457c3ce96f3b02f76b9d8e3d458d",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepShards.ts",
+      "sha256": "2880c820b810d22304878cc148fadd4ac89a7ec427e69675e5268ee46fe413fb",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepWords.test.ts",
+      "sha256": "0a4e33265872493908920b502bf05fe7f674bdb4a1fdb953136d2a9a23f2285a",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/sweepWords.ts",
+      "sha256": "1f342b7201498aeca7b1055ae976837efc74f194b381e18482151f49a03a7465",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/tloEvents.test.ts",
+      "sha256": "0835ab13b9f4c39a47586166795db113cf59ce7ab01279fc3b6f5e625062c2b1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/tloEvents.ts",
+      "sha256": "6b8acaea6e2e75a86e8bf33f7778d7ce95412121085d18f7c671a37c21ca8b9c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolBasis.test.ts",
+      "sha256": "6448175c610d2500e11647de8d54b5841decb7add25905b2d53013b9b74a60fe",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolChangePayloads.test.ts",
+      "sha256": "79bd1480a2798c8f4709f0c74a8fae3458e12e4a1b5c6db0e1fe775c033cf2db",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolChangeScan.test.ts",
+      "sha256": "5b2b607d86131c51163fdc1fa11bbed7c51e5e02999c4e9eb7ecd8278c5916e8",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolChangeScan.ts",
+      "sha256": "53c5ed9205ea541819f654071263a5ba21f75ee4141e78a067972acd74c05a91",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolOffsetState.test.ts",
+      "sha256": "22ece313bbccc51bb05c96c9e2d32fdfda656dd667b28a85ad2680d052bc7dd5",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolOffsetState.ts",
+      "sha256": "d95b7df2c52331c6c0ea6fe5c449a927432824987a564cf6df71aec20da7f7d4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolpathController.test.ts",
+      "sha256": "13beead5942ad2683415bd48b7bc250a513bf909f5cabc197fff1c39d5a2b1ff",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolpathController.ts",
+      "sha256": "2715750c008aa3ec54a363db96d0c9be65873331314d3a9f94c4027ffa102968",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolsetterMarker.test.ts",
+      "sha256": "0ebda7515917b7d0194a405ee728919cdf988188d64442f4840c71df04ace480",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/toolsetterMarker.ts",
+      "sha256": "c0db1d0b5901851240850738662fbec2ba8d9e2cdce5632c344a8bf5f51876ca",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/triDistance.ts",
+      "sha256": "03b744b19492c3631d3441d656aa6ecba9a19710f3adb3feaa312d9c5decca1f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/twpPlaneFrame.test.ts",
+      "sha256": "24d58f3b6c172080c7afe9790f01a1f0f068d72fac2c777260bfcd05c29537a4",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/twpPlaneFrame.ts",
+      "sha256": "93552e029a66bc12e8e5f19dc8c88e9f66102890df30a921698c1f184f9c4311",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/viewerContext.ts",
+      "sha256": "504e71e9010d3b045e80baa76bc3b5683bab847cc6a6bda7532528bd910d4cf0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/viewerPalette.ts",
+      "sha256": "c8030b053ccd7899cdb821a04f7b9a0095d504300506bc6595268462b3e5ebd5",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/wcsEpochs.test.ts",
+      "sha256": "7caf17386d172eb5adab58e264005f40e3887de2c79bc9fdd2cb27732643b3c9",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewer/wcsEpochs.ts",
+      "sha256": "2db8b3dd75aba0b6659914058be45cdb991e62a9f1c7f77d8fbee043cc8383d8",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewerLayerGroups.test.ts",
+      "sha256": "b9948117aa953bd593f7ca787595a9f6b4e3f7106b12aac5e9e1e382ccc98824",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewerLayerGroups.ts",
+      "sha256": "a79b7db2174105f46514feab670d469f07ff3fd4397ad2e23d5ac7da8900c075",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewerPerf.test.ts",
+      "sha256": "698fcd6781cf3fb286f7455e6630be0d12100e66d0d63d55cda7e291f47d9e3c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewerPerf.ts",
+      "sha256": "476707bf34adaf18c819380014f539eaed532fced296a69030c5c1725a12eff3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewerSection.test.ts",
+      "sha256": "bb0fa109d2a01048e3a5918e39dcc79394822d27e97ed4037465a7731b1fc65c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viewerSection.ts",
+      "sha256": "2490e6cac2da8021f85bbeda33def6986ce673b5bdc1b2232323fa9381e47763",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viteHttpRestartPing.test.ts",
+      "sha256": "0efde2cdf08bec6e38afe277823a66b698bf6c25c3782ec4488b6b6850831061",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/viteProxyCoverage.test.ts",
+      "sha256": "1f90a18ed51bf1c6a594e68a9f1f8b8491c47a669c30324a2f93b4946ae46b6f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/wakeLock.ts",
+      "sha256": "a5caac2916ff8ecc0d1a319e8ae7dc9a90689a1a602f41dd488f5b39b1acb436",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/wcs.ts",
+      "sha256": "2ae57aaea1321b07c32fca24ac2d5264f489d614ab79a803ddb81360a3b50cd1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/bulkData.test.ts",
+      "sha256": "b656e0c2367573da9913bd37d28bb377824a2d5c38f7789e64cfa6fbc34d7dd1",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/bulkData.ts",
+      "sha256": "6abbf836a7b284b5334b8c1136c756aa5c4992ef1726eaf34662167a12b3fe82",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/halshowStore.test.ts",
+      "sha256": "1bf05454f231f141a02991c8e8f8a813c826f2b7397ea4f1c56f5e6fd92b811e",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/halshowStore.ts",
+      "sha256": "f5c3f9173c4b81744b57347a14ec7ed4f682d11988121069b1469c2fc802cbf3",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/statusStore.test.ts",
+      "sha256": "cc7a424e7845abea2b7855c8a0c48368005c651c8fffe109197056b7c0ebe438",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/statusStore.ts",
+      "sha256": "d7e97f57026d3ce374ed8daf4ea3a97f296b6bf807611c57befd5b99d611c876",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/telemetry.test.ts",
+      "sha256": "17b00017c5d5db1f6c0d65e19042e137591b465890a6ae523e469d0e179e0626",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/telemetry.ts",
+      "sha256": "47fde3529c7d14d788aaac10bffbbd2854b4d55dabfb7e5eedfffdf901bd8ee0",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/wsTransport.reload.test.ts",
+      "sha256": "3300f4b51c7c57cc2bf410333056dbabb4e6f34fed2b202a5b0e9b2d2de2438f",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/wsTransport.test.ts",
+      "sha256": "ab67d67ca056eadf7cd7c21a434383a809cbdf6adeb1643e03d0c1545325fc42",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/ws/wsTransport.ts",
+      "sha256": "fd3cc2d1ae670eb69096265a20cc495979850cc2275e4a2345a3c8f2f2716dff",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/wsWorker.test.ts",
+      "sha256": "be0a22760a8b2deefb8365f2e0f384b049b5f38bae9aa2bd9d240dc84803836c",
+      "matches": true
+    },
+    {
+      "file": "lcnc-webui/src/wsWorker.ts",
+      "sha256": "5f025a5d04542cf2eff1ae0689cc3232188a8cd434299c565e12e13ccf094462",
+      "matches": true
+    }
+  ],
+  "inputsUnchangedBeforeAppend": {
+    "docs/reviews/viewer-palette-fest.ideen.md": true,
+    "docs/reviews/kollision-paket2.plan.md": true,
+    "docs/reviews/viewer-palette-fest.r175.check2.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.codex-probes.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.compare.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.fallb.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.gate-frontend.json": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r157-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r158-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r159-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r160-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r161-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r162-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r163-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r164-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r166-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r168-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r169-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r170-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r171-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r172-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r173-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-r174-rules.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-run.sh": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations-slow.txt": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations.py": true,
+    "docs/reviews/viewer-palette-fest.r175.mutations.txt": true
+  },
+  "originalInputsSha256": {
+    "docs/reviews/viewer-palette-fest.ideen.md": "8a68444da4a435b5f77b91967f1217f57be5484d989654bc65e75c9f9df67445",
+    "docs/reviews/kollision-paket2.plan.md": "ff873ea07dbfb91e9fc921df4e243527558cc7e507f00be7d6002b699eb75443",
+    "docs/reviews/viewer-palette-fest.r175.check2.txt": "c8e013cbf6e95439a98c45e7571c17c8edd40b77ebb1fa24d054c09c845f8ab8",
+    "docs/reviews/viewer-palette-fest.r175.codex-probes.txt": "d600079de0a416436cc5d4e68190a7be2bff6cbb4c1b3d64958695fd8868c4b2",
+    "docs/reviews/viewer-palette-fest.r175.compare.txt": "2308dc7951258bc29b0036192d9c1010e0428c538440b9ce793c0fc8bbdf00e9",
+    "docs/reviews/viewer-palette-fest.r175.fallb.txt": "e41d59ec55661a4c3114e3a2f0514c08d8829114c91cf1f8c1a0629613df3bc4",
+    "docs/reviews/viewer-palette-fest.r175.gate-frontend.json": "8ee69cc2cc0d6317062964cd3fdf60d022e35eedea6d53d9218d7f292758fac4",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r157-rules.txt": "da7a8dce9bd20580acfe6077cb34047d6f3276a1ef1dd438702024b68f150807",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r158-rules.txt": "9377fb4c7371406d0b389bf4e28318ba2e4c4e7bb1b2119d6ce1c1fd61e5014e",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r159-rules.txt": "60e71811d2d8405adcdc708b8b3f93365ae0274d3f4c9a0d9fce12df7309e02b",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r160-rules.txt": "cebd5122f9428f19d456e44bcb662f3448460e2ffd40a318294190770ee7bb41",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r161-rules.txt": "7b94914ac15e6c24f1558bdfe17e6d3f771897c7e57d5f2d9587d08e92517734",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r162-rules.txt": "1a9ed6d1a59369c965ebe4d962fafcd748b35c52592406db9597ce520bcfa433",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r163-rules.txt": "be642a9c24f66199a0432528b6c96deb118e8352a3842dbd2dbf966de444334f",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r164-rules.txt": "0b7d147c6d1909ca4c2df2f95e28ad8064baf1b27df2718e40af2ffbf8f7ebf1",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r166-rules.txt": "bb26e4b88cbbad1f25455ec98e981a4d812ac4e7b7456131bd7fa656577676cc",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r168-rules.txt": "d45ad256ed89f23dda234b73af3396d575c102c1df0d2113b5ebcfa327c9de5d",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r169-rules.txt": "9b139a02a796f8cd465daad44add74a9d452d142fa5ee11386a634c74a35c748",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r170-rules.txt": "6432dd3edcd11e152b2cb5663c2cd0b20f3433ecc9fa4827df6c703777bd4998",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r171-rules.txt": "d649a6587cae429f608a265e72b7587816f04b84fc7c4a8a67a03a9ab625ca47",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r172-rules.txt": "decc65f167c4e8df50cbf43dc651d239f9719c0bedefe63ae4ae10d3f83e1c02",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r173-rules.txt": "84050b3a0fbd082a3c415601f7e2348a8abad789d1a39a4818e11424aa5c5417",
+    "docs/reviews/viewer-palette-fest.r175.mutations-r174-rules.txt": "09c5c86b95367f20a5523003c30b7eb0669a10cbf2208c2bdafa9c4297943fb5",
+    "docs/reviews/viewer-palette-fest.r175.mutations-run.sh": "9b2c778945d800730a61b684a57e5472f18bff7ae19f07e8126172e75e7315d6",
+    "docs/reviews/viewer-palette-fest.r175.mutations-slow.txt": "995b273ed57d177d75ddf2199b40c975cd59f405240a17e7dd4f3a32370ae2fa",
+    "docs/reviews/viewer-palette-fest.r175.mutations.py": "ccd6461c5810a3b2cbd64e94ea6fb4fb5c664dea8a63ea8d7e9520a56fefe16a",
+    "docs/reviews/viewer-palette-fest.r175.mutations.txt": "1a0ed2e850c18ee71dcc42b04ffb69747b82fcc1e4fb7b8a0219e69326ae0377"
+  },
+  "portsUsed": [],
+  "liveProductNotWritten": true
+}

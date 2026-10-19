@@ -1,0 +1,4 @@
+generated 20261036 (trivkins XYZC): 41794 touching (337 inside), 1086 near, 42 onsets, 2 narrow runs, 1 s
+generated 20261049 (xyzacb-trsrn XYZABC): 145628 touching (3841 inside), 3237 near, 160 onsets, 7 narrow runs, 6 s
+generated 20261053 (xyzbc-trt XYZBC): 128292 touching (843 inside), 4575 near, 160 onsets, 3 narrow runs, 4 s
+generated 20261060 (trivkins XYZA): 60936 touching (402 inside), 1863 near, 44 onsets, 1 narrow runs, 2 s
