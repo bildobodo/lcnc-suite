@@ -25,8 +25,8 @@ import { describe, expect, it } from "vitest";
 import { sweepCollisions, type CollisionModel, type CollisionTrack } from "./collision";
 import { CONTACT, MARGIN, generatedCase, inSpans, insideTrack, loadShippedModel, meetsSpan, randomTrack, rng, shippedCases,
          shortLines, tablesByPair, trackTruth, type Case, type FixtureFiles } from "./collisionFixtures";
-import { ContactStore, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_RAPID, NONE } from "./contactStore";
-import { buildContactView, contactBands, lineMark, lineRuns, runsOf, T_NEAR, T_RAPID, targetEnd, targetKind, targetPos,
+import { ContactStore, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_RAPID } from "./contactStore";
+import { buildContactView, contactBands, lineMark, lineRuns, runsOf, T_NEAR, T_RAPID, targetAt, targetEnd, targetKind, targetPos,
          tintAt, trackLineAt, type ContactView } from "./contactView";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -39,16 +39,16 @@ const TOL = 0.01;   // interval boundaries are bisected to 1e-3
 const COLUMNS = 8192;
 
 type Run = { st: ContactStore; queries: number; probes: number; v: ContactView };
+const viewOf = (model: CollisionModel, st: ContactStore, end: number): ContactView => buildContactView({
+  sources: [{ stores: [st], at: c => c, ownCoverage: end }], coverage: end,
+  pairName: p => ({ a: model.bodies[model.pairs[p]![0]]!.id, b: model.bodies[model.pairs[p]![1]]!.id }) });
 function sweepWith(model: CollisionModel, track: CollisionTrack, lineSample: boolean): Run {
   const st = new ContactStore(1, 0);
   const profile: { queries?: Uint32Array; probes?: Uint32Array } = {};
   const r = sweepCollisions(model, track, WCS0, { margin: MARGIN, contacts: { store: st }, profile, ...(lineSample ? { lineSample: true } : {}) });
   expect(r.truncated, "swept whole").toBeNull();
-  const end = track.cum[track.count - 1]!;
-  const pairName = (p: number) => ({ a: model.bodies[model.pairs[p]![0]]!.id, b: model.bodies[model.pairs[p]![1]]!.id });
-  const v = buildContactView({ sources: [{ stores: [st], at: c => c, ownCoverage: end }], pairName, coverage: end });
   const sum = (a?: Uint32Array) => { let n = 0; for (const x of a ?? []) n += x; return n; };
-  return { st, queries: sum(profile.queries), probes: sum(profile.probes), v };
+  return { st, queries: sum(profile.queries), probes: sum(profile.probes), v: viewOf(model, st, track.cum[track.count - 1]!) };
 }
 
 // `queries`: the main step's distance queries with / without the per-line
@@ -57,25 +57,30 @@ function sweepWith(model: CollisionModel, track: CollisionTrack, lineSample: boo
 const tally = { compared: 0, stayLines: 0, findings: 0, rapidFindings: 0, marks: 0, columns: 0, narrow: 0,
                 queries: { with: 0, without: 0 }, probes: { with: 0, without: 0 } };
 
-/** Sweep `track` with and without the per-line sample and hold the run
- *  without it to cover the run with it (see the head). */
-function holdsCover(model: CollisionModel, c: Case, track: CollisionTrack, where: string) {
-  const on = sweepWith(model, track, true), off = sweepWith(model, track, false);
-  tally.queries.with += on.queries; tally.queries.without += off.queries;
-  tally.probes.with += on.probes; tally.probes.without += off.probes;
+/** A difference the truth shows no wider than MIN_ADV: it excuses exactly
+ *  its pair's stretch [lo, hi] — never the pair elsewhere, never another
+ *  pair (Codex R174 VP-I128: one narrow difference excused a whole pair). */
+type Exempt = { pair: number; lo: number; hi: number };
+
+/** Hold the run without the per-line sample to cover the run with it (see
+ *  the head); `seed`: exemptions to start from (the sensitivity guard). */
+function compareRuns(model: CollisionModel, c: Case, track: CollisionTrack, on: Run, off: Run, where: string, seed: Exempt[] = [],
+                     count = tally): Exempt[] {
   const truth = trackTruth(model, c, track);
   const end = track.cum[track.count - 1]!;
   const ids = (pi: number) => `${model.bodies[model.pairs[pi]![0]]!.id}/${model.bodies[model.pairs[pi]![1]]!.id}`;
-  const ON = tablesByPair(on.st, end), OFF = tablesByPair(off.st, end);
-  // pairs where the run with the per-line sample saw something the run
-  // without did not, and the truth shows it no wider than MIN_ADV: their
-  // views may differ there (the views follow from the tables)
-  const narrowPairs = new Set<number>();
-  const touchNarrow = (pi: number, x: number) => {
-    const wide = truth.runWide(pi, x, CONTACT * 10, true);
-    expect(wide, `${where}: ${ids(pi)} touch at ${x.toFixed(4)} only with the per-line sample`).toBe(false);
-    narrowPairs.add(pi); tally.narrow++;
+  const pairIdx = new Map(model.pairs.map((_, pi) => [ids(pi), pi]));
+  const OFF = tablesByPair(off.st, end);
+  const exempts: Exempt[] = [...seed];
+  const exempted = (pi: number, a: number, b = a) => exempts.some(e => e.pair === pi && a >= e.lo - TOL && b <= e.hi + TOL);
+  const narrow = (pi: number, x: number, e: number, alsoInside: boolean, what: string, within?: [number, number]) => {
+    const [lo, hi] = truth.runAround(pi, x, e, alsoInside, within);
+    expect(hi - lo, `${where}: ${ids(pi)} ${what} at ${x.toFixed(4)} — the truth's run [${lo.toFixed(4)}, ${hi.toFixed(4)}]`).toBeLessThanOrEqual(truth.WIDE);
+    exempts.push({ pair: pi, lo, hi });
+    count.narrow++;
+    return hi;
   };
+  const bodies = (pi: number) => [model.bodies[model.pairs[pi]![0]]!, model.bodies[model.pairs[pi]![1]]!] as const;
   // 1 · the touch intervals: witness, decided entry, decided exit
   const S = on.st;
   for (let k = 0; k < S.intervals.rows; k++) {
@@ -86,49 +91,37 @@ function holdsCover(model: CollisionModel, c: Case, track: CollisionTrack, where
     const xs: number[] = [S.intervals.get(k, "witness"), ...(decidedEnter ? [S.intervals.get(k, "enter")] : []),
                           ...(decidedExit && !Number.isNaN(exit) ? [exit] : [])];
     for (const x of xs) {
-      if (inSpans(other, x, TOL)) { tally.compared++; continue; }
-      touchNarrow(pi, x);
+      if (inSpans(other, x, TOL)) { count.compared++; continue; }
+      narrow(pi, x, CONTACT * 10, true, "touch only with the per-line sample");
     }
   }
   // 2 · the stays, per LINE: every line a stay of the run with it reaches, a
   // stay (or a touch) of the same pair without it reaches — else the truth
-  // shows the pair inside the margin on that line for no more than MIN_ADV
-  // (a stay ends at its last sample inside the margin: plan 7.3 check 2 found
-  // stays without the per-line sample ending before lines the pair was inside
-  // the margin on; the margin exit is re-sampled since)
+  // shows every run of the pair inside the margin on that line no wider than
+  // MIN_ADV (a stay ends at its last sample inside the margin: plan 7.3 check
+  // 2 found stays without the per-line sample ending before lines the pair
+  // was inside the margin on; the margin exit is searched since)
   for (let e = 0; e < S.episodes.rows; e++) {
     const pi = S.episodes.get(e, "pair"), u = S.episodes.get(e, "onset"), x = S.episodes.get(e, "end"), w = Number.isNaN(x) ? end : x;
-    const o = OFF.get(pi), A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
+    const o = OFF.get(pi), [A, B] = bodies(pi);
     for (let seg = 1; seg < track.count; seg++) {
       if (track.cum[seg]! < u || track.cum[seg - 1]! > w) continue;
       if (seg > 1 && track.lines[seg - 1] === track.lines[seg] && track.cum[seg - 1]! >= u) continue;   // the line once
       const line = truth.lineSpan(seg);
-      tally.stayLines++;
+      count.stayLines++;
       if (o && (meetsSpan(o.stays, line[0], line[1]) || meetsSpan(o.touches, line[0], line[1]))) continue;
-      // the truth: a pose inside the margin on the line, inside the stay
+      // the truth: every run inside the margin on the line, inside the stay
       for (let y = Math.max(u, line[0]); y <= Math.min(w, line[1]); y += 0.05) {
         truth.poseAt(y);
         if (truth.below(A, B, MARGIN) === null) continue;
-        expect(truth.runWide(pi, y, MARGIN, false, line),
-          `${where}: ${ids(pi)} inside the margin at ${y.toFixed(4)} on L${track.lines[seg]} — a stay reaches the line only with the per-line sample`).toBe(false);
-        narrowPairs.add(pi); tally.narrow++;
-        break;
+        y = narrow(pi, y, MARGIN, false, `inside the margin on L${track.lines[seg]}, reached by a stay only with the per-line sample`, line);
       }
     }
   }
-  const pairOf = (v: ContactView, i: number): number => {
-    // a target's pair, by its position: the episode whose interval or closest approach it is
-    const p = targetPos(v, i), near = (targetKind(v, i) & T_NEAR) !== 0, st = v === on.v ? on.st : off.st;
-    for (let e = 0; e < st.episodes.rows; e++) {
-      if (near) { if (st.episodes.get(e, "ivCount") === 0 && Math.abs(st.episodes.get(e, "closeAt") - p) <= 1e-6) return st.episodes.get(e, "pair"); continue; }
-      for (let iv = st.episodes.get(e, "firstIv"); iv !== NONE; iv = st.intervals.get(iv, "next"))
-        if (Math.abs(st.intervals.get(iv, "enter") - p) <= 1e-6) return st.episodes.get(e, "pair");
-    }
-    throw new Error(`${where}: target ${i} at ${p} has no row`);
-  };
-  // 3 · the findings: a contact inside a touch interval of the pair, a rapid
-  // one inside one touched on a rapid (unless the truth's rapid touch there
-  // is narrow); a near miss on a line a stay of the pair reaches
+  // 3 · the findings, each by its OWN pair (the target's bodies): a contact
+  // inside a touch interval of the pair, a rapid one inside one touched on a
+  // rapid (unless every touch on a rapid move there is narrow); a near miss
+  // on a line a stay of the pair reaches
   const offIv = (pi: number) => {
     const out: Array<{ a: number; b: number; rapid: boolean }> = [];
     for (let k = 0; k < off.st.intervals.rows; k++) {
@@ -138,34 +131,33 @@ function holdsCover(model: CollisionModel, c: Case, track: CollisionTrack, where
     }
     return out;
   };
+  const lineAt = trackLineAt(track);
   for (let i = 0; i < on.v.n; i++) {
-    const pi = pairOf(on.v, i);
-    if (narrowPairs.has(pi)) continue;
+    const t = targetAt(on.v, i, lineAt), pi = pairIdx.get(`${t.a}/${t.b}`)!;
     const kind = targetKind(on.v, i), p = targetPos(on.v, i), q = targetEnd(on.v, i);
+    if (exempted(pi, p)) continue;
     if (kind & T_NEAR) {
       const line = truth.lineSpan(truth.poseAt(p)), o = OFF.get(pi);
       expect(!!o && (meetsSpan(o.stays, line[0], line[1]) || inSpans(o.touches, p, TOL)), `${where}: ${ids(pi)} near miss at ${p.toFixed(4)}`).toBe(true);
-      tally.findings++;
+      count.findings++;
       continue;
     }
     const ivs = offIv(pi).filter(v => v.a <= q + TOL && v.b >= p - TOL);
     expect(ivs.some(v => p >= v.a - TOL && p <= v.b + TOL), `${where}: ${ids(pi)} contact at ${p.toFixed(4)} inside a contact of the run without`).toBe(true);
-    tally.findings++;
+    count.findings++;
     if (kind & T_RAPID) {
-      tally.rapidFindings++;
+      count.rapidFindings++;
       if (ivs.some(v => v.rapid)) continue;
-      // the truth: a touch on a rapid move inside [p, q], wider than MIN_ADV within its move
+      // the truth: every touch on a rapid move inside [p, q] no wider than MIN_ADV within its move
+      const [A, B] = bodies(pi);
       for (let seg = 1; seg < track.count; seg++) {
         if (!track.rapid[seg]) continue;
         const a = Math.max(p, track.cum[seg - 1]!), b = Math.min(q, track.cum[seg]!);
         for (let x = a; x <= b; x += 0.05) {
           truth.poseAt(x);
-          const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
-          const d = truth.below(A, B, CONTACT * 10);
-          if (d === null) continue;
-          expect(truth.runWide(pi, x, CONTACT * 10, true, [track.cum[seg - 1]!, track.cum[seg]!]),
-            `${where}: ${ids(pi)} touches on the rapid move ending at ${track.cum[seg]!.toFixed(4)} — its finding at ${p.toFixed(4)} is a feed without the per-line sample`).toBe(false);
-          break;
+          if (truth.below(A, B, CONTACT * 10) === null) continue;
+          x = narrow(pi, x, CONTACT * 10, true, `touch on the rapid move ending at ${track.cum[seg]!.toFixed(4)} — its finding at ${p.toFixed(4)} is a feed without the per-line sample`,
+                     [track.cum[seg - 1]!, track.cum[seg]!]);
         }
       }
     }
@@ -173,50 +165,66 @@ function holdsCover(model: CollisionModel, c: Case, track: CollisionTrack, where
   // 4 · the tint: at every witness of the run with it, the pair's bodies tinted
   for (let k = 0; k < S.intervals.rows; k++) {
     const pi = S.episodes.get(S.intervals.get(k, "episode"), "pair");
-    if (narrowPairs.has(pi)) continue;
+    const w = S.intervals.get(k, "witness");
+    if (exempted(pi, w)) continue;
     // at the witness — or, within the bisection's tolerance, at the nearest
     // point of the run without's interval (its entry is bisected to 1e-3)
-    const w = S.intervals.get(k, "witness"), iv = offIv(pi).find(v => w >= v.a - TOL && w <= v.b + TOL);
-    const x = iv ? Math.min(Math.max(w, iv.a), iv.b) : w, t = tintAt(off.v, x);
+    const iv = offIv(pi).find(v => w >= v.a - TOL && w <= v.b + TOL);
+    const x = iv ? Math.min(Math.max(w, iv.a), iv.b) : w, tint = tintAt(off.v, x);
     const [a, b] = ids(pi).split("/");
-    const near = (sp: Array<[number, number]> | undefined) => JSON.stringify((sp ?? []).filter(([u, w]) => u <= x + 5 && w >= x - 5));
-    expect(t.has(a!) && t.has(b!), `${where}: ${ids(pi)} tinted at ${x.toFixed(4)} — touches ${near(OFF.get(pi)?.touches)}, gaps ${near(OFF.get(pi)?.gaps)}; with it: gaps ${near(ON.get(pi)?.gaps)}`).toBe(true);
+    expect(tint.has(a!) && tint.has(b!), `${where}: ${ids(pi)} tinted at ${x.toFixed(4)}`).toBe(true);
   }
-  // 5 · the code marks: every line marked with it is marked without it
-  const runs = lineRuns(track), lineAt = trackLineAt(track);
-  const narrowEps = (st: ContactStore) => {
-    const out: Array<[number, number]> = [];
-    for (let e = 0; e < st.episodes.rows; e++) if (narrowPairs.has(st.episodes.get(e, "pair"))) {
-      const x = st.episodes.get(e, "end");
-      out.push([st.episodes.get(e, "onset"), Number.isNaN(x) ? end : x]);
-    }
-    return out;
-  };
-  const excused = narrowEps(on.st);
+  // 5 · the code marks: every line marked with it is marked without it —
+  // else every stay of the run with it on the line lies in an exemption of its pair
+  const runs = lineRuns(track);
   for (let i = 0; i < track.count; i++) {
     const line = track.lines[i]!;
     if (i > 0 && track.lines[i - 1] === line) continue;
     const spans = runsOf(runs, line);
     if (!lineMark(on.v, line, spans, lineAt)) continue;
-    tally.marks++;
+    count.marks++;
     if (lineMark(off.v, line, spans, lineAt)) continue;
-    expect(spans.some(([a, b]) => meetsSpan(excused, a, b)), `${where}: L${line} marked only with the per-line sample`).toBe(true);
+    for (let e = 0; e < S.episodes.rows; e++) {
+      const pi = S.episodes.get(e, "pair"), u = S.episodes.get(e, "onset"), x = S.episodes.get(e, "end"), w = Number.isNaN(x) ? end : x;
+      for (const [a, b] of spans) {
+        if (w < a || u > b) continue;
+        expect(exempted(pi, Math.max(a, u), Math.min(b, w)), `${where}: L${line} marked only with the per-line sample (${ids(pi)})`).toBe(true);
+      }
+    }
   }
-  // 6 · the timeline's bands: every column lit with it is lit without it
+  // 6 · the timeline's bands: every column lit with it is lit without it —
+  // else every contact of the run with it there lies in an exemption of its
+  // pair, or a contact of the pair without it ends within the bisection's
+  // tolerance of the column
   const lit = (v: ContactView) => {
-    const s = new Uint8Array(COLUMNS);
+    const sl = new Uint8Array(COLUMNS);
     for (const [f0, f1] of contactBands(v, COLUMNS, end))
-      for (let k = Math.floor(f0 * COLUMNS); k < Math.min(COLUMNS, Math.ceil(f1 * COLUMNS)); k++) s[k] = 1;
-    return s;
+      for (let k = Math.floor(f0 * COLUMNS); k < Math.min(COLUMNS, Math.ceil(f1 * COLUMNS)); k++) sl[k] = 1;
+    return sl;
   };
   const lOn = lit(on.v), lOff = lit(off.v);
   for (let k = 0; k < COLUMNS; k++) {
     if (!lOn[k]) continue;
-    tally.columns++;
+    count.columns++;
     if (lOff[k]) continue;
     const a = k / COLUMNS * end, b = (k + 1) / COLUMNS * end;
-    expect(meetsSpan(excused, a, b), `${where}: band column ${k} (${a.toFixed(3)}–${b.toFixed(3)}) lit only with the per-line sample`).toBe(true);
+    for (let r = 0; r < S.intervals.rows; r++) {
+      const pi = S.episodes.get(S.intervals.get(r, "episode"), "pair"), u = S.intervals.get(r, "enter"), x = S.intervals.get(r, "exit"), w = Number.isNaN(x) ? end : x;
+      if (w < a || u > b) continue;
+      const lo = Math.max(a, u), hi = Math.min(b, w);
+      expect(exempted(pi, lo, hi) || offIv(pi).some(v => v.a <= hi + TOL && v.b >= lo - TOL),
+        `${where}: band column ${k} (${a.toFixed(3)}–${b.toFixed(3)}) lit only with the per-line sample (${ids(pi)})`).toBe(true);
+    }
   }
+  return exempts;
+}
+
+/** Sweep `track` with and without the per-line sample and compare. */
+function holdsCover(model: CollisionModel, c: Case, track: CollisionTrack, where: string) {
+  const on = sweepWith(model, track, true), off = sweepWith(model, track, false);
+  tally.queries.with += on.queries; tally.queries.without += off.queries;
+  tally.probes.with += on.probes; tally.probes.without += off.probes;
+  compareRuns(model, c, track, on, off, where);
 }
 
 describe("without the per-line sample, a sweep covers what the sweep with it found (B8)", () => {
@@ -244,6 +252,52 @@ describe("without the per-line sample, a sweep covers what the sweep with it fou
       holdsCover(model, c, randomTrack(c, rng(seed), 4, 0.5), `${c.name} oracle track`);
     });
   }
+  // The exemptions' sensitivity (Codex R174 VP-I128): an exemption of a pair
+  // on one stretch excuses nothing of the pair elsewhere. The run without the
+  // per-line sample, damaged away from a seeded exemption of the same pair —
+  // the rapid touch under a rapid finding cleared, the contact under it cut
+  // to nothing — is red; undamaged, with the same exemption, green.
+  it("an exemption excuses only its own stretch: damage elsewhere in the same pair is red (Codex R174 VP-I128)", { timeout: 600_000 }, () => {
+    const seed = 20261014, { c, model } = generatedCase(seed), rand = rng(seed + 8);
+    const track = shortLines(randomTrack(c, rand, 4, 0.5), rand), end = track.cum[track.count - 1]!;
+    const truth = trackTruth(model, c, track), lineAt = trackLineAt(track);
+    const on = sweepWith(model, track, true);
+    const scratch = { compared: 0, stayLines: 0, findings: 0, rapidFindings: 0, marks: 0, columns: 0, narrow: 0,
+                      queries: { with: 0, without: 0 }, probes: { with: 0, without: 0 } };
+    // a rapid finding of the run with it whose rapid touch the truth shows wide
+    let pick: { pi: number; p: number; q: number } | null = null;
+    for (let i = 0; i < on.v.n && !pick; i++) {
+      const kind = targetKind(on.v, i);
+      if (!(kind & T_RAPID) || (kind & T_NEAR)) continue;
+      const t = targetAt(on.v, i, lineAt), pi = model.pairs.findIndex(([a, b]) => model.bodies[a]!.id === t.a && model.bodies[b]!.id === t.b);
+      const p = targetPos(on.v, i), q = targetEnd(on.v, i), A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
+      for (let seg = 1; seg < track.count && !pick; seg++) {
+        if (!track.rapid[seg]) continue;
+        for (let x = Math.max(p, track.cum[seg - 1]!); x <= Math.min(q, track.cum[seg]!) && !pick; x += 0.05) {
+          truth.poseAt(x);
+          if (truth.below(A, B, CONTACT * 10) !== null && truth.runWide(pi, x, CONTACT * 10, true, [track.cum[seg - 1]!, track.cum[seg]!])) pick = { pi, p, q };
+        }
+      }
+    }
+    expect(pick, "a rapid finding with a wide rapid touch").not.toBeNull();
+    const { pi, p, q } = pick!;
+    const far: Exempt[] = [{ pair: pi, lo: end + 1, hi: end + 2 }];   // the same pair, excused elsewhere
+    const damaged = (hurt: (st: ContactStore, k: number) => void): Run => {
+      const off = sweepWith(model, track, false), I = off.st.intervals;
+      for (let k = 0; k < I.rows; k++) {
+        if (off.st.episodes.get(I.get(k, "episode"), "pair") !== pi) continue;
+        const x = I.get(k, "exit");
+        if (I.get(k, "enter") <= q + TOL && (Number.isNaN(x) ? end : x) >= p - TOL) hurt(off.st, k);
+      }
+      off.v = viewOf(model, off.st, end);
+      return off;
+    };
+    expect(() => compareRuns(model, c, track, on, sweepWith(model, track, false), "undamaged", far, scratch), "undamaged: green").not.toThrow();
+    expect(() => compareRuns(model, c, track, on, damaged((st, k) => st.intervals.set(k, "flags", st.intervals.get(k, "flags") & ~IV_RAPID)), "rapid lost", far, scratch),
+      "the rapid touch under the finding cleared").toThrow(/feed without the per-line sample/);
+    expect(() => compareRuns(model, c, track, on, damaged((st, k) => st.intervals.set(k, "exit", st.intervals.get(k, "enter"))), "contact lost", far, scratch),
+      "the contact under the finding cut to nothing").toThrow(/only with the per-line sample/);
+  });
   it("the comparison saw contacts, rapid findings and queries the rule no longer takes", () => {
     if (process.env.LINE_SAMPLE_LOG) fs.appendFileSync(process.env.LINE_SAMPLE_LOG, JSON.stringify(tally) + "\n");
     expect(tally.compared, JSON.stringify(tally)).toBeGreaterThan(0);

@@ -1647,15 +1647,24 @@ lines it was inside the margin on got no stay (plan 7.3 check 2, the oracle at
 0.05, found it; the per-line sample had covered them). That stretch holds no
 touch (the near sample's distance certified none; `nearQ` names only a DECIDED
 near sample), so it asks only "inside the margin?" — a query bounded at 2 ×
-margin, beyond it short of a separation, no inside check — and it is WALKED,
-not gridded: the distance changes no faster than the largest chunk speed bound
-since the near sample (`nearV`), so the next sample lies max(MIN_ADV, |d −
-margin| / V) on (haus.ngc Fall B: a MIN_ADV grid over the long near stretches
-of pairs the axes barely move cost 158 s of 264). `CollisionOptions.
+margin, beyond it short of a separation, no inside check — and only for its
+LAST pose inside the margin (the stay covers the rest by continuity): a search
+BACK from the sample outside, certified — the distance changes no faster than
+the chunks' speed bounds since the near sample, a history of at most 16
+entries a pair (`nearHS`/`nearHV`; a full one merges the neighbours whose
+larger bound adds least), so from a pose at d outside the margin the pair
+stays outside back to where those bounds use up d − margin, at least MIN_ADV
+back; the first sample inside the margin is noted. Both re-samplings pass the
+main loop's checkpoints — yield, budget, abort — with the progress the last
+whole sample's (Codex R174 VP-I127: one largest bound walked a long slow
+stretch at a fast chunk's pace, 66 656 samples in one iterator call; a
+forward MIN_ADV grid had cost 158 s of 264 on haus.ngc Fall B). `CollisionOptions.
 lineSample` is the old rule, for the comparison (`collisionLineSample.test.ts`:
 tables, stays per line and views of the run without it cover the run with it,
-else the truth shows a run no wider than MIN_ADV) and the measurement only;
-`collisionWindows.test.ts` holds near stays to closed-form margin windows. Facets WITHOUT AREA (three distinct
+else the truth shows a run no wider than MIN_ADV — an exemption bound to that
+run's stretch and pair, never the pair elsewhere, Codex R174 VP-I128) and the
+measurement only; `collisionWindows.test.ts` holds near stays to closed-form
+margin windows and the search to its checkpoints. Facets WITHOUT AREA (three distinct
 collinear vertices, coincident ones, a coordinate not finite) are dropped
 when the model is built (`withoutArealessFacets`): three-mesh-bvh read a
 collinear facet as touching a triangle 1.5 mm away (VP-I46); a body left

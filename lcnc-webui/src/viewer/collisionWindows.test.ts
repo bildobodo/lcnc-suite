@@ -14,7 +14,7 @@
 // than EXPLORE may stay unsampled and read as contact — today's rule, kept
 // (plan 2.2: an unsampled gap is no separation); one wider is always proved.
 import { describe, expect, it } from "vitest";
-import { CONTACT_EPS, buildCollisionModel, sweepCollisions, type CollisionMachine, type CollisionTrack } from "./collision";
+import { CONTACT_EPS, buildCollisionModel, poseModel, sweepCollisions, sweepCollisionsIter, type CollisionMachine, type CollisionTrack } from "./collision";
 import { ContactStore } from "./contactStore";
 import { MIN_ADV, boxPositions, rng } from "./collisionFixtures";
 
@@ -172,6 +172,84 @@ describe("near stays in closed form, through the product (plan 5, B8)", () => {
     }
     expect(cases).toBe(24);
     expect(lines, "lines inside the margin for more than MIN_ADV").toBeGreaterThan(100);
+  });
+
+  // The search back from a near pair's margin exit (Codex R174 VP-I127): a
+  // pair inside the margin over one step of a fixed body (gap 1.9), then just
+  // OUTSIDE it over the next (gap 2.0005) along a long slow stretch — a rotary
+  // no body rides drives the parameter. The search must certify the outside
+  // stretch back to the exit, MIN_ADV at a time: thousands of samples, inside
+  // ONE sample of the main loop. They pass its checkpoints.
+  const stepped = () => {
+    const spun: CollisionMachine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }, { id: "spinner", parent: "root" }],
+      kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 },
+                   { group: "spinner", joint: 3, type: "rotate", direction: "z", sign: 1 }],
+      workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z", "A"] };
+    const model = buildCollisionModel(spun, [
+      { id: "fixed", group: "fixed", positions: new Float32Array([...boxPositions(20, 20, 20, -10, 0), ...boxPositions(40, 20 - 0.1005, 20, 20, -0.1005 / 2)]) },
+      { id: "moving", group: "moving", positions: boxPositions(2, 20, 20, 0, 21.9) }]);
+    const xs = [-30, -10, 30], as = [0, 0, 8000];
+    const n = 3, pos = new Float32Array(n * 3), abc = new Float32Array(n * 3), cum = new Float32Array(n);
+    for (let k = 0; k < n; k++) { pos[k * 3] = xs[k]!; abc[k * 3] = as[k]!; if (k) cum[k] = cum[k - 1]! + Math.max(Math.abs(xs[k]! - xs[k - 1]!), as[k]! - as[k - 1]!); }
+    return { model, track: { pos, abc, cum, count: n, lines: Uint32Array.from([10, 11, 12]), rapid: new Uint8Array(n) } as CollisionTrack };
+  };
+  const probesOf = (profile: { probes?: Uint32Array }) => { let t = 0; for (const x of profile.probes ?? []) t += x; return t; };
+
+  it("the search back from a margin exit passes the checkpoints: never more than 512 samples between two yields (Codex R174 VP-I127)", { timeout: 120_000 }, () => {
+    const { model, track } = stepped();
+    const profile: { probes?: Uint32Array } = {};
+    const it = sweepCollisionsIter(model, track, WCS0, { margin: 2, contacts: { store: new ContactStore(1, 0) }, profile, yieldMs: 1e9 });
+    let r = it.next(), last = 0, most = 0;
+    while (!r.done) { const p = probesOf(profile); most = Math.max(most, p - last); last = p; r = it.next(); }
+    const p = probesOf(profile); most = Math.max(most, p - last);
+    expect(r.value.truncated).toBeNull();
+    expect(p, "a long search: the outside stretch certified back to the exit").toBeGreaterThan(1000);
+    expect(most, "samples between two yields").toBeLessThanOrEqual(512);
+  });
+
+  it("the budget and an abort are honoured during the search (Codex R174 VP-I127)", { timeout: 120_000 }, () => {
+    // a clock of work: one unit per sample away from the main step
+    const { model, track } = stepped();
+    const profile: { probes?: Uint32Array } = {};
+    const clock = () => probesOf(profile);
+    const r = sweepCollisions(model, track, WCS0, { margin: 2, contacts: { store: new ContactStore(1, 0) }, profile, clock, yieldMs: 8, maxMs: 64 });
+    expect(r.truncated?.reason).toBe("time");
+    expect(clock(), "stopped within a checkpoint's samples of the budget").toBeLessThanOrEqual(64 + 32);
+    // an abort at the first checkpoint inside the search ends it there
+    const p2: { probes?: Uint32Array } = {};
+    const it = sweepCollisionsIter(model, track, WCS0, { margin: 2, contacts: { store: new ContactStore(1, 0) }, profile: p2, yieldMs: 1e9 });
+    let s = it.next();
+    while (!s.done && probesOf(p2) === 0) s = it.next();
+    expect(s.done, "a checkpoint inside the search").toBe(false);
+    const at = probesOf(p2);
+    // aborted: the iterator ends (after its closing progress), searching nothing more
+    let steps = 0;
+    do { s = it.next(true); steps++; } while (!s.done && steps < 4);
+    expect(s.done, "ended").toBe(true);
+    expect(probesOf(p2), "nothing searched after the abort").toBe(at);
+  });
+
+  it("parked and continued inside the search, with the model posed elsewhere meanwhile: the same tables (Codex R174 VP-I127)", { timeout: 120_000 }, () => {
+    const { model, track } = stepped();
+    const whole = new ContactStore(1, 0);
+    sweepCollisions(model, track, WCS0, { margin: 2, contacts: { store: whole } });
+    const parked = new ContactStore(1, 0), profile: { probes?: Uint32Array } = {};
+    let ticks = 0;
+    const it = sweepCollisionsIter(model, track, WCS0, { margin: 2, contacts: { store: parked }, profile, clock: () => ticks++, yieldMs: 3 });
+    let r = it.next(), inside = 0, last = 0;
+    while (!r.done) {
+      const p = probesOf(profile);
+      if (p > last) inside++;
+      last = p;
+      poseModel(model, [5, 0, 0, 1234]);   // a side run or a snapshot's probe in between
+      r = it.next();
+    }
+    expect(inside, "yields inside the search").toBeGreaterThan(2);
+    const rows = (st: ContactStore) => JSON.stringify({
+      e: Array.from({ length: st.episodes.rows }, (_, k) => [st.episodes.get(k, "onset"), st.episodes.get(k, "end"), st.episodes.get(k, "closeDist")]),
+      i: Array.from({ length: st.intervals.rows }, (_, k) => [st.intervals.get(k, "enter"), st.intervals.get(k, "exit")]) });
+    expect(rows(parked)).toBe(rows(whole));
+    expect(whole.episodes.rows, "the stay").toBeGreaterThan(0);
   });
 
   // The walk over a near stretch steps by the distance's rate bound: the

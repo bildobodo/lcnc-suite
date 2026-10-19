@@ -1617,12 +1617,39 @@ export function* sweepCollisionsIter(
   const lastTouch = new Float64Array(pairs.length).fill(NaN);
   // Where a pair's last query found it inside the margin WITHOUT a touch
   // (NaN: the last query touched or lay outside the margin) — the start of
-  // the stretch re-sampled when it is next found outside the margin (B8) —,
-  // its distance there, and the largest speed bound of the chunks since: the
-  // pair's distance changes no faster than that over the stretch.
+  // the stretch searched when it is next found outside the margin (B8) — and
+  // the chunks' speed bounds since, as a short history:
+  // entry j holds from nearHS[j] on, its distance changing no faster than
+  // nearHV[j]. At most NEAR_HIST entries a pair; a full history merges the
+  // two neighbours whose larger bound adds the least, at that bound (Codex R174
+  // VP-I127: one largest bound since the sample searched a long slow stretch
+  // at a fast chunk's pace — tens of thousands of samples).
+  const NEAR_HIST = 16;
   const nearQ = new Float64Array(pairs.length).fill(NaN);
-  const nearD = new Float64Array(pairs.length);
-  const nearV = new Float64Array(pairs.length);
+  const nearHS = new Float64Array(pairs.length * NEAR_HIST);
+  const nearHV = new Float64Array(pairs.length * NEAR_HIST);
+  const nearHN = new Uint8Array(pairs.length);
+  const nearPush = (pi: number, at: number, v: number) => {
+    const b = pi * NEAR_HIST;
+    let n = nearHN[pi]!;
+    if (n > 0 && nearHV[b + n - 1] === v) return;
+    if (n === NEAR_HIST) {
+      // the neighbours whose merge adds the least to the bound's integral —
+      // never a fast chunk spread over a long slow stretch
+      let j = 0, least = Infinity;
+      for (let k = 0; k + 1 < n; k++) {
+        const v0 = nearHV[b + k]!, v1 = nearHV[b + k + 1]!, vm = Math.max(v0, v1);
+        const l0 = nearHS[b + k + 1]! - nearHS[b + k]!, l1 = (k + 2 < n ? nearHS[b + k + 2]! : at) - nearHS[b + k + 1]!;
+        const added = (vm - v0) * l0 + (vm - v1) * l1;
+        if (added < least) { least = added; j = k; }
+      }
+      nearHV[b + j] = Math.max(nearHV[b + j]!, nearHV[b + j + 1]!);
+      nearHS.copyWithin(b + j + 1, b + j + 2, b + n);
+      nearHV.copyWithin(b + j + 1, b + j + 2, b + n);
+      n--;
+    }
+    nearHS[b + n] = at; nearHV[b + n] = v; nearHN[pi] = n + 1;
+  };
   // The inside check (collision-inside.plan.md, pairInside): a query that
   // finds the surfaces apart proves the pair apart only where it is known not
   // to lie wholly inside the other. Between two surface contacts the answer
@@ -2423,7 +2450,7 @@ export function* sweepCollisionsIter(
         // recursion leverTrue ≤ (leverEnd + trans) / (1 − rotRad) with
         // rotRad ≤ 0.4 (22.5° chunks) is bounded by ×1.65; ×2 gives slack.
         pairV[pi] = (trans + rotRadLever * 2) / Lc;
-        if (pairV[pi]! > nearV[pi]!) nearV[pi] = pairV[pi]!;
+        if (!Number.isNaN(nearQ[pi]!)) nearPush(pi, s0, pairV[pi]!);
         opts.onChunkSpeed?.(pi, s0, s1, pairV[pi]!);
       }
 
@@ -2556,40 +2583,73 @@ export function* sweepCollisionsIter(
           // the pair left the margin, and lines it was inside the margin on
           // got no stay (the per-line sample covered them until B8; plan 7.3
           // check 2 found it). Found outside the margin now, the stretch since
-          // that sample is walked: the stay then reaches every line the pair
-          // is inside the margin on for more than MIN_ADV. Not for an
-          // undecidable answer — no exit is decided. Cheaper than after a
-          // touch: that sample's distance certified no touch up to this one
-          // (`nearQ` names only a DECIDED near sample; the floor's overshoot
-          // is under MIN_ADV), so the inside answer cannot have changed, and
-          // the stretch holds no separation decision — only "inside the
-          // margin?", a query bounded at 2 × margin, anything beyond it short
-          // of a separation (the separation is this sample's own). And the
-          // walk is CERTIFIED, not a grid: the distance changes no faster than
-          // the chunks' largest speed bound since that sample (`nearV`), so
-          // from a sample at distance d the next lies max(MIN_ADV, |d −
-          // margin| / V) on — every run inside the margin wider than MIN_ADV
-          // holds a sample or lies between two (a pair the axes barely move
-          // stays in its margin for long, haus.ngc Fall B: a MIN_ADV grid over
-          // such stretches cost half the sweep).
+          // that sample is searched for its LAST pose inside the margin, and
+          // the stay extends to it: then it reaches every line the pair is
+          // inside the margin on for more than MIN_ADV (everything before that
+          // pose it covers by continuity). Not for an undecidable answer — no
+          // exit is decided. Cheaper than after a touch: that sample's
+          // distance certified no touch up to this one (`nearQ` names only a
+          // DECIDED near sample; the floor's overshoot is under MIN_ADV), so
+          // the inside answer cannot have changed, and the stretch holds no
+          // separation decision — only "inside the margin?", a query bounded
+          // at 2 × margin, anything beyond it short of a separation (the
+          // separation is this sample's own). The search walks BACK from this
+          // sample, CERTIFIED: the distance changes no faster than the chunks'
+          // speed bounds since that sample (the history above), so from a
+          // pose outside the margin at distance d the pair stays outside back
+          // to where those bounds could have used up d − margin; the next
+          // sample lies there, at least MIN_ADV back, and the first one inside
+          // the margin is noted — any run inside the margin after it is
+          // narrower than MIN_ADV. (A forward MIN_ADV grid cost half of
+          // haus.ngc Fall B; a forward certified walk had to certify every
+          // pose INSIDE the margin too, step by step where the pair hovers at
+          // its edge.) Both re-samplings pass the main loop's checkpoints: a
+          // yield, the budget, an abort (Codex R174 VP-I127) — the progress
+          // stays the last whole sample's, and every sample poses the model
+          // itself.
           const fromTouch = touching[pi] && s - lastTouch[pi]! > MIN_ADV
             && (d > CONTACT_EPS || (pairCutting[pi] && !onsetRapid[pi] && rapidBetween(lastTouch[pi]!, s)));
           const fromNear = !opts.lineSample && !touching[pi] && !unknownInside && d > opts.margin && s - nearQ[pi]! > MIN_ADV;
           if (fromNear && !fromTouch) {
-            const V = Math.max(nearV[pi]!, 1e-9);
-            for (let x = nearQ[pi]!, dx = nearD[pi]!; ;) {
-              x += Math.max(MIN_ADV, Math.abs(dx - opts.margin) / V);
-              if (x >= s - 1e-9) break;
+            // back from this sample to the stretch's LAST pose inside the
+            // margin: the stay covers everything before it by continuity
+            const hb = pi * NEAR_HIST, lo = nearQ[pi]!;
+            for (let x = s, dx = Math.min(d, opts.margin * 2), e = nearHN[pi]! - 1; ;) {
+              // back to where the history's bounds use up the room dx − margin
+              let room = dx - opts.margin, y = x;
+              while (e > 0 && nearHS[hb + e]! > x) e--;
+              for (let k = e; ; k--) {
+                const v = Math.max(nearHV[hb + k]!, 1e-9), start = k > 0 ? nearHS[hb + k]! : -Infinity;
+                if (y - room / v >= start) { y -= room / v; break; }
+                room -= v * (y - start); y = start;
+              }
+              x = Math.min(x - MIN_ADV, y);
+              if (x <= lo + 1e-9) break;
               done++;
-              const seg = segAtDist(x);
+              if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
+                  && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
+                if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
+                if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
+                lastYield = clock();
+              }
               dx = Math.min(distAtCum(x, pi, opts.margin * 2), opts.margin * 2);   // beyond the bound: at least 2 × margin
-              noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
+              if (dx <= opts.margin) {
+                const seg = segAtDist(x);
+                noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
+                break;
+              }
             }
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
           if (fromTouch) {
             for (let x = lastTouch[pi]! + MIN_ADV; x < s - 1e-9; x += MIN_ADV) {
               done++;
+              if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
+                  && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
+                if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
+                if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
+                lastYield = clock();
+              }
               const seg = segAtDist(x);
               let dx = distAtCum(x, pi, HORIZON);
               // Every sample of the stretch is a separation decision.
@@ -2632,7 +2692,7 @@ export function* sweepCollisionsIter(
               // than MIN_ADV of path is missed.
               clear[pi] = d;
               touching[pi] = 0;
-              nearQ[pi] = s; nearD[pi] = d; nearV[pi] = pairV[pi]!;
+              nearQ[pi] = s; nearHN[pi] = 0; nearPush(pi, s, pairV[pi]!);
               sSafe[pi] = s + Math.max(MIN_ADV, Math.min(EXPLORE, d / Math.max(pairV[pi]!, 1e-9)));
             } else {
               clear[pi] = 0;

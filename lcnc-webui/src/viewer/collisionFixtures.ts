@@ -307,7 +307,9 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
   // part of a run (a record is the line of the sample that saw it; a run
   // that crosses a line's end by less than MIN_ADV owes that line no sample —
   // found on generated machine 20261051, step 4 plan package 2, 7.3).
-  const runWide = (pi: number, s: number, e: number, alsoInside = false, within?: [number, number]): boolean => {
+  // `runAround`: the run's ends (each walked out at most WIDE + MIN_ADV, then
+  // bisected) — an exemption a comparison binds to exactly that stretch.
+  const runAround = (pi: number, s: number, e: number, alsoInside = false, within?: [number, number]): [number, number] => {
     const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
     const inside = (x: number) => {
       poseAt(x);
@@ -328,7 +330,11 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
         x = y;
       }
     };
-    return edge(1) - edge(-1) > WIDE;
+    return [edge(-1), edge(1)];
+  };
+  const runWide = (pi: number, s: number, e: number, alsoInside = false, within?: [number, number]): boolean => {
+    const [a, b] = runAround(pi, s, e, alsoInside, within);
+    return b - a > WIDE;
   };
   /** The track parameters of segment `seg`'s line: the run of segments with
    *  its line around it. */
@@ -339,7 +345,7 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
     while (b < track.count - 1 && track.lines[b + 1] === ln) b++;
     return [track.cum[a - 1]!, track.cum[b]!];
   };
-  return { poseAt, below, runWide, lineSpan, WIDE };
+  return { poseAt, below, runWide, runAround, lineSpan, WIDE };
 }
 
 const _itInv = new THREE.Matrix4(), _itRel = new THREE.Matrix4(), _itP = new THREE.Vector3();
