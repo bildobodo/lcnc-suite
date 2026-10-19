@@ -1,0 +1,1 @@
+{"compared":514,"stayLines":11615,"findings":205,"rapidFindings":188,"marks":2645,"columns":102839,"narrow":3,"queries":{"with":41154,"without":33400},"probes":{"with":4334,"without":5004}}

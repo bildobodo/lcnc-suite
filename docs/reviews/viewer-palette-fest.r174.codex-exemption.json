@@ -1,0 +1,69 @@
+{
+  "where": "generated 20261014 (xyzacb-trsrn XYZABC) track",
+  "mutation": "remove rapid flags for the exempted pair",
+  "removed": 3,
+  "wideRapid": 1,
+  "wideProofs": [
+    {
+      "pair": "frame_0/tool",
+      "witness": 207.68565368652344,
+      "line": 269,
+      "rapidMoveSpan": [
+        206.93565368652344,
+        208.15679931640625
+      ]
+    }
+  ],
+  "lostRapid": [
+    {
+      "key": "C12|0|0",
+      "kind": 72,
+      "at": 0,
+      "end": 94.94541931152344,
+      "bodyPair": {
+        "cum": 0,
+        "cumEnd": 94.94541931152344,
+        "key": "C12|0|0",
+        "line": 0,
+        "a": "frame_0",
+        "b": "tool",
+        "dist": 0,
+        "near": false,
+        "rapid": true,
+        "atStart": true,
+        "noLine": true
+      }
+    },
+    {
+      "key": "C67|0|0",
+      "kind": 72,
+      "at": 0,
+      "end": 308.60009765625,
+      "bodyPair": {
+        "cum": 0,
+        "cumEnd": 308.60009765625,
+        "key": "C67|0|0",
+        "line": 0,
+        "a": "work_x_1",
+        "b": "work_0",
+        "dist": 0,
+        "near": false,
+        "rapid": true,
+        "atStart": true,
+        "noLine": true
+      }
+    }
+  ],
+  "lostWide": [
+    {
+      "key": "C67|0|0",
+      "pair": "work_x_1/work_0",
+      "at": 2.2522175788879393,
+      "line": 14,
+      "rapidMoveSpan": [
+        2.2022175788879395,
+        3.0817291736602783
+      ]
+    }
+  ]
+}

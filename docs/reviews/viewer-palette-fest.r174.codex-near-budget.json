@@ -1,0 +1,9 @@
+{
+  "virtualMs": 6666,
+  "budgetMs": 64,
+  "yields": 2,
+  "truncated": {
+    "covered": 0.825557247681019,
+    "reason": "time"
+  }
+}

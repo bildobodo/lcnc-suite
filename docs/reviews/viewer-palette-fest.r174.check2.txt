@@ -1,0 +1,133 @@
+# Plan 7.3 check 2 for B8 (step 4 package 2): collisionOracle.test.ts at COLLISION_STEP=0.05, COLLISION_GEN=50 (50 generated machines + the 4 shipped models), COLLISION_HUNT_BUDGET=0.
+# 'short' = COLLISION_SHORT_LINES=1: every track cut into lines of 0.05–1.5, the kind flipping now and then (shortLines); 'plain' = the plan's tracks.
+
+## 1 · B8 without the near-exit walk (its first state): RED, one class
+head 97c98b5f VP-, 6 changed; start 17:12:30
+short: exit 1 ⎯⎯⎯⎯⎯⎯ Failed Tests 29 ⎯⎯⎯⎯⎯⎯⎯
+ Tests 29 failed | 27 passed (56) 17:27:41
+plain: exit 1 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+ Tests 4 failed | 52 passed (56) 17:46:29
+Every failure: 'inside the margin wider than 0.251 of path on its line with no stay of the tables reaching it' (28 cases with short lines; the 29th is 'the generated machines reach contact', which counts only the passing cases). The four on the plan's tracks:
+  generated 20261036 (trivkins XYZC) track 0 s 346.33 (L14) tool_0/work_0 true 1.6662 — stay [346.163, 346.163]
+  generated 20261049 (xyzacb-trsrn XYZABC) track 0 s 219.08 (L13) tool_x_0/tool_z_1 true 1.0796 — stay [218.106, 218.106]
+  generated 20261053 (xyzbc-trt XYZBC) track 0 s 221.83 (L13) frame_0/work_y_0 true 1.2995 — stay [221.525, 221.525]
+  generated 20261060 (trivkins XYZA) track 0 s 281.03 (L13) frame_0/tool_1 true 1.5305 — stay [0, 280.079]
+
+## 2 · The same seeds at 97c98b5f (the per-line sample): GREEN
+plain: generated 20261036, 20261049, 20261053, 20261060 — Tests 4 passed
+short: generated 20261036, 20261049, 20261053, 20261061, 20261057, 20261054, 20261052, 20261051, 20261050 — Tests 9 passed
+
+## 3 · B8 at its head 9fda6d45 (the near exit walked): GREEN
+head 9fda6d45 B8:, 0 changed; start 21:05:38
+short: exit 0  Tests 56 passed (56) 21:24:56
+plain: exit 0  Tests 56 passed (56) 21:44:03
+### short — what each case reached
+XYZAC identity seed 20261021: 42608 touching (4756 inside), 380 near, 60 onsets, 0 narrow runs, 210 s
+XYZAC TCP seed 12: 3621 touching (289 inside), 940 near, 24 onsets, 0 narrow runs, 194 s
+TWP gantry TCP seed 13: 46864 touching (2004 inside), 712 near, 62 onsets, 0 narrow runs, 329 s
+3 axis seed 22: 5110 touching (0 inside), 0 near, 4 onsets, 0 narrow runs, 215 s
+generated 20261012 (xyzac-trt XYZAC): 103728 touching (740 inside), 3397 near, 120 onsets, 8 narrow runs, 8 s
+generated 20261013 (xyzbc-trt XYZBC): 137315 touching (431 inside), 3864 near, 106 onsets, 11 narrow runs, 6 s
+generated 20261014 (xyzacb-trsrn XYZABC): 70427 touching (4995 inside), 2538 near, 80 onsets, 2 narrow runs, 14 s
+generated 20261015 (trivkins XYZA): 56542 touching (0 inside), 1362 near, 30 onsets, 0 narrow runs, 2 s
+generated 20261016 (trivkins XYZAC): 115534 touching (401 inside), 2568 near, 114 onsets, 4 narrow runs, 5 s
+generated 20261017 (xyzac-trt XYZAC): 31598 touching (0 inside), 1578 near, 50 onsets, 0 narrow runs, 3 s
+generated 20261018 (xyzbc-trt XYZBC): 75235 touching (732 inside), 1871 near, 96 onsets, 0 narrow runs, 4 s
+generated 20261019 (xyzacb-trsrn XYZABC): 12851 touching (93 inside), 334 near, 22 onsets, 0 narrow runs, 2 s
+generated 20261020 (trivkins XYZAB): 19392 touching (373 inside), 483 near, 28 onsets, 0 narrow runs, 1 s
+generated 20261021 (trivkins XYZBC): 14222 touching (0 inside), 687 near, 18 onsets, 0 narrow runs, 2 s
+generated 20261022 (xyzac-trt XYZAC): 110927 touching (379 inside), 9046 near, 154 onsets, 9 narrow runs, 8 s
+generated 20261023 (xyzbc-trt XYZBC): 28918 touching (487 inside), 866 near, 38 onsets, 4 narrow runs, 2 s
+generated 20261024 (xyzacb-trsrn XYZABC): 64233 touching (266 inside), 1341 near, 50 onsets, 0 narrow runs, 4 s
+generated 20261025 (trivkins XYZAB): 106543 touching (349 inside), 3748 near, 88 onsets, 2 narrow runs, 8 s
+generated 20261026 (trivkins XYZB): 54892 touching (1134 inside), 4114 near, 54 onsets, 5 narrow runs, 5 s
+generated 20261027 (xyzac-trt XYZAC): 123818 touching (125 inside), 2514 near, 98 onsets, 4 narrow runs, 6 s
+generated 20261028 (xyzbc-trt XYZBC): 75075 touching (172 inside), 2494 near, 112 onsets, 0 narrow runs, 4 s
+generated 20261029 (xyzacb-trsrn XYZABC): 55164 touching (226 inside), 879 near, 50 onsets, 0 narrow runs, 5 s
+generated 20261030 (trivkins XYZC): 34809 touching (2427 inside), 1056 near, 36 onsets, 0 narrow runs, 2 s
+generated 20261031 (trivkins XYZABC): 45067 touching (572 inside), 1974 near, 70 onsets, 0 narrow runs, 3 s
+generated 20261032 (xyzac-trt XYZAC): 27765 touching (1127 inside), 1496 near, 36 onsets, 2 narrow runs, 2 s
+generated 20261033 (xyzbc-trt XYZBC): 22073 touching (367 inside), 341 near, 18 onsets, 0 narrow runs, 2 s
+generated 20261034 (xyzacb-trsrn XYZABC): 72710 touching (202 inside), 5938 near, 56 onsets, 2 narrow runs, 4 s
+generated 20261035 (trivkins XYZAC): 21754 touching (2141 inside), 1131 near, 30 onsets, 0 narrow runs, 2 s
+generated 20261036 (trivkins XYZC): 41794 touching (337 inside), 1086 near, 42 onsets, 2 narrow runs, 2 s
+generated 20261037 (xyzac-trt XYZAC): 113252 touching (535 inside), 2726 near, 86 onsets, 2 narrow runs, 7 s
+generated 20261038 (xyzbc-trt XYZBC): 92234 touching (361 inside), 1841 near, 90 onsets, 1 narrow runs, 4 s
+generated 20261039 (xyzacb-trsrn XYZABC): 42864 touching (492 inside), 1810 near, 62 onsets, 1 narrow runs, 4 s
+generated 20261040 (trivkins XYZAC): 92933 touching (289 inside), 2402 near, 104 onsets, 7 narrow runs, 4 s
+generated 20261041 (trivkins XYZAB): 52389 touching (1515 inside), 1606 near, 50 onsets, 6 narrow runs, 4 s
+generated 20261042 (xyzac-trt XYZAC): 57654 touching (2030 inside), 3628 near, 90 onsets, 2 narrow runs, 3 s
+generated 20261043 (xyzbc-trt XYZBC): 53617 touching (894 inside), 1179 near, 68 onsets, 1 narrow runs, 4 s
+generated 20261044 (xyzacb-trsrn XYZABC): 44821 touching (354 inside), 1215 near, 68 onsets, 3 narrow runs, 5 s
+generated 20261045 (trivkins XYZC): 11908 touching (0 inside), 737 near, 26 onsets, 1 narrow runs, 2 s
+generated 20261046 (trivkins XYZA): 109621 touching (357 inside), 3150 near, 86 onsets, 0 narrow runs, 4 s
+generated 20261047 (xyzac-trt XYZAC): 73884 touching (402 inside), 1743 near, 76 onsets, 5 narrow runs, 4 s
+generated 20261048 (xyzbc-trt XYZBC): 36488 touching (281 inside), 848 near, 46 onsets, 0 narrow runs, 2 s
+generated 20261049 (xyzacb-trsrn XYZABC): 145628 touching (3841 inside), 3237 near, 160 onsets, 7 narrow runs, 10 s
+generated 20261050 (trivkins XYZA): 35150 touching (301 inside), 873 near, 34 onsets, 3 narrow runs, 1 s
+generated 20261051 (trivkins XYZBC): 142699 touching (859 inside), 4382 near, 134 onsets, 2 narrow runs, 9 s
+generated 20261052 (xyzac-trt XYZAC): 50446 touching (420 inside), 1549 near, 56 onsets, 2 narrow runs, 2 s
+generated 20261053 (xyzbc-trt XYZBC): 128292 touching (843 inside), 4575 near, 160 onsets, 3 narrow runs, 7 s
+generated 20261054 (xyzacb-trsrn XYZABC): 39119 touching (327 inside), 1318 near, 38 onsets, 3 narrow runs, 2 s
+generated 20261055 (trivkins XYZBC): 21068 touching (0 inside), 958 near, 18 onsets, 0 narrow runs, 1 s
+generated 20261056 (trivkins XYZ): 12970 touching (1239 inside), 264 near, 14 onsets, 0 narrow runs, 2 s
+generated 20261057 (xyzac-trt XYZAC): 44208 touching (495 inside), 2092 near, 74 onsets, 7 narrow runs, 3 s
+generated 20261058 (xyzbc-trt XYZBC): 43043 touching (511 inside), 3001 near, 56 onsets, 0 narrow runs, 3 s
+generated 20261059 (xyzacb-trsrn XYZABC): 23856 touching (259 inside), 463 near, 26 onsets, 1 narrow runs, 2 s
+generated 20261060 (trivkins XYZA): 60936 touching (402 inside), 1863 near, 44 onsets, 2 narrow runs, 3 s
+generated 20261061 (trivkins XYZA): 37226 touching (379 inside), 2628 near, 58 onsets, 0 narrow runs, 2 s
+### plain — what each case reached
+XYZAC identity seed 20261021: 42962 touching (4762 inside), 419 near, 60 onsets, 0 narrow runs, 192 s
+XYZAC TCP seed 12: 2920 touching (244 inside), 802 near, 20 onsets, 0 narrow runs, 195 s
+TWP gantry TCP seed 13: 46184 touching (2229 inside), 644 near, 62 onsets, 0 narrow runs, 353 s
+3 axis seed 22: 5110 touching (0 inside), 0 near, 4 onsets, 0 narrow runs, 206 s
+generated 20261012 (xyzac-trt XYZAC): 102368 touching (817 inside), 3331 near, 108 onsets, 0 narrow runs, 8 s
+generated 20261013 (xyzbc-trt XYZBC): 135968 touching (519 inside), 3975 near, 96 onsets, 0 narrow runs, 6 s
+generated 20261014 (xyzacb-trsrn XYZABC): 70258 touching (4876 inside), 2373 near, 76 onsets, 0 narrow runs, 13 s
+generated 20261015 (trivkins XYZA): 56542 touching (0 inside), 1362 near, 30 onsets, 0 narrow runs, 2 s
+generated 20261016 (trivkins XYZAC): 115660 touching (202 inside), 2549 near, 110 onsets, 0 narrow runs, 4 s
+generated 20261017 (xyzac-trt XYZAC): 31598 touching (0 inside), 1578 near, 50 onsets, 0 narrow runs, 3 s
+generated 20261018 (xyzbc-trt XYZBC): 75888 touching (946 inside), 1871 near, 98 onsets, 0 narrow runs, 5 s
+generated 20261019 (xyzacb-trsrn XYZABC): 13107 touching (111 inside), 413 near, 28 onsets, 0 narrow runs, 2 s
+generated 20261020 (trivkins XYZAB): 18648 touching (63 inside), 429 near, 22 onsets, 0 narrow runs, 1 s
+generated 20261021 (trivkins XYZBC): 13792 touching (0 inside), 687 near, 16 onsets, 0 narrow runs, 2 s
+generated 20261022 (xyzac-trt XYZAC): 113622 touching (51 inside), 9207 near, 180 onsets, 0 narrow runs, 8 s
+generated 20261023 (xyzbc-trt XYZBC): 27187 touching (521 inside), 805 near, 30 onsets, 0 narrow runs, 2 s
+generated 20261024 (xyzacb-trsrn XYZABC): 63853 touching (396 inside), 1294 near, 50 onsets, 0 narrow runs, 4 s
+generated 20261025 (trivkins XYZAB): 106040 touching (0 inside), 3620 near, 80 onsets, 0 narrow runs, 6 s
+generated 20261026 (trivkins XYZB): 56946 touching (1193 inside), 4016 near, 64 onsets, 0 narrow runs, 4 s
+generated 20261027 (xyzac-trt XYZAC): 123882 touching (473 inside), 2559 near, 96 onsets, 0 narrow runs, 7 s
+generated 20261028 (xyzbc-trt XYZBC): 67115 touching (553 inside), 2265 near, 72 onsets, 0 narrow runs, 3 s
+generated 20261029 (xyzacb-trsrn XYZABC): 55900 touching (474 inside), 769 near, 44 onsets, 0 narrow runs, 4 s
+generated 20261030 (trivkins XYZC): 34809 touching (2427 inside), 1056 near, 36 onsets, 0 narrow runs, 2 s
+generated 20261031 (trivkins XYZABC): 41497 touching (366 inside), 1547 near, 48 onsets, 0 narrow runs, 2 s
+generated 20261032 (xyzac-trt XYZAC): 27753 touching (887 inside), 1496 near, 38 onsets, 0 narrow runs, 2 s
+generated 20261033 (xyzbc-trt XYZBC): 20608 touching (0 inside), 338 near, 10 onsets, 0 narrow runs, 1 s
+generated 20261034 (xyzacb-trsrn XYZABC): 70633 touching (462 inside), 5715 near, 52 onsets, 0 narrow runs, 4 s
+generated 20261035 (trivkins XYZAC): 21378 touching (2332 inside), 1131 near, 26 onsets, 0 narrow runs, 1 s
+generated 20261036 (trivkins XYZC): 40738 touching (322 inside), 1086 near, 36 onsets, 0 narrow runs, 1 s
+generated 20261037 (xyzac-trt XYZAC): 113723 touching (564 inside), 2904 near, 88 onsets, 0 narrow runs, 8 s
+generated 20261038 (xyzbc-trt XYZBC): 91412 touching (356 inside), 1798 near, 80 onsets, 0 narrow runs, 4 s
+generated 20261039 (xyzacb-trsrn XYZABC): 42932 touching (492 inside), 1861 near, 64 onsets, 0 narrow runs, 4 s
+generated 20261040 (trivkins XYZAC): 94977 touching (61 inside), 2475 near, 104 onsets, 0 narrow runs, 4 s
+generated 20261041 (trivkins XYZAB): 52890 touching (1572 inside), 1618 near, 52 onsets, 0 narrow runs, 4 s
+generated 20261042 (xyzac-trt XYZAC): 55436 touching (2456 inside), 3638 near, 82 onsets, 0 narrow runs, 3 s
+generated 20261043 (xyzbc-trt XYZBC): 52949 touching (636 inside), 1240 near, 68 onsets, 1 narrow runs, 4 s
+generated 20261044 (xyzacb-trsrn XYZABC): 41649 touching (56 inside), 1215 near, 48 onsets, 0 narrow runs, 3 s
+generated 20261045 (trivkins XYZC): 12836 touching (66 inside), 877 near, 34 onsets, 0 narrow runs, 2 s
+generated 20261046 (trivkins XYZA): 107934 touching (188 inside), 3228 near, 80 onsets, 0 narrow runs, 4 s
+generated 20261047 (xyzac-trt XYZAC): 72701 touching (487 inside), 2036 near, 68 onsets, 0 narrow runs, 4 s
+generated 20261048 (xyzbc-trt XYZBC): 36736 touching (439 inside), 973 near, 48 onsets, 0 narrow runs, 2 s
+generated 20261049 (xyzacb-trsrn XYZABC): 147444 touching (3896 inside), 3122 near, 164 onsets, 0 narrow runs, 10 s
+generated 20261050 (trivkins XYZA): 36169 touching (373 inside), 927 near, 38 onsets, 0 narrow runs, 1 s
+generated 20261051 (trivkins XYZBC): 139560 touching (888 inside), 4459 near, 112 onsets, 0 narrow runs, 10 s
+generated 20261052 (xyzac-trt XYZAC): 50096 touching (123 inside), 1360 near, 52 onsets, 0 narrow runs, 2 s
+generated 20261053 (xyzbc-trt XYZBC): 127969 touching (993 inside), 4576 near, 150 onsets, 0 narrow runs, 7 s
+generated 20261054 (xyzacb-trsrn XYZABC): 40660 touching (504 inside), 1738 near, 42 onsets, 0 narrow runs, 2 s
+generated 20261055 (trivkins XYZBC): 21068 touching (0 inside), 958 near, 18 onsets, 0 narrow runs, 1 s
+generated 20261056 (trivkins XYZ): 12988 touching (787 inside), 264 near, 14 onsets, 0 narrow runs, 2 s
+generated 20261057 (xyzac-trt XYZAC): 44904 touching (336 inside), 1939 near, 76 onsets, 3 narrow runs, 3 s
+generated 20261058 (xyzbc-trt XYZBC): 39738 touching (0 inside), 2985 near, 46 onsets, 0 narrow runs, 3 s
+generated 20261059 (xyzacb-trsrn XYZABC): 24264 touching (429 inside), 432 near, 26 onsets, 0 narrow runs, 2 s
+generated 20261060 (trivkins XYZA): 61024 touching (377 inside), 1884 near, 46 onsets, 0 narrow runs, 3 s
+generated 20261061 (trivkins XYZA): 33654 touching (301 inside), 2372 near, 40 onsets, 0 narrow runs, 2 s

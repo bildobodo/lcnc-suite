@@ -1,0 +1,13 @@
+c_band_mutes RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the tables: []: expected false to be true // Object.is equality 12s
+c_rapid_open_unmarked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the tables: [{"line":9,"possible":true,"rapid":false},{"line":11,"possible":false,"rapid":false}]: expected false to be true // Object.is equality 10s
+c_rapid_drag_unmarked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: touched on the rapid: expected +0 to be truthy 10s
+v_reentry_inherits RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 64, 68, 68, 64, 4 ] to deeply equal [ 64, 4, 68, 64, 4 ] 26s
+v_rapid_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 72, 1, 3, 4, 2 ] to deeply equal [ 72, 1, 3, 68, 2 ] | AssertionError: expected [ 64, 4, 4, +0, 4 ] to deeply equal [ 64, 4, 68, 64, 4 ] 26s
+s_entry_is_witness RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: rear_column/a_yoke_casting: the tables' first touch at its first contact (275.401 mm), got 275.471: expected 0.07048241022147295 to be less than 0.01 15s
+s_entry_is_witness_oracle RED ⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: XYZAC TCP track 0 s 85.75 (L13) column_foot/y_saddle true 0.0000: a touch wider than 0.251 of path outside every touch interval of the tables — [[10.639805242558097,47.63003595007265],[85.776779174804 69s
+s_touch_only_stays RED ⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: XYZAC identity inside track (tool in a_bearing_pedestals) s 0.25 (L11) c_bearing_lip/c_faceplate true 2.0000: inside the margin wider than 0.251 of path on its line with no stay of the tables reaching 89s
+s_shard_drops_near RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: XYZAC identity inside track, the shard option, 3: c_bearing_lip/c_faceplate in the margin at 17.1367 only in the single sweep: expected true to be false // Object.is equality | Assertion 135s
+s_stay_end_onset RED ⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: TWP gantry TCP track 0 s 170.75 (L12) b_head/fixture_ribs true 0.4953: inside the margin wider than 0.251 of path on its line with no stay of the tables reaching it — [[0,0],[195.36219024658203,197.17 107s
+s_no_boundary_origin RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: XYZAC identity track from 2: the tables' boundary episodes are the pairs inside the margin at the start, cutting ones apart: expected [] to deeply equal [ …(12) ] | AssertionError:  86s
+s_no_boundary_origin_unit RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the tables: a boundary episode: expected [] to deeply equal [ 'spindle/vise' ] | AssertionError: the tables: expected [] to deeply equal [ 'spindle/vise' ] 10s
+s_rest_note_dropped ANCHOR [0] 0s

@@ -1,0 +1,201 @@
+{
+  "unit": {
+    "numTotalTests": 157,
+    "numPassedTests": 157,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "success": true
+  },
+  "near-tests": {
+    "numTotalTests": 2,
+    "numPassedTests": 0,
+    "numFailedTests": 2,
+    "numPendingTests": 0,
+    "success": false
+  },
+  "cover-mutant": {
+    "numTotalTests": 14,
+    "numPassedTests": 1,
+    "numFailedTests": 0,
+    "numPendingTests": 13,
+    "success": true
+  },
+  "cover-control": {
+    "numTotalTests": 14,
+    "numPassedTests": 0,
+    "numFailedTests": 1,
+    "numPendingTests": 13,
+    "success": false
+  },
+  "oracle-short": {
+    "numTotalTests": 56,
+    "numPassedTests": 4,
+    "numFailedTests": 0,
+    "numPendingTests": 52,
+    "success": true
+  },
+  "compare": {
+    "compared": 514,
+    "stayLines": 11615,
+    "findings": 205,
+    "rapidFindings": 188,
+    "marks": 2645,
+    "columns": 102839,
+    "narrow": 3,
+    "queries": {
+      "with": 41154,
+      "without": 33400
+    },
+    "probes": {
+      "with": 4334,
+      "without": 5004
+    }
+  },
+  "near": [
+    {
+      "turns": 360,
+      "lineSample": true,
+      "ms": 18.63142700000003,
+      "maxSliceMs": 14.222747000000027,
+      "maxProbesBetweenYields": 0,
+      "yields": 4,
+      "probes": 0,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 360,
+      "lineSample": false,
+      "ms": 35.96855899999997,
+      "maxSliceMs": 32.732924000000025,
+      "maxProbesBetweenYields": 667,
+      "yields": 4,
+      "probes": 667,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 3600,
+      "lineSample": true,
+      "ms": 3.384176000000025,
+      "maxSliceMs": 2.064339000000018,
+      "maxProbesBetweenYields": 0,
+      "yields": 3,
+      "probes": 0,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 3600,
+      "lineSample": false,
+      "ms": 197.33313300000003,
+      "maxSliceMs": 197.15679899999992,
+      "maxProbesBetweenYields": 6666,
+      "yields": 3,
+      "probes": 6666,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 36000,
+      "lineSample": true,
+      "ms": 5.866350000000011,
+      "maxSliceMs": 2.0275060000000167,
+      "maxProbesBetweenYields": 0,
+      "yields": 9,
+      "probes": 0,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 36000,
+      "lineSample": false,
+      "ms": 1748.2808260000002,
+      "maxSliceMs": 1744.101439,
+      "maxProbesBetweenYields": 66656,
+      "yields": 9,
+      "probes": 66656,
+      "truncated": null,
+      "episodes": 1
+    }
+  ],
+  "budget": {
+    "virtualMs": 6666,
+    "budgetMs": 64,
+    "yields": 2,
+    "truncated": {
+      "covered": 0.825557247681019,
+      "reason": "time"
+    }
+  },
+  "mutant": {
+    "where": "generated 20261014 (xyzacb-trsrn XYZABC) track",
+    "mutation": "remove rapid flags for the exempted pair",
+    "removed": 3,
+    "wideRapid": 1,
+    "wideProofs": [
+      {
+        "pair": "frame_0/tool",
+        "witness": 207.68565368652344,
+        "line": 269,
+        "rapidMoveSpan": [
+          206.93565368652344,
+          208.15679931640625
+        ]
+      }
+    ],
+    "lostRapid": [
+      {
+        "key": "C12|0|0",
+        "kind": 72,
+        "at": 0,
+        "end": 94.94541931152344,
+        "bodyPair": {
+          "cum": 0,
+          "cumEnd": 94.94541931152344,
+          "key": "C12|0|0",
+          "line": 0,
+          "a": "frame_0",
+          "b": "tool",
+          "dist": 0,
+          "near": false,
+          "rapid": true,
+          "atStart": true,
+          "noLine": true
+        }
+      },
+      {
+        "key": "C67|0|0",
+        "kind": 72,
+        "at": 0,
+        "end": 308.60009765625,
+        "bodyPair": {
+          "cum": 0,
+          "cumEnd": 308.60009765625,
+          "key": "C67|0|0",
+          "line": 0,
+          "a": "work_x_1",
+          "b": "work_0",
+          "dist": 0,
+          "near": false,
+          "rapid": true,
+          "atStart": true,
+          "noLine": true
+        }
+      }
+    ],
+    "lostWide": [
+      {
+        "key": "C67|0|0",
+        "pair": "work_x_1/work_0",
+        "at": 2.2522175788879393,
+        "line": 14,
+        "rapidMoveSpan": [
+          2.2022175788879395,
+          3.0817291736602783
+        ]
+      }
+    ]
+  },
+  "sources": 378
+}

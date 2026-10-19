@@ -1,0 +1,11 @@
+v_piece_rapid_rep_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ 'C0|0|0', false ] ] to deeply equal [ [ 'C0|0|0', true ] ] 11s
+v_piece_rapid_rep_only_sweep RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: touched on the rapid: expected +0 to be 64 // Object.is equality 11s
+v_piece_rapid_facts_off RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected undefined to be true // Object.is equality | AssertionError: expected [ false, false, false ] to deeply equal [ true, false, true ] 26s
+v_piece_rapid_describer_off RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: seed 1 case 0: expected { targets: [ …(47) ], …(4) } to deeply equal { targets: [ …(47) ], …(4) } 23s
+v_rapid_index_unbuilt RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected undefined to be true // Object.is equality | AssertionError: expected [ false, false, false ] to deeply equal [ true, false, true ] 24s
+v_piece_rapid_reaches_on RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ true, true ] to deeply equal [ false, true ] 11s
+v_piece_rapid_reaches_back RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ true, true ] to deeply equal [ true, false ] 10s
+v_rapidmove_inherits RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ true, true, true ] to deeply equal [ true, false, true ] 25s
+v_block_term_three RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the block indexes within derivationBound's term: expected 147520 to be less than or equal to 110640 13s
+v_reentry_inherits RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 64, 68, 68, 64, 4 ] to deeply equal [ 64, 4, 68, 64, 4 ] 30s
+v_rapid_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 72, 1, 3, 4, 2 ] to deeply equal [ 72, 1, 3, 68, 2 ] | AssertionError: expected [ 64, 4, 4, +0, 4 ] to deeply equal [ 64, 4, 68, 64, 4 ] 32s
