@@ -2300,6 +2300,10 @@ async function buildFromInit(init: ViewerInit) {
         },
         // The bodies the clash tint lights now (round B3: from the contact view).
         getClashTint: () => [..._clashOnIds].sort(),
+        // The pose the simulation shows (null = live): joints, the sample's
+        // tool offset and tool, its place and raw line — what the tint read.
+        getScrubPose: () => (_scrubJoints ? { joints: [..._scrubJoints], tlo: _scrubTlo ? [..._scrubTlo] : null, tool: _scrubTool,
+                                              cum: _scrubCum, line: _scrubLineNo } : null),
         // A request's contact rows by name (round B3): the shown result's, or
         // the request in flight's.
         getContactRows: (which: "result" | "main" = "result") => {
