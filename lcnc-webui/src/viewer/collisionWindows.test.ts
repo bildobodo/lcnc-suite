@@ -252,6 +252,59 @@ describe("near stays in closed form, through the product (plan 5, B8)", () => {
     expect(whole.episodes.rows, "the stay").toBeGreaterThan(0);
   });
 
+  // A jump or a tool-offset change ends a near stretch (Codex R175
+  // VP-I129): the search back started from the distance AFTER it and spent it
+  // against the speed bounds before it — no motion bounds a jump, and a large
+  // new distance certified the old near tail as free. Codex's probe: a pair
+  // 1.9 apart along 0.5 lines to X1 / X2.5 (the margin ends at X ≈ 2.62),
+  // then a jump to X100 (or the tool offset lifting the body 50 away); the
+  // last line before the boundary lies wholly inside the margin.
+  it("a jump or a tool-offset change never certifies the old near tail; a stationary relabel keeps its stay (Codex R175 VP-I129)", () => {
+    const xyz: CollisionMachine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }],
+      kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 }],
+      workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z"] };
+    const model = () => buildCollisionModel(xyz, [{ id: "fixed", group: "fixed", positions: boxPositions(2, 20, 20) },
+      { id: "moving", group: "moving", positions: boxPositions(2, 20, 20, 0, 21.9), tool: true }]);
+    const build = (xs: number[], jumpAt: number | null): CollisionTrack => {
+      const n = xs.length, pos = new Float32Array(n * 3), cum = new Float32Array(n), brk = new Uint8Array(n);
+      for (let i = 0; i < n; i++) { pos[i * 3] = xs[i]!; if (i) cum[i] = cum[i - 1]! + (i === jumpAt ? 0 : Math.abs(xs[i]! - xs[i - 1]!)); }
+      if (jumpAt !== null) brk[jumpAt] = 1;
+      return { count: n, pos, abc: new Float32Array(n * 3), cum, brk, lines: Uint32Array.from({ length: n }, (_, i) => 10 + i), rapid: new Uint8Array(n) };
+    };
+    const ends = (st: ContactStore, end: number) => Array.from({ length: st.episodes.rows }, (_, k) => { const w = st.episodes.get(k, "end"); return Number.isNaN(w) ? end : w; });
+    for (const endX of [1, 2.5]) {
+      const near: number[] = [-8];
+      for (let x = -2; x < endX - 1e-5; x += 0.5) near.push(x);
+      near.push(endX);
+      const last = near.length - 1;   // the vertex the last line before the boundary ends at
+      // a jump to X100, then X110
+      const jump = build([...near, 100, 110], near.length);
+      const sj = new ContactStore(1, 0);
+      expect(sweepCollisions(model(), jump, WCS0, { margin: 2, contacts: { store: sj } }).truncated).toBeNull();
+      expect(Math.max(...ends(sj, jump.cum[jump.count - 1]!)), `to X${endX}, then a jump: the stay reaches the last line before it`)
+        .toBeGreaterThanOrEqual(jump.cum[last]! - MIN_ADV - TOL);
+      // the tool offset lifts the body 50 away from the next segment on
+      const off = build([...near, endX + 5, endX + 15], null);
+      const tlo = new Uint32Array(off.count); tlo.fill(1, last + 1);
+      const so = new ContactStore(1, 0);
+      expect(sweepCollisions(model(), { ...off, tlo } as CollisionTrack, WCS0, { margin: 2, contacts: { store: so },
+        tloEvents: [{ seq: 0, xyz: [0, 0, 0], tool: 1 }, { seq: 1, xyz: [0, 0, 50], tool: 1 }] }).truncated).toBeNull();
+      expect(Math.max(...ends(so, off.cum[off.count - 1]!)), `to X${endX}, then the offset lifts the tool: the stay reaches the last line before it`)
+        .toBeGreaterThanOrEqual(off.cum[last]! - MIN_ADV - TOL);
+    }
+    // a stationary relabel (a break at an unmoved pose) inside the margin: one stay over it, reaching every line
+    const xs: number[] = [-8];
+    for (let x = -2; x <= 1 + 1e-9; x += 0.5) xs.push(x);
+    xs.push(1);                                   // the relabel: zero width, the same pose
+    for (let x = 1.5; x <= 2.5 + 1e-9; x += 0.5) xs.push(x);
+    xs.push(12);
+    const rel = build(xs, xs.indexOf(1) + 1);
+    const sr = new ContactStore(1, 0);
+    sweepCollisions(model(), rel, WCS0, { margin: 2, contacts: { store: sr } });
+    expect(sr.episodes.rows, "one stay over the relabel").toBe(1);
+    expect(ends(sr, rel.cum[rel.count - 1]!)[0], "it reaches X2.5").toBeGreaterThanOrEqual(rel.cum[xs.indexOf(2.5)]! - MIN_ADV - TOL);
+  });
+
   it("a long slow stretch after a fast one costs a handful of samples: each chunk's own bound, not the largest (Codex R174 VP-I127)", () => {
     // Codex's geometry: X fast to 3.5, then slowly to 5.5 while a rotary no body rides turns
     const spun: CollisionMachine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }, { id: "spinner", parent: "root" }],

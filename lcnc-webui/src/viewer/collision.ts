@@ -2297,6 +2297,45 @@ export function* sweepCollisionsIter(
   // segment. Relabels pay the same single re-query; there are a handful per
   // program, which is why this does not need the two flags separated on the
   // wire.
+  // The search back from `x0` (distance `d0` outside the margin, a lower
+  // bound) to a near stretch's LAST pose inside the margin (B8; Codex R174
+  // VP-I127): certified over the outside part by the stretch's speed-bound
+  // history, at least MIN_ADV a step, the first pose inside the margin noted
+  // — every run inside the margin after it is narrower than MIN_ADV. Every
+  // sample poses the model itself and passes the main loop's checkpoints;
+  // true when the sweep is to end (an abort, the budget).
+  function* searchBack(pi: number, x0: number, d0: number): Generator<number, boolean, boolean | undefined> {
+    const hb = pi * NEAR_HIST, hn = nearHN[pi]!, lo = nearQ[pi]!;
+    for (let x = x0, dx = d0; ;) {
+      // back to where the history's bounds use up the room dx − margin
+      x = Math.min(x - MIN_ADV, backTo(nearHS, nearHV, hb, hn, x, dx - opts.margin));
+      if (x <= lo + 1e-9) return false;
+      done++;
+      if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
+          && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
+        if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; return true; }
+        if ((yield frac(sweptTo)) === true) { aborted = true; return true; }
+        lastYield = clock();
+      }
+      dx = Math.min(distAtCum(x, pi, opts.margin * 2), opts.margin * 2);   // beyond the bound: at least 2 × margin
+      if (dx <= opts.margin) {
+        const seg = segAtDist(x);
+        noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
+        return false;
+      }
+    }
+  }
+  // A pair's distance at the END of segment `vi` — its own pose, tool and
+  // offset (the pose before a jump or a tool change at the next segment).
+  const distAtVertex = (vi: number, pi: number, maxT: number): number => {
+    const j = vi * 3;
+    poseAt(track.pos[j]!, track.pos[j + 1]!, track.pos[j + 2]!, track.abc[j]!, track.abc[j + 1]!, track.abc[j + 2]!,
+           vertModel?.[vi] ?? identityKins, termFor(vi), tloFor(vi), toolFor(vi));
+    const [ai, bi] = pairs[pi]!;
+    if (prof) prof.probes![pi] = prof.probes![pi]! + 1;
+    return pairDistance(bodies[ai]!, bodies[bi]!, maxT, opts.margin);
+  };
+  let lastReal = -1;   // the last segment with length: the pose before a jump is its end
   let pendingBreak = false;
   outer:
   for (let i = startSeg; i < n && !abortAtStart; i++) {
@@ -2336,11 +2375,26 @@ export function* sweepCollisionsIter(
     if (toolBoundary || breakBoundary) {
       for (let pi = 0; pi < pairs.length; pi++) {
         if (skipPair[pi]) continue;
+        if (!(breakBoundary || pairTool[pi])) continue;
+        // An open near stretch ends HERE, on the pose, tool and offset before
+        // the boundary: the search back may never start from a distance after
+        // a jump or a tool change — those are no motion the speed bounds
+        // bound, and a large new distance certified the old near tail as
+        // free (Codex R175 VP-I129). Inside the margin at the last pose
+        // before it, that pose is noted; else the search runs from there.
+        // A stationary relabel keeps its coverage: both poses are one.
+        if (!Number.isNaN(nearQ[pi]!) && !opts.lineSample && lastReal >= 0) {
+          const d0 = Math.min(distAtVertex(lastReal, pi, opts.margin * 2), opts.margin * 2);
+          if (d0 <= opts.margin) noteQuery(pi, c0, track.lines[lastReal]!, track.rapid[lastReal] === 1, d0, bandAt(lastReal, c0));
+          else if (yield* searchBack(pi, c0, d0)) break outer;
+        }
+        nearQ[pi] = NaN;
         // No continuous motion here: what was outside may be inside after it.
-        if (breakBoundary || pairTool[pi]) { clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0; }
+        clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0;
       }
     }
     prevTool = segTool; prevTlo = segTlo;
+    lastReal = i;
     // The tool's body unknown here: its pairs are not checked. Out of such a
     // stretch, a contact of the tool does not carry across it — a touch from
     // here on is a new onset, never the stretch's continuation.
@@ -2591,25 +2645,7 @@ export function* sweepCollisionsIter(
           if (fromNear && !fromTouch) {
             // back from this sample to the stretch's LAST pose inside the
             // margin: the stay covers everything before it by continuity
-            const hb = pi * NEAR_HIST, hn = nearHN[pi]!, lo = nearQ[pi]!;
-            for (let x = s, dx = Math.min(d, opts.margin * 2); ;) {
-              // back to where the history's bounds use up the room dx − margin
-              x = Math.min(x - MIN_ADV, backTo(nearHS, nearHV, hb, hn, x, dx - opts.margin));
-              if (x <= lo + 1e-9) break;
-              done++;
-              if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
-                  && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
-                if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
-                if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
-                lastYield = clock();
-              }
-              dx = Math.min(distAtCum(x, pi, opts.margin * 2), opts.margin * 2);   // beyond the bound: at least 2 × margin
-              if (dx <= opts.margin) {
-                const seg = segAtDist(x);
-                noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
-                break;
-              }
-            }
+            if (yield* searchBack(pi, s, Math.min(d, opts.margin * 2))) break outer;
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
           if (fromTouch) {

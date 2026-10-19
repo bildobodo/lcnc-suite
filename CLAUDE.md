@@ -1656,7 +1656,11 @@ neighbours whose larger bound adds least; `nearHistory.test.ts` holds it to
 bound every chunk from above, to merge where least is added and to step back
 exactly its room), so from a pose at d outside the margin the pair
 stays outside back to where those bounds use up d − margin, at least MIN_ADV
-back; the first sample inside the margin is noted. Both re-samplings pass the
+back; the first sample inside the margin is noted. A jump or a tool / offset
+change ENDS an open near stretch on the pose, tool and offset before it (noted
+there when still inside the margin, else searched back from there): the
+search never starts from a distance after such a boundary — no motion bounds
+it (Codex R175 VP-I129); a stationary relabel keeps its stay. Both re-samplings pass the
 main loop's checkpoints — yield, budget, abort — with the progress the last
 whole sample's (Codex R174 VP-I127: one largest bound walked a long slow
 stretch at a fast chunk's pace, 66 656 samples in one iterator call; a
