@@ -1,0 +1,1766 @@
+[
+  {
+    "kind": "jump",
+    "endX": 1,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 9,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "jump",
+    "endX": 2.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "jump",
+    "endX": 3,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "jump",
+    "endX": 3.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.57925631261796,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "offset",
+    "endX": 1,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 9,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "offset",
+    "endX": 2.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "offset",
+    "endX": 3,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "offset",
+    "endX": 3.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.57925631261796,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "geometry",
+    "endX": 1,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 9,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "geometry",
+    "endX": 2.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "geometry",
+    "endX": 3,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "geometry",
+    "endX": 3.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.57925631261796,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "unknown",
+    "endX": 1,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 9,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "unknown",
+    "endX": 2.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "unknown",
+    "endX": 3,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "unknown",
+    "endX": 3.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.57925631261796,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "double-jump",
+    "endX": 1,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 9,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "double-jump",
+    "endX": 2.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "double-jump",
+    "endX": 3,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.5,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "double-jump",
+    "endX": 3.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 5.59739748943181,
+        "end": 10.57925631261796,
+        "closeAt": 7.75,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 11,
+        "lo": -2.62449979983984,
+        "hi": -2,
+        "marked": true
+      },
+      {
+        "line": 12,
+        "lo": -2,
+        "hi": -1.5,
+        "marked": true
+      },
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "range",
+    "endX": 1,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 3,
+        "onset": 6.5,
+        "end": 9,
+        "closeAt": 6.5,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "range",
+    "endX": 2.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 3,
+        "onset": 6.5,
+        "end": 10.5,
+        "closeAt": 6.5,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "range",
+    "endX": 3,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 3,
+        "onset": 6.5,
+        "end": 10.5,
+        "closeAt": 6.5,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  },
+  {
+    "kind": "range",
+    "endX": 3.5,
+    "truncated": null,
+    "eps": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 3,
+        "onset": 6.5,
+        "end": 10.57925631261796,
+        "closeAt": 6.5,
+        "closeDist": 1.899999976158142,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "checked": [
+      {
+        "line": 13,
+        "lo": -1.5,
+        "hi": -1,
+        "marked": true
+      },
+      {
+        "line": 14,
+        "lo": -1,
+        "hi": -0.5,
+        "marked": true
+      },
+      {
+        "line": 15,
+        "lo": -0.5,
+        "hi": 0,
+        "marked": true
+      },
+      {
+        "line": 16,
+        "lo": 0,
+        "hi": 0.5,
+        "marked": true
+      },
+      {
+        "line": 17,
+        "lo": 0.5,
+        "hi": 1,
+        "marked": true
+      },
+      {
+        "line": 18,
+        "lo": 1,
+        "hi": 1.5,
+        "marked": true
+      },
+      {
+        "line": 19,
+        "lo": 1.5,
+        "hi": 2,
+        "marked": true
+      },
+      {
+        "line": 20,
+        "lo": 2,
+        "hi": 2.5,
+        "marked": true
+      }
+    ]
+  }
+]

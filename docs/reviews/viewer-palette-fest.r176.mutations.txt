@@ -1,0 +1,6 @@
+v129_no_close RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: to X1, then a jump: the stay reaches the last line before it: expected 7.75 to be greater than or equal to 8.748799 8s
+v129_breaks_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: to X1, then the offset lifts the tool: the stay reaches the last line before it: expected 7.75 to be greater than or equal to 8.748799 9s
+v129_post_pose NOCOMPILE ["src/viewer/collision.ts(2330,9): error TS6133: 'distAtVertex' is declared but its value is never read."] 8s
+c_search_no_checkpoint_r176 RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: samples between two yields: expected 1539 to be less than or equal to 512 | AssertionError: stopped within a checkpoint's samples of the budget: expected 1539 to be less than or equ 13s
+c_search_unposed_r176 RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: case 5 (g 1.161, half-width 4.754): L56 [15.3046, 15.7898] is inside the margin over [15.3046, 15.6751] — no stay reaches it: [[6.1761908531188965,14.695082664489746],[27.737424850463867,36.8166656494 22s
+v129_post_pose RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/collisionWindows.test.ts > near stays in closed form, through the product (plan 5, B8) > a jump or a tool-offset change never

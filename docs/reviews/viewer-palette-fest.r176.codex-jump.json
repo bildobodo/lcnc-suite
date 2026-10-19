@@ -1,0 +1,82 @@
+[
+  {
+    "endX": 1,
+    "lineSample": true,
+    "ends": [
+      8.5
+    ],
+    "reached": 8.5,
+    "expectedEnd": 9,
+    "missedTail": 0.5,
+    "lastLine": [
+      8.5,
+      9
+    ],
+    "mark": {
+      "line": 17,
+      "continuation": 11
+    },
+    "line": 17,
+    "truncated": null
+  },
+  {
+    "endX": 1,
+    "lineSample": false,
+    "ends": [
+      9
+    ],
+    "reached": 9,
+    "expectedEnd": 9,
+    "missedTail": 0,
+    "lastLine": [
+      8.5,
+      9
+    ],
+    "mark": {
+      "line": 17,
+      "continuation": 11
+    },
+    "line": 17,
+    "truncated": null
+  },
+  {
+    "endX": 2.5,
+    "lineSample": true,
+    "ends": [
+      10
+    ],
+    "reached": 10,
+    "expectedEnd": 10.5,
+    "missedTail": 0.5,
+    "lastLine": [
+      10,
+      10.5
+    ],
+    "mark": {
+      "line": 20,
+      "continuation": 11
+    },
+    "line": 20,
+    "truncated": null
+  },
+  {
+    "endX": 2.5,
+    "lineSample": false,
+    "ends": [
+      10.5
+    ],
+    "reached": 10.5,
+    "expectedEnd": 10.5,
+    "missedTail": 0,
+    "lastLine": [
+      10,
+      10.5
+    ],
+    "mark": {
+      "line": 20,
+      "continuation": 11
+    },
+    "line": 20,
+    "truncated": null
+  }
+]

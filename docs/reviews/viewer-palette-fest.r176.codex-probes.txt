@@ -1,0 +1,75 @@
+head 7726afe8 VP-I129: a jump or a tool-offset change ends a near stretch on the pose before it (Codex R175)
+
+ RUN  v4.1.8 /home/cnc/lcnc-suite-mut/lcnc-webui
+
+stderr | src/viewer/zz_codex_r171_notes.test.ts
+[messages] localStorage parse failed ReferenceError: localStorage is not defined
+    at loadStoredMessages (/home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/statusStore.ts:222:17)
+    at /home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/statusStore.ts:239:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+    at /home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/bulkData.ts:15:1
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+
+stderr | src/viewer/zz_codex_r173_origins.test.ts
+[messages] localStorage parse failed ReferenceError: localStorage is not defined
+    at loadStoredMessages (/home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/statusStore.ts:222:17)
+    at /home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/statusStore.ts:239:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+    at /home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/bulkData.ts:15:1
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+
+stdout | src/viewer/zz_codex_r174_near.test.ts > reports how much work can run without a checkpoint when a fast near stretch becomes slow
+[{"turns":360,"lineSample":true,"ms":55.27737400000001,"maxSliceMs":43.17450100000002,"maxProbesBetweenYields":0,"yields":4,"probes":0,"truncated":null,"episodes":1},{"turns":360,"lineSample":false,"ms":14.89076799999998,"maxSliceMs":11.768079999999998,"maxProbesBetweenYields":5,"yields":3,"probes":5,"truncated":null,"episodes":1},{"turns":3600,"lineSample":true,"ms":12.478876000000014,"maxSliceMs":2.9437280000000214,"maxProbesBetweenYields":0,"yields":6,"probes":0,"truncated":null,"episodes":1},{"turns":3600,"lineSample":false,"ms":10.022109999999941,"maxSliceMs":3.3874809999999798,"maxProbesBetweenYields":6,"yields":5,"probes":6,"truncated":null,"episodes":1},{"turns":36000,"lineSample":true,"ms":21.841189999999983,"maxSliceMs":5.982665999999995,"maxProbesBetweenYields":0,"yields":13,"probes":0,"truncated":null,"episodes":1},{"turns":36000,"lineSample":false,"ms":9.528397999999925,"maxSliceMs":2.639725999999996,"maxProbesBetweenYields":7,"yields":9,"probes":7,"truncated":null,"episodes":1}]
+
+ ✓ src/viewer/zz_codex_r174_near.test.ts (2 tests) 142ms
+ ✓ src/viewer/zz_codex_r171_notes.test.ts (2 tests) 312ms
+ ✓ src/viewer/zz_codex_r170_undecidable.test.ts (3 tests) 112ms
+ ✓ src/viewer/zz_codex_r173_origins.test.ts (2 tests) 439ms
+ ✓ src/viewer/zz_codex_r169_index.test.ts (2 tests) 685ms
+   ✓ R169: the last rapid in a joined piece is found without reading its interval chain  621ms
+ ✓ src/viewer/zz_codex_r168_sweep.test.ts (1 test) 136ms
+ ✓ src/viewer/zz_codex_r175_jump.test.ts (1 test) 79ms
+ ✓ src/viewer/zz_codex_r170_delta.test.ts (1 test) 164ms
+ ✓ src/viewer/zz_codex_r168_rapid.test.ts (1 test) 8ms
+stderr | src/viewer/zz_codex_r172_side.test.ts
+[messages] localStorage parse failed ReferenceError: localStorage is not defined
+    at loadStoredMessages (/home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/statusStore.ts:222:17)
+    at /home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/statusStore.ts:239:17
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+    at /home/cnc/lcnc-suite-mut/lcnc-webui/src/ws/bulkData.ts:15:1
+    at VitestModuleEvaluator._runInlinedModule (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vitest/dist/module-evaluator.js:206:4)
+    at VitestModuleRunner.directRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1146:59)
+    at VitestModuleRunner.cachedRequest (file:///home/cnc/lcnc-suite-mut/lcnc-webui/node_modules/vite/dist/node/module-runner.js:1053:73)
+
+ ✓ src/viewer/zz_codex_r172_side.test.ts (2 tests) 9ms
+ ✓ src/viewer/zz_codex_r175_park.test.ts (1 test) 6661ms
+   ✓ Codex R175: a parked reverse search survives real interleaved sweeps and snapshots  6660ms
+ ✓ src/viewer/zz_codex_r175_cover.test.ts (16 tests) 125118ms
+     ✓ XYZAC identity: tables and views  46473ms
+     ✓ XYZAC TCP: tables and views  34487ms
+     ✓ TWP gantry TCP: tables and views  36131ms
+     ✓ 3 axis: tables and views  5109ms
+     ✓ generated machine 20261014: tables and views  328ms
+     ✓ generated machine 20261049, the oracle's track: tables and views  301ms
+     ✓ generated machine 20261053, the oracle's track: tables and views  330ms
+     ✓ an exemption excuses only its own stretch: damage elsewhere in the same pair is red (Codex R174 VP-I128)  690ms
+   ✓ Codex R175: the actual R174 exemption pairs cannot hide the lost rapid flags  473ms
+
+ Test Files  12 passed (12)
+      Tests  34 passed (34)
+   Start at  14:46:38
+   Duration  125.56s (transform 1.13s, setup 0ms, import 2.62s, tests 133.87s, environment 1ms)
+
