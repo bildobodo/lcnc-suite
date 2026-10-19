@@ -61,6 +61,7 @@ import { assignPairs } from "./pairAssign";
 import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./insideCheck";
 import { displayLineForPoint } from "./scrubTrack";
 import { probeStopTitle, type ProbeStop } from "./probeStop";
+import { NEAR_HIST, backTo, pushBound } from "./nearHistory";
 import {
   ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_RAPID,
   IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, ORIGIN_PROGRAM, f32Inward,
@@ -1618,37 +1619,14 @@ export function* sweepCollisionsIter(
   // Where a pair's last query found it inside the margin WITHOUT a touch
   // (NaN: the last query touched or lay outside the margin) — the start of
   // the stretch searched when it is next found outside the margin (B8) — and
-  // the chunks' speed bounds since, as a short history:
-  // entry j holds from nearHS[j] on, its distance changing no faster than
-  // nearHV[j]. At most NEAR_HIST entries a pair; a full history merges the
-  // two neighbours whose larger bound adds the least, at that bound (Codex R174
-  // VP-I127: one largest bound since the sample searched a long slow stretch
-  // at a fast chunk's pace — tens of thousands of samples).
-  const NEAR_HIST = 16;
+  // the chunks' speed bounds since, as a short history (nearHistory.ts: at
+  // most NEAR_HIST entries a pair, in two flat arrays).
   const nearQ = new Float64Array(pairs.length).fill(NaN);
   const nearHS = new Float64Array(pairs.length * NEAR_HIST);
   const nearHV = new Float64Array(pairs.length * NEAR_HIST);
   const nearHN = new Uint8Array(pairs.length);
   const nearPush = (pi: number, at: number, v: number) => {
-    const b = pi * NEAR_HIST;
-    let n = nearHN[pi]!;
-    if (n > 0 && nearHV[b + n - 1] === v) return;
-    if (n === NEAR_HIST) {
-      // the neighbours whose merge adds the least to the bound's integral —
-      // never a fast chunk spread over a long slow stretch
-      let j = 0, least = Infinity;
-      for (let k = 0; k + 1 < n; k++) {
-        const v0 = nearHV[b + k]!, v1 = nearHV[b + k + 1]!, vm = Math.max(v0, v1);
-        const l0 = nearHS[b + k + 1]! - nearHS[b + k]!, l1 = (k + 2 < n ? nearHS[b + k + 2]! : at) - nearHS[b + k + 1]!;
-        const added = (vm - v0) * l0 + (vm - v1) * l1;
-        if (added < least) { least = added; j = k; }
-      }
-      nearHV[b + j] = Math.max(nearHV[b + j]!, nearHV[b + j + 1]!);
-      nearHS.copyWithin(b + j + 1, b + j + 2, b + n);
-      nearHV.copyWithin(b + j + 1, b + j + 2, b + n);
-      n--;
-    }
-    nearHS[b + n] = at; nearHV[b + n] = v; nearHN[pi] = n + 1;
+    nearHN[pi] = pushBound(nearHS, nearHV, pi * NEAR_HIST, nearHN[pi]!, at, v);
   };
   // The inside check (collision-inside.plan.md, pairInside): a query that
   // finds the surfaces apart proves the pair apart only where it is known not
@@ -2613,17 +2591,10 @@ export function* sweepCollisionsIter(
           if (fromNear && !fromTouch) {
             // back from this sample to the stretch's LAST pose inside the
             // margin: the stay covers everything before it by continuity
-            const hb = pi * NEAR_HIST, lo = nearQ[pi]!;
-            for (let x = s, dx = Math.min(d, opts.margin * 2), e = nearHN[pi]! - 1; ;) {
+            const hb = pi * NEAR_HIST, hn = nearHN[pi]!, lo = nearQ[pi]!;
+            for (let x = s, dx = Math.min(d, opts.margin * 2); ;) {
               // back to where the history's bounds use up the room dx − margin
-              let room = dx - opts.margin, y = x;
-              while (e > 0 && nearHS[hb + e]! > x) e--;
-              for (let k = e; ; k--) {
-                const v = Math.max(nearHV[hb + k]!, 1e-9), start = k > 0 ? nearHS[hb + k]! : -Infinity;
-                if (y - room / v >= start) { y -= room / v; break; }
-                room -= v * (y - start); y = start;
-              }
-              x = Math.min(x - MIN_ADV, y);
+              x = Math.min(x - MIN_ADV, backTo(nearHS, nearHV, hb, hn, x, dx - opts.margin));
               if (x <= lo + 1e-9) break;
               done++;
               if ((done & (SAMPLES_PER_CLOCK - 1)) === 0

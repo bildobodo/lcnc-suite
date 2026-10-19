@@ -1651,8 +1651,10 @@ margin, beyond it short of a separation, no inside check — and only for its
 LAST pose inside the margin (the stay covers the rest by continuity): a search
 BACK from the sample outside, certified — the distance changes no faster than
 the chunks' speed bounds since the near sample, a history of at most 16
-entries a pair (`nearHS`/`nearHV`; a full one merges the neighbours whose
-larger bound adds least), so from a pose at d outside the margin the pair
+entries a pair (`viewer/nearHistory.ts`, pure: a full one merges the
+neighbours whose larger bound adds least; `nearHistory.test.ts` holds it to
+bound every chunk from above, to merge where least is added and to step back
+exactly its room), so from a pose at d outside the margin the pair
 stays outside back to where those bounds use up d − margin, at least MIN_ADV
 back; the first sample inside the margin is noted. Both re-samplings pass the
 main loop's checkpoints — yield, budget, abort — with the progress the last
