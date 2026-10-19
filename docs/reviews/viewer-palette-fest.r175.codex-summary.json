@@ -1,0 +1,294 @@
+{
+  "unit": {
+    "numTotalTests": 185,
+    "numPassedTests": 185,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "success": true
+  },
+  "r174-rerun": {
+    "numTotalTests": 2,
+    "numPassedTests": 2,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "success": true
+  },
+  "cover-own": {
+    "numTotalTests": 16,
+    "numPassedTests": 1,
+    "numFailedTests": 0,
+    "numPendingTests": 15,
+    "success": true
+  },
+  "park-tests": {
+    "numTotalTests": 1,
+    "numPassedTests": 1,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "success": true
+  },
+  "oracle": {
+    "numTotalTests": 56,
+    "numPassedTests": 4,
+    "numFailedTests": 0,
+    "numPendingTests": 52,
+    "success": true
+  },
+  "jump-tests": {
+    "numTotalTests": 1,
+    "numPassedTests": 0,
+    "numFailedTests": 1,
+    "numPendingTests": 0,
+    "success": false
+  },
+  "jump-parent-tests": {
+    "numTotalTests": 1,
+    "numPassedTests": 1,
+    "numFailedTests": 0,
+    "numPendingTests": 0,
+    "success": true
+  },
+  "comparison": {
+    "compared": 514,
+    "stayLines": 11615,
+    "findings": 212,
+    "rapidFindings": 195,
+    "marks": 2645,
+    "columns": 102839,
+    "narrow": 3,
+    "queries": {
+      "with": 41154,
+      "without": 33400
+    },
+    "probes": {
+      "with": 4334,
+      "without": 4931
+    }
+  },
+  "previousProbe": [
+    {
+      "turns": 360,
+      "lineSample": true,
+      "ms": 21.127954999999986,
+      "maxSliceMs": 16.118843000000027,
+      "maxProbesBetweenYields": 0,
+      "yields": 4,
+      "probes": 0,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 360,
+      "lineSample": false,
+      "ms": 5.088320999999951,
+      "maxSliceMs": 3.6775619999999662,
+      "maxProbesBetweenYields": 5,
+      "yields": 3,
+      "probes": 5,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 3600,
+      "lineSample": true,
+      "ms": 9.265719999999988,
+      "maxSliceMs": 2.976225999999997,
+      "maxProbesBetweenYields": 0,
+      "yields": 5,
+      "probes": 0,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 3600,
+      "lineSample": false,
+      "ms": 3.7956049999999664,
+      "maxSliceMs": 2.1774300000000153,
+      "maxProbesBetweenYields": 6,
+      "yields": 3,
+      "probes": 6,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 36000,
+      "lineSample": true,
+      "ms": 9.628305000000012,
+      "maxSliceMs": 2.529514000000006,
+      "maxProbesBetweenYields": 0,
+      "yields": 9,
+      "probes": 0,
+      "truncated": null,
+      "episodes": 1
+    },
+    {
+      "turns": 36000,
+      "lineSample": false,
+      "ms": 5.438906000000031,
+      "maxSliceMs": 1.9247609999999895,
+      "maxProbesBetweenYields": 7,
+      "yields": 8,
+      "probes": 7,
+      "truncated": null,
+      "episodes": 1
+    }
+  ],
+  "currentJump": [
+    {
+      "endX": 1,
+      "lineSample": true,
+      "ends": [
+        8.5
+      ],
+      "reached": 8.5,
+      "expectedEnd": 9,
+      "missedTail": 0.5,
+      "lastLine": [
+        8.5,
+        9
+      ],
+      "mark": {
+        "line": 17,
+        "continuation": 11
+      },
+      "line": 17,
+      "truncated": null
+    },
+    {
+      "endX": 1,
+      "lineSample": false,
+      "ends": [
+        7.75
+      ],
+      "reached": 7.75,
+      "expectedEnd": 9,
+      "missedTail": 1.25,
+      "lastLine": [
+        8.5,
+        9
+      ],
+      "mark": null,
+      "line": 17,
+      "truncated": null
+    },
+    {
+      "endX": 2.5,
+      "lineSample": true,
+      "ends": [
+        10
+      ],
+      "reached": 10,
+      "expectedEnd": 10.5,
+      "missedTail": 0.5,
+      "lastLine": [
+        10,
+        10.5
+      ],
+      "mark": {
+        "line": 20,
+        "continuation": 11
+      },
+      "line": 20,
+      "truncated": null
+    },
+    {
+      "endX": 2.5,
+      "lineSample": false,
+      "ends": [
+        9.75
+      ],
+      "reached": 9.75,
+      "expectedEnd": 10.5,
+      "missedTail": 0.75,
+      "lastLine": [
+        10,
+        10.5
+      ],
+      "mark": null,
+      "line": 20,
+      "truncated": null
+    }
+  ],
+  "parentJump": [
+    {
+      "endX": 1,
+      "lineSample": true,
+      "ends": [
+        8.5
+      ],
+      "reached": 8.5,
+      "expectedEnd": 9,
+      "missedTail": 0.5,
+      "lastLine": [
+        8.5,
+        9
+      ],
+      "mark": {
+        "line": 17,
+        "continuation": 11
+      },
+      "line": 17,
+      "truncated": null
+    },
+    {
+      "endX": 1,
+      "lineSample": false,
+      "ends": [
+        8.75
+      ],
+      "reached": 8.75,
+      "expectedEnd": 9,
+      "missedTail": 0.25,
+      "lastLine": [
+        8.5,
+        9
+      ],
+      "mark": {
+        "line": 17,
+        "continuation": 11
+      },
+      "line": 17,
+      "truncated": null
+    },
+    {
+      "endX": 2.5,
+      "lineSample": true,
+      "ends": [
+        10
+      ],
+      "reached": 10,
+      "expectedEnd": 10.5,
+      "missedTail": 0.5,
+      "lastLine": [
+        10,
+        10.5
+      ],
+      "mark": {
+        "line": 20,
+        "continuation": 11
+      },
+      "line": 20,
+      "truncated": null
+    },
+    {
+      "endX": 2.5,
+      "lineSample": false,
+      "ends": [
+        10.25
+      ],
+      "reached": 10.25,
+      "expectedEnd": 10.5,
+      "missedTail": 0.25,
+      "lastLine": [
+        10,
+        10.5
+      ],
+      "mark": {
+        "line": 20,
+        "continuation": 11
+      },
+      "line": 20,
+      "truncated": null
+    }
+  ]
+}

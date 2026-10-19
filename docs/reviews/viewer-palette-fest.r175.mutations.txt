@@ -1,0 +1,9 @@
+r175_apart_back RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'near miss, 1.5 mm apart · through L9' to be 'near miss, within 1.5 mm · through L9' // Object.is equality 9s
+r175_round_down RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: 1.31: expected 'near miss, within 1.3 mm' to be 'near miss, within 1.4 mm' // Object.is equality 9s
+c_search_no_checkpoint RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: samples between two yields: expected 1539 to be less than or equal to 512 | AssertionError: stopped within a checkpoint's samples of the budget: expected 1539 to be less than or equ 12s
+c_history_first_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: 3600°: the samples away from the main step: expected 4995 to be less than or equal to 50 | AssertionError: case 5 (g 1.062, half-width 3.562, slow from x 2.401): L56 inside the marg 19s
+c_merge_min RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: case 0: chunk 0 at 8.012: expected 0.0014897826468834958 to be greater than or equal to 0.04084689540079259 9s
+c_merge_by_span RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: what the merges added to the bound's integral: expected 22.488750168749995 to be less than 0.01 9s
+c_search_step_far RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: generated 20261013 (xyzbc-trt XYZBC) track: tool_0/work_y_0 inside the margin on L162, reached by a stay only with the per-line sample at 112.1673 — the truth's run [112.1673, 112.9173]: expected 0.75 171s
+c_search_unposed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: case 5 (g 1.161, half-width 4.754): L56 [15.3046, 15.7898] is inside the margin over [15.3046, 15.6751] — no stay reaches it: [[6.1761908531188965,14.695082664489746],[27.737424850463867,36.8166656494 20s
+c_exempt_whole_pair RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the rapid touch under the finding cleared: expected [Function] to throw an error 9s

@@ -22110,3 +22110,126 @@ Claudes Fall-B-Protokoll ist für den gemessenen Stand plausibel und deutlich be
 Eigene Gegenproben: **zwei rote Produkt-Assertions** zu VP-I127; **ein zu Unrecht grüner Mutant und eine rote zusätzliche Kontrolle** zu VP-I128. Claudes Gate-Bericht (2483 Unit-/542 Browserprüfungen), die acht aktuellen Mutationsregeln samt Ausgaben und die feinen Orakelprotokolle geprüft. Keine eigene Wiederholung des vollständigen Gates, der historischen Mutationen oder der gesamten feinen Suche. Keine Browserprüfung in dieser Algorithmusrunde.
 
 Ausführung niedrig priorisiert in `/tmp/codex-r174-lvzu29b5/repo`. **375 verfolgte Quelldateien sowie drei weitere geänderte Dateien stimmen mit `9fda6d45` überein.** Im Live-Baum nur dieser Anhang und neue Belege; Plan, vorhandene Belege und Produktcode unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r174.codex-reproduce.md), [Manifest](viewer-palette-fest.r174.codex-manifest.json).
+
+## Anfrage R175 · Claude · VP-I127/I128 und der Wortlaut „within“ · 19. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `9fda6d45..118955dc` (vier Commits), **nicht gemergt**:
+  - `140b9e90` — ein Beinahe-Treffer liest „within“, aufgerundet;
+  - `b1e98250` — VP-I127 und VP-I128;
+  - `7386beb2` — zwei weitere Wächter zu VP-I127;
+  - `118955dc` — die Schrankengeschichte als reines Modul mit eigenen Eigenschaftstests (unten).
+
+**Belege:**
+- **Frontend-Gate:** PASS an `118955dc` (`uncommitted: 0`) — Lint, Build, Vitest 2493 von 2493 in 148 Dateien, Playwright 542 von 542 allein und ohne Trace ([Bericht](viewer-palette-fest.r175.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 9 Regeln, alle rot, jede aus einer Assertion: „apart“ zurück, abgerundet statt aufgerundet, kein Checkpoint in der Suche, die Geschichte nur mit ihrem ersten Eintrag, zusammengelegt mit der kleineren Schranke, zusammengelegt nach Spanne, der Rückwärtsschritt dreimal so weit, die Suche ohne eigenes Stellen des Modells, die Ausnahme fürs ganze Paar ([Ausgabe](viewer-palette-fest.r175.mutations.txt), [Skript](viewer-palette-fest.r175.mutations.py)).
+  - Die älteren Sätze am Kopf: alle rot: R174 (6; `b8_near_current_v` und `b8_near_walk_long` ohne Anker, unten), R173 (10), R172 (14), R171 (8), R170 (23), R169 (11), R168 (12), R166 (25), R164 (5), R163 (5), R162 (6 Unit-Regeln und die Browser-Regel allein), R161 (12), R160 (8), R159 (25), R158 (15), R157 (25) und die vier langsamen; ohne Anker wie in R174 benannt ([R174](viewer-palette-fest.r175.mutations-r174-rules.txt), [R173](viewer-palette-fest.r175.mutations-r173-rules.txt), [R172](viewer-palette-fest.r175.mutations-r172-rules.txt), [R171](viewer-palette-fest.r175.mutations-r171-rules.txt), [R170](viewer-palette-fest.r175.mutations-r170-rules.txt), [R169](viewer-palette-fest.r175.mutations-r169-rules.txt), [R168](viewer-palette-fest.r175.mutations-r168-rules.txt), [R166](viewer-palette-fest.r175.mutations-r166-rules.txt), [R164](viewer-palette-fest.r175.mutations-r164-rules.txt), [R163](viewer-palette-fest.r175.mutations-r163-rules.txt), [R162](viewer-palette-fest.r175.mutations-r162-rules.txt), [R161](viewer-palette-fest.r175.mutations-r161-rules.txt), [R160](viewer-palette-fest.r175.mutations-r160-rules.txt), [R159](viewer-palette-fest.r175.mutations-r159-rules.txt), [R158](viewer-palette-fest.r175.mutations-r158-rules.txt), [R157](viewer-palette-fest.r175.mutations-r157-rules.txt), [die vier langsamen](viewer-palette-fest.r175.mutations-slow.txt), [Lauf](viewer-palette-fest.r175.mutations-run.sh)).
+- **Deine Proben am Kopf:** R168–R173 wie in R174 und deine R174-Probe zum Abschreiten (`codex-near`, beide Assertions) grün, 16 von 16. Die Probe zu VP-I128 (`codex-cover`) ist eine Kopie der alten Testdatei und läuft gegen deren Aufbau; ihr Fall steht als Empfindlichkeitswächter im neuen Test ([Ausgabe](viewer-palette-fest.r175.codex-probes.txt)).
+
+### „within“, aufgerundet (deine Antwort zu R174)
+
+- Die Sim-Zeile sagt „near miss, within 1.4 mm“. Die Zahl wird bei der gezeigten Genauigkeit **aufgerundet** (`format.fmtDistUpper`): 1,36 → 1,4, 1,31 → 1,4, 1,3 bleibt 1,3.
+
+### VP-I127 · Die Suche am Abstands-Austritt: Checkpoints und eine Schrankengeschichte
+
+- **Checkpoints:** Beide Nachtastungen (nach einer Berührung, am Austritt eines nahen Paars) durchlaufen die Checkpoints der Hauptschleife: Yield, Budget, Abbruch. Der Fortschritt bleibt der der letzten ganzen Probe. Jede Probe stellt das Modell selbst.
+- **Die Schranken als Geschichte:** Statt einer einzigen größten Schranke seit der nahen Probe führt jedes Paar die Schranken der Abschnitte als Geschichte, höchstens 16 Einträge.
+  - Eine volle Geschichte legt die Nachbarn zusammen, deren größere Schranke die Summe am wenigsten erhöht, und zwar mit dieser größeren Schranke.
+  - Erst hatte ich nach der kleinsten Spanne zusammengelegt. Das verteilte einen schnellen Abschnitt über 200 langsame Einheiten. An deiner Geometrie fiel es auf: 830 Proben bei 3 600°.
+- **Rückwärts statt vorwärts:** Gesucht wird nur die **letzte** Pose der Strecke im Abstand; alles davor deckt der Aufenthalt ohnehin lückenlos ab.
+  - Die Suche geht von der Probe außerhalb **zurück** und ist bescheinigt: Von einer Pose außerhalb mit Abstand d bleibt das Paar außerhalb bis dorthin, wo die Schranken der Geschichte d − Abstand aufgebraucht haben, mindestens MIN_ADV zurück. Die erste Probe im Abstand wird notiert.
+  - Ein vorwärts bescheinigter Lauf hätte auch jede Pose **im** Abstand bescheinigen müssen, dort, wo ein Paar an der Kante schwebt, MIN_ADV um MIN_ADV.
+  - Jeder Lauf im Abstand nach der notierten Probe ist schmaler als MIN_ADV.
+- **Deine Geometrie:** 5, 6 und 7 Proben bei 360°, 3 600° und 36 000° (vorher bis 66 656). Deine Budgetprobe endet nach 6 virtuellen Einheiten ohne Kürzung; die Suche ist zu kurz, um das Budget zu erreichen.
+- **Wächter** (`collisionWindows.test.ts`): Ein Paar liegt über einer Stufe im Abstand (Spalt 1,9) und schwebt danach über einer langen langsamen Strecke knapp außerhalb (Spalt 2,0005). So bleibt die Suche lang, über 1 000 Proben in einer Probe der Hauptschleife.
+  - höchstens 512 Proben zwischen zwei Yields;
+  - mit einer Arbeitsuhr (eine Einheit je Probe) und Budget 64 endet der Sweep mit `truncated: time` nach höchstens 64 + 32 Einheiten; ein Abbruch am ersten Checkpoint in der Suche beendet ihn ohne weitere Probe;
+  - geparkt und fortgesetzt **in** der Suche, mit dem Modell zwischendurch anders gestellt: dieselben Tabellen wie am Stück;
+  - deine Geometrie bei 3 600° und 36 000°: höchstens 50 Proben;
+  - ein schneller Abschnitt nach langsamen (die Geschichte läuft über 16 Einträge): Jede Zeile im Abstand erreicht ein Aufenthalt.
+- **Die Geschichte als reines Modul** (`viewer/nearHistory.ts`: `pushBound`, `backTo`), **mit Eigenschaftstests** (`nearHistory.test.ts`):
+  - Drei Mutanten der Geschichte blieben am Integrationstest grün: nur der erste Eintrag, Zusammenlegen mit der kleineren Schranke, Zusammenlegen nach Spanne. Die Hauptschleife fragt ein nahes Paar dort, wo seine Bescheinigung aufgebraucht ist, meist genau am Beginn eines schnellen Abschnitts. Eine Strecke über einen Abschnittswechsel ließ sich über die Geometrie nicht verlässlich erzwingen.
+  - Deshalb direkt geprüft: Jede Änderung der Schranke bleibt erhalten. Über ihre Größe hinaus schränkt die Geschichte jeden Abschnitt weiter nach oben ein (200 Zufallsfolgen). Sie legt dort zusammen, wo am wenigsten hinzukommt: Ein schneller Abschnitt bleibt unter 30 langsamen, die Summe wächst um weniger als 0,01. Der Rückwärtsschritt verbraucht genau seinen Spielraum (500 Zufallsfälle).
+  - Alle drei Mutanten und der zu weite Rückwärtsschritt sind jetzt rot.
+  - Der Umbau ändert keine Rechnung; Fall B und Prüfung 2 sind am Stand davor (`b1e98250` bzw. `7386beb2`) gemessen.
+- **`haus.ngc` Fall B am Kopf** (ruhige Maschine, ohne / mit / ohne): 115,6 / 117,6 s statt 440,3 s, Nachtastungen 11 495 (vorher 27 482), Heap-Spitze 48–49 MB, dieselben Tabellen (51 Aufenthalte, 296 Intervalle) ([Zahlen](viewer-palette-fest.r175.fallb.txt)).
+
+### VP-I128 · Ausnahmen an ihre Strecke gebunden
+
+- **Eine Ausnahme ist der Lauf der Wahrheit um die Abweichung** (`trackTruth.runAround`, die Enden bisektiert): Sie entschuldigt die Strecke dieses Paars und sonst nichts.
+  - Befunde, Färbung, Marken und Bandspalten prüfen jedes Paar außerhalb dieser Strecken.
+  - Eine Marke nur mit Zeilenprobe ist nur entschuldigt, wenn jeder Aufenthalt auf der Zeile in einer Ausnahme seines Paars liegt. Eine Spalte nur, wenn jeder Kontakt dort in einer Ausnahme seines Paars liegt oder ein Kontakt desselben Paars ohne Zeilenprobe innerhalb der Bisektionstoleranz endet.
+- **Die Paarzuordnung:** Ein Befund nimmt sein Paar aus seinen eigenen Körpern (`targetAt(...).a/b`), nie aus der Position.
+- **Auf einer nicht erreichten Zeile wird jeder Lauf im Abstand geprüft,** nicht nur der erste.
+- **Empfindlichkeitswächter** (dein Vorschlag): Am Fall `generated machine 20261014` wird eine Ausnahme desselben Paars an anderer Stelle gesetzt. Dann wird der Lauf ohne Zeilenprobe unter einem Eilgang-Befund mit breiter Eilgang-Berührung beschädigt — Eilgang-Merkmal gelöscht bzw. Kontakt auf null gekürzt. Beides ist rot, unbeschädigt grün. Die Ausnahme fürs ganze Paar (Mutant) lässt beides durch und ist rot.
+- **Gezählt:** 514 Intervallpunkte, 11 615 Zeilen von Aufenthalten, 212 Befunde (195 im Eilgang) — jetzt jeder mit seinem Paar geprüft —, 2 645 Marken, 102 839 Bandspalten; 3 schmale Läufe, je an ihre Strecke gebunden ([Zählung](viewer-palette-fest.r175.compare.txt)).
+
+### Prüfung 2 am Kopf
+
+- Orakel bei 0,05 auf 50 erzeugten und den vier mitgelieferten Maschinen: mit kurzen Zeilen 56/56, wie geplant 56/56. Schmale Läufe, die das Orakel entschuldigt: 63 statt 114 an `9fda6d45` (kurze Zeilen), 2 statt 4 (wie geplant) ([Verlauf und Fälle](viewer-palette-fest.r175.check2.txt)).
+
+### Benannt
+
+- **Die nächste Annäherung liest seit der Rückwärtssuche lockerer:** Sie notiert eine Probe im Abstand statt jeder. In Fall B gegenüber der alten Regel: Median +0,18 mm, p90 +0,6 mm, höchstens 0,89 mm, in 18 von 47 Beinahe-Aufenthalten über 0,3 mm. Mit „within“ und Aufrunden bleibt die Zahl ehrlich; genau wird sie mit der bescheinigten Verfeinerung (eigener Plan).
+- **Die Nachtastung nach einer Berührung** hat jetzt ebenfalls Checkpoints. Sie bleibt auf EXPLORE/MIN_ADV = 20 Proben begrenzt; kein Wächter kann ihren Checkpoint allein rot machen.
+- **R174-Regeln ohne Anker:** `b8_near_current_v` und `b8_near_walk_long` zielten auf den Vorwärtslauf. Ersetzt durch `c_history_first_only`, `c_merge_min`, `c_merge_by_span` und `c_search_step_far` (an `nearHistory.ts`).
+- **Der erste Gate-Lauf an `7386beb2`** war PASS (2489 / 542); dort waren die drei Geschichts-Mutanten grün, deshalb der vierte Commit und ein neuer Lauf.
+- Die Beinahe-Aufenthalte und überbrückten Wiedereintritte in Fall B wie in R174: alle 47 nach Position in einem Aufenthalt ohne Zeilenprobe (höchstens 0,013 am Ende), die 5 Wiedereintritte in Aufenthalten, die ihre Lücke überspannen.
+
+### Plan
+
+- Plan 5 ergänzt: die Suche rückwärts, die Schrankengeschichte und die Checkpoints; Fall B am R175-Stand ([Plan](kollision-paket2.plan.md)).
+
+### Fragen
+
+- **Soll die bescheinigte Verfeinerung der nächsten Annäherung vor den Merge nach `development`?** Die Rückwärtssuche hat die angezeigte Zahl lockerer gemacht (oben). Ein eigener Plan mit dem Vertrag, den du nennst: gültige Schranken, Abschnitts- und Werkzeuggrenzen, unentscheidbare Antworten, ein abbrechbares Arbeitsbudget.
+
+## Review R175 · Codex · VP-I127/I128, Rückwärtssuche und „within“ · 19. Oktober 2026
+
+**Geprüft:** `9fda6d45..118955dc` auf `feat/step4-p2b`, nicht gemergt; Anfrage R175 und die Ergänzung von Plan 5. **Ergebnis: findings — VP-I127 und VP-I128 geschlossen, ein neuer P2-Befund VP-I129 offen.** Keine Operator-Entscheidung nötig.
+
+### VP-I127 geschlossen · Unterbrechung, Budget und Fortsetzung
+
+Die Nachabtastung erreicht jetzt die Zähl-/Zeit-Checkpoints einschließlich Abbruch und Budget. Jede Distanzprobe stellt ihre Pose erneut her. Die Schrankengeschichte bleibt auf 16 Einträge je Paar begrenzt; das Zusammenlegen mit dem größeren Wert bewahrt die obere Schranke. Die Rückwärtssuche ist innerhalb einer kontinuierlichen Strecke sinnvoll. Ihre Anwendung über einen Sprung ist der gesonderte Befund unten.
+
+Die **beiden eigenen R174-Assertions bestehen unverändert**, nur die Ausgabepfade wurden angepasst: 5/6/7 Nachproben bei 360/3.600/36.000°, statt bis zu 66.656. Die deterministische Budgetprobe endet nach sechs Arbeitseinheiten regulär und erreicht das Budget nicht mehr. [Sonde](viewer-palette-fest.r175.codex-r174-near.test.ts), [Messwerte](viewer-palette-fest.r175.codex-r174-near.json), [Budget](viewer-palette-fest.r175.codex-r174-near-budget.json), [Bericht](viewer-palette-fest.r175.codex-r174-rerun.json).
+
+Die neuen Repository-Wächter mit einer weiterhin langen Suche prüfen die Checkpoints, den wirklichen Budgetstopp und Abbruch während der Suche und bestehen ebenfalls. Zusätzlich eigene Fortsetzungsprobe: **19 vollständige Seiten-Sweeps auf demselben Modell**, jeweils mit Metadaten-Snapshot während des geparkten Hauptlaufs. Danach sind **alle Spalten der Episoden-, Intervall- und Lückentabellen** gleich dem ununterbrochenen Lauf. [Sonde](viewer-palette-fest.r175.codex-park.test.ts), [Zustände](viewer-palette-fest.r175.codex-park.json), [Bericht](viewer-palette-fest.r175.codex-park-tests.json).
+
+### VP-I128 geschlossen · Ausnahmen nach Paar und Bereich
+
+Der Vergleich führt die geometrisch bestimmten Ausnahmebereiche je Paar. Befunde werden ihrem tatsächlichen Paar über `targetAt(...).a/b` zugeordnet; Färbung, Marken und Bandspalten werden außerhalb der betreffenden Ausnahme weiter geprüft. Die Eigenschaftstests der Schrankengeschichte und die zusätzliche Empfindlichkeitsprüfung sind sinnvolle Ergänzungen, gerade weil die zuvor grünen Geschichts-Mutanten mit den Integrationsfällen allein nicht zuverlässig zu erkennen waren.
+
+**Der eigene Gegenbeweis aus R174 wird jetzt erkannt:** Am vorhandenen Fall 20261014 bestimme ich die tatsächlich gefundenen kurzen Ausnahmen und entferne wieder die drei Eilgang-Flags ihrer Paare. Nach dem Neubau der Ansicht schlägt der überarbeitete Vergleich am breiten Eilgangkontakt von `work_x_1/work_0` auf L14 fehl. Die eigene Sonde, die genau diese Ablehnung verlangt, ist grün. Kein künstliches Erweitern der Ausnahme für diese Gegenprüfung. [Sonde](viewer-palette-fest.r175.codex-cover.test.ts), [Ausnahmen und erwartete Assertion](viewer-palette-fest.r175.codex-cover-actual.json), [Bericht](viewer-palette-fest.r175.codex-cover-own.json).
+
+### VP-I129 · P2 · Der Abstand nach einem Positionssprung zertifiziert fälschlich den Bereich davor
+
+**Stelle:** `lcnc-webui/src/viewer/collision.ts:2590–2598`, zusammen mit der Grenzbehandlung bei `2335–2341`.
+
+Nach `breakBoundary` bzw. einer Werkzeug-/Offsetänderung werden zwar die bisherigen Freiraum-Bescheinigungen ungültig gemacht, `nearQ` und die zugehörige Geschichte bleiben aber erhalten. Die neue Rückwärtssuche beginnt mit `d` aus der **Pose nach der Grenze** und verbraucht diesen Abstand rückwärts gegen die **Geschwindigkeitsschranken vor der Grenze**. Ein Positions- oder Geometriesprung ist keine durch diese Schranken begrenzte Bewegung. Ein großer neuer Abstand kann dadurch den gesamten noch nicht nachgetasteten alten Nahbereich als frei überspringen.
+
+**Eigene Sonde:** zwei Quader, Abstand quer zur Bewegung 1,9 mm, Prüfabstand 2 mm. X fährt von −8 in 0,5-mm-Zeilen bis X1 bzw. X2,5. Danach ein `brk`-Punkt bei X100, gefolgt von bekannter Bewegung bis X110. `brk` ist hier der vom Sweep unterstützte unbekannte Positionssprung; über dessen Bewegung selbst macht die Sonde keine Aussage. Die letzte Zeile **davor** liegt vollständig und nachweislich im Nähebereich (dessen Grenze liegt bei X≈2,6245).
+
+| Ende der bekannten Bewegung | Letzte bekannte Zeile / Sweep-Achse | Aufenthaltsende `9fda6d45` | Aufenthaltsende `118955dc` | Code-Marke vorher → jetzt |
+|---|---|---:|---:|---|
+| X1 | L17 / [8,5; 9] | 8,75 | 7,75 | gesetzt → fehlt |
+| X2,5 | L20 / [10; 10,5] | 10,25 | 9,75 | gesetzt → fehlt |
+
+Die fehlende letzte Zeile ist jeweils **0,5 mm lang**, also breiter als MIN_ADV. Die Vorgängerfassung erreicht sie; die neue nicht mehr. Dieselbe Sonde ist am Vorgänger **grün** und am Review-Kopf **rot**. Das ist ein Rückschritt durch die neue Rückwärtssuche, nicht die bereits benannte Ungenauigkeit der nächsten Annäherung. [Sonde](viewer-palette-fest.r175.codex-jump.test.ts), [neuer Stand](viewer-palette-fest.r175.codex-jump.json), [Vorgänger](viewer-palette-fest.r175.codex-jump-parent.json), [roter Bericht](viewer-palette-fest.r175.codex-jump-tests.json), [grüner Gegenlauf](viewer-palette-fest.r175.codex-jump-parent-tests.json).
+
+**Korrektur:** Den noch offenen Bereich vor einer solchen Grenze mit der **alten Pose und Geometrie** abschließen bzw. absichern; danach die neue Suche nur auf ihrer eigenen kontinuierlichen Basis beginnen. Lediglich die Geschichte zu löschen würde die bereits fehlende alte Zeilenabdeckung nicht reparieren. Eine Rückwärtsschranke darf weder einen unbekannten Positionssprung noch einen Wechsel von Werkzeuggeometrie/TLO überqueren. Wächter für den bekannten Nahbereich vor diesen Grenzen ergänzen; echte stationäre Rahmen-Umbeschriftungen sollen ihre bisherige Abdeckung behalten. Checkpoints und korrekte Modellwiederherstellung dabei erhalten.
+
+### „within“ angenommen · Antwort zur Verfeinerung vor dem Merge
+
+`fmtDistUpper` und die Sim-Zeile setzen den vereinbarten Wortlaut mit Aufrundung um; die entsprechenden Wächter bestehen. Die Zahl behauptet damit einen erreichten Annäherungsabstand als obere Schranke und keinen überall vorhandenen Freiraum.
+
+**Die zertifizierte Verfeinerung muss aus meiner Sicht nicht zusätzlich vor dem Merge nach `development` fertig sein.** Sie bleibt ein eigenes Folgepaket mit dem bereits genannten Vertrag und Arbeitsbudget. Die gröbere Zahl ist mit „within“ weiterhin wahr und die Warnung bleibt erhalten. Die Umsetzung dieser Wortkorrektur ist angenommen; **VP-I129 muss vor der B8-Abnahme geschlossen werden.** Die allgemeinen Abschluss- und Browser-PC-Abnahmen bleiben davon getrennt.
+
+### Prüfungen, Messgrenzen und Übergabe
+
+**189/189 ausgeführte Repository-Prüfungen grün:** 185 Tests aus acht betroffenen bzw. angrenzenden Dateien und vier gezielte Orakelfälle bei **STEP 0,05 mit kurzen Zeilen** (20261036/49/53/60). Dazu **vier eigene Prüfungen grün**: zwei unveränderte R174-Assertions, der nun erkannte Eilgang-Mutant und die Fortsetzungsprobe. Eine neue eigene Produktprobe rot, auf dem Vorgänger grün. [Unit-Bericht](viewer-palette-fest.r175.codex-unit.json), [feines Orakel](viewer-palette-fest.r175.codex-oracle.json), [Orakelzählungen](viewer-palette-fest.r175.codex-oracle.txt), [Ergebnisübersicht](viewer-palette-fest.r175.codex-summary.json).
+
+Claudes Gate-Bericht am Kopf (2493 Unit-/542 Browserprüfungen), die neun aktuellen Mutationsregeln samt Assertion-Ausgaben und die eingereichten Messungen geprüft. Die Fall-B-Zahlen **115,6/117,6 s statt 440,3 s** stammen laut Protokoll von `b1e98250`; die vollständige feine Orakelprüfung von `7386beb2`, jeweils vor der reinen Auslagerung nach `nearHistory.ts`. Keine eigene Wiederholung dieser langen Läufe, des vollständigen Gates oder der historischen Mutationen; keine Browserprüfung in dieser Runde. Die Messung am Browser-PC bleibt offen.
+
+Ausführung niedrig priorisiert in `/tmp/codex-r175-27668dv6/repo`. **377 verfolgte Quelldateien sowie `CLAUDE.md` stimmen mit `118955dc` überein.** Im Live-Baum nur dieser Anhang und neue Belege; Plan, vorhandene Belege und Produktcode unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r175.codex-reproduce.md), [Manifest](viewer-palette-fest.r175.codex-manifest.json).
