@@ -16,7 +16,7 @@ import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
-  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum, lineFirstMoveCum,
+  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum, programLineSpanCum, programLineFirstMoveCum,
   programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
@@ -721,8 +721,9 @@ const violationTargets = computed<FindingTarget[]>(() => {
     // landed in the next line's move. Found on the BASE track, read on the
     // displayed one (Codex R33 VP-I05): the entry move ends at the program's
     // first point and carries its line, so by line number the entry move
-    // was the first line's finding.
-    const move = lineFirstMoveCum(b, v.line, t);
+    // was the first line's finding. By the PROGRAM's line (programLines): a
+    // called file's colliding line number is no move of this record's.
+    const move = programLineFirstMoveCum(b, v.line, t, !viewerGcode.value?.lines_untrusted);
     if (move) out.push({ cum: move[0], cumEnd: move[1], key: `L${v.line}`, line: v.line });
   }
   return out.sort((a, b) => a.cum - b.cum);
@@ -1045,7 +1046,8 @@ const limitBands = computed(() => {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
     // a one-move line had no band; the program's line, never the entry move
-    const span = lineSpanCum(b, v.line, t);
+    // nor a called file's line of that number
+    const span = programLineSpanCum(b, v.line, t, !viewerGcode.value?.lines_untrusted);
     if (span && span[1] > span[0]) spans.push([(span[0] / max) * 100, (span[1] / max) * 100]);
   }
   return mergeSpans(spans);

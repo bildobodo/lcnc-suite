@@ -515,6 +515,28 @@ test("a new result keeps the list where it was scrolled; a new position brings i
   }), { message: "the next finding in the middle of the list" }).toBe(true);
 });
 
+// Operator 2026-10-19 (live, haus.ngc): limit rows L536, L540, L543, L587
+// stood first, at 00:05 — before L12. The program's limit records name ITS
+// lines; the M600 routine it calls at L12 moves under the routine's own line
+// numbers (536 among them), and the rows were placed by that raw number. A
+// called file (L2) moves with its lines 5 and 6, then the program's L3, L5, L6.
+test("a limit row stands at its program line's move, never at a called file's line of that number", async ({ page, context }) => {
+  const feed = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [20, 10, 0], [30, 10, 0], [40, 10, 0]];
+  const preview = Buffer.from(encode({ file: "/sim.ngc", preview_schema: 11, feed,
+    feed_lines: [1, 5, 6, 3, 5, 6], feed_seq: [1, 2, 3, 4, 5, 6], feed_outside: new Uint8Array(6),
+    feed_lineok: new Uint8Array([1, 0, 0, 1, 1, 1]), feed_sub: new Uint8Array([0xff, 0, 0, 0xff, 0xff, 0xff]), sub_names: ["touch"],
+    feed_cline: new Uint8Array(new Uint16Array([0, 2, 2, 0, 0, 0]).buffer),
+    feed_tcum: new Uint8Array(new Float32Array([0, 4, 8, 12, 16, 20]).buffer),
+    violations: [{ line: 3, axis: "X", value: 120, limit: 100, kind: "max" }, { line: 5, axis: "X", value: 130, limit: 100, kind: "max" }],
+    violations_total: 2 }));
+  await prepare(page, context, "desktop", preview, false);
+  await simShow(page, "limit");
+  await expect(rows(page)).toHaveCount(2);
+  const list = await rows(page).evaluateAll(trs => trs.map(t => `${t.querySelector(".rowPick")!.textContent!.trim()} ${t.querySelector(".colAt")!.textContent!.trim()}`));
+  // L3's move starts at 8 s, the program's L5's at 12 s (the called file's "5" at 0 s)
+  expect(list, "the limit rows in the program's order, each at its own move").toEqual(["L3 00:08", "L5 00:12"]);
+});
+
 // Keyboard jog ON with the navigation keys bound to jog (tabs.spec's map): a
 // key a row failed to keep would move the machine.
 const KEYBOARD = { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping: {
