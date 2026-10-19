@@ -1,0 +1,44 @@
+# haus.ngc Fall B (B8) 2026-10-18T18:50:37.835Z — head 9fda6d45 + 0 changed files, gc exposed, order off on off
+model: bodies 31, pairs 384; track points 203538, end cum 15960.3
+  [0 off] t 61 s progress 27.4 %
+  [0 off] t 121 s progress 52.4 %
+  [0 off] t 180 s progress 72.1 %
+[0] WITHOUT (B8): wall 196.4 s, query ms 72941, queries 823130, probes 27482, samples 852542, truncated null
+    heap: before 26 MB, peak 48 MB, after (gc) 29 MB; store rows: episodes 51 (with a touch 19, near misses 32), intervals 296, gaps 0
+    view: {"collisions":296,"entryCollisions":0,"nearMisses":32,"possible":0,"startsIn":true}; static 9; uncertified "1 move runs from a position the preview cannot know — not checked until the position is known again (L18)"
+    top query-ms pairs: rear_column/a_bearing_pedestals 19.5 s 52662 q 1 p; rear_column/c_faceplate 12.1 s 27216 q 5260 p; rear_column/a_bearing_rings 10.3 s 36663 q 4352 p; rear_column/y_saddle 9.4 s 52662 q 1 p; rear_column/a_drive_covers 5.6 s 14097 q 7865 p; rear_column/a_trunnion_shafts 5.5 s 4765 q 4062 p; rear_column/a_yoke_casting 4.4 s 52662 q 1 p; rear_column/c_bearing_lip 3.2 s 28727 q 5937 p; column_foot/y_guide_blocks 1.1 s 52583 q 1 p; column_foot/y_saddle 0.7 s 52662 q 1 p
+  [1 on] t 60 s progress 11.2 %
+  [1 on] t 120 s progress 25.3 %
+  [1 on] t 180 s progress 38.7 %
+  [1 on] t 240 s progress 50.4 %
+  [1 on] t 300 s progress 52.3 %
+  [1 on] t 360 s progress 58.5 %
+  [1 on] t 420 s progress 70.9 %
+[1] WITH the per-line sample (old rule): wall 466.4 s, query ms 433734, queries 2121894, probes 6649, samples 805458, truncated null
+    heap: before 29 MB, peak 50 MB, after (gc) 29 MB; store rows: episodes 71 (with a touch 24, near misses 47), intervals 338, gaps 0
+    view: {"collisions":338,"entryCollisions":0,"nearMisses":47,"possible":0,"startsIn":true}; static 9; uncertified "1 move runs from a position the preview cannot know — not checked until the position is known again (L18)"
+    top query-ms pairs: rear_column/c_faceplate 113.0 s 135519 q 1137 p; rear_column/a_bearing_pedestals 86.1 s 225280 q 1 p; rear_column/a_bearing_rings 66.4 s 180009 q 797 p; rear_column/a_drive_covers 45.0 s 69118 q 2123 p; rear_column/y_saddle 41.5 s 225280 q 1 p; rear_column/a_trunnion_shafts 30.0 s 20086 q 1300 p; rear_column/c_bearing_lip 23.6 s 142295 q 1286 p; rear_column/a_yoke_casting 19.1 s 225280 q 1 p; column_foot/y_guide_blocks 4.9 s 225201 q 1 p; column_foot/y_saddle 3.1 s 225280 q 1 p
+  [2 off] t 60 s progress 27.3 %
+  [2 off] t 121 s progress 52.4 %
+  [2 off] t 180 s progress 72.0 %
+[2] WITHOUT (B8): wall 197.3 s, query ms 73273, queries 823130, probes 27482, samples 852542, truncated null
+    heap: before 29 MB, peak 49 MB, after (gc) 30 MB; store rows: episodes 51 (with a touch 19, near misses 32), intervals 296, gaps 0
+    view: {"collisions":296,"entryCollisions":0,"nearMisses":32,"possible":0,"startsIn":true}; static 9; uncertified "1 move runs from a position the preview cannot know — not checked until the position is known again (L18)"
+    top query-ms pairs: rear_column/a_bearing_pedestals 19.6 s 52662 q 1 p; rear_column/c_faceplate 12.1 s 27216 q 5260 p; rear_column/a_bearing_rings 10.4 s 36663 q 4352 p; rear_column/y_saddle 9.4 s 52662 q 1 p; rear_column/a_drive_covers 5.7 s 14097 q 7865 p; rear_column/a_trunnion_shafts 5.6 s 4765 q 4062 p; rear_column/a_yoke_casting 4.4 s 52662 q 1 p; rear_column/c_bearing_lip 3.2 s 28727 q 5937 p; column_foot/y_guide_blocks 1.2 s 52583 q 1 p; column_foot/y_saddle 0.7 s 52662 q 1 p
+touch onsets: with 24, without 19; the same within 2 units 19; only with: ["rear_column/a_drive_covers @4244.83 L63272","rear_column/a_trunnion_shafts @1124.67 L14495","rear_column/a_trunnion_shafts @1149.23 L14794","rear_column/a_trunnion_shafts @1173.73 L15097","rear_column/a_trunnion_shafts @1222.76 L15706"]; only without: []
+witnesses of the run with it inside the run without's touch intervals: 338 of 338; outside: []
+near stays of the run with it inside a stay of the same pair without it (by lines): 46 of 47; not: ["rear_column/a_drive_covers L66507–L66590"]
+
+# The closest approach of a near stay (diagnosis run, same head, both runs' stays compared; operator data stays local):
+# ON = with the per-line sample (old rule), OFF = without (B8)
+ON near stays 47, each overlapping a stay of the same pair OFF
+OFF closest approach − ON closest approach, per ON near stay (the smallest of the overlapping OFF stays): median +0.001 mm, p90 +0.523 mm, max +0.886 mm; 12 above 0.1 mm, 9 above 0.3 mm
+the one ON near stay not wholly inside an OFF stay by lines: rear_column/a_drive_covers, ON [4450.8486, 4453.5703] (L66507–L66590), OFF [4450.8486, 4453.5620] (L66507–L66589) — 0.008 of the parameter, one line; its closest approach ON 0.860 mm, OFF 1.363 mm
+
+# What the run with the per-line sample split that the run without did not (same diagnosis run; positions on the timeline axis, the track is time-based):
+the 5 touch onsets only ON — each lies in an OFF stay of the pair that also spans the ON separation before it:
+  rear_column/a_trunnion_shafts L14495, L14794, L15097 (ON gaps 0.700, 0.688, 0.705) in the OFF stay [0, 1197.526] (43 intervals)
+  rear_column/a_trunnion_shafts L15706 (ON gap 0.725) in the OFF stay [1198.764, 1244.947] (2 intervals)
+  rear_column/a_drive_covers L63272 (ON gap 7.514) in the OFF stay [0, 4261.33] (86 intervals)
+  an OFF stay ends only at a sample beyond 2 x margin, and an OFF interval closes at its first decided free sample (VP139-02): the run without took no such sample in those gaps — unsampled gaps (plan 2.2), no separation it knew
+the 47 ON near stays — every one inside an OFF stay of the same pair by position, to 0.013 of the timeline at its end (36 exactly, 10 within 0.01, rear_column/c_faceplate [8612.355, 8612.998] vs OFF [8612.355, 8612.985]); 5 OFF stays hold more than one ON near stay (47 -> 32)

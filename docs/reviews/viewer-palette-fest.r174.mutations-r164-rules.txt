@@ -1,0 +1,5 @@
+s_publisher_timer RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: published through macrotasks: expected false to be true // Object.is equality 9s
+s_messages_pile RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one message out: expected 3 to be 1 // Object.is equality 9s
+s_frame_every_slice RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: not starved yet: the message's turn: expected [ 'a' ] to deeply equal [] 10s
+s_frames_pile RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one frame asked: expected 2 to be 1 // Object.is equality 10s
+s_no_frame RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one frame asked: expected +0 to be 1 // Object.is equality 9s

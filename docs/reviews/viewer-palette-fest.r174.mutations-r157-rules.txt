@@ -1,0 +1,26 @@
+p_view_dirties RED ⎯⎯⎯⎯⎯⎯ Failed Tests 21 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the passes end within 20000 slices: expected false to be true // Object.is equality | AssertionError: the passes end within 20000 slices: expected false to be true // Object.is equa 16s
+p_no_recheck RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 1, +0, 1, 1 ] to deeply equal [ 1, 1, 1, 1 ] | AssertionError: expected [ +0, 1 ] to deeply equal [ 1, 1 ] 98s
+p_view_needs_tables RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: its view is published and read: expected [] to deeply equal [ 10 ] 11s
+p_stage_early RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: then the fallback's transition closes the ticket: expected [ 'stage', 'ack' ] to deeply equal [ 'ack', 'effect:held' ] | AssertionError: staged at the publication: expected 'a' to b 10s
+p_catchup_counts RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, +0, +0, 1 ] to deeply equal [ 1, +0, +0, 1 ] 20s
+p_pub_written RED ⎯⎯⎯⎯⎯⎯ Failed Tests 19 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ 10 ] | AssertionError: the touch published: expected [ 5 ] to include 10 10s
+p_ack_early RED ⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: no acknowledgement before the catch-up: expected [ { contactsAck: 1, generation: +0 } ] to deeply equal [] | AssertionError: each acknowledged, in order: expected [ …(4) ] to deeply 10s
+p_held_is_pub RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: held: D0, D1, D2: expected 1 to be 3003 // Object.is equality | AssertionError: held: D0, D1, D2: expected 3002 to be 3003 // Object.is equality 82s
+p_drain_unacked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: D0, D1 and the drain's D2 before any word of generation 1: expected 2 to be 3 // Object.is equality 10s
+p_old_gen_unacked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: acknowledged so its path never stalls: expected { contactsAck: 9, generation: 1 } to deeply equal { contactsAck: 9, generation: +0 } 10s
+v_stage_in_pass RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: phase 1: expected [ 'dirty', 'kick' ] to deeply equal [] 11s
+c_proven_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 34814 to be less than or equal to 16384 | AssertionError: table cells read in one step of the build or the bands: ex 26s
+c_copy_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the longest list copied into a typed array at once: expected 16384 to be less than or equal to 4096 | AssertionError: the longest list copied into a typed array at once: expected 16 26s
+w_search_flat RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one dense column: reads in one step: expected 1152 to be less than or equal to 164 46s
+w_dense_flat RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: many columns: reads in one step: expected 203 to be less than or equal to 164 11s
+s_copy_no_yield RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one yield per STEP_OPS elements, the count it began with included: expected +0 to be 3 // Object.is equality 9s
+a_refusal_episodes_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: no table written: expected [ 1, +0, 1 ] to deeply equal [ +0, +0, +0 ] 15s
+a_updates_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the updates into the work copy: several steps: expected 2 to be greater than 3 | AssertionError: phase 1: never written to its end: expected 24000 to be less than 24000 15s
+a_rows_at_once RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: still in the phase: expected +0 to be 4 // Object.is equality 15s
+h_read_at_mount RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: nothing read at mount: expected [ 1, '31px' ] to deeply equal [ +0, undefined ] 9s
+f_attach_sync RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: attached: nothing read: expected 4 to be +0 // Object.is equality 9s
+f_change_sync RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: two DOM changes: nothing read, one frame asked for: expected [ 8, 1 ] to deeply equal [ +0, 1 ] 10s
+g_glyph_drift RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: x: expected { svg: { tag: 'svg', …(1) }, …(1) } to deeply equal { svg: { tag: 'svg', …(1) }, …(1) } 954s
+g_glyph_size RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: triangle: expected { svg: { tag: 'svg', …(1) }, …(1) } to deeply equal { svg: { tag: 'svg', …(1) }, …(1) } 9s
+e_tracks_no_runside RED   5 failed Error: early, no main partial: the contact, the main request still running | Expected pattern: /^1 collision.* so far · <1 % checked/ 1837s
+rebuild ok 1857s

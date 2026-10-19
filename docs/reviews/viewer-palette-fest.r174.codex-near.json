@@ -1,0 +1,68 @@
+[
+  {
+    "turns": 360,
+    "lineSample": true,
+    "ms": 18.63142700000003,
+    "maxSliceMs": 14.222747000000027,
+    "maxProbesBetweenYields": 0,
+    "yields": 4,
+    "probes": 0,
+    "truncated": null,
+    "episodes": 1
+  },
+  {
+    "turns": 360,
+    "lineSample": false,
+    "ms": 35.96855899999997,
+    "maxSliceMs": 32.732924000000025,
+    "maxProbesBetweenYields": 667,
+    "yields": 4,
+    "probes": 667,
+    "truncated": null,
+    "episodes": 1
+  },
+  {
+    "turns": 3600,
+    "lineSample": true,
+    "ms": 3.384176000000025,
+    "maxSliceMs": 2.064339000000018,
+    "maxProbesBetweenYields": 0,
+    "yields": 3,
+    "probes": 0,
+    "truncated": null,
+    "episodes": 1
+  },
+  {
+    "turns": 3600,
+    "lineSample": false,
+    "ms": 197.33313300000003,
+    "maxSliceMs": 197.15679899999992,
+    "maxProbesBetweenYields": 6666,
+    "yields": 3,
+    "probes": 6666,
+    "truncated": null,
+    "episodes": 1
+  },
+  {
+    "turns": 36000,
+    "lineSample": true,
+    "ms": 5.866350000000011,
+    "maxSliceMs": 2.0275060000000167,
+    "maxProbesBetweenYields": 0,
+    "yields": 9,
+    "probes": 0,
+    "truncated": null,
+    "episodes": 1
+  },
+  {
+    "turns": 36000,
+    "lineSample": false,
+    "ms": 1748.2808260000002,
+    "maxSliceMs": 1744.101439,
+    "maxProbesBetweenYields": 66656,
+    "yields": 9,
+    "probes": 66656,
+    "truncated": null,
+    "episodes": 1
+  }
+]

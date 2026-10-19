@@ -1,0 +1,25 @@
+w_meta_never RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the first slice's progress carries it: expected undefined to be defined 11s
+w_meta_every RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ Array(14) ] to have a length of 1 but got 14 11s
+w_meta_sig_counters RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ Array(14) ] to have a length of 1 but got 14 10s
+co_meta_reason RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'stopped' to be 'running' // Object.is equality 11s
+w_store_no_urgent RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the near miss out, unacknowledged; the touch beside it; then nothing: expected [ +0 ] to deeply equal [ +0, 1 ] | AssertionError: the first interval goes at once: expected null not  11s
+w_store_ack_negative RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one out, never below none: expected { request: 5, generation: +0, …(3) } to be null 10s
+w_send_waiting RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the near miss out, unacknowledged; the touch beside it; then nothing: expected [ +0 ] to deeply equal [ +0, 1 ] 11s
+w_coord_no_urgent RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the first interval at once, beside it: expected [ +0 ] to deeply equal [ +0, 1 ] 11s
+w_coord_ack_negative RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one out, never below none: expected 5 to be 4 // Object.is equality 11s
+w_drain_bool RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one still out: held: expected 3 to be 2 // Object.is equality 11s
+w_drain_ack_all RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: one still out: held: expected 3 to be 2 // Object.is equality 11s
+e_coord_no_urgent RED   1 failed Error: the touch, its acknowledgements held | Expected: visible 68s
+v_first_touch_unmarked RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the first touch interval: expected false to be true // Object.is equality 11s
+v_first_touch_every RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected true to be undefined 11s
+v_first_not_urgent RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: published at once: expected 2 to be greater than 2 12s
+v_side_first_unset RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯  12s
+v_delta_alone_drops_first RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: its first touch: expected [] to deeply equal [ true ] 11s
+v_previous_not_from_view RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected null to deeply equal { collisions: 2, …(3) } 12s
+v_undecidable_not_derived ANCHOR [0] 0s
+sb_undecidable_ignored RED   1 failed Error: expect(locator).toHaveAttribute(expected) failed | Expected pattern: /^Clear \· checked to the end/ 50s
+cv_undecidable_reason RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ Array(1) ] | AssertionError: expected [] to deeply equal [ Array(1) ] 11s
+co_rest_undec_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ Array(1) ] 10s
+ss_notes_shard0 RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 'n5' ] to deeply equal [ 'n5', 'n9' ] 11s
+sm_notes_entry_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 'entry note' ] to deeply equal [ 'entry note', 'base note' ] | AssertionError: expected null to be 'kins x not evaluable' // Object.is equality 11s
+rebuild ok 32s
