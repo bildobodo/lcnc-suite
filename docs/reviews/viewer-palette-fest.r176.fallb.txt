@@ -1,0 +1,8 @@
+# haus.ngc Fall B (B8) 2026-10-19T11:45:13.252Z — head 7726afe8 + 0 changed files, gc exposed, order off
+model: bodies 31, pairs 384; track points 203538, end cum 15960.3
+  [0 off] t 60 s progress 39.6 %
+  [0 off] t 120 s progress 60.8 %
+[0] WITHOUT (B8): wall 171.8 s, query ms 106949, queries 823130, probes 11495, samples 836555, truncated null
+    heap: before 26 MB, peak 48 MB, after (gc) 29 MB; store rows: episodes 51 (with a touch 19, near misses 32), intervals 296, gaps 0
+    view: {"collisions":296,"entryCollisions":0,"nearMisses":32,"possible":0,"startsIn":true}; static 9; uncertified "1 move runs from a position the preview cannot know — not checked until the position is known again (L18)"
+    top query-ms pairs: rear_column/a_bearing_pedestals 28.5 s 52662 q 1 p; rear_column/c_faceplate 18.1 s 27216 q 2193 p; rear_column/a_bearing_rings 16.1 s 36663 q 1646 p; rear_column/y_saddle 14.4 s 52662 q 1 p; rear_column/a_drive_covers 7.2 s 14097 q 3374 p; rear_column/a_trunnion_shafts 7.2 s 4765 q 1944 p; rear_column/a_yoke_casting 6.3 s 52662 q 1 p; rear_column/c_bearing_lip 4.8 s 28727 q 2332 p; column_foot/y_guide_blocks 1.7 s 52583 q 1 p; column_foot/y_saddle 1.0 s 52662 q 1 p

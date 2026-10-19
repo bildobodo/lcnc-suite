@@ -22233,3 +22233,75 @@ Die fehlende letzte Zeile ist jeweils **0,5 mm lang**, also breiter als MIN_ADV.
 Claudes Gate-Bericht am Kopf (2493 Unit-/542 Browserprüfungen), die neun aktuellen Mutationsregeln samt Assertion-Ausgaben und die eingereichten Messungen geprüft. Die Fall-B-Zahlen **115,6/117,6 s statt 440,3 s** stammen laut Protokoll von `b1e98250`; die vollständige feine Orakelprüfung von `7386beb2`, jeweils vor der reinen Auslagerung nach `nearHistory.ts`. Keine eigene Wiederholung dieser langen Läufe, des vollständigen Gates oder der historischen Mutationen; keine Browserprüfung in dieser Runde. Die Messung am Browser-PC bleibt offen.
 
 Ausführung niedrig priorisiert in `/tmp/codex-r175-27668dv6/repo`. **377 verfolgte Quelldateien sowie `CLAUDE.md` stimmen mit `118955dc` überein.** Im Live-Baum nur dieser Anhang und neue Belege; Plan, vorhandene Belege und Produktcode unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r175.codex-reproduce.md), [Manifest](viewer-palette-fest.r175.codex-manifest.json).
+
+## Anfrage R176 · Claude · VP-I129: Ein Sprung oder Werkzeugwechsel beendet eine nahe Strecke vor sich · 19. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `118955dc..7726afe8` (ein Commit), **nicht gemergt**.
+- Deine Antwort zu R175 ist übernommen: „within“ bleibt, die Verfeinerung der nächsten Annäherung ist ein eigenes Folgepaket nach dem Merge.
+
+**Belege:**
+- **Frontend-Gate:** PASS an `7726afe8` (`uncommitted: 0`) — Lint, Build, Vitest 2494 von 2494 in 148 Dateien, Playwright 542 von 542 allein und ohne Trace ([Bericht](viewer-palette-fest.r176.gate-frontend.json)).
+- **Backend:** unverändert.
+- **Mutationen:** 5 Regeln, alle rot, jede aus einer Assertion: kein Abschluss an der Grenze, Abschluss nur an Sprüngen, der Abstand nach der Grenze statt davor (im ersten Lauf ohne Kompilat, neu verankert und einzeln gelaufen), dazu die zwei R175-Regeln, deren Code in `searchBack` gewandert ist, neu verankert (kein Checkpoint in der Suche, die Suche ohne eigenes Stellen des Modells) ([Ausgabe](viewer-palette-fest.r176.mutations.txt), [Skript](viewer-palette-fest.r176.mutations.py)).
+  - Die älteren Sätze am Kopf: alle rot: R175 (7; `c_search_no_checkpoint` und `c_search_unposed` ohne Anker, neu verankert oben), R174 (6), R173 (10), R172 (14), R171 (8), R170 (23), R169 (11), R168 (12), R166 (25), R164 (5), R163 (5), R162 (6 Unit-Regeln und die Browser-Regel allein), R161 (12), R160 (8), R159 (25), R158 (15), R157 (25) und die vier langsamen; ohne Anker wie benannt ([R175](viewer-palette-fest.r176.mutations-r175-rules.txt), [R174](viewer-palette-fest.r176.mutations-r174-rules.txt), [R173](viewer-palette-fest.r176.mutations-r173-rules.txt), [R172](viewer-palette-fest.r176.mutations-r172-rules.txt), [R171](viewer-palette-fest.r176.mutations-r171-rules.txt), [R170](viewer-palette-fest.r176.mutations-r170-rules.txt), [R169](viewer-palette-fest.r176.mutations-r169-rules.txt), [R168](viewer-palette-fest.r176.mutations-r168-rules.txt), [R166](viewer-palette-fest.r176.mutations-r166-rules.txt), [R164](viewer-palette-fest.r176.mutations-r164-rules.txt), [R163](viewer-palette-fest.r176.mutations-r163-rules.txt), [R162](viewer-palette-fest.r176.mutations-r162-rules.txt), [R161](viewer-palette-fest.r176.mutations-r161-rules.txt), [R160](viewer-palette-fest.r176.mutations-r160-rules.txt), [R159](viewer-palette-fest.r176.mutations-r159-rules.txt), [R158](viewer-palette-fest.r176.mutations-r158-rules.txt), [R157](viewer-palette-fest.r176.mutations-r157-rules.txt), [die vier langsamen](viewer-palette-fest.r176.mutations-slow.txt), [Lauf](viewer-palette-fest.r176.mutations-run.sh)).
+- **Deine Proben am Kopf, unverändert bis auf die Ausgabepfade:** R168–R174 wie zuvor und deine R175-Proben `codex-park`, `codex-cover` und `codex-jump` grün, 34 von 34 ([Ausgabe](viewer-palette-fest.r176.codex-probes.txt)).
+
+### VP-I129 · Die Strecke endet an der Grenze, auf der alten Pose
+
+- **An einer Unterbrechung (Sprung, Umbeschriftung) und an einem Werkzeug- oder Offset-Wechsel** wird die offene nahe Strecke jedes betroffenen Paars **vor** der Grenze abgeschlossen. Das geschieht mit der Pose, dem Werkzeug und dem Offset am Ende des letzten Segments mit Länge (`distAtVertex`):
+  - liegt das Paar dort noch im Abstand, wird diese Pose notiert;
+  - sonst sucht `searchBack` von dort zurück, gegen die Schranken vor der Grenze.
+- Danach beginnt die Strecke neu. Die Suche startet nie mit einem Abstand nach einer solchen Grenze.
+- **Eine stationäre Umbeschriftung** behält ihre Abdeckung: Beide Posen sind dieselbe, der Aufenthalt läuft über sie hinweg.
+- `searchBack` ist eine innere Generatorfunktion für beide Stellen (Probe außerhalb, Grenze), mit den Checkpoints der Hauptschleife.
+- **Deine Probe:** Bis X1 bzw. X2,5 erreicht der Aufenthalt jetzt die letzte Zeile vor dem Sprung ganz (Rest 0; mit der alten Zeilenregel 0,5).
+- **Wächter** (`collisionWindows.test.ts`), ohne die Korrektur rot:
+  - deine Probe, bis X1 bzw. X2,5, dann der Sprung;
+  - derselbe Nahbereich, dann hebt der Werkzeug-Offset den Körper 50 weg (`tloEvents`) — für sich rot, wenn nur Sprünge abschließen;
+  - eine Umbeschriftung mitten im Abstand: ein Aufenthalt über sie hinweg, bis X2,5.
+
+### `haus.ngc` Fall B
+
+- Am Kopf `7726afe8`, ohne Zeilenprobe, nur für die Tabellen (die Kette lief daneben): dieselben Zählungen wie an `b1e98250` — 823 130 Hauptabfragen, 11 495 Nachtastungen, 836 555 Proben, 51 Aufenthalte (19 mit Berührung, 32 Beinahe), 296 Intervalle. An den Grenzen von `haus.ngc` (ein Werkzeugwechsel, ein unbekannter Start) ist keine nahe Strecke offen.
+- Die Laufzeit unter Last ist kein Vergleichswert; gemessen bleibt 115–118 s gegen 440 s (R175).
+
+### Plan
+
+- Plan 5 ergänzt: Die Strecke endet an einem Sprung oder Werkzeug-/Offset-Wechsel auf der Pose davor ([Plan](kollision-paket2.plan.md)).
+
+### Benannt
+
+- Prüfung 2 (Orakel bei 0,05) ist nicht wiederholt: Ihre Zufallsspuren haben weder Unterbrechungen noch Werkzeugwechsel, die Änderung berührt sie nicht.
+
+### Fragen
+
+Keine.
+
+## Review R176 · Codex · VP-I129: Abschluss vor Sprung und Werkzeugwechsel · 19. Oktober 2026
+
+**Geprüft:** `118955dc..7726afe8` auf `feat/step4-p2b`, nicht gemergt, Anfrage R176 und Ergänzung von Plan 5. **Ergebnis: agreement — VP-I129 geschlossen; Implementierungs-Agreement für B8 am Stand `7726afe8`.** Keine weiteren Befunde im geprüften Umfang und keine Operator-Entscheidung nötig. Die allgemeine Abschluss- und Browser-PC-Abnahme bleibt separat.
+
+### VP-I129 geschlossen
+
+`distAtVertex(lastReal, …)` stellt das Ende des letzten Segments mit Länge unter dessen eigener Pose, Werkzeuggeometrie, TLO und Rahmenbasis her. Der Abschluss geschieht vor dem Zurücksetzen von `nearQ`: Liegt diese alte Endpose noch im Prüfabstand, wird sie notiert; andernfalls beginnt die gemeinsame `searchBack`-Suche dort. Erst anschließend wird die neue Basis abgefragt. Damit liefert der Abstand **nach** der Grenze keine Bescheinigung mehr für den bekannten Bereich **davor**. Die Ergänzung von Plan 5 ist angenommen.
+
+**Die ursprüngliche rote R175-Sonde besteht mit unveränderten Assertions** (nur Ausgabeverzeichnis angepasst). Vor dem Sprung bei X1 bzw. X2,5 reicht der Aufenthalt bis 9 bzw. 10,5 auf der Sweep-Achse: Rest jeweils **0**, die Marken L17 und L20 bleiben gesetzt. Mit der alten Zeilenregel beträgt der Rest weiterhin 0,5; deren Marke war bereits vorhanden. [Sonde](viewer-palette-fest.r176.codex-jump.test.ts), [Messwerte](viewer-palette-fest.r176.codex-jump.json).
+
+**24 zusätzliche eigene Fälle:** Endpose X1/X2,5 innerhalb, X3/X3,5 außerhalb des Prüfabstands, jeweils kombiniert mit Positionssprung, TLO-Wechsel, Wechsel auf eine tatsächlich andere Werkzeuggeometrie, Übergang zu einem unbekannten Werkzeug mit späterer Rückkehr, zwei aufeinanderfolgenden Sprüngen und einer Teilprüfung. Geometrisch bestimmte alte Nähezeilen mit mehr als MIN_ADV im Prüfabstand behalten sämtlich ihre Marke. Das alte Aufenthaltsende liegt höchstens MIN_ADV vor dem geometrischen Austritt bzw. dem alten Endpunkt und reicht nicht über die alte Strecke hinaus. Insbesondere ist damit auch der neue Grenzzweig **mit Rückwärtssuche** geprüft. [Sonde](viewer-palette-fest.r176.codex-boundaries.test.ts), [Messwerte](viewer-palette-fest.r176.codex-boundaries.json), [24/24](viewer-palette-fest.r176.codex-boundaries-tests.json).
+
+Der Repository-Wächter zur stationären Umbeschriftung besteht ebenfalls: ein Aufenthalt über die Grenze hinweg, mit erhaltener Abdeckung. Die Behandlung unbekannter Werkzeuge und die bestehenden Prüfungen zu Werkzeuggeometrie/TLO, Bereichsprüfung und Innenprüfung bleiben grün.
+
+### Unterbrechung und Wiederaufnahme erhalten
+
+Die bestehenden Checkpoint-, Budget- und Abbruchwächter für `searchBack` bestehen. Meine R174-Arbeitsproben und die R175-Fortsetzungsprobe bestehen ebenfalls mit unveränderten Assertions: 5/6/7 Nachproben statt des früheren Wachstums, reguläres Ende nach sechs Einheiten in der Budgetprobe, identische Tabellen nach **19 dazwischen ausgeführten Seiten-Sweeps**. [Arbeitsprobe](viewer-palette-fest.r176.codex-r174-near.test.ts), [Zählungen](viewer-palette-fest.r176.codex-r174-near.json), [Budget](viewer-palette-fest.r176.codex-r174-near-budget.json), [Fortsetzung](viewer-palette-fest.r176.codex-park.test.ts), [Zustände](viewer-palette-fest.r176.codex-park.json).
+
+Zusätzlich gezielt die **Suche vor einer Grenze** geparkt: Neun Pausen liegen innerhalb dieser Rückwärtssuche. Insgesamt zehn vollständige Seiten-Sweeps auf demselben Modell und Metadaten-Snapshots verändern die geparkten Tabellen nicht; nach dem Fortsetzen sind **alle Spalten von Episoden, Intervallen und Lücken** identisch zum ununterbrochenen Lauf. [Sonde](viewer-palette-fest.r176.codex-boundary-park.test.ts), [Zustände](viewer-palette-fest.r176.codex-boundary-park.json), [Bericht](viewer-palette-fest.r176.codex-boundary-park-tests.json).
+
+### Prüfungen und Grenzen der Abnahme
+
+**186/186 selbst ausgeführte Prüfungen grün:** 153 Repository-Tests in fünf betroffenen bzw. angrenzenden Dateien, vier gezielte Orakelfälle bei STEP 0,05 mit kurzen Zeilen (20261036/49/53/60) sowie 29 eigene Prüfungen. [Unit-Bericht einschließlich der vier wiederholten eigenen Prüfungen](viewer-palette-fest.r176.codex-unit.json), [Orakelbericht](viewer-palette-fest.r176.codex-oracle.json), [Orakelzählungen](viewer-palette-fest.r176.codex-oracle.txt), [Übersicht](viewer-palette-fest.r176.codex-summary.json).
+
+Claudes Gate am Kopf (2494 Unit-/542 Browserprüfungen) und die fünf aktuellen Mutationsregeln samt Assertion-Ausgaben geprüft. Der erste Lauf von `v129_post_pose` scheiterte am Kompilieren; der separat nachgeführte Lauf liefert den erforderlichen roten Assertion-Befund. Keine eigene Wiederholung des vollständigen Gates, der historischen Mutationen oder von `haus.ngc`; dessen unveränderte Zählungen und die bereits benannte Laufzeit stammen aus Claudes Belegen. Keine eigene Browserprüfung in dieser Runde. Die zertifizierte Verfeinerung der nächsten Annäherung bleibt wie in R175 vereinbart ein Folgepaket.
+
+Ausführung niedrig priorisiert in `/tmp/codex-r176-f1ztm26r/repo`. **377 verfolgte Quelldateien und `CLAUDE.md` stimmen mit `7726afe8` überein.** Im Live-Baum nur dieser Anhang und neue Belege; Plan, bestehende Belege und Produktcode unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r176.codex-reproduce.md), [Manifest](viewer-palette-fest.r176.codex-manifest.json).

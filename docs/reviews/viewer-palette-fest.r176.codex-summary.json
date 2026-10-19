@@ -1,0 +1,128 @@
+{
+  "review": "R176",
+  "head": "7726afe8",
+  "base": "118955dc",
+  "verdict": "agreement",
+  "closed": [
+    "VP-I129"
+  ],
+  "tests": {
+    "repository_executed_passed": 157,
+    "own_executed_passed": 29,
+    "total_executed_passed": 186,
+    "oracle_selected": 4,
+    "oracle_unselected": 52
+  },
+  "jump": [
+    {
+      "endX": 1,
+      "lineSample": true,
+      "ends": [
+        8.5
+      ],
+      "reached": 8.5,
+      "expectedEnd": 9,
+      "missedTail": 0.5,
+      "lastLine": [
+        8.5,
+        9
+      ],
+      "mark": {
+        "line": 17,
+        "continuation": 11
+      },
+      "line": 17,
+      "truncated": null
+    },
+    {
+      "endX": 1,
+      "lineSample": false,
+      "ends": [
+        9
+      ],
+      "reached": 9,
+      "expectedEnd": 9,
+      "missedTail": 0,
+      "lastLine": [
+        8.5,
+        9
+      ],
+      "mark": {
+        "line": 17,
+        "continuation": 11
+      },
+      "line": 17,
+      "truncated": null
+    },
+    {
+      "endX": 2.5,
+      "lineSample": true,
+      "ends": [
+        10
+      ],
+      "reached": 10,
+      "expectedEnd": 10.5,
+      "missedTail": 0.5,
+      "lastLine": [
+        10,
+        10.5
+      ],
+      "mark": {
+        "line": 20,
+        "continuation": 11
+      },
+      "line": 20,
+      "truncated": null
+    },
+    {
+      "endX": 2.5,
+      "lineSample": false,
+      "ends": [
+        10.5
+      ],
+      "reached": 10.5,
+      "expectedEnd": 10.5,
+      "missedTail": 0,
+      "lastLine": [
+        10,
+        10.5
+      ],
+      "mark": {
+        "line": 20,
+        "continuation": 11
+      },
+      "line": 20,
+      "truncated": null
+    }
+  ],
+  "boundary_matrix": {
+    "tests": 24,
+    "end_x": [
+      1,
+      2.5,
+      3,
+      3.5
+    ],
+    "kinds": [
+      "jump",
+      "offset",
+      "geometry",
+      "unknown",
+      "double-jump",
+      "range"
+    ],
+    "unmarked_proven_lines": 0
+  },
+  "park": {
+    "original_interleaved_side_sweeps": 19,
+    "boundary_interleaved_side_sweeps": 10,
+    "pauses_in_boundary_backsearch": 9,
+    "same_all_table_columns": true
+  },
+  "limits": [
+    "No own full gate, full fine oracle, haus.ngc or historical mutations rerun.",
+    "No own browser, live ports or machine commands.",
+    "Browser-PC performance acceptance and general final acceptance remain separate.",
+    "Certified nearest-approach refinement remains a later package, as agreed in R175."
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "head": "7726afe8",
+  "uncommitted": 0,
+  "note": "R176: VP-I129 \u2014 a jump or a tool-offset change ends a near stretch on the pose before it (118955dc..7726afe8)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 430,
+      "tests": "148 files, 2494 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2186,
+      "tests": "542 passed",
+      "note": "run alone"
+    }
+  ]
+}

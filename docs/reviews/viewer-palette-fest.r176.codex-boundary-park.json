@@ -1,0 +1,83 @@
+{
+  "interleaved": 10,
+  "boundaryParks": 9,
+  "events": [
+    {
+      "progress": 0.9987546699875467,
+      "probes": 17,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 113,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 209,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 273,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 369,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 465,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 561,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 657,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 0.9987546699875467,
+      "probes": 753,
+      "coverage": 0.9987546699875467,
+      "atBoundary": true
+    },
+    {
+      "progress": 1,
+      "probes": 754,
+      "coverage": 1,
+      "atBoundary": false
+    }
+  ],
+  "final": {
+    "episodes": [
+      {
+        "pair": 0,
+        "ordinal": 0,
+        "flags": 0,
+        "onset": 8.566741274734863,
+        "end": 7769.469470090504,
+        "closeAt": 10.515513111927087,
+        "closeDist": 1.8999996185302734,
+        "firstIv": 4294967295,
+        "ivCount": 0
+      }
+    ],
+    "intervals": [],
+    "gaps": []
+  }
+}
