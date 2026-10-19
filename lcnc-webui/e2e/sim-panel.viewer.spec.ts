@@ -277,7 +277,8 @@ test("the spacers' row height is measured where the rows are seen — never in a
   // shown row's place on screen is kept: it stands where it stood in the
   // first frame drawn — three rows off the middle, scrolled by hand (the
   // list follows to the middle; from there the follow alone would put it
-  // back) — and glides to the middle from there
+  // back) — and stays there: a new result is no new position (operator
+  // 2026-10-19)
   const key = "C0|200|0", shown = page.locator(`.simPanel [data-sim-row="${key}"]`);
   // the list glides (openLayout emulates reduced motion, where it snaps), and
   // the browser's own scroll anchoring is off: the panel keeps the place itself
@@ -306,7 +307,8 @@ test("the spacers' row height is measured where the rows are seen — never in a
   expect(keys.indexOf(f.ref), "the first portion around the shown row").toBe(keys.indexOf(key) - FIRST_ROWS / 2);
   expectStillFill(f, "after a fill in a hidden tab");
   expect(Math.abs(f.frames[0]!.at! - last), "the shown row where it stood, in the first frame drawn").toBeLessThanOrEqual(1);
-  await expect.poll(yOf, { message: "then the list glides it to the middle" }).toBeCloseTo(middle, 0);
+  await page.waitForTimeout(600);   // past any glide
+  expect(Math.abs(await yOf() - last), "and where it stood after: the list follows the position, not a new result").toBeLessThanOrEqual(1);
   await expect(shown.locator(".rowPick")).toBeFocused();
 });
 
@@ -454,6 +456,63 @@ test("a moved window keeps the picture: the row shown before stays where it was,
   for (let i = at + 1; i < frames.length; i++) {
     expect(Math.abs(frames[i]!.y! - frames[i - 1]!.y!), `frame ${i}: a glide, never a jump`).toBeLessThan(rowH);
   }
+});
+
+// Operator 2026-10-19 (live, haus.ngc): with a row shown, the list could not
+// be scrolled — every result of the running check (twice a second) put the
+// shown row back in the middle. A new result keeps the list where the
+// operator scrolled it, the rows in view where they stand (rows arriving
+// above included); the list follows a new position.
+test("a new result keeps the list where it was scrolled; a new position brings it back", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addStyleTag({ content: ".simPanel .simTable { overflow-anchor: none; }" });
+  const N = 300, key = (k: number) => `C0|${k}|0`;
+  const publish = (extra: number) => expect.poll(() => page.evaluate(([n, extra]) => window.__viewerDiag?.setCollisionHits?.(
+    Array.from({ length: n + extra }, (_, k) => k < extra
+      ? { line: 12, frac: 0.01 + (0.98 * (140 + (k + 1) / (extra + 1))) / n, ordinal: 10_000 + k }   // new rows between the view and the shown row
+      : { line: 12, frac: 0.01 + (0.98 * (k - extra)) / n, ordinal: k - extra })) ?? false, [N, extra] as const)).toBe(true);
+  await publish(0);
+  await simShow(page, "clash");
+  const shown = page.locator(`.simPanel [data-sim-row="${key(150)}"]`);
+  await shown.click();
+  await expect(shown).toHaveClass(/shownRow/);
+  const sc = page.locator(".simPanel .simTable");
+  let last = NaN;
+  const settled = (read: () => Promise<number>) => expect.poll(async () => { const v = await read(); const still = Math.abs(v - last) < 0.5; last = v; return still; }, { intervals: [200] }).toBe(true);
+  const top = () => sc.evaluate(el => (el as HTMLElement).scrollTop);
+  await settled(top);
+  // scrolled by hand, 40 rows towards the start: the shown row out of view
+  const rowH = await shown.evaluate(tr => tr.getBoundingClientRect().height);
+  await sc.evaluate((el, d) => { (el as HTMLElement).scrollTop -= d; }, 40 * rowH);
+  await settled(top);
+  const firstInView = () => sc.evaluate(el => {
+    const box = el.getBoundingClientRect(), head = el.querySelector("thead")!.getBoundingClientRect().height;
+    const tr = [...el.querySelectorAll<HTMLElement>("tr[data-sim-row]")].find(t => t.getBoundingClientRect().bottom > box.top + head);
+    return tr ? { key: tr.dataset.simRow!, y: tr.getBoundingClientRect().top - box.top } : null;
+  });
+  const before = await firstInView();
+  expect(before, "a row in view").not.toBeNull();
+  // the same result again (the check's next word), then one with rows
+  // between the rows in view and the shown row (out of view below them)
+  for (const extra of [0, 5]) {
+    await publish(extra);
+    await expect(rows(page)).toHaveCount(N + extra);
+    await page.waitForTimeout(700);   // past a glide and the next frames
+    const now = await firstInView();
+    expect(now?.key, `result with ${extra} new rows: the same row first in view`).toBe(before!.key);
+    expect(Math.abs(now!.y - before!.y), `result with ${extra} new rows: where it stood`).toBeLessThanOrEqual(1);
+    await expect(shown, "the shown row stays shown").toHaveClass(/shownRow/);
+  }
+  // a new position — the next finding shown — brings the list along
+  await simStepBtn(page, "Next collision").click();
+  const next = page.locator(`.simPanel [data-sim-row="${key(151)}"]`);
+  await expect(next).toHaveClass(/shownRow/);
+  await expect.poll(() => next.evaluate(tr => {
+    const el = tr.closest(".simTable")!, box = el.getBoundingClientRect(), head = el.querySelector("thead")!.getBoundingClientRect();
+    const r = tr.getBoundingClientRect();
+    return Math.abs((r.top + r.bottom) / 2 - (head.bottom + box.bottom) / 2) <= r.height;
+  }), { message: "the next finding in the middle of the list" }).toBe(true);
 });
 
 // Keyboard jog ON with the navigation keys bound to jog (tabs.spec's map): a

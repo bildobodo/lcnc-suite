@@ -348,11 +348,13 @@ function measureRowH() {
 // (below `scroller`: an immediate watch reads it at once)
 watch(range, measureRowH, { flush: "post", immediate: true });
 const rowEl = (sc: HTMLElement, key: string) => sc.querySelector<HTMLElement>(`tr[data-sim-row="${CSS.escape(key)}"]`);
-function follow(animate: boolean) {
+/** Brings the marked row to the middle; false while it cannot (no row
+ *  rendered, no height yet). */
+function follow(animate: boolean): boolean {
   const sc = scroller.value, key = marked.value;
-  if (!sc || !key || !sc.clientHeight) return;
+  if (!sc || !key || !sc.clientHeight) return false;
   const tr = rowEl(sc, key);
-  if (!tr) return;
+  if (!tr) return false;
   // In the list's own px: the row's place in the scrolled content; the view
   // is what the sticky head leaves.
   const head = sc.querySelector<HTMLElement>("thead")?.offsetHeight ?? 0;
@@ -366,15 +368,20 @@ function follow(animate: boolean) {
   cancelAnimationFrame(glideRaf);
   glide = null;
   const plan = animate ? planGlide(sc.scrollTop, to, now, gap, viewH, reduceMotion(), visibleBand(rowY, lineH, viewH, clamp)) : null;
-  if (!plan) { sc.scrollTop = to; return; }
+  if (!plan) { sc.scrollTop = to; return true; }
   sc.scrollTop = plan.from;   // into the band at once — the row is in view from here on
   glide = plan;
   glideRaf = requestAnimationFrame(glideStep);
+  return true;
 }
 // The list is a window (plan 4.4): when it moves — or rows arrive above —
-// the rows shift under the scroll position. The row marked before keeps its
-// place on screen across the change, then the list glides as ever — never a
-// jump of the whole list.
+// the rows shift under the scroll position. What the operator sees keeps its
+// place on screen across the change: the row marked before where it is in
+// view, else the first row in view (scrolled away from it by hand).
+// The list FOLLOWS only a new marked row — the position moved, a row was
+// shown. A new result with the same marked row keeps the list where it
+// stands (operator 2026-10-19, live: the check's results, every half second,
+// put the shown row back in the middle and the list could not be scrolled).
 // The picture is kept in the task that changed the rows (every reader after
 // it sees the row where it was — it reads only when a row on screen was
 // anchored, never at a first list); the follow runs in the next animation
@@ -382,13 +389,22 @@ function follow(animate: boolean) {
 // made them forced the layout of every new row there — a long task at a
 // large first list (plan 3.6).
 let shownMarked: string | null = null;
+/** The marked row the list last brought to the middle. */
+let followed: string | null = null;
 let anchor: { key: string; y: number } | null = null;
 let followRaf = 0;
 watch(rows, () => {
   anchor = null;
-  const sc = scroller.value, key = shownMarked;
-  const tr = sc && key ? rowEl(sc, key) : null;
-  if (tr && key) anchor = { key, y: tr.getBoundingClientRect().top };
+  const sc = scroller.value;
+  if (!sc || !sc.clientHeight) return;
+  const box = sc.getBoundingClientRect(), top = box.top + (sc.querySelector("thead")?.getBoundingClientRect().height ?? 0);
+  const inView = (r: DOMRect) => r.bottom > top && r.top < box.bottom;
+  let tr = shownMarked ? rowEl(sc, shownMarked) : null;
+  if (!tr || !inView(tr.getBoundingClientRect())) {
+    tr = null;
+    for (const el of sc.querySelectorAll<HTMLElement>("tr[data-sim-row]")) if (inView(el.getBoundingClientRect())) { tr = el; break; }
+  }
+  if (tr) anchor = { key: tr.dataset.simRow!, y: tr.getBoundingClientRect().top };
 }, { flush: "pre" });
 function restoreAnchor() {
   const sc = scroller.value, a = anchor;
@@ -397,7 +413,12 @@ function restoreAnchor() {
   if (sc && a && tr) sc.scrollTop += (tr.getBoundingClientRect().top - a.y) / cssZoomOf(sc);
 }
 function followSoon() {
-  if (!followRaf) followRaf = requestAnimationFrame(() => { followRaf = 0; follow(true); shownMarked = marked.value; });
+  if (!followRaf) followRaf = requestAnimationFrame(() => {
+    followRaf = 0;
+    const key = marked.value;
+    if (!key || follow(true)) followed = key;
+    shownMarked = key;
+  });
 }
 watch([marked, rows], () => {
   // the marked row rendered — unless that would drop the focused row: it then
@@ -405,9 +426,9 @@ watch([marked, rows], () => {
   measureRowH();   // the spacers before the marked row's place is read
   if (marked.value) admitRow(rows.value.findIndex(r => r.key === marked.value), focusedIndex());
   restoreAnchor();
-  followSoon();
+  if (marked.value !== followed) followSoon();
 }, { flush: "post" });
-watch(listComplete, whole => { if (whole) followSoon(); });
+watch(listComplete, whole => { if (whole && marked.value !== followed) followSoon(); });
 // A hidden tab has no height: it catches up when it shows (or resizes).
 const sized = typeof ResizeObserver === "function" ? new ResizeObserver(() => follow(false)) : null;
 watch(scroller, (el, old) => {
