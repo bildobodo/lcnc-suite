@@ -535,6 +535,10 @@ test("a limit row stands at its program line's move, never at a called file's li
   const list = await rows(page).evaluateAll(trs => trs.map(t => `${t.querySelector(".rowPick")!.textContent!.trim()} ${t.querySelector(".colAt")!.textContent!.trim()}`));
   // L3's move starts at 8 s, the program's L5's at 12 s (the called file's "5" at 0 s)
   expect(list, "the limit rows in the program's order, each at its own move").toEqual(["L3 00:08", "L5 00:12"]);
+  // …and their bands on the timeline: from L3's move on, none from the called file's moves (0 … 8 s of 20)
+  const starts = await page.locator(".scrubBar .scrubBand.limit").evaluateAll(els => els.map(e => Number(/\* ([-0-9.e]+)\)$/.exec((e as HTMLElement).style.left)?.[1] ?? NaN)));
+  expect(starts.length, "a band").toBeGreaterThan(0);
+  expect(Math.min(...starts), "no band before L3's move (8 s of 20)").toBeGreaterThanOrEqual(0.4 - 1e-6);
 });
 
 // Operator 2026-10-20 (live, Haus_Brunnen.ngc): the timeline's progress was not
