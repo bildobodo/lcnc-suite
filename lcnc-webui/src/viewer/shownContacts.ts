@@ -49,6 +49,8 @@ export interface ShownSource {
    *  and its open contact ends at its coverage, joined to nothing (Codex R149
    *  VP-I109); a running side's is open because it runs. */
   sweptToEnd?: boolean;
+  /** A running check's word, not its result (ContactSource.running). */
+  running?: boolean;
   /** A folded source's own track (a run check's beginning): its events' lines
    *  are this track's DISPLAY lines (plan 1.3). Left out of the cache key (`specKey`). */
   track?: DisplayTrack;
@@ -118,7 +120,8 @@ export function* shownContactViewSteps(tables: (id: number) => GenerationTables 
                    ...(s.ownCoverage !== undefined ? { ownCoverage: s.ownCoverage } : {}),
                    ...(own ? { pairName: (p: number) => { const n = own[p]; return n ? { a: n[0], b: n[1] } : { a: `pair ${p}`, b: "" }; } } : {}),
                    ...(s.track ? { ownTrack: ownTrackOf(s.track, s.linesTrusted ?? true) } : {}),
-                   ...(s.entry ? { entry: true, ...(s.entryEnd !== undefined ? { entryEnd: s.entryEnd } : {}) } : {}) });
+                   ...(s.entry ? { entry: true, ...(s.entryEnd !== undefined ? { entryEnd: s.entryEnd } : {}) } : {}),
+                   ...(s.running ? { running: true } : {}) });
   }
   if (!sources.length) return null;
   const pairs = parts.find(p => p.t.pairs)?.t.pairs ?? null;

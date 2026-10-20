@@ -190,6 +190,23 @@ describe("the target index (plan 4.1)", () => {
     expect(objs[1]!.dist).toBeCloseTo(1.2, 6);
   });
 
+  it("while the check runs, a stay still open without a touch is no near miss yet; its result names it (operator 2026-10-20)", () => {
+    const st = store([
+      { pair: 1, close: [2, 1.5], end: 3 },          // a closed near stay
+      { pair: 2, close: [5, 0.8] },                  // an open one: it may still touch
+      { pair: 3, ivs: [[6, NaN]] },                  // an open contact: a collision already
+    ]);
+    const result = buildContactView({ sources: [src(st)], pairName: names, coverage: 10 });
+    expect(poss(result)).toEqual([2, 5, 6]);
+    expect(viewCounts(result)).toMatchObject({ collisions: 1, nearMisses: 2 });
+    const open = targetKey(result, 1);
+    const running = buildContactView({ sources: [src(st, { running: true })], pairName: names, coverage: 10 });
+    expect(poss(running)).toEqual([2, 6]);
+    expect(viewCounts(running)).toMatchObject({ collisions: 1, nearMisses: 1 });
+    expect(findKey(running, open), "no key for the open stay").toBe(-1);
+    expect(findKey(result, open)).toBe(1);
+  });
+
   it("a target's move kind: a touch on a rapid (IV_RAPID), or the episode's first entered on one — a re-entry never inherits its episode's margin entry", () => {
     const st = store([
       { pair: 1, flags: EP_RAPID, ivs: [[0, 1], [2, 3], [4, 5, IV_RAPID]] },   // entered on a rapid; a feed re-entry, a rapid one

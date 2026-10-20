@@ -107,6 +107,11 @@ export interface ContactSource {
    *  Codex R150 VP150-02) — what the furthest row of a table names is only a
    *  lower bound beside it. */
   heldCoverage?: readonly number[];
+  /** A running check's word, not its result: a stay inside the margin still
+   *  OPEN (no exit yet) that has not touched is no near miss yet — it may
+   *  still touch, and the near-miss count went down when one did (operator
+   *  2026-10-20). Its result names every stay, an open one at the end too. */
+  running?: boolean;
 }
 
 /** A base interval that continues an entry contact (contactMerge.entryJoins):
@@ -344,6 +349,14 @@ const pack = (src: number, shard: number, row: number, near = false, held = fals
   (row | (shard << TABLE_SHIFT) | (src << SRC_SHIFT) | (near ? NEAR_BIT : 0) | (held ? HELD_BIT : 0) | (piece << PIECE_SHIFT)) >>> 0;
 const rowOf = (ref: number) => ref & ROW_MASK;
 const isNearRef = (ref: number) => (ref & NEAR_BIT) !== 0;
+/** Episode `e` of table `t` is a near miss: no touch, no boundary contact —
+ *  and while its source's check runs, closed (ContactSource.running; the
+ *  earlier generation's rows are as they were left). */
+function isNearRow(t: TableIndex, e: number): boolean {
+  const E = t.st.episodes;
+  if (E.get(e, "ivCount") !== 0 || (E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) return false;
+  return !(t.source.running && !t.held && Number.isNaN(E.get(e, "end")));
+}
 const isHeldRef = (ref: number) => (ref & HELD_BIT) !== 0;
 const isPieceRef = (ref: number) => ref >>> PIECE_SHIFT !== 0;
 /** A piece reference's start kind (START_*). */
@@ -1246,7 +1259,7 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
         }
         for (let e = 0; e < E.rows; e++) {
           if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
-          if (E.get(e, "ivCount") !== 0 || (E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) continue;
+          if (!isNearRow(t, e)) continue;
           const p = source.at(E.get(e, "closeAt"));
           tR.push(pack(si, t.shard, e, true), c); tP.push(p, c); tE.push(p, c);
         }
@@ -1318,7 +1331,7 @@ export function* buildContactViewSteps(input: ContactViewInput, scratch?: UnionS
         const E = t.st.episodes;
         for (let e = 0; e < E.rows; e++) {
           if ((c.n += 2) >= STEP_OPS) { c.n = 0; yield; }
-          if (E.get(e, "ivCount") !== 0 || (E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) continue;
+          if (!isNearRow(t, e)) continue;
           const [s0, x] = epOwn(t, e);
           R.push(pack(si, t.shard, e, true, held), c); Gp.push(E.get(e, "pair") * 4 + (E.get(e, "flags") & EP_ORIGIN_MASK), c);
           S.push(s0, c); X.push(x, c);
@@ -1698,7 +1711,7 @@ function keyRows(v: ContactView, entry: boolean, pair: number, ordinal: number, 
     const [a, b] = episodesOf(t, pair, ordinal);
     for (let k = a; k < b; k++) {
       const e = t.eIdx[k]!;
-      if (nth < 0) { if (t.st.episodes.get(e, "ivCount") === 0) out.push([t, pack(t.src, t.shard, e, true, t.held)]); continue; }
+      if (nth < 0) { if (isNearRow(t, e)) out.push([t, pack(t.src, t.shard, e, true, t.held)]); continue; }
       const r = nthInterval(v, t, e, nth);
       if (r >= 0) out.push([t, r]);
     }
