@@ -88,6 +88,12 @@ export function fmtDuration(secs: number): string {
 export function fmtDist(val: number, unit: string): string {
   return `${val.toFixed(1)} ${unit}`;
 }
+/** A distance that is an UPPER bound ("within 1.4 mm" — a near miss's
+ *  closest sample, R175): rounded UP at fmtDist's precision, never down to a
+ *  closeness it does not prove (Codex R174). */
+export function fmtDistUpper(val: number, unit: string): string {
+  return fmtDist(Math.ceil(val * 10 - 1e-9) / 10, unit);
+}
 
 /** Percentage of a RATIO (1 = 100 %) — "120 %", the unit set off by a
  *  space like every other unit (UI-N03); NO_VALUE for a missing value. */

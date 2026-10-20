@@ -7,11 +7,11 @@
 // reported. Synthetic box machines; the shipped models against the oracle in
 // collisionRangeOracle.test.ts.
 import * as THREE from "three";
+import { ContactStore, EP_ORIGIN_MASK, IV_CONTINUES_CUT, NONE, ORIGIN_BOUNDARY } from "./contactStore";
 import { describe, expect, it } from "vitest";
 import { emptyLineIndex } from "./lineIndex";
 import { buildCollisionModel, sweepCollisions, sweepCollisionsIter, type CollisionBody, type CollisionMachine,
-  type CollisionResult, type SnapshotHandle } from "./collision";
-import { clashTargets } from "./clashTargets";
+  type CollisionModel, type CollisionOptions, type SnapshotHandle } from "./collision";
 import type { ScrubTrack } from "../ws/bulkData";
 
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 };
@@ -60,7 +60,32 @@ const cutting = () => buildCollisionModel(MILL, [
   { id: "spindle", group: "head", positions: boxPositions(10), tool: true },
 ]);
 const M = { margin: 2 };
-const counted = (r: CollisionResult) => clashTargets(r.hits);
+/** A sweep writing the contact tables too (step 4 package 2): the findings —
+ *  the touch intervals of every episode not of origin "boundary", by the line
+ *  their move begins on, but a cutting contact's later rapid part (one
+ *  finding with the part before, as the view counts) —, the boundary
+ *  episodes' pairs, every entry. */
+function sweepRT(model: CollisionModel, t: ScrubTrack, opts: CollisionOptions) {
+  const st = new ContactStore(1, 0);
+  const r = sweepCollisions(model, t, WCS0, { ...opts, contacts: { store: st } });
+  const E = st.episodes, I = st.intervals;
+  const lineFrom = (x: number) => { let i = 1; while (i < t.count - 1 && t.cum[i]! <= x) i++; return t.lines[i]!; };
+  const finds: Array<{ pair: string; line: number; enter: number }> = [], boundary = new Set<string>(), enters: number[] = [], endLines: number[] = [];
+  const lineAt = (x: number) => { let i = 1; while (i < t.count - 1 && t.cum[i]! < x) i++; return t.lines[i]!; };
+  for (let e = 0; e < E.rows; e++) {
+    const pair = model.pairs[E.get(e, "pair")]!.map(k => model.bodies[k]!.id).sort().join("/");
+    const end = E.get(e, "end");
+    endLines.push(Number.isNaN(end) ? t.lines[t.count - 1]! : lineAt(end));
+    const atBoundary = (E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY;
+    if (atBoundary) boundary.add(pair);
+    for (let iv = E.get(e, "firstIv"); iv !== NONE; iv = I.get(iv, "next")) {
+      const enter = I.get(iv, "enter");
+      enters.push(enter);
+      if (!atBoundary && !(I.get(iv, "flags") & IV_CONTINUES_CUT)) finds.push({ pair, line: lineFrom(enter), enter });
+    }
+  }
+  return [r, { finds, boundary: [...boundary].sort(), enters, rows: E.rows, endLines }] as const;
+}
 const pairOf = (h: { a: string; b: string }) => [h.a, h.b].sort().join("/");
 
 describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
@@ -84,85 +109,83 @@ describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
     const model = crash();
     // L2 plunges into the vise, L3 retracts, L4 plunges again
     const t = track([[0, 0, 0], [0, 0, -45], [0, 0, 0], [0, 0, -45], [0, 0, 0]], [1, 2, 3, 4, 5]);
-    const full = sweepCollisions(model, t, WCS0, M);
-    expect(counted(full).map(c => c.line)).toEqual([2, 4]);
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 2 } });
+    const [full, TF] = sweepRT(model, t, M);
+    expect(TF.finds.map(f => f.line), "the tables").toEqual([2, 4]);
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 2 } });
+    expect(T.boundary, "the tables: no boundary episode").toEqual([]);
+    expect(T.finds.map(f => f.line), "the tables").toEqual([4]);
+    expect(T.finds[0]!.enter).toBeCloseTo(TF.finds[1]!.enter, 2);
+    for (const a of T.enters) expect(a, "the tables: nothing before the start").toBeGreaterThanOrEqual(t.cum[2]! - 1e-6);
     expect(r.range).toEqual({ fromCum: t.cum[2], fromLine: 4 });
     expect(r.boundaryContacts).toEqual([]);
-    expect(counted(r).map(c => c.line)).toEqual([4]);
-    expect(counted(r)[0]!.cum).toBeCloseTo(counted(full)[1]!.cum, 2);
-    for (const h of r.hits) {
-      expect(h.cum).toBeGreaterThanOrEqual(t.cum[2]! - 1e-6);
-      for (const [a] of h.intervals ?? []) expect(a).toBeGreaterThanOrEqual(t.cum[2]! - 1e-6);
-    }
     expect(r.staticContacts).toEqual(full.staticContacts);
   });
 
-  it("from inside a contact: a boundary contact, not a collision; its records are provisional until it separates", () => {
+  it("from inside a contact: a boundary contact, not a collision — an episode of its own origin until it separates", () => {
     const model = crash();
     const t = track([[0, 0, 0], [0, 0, -45], [0, 0, 0], [0, 0, -45], [0, 0, 0]], [1, 2, 3, 4, 5]);
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 1 } });
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 1 } });
+    expect(T.boundary, "the tables: a boundary episode").toEqual(["spindle/vise"]);
+    expect(T.finds.map(f => f.line), "the tables: the next plunge, a collision").toEqual([4]);
+    expect(Math.min(...T.enters), "the tables: never before the start").toBeCloseTo(t.cum[1]!, 6);
     expect(r.boundaryContacts?.map(b => [pairOf(b), b.line, b.cutting])).toEqual([["spindle/vise", 3, false]]);
     expect(r.boundaryContacts![0]!.cum).toBeCloseTo(t.cum[1]!, 6);
-    const prov = r.hits.filter(h => h.boundary);
-    expect(prov.map(h => h.line)).toEqual([3]);
-    // the contact at the start counts nowhere; the next plunge is a collision
-    expect(counted(r).map(c => c.line)).toEqual([4]);
-    expect(prov[0]!.intervals![0]![0]).toBeCloseTo(t.cum[1]!, 6);   // never before the start
   });
 
-  it("a range starting inside a line: its records begin at the start, never at the line's start", () => {
+  it("a range starting inside a line: its contacts begin at the start, never at the line's start", () => {
     const model = crash();
     // L2 is two segments: down into the vise, then on along it; the range
     // starts at the point between them, in the contact
     const t = track([[0, 0, 0], [0, 0, -45], [3, 0, -45], [3, 0, 0]], [1, 2, 2, 3]);
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 1 } });
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 1 } });
+    expect(T.boundary, "the tables").toEqual(["spindle/vise"]);
+    for (const a of T.enters) expect(a, "the tables").toBeGreaterThanOrEqual(t.cum[1]! - 1e-6);
     expect(r.range?.fromLine).toBe(2);
     expect(r.boundaryContacts?.map(b => [pairOf(b), b.line])).toEqual([["spindle/vise", 2]]);
-    for (const h of r.hits) for (const [a] of h.intervals ?? []) expect(a).toBeGreaterThanOrEqual(t.cum[1]! - 1e-6);
     // and a fresh contact just after a clear start keeps to the start too
     const t2 = track([[0, 0, 0], [0, 0, -45], [0, 0, -30], [0, 0, -45], [0, 0, 0]], [1, 2, 2, 2, 3]);
-    const r2 = sweepCollisions(model, t2, WCS0, { ...M, range: { from: 2 } });
+    const [r2, T2] = sweepRT(model, t2, { ...M, range: { from: 2 } });
+    expect(T2.boundary, "the tables").toEqual([]);
+    expect(T2.finds.map(f => f.line), "the tables").toEqual([2]);
+    for (const a of T2.enters) expect(a, "the tables").toBeGreaterThanOrEqual(t2.cum[2]! - 1e-6);
     expect(r2.boundaryContacts).toEqual([]);
-    expect(counted(r2).map(c => c.line)).toEqual([2]);
-    for (const h of r2.hits) for (const [a] of h.intervals ?? []) expect(a).toBeGreaterThanOrEqual(t2.cum[2]! - 1e-6);
   });
 
   it("a boundary contact that separates and comes back on its line: the re-entry is a collision of its own", () => {
     const model = crash();
     // L3: up out of the contact, then down into it again
     const t = track([[0, 0, 0], [0, 0, -45], [0, 0, -20], [0, 0, -45], [0, 0, 0]], [1, 2, 3, 3, 4]);
-    const full = sweepCollisions(model, t, WCS0, M);
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 1 } });
-    expect(r.hits.filter(h => h.boundary).map(h => h.line)).toEqual([3]);
-    const reentry = counted(r);
-    expect(reentry.map(c => c.line)).toEqual([3]);
-    // the full sweep: the L2 contact, carried into L3, and the same re-entry
-    const f = counted(full).filter(c => c.line === 3);
-    expect(f).toHaveLength(1);
-    expect(reentry[0]!.cum).toBeCloseTo(f[0]!.cum, 2);
+    const [, TF] = sweepRT(model, t, M);
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 1 } });
+    // the tables: the boundary episode, and the re-entry a finding of its own on L3 — where the full sweep's is
+    expect(T.boundary).toEqual(["spindle/vise"]);
+    expect(T.finds.map(f => f.line)).toEqual([3]);
+    const tf = TF.finds.filter(f => f.line === 3);
+    expect(tf).toHaveLength(1);
+    expect(T.finds[0]!.enter).toBeCloseTo(tf[0]!.enter, 2);
+    expect(r.boundaryContacts?.map(b => [pairOf(b), b.line])).toEqual([["spindle/vise", 3]]);
   });
 
   it("cutting — feed in, cut, rapid out: the provisional check names a boundary contact, the full check reports nothing (R114)", () => {
     const model = cutting();
     const t = track([[0, 0, 0], [0, 0, -43], [5, 0, -43], [0, 0, 0]], [1, 2, 3, 4], [0, 0, 0, 1]);
-    const full = sweepCollisions(model, t, WCS0, M);
-    expect(full.hits).toEqual([]);
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 2 } });
+    const [, TF] = sweepRT(model, t, M);
+    expect(TF.rows, "the tables").toBe(0);
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 2 } });
+    expect(T.rows, "the tables: a cutting boundary contact writes nothing").toBe(0);
     expect(r.boundaryContacts?.map(b => [pairOf(b), b.cutting])).toEqual([["spindle/stock", true]]);
-    expect(r.hits, "a cutting boundary contact records nothing").toEqual([]);
   });
 
   it("cutting — rapid in, feed, rapid out without separating: the full check reports the gouge, the provisional one names the contact it cannot classify (R114)", () => {
     const model = cutting();
     const t = track([[0, 0, 0], [0, 0, -43], [5, 0, -43], [0, 0, 0]], [1, 2, 3, 4], [0, 1, 0, 1]);
-    const full = sweepCollisions(model, t, WCS0, M);
-    expect(counted(full).map(c => c.line)).toEqual([2]);
-    expect(full.hits.some(h => h.line === 4)).toBe(true);   // the rapid out, a continuation
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 2 } });
+    const [, TF] = sweepRT(model, t, M);
+    expect(TF.finds.map(f => f.line), "the tables: the gouge").toEqual([2]);
+    expect(TF.endLines, "its contact runs on through the rapid out").toEqual([4]);
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 2 } });
+    expect(T.rows, "the tables: nothing it could not classify").toBe(0);
     expect(r.boundaryContacts?.map(b => [pairOf(b), b.cutting])).toEqual([["spindle/stock", true]]);
     // its onset unknown — taken as feed: nothing it could not classify
-    expect(r.hits, "a cutting boundary contact records nothing").toEqual([]);
   });
 
   it("static exclusions are the program's, never the range start's (VP112-04)", () => {
@@ -175,10 +198,11 @@ describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
       { id: "spindle", group: "head", positions: boxPositions(10) },
     ] as CollisionBody[]);
     const t = track([[30, 0, 0], [0, 0, 0], [0, 0, 5], [0, 0, 10]], [1, 2, 3, 4]);
-    const full = sweepCollisions(model, t, WCS0, M);
+    const [full, TF] = sweepRT(model, t, M);
     expect(full.staticContacts).toEqual([]);
-    expect(counted(full).map(c => [pairOf(c), c.line])).toEqual([["post/stop", 2]]);
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 1 } });
+    expect(TF.finds.map(f => [f.pair, f.line]), "the tables").toEqual([["post/stop", 2]]);
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 1 } });
+    expect(T.boundary, "the tables").toEqual(["post/stop"]);
     expect(r.staticContacts).toEqual(full.staticContacts);
     expect(r.boundaryContacts?.map(pairOf)).toEqual(["post/stop"]);
   });
@@ -188,12 +212,11 @@ describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
     // the program starts in the vise (clear at rest: crashed from its first
     // point — the full sweep's seeded onset on L2)
     const t = track([[0, 0, -45], [0, 0, -44], [0, 0, -45], [0, 0, 0]], [1, 2, 3, 4]);
-    const full = sweepCollisions(model, t, WCS0, M);
-    expect(counted(full).map(c => c.line)).toEqual([2]);
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 1 } });
+    const [, TF] = sweepRT(model, t, M);
+    expect(TF.finds.map(f => f.line), "the tables").toEqual([2]);
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 1 } });
+    expect([T.boundary, T.finds], "the tables: a boundary episode, no finding").toEqual([["spindle/vise"], []]);
     expect(r.boundaryContacts?.map(b => [pairOf(b), b.line])).toEqual([["spindle/vise", 3]]);
-    expect(r.hits.every(h => h.boundary)).toBe(true);
-    expect(counted(r)).toEqual([]);
   });
 
   it("a body wholly inside another at the start is a boundary contact", () => {
@@ -205,20 +228,20 @@ describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
       { id: "spindle", group: "head", positions: boxPositions(10) },
     ] as CollisionBody[]);
     const t = track([[50, 0, 0], [0, 0, 0], [1, 0, 0], [2, 0, 0]], [1, 2, 3, 4]);
-    const full = sweepCollisions(model, t, WCS0, M);
-    expect(counted(full).map(pairOf)).toContain("inner/outer");
-    const r = sweepCollisions(model, t, WCS0, { ...M, range: { from: 1 } });
+    const [, TF] = sweepRT(model, t, M);
+    expect(TF.finds.map(f => f.pair), "the tables").toContain("inner/outer");
+    const [r, T] = sweepRT(model, t, { ...M, range: { from: 1 } });
+    expect([T.boundary, T.finds], "the tables: a boundary episode, no finding").toEqual([["inner/outer"], []]);
     expect(r.boundaryContacts?.map(pairOf)).toEqual(["inner/outer"]);
-    expect(counted(r)).toEqual([]);
   });
 
   it("a range with nothing of positive length after its start is said, never clear", () => {
     const model = crash();
     const t = track([[0, 0, 0], [0, 0, -45], [0, 0, -45], [0, 0, -45]], [1, 2, 3, 4]);
     for (const from of [2, 3]) {
-      const r = sweepCollisions(model, t, WCS0, { ...M, range: { from } });
+      const [r, T] = sweepRT(model, t, { ...M, range: { from } });
+      expect(T.rows, "the tables").toBe(0);
       expect(r.range).toEqual({ fromCum: t.cum[from], fromLine: t.lines[Math.min(from + 1, 3)], empty: true });
-      expect(r.hits).toEqual([]);
       expect(r.boundaryContacts).toEqual([]);
     }
   });
@@ -229,7 +252,7 @@ describe("the range sweep (plan „Prüfung im Lauf“ 3b)", () => {
     for (let i = 1; i <= 400; i++) pts.push([i % 2 ? 1 : 0, 0, -i * 0.05]);
     const t = track(pts, pts.map((_, i) => i + 1));
     const from = 200, fromFrac = t.cum[from]! / t.cum[t.count - 1]!;
-    const snap: SnapshotHandle = { take: null, peek: null, records: null, first: null };
+    const snap: SnapshotHandle = { take: null, meta: null };
     const it = sweepCollisionsIter(model, t, WCS0, { ...M, range: { from }, snapshot: snap, yieldMs: 0 });
     const seen: number[] = [];
     let step = it.next();

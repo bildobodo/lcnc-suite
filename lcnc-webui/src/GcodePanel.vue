@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, useId, watch } from "vue";
 import type { CollisionLineMark } from "./viewer/collision";
-import { collisionMarkByLine } from "./viewer/collisionMarks";
+import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import { listFiles, uploadFile, saveFile, fetchSubfile, fetchProgramFile, UploadConflictError, type FileEntry } from "./lcncApi";
 import { saveAsFile } from "./download";
 import DialogFrame from "./DialogFrame.vue";
@@ -82,7 +82,9 @@ const props = defineProps<{
   // Lines flagged by the viewer's collision sweep (stage 3) — danger-tinted
   // line numbers (soft-limit violations are warn-tinted; a line with both
   // reads danger), the same colours as the scrub bar's timeline marks.
-  collisionLines?: CollisionLineMark[] | null;
+  /** The collision mark of a line, asked for the lines shown (step 4
+   *  package 2, plan 4.2); null: no check result. */
+  collisionLines?: CollisionLineQuery | null;
   // Marked-span execution state for the inline sub view (W5): while a
   // marked o-call span executes (run playhead or sim scrub), the called
   // file's lines render INDENTED under the call line with the executing
@@ -409,15 +411,22 @@ const violationsByLine = computed(() => {
   return m;
 });
 
-// one mark per line: a collision's own record over a provisional one (Codex
-// R116 VP-I69)
-const collisionLineSet = computed(() => collisionMarkByLine(props.collisionLines ?? []));
+// one mark per line, asked only for the lines rendered — each once per
+// query (a new query is a new result shown)
+const collisionMarkAt = computed(() => {
+  const q = props.collisionLines, seen = new Map<number, CollisionLineMark | null>();
+  return (line: number): CollisionLineMark | null => {
+    if (!q) return null;
+    if (!seen.has(line)) seen.set(line, q(line));
+    return seen.get(line)!;
+  };
+});
 
 function lineMarkTitle(lineNum: number): string | undefined {
   const parts: string[] = [];
   const v = violationsByLine.value.get(lineNum);
   if (v) parts.push(v.map(violationText).join("; "));
-  const cm = collisionLineSet.value.get(lineNum);
+  const cm = collisionMarkAt.value(lineNum);
   if (cm) parts.push(cm.boundary
     ? "in contact at the check's start (provisional) — where it began and what it is, the full check says"
     : cm.possible
@@ -1003,7 +1012,7 @@ async function saveEdit() {
                    selected: item.kind === 'main' && selectedLine === item.lineNum,
                    selectable: item.kind === 'main' && runFromLine && gcodeContent,
                    violation: item.kind === 'main' && violationsByLine.has(item.lineNum),
-                   collision: item.kind === 'main' && collisionLineSet.has(item.lineNum)
+                   collision: item.kind === 'main' && !!collisionMarkAt(item.lineNum)
                  }"
                  :title="item.kind === 'main' ? lineMarkTitle(item.lineNum) : undefined"
                  @click="item.kind === 'main' && onLineClick(item.lineNum)">
@@ -1012,7 +1021,7 @@ async function saveEdit() {
                    contrast plan, V3): the timeline's glyphs, × wins the look,
                    the name says every finding of the line. -->
               <span class="lineMark">
-                <X v-if="item.kind === 'main' && collisionLineSet.has(item.lineNum)" :size="11" role="img"
+                <X v-if="item.kind === 'main' && !!collisionMarkAt(item.lineNum)" :size="11" role="img"
                    :aria-label="violationsByLine.has(item.lineNum) ? 'Limit violation, collision' : 'Collision'" />
                 <Triangle v-else-if="item.kind === 'main' && violationsByLine.has(item.lineNum)" :size="9" fill="currentColor"
                           role="img" aria-label="Limit violation" />

@@ -61,8 +61,9 @@ import { assignPairs } from "./pairAssign";
 import { inLocalBoxes, meshClosure, pointInside, type InsideVerdict } from "./insideCheck";
 import { displayLineForPoint } from "./scrubTrack";
 import { probeStopTitle, type ProbeStop } from "./probeStop";
+import { NEAR_HIST, backTo, pushBound } from "./nearHistory";
 import {
-  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT,
+  ColumnTable, ContactStore, EP_AT_START, EP_POSSIBLE, EP_RAPID, GAP_TOOL_UNKNOWN, GAP_UNDECIDABLE, IV_AFTER_UNKNOWN_TOOL, IV_CONTINUES_CUT, IV_RAPID,
   IV_ENDED_AT_FEED, IV_ENDED_AT_GAP, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, ORIGIN_BOUNDARY, ORIGIN_PROGRAM, f32Inward,
 } from "./contactStore";
 
@@ -178,86 +179,6 @@ export function partCollides(p: { collide?: boolean | null }): boolean {
   return p.collide !== false;
 }
 
-export interface CollisionHit {
-  line: number;
-  /** Track-cum of FIRST TOUCH (refined) for contact hits; closest-approach
-   *  sample for near-misses — the scrub-to-hit target. */
-  cum: number;
-  /** Track-cum where the contact ENDS (refined exit, clamped to the line) —
-   *  equals `cum` for near-misses. With `intervals` present this is the
-   *  LAST interval's end (kept for compatibility). */
-  cumEnd: number;
-  /** Contact intervals [enter, exit] in track cum, boundary-refined —
-   *  contact within one line can be INTERMITTENT (a rotary sweep can
-   *  brush a part, leave it, and brush it again; user-caught on a TCP
-   *  return move). The clash tint tests membership here; the timeline
-   *  marks every interval ONSET. Absent for near-misses. */
-  intervals?: Array<[number, number]>;
-  a: string;               // tool-side body id
-  b: string;               // work-side body id
-  dist: number;            // machine units; 0 = contact/penetration
-  /** True when the contact happens during a RAPID — always a real problem.
-   *  Feed-move contact with the work-holding (platter) can be legitimate
-   *  cutting; there is no stock model to tell the difference. */
-  rapid: boolean;
-  /** Set when this record's contact BEGAN on an earlier line and never
-   *  separated (verified: the pair never cleared 2× the margin): the value
-   *  is that onset line. The pair is still in contact here — this is NOT a
-   *  new event (operator-caught: a beam rammed into the portal on the entry
-   *  move was re-reported on every following line). Absent = this record
-   *  IS the onset. Records are still one per (line, pair) so the clash tint
-   *  and the G-code line marks show the full extent. */
-  continuation?: number;
-  /** On an ONSET record: the last line the contact persists through
-   *  (== line when the contact ends on its own line). */
-  spanEndLine?: number;
-  /** On an ONSET record whose contact persists past its own line: the track
-   *  cum where it finally ends (the last continuation's exit — over ALL
-   *  records, past the MAX_HITS cap too). The tint and the timeline's red
-   *  extent read it for lines that have no record of their own (a contact
-   *  that never separates over thousands of lines keeps only the first
-   *  200 records). Absent when the contact ends on the onset line. */
-  spanCumEnd?: number;
-  /** This onset record's FIRST interval continues a contact that began
-   *  earlier and never separated — on an earlier line of this sweep (the
-   *  record was a continuation until a re-entry on its line made it an
-   *  onset) or on the entry move (mergeEntryResult). That interval is the
-   *  earlier finding's contact, not one of its own; the LATER intervals are
-   *  re-entries, findings of their own (Codex R34 VP-I09). */
-  carried?: true;
-  /** Set by mergeEntryResult on the ENTRY MOVE's records: its own sweep,
-   *  whose line is the program's first line (the entry move ends at the
-   *  first point and carries its line) — the same line and pair as a
-   *  program contact, another finding (Codex R33 VP-I07). */
-  entry?: true;
-  /** Of the side sweep's records, one whose contact began on the entry MOVE
-   *  itself (the live position to the first point) — the others lie on the
-   *  program's start-dependent beginning bound to the start (parity-ef plan
-   *  E7) and read as their lines. */
-  entryMove?: true;
-  /** A record of a contact in progress at a RANGE sweep's start (plan
-   *  „Prüfung im Lauf“ 3b): it began before the range, so the range cannot
-   *  tell its onset or its kind — the full check does. Never a collision of
-   *  its own; its records stand as provisional until the pair separates. */
-  boundary?: true;
-  /** A record on a probe's braking range (track `band`, docs/reviews/
-   *  parity-ef.plan.md F2): the path there is a MODELED hull every stop lies
-   *  in, so the contact MAY happen — never a certain one. */
-  possible?: true;
-  /** On an onset record whose own distance is above CONTACT_EPS (the pair
-   *  entered the margin on this line): its contact TOUCHED on a later line
-   *  (a touching continuation record). The finding is a collision, not a near
-   *  miss (step 4 package 1, found 2026-10-11: such a finding read "near miss,
-   *  2.0 mm apart" while its continuation touched). Its position stays the
-   *  margin entry; where the touch begins is the contact history's (package 2). */
-  touches?: true;
-  /** The onset record of a contact the program STARTS in: the pair is clear
-   *  at the model's rest pose and touching at the first pose (step 4 plan
-   *  1d) — proven there, not merely inside the margin. The entry merge drops
-   *  it where the contact began on the entry move. */
-  atStart?: true;
-}
-
 /** The start-dependent beginning a sweep of `track` names, apart from the
  *  guarantee (plan E7). A start no entry move can bind (`startUnbound`, Codex
  *  R133 VP-I84) is named whatever K is: at K = 0 the first move alone starts
@@ -277,15 +198,6 @@ export function startDependentOf(track: { count: number; lines: ArrayLike<number
   return { fromLine: from, toLine: to, whole: depK > 0 ? depK >= track.count : track.count <= 1,
            // not checked in the simulation either
            ...(unbound ? { unbound: true } : {}) };
-}
-
-/** A CONFIRMED contact (step 4 plan 1b/1d, Codex R118): a record that
- *  touches (≤ CONTACT_EPS) or — an onset — whose contact touched on a later
- *  line (`touches`), and is no boundary contact of a range sweep (onset and
- *  kind are the full check's) and no `possible` one (the braking range). A
- *  near miss is never one. */
-export function confirmedContact(h: CollisionHit): boolean {
-  return !h.boundary && !h.possible && (h.dist <= CONTACT_EPS || !!h.touches);
 }
 
 /** What the G-code panel marks: every line in contact, onset or not. */
@@ -391,6 +303,14 @@ export interface CollisionOptions {
    *  distance probes away from the main step (refinement, the re-sampling
    *  after a touch, the contact store's bisections) — work no load changes. */
   profile?: { queries?: Uint32Array; ms?: Float64Array; probes?: Uint32Array };
+  /** The per-line sample of a pair in contact — GONE (step 4 package 2, plan
+   *  5, B8): its one reason was the continuation record per line, and the
+   *  code marks follow from coverage since (plan 4.2). ON restores the old
+   *  rule exactly — the per-line sample in place of the sample where the kind
+   *  of move changes and of the re-sampling at a near pair's margin exit —
+   *  only to compare a sweep with it and to measure what it cost
+   *  (collisionLineSample.test.ts, haus.ngc Fall B); never in the product. */
+  lineSample?: boolean;
   /** Test seam (step 4 package 2, plan 7.3 check 3): every chunk's speed
    *  bound per pair as the sweep uses it — `V` per unit of the sweep's
    *  distance parameter over [s0, s1]. Absent = nothing called. */
@@ -429,7 +349,6 @@ export interface CollisionOptions {
 }
 
 export interface CollisionResult {
-  hits: CollisionHit[];
   /** Pairs already inside the margin at the program's first pose (mechanical
    *  joints — or a program that starts in contact). Reported once, excluded
    *  from the per-line sweep. */
@@ -456,18 +375,6 @@ export interface CollisionResult {
    *  a result built elsewhere: its `uncertified` counts as one statement. */
   notes?: string[];
   pairCount: number;
-  /** Records the MAX_HITS cap left out of `hits` (onsets are kept first, so
-   *  these are the latest continuation and onset records): OMITTED records,
-   *  never "more collisions" — a contact over many lines is a record per line
-   *  (Codex R84/R118). Absent when nothing was cut. The refinement's merge of
-   *  more than 16 contact clusters on one record is a separate approximation
-   *  this count does not cover. */
-  capped?: number;
-  /** Of `capped`, the records where a contact BEGINS (onsets past the first
-   *  MAX_HITS): contacts — collisions perhaps — the list and its count do not
-   *  hold. Absent when every onset is listed (the cut records are then
-   *  continuations of listed contacts). */
-  cappedOnsets?: number;
   /** The model's bodies the check could not take whole, by class
    *  (`bodyClasses`; the same as the text `geometryNote` puts in `notes`). */
   bodies?: { unusable: string[]; damaged: string[]; open: string[] };
@@ -517,34 +424,22 @@ export function unitedNotes(results: readonly CollisionResult[]): { notes: strin
  *  its initialization (the reach prescreen and the baseline) is done —
  *  initialization checkpoints exist (TWP-11) but a stop arriving during them
  *  parks at the first checkpoint after — and clears it when it returns.
- *  While the generator is
- *  SUSPENDED at a checkpoint the driver may call `take(reason)` to get the
- *  sweep-so-far as a CollisionResult — `truncated` set with that reason and
- *  the covered fraction — WITHOUT ending the generator: resuming it
- *  afterwards continues the sweep with every certificate and contact state
- *  intact. The refinement runs on COPIES of the hit records, and every
- *  checkpoint sits BEFORE the pose of the sample it precedes (TWP-07 — the
- *  in-segment checkpoint used to sit between the pose and its distance
- *  queries, so a refinement probe or a side sweep re-posed the shared model
- *  under them), so the loop re-poses after every resume and a snapshot
- *  leaves the suspended sweep exactly as it found it. */
+ *  While the generator is SUSPENDED at a checkpoint the driver may call
+ *  `take(reason)` to get the sweep-so-far's METADATA as a CollisionResult —
+ *  `truncated` set with that reason and the covered fraction — WITHOUT ending
+ *  the generator: resuming it afterwards continues the sweep with every
+ *  certificate and contact state intact. What the sweep found is the contact
+ *  store's (step 4 package 2, C2): a result carries no records. Every
+ *  checkpoint sits BEFORE the pose of the sample it precedes (TWP-07), so the
+ *  loop re-poses after every resume. */
 export interface SnapshotHandle {
   take: ((reason: "time" | "stopped") => CollisionResult) | null;
-  /** The sweep-so-far WITHOUT refinement (2026-09-13, live findings on the
-   *  timeline): hits at their discovering samples — up to one sample step
-   *  late — with `truncated.reason === "running"`. Cheap: a shallow copy of
-   *  the records, no mesh probes. The refined result replaces it when the
-   *  sweep ends or parks. */
-  peek: (() => CollisionResult) | null;
-  /** Contact records so far — the driver peeks only when this changed. */
-  records: (() => number) | null;
-  /** The sweep's FIRST CONFIRMED contact (step 4 plan 1b, Codex R85/R118):
-   *  the first record TOUCHING (dist ≤ CONTACT_EPS) that is no boundary
-   *  contact (its onset and kind are the full check's), no `possible` one
-   *  (the braking range), no continuation — a copy, unrefined (at its
-   *  discovering sample). A cutting contact begun on a feed and a statically
-   *  excluded pair make no record at all. Null until there is one. */
-  first: (() => CollisionHit | null) | null;
+  /** The running sweep's metadata (C2): what the bar says of it beside its
+   *  contact tables — static contacts, pairs, notes, the start-dependent
+   *  beginning, a range's start and boundary contacts — with
+   *  `truncated.reason === "running"` and the covered fraction. Cheap: no
+   *  probe, no copy of anything the sweep grows. */
+  meta: (() => CollisionResult) | null;
 }
 
 // maxSamples is a RUNAWAY backstop, not the operative bound: with carried
@@ -571,10 +466,6 @@ export const CONTACT_EPS = 1e-4;
  *  permanent contacts, the same answers (2026-10-07). Above it the result
  *  is the exact distance, unchanged. */
 const TOUCH_STOP = CONTACT_EPS / 2;
-
-/** Records a result reports — onsets first (see buildResult); the parallel
- *  sweep's merge applies the same cap over its shards (sweepShards.ts). */
-export const MAX_HITS = 200;
 
 export interface Node {
   id: string;
@@ -1127,30 +1018,6 @@ function poseTree(nodes: Node[], jointVals: number[], scratch: {
   }
 }
 
-/**
- * Refinement can split ONE continuous contact into windows that meet at a
- * boundary: the clusters are seeded from in-contact samples (pushed only at
- * dist ≤ CONTACT_EPS), so a sample gap wider than CLUSTER_GAP opens two
- * clusters even when every probe between them is still in contact. The exit
- * walk of the first then reaches the next cluster's first sample unbracketed
- * and the entry walk of the second starts there — the two boundaries land on
- * the SAME cum. Two boundaries within twice the bisection tolerance (1e-3)
- * are one boundary; the windows are one contact. Operator-caught 2026-09-03
- * as "one clash reported, two marks on the timeline". Pure; unit-tested.
- */
-export function mergeContiguousIntervals(
-  ivs: ReadonlyArray<readonly [number, number]>,
-  eps = 2e-3,
-): Array<[number, number]> {
-  const out: Array<[number, number]> = [];
-  for (const iv of ivs) {
-    const last = out[out.length - 1];
-    if (last && iv[0] - last[1] <= eps) last[1] = Math.max(last[1], iv[1]);
-    else out.push([iv[0], iv[1]]);
-  }
-  return out;
-}
-
 /** Sweep the track to completion (or to its budget). `onProgress` gets 0..1
  *  at the iterator's checkpoints; `shouldAbort` is polled there — true stops
  *  the sweep with what was swept so far (an abort is the caller's decision,
@@ -1510,7 +1377,7 @@ export function* sweepCollisionsIter(
   if (abortedInit) {
     // Nothing posed, nothing queried (same contract as the prescreen abort).
     restoreBaseTool(model);
-    return { hits: [], staticContacts: [], samples: 0, coarsened: false, ...notesOf(noteParts),
+    return { staticContacts: [], samples: 0, coarsened: false, ...notesOf(noteParts),
              pairCount: model.pairs.length, pairsPrescreened: 0, bvhMs: model.bvhMs,
              sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
@@ -1520,15 +1387,6 @@ export function* sweepCollisionsIter(
     step: new THREE.Quaternion(), one: new THREE.Vector3(1, 1, 1),
   };
 
-  // Worst hit per (line, pair) — same attribution shape as stage 1. `pi`
-  // (pair index), `samples` (in-contact sample cums, the interval
-  // clustering input) and `carriedFrom` (the onset line of the contact a
-  // record carried in before a re-entry made it an onset) are internal to
-  // the refinement pass.
-  const worst = new Map<string, CollisionHit & { pi: number; samples: number[]; carriedFrom?: number }>();
-  // the first confirmed contact (SnapshotHandle.first), on the sweep's own
-  // distance axis like every live record
-  let firstTouch: CollisionHit | null = null;
   let done = 0;
 
   // Per-segment epoch terms (review P2): a segment's program coords convert
@@ -1718,7 +1576,7 @@ export function* sweepCollisionsIter(
     // Nothing posed, nothing queried, no certificate or contact state to
     // report; the driver discards a cancelled sweep's value anyway.
     restoreBaseTool(model);
-    return { hits: [], staticContacts: [], samples: 0, coarsened: false, ...notesOf(noteParts),
+    return { staticContacts: [], samples: 0, coarsened: false, ...notesOf(noteParts),
              pairCount: pairs.length, pairsPrescreened, bvhMs: model.bvhMs,
              sweepMs: clock() - t0, truncated: { covered: 0, reason: "stopped" } };
   }
@@ -1750,15 +1608,6 @@ export function* sweepCollisionsIter(
   const staticExcluded = new Uint8Array(pairs.length);
   const inContact = new Uint8Array(pairs.length);
   const onsetRapid = new Uint8Array(pairs.length);
-  // The line a pair's CURRENT contact began on (-1 = not in contact) — the
-  // same latch the cutting semantics use for onsetRapid, now read by the
-  // non-cutting branch too: a record minted on a later line while the pair
-  // never separated is a CONTINUATION, not a new clash.
-  const onsetLine = new Int32Array(pairs.length).fill(-1);
-  // On a probe's braking range (track `band`): the line of a pair's first
-  // POSSIBLE touch there while it is in no certain contact — the range's
-  // later touches continue that record; the contact state stays as it was.
-  const bandOnset = new Int32Array(pairs.length).fill(-1);
   // A pair in contact (inContact) whose LAST query found it touching
   // (d ≤ CONTACT_EPS): it keeps the EXPLORE cadence. One that was not
   // touching carries a clearance certificate like a clear pair — see the
@@ -1767,6 +1616,18 @@ export function* sweepCollisionsIter(
   // Where a pair's last TOUCHING query was (NaN: none yet) — the start of the
   // stretch re-sampled when it is next found not touching (VP-I45).
   const lastTouch = new Float64Array(pairs.length).fill(NaN);
+  // Where a pair's last query found it inside the margin WITHOUT a touch
+  // (NaN: the last query touched or lay outside the margin) — the start of
+  // the stretch searched when it is next found outside the margin (B8) — and
+  // the chunks' speed bounds since, as a short history (nearHistory.ts: at
+  // most NEAR_HIST entries a pair, in two flat arrays).
+  const nearQ = new Float64Array(pairs.length).fill(NaN);
+  const nearHS = new Float64Array(pairs.length * NEAR_HIST);
+  const nearHV = new Float64Array(pairs.length * NEAR_HIST);
+  const nearHN = new Uint8Array(pairs.length);
+  const nearPush = (pi: number, at: number, v: number) => {
+    nearHN[pi] = pushBound(nearHS, nearHV, pi * NEAR_HIST, nearHN[pi]!, at, v);
+  };
   // The inside check (collision-inside.plan.md, pairInside): a query that
   // finds the surfaces apart proves the pair apart only where it is known not
   // to lie wholly inside the other. Between two surface contacts the answer
@@ -1776,11 +1637,13 @@ export function* sweepCollisionsIter(
   // whose last query touched (a separation decision — `inContact &&
   // touching`, the beyond-horizon Infinity included) and a pair whose last
   // answer was undecidable. "inside" counts as a touch (distance 0);
-  // "undecidable" gives no record, no separation and no clearance
-  // certificate, and its stretch is named for good (`undecSpans`, VP96-03).
+  // "undecidable" gives no contact, no separation and no clearance
+  // certificate; its stretch is a gap of the contact store (GAP_UNDECIDABLE),
+  // named for good with the view (VP96-03) — the rest pose's answer, no
+  // point of the program, in the result's notes (`restUndec`, VP167-01).
   const undecided = new Uint8Array(pairs.length);
   const needInside = new Uint8Array(pairs.length);
-  const undecSpans = new Map<number, Array<[number, number]>>();   // per pair: [first, last] line of each undecidable stretch
+  const restUndec = new Set<number>();
   const askInside = (pi: number): boolean =>
     (inContact[pi] === 1 && touching[pi] === 1) || undecided[pi] === 1 || needInside[pi] === 1;
   const insideOf = (pi: number): InsideVerdict => {
@@ -1790,14 +1653,7 @@ export function* sweepCollisionsIter(
   // The state after a query in TIME order: an undecidable answer opens or
   // extends its pair's stretch, anything else (a decided answer, a touch, a
   // pair not asked — known outside) ends it.
-  const markInside = (pi: number, v: InsideVerdict | null, line: number) => {
-    if (v !== "undecidable") { undecided[pi] = 0; return; }
-    let spans = undecSpans.get(pi);
-    if (!spans) undecSpans.set(pi, spans = []);
-    if (undecided[pi] && spans.length) spans[spans.length - 1]![1] = line;
-    else spans.push([line, line]);
-    undecided[pi] = 1;
-  };
+  const markInside = (pi: number, v: InsideVerdict | null) => { undecided[pi] = v === "undecidable" ? 1 : 0; };
   const staticContacts: CollisionResult["staticContacts"] = [];
   // Contact from the program's first point: an ONSET on the first line the
   // sweep's first sample records; later lines' records are continuations.
@@ -1808,7 +1664,6 @@ export function* sweepCollisionsIter(
   const seedOnset = (pi: number) => {
     seeded[pi] = 1;
     inContact[pi] = 1;
-    onsetLine[pi] = track.lines[firstSeg] ?? 0;
     onsetRapid[pi] = track.rapid[firstSeg] === 1 ? 1 : 0;
   };
   const poseFirst = () => poseAt(track.pos[p0 * 3]!, track.pos[p0 * 3 + 1]!, track.pos[p0 * 3 + 2]!,
@@ -1840,7 +1695,7 @@ export function* sweepCollisionsIter(
       // Surfaces apart: wholly inside is a contact the distance cannot see.
       const v = insideOf(pi);
       if (v === "inside") dist = 0;
-      else markInside(pi, v, firstLine);
+      else markInside(pi, v);
     }
     if (dist <= opts.margin) {
       nearFirst[pi] = 1;
@@ -1864,7 +1719,7 @@ export function* sweepCollisionsIter(
       if (!rest) {
         const v = insideOf(pi);
         rest = v === "inside";
-        if (v === "undecidable") markInside(pi, v, firstLine);
+        if (v === "undecidable") { markInside(pi, v); restUndec.add(pi); }
       }
       if (rest) {
         staticExcluded[pi] = 1;   // touching at rest too: a slide, a bearing, a mount
@@ -1895,7 +1750,7 @@ export function* sweepCollisionsIter(
     for (let pi = 0; pi < pairs.length; pi++) {
       if (mine[pi]) continue;
       skipPair[pi] = 1;
-      undecSpans.delete(pi);   // the baseline's answer for another shard's pair is that shard's to report
+      restUndec.delete(pi);   // the baseline's answer for another shard's pair is that shard's to report
     }
     if (opts.shard.index !== 0) { staticContacts.length = 0; pairsPrescreened = 0; }
   }
@@ -1918,152 +1773,44 @@ export function* sweepCollisionsIter(
     while (startSeg < n && dcum[startSeg]! - dcum[startSeg - 1]! <= 1e-9) startSeg++;
     inContact.fill(0);
     seeded.fill(0);
-    onsetLine.fill(-1);
-    bandOnset.fill(-1);
     onsetRapid.fill(0);
     undecided.fill(0);
-    undecSpans.clear();
+    restUndec.clear();
   }
   const rangeStart = opts.range && n > 0 ? dcum[rangeFrom]! : 0;
   const rangeEmpty = !!opts.range && startSeg >= n;
   // In contact at the range's first sample: begun before the range, its
-  // onset and kind unknown — its records carry `boundary` until it separates.
-  const boundaryPair = new Uint8Array(pairs.length);
+  // onset and kind unknown — a boundary contact (the store's ORIGIN_BOUNDARY).
   const boundaryContacts: NonNullable<CollisionResult["boundaryContacts"]> = [];
 
-  const keyFor = (line: number, pi: number, boundary = false) => {
-    const [ai, bi] = pairs[pi]!;
-    return `${boundary ? "B" : ""}${line}|${bodies[ai]!.id}|${bodies[bi]!.id}`;
-  };
-  const recordHit = (line: number, cum: number, rapid: boolean, pi: number, dist: number, inBand = false) => {
-    const [ai, bi] = pairs[pi]!;
-    // A boundary contact's records have keys of their own: the pair may
-    // separate and come back on the same line — a collision of its own.
-    const boundary = boundaryPair[pi] === 1;
-    const key = keyFor(line, pi, boundary);
-    const prev = worst.get(key);
-    // A certain sample on a line whose record so far was only possible (the
-    // range's end pose sits on the next segment's line): the record is
-    // certain now, and its continuation the certain contact's, not the
-    // range's (Codex R126 VP-I74).
-    if (prev?.possible && !inBand) {
-      delete prev.possible;
-      const c = onsetLine[pi]! >= 0 && onsetLine[pi] !== line ? onsetLine[pi]! : undefined;
-      if (c === undefined) delete prev.continuation;
-      else prev.continuation = c;
-    }
-    // Continuing what: a certain contact, or on the range a possible one.
-    const onsetFor = inBand && !inContact[pi] ? bandOnset[pi]! : onsetLine[pi]!;
-    if (!prev || dist < prev.dist) {
-      const rec: CollisionHit & { pi: number; samples: number[]; carriedFrom?: number } = {
-        line, cum, cumEnd: cum, a: bodies[ai]!.id, b: bodies[bi]!.id, dist, rapid, pi,
-        samples: prev ? prev.samples : [] };
-      if (prev?.carriedFrom !== undefined) rec.carriedFrom = prev.carriedFrom;
-      if (prev?.touches) rec.touches = true;
-      // Continuation: the pair's contact began on an EARLIER line and has
-      // not separated since. A worse sample on the same line keeps the
-      // record's existing verdict.
-      const cont = prev ? prev.continuation
-        : (onsetFor >= 0 && onsetFor !== line ? onsetFor : undefined);
-      if (cont !== undefined) rec.continuation = cont;
-      // proven at the first pose: touching there, not merely inside the margin
-      else if (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !boundary && !inBand) rec.atStart = true;
-      if (boundary) rec.boundary = true;
-      // possible while every sample of the record lies on the range
-      if (inBand && (!prev || prev.possible)) rec.possible = true;
-      if (prev) rec.cumEnd = Math.max(prev.cumEnd, cum);
-      if (dist <= CONTACT_EPS) rec.samples.push(cum);
-      worst.set(key, rec);
-      // A touch on a later line than the pair's margin entry: the onset
-      // record's finding is a collision (`touches`).
-      const onsetRec = dist <= CONTACT_EPS && rec.continuation !== undefined && !rec.boundary && !rec.possible
-        ? worst.get(keyFor(rec.continuation, pi, false)) : undefined;
-      if (onsetRec && onsetRec.dist > CONTACT_EPS && !onsetRec.possible) onsetRec.touches = true;
-      // The sweep's first confirmed contact: its FINDING — the onset record
-      // where the touch continues one (SnapshotHandle.first).
-      if (!firstTouch && dist <= CONTACT_EPS && !rec.boundary && !rec.possible) {
-        const { pi: _pi, samples: _s, carriedFrom: _c, ...copy } = onsetRec ?? rec;
-        firstTouch = copy;
-      }
-    } else {
-      if (dist <= CONTACT_EPS) {
-        prev.samples.push(cum);  // in-contact sample — interval clustering input
-        if (cum > prev.cumEnd) prev.cumEnd = cum;
-      }
-      if (rapid && !prev.rapid) prev.rapid = true;  // any rapid contact on this (line, pair) marks it
-    }
-  };
-
-  // One query's answer for a pair's CONTACT STATE and records — the main
-  // loop's and the re-sampling's after a touch (VP-I45, R87): the onset
-  // (with the re-entry promotion), the record under the cutting rule, a
-  // verified separation past 2 × margin. The main loop then sets the pair's
-  // certificates; the re-sampling sets none.
+  // One query's answer for a pair's CONTACT STATE — the main loop's and the
+  // re-sampling's after a touch (VP-I45, R87): the onset and its kind of
+  // move, a range's boundary contact, a verified separation past 2 × margin.
+  // The main loop then sets the pair's certificates; the re-sampling sets
+  // none. What it finds is the contact store's (the sink below).
   const noteState = (pi: number, s: number, line: number, isRapid: boolean, d: number, inBand = false) => {
-    if (inBand) {
-      // The braking range is a hull, not where the machine is: it changes
-      // no contact state — no separation there is verified, and no onset
-      // either: a possible feed contact must not make a later rapid a benign
-      // retract, nor a later certain hit its continuation (Codex R126
-      // VP-I74). Its touches are `possible` records: a certain contact begun
-      // before it continues on them; one only there starts its own.
-      if (d <= opts.margin) {
-        if (pairCutting[pi]) {
-          // the cutter in the stock: a range leg is a feed — machining;
-          // only a rapid-begun (gouge) contact keeps reporting
-          if (inContact[pi] && isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d, true);
-        } else {
-          recordHit(line, s, isRapid, pi, d, true);
-          if (!inContact[pi] && bandOnset[pi]! < 0) bandOnset[pi] = line;
-        }
-      }
-      return;
-    }
+    // The braking range is a hull, not where the machine is: it changes no
+    // contact state — no separation there is verified, and no onset either
+    // (Codex R126 VP-I74).
+    if (inBand) return;
     if (d <= opts.margin) {
       if (!inContact[pi]) {
         inContact[pi] = 1;
         onsetRapid[pi] = isRapid ? 1 : 0;
-        onsetLine[pi] = line;
         if (opts.range && s <= rangeStart + 1e-9) {
           // In contact where the range starts: begun before it. A cutting
-          // pair's onset is unknown — taken as feed-begun, so it reports
-          // nothing; the boundary contact names it for the full check.
-          boundaryPair[pi] = 1;
+          // pair's onset is unknown — taken as feed-begun; the boundary
+          // contact names it for the full check.
           onsetRapid[pi] = 0;
           const [ai, bi] = pairs[pi]!;
           boundaryContacts.push({ a: bodies[ai]!.id, b: bodies[bi]!.id, line, cum: s, dist: Math.max(0, d),
                                   cutting: !!pairCutting[pi] });
         }
-        // Re-entry promotion: a genuine onset on a line whose record
-        // was minted as a continuation (contact carried in, separated,
-        // came back on the same line) is a real clash — never hidden.
-        // Its carried-in part stays the earlier onset's contact
-        // (carriedFrom → `carried` after refinement, Codex R34 VP-I09).
-        const ex = worst.get(keyFor(line, pi));
-        // (a POSSIBLE record — the braking range's end pose on this line —
-        // carries nothing in: the certain onset is the line's own, VP-I74)
-        if (ex && ex.continuation !== undefined && !ex.possible) {
-          ex.carriedFrom = ex.continuation;
-          delete ex.continuation;
-        }
-      }
-      if (pairCutting[pi]) {
-        // Cutting pair (the cutter × a stock body): feed contact is
-        // MACHINING — never reported. (A boundary contact's onset is taken
-        // as feed: it records nothing.) A contact whose ONSET fell in a
-        // rapid is the gouge class and reports for that rapid; a
-        // retract leaving contact begun on a feed (or present from
-        // the program start) is benign.
-        if (isRapid && onsetRapid[pi]) recordHit(line, s, true, pi, d, inBand);
-      } else {
-        recordHit(line, s, isRapid, pi, d, inBand);
       }
     } else if (inContact[pi] && d > opts.margin * 2) {
       inContact[pi] = 0;
       seeded[pi] = 0;
-      onsetRapid[pi] = 0;
-      onsetLine[pi] = -1;  // verified separation: the next touch is a new onset
-      boundaryPair[pi] = 0;
+      onsetRapid[pi] = 0;   // verified separation: the next touch is a new onset
     }
   };
 
@@ -2193,9 +1940,12 @@ export function* sweepCollisionsIter(
         if (d <= opts.margin) {
           if (epRow[pi]! < 0 && !cutMute[pi]) {
             // a cutting pair's contact begun on a feed (or before a range) is
-            // machining: nothing is written until it separates (plan 2.3)
+            // machining: nothing is written until it separates (plan 2.3) — but
+            // a feed touch on a probe's braking range changes no contact state
+            // (R126 VP-I74): it writes nothing and mutes nothing, so a rapid
+            // into the stock after the range is the gouge it is
             const boundary = !!opts.range && s <= rangeStart + 1e-9;
-            if (cutting && (!isRapid || boundary)) cutMute[pi] = 1;
+            if (cutting && (!isRapid || boundary)) { if (!inBand) cutMute[pi] = 1; }
             else {
               const flags = (boundary ? ORIGIN_BOUNDARY : origin) | (isRapid ? EP_RAPID : 0)
                 | (seeded[pi] && firstDist[pi]! <= CONTACT_EPS && !opts.range ? EP_AT_START : 0) | (inBand ? EP_POSSIBLE : 0);
@@ -2254,7 +2004,7 @@ export function* sweepCollisionsIter(
               enter = k === 0 ? bisect(s, floor, pi) : { at: floor, decided: k === 1 };
             } else enter = bisect(s, floor, pi);
             const flags = (inBand ? IV_POSSIBLE : 0) | (enter.decided ? IV_ENTER_DECIDED : 0)
-              | (afterTool[pi] ? IV_AFTER_UNKNOWN_TOOL : 0) | (cutPart[pi] ? IV_CONTINUES_CUT : 0);
+              | (afterTool[pi] ? IV_AFTER_UNKNOWN_TOOL : 0) | (cutPart[pi] ? IV_CONTINUES_CUT : 0) | (isRapid ? IV_RAPID : 0);
             const iv = add(store.intervals, { episode: ep, enter: T(enter.at), exit: NaN, flags, next: NONE,
                                               witness: T(s), freeAt: NaN, freeR: 0 }, enter.at);
             if (iv >= 0) {
@@ -2265,10 +2015,11 @@ export function* sweepCollisionsIter(
               ivRow[pi] = iv;
             }
             afterTool[pi] = 0;
-          } else if (!inBand) {
+          } else {
+            // a certain sample makes it certain; a touch on a rapid marks its move's kind
             const iv = ivRow[pi]!;
-            const f = store.intervals.get(iv, "flags");
-            if (f & IV_POSSIBLE) store.intervals.set(iv, "flags", f & ~IV_POSSIBLE);   // a certain sample
+            const f = store.intervals.get(iv, "flags"), g = (inBand ? f : f & ~IV_POSSIBLE) | (isRapid ? IV_RAPID : 0);
+            if (g !== f) store.intervals.set(iv, "flags", g);
           }
           lastTouchD[pi] = s;
         } else if (ivRow[pi]! >= 0 && freeDecided) {
@@ -2435,7 +2186,11 @@ export function* sweepCollisionsIter(
   // collision.test "a world kins' speed").
   const surf = new Float64Array(pairs.length);
   const surfQ = new Float64Array(pairs.length);
-  const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (per-line contact marks)
+  const qLine = new Int32Array(pairs.length).fill(-1);   // line of that query (only for `lineSample`)
+  // the KIND of move of that query: 0 feed, 1 rapid, 2 none (a band's end
+  // pose, no query yet) — a pair in contact is asked again where the kind
+  // changes (B8: the cutting and rapid rules read a touch's kind)
+  const qKind = new Uint8Array(pairs.length).fill(2);
   const rotLever = pairDofs.map(list => new Float64Array(list.length));
   const jv0: number[] = new Array(jointVals.length).fill(0);
   const jv1: number[] = new Array(jointVals.length).fill(0);
@@ -2475,273 +2230,19 @@ export function* sweepCollisionsIter(
   // is free. On a distance track the two axes coincide.
   const trackMax = n > 0 ? track.cum[n - 1]! : 0;
   const frac = (s: number): number => Math.min(1, distToTrackCum(s) / (trackMax || 1));
-  // Contact refinement: a penetrating hit's discovering sample can sit up
-  // to one sample step PAST true contact — jumping to it would show the
-  // tool already buried. Walk back by the local sample step to the last
-  // clear parameter (crossing segment boundaries freely), then bisect the
-  // first-contact crossing. Cost: only hit pairs, ~30 probes each.
-  // "Contact" for the refinement probes: intersecting meshes report a
-  // Dist-cum where the hit's LINE begins — refinement must never walk back
-  // past it: through-contact across line boundaries (the pair never clears
-  // between lines) would collapse every following line's hit onto the first
-  // line's contact point (same jump target, wrong line label).
-  const segOfLine = (cum: number, line: number): number => {
-    let lo = 1, hi = n - 1;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if (dcum[mid]! < cum) lo = mid + 1;
-      else hi = mid;
-    }
-    // A hit recorded exactly ON a boundary (chunk starts sit on dcum values)
-    // binary-searches into the PREVIOUS segment — step forward to the
-    // segment that actually carries the hit's line.
-    while (lo < n - 1 && track.lines[lo] !== line && track.lines[lo + 1] === line) lo++;
-    return lo;
-  };
-  const lineStartDist = (cum: number, line: number): number => {
-    let lo = segOfLine(cum, line);
-    while (lo > 1 && track.lines[lo - 1] === line) lo--;
-    return dcum[lo - 1]!;
-  };
-  const lineEndDist = (cum: number, line: number): number => {
-    let lo = segOfLine(cum, line);
-    while (lo < n - 1 && track.lines[lo + 1] === line) lo++;
-    return dcum[lo]!;
-  };
-  const back = Math.max(MIN_ADV, EXPLORE / 4);
-  // Does a segment whose tool body is unknown lie between dist parameters a < b?
-  const unknownToolBetween = (a: number, b: number): boolean => {
-    for (let seg = segAtDist(a), end = segAtDist(b); seg <= end; seg++) if (segUnk![seg]) return true;
-    return false;
-  };
-  // The stretch of segments around a dist parameter whose tool body is known.
-  // A parameter ON an unknown segment's end (or start) belongs to the known
-  // segment beyond it — segAtDist hands a boundary to the segment ending there.
-  const knownToolSpan = (s: number): [number, number] => {
-    let a = segAtDist(s);
-    if (segUnk![a] && a < n - 1 && s >= dcum[a]! - 1e-9) a++;
-    else if (segUnk![a] && a > 1 && s <= dcum[a - 1]! + 1e-9) a--;
-    let b = a;
-    while (a > 1 && !segUnk![a - 1]) a--;
-    while (b < n - 1 && !segUnk![b + 1]) b++;
-    return [dcum[a - 1]!, dcum[b]!];
-  };
-  // The refinement's predicate: touching OR wholly inside — and undecidable
-  // counts as contact (the interval grows, it never shrinks over an answer
-  // nobody has). Its boundaries are where the surfaces cross.
-  // An undecidable answer here is named too (Codex R101 VP-I58) — apart from
-  // the forward sweep's time-ordered state (`undecided` / `undecSpans`), which
-  // a refinement walking back must not touch: per pair, the lines it hit.
-  const refineUndec = new Map<number, Set<number>>();
-  const contactAtDist = (s: number, pi: number): boolean => {
-    if (distAtCum(s, pi) <= CONTACT_EPS) return true;
-    const v = insideOf(pi);
-    if (v === "undecidable") {
-      let lines = refineUndec.get(pi);
-      if (!lines) refineUndec.set(pi, lines = new Set());
-      lines.add(track.lines[segAtDist(s)]!);
-    }
-    return v !== "outside";
-  };
-  // Bisect a contact boundary between a known in-contact cum and a known
-  // clear cum (either order); returns the refined in-contact-side cum.
-  const bisectBoundary = (contactCum: number, clearCum: number, pi: number): number => {
-    let c = contactCum, x = clearCum;
-    for (let it = 0; it < 24 && Math.abs(x - c) > 1e-3; it++) {
-      const mid = (c + x) / 2;
-      if (contactAtDist(mid, pi)) c = mid;
-      else x = mid;
-    }
-    return c;
-  };
-  // The result — built from a set of hit RECORDS so it can run twice: on the
-  // originals when the sweep ends, and on COPIES for a snapshot of the sweep-
-  // so-far while the generator is parked (SnapshotHandle). Everything below
-  // reads the loop's live state (sweptTo, done, coarsened, uncertified, the
-  // static contacts) at call time.
-  // Refinement memo (2026-09-12): a park snapshots the sweep-so-far by
-  // re-running buildResult on COPIES of every record, and the refinement
-  // below is its cost — mesh probes per contact boundary, for every record
-  // including the continuation records past the MAX_HITS cap (a long
-  // penetration is one record per line). A record whose inputs have not
-  // changed since it was last refined — its raw extent and sample count;
-  // records only ever GAIN samples — refines to the same intervals, so the
-  // second and every later snapshot (and the final result) reuse them.
-  // Values are DIST cum (captured before the track-cum conversion below).
-  const refined = new Map<string, { sig: string; cum: number; cumEnd: number; intervals: Array<[number, number]>; carried: boolean }>();
-  // One statement per pair whose inside check was undecidable, its stretches
-  // by line (three, then "…") — per pair, so the shards' statements unite.
-  const insideNotes = (): string[] => {
-    const at = (spans: Array<[number, number]>) =>
-      spans.slice(0, 3).map(([a, b]) => (a === b ? `L${a}` : `L${a}–L${b}`)).join(", ") + (spans.length > 3 ? " …" : "");
-    // the forward sweep's stretches and the refinement's lines, per pair
-    const byPair = new Map<number, Array<[number, number]>>();
-    for (const [pi, spans] of undecSpans) byPair.set(pi, spans.slice());
-    for (const [pi, lines] of refineUndec) {
-      const spans = byPair.get(pi) ?? [];
-      for (const l of lines) if (!spans.some(([a, b]) => l >= Math.min(a, b) && l <= Math.max(a, b))) spans.push([l, l]);
-      byPair.set(pi, spans);
-    }
-    return [...byPair.entries()]
-      .map(([pi, spans]) => [pi, spans.sort((x, y) => x[0] - y[0])] as const)
-      .sort((x, y) => x[1][0]![0] - y[1][0]![0] || x[0] - y[0])
-      .map(([pi, spans]) => {
-        const [ai, bi] = pairs[pi]!;
-        return `inside check undecidable for ${bodies[ai]!.id} ↔ ${bodies[bi]!.id} (${at(spans)}) — a part wholly inside the other is not found there`;
-      });
-  };
-  const buildResult = (recs: typeof worst, trunc: CollisionResult["truncated"], final: boolean, refine: boolean): CollisionResult => {
-    // The REPORTED set first — onsets first when the cap bites: a long
-    // penetration's continuation records must never evict a genuinely
-    // distinct later clash — and only it is refined (2026-09-12: every
-    // record was, continuation records past the cap included — a program
-    // in contact from its first point is one record per LINE, and a park
-    // or the final result refined thousands of them at ~30 mesh probes
-    // each). Selection on the raw cums: refinement moves an onset back by
-    // under one sample step, so the order is the same but for near-ties.
-    const entries = [...recs.entries()];
-    // (a boundary contact's records are no onsets: they go with the
-    // continuations)
-    const isOnset = (h: CollisionHit) => h.continuation === undefined && !h.boundary;
-    const onsetE = entries.filter(([, h]) => isOnset(h)).sort((x, y) => x[1].cum - y[1].cum);
-    const contE = entries.filter(([, h]) => !isOnset(h)).sort((x, y) => x[1].cum - y[1].cum);
-    const selected = [...onsetE, ...contE].slice(0, MAX_HITS);
-    const omitted = entries.length - selected.length;
-    const omittedOnsets = Math.max(0, onsetE.length - MAX_HITS);
-    for (const [key, h] of selected) {
-      if (!refine) break;
-      // Near-misses keep their closest-approach sample. A contact from the
-      // start of the axis (the program begins in it) refines too: its entry
-      // needs no walk back, but it may separate and come back on its line —
-      // one window over the clear gap lost the re-entry (Codex R34 VP-I09).
-      if (h.dist > CONTACT_EPS) continue;
-      // carriedFrom is an input too: a promotion without a new contact
-      // sample (a re-entry inside the margin) changes `carried` alone.
-      const sig = `${h.samples.length},${h.cum},${h.cumEnd},${h.carriedFrom ?? ""}`;
-      const memo = refined.get(key);
-      if (memo && memo.sig === sig) {
-        h.cum = memo.cum;
-        h.cumEnd = memo.cumEnd;
-        h.intervals = memo.intervals.map(iv => [iv[0], iv[1]] as [number, number]);
-        if (memo.carried) h.carried = true;
-        else delete h.carried;
-        continue;
-      }
-      // never before a range's start: a contact just after it on the same
-      // line would walk back past it into contact before the range
-      const floor = Math.max(lineStartDist(h.cum, h.line), rangeStart);
-      const ceil = lineEndDist(Math.max(h.cumEnd, h.cum), h.line);
-      // A tool pair never walks into a stretch where the tool's body is
-      // unknown: every boundary stays inside its own cluster's known span.
-      const clampTool = !!segUnk && pairTool[h.pi]!;
-
-      // Contact within one line can be INTERMITTENT. The advancement loop
-      // samples every EXPLORE step while a pair sits inside the margin
-      // (certificates cannot stride there), so gaps wider than the stride
-      // between in-contact samples are VERIFIED separations — cluster the
-      // samples into candidate intervals, then refine every boundary.
-      const CLUSTER_GAP = EXPLORE * 2 + MIN_ADV;
-      h.samples.sort((x, y) => x - y);
-      const clusters: Array<[number, number]> = [];
-      for (const s of h.samples) {
-        const last = clusters[clusters.length - 1];
-        // ...and a stretch whose tool body is unknown lies between two
-        // clusters, whatever its length: no interval spans what was not asked
-        if (!last || s - last[1] > CLUSTER_GAP || (clampTool && unknownToolBetween(last[1], s))) clusters.push([s, s]);
-        else last[1] = s;
-      }
-      if (!clusters.length) clusters.push([h.cum, Math.max(h.cum, h.cumEnd)]);
-      // Pathological chatter cap — merge the tail rather than grow unbounded.
-      while (clusters.length > 16) {
-        const t = clusters.pop()!;
-        clusters[clusters.length - 1]![1] = t[1];
-      }
-
-      const intervals: Array<[number, number]> = [];
-      // Does the first interval reach back to the line's start, contact all
-      // the way? Then a record that carried its contact in (carriedFrom)
-      // starts with that carried contact.
-      let fromLineStart = false;
-      for (let ci = 0; ci < clusters.length; ci++) {
-        const [cs, ce] = clusters[ci]!;
-        // ENTRY: walk back toward the previous interval's exit / line start.
-        const efloor0 = ci === 0 ? floor : intervals[ci - 1]![1];
-        const efloor = clampTool ? Math.max(efloor0, knownToolSpan(cs)[0]) : efloor0;
-        let hi = cs, lo = hi, guard = 0, bracketed = false;
-        while (guard++ < 128 && lo > efloor) {
-          lo = Math.max(efloor, lo - back);
-          if (!contactAtDist(lo, h.pi)) { bracketed = true; break; }
-          hi = lo;  // still in contact — earliest known contact moves back
-        }
-        const entry = bracketed ? bisectBoundary(hi, lo, h.pi) : hi;
-        if (ci === 0) fromLineStart = !bracketed && entry <= efloor0;
-        // EXIT: walk forward toward the next cluster / line end.
-        const eceil0 = ci === clusters.length - 1 ? ceil : clusters[ci + 1]![0];
-        const eceil = clampTool ? Math.min(eceil0, knownToolSpan(ce)[1]) : eceil0;
-        let elo = Math.max(ce, entry), ehi = elo;
-        guard = 0;
-        let exitBracketed = false;
-        while (guard++ < 128 && ehi < eceil) {
-          ehi = Math.min(eceil, ehi + back);
-          if (!contactAtDist(ehi, h.pi)) { exitBracketed = true; break; }
-          elo = ehi;
-        }
-        const exit = exitBracketed ? bisectBoundary(elo, ehi, h.pi) : ehi;
-        intervals.push([entry, exit]);
-      }
-      const merged = mergeContiguousIntervals(intervals);
-      h.cum = merged[0]![0];
-      h.cumEnd = merged[merged.length - 1]![1];
-      h.intervals = merged;
-      const carried = h.carriedFrom !== undefined && fromLineStart;
-      if (carried) h.carried = true;
-      else delete h.carried;
-      refined.set(key, { sig, cum: h.cum, cumEnd: h.cumEnd, carried,
-                         intervals: merged.map(iv => [iv[0], iv[1]] as [number, number]) });
-    }
-    // Where each onset's contact finally ENDS, over ALL records (dist cum —
-    // refined for selected records, the raw last in-contact sample for the
-    // rest): the span the tint and the red extent paint past the cap.
-    // A carried first interval is that onset's contact too.
-    const spanEndDist = new Map<string, number>();
-    for (const h of recs.values()) {
-      const from = h.continuation ?? (h.carried ? h.carriedFrom : undefined);
-      if (from === undefined) continue;
-      const end = h.continuation !== undefined ? h.cumEnd : h.intervals![0]![1];
-      const key = keyFor(from, h.pi, !!h.boundary);
-      spanEndDist.set(key, Math.max(spanEndDist.get(key) ?? -Infinity, end));
-    }
-    // Hits leave the sweep in TRACK cum (time on a time-based track) — the
-    // scrub-to-hit target must live on the slider's axis.
-    for (const [key, h] of selected) {
-      const se = h.continuation === undefined ? spanEndDist.get(key) : undefined;
-      if (se !== undefined && se > h.cumEnd) h.spanCumEnd = distToTrackCum(se);
-      else delete h.spanCumEnd;
-      h.cum = distToTrackCum(h.cum);
-      h.cumEnd = Math.max(h.cum, distToTrackCum(h.cumEnd));
-      if (h.intervals) {
-        for (const iv of h.intervals) {
-          iv[0] = distToTrackCum(iv[0]);
-          iv[1] = Math.max(iv[0], distToTrackCum(iv[1]));
-        }
-      }
-    }
-
-    // Back-fill spanEndLine on every onset: the last line its contact persists
-    // through (continuations point at their onset by line + pair) — over ALL
-    // records: a continuation past the cap still extends its onset's span.
-    for (const h of recs.values()) {
-      const from = h.continuation ?? (h.carried ? h.carriedFrom : undefined);
-      if (from === undefined) continue;
-      const onset = recs.get(keyFor(from, h.pi, !!h.boundary));
-      if (onset) onset.spanEndLine = Math.max(onset.spanEndLine ?? onset.line, h.line);
-    }
-
-    // Re-sorted by cum after refinement (ScrubBar relies on cum order).
-    const hits = selected.map(([, h]) => h)
-      .sort((x, y) => x.cum - y.cum)
-      .map(({ pi: _pi, samples: _s, carriedFrom: _c, ...rest }) => rest);
-
+  // The rest pose's undecidable inside answers (Codex R167 VP167-01): the
+  // rest pose is no point of the program, so no gap of the store holds them —
+  // the baseline's caveat, said in every result (at the program's first
+  // line). The track's own undecidable stretches are the store's
+  // GAP_UNDECIDABLE gaps, named with the contact view.
+  const insideNotes = (): string[] => [...restUndec].sort((x, y) => x - y).map(pi => {
+    const [ai, bi] = pairs[pi]!;
+    return `inside check undecidable for ${bodies[ai]!.id} ↔ ${bodies[bi]!.id} (L${firstLine}) — a part wholly inside the other is not found there`;
+  });
+  // The result: the sweep's METADATA (step 4 package 2, C2) — what it found
+  // is the contact store's. It reads the loop's live state at call time, so
+  // it serves the final result, a park's (take) and a running sweep's (meta).
+  const buildResult = (trunc: CollisionResult["truncated"], final: boolean): CollisionResult => {
     // Hand the model back wearing its BASE tool body — the model's own
     // (TWP-07): a caller that reuses the model (the resident worker model,
     // tests) must not inherit the last segment's program tool. (Final
@@ -2749,7 +2250,6 @@ export function* sweepCollisionsIter(
     // loop re-installs its tool at every pose, which follows every resume.)
     if (final) restoreBaseTool(model);
     return {
-      hits,
       staticContacts,
       samples: done,
       coarsened,
@@ -2759,36 +2259,17 @@ export function* sweepCollisionsIter(
       bvhMs: model.bvhMs,
       sweepMs: clock() - t0,
       truncated: trunc,
-      ...(omitted > 0 ? { capped: omitted } : {}),
-      ...(omittedOnsets > 0 ? { cappedOnsets: omittedOnsets } : {}),
       ...(opts.range ? {
         range: { fromCum: n > 0 ? track.cum[rangeFrom]! : 0, fromLine: noteLine(Math.min(startSeg, n - 1)),
                  ...(rangeEmpty ? { empty: true as const } : {}) },
         boundaryContacts: boundaryContacts.map(b => ({ ...b, cum: distToTrackCum(b.cum) })),
       } : {}),
     };
-    };
+  };
 
   if (opts.snapshot) {
-    opts.snapshot.take = (reason) => {
-      const copy: typeof worst = new Map();
-      for (const [k, h] of worst) {
-        copy.set(k, { ...h, samples: h.samples.slice(),
-                      intervals: h.intervals?.map(iv => [iv[0], iv[1]] as [number, number]) });
-      }
-      return buildResult(copy, { covered: frac(sweptTo), reason }, false, true);
-    };
-    opts.snapshot.peek = () => {
-      // refine=false never sorts or mutates a record's samples, so a shallow
-      // copy suffices (live records carry no intervals yet).
-      const copy: typeof worst = new Map();
-      for (const [k, h] of worst) copy.set(k, { ...h });
-      return buildResult(copy, { covered: frac(sweptTo), reason: "running" }, false, false);
-    };
-    opts.snapshot.records = () => worst.size;
-    // on the track's axis, like every record buildResult reports
-    opts.snapshot.first = () => firstTouch && { ...firstTouch, cum: distToTrackCum(firstTouch.cum),
-                                                cumEnd: Math.max(distToTrackCum(firstTouch.cum), distToTrackCum(firstTouch.cumEnd)) };
+    opts.snapshot.take = (reason) => buildResult({ covered: frac(sweptTo), reason }, false);
+    opts.snapshot.meta = () => buildResult({ covered: frac(sweptTo), reason: "running" }, false);
   }
   // Checkpoint before the first segment: an abort here leaves the baseline
   // pose only (the "aborts early" contract).
@@ -2816,6 +2297,45 @@ export function* sweepCollisionsIter(
   // segment. Relabels pay the same single re-query; there are a handful per
   // program, which is why this does not need the two flags separated on the
   // wire.
+  // The search back from `x0` (distance `d0` outside the margin, a lower
+  // bound) to a near stretch's LAST pose inside the margin (B8; Codex R174
+  // VP-I127): certified over the outside part by the stretch's speed-bound
+  // history, at least MIN_ADV a step, the first pose inside the margin noted
+  // — every run inside the margin after it is narrower than MIN_ADV. Every
+  // sample poses the model itself and passes the main loop's checkpoints;
+  // true when the sweep is to end (an abort, the budget).
+  function* searchBack(pi: number, x0: number, d0: number): Generator<number, boolean, boolean | undefined> {
+    const hb = pi * NEAR_HIST, hn = nearHN[pi]!, lo = nearQ[pi]!;
+    for (let x = x0, dx = d0; ;) {
+      // back to where the history's bounds use up the room dx − margin
+      x = Math.min(x - MIN_ADV, backTo(nearHS, nearHV, hb, hn, x, dx - opts.margin));
+      if (x <= lo + 1e-9) return false;
+      done++;
+      if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
+          && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
+        if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; return true; }
+        if ((yield frac(sweptTo)) === true) { aborted = true; return true; }
+        lastYield = clock();
+      }
+      dx = Math.min(distAtCum(x, pi, opts.margin * 2), opts.margin * 2);   // beyond the bound: at least 2 × margin
+      if (dx <= opts.margin) {
+        const seg = segAtDist(x);
+        noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x));
+        return false;
+      }
+    }
+  }
+  // A pair's distance at the END of segment `vi` — its own pose, tool and
+  // offset (the pose before a jump or a tool change at the next segment).
+  const distAtVertex = (vi: number, pi: number, maxT: number): number => {
+    const j = vi * 3;
+    poseAt(track.pos[j]!, track.pos[j + 1]!, track.pos[j + 2]!, track.abc[j]!, track.abc[j + 1]!, track.abc[j + 2]!,
+           vertModel?.[vi] ?? identityKins, termFor(vi), tloFor(vi), toolFor(vi));
+    const [ai, bi] = pairs[pi]!;
+    if (prof) prof.probes![pi] = prof.probes![pi]! + 1;
+    return pairDistance(bodies[ai]!, bodies[bi]!, maxT, opts.margin);
+  };
+  let lastReal = -1;   // the last segment with length: the pose before a jump is its end
   let pendingBreak = false;
   outer:
   for (let i = startSeg; i < n && !abortAtStart; i++) {
@@ -2831,7 +2351,6 @@ export function* sweepCollisionsIter(
     const line = track.lines[i]!;
     const isRapid = track.rapid[i] === 1;
     // a braking range begins: its possible touches start afresh
-    if (track.band?.[i] && !track.band[i - 1]) bandOnset.fill(-1);
     const c0 = dcum[i - 1]!, c1 = dcum[i]!;
     const L = c1 - c0;
     if (track.brk?.[i]) pendingBreak = true;
@@ -2856,11 +2375,26 @@ export function* sweepCollisionsIter(
     if (toolBoundary || breakBoundary) {
       for (let pi = 0; pi < pairs.length; pi++) {
         if (skipPair[pi]) continue;
+        if (!(breakBoundary || pairTool[pi])) continue;
+        // An open near stretch ends HERE, on the pose, tool and offset before
+        // the boundary: the search back may never start from a distance after
+        // a jump or a tool change — those are no motion the speed bounds
+        // bound, and a large new distance certified the old near tail as
+        // free (Codex R175 VP-I129). Inside the margin at the last pose
+        // before it, that pose is noted; else the search runs from there.
+        // A stationary relabel keeps its coverage: both poses are one.
+        if (!Number.isNaN(nearQ[pi]!) && !opts.lineSample && lastReal >= 0) {
+          const d0 = Math.min(distAtVertex(lastReal, pi, opts.margin * 2), opts.margin * 2);
+          if (d0 <= opts.margin) noteQuery(pi, c0, track.lines[lastReal]!, track.rapid[lastReal] === 1, d0, bandAt(lastReal, c0));
+          else if (yield* searchBack(pi, c0, d0)) break outer;
+        }
+        nearQ[pi] = NaN;
         // No continuous motion here: what was outside may be inside after it.
-        if (breakBoundary || pairTool[pi]) { clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0; }
+        clear[pi] = 0; needInside[pi] = 1; inClear[pi] = 0;
       }
     }
     prevTool = segTool; prevTlo = segTlo;
+    lastReal = i;
     // The tool's body unknown here: its pairs are not checked. Out of such a
     // stretch, a contact of the tool does not carry across it — a touch from
     // here on is a new onset, never the stretch's continuation.
@@ -2870,7 +2404,7 @@ export function* sweepCollisionsIter(
       sink?.toolKnown(c0);
       for (let pi = 0; pi < pairs.length; pi++) {
         if (!pairTool[pi]) continue;
-        inContact[pi] = 0; seeded[pi] = 0; touching[pi] = 0; onsetLine[pi] = -1; onsetRapid[pi] = 0; boundaryPair[pi] = 0;
+        inContact[pi] = 0; seeded[pi] = 0; touching[pi] = 0; onsetRapid[pi] = 0; nearQ[pi] = NaN;
       }
     }
     prevUnknown = segUnknown;
@@ -2948,6 +2482,7 @@ export function* sweepCollisionsIter(
         // recursion leverTrue ≤ (leverEnd + trans) / (1 − rotRad) with
         // rotRad ≤ 0.4 (22.5° chunks) is bounded by ×1.65; ×2 gives slack.
         pairV[pi] = (trans + rotRadLever * 2) / Lc;
+        if (!Number.isNaN(nearQ[pi]!)) nearPush(pi, s0, pairV[pi]!);
         opts.onChunkSpeed?.(pi, s0, s1, pairV[pi]!);
       }
 
@@ -2968,15 +2503,22 @@ export function* sweepCollisionsIter(
           if (ch === 0 && (breakBoundary || (toolBoundary && pairTool[pi]))) {
             sSafe[pi] = s0; continue;
           }
-          // Every LINE a pair stays in contact with gets at least one sample
-          // (its continuation record — the G-code panel marks it); within a
-          // line the EXPLORE cadence carries across the chunks. A cutting
-          // pair in FEED-begun contact mints no record at all (machining),
-          // so it owes no per-line sample — the EXPLORE cadence alone keeps
-          // watching for separation (2026-09-13: on a 0.7 mm-line random walk
-          // the per-line rule queried the tool×stock pair 7× more often than
-          // its cadence, a fifth of the whole sweep).
-          if (qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi])) { sSafe[pi] = s0; continue; }
+          // A pair in contact samples at the EXPLORE cadence across the
+          // chunks, re-sampled at MIN_ADV at every separation (R86): no line
+          // owes a sample of its own any more (step 4 package 2, plan 5, B8 —
+          // the per-line sample existed for the continuation record per
+          // line; on haus.ngc it was most of the sweep). What stays is a
+          // sample where the KIND of move changes: a touch's kind decides
+          // the cutting rules (a rapid-begun cut going on as a feed ends its
+          // rapid part there; a feed-begun cut's rapid part begins where the
+          // rapid does) and an interval's rapid flag — a feed or a rapid
+          // shorter than the cadence was never asked (Codex R139: no cutting
+          // or rapid rule may be lost). `lineSample` is the old rule exactly
+          // (it took the kind changes with the lines), for the comparison and
+          // the measurement only.
+          if (opts.lineSample ? qLine[pi] !== line && !(pairCutting[pi] && !onsetRapid[pi]) : qKind[pi] !== (isRapid ? 1 : 0)) {
+            sSafe[pi] = s0; continue;
+          }
           // Not touching at its last query: its clearance (to a touch inside
           // the margin, to the margin past it) was measured in the last
           // chunk's V and is re-expressed in this chunk's, like every carried
@@ -3065,23 +2607,68 @@ export function* sweepCollisionsIter(
           // origin over a separation and a rapid re-entry inside the stretch,
           // the gouge never reported. Feed-only stretches need no look: a
           // re-entry on a feed is machining.
-          const resample = touching[pi] && s - lastTouch[pi]! > MIN_ADV
+          //
+          // The same at a NEAR pair's margin exit (step 4 package 2, plan 5,
+          // B8): inside the margin without a touch, a pair steps to where it
+          // could first touch (d/V, up to EXPLORE), so its stay — which ends
+          // at its last sample inside the margin — could end that far before
+          // the pair left the margin, and lines it was inside the margin on
+          // got no stay (the per-line sample covered them until B8; plan 7.3
+          // check 2 found it). Found outside the margin now, the stretch since
+          // that sample is searched for its LAST pose inside the margin, and
+          // the stay extends to it: then it reaches every line the pair is
+          // inside the margin on for more than MIN_ADV (everything before that
+          // pose it covers by continuity). Not for an undecidable answer — no
+          // exit is decided. Cheaper than after a touch: that sample's
+          // distance certified no touch up to this one (`nearQ` names only a
+          // DECIDED near sample; the floor's overshoot is under MIN_ADV), so
+          // the inside answer cannot have changed, and the stretch holds no
+          // separation decision — only "inside the margin?", a query bounded
+          // at 2 × margin, anything beyond it short of a separation (the
+          // separation is this sample's own). The search walks BACK from this
+          // sample, CERTIFIED: the distance changes no faster than the chunks'
+          // speed bounds since that sample (the history above), so from a
+          // pose outside the margin at distance d the pair stays outside back
+          // to where those bounds could have used up d − margin; the next
+          // sample lies there, at least MIN_ADV back, and the first one inside
+          // the margin is noted — any run inside the margin after it is
+          // narrower than MIN_ADV. (A forward MIN_ADV grid cost half of
+          // haus.ngc Fall B; a forward certified walk had to certify every
+          // pose INSIDE the margin too, step by step where the pair hovers at
+          // its edge.) Both re-samplings pass the main loop's checkpoints: a
+          // yield, the budget, an abort (Codex R174 VP-I127) — the progress
+          // stays the last whole sample's, and every sample poses the model
+          // itself.
+          const fromTouch = touching[pi] && s - lastTouch[pi]! > MIN_ADV
             && (d > CONTACT_EPS || (pairCutting[pi] && !onsetRapid[pi] && rapidBetween(lastTouch[pi]!, s)));
-          if (resample) {
+          const fromNear = !opts.lineSample && !touching[pi] && !unknownInside && d > opts.margin && s - nearQ[pi]! > MIN_ADV;
+          if (fromNear && !fromTouch) {
+            // back from this sample to the stretch's LAST pose inside the
+            // margin: the stay covers everything before it by continuity
+            if (yield* searchBack(pi, s, Math.min(d, opts.margin * 2))) break outer;
+            interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
+          }
+          if (fromTouch) {
             for (let x = lastTouch[pi]! + MIN_ADV; x < s - 1e-9; x += MIN_ADV) {
               done++;
-              let dx = distAtCum(x, pi, HORIZON);
+              if ((done & (SAMPLES_PER_CLOCK - 1)) === 0
+                  && ((done & (SAMPLES_PER_YIELD - 1)) === 0 || clock() - lastYield >= yieldMs)) {
+                if (overBudget()) { truncated = { covered: frac(sweptTo), reason: "time" }; break outer; }
+                if ((yield frac(sweptTo)) === true) { aborted = true; break outer; }
+                lastYield = clock();
+              }
               const seg = segAtDist(x);
+              let dx = distAtCum(x, pi, HORIZON);
               // Every sample of the stretch is a separation decision.
               const vx = dx > CONTACT_EPS ? insideOf(pi) : null;
-              markInside(pi, vx, track.lines[seg]!);
+              markInside(pi, vx);
               if (vx === "inside") dx = 0;
               else if (vx === "undecidable") dx = Math.min(dx, opts.margin * 2);
               noteQuery(pi, x, track.lines[seg]!, track.rapid[seg] === 1, dx, bandAt(seg, x), vx === "undecidable");
             }
             interpPose(i, (s - c0) / L);   // this sample's pose for the pairs after this one
           }
-          markInside(pi, v, line);
+          markInside(pi, v);
           // Undecidable: a record only for what the surfaces show (inside the
           // margin), never a separation (at most 2 × margin).
           noteQuery(pi, s, line, isRapid, unknownInside ? Math.min(d, opts.margin * 2) : d, bandAt(i, s), unknownInside);
@@ -3096,6 +2683,10 @@ export function* sweepCollisionsIter(
             sSafe[pi] = s + EXPLORE;
             sQ[pi] = s;
             qLine[pi] = line;
+            qKind[pi] = isRapid ? 1 : 0;
+            // no certificate: never where a near stretch begins (an
+            // undecidable pair is asked at every chunk start, clear 0)
+            nearQ[pi] = NaN;
           } else if (d <= opts.margin) {
             if (d > CONTACT_EPS) {
               // Inside the margin but not touching: the distance certifies
@@ -3108,21 +2699,26 @@ export function* sweepCollisionsIter(
               // than MIN_ADV of path is missed.
               clear[pi] = d;
               touching[pi] = 0;
+              nearQ[pi] = s; nearHN[pi] = 0; nearPush(pi, s, pairV[pi]!);
               sSafe[pi] = s + Math.max(MIN_ADV, Math.min(EXPLORE, d / Math.max(pairV[pi]!, 1e-9)));
             } else {
               clear[pi] = 0;
               touching[pi] = 1;
               lastTouch[pi] = s;
+              nearQ[pi] = NaN;
               sSafe[pi] = s + EXPLORE;  // re-probe cadence inside the contact
             }
             sQ[pi] = s;
             qLine[pi] = line;
+            qKind[pi] = isRapid ? 1 : 0;
           } else {
             touching[pi] = 0;
+            nearQ[pi] = NaN;
             const bound = d === Infinity ? HORIZON : d;
             clear[pi] = bound - opts.margin;
             sQ[pi] = s;
             qLine[pi] = line;
+            qKind[pi] = isRapid ? 1 : 0;
             sSafe[pi] = s + Math.max(MIN_ADV, (bound - opts.margin) / Math.max(pairV[pi]!, 1e-9));
           }
           if (bandAt(i, s) && !track.band?.[i]) {
@@ -3132,6 +2728,7 @@ export function* sweepCollisionsIter(
             // lies past it: asked again within MIN_ADV, inside the segment
             // (Codex R126 VP-I74: a certain hit there stayed `possible`).
             qLine[pi] = -1;
+            qKind[pi] = 2;
             sSafe[pi] = Math.min(sSafe[pi]!, s + MIN_ADV, c1);
           }
           const remain = sSafe[pi]! - s;
@@ -3173,9 +2770,9 @@ export function* sweepCollisionsIter(
   // it as well, before the result and the last progress go out (Codex R145
   // VP-I100)
   if (sink?.full && !truncated) truncated = { covered: frac(Math.min(sink.failAt, sweptTo)), reason: "budget" };
-  const finalResult = buildResult(worst, truncated, true, !aborted);
+  const finalResult = buildResult(truncated, true);
   if (truncated?.reason === "budget") finalResult.incompleteFrom = distToTrackCum(Math.min(sink!.failAt, sweptTo));
   yield truncated ? truncated.covered : 1;
-  if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.peek = null; opts.snapshot.records = null; opts.snapshot.first = null; }
+  if (opts.snapshot) { opts.snapshot.take = null; opts.snapshot.meta = null; }
   return finalResult;
 }

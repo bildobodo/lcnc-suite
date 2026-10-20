@@ -19,7 +19,7 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 
 - `App.vue` — Root component, sidebar + multi-panel tab layout, state management
 - `ChoiceGroup.vue` + `MachineChoice.vue` (+ `choiceGroup.ts`) — the strip's choice groups (operator point P7, Codex R21–R24; the 18 px radio rows are gone): options are `MachineChoice` buttons (`role="radio"`, catalog gate from INPUT_DEFS, `min-height`/`min-width` `--control-h` — 28 / 36 px in the strip), ONE Tab stop (roving tabindex, kept where the operator left it: a status change never pulls focus), every navigation key default-prevented with a modifier too (the TabNav rule — a focused option once sent `set_mode`/`set_kins_mode`/`mdi G55` on one arrow). `activation="manual"` (default) = a MACHINE command: radios in a `role="toolbar"` (APG) — the arrows only move focus, click/Enter/Space choose; the group SENDS through `act` (the caller's `fire()`, which returns the `req_id`; not sent = no pending) and waits for THAT reply (`lcncWs.awaitReply`): the checked option is the CONFIRMED state, a chosen one is `pending` (warn bar, `aria-busy`) until the status shows it or `PENDING_MS` (5 s) → "Not confirmed — the machine shows X" at the option (never "failed", no retry), cleared on disconnect; a REFUSAL of its own request ends the pending at once and says why at the option (+ a quiet log line) — an older request's refusal never cancels a newer choice (Codex R25 OP-I04). `activation="auto"` = a LOCAL setting (the jog step): a plain radiogroup, the arrows choose. A row by default; `columns` = a grid by row (Up/Down a row), `rows` = a grid by column, `fill` = a grid as wide as its container that adds nothing to the container's own width (`width: 0; min-width: 100%`). Checked = a tint AND a 3 px bar, never colour alone.
-- `stickyHead.ts` — `v-sticky-head` on a `.dataTable` scroller: keeps `--sticky-head-h` at the head's `offsetHeight` (ResizeObserver), the table's `scroll-padding-top` — a row focused by Tab lands below the head (WCAG 2.4.11). The head sits over every cell (`--z-sticky-head`) and draws its bottom rule as an inset shadow (a border scrolls away with a sticky head) — operator P2.
+- `stickyHead.ts` — `v-sticky-head` on a `.dataTable` scroller: keeps `--sticky-head-h` at the head's `offsetHeight` (read from its ResizeObserver only, after the layout — never at mount: that read forced the layout of a whole new table, plan 3.6), the table's `scroll-padding-top` — a row focused by Tab lands below the head (WCAG 2.4.11). The head sits over every cell (`--z-sticky-head`) and draws its bottom rule as an inset shadow (a border scrolls away with a sticky head) — operator P2.
 - `TabPanel.vue` — A `TabNav` over v-show panes (`role="tabpanel"`, named by the tab; a hidden pane is display:none, never focusable). Props: tabs, modelValue, `label` (the navigation's accessible name), `variant` (main = the side pane, sub = Settings), `narrow` (a labelled select instead of the list, with the `bar` slot beside it on the same row)
 - `TabNav.vue` — the ONE tab navigation (design wave D3, UI-K17/K12): `tablist` of `tab` buttons (`MachineBtn` `tabMain`/`tabSub` — the look lives in Btn.vue's `tab` prop, the layout in style.css `.tabNav`), ONE Tab stop (roving tabindex on the selected tab), MANUAL activation (arrows move focus, Enter/Space select). Left/Right in reading order with wrap, Home/End, Up/Down a grid row (`columns`, Probing's 4 × 2); ALL six are default-prevented, WITH a modifier too — the shortcut map listens on window (bubble), matches `e.key` alone and returns on `defaultPrevented`, and with the default mapping the arrows jog (`tabs.spec` mutation-checked: without it a focused tab sent 16 jog commands; Ctrl/Alt/Meta+Arrow on a focused tab still jogged until round 4, UI-DI06); only the bare key (or Shift) moves focus. Selection is a SHAPE (main: top-rounded, the selected tab open to the content, a cover shadow over the list's baseline; sub: a 2 px bar), focus the global `:focus-visible` ring — never the same signal. Height `--control-h` (32 / 44 px touch). `tabIds(base, id)` names a tab and its panel; the caller renders the panel with `role="tabpanel"` + `aria-labelledby`. Used by TabPanel (side pane, Settings), ProbePanel (`probeViews.ts`, 4 × 2), HalshowTab (Pins/Signals/Params). NARROW side pane (content width < `NARROW_PANE_PX` — 498 px since the seventh tab, Sim; 432 with six, DR decision, 150 % portrait): App's ResizeObserver on `.sidePane` (clientWidth, layout px) switches the area list and Probing's grid to two `MachineSelect`s (`tabSelect`) on one row and marks the pane `.sidePane.narrow` — the ONE narrow flag every narrow rule hangs on (no container query: one threshold, so the selects and every narrow rule flip together); `probeView` lives in App (`v-model:view`). A tab switch sends nothing; a jog still running (keyboard or pointer) stops at the switch — the main tab AND the Probing procedure, grid or narrow select (`stopJogOnNavigation`; the procedure kept jogging until the keyup, round 4, UI-DI11) — only then, `stopAllJog` sends a stop per axis whenever jogging is allowed.
 - `ThreeViewer.vue` — Three.js 3D viewer (Z-up, OrbitControls, ResizeObserver)
@@ -50,7 +50,7 @@ The bundled routines retract with `G53 G0 Z0` and assume **machine Z0 is the top
 - `OffsetPanel.vue` — WCS offset table editor (G54–G59.3), inline cell editing, auxiliary rows (G52/G92, G43, Comp). Operator P5/P6: an editable value is a BUTTON (catalog `offsetCell`, Btn's `value` look — the cell's typography; Tab, Enter/Space open the keypad), four cues for four states (active fixture = a bar + `aria-current`, selected for Clear = the row tint, edited = the cell's inner edge, focus = the global ring); A/B/C and R in degrees. Locked the value is TEXT in the button's place (`data-layout-slot` — the layout sweep holds it to the button's footprint): a dimmed button would fade 70 values read during a run. Locked means the OWNER `probe` gate (`useOwnerPermissions`, no busy latch — the latch must not flip the table after every confirmed value); the cell's editable tint and a tap stay on `can.probe` (a tap inside the latch opens nothing — UI-I05's draft contract). A focused value keeps a focus in its cell: the button's focus goes to its text (`tabindex="-1"`; arrows, Space, Enter stay there — never BODY, where an arrow jogs) and back to the button when the gate opens; ONE reserved line under the head says what a tap does or why the values are read-only (`Read-only — <the probe gate's reason>`, nowrap) — Codex R25 OP-I06, answer 5. `offsetRows.ts` (pure) reads G52/G92 and the tool offset in effect (row "G43" — "Tool" read as the Tool strip's table length) from their CANONICAL slot (`"XYZABCUVW"` — on XYZAC the C column showed B), a missing or short vector is unknown, comp enabled with no amount is unknown; ONE summary line says "nothing in effect" only when every source is known, else names the unknown ones. A "?" in the head's corner (the name column is fixed at 56 px) says what G52/G92 is — one register, kept BY DEFAULT after program end and restart (`[RS274NGC] DISABLE_G92_PERSISTENCE = 1` clears them — the help never claims more, Codex R36 OP-I07), G92.2 suspends it — and that G43 is in effect, not the tool table; the rows carry no explanatory title (operator P6, 2026-09-29). Clear <fixture> / Clear All are hold-to-fire (operator decision 2026-09-19); their titles name the hold and its target, Clear All's accessible name spells out the scope (all work offsets G54–G59.3) — no dialog (UX-12).
 - `CameraPip.vue` — Picture-in-picture camera overlay with MJPEG feed, SVG crosshair/circle/grid overlay; chrome = `.overlay-card`, minimize/expand = `windowToggle` lucide icons
 - `ScrubBar.vue` — Program-scrub timeline overlay (viewer-hosted): poses the machine model along the loaded program via `viewer/scrubTrack.ts` (see "Program scrub"); also the owner of the collision sweep's results and of the finding navigation (`viewer/collision.ts` + `collisionWorker.ts`, see "Collision sweep"). ONE row since 2026-10-05 (operator, from renders — stepping through collisions changed the findings row's text width and the bar folded and unfolded under the finger): Sim, play, the timeline with its marks and bands, the time in a fixed slot — nothing in it changes its width with the content, so there is no compact form, no More; a narrow viewer (`.narrowViewer`, the viewer's width) gives the timeline a row of its own. The findings, the collision check and the speed are in the side pane's Simulation tab (`SimPanel.vue`), which the bar FEEDS (`simPanelStore.ts`: the rows built from its own targets, the shown and the next row, the line and time readouts, the check's view) and whose actions are its own jumps (`registerSimActions`: `jump(key)`, `step(kinds, dir)` through `targetAfter` / `targetBefore` over the kinds asked — one navigation, never a second). Tool changes are targets like findings (key `T<line>`, the extent of the move they start); a jump to one reveals nothing of a hidden layer.
-- `SimPanel.vue` + `simPanelStore.ts` + `viewer/simRows.ts` — the Simulation side tab, labelled "Sim" (operator 2026-10-05, variant A of the renders; the seventh tab): a head row (the speed — a select in 1-2-5 steps ×0.1 … ×100, `SIM_SPEEDS` — and where the simulation or the run stands: the bar's line readout, "off path" in warn, and the time), the collision check (a progress bar with its percentage — the timeline's swept fraction —; the "?" carries the detail and the tools it checks with — the bar's long "sweep: program tools …" line is gone — and beside it the card "Check basis", step 4 plan 1c: a `DetailsPopover` (`detailsIcon`) with what the check on screen was computed with, taken when its request was built and never re-read — `viewer/checkContext.ts`, pure: the basis — the machine when the check started, "changed since" when it no longer is (an idle check only), a run's start —, the kinematics the TRACK is posed in (its labels; none = the machine frame, as the sweep poses it; "switches in the program"), the rotary axes (the status's, in a run the start joints in joint order), the work offset with every axis, G92 and the XY rotation when set, the start tool and the program's tools with the TABLE's values (an M600 length "assumed", a tool without a length named), where the check begins, and from the result each pair at rest, the pairs out of reach, bodies not / partly checked or open, a provisional check's boundary contacts; the request in flight keeps its own context, which becomes the shown one with the result it shows — a provisional run result kept on screen keeps its card), ONE summary line that is ALWAYS there (operator 2026-10-06: the verdict line came in with the check's result and left with every re-check, and the filter and the steps under it jumped): × the check's verdict as THREE statements (step 4 plan 1a, `viewer/sweepWords.ts` `findingWords`): the result by kind — "2 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss", a near miss never a collision, "· starts in contact" only where proven (`atStart`) —, the coverage — "N % checked", "checked in full" / "checked to the end" (uncertified), "provisional from L7", "stopped at 60 %", "paused at 41 %"; never "Clear" while it runs ("No contact so far · 12 % checked") — and the caveat — "records cut" / "more contacts not listed" (`capped` / `cappedOnsets`) and the warn "*" when the guarantee does not hold; "Collisions not checked" while there is none; danger for a confirmed collision, warn otherwise; the parts reach the tab apart (`SimSweepView.result` / `coverage` / `short`) and the line's FORM is MEASURED, `fitHud`'s way (Codex R136 VP-I94: at 1600 × 1000 the regular 540 px pane lost the coverage, the cap and the other two kinds): the words; the limits and tool changes as glyph and number; the result as a count ("200+" past the cap's contacts, never "at least 200 collisions") with its coverage; then the coverage in its fewest words ("in full", "41 %", "from L7, 60 %", "start checking" — Codex R137; records cut while every beginning is kept add "· cut", never a "+" — R138) — the first form whose line fits, from the words again on every change of width or content, one row height; only past that the coverage takes an ellipsis (`data-sum-form`); the line's "?" says its WHOLE statement — each kind in its words, the cap explained — the touch way to what a short form leaves out, ▲ the program's soft-limit records — the TRUE total (`violations_total`, "200636 limit violations · the first 200 lines listed" when the gateway's list is capped; "Limits not checked" when unvalidated) —, ● the tool changes; one line whatever it says (the limit item gives way with an ellipsis), narrow the glyph and the number, each item named by its words (`role="img"`, title), and the line's own "?" (always there) says what the three count — capped, the total, what the parse sent and the lines the list shows (Codex R82 VP-I42: a name and a mouse tooltip were the only way to the cap, narrow), then ONE list of the timeline's marks in timeline order (`buildSimRows`, pure: × collision with its body pair — `partLabel` "spindle_nose" → "Spindle nose" —, rapid or feed, re-entry, near miss, "through L45"; ▲ the line's limit records in words; ● "Tool change → T3"; the time mm:ss or % on a distance axis). Rows after the first PREDICTED limit crossing are marked (operator 2026-10-08): the boundary is the first track point a move ends beyond the joint window at (`simRows.limitStopOf`, the gateway's per-vertex `outside` flag — the violating line's start was claimed for an arc whose ends lie inside, Codex R96 VP-I55). It is a crossing, not a proven stop (R97): LinuxCNC 2.9 refuses a move whose END lies outside when it is QUEUED (`command.c` `inRange` → `tpAbort`) and catches an arc's crossing at run time (`control.c`), and the trajectory then DECELERATES (`tp.c` `tpHandleAbort`) — at 5 mm/s and 10 mm/s² at least 1.25 mm past the crossing — so where the run stops is not determined. The crossing line's limit row says "first predicted limit crossing — where the run stops is not determined", every row STARTING after the point (strictly) "after the first limit crossing at L…" (`markLimitStop`, every kind); no flags, no claim; all rows stay listed, the check runs on. A filter (All / Collisions / Limit violations / Tool changes, the counts in the options) and ‹ › named for the shown kind ("Next collision", "Previous limit violation", "Next on the timeline") step from the position like the bar's old buttons. A tap on a row shows it (enters the simulation like every finding jump); the keyboard's way is the row's line (`.rowPick`, `role="button"`, ONE Tab stop — the shown row, else the next, else the first): Enter / Space show, Up / Down / Home / End move the focus, every navigation key default-prevented with a modifier too (the TabNav rule). The panel OWNS the focus it holds (Codex R78 VP-I37: a new result removed a focused row, the focus fell to body and the next arrow jogged): before every change of what it renders it notes the focus, after it a focus that fell out goes to the same row, the same control, the row now at its place, the list filter, else the panel itself (`tabindex=-1`, which keeps the navigation keys). The list and the steps share ONE order, `simRowOrder` — the position, then tool → limit → collision (VP-I38: the steps sorted by position alone went down and back up on a tie); a jump to a tool change ends a finding's reveal (VP-I39). The list FOLLOWS the position (operator 2026-10-06: "like the code panel when the program runs"): the marked row — the shown finding, else the next one ahead — stands in the middle of the list's view while the simulation scrubs or plays and while a program runs — gliding the code panel's way (`codeGlide.ts`: each target over the time since the last, 30–150 ms, from a start held in the row's visible band; a browser smooth scroll restarted per row fell behind at ×100 and the row sat below the view for 1.5 s, Codex R81 VP-I41), snapping under reduced motion; the list moves, never the focus; a hidden tab catches up when it shows. The bar CLAIMS the tab (`claimSimActions`, the release ends only its own claim): a re-mounted bar — a hot reload in dev — is built before the old bar's onUnmounted runs, and an unconditional clear there left ‹ › and the rows dead until a page reload (operator 2026-10-06, live; `simPanelStore.test.ts` swaps a keyed bar through a minimal custom renderer). The shown finding is the selection tint, a bar and `aria-current`; with none shown the next row ahead of the position — playback's and a run's look-ahead — carries the bar alone. The machine on (no simulation): a row and the steps say why at the control ("Machine on — power off to simulate"); disarmed nothing reacts. No program: "Load a program to simulate it." Narrow, the Move column joins the What text, before the note. The selects keep their options out of every re-render (`v-memo`, the Firefox rule — `select-writes.spec` watches them while the simulation plays). `e2e/simTab.ts` (`openSimTab`, `simShow`, `simStepBtn`, `simLine`, `simRow`) is how specs reach it; `e2e/sim-panel.viewer.spec.ts` pins the list against the marks, the jumps and steps, the keys (no jog), the reason at a row, and that stepping through findings never changes the bar (desktop, touch landscape, 150 % portrait).
+- `SimPanel.vue` + `simPanelStore.ts` + `viewer/simRows.ts` — the Simulation side tab, labelled "Sim" (operator 2026-10-05, variant A of the renders; the seventh tab): a head row (the speed — a select in 1-2-5 steps ×0.1 … ×100, `SIM_SPEEDS` — and where the simulation or the run stands: the bar's line readout, "off path" in warn, and the time), the collision check (a progress bar with its percentage — the timeline's swept fraction —; the "?" carries the detail and the tools it checks with — the bar's long "sweep: program tools …" line is gone — and beside it the card "Check basis", step 4 plan 1c: a `DetailsPopover` (`detailsIcon`) with what the check on screen was computed with, taken when its request was built and never re-read — `viewer/checkContext.ts`, pure: the basis — the machine when the check started, "changed since" when it no longer is (an idle check only), a run's start —, the kinematics the TRACK is posed in (its labels; none = the machine frame, as the sweep poses it; "switches in the program"), the rotary axes (the status's, in a run the start joints in joint order), the work offset with every axis, G92 and the XY rotation when set, the start tool and the program's tools with the TABLE's values (an M600 length "assumed", a tool without a length named), where the check begins, and from the result each pair at rest, the pairs out of reach, bodies not / partly checked or open, a provisional check's boundary contacts; the request in flight keeps its own context, which becomes the shown one with the result it shows — a provisional run result kept on screen keeps its card), ONE summary line that is ALWAYS there (operator 2026-10-06: the verdict line came in with the check's result and left with every re-check, and the filter and the steps under it jumped): × the check's verdict as THREE statements (step 4 plan 1a, `viewer/sweepWords.ts` `findingWords`): the result by kind — "2 collisions · 1 collision on the entry move · 1 possible contact · 1 near miss", a near miss never a collision, "· starts in contact" only where proven (`atStart`) —, the coverage — "N % checked", "checked in full" / "checked to the end" (uncertified), "provisional from L7", "stopped at 60 %", "paused at 41 %"; never "Clear" while it runs ("No contact so far · 12 % checked") — and the caveat — the warn "*" when the guarantee does not hold (a full contact table among its reasons: "contact tables full, not checked from L…" in the "?"); "Collisions not checked" while there is none; danger for a confirmed collision, warn otherwise; the parts reach the tab apart (`SimSweepView.result` / `coverage` / `short`) and the line's FORM is MEASURED, `fitHud`'s way (Codex R136 VP-I94: at 1600 × 1000 the regular 540 px pane lost the coverage, the cap and the other two kinds): the words; the limits and tool changes as glyph and number; the result as a count with its coverage; then the coverage in its fewest words ("in full", "41 %", "from L7, 60 %", "start checking" — Codex R137) — the first form whose line fits, from the words again on every change of width or content, one row height; only past that the coverage takes an ellipsis (`data-sum-form`); the line's "?" says its WHOLE statement — each kind in its words, the cap explained — the touch way to what a short form leaves out, ▲ the program's soft-limit records — the TRUE total (`violations_total`, "200636 limit violations · the first 200 lines listed" when the gateway's list is capped; "Limits not checked" when unvalidated) —, ● the tool changes; one line whatever it says (the limit item gives way with an ellipsis), narrow the glyph and the number, each item named by its words (`role="img"`, title), and the line's own "?" (always there) says what the three count — capped, the total, what the parse sent and the lines the list shows (Codex R82 VP-I42: a name and a mouse tooltip were the only way to the cap, narrow), then ONE list of the timeline's marks in timeline order (`buildSimRows`, pure: × collision with its body pair — `partLabel` "spindle_nose" → "Spindle nose" —, rapid or feed, re-entry, near miss "within 1.4 mm" (its closest SAMPLE: at least that close, never a proven clearance — R175), "through L45"; its line the DISPLAY line at its place — a called file's move its call line, an untrusted one without it "(name)" or "—", noted "no line of this program" (plan 1.3, C3); ▲ the line's limit records in words; ● "Tool change → T3"; the time mm:ss or % on a distance axis). Rows after the first PREDICTED limit crossing are marked (operator 2026-10-08): the boundary is the first track point a move ends beyond the joint window at (`simRows.limitStopOf`, the gateway's per-vertex `outside` flag — the violating line's start was claimed for an arc whose ends lie inside, Codex R96 VP-I55). It is a crossing, not a proven stop (R97): LinuxCNC 2.9 refuses a move whose END lies outside when it is QUEUED (`command.c` `inRange` → `tpAbort`) and catches an arc's crossing at run time (`control.c`), and the trajectory then DECELERATES (`tp.c` `tpHandleAbort`) — at 5 mm/s and 10 mm/s² at least 1.25 mm past the crossing — so where the run stops is not determined. The crossing line's limit row says "first predicted limit crossing — where the run stops is not determined", every row STARTING after the point (strictly) "after the first limit crossing at L…" (`markLimitStop`, every kind); no flags, no claim; all rows stay listed, the check runs on. The list is a WINDOW (step 4 package 2, plan 4.4; measured at the budget, a row and a timeline mark per target held the page for minutes — 1.9 s at 16 384 targets, no answer at 65 536): at most `LIST_WINDOW` (400) rows of the filter's kinds around the shown row, else the next one ahead, with a "N earlier" / "N later" row before and after it (own `tbody.windowMore`, no `data-sim-row`, no `.rowPick` — specs count `tr[data-sim-row]`); the window moves only when that row comes within `WINDOW_MARGIN` (50) rows of its edge (an end of the list is no edge), so the rows are built when it moves, never per frame (`viewer/simWindow.ts`, pure: `MergedList` addresses the merged order by a global index — the limit and tool rows among the collisions, read BY INDEX from the contact view, `clashIndexOfView`; `windowFirst`, `windowCenter`). The counts, the words, ‹ › and the look-ahead reach EVERY target from the index: the filter (in the store, `simView.filter`; the bar builds the window of its kinds) and its counts (`simView.counts`), `wordsOfCounts(viewCounts(view))`, the steps per kind with the list's order picking (`stepTarget` — findingNav's rule over the whole list, pinned against the full sort on random data with ties and wraps, `simWindow.test.ts`), `nextTarget`; a row's jump carries its position (`simJump(key, near)` — a key found there, never a walk over every target). The start pairs of "starts in contact" come from `contactView.startTargets` (the targets at each table's first sample, asked for their kind — never every target). A filter (All / Collisions / Limit violations / Tool changes, the counts in the options) and ‹ › named for the shown kind ("Next collision", "Previous limit violation", "Next on the timeline") step from the position like the bar's old buttons. A tap on a row shows it (enters the simulation like every finding jump); the keyboard's way is the row's line (`.rowPick`, `role="button"`, ONE Tab stop — the shown row, else the next, else the first): Enter / Space show, Up / Down / Home / End move the focus within the window, every navigation key default-prevented with a modifier too (the TabNav rule). The panel OWNS the focus it holds (Codex R78 VP-I37: a new result removed a focused row, the focus fell to body and the next arrow jogged): before every change of what it renders it notes the focus, after it a focus that fell out goes to the same row, the same control, the row now at its place in the WHOLE list held inside the window (its global index; a moved window takes its first or last row), the list filter, else the panel itself (`tabindex=-1`, which keeps the navigation keys). The list and the steps share ONE order, `simRowOrder` — the position, then tool → limit → collision (VP-I38: the steps sorted by position alone went down and back up on a tie); a jump to a tool change ends a finding's reveal (VP-I39). The window's rows render in PORTIONS (Codex R164 VP-I120, `viewer/simListRange.ts`): one published version, its DOM filled 40 rows a frame — first around the row holding the focus, the row it was on and the tab stop (a window that moved by at most a portion renders whole at once); two spacers of the rows' pitch hold the table's height (measured once per LIST that fills in portions, from its first portion's SECOND row to its last — the first meets a spacer and has no shared rule; a pitch kept per density missed a zoom change, Codex R165 —, only where the rows are seen: a hidden tab's boxes are 0, and that 0 was kept for the session; set on the scroller at once, before the marked row's place is kept), a collapsed sizer row with every SHAPE of the window's lines and times, each digit in all its places, and both moves holds the columns (hinting rounds even tabular figures apart at 11 px — "1" 7 px, "0" 8 px in Chromium on Linux —, so the longest value was not the widest); a list keeping only a row or two gets a whole first portion around them; the list's ONE tab stop is among the RENDERED rows (`renderedStop`, Codex R165 VP-I121): the regular one once rendered, while the portions fill around a focus far from it the row that last held the focus, else the rendered row nearest to it — Tab used to pass over the list for ~140 ms, and the focus never moves for it; Up / Down / Home / End render their target first (a far one a portion of its own), the marked row never displaces the focused one (it comes with the portions and the list follows once whole); `data-list-complete` marks the end — the whole first list in one frame was a 60–64 ms task under key input. The list FOLLOWS the position (operator 2026-10-06: "like the code panel when the program runs"): the marked row — the shown finding, else the next one ahead — stands in the middle of the list's view while the simulation scrubs or plays and while a program runs — gliding the code panel's way (`codeGlide.ts`: each target over the time since the last, 30–150 ms, from a start held in the row's visible band; a browser smooth scroll restarted per row fell behind at ×100 and the row sat below the view for 1.5 s, Codex R81 VP-I41), snapping under reduced motion; the list moves, never the focus; a hidden tab catches up when it shows. It follows a NEW marked row only — the position moved, a row was shown: a new result with the same marked row keeps the list where it stands (operator 2026-10-19, live: the running check's results, twice a second, put the shown row back in the middle and the list could not be scrolled). A moved window (or rows arriving above) shifts the rows under the scroll position: what the operator sees keeps its place on screen across the change — the row marked before where it is in view, else the first row in view — then the list glides to a new marked row — never a jump of the whole list. The bar CLAIMS the tab (`claimSimActions`, the release ends only its own claim): a re-mounted bar — a hot reload in dev — is built before the old bar's onUnmounted runs, and an unconditional clear there left ‹ › and the rows dead until a page reload (operator 2026-10-06, live; `simPanelStore.test.ts` swaps a keyed bar through a minimal custom renderer). The shown finding is the selection tint, a bar and `aria-current`; with none shown the next row ahead of the position — playback's and a run's look-ahead — carries the bar alone. The machine on (no simulation): a row and the steps say why at the control ("Machine on — power off to simulate"); disarmed nothing reacts. No program: "Load a program to simulate it." Narrow, the Move column joins the What text, before the note. The selects keep their options out of every re-render (`v-memo`, the Firefox rule — `select-writes.spec` watches them while the simulation plays). `e2e/simTab.ts` (`openSimTab`, `simShow`, `simStepBtn`, `simLine`, `simRow`) is how specs reach it; `e2e/sim-panel.viewer.spec.ts` pins the list against the marks, the jumps and steps, the keys (no jog), the reason at a row, that stepping through findings never changes the bar (desktop, touch landscape, 150 % portrait), and the window (1000 collisions: 400 rows, the counts, ‹ › to a target outside it, the focus held in it when it moves, one mark per occupied column).
 - `SettingsPanel.vue` — Sub-tabbed settings (3D Viewer | Machine | Display | Gamepad | Keyboard | HAL | Debug; the macros moved to their side tab, package 5 — Settings' one draft left is the gamepad mapping wizard, which covers Settings, so only a header navigation asks) The header states the save model per area — changes save automatically, the macro editor and the gamepad wizard say Save/Cancel — and carries the save status (UX-08). Closing Settings is ONE guarded path (UI-K16): its X, the backdrop and every header switch to another navigation dialog (`useDialogState.openDialog`/`closeSettings`) ask `guardSettingsClose` first — `SettingsPanel.unsavedDraft()` names a CHANGED macro draft (vs. its opening snapshot) or a running gamepad-mapping wizard, and App shows "Discard changes?" (Keep editing / Discard, registered modal); Discard carries out the navigation that asked. Automatically saved settings are no draft. The dialog is the WIDE tier (`.dialog.lg.wide`, `--dialog-wide-w` 760 px like the tool editor, operator 2026-09-30); the 3D Viewer tab stands its sections ONE BELOW THE OTHER, each across the whole width — Layers, View, HUD (its "Show HUD" switch is the `hud` layer), Camera Overlay, Colors, Machine Colors — and splits a section into two columns INSIDE where they fit (`.sectionColumns`; operator 2026-10-01: the sections side by side of 2026-09-30 were hard to take in): the LAYERS in four row groups — Program (Toolpath, Rapids, Backplot), Bounds & Reach, Machine, References & Markers (`viewerLayerGroups.ts`; `viewerLayerGroups.test.ts` holds every layer of `ALL_LAYERS` to exactly one place) — as two tables, the first two groups left, the other two right (`LAYER_COLUMNS`, read column by column, so one column keeps the order), the findings legend under both; View: projection and tracking left, the toolpath preview right; HUD: Show HUD and the scale left, the card's sections right; Camera Overlay: the switches left, the fields right; Custom colours' two checks side by side. A layer's line sample sits at the end of its cell (under the name where the column is narrow), toggle grids take the `.formGrid` rule, and the panel has no padding of its own (the dialog's content box pads it; the scroller holds a "?"'s reach) — at 150 % portrait (a 248 px dialog) the layer table, the HUD and the camera toggles ran out sideways before. `layout.spec` measures the width, the sections (one below the other, each across the width, found by their headings), the columns inside (side by side at desktop and touch landscape, stacked at 150 % portrait), the groups' order and nothing running out sideways.
 - `MacrosPanel.vue` — the Macros side tab (package 5 stage C, plan `docs/reviews/makros.plan.md`), laid out LIKE THE TOOL TABLE (operator 2026-10-03): the head after the tab pattern (the selected macro; Run — `macroRun`, a hold, or with parameters a tap to the dialog — · Abort … More: New / Upload / Download), a search row (`macroSearch`: name, title and description) with a bar filter (All / On the bar / Not on the bar), then ONE table — Macro (sortable, `aria-sort`), Description (the file's first free comment line, ONE line with an ellipsis, the whole text in its title), On bar, the pencil, the trash (`listActionSetup`), the bar order — in NAME order: switching On bar or reordering the bar moves no row, and every row reserves the order buttons' slot (hidden off the bar), so no row height or column width changes (operator 2026-10-02, live). A tap on a ROW selects the macro for Run (no button in the row, operator 2026-10-03); the keyboard's way is the row's name (`.rowPick`, `role="radio"`, ONE Tab stop — the selected row, else the first): Enter / Space and Up / Down / Home / End select, every navigation key default-prevented with a modifier too (an arrow that reached the shortcut map jogged — macros.spec proves it with a bare-page control). Narrow, the description column leaves and the order buttons stand one over the other. No Files: the list IS the macro folder. The pencil opens the EDITOR DIALOG (like Edit Tool; `DialogFrame` form, lg wide; New opens it empty): File name, Title (on the bar) and Description as FIELDS over the code — the fields ARE the file's header lines (`macroHeader.ts`, pure: the name is the subroutine's label, every `o<name>` of the sub itself; the title the `(MACRO …)` line; the description the first free comment line, written `( … )` unless it would read as a header word or break the comment, then `; …`); a field writes its line into the text (the field keeps what is typed), an edit of the code reads the fields back. It mirrors the gateway's parser, and both read `scripts/test_fixtures/macro_header_cases.json` with the same answers (`macroHeader.test.ts`, `test_macro_files.HeaderParity`). New: the title follows the name until typed. Save under ANOTHER name is a RENAME — `PUT /macro?name=<new>&base=new&rename_from=&rename_base=`, ONE step under `_source_lock` (the new name free, the old file still the revision the editor read; the new file published, the old one removed — if that fails, the new one leaves again, 500) — and the bar keeps the macro's place. The editor is bound to its REVISION (Save sends `base`, a 409 of kind `conflict` for its own file is a conflict note with Reload / Keep editing — Keep editing makes the next Save replace exactly the revision the gateway named, never silently; a busy machine, a taken name or an answer without the revision is "Not saved" and the draft keeps its base, Codex R70 VP-I31); a read the list overtook (a save, a delete, a new file of the name while the text was on its way) never turns the editor clean: it turns clean only on the revision the list names NOW, else reads again (twice at most) or closes when the file is gone, and a clean editor on another revision than the file blocks its run (`MacroEditorBasis.revision`, Codex R70 VP-I32); Cancel and X over a draft ask "Discard changes?" (Keep editing / Discard), and so does a tab switch from outside the scrim (the strip's Tool Table button; App `requestTab`, which closes an untouched editor with its tab). The EARLIER settings macros (one MDI line each) were dropped on the operator's word (2026-10-02): a stored `macros` list stays in the settings section exactly as stored (`mergeMacrosSection`, never used, never rewritten; the console says once that it is there). The run rule (Codex VP69-05): a file with an unsaved draft, a text loading or an open conflict runs NOWHERE — `macroEditorBasis` (macroFiles.ts, the DISK name) read by `macroRunBlock` (macroBar.ts) for the bar (it stays reachable beside the dialog), the tab's Run and the dialog's Execute. Upload creates only, or replaces exactly the confirmed revision; after a delete the focus goes to the next row's name, else the previous, else More. `e2e/macroFolder.ts` is the ONE macro-folder mock for every spec (page.route: real sha256 revisions, the gateway's 409s and the rename; title and description read from the text through `macroHeader`; `serveNow` after the page loaded); `macros.spec` pins list, search / filter / sort, the row selection and its keys, bar toggle + hold, the file dialog, the editor dialog (fields ↔ lines, rename, New), the draft block, the conflict, the closing asks, the downloads and the no-jump rows.
 - `CodeEditor.vue` — the ONE CodeMirror host (extracted from GcodePanel, package 5): dynamic import, the theme following isDark, inputmode none on touch, the strip keyboard's CODE target under the caller's owner id, `autoOpen` (default on: focus + keyboard at mount). The caller owns the session (file, original, revision); `text()` / `setText()` / `openSession()` exposed; unmount closes its keyboard session.
@@ -559,11 +559,16 @@ where the axis merely sits parked past a limit are not re-flagged, so the
 culprit line stands alone. Wire: `violations` (per-line records, capped at
 200) + `violations_total`; `null` means the INI had no MIN/MAX_LIMIT —
 unchecked ≠ clean, and the stats dialog says "Not validated". UI is
-centralized in the Simulation tab's list (one row per mark, ‹ › named
+centralized in the Simulation tab's list (one row per mark — a window of
+400 around the shown one, plan 4.4 —, ‹ › named
 for the shown kind, anchored to the CURRENT timeline position — scrubbing
 re-anchors it; collisions and tool changes in the same list) and the
 scrub bar's timeline marks — one tick per kind plus a lucide glyph
-under the track in the tick's colour (▲ limit, × clash, ● tool change;
+under the track in the tick's colour (the collisions one per OCCUPIED
+column of the timeline's pixels — at most `TIMELINE_COLUMNS` (8192) like
+the bands, so at most min(targets, columns) marks — at its first target, a
+near miss only where every target in it is one — `simWindow.clashTicks`,
+never one per target; ▲ limit, × clash, ● tool change;
 the dark theme cannot separate red from amber) and extent BANDS (warn over
 the violating line's cum span, danger over every contact interval, red
 wins) — plus warn-tinted line numbers in GcodePanel (`.codeLine.violation`,
@@ -914,9 +919,9 @@ then the full sweep from 0 on the same basis replaces it ("· checked in full";
 never "measured"). While the full one runs, the band, the star and the words
 are the SHOWN provisional result's own — where it stopped (", stopped at
 60 %"), whether certified (Codex R116 VP-I68); every boundary contact is named
-in the "?" with the lines it stays on provisionally, and its records reach the
-code panel as provisional marks (`viewer/collisionMarks.ts`: `boundary` kept,
-one mark per line — a contact's own record over a provisional one; VP-I69). A
+in the "?" with the lines it stays on provisionally, and its boundary episodes
+reach the code panel as provisional marks (`contactView.lineMark`: a line's
+contact over a provisional one; VP-I69). A
 worker that asks for the bodies (`needBodies`) gets the SAME request again —
 basis, range, run and whether the result on screen stays (`_colPendingRun`,
 VP-I70). A new publication, another basis revision, another run, a
@@ -928,7 +933,7 @@ rotary motion parks nothing. Owed: the measurement protocol (status frame p95
 PC) and the live M600 run need a running LinuxCNC. Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
-`collisionMarks.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on
+`contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on
 the page's collision worker answers a request with `needBodies`, lays fields
 over the provisional result and holds the full one's).
 
@@ -1457,31 +1462,30 @@ with the rebuilt entry track). SWEEP STATES (2026-09-13, no button): the sweep h
 2026-09-12 are gone, operator decision), its progress is the TIMELINE's
 swept band (`sweptFrac`; the iterator's progress and `covered` are
 TRACK-AXIS fractions, `distToTrackCum(s) / cum[n-1]`, so a scrub shows
-which section is already checked), and its findings show LIVE: the worker
-posts the UNREFINED sweep-so-far (`SnapshotHandle.peek`, `partial` on the
-progress message, at most every 500 ms and only when the record count
-changed — hits at their discovering samples, up to one step late) as
-`collisionPartial`, so ticks, bands, the tint and the code-panel marks
-appear as the sweep finds them and the verdict reads "N collisions so far";
-the refined result replaces it when the sweep ends or parks. The FIRST
-confirmed contact of a run goes at once (step 4 plan 1b,
-`SnapshotHandle.first`: a record touching — `dist` ≤ the contact limit, no
-boundary or possible record — as its FINDING, the onset where the touch
-continues one): the pump posts it once per run before the snapshot cadence,
-without `buildResult`; the coordinator forwards a shard's first once (the
-first in time, not the earliest on the track); the viewer shows it as a
-running partial (`_colShowFirst`): it REPLACES the record of the same onset
-the partial shows (`viewer/firstContact.ts`, line + pair + program onset —
-appended, one contact read "1 collision · 1 near miss", Codex R136 VP-I91),
-and the viewer folds it into every later partial of its request until one
-carries it (VP-I92: a pooled partial from a shard's older word took it back —
-held in the viewer, which sees the whole sequence, a fall back to this core
-included). Side runs (the entry move, the start-dependent beginning — the
-whole program on a dependent one) send their first too, no partials (VP-I93):
-a run check merges it onto the base while its beginning stays "start still
-checking" (the base's `startDependent` kept: one contact answers no
-coverage), the simulation's entry result shows it, said "entry move still
-checking" (`collisionSideFirst`, ended with the side sweep). The bar and the
+which section is already checked), and its findings show LIVE from its
+CONTACT TABLES (step 4 package 2, C2 — the sweep writes no records any more,
+see "Contact store"): the worker sends their deltas at the end of a slice, and
+posts the running sweep's METADATA as `partial` (collision.ts
+`SnapshotHandle.meta`: static contacts, notes, a range's start and boundary
+contacts, `truncated.reason === "running"` — no findings) after the first
+slice and whenever it changes, at most every META_MS (500 ms; a progress
+carries the coverage) — so progress, a park, the end, the basis card and the
+caveats show without a single table row. The viewer's publisher builds the
+views from the tables and publishes them with what the bar shows (plan 3.6):
+the list, the ticks, the bands, the tint and the code marks appear as the
+sweep finds them and the verdict reads "N collisions so far"; the result is
+the sweep's metadata. The FIRST touch of a request shows at once (step 4 plan
+1b): the delta that brings its first touch interval goes out beside a delta
+still unacknowledged, once (R170: a held acknowledgement behind a near miss's
+delta held it back by the whole hold, at the stand before C2 too), and the
+viewer marks that message (`firstTouch`) and publishes at once. Side runs
+(the entry move, the start-dependent beginning — the whole program on a
+dependent one) post no partials (VP-I93): their first touch interval sets
+`collisionSideFirst` — a run check merges it onto the base while its
+beginning stays "start still checking" (the base's `startDependent` kept: one
+contact answers no coverage), the simulation's entry result shows it, said
+"entry move still checking" — never their start (C2), ended with the side
+sweep. The bar and the
 code marks take the result and the partial WITH a run check's beginning in
 them (`collisionResultShown` / `collisionPartialShown`, `_colWithRunSide`;
 `_colEmitMarks`) — they took the bare ones, and the beginning's findings,
@@ -1491,23 +1495,15 @@ the main request's first partial — a main sweep finding nothing posts none
 until it ends — the beginning's contact, early or final, shows on the main
 request as it stands (`_colRunSideBase`: nothing found so far, its progress,
 the start-dependent beginning it names — `startDependentOf`, the sweep's own
-rule — on the run's track only, never a finished one; Codex R138 VP-I93). The
-held first contact lasts the whole request (a pool falling back to this core
-starts again; a bodies retry carries it to the new id). A contact's onset is its MARGIN ENTRY: one that touches
-on a later line marks the onset `touches` (`confirmedContact`) — it read as a
-near miss, and with the cap its touching records could vanish (0 of 200 in
-the step 4 measurement). `capped` counts the records the cap left out,
-`cappedOnsets` the contact beginnings among them (contacts the list and its
-count do not hold). The worker
+rule — on the run's track only, never a finished one; Codex R138 VP-I93). The worker
 PAUSES for camera interaction (auto-expires after 30 s — a lost pointer-
 up) and for a HIDDEN tab (no expiry; `visibilitychange`), two independent
 holds; a ROTARY jog PARKS it (`stop`, honoured at the next checkpoint — the
 iterator yields on TIME, 8 ms of active clock, the 16-segment / 512-
-sample checkpoints as the floor; the park snapshot's refinement is
-MEMOIZED per unchanged record) and a settled pose continues it — the
+sample checkpoints as the floor) and a settled pose continues it — the
 worker keeps the suspended generator with every clearance certificate and
-contact state, `SnapshotHandle.take` hands out the sweep-so-far without
-ending it; parked reads "no clash in N % swept" / "in N % swept". The
+contact state, `SnapshotHandle.take` hands out the sweep-so-far's metadata
+without ending it; parked reads "no clash in N % swept" / "in N % swept". The
 iterator's sample backstop is the only hard limit: past 4 M samples it
 steps coarser (`coarsened`), past 16 M it stops (`truncated`, reason
 "samples"). The findings, the verdict and the line readout are
@@ -1525,16 +1521,15 @@ program's sweep (the MAIN run, always on the BASE track): the ENTRY
 SEGMENT (the live position → first point rapid, `sliceTrack`) is a SIDE
 sweep in the worker (`side: true` — beside a running or parked main run,
 milliseconds) whose result is the entry OVERLAY, merged onto the base
-result AT DISPLAY TIME (`collisionEntryResult` = `sweepMerge.ts`: base
-cums shift by the entry length; ONE contact seen by both sweeps — an
-entry onset still in contact at the entry's end + a base onset for the
-same pair from the first point — counts ONCE: the entry record keeps the
-onset and the base's span, the base's first-line record becomes its
-continuation (line 0 = the entry move) — unless that record SEPARATES and
-comes back on its line: then only its first interval joins the entry's
-finding (`carried`, the entry spans to its end) and its re-entries stay the
-program's findings under their own keys (Codex R34 VP-I09); TWO baselines, both reported — the live
-pose's and the first point's static contacts). `viewer/sweepEntry.ts`
+AT DISPLAY TIME: the two results' metadata (`collisionEntryResult` =
+`sweepMerge.ts`; TWO baselines, both reported — the live pose's and the first
+point's static contacts) and their contact tables in ONE view, the base on
+the entry track's axis shifted by the entry length; ONE contact seen by both
+sweeps — an entry contact still open at the entry's end + a base contact of
+the same pair from its first checked point — counts ONCE: the base episode's
+first interval continues the entry's (`contactMerge.ts`, the entry join),
+its re-entries stay the program's findings under their own keys (Codex R34
+VP-I09). `viewer/sweepEntry.ts`
 (pure, pinned) decides what runs: base unknown → base + side; base
 current / running / parked → side only; overlay already swept for this
 entry track → nothing; machine at the first point → the track IS the
@@ -1548,9 +1543,7 @@ identity, so a re-entry sweeps only the new segment.
 The first attempt cancelled a base sweep at 59 % for that one segment and
 re-swept the whole program on every re-entry; its full entry-track sweep
 also had the LIVE pose as its only baseline, so a program that starts in
-contact reported a continuation record per line (200 capped hits at 3 %)
-and every park refined thousands of them — refinement is now bounded to
-the reported set (MAX_HITS, onsets first) and skipped on a driver abort.
+contact reported a continuation record per line (200 capped hits at 3 %).
 
 **Range sweep (plan „Prüfung im Lauf“ 3b)**: `CollisionOptions.range =
 {from}` sweeps from track point `from` on with the PROGRAM's baseline (first
@@ -1559,12 +1552,11 @@ start would take a pair touching there and at rest for a mount, VP112-04),
 the first pose's seeds cleared and every pair queried afresh at the first
 segment with length after it. A pair inside the margin there (cutting pairs
 too) is a BOUNDARY contact (`result.boundaryContacts`): begun before the
-range, its onset and kind are the full check's; its records carry `boundary`
-in a key space of their own (a separation and a re-entry on the same line is
-a collision of its own), count nowhere (clashTargets, the cap) and end with a
-verified separation; a cutting boundary contact is taken as feed-begun and
-records nothing. Nothing before the start is swept, refined (the refinement
-floor) or reported; progress and a park's coverage count from it;
+range, its onset and kind are the full check's; it is an episode of origin
+BOUNDARY in a key space of its own (a separation and a re-entry is a
+collision of its own), counts nowhere and ends with a verified separation; a
+cutting boundary contact is taken as feed-begun and writes nothing. Nothing
+before the start is swept or reported; progress and a park's coverage count from it;
 `result.range` names the start, `empty` a range with nothing of positive
 length. The shard merge carries the range and unites the shards' boundary
 contacts. `collisionRangeOracle.test.ts` holds it to the brute-force oracle
@@ -1642,8 +1634,43 @@ taken for the benign retract, R87); a pair still touching keeps the stretch
 as contact, so an unchecked gap never reads as clear — except a cutter in a
 FEED-begun contact whose stretch reaches a rapid: re-sampled even when the
 next sample touches again, or a separation and a rapid re-entry inside it
-inherited the feed contact's benign origin (R88). Both are sampled at least once on every line they stay in contact
-with (the per-line continuation marks). Facets WITHOUT AREA (three distinct
+inherited the feed contact's benign origin (R88). No LINE owes a pair in
+contact a sample of its own (step 4 package 2, plan 5, B8 — the per-line sample
+existed for the continuation record per line; on haus.ngc it was most of the
+sweep): it samples at the cadence, where the KIND of move changes (feed ↔
+rapid: a touch's kind decides the cutting rules and an interval's rapid flag),
+and re-sampled at MIN_ADV at every separation — a touch's end (above) and a
+NEAR pair's margin exit (`nearQ`): a pair inside the margin without a touch
+steps to where it could first touch (d/V, up to EXPLORE), and its stay, which
+ends at its last sample inside the margin, ended that far before the exit —
+lines it was inside the margin on got no stay (plan 7.3 check 2, the oracle at
+0.05, found it; the per-line sample had covered them). That stretch holds no
+touch (the near sample's distance certified none; `nearQ` names only a DECIDED
+near sample), so it asks only "inside the margin?" — a query bounded at 2 ×
+margin, beyond it short of a separation, no inside check — and only for its
+LAST pose inside the margin (the stay covers the rest by continuity): a search
+BACK from the sample outside, certified — the distance changes no faster than
+the chunks' speed bounds since the near sample, a history of at most 16
+entries a pair (`viewer/nearHistory.ts`, pure: a full one merges the
+neighbours whose larger bound adds least; `nearHistory.test.ts` holds it to
+bound every chunk from above, to merge where least is added and to step back
+exactly its room), so from a pose at d outside the margin the pair
+stays outside back to where those bounds use up d − margin, at least MIN_ADV
+back; the first sample inside the margin is noted. A jump or a tool / offset
+change ENDS an open near stretch on the pose, tool and offset before it (noted
+there when still inside the margin, else searched back from there): the
+search never starts from a distance after such a boundary — no motion bounds
+it (Codex R175 VP-I129); a stationary relabel keeps its stay. Both re-samplings pass the
+main loop's checkpoints — yield, budget, abort — with the progress the last
+whole sample's (Codex R174 VP-I127: one largest bound walked a long slow
+stretch at a fast chunk's pace, 66 656 samples in one iterator call; a
+forward MIN_ADV grid had cost 158 s of 264 on haus.ngc Fall B). `CollisionOptions.
+lineSample` is the old rule, for the comparison (`collisionLineSample.test.ts`:
+tables, stays per line and views of the run without it cover the run with it,
+else the truth shows a run no wider than MIN_ADV — an exemption bound to that
+run's stretch and pair, never the pair elsewhere, Codex R174 VP-I128) and the
+measurement only; `collisionWindows.test.ts` holds near stays to closed-form
+margin windows and the search to its checkpoints. Facets WITHOUT AREA (three distinct
 collinear vertices, coincident ones, a coordinate not finite) are dropped
 when the model is built (`withoutArealessFacets`): three-mesh-bvh read a
 collinear facet as touching a triangle 1.5 mm away (VP-I46); a body left
@@ -1670,19 +1697,20 @@ last query is used up since (`surf` / `surfQ`, carried across chunks like a
 clearance: the sampling floor steps past a touch narrower than MIN_ADV, and
 through it a part can go wholly inside — a pair taken for clear was never
 asked again, on identity kins too), and a pair whose last answer was
-undecidable; the refinement's predicate is touching OR inside OR
-undecidable, and an undecidable answer met there is named too (per pair and
-line, apart from the forward sweep's time-ordered state — VP-I58). Inside is a touch (distance 0) with a certificate of its own:
+undecidable (the store's bisections ask it too: touching OR inside OR
+undecidable). Inside is a touch (distance 0) with a certificate of its own:
 the answer can change only through a surface crossing, so it holds until
 the surfaces' distance at that query (beyond the horizon: the horizon) is
 used up at the pair's speed bound — carried across chunks like a clearance,
 dropped at a break or a tool change (`inClear` / `inQ`): a long inside
-contact owes a sample per line, and those need no query (haus.ngc's end caps
-in the column foot: 268 s → 3.3 s for that pair, the same records). Undecidable
-gives no record, no
-separation, no clearance certificate (asked again at the contact cadence),
-never a static exclusion, and its stretch stays named ("inside check
-undecidable for A ↔ B (L5–L9)"). A container whose surface is NOT CLOSED is
+contact's samples need no query (haus.ngc's end caps in the column foot, while
+every line still owed a sample: 268 s → 3.3 s for that pair). Undecidable gives no
+touch, no separation, no clearance certificate (asked again at the contact
+cadence), never a static exclusion: its stretch is a GAP_UNDECIDABLE gap,
+named in the bar's caveat ("inside check undecidable for A ↔ B (L5–L9)") —
+derived with the view, every generation's gaps united (Codex R170 VP-I123),
+three stretches a pair and "…"; the rest pose's undecidable answer is the
+result's note (VP167-01). A container whose surface is NOT CLOSED is
 not asked — it has no inside at any pose, asking again never decides it —
 but named once per model (`CollisionModel.open`, `geometryNote`: the 3-axis
 model's frame, x_axis, y_axis); its pairs keep the surface's guarantee.
@@ -1703,24 +1731,18 @@ A sweep whose guarantee does not hold — a declared kins this client
 cannot evaluate falls back to trivkins, whose bound is legitimately 0 —
 reports `uncertified` with the reason, surfaced in ScrubBar on BOTH the
 "Clear" and the "N collisions" branches.
-Attribution: worst hit per (line, pair); penetrating hits are REFINED to
-first contact (walk back to the last clear parameter + bisect, ~30 pair
-probes per hit) so scrub-to-hit poses the model at first touch, never a
-sample-step deep. Contact within one line can be INTERMITTENT (rotary
-return moves brush parts twice — user-caught): hits carry
-`intervals` ([enter, exit][], every boundary bisected; in-contact
-samples cluster with gaps > the in-margin stride = verified
-separations); the clash tint tests interval membership and the
-timeline marks/navigates every interval ONSET, so a re-entry is its own clash
-stop. A contact from the start of the axis (the program begins in it) is
-refined into intervals too — it may separate and come back on its line. A
-record that carried a contact in from an earlier line and re-enters on its
-own line marks that first interval `carried`: it is the earlier finding's
-contact (whose span reaches its end), not a stop of its own (Codex R34
-VP-I09). The clash COUNT, the marks and prev/next all read ONE list
-(`viewer/clashTargets.ts`; a same-line re-entry is labelled) and contiguous
-refined windows are merged (`mergeContiguousIntervals`) — count ≡ ticks ≡ stops. Near-miss hits keep their closest-approach sample.
-Hits during RAPID segments are flagged `rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
+What a sweep found is its contact tables (see "Contact store"): every touch
+interval's boundaries are bisected, so a jump poses the model at first touch,
+never a sample-step deep; contact within one line can be INTERMITTENT (rotary
+return moves brush parts twice — user-caught) — each interval is its own
+target, a re-entry its own stop. The count, the ticks, the list, prev/next,
+the tint and the code marks all read ONE contact view (`contactView.ts`:
+targets — touch intervals, near misses at their closest approach —, their
+keys, kinds and pieces; count ≡ ticks ≡ stops); a target's LINE is the
+display line at its position (plan 1.3, C3: a called file's moves read their
+call line, an untrusted move without one reads its subroutine's name, else
+"—", and marks nothing — never the raw line). A rapid touch is flagged
+`rapid` — always real. ThreeViewer owns the worker (geometry from machineAssetCache, tool
 dims from live status); the worker drives the iterator in 40 ms slices
 (`viewer/sweepPump.ts`) and reads `{cancel}` / `{pause}` / `{resume}`
 between them — no terminate, the BVH model stays RESIDENT under a
@@ -1737,15 +1759,15 @@ inside the margin at the first pose weighs its two meshes' triangles, else
 `pairAssign.ts`) — and the worker the page holds only coordinates: it keeps
 the bodies and sends them to a shard that lacks the model, forwards cancel /
 stop / continue / pause / resume to every shard, reports the least swept
-shard's progress, merges the shards' partials and results
-(`sweepShards.ts` `mergeShardResults`: hits concatenated and capped onsets
-first, static contacts and the prescreened count from shard 0 alone),
+shard's progress, merges the shards' metadata (`sweepShards.ts`
+`mergeShardResults`: notes united, static contacts and the prescreened count
+from shard 0 alone; their tables travel as deltas, one per shard),
 posts `stopped` when every shard is parked or done, and runs the entry
 move's side sweep on shard 0. A partial is every shard's LATEST word — its
 result once it has one — with a shard not heard from counted as swept 0, a
-finished shard's findings posted at once, shard partials at most every
-PEEK_MS (Codex R90 VP-I47). The pair is the unit because each carries its
-own certificates, contact state, cutting origin and records — no state
+finished shard's word posted at once, shard partials at most every
+META_MS (Codex R90 VP-I47). The pair is the unit because each carries its
+own certificates, contact state, cutting origin and table rows — no state
 crosses a shard. K = the cores but TWO (the page and the browser's own
 processes — Codex R90; four cores make two shards), at most 8, and no more
 copies of the model than 4 M triangles allow (every shard holds the whole
@@ -1768,19 +1790,14 @@ backstop is per shard: `coarsened` from 4 M samples, the hard stop
 haus.ngc (XYZAC, A 61°) the rear column against the C faceplate is 24.5 % of
 the query time — ×3.9 with 4 shards, ×4.1 from 6 on (measured per pair with
 `profile`). Measured in the browser (headless Chromium, the live payload, 4
-cores): one worker 1036 s, 3 shards 482 s (×2.15), the same 85 onsets; an
-onset in a line shorter than MIN_ADV may land one line apart (6 of 85 with
-equal costs, 8 with the triangle weights, every one a line LATER in the pool,
-44857 / 44858: the onset's line is the discovering sample's, and a shard
-with fewer pairs steps further before it samples a pair; the refinement walks back no further than that line's
-start (lineStartDist), so the shown start lies up to one such line late —
-under MIN_ADV; deriving an onset's line from its refined start is a later
-step). `result.shards` says how many swept; `__viewerDiag.
+cores): one worker 1036 s, 3 shards 482 s (×2.15), the same 85 onsets (a
+measurement of the record sink; since C2 an interval's line is the display
+line at its bisected entry, the same in every split). `result.shards` says how many swept; `__viewerDiag.
 getCollisionSummary`. Tests: `sweepShards.test.ts` (the merged shards
 against the single sweep on the shipped models — 2, 3, a random split and
-the shard option; a record or a touch in one run only must be a run no
-wider than MIN_ADV, the truth decides — red when a shard loses pairs or the
-merge loses static contacts), `collisionWorker.test.ts` (the coordinator
+the shard option; a touch in one run only must be a run no wider than
+MIN_ADV, the truth decides — red when a shard loses pairs or the merge loses
+static contacts), `collisionWorker.test.ts` (the coordinator
 through fake sub-workers: partials, the fall back with every owner state,
 the side id −1, the kept bodies — 12 mutations red), `collisions.viewer.spec`
 (more than one worker in Chromium and Firefox, the same onsets — red with one
@@ -1827,7 +1844,7 @@ box — a wall-spanning inner box prunes nothing: 12.8 ms → 0.02 ms per
 query), each body carries its connected components' AABBs
 (`componentBoxes`) whose box-to-box distance is a valid lower bound that
 answers every above-margin query without the BVH, and a cutting pair in
-feed-begun contact owes no per-line sample. The wall gantry's ~450 pairs
+feed-begun contact owed no per-line sample (since B8 no pair does). The wall gantry's ~450 pairs
 over 236k triangles made a 1.2 M-point sweep take hours; a 20k-point slice
 went 203 s → 5.1 s (docs/decisions.md 2026-09-13). The BVH query runs with
 a horizon (`HORIZON`, 20 mm) and a distance it returns ABOVE the horizon is
@@ -1868,23 +1885,16 @@ it again, and its tint and extent stopped at L1): seeded as an onset on
 the first line and checked throughout. NEVER a TOOL pair either
 (operator decision, same day): the tool is no one's mechanical neighbour
 (`CollisionBody.tool`, set by the worker on the parametric cutter;
-`pairTool` in the model). An onset whose contact persists past its own
-line carries `spanCumEnd` (where it finally ends, over ALL records — the
-report keeps MAX_HITS = 200 records, onsets first, and a contact that
-never separates over thousands of lines is a record per LINE): the tint
-and the timeline's red extent read it where the PAIR has no record of its
-own on the line — decided per pair (`viewer/clashTint.ts`; one test for the
-whole line put the Y saddle and the yoke out on every line another pair
-re-entered — operator 2026-10-06, haus.ngc on XYZAC). Only a REFINED record
-(intervals) or a near miss counts as the pair's own: the live partial result
-while the sweep runs knows a record's first and last contact sample only,
-which proves no gap. Test fixture:
+`pairTool` in the model). The tint and the timeline's red extent read the
+contact view per PAIR at the position (`contactView.tintAt`, the bands —
+one test for the whole line put the Y saddle and the yoke out on every line
+another pair re-entered, operator 2026-10-06, haus.ngc on XYZAC). Test fixture:
 `~/linuxcnc/nc_files/5axis_collision_test.ngc` — in-limits program whose
 low rapid traverse rams the trunnion (stage 1 quiet, stage 3 flags it).
 
-**Contact store (step 4 package 2, round A; plan `docs/reviews/kollision-paket2.plan.md`
-Fassung 5, Codex R139–R144)**: the sweep can ALSO write what it finds as typed
-column tables (`viewer/contactStore.ts`: blocks of 4096 rows, appended, never
+**Contact store (step 4 package 2; plan `docs/reviews/kollision-paket2.plan.md`
+Fassung 5, Codex R139–R144; the ONE sink since C2, Codex R167–R171)**: the sweep
+writes what it finds as typed column tables (`viewer/contactStore.ts`: blocks of 4096 rows, appended, never
 copied) — EPISODES (a pair's stay inside the margin, from the sample that found
 it to the last sample in the margin before a verified separation, its closest
 approach, origin program / entry / beginning / boundary), TOUCH INTERVALS
@@ -1902,10 +1912,9 @@ KNOWLEDGE GAPS (undecidable; a tool without a length — for EVERY tool pair, in
 contact before or not, and the contact after it is flagged after the unknown
 tool, the cutting state begun anew — gaps open, separate, certify, count and
 tint nothing). A cutter's rapid part after a feed begins where the rapid does
-(its entry never reaches back over the feed — R144 VP-I95/I96). `CollisionOptions.contacts = {store, origin}` turns the sink on
-beside the records, from the same samples in the same order (noteQuery; the
-sweep restores its pose after the sink's bisections); round A leaves the app on
-the records. A store whose budget is spent stops the sweep (`truncated.reason
+(its entry never reaches back over the feed — R144 VP-I95/I96). `CollisionOptions.contacts = {store, origin}` gives the sweep its store
+(noteQuery; the sweep restores its pose after the store's bisections); without
+one a sweep reports its metadata only. A store whose budget is spent stops the sweep (`truncated.reason
 "budget"`, `incompleteFrom` = the earliest position of a row it refused — every
 pair of that sample still tries, and a row the closing refinement in `finish`
 cannot write counts before the result goes out; the shard merge keeps the
@@ -1913,23 +1922,32 @@ shards' minimum — R144/R145 VP-I100). Transport (`collisionWorker`, a request'
 `contacts: {generation}`): deltas `{id, contacts: StoreDelta[]}` — new rows
 plus rows changed since, each once with its latest state — at most ONE
 unacknowledged per path (`{contactsAck: id, generation}` — bound to the
-generation it acknowledges), the last delta with the result; the coordinator
+generation it acknowledges; the delta with a store's FIRST interval goes out
+beside it, once, so at most two — C2, R170: an acknowledgement held behind a
+near miss's delta held the first touch back by the whole hold; the pool's
+forward and a fallback's drain count the same way), the last delta with the
+result; a receiver writes a
+delta column by column, a block's stretch at a time, its updates in pieces, in
+counted steps (`ContactStore.applySteps`: a budget's delta 2.7 ms in Node, 175 ms
+a row at a time; an update delta over the whole budget took 68–78 ms at once on
+the page, Codex R155), and checks all three tables' bounds before it writes — a
+message out of order or past its budget is refused WHOLE, nothing written; the coordinator
 applies and acknowledges each shard's delta at once and sends the owner one
 message per round; a fall back to this core is the next generation, a side run
 started again too. A failed pool still DRAINS its generation: what the
 coordinator took over and had not forwarded, and a result computed and held for
 the acknowledgement, go out one delta at a time; a run already computed is not
 run again, and the newer generation computes meanwhile but says nothing on the
-request's path until the drain is delivered and acknowledged — one delta
-outstanding per path, generations in order (R144/R145 VP-I98/I99). `viewer/contactMerge.ts`: the entry join (an entry
+request's path until the drain is delivered and acknowledged — the drain
+takes the pool's count of messages out and says nothing until each is
+acknowledged, generations in order (R144/R145 VP-I98/I99, C2). `viewer/contactMerge.ts`: the entry join (an entry
 contact still OPEN at its end — no exit, not ended at a gap — continues the base
 episode's FIRST interval when it begins at the base's first checked point;
 a closed one has its separation evidence, and no nearness tolerance joins
-across it — R144 VP-I97), the beginning on the base axis. Checks: `collisionContacts.test.ts` (both
-sinks from one sweep on the shipped and generated machines: the same touch
-unions and near stays up to the plan's named differences — the records bridged
-a proven free sample, stopped at a line start (R90), keyed a second stay of a
-line into one record), `collisionWindows.test.ts` (contact windows in closed
+across it — R144 VP-I97), the beginning on the base axis. Checks: `collisionContacts.test.ts` (the
+store against the truth on the shipped and generated machines),
+`collisionOracle.test.ts` / `collisionRangeOracle.test.ts` / `collisionHorizon.test.ts`
+(the reliability guards on the tables, C1), `collisionWindows.test.ts` (contact windows in closed
 form, widths 0.26–0.5, every one found to 1e-3; a free gap narrower than the
 touching stride EXPLORE may stay unsampled and read as contact, one wider is
 always proved), `collisionSpeed.test.ts` (V ≥ every vertex's relative speed at
@@ -1939,8 +1957,302 @@ split: every touch interval's witness, entry and decided exit inside the other
 run's intervals of its pair, else a touch run no wider than MIN_ADV by the
 truth), `contactStore.test.ts`, `contactMerge.test.ts`,
 `collisionWorker.test.ts`. `CollisionOptions.profile.probes` counts the
-distance probes away from the main step (refinement, re-sampling, the store's
-bisections) — the sink's cost without the load.
+distance probes away from the main step (re-sampling, the store's bisections).
+
+**After a fallback (round B4, plan 3.5; Codex R140–R143, R150–R152)**: a pool
+that falls back to one core reruns the request as its next generation; the
+receiver keeps the earlier one (`held`) together with how far each of its
+shards swept — the coordinator's `{id, heldCoverage: {generation, covered[]}}`
+(track fractions by shard; the side run on shard 0 its own), posted before any
+word of the next generation and queued with the tables' deltas: an open
+contact's rows name its entry only, so the furthest row position is a lower
+bound beside it, never the coverage (VP150-02). A source with held tables
+(`ContactSource.held`, `heldCoverage` on its own axis through
+`ShownSource.ownEnd`) shows, per pair AND origin, the union of both
+generations' intervals less the proven free stretches of both
+(`viewer/contactUnion.ts`, pure): a free sample proves (p − r', p + r') free,
+r' its radius cut back to the nearest confirmed point (a witness, a decided
+boundary) of either generation inside it — none where one lies on the sample
+itself; the point stays contact, the sample free, and no neighbourhood of the
+point is made contact (VP150-01: ±1e-3 around a point swallowed a whole free
+gap). A confirmed point deeper than the refinement's 1e-3 from both edges of
+the original stretch — possible once its radius exceeds 1e-3 (VP-I114) — is a
+contradiction of the two runs, kept and NAMED in the sweep's caveat ("its two
+runs disagree at N places (from L…) — kept as contact"). A TOOL gap (the tool
+unknown) of either generation SEPARATES events (VP-I113: the contact before it
+ended, one after it begins anew — an empty rerun joined two old events at a
+point gap and lost the second's key): the pair's tool gaps become SEPARATORS
+(`mergeSeps`) — never two gaps of one generation (the sweep closes a gap
+before it opens the next; a time axis collapsed in f32 puts several on one
+point, and a known instant between them holds a contact of its own — R152),
+across generations the same gap aligned (equal, or overlapping: one cut at
+its coverage). They cut the axis into ZONES closed at both ends (between two
+that only touch, the shared point is a zone), each its own union; a part at a
+zone's bound with length elsewhere belongs where its interval goes on; a
+POINT interval lies in a zone holding its point, chosen by its generation's
+order where several do — never before the interval before it, one further
+when it began after the unknown tool. An undecidable gap separates nothing; a
+knowledge gap does not split a piece, and a piece's contact on screen is its
+intervals' own less each one's generation's gaps. Named limit (accepted
+R153): two contacts of a pair touching at one point within one known stretch
+(exit, free sample, re-entry in zero time, no separator between) — their
+generation's rows order them, but how that order maps onto the other
+generation at the collapsed coordinate is not decided — the union joins them
+under the first key and hands the second over (the shown count may drop by
+one per such boundary). At one position a target list puts contacts before
+near misses, then by source, table and row — never by a piece's or a
+generation's bits, so a union lists ties as the view without a fallback. A piece is ONE u32 in the target list (its start
+evidence: an interval's enter, a free stretch's end, or — an interval of the
+other generation reaching over a separator — the zone's start, named by the
+gap it ends at and the piece's origin); the build walks each group ONCE
+(`eachPiece`, VP-I112/R151: the intervals read into a scratch reused group
+after group, each free stretch computed once, both generations' parts merged
+by start and the free union cut out), and every later question asks
+`pieceFrom` from the piece's start evidence alone — the view keeps a fixed
+context of its last group, nothing per row (a memo of free stretches per
+interval grew with the group, outside the budget). Its identity: the earlier
+event's key where it holds that event's witness, else `<lead row key>#g<generation>/<b |
+f<gen>:<evidence row key> | s<gen>:<gap row>>` — an interval's number in its
+episode read from the source's group index (every source has one: intervals
+by pair, origin and enter — an episode's stand together in time order), never
+by walking the episode's chain, which a pair with many re-entries makes as
+long as the table; an earlier event whose witness
+a piece another earlier event keeps holds (a free stretch refuted on its
+sample) is HANDED OVER — `findKey` with its key answers that piece. A base
+contact an entry contact continues is that entry's finding in every generation
+of either side (VP-I111): the joins are formed between each side generation
+swept to its end (the current one by the side's result, an earlier one when
+every shard of it reached 1) and each base generation, and the piece holding
+where a joined base row begins is the continuation, whatever else it holds;
+a later piece of the pair stays a finding of its own. Near misses of the two
+generations are matched one to one per group by overlap in order: a matched
+one shows the current approach under the earlier key, an earlier one not found
+again is `earlier` (the Sim tab: "from the earlier run"). Code marks read both
+generations' episodes (a free stretch proves no touch, not that the pair left
+the margin). `contactUnion.test.ts` holds the walk AND the search to a brute
+force over open and closed spans with zones (7 seeds × 3000 random generation
+pairs with tool gaps — realistic ones where a contact ended, point gaps and
+clusters of restarts at one point with a touch in some known instants —
+piece by piece and zone by zone, each asked again from its start, the
+contradictions the walk names equal to `eachWideConflict`'s) and to Codex's
+R140–R142, R150–R152 sequences; `contactUnionSweep.test.ts` drives the REAL
+sweep (a Ø20 tool past a vise, the tool unknown on random stretches, zero-time
+clusters of restarts; a 32-bit generator — a product of doubles past 2^53
+loses its low bits) and requires the earlier generation's events — keys,
+places, ends, kinds — unchanged by an empty and by an identical rerun, every
+earlier key answering in both (1000 passes; the named limit counted apart,
+at most one merge per boundary);
+`contactViewUnion.test.ts` holds the view through real tables (keys, gaps,
+separators, the handover, near misses, the reported coverage in three steps,
+conflicts, origin groups, a point gap inside a longer one, the budget);
+`contactViewBudget.test.ts` holds what a view holds to `derivationBound` —
+derived from the store budgets term by term (pieces from union splits, zone
+starts and near misses, the episode list, the group index, the gap index with
+its pair's furthest end, the separators as two gap references, the near-miss
+matching, the joins): 10.91 MB at the request and side budgets (the 8.4 MB
+first agreed held none of the union's splits, gaps, separators or near
+matching) — at the budget, after the queries, every free sample cutting, full
+gap budgets of both reasons on one pair and on a pair each, near misses
+matched, pieces begun at separators (7.99–9.20 MB). The gap index holds each
+gap's row (4 B) and its pair's furthest end so far (8 B — a bisection's point
+gap may lie inside a longer gap), the values read from the table; a copy of
+every span and reason was 21 B a gap;
+`shownContacts.test` the joins (base, side, both, a side not swept whole, a
+later contact); `collisions.viewer.spec` fails a real sub-worker (the worker
+script served with a hook that holds the pool's words after its first
+contact, then fails shard 0): the earlier finding stays listed under its key
+through the paused rerun, each contact once after it — and answers both
+requests itself for the joins (the base's fallback after the side ended, both
+at one failure, a later contact).
+
+**The view built in steps, published with what the bar shows (plan 3.6 Form 1,
+Codex R152–R156; `viewer/contactPublisher.ts`, `viewer/steps.ts`)**: the view's
+build ran on the page in one task — 0.3–1.2 s at the budget, and a long task
+holds the handlers of Escape and the E-Stop button too (the heartbeat runs in
+the WebSocket worker). Every job is a generator that yields after `STEP_OPS`
+(4096) COUNTED operations — never a time: `runSteps` drives it in slices of
+about 8 ms with a macrotask between, `sortSteps` sorts (stable, natural runs),
+`copySteps` copies a list into a typed array, and every loop counts the work
+it DID, never a flat figure after it: a held table's coverage read at once
+(`provenCoverage`, 16 ms) and the target lists copied at once (20 ms) were
+single steps in the browser, and Codex R157 VP-I115 found more — a coarse held
+contact over a rerun's every contact was gathered as one component at once
+(792 248 scratch reads between two yields): the union walk now scans at most
+`SCAN` (64) intervals a call between its counts, writes a piece's ranges in
+steps, and a piece's callback may be a job (`PieceEach`; a piece of more than
+`SMALL_PIECE` (64) candidate intervals is described and banded in steps —
+`describePieceSteps`, `pieceIntervalsSteps`); one pair's gaps merge in steps
+(`mergeSepsSteps`), the gap index, the joins and the near-miss list sort and
+copy in steps. ONE interval's own contact less its pair's gaps is walked in
+steps too (`piecesOfSteps`; Codex R158 VP-I115 rest A: one open contact over
+the gap budget of undecidable gaps — an undecidable answer suspends a
+contact, never ends it — was one step of 49 189 reads, 98 420 as a union of
+two), and the bands light by DIFFERENCES (+1 where a run begins, −1 after it:
+a piece lights its run at once, however wide). Every QUESTION is bounded by
+bisections, never by the intervals a piece holds or a search passes (R158
+rest B: a rapid/feed alternation — every contact ended at the feed, no free
+sample, Codex's real sweep — made `pieceFrom`'s end search walk every later
+interval, 65–89 ms; a piece was described interval by interval): a block index
+per generation (the next block of 64 positions holding a free sample; another
+for an interval that is not a possible contact) finds the next free sample in
+at most two blocks; the union's reach from a piece's start is the COMPONENT END
+the build's walk wrote per interval (`UnionGen.comp`, its last part's zone; an
+interval reaching past the zone: the zone's end) — the u32 an interval Codex
+accepted for the free-sample index, spent there; a piece's facts
+(`pieceFacts`: the lead among the few holding its start, the heir by a
+bisection on the witnesses, possible by the block index, an open end among
+those ending where it ends) and its ranges come from bisections; a target's
+position from its start evidence alone (`pieceStart`); a free stretch is cut
+back by the k−1…k+1 rule at every question as the walk does; per gap the next
+tool gap (`hTool`: `ownEnd`) and the last gap of its touching stretch
+(`hComp`: `freeOf` by two bisections); `lineMark` stops at a contact beginning
+on the line and asks an episode's kind of the block index; a KEY is found
+from the event it names, never by asking targets (5 s at the budget in Node
+when a fallback moved a shown finding; R159: at ONE position every pair's
+finding may stand, so not even the targets there): the episode index per
+table (`eIdx`, by pair, number, row) gives the interval or near miss, the
+matched near misses by the earlier reference (`nearByHeld`) the current one,
+a new piece's evidence its reference, and the reference its place in the
+target list — sorted by position, tie bits and reference, one bisection
+(`indexOfRef`); an earlier event's key is carried by the piece holding its
+witness, derived from the indexes (`pieceContaining`: the component's start
+by a bisection over the rising component ends, the last free stretch before
+it through a third block index — the previous free sample —, then `pieceFrom`
+names its evidence), and the handover is that piece (one holding the interval
+AND its witness; none for a witness inside a separator only the other run
+saw). After a fallback the free block indexes hold only the samples whose
+stretch the UNION keeps — the walk's verdict, written into the spare top bit
+of `comp` (`FREE_HOLDS`) and the blocks rebuilt from it (`freeHeld`): a run of
+samples each refuted by a confirmed point of the other run was asked one by
+one, back and forth (R160 rest D: 7.2 M reads for one key at 8 192 contacts).
+The walk counts every sample it looks at, a dropped one too, and finds the
+other run's interval before a sample by galloping from the last one, each probe
+counted (R160 rest E: an empty rerun's 32 768 samples, a late sample after a
+coarse contact's 32 768 finer ones, were each one step). The searches' windows
+over the free samples are, where the walk found every kept stretch between its
+own witness and the next one's on a side whose witnesses rise
+(`UnionSide.local`), the witnesses around the asked range — two bisections, no
+reach (R161 rest F: one long VALID free stretch in another pair, or later in
+the same one, widened every window to every sample: 116 568 reads for a key at
+8 192). A stretch never reaches past the nearest confirmed point on either side
+(`cutStretch`, the build's and every question's one rule: max(p − r', below),
+min(p + r', above)) — p − (p − x) rounds below x (0.9 − 0.8 < 0.1), the open
+stretch held the confirmed point and the structure check failed for the whole
+generation (R162); else the KEPT stretches' reach (`back` / `front`), which the walk
+reports with each (a raw radius over everything, cut back or refuted, opened
+every window over every sample: 1.2 M reads for a target's end at 8 192); a
+sample a confirmed point contradicts is named ONCE, at its least deep point,
+found by three bisections a side (`firstDeepX` — witnesses, enters and ends
+rise with the index): the count is of contradicted samples, no longer of
+(sample, point) pairs — samples × intervals of work, 402 M "places" for 8 192
+such samples. The steps from a position skip a block of tied findings by the least and
+largest jump point per block of 64 (`RefList.sMin/sMax`). A union piece is
+tinted where each interval's OWN table proves contact (R159 VP-I119: cut at
+the start evidence's coverage, the current run past the earlier one's went
+dark). The test seam `linearPiecesForTest` asks the old way, and
+`contactViewIndexed.test.ts` holds every answer to it. `derivationBound`
+14.93 MB (R152's 10.91 + the component ends 2.36 + three block indexes 0.11 +
+two u32 a gap 0.29 + the episode index 0.59 + the near misses' order 0.29 +
+the jump points per block 0.37). The steps that ask positions — the start pairs, the timeline
+marks (`ClashIndex.work`) — count what each query read (`viewWork`, every cell
+`rd` reads), and a view keeps its last decoded piece. The boundary contacts'
+stretches are built with the view and published with it
+(`derived.boundaries`). The publisher holds each request's current
+generation in TWO copies — `pub`, which the published views read and nothing
+writes, and `work` — and the held generation shared. A PASS: 1 takes the
+messages received so far in arrival order, each one's deltas into `work` in
+steps, then its effects on the viewer's live state (`_colOnMessage`); 2 builds
+the views of the tracks the live state shows (`deps.tracks()`: the result's,
+the partial's, the track a run check's beginning stands on, the entry track)
+from `work`; 3 publishes in ONE task, and only when the live state still shows
+exactly the specs it built (else the build begins anew, the messages stay
+taken): `work` becomes `pub`, the views and the state the viewer stages THEN
+(`colShown`: what the bar shows, bound by ScrubBar — never ahead of its
+tables); 4 catches the dead copy up in steps, and only then acknowledges. A
+fallback (`heldCoverage`) discards a build, never evidence: the complete copy
+that is not published takes the drain (acknowledged as each delta lands) and is
+held from the new generation's first delta; `pub` stays shown until the union
+is published. Every ticket closes once (the catch-up, the fallback's
+transition, or a request let go — whose tables, queue, tickets and views go).
+A discarded build (a fallback, a request let go) stops at its NEXT step and is
+closed, and a let-go request's delta stops going in at its next step too — it
+used to run to its end (Codex R157 VP-I116). A view's life ends at the
+publication that replaces it or with its request: `retire` → `retireView`, and
+every query of a retired view throws (`check`), even over unchanged tables
+(VP-I117). `viewOf` is a PURE read of the last publication (a request without
+tables yet — nothing found so far — reads as one). `stats()` counts every live
+store ONCE — the published, work and held copies and the tables only a still
+published view reads (`byOwner.shown`: the old generation's published copy
+until the union replaces it, VP-I118) — and the views' own bytes apart:
+`views.published`, `.waiting` (built, not yet published), `.inProgress` (what
+the build running now has ALLOCATED from its first step: every typed array of
+the view and of its derived data and every build buffer, counted where it is
+made — `steps.withMeter` around each step, `allocF64/U32/I32/U8`, the growable
+`Grow` lists the build's per-row buffers became; an upper bound, the toolpath
+ledger's rule; Codex R158 VP-I118), `.building` = waiting + in progress
+(`heldBytes` for a built view). The build's lists grow by BLOCKS (`Grow`: the
+first doubles up to `STEP_OPS` elements, then a push starts a new block and
+copies nothing; `done` makes one array a block a counted step — a doubling
+copied 32 768 elements in one `TypedArray.set`, Codex R159). The union walk's
+buffers (66 B × the capacities of both sides + 18 B × the merged free list's,
+kept per side, reused group to group) are made once a build and shared by
+the view and its bands. The publication begins a task of its own when the
+slice before it has worked (`runSteps`' `endSlice`): its task held up to a
+slice of build steps before it (52 ms in Codex R159's run under a low
+priority). A pass's later slices go in a macrotask
+(`steps.macrotaskSchedule`: a MessageChannel, one message out at a time, and
+the next animation frame takes a slice over once its message has waited
+`STARVED_MS` = 32 — never a timer): under continuous key input Chromium held
+the page's posted tasks back behind input and frames, a pass's slices waited
+up to 20 s each with the main thread idle (24–52 s per publication, R163); a
+slice in every frame instead delayed the pointer to 123 ms, a frame or a
+message per slice piled up into 332 ms tasks. A pass never discards itself: the
+viewer's stage watcher (`_colOnStageChange`) does nothing while a pass takes or
+builds — its publication stages the state then — and the code panel's marks
+and the tint follow the publication alone (the `contactsVersion` watcher), so
+a taken message's effects re-emit nothing early; only the clears (a failed
+worker, a program change) go at once. The page's own layout reads after a DOM
+change were forced in the task that made it: `v-sticky-head` reads the head's
+height from its ResizeObserver only, the scroll fades re-check in the next
+animation frame, and the Sim tab follows the marked row and fits its summary
+line in the next frame, before it paints (each forced 22–25 ms at the list's
+first arrival); the kept picture stays in the task that changed the rows (every
+reader after it sees the row where it was) and reads only when a row on screen
+was anchored — never at a first list. `__viewerDiag.getContacts()`:
+`passes`, `discards`, `publications`, `lastPassMs`, `longestStepMs` (per phase),
+`running` / `pending` / `phase`, `stats.byOwner` (pub / work / held). Measured
+(Chromium in the VM, 262 144 targets, the page at rest; R157): no task over
+50 ms at the tables' arrival, an update delta over the whole budget, a
+fallback and a rebuild; the longest step of a phase ≤ 5 ms; the publication a
+task of 30–33 ms (Vue's render of the 400 rows and the marks — the marks' and
+the rows' lucide glyphs are WRITTEN OUT as the components render them, a
+component per mark cost ~18 ms there; `glyphMarkup.test.ts` renders the
+components and holds the markup to them); a key's input delay p95 2–8 ms, at
+most 20–34 ms in an update, a fallback or a rebuild and 15–89 ms at a budget's
+first arrival (its frame: the publication, layout and paint of ~9000 new
+elements); a cancel inside one big group takes effect (one discard, nothing of
+the old request acknowledged); 15.1 MB per copy at the budget. A program change's own
+long tasks (64–88 ms, compositor commits under software GL) occur with no
+contact tables at all — outside 3.6; the browser-PC measurement is owed. Tests:
+`contactPublisher.test.ts` (the phases, both copies, a fallback in every phase,
+tickets, release, no self-discard, a spec changed under the build, the
+transport's rules and owners carried over from the removed `contactsReceiver`,
+Codex R157's lifecycle, cancel and memory probes as guards),
+`contactMeter.test.ts` (a constructor spy over whole builds equals the meter,
+no JS array grows past the columns, Codex R158's memory probe),
+`contactViewIndexed.test.ts` (the indexed answers equal to the old walk on
+random generations with an entry union, joins and the keys of the run before
+a fallback; the worst reads of one question on five shapes the same at a size
+and at eight times it),
+`checkWiring.test.ts` (the worker handler through the real publisher,
+`_colOnStageChange`, the cancel), `steps.test.ts`, `contactView.test.ts` and
+`simWindow.test.ts` (every table cell read per step — the direct block reads
+too — on five edge shapes: the build and the bands within the step's share, the
+start pairs and the marks within it and one search; no list sorted or copied at
+once — Codex R158's gap shape too), `contactUnion.test.ts` (Codex R157's component probe, a piece over every
+part, a zone that skips every interval, the indexed search against the walk
+and the brute force, a radius over the other run's every confirmed point), `stickyHead.test.ts`, `scrollFade.test.ts`, `glyphMarkup.test.ts`,
+`contactStore.test.ts`.
 
 ## Key Patterns
 
@@ -1978,7 +2290,7 @@ bisections) — the sink's cost without the load.
   - Every dialog is a `DialogFrame` (see its entry above): the machine flows (tool change, shutdown, compensation) are `kind="flow"` with `class="safetyDialog"` (`--z-modal-top`, global) and close by their own buttons only; forms ignore the backdrop; Escape never closes a dialog (it is E-Stop)
   - Wording (N43/N44/N49): a confirmation's title is the QUESTION with its object ("Delete T5?", "Reset probe calibration?"), a work dialog's title a noun ("Upload Conflict"); the confirming button repeats the verb (never "Confirm"/"OK"); every irreversible action says "This cannot be undone."; a discard ask offers "Keep editing". A destructive action is `danger` UNDER ITS OWN GATE — `dialogDangerSetup` (setup) or a `<Gate>` around a `dialogDanger` in the `#actions` slot; Cancel stays outside that Gate so the dialog always closes
 - **z-index scale** — `--z-base` (0) / `--z-raised` (1, sticky cells, viewer overlays) / `--z-fade` (2) / `--z-pane-overlay` (5) / `--z-float` (10, PIP, sim bar) / `--z-banner` (11) / `--z-modal` (1000) / `--z-modal-top` (1010). Never a literal.
-- **Viewer palette** (design wave D8c, UI-K08/UI-D05) — every colour the 3D viewer draws in a role comes from `viewer/viewerPalette.ts` `resolveViewerPalette`: the theme's `--viewer-feed/-rapid/-backplot/-limit/-collision/-bounds/-toolpath-bounds/-tool/-cutter` (literal hex in all five theme blocks), the operator's Custom colours over the seven user roles when `paletteMode === "custom"` (limit and collision stay the theme's). ThreeViewer's `refreshPalette` re-resolves on a theme switch and on every settings change and puts it on every live object (collision tint included) — never a colour of its own, never a cached token. ONE PALETTE IN EVERY THEME (operator 2026-10-01, from renders on the light ground and on the model — replacing the two schemes of 2026-09-29, which kept each role's hue at the theme's own lightness): every colour role draws the dark theme's luminous value in all five themes (`themeTokens.test.ts` "every colour role is the dark theme's"), only the neutral box / reach tones stay per theme (pure black and white in HC): path GREEN `#5cff5c`, backplot MAGENTA `#ff00ff`, rapid BLUE `#3d8bff` dashed, limit overlay ORANGE `#ff7a00` (the warn family everywhere; complementary where lines lie on each other: backplot on path, limit on rapid); the 3 : 1 background floor holds on the dark grounds — on the light ones the path lies on the model, which every theme's lines stand off (MODEL_MIN), and the operator judged the light ground from renders (`#5cff5c` on white is ~1.4 : 1 by the number); the collision `#c8102e` is a body — the toolpath box's overflow edges (outside the machine window) are the limit's orange, dashed. A path line holds ≥ 3 : 1 on `--bg` (4.5 in HC), stands off the grey-ladder model's path-carrying surfaces (`customContrast.MODEL_SURFACES`, the rendered stock / table tops, ≥ `MODEL_MIN` 1.8 : 1 in light and dark — the chosen palette's own floor) and keeps ≥ 0.25 OKLab FROM THE OTHER LINES (lines lie on and beside each other — the operator's primary criterion); colours were chosen with the operator from real renders on the XYZAC model. The two BOXES are TWO-TONE (`viewer/boxLines.ts`, operator 2026-09-29 — the cased edges of P2 looked strange, and a single neutral vanished wherever a grey model part had its lightness): a dark solid line (`--viewer-bounds` = `--viewer-toolpath-bounds` `#15181c`) with light dashes over it (`--viewer-bounds-alt` `#f0f2f4`; `#000` / `#fff` in HC), the same width (1 CSS px since operator 2026-09-30 — "weniger präsent"; the boxes are context under the 2 px path; no casing), like the selection border of a drawing program — one tone reads on any background and on every grey (`themeTokens.test.ts` sweeps all 256), the same pair in every theme. ONE PATTERN FOR EVERY BOUND (package 4, operator 2026-10-01: the box dashes "ändern beim Zoomen die Länge der Elemente", lines here and dots there; plan `docs/reviews/viewer-marks.plan.md` Fassungen 2–3.1, Codex R62–R65 — it REPLACES R44 VP-I10's screen-px dash, which crawled along an edge as its projected length changed): the machine box, the toolpath box (its orange overflow edges too) and both reach outlines draw GEOMETRY-ANCHORED cells (`boxLines.geoDash`, a `GEO_DASH` define patching LineMaterial's own source — every anchor once or it throws). A UNIT (a box edge, a reach chain) is cut into N = 2^k equal cells, alternating dark / light, phased at the unit's FIXED first end (a box edge's smaller coordinate; a reach chain's lexicographically smallest end, a ring's smallest vertex towards its smaller neighbour, a chain with BOTH ends at one junction the way whose walk is the smaller vertex by vertex, never by storage index (Codex R66 VP-I27) — `viewer/geoDash.ts buildChains`, independent of storage order and direction, its own chain distances, never `computeLineDistances`' storage order). The shader takes the world-linear unit parameter t per instance (`instanceGeoT`, perspective-correct; where LineMaterial trims a segment reaching behind the eye, the trim point gets its own t — the cells stay at the real world end) and the unit's N (`instanceGeoCells`). N is STATE per unit (`GeoDashState`, one per drawn bound, updated per frame in ThreeViewer's loop and `toolpath.updateBoxPattern`; the cells attribute uploads only when an N changed): from the VISIBLE parameter interval (Liang–Barsky against the view volume in clip space) the mean visible cell L_visible / (N · Δt) stays 6 … 12 CSS px nominal, with hysteresis (×1.25: kept from 4.8 to 15 px, so 95.99 ↔ 96.01 px never pendulums), N ≥ 2 (both tones on every visible unit — R45 VP-I12's lost tone stays closed) and ≤ 2^14 (a named limit, said once in the console per pattern when it binds); a chain with several visible pieces takes the largest L / Δt. Promise (Fassung 3.1): a visible piece LONGER than 15 CSS px below the cap holds an inner cell boundary — both tones have positive parameter length there; NO pixel or legibility guarantee (perspective squeezes single cells, a chain's other pieces may be over-refined). The pins keep a dash in CSS px (`screenDash` — a marker in CSS px has no geometry to anchor to), the rapid its world dash. The machine box is built at its REAL size (`setSize` — new units, new state), never a unit cube under a non-uniform scale. With ONE pattern the dash length tells the boxes apart no more: the pair table's box cues are `["ticks", "label"]` (plan A''/Fassung 3, VP62-02). The toolpath box carries DIMENSION END MARKS (`boxLines.makeBoxTicks`, its child, posed per frame by `toolpath.updateBoxPattern`, no allocation, sized at each corner's DEPTH along the view axis — `worldPerPixelAt`, the one CSS-px scale the pins and type labels use too: the distance made them grow towards the edge of a perspective view, 10.6–11.9 px for 10, Codex R66 VP-I28; the frame loop renews the camera's matrices right after controls / tween / the parallel eye and BEFORE anything is sized or culled from them — a view preset's tween writes position and quaternion and skips controls.update(), so the render alone renewed them, after the sizing: 8.5–11.7 px in the drawn frames, R67): at both ends of every edge a bar ACROSS the edge on screen, `TICK_ARM_PX` (5) each side, its own contrast carrier — a light underlay `TICK_UNDER_PX` (4) under a dark core `TICK_CORE_PX` (2), the underlay overhanging 1 px across and, through LineMaterial's round screen-space caps, at each end; 2 / 4 and not the plan's 1 / 3: at DPR 1 a 1 px core on a pixel boundary is two half-covered pixels — the model's mid grey (2.42 : 1 measured). Each box carries a TYPE LABEL ("Machine bounds" at the machine box's (max, max, max) corner, "Program bounds" at the toolpath box's (min, min, max) — apart where the boxes coincide), CSS-px sized like a pin's label, following its box's layer AND its box's "On top" (operator 2026-10-02: a label is drawn over the machine exactly when its box is — `setLayerOnTop`, ON_TOP_ORDER.marker; otherwise a model part hides it like the box); label variant (ii) of the plan, the operator's choice of 2026-10-02 against (i) — the size labels alone (`__viewerDiag.setBoxTypeLabelsShown` hides them for the variant (i) render; the pattern specs hide them, the labels are their own guard). The legend's Toolpath Bounds sample carries the end marks (`.legendLine.ticks`). A FLAT program's box (no Z extent) draws its overflow too — `rebuildOverflowEdges` follows the box's own rule (it refused any zero extent, and the part beyond the window vanished). Guards: `geoDash.test` (choice, hysteresis, the 15 px promise as a property, clipping, chains), `boxLines.test` (Codex R63's near-plane edge → N = 512; a two-piece chain), `scenes.viewer.spec` (every light / dark transition of every measurable projected edge at a world cell boundary k / N — parallel and perspective, three directions, before and after a zoom within a step and across one; the R63 geometry in the viewer showing both tones in light and HC light — red with the phase shifted half a cell and with N taken without Δt), `reach.viewer.spec` (both tones on the part reach's short segments), `boxLines.test` (each end mark across its edge, 10 px, centred, parallel and perspective) and `scenes.viewer.spec` (every end-mark arm stands off its ground at 3 : 1 in light, dark, hc-light and hc-dark, over the background and over the model — the underlay carrying it on a dark theme, the core on a light one; the type labels apart, drawn, one per box after a rebuild, and seen from below through the base each label shows exactly while its own box is on top (red always on top and with the switches swapped); the plan's NAMED chain case — one reach chain dipping into the view twice, injected through `__viewerDiag.setReachSoup` — shows both tones in each visible piece, red with N taken without Δt; every drawn frame of a view animation keeps the end marks at 10 ± 0.05 px and the pins and labels at their CSS-px scale — read through `__viewerDiag.startFrameProbe` / `takeFrameProbe`, which record what each render DREW, never re-posing before reading as `getBoxTicks` does; red without the frame loop's camera update. The box-edge spec reads along an edge the darkest (light scene) / lightest (dark scene) pixel ACROSS it at five canvas sizes: a 1 px line centred on a pixel boundary is two half-covered pixels, and one column read the line or the scene by sub-pixel luck, R67). `__viewerDiag.getBoundsPattern(role)` / `getBoxTicks` / `getBoxTypeLabels` / `projectPoints` / `canvasRect` / `zoomBy`. The REACH outlines (Machine / Part Reach) are the same two tones (`--viewer-reach` = the dark tone), 1 px — quieter than the boxes by width alone; their mid grey at 60 % vanished on the grey model. Drawing order: the path (10) under the backplot (11) under the LIMIT OVERLAY (12, `LIMIT_OVERLAY_RENDER_ORDER`) — a backplot lying on a violation never hides the finding (P5, Codex R30). A RAPIDS layer (Settings → Layers, P3) hides the rapid LINES while their limit overlay follows the toolpath layer alone (a finding stays visible on a hidden rapid); a finding NAVIGATED to on a hidden rapid (or with the toolpath off) shows its OWN MOVE — the run of track segments around the jumped-to segment (`scrubTrack.lineRunAround`: the occurrence, not a line number a sub or loop repeats), in base-track indices — never the whole hidden layer (Codex R31 VP-I03): `toolpathController.setReveal` draws the pairs of the hidden streams whose source track segment (`feedSrc` / `rapidSrc`, the part-frame worker ships both) lies in the run, in the stream's own material, with the toolpath off also the run's limit mark; the stored layers draw as stored. It is named — a PINNED `.hudWarn` line "Rapids shown for this finding — hidden in Layers", shown with the HUD off and in the folded card, never counted among the warnings (VP-I02; `viewer/pathReveal.ts`, a LOCAL state: the stored layer choice is never rewritten) — until a manual scrub, the simulation's end, a program change or a CHANGED toolpath / Rapids choice from any client (a settings refresh re-applying the same value keeps it, VP-I01). A line's timeline extent starts where its first move STARTS (`scrubTrack.lineSpanCum`): a track point carries the line of the move ending there, so `lineCumOf` (the line's first point) is where that move ENDS — limit targets, bands and tool-change marks read the span (a limit jump landed in the next line's move). Limit targets and bands are found on the BASE track and read on the displayed one (`lineFirstMoveCum(base, line, shown)` / `lineSpanCum`, the displayed track's own cums): the entry move ENDS at the program's first point and carries its line, so by line number it was the first line's "move" (Codex R33 VP-I05); tool-change marks read the displayed track (a change before the first motion runs before the entry move). A JUMP samples INSIDE the finding's extent (`viewer/findingNav.ts` `sampleCum`: a hair past its start, never past its middle — a limit's first move with an extent, `lineFirstMoveCum`; a clash's contact interval), prev/next skip the finding just shown by its KEY while the timeline stands there and otherwise compare where a jump would land — no fixed window (a 0.1 ms move and a finding 5 ms after the shown one were unreachable on the seconds axis), and the first jump resolves the CHOSEN finding on the track it displays after building the entry move (`mapAcrossEntry`; Codex R32 VP-I05/I06). A collision's key names its ORIGIN: `mergeEntryResult` marks the entry move's own records `entry` (key `E…`, readout "→ entry") — their line is the program's first line, so line + pair alone aliased a program contact — and a program key (`C…`) stays the same when the entry result arrives, so a chosen program contact survives it (VP-I07). The shown finding's identity ends FOR GOOD once the timeline leaves its position (a sync watcher on the position; coming back by hand is a position, not the finding), on manual input, at play start and on another displayed track; a jump sets it after the entry it caused (VP-I08). The legend sits AT THE LAYER ROWS (a line sample beside each drawing layer, dashed or two-tone like the line) plus a ▲ limit and a × collision row — the glyphs of the timeline and the code panel. The mode is stored for the whole palette; a palette stored before it is Custom (`viewerSection.ts`, no heuristics); Reset → Automatic. In Custom, Settings shows the custom colours' CONTRAST, never corrects them (plan K3, Codex R25 OP-I05; `viewer/customContrast.ts`, the rules above): each custom line on the background (3 : 1, HC 4.5) and on the machine (`MODEL_SURFACES`, `MODEL_MIN`), a two-tone box where either tone reads; "low" in words. Its ORIGIN is said only where known (viewer contrast plan, V6): a palette stored WITHOUT a mode is `paletteOrigin: "legacy"` (kept through every later save until the operator chooses) and Settings says "Colors from an earlier version" with "Use automatic colors"; a mode without an origin (saved under D8c) gets the offer only, claiming nothing; an explicit choice (a radio, a colour picker) is `"operator"` and quiet. Drawn materials carry `userData.role` (`__viewerDiag.getPalette`). The CURRENT LINE IS NOT DRAWN IN 3D (operator 2026-09-28: the 3 px selection on its halo, which followed `motion_line` / the scrub line, competed with every other line — the code panel names the line, the tool shows where it is; no `selection` role, no halo; `docs/reviews/viewer-palette-fest.ideen.md`); `e2e/scenes.viewer.spec.ts` renders the palette on a model in four themes (structure asserted, images attached for the eye, no pixel references). The TILTED WORK PLANE's colour, its label on the object ("Plane · active / defined / head moved / datum moved / simulated"), its OPAQUE dashed-when-stale edge and its normal arrow (the head's claim only) come from ONE decision, `viewer/planeView.ts`; the HUD's plane word reads the same result (`planeViewState`), and the HUD mode line says each part once (`hudModeLine`); roles `--viewer-plane-active/-defined/-stale`; `__viewerDiag.getPlane` / `simulatePlane` (a seam past the scrub chain). PAIR TABLE (`viewer/palettePairs.ts`, one colour arithmetic in `viewer/colourMath.ts`): two path LINES keep ≥ 0.25 OKLab (hc-dark alone 0.24 — its band, named; `lineMinFor`); colour-vision deficiency is no criterion (operator 2026-09-29 — the simulation is gone); a line against the collision body and two objects (boxes, plane states) keep ≥ 0.12 plus their cue; form supplements colour, never replaces it; 0.25 is the search and regression value, not a proof of legibility; `themeTokens.test.ts` checks every theme block against it, the path roles' families across themes, and that light, dark and auto-dark carry the same values for every other role. The Custom hint lists the line pairs too (`customPairRows`: "close" in words). EVERY PATH LINE IS 2 CSS px (operator decision 3, 2026-09-29, part B — Codex R39 plan): feed, rapid, limit overlay, the finding's reveal and the toolpath box's overflow edges are `LineSegments2` at `PATH_PX` (`viewer/fatPaths.ts`: `packPairs` packs each chunk × LOD level's pairs into its own instance buffer, the rapid's dash distances taken from the stream's own `dist`, never re-summed; degenerate pairs dropped), in the same chunk / LOD / frame structure — the shared position attribute stays the source for scrub, sweep and navigation; `updateCulling` widens each chunk's sphere by the line's reach (a stroke still reaching into the view is not culled at the frame edge); `depthWrite: false` on every `LineMaterial`; the backplot too (`BACKPLOT_WIDTH_PX = PATH_PX`, a ring of segments, one update range per push). Width is therefore no cue: the pair table relies on colour and form (dash, two-tone). `toolpath.pathMemory()` / `__viewerDiag.getPathMemory` is the VP39-01 ledger (Codex R47/R48 VP-I17): CPU bytes HELD by owner at each ArrayBuffer's CAPACITY (a small view keeps its whole buffer), incl. the fat geometries' own quad mesh, the toolpath box with its overflow edges (`box`, released with the path) and the PAYLOAD kept for rebuilds; GPU bytes actually uploaded; `allocated` (cumulative), `peak` (this path's build: held at its start + allocated in it, an upper bound); `eager` {estimate, packed} (apply() PREPARES every set — binned levels, chunk boxes, the overlays' flagged pairs — estimates the fat pack from the pair counts, THEN packs; the estimate bounds the pack, equal but for dropped degenerate pairs); `generation` (bumped per build); `pairs` {source, lod, drawn — visible objects only}. Every allocation of a build is counted WHERE IT HAPPENS, scratch included: `viewer/allocMeter.ts` is the one count (lineChunks, fatPaths, boxLines and the controller allocate through it; three's own arrays are counted right after three creates them — `countedGeometry`; outputs are sized by a counting pass, never cut from a full-size scratch; the box edges are written out, no BoxGeometry/EdgesGeometry) — `fatPaths.test.ts` spies the typed-array constructors and requires peak = held-at-start + exactly what they saw (fat and GL; table, room and legacy paths; rebuild; reveal), `allocMeter.test.ts` fails on a raw typed-array constructor in those files. Named limit: the toolpath box's troika size labels build their glyph buffers asynchronously, outside the ledger. The Mac A/B measurement of the previous GL line (A) against the 2 CSS px line (B) PASSED on 2026-10-01 (`docs/reviews/viewer-palette-fest.ab-mac.txt`: every steady phase p95 19 ms in both, builds and memory inside the limits fixed with Codex R47–R49). The Debug switch, the run (`abRun` / `abDriver` / `abHistogram` / `abRunBus`), `viewerPerf`'s sample tap, `scripts/viewer_ab_report.py` with its gate step and `__APP_COMMIT__` are gone. The controller keeps `lineMode: "gl"` as a TEST SEAM only — its selection tests read the GL index ranges and `fatPaths.test.ts` pins that the fat lines draw exactly those pairs; nothing in the product selects it. Every role LINE draws opaque (a role's contrast is its drawn colour; the toolpath box and overflow edges were 0.9 / 0.8). `__viewerDiag.getRoleMaterials` (kind = cue, width, opacity) and `projectRole` (a role's longest segment on screen) let the scenes spec MEASURE the image: the drawn width across each line as the sum of pixel coverage (DPR 1 and 2).
+- **Viewer palette** (design wave D8c, UI-K08/UI-D05) — every colour the 3D viewer draws in a role comes from `viewer/viewerPalette.ts` `resolveViewerPalette`: the theme's `--viewer-feed/-rapid/-backplot/-limit/-collision/-bounds/-toolpath-bounds/-tool/-cutter` (literal hex in all five theme blocks), the operator's Custom colours over the seven user roles when `paletteMode === "custom"` (limit and collision stay the theme's). ThreeViewer's `refreshPalette` re-resolves on a theme switch and on every settings change and puts it on every live object (collision tint included) — never a colour of its own, never a cached token. ONE PALETTE IN EVERY THEME (operator 2026-10-01, from renders on the light ground and on the model — replacing the two schemes of 2026-09-29, which kept each role's hue at the theme's own lightness): every colour role draws the dark theme's luminous value in all five themes (`themeTokens.test.ts` "every colour role is the dark theme's"), only the neutral box / reach tones stay per theme (pure black and white in HC): path GREEN `#5cff5c`, backplot MAGENTA `#ff00ff`, rapid BLUE `#3d8bff` dashed, limit overlay ORANGE `#ff7a00` (the warn family everywhere; complementary where lines lie on each other: backplot on path, limit on rapid); the 3 : 1 background floor holds on the dark grounds — on the light ones the path lies on the model, which every theme's lines stand off (MODEL_MIN), and the operator judged the light ground from renders (`#5cff5c` on white is ~1.4 : 1 by the number); the collision `#c8102e` is a body — the toolpath box's overflow edges (outside the machine window) are the limit's orange, dashed. A path line holds ≥ 3 : 1 on `--bg` (4.5 in HC), stands off the grey-ladder model's path-carrying surfaces (`customContrast.MODEL_SURFACES`, the rendered stock / table tops, ≥ `MODEL_MIN` 1.8 : 1 in light and dark — the chosen palette's own floor) and keeps ≥ 0.25 OKLab FROM THE OTHER LINES (lines lie on and beside each other — the operator's primary criterion); colours were chosen with the operator from real renders on the XYZAC model. The two BOXES are TWO-TONE (`viewer/boxLines.ts`, operator 2026-09-29 — the cased edges of P2 looked strange, and a single neutral vanished wherever a grey model part had its lightness): a dark solid line (`--viewer-bounds` = `--viewer-toolpath-bounds` `#15181c`) with light dashes over it (`--viewer-bounds-alt` `#f0f2f4`; `#000` / `#fff` in HC), the same width (1 CSS px since operator 2026-09-30 — "weniger präsent"; the boxes are context under the 2 px path; no casing), like the selection border of a drawing program — one tone reads on any background and on every grey (`themeTokens.test.ts` sweeps all 256), the same pair in every theme. ONE PATTERN FOR EVERY BOUND (package 4, operator 2026-10-01: the box dashes "ändern beim Zoomen die Länge der Elemente", lines here and dots there; plan `docs/reviews/viewer-marks.plan.md` Fassungen 2–3.1, Codex R62–R65 — it REPLACES R44 VP-I10's screen-px dash, which crawled along an edge as its projected length changed): the machine box, the toolpath box (its orange overflow edges too) and both reach outlines draw GEOMETRY-ANCHORED cells (`boxLines.geoDash`, a `GEO_DASH` define patching LineMaterial's own source — every anchor once or it throws). A UNIT (a box edge, a reach chain) is cut into N = 2^k equal cells, alternating dark / light, phased at the unit's FIXED first end (a box edge's smaller coordinate; a reach chain's lexicographically smallest end, a ring's smallest vertex towards its smaller neighbour, a chain with BOTH ends at one junction the way whose walk is the smaller vertex by vertex, never by storage index (Codex R66 VP-I27) — `viewer/geoDash.ts buildChains`, independent of storage order and direction, its own chain distances, never `computeLineDistances`' storage order). The shader takes the world-linear unit parameter t per instance (`instanceGeoT`, perspective-correct; where LineMaterial trims a segment reaching behind the eye, the trim point gets its own t — the cells stay at the real world end) and the unit's N (`instanceGeoCells`). N is STATE per unit (`GeoDashState`, one per drawn bound, updated per frame in ThreeViewer's loop and `toolpath.updateBoxPattern`; the cells attribute uploads only when an N changed): from the VISIBLE parameter interval (Liang–Barsky against the view volume in clip space) the mean visible cell L_visible / (N · Δt) stays 6 … 12 CSS px nominal, with hysteresis (×1.25: kept from 4.8 to 15 px, so 95.99 ↔ 96.01 px never pendulums), N ≥ 2 (both tones on every visible unit — R45 VP-I12's lost tone stays closed) and ≤ 2^14 (a named limit, said once in the console per pattern when it binds); a chain with several visible pieces takes the largest L / Δt. Promise (Fassung 3.1): a visible piece LONGER than 15 CSS px below the cap holds an inner cell boundary — both tones have positive parameter length there; NO pixel or legibility guarantee (perspective squeezes single cells, a chain's other pieces may be over-refined). The pins keep a dash in CSS px (`screenDash` — a marker in CSS px has no geometry to anchor to), the rapid its world dash. The machine box is built at its REAL size (`setSize` — new units, new state), never a unit cube under a non-uniform scale. With ONE pattern the dash length tells the boxes apart no more: the pair table's box cues are `["ticks", "label"]` (plan A''/Fassung 3, VP62-02). The toolpath box carries DIMENSION END MARKS (`boxLines.makeBoxTicks`, its child, posed per frame by `toolpath.updateBoxPattern`, no allocation, sized at each corner's DEPTH along the view axis — `worldPerPixelAt`, the one CSS-px scale the pins and type labels use too: the distance made them grow towards the edge of a perspective view, 10.6–11.9 px for 10, Codex R66 VP-I28; the frame loop renews the camera's matrices right after controls / tween / the parallel eye and BEFORE anything is sized or culled from them — a view preset's tween writes position and quaternion and skips controls.update(), so the render alone renewed them, after the sizing: 8.5–11.7 px in the drawn frames, R67): at both ends of every edge a bar ACROSS the edge on screen, `TICK_ARM_PX` (5) each side, its own contrast carrier — a light underlay `TICK_UNDER_PX` (4) under a dark core `TICK_CORE_PX` (2), the underlay overhanging 1 px across and, through LineMaterial's round screen-space caps, at each end; 2 / 4 and not the plan's 1 / 3: at DPR 1 a 1 px core on a pixel boundary is two half-covered pixels — the model's mid grey (2.42 : 1 measured). Each box carries a TYPE LABEL ("Machine bounds" at the machine box's (max, max, max) corner, "Program bounds" at the toolpath box's (min, min, max) — apart where the boxes coincide), CSS-px sized like a pin's label, following its box's layer AND its box's "On top" (operator 2026-10-02: a label is drawn over the machine exactly when its box is — `setLayerOnTop`, ON_TOP_ORDER.marker; otherwise a model part hides it like the box); label variant (ii) of the plan, the operator's choice of 2026-10-02 against (i) — the size labels alone (`__viewerDiag.setBoxTypeLabelsShown` hides them for the variant (i) render; the pattern specs hide them, the labels are their own guard). The legend's Toolpath Bounds sample carries the end marks (`.legendLine.ticks`). A FLAT program's box (no Z extent) draws its overflow too — `rebuildOverflowEdges` follows the box's own rule (it refused any zero extent, and the part beyond the window vanished). Guards: `geoDash.test` (choice, hysteresis, the 15 px promise as a property, clipping, chains), `boxLines.test` (Codex R63's near-plane edge → N = 512; a two-piece chain), `scenes.viewer.spec` (every light / dark transition of every measurable projected edge at a world cell boundary k / N — parallel and perspective, three directions, before and after a zoom within a step and across one; the R63 geometry in the viewer showing both tones in light and HC light — red with the phase shifted half a cell and with N taken without Δt), `reach.viewer.spec` (both tones on the part reach's short segments), `boxLines.test` (each end mark across its edge, 10 px, centred, parallel and perspective) and `scenes.viewer.spec` (every end-mark arm stands off its ground at 3 : 1 in light, dark, hc-light and hc-dark, over the background and over the model — the underlay carrying it on a dark theme, the core on a light one; the type labels apart, drawn, one per box after a rebuild, and seen from below through the base each label shows exactly while its own box is on top (red always on top and with the switches swapped); the plan's NAMED chain case — one reach chain dipping into the view twice, injected through `__viewerDiag.setReachSoup` — shows both tones in each visible piece, red with N taken without Δt; every drawn frame of a view animation keeps the end marks at 10 ± 0.05 px and the pins and labels at their CSS-px scale — read through `__viewerDiag.startFrameProbe` / `takeFrameProbe`, which record what each render DREW, never re-posing before reading as `getBoxTicks` does; red without the frame loop's camera update. The box-edge spec reads along an edge the darkest (light scene) / lightest (dark scene) pixel ACROSS it at five canvas sizes: a 1 px line centred on a pixel boundary is two half-covered pixels, and one column read the line or the scene by sub-pixel luck, R67). `__viewerDiag.getBoundsPattern(role)` / `getBoxTicks` / `getBoxTypeLabels` / `projectPoints` / `canvasRect` / `zoomBy`. The REACH outlines (Machine / Part Reach) are the same two tones (`--viewer-reach` = the dark tone), 1 px — quieter than the boxes by width alone; their mid grey at 60 % vanished on the grey model. Drawing order: the path (10) under the backplot (11) under the LIMIT OVERLAY (12, `LIMIT_OVERLAY_RENDER_ORDER`) — a backplot lying on a violation never hides the finding (P5, Codex R30). A RAPIDS layer (Settings → Layers, P3) hides the rapid LINES while their limit overlay follows the toolpath layer alone (a finding stays visible on a hidden rapid); a finding NAVIGATED to on a hidden rapid (or with the toolpath off) shows its OWN MOVE — the run of track segments around the jumped-to segment (`scrubTrack.lineRunAround`: the occurrence, not a line number a sub or loop repeats), in base-track indices — never the whole hidden layer (Codex R31 VP-I03): `toolpathController.setReveal` draws the pairs of the hidden streams whose source track segment (`feedSrc` / `rapidSrc`, the part-frame worker ships both) lies in the run, in the stream's own material, with the toolpath off also the run's limit mark; the stored layers draw as stored. It is named — a PINNED `.hudWarn` line "Rapids shown for this finding — hidden in Layers", shown with the HUD off and in the folded card, never counted among the warnings (VP-I02; `viewer/pathReveal.ts`, a LOCAL state: the stored layer choice is never rewritten) — until a manual scrub, the simulation's end, a program change or a CHANGED toolpath / Rapids choice from any client (a settings refresh re-applying the same value keeps it, VP-I01). A line's timeline extent starts where its first move STARTS (`scrubTrack.lineSpanCum`): a track point carries the line of the move ending there, so `lineCumOf` (the line's first point) is where that move ENDS — limit targets, bands and tool-change marks read the span (a limit jump landed in the next line's move). Limit targets and bands are found on the BASE track and read on the displayed one (`programLineFirstMoveCum(base, line, shown, trusted)` / `programLineSpanCum`, the displayed track's own cums): the entry move ENDS at the program's first point and carries its line, so by line number it was the first line's "move" (Codex R33 VP-I05); and by the line of the PROGRAM a point shows (`displayLineOf`, scrubTrack's cached program-line index — its own trusted line, a called file's moves under their call line), never the raw number: haus.ngc's M600 routine moves under its own line numbers, and the limit rows L536, L540, L543, L587 stood at 00:05 before L12 with bands from there (operator 2026-10-19); a line no point shows (no per-point trust, untrusted lines) keeps the raw reading, never a dropped record; tool-change marks read the displayed track (a change before the first motion runs before the entry move). A JUMP samples INSIDE the finding's extent (`viewer/findingNav.ts` `sampleCum`: a hair past its start, never past its middle — a limit's first move with an extent, `lineFirstMoveCum`; a clash's contact interval), prev/next skip the finding just shown by its KEY while the timeline stands there and otherwise compare where a jump would land — no fixed window (a 0.1 ms move and a finding 5 ms after the shown one were unreachable on the seconds axis), and the first jump resolves the CHOSEN finding on the track it displays after building the entry move (`mapAcrossEntry`; Codex R32 VP-I05/I06). A collision's key names its ORIGIN: `mergeEntryResult` marks the entry move's own records `entry` (key `E…`, readout "→ entry") — their line is the program's first line, so line + pair alone aliased a program contact — and a program key (`C…`) stays the same when the entry result arrives, so a chosen program contact survives it (VP-I07). The shown finding's identity ends FOR GOOD once the timeline leaves its position (a sync watcher on the position; coming back by hand is a position, not the finding), on manual input, at play start and on another displayed track; a jump sets it after the entry it caused (VP-I08). The legend sits AT THE LAYER ROWS (a line sample beside each drawing layer, dashed or two-tone like the line) plus a ▲ limit and a × collision row — the glyphs of the timeline and the code panel. The mode is stored for the whole palette; a palette stored before it is Custom (`viewerSection.ts`, no heuristics); Reset → Automatic. In Custom, Settings shows the custom colours' CONTRAST, never corrects them (plan K3, Codex R25 OP-I05; `viewer/customContrast.ts`, the rules above): each custom line on the background (3 : 1, HC 4.5) and on the machine (`MODEL_SURFACES`, `MODEL_MIN`), a two-tone box where either tone reads; "low" in words. Its ORIGIN is said only where known (viewer contrast plan, V6): a palette stored WITHOUT a mode is `paletteOrigin: "legacy"` (kept through every later save until the operator chooses) and Settings says "Colors from an earlier version" with "Use automatic colors"; a mode without an origin (saved under D8c) gets the offer only, claiming nothing; an explicit choice (a radio, a colour picker) is `"operator"` and quiet. Drawn materials carry `userData.role` (`__viewerDiag.getPalette`). The CURRENT LINE IS NOT DRAWN IN 3D (operator 2026-09-28: the 3 px selection on its halo, which followed `motion_line` / the scrub line, competed with every other line — the code panel names the line, the tool shows where it is; no `selection` role, no halo; `docs/reviews/viewer-palette-fest.ideen.md`); `e2e/scenes.viewer.spec.ts` renders the palette on a model in four themes (structure asserted, images attached for the eye, no pixel references). The TILTED WORK PLANE's colour, its label on the object ("Plane · active / defined / head moved / datum moved / simulated"), its OPAQUE dashed-when-stale edge and its normal arrow (the head's claim only) come from ONE decision, `viewer/planeView.ts`; the HUD's plane word reads the same result (`planeViewState`), and the HUD mode line says each part once (`hudModeLine`); roles `--viewer-plane-active/-defined/-stale`; `__viewerDiag.getPlane` / `simulatePlane` (a seam past the scrub chain). PAIR TABLE (`viewer/palettePairs.ts`, one colour arithmetic in `viewer/colourMath.ts`): two path LINES keep ≥ 0.25 OKLab (hc-dark alone 0.24 — its band, named; `lineMinFor`); colour-vision deficiency is no criterion (operator 2026-09-29 — the simulation is gone); a line against the collision body and two objects (boxes, plane states) keep ≥ 0.12 plus their cue; form supplements colour, never replaces it; 0.25 is the search and regression value, not a proof of legibility; `themeTokens.test.ts` checks every theme block against it, the path roles' families across themes, and that light, dark and auto-dark carry the same values for every other role. The Custom hint lists the line pairs too (`customPairRows`: "close" in words). EVERY PATH LINE IS 2 CSS px (operator decision 3, 2026-09-29, part B — Codex R39 plan): feed, rapid, limit overlay, the finding's reveal and the toolpath box's overflow edges are `LineSegments2` at `PATH_PX` (`viewer/fatPaths.ts`: `packPairs` packs each chunk × LOD level's pairs into its own instance buffer, the rapid's dash distances taken from the stream's own `dist`, never re-summed; degenerate pairs dropped), in the same chunk / LOD / frame structure — the shared position attribute stays the source for scrub, sweep and navigation; `updateCulling` widens each chunk's sphere by the line's reach (a stroke still reaching into the view is not culled at the frame edge); `depthWrite: false` on every `LineMaterial`; the backplot too (`BACKPLOT_WIDTH_PX = PATH_PX`, a ring of segments, one update range per push). Width is therefore no cue: the pair table relies on colour and form (dash, two-tone). `toolpath.pathMemory()` / `__viewerDiag.getPathMemory` is the VP39-01 ledger (Codex R47/R48 VP-I17): CPU bytes HELD by owner at each ArrayBuffer's CAPACITY (a small view keeps its whole buffer), incl. the fat geometries' own quad mesh, the toolpath box with its overflow edges (`box`, released with the path) and the PAYLOAD kept for rebuilds; GPU bytes actually uploaded; `allocated` (cumulative), `peak` (this path's build: held at its start + allocated in it, an upper bound); `eager` {estimate, packed} (apply() PREPARES every set — binned levels, chunk boxes, the overlays' flagged pairs — estimates the fat pack from the pair counts, THEN packs; the estimate bounds the pack, equal but for dropped degenerate pairs); `generation` (bumped per build); `pairs` {source, lod, drawn — visible objects only}. Every allocation of a build is counted WHERE IT HAPPENS, scratch included: `viewer/allocMeter.ts` is the one count (lineChunks, fatPaths, boxLines and the controller allocate through it; three's own arrays are counted right after three creates them — `countedGeometry`; outputs are sized by a counting pass, never cut from a full-size scratch; the box edges are written out, no BoxGeometry/EdgesGeometry) — `fatPaths.test.ts` spies the typed-array constructors and requires peak = held-at-start + exactly what they saw (fat and GL; table, room and legacy paths; rebuild; reveal), `allocMeter.test.ts` fails on a raw typed-array constructor in those files. Named limit: the toolpath box's troika size labels build their glyph buffers asynchronously, outside the ledger. The Mac A/B measurement of the previous GL line (A) against the 2 CSS px line (B) PASSED on 2026-10-01 (`docs/reviews/viewer-palette-fest.ab-mac.txt`: every steady phase p95 19 ms in both, builds and memory inside the limits fixed with Codex R47–R49). The Debug switch, the run (`abRun` / `abDriver` / `abHistogram` / `abRunBus`), `viewerPerf`'s sample tap, `scripts/viewer_ab_report.py` with its gate step and `__APP_COMMIT__` are gone. The controller keeps `lineMode: "gl"` as a TEST SEAM only — its selection tests read the GL index ranges and `fatPaths.test.ts` pins that the fat lines draw exactly those pairs; nothing in the product selects it. Every role LINE draws opaque (a role's contrast is its drawn colour; the toolpath box and overflow edges were 0.9 / 0.8). `__viewerDiag.getRoleMaterials` (kind = cue, width, opacity) and `projectRole` (a role's longest segment on screen) let the scenes spec MEASURE the image: the drawn width across each line as the sum of pixel coverage (DPR 1 and 2).
 - **Viewer overlays** (design wave D9) — top-left the DRO card, which FITS its pane (`fitHud` in ThreeViewer: steps the scale down from the operator's HUD scale — the ceiling — then folds the Machine column, the F / S rows, the tool line by class, then folds the findings card to ONE summary line with a "Show viewer warnings" toggle and the column head ("Work · G54" — the summary names the fixture), last `xs` (0.7) and `xxs` (0.6 — values at the UI's 12 px), never settings; every candidate is measured WHOLE — both cards at its scale, the real bottom column with the scrub bar — so the pick depends on pane and content only and cannot swing (review round 6, UI-DI12/13); never clipped or transform-scaled; `data-hud-fit` says `overflow` only where even the smallest form cannot fit — landscape from 150 %); the DRO card sits in the top-left COLUMN `.viewerTop` under the simulation banner, which keeps its words whole (wraps; in a pane < 440 px it reads "SIMULATION" + a "?") and whose height is in the fit's budget (review round 7, UI-DI16); top-right the ViewCube + quick grid (`--viewcube-size` 96 px in a pane < 440 px, `.narrowViewer`); bottom edge ONE column (`.viewerBottom`): the findings card (`.hudNotes`: mode chip + every warning line, the failed-model-part line too — one warning look, N102) above the scrub bar. A new viewer warning is a `.hudWarn` line in `.hudNotes`, never a chip of its own and never a line in the DRO card, and it joins `hudWarnCount` — the ONE list that counts the folded summary AND decides whether the card renders (`hasHudNotes` = mode chip or a counted line; a second list left the mid-run tool-table line out and the card never showed on a machine without a mode chip, Codex R42). An OPENED warnings card grows the bottom column over the DRO — and, the scrub bar being full-width, over the ViewCube column — by the operator's choice, but `fitHud` CAPS the column (`--viewer-bottom-max`: the viewer minus its margins and the simulation banner): never over the banner, never out of the viewer (review round 8, UI-DI16/17). The head stays pinned — the warnings summary with its toggle: the way back — and the body scrolls (`.hudNotesBody`; `.scroll-thin`) — a body that scrolls takes the pointer (opened, or cut by the cap: fitHud's `.scrolls`), so a touch scrolls it. A body scrolls ONLY past a cut line: a "?"'s invisible hit area reaches past its glyph, so the warnings body's padding holds that reach and a negative margin gives it back (`--help-reach`) — as overflow it put a scrollbar under the off-datum chip, made the card 10 px taller and the uncut body take the pointer (operator's live look 2026-09-27; `layout.spec`'s column check). `fitHud` measures the warnings FOLDED, so opening them never changes the DRO's form; everything folded never overlaps. The SHARED viewer geometry — the narrow flag (the banner's short form, the smaller cube) and the cap — is computed on every resize whether or not the DRO card shows (Settings → Layers → HUD off, review round 9); only the DRO's size pick (`fitDro`) needs the card. `layout.spec` sweeps every overlay inside the viewer and apart, and the scrub bar's insides (slider width, rows within the bar, every rendered control and "?" hit-tested, button words whole, the time whole) with the warnings folded and opened and simulating. A button's glyph content needs an aria-label (CSS audit `GLYPH_BUTTON`); a window icon that is not a close is `windowToggle`.
 - **On top per layer** (operator 2026-09-30) — Settings → 3D Viewer → Layers is a table (Layer | line sample | On top; the column heads are the first BODY row — `.dataTable`'s sticky head covers the top row inside the scrolling Settings page, like KeyboardTab's): the lines and markers can be drawn OVER the machine, one switch each (`ON_TOP_LAYERS`: toolpath, rapids, backplot, work zero, work plane, tool setter, tool change, both boxes, both reach outlines — never a body), stored as `viewer.onTop` (defaults `ON_TOP_FALLBACK`: the markers on, everything else off; the old single "Always on Top" `pathOnTop` becomes the Toolpath/Rapids/Backplot rows in `mergeViewerSection`). ThreeViewer's `setLayerOnTop` is the ONE mapping from a layer to what it draws; on top means depth test off AND a draw after the machine (`viewer/onTop.ts` `applyOnTop`: three sorts by renderOrder first — the order ladder boxes 8 / reach 6 / work plane 7 under the path's 10–12, markers 20 over it; each object keeps its built values to return to); the toolpath controller keeps the path's per stream (`setOnTop(feed|rapid)`, its limit overlay and a finding's section follow the stream) and the toolpath box's (`setBoxOnTop`) across programs; the rest is re-applied after every build (buildFromInit, the reach outlines).
 - **Viewer overlay chrome** — `.overlay-card` (HUD, sim bar, findings card, camera PiP; 92 % panel + blur — its text keeps 4.5 : 1 with dark geometry behind it, contrast.spec composites both) and `.overlay-card.warn` (sim banner, STL-failed chip): one chrome, components add layout only. Its EDGE holds 3 : 1 against the scene behind (the page background and the lit table): `--control-edge` per theme, the warn variant `--warn-text` (the `--warn` fill held 2 : 1 on white) — viewer contrast plan V5, the operator's "outline". `--viewcube-size` (140px) is the ViewCube edge the quick grid offsets by.
@@ -2079,6 +2391,7 @@ The stored tool-change position lives in the INTERPRETER; the parameter file hol
 - A flex item that holds single-line (`nowrap`) text needs `min-width: 0`, or its automatic minimum width is the full text and it pushes its siblings out of the container — the status banner's action buttons (messages, Refresh, Home All, Abort) vanished behind the right edge whenever a long banner showed. Compact banner texts to the state plus one recovery verb; the explanation goes in the `title`
 - A `min-width` floor on a readout slot is not a fixed slot: content past the floor still grows it and `text-overflow: ellipsis` never engages. A readout that must not move its siblings gets `flex: 0 0 <w>` + `overflow: hidden` (ScrubBar row 1 ate the timeline). Same family: a control that changes state must keep its geometry — one slot, one button position, variable-width text AFTER the last button of its group
 - Every overlay on the 3D viewer keeps `--gap-section` from the frame and floats on the global `.overlay-card` (92 % panel + blur: HUD card, sim bar) — never hard-code the 12px or copy the chrome into a component; the bar sat 8px in on an opaque panel while the HUD sat 12px in on a translucent one
+- A `watch` reads its source at once: register it below every `computed` / `ref` that source reads. A binding declared after it is in its temporal dead zone — Vue catches the throw and logs it (`console.error`, no `pageerror`), and the watcher tracks only what it read before the throw. The contact bar's stage watch did this from Form 1 to R162; `viewer.spec` now fails on a ReferenceError in the console at load
 - Use direct child selectors (`.grid > label`) not descendant selectors (`.grid label`) when styling grid/container labels — descendant selectors mute nested form controls (radios, checkboxes) inside those containers
 - When adding server-synced settings sections, update `_VALID_SETTINGS_SECTIONS` in `gateway.py` — the gateway rejects unknown sections with "Unknown settings section" error
 - Don't hack around permission issues in the backend — use the proper frontend permission gate so the UI reflects machine state (dimming). The gate IS the fix, not a workaround.
@@ -2102,6 +2415,8 @@ The stored tool-change position lives in the INTERPRETER; the parameter file hol
 - Lazy conservative advancement must CARRY its certificates across chunk boundaries in clearance terms (d − margin, decremented by each chunk's V × L); resetting them per chunk makes the cost O(segments × pairs) regardless of geometry
 - Never probe a server's liveness with a WebSocket and never cancel a CONNECTING socket on a short timer: the browser remembers failed WebSocket connections (Firefox: per IP:port, ×1.5 up to 60 s, surviving reloads) and holds the next attempt, and Firefox admits one connecting WebSocket per IP across ports — blind retries through an outage plus a 3 s timeout kept tabs 35–58 s on "reconnecting" after every restart, and Vite's WebSocket restart ping on :5173 queued the gateway socket on :8000. Ask over HTTP first (`/ready`)
 - An invisible hit area is real overflow: a `::before` larger than its element (the "?"'s `--help-hit`) counts as scrollable overflow in any scroll container around it — a scroller whose lines end in a "?" needs end padding for the reach (a negative margin keeps its size), or it shows a scrollbar for 3–6 px and clips the target. `overflow-y: auto` alone turns `overflow-x` to auto too
+- A layout read (`offsetHeight`, `scrollHeight`, `scrollWidth`, `getBoundingClientRect`) in the task that changed the DOM forces the layout of EVERY pending change there: the scroll fades' MutationObserver re-read every scroller on each batch, `v-sticky-head` read its head at mount, the Sim tab measured its summary after `nextTick` — 22–25 ms each when 400 rows arrived (plan 3.6). Read layout from a ResizeObserver (after the layout) or in the next `requestAnimationFrame` (before the paint: no frame shows the unfitted state); find the reader in a Chromium trace (`UpdateLayoutTree` / `Layout` events carry the forcing stack)
+- An operation count bounds a step only if every expensive call is counted: a binary search costed as 64 operations, a whole-list `TypedArray.from`, a coverage scan outside the counter each made a single 10–20 ms step in the browser while the step count looked healthy — test the work PER STEP (reads between two yields), not the number of steps
 - Profile before vectorizing: 40 % of the 46 s plane-mode parse was 2.36 M pure-Python inverse-kinematics solves, another ~40 % three passes that re-stripped comments character by character; the interpreter itself was a quarter. cProfile inflates Python-call-heavy code ~2× — use it for proportions, the trace for absolute numbers
 
 ## Production DISPLAY Integration

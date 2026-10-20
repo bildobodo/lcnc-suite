@@ -4,6 +4,8 @@ import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
+import { FROM_WIRE_INIT, oneContact, wireDelta } from "./contactsDelta";
+import { ContactStore, GAP_UNDECIDABLE, NONE } from "../src/viewer/contactStore";
 
 // COLLISION jumps on the real 5-axis model (examples/sim_config/machine-
 // 5axis-xyzac, the XYZAC config's own machine.json and STLs): the sweep runs
@@ -14,6 +16,8 @@ const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"))
 
 async function prepare(page: Page, context: BrowserContext, o: {
   file: string; version: number; feed: number[][]; lines: number[]; joints: number[]; extra?: Record<string, unknown>;
+  /** Runs once the viewer is up, before the program is published. */
+  before?: () => Promise<unknown>;
 }) {
   const preview = Buffer.from(encode({ file: o.file, preview_schema: 11, feed: o.feed,
     feed_lines: o.lines, feed_seq: o.lines.map((_, i) => i + 1), feed_outside: new Uint8Array(o.feed.length), rapid: [],
@@ -30,13 +34,14 @@ async function prepare(page: Page, context: BrowserContext, o: {
   await ctl({ op: "status_delta", data: { active_file: o.file, joint_pos: o.joints, actual_position: o.joints,
     g5x_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], g92_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0], tool_offset: [0, 0, 0, 0, 0, 0, 0, 0, 0],
     rotation_xy: 0, is_enabled: false, enabled: false } });
+  if (o.before) await o.before();
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: o.version, file: o.file } });
   // The findings live in the side pane's Simulation tab, its list on the collisions.
   await simShow(page, "clash");
 }
 const nextHit = (page: Page) => simStepBtn(page, "Next collision");
 /** The list's collision rows (the list is filtered to collisions). */
-const clashRows = (page: Page) => page.locator(".simPanel tbody tr");
+const clashRows = (page: Page) => page.locator(".simPanel tbody tr[data-sim-row]");
 const slider = (page: Page) => page.locator(".scrubBar .sliderInput");
 const at = async (page: Page) => Number(await slider(page).inputValue());
 /** The collision count the findings button reads ("9 collisions"). */
@@ -79,6 +84,54 @@ test("a collision jump on the real XYZAC model lands on its line and shows its m
   // L7 runs along X; the plunge (L6) and the retract (L8) are along Z — a
   // point in the top view
   expect(Math.abs(move.dx), "L7's own move, along X").toBeGreaterThan(0.95);
+  await ctl({ op: "reset" });
+});
+
+// C3 (plan 1.3/4.2): a contact in a called file reads its CALL line — in the
+// list and in the code's marks — never the file's own number; without a
+// verified call line it reads its subroutine's name and marks nothing. The
+// traverse into the yoke and the retract run in sub "touch" whose own
+// numbers (7, 8) are not this program's.
+for (const [name, cline, label, marked] of [["a verified call line", 5, "L5", "5"], ["no verified call line", 0, "(touch)", null]] as const) {
+  test(`a contact in a called file — ${name}: the list reads ${label}, the code marks ${marked ?? "nothing"} (C3, plan 1.3/4.2)`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    await prepare(page, context, { file: `/c3-${cline}.ngc`, version: 3300 + cline, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+      feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]],
+      extra: { feed_lineok: new Uint8Array([1, 1, 0, 0]), feed_sub: new Uint8Array([255, 255, 0, 0]), sub_names: ["touch"],
+               feed_cline: new Uint8Array(Uint16Array.from([0, 0, cline, cline]).buffer) } });
+    await expect(clashRows(page).first(), "the nose in the yoke").toBeVisible({ timeout: 60_000 });
+    await expect(clashRows(page).first().locator(".rowPick")).toHaveText(label);
+    await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+    await page.getByRole("tab", { name: "Program", exact: true }).click();
+    const marks = page.locator(".codeLine.collision .lineNumber");
+    if (marked === null) await expect(marks, "no line, no mark").toHaveCount(0);
+    else await expect(marks, "the call line, never the sub's own 7").toHaveText([marked]);
+    await ctl({ op: "reset" });
+  });
+}
+
+// Round B3: the tint and the timeline's band read the contact tables — the
+// finding's own bodies light where the jump lands, the band covers the
+// contact on the timeline, and both go where the pose leaves it.
+test("the tint and the band are the contact tables': lit at the finding, a band over its contact, dark away from it (step 4 package 2, round B3)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await prepare(page, context, { file: "/tint.ngc", version: 2205, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+  await expect(clashRows(page).first()).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  // the band: over the contact's place on the timeline
+  const bands = await page.locator(".scrubBar .scrubBand.clash").evaluateAll(els => els.map(e => (e as HTMLElement).style.left));
+  expect(bands.length, "a contact band").toBeGreaterThan(0);
+  // the first finding: its bodies lit where the jump lands
+  await nextHit(page).click();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getClashTint!()), { timeout: 15_000 }).toContain("a_yoke_casting");
+  // the start of the program: nothing in contact there
+  await slider(page).evaluate((el: HTMLInputElement) => {
+    el.value = "0";
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getClashTint!())).toEqual([]);
   await ctl({ op: "reset" });
 });
 
@@ -147,6 +200,116 @@ test("the sweep runs on several workers and finds what the single sweep finds", 
   // The entry move's side sweep beside the shards: the jump lands on L7.
   await nextHit(page).click();
   await expect(simLine(page)).toHaveText(/^L7\b/);
+  await ctl({ op: "reset" });
+});
+
+test("the contact tables reach the page: every delta applied and acknowledged in its generation (step 4 package 2, round B2)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await prepare(page, context, { file: "/crash-par.ngc", version: 2211, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+  await expect(clashRows(page).first(), "the nose in the yoke, found").toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  const s = (await page.evaluate(() => window.__viewerDiag!.getCollisionSummary!()))!;
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().main?.rows?.intervals ?? 0),
+    { message: "the program's touch intervals in the page's tables" }).toBeGreaterThan(0);
+  const c = await page.evaluate(() => window.__viewerDiag!.getContacts!());
+  expect(c.main!.shards, "one table per worker that swept").toBe(s.shards);
+  expect(c.main!.pairs, "the pairs named").toBe(s.pairCount);
+  expect(c.acks, "every delta acknowledged").toBe(c.messages);
+  expect(c.dropped, "none dropped").toBe(0);
+  // the view's targets — its touch intervals and near misses — come from these rows
+  expect(c.main!.rows!.intervals + c.main!.rows!.episodes, "the rows behind the view's targets").toBeGreaterThanOrEqual(s.hits);
+  expect(s.hits).toBeGreaterThan(0);
+  expect(c.stats.allocated, "the memory the page holds for them").toBeGreaterThanOrEqual(c.stats.used);
+  await ctl({ op: "reset" });
+});
+
+// C2 (Codex R167): what the sweep finds reaches the page in its tables alone,
+// one delta unacknowledged per path. L3's traverse stops 1 mm short of the
+// yoke — a near miss, its delta out first — and the touch (L4007) follows
+// 4000 short moves later (slices apart). Every acknowledgement the page sends
+// is HELD until the touch shows: the delta with the request's first interval
+// goes beside the one out.
+// (Measured: held, the touch waited out the whole hold — +395 ms at 300 ms.)
+test("the first touch shows while the near miss's acknowledgement is held: its delta goes beside the one out (C2, Codex R167)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript(() => {
+    const tap = { hold: true, held: [] as Array<() => void>, acks: 0, ivs: [] as number[] };
+    (window as unknown as { __ackTap: typeof tap }).__ackTap = tap;
+    const Real = window.Worker;
+    const Tapped = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w) as (m: unknown, t?: Transferable[]) => void;
+      w.postMessage = ((m: unknown, t?: Transferable[]) => {
+        if (m && typeof m === "object" && "contactsAck" in m && tap.hold) { tap.acks++; tap.held.push(() => post(m, t)); return; }
+        post(m, t);
+      }) as typeof w.postMessage;
+      w.addEventListener("message", (ev: MessageEvent) => {
+        const d = ev.data as { contacts?: Array<{ intervals: { count: number } }> };
+        if (d?.contacts) tap.ivs.push(d.contacts.reduce((n, x) => n + x.intervals.count, 0));
+      });
+      return w;
+    } as unknown as typeof Worker;
+    Tapped.prototype = Real.prototype;
+    window.Worker = Tapped;
+  });
+  const feed = [[0, 0, -100], [0, 0, -380], [124, 0, -380], [0, 0, -380], [0, 0, -100]], lines = [1, 2, 3, 4, 5];
+  for (let i = 1; i <= 4000; i++) { feed.push([i % 2 ? 20 : 0, 0, -100 - (i % 40)]); lines.push(5 + i); }
+  feed.push([0, 0, -380], [240, 0, -380], [240, 0, -100]);
+  lines.push(4006, 4007, 4008);
+  await prepare(page, context, { file: "/first-touch.ngc", version: 2291, feed, lines, joints: [-100, 0, 0, 0, 0] });
+  const tap = () => page.evaluate(() => { const t = (window as unknown as { __ackTap: { acks: number; ivs: number[] } }).__ackTap; return { acks: t.acks, ivs: t.ivs.slice() }; });
+  await expect(clashRows(page).filter({ hasNotText: /near miss/ }).first(), "the touch, its acknowledgements held").toBeVisible({ timeout: 30_000 });
+  const t = await tap();
+  expect(t.ivs[0], "the near miss's delta first, without an interval").toBe(0);
+  expect(t.acks, "its acknowledgement (and the touch's) held").toBeGreaterThanOrEqual(1);
+  // released: the rest goes as ever, one unacknowledged at a time
+  await page.evaluate(() => { const t = (window as unknown as { __ackTap: { hold: boolean; held: Array<() => void> } }).__ackTap; t.hold = false; for (const h of t.held.splice(0)) h(); });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  const c = await page.evaluate(() => window.__viewerDiag!.getContacts!());
+  expect(c.acks, "every delta acknowledged").toBe(c.messages);
+  expect(c.dropped, "none dropped").toBe(0);
+  await ctl({ op: "reset" });
+});
+
+// Codex R147 VP-I106: the entry move's side run ends and its result stays
+// shown; the main request, still running, sends its next tables — and the
+// page let the side's tables go (its run was over, its result was not). They
+// stay while the result is shown, and go once a new side result replaces it.
+// (The other order — the main request done first — calls nothing that could
+// drop them; the unit test holds both.)
+test("a shown side result keeps its contact tables while the main request sends on; a replacing one lets them go (Codex R147 VP-I106)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  // the nose back and forth in the yoke: a main sweep of many slices
+  const feed: number[][] = [[0, 0, -100], [0, 0, -380]], lines = [1, 6];
+  for (let k = 0; k < 80; k++) { feed.push([k % 2 ? 0 : 240, 0, -380]); lines.push(7); }
+  feed.push([0, 0, -100]); lines.push(8);
+  await prepare(page, context, { file: "/side-tables.ngc", version: 2212, lines, joints: [-100, 0, 0, 0, 0], feed,
+    // the main sweep holds after its first slice, as under a camera drag
+    before: () => expect.poll(() => page.evaluate(() => { window.__viewerDiag?.setCameraHold?.(true); return !!window.__viewerDiag?.setCameraHold; })).toBe(true) });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getCollisionHoldLog?.() ?? []), { timeout: 60_000 })
+    .toContain("camera on");
+  // the simulation's entry move: a side run beside the held main request
+  await page.locator(".scrubBar").getByRole("checkbox", { name: "Sim" }).check();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().entry?.tables?.id ?? null), { timeout: 60_000,
+    message: "the entry result is shown with its tables" }).not.toBeNull();
+  const entryId = (await page.evaluate(() => window.__viewerDiag!.getContacts!().entry!.id));
+  expect(await sweepDone(page), "the main request still runs").toBe(false);
+  const msgs = await page.evaluate(() => window.__viewerDiag!.getContacts!().messages);
+  // the main request sends on: its tables are applied, the shown side's stay
+  await page.evaluate(() => window.__viewerDiag!.setCameraHold!(false));
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  const c = await page.evaluate(() => window.__viewerDiag!.getContacts!());
+  expect(c.messages, "the main request's tables arrived after the side result").toBeGreaterThan(msgs);
+  expect(c.entry?.id, "the entry result is still the shown one").toBe(entryId);
+  expect(c.entry?.tables, "and its tables are still held").not.toBeNull();
+  // the machine moves: a new entry move, a new side result — the old one's tables go
+  await ctl({ op: "status_delta", data: { joint_pos: [-60, 0, 0, 0, 0], actual_position: [-60, 0, 0, 0, 0] } });
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().entry?.id ?? null), { timeout: 60_000,
+    message: "a new entry result" }).not.toBe(entryId);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().ids), { timeout: 30_000 }).not.toContain(entryId);
   await ctl({ op: "reset" });
 });
 
@@ -620,10 +783,11 @@ interface ColTap {
   held: Array<() => void>;
   /** fields laid over the provisional result as it arrives */
   patchProvisional: Record<string, unknown> | null;
-  /** [line, a] of the provisional result's records to mark as boundary records */
-  boundaryHits: Array<[number, string]>;
-  lastProvisional: { hits: Array<{ line: number; boundary?: true; a: string; b: string }>;
-                     boundaryContacts?: Array<{ a: string; b: string; line: number }> } | null;
+  /** The provisional request's contact tables as they arrive (round B3: the
+   *  views read them): the episodes of these pairs made boundary contacts,
+   *  and the contact of `cut.pair` ended at `cut.at` */
+  boundaryPairs: Array<[string, string]>;
+  cut: { pair: [string, string]; at: number } | null;
 }
 /** A tap on the page's collision worker: it records the main requests,
  *  answers a chosen one with the worker's own "needBodies" (a worker that
@@ -631,8 +795,8 @@ interface ColTap {
  *  full check's result. Installed before the page loads. */
 async function installWorkerTap(page: Page) {
   await page.addInitScript(() => {
-    const tap = { reqs: [], drop: [], holdFull: false, held: [], patchProvisional: null, boundaryHits: [],
-      lastProvisional: null } as unknown as ColTap;
+    const tap = { reqs: [], drop: [], holdFull: false, held: [], patchProvisional: null,
+      boundaryPairs: [], cut: null } as unknown as ColTap;
     (window as unknown as { __colTap: ColTap }).__colTap = tap;
     const Real = window.Worker;
     const Tapped = function (url: string | URL, opts?: WorkerOptions) {
@@ -661,16 +825,36 @@ async function installWorkerTap(page: Page) {
       }) as typeof w.postMessage;
       Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler,
         set: (fn: ((ev: MessageEvent) => unknown) | null) => { handler = fn; } });
-      w.addEventListener("message", (ev: MessageEvent) => {
-        const d = ev.data as { id: number; result?: Record<string, unknown> };
-        const kind = d && kinds.get(d.id);
-        if (d?.result && kind === "provisional") {
-          if (tap.patchProvisional) Object.assign(d.result, structuredClone(tap.patchProvisional));
-          for (const h of d.result.hits as Array<{ line: number; a: string; boundary?: true }>) {
-            if (tap.boundaryHits.some(([l, a]) => h.line === l && h.a === a)) h.boundary = true;
+      // the provisional request's tables: its pair names and, per table, the
+      // pair of each episode row seen so far
+      const pairsOf = new Map<number, Array<[string, string]>>(), epPair = new Map<string, number>();
+      type Col = Record<string, ArrayLike<number> & { [i: number]: number }>;
+      const patchTables = (id: number, contacts: Array<{ episodes: { from: number; count: number; rows: Col; updates: ArrayLike<number>; updated: Col };
+                                                       intervals: { from: number; count: number; rows: Col; updates: ArrayLike<number>; updated: Col } }>) => {
+        const names = pairsOf.get(id) ?? [];
+        const is = (pair: number, ab: [string, string]) => names[pair]?.[0] === ab[0] && names[pair]?.[1] === ab[1];
+        contacts.forEach((delta, k) => {
+          const eps: Array<[Col, number, (i: number) => number]> = [[delta.episodes.rows, delta.episodes.count, i => delta.episodes.from + i],
+            [delta.episodes.updated, delta.episodes.updates.length, i => delta.episodes.updates[i]!]];
+          for (const [c, n, rowOf] of eps) for (let i = 0; i < n; i++) {
+            const pair = c.pair![i]!;
+            epPair.set(`${id}:${k}:${rowOf(i)}`, pair);
+            if (tap.boundaryPairs.some(ab => is(pair, ab))) c.flags![i] = (c.flags![i]! & ~3) | 3;
+            if (tap.cut && is(pair, tap.cut.pair) && !(c.end![i]! <= tap.cut.at)) c.end![i] = tap.cut.at;
           }
-          tap.lastProvisional = JSON.parse(JSON.stringify(d.result));
-        }
+          const ivs: Array<[Col, number]> = [[delta.intervals.rows, delta.intervals.count], [delta.intervals.updated, delta.intervals.updates.length]];
+          for (const [c, n] of ivs) for (let i = 0; i < n; i++) {
+            const pair = epPair.get(`${id}:${k}:${c.episode![i]}`);
+            if (tap.cut && pair !== undefined && is(pair, tap.cut.pair) && !(c.exit![i]! <= tap.cut.at)) c.exit![i] = tap.cut.at;
+          }
+        });
+      };
+      w.addEventListener("message", (ev: MessageEvent) => {
+        const d = ev.data as { id: number; result?: Record<string, unknown>; contacts?: Parameters<typeof patchTables>[1]; contactPairs?: Array<[string, string]> };
+        const kind = d && kinds.get(d.id);
+        if (d?.contactPairs) pairsOf.set(d.id, d.contactPairs);
+        if (d?.contacts && kind === "provisional") patchTables(d.id, d.contacts);
+        if (d?.result && kind === "provisional" && tap.patchProvisional) Object.assign(d.result, structuredClone(tap.patchProvisional));
         if (d?.result && kind === "full" && tap.holdFull) { tap.held.push(() => handler?.(ev)); return; }
         handler?.(ev);
       });
@@ -758,11 +942,14 @@ test("the provisional result keeps its own limits while the full check runs, its
   await page.evaluate(([bc]) => {
     const t = (window as unknown as { __colTap: ColTap }).__colTap;
     t.holdFull = true;
-    // stopped at 60 % of the program and not certified
-    t.patchProvisional = { truncated: { covered: 0.6, reason: "samples" }, uncertified: "a body was left out", boundaryContacts: bc };
+    // stopped at 75 % of the program and not certified (past the contacts
+    // it found: they reach 552 of 800 — the views show nothing past it)
+    t.patchProvisional = { truncated: { covered: 0.75, reason: "samples" }, uncertified: "a body was left out", boundaryContacts: bc };
     // L7: the nose's contact its own, the tool's provisional (after it);
-    // L8: provisional only
-    t.boundaryHits = [[7, "tool"], [8, "tool"], [8, "spindle_nose"]];
+    // L8: provisional only — in the tables the views read: the tool's
+    // contact a boundary one, the nose's ended on L7 (L7 is (280, 520])
+    t.boundaryPairs = [["tool", "a_yoke_casting"]];
+    t.cut = { pair: ["spindle_nose", "a_yoke_casting"], at: 515 };
   }, [[contact("tool", "a_yoke_casting", 7), contact("spindle_nose", "a_yoke_casting", 7), contact("x_saddle", "column", 7),
        contact("y_saddle", "column", 7), contact("tool", "work_piece", 7, true)]] as const);
   await ctl({ op: "quiet", on: true });
@@ -786,11 +973,11 @@ test("the provisional result keeps its own limits while the full check runs, its
     return text;
   };
   // the full check runs (its result held) — on screen the provisional result
-  expect(await band(), "the band: from L7 to where it stopped").toEqual([0.35, 0.6]);
-  await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 60 % \(not certified\)$/);
+  expect(await band(), "the band: from L7 to where it stopped").toEqual([0.35, 0.75]);
+  await expect(item).toHaveAttribute("aria-label", /provisional from L7, stopped at 75 % \(not certified\)$/);
   await expect(item.locator('span[title^="Not certified"]'), "its star").toHaveCount(1);
   const text = await help();
-  expect(text).toContain("Stopped at 60 % of the program — the rest is unchecked.");
+  expect(text).toContain("Stopped at 75 % of the program — the rest is unchecked.");
   expect(text).toContain("Not certified: Clearance guarantee not certified for this sweep: a body was left out");
   expect(text).not.toContain("Still checking");
   // every contact at its start, with the lines it stays on provisionally
@@ -1110,8 +1297,9 @@ test("a mid-run re-parse for a measured tool is one line, never a second one und
 /** A run check whose bound beginning's side request the page answers itself;
  *  the main check done, the side request waiting. */
 async function sideRunReady(page: Page, context: BrowserContext) {
+  await page.addInitScript({ content: FROM_WIRE_INIT });
   await page.addInitScript(() => {
-    const tap: any = { side: null, deliver: null, first: null };
+    const tap: any = { side: null, deliver: null, first: null, pairs: null };
     (window as any).__sideTap = tap;
     const Real = window.Worker;
     const Tapped = function (url: string | URL, opts?: WorkerOptions) {
@@ -1120,7 +1308,7 @@ async function sideRunReady(page: Page, context: BrowserContext) {
       const post = w.postMessage.bind(w);
       let handler: any = null;
       Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
-      w.addEventListener("message", ev => handler?.(ev));
+      w.addEventListener("message", ev => { if (ev.data?.contactPairs && ev.data.id !== tap.side?.id) tap.pairs = ev.data.contactPairs; handler?.(ev); });
       w.postMessage = ((m: any, t?: Transferable[]) => {
         if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
         post(m, t ?? []);
@@ -1145,12 +1333,39 @@ async function sideRunReady(page: Page, context: BrowserContext) {
   await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", "No contact · start still checking");
   await expect(clashRows(page)).toHaveCount(0);
 }
-/** The side sweep's first confirmed contact, delivered. */
-const sideFirst = (page: Page) => page.evaluate(() => {
-  const t = (window as any).__sideTap, i = 1;
-  t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a: "spindle_nose", b: "a_yoke", dist: 0, rapid: true };
-  t.deliver({ progress: 0.2, first: t.first });
-});
+/** The side request's contact table as the spec answers it (the views read
+ *  the tables). */
+const sideTables = new WeakMap<Page, ContactStore>();
+/** The side sweep's first touch, delivered: its table — one contact of the
+ *  model's first pair, inside the move from point `seg` to `seg + 1` of the
+ *  side track (the line of that move, kept in `first` for the spec). Point 0
+ *  is the start the run stood at: the move to point 1 is the entry — the
+ *  program's first move from there, whose line the track does not carry
+ *  (prependEntry, W2 P6; plan 1.3, C3) — point 1 → 2 the beginning's next
+ *  move, of a line the track carries. */
+const sideFirst = async (page: Page, seg = 1) => {
+  const { id, at, pairs } = await page.evaluate(seg => {
+    const t = (window as any).__sideTap;
+    return { id: t.side.id as number, at: (t.side.track.cum[seg] + t.side.track.cum[seg + 1]) / 2 as number, pairs: t.pairs as Array<[string, string]> | null };
+  }, seg);
+  const st = oneContact(id, 0, at, at);
+  sideTables.set(page, st);
+  await page.evaluate(([w, pairs, seg]) => {
+    const t = (window as any).__sideTap, i = seg + 1;
+    const [a, b] = pairs?.[0] ?? ["spindle_nose", "a_yoke"];
+    t.first = { line: t.side.track.lines[i] || 2, cum: t.side.track.cum[i], cumEnd: t.side.track.cum[i], a, b, dist: 0, rapid: true };
+    t.deliver({ progress: 0.2, contacts: [(window as any).__fromWire(w)], contactPairs: pairs ?? [[a, b]] });
+  }, [wireDelta(st), pairs, seg] as const);
+};
+/** The side request's result, its last (empty) delta riding with it. */
+const sideResultMsg = async (page: Page) => {
+  const w = wireDelta(sideTables.get(page)!);
+  await page.evaluate(w => {
+    const t = (window as any).__sideTap;
+    t.deliver({ contacts: [(window as any).__fromWire(w)], result: { staticContacts: [], samples: 10, coarsened: false,
+      uncertified: null, pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
+  }, w);
+};
 
 test("a run's bound beginning: its contact reaches the list early and final, the verdict says what is checked (Codex R137 VP-I93)", async ({ page, context }) => {
   test.setTimeout(120_000);
@@ -1163,16 +1378,117 @@ test("a run's bound beginning: its contact reaches the list early and final, the
   // ...and in the code panel's marks: the same result
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await expect(page.locator(".codeLine.collision"), "early: marked in the code").toHaveCount(1);
+  // ...on the line it is on: the side track's own (round B3 — the base axis
+  // folds the whole beginning to 0, where other lines lie)
+  const own = await page.evaluate(() => (window as any).__sideTap.first.line as number);
+  expect(await page.locator(".codeLine.collision .lineNumber").innerText(), "the beginning's own line").toBe(String(own));
   await openSimTab(page);
   // final: its result with the same contact
-  await page.evaluate(() => {
-    const t = (window as any).__sideTap;
-    t.deliver({ result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
-                          pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
-  });
+  await sideResultMsg(page);
   await expect(clash, "final: checked, the beginning with it").toHaveAttribute("aria-label", /^1 collision.* · checked in full$/);
   await expect(clashRows(page), "final: in the list").toHaveCount(1);
   expect(await runLog(page)).toContain("beginning");
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// C3 (plan 1.3): a contact on the entry — the program's first move, from where
+// the run stood to its first point, whose display line the track does not
+// carry (prependEntry, W2 P6; Codex R172: a limitation of the line's origin,
+// not a move outside the program) — reads "entry" and marks no code line:
+// never the raw line of the point it ends at.
+test("a run's bound beginning: a contact on the entry reads \"entry\" and marks no code line (C3, plan 1.3)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await sideRunReady(page, context);
+  await sideFirst(page, 0);
+  await expect(clashRows(page), "in the list").toHaveCount(1);
+  await expect(clashRows(page).first().locator(".rowPick")).toHaveText("entry");
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".codeLine.collision"), "the track carries no display line for it").toHaveCount(0);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// Codex R172 VP-I125: an undecidable stretch on a run's beginning — a folded
+// source — reads its OWN track's lines, as its contact's row does; mapped onto
+// the base's axis it read the base's ("L4–L3").
+test("a run's beginning: an undecidable stretch on its own move reads the line its contact reads (Codex R172 VP-I125)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await sideRunReady(page, context);
+  await sideFirst(page);
+  const own = await page.evaluate(() => {
+    const t = (window as any).__sideTap, c = t.side.track.cum;
+    return { line: t.first.line as number, start: c[1] + (c[2] - c[1]) * 0.75, end: c[1] + (c[2] - c[1]) * 0.9 };
+  });
+  sideTables.get(page)!.gaps.append({ pair: 0, start: own.start, end: own.end, reason: GAP_UNDECIDABLE });
+  await sideResultMsg(page);
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", /checked to the end/);
+  await expect(clashRows(page)).toHaveCount(1);
+  await expect(clashRows(page).first().locator(".rowPick")).toHaveText(`L${own.line}`);
+  await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
+  const help = await page.locator(".helpPopover:popover-open").innerText();
+  await page.keyboard.press("Tab");
+  await page.mouse.click(5, 5);
+  expect(help, "the note reads the side's own line").toContain(`(L${own.line})`);
+  await ctl({ op: "quiet", on: false });
+  await ctl({ op: "reset" });
+});
+
+// Codex R172 VP-I126: a run check's range metadata — a boundary contact —
+// shows before the first table does; its line is the display line of the
+// track there (a move in "touch" with no verified call line: its name), never
+// the sweep's raw L7 — before the first delta and after it alike.
+test("a boundary contact before the first table: the basis card reads its display line, never the raw one (Codex R172 VP-I126)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { main: null, deliver: null };
+    (window as any).__r173 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      w.addEventListener("message", e => handler?.(e));
+      tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      // the range request is this spec's: no worker answer races it
+      w.postMessage = ((m: any, t?: Transferable[]) => { if (m?.track && !m.side && m.options?.range) { tap.main = m; return; } post(m, t ?? []); }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  const file = "/r173-meta.ngc";
+  await runReady(page, context, file, 31731);
+  await ctl({ op: "quiet", on: true });
+  await runOnL7(page, file, 31731);
+  const payload = { file, preview_schema: 11, feed: RUN_FEED, feed_lines: [1, 6, 7, 8], feed_seq: [1, 2, 3, 4],
+    feed_outside: new Uint8Array(4), rapid: [], violations: [], violations_total: 0,
+    feed_lineok: new Uint8Array([1, 1, 0, 0]), feed_sub: new Uint8Array([255, 255, 0, 0]), sub_names: ["touch"],
+    feed_cline: new Uint8Array(Uint16Array.from([0, 0, 0, 0]).buffer) };
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));
+  await publishInRun(page, file, 31732, pinnedFor(9));
+  await expect.poll(() => page.evaluate(() => (window as any).__r173.main?.id ?? null)).not.toBeNull();
+  const m = await page.evaluate(() => { const m = (window as any).__r173.main; return { id: m.id as number, at: m.track.cum[m.options.range.from] as number, range: m.options.range }; });
+  expect(m.range, "the run's provisional check").toEqual({ from: 1 });
+  const metadata = { staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
+    pairsPrescreened: 0, bvhMs: 0, sweepMs: 10, truncated: { covered: 0.3, reason: "running" },
+    range: { fromCum: m.at, fromLine: 7 },
+    boundaryContacts: [{ a: "tool", b: "work_piece", line: 7, cum: m.at, dist: 0, cutting: true }] };
+  // before the first table: the metadata alone
+  await page.evaluate(d => (window as any).__r173.deliver(d), { id: m.id, progress: 0.3, partial: metadata });
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).toHaveAttribute("aria-label", /No contact so far · provisional from L7/);
+  expect(await page.evaluate(() => window.__viewerDiag!.getContacts!().main), "no table yet").toBeNull();
+  const before = await basisCard(page);
+  expect(before, "its name — never the raw L7").toContain("Tool ↔ Work piece (touch)");
+  // after the first (empty) table: the same
+  const w = wireDelta(new ContactStore(m.id, 0));
+  await page.evaluate(([d, w]) => (window as any).__r173.deliver({ ...d, contacts: [(window as any).__fromWire(w)] }),
+    [{ id: m.id, progress: 0.4, partial: { ...metadata, truncated: { covered: 0.4, reason: "running" } }, contactPairs: [["tool", "work_piece"]] }, w] as const);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().main)).not.toBeNull();
+  expect(await basisCard(page), "after the first table alike").toContain("Tool ↔ Work piece (touch)");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
@@ -1184,8 +1500,9 @@ test("a run's bound beginning: its contact reaches the list early and final, the
 /** A run check with the main request's messages held and the side request
  *  waiting: nothing shown yet. */
 async function sideRunHeld(page: Page, context: BrowserContext, file = "/side-held.ngc") {
+  await page.addInitScript({ content: FROM_WIRE_INIT });
   await page.addInitScript(() => {
-    const tap: any = { side: null, deliver: null, first: null, hold: false, mainId: null, main: [], raw: null };
+    const tap: any = { side: null, deliver: null, first: null, hold: false, mainId: null, main: [], raw: null, pairs: null };
     (window as any).__sideTap = tap;
     const Real = window.Worker;
     const Tapped = function (url: string | URL, opts?: WorkerOptions) {
@@ -1195,7 +1512,11 @@ async function sideRunHeld(page: Page, context: BrowserContext, file = "/side-he
       let handler: any = null;
       Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
       tap.raw = (d: any) => handler?.(new MessageEvent("message", { data: d }));
-      w.addEventListener("message", ev => { if (ev.data?.id === tap.mainId) { tap.main.push(ev.data); return; } handler?.(ev); });
+      w.addEventListener("message", ev => {
+        if (ev.data?.contactPairs && ev.data.id !== tap.side?.id) tap.pairs = ev.data.contactPairs;
+        if (ev.data?.id === tap.mainId) { tap.main.push(ev.data); return; }
+        handler?.(ev);
+      });
       w.postMessage = ((m: any, t?: Transferable[]) => {
         if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
         if (m?.track && tap.hold) { tap.mainId = m.id; tap.main = []; }
@@ -1228,11 +1549,7 @@ const mainPartial = (page: Page, covered: number) => page.evaluate(c => {
   t.raw({ id: t.mainId, progress: c, partial: { ...end.result, truncated: { covered: c, reason: "running" } } });
 }, covered);
 const mainResult = (page: Page) => page.evaluate(() => { const t = (window as any).__sideTap; t.raw(t.main.find((m: any) => m.result)); });
-const sideResult = (page: Page) => page.evaluate(() => {
-  const t = (window as any).__sideTap;
-  t.deliver({ result: { hits: [t.first], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
-                        pairsPrescreened: 0, bvhMs: 0, sweepMs: 100, truncated: null } });
-});
+const sideResult = sideResultMsg;
 const codeMarks = async (page: Page) => {
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   const n = await page.locator(".codeLine.collision").count();
@@ -1330,3 +1647,343 @@ test("a run's bound beginning that ends without a result takes its early contact
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
 });
+
+// Codex R149 VP-I109 (his browser probe): a side run stopped by its budget at
+// 20 % — its answer carries `truncated` — shows its open contact up to where
+// it was checked; the band never reaches on to the end of the side's track.
+test("a side run stopped by its budget keeps its contact band at its own coverage (Codex R149 VP-I109)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { side: null, deliver: null };
+    (window as any).__r149 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      w.addEventListener("message", e => handler?.(e));
+      w.postMessage = ((m: any, t?: Transferable[]) => {
+        if (m?.side && m.track) { tap.side = m; tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: { id: m.id, ...d } })); return; }
+        post(m, t ?? []);
+      }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  await prepare(page, context, { file: "/side-stopped.ngc", version: 29149, lines: [1, 2], joints: [-100, 0, -100, 0, 0], feed: [[0, 0, -100], [10, 0, -100]] });
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  await page.locator(".scrubBar").getByRole("checkbox", { name: "Sim" }).check();
+  await expect.poll(() => page.evaluate(() => (window as any).__r149.side?.id ?? null)).not.toBeNull();
+  const meta = await page.evaluate(() => { const s = (window as any).__r149.side; return { id: s.id as number, end: s.track.cum[s.track.count - 1] as number }; });
+  const st = oneContact(meta.id, 0, 0.1 * meta.end);
+  const bands = () => page.locator(".scrubBand.clash").evaluateAll(els => els.map(e => {
+    const track = e.parentElement!.querySelector(".scrubBand.track")!.getBoundingClientRect(), r = e.getBoundingClientRect();
+    return { left: 100 * (r.left - track.left) / track.width, width: 100 * r.width / track.width };
+  }));
+  const reach = async () => { const bs = await bands(); return bs.length ? Math.max(...bs.map(b => b.left + b.width)) : 999; };
+  // running at 20 %, its contact open from 10 %
+  await page.evaluate(w => {
+    const t = (window as any).__r149;
+    t.deliver({ progress: 0.2, contacts: [(window as any).__fromWire(w)], contactPairs: [["spindle_nose", "a_yoke_casting"]] });
+  }, wireDelta(st));
+  await expect.poll(reach).toBeLessThan(30);
+  // stopped there by its budget: the answer is no whole check
+  await page.evaluate(w => {
+    const t = (window as any).__r149;
+    t.deliver({ contacts: [(window as any).__fromWire(w)], result: { staticContacts: [], samples: 10, coarsened: false,
+      uncertified: null, pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 10, truncated: { covered: 0.2, reason: "budget" },
+      incompleteFrom: 0.2 * t.side.track.cum[t.side.track.count - 1] } });
+  }, wireDelta(st));
+  await expect(page.locator(".simPanel .simSummary .sumItem").first()).not.toHaveAttribute("aria-label", /still checking/);
+  expect(await reach(), "stopped at 20 %: the band ends there, not at the side track's end").toBeLessThan(30);
+  expect(errors).toEqual([]);
+});
+
+// Round B4 (plan 3.5): a sweep worker fails mid-run; the request runs again on
+// one core as its next generation, and the earlier generation's evidence stays.
+// The worker script is served with a hook in front (no seam in the product):
+// once a sub-worker's contact reached the coordinator, the sub-workers' words
+// wait (so the pool cannot end first), and on the page's word sub-worker 0
+// fails. The rerun is held by a camera hold: its own tables have nothing yet.
+const FAIL_HOOK = `(() => {
+  const RealWorker = self.Worker;
+  if (!RealWorker) return;
+  const subs = [];
+  let held = false;
+  self.Worker = function (url, opts) {
+    const w = new RealWorker(url, opts);
+    subs.push(w);
+    let handler = null;
+    Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+    w.addEventListener("message", e => {
+      if (held) return;
+      handler && handler(e);
+      const c = e.data && e.data.contacts;
+      if (c && c.some(d => d.intervals && d.intervals.count > 0)) { held = true; self.postMessage({ __poolHeld: true }); }
+    });
+    return w;
+  };
+  self.addEventListener("message", e => {
+    if (e.data && e.data.__failShard !== undefined) {
+      e.stopImmediatePropagation();
+      const w = subs[e.data.__failShard];
+      if (w) w.dispatchEvent(new ErrorEvent("error", { message: "a failing sweep worker (test)" }));
+    }
+  });
+})();
+`;
+test("a sweep worker fails mid-run: the earlier run's finding stays listed through the rerun, under its own key (plan 3.5, round B4)", async ({ page, context }) => {
+  test.setTimeout(150_000);
+  await context.route(/collisionWorker[^/]*\.js(\?|$)/, async route => {
+    const r = await route.fetch();
+    await route.fulfill({ response: r, body: FAIL_HOOK + await r.text() });
+  });
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { w: null, poolHeld: false, pairs: null, deliver: null, dropAck: false };
+    (window as any).__b4 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      tap.w = w;
+      const post = w.postMessage.bind(w);
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      w.addEventListener("message", e => {
+        if (e.data?.__poolHeld) { tap.poolHeld = true; return; }
+        if (e.data?.contactPairs) tap.pairs = e.data.contactPairs;
+        handler?.(e);
+      });
+      // the acknowledgement of the delta the page was handed (below) is not the worker's
+      w.postMessage = ((m: any, t?: Transferable[]) => {
+        if (tap.dropAck && m?.contactsAck !== undefined && m.generation === 1) { tap.dropAck = false; return; }
+        post(m, t ?? []);
+      }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  await prepare(page, context, { file: "/crash-fallback.ngc", version: 2214, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+    feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]],
+    before: () => expect.poll(() => page.evaluate(() => { window.__viewerDiag?.setCollisionShards?.(2); return !!window.__viewerDiag?.setCollisionShards; })).toBe(true) });
+  // the pool found the nose in the yoke; its words wait from here
+  await expect.poll(() => page.evaluate(() => (window as any).__b4.poolHeld), { timeout: 60_000 }).toBe(true);
+  // a camera hold, then sub-worker 0 fails: the pool's tables are delivered,
+  // the request runs again here as generation 1 — held
+  await page.evaluate(() => { window.__viewerDiag!.setCameraHold!(true); (window as any).__b4.w.postMessage({ __failShard: 0 }); });
+  const row = page.locator('.simPanel tbody tr[data-sim-at="C7"]');
+  await expect(row, "the pool's collision on L7").toHaveCount(1, { timeout: 30_000 });
+  const key = await row.getAttribute("data-sim-row");
+  expect(key, "an event of the earlier run keeps its plain key").toMatch(/^C\d+\|\d+\|0$/);
+  const id = await page.evaluate(() => window.__viewerDiag!.getContacts!().main!.id);
+  // generation 1's first word — nothing found yet (the rerun holds before it sweeps)
+  await page.evaluate(([w, id]) => {
+    const t = (window as any).__b4;
+    t.dropAck = true;
+    t.deliver({ id, contacts: [(window as any).__fromWire(w)], contactPairs: t.pairs });
+  }, [wireDelta(new ContactStore(1, 1)), id] as const);
+  await expect.poll(() => page.evaluate(() => {
+    const m = window.__viewerDiag!.getContacts!().main;
+    return m?.held ? `${m.held.generation}<${m.generation} held ${m.held.rows!.intervals > 0} current ${m.rows!.intervals}` : null;
+  }), { timeout: 30_000 }).toBe("0<1 held true current 0");
+  await expect(row, "listed from the earlier run though the rerun found nothing yet").toHaveCount(1);
+  await expect(row).toHaveAttribute("data-sim-row", key!);
+  // the rerun goes on and ends: still that one finding, under the same key
+  await page.evaluate(() => window.__viewerDiag!.setCameraHold!(false));
+  await expect.poll(() => sweepDone(page), { timeout: 60_000 }).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag!.getContacts!().main?.rows?.intervals ?? 0), { timeout: 60_000 }).toBeGreaterThan(0);
+  await expect(page.locator(`.simPanel tbody tr[data-sim-row="${key}"]`), "the same event, one row").toHaveCount(1);
+  // the rerun swept L7 whole (the pool's words stopped at its first contact): every pair once — no event twice
+  const pairs = await row.evaluateAll(rs => rs.map(r => r.getAttribute("aria-label") ?? r.textContent ?? ""));
+  expect(pairs.length).toBeGreaterThanOrEqual(1);
+  expect(new Set(pairs).size, `each contact once: ${pairs.join(" | ")}`).toBe(pairs.length);
+  await ctl({ op: "reset" });
+});
+
+// Codex R151 VP-I111: an entry contact the base continues is ONE finding
+// after a fallback — the base's alone (the side had ended), both at one
+// failure (the side still running) — and a later separate contact of the pair
+// stays a finding of its own. Both requests are answered here (no sweep
+// runs): the page, the tables' receiver and the view are the product's.
+async function joinPage(page: Page, context: BrowserContext, file: string) {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await page.addInitScript({ content: FROM_WIRE_INIT });
+  await page.addInitScript(() => {
+    const tap: any = { main: null, side: null, deliver: null };
+    (window as any).__r151 = tap;
+    const Real = window.Worker;
+    const Tap = function (url: string | URL, opts?: WorkerOptions) {
+      const w = new Real(url, opts);
+      if (!/collisionWorker/.test(String(url))) return w;
+      let handler: any = null;
+      Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+      w.addEventListener("message", e => handler?.(e));
+      tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+      // both requests are this spec's: no worker answer races them
+      w.postMessage = ((m: any) => { if (m?.track) { if (m.side) tap.side = m; else tap.main = m; } }) as any;
+      return w;
+    } as any;
+    Tap.prototype = Real.prototype;
+    window.Worker = Tap;
+  });
+  await prepare(page, context, { file, version: 29151, lines: [1, 2], joints: [-100, 0, -100, 0, 0], feed: [[0, 0, -100], [10, 0, -100]] });
+  await expect.poll(() => page.evaluate(() => (window as any).__r151.main?.id ?? null)).not.toBeNull();
+  const main = await page.evaluate(() => { const m = (window as any).__r151.main; return { id: m.id as number, end: m.track.cum[m.track.count - 1] as number }; });
+  const pairs = [["spindle_nose", "a_yoke_casting"]];
+  const result = { staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1, pairsPrescreened: 0, bvhMs: 0, sweepMs: 10,
+                   truncated: { covered: 0.5, reason: "running" } };
+  const deliver = (d: Record<string, unknown>, w?: ReturnType<typeof wireDelta>) => page.evaluate(([d, w]) => {
+    (window as any).__r151.deliver({ ...d, ...(w ? { contacts: [(window as any).__fromWire(w)] } : {}) });
+  }, [d, w ?? null] as const);
+  // the base in contact from its start to 30 %, running at 50 %
+  await deliver({ id: main.id, contactPairs: pairs, progress: 0.5, partial: result }, wireDelta(contactIn(new ContactStore(main.id, 0), 0, 0, 0.3 * main.end)));
+  await expect(clashRows(page)).toHaveCount(1);
+  await page.locator(".scrubBar").getByRole("checkbox", { name: "Sim" }).check();
+  await expect.poll(() => page.evaluate(() => (window as any).__r151.side?.id ?? null)).not.toBeNull();
+  const side = await page.evaluate(() => { const m = (window as any).__r151.side; return { id: m.id as number, end: m.track.cum[m.track.count - 1] as number }; });
+  // the entry move touches from 20 % to its end: swept whole, it continues into the base's contact
+  const entryResult = { ...result, truncated: null };
+  const rows = () => clashRows(page).evaluateAll(rs => rs.map(r => r.getAttribute("data-sim-row")));
+  const generation = (which: "main" | "entry") => page.evaluate(w => {
+    const c = window.__viewerDiag?.getContacts?.();
+    // a running side run's tables, else the shown entry result's
+    return w === "main" ? c?.main?.generation : c?.side?.generation ?? c?.entry?.tables?.generation;
+  }, which);
+  const frames = () => page.evaluate(() => new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+  return { errors, main, side, pairs, result, entryResult, deliver, rows, generation, frames };
+}
+/** One more contact of pair 0 in a request's table of a generation. */
+function contactIn(st: ContactStore, ordinal: number, at: number, exit: number) {
+  const ep = st.episodes.append({ pair: 0, ordinal, flags: 4, onset: at, end: exit, closeAt: at, closeDist: 0, firstIv: 0xffffffff, ivCount: 1 });
+  st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: at, exit, flags: Number.isNaN(exit) ? 2 : 6, next: 0xffffffff, witness: at, freeAt: NaN }));
+  return st;
+}
+
+test("the base falls back after the entry move's side run ended: its continuation stays the entry's finding; a later contact stays its own (Codex R151 VP-I111)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const j = await joinPage(page, context, "/r151-join.ngc");
+  await j.deliver({ id: j.side.id, contactPairs: j.pairs, result: j.entryResult }, wireDelta(oneContact(j.side.id, 0, 0.2 * j.side.end)));
+  await expect.poll(j.rows).toEqual(["E0|0|0"]);
+  const summary = () => page.locator(".simPanel .simSummary .sumItem").first().getAttribute("aria-label");
+  const words = await summary();
+  // the base falls back: its coverage, then its rerun's first words — the same contact
+  await j.deliver({ id: j.main.id, heldCoverage: { generation: 0, covered: [0.5] } });
+  await j.deliver({ id: j.main.id, contactPairs: j.pairs }, wireDelta(contactIn(new ContactStore(j.main.id, 1), 0, 0, 0.3 * j.main.end)));
+  await expect.poll(() => j.generation("main")).toBe(1);
+  await j.frames();
+  expect(await j.rows(), "no second finding").toEqual(["E0|0|0"]);
+  expect(await summary(), "the words unchanged").toBe(words);
+  // a later contact of the pair, apart from the first (a second fallback): a finding of its own
+  await j.deliver({ id: j.main.id, heldCoverage: { generation: 1, covered: [0.5] } });
+  await j.deliver({ id: j.main.id, contactPairs: j.pairs, progress: 0.8 },
+                  wireDelta(contactIn(contactIn(new ContactStore(j.main.id, 2), 0, 0, 0.3 * j.main.end), 1, 0.6 * j.main.end, 0.7 * j.main.end)));
+  await expect.poll(() => j.generation("main")).toBe(2);
+  await expect.poll(async () => (await j.rows()).map(k => k?.replace(/#.*/, ""))).toEqual(["E0|0|0", "C0|1|0"]);
+  expect(j.errors).toEqual([]);
+  await ctl({ op: "reset" });
+});
+
+test("one failure falls back both, the side still running: its rerun swept whole, the base's continuation stays the entry's finding (Codex R151 VP-I111)", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  const j = await joinPage(page, context, "/r151-join-both.ngc");
+  // the side runs: its contact open from 20 %, half swept
+  await j.deliver({ id: j.side.id, contactPairs: j.pairs, progress: 0.5 }, wireDelta(oneContact(j.side.id, 0, 0.2 * j.side.end)));
+  await expect.poll(() => j.generation("entry")).toBe(0);
+  // the pool fails: both coverages first, then both reruns — the side's swept whole
+  await j.deliver({ id: j.main.id, heldCoverage: { generation: 0, covered: [0.5] } });
+  await j.deliver({ id: j.side.id, heldCoverage: { generation: 0, covered: [0.5] } });
+  await j.deliver({ id: j.main.id, contactPairs: j.pairs }, wireDelta(contactIn(new ContactStore(j.main.id, 1), 0, 0, 0.3 * j.main.end)));
+  await j.deliver({ id: j.side.id, contactPairs: j.pairs, result: j.entryResult },
+                  wireDelta(contactIn(new ContactStore(j.side.id, 1), 0, 0.2 * j.side.end, NaN)));
+  await expect.poll(() => j.generation("main")).toBe(1);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.getContacts?.().entry?.tables?.generation ?? null)).toBe(1);
+  await j.frames();
+  await expect.poll(j.rows).toEqual(["E0|0|0"]);
+  await j.frames();
+  expect(await j.rows(), "both fell back: one finding").toEqual(["E0|0|0"]);
+  expect(j.errors).toEqual([]);
+  await ctl({ op: "reset" });
+});
+
+// Step 4 package 2, C2 (Codex R167): with the record sink gone the live view
+// stands on the request's metadata partial and its tables — no first contact
+// opens it. The states WITHOUT a first touch, each answered here (no sweep
+// runs; the page, the tables' receiver and the view are the product's): only
+// a near miss, only a knowledge gap, no row at all — progress while it runs,
+// the park, the end, the basis card and the caveats.
+for (const kind of ["a near miss alone", "an undecidable gap alone", "no row at all"] as const) {
+  test(`the states without a first touch — ${kind}: progress, park, end, basis and caveats (C2)`, async ({ page, context }) => {
+    test.setTimeout(120_000);
+    const errors: string[] = [];
+    page.on("pageerror", e => errors.push(e.message));
+    await page.addInitScript({ content: FROM_WIRE_INIT });
+    await page.addInitScript(() => {
+      const tap: any = { main: null, deliver: null };
+      (window as any).__c2s = tap;
+      const Real = window.Worker;
+      const Tap = function (url: string | URL, opts?: WorkerOptions) {
+        const w = new Real(url, opts);
+        if (!/collisionWorker/.test(String(url))) return w;
+        let handler: any = null;
+        Object.defineProperty(w, "onmessage", { configurable: true, get: () => handler, set: f => { handler = f; } });
+        w.addEventListener("message", e => handler?.(e));
+        tap.deliver = (d: any) => handler?.(new MessageEvent("message", { data: d }));
+        // the main request is this spec's: no worker answer races it
+        w.postMessage = ((m: any, t?: Transferable[]) => { if (m?.track && !m.side) { tap.main = m; return; } (w as any).__post?.(m, t); }) as any;
+        return w;
+      } as any;
+      Tap.prototype = Real.prototype;
+      window.Worker = Tap;
+    });
+    await prepare(page, context, { file: `/c2-${kind.replace(/ /g, "-")}.ngc`, version: 31700, lines: [1, 6, 7, 8], joints: [-100, 0, 0, 0, 0],
+      feed: [[0, 0, -100], [0, 0, -380], [240, 0, -380], [240, 0, -100]] });
+    await expect.poll(() => page.evaluate(() => (window as any).__c2s.main?.id ?? null)).not.toBeNull();
+    const main = await page.evaluate(() => { const m = (window as any).__c2s.main; return { id: m.id as number, end: m.track.cum[m.track.count - 1] as number }; });
+    const st = new ContactStore(main.id, 0);
+    if (kind === "a near miss alone")
+      st.episodes.append({ pair: 0, ordinal: 0, flags: 0, onset: 0.2 * main.end, end: 0.25 * main.end, closeAt: 0.22 * main.end, closeDist: 1.2, firstIv: NONE, ivCount: 0 });
+    if (kind === "an undecidable gap alone")
+      st.gaps.append({ pair: 0, start: 0.2 * main.end, end: 0.25 * main.end, reason: GAP_UNDECIDABLE });
+    const meta = (truncated: unknown) => ({ staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 1,
+      pairsPrescreened: 0, bvhMs: 0, sweepMs: 10, truncated });
+    const deliver = (d: Record<string, unknown>, withDelta: boolean) => page.evaluate(([d, w]) => {
+      (window as any).__c2s.deliver({ ...d, ...(w ? { contacts: [(window as any).__fromWire(w)] } : {}) });
+    }, [d, withDelta ? wireDelta(st) : null] as const);
+    const summary = page.locator(".simPanel .simSummary .sumItem").first();
+    const words = kind === "a near miss alone" ? "1 near miss" : "No contact";
+    // running: the metadata partial and the tables — progress, the words
+    await deliver({ id: main.id, contactPairs: [["spindle_nose", "a_yoke_casting"]], progress: 0.3,
+                    partial: meta({ covered: 0.3, reason: "running" }) }, true);
+    await expect(summary).toHaveAttribute("aria-label", new RegExp(`^${words} so far · 30 % checked`));
+    await expect(clashRows(page)).toHaveCount(kind === "a near miss alone" ? 1 : 0);
+    // parked: the sweep-so-far's metadata
+    await deliver({ id: main.id, stopped: true, result: meta({ covered: 0.4, reason: "stopped" }) }, false);
+    await expect(summary).toHaveAttribute("aria-label", /paused at 40 %/);
+    // the end
+    await deliver({ id: main.id, result: meta(null) }, true);
+    const endWords = kind === "a near miss alone" ? "1 near miss · checked in full"
+      : kind === "an undecidable gap alone" ? "Clear · checked to the end" : "Clear · checked in full";
+    await expect(summary).toHaveAttribute("aria-label", new RegExp(`^${endWords.replace(/[·]/g, "\\$&")}`));
+    // the caveat: an undecidable stretch is named from the tables, the others say none
+    await page.getByRole("button", { name: "Help: Collision check", exact: true }).click();
+    const help = await page.locator(".helpPopover:popover-open").innerText();
+    await page.keyboard.press("Tab");
+    await page.mouse.click(5, 5);
+    if (kind === "an undecidable gap alone") expect(help).toContain("inside check undecidable for spindle_nose ↔ a_yoke_casting");
+    else expect(help).not.toContain("Not certified");
+    // the basis card describes the check
+    expect(await basisCard(page)).toContain("The machine when the check started");
+    expect(errors).toEqual([]);
+    await ctl({ op: "reset" });
+  });
+}

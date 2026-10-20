@@ -12,7 +12,7 @@ const runBasis = (joints: number[] | null): CheckBasis => ({ ...live(), kind: "r
 const inputs = (over: Partial<ContextInputs> = {}): ContextInputs => ({
   basis: live(), axes: AXES, kins: 1, kinsSwitches: false, rotaryAbc: [61.3, 0, -12.5], fixture: 1, ...over });
 const result = (over: Partial<CollisionResult> = {}): CollisionResult => ({
-  hits: [], staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
+  staticContacts: [], samples: 10, coarsened: false, uncertified: null, pairCount: 5,
   pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null, ...over });
 const opts = { stale: false, entry: false, unit: "mm" };
 const BODY = "The check's tool body: the table length + 20 mm, at least 40 mm, and the table's diameter (none: a 6 mm stub).";
@@ -119,7 +119,14 @@ describe("the check basis card (step 4 plan 1c)", () => {
     expect(row(v, "Not checked")).toEqual({ label: "Not checked", value: "Broken part", warn: true });
     expect(row(v, "Partly checked")).toEqual({ label: "Partly checked", value: "Chipped part", warn: true });
     expect(row(v, "No inside check (open surface)")!.value).toBe("Frame");
-    expect(row(v, "In contact at the check's start")).toEqual({ label: "In contact at the check's start", value: "Tool ↔ C faceplate (L7)", warn: true });
+    // without a resolver no line — never the sweep's raw 7 (Codex R172 VP-I126)
+    expect(row(v, "In contact at the check's start")).toEqual({ label: "In contact at the check's start", value: "Tool ↔ C faceplate (—)", warn: true });
+    // with the shown track: its DISPLAY line at the contact's place (C3) — a
+    // call line, else the subroutine's name — never the sweep's raw 7
+    const call = Object.assign((_p: number) => 4, { nameAt: () => "touch" });
+    expect(row(checkCard(captureCheckContext(inputs()), r, { ...opts, lineAt: call }), "In contact at the check's start")!.value).toBe("Tool ↔ C faceplate (L4)");
+    const none = Object.assign((_p: number) => null, { nameAt: () => "touch" });
+    expect(row(checkCard(captureCheckContext(inputs()), r, { ...opts, lineAt: none }), "In contact at the check's start")!.value).toBe("Tool ↔ C faceplate (touch)");
     // nothing of the result before it has one
     expect(row(checkCard(captureCheckContext(inputs()), null, opts), "Out of reach — excluded")).toBeUndefined();
   });

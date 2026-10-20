@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSimRows, measurementsOf, nextRowKey, partLabel } from "./simRows";
+import { buildSimRows, lineWordAt, measurementsOf, nextRowKey, partLabel } from "./simRows";
 import type { ClashTarget } from "./clashTargets";
 
 const clash = (o: Partial<ClashTarget> & { cum: number; line: number }): ClashTarget =>
@@ -39,13 +39,19 @@ describe("simRows", () => {
     });
     expect(a!.lineLabel).toBe("entry");
     expect(b!.note).toBe("re-entry");
-    expect(c!.note).toBe("near miss, 1.5 mm apart · through L9");
+    // the closest SAMPLE: at least that close, never a proven clearance (R175)
+    expect(c!.note).toBe("near miss, within 1.5 mm · through L9");
+    // an upper bound rounds UP at the shown precision (Codex R174)
+    for (const [dist, shown] of [[1.36, "1.4"], [1.31, "1.4"], [1.3, "1.3"], [0.04, "0.1"]] as const) {
+      const [r] = buildSimRows({ clash: [clash({ cum: 3, line: 6, dist, key: "C6|t|w|0" })], limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4 });
+      expect(r!.note, `${dist}`).toBe(`near miss, within ${shown} mm`);
+    }
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
   });
 
-  it("a margin entry whose contact touches on a later line is no near miss (`touches`)", () => {
+  it("a stay with a touch interval is no near miss whatever its margin entry's distance (the sweep's class, `near`)", () => {
     const [r] = buildSimRows({
-      clash: [clash({ cum: 3, line: 6, dist: 2, touches: true, spanEndLine: 9, key: "C6|t|w|0" })],
+      clash: [clash({ cum: 3, line: 6, dist: 2, near: false, spanEndLine: 9, key: "C6|t|w|0" })],
       limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
     });
     expect(r!.note).toBe("through L9");
@@ -104,6 +110,19 @@ describe("simRows", () => {
       ["C3|t|w|0", ""],
       ["C3|t|w|1", "re-entry · after the first limit crossing at L3"],
     ]);
+  });
+
+  it("a contact without a line to show reads its subroutine's name, else \"—\" — never a line (plan 1.3, C3)", () => {
+    const rows = buildSimRows({
+      clash: [clash({ cum: 5, line: 0, noLine: true, subName: "m200", key: "C0|a|b|0" }), clash({ cum: 9, line: 0, noLine: true, key: "C0|a|b|1" })],
+      limit: [], tool: [], violations: [], unit: "mm", timeBased: true, axisEnd: 20,
+    });
+    expect(rows.map(r => [r.lineLabel, r.note])).toEqual([["(m200)", "in m200, no line of this program"], ["—", "no line of this program"]]);
+  });
+
+  it("a position's line in words: its display line, else its subroutine's name, else \"—\" — never a raw line, not even without a resolver (C3, Codex R172 VP-I126)", () => {
+    const at = Object.assign((p: number) => (p < 5 ? 4 : null), { nameAt: (p: number) => (p < 8 ? "touch" : null) });
+    expect([lineWordAt(at, 1), lineWordAt(at, 6), lineWordAt(at, 9), lineWordAt(null, 6)]).toEqual(["L4", "touch", "—", "—"]);
   });
 
   it("the next row is the first after the position, none past the last", () => {

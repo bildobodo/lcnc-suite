@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   BLOCK, ColumnTable, ContactStore, EPISODE, GAP, INTERVAL, NONE, REQUEST_BUDGET, deltaTransfer, f32Inward, rowBytes, shareOf,
+  type TableDelta,
 } from "./contactStore";
 
 describe("the contact store's tables (step 4 package 2, plan 1.4)", () => {
@@ -59,6 +60,45 @@ describe("deltas: appended rows, coalesced updates, one unacknowledged (plan 3.1
     expect(d.episodes.updated["end"]![0]).toBe(4999);
   });
 
+  it("the delta with the store's first interval goes beside the one out — once, so at most two (C2, Codex R167)", () => {
+    const s = new ContactStore(5, 0), r = new ContactStore(5, 0);
+    const near = ep(s, 0, 0);
+    const d1 = s.takeDelta()!;                // a near miss: out, its acknowledgement held
+    s.episodes.set(near, "end", 4);
+    ep(s, 1, 10);
+    expect(s.takeDelta(), "no interval: it waits").toBeNull();
+    s.intervals.append({ episode: 1, enter: 12, exit: NaN, next: NONE, witness: 12, freeAt: NaN });
+    const d2 = s.takeDelta();
+    expect(d2, "the first interval goes at once").not.toBeNull();
+    expect([d2!.episodes.count, d2!.episodes.updates.length, d2!.intervals.count], "with everything that waited").toEqual([1, 1, 1]);
+    ep(s, 2, 20);
+    s.intervals.append({ episode: 2, enter: 21, exit: NaN, next: NONE, witness: 21, freeAt: NaN });
+    expect(s.takeDelta(), "two out: nothing more").toBeNull();
+    s.ack();
+    expect(s.takeDelta(), "one still out, the first interval sent: it waits").toBeNull();
+    s.ack();
+    const d3 = s.takeDelta()!;
+    expect([d3.episodes.count, d3.intervals.count]).toEqual([1, 1]);
+    // the receiver applies them in order — the tables equal the sender's
+    for (const d of [d1, d2!, d3]) expect(r.apply(d)).toBe(true);
+    expect([r.episodes.rows, r.intervals.rows, r.episodes.get(near, "end")]).toEqual([3, 2, 4]);
+    // a late or doubled acknowledgement frees nothing that is out
+    s.ack(); s.ack();
+    ep(s, 3, 30);
+    expect(s.takeDelta()).not.toBeNull();
+    ep(s, 4, 40);
+    expect(s.takeDelta(), "one out, never below none").toBeNull();
+  });
+
+  it("an interval written before anything went out goes in the first delta, alone on the path", () => {
+    const s = new ContactStore(6, 0);
+    ep(s, 0, 0);
+    s.intervals.append({ episode: 0, enter: 1, exit: NaN, next: NONE, witness: 1, freeAt: NaN });
+    expect(s.takeDelta()!.intervals.count).toBe(1);
+    ep(s, 1, 5);
+    expect(s.takeDelta(), "its first interval sent: one out").toBeNull();
+  });
+
   it("a receiver built from the deltas equals the sender; another request or generation is refused", () => {
     const s = new ContactStore(9, 2), r = new ContactStore(9, 2);
     for (let k = 0; k < 3; k++) ep(s, k, k);
@@ -95,6 +135,77 @@ describe("deltas: appended rows, coalesced updates, one unacknowledged (plan 3.1
     expect([d.episodes.from, d.episodes.count, Array.from(d.episodes.updates)]).toEqual([1, 1, [a]]);
     viewer.apply(d);
     expect([viewer.episodes.rows, viewer.episodes.get(a, "end")]).toEqual([2, 59]);
+  });
+
+  it("a delta goes in by blocks exactly as row by row: the cells, the revision, the forwarded rows and updates (Form 1 groundwork)", { timeout: 120_000 }, () => {
+    // the reference: the receiving side as it was, a row appended and a cell set at a time
+    const byRows = (t: ColumnTable, d: TableDelta) => {
+      if (d.from !== t.rows) throw new Error("out of order");
+      for (let i = 0; i < d.count; i++) {
+        const v: Record<string, number> = {};
+        for (const [name] of t.schema) v[name] = d.rows[name]![i]!;
+        if (t.append(v) < 0) throw new Error("over budget");
+      }
+      for (let i = 0; i < d.updates.length; i++) for (const [name] of t.schema) t.set(d.updates[i]!, name, d.updated[name]![i]!);
+    };
+    let seed = 1501;
+    const rnd = () => { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; return seed / 4294967296; };
+    const cells = (t: ColumnTable) => t.schema.map(([name]) => Array.from({ length: t.rows }, (_, r) => t.get(r, name)));
+    let rows = 0, updates = 0, crossings = 0;
+    for (let c = 0; c < 40; c++) {
+      const sender = new ColumnTable(INTERVAL, 3 * BLOCK), fast = new ColumnTable(INTERVAL, 3 * BLOCK), ref = new ColumnTable(INTERVAL, 3 * BLOCK);
+      for (let step = 0; step < 12; step++) {
+        // the sender writes: new rows (across blocks, at times many), changes to rows already sent
+        const add = rnd() < 0.2 ? Math.floor(rnd() * 2 * BLOCK) : Math.floor(rnd() * 300);
+        for (let k = 0; k < add && sender.rows < sender.budget; k++) {
+          sender.append({ episode: Math.floor(rnd() * 99), enter: rnd() * 1e3, exit: rnd() * 1e3, flags: Math.floor(rnd() * 128),
+                          next: rnd() < 0.5 ? NONE : Math.floor(rnd() * 1e4), witness: rnd(), freeAt: rnd(), freeR: rnd() });
+        }
+        for (let k = Math.floor(rnd() * 40); k > 0 && sender.sent; k--) sender.set(Math.floor(rnd() * sender.sent), "exit", rnd() * 1e3);
+        const before = fast.rows;
+        const d = sender.take();
+        fast.apply(d);
+        byRows(ref, d);
+        rows += d.count; updates += d.updates.length;
+        if (Math.floor(before / BLOCK) !== Math.floor(fast.rows / BLOCK)) crossings++;
+        expect([fast.rows, fast.revision, fast.pending()], `case ${c} step ${step}`).toEqual([ref.rows, ref.revision, ref.pending()]);
+        expect(cells(fast)).toEqual(cells(ref));
+        // as a forwarder (the coordinator): what each sends on is the same
+        if (rnd() < 0.5) {
+          const a = fast.take(), b = ref.take();
+          expect([a.from, a.count, Array.from(a.updates)]).toEqual([b.from, b.count, Array.from(b.updates)]);
+          for (const [name] of INTERVAL) expect([Array.from(a.rows[name]!), Array.from(a.updated[name]!)]).toEqual([Array.from(b.rows[name]!), Array.from(b.updated[name]!)]);
+        }
+      }
+    }
+    expect([rows > 50_000, updates > 2_000, crossings > 20], "rows, updates, block crossings").toEqual([true, true, true]);
+    // past its budget the delta is refused whole — nothing of it is written
+    const s = new ColumnTable(GAP, 10), r = new ColumnTable(GAP, 6);
+    for (let k = 0; k < 8; k++) s.append({ pair: k, start: k, end: k + 1, reason: 1 });
+    expect(() => r.apply(s.take())).toThrow(/over its budget/);
+    expect([r.rows, r.revision]).toEqual([0, 0]);
+  });
+
+  it("a delta goes in in bounded steps, updates too (Codex R155 VP155-01); a refused message changes no table", () => {
+    const sender = new ContactStore(1, 0, shareOf(REQUEST_BUDGET, 16)), r = new ContactStore(1, 0, shareOf(REQUEST_BUDGET, 16));
+    for (let k = 0; k < sender.intervals.budget; k++) sender.intervals.append({ episode: 0, enter: k, exit: k + 1, flags: 0, next: NONE, witness: k, freeAt: NaN, freeR: 0 });
+    r.apply(sender.takeDelta()!); sender.ack();
+    // every row already sent changes: an update-heavy delta
+    for (let k = 0; k < sender.intervals.rows; k++) sender.intervals.set(k, "exit", k + 2);
+    const d = sender.takeDelta()!;
+    expect(d.intervals.updates.length).toBe(sender.intervals.rows);
+    let yields = 0;
+    const job = r.applySteps(d);
+    for (let x = job.next(); !x.done; x = job.next()) yields++;
+    // INTERVAL has 8 columns: each update is 8 operations, a step STEP_OPS of them
+    expect(yields).toBeGreaterThanOrEqual(Math.floor((8 * d.intervals.updates.length) / 4096) - 1);
+    expect(r.intervals.get(100, "exit")).toBe(102);
+    // past the budget in ONE table: the whole message is refused before anything is written
+    const s2 = new ContactStore(2, 0), small = new ContactStore(2, 0, { episodes: 10, intervals: 2, gaps: 10 });
+    ep(s2, 0, 0);
+    for (let k = 0; k < 3; k++) s2.intervals.append({ episode: 0, enter: k, exit: k + 1, flags: 0, next: NONE, witness: k, freeAt: NaN, freeR: 0 });
+    expect(() => small.apply(s2.takeDelta()!)).toThrow(/over its budget/);
+    expect([small.episodes.rows, small.intervals.rows, small.revision], "no table written").toEqual([0, 0, 0]);
   });
 
   it("a delta out of order is refused, never patched in", () => {

@@ -20,6 +20,12 @@ declare module 'troika-three-text' {
 // Top-level `interface Window` in a script-mode .d.ts augments the global
 // Window without making this file a module (which would break the troika
 // ambient declaration above).
+/** One request's contact tables as the viewer holds them (round B2). */
+interface ContactsDiag {
+  id: number; generation: number; shards: number; pairs: number; deltas: number;
+  rows: { episodes: number; intervals: number; gaps: number } | null;
+  held: { generation: number; rows: { episodes: number; intervals: number; gaps: number } | null } | null;
+}
 interface ViewerDiag {
   ready: boolean;
   meshCount?: number;
@@ -30,9 +36,27 @@ interface ViewerDiag {
   // the tagged materials, and the stored mode — e2e/viewer.spec.ts reads it.
   getPalette?: () => { resolved: Record<string, string>; drawn: Record<string, string>; mode: string };
   tintPart?: (id: string, on: boolean) => void;
-  setCollisionHits?: (hits: { line: number; frac: number; rapid?: boolean }[]) => boolean;
+  setCollisionHits?: (hits: { line: number; frac?: number; rapid?: boolean; possible?: boolean; near?: number; atStart?: boolean; ordinal?: number }[]) => boolean;
   setCollisionNote?: (note: string | null) => boolean;
   setCollisionShards?: (n: number | null) => void;
+  /** The published main view's questions, each kind's worst time in ms (Codex R158's measurement). */
+  timeContactQueries?: () => { targets: number; ms: Record<string, number> } | null;
+  getContacts?: () => {
+    main: ContactsDiag | null; side: ContactsDiag | null; dropped: number; messages: number; acks: number; maxDeltaRows: number;
+    /** The shown side results and their tables (Codex R147 VP-I106), every request held. */
+    entry: { id: number; tables: ContactsDiag | null } | null;
+    runSide: { id: number; tables: ContactsDiag | null } | null;
+    ids: number[];
+    stats: { requests: number; rows: { episodes: number; intervals: number; gaps: number }; allocated: number; used: number };
+  };
+  /** The bodies the clash tint lights now. */
+  getClashTint?: () => string[];
+  getScrubPose?: () => { joints: (number | null)[]; tlo: number[] | null; tool: number | null; cum: number | null; line: number | null } | null;
+  /** A request's contact rows by name: the shown result's, or the request in flight's. */
+  getContactRows?: (which?: "result" | "main") => Array<{ pair: string[]; flags: number; onset: number; end: number; closeAt: number;
+    closeDist: number; ivs: number[][] }> | null;
+  /** Hold the main sweep as a camera interaction does. */
+  setCameraHold?: (on: boolean) => void;
   getCollisionSummary?: () => { shards: number; hits: number; pairCount: number; pairsPrescreened: number; staticContacts: number; truncated: unknown; sweepMs: number; samples: number; onsets: number[]; uncertified: string | null } | null;
   /** The basis the last main sweep was built from (plan „Prüfung im Lauf“ 1c). */
   getCollisionBasis?: () => { kind: "idle" | "run"; runId: number | null; g5x: number[]; g92: number[];

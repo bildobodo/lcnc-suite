@@ -9,14 +9,14 @@
 // the interpreter idle; exit is the Exit button or one of the auto-exits
 // (program run start, program change, machine powered on elsewhere, real
 // joint motion as a backstop). ThreeViewer shows the .simBanner while active.
-import { computed, markRaw, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
+import { computed, markRaw, onMounted, onUnmounted, ref, shallowRef, watch, watchEffect } from "vue";
 import { lineRange } from "./viewer/lineIndex";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
-  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum, lineFirstMoveCum,
+  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum, programLineSpanCum, programLineFirstMoveCum,
   programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
@@ -26,23 +26,26 @@ import { runLineState, subExecState } from "./trackHighlight";
 import { specFromWire } from "./viewer/kins";
 import { epochTermsFor, epochWcsList, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { twpPlaneForSample } from "./viewer/twpPlaneFrame";
-import { clashTargets } from "./viewer/clashTargets";
-import { findingWords } from "./viewer/sweepWords";
-import { mapAcrossEntry, sampleCum, targetAfter, targetBefore, type NavSelection } from "./viewer/findingNav";
+import { isNearMiss } from "./viewer/clashTargets";
+import { boundaryStretches, contactBands, displayLineAt, startTargets, targetAt, undecidableNote, viewCounts, type LineAt } from "./viewer/contactView";
+import type { ShownContacts } from "./viewer/shownContacts";
+import { wordsOfCounts } from "./viewer/sweepWords";
+import { mapAcrossEntry, sampleCum, type NavSelection } from "./viewer/findingNav";
 import { toolChangeLinesFromText } from "./viewer/toolChangeScan";
 import type { WcsTerms } from "./viewer/partFrame";
 import type { ScrubTrack } from "./ws/bulkData";
-import { MAX_HITS, type CollisionResult } from "./viewer/collision";
+import type { CollisionResult } from "./viewer/collision";
 import { EVENT_NONE } from "./viewer/eventIndex";
 import { mergedSweptFraction } from "./viewer/sweepMerge";
-import { fmtElapsed } from "./format";
-import { Play, Pause, X, Triangle, Circle } from "lucide-vue-next";
+import { fmtElapsed, NO_VALUE } from "./format";
+import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, limitStopOf, measurementsOf, nextRowKey, simRowOrder, type SimRowKind, partLabel } from "./viewer/simRows";
+import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, type SimRowKind, partLabel } from "./viewer/simRows";
+import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
-import { simRows, simView, claimSimActions, type SimSweepView } from "./simPanelStore";
+import { simRows, simView, claimSimActions, SIM_FILTER_KINDS, type SimSweepView } from "./simPanelStore";
 import { beginSentence, depTimeSentence, type RunBegin } from "./viewer/startDep";
 import { checkCard, type CheckContext } from "./viewer/checkContext";
 import MachineToggle from "./MachineToggle.vue";
@@ -94,6 +97,12 @@ const props = defineProps<{
                         provisionalShown: boolean;
                         /** the program's start-dependent beginning in this run check (Codex R133 VP-I86) */
                         begin?: RunBegin; beginWhy?: string | null } | null;
+  /** The contact view of what a track shows (step 4 package 2, round B3):
+   *  every finding the bar and the tab name, mark, band and step through is
+   *  read from it — the result objects carry what the check covered and why.
+   *  `contactsVersion` changes whenever it is rebuilt. */
+  contactViewFor?: ((t: ScrubTrack | null) => ShownContacts | null) | null;
+  contactsVersion?: number;
 }>();
 
 const emit = defineEmits<{
@@ -123,6 +132,9 @@ const emit = defineEmits<{
   /** A sim-time input edge (the WCS rows this track re-adds): nothing is
    *  current — followed by check-entry with the rebuilt entry track. */
   (e: "cancel-check"): void;
+  // the timeline's width in columns: the marks and bands are built at it with
+  // the contact view (plan 3.6)
+  (e: "timeline-columns", n: number): void;
 }>();
 
 const st = computed<Record<string, any>>(() => status.value?.data ?? {});
@@ -709,8 +721,9 @@ const violationTargets = computed<FindingTarget[]>(() => {
     // landed in the next line's move. Found on the BASE track, read on the
     // displayed one (Codex R33 VP-I05): the entry move ends at the program's
     // first point and carries its line, so by line number the entry move
-    // was the first line's finding.
-    const move = lineFirstMoveCum(b, v.line, t);
+    // was the first line's finding. By the PROGRAM's line (programLines): a
+    // called file's colliding line number is no move of this record's.
+    const move = programLineFirstMoveCum(b, v.line, t, !viewerGcode.value?.lines_untrusted);
     if (move) out.push({ cum: move[0], cumEnd: move[1], key: `L${v.line}`, line: v.line });
   }
   return out.sort((a, b) => a.cum - b.cum);
@@ -727,7 +740,21 @@ const shownResult = computed<CollisionResult | null>(() => {
   const e = props.collisionEntryResult;
   return e && e.track === t ? e.result : null;
 });
-const hits = computed(() => shownResult.value?.hits ?? []);
+/** The contact view of the displayed track (round B3). */
+const shownView = computed<ShownContacts | null>(() => {
+  void props.contactsVersion;
+  return props.contactViewFor?.(track.value) ?? null;
+});
+/** The displayed track's DISPLAY line at a position (plan 1.3, C3): the
+ *  view's, else the track's own — a result's metadata (a range's boundary
+ *  contacts) shows before the first table does, and never by its raw line
+ *  (Codex R172 VP-I126). */
+const displayLineAtShown = computed<LineAt | null>(() => {
+  const sv = shownView.value;
+  if (sv) return sv.lineAt;
+  const t = track.value;
+  return t ? displayLineAt(t, !viewerGcode.value?.lines_untrusted) : null;
+});
 // What the displayed track IS, for the coverage wording: on the entry track
 // a merged result's fraction covers the whole route (TWP-12), never "the
 // program" alone.
@@ -750,18 +777,15 @@ const verdictDetail = computed<string>(() => {
     ? `Stopped at ${pctOf(r.truncated.covered)} of the program — the rest is unchecked.`
     : `${pctOf(r.truncated.covered)} checked — the rest is unchecked.`);
   if (r.pairCount === 0) parts.push(r.uncertified ? "No part that could be checked moves against another." : "No parts move against each other — nothing to check.");
-  if (hits.value.length) parts.push("A stop shows the first contact (machine off).");
+  if (clashIndex.value.n) parts.push("A stop shows the first contact (machine off).");
   // step 4 plan 1d: a start in contact is said with its pair; pairs touching
   // at rest too are the model's mounts, excluded (each one in Check basis)
-  const startPairs = [...new Set(hits.value.filter(h => h.atStart && !h.entry && !h.possible && (h.dist <= 1e-3 || h.touches))
-    .map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
+  const startPairs = startPairNames.value;
   if (startPairs.length) parts.push(`The program starts in contact: ${startPairs.join(", ")}.`);
   if (r.staticContacts.length) {
     const k = r.staticContacts.length;
     parts.push(`${k} pair${k === 1 ? "" : "s"} already in contact at rest — excluded.`);
   }
-  if (r.cappedOnsets) parts.push(`${r.capped} records left out of the list, ${r.cappedOnsets} of them where a contact begins — contacts past the first ${MAX_HITS} are not listed or counted.`);
-  else if (r.capped) parts.push(`${r.capped} record${r.capped === 1 ? "" : "s"} left out of the list — the later lines of contacts it lists (a contact is a record per line).`);
   if (sweepCaveat.value) parts.push(`Not certified: ${sweepCaveat.value}.`);
   // parity-ef plan E7: the beginning stands where the machine stands — in
   // the simulation and in a run, checked or not (Codex R133 VP-I84/I86)
@@ -788,9 +812,28 @@ const sweepCaveat = computed<string | null>(() => {
   if (!r || (props.collisionBusy && !provisionalOnScreen.value)) return null;
   const why: string[] = [];
   if (r.uncertified) why.push(r.uncertified);
+  // the track's undecidable inside answers — the contact tables' gaps, named
+  // per pair (C2), each at its display lines — a folded source's own (VP-I125)
+  const sv = shownView.value;
+  for (const u of sv?.derived?.undecidable ?? []) {
+    const note = undecidableNote(u, sv!.lineAt, NO_VALUE);
+    if (!why.includes(note)) why.push(note);
+  }
+  // after a sweep worker failed the check ran again on one core; where the two
+  // runs contradict each other a confirmed contact is kept and named (plan 3.5)
+  const cf = shownView.value?.view.conflicts;
+  if (cf?.count) {
+    const at = shownView.value!.lineAt(cf.at);
+    why.push(`its two runs disagree at ${cf.count} place${cf.count > 1 ? "s" : ""}${at != null ? ` (from L${at})` : ""} — kept as contact`);
+  }
   if (r.coarsened) why.push("coarsened to fit the sample budget");
   if (r.truncated && r.truncated.reason !== "running" && !props.collisionResumable) {
-    why.push(`stopped at ${pctOf(r.truncated.covered)} of the ${routeWord.value} (${r.truncated.reason === "samples" ? "sample backstop" : r.truncated.reason}) — the rest is unchecked`);
+    // a full contact table (step 4 package 2, plan 2.4): where it stopped writing
+    const from = r.truncated.reason === "budget" && r.incompleteFrom != null && track.value === baseTrack.value
+      ? shownView.value?.lineAt(r.incompleteFrom) ?? null : null;
+    const reason = r.truncated.reason === "samples" ? "sample backstop"
+      : r.truncated.reason === "budget" ? `contact tables full${from != null ? `, not checked from L${from}` : ""}` : r.truncated.reason;
+    why.push(`stopped at ${pctOf(r.truncated.covered)} of the ${routeWord.value} (${reason}) — the rest is unchecked`);
   }
   return why.length ? `Clearance guarantee not certified for this sweep: ${why.join("; ")}` : null;
 });
@@ -838,15 +881,43 @@ const sweptFrom = computed(() => {
   return from == null ? 0 : Math.min(1, Math.max(0, from / cumMax.value));
 });
 
-// One navigation target per contact ONSET: an intermittent-contact line
-// (enter → exit → re-enter) yields a target per interval, so the re-entry
-// is a real "next clash" stop, not folded invisibly into the first.
-// Continuation records (the same contact carried across line boundaries)
-// are NOT clashes of their own; the tint and the G-code marks still show
-// the whole extent. The COUNT, the timeline marks and prev/next all read
-// THIS list (viewer/clashTargets.ts) — they used to disagree (count per
-// record, marks per interval: "1 clash, 2 marks").
-const hitTargets = computed(() => clashTargets(hits.value));
+// One navigation target per contact INTERVAL (a re-entry is a stop of its
+// own) and per near miss, from the contact view (step 4 package 2, plan
+// 4.1) — read BY INDEX (plan 4.4): the count, the marks, the list's window
+// and prev/next all read the view; nothing lists every target (at the budget
+// a row and a mark per target held the page for minutes). A contact carried
+// across lines is one interval — the tint and the code marks show its whole
+// extent.
+const clashIndex = computed<ClashIndex>(() => {
+  const sv = shownView.value;
+  return sv ? clashIndexOfView(sv.view, sv.lineAt) : NO_CLASH;
+});
+/** The words' counts, from the index (once per view). */
+const clashCounts = computed(() => {
+  const sv = shownView.value;
+  // built with the view in bounded steps and published with it (plan 3.6)
+  return sv ? sv.derived?.counts ?? viewCounts(sv.view) : { collisions: 0, entryCollisions: 0, nearMisses: 0, possible: 0, startsIn: false };
+});
+/** The pairs the program starts in contact by (step 4 plan 1d): proven at
+ *  the first pose — never the entry move's, a possible contact or a near miss. */
+const startPairNames = computed<string[]>(() => {
+  const sv = shownView.value;
+  if (!sv) return [];
+  const hs = (sv.derived?.starts ?? startTargets(sv.view)).map(i => targetAt(sv.view, i, sv.lineAt)).filter(h => !h.entry && !h.possible && !isNearMiss(h));
+  return [...new Set(hs.map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
+});
+/** What the tab lists and the steps reach, by kind. */
+const simTargets = computed<SimTargets<FindingTarget, FindingTarget & { tool: number }>>(() => ({ clash: clashIndex.value, limit: violationTargets.value, tool: toolTargets.value }));
+/** A picked target as the jump takes it. */
+function targetOfPick(p: Pick): FindingTarget {
+  return p.kind === "clash" ? clashIndex.value.target(p.index) : otherTargets(p.kind)[p.index]!;
+}
+/** A target by its key; `near` where it should be (a collision is found there). */
+function targetByKey(kind: SimRowKind, key: string, near?: number): FindingTarget | null {
+  if (kind !== "clash") return otherTargets(kind).find(f => f.key === key) ?? null;
+  const c = clashIndex.value, i = c.find(key, near);
+  return i >= 0 ? c.target(i) : null;
+}
 
 
 /** The entry move's length on a track built from the base (0 = the base). */
@@ -869,8 +940,8 @@ function jumpTo(pick: FindingTarget | null, kind: SimRowKind) {
   const t = track.value;
   let target = pick;
   if (t && from && t !== from) {
-    target = targetsOf(kind).find(f => f.key === pick.key)
-      ?? mapAcrossEntry(pick, entryLenOf(from), entryLenOf(t));
+    const moved = mapAcrossEntry(pick, entryLenOf(from), entryLenOf(t));
+    target = targetByKey(kind, pick.key, moved.cum) ?? moved;
   }
   // Inside the finding's extent: its start cum is the previous move's end,
   // whose sample names the previous line and misses the contact tint.
@@ -946,7 +1017,9 @@ const marks = computed(() => {
   const pctOfCum = (c: number) => Math.min(100, (c / max) * 100);
   for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
   for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
-  for (const x of hitTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "clash", near: (x.dist ?? 0) > 1e-3 && !x.touches });
+  // one mark per occupied column of the timeline, never one per target (plan 4.4)
+  const sv = shownView.value;
+  for (const x of sv?.derived?.ticks ?? clashTicks(clashIndex.value, bandCols.value, max)) out.push({ pct: x.pct, kind: "clash", near: x.near });
   return out;
 });
 // Extent bands (timeline percentages): where a soft-limit line runs (warn)
@@ -973,26 +1046,38 @@ const limitBands = computed(() => {
     if (seen.has(v.line)) continue;
     seen.add(v.line);
     // a one-move line had no band; the program's line, never the entry move
-    const span = lineSpanCum(b, v.line, t);
+    // nor a called file's line of that number
+    const span = programLineSpanCum(b, v.line, t, !viewerGcode.value?.lines_untrusted);
     if (span && span[1] > span[0]) spans.push([(span[0] / max) * 100, (span[1] / max) * 100]);
   }
   return mergeSpans(spans);
 });
-const clashBands = computed(() => {
-  const max = cumMax.value;
-  const spans: Array<[number, number]> = [];
-  if (max <= 0) return spans;
-  for (const h of hits.value) {
-    if (h.dist > 1e-3) continue;
-    const ivs = h.intervals ?? (h.cumEnd > h.cum ? [[h.cum, h.cumEnd] as [number, number]] : []);
-    for (const [a, b] of ivs) if (b > a) spans.push([(a / max) * 100, (b / max) * 100]);
-    // An onset whose contact persists past its own line paints to where it
-    // finally ends (spanCumEnd — over ALL records, past the report cap).
-    if (h.continuation === undefined && h.spanCumEnd != null && h.spanCumEnd > h.cumEnd) {
-      spans.push([(h.cumEnd / max) * 100, (h.spanCumEnd / max) * 100]);
-    }
+// Contact bands at the timeline's own resolution (plan 4.3): a column per
+// CSS pixel of the thumb's travel — a contact narrower than a pixel keeps
+// its column; never the source of a count or a step.
+const sliderWrap = ref<HTMLElement | null>(null);
+const bandCols = ref(1024);
+let _bandRO: ResizeObserver | null = null;
+function measureBandCols() {
+  const el = sliderWrap.value;
+  if (!el) return;
+  const thumb = parseFloat(getComputedStyle(el).getPropertyValue("--range-thumb")) || 0;
+  bandCols.value = Math.max(1, Math.floor(el.clientWidth - thumb));
+}
+watch(bandCols, n => emit("timeline-columns", n), { immediate: true });
+onMounted(() => {
+  if (typeof ResizeObserver !== "undefined") {
+    _bandRO = new ResizeObserver(measureBandCols);
+    watch(sliderWrap, (el, old) => { if (old) _bandRO?.unobserve(old); if (el) { _bandRO?.observe(el); measureBandCols(); } }, { immediate: true });
   }
-  return mergeSpans(spans);
+});
+onUnmounted(() => _bandRO?.disconnect());
+const clashBands = computed(() => {
+  const sv = shownView.value, max = cumMax.value;
+  if (!sv || max <= 0) return [] as Array<[number, number]>;
+  // built with the view (plan 3.6); at another axis end the fractions are the view's own
+  const bands = sv.derived && sv.derived.axisEnd === max ? sv.derived.bands : contactBands(sv.view, bandCols.value, max);
+  return bands.map(([a, b]) => [a * 100, b * 100] as [number, number]);
 });
 
 onUnmounted(() => {
@@ -1009,8 +1094,8 @@ onUnmounted(() => {
 // component's jumps (simPanelStore.ts), so the marks, the list and prev/next
 // are one navigation. The bar has no compact form any more: nothing in it
 // changes its width with the content.
-function targetsOf(kind: SimRowKind): FindingTarget[] {
-  return kind === "limit" ? violationTargets.value : kind === "clash" ? hitTargets.value : toolTargets.value;
+function otherTargets(kind: "limit" | "tool"): FindingTarget[] {
+  return kind === "limit" ? violationTargets.value : toolTargets.value;
 }
 /** The first point of the displayed track a move ends beyond the joint
  *  window at — the first predicted limit crossing, not where the run stops
@@ -1021,18 +1106,36 @@ const limitStop = computed(() => limitStopOf(track.value));
 // one's trip point is conditional on it (parity-ef plan F3).
 const measurements = computed(() => measurementsOf(track.value,
   parseProbeBands(viewerGcode.value?.probe_bands).map(b => b.line)));
-const rowsNow = computed(() => buildSimRows({
-  clash: hitTargets.value, limit: violationTargets.value, tool: toolTargets.value,
-  violations: violations.value ?? [], unit: linearUnit.value,
-  timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
-  stop: limitStop.value,
-  toolNotes: m600Notes.value.byLine,
-  measurements: measurements.value,
-}));
-watch(rowsNow, r => { simRows.value = r; }, { immediate: true });
+// The list is a WINDOW of the filter's kinds (plan 4.4): at most
+// LIST_WINDOW rows around the shown row, else the next one ahead. Where it
+// begins is a number that changes only when that row comes near the
+// window's edge — the rows are built then, never per frame.
+const listKinds = computed(() => SIM_FILTER_KINDS[simView.filter]);
+const mergedList = computed(() => new MergedList(simTargets.value, listKinds.value));
+let _winFirst: number | null = null;
+// another filter: a window of its own, centred afresh
+watch(listKinds, () => { _winFirst = null; }, { flush: "sync" });
+const winFirst = computed(() => {
+  const m = mergedList.value;
+  _winFirst = windowFirst(m.total, windowCenter(m, listKinds.value, sPos.value, navSel.value), _winFirst);
+  return _winFirst;
+});
+const rowsNow = computed(() => {
+  const m = mergedList.value, first = winFirst.value, part = m.slice(first, first + LIST_WINDOW_ROWS);
+  const rows = buildSimRows({
+    clash: part.clash, limit: part.limit, tool: part.tool,
+    violations: violations.value ?? [], unit: linearUnit.value,
+    timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
+    stop: limitStop.value,
+    toolNotes: m600Notes.value.byLine,
+    measurements: measurements.value,
+  });
+  return { rows, before: first, after: m.total - first - rows.length };
+});
+watch(rowsNow, r => { simRows.value = r.rows; simView.window = { before: r.before, after: r.after }; }, { immediate: true });
 // Per frame while playing, but it only CHANGES where the playhead passes a
-// row — the tab re-renders then, not per frame.
-const nextKeyNow = computed(() => nextRowKey(rowsNow.value, sPos.value));
+// target — the tab re-renders then, not per frame.
+const nextKeyNow = computed(() => nextTarget(simTargets.value, SIM_FILTER_KINDS.all, sPos.value)?.key ?? null);
 /** What the collision check has done, in the tab's words. */
 const sweepView = computed<SimSweepView | null>(() => {
   const r = shownResult.value;
@@ -1044,39 +1147,33 @@ const sweepView = computed<SimSweepView | null>(() => {
   // ended: never while it runs ("No contact so far"), never for a part.
   // The parts go to the tab apart, so it can shorten the result and keep the
   // coverage (Codex R136 VP-I94).
-  const n = hitTargets.value.length;
-  const fw = findingWords(hitTargets.value);
+  const n = clashIndex.value.n;
+  const fw = wordsOfCounts(clashCounts.value);
   const findTone = fw.danger ? "danger" : "warn";
   const startsIn = fw.startsIn ? " · starts in contact" : "";
   const result = (none: string, running = false) =>
     n ? `${fw.text}${running ? " so far" : ""}${startsIn}` : running ? "No contact so far" : none;
-  // the cap: records of listed contacts left out — or contacts themselves,
-  // whose count the words then cannot hold ("200+" short, Codex R136 answer 2)
-  const cut = r?.cappedOnsets ? " · more contacts not listed" : r?.capped ? " · records cut" : "";
   const tools = sweepToolSentence.value;
   const detail = (r ? verdictDetail.value + " " : "") + tools;
   const caveat = !!sweepCaveat.value;
   type Tone = SimSweepView["tone"];
   // the coverage in the fewest words — the tab's last form keeps the count,
-  // the check's state and the "+" (Codex R137 VP-I94)
+  // and the check's state (Codex R137 VP-I94)
   const shortCov = (cov: string) => cov
     .replace(/^checked in full$/, "in full").replace(/^checked to the end$/, "to the end")
     .replace(/^(.+%) checked$/, "$1").replace(/^provisional from (.+), stopped at (.+%)$/, "from $1, $2")
     .replace(/^provisional from /, "from ").replace(/^(stopped|paused) at /, "$1 ")
     .replace(/^start still checking$/, "start checking").replace(/^start not checked$/, "start unchecked")
     .replace(/^entry move still checking$/, "entry checking");
-  // records cut while every contact's beginning is kept: the count is whole
-  // (no "+"), so the fewest words keep the cut itself (Codex R138 VP-I94)
-  const shortCut = r?.capped && !r?.cappedOnsets ? " · cut" : "";
-  /** One view: the result, the coverage (with the cap's caveat) and both
+  /** One view: the result, the coverage and both
    *  joined; `short` the result as a count. */
   const view = (state: SimSweepView["state"], frac: number, tone: Tone, cav: boolean, det: string,
                 res: string, cov: string, label?: string): SimSweepView => {
-    const coverage = cov ? `${cov}${cut}` : "";
+    const coverage = cov;
     return { state, frac, tone, caveat: cav, detail: det, ...(label ? { label } : {}),
              verdict: coverage ? `${res} · ${coverage}` : res, result: res, coverage,
-             coverageShort: cov ? `${shortCov(cov)}${shortCut}` : "",
-             short: n ? `${n}${r?.cappedOnsets ? "+" : ""}${state === "done" ? "" : "…"}` : res };
+             coverageShort: cov ? shortCov(cov) : "",
+             short: n ? `${n}${state === "done" ? "" : "…"}` : res };
   };
   // No moving pair: nothing to check — unless a body was left out or lost
   // damaged facets (VP-I46, Codex R87): then "nothing to check" would hide
@@ -1170,14 +1267,18 @@ const boundaryDetail = computed(() => {
   const bc = r?.boundaryContacts ?? [];
   if (!bc.length) return "";
   // every one of them (Codex R116 VP-I69: the fourth and fifth were cut
-  // off), with the lines its contact stays on — provisional records
-  const lines = (b: { a: string; b: string }) => [...new Set((r?.hits ?? [])
-    .filter(h => h.boundary && ((h.a === b.a && h.b === b.b) || (h.a === b.b && h.b === b.a))).map(h => h.line))]
-    .sort((x, y) => x - y);
+  // off), with the last line its contact stays on — provisional (the
+  // boundary stays in the contact view, round B3)
+  const sv = shownView.value, la = displayLineAtShown.value;
+  const stretches = sv ? sv.derived?.boundaries ?? boundaryStretches(sv.view) : [];
+  const lastLine = (b: { a: string; b: string }) => stretches
+    .filter(x => (x.a === b.a && x.b === b.b) || (x.a === b.b && x.b === b.a))
+    .reduce((m, x) => Math.max(m, sv!.lineAt(x.e, true) ?? 0), 0);
   const named = bc.map(b => {
-    const ls = lines(b);
-    const more = ls.length > 1 ? `, provisional to L${ls[ls.length - 1]}` : "";
-    return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (L${b.line}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
+    // its display line at its place (plan 1.3, C3) — never the sweep's raw one (VP-I126)
+    const line = la ? la(b.cum) ?? 0 : 0, last = lastLine(b);
+    const more = last > line ? `, provisional to L${last}` : "";
+    return `${partLabel(b.a)} ↔ ${partLabel(b.b)} (${lineWordAt(la, b.cum)}${more}${b.cutting ? ", the cutter in the stock" : ""})`;
   }).join("; ");
   return `In contact at the check's start: ${named} — where each began and what it is, the full check says. `;
 });
@@ -1189,7 +1290,7 @@ const checkCardView = computed(() => {
   if (!sweepView.value) return null;
   const e = props.collisionEntryResult;
   return checkCard(props.collisionContext ?? null, shownResult.value, {
-    stale: !!props.collisionContextStale, unit: linearUnit.value,
+    stale: !!props.collisionContextStale, unit: linearUnit.value, lineAt: displayLineAtShown.value,
     entry: !!e && e.track === track.value && shownResult.value === e.result });
 });
 /** Which tools the check poses — said in the check's "?", not on the bar.
@@ -1230,19 +1331,20 @@ watchEffect(() => {
   const ts = confirmedToolsetter();
   simView.basis = toolsetterBasisLine(viewerGcode.value?.toolsetter_basis, ts.ok ? toolsetterVarMap(ts.values) : null);
   simView.jumpReason = hitNavReason.value;
+  simView.counts = { clash: clashIndex.value.n, limit: violationTargets.value.length, tool: toolTargets.value.length };
 });
 const releaseSim = claimSimActions({
-  jump(key: string) {
+  jump(key: string, near?: number) {
     for (const kind of ["clash", "limit", "tool"] as const) {
-      const t = targetsOf(kind).find(x => x.key === key);
+      const t = targetByKey(kind, key, near);
       if (t) { jumpTo(t, kind); return; }
     }
   },
   step(kinds, dir) {
-    // the list's own order (simRowOrder), ties included — Codex R78 VP-I38
-    const list = kinds.flatMap(k => targetsOf(k).map(t => ({ ...t, kind: k }))).sort(simRowOrder);
-    const t = dir > 0 ? targetAfter(list, sPos.value, navSel.value) : targetBefore(list, sPos.value, navSel.value);
-    if (t) jumpTo(t, t.kind);
+    // the list's own order (simRowOrder), ties included — Codex R78 VP-I38 —
+    // each kind's candidate from its index (plan 4.4)
+    const p = stepTarget(simTargets.value, kinds, dir, sPos.value, navSel.value);
+    if (p) jumpTo(targetOfPick(p), p.kind);
   },
 });
 // Only this bar's claim: a re-mounted bar has claimed the tab before this
@@ -1270,7 +1372,7 @@ onUnmounted(releaseSim);
         <Pause v-if="playing" :size="14" />
         <Play v-else :size="14" />
       </MachineBtn>
-      <div class="sliderWrap">
+      <div ref="sliderWrap" class="sliderWrap">
         <MachineSlider gate="scrubPos" class="sliderInput rangeOverlayTrack" :min="0" :max="cumMax"
                        :step="cumMax / 2000 || 1" v-model="sPos" :disabled="!simMode"
                        title="Scrub the program — poses the machine model, nothing moves"
@@ -1298,10 +1400,13 @@ onUnmounted(releaseSim);
              :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${b[0] / 100})`, width: `calc((100% - var(--range-thumb)) * ${(b[1] - b[0]) / 100})` }"></div>
         <div v-for="(m, i) in marks" :key="m.kind + i" class="scrubTick" :class="[m.kind, { near: m.near }]"
              :style="{ left: `calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * ${m.pct / 100})` }">
+          <!-- lucide's own X, Triangle and Circle, as the components render
+               them, written out: a component per mark (one per occupied
+               column) cost ~18 ms of a large first publication (plan 3.6) -->
           <span class="scrubGlyph">
-            <X v-if="m.kind === 'clash'" :size="9" :stroke-width="3" />
-            <Triangle v-else-if="m.kind === 'limit'" :size="9" fill="currentColor" />
-            <Circle v-else :size="9" fill="currentColor" />
+            <template v-if="m.kind === 'clash'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="none" stroke-width="3" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></template>
+            <template v-else-if="m.kind === 'limit'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="currentColor" stroke-width="2" class="lucide lucide-triangle-icon lucide-triangle"><path d="M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /></svg></template>
+            <template v-else><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="currentColor" stroke-width="2" class="lucide lucide-circle-icon lucide-circle"><circle cx="12" cy="12" r="10" /></svg></template>
           </span>
         </div>
       </div>

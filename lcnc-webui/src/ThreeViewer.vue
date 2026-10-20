@@ -28,7 +28,6 @@ import { INTERP_IDLE, TASK_MODE_AUTO } from "./lcnc";
 import { runInProgress } from "./runBasis";
 import { admitRunCheck, basisFromLive, basisFromRun, sameCheckInputs, type CheckBasis } from "./viewer/checkBasis";
 import { captureCheckContext, type CheckContext } from "./viewer/checkContext";
-import { firstOnly, holdsFirst, withFirstContact } from "./viewer/firstContact";
 import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
@@ -45,19 +44,21 @@ import { parseProbeBands, parseProbeStops } from "./viewer/probeStop";
 import { boundsOf, epochTermsFor, previewWcsStaleFor, rebasePositions, usedWcsRowsKey, type WcsTableRow } from "./viewer/wcsEpochs";
 import { specFromWire, worldModeForSpec, semanticKinsMode } from "./viewer/kins";
 import { workMarkers, markerInputsChanged, newMarkerInputsPrev, G5X_NAMES, chainRotaryLetters, type ProgramZeroPose } from "./viewer/programZero";
-import { buildEntryTrack, displayLineForPoint, roomEndOf, sliceTrack } from "./viewer/scrubTrack";
+import { buildEntryTrack, displayLineForPoint, lineSpanCum, roomEndOf, sliceTrack } from "./viewer/scrubTrack";
 import { boundsFromJointLimits, sameBox, type JointLimits, type MachineBox } from "./viewer/machineBounds";
 import { displayDecision } from "./viewer/displayPipeline";
-import type { CollisionBody, CollisionHit, CollisionResult, CollisionLineMark } from "./viewer/collision";
+import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import { partCollides, startDependentOf } from "./viewer/collision";
-import { collisionLineMarks } from "./viewer/collisionMarks";
-import { clashTintBodies } from "./viewer/clashTint";
+import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
 import { previewSchemaMismatch, parseTloMismatch, type ScrubTrack } from "./ws/bulkData";
-import { clashTargets } from "./viewer/clashTargets";
-import { findingWords } from "./viewer/sweepWords";
+import { ContactPublisher, contactOwners, type PublisherMessage } from "./viewer/contactPublisher";
+import { ContactStore, EP_AT_START, EP_RAPID, IV_ENTER_DECIDED, IV_EXIT_DECIDED, IV_POSSIBLE, NONE, type StoreDelta } from "./viewer/contactStore";
+import { findKey, heldBytes, indexAfter, displayLineAt, displayLineRuns, lineMark, retireView, runsOf, targetAt, targetKey, targetPos, targetWindow, tintAt, viewCounts, type LineAt, type LineRuns } from "./viewer/contactView";
+import { buildShownSteps, specKey, type ShownContacts, type ShownSource, type ShownSpec } from "./viewer/shownContacts";
+import { wordsOfCounts } from "./viewer/sweepWords";
 import { createBackplotController } from "./viewer/backplotController";
 import { createSurfaceController } from "./viewer/surfaceController";
 import { createToolpathController, type ToolpathCtx } from "./viewer/toolpathController";
@@ -192,7 +193,7 @@ const emit = defineEmits<{
   (e: "scrub-line", line: number | null): void;
   // Source lines with collision hits after a sweep (null = no/stale results,
   // [] = checked clean) — App forwards to GcodePanel for line markers.
-  (e: "collision-lines", lines: CollisionLineMark[] | null): void;
+  (e: "collision-lines", lines: CollisionLineQuery | null): void;
 }>();
 
 // HUD data (read from status for template)
@@ -2254,12 +2255,89 @@ async function buildFromInit(init: ViewerInit) {
         setCollisionShards: (n: number | null) => { _colMaxShards = n ?? undefined; },
         // The shown sweep's shape: how many workers swept it (the parallel
         // sweep), what it found and left out.
+        // The contact tables held here (round B2): per request and generation
+        // the rows, the pairs named, the deltas; the memory they take.
+        /** Every kind of question of the published main view, each timed —
+         *  the worst of its kind in ms (Codex R158's budget measurement): a
+         *  target's words, its key where it stood, moved and anywhere, the
+         *  steps, the tint, a line's mark, the list's window, a gone key. */
+        timeContactQueries: () => {
+          const trk = collisionTrack.value, sv = trk ? _contacts.viewOf(trk) : null;
+          if (!sv) return null;
+          const v = sv.view, out: Record<string, number> = {}, end = sv.derived?.axisEnd ?? 1;
+          const t = (k: string, f: () => unknown) => { const t0 = performance.now(); f(); const ms = performance.now() - t0; out[k] = Math.max(out[k] ?? 0, Math.round(ms * 100) / 100); };
+          const step = Math.max(1, Math.floor(v.n / 64));
+          for (let i = 0; i < v.n; i += step) {
+            t("target", () => targetAt(v, i, sv.lineAt));
+            const key = targetKey(v, i), pos = targetPos(v, i);
+            t("key where it stood", () => findKey(v, key, pos)); t("key moved", () => findKey(v, key, pos + end / 3)); t("key anywhere", () => findKey(v, key));
+            t("next", () => indexAfter(v, pos, { key, pos }));
+          }
+          for (let s = 0; s < 64; s++) {
+            const x = (s / 64) * end;
+            t("tint", () => tintAt(v, x)); t("mark", () => lineMark(v, s, [[x, x + end / 64]], sv.lineAt)); t("next from a position", () => indexAfter(v, x, null));
+          }
+          t("window of 400", () => targetWindow(v, v.n >> 1, 400, sv.lineAt));
+          t("key gone", () => findKey(v, "C0|999999|0"));
+          return { targets: v.n, ms: out };
+        },
+        getContacts: () => {
+          const one = (id: number) => {
+            const tb = _contacts.tablesOf(id), cur = tb?.pub ?? null, held = tb?.held ?? null;
+            const rows = (t: typeof cur) => t ? t.stores.reduce((a, st) => ({ episodes: a.episodes + st.episodes.rows,
+              intervals: a.intervals + st.intervals.rows, gaps: a.gaps + st.gaps.rows }), { episodes: 0, intervals: 0, gaps: 0 }) : null;
+            return cur ? { id, generation: cur.generation, shards: cur.stores.length, pairs: cur.pairs?.length ?? 0,
+                           deltas: cur.deltas, rows: rows(cur), held: held ? { generation: held.generation, rows: rows(held) } : null } : null;
+          };
+          // the shown side results' tables too (Codex R147 VP-I106), and every
+          // request held
+          return { main: one(_colReqId), side: _colSide ? one(_colSide.id) : null,
+                   entry: collisionEntry.value ? { id: collisionEntry.value.id, tables: one(collisionEntry.value.id) } : null,
+                   runSide: collisionRunSide.value ? { id: collisionRunSide.value.id, tables: one(collisionRunSide.value.id) } : null,
+                   ids: _contacts.ids(), stats: _contacts.stats(), dropped: _contacts.dropped, ...(_contactsLog),
+                   passes: _contacts.passes, discards: _contacts.discards, publications: _contacts.version, lastPassMs: _contacts.lastPassMs,
+                   running: _contacts.running, pending: _contacts.pending, phase: _contacts.phase, longestStepMs: _contacts.longestStepMs.slice() };
+        },
+        // The bodies the clash tint lights now (round B3: from the contact view).
+        getClashTint: () => [..._clashOnIds].sort(),
+        // The pose the simulation shows (null = live): joints, the sample's
+        // tool offset and tool, its place and raw line — what the tint read.
+        getScrubPose: () => (_scrubJoints ? { joints: [..._scrubJoints], tlo: _scrubTlo ? [..._scrubTlo] : null, tool: _scrubTool,
+                                              cum: _scrubCum, line: _scrubLineNo } : null),
+        // A request's contact rows by name (round B3): the shown result's, or
+        // the request in flight's.
+        getContactRows: (which: "result" | "main" = "result") => {
+          const id = which === "main" ? _colReqId : (_colResultReq ?? _colReqId);
+          const cur = _contacts.tablesOf(id)?.pub ?? null;
+          if (!cur) return null;
+          return cur.stores.flatMap(st => {
+            const E = st.episodes, I = st.intervals, out = [];
+            for (let e = 0; e < E.rows; e++) {
+              const ivs: number[][] = [];
+              for (let iv = E.get(e, "firstIv"); iv !== NONE; iv = I.get(iv, "next")) ivs.push([I.get(iv, "enter"), I.get(iv, "exit"), I.get(iv, "flags")]);
+              out.push({ pair: cur.pairs?.[E.get(e, "pair")] ?? [String(E.get(e, "pair")), ""], flags: E.get(e, "flags"), onset: E.get(e, "onset"),
+                         end: E.get(e, "end"), closeAt: E.get(e, "closeAt"), closeDist: E.get(e, "closeDist"), ivs });
+            }
+            return out;
+          });
+        },
+        // Hold the main sweep as a camera interaction does (round B2's guard:
+        // a side run finishing while the main one still sends its tables).
+        setCameraHold: (on: boolean) => {
+          _camMoving = on;
+          _colSetPaused("camera", on);
+        },
         getCollisionSummary: () => {
           const r = collisionResult.value;
-          return r ? { shards: r.shards ?? 1, hits: r.hits.length, pairCount: r.pairCount, pairsPrescreened: r.pairsPrescreened,
+          if (!r) return null;
+          // what it found: the published view's targets — its touch
+          // intervals and near misses (step 4 package 2, C2: a result
+          // carries no records)
+          const sv = contactViewFor(collisionTrack.value);
+          const onsets = sv ? Array.from({ length: sv.view.n }, (_, i) => targetAt(sv.view, i, sv.lineAt).line) : [];
+          return { shards: r.shards ?? 1, hits: onsets.length, pairCount: r.pairCount, pairsPrescreened: r.pairsPrescreened,
             staticContacts: r.staticContacts.length, truncated: r.truncated, sweepMs: r.sweepMs, samples: r.samples,
-            onsets: r.hits.filter(h => h.continuation === undefined).map(h => h.line),
-            uncertified: r.uncertified } : null;
+            onsets, uncertified: r.uncertified };
         },
         // The basis the last main sweep was built from (plan „Prüfung im
         // Lauf“ 1c): kind, run, the inputs it read.
@@ -2282,16 +2360,38 @@ async function buildFromInit(init: ViewerInit) {
           collisionResult.value = { ...r, uncertified: note };
           return true;
         },
-        setCollisionHits: (hits: { line: number; frac: number; rapid?: boolean }[]) => {
+        // Made-up findings over the result on screen: a point contact per hit
+        // in the middle of its line's first move, or at `frac` of the track
+        // (its line is then the track's there) — a possible one, a near miss
+        // `near` mm apart, one the program starts in.
+        setCollisionHits: (hits: { line: number; frac?: number; rapid?: boolean; possible?: boolean; near?: number; atStart?: boolean; ordinal?: number }[]) => {
           const r = collisionResult.value, t = collisionTrack.value;
           if (!r || !t || !t.count) return false;
           const end = t.cum[t.count - 1]!;
           // A model without moving pairs (the layout mock's) reads "No moving
           // pairs" whatever the hits say — a collision implies a pair.
-          collisionResult.value = { ...r, pairCount: Math.max(1, r.pairCount), hits: hits.map(h => ({ line: h.line, cum: h.frac * end, cumEnd: h.frac * end,
-            intervals: [[h.frac * end, h.frac * end] as [number, number]], a: "tool", b: "table", dist: 0, rapid: !!h.rapid })) };
-          // The code panel's marks, as a finished sweep sends them.
-          emit("collision-lines", hits.map(h => ({ line: h.line })));
+          const placeOf = (h: { line: number; frac?: number }) => {
+            if (h.frac !== undefined) return h.frac * end;
+            const span = lineSpanCum(t, h.line);
+            return span ? (span[0] + span[1]) / 2 : NaN;
+          };
+          const at = hits.map(placeOf);
+          if (at.some(c => Number.isNaN(c))) return false;
+          collisionResult.value = { ...r, pairCount: Math.max(1, r.pairCount) };
+          // ...and the tables the views read (round B3): a point contact per
+          // hit, at its place on the track — its line is the track's there
+          if (_colResultReq === null) return false;
+          const st = new ContactStore(_colResultReq, 0);
+          hits.forEach((h, k) => {
+            const c = at[k]!, near = (h.near ?? 0) > 0;
+            const ep = st.episodes.append({ pair: 0, ordinal: h.ordinal ?? k, flags: (h.rapid ? EP_RAPID : 0) | (h.atStart ? EP_AT_START : 0),
+                                            onset: c, end: c, closeAt: c, closeDist: near ? h.near! : 0, firstIv: NONE, ivCount: near ? 0 : 1 });
+            if (near) return;
+            st.episodes.set(ep, "firstIv", st.intervals.append({ episode: ep, enter: c, exit: c,
+              flags: IV_ENTER_DECIDED | IV_EXIT_DECIDED | (h.possible ? IV_POSSIBLE : 0), next: NONE, witness: c, freeAt: NaN }));
+          });
+          _contacts.inject(_colResultReq, [st], [["tool", "table"]], x => x.copy());
+          _colKick(true);
           return true;
         },
         getAppearance: () => ({
@@ -2877,6 +2977,53 @@ function _pfWcs(): PartFrameWcs {
 const COLLISION_MARGIN_MM = 2;
 let _colWorker: Worker | null = null;
 let _colReqId = 0;
+// The contact tables of step 4 package 2: every request asks the sweep for
+// them; they land in two copies per request, the views are built from the
+// work copy in bounded steps and published with what the bar shows, the
+// other copy catches up and only then are the deltas acknowledged (plan 3.6,
+// viewer/contactPublisher.ts).
+/** What the bar shows of the check — published with the views it reads, never ahead of them (plan 3.6). */
+interface ColShown {
+  busy: boolean; progress: number; result: CollisionResult | null; track: ScrubTrack | null;
+  stopped: { covered: number; reason: "motion" } | null; resumable: boolean;
+  partial: CollisionResult | null; partialTrack: ScrubTrack | null;
+  entryResult: { track: ScrubTrack; result: CollisionResult; checking?: boolean } | null;
+  previous: { collisions: number; text: string; complete: boolean; version: number | null } | null;
+  context: CheckContext | null; contextStale: boolean; runCheck: typeof collisionRunCheckView.value;
+}
+const _contacts: ContactPublisher<ScrubTrack, ShownContacts, ColShown> = new ContactPublisher<ScrubTrack, ShownContacts, ColShown>({
+  // every track _colViewSpec may show something on: the result's, the
+  // partial's, the one a run check's beginning stands on, the entry track
+  tracks: () => {
+    const sf = collisionSideFirst.value;
+    return [collisionTrack.value, collisionPartialTrack.value, _colRunSideBase()?.trk, collisionEntry.value?.track, sf && !sf.run ? sf.entry : null]
+      .filter((t): t is ScrubTrack => !!t);
+  },
+  specOf: trk => {
+    const spec = trk.count >= 1 ? _colViewSpec(trk) : null;
+    if (!spec) return null;
+    return { key: `${specKey(spec)}|${_colTimelineCols}`, ids: [spec.base?.id, spec.side?.id].filter((x): x is number => x != null), spec };
+  },
+  // the view and what the bar reads of it — the build the guards run (shownContacts.ts)
+  *build(trk, spec, tables, held) {
+    return yield* buildShownSteps(tables, spec as ShownSpec, held, _lineAtOf(trk), _colTimelineCols, _sliceEnd(trk));
+  },
+  effect: m => _colOnMessage(m as never),
+  stage: () => _colStage(),
+  publish: s => { colShown.value = s; contactsVersion.value++; },
+  retire: sv => retireView(sv.view),
+  viewBytes: sv => heldBytes(sv.view),
+  ack: a => { _colWorker?.postMessage(a); _contactsLog.acks++; },
+  owners: () => _colContactOwners(),
+});
+/** Whose contact tables stay (Codex R147 VP-I106): the request and side run
+ *  in flight and every request behind what is shown. */
+function _colContactOwners(): Set<number> {
+  return contactOwners({ main: _colReqId, side: _colSide?.id ?? null,
+    result: collisionResult.value ? _colResultReq : null, entry: collisionEntry.value?.id ?? null,
+    runSide: collisionRunSide.value?.id ?? null, sideFirst: collisionSideFirst.value?.id ?? null });
+}
+const _contactsLog = { messages: 0, acks: 0, maxDeltaRows: 0 };
 let _colStartedAt = 0;   // performance.now() of the running sweep's post (telemetry)
 // The AUTO sweep runs on load and on WCS/tool changes and must never own
 // the machine for long: a 1.18 M-point program ran ~2 h per sweep, restarted
@@ -2910,20 +3057,23 @@ const collisionPartialTrack = shallowRef<ScrubTrack | null>(null);
 // result at display time (collisionEntryResult). The base result keeps its
 // own identity, so a sim entry never cancels the program's sweep and a
 // re-entry never re-sweeps it (viewer/sweepEntry.ts pins the plan).
-const collisionEntry = shallowRef<{ track: ScrubTrack; base: ScrubTrack; result: CollisionResult; shift: number } | null>(null);
-/** A side sweep's first confirmed contact while it runs (Codex R136 VP-I93):
+const collisionEntry = shallowRef<{ id: number; track: ScrubTrack; base: ScrubTrack; result: CollisionResult; shift: number;
+                                    /** the side run's track's end (its own axis) */ sliceEnd: number } | null>(null);
+/** A side sweep that has found a contact while it runs (Codex R136 VP-I93):
  *  the entry move and the start-dependent beginning — the whole program on a
- *  dependent one — are side sweeps; their contact shows before their result.
- *  Ends with the side sweep (every path that ends or replaces `_colSide`). */
-const collisionSideFirst = shallowRef<{ id: number; entry: ScrubTrack; base: ScrubTrack; shift: number;
-                                        run?: { gen: number }; first: CollisionHit } | null>(null);
+ *  dependent one — are side sweeps; their contact shows before their result,
+ *  from their tables — set by the side run's first touch interval (C2: the
+ *  delta that brings it), never at its start. Ends with the side sweep
+ *  (every path that ends or replaces `_colSide`). */
+const collisionSideFirst = shallowRef<{ id: number; entry: ScrubTrack; base: ScrubTrack; shift: number; sliceEnd: number;
+                                        run?: { gen: number } } | null>(null);
 let _colSide: { id: number; entry: ScrubTrack; base: ScrubTrack; slice: ScrubTrack; shift: number; retried: boolean; startedAt: number;
                 /** a run check's bound beginning (parity-ef plan E5/E7): its run generation and basis */
                 run?: { gen: number; basis: CheckBasis } } | null = null;
 // The run check's beginning bound to the run's start joints, swept beside it
 // (parity-ef plan E5/E7): merged onto the base track's axis while the run
 // check that asked for it is on.
-const collisionRunSide = shallowRef<{ gen: number; base: ScrubTrack; bound: ScrubTrack; result: CollisionResult; shift: number } | null>(null);
+const collisionRunSide = shallowRef<{ id: number; gen: number; base: ScrubTrack; bound: ScrubTrack; result: CollisionResult; shift: number; sliceEnd: number } | null>(null);
 // ...and where that side sweep stands until its result is merged: posted
 // and running, or ended without a result — "being checked" only while it
 // runs (Codex R134 VP-I90: a failed one read "start still checking" for good).
@@ -2946,6 +3096,14 @@ let _colSettleTimer: ReturnType<typeof setTimeout> | undefined;
 const collisionBusy = ref(false);
 const collisionProgress = ref(0);
 const collisionResult = ref<CollisionResult | null>(null);
+/** The request `collisionResult` is the result of — its contact tables stay
+ *  while it is shown (a cancel moves `_colReqId` on, a provisional result
+ *  stays while its full check runs; Codex R147 VP-I106). */
+let _colResultReq: number | null = null;
+/** The request the live partial is of (round B3). */
+let _colPartialReq: number | null = null;
+/** The running side run's progress (a fraction of its own track). */
+let _colSideProgress = 0;
 /** The check during a run as the bar and the Sim tab name it (plan 3c/3d). */
 const collisionRunCheckView = computed(() => {
   const r = collisionRun.value;
@@ -3019,19 +3177,15 @@ let _colReqMeta: { maxShards: number | null; sliceMs: number | null; range: numb
  *  shifted by the entry length, two baselines reported). Null until both
  *  exist — a base sweep still running shows as running, not as "no result". */
 /** `r` (swept on `trk`) as it is shown: a run check's bound beginning merged
- *  onto the base's axis (plan E5/E7) — its result, or while its side sweep
- *  runs the first contact it found, the beginning still dependent: one
- *  contact answers no coverage (Codex R137 VP-I93 B). */
+ *  onto the base's axis (plan E5/E7) once it has its result. While its side
+ *  sweep runs, the base stays as it is — its beginning still dependent (one
+ *  contact answers no coverage, Codex R137 VP-I93 B); what the side sweep
+ *  found so far is its tables' (_colRunSideSpec). */
 function _colWithRunSide(r: CollisionResult | null, trk: ScrubTrack | null): CollisionResult | null {
   if (!r || !trk) return r;
   const rs = collisionRunSide.value;
   if (rs && rs.base === trk && collisionRun.value?.gen === rs.gen) {
-    return mergeBeginningOntoBase(rs.result, r, rs.shift, trk.cum[trk.count - 1]!, rs.bound.cum[1]);
-  }
-  const sf = collisionSideFirst.value;
-  if (sf?.run && sf.base === trk && collisionRun.value?.gen === sf.run.gen) {
-    const m = mergeBeginningOntoBase({ ...firstOnly(sf.first, 0), truncated: null }, r, sf.shift, trk.cum[trk.count - 1]!, sf.entry.cum[1]);
-    return r.startDependent ? { ...m, startDependent: r.startDependent } : m;
+    return mergeBeginningOntoBase(rs.result, r, rs.shift, trk.cum[trk.count - 1]!);
   }
   return r;
 }
@@ -3052,7 +3206,7 @@ function _colRunSideBase(): { r: CollisionResult; trk: ScrubTrack } | null {
   // the pairs: the side sweep's (the same model), else at least the pair
   // in contact — never 0, which the bar reads as "nothing to check"
   const pairCount = rs && rs.gen === gen ? rs.result.pairCount : 1;
-  return { trk, r: { hits: [], staticContacts: [], samples: 0, coarsened: false, uncertified: null, pairCount,
+  return { trk, r: { staticContacts: [], samples: 0, coarsened: false, uncertified: null, pairCount,
                      pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: { covered: collisionProgress.value, reason: "running" },
                      ...(sd ? { startDependent: sd } : {}) } };
 }
@@ -3075,63 +3229,198 @@ const collisionPartialShown = computed(() => {
   return s ? _colWithRunSide(s.r, s.trk) : null;
 });
 const collisionPartialTrackShown = computed(() => collisionPartial.value ? collisionPartialTrack.value : _colRunSideBase()?.trk ?? null);
-/** The code panel's marks of what is shown. */
-function _colEmitMarks() {
-  const r = collisionResultShown.value ?? collisionPartialShown.value;
-  emit("collision-lines", r ? collisionLineMarks(r.hits) : null);
+
+// ─── The contact view (step 4 package 2, round B3) ──────────────────────
+// Every view of the check — the Sim tab's list and words, the timeline's
+// marks and bands, the tint, the code panel's marks — reads ONE contact view
+// built from the tables of exactly the requests behind what is shown
+// (viewer/shownContacts.ts): the result on screen, else the live partial's
+// request; a run check's bound beginning beside it on the base axis; on the
+// simulation's entry track the base shifted by the entry move and the entry
+// side run's own. The tables change per slice; the view is rebuilt at the
+// partial cadence, at once for a request's first touch and for a result.
+const CONTACTS_VIEW_MS = 500;
+const contactsVersion = ref(0);
+/** What the bar shows, published with the views (plan 3.6); null before the first. */
+const colShown = shallowRef<ColShown | null>(null);
+/** The bar's timeline columns (its marks and bands are built at them). */
+let _colTimelineCols = 1024;
+let _contactsTimer: ReturnType<typeof setTimeout> | undefined;
+/** A pass now (its first slice in this task: a small table publishes at
+ *  once) or, for progress and plain deltas, at the cadence the last pass
+ *  allows — a table the size of a real program's publishes at once, only a
+ *  budget-size one waits. */
+function _colKick(urgent: boolean) {
+  const hold = Math.min(CONTACTS_VIEW_MS, 10 * _contacts.lastPassMs);
+  if (urgent || hold < 1) { clearTimeout(_contactsTimer); _contactsTimer = undefined; _contacts.kick(true); return; }
+  if (_contactsTimer === undefined) _contactsTimer = setTimeout(() => { _contactsTimer = undefined; _contacts.kick(true); }, hold);
 }
-// A run's side sweep ended without a result: its early contact leaves the
-// marks and the tint too (every path that ends it clears collisionSideFirst).
-watch(collisionSideFirst, (now, before) => {
-  if (before?.run && !now) { _colEmitMarks(); _colRetint(); }
-});
+/** What the bar shows now, as the next publication will carry it. */
+function _colStage(): ColShown {
+  return { busy: collisionBusy.value, progress: collisionProgress.value, result: collisionResultShown.value, track: collisionTrack.value,
+           stopped: collisionStopped.value, resumable: collisionResumable.value, partial: collisionPartialShown.value,
+           partialTrack: collisionPartialTrackShown.value, entryResult: collisionEntryResult.value, previous: collisionPrevious.value,
+           context: collisionContext.value, contextStale: collisionContextStale.value, runCheck: collisionRunCheckView.value };
+}
+// Something the bar shows changed outside a pass (a new request, a cancel, a
+// program change): the next pass publishes it. While a pass takes and builds,
+// its publication stages the state then (and begins its build anew when what
+// is shown changed under it) — a pass's own effects never mark it again.
+function _colOnStageChange(now: ColShown) {
+  if (_contacts.running && _contacts.phase <= 2) return;
+  const was = _contacts.shown;
+  if (was && (Object.keys(now) as Array<keyof ColShown>).every(k => now[k] === was[k])) return;
+  _contacts.markDirty();
+  _colKick(true);
+}
+// (watched below collisionEntryResult — a watch reads its source at once, and
+// a computed declared after it is in its temporal dead zone: the first run
+// threw, tracked only the inputs read before, and logged a ReferenceError at
+// every load since Form 1)
+/** The bar's timeline width in columns: its marks and bands are built at it. */
+function onTimelineColumns(n: number) {
+  if (n === _colTimelineCols) return;
+  _colTimelineCols = n;
+  _contacts.markDirty();
+  _colKick(false);
+}
+/** A request moved on or a side run was replaced (Codex R148 VP-I106): what
+ *  no one owns goes now — its tables, its queued messages, its tickets. */
+function _colReleaseContacts() {
+  _contacts.release();
+  _colKick(true);
+}
+function _intervalRows(id: number): number {
+  return _contacts.tablesOf(id)?.work?.stores.reduce((n, st) => n + st.intervals.rows, 0) ?? 0;
+}
+function _sliceEnd(t: ScrubTrack): number { return t.count ? t.cum[t.count - 1]! : 0; }
+// The DISPLAY lines of a track (plan 1.3/4.2, C3): a call line for a called
+// file's moves, none for an untrusted point without one — never the raw line.
+// The trust is the payload's (a track's own per-point trust wins).
+const _lineAtCache = new WeakMap<ScrubTrack, { trusted: boolean; f: LineAt }>();
+const _lineRunsCache = new WeakMap<ScrubTrack, { trusted: boolean; r: LineRuns }>();
+const _linesTrusted = () => !viewerGcode.value?.lines_untrusted;
+function _lineAtOf(t: ScrubTrack): LineAt {
+  const trusted = _linesTrusted();
+  let c = _lineAtCache.get(t);
+  if (!c || c.trusted !== trusted) _lineAtCache.set(t, c = { trusted, f: displayLineAt(t, trusted) });
+  return c.f;
+}
+function _lineRunsOf(t: ScrubTrack): LineRuns {
+  const trusted = _linesTrusted();
+  let c = _lineRunsCache.get(t);
+  if (!c || c.trusted !== trusted) _lineRunsCache.set(t, c = { trusted, r: displayLineRuns(t, trusted) });
+  return c.r;
+}
+/** The base request shown on `trk`: the result on screen, else the live
+ *  partial's, else the request in flight a run check's beginning stands on. */
+function _colBaseSpec(trk: ScrubTrack): ShownSource | null {
+  const end = _sliceEnd(trk);
+  if (collisionResult.value && collisionTrack.value === trk) {
+    const r = collisionResult.value;
+    return _colResultReq === null ? null : { id: _colResultReq, map: null, coverage: end * (r.truncated ? r.truncated.covered : 1), ownEnd: end };
+  }
+  if (collisionPartial.value && collisionPartialTrack.value === trk) {
+    return _colPartialReq === null ? null : { id: _colPartialReq, map: null, coverage: end * collisionProgress.value, ownEnd: end };
+  }
+  const s = _colRunSideBase();
+  return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * collisionProgress.value, ownEnd: end } : null;
+}
+/** How far a side result swept its own track: all of it, else what its
+ *  `truncated` names (a stop, its budget) — an answer is not a whole check
+ *  (Codex R149 VP-I109). */
+function _sideCovered(r: CollisionResult): number { return r.truncated ? r.truncated.covered : 1; }
+/** A run check's bound beginning on the base `trk` (plan 3.3): its result,
+ *  or while it runs the side run whose first contact is shown. The map folds
+ *  the beginning onto the base's 0, so its OWN coverage goes in beside the
+ *  shown one (Codex R149 VP-I108: a shown 0 read as the whole beginning). */
+function _colRunSideSpec(trk: ScrubTrack): ShownSource | null {
+  const gen = collisionRun.value?.gen;
+  const rs = collisionRunSide.value;
+  if (rs && rs.base === trk && gen === rs.gen) {
+    const own = _sideCovered(rs.result) * rs.sliceEnd;
+    return { id: rs.id, map: { kind: "minus", shift: rs.shift }, coverage: Math.max(0, own - rs.shift), ownCoverage: own, ownEnd: rs.sliceEnd,
+             entry: true, entryEnd: rs.bound.cum[1], sweptToEnd: !rs.result.truncated, track: rs.bound, linesTrusted: _linesTrusted() };
+  }
+  const sf = collisionSideFirst.value;
+  if (sf?.run && sf.base === trk && gen === sf.run.gen) {
+    const own = _colSideProgress * sf.sliceEnd;
+    return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, own - sf.shift), ownCoverage: own, ownEnd: sf.sliceEnd,
+             entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, track: sf.entry, linesTrusted: _linesTrusted() };
+  }
+  return null;
+}
+/** What `trk` shows: the base request (with a run check's beginning), else
+ *  the simulation's entry track — the base shifted by the entry move, the
+ *  entry side run's own tables beside it. Null: nothing shown on it. */
+function _colViewSpec(trk: ScrubTrack): ShownSpec | null {
+  const base = _colBaseSpec(trk);
+  if (base) return { base, side: _colRunSideSpec(trk), axisEnd: _sliceEnd(trk) };
+  const e = collisionEntry.value, sf = collisionSideFirst.value;
+  const ent = e ? { id: e.id, track: e.track, base: e.base, shift: e.shift, sliceEnd: e.sliceEnd, covered: _sideCovered(e.result), whole: !e.result.truncated }
+    : sf && !sf.run ? { id: sf.id, track: sf.entry, base: sf.base, shift: sf.shift, sliceEnd: sf.sliceEnd, covered: _colSideProgress, whole: false } : null;
+  if (!ent || ent.track !== trk) return null;
+  const b = _colBaseSpec(ent.base);
+  if (!b) return null;   // no entry overlay without its base (collisionEntryResult)
+  return { base: { ...b, map: { kind: "plus", shift: ent.shift }, coverage: b.coverage + ent.shift },
+           side: { id: ent.id, map: null, coverage: ent.covered * ent.sliceEnd, ownEnd: ent.sliceEnd, entry: true,
+                   entryEnd: ent.track.cum[1], sweptToEnd: ent.whole },
+           axisEnd: _sliceEnd(trk) };
+}
+/** The published contact view of `trk` (null: nothing), and the track's line
+ *  at a position — what the last publication showed on it; a track shown
+ *  anew is built by the pass its change starts. Reactive inside a computed
+ *  through the publication's version. */
+function contactViewFor(trk: ScrubTrack | null): ShownContacts | null {
+  if (!trk || trk.count < 1) return null;
+  void contactsVersion.value;
+  return _contacts.viewOf(trk);
+}
+// a publication: the code panel's marks and the tint follow — the one place
+// they change with a message (a worker message's effects are published with
+// its tables, plan 3.6)
+watch(contactsVersion, () => { _colEmitMarks(); _colRetint(); });
+// What is shown changed: the tables no one reads any more go at once — not
+// with the next message, which may never come (a replaced entry result after
+// the main request ended; Codex R147 VP-I106).
+watch([collisionResult, collisionEntry, collisionRunSide, collisionSideFirst], () => _colReleaseContacts());
+/** The code panel's marks of what is shown: a query per visible line (plan
+ *  4.2), a new function per change. */
+function _colEmitMarks() {
+  const sh = colShown.value;
+  const trk = sh?.result ? sh.track : sh?.partialTrack ?? null;
+  const sv = contactViewFor(trk);
+  if (!sv || !trk) { emit("collision-lines", null); return; }
+  const runs = _lineRunsOf(trk);
+  emit("collision-lines", (line: number) => lineMark(sv.view, line, runsOf(runs, line), sv.lineAt));
+}
+/** A side sweep's result while it runs: nothing known of it but its tables
+ *  (C2) — the entry overlay is said still checking. */
+const SIDE_RUNNING: CollisionResult = { staticContacts: [], samples: 0, coarsened: false, uncertified: null, pairCount: 1,
+                                        pairsPrescreened: 0, bvhMs: 0, sweepMs: 0, truncated: null };
 const collisionEntryResult = computed<{ track: ScrubTrack; result: CollisionResult; checking?: boolean } | null>(() => {
-  // the entry move's result, or — while its side sweep runs — the first
-  // contact it found (Codex R136 VP-I93), said still checking
+  // the entry move's result, or — while its side sweep runs, once it found a
+  // contact (Codex R136 VP-I93) — its tables, said still checking
   const sf = collisionSideFirst.value;
   const e = collisionEntry.value
-    ?? (sf && !sf.run ? { track: sf.entry, base: sf.base, shift: sf.shift, result: { ...firstOnly(sf.first, 0), truncated: null } } : null);
+    ?? (sf && !sf.run ? { track: sf.entry, base: sf.base, shift: sf.shift, result: SIDE_RUNNING } : null);
   const b = e ? _colBaseFor(e.base) : null;
   if (!e || !b) return null;
-  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!, e.track.cum[1]),
+  return { track: e.track, result: mergeEntryResult(e.result, b, e.shift, e.base.cum[e.base.count - 1]!),
            ...(e !== collisionEntry.value ? { checking: true } : {}) };
 });
-/** The result swept on exactly `trk` (base or entry-overlaid), else null. */
-function _colResultFor(trk: ScrubTrack | null): CollisionResult | null {
-  if (!trk) return null;
-  const b = _colBaseFor(trk);
-  if (b) return b;
-  const e = collisionEntryResult.value;
-  return e && e.track === trk ? e.result : null;
-}
+// what the bar shows, watched once every input of it is declared (_colStage)
+watch(() => _colStage(), _colOnStageChange);
 
 /** The verdict of a preview no longer shown, kept named (plan „Prüfung im
- *  Lauf“ 1c): its marks' number and their kinds in words (step 4 plan 1a). */
+ *  Lauf“ 1c): its marks' number and their kinds in words (step 4 plan 1a),
+ *  counted from its published view's index (plan 4.4). Without its view
+ *  (its tables gone) there is nothing to name — said, never guessed. */
 function _colPreviousOf(prev: CollisionResult, version: number | null) {
-  const targets = clashTargets(prev.hits);
-  return { collisions: targets.length, text: findingWords(targets).text, complete: !prev.truncated, version };
-}
-
-/** Show a sweep's first confirmed contact at once (step 4 plan 1b): a
- *  running partial with that record in it — unrefined, at its discovering
- *  sample, like every live record; the record of the same onset replaced
- *  (Codex R136 VP-I91). Held into every later partial of the request until
- *  one carries it (VP-I92). */
-let _colFirstHeld: { id: number; first: CollisionHit } | null = null;
-function _colShowFirst(first: CollisionHit, progress?: number) {
-  const cur = collisionPartial.value && collisionPartialTrack.value === _colPendingTrack ? collisionPartial.value : null;
-  // held until a partial of this request carries it (VP-I92: a pooled
-  // partial built from older shard words dropped it again)
-  _colFirstHeld = { id: _colReqId, first };
-  if (holdsFirst(cur, first)) return;
-  const covered = progress ?? collisionProgress.value;
-  // the onset it is replaces the record of the same onset (VP-I91)
-  const shown: CollisionResult = cur ? { ...withFirstContact(cur, first), truncated: { covered, reason: "running" } }
-    : firstOnly(first, covered);
-  collisionPartial.value = shown;
-  collisionPartialTrack.value = _colPendingTrack;
-  _colEmitMarks();
-  _colRetint();
+  const sv = contactViewFor(collisionTrack.value);
+  if (sv) return { collisions: sv.view.n, text: wordsOfCounts(sv.derived?.counts ?? viewCounts(sv.view)).text, complete: !prev.truncated, version };
+  console.warn("[contacts] the earlier preview's verdict is not named — its contact view is gone");
+  return null;
 }
 
 function _colGetWorker(): Worker {
@@ -3139,8 +3428,52 @@ function _colGetWorker(): Worker {
     _colWorker = new Worker(new URL("./viewer/collisionWorker.ts", import.meta.url), { type: "module" });
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
-      const m = ev.data as { id: number; progress?: number; partial?: CollisionResult; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean; stopped?: boolean };
+      const m = ev.data as ColMessage;
+      const mine = m.id === _colReqId || (!!_colSide && m.id === _colSide.id);
+      // a superseded request's (its cancel went out), the bodies again, our
+      // own cancel: at once — everything else of a request's path goes
+      // through the publisher, its effects taken in order with its tables
+      // (plan 3.6: what the bar shows never runs ahead of them)
+      if (!mine || m.needBodies || m.cancelled) { _colOnMessage(m); return; }
+      let first = false;
+      if (m.contacts) {
+        // a request's first touch shows at once (plan 1b, 4.5): the delta
+        // that brings its first interval — a side run's sets its contact
+        // shown (collisionSideFirst) when the pass takes it
+        first = _intervalRows(m.id) === 0 && m.contacts.some(d => d.intervals.count > 0);
+        if (first) m.firstTouch = true;
+        _contactsLog.messages++;
+        _contactsLog.maxDeltaRows = Math.max(_contactsLog.maxDeltaRows,
+          m.contacts.reduce((n, d) => n + d.episodes.count + d.intervals.count + d.gaps.count, 0));
+      }
+      _contacts.receive(m as PublisherMessage);
+      _colKick(!!(m.result || m.stopped || m.error || m.heldCoverage) || first);
+    };
+    // A worker-level failure (module load, OOM, uncaught throw) never
+    // replies — without this the busy flag stayed set and the Check chip
+    // read 0% until a program change (the part-frame worker already had it).
+    _colWorker.onerror = (ev: ErrorEvent) => {
+      console.error("[collision] worker error:", ev.message);
+      emitTelemetry("collision.sweep_failed", { msg: `worker error: ${ev.message}` });
+      _colFail();
+    };
+  }
+  return _colWorker;
+}
+/** A message of the collision worker — `firstTouch` set here: it brings
+ *  the request's first touch interval. */
+type ColMessage = { id: number; progress?: number; partial?: CollisionResult; firstTouch?: boolean; error?: string; result?: CollisionResult;
+                    needBodies?: boolean; cancelled?: boolean; stopped?: boolean; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
+                    heldCoverage?: { generation: number; covered: number[] } };
+
+/** A worker message's effects on the live state — for a request's path when
+ *  a pass takes it (its deltas are in the tables then), at once otherwise. */
+function _colOnMessage(m: ColMessage) {
+      if (m.heldCoverage && m.progress == null && !m.result) return;   // tables only
+      const deltaAlone = !!m.contacts && m.progress == null && !m.result && !m.stopped && !m.error;
+      if (deltaAlone && !m.firstTouch) return;   // a delta alone
       if (_colSide && m.id === _colSide.id) { _colOnSideMessage(m); return; }
+      if (deltaAlone) return;   // the main request's first touch: its tables show it (the pass that took it)
       if (m.id !== _colReqId) return;  // superseded
       if (m.cancelled) return;         // our own cancel, acknowledged
       if (m.needBodies) {
@@ -3158,35 +3491,17 @@ function _colGetWorker(): Worker {
         // the same request again — its basis, its range, its run and whether
         // the result on screen stays (Codex R116 VP-I70: it went out as a
         // whole-track check of no run, and the run check stuck "provisional")
-        const held = _colFirstHeld?.id === m.id ? _colFirstHeld.first : null;
         runCollisionCheck(_colPendingTrack ?? undefined, _colPendingRun);
-        // ...a first contact it reported is the same request's (its new id)
-        if (held) _colFirstHeld = { id: _colReqId, first: held };
         return;
-      }
-      if (m.first) {
-        // The sweep's first confirmed contact (step 4 plan 1b), of THIS
-        // request (`m.id === _colReqId`: its track, version, basis and run
-        // phase — a new program, a retry or the full check after a
-        // provisional one is another request). Never over a provisional
-        // result kept on screen (`_colKeepShown`).
-        if (!_colKeepShown) _colShowFirst(m.first, m.progress);
-        if (m.progress == null) return;
       }
       if (m.progress != null && !m.result) {
         collisionProgress.value = m.progress;
+        // the running sweep's metadata (C2): its view's spec from now on —
+        // never over a provisional result kept on screen (`_colKeepShown`)
         if (m.partial && !_colKeepShown) {
-          let p = m.partial;
-          // the request's first contact, in every partial of it that does not
-          // carry it — for the whole request: a pool falling back to this core
-          // starts its sweep again (Codex R137 VP-I92 B); a partial that holds
-          // it keeps its own, newer record
-          const held = _colFirstHeld?.id === m.id ? _colFirstHeld.first : null;
-          if (held && !holdsFirst(p, held)) p = withFirstContact(p, held);
-          collisionPartial.value = p;
+          _colPartialReq = m.id;
+          collisionPartial.value = m.partial;
           collisionPartialTrack.value = _colPendingTrack;
-          _colEmitMarks();   // what is shown, the held contact in it (VP-I92 A)
-          _colRetint();
         }
         return;
       }
@@ -3196,6 +3511,7 @@ function _colGetWorker(): Worker {
         // and the worker still holds the generator.
         collisionBusy.value = false;
         _colStopPending = false;
+        _colResultReq = m.id;
         collisionResult.value = m.result!;
         collisionContext.value = _colPendingCtx;
         collisionTrack.value = _colPendingTrack;
@@ -3203,11 +3519,9 @@ function _colGetWorker(): Worker {
         collisionResumable.value = true;
         collisionStopped.value = { covered: m.result!.truncated?.covered ?? 0, reason: "motion" };
         emitTelemetry("collision.sweep_stopped", {
-          reason: "motion", covered: m.result!.truncated?.covered ?? 0, hits: m.result!.hits.length,
+          reason: "motion", covered: m.result!.truncated?.covered ?? 0, intervals: _intervalRows(m.id),
           ms: Math.round(performance.now() - _colStartedAt),
         });
-        _colEmitMarks();
-        _colRetint();
         return;
       }
       collisionBusy.value = false;
@@ -3218,11 +3532,11 @@ function _colGetWorker(): Worker {
         emitTelemetry("collision.sweep_failed", { msg: m.error });
         collisionResult.value = null;
         collisionTrack.value = null;
-        emit("collision-lines", null);
         return;
       }
       const result = m.result!;
       const run0 = collisionRun.value;
+      _colResultReq = m.id;
       collisionResult.value = result;
       collisionContext.value = _colPendingCtx;
       collisionTrack.value = _colPendingTrack;
@@ -3239,11 +3553,9 @@ function _colGetWorker(): Worker {
         uncertified: result.uncertified != null,
         truncated: result.truncated?.reason ?? null,
         covered: result.truncated?.covered ?? 1,
-        hits: result.hits.length, pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
+        intervals: _intervalRows(m.id), pairs: result.pairCount, pairs_prescreened: result.pairsPrescreened,
         points: _colPendingTrack?.count ?? null,
       });
-      _colEmitMarks();
-      _colRetint();
       _colKeepShown = false;
       if (run0 && _colReqRunGen === run0.gen && run0.phase === "full") _colRunLog.push("done");
       // The provisional check is on screen; the full one follows on the same
@@ -3258,17 +3570,6 @@ function _colGetWorker(): Worker {
           runCollisionCheck(t, { basis: run.basis, gen: run.gen, keepShown: true });
         }, 0);
       }
-    };
-    // A worker-level failure (module load, OOM, uncaught throw) never
-    // replies — without this the busy flag stayed set and the Check chip
-    // read 0% until a program change (the part-frame worker already had it).
-    _colWorker.onerror = (ev: ErrorEvent) => {
-      console.error("[collision] worker error:", ev.message);
-      emitTelemetry("collision.sweep_failed", { msg: `worker error: ${ev.message}` });
-      _colFail();
-    };
-  }
-  return _colWorker;
 }
 
 // Reset every sweep state the busy flag guards — the one place a failed
@@ -3301,6 +3602,7 @@ function cancelCollisionCheck() {
   // next sweep (it used to be terminated + recreated + rebuilt per cancel).
   if (_colWorker && (collisionBusy.value || collisionResumable.value)) _colWorker.postMessage({ cancel: _colReqId });
   _colReqId++;
+  _colReleaseContacts();
   collisionBusy.value = false;
   _colStopPending = false;
   collisionProgress.value = 0;
@@ -3378,6 +3680,7 @@ function _colCancelSide(why: string) {
   if (_colWorker) _colWorker.postMessage({ cancel: _colSide.id });
   if (_colSide.run) _colRunSideFailed(_colSide.run.gen, why);
   _colSide = null; collisionSideFirst.value = null;
+  _colReleaseContacts();
 }
 
 /** ScrubBar's own input edge while simulating (WCS rows it re-adds): nothing
@@ -3391,16 +3694,16 @@ function _colInvalidate() {
   _updateClashTint(null, null);
 }
 
-function _colOnSideMessage(m: { id: number; progress?: number; first?: CollisionHit; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean }) {
+function _colOnSideMessage(m: { id: number; progress?: number; firstTouch?: boolean; error?: string; result?: CollisionResult; needBodies?: boolean; cancelled?: boolean }) {
   const side = _colSide!;
-  // its first confirmed contact, before its result (Codex R136 VP-I93)
-  if (m.first) {
-    collisionSideFirst.value = { id: side.id, entry: side.entry, base: side.base, shift: side.shift,
-                                 ...(side.run ? { run: { gen: side.run.gen } } : {}), first: m.first };
-    if (side.run) _colEmitMarks();
-    _colRetint();
-    if (m.progress == null) return;
+  if (m.progress != null) _colSideProgress = m.progress;
+  // its first touch interval, before its result (Codex R136 VP-I93): its
+  // tables are shown from now on
+  if (m.firstTouch && collisionSideFirst.value?.id !== side.id) {
+    collisionSideFirst.value = { id: side.id, entry: side.entry, base: side.base, shift: side.shift, sliceEnd: _sliceEnd(side.slice),
+                                 ...(side.run ? { run: { gen: side.run.gen } } : {}) };
   }
+  if (m.firstTouch && m.progress == null && !m.result) return;
   if (m.progress != null && !m.result) return;
   if (m.cancelled) {
     _colSide = null; collisionSideFirst.value = null;
@@ -3430,20 +3733,17 @@ function _colOnSideMessage(m: { id: number; progress?: number; first?: Collision
   if (side.run) {
     // a run check's bound beginning: kept only for the run check that asked
     if (collisionRun.value?.gen === side.run.gen) {
-      collisionRunSide.value = { gen: side.run.gen, base: side.base, bound: side.entry, result, shift: side.shift };
+      collisionRunSide.value = { id: side.id, gen: side.run.gen, base: side.base, bound: side.entry, result, shift: side.shift, sliceEnd: _sliceEnd(side.slice) };
       collisionRunSideState.value = null;
-      _colEmitMarks();
-      _colRetint();
       _colRunLog.push("beginning");
     }
     return;
   }
-  collisionEntry.value = { track: side.entry, base: side.base, result, shift: side.shift };
+  collisionEntry.value = { id: side.id, track: side.entry, base: side.base, result, shift: side.shift, sliceEnd: _sliceEnd(side.slice) };
   emitTelemetry("collision.entry_done", {
-    ms: Math.round(performance.now() - side.startedAt), hits: result.hits.length,
+    ms: Math.round(performance.now() - side.startedAt), intervals: _intervalRows(side.id),
     static: result.staticContacts.length, samples: result.samples,
   });
-  _colRetint();
 }
 
 /** Re-apply the clash tint at the current scrub position after a result
@@ -3643,6 +3943,9 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
     track: trackCopy,
     wcs: _colWcs(basis),
     side: side || undefined,   // beside the main sweep (entry segment)
+    // the contact tables — what the sweep finds (step 4 package 2; a side
+    // run's share is the worker's T/8)
+    contacts: { generation: 0 },
     // During a run at most two workers (plan „Prüfung im Lauf“ 4: the
     // machine is cutting; the check must not take the cores from the page).
     maxShards: _runInProgress(status.value?.data) ? Math.min(2, _colMaxShards ?? 2) : _colMaxShards,
@@ -3697,6 +4000,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   const track = toRaw(trackOverride ?? viewerGcode.value?.scrubTrack ?? null) as ScrubTrack | null;
   if (!track || collisionBusy.value) return;
   const id = ++_colReqId;
+  _colReleaseContacts();
   const basis = run?.basis ?? _checkBasisNow();
   const req = _colBuildRequest(track, id, false, basis, run?.range);
   if (!req) return;
@@ -3752,6 +4056,8 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
   _colCancelSide("another check replaced it");
   collisionSideFirst.value = null;   // a side sweep replaced ends its first contact too
   _colSide = { id, entry, base, slice, shift, retried, startedAt: performance.now(), ...(run ? { run } : {}) };
+  _colReleaseContacts();
+  _colSideProgress = 0;
   emitTelemetry("collision.entry_start", { bodies: req.bodies, shift });
   try {
     _colGetWorker().postMessage(req.msg, req.transfer);
@@ -4401,8 +4707,8 @@ function _tintMesh(mesh: THREE.Mesh, on: boolean) {
 // visual proof the detection fired where the metal meets. Hit cums are only
 // meaningful on the track they were swept on — stale results never tint.
 function _updateClashTint(line: number | null, cum: number | null) {
-  const res = _colResultFor(_scrubTrackRef);
-  const want = line != null && cum != null && res ? clashTintBodies(res.hits, line, cum) : new Set<string>();
+  const sv = line != null && cum != null ? contactViewFor(_scrubTrackRef) : null;
+  const want = sv && cum != null ? tintAt(sv.view, cum) : new Set<string>();
   let changed = false;
   for (const id of _clashOnIds) {
     if (!want.has(id)) {
@@ -5406,26 +5712,30 @@ defineExpose({
     </div>
 
     <!-- Program-scrub timeline (stage 2) + collision check (stage 3) -->
+    <!-- the check as published with its contact views (plan 3.6): never ahead of them -->
     <ScrubBar
-      :collisionBusy="collisionBusy"
-      :collisionProgress="collisionProgress"
+      :collisionBusy="colShown?.busy ?? false"
+      :collisionProgress="colShown?.progress ?? 0"
       :sweepTool="{ num: vst?.tool_number ?? null, diam: vst?.tool_diameter ?? null, programTools }"
-      :collisionResult="collisionResultShown"
-      :collisionTrack="collisionTrack"
-      :collisionStopped="collisionStopped"
-      :collisionResumable="collisionResumable"
-      :collisionPartial="collisionPartialShown"
-      :collisionPartialTrack="collisionPartialTrackShown"
-      :collisionEntryResult="collisionEntryResult"
-      :collisionPrevious="collisionPrevious"
-      :collisionContext="collisionContext"
-      :collisionContextStale="collisionContextStale"
-      :collisionRunCheck="collisionRunCheckView"
+      :collisionResult="colShown?.result ?? null"
+      :collisionTrack="colShown?.track ?? null"
+      :collisionStopped="colShown?.stopped ?? null"
+      :collisionResumable="colShown?.resumable ?? false"
+      :collisionPartial="colShown?.partial ?? null"
+      :collisionPartialTrack="colShown?.partialTrack ?? null"
+      :collisionEntryResult="colShown?.entryResult ?? null"
+      :collisionPrevious="colShown?.previous ?? null"
+      :collisionContext="colShown?.context ?? null"
+      :collisionContextStale="colShown?.contextStale ?? false"
+      :collisionRunCheck="colShown?.runCheck ?? null"
+      @timeline-columns="onTimelineColumns"
       @check-entry="runEntryCheck"
       @pose="onScrubPose"
       @finding="onFinding"
       @manual-scrub="endPathReveal"
       @cancel-check="_colInvalidate"
+      :contactViewFor="contactViewFor"
+      :contactsVersion="contactsVersion"
     />
     </div>
 

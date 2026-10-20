@@ -4,8 +4,9 @@
 // (viewer/clashTargets.ts, the limit and tool targets of ScrubBar), so the
 // list, the marks and prev/next can never disagree. Pure; unit-tested.
 import { limitViolationText, type LimitViolation } from "../ws/bulkData";
-import { fmtDist, fmtElapsed, fmtPct } from "../format";
-import type { ClashTarget } from "./clashTargets";
+import { NO_VALUE, fmtDistUpper, fmtElapsed, fmtPct } from "../format";
+import { isNearMiss, type ClashTarget } from "./clashTargets";
+import type { LineAt } from "./contactView";
 
 export type SimRowKind = "clash" | "limit" | "tool";
 
@@ -64,7 +65,16 @@ export interface SimRowInput {
   measurements?: readonly { cum: number; line: number }[];
 }
 
-const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
+export const KIND_ORDER: Record<SimRowKind, number> = { tool: 0, limit: 1, clash: 2 };
+
+/** A position's line in words (plan 1.3, C3): "L<n>" for its DISPLAY line,
+ *  else its subroutine's name, else "—" — never a raw line, not even without
+ *  a resolver (Codex R172 VP-I126). */
+export function lineWordAt(lineAt: LineAt | null | undefined, pos: number): string {
+  if (!lineAt) return NO_VALUE;
+  const l = lineAt(pos);
+  return l != null && l > 0 ? `L${l}` : lineAt.nameAt?.(pos) ?? NO_VALUE;
+}
 
 /** The measurement note of a tool-change row: its line's, for its tool. */
 function toolNote(notes: SimRowInput["toolNotes"], t: { line: number; tool: number }): string {
@@ -93,11 +103,19 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   for (const t of i.clash) {
     const notes: string[] = [];
     if (t.reentry) notes.push("re-entry");
-    // a margin entry whose contact touches later is a collision (`touches`)
-    if ((t.dist ?? 0) > 1e-3 && !t.touches) notes.push(`near miss, ${fmtDist(t.dist ?? 0, i.unit)} apart`);
+    // a near miss by the sweep's class: a stay inside the margin, never a
+    // touch. Its distance is its closest SAMPLE's: the parts come at least
+    // that close, maybe closer — "within", never "apart", a clearance the
+    // sampling does not prove (step 4 package 2, B8: on haus.ngc Fall B up
+    // to 0.89 mm closer than the sample read; R175) — rounded up (Codex R174)
+    if (isNearMiss(t)) notes.push(`near miss, within ${fmtDistUpper(t.dist ?? 0, i.unit)}`);
     if ((t.spanEndLine ?? t.line) > t.line) notes.push(`through L${t.spanEndLine}`);
     if (t.possible) notes.push("possible — in the probe's braking range");
-    rows.push({ key: t.key, kind: "clash", line: t.line, lineLabel: t.entryMove ? "entry" : `L${t.line}`,
+    if (t.earlier) notes.push("from the earlier run");
+    // no line to show (plan 1.3): its subroutine's name, else "—" — never its raw line
+    if (t.noLine && !t.entryMove) notes.push(t.subName ? `in ${t.subName}, no line of this program` : "no line of this program");
+    rows.push({ key: t.key, kind: "clash", line: t.line,
+      lineLabel: t.entryMove ? "entry" : t.noLine ? (t.subName ? `(${t.subName})` : NO_VALUE) : `L${t.line}`,
       cum: t.cum, cumEnd: t.cumEnd,
       what: t.a && t.b ? `${partLabel(t.a)} ↔ ${partLabel(t.b)}` : "Collision",
       note: notes.join(" · "), rapid: !!t.rapid, at: at(t.cum) });

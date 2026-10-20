@@ -7,6 +7,7 @@
 // scrub poses and the sweep findings of the fresh payload — in both
 // directions. Without the normalisation Codex's R55 pair misses its clash.
 import { describe, it, expect } from "vitest";
+import { ContactStore, NONE } from "./contactStore";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import * as THREE from "three";
@@ -59,8 +60,15 @@ function consume(raw: Record<string, any>, basis: number[], normalise = true) {
     { id: "fixture", group: "table", positions, translate: [5, 0, -5] },
     { id: "tool", group: "head", positions: toolCylinderPositions(6, 10), tool: true },
   ]);
-  const hits = sweepCollisions(model, track, wcs, { margin: 0.1, tloEvents: d.tloEvents }).hits
-    .map(h => ({ line: h.line, a: h.a, b: h.b }));
+  const store = new ContactStore(1, 0);
+  sweepCollisions(model, track, wcs, { margin: 0.1, tloEvents: d.tloEvents, contacts: { store } });
+  // the contact tables (step 4 package 2): every stay and touch interval
+  const tables = Array.from({ length: store.episodes.rows }, (_, e) => {
+    const ivs: string[] = [];
+    for (let iv = store.episodes.get(e, "firstIv"); iv !== NONE; iv = store.intervals.get(iv, "next"))
+      ivs.push(`${store.intervals.get(iv, "enter").toFixed(3)}–${store.intervals.get(iv, "exit").toFixed(3)}`);
+    return `${store.episodes.get(e, "pair")} ${store.episodes.get(e, "onset").toFixed(3)} [${ivs.join(" ")}]`;
+  }).sort();
   const samples = [0, track.cum[1]! / 2, track.cum[track.count - 1]!].map(s => {
     const v = sampleTrack(track, s, {} as ScrubSample);
     const j: number[] = [];
@@ -69,7 +77,7 @@ function consume(raw: Record<string, any>, basis: number[], normalise = true) {
   });
   const r4 = (a: ArrayLike<number>) => Array.from(a, v => Math.round(v * 1e4) / 1e4);
   return { pos: r4(d.feed.pos).concat(r4(d.rapid.pos)), track: r4(track.pos), joints,
-           path: r4(path.pos), hits, samples };
+           path: r4(path.pos), tables, samples };
 }
 
 function normaliseOrNot(d: ReturnType<typeof decodePreviewStreams>, tloStart: number[], basis: number[], on: boolean) {
@@ -94,10 +102,10 @@ describe("tool-basis normalisation (VP-I20)", () => {
   it("Codex R55: the clash at Z10 is found only with the normalisation", () => {
     const { r55 } = FIXTURE.pairs;
     const fresh10 = consume(r55["10"], [0, 0, 10]);
-    expect(fresh10.hits.length).toBeGreaterThan(0);
-    expect(consume(r55["20"], [0, 0, 20]).hits).toEqual([]);
+    expect(fresh10.tables.length, "a contact in the tables").toBeGreaterThan(0);
+    expect(consume(r55["20"], [0, 0, 20]).tables).toEqual([]);
     // the Z20 payload resolved to basis 10 WITHOUT moving its points: no clash
-    expect(consume(r55["20"], [0, 0, 10], false).hits).toEqual([]);
-    expect(consume(r55["20"], [0, 0, 10]).hits).toEqual(fresh10.hits);
+    expect(consume(r55["20"], [0, 0, 10], false).tables).toEqual([]);
+    expect(consume(r55["20"], [0, 0, 10]).tables).toEqual(fresh10.tables);
   });
 });

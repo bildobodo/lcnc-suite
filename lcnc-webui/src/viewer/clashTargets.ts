@@ -1,5 +1,3 @@
-import type { CollisionHit } from "./collision";
-
 /** One navigation/mark target of the scrub bar's clash surface. */
 export interface ClashTarget {
   cum: number;
@@ -15,13 +13,20 @@ export interface ClashTarget {
   entry?: boolean;
   /** …and began on the entry move itself (not on the bound beginning). */
   entryMove?: boolean;
+  /** Its DISPLAY line (plan 1.3); 0 with `noLine` when it has none. */
   line: number;
+  /** No line to show (plan 1.3, C3): untrusted and outside any call span —
+   *  never its raw line; no code mark. `subName` names its subroutine. */
+  noLine?: boolean;
+  subName?: string;
   rapid?: boolean;
   dist?: number;
-  /** The contact touched on a later line than this margin entry
-   *  (CollisionHit.touches): a collision whatever `dist` says. */
-  touches?: boolean;
-  /** The onset of a contact the program STARTS in (CollisionHit.atStart). */
+  /** A near miss by the sweep's own class (contactView: a stay inside the
+   *  margin without a touch interval — plan 4.1: one class, the sweep's).
+   *  Absent on a target built by hand: the 1e-3 distance test decides
+   *  (`isNearMiss`). */
+  near?: boolean;
+  /** The onset of a contact the program STARTS in (the view's T_AT_START). */
   atStart?: boolean;
   spanEndLine?: number;
   /** A second (or later) contact interval on the SAME line/pair — a real
@@ -30,43 +35,16 @@ export interface ClashTarget {
   /** The body pair (tool side, work side) — the Simulation tab names it. */
   a: string;
   b: string;
-  /** On a probe's braking range (CollisionHit.possible): the contact MAY
+  /** On a probe's braking range (the view's T_POSSIBLE): the contact MAY
    *  happen — never a certain one. */
   possible?: boolean;
+  /** A near miss of the check's earlier run (a pool that fell back to one
+   *  core, plan 3.5) the run since did not find again: "from the earlier run". */
+  earlier?: boolean;
 }
 
-/**
- * ONE derivation for the scrub bar's clash COUNT, timeline MARKS and prev/next
- * NAVIGATION. 2026-09-03: the count read onset RECORDS while marks and nav read
- * per-INTERVAL targets — "one clash reported, two marks on the timeline".
- * Onset records only (a continuation is the same contact carried across
- * lines, and so is an onset's `carried` first interval); one target per
- * refined contact interval; a near-miss (no intervals)
- * once at its closest approach. Cum-sorted. Pure; unit-tested.
- */
-export function clashTargets(hits: readonly CollisionHit[]): ClashTarget[] {
-  const out: ClashTarget[] = [];
-  for (const h of hits) {
-    // a continuation is its onset's contact; a boundary record a contact in
-    // progress at a range sweep's start — no collision of its own (plan
-    // „Prüfung im Lauf“ 3b)
-    if (h.continuation !== undefined || h.boundary) continue;
-    const ivs = h.intervals ?? [[h.cum, h.cumEnd] as [number, number]];
-    // A carried first interval is an earlier finding's contact (Codex R34
-    // VP-I09); the later intervals keep their index, so their keys are the
-    // same with and without the entry result merged in.
-    for (let k = h.carried ? 1 : 0; k < ivs.length; k++) {
-      const t: ClashTarget = { cum: ivs[k]![0], cumEnd: ivs[k]![1],
-        key: `${h.entry ? "E" : "C"}${h.line}|${h.a}|${h.b}|${k}`,
-        line: h.line, rapid: h.rapid, dist: h.dist, spanEndLine: h.spanEndLine, a: h.a, b: h.b };
-      if (h.entry) t.entry = true;
-      if (h.entryMove) t.entryMove = true;
-      if (k > 0) t.reentry = true;
-      if (h.possible) t.possible = true;
-      if (h.touches) t.touches = true;
-      if (h.atStart && k === 0) t.atStart = true;
-      out.push(t);
-    }
-  }
-  return out.sort((a, b) => a.cum - b.cum);
-}
+/** A near miss: by the sweep's class where the target carries it (every
+ *  target of the contact view), else the distance test. */
+export const isNearMiss = (t: ClashTarget): boolean =>
+  t.near ?? (t.dist ?? 0) > 1e-3;
+

@@ -9,6 +9,7 @@ import {
   boxLowerBound, buildCollisionModel, partCollides, partCollisionFile, poseModel, toolCylinderPositions,
   type BuiltBody, type CollisionBody, type CollisionMachine, type CollisionModel, type CollisionTrack,
 } from "./collision";
+import { EP_ORIGIN_MASK, IV_ENTER_DECIDED, NONE, ORIGIN_BOUNDARY, type ContactStore } from "./contactStore";
 import { windingNumber } from "./insideCheck";
 import { kinsForSegment, type KinsSpec } from "./kins";
 
@@ -225,6 +226,37 @@ export function trackOf(c: Case, pts: number[][], rand: () => number): Collision
   };
 }
 
+/** The track cut into short lines: every move split into pieces of 0.05–1.5
+ *  of the sweep's parameter, each its own line, its kind the move's but
+ *  flipped for one piece in seven. The path is the same (the pieces
+ *  interpolate the move linearly, as the sweep does), so is the parameter —
+ *  where the per-line sample mattered: a contact's lines shorter than the
+ *  cadence (step 4 package 2, plan 5, B8; haus.ngc's 0.09 mm lines). */
+export function shortLines(t: CollisionTrack, rand: () => number): CollisionTrack {
+  const pos: number[] = [t.pos[0]!, t.pos[1]!, t.pos[2]!], abc: number[] = [t.abc[0]!, t.abc[1]!, t.abc[2]!], cum: number[] = [0];
+  const rapid: number[] = [t.rapid[0]!], mode: number[] = t.mode ? [t.mode[0]!] : [];
+  for (let i = 1; i < t.count; i++) {
+    const c0 = t.cum[i - 1]!, c1 = t.cum[i]!, L = c1 - c0;
+    let u = 0;
+    while (u < 1) {
+      u = Math.min(1, u + (0.05 + rand() * 1.45) / Math.max(L, 1e-9));
+      for (let a = 0; a < 3; a++) {
+        pos.push(t.pos[(i - 1) * 3 + a]! + (t.pos[i * 3 + a]! - t.pos[(i - 1) * 3 + a]!) * u);
+        abc.push(t.abc[(i - 1) * 3 + a]! + (t.abc[i * 3 + a]! - t.abc[(i - 1) * 3 + a]!) * u);
+      }
+      cum.push(c0 + L * u);
+      rapid.push(rand() < 1 / 7 ? 1 - t.rapid[i]! : t.rapid[i]!);
+      if (t.mode) mode.push(t.mode[i]!);
+    }
+  }
+  const n = cum.length;
+  return {
+    pos: Float32Array.from(pos), abc: Float32Array.from(abc), cum: Float32Array.from(cum), count: n,
+    lines: Uint32Array.from({ length: n }, (_, i) => 10 + i), rapid: Uint8Array.from(rapid),
+    ...(t.mode ? { mode: Uint8Array.from(mode) } : {}),
+  };
+}
+
 /** The truth along a track, apart from the sweep's stepping: the model posed
  *  at any point of the track the sweep's way (the segment's kins, program
  *  coords = machine coords — WCS and tool offset zero), a pair's exact
@@ -275,7 +307,9 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
   // part of a run (a record is the line of the sample that saw it; a run
   // that crosses a line's end by less than MIN_ADV owes that line no sample —
   // found on generated machine 20261051, step 4 plan package 2, 7.3).
-  const runWide = (pi: number, s: number, e: number, alsoInside = false, within?: [number, number]): boolean => {
+  // `runAround`: the run's ends (each walked out at most WIDE + MIN_ADV, then
+  // bisected) — an exemption a comparison binds to exactly that stretch.
+  const runAround = (pi: number, s: number, e: number, alsoInside = false, within?: [number, number]): [number, number] => {
     const A = model.bodies[model.pairs[pi]![0]]!, B = model.bodies[model.pairs[pi]![1]]!;
     const inside = (x: number) => {
       poseAt(x);
@@ -296,7 +330,11 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
         x = y;
       }
     };
-    return edge(1) - edge(-1) > WIDE;
+    return [edge(-1), edge(1)];
+  };
+  const runWide = (pi: number, s: number, e: number, alsoInside = false, within?: [number, number]): boolean => {
+    const [a, b] = runAround(pi, s, e, alsoInside, within);
+    return b - a > WIDE;
   };
   /** The track parameters of segment `seg`'s line: the run of segments with
    *  its line around it. */
@@ -307,7 +345,7 @@ export function trackTruth(model: CollisionModel, c: Case, track: CollisionTrack
     while (b < track.count - 1 && track.lines[b + 1] === ln) b++;
     return [track.cum[a - 1]!, track.cum[b]!];
   };
-  return { poseAt, below, runWide, lineSpan, WIDE };
+  return { poseAt, below, runWide, runAround, lineSpan, WIDE };
 }
 
 const _itInv = new THREE.Matrix4(), _itRel = new THREE.Matrix4(), _itP = new THREE.Vector3();
@@ -390,3 +428,46 @@ export function insideAt(model: CollisionModel, c: Case, at: number[]): { at: nu
   }
   return null;
 }
+
+/** The contact tables (step 4 package 2) per pair index, as plain spans on
+ *  the sweep's axis — what the oracles hold to the truth (plan 7.3): the
+ *  touch intervals (an open or suspended one reaching `end` — the cautious
+ *  side), the stays inside the margin (an episode from the sample that found
+ *  it to its last sample in the margin; an open one to `end`), the knowledge
+ *  gaps, every witness, the entries the bisection decided, and the near
+ *  misses (an episode without a touch, at its closest approach). Boundary
+ *  episodes (a range check's contacts begun before its start) are listed
+ *  apart: they are no finding of the range. */
+export interface PairTables {
+  touches: Array<[number, number]>; stays: Array<[number, number]>; gaps: Array<[number, number]>;
+  witnesses: number[]; enters: number[]; nears: Array<{ at: number; dist: number }>; boundary: number;
+}
+export function tablesByPair(store: ContactStore, end: number): Map<number, PairTables> {
+  const E = store.episodes, I = store.intervals, G = store.gaps;
+  const out = new Map<number, PairTables>();
+  const of = (pi: number): PairTables => {
+    let t = out.get(pi);
+    if (!t) out.set(pi, t = { touches: [], stays: [], gaps: [], witnesses: [], enters: [], nears: [], boundary: 0 });
+    return t;
+  };
+  const upTo = (x: number) => (Number.isNaN(x) ? end : x);
+  for (let e = 0; e < E.rows; e++) {
+    const t = of(E.get(e, "pair"));
+    if ((E.get(e, "flags") & EP_ORIGIN_MASK) === ORIGIN_BOUNDARY) t.boundary++;
+    t.stays.push([E.get(e, "onset"), upTo(E.get(e, "end"))]);
+    if (E.get(e, "ivCount") === 0) t.nears.push({ at: E.get(e, "closeAt"), dist: E.get(e, "closeDist") });
+    for (let iv = E.get(e, "firstIv"); iv !== NONE; iv = I.get(iv, "next")) {
+      t.touches.push([I.get(iv, "enter"), upTo(I.get(iv, "exit"))]);
+      t.witnesses.push(I.get(iv, "witness"));
+      if (I.get(iv, "flags") & IV_ENTER_DECIDED) t.enters.push(I.get(iv, "enter"));
+    }
+  }
+  for (let g = 0; g < G.rows; g++) of(G.get(g, "pair")).gaps.push([G.get(g, "start"), upTo(G.get(g, "end"))]);
+  return out;
+}
+/** Does one of `spans` hold s (within `tol`)? */
+export const inSpans = (spans: ReadonlyArray<readonly [number, number]>, s: number, tol: number): boolean =>
+  spans.some(([a, b]) => s >= a - tol && s <= b + tol);
+/** Does one of `spans` reach into [lo, hi]? */
+export const meetsSpan = (spans: ReadonlyArray<readonly [number, number]>, lo: number, hi: number): boolean =>
+  spans.some(([a, b]) => a <= hi && b >= lo);

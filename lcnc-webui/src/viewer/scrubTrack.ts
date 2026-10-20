@@ -16,7 +16,7 @@
 import { kinsForSegment, type KinsSpec } from "./kins";
 import { TLO_NONE, tloForIndex, type TloEvent } from "./tloEvents";
 import { EVENT_NONE } from "./eventIndex";
-import { buildLineIndex, lineRange } from "./lineIndex";
+import { buildLineIndex, lineHas, lineRange, type LineIndex } from "./lineIndex";
 import {
   machineToProgram, wcsTerms,
   type PartFrameWcs, type WcsTerms, liftToJoints, jointsToProgram, tipWcs } from "./partFrame";
@@ -613,18 +613,31 @@ export function sampleTrack(t: ScrubTrack, s: number, out: ScrubSample): ScrubSa
  *  (`viaCall: true`) — the o-call/remap line the operator wrote — so the
  *  highlight tracks execution through subs instead of going dark. */
 export function displayLineForPoint(
-  t: Pick<ScrubTrack, "lines" | "lineOk" | "sub" | "cline" | "subNames">, i: number, wholesaleTrusted: boolean,
+  t: { lines: ArrayLike<number>; lineOk?: ArrayLike<number>; sub?: ArrayLike<number>; cline?: ArrayLike<number>; subNames?: string[] },
+  i: number, wholesaleTrusted: boolean,
 ): { line: number | null; subName: string | null; viaCall: boolean } {
-  const ln = t.lines[i] ?? 0;
-  const ok = t.lineOk ? t.lineOk[i] === 1 : wholesaleTrusted;
-  const sb = t.sub?.[i];
-  const cl = t.cline?.[i] ?? 0;
-  const own = ok && ln > 0;
+  const line = displayLineOf(t, i, wholesaleTrusted), sb = t.sub?.[i];
   return {
-    line: own ? ln : cl > 0 ? cl : null,
+    line: line > 0 ? line : null,
     subName: (sb != null && sb !== 0xff && t.subNames) ? t.subNames[sb] ?? null : null,
-    viaCall: !own && cl > 0,
+    viaCall: line > 0 && line !== ownLineOf(t, i, wholesaleTrusted),
   };
+}
+
+/** The point's own line when it may show it (its trust), else 0. */
+function ownLineOf(t: { lines: ArrayLike<number>; lineOk?: ArrayLike<number> }, i: number, wholesaleTrusted: boolean): number {
+  const ln = t.lines[i] ?? 0;
+  return (t.lineOk ? t.lineOk[i] === 1 : wholesaleTrusted) && ln > 0 ? ln : 0;
+}
+
+/** displayLineForPoint's line without an object (a pass over every point —
+ *  the code marks' runs, plan 4.2): the point's own line, else its call
+ *  line, else 0 = none. */
+export function displayLineOf(
+  t: { lines: ArrayLike<number>; lineOk?: ArrayLike<number>; cline?: ArrayLike<number> }, i: number, wholesaleTrusted: boolean,
+): number {
+  const own = ownLineOf(t, i, wholesaleTrusted);
+  return own > 0 ? own : t.cline?.[i] ?? 0;
 }
 
 /** True when the scrub parameter sits pinned at the track's very end —
@@ -907,7 +920,10 @@ function cumReader(t: ScrubTrack, on: ScrubTrack): ((i: number) => number) | nul
  *  entry move ENDS at the program's first point and so carries the first
  *  line, which is no move of that line's in the program (Codex R33 VP-I05). */
 export function lineSpanCum(t: ScrubTrack, line: number, on: ScrubTrack = t): [number, number] | null {
-  const r = lineRange(t.lineIndex, line);
+  return spanBy(t, t.lineIndex, line, on);
+}
+function spanBy(t: ScrubTrack, idx: LineIndex, line: number, on: ScrubTrack): [number, number] | null {
+  const r = lineRange(idx, line);
   const at = cumReader(t, on);
   if (!r || !at) return null;
   return [at(Math.max(0, r.start - 1)), at(r.end)];
@@ -920,14 +936,53 @@ export function lineSpanCum(t: ScrubTrack, line: number, on: ScrubTrack = t): [n
  *  null when the line has no point. The move is found on `t` and read on
  *  `on` (default `t`), as in lineSpanCum. */
 export function lineFirstMoveCum(t: ScrubTrack, line: number, on: ScrubTrack = t): [number, number] | null {
-  const r = lineRange(t.lineIndex, line);
+  return firstMoveBy(t, t.lineIndex, t.lines, line, on);
+}
+function firstMoveBy(t: ScrubTrack, idx: LineIndex, lines: ArrayLike<number>, line: number, on: ScrubTrack): [number, number] | null {
+  const r = lineRange(idx, line);
   const at = cumReader(t, on);
   if (!r || !at) return null;
   const from = (k: number) => Math.max(0, k - 1);
   for (let k = r.start; k <= r.end; k++) {
-    if (t.lines[k] === line && t.cum[k]! > t.cum[from(k)]!) return [at(from(k)), at(k)];
+    if (lines[k] === line && t.cum[k]! > t.cum[from(k)]!) return [at(from(k)), at(k)];
   }
   return [at(from(r.start)), at(r.start)];
+}
+
+/** The track's points by the line of the PROGRAM they show (displayLineOf: a
+ *  main-file line's own trusted points, a called file's moves under their
+ *  call line), indexed like lineIndex — what a line of the program text, a
+ *  limit record's, names on the timeline. A called file's raw line numbers
+ *  collide with the program's: the M600 routine's line 536 ran at 00:05,
+ *  haus.ngc's L536 a minute later, and the limit row of L536 stood first in
+ *  the list with its band from 00:05 on (operator 2026-10-19). Cached per
+ *  track and trust. */
+const _programLines = new WeakMap<ScrubTrack, { trusted: boolean; lines: Uint32Array; index: LineIndex }>();
+function programLines(t: ScrubTrack, trusted: boolean): { lines: Uint32Array; index: LineIndex } {
+  let p = _programLines.get(t);
+  if (!p || p.trusted !== trusted) {
+    const lines = new Uint32Array(t.count);
+    for (let i = 0; i < t.count; i++) lines[i] = displayLineOf(t, i, trusted);
+    p = { trusted, lines, index: buildLineIndex(lines) };
+    _programLines.set(t, p);
+  }
+  return p;
+}
+
+/** lineSpanCum for a line of the program (programLines). A line no point
+ *  shows — a track without per-point trust whose lines are not trusted —
+ *  reads the raw line's extent, the reading before: a record is never
+ *  dropped for it. */
+export function programLineSpanCum(t: ScrubTrack, line: number, on: ScrubTrack, trusted: boolean): [number, number] | null {
+  const p = programLines(t, trusted);
+  return lineHas(p.index, line) ? spanBy(t, p.index, line, on) : lineSpanCum(t, line, on);
+}
+
+/** lineFirstMoveCum for a line of the program (programLines), the same
+ *  reading when no point shows it. */
+export function programLineFirstMoveCum(t: ScrubTrack, line: number, on: ScrubTrack, trusted: boolean): [number, number] | null {
+  const p = programLines(t, trusted);
+  return lineHas(p.index, line) ? firstMoveBy(t, p.index, p.lines, line, on) : lineFirstMoveCum(t, line, on);
 }
 
 /** The contiguous same-line run of track segments around segment i — the

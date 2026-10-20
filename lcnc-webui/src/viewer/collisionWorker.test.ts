@@ -12,10 +12,11 @@ import { ContactStore, NONE, type StoreDelta } from "./contactStore";
 import { boxPositions } from "./collisionFixtures";
 
 type Msg = Record<string, any>;
-const hit = (line = 7) => ({ line, cum: 2, cumEnd: 3, a: "moving", b: "fixed", dist: 0, rapid: true, intervals: [[2, 3] as [number, number]] });
-const result = (hits: ReturnType<typeof hit>[] = [], covered?: number, reason: "running" | "stopped" = "running"): CollisionResult => ({
-  hits, staticContacts: [], samples: 20, coarsened: false, uncertified: null, pairCount: 2, pairsPrescreened: 0,
-  bvhMs: 1, sweepMs: 20, truncated: covered === undefined ? null : { covered, reason } });
+/** A shard's word: its metadata — what it found is its tables' (C2); a note
+ *  stands for what the word says. */
+const result = (notes: string[] = [], covered?: number, reason: "running" | "stopped" = "running"): CollisionResult => ({
+  staticContacts: [], samples: 20, coarsened: false, ...(notes.length ? { notes, uncertified: notes.join("; ") } : { uncertified: null }),
+  pairCount: 2, pairsPrescreened: 0, bvhMs: 1, sweepMs: 20, truncated: covered === undefined ? null : { covered, reason } });
 const machine = { groups: [{ id: "fixed", parent: "root" }, { id: "moving", parent: "root" }],
   kinematics: [{ group: "moving", joint: 0, type: "translate", direction: "x", sign: 1 }],
   workGroup: "fixed", toolGroup: "moving", unitScale: 1, axes: ["X", "Y", "Z"] };
@@ -71,20 +72,20 @@ describe("how many shards", () => {
 });
 
 describe("a partial is every shard's latest word (VP-I47)", () => {
-  it("a finished shard's findings show at once, and stay while the others run", async () => {
+  it("a finished shard's word shows at once, and stays while the others run", async () => {
     const { sent, workers, send } = await setup();
     send(req(1));
-    workers[0]!.emit({ id: 1, result: result([hit()]) });
-    expect(last(sent).partial.hits.map((h: Msg) => h.line), "at once").toEqual([7]);
+    workers[0]!.emit({ id: 1, result: result(["n7"]) });
+    expect(last(sent).partial.notes, "at once").toEqual(["n7"]);
     vi.advanceTimersByTime(600);
     workers[1]!.emit({ id: 1, progress: 0.3, partial: result([], 0.3) });
-    expect(last(sent).partial.hits.map((h: Msg) => h.line), "after the other's partial").toEqual([7]);
+    expect(last(sent).partial.notes, "after the other's partial").toEqual(["n7"]);
     expect(last(sent).progress).toBe(0.3);
   });
   it("a shard not heard from counts as swept 0, and the partial names the whole pool", async () => {
     const { sent, workers, send } = await setup();
     send(req(2));
-    workers[0]!.emit({ id: 2, progress: 0.8, partial: result([hit()], 0.8) });
+    workers[0]!.emit({ id: 2, progress: 0.8, partial: result(["n7"], 0.8) });
     const m = last(sent);
     expect([m.progress, m.partial.truncated.covered, m.partial.shards]).toEqual([0, 0, 2]);
   });
@@ -93,33 +94,33 @@ describe("a partial is every shard's latest word (VP-I47)", () => {
     // covered — the pool read 80 % swept where every pair was swept to 20 %.
     const { sent, workers, send } = await setup();
     send(req(5));
-    workers[0]!.emit({ id: 5, result: { ...result([hit()], 0.2), truncated: { covered: 0.2, reason: "samples" }, coarsened: true } });
+    workers[0]!.emit({ id: 5, result: { ...result(["n7"], 0.2), truncated: { covered: 0.2, reason: "samples" }, coarsened: true } });
     workers[1]!.emit({ id: 5, progress: 0.8 });
     expect(last(sent).progress).toBe(0.2);
     workers[1]!.emit({ id: 5, result: result() });
     expect(last(sent).result.truncated).toEqual({ covered: 0.2, reason: "samples" });
   });
-  it("shard partials go out at most every PEEK_MS; the next progress carries a held one", async () => {
+  it("shard partials go out at most every META_MS; the next progress carries a held one", async () => {
     const { sent, workers, send } = await setup();
     send(req(3));
-    workers[0]!.emit({ id: 3, progress: 0.1, partial: result([hit(5)], 0.1) });
-    workers[1]!.emit({ id: 3, progress: 0.1, partial: result([hit(9)], 0.1) });
+    workers[0]!.emit({ id: 3, progress: 0.1, partial: result(["n5"], 0.1) });
+    workers[1]!.emit({ id: 3, progress: 0.1, partial: result(["n9"], 0.1) });
     expect(sent.filter(m => m.partial)).toHaveLength(1);
     vi.advanceTimersByTime(600);
     workers[0]!.emit({ id: 3, progress: 0.2 });
-    expect(last(sent).partial.hits.map((h: Msg) => h.line)).toEqual([5, 9]);
+    expect(last(sent).partial.notes).toEqual(["n5", "n9"]);
   });
   it("after continue a parked shard's snapshot stays in the view until it says more", async () => {
     const { sent, workers, send } = await setup();
     send(req(4));
     send({ stop: 4 });
-    workers[0]!.emit({ id: 4, stopped: true, result: result([hit()], 0.4, "stopped") });
+    workers[0]!.emit({ id: 4, stopped: true, result: result(["n7"], 0.4, "stopped") });
     workers[1]!.emit({ id: 4, stopped: true, result: result([], 0.2, "stopped") });
     expect(last(sent).stopped).toBe(true);
     send({ continue: 4 });
     vi.advanceTimersByTime(600);
     workers[1]!.emit({ id: 4, progress: 0.3, partial: result([], 0.3) });
-    expect(last(sent).partial.hits.map((h: Msg) => h.line)).toEqual([7]);
+    expect(last(sent).partial.notes).toEqual(["n7"]);
   });
 });
 
@@ -221,13 +222,13 @@ describe("a failing sub-worker (VP-I48, VP-I49)", () => {
   it("an unanswered stop gets what the shards swept as the parked result", async () => {
     const { sent, workers, send } = await setup();
     send(req(17));
-    workers[0]!.emit({ id: 17, progress: 0.4, partial: result([hit()], 0.4) });
+    workers[0]!.emit({ id: 17, progress: 0.4, partial: result(["n7"], 0.4) });
     send({ stop: 17 });
     workers[1]!.fail();
     await vi.runAllTimersAsync();
     const parked = sent.filter(m => m.id === 17 && m.stopped);
     expect(parked).toHaveLength(1);
-    expect(parked[0]!.result.hits.map((h: Msg) => h.line)).toEqual([7]);
+    expect(parked[0]!.result.notes).toEqual(["n7"]);
     expect(parked[0]!.result.truncated).toEqual({ covered: 0, reason: "stopped" });
     expect(sent.some(m => m.id === 17 && m.result && !m.stopped), "parked, not run").toBe(false);
   });
@@ -263,14 +264,14 @@ describe("the regular flow", () => {
   it("stop, continue, finish and a shard's error reach the owner", async () => {
     const { sent, workers, send } = await setup();
     send(req(20));
-    workers[0]!.emit({ id: 20, result: result([hit()]) });
+    workers[0]!.emit({ id: 20, result: result(["n7"]) });
     send({ stop: 20 });
     workers[1]!.emit({ id: 20, stopped: true, result: result([], 0.2, "stopped") });
     expect(last(sent).stopped).toBe(true);
-    expect(last(sent).result.hits).toHaveLength(1);
+    expect(last(sent).result.notes).toEqual(["n7"]);
     send({ continue: 20 });
     workers[1]!.emit({ id: 20, result: result() });
-    expect(last(sent).result.hits).toHaveLength(1);
+    expect(last(sent).result.notes).toEqual(["n7"]);
     expect(last(sent).result.shards).toBe(2);
     send(req(21));
     workers[0]!.emit({ id: 21, error: "deliberate shard error" });
@@ -289,14 +290,19 @@ describe("the regular flow", () => {
 });
 
 describe("the side id −1 (VP-I50)", () => {
-  it("a local sweep sends its first confirmed contact at once, not on the snapshot cadence a near miss started (step 4 plan 1b)", async () => {
-    // one iterator checkpoint per slice: the real sweep, observable between
+  it("a local sweep posts its METADATA after its first slice, then only when it changes — no records (step 4 package 2, C2)", async () => {
+    // one iterator checkpoint per slice: the real sweep, observable between;
+    // each slice 600 ms on the worker's clock — more than META_MS, so a post
+    // per slice would show
+    let clock = 0;
     vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
+      clock += 600;
       const r = it.next();
       return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
                     : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
     } }));
     const { sent, send } = await setup(2);   // one core for the sweep: the local path
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
     // the moving triangle crosses the fixed one's plane: near misses inside
     // the 2 mm margin first, then the touch at X 0
     const n = 201, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
@@ -304,15 +310,16 @@ describe("the side id −1 (VP-I50)", () => {
     send({ ...req(11), track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
     for (let i = 0; i < 400 && !sent.some(terminal); i++) await vi.advanceTimersToNextTimerAsync();
     expect(sent.some(m => m.result)).toBe(true);
-    const firsts = sent.filter(m => m.first);
-    expect(firsts).toHaveLength(1);
-    // the finding: touching, or its contact touching after its margin entry
-    expect(firsts[0]!.first.dist <= 1e-4 || firsts[0]!.first.touches).toBe(true);
-    const at = sent.indexOf(firsts[0]!);
-    // a near miss's snapshot came before it, and no snapshot showed a touch
-    // before it: the cadence would have held the touch
-    expect(sent.slice(0, at).some(m => m.partial?.hits.length)).toBe(true);
-    expect(sent.slice(0, at).some(m => m.partial?.hits.some((h: Msg) => h.dist <= 1e-4 || h.touches))).toBe(false);
+    const progress = sent.filter(m => m.progress != null);
+    expect(progress.length, "slices more than META_MS apart").toBeGreaterThanOrEqual(3);
+    expect(progress[0]!.partial, "the first slice's progress carries it").toBeDefined();
+    const partials = sent.filter(m => m.partial).map(m => m.partial as Msg);
+    // nothing in it changed while it swept: one
+    expect(partials).toHaveLength(1);
+    expect(partials[0]!.truncated.reason).toBe("running");
+    expect(partials[0]!.pairCount).toBe(1);
+    expect("hits" in partials[0]!, "no records").toBe(false);
+    expect(sent.some(m => m.first), "no first-contact message").toBe(false);
   });
   it("no moving pair: the result still names the bodies by class (step 4 plan 1c)", async () => {
     const { sent, send } = await setup(2);
@@ -324,7 +331,7 @@ describe("the side id −1 (VP-I50)", () => {
     expect(r.pairCount).toBe(0);
     expect(r.bodies?.unusable).toEqual(["line"]);
   });
-  it("a SIDE run sends its first confirmed contact before its result too — no partials (Codex R136 VP-I93)", async () => {
+  it("a SIDE run's contacts reach the owner as deltas before its result — no partials (Codex R136 VP-I93, C2)", async () => {
     vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
       const r = it.next();
       return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
@@ -334,25 +341,21 @@ describe("the side id −1 (VP-I50)", () => {
     // the entry move and a long start-dependent beginning: the side request
     const n = 401, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
     for (let i = 0; i < n; i++) { pos[i * 3] = 10 - i * 0.05; cum[i] = i * 0.05; lines[i] = i + 1; }
-    send({ ...req(-1, { side: true }), track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
-    for (let i = 0; i < 800 && !sent.some(terminal); i++) await vi.advanceTimersToNextTimerAsync();
+    send({ ...req(-1, { side: true }), contacts: { generation: 0 },
+           track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    // the owner acknowledges every delta as it comes
+    let acked = 0;
+    for (let i = 0; i < 800 && !sent.some(terminal); i++) {
+      await vi.advanceTimersToNextTimerAsync();
+      for (; acked < sent.filter(m => m.contacts).length; acked++) send({ contactsAck: -1, generation: 0 });
+    }
     const at = sent.findIndex(m => m.result);
     expect(at).toBeGreaterThan(0);
-    const firsts = sent.filter(m => m.first);
-    expect(firsts.map(m => m.id)).toEqual([-1]);
-    expect(sent.indexOf(firsts[0]!), "before the result").toBeLessThan(at);
+    const touch = sent.findIndex(m => (m.contacts as StoreDelta[] | undefined)?.some(d => d.intervals.count > 0));
+    expect(touch, "its first touch interval in a delta").toBeGreaterThanOrEqual(0);
+    expect(touch, "before the result").toBeLessThan(at);
+    expect(sent[touch]!.id).toBe(-1);
     expect(sent.filter(m => m.partial), "a side run posts no partials").toHaveLength(0);
-  });
-  it("the coordinator passes on the first confirmed contact of any shard at once, once per run", async () => {
-    const { sent, workers, send } = await setup();
-    send(req(12));
-    const f = { ...hit(4), intervals: undefined };
-    workers[1]!.emit({ id: 12, progress: 0.1, first: f });
-    workers[0]!.emit({ id: 12, progress: 0.2, first: { ...f, line: 2 } });
-    const firsts = sent.filter(m => m.first);
-    expect(firsts.map(m => [m.id, m.first.line])).toEqual([[12, 4]]);
-    // the partial cadence is its own: no snapshot went out with it
-    expect(sent.filter(m => m.partial)).toHaveLength(0);
   });
   it("the first local side request can be cancelled", async () => {
     // Hold the local sweep at its first slice boundary; the worker still owns
@@ -402,12 +405,32 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     for (let i = 0; i < 10 && !sent.some(m => m.result); i++) await vi.advanceTimersToNextTimerAsync();
     const fin = sent.find(m => m.result)!;
     expect(fin.contacts, "the last delta rides with the result").toHaveLength(1);
+    expect(sent.filter(m => m.contacts).map(m => !!m.contactPairs), "the pairs named once, with the first delta").toEqual([true, false]);
     // the receiver's tables equal what was found: one stay, one touch interval
     const r = new ContactStore(1, 0);
     for (const m of sent.filter(x => x.contacts)) for (const d of m.contacts as StoreDelta[]) expect(r.apply(d)).toBe(true);
     expect([r.episodes.rows, r.intervals.rows]).toEqual([1, 1]);
     expect(r.intervals.get(0, "enter")).toBeLessThan(r.intervals.get(0, "exit"));
     expect(Number.isNaN(r.intervals.get(0, "exit")), "closed, its exit in the last delta").toBe(false);
+  });
+
+  it("the pairs' body ids go once per generation with its first delta — on this core and through the pool (round B2)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(41), contacts: { generation: 0 } });
+    const a = new ContactStore(41, 0), b = new ContactStore(41, 0);
+    a.episodes.append({ pair: 0, ordinal: 0, onset: 0, end: NaN, closeAt: 0, closeDist: 1, firstIv: NONE });
+    workers[0]!.emit({ id: 41, contacts: [a.takeDelta()!], contactPairs: [["moving", "fixed"]] }); a.ack();
+    expect(sent.filter(m => m.contacts).map(m => m.contactPairs), "the coordinator's first forward names them").toEqual([[["moving", "fixed"]]]);
+    send({ contactsAck: 41, generation: 0 });
+    workers[1]!.emit({ id: 41, result: result(), contacts: [b.takeDelta(true)!] });
+    workers[0]!.emit({ id: 41, result: result(), contacts: [a.takeDelta(true)!] });
+    expect(sent.filter(m => m.contacts).map(m => m.contactPairs), "once").toEqual([[["moving", "fixed"]], undefined]);
+    // this core: a run's first delta names its model's pairs
+    const solo = await setup(3);
+    solo.send({ ...req(42), contacts: { generation: 0 } });
+    for (let i = 0; i < 50 && !solo.sent.some(m => m.result); i++) await vi.advanceTimersToNextTimerAsync();
+    const first = solo.sent.find(m => m.contacts)!;
+    expect(first.contactPairs, "the tool side and the work side by body id").toEqual([["moving", "fixed"]]);
   });
 
   it("the pool: a shard's delta is applied and acknowledged at once; the owner gets one message, then nothing until it acknowledges", async () => {
@@ -439,6 +462,66 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     expect(second[0]!.episodes.updated["end"]![0]).toBe(499);
   });
 
+  // C2 (Codex R167): with the first touch carried by the tables alone, an
+  // acknowledgement held behind a near miss's delta held the touch back by
+  // its whole hold (measured in the browser: +395 ms at a 300 ms hold).
+  const ivOut = (sent: Record<string, any>[], id: number) =>
+    sent.filter(m => m.id === id && m.contacts).map(m => (m.contacts as StoreDelta[]).reduce((n, d) => n + d.intervals.count, 0));
+  const addIv = (st: ContactStore, episode: number, at: number) => st.intervals.append({ episode, enter: at, exit: NaN, next: NONE, witness: at, freeAt: NaN });
+
+  it("this core: the delta with the first interval goes beside a near miss's delta still unacknowledged — once (C2, Codex R167)", async () => {
+    vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>) => {
+      const r = it.next();
+      return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
+                    : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
+    } }));
+    const { sent, send } = await setup(3);   // one core for sweeps: no pool
+    // 1 mm short of the fixed box and back (a near miss), then through it
+    const xs: number[] = [];
+    for (let x = -40; x <= -11; x += 0.5) xs.push(x);
+    for (let x = -11.5; x >= -40; x -= 0.5) xs.push(x);
+    for (let x = -39.5; x <= 40; x += 0.5) xs.push(x);
+    const n = xs.length, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = xs[i]!; cum[i] = i * 0.5; lines[i] = i + 1; }
+    send({ ...boxReq(11), track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    for (let i = 0; i < 2000 && ivOut(sent, 11).length < 2; i++) await vi.advanceTimersToNextTimerAsync();
+    for (let i = 0; i < 200; i++) await vi.advanceTimersToNextTimerAsync();
+    expect(ivOut(sent, 11), "the near miss out, unacknowledged; the touch beside it; then nothing").toEqual([0, 1]);
+    expect(sent.some(m => m.result), "no result before the acknowledgements").toBe(false);
+    send({ contactsAck: 11, generation: 0 });
+    for (let i = 0; i < 200; i++) await vi.advanceTimersToNextTimerAsync();
+    expect(sent.some(m => m.result), "one still out").toBe(false);
+    send({ contactsAck: 11, generation: 0 });
+    for (let i = 0; i < 50 && !sent.some(m => m.result); i++) await vi.advanceTimersToNextTimerAsync();
+    expect(sent.some(m => m.result)).toBe(true);
+    const r = new ContactStore(11, 0);
+    for (const m of sent.filter(x => x.contacts)) for (const d of m.contacts as StoreDelta[]) expect(r.apply(d)).toBe(true);
+    expect([r.episodes.rows, r.intervals.rows], "the near miss's stay, the touch's stay and interval").toEqual([2, 1]);
+  });
+
+  it("the pool: the request's first interval goes to the owner beside a message still unacknowledged — once (C2, Codex R167)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(5), contacts: { generation: 0 } });
+    const s0 = new ContactStore(5, 0), s1 = new ContactStore(5, 0);
+    addEp(s0, 1);   // a near miss
+    workers[0]!.emit({ id: 5, progress: 0.1, contacts: [s0.takeDelta()!] }); s0.ack();
+    expect(ivOut(sent, 5), "the near miss out, not acknowledged").toEqual([0]);
+    addEp(s1, 2); addIv(s1, 0, 2);
+    workers[1]!.emit({ id: 5, progress: 0.2, contacts: [s1.takeDelta()!] }); s1.ack();
+    expect(ivOut(sent, 5), "the first interval at once, beside it").toEqual([0, 1]);
+    addEp(s0, 3); addIv(s0, 1, 3);
+    workers[0]!.emit({ id: 5, progress: 0.3, contacts: [s0.takeDelta()!] }); s0.ack();
+    expect(ivOut(sent, 5), "two out: the next waits").toEqual([0, 1]);
+    send({ contactsAck: 5, generation: 0 });
+    expect(ivOut(sent, 5), "one still out").toEqual([0, 1]);
+    send({ contactsAck: 5, generation: 0 });
+    expect(ivOut(sent, 5), "then the next").toEqual([0, 1, 1]);
+    send({ contactsAck: 5, generation: 0 }); send({ contactsAck: 5, generation: 0 });   // its own and a late one
+    addEp(s1, 4); workers[1]!.emit({ id: 5, progress: 0.4, contacts: [s1.takeDelta()!] }); s1.ack();
+    addEp(s1, 5); workers[1]!.emit({ id: 5, progress: 0.5, contacts: [s1.takeDelta()!] }); s1.ack();
+    expect(ivOut(sent, 5).length, "one out, never below none").toBe(4);
+  });
+
   it("the pool's result waits for the owner's acknowledgement and carries every shard's last delta", async () => {
     const { sent, workers, send } = await setup();
     send({ ...req(3), contacts: { generation: 0 } });
@@ -458,8 +541,14 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
   it("a fall back to this core is the request's next generation", async () => {
     const { sent, workers, send } = await setup();
     send({ ...boxReq(4, 2), contacts: { generation: 0 } });
+    workers[0]!.emit({ id: 4, progress: 0.25 });
+    workers[1]!.emit({ id: 4, progress: 0.5 });
     workers[1]!.fail();
     drain();
+    // first: how far each shard of generation 0 swept (Codex R150 VP150-02), before any word of generation 1
+    const cov = sent.findIndex(x => x.heldCoverage);
+    expect(sent[cov]!.heldCoverage).toEqual({ generation: 0, covered: [0.25, 0.5] });
+    expect(sent.findIndex(x => x.contacts && (x.contacts as StoreDelta[])[0]!.generation === 1), "after it").toBeGreaterThan(cov);
     const m = sent.find(x => x.contacts)!;
     expect((m.contacts as StoreDelta[])[0]!.generation, "generation 1 on this core").toBe(1);
     expect(new ContactStore(4, 0).apply((m.contacts as StoreDelta[])[0]!), "the old generation's table refuses it").toBe(false);
@@ -486,6 +575,32 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     send({ contactsAck: 81, generation: 0 });
     await vi.runAllTimersAsync();
     expect(rowsOf(deltas(sent, 81), 0), "both shards' rows reach the owner").toBe(2);
+  });
+
+  it("a pool failure with two messages out (the first interval beside a near miss): the drain says nothing until both are acknowledged (C2)", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(83), contacts: { generation: 0 } });
+    const a = new ContactStore(83, 0), b = new ContactStore(83, 0);
+    addEp(a, 1);
+    workers[0]!.emit({ id: 83, contacts: [a.takeDelta()!] }); a.ack();   // out
+    addEp(b, 2); b.intervals.append({ episode: 0, enter: 2, exit: NaN, next: NONE, witness: 2, freeAt: NaN });
+    workers[1]!.emit({ id: 83, contacts: [b.takeDelta()!] }); b.ack();   // the first interval, beside it
+    addEp(a, 3);
+    workers[0]!.emit({ id: 83, contacts: [a.takeDelta()!] }); a.ack();   // taken over, held
+    workers[1]!.fail();
+    await vi.runAllTimersAsync();
+    const gens = () => deltas(sent, 83).map(d => d.generation);
+    expect(rowsOf(deltas(sent, 83), 0), "two out, the third row held").toBe(2);
+    send({ contactsAck: 83, generation: 0 });
+    await vi.runAllTimersAsync();
+    expect(rowsOf(deltas(sent, 83), 0), "one still out: held").toBe(2);
+    send({ contactsAck: 83, generation: 0 });
+    await vi.runAllTimersAsync();
+    expect(rowsOf(deltas(sent, 83), 0), "then delivered").toBe(3);
+    expect(gens().includes(1), "generation 1 waits for its acknowledgement").toBe(false);
+    send({ contactsAck: 83, generation: 0 });
+    await vi.runAllTimersAsync();
+    expect(gens().indexOf(1), "generation 1 only after generation 0's last word").toBeGreaterThan(gens().lastIndexOf(0));
   });
 
   it("the older generation is delivered whole before the newer one says a word on the path, one delta outstanding at a time (Codex R145 VP-I98)", async () => {
@@ -572,9 +687,14 @@ describe("contact deltas: one unacknowledged per path (package 2, VP139-03)", ()
     const old = new ContactStore(-83, 7);
     addEp(old, 1);
     workers[0]!.emit({ id: -83, contacts: [old.takeDelta()!] });
+    workers[0]!.emit({ id: -83, progress: 0.4 });
     workers[1]!.fail();
     await vi.runAllTimersAsync();
     expect(deltas(sent, -83).map(d => d.generation)).toEqual([7, 8]);
+    // how far shard 0 had swept it, with its generation, before the rerun's word (Codex R150 VP150-02)
+    const cov = sent.findIndex(m => m.id === -83 && m.heldCoverage);
+    expect(sent[cov]!.heldCoverage).toEqual({ generation: 7, covered: [0.4] });
+    expect(sent.findIndex(m => m.id === -83 && m.contacts && (m.contacts as StoreDelta[])[0]!.generation === 8)).toBeGreaterThan(cov);
   });
 
   it("the pool's result keeps the earliest point a shard's store stopped writing (VP-I100)", async () => {

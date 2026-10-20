@@ -1,17 +1,13 @@
-// Step 4 package 2, round A: the contact store against the records, from the
-// SAME sweep (plan docs/reviews/kollision-paket2.plan.md Fassung 5, 7.2). The
-// sweep writes both sinks from one sample stream, so the comparison is exact
-// up to what the plan names: per pair, the union of the touch intervals is
-// the records' union — except where the records bridged a PROVEN free sample
-// (CLUSTER_GAP, the contiguous merge: the store keeps the separation) and
-// where a record's refinement stopped at its line's start (R90: the store's
-// entry lies earlier, at the crossing). The stays without a touch are the
-// records' near misses, one for one.
+// Step 4 package 2: the contact store's own statements against the truth
+// (plan docs/reviews/kollision-paket2.plan.md Fassung 5, 7.2) — every
+// witness touches, every free sample's stretch is free and lies in the chunk
+// whose speed bound proves it — and a spent budget. Round A compared the
+// store with the records of the same sweep; the records are gone (C2).
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
-import { CONTACT_EPS, sweepCollisions, type CollisionHit, type CollisionModel, type CollisionTrack } from "./collision";
-import { ContactStore, EP_ORIGIN_MASK, IV_ENTER_DECIDED, IV_POSSIBLE, NONE, ORIGIN_PROGRAM } from "./contactStore";
+import { CONTACT_EPS, sweepCollisions, type CollisionModel, type CollisionTrack } from "./collision";
+import { ContactStore, EP_ORIGIN_MASK, IV_ENTER_DECIDED, NONE, ORIGIN_PROGRAM } from "./contactStore";
 import { MARGIN, generatedCase, insideTruth, loadShippedModel, randomTrack, rng, shippedCases, trackTruth, type Case, type FixtureFiles } from "./collisionFixtures";
 
 const ROOT = path.resolve(__dirname, "../../..");
@@ -20,7 +16,6 @@ const FILES: FixtureFiles = {
   bytes: rel => fs.readFileSync(path.join(ROOT, rel)),
 };
 const WCS0 = { g5x: [0, 0, 0, 0, 0, 0], g92: [], rotationDeg: 0 } as any;
-const TOL = 3e-3;   // boundaries are bisected to 1e-3 in both sinks
 
 type Span = [number, number];
 const unite = (spans: Span[]): Span[] => {
@@ -33,21 +28,6 @@ const unite = (spans: Span[]): Span[] => {
   }
   return out;
 };
-/** a \ b, pieces longer than TOL. */
-const minus = (a: Span[], b: Span[]): Span[] => {
-  const out: Span[] = [];
-  for (const [x0, x1] of a) {
-    let cur = x0;
-    for (const [y0, y1] of b) {
-      if (y1 <= cur || y0 >= x1) continue;
-      if (y0 > cur) out.push([cur, y0]);
-      cur = Math.max(cur, y1);
-    }
-    if (cur < x1) out.push([cur, x1]);
-  }
-  return out.filter(([p, q]) => q - p > TOL);
-};
-
 /** The store's rows per pair, as plain objects. */
 function storeView(store: ContactStore, end: number) {
   const E = store.episodes, I = store.intervals;
@@ -78,7 +58,7 @@ function storeView(store: ContactStore, end: number) {
   return byPair;
 }
 
-function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: string) {
+function storeChecks(c: Case, model: CollisionModel, track: CollisionTrack, where: string) {
   const store = new ContactStore(1, 0);
   // every chunk the sweep bounds a pair's speed over — a free radius holds only there
   const chunks = new Map<number, Array<[number, number]>>();
@@ -86,38 +66,13 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
     onChunkSpeed: (pi, s0, s1) => { let l = chunks.get(pi); if (!l) chunks.set(pi, l = []); l.push([s0, s1]); } });
   expect(r.truncated, `${where}: swept whole`).toBeNull();
   const end = track.cum[track.count - 1]!;
-  if ((r.capped ?? 0) > 0) return { skipped: true, touches: 0, nears: 0, collapsed: 0 };   // the records were cut: no full comparison
   const view = storeView(store, end);
   const ids = (pi: number) => [model.bodies[model.pairs[pi]![0]]!.id, model.bodies[model.pairs[pi]![1]]!.id].sort().join("/");
-  const oldByPair = new Map<string, CollisionHit[]>();
-  for (const h of r.hits) { const k = [h.a, h.b].sort().join("/"); oldByPair.set(k, [...(oldByPair.get(k) ?? []), h]); }
-  // where a line begins on the track — the records' refinement floor (R90)
-  const lineStarts = new Set<number>();
-  for (let i = 1; i < track.count; i++) if (track.lines[i] !== track.lines[i - 1]) lineStarts.add(track.cum[i - 1]!);
-  const nearLineStart = (x: number) => [...lineStarts].some(l => Math.abs(l - x) <= TOL);
-  let touches = 0, nears = 0, collapsed = 0, bridgedN = 0, flooredN = 0, freeChecked = 0, freeN = 0, freeWide = 0;
-  const pairsSeen = new Set<number>([...view.keys()]);
-  for (let pi = 0; pi < model.pairs.length; pi++) if (oldByPair.has(ids(pi))) pairsSeen.add(pi);
+  let touches = 0, nears = 0, freeChecked = 0, freeN = 0, freeWide = 0;
   const { poseAt, below } = trackTruth(model, c, track);
-  for (const pi of pairsSeen) {
-    const recs = oldByPair.get(ids(pi)) ?? [];
-    const v = view.get(pi) ?? { episodes: [], spans: [], free: [], freeR: [], witnesses: [], enters: [] };
-    const oldU = unite(recs.filter(h => h.dist <= CONTACT_EPS || h.intervals)
-      .flatMap(h => (h.intervals ?? [[h.cum, h.cumEnd]]) as Span[]));
-    const newU = unite(v.spans.map(s => [s[0], s[1]] as Span));
-    touches += newU.length;
-    // the records cover more only where they bridged a proven free sample
-    for (const [a, b] of minus(oldU, newU)) {
-      bridgedN++;
-      const free = v.free.find(f => f >= a - TOL && f <= b + TOL);
-      expect(free, `${where} ${ids(pi)}: the records cover [${a.toFixed(4)}, ${b.toFixed(4)}] the store leaves out — no free sample proves it apart (old ${JSON.stringify(oldU)}, new ${JSON.stringify(newU)})`).toBeDefined();
-    }
-    // the store covers more only before a record that stopped at its line's start
-    for (const [a, b] of minus(newU, oldU)) {
-      flooredN++;
-      const floored = oldU.some(([o0]) => Math.abs(o0 - b) <= TOL && nearLineStart(o0));
-      expect(floored, `${where} ${ids(pi)}: the store covers [${a.toFixed(4)}, ${b.toFixed(4)}] the records do not — not a line-start floor (old ${JSON.stringify(oldU)}, new ${JSON.stringify(newU)})`).toBe(true);
-    }
+  for (const [pi, v] of view) {
+    touches += unite(v.spans.map(s => [s[0], s[1]] as Span)).length;
+    nears += v.episodes.filter(e => e.ivCount === 0 && e.origin === ORIGIN_PROGRAM).length;
     // every witness touches, every decided entry touches — the truth, not the sweep
     const [ai, bi] = model.pairs[pi]!;
     const A = model.bodies[ai]!, B = model.bodies[bi]!;
@@ -149,56 +104,34 @@ function compare(c: Case, model: CollisionModel, track: CollisionTrack, where: s
         freeChecked++;
       }
     }
-    // the stays without a touch are the records' near misses, one for one —
-    // except where the records keyed a second stay on the SAME line into one
-    // record (one per line and pair: a touch later on the line replaced the
-    // near miss, the repeated-line case of Codex VP84-01)
-    const oldNear = recs.filter(h => h.continuation === undefined && !h.boundary && !h.possible && h.dist > CONTACT_EPS && !h.touches);
-    const newNear = v.episodes.filter(e => e.ivCount === 0 && e.origin === ORIGIN_PROGRAM);
-    nears += newNear.length;
-    // a sample ON a segment's end is the next segment's in the sweep's loop
-    // (a chunk starts there): both lines there
-    const linesOf = (cum: number): number[] => {
-      let i = 1;
-      while (i < track.count - 1 && track.cum[i]! < cum) i++;
-      const out = [track.lines[i]!];
-      if (Math.abs(track.cum[i]! - cum) <= 1e-6 && i + 1 < track.count) out.push(track.lines[i + 1]!);
-      return out;
-    };
-    const unmatchedOld = oldNear.slice();
-    for (const e of newNear) {
-      const lns = linesOf(e.onset);
-      const k = unmatchedOld.findIndex(h => lns.includes(h.line));
-      if (k >= 0) { unmatchedOld.splice(k, 1); continue; }
-      expect(recs.some(h => lns.includes(h.line)), `${where} ${ids(pi)}: a near-miss stay at ${e.onset.toFixed(4)} (L${lns.join("/")}) the records have no record of on its line`).toBe(true);
-      collapsed++;
-    }
-    expect(unmatchedOld.map(h => `L${h.line} @${h.cum.toFixed(3)}`), `${where} ${ids(pi)}: near misses of the records the store has no stay for`).toEqual([]);
   }
-  void IV_POSSIBLE;
   if (process.env.COLLISION_CONTACTS_LOG) fs.appendFileSync(process.env.COLLISION_CONTACTS_LOG,
-    `${where}: ${touches} touch intervals, ${nears} near stays; records bridged a proven free sample ${bridgedN}×, floored at a line start ${flooredN}×, collapsed a second stay of a line ${collapsed}×; free samples ${freeN}, ${freeWide} with a radius, checked at ${freeChecked} points\n`);
-  return { skipped: false, touches, nears, collapsed };
+    `${where}: ${touches} touch intervals, ${nears} near stays; free samples ${freeN}, ${freeWide} with a radius, checked at ${freeChecked} points\n`);
+  return { touches, nears };
 }
 
-describe("the contact store against the records, one sweep (step 4 package 2, plan 7.2)", () => {
+// Round A held the store to the records of the same sweep (plan 7.2) — the
+// records are gone (C2, Codex R167): the store's own statements are held to
+// the truth here, its contacts by the oracles (collisionOracle,
+// collisionRangeOracle, collisionHorizon) and the shards (sweepShards).
+describe("the contact store against the truth, one sweep (step 4 package 2, plan 7.2)", () => {
   const cases: Array<{ c: Case; load: () => { model: CollisionModel } }> = [
     ...shippedCases(FILES).map(c => ({ c, load: () => loadShippedModel(c, FILES) })),
     ...Array.from({ length: 10 }, (_, k) => { const g = generatedCase(20261012 + k); return { c: g.c, load: () => g }; }),
   ];
   let reached = 0;
   for (const { c, load } of cases) {
-    it(`${c.name}: the same contacts, the named differences only`, { timeout: 600_000 }, () => {
+    it(`${c.name}: every witness touches, every free sample's stretch is free and in one chunk`, { timeout: 600_000 }, () => {
       const { model } = load();
       const rand = rng(c.seed ?? 20261012);
       for (let t = 0; t < 2; t++) {
-        const res = compare(c, model, randomTrack(c, rand, 4, 0.5), `${c.name} track ${t}`);
-        if (!res.skipped && res.touches > 0) reached++;
+        const res = storeChecks(c, model, randomTrack(c, rand, 4, 0.5), `${c.name} track ${t}`);
+        if (res.touches > 0) reached++;
       }
     });
   }
-  it("the comparison reaches contacts", () => {
-    expect(reached, "tracks with touches compared").toBeGreaterThan(5);
+  it("the checks reach contacts", () => {
+    expect(reached, "tracks with touches checked").toBeGreaterThan(5);
   });
 });
 

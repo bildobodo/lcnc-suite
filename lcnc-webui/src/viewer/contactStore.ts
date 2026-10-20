@@ -10,7 +10,10 @@
 // state however often it changed (3.1); a sender holds at most one
 // unacknowledged delta (VP139-03), so a slow receiver queues nothing — the
 // changes wait as marks in the sender's own table.
+import { STEP_OPS, runToEnd, type Steps } from "./steps";
+
 export const BLOCK = 4096;
+export const BLOCK_SHIFT = 12;
 
 export type ColType = "u8" | "u16" | "u32" | "f32" | "f64";
 type Typed = Uint8Array | Uint16Array | Uint32Array | Float32Array | Float64Array;
@@ -52,6 +55,7 @@ export const IV_AFTER_UNKNOWN_TOOL = 8;  // begins after a stretch with the tool
 export const IV_ENDED_AT_GAP = 16;       // ended where the tool became unknown: no exit is claimed
 export const IV_ENDED_AT_FEED = 32;      // a cutting contact's rapid part ended where the move became a feed: machining from there
 export const IV_CONTINUES_CUT = 64;     // a later rapid part of the same cutting contact (one finding with the part before)
+export const IV_RAPID = 128;            // a touching sample of it fell on a rapid — its move's kind (a re-entry's own, not its episode's margin entry)
 
 // Gap reasons (u8).
 export const GAP_UNDECIDABLE = 1, GAP_TOOL_UNKNOWN = 2;
@@ -67,6 +71,10 @@ export class ColumnTable {
   rows = 0;
   /** Rows up to here went out in a delta: a later change is an update. */
   sent = 0;
+  /** Bumped by every write (a row appended, a cell set): a view built on the
+   *  table knows whether it still reads what it was built from (Codex R148
+   *  VP-I107). */
+  revision = 0;
 
   constructor(schema: Schema, budget: number) {
     this.schema = schema;
@@ -84,6 +92,7 @@ export class ColumnTable {
   append(values: Readonly<Record<string, number>>): number {
     if (this.rows >= this.budget) return -1;
     const row = this.rows++;
+    this.revision++;
     const b = Math.floor(row / BLOCK), o = row % BLOCK;
     if (o === 0) {
       for (const [name, type] of this.schema) this.col(name).push(new CTOR[type](BLOCK));
@@ -96,11 +105,16 @@ export class ColumnTable {
   get(row: number, name: string): number {
     return this.col(name)[Math.floor(row / BLOCK)]![row % BLOCK]!;
   }
+  /** A column's blocks, for a reader that holds them (contactView): row r is
+   *  `blocks[r >>> BLOCK_SHIFT][r & (BLOCK - 1)]`. Read only — a write goes
+   *  through set() (its dirty mark, its revision). */
+  blocksOf(name: string): readonly ArrayLike<number>[] { return this.col(name); }
 
   /** Change one cell. A row already sent is marked dirty — once. */
   set(row: number, name: string, value: number): void {
     const b = Math.floor(row / BLOCK), o = row % BLOCK;
     this.col(name)[b]![o] = value;
+    this.revision++;
     if (row < this.sent && !this.dirtyBlocks[b]![o]) {
       this.dirtyBlocks[b]![o] = 1;
       this.dirtyList.push(row);
@@ -129,22 +143,71 @@ export class ColumnTable {
     return delta;
   }
 
+  /** Why `d` cannot go in here (null: it can) — before anything is written:
+   *  out of order is refused, never patched; past the budget, refused. */
+  refusal(d: TableDelta): string | null {
+    if (d.from !== this.rows) return `contactStore: delta from row ${d.from}, table has ${this.rows}`;
+    if (this.rows + d.count > this.budget) return "contactStore: receiving table over its budget";
+    return null;
+  }
   /** A sender's delta on a receiving table: new rows appended where the
-   *  sender's were (out of order is refused, never patched), updates set. */
+   *  sender's were (out of order is refused, never patched in), updates set. */
   apply(d: TableDelta): void {
-    if (d.from !== this.rows) throw new Error(`contactStore: delta from row ${d.from}, table has ${this.rows}`);
-    for (let i = 0; i < d.count; i++) {
-      const v: Record<string, number> = {};
-      for (const [name] of this.schema) v[name] = d.rows[name]![i]!;
-      if (this.append(v) < 0) throw new Error("contactStore: receiving table over its budget");
+    runToEnd(this.applySteps(d));
+  }
+  /** apply() in bounded steps (plan 3.6, Codex R155 VP155-01): the new rows
+   *  column by column, a block's stretch at a time, the updates in pieces —
+   *  a budget's updates took 68–78 ms at once. The table is half written
+   *  between the steps: no one may read it then (plan 3.6: never the
+   *  published copy). */
+  *applySteps(d: TableDelta, c: { n: number } = { n: 0 }): Steps<void> {
+    const why = this.refusal(d);
+    if (why) throw new Error(why);
+    // the new rows column by column, a block's stretch at a time (a row at a
+    // time built an object per row: 175 ms for a budget's delta, on the page)
+    const base = this.rows;
+    for (let done = 0; done < d.count;) {
+      const row = base + done, b = row >>> BLOCK_SHIFT, o = row & (BLOCK - 1), n = Math.min(BLOCK - o, d.count - done);
+      if (o === 0) {
+        for (const [name, type] of this.schema) this.col(name).push(new CTOR[type](BLOCK));
+        this.dirtyBlocks.push(new Uint8Array(BLOCK));
+      }
+      for (const [name] of this.schema) {
+        const src = d.rows[name], blk = this.col(name)[b]!;
+        if (!src) continue;   // a missing column is 0, as append() writes it
+        blk.set(ArrayBuffer.isView(src) ? src.subarray(done, done + n) : Array.prototype.slice.call(src, done, done + n), o);
+      }
+      done += n;
+      this.rows += n;
+      this.revision += n;
+      if ((c.n += n * this.schema.length) >= STEP_OPS) { c.n = 0; yield; }
     }
-    // through set(): a receiver that forwards (the coordinator) sends the new
-    // rows as its own new rows and the updates of rows it already forwarded
-    // as its own updates — once each, coalesced like the sender's
+    // the updates as set() writes them: a receiver that forwards (the
+    // coordinator) sends the new rows as its own new rows and the updates of
+    // rows it already forwarded as its own updates — once each, coalesced
+    const cols = this.schema.map(([name]) => [this.col(name), d.updated[name]] as const);
     for (let i = 0; i < d.updates.length; i++) {
-      const r = d.updates[i]!;
-      for (const [name] of this.schema) this.set(r, name, d.updated[name]![i]!);
+      const r = d.updates[i]!, b = Math.floor(r / BLOCK), o = r % BLOCK;
+      for (const [blocks, vals] of cols) blocks[b]![o] = vals![i]!;
+      this.revision += cols.length;
+      if (r < this.sent && !this.dirtyBlocks[b]![o]) {
+        this.dirtyBlocks[b]![o] = 1;
+        this.dirtyList.push(r);
+      }
+      if ((c.n += cols.length) >= STEP_OPS) { c.n = 0; yield; }
     }
+  }
+
+  /** Every row as a delta, nothing marked sent (a copy's source). */
+  snapshot(): TableDelta {
+    const rows: Record<string, Typed> = {}, updated: Record<string, Typed> = {};
+    for (const [name, type] of this.schema) {
+      const a = new CTOR[type](this.rows), col = this.col(name);
+      for (let b = 0; b * BLOCK < this.rows; b++) a.set(col[b]!.subarray(0, Math.min(BLOCK, this.rows - b * BLOCK)), b * BLOCK);
+      rows[name] = a;
+      updated[name] = new CTOR[type](0);
+    }
+    return { from: 0, count: this.rows, rows, updates: new Uint32Array(0), updated };
   }
 
   /** Allocated bytes: whole blocks of every column and the dirty marks —
@@ -191,8 +254,11 @@ export class ContactStore {
   readonly episodes: ColumnTable;
   readonly intervals: ColumnTable;
   readonly gaps: ColumnTable;
-  /** A delta is out and not acknowledged (VP139-03: at most one). */
-  private inFlight = false;
+  /** Deltas out and not acknowledged (VP139-03: one). The delta that carries
+   *  the store's FIRST interval goes out beside an unacknowledged one — once
+   *  per store, so at most two (C2, Codex R167: an acknowledgement held
+   *  behind a near miss's delta held the first touch back by its whole hold). */
+  private inFlight = 0;
 
   constructor(request: number, generation: number, budget: StoreBudget = REQUEST_BUDGET) {
     this.request = request;
@@ -202,30 +268,52 @@ export class ContactStore {
     this.gaps = new ColumnTable(GAP, budget.gaps);
   }
 
-  /** The next delta, or null while the last one is unacknowledged or
-   *  nothing changed. Its buffers are fresh — transferable. */
+  /** The next delta, or null while the last one is unacknowledged (unless
+   *  this one carries the first interval) or nothing changed. Its buffers are
+   *  fresh — transferable. */
   takeDelta(force = false): StoreDelta | null {
-    if (this.inFlight) return null;
+    if (this.inFlight > (this.firstIntervalUnsent ? 1 : 0)) return null;
     if (!force && !this.pending()) return null;
-    this.inFlight = true;
+    this.inFlight++;
     return { request: this.request, generation: this.generation,
              episodes: this.episodes.take(), intervals: this.intervals.take(), gaps: this.gaps.take() };
   }
-  /** The receiver applied the last delta. */
-  ack(): void { this.inFlight = false; }
-  get waiting(): boolean { return this.inFlight; }
+  /** The receiver applied the oldest delta out. */
+  ack(): void { if (this.inFlight > 0) this.inFlight--; }
+  get waiting(): boolean { return this.inFlight > 0; }
+  /** Its first interval is written and has not gone out. */
+  get firstIntervalUnsent(): boolean { return this.intervals.sent === 0 && this.intervals.rows > 0; }
 
   /** A sender's delta on this (receiving) store; another request or
    *  generation is refused (the caller drops it). */
   apply(d: StoreDelta): boolean {
+    return runToEnd(this.applySteps(d));
+  }
+  /** apply() in bounded steps (plan 3.6). Every table's bounds are checked
+   *  before anything is written: a refused delta changes no table — the whole
+   *  message, not one table (Codex R155). */
+  *applySteps(d: StoreDelta, c: { n: number } = { n: 0 }): Steps<boolean> {
     if (d.request !== this.request || d.generation !== this.generation) return false;
-    this.episodes.apply(d.episodes);
-    this.intervals.apply(d.intervals);
-    this.gaps.apply(d.gaps);
+    const why = this.episodes.refusal(d.episodes) ?? this.intervals.refusal(d.intervals) ?? this.gaps.refusal(d.gaps);
+    if (why) throw new Error(why);
+    yield* this.episodes.applySteps(d.episodes, c);
+    yield* this.intervals.applySteps(d.intervals, c);
+    yield* this.gaps.applySteps(d.gaps, c);
     return true;
   }
 
   pending(): number { return this.episodes.pending() + this.intervals.pending() + this.gaps.pending(); }
+  /** A separate store with the same rows (the second copy of plan 3.6). */
+  copy(): ContactStore {
+    const c = new ContactStore(this.request, this.generation,
+      { episodes: this.episodes.budget, intervals: this.intervals.budget, gaps: this.gaps.budget });
+    c.episodes.apply(this.episodes.snapshot());
+    c.intervals.apply(this.intervals.snapshot());
+    c.gaps.apply(this.gaps.snapshot());
+    return c;
+  }
+  /** Bumped by every write to any of its tables. */
+  get revision(): number { return this.episodes.revision + this.intervals.revision + this.gaps.revision; }
   allocatedBytes(): number {
     return this.episodes.allocatedBytes() + this.intervals.allocatedBytes() + this.gaps.allocatedBytes();
   }

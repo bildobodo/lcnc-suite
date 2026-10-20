@@ -1184,7 +1184,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
         { message: `${where('')}: the collision verdict`, timeout: 15_000 }).toBe(1);
       if (v !== 'none') await expect(page.locator('.simPanel [data-sim-row="L32"]')).toBeAttached();   // the tab's list, behind its tab
       if (v === 'both') {
-        await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 22, frac: 0.6, rapid: true }]) ?? false),
+        await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12 }, { line: 22, rapid: true }]) ?? false),
           { message: `${where('')}: collisions on the track` }).toBe(true);
         await expect(page.locator('.simPanel tr[data-sim-row^="C"]').first()).toBeAttached();
       }
@@ -1324,7 +1324,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 800 + version++, file: '/leak.ngc' } });
       await expect(page.locator('.scrubBar')).toBeVisible();
       await expect.poll(() => page.locator('.simPanel .checkVerdict').count(), { timeout: 15_000 }).toBe(1);
-      await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 22, frac: 0.6, rapid: true }]) ?? false)).toBe(true);
+      await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12 }, { line: 22, rapid: true }]) ?? false)).toBe(true);
     };
     const zoom = (z: number) => page.evaluate(z => { document.documentElement.style.zoom = z === 1 ? '' : String(z); }, z);
     // The viewer's shared geometry: narrow flag as the pane says, the short
@@ -1471,7 +1471,7 @@ test('a code line names its findings with a glyph: ▲ limit, × collision, both
   await ctl({ op: 'status_delta', data: { active_file: '/marks.ngc' } });
   await ctl({ op: 'raw', frame: { type: 'viewer_gcode_ready', version: 990, file: '/marks.ngc' } });
   await expect.poll(() => page.locator('.simPanel .checkVerdict').count(), { timeout: 15_000 }).toBe(1);
-  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12, frac: 0.3 }, { line: 32, frac: 0.95 }]) ?? false)).toBe(true);
+  await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12 }, { line: 32 }]) ?? false)).toBe(true);
   const line = (n: number) => page.locator('.codeViewer:visible .codeLine').filter({ has: page.locator('.lineNumber', { hasText: new RegExp(`^${n}$`) }) });
   // The code viewer renders only the lines near its window: scroll to one first.
   const mark = async (n: number) => {

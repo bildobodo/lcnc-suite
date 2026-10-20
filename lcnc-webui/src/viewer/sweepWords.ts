@@ -2,13 +2,9 @@
 // the timeline's × marks are, by kind — a confirmed collision, a near miss
 // (inside the margin, never touching: never called a collision), a possible
 // contact (the probe's braking range), a collision on the entry move apart
-// from the program's — and whether the program STARTS in contact. One list
-// (`clashTargets`) still makes the marks, the count and the steps: the kinds
-// split its number, their sum is the marks'. Pure.
-import type { ClashTarget } from "./clashTargets";
-
-/** Under this a target's distance is a touch (the bar's 1e-3, as its marks). */
-const TOUCH = 1e-3;
+// from the program's — and whether the program STARTS in contact. The
+// contact view counts them from its index (contactView.viewCounts, plan 4.1):
+// the kinds split its number, their sum is the marks'. Pure.
 
 export interface FindingWords {
   /** "2 collisions · 1 near miss", "" when there is no finding. */
@@ -25,16 +21,13 @@ export interface FindingWords {
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
-export function findingWords(targets: readonly ClashTarget[]): FindingWords {
-  let collisions = 0, entryCollisions = 0, nearMisses = 0, possible = 0, startsIn = false;
-  for (const t of targets) {
-    if (t.possible) { possible++; continue; }
-    const touch = (t.dist ?? 0) <= TOUCH || !!t.touches;
-    if (!touch) { nearMisses++; continue; }
-    if (t.entryMove) entryCollisions++;
-    else collisions++;
-    if (t.atStart && !t.entry) startsIn = true;
-  }
+/** What the words count, by kind — the contact view counts them from its
+ *  index (contactView.viewCounts, plan 4.1), never from a list of every
+ *  target (plan 4.4). */
+export interface FindingCounts { collisions: number; entryCollisions: number; nearMisses: number; possible: number; startsIn: boolean }
+
+export function wordsOfCounts(c: FindingCounts): FindingWords {
+  const { collisions, entryCollisions, nearMisses, possible, startsIn } = c;
   const parts: string[] = [];
   if (collisions) parts.push(plural(collisions, "collision", "collisions"));
   if (entryCollisions) parts.push(plural(entryCollisions, "collision on the entry move", "collisions on the entry move"));
