@@ -537,6 +537,36 @@ test("a limit row stands at its program line's move, never at a called file's li
   expect(list, "the limit rows in the program's order, each at its own move").toEqual(["L3 00:08", "L5 00:12"]);
 });
 
+// Operator 2026-10-20 (live, Haus_Brunnen.ngc): the timeline's progress was not
+// seen and the contacts read pale — the bands were translucent, the progress
+// lay under them, and the ticks' light edges, one per column, washed the track
+// out (a tick showed only where its neighbours were free); the glyphs ran
+// together into a line. The progress has a lane of its own in the Sim tab's
+// progress colour, the findings fill the track opaque, a tick has no light
+// edge, a kind's glyphs stand at least their width apart.
+test("the timeline: the progress in its own lane and colour, opaque findings, ticks without a light edge, glyphs apart", async ({ page, context }) => {
+  await prepare(page, context, "desktop", PREVIEW, false);
+  await expect.poll(() => page.evaluate(n => window.__viewerDiag?.setCollisionHits?.(
+    Array.from({ length: n }, (_, k) => ({ line: 12, frac: 0.05 + (0.5 * k) / n }))) ?? false, 600)).toBe(true);
+  await simShow(page, "clash");
+  await expect(rows(page)).toHaveCount(400);
+  const g = await page.evaluate(() => {
+    const bar = document.querySelector(".scrubBar")!, r = (s: string) => bar.querySelector(s)!.getBoundingClientRect();
+    const bg = (el: Element) => getComputedStyle(el).backgroundColor;
+    const glyphs = [...bar.querySelectorAll(".scrubTick.clash .scrubGlyph")].map(e => e.getBoundingClientRect().left).sort((a, b) => a - b);
+    return { swept: r(".scrubBand.swept"), track: r(".scrubBand.track"), sweptBg: bg(bar.querySelector(".scrubBand.swept")!),
+             progressBg: bg(document.querySelector(".simPanel .progressFill")!), clashBg: bg(bar.querySelector(".scrubBand.clash")!),
+             shadows: [...new Set([...bar.querySelectorAll(".scrubTick")].map(e => getComputedStyle(e).boxShadow))],
+             ticks: bar.querySelectorAll(".scrubTick.clash").length, gaps: glyphs.slice(1).map((x, i) => x - glyphs[i]!) };
+  });
+  expect(g.swept.bottom, "the progress lane over the track, apart from it").toBeLessThanOrEqual(g.track.top);
+  expect(g.sweptBg, "the Sim tab's progress colour").toBe(g.progressBg);
+  expect(g.clashBg, "a contact band is opaque").toMatch(/^rgb\(/);
+  expect(g.shadows, "no light edge on a tick").toEqual(["none"]);
+  expect(Math.min(...g.gaps), "a kind's glyphs at least their width apart").toBeGreaterThanOrEqual(9.5);
+  expect(g.ticks, "a tick per occupied column still").toBeGreaterThan(g.gaps.length + 1);
+});
+
 // Keyboard jog ON with the navigation keys bound to jog (tabs.spec's map): a
 // key a row failed to keep would move the machine.
 const KEYBOARD = { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping: {

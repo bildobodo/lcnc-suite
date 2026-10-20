@@ -1010,16 +1010,29 @@ const toolTargets = computed(() => {
 // the track doesn't know (comment-line attribution edge) simply has no mark;
 // the GcodePanel banner still lists it.
 type MarkKind = "tool" | "limit" | "clash";
+/** A glyph's width on the timeline (the 9 px lucide glyph and a pixel apart). */
+const GLYPH_PX = 10;
 const marks = computed(() => {
   const max = cumMax.value;
-  const out: Array<{ pct: number; kind: MarkKind; near: boolean }> = [];
+  const out: Array<{ pct: number; kind: MarkKind; near: boolean; glyph: boolean }> = [];
   if (max <= 0) return out;
   const pctOfCum = (c: number) => Math.min(100, (c / max) * 100);
-  for (const x of toolTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "tool", near: false });
-  for (const x of violationTargets.value) out.push({ pct: pctOfCum(x.cum), kind: "limit", near: false });
+  // a tick per occupied column; a glyph at most one per glyph width of its
+  // kind — packed one per column they ran together into a red line under the
+  // track (operator 2026-10-20); the ticks and bands keep every finding
+  const add = (kind: MarkKind, xs: Iterable<{ pct: number; near: boolean }>) => {
+    let last = -Infinity;
+    for (const x of xs) {
+      const px = (x.pct / 100) * bandCols.value, glyph = px - last >= GLYPH_PX;
+      if (glyph) last = px;
+      out.push({ pct: x.pct, kind, near: x.near, glyph });
+    }
+  };
+  add("tool", toolTargets.value.map(x => ({ pct: pctOfCum(x.cum), near: false })));
+  add("limit", violationTargets.value.map(x => ({ pct: pctOfCum(x.cum), near: false })));
   // one mark per occupied column of the timeline, never one per target (plan 4.4)
   const sv = shownView.value;
-  for (const x of sv?.derived?.ticks ?? clashTicks(clashIndex.value, bandCols.value, max)) out.push({ pct: x.pct, kind: "clash", near: x.near });
+  add("clash", sv?.derived?.ticks ?? clashTicks(clashIndex.value, bandCols.value, max));
   return out;
 });
 // Extent bands (timeline percentages): where a soft-limit line runs (warn)
@@ -1403,7 +1416,7 @@ onUnmounted(releaseSim);
           <!-- lucide's own X, Triangle and Circle, as the components render
                them, written out: a component per mark (one per occupied
                column) cost ~18 ms of a large first publication (plan 3.6) -->
-          <span class="scrubGlyph">
+          <span v-if="m.glyph" class="scrubGlyph">
             <template v-if="m.kind === 'clash'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="none" stroke-width="3" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg></template>
             <template v-else-if="m.kind === 'limit'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="currentColor" stroke-width="2" class="lucide lucide-triangle-icon lucide-triangle"><path d="M13.73 4a2 2 0 0 0-3.46 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /></svg></template>
             <template v-else><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="9" height="9" fill="currentColor" stroke-width="2" class="lucide lucide-circle-icon lucide-circle"><circle cx="12" cy="12" r="10" /></svg></template>
@@ -1476,21 +1489,23 @@ onUnmounted(releaseSim);
 }
 .scrubBand.track { left: calc(var(--range-thumb) / 2); width: calc(100% - var(--range-thumb)); background: var(--range-track); }
 .scrubBand.track.dim { opacity: var(--opacity-disabled); }   /* mirrors the disabled slider */
-.scrubBand.swept { background: color-mix(in oklab, var(--info) var(--tint-heavy), transparent); }
-.scrubBand.limit { background: color-mix(in oklab, var(--mark-limit) var(--tint-heavy), transparent); }
-.scrubBand.clash { background: color-mix(in oklab, var(--mark-clash) var(--tint-edge), transparent); }
-/* One tick for every mark kind (full track height); the glyph under it is
-   what tells the kinds apart when the colours don't (dark theme). */
+/* The progress has a lane of its own over the track, in the Sim tab's
+   progress colour; the findings fill the track itself, opaque (operator
+   2026-10-20: under translucent bands and the ticks' light edges both read
+   pale, and the progress was not seen at all). */
+.scrubBand.swept { top: calc(50% - 8px); height: 3px; transform: none; background: var(--info); }
+.scrubBand.limit { background: var(--mark-limit); }
+.scrubBand.clash { background: var(--mark-clash); }
+/* One tick for every mark kind, the track's height; the glyph under it is
+   what tells the kinds apart when the colours don't (dark theme). No light
+   edge: packed one per column, the edges washed the track out. */
 .scrubTick {
   position: absolute;
-  top: 0;
-  bottom: 0;
+  top: calc(50% - 3px);
+  height: 6px;
   width: 2px;
   transform: translateX(-50%);
   pointer-events: none;
-  /* Hairline bg-colored edge: separates adjacent ticks (time axis fuses
-     rapid-crash clusters) and crisps every tick against the track. */
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg) 90%, transparent);
 }
 .scrubTick.tool  { background: var(--mark-tool);  color: var(--mark-tool); }
 .scrubTick.limit { background: var(--mark-limit); color: var(--mark-limit); }
