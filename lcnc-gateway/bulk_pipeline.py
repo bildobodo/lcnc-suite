@@ -1012,7 +1012,9 @@ class BulkPipeline:
             self.published_limits = worker_limits
             self.published_kins_seed = worker_kins_seed
             self.published_wcs_off = worker_wcs_off
-            self.published_ctx = ctx
+            # never the verify parse's temp file: it is removed below, and a
+            # pinned parse copies this ctx (it compared against a file gone)
+            self.published_ctx = {k: v for k, v in ctx.items() if k != "verify_against"}
             self.table_stale = None
             # The run binding again at the publish: still the run in progress,
             # with the same start and the same text (plan 1b) — else this

@@ -865,7 +865,14 @@ real-time, memory or I/O latency; SCHED_IDLE is weaker still), 3× the
 timeout, its duration never enters the idle estimate, a pinned in-flight
 parse is never doomed by the (program's) rotary motion; a second
 measurement during it is picked up by one follow-up parse (the worker reads
-the table's file time BEFORE its STAT read). After the run the idle edge
+the table's file time BEFORE its STAT read). A pinned parse still running
+when its run ENDS — the interpreter idle again: a limit refusal right after
+the measurement, an abort, M2 — is cancelled at once (`pinned_parse_outlived`,
+`gcode.reparse_superseded` reason `run_ended`; operator 2026-10-20: it ran
+14 s for a run stopped 1.7 s after it began, then the idle edge parsed
+again), and the idle edges decide — one parse. The published ctx never
+carries a verify parse's temp file (`verify_against`): a pinned parse copies
+it and compared against a file already removed. After the run the idle edge
 re-parses for the table and the spindle tool (the program's M6:
 `tool_loaded`), and VERIFIES a changed start tool state (below). The browser: a publish during a run clears the collision findings (the earlier verdict stays named); a pinned parse made for the run is checked during it ("Check during a run" below), anything else is held while the interpreter runs and starts once it is idle again (`_colHeldByRun`, MR-I03). Traces `gcode.reparse_table_midrun`,
 `pinned: true` on `spawn_start` / `publish`, `gcode.pinned_unsupported`;

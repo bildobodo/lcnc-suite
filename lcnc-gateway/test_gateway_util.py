@@ -4215,6 +4215,22 @@ class TestMidrunTableGate(unittest.TestCase):
         self.assertFalse(self._open(since_last_check_s=1.9))
 
 
+class TestPinnedParseOutlived(unittest.TestCase):
+    """A pinned (mid-run) parse whose run has ended is cancelled (operator
+    2026-10-20: a limit refusal stopped the run 1.7 s after the measurement,
+    the pinned parse ran 14 s on, then the idle edge parsed again)."""
+
+    def test_a_pinned_parse_ends_with_its_run(self):
+        self.assertEqual(gateway_util.pinned_parse_outlived({"pinned": True}, True), "run_ended")
+
+    def test_while_the_run_goes_on_or_pauses_it_stays(self):
+        self.assertIsNone(gateway_util.pinned_parse_outlived({"pinned": True}, False))
+
+    def test_an_idle_parse_is_none_of_its_business(self):
+        self.assertIsNone(gateway_util.pinned_parse_outlived({"reason": "tool_offset"}, True))
+        self.assertIsNone(gateway_util.pinned_parse_outlived(None, True))
+
+
 class TestMidrunTableAction(unittest.TestCase):
     """What a mid-run table drift becomes (Codex R41 MR-I04): a pinned
     re-parse, or a stale mark the viewer shows until the idle edge."""

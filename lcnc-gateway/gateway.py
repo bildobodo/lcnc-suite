@@ -92,7 +92,7 @@ from gateway_util import (
     evaluate_kins_drift,
     wcs_offset_flat_from_table,
     evaluate_wcs_offset_drift, evaluate_limits_drift,
-    inflight_doomed_reason, rotary_hold_update, rotary_hold_settled,
+    inflight_doomed_reason, pinned_parse_outlived, rotary_hold_update, rotary_hold_settled,
     unwritten_estop_signal,
     kins_marker_policy,
     kins_pivot_warning,
@@ -1695,6 +1695,17 @@ async def _status_poller():
                 _bulk.reparse_pending = True
                 _bulk.reparse_pending_reason = _doom
                 _bulk.cancel_inflight(_doom)
+            elif (
+                # A pinned (mid-run) parse whose run has ended (operator
+                # 2026-10-20): its preview is for no run any more, and the
+                # idle edges below re-parse from the machine's state now —
+                # cancel it at once, they decide (one parse, not two).
+                _bulk.refresh_running
+                and _bulk.inflight is not None
+                and (_ended := pinned_parse_outlived(
+                    _bulk.inflight, st.interp_state == linuxcnc.INTERP_IDLE)) is not None
+            ):
+                _bulk.cancel_inflight(_ended)
             elif (
                 # In-flight supersede (2026-09-05): the drift edges below are
                 # gated on `not refresh_running`, so an edge raised DURING a
