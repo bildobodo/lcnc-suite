@@ -2177,6 +2177,21 @@ def inflight_doomed_reason(inflight, rotary_abc, eps=0.01):
         return None
     return evaluate_rotary_drift(inflight.get("rotary_seed"), rotary_abc, eps=eps)
 
+def pinned_parse_outlived(inflight, interp_idle):
+    """Has the run a PINNED parse was made for ended? (operator 2026-10-20)
+
+    The mid-run tool-table edge re-parses for the run going on; a run that
+    ends before that parse publishes — a limit refusal right after the
+    measurement, an abort, M2 — leaves it computing a preview for no run
+    (14 s on Haus_Brunnen.ngc, the machine stopped 1.7 s after it began),
+    and the idle edges re-parse after it from the machine's state now: the
+    table it measured and the start it left. Cancel it; those edges decide,
+    one parse. The interpreter idle is the end: a paused run is not idle.
+    Returns "run_ended" or None. Pure."""
+    if not inflight or not inflight.get("pinned"):
+        return None
+    return "run_ended" if interp_idle else None
+
 def rotary_hold_update(hold, rotary_abc, now, eps=0.01):
     """How long has the live rotary pose held still? `hold` is
     {"abc": [...], "since": t} or None. Returns the SAME hold while the pose

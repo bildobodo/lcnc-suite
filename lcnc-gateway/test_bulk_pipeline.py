@@ -1006,6 +1006,18 @@ class TestVerifyAtTheActualOffset(unittest.TestCase):
         self.assertNotIn("verify_against", self.sent[0]["ctx"])
         self.assertEqual(self.sent[0]["inflight"]["tlo_seed"]["xyz"], [0.0, 0.0, 65.0512])
 
+    def test_a_verify_parse_that_publishes_leaves_no_temp_file_in_the_published_ctx(self):
+        # the pinned parse of the next run copies the published ctx: it carried
+        # the removed temp file and compared against nothing (live 2026-10-20,
+        # "published payload unreadable: FileNotFoundError")
+        self._parse("file")
+        self.live.tool_offset = (0.0, 0.0, 65.0562) + (0.0,) * 6
+        self._parse("tool_offset")
+        self.assertIn("verify_against", self.sent[-1]["ctx"], "the verify parse compared")
+        self.assertNotIn("verify_against", self.b.published_ctx)
+        self.b.published_params = {"text": "", "g92": None}
+        self.assertNotIn("verify_against", self.b.pinned_ctx(self.ngc))
+
     def test_same_keeps_the_payload_and_moves_only_the_basis(self):
         self._parse("file")
         version, published = self.b.preview_version, (self.b.preview_bytes, self.b.preview_bytes_gz)
