@@ -122,3 +122,17 @@ describe("an entry contact the base continues, counted once after a fallback (Co
     expect(viewCounts(v)).toEqual({ collisions: 1, entryCollisions: 1, nearMisses: 0, possible: 0, startsIn: false });
   });
 });
+
+describe("a running check's word: an open near stay is no near miss yet (operator 2026-10-20)", () => {
+  function nearTables(): GenerationTables {
+    const st = new ContactStore(1, 0);
+    st.episodes.append({ pair: 0, ordinal: 0, onset: 1, end: NaN, closeAt: 2, closeDist: 1.5, firstIv: NONE, ivCount: 0 });
+    return { generation: 0, stores: [st], pairs: [["tool", "work"]], deltas: 1 };
+  }
+  it("the running flag reaches the view; the result names the stay", () => {
+    const T = nearTables();
+    const view = (running: boolean) => shownContactView(() => T, { base: { id: 1, map: null, coverage: 5, ownEnd: 10, ...(running ? { running } : {}) }, side: null, axisEnd: 10 })!;
+    expect(viewCounts(view(true)).nearMisses).toBe(0);
+    expect(viewCounts(view(false)).nearMisses).toBe(1);
+  });
+});

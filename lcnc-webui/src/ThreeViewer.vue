@@ -3321,10 +3321,10 @@ function _colBaseSpec(trk: ScrubTrack): ShownSource | null {
     return _colResultReq === null ? null : { id: _colResultReq, map: null, coverage: end * (r.truncated ? r.truncated.covered : 1), ownEnd: end };
   }
   if (collisionPartial.value && collisionPartialTrack.value === trk) {
-    return _colPartialReq === null ? null : { id: _colPartialReq, map: null, coverage: end * collisionProgress.value, ownEnd: end };
+    return _colPartialReq === null ? null : { id: _colPartialReq, map: null, coverage: end * collisionProgress.value, ownEnd: end, running: true };
   }
   const s = _colRunSideBase();
-  return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * collisionProgress.value, ownEnd: end } : null;
+  return s && s.trk === trk ? { id: _colReqId, map: null, coverage: end * collisionProgress.value, ownEnd: end, running: true } : null;
 }
 /** How far a side result swept its own track: all of it, else what its
  *  `truncated` names (a stop, its budget) — an answer is not a whole check
@@ -3346,7 +3346,7 @@ function _colRunSideSpec(trk: ScrubTrack): ShownSource | null {
   if (sf?.run && sf.base === trk && gen === sf.run.gen) {
     const own = _colSideProgress * sf.sliceEnd;
     return { id: sf.id, map: { kind: "minus", shift: sf.shift }, coverage: Math.max(0, own - sf.shift), ownCoverage: own, ownEnd: sf.sliceEnd,
-             entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, track: sf.entry, linesTrusted: _linesTrusted() };
+             entry: true, entryEnd: sf.entry.cum[1], sweptToEnd: false, running: true, track: sf.entry, linesTrusted: _linesTrusted() };
   }
   return null;
 }
@@ -3364,7 +3364,7 @@ function _colViewSpec(trk: ScrubTrack): ShownSpec | null {
   if (!b) return null;   // no entry overlay without its base (collisionEntryResult)
   return { base: { ...b, map: { kind: "plus", shift: ent.shift }, coverage: b.coverage + ent.shift },
            side: { id: ent.id, map: null, coverage: ent.covered * ent.sliceEnd, ownEnd: ent.sliceEnd, entry: true,
-                   entryEnd: ent.track.cum[1], sweptToEnd: ent.whole },
+                   entryEnd: ent.track.cum[1], sweptToEnd: ent.whole, ...(e ? {} : { running: true }) },
            axisEnd: _sliceEnd(trk) };
 }
 /** The published contact view of `trk` (null: nothing), and the track's line
