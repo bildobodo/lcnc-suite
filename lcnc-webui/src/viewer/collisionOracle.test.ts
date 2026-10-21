@@ -47,8 +47,10 @@ const DEEP = process.env.COLLISION_HUNT === "deep";
 const STEP = Number(process.env.COLLISION_STEP) || (DEEP ? MIN_ADV : 0.5);
 const SHORT_LINES = process.env.COLLISION_SHORT_LINES === "1";
 // Per case: a slow run fails by name, never hangs; COLLISION_HUNT_BUDGET=0
-// lifts it (a seed that ran out of time in the gate's search).
-const BUDGET_MS = process.env.COLLISION_HUNT_BUDGET === "0" || DEEP ? Infinity : 60_000;
+// lifts it (a seed that ran out of time in the gate's search). The TWP gantry
+// case takes ~56 s on this VM and ran out of 60 s on the CI runner, beside the
+// other heavy files (2026-10-21) — the budget bounds a hang, not the speed.
+const BUDGET_MS = process.env.COLLISION_HUNT_BUDGET === "0" || DEEP ? Infinity : 240_000;
 // vitest cannot interrupt a synchronous test, but it marks one that ran past
 // its timeout failed after all its checks passed: a hunt lifts it (a day).
 const TIMEOUT_MS = BUDGET_MS === Infinity ? 86_400_000 : 600_000;

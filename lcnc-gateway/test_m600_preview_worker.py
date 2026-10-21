@@ -460,6 +460,10 @@ class TestNcSpellings(unittest.TestCase):
 
     def test_every_setting_the_interpreter_takes_is_seen(self):
         from gateway_util import RemapEnv, toolsetter_assigned_keys
+        # outside every subTest: without the native modules the whole test
+        # skips — a subTest's skip ends only that case, and the answers pinned
+        # after the loop then compared against nothing taken
+        probe("assign_" + next(iter(self.SPELL["assign"])))
         taken = {}
         for name, text in self.SPELL["assign"].items():
             with self.subTest(name=name):

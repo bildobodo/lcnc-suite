@@ -48,8 +48,9 @@ def configure(e):
 def test_request_logs_and_rings_the_configured_thread(env):
     e, bell = env
     configure(e)
+    # --base HEAD: the CI checks out one commit, HEAD~1 is not there
     req = json.loads(run(e, "request", "--scope", "D3-D6", "--review-file", REVIEW_FILE,
-                         "--base", "HEAD~1", "--note", "fixes for UI-DI05").stdout)
+                         "--base", "HEAD", "--note", "fixes for UI-DI05").stdout)
     assert req["id"] == "R1" and req["type"] == "request" and req["base"] and req["head"]
     args = json.loads(bell.read_text().splitlines()[0])
     assert args[:3] == ["queue", "--thread", "thread-1"]

@@ -290,10 +290,10 @@ OLD_XYZAC = (ROOT / "scripts/test_fixtures/xyzac_before_datum_shift.ini").read_t
     if (ROOT / "scripts/test_fixtures/xyzac_before_datum_shift.ini").exists() else None
 
 
-def subprocess_show(rel):
-    """A file of the old XYZAC example (git 3e501ed)."""
-    import subprocess
-    return subprocess.check_output(["git", "show", f"3e501ed:examples/sim_config/{rel}"], cwd=ROOT)
+def old_example(rel):
+    """A file of the old XYZAC example (git 3e501ed), byte for byte from its
+    fixture — the history is no test input (the CI checks out one commit)."""
+    return (ROOT / "scripts/test_fixtures/xyzac_before_datum_shift" / Path(rel).name).read_bytes()
 
 
 class TwpToolsetterSeedTest(unittest.TestCase):
@@ -519,13 +519,10 @@ class XyzacDatumMigrationTest(unittest.TestCase):
     def old_template_state(self):
         """The old example's own files, unchanged (git 3e501ed) — the operator's
         real starting point, where Codex's probe found XZ-01/05."""
-        import subprocess
-        show = lambda rel: subprocess.check_output(
-            ["git", "show", f"3e501ed:examples/sim_config/{rel}"], cwd=ROOT, text=True)
         self.install()
         (self.dest / self.NAME).write_text(OLD_XYZAC)
         for rel in ("xyzac5/sim.var", "xyzac5/position.txt", "xyzac5/demo.ngc"):
-            (self.dest / rel).write_text(show(rel))
+            (self.dest / rel).write_bytes(old_example(rel))
 
     def settings(self, sections):
         path = self.base / "settings.json"
@@ -660,7 +657,7 @@ class XyzacDatumMigrationTest(unittest.TestCase):
         # An already migrated install still carrying the old demo (the
         # operator's, 2026-09-27) gets the current one too.
         self.install()
-        demo.write_bytes(subprocess_show("xyzac5/demo.ngc"))
+        demo.write_bytes(old_example("xyzac5/demo.ngc"))
         self.install()
         self.assertEqual(demo.read_bytes(), (SOURCE / "xyzac5/demo.ngc").read_bytes())
 
