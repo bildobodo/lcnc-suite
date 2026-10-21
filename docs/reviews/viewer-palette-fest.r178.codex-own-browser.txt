@@ -1,0 +1,133 @@
+[1A[2K[2m[WebServer] [22m(node:264680) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 4 tests using 1 worker
+
+[1A[2K(node:264692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:264692) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/4] e2e/r178.codex.viewer.spec.ts:21:51 › Codex R178: legacy limit has no invented main-file code mark
+[1A[2K  1) e2e/r178.codex.viewer.spec.ts:21:51 › Codex R178: legacy limit has no invented main-file code mark 
+
+    Error: no main-file location is known; in the unmarked case L5 is only a comment
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 7[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Object {[39m
+    [31m+     "line": "5",[39m
+    [31m+     "text": "G1 X30",[39m
+    [31m+     "title": "X 600 mm > max 500 mm",[39m
+    [31m+   },[39m
+    [31m+ ][39m
+
+      27 |  const marks=await codeMarks(page);fs.writeFileSync(`${DIR}/marks-${which}.json`,JSON.stringify({violation:raw.violations[0],row,marks},null,2));
+      28 |  await page.screenshot({path:`${DIR}/marks-${which}.png`,fullPage:true});
+    > 29 |  expect(marks,'no main-file location is known; in the unmarked case L5 is only a comment').toEqual([]);
+         |                                                                                            ^
+      30 | });
+      31 | test('Codex R178: the original native R177 case now jumps to the subroutine move',async({page,context})=>{
+      32 |  await prepare(page,context,`${DIR}/native.msgpack`,TEXT);
+        at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:29:92
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r178.codex.viewer-Codex-R1-42c50-nvented-main-file-code-mark/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r178.codex.viewer-Codex-R1-42c50-nvented-main-file-code-mark/error-context.md
+
+
+[1A[2K(node:264784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:264784) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[2/4] e2e/r178.codex.viewer.spec.ts:21:51 › Codex R178: unmarked limit has no invented main-file code mark
+[1A[2K  2) e2e/r178.codex.viewer.spec.ts:21:51 › Codex R178: unmarked limit has no invented main-file code mark 
+
+    Error: no main-file location is known; in the unmarked case L5 is only a comment
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 7[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Object {[39m
+    [31m+     "line": "5",[39m
+    [31m+     "text": "(a comment)",[39m
+    [31m+     "title": "X 600 mm > max 500 mm",[39m
+    [31m+   },[39m
+    [31m+ ][39m
+
+      27 |  const marks=await codeMarks(page);fs.writeFileSync(`${DIR}/marks-${which}.json`,JSON.stringify({violation:raw.violations[0],row,marks},null,2));
+      28 |  await page.screenshot({path:`${DIR}/marks-${which}.png`,fullPage:true});
+    > 29 |  expect(marks,'no main-file location is known; in the unmarked case L5 is only a comment').toEqual([]);
+         |                                                                                            ^
+      30 | });
+      31 | test('Codex R178: the original native R177 case now jumps to the subroutine move',async({page,context})=>{
+      32 |  await prepare(page,context,`${DIR}/native.msgpack`,TEXT);
+        at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:29:92
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r178.codex.viewer-Codex-R1-a2adb-nvented-main-file-code-mark/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r178.codex.viewer-Codex-R1-a2adb-nvented-main-file-code-mark/error-context.md
+
+
+[1A[2K(node:264881) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:264881) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[3/4] e2e/r178.codex.viewer.spec.ts:31:1 › Codex R178: the original native R177 case now jumps to the subroutine move
+[1A[2K[4/4] e2e/r178.codex.viewer.spec.ts:38:1 › Codex R178: a capped run list says that later violating stretches have no band
+[1A[2K  3) e2e/r178.codex.viewer.spec.ts:38:1 › Codex R178: a capped run list says that later violating stretches have no band 
+
+    Error: 32 of 40 stretches: the UI must expose omitted bands
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoMatch[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected pattern: [32m/32|40|stretch|band.*(limit|cap|omit)/i[39m
+    Received string:  [31m"·[39m
+    [31mL5[39m
+    [31m	X 600 mm > max 500 mm · first predicted limit crossing — where the run stops is not determined		00:06 × No contact so far · <1 % checked. ▲ 1 limit violation. ● No tool changes."[39m
+
+      44 |  fs.writeFileSync(`${DIR}/cap-browser.json`,JSON.stringify({record:raw.violations[0],bands,rows,help},null,2));
+      45 |  await page.screenshot({path:`${DIR}/cap-browser.png`,fullPage:true});
+    > 46 |  expect(rows+' '+help.join(' '),'32 of 40 stretches: the UI must expose omitted bands').toMatch(/32|40|stretch|band.*(limit|cap|omit)/i);
+         |                                                                                         ^
+      47 | });
+      48 |
+        at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:46:89
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r178.codex.viewer-Codex-R1-8a4e5-ting-stretches-have-no-band/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r178.codex.viewer-Codex-R1-8a4e5-ting-stretches-have-no-band/error-context.md
+
+
+[1A[2K  3 failed
+    e2e/r178.codex.viewer.spec.ts:21:51 › Codex R178: legacy limit has no invented main-file code mark 
+    e2e/r178.codex.viewer.spec.ts:21:51 › Codex R178: unmarked limit has no invented main-file code mark 
+    e2e/r178.codex.viewer.spec.ts:38:1 › Codex R178: a capped run list says that later violating stretches have no band 
+  1 passed (9.1s)

@@ -1,0 +1,56 @@
+{
+  "round": "R178",
+  "base": "e8bc45fe",
+  "head": "941dfe8e",
+  "branch": "feat/step4-p2b",
+  "archive": "/tmp/codex-r178-ioh_c9ie/repo",
+  "verdict": "findings",
+  "findings": [
+    "VP-I130 rest: raw code marks when no main-file line is known",
+    "VP-I131: 32-run cap not named in the UI"
+  ],
+  "repository_tests": {
+    "vitest_passed": 158,
+    "backend_tests_passed": 448,
+    "backend_subtests_passed": 1914,
+    "backend_junit_total": 2362,
+    "browser_passed": 5,
+    "browser_flaky": 0,
+    "build": "PASS"
+  },
+  "own_browser": {
+    "passed": 1,
+    "assertion_failures": 3,
+    "flaky": 0
+  },
+  "original_case": {
+    "native_script": "R177 codex-native.py unchanged",
+    "parse_error": null,
+    "mmap_unchanged": true,
+    "record_sub": "r177_child",
+    "record_site": 3,
+    "record_runs": [
+      [
+        4,
+        4
+      ]
+    ],
+    "browser_line": 3,
+    "browser_cum": 6.001
+  },
+  "cap_case": {
+    "native_loop_iterations": 40,
+    "outside_points": 40,
+    "nruns": 40,
+    "sent_runs": 32,
+    "browser_bands": 32,
+    "named_in_row_or_help": false
+  },
+  "limits": [
+    "No live gateway, Vite or machine commands",
+    "No full gate, historical mutation or browser-PC rerun",
+    "Native unmarked browser case is the repository fixture; all nine native repository cases executed separately",
+    "Tests run on archive; only browser control transport changed to own loopback mock"
+  ],
+  "archive_files_verified": 479
+}

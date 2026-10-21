@@ -1,0 +1,321 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/playwright.r178-own.config.ts",
+    "rootDir": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r178-ioh_c9ie/own-browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "r178.codex.viewer.spec.ts",
+      "file": "r178.codex.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Codex R178: legacy limit has no invented main-file code mark",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1691,
+                  "error": {
+                    "message": "Error: no main-file location is known; in the unmarked case L5 is only a comment\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"line\": \"5\",\u001b[39m\n\u001b[31m+     \"text\": \"G1 X30\",\u001b[39m\n\u001b[31m+     \"title\": \"X 600 mm > max 500 mm\",\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: no main-file location is known; in the unmarked case L5 is only a comment\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"line\": \"5\",\u001b[39m\n\u001b[31m+     \"text\": \"G1 X30\",\u001b[39m\n\u001b[31m+     \"title\": \"X 600 mm > max 500 mm\",\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:29:92",
+                    "location": {
+                      "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                      "column": 92,
+                      "line": 29
+                    },
+                    "snippet": "  27 |  const marks=await codeMarks(page);fs.writeFileSync(`${DIR}/marks-${which}.json`,JSON.stringify({violation:raw.violations[0],row,marks},null,2));\n  28 |  await page.screenshot({path:`${DIR}/marks-${which}.png`,fullPage:true});\n> 29 |  expect(marks,'no main-file location is known; in the unmarked case L5 is only a comment').toEqual([]);\n     |                                                                                            ^\n  30 | });\n  31 | test('Codex R178: the original native R177 case now jumps to the subroutine move',async({page,context})=>{\n  32 |  await prepare(page,context,`${DIR}/native.msgpack`,TEXT);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                        "column": 92,
+                        "line": 29
+                      },
+                      "message": "Error: no main-file location is known; in the unmarked case L5 is only a comment\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"line\": \"5\",\u001b[39m\n\u001b[31m+     \"text\": \"G1 X30\",\u001b[39m\n\u001b[31m+     \"title\": \"X 600 mm > max 500 mm\",\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  27 |  const marks=await codeMarks(page);fs.writeFileSync(`${DIR}/marks-${which}.json`,JSON.stringify({violation:raw.violations[0],row,marks},null,2));\n  28 |  await page.screenshot({path:`${DIR}/marks-${which}.png`,fullPage:true});\n> 29 |  expect(marks,'no main-file location is known; in the unmarked case L5 is only a comment').toEqual([]);\n     |                                                                                            ^\n  30 | });\n  31 | test('Codex R178: the original native R177 case now jumps to the subroutine move',async({page,context})=>{\n  32 |  await prepare(page,context,`${DIR}/native.msgpack`,TEXT);\n    at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:29:92"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:00:58.443Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/test-results/r178.codex.viewer-Codex-R1-42c50-nvented-main-file-code-mark/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/test-results/r178.codex.viewer-Codex-R1-42c50-nvented-main-file-code-mark/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                    "column": 92,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "0d66cd6c0761549fb18c-e1b011e34895ce3e5f2a",
+          "file": "r178.codex.viewer.spec.ts",
+          "line": 21,
+          "column": 51
+        },
+        {
+          "title": "Codex R178: unmarked limit has no invented main-file code mark",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1950,
+                  "error": {
+                    "message": "Error: no main-file location is known; in the unmarked case L5 is only a comment\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"line\": \"5\",\u001b[39m\n\u001b[31m+     \"text\": \"(a comment)\",\u001b[39m\n\u001b[31m+     \"title\": \"X 600 mm > max 500 mm\",\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: no main-file location is known; in the unmarked case L5 is only a comment\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"line\": \"5\",\u001b[39m\n\u001b[31m+     \"text\": \"(a comment)\",\u001b[39m\n\u001b[31m+     \"title\": \"X 600 mm > max 500 mm\",\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:29:92",
+                    "location": {
+                      "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                      "column": 92,
+                      "line": 29
+                    },
+                    "snippet": "  27 |  const marks=await codeMarks(page);fs.writeFileSync(`${DIR}/marks-${which}.json`,JSON.stringify({violation:raw.violations[0],row,marks},null,2));\n  28 |  await page.screenshot({path:`${DIR}/marks-${which}.png`,fullPage:true});\n> 29 |  expect(marks,'no main-file location is known; in the unmarked case L5 is only a comment').toEqual([]);\n     |                                                                                            ^\n  30 | });\n  31 | test('Codex R178: the original native R177 case now jumps to the subroutine move',async({page,context})=>{\n  32 |  await prepare(page,context,`${DIR}/native.msgpack`,TEXT);"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                        "column": 92,
+                        "line": 29
+                      },
+                      "message": "Error: no main-file location is known; in the unmarked case L5 is only a comment\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  - 1\u001b[39m\n\u001b[31m+ Received  + 7\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   Object {\u001b[39m\n\u001b[31m+     \"line\": \"5\",\u001b[39m\n\u001b[31m+     \"text\": \"(a comment)\",\u001b[39m\n\u001b[31m+     \"title\": \"X 600 mm > max 500 mm\",\u001b[39m\n\u001b[31m+   },\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  27 |  const marks=await codeMarks(page);fs.writeFileSync(`${DIR}/marks-${which}.json`,JSON.stringify({violation:raw.violations[0],row,marks},null,2));\n  28 |  await page.screenshot({path:`${DIR}/marks-${which}.png`,fullPage:true});\n> 29 |  expect(marks,'no main-file location is known; in the unmarked case L5 is only a comment').toEqual([]);\n     |                                                                                            ^\n  30 | });\n  31 | test('Codex R178: the original native R177 case now jumps to the subroutine move',async({page,context})=>{\n  32 |  await prepare(page,context,`${DIR}/native.msgpack`,TEXT);\n    at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:29:92"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:01:00.455Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/test-results/r178.codex.viewer-Codex-R1-a2adb-nvented-main-file-code-mark/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/test-results/r178.codex.viewer-Codex-R1-a2adb-nvented-main-file-code-mark/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                    "column": 92,
+                    "line": 29
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "0d66cd6c0761549fb18c-0e825063244e277f66f8",
+          "file": "r178.codex.viewer.spec.ts",
+          "line": 21,
+          "column": 51
+        },
+        {
+          "title": "Codex R178: the original native R177 case now jumps to the subroutine move",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2075,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:01:02.737Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0d66cd6c0761549fb18c-abb1b674d68da1d6e755",
+          "file": "r178.codex.viewer.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "Codex R178: a capped run list says that later violating stretches have no band",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2125,
+                  "error": {
+                    "message": "Error: 32 of 40 stretches: the UI must expose omitted bands\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/32|40|stretch|band.*(limit|cap|omit)/i\u001b[39m\nReceived string:  \u001b[31m\"·\u001b[39m\n\u001b[31mL5\u001b[39m\n\u001b[31m\tX 600 mm > max 500 mm · first predicted limit crossing — where the run stops is not determined\t\t00:06 × No contact so far · <1 % checked. ▲ 1 limit violation. ● No tool changes.\"\u001b[39m",
+                    "stack": "Error: 32 of 40 stretches: the UI must expose omitted bands\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/32|40|stretch|band.*(limit|cap|omit)/i\u001b[39m\nReceived string:  \u001b[31m\"·\u001b[39m\n\u001b[31mL5\u001b[39m\n\u001b[31m\tX 600 mm > max 500 mm · first predicted limit crossing — where the run stops is not determined\t\t00:06 × No contact so far · <1 % checked. ▲ 1 limit violation. ● No tool changes.\"\u001b[39m\n    at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:46:89",
+                    "location": {
+                      "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                      "column": 89,
+                      "line": 46
+                    },
+                    "snippet": "  44 |  fs.writeFileSync(`${DIR}/cap-browser.json`,JSON.stringify({record:raw.violations[0],bands,rows,help},null,2));\n  45 |  await page.screenshot({path:`${DIR}/cap-browser.png`,fullPage:true});\n> 46 |  expect(rows+' '+help.join(' '),'32 of 40 stretches: the UI must expose omitted bands').toMatch(/32|40|stretch|band.*(limit|cap|omit)/i);\n     |                                                                                         ^\n  47 | });\n  48 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                        "column": 89,
+                        "line": 46
+                      },
+                      "message": "Error: 32 of 40 stretches: the UI must expose omitted bands\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/32|40|stretch|band.*(limit|cap|omit)/i\u001b[39m\nReceived string:  \u001b[31m\"·\u001b[39m\n\u001b[31mL5\u001b[39m\n\u001b[31m\tX 600 mm > max 500 mm · first predicted limit crossing — where the run stops is not determined\t\t00:06 × No contact so far · <1 % checked. ▲ 1 limit violation. ● No tool changes.\"\u001b[39m\n\n  44 |  fs.writeFileSync(`${DIR}/cap-browser.json`,JSON.stringify({record:raw.violations[0],bands,rows,help},null,2));\n  45 |  await page.screenshot({path:`${DIR}/cap-browser.png`,fullPage:true});\n> 46 |  expect(rows+' '+help.join(' '),'32 of 40 stretches: the UI must expose omitted bands').toMatch(/32|40|stretch|band.*(limit|cap|omit)/i);\n     |                                                                                         ^\n  47 | });\n  48 |\n    at /tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts:46:89"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T08:01:04.854Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/test-results/r178.codex.viewer-Codex-R1-8a4e5-ting-stretches-have-no-band/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/test-results/r178.codex.viewer-Codex-R1-8a4e5-ting-stretches-have-no-band/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r178-ioh_c9ie/repo/lcnc-webui/e2e/r178.codex.viewer.spec.ts",
+                    "column": 89,
+                    "line": 46
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "0d66cd6c0761549fb18c-26b031025d08e64a02ad",
+          "file": "r178.codex.viewer.spec.ts",
+          "line": 38,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-21T08:00:57.918Z",
+    "duration": 9091.65,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 3,
+    "flaky": 0
+  }
+}

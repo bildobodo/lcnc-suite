@@ -581,6 +581,8 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
   - die Zeitleiste: der Fortschritt in eigener Bahn in der Farbe des Sim-Tab-Balkens, deckende Bänder, Striche ohne Rand, Symbole mit Abstand (4.3);
   - außerhalb des Pakets: ein gepinnter Parse endet mit seinem Lauf.
 
+- **Grenzdatensätze an Bewegung und Herkunft gebunden (R178, VP-I130):** Ein Datensatz nennt die rohe Zeile der Datei, in der sein Zug lief; er trägt jetzt seine Herkunft (Hauptprogramm oder markierte Unterroutine mit bestätigter Aufrufzeile, je Aufrufstelle) und seine verletzenden Abschnitte als seq-Läufe. Der Client setzt Zeile, Sprung und Bänder daraus (`limitPlaces`); ein Datensatz ohne Abschnitte hat keinen Ort und schließt die Liste.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).

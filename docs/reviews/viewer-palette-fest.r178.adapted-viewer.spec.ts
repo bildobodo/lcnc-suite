@@ -1,0 +1,26 @@
+// Codex R177's browser probe (viewer-palette-fest.r177.codex-viewer.spec.ts), unchanged but for
+// where its payload comes from: his native case run through the head's worker.
+import fs from 'node:fs';
+import {test,expect} from '@playwright/test';
+import {decode,encode} from '@msgpack/msgpack';
+import {ctl} from './ctl';
+import {openLayout,PROFILES,VIEWPORTS} from './layout-fixtures';
+import {openSimTab,simShow} from './simTab';
+const DIR=process.env.R178_OUT!;
+const TEXT='G21 G90\nG0 X0 Y0 Z0\no<r177_child> call\nG1 X20 F100\nG1 X30\nG1 X40\nM2\n';
+test('Codex R177: a native subroutine limit is not displayed at the safe main-file L5',async({page,context})=>{
+ const raw=decode(fs.readFileSync(`${DIR}/native-marked.msgpack`)) as any;raw.file='/sim.ngc';
+ await context.route(/\/preview(\?|$)/,r=>r.fulfill({contentType:'application/octet-stream',body:Buffer.from(encode(raw))}));
+ await context.route(/\/gcode(\?|$)/,r=>r.fulfill({contentType:'text/plain',body:TEXT}));
+ await openLayout(page,PROFILES[0]!,VIEWPORTS[0]!);
+ await ctl({op:'status_delta',data:{active_file:'/sim.ngc',is_enabled:false,enabled:false}});
+ await ctl({op:'raw',frame:{type:'viewer_gcode_ready',version:5177,file:'/sim.ngc'}});
+ await expect(page.locator('.scrubBar')).toBeVisible();await openSimTab(page);await simShow(page,'limit');
+ const rows=page.locator('.simPanel [data-sim-row]');await expect(rows).toHaveCount(1);
+ const before=await rows.innerText();await rows.locator('.rowPick').click();
+ await expect(page.locator('.simBanner')).toBeVisible();await page.waitForTimeout(300);
+ const data=await page.evaluate(()=>({row:document.querySelector('.simPanel [data-sim-row]')?.textContent,pose:window.__viewerDiag?.getScrubPose?.(),bands:[...document.querySelectorAll<HTMLElement>('.scrubBand.limit')].map(e=>e.getAttribute('style'))}));
+ fs.writeFileSync(`${DIR}/native-browser.json`,JSON.stringify({before,...data},null,2));
+ await page.screenshot({path:`${DIR}/native-browser.png`,fullPage:true});
+ expect(before,'the limit belongs to the call at L3, not the safe main L5').toMatch(/L3/);
+});
