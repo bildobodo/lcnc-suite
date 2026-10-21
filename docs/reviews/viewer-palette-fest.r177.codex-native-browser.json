@@ -1,0 +1,18 @@
+{
+  "before": "\t\nL5\n\tX 600 mm > max 500 mm · after the first limit crossing at L5\t\t12:00",
+  "row": "L5X 600 mm > max 500 mm · after the first limit crossing at L512:00",
+  "pose": {
+    "joints": [
+      30.124666666666627,
+      20.246,
+      30.369
+    ],
+    "tlo": null,
+    "tool": null,
+    "cum": 720.001,
+    "line": 5
+  },
+  "bands": [
+    "left: calc(var(--range-thumb) / 2 + (100% - var(--range-thumb)) * 0.9836065573770492); width: calc((100% - var(--range-thumb)) * 0.008196721311475414);"
+  ]
+}

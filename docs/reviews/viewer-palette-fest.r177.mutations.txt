@@ -1,0 +1,25 @@
+r177_follow_every_rows RED   1 failed Error: result with 0 new rows: the same row first in view | Expected: "C0|103|0" 43s
+r177_anchor_marked_only RED   1 failed Error: result with 5 new rows: the same row first in view | Expected: "C0|103|0" 44s
+r177_follow_on_complete RED 1 passed (16.2s) Error: and where it stood after: the list follows the position, not a new result | Expected: <= 1 50s
+r177_first_move_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ +0, 10 ] to deeply equal [ 30, 40 ] 10s
+r177_span_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ +0, 40 ] to deeply equal [ 30, 40 ] 10s
+r177_rows_raw NOCOMPILE ["src/ScrubBar.vue(19,103): error TS6133: 'programLineFirstMoveCum' is declared but its value is never read."] 10s
+r177_bands_raw RED   1 failed Error: no band before L3's move (8 s of 20) | Expected: >= 0.39999900000000005 41s
+r177_open_near_counted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, 5, 6 ] to deeply equal [ 2, 6 ] 11s
+r177_running_not_passed GREEN!       Tests  10 skipped (10)  10s
+r177_partial_not_running RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: 1, map: null, …(2) } to match object { running: true } 11s
+r177_runbase_not_running RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: 1, map: null, …(2) } to match object { running: true } 11s
+r177_entry_first_not_running GREEN!       Tests  1 passed | 18 skipped (19)  10s
+r177_swept_in_track RED   1 failed Error: the progress lane over the track, apart from it | Expected: <= 659 36s
+r177_swept_translucent RED   1 failed Error: the Sim tab's progress colour | Expected: "rgb(86, 156, 214)" 36s
+r177_clash_translucent RED   1 failed Error: a contact band is opaque | Expected pattern: /^rgb\(/ 37s
+r177_tick_edge RED   1 failed Error: no light edge on a tick | - Expected  - 1 38s
+r177_glyph_every_column NOCOMPILE ["src/ScrubBar.vue(1014,7): error TS6133: 'GLYPH_PX' is declared but its value is never read."] 9s
+r177_pinned_outlives RED 1 failed, 2 passed in 0.15s E       AssertionError: None != 'run_ended' | test_gateway_util.py:4224: AssertionError 0s
+r177_verify_in_ctx RED 1 failed, 5 passed in 0.08s E       AssertionError: 'verify_against' unexpectedly found in {'file': '/tmp/tmpuct9jiv3/p.ngc', 'ini_path': '/tmp/tmpuct9jiv3/m.ini', 'units': 'mm', 'var_patches': {}, 'g5x_index': 1, 'kins_type': None, 'kins_frame': None, 'veri 0s
+rebuild ok 23s
+r177_rows_raw RED   1 failed Error: the limit rows in the program's order, each at its own move | - Expected  - 1 1834s
+r177_running_not_passed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be +0 // Object.is equality 10s
+r177_entry_first_not_running RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: -1, map: null, …(5) } to match object { running: true } 10s
+r177_glyph_every_column RED   1 failed Error: a kind's glyphs at least their width apart | Expected: >= 9.5 37s
+rebuild ok 21s

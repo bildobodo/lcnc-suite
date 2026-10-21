@@ -1,0 +1,2523 @@
+{
+  "head": "e8bc45fe",
+  "evidence": {
+    "viewer-palette-fest.r177.codex-unit.json": {
+      "sha256": "e442b3f837a3e1072c42af5f78687db8f6d69adf781f188e1875fa8c83131d8c",
+      "bytes": 104371
+    },
+    "viewer-palette-fest.r177.codex-build.txt": {
+      "sha256": "280db75dcf775e03b27d8165026524b50a0f29ed400755df2d4edb1eae5528bc",
+      "bytes": 2438
+    },
+    "viewer-palette-fest.r177.codex-backend.txt": {
+      "sha256": "517167254654b416d4e7e70ded65324a7f1a326417bba7634a6b24e996cdf324",
+      "bytes": 568
+    },
+    "viewer-palette-fest.r177.codex-backend.xml": {
+      "sha256": "854618786d226c86ea094f1f0d38e8b8a84dbb32adf364b995176f9f93016932",
+      "bytes": 59382
+    },
+    "viewer-palette-fest.r177.codex-backend-collection.txt": {
+      "sha256": "2b6f748a4ea9c1c468b155c23041ae138890688d4b9497227275a1fe18d41731",
+      "bytes": 53
+    },
+    "viewer-palette-fest.r177.codex-browser.json": {
+      "sha256": "582f3943ceb689eab8e327f83dde44dcd035d2861dd714029c06089a45920ced",
+      "bytes": 7274
+    },
+    "viewer-palette-fest.r177.codex-browser.txt": {
+      "sha256": "1f47b2a7d2b5023f6176af5f35ef15d3c58af547d115f55d5413a4c0dbd418b7",
+      "bytes": 1370
+    },
+    "viewer-palette-fest.r177.codex-browser.config.ts": {
+      "sha256": "cc3cfc344c96a8e09315ba463a0d534f7547ee849b51446edb08fdd5d43673a7",
+      "bytes": 626
+    },
+    "viewer-palette-fest.r177.codex-own-browser.config.ts": {
+      "sha256": "3dd86870db40ce9d98e4b5b4dea69ae1d7ce88c9a692e5f7dca8e581f8116ab3",
+      "bytes": 630
+    },
+    "viewer-palette-fest.r177.codex-lines.test.ts": {
+      "sha256": "591a8a52e49a28def9be9b619de93a43e4eb9724f0201970c086235bfc214170",
+      "bytes": 1152
+    },
+    "viewer-palette-fest.r177.codex-lines.json": {
+      "sha256": "0478605186e9b614a7e524fcf92438c3607f526f622cd1bd28fec979d9a3a27d",
+      "bytes": 439
+    },
+    "viewer-palette-fest.r177.codex-lines-tests.json": {
+      "sha256": "be99114e0d5cf4b397b22599865d0a9d3139e938417c1e8df14e40f4764aaa35",
+      "bytes": 3546
+    },
+    "viewer-palette-fest.r177.codex-native.py": {
+      "sha256": "07f6d5bfc29e5e3625a8c710727cc673db17d7a6ab68bfb72e7671849a40dec9",
+      "bytes": 79431
+    },
+    "viewer-palette-fest.r177.codex-native.json": {
+      "sha256": "504bf17070824609544c06b1bcbcf335bb555089f94aea92fff4e0f6c24f0ec3",
+      "bytes": 1819
+    },
+    "viewer-palette-fest.r177.codex-native.msgpack": {
+      "sha256": "311ee5fe27dc125ce395af65bdeb0928079fcbdfa3a43adb97e34e9f43a79ecf",
+      "bytes": 1684
+    },
+    "viewer-palette-fest.r177.codex-native-limit.test.ts": {
+      "sha256": "d60be5984d3fc21db58cb432b69ac1183f34609ffc9b3fb1abf4910fdca92bea",
+      "bytes": 1429
+    },
+    "viewer-palette-fest.r177.codex-native-track.json": {
+      "sha256": "ae92d8197f3c5ab003b3492705f1654433038f060b6b76f1ef26cfc4a9a99ad8",
+      "bytes": 1128
+    },
+    "viewer-palette-fest.r177.codex-native-track-tests.json": {
+      "sha256": "ae63912567215a0aeb55a36b2fadacc86b51a9882de3e3e7c48970a3c79460c5",
+      "bytes": 2164
+    },
+    "viewer-palette-fest.r177.codex-viewer.spec.ts": {
+      "sha256": "e801352324e3fdb44d1d2c6844267ec7183ad4804260e027380d2cfb824f0a91",
+      "bytes": 1914
+    },
+    "viewer-palette-fest.r177.codex-native-browser.json": {
+      "sha256": "3309d093ba596bdda41d1f1723dcd3368d47a77d5f598dcc41946b7a2816e716",
+      "bytes": 517
+    },
+    "viewer-palette-fest.r177.codex-native-browser.png": {
+      "sha256": "55a8df271d8b2eb0561ccdbc6579c4f67ddec1d9d3339244416141d69e7c13c0",
+      "bytes": 159894
+    },
+    "viewer-palette-fest.r177.codex-own-browser.json": {
+      "sha256": "7323f24202490f676987034ad65e4d8dd073da43f4ad97b534861cd3f0bd6990",
+      "bytes": 6714
+    },
+    "viewer-palette-fest.r177.codex-own-browser.txt": {
+      "sha256": "ed9d55b76d2e2803d8435e69abd658119e86c3efcf6f026401b3ee508d1fdac2",
+      "bytes": 2557
+    },
+    "viewer-palette-fest.r177.codex-poller.py": {
+      "sha256": "e2d90dbce655e1cb746c8296fdb262cad7851e0aae956c03ae5f0e5059b14c0f",
+      "bytes": 2671
+    },
+    "viewer-palette-fest.r177.codex-poller.json": {
+      "sha256": "9deeebae377fd5d1a3791a4e4e8621ea583350c142490da7b80b2dce040c36b0",
+      "bytes": 889
+    },
+    "viewer-palette-fest.r177.codex-summary.json": {
+      "sha256": "af7bc320499a6ab6a6f09350e606c7d899dd552ec75d02433dba7a9bb8c9e5df",
+      "bytes": 5566
+    },
+    "viewer-palette-fest.r177.codex-reproduce.md": {
+      "sha256": "9d44e0d42e6f802a2bd2a13303f535142e9c28370a18c74989e1b08d7c49b08e",
+      "bytes": 6785
+    }
+  },
+  "product_sources": [
+    {
+      "path": "CLAUDE.md",
+      "git_blob": "86c2a9f8f7d45eaf25cb45fdf7ade1c960e6a873",
+      "sha256": "40f0d7aad19abe25eeac506fc767b0c52a82f855064529be8976ffc57244dc54"
+    },
+    {
+      "path": "lcnc-gateway/bulk_pipeline.py",
+      "git_blob": "08aad3f25b148b1741820d1b91a1f0f532493ed2",
+      "sha256": "f222d8c94fd77dc71febcfbea8a3f186dd33534aec112b03dc2eba1bb96d1c39"
+    },
+    {
+      "path": "lcnc-gateway/camera_broker.py",
+      "git_blob": "e964520b95e3bc94d87590a0b79c0f35b8227430",
+      "sha256": "e8640ae60e23d4829de6cd633fcfaa08dd1384b7e04ccd1bc6866c00251a5ec2"
+    },
+    {
+      "path": "lcnc-gateway/canon_fixtures.gen.json",
+      "git_blob": "cd7d5b8e4955b8077f7e3a38edb203994691bdd7",
+      "sha256": "cbc074b4ceeab810cff5e053929fee82444992b6f76bca37dd96aade9f68b573"
+    },
+    {
+      "path": "lcnc-gateway/command_policy.py",
+      "git_blob": "bb0427fb470c09f0df9865d3ae42f4f2e68ffdc7",
+      "sha256": "217a1c83e1a2d37d2b06b0b7dd46fe03fdb4fe9e653ae641c54fa7af8c757d00"
+    },
+    {
+      "path": "lcnc-gateway/conftest.py",
+      "git_blob": "8a99ac27dfa4154963383ee1cac955638a13ba29",
+      "sha256": "e2e823f479c797183f6cca1c7ee68f1ca7e8493b1e7aaf65feb22015cef7dcbd"
+    },
+    {
+      "path": "lcnc-gateway/fake_hal.py",
+      "git_blob": "8565fb02dcbb8e50969910facad7280b084d6559",
+      "sha256": "37639669c82685edab4054df142c8bbcf5209faec26e1b6f8d1089bdf16e5570"
+    },
+    {
+      "path": "lcnc-gateway/fake_linuxcnc.py",
+      "git_blob": "4e6fc1e539505238a87f3e91d79648f0afdf08da",
+      "sha256": "c0523ecb214e1a58956104d8647b32c8d162bf739c927ab312a64b9d90a7f03c"
+    },
+    {
+      "path": "lcnc-gateway/freecad_import.py",
+      "git_blob": "e8956cec3569c8b85e93db017cfd373e0184e965",
+      "sha256": "79234ea3ee159b6983e76e5dedc7e410fd56e26693e6bcd15ddc25fc68ea2e98"
+    },
+    {
+      "path": "lcnc-gateway/freecad_shape_defaults.json",
+      "git_blob": "241090efd943e1e3870e955f3c4609e058b0aef2",
+      "sha256": "5637ca21f4cf5fb5cd2383893f57bafa080f7b3fdf43c800489d7c9c6cc0b6b2"
+    },
+    {
+      "path": "lcnc-gateway/fusion_import.py",
+      "git_blob": "56deecb93dae1d8a3a856904372822be0fc29af2",
+      "sha256": "988561a1a7c3d8916358342f33220a687b6d3e08206bb9e0679e06027e04f8e1"
+    },
+    {
+      "path": "lcnc-gateway/gateway.py",
+      "git_blob": "0f5b4bbe5b93330e631daf5dd66f8abdbcf0f2b1",
+      "sha256": "4543047d14ea366bfb01177c7b0224088f5c1c84ece9dd671f37b9330e199498"
+    },
+    {
+      "path": "lcnc-gateway/gateway_util.py",
+      "git_blob": "a2a7a22c324335c764def9a935cb6a0cbeb6676c",
+      "sha256": "86cac4f3f9917c2594710a8c9de3831045a73aa3e041f6b2c7da3d5ad10277f9"
+    },
+    {
+      "path": "lcnc-gateway/gcode_canon.py",
+      "git_blob": "ae31227d3bd667517ada23c497ea690bd80d07f3",
+      "sha256": "5f20bf027eb6c0b48df51fd70a4c461e6313979950d80b780fe8fc1a31243992"
+    },
+    {
+      "path": "lcnc-gateway/gcode_parse_worker.py",
+      "git_blob": "a76ecfae2b3a01bfc19950f48d36eb94c3fb8377",
+      "sha256": "20587146aa706616a2e450bee567ac164bc957a8a2d49ecce51b77271861055d"
+    },
+    {
+      "path": "lcnc-gateway/hal_bridge.py",
+      "git_blob": "9001273d9616dfa0eddff1293823a4700317fd43",
+      "sha256": "3b3f2f7711658ea2683056bdd25e474a57e314d6998cc5f3654c00c2e0f4ebb7"
+    },
+    {
+      "path": "lcnc-gateway/hal_reader.py",
+      "git_blob": "84d9360c14a52032c32dd170a5a24fbf0a21cca4",
+      "sha256": "5d8f5ef11a9b10f58bb4f78762b83090f5f1cb4e2c4f73c21bcdf49f05ebd020"
+    },
+    {
+      "path": "lcnc-gateway/hal_watchdog.py",
+      "git_blob": "c3b326dd67d9f96bc6d3da142eab02acb9dd4db3",
+      "sha256": "d5986e5a1f524cc3bfadf6745adfda62d62116f8f7bbd732c268ddd983f75068"
+    },
+    {
+      "path": "lcnc-gateway/kins_fixtures.gen.json",
+      "git_blob": "4fccd614324e6db4d19912e240e1b4fb1640ead9",
+      "sha256": "98ecab6e3ea0574bdf669a36b7855f317852c6bf3f3cc7fd4ae4261cb49a9634"
+    },
+    {
+      "path": "lcnc-gateway/lcnc_paths.py",
+      "git_blob": "0447fc72eecedb14e4affae6f7e2e881adf8c318",
+      "sha256": "30da9ab5ced96d93b8166e7d960401fbcb22a7da818768baac04eb175f2a45ec"
+    },
+    {
+      "path": "lcnc-gateway/lcnc_trace.py",
+      "git_blob": "d4b577337a5c3408b27d627303a6f6d2fc714030",
+      "sha256": "1be0855793d3bfd9795e8bb11e7e5062b7d1a0c1638c0232606c368fb7f6a002"
+    },
+    {
+      "path": "lcnc-gateway/machine/frame.stl",
+      "git_blob": "a7ed85e4bd5e8b5b5070174ae9069d683af9765d",
+      "sha256": "3aaf95df66fcaf0bc8983336e06504911ae499fac4fbb347be2b3fa5b5a082f6"
+    },
+    {
+      "path": "lcnc-gateway/machine/machine.json",
+      "git_blob": "1d990ede070703f9ed6c03af98a6ea4a5f0367c1",
+      "sha256": "54534c3d69f72a4d4f696a21b4cdd5fdc9295d4081c4160529257c8bca3af5e3"
+    },
+    {
+      "path": "lcnc-gateway/machine/x_axis.stl",
+      "git_blob": "ab5a009285eab9f1a316455dd5e5e1d6333713e7",
+      "sha256": "a3979a190a5fe7da6f4d4fd24ee3cd346fc8dbb3deedb1a21be472077321661e"
+    },
+    {
+      "path": "lcnc-gateway/machine/y_axis.stl",
+      "git_blob": "a1b1a5466e87a6dc610131310560190517f78e6f",
+      "sha256": "cda9693aabba3261b0e49a40b87b2dd97d1599be8574042495cd436b93f7263f"
+    },
+    {
+      "path": "lcnc-gateway/machine/z_axis.stl",
+      "git_blob": "696f6cb47f75cc083e5599a5e0f255762b25f5d5",
+      "sha256": "8ed2b203332a2036285afd797c2bc227f1745466b920fc6601383ce73b44f0aa"
+    },
+    {
+      "path": "lcnc-gateway/macro_files.py",
+      "git_blob": "7d334fba41c439842dfda815c131f0c9d2e0a65b",
+      "sha256": "6173811d7830d7d0f97eeb272aa3dbd4bd7d717f07cc4b29982ad78aa30ba51d"
+    },
+    {
+      "path": "lcnc-gateway/native_pinned_probe.py",
+      "git_blob": "bcb6798df5aada5fa10062a91a122509439a606b",
+      "sha256": "46ea3a2e680ca3f4a9b3d0a5c26fd34c086b6af7065c44735bb85f44d0da564a"
+    },
+    {
+      "path": "lcnc-gateway/native_start_probe.py",
+      "git_blob": "275ff9f2c221a12f2ad742d3b5b688174bd94af2",
+      "sha256": "961eacaa132fba2f7a1c6b6bf61f26a909bcc029ab34a3a894a69a0a03b7b7b4"
+    },
+    {
+      "path": "lcnc-gateway/pyproject.toml",
+      "git_blob": "489deba95596e27183482e708eeb943f7b65b05c",
+      "sha256": "9d22899d8dcd73c067a3f3b6850cd3c8fc029f9a7df2e401414fa598ed498b71"
+    },
+    {
+      "path": "lcnc-gateway/requirements-test.txt",
+      "git_blob": "b844083617a415926d17c69ad5cdcdcffb4390ef",
+      "sha256": "eafcd8302f8428339526006a38eac3ac6a8ae8f3e5d7570914c81cc262b7b4fa"
+    },
+    {
+      "path": "lcnc-gateway/requirements.txt",
+      "git_blob": "64c1907fd8786a88be9a0ca8e2cf6e47cad00d59",
+      "sha256": "c1eba09c24c2319ae7255d7da6bd1a2c7bcf1965cae66f7089cdc8255fedc6ae"
+    },
+    {
+      "path": "lcnc-gateway/run-tests.sh",
+      "git_blob": "db5da477b68094202a599f5328e981755c7ddafd",
+      "sha256": "355e1e7c10d34ee6027398ee31c093a2ab91b27d61df832e1a7232289e48c937"
+    },
+    {
+      "path": "lcnc-gateway/session_bind.py",
+      "git_blob": "3dedfd70ebbc5cff7c00a6d2aa15fd4835984bdc",
+      "sha256": "085fd942e71a91053d71cdea0e5bb14d0a26cd1d8413d45c6679dba15e55112d"
+    },
+    {
+      "path": "lcnc-gateway/settings_store.py",
+      "git_blob": "60a1b8941c5e28587fdc7eca4c59a4d0a3a1f872",
+      "sha256": "93f58db7f8e688f3841b7a8733ec4e553d47e33ba2588c4e09ce4c40574c4013"
+    },
+    {
+      "path": "lcnc-gateway/setup-venv.sh",
+      "git_blob": "4a48237d11abe73fb8b1feef6c9bfd40e63e668f",
+      "sha256": "cff3d6d9f9b5257e908aaa38a66a6cfa150e4965be6c2982551ddc01fafb2ae7"
+    },
+    {
+      "path": "lcnc-gateway/status_runtime.py",
+      "git_blob": "791fa27ad8d8995fbdf82d008a6ba55d86aff8c0",
+      "sha256": "ad5a8b9d4b599d7b2eb47da06762d4a2adcd64cff833533e543310c77929d26e"
+    },
+    {
+      "path": "lcnc-gateway/suite_py_bind_probe.py",
+      "git_blob": "7590160d63c33f2f38aaad0ad99016f09c526a3d",
+      "sha256": "7d7a7bd52d8059a0634584a09c5c3df43d589654e58c9ce97b72c14cad52ab22"
+    },
+    {
+      "path": "lcnc-gateway/test_adaptive_poll.py",
+      "git_blob": "8b3929f0cb3dd3b588244cd99d87d6fdf034977c",
+      "sha256": "61daccb8f9cef81a6b3d27746470362ca07b63aad8911b6639a9579c1611533e"
+    },
+    {
+      "path": "lcnc-gateway/test_bulk_pipeline.py",
+      "git_blob": "89bc26ffffc47ce9c1610c876e81ea0c0789501d",
+      "sha256": "91e099fdaf458f98e5e2705ebd5625e4b91fc45a47c38754ef623ea72512b1cb"
+    },
+    {
+      "path": "lcnc-gateway/test_camera_broker.py",
+      "git_blob": "e84e40eede8feb613395465d52fe743179d9df47",
+      "sha256": "ae6ac7daddad37a94def77e212815298fc3e8b3fa2e6c058c61796208778f06f"
+    },
+    {
+      "path": "lcnc-gateway/test_canon_basis.py",
+      "git_blob": "c7650ddff67e2781b28f01df8903da7d4eb28adb",
+      "sha256": "4f3dc1ec4e693591367549bbdfe1268e6e366b65451ac3525763642df135de37"
+    },
+    {
+      "path": "lcnc-gateway/test_command_dispatch.py",
+      "git_blob": "d49ae70264822204fa4c1c8bb02e6079ed08cfab",
+      "sha256": "3b5e71d9e7c9d411a1bbe3e817e63e08e19692c7d24500a117225e79d33f5bbd"
+    },
+    {
+      "path": "lcnc-gateway/test_command_policy.py",
+      "git_blob": "23b84d8ce5873e7ce9fdcd44df87dc8ec4c7e9e0",
+      "sha256": "f8f9f53f3c1416e0b0027f0b1f9f6b9f411fca061d6187b8d766cf55dd2814af"
+    },
+    {
+      "path": "lcnc-gateway/test_config_sync_check.py",
+      "git_blob": "7a08584ec707fa9221f9733442fd441f7d58dbb6",
+      "sha256": "770d5b3f98d8a26bca83a75e05481efd26f58812c0cab80e7e3375a6b6caecc2"
+    },
+    {
+      "path": "lcnc-gateway/test_example_install.py",
+      "git_blob": "b2b27bc2a863f7512bcf147bd729d65d71d407b5",
+      "sha256": "d2415ba4d80b9f518a49218d1bb772c68f88dfd79ef9ccef34b40a2a716692b3"
+    },
+    {
+      "path": "lcnc-gateway/test_example_tool_library.py",
+      "git_blob": "90bad2aa7532af0148de5c534caf4f0e6041131f",
+      "sha256": "ae0ac283c554d863757d166c9e7ba57166d2c6c65ebb53d0e4678cb01e4d2fd9"
+    },
+    {
+      "path": "lcnc-gateway/test_extra_pins.py",
+      "git_blob": "6aa14dc39c34bec75d2e6674ee940ae8309a800c",
+      "sha256": "3fcdf649d04e5229d06dbb6e59d3f9e868b8f4776f78cec876554baae79798c1"
+    },
+    {
+      "path": "lcnc-gateway/test_freecad_import.py",
+      "git_blob": "013e6f822b0ba9c612a756240d3c1a6029eca5bf",
+      "sha256": "bc3c37a7b7b71895c2e163062a94f111c43587addf7c3d82215b66a011048af2"
+    },
+    {
+      "path": "lcnc-gateway/test_fusion_import.py",
+      "git_blob": "6390ace7c94b8ef9f80198e2310e11c5929bb3d9",
+      "sha256": "a5adf2ca9893e615dc721fdbf2a7a973f17a39d78586cf3ecfcdc89ff1c3665a"
+    },
+    {
+      "path": "lcnc-gateway/test_g30.py",
+      "git_blob": "3d28bf51e5a96fc28025aa059b5576834087e415",
+      "sha256": "8eefa0fbabe9281cefdb6a0bd0c1bea7dba6f8432c285fef305d62bd74e70dce"
+    },
+    {
+      "path": "lcnc-gateway/test_gateway_util.py",
+      "git_blob": "b6155bb9b2164d3b9af077d7b09faf6a8b3cfd9d",
+      "sha256": "3d62c4f01af4886de06689e23d7d8d78a777696d18ecb1648f8110ed58eb7913"
+    },
+    {
+      "path": "lcnc-gateway/test_hal_bridge.py",
+      "git_blob": "335eac9dd2db61105de86c46ce1172d0c230bc8b",
+      "sha256": "a7ce7529af617bd2f43c0af8772ae5931f2eb8a10085b929c2a1a091cee44042"
+    },
+    {
+      "path": "lcnc-gateway/test_hal_trip_latch.sh",
+      "git_blob": "3e45710983d8409c20e340dd5bd806b2dd774e13",
+      "sha256": "28b329ba3c1462def487f9d3d98d8be02eca74373aacad3f1644bf2168962ac5"
+    },
+    {
+      "path": "lcnc-gateway/test_halshow_topology.py",
+      "git_blob": "7b3131883519d5eaf0dc2b9f79b87d58012fd322",
+      "sha256": "7a9671bfb0d830558d910ce87dfe5c734a2c048749f262e912ec6ada76fdd83d"
+    },
+    {
+      "path": "lcnc-gateway/test_helpers_admission.py",
+      "git_blob": "131561a78bf62b60c58beec94e413a20a21be927",
+      "sha256": "a486328df2af09e247b13a5a92484363ca48f1acd2ec35e5b62b53c2c02dc713"
+    },
+    {
+      "path": "lcnc-gateway/test_kins_oracle_parity.py",
+      "git_blob": "b812bccbd7ff50cc8503c43cd2d10389294a1e4e",
+      "sha256": "aadb5335b7a9697a1d9c62ee7fe9174cae9f97de00293cfabacc5ca4616e5eb5"
+    },
+    {
+      "path": "lcnc-gateway/test_m600_preview_worker.py",
+      "git_blob": "357ce4a664b845a3171fbf27e62bb3b5ec1056a1",
+      "sha256": "2e5721c8952ee51097416160530b3b533990c7964e86ce6dd3b13708bf9a2af4"
+    },
+    {
+      "path": "lcnc-gateway/test_macro_files.py",
+      "git_blob": "5f7a5e9c2b531086eeaf5887adeca499e3254b66",
+      "sha256": "509c9bb525e09b2606c27e19a6c5db110467156ec3859a01d426fdfa18338d37"
+    },
+    {
+      "path": "lcnc-gateway/test_macros_gateway.py",
+      "git_blob": "f57c17dc088867ea55a1da79849e45deeaaaa571",
+      "sha256": "9850a8f5d5908c8bbf8d6392fe52567acca049a1bbc44613733dacb2cc8ff85e"
+    },
+    {
+      "path": "lcnc-gateway/test_ngc_fixtures.py",
+      "git_blob": "d7367aea052567cf39c80a95cf07a9f11701b603",
+      "sha256": "5a91161d53129c14da60fcdb7df6f1d1b70019d1b6bfe8f14d57dbab3e93b331"
+    },
+    {
+      "path": "lcnc-gateway/test_pinned_worker.py",
+      "git_blob": "53ae10e81a7404a3f2b8c3137f715b7e1f99cad7",
+      "sha256": "1170017b907bc436c567b105c12c48185ca1a922b5505643ae531510e7833225"
+    },
+    {
+      "path": "lcnc-gateway/test_program_files.py",
+      "git_blob": "499f3a24d047cafefff69fb34c64a9ed8798cf2c",
+      "sha256": "51de2c5f93568346d6d94dfef268ce182618d3a79aeeb8acb9d0409d70a62091"
+    },
+    {
+      "path": "lcnc-gateway/test_ready_probe.py",
+      "git_blob": "28ad05f717af5c89f3128b658192705c6dcdece5",
+      "sha256": "9927e33b3cbb7c69c5ddba63450aa789f479ce285c262b15f8e1e8f04a1ac524"
+    },
+    {
+      "path": "lcnc-gateway/test_rfl_guard.py",
+      "git_blob": "7c5e2645bca1ab78c97f4afade56fbbda9457ec3",
+      "sha256": "a706297d97490d236d31e8c123b22118dc17cf78af0c14959fd50f6860225162"
+    },
+    {
+      "path": "lcnc-gateway/test_session_bind.py",
+      "git_blob": "476271e26963cf39f4aab75f154808c454da45fa",
+      "sha256": "894fad1c67be7fa2f256588d54e325841a5be1a2fb55d90ca930213eb702630a"
+    },
+    {
+      "path": "lcnc-gateway/test_session_policy.py",
+      "git_blob": "ddcbe2b47dd543a817fa3e55b9f126adc6a2c2b5",
+      "sha256": "bea3fda664a2c8d94fcf084a219a0b4ed5a5a1c9e76d0570922f5edd4461a300"
+    },
+    {
+      "path": "lcnc-gateway/test_settings_store.py",
+      "git_blob": "6f159b0d5dd483569e6fe27ef549157d3a9e99af",
+      "sha256": "86a3b2e8bb4600af2972d79a1042f810833030a3987e8060d92d2191f44cd26e"
+    },
+    {
+      "path": "lcnc-gateway/test_sim_toolsetter.py",
+      "git_blob": "dc7e2c61ce5e98479c253d1e2b1e729e2bb1b731",
+      "sha256": "b587028c231cb6540a18158991f91208b2686e15dc4c9a1a34455cc1e0f32faf"
+    },
+    {
+      "path": "lcnc-gateway/test_start_dep_worker.py",
+      "git_blob": "94bff74d18a727da077da542264c3bdccd580dce",
+      "sha256": "6b317ac9066c07c65dcf447522e50f7c4eaa951718d806a8904071db37f7b6e4"
+    },
+    {
+      "path": "lcnc-gateway/test_start_tlo_worker.py",
+      "git_blob": "c8de7a3cd2282d800edcfb58588a7020d9fb6d11",
+      "sha256": "54d1e93eddeb89be085f318b694b1ce8ac5ac7d5bc38a140ee4160a3c9777eac"
+    },
+    {
+      "path": "lcnc-gateway/test_status_runtime.py",
+      "git_blob": "f0818d8595b063dfbc672a3573f7b14b6c1635ff",
+      "sha256": "cf992e51be68655d0bfc856a6966fcab52236bc3e1ea981c6e8f1d1adb643183"
+    },
+    {
+      "path": "lcnc-gateway/test_suite_runner.py",
+      "git_blob": "bfc7158645c7d30599f0ee223927e00bd804098b",
+      "sha256": "360c38ec2abab3cd385c0b0306255bee7959daff20b72eb0a8b96883b14a9fd1"
+    },
+    {
+      "path": "lcnc-gateway/test_tool_change_motion_worker.py",
+      "git_blob": "068b4434dece4caaef0f1a6ac8adb7e5ff4c759b",
+      "sha256": "bb3ef5f254148b4d654882418c44558faa993b54c897f3e2229f0b63501790ad"
+    },
+    {
+      "path": "lcnc-gateway/test_tool_files.py",
+      "git_blob": "5f4eb334b392890858b068d84837a503c6cf2d5e",
+      "sha256": "32d49e8657064d0109666441a98bbf4811e3762b455c398815e365317ce4a6de"
+    },
+    {
+      "path": "lcnc-gateway/test_tool_refresh.py",
+      "git_blob": "b74bd68f18b2d849f68893c6367dbb5b67a4d465",
+      "sha256": "add64f41a8c6db812b52bf34c942fc8361e2b358bb3996471a702204d03df5cb"
+    },
+    {
+      "path": "lcnc-gateway/test_tool_store.py",
+      "git_blob": "32183c541a069d9d618e770d7b0cb1b606de623a",
+      "sha256": "f88b05447c83cd086383b9f48c10e539c67ec3bf5c45a6830d5e967443536c4d"
+    },
+    {
+      "path": "lcnc-gateway/test_tool_table.py",
+      "git_blob": "e9f7b497ab26217ec07ead23ac494c0cb814a559",
+      "sha256": "22389a3d93c8afb8315a61f14779837fd3f5033377f041a20e434b7da3b547a4"
+    },
+    {
+      "path": "lcnc-gateway/test_tool_touch_off_paths.py",
+      "git_blob": "32af2beaedbc5346dc17a69400b75665d697da2b",
+      "sha256": "556461234923e2257382bec7bf46867602afc1e109bb1647d7321e3fd5286f6a"
+    },
+    {
+      "path": "lcnc-gateway/test_toolsetter_basis.py",
+      "git_blob": "f1120c3ecb1e68d11024bfc53cc9c341f4a1c704",
+      "sha256": "07da1faedec8d33a346a441be53aaa51d54c12482ba2a1b956d42e8b0520566e"
+    },
+    {
+      "path": "lcnc-gateway/test_twp_params.py",
+      "git_blob": "c8426c95d82962054a99d809ef1116ec6058e0f0",
+      "sha256": "88965083e5ac9017d94b9627fbbe2bc68973ee954046f2a04cb3d9cf46114d4f"
+    },
+    {
+      "path": "lcnc-gateway/test_twp_prov.py",
+      "git_blob": "81bef3fb420411a449b9ebc930cca2859e5282fe",
+      "sha256": "971b23a7a0930556587f870055203bd59fe199244e6f232006d2537161fe0554"
+    },
+    {
+      "path": "lcnc-gateway/test_twp_settle.py",
+      "git_blob": "707d8bd81f0c31ab0bad14a92238da2f377a2c76",
+      "sha256": "e77fb45b82032fecb9a63046afd0affd07c47b6ad2a171d2d1850584a22d38d9"
+    },
+    {
+      "path": "lcnc-gateway/test_twp_transform.py",
+      "git_blob": "ef91cdab9d382fb5bfcd6d29f79ab79df17a9d4b",
+      "sha256": "01c22eaef855d81bdeeaff87ec5bf57e80105ebde61c440aada65d762cbd22be"
+    },
+    {
+      "path": "lcnc-gateway/test_upload_conflict.py",
+      "git_blob": "de29cb995c5217053a0dd6b05a02457aab0acc21",
+      "sha256": "268c3b43d3cdf4c352c5137ae1a47d67eb56c9b8eeff5c9e45a0ad9ebb26aa9f"
+    },
+    {
+      "path": "lcnc-gateway/test_var_file_cache.py",
+      "git_blob": "fcb923bc7dc44bc4a192c4ae705251391df7d254",
+      "sha256": "5077b1aded5c66fb907fdaf138de4609c79fb42f2f054b3bf9baef89db85a87d"
+    },
+    {
+      "path": "lcnc-gateway/test_viewer_init.py",
+      "git_blob": "74d33dfb7aa5ce2d59db68fc446aa184a0db66db",
+      "sha256": "591a3c58a6274740ba5aff1da7d9595376b0de0dae0aa2d4da57135f33d65bee"
+    },
+    {
+      "path": "lcnc-gateway/test_ws_command_worker.py",
+      "git_blob": "ae5f676037b4bfdcc844d1d5200bb13bbc6c9b7a",
+      "sha256": "f21a68ea928fc3d5deddcdf011709de5a3341faaaadc4abf54c5aeb4dad5f9df"
+    },
+    {
+      "path": "lcnc-gateway/test_ws_fanout.py",
+      "git_blob": "027cbb4ba19ca80e5c66b96935d4119276fea5b5",
+      "sha256": "9723bab5e75f6cc4a1ef4d61c79e4d501b9856cb8702b57f57035e75bea674e1"
+    },
+    {
+      "path": "lcnc-gateway/test_ws_lifecycle.py",
+      "git_blob": "86b985411f7c3364d6bacf55b8c22b1f95ce3326",
+      "sha256": "1d4e6bdbc081df4c6a8696cd3ba2c2858fa4ef8a7ca5f88db072bbf754be1dd7"
+    },
+    {
+      "path": "lcnc-gateway/test_ws_smoke.py",
+      "git_blob": "d770c5e0001995fad65e488bc11ce6826b7b34e9",
+      "sha256": "171bb395d925527525e9e369b71e5e178dccb1015538f156456243ecf4b7689e"
+    },
+    {
+      "path": "lcnc-gateway/tool_files.py",
+      "git_blob": "8ea35c38a0df0bc74199486b40a33831e9cc773b",
+      "sha256": "ab10f51132afcd49fc385ed9795afba34c79f2b1c107e3e16b0156e179d3baaf"
+    },
+    {
+      "path": "lcnc-gateway/tool_import.py",
+      "git_blob": "61b4d715361526d2cbee0c27c0bc647a48438f4a",
+      "sha256": "f1bf3f133ff563176af5982018b6e72c3dec4b47c1914c234eaa0d5463d6b6c4"
+    },
+    {
+      "path": "lcnc-gateway/tool_refresh.py",
+      "git_blob": "918821e2fd5c6aa34e3559fe99b0ae0048228b99",
+      "sha256": "2c3798bc2c7b33ff46ed9117902c42cd5de655f19b534f3fcd994517b5c3227d"
+    },
+    {
+      "path": "lcnc-gateway/tool_store.py",
+      "git_blob": "03a0f4aa8d011bb55367e4aea7c38047f4195d09",
+      "sha256": "e65914b05f2c7b7ad033a219b5905e147403f9ebf8ec0e0707f8bad578fcd760"
+    },
+    {
+      "path": "lcnc-gateway/tool_table.py",
+      "git_blob": "51738b75b873f089beb8363e7aba9a8bdeccb5ba",
+      "sha256": "4a32279e8640b9cbd43475ca5eb23dd466a8c8b388272651b28bfdd7660044f6"
+    },
+    {
+      "path": "lcnc-gateway/ws_fanout.py",
+      "git_blob": "0e41e4e4ace9cf55b7644ca439ac09a1aa02e64c",
+      "sha256": "74ac46f9d89a62d844742f22f487abc6d779857b8db9842b54f838ea8d91ecd4"
+    },
+    {
+      "path": "lcnc-webui/src/App.vue",
+      "git_blob": "e14a0eb6062b1338a8f1db00e2598111099a7485",
+      "sha256": "aaab942a671fef9349d8f976ceddfdae733d517741898a5c5d39827f8be0df28"
+    },
+    {
+      "path": "lcnc-webui/src/Btn.vue",
+      "git_blob": "f17ae580d33909d2d0bb3420e4b25cf25b64f680",
+      "sha256": "d58021669c8a361ca65c99ef713081bd46ec63034aa5aeae3bf47590431d47c6"
+    },
+    {
+      "path": "lcnc-webui/src/CameraPip.vue",
+      "git_blob": "32dc17e62da6cad65ab73b8f701ec584dec1dc21",
+      "sha256": "aefe4ed791111ae0d378f01e201b4abc004b4dfad56eb1387b7bc5878e8e2d76"
+    },
+    {
+      "path": "lcnc-webui/src/ChoiceGroup.vue",
+      "git_blob": "b9429e7c7a116480d59c6ac8db3533e42c9ea131",
+      "sha256": "e20918c8a742b688230a7392292c14e9fb5e414d59f7582dae5f80064bcaa4c6"
+    },
+    {
+      "path": "lcnc-webui/src/CodeEditor.vue",
+      "git_blob": "0b473cefa8b5200d4e35e7c624e9babffee5800e",
+      "sha256": "66239896291683228d6cb53ed312bd92942bcd72200892f3274b78e1b5c1f8f9"
+    },
+    {
+      "path": "lcnc-webui/src/CornerGlyph.vue",
+      "git_blob": "a2ee73b2c30e4c3bb6e5e1884c08b32bc7ce2300",
+      "sha256": "e2c8c2440498cf456d9cad8ba38eb53319e24bd2c3d18a91cb5c686ee0c8d969"
+    },
+    {
+      "path": "lcnc-webui/src/DebugTab.vue",
+      "git_blob": "c01172e3b889493242cab432bf38fc9490d903b0",
+      "sha256": "d75fe2114f8301a46b19e37678c84f15f11bc533208808c9c74cf31a203dd9a7"
+    },
+    {
+      "path": "lcnc-webui/src/DetailsPopover.vue",
+      "git_blob": "af7633a2479d453fb6756e90ba02ddd8cdf317f0",
+      "sha256": "a5522788ae3196c3e2632f2b607d3f28d090fc7c779e6147b3767d8bde17ed91"
+    },
+    {
+      "path": "lcnc-webui/src/DialogFrame.vue",
+      "git_blob": "bf9eec7750f750343770c53b2b7715d9ed6c087d",
+      "sha256": "6a085b036aaa8db36e3c00d03f8bbc5d6d23896458324d29b3b91c0170638098"
+    },
+    {
+      "path": "lcnc-webui/src/FileBrowser.vue",
+      "git_blob": "2f366d92903bee876fec6bb70a3b983f6e27acb9",
+      "sha256": "19c33a638786c31d158e1dc9906ade215b66e1619854829306fa8df35152e73b"
+    },
+    {
+      "path": "lcnc-webui/src/FloatingOverlays.vue",
+      "git_blob": "f344a47c2b30f6520efd19924debafb71f44c76b",
+      "sha256": "9706d337627f55027b97aaa2ee356cbacedafc66009d28621513cac8a73f2db7"
+    },
+    {
+      "path": "lcnc-webui/src/FormField.vue",
+      "git_blob": "f6c949ee8b043fd77952a0f37728be7122f256b8",
+      "sha256": "5bd9a3c5b481530960aef9ad35fd7e2c96b5a94400336d4900e5cb45ca5af3a8"
+    },
+    {
+      "path": "lcnc-webui/src/GamepadLiveInput.vue",
+      "git_blob": "1afe87ccc2e41b25a9ede83747c58bc0e92bcde9",
+      "sha256": "83ed5fa26644541a98c502ce37d222f9188536f199b35d918995f4efba78a381"
+    },
+    {
+      "path": "lcnc-webui/src/GamepadMapWizard.vue",
+      "git_blob": "53248462c9504d093b4cf4f79fdca0497498d06b",
+      "sha256": "be90ad7604ffcdf09e7b378a1bd2f8dbdf3549e18a670c3c0399b0a6bb0ea894"
+    },
+    {
+      "path": "lcnc-webui/src/GamepadTab.vue",
+      "git_blob": "abbb52fa0a344fc11afc9e205f9765b675121342",
+      "sha256": "ce5951ea69c64346b02e92ff2e9c57cf6ce00adeeed39d6d621478cf8c32d438"
+    },
+    {
+      "path": "lcnc-webui/src/Gate.vue",
+      "git_blob": "a88e89e28b467670411dd59864f61f0018f98a78",
+      "sha256": "18eb8b3e9e22b00c5ae9e812f3870144b1bcb7404804b6006b9571f228ef8369"
+    },
+    {
+      "path": "lcnc-webui/src/GcodePanel.vue",
+      "git_blob": "a3fdd4200be35754ac6281e8aa760eccdd079058",
+      "sha256": "0f324a607c4277ac2208a765c42dcd652f97ca4ad2ef66eeebbeb671b8662773"
+    },
+    {
+      "path": "lcnc-webui/src/GcodeReferenceDialog.vue",
+      "git_blob": "4dd5fefd11b7541b4cd95bf6056fceeb54b86644",
+      "sha256": "120f9c53dbbc9f4c12a57e7830edb449df3c19aa211533fe74fb8b3ce05a7d16"
+    },
+    {
+      "path": "lcnc-webui/src/HalshowTab.vue",
+      "git_blob": "0f723bef7dd82463c7000596e71ccab40a7c32b6",
+      "sha256": "5b4a86fdc6dd012364b34664e0221a730d363445277f998954b3751db42558fd"
+    },
+    {
+      "path": "lcnc-webui/src/HelpIcon.vue",
+      "git_blob": "820fba41f5663f67858668ca46747e61f086ada2",
+      "sha256": "d54f90d3ec8dfaa09a8934f025da9fadd62a5be3a6e30f375b3e2b4ec0487034"
+    },
+    {
+      "path": "lcnc-webui/src/JogStrip.vue",
+      "git_blob": "1dfd26fdaff8af60989214468fe7dc9222e152c5",
+      "sha256": "e8466b4c1a80500dd18aa884e51d28a63f050a9447525c072bf8e5d08d9ecc9e"
+    },
+    {
+      "path": "lcnc-webui/src/KeyboardTab.vue",
+      "git_blob": "c64688f6c7f6e8753652a870278411223e72d54d",
+      "sha256": "763e08a294de66d380f90e9c7e404cb888c3fa8d3824f305f7360e39d56c8457"
+    },
+    {
+      "path": "lcnc-webui/src/MachineBtn.vue",
+      "git_blob": "f4123df9ac24393aad3dbecc5c9fb40102aa15e5",
+      "sha256": "bfd8fdff98dea9e33b28224fc06d338a30baed2e5b9a0ecf5e20ab897a0a8cb7"
+    },
+    {
+      "path": "lcnc-webui/src/MachineChoice.vue",
+      "git_blob": "f5da020555971d4e3ca07f79125b1770fbc520ce",
+      "sha256": "42594c4413a0c9205d33789456a4d636720d0af1dd6ae80abe9bbf756d24b20b"
+    },
+    {
+      "path": "lcnc-webui/src/MachineColor.vue",
+      "git_blob": "fa22b6c78bf114b12245c84794d68d1571e68fa7",
+      "sha256": "61c76700d62a6a8293b3d3c5ef988ba6428c674d1db7d4b51082ca24263dbdce"
+    },
+    {
+      "path": "lcnc-webui/src/MachineInput.vue",
+      "git_blob": "e0013e87dedbb1f24c75070ec5c44f708f024d7f",
+      "sha256": "cb1a60fb8c233f6ce92529137b6da153d0fd26dde89c443c9abff6625dec2857"
+    },
+    {
+      "path": "lcnc-webui/src/MachineRadio.vue",
+      "git_blob": "9efc84f5d210a594c012784f3eb3630facd702aa",
+      "sha256": "181d0b3b2c9252f89fc696bf47ee41b61c4f1e23c4c81ac57c7c6845ccc97939"
+    },
+    {
+      "path": "lcnc-webui/src/MachineSelect.vue",
+      "git_blob": "75054f66e7e126874ff9099fec3cfda2d77a9139",
+      "sha256": "0e7950db3b2a33e2dc7de8b07e09d461cfbada9f2926cc8da66f3747aebb6e01"
+    },
+    {
+      "path": "lcnc-webui/src/MachineSlider.vue",
+      "git_blob": "70288185e525084648612e10cb759724e3ccb7e9",
+      "sha256": "7c5465873da4b7bce4fe57caada25c3d568b5e0e59f7a44068e30e49ef8f5428"
+    },
+    {
+      "path": "lcnc-webui/src/MachineToggle.vue",
+      "git_blob": "d15080c5feaaa78acc86dfdf7f1d5b03fff5005d",
+      "sha256": "4a24128ca89e8c4bd3d70d2f17fe4a317376c2199a07b5c49e7ba67d0cfecaab"
+    },
+    {
+      "path": "lcnc-webui/src/MacroBar.vue",
+      "git_blob": "9e2f59bf5ca6b10e642aed34eb765e57227c6f90",
+      "sha256": "81caccd6bea2164bad0c785af364a881a27ff04452c085e9189228067277fc0e"
+    },
+    {
+      "path": "lcnc-webui/src/MacrosPanel.vue",
+      "git_blob": "78be29142f615b24e66665140c571619849aa617",
+      "sha256": "8ad4ca5892b553f28961091e698a9f08d2fd279462b0485d8dd5ae14ff58a1aa"
+    },
+    {
+      "path": "lcnc-webui/src/MessagesDialog.vue",
+      "git_blob": "75f7ac075021b771bcc38f4674b1f0f92fa36e39",
+      "sha256": "fdfdd46327f314e25d5ee9cd2d175ef1e0fa593fe1a75fbb0a642f9a2aab87bf"
+    },
+    {
+      "path": "lcnc-webui/src/MoreMenu.vue",
+      "git_blob": "32bf3db502c34f12953a805fa94d7b3b62fde36e",
+      "sha256": "5c6cba2e2e5186c7dd38d440286de2c5832388e80337e39e14244436662e9076"
+    },
+    {
+      "path": "lcnc-webui/src/NumberKeypadStrip.vue",
+      "git_blob": "c5b4fcd50fdc661dd27dfae7d0dec77ec09f8fa7",
+      "sha256": "009f82d1cb21565ddef1beaf4a74046dae5d732a53b3bdf6b3cda8c15c0fc511"
+    },
+    {
+      "path": "lcnc-webui/src/OffsetPanel.vue",
+      "git_blob": "bd84a244b88630f32c7b5c0541be15b088c9cc14",
+      "sha256": "0795abb52ae6c5f235e29f7335e836fd2de23d9184dd3eefbb5b83af44eb0035"
+    },
+    {
+      "path": "lcnc-webui/src/OverridesStrip.vue",
+      "git_blob": "6c40f5bff19e5798a90dee1eca038bcffdfa0b28",
+      "sha256": "66eec84f26427907e372c9dbc1253d6780a92c0c7043013efc45a71e10827ba3"
+    },
+    {
+      "path": "lcnc-webui/src/ProbePanel.vue",
+      "git_blob": "27c071b635ce574f33162e4e92c379d1a12a9145",
+      "sha256": "c429d331bbc9012613571833233525d17d615f1c4e166c600ce256ad15dd87f8"
+    },
+    {
+      "path": "lcnc-webui/src/SafetyStrip.vue",
+      "git_blob": "2dd9d913bf481b52e8ef0928d6b32437d748afe5",
+      "sha256": "beebc46fdca729dfdbed0dc1b18820115b075fa2c420fbaf4236a2e230a32e25"
+    },
+    {
+      "path": "lcnc-webui/src/ScrubBar.vue",
+      "git_blob": "fc0531653ca592d97f9adcffd683b3f0e4afc85a",
+      "sha256": "c91751b647dedb0ae68ec0f57bb56d4bf6793cae9856afb585c45fe5a203c743"
+    },
+    {
+      "path": "lcnc-webui/src/SettingsPanel.vue",
+      "git_blob": "1cc9005576570863f879c6b0ab3564d53fda1a43",
+      "sha256": "073d428cfd6fab7d728edb52f62af554ab2a9b8da2acf5e8b83ee6825d838a47"
+    },
+    {
+      "path": "lcnc-webui/src/SetupIcon.vue",
+      "git_blob": "983a83d40b4c12639717b05688e64d1932d51d59",
+      "sha256": "352d10e3565b0465b566a6e64f1ebc8464f83eb5e29bab7d13fb6ae4b926bb22"
+    },
+    {
+      "path": "lcnc-webui/src/SetupStrip.vue",
+      "git_blob": "09d1f8be41ce7632d13979ae0f0f7578b748ea64",
+      "sha256": "af91823ecaed5b8374052ef7f7135ada1ab98d7205f8513972490632cf183303"
+    },
+    {
+      "path": "lcnc-webui/src/SimPanel.vue",
+      "git_blob": "275fcad9d0d417b7ac41b8cc334d1890b2fb25e4",
+      "sha256": "697d24742edbf0a944d76939f4dbabd51eb8f711de753dc5f74c3eb3ddd22cee"
+    },
+    {
+      "path": "lcnc-webui/src/SpindleStrip.vue",
+      "git_blob": "f8fe13febbf6e0ad40c2db1459d567a347500b4b",
+      "sha256": "ed829ce5d5d6f23a2b57010bc182aecdd03dedfcff85bbc7688e15c39451f92e"
+    },
+    {
+      "path": "lcnc-webui/src/StatsDonut.vue",
+      "git_blob": "afd964ee9278ff9ce1ebb8b360982f200ed15b35",
+      "sha256": "b2808b70b6fbb44d7dfdac2f342a2c7b20f6ce34de3b984030c54b38d3be723a"
+    },
+    {
+      "path": "lcnc-webui/src/TabNav.vue",
+      "git_blob": "21a11a3626932fe95c1d5ebd91e5a1afbfb858ff",
+      "sha256": "ba31cc9fcba5d2da024658dfa19226b38a88bcda76592df5ec066cd28959324e"
+    },
+    {
+      "path": "lcnc-webui/src/TabPanel.vue",
+      "git_blob": "29cb52e2ef09e838b581490a2c20e22cb97e30d0",
+      "sha256": "0fddf06a0f5b090168ca35ae1a3a859a7cd3132f4b686749fcda307b8e6c6998"
+    },
+    {
+      "path": "lcnc-webui/src/TextKeypadStrip.vue",
+      "git_blob": "b96ce32802ab56e8fed1590d4d66a4ccaa2ad0a4",
+      "sha256": "e875793e862efa27bedcc3f5eb4e5e46e5962ff63d880b9926bd0eda4a8e98f0"
+    },
+    {
+      "path": "lcnc-webui/src/ThreeViewer.vue",
+      "git_blob": "d9a62e5f00e2de3a59cf900df0fc6ba94796342c",
+      "sha256": "cac58622f34f10a242cd4e91bb62c39f9971c882e42b68594aa5d7dfdbd16ba9"
+    },
+    {
+      "path": "lcnc-webui/src/ToolPreview.vue",
+      "git_blob": "5ff87ce76404ea430e1b29391b74f89cbc74ad63",
+      "sha256": "beaed56eef1caf69096a0771e3c3c7f34d2535ec8a261dde297ec2a303b73779"
+    },
+    {
+      "path": "lcnc-webui/src/ToolStrip.vue",
+      "git_blob": "c7a938a317af4dcf55e07dbcf98ed004c4373f8b",
+      "sha256": "9b59c0e4da1149764d733ac624989c736c73218a543448b2246683957fca3b94"
+    },
+    {
+      "path": "lcnc-webui/src/ToolTablePanel.vue",
+      "git_blob": "a638b10276553344b849cfaa13f91b58d3e310ab",
+      "sha256": "0ed4c90ff0c6cb358aa01dd1fb04fbd094a9f84ecd86d5a13b0fbf39e71f0171"
+    },
+    {
+      "path": "lcnc-webui/src/ToolsetterSettings.vue",
+      "git_blob": "997798bb77f003ed66610234e237280d42b8af82",
+      "sha256": "1a4d7cb58eede577442a66479c6e8e30de2684988bfeb892e7f67c414758c981"
+    },
+    {
+      "path": "lcnc-webui/src/ViewCube.vue",
+      "git_blob": "7a4e21c1184c83dd38ed67f0c0875a85f96a10e1",
+      "sha256": "0ab60c814663ae0c9ce613d5c7ac461eeb1c3e4fffee6a6f1ccd5398f9d7e218"
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/Inter-Regular.woff",
+      "git_blob": "3783632a02787163fe378f722d59fc18a661efcb",
+      "sha256": "b58160a88d6764b1f0887c3d343e38216007f4ef8364a5a5791a99cdf0ef3c1d"
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/InterVariable.woff2",
+      "git_blob": "5a8d3e72ad7ffb62af3b146e1b1f54ab5813a212",
+      "sha256": "693b77d4f32ee9b8bfc995589b5fad5e99adf2832738661f5402f9978429a8e3"
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/JetBrainsMono-Regular.woff2",
+      "git_blob": "40da427651937ac3b65ea6842f9448a810f719c6",
+      "sha256": "a9cb1cd82332b23a47e3a1239d25d13c86d16c4220695e34b243effa999f45f2"
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/JetBrainsMono-SemiBold.woff2",
+      "git_blob": "5ead7b0d6fc3c2e270fddf05f27d02d72250c566",
+      "sha256": "918edad542a1da608fd2ba8daebaff9ac802309103fe760eed465b8b4e47faf1"
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/OFL-Inter.txt",
+      "git_blob": "9b2ca37b3ffc77391d8b2ebef4a974ef32bf46ea",
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+    },
+    {
+      "path": "lcnc-webui/src/assets/fonts/OFL-JetBrainsMono.txt",
+      "git_blob": "8bee4148c1d54dbf5dae6d6c117fc80414266abb",
+      "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad"
+    },
+    {
+      "path": "lcnc-webui/src/auth.ts",
+      "git_blob": "a941954641f1cfdcf8dd6eb236a069515dca1de2",
+      "sha256": "f97fdaa8a685e7b8a1e6cb510ec92b9e4b1c8859aaea96c078b519aa36f03443"
+    },
+    {
+      "path": "lcnc-webui/src/axisColors.ts",
+      "git_blob": "e712b7f00e29bb667f3097aa4dc9e3fff74ce905",
+      "sha256": "9b212be84521af386760bcabd34c8974e24505dbcec329e4c78acf44337b2b1c"
+    },
+    {
+      "path": "lcnc-webui/src/browseFailure.test.ts",
+      "git_blob": "1e89c707e29f4f36ea86ce2083a8005fb8fa31c9",
+      "sha256": "0f461721983c2bf7be2ba0cd654f8726f9ad8e108217bcd5de32051a9fcf8087"
+    },
+    {
+      "path": "lcnc-webui/src/browseFailure.ts",
+      "git_blob": "da85829c86759e2d23dc16a9f20fefb58b8ec59f",
+      "sha256": "3372f395ab0e6bcd4339bf135f13de5be1e6160e893a401f8bee0b7bd0ee0562"
+    },
+    {
+      "path": "lcnc-webui/src/btnHint.test.ts",
+      "git_blob": "a5a3cd666cf1e312bd52347c3b1e7bb22fa6967c",
+      "sha256": "686c45927c41178aa5d2b5ba18953e1e7dca361693b9be2c6c737040bb3faffa"
+    },
+    {
+      "path": "lcnc-webui/src/btnHint.ts",
+      "git_blob": "7d2d4733f6785ae32bfbc38e944eb8b5290c7643",
+      "sha256": "e0af53daf390538b358fa1cfbf6f7aad295870d52d66eca3f601be4bd839cd0a"
+    },
+    {
+      "path": "lcnc-webui/src/bundledFonts.test.ts",
+      "git_blob": "e0b6bad5f88312e5dea5a8426d12e8923d2f8da6",
+      "sha256": "5d060ae398f50cb852e4a81382497194cd01209410e0e6ac6f32b9948ee85269"
+    },
+    {
+      "path": "lcnc-webui/src/choiceGroup.ts",
+      "git_blob": "1db0682f89e131a87381809fafaf3ce91d0d12c6",
+      "sha256": "f7636af19b7c5adb4a201bda77aeeb343081e9a953b78e8a78655e401eda22c1"
+    },
+    {
+      "path": "lcnc-webui/src/clientDiag.ts",
+      "git_blob": "24015cfc1fb9b2a835284ca3fa4462d3a0a19190",
+      "sha256": "2c05f208a154b35cb33f0739ca0bb1911bf5a6a7dd98db1183e9cad0be56fd72"
+    },
+    {
+      "path": "lcnc-webui/src/codeGlide.test.ts",
+      "git_blob": "b4952058476476acd8bbb718d4050ecd18547b65",
+      "sha256": "97db1483a7e0c0bff9f6841d3f3fb6343b07294c3527bf49ab173126231a70b3"
+    },
+    {
+      "path": "lcnc-webui/src/codeGlide.ts",
+      "git_blob": "51d7a765b2342bc5ee0612a113c4404f993e9bb2",
+      "sha256": "e1d2433f265caf5da72332a376f71e46eb3d8fafced0c02cb3e3089f7ad7cc6c"
+    },
+    {
+      "path": "lcnc-webui/src/commandPath.test.ts",
+      "git_blob": "8030fb87c4b2f0d12d5f9868c415601d1cba565e",
+      "sha256": "ea5bf70e9ac5986101f39fde0433f7acb9ebdd8e482804150c70dcf7db99360b"
+    },
+    {
+      "path": "lcnc-webui/src/defaults.ts",
+      "git_blob": "31c0b418df3e635f3c80762d98afa2e7d79b0eb0",
+      "sha256": "cac97459c8ddc4b58843e5a1b30c67d8f24ae7270bde42caf45922c612b5b77c"
+    },
+    {
+      "path": "lcnc-webui/src/download.ts",
+      "git_blob": "e8febd9bf081cb7fceb0db8136cdca87f6817ebf",
+      "sha256": "7a94f678e865d193ab51e20d2b342e3f2583735d49df19d55d93639feaeb8d2e"
+    },
+    {
+      "path": "lcnc-webui/src/dragScroll.ts",
+      "git_blob": "f25f25f35c149ee97e130c2b63eba1a1547f8737",
+      "sha256": "7f1ce7aadc533c87ac10b88a77ffbfca70019375e51936a02800729f21f8eafc"
+    },
+    {
+      "path": "lcnc-webui/src/edgeWorker.ts",
+      "git_blob": "bf3ee41ba4b7e1372dc156f792f9b07c273d4b28",
+      "sha256": "b0a09b116961f888cc30acee5cc1d1d02ef1515ac7a5aaebc1f4497ee5b85a84"
+    },
+    {
+      "path": "lcnc-webui/src/exampleToolLibrary.test.ts",
+      "git_blob": "259d87b2c1591603cc9f0e12f1fff5470395b34d",
+      "sha256": "7487a15e2b84b862af84c9deb55712c578913a21d8ef70f8af7b4e4a07a666a1"
+    },
+    {
+      "path": "lcnc-webui/src/flashClock.test.ts",
+      "git_blob": "1d482e60091881007110256e65984d61b9e1cbd2",
+      "sha256": "7151312600126d28ffad025a6b91c7e2c020e4f644cc9e8520979d57677b9b06"
+    },
+    {
+      "path": "lcnc-webui/src/flashClock.ts",
+      "git_blob": "0e349e95c6e4ef87fad9476c1038cf9083134d2a",
+      "sha256": "080fb6ac05d1c4d78dec01efdf01718c76371d198445191374f6e73a46209270"
+    },
+    {
+      "path": "lcnc-webui/src/formToolGeometry.test.ts",
+      "git_blob": "9b6db601ae6893ef40e8697f58cfd776f0a2db32",
+      "sha256": "0f9a5fbbf18cd6f8033b76be47e82e625f88ba778becac27553e7413d471b4ec"
+    },
+    {
+      "path": "lcnc-webui/src/format.test.ts",
+      "git_blob": "5ed73464dbf416bfcbb5531b12bf84d97bf39164",
+      "sha256": "cf49999bad9a45fe401343fc6b3c5c8653712fbbed72e4209d9fd4a038ba3f09"
+    },
+    {
+      "path": "lcnc-webui/src/format.ts",
+      "git_blob": "9ff0f187c13c1911285b68b13f8552752f250d89",
+      "sha256": "4fbf7c36ecb456a537f155974cdd106ff87b87c910804a85cb0a6c704d311099"
+    },
+    {
+      "path": "lcnc-webui/src/freecadGeometry.test.ts",
+      "git_blob": "896373442ba73f54dfb4a6a51b5a29d8d628f69a",
+      "sha256": "d2569f8b6380fd2bd76d3e731517e47bc877a30e0a96b100054e750749794c0b"
+    },
+    {
+      "path": "lcnc-webui/src/g30Form.test.ts",
+      "git_blob": "4d99b40225066dc14a4d7a16413d9cdeb03bdcec",
+      "sha256": "9436c48c6214a7c55fa38fac24bf8b79c348b0e551f3d0f2305bfe2df0df27ee"
+    },
+    {
+      "path": "lcnc-webui/src/g30Form.ts",
+      "git_blob": "4716e617d69d118178989a48a4eee68f6eb71765",
+      "sha256": "e232335f180ab686e20c198adf1c7b26b97da51a631eeeb321a59792f2c60fd1"
+    },
+    {
+      "path": "lcnc-webui/src/g30Shared.ts",
+      "git_blob": "308e64c0d2eabc7a7043f88ceb2c4d7c5c4b3eaf",
+      "sha256": "fdd6d65c1d0d5a1b2cfeebc9d68d7ede35fd6139869217b4dcb2944578308d5a"
+    },
+    {
+      "path": "lcnc-webui/src/gamepadProfile.test.ts",
+      "git_blob": "3c00d56f89c48f29ddaa6047cca70e76f4aec2c0",
+      "sha256": "011259519b71a8dd88ea06746dbd5983ccc94e4293c7bf4c61901ff3171d0114"
+    },
+    {
+      "path": "lcnc-webui/src/gamepadProfile.ts",
+      "git_blob": "6e9053374b7e77230c49ad7117515fdaf50b2081",
+      "sha256": "7d9b137b648196b80a0b59c2f18aca33acf723e5b235cc71265b7136bd2fa809"
+    },
+    {
+      "path": "lcnc-webui/src/gateExplain.ts",
+      "git_blob": "0b2ae6562265963ebb31f1b68f07c063af698707",
+      "sha256": "ad7f79e2935c202e09134fc4eaaab1e7919c6a41fbc328dd7ba44a3cd5131675"
+    },
+    {
+      "path": "lcnc-webui/src/gcodeCmLanguage.ts",
+      "git_blob": "3570764b335db402272bc43124845fdef0459a19",
+      "sha256": "80504b7418b277f34bd5bd5dcbddaf3fe847a2ba93142751642b65cf984ef1fc"
+    },
+    {
+      "path": "lcnc-webui/src/gcodeHighlight.ts",
+      "git_blob": "709d04ba4063305cc742654d112da5356fbc3aab",
+      "sha256": "fd0ec715046e112b99be7dbe679590444d03cf22c2aa3a87337bec37e6d608ca"
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRefView.test.ts",
+      "git_blob": "244aa01507b4ab2bf4185d82d7c539fa0dd29c8f",
+      "sha256": "f0d276e329b9507fa92d91520b1ace932d4a4008d3cc7bfe0f59d4747f0a15b4"
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRefView.ts",
+      "git_blob": "c65c9b032b56882978f1edbf733491ff0c2597cc",
+      "sha256": "d9eeb46d8fdc50ca77d7aa55590e8abd4656db458488289a2af0a455e15d33ef"
+    },
+    {
+      "path": "lcnc-webui/src/gcodeReference.ts",
+      "git_blob": "fae3963be15cfa99872a1d53f243b496da6279b2",
+      "sha256": "e2bfda10b22060517e29dab8afd631a049078f6e8c8a4565b13b5820fee0665c"
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRfl.test.ts",
+      "git_blob": "1a59346d7387939498248ae5fd3a97dce1d898df",
+      "sha256": "2054c579cde015ec1a7be47b7ad31370305f2da77c2ca28382cc6a0799d9a995"
+    },
+    {
+      "path": "lcnc-webui/src/gcodeRfl.ts",
+      "git_blob": "fea96ccb401f84c6b99c7588be99b4384a406da3",
+      "sha256": "208f6ce504bff2a2de68a8fb6e39ac67797120d24c8c15a3779d7126fa025f7b"
+    },
+    {
+      "path": "lcnc-webui/src/geometryCache.ts",
+      "git_blob": "5ed878d9ec115586c5c971e4699a4b614eed749c",
+      "sha256": "a07bde8adc01eb19ec1a81d59f62479813802b9c036631bd9c5097e7c1c9f134"
+    },
+    {
+      "path": "lcnc-webui/src/glyphMarkup.test.ts",
+      "git_blob": "5a5fc3094cd5719779a22bbf2ff1f75b01449fb7",
+      "sha256": "d2dac59a51a5b52a80143e7efd61c7b8a342d3b09157c6197114f8054d50b168"
+    },
+    {
+      "path": "lcnc-webui/src/helpPlacement.test.ts",
+      "git_blob": "cbd0e2b2083011e00bd8c2547b4574f43d5c2bfc",
+      "sha256": "3a3af4d2d31f3618a8395472d977d8a37e0a4a186714677dc521a6e06287baec"
+    },
+    {
+      "path": "lcnc-webui/src/helpPlacement.ts",
+      "git_blob": "a9aa3f08874e4a508f7466f7b9958182060b734a",
+      "sha256": "d8e31512aec4f75ac152ca44248a5dcdd70e2d07d82a6b4b04db0251dad7c0bc"
+    },
+    {
+      "path": "lcnc-webui/src/inputSession.ts",
+      "git_blob": "d7821c52ca1548511d811fec2dac101aed80027d",
+      "sha256": "8bd5563add599c7175ad92738d7cca6f9d567678d45e56fcf64e965a3c3428da"
+    },
+    {
+      "path": "lcnc-webui/src/lcnc.test.ts",
+      "git_blob": "99a755963ce4d38568cfc1919225d833005434c7",
+      "sha256": "d106011c09544cf69ad3cbc55c52ea4905cd7953e8711c7329b2af8a9d1d6a20"
+    },
+    {
+      "path": "lcnc-webui/src/lcnc.ts",
+      "git_blob": "72596e7b4ffb378ea30a480bd044aa4c8b089dc2",
+      "sha256": "1ac72a382c6e2fbcd32aa98fd2b7eee2ee4d911fd0b9092134f56861359f9e4f"
+    },
+    {
+      "path": "lcnc-webui/src/lcncApi.ts",
+      "git_blob": "102f9e6829df8bf2454772cf8c4ad33beee714ab",
+      "sha256": "7d32a88efed31e442d73ca57635bfef14190a6c3eac2e70fb263a58a6b8c12c9"
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.exports.test.ts",
+      "git_blob": "2575ed920fc0411de47137e7bf9642692f8d3626",
+      "sha256": "9b688f39ac103c34f0b53399b4e7ece317ea5c2bd6ea52596f1834182d64ce30"
+    },
+    {
+      "path": "lcnc-webui/src/lcncWs.ts",
+      "git_blob": "73450151ba3d7f9525d98bb5b93f6dd58ec0969d",
+      "sha256": "db4fb9d98b07662e6f858e825a177d910422f2f117ad5373478fb67ca486315e"
+    },
+    {
+      "path": "lcnc-webui/src/machineControls.ts",
+      "git_blob": "858e218b3d7c29029b726183ee78339f6ee53eb6",
+      "sha256": "8a15261f3c6a41ae1f3238493ee04cc42568017ebc001899661de8fab33fa095"
+    },
+    {
+      "path": "lcnc-webui/src/macroBar.test.ts",
+      "git_blob": "64e2a0b20e47f4fd16bcb5f28acae566aa9d7ef9",
+      "sha256": "5e13884bf6afe7d6e5336c7ca2e78d3ccd9437a9e9bdddd2136337648ccb891d"
+    },
+    {
+      "path": "lcnc-webui/src/macroBar.ts",
+      "git_blob": "606a4bccbeef9ca779984299268f153a12868999",
+      "sha256": "2bc1f40988c682b37c2f4acd2e942a45f6223dd8bb6bd5a13b5dd87d3c138477"
+    },
+    {
+      "path": "lcnc-webui/src/macroFiles.ts",
+      "git_blob": "2a9ac468e7cc637c2cf6f9c8a7757909686541b9",
+      "sha256": "2a8e17d8fe35cbbe5b673966601e3b7e6738326af93d8cc1b8ced98edd258c3f"
+    },
+    {
+      "path": "lcnc-webui/src/macroHeader.test.ts",
+      "git_blob": "fbb8402c6ef8da9cbf88b120e480e21b01812f4f",
+      "sha256": "dfbd6466753e59bce0232b43ec41660524a0f22135b32be7d305319b724df6da"
+    },
+    {
+      "path": "lcnc-webui/src/macroHeader.ts",
+      "git_blob": "43dcbd0d9a6d2acaa01f13ae9ab4b7c3d6d154e0",
+      "sha256": "e2a54a6e67e110e473d99d2f86f6490b9b946ffbeb8351e7af866cf19f76183d"
+    },
+    {
+      "path": "lcnc-webui/src/macroParams.ts",
+      "git_blob": "851d717981f011950039c0610986291241c0104f",
+      "sha256": "581ec4a6275278376789a86470e5dc94e818f365a707927b593ff1e1fe422fab"
+    },
+    {
+      "path": "lcnc-webui/src/macroTemplate.test.ts",
+      "git_blob": "f64f55aea366041e4469fee49145992a1b37eb85",
+      "sha256": "b3bcdf75fa5d1ca683478a79ef462057716a19065b39892d1d97760e323bb5e6"
+    },
+    {
+      "path": "lcnc-webui/src/macroTemplate.ts",
+      "git_blob": "4b01e7ef2e8a73b72cc831b7d45373de3cdf4270",
+      "sha256": "617dd3e290a8e1efb7380af1f7c9e2b1797413370890e3621750766cf3830531"
+    },
+    {
+      "path": "lcnc-webui/src/main.ts",
+      "git_blob": "155d30f56dd0e115ad772f78a65504728ddeba90",
+      "sha256": "bb3e5e3db8263d86c88523c6bde4282336cdbaa83a5a3dbd90ef1f1a87cbbf98"
+    },
+    {
+      "path": "lcnc-webui/src/mathEval.test.ts",
+      "git_blob": "09ac9887282f2ea39b1047e1775d3b6a889ccc7c",
+      "sha256": "cb1aa9fe1a4b0bbf323778b2210849d2eb661b7b12b11a930c334455f0ec59df"
+    },
+    {
+      "path": "lcnc-webui/src/mathEval.ts",
+      "git_blob": "4ef51d457c95a61db8472efb68c7427d57a37891",
+      "sha256": "f2a56cfefd589aee6bce029abc6ebf614aafd35e0561fb06925717def84073dc"
+    },
+    {
+      "path": "lcnc-webui/src/messageView.test.ts",
+      "git_blob": "9dce7ce54fc32b038e55691834fb246821bb864b",
+      "sha256": "419c62588431b7285ff67b0c689400710a51fe6dd6c595aaf20ec2cc37f484f1"
+    },
+    {
+      "path": "lcnc-webui/src/messageView.ts",
+      "git_blob": "e4021914a00acd99bc873ba8f91dc9d6b96569e9",
+      "sha256": "c882a25a9e758c347b81d2c746ce3c654db92e0c31f18e281e6ae6bcdbb8908a"
+    },
+    {
+      "path": "lcnc-webui/src/modalRegistry.ts",
+      "git_blob": "93431c051d0ab394fb1d837554b073ec9f794fa2",
+      "sha256": "7001dfaaa7769264a6eb6ce9ec488b87c791c39aee4bbf6d4153eceb54750421"
+    },
+    {
+      "path": "lcnc-webui/src/offsetRows.test.ts",
+      "git_blob": "043bfa86c2a65309413c3348227473bec7498761",
+      "sha256": "62972573e84664d7f572248585579bbe48402cf0671ef5f67ea154e80b3d7340"
+    },
+    {
+      "path": "lcnc-webui/src/offsetRows.ts",
+      "git_blob": "769960382e74c3f99ff32f3e7aff726cadaff051",
+      "sha256": "ed8cbe813f14cfc34c72f3bca9d071f44e7595c6297f1c4918051527d477dad7"
+    },
+    {
+      "path": "lcnc-webui/src/permissions.test.ts",
+      "git_blob": "aa9b1a89119d8cb8a5a4c7bce2fd992be741a850",
+      "sha256": "0e70f24e39458626cc845bce11bec9e98d403deb998d68fa558bf4ca5590b7e2"
+    },
+    {
+      "path": "lcnc-webui/src/permissions.ts",
+      "git_blob": "3cb4682cc4449dacc41c6ac8ec0e047befd3258d",
+      "sha256": "3921b989ae99f9d911f55ab1a3abe730bc74c14a68e473831dbbee112c6b1523"
+    },
+    {
+      "path": "lcnc-webui/src/playwrightProjects.test.ts",
+      "git_blob": "c459d72eb360770fd486a1118536e31c425fab65",
+      "sha256": "fcdcaa27a8d93940fdbea7463c7ce87d0e31a17153f30c57fbb40a47478c0c6e"
+    },
+    {
+      "path": "lcnc-webui/src/previewDecode.test.ts",
+      "git_blob": "3365b2ef88e16e05cd94350e41abd43c9a162335",
+      "sha256": "edc4e05f967e5c8b06ee0858d7dc448f875406623229757c45b1e5879fda7768"
+    },
+    {
+      "path": "lcnc-webui/src/previewDecode.ts",
+      "git_blob": "60f7420c8ace960b00c3508b8e80f55df18eb4d0",
+      "sha256": "3b6a70f9133a84eb68f2ab0d6245e2a5c364fa78120d36050ee95cfbbb3f385e"
+    },
+    {
+      "path": "lcnc-webui/src/previewWorker.ts",
+      "git_blob": "34f9d1608c531a9cc49bbc898905e3d4d9ae0600",
+      "sha256": "a36c2872bb84fda1924f25648aa187556c30fbd735e71c63e1081c3f041c006b"
+    },
+    {
+      "path": "lcnc-webui/src/probeFields.test.ts",
+      "git_blob": "906778ed15fe712f39a52b93c8d9af0bf171b9e9",
+      "sha256": "390f6ff6f4c4a27f9b8ea7c750ef07ed618c4f6cf23275554bb99046c75e19ce"
+    },
+    {
+      "path": "lcnc-webui/src/probeFields.ts",
+      "git_blob": "64ec3bcc8938746beb1c3eabbbf93bfc3e57664e",
+      "sha256": "dc5be029c0fb9798de644e718cd54c4314787bb1d3903ca2fd38658f77cfb421"
+    },
+    {
+      "path": "lcnc-webui/src/probeViews.ts",
+      "git_blob": "474e230e7f7ab89445f529f7455d5a4416ce2728",
+      "sha256": "9a7d4473e20b665ef1f98f858f5dc2ff8ae5faedb5aff767c545611f84367709"
+    },
+    {
+      "path": "lcnc-webui/src/radioNames.test.ts",
+      "git_blob": "f6e2ec945084e00d2f371e798a2cad18330e0337",
+      "sha256": "406f54e417d7eda82e7d97f37eab9a22ba194fc022a0ea17f0b454cfe24e8a8a"
+    },
+    {
+      "path": "lcnc-webui/src/runBasis.ts",
+      "git_blob": "87f3aa81fef54c8c79ac9945e46063823b9b2a4e",
+      "sha256": "b4ca4664a1e9b11593ca919dbc71e66cc9125fa7ea0a2506d4b452d15e36848d"
+    },
+    {
+      "path": "lcnc-webui/src/scrollFade.test.ts",
+      "git_blob": "8a84e2ef83b71065657892de5352d4f6a3cc8214",
+      "sha256": "6eb0abc36b2a8bcfeda8b22791c7a65a0762654473760e4d53f17223e839d159"
+    },
+    {
+      "path": "lcnc-webui/src/scrollFade.ts",
+      "git_blob": "877b88877d2a68a423f3b840867e4dd06cec0378",
+      "sha256": "33ce4b19e81068d70f7686bcc7dd8310c833973cec136f17c3fd1c250a93bad6"
+    },
+    {
+      "path": "lcnc-webui/src/settingsSaveStatus.test.ts",
+      "git_blob": "403421a253e23688cbd0f403bb5b6c4423217b4d",
+      "sha256": "85295f5c47146d0d41a939de259ae52913d18af402cd1131caaeca67946a84da"
+    },
+    {
+      "path": "lcnc-webui/src/settingsSaveStatus.ts",
+      "git_blob": "81655104b9dafe30a44ebca3144d3fa38f3a5f85",
+      "sha256": "2de2fd7a42abf4df55b6bffa7befbd3be32eef5be2c56886f1e23c408e6584d9"
+    },
+    {
+      "path": "lcnc-webui/src/shims.d.ts",
+      "git_blob": "92b2e37424bf283a39def42fe7cf6b9e117d9821",
+      "sha256": "afdf22c8812672077070e91f44f1001b2f7ba916f01276a011ad4a85074c45d6"
+    },
+    {
+      "path": "lcnc-webui/src/sidePaneNarrow.ts",
+      "git_blob": "1338e8d5acf70664ca197b8fc34c730142a13ca5",
+      "sha256": "e4e85aecacec608288a4a7de9715771f0765e730aed30504ef8b5669d114c16d"
+    },
+    {
+      "path": "lcnc-webui/src/simMode.ts",
+      "git_blob": "ea7ae9a464d91040005e95271726e4cb724ff707",
+      "sha256": "4506af4d25bd4fc83e6f4eba70f94e75d1977626624e9d1f5ff3cc7aa41fe86b"
+    },
+    {
+      "path": "lcnc-webui/src/simPanelStore.test.ts",
+      "git_blob": "7a3774ec6186d35b4a478d2d709f09b0d7208a50",
+      "sha256": "a4da4fa24e4110753e74d7057db0df3e380ef99246b6619daf2c52c90697ff1d"
+    },
+    {
+      "path": "lcnc-webui/src/simPanelStore.ts",
+      "git_blob": "307ebbc336d6bd34022c99e6ebb683e425aa83cf",
+      "sha256": "57f908a539b041e1a87c7d587231dfe17979d7bf04d0bc62034868646a0f7ca8"
+    },
+    {
+      "path": "lcnc-webui/src/stickyHead.test.ts",
+      "git_blob": "c7ee691e5fc8884946be8f3207a650d0d57ab9aa",
+      "sha256": "008f7514ca8a66fc1067d5d82aa4047d2c49a2e47ba0dbd0edf34b46e764d64e"
+    },
+    {
+      "path": "lcnc-webui/src/stickyHead.ts",
+      "git_blob": "f5a86494998bb5e34f852aef908b21b881b5d5e2",
+      "sha256": "456c58f525776e05f61c2b95f57507997a14a7fdfb7c6b94d0cd1d538226217b"
+    },
+    {
+      "path": "lcnc-webui/src/style.css",
+      "git_blob": "aa5bb6cbae2c7365a8b434d6f40265fa225ecfa5",
+      "sha256": "4fe8099de284ca1a4babe7895326a886aba266ccc114cb98cf57744b522199d3"
+    },
+    {
+      "path": "lcnc-webui/src/subRows.test.ts",
+      "git_blob": "fb820d50a2e736aad12be1211adabbe13477ece8",
+      "sha256": "3ed617ff7253a25abed86b7a1a63f52cd7d5eb6656016ddfd198b5b39922e163"
+    },
+    {
+      "path": "lcnc-webui/src/subRows.ts",
+      "git_blob": "b671d86e382b4d2962cc63002d107d5dda9023e3",
+      "sha256": "c1f506b383d4024f5070ff0ae32ff28e1d38016b9da0f9dded3d76ffbb4044c1"
+    },
+    {
+      "path": "lcnc-webui/src/tabIds.ts",
+      "git_blob": "8e90f8c522ee213c6e7d5778b345f26869270554",
+      "sha256": "dde09e29ca7a473685bf69fafa28731c8646de6521c881f005bce63ca923ad47"
+    },
+    {
+      "path": "lcnc-webui/src/testGlobals.ts",
+      "git_blob": "b7460b4824492c7aa1b7e540375c9a747eb60786",
+      "sha256": "8ded2f35fa955c4120f94068ca0f03e105ca7b190dbb3e9bd884e5a855fa99d6"
+    },
+    {
+      "path": "lcnc-webui/src/textKeyboardPages.test.ts",
+      "git_blob": "2bd430f1c39c1132d320ea1342123d893938c7aa",
+      "sha256": "9613f9d5a7753e2ada3ad33f049093bb4149c26c407584b6cae25a7235e8d745"
+    },
+    {
+      "path": "lcnc-webui/src/textKeyboardPages.ts",
+      "git_blob": "1efc92fc45ce656fe8448a82cf80d6e26c577bd1",
+      "sha256": "2bda780b0ea2744b5246f5d12dd4a7968e2fc818515702c5520d69d9475a12ac"
+    },
+    {
+      "path": "lcnc-webui/src/themeTokens.test.ts",
+      "git_blob": "17b4315e8d21a2ab3e14e0289c2212273eadb419",
+      "sha256": "ecaa4d10f56706b97d89d2a0e42edda1b5049890f08428bda27852019bf0a516"
+    },
+    {
+      "path": "lcnc-webui/src/toolGeometry.test.ts",
+      "git_blob": "155d552b676c7b73b6162ff8a1ab5e4e12aa8f44",
+      "sha256": "3beca4811d45e8d038710696e6f1f0f91989790457c881806258bef6c49daf2f"
+    },
+    {
+      "path": "lcnc-webui/src/toolGeometry.ts",
+      "git_blob": "5ba07a8ef934ddc70eb56a4a1746c196c410de98",
+      "sha256": "66ed4dba3362a46b968e1112f22d74ddcee095eccf8b802ee311e8874d2a8b16"
+    },
+    {
+      "path": "lcnc-webui/src/toolHolder.test.ts",
+      "git_blob": "20b9caf8e1dc952cf7137270a7836c74175cf237",
+      "sha256": "e6d5ffd52d8c993c7fa819a89a3d74f704576c3814ee561fb2e1f7ea40b7988a"
+    },
+    {
+      "path": "lcnc-webui/src/toolHolder.ts",
+      "git_blob": "55c3be6e92f86025f5615de86a8529120236803f",
+      "sha256": "93d23086be6d8b3b87c0501664905067cd7ec8ab7adbd3e43bc3d33893a53585"
+    },
+    {
+      "path": "lcnc-webui/src/toolImportSummary.test.ts",
+      "git_blob": "a9eb58ee6ca874f0302f6126e7e6265a5d83c700",
+      "sha256": "3aa7a4b50dde0b687b534d9c391fb1c513f55edcdfb786a87e0d8e8414a0fd65"
+    },
+    {
+      "path": "lcnc-webui/src/toolImportSummary.ts",
+      "git_blob": "d1a214eb72c80687709c16fc5e30c8ab531a87da",
+      "sha256": "46634885d09decd7577c96b46d031c8826e7b799cf81524c9dfbb5e9ef80f3d9"
+    },
+    {
+      "path": "lcnc-webui/src/toolPreviewNotice.test.ts",
+      "git_blob": "943686392bb07609e1bcc27814ace768c971986b",
+      "sha256": "14f5643772e9a75ca36ee59984b1dbf2dd5506e4b0a096ce1530b0426ad0fbfc"
+    },
+    {
+      "path": "lcnc-webui/src/toolPreviewNotice.ts",
+      "git_blob": "a01dd5f1b7a505f8181570f609b525256b7ec07d",
+      "sha256": "cdc7cb872af0a8bffbf98074f9e6ac484e0a0cd32d7c8305a3039491757b94a2"
+    },
+    {
+      "path": "lcnc-webui/src/toolSimulationGeometry.test.ts",
+      "git_blob": "673d35e5a24d6e52796db11065375212090df7bc",
+      "sha256": "a0934dfcb958970aa5c29ee10fb2e838e1ea1772470ddff23321e76794b16806"
+    },
+    {
+      "path": "lcnc-webui/src/toolTypes.ts",
+      "git_blob": "49c5725ea56ad27385466a5b1ddc5ae73146c452",
+      "sha256": "dd549b64417d369ab5530df3588cd18390c807b5c3283f557180e0dc9083805a"
+    },
+    {
+      "path": "lcnc-webui/src/toolUnits.ts",
+      "git_blob": "829eb4f5e63b4a69026a788ab06bb1d582aa084c",
+      "sha256": "14b88c8ba3d84e5156affc931b7c2b28d157f68b17cffd606b6a30ffde559140"
+    },
+    {
+      "path": "lcnc-webui/src/toolsetterSetup.test.ts",
+      "git_blob": "0d6a616efe568efffb55c3119054a2a08e19ace5",
+      "sha256": "37413a3b1813417cee642824fd4a1d464b1c1a4876f2c7bd6dfe24d91b3e5e87"
+    },
+    {
+      "path": "lcnc-webui/src/toolsetterSetup.ts",
+      "git_blob": "130f8d91bf78e6bf8babd1009984a77e828173de",
+      "sha256": "3d702be5cde3318f7c84c84bc6c091bb02567ee9969a516be8107d507a912ae3"
+    },
+    {
+      "path": "lcnc-webui/src/toolsetterVars.ts",
+      "git_blob": "08fbc4daaed7b9aa61dd42498cd61301fbde3833",
+      "sha256": "ecf42311df96aca67ca9e3eee9a77d7ba455bc5eb2a4dd766465c5adc87f56e1"
+    },
+    {
+      "path": "lcnc-webui/src/touchDetect.ts",
+      "git_blob": "e02ed1e86fe16503b469a19feda1bf4ee8cabf02",
+      "sha256": "8fb679fa42943889f0afa31788070361bdcbae1e6d08fd30dea754c68b0df24f"
+    },
+    {
+      "path": "lcnc-webui/src/trackHighlight.test.ts",
+      "git_blob": "21c2aa91cc48c7ca546001b9951d3eb135d58d30",
+      "sha256": "cd36a619a454c474034be42e75bfab575ac90ff518051319f0631f5f1405e538"
+    },
+    {
+      "path": "lcnc-webui/src/trackHighlight.ts",
+      "git_blob": "e463eabf150f25e21e7cf95d87df3abea0896f2e",
+      "sha256": "e3a49ad13780a44980cd944f44c3f1f93c2b1cbb40c23dcfb64e6473cd5115cd"
+    },
+    {
+      "path": "lcnc-webui/src/tsconfigCoverage.test.ts",
+      "git_blob": "bf374767af429ed221d22f9becf779e5ef2faee8",
+      "sha256": "e5ec3f814435934b5c29a959cc66507af27d0108247ddba6c58b41327a494037"
+    },
+    {
+      "path": "lcnc-webui/src/twpPose.test.ts",
+      "git_blob": "5ee24dd0a3eb43727c3bdad1d2e6f3d8a896f102",
+      "sha256": "d3b944fa39af1070783960441bbc62cbb3537254512852ec36c7117a0b3206d2"
+    },
+    {
+      "path": "lcnc-webui/src/twpPose.ts",
+      "git_blob": "e24b8687583efc5e16cbef68480fab9537e15c59",
+      "sha256": "60c08506bcc68f046636676e9cc9afe9623cc7d37bb5cb1ac2e553b5456abb40"
+    },
+    {
+      "path": "lcnc-webui/src/useAxes.test.ts",
+      "git_blob": "bec005b9007248a41a71fac1eea1e06b9f17beb6",
+      "sha256": "1902121b62b0d5b1e7f623ebde1c2ead3fd999410469485380216ab7f454ad52"
+    },
+    {
+      "path": "lcnc-webui/src/useAxes.ts",
+      "git_blob": "217fec4733aab207ddd98b0cf30e492294ebe040",
+      "sha256": "4553029aee62e67e2b4754f35a27b33d4752cc7591aeca8d17e44638c4239f87"
+    },
+    {
+      "path": "lcnc-webui/src/useDialogState.ts",
+      "git_blob": "1ef76701c47992074f19e80bc4ebe13fdaf3286e",
+      "sha256": "cf120b08f1cc4311c6777454ca80170e7f9bf153b646d415dcf7fd1334a4197a"
+    },
+    {
+      "path": "lcnc-webui/src/useGamepad.ts",
+      "git_blob": "e5911d651244515cae53ca923a2d50bab4648adc",
+      "sha256": "6fe82434babf69adf24b97109cd6e03d3b89fab334619f0f9cc40f56001f7699"
+    },
+    {
+      "path": "lcnc-webui/src/useJogPointers.ts",
+      "git_blob": "32df70e894815922ebe90463f87f558897bc6cdc",
+      "sha256": "3a539d7456fd41180da88fee94c20a6499fcd6df9b84914ac472837046f16ee9"
+    },
+    {
+      "path": "lcnc-webui/src/useKeyboardShortcuts.ts",
+      "git_blob": "104b2ec7113194f0650a58a26fdf58e2eb431e0a",
+      "sha256": "808a1d98bc3c4d07674acba1d16e7c6c24d92f637acf119726d7dc9985193f8d"
+    },
+    {
+      "path": "lcnc-webui/src/useMacros.test.ts",
+      "git_blob": "f111d0e81fbbd23fbf8a905e2ab2f6283b5b2f1b",
+      "sha256": "659937ce981515b63ebbdb2c36fbf92d4fd864d45120a48eefbc2e2f87818514"
+    },
+    {
+      "path": "lcnc-webui/src/useMacros.ts",
+      "git_blob": "30765a6d9b35f943b394d0b1ac048328529bf37a",
+      "sha256": "332d9f80a6dbdb038286727cd1cafa5e70b039979bc6da08386413c6a6d48240"
+    },
+    {
+      "path": "lcnc-webui/src/useMdiHistory.ts",
+      "git_blob": "c15d1947bff725d6c00bf0c8dd19d5611c035b31",
+      "sha256": "a4857330ec35a2b6b03cc4b832cc69743a8d75ad587274e5d71396a5d29f322c"
+    },
+    {
+      "path": "lcnc-webui/src/useMediaMql.ts",
+      "git_blob": "3fc2b431c184f9da615f34cb90c46c82a2df8091",
+      "sha256": "f2e4a7d5a4ad347a8d56d91b311ca50181363ead6fd5f201464ef5af805941fb"
+    },
+    {
+      "path": "lcnc-webui/src/useNumberKeypad.test.ts",
+      "git_blob": "1120433bf0e4b585bab8f8f208e36cf07a7de961",
+      "sha256": "88a4ab8c6d0c2e07340483136536af6e9e7a7cfdcdd2a366395b11ba3397b626"
+    },
+    {
+      "path": "lcnc-webui/src/useNumberKeypad.ts",
+      "git_blob": "3b921224397482cf4986fcb251b1a6c98da5bd36",
+      "sha256": "0ac88ec1c19c5edde2f183e3a1c796a27074b2bbc9f731ff68951aecc405c3a8"
+    },
+    {
+      "path": "lcnc-webui/src/useTouchoffMath.test.ts",
+      "git_blob": "bf6d199730e68aad5e4f4c783ddfb6c7337a3751",
+      "sha256": "4a133f05439e834abfc64d3a8f53b6fa3ac681833ef8fac06bf6c56f9f3e6baa"
+    },
+    {
+      "path": "lcnc-webui/src/useTouchoffMath.ts",
+      "git_blob": "0ed64f5b808276b2fa3a963c94ef9191d8d94869",
+      "sha256": "3c4ede62198beda7be1123717b6acce92c6fe798bc85706f2e9b5b3a82613426"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/activeFixtureFrame.test.ts",
+      "git_blob": "aaa7ca0edb9f923c4c2d839cf3aea4ad1e2c0311",
+      "sha256": "c107019cd95348b7221c42bfb59fcb25b03994045ee98c816aeeff89aa4531ea"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/activeFixtureFrame.ts",
+      "git_blob": "eee40429ae1257cc4a46892439d9a1d4d3a051ad",
+      "sha256": "eba43cff3de12e51a12f6f84031b9cb5f29aa6e77b8c4dfd6c0a96a8a8bb9f5e"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/allocMeter.test.ts",
+      "git_blob": "ebddf569b56a7545a887f90f991e1a24825ed081",
+      "sha256": "af8b8819efa8b12538b3e3e4b5564ce01ac038655764b21b886fd800bded3f2b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/allocMeter.ts",
+      "git_blob": "b26240eecb4bfc54f8a1461170c0c25d3fd57c48",
+      "sha256": "d2e478743c4f9bd313491d85d666e8000f9b17c6cb5118fd9347a137b52926cb"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/backplotController.test.ts",
+      "git_blob": "57ebd7d2fece3e825ebcc1df5dfbd0495c5c412d",
+      "sha256": "f66bd81ec14fbc055cf2c17dd81b8c3bd5f14c6e5ee0a6608e372a724cb90a00"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/backplotController.ts",
+      "git_blob": "f5e7d3386e5649ef27a13e8daebe9df405acf3be",
+      "sha256": "a639316155785a2e12d45cfee459ddf2a46253a7092460bed3da2ccdbcd1dd2b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/boxLines.test.ts",
+      "git_blob": "5127f2a2fd1e2d742ce0a958718b5eed72cb9a29",
+      "sha256": "29a20cd339bb36d6c5961993dc33c80f61cfca90d147141fd3b87d26399e28b4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/boxLines.ts",
+      "git_blob": "7fa203d362e2b82f3f88cdc066eddba00016f04f",
+      "sha256": "d02866e9c2ccea029b71df5fa598c1129660f17d827f94a61e3ed0e800111953"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/bvhBoxDistance.test.ts",
+      "git_blob": "ecbd5e6ca32e108206f6b63642c27aa6c26fab30",
+      "sha256": "6bdc6d1ae99e654647326f42b565a25c7b0e2a7429367cc16cc68bb45c335135"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/bvhBoxDistance.ts",
+      "git_blob": "fef9a52f1702ab119ec31f186066b5bc8a6ae64f",
+      "sha256": "6461f3b768297047cf04e4667acc4f9f3e3bd3f6c4ed8c52a4f7d1b0c8894cfe"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cameraFraming.test.ts",
+      "git_blob": "fdf54c2beca45c57adc1d1d82f15c66ae1cb6349",
+      "sha256": "2fa0346c6cdc3d76085e12e11cbf9458fdee62bf3aec2279b065c106a0fcc7c0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cameraFraming.ts",
+      "git_blob": "c5c60f8bb86ba9d9d114bab139373c32932a713e",
+      "sha256": "b12bbc88be784354a9ff7494f70c858d6b71f91e6a4d6f9695b6e1114ae215fb"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkBasis.test.ts",
+      "git_blob": "3e227f9140c6734bdd05b4f18f4be4935ba52b1e",
+      "sha256": "cc1b44e4f36ce9aa45465043363a4b4dc0b81a1ebf1a9f4c7dbc0ec564698d72"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkBasis.ts",
+      "git_blob": "9133d97a8fc2735eff6d0fa1c4141552ee740d07",
+      "sha256": "61d7ff089c5a8d7c33d0607bc67cb79e47e0b88eb31e9f0db9299d02075208fa"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkContext.test.ts",
+      "git_blob": "95a2c50577f55f3fc19927c5e55e39f94774c604",
+      "sha256": "ef0d73baacf2338e37debaf2cd28919ae7c3855f4e1e04d70a85c14bc2e4ed90"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkContext.ts",
+      "git_blob": "e16f3458295e3625a159324bb2a33b98972ecfae",
+      "sha256": "b494255ddebbb0d78819d5053d6dea6b0668b63d74e794b3c0009faf34dc25ed"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/checkWiring.test.ts",
+      "git_blob": "8c6cbc5785557a657f1f0d5caf21fd5f0407755b",
+      "sha256": "b8d70391b310b59752eb2604d28e31e31a6b01d9b583d944765197b3acc9c8ad"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/clashTargets.ts",
+      "git_blob": "13480a03c5de74fd423148f17ae993ac57462b15",
+      "sha256": "4ffe397b1ca3c1f576a3773d43e1c4f9b99f9d494ea9c9d0a6c7ce5fd7e01d0e"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.test.ts",
+      "git_blob": "18b91d5cb5ea2379798c6b86e1e252f76d715cfe",
+      "sha256": "6b5552b61fb7c8c4cc996c31aa9640bd81c44b88611e8baa79835ba03ab7dcf1"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collision.ts",
+      "git_blob": "c7f8d4a2a05c3db6267aceddc9e1c9fbab46ca09",
+      "sha256": "2aabc6a6a9aa4165fce285be2d58719ad74d84a37d17732faed6f020bccb410e"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionBounds.test.ts",
+      "git_blob": "9e87c780248c20aff8fc2f997101474bb06d3231",
+      "sha256": "0f3d2f998df2013cb0d4aec5eb69d7db7f379cd169f4a5d46239127647cb26f7"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionContacts.test.ts",
+      "git_blob": "3069d666047742ad5500ad90015dcecd084e9339",
+      "sha256": "5412524f71edc8f3d38326991b08ed20f187349dad99045d71f24229545cbd96"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionFixtures.ts",
+      "git_blob": "f2d7c18b23720c11eda669b88dad31a05815a0ad",
+      "sha256": "476ef3e5e94d8db67ace454a983b725bea5a3c2d07581984679739a4f6a56734"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionHorizon.test.ts",
+      "git_blob": "523e7996d09059f2e9b2c075c605ab3848577ed2",
+      "sha256": "639dba209e40dac84b29af09762fa1a6bbe08cd1aa274c6144796b8c12de96a2"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionInside.test.ts",
+      "git_blob": "5f8faa03873438b5d6c4e761a27aee82057263be",
+      "sha256": "cf55c9a8746aaff02585d08fec0cd6542d00371c31563034ddcc435115ac344e"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionLineSample.test.ts",
+      "git_blob": "e2d83a385bd7ecae0137a229e72669ebdfe650fc",
+      "sha256": "08e6140c55862bcab130e51cde019ff8a731d08ca2b56d2c0b04692ac5c566fd"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionMarks.ts",
+      "git_blob": "1f11ea7fac02b3a88d6ad2d02991557b0c4cf3d8",
+      "sha256": "9926c7f4e827889ea9763f14d616d5e79d0f9f261a49fe54fc7a09e51bf821c8"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionOracle.test.ts",
+      "git_blob": "fee624db172d1a42683e3e8a704b15781de341aa",
+      "sha256": "adf1dcf3b91e413f514a91dde439c80b0a43f6ac16e41e8626b3660d63fba032"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionRange.test.ts",
+      "git_blob": "0fa35aff83b58b71e97f0358b91b65f2feb41b92",
+      "sha256": "2c6976475750f297ca712f1133a6756e5b09296bec6772a0cb57596b55166b35"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionRangeOracle.test.ts",
+      "git_blob": "87093bea88a97024289d1c8842285e9fc6ffd9a7",
+      "sha256": "f10b0b1f00d2737ac01baea35c1e11ce26f958bf06d972bda495a0a4cffdd862"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionSpeed.test.ts",
+      "git_blob": "30ea930c23d8250ee548be4905fb6eb5e21cbd89",
+      "sha256": "ef64c8c53a2024f3a99751f91a5995a1a3b5348d19157d336303d60207130b0c"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWindows.test.ts",
+      "git_blob": "bd69674d409fe550455c4c01928b18a97624bbb9",
+      "sha256": "66022bb5a4a9e053ed83d1346010e097d2dc8eaeedfbd0e07cc214ec39dc1aa8"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWorker.test.ts",
+      "git_blob": "8c5fb4baec690a47862c575d7ea416ae0ee80868",
+      "sha256": "124d761afe95545a5e42bb26797559982109707f56023ed6755c22d7b0a6ded0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/collisionWorker.ts",
+      "git_blob": "bb566ac4d50d688c485aaf983631caf9791c733a",
+      "sha256": "e098b84c6d96f9ece8a2743263fb48ea650d8d845d134ac7f0379bc1ac3ebe90"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/colourMath.ts",
+      "git_blob": "7c41bd68e8da18d1fb67eefe00343a47229449ed",
+      "sha256": "acf19dd07870fa7143adadef947f7d11329771b2e44378115a7602fe341b5b56"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactMerge.test.ts",
+      "git_blob": "c21a37b34317d01075ae97307b265f73a145297f",
+      "sha256": "116db3f9d0605ddc54d713bb7090a33989b9e658b0f808bf98574b1e5ffba43d"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactMerge.ts",
+      "git_blob": "0b3b6700e6ed8307ce8649905f176396240156c7",
+      "sha256": "1aa544b2f86d46d0ad412535ce04cf58b292ad2fb5464c047b2dd05bd51e1d70"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactMeter.test.ts",
+      "git_blob": "ebe9264c591cdf16fdbb3345d2aa3fe0edf7c6f6",
+      "sha256": "724755f92f8993874cf5c81ef39c15cecee58d0d950f464f66a3afe754f96ee1"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactPublisher.test.ts",
+      "git_blob": "816590a1b0a43577ae71340460d8ceb4a54e2634",
+      "sha256": "d7bf10aa597422322232c56af6e68f7db1b916bbda46b0e7f1ee56fd47ac1cb0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactPublisher.ts",
+      "git_blob": "26ddbe7f7ccba97dc2f645b896bdba9814d8ccf5",
+      "sha256": "c6a2e8c78ab77bc1939c65dd2f3739c4b5cb9e0e86b1c561a461a76053002181"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactStore.test.ts",
+      "git_blob": "67ea80fbf2d678fe4b9e92bb5290b2f6fb7d59ad",
+      "sha256": "686c1107ca5f6fb99fc435157cda5825355bb844e1dbee10fe4c9cc042f84063"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactStore.ts",
+      "git_blob": "680862327600b937bb90ecbedbb82a2d94ee25de",
+      "sha256": "946e4264b28d20890fc304dedef66c4f9b4bf73b2154a96cb48e4e1efe61d3c4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactUnion.test.ts",
+      "git_blob": "bf8a5c39ae5baf699aaa361efeef6a9087fb2336",
+      "sha256": "e978ee9d28bc03e901a36da4ebec04418710b2af8921dbd3927c48f30f3bd2a4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactUnion.ts",
+      "git_blob": "3455d30804c3512a783e1940f9467b072dd1a72b",
+      "sha256": "bd123d963dd2182093d62063155c1c0c244e6c9e415f12475ea661162362c483"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactUnionSweep.test.ts",
+      "git_blob": "adfdb6728b5208c39076c7b34afea655e4caa384",
+      "sha256": "4965bf83c46e04d13b68f6e3e4edb36eac96d6e77e402a0257eb43510bf4ba95"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactView.test.ts",
+      "git_blob": "023f9e7d26fe83354de9e4bf93b415a5cd21e8a1",
+      "sha256": "b663137fe7202e033f78d30793cd14794e18a63ce198002812475bb137cdd383"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactView.ts",
+      "git_blob": "949fe1911c3a3c2d05231fad229e006f91b2881a",
+      "sha256": "ce8cb53bbdb34281c69c511a205f766c14b3a714674e03d808fd325fb197aaca"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewBudget.test.ts",
+      "git_blob": "f295405d5d24c310dccb8ab613978f589720639f",
+      "sha256": "7e48815ebe985c4a2ec9a8f5b912ecc982765445fb6c0680895948cff3e889d9"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewCross.test.ts",
+      "git_blob": "f621e5868452f7ac7ad56a1be8410edbaf6e298d",
+      "sha256": "778572281ddab8b1796aa49f63cbca49f4cb9aea8975f2139f5be4b90d281d46"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewIndexed.test.ts",
+      "git_blob": "0b50a922aa5e8a00574b4655b8763ad049679e17",
+      "sha256": "82dda874de2e01ad243a393d316a5a642e444543dddf45b7fd887117976ab7c6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/contactViewUnion.test.ts",
+      "git_blob": "2bff3351465ad24a0029646581fd25cdbd2e2020",
+      "sha256": "820526904e9d79fad1af70c74e02757545491a635a181731a2b24e89051c81c7"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cubeFaces.test.ts",
+      "git_blob": "b8558baa25020e067ed92d9ab866524f53e59d5a",
+      "sha256": "24e2cad479242def3eb0f19d9cde0962b845657271ab6fee1c733de68ae95ba4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/cubeFaces.ts",
+      "git_blob": "3120681c9df9afe85bd03f79a31b2e67b152e473",
+      "sha256": "798653398ea6041df68a66e83895b016a1d46e58145fb4809f679f1935583e4d"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/customContrast.test.ts",
+      "git_blob": "d6d40a165966e0b75f6dc70b8ac156fa9766db87",
+      "sha256": "cbcd3be3e81f8ef6c0add12eb6fc45db4604535bdc9413709afd07e97e38785c"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/customContrast.ts",
+      "git_blob": "16b88a002ed5e285b1270c659e5e8e0b56faaed9",
+      "sha256": "2b2419e3202223a9c22bf20b0906affec64c7111697b453ec97e5d86342baca4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/displayPipeline.test.ts",
+      "git_blob": "8e0f5bcdf290559bc2c250ce51d07fce65d4f7a6",
+      "sha256": "b6c392b7a613b475aeb3bd1bc8476a9d4510fbd0c0d9bf00d4e3b257348b8a40"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/displayPipeline.ts",
+      "git_blob": "adc58e68b226de9d4a879a2a1d0278bb480d125d",
+      "sha256": "7f44e6c8513894629e72314e36bd62af576ddd8c063c84acbe1e1a974af9577d"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/disposal.test.ts",
+      "git_blob": "af3e1b85a7adbeb9a3cfd0df1e2e0d4825ac54b4",
+      "sha256": "3c5e06645ab6b210447a0a74eef6719373cf8fa9f2373f509a79ad7cc97d33fd"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/disposal.ts",
+      "git_blob": "628c116486a362b89490ab504a4c7f8a2ba5c020",
+      "sha256": "36bf2a4deebd0803014decd096f974c4506e7de36ff954e482d0ddc25c6fa3f1"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/eventIndex.ts",
+      "git_blob": "9d79e2e51fd1b911daff3c80853fab7799280344",
+      "sha256": "0948560991ae675fe7ad9b10dd8d647a005c4d9e83c4fb8da90005711b818c3b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/fatPaths.test.ts",
+      "git_blob": "a448fc836acf79fecdb69d9b05c43855e5348c23",
+      "sha256": "b34b290ccc764842fb2c614e7ee46eb8f4e6a670436078963cec81d1793d6808"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/fatPaths.ts",
+      "git_blob": "d5e607a4497fc64553d6b145e4c09bd41db39593",
+      "sha256": "b506c3fdff40a8e31788c9f06a4a03db056a6507c84f44ab9a9f42ff285873cf"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/findingNav.test.ts",
+      "git_blob": "18245400a46111d2214710c9372677c110112a6d",
+      "sha256": "cb1d7d91b1fc00368c518664363b5c85c5b3b91c1e67b0272d759a4d951f7460"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/findingNav.ts",
+      "git_blob": "250ce1141bf4adbac9c4ab4b3ff47d21147e1f9e",
+      "sha256": "f8395cdf97ea679854acad63708e6daf2ea201f50eedbcbd8b3dc3b0dbe10846"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/geoDash.test.ts",
+      "git_blob": "24f199c36cb858f87deb4db9f0efc61b6902d91e",
+      "sha256": "78e9e9468b1e2a2b72738e8c629d1dcf7bdca53726f9108ddf0271e9ff9b63fe"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/geoDash.ts",
+      "git_blob": "579a40f8eeab504446a6ea0b4d485217b06eb5be",
+      "sha256": "9d01329bdfe75fe72e8c24f2ecd7a62fecdb9ce7729994124dee73045899b505"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/insideCheck.test.ts",
+      "git_blob": "2f7a89a20c5dfd09b326b3daf184b7a41505f06f",
+      "sha256": "1118d56a155734eeeacd4b18634c560f8ca35f30865d0994fc54ca0848fb456b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/insideCheck.ts",
+      "git_blob": "17291f630a364cd7e54bbee6b12b1a3bdd54aa3a",
+      "sha256": "4e32a60d5811e186dfbcadcbba4a0baa032ee741290629f2bd65abe7c45b50d4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinematics.ts",
+      "git_blob": "1ee49d9326eb2f4e5e119007b9d926b21cc6e8b5",
+      "sha256": "4e159ab48146d7a359ba7bc0ec8352df4674a50b2bbf0b9326347659f5362ee1"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kins.test.ts",
+      "git_blob": "f1e62d88fd7100be47354bbd20eca7238a39046f",
+      "sha256": "7c3e437dd95d9040ba37fd276ed830ca16997bb5e314abc670625e58952b4860"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kins.ts",
+      "git_blob": "770c7d141bc59720748d6a124df9c04b6e20312a",
+      "sha256": "02f17bce1b93d31555ff560472870a578c207eb1daf92a77df632f1755bfd928"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinsBulge.test.ts",
+      "git_blob": "d89794202d10af2589d71b7029ca642ab79d82df",
+      "sha256": "4e4f5bfe00e375902b8ce260a6bb075d626e7e8484005cd7b217d23263723e05"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinsFixtures.gen.ts",
+      "git_blob": "2ab1c45ff43855406403a4773d0a7ea3305c28a1",
+      "sha256": "702747d0f7972e6353c78c1bb092e9baeb7ceb3b17e2783a65d57d14d8c55d20"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/kinsFixtures.test.ts",
+      "git_blob": "28344c1e174f3f0215f228a821a1d3d7b66989e2",
+      "sha256": "62d087337e3ceeaae4adc9d517027314eb8e4b03672c52a1541a97bbf0634469"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/labelFont.test.ts",
+      "git_blob": "6e9092400c800b1e5ffb3462b14e30d5fe214d73",
+      "sha256": "6e1596aa3ebf5424f9fb2461163a1bfb681c839933afa649d335faab332bedf0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/labelFont.ts",
+      "git_blob": "d0bd00127b7020185147af54ff0050f48ca54fd3",
+      "sha256": "9316b5ecb6f2323b1173af71145d42bf9eda8878b7622c7feb5b15d06820291f"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineChunks.test.ts",
+      "git_blob": "fb013c792253856d2f95b3718ed24c76450d0e63",
+      "sha256": "319abcd82e5a94babe324983e620fd1d5be83faf6e90cee7bbb629d5f8c8cfe0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineChunks.ts",
+      "git_blob": "a5a3b836814d99cf6f98ad5ac73aa169a9a4ac2e",
+      "sha256": "2cea5914978f677583bd1203821e2f614aa5c1a0f78b9f5de40ab509e88dc96c"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineIndex.test.ts",
+      "git_blob": "ac9116dfbd66f431578ea5ea2ad5a97d30adee43",
+      "sha256": "a8f064044474169544f30b5dfa0f8fdd0d7788ef1d003a9a977cc4910f50759d"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/lineIndex.ts",
+      "git_blob": "027a45124e02d3fd952ad218665496c2e716bb6e",
+      "sha256": "c977e9c8589d6f4c2b5603dfe1779b62f37e5d6a8673390a23cce4f63be76130"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineAssetCache.test.ts",
+      "git_blob": "9a143420bba56e4dad38f5a181f395943e1c0860",
+      "sha256": "dc86dd47591274e79129a7532dc7144fa338c494a5d9145780f97e40c8d1b1e0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineAssetCache.ts",
+      "git_blob": "152709f6633dcb65c17375644ca080e2b94a575c",
+      "sha256": "116517c1752d09d97d74ddbdc65d83c1df821e6e7e0eee9f098b7cd6cdec9623"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineBounds.test.ts",
+      "git_blob": "7bd56a5758f4463e350c0645b3047d2b4363e8ee",
+      "sha256": "7be9fc90dd4c0f6f36dac899b59133bbfff4711286257933bcc2a6f9c79243d9"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineBounds.ts",
+      "git_blob": "e0276eb8b004224f24f1e38ec1b2743930fcd84f",
+      "sha256": "a4b2d47a05efbf3cb5211b2f89938786655679fef79a1096cb9252526ac4977f"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineGantry.test.ts",
+      "git_blob": "967497e26fc1039e3180d3a8ecec5d05dc0913e0",
+      "sha256": "11f02917a998506fd263304db1dcf51270eadf8a388f7d960f762eb216133d3f"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineModel.test.ts",
+      "git_blob": "5b849af1e437dd77936b78024b9917aa3e7f9db7",
+      "sha256": "af956a47fb744e0efc28cddb2198012598e8bb5f4d5685571e6ecef2485ded04"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineNormals.test.ts",
+      "git_blob": "2e5d07dca7a9f7e93572ec6e9a093977cc32598b",
+      "sha256": "d209aaa5e8ba321ca7b1de645d343a544cac1a456df2714a9ff25a81996a1fc5"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineNormals.ts",
+      "git_blob": "72f2aed430d428588e9711405a28ea380bffddca",
+      "sha256": "f3af7e509829e836a071f681470e02a997b47f801aafc4f6b7c0b781bde9df78"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineNormalsWorker.ts",
+      "git_blob": "b0f1164a4dde57c5f4db7a6841818af7ef8fc295",
+      "sha256": "ef554485c6860b8a131600ddd710c632e35422a549079bba35661918d902eeba"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/machineTrsrn.test.ts",
+      "git_blob": "0774618dbb3ac1c6bb024aeb6aa35281cd273221",
+      "sha256": "6a7da209fc18ce4f39bd5f2e55a3a2892164259eed447f9e34fd6edadc893448"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/nearHistory.test.ts",
+      "git_blob": "cd0c8e3ba4af98c87a9ca8f68a6db9d88e8ce804",
+      "sha256": "02a170abb21a17e614120d2e772b266704a89970608445ecdd94b61cf3dddd77"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/nearHistory.ts",
+      "git_blob": "e22010a8d705f7e1aa14ae9de75355384e9618a3",
+      "sha256": "c25592c3228dd374803886bb1d78a511cd4e613e78e75d57d99005f2423dc212"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/onTop.ts",
+      "git_blob": "ab56d9d96a4e463dddd28ca2ea67904d66f3210e",
+      "sha256": "14c372402e1107bff848dd5b061ab561fba750a1e536a022e2322f14e8eb1dea"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pairAssign.ts",
+      "git_blob": "98c9f5ab723d21cfb67d1d5d98bdd15f6d1047eb",
+      "sha256": "d84d8c65358f61295699c905cda14acfbba216c7cc017e171e7285fe41939679"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/palette.test.ts",
+      "git_blob": "84937929b0eed23d02b53c0131ddbb1b0ef6e182",
+      "sha256": "d2c49e1c1aafb0b1f82cf4097fef229063a83a2b1bd01110916bd9f66eba6fd0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/palette.ts",
+      "git_blob": "91148439c6b48972ca92308e099dff40302b5d03",
+      "sha256": "e80e7285929b661d74ac756bcac99e7e57002337474f217cb1fcb1a45482e8aa"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/palettePairs.ts",
+      "git_blob": "f6d4528a0f3d783ed6d83fb34639d32fabbcd108",
+      "sha256": "b249f5c6c53b6e92af98a3d3e035746d91c58554a6921237a3e5380081e793c6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/partFrame.test.ts",
+      "git_blob": "61ecf51391803644432bf6ae849aa01f1931730f",
+      "sha256": "cecd7d71ffab9ae4a73d8c1145b3b1fa938301253dc2e7c6e206d976ecab0c98"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/partFrame.ts",
+      "git_blob": "7831652f16f0291e351345aeca047bb08c8f5583",
+      "sha256": "cd815b564d45fd15f72ce70254e81210f731398a492d52d7c3085a05b3f03831"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/partFrameWorker.ts",
+      "git_blob": "531ff8ce9d31f988400df99f1b121e248a835758",
+      "sha256": "6c58679672df781181c884ba9f204fef96c5d41399aea583d9a57eb832f60436"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pathReveal.test.ts",
+      "git_blob": "31f89af658ba84180c7c529f88706c8eaa54fc3d",
+      "sha256": "553d4d5af6c1a241f72802a5b8b805475233da386e84c9ab457fb11021c6671a"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pathReveal.ts",
+      "git_blob": "d55a02295b11bd2cccbe05322576be5a053f5318",
+      "sha256": "6b17608505a336be4d45c22c529e2b80f1fde82495410a5fbb29aea0bdd2e3b9"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/planeView.test.ts",
+      "git_blob": "cbd9d830e12501ac65d326a93d67db28b1d94c90",
+      "sha256": "5b7e0ed7fb0a7af4ccf783e19b4d9c06e98b541091b20495cfa70cecb86cf541"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/planeView.ts",
+      "git_blob": "d0e7236074543674bf52473dd6038c1c5822dfc5",
+      "sha256": "5e80bb53bcf512eaa964ab5d349817f9f8ff71666ebfd4b4f85f80d386f4d762"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/pointMarker.ts",
+      "git_blob": "8a7baea5734dbaac7d20356aec0c20f488a8a796",
+      "sha256": "b54a259c52787508bd5d85958e1eaff9c318be0fffb4085cae042b4a43f1836a"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/probeStop.test.ts",
+      "git_blob": "1b2c73119f12bbcdeedc5915a67f835c91424da7",
+      "sha256": "f9043c9f7eddfd5e78763a8e18a104cd61a5ee0b62655c80f6f4e302985ec604"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/probeStop.ts",
+      "git_blob": "ca4464ba184bf5aa80959c39b453ad93491a3700",
+      "sha256": "5c0a7c22cad4f46b5dbde6656551e14f9238f786973ca2c123abb52a74f5679b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/programZero.test.ts",
+      "git_blob": "869fcee218c1eaec3e2f59837c2c91f68227f3a7",
+      "sha256": "7c861a6cba1ef54eb6f8f7f8de5dccb798f08e3e936ab38f446c85a3199061d2"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/programZero.ts",
+      "git_blob": "dbbfaf2be5cf71123c95e4829b43d5ec694ed8fc",
+      "sha256": "09d0ccee5e21bb0df0bc5f6e6ac9e63c8b71d64e400ec3cc69592baedb0d733d"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/reachEnvelope.test.ts",
+      "git_blob": "848cdc89537d69ad5851fababb8814f813f5c044",
+      "sha256": "d50a737da58bd2e3d480b351a48134117f0cfb2f050883577ea844c701b4d7c6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/reachEnvelope.ts",
+      "git_blob": "170d357356170b37b27b6aef6abdd57daeee1e44",
+      "sha256": "20dedb8ddb973c04d659955b40433b82745289c201b95ce6ce2991366135568b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/reachWorker.ts",
+      "git_blob": "5b4fe804456cd260ceae1fae43812a6e19089b11",
+      "sha256": "bfe09ded8c2455c8071de68fb10f16ccc3a0828d0c113dde5475395779350bea"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/rs274.test.ts",
+      "git_blob": "fcb7a3c0abad07ef32b75a130bcd624de7c5d8ff",
+      "sha256": "2d229f4fe35203ddb255ccf1c0114b89ef9bd40541266ce629f963c54fec03e9"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/rs274Fixtures.gen.ts",
+      "git_blob": "4e59c2eab924ec21cac83c31e2176a356f996c36",
+      "sha256": "b81eec063b28d08771e204a607fd17b12aa7940571828fb2475c31674b43005d"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/runPlayhead.ts",
+      "git_blob": "195bd81e957d79ea5d26205124e98d8bfc6cf5bb",
+      "sha256": "0679662c8fd78234095371e6e1ce1f52c276b57625663695c04321f359284c0b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/runWatcher.test.ts",
+      "git_blob": "20f54441f967840885e0bb256f5efcc53ca43ece",
+      "sha256": "4d8800fb33bd16d2aa09fe1fd02cb9f2cc5033fcadda44f951a9cf8a97ddf4b7"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/runWatcher.ts",
+      "git_blob": "7b22436ab8ea590501d474fee8adba88cdccbe38",
+      "sha256": "a38846dad5b0c964c7857e13769f3e44ea388beef0d9346d4f673af622810b19"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sceneAppearance.test.ts",
+      "git_blob": "b21a3fe94c38bbc31d302d6c29dd7c13606698a7",
+      "sha256": "c215f703fd8258ef33b17645dc3a9c2d5f972adeecd3b1d232c15569f21e2fe4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sceneAppearance.ts",
+      "git_blob": "daa158ffdc038a5c7446588d84fd7d3cc3961dbc",
+      "sha256": "5fa04f5810d64aa3ba499f6e827033279e1a17d62ef6145cf4f50acd309cd7b1"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/scrubBarWords.test.ts",
+      "git_blob": "d07a5df5515b4078e8cbee0f7851551d447da3cb",
+      "sha256": "33f2a8e8b98010918a7cbf48d021750392765fea65aa0cee3543341a3a67aba6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/scrubTrack.test.ts",
+      "git_blob": "f8fe8739964c66b4eb45dc99af4d72a8405f045f",
+      "sha256": "18458d5d4dc5bb637330bb7e7968f8b46d0f828c478e3815bad2ee17bca93cdc"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/scrubTrack.ts",
+      "git_blob": "12406b194f74d12b1d3177364b5e3e75314ba82b",
+      "sha256": "e95ff734ee832f9598b5ac70589c328578c1065de0f108600a428a5828121680"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/shownContacts.test.ts",
+      "git_blob": "7a378594d45e9312dee3628be15e338d2b8ea660",
+      "sha256": "86fd1de27153fef670fe3032e167e89263ffedcc623bf69122f337fab169d0f8"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/shownContacts.ts",
+      "git_blob": "855be953796022d214ee0589a2e27f2fa7e9199f",
+      "sha256": "4eeab39117dd76890be42502a655692eef83e8d51b44c25abf8d49ee661c65ad"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simListRange.test.ts",
+      "git_blob": "eac9e5d5172c1d5ccb6eeb665491b5a50a601c50",
+      "sha256": "8a14180ce744b3b1b848c302ea0b0fe6c4b50c96e42ed7970861631b2d3d2527"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simListRange.ts",
+      "git_blob": "32cf2b6b8054ff30046aca004da5cb6f1e5a6e79",
+      "sha256": "7b667e12c06a3678acb7ece55727ec5dca516cfe5399a7963b199a31708b5fc9"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simReplay.corpus.test.ts",
+      "git_blob": "38c8a491af7f3cbe360c686f2c1b89b28b41f604",
+      "sha256": "269f7bedada408d8b34ad111f189eb74f80527cf6cf8969ddbb9976e73e8a1af"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simRows.test.ts",
+      "git_blob": "8d028261f780ace525976072318e31ed1af6a111",
+      "sha256": "526986a627e0abb8ca18e140afef1b971f2bbd4c46f226e7eab2b6aa5e1f9a31"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simRows.ts",
+      "git_blob": "d5a168a9754058945cff62aeaf2266eeec5e90a5",
+      "sha256": "d895d17431d62f068470a043463a7e46d359637d54f68a772870114e5859e9d3"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simWindow.test.ts",
+      "git_blob": "d5128ed8af4c755b54b82abefc5c2075f9bbaf3b",
+      "sha256": "6def618500ebeb240523634ebef728368313561d90dc90ff80d2919ba6cb33fb"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/simWindow.ts",
+      "git_blob": "213ff29ee2ec84cac187a334b3559b64db162507",
+      "sha256": "e11284c586932ba134b7c9c8a234c0984cdc04db3d2750e3e904bb36608701f6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/startDep.ts",
+      "git_blob": "6e30420606fbbee9d5b0da27847b141851ec0d3b",
+      "sha256": "52c612b80e8b8e98f211863d1937527c7dc7b7dba2485d6cdbbdcfbd35a26652"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/startDepPayloads.test.ts",
+      "git_blob": "129fc2d0977f6fe24b2c3fd8f313960060c0b501",
+      "sha256": "a5de6e19943c62b79c4d1c207892a333ce3f7872afcc03f077b90f0f6efbeb9b"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/steps.test.ts",
+      "git_blob": "e7fa035f28e9ea87f1c07de21b287db8035bd9ff",
+      "sha256": "8216c301225b5bbc1261800dd81489e1fa26f21338e8f3386dab85267cfade0a"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/steps.ts",
+      "git_blob": "13df275c435de0218b5ab30bc1497571a2cf9060",
+      "sha256": "45c17da4179fa2a35b0a8056d53c21f17feb569b4b5644fb6da76e5fd6311fd1"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/surfaceController.test.ts",
+      "git_blob": "97e412da2d143517629831cd04da59746ecd4824",
+      "sha256": "65ea3baa2c8f8b6112cd811ef0f6c49122ce8e947be0cc825588a8c945bc87b6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/surfaceController.ts",
+      "git_blob": "58c91689cabf4af2aae8bfa839ddd7187a97efbf",
+      "sha256": "e3e86c66480319cd0a9753a2f0cb5f54d9ac372a433163f37cce4916fe9efc97"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepEntry.test.ts",
+      "git_blob": "970bea0f4f71a4bccc5ac130a2c65c02f9491a9f",
+      "sha256": "7374ba377ffe50906763d77b902e516202491699460df0e6d154c7dbceedb1e7"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepEntry.ts",
+      "git_blob": "97244ffe3ae7217848d7936bc3176961f1d64006",
+      "sha256": "9f0667ee4ae9544ebac48fa97a2b35c21314292fadb005c0c1c0d59a1c8c14c3"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepMerge.test.ts",
+      "git_blob": "c0cb1a65e4c598b77e4a21c0f50374488f664684",
+      "sha256": "f23f19e1f3afe0c0736db2f4480b7829101b8333c9e20503a37ea3dc2f8f359e"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepMerge.ts",
+      "git_blob": "7452daf622f93f29cff847bdfbf76379ab3c28e5",
+      "sha256": "3f57cbf74058669f0a9ccaffbb07c83c4f5de24a76539f0bb351770445f4bffe"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepPump.test.ts",
+      "git_blob": "692fed6aaef53f195d928a54a28dea4239852696",
+      "sha256": "0f8b99c9447d291011daa2d057dbf5800b50c67c48aac08d5b5e6f8eb4ac0ce6"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepPump.ts",
+      "git_blob": "2b9a4d02838270767d2dc832c90987932e58570b",
+      "sha256": "2aa58e45f9f7f9dc97bf21e27e09ed61b9c9adfd903187abb082a7d9130a0bad"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepShards.test.ts",
+      "git_blob": "f885204d1668f40af978884becabe9d48c1a00bd",
+      "sha256": "67416f1a2792e9f04233557ddcd15e634e0e457c3ce96f3b02f76b9d8e3d458d"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepShards.ts",
+      "git_blob": "b01e8e79a93d6b4db987a26ed614693d4f81d5f8",
+      "sha256": "2880c820b810d22304878cc148fadd4ac89a7ec427e69675e5268ee46fe413fb"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepWords.test.ts",
+      "git_blob": "3a3fb60ba63a2afdd91041f54ea4398a85060579",
+      "sha256": "0a4e33265872493908920b502bf05fe7f674bdb4a1fdb953136d2a9a23f2285a"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/sweepWords.ts",
+      "git_blob": "639f5c0dda475299e7d071f6fb4dae99cc4afb19",
+      "sha256": "1f342b7201498aeca7b1055ae976837efc74f194b381e18482151f49a03a7465"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/tloEvents.test.ts",
+      "git_blob": "b115282a29870bb4b075d0d00ffbb3a86e8db90b",
+      "sha256": "0835ab13b9f4c39a47586166795db113cf59ce7ab01279fc3b6f5e625062c2b1"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/tloEvents.ts",
+      "git_blob": "530bd03a0e97f750fecb8afeccb981612c34b656",
+      "sha256": "6b8acaea6e2e75a86e8bf33f7778d7ce95412121085d18f7c671a37c21ca8b9c"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolBasis.test.ts",
+      "git_blob": "6cf7375c619feebc63973f168e1330ca9bb5cee8",
+      "sha256": "6448175c610d2500e11647de8d54b5841decb7add25905b2d53013b9b74a60fe"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolChangePayloads.test.ts",
+      "git_blob": "54cb903f604bf1b15715aa259e679554471765fc",
+      "sha256": "79bd1480a2798c8f4709f0c74a8fae3458e12e4a1b5c6db0e1fe775c033cf2db"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolChangeScan.test.ts",
+      "git_blob": "14031fa5701c656293ddca4972217b4eeaaf5979",
+      "sha256": "5b2b607d86131c51163fdc1fa11bbed7c51e5e02999c4e9eb7ecd8278c5916e8"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolChangeScan.ts",
+      "git_blob": "1f1c4c73f7fa4c896d9c050cd98ae1b5741a8d7d",
+      "sha256": "53c5ed9205ea541819f654071263a5ba21f75ee4141e78a067972acd74c05a91"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolOffsetState.test.ts",
+      "git_blob": "7c92efc84e0efa9295a32da1c35e9a1a048009d2",
+      "sha256": "22ece313bbccc51bb05c96c9e2d32fdfda656dd667b28a85ad2680d052bc7dd5"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolOffsetState.ts",
+      "git_blob": "8fd3d37ad1a8baae4ee4af01ed33aa1c4f36f87b",
+      "sha256": "d95b7df2c52331c6c0ea6fe5c449a927432824987a564cf6df71aec20da7f7d4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolpathController.test.ts",
+      "git_blob": "da5d3ab6c73bf2549b606a49bc455fc1ea4b18b1",
+      "sha256": "13beead5942ad2683415bd48b7bc250a513bf909f5cabc197fff1c39d5a2b1ff"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolpathController.ts",
+      "git_blob": "ad6c339b3ea24d24aec1caf3889062092e83b1fc",
+      "sha256": "2715750c008aa3ec54a363db96d0c9be65873331314d3a9f94c4027ffa102968"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolsetterMarker.test.ts",
+      "git_blob": "c7fd5823073e6687c1f81425fe4dc03b204c315e",
+      "sha256": "0ebda7515917b7d0194a405ee728919cdf988188d64442f4840c71df04ace480"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/toolsetterMarker.ts",
+      "git_blob": "008194d5643f104d7c9419152bd0e1e4f2c48545",
+      "sha256": "c0db1d0b5901851240850738662fbec2ba8d9e2cdce5632c344a8bf5f51876ca"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/triDistance.ts",
+      "git_blob": "37ffc61735eb6804d9900e76ada45079685f0749",
+      "sha256": "03b744b19492c3631d3441d656aa6ecba9a19710f3adb3feaa312d9c5decca1f"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/twpPlaneFrame.test.ts",
+      "git_blob": "e1bf76f93e0cb810f6b86e45797dc6d3746148f3",
+      "sha256": "24d58f3b6c172080c7afe9790f01a1f0f068d72fac2c777260bfcd05c29537a4"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/twpPlaneFrame.ts",
+      "git_blob": "0effe91247055fc72ef2fe680454f2552e7c2a33",
+      "sha256": "93552e029a66bc12e8e5f19dc8c88e9f66102890df30a921698c1f184f9c4311"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/viewerContext.ts",
+      "git_blob": "b70cab0c46a42edff6b57f4093b8a4cb34aead2b",
+      "sha256": "504e71e9010d3b045e80baa76bc3b5683bab847cc6a6bda7532528bd910d4cf0"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/viewerPalette.ts",
+      "git_blob": "be9a547a0826f9b82e3cac0d8b2579cb055d29d9",
+      "sha256": "c8030b053ccd7899cdb821a04f7b9a0095d504300506bc6595268462b3e5ebd5"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/wcsEpochs.test.ts",
+      "git_blob": "6aed08282d5df94d34f98668df2042dbe0932e43",
+      "sha256": "7caf17386d172eb5adab58e264005f40e3887de2c79bc9fdd2cb27732643b3c9"
+    },
+    {
+      "path": "lcnc-webui/src/viewer/wcsEpochs.ts",
+      "git_blob": "7e97de355862db2f21b5e1b5dfaae112879d1242",
+      "sha256": "2db8b3dd75aba0b6659914058be45cdb991e62a9f1c7f77d8fbee043cc8383d8"
+    },
+    {
+      "path": "lcnc-webui/src/viewerLayerGroups.test.ts",
+      "git_blob": "c591b4b40dd6742ebbc0bc257aaeca0a669487ad",
+      "sha256": "b9948117aa953bd593f7ca787595a9f6b4e3f7106b12aac5e9e1e382ccc98824"
+    },
+    {
+      "path": "lcnc-webui/src/viewerLayerGroups.ts",
+      "git_blob": "8918c29bc9b3edd8e485d676a115c99798c546a6",
+      "sha256": "a79b7db2174105f46514feab670d469f07ff3fd4397ad2e23d5ac7da8900c075"
+    },
+    {
+      "path": "lcnc-webui/src/viewerPerf.test.ts",
+      "git_blob": "d099799ca314b11ef91177491eb57f85a5630ac8",
+      "sha256": "698fcd6781cf3fb286f7455e6630be0d12100e66d0d63d55cda7e291f47d9e3c"
+    },
+    {
+      "path": "lcnc-webui/src/viewerPerf.ts",
+      "git_blob": "dd647b5c9e33b4aef2044e8681177440c9b0a200",
+      "sha256": "476707bf34adaf18c819380014f539eaed532fced296a69030c5c1725a12eff3"
+    },
+    {
+      "path": "lcnc-webui/src/viewerSection.test.ts",
+      "git_blob": "6aff8742779545952221ecc3f37e03ed5604cc72",
+      "sha256": "bb0fa109d2a01048e3a5918e39dcc79394822d27e97ed4037465a7731b1fc65c"
+    },
+    {
+      "path": "lcnc-webui/src/viewerSection.ts",
+      "git_blob": "d6ba270ba458925d3bfdff1cf77e5e93b41bb4c6",
+      "sha256": "2490e6cac2da8021f85bbeda33def6986ce673b5bdc1b2232323fa9381e47763"
+    },
+    {
+      "path": "lcnc-webui/src/viteHttpRestartPing.test.ts",
+      "git_blob": "c6eeab9f309e58e56ab4055ace48722ad0ef5274",
+      "sha256": "0efde2cdf08bec6e38afe277823a66b698bf6c25c3782ec4488b6b6850831061"
+    },
+    {
+      "path": "lcnc-webui/src/viteProxyCoverage.test.ts",
+      "git_blob": "daf2eb9fc5ad72816343d74178130a6b88144cb9",
+      "sha256": "1f90a18ed51bf1c6a594e68a9f1f8b8491c47a669c30324a2f93b4946ae46b6f"
+    },
+    {
+      "path": "lcnc-webui/src/wakeLock.ts",
+      "git_blob": "556f5194cb14e66dd4a790bb2894089387688034",
+      "sha256": "a5caac2916ff8ecc0d1a319e8ae7dc9a90689a1a602f41dd488f5b39b1acb436"
+    },
+    {
+      "path": "lcnc-webui/src/wcs.ts",
+      "git_blob": "340588251611aa735539793ec6a975b560cb2770",
+      "sha256": "2ae57aaea1321b07c32fca24ac2d5264f489d614ab79a803ddb81360a3b50cd1"
+    },
+    {
+      "path": "lcnc-webui/src/ws/bulkData.test.ts",
+      "git_blob": "f480628e95aed0510bcfd071136a19a38d1fe72a",
+      "sha256": "b656e0c2367573da9913bd37d28bb377824a2d5c38f7789e64cfa6fbc34d7dd1"
+    },
+    {
+      "path": "lcnc-webui/src/ws/bulkData.ts",
+      "git_blob": "f3fa66241590ba366ba4d6e721fa19a90c4ae30a",
+      "sha256": "6abbf836a7b284b5334b8c1136c756aa5c4992ef1726eaf34662167a12b3fe82"
+    },
+    {
+      "path": "lcnc-webui/src/ws/halshowStore.test.ts",
+      "git_blob": "b9406dc8a997e1a56c0cb31e6ed12544306a7d60",
+      "sha256": "1bf05454f231f141a02991c8e8f8a813c826f2b7397ea4f1c56f5e6fd92b811e"
+    },
+    {
+      "path": "lcnc-webui/src/ws/halshowStore.ts",
+      "git_blob": "b44bbc8471cac1ec9becfd0f5bd520a8ea4c3049",
+      "sha256": "f5c3f9173c4b81744b57347a14ec7ed4f682d11988121069b1469c2fc802cbf3"
+    },
+    {
+      "path": "lcnc-webui/src/ws/statusStore.test.ts",
+      "git_blob": "06a478397409cb534d0591c8676881c7b25c4164",
+      "sha256": "cc7a424e7845abea2b7855c8a0c48368005c651c8fffe109197056b7c0ebe438"
+    },
+    {
+      "path": "lcnc-webui/src/ws/statusStore.ts",
+      "git_blob": "70053920a73bc8f8290c4e4377ed8b613b15228b",
+      "sha256": "d7e97f57026d3ce374ed8daf4ea3a97f296b6bf807611c57befd5b99d611c876"
+    },
+    {
+      "path": "lcnc-webui/src/ws/telemetry.test.ts",
+      "git_blob": "f685bd01d5db58d4a84d7704d7e97f284ba4446b",
+      "sha256": "17b00017c5d5db1f6c0d65e19042e137591b465890a6ae523e469d0e179e0626"
+    },
+    {
+      "path": "lcnc-webui/src/ws/telemetry.ts",
+      "git_blob": "f7a35fcda81239231d421d9c9b90bc22878c5db6",
+      "sha256": "47fde3529c7d14d788aaac10bffbbd2854b4d55dabfb7e5eedfffdf901bd8ee0"
+    },
+    {
+      "path": "lcnc-webui/src/ws/wsTransport.reload.test.ts",
+      "git_blob": "a1a459cf93d40a891345cc9675a04184a8025fa4",
+      "sha256": "3300f4b51c7c57cc2bf410333056dbabb4e6f34fed2b202a5b0e9b2d2de2438f"
+    },
+    {
+      "path": "lcnc-webui/src/ws/wsTransport.test.ts",
+      "git_blob": "f73b22589426ec856165f16416476eb195c0818a",
+      "sha256": "ab67d67ca056eadf7cd7c21a434383a809cbdf6adeb1643e03d0c1545325fc42"
+    },
+    {
+      "path": "lcnc-webui/src/ws/wsTransport.ts",
+      "git_blob": "e3de83117f0bc8cace537cc2ff06339fa53d1e07",
+      "sha256": "fd3cc2d1ae670eb69096265a20cc495979850cc2275e4a2345a3c8f2f2716dff"
+    },
+    {
+      "path": "lcnc-webui/src/wsWorker.test.ts",
+      "git_blob": "6a1c782706344be1672cb4fd16087fd1bcdd08d0",
+      "sha256": "be0a22760a8b2deefb8365f2e0f384b049b5f38bae9aa2bd9d240dc84803836c"
+    },
+    {
+      "path": "lcnc-webui/src/wsWorker.ts",
+      "git_blob": "9139b2fd6e1f4fa7182cc77333af6c99f0e82441",
+      "sha256": "5f025a5d04542cf2eff1ae0689cc3232188a8cd434299c565e12e13ccf094462"
+    }
+  ],
+  "inputs_before_append": {
+    "docs/reviews/viewer-palette-fest.ideen.md": "4dbb6202df070c007e1a73b362da5e4fb358b9bccac7cb92d845951acd062ccc",
+    "docs/reviews/kollision-paket2.plan.md": "1fece0b94efccefc7ddff37cef8f870dd1892f4907ac745393a44e9b58317461",
+    "docs/reviews/viewer-palette-fest.r177.backend-pytest.txt": "25abd147792a84fa0b42440cddaaf6507ee1c32956876f9300011b71369480e3",
+    "docs/reviews/viewer-palette-fest.r177.codex-probes.txt": "8a7c05ab0332dce90414e53df37e1bebb56dcc23bf45952b0e8f7e4993d76da8",
+    "docs/reviews/viewer-palette-fest.r177.gate-frontend.json": "7b1f24c2cce27e50f6b943ea732f7676167675edddc35e29166f18db58447e47",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r157-rules.txt": "bd6a7f3c2fa611b7c30bab6fc81916521dfd4397a375e94b887fb472387b16d0",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r158-rules.txt": "1b65ab9316e8adf5c0bce8820a3701d044a9df7a274f1629b5cfa496f82d288b",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r159-rules.txt": "53943337a8c87457c3c617b66220519710fcaa0307c1472bb1e619c46441a1d8",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r160-rules.txt": "e984b692dd796e2f719707fff8efe2983c2eb2854f1859f52d0ee3cd005b51c7",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r161-rules.txt": "94f1958e00890ea7af4d91c0ba3b8defe117f727f2e253196ef2f05353df110c",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r162-rules.txt": "93e31cb0ad02c55a5420e72dd51ccd46bf9a58f9a45702379e7aa5bf9388bce2",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r163-rules.txt": "754a11c95b184de6107f419de10e5580bd6ef1101068456af9ebc68ec76aac28",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r164-rules.txt": "d6a38aa1729d914a97aae86c7637c3be1f05fa2ef7e9688ea7d126d4b3a98b61",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r166-rules.txt": "940ebcf8142391ccfc44d490167f525f8ffb04175db740f56867accbddc70795",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r168-rules.txt": "98a45b8ce8770e766f0ed0731ce6063e624b715dddab1a7955a0db608fb4d204",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r169-rules.txt": "7bdff72d7317735993634644e03f53a17db2b41426d74124a145c8fffa87c37f",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r170-rules.txt": "e953eb4e54431bb141d09b58c745fe6bc0abeda6685ef72bec097925df2f771e",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r171-rules.txt": "357166a57633b0e5429dd7bf435b4c59d890117a378e2e94ea8683d1e2a1c9e2",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r172-rules.txt": "75e8d472b9442bb42174dcfe8d3daced3856b08ecd19a85b75c6360b5c75b6af",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r173-rules.txt": "df5e26433814a3a867cbd64c349ae6e8b095a850259a7c62a875465cf32b1e06",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r174-rules.txt": "f31f0acd30c94900645e2d5daccfdf2e79aaef00ae548c6dfe8b51645f59db44",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r175-rules.txt": "160326f1792e299e0f23bf266c3f2c31cc3178f39a492f5622a7a7b290fe73b0",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r176-rules.txt": "9af4907dc5346bcf3b45c826d5c5d4cf2375fcddff2528de97c5c6e1d6636363",
+    "docs/reviews/viewer-palette-fest.r177.mutations-run.sh": "8ce178f2c3d779e379850fbe2db32c63cfbe146f8c64454081a947db43448a8c",
+    "docs/reviews/viewer-palette-fest.r177.mutations-slow.txt": "82cd71d9ba0c4e70904c7926a4918bec14a3455a5a81012eaeec13624889501f",
+    "docs/reviews/viewer-palette-fest.r177.mutations.py": "cc3e9db324f0201b84d9dcce6dbd1f062d44578541bd37e1270d2ff70a9286ea",
+    "docs/reviews/viewer-palette-fest.r177.mutations.txt": "5431f960091882f195c95cb1b8b3b8d725d881b9229f97d0861b00c1da48f4cf",
+    "docs/reviews/viewer-palette-fest.r177.tint-result.txt": "deafc1c503ade5e85de84a1118db993eb717f9fb2f72e15b3b5e6f4f794c6364",
+    "docs/reviews/viewer-palette-fest.r177.tint-running.txt": "9eb786dd0151ed475e45534823aa7e5baacfde6e724a0a863fecc5308bd53eaf"
+  },
+  "archive_harness_changes": [
+    "e2e/ctl.ts uses 127.0.0.1:4188 instead of localhost:4174",
+    "e2e/mock-gateway.mjs binds 127.0.0.1; serves the archive build",
+    "Own config/probes are new files only"
+  ],
+  "review_append_sha256": "d0e23c0ffb5f94c2ba8a88da899c99750e362beb6db1ffbffba49773c82d6dfd",
+  "live_existing_inputs_preserved": true
+}

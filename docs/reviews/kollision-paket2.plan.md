@@ -574,6 +574,13 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
   - Doku.
   - **Als letzter, getrennt beurteilter Commit** die Pflichtprobe je Zeile (5), mit Prüfung 2 aus 7.3 und Messung unter gleicher Last. So verdecken sich Modellwechsel und weniger Abfragen nicht gegenseitig.
 
+- **Live-Ansicht von Runde B (R177):** Der Operator sah zuerst Runde A (der Live-Baum hatte Runde B noch nicht); nachgestellt im Browser mit dem Zustand des Operators, behoben was auch Runde B betraf:
+  - die Liste folgt nur einer neuen markierten Zeile, ein neues Ergebnis lässt den Scroll stehen (4.4);
+  - Grenzverletzungen nach der Zeile des Programms, nie nach der rohen Nummer einer gerufenen Datei;
+  - ein offener Nahaufenthalt ohne Berührung ist im laufenden Wort noch kein Beinahe-Treffer (4.1);
+  - die Zeitleiste: der Fortschritt in eigener Bahn in der Farbe des Sim-Tab-Balkens, deckende Bänder, Striche ohne Rand, Symbole mit Abstand (4.3);
+  - außerhalb des Pakets: ein gepinnter Parse endet mit seinem Lauf.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).

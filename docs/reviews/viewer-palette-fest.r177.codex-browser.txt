@@ -1,0 +1,20 @@
+[1A[2K[2m[WebServer] [22m(node:192270) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 5 tests using 1 worker
+
+[1A[2K(node:192283) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:192283) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/5] e2e/sim-panel.viewer.spec.ts:260:1 › the spacers' row height is measured where the rows are seen — never in a hidden tab
+[1A[2K[2/5] e2e/sim-panel.viewer.spec.ts:416:1 › a moved window keeps the picture: the row shown before stays where it was, then the list glides (plan 4.4)
+[1A[2K[3/5] e2e/sim-panel.viewer.spec.ts:466:1 › a new result keeps the list where it was scrolled; a new position brings it back
+[1A[2K[4/5] e2e/sim-panel.viewer.spec.ts:523:1 › a limit row stands at its program line's move, never at a called file's line of that number
+[1A[2K[5/5] e2e/sim-panel.viewer.spec.ts:551:1 › the timeline: the progress in its own lane and colour, opaque findings, ticks without a light edge, glyphs apart
+[1A[2K  5 passed (18.4s)

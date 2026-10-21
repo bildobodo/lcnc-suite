@@ -1,0 +1,42 @@
+{
+  "cases": [
+    {
+      "name": "ended",
+      "terminations": 1,
+      "reason": "run_ended",
+      "reparse_pending": false
+    },
+    {
+      "name": "paused",
+      "terminations": 0,
+      "reason": null,
+      "reparse_pending": false
+    },
+    {
+      "name": "normal",
+      "terminations": 0,
+      "reason": null,
+      "reparse_pending": false
+    },
+    {
+      "name": "not_running",
+      "terminations": 0,
+      "reason": null,
+      "reparse_pending": false
+    },
+    {
+      "name": "new_file",
+      "terminations": 1,
+      "reason": "file",
+      "reparse_pending": false
+    },
+    {
+      "name": "repeat_end",
+      "terminations": 1,
+      "reason": "run_ended",
+      "reparse_pending": false
+    }
+  ],
+  "passed": 6,
+  "scope": "actual file/doom/end branches + real BulkPipeline.cancel_inflight; fake worker/timer; no subsequent idle reparse scheduling"
+}

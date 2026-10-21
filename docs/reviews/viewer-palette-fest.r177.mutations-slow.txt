@@ -1,0 +1,4 @@
+b_no_comp RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 4146292 to be less than or equal to 631348 | AssertionError: chain: one target: expected 1016221 to be less than or equal to 154367.5 16s
+b_findkey_scan RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: at its place: expected 475139 to be less than or equal to 75524.5 11s
+b_free_stretch_all_points RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: pieces: one target: expected 918042 to be less than or equal to 172942 207s
+k_heir_piece_by_piece RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 3245109 to be less than or equal to 499175.5 11s
