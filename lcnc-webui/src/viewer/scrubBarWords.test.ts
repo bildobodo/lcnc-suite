@@ -23,6 +23,9 @@ function barComputed(name: string, refs: Record<string, unknown>) {
   return new Function(...Object.keys(all), body)(...Object.values(all));
 }
 
+/** The bar's glyph spacing, read from its source like the computed it spaces. */
+const glyphPx = Number(/const GLYPH_PX = (\d+);/.exec(fs.readFileSync(path.resolve(__dirname, "../ScrubBar.vue"), "utf8"))![1]);
+
 /** The counts the view's index gives for these targets (contactView.viewCounts'
  *  kinds: a possible contact, a near miss, the entry move's collision, a start). */
 const countsOf = (ts: ClashTarget[]): FindingCounts => {
@@ -114,11 +117,11 @@ describe("the summary line: result · coverage · caveat (step 4 plan 1a)", () =
 
   it("a timeline mark is a near miss only where nothing touched — a stay that touched is a collision's", () => {
     const targets = [tgt(10, 0), tgt(40, 1.5), tgt(70, 1.5, { near: false })];
-    const marks = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss,
+    const marks = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss, GLYPH_PX: glyphPx,
       ...clashRefs(targets) }) as Array<{ pct: number; near: boolean }>;
     expect(marks.map(m => [m.pct, m.near])).toEqual([[10, false], [40, true], [70, false]]);
     // a target from the contact view says it itself, by the sweep's class (plan 4.1)
-    const fromView = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss,
+    const fromView = barComputed("marks", { cumMax: { value: 100 }, toolTargets: { value: [] }, violationTargets: { value: [] }, isNearMiss, GLYPH_PX: glyphPx,
       ...clashRefs([{ cum: 20, cumEnd: 20, key: "C1|0|n", line: 3, a: "t", b: "w", dist: 5e-4, near: true },
                             { cum: 30, cumEnd: 31, key: "C2|0|0", line: 4, a: "t", b: "w", dist: 0, near: false }]) }) as Array<{ pct: number; near: boolean }>;
     expect(fromView.map(m => [m.pct, m.near]), "a stay at 0.5 µm without a touch is a near miss").toEqual([[20, true], [30, false]]);

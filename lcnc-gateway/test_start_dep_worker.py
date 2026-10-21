@@ -298,7 +298,8 @@ class TestLimits(unittest.TestCase):
 
     def test_a_known_axis_beyond_a_limit_is(self):
         self.assertEqual(probe("e_limit_known")["violations"],
-                         [{"line": 2, "axis": "X", "value": 600.0, "limit": 500.0, "kind": "max"}])
+                         [{"line": 2, "axis": "X", "value": 600.0, "limit": 500.0, "kind": "max",
+                           "runs": [[1, 1]], "nruns": 1}])
 
     def test_nan_reads_false_in_both_checkers(self):
         nan = float("nan")

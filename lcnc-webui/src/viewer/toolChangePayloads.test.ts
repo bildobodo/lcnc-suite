@@ -362,8 +362,8 @@ describe("the first predicted limit crossing (Codex R96/R97 VP-I55)", () => {
     const rows = buildSimRows({
       clash: [{ key: "C3|t|w|0", line: 3, cum: 1, cumEnd: 1, a: "tool", b: "w" },
         { key: "C3|t|w|1", line: 3, cum: stop.cum + 1, cumEnd: stop.cum + 1, a: "tool", b: "w", reentry: true }],
-      limit: [{ key: "L3", line: 3, cum: track.cum[Math.max(0, first - 1)]!, cumEnd: stop.cum }], tool: [],
-      violations: raw.violations, unit: "mm", timeBased: true, axisEnd: track.cum[track.count - 1]!, stop,
+      limit: [{ key: "L3", line: 3, cum: track.cum[Math.max(0, first - 1)]!, cumEnd: stop.cum, recs: raw.violations }], tool: [],
+      unit: "mm", timeBased: true, axisEnd: track.cum[track.count - 1]!, stop,
     });
     expect(rows.map(r => [r.key, r.note])).toEqual([
       ["L3", "first predicted limit crossing — where the run stops is not determined"],
@@ -384,8 +384,8 @@ describe("a crossing is no stop (Codex R97 VP-I55)", () => {
     expect(stop.line).toBe(3);
     const rows = buildSimRows({
       clash: [{ key: "C3|t|w|0", line: 3, cum: stop.cum + 0.01, cumEnd: stop.cum + 0.01, a: "tool", b: "w" }],
-      limit: [{ key: "L3", line: 3, cum: 0, cumEnd: stop.cum }], tool: [],
-      violations: raw.violations, unit: "mm", timeBased: true, axisEnd: track.cum[track.count - 1]!, stop,
+      limit: [{ key: "L3", line: 3, cum: 0, cumEnd: stop.cum, recs: raw.violations }], tool: [],
+      unit: "mm", timeBased: true, axisEnd: track.cum[track.count - 1]!, stop,
     });
     expect(rows.map(r => r.note)).toEqual([
       "first predicted limit crossing — where the run stops is not determined",

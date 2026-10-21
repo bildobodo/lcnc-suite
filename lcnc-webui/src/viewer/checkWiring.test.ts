@@ -387,3 +387,28 @@ describe("how far a side is checked reaches the view (Codex R149 VP-I108, VP-I10
     expect(shown({ run: false, done: true, progress: 1 }, [[0, 3]]).v.n).toBe(1);
   });
 });
+
+describe("a running check's word is marked running, its result is not (operator 2026-10-20: an open near stay counted as a near miss while the check ran)", () => {
+  const base = { count: 2, cum: [0, 5], lines: [5, 5] };
+  const side = { count: 3, cum: [0, 2, 7], lines: [21, 21, 5] };
+  const fns = (state: "result" | "partial" | "runBase" | "entryRunning" | "entryDone") => viewerFns(["_sliceEnd", "_sideCovered", "_colBaseSpec", "_colRunSideSpec", "_colViewSpec"], `
+    const collisionRun = { value: null }, collisionRunSide = { value: null }, collisionSideFirst = { value: null }, collisionEntry = { value: null };
+    const collisionResult = { value: state === "result" || state.startsWith("entry") ? { truncated: null } : null }, collisionTrack = { value: base };
+    const collisionPartial = { value: state === "partial" ? { truncated: { covered: 0.3, reason: "running" } } : null }, collisionPartialTrack = { value: base };
+    let _colResultReq = 1, _colPartialReq = 1, _colReqId = 1, _colSideProgress = 0.5;
+    const _linesTrusted = () => true;
+    const collisionProgress = { value: 0.3 };
+    const _colRunSideBase = () => (state === "runBase" ? { trk: base } : null);
+    if (state === "entryRunning") collisionSideFirst.value = { id: -1, base, entry: side, shift: 2, sliceEnd: 7, first: {} };
+    if (state === "entryDone") collisionEntry.value = { id: -1, base, track: side, result: { truncated: null }, shift: 2, sliceEnd: 7 };`,
+    { base, side, state });
+  it("the base: a partial and a run check's beginning stand on a running word; the result is no running word", () => {
+    expect(fns("partial")._colBaseSpec(base)).toMatchObject({ running: true });
+    expect(fns("runBase")._colBaseSpec(base)).toMatchObject({ running: true });
+    expect(fns("result")._colBaseSpec(base)?.running).toBeUndefined();
+  });
+  it("the entry move's side: running while its first touch is all there is, not once its result came", () => {
+    expect(fns("entryRunning")._colViewSpec(side)?.side).toMatchObject({ running: true });
+    expect(fns("entryDone")._colViewSpec(side)?.side?.running).toBeUndefined();
+  });
+});

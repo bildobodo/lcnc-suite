@@ -16,9 +16,9 @@ describe("simRows", () => {
   it("one row per timeline mark, in timeline order, each kind with its own words", () => {
     const rows = buildSimRows({
       clash: [clash({ cum: 25, line: 7 }), clash({ cum: 174, line: 42, rapid: true, a: "spindle_cartridge", b: "c_faceplate", key: "C42|x|y|0" })],
-      limit: [{ key: "L23", line: 23, cum: 93, cumEnd: 97 }],
+      limit: [{ key: "L23", line: 23, cum: 93, cumEnd: 97, recs: [
+        { line: 23, axis: "Y", value: 512, limit: 500, kind: "max" }, { line: 23, axis: "A", value: 112, limit: 50, kind: "max" }] }],
       tool: [{ key: "T30", line: 30, tool: 3, cum: 123, cumEnd: 127 }],
-      violations: [{ line: 23, axis: "Y", value: 512, limit: 500, kind: "max" }, { line: 23, axis: "A", value: 112, limit: 50, kind: "max" }],
       unit: "mm", timeBased: true, axisEnd: 250,
     });
     expect(rows.map(r => [r.kind, r.lineLabel, r.at])).toEqual([
@@ -35,7 +35,7 @@ describe("simRows", () => {
     const [a, b, c] = buildSimRows({
       clash: [clash({ cum: 1, line: 5, entry: true, entryMove: true, key: "E5|t|w|0" }), clash({ cum: 2, line: 5, reentry: true, key: "C5|t|w|1" }),
         clash({ cum: 3, line: 6, dist: 1.5, spanEndLine: 9, key: "C6|t|w|0" })],
-      limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
+      limit: [], tool: [], unit: "mm", timeBased: false, axisEnd: 4,
     });
     expect(a!.lineLabel).toBe("entry");
     expect(b!.note).toBe("re-entry");
@@ -43,7 +43,7 @@ describe("simRows", () => {
     expect(c!.note).toBe("near miss, within 1.5 mm · through L9");
     // an upper bound rounds UP at the shown precision (Codex R174)
     for (const [dist, shown] of [[1.36, "1.4"], [1.31, "1.4"], [1.3, "1.3"], [0.04, "0.1"]] as const) {
-      const [r] = buildSimRows({ clash: [clash({ cum: 3, line: 6, dist, key: "C6|t|w|0" })], limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4 });
+      const [r] = buildSimRows({ clash: [clash({ cum: 3, line: 6, dist, key: "C6|t|w|0" })], limit: [], tool: [], unit: "mm", timeBased: false, axisEnd: 4 });
       expect(r!.note, `${dist}`).toBe(`near miss, within ${shown} mm`);
     }
     expect([a!.at, c!.at]).toEqual(["25 %", "75 %"]);
@@ -52,7 +52,7 @@ describe("simRows", () => {
   it("a stay with a touch interval is no near miss whatever its margin entry's distance (the sweep's class, `near`)", () => {
     const [r] = buildSimRows({
       clash: [clash({ cum: 3, line: 6, dist: 2, near: false, spanEndLine: 9, key: "C6|t|w|0" })],
-      limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
+      limit: [], tool: [], unit: "mm", timeBased: false, axisEnd: 4,
     });
     expect(r!.note).toBe("through L9");
   });
@@ -62,7 +62,7 @@ describe("simRows", () => {
     // too — origin E (its key), but only the entry move itself reads "entry"
     const [a] = buildSimRows({
       clash: [clash({ cum: 1, line: 3, entry: true, key: "E3|t|w|0" })],
-      limit: [], tool: [], violations: [], unit: "mm", timeBased: false, axisEnd: 4,
+      limit: [], tool: [], unit: "mm", timeBased: false, axisEnd: 4,
     });
     expect(a!.lineLabel).toBe("L3");
   });
@@ -77,9 +77,9 @@ describe("simRows", () => {
       clash: [clash({ cum: 10, line: 4 }), clash({ cum: 40, line: 9, key: "C9|t|w|0" }),
         clash({ cum: 45, line: 9, reentry: true, key: "C9|t|w|1" }),
         clash({ cum: 60, line: 12, reentry: true, key: "C12|t|w|1" })],
-      limit: [{ key: "L30", line: 30, cum: 70, cumEnd: 75 }, { key: "L9", line: 9, cum: 40, cumEnd: 45 }],
+      limit: [{ key: "L30", line: 30, cum: 70, cumEnd: 75, recs: [] }, { key: "L9", line: 9, cum: 40, cumEnd: 45, recs: [] }],
       tool: [{ key: "T9", line: 9, tool: 2, cum: 40, cumEnd: 45 }, { key: "T20", line: 20, tool: 3, cum: 50, cumEnd: 55 }],
-      violations: [], unit: "mm", timeBased: true, axisEnd: 100, stop: { cum: 45, line: 9 },
+      unit: "mm", timeBased: true, axisEnd: 100, stop: { cum: 45, line: 9 },
     });
     expect(rows.map(r => [r.key, r.note])).toEqual([
       ["C4|tool|a_yoke_casting|0", ""],
@@ -92,8 +92,8 @@ describe("simRows", () => {
       ["L30", "after the first limit crossing at L9"],
     ]);
     // no flags, no claim
-    expect(buildSimRows({ clash: [clash({ cum: 10, line: 4 })], limit: [{ key: "L3", line: 3, cum: 5, cumEnd: 6 }],
-      tool: [], violations: [], unit: "mm", timeBased: true, axisEnd: 20 }).map(r => r.note)).toEqual(["", ""]);
+    expect(buildSimRows({ clash: [clash({ cum: 10, line: 4 })], limit: [{ key: "L3", line: 3, cum: 5, cumEnd: 6, recs: [] }],
+      tool: [], unit: "mm", timeBased: true, axisEnd: 20 }).map(r => r.note)).toEqual(["", ""]);
   });
 
   it("an arc whose ends lie inside the window stops where it crosses, not at its line's start (Codex R96 VP-I55)", () => {
@@ -102,8 +102,8 @@ describe("simRows", () => {
     // A contact at 1 s (Z 40.14) is reached; one at 12 s is not.
     const rows = buildSimRows({
       clash: [clash({ cum: 1, line: 3, key: "C3|t|w|0" }), clash({ cum: 12, line: 3, reentry: true, key: "C3|t|w|1" })],
-      limit: [{ key: "L3", line: 3, cum: 0, cumEnd: 30 }], tool: [],
-      violations: [], unit: "mm", timeBased: true, axisEnd: 30, stop: { cum: 9.7183, line: 3 },
+      limit: [{ key: "L3", line: 3, cum: 0, cumEnd: 30, recs: [] }], tool: [],
+      unit: "mm", timeBased: true, axisEnd: 30, stop: { cum: 9.7183, line: 3 },
     });
     expect(rows.map(r => [r.key, r.note])).toEqual([
       ["L3", "first predicted limit crossing — where the run stops is not determined"],
@@ -115,7 +115,7 @@ describe("simRows", () => {
   it("a contact without a line to show reads its subroutine's name, else \"—\" — never a line (plan 1.3, C3)", () => {
     const rows = buildSimRows({
       clash: [clash({ cum: 5, line: 0, noLine: true, subName: "m200", key: "C0|a|b|0" }), clash({ cum: 9, line: 0, noLine: true, key: "C0|a|b|1" })],
-      limit: [], tool: [], violations: [], unit: "mm", timeBased: true, axisEnd: 20,
+      limit: [], tool: [], unit: "mm", timeBased: true, axisEnd: 20,
     });
     expect(rows.map(r => [r.lineLabel, r.note])).toEqual([["(m200)", "in m200, no line of this program"], ["—", "no line of this program"]]);
   });
@@ -126,8 +126,8 @@ describe("simRows", () => {
   });
 
   it("the next row is the first after the position, none past the last", () => {
-    const rows = buildSimRows({ clash: [clash({ cum: 10, line: 2 })], limit: [{ key: "L3", line: 3, cum: 20, cumEnd: 21 }],
-      tool: [], violations: [], unit: "mm", timeBased: true, axisEnd: 30 });
+    const rows = buildSimRows({ clash: [clash({ cum: 10, line: 2 })], limit: [{ key: "L3", line: 3, cum: 20, cumEnd: 21, recs: [] }],
+      tool: [], unit: "mm", timeBased: true, axisEnd: 30 });
     expect(nextRowKey(rows, 0)).toBe(rows[0]!.key);
     expect(nextRowKey(rows, 10)).toBe("L3");
     expect(nextRowKey(rows, 25)).toBeNull();
@@ -139,7 +139,7 @@ describe("the probe's braking range and what depends on it (parity-ef plan F2/F3
     const rows = buildSimRows({
       clash: [clash({ cum: 5, line: 3, possible: true, key: "C389|t|w|0" }), clash({ cum: 9, line: 12, key: "C12|t|w|0" })],
       limit: [], tool: [{ key: "T3", line: 3, tool: 2, cum: 1, cumEnd: 2 }],
-      violations: [], unit: "mm", timeBased: false, axisEnd: 10,
+      unit: "mm", timeBased: false, axisEnd: 10,
       measurements: [{ cum: 4, line: 3 }],
     });
     expect(rows.map(r => r.note)).toEqual([

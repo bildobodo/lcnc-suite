@@ -6,21 +6,23 @@
 // change the findings row's text width and the bar folded and unfolded under
 // the operator's finger; the list's rows are the bar's own targets.
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
-import { encode } from "@msgpack/msgpack";
+import { decode, encode } from "@msgpack/msgpack";
+import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures";
 import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
 import { FIRST_ROWS } from "../src/viewer/simListRange";
+import { withLimitRuns } from "./limitRuns";
 
 const FEED = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
 FEED[17]![0] = 110;   // line 20 out of the X window
 FEED[29]![0] = 120;   // line 32 out of the X window
-const PREVIEW_FIELDS = { file: "/sim.ngc", preview_schema: 11, feed: FEED,
+const PREVIEW_FIELDS = withLimitRuns({ file: "/sim.ngc", preview_schema: 11, feed: FEED,
   feed_lines: FEED.map((_, i) => i + 3), feed_seq: FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(FEED.map(p => (p[0]! > 100 ? 1 : 0))),
   feed_tcum: new Uint8Array(new Float32Array(FEED.map((_, i) => i * 4)).buffer),
   violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }, { line: 32, axis: "X", value: 120, limit: 100, kind: "max" }],
-  violations_total: 2 };
+  violations_total: 2 });
 const PREVIEW = Buffer.from(encode(PREVIEW_FIELDS));
 // T3 on line 10; T5 on line 20 — the same moment as line 20's limit
 const TEXT = Array.from({ length: 34 }, (_, i) => i === 0 ? "(sim)" : i === 9 ? "T3 M6" : i === 19 ? "T5 M6" : `G1 X${i} F100`).join("\n");
@@ -51,7 +53,7 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   expect(kinds.filter(k => k === "limit").length, "a row per limit mark").toBe(byKind("limit"));
   expect(kinds.filter(k => k === "tool").length, "a row per tool-change mark").toBe(byKind("tool"));
   expect(kinds, "timeline order").toEqual([...marks].sort((a, b) => a.left - b.left).map(m => m.kind));
-  await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("X 110 mm > max 100 mm");
+  await expect(page.locator('.simPanel [data-sim-row="L20@20"] .colWhat')).toContainText("X 110 mm > max 100 mm");
   await expect(page.locator('.simPanel [data-sim-row="T10"] .colWhat')).toContainText("Tool change → T3");
   await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colMove")).toHaveText("Rapid");
   // The run stops at the first soft limit at the latest (operator 2026-10-08):
@@ -59,15 +61,15 @@ test("the list is the timeline's marks: one row each, in timeline order, each ki
   // gateway's flag — L20's end); its row says so, every row after it is
   // marked, a tool change at L20's start and a row before it are not — and
   // every row stays listed.
-  await expect(page.locator('.simPanel [data-sim-row="L20"] .colWhat')).toContainText("first predicted limit crossing — where the run stops is not determined");
+  await expect(page.locator('.simPanel [data-sim-row="L20@20"] .colWhat')).toContainText("first predicted limit crossing — where the run stops is not determined");
   await expect(page.locator(".simPanel tr").filter({ hasText: "L26" }).locator(".colWhat")).toContainText("after the first limit crossing at L20");
-  await expect(page.locator('.simPanel [data-sim-row="L32"] .colWhat')).toContainText("after the first limit crossing at L20");
+  await expect(page.locator('.simPanel [data-sim-row="L32@32"] .colWhat')).toContainText("after the first limit crossing at L20");
   await expect(page.locator('.simPanel [data-sim-row="T20"] .colWhat')).not.toContainText("limit crossing");
   await expect(page.locator(".simPanel tr").filter({ hasText: "L12" }).locator(".colWhat")).not.toContainText("limit crossing");
   // the filter counts and narrows
   await expect(page.locator('.simPanel select[name="simFilter"] option[value="clash"]')).toHaveText("Collisions (2)");
   await simShow(page, "limit");
-  expect(await rowKeys(page)).toEqual(["L20", "L32"]);
+  expect(await rowKeys(page)).toEqual(["L20@20", "L32@32"]);
   // the collision check: its progress and its verdict, the tools in its "?"
   await expect(page.locator(".simPanel .checkPct")).toHaveText("100 %");
   await expect(page.locator(".simPanel .checkVerdict")).toHaveText("2 collisions · checked in full");
@@ -516,28 +518,116 @@ test("a new result keeps the list where it was scrolled; a new position brings i
 });
 
 // Operator 2026-10-19 (live, haus.ngc): limit rows L536, L540, L543, L587
-// stood first, at 00:05 — before L12. The program's limit records name ITS
-// lines; the M600 routine it calls at L12 moves under the routine's own line
-// numbers (536 among them), and the rows were placed by that raw number. A
-// called file (L2) moves with its lines 5 and 6, then the program's L3, L5, L6.
-test("a limit row stands at its program line's move, never at a called file's line of that number", async ({ page, context }) => {
+// stood first, at 00:05 — before L12. A record names the RAW line of the file
+// its move ran in: the M600 routine called at L12 moves under its own numbers,
+// and a raw number is no place (Codex R177 VP-I130: neither the program's nor
+// the called file's). Each record carries its origin and its violating
+// stretches; the row stands at its first violating move and reads the line the
+// program shows there. A called file (from L2) moves with its lines 5 and 6,
+// then the program's L3, L5, L6: the called file's L5 and the program's L5 are
+// two rows; a record without stretches has no place and closes the list.
+test("a limit row stands at its own move and reads its origin's line, never a raw number's", async ({ page, context }) => {
   const feed = [[0, 0, 0], [10, 0, 0], [10, 10, 0], [20, 10, 0], [30, 10, 0], [40, 10, 0]];
   const preview = Buffer.from(encode({ file: "/sim.ngc", preview_schema: 11, feed,
     feed_lines: [1, 5, 6, 3, 5, 6], feed_seq: [1, 2, 3, 4, 5, 6], feed_outside: new Uint8Array(6),
     feed_lineok: new Uint8Array([1, 0, 0, 1, 1, 1]), feed_sub: new Uint8Array([0xff, 0, 0, 0xff, 0xff, 0xff]), sub_names: ["touch"],
     feed_cline: new Uint8Array(new Uint16Array([0, 2, 2, 0, 0, 0]).buffer),
     feed_tcum: new Uint8Array(new Float32Array([0, 4, 8, 12, 16, 20]).buffer),
-    violations: [{ line: 3, axis: "X", value: 120, limit: 100, kind: "max" }, { line: 5, axis: "X", value: 130, limit: 100, kind: "max" }],
-    violations_total: 2 }));
+    violations: [
+      { line: 5, axis: "X", value: 110, limit: 100, kind: "max", sub: "touch", site: 2, runs: [[2, 2]], nruns: 1 },
+      { line: 3, axis: "X", value: 120, limit: 100, kind: "max", runs: [[4, 4]], nruns: 1 },
+      { line: 5, axis: "X", value: 130, limit: 100, kind: "max", runs: [[5, 5]], nruns: 1 },
+      { line: 9, axis: "Y", value: 140, limit: 100, kind: "max" }],
+    violations_total: 4 }));
   await prepare(page, context, "desktop", preview, false);
   await simShow(page, "limit");
-  await expect(rows(page)).toHaveCount(2);
-  const list = await rows(page).evaluateAll(trs => trs.map(t => `${t.querySelector(".rowPick")!.textContent!.trim()} ${t.querySelector(".colAt")!.textContent!.trim()}`));
-  // L3's move starts at 8 s, the program's L5's at 12 s (the called file's "5" at 0 s)
-  expect(list, "the limit rows in the program's order, each at its own move").toEqual(["L3 00:08", "L5 00:12"]);
+  await expect(rows(page)).toHaveCount(4);
+  const list = await rows(page).evaluateAll(trs => trs.map(t => [t.querySelector(".rowPick")!.textContent!.trim(),
+    t.querySelector(".colAt")!.textContent!.trim(), t.querySelector(".colWhat")!.textContent!.trim()]));
+  // the called file's move from 0 s at its call L2, the program's L3 at 8 s, its L5 at 12 s; the record with no place last
+  expect(list.map(r => `${r[0]} ${r[1]}`), "each row at its own move, by the line its origin shows").toEqual(
+    ["L2 00:00", "L3 00:08", "L5 00:12", "— —"]);
+  expect(list[0]![2]).toContain("X 110 mm > max 100 mm");
+  expect(list[2]![2]).toContain("X 130 mm > max 100 mm");
+  expect(list[3]![2]).toMatch(/Y 140 mm > max 100 mm[\s\S]*place not known/);
+  // the bands are the violating moves: 0–4 s and 8–16 s of 20 — none over the called file's own "6" (4–8 s)
+  const bands = await page.locator(".scrubBar .scrubBand.limit").evaluateAll(els => els.map(e => {
+    const num = (v: string) => Number(/\* ([-0-9.e]+)\)$/.exec(v)?.[1] ?? NaN);
+    const st = (e as HTMLElement).style, a = num(st.left);
+    return [a, a + num(st.width)];
+  }));
+  expect(bands.map(([a, b]) => [Math.round(a * 100) / 100, Math.round(b * 100) / 100])).toEqual([[0, 0.2], [0.4, 0.8]]);
+  // a tap on the row with no place moves nothing
+  const pos = await simLine(page).textContent();
+  await rows(page).nth(3).locator(".rowPick").click();
+  await page.waitForTimeout(300);
+  expect(await simLine(page).textContent(), "no jump").toBe(pos);
+  await expect(page.locator(".simBanner"), "nor the simulation").toHaveCount(0);
 });
 
-// Operator 2026-10-20 (live, Haus_Brunnen.ngc): the timeline's progress was not
+// Codex R178 (the rest of VP-I130): the code panel marks a limit on the line
+// its own move shows — a called file's move on its call — and nowhere else: a
+// record with no place, or whose move no line of the program shows, marks no
+// raw number. The real worker's payloads (scripts/gen_limit_origin_payloads.py).
+const LIM_FIXTURE = (name: string) => readFileSync(new URL(`../../scripts/test_fixtures/limit_origin_payloads/${name}.msgpack`, import.meta.url));
+const LIM_TEXT = "G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\nG1 X30\nG1 X40\nM2\n";
+async function limitPayload(page: Page, context: BrowserContext, body: Buffer, text: string, version: number) {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: text }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS[0]!);
+  await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: "/sim.ngc" } });
+  await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
+  await openSimTab(page);
+  await simShow(page, "limit");
+  await expect(rows(page)).toHaveCount(1);
+}
+const codeMarks = async (page: Page) => {
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".codeLine").first()).toBeVisible();
+  return page.locator(".codeLine.violation").evaluateAll(els => els.map(e => ({
+    line: e.querySelector(".lineNumber")?.textContent?.trim(), title: e.getAttribute("title") })));
+};
+for (const [name, payload, text, want] of [
+  ["a called file's limit marks its call", () => LIM_FIXTURE("lim_sub"), LIM_TEXT, [{ line: "3", title: "X 600 mm > max 500 mm (in lim_child)" }]],
+  ["a record with no place marks no raw number", () => {
+    const raw = decode(LIM_FIXTURE("lim_sub")) as { violations: Record<string, unknown>[] };
+    raw.violations = raw.violations.map(({ runs: _r, nruns: _n, sub: _s, site: _t, ...v }) => v);
+    return Buffer.from(encode(raw));
+  }, LIM_TEXT, []],
+  ["a move no line of the program shows marks nothing", () => LIM_FIXTURE("lim_unmarked"), LIM_TEXT.replace("G1 X30", "(a comment)"), []],
+] as const) {
+  test(`code marks: ${name}`, async ({ page, context }) => {
+    await limitPayload(page, context, Buffer.from(payload()), text, 5180);
+    expect(await codeMarks(page)).toEqual(want);
+  });
+}
+
+// Codex R178 VP-I131: a record carries its first 32 stretches (the gateway's
+// LIMIT_RUN_CAP); one site run 40 times bands 32 of them — and says so, at the
+// row and in the summary's "?", never as the whole.
+test("a row with more stretches than its record carries says how many the timeline shows", async ({ page, context }) => {
+  const text = "G21 G90\nG0 X0 Y0 Z0\n#1=0\no100 while [#1 LT 40]\no<lim_child> call\nG0 Z1\n#1=[#1+1]\no100 endwhile\nM2\n";
+  await limitPayload(page, context, LIM_FIXTURE("lim_loop_cap"), text, 5181);
+  await expect(rows(page).first().locator(".colWhat")).toContainText("the timeline bands only the first stretches: X 32 of 40");
+  await expect(page.locator(".scrubBar .scrubBand.limit")).toHaveCount(32);
+  await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("One row's timeline bands show only the first 32 stretches per axis.");
+});
+
+// Codex R179: a row groups its axes' records — the cap is said per axis, never
+// one axis's numbers for the row (X and Y out by turns, 80 calls: 2 × 32 bands).
+test("a row of two capped axes says each axis's numbers", async ({ page, context }) => {
+  const text = "G21 G90\nG0 X0 Y0 Z0\n#100=0\no100 while [#100 LT 80]\no<lim_child> call\n#100=[#100+1]\no100 endwhile\nM2\n";
+  await limitPayload(page, context, LIM_FIXTURE("lim_two_axes_cap"), text, 5182);
+  await expect(rows(page).first().locator(".colWhat")).toContainText(
+    "the timeline bands only the first stretches: Y 32 of 40, X 32 of 40");
+  await expect(page.locator(".scrubBar .scrubBand.limit")).toHaveCount(64);
+  await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("One row's timeline bands show only the first 32 stretches per axis.");
+});
+
+// Operator 2026-10-20 (live, another program of theirs): the timeline's progress was not
 // seen and the contacts read pale — the bands were translucent, the progress
 // lay under them, and the ticks' light edges, one per column, washed the track
 // out (a tick showed only where its neighbours were free); the glyphs ran
@@ -727,16 +817,16 @@ test("the steps through mixed kinds follow the list's own order, ties included",
   await simShow(page, "all");
   // the row's kind and line (a collision's key is its identity: pair and number, round B3)
   const list = await rows(page).evaluateAll(trs => trs.map(t => t.getAttribute("data-sim-at")));
-  expect(list, "the list: the tool, the limit and the collision of L20 at one moment").toEqual(["T10", "C12", "T20", "L20", "C20", "C26", "L32"]);
+  expect(list, "the list: the tool, the limit and the collision of L20 at one moment").toEqual(["T10", "C12", "T20", "L20@20", "C20", "C26", "L32@32"]);
   const shownKey = () => page.locator(".simPanel .shownRow").getAttribute("data-sim-at");
   await page.locator('.simPanel tr[data-sim-at="C12"]').click();
   await expect.poll(shownKey).toBe("C12");
   const next = simStepBtn(page, "Next on the timeline"), prev = simStepBtn(page, "Previous on the timeline");
-  for (const want of ["T20", "L20", "C20", "C26", "L32", "T10", "C12"]) {
+  for (const want of ["T20", "L20@20", "C20", "C26", "L32@32", "T10", "C12"]) {
     await next.click();
     await expect.poll(shownKey, `next → ${want}`).toBe(want);
   }
-  for (const want of ["T10", "L32", "C26", "C20", "L20", "T20", "C12"]) {
+  for (const want of ["T10", "L32@32", "C26", "C20", "L20@20", "T20", "C12"]) {
     await prev.click();
     await expect.poll(shownKey, `previous → ${want}`).toBe(want);
   }
@@ -768,12 +858,12 @@ test("a tool change shown after a finding ends the finding's reveal, the stored 
 // The same on a hidden RAPID (Codex R78 VP-I39: feed and rapid): line 14's
 // rapid runs out of the X window; T3 M6 on line 5.
 const RAPID_FEED = Array.from({ length: 10 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
-const RAPID_PREVIEW = Buffer.from(encode({ file: "/simrapid.ngc", preview_schema: 11, feed: RAPID_FEED,
+const RAPID_PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/simrapid.ngc", preview_schema: 11, feed: RAPID_FEED,
   feed_lines: RAPID_FEED.map((_, i) => i + 3), feed_seq: RAPID_FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(RAPID_FEED.length),
   rapid: [[27, 20, 0], [150, 20, 5]], rapid_lines: [13, 14], rapid_seq: [13, 14],
   rapid_outside: new Uint8Array([0, 1]),
-  violations: [{ line: 14, axis: "X", value: 150, limit: 100, kind: "max" }], violations_total: 1 }));
+  violations: [{ line: 14, axis: "X", value: 150, limit: 100, kind: "max" }], violations_total: 1 })));
 const RAPID_TEXT = Array.from({ length: 16 }, (_, i) => i === 0 ? "(simrapid)" : i === 4 ? "T3 M6" : `G1 X${i} F100`).join("\n");
 
 test("a tool change shown after a finding on a hidden rapid ends the rapids' reveal", async ({ page, context }) => {
@@ -789,13 +879,13 @@ test("a tool change shown after a finding on a hidden rapid ends the rapids' rev
   await expect.poll(rapidShown, { message: "the Rapids layer hides the rapid lines" }).toBe(false);
   const reveal = page.locator("[data-path-reveal]");
   // by a row
-  await page.locator('.simPanel tr[data-sim-row="L14"]').click();
+  await page.locator('.simPanel tr[data-sim-row="L14@14"]').click();
   await expect(reveal).toHaveText("Rapids shown for this finding — hidden in Layers");
   await page.locator('.simPanel tr[data-sim-row="T5"]').click();
   await expect(reveal, "a row's tool change ends the reveal").toHaveCount(0);
   await expect.poll(rapidShown, { message: "the rapids hidden again" }).toBe(false);
   // by a step of the tool changes, from the finding
-  await page.locator('.simPanel tr[data-sim-row="L14"]').click();
+  await page.locator('.simPanel tr[data-sim-row="L14@14"]').click();
   await expect(reveal).toHaveCount(1);
   await simShow(page, "tool");
   await simStepBtn(page, "Previous tool change").click();
@@ -808,12 +898,12 @@ test("a tool change shown after a finding on a hidden rapid ends the rapids' rev
 // when the program runs"): a list longer than its view keeps the marked row
 // — the next one ahead — in the middle while the simulation scrubs.
 const LONG_FEED = Array.from({ length: 60 }, (_, i) => [i * 2, i % 2 ? 20 : 0, 0]);
-const LONG_PREVIEW = Buffer.from(encode({ file: "/long.ngc", preview_schema: 11, feed: LONG_FEED,
+const LONG_PREVIEW = Buffer.from(encode(withLimitRuns({ file: "/long.ngc", preview_schema: 11, feed: LONG_FEED,
   feed_lines: LONG_FEED.map((_, i) => i + 3), feed_seq: LONG_FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(LONG_FEED.length),
   feed_tcum: new Uint8Array(new Float32Array(LONG_FEED.map((_, i) => i * 4)).buffer),
   violations: Array.from({ length: 50 }, (_, i) => ({ line: i + 8, axis: "X", value: 110, limit: 100, kind: "max" })),
-  violations_total: 50 }));
+  violations_total: 50 })));
 const LONG_TEXT = Array.from({ length: 64 }, (_, i) => i === 0 ? "(long)" : `G1 X${i} F100`).join("\n");
 
 test("the list follows the position: the marked row stays in the middle of its view", async ({ page, context }) => {
@@ -823,7 +913,7 @@ test("the list follows the position: the marked row stays in the middle of its v
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5300, file: "/long.ngc" } });
   await simShow(page, "all");
-  await expect(page.locator('.simPanel tr[data-sim-row="L57"]')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   const view = () => page.evaluate(() => {
     const sc = document.querySelector(".simPanel .simTable") as HTMLElement;
     const tr = sc.querySelector<HTMLElement>("tr.shownRow, tr.nextRow");
@@ -835,7 +925,7 @@ test("the list follows the position: the marked row stays in the middle of its v
   });
   expect((await view()).overflows, "the list is longer than its view").toBe(true);
   // Into the simulation by the first row, then scrub.
-  await page.locator('.simPanel tr[data-sim-row="L8"]').click();
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
   await expect(page.locator(".simBanner")).toBeVisible();
   const scrub = (f: number) => page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement, at) => {
     el.value = String(Number(el.max) * at);
@@ -866,9 +956,9 @@ test("playback at ×100 with normal motion: the marked row never leaves the list
   await ctl({ op: "status_delta", data: { active_file: "/long.ngc", is_enabled: false, enabled: false } });
   await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version: 5400, file: "/long.ngc" } });
   await simShow(page, "limit");
-  await expect(page.locator('.simPanel tr[data-sim-row="L57"]')).toHaveCount(1, { timeout: 15_000 });
+  await expect(page.locator('.simPanel tr[data-sim-row="L57@57"]')).toHaveCount(1, { timeout: 15_000 });
   await settleLayout(page);
-  await page.locator('.simPanel tr[data-sim-row="L8"]').click();
+  await page.locator('.simPanel tr[data-sim-row="L8@8"]').click();
   await expect(page.locator(".simBanner")).toBeVisible();
   await page.locator(".scrubBar .sliderInput").evaluate((el: HTMLInputElement) => {
     el.value = String(Number(el.max) * 0.15);
@@ -961,7 +1051,7 @@ test("the summary names each kind: words in the wide pane, the glyph and the num
   // tooltip. The line's own "?" says it — by keyboard and by a tap.
   const help = page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]');
   // the line's whole statement: each kind, the cap explained (Codex R137 VP-I94)
-  const said = /^× 2 collisions · checked in full\. ▲ 9000 limit violations, a line and an axis each — the parse sends the first 2; the list shows their 2 lines\. ● 2 tool changes\.$/;
+  const said = /^× 2 collisions · checked in full\. ▲ 9000 limit violations, a line, an axis and where it ran each — the parse sends the first 2 the program runs; the list shows their 2 lines\. ● 2 tool changes\.$/;
   await help.focus();
   await page.keyboard.press("Enter");
   await expect(page.locator(".helpPopover:popover-open"), "keyboard: the cap in words").toHaveText(said);

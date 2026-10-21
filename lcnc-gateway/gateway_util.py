@@ -2183,7 +2183,7 @@ def pinned_parse_outlived(inflight, interp_idle):
     The mid-run tool-table edge re-parses for the run going on; a run that
     ends before that parse publishes — a limit refusal right after the
     measurement, an abort, M2 — leaves it computing a preview for no run
-    (14 s on Haus_Brunnen.ngc, the machine stopped 1.7 s after it began),
+    (14 s on the operator's program, the machine stopped 1.7 s after it began),
     and the idle edges re-parse after it from the machine's state now: the
     table it measured and the start it left. Cancel it; those edges decide,
     one parse. The interpreter idle is the end: a paused run is not idle.
@@ -3498,8 +3498,70 @@ def _joint_unknown(jno, letter, unknown_axes):
     return AXIS_LETTERS.index(letter) in unknown_axes
 
 
+#: The violating stretches a limit record carries at most (Codex R177
+#: VP-I130): its bands and its jump come from them, `nruns` counts them all.
+LIMIT_RUN_CAP = 32
+
+
+def _limit_scope_key(scope):
+    """Sort key of a record's origin: the main program, then a subroutine by
+    name and call line."""
+    return (0, "", 0) if scope is None else (1, scope[0], scope[1])
+
+
+def _seq_runs(seqs):
+    """Seqs → [[first, last], ...] ascending: a new run wherever the sequence
+    has a gap — another segment ran between."""
+    runs = []
+    for q in sorted(set(seqs)):
+        if runs and q == runs[-1][1] + 1:
+            runs[-1][1] = q
+        else:
+            runs.append([q, q])
+    return runs
+
+
+def _segment_seq(sg, slot):
+    """A canon segment tuple's seq — its trailing slot, absent in a caller
+    that does not bind records to their motion (tests, legacy)."""
+    return int(sg[slot]) if len(sg) > slot and sg[slot] is not None else None
+
+
+def _limit_records(worst, hits, max_report):
+    """A check's records from its worst map {(line, axis, scope): [value,
+    limit, kind]} and the seqs of the segments that violated per key (Codex
+    R177 VP-I130: a record is bound to the motion that made it and to where
+    it ran — the raw line of a called file is no line of the program). A
+    scope is None (the main program) or (subroutine, its call line | 0) —
+    `sub` / `site` on the record; the violating stretches ride as `runs`
+    [[first seq, last seq], ...] (at most LIMIT_RUN_CAP, `nruns` all of
+    them). Sorted by the first violating segment — execution order — and
+    without seqs by line, then axis. Returns (records, total). Pure."""
+    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
+    runs = {k: _seq_runs(v) for k, v in hits.items() if v}
+    keys = sorted(worst, key=lambda k: (runs[k][0][0] if k in runs else -1, k[0],
+                                        order.get(k[1], 9), _limit_scope_key(k[2])))
+    records = []
+    for k in keys[:max_report]:
+        rec = worst[k]
+        out = {"line": k[0], "axis": k[1], "value": round(rec[0], 4),
+               "limit": round(rec[1], 4), "kind": rec[2]}
+        if k[2] is not None:
+            out["sub"], out["site"] = k[2][0], int(k[2][1])
+        if k in runs:
+            out["runs"] = runs[k][:LIMIT_RUN_CAP]
+            out["nruns"] = len(runs[k])
+        records.append(out)
+    return records, len(keys)
+
+
+def _limit_hit(hits, key, seq):
+    if seq is not None:
+        hits.setdefault(key, []).append(seq)
+
+
 def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
-                                 rot_step_deg=4.0, max_report=200):
+                                 rot_step_deg=4.0, max_report=200, scope_of=None):
     """JOINT-side soft limits for WORLD-mode (TCP) segments.
 
     Under world kins the program/world words say nothing about the joints:
@@ -3540,9 +3602,13 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
         return [], 0
 
     worst = {}
+    hits = {}
     jmin = [0.0] * 5
     jmax = [0.0] * 5
-    for lineno, start, end, tlo in segments:
+    for sg in segments:
+        lineno, start, end, tlo = sg[0], sg[1], sg[2], sg[3]
+        seq = _segment_seq(sg, 4)
+        scope = scope_of(seq) if scope_of is not None and seq is not None else None
         # start=None (or None slots — ustart_start_tuple) = UNKNOWN-PATH
         # axes (W3 P1): only the endpoint is known there, so sample it
         # alone and skip the joint-moved attribution for those joints —
@@ -3579,29 +3645,26 @@ def check_limit_violations_world(segments, limits, kins_cfg, unit_scale=1.0,
                     and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS):
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
-                key = (lineno, letter)
+                key = (lineno, letter, scope)
                 rec = worst.get(key)
                 if rec is None or jmin[jno] < rec[0]:
                     worst[key] = [jmin[jno], mn, "min"]
+                _limit_hit(hits, key, seq)
             if mx is not None and jmax[jno] > mx + _LIMIT_EPS:
-                key = (lineno, letter)
+                key = (lineno, letter, scope)
                 rec = worst.get(key)
                 if rec is None or jmax[jno] > rec[0]:
                     worst[key] = [jmax[jno], mx, "max"]
+                _limit_hit(hits, key, seq)
 
-    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
-    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
-    records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
-                "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
-               for ln, ax in keys[:max_report]]
-    return records, len(keys)
+    return _limit_records(worst, hits, max_report)
 
 
 _TRSRN_LETTERS = ("X", "Y", "Z", "A", "B", "C")
 
 
 def _check_limit_violations_trsrn_scalar(segments, limits, kins_cfg, unit_scale=1.0,
-                                         rot_step_deg=4.0, max_report=200):
+                                         rot_step_deg=4.0, max_report=200, scope_of=None):
     """SCALAR ORACLE TWIN of check_limit_violations_trsrn (per-segment Python
     loop). Kept verbatim so the vectorized checker below is pinned to it in
     tests (TestVectorizedLimitChecks); never called by the worker.
@@ -3642,9 +3705,13 @@ def _check_limit_violations_trsrn_scalar(segments, limits, kins_cfg, unit_scale=
 
     unchecked = 0
     worst = {}
+    hits = {}
     jmin = [0.0] * 6
     jmax = [0.0] * 6
-    for lineno, start, end, tlo, ktype, frame in segments:
+    for sg in segments:
+        lineno, start, end, tlo, ktype, frame = sg[0], sg[1], sg[2], sg[3], sg[4], sg[5]
+        seq = _segment_seq(sg, 6)
+        scope = scope_of(seq) if scope_of is not None and seq is not None else None
         if ktype == 2 and frame is None:
             unchecked += 1
             continue
@@ -3690,22 +3757,20 @@ def _check_limit_violations_trsrn_scalar(segments, limits, kins_cfg, unit_scale=
                     and jmax[jno] - jmin[jno] <= _JOINT_MOVE_EPS):
                 continue  # joint parked this segment — culprit line already flagged
             if mn is not None and jmin[jno] < mn - _LIMIT_EPS:
-                key = (lineno, letter)
+                key = (lineno, letter, scope)
                 rec = worst.get(key)
                 if rec is None or jmin[jno] < rec[0]:
                     worst[key] = [jmin[jno], mn, "min"]
+                _limit_hit(hits, key, seq)
             if mx is not None and jmax[jno] > mx + _LIMIT_EPS:
-                key = (lineno, letter)
+                key = (lineno, letter, scope)
                 rec = worst.get(key)
                 if rec is None or jmax[jno] > rec[0]:
                     worst[key] = [jmax[jno], mx, "max"]
+                _limit_hit(hits, key, seq)
 
-    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
-    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
-    records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
-                "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
-               for ln, ax in keys[:max_report]]
-    return records, len(keys), unchecked
+    records, total = _limit_records(worst, hits, max_report)
+    return records, total, unchecked
 
 
 _ZERO3 = (0.0, 0.0, 0.0)
@@ -3828,7 +3893,7 @@ def _trsrn_inverse_np(w, params0, mode, tz=None, frame=None):
 
 
 def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
-                                 rot_step_deg=4.0, max_report=200):
+                                 rot_step_deg=4.0, max_report=200, scope_of=None):
     """JOINT-side soft limits for xyzacb-trsrn non-identity segments —
     VECTORIZED (2026-09-05). Contract, rules and return shape are exactly
     _check_limit_violations_trsrn_scalar's (read its docstring); this one
@@ -3866,7 +3931,9 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
     jmin, jmax, unknown = _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg)
     lin_unknown = unknown[:, :3].any(axis=1)
     linenos = [sg[0] for sg in keep]
+    seqs = [_segment_seq(sg, 6) for sg in keep]
     worst = {}
+    hits = {}
     for jno, letter, mn, mx in bounds:
         unk = lin_unknown if jno < 3 else unknown[:, jno]
         # Parked-joint exemption applies only to KNOWN motion (see
@@ -3879,7 +3946,9 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
             continue
         either = below if above is None else (above if below is None else (below | above))
         for i in np.flatnonzero(either):
-            key = (linenos[i], letter)
+            seq = seqs[i]
+            key = (linenos[i], letter,
+                   scope_of(seq) if scope_of is not None and seq is not None else None)
             if below is not None and below[i]:
                 v = float(jmin[i, jno])
                 rec = worst.get(key)
@@ -3890,12 +3959,9 @@ def check_limit_violations_trsrn(segments, limits, kins_cfg, unit_scale=1.0,
                 rec = worst.get(key)
                 if rec is None or v > rec[0]:
                     worst[key] = [v, mx, "max"]
-    order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
-    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
-    records = [{"line": ln, "axis": ax, "value": round(worst[(ln, ax)][0], 4),
-                "limit": round(worst[(ln, ax)][1], 4), "kind": worst[(ln, ax)][2]}
-               for ln, ax in keys[:max_report]]
-    return records, len(keys), unchecked
+            _limit_hit(hits, key, seq)
+    records, total = _limit_records(worst, hits, max_report)
+    return records, total, unchecked
 
 def _trsrn_joint_extremes(keep, params0, unit_scale, rot_step_deg):
     """Per trsrn non-identity segment (type 1/2 with a frame where type 2):
@@ -4128,18 +4194,44 @@ def evaluate_limits_drift(published, live_joint_limits_list, joint_letters, eps=
 def merge_violation_records(a, b, max_report=200):
     """Union of two violation reports (identity-checked + world-checked).
 
-    Worst record wins per (line, axis) — measured by excursion beyond the
-    limit. Returns (records, total distinct pairs). Pure.
+    One record per (line, axis, origin — `sub` / `site`, Codex R177 VP-I130):
+    the worst excursion beyond the limit wins, the violating stretches of
+    both are united (`runs`, adjacent ones joined; `nruns` counts them).
+    Sorted like _limit_records: by the first violating segment, else by line
+    then axis. Returns (records, total distinct keys). Pure.
     """
     worst = {}
+    runs = {}
+    extra = {}
     for rec in list(a or []) + list(b or []):
-        key = (rec["line"], rec["axis"])
+        key = (rec["line"], rec["axis"], rec.get("sub"), rec.get("site"))
         cur = worst.get(key)
         if cur is None or abs(rec["value"] - rec["limit"]) > abs(cur["value"] - cur["limit"]):
             worst[key] = rec
+        if rec.get("runs"):
+            runs.setdefault(key, []).extend([list(r) for r in rec["runs"]])
+            extra[key] = extra.get(key, 0) + int(rec.get("nruns", len(rec["runs"]))) - len(rec["runs"])
+    merged = {}
+    for key, rs in runs.items():
+        out = []
+        for r in sorted(rs):
+            if out and r[0] <= out[-1][1] + 1:
+                out[-1][1] = max(out[-1][1], r[1])
+            else:
+                out.append(r)
+        merged[key] = out
     order = {letter: i for i, letter in enumerate(AXIS_LETTERS)}
-    keys = sorted(worst, key=lambda k: (k[0], order.get(k[1], 9)))
-    return [worst[k] for k in keys[:max_report]], len(keys)
+    keys = sorted(worst, key=lambda k: (merged[k][0][0] if k in merged else -1, k[0],
+                                        order.get(k[1], 9), _limit_scope_key(
+                                            None if k[2] is None else (k[2], k[3] or 0))))
+    records = []
+    for k in keys[:max_report]:
+        rec = dict(worst[k])
+        if k in merged:
+            rec["runs"] = merged[k][:LIMIT_RUN_CAP]
+            rec["nruns"] = len(merged[k]) + extra.get(k, 0)
+        records.append(rec)
+    return records, len(keys)
 
 
 #: G-codes that command motion on their own (the rest need an axis word).
@@ -5552,6 +5644,34 @@ def resolve_sub_callers(seqs, sub_events, caller_by_event):
     return out
 
 
+def limit_scope_of(sub_events, caller_by_event):
+    """seq → where a canon segment ran, for its limit record (Codex R177
+    VP-I130): None for the main program, else (the innermost marked
+    subroutine, the verified call line of the OUTERMOST open span | 0). The
+    span walk of resolve_sub_indices / resolve_sub_callers — an event at seq
+    N governs the segments with seq > N, nesting is a stack, an unbalanced
+    end pops nothing — as one lookup per seq (a bisection over the events),
+    for the few segments that violate. Pure."""
+    import bisect
+    ev_seqs = [int(e[0]) for e in sub_events]
+    states = []
+    names, callers = [], []
+    for ei, ev in enumerate(sub_events):
+        if ev[1] is None:
+            if names:
+                names.pop()
+                callers.pop()
+        else:
+            names.append(ev[1])
+            callers.append(int(caller_by_event.get(ei, 0) or 0))
+        states.append((names[-1], callers[0]) if names else None)
+
+    def scope_of(seq):
+        k = bisect.bisect_left(ev_seqs, seq)
+        return states[k - 1] if k > 0 else None
+    return scope_of
+
+
 def main_file_tool_changes(events, sub_events, caller_by_event):
     """The canon's tool changes as MAIN-file lines (M600 in the preview).
 
@@ -5966,7 +6086,7 @@ def read_axis_limits(ini_find, axis_mask: int):
 
 
 def _check_limit_violations_scalar(segments, limits, unit_scale: float = 1.0,
-                                   max_report: int = 200):
+                                   max_report: int = 200, scope_of=None):
     """SCALAR ORACLE TWIN of check_limit_violations (per-segment Python
     loop). Kept verbatim so the vectorized checker below is pinned to it in
     tests (TestVectorizedLimitChecks); never called by the worker.
@@ -6015,8 +6135,12 @@ def _check_limit_violations_scalar(segments, limits, unit_scale: float = 1.0,
                      None if mn is None else mn - _LIMIT_EPS,
                      None if mx is None else mx + _LIMIT_EPS,
                      mn, mx))
-    worst = {}  # (line, axis_idx) -> [value, limit, kind, letter]
-    for lineno, start, end, tlo in segments:
+    worst = {}  # (line, axis, scope) -> [value, limit, kind]
+    hits = {}   # (line, axis, scope) -> the violating segments' seqs
+    for sg in segments:
+        lineno, start, end, tlo = sg[0], sg[1], sg[2], sg[3]
+        seq = _segment_seq(sg, 4)
+        scope = scope_of(seq) if scope_of is not None and seq is not None else None
         n = len(end)
         for idx, letter, scale, mn_eps, mx_eps, mn, mx in plan:
             if idx >= n:
@@ -6035,30 +6159,26 @@ def _check_limit_violations_scalar(segments, limits, unit_scale: float = 1.0,
                 v += tlo[idx]
             v *= scale
             if mn_eps is not None and v < mn_eps:
-                key = (lineno, idx)
+                key = (lineno, letter, scope)
                 rec = worst.get(key)
                 if rec is None:
-                    worst[key] = [v, mn, "min", letter]
+                    worst[key] = [v, mn, "min"]
                 elif rec[2] == "min" and v < rec[0]:
                     rec[0] = v
+                _limit_hit(hits, key, seq)
             elif mx_eps is not None and v > mx_eps:
-                key = (lineno, idx)
+                key = (lineno, letter, scope)
                 rec = worst.get(key)
                 if rec is None:
-                    worst[key] = [v, mx, "max", letter]
+                    worst[key] = [v, mx, "max"]
                 elif rec[2] == "max" and v > rec[0]:
                     rec[0] = v
-    total = len(worst)
-    records = [
-        {"line": line, "axis": rec[3], "value": round(rec[0], 4),
-         "limit": round(rec[1], 4), "kind": rec[2]}
-        for (line, _idx), rec in sorted(worst.items())
-    ]
-    return records[:max_report], total
+                _limit_hit(hits, key, seq)
+    return _limit_records(worst, hits, max_report)
 
 
 def check_limit_violations(segments, limits, unit_scale: float = 1.0,
-                           max_report: int = 200):
+                           max_report: int = 200, scope_of=None):
     """Canon motion segments against per-axis soft limits — VECTORIZED
     (2026-09-05). Contract, attribution rule and return shape are exactly
     _check_limit_violations_scalar's (read its docstring); the per-axis
@@ -6093,7 +6213,10 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
     # must read as not-parked (None never equals a float in the scalar).
     start = np.where(unknown, np.nan, start)
     linenos = [sg[0] for sg in segments]
-    worst = {}  # (line, axis_idx) -> [value, limit, kind, letter]
+    seqs = [_segment_seq(sg, 4) for sg in segments]
+    scopes = {}  # segment index -> its scope, asked once per violating segment
+    worst = {}  # (line, axis, scope) -> [value, limit, kind]
+    hits = {}
     for idx, letter, scale, mn_eps, mx_eps, mn, mx in plan:
         if idx >= width:
             continue
@@ -6109,23 +6232,26 @@ def check_limit_violations(segments, limits, unit_scale: float = 1.0,
         if either is None:
             continue
         for i in np.flatnonzero(either):
-            key = (linenos[i], idx)
+            i = int(i)
+            seq = seqs[i]
+            if scope_of is not None and seq is not None:
+                if i not in scopes:
+                    scopes[i] = scope_of(seq)
+                scope = scopes[i]
+            else:
+                scope = None
+            key = (linenos[i], letter, scope)
             val = float(v[i])
             rec = worst.get(key)
             if below is not None and below[i]:
                 if rec is None:
-                    worst[key] = [val, mn, "min", letter]
+                    worst[key] = [val, mn, "min"]
                 elif rec[2] == "min" and val < rec[0]:
                     rec[0] = val
             else:
                 if rec is None:
-                    worst[key] = [val, mx, "max", letter]
+                    worst[key] = [val, mx, "max"]
                 elif rec[2] == "max" and val > rec[0]:
                     rec[0] = val
-    total = len(worst)
-    records = [
-        {"line": line, "axis": rec[3], "value": round(rec[0], 4),
-         "limit": round(rec[1], 4), "kind": rec[2]}
-        for (line, _idx), rec in sorted(worst.items())
-    ]
-    return records[:max_report], total
+            _limit_hit(hits, key, seq)
+    return _limit_records(worst, hits, max_report)

@@ -6,7 +6,7 @@ import {
   machineJointsToProgram, prependEntry, splitTrackStreams,
   displayLineForPoint, atTrackEnd,
   programEndLine, mainLinesTrusted,
-  projectOntoTrack, lineRunAround, lineSpanCum, lineFirstMoveCum, programLineSpanCum, programLineFirstMoveCum, sliceTrack,
+  projectOntoTrack, lineRunAround, lineSpanCum, lineFirstMoveCum, sliceTrack,
   type ScrubSample, type ScrubStream, type ScrubTrack, roomEndOf,
 } from "./scrubTrack";
 import { makeKins as kinsForTest } from "./kins";
@@ -936,30 +936,6 @@ describe("positional run playhead (review P3)", () => {
     expect(t.cum[3]!).toBeGreaterThan(t.cum[2]!);
     expect(lineFirstMoveCum(t, 8)).toEqual([t.cum[3], t.cum[4]]);
     expect(lineFirstMoveCum(t, 99)).toBeNull();
-  });
-
-  it("a line of the PROGRAM is found by the line its points show, never a called file's colliding number (operator 2026-10-19)", () => {
-    // L2 calls a file whose moves carry ITS line numbers 5 and 6 (untrusted,
-    // call line 2); then the program's own L5 and L6. haus.ngc's M600 routine
-    // ran its line 536 at 00:05, the program's L536 a minute later.
-    const t = buildScrubTrack(EMPTY, stream([[0, 0, 0], [10, 0, 0], [10, 10, 0], [20, 10, 0], [30, 10, 0], [40, 10, 0]],
-      { seq: [1, 2, 3, 4, 5, 6], lines: [1, 5, 6, 3, 5, 6] }))!;
-    t.lineOk = new Uint8Array([1, 0, 0, 1, 1, 1]);
-    t.cline = new Uint16Array([0, 2, 2, 0, 0, 0]);
-    // the raw reading lands on the called file's moves
-    expect(lineFirstMoveCum(t, 5)).toEqual([t.cum[0], t.cum[1]]);
-    expect(lineSpanCum(t, 5)).toEqual([t.cum[0], t.cum[4]]);
-    // the program's L5 is its own move 3 → 4
-    expect(programLineFirstMoveCum(t, 5, t, false)).toEqual([t.cum[3], t.cum[4]]);
-    expect(programLineSpanCum(t, 5, t, false)).toEqual([t.cum[3], t.cum[4]]);
-    // the call line owns the called file's moves
-    expect(programLineSpanCum(t, 2, t, false)).toEqual([t.cum[0], t.cum[2]]);
-    // a track without per-point trust, its lines not trusted: no point shows
-    // L5 — the raw reading, never a dropped record
-    const legacy = buildScrubTrack(EMPTY, stream([[0, 0, 0], [10, 0, 0], [20, 0, 0]], { seq: [1, 2, 3], lines: [1, 5, 6] }))!;
-    expect(programLineFirstMoveCum(legacy, 5, legacy, false)).toEqual(lineFirstMoveCum(legacy, 5));
-    // trusted wholesale, every point shows its own line
-    expect(programLineFirstMoveCum(legacy, 5, legacy, true)).toEqual([legacy.cum[0], legacy.cum[1]]);
   });
 
   it("a line's move and extent found on the base, read on the entry track — the entry move carries the first line but is none of its moves (Codex R33 VP-I05)", () => {

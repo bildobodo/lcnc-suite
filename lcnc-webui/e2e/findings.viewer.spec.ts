@@ -1,5 +1,6 @@
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
 import { encode } from "@msgpack/msgpack";
+import { withLimitRuns } from "./limitRuns";
 import { ctl } from "./ctl";
 import { simLine, simShow, simStepBtn } from "./simTab";
 import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
@@ -21,7 +22,7 @@ async function prepare(page: Page, context: BrowserContext, o: { entry: boolean;
     violations: [{ line: 7, axis: "Y", value: o.short ? 0.01 : 10, limit: o.short ? 0.005 : 5, kind: "max" },
       ...(o.close ? [{ line: 8, axis: "X", value: 20, limit: 15, kind: "max" }] : [])],
     violations_total: o.close ? 2 : 1 };
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(withLimitRuns(payload))) }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
     body: Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n") }));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);
@@ -77,7 +78,7 @@ test("a limit on a first line of two points lands in the program's move, not on 
   const payload = { file: "/first-line.ngc", preview_schema: 11, feed: [[0, 0, 0], [0, 10, 0], [10, 10, 0]],
     feed_lines: [7, 7, 8], feed_seq: [1, 2, 3], feed_outside: new Uint8Array([0, 1, 0]), rapid: [],
     violations: [{ line: 7, axis: "Y", value: 10, limit: 5, kind: "max" }], violations_total: 1 };
-  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(payload)) }));
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: Buffer.from(encode(withLimitRuns(payload))) }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain",
     body: Array.from({ length: 10 }, (_, i) => `G1 X${i} F100`).join("\n") }));
   await openLayout(page, PROFILES[0]!, VIEWPORTS.find(v => v.name === "desktop")!);

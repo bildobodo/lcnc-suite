@@ -15,6 +15,7 @@ import { scanToolchangesBefore, scanEntryPositionBefore, revisionParts, type Rfl
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
+import { limitMarks } from "./limitMarks";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
 import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
@@ -62,9 +63,6 @@ const props = defineProps<{
   // is bound to it (Codex R17 XZ-07).
   programTextSource: string;
   gcodeStats: GcodeStats | null;
-  // Soft-limit violations from the parse worker (null = unchecked — the INI
-  // had no limits, or no program is loaded; [] = checked clean).
-  violations: LimitViolation[] | null;
   violationsTotal: number;
   currentLine: number | null;
   // Marked subroutine the playhead currently sits in (W2 P6): shown as
@@ -401,15 +399,10 @@ watch(subActiveLine, (ln) => {
 });
 
 /** ---------- Soft-limit violations (offline dry run stage 1) ---------- */
-const violationsByLine = computed(() => {
-  const m = new Map<number, LimitViolation[]>();
-  for (const v of props.violations ?? []) {
-    const arr = m.get(v.line);
-    if (arr) arr.push(v);
-    else m.set(v.line, [v]);
-  }
-  return m;
-});
+// The lines the placed limit rows show (limitMarks, published by the bar):
+// a record marks the line its own move shows, never its raw number — a record
+// with no place or no line marks none (Codex R178, the rest of VP-I130).
+const violationsByLine = computed(() => limitMarks.value);
 
 // one mark per line, asked only for the lines rendered — each once per
 // query (a new query is a new result shown)
@@ -440,7 +433,8 @@ function lineMarkTitle(lineNum: number): string | undefined {
 }
 
 function violationText(v: LimitViolation): string {
-  return limitViolationText(v, props.gcodeStats?.unit ?? "mm");
+  const words = limitViolationText(v, props.gcodeStats?.unit ?? "mm");
+  return v.sub != null ? `${words} (in ${v.sub})` : words;
 }
 
 /** ---------- File browser ---------- */

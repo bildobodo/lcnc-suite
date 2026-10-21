@@ -162,6 +162,7 @@ self.onmessage = async (e: MessageEvent<Req>) => {
       if (scrubTrack.sub) transfer.push(scrubTrack.sub.buffer as ArrayBuffer);
       if (scrubTrack.cline) transfer.push(scrubTrack.cline.buffer as ArrayBuffer);
       if (scrubTrack.ustart) transfer.push(scrubTrack.ustart.buffer as ArrayBuffer);
+      if (scrubTrack.seq) transfer.push(scrubTrack.seq.buffer as ArrayBuffer);
     }
     if (feedMode) transfer.push(feedMode.buffer as ArrayBuffer);
     if (rapidMode) transfer.push(rapidMode.buffer as ArrayBuffer);

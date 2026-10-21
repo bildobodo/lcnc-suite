@@ -80,7 +80,7 @@ from gateway_util import (
     kins_nonidentity_flags, kins_frame_indices, check_limit_violations_trsrn,
     kins_marker_policy, mode_boundary_indices, event_boundary_indices,
     classify_motion_lines, line_trust_flags, resolve_sub_indices,
-    attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes,
+    attribute_sub_callers, resolve_sub_callers, refusal_payload, main_file_tool_changes, limit_scope_of,
     main_file_event_lines,
     read_var_snapshot, TOOLSETTER_BASIS_KEYS, toolsetter_assigned_keys,
     foreign_m600_codes, m_code_lines, RemapEnv, remap_reach_lines,
@@ -709,6 +709,16 @@ def parse(ctx: dict) -> dict:
         _cut_r = {i for i, t in enumerate(canon.rapid) if t[4] > _limit_cut}
     else:
         _cut_f = _cut_r = frozenset()
+    # Where each limit record's motion ran (Codex R177 VP-I130): the main
+    # program, or a marked subroutine with the verified call line of its
+    # outermost span — the span walk of the per-point attribution below,
+    # which reuses this call-site attribution.
+    _caller_notes = []
+    _caller_map, _unattributed = {}, None
+    if canon.sub_events:
+        _caller_map, _unattributed = attribute_sub_callers(
+            canon.sub_events, _src_text, _remap_env, _caller_notes)
+    _limit_scope = limit_scope_of(canon.sub_events or [], _caller_map)
     if axis_limits:
         def _identity_segs():
             # Unknown-start segments yield a PARTIAL start (W3 P1 +
@@ -723,16 +733,16 @@ def parse(ctx: dict) -> dict:
             for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
                 if not (feed_world and feed_world[_i]) and _i not in _cut_f:
                     _b, _a = _dep_masks(_seq)
-                    yield _lineno, dep_nan(_start, _b), dep_nan(_end, _a), _tlo
+                    yield _lineno, dep_nan(_start, _b), dep_nan(_end, _a), _tlo, _seq
             for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
                 if _seq in relabel_seqs or _i in _cut_r:
                     continue  # a kins/epoch RELABEL connector (a re-expression, not motion), or past the cut
                 if not (rapid_world and rapid_world[_i]):
                     _b, _a = _dep_masks(_seq)
                     yield (_lineno, dep_nan(ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _b),
-                           dep_nan(_end, _a), _tlo)
+                           dep_nan(_end, _a), _tlo, _seq)
         violations, violations_total = check_limit_violations(
-            _identity_segs(), axis_limits, unit_scale)
+            _identity_segs(), axis_limits, unit_scale, scope_of=_limit_scope)
         # Per-segment OUTSIDE flags (2026-09-12): the raw joint-side verdict
         # the viewer paints — same segments, same window, no attribution —
         # aligned 1:1 with canon.feed / canon.rapid; reduced onto the kept
@@ -767,7 +777,7 @@ def parse(ctx: dict) -> dict:
                     if feed_world and feed_world[_i] and _i not in _cut_f:
                         _fi = _f_frame[_i]
                         yield (_lineno, _start, _end, _tlo, feed_types[_i],
-                               _frames[_fi] if _fi is not None else None)
+                               _frames[_fi] if _fi is not None else None, _seq)
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
                     if _seq in relabel_seqs or _i in _cut_r:
                         continue  # relabel connector, not motion (see _identity_segs)
@@ -775,9 +785,9 @@ def parse(ctx: dict) -> dict:
                         _fi = _r_frame[_i]
                         yield (_lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start,
                                _end, _tlo, rapid_types[_i],
-                               _frames[_fi] if _fi is not None else None)
+                               _frames[_fi] if _fi is not None else None, _seq)
             w_records, w_total, world_unchecked = check_limit_violations_trsrn(
-                _trsrn_segs(), axis_limits, kins_cfg, unit_scale)
+                _trsrn_segs(), axis_limits, kins_cfg, unit_scale, scope_of=_limit_scope)
             _tf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i] and i not in _cut_f]
             _tr_idx = [i for i, t in enumerate(canon.rapid)
                        if t[4] not in relabel_seqs and rapid_world and rapid_world[i] and i not in _cut_r]
@@ -795,17 +805,18 @@ def parse(ctx: dict) -> dict:
             # World-mode segments: joint-side check through the kins twin
             # (subdivided — the joint path between world endpoints is
             # nonlinear; endpoint checks miss the phase-0 -22.36 class).
-            def _world_segs():
+            def _world_segs(with_seq=False):
                 for _i, (_lineno, _start, _end, _rate, _tlo, _seq) in enumerate(canon.feed):
                     if feed_world and feed_world[_i] and _i not in _cut_f:
-                        yield _lineno, _start, _end, _tlo
+                        yield (_lineno, _start, _end, _tlo) + ((_seq,) if with_seq else ())
                 for _i, (_lineno, _start, _end, _tlo, _seq) in enumerate(canon.rapid):
                     if _seq in relabel_seqs or _i in _cut_r:
                         continue  # relabel connector, not motion (see _identity_segs)
                     if rapid_world and rapid_world[_i]:
-                        yield _lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo
+                        yield ((_lineno, ustart_start_tuple(_end, _rot_seed) if _seq in ustart_seqs else _start, _end, _tlo)
+                               + ((_seq,) if with_seq else ()))
             w_records, w_total = check_limit_violations_world(
-                _world_segs(), axis_limits, kins_cfg, unit_scale)
+                _world_segs(True), axis_limits, kins_cfg, unit_scale, scope_of=_limit_scope)
             _wf_idx = [i for i in range(len(canon.feed)) if feed_world and feed_world[i] and i not in _cut_f]
             _wr_idx = [i for i, t in enumerate(canon.rapid)
                        if t[4] not in relabel_seqs and rapid_world and rapid_world[i] and i not in _cut_r]
@@ -835,6 +846,13 @@ def parse(ctx: dict) -> dict:
         # (not []) so the UI can say "not validated" instead of implying a pass.
         violations, violations_total = None, 0
         print("limits UNCHECKED — no MIN/MAX_LIMIT in INI", file=sys.stderr, flush=True)
+    # The seq boundaries of every reported limit stretch: both sides survive
+    # the decimation below (Codex R177 VP-I130).
+    _limit_bounds = set()
+    for _rec in violations or []:
+        for _r in _rec.get("runs") or []:
+            _limit_bounds.add(int(_r[0]))
+            _limit_bounds.add(int(_r[1]) + 1)
 
     # Per-epoch subtraction terms (review P2 — the metre-off TWP preview):
     # every endpoint subtracts ITS OWN epoch's basis instead of one
@@ -1155,6 +1173,10 @@ def parse(ctx: dict) -> dict:
             anchors = sorted(set(anchors) | seq_boundary_indices(feed_seq, _rot_bounds))
         if canon.probe_bands:
             anchors = sorted(set(anchors) | band_anchor_indices(feed_seq, canon.probe_bands))
+        if _limit_bounds:
+            # both ends of every reported limit stretch (Codex R177 VP-I130):
+            # the jump poses a move that IS outside, never a chord's end
+            anchors = sorted(set(anchors) | seq_boundary_indices(feed_seq, _limit_bounds))
         if feed_depp:
             # a mask or time-basis change and its predecessor (Codex R122
             # VP-I01): within one run every point moves by the same Δ — RDP
@@ -1200,6 +1222,8 @@ def parse(ctx: dict) -> dict:
                                | {i - 1 for i in _u_idx if i > 0})
         if canon.probe_bands:
             r_anchors = sorted(set(r_anchors) | band_anchor_indices(rapid_seq, canon.probe_bands))
+        if _limit_bounds:
+            r_anchors = sorted(set(r_anchors) | seq_boundary_indices(rapid_seq, _limit_bounds))
         if rapid_depp:
             r_anchors = sorted(set(r_anchors) | mode_boundary_indices(rapid_depp))
         keep = _rdp_keep(_rdp_points(rapid, rapid_abc), r_anchors, eps_sq)
@@ -1351,7 +1375,6 @@ def parse(ctx: dict) -> dict:
     sub_names = []
     feed_sub = rapid_sub = None
     feed_cline = rapid_cline = None
-    _caller_map = {}
     if canon.sub_events:
         for _ev in canon.sub_events:
             _nm = _ev[1]
@@ -1368,9 +1391,7 @@ def parse(ctx: dict) -> dict:
         # o-call/remap line instead of going dark. Unattributed spans keep
         # the chip-only display — noted, never guessed. Lines beyond the u16
         # range make no claim (same honest degradation).
-        _caller_notes = []
-        _caller_map, _unattributed = attribute_sub_callers(
-            canon.sub_events, _src_text, _remap_env, _caller_notes)
+        # the call sites were attributed with the limit records (above)
         for _note in _caller_notes:
             print(f"call-site attribution: {_note} — no line", file=sys.stderr, flush=True)
             _trace.emit("gcode.caller_disagrees", level="warn", note=_note)
