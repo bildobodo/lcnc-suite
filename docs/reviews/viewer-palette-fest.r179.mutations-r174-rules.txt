@@ -1,0 +1,8 @@
+b8_kind_never RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: [{"enter":9.0005859375,"exit":null,"flags":130,"witness":9.15,"freeAt":null}]: expected [ { enter: 9.0005859375, …(4) } ] to have a length of 2 but got 1 | AssertionError: XYZAC ide 153s
+b8_every_chunk RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: {"compared":514,"stayLines":11615,"findings":212,"rapidFindings":195,"marks":2645,"columns":102839,"narrow":0,"queries":{"with":41154,"without":41372},"probes":{"with":4334,"without":4055}}: expected  174s
+b8_old_rule_default RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: {"compared":514,"stayLines":11615,"findings":212,"rapidFindings":195,"marks":2645,"columns":102839,"narrow":0,"queries":{"with":41154,"without":41154},"probes":{"with":4334,"without":4432}}: expected  176s
+b8_seam_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: {"compared":511,"stayLines":11600,"findings":211,"rapidFindings":194,"marks":2645,"columns":102839,"narrow":0,"queries":{"with":33400,"without":33400},"probes":{"with":4840,"without":4931}}: expected  165s
+b8_resample_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: start 48: the tables' touch at X 102.8 lies in a touch interval — [[99.5,101.49951171875]]: expected false to be true // Object.is equality | AssertionError: second block at 13°: th 9s
+b8_near_never RED ⎯⎯⎯⎯⎯⎯ Failed Tests 14 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: generated 20261013 (xyzbc-trt XYZBC) track: tool_0/work_y_0 inside the margin on L162, reached by a stay only with the per-line sample at 112.1673 — the truth's run [112.1673, 112.9173]: expected 0.75 167s
+b8_near_current_v ANCHOR [0] 0s
+b8_near_walk_long ANCHOR [0] 0s

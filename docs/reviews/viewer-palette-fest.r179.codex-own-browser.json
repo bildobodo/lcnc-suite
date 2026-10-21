@@ -1,0 +1,327 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/playwright.r179-own.config.ts",
+    "rootDir": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r179-_0oxg34m/own-browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "r179.codex-extra.viewer.spec.ts",
+      "file": "r179.codex-extra.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Codex R179: cap words describe a multi-axis row rather than only one record",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1676,
+                  "error": {
+                    "message": "Error: the row has 64 disjoint timeline bands\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m64\u001b[39m\nReceived: \u001b[31m32\u001b[39m",
+                    "stack": "Error: the row has 64 disjoint timeline bands\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m64\u001b[39m\nReceived: \u001b[31m32\u001b[39m\n    at /tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e/r179.codex-extra.viewer.spec.ts:27:69",
+                    "location": {
+                      "file": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e/r179.codex-extra.viewer.spec.ts",
+                      "column": 69,
+                      "line": 27
+                    },
+                    "snippet": "  25 |  expect(bands).toBe(64);\n  26 |  const m=/timeline shows the first (\\d+) of (\\d+) stretches/.exec(text);\n> 27 |  if(m)expect(Number(m[1]),'the row has 64 disjoint timeline bands').toBe(bands);\n     |                                                                     ^\n  28 |  else expect(text+' '+help).toMatch(/axis|axes|limited|omitted/i);\n  29 | });\n  30 | test('Codex R179: code marks follow replacement and clear without an old-program mark',async({page,context})=>{"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e/r179.codex-extra.viewer.spec.ts",
+                        "column": 69,
+                        "line": 27
+                      },
+                      "message": "Error: the row has 64 disjoint timeline bands\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m64\u001b[39m\nReceived: \u001b[31m32\u001b[39m\n\n  25 |  expect(bands).toBe(64);\n  26 |  const m=/timeline shows the first (\\d+) of (\\d+) stretches/.exec(text);\n> 27 |  if(m)expect(Number(m[1]),'the row has 64 disjoint timeline bands').toBe(bands);\n     |                                                                     ^\n  28 |  else expect(text+' '+help).toMatch(/axis|axes|limited|omitted/i);\n  29 | });\n  30 | test('Codex R179: code marks follow replacement and clear without an old-program mark',async({page,context})=>{\n    at /tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e/r179.codex-extra.viewer.spec.ts:27:69"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T10:12:56.948Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/test-results/r179.codex-extra.viewer-Co-0fb4b-rather-than-only-one-record/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/test-results/r179.codex-extra.viewer-Co-0fb4b-rather-than-only-one-record/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e/r179.codex-extra.viewer.spec.ts",
+                    "column": 69,
+                    "line": 27
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "0144c66d21e67c765a54-866dbc58c35297319f88",
+          "file": "r179.codex-extra.viewer.spec.ts",
+          "line": 16,
+          "column": 1
+        },
+        {
+          "title": "Codex R179: code marks follow replacement and clear without an old-program mark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1890,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T10:12:58.951Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "0144c66d21e67c765a54-160e2b02be1ecc856c81",
+          "file": "r179.codex-extra.viewer.spec.ts",
+          "line": 30,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "r179.codex-r178.viewer.spec.ts",
+      "file": "r179.codex-r178.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Codex R178: legacy limit has no invented main-file code mark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1954,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T10:13:00.893Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6969a80389305e62dc28-f82fcf2fe4e27e2dbd6d",
+          "file": "r179.codex-r178.viewer.spec.ts",
+          "line": 21,
+          "column": 51
+        },
+        {
+          "title": "Codex R178: unmarked limit has no invented main-file code mark",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1898,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T10:13:02.851Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6969a80389305e62dc28-d43194200931b8df7872",
+          "file": "r179.codex-r178.viewer.spec.ts",
+          "line": 21,
+          "column": 51
+        },
+        {
+          "title": "Codex R178: the original native R177 case now jumps to the subroutine move",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2052,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T10:13:04.753Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6969a80389305e62dc28-046a595658a8bfe94810",
+          "file": "r179.codex-r178.viewer.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "Codex R178: a capped run list says that later violating stretches have no band",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2172,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T10:13:06.808Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "6969a80389305e62dc28-875a56cf61863d6087d0",
+          "file": "r179.codex-r178.viewer.spec.ts",
+          "line": 38,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-21T10:12:56.406Z",
+    "duration": 12602.001,
+    "expected": 5,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}
