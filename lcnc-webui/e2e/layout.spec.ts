@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test';
 import { encode } from '@msgpack/msgpack';
+import { withLimitRuns } from './limitRuns';
 import { ctl, publishToolTable } from './ctl';
 import { Folder, serveNow, addPlain } from './macroFolder';
 import { clickMore } from './more';
@@ -1076,11 +1077,11 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
 // click.
 const LIMIT_FEED = TIMELINE_FEED.map(p => [...p]);
 LIMIT_FEED[29]![0] = 120;
-const LIMIT_PREVIEW = Buffer.from(encode({ file: '/leak.ngc', preview_schema: 11, feed: LIMIT_FEED,
+const LIMIT_PREVIEW = Buffer.from(encode(withLimitRuns({ file: '/leak.ngc', preview_schema: 11, feed: LIMIT_FEED,
   feed_lines: LIMIT_FEED.map((_, i) => i + 3), feed_seq: LIMIT_FEED.map((_, i) => i + 3),
   feed_outside: new Uint8Array(LIMIT_FEED.map(p => (p[0]! > 100 ? 1 : 0))),
   violations: [{ line: 32, axis: 'X', value: 120, limit: 100, kind: 'max' }], violations_total: 1,
-  rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));
+  rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] })));
 type Box = { l: number; t: number; r: number; b: number };
 const inside = (a: Box, p: Box) => a.l >= p.l - 0.5 && a.t >= p.t - 0.5 && a.r <= p.r + 0.5 && a.b <= p.b + 0.5;
 const apart = (a: Box, c: Box) => a.r <= c.l + 0.5 || c.r <= a.l + 0.5 || a.b <= c.t + 0.5 || c.b <= a.t + 0.5;
@@ -1182,7 +1183,7 @@ for (const profile of [PROFILES[1], PROFILES[2]]) {
       // then — with both — two collisions on the swept track.
       await expect.poll(() => page.locator('.simPanel .checkVerdict').count(),
         { message: `${where('')}: the collision verdict`, timeout: 15_000 }).toBe(1);
-      if (v !== 'none') await expect(page.locator('.simPanel [data-sim-row="L32"]')).toBeAttached();   // the tab's list, behind its tab
+      if (v !== 'none') await expect(page.locator('.simPanel [data-sim-row="L32@32"]')).toBeAttached();   // the tab's list, behind its tab
       if (v === 'both') {
         await expect.poll(() => page.evaluate(() => window.__viewerDiag?.setCollisionHits?.([{ line: 12 }, { line: 22, rapid: true }]) ?? false),
           { message: `${where('')}: collisions on the track` }).toBe(true);
@@ -1459,11 +1460,11 @@ test('a help icon in the viewer warnings card scrolls nothing and keeps its hit 
 test('a code line names its findings with a glyph: ▲ limit, × collision, both named', async ({ page, context }) => {
   test.setTimeout(120_000);
   const feed = LIMIT_FEED.map(p => [...p]);
-  const body = Buffer.from(encode({ file: '/marks.ngc', preview_schema: 11, feed,
+  const body = Buffer.from(encode(withLimitRuns({ file: '/marks.ngc', preview_schema: 11, feed,
     feed_lines: feed.map((_, i) => i + 3), feed_seq: feed.map((_, i) => i + 3),
     feed_outside: new Uint8Array(feed.map(p => (p[0]! > 100 ? 1 : 0))),
     violations: [{ line: 20, axis: 'X', value: 120, limit: 100, kind: 'max' }, { line: 32, axis: 'X', value: 120, limit: 100, kind: 'max' }],
-    violations_total: 2, rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] }));
+    violations_total: 2, rapid: [[0, 0, 5], [0, 0, 0]], rapid_lines: [1, 2], rapid_seq: [1, 2] })));
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: 'application/octet-stream', body }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: 'text/plain',
     body: Array.from({ length: 40 }, (_, i) => i === 0 ? '(marks)' : `G1 X${i} Y${i % 2 ? 20 : 0} F100`).join('\n') }));

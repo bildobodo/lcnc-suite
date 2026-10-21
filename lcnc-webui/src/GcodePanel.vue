@@ -15,6 +15,7 @@ import { scanToolchangesBefore, scanEntryPositionBefore, revisionParts, type Rfl
 import { highlightGcode, type Token } from "./gcodeHighlight";
 import { fmtPct } from "./format";
 import { limitViolationText, type LimitViolation } from "./ws/bulkData";
+import { limitRecordLine } from "./viewer/limitPlaces";
 import { isTouchDevice } from "./touchDetect";
 import { useMediaMql } from "./useMediaMql";
 import { glideAt, planGlide, visibleBand, type Glide } from "./codeGlide";
@@ -401,12 +402,16 @@ watch(subActiveLine, (ln) => {
 });
 
 /** ---------- Soft-limit violations (offline dry run stage 1) ---------- */
+// By the line of THIS program a record's move ran under (limitRecordLine,
+// Codex R177 VP-I130), never a called file's raw number.
 const violationsByLine = computed(() => {
   const m = new Map<number, LimitViolation[]>();
   for (const v of props.violations ?? []) {
-    const arr = m.get(v.line);
+    const line = limitRecordLine(v);
+    if (line == null) continue;
+    const arr = m.get(line);
     if (arr) arr.push(v);
-    else m.set(v.line, [v]);
+    else m.set(line, [v]);
   }
   return m;
 });
@@ -440,7 +445,8 @@ function lineMarkTitle(lineNum: number): string | undefined {
 }
 
 function violationText(v: LimitViolation): string {
-  return limitViolationText(v, props.gcodeStats?.unit ?? "mm");
+  const words = limitViolationText(v, props.gcodeStats?.unit ?? "mm");
+  return v.sub != null ? `${words} (in ${v.sub})` : words;
 }
 
 /** ---------- File browser ---------- */

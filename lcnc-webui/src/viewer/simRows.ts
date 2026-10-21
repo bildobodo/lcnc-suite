@@ -7,12 +7,14 @@ import { limitViolationText, type LimitViolation } from "../ws/bulkData";
 import { NO_VALUE, fmtDistUpper, fmtElapsed, fmtPct } from "../format";
 import { isNearMiss, type ClashTarget } from "./clashTargets";
 import type { LineAt } from "./contactView";
+import type { LimitTarget } from "./limitPlaces";
 
 export type SimRowKind = "clash" | "limit" | "tool";
 
 export interface SimRow {
-  /** The target's own key (C…/E… a collision, L<line> a limit, T<line> a
-   *  tool change) — what a jump and the shown finding are named by. */
+  /** The target's own key (C…/E… a collision, L<line>@<seq> a limit,
+   *  T<line> a tool change) — what a jump and the shown finding are named
+   *  by. */
   key: string;
   kind: SimRowKind;
   /** The program line; a contact on the entry move reads "entry". */
@@ -41,10 +43,11 @@ export function partLabel(id: string): string {
 
 export interface SimRowInput {
   clash: readonly ClashTarget[];
-  limit: readonly { key: string; line: number; cum: number; cumEnd: number }[];
+  /** The limit records by origin and raw line, at their first violating
+   *  move (viewer/limitPlaces.ts — never by the raw number, Codex R177
+   *  VP-I130). */
+  limit: readonly LimitTarget[];
   tool: readonly { key: string; line: number; tool: number; cum: number; cumEnd: number }[];
-  /** The program's limit records (several axes may share a line). */
-  violations: readonly LimitViolation[];
   unit: string;
   /** The displayed track's axis: seconds when time-based, else its length. */
   timeBased: boolean;
@@ -94,11 +97,6 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   const at = (cum: number) => i.timeBased
     ? fmtElapsed(Math.floor(cum))
     : fmtPct(i.axisEnd > 0 ? cum / i.axisEnd : 0);
-  const byLine = new Map<number, LimitViolation[]>();
-  for (const v of i.violations) {
-    const l = byLine.get(v.line);
-    if (l) l.push(v); else byLine.set(v.line, [v]);
-  }
   const rows: SimRow[] = [];
   for (const t of i.clash) {
     const notes: string[] = [];
@@ -121,10 +119,12 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
       note: notes.join(" · "), rapid: !!t.rapid, at: at(t.cum) });
   }
   for (const t of i.limit) {
-    const recs = byLine.get(t.line) ?? [];
-    rows.push({ key: t.key, kind: "limit", line: t.line, lineLabel: `L${t.line}`, cum: t.cum, cumEnd: t.cumEnd,
-      what: recs.length ? recs.map(v => limitViolationText(v, i.unit)).join(" · ") : "Soft limit",
-      note: "", rapid: null, at: at(t.cum) });
+    rows.push({ key: t.key, kind: "limit", line: t.line,
+      // the display line at its move (C3): a call line, else its subroutine's name, else "—"
+      lineLabel: t.noLine ? (t.subName ? `(${t.subName})` : NO_VALUE) : `L${t.line}`,
+      cum: t.cum, cumEnd: t.cumEnd, what: limitWords(t.recs, i.unit),
+      note: t.noLine ? (t.subName ? `in ${t.subName}, no line of this program` : "no line of this program") : "",
+      rapid: null, at: at(t.cum) });
   }
   for (const t of i.tool) {
     rows.push({ key: t.key, kind: "tool", line: t.line, lineLabel: `L${t.line}`, cum: t.cum, cumEnd: t.cumEnd,
@@ -134,6 +134,20 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
   markLimitStop(rows, i.stop ?? null);
   markConditional(rows, i.measurements ?? []);
   return rows;
+}
+
+function limitWords(recs: readonly LimitViolation[], unit: string): string {
+  return recs.length ? recs.map(v => limitViolationText(v, unit)).join(" · ") : "Soft limit";
+}
+
+/** The limit records with NO place (viewer/limitPlaces.ts — a payload from
+ *  before records carried their moves): rows without a position, a jump or
+ *  a line (Codex R177 answer 1: a raw number is no place), each saying so.
+ *  They close the list. */
+export function placelessLimitRows(groups: readonly (readonly LimitViolation[])[], unit: string): SimRow[] {
+  return groups.map((recs, k) => ({
+    key: `L?${k}`, kind: "limit" as const, line: 0, lineLabel: NO_VALUE, cum: NaN, cumEnd: NaN,
+    what: limitWords(recs, unit), note: "place not known — reload the program", rapid: null, at: NO_VALUE }));
 }
 
 /** Rows after a predicted tool measurement (docs/reviews/parity-ef.plan.md

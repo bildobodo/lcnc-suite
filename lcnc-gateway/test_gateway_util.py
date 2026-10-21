@@ -628,6 +628,54 @@ class TestVectorizedLimitChecks(unittest.TestCase):
             _, total = gateway_util.check_limit_violations(segs, self.LIMITS)
             self.assertGreater(total, 0)
 
+    @staticmethod
+    def _bound(segs, rng, slot):
+        """The same segments with a seq each (rising, with gaps — relabel
+        connectors and skipped segments take seqs too) and a sub-span table
+        over them (Codex R177 VP-I130)."""
+        q, out = 0, []
+        for sg in segs:
+            q += rng.choice([1, 1, 1, 2, 5])
+            out.append(tuple(sg[:slot]) + (q,))
+        events, k = [], 0
+        while k < q:
+            k += rng.randint(1, 40)
+            events.append((k, rng.choice(["a", "b", None])))
+        caller = {i: rng.choice([0, 3, 7]) for i in range(len(events))}
+        return out, gateway_util.limit_scope_of(events, caller)
+
+    def test_bound_checkers_match_their_scalar_twins(self):
+        # with seqs and an origin per segment: the same records, origins and
+        # stretches from both twins
+        import random
+        seen = set()
+        for seed in range(12):
+            rng = random.Random(500 + seed)
+            for trsrn in (False, True):
+                raw = self._segments(rng, 150, trsrn)
+                segs, scope_of = self._bound(raw, rng, 6 if trsrn else 4)
+                for limits in (self.LIMITS, self.ONE_SIDED):
+                    for scale in (1.0, 25.4):
+                        if trsrn:
+                            got = gateway_util.check_limit_violations_trsrn(
+                                iter(segs), limits, self.CFG, scale, scope_of=scope_of)
+                            want = gateway_util._check_limit_violations_trsrn_scalar(
+                                iter(segs), limits, self.CFG, scale, scope_of=scope_of)
+                        else:
+                            got = gateway_util.check_limit_violations(iter(segs), limits, scale, scope_of=scope_of)
+                            want = gateway_util._check_limit_violations_scalar(iter(segs), limits, scale,
+                                                                               scope_of=scope_of)
+                        self.assertEqual(got, want, f"seed {seed} trsrn {trsrn} limits {limits} scale {scale}")
+                recs = (gateway_util.check_limit_violations_trsrn(segs, self.LIMITS, self.CFG, scope_of=scope_of)
+                        if trsrn else gateway_util.check_limit_violations(segs, self.LIMITS, scope_of=scope_of))[0]
+                self.assertTrue(recs and all(r.get("runs") for r in recs), seed)
+                seen |= {("sub" in r, len(r["runs"]) > 1) for r in recs}
+                firsts = [r["runs"][0][0] for r in recs]
+                self.assertEqual(firsts, sorted(firsts), "in execution order")
+        # the comparison meant something: records of both origins, and with several stretches
+        self.assertEqual({o for o, _ in seen}, {True, False})
+        self.assertIn(True, {m for _, m in seen})
+
     def test_max_report_cap_and_total_match(self):
         import random
         rng = random.Random(7)
@@ -5171,3 +5219,87 @@ class TestApplyVarPatchesOrder(unittest.TestCase):
                 rows = [line.split() for line in f]
             self.assertEqual([r[0] for r in rows], ["31", "3004", "3100", "3116", "5161", "5221", "6000"])
             self.assertEqual(dict(rows)["5221"], "9")
+
+
+class TestLimitRecordOrigin(unittest.TestCase):
+    """A limit record is bound to the motion that made it and to where it ran
+    (Codex R177 VP-I130): the raw line of a called file is no line of the
+    program — the main program's L5 and a subroutine's L5 are two records,
+    each with its violating stretches (seq runs)."""
+
+    LIM = {"X": (-500.0, 500.0)}
+    IN, OUT = (100.0,) + (0.0,) * 8, (600.0,) + (0.0,) * 8
+
+    def seg(self, line, seq, out=True, start=None):
+        return (line, start or (0.0,) * 9, self.OUT if out else self.IN, None, seq)
+
+    def test_the_origin_of_a_seq_is_the_span_walk(self):
+        # an event at seq N governs the segments with seq > N; nesting is a
+        # stack: the innermost name, the OUTERMOST span's call line
+        ev = [(10, "outer"), (20, "inner"), (30, None), (40, None), (50, None), (60, "late")]
+        of = gateway_util.limit_scope_of(ev, {0: 7, 1: 99, 5: 0})
+        self.assertIsNone(of(5))
+        self.assertIsNone(of(10))                      # the marker's own seq is before the span
+        self.assertEqual(of(11), ("outer", 7))
+        self.assertEqual(of(25), ("inner", 7))         # the inner name, the outer call line
+        self.assertEqual(of(35), ("outer", 7))
+        self.assertIsNone(of(45))
+        self.assertIsNone(of(55))                      # an unbalanced end pops nothing
+        self.assertEqual(of(61), ("late", 0))          # no verified call line
+        self.assertIsNone(gateway_util.limit_scope_of([], {})(3))
+
+    def test_one_raw_line_in_two_origins_is_two_records(self):
+        of = gateway_util.limit_scope_of([(10, "child"), (20, None)], {0: 3})
+        recs, total = gateway_util.check_limit_violations(
+            [self.seg(5, 12), self.seg(5, 30)], self.LIM, scope_of=of)
+        self.assertEqual(total, 2)
+        self.assertEqual(recs, [
+            {"line": 5, "axis": "X", "value": 600.0, "limit": 500.0, "kind": "max",
+             "sub": "child", "site": 3, "runs": [[12, 12]], "nruns": 1},
+            {"line": 5, "axis": "X", "value": 600.0, "limit": 500.0, "kind": "max",
+             "runs": [[30, 30]], "nruns": 1}])
+
+    def test_stretches_split_where_another_segment_ran_between(self):
+        recs, _ = gateway_util.check_limit_violations(
+            [self.seg(5, 3), self.seg(5, 4), self.seg(5, 5, start=self.OUT), self.seg(5, 6),
+             self.seg(5, 9), self.seg(6, 7)], self.LIM)
+        r5 = [r for r in recs if r["line"] == 5][0]
+        # seq 5 is parked outside (no motion of X — no record); 7 is another line's
+        self.assertEqual((r5["runs"], r5["nruns"]), ([[3, 4], [6, 6], [9, 9]], 3))
+        # ordered by the first violating segment, not by the line
+        recs, _ = gateway_util.check_limit_violations([self.seg(9, 1), self.seg(2, 8)], self.LIM)
+        self.assertEqual([r["line"] for r in recs], [9, 2])
+
+    def test_the_stretches_are_capped_and_counted(self):
+        segs = [self.seg(5, 2 * k) for k in range(1, gateway_util.LIMIT_RUN_CAP + 10)]
+        rec = gateway_util.check_limit_violations(segs, self.LIM)[0][0]
+        self.assertEqual(len(rec["runs"]), gateway_util.LIMIT_RUN_CAP)
+        self.assertEqual(rec["nruns"], gateway_util.LIMIT_RUN_CAP + 9)
+        self.assertEqual(rec["runs"][0], [2, 2])
+
+    def test_without_seqs_a_record_keeps_its_old_shape_and_order(self):
+        recs, _ = gateway_util.check_limit_violations(
+            [(9, (0.0,) * 9, self.OUT, None), (2, (0.0,) * 9, self.OUT, None)], self.LIM)
+        self.assertEqual(recs, [{"line": 2, "axis": "X", "value": 600.0, "limit": 500.0, "kind": "max"},
+                                {"line": 9, "axis": "X", "value": 600.0, "limit": 500.0, "kind": "max"}])
+
+    def test_the_world_check_binds_its_records_too(self):
+        cfg = {"type": "xyzac-trt", "params": {"x_offset": 0.0, "y_offset": 0.0, "z_offset": 0.0,
+                                               "x_rot_point": 0.0, "y_rot_point": 0.0, "z_rot_point": 0.0}}
+        of = gateway_util.limit_scope_of([(10, "child"), (20, None)], {0: 3})
+        w = lambda seq: (5, (0.0,) * 9, (600.0,) + (0.0,) * 8, None, seq)
+        recs, total = gateway_util.check_limit_violations_world([w(12), w(30)], self.LIM, cfg, scope_of=of)
+        self.assertEqual(total, 2)
+        self.assertEqual([(r.get("sub"), r.get("site"), r["runs"]) for r in recs],
+                         [("child", 3, [[12, 12]]), (None, None, [[30, 30]])])
+
+    def test_the_merge_keeps_origins_apart_and_unites_stretches(self):
+        a = [{"line": 5, "axis": "X", "value": 600.0, "limit": 500.0, "kind": "max", "runs": [[3, 4]], "nruns": 1},
+             {"line": 5, "axis": "X", "value": 650.0, "limit": 500.0, "kind": "max", "sub": "c", "site": 3,
+              "runs": [[20, 20]], "nruns": 1}]
+        b = [{"line": 5, "axis": "X", "value": 700.0, "limit": 500.0, "kind": "max", "runs": [[5, 5], [9, 9]], "nruns": 2}]
+        recs, total = gateway_util.merge_violation_records(a, b)
+        self.assertEqual(total, 2)
+        self.assertEqual(recs[0], {"line": 5, "axis": "X", "value": 700.0, "limit": 500.0, "kind": "max",
+                                   "runs": [[3, 5], [9, 9]], "nruns": 2})
+        self.assertEqual((recs[1]["sub"], recs[1]["runs"], recs[1]["value"]), ("c", [[20, 20]], 650.0))

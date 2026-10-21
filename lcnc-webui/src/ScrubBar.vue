@@ -16,7 +16,7 @@ import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
-  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum, programLineSpanCum, programLineFirstMoveCum,
+  machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum,
   programEndLine,
   type ScrubSample,
 } from "./viewer/scrubTrack";
@@ -41,7 +41,8 @@ import { fmtElapsed, NO_VALUE } from "./format";
 import { Play, Pause } from "lucide-vue-next";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
-import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, type SimRowKind, partLabel } from "./viewer/simRows";
+import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, placelessLimitRows, type SimRowKind, partLabel } from "./viewer/simRows";
+import { limitPlaces, type LimitTarget } from "./viewer/limitPlaces";
 import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
@@ -708,26 +709,15 @@ watch(sPos, p => { if (navSel.value && p !== navSel.value.pos) navSel.value = nu
 watch(track, () => { navSel.value = null; }, { flush: "sync" });
 
 
-const violationTargets = computed<FindingTarget[]>(() => {
-  const t = track.value, b = baseTrack.value;
-  if (!t || !b) return [];
-  const seen = new Set<number>();
-  const out: FindingTarget[] = [];
-  for (const v of violations.value ?? []) {
-    if (seen.has(v.line)) continue;
-    seen.add(v.line);
-    // The line's first move (lineFirstMoveCum): it STARTS where the previous
-    // move ends — the line's first point is where it ends, and the jump
-    // landed in the next line's move. Found on the BASE track, read on the
-    // displayed one (Codex R33 VP-I05): the entry move ends at the program's
-    // first point and carries its line, so by line number the entry move
-    // was the first line's finding. By the PROGRAM's line (programLines): a
-    // called file's colliding line number is no move of this record's.
-    const move = programLineFirstMoveCum(b, v.line, t, !viewerGcode.value?.lines_untrusted);
-    if (move) out.push({ cum: move[0], cumEnd: move[1], key: `L${v.line}`, line: v.line });
-  }
-  return out.sort((a, b) => a.cum - b.cum);
-});
+// Where the limit records stand (viewer/limitPlaces.ts, Codex R177 VP-I130):
+// each record carries its origin and its violating stretches by seq — a line
+// number is the raw number of the file the move ran in, no place of the
+// program. Found on the BASE track, read on the displayed one (Codex R33
+// VP-I05: the entry move ends at the program's first point and carries its
+// line); the line is the display line at the first violating move.
+const limitPlace = computed(() => limitPlaces(violations.value, baseTrack.value, track.value,
+                                               !viewerGcode.value?.lines_untrusted));
+const violationTargets = computed<LimitTarget[]>(() => limitPlace.value.targets);
 
 // The result swept on exactly the DISPLAYED track (see the collisionTrack
 // prop): the base result on the base track, the entry-overlaid one on the
@@ -907,7 +897,7 @@ const startPairNames = computed<string[]>(() => {
   return [...new Set(hs.map(h => `${partLabel(h.a)} ↔ ${partLabel(h.b)}`))];
 });
 /** What the tab lists and the steps reach, by kind. */
-const simTargets = computed<SimTargets<FindingTarget, FindingTarget & { tool: number }>>(() => ({ clash: clashIndex.value, limit: violationTargets.value, tool: toolTargets.value }));
+const simTargets = computed<SimTargets<LimitTarget, FindingTarget & { tool: number }>>(() => ({ clash: clashIndex.value, limit: violationTargets.value, tool: toolTargets.value }));
 /** A picked target as the jump takes it. */
 function targetOfPick(p: Pick): FindingTarget {
   return p.kind === "clash" ? clashIndex.value.target(p.index) : otherTargets(p.kind)[p.index]!;
@@ -1051,19 +1041,11 @@ function mergeSpans(spans: Array<[number, number]>): Array<[number, number]> {
   return out;
 }
 const limitBands = computed(() => {
-  const t = track.value, b = baseTrack.value, max = cumMax.value;
-  const spans: Array<[number, number]> = [];
-  if (!t || !b || max <= 0) return spans;
-  const seen = new Set<number>();
-  for (const v of violations.value ?? []) {
-    if (seen.has(v.line)) continue;
-    seen.add(v.line);
-    // a one-move line had no band; the program's line, never the entry move
-    // nor a called file's line of that number
-    const span = programLineSpanCum(b, v.line, t, !viewerGcode.value?.lines_untrusted);
-    if (span && span[1] > span[0]) spans.push([(span[0] / max) * 100, (span[1] / max) * 100]);
-  }
-  return mergeSpans(spans);
+  const max = cumMax.value;
+  if (max <= 0) return [];
+  // each violating stretch of every record — never the entry move, never a
+  // called file's line of that number (limitPlaces)
+  return mergeSpans(limitPlace.value.bands.map(([a, b]) => [(a / max) * 100, (b / max) * 100]));
 });
 // Contact bands at the timeline's own resolution (plan 4.3): a column per
 // CSS pixel of the thumb's travel — a contact narrower than a pixel keeps
@@ -1137,13 +1119,18 @@ const rowsNow = computed(() => {
   const m = mergedList.value, first = winFirst.value, part = m.slice(first, first + LIST_WINDOW_ROWS);
   const rows = buildSimRows({
     clash: part.clash, limit: part.limit, tool: part.tool,
-    violations: violations.value ?? [], unit: linearUnit.value,
+    unit: linearUnit.value,
     timeBased: !!track.value?.timeBased, axisEnd: cumMax.value,
     stop: limitStop.value,
     toolNotes: m600Notes.value.byLine,
     measurements: measurements.value,
   });
-  return { rows, before: first, after: m.total - first - rows.length };
+  // the records with no place close the list (Codex R177 answer 1): no
+  // position, so no place among the others — after the last window's rows
+  const placeless = listKinds.value.includes("limit") ? placelessLimitRows(limitPlace.value.placeless, linearUnit.value) : [];
+  const atEnd = first + rows.length >= m.total;
+  return { rows: atEnd ? [...rows, ...placeless] : rows, before: first,
+           after: m.total - first - rows.length + (atEnd ? 0 : placeless.length) };
 });
 watch(rowsNow, r => { simRows.value = r.rows; simView.window = { before: r.before, after: r.after }; }, { immediate: true });
 // Per frame while playing, but it only CHANGES where the playhead passes a
@@ -1344,7 +1331,7 @@ watchEffect(() => {
   const ts = confirmedToolsetter();
   simView.basis = toolsetterBasisLine(viewerGcode.value?.toolsetter_basis, ts.ok ? toolsetterVarMap(ts.values) : null);
   simView.jumpReason = hitNavReason.value;
-  simView.counts = { clash: clashIndex.value.n, limit: violationTargets.value.length, tool: toolTargets.value.length };
+  simView.counts = { clash: clashIndex.value.n, limit: violationTargets.value.length + limitPlace.value.placeless.length, tool: toolTargets.value.length };
 });
 const releaseSim = claimSimActions({
   jump(key: string, near?: number) {

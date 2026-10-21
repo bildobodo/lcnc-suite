@@ -38,7 +38,8 @@ class TestStartToolState(unittest.TestCase):
         # Codex R51's VP-I20 case: Z max 50, start G43 Z10 — Z45 runs at Z55
         r = probe("inherit_g43")
         self.assertIsNone(r["parse_error"])
-        self.assertEqual(r["violations"], [{"line": 3, "axis": "Z", "value": 55.0, "limit": 50.0, "kind": "max"}])
+        self.assertEqual(r["violations"], [{"line": 3, "axis": "Z", "value": 55.0, "limit": 50.0, "kind": "max",
+                                             "runs": [[2, 2]], "nruns": 1}])
         self.assertEqual((r["start_known"], r["tlo_start"]), (True, [0.0, 0.0, 10.0]))
         self.assertEqual(r["meta"], {"start_known": True, "tlo_start": [0.0, 0.0, 10.0],
                                      "start_mode": 430, "start_reason": None})
@@ -115,7 +116,8 @@ class TestStartToolState(unittest.TestCase):
     def test_an_inch_machine_seeds_in_machine_units(self):
         r = probe("inch")
         self.assertEqual(r["tlo_start"], [0.0, 0.0, 0.5])
-        self.assertEqual(r["violations"], [{"line": 3, "axis": "Z", "value": 1.5, "limit": 1.2, "kind": "max"}])
+        self.assertEqual(r["violations"], [{"line": 3, "axis": "Z", "value": 1.5, "limit": 1.2, "kind": "max",
+                                             "runs": [[2, 2]], "nruns": 1}])
 
 
 def payload(case, tmpdir):

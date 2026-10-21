@@ -54,7 +54,7 @@ describe("probe stops", () => {
   // tool measured twice, a success before a stop, an ordinary M6 of the same
   // number before an M600 are other calls.
   const rowsOf = (tool: { key: string; line: number; tool: number }[], notes: ReturnType<typeof m600ToolNotes>) =>
-    buildSimRows({ clash: [], limit: [], violations: [], unit: "mm", timeBased: true, axisEnd: 10,
+    buildSimRows({ clash: [], limit: [], unit: "mm", timeBased: true, axisEnd: 10,
                    tool: tool.map((t, i) => ({ ...t, cum: i, cumEnd: i + 0.5 })), toolNotes: notes.byLine })
       .map(r => [r.what, r.note]);
 

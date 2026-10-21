@@ -9,6 +9,7 @@
 // Firefox is what reacts.
 import { test, expect, type Page } from "@playwright/test";
 import { encode } from "@msgpack/msgpack";
+import { withLimitRuns } from "./limitRuns";
 import { ctl, publishToolTable } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures";
 
@@ -153,10 +154,10 @@ test("the Simulation tab's speed and list filter while the simulation plays", as
   // 10 s, played at ×10 — the tab re-renders with the time several times a
   // second, and the playback outlasts the packets.
   const feed = Array.from({ length: 30 }, (_, i) => [i * 3, i % 2 ? 20 : 0, 0]);
-  const preview = Buffer.from(encode({ file: "/leak.ngc", preview_schema: 11, feed,
+  const preview = Buffer.from(encode(withLimitRuns({ file: "/leak.ngc", preview_schema: 11, feed,
     feed_lines: feed.map((_, i) => i + 3), feed_seq: feed.map((_, i) => i + 3),
     feed_tcum: new Uint8Array(new Float32Array(feed.map((_, i) => i * 10)).buffer),
-    violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }], violations_total: 1 }));
+    violations: [{ line: 20, axis: "X", value: 110, limit: 100, kind: "max" }], violations_total: 1 })));
   await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body: preview }));
   await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: "(sim)\nG0 X0\nG1 X10 F100\nM2\n" }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS[0]!);

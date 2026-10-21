@@ -33,6 +33,7 @@
   },
   "include": [
     "src/viewer/toolChangePayloads.test.ts",
+    "src/viewer/limitOriginPayloads.test.ts",
     "src/viewer/startDepPayloads.test.ts",
     "src/viewer/scrubBarWords.test.ts",
     "src/viewer/checkWiring.test.ts",

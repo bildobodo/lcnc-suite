@@ -98,6 +98,10 @@ export interface RotaryCmd {
 
 export interface ScrubTrack {
   pos: Float32Array;        // count*3 program XYZ, execution order
+  /** count — the global execution sequence of the point (the canon's seq of
+   *  the segment ending here): what a limit record's violating stretches
+   *  name (Codex R177 VP-I130). Absent on a payload without per-stream seq. */
+  seq?: Uint32Array;
   abc: Float32Array;        // count*3 degrees (zeros when the wire had no abc)
   lines: Uint32Array;       // count — source line per point (0 = unknown)
   rapid: Uint8Array;        // count — 1 when the segment ending here is a rapid
@@ -231,11 +235,23 @@ export interface ScrubTrack {
 // One per-line soft-limit overtravel record from the parse worker. `value`
 // and `limit` are machine units for linear axes, degrees for rotary.
 export interface LimitViolation {
+  /** The RAW line number of the file the move ran in — a called file's own
+   *  numbering, no line of the program by itself (Codex R177 VP-I130). */
   line: number;
   axis: string;
   value: number;
   limit: number;
   kind: "min" | "max";
+  /** Where the move ran: absent = the main program; else the marked
+   *  subroutine and the verified call line of its outermost span (0 =
+   *  unknown). One record per origin, raw line and axis. */
+  sub?: string;
+  site?: number;
+  /** The violating stretches [first seq, last seq] in execution order (at
+   *  most 32; `nruns` counts them all) — the record's place, its bands and
+   *  its jump. Absent on a payload from before them: no place. */
+  runs?: [number, number][];
+  nruns?: number;
 }
 
 // The preview wire-format generation this client build was written against —

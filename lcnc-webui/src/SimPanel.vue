@@ -92,7 +92,7 @@ const sumHelp = computed(() => {
   const { total, records } = simView.limits;
   const lines = count("limit");
   const limit = total != null && total > records
-    ? `${total} limit violations, a line and an axis each — the parse sends the first ${records}; the list shows their ${lines} line${lines === 1 ? "" : "s"}`
+    ? `${total} limit violations, a line, an axis and where it ran each — the parse sends the first ${records} the program runs; the list shows their ${lines} line${lines === 1 ? "" : "s"}`
     : sumLimit.value.name;
   const kinds = `× ${sumClash.value.name}. ▲ ${limit}. ● ${sumTool.value.name}.`;
   // the stop first: it bounds all three

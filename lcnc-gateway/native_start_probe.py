@@ -375,6 +375,48 @@ CASES = {
                   {"emcio": "TOOL_CHANGE_AT_G30 = 1"}),
 }
 
+# Codex R177 VP-I130: a limit record is bound to the motion that made it and
+# to where it ran. X max 500. The main program's L5 and the subroutine's L5
+# share a raw number; the subroutine runs from L3 (its own line 5 is the
+# third of its body).
+_LIM_SAFE = "G1 X0 F100\nG1 X10\nG1 X20\nG1 X10\n"
+_LIM_OUT = "G1 X0 F100\nG1 X10\nG1 X600\nG1 X10\n"
+
+
+def _lim_child(body, mark=True):
+    return ("o<lim_child> sub\n" + ("(WEBUI_SUB=lim_child)\n" if mark else "(no marker)\n") + body
+            + ("(WEBUI_SUB_END)\n" if mark else "(no marker)\n") + "o<lim_child> endsub\n")
+
+
+CASES.update({
+    # Codex's case: the subroutine's L5 leaves the window, the main L5 is safe
+    "lim_sub": ("G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\nG1 X30\nG1 X40\nM2\n", "mm", 0.0, (490,),
+                {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT)}}),
+    # the main program's L5 leaves it, the subroutine's L5 is safe (haus.ngc's case)
+    "lim_main": ("G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\nG1 X600\nG1 X40\nM2\n", "mm", 0.0, (490,),
+                 {"subs": {"lim_child.ngc": _lim_child(_LIM_SAFE)}}),
+    # both at the one raw number
+    "lim_both": ("G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\nG1 X700\nG1 X40\nM2\n", "mm", 0.0, (490,),
+                 {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT)}}),
+    # an UNMARKED subroutine: no span names it; the main L5 is a comment, so no
+    # line of the program shows the move (its place is known, its line is not)
+    "lim_unmarked": ("G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\n(a comment)\nG1 X40\nM2\n", "mm", 0.0, (490,),
+                     {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT, mark=False)}}),
+    # two call sites, L3 and L5: two records
+    "lim_two_sites": ("G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\no<lim_child> call\nG1 X40\nM2\n", "mm", 0.0, (490,),
+                      {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT)}}),
+    # one site run twice (a loop): one record, two stretches
+    "lim_loop_site": ("G21 G90\nG0 X0 Y0 Z0\n#1=0\no100 while [#1 LT 2]\no<lim_child> call\nG0 Z1\n#1=[#1+1]\no100 endwhile\nM2\n",
+                      "mm", 0.0, (490,), {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT)}}),
+    # a run inside an arc of many segments: its ends survive the decimation
+    "lim_arc": ("G21 G90\nG0 X0 Y0 Z0\nG1 X300 F100\nG2 X300 Y0 I200 J0\nG1 X0\nM2\n", "mm", 0.0, (490,), {}),
+    # one line run four times in a loop, collinear X400 → X700: the decimation
+    # keeps its first and its last point only — and both ends of the stretch
+    # that leaves the window (X500 → X600 → X700)
+    "lim_collinear": ("G21 G90\nG0 X0 Y0 Z0\nG1 X300 F100\n#1=0\no100 while [#1 LT 4]\nG1 X[400 + #1 * 100]\n"
+                      "#1=[#1 + 1]\no100 endwhile\nG1 X0 Y10\nM2\n", "mm", 0.0, (490,), {}),
+})
+
 # Verify pairs (plan Fassungen 4–6): the same program at two start offsets;
 # test_start_tlo_worker compares the two encoded payloads.
 _PAIRS = {
@@ -920,6 +962,8 @@ print(json.dumps({
     "mmap_unchanged": _mmap_unchanged,
     "probe_unpredicted": out.get("probe_unpredicted"), "toollen_table": out.get("toollen_table"),
     "feed_sub": u("feed_sub", "<u1"), "rapid_sub": u("rapid_sub", "<u1"), "sub_names": out.get("sub_names"),
+    "feed_lineok": u("feed_lineok", "<u1"), "feed_cline": u("feed_cline", "<u2"),
+    "rapid_lineok": u("rapid_lineok", "<u1"), "rapid_cline": u("rapid_cline", "<u2"),
     "toolsetter_basis": out.get("toolsetter_basis"), "toolsetter_meta": ts_meta,
     "feed_lines": u("feed_lines", "<u4"), "tool_change_lines": out.get("tool_change_lines"),
     "parse_error": out.get("parse_error"), "feed": pts("feed"), "rapid": pts("rapid"),
