@@ -1,0 +1,6 @@
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+src/viewer/r180.codex-cap.test.ts(1,16): error TS2307: Cannot find module 'node:fs' or its corresponding type declarations.
+src/viewer/r180.codex-cap.test.ts(14,135): error TS2551: Property 'cut' does not exist on type 'LimitTarget'. Did you mean 'cuts'?

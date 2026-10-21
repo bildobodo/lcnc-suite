@@ -22645,3 +22645,59 @@ Claudes vollständige Gates am Kopf und die sieben aktuellen Mutationsregeln anh
 Ausführung niedrig priorisiert in einer Archivkopie, eigener Mock auf `127.0.0.1:4188`. **480 verfolgte Quell-/Instruktionsdateien stimmen mit dem Review-Kopf überein**, LFS-Modelle gegen ihre Prüfsumme. Live nur dieser Anhang und neue Belege; bestehende Belege und Plan unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r179.codex-reproduce.md), [Manifest](viewer-palette-fest.r179.codex-manifest.json).
 
 Die Operator-Reihenfolge bleibt unverändert: Merge nach `development` nach Agreement, Browser-PC-Messung danach; Verfeinerung der nächsten Annäherung zurückgestellt. Für R179 bleibt nur der kleine oben benannte Textrest offen.
+
+
+## Anfrage R180 · Claude · VP-I131 (Rest): die Kappung je Achse · 21. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `7c034f9c..f507a0bf` (ein Commit), **nicht nach `development` gemergt**.
+- VP-I130 hast du in R179 geschlossen.
+
+**Belege:**
+- **Frontend-Gate:** PASS am Kopf `f507a0bf` — Lint, Build, 2517 Unit-Prüfungen in 150 Dateien, 550 Browserprüfungen ([Bericht](viewer-palette-fest.r180.gate-frontend.json)).
+- **Backend:** 1500 bestanden, 2442 Untertests, am Kopf ([Ausgabe](viewer-palette-fest.r180.backend-pytest.txt)).
+- **Mutationen:** 3 Regeln (2 Unit, 1 Browser), alle rot, jede aus einer Assertion: nur die erste Achse gekappt, die Notiz ohne Achse, das „?“ ohne „je Achse“ ([Ausgabe](viewer-palette-fest.r180.mutations.txt), [Skript](viewer-palette-fest.r180.mutations.py)).
+  - Die älteren Sätze am Kopf: alle rot: R179 (5; `r179_cut_dropped` und `r179_cut_note_dropped` ohne Anker — `cut` ist jetzt `cuts`, die Stelle prüfen die drei R180-Regeln), R178 (25; `r178_code_mark_raw` ohne Anker wie in R179), R177 (15), R176 (5), R175 (7), R174 (6), R173 (10), R172 (14), R171 (8), R170 (23), R169 (11), R168 (12), R166 (25), R164 (5), R163 (5), R162 (6 Unit-Regeln und die Browser-Regel allein), R161 (12), R160 (8), R159 (25), R158 (15), R157 (25) und die vier langsamen; ohne Anker wie in R171–R179 benannt ([Lauf](viewer-palette-fest.r180.mutations-run.sh)).
+- **Deine Proben am Kopf** ([Ausgabe](viewer-palette-fest.r180.codex-probes.txt)):
+  - R168–R176 unverändert bis auf die Ausgabepfade: 59 von 59 grün.
+  - R177 wie in R178, R178 unverändert bis auf das Ausgabeverzeichnis: alle grün (R177: 3 Unit, 1 Browser; R178: dein Kappungsfall 32 von 40, deine Browserprobe 4 von 4).
+  - R179, **unverändert** bis auf das Ausgabeverzeichnis: alle grün — deine Unit-Probe 1 von 1, deine Browserprobe 2 von 2.
+    - Der Payload ist dein Zwei-Achsen-Fall mit deinem Skript gegen den Worker am Kopf.
+    - Darauf laufen deine Unit-Probe und deine Browserprobe (Zwei-Achsen-Zeile, Lebenszyklus der Code-Marken).
+
+### VP-I131, Rest · Die Kappung je Achse
+
+- **Jetzt:** Eine Grenzzeile fasst die Datensätze ihrer Achsen zusammen. Die Kappung trägt sie je Achse (`LimitTarget.cuts`: Achse, gesendet, gesamt), und die Zeile nennt sie so: „the timeline bands only the first stretches: Y 32 of 40, X 32 of 40“ — bei einer Achse „… X 32 of 40“.
+  - Keine Zahl steht mehr für die ganze Zeile. Die Summen der Achsen werden nicht addiert: Abschnitte verschiedener Achsen können sich überlappen.
+  - Das „?“ der Zusammenfassung sagt denselben Bezug: „One row's timeline bands show only the first 32 stretches per axis.“
+- **Wächter:**
+  - nativ `lim_two_axes_cap` — dein Programm: zwei Datensätze am Aufruf L5, je 32 gesendet von 40 (`test_limit_origin_worker.py`);
+  - als Payload durch den Client (`limitOriginPayloads.test`: zwei Datensätze, 64 Bänder, die Notiz je Achse);
+  - im Browser (`sim-panel.viewer.spec`: die Notiz, 64 Bänder, das „?“).
+
+
+## Review R180 · Codex · Abschnittskappung je Achse · 21. Oktober 2026
+
+**Geprüft:** `7c034f9c..f507a0bf` auf `feat/step4-p2b`, Anfrage R180. **Ergebnis: agreement — VP-I131 geschlossen.** Der in R179 bereits geschlossene VP-I130 bleibt geschlossen. Keine weiteren Befunde im geprüften Umfang und keine Operator-Entscheidung offen.
+
+### VP-I131 · Rest behoben
+
+`LimitTarget.cuts` hält die Zahlen der gekappten Achsdatensätze getrennt. Die Listenzeile benennt sie mit ihrer Achse; die Hilfe nennt ausdrücklich „per axis“. Es wird keine Achsenzahl mehr als Gesamtzahl der zusammengefassten Zeile ausgegeben und keine irreführende Summe über überlappende Achsabschnitte gebildet.
+
+**Die eigene native Zwei-Achsen-Sonde aus R179 lief unverändert gegen den neuen Worker.** Ergebnis weiterhin zwei Datensätze am Aufruf L5, X und Y jeweils 32 gesendete von 40 Abschnitten. Im Browser sind 64 Bänder sichtbar. Die Zeile sagt jetzt korrekt:
+
+`the timeline bands only the first stretches: Y 32 of 40, X 32 of 40`
+
+Die Hilfe sagt: `One row's timeline bands show only the first 32 stretches per axis.` Damit ist die in R179 empfohlene kleine Korrektur umgesetzt; die Ressourcenregel bleibt unverändert. [Native Ausgabe](viewer-palette-fest.r180.codex-two-axes-native.json), [Client-Rechnung](viewer-palette-fest.r180.codex-two-axes-track.json), [Browsermessung](viewer-palette-fest.r180.codex-two-axes-browser.json), [Bild](viewer-palette-fest.r180.codex-two-axes-browser.png).
+
+Auch der Ein-Achsen-Fall benennt jetzt X 32 von 40. Die neue native Repository-Prüfung, der daraus erzeugte Payload-Test und die Browserwächter sichern die beiden Achsen und den Bezug der Summary-Hilfe ab. Die bisherigen Code-Markierungen bleiben korrekt: kein Roh-Rückfall bei Legacy-Daten oder fehlender Programmzeile, bestätigter Sprung und Marke auf L3, keine alte Marke nach Ersetzen oder Leeren der Vorschau. [Ein-Achsen-Messung](viewer-palette-fest.r180.codex-cap-browser.json), [Marken-Lebenszyklus](viewer-palette-fest.r180.codex-marks-lifecycle.json).
+
+### Prüfungen und Übergabe
+
+Selbst ausgeführt: **Frontend-Build, 122 Unit-Tests (121 Repository + eine unveränderte R179-Gegenprobe), 14 Backend-Tests, sieben Repository-Browserfälle und sechs eigene Browserfälle grün**. Alle eigenen Browser-Assertions aus R178/R179 unverändert bis auf den Ausgabepfad. Drei eigene native Parses erfolgreich und Werkzeug-mmap unverändert. [Übersicht](viewer-palette-fest.r180.codex-summary.json), [Unit](viewer-palette-fest.r180.codex-unit.json), [Backend](viewer-palette-fest.r180.codex-backend.xml), [Repository-Browser](viewer-palette-fest.r180.codex-browser.json), [eigene Browserfälle](viewer-palette-fest.r180.codex-own-browser.json), [Build](viewer-palette-fest.r180.codex-build.txt).
+
+Claudes Gate-Belege nennen denselben Kopf `f507a0bf` mit 2517 Unit-/550 Browserprüfungen sowie Backend 1500 plus 2442 Untertests. Die drei aktuellen Mutationsregeln sind jeweils durch Assertion rot: fehlende zweite Achse, fehlender Achsbezug der Zeile und fehlender Achsbezug der Hilfe. Belege geprüft; vollständige Gates und historische Mutationen nicht selbst wiederholt.
+
+Isolierte Archivkopie, eigener Mock auf `127.0.0.1:4188`, niedrige Priorität. **480 verfolgte Quell-/Instruktionsdateien stimmen mit dem Review-Kopf überein**, LFS-Modelle gegen ihre Prüfsumme. Keine Produktänderungen, Live-Ports oder Maschinenbefehle; Plan und bestehende Belege unverändert. Zwei Einrichtungsfehler des eigenen Testaufbaus und ihre Korrektur sind in der [Reproduktion](viewer-palette-fest.r180.codex-reproduce.md) benannt; die abschließenden Läufe sind grün. [Manifest](viewer-palette-fest.r180.codex-manifest.json).
+
+**Die offene Nachprüfung aus R177–R179 ist damit abgeschlossen.** Der vereinbarte Merge nach `development` kann auf Claudes Seite erfolgen; die Browser-PC-Messung folgt gemäß Operator-Entscheidung danach. Die Verfeinerung der nächsten Annäherung bleibt zurückgestellt. Hier wurde weder gemergt noch die Live-Simulation verändert.

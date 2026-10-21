@@ -1,0 +1,202 @@
+{
+  "round": "R180",
+  "review_commit": "f507a0bf",
+  "input_sha256_before_append": {
+    "docs/reviews/viewer-palette-fest.ideen.md": "56029ed845d3e40d9197a29f5eeafbca667fcc245b35b2dd07bc5722172acc60",
+    "docs/reviews/kollision-paket2.plan.md": "606420b02d1ec6579c176a8dda0f565356868add551b081fb355615530adf748",
+    "docs/reviews/viewer-palette-fest.r180.backend-pytest.txt": "f7b8009233f2516ddd05fda1fbadf0c367a05c8299b886bb0c5a1ce6e8209d6b",
+    "docs/reviews/viewer-palette-fest.r180.codex-probes.txt": "16cdea11633de812d21f4b1e64989fd8105b4419e79e8001aeb6e1d2cdd956b5",
+    "docs/reviews/viewer-palette-fest.r180.gate-frontend.json": "17eedab7a51d7f306372a858d7f8697d9bacf0e29726688db52ff908773af86c",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r157-rules.txt": "728950ba93f860a47d7dce1ccd055855ef054a7e82e4dbd6854092d20faff1dc",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r158-rules.txt": "6f6a74afc14534f41132de00bc12d4ee75691d4eea640f54d9d11b0daa482cc0",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r159-rules.txt": "ab76cf242ada8fb3b97d53f9df7b316073d5d2cb2708742f7505841ed5881237",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r160-rules.txt": "9422cf9585f77127086a9616efc0515b7ee314dc26cfefbecf0b5a0b2c8ef6e8",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r161-rules.txt": "92ea838c4ad7046e4e8b53f4a47f6785a96e3d6986ffed9e60a5d50101b0e600",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r162-rules.txt": "56d0808fe5e7af31100394bf9ecca549503e99b83e3c60830c9bb68f0931f89a",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r163-rules.txt": "fbb04a212a4479c7a637ad67e267cdb60b83a6e915e77d750dd807d434247cbd",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r164-rules.txt": "5a5ef72a8946808acb19b505e339c2f7356ee79c16386cd2e5c34f25a0c07bf9",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r166-rules.txt": "d947985164b9b15ee66d908b931dc26797020fba6b3ba439f08f702d7c4faa33",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r168-rules.txt": "6b7cda5ed1df15a1b4d5f94abae051ce61200a45622a289db8feb30f1cfffe1e",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r169-rules.txt": "6d9edb2dcbc8072451017f009833cd5c736d01d01ca8b9fe1a7833234d171605",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r170-rules.txt": "a508fb48ab87f2ff985660af58a9348cdcf0ae2c75b8410413767982940ec39c",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r171-rules.txt": "54422f0c8846a8a637d4b8c446b3ad43deb3e21e4cdfebf3fbf99dad666927b8",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r172-rules.txt": "054f381b956a7e32a121dfbbe77befa604353264adb9950fb956a5d303470df5",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r173-rules.txt": "6ad804656abc8c8a1e0cc1554de70ddec7b4fdc4334c67fa211168dc59c8224c",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r174-rules.txt": "282022d970f50d19a71e449bad3d58e8582bedf93f4e244428235922dc3c34f4",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r175-rules.txt": "7207887792bcf05080b41368946ab7a69c15cde8b25068ef7370dac36bcc58b5",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r176-rules.txt": "fa03793042c71cfa1a457889613b738fe8f6821d5f2833c87cb630b370ab46a2",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r177-rules.txt": "c3c6271dd98a94424b383ea8f383084059387d65070fef457ac31f88cffbd525",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r178-rules.txt": "62f488ee328800a4b5739ee821be607307066d25b4a7e43ea0e172b72c688723",
+    "docs/reviews/viewer-palette-fest.r180.mutations-r179-rules.txt": "bc03dd3f805d46eea746868abd1078a53bb9dd3a30ac9a1c7a1d4ea266752ba4",
+    "docs/reviews/viewer-palette-fest.r180.mutations-run.sh": "062e60b4e8c453af0296fc38f55ed5821226e80ca679e7a349e0e3deb7c8b966",
+    "docs/reviews/viewer-palette-fest.r180.mutations-slow.txt": "cdd343d46f1a1877071e1b9f5f9c75ab736ff74f58946140cfa65060af0b863b",
+    "docs/reviews/viewer-palette-fest.r180.mutations.py": "60dabdc6ada6da0a2d3af103542be0d30900c76a817b9223858d5b8c6de47658",
+    "docs/reviews/viewer-palette-fest.r180.mutations.txt": "fc61ead0eeb9e43b83af48bddf6e9d2fccd0f0f84ed48f0ddcafc2065092f2ee"
+  },
+  "review_append_first_line": 22679,
+  "review_append_sha256": "90b344d3688d44e0ddaed835be13f55da573ebe670fd6c2e40301c22e810cb12",
+  "review_before_size": 2094499,
+  "review_after_sha256": "1f12ab4fc29114ccce070c1b74b160126abb6c8eef349ef9ea2fd6ee4241c1a5",
+  "evidence": [
+    {
+      "file": "viewer-palette-fest.r180.codex-backend.txt",
+      "bytes": 80,
+      "sha256": "fe9dca0451129aaabdd76ea13e310b61a52091a146a1f9fe5b72b851eb33547f"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-backend.xml",
+      "bytes": 2179,
+      "sha256": "5210d638c2df2264db4f5643870454a4c5bfdcf4ae3feea7619d07b52d855607"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-browser.config.ts",
+      "bytes": 624,
+      "sha256": "ff491b91c846a06276ce0db2dd6b34ba6557bd8fa9d96e91327695fc34f17c76"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-browser.json",
+      "bytes": 9283,
+      "sha256": "d55cf12d6cc5c7897fbd6e742a0d9e6ffcd5899f22b2cabc838f30a36c965029"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-browser.txt",
+      "bytes": 1490,
+      "sha256": "a9f1e7bcab0569d2c2b58bc267497e812223c7f52582d87707b709a9ad6ba757"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-build-with-probe-setup.txt",
+      "bytes": 309,
+      "sha256": "cc59d203a8b15f8fd370dd7bf6576691769b97cbf3b476c9652a9816106a9844"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-build.txt",
+      "bytes": 2438,
+      "sha256": "d1f721027b3b0d05d8af17da694d58522fda69de603b3df514ef3aa2a541ba3e"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-cap-browser.json",
+      "bytes": 1842,
+      "sha256": "2ec576960e8a5b692c0d42cea881c29e878d9167a05d14ada42bc755d3f487e3"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-cap-native.json",
+      "bytes": 11870,
+      "sha256": "35380de64ff3c16b4d3b0775384bfc88eb4ca1d7f9951ee08a812fc74275f065"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-cap.msgpack",
+      "bytes": 7263,
+      "sha256": "5ab86ba9ebec46cea6886fdeb4b8ae9c49427d1649198d9c25684d4fa0a62ad6"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-extra.viewer.spec.ts",
+      "bytes": 3466,
+      "sha256": "1ea1123e5378e6167e2959ba4f9d0a7049e3a42cc406974bf4f0033fd6c2484c"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-marks-legacy.json",
+      "bytes": 219,
+      "sha256": "b85052847429847915e939ea86eb1ad15ae3141e53ae53a81286fd49e9121821"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-marks-lifecycle.json",
+      "bytes": 112,
+      "sha256": "3749b5a306c59f721d78da2e8a83880f20995838ce8d626b895e3d0b997a1f03"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-marks-unmarked.json",
+      "bytes": 280,
+      "sha256": "e963d8773f9de36194c8fe43da46f7b59c730173abad9e2313aa5a80f8484ba4"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-native-browser.json",
+      "bytes": 215,
+      "sha256": "7ab23cfba34fc7c190281c98ad1db9e629e70a9da3b00aff3226555cd391ab47"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-native.json",
+      "bytes": 1881,
+      "sha256": "f68e0822a91cde7ef7f888958c4da882ee0246484cb2775c7c3983d940879a6e"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-native.msgpack",
+      "bytes": 1721,
+      "sha256": "c623ae820f9e9afa6a5afede3d395ce05a58e7162593548483e0c9139141f342"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-own-browser.config.ts",
+      "bytes": 628,
+      "sha256": "c7d53a9c72a4dc55f1c8d90643a1e7c9a58c7f89c64868a6802efe89be7d9532"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-own-browser.json",
+      "bytes": 8457,
+      "sha256": "f29018c24f2066e9b432412ce48dac5b9632f8afd7d22d8143c892c428f943e4"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-own-browser.txt",
+      "bytes": 1412,
+      "sha256": "5a4bf4255cd889db71b6ee8990f06a9e83e38441fef89d3010ec787e0f70c209"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-r178.viewer.spec.ts",
+      "bytes": 4139,
+      "sha256": "533ac610052c8f913a14bb4ea051105411d9a348c7b17782909df0418b6e207f"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-reproduce.md",
+      "bytes": 5541,
+      "sha256": "b0a7e72ff82616041ff3df75a16278b871cc10cd94bd0f11f43c8d7c2b70cb1f"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-source-verification.json",
+      "bytes": 109685,
+      "sha256": "b4d9fe0402882cbdd6eef1d6c055974c9be49e7ddb901c87c14edbc8fe944753"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-summary.json",
+      "bytes": 1294,
+      "sha256": "c776f57565e965eedab64f204dc60e72cf3da4dc73428689a1b5142eff06f390"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-two-axes-browser.json",
+      "bytes": 474,
+      "sha256": "06a8051b74329aa99f44a55785549323b1870d0443fb1583cf1d0142a89c2f80"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-two-axes-browser.png",
+      "bytes": 168417,
+      "sha256": "c85586639eb6074dba2a8660fdcf0696c7937632f46d0b2f4b61d18d5e40a510"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-two-axes-native.json",
+      "bytes": 14179,
+      "sha256": "7dc397a596117d6146e3b02e6669ac07e44bf931e05e06a7a4d60198e0ccbadf"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-two-axes-track.json",
+      "bytes": 3902,
+      "sha256": "73acac1b57ed5bdec901b6b787e302960d01e5d5559c46163d340433796f70e4"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-two-axes.msgpack",
+      "bytes": 8806,
+      "sha256": "b163ba02ab423a457f0b3bd6060fa364b3ccf4ba004b695277dd971fa1a68cca"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-two-axes.test.ts",
+      "bytes": 1463,
+      "sha256": "2b70458f69d8b99573c4c737f144a688ef877903c6e5adc3267af5fb9cc36c46"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-unit-setup.json",
+      "bytes": 44928,
+      "sha256": "d53cd88c217c5fedda16e896cbe45fa73f88b3fca455d996c484c5505e9b58b2"
+    },
+    {
+      "file": "viewer-palette-fest.r180.codex-unit.json",
+      "bytes": 44009,
+      "sha256": "b8e3339ced5645b711c29dd2c85e6d899716a7d9e2000ecee3c7372c3d0378fe"
+    }
+  ]
+}

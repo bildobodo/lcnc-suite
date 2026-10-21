@@ -585,6 +585,8 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 
 - **Code-Marken und Kappung (R179):** Der Editor markiert nur die Zeilen der platzierten Grenzzeilen (`limitMarks`), nie eine rohe Nummer; eine Zeile, deren Datensätze mehr Abschnitte haben als sie tragen (32), sagt es an der Zeile und im „?“.
 
+- **Kappung je Achse (R180):** Eine Grenzzeile fasst die Datensätze ihrer Achsen zusammen; die Kappung nennt sie je Achse („Y 32 of 40, X 32 of 40“), nie die Zahlen einer Achse für die Zeile.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).

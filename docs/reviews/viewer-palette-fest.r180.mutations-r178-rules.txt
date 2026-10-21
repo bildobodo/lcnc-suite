@@ -1,0 +1,27 @@
+r178_scope_dropped RED 1 failed, 6 passed in 0.13s E       AssertionError: 1 != 2 | test_gateway_util.py:5255: AssertionError 0s
+r178_runs_one RED 2 failed, 5 passed in 0.18s E       AssertionError: Tuples differ: ([[3, 9]], 1) != ([[3, 4], [6, 6], [9, 9]], 3) | test_gateway_util.py:5268: AssertionError 0s
+r178_scope_outer_name RED 1 failed, 6 passed in 0.13s E       AssertionError: Tuples differ: ('outer', 7) != ('inner', 7) | test_gateway_util.py:5244: AssertionError 0s
+r178_scope_inner_caller RED 1 failed, 6 passed in 0.12s E       AssertionError: Tuples differ: ('inner', 99) != ('inner', 7) | test_gateway_util.py:5244: AssertionError 0s
+r178_scope_marker_seq RED 1 failed, 6 passed in 0.12s E       AssertionError: ('outer', 7) is not None | test_gateway_util.py:5242: AssertionError 0s
+r178_merge_origin RED 1 failed, 6 passed in 0.12s E       AssertionError: 1 != 2 | test_gateway_util.py:5302: AssertionError 0s
+r178_merge_runs_worst RED 1 failed, 6 passed in 0.12s E       AssertionError: {'lin[41 chars]t': 500.0, 'kind': 'max', 'runs': [[5, 5], [9, 9]], 'nruns': 2} != {'lin[41 chars]t': 500.0, 'kind': 'max', 'runs': [[3, 5], [9, 9]], 'nruns': 2} | test_gateway_util.py:5303: AssertionError 0s
+r178_run_cap RED 1 failed, 6 passed in 0.12s E       AssertionError: 41 != 32 | test_gateway_util.py:5276: AssertionError 0s
+r178_order_by_line RED 3 failed, 4 passed in 0.22s E       AssertionError: Lists differ: [{'li[64 chars]x', 'runs': [[30, 30]], 'nruns': 1}, {'line': [117 chars]: 1}] != [{'li[64 chars]x', 'sub': 'child', 'site': 3, 'runs': [[12, 1[117 chars]: 1}] | test_gateway_util.py:5256: Asse 0s
+r178_trsrn_scalar_scope RED 1 failed, 4 passed in 0.27s E                       AssertionError: Tuples differ: ([{'line': 5, 'axis': 'Y', 'value': 872.555, 'limit'[10183 chars]4, 5) != ([{'line': 1, 'axis': 'Y', 'value': -1487.0975, 'lim[3643 chars]8, 5) | test_gateway_util.py:668: Ass 0s
+r178_worker_scope_none RED 6 failed, 5 passed in 0.85s E       AssertionError: Lists differ: [(5, None, None, [[4, 4]], 1)] != [(5, 'lim_child', 3, [[4, 4]], 1)] | test_limit_origin_worker.py:61: AssertionError 1s
+r178_worker_no_seq RED 10 failed, 1 passed in 0.86s FAILED test_limit_origin_worker.py::TestLimitOrigin::test_a_main_program_limit_is_the_main_line_whatever_a_subroutine_numbers | FAILED test_limit_origin_worker.py::TestLimitOrigin::test_a_stretch_inside_a_collinear_run_keeps_its_e 1s
+r178_worker_no_anchor RED 1 failed, 10 passed in 0.84s E       AssertionError: {4, 5, 6, 7} not less than or equal to {1, 2, 3, 6, 7} | test_limit_origin_worker.py:126: AssertionError 1s
+r178_worker_no_rapid_anchor RED 1 failed, 10 passed in 0.84s E       AssertionError: {4, 5, 6, 7} not less than or equal to {1, 2, 6, 7} | test_limit_origin_worker.py:134: AssertionError 1s
+r178_poll_idle_inverted RED 2 failed, 1 passed in 0.09s E           AssertionError: Tuples differ: ('run_ended', 1) != (None, 0) | test_preview_poll_chain.py:91: AssertionError 0s
+r178_poll_cancel_dropped RED 1 failed, 2 passed in 0.08s E           AssertionError: Tuples differ: (None, 0) != ('run_ended', 1) | test_preview_poll_chain.py:84: AssertionError 0s
+r178_worker_caller_reset RED 1 failed, 10 passed in 0.84s E       AssertionError: None != [3, 3, 3, 3, 0, 0, 0] | test_limit_origin_worker.py:65: AssertionError 1s
+r178_place_by_raw_line RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 3 ] to deeply equal [ 5 ] | AssertionError: expected [ [ 3, 600 ], [ 3, 700 ] ] to deeply equal [ [ 3, 600 ], [ 5, 700 ] ] 8s
+r178_line_raw RED ⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ 5, 1 ] ] to deeply equal [ [ 3, 1 ] ] | AssertionError: expected [ [ 5, 600 ], [ 5, 700 ] ] to deeply equal [ [ 3, 600 ], [ 5, 700 ] ] 8s
+r178_band_from_end RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ [ 6, 360 ] ] | AssertionError: expected [] to deeply equal [ [ 24, 372 ] ] 8s
+r178_key_line_only RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be 2 // Object.is equality 8s
+r178_group_by_line RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ 3, 600 ] ] to deeply equal [ [ 3, 600 ], [ 5, 700 ] ] | AssertionError: expected [ 3 ] to deeply equal [ 3, 5 ] 8s
+r178_code_mark_raw ANCHOR [0] 0s
+r178_track_seq_dropped RED ⎯⎯⎯⎯⎯⎯ Failed Tests 15 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ [ 3, 1 ] ] | AssertionError: expected [] to deeply equal [ 5 ] 9s
+r178_placeless_dropped RED   1 failed Error: expect(locator).toHaveCount(expected) failed | Expected: 4 42s
+r178_bands_widened RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 4 32s
+rebuild ok 50s
