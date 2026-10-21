@@ -32,7 +32,9 @@ jobs:
           cache-dependency-path: lcnc-webui/package-lock.json
       - run: npm ci
       - run: npx playwright install --with-deps chromium
-      - run: python3 ../scripts/test_suite.py offline --component frontend
+      # --timeout is per step: the unit step takes ~19 min here, the browser
+      # step ran out of the default 30 min at test 332 of ~550 (2026-10-21)
+      - run: python3 ../scripts/test_suite.py offline --component frontend --timeout 5400
       - uses: actions/upload-artifact@v4
         if: always()
         with:
