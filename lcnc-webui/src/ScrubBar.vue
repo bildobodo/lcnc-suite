@@ -1333,8 +1333,8 @@ watchEffect(() => {
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0,
                      placeless: limitPlace.value.placeless.reduce((n, g) => n + g.length, 0),
-                     cut: violationTargets.value.filter(t => t.cut).length,
-                     cutShown: Math.max(0, ...violationTargets.value.map(t => t.cut?.shown ?? 0)) };
+                     cut: violationTargets.value.filter(t => t.cuts).length,
+                     cutShown: Math.max(0, ...violationTargets.value.flatMap(t => t.cuts?.map(c => c.shown) ?? [])) };
   simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;
   simView.unboundMeasurements = m600Notes.value.unbound.length;
   simView.unboundWarnings = m600Notes.value.unbound.filter(e => e.warnings?.length).length;

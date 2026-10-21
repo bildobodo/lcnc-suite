@@ -411,6 +411,11 @@ CASES.update({
     # one site run 40 times: more stretches than a record carries (LIMIT_RUN_CAP)
     "lim_loop_cap": ("G21 G90\nG0 X0 Y0 Z0\n#1=0\no100 while [#1 LT 40]\no<lim_child> call\nG0 Z1\n#1=[#1+1]\no100 endwhile\nM2\n",
                      "mm", 0.0, (490,), {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT)}}),
+    # Codex R179: 80 calls, one body line out in X or in Y by turns — two
+    # records at the call, 40 stretches each, 32 sent each
+    "lim_two_axes_cap": ("G21 G90\nG0 X0 Y0 Z0\n#100=0\no100 while [#100 LT 80]\no<lim_child> call\n#100=[#100+1]\no100 endwhile\nM2\n",
+                         "mm", 0.0, (490,), {"subs": {"lim_child.ngc": _lim_child(
+                             "G1 X0 Y0 F100\nG1 X[600 * [#100 MOD 2]] Y[600 * [1 - [#100 MOD 2]]]\nG1 X0 Y0\n")}}),
     # a run inside an arc of many segments: its ends survive the decimation
     "lim_arc": ("G21 G90\nG0 X0 Y0 Z0\nG1 X300 F100\nG2 X300 Y0 I200 J0\nG1 X0\nM2\n", "mm", 0.0, (490,), {}),
     # one line run four times in a loop, collinear X400 → X700: the decimation

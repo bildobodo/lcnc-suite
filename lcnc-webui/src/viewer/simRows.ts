@@ -124,8 +124,8 @@ export function buildSimRows(i: SimRowInput): SimRow[] {
       lineLabel: t.noLine ? (t.subName ? `(${t.subName})` : NO_VALUE) : `L${t.line}`,
       cum: t.cum, cumEnd: t.cumEnd, what: limitWords(t.recs, i.unit),
       note: [t.noLine ? (t.subName ? `in ${t.subName}, no line of this program` : "no line of this program") : "",
-             // more stretches than the record carries: the bands are not the whole (Codex R178 VP-I131)
-             t.cut ? `the timeline shows the first ${t.cut.shown} of ${t.cut.total} stretches` : ""].filter(Boolean).join(" · "),
+             // more stretches than a record carries: the bands are not the whole — per axis (Codex R178/R179 VP-I131)
+             t.cuts ? `the timeline bands only the first stretches: ${t.cuts.map(c => `${c.axis} ${c.shown} of ${c.total}`).join(", ")}` : ""].filter(Boolean).join(" · "),
       rapid: null, at: at(t.cum) });
   }
   for (const t of i.tool) {

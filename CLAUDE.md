@@ -560,8 +560,9 @@ the verified call line of its outermost span (`limit_scope_of`, the span walk
 of the per-point attribution; per call SITE — a loop's calls are one record),
 `sub` / `site` on the record, and its violating stretches as seq runs
 (`runs` [[first, last], …] in execution order, at most `LIMIT_RUN_CAP` 32,
-`nruns` all — a row over the cap says "the timeline shows the first 32 of 40
-stretches" and the summary's "?" counts such rows, Codex R178 VP-I131), one shared bookkeeping (`_limit_records`) in all five checkers
+`nruns` all — a row over the cap says it per axis, "the timeline bands only
+the first stretches: Y 32 of 40, X 32 of 40", and the summary's
+"?" counts such rows, Codex R178/R179 VP-I131), one shared bookkeeping (`_limit_records`) in all five checkers
 and `merge_violation_records`; both ends of every reported stretch survive the
 decimation (`seq_boundary_indices` in both streams); records are sent in
 execution order (by their first stretch). Attribution

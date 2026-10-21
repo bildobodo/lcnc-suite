@@ -112,11 +112,21 @@ describe("a limit record stands at its own move (Codex R177 VP-I130)", () => {
 
   it("more stretches than a record carries: bands for those it carries, and the row says so (Codex R178 VP-I131)", () => {
     const p = placed("lim_loop_cap");
-    expect(p.targets.map(t => [t.line, t.cut])).toEqual([[5, { shown: 32, total: 40 }]]);
+    expect(p.targets.map(t => [t.line, t.cuts])).toEqual([[5, [{ axis: "X", shown: 32, total: 40 }]]]);
     expect(p.bands).toHaveLength(32);
     expect(outsideCums(p.track)).toHaveLength(40);
     const rows = buildSimRows({ clash: [], limit: p.targets, tool: [], unit: "mm", timeBased: true, axisEnd: 1e6 });
-    expect(rows[0]!.note).toBe("the timeline shows the first 32 of 40 stretches");
+    expect(rows[0]!.note).toBe("the timeline bands only the first stretches: X 32 of 40");
+  });
+
+  it("a row of two axes says each axis's numbers, never one axis's for the row (Codex R179 VP-I131)", () => {
+    // 80 calls, X and Y out by turns: two records at the call, 40 stretches each, 32 sent each
+    const p = placed("lim_two_axes_cap");
+    expect(p.targets.map(t => [t.line, t.recs.map(r => r.axis).sort().join(""), t.cuts])).toEqual(
+      [[5, "XY", [{ axis: "Y", shown: 32, total: 40 }, { axis: "X", shown: 32, total: 40 }]]]);
+    expect(p.bands).toHaveLength(64);
+    const rows = buildSimRows({ clash: [], limit: p.targets, tool: [], unit: "mm", timeBased: true, axisEnd: 1e6 });
+    expect(rows[0]!.note).toBe("the timeline bands only the first stretches: Y 32 of 40, X 32 of 40");
   });
 
   it("read on a track with an entry move in front: the same moves, shifted", () => {

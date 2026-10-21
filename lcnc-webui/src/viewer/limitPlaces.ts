@@ -35,10 +35,11 @@ export interface LimitTarget {
    *  name where it has one. */
   noLine?: boolean;
   subName?: string;
-  /** Its records carry fewer stretches than they have (the gateway's
-   *  LIMIT_RUN_CAP): the timeline bands the first `shown` of `total` —
-   *  said, never drawn as the whole (Codex R178 VP-I131). */
-  cut?: { shown: number; total: number };
+  /** Its records that carry fewer stretches than they have (the gateway's
+   *  LIMIT_RUN_CAP), per axis: the timeline bands the first `shown` of that
+   *  axis's `total` — said, never drawn as the whole (Codex R178/R179
+   *  VP-I131: a row's axes are separate records, their numbers never one). */
+  cuts?: { axis: string; shown: number; total: number }[];
 }
 
 export interface LimitPlaces {
@@ -102,7 +103,7 @@ export function limitPlaces(violations: readonly LimitViolation[] | null | undef
     }
     for (const v of recs) {
       const have = v.runs?.length ?? 0, all = v.nruns ?? have;
-      if (all > have && (!t.cut || all > t.cut.total)) t.cut = { shown: have, total: all };
+      if (all > have) (t.cuts ??= []).push({ axis: v.axis, shown: have, total: all });
     }
     out.targets.push(t);
   }

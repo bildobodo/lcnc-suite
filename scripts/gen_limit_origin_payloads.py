@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 GATEWAY = ROOT / "lcnc-gateway"
 OUT = ROOT / "scripts/test_fixtures/limit_origin_payloads"
-CASES = ("lim_sub", "lim_main", "lim_both", "lim_unmarked", "lim_two_sites", "lim_loop_site", "lim_arc", "lim_collinear", "lim_collinear_rapid", "lim_loop_cap")
+CASES = ("lim_sub", "lim_main", "lim_both", "lim_unmarked", "lim_two_sites", "lim_loop_site", "lim_arc", "lim_collinear", "lim_collinear_rapid", "lim_loop_cap", "lim_two_axes_cap")
 
 
 def main():

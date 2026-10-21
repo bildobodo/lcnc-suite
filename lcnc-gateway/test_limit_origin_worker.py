@@ -101,6 +101,12 @@ class TestLimitOrigin(unittest.TestCase):
         self.assertEqual(len(outside_seqs(r)), 40)
         self.assertLess(runs[-1][0], max(outside_seqs(r)))
 
+    def test_two_axes_of_one_line_are_two_records_each_with_its_count(self):
+        # Codex R179: X and Y out by turns on one body line, 80 calls
+        r, recs = self.records("lim_two_axes_cap")
+        got = sorted((v["axis"], len(v["runs"]), v["nruns"], v.get("site")) for v in r["violations"])
+        self.assertEqual(got, [("X", 32, 40, 5), ("Y", 32, 40, 5)])
+
     def test_a_stretch_of_an_arc_keeps_its_ends_and_the_move_before(self):
         r, recs = self.records("lim_arc")
         (line, sub, site, runs, nruns), = recs

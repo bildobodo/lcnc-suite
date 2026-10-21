@@ -609,10 +609,22 @@ for (const [name, payload, text, want] of [
 test("a row with more stretches than its record carries says how many the timeline shows", async ({ page, context }) => {
   const text = "G21 G90\nG0 X0 Y0 Z0\n#1=0\no100 while [#1 LT 40]\no<lim_child> call\nG0 Z1\n#1=[#1+1]\no100 endwhile\nM2\n";
   await limitPayload(page, context, LIM_FIXTURE("lim_loop_cap"), text, 5181);
-  await expect(rows(page).first().locator(".colWhat")).toContainText("the timeline shows the first 32 of 40 stretches");
+  await expect(rows(page).first().locator(".colWhat")).toContainText("the timeline bands only the first stretches: X 32 of 40");
   await expect(page.locator(".scrubBar .scrubBand.limit")).toHaveCount(32);
   await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
-  await expect(page.locator(".helpPopover:popover-open")).toContainText("One row's timeline bands show only the first 32 of its stretches.");
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("One row's timeline bands show only the first 32 stretches per axis.");
+});
+
+// Codex R179: a row groups its axes' records — the cap is said per axis, never
+// one axis's numbers for the row (X and Y out by turns, 80 calls: 2 × 32 bands).
+test("a row of two capped axes says each axis's numbers", async ({ page, context }) => {
+  const text = "G21 G90\nG0 X0 Y0 Z0\n#100=0\no100 while [#100 LT 80]\no<lim_child> call\n#100=[#100+1]\no100 endwhile\nM2\n";
+  await limitPayload(page, context, LIM_FIXTURE("lim_two_axes_cap"), text, 5182);
+  await expect(rows(page).first().locator(".colWhat")).toContainText(
+    "the timeline bands only the first stretches: Y 32 of 40, X 32 of 40");
+  await expect(page.locator(".scrubBar .scrubBand.limit")).toHaveCount(64);
+  await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("One row's timeline bands show only the first 32 stretches per axis.");
 });
 
 // Operator 2026-10-20 (live, another program of theirs): the timeline's progress was not

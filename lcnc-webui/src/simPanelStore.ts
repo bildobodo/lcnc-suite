@@ -74,7 +74,7 @@ export const simView = reactive({
   /** The limit records: the total, how many the parse sent, how many have
    *  no place (a payload from before their stretches — viewer/limitPlaces.ts). */
   limits: { total: null as number | null, records: 0, placeless: 0,
-            /** Rows whose records carry fewer stretches than they have, and the most a record carries. */
+            /** Rows whose records carry fewer stretches than they have, and the most an axis's record carries. */
             cut: 0, cutShown: 0 },
   /** A tool measurement the preview cannot predict (M600): what and why —
    *  from there no path, no time, no collision or limit check. */

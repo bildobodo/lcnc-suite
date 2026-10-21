@@ -98,7 +98,7 @@ const sumHelp = computed(() => {
   const { placeless, cut, cutShown } = simView.limits;
   const nowhere = placeless ? ` ${placeless} of them from an older parse have no place — reload the program.` : "";
   // a record carries its first stretches only (Codex R178 VP-I131)
-  const short = cut ? ` ${cut === 1 ? "One row's" : `${cut} rows'`} timeline bands show only the first ${cutShown} of ${cut === 1 ? "its" : "their"} stretches.` : "";
+  const short = cut ? ` ${cut === 1 ? "One row's" : `${cut} rows'`} timeline bands show only the first ${cutShown} stretches per axis.` : "";
   const kinds = `× ${sumClash.value.name}. ▲ ${limit}.${nowhere}${short} ● ${sumTool.value.name}.`;
   // the stop first: it bounds all three
   if (simView.stop) return `${simView.stop}: from there no path, no time, no collision or limit check. ${kinds}${unbound.value}`;
