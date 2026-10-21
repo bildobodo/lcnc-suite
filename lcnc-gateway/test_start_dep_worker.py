@@ -24,7 +24,13 @@ import unittest
 from pathlib import Path
 
 import gateway_util
-import gcode_canon
+
+try:  # the canon imports LinuxCNC's rs274 — absent off the machine (CI)
+    import gcode_canon
+    _HAVE_RS274 = True
+except ImportError:
+    gcode_canon = None
+    _HAVE_RS274 = False
 from test_start_tlo_worker import probe
 
 HERE = Path(__file__).resolve().parent
@@ -429,6 +435,7 @@ class _Interp:
         self.this = types.SimpleNamespace(blocks=[b], distance_mode=dist, feed_mode=0)
 
 
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
 class TestTheCanonUnits(unittest.TestCase):
     """E2 cases the native interpreter does not produce on demand."""
 

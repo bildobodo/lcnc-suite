@@ -44,7 +44,10 @@ from gateway_util import strip_gcode_comments, parse_kins_config  # noqa: E402
 import msgspec  # noqa: E402
 import numpy as np  # noqa: E402
 
-from twp_parity import run_preview, sample_run, truth_plane_invariants  # noqa: E402
+try:  # the capture needs the LinuxCNC binding (twp_parity imports it); the comparison is pure
+    from twp_parity import run_preview, sample_run, truth_plane_invariants  # noqa: E402
+except ImportError:  # off the machine (CI): cmd_gate fails early on its own `import linuxcnc`
+    run_preview = sample_run = truth_plane_invariants = None
 
 _WEBUI = os.path.join(_HERE, "..", "lcnc-webui")
 

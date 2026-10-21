@@ -12,7 +12,11 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("toolsetter_readback_check",
                                                os.path.join(HERE, "toolsetter_readback_check.py"))
 check = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(check)
+try:
+    _spec.loader.exec_module(check)
+    _NO_BINDING = None
+except ImportError as e:  # off the machine (CI): no LinuxCNC binding to import
+    _NO_BINDING = f"toolsetter_readback_check needs the LinuxCNC binding: {e}"
 SIM = os.path.join(HERE, "..", "examples", "sim_config")
 NAME = "lcnc_suite_sim_5axis_xyzac.ini"
 REPO = os.path.realpath(os.path.join(HERE, ".."))
@@ -27,6 +31,7 @@ def suite_which(name):
     return os.path.join(REPO, SUITE[name]) if name in SUITE else "/usr/bin/" + name
 
 
+@unittest.skipIf(_NO_BINDING, _NO_BINDING or "")
 class TestTarget(unittest.TestCase):
     """A complete installed copy of the XYZAC simulator: the INI as the
     installer renders it, its hallib beside it (copied, or linked back)."""
@@ -131,6 +136,7 @@ class TestTarget(unittest.TestCase):
         self.assertIn("no shipped simulator profile", self.refused(ini=machine))
 
 
+@unittest.skipIf(_NO_BINDING, _NO_BINDING or "")
 class TestLoadusr(unittest.TestCase):
     """halcmd's `loadusr [-W | -Wn name | -w | -i] program [args]`."""
 
@@ -151,6 +157,7 @@ class TestLoadusr(unittest.TestCase):
                 check._loadusr_runs(line.split())
 
 
+@unittest.skipIf(_NO_BINDING, _NO_BINDING or "")
 class TestTeardown(unittest.TestCase):
     def test_only_the_verified_instances_launcher(self):
         lines = ["101 bash /home/cnc/lcnc-suite/lcnc-suite -ini /a/x.ini",

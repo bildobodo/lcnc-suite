@@ -2972,6 +2972,7 @@ class TestOffsetWriteBackstop(unittest.TestCase):
         self.assertEqual(c._frame_unknown, frozenset((0, 1, 2)))
 
 
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
 class TestCanonFirstMoveRearm(unittest.TestCase):
     """The rotary-sync initcode consumes the canon's one first-move
     suppression; next_line must re-arm it at the first REAL program line
@@ -4579,6 +4580,7 @@ class TestPercentDelimiter(unittest.TestCase):
         self.assertEqual(gateway_util.percent_delimiter_line(lines()), 1)
 
 
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
 class TestCanonInitPhase(unittest.TestCase):
     """A `%` file's initcodes run right after the `%` line's next_line (always
     sequence 1); the phase is decided by that ORDER, never by a number
@@ -5204,6 +5206,7 @@ class TestForeignM600(unittest.TestCase):
         self.assertEqual(gateway_util.m_code_lines(text, {"m601"}), frozenset({6}))
 
 
+@unittest.skipUnless(_HAVE_RS274, "rs274 (LinuxCNC python) not importable")
 class TestApplyVarPatchesOrder(unittest.TestCase):
 
     def test_a_missing_parameter_goes_in_order(self):
