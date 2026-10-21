@@ -35,6 +35,10 @@ export interface LimitTarget {
    *  name where it has one. */
   noLine?: boolean;
   subName?: string;
+  /** Its records carry fewer stretches than they have (the gateway's
+   *  LIMIT_RUN_CAP): the timeline bands the first `shown` of `total` —
+   *  said, never drawn as the whole (Codex R178 VP-I131). */
+  cut?: { shown: number; total: number };
 }
 
 export interface LimitPlaces {
@@ -44,14 +48,10 @@ export interface LimitPlaces {
   bands: Array<[number, number]>;
   /** Groups with no place (see the head). */
   placeless: LimitViolation[][];
-}
-
-/** The line of THIS program a record's move ran under, for the code panel's
- *  mark: the main program's own line, a marked subroutine's verified call
- *  line, else none — never a called file's raw number. */
-export function limitRecordLine(v: LimitViolation): number | null {
-  const line = v.sub != null ? v.site ?? 0 : v.line;
-  return line > 0 ? line : null;
+  /** The code panel's marks: the display line of every placed row with one
+   *  — never a raw number, nothing for a row without a line or a place
+   *  (Codex R178, the rest of VP-I130). */
+  lines: Map<number, LimitViolation[]>;
 }
 
 const groupKey = (v: LimitViolation) => `${v.sub ?? ""}\u0000${v.sub != null ? v.site ?? 0 : 0}\u0000${v.line}`;
@@ -68,7 +68,7 @@ function lowerBound(seq: Uint32Array, q: number): number {
  *  (not `lines_untrusted`). Pure. */
 export function limitPlaces(violations: readonly LimitViolation[] | null | undefined, base: ScrubTrack | null,
                             on: ScrubTrack | null, trusted: boolean): LimitPlaces {
-  const out: LimitPlaces = { targets: [], bands: [], placeless: [] };
+  const out: LimitPlaces = { targets: [], bands: [], placeless: [], lines: new Map() };
   if (!violations?.length) return out;
   const groups = new Map<string, LimitViolation[]>();
   for (const v of violations) {
@@ -100,9 +100,18 @@ export function limitPlaces(violations: readonly LimitViolation[] | null | undef
       t.noLine = true;
       if (shown.subName) t.subName = shown.subName;
     }
+    for (const v of recs) {
+      const have = v.runs?.length ?? 0, all = v.nruns ?? have;
+      if (all > have && (!t.cut || all > t.cut.total)) t.cut = { shown: have, total: all };
+    }
     out.targets.push(t);
   }
   out.targets.sort((a, b) => a.cum - b.cum);
+  for (const t of out.targets) {
+    if (!(t.line > 0)) continue;
+    const l = out.lines.get(t.line);
+    if (l) l.push(...t.recs); else out.lines.set(t.line, [...t.recs]);
+  }
   out.bands.sort((a, b) => a[0] - b[0]);
   return out;
 }

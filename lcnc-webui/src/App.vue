@@ -2032,7 +2032,6 @@ watch(viewerGcode, (newGcode) => {
               :programTextRevision="gcodeTextRevision"
               :programTextSource="gcodeTextSource"
               :gcodeStats="gcodeStats"
-              :violations="gcodeViolations"
               :violationsTotal="gcodeViolationsTotal"
               :currentLine="currentLine"
               :subName="runSubName"

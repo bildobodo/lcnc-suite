@@ -408,6 +408,9 @@ CASES.update({
     # one site run twice (a loop): one record, two stretches
     "lim_loop_site": ("G21 G90\nG0 X0 Y0 Z0\n#1=0\no100 while [#1 LT 2]\no<lim_child> call\nG0 Z1\n#1=[#1+1]\no100 endwhile\nM2\n",
                       "mm", 0.0, (490,), {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT)}}),
+    # one site run 40 times: more stretches than a record carries (LIMIT_RUN_CAP)
+    "lim_loop_cap": ("G21 G90\nG0 X0 Y0 Z0\n#1=0\no100 while [#1 LT 40]\no<lim_child> call\nG0 Z1\n#1=[#1+1]\no100 endwhile\nM2\n",
+                     "mm", 0.0, (490,), {"subs": {"lim_child.ngc": _lim_child(_LIM_OUT)}}),
     # a run inside an arc of many segments: its ends survive the decimation
     "lim_arc": ("G21 G90\nG0 X0 Y0 Z0\nG1 X300 F100\nG2 X300 Y0 I200 J0\nG1 X0\nM2\n", "mm", 0.0, (490,), {}),
     # one line run four times in a loop, collinear X400 → X700: the decimation

@@ -110,6 +110,15 @@ describe("a limit record stands at its own move (Codex R177 VP-I130)", () => {
     }
   });
 
+  it("more stretches than a record carries: bands for those it carries, and the row says so (Codex R178 VP-I131)", () => {
+    const p = placed("lim_loop_cap");
+    expect(p.targets.map(t => [t.line, t.cut])).toEqual([[5, { shown: 32, total: 40 }]]);
+    expect(p.bands).toHaveLength(32);
+    expect(outsideCums(p.track)).toHaveLength(40);
+    const rows = buildSimRows({ clash: [], limit: p.targets, tool: [], unit: "mm", timeBased: true, axisEnd: 1e6 });
+    expect(rows[0]!.note).toBe("the timeline shows the first 32 of 40 stretches");
+  });
+
   it("read on a track with an entry move in front: the same moves, shifted", () => {
     const { raw, track, violations } = load("lim_sub");
     const L = 7;

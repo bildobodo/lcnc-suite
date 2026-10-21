@@ -43,6 +43,7 @@ import MachineBtn from "./MachineBtn.vue";
 import MachineSlider from "./MachineSlider.vue";
 import { buildSimRows, limitStopOf, lineWordAt, measurementsOf, placelessLimitRows, type SimRowKind, partLabel } from "./viewer/simRows";
 import { limitPlaces, type LimitTarget } from "./viewer/limitPlaces";
+import { limitMarks, NO_LIMIT_MARKS, type LimitMarks } from "./limitMarks";
 import { LIST_WINDOW as LIST_WINDOW_ROWS, MergedList, NO_CLASH, clashIndexOfView, clashTicks, nextTarget, stepTarget, windowCenter, windowFirst, type ClashIndex, type Pick, type SimTargets } from "./viewer/simWindow";
 import { m600Events, m600ToolNotes, parseProbeBands, parseProbeNotes, parseProbeStops, probeStopTitle, toolsetterBasisLine } from "./viewer/probeStop";
 import { confirmedToolsetter, toolsetterVarMap } from "./toolsetterVars";
@@ -718,6 +719,12 @@ watch(track, () => { navSel.value = null; }, { flush: "sync" });
 const limitPlace = computed(() => limitPlaces(violations.value, baseTrack.value, track.value,
                                                !viewerGcode.value?.lines_untrusted));
 const violationTargets = computed<LimitTarget[]>(() => limitPlace.value.targets);
+// The code panel marks the placed rows' lines (limitMarks — never a raw
+// number, Codex R178). A re-mounted bar (a hot reload) is built before the old
+// one's onUnmounted runs: each clears only what it set.
+let _marksSet: LimitMarks | null = null;
+watch(limitPlace, p => { _marksSet = p.lines; limitMarks.value = p.lines; }, { immediate: true });
+onUnmounted(() => { if (limitMarks.value === _marksSet) limitMarks.value = NO_LIMIT_MARKS; });
 
 // The result swept on exactly the DISPLAYED track (see the collisionTrack
 // prop): the base result on the base track, the entry-overlaid one on the
@@ -1325,7 +1332,9 @@ watchEffect(() => {
     : null;
   const v = violations.value;
   simView.limits = { total: v == null ? null : viewerGcode.value?.violations_total ?? v.length, records: v?.length ?? 0,
-                     placeless: limitPlace.value.placeless.reduce((n, g) => n + g.length, 0) };
+                     placeless: limitPlace.value.placeless.reduce((n, g) => n + g.length, 0),
+                     cut: violationTargets.value.filter(t => t.cut).length,
+                     cutShown: Math.max(0, ...violationTargets.value.map(t => t.cut?.shown ?? 0)) };
   simView.stop = probeStops.value.length ? probeStopTitle(probeStops.value[0]!) : null;
   simView.unboundMeasurements = m600Notes.value.unbound.length;
   simView.unboundWarnings = m600Notes.value.unbound.filter(e => e.warnings?.length).length;

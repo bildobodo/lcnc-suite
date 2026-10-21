@@ -560,7 +560,8 @@ the verified call line of its outermost span (`limit_scope_of`, the span walk
 of the per-point attribution; per call SITE — a loop's calls are one record),
 `sub` / `site` on the record, and its violating stretches as seq runs
 (`runs` [[first, last], …] in execution order, at most `LIMIT_RUN_CAP` 32,
-`nruns` all), one shared bookkeeping (`_limit_records`) in all five checkers
+`nruns` all — a row over the cap says "the timeline shows the first 32 of 40
+stretches" and the summary's "?" counts such rows, Codex R178 VP-I131), one shared bookkeeping (`_limit_records`) in all five checkers
 and `merge_violation_records`; both ends of every reported stretch survive the
 decimation (`seq_boundary_indices` in both streams); records are sent in
 execution order (by their first stretch). Attribution
@@ -582,8 +583,11 @@ never one per target; ▲ limit, × clash, ● tool change;
 the dark theme cannot separate red from amber) and extent BANDS (warn over
 each record's violating stretches, danger over every contact interval, red
 wins) — plus warn-tinted line numbers in GcodePanel (`.codeLine.violation`,
-global, by origin: the main program's own line, a subroutine's verified
-call line, else none; collision hits are danger via `.codeLine.collision`) and
+global: the lines the PLACED limit rows show — `limitMarks`, published by
+the bar from `limitPlaces`: a record marks the line its own move shows, a
+called file's move its call line, and nothing without a place or a line,
+never a raw number (Codex R178); collision hits are danger via
+`.codeLine.collision`) and
 a Soft limits row in the program stats dialog. Limitation: validated
 against the parse-time WCS — touch-off after load requires a file reload
 to re-validate (the live overflow box remains the coarse always-current

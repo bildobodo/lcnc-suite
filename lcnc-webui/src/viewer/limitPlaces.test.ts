@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import type { LimitViolation } from "../ws/bulkData";
 import { buildScrubTrack } from "./scrubTrack";
-import { limitPlaces, limitRecordLine } from "./limitPlaces";
+import { limitPlaces } from "./limitPlaces";
 import { buildSimRows, placelessLimitRows } from "./simRows";
 
 // raw lines [1, 5, 6, 3, 5, 6]: a called file (from L2) moves with its 5 and
@@ -73,11 +73,20 @@ describe("limitPlaces", () => {
     expect(rows.map(r => [r.lineLabel, r.note])).toEqual([["(touch)", "in touch, no line of this program"]]);
   });
 
-  it("the code panel marks the line the move ran under: its own, a call line, else none", () => {
-    expect(limitRecordLine(rec({}))).toBe(5);
-    expect(limitRecordLine(rec({ sub: "touch", site: 2 }))).toBe(2);
-    expect(limitRecordLine(rec({ sub: "touch", site: 0 }))).toBeNull();
-    expect(limitRecordLine(rec({ sub: "touch" }))).toBeNull();
+  it("the code panel's marks are the placed rows' lines: a call line, the program's own, nothing without a line or a place", () => {
+    // Codex R178: no mark on a raw number — not for a record with no place,
+    // not for a move no line of the program shows
+    const t = track();
+    const p = limitPlaces([rec({ sub: "touch", site: 2, runs: [[2, 2]], nruns: 1 }), rec({ value: 700, runs: [[5, 5]], nruns: 1 }),
+                           rec({ line: 9, axis: "Y" })], t, t, false);
+    expect([...p.lines.keys()].sort()).toEqual([2, 5]);
+    expect(p.lines.get(2)!.map(r => r.value)).toEqual([600]);
+    const legacy = limitPlaces([rec({})], t, t, false);
+    expect([...legacy.lines.keys()], "a record with no place marks nothing — not its raw L5").toEqual([]);
+    const u = track(false);
+    const unmarked = limitPlaces([rec({ runs: [[2, 2]], nruns: 1 })], u, u, false);
+    expect(unmarked.targets[0]!.noLine).toBe(true);
+    expect([...unmarked.lines.keys()], "a move no line shows marks nothing").toEqual([]);
   });
 
   it("the placeless rows say so and carry no position", () => {

@@ -73,7 +73,9 @@ export const simView = reactive({
    *  payload carries (the gateway caps the list at 200). */
   /** The limit records: the total, how many the parse sent, how many have
    *  no place (a payload from before their stretches — viewer/limitPlaces.ts). */
-  limits: { total: null as number | null, records: 0, placeless: 0 },
+  limits: { total: null as number | null, records: 0, placeless: 0,
+            /** Rows whose records carry fewer stretches than they have, and the most a record carries. */
+            cut: 0, cutShown: 0 },
   /** A tool measurement the preview cannot predict (M600): what and why —
    *  from there no path, no time, no collision or limit check. */
   stop: null as string | null,

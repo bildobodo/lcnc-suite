@@ -93,6 +93,14 @@ class TestLimitOrigin(unittest.TestCase):
         self.assertEqual(recs, [(5, "lim_child", 5, [[4, 4], [9, 9]], 2)])
         self.assertEqual(r["violations_total"], 1)
 
+    def test_more_stretches_than_a_record_carries_are_counted(self):
+        # Codex R178 VP-I131: the record carries the first LIMIT_RUN_CAP, nruns all
+        r, recs = self.records("lim_loop_cap")
+        (line, sub, site, runs, nruns), = recs
+        self.assertEqual((line, sub, site, len(runs), nruns), (5, "lim_child", 5, 32, 40))
+        self.assertEqual(len(outside_seqs(r)), 40)
+        self.assertLess(runs[-1][0], max(outside_seqs(r)))
+
     def test_a_stretch_of_an_arc_keeps_its_ends_and_the_move_before(self):
         r, recs = self.records("lim_arc")
         (line, sub, site, runs, nruns), = recs

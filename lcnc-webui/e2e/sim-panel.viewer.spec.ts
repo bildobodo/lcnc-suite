@@ -6,7 +6,8 @@
 // change the findings row's text width and the bar folded and unfolded under
 // the operator's finger; the list's rows are the bar's own targets.
 import { test, expect, type Page, type BrowserContext } from "@playwright/test";
-import { encode } from "@msgpack/msgpack";
+import { decode, encode } from "@msgpack/msgpack";
+import { readFileSync } from "node:fs";
 import { ctl } from "./ctl";
 import { openLayout, PROFILES, VIEWPORTS, settleLayout } from "./layout-fixtures";
 import { openSimTab, simLine, simShow, simStepBtn } from "./simTab";
@@ -562,6 +563,56 @@ test("a limit row stands at its own move and reads its origin's line, never a ra
   await page.waitForTimeout(300);
   expect(await simLine(page).textContent(), "no jump").toBe(pos);
   await expect(page.locator(".simBanner"), "nor the simulation").toHaveCount(0);
+});
+
+// Codex R178 (the rest of VP-I130): the code panel marks a limit on the line
+// its own move shows — a called file's move on its call — and nowhere else: a
+// record with no place, or whose move no line of the program shows, marks no
+// raw number. The real worker's payloads (scripts/gen_limit_origin_payloads.py).
+const LIM_FIXTURE = (name: string) => readFileSync(new URL(`../../scripts/test_fixtures/limit_origin_payloads/${name}.msgpack`, import.meta.url));
+const LIM_TEXT = "G21 G90\nG0 X0 Y0 Z0\no<lim_child> call\nG1 X20 F100\nG1 X30\nG1 X40\nM2\n";
+async function limitPayload(page: Page, context: BrowserContext, body: Buffer, text: string, version: number) {
+  await context.route(/\/preview(\?|$)/, r => r.fulfill({ contentType: "application/octet-stream", body }));
+  await context.route(/\/gcode(\?|$)/, r => r.fulfill({ contentType: "text/plain", body: text }));
+  await openLayout(page, PROFILES[0]!, VIEWPORTS[0]!);
+  await ctl({ op: "status_delta", data: { active_file: "/sim.ngc", is_enabled: false, enabled: false } });
+  await ctl({ op: "raw", frame: { type: "viewer_gcode_ready", version, file: "/sim.ngc" } });
+  await expect(page.locator(".scrubBar")).toBeVisible({ timeout: 15_000 });
+  await openSimTab(page);
+  await simShow(page, "limit");
+  await expect(rows(page)).toHaveCount(1);
+}
+const codeMarks = async (page: Page) => {
+  await page.getByRole("tab", { name: "Program", exact: true }).click();
+  await expect(page.locator(".codeLine").first()).toBeVisible();
+  return page.locator(".codeLine.violation").evaluateAll(els => els.map(e => ({
+    line: e.querySelector(".lineNumber")?.textContent?.trim(), title: e.getAttribute("title") })));
+};
+for (const [name, payload, text, want] of [
+  ["a called file's limit marks its call", () => LIM_FIXTURE("lim_sub"), LIM_TEXT, [{ line: "3", title: "X 600 mm > max 500 mm (in lim_child)" }]],
+  ["a record with no place marks no raw number", () => {
+    const raw = decode(LIM_FIXTURE("lim_sub")) as { violations: Record<string, unknown>[] };
+    raw.violations = raw.violations.map(({ runs: _r, nruns: _n, sub: _s, site: _t, ...v }) => v);
+    return Buffer.from(encode(raw));
+  }, LIM_TEXT, []],
+  ["a move no line of the program shows marks nothing", () => LIM_FIXTURE("lim_unmarked"), LIM_TEXT.replace("G1 X30", "(a comment)"), []],
+] as const) {
+  test(`code marks: ${name}`, async ({ page, context }) => {
+    await limitPayload(page, context, Buffer.from(payload()), text, 5180);
+    expect(await codeMarks(page)).toEqual(want);
+  });
+}
+
+// Codex R178 VP-I131: a record carries its first 32 stretches (the gateway's
+// LIMIT_RUN_CAP); one site run 40 times bands 32 of them — and says so, at the
+// row and in the summary's "?", never as the whole.
+test("a row with more stretches than its record carries says how many the timeline shows", async ({ page, context }) => {
+  const text = "G21 G90\nG0 X0 Y0 Z0\n#1=0\no100 while [#1 LT 40]\no<lim_child> call\nG0 Z1\n#1=[#1+1]\no100 endwhile\nM2\n";
+  await limitPayload(page, context, LIM_FIXTURE("lim_loop_cap"), text, 5181);
+  await expect(rows(page).first().locator(".colWhat")).toContainText("the timeline shows the first 32 of 40 stretches");
+  await expect(page.locator(".scrubBar .scrubBand.limit")).toHaveCount(32);
+  await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("One row's timeline bands show only the first 32 of its stretches.");
 });
 
 // Operator 2026-10-20 (live, another program of theirs): the timeline's progress was not
