@@ -1,0 +1,99 @@
+{
+  "round": "R177",
+  "base": "7726afe8",
+  "head": "e8bc45fe",
+  "branch": "feat/step4-p2b",
+  "verdict": "findings",
+  "finding": "VP-I130",
+  "archive": "/tmp/codex-r177-1dohjpbu/repo",
+  "product_sources_matching_git": 474,
+  "repository_tests": {
+    "vitest": {
+      "passed": 243,
+      "failed": 0
+    },
+    "backend": {
+      "collected_tests": 487,
+      "subtests": 1944,
+      "junit_cases": 2431,
+      "failures": 0,
+      "errors": 0
+    },
+    "playwright": {
+      "passed": 5,
+      "failed": 0,
+      "flaky": 0
+    },
+    "build": "PASS"
+  },
+  "own_probes": {
+    "poller": {
+      "passed": 6
+    },
+    "fallback_unit": {
+      "failed_assertions": 2
+    },
+    "native_payload_unit": {
+      "failed_assertions": 1
+    },
+    "native_payload_browser": {
+      "failed_assertions": 1
+    },
+    "native_offline_parse": {
+      "parse_error": null,
+      "mmap_unchanged": true
+    }
+  },
+  "finding_facts": {
+    "raw_record_line": 5,
+    "actual_display_line": 3,
+    "violating_move_seconds": [
+      6,
+      360
+    ],
+    "program_lookup_move_seconds": [
+      720,
+      726
+    ],
+    "browser_row": "L5, X 600 mm > max 500 mm, 12:00",
+    "browser_target_seconds": 720.001
+  },
+  "limits": [
+    "No complete gate or historical mutation rerun",
+    "No live gateway, Vite or machine commands",
+    "Focused poller probe excludes subsequent idle reparse scheduling; live evidence is Claude’s",
+    "Native browser proof uses synthetic XYZ status/INI/tool table and its own local mock",
+    "Browser-PC measurement deferred until after a later agreed merge; nearest approach refinement shelved by operator"
+  ],
+  "live_inputs_before_append": {
+    "docs/reviews/viewer-palette-fest.ideen.md": "4dbb6202df070c007e1a73b362da5e4fb358b9bccac7cb92d845951acd062ccc",
+    "docs/reviews/kollision-paket2.plan.md": "1fece0b94efccefc7ddff37cef8f870dd1892f4907ac745393a44e9b58317461",
+    "docs/reviews/viewer-palette-fest.r177.backend-pytest.txt": "25abd147792a84fa0b42440cddaaf6507ee1c32956876f9300011b71369480e3",
+    "docs/reviews/viewer-palette-fest.r177.codex-probes.txt": "8a7c05ab0332dce90414e53df37e1bebb56dcc23bf45952b0e8f7e4993d76da8",
+    "docs/reviews/viewer-palette-fest.r177.gate-frontend.json": "7b1f24c2cce27e50f6b943ea732f7676167675edddc35e29166f18db58447e47",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r157-rules.txt": "bd6a7f3c2fa611b7c30bab6fc81916521dfd4397a375e94b887fb472387b16d0",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r158-rules.txt": "1b65ab9316e8adf5c0bce8820a3701d044a9df7a274f1629b5cfa496f82d288b",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r159-rules.txt": "53943337a8c87457c3c617b66220519710fcaa0307c1472bb1e619c46441a1d8",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r160-rules.txt": "e984b692dd796e2f719707fff8efe2983c2eb2854f1859f52d0ee3cd005b51c7",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r161-rules.txt": "94f1958e00890ea7af4d91c0ba3b8defe117f727f2e253196ef2f05353df110c",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r162-rules.txt": "93e31cb0ad02c55a5420e72dd51ccd46bf9a58f9a45702379e7aa5bf9388bce2",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r163-rules.txt": "754a11c95b184de6107f419de10e5580bd6ef1101068456af9ebc68ec76aac28",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r164-rules.txt": "d6a38aa1729d914a97aae86c7637c3be1f05fa2ef7e9688ea7d126d4b3a98b61",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r166-rules.txt": "940ebcf8142391ccfc44d490167f525f8ffb04175db740f56867accbddc70795",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r168-rules.txt": "98a45b8ce8770e766f0ed0731ce6063e624b715dddab1a7955a0db608fb4d204",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r169-rules.txt": "7bdff72d7317735993634644e03f53a17db2b41426d74124a145c8fffa87c37f",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r170-rules.txt": "e953eb4e54431bb141d09b58c745fe6bc0abeda6685ef72bec097925df2f771e",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r171-rules.txt": "357166a57633b0e5429dd7bf435b4c59d890117a378e2e94ea8683d1e2a1c9e2",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r172-rules.txt": "75e8d472b9442bb42174dcfe8d3daced3856b08ecd19a85b75c6360b5c75b6af",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r173-rules.txt": "df5e26433814a3a867cbd64c349ae6e8b095a850259a7c62a875465cf32b1e06",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r174-rules.txt": "f31f0acd30c94900645e2d5daccfdf2e79aaef00ae548c6dfe8b51645f59db44",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r175-rules.txt": "160326f1792e299e0f23bf266c3f2c31cc3178f39a492f5622a7a7b290fe73b0",
+    "docs/reviews/viewer-palette-fest.r177.mutations-r176-rules.txt": "9af4907dc5346bcf3b45c826d5c5d4cf2375fcddff2528de97c5c6e1d6636363",
+    "docs/reviews/viewer-palette-fest.r177.mutations-run.sh": "8ce178f2c3d779e379850fbe2db32c63cfbe146f8c64454081a947db43448a8c",
+    "docs/reviews/viewer-palette-fest.r177.mutations-slow.txt": "82cd71d9ba0c4e70904c7926a4918bec14a3455a5a81012eaeec13624889501f",
+    "docs/reviews/viewer-palette-fest.r177.mutations.py": "cc3e9db324f0201b84d9dcce6dbd1f062d44578541bd37e1270d2ff70a9286ea",
+    "docs/reviews/viewer-palette-fest.r177.mutations.txt": "5431f960091882f195c95cb1b8b3b8d725d881b9229f97d0861b00c1da48f4cf",
+    "docs/reviews/viewer-palette-fest.r177.tint-result.txt": "deafc1c503ade5e85de84a1118db993eb717f9fb2f72e15b3b5e6f4f794c6364",
+    "docs/reviews/viewer-palette-fest.r177.tint-running.txt": "9eb786dd0151ed475e45534823aa7e5baacfde6e724a0a863fecc5308bd53eaf"
+  }
+}

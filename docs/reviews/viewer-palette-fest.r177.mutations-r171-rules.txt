@@ -1,0 +1,11 @@
+u_held_ignored ANCHOR [0] 0s
+u_partial_drops_outer RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ [ [ 1, 3 ] ], false ] ] to deeply equal [ [ [ [ 1, 9 ] ], false ] ] | AssertionError: expected [ [ [ [ 2, 4 ] ], false ] ] to deeply equal [ [ [ [ 2, 8 ] ], false ] ][ 10s
+u_three_kept_two RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ [ [ +0, 1 ], [ 2, 3 ] ], true ] ] to deeply equal [ [ …(2) ] ] 9s
+u_more_lost RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ …(2) ] ] to deeply equal [ [ …(2) ] ] 9s
+u_pairs_unordered ANCHOR [0] 0s
+u_gather_uncounted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: table cells read in one step of the build or the bands: expected 57340 to be less than or equal to 16384 9s
+u_native_sort RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the longest list sorted natively at once: expected 16384 to be less than or equal to 64 9s
+u_unmetered_copy RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: every typed array the build made is counted: expected 8422616 to be 8431832 // Object.is equality 9s
+u_build_without_notes RED   1 failed Error: expect(locator).toHaveAttribute(expected) failed | Expected pattern: /^Clear \· checked to the end/ 44s
+u_page_build_replica RED   1 failed Error: expect(locator).toHaveAttribute(expected) failed | Expected pattern: /^Clear \· checked to the end/ 44s
+rebuild ok 63s

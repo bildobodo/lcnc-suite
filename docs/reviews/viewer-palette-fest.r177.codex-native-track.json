@@ -1,0 +1,87 @@
+{
+  "violation": {
+    "line": 5,
+    "axis": "X",
+    "value": 600,
+    "limit": 500,
+    "kind": "max"
+  },
+  "fromRaw": [
+    6,
+    360
+  ],
+  "move": [
+    720,
+    726
+  ],
+  "span": [
+    720,
+    726
+  ],
+  "points": [
+    {
+      "i": 0,
+      "raw": 2,
+      "shown": 2,
+      "cum": 0,
+      "x": 0,
+      "outside": 0
+    },
+    {
+      "i": 1,
+      "raw": 3,
+      "shown": 3,
+      "cum": 0,
+      "x": 0,
+      "outside": 0
+    },
+    {
+      "i": 2,
+      "raw": 4,
+      "shown": 3,
+      "cum": 6,
+      "x": 10,
+      "outside": 0
+    },
+    {
+      "i": 3,
+      "raw": 5,
+      "shown": 3,
+      "cum": 360,
+      "x": 600,
+      "outside": 1
+    },
+    {
+      "i": 4,
+      "raw": 6,
+      "shown": 3,
+      "cum": 714,
+      "x": 10,
+      "outside": 0
+    },
+    {
+      "i": 5,
+      "raw": 4,
+      "shown": 4,
+      "cum": 720,
+      "x": 20,
+      "outside": 0
+    },
+    {
+      "i": 6,
+      "raw": 5,
+      "shown": 5,
+      "cum": 726,
+      "x": 30,
+      "outside": 0
+    },
+    {
+      "i": 7,
+      "raw": 6,
+      "shown": 6,
+      "cum": 732,
+      "x": 40,
+      "outside": 0
+    }
+  ]
+}

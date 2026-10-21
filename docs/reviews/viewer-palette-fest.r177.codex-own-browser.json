@@ -1,0 +1,149 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/playwright.r177-own.config.ts",
+    "rootDir": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r177-1dohjpbu/own-browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "r177.codex.viewer.spec.ts",
+      "file": "r177.codex.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Codex R177: a native subroutine limit is not displayed at the safe main-file L5",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 2421,
+                  "error": {
+                    "message": "Error: the limit belongs to the call at L3, not the safe main L5\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/L3/\u001b[39m\nReceived string:  \u001b[31m\"·\u001b[39m\n\u001b[31mL5\u001b[39m\n\u001b[31m\tX 600 mm > max 500 mm · after the first limit crossing at L5\t\t12:00\"\u001b[39m",
+                    "stack": "Error: the limit belongs to the call at L3, not the safe main L5\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/L3/\u001b[39m\nReceived string:  \u001b[31m\"·\u001b[39m\n\u001b[31mL5\u001b[39m\n\u001b[31m\tX 600 mm > max 500 mm · after the first limit crossing at L5\t\t12:00\"\u001b[39m\n    at /tmp/codex-r177-1dohjpbu/repo/lcnc-webui/e2e/r177.codex.viewer.spec.ts:23:77",
+                    "location": {
+                      "file": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/e2e/r177.codex.viewer.spec.ts",
+                      "column": 77,
+                      "line": 23
+                    },
+                    "snippet": "  21 |  fs.writeFileSync(`${DIR}/native-browser.json`,JSON.stringify({before,...data},null,2));\n  22 |  await page.screenshot({path:`${DIR}/native-browser.png`,fullPage:true});\n> 23 |  expect(before,'the limit belongs to the call at L3, not the safe main L5').toMatch(/L3/);\n     |                                                                             ^\n  24 | });\n  25 |"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/e2e/r177.codex.viewer.spec.ts",
+                        "column": 77,
+                        "line": 23
+                      },
+                      "message": "Error: the limit belongs to the call at L3, not the safe main L5\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoMatch\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected pattern: \u001b[32m/L3/\u001b[39m\nReceived string:  \u001b[31m\"·\u001b[39m\n\u001b[31mL5\u001b[39m\n\u001b[31m\tX 600 mm > max 500 mm · after the first limit crossing at L5\t\t12:00\"\u001b[39m\n\n  21 |  fs.writeFileSync(`${DIR}/native-browser.json`,JSON.stringify({before,...data},null,2));\n  22 |  await page.screenshot({path:`${DIR}/native-browser.png`,fullPage:true});\n> 23 |  expect(before,'the limit belongs to the call at L3, not the safe main L5').toMatch(/L3/);\n     |                                                                             ^\n  24 | });\n  25 |\n    at /tmp/codex-r177-1dohjpbu/repo/lcnc-webui/e2e/r177.codex.viewer.spec.ts:23:77"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-21T05:17:19.024Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/test-results/r177.codex.viewer-Codex-R1-3a11f-ed-at-the-safe-main-file-L5/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/test-results/r177.codex.viewer-Codex-R1-3a11f-ed-at-the-safe-main-file-L5/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r177-1dohjpbu/repo/lcnc-webui/e2e/r177.codex.viewer.spec.ts",
+                    "column": 77,
+                    "line": 23
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "8250557e1591b1a2c951-ce2db010e3e4a8b1c9ba",
+          "file": "r177.codex.viewer.spec.ts",
+          "line": 9,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-21T05:17:18.570Z",
+    "duration": 2940.123,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

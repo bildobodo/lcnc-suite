@@ -1,0 +1,7 @@
+browser: sweep 347 s; summary {"hits":2488,"shards":4}; label 2432 collisions · 56 near misses · checked to the end (not certified)
+list after the check: 400 rows; first 25: L536@00:05 L540@00:05 L543@00:05 L587@00:05 L12@00:07 L17@00:07 L18@00:13 L18@00:13 L19@00:14 L19@00:14 L21@00:15 L22@00:15 L23@00:15 L24@00:15 L25@00:15 L26@00:15 L27@00:15 L28@00:15 L29@00:15 L30@00:15 L31@00:16 L32@00:16 L33@00:16 L34@00:16 L35@00:16; line drops 1
+list in the simulation: 400 rows; first 25: L18@00:13 L18@00:13 L19@00:14 L19@00:14 L61@00:17 L76@00:18 L520@00:57 L552@01:01 L568@01:02 L590@01:03 L598@01:04 L607@01:04 L718@01:10 L735@01:11 L1242@01:47 L1274@01:51 L1289@01:52 L1312@01:53 L1321@01:54 L1331@01:55 L1449@02:00 L1470@02:01 L1975@02:37 L2006@02:41 L2024@02:42; line drops 0
+steps (Next collision): 2490 poses — agree 2488, glow without touch 1, touch without glow 1
+  glow-no-touch: L154708 cum 10231.488 L154707 glows a_trunnion_shafts (0.04 mm)
+  touch-no-glow: L153303 cum 10133.321 L153303 touching unlit a_yoke_casting (tint a_bearing_pedestals,a_bearing_rings,a_trunnion_shafts,spindle_nose,tool)
+evenly spaced positions: 2001 poses — agree 2001, glow without touch 0, touch without glow 0

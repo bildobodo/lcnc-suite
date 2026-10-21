@@ -1,0 +1,6 @@
+before: 4 % checked (632 s of 15793 s) at 76 s; label 275 collisions · 9 near misses so far · 4 % checked; 400 rows (199 collisions), line drops 0; collision rows past the checked part: 72 L19465@10:38 L19526@10:42 L19792@10:48 L20346@11:01 L20408@11:05
+  first rows: L12@00:07 L17@00:07 L124@00:17 L137@00:19 L149@00:19 L190@00:23 L296@00:25 L297@00:25 L298@00:25 L299@00:25 L300@00:25 L301@00:25
+after: 100 % checked (15793 s of 15793 s) at 557 s; label 1004 collisions · 92 near misses · checked to the end (not certified); 400 rows (400 collisions), line drops 0; collision rows past the checked part: 0 
+  first rows: L22161@11:51 L22440@11:57 L22457@11:57 L22967@12:10 L23012@12:12 L23022@12:13 L23304@12:19 L23319@12:20 L23801@12:32 L23844@12:35 L23853@12:36 L24125@12:42
+steps (Next collision): 151 poses — agree 151, glow without touch 0, touch without glow 0
+evenly spaced positions: 401 poses — agree 401, glow without touch 0, touch without glow 0
