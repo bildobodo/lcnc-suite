@@ -71,7 +71,9 @@ export const simView = reactive({
   /** The program's soft-limit records: `total` distinct (line, axis) records
    *  (null = not validated — unchecked ≠ clean), `records` the ones the
    *  payload carries (the gateway caps the list at 200). */
-  limits: { total: null as number | null, records: 0 },
+  /** The limit records: the total, how many the parse sent, how many have
+   *  no place (a payload from before their stretches — viewer/limitPlaces.ts). */
+  limits: { total: null as number | null, records: 0, placeless: 0 },
   /** A tool measurement the preview cannot predict (M600): what and why —
    *  from there no path, no time, no collision or limit check. */
   stop: null as string | null,

@@ -112,6 +112,14 @@ class TestLimitOrigin(unittest.TestCase):
         self.assertLessEqual({4, 5, 6, 7}, shipped(r))
         self.assertEqual([p[0] for p in r["feed"]], [300.0, 400.0, 500.0, 600.0, 700.0, 0.0])
 
+    def test_a_stretch_of_traverses_keeps_its_ends_too(self):
+        # the rapid stream anchors nothing at a line change: X400 goes, the
+        # stretch's start X500 and its points stay
+        r, recs = self.records("lim_collinear_rapid")
+        self.assertEqual(recs, [(6, None, None, [[5, 6]], 1)])
+        self.assertLessEqual({4, 5, 6, 7}, set(r["rapid_seq"]))
+        self.assertEqual([p[0] for p in r["rapid"]], [0.0, 300.0, 500.0, 600.0, 700.0, 0.0])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -100,12 +100,14 @@ describe("a limit record stands at its own move (Codex R177 VP-I130)", () => {
   });
 
   it("a stretch inside a collinear run starts where its first move starts (the decimation kept it)", () => {
-    const p = placed("lim_collinear");
+    for (const name of ["lim_collinear", "lim_collinear_rapid"]) {
+    const p = placed(name);
     const out = outsideCums(p.track);
     expect(p.bands).toEqual([[p.targets[0]!.cum, out[out.length - 1]]]);
     // X500 → X600 is the first move outside: its start is the X500 point, a move inside the window ends there
     const i = Array.from(p.track.cum).indexOf(p.targets[0]!.cum);
-    expect(p.track.pos[i * 3]).toBe(500);
+    expect(p.track.pos[i * 3], name).toBe(500);
+    }
   });
 
   it("read on a track with an entry move in front: the same moves, shifted", () => {

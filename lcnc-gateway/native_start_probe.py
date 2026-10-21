@@ -415,6 +415,11 @@ CASES.update({
     # that leaves the window (X500 → X600 → X700)
     "lim_collinear": ("G21 G90\nG0 X0 Y0 Z0\nG1 X300 F100\n#1=0\no100 while [#1 LT 4]\nG1 X[400 + #1 * 100]\n"
                       "#1=[#1 + 1]\no100 endwhile\nG1 X0 Y10\nM2\n", "mm", 0.0, (490,), {}),
+    # the same with traverses: the rapid stream's decimation anchors nothing
+    # but its ends, mode / relabel / rotary / band boundaries — and the ends
+    # of a limit stretch
+    "lim_collinear_rapid": ("G21 G90\nG0 X0 Y0 Z0\nG0 X300\n#1=0\no100 while [#1 LT 4]\nG0 X[400 + #1 * 100]\n"
+                            "#1=[#1 + 1]\no100 endwhile\nG0 X0 Y10\nG1 X5 F100\nM2\n", "mm", 0.0, (490,), {}),
 })
 
 # Verify pairs (plan Fassungen 4–6): the same program at two start offsets;

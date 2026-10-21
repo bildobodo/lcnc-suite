@@ -94,7 +94,10 @@ const sumHelp = computed(() => {
   const limit = total != null && total > records
     ? `${total} limit violations, a line, an axis and where it ran each — the parse sends the first ${records} the program runs; the list shows their ${lines} line${lines === 1 ? "" : "s"}`
     : sumLimit.value.name;
-  const kinds = `× ${sumClash.value.name}. ▲ ${limit}. ● ${sumTool.value.name}.`;
+  // records with no place close the list without a line (Codex R177 answer 1)
+  const { placeless } = simView.limits;
+  const nowhere = placeless ? ` ${placeless} of them from an older parse have no place — reload the program.` : "";
+  const kinds = `× ${sumClash.value.name}. ▲ ${limit}.${nowhere} ● ${sumTool.value.name}.`;
   // the stop first: it bounds all three
   if (simView.stop) return `${simView.stop}: from there no path, no time, no collision or limit check. ${kinds}${unbound.value}`;
   return kinds + (simView.basis ? ` ${simView.basis}.` : "") + unbound.value;
