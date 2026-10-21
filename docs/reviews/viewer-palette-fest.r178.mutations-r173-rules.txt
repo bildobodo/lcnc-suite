@@ -1,0 +1,11 @@
+u125_own_lineat_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'inside check undecidable for spindle …' to contain '(L7)' | AssertionError: expected 'inside check undecidable for spindle …' to contain '(in touch)' 9s
+u125_shown_axis RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'inside check undecidable for spindle …' to contain '(L7)' | AssertionError: expected 'inside check undecidable for spindle …' to contain '(in touch)' 9s
+u125_sources_merged RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 'L40, L41' ] to deeply equal [ 'L7', 'L41' ] | AssertionError: expected [ 'L40, L41' ] to deeply equal [ 'in touch', 'L41' ] 9s
+u125_note_shown RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'inside check undecidable for spindle …' to contain '(L7)' | AssertionError: expected 'inside check undecidable for spindle …' to contain '(in touch)' 8s
+e125_own_lineat_dropped RED   1 failed Error: the note reads the side's own line | Expected substring: "(L3)" 38s
+e126_no_track_resolver RED   1 failed Error: its name — never the raw L7 | Expected substring: "Tool ↔ Work piece (touch)" 36s
+u_held_ignored_r173 RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ [ [ 4, 5 ] ], false ] ] to deeply equal [ [ [ [ 1, 9 ] ], false ] ] | AssertionError: expected [] to deeply equal [ [ [ [ 1, 9 ] ], false ] ] 8s
+u_pairs_unordered_r173 RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 'w0', 'w1', 'w2' ] to deeply equal [ 'w1', 'w2', 'w0' ] 9s
+d_card_raw_r173 RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'Tool ↔ C faceplate (—)' to be 'Tool ↔ C faceplate (L4)' // Object.is equality 8s
+u126_word_number RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 'L4', 'touch', '—', 'L6' ] to deeply equal [ 'L4', 'touch', '—', '—' ] 8s
+rebuild ok 26s

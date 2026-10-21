@@ -1,0 +1,17 @@
+{
+  "violation": {
+    "line": 5,
+    "axis": "X",
+    "value": 600,
+    "limit": 500,
+    "kind": "max"
+  },
+  "row": "\t\n—\n\tX 600 mm > max 500 mm · place not known — reload the program\t\t—",
+  "marks": [
+    {
+      "line": "5",
+      "text": "G1 X30",
+      "title": "X 600 mm > max 500 mm"
+    }
+  ]
+}

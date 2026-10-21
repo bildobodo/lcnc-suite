@@ -1,0 +1,18 @@
+haus.ngc on the XYZAC sim (the operator's live payload, kept local; numbers only) — the four limit records of the round-B live look and the shipped points carrying their raw line number.
+Per point: seq, sub (index into sub_names [m600, tool_touch_off]; 255 = main program), cl = call line (feed_cline), out = feed_outside, ok = feed_lineok.
+
+  feed n 203549 203549 203549 203549 203549 203549
+   L536: 2 pts, outside 1; first: seq26 sub1 cl12 out0 ok0 | seq1256 sub255 cl0 out1 ok1
+     trusted main pts 1, outside 1, seq 1256
+   L540: 2 pts, outside 1; first: seq28 sub1 cl12 out0 ok0 | seq1264 sub255 cl0 out1 ok1
+     trusted main pts 1, outside 1, seq 1264
+   L543: 2 pts, outside 1; first: seq30 sub1 cl12 out0 ok0 | seq1270 sub255 cl0 out1 ok1
+     trusted main pts 1, outside 1, seq 1270
+   L587: 2 pts, outside 1; first: seq32 sub1 cl12 out0 ok0 | seq1358 sub255 cl0 out1 ok1
+     trusted main pts 1, outside 1, seq 1358
+  rapid n 7 7 7 7 7 7
+   L536: 0 pts, outside 0; first: 
+   L540: 0 pts, outside 0; first: 
+   L543: 0 pts, outside 0; first: 
+   L587: 1 pts, outside 0; first: seq31 sub1 cl12 out0 ok0
+  violations sample [{"line":536,"axis":"X","value":274.443,"limit":250,"kind":"max"},{"line":540,"axis":"X","value":279.809,"limit":250,"kind":"max"},{"line":543,"axis":"X","value":285.204,"limit":250,"kind":"max"},{"line":587,"axis":"X","value":338.695,"limit":250,"kind":"max"}]

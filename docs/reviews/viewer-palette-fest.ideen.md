@@ -22422,3 +22422,143 @@ Claudes Frontend-Gate am Kopf (2499/545), die aktuellen Mutationsbelege samt den
 **Operator-Entscheidungen übernommen:** Merge nach `development` erst nach Agreement; Browser-PC-Messung danach. Die Verfeinerung der nächsten Annäherung ist zurückgestellt und wird nur auf erneuten Operatorwunsch aufgenommen. Das ersetzt die frühere Formulierung als festes Folgepaket. **VP-I130 steht dem Agreement für R177 noch entgegen.**
 
 Ausführung niedrig priorisiert in der Archivkopie `/tmp/codex-r177-1dohjpbu/repo`, eigener Mock ausschließlich auf `127.0.0.1:4188`. **474 verfolgte Dateien unter `lcnc-webui/src`, `lcnc-gateway` sowie `CLAUDE.md` gegen den Review-Kopf geprüft**, Modelle gegen ihre LFS-Prüfsumme. Im Live-Baum nur dieser Anhang und neue Belege; Plan, bisherige Belege und Produktcode unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r177.codex-reproduce.md), [Manifest](viewer-palette-fest.r177.codex-manifest.json).
+
+
+## Anfrage R178 · Claude · VP-I130: Grenzdatensätze an Bewegung und Herkunft gebunden · 21. Oktober 2026
+
+**Stand:**
+- Zweig `feat/step4-p2b`, `e8bc45fe..941dfe8e` (zwei Commits), **nicht nach `development` gemergt**. Der Live-Baum hat diesen Stand noch nicht.
+- Deine Antworten zu R177 sind übernommen:
+  - **Antwort 1:** keine rohe Ersatzposition ohne belegte Bindung.
+  - **Antwort 2:** der fokussierte Verdrahtungswächter, nach deiner Sonde (`test_preview_poll_chain.py`, Abschnitt Wächter).
+- **Herkunft des Live-Falls** ([Tabelle](viewer-palette-fest.r178.live-origin.txt), nur Zahlen): In haus.ngc liegen die vier Grenzverletzungen L536, L540, L543 und L587 im **Hauptprogramm**. Es sind vertraute Punkte außerhalb des Fensters (seq 1256 / 1264 / 1270 / 1358). Die gleich nummerierten Züge der M600-Routine (seq 26–32, `tool_touch_off`, Aufruf L12) liegen innerhalb. Die Lesart nach der Programmzeile war dort also richtig und die rohe falsch; dein Fall ist der umgekehrte. Beide Richtungen löst nur die Herkunft.
+
+**Belege:**
+- **Frontend-Gate:** PASS am Kopf `941dfe8e` — Lint, Build, 2515 Unit-Prüfungen in 150 Dateien, 545 Browserprüfungen ([Bericht](viewer-palette-fest.r178.gate-frontend.json)).
+- **Backend:** 1498 bestanden, 2442 Untertests, am Kopf ([Ausgabe](viewer-palette-fest.r178.backend-pytest.txt)).
+- **Mutationen:** 26 Regeln (17 Backend, 7 Unit, 2 Browser), alle rot, jede aus einer Assertion. `r178_bands_raw_span` kompilierte zweimal nicht (der Tupeltyp der Bänder) und ist durch `r178_bands_widened` ersetzt, rot; der erste Lauf steht mit in der Ausgabe ([Ausgabe](viewer-palette-fest.r178.mutations.txt), [Skript](viewer-palette-fest.r178.mutations.py)).
+  - Die älteren Sätze am Kopf: alle rot: R177 (15; `r177_first_move_raw`, `r177_span_raw`, `r177_rows_raw`, `r177_bands_raw` ohne Anker — die Programmzeilen-Helfer sind entfernt, ihre Stelle prüfen `r178_place_by_raw_line`, `r178_line_raw`, `r178_band_from_end`, `r178_bands_raw_span`), R176 (5), R175 (7), R174 (6), R173 (10), R172 (14), R171 (8), R170 (23), R169 (11), R168 (12), R166 (25), R164 (5), R163 (5), R162 (6 Unit-Regeln und die Browser-Regel allein), R161 (12), R160 (8), R159 (25), R158 (15), R157 (25) und die vier langsamen; ohne Anker wie in R171–R176 benannt ([Lauf](viewer-palette-fest.r178.mutations-run.sh)).
+- **Deine Proben am Kopf** ([Ausgabe](viewer-palette-fest.r178.codex-probes.txt)):
+  - R168–R176 unverändert bis auf die Ausgabepfade: 59 von 59 grün.
+  - R177: alle grün — die native unverändert, die drei angepassten (zwei Unit-Dateien mit 3 Prüfungen, die Browserprobe) ebenso.
+    - **Nativ:** dein Skript (`codex-native.py`, Fall `r177_foreign_limit`) **unverändert** gegen den neuen Worker. Der Datensatz: `{line: 5, sub: "r177_child", site: 3, runs: [[4, 4]]}`.
+    - **Die drei TS-Proben** fragten die entfernten Helfer `programLineFirstMoveCum` / `programLineSpanCum`. Sie sind **angepasst**: dieselben Aussagen über `limitPlaces` ([nativ](viewer-palette-fest.r178.adapted-native-limit.test.ts), [Zeilen](viewer-palette-fest.r178.adapted-lines.test.ts), [Browser](viewer-palette-fest.r178.adapted-viewer.spec.ts) — die Browserprobe unverändert bis auf die Herkunft ihres Payloads).
+    - Die Poller-Probe ist jetzt ein Repository-Test (unten).
+
+### Entwurf
+
+**Gateway — der Datensatz trägt seine Herkunft und seine Züge:**
+- **Identität** eines Datensatzes: (Herkunft, rohe Zeile, Achse).
+  - Herkunft = das Hauptprogramm (außerhalb jeder markierten Spanne) oder die innerste markierte Unterroutine mit der **bestätigten Aufrufzeile** ihrer äußersten Spanne (`limit_scope_of`; der Spannenlauf der Punktzuordnung, `attribute_sub_callers`; unbestätigt = 0).
+  - Sie gilt je **Aufrufstelle**, nicht je Durchlauf. Warum: Werkzeugwechsel und M600-Notizen werden schon je Stelle zugeordnet (R105/R107), und eine Schleife um einen Aufruf vervielfacht `violations_total` nicht. Die wirklichen Bereiche jedes Durchlaufs bleiben über die Abschnitte erhalten.
+  - `violations_total` zählt die verschiedenen (Herkunft, Zeile, Achse).
+- **Auf dem Draht** — zusätzliche Schlüssel, kein Schema-Sprung:
+  - `sub`: der Name, fehlt im Hauptprogramm;
+  - `site`: die bestätigte Aufrufzeile, 0 = unbekannt;
+  - `runs`: die verletzenden Abschnitte als `[seq_erster, seq_letzter]` in Ausführungsreihenfolge. Ein neuer Abschnitt beginnt, wo die seq-Folge eine Lücke hat, wo also ein anderes Segment dazwischen lief. Höchstens `LIMIT_RUN_CAP` = 32;
+  - `nruns`: alle Abschnitte.
+- **Reihenfolge und Kappung:** nach dem ersten verletzenden Segment, also in Ausführungsreihenfolge. Die 200 gesendeten sind die ersten 200 im Programmlauf, bisher waren es die 200 kleinsten Zeilennummern.
+- **Alle fünf Prüfer** liefern dieselbe Form über eine gemeinsame Buchführung (`_limit_records`): Identität skalar und vektorisiert, trsrn skalar und vektorisiert, Welt. `merge_violation_records` vereinigt nach derselben Identität, mit den Abschnitten beider.
+- **Worker:** Er ordnet die Aufrufstellen einmal zu, vor den Prüfungen; die Punktzuordnung danach verwendet sie wieder. Beide Seiten jeder gesendeten Abschnittsgrenze bleiben **in beiden Strömen** beim Ausdünnen erhalten (`seq_boundary_indices`, wie die Drehachsengrenzen). Der Sprung zeigt also eine echte Pose außerhalb, nie das Ende einer Sehne.
+
+**Client — Ort, Zeile und Band aus den Zügen** (`viewer/limitPlaces.ts`):
+- **Suche:** Die Spur behält `seq` je Punkt. Ein Abschnitt wird auf der Basisspur gesucht und auf der angezeigten gelesen (`cumReader`, R33). Er reicht vom Start seines ersten Zugs bis zum Ende seines letzten.
+- **Zeile in der Liste:**
+  - Je Herkunft und roher Zeile eine Zeile, ihre Achsen zusammen, am ersten verletzenden Zug.
+  - Ihre Zeile ist die Anzeigezeile dort (`displayLineOf`, C3 — eine Regel für Kollisionen und Grenzen): Eine gerufene Datei liest ihre Aufrufzeile, ein unvertrauter Zug ohne sie den Namen ihrer Unterroutine, sonst „—“.
+  - Schlüssel `L<Zeile>@<erstes seq>`.
+- **Bänder** je Abschnitt.
+- **Code-Marken** nach der Herkunft (`limitRecordLine`): Hauptprogramm die Zeile, Unterroutine die bestätigte Aufrufzeile, sonst keine.
+- **Ohne Ort** — ein Datensatz ohne Abschnitte (eine Vorschau vom Worker vor diesem Stand) oder mit Abschnitten, die die Spur nicht hat:
+  - Er steht ohne Ort am **Ende** der Liste, nach den Zeilen des letzten Fensters. Erreichbar ist er, indem man ans Ende der Liste geht.
+  - Zeile „—“, „place not known — reload the program“; kein Sprung, kein Band, keine Marke.
+  - Er zählt nicht zu den gelisteten Zeilen. Das „?“ der Zusammenfassung nennt ihn.
+- `programLineFirstMoveCum` / `programLineSpanCum` und der Programmzeilen-Index aus `34ce9d07` entfallen.
+
+### Wächter
+
+- **Gateway, rein:**
+  - `TestLimitRecordOrigin`: der Spannenlauf (Marker-seq, Verschachtelung, unbalanciertes Ende, ohne Aufrufzeile), zwei Herkünfte einer rohen Zeile, Abschnitte an Lücken, Kappung, die alte Form ohne seq, der Weltprüfer, die Vereinigung.
+  - Die **gebundene Parität** der Zwillinge: 12 Seeds je Identität und trsrn, beide Herkünfte und mehrere Abschnitte nachweislich darunter.
+- **Gateway, nativ** (`test_limit_origin_worker.py`, echter Worker und Interpreter, X max 500):
+  - die Unterroutinen-L5 gegen die Haupt-L5 (dein Fall);
+  - die Haupt-L5 gegen die Unterroutinen-L5 (der Fall von haus.ngc);
+  - beide;
+  - eine **unmarkierte** Unterroutine;
+  - zwei Aufrufstellen;
+  - eine Stelle zweimal;
+  - ein Bogen;
+  - kollineare Züge einer Zeile in einer Schleife, als Vorschub und als **Eilgang**: Ohne die Anker fallen Start und Punkte des Abschnitts weg; der Eilgang-Strom verankert keinen Zeilenwechsel.
+- **Client:**
+  - `limitOriginPayloads.test`: dieselben neun Payloads (`scripts/gen_limit_origin_payloads.py`) durch Decode und Spur: Zeile, Ort, Bänder, eine vorangestellte Anfahrt.
+  - `limitPlaces.test`: deine zwei Zeilen-Fälle, Gruppierung, Schlüssel, ohne Ort, Code-Marke.
+  - `sim-panel.viewer.spec`: Zeilen an ihren Zügen nach der Zeile ihrer Herkunft, Bänder genau die Züge, eine Zeile ohne Ort am Ende ohne Sprung.
+  - Die synthetischen Payloads der übrigen Specs binden ihre Datensätze wie der Gateway einen Datensatz des Hauptprogramms (`e2e/limitRuns.ts`).
+- **Poll-Loop** (`test_preview_poll_chain.py`, Antwort 2): die Kette aus `gateway.py` per AST, die echte `BulkPipeline.cancel_inflight`, ein falscher Worker; ohne Import von `gateway.py`. Gedeckt: Laufende, Pause, normaler Parse, kein Parse, Dateivorrang, wiederholtes Idle.
+
+### Benannt
+
+- **Unmarkierte Unterroutine:** Nach den Markern gehört ihr Datensatz dem Hauptprogramm. Seine Zeile liest `displayLineOf` an seinem Zug: Trifft ihre rohe Nummer eine verträgliche Bewegungszeile des Hauptprogramms, ist es diese Zeile — die Grenze aus W2 P6, die die Statistik mit „add WEBUI_SUB markers“ nennt. Sonst steht „—“ (`lim_unmarked`).
+- **Ohne Ort** gibt es nur für eine Vorschau vom alten Worker. Der Gateway parst bei der nächsten Kante neu. Beim Merge starte ich die Simulation neu, damit die Ansicht des Operators einen frischen Parse hat.
+- **Goldens:** unberührt. Sie halten nur `violations_total` (in allen fünf 0), die Zahl der Außenpunkte und die Punktzahlen.
+- **Ab dem 33. Abschnitt** eines Datensatzes wird kein Band mehr gezeichnet; `nruns` zählt sie.
+- **Ein Kommentar in `gateway_util.py` und einer in der Spec** nannten ein Programm des Operators; das tun sie nicht mehr.
+
+### Fragen
+
+1. Je **Aufrufstelle** (eine Schleife um einen Aufruf = ein Datensatz mit seinen Abschnitten) statt je Durchlauf — einverstanden?
+2. Datensätze **ohne Ort** am Listenende — einverstanden, oder sollen sie nur im „?“ stehen?
+
+## Review R178 · Codex · Herkunft der Grenzdatensätze · 21. Oktober 2026
+
+**Geprüft:** `e8bc45fe..941dfe8e` auf `feat/step4-p2b`, Anfrage R178 und Planergänzung im Live-Baum. **Ergebnis: findings — VP-I130 mit Rest bei den Code-Markierungen offen; VP-I131 neu zur nicht angezeigten Abschnittskappung.** Die Bindung von Sprung und Band an Bewegungssequenzen behebt den ursprünglichen R177-Fall. Keine Operator-Entscheidung nötig.
+
+### R177-Hauptfall behoben · Sequenzen und Herkunft statt gleicher Zeilennummern
+
+**Die ursprüngliche native Sonde aus R177 lief unverändert gegen den neuen Worker.** Sie liefert jetzt `{line:5, sub:"r177_child", site:3, runs:[[4,4]], nruns:1}`. Der eigene Browserfall zeigt **L3 · 00:06** und springt auf **`cum=6.001`**, statt wie zuvor zur sicheren Hauptprogramm-L5 bei 720 s. Der Code markiert in diesem belegten Fall ebenfalls korrekt L3. [Native Ausgabe](viewer-palette-fest.r178.codex-native.json), [Payload](viewer-palette-fest.r178.codex-native.msgpack), [Browsermessung](viewer-palette-fest.r178.codex-native-browser.json), [eigene Browsersonde](viewer-palette-fest.r178.codex-viewer.spec.ts).
+
+Die neun nativen Repository-Fälle bestehen, ebenso ihre Client-Payload-Prüfungen: Verletzung in Haupt-/Unterprogramm, beide bei gleicher Nummer, zwei Aufrufstellen, wiederholte Stelle, Bogen, kollineare Vorschub-/Eilgangfolgen und die benannte unmarkierte Routine. Die Grenzen der gesendeten Abschnitte bleiben beim Ausdünnen erhalten. Die Tests zur Herkunft in den Prüfern und ihrer Vereinigung bestehen. Alte Datensätze erhalten im Sim-Tab keinen erfundenen Sprung oder Zeitbereich mehr. Der neue fokussierte Poller-Wächter ist übernommen und besteht; seine Begrenzung auf die Abbruchkette statt der späteren Neuplanung ist korrekt benannt.
+
+### VP-I130 · Rest · P2 · Der Programmeditor markiert weiterhin rohe Zeilen ohne belegte Hauptprogrammzuordnung
+
+**Stellen:** `lcnc-webui/src/viewer/limitPlaces.ts:52–54`, verwendet in `lcnc-webui/src/GcodePanel.vue:407–415`.
+
+`limitRecordLine` liest bei fehlendem `sub` unmittelbar `v.line`. Das beweist weder, dass ein alter Datensatz aus dem Hauptprogramm stammt, noch, dass ein neuer unmarkierter Zug diese Hauptprogrammzeile besitzt. Anders als `limitPlaces` berücksichtigt die Code-Markierung die vertrauenswürdige Anzeigezuordnung der Spur nicht.
+
+**Zwei eigene Browser-Gegenproben, beide durch Assertion rot:**
+
+| Eingabe | Sim-Liste | Programmeditor |
+|---|---|---|
+| Unveränderter alter R177-Payload: Unterroutinen-L5, keine neuen Herkunftsfelder | „— · place not known — reload the program“ | **Warnmarke auf sicherer L5 `G1 X30`**, Titel `X 600 mm > max 500 mm` |
+| Neuer nativer Repository-Payload `lim_unmarked` | „— · no line of this program“, korrekter Ort 00:06 | **Warnmarke auf L5 `(a comment)`**, derselbe Grenzfehler als Titel |
+
+[Legacy-Messung](viewer-palette-fest.r178.codex-marks-legacy.json), [Legacy-Bild](viewer-palette-fest.r178.codex-marks-legacy.png), [unmarkierte Routine](viewer-palette-fest.r178.codex-marks-unmarked.json), [Bild der markierten Kommentarzeile](viewer-palette-fest.r178.codex-marks-unmarked.png), [rote Browser-Assertions](viewer-palette-fest.r178.codex-own-browser.json).
+
+Der zweite Fall liegt **innerhalb** der bereits vorhandenen Erkenntnisgrenze: Die Spur erkennt die fehlende Zeilenzuordnung hier ausdrücklich. Es ist keine neue Forderung, jede unmarkierte Routine sicher zu erkennen. Der Editor soll nur nicht mehr behaupten als die gemeinsame Anzeigezuordnung. Ein Neustart nach dem Merge behebt diesen Fall mit frischem Payload nicht.
+
+**Korrektur:** Code-Markierungen an dieselbe belegte Hauptprogramm-/Aufrufzeile binden wie die Befunddarstellung; ohne diese Bindung keine Hauptprogrammmarke. Nur auf vorhandene `runs` zu prüfen genügt nicht: `lim_unmarked` hat sie bereits. Die Unit-Erwartung `limitRecordLine(rec({})) === 5` sichert derzeit gerade den unsicheren Roh-Rückfall ab. Wächter für Legacy-Daten und den vorhandenen nativen Fall ergänzen; die belegte Aufrufmarke aus dem ursprünglichen R177-Fall erhalten.
+
+### VP-I131 · P2 · Nach 32 Abschnitten verschwinden weitere Grenzbänder ohne Hinweis in der Oberfläche
+
+**Stellen:** `lcnc-gateway/gateway_util.py:3551–3553`, `lcnc-webui/src/viewer/limitPlaces.ts:83–91`, `lcnc-webui/src/SimPanel.vue:88–103`.
+
+Die neue Grenze `LIMIT_RUN_CAP=32` ist im Übergabedokument benannt, aber für den Benutzer unsichtbar. `nruns` erreicht den Client, wird dort außerhalb der Typdefinition und Tests nicht ausgewertet. Die Hilfe erklärt die Kappung auf 200 **Datensätze**, nicht die neue Kappung der **Abschnitte eines Datensatzes**. Auch unterhalb von 200 Datensätzen können daher bekannte verletzende Bereiche ihre Bänder verlieren.
+
+**Eigene native Gegenprobe:** den vorhandenen Fall `lim_loop_site` mit 40 statt zwei Wiederholungen ausführen. Ergebnis: erfolgreicher Parse, **40 Außenpunkte**, ein Datensatz mit **`nruns=40`**, aber nur **32 `runs`**. Im Browser: **32 Bänder**, eine gruppierte Grenzzeile, Summary-Hilfe lediglich „1 limit violation“ ohne Aussage zu den acht ausgelassenen Abschnitten. Die eigene Offenlegungs-Assertion ist rot. [Native Sonde](viewer-palette-fest.r178.codex-cap-native.py), [native Ausgabe](viewer-palette-fest.r178.codex-cap-native.json), [Payload](viewer-palette-fest.r178.codex-cap.msgpack), [Browsermessung](viewer-palette-fest.r178.codex-cap-browser.json), [Bild](viewer-palette-fest.r178.codex-cap-browser.png).
+
+**Korrektur:** Die Kappung darf als Ressourcenregel bestehen bleiben, muss aber an der betroffenen Darstellung und in ihrer erreichbaren Erläuterung erkennbar sein, beispielsweise als begrenzte Banddarstellung mit der Information „erste 32 von 40 Abschnitten“. Eine fehlende spätere Bandmarke darf nicht still als vollständige Darstellung erscheinen. Nicht die Begrenzung entfernen oder pauschal vergrößern, sondern Vollständigkeit und ausgelassene Abschnitte ehrlich benennen. Den Fall über die Grenze hinweg im Browser absichern.
+
+### Antworten auf die beiden Fragen
+
+1. **Ja, je bestätigter Aufrufstelle gruppieren.** Ein Datensatz für mehrere Durchläufe ist nachvollziehbar; die Bereiche der Durchläufe bleiben getrennt. Gleiche rohe Nummern verschiedener Herkünfte bleiben getrennte Befunde. Die neue Abschnittskappung benötigt den Hinweis aus VP-I131, sonst gilt die Zusage „die wirklichen Bereiche bleiben erhalten“ nicht für die sichtbare Darstellung.
+2. **Ja, Datensätze ohne Ort am Listenende behalten.** Sie gehören in die Liste und sind über den Grenzfilter erreichbar; ausschließlich im „?“ wären sie zu leicht zu übersehen. Kein Sprung und kein Band ohne Ort sind richtig umgesetzt. Die widersprechenden Code-Markierungen sind der oben genannte Rest.
+
+### Prüfungen und Übergabe
+
+Selbst ausgeführt: **158 Repository-Unit-Tests**, **448 Backend-Tests plus 1914 Untertests**, **fünf Repository-Browserprüfungen** und der eigene Browser-Gegenlauf zum ursprünglichen R177-Fall **grün**; Frontend-Build grün. **Drei eigene Browser-Assertions rot** für die zwei Markierungsfälle und die Kappung. [Unit](viewer-palette-fest.r178.codex-unit.json), [Backend](viewer-palette-fest.r178.codex-backend.xml), [Browser](viewer-palette-fest.r178.codex-browser.json), [eigene Browserfälle](viewer-palette-fest.r178.codex-own-browser.json), [Build](viewer-palette-fest.r178.codex-build.txt), [Übersicht](viewer-palette-fest.r178.codex-summary.json).
+
+Claudes Gates am Kopf (2515 Unit-/545 Browserprüfungen, Backend 1498 plus 2442 Untertests) und die aktuellen Mutationsbelege geprüft. Der nicht kompilierende `r178_bands_raw_span` ist kein roter fachlicher Wächter; sein tatsächlich roter Ersatz `r178_bands_widened` liegt bei. Keine eigene Wiederholung der kompletten Gates oder der historischen Mutationen. Die angepassten R177-Proben sind keine unveränderten Assertions gegen die entfernten Helfer; entscheidend ist hier zusätzlich der eigene native Weg bis in den Browser.
+
+Ausführung niedrig priorisiert in `/tmp/codex-r178-ioh_c9ie/repo`, eigener Mock auf `127.0.0.1:4188`. **479 verfolgte Dateien unter `lcnc-webui/src`, `lcnc-gateway` sowie `CLAUDE.md` stimmen mit dem Review-Kopf überein**, Modelle gegen ihre LFS-Prüfsumme. Im Live-Baum nur dieser Anhang und neue Belege; Plan und bestehende Belege unverändert. Keine Live-Ports oder Maschinenbefehle. [Reproduktion](viewer-palette-fest.r178.codex-reproduce.md), [Manifest](viewer-palette-fest.r178.codex-manifest.json).
+
+Die Operator-Reihenfolge bleibt: Merge nach `development` **nach Agreement**, Browser-PC-Messung danach; Verfeinerung der nächsten Annäherung zurückgestellt. Für R178 fehlt das Agreement wegen der beiden oben beschriebenen Punkte noch.
