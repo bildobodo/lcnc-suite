@@ -583,6 +583,8 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 
 - **Grenzdatensätze an Bewegung und Herkunft gebunden (R178, VP-I130):** Ein Datensatz nennt die rohe Zeile der Datei, in der sein Zug lief; er trägt jetzt seine Herkunft (Hauptprogramm oder markierte Unterroutine mit bestätigter Aufrufzeile, je Aufrufstelle) und seine verletzenden Abschnitte als seq-Läufe. Der Client setzt Zeile, Sprung und Bänder daraus (`limitPlaces`); ein Datensatz ohne Abschnitte hat keinen Ort und schließt die Liste.
 
+- **Code-Marken und Kappung (R179):** Der Editor markiert nur die Zeilen der platzierten Grenzzeilen (`limitMarks`), nie eine rohe Nummer; eine Zeile, deren Datensätze mehr Abschnitte haben als sie tragen (32), sagt es an der Zeile und im „?“.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).

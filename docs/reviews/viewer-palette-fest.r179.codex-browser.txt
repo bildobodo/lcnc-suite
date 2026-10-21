@@ -1,0 +1,21 @@
+[1A[2K[2m[WebServer] [22m(node:326088) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 6 tests using 1 worker
+
+[1A[2K(node:326100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:326100) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/6] e2e/sim-panel.viewer.spec.ts:529:1 › a limit row stands at its own move and reads its origin's line, never a raw number's
+[1A[2K[2/6] e2e/sim-panel.viewer.spec.ts:600:3 › code marks: a called file's limit marks its call
+[1A[2K[3/6] e2e/sim-panel.viewer.spec.ts:600:3 › code marks: a record with no place marks no raw number
+[1A[2K[4/6] e2e/sim-panel.viewer.spec.ts:600:3 › code marks: a move no line of the program shows marks nothing
+[1A[2K[5/6] e2e/sim-panel.viewer.spec.ts:609:1 › a row with more stretches than its record carries says how many the timeline shows
+[1A[2K[6/6] e2e/sim-panel.viewer.spec.ts:1004:1 › the summary names each kind: words in the wide pane, the glyph and the number narrow; a capped list says so
+[1A[2K  6 passed (15.8s)

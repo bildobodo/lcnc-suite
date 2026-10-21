@@ -1,0 +1,9 @@
+r179_marks_raw_line RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 5 ] to deeply equal [ 2, 5 ] 7s
+r179_marks_placeless_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, 5, 9 ] to deeply equal [ 2, 5 ] 8s
+r179_marks_noline_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: a move no line shows marks nothing: expected [ 5 ] to deeply equal [] 9s
+r179_marks_not_published RED 2 passed (12.8s) Error: expect(received).toEqual(expected) // deep equality | - Expected  - 6 40s
+r179_cut_dropped NOCOMPILE ["src/viewer/limitPlaces.ts(105,51): error TS18048: 't.cut' is possibly 'undefined'."] 8s
+r179_cut_note_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected '' to be 'the timeline shows the first 32 of 40…' // Object.is equality 9s
+r179_cut_help_dropped RED   1 failed Error: expect(locator).toContainText(expected) failed | Expected substring: "One row's timeline bands show only the first 32 of its stretches." 45s
+rebuild ok 66s
+r179_cut_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewer/limitOriginPayloads.test.ts > a limit record stands at its own move (Codex R177 VP-I130) > more stretches than a record carries: bands for those it carries, and the row says so (Codex R178 VP-I131) | AssertionErro 6s

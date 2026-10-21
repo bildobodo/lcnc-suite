@@ -1,0 +1,17 @@
+{
+  "records": [
+    {
+      "axis": "Y",
+      "nruns": 40,
+      "sent": 32
+    },
+    {
+      "axis": "X",
+      "nruns": 40,
+      "sent": 32
+    }
+  ],
+  "bands": 64,
+  "row": "\t\nL5\n\tY 600 mm > max 500 mm · X 600 mm > max 500 mm · the timeline shows the first 32 of 40 stretches\t\t00:00",
+  "help": "× Collisions not checked. ▲ 2 limit violations. One row's timeline bands show only the first 32 of its stretches. ● No tool changes."
+}

@@ -1,0 +1,56 @@
+[1A[2K[2m[WebServer] [22m(node:325562) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 6 tests using 1 worker
+
+[1A[2K(node:325574) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:325574) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/6] e2e/r179.codex-extra.viewer.spec.ts:16:1 › Codex R179: cap words describe a multi-axis row rather than only one record
+[1A[2K  1) e2e/r179.codex-extra.viewer.spec.ts:16:1 › Codex R179: cap words describe a multi-axis row rather than only one record 
+
+    Error: the row has 64 disjoint timeline bands
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m64[39m
+    Received: [31m32[39m
+
+      25 |  expect(bands).toBe(64);
+      26 |  const m=/timeline shows the first (\d+) of (\d+) stretches/.exec(text);
+    > 27 |  if(m)expect(Number(m[1]),'the row has 64 disjoint timeline bands').toBe(bands);
+         |                                                                     ^
+      28 |  else expect(text+' '+help).toMatch(/axis|axes|limited|omitted/i);
+      29 | });
+      30 | test('Codex R179: code marks follow replacement and clear without an old-program mark',async({page,context})=>{
+        at /tmp/codex-r179-_0oxg34m/repo/lcnc-webui/e2e/r179.codex-extra.viewer.spec.ts:27:69
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r179.codex-extra.viewer-Co-0fb4b-rather-than-only-one-record/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r179.codex-extra.viewer-Co-0fb4b-rather-than-only-one-record/error-context.md
+
+
+[1A[2K(node:325664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:325664) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[2/6] e2e/r179.codex-extra.viewer.spec.ts:30:1 › Codex R179: code marks follow replacement and clear without an old-program mark
+[1A[2K[3/6] e2e/r179.codex-r178.viewer.spec.ts:21:51 › Codex R178: legacy limit has no invented main-file code mark
+[1A[2K[4/6] e2e/r179.codex-r178.viewer.spec.ts:21:51 › Codex R178: unmarked limit has no invented main-file code mark
+[1A[2K[5/6] e2e/r179.codex-r178.viewer.spec.ts:31:1 › Codex R178: the original native R177 case now jumps to the subroutine move
+[1A[2K[6/6] e2e/r179.codex-r178.viewer.spec.ts:38:1 › Codex R178: a capped run list says that later violating stretches have no band
+[1A[2K  1 failed
+    e2e/r179.codex-extra.viewer.spec.ts:16:1 › Codex R179: cap words describe a multi-axis row rather than only one record 
+  5 passed (12.6s)
