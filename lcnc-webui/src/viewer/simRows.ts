@@ -142,14 +142,19 @@ function limitWords(recs: readonly LimitViolation[], unit: string): string {
   return recs.length ? recs.map(v => limitViolationText(v, unit)).join(" · ") : "Soft limit";
 }
 
-/** The limit records with NO place (viewer/limitPlaces.ts — a payload from
- *  before records carried their moves): rows without a position, a jump or
- *  a line (Codex R177 answer 1: a raw number is no place), each saying so.
- *  They close the list. */
+/** The limit records with NO place (viewer/limitPlaces.ts): rows without a
+ *  position, a jump or a line (Codex R177 answer 1: a raw number is no
+ *  place), each saying why. They close the list. Records without stretches
+ *  come from a parse before records carried their moves — a new parse places
+ *  them; stretches the track does not hold are a fault no parse names, and
+ *  the note claims no remedy. No "reload the program": loading an unchanged
+ *  file publishes the parse it has (gateway preview_file_edge_action). */
 export function placelessLimitRows(groups: readonly (readonly LimitViolation[])[], unit: string): SimRow[] {
   return groups.map((recs, k) => ({
     key: `L?${k}`, kind: "limit" as const, line: 0, lineLabel: NO_VALUE, cum: NaN, cumEnd: NaN,
-    what: limitWords(recs, unit), note: "place not known — reload the program", rapid: null, at: NO_VALUE }));
+    what: limitWords(recs, unit), rapid: null, at: NO_VALUE,
+    note: recs.some(v => v.runs?.length) ? "place not known — its moves are not on the timeline"
+                                         : "place not known — from an older parse; a new parse places it" }));
 }
 
 /** Rows after a predicted tool measurement (docs/reviews/parity-ef.plan.md
