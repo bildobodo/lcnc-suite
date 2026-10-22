@@ -10,11 +10,24 @@ import { openLayout, PANELS, PROFILES, setLayoutState, settleLayout, VIEWPORTS, 
 
 test.afterEach(async () => { await ctl({ op: 'reset' }); });
 
+// The references are made where they are reviewed: Linux Chromium on arm64
+// (the dev VM). Chromium on x64 rasterises the same glyphs with other edge
+// pixels — ~1 % of a strip, every one on a glyph edge (CI run 39658524004,
+// 2026-10-21) — so another platform checks the strips' geometry and compares
+// no strip image, and says so. Never a second, unreviewed reference set. (The
+// tool dialog references below stay within their tolerance on x64.)
+const REF_PLATFORM = 'linux/arm64';
+const HERE_PLATFORM = `${process.platform}/${process.arch}`;
+const compareImages = HERE_PLATFORM === REF_PLATFORM;
+
 for (const profile of PROFILES) {
   for (const viewport of [VIEWPORTS[0], VIEWPORTS[3]]) {
     test(`${profile.name} ${viewport.name}: Jog and Setup reference images`, async ({ page }, info) => {
-      // One Linux reference set, not silently generated per developer OS.
-      test.skip(process.platform !== 'linux', 'Visual references use Linux Chromium; geometry tests are portable.');
+      if (!compareImages) {
+        const why = `references are ${REF_PLATFORM}, this is ${HERE_PLATFORM}`;
+        info.annotations.push({ type: 'images not compared', description: why });
+        console.log(`visual: skipped the image comparison — ${why}; the geometry is checked`);
+      }
       await openLayout(page, profile, viewport);
       const states: LayoutState[] = ['homed', 'unhomed'];
       if (profile.name === '6axis-twp') states.push('plane-stale');
@@ -25,6 +38,7 @@ for (const profile of PROFILES) {
           await root.scrollIntoViewIfNeeded();
           await settleLayout(page);
           await assertLayout(root, await measureLayout(root, name), info);
+          if (!compareImages) continue;
           await expect(root).toHaveScreenshot(`${profile.name}-${viewport.name}-${state}-${name}.png`, {
             animations: 'disabled', caret: 'hide', scale: 'css',
             // Ignore tiny rasterisation differences, not moved or resized
