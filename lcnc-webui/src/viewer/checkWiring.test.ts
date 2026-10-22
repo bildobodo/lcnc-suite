@@ -239,7 +239,7 @@ describe("the card's context, taken at the request (step 4 plan 1c, _colContextF
 // viewer's own cancelCollisionCheck, owner set and release, as written.
 describe("a cancel releases what no one shows (Codex R148 VP-I106)", () => {
   const harness = () => viewerFns(["cancelCollisionCheck", "_colReleaseContacts", "_colContactOwners", "_colKick"], `
-    let _colWorker = { postMessage() {} }, _colReqId = 7, _colSide = null, _colStopPending = false, _colSettleTimer, _colStartedAt = 0;
+    let _colWorker = { postMessage() {} }, _colReqId = 7, _colReqRunGen = null, _colSide = null, _colStopPending = false, _colSettleTimer, _colStartedAt = 0;
     let _colResultReq = null;
     const collisionBusy = { value: true }, collisionResumable = { value: false }, collisionProgress = { value: 0.3 };
     const collisionPartial = { value: null }, collisionStopped = { value: null }, collisionResult = { value: null };
