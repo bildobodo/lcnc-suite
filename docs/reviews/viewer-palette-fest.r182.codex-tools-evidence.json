@@ -1,0 +1,192 @@
+{
+  "guard": {
+    "wire": {
+      "type": "status",
+      "data": {
+        "interp_state": 1,
+        "enabled": true
+      },
+      "errors": [],
+      "clients": [
+        {
+          "ip": "127.0.0.1",
+          "armed": true
+        },
+        {
+          "ip": "192.0.2.1",
+          "armed": true
+        }
+      ],
+      "armed": true,
+      "safety_trip": {
+        "reason": "test trip"
+      }
+    },
+    "driver_status": {
+      "interp_state": 1,
+      "enabled": true
+    },
+    "detected_armed": [],
+    "detected_trip": null
+  },
+  "clock_step": {
+    "page_rows": 0,
+    "hidden_rows": 0,
+    "hal_heartbeat": {
+      "vm_clock_steps_ms": [
+        41000
+      ],
+      "watchdog_true_to_true_over_200ms": [],
+      "bound": "no receipt gap over 200 ms at the watchdog"
+    },
+    "parse_jobs": [],
+    "parse_overlap": 0,
+    "process_memory_kb": {
+      "gateway": null,
+      "workers_peak": [],
+      "workers_at_once_max": 0
+    },
+    "collision": {},
+    "safety": []
+  },
+  "reset_mismatch": {
+    "anchor": -4000000000,
+    "rising": [
+      [
+        -2000000000,
+        450
+      ]
+    ],
+    "report": {
+      "page_rows": 0,
+      "hidden_rows": 0,
+      "hal_heartbeat": {
+        "watchdog_true_to_true_over_200ms": [],
+        "bound": "no receipt gap over 200 ms at the watchdog"
+      },
+      "parse_jobs": [],
+      "parse_overlap": 0,
+      "process_memory_kb": {
+        "gateway": null,
+        "workers_peak": [],
+        "workers_at_once_max": 0
+      },
+      "collision": {},
+      "safety": []
+    }
+  },
+  "missing_watchdog": {
+    "anchor": null,
+    "report": {
+      "page_rows": 0,
+      "hidden_rows": 0,
+      "hal_heartbeat": {
+        "watchdog_true_to_true_over_200ms": [],
+        "bound": "no receipt gap over 200 ms at the watchdog"
+      },
+      "parse_jobs": [],
+      "parse_overlap": 0,
+      "process_memory_kb": {
+        "gateway": null,
+        "workers_peak": [],
+        "workers_at_once_max": 0
+      },
+      "collision": {},
+      "safety": []
+    }
+  },
+  "two_local_clients": {
+    "clients": [
+      {
+        "ip": "127.0.0.1",
+        "armed": true
+      },
+      {
+        "ip": "127.0.0.1",
+        "armed": true
+      }
+    ],
+    "detected": []
+  },
+  "no_supersede": [
+    {
+      "switch": 1,
+      "to": "G55",
+      "job": 1,
+      "basis": "b1",
+      "reason": null,
+      "switch_ns": 1792694134770258007,
+      "spawn_ns": 100,
+      "ended": [
+        "gcode.publish"
+      ]
+    },
+    {
+      "switch": 2,
+      "to": "G54",
+      "job": 2,
+      "basis": "b2",
+      "reason": null,
+      "switch_ns": 1792694134770390430,
+      "spawn_ns": 200,
+      "ended": [
+        "gcode.publish"
+      ]
+    }
+  ],
+  "supersede_control": [
+    {
+      "switch": 1,
+      "to": "G55",
+      "job": 1,
+      "basis": "b1",
+      "reason": null,
+      "switch_ns": 1792694134770854536,
+      "spawn_ns": 100,
+      "ended": [
+        "gcode.parse_cancelled",
+        "gcode.reparse_superseded"
+      ]
+    },
+    {
+      "switch": 2,
+      "to": "G54",
+      "job": 2,
+      "basis": "b2",
+      "reason": null,
+      "switch_ns": 1792694134770946249,
+      "spawn_ns": 200,
+      "ended": [
+        "gcode.publish"
+      ]
+    }
+  ],
+  "valid_watchdog_control": {
+    "anchor": 0,
+    "rising": [
+      [
+        2000000000,
+        450
+      ]
+    ],
+    "report": {
+      "page_rows": 0,
+      "hidden_rows": 0,
+      "hal_heartbeat": {
+        "watchdog_true_to_true_over_200ms": [
+          450
+        ],
+        "bound": "see the gaps"
+      },
+      "parse_jobs": [],
+      "parse_overlap": 0,
+      "process_memory_kb": {
+        "gateway": null,
+        "workers_peak": [],
+        "workers_at_once_max": 0
+      },
+      "collision": {},
+      "safety": []
+    }
+  }
+}

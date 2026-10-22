@@ -1,0 +1,90 @@
+test_client_guard_reads_real_envelope (__main__.Tests.test_client_guard_reads_real_envelope) ... FAIL
+test_clock_step_invalidates_bound (__main__.Tests.test_clock_step_invalidates_bound) ... FAIL
+test_guard_control_with_flattened_envelope (__main__.Tests.test_guard_control_with_flattened_envelope) ... ok
+test_later_reset_cannot_move_an_old_gap (__main__.Tests.test_later_reset_cannot_move_an_old_gap) ... FAIL
+test_missing_watchdog_is_unknown (__main__.Tests.test_missing_watchdog_is_unknown) ... FAIL
+test_pooled_histogram_control (__main__.Tests.test_pooled_histogram_control) ... ok
+test_second_local_client_is_not_the_driver (__main__.Tests.test_second_local_client_is_not_the_driver) ... FAIL
+test_supersede_characterization_no_cancel_is_only_logged (__main__.Tests.test_supersede_characterization_no_cancel_is_only_logged) ... ok
+test_supersede_control (__main__.Tests.test_supersede_control) ... ok
+test_valid_watchdog_gap_control (__main__.Tests.test_valid_watchdog_gap_control) ... ok
+
+======================================================================
+FAIL: test_client_guard_reads_real_envelope (__main__.Tests.test_client_guard_reads_real_envelope)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r182-kw9jm2wo/probe_tools.py", line 26, in test_client_guard_reads_real_envelope
+    self.assertEqual(len(drive2.other_armed(c.st)),1,'The actual gateway envelope contains an armed remote page')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 0 != 1 : The actual gateway envelope contains an armed remote page
+
+======================================================================
+FAIL: test_clock_step_invalidates_bound (__main__.Tests.test_clock_step_invalidates_bound)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r182-kw9jm2wo/probe_tools.py", line 54, in test_clock_step_invalidates_bound
+    self.assertNotIn('no receipt gap',out['hal_heartbeat']['bound'],'A detected clock step must invalidate/re-anchor the bound')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'no receipt gap' unexpectedly found in 'no receipt gap over 200 ms at the watchdog' : A detected clock step must invalidate/re-anchor the bound
+
+======================================================================
+FAIL: test_later_reset_cannot_move_an_old_gap (__main__.Tests.test_later_reset_cannot_move_an_old_gap)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r182-kw9jm2wo/probe_tools.py", line 65, in test_later_reset_cannot_move_an_old_gap
+    self.assertNotIn('no receipt gap',out['hal_heartbeat']['bound'],'450 ms gap was inside the measured 1..3 s interval')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'no receipt gap' unexpectedly found in 'no receipt gap over 200 ms at the watchdog' : 450 ms gap was inside the measured 1..3 s interval
+
+======================================================================
+FAIL: test_missing_watchdog_is_unknown (__main__.Tests.test_missing_watchdog_is_unknown)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r182-kw9jm2wo/probe_tools.py", line 49, in test_missing_watchdog_is_unknown
+    self.assertNotIn('no receipt gap',out['hal_heartbeat']['bound'],'Missing log/anchor must not certify a receipt bound')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'no receipt gap' unexpectedly found in 'no receipt gap over 200 ms at the watchdog' : Missing log/anchor must not certify a receipt bound
+
+======================================================================
+FAIL: test_second_local_client_is_not_the_driver (__main__.Tests.test_second_local_client_is_not_the_driver)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r182-kw9jm2wo/probe_tools.py", line 34, in test_second_local_client_is_not_the_driver
+    self.assertTrue(detected,'Only one local armed client is this driver; the second must be detected')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: [] is not true : Only one local armed client is this driver; the second must be detected
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.006s
+
+FAILED (failures=5)

@@ -1,0 +1,110 @@
+# the trip of 2026-10-22 18:10 (VM wall clock): gateway.log lines around it, the watchdog's receipt gaps, the trip record
+## gateway.log (token-redacted by the launcher), [GC]/[HB-*]/[HB]/[STATUS] lines
+[HB-WAKE] +21688154ms pre-send-to-pre-send gap 113ms (expected 33ms)
+[GC] +38503193ms gen=2 duration=15.9ms collected=3584 uncollectable=0
+[HB-WAKE] +61442283ms pre-send-to-pre-send gap 146ms (expected 33ms)
+[HB-STALL] heartbeat gap 417ms (expected 33ms)
+[HB-WAKE] +62184581ms pre-send-to-pre-send gap 451ms (expected 33ms)
+[STATUS] tick gen=1761533 clients=1/1 poll_ms=1 errors_ms=0 parse_ms=0 overhead_ms=0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=2233 bytes_max=2233 tool_meta_n=0 wall_ms=453
+[HB-STALL] heartbeat gap 420ms (expected 33ms)
+[HB-WAKE] +62197514ms pre-send-to-pre-send gap 453ms (expected 33ms)
+[STATUS] tick gen=1761888 clients=1/1 poll_ms=5 errors_ms=1 parse_ms=0 overhead_ms=-0 shared_encode_ms=0 encode_sum_ms=0 send_sum_ms=0 send_max_ms=0 bytes_sum=2233 bytes_max=2233 tool_meta_n=0 wall_ms=458
+[HB] +62198875ms iter=1769520 mono_dt=1048ms wall_dt=42115ms skew=41067ms clients=1
+[HB-STALL] heartbeat gap 917ms (expected 33ms)
+[HB-WAKE] +62216318ms pre-send-to-pre-send gap 950ms (expected 33ms)
+[HB] +62216352ms iter=1770000 mono_dt=1948ms wall_dt=1948ms skew=0ms clients=1
+[HB-STALL] heartbeat gap 397ms (expected 33ms)
+[HB-WAKE] +62229280ms pre-send-to-pre-send gap 430ms (expected 33ms)
+[HB-WAKE] +62229425ms pre-send-to-pre-send gap 111ms (expected 33ms)
+[HB] +62230370ms iter=1770390 mono_dt=1520ms wall_dt=1520ms skew=0ms clients=1
+[HB] +62231431ms iter=1770420 mono_dt=1060ms wall_dt=508284ms skew=507223ms clients=1
+[HB-STALL] heartbeat gap 419ms (expected 33ms)
+[HB-WAKE] +62292236ms pre-send-to-pre-send gap 452ms (expected 33ms)
+[HB-WAKE] +62294327ms pre-send-to-pre-send gap 101ms (expected 33ms)
+[HB-WAKE] +62296683ms pre-send-to-pre-send gap 161ms (expected 33ms)
+[HB-WAKE] +62296889ms pre-send-to-pre-send gap 116ms (expected 33ms)
+[HB-WAKE] +62296991ms pre-send-to-pre-send gap 102ms (expected 33ms)
+[HB-STALL] heartbeat gap 335ms (expected 33ms)
+[HB-WAKE] +62297360ms pre-send-to-pre-send gap 369ms (expected 33ms)
+[HB] +62297609ms iter=1772280 mono_dt=1715ms wall_dt=1715ms skew=0ms clients=1
+[HB-WAKE] +62301023ms pre-send-to-pre-send gap 122ms (expected 33ms)
+[HB-WAKE] +62306467ms pre-send-to-pre-send gap 102ms (expected 33ms)
+[HB] +62327573ms iter=1773120 mono_dt=1095ms wall_dt=899131ms skew=898036ms clients=1
+## hal_watchdog.log, [HB-RECV]/[HB-RISING]/[HB-DUMP] lines (+ms from the watchdog's start; the VM paused in between, see the [HB] skew)
+[HB-RECV] +0ms watchdog ready, instrumentation active
+[HB-DUMP] +585175ms reason=trip_reset n=256
+[HB-RISING] +2358307ms True-to-True gap 207ms
+[HB-RISING] +5007943ms True-to-True gap 477ms
+[HB-DUMP] +5007943ms reason=gap_477ms n=256
+[HB-RISING] +5055929ms True-to-True gap 491ms
+[HB-DUMP] +5055930ms reason=gap_491ms n=256
+[HB-RISING] +5104002ms True-to-True gap 477ms
+[HB-DUMP] +5104002ms reason=gap_477ms n=256
+[HB-RISING] +5152991ms True-to-True gap 466ms
+[HB-DUMP] +5152991ms reason=gap_466ms n=256
+[HB-RISING] +5200753ms True-to-True gap 464ms
+[HB-DUMP] +5200753ms reason=gap_464ms n=256
+[HB-RISING] +5264335ms True-to-True gap 459ms
+[HB-DUMP] +5264335ms reason=gap_459ms n=256
+[HB-RISING] +5487430ms True-to-True gap 456ms
+[HB-DUMP] +5487430ms reason=gap_456ms n=256
+[HB-RISING] +5535559ms True-to-True gap 468ms
+[HB-DUMP] +5535559ms reason=gap_468ms n=256
+[HB-RISING] +5583778ms True-to-True gap 498ms
+[HB-DUMP] +5583778ms reason=gap_498ms n=256
+[HB-RISING] +5631541ms True-to-True gap 498ms
+[HB-DUMP] +5631541ms reason=gap_498ms n=256
+[HB-RISING] +6306122ms True-to-True gap 469ms
+[HB-DUMP] +6306122ms reason=gap_469ms n=256
+[HB-RISING] +6354036ms True-to-True gap 466ms
+[HB-DUMP] +6354036ms reason=gap_466ms n=256
+[HB-RISING] +6421625ms True-to-True gap 458ms
+[HB-DUMP] +6421625ms reason=gap_458ms n=256
+[HB-RISING] +6469428ms True-to-True gap 488ms
+[HB-DUMP] +6469428ms reason=gap_488ms n=256
+[HB-RISING] +6517520ms True-to-True gap 468ms
+[HB-DUMP] +6517520ms reason=gap_468ms n=256
+[HB-RISING] +6585145ms True-to-True gap 458ms
+[HB-DUMP] +6585145ms reason=gap_458ms n=256
+[HB-RISING] +6637662ms True-to-True gap 418ms
+[HB-DUMP] +6637662ms reason=gap_418ms n=256
+[HB-RISING] +6713536ms True-to-True gap 461ms
+[HB-DUMP] +6713536ms reason=gap_461ms n=256
+[HB-RISING] +6761631ms True-to-True gap 458ms
+[HB-DUMP] +6761631ms reason=gap_458ms n=256
+[HB-RISING] +6886842ms True-to-True gap 458ms
+[HB-DUMP] +6886842ms reason=gap_458ms n=256
+[HB-RISING] +6935039ms True-to-True gap 474ms
+[HB-DUMP] +6935039ms reason=gap_474ms n=256
+[HB-RISING] +10779762ms True-to-True gap 471ms
+[HB-DUMP] +10779763ms reason=gap_471ms n=256
+[HB-RISING] +14579718ms True-to-True gap 460ms
+[HB-DUMP] +14579718ms reason=gap_460ms n=256
+[HB-RISING] +18239773ms True-to-True gap 456ms
+[HB-DUMP] +18239773ms reason=gap_456ms n=256
+[HB-RISING] +61442733ms True-to-True gap 205ms
+[HB-RISING] +62184973ms True-to-True gap 486ms
+[HB-DUMP] +62184973ms reason=gap_486ms n=256
+[HB-RISING] +62197940ms True-to-True gap 488ms
+[HB-DUMP] +62197940ms reason=gap_488ms n=256
+[HB-RISING] +62216743ms True-to-True gap 985ms
+[HB-DUMP] +62216743ms reason=gap_985ms n=256
+[HB-RISING] +62229704ms True-to-True gap 463ms
+[HB-DUMP] +62229704ms reason=gap_463ms n=256
+[HB-RISING] +62292627ms True-to-True gap 487ms
+[HB-DUMP] +62292627ms reason=gap_487ms n=256
+[HB-RISING] +62297280ms True-to-True gap 366ms
+[HB-RISING] +62297794ms True-to-True gap 411ms
+[HB-DUMP] +62297794ms reason=gap_411ms n=256
+## trace: safety.tripped
+{"t_wall_ns":1792685426902360916,"t_mono_ms":62216369.932,"proc":"gateway","pid":25984,"tag":"safety.tripped","level":"error"}
+## the trip bundle
+[+    0.000ms] [info ] [hal_reader        ] reader.tick_summary             count=30 avg_pin_ms=0.023 max_pin_ms=0.042 avg_send_ms=0.012 max_send_ms=0.02
+[+  122.965ms] [info ] [launcher          ] proc.status                     gw_pid=25984 vm_rss_kb=98084 threads=10 voluntary_ctxt=7852231 nonvoluntary_ctxt=167970 rq_wait_ns=27295506134
+[+ 1049.033ms] [info ] [hal_reader        ] reader.tick_summary             count=30 avg_pin_ms=0.024 max_pin_ms=0.072 avg_send_ms=0.012 max_send_ms=0.016
+[+ 1128.930ms] [info ] [launcher          ] proc.status                     gw_pid=25984 vm_rss_kb=98084 threads=10 voluntary_ctxt=7852353 nonvoluntary_ctxt=167970 rq_wait_ns=27295514550
+[+ 2099.239ms] [info ] [hal_reader        ] reader.tick_summary             count=30 avg_pin_ms=0.024 max_pin_ms=0.062 avg_send_ms=0.012 max_send_ms=0.03
+[+ 2132.997ms] [info ] [launcher          ] proc.status                     gw_pid=25984 vm_rss_kb=98084 threads=10 voluntary_ctxt=7852479 nonvoluntary_ctxt=167970 rq_wait_ns=27295577924
+[+ 3127.173ms] [info ] [hal_reader        ] reader.tick_summary             count=30 avg_pin_ms=0.023 max_pin_ms=0.046 avg_send_ms=0.012 max_send_ms=0.014
+[+ 3137.119ms] [info ] [launcher          ] proc.status                     gw_pid=25984 vm_rss_kb=98084 threads=10 voluntary_ctxt=7852604 nonvoluntary_ctxt=167970 rq_wait_ns=27295603841
+[+ 4860.540ms] [info ] [launcher          ] proc.status                     gw_pid=25984 vm_rss_kb=98084 threads=10 voluntary_ctxt=7852703 nonvoluntary_ctxt=167975 rq_wait_ns=27301291340

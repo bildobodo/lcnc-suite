@@ -1,0 +1,53 @@
+{
+  "review": "R182",
+  "head": "99fce612",
+  "live_head": "ba1227824ddf75e1046a2e34c7ab671bfc27dad3",
+  "verdict": "findings",
+  "findings": [
+    "VP182-01",
+    "VP182-02",
+    "VP182-03",
+    "VP182-04"
+  ],
+  "repository_checks": {
+    "build": "PASS",
+    "unit": {
+      "passed": 75,
+      "failed": 0
+    },
+    "backend": {
+      "passed": 78,
+      "failed": 0
+    },
+    "browser": {
+      "passed": 4,
+      "failed": 0
+    }
+  },
+  "own_probes": {
+    "typescript": {
+      "passed": 1,
+      "contract_failures": 2
+    },
+    "python": {
+      "passed_controls_and_characterizations": 5,
+      "contract_failures": 5
+    }
+  },
+  "boundaries": {
+    "machine_commands": false,
+    "live_endpoints_accessed": false,
+    "driver_main_executed": false,
+    "mock": "127.0.0.1:4188",
+    "archive": "/tmp/codex-r182-kw9jm2wo/repo",
+    "nice": 10,
+    "browser_workers": 1
+  },
+  "source_files_verified": 562,
+  "lfs_objects_verified": 4,
+  "archive_adaptations": [
+    "lcnc-webui/e2e/ctl.ts"
+  ],
+  "prior_evidence_unchanged": true,
+  "note": "The supersede case characterizes a too-short run that is logged but not rejected; it is not a fifth blocking finding. Initial restricted backend run hung at asyncio thread delivery and was stopped; isolated offline rerun outside sandbox passed."
+}

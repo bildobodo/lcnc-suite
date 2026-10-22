@@ -1,0 +1,17 @@
+r182_age_before_build RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 2 to be 1 // Object.is equality 10s
+r182_age_newest RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 18 to be 48 // Object.is equality 10s
+r182_age_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 3 to be 2 // Object.is equality 10s
+r182_rt_no_hold RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 140 to be 119 // Object.is equality 10s
+r182_bin_width RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ +0, +0, 19, 20, 20, 95, 100, …(5) ] to deeply equal [ +0, +0, 19, 20, 20, 98, 100, …(5) ] | AssertionError: expected { '30': 2, '50': 1, '550': 1 } to deeply equal { '32' 10s
+r182_hist_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '32': 3, '50': 1, '550': 1 } to deeply equal { '32': 1 } 10s
+r182_input_negative RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 3 to be 2 // Object.is equality 9s
+r182_quiet_presses RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 0 to be greater than 0 | AssertionError: expected 0 to be greater than 0 9s
+r182_worker_no_rx RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 48s
+r182_status_not_noted RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 47s
+r182_no_key_listener RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 52s
+r182_publish_without_job RED 1 failed in 0.05s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s
+r182_cancel_without_job RED 1 failed in 0.04s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s
+r182_superseded_without_job RED 1 failed in 0.05s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s
+r182_basis_without_offsets RED 1 failed in 0.05s E       AssertionError: '4acda36bbb66' == '4acda36bbb66' : another offset is another basis | test_bulk_pipeline.py:501: AssertionError 0s
+r182_jobs_not_counted RED 1 failed in 0.05s E       AssertionError: Lists differ: [0, 0, 0, 0] != [1, 2, 3, 4] | test_bulk_pipeline.py:493: AssertionError 0s
+rebuild ok 20s
