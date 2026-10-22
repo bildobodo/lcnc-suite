@@ -15,6 +15,7 @@
 import { computed, ref, shallowRef } from "vue";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
 import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
+import { noteRoundTrip } from "../viewerPerf";
 
 export interface LcncMessage {
   id: number;
@@ -410,6 +411,7 @@ export function handleStatusMessage(msg: any): void {
       _pushSample("rt", rtMs);
       _pushSample("server", msg.timing.server_ms);
       _pushSample("network", rtMs - msg.timing.server_ms);
+      noteRoundTrip(rtMs, msg.timing.server_ms);   // the gateway → socket bound (viewerPerf)
     }
     const t = msg.timing;
     if (t.cycle_ms != null) _pushSample("cycle", t.cycle_ms);

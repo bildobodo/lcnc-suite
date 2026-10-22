@@ -32,6 +32,24 @@
 //               tick); 2+ = the GPU is behind = the draw itself is the cost.
 //               Absent (not zero) without a WebGL2 context.
 //
+//   statusAge — from the WS worker's socket receipt of a status frame to the
+//               end of the applyState() that shows it (or a newer frame):
+//               the oldest frame received since the last apply, per apply
+//               (`age_*`). Both ends read the global clock (timeOrigin +
+//               now), so the worker's receipt and the main thread's apply
+//               compare. The gateway → socket leg is NOT in it: bounded by
+//               the heartbeat round trip less the gateway's hold
+//               (`rt_net_*` — both legs, so an upper bound of the one).
+//   inputDelay — a key or pointer press until its first listener runs
+//               (`in_delay_*`, the event's own timeStamp — the queueing a
+//               busy main thread adds); with the Event Timing API also the
+//               presses that took ≥ 16 ms to their next paint (`ev_*`).
+//
+// The distributions ride as fixed-bin HISTOGRAMS (`*_h`, sparse {lower edge
+// ms: count}, `binOf`) next to the window's percentiles: a phase's quantile
+// is read from the pooled histograms — the windows' p95s do not pool (Codex
+// R181 VP181-01).
+//
 // Plus a jank counter (status frames whose gap exceeds JANK_MS) and a context
 // snapshot (toolpath segment counts, backplot ring fill, JS heap) so a summary
 // line can be correlated against file size and the backplot-full regime.
@@ -40,7 +58,7 @@
 // status path), tagged `browser.viewer.perf` in trace.ndjson. One summary per
 // WINDOW_MS, and only when there was activity — idle machines stay silent.
 
-import { emitTelemetry } from './lcncWs';
+import { emitTelemetry } from './ws/telemetry';
 
 const WINDOW_MS = 3000;   // one summary per 3 s of activity
 const JANK_MS = 50;       // a status-frame gap over this counts as a hiccup
@@ -50,6 +68,35 @@ const MT_PROBE_MS = 8;    // main-thread probe period (browsers clamp nested tim
 const MT_LATE_MS = 20;    // lateness counted as a block (timer jitter is 1–4 ms; one 16 ms frame fits)
 const FENCE_CAP = 8;      // pending GPU fences kept; past this the oldest already say "far behind"
 const FENCE_STALE_MS = 10000; // a fence unsignaled this long = lost context; dropped, counted
+const INPUT_ODD_MS = 60000; // a press "older" than this (or from the future) is a clock oddity, counted apart
+
+/** The histograms' bin: its lower edge in ms — 1 ms wide below 20, 2 below
+ *  100, 10 below 500, 50 below 2000, then 500. A quantile read from the
+ *  pooled bins is exact to the bin's width (report the bin's upper edge). */
+export function binOf(ms: number): number {
+  if (ms < 20) return Math.floor(ms);
+  if (ms < 100) return Math.floor(ms / 2) * 2;
+  if (ms < 500) return Math.floor(ms / 10) * 10;
+  if (ms < 2000) return Math.floor(ms / 50) * 50;
+  return Math.floor(ms / 500) * 500;
+}
+
+function _histAdd(h: Map<number, number>, ms: number): void {
+  const b = binOf(ms);
+  h.set(b, (h.get(b) ?? 0) + 1);
+}
+
+function _histOut(h: Map<number, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const b of [...h.keys()].sort((x, y) => x - y)) out[String(b)] = h.get(b)!;
+  return out;
+}
+
+/** The global clock both the worker and the page read (HR-Time: timeOrigin
+ *  + now is comparable across a page and its workers). */
+function _epochNow(now: number): number {
+  return (typeof performance !== 'undefined' ? performance.timeOrigin : 0) + now;
+}
 
 let _enabled = true;
 
@@ -71,6 +118,26 @@ let _jank = 0;
 let _applySum = 0, _applyMax = 0;
 let _renderSum = 0, _renderCount = 0, _renderMax = 0;
 let _lastApplyTs = 0;             // performance.now() of previous applyState
+const _gapH = new Map<number, number>();
+const _applyH = new Map<number, number>();
+
+// Status age: the socket receipt (global clock) of the oldest frame not yet
+// applied — 0 when every received frame is shown.
+let _rxOldest = 0;
+const _ageH = new Map<number, number>();
+let _ageN = 0, _ageMax = 0, _ageNeg = 0;
+
+// Heartbeat round trip less the gateway's hold: both network legs.
+const _rtNetH = new Map<number, number>();
+let _rtN = 0, _rtNetMax = 0;
+
+// Input delay.
+const _inDelayH = new Map<number, number>();
+let _inN = 0, _inDelayMax = 0, _inOdd = 0;
+const _evDurH = new Map<number, number>();
+const _evDelayH = new Map<number, number>();
+let _evN = 0, _evDurMax = 0;
+let _evSupported = false;
 
 // Render-loop cadence.
 let _rafTicks = 0;                // ticks this window
@@ -121,13 +188,67 @@ export function recordApply(applyMs: number, now: number = performance.now()): v
   if (_lastApplyTs > 0) {
     const gap = now - _lastApplyTs;
     if (_gaps.length < SAMPLE_CAP) _gaps.push(gap);
+    _histAdd(_gapH, gap);
     if (gap > _gapMax) _gapMax = gap;
     if (gap > JANK_MS) _jank++;
   }
   _lastApplyTs = now;
   _frames++;
   _applySum += applyMs;
+  _histAdd(_applyH, applyMs);
   if (applyMs > _applyMax) _applyMax = applyMs;
+  if (_rxOldest > 0) {
+    const age = _epochNow(now) - _rxOldest;
+    if (age < 0) _ageNeg++;
+    else {
+      _ageN++;
+      _histAdd(_ageH, age);
+      if (age > _ageMax) _ageMax = age;
+    }
+    _rxOldest = 0;
+  }
+}
+
+/** A status frame left the WS worker's socket at `rxEpochMs` (global clock;
+ *  the worker stamps it). The oldest one not yet applied is what the next
+ *  applyState() is late against. Only once the viewer has applied a frame:
+ *  before that the frames wait for the viewer's build (1.4 s at a loaded
+ *  page start in the gate) — a start, not the status path. */
+export function noteStatusReceived(rxEpochMs: unknown): void {
+  if (!_enabled || _lastApplyTs === 0 || typeof rxEpochMs !== 'number' || !(rxEpochMs > 0)) return;
+  if (_rxOldest === 0) _rxOldest = rxEpochMs;
+}
+
+/** One heartbeat round trip (the heartbeat's send to the status that answers
+ *  it, at the main thread) and the gateway's hold inside it: what is left is
+ *  both network legs plus the relay to the main thread. */
+export function noteRoundTrip(rtMs: number, serverMs: unknown): void {
+  if (!_enabled || typeof serverMs !== 'number' || !Number.isFinite(rtMs)) return;
+  const net = Math.max(0, rtMs - serverMs);
+  _rtN++;
+  _histAdd(_rtNetH, net);
+  if (net > _rtNetMax) _rtNetMax = net;
+}
+
+/** A key or pointer press: its first listener ran `now − timeStamp` after
+ *  the browser stamped it. Exported for tests; the listeners below feed it. */
+export function noteInput(timeStamp: number, now: number = performance.now()): void {
+  if (!_enabled) return;
+  const d = now - timeStamp;
+  if (!(d >= 0) || d > INPUT_ODD_MS) { _inOdd++; return; }
+  _inN++;
+  _histAdd(_inDelayH, d);
+  if (d > _inDelayMax) _inDelayMax = d;
+}
+
+/** An Event Timing entry of a key or pointer press that took ≥ 16 ms to its
+ *  next paint (duration) and waited `delay` for its handlers. */
+export function noteSlowInput(duration: number, delay: number): void {
+  if (!_enabled) return;
+  _evN++;
+  _histAdd(_evDurH, duration);
+  _histAdd(_evDelayH, Math.max(0, delay));
+  if (duration > _evDurMax) _evDurMax = duration;
 }
 
 /** Record one animation-frame tick (top of the viewer's RAF callback, whether
@@ -260,7 +381,7 @@ function _heapUsedMb(): number | null {
 /** Emit the window summary if it saw status frames or renders, and reset.
  *  Driven by the interval below; exported for tests. */
 export function flushViewerPerf(): void {
-  if (_frames === 0 && _renderCount === 0) return; // idle window — stay quiet
+  if (_frames === 0 && _renderCount === 0 && _inN === 0 && _inOdd === 0) return; // idle window — stay quiet
   const sorted = _sorted(_gaps);
   const raf = _sorted(_rafGaps);
   const mt = _sorted(_mtLate);
@@ -278,9 +399,31 @@ export function flushViewerPerf(): void {
     gap_max_ms: +_gapMax.toFixed(1),
     jank_frames: _jank,            // status gaps > JANK_MS
     jank_ms: JANK_MS,
+    gap_h: _histOut(_gapH),        // the gaps, binned (binOf) — pools across windows
     // applyState CPU (main-thread work in the status path)
     apply_mean_ms: _frames ? +(_applySum / _frames).toFixed(2) : 0,
     apply_max_ms: +_applyMax.toFixed(2),
+    apply_h: _histOut(_applyH),
+    // status age: socket receipt (worker) → applied, per apply
+    age_n: _ageN,
+    age_max_ms: +_ageMax.toFixed(1),
+    age_h: _histOut(_ageH),
+    age_neg: _ageNeg,              // a receipt after its apply: clock oddity, not binned
+    // heartbeat round trip less the gateway's hold (both legs): bounds gateway → socket
+    rt_n: _rtN,
+    rt_net_max_ms: +_rtNetMax.toFixed(1),
+    rt_net_h: _histOut(_rtNetH),
+    // input: press → first listener (and, Event Timing, the presses ≥ 16 ms to the next paint)
+    in_n: _inN,
+    in_delay_max_ms: +_inDelayMax.toFixed(1),
+    in_delay_h: _histOut(_inDelayH),
+    in_odd: _inOdd,
+    ...(_evSupported ? {
+      ev_n: _evN,
+      ev_dur_max_ms: +_evDurMax.toFixed(1),
+      ev_dur_h: _histOut(_evDurH),
+      ev_delay_h: _histOut(_evDelayH),
+    } : {}),
     // WebGL submit CPU (queueing cost only — out-of-process WebGL)
     render_mean_ms: _renderCount ? +(_renderSum / _renderCount).toFixed(2) : 0,
     render_max_ms: +_renderMax.toFixed(2),
@@ -314,6 +457,7 @@ export function flushViewerPerf(): void {
   _gapMax = 0;
   _jank = 0;
   _applySum = _applyMax = 0;
+  _resetHistograms();
   _renderSum = _renderMax = 0;
   _renderCount = 0;
   _rafTicks = 0;
@@ -326,10 +470,20 @@ export function flushViewerPerf(): void {
   _gpuBehindMax = _gpuMsMax = _gpuFences = _gpuDropped = 0;
 }
 
+function _resetHistograms(): void {
+  _gapH.clear(); _applyH.clear();
+  _ageH.clear(); _ageN = _ageMax = _ageNeg = 0;
+  _rtNetH.clear(); _rtN = _rtNetMax = 0;
+  _inDelayH.clear(); _inN = _inDelayMax = _inOdd = 0;
+  _evDurH.clear(); _evDelayH.clear(); _evN = _evDurMax = 0;
+}
+
 /** Test/HMR helper: forget every sample and clock anchor. */
 export function resetViewerPerf(): void {
   _dropFences();
   _frames = _gapMax = _jank = _applySum = _applyMax = 0;
+  _resetHistograms();
+  _rxOldest = 0;
   _gaps.length = 0;
   _renderSum = _renderMax = _renderCount = 0;
   _lastApplyTs = 0;
@@ -349,6 +503,30 @@ export function resetViewerPerf(): void {
 function _onVisibility(): void {
   _lastRafTs = 0;
   _mtDue = 0;
+  _rxOldest = 0;   // a hidden page applies nothing: its frames' wait is policy, not lag
+}
+
+// Presses: passive capture listeners that only read the event's stamp (the
+// E-Stop key's own capture listener is untouched — nothing here stops or
+// prevents anything).
+function _onInput(e: Event): void {
+  noteInput(e.timeStamp);
+}
+
+interface EventTimingEntry extends PerformanceEntry { processingStart: number }
+let _evObserver: PerformanceObserver | null = null;
+function _startEventTiming(): void {
+  if (typeof PerformanceObserver === 'undefined' || _evObserver) return;
+  if (!(PerformanceObserver.supportedEntryTypes ?? []).includes('event')) return;
+  try {
+    _evObserver = new PerformanceObserver((list) => {
+      for (const e of list.getEntries() as EventTimingEntry[]) {
+        if (e.name === 'keydown' || e.name === 'pointerdown') noteSlowInput(e.duration, e.processingStart - e.startTime);
+      }
+    });
+    _evObserver.observe({ type: 'event', durationThreshold: 16 } as PerformanceObserverInit);
+    _evSupported = true;
+  } catch { _evObserver = null; }
 }
 
 // One self-quieting timer: flushes only when the window saw activity, so an
@@ -358,6 +536,9 @@ if (typeof window !== 'undefined') {
   _flushTimer = window.setInterval(flushViewerPerf, WINDOW_MS);
   _startMainThreadProbe();
   document.addEventListener('visibilitychange', _onVisibility);
+  window.addEventListener('keydown', _onInput, { capture: true, passive: true });
+  window.addEventListener('pointerdown', _onInput, { capture: true, passive: true });
+  _startEventTiming();
 }
 
 // Clear the timers on HMR dispose so reloads don't stack duplicates (#32).
@@ -366,6 +547,10 @@ if (import.meta.hot) {
     if (_flushTimer !== null) { clearInterval(_flushTimer); _flushTimer = null; }
     _stopMainThreadProbe();
     document.removeEventListener('visibilitychange', _onVisibility);
+    window.removeEventListener('keydown', _onInput, { capture: true });
+    window.removeEventListener('pointerdown', _onInput, { capture: true });
+    _evObserver?.disconnect();
+    _evObserver = null;
     _dropFences();
   });
 }

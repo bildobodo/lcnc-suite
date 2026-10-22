@@ -295,11 +295,14 @@ function openSocket(probed = false) {
   ws.onmessage = (ev: MessageEvent) => {
     framesRelayedSinceHb++;   // for hb-slip attribution (busy-relaying vs starved)
     lastFrameRxAt = performance.now();  // inbound-stall detection (hbdeliv probe)
+    // The receipt on the global clock (timeOrigin + now compares across the
+    // worker and the page): the start of a status frame's age (viewerPerf).
+    const rx = performance.timeOrigin + lastFrameRxAt;
     if (typeof ev.data === "string") {
-      post({ type: "message", data: ev.data });
+      post({ type: "message", data: ev.data, rx });
     } else {
       // Transfer the ArrayBuffer (zero-copy); the worker doesn't touch it again.
-      post({ type: "message", data: ev.data }, [ev.data as ArrayBuffer]);
+      post({ type: "message", data: ev.data, rx }, [ev.data as ArrayBuffer]);
     }
   };
 

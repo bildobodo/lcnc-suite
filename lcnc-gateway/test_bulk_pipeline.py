@@ -453,6 +453,56 @@ class TestCancelInflight(unittest.TestCase):
         self.assertEqual(spawn["reason"], "drift")
         self.assertGreaterEqual(spawn["timeout_s"], 60.0)
 
+    def test_every_event_names_its_job_and_the_basis(self):
+        """Codex R181 VP181-01: a measurement proves one parse at a time and
+        the last basis winning by id — every event of a parse names its job,
+        spawn and publish the start basis it parsed from."""
+        stat = types.SimpleNamespace(ini_filename=self.ini, g5x_index=2)
+        wcs = [[0.0, 0.0, -398.0]]
+        b = BulkPipeline(get_stat=lambda: stat, get_machine_units=lambda: "mm",
+                         build_wcs_rotation_patches=lambda: {}, get_wcs_off_flat=lambda: wcs[0])
+        proc = _FakeProc()
+
+        def held(ctx_bytes, timeout):
+            b.gcode_parse_proc = proc
+            proc.terminated.wait(5.0)
+            return (proc.poll(), b"", b"")
+        b._run_gcode_worker_blocking = held
+        events, restore = self._recording()
+        try:
+            async def cancelled():
+                self.assertTrue(b.schedule_refresh(self.ngc, "wcsoff:G55:z", asyncio.create_task))
+                for _ in range(200):
+                    await asyncio.sleep(0.005)
+                    if b.gcode_parse_proc is not None:
+                        break
+                self.assertTrue(b.cancel_inflight("wcsoff:G56:z"))
+                await asyncio.wait_for(asyncio.gather(*[t for t in asyncio.all_tasks()
+                                                        if t is not asyncio.current_task()]), 5.0)
+            asyncio.run(cancelled())
+            b._run_gcode_worker_blocking = lambda ctx_bytes, timeout: (0, b"x" * 8, b"__SCHEMA__\t8\n")
+            stat.g5x_index = 3
+            asyncio.run(b.refresh_gcode_preview(self.ngc, reason="wcsoff:G56:z"))
+            asyncio.run(b.refresh_gcode_preview(self.ngc, reason="file"))
+            wcs[0] = [0.0, 0.0, -400.0]           # a touch-off: the same fixture, another offset
+            asyncio.run(b.refresh_gcode_preview(self.ngc, reason="wcsoff:G56:z"))
+        finally:
+            restore()
+        by = lambda tag: [f for t, f in events if t == tag]
+        spawns = by("gcode.spawn_start")
+        self.assertEqual([f["job"] for f in spawns], [1, 2, 3, 4])
+        self.assertEqual([f["active_idx"] for f in spawns], [2, 3, 3, 3])
+        self.assertEqual(by("gcode.reparse_superseded")[0]["job"], 1)
+        self.assertEqual(by("gcode.parse_cancelled")[0]["job"], 1)
+        self.assertEqual([f["job"] for f in by("gcode.worker_done")], [2, 3, 4])
+        pubs = by("gcode.publish")
+        self.assertEqual([(f["job"], f["active_idx"]) for f in pubs], [(2, 3), (3, 3), (4, 3)])
+        self.assertEqual([f["basis"] for f in pubs], [s["basis"] for s in spawns[1:]])
+        self.assertNotEqual(spawns[3]["basis"], spawns[2]["basis"], "another offset is another basis")
+        self.assertNotEqual(spawns[0]["basis"], spawns[1]["basis"], "another fixture is another basis")
+        self.assertEqual(spawns[1]["basis"], spawns[2]["basis"], "the same start is the same basis")
+        self.assertRegex(spawns[0]["basis"], r"^[0-9a-f]{12}$")
+
     def test_expected_time_history_and_timeout_scale(self):
         b = _pipeline(self.ini)
         est = b.expected_parse_ms(self.ngc)

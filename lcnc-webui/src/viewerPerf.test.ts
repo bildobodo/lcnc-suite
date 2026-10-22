@@ -5,13 +5,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const emitted: Array<{ kind: string; fields: Record<string, unknown> }> = [];
-vi.mock("./lcncWs", () => ({
+vi.mock("./ws/telemetry", () => ({
   emitTelemetry: (kind: string, fields: Record<string, unknown>) => { emitted.push({ kind, fields }); },
 }));
 
 import {
-  flushViewerPerf, noteMainThreadProbe, recordApply, recordRafTick, recordRender,
-  resetViewerPerf, setViewerPerfGl,
+  binOf, flushViewerPerf, noteInput, noteMainThreadProbe, noteRoundTrip, noteSlowInput, noteStatusReceived,
+  recordApply, recordRafTick, recordRender, resetViewerPerf, setViewerPerfGl,
   setViewerPerfContext,
 } from "./viewerPerf";
 
@@ -218,5 +218,103 @@ describe("context provider", () => {
     expect(f.gl_calls).toBe(115);
     expect(f.display_mode).toBe("part");
     setViewerPerfContext(null);
+  });
+});
+
+describe("histograms that pool (Codex R181 VP181-01)", () => {
+  it("bins by width 1 / 2 / 10 / 50 / 500 ms, each bin at its lower edge", () => {
+    expect([0, 0.4, 19.9, 20, 21.9, 99.9, 100, 499, 500, 1999, 2000, 2700].map(binOf))
+      .toEqual([0, 0, 19, 20, 20, 98, 100, 490, 500, 1950, 2000, 2500]);
+  });
+
+  it("carries every status gap and apply in the window's histograms, and clears them at the flush", () => {
+    for (const t of [1000, 1033, 1066, 1116, 1700]) recordApply(0.4, t);
+    flushViewerPerf();
+    const f = last();
+    expect(f.gap_h).toEqual({ "32": 2, "50": 1, "550": 1 });   // 33, 33, 50, 584
+    expect(f.apply_h).toEqual({ "0": 5 });
+    recordApply(2.5, 1733);
+    flushViewerPerf();
+    expect(last().gap_h).toEqual({ "32": 1 });
+    expect(last().apply_h).toEqual({ "2": 1 });
+  });
+});
+
+describe("status age: socket receipt → applied", () => {
+  const T0 = performance.timeOrigin;
+
+  it("ages no frame before the viewer's first apply (its build, not the status path)", () => {
+    noteStatusReceived(T0 + 100);
+    recordApply(1, 1500);                 // the viewer built 1.4 s later: no age
+    noteStatusReceived(T0 + 1510);
+    recordApply(1, 1533);
+    flushViewerPerf();
+    const f = last();
+    expect(f.age_n).toBe(1);
+    expect(f.age_max_ms).toBe(23);
+  });
+
+  it("measures the oldest frame received since the last apply, once per apply", () => {
+    recordApply(1, 990);                  // the viewer is built
+    noteStatusReceived(T0 + 1000);
+    noteStatusReceived(T0 + 1030);        // a newer frame — the older one waited longest
+    recordApply(1, 1048);
+    recordApply(1, 1081);                 // a re-apply with no new receipt: no age
+    noteStatusReceived(T0 + 1100);
+    recordApply(1, 1105);
+    flushViewerPerf();
+    const f = last();
+    expect(f.age_n).toBe(2);
+    expect(f.age_max_ms).toBe(48);
+    expect(f.age_h).toEqual({ "5": 1, "48": 1 });
+    expect(f.age_neg).toBe(0);
+  });
+
+  it("ignores a frame without a receipt and counts a receipt after its apply apart", () => {
+    recordApply(1, 900);
+    noteStatusReceived(undefined);
+    noteStatusReceived(0);
+    recordApply(1, 1000);
+    noteStatusReceived(T0 + 2000);
+    recordApply(1, 1990);
+    flushViewerPerf();
+    const f = last();
+    expect(f.age_n).toBe(0);
+    expect(f.age_neg).toBe(1);
+    expect(f.age_h).toEqual({});
+  });
+});
+
+describe("the gateway → socket bound and input delay", () => {
+  it("keeps the heartbeat round trip less the gateway's hold", () => {
+    noteRoundTrip(30, 12);
+    noteRoundTrip(25, undefined);         // a frame without timing: no sample
+    noteRoundTrip(140, 21);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    const f = last();
+    expect(f.rt_n).toBe(2);
+    expect(f.rt_net_max_ms).toBe(119);
+    expect(f.rt_net_h).toEqual({ "18": 1, "110": 1 });
+  });
+
+  it("measures a press from its stamp to its first listener; a window with only presses still reports", () => {
+    noteInput(100, 103);
+    noteInput(200, 262);
+    noteInput(300, 290);                  // stamped after it ran: a clock oddity, not a delay
+    flushViewerPerf();
+    const f = last();
+    expect(f.frames).toBe(0);
+    expect(f.in_n).toBe(2);
+    expect(f.in_delay_max_ms).toBe(62);
+    expect(f.in_delay_h).toEqual({ "3": 1, "62": 1 });
+    expect(f.in_odd).toBe(1);
+  });
+
+  it("reports the slow presses only where the browser has Event Timing", () => {
+    noteSlowInput(40, 12);
+    noteInput(10, 11);
+    flushViewerPerf();
+    expect(last()).not.toHaveProperty("ev_n");   // node: no PerformanceObserver "event" entries
   });
 });

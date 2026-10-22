@@ -953,7 +953,20 @@ a run at most two workers and 20 ms slices (`sliceMs`), a decoding payload
 holds the sweep (`previewDecoding`, worker hold "decode"), the run's own
 rotary motion parks nothing. Owed: the measurement protocol (status frame p95
 < 50 ms, heartbeat gap p99 < 300 ms on the machine PC and a separate browser
-PC) and the live M600 run need a running LinuxCNC. Tests:
+PC) and the live M600 run need a running LinuxCNC. The 2026-10-21 browser-PC
+run (the operator's Mac, which hosts the VM) is a partial proof (Codex R181
+VP181-01); its instruments since: the page's 3 s `browser.viewer.perf` rows
+carry fixed-bin histograms that POOL into a phase's quantiles (`viewerPerf.binOf`
+— a window's p95 never pools): `apply_h` (applyState's own time), `gap_h` (the
+cadence), `age_h` (a status frame's socket receipt in the WS worker — stamped
+`rx` on the global clock, timeOrigin + now — until the applyState that shows
+it or a newer one; gateway → socket only bounded by `rt_net_h`, the heartbeat
+round trip less the gateway's hold), `in_delay_h` (a key / pointer press to its
+first listener; with Event Timing `ev_*`, the presses ≥ 16 ms to the next
+paint), and the page's own memory (`mem_path_cpu/gpu`, `mem_contacts`,
+`mem_contact_views` — Firefox has no heap number); every parse's trace events
+name its `job` and spawn and publish the start `basis` (the context digest
+with the drift inputs), so a supersede is proven by id. Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on

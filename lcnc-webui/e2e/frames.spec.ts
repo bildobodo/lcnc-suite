@@ -58,3 +58,39 @@ test("halshow snapshot renders pins and halshow_update applies the delta", async
   await ctlSend({ op: "raw", frame: { type: "halshow_update", pins: { "mock.counter": "17" } } });
   await expect(value).toHaveText("17");
 });
+
+// The browser-PC measurement (Codex R181 VP181-01) reads a status frame's AGE
+// — the WS worker's socket receipt to the applyState() that shows it — and a
+// press's delay from the page's own 3 s perf rows. Through the real worker:
+// a dropped receipt stamp (worker → page) leaves age_n at 0 while frames
+// still apply; a dead input listener leaves in_n at 0.
+test("perf rows carry the status age from the worker's receipt and the presses' delay", async ({ page }) => {
+  const rows: Array<Record<string, any>> = [];
+  await page.route("**/telemetry", async (route) => {
+    for (const line of (route.request().postData() ?? "").split("\n")) {
+      if (!line) continue;
+      try {
+        const e = JSON.parse(line);
+        if (e.kind === "viewer.perf") rows.push(e);
+      } catch { /* not ours */ }
+    }
+    await route.fulfill({ status: 204, body: "" });
+  });
+  await page.goto(MOCK);
+  // (the DRO's value is no readiness signal here: the parallel status_delta
+  // test broadcasts its own) — the first aged row is
+  await expect.poll(() => rows.some(r => r.age_n > 0), { timeout: 15_000 }).toBe(true);
+  for (let i = 0; i < 4; i++) await page.keyboard.press("Shift");
+  await expect.poll(() => rows.some(r => r.in_n > 0), { timeout: 15_000 }).toBe(true);
+  const sum = (h: Record<string, number>) => Object.values(h).reduce((a, b) => a + b, 0);
+  for (const r of rows) {
+    expect(sum(r.age_h), "every age sample is binned").toBe(r.age_n);
+    // a window's first apply has its gap from the previous window's last one
+    expect([r.frames - 1, r.frames], "every status gap is binned").toContain(sum(r.gap_h));
+    expect(r.age_neg, "no receipt after its apply on one clock").toBe(0);
+  }
+  const aged = rows.filter(r => r.age_n > 0);
+  // one clock: a receipt on another time origin would be years off (or negative)
+  expect(Math.max(...aged.map(r => r.age_max_ms)), "an age on one clock").toBeLessThan(5000);
+  expect(rows.reduce((a, r) => a + r.in_n, 0)).toBeGreaterThanOrEqual(4);
+});

@@ -138,6 +138,12 @@ class BulkPipeline:
         # Set by cancel_inflight; read by refresh_gcode_preview after the
         # worker exits to trace the cancel instead of a worker failure.
         self.cancel_reason: Optional[str] = None
+        # Every parse is a JOB, numbered at its spawn; its trace events
+        # (spawn, cancel / timeout / failure, done, publish) name the job and
+        # the start basis it parses from (`basis_tag`) — so a measurement
+        # proves ONE parse at a time and the last basis winning by id, not by
+        # timing (Codex R181 VP181-01).
+        self.job_seq = 0
         # Last measured publish time per file path (ms) — the expected
         # duration the banner shows and the timeout scale.
         self.parse_ms_by_file: dict = {}
@@ -628,7 +634,7 @@ class BulkPipeline:
         self.cancel_reason = reason
         self.superseded_total += 1
         inf = self.inflight or {}
-        _trace.emit("gcode.reparse_superseded", reason=reason,
+        _trace.emit("gcode.reparse_superseded", reason=reason, job=inf.get("job"),
                     file=os.path.basename(inf.get("file") or ""),
                     ran_ms=self.inflight_ran_ms(),
                     inflight_reason=inf.get("reason"))
@@ -676,6 +682,7 @@ class BulkPipeline:
         """
         t_start = time.monotonic()
         _verify_path: Optional[str] = None
+        _job: Optional[int] = None
         # Snapshot mtime BEFORE the parse: if an edit lands while the subprocess is
         # running, we record the pre-parse mtime, so the poller's next tick still
         # sees a mismatch and re-parses the newest content rather than missing it.
@@ -772,7 +779,18 @@ class BulkPipeline:
                                                getattr(stat, "actual_position", None))
                 _seed_wcs = self._get_wcs_off_flat()
             self.cancel_reason = None
+            self.job_seq += 1
+            _job = self.job_seq
+            _tlo_seed = None if pinned else self.live_start(stat)
+            # the start basis: the context the worker parses from (a verify's
+            # temp file name is no input of its own) with the input snapshot
+            # the drift edges compare — the offsets live in the var file the
+            # worker reads, not in the context
+            _basis = (ctx_digest({**{k: v for k, v in ctx.items() if k != "verify_against"},
+                                  "wcs_off": _seed_wcs, "rotary_seed": _seed_rot,
+                                  "tlo_seed": _tlo_seed}) or "")[:12]
             self.inflight = {
+                "job": _job, "basis": _basis,
                 "file": filepath, "mtime": _mtime_at_parse, "reason": reason,
                 "t0": time.monotonic(), "started_ms": int(time.time() * 1000),
                 "expected_ms": expected_ms,
@@ -781,11 +799,11 @@ class BulkPipeline:
                 "wcs_off": _seed_wcs,
                 # the start tool state the worker will seed (VP-I20) — a G43
                 # by hand while it runs stales it (inflight_stale_reason)
-                "tlo_seed": None if pinned else self.live_start(stat),
+                "tlo_seed": _tlo_seed,
                 **({"pinned": True} if pinned else {}),
                 **({"verify": True} if _verify_path else {}),
             }
-            _trace.emit("gcode.spawn_start",
+            _trace.emit("gcode.spawn_start", job=_job, basis=_basis,
                         file=os.path.basename(filepath), active_idx=active_idx,
                         reason=reason, expected_ms=expected_ms,
                         timeout_s=round(timeout_s, 1),
@@ -799,7 +817,7 @@ class BulkPipeline:
                 returncode, stdout, stderr = await asyncio.to_thread(
                     self._run_gcode_worker_blocking, ctx_bytes, timeout_s)
             except subprocess.TimeoutExpired:
-                _trace.emit("gcode.parse_timeout", level="warn", file=filepath,
+                _trace.emit("gcode.parse_timeout", level="warn", job=_job, file=filepath,
                             timeout_s=round(timeout_s, 1), expected_ms=expected_ms)
                 return
             t_communicated = time.monotonic()
@@ -807,7 +825,7 @@ class BulkPipeline:
                 # Superseded by cancel_inflight: the result (if any) was
                 # computed from stale inputs — never publish it. The caller
                 # that cancelled owns the restart (reparse_pending / file edge).
-                _trace.emit("gcode.parse_cancelled", file=filepath,
+                _trace.emit("gcode.parse_cancelled", job=_job, file=filepath,
                             reason=self.cancel_reason, rc=returncode,
                             ran_ms=round((t_communicated - t_spawn) * 1000),
                             stderr_tail=(stderr.decode(errors="replace")[-240:] if stderr else ""))
@@ -817,12 +835,12 @@ class BulkPipeline:
                 # and say so — the preview is stale until idle (MR-I04).
                 self.pin_unsupported = True
                 self.mark_table_stale(reason.split(":", 1)[-1], "unsupported")
-                _trace.emit("gcode.pinned_unsupported", level="warn", file=filepath,
+                _trace.emit("gcode.pinned_unsupported", level="warn", job=_job, file=filepath,
                             stderr_tail=(stderr.decode(errors="replace")[-240:] if stderr else ""))
                 return
             if returncode != 0:
                 err_tail = stderr.decode(errors="replace")[:500] if stderr else ""
-                _trace.emit("gcode.parse_worker_failed", level="warn",
+                _trace.emit("gcode.parse_worker_failed", level="warn", job=_job,
                             rc=returncode, stderr_tail=err_tail)
                 return
             # Surface worker-side timing + lift the partial-parse marker into a
@@ -951,7 +969,7 @@ class BulkPipeline:
                                         level="warn", line=ln[:160])
                     else:
                         _trace.emit("gcode.worker_log", line=ln)
-            _trace.emit("gcode.worker_done",
+            _trace.emit("gcode.worker_done", job=_job,
                         parse_ms=round((t_communicated - t_spawn) * 1000, 1),
                         stdout_bytes=len(stdout))
             if worker_same and not stdout:
@@ -959,15 +977,15 @@ class BulkPipeline:
                 # only its tool basis moves to the start the worker seeded.
                 if self.basis_of(worker_tlo) is not None:
                     self._set_tool_basis(self.basis_of(worker_tlo))
-                    _trace.emit("gcode.reparse_verified_same", file=os.path.basename(filepath),
+                    _trace.emit("gcode.reparse_verified_same", job=_job, file=os.path.basename(filepath),
                                 basis=self.tool_basis, version=self.preview_version,
                                 total_ms=round((time.monotonic() - t_start) * 1000, 1))
                 else:
-                    _trace.emit("gcode.verify_same_without_start", level="warn",
+                    _trace.emit("gcode.verify_same_without_start", level="warn", job=_job,
                                 file=os.path.basename(filepath))
                 return
             if not stdout:
-                _trace.emit("gcode.preview_refresh_failed", level="warn",
+                _trace.emit("gcode.preview_refresh_failed", level="warn", job=_job,
                             file=filepath, exc="EmptyOutput", msg="worker emitted no bytes")
                 return
 
@@ -990,7 +1008,7 @@ class BulkPipeline:
                 # Nothing can be bound to this publication; the next parse is
                 # requested here — the poller's file edge sees the path and
                 # the mtime only, which an edit can keep.
-                _trace.emit("gcode.source_changed_during_parse", level="warn",
+                _trace.emit("gcode.source_changed_during_parse", level="warn", job=_job,
                             file=os.path.basename(filepath))
                 self.reparse_pending = True
                 self.reparse_pending_reason = "file"
@@ -1047,7 +1065,7 @@ class BulkPipeline:
             if not pinned:
                 # A niced mid-run parse is no estimate for the next idle one.
                 self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)
-            _trace.emit("gcode.publish",
+            _trace.emit("gcode.publish", job=_job, basis=_basis, active_idx=active_idx,
                         **({"pinned": True} if pinned else {}),
                         version=self.preview_version,
                         schema=worker_schema,
@@ -1056,7 +1074,7 @@ class BulkPipeline:
                         bytes_gz=len(preview_bytes_gz) if preview_bytes_gz else 0,
                         total_ms=round((t_gz_done - t_start) * 1000, 1))
         except Exception as e:
-            _trace.emit("gcode.preview_refresh_failed", level="warn",
+            _trace.emit("gcode.preview_refresh_failed", level="warn", job=_job,
                         file=filepath, exc=type(e).__name__, msg=str(e))
         finally:
             self.refresh_running = False

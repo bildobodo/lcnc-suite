@@ -2461,6 +2461,7 @@ async function buildFromInit(init: ViewerInit) {
       // probe so leak detection shares one event line with heap + gap.
       geometries: renderer?.info.memory.geometries ?? 0,
       textures: renderer?.info.memory.textures ?? 0,
+      ..._perfMemory(),
     }));
 
     // Apply any layer visibility that was requested before objects existed
@@ -2504,6 +2505,21 @@ async function buildFromInit(init: ViewerInit) {
     emitTelemetry("viewer.build_failed", { error: String(err) });
     window.__viewerDiag = { ready: false, error: (err as Error).message };
   }
+}
+
+/** What the page itself holds, for the 3 s perf row (Firefox has no heap
+ *  number): the drawn path's ledger (CPU bytes held, GPU bytes uploaded) and
+ *  the collision contact tables with their views — a level that grows over
+ *  repeated replacements is a leak (Codex R181 VP181-01). */
+function _perfMemory(): Record<string, number> {
+  const pm = toolpath.pathMemory();
+  const cs = _contacts.stats();
+  return {
+    mem_path_cpu: pm.cpu.total,
+    mem_path_gpu: pm.gpu.total,
+    mem_contacts: cs.allocated,
+    mem_contact_views: cs.views.published + cs.views.building,
+  };
 }
 
 function applyState(init: ViewerInit, st: ViewerState) {

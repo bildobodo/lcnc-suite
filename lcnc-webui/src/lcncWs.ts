@@ -21,6 +21,7 @@ import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
 import { macroFilesVersion } from "./macroFiles";
+import { noteStatusReceived } from "./viewerPerf";
 import {
   buildWsUrl, captureArmedForResume, connectTransport,
   persistArmedForReload, postWorkerConfig, sendCommand, terminateTransport,
@@ -224,7 +225,7 @@ function onWorkerMessage(m: any) {
       break;
 
     case "message":
-      onFrame(m.data);
+      onFrame(m.data, m.rx);
       break;
   }
 }
@@ -234,7 +235,7 @@ function onWorkerMessage(m: any) {
 // on the main thread by design. Every frame type dispatches into its owning
 // module — the e2e liveness specs (frames.spec.ts) pin each path through to
 // the rendered DOM, so a dead case here cannot pass the gate.
-function onFrame(data: string | ArrayBuffer) {
+function onFrame(data: string | ArrayBuffer, rx?: number) {
     let msg: any;
     const _t0 = performance.now();
     try {
@@ -288,6 +289,7 @@ function onFrame(data: string | ArrayBuffer) {
     }
 
     if (msg.type === "status") {
+      noteStatusReceived(rx);   // its age runs from the worker's receipt (viewerPerf)
       handleStatusMessage(msg);
     } else if (msg.type === "status_error") {
       handleStatusError(msg);
