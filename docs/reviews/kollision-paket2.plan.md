@@ -591,6 +591,8 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 
 - **Browser-PC-Messung (R181):** 21. Oktober, Firefox auf dem Mac des Operators (der die VM hostet), passiv; HAL-Herzschlag nie über 100 ms, Statusbild-p95 an der Untergrenze des Messmittels (50 ms, Übernahme je Animationsframe) in Ruhe und im Lauf, darüber unter der schweren Prüfung von `haus.ngc`; nicht abgedeckt: der Ersatz eines laufenden Parses bei stehendem Basiswechsel und eine schwere Prüfung im Lauf.
 
+- **Browser-PC-Messung, Folgelauf (R181 VP181-01 → R182):** Der Lauf vom 21. Oktober ist ein Teilnachweis. Sein Herzschlag-Befund galt der Sendeseite des Gateways; auch die Empfangsseite des Watchdogs zeigte im Messfenster keinen Abstand über 200 ms. Im Browser wurde einmal Abbruch und Neustart beobachtet, das Ersetzen im Gateway war ungeprüft. Messmittel für den Folgelauf: Histogramme, die über Fenster hinweg zusammengelegt werden können (Ausführung, Abstand, Alter vom Socket-Empfang bis zur Übernahme, die Netzweg-Schranke, Eingabeverzögerung), Seitenspeicher, Parse-Aufträge mit Kennung und Startbasis; Ablauf mit stehendem Basiswechsel und einem schweren synthetischen M600-Lauf.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).
