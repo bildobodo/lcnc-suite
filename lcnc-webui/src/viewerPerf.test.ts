@@ -10,7 +10,8 @@ vi.mock("./ws/telemetry", () => ({
 }));
 
 import {
-  binOf, flushViewerPerf, noteInput, noteMainThreadProbe, noteRoundTrip, noteSlowInput, noteStatusReceived,
+  binOf, flushViewerPerf, noteHeartbeatReply, noteHeartbeatSentAt, noteInput, noteMainThreadProbe,
+  notePendingReceipt, noteSlowInput, noteVisibilityChanged,
   recordApply, recordRafTick, recordRender, resetViewerPerf, setViewerPerfGl,
   setViewerPerfContext,
 } from "./viewerPerf";
@@ -240,13 +241,13 @@ describe("histograms that pool (Codex R181 VP181-01)", () => {
   });
 });
 
-describe("status age: socket receipt → applied", () => {
+describe("status age: the receipt the viewer takes, at its apply", () => {
   const T0 = performance.timeOrigin;
 
-  it("ages no frame before the viewer's first apply (its build, not the status path)", () => {
-    noteStatusReceived(T0 + 100);
+  it("ages no frame at the viewer's first apply (its build, not the status path)", () => {
+    notePendingReceipt(T0 + 100);
     recordApply(1, 1500);                 // the viewer built 1.4 s later: no age
-    noteStatusReceived(T0 + 1510);
+    notePendingReceipt(T0 + 1510);
     recordApply(1, 1533);
     flushViewerPerf();
     const f = last();
@@ -254,13 +255,13 @@ describe("status age: socket receipt → applied", () => {
     expect(f.age_max_ms).toBe(23);
   });
 
-  it("measures the oldest frame received since the last apply, once per apply", () => {
+  it("keeps the oldest receipt the viewer took before one apply, and consumes it there", () => {
     recordApply(1, 990);                  // the viewer is built
-    noteStatusReceived(T0 + 1000);
-    noteStatusReceived(T0 + 1030);        // a newer frame — the older one waited longest
+    notePendingReceipt(T0 + 1030);
+    notePendingReceipt(T0 + 1000);        // an older flush taken too (order of notes is free)
     recordApply(1, 1048);
-    recordApply(1, 1081);                 // a re-apply with no new receipt: no age
-    noteStatusReceived(T0 + 1100);
+    recordApply(1, 1081);                 // a local re-apply: no receipt, no age
+    notePendingReceipt(T0 + 1100);
     recordApply(1, 1105);
     flushViewerPerf();
     const f = last();
@@ -270,34 +271,65 @@ describe("status age: socket receipt → applied", () => {
     expect(f.age_neg).toBe(0);
   });
 
-  it("ignores a frame without a receipt and counts a receipt after its apply apart", () => {
+  it("ignores a status without a receipt, counts a receipt after its apply and one from before a visibility change apart", () => {
     recordApply(1, 900);
-    noteStatusReceived(undefined);
-    noteStatusReceived(0);
+    notePendingReceipt(undefined);
+    notePendingReceipt(0);
     recordApply(1, 1000);
-    noteStatusReceived(T0 + 2000);
+    notePendingReceipt(T0 + 2000);
     recordApply(1, 1990);
+    notePendingReceipt(T0 + 2100);        // received, then the page was hidden and shown again
+    noteVisibilityChanged(T0 + 2200);
+    recordApply(1, 5000);
     flushViewerPerf();
     const f = last();
     expect(f.age_n).toBe(0);
     expect(f.age_neg).toBe(1);
+    expect(f.age_vis_skip).toBe(1);
     expect(f.age_h).toEqual({});
   });
 });
 
-describe("the gateway → socket bound and input delay", () => {
-  it("keeps the heartbeat round trip less the gateway's hold", () => {
-    noteRoundTrip(30, 12);
-    noteRoundTrip(25, undefined);         // a frame without timing: no sample
-    noteRoundTrip(140, 21);
+describe("the gateway → socket bound, timed in the worker (Codex R182 VP182-02)", () => {
+  const T0 = performance.timeOrigin;
+
+  it("pairs one stamped heartbeat with its answer's receipt, whenever the page handles them", () => {
+    // Codex's case: sent at 10, answered at the worker at 130, hold 20 — the
+    // page handled both posts only at 200/201: both legs are 100, not 0
+    noteHeartbeatSentAt(T0 + 10);
+    noteHeartbeatReply(T0 + 130, 20);
+    noteHeartbeatSentAt(T0 + 1010);
+    noteHeartbeatReply(T0 + 1040, 12);
     recordApply(1, 1000);
     flushViewerPerf();
     const f = last();
     expect(f.rt_n).toBe(2);
-    expect(f.rt_net_max_ms).toBe(119);
-    expect(f.rt_net_h).toEqual({ "18": 1, "110": 1 });
+    expect(f.rt_net_max_ms).toBe(100);
+    expect(f.rt_net_h).toEqual({ "18": 1, "100": 1 });
+    expect(f.rt_invalid).toBe(0);
   });
 
+  it("gives no bound for an ambiguous, unmatched, unstamped or negative pair", () => {
+    noteHeartbeatSentAt(T0 + 10);
+    noteHeartbeatSentAt(T0 + 1010);       // two outstanding: which one is answered?
+    noteHeartbeatReply(T0 + 1100, 20);
+    noteHeartbeatReply(T0 + 1200, 20);    // an answer with nothing outstanding
+    noteHeartbeatSentAt(undefined);       // a worker without the stamp
+    noteHeartbeatReply(T0 + 2100, 20);
+    noteHeartbeatSentAt(T0 + 3000);
+    noteHeartbeatReply(T0 + 3010, 20);    // hold longer than the round trip
+    noteHeartbeatSentAt(T0 + 4000);
+    noteHeartbeatReply(T0 + 4050, undefined);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    const f = last();
+    expect(f.rt_n).toBe(0);
+    expect(f.rt_invalid).toBe(5);
+    expect(f.rt_net_h).toEqual({});
+  });
+});
+
+describe("input delay", () => {
   it("measures a press from its stamp to its first listener; a window with only presses still reports", () => {
     noteInput(100, 103);
     noteInput(200, 262);

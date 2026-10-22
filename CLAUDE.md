@@ -960,8 +960,15 @@ carry fixed-bin histograms that POOL into a phase's quantiles (`viewerPerf.binOf
 — a window's p95 never pools): `apply_h` (applyState's own time), `gap_h` (the
 cadence), `age_h` (a status frame's socket receipt in the WS worker — stamped
 `rx` on the global clock, timeOrigin + now — until the applyState that shows
-it or a newer one; gateway → socket only bounded by `rt_net_h`, the heartbeat
-round trip less the gateway's hold), `in_delay_h` (a key / pointer press to its
+it or a newer one; the receipt TRAVELS with the buffered status: the store
+keeps the oldest of a flush (`statusReceiptOf`), the viewer the oldest of the
+flushes it folds into one apply (`notePendingReceipt`) — an apply of an older
+frame never takes the receipt of one still in the store's batch, Codex R182
+VP182-01; the viewer's first apply is not aged; gateway → socket only bounded
+by `rt_net_h`, the heartbeat round trip timed IN THE WORKER — its send stamp,
+the answering frame's receipt — less the gateway's hold, only for an answer
+to exactly one outstanding heartbeat, else `rt_invalid`, VP182-02),
+`in_delay_h` (a key / pointer press to its
 first listener; with Event Timing `ev_*`, the presses ≥ 16 ms to the next
 paint), and the page's own memory (`mem_path_cpu/gpu`, `mem_contacts`,
 `mem_contact_views` — Firefox has no heap number); every parse's trace events

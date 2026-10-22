@@ -238,7 +238,10 @@ wss.on("connection", (ws) => {
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
     else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [] }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
-    if (!quiet) ws.send(JSON.stringify(withEnvelope(state))); // answer everything -> stay connected & armed
+    // answer everything -> stay connected & armed; the status answering a
+    // heartbeat carries the gateway's hold like the gateway's first status
+    // after one (`timing.server_ms` — the page's round-trip bound pairs it)
+    if (!quiet) ws.send(JSON.stringify(cmd === "heartbeat" ? { ...withEnvelope(state), timing: { server_ms: 0.2 } } : withEnvelope(state)));
   });
 });
 

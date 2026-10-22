@@ -82,12 +82,16 @@ test("perf rows carry the status age from the worker's receipt and the presses' 
   await expect.poll(() => rows.some(r => r.age_n > 0), { timeout: 15_000 }).toBe(true);
   for (let i = 0; i < 4; i++) await page.keyboard.press("Shift");
   await expect.poll(() => rows.some(r => r.in_n > 0), { timeout: 15_000 }).toBe(true);
+  // the heartbeat's answer (the mock's status with timing) is paired in the
+  // worker's clock: a send stamp lost on the way to the page leaves rt_n 0
+  await expect.poll(() => rows.some(r => r.rt_n > 0), { timeout: 15_000 }).toBe(true);
   const sum = (h: Record<string, number>) => Object.values(h).reduce((a, b) => a + b, 0);
   for (const r of rows) {
     expect(sum(r.age_h), "every age sample is binned").toBe(r.age_n);
     // a window's first apply has its gap from the previous window's last one
     expect([r.frames - 1, r.frames], "every status gap is binned").toContain(sum(r.gap_h));
     expect(r.age_neg, "no receipt after its apply on one clock").toBe(0);
+    expect(sum(r.rt_net_h), "every paired round trip is binned").toBe(r.rt_n);
   }
   const aged = rows.filter(r => r.age_n > 0);
   // one clock: a receipt on another time origin would be years off (or negative)

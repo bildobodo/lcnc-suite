@@ -15,7 +15,6 @@
 import { computed, ref, shallowRef } from "vue";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
 import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
-import { noteRoundTrip } from "../viewerPerf";
 
 export interface LcncMessage {
   id: number;
@@ -384,6 +383,19 @@ export function notePong(): void {
 let _pendingStatus: any = null;
 let _lastRflTs = 0;   // dedupe for rfl_status frames (same phase repeats per tick)
 let _flushScheduled = false;
+// The oldest socket receipt among the frames folded into the pending status,
+// and per flushed status object the receipt it carries (Codex R182 VP182-01:
+// the receipt travels with the buffered status — the viewer's apply of an
+// older flush never takes the receipt of a frame still waiting here).
+let _pendingRx = 0;
+const _rxOf = new WeakMap<object, number>();
+
+/** The oldest socket receipt (global clock) of the frames folded into this
+ *  flushed status object; undefined for a status no frame carried (a merge
+ *  patch, a frame without a stamp). */
+export function statusReceiptOf(st: unknown): number | undefined {
+  return st && typeof st === "object" ? _rxOf.get(st) : undefined;
+}
 let _lastToolMeta: { num: number; meta: any } | null = null;
 
 /**
@@ -399,8 +411,11 @@ export function rebaseStatusDelta(msg: any): void {
   msg.type = "status";
 }
 
-/** The full former `status` branch of onFrame — behavior preserved verbatim. */
-export function handleStatusMessage(msg: any): void {
+/** The full former `status` branch of onFrame — behavior preserved verbatim.
+ *  `rx` is the frame's socket receipt in the WS worker (global clock): the
+ *  oldest receipt folded into a flush travels with it (`statusReceiptOf`). */
+export function handleStatusMessage(msg: any, rx?: number): void {
+  if (typeof rx === "number" && rx > 0 && (_pendingRx === 0 || rx < _pendingRx)) _pendingRx = rx;
   // Only act on status messages that carry timing (heartbeat-triggered).
   // Plain status messages arrive first and must NOT consume _rtSentAt.
   if (msg.timing) {
@@ -411,7 +426,6 @@ export function handleStatusMessage(msg: any): void {
       _pushSample("rt", rtMs);
       _pushSample("server", msg.timing.server_ms);
       _pushSample("network", rtMs - msg.timing.server_ms);
-      noteRoundTrip(rtMs, msg.timing.server_ms);   // the gateway → socket bound (viewerPerf)
     }
     const t = msg.timing;
     if (t.cycle_ms != null) _pushSample("cycle", t.cycle_ms);
@@ -583,6 +597,8 @@ function _flushPending(): void {
     // `status.value`, so it always carries the freshest fetched value even if
     // that fetch resolved while this frame was sitting in the buffer.
     _applyBulkCarry(_pendingStatus);
+    if (_pendingRx > 0) _rxOf.set(_pendingStatus, _pendingRx);
+    _pendingRx = 0;
     status.value = _pendingStatus;
     _pendingStatus = null;
   }

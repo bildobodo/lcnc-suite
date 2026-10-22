@@ -21,7 +21,7 @@ import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
 import { macroFilesVersion } from "./macroFiles";
-import { noteStatusReceived } from "./viewerPerf";
+import { noteHeartbeatReply, noteHeartbeatSentAt } from "./viewerPerf";
 import {
   buildWsUrl, captureArmedForResume, connectTransport,
   persistArmedForReload, postWorkerConfig, sendCommand, terminateTransport,
@@ -52,7 +52,7 @@ export const serverShuttingDown = ref(false);
 export {
   status, lcncError, safetyTrip, readerStale, safetyChainIncomplete, configWarning,
   previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, type PreviewRefresh,
-  previewTableStale, previewBasisPending, previewOrigin, runBasis,
+  previewTableStale, previewBasisPending, previewOrigin, runBasis, statusReceiptOf,
   latency, networkLatency, timingStats, messages, unreadCount,
   resetTimingStats, getTimingCsv, dismissMessage, clearAllMessages, markMessagesRead,
   pushMessage,
@@ -172,6 +172,7 @@ function onWorkerMessage(m: any) {
 
     case "hbsent":
       noteHeartbeatSent();   // RTT anchor crossed by function call only (A1 rule)
+      noteHeartbeatSentAt(m.at);   // the worker's own send stamp (viewerPerf's bound)
       break;
 
     case "hbslip":
@@ -289,8 +290,9 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
     }
 
     if (msg.type === "status") {
-      noteStatusReceived(rx);   // its age runs from the worker's receipt (viewerPerf)
-      handleStatusMessage(msg);
+      // a heartbeat's answer: the round trip timed in the worker (viewerPerf)
+      if (msg.timing) noteHeartbeatReply(rx, msg.timing.server_ms);
+      handleStatusMessage(msg, rx);   // its age runs from the worker's receipt
     } else if (msg.type === "status_error") {
       handleStatusError(msg);
     } else if (msg.type === "reply") {

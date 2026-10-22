@@ -33,13 +33,20 @@
 //               Absent (not zero) without a WebGL2 context.
 //
 //   statusAge — from the WS worker's socket receipt of a status frame to the
-//               end of the applyState() that shows it (or a newer frame):
-//               the oldest frame received since the last apply, per apply
-//               (`age_*`). Both ends read the global clock (timeOrigin +
-//               now), so the worker's receipt and the main thread's apply
-//               compare. The gateway → socket leg is NOT in it: bounded by
-//               the heartbeat round trip less the gateway's hold
-//               (`rt_net_*` — both legs, so an upper bound of the one).
+//               end of the applyState() that shows it or a newer frame
+//               (`age_*`). The receipt TRAVELS with the buffered status
+//               (Codex R182 VP182-01): the store keeps the oldest receipt
+//               of the frames it folds into one flush (`statusReceiptOf`),
+//               the viewer the oldest of the flushes it folds into one
+//               apply (`notePendingReceipt`) — a frame still waiting in the
+//               store keeps its receipt past an apply of an older one.
+//               Both ends read the global clock (timeOrigin + now). Not in
+//               it: the network, the viewer's first build, the render after
+//               the apply. The gateway → socket leg is bounded by the
+//               heartbeat round trip timed IN THE WORKER (send and the
+//               answering frame's receipt) less the gateway's hold
+//               (`rt_net_*`, both legs); an answer the worker cannot pair
+//               with exactly one heartbeat is no bound (`rt_invalid`).
 //   inputDelay — a key or pointer press until its first listener runs
 //               (`in_delay_*`, the event's own timeStamp — the queueing a
 //               busy main thread adds); with the Event Timing API also the
@@ -121,15 +128,20 @@ let _lastApplyTs = 0;             // performance.now() of previous applyState
 const _gapH = new Map<number, number>();
 const _applyH = new Map<number, number>();
 
-// Status age: the socket receipt (global clock) of the oldest frame not yet
-// applied — 0 when every received frame is shown.
-let _rxOldest = 0;
+// Status age: the socket receipt (global clock) of the oldest frame handed to
+// the viewer and not yet applied — 0 when none waits.
+let _pendingRx = 0;
+// the last visibility change (global clock): a frame received before it
+// waited through a hidden page — policy, not lag
+let _visChangedAt = 0;
 const _ageH = new Map<number, number>();
-let _ageN = 0, _ageMax = 0, _ageNeg = 0;
+let _ageN = 0, _ageMax = 0, _ageNeg = 0, _ageVisSkip = 0;
 
-// Heartbeat round trip less the gateway's hold: both network legs.
+// Heartbeat round trip in the worker less the gateway's hold: both network legs.
+let _hbSentAt = 0;          // the worker's send of the heartbeat not yet answered (global clock)
+let _hbOutstanding = 0;     // heartbeats sent since the last answer
 const _rtNetH = new Map<number, number>();
-let _rtN = 0, _rtNetMax = 0;
+let _rtN = 0, _rtNetMax = 0, _rtInvalid = 0;
 
 // Input delay.
 const _inDelayH = new Map<number, number>();
@@ -185,6 +197,8 @@ export function setViewerPerfGl(gl: unknown): void {
  *  since the previous one (status-arrival cadence as seen by the client). */
 export function recordApply(applyMs: number, now: number = performance.now()): void {
   if (!_enabled) return;
+  // the viewer's first apply: its frames waited for its build, not the path
+  const built = _lastApplyTs > 0;
   if (_lastApplyTs > 0) {
     const gap = now - _lastApplyTs;
     if (_gaps.length < SAMPLE_CAP) _gaps.push(gap);
@@ -197,34 +211,56 @@ export function recordApply(applyMs: number, now: number = performance.now()): v
   _applySum += applyMs;
   _histAdd(_applyH, applyMs);
   if (applyMs > _applyMax) _applyMax = applyMs;
-  if (_rxOldest > 0) {
-    const age = _epochNow(now) - _rxOldest;
-    if (age < 0) _ageNeg++;
+  const rx = _pendingRx;
+  _pendingRx = 0;
+  if (rx > 0 && built) {
+    const age = _epochNow(now) - rx;
+    if (rx < _visChangedAt) _ageVisSkip++;
+    else if (age < 0) _ageNeg++;
     else {
       _ageN++;
       _histAdd(_ageH, age);
       if (age > _ageMax) _ageMax = age;
     }
-    _rxOldest = 0;
   }
 }
 
-/** A status frame left the WS worker's socket at `rxEpochMs` (global clock;
- *  the worker stamps it). The oldest one not yet applied is what the next
- *  applyState() is late against. Only once the viewer has applied a frame:
- *  before that the frames wait for the viewer's build (1.4 s at a loaded
- *  page start in the gate) — a start, not the status path. */
-export function noteStatusReceived(rxEpochMs: unknown): void {
-  if (!_enabled || _lastApplyTs === 0 || typeof rxEpochMs !== 'number' || !(rxEpochMs > 0)) return;
-  if (_rxOldest === 0) _rxOldest = rxEpochMs;
+/** The viewer took a status flush (`statusReceiptOf` — the oldest socket
+ *  receipt folded into it) as its next state: the oldest such receipt
+ *  waits for the next applyState(). The viewer's status watcher calls it;
+ *  a local re-apply of the last state never does. */
+export function notePendingReceipt(rxEpochMs: unknown): void {
+  if (!_enabled || typeof rxEpochMs !== 'number' || !(rxEpochMs > 0)) return;
+  if (_pendingRx === 0 || rxEpochMs < _pendingRx) _pendingRx = rxEpochMs;
 }
 
-/** One heartbeat round trip (the heartbeat's send to the status that answers
- *  it, at the main thread) and the gateway's hold inside it: what is left is
- *  both network legs plus the relay to the main thread. */
-export function noteRoundTrip(rtMs: number, serverMs: unknown): void {
-  if (!_enabled || typeof serverMs !== 'number' || !Number.isFinite(rtMs)) return;
-  const net = Math.max(0, rtMs - serverMs);
+/** The page's visibility changed at `atEpochMs` (global clock). */
+export function noteVisibilityChanged(atEpochMs: number = _epochNow(performance.now())): void {
+  _visChangedAt = atEpochMs;
+}
+
+/** The WS worker sent a heartbeat at `atEpochMs` (global clock, the worker's
+ *  stamp — never the main thread's handling of the post). */
+export function noteHeartbeatSentAt(atEpochMs: unknown): void {
+  if (!_enabled) return;
+  _hbOutstanding++;
+  _hbSentAt = typeof atEpochMs === 'number' && atEpochMs > 0 ? atEpochMs : 0;
+}
+
+/** A status frame that answers a heartbeat (it carries the gateway's hold,
+ *  `timing.server_ms`), received by the worker at `rxEpochMs`. Both legs =
+ *  receipt − send − hold, only for an answer to exactly ONE heartbeat
+ *  outstanding (the gateway answers the newest it has read: two outstanding
+ *  are ambiguous); a pair that is ambiguous, unstamped or negative is no
+ *  bound — counted apart, never 0 ms. */
+export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown): void {
+  if (!_enabled) return;
+  const ok = _hbOutstanding === 1 && _hbSentAt > 0 && typeof rxEpochMs === 'number' && rxEpochMs > 0
+    && typeof serverMs === 'number' && Number.isFinite(serverMs);
+  const net = ok ? (rxEpochMs as number) - _hbSentAt - (serverMs as number) : -1;
+  _hbOutstanding = 0;
+  _hbSentAt = 0;
+  if (!(net >= 0)) { _rtInvalid++; return; }
   _rtN++;
   _histAdd(_rtNetH, net);
   if (net > _rtNetMax) _rtNetMax = net;
@@ -409,8 +445,10 @@ export function flushViewerPerf(): void {
     age_max_ms: +_ageMax.toFixed(1),
     age_h: _histOut(_ageH),
     age_neg: _ageNeg,              // a receipt after its apply: clock oddity, not binned
+    age_vis_skip: _ageVisSkip,     // received before a visibility change: not aged
     // heartbeat round trip less the gateway's hold (both legs): bounds gateway → socket
     rt_n: _rtN,
+    rt_invalid: _rtInvalid,        // answers not paired with exactly one stamped heartbeat, or negative
     rt_net_max_ms: +_rtNetMax.toFixed(1),
     rt_net_h: _histOut(_rtNetH),
     // input: press → first listener (and, Event Timing, the presses ≥ 16 ms to the next paint)
@@ -472,8 +510,8 @@ export function flushViewerPerf(): void {
 
 function _resetHistograms(): void {
   _gapH.clear(); _applyH.clear();
-  _ageH.clear(); _ageN = _ageMax = _ageNeg = 0;
-  _rtNetH.clear(); _rtN = _rtNetMax = 0;
+  _ageH.clear(); _ageN = _ageMax = _ageNeg = _ageVisSkip = 0;
+  _rtNetH.clear(); _rtN = _rtNetMax = _rtInvalid = 0;
   _inDelayH.clear(); _inN = _inDelayMax = _inOdd = 0;
   _evDurH.clear(); _evDelayH.clear(); _evN = _evDurMax = 0;
 }
@@ -483,7 +521,10 @@ export function resetViewerPerf(): void {
   _dropFences();
   _frames = _gapMax = _jank = _applySum = _applyMax = 0;
   _resetHistograms();
-  _rxOldest = 0;
+  _pendingRx = 0;
+  _visChangedAt = 0;
+  _hbSentAt = 0;
+  _hbOutstanding = 0;
   _gaps.length = 0;
   _renderSum = _renderMax = _renderCount = 0;
   _lastApplyTs = 0;
@@ -503,7 +544,7 @@ export function resetViewerPerf(): void {
 function _onVisibility(): void {
   _lastRafTs = 0;
   _mtDue = 0;
-  _rxOldest = 0;   // a hidden page applies nothing: its frames' wait is policy, not lag
+  noteVisibilityChanged();   // a hidden page applies nothing: its frames' wait is policy, not lag
 }
 
 // Presses: passive capture listeners that only read the event's stamp (the

@@ -119,8 +119,11 @@ function startHeartbeat() {
       // hbsent only on a send that didn't throw — posting it after a swallowed
       // exception recorded heartbeats as sent that never left (silent fallback).
       try {
+        // the send's own stamp (global clock): the round trip is timed here,
+        // never from the page's handling of this post (Codex R182 VP182-02)
+        const at = performance.timeOrigin + performance.now();
         ws.send('{"cmd":"heartbeat"}');
-        post({ type: "hbsent" });
+        post({ type: "hbsent", at });
       } catch (e) {
         post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
       }
@@ -397,8 +400,9 @@ self.onmessage = (ev: MessageEvent<MainMsg>) => {
       // gateway's last_hb is fresh without waiting up to 1 s for the timer.
       if (msg.fireHeartbeat && ws && ws.readyState === WebSocket.OPEN) {
         try {
+          const at = performance.timeOrigin + performance.now();
           ws.send('{"cmd":"heartbeat"}');
-          post({ type: "hbsent" });
+          post({ type: "hbsent", at });
         } catch (e) {
           post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
         }
