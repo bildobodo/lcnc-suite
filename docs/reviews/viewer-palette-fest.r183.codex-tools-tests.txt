@@ -1,0 +1,162 @@
+test_anchor_requires_idle_and_standstill (__main__.Tests.test_anchor_requires_idle_and_standstill) ... 
+  test_anchor_requires_idle_and_standstill (__main__.Tests.test_anchor_requires_idle_and_standstill) (label='AUTO') ... FAIL
+  test_anchor_requires_idle_and_standstill (__main__.Tests.test_anchor_requires_idle_and_standstill) (label='manual_jog') ... FAIL
+test_envelope_and_trip_controls (__main__.Tests.test_envelope_and_trip_controls) ... ok
+test_r182_watchdog_and_rss_counterexamples_now_reject_missing_proof (__main__.Tests.test_r182_watchdog_and_rss_counterexamples_now_reject_missing_proof) ... ok
+test_r_completed_before_parse (__main__.Tests.test_r_completed_before_parse) ... FAIL
+test_r_control (__main__.Tests.test_r_control) ... ok
+test_r_cross_page_pairing (__main__.Tests.test_r_cross_page_pairing) ... FAIL
+test_r_idle_discard_is_not_publish_causality (__main__.Tests.test_r_idle_discard_is_not_publish_causality) ... FAIL
+test_row_stall_cannot_be_removed_from_latency_population (__main__.Tests.test_row_stall_cannot_be_removed_from_latency_population) ... FAIL
+test_s_control (__main__.Tests.test_s_control) ... ok
+test_s_count_must_match (__main__.Tests.test_s_count_must_match) ... FAIL
+test_s_missing_switch_record (__main__.Tests.test_s_missing_switch_record) ... FAIL
+test_s_old_no_supersession_case_is_now_not_met (__main__.Tests.test_s_old_no_supersession_case_is_now_not_met) ... ok
+test_trace_reader_follows_renamed_inode (__main__.Tests.test_trace_reader_follows_renamed_inode) ... ok
+
+======================================================================
+FAIL: test_anchor_requires_idle_and_standstill (__main__.Tests.test_anchor_requires_idle_and_standstill) (label='AUTO')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 80, in test_anchor_requires_idle_and_standstill
+    self.assertEqual(sent,[],'The stated idle/standstill precondition must be checked before E-Stop')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'cmd': 'estop'}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'cmd': 'estop'}
+
+- [{'cmd': 'estop'}]
++ [] : The stated idle/standstill precondition must be checked before E-Stop
+
+======================================================================
+FAIL: test_anchor_requires_idle_and_standstill (__main__.Tests.test_anchor_requires_idle_and_standstill) (label='manual_jog')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 80, in test_anchor_requires_idle_and_standstill
+    self.assertEqual(sent,[],'The stated idle/standstill precondition must be checked before E-Stop')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: [{'cmd': 'estop'}] != []
+
+First list contains 1 additional elements.
+First extra element 0:
+{'cmd': 'estop'}
+
+- [{'cmd': 'estop'}]
++ [] : The stated idle/standstill precondition must be checked before E-Stop
+
+======================================================================
+FAIL: test_r_completed_before_parse (__main__.Tests.test_r_completed_before_parse)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 86, in test_r_completed_before_parse
+    self.assertEqual(r['verdict'],'R overlap not proven','A full check finished at 12, eight seconds before the parse')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : A full check finished at 12, eight seconds before the parse
+
+======================================================================
+FAIL: test_r_cross_page_pairing (__main__.Tests.test_r_cross_page_pairing)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 89, in test_r_cross_page_pairing
+    self.assertEqual(r['verdict'],'R overlap not proven','Start and discard are from different pages')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : Start and discard are from different pages
+
+======================================================================
+FAIL: test_r_idle_discard_is_not_publish_causality (__main__.Tests.test_r_idle_discard_is_not_publish_causality)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 92, in test_r_idle_discard_is_not_publish_causality
+    self.assertEqual(r['verdict'],'R overlap not proven','Ending the run is no evidence that publication discarded a running sweep')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : Ending the run is no evidence that publication discarded a running sweep
+
+======================================================================
+FAIL: test_row_stall_cannot_be_removed_from_latency_population (__main__.Tests.test_row_stall_cannot_be_removed_from_latency_population)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 110, in test_row_stall_cannot_be_removed_from_latency_population
+    self.assertTrue(any(r['t_wall_ns']==112*S for r in keep),'This is a visible load interval, not a hidden transition')
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : This is a visible load interval, not a hidden transition
+
+======================================================================
+FAIL: test_s_count_must_match (__main__.Tests.test_s_count_must_match)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 102, in test_s_count_must_match
+    self.assertEqual(r['verdict'],'S not met','Five jobs cannot be attributed to the four requested switches by count alone')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'S met' != 'S not met'
+- S met
++ S not met
+?  ++++
+ : Five jobs cannot be attributed to the four requested switches by count alone
+
+======================================================================
+FAIL: test_s_missing_switch_record (__main__.Tests.test_s_missing_switch_record)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r183-j66_w2sq/probe_tools.py", line 99, in test_s_missing_switch_record
+    self.assertEqual(r['verdict'],'S not met','No switch record, only one completed parse and no supersession cannot meet S')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'S met' != 'S not met'
+- S met
++ S not met
+?  ++++
+ : No switch record, only one completed parse and no supersession cannot meet S
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.007s
+
+FAILED (failures=8)

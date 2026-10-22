@@ -1,0 +1,26 @@
+{
+  "head": "417c149e",
+  "uncommitted": 0,
+  "note": "R183 head: lint, build, unit (the browser step ran green at 9ceccacd; since then only lcncWs.exports.test.ts)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 7
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 458,
+      "tests": "151 files, 2530 passed"
+    }
+  ]
+}
