@@ -1,0 +1,18 @@
+{
+  "violation": {
+    "line": 5,
+    "axis": "X",
+    "value": 600,
+    "limit": 500,
+    "kind": "max",
+    "runs": [
+      [
+        4,
+        4
+      ]
+    ],
+    "nruns": 1
+  },
+  "row": "\t\n—\n\tX 600 mm > max 500 mm · no line of this program\t\t00:06",
+  "marks": []
+}

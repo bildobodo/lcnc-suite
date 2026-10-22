@@ -587,6 +587,10 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 
 - **Kappung je Achse (R180):** Eine Grenzzeile fasst die Datensätze ihrer Achsen zusammen; die Kappung nennt sie je Achse („Y 32 of 40, X 32 of 40“), nie die Zahlen einer Achse für die Zeile.
 
+- **Grenzzeile ohne Ort (R181):** Die Zeile sagt ihren Grund — ohne Abschnitte „from an older parse; a new parse places it“, Abschnitte außerhalb der Spur „its moves are not on the timeline“ —, nie „reload the program“ (eine unveränderte Datei wird beim Neuladen nicht neu geparst); das „?“ zählt sie nur.
+
+- **Browser-PC-Messung (R181):** 21. Oktober, Firefox auf dem Mac des Operators (der die VM hostet), passiv; HAL-Herzschlag nie über 100 ms, Statusbild-p95 an der Untergrenze des Messmittels (50 ms, Übernahme je Animationsframe) in Ruhe und im Lauf, darüber unter der schweren Prüfung von `haus.ngc`; nicht abgedeckt: der Ersatz eines laufenden Parses bei stehendem Basiswechsel und eine schwere Prüfung im Lauf.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).

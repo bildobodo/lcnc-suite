@@ -1,0 +1,5 @@
+r181_note_reload RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { key: 'L?0', kind: 'limit', …(8) } to match object { kind: 'limit', lineLabel: '—', …(2) } 6s
+r181_note_one_cause RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'place not known — from an older parse…' to be 'place not known — its moves are not o…' // Object.is equality 6s
+r181_help_reload RED   1 failed Error: expect(locator).toContainText(expected) failed | Expected substring: "1 of them have no place on the timeline." 36s
+r181_help_dropped RED   1 failed Error: expect(locator).toContainText(expected) failed | Expected substring: "1 of them have no place on the timeline." 35s
+rebuild ok 50s

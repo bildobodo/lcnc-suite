@@ -1,0 +1,45 @@
+[
+ {
+  "name": "prep",
+  "t_wall_ns": 1792608785524333247,
+  "gwlog": 8263,
+  "local": "20:53:05"
+ },
+ {
+  "name": "A_rest",
+  "t_wall_ns": 1792608795980218111,
+  "gwlog": 8510,
+  "local": "20:53:15"
+ },
+ {
+  "name": "B_load_haus",
+  "t_wall_ns": 1792608855983618806,
+  "gwlog": 8510,
+  "local": "20:54:15"
+ },
+ {
+  "name": "B_idle_after_check",
+  "t_wall_ns": 1792609125000000000,
+  "gwlog": 8756,
+  "local": "20:58:45",
+  "retro": true
+ },
+ {
+  "name": "C_wcs_switches",
+  "t_wall_ns": 1792609249883628538,
+  "gwlog": 9004,
+  "local": "21:00:49"
+ },
+ {
+  "name": "D_run_m600",
+  "t_wall_ns": 1792609568306697329,
+  "gwlog": 9004,
+  "local": "21:06:08"
+ },
+ {
+  "name": "end",
+  "t_wall_ns": 1792609656289237328,
+  "gwlog": 9880,
+  "local": "21:07:36"
+ }
+]

@@ -1,0 +1,20 @@
+r177_follow_every_rows RED   1 failed Error: result with 0 new rows: the same row first in view | Expected: "C0|103|0" 30s
+r177_anchor_marked_only RED   1 failed Error: result with 5 new rows: the same row first in view | Expected: "C0|103|0" 31s
+r177_follow_on_complete RED 1 passed (12.6s) Error: and where it stood after: the list follows the position, not a new result | Expected: <= 1 36s
+r177_first_move_raw ANCHOR [0] 0s
+r177_span_raw ANCHOR [0] 0s
+r177_rows_raw ANCHOR [0] 0s
+r177_bands_raw ANCHOR [0] 0s
+r177_open_near_counted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, 5, 6 ] to deeply equal [ 2, 6 ] 8s
+r177_running_not_passed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be +0 // Object.is equality 7s
+r177_partial_not_running RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: 1, map: null, …(2) } to match object { running: true } 8s
+r177_runbase_not_running RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: 1, map: null, …(2) } to match object { running: true } 8s
+r177_entry_first_not_running RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: -1, map: null, …(5) } to match object { running: true } 8s
+r177_swept_in_track RED   1 failed Error: the progress lane over the track, apart from it | Expected: <= 659 29s
+r177_swept_translucent RED   1 failed Error: the Sim tab's progress colour | Expected: "rgb(86, 156, 214)" 29s
+r177_clash_translucent RED   1 failed Error: a contact band is opaque | Expected pattern: /^rgb\(/ 29s
+r177_tick_edge RED   1 failed Error: no light edge on a tick | - Expected  - 1 29s
+r177_glyph_every_column RED   1 failed Error: a kind's glyphs at least their width apart | Expected: >= 9.5 29s
+r177_pinned_outlives RED 1 failed, 2 passed in 0.09s E       AssertionError: None != 'run_ended' | test_gateway_util.py:4272: AssertionError 0s
+r177_verify_in_ctx RED 1 failed, 5 passed in 0.07s E       AssertionError: 'verify_against' unexpectedly found in {'file': '/tmp/tmp4o8tn754/p.ngc', 'ini_path': '/tmp/tmp4o8tn754/m.ini', 'units': 'mm', 'var_patches': {}, 'g5x_index': 1, 'kins_type': None, 'kins_frame': None, 'veri 0s
+rebuild ok 16s

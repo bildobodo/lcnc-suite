@@ -1,0 +1,525 @@
+{
+ "what": "Browser-PC side of the run-check measurement protocol (Codex VP112-06): the operator's Mac Firefox as the only page, passive; the XYZAC sim in a VM the same Mac hosts; phases driven by drive.py (a second armed WS client), read by bpc.py from the suite's own records",
+ "date": "2026-10-21",
+ "phases": {
+  "prep": "E-Stop reset, Machine On, Home All, G54, blank.ngc loaded (not measured)",
+  "A_rest": "60 s, nothing",
+  "B_load_program": "haus.ngc loaded; its preview published; the page's collision check ran 20:54:22-20:58:37 (256 s), complete",
+  "B_idle_after_check": "idle after B (the driver waited: it filtered the page's telemetry by peer, which the Vite proxy makes 127.0.0.1; phase B's end is a retro mark at 20:58:45, its gateway.log offset approximated from the log's +ms)",
+  "C_wcs_switches": "G54 -> G55 -> G56 -> G54, 1 s apart; the page re-checked once (one cancel, one sweep 297 s); the gateway re-parsed nothing (the switches ended where they began inside its 2 s debounce)",
+  "D_run_m600": "webui_m600_live.ngc loaded and run (Cycle Start), two M600 (T1, T7) each confirmed like the dialog's Confirm; 2 mid-run table re-parses, 2 run checks started, 1 discarded by the next measurement; regular end"
+ },
+ "notes": [
+  "status gaps are measured where the page APPLIES status: statusStore applies per animation frame, so a gap reads 33 or 50 ms at 60 Hz; a window p95 of 50 ms is the instrument's floor",
+  "Firefox: no Long Tasks API (main-thread load = lateness of an 8 ms timer), no heap figure",
+  "the page's WebSocket is direct to the gateway (:8000); its telemetry POSTs go through the Vite dev proxy",
+  "the HAL heartbeat: gateway.log prints every pre-send gap over 100 ms ([HB-WAKE]) and every drift over 200 ms ([HB-STALL]); none appeared, so every gap was at most 100 ms",
+  "safety.disconnect_disarmed in B_idle: the driver stopped by SIGTERM (idle, no motion), resumed from C"
+ ],
+ "report": [
+  {
+   "phase": "prep",
+   "from": "20:53:05",
+   "to": "20:53:15",
+   "seconds": 10.5,
+   "mac_page": {
+    "windows": 3,
+    "visibility": [
+     "visible"
+    ],
+    "status_frames": 166,
+    "status_gap_p95_ms": {
+     "n": 3,
+     "median": 200,
+     "max": 217
+    },
+    "status_gap_max_ms": 227,
+    "status_jank_frames_over_50ms": 21,
+    "raf_gap_p95_ms": {
+     "n": 3,
+     "median": 18,
+     "max": 18
+    },
+    "raf_gap_max_ms": 44,
+    "raf_pauses": 0,
+    "main_thread_late_p95_ms": {
+     "n": 3,
+     "median": 8,
+     "max": 8
+    },
+    "main_thread_late_max_ms": 44,
+    "main_thread_blocks_over_20ms": 2,
+    "main_thread_probes": 848,
+    "gpu_behind_max_ticks": 1,
+    "gpu_done_p95_ms": {
+     "n": 1,
+     "median": 19,
+     "max": 19
+    },
+    "heap_used_mb": null
+   },
+   "gateway": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": null,
+    "lag_dominant": [],
+    "poll_status_slow": 0,
+    "poll_status_slow_max_ms": null,
+    "fanout_send_slow": 0,
+    "vm_cpu_busy_pct": {
+     "n": 10,
+     "median": 0.7,
+     "max": 3.9
+    },
+    "vm_steal_ms_max": 0.0,
+    "clients": [
+     2
+    ],
+    "hb_wake_over_100ms": 0,
+    "hb_wake_max_ms": null,
+    "hb_stall_over_200ms": 0,
+    "hb_stall_max_ms": null
+   },
+   "page_heartbeat_delivery_stalls": {
+    "n": 0,
+    "rx_gap_max_ms": null
+   },
+   "preview": {
+    "gcode.refresh_scheduled": 1,
+    "gcode.spawn_start": 1,
+    "gcode.publish": 1,
+    "gcode.worker_done": 1,
+    "gcode.reparse_superseded": 0,
+    "gcode.parse_cancelled": 0,
+    "gcode.reparse_table_midrun": 0,
+    "gcode.verify": 0,
+    "reasons": [
+     "file"
+    ]
+   },
+   "collision": {},
+   "runs": 0,
+   "safety": []
+  },
+  {
+   "phase": "A_rest",
+   "from": "20:53:15",
+   "to": "20:54:15",
+   "seconds": 60.0,
+   "mac_page": {
+    "windows": 20,
+    "visibility": [
+     "visible"
+    ],
+    "status_frames": 1748,
+    "status_gap_p95_ms": {
+     "n": 20,
+     "median": 49.0,
+     "max": 50
+    },
+    "status_gap_max_ms": 100,
+    "status_jank_frames_over_50ms": 21,
+    "raf_gap_p95_ms": {
+     "n": 20,
+     "median": 18.0,
+     "max": 18
+    },
+    "raf_gap_max_ms": 30,
+    "raf_pauses": 0,
+    "main_thread_late_p95_ms": {
+     "n": 20,
+     "median": 7.0,
+     "max": 8
+    },
+    "main_thread_late_max_ms": 21,
+    "main_thread_blocks_over_20ms": 1,
+    "main_thread_probes": 5687,
+    "gpu_behind_max_ticks": 0,
+    "gpu_done_p95_ms": null,
+    "heap_used_mb": null
+   },
+   "gateway": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": null,
+    "lag_dominant": [],
+    "poll_status_slow": 0,
+    "poll_status_slow_max_ms": null,
+    "fanout_send_slow": 0,
+    "vm_cpu_busy_pct": {
+     "n": 60,
+     "median": 1.0,
+     "max": 3.7
+    },
+    "vm_steal_ms_max": 0.0,
+    "clients": [
+     2
+    ],
+    "hb_wake_over_100ms": 0,
+    "hb_wake_max_ms": null,
+    "hb_stall_over_200ms": 0,
+    "hb_stall_max_ms": null
+   },
+   "page_heartbeat_delivery_stalls": {
+    "n": 0,
+    "rx_gap_max_ms": null
+   },
+   "preview": {
+    "gcode.refresh_scheduled": 0,
+    "gcode.spawn_start": 0,
+    "gcode.publish": 0,
+    "gcode.worker_done": 0,
+    "gcode.reparse_superseded": 0,
+    "gcode.parse_cancelled": 0,
+    "gcode.reparse_table_midrun": 0,
+    "gcode.verify": 0,
+    "reasons": []
+   },
+   "collision": {},
+   "runs": 0,
+   "safety": []
+  },
+  {
+   "phase": "B_load_program",
+   "from": "20:54:15",
+   "to": "20:58:45",
+   "seconds": 269.0,
+   "mac_page": {
+    "windows": 90,
+    "visibility": [
+     "visible"
+    ],
+    "status_frames": 7787,
+    "status_gap_p95_ms": {
+     "n": 90,
+     "median": 50.0,
+     "max": 82
+    },
+    "status_gap_max_ms": 584,
+    "status_jank_frames_over_50ms": 318,
+    "raf_gap_p95_ms": {
+     "n": 90,
+     "median": 23.0,
+     "max": 34
+    },
+    "raf_gap_max_ms": 140,
+    "raf_pauses": 0,
+    "main_thread_late_p95_ms": {
+     "n": 90,
+     "median": 11.0,
+     "max": 20
+    },
+    "main_thread_late_max_ms": 177,
+    "main_thread_blocks_over_20ms": 103,
+    "main_thread_probes": 22690,
+    "gpu_behind_max_ticks": 2,
+    "gpu_done_p95_ms": {
+     "n": 3,
+     "median": 26,
+     "max": 35
+    },
+    "heap_used_mb": null
+   },
+   "gateway": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": null,
+    "lag_dominant": [],
+    "poll_status_slow": 0,
+    "poll_status_slow_max_ms": null,
+    "fanout_send_slow": 0,
+    "vm_cpu_busy_pct": {
+     "n": 269,
+     "median": 2.2,
+     "max": 18.9
+    },
+    "vm_steal_ms_max": 0.0,
+    "clients": [
+     2
+    ],
+    "hb_wake_over_100ms": 0,
+    "hb_wake_max_ms": null,
+    "hb_stall_over_200ms": 0,
+    "hb_stall_max_ms": null
+   },
+   "page_heartbeat_delivery_stalls": {
+    "n": 0,
+    "rx_gap_max_ms": null
+   },
+   "preview": {
+    "gcode.refresh_scheduled": 1,
+    "gcode.spawn_start": 1,
+    "gcode.publish": 1,
+    "gcode.worker_done": 1,
+    "gcode.reparse_superseded": 0,
+    "gcode.parse_cancelled": 0,
+    "gcode.reparse_table_midrun": 0,
+    "gcode.verify": 0,
+    "reasons": [
+     "file"
+    ]
+   },
+   "collision": {
+    "sweep_start": 1,
+    "sweep_done": 1
+   },
+   "runs": 0,
+   "safety": []
+  },
+  {
+   "phase": "B_idle_after_check",
+   "from": "20:58:45",
+   "to": "21:00:49",
+   "seconds": 124.9,
+   "mac_page": {
+    "windows": 42,
+    "visibility": [
+     "visible"
+    ],
+    "status_frames": 3667,
+    "status_gap_p95_ms": {
+     "n": 42,
+     "median": 50.0,
+     "max": 50
+    },
+    "status_gap_max_ms": 67,
+    "status_jank_frames_over_50ms": 62,
+    "raf_gap_p95_ms": {
+     "n": 42,
+     "median": 18.0,
+     "max": 18
+    },
+    "raf_gap_max_ms": 41,
+    "raf_pauses": 0,
+    "main_thread_late_p95_ms": {
+     "n": 42,
+     "median": 8.5,
+     "max": 10
+    },
+    "main_thread_late_max_ms": 38,
+    "main_thread_blocks_over_20ms": 7,
+    "main_thread_probes": 11743,
+    "gpu_behind_max_ticks": 0,
+    "gpu_done_p95_ms": null,
+    "heap_used_mb": null
+   },
+   "gateway": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": null,
+    "lag_dominant": [],
+    "poll_status_slow": 0,
+    "poll_status_slow_max_ms": null,
+    "fanout_send_slow": 0,
+    "vm_cpu_busy_pct": {
+     "n": 125,
+     "median": 1.2,
+     "max": 4.8
+    },
+    "vm_steal_ms_max": 0.0,
+    "clients": [
+     1,
+     2
+    ],
+    "hb_wake_over_100ms": 0,
+    "hb_wake_max_ms": null,
+    "hb_stall_over_200ms": 0,
+    "hb_stall_max_ms": null
+   },
+   "page_heartbeat_delivery_stalls": {
+    "n": 0,
+    "rx_gap_max_ms": null
+   },
+   "preview": {
+    "gcode.refresh_scheduled": 0,
+    "gcode.spawn_start": 0,
+    "gcode.publish": 0,
+    "gcode.worker_done": 0,
+    "gcode.reparse_superseded": 0,
+    "gcode.parse_cancelled": 0,
+    "gcode.reparse_table_midrun": 0,
+    "gcode.verify": 0,
+    "reasons": []
+   },
+   "collision": {},
+   "runs": 0,
+   "safety": [
+    "safety.disconnect_disarmed",
+    "safety.explicit_armed",
+    "safety.explicit_disarmed"
+   ]
+  },
+  {
+   "phase": "C_wcs_switches",
+   "from": "21:00:49",
+   "to": "21:06:08",
+   "seconds": 318.4,
+   "mac_page": {
+    "windows": 106,
+    "visibility": [
+     "visible"
+    ],
+    "status_frames": 9124,
+    "status_gap_p95_ms": {
+     "n": 106,
+     "median": 50.0,
+     "max": 89
+    },
+    "status_gap_max_ms": 206,
+    "status_jank_frames_over_50ms": 490,
+    "raf_gap_p95_ms": {
+     "n": 106,
+     "median": 24.0,
+     "max": 54
+    },
+    "raf_gap_max_ms": 149,
+    "raf_pauses": 0,
+    "main_thread_late_p95_ms": {
+     "n": 106,
+     "median": 13.0,
+     "max": 36
+    },
+    "main_thread_late_max_ms": 107,
+    "main_thread_blocks_over_20ms": 361,
+    "main_thread_probes": 25102,
+    "gpu_behind_max_ticks": 2,
+    "gpu_done_p95_ms": {
+     "n": 2,
+     "median": 33.0,
+     "max": 50
+    },
+    "heap_used_mb": null
+   },
+   "gateway": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": null,
+    "lag_dominant": [],
+    "poll_status_slow": 0,
+    "poll_status_slow_max_ms": null,
+    "fanout_send_slow": 0,
+    "vm_cpu_busy_pct": {
+     "n": 317,
+     "median": 2.6,
+     "max": 10.5
+    },
+    "vm_steal_ms_max": 0.0,
+    "clients": [
+     2
+    ],
+    "hb_wake_over_100ms": 0,
+    "hb_wake_max_ms": null,
+    "hb_stall_over_200ms": 0,
+    "hb_stall_max_ms": null
+   },
+   "page_heartbeat_delivery_stalls": {
+    "n": 0,
+    "rx_gap_max_ms": null
+   },
+   "preview": {
+    "gcode.refresh_scheduled": 0,
+    "gcode.spawn_start": 0,
+    "gcode.publish": 0,
+    "gcode.worker_done": 0,
+    "gcode.reparse_superseded": 0,
+    "gcode.parse_cancelled": 0,
+    "gcode.reparse_table_midrun": 0,
+    "gcode.verify": 0,
+    "reasons": []
+   },
+   "collision": {
+    "sweep_start": 2,
+    "sweep_cancelled": 1,
+    "sweep_done": 1
+   },
+   "runs": 0,
+   "safety": []
+  },
+  {
+   "phase": "D_run_m600",
+   "from": "21:06:08",
+   "to": "21:07:36",
+   "seconds": 88.0,
+   "mac_page": {
+    "windows": 29,
+    "visibility": [
+     "visible"
+    ],
+    "status_frames": 2528,
+    "status_gap_p95_ms": {
+     "n": 29,
+     "median": 50,
+     "max": 50
+    },
+    "status_gap_max_ms": 134,
+    "status_jank_frames_over_50ms": 46,
+    "raf_gap_p95_ms": {
+     "n": 29,
+     "median": 18,
+     "max": 19
+    },
+    "raf_gap_max_ms": 30,
+    "raf_pauses": 0,
+    "main_thread_late_p95_ms": {
+     "n": 29,
+     "median": 9,
+     "max": 9
+    },
+    "main_thread_late_max_ms": 68,
+    "main_thread_blocks_over_20ms": 6,
+    "main_thread_probes": 7935,
+    "gpu_behind_max_ticks": 2,
+    "gpu_done_p95_ms": {
+     "n": 24,
+     "median": 17.0,
+     "max": 49
+    },
+    "heap_used_mb": null
+   },
+   "gateway": {
+    "lag_windows": 0,
+    "lag_max_drift_ms": null,
+    "lag_dominant": [],
+    "poll_status_slow": 0,
+    "poll_status_slow_max_ms": null,
+    "fanout_send_slow": 0,
+    "vm_cpu_busy_pct": {
+     "n": 88,
+     "median": 1.2,
+     "max": 4.6
+    },
+    "vm_steal_ms_max": 0.0,
+    "clients": [
+     2
+    ],
+    "hb_wake_over_100ms": 0,
+    "hb_wake_max_ms": null,
+    "hb_stall_over_200ms": 0,
+    "hb_stall_max_ms": null
+   },
+   "page_heartbeat_delivery_stalls": {
+    "n": 0,
+    "rx_gap_max_ms": null
+   },
+   "preview": {
+    "gcode.refresh_scheduled": 3,
+    "gcode.spawn_start": 3,
+    "gcode.publish": 3,
+    "gcode.worker_done": 3,
+    "gcode.reparse_superseded": 0,
+    "gcode.parse_cancelled": 0,
+    "gcode.reparse_table_midrun": 2,
+    "gcode.verify": 0,
+    "reasons": [
+     "file",
+     "midrun:table_mtime",
+     "midrun:table_mtime"
+    ]
+   },
+   "collision": {
+    "sweep_start": 5,
+    "sweep_done": 5,
+    "run_check_start": 2,
+    "entry_start": 2,
+    "run_check_discarded": 1
+   },
+   "runs": 1,
+   "safety": []
+  }
+ ]
+}

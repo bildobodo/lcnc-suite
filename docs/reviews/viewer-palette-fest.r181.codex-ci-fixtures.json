@@ -1,0 +1,17 @@
+[
+  {
+    "file": "sim.var",
+    "identical": true,
+    "sha256": "662aeddda04ee01e827c2cf23f148f6d620aec48456bf78db08b850bd1069fb4"
+  },
+  {
+    "file": "position.txt",
+    "identical": true,
+    "sha256": "0282afdd76e482c9875322b9b2ffb03849bc5fb79f5cb03ae9456174f8ae67bf"
+  },
+  {
+    "file": "demo.ngc",
+    "identical": true,
+    "sha256": "0e65cc15c6d767ff7e00c3eabc2e136636f880aea997a6c971beb61943174581"
+  }
+]

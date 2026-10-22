@@ -1,0 +1,46 @@
+{
+  "round": "R181",
+  "review_range": "f507a0bf..3bed80f9",
+  "implementation_branch": "feat/step4-p2b",
+  "archive": "/tmp/codex-r181-mxspmf64/repo",
+  "verdict": "findings",
+  "implementation_verdict": "agreement",
+  "findings": [
+    {
+      "id": "VP181-01",
+      "priority": "P2",
+      "scope": "Acceptance evidence for VP112-06, not a new product defect",
+      "required": [
+        "Bind processing/cadence/status-age metrics to the declared target",
+        "Exercise replacement while a gateway parse is actually running",
+        "Overlap a long in-run check with parsing/decoding and further basis changes; measure queue and memory peaks/trends",
+        "Keep shared-host, input-latency and heartbeat measurement boundaries explicit"
+      ]
+    }
+  ],
+  "preserved_agreement": "R180, VP-I130 and VP-I131",
+  "own_checks": {
+    "build": "PASS",
+    "unit_passed": 121,
+    "repository_browser_passed": 7,
+    "own_browser_passed": 8,
+    "browser_failures": 0,
+    "backend_rerun": false,
+    "native_payloads": "Reused R180 evidence; no new parse claimed"
+  },
+  "measurement_audit": {
+    "read_only": true,
+    "retained_reduced_events": 1236,
+    "original_phase_marks_used": true,
+    "max_viewer_apply_ms": 5,
+    "phase_B_status_gap_max_ms": 584,
+    "phase_C_status_gap_max_ms": 206,
+    "phase_C_gateway_parse_starts": 0,
+    "gateway_heartbeat_log_slices_independently_reconstructed": false
+  },
+  "source_files_verified": 480,
+  "input_files_unchanged_before_append": 15,
+  "ci_scope": "Static information only, no full gate or current GitHub status",
+  "product_changes": false,
+  "live_ports_or_machine_commands": false
+}

@@ -1,0 +1,11 @@
+head 3bed80f9 A limit row without a place says why, never "reload the program"
+R177 native: [{'line': 5, 'axis': 'X', 'value': 600.0, 'limit': 500.0, 'kind': 'max', 'sub': 'r177_child', 'site': 3, 'runs': [[4, 4]], 'nruns': 1}]
+ ✓ src/viewer/zz_codex_r177_lines.test.ts (2 tests) 3ms
+ ✓ src/viewer/zz_codex_r177_native_limit.test.ts (1 test) 4ms
+ Test Files  2 passed (2)
+      Tests  3 passed (3)
+  1 passed (5.4s)
+R178 cap native: 5 lim_child 5 32 40
+  4 passed (11.8s)
+      Tests  1 passed (1)
+  2 passed (6.8s)

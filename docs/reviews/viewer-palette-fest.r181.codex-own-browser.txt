@@ -1,0 +1,23 @@
+[1A[2K[2m[WebServer] [22m(node:1054562) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 8 tests using 1 worker
+
+[1A[2K(node:1054574) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1054574) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/8] e2e/r181.codex-r178.viewer.spec.ts:21:51 › Codex R178: legacy limit has no invented main-file code mark
+[1A[2K[2/8] e2e/r181.codex-r178.viewer.spec.ts:21:51 › Codex R178: unmarked limit has no invented main-file code mark
+[1A[2K[3/8] e2e/r181.codex-r178.viewer.spec.ts:31:1 › Codex R178: the original native R177 case now jumps to the subroutine move
+[1A[2K[4/8] e2e/r181.codex-r178.viewer.spec.ts:38:1 › Codex R178: a capped run list says that later violating stretches have no band
+[1A[2K[5/8] e2e/r181.codex-r179.viewer.spec.ts:16:1 › Codex R179: cap words describe a multi-axis row rather than only one record
+[1A[2K[6/8] e2e/r181.codex-r179.viewer.spec.ts:30:1 › Codex R179: code marks follow replacement and clear without an old-program mark
+[1A[2K[7/8] e2e/r181.codex-reasons.viewer.spec.ts:8:55 › Codex R181: legacy gives its cause without a reload or invented jump
+[1A[2K[8/8] e2e/r181.codex-reasons.viewer.spec.ts:8:55 › Codex R181: missing-moves gives its cause without a reload or invented jump
+[1A[2K  8 passed (16.2s)
