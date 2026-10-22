@@ -9305,7 +9305,11 @@ async def ws_endpoint(ws: WebSocket):
                             "encode_ms": _prev_encode_ms,
                         }
                         if client_id in _clients:
+                            # the heartbeat this answers, by the client's own number
+                            if _clients[client_id].hb_seq is not None:
+                                status_msg["timing"]["hb_seq"] = _clients[client_id].hb_seq
                             _clients[client_id].hb_mono = 0.0
+                            _clients[client_id].hb_seq = None
 
                     pre_send = time.monotonic()
                     # Mark the client as having an in-flight send. Cleared in
@@ -9679,6 +9683,9 @@ async def ws_endpoint(ws: WebSocket):
                     _clients[client_id].last_hb = time.time()
                     _clients[client_id].last_hb_mono = _now_mono
                     _clients[client_id].hb_mono = _now_mono
+                    _hb_seq = msg.get("seq")
+                    _clients[client_id].hb_seq = (_hb_seq if isinstance(_hb_seq, int) and not isinstance(_hb_seq, bool)
+                                                  and 0 <= _hb_seq < 2**53 else None)
                     _clients[client_id].hb_ring.append(_now_mono)
                 await ws_send_json(ws, {"type": "pong"})
                 continue

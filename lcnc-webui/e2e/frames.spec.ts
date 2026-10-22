@@ -98,3 +98,27 @@ test("perf rows carry the status age from the worker's receipt and the presses' 
   expect(Math.max(...aged.map(r => r.age_max_ms)), "an age on one clock").toBeLessThan(5000);
   expect(rows.reduce((a, r) => a + r.in_n, 0)).toBeGreaterThanOrEqual(4);
 });
+
+// The gateway's parse in flight as the page SAW it (Codex R183 VP183-01): the
+// browser-PC report binds a run check's sweep to a parse by these events —
+// through the real worker and status store, each with its frame's receipt.
+test("the page reports the parse it sees in flight, first and last frame, with their receipt", async ({ page }) => {
+  const seen: Array<Record<string, any>> = [];
+  await page.route("**/telemetry", async (route) => {
+    for (const line of (route.request().postData() ?? "").split("\n")) {
+      try { const e = JSON.parse(line); if (e.kind === "preview.parse_seen") seen.push(e); } catch { /* not ours */ }
+    }
+    await route.fulfill({ status: 204, body: "" });
+  });
+  await page.goto(MOCK);
+  await expect(page.locator("#app")).toBeVisible();
+  const pr = { reason: "wcsoff:G55:z", file: "p.ngc", expected_ms: 9000, started_ms: 1234567, queued: false, superseded: 0 };
+  // an envelope key on a status_delta: the mock's state (armed, data) stays
+  // as the parallel tests of this project expect it
+  await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: pr } });
+  await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: null } });
+  await expect.poll(() => seen.filter(e => e.started_ms === 1234567).map(e => e.state), { timeout: 15_000 }).toEqual(["on", "off"]);
+  const [on, off] = seen.filter(e => e.started_ms === 1234567);
+  expect(typeof on.rx_ms).toBe("number");
+  expect(off.rx_ms).toBeGreaterThanOrEqual(on.rx_ms);
+});

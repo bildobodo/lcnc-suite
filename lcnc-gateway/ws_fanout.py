@@ -107,6 +107,8 @@ class ClientState:
                                # on the QEMU VM) made time.time()-last_hb exceed the 3 s budget while
                                # heartbeats were arriving on schedule → false hb-stall disarm.
     hb_mono: float = 0.0       # monotonic ts of last hb, zeroed after timing attach (one-shot latency marker)
+    hb_seq: Optional[int] = None  # that heartbeat's own number (the client's `seq`), echoed in the timing it
+                                  # answers so the page pairs reply and send by id (Codex R183 VP182-02)
     send_pending: bool = False # status fan-out is in-flight to this client
     hidden: bool = False       # client tab is backgrounded (visibilityState)
     session_id: Optional[str] = None  # tab-scoped UUID; basis for armed-resume across brief reconnects

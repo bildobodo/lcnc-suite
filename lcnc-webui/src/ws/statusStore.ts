@@ -15,6 +15,7 @@
 import { computed, ref, shallowRef } from "vue";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
 import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
+import { emitTelemetry } from "./telemetry";
 
 export interface LcncMessage {
   id: number;
@@ -498,6 +499,7 @@ export function handleStatusMessage(msg: any, rx?: number): void {
   // view shows its result — the same line, the same muted path.
   const prWire = msg.preview_refresh;
   _frameHadRefresh = !!(prWire && typeof prWire === "object");
+  _noteParseSeen(_frameHadRefresh ? prWire : null, rx);
   const pr = _frameHadRefresh ? prWire : (previewBasisPending.value
     ? { reason: "tool_offset", file: previewToolBasis.value?.file ?? previewRefresh.value?.file ?? "",
         expected_ms: null, started_ms: previewRefresh.value?.started_ms ?? null, queued: false, superseded: 0 }
@@ -586,6 +588,26 @@ export function handleStatusMessage(msg: any, rx?: number): void {
     _flushScheduled = true;
     requestAnimationFrame(_flushPending);
   }
+}
+
+// The gateway's parse in flight as this page SAW it (Codex R183 VP183-01):
+// each parse's first and last status frames, by the frame's socket receipt
+// on this page's clock — the browser-PC report binds a run check's active
+// sweep to a parse with them. The gateway names the parse by its start
+// (`started_ms`, its own wall clock — the spawn's trace record).
+let _parseSeen: { started: number | null; reason: string } | null = null;
+function _noteParseSeen(pr: any, rx: number | undefined): void {
+  const started = pr && typeof pr.started_ms === "number" ? pr.started_ms : pr ? null : undefined;
+  const rxMs = typeof rx === "number" && rx > 0 ? Math.round((rx - performance.timeOrigin) * 10) / 10 : null;
+  if (started === undefined) {
+    if (_parseSeen) emitTelemetry("preview.parse_seen", { state: "off", started_ms: _parseSeen.started, rx_ms: rxMs });
+    _parseSeen = null;
+    return;
+  }
+  if (_parseSeen && _parseSeen.started === started) return;
+  if (_parseSeen) emitTelemetry("preview.parse_seen", { state: "off", started_ms: _parseSeen.started, rx_ms: rxMs });
+  _parseSeen = { started, reason: String(pr.reason ?? "") };
+  emitTelemetry("preview.parse_seen", { state: "on", started_ms: started, reason: _parseSeen.reason, rx_ms: rxMs });
 }
 
 // Hoisted rAF callback (WS-E): one module-level function instead of a fresh

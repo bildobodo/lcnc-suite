@@ -59,5 +59,34 @@ class TestStatusFanoutDelivers(unittest.TestCase):
         self.fail(f"no status-family frame in 120 frames; saw {sorted(set(seen))}")
 
 
+class TestHeartbeatTimingNamesItsHeartbeat(unittest.TestCase):
+    """Codex R183 VP182-02: the status that carries a heartbeat's timing names
+    that heartbeat by the client's own `seq`, so a late answer can never be
+    paired with a later heartbeat; a heartbeat without one gets none."""
+
+    def _timings(self, beats):
+        out = []
+        deadline = time.monotonic() + 15.0
+        with TestClient(gateway.app) as client:
+            with client.websocket_connect("/ws") as ws:
+                ws.send_json({"cmd": "hello", "session": "seq", "resume_armed": False})
+                for beat in beats:
+                    ws.send_json(beat)
+                    while time.monotonic() < deadline:
+                        msg = _decode(ws.receive())
+                        if msg.get("type") in ("status", "status_delta") and msg.get("timing"):
+                            out.append(msg["timing"])
+                            break
+        return out
+
+    def test_the_timing_echoes_the_heartbeat_number(self):
+        t = self._timings([{"cmd": "heartbeat", "seq": 7}, {"cmd": "heartbeat"}, {"cmd": "heartbeat", "seq": True},
+                           {"cmd": "heartbeat", "seq": 9}])
+        if not t:
+            self.skipTest("no full status under the fake binding (status_error path)")
+        self.assertEqual([x.get("hb_seq") for x in t], [7, None, None, 9])
+        self.assertTrue(all("server_ms" in x for x in t))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -670,6 +670,15 @@ async function runOnL7(page: Page, file: string, version: number) {
 test("a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3)", async ({ page, context }) => {
   test.setTimeout(150_000);
   const file = "/runcheck.ngc";
+  // the page's collision telemetry: the browser-PC report binds a run
+  // check's ACTIVE sweep by its request id and run generation (Codex R183)
+  const tel: Array<Record<string, any>> = [];
+  await page.route("**/telemetry", async (route) => {
+    for (const line of (route.request().postData() ?? "").split("\n")) {
+      try { const e = JSON.parse(line); if (String(e.kind).startsWith("collision.")) tel.push(e); } catch { /* not ours */ }
+    }
+    await route.fulfill({ status: 204, body: "" });
+  });
   await runReady(page, context, file, 4201);
   await ctl({ op: "quiet", on: true });
   await runOnL7(page, file, 4201);
@@ -701,6 +710,16 @@ test("a parse made for the run is checked during it: provisional from the machin
   await expect.poll(async () => (await basisOf(page))?.kind, { timeout: 10_000 }).toBe("idle");
   expect(await runLog(page)).toEqual(["start provisional 1", "full", "done", "discard idle"]);
   expect((await page.evaluate(() => window.__viewerDiag!.getCollisionRequestMeta!()))?.sliceMs, "idle: the default slices").toBeNull();
+  // the run check's two sweeps name its generation, each ends under its own id
+  await expect.poll(() => tel.filter(e => e.kind === "collision.run_check_discarded").length, { timeout: 10_000 }).toBe(1);
+  const gen = tel.find(e => e.kind === "collision.run_check_start")?.gen;
+  expect(typeof gen).toBe("number");
+  const runSweeps = tel.filter(e => e.kind === "collision.sweep_start" && e.run_gen === gen);
+  expect(runSweeps.map(e => e.range_from === null ? "full" : "provisional")).toEqual(["provisional", "full"]);
+  for (const st of runSweeps) {
+    expect(tel.filter(e => ["collision.sweep_done", "collision.sweep_cancelled"].includes(e.kind) && e.id === st.id)
+      .map(e => e.run_gen), `sweep ${st.id} ends once, in its generation`).toEqual([gen]);
+  }
   await expect(label).toHaveText("Collision check");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });

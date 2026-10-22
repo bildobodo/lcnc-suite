@@ -45,8 +45,10 @@
 //               the apply. The gateway → socket leg is bounded by the
 //               heartbeat round trip timed IN THE WORKER (send and the
 //               answering frame's receipt) less the gateway's hold
-//               (`rt_net_*`, both legs); an answer the worker cannot pair
-//               with exactly one heartbeat is no bound (`rt_invalid`).
+//               (`rt_net_*`, both legs), paired by the heartbeat's own number
+//               the gateway's timing echoes (`hb_seq`, Codex R183 VP182-02);
+//               an answer naming no heartbeat sent here is no bound
+//               (`rt_invalid`).
 //   inputDelay — a key or pointer press until its first listener runs
 //               (`in_delay_*`, the event's own timeStamp — the queueing a
 //               busy main thread adds); with the Event Timing API also the
@@ -136,10 +138,11 @@ let _pendingRx = 0;
 let _visChangedAt = 0;
 const _ageH = new Map<number, number>();
 let _ageN = 0, _ageMax = 0, _ageNeg = 0, _ageVisSkip = 0;
+let _visChanges = 0;        // visibility changes in the window: a row with one spans hidden time
 
 // Heartbeat round trip in the worker less the gateway's hold: both network legs.
-let _hbSentAt = 0;          // the worker's send of the heartbeat not yet answered (global clock)
-let _hbOutstanding = 0;     // heartbeats sent since the last answer
+const HB_KEEP = 16;                           // sends remembered (≈ 16 s at 1 Hz)
+const _hbSent = new Map<number, number>();    // heartbeat number → the worker's send (global clock)
 const _rtNetH = new Map<number, number>();
 let _rtN = 0, _rtNetMax = 0, _rtInvalid = 0;
 
@@ -237,29 +240,30 @@ export function notePendingReceipt(rxEpochMs: unknown): void {
 /** The page's visibility changed at `atEpochMs` (global clock). */
 export function noteVisibilityChanged(atEpochMs: number = _epochNow(performance.now())): void {
   _visChangedAt = atEpochMs;
+  _visChanges++;
 }
 
-/** The WS worker sent a heartbeat at `atEpochMs` (global clock, the worker's
- *  stamp — never the main thread's handling of the post). */
-export function noteHeartbeatSentAt(atEpochMs: unknown): void {
-  if (!_enabled) return;
-  _hbOutstanding++;
-  _hbSentAt = typeof atEpochMs === 'number' && atEpochMs > 0 ? atEpochMs : 0;
+/** The WS worker sent heartbeat number `seq` at `atEpochMs` (global clock,
+ *  the worker's stamp — never the main thread's handling of the post). */
+export function noteHeartbeatSentAt(atEpochMs: unknown, seq: unknown): void {
+  if (!_enabled || typeof seq !== 'number' || !(typeof atEpochMs === 'number' && atEpochMs > 0)) return;
+  _hbSent.set(seq, atEpochMs);
+  if (_hbSent.size > HB_KEEP) _hbSent.delete(_hbSent.keys().next().value as number);
 }
 
-/** A status frame that answers a heartbeat (it carries the gateway's hold,
- *  `timing.server_ms`), received by the worker at `rxEpochMs`. Both legs =
- *  receipt − send − hold, only for an answer to exactly ONE heartbeat
- *  outstanding (the gateway answers the newest it has read: two outstanding
- *  are ambiguous); a pair that is ambiguous, unstamped or negative is no
- *  bound — counted apart, never 0 ms. */
-export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown): void {
+/** A status frame that answers heartbeat `hbSeq` (the gateway's timing names
+ *  it and its hold, `server_ms`), received by the worker at `rxEpochMs`. Both
+ *  legs = receipt − that heartbeat's send − hold. An answer naming no
+ *  heartbeat remembered here, unstamped or negative is no bound — counted
+ *  apart, never 0 ms. Its number and every older one are forgotten: a
+ *  heartbeat is answered once. */
+export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown, hbSeq?: unknown): void {
   if (!_enabled) return;
-  const ok = _hbOutstanding === 1 && _hbSentAt > 0 && typeof rxEpochMs === 'number' && rxEpochMs > 0
+  const sentAt = typeof hbSeq === 'number' ? _hbSent.get(hbSeq) : undefined;
+  if (typeof hbSeq === 'number') for (const k of [..._hbSent.keys()]) if (k <= hbSeq) _hbSent.delete(k);
+  const ok = sentAt !== undefined && typeof rxEpochMs === 'number' && rxEpochMs > 0
     && typeof serverMs === 'number' && Number.isFinite(serverMs);
-  const net = ok ? (rxEpochMs as number) - _hbSentAt - (serverMs as number) : -1;
-  _hbOutstanding = 0;
-  _hbSentAt = 0;
+  const net = ok ? (rxEpochMs as number) - (sentAt as number) - (serverMs as number) : -1;
   if (!(net >= 0)) { _rtInvalid++; return; }
   _rtN++;
   _histAdd(_rtNetH, net);
@@ -446,6 +450,7 @@ export function flushViewerPerf(): void {
     age_h: _histOut(_ageH),
     age_neg: _ageNeg,              // a receipt after its apply: clock oddity, not binned
     age_vis_skip: _ageVisSkip,     // received before a visibility change: not aged
+    vis_changes: _visChanges,      // visibility changes in this window (the row spans hidden time)
     // heartbeat round trip less the gateway's hold (both legs): bounds gateway → socket
     rt_n: _rtN,
     rt_invalid: _rtInvalid,        // answers not paired with exactly one stamped heartbeat, or negative
@@ -510,7 +515,7 @@ export function flushViewerPerf(): void {
 
 function _resetHistograms(): void {
   _gapH.clear(); _applyH.clear();
-  _ageH.clear(); _ageN = _ageMax = _ageNeg = _ageVisSkip = 0;
+  _ageH.clear(); _ageN = _ageMax = _ageNeg = _ageVisSkip = _visChanges = 0;
   _rtNetH.clear(); _rtN = _rtNetMax = _rtInvalid = 0;
   _inDelayH.clear(); _inN = _inDelayMax = _inOdd = 0;
   _evDurH.clear(); _evDelayH.clear(); _evN = _evDurMax = 0;
@@ -523,8 +528,7 @@ export function resetViewerPerf(): void {
   _resetHistograms();
   _pendingRx = 0;
   _visChangedAt = 0;
-  _hbSentAt = 0;
-  _hbOutstanding = 0;
+  _hbSent.clear();
   _gaps.length = 0;
   _renderSum = _renderMax = _renderCount = 0;
   _lastApplyTs = 0;

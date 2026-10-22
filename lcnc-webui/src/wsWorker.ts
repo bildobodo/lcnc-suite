@@ -30,6 +30,7 @@ let cfg: Cfg | null = null;
 let wantConnected = false;
 
 let hbTimer: ReturnType<typeof setInterval> | null = null;
+let hbSeq = 0;   // the heartbeats' own numbers, echoed in the gateway's timing
 let bufferTimer: ReturnType<typeof setInterval> | null = null;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
 let probeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -119,11 +120,13 @@ function startHeartbeat() {
       // hbsent only on a send that didn't throw — posting it after a swallowed
       // exception recorded heartbeats as sent that never left (silent fallback).
       try {
-        // the send's own stamp (global clock): the round trip is timed here,
-        // never from the page's handling of this post (Codex R182 VP182-02)
+        // the send's own stamp (global clock) and number: the round trip is
+        // timed here, never from the page's handling of this post, and the
+        // gateway's timing names the heartbeat it answers (Codex R182/R183 VP182-02)
         const at = performance.timeOrigin + performance.now();
-        ws.send('{"cmd":"heartbeat"}');
-        post({ type: "hbsent", at });
+        const seq = ++hbSeq;
+        ws.send(`{"cmd":"heartbeat","seq":${seq}}`);
+        post({ type: "hbsent", at, seq });
       } catch (e) {
         post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
       }
@@ -401,8 +404,9 @@ self.onmessage = (ev: MessageEvent<MainMsg>) => {
       if (msg.fireHeartbeat && ws && ws.readyState === WebSocket.OPEN) {
         try {
           const at = performance.timeOrigin + performance.now();
-          ws.send('{"cmd":"heartbeat"}');
-          post({ type: "hbsent", at });
+          const seq = ++hbSeq;
+          ws.send(`{"cmd":"heartbeat","seq":${seq}}`);
+          post({ type: "hbsent", at, seq });
         } catch (e) {
           post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
         }

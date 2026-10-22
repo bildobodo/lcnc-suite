@@ -3535,6 +3535,7 @@ function _colOnMessage(m: ColMessage) {
         collisionResumable.value = true;
         collisionStopped.value = { covered: m.result!.truncated?.covered ?? 0, reason: "motion" };
         emitTelemetry("collision.sweep_stopped", {
+          id: m.id, run_gen: _colReqRunGen,
           reason: "motion", covered: m.result!.truncated?.covered ?? 0, intervals: _intervalRows(m.id),
           ms: Math.round(performance.now() - _colStartedAt),
         });
@@ -3545,7 +3546,7 @@ function _colOnMessage(m: ColMessage) {
       collisionPartial.value = null;
       if (m.error) {
         console.error("[collision] sweep failed:", m.error);
-        emitTelemetry("collision.sweep_failed", { msg: m.error });
+        emitTelemetry("collision.sweep_failed", { id: m.id, run_gen: _colReqRunGen, msg: m.error });
         collisionResult.value = null;
         collisionTrack.value = null;
         return;
@@ -3563,6 +3564,10 @@ function _colOnMessage(m: ColMessage) {
       // duration — the viewer perf probe's `sweep_busy` context field says
       // whether one overlapped a slow window; this row says how long it ran.
       emitTelemetry("collision.sweep_done", {
+        // the request and the run check (its generation, null outside a run)
+        // it computed for: the browser-PC report binds a run check's ACTIVE
+        // interval, start to end, to a parse by them (Codex R183 VP183-01)
+        id: m.id, run_gen: _colReqRunGen,
         ms: Math.round(performance.now() - _colStartedAt),
         bvh_ms: Math.round(result.bvhMs), sweep_ms: Math.round(result.sweepMs),
         samples: result.samples, coarsened: result.coarsened,
@@ -3610,6 +3615,7 @@ function cancelCollisionCheck() {
   // unread until it finished. Terminate + lazy recreate is the honest cancel.
   if (collisionBusy.value) {
     emitTelemetry("collision.sweep_cancelled", {
+      id: _colReqId, run_gen: _colReqRunGen,
       ran_ms: Math.round(performance.now() - _colStartedAt), progress: collisionProgress.value,
     });
   }
@@ -4038,7 +4044,8 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   collisionStopped.value = null;
   _colRotaryAtStart = _rotaryNow();
   _colStartedAt = performance.now();
-  emitTelemetry("collision.sweep_start", { points: track.count, bodies: req.bodies });
+  emitTelemetry("collision.sweep_start", { id, run_gen: run?.gen ?? null, range_from: run?.range?.from ?? null,
+                                          points: track.count, bodies: req.bodies });
   try {
     _colGetWorker().postMessage(req.msg, req.transfer);
     _colModelSent = req.modelKey;   // the worker now holds (or is building) this model
@@ -4147,7 +4154,7 @@ function _startRunCheck(): boolean {
     // (a point nothing vouches for keeps its own number, collision.ts noteLine)
     fromLine: from != null ? displayLineForPoint(track, from + 1, true).line ?? track.lines[from + 1] ?? null : null };
   if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
-  emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from });
+  emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from, gen });
   _colRunLog.push(from != null ? `start provisional ${from}` : "start full");
   runCollisionCheck(track, { basis, gen, ...(from != null ? { range: { from } } : {}) });
   if (bound) _colPostSide(sliceTrack(bound, 0, Math.min(K + 1, bound.count - 1) + 1), bound, track,

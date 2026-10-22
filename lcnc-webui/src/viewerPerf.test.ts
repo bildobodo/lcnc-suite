@@ -290,42 +290,64 @@ describe("status age: the receipt the viewer takes, at its apply", () => {
   });
 });
 
-describe("the gateway → socket bound, timed in the worker (Codex R182 VP182-02)", () => {
+describe("the gateway → socket bound, timed in the worker and paired by number (Codex R182/R183 VP182-02)", () => {
   const T0 = performance.timeOrigin;
 
-  it("pairs one stamped heartbeat with its answer's receipt, whenever the page handles them", () => {
-    // Codex's case: sent at 10, answered at the worker at 130, hold 20 — the
-    // page handled both posts only at 200/201: both legs are 100, not 0
-    noteHeartbeatSentAt(T0 + 10);
-    noteHeartbeatReply(T0 + 130, 20);
-    noteHeartbeatSentAt(T0 + 1010);
-    noteHeartbeatReply(T0 + 1040, 12);
+  it("pairs an answer with the heartbeat it names, whenever the page handles them", () => {
+    // R182: sent at 10, answered at the worker at 130, hold 20 — the page
+    // handled both posts only at 200/201: both legs are 100, not 0
+    noteHeartbeatSentAt(T0 + 10, 1);
+    noteHeartbeatReply(T0 + 130, 20, 1);
     recordApply(1, 1000);
     flushViewerPerf();
-    const f = last();
-    expect(f.rt_n).toBe(2);
-    expect(f.rt_net_max_ms).toBe(100);
-    expect(f.rt_net_h).toEqual({ "18": 1, "100": 1 });
-    expect(f.rt_invalid).toBe(0);
+    expect(last().rt_net_max_ms).toBe(100);
+    expect(last().rt_n).toBe(1);
   });
 
-  it("gives no bound for an ambiguous, unmatched, unstamped or negative pair", () => {
-    noteHeartbeatSentAt(T0 + 10);
-    noteHeartbeatSentAt(T0 + 1010);       // two outstanding: which one is answered?
-    noteHeartbeatReply(T0 + 1100, 20);
-    noteHeartbeatReply(T0 + 1200, 20);    // an answer with nothing outstanding
-    noteHeartbeatSentAt(undefined);       // a worker without the stamp
-    noteHeartbeatReply(T0 + 2100, 20);
-    noteHeartbeatSentAt(T0 + 3000);
-    noteHeartbeatReply(T0 + 3010, 20);    // hold longer than the round trip
-    noteHeartbeatSentAt(T0 + 4000);
-    noteHeartbeatReply(T0 + 4050, undefined);
+  it("pairs a late answer with ITS heartbeat, never the newest one sent (Codex R183)", () => {
+    noteHeartbeatSentAt(T0 + 10, 1);
+    noteHeartbeatSentAt(T0 + 1010, 2);
+    noteHeartbeatReply(T0 + 1500, 20, 1);  // H1's answer, late
+    noteHeartbeatSentAt(T0 + 2010, 3);
+    noteHeartbeatReply(T0 + 2300, 20, 2);  // H2's: 1270 ms for both legs — not 270 against H3
+    noteHeartbeatReply(T0 + 2350, 20, 3);
     recordApply(1, 1000);
     flushViewerPerf();
     const f = last();
-    expect(f.rt_n).toBe(0);
-    expect(f.rt_invalid).toBe(5);
-    expect(f.rt_net_h).toEqual({});
+    expect(f.rt_n).toBe(3);
+    expect(f.rt_invalid).toBe(0);
+    expect(f.rt_net_h).toEqual({ "320": 1, "1250": 1, "1450": 1 });   // 320, 1270, 1470
+    expect(f.rt_net_max_ms).toBe(1470);
+  });
+
+  it("gives no bound for an answer naming no heartbeat sent here, an unstamped one or a negative pair", () => {
+    noteHeartbeatSentAt(T0 + 10, 1);
+    noteHeartbeatReply(T0 + 100, 20, 1);
+    noteHeartbeatReply(T0 + 150, 20, 1);   // answered already
+    noteHeartbeatReply(T0 + 160, 20);      // names no heartbeat (an old gateway)
+    noteHeartbeatReply(T0 + 170, 20, 9);   // never sent here
+    noteHeartbeatSentAt(undefined, 4);     // a worker without the stamp: not remembered
+    noteHeartbeatReply(T0 + 2100, 20, 4);
+    noteHeartbeatSentAt(T0 + 3000, 5);
+    noteHeartbeatReply(T0 + 3010, 20, 5);  // hold longer than the round trip
+    noteHeartbeatSentAt(T0 + 4000, 6);
+    noteHeartbeatReply(T0 + 4050, undefined, 6);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    const f = last();
+    expect(f.rt_n).toBe(1);
+    expect(f.rt_invalid).toBe(6);
+  });
+
+  it("counts the visibility changes in a window", () => {
+    noteVisibilityChanged(T0 + 10);
+    noteVisibilityChanged(T0 + 20);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().vis_changes).toBe(2);
+    recordApply(1, 1033);
+    flushViewerPerf();
+    expect(last().vis_changes).toBe(0);
   });
 });
 

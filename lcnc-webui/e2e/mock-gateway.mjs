@@ -239,9 +239,12 @@ wss.on("connection", (ws) => {
     else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [] }));
     if (cmd === "halshow_live") ws.send(JSON.stringify(HALSHOW_SNAPSHOT));
     // answer everything -> stay connected & armed; the status answering a
-    // heartbeat carries the gateway's hold like the gateway's first status
-    // after one (`timing.server_ms` — the page's round-trip bound pairs it)
-    if (!quiet) ws.send(JSON.stringify(cmd === "heartbeat" ? { ...withEnvelope(state), timing: { server_ms: 0.2 } } : withEnvelope(state)));
+    // heartbeat carries the gateway's hold and that heartbeat's number like
+    // the gateway's first status after one (`timing.server_ms`, `hb_seq` —
+    // the page's round-trip bound pairs them)
+    if (!quiet) ws.send(JSON.stringify(cmd === "heartbeat"
+      ? { ...withEnvelope(state), timing: { server_ms: 0.2, ...(Number.isInteger(msg?.seq) ? { hb_seq: msg.seq } : {}) } }
+      : withEnvelope(state)));
   });
 });
 
