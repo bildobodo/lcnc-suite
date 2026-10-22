@@ -1,0 +1,26 @@
+{
+  "head": "71b167a5",
+  "uncommitted": 0,
+  "note": "R184 head: lint, build, unit (the browser step ran green at 30654b94; since then only checkWiring.test.ts)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 19
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 519,
+      "tests": "152 files, 2534 passed"
+    }
+  ]
+}

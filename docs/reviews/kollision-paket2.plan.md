@@ -595,6 +595,8 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 
 - **Browser-PC-Messmittel, Korrektur (R182 → R183):** Der Empfangsanker des Statusalters wandert mit dem gepufferten Status (Store-Flush, Viewer-Übernahme); der Herzschlag-Umlauf wird im Worker gemessen und nur bei eindeutiger Paarung gezählt; der Treiber liest die Hüllenfelder (Clients, Trip) und bricht bei einem anderen bewaffneten Client jederzeit ab; die Auswertung führt „nicht nachgewiesen“ als eigenen Zustand (Watchdog-Anker aus dem eigenen Reset des Treibers, Instanz, Abdeckung, Uhrsprung; RSS-Abdeckung; Übergangsfenster) und gibt S und R ein ausdrückliches Urteil.
 
+- **Browser-PC-Messmittel, zweite Korrektur (R183 → R184):** Herzschläge tragen eine Nummer, die der Gateway in der Zeitangabe zurückgibt (Paarung nach Kennung); die Seite meldet die Sweeps mit Anfrage und Laufgeneration und den laufenden Parse, wie sie ihn sieht — das R-Urteil liest das aktive Rechenintervall auf einer Seitenuhr mit der gemessenen Netzschranke; S wird gegen das Wechselprotokoll geprüft; der Anker verlangt bekannten Stillstand; Telemetriezeilen fallen nur bei Belegen einer verborgenen Seite weg, Lücken machen eine Phase unvollständig. Die Trace-Rotation je Prozess bleibt ein eigener Punkt.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).

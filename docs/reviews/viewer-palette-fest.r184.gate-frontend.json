@@ -1,0 +1,33 @@
+{
+  "head": "30654b94",
+  "uncommitted": 0,
+  "note": "R184: Codex R183 \u2014 numbered heartbeats, run-check and parse-seen ids",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 9
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 18
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "FAIL",
+      "seconds": 521
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2467,
+      "tests": "552 passed",
+      "note": "run alone"
+    }
+  ]
+}

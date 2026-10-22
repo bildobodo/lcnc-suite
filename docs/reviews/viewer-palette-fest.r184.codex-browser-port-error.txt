@@ -1,0 +1,78 @@
+[1A[2K[2m[WebServer] [22m(node:1436051) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 6 tests using 1 worker
+
+[1A[2K(node:1436077) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1436077) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/6] e2e/collisions.viewer.spec.ts:670:1 › a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3)
+[1A[2K  1) e2e/collisions.viewer.spec.ts:670:1 › a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3) 
+
+    AggregateError: 
+
+    Error Context: test-results/collisions.viewer-a-parse--19401-l-plan-„Prüfung-im-Lauf“-3-/error-context.md
+
+
+[1A[2K(node:1436149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1436149) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[2/6] e2e/frames.spec.ts:21:1 › status_delta merges onto prior status and updates the rendered DRO
+[1A[2K  2) e2e/frames.spec.ts:21:1 › status_delta merges onto prior status and updates the rendered DRO ──
+
+    AggregateError: 
+
+    Error Context: test-results/frames-status-delta-merges-3d5f6-nd-updates-the-rendered-DRO/error-context.md
+
+
+[1A[2K(node:1436251) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1436251) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[3/6] e2e/frames.spec.ts:40:1 › pong drives the network-latency reading
+[1A[2K[4/6] e2e/frames.spec.ts:49:1 › halshow snapshot renders pins and halshow_update applies the delta
+[1A[2K  3) e2e/frames.spec.ts:49:1 › halshow snapshot renders pins and halshow_update applies the delta ──
+
+    AggregateError: 
+
+    Error Context: test-results/frames-halshow-snapshot-re-1e74e-ow-update-applies-the-delta/error-context.md
+
+
+[1A[2K(node:1436411) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:1436411) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[5/6] e2e/frames.spec.ts:67:1 › perf rows carry the status age from the worker's receipt and the presses' delay
+[1A[2K[6/6] e2e/frames.spec.ts:105:1 › the page reports the parse it sees in flight, first and last frame, with their receipt
+[1A[2K  4) e2e/frames.spec.ts:105:1 › the page reports the parse it sees in flight, first and last frame, with their receipt 
+
+    AggregateError: 
+
+    Error Context: test-results/frames-the-page-reports-th-ff6c0-st-frame-with-their-receipt/error-context.md
+
+
+[1A[2K  4 failed
+    e2e/collisions.viewer.spec.ts:670:1 › a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3) 
+    e2e/frames.spec.ts:21:1 › status_delta merges onto prior status and updates the rendered DRO ───
+    e2e/frames.spec.ts:49:1 › halshow snapshot renders pins and halshow_update applies the delta ───
+    e2e/frames.spec.ts:105:1 › the page reports the parse it sees in flight, first and last frame, with their receipt 
+  2 passed (15.2s)

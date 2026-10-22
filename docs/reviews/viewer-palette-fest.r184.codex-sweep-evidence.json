@@ -1,0 +1,51 @@
+{
+  "actualWorkerStart": 10000,
+  "actualWorkerEnd": 12000,
+  "mainBlocked": [
+    11000,
+    26000
+  ],
+  "actualParse": [
+    20000,
+    25000
+  ],
+  "events": [
+    {
+      "tag": "browser.collision.sweep_done",
+      "page": "p",
+      "t_perf_ms": 26000,
+      "t_wall_ns": 26000000000,
+      "id": 3,
+      "run_gen": 1,
+      "ms": 16000,
+      "bvh_ms": 0,
+      "sweep_ms": 2000,
+      "samples": 10,
+      "coarsened": false,
+      "uncertified": false,
+      "truncated": null,
+      "covered": 1,
+      "intervals": 0,
+      "pairs": 1,
+      "pairs_prescreened": 0,
+      "points": 2
+    }
+  ],
+  "pause": {
+    "posts": [
+      {
+        "pause": 3,
+        "why": "camera"
+      },
+      {
+        "resume": 3,
+        "why": "camera"
+      }
+    ],
+    "actualHold": [
+      19000,
+      27000
+    ],
+    "telemetry": []
+  }
+}
