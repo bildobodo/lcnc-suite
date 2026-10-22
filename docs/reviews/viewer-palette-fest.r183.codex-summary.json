@@ -1,0 +1,60 @@
+{
+  "review": "R183",
+  "head": "417c149e",
+  "live_head": "698d9f961a912c547dc8d86fe925fd0f761d1e6f",
+  "verdict": "findings",
+  "closed": [
+    "VP182-01",
+    "VP182-03",
+    "VP182-04 (original watchdog/RSS counterexamples)"
+  ],
+  "open": [
+    "VP182-02 rest",
+    "VP183-01",
+    "VP183-02",
+    "VP183-03",
+    "VP183-04"
+  ],
+  "repository_checks": {
+    "build": "PASS",
+    "unit": {
+      "passed": 83,
+      "failed": 0
+    },
+    "browser": {
+      "passed": 4,
+      "failed": 0
+    },
+    "provided_tool_tests": {
+      "passed": 15,
+      "failed": 0
+    },
+    "backend": "No backend product changes since reviewed R182; not rerun."
+  },
+  "own_probes": {
+    "typescript": {
+      "passed": 3,
+      "failed": 1
+    },
+    "python": {
+      "passed_methods": 6,
+      "failed_methods": 7,
+      "failed_assertions_including_subtests": 8
+    }
+  },
+  "boundaries": {
+    "machine_commands": false,
+    "live_endpoints_accessed": false,
+    "driver_main_executed": false,
+    "mock": "127.0.0.1:4188",
+    "archive": "/tmp/codex-r183-j66_w2sq/repo",
+    "nice": 10,
+    "browser_workers": 1
+  },
+  "source_files_verified": 563,
+  "lfs_objects_verified": 4,
+  "archive_adaptations": [
+    "lcnc-webui/e2e/ctl.ts"
+  ],
+  "prior_evidence_unchanged": true
+}

@@ -1,0 +1,39 @@
+r183_viewer_newest RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 10 to be 40 // Object.is equality 9s
+r183_viewer_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '20': 1, '110': 1 } to deeply equal { '20': 1, '98': 1 } | AssertionError: expected 1433 to be 23 // Object.is equality 10s
+r183_store_newest RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 9 to be 20 // Object.is equality 10s
+r183_store_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '20': 1, '110': 1 } to deeply equal { '20': 1, '98': 1 } 9s
+r183_first_apply_aged NOCOMPILE ["src/viewerPerf.ts(201,9): error TS6133: 'built' is declared but its value is never read."] 9s
+r183_vis_not_skipped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be +0 // Object.is equality 10s
+r183_status_rx_dropped RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 48s
+r183_viewer_no_note RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 46s
+r183_rt_ambiguous RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be +0 // Object.is equality 9s
+r183_rt_negative RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 5 to be +0 // Object.is equality 8s
+r183_rt_unstamped RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 52s
+r183_worker_no_hb_stamp RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 52s
+r182_worker_no_rx RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 43s
+r182_no_key_listener RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 48s
+r182_bin_width RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '20': 1, '95': 1 } to deeply equal { '20': 1, '98': 1 } | AssertionError: expected [ +0, +0, 19, 20, 20, 95, 100, …(5) ] to deeply equal [ +0, +0, 19, 20, 20, 98, 100, …( 8s
+r182_hist_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '32': 3, '50': 1, '550': 1 } to deeply equal { '32': 1 } 8s
+r182_input_negative RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 3 to be 2 // Object.is equality 8s
+r182_quiet_presses RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 0 to be greater than 0 | AssertionError: expected 0 to be greater than 0 8s
+r182_publish_without_job RED 1 failed in 0.04s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s
+r182_cancel_without_job RED 1 failed in 0.04s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s
+r182_superseded_without_job RED 1 failed in 0.04s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s
+r182_basis_without_offsets RED 1 failed in 0.04s E       AssertionError: '435a2f82eb78' == '435a2f82eb78' : another offset is another basis | test_bulk_pipeline.py:501: AssertionError 0s
+r182_jobs_not_counted RED 1 failed in 0.04s E       AssertionError: Lists differ: [0, 0, 0, 0] != [1, 2, 3, 4] | test_bulk_pipeline.py:493: AssertionError 0s
+t_guard_counts_own RED FAILED (failures=5) FAIL: test_a_trip_stops_and_its_absence_clears_it (test_bpc_tools.DriverGuard.test_a_trip_stops_and_its_absence_clears_it) | FAIL: test_an_armed_remote_page_is_seen (test_bpc_tools.DriverGuard.test_an_armed_remote_page_is_seen) 0s
+t_guard_ip_filter RED FAILED (errors=1) ERROR: test_two_local_armed_clients_are_one_too_many (test_bpc_tools.DriverGuard.test_two_local_armed_clients_are_one_too_many) 1s
+t_trip_sticky RED FAILED (failures=1) FAIL: test_a_trip_stops_and_its_absence_clears_it (test_bpc_tools.DriverGuard.test_a_trip_stops_and_its_absence_clears_it) 1s
+t_stale_ignored RED FAILED (errors=1) ERROR: test_no_or_stale_envelope_is_no_pass (test_bpc_tools.DriverGuard.test_no_or_stale_envelope_is_no_pass) 1s
+t_guard_never_cancels RED FAILED (errors=1) ERROR: test_the_guard_cancels_the_running_sequence (test_bpc_tools.DriverGuard.test_the_guard_cancels_the_running_sequence) 2s
+t_wd_last_dump RED FAILED (failures=1) FAIL: test_a_later_reset_does_not_move_the_mapping (test_bpc_tools.WatchdogReceipt.test_a_later_reset_does_not_move_the_mapping) 1s
+t_wd_no_step_check RED FAILED (errors=1) ERROR: test_another_instance_or_a_clock_step_is_not_proven (test_bpc_tools.WatchdogReceipt.test_another_instance_or_a_clock_step_is_not_proven) 1s
+t_wd_no_instance_check RED FAILED (failures=1) FAIL: test_another_instance_or_a_clock_step_is_not_proven (test_bpc_tools.WatchdogReceipt.test_another_instance_or_a_clock_step_is_not_proven) 1s
+t_wd_no_tick_check RED FAILED (failures=1) FAIL: test_missing_pieces_are_not_proven (test_bpc_tools.WatchdogReceipt.test_missing_pieces_are_not_proven) 1s
+t_wd_no_anchor_pass RED FAILED (failures=1) FAIL: test_missing_pieces_are_not_proven (test_bpc_tools.WatchdogReceipt.test_missing_pieces_are_not_proven) 1s
+t_rss_no_coverage RED FAILED (failures=1) FAIL: test_uncovered_samples_are_not_collected (test_bpc_tools.Memory.test_uncovered_samples_are_not_collected) 1s
+t_rows_no_edge RED FAILED (failures=1) FAIL: test_edges_hidden_and_quiet_rows_are_excluded_by_reason (test_bpc_tools.Rows.test_edges_hidden_and_quiet_rows_are_excluded_by_reason) 1s
+t_s_ignores_rss RED FAILED (failures=1) FAIL: test_s_met_and_not_met (test_bpc_tools.Verdicts.test_s_met_and_not_met) 1s
+t_r_any_start RED FAILED (failures=1) FAIL: test_r_proven_only_when_the_check_spans_the_pinned_parse (test_bpc_tools.Verdicts.test_r_proven_only_when_the_check_spans_the_pinned_parse) 1s
+rebuild ok 17s
+r183_first_apply_aged RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ FAIL  src/viewerPerf.test.ts > status age: the receipt the viewer takes, at its apply > ages no frame at the viewer

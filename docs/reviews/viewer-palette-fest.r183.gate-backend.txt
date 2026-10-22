@@ -1,0 +1,14 @@
+RUN  backend → /home/cnc/lcnc-suite-c2/runlogs/test-suite/20261022T190133Z-offline/backend.log
+PASS backend (67.65s)
+RUN  5axis-model → /home/cnc/lcnc-suite-c2/runlogs/test-suite/20261022T190133Z-offline/5axis-model.log
+PASS 5axis-model (0.72s)
+RUN  audit-css → /home/cnc/lcnc-suite-c2/runlogs/test-suite/20261022T190133Z-offline/audit-css.log
+PASS audit-css (1.08s)
+RUN  review-handshake → /home/cnc/lcnc-suite-c2/runlogs/test-suite/20261022T190133Z-offline/review-handshake.log
+PASS review-handshake (4.51s)
+RUN  readback-target → /home/cnc/lcnc-suite-c2/runlogs/test-suite/20261022T190133Z-offline/readback-target.log
+PASS readback-target (0.17s)
+RUN  parity-compare → /home/cnc/lcnc-suite-c2/runlogs/test-suite/20261022T190133Z-offline/parity-compare.log
+PASS parity-compare (0.17s)
+PASS: /home/cnc/lcnc-suite-c2/runlogs/test-suite/20261022T190133Z-offline/report.json
+1501 passed, 2442 subtests passed in 67.38s (0:01:07)

@@ -1,0 +1,33 @@
+{
+  "head": "9ceccacd",
+  "uncommitted": 0,
+  "note": "R183: VP182-01..04 \u2014 the receipt travels with the status, the round trip timed in the worker",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 9
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 17
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "FAIL",
+      "seconds": 458
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2371,
+      "tests": "551 passed",
+      "note": "run alone"
+    }
+  ]
+}

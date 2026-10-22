@@ -1,0 +1,257 @@
+{
+  "anchor_not_still": {
+    "AUTO": {
+      "state": {
+        "interp_state": 2,
+        "inpos": false,
+        "current_vel": 10,
+        "estop": false,
+        "enabled": true
+      },
+      "attempted_commands": [
+        {
+          "cmd": "estop"
+        }
+      ]
+    },
+    "manual_jog": {
+      "state": {
+        "interp_state": 1,
+        "inpos": false,
+        "current_vel": 10,
+        "estop": false,
+        "enabled": true
+      },
+      "attempted_commands": [
+        {
+          "cmd": "estop"
+        }
+      ]
+    }
+  },
+  "envelope": {
+    "env": {
+      "clients": [
+        {
+          "ip": "127.0.0.1",
+          "armed": true
+        }
+      ],
+      "armed": true,
+      "safety_trip": {
+        "reason": "trip"
+      }
+    },
+    "breach": "1 other client(s) ARMED \u2014 disarm the browser page (a held key would jog at rest)"
+  },
+  "r182_report_controls": {
+    "missing_anchor": {
+      "status": "not proven",
+      "why": "no anchor (drive2's own E-Stop reset)"
+    },
+    "missing_log": {
+      "status": "not proven",
+      "why": "no hal_watchdog.log"
+    },
+    "clock_step": {
+      "status": "not proven",
+      "why": "the VM clock stepped since the anchor [41000] ms: the mapping does not hold"
+    },
+    "later_reset": {
+      "status": "gaps",
+      "gaps_ms": [
+        450
+      ]
+    },
+    "missing_rss": {
+      "status": "not collected",
+      "why": "the 0.25 s samples do not cover the phase"
+    }
+  },
+  "r_done_before_parse": {
+    "records": [
+      {
+        "t_wall_ns": 10000000000,
+        "tag": "browser.collision.run_check_start",
+        "page": "p",
+        "run": 1,
+        "version": 1,
+        "from": null
+      },
+      {
+        "t_wall_ns": 20000000000,
+        "tag": "gcode.spawn_start",
+        "job": 7,
+        "pinned": true,
+        "basis": "x",
+        "active_idx": 1
+      },
+      {
+        "t_wall_ns": 25000000000,
+        "tag": "gcode.publish",
+        "job": 7,
+        "pinned": true,
+        "basis": "x",
+        "active_idx": 1,
+        "version": 2
+      },
+      {
+        "t_wall_ns": 26000000000,
+        "tag": "browser.collision.run_check_discarded",
+        "page": "p",
+        "why": "origin",
+        "gen": 1
+      },
+      {
+        "t_wall_ns": 10100000000,
+        "tag": "browser.collision.sweep_start",
+        "page": "p"
+      },
+      {
+        "t_wall_ns": 12000000000,
+        "tag": "browser.collision.sweep_done",
+        "page": "p",
+        "ms": 1900
+      }
+    ],
+    "result": {
+      "verdict": "R overlap proven",
+      "how": "a run check began (received here) 10.0 s before pinned parse job 7 spawned and was discarded 1.0 s after that job published",
+      "job": 7
+    }
+  },
+  "r_control": {
+    "verdict": "R overlap proven",
+    "how": "a run check began (received here) 10.0 s before pinned parse job 7 spawned and was discarded 1.0 s after that job published",
+    "job": 7
+  },
+  "r_cross_page": {
+    "records": [
+      {
+        "t_wall_ns": 10000000000,
+        "tag": "browser.collision.run_check_start",
+        "page": "p",
+        "run": 1,
+        "version": 1,
+        "from": null
+      },
+      {
+        "t_wall_ns": 20000000000,
+        "tag": "gcode.spawn_start",
+        "job": 7,
+        "pinned": true,
+        "basis": "x",
+        "active_idx": 1
+      },
+      {
+        "t_wall_ns": 25000000000,
+        "tag": "gcode.publish",
+        "job": 7,
+        "pinned": true,
+        "basis": "x",
+        "active_idx": 1,
+        "version": 2
+      },
+      {
+        "t_wall_ns": 26000000000,
+        "tag": "browser.collision.run_check_discarded",
+        "page": "q",
+        "why": "origin",
+        "gen": 1
+      }
+    ],
+    "result": {
+      "verdict": "R overlap proven",
+      "how": "a run check began (received here) 10.0 s before pinned parse job 7 spawned and was discarded 1.0 s after that job published",
+      "job": 7
+    }
+  },
+  "r_idle_discard": {
+    "verdict": "R overlap proven",
+    "how": "a run check began (received here) 10.0 s before pinned parse job 7 spawned and was discarded 1.0 s after that job published",
+    "job": 7
+  },
+  "visible_stall_rows": {
+    "kept_times": [
+      107,
+      115,
+      118
+    ],
+    "excluded": {
+      "phase_edge": 2,
+      "after_hidden_or_quiet": 1
+    },
+    "kept_age": {
+      "n": 180,
+      "p50": 11.0,
+      "p95": 11.0,
+      "p99": 11.0,
+      "max": 10,
+      "share_over_50": 0.0,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "age_with_stalled_row": {
+      "n": 240,
+      "p50": 11.0,
+      "p95": 110.0,
+      "p99": 110.0,
+      "max": 100,
+      "share_over_50": 0.25,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    }
+  },
+  "s_control": {
+    "verdict": "S met",
+    "why": [],
+    "superseded": 3
+  },
+  "s_extra_job": {
+    "verdict": "S met",
+    "why": [],
+    "superseded": 4
+  },
+  "s_missing_switches": {
+    "jobs": [
+      {
+        "job": 1,
+        "reason": null,
+        "idx": 2,
+        "basis": "b1",
+        "pinned": false,
+        "spawn_ns": 10000000000,
+        "events": [
+          "spawn_start",
+          "publish"
+        ],
+        "end_ns": 13000000000,
+        "ran_ms": 3000,
+        "published": {
+          "idx": 2,
+          "basis": "b1",
+          "version": null
+        }
+      }
+    ],
+    "result": {
+      "verdict": "S met",
+      "why": [],
+      "superseded": 0
+    }
+  },
+  "s_r182_no_cancellation": {
+    "verdict": "S not met",
+    "why": [
+      "job 1 was not superseded and cancelled (['spawn_start', 'publish'])"
+    ],
+    "superseded": 0
+  },
+  "trace_renamed_inode": [
+    "one",
+    "two",
+    "three"
+  ]
+}
