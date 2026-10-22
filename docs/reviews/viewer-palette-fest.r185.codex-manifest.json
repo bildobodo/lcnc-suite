@@ -1,0 +1,92 @@
+{
+  "review": "R185",
+  "verdict": "findings",
+  "scope": "Design only; no code change; reviewed head 71b167a5",
+  "answers": {
+    "q1": "Source stamps for both computations required; +/-10s does not establish constant wall clock offset; causal two-heartbeat contract accepted as design alternative",
+    "q2": "Partial measurement accepted after visible-row filtering correction and disabling unproven positive R verdicts; VP181-01 combined-load acceptance remains open"
+  },
+  "original_state": {
+    "head": "a152de3ce34496d4c1639f6b303df0c69ded5e66",
+    "review_prefix": {
+      "sha256": "3d37e83c231ffc99650962b3b5a2ffb7ac32109d418c6afcf548add50b515d40",
+      "bytes": 2182792
+    },
+    "prior_evidence": {
+      "docs/reviews/viewer-palette-fest.r183.codex-clock-tests.json": "1a11a08663aab3e92260a3db55c574fd457242750550ac2d3ba7fec2f8c7c3b2",
+      "docs/reviews/viewer-palette-fest.r183.codex-tools-tests.txt": "834077d885ae28f4b7fa5b02dc667a185779de02bfe6e4ca0dc7556173296fd6",
+      "docs/reviews/viewer-palette-fest.r183.browser-pc-tools-test.txt": "f724800dba6dc3614e5b0f9fb6c6d4b50faf7393d9b6d4d7e2168d8124fa9a0b",
+      "docs/reviews/viewer-palette-fest.r184.codex-playwright.config.ts": "dd738aa3a107b5f595591d82cc678ca97ff73f06a6f42c9c6d91ef91a09f5419",
+      "docs/reviews/viewer-palette-fest.r184.codex-unit.json": "ff5c8b80f5c67ad0306cdf8e12557e0b3fbd577b04a5bf22ef13ceff73999c57",
+      "docs/reviews/viewer-palette-fest.r184.browser-pc-tools-test.py": "da3c41927c025bcba20711d1264c5d2b001c9b39ff66c294ad973c7f1eb7d7eb",
+      "docs/reviews/viewer-palette-fest.r184.codex-backend.txt": "12a9d6c078582c6a3cb8fd500ddc62b4dd4b4e7844fe752696eaf03ae62c4eb8",
+      "docs/reviews/viewer-palette-fest.r183.codex-build.txt": "66ed70f0b7187f4e4aac56d461eb03a3ae2741ba75fb55f7845662590e3c989d",
+      "docs/reviews/viewer-palette-fest.r183.browser-pc-drive2.py": "31d977f0947b9702a6042a1be44e275ebff398c8a32b207423e3d3d92e60ead9",
+      "docs/reviews/viewer-palette-fest.r184.mutations.py": "e324639d5e82a3edc419823dc20188dc056798078e580c1b78d214d71faac8c8",
+      "docs/reviews/viewer-palette-fest.r184.codex-probes-ts.json": "d3dfb2ef724ca8139bfd8a2d93d4f1f800d154d96952dea7694c6c1fd33b09e9",
+      "docs/reviews/viewer-palette-fest.r184.mutations.txt": "0d7d15a24edcfac78cf9dcf65531099576406539f12d32eaf510cab6c606cf38",
+      "docs/reviews/viewer-palette-fest.r183.codex-playwright.config.ts": "b9b1e3dfe36bc6faa6a6482b942b0a217815efbf0f33923660457fed726b56c5",
+      "docs/reviews/viewer-palette-fest.r183.codex-clock.test.ts": "9d684c1ed1ba1b1a90195ca874a11157561e38b4361874adb842499601a56ede",
+      "docs/reviews/viewer-palette-fest.r183.browser-pc-report2.py": "156b8ea9a225b37d353c442f726cb8ddec90cae71eab9437b83106b3dbce6cde",
+      "docs/reviews/viewer-palette-fest.r183.codex-tools-existing.txt": "b54e188dff88e337070b26d996ae5461f1ab1683a31f37e279932fd72b449baa",
+      "docs/reviews/viewer-palette-fest.r183.browser-pc-tools-test.py": "e878e3f6c9057ddf47777111c31b39bc7e83fef82d68c73bee43a798ea473534",
+      "docs/reviews/viewer-palette-fest.r183.codex-tools-evidence.json": "45ad8a072a18a2de7f42f8a32e1af99348494686bcda7f91b19a9585c5339baa",
+      "docs/reviews/viewer-palette-fest.r184.codex-sweep.test.ts": "73f1a228b1ba95422eac3aa34c713759a5d552e7b28c78af89cbb0196b8bf4aa",
+      "docs/reviews/viewer-palette-fest.r183.codex-clock-evidence.json": "9329c41228200132c2d95b722c62fb1a33539d5bfa0b777da0cffaa9f2f11f9a",
+      "docs/reviews/viewer-palette-fest.r183.gate-backend.txt": "c2ac705fc48f07d7227d35a80c348af106296efe003d0f957422e353c379fd24",
+      "docs/reviews/viewer-palette-fest.r184.gate-backend.txt": "54c60d30a225ef7ca5fdcc3a2e5121f22d9cae89d22316053de6f8d2f5978d7a",
+      "docs/reviews/viewer-palette-fest.r184.codex-summary.json": "1d0205b3c945ff4c67e89c95f8bcf25716a01bb88af84ecee093d7ba6546d5b7",
+      "docs/reviews/viewer-palette-fest.r184.gate-frontend.json": "958148b856e695d57a896e96759eece20a96981ba068f3b3c0f08e014f45d35a",
+      "docs/reviews/viewer-palette-fest.r184.codex-browser-port-error.txt": "a4d1060728a4abc6a13127865f230bc9baf5eb9a7d7600c7382a8fd59ff610e4",
+      "docs/reviews/viewer-palette-fest.r183.gate-frontend.json": "0dd32f0c2afb0473c647d830837cae143c391358d5eb5b3c2691fa1ee565965f",
+      "docs/reviews/viewer-palette-fest.r183.codex-manifest.json": "778a0b7711c9b229fcd9f2b0f6a5ce8a101c64a1d714ac0f586e12e28a786be6",
+      "docs/reviews/viewer-palette-fest.r184.browser-pc-report2.py": "a20dadce0a6f24b0e32b0024c45acc20ee3fc1147d9205ef53f7549bbed2998c",
+      "docs/reviews/viewer-palette-fest.r184.codex-tools.py": "3267878439db35a3f6710047c7fde9305668bc750e12f96406468bdcd1045140",
+      "docs/reviews/viewer-palette-fest.r184.codex-clock.test.ts": "2159f09cd43383cb83c7950a3c057418a9b28ff597a617ad96038b30da5a5449",
+      "docs/reviews/viewer-palette-fest.r183.codex-summary.json": "b6274446b2dedd5dbfff89eac56061a0ca41f8e4eca8bb79acc2a40061be1fab",
+      "docs/reviews/viewer-palette-fest.r184.browser-pc-tools-test.txt": "8a285d5ef1990b2341e94211dc107a308e890d2ea091c0580600a00e6d6dcd52",
+      "docs/reviews/viewer-palette-fest.r184.gate-frontend-head.json": "c7f4b7b99f808eafc592b8db874c2070d95dba1fec942af18a384768707de2e4",
+      "docs/reviews/viewer-palette-fest.r183.codex-tools.py": "1dbf65172489089198f50793a57720a28382944174290307d33a4c717edcb0cb",
+      "docs/reviews/viewer-palette-fest.r184.codex-tools-probes.txt": "4f1f0181f966a6bbed86794886e3abecb8d58bfdb24be87f5c843e20d19f10f9",
+      "docs/reviews/viewer-palette-fest.r183.codex-browser.json": "d780ec244aa1d6be9222f8174dc4ed5f5f81ce1e5e4d8cff6e4fb3de62a346d4",
+      "docs/reviews/viewer-palette-fest.r184.codex-manifest.json": "a56c7a752eaee95ef36652b4c8323587d88deb15d01ae1b771429627e42c2601",
+      "docs/reviews/viewer-palette-fest.r184.codex-tools-existing.txt": "698dd83c2b9bc8a1aed940d433911ab13c528b778f5b457c096831320208dded",
+      "docs/reviews/viewer-palette-fest.r183.browser-pc-tracetail.py": "25ed18204b5b8682e3090d1ee17c9f36418b3ca14a702d6cf2f36431d8fcb5c1",
+      "docs/reviews/viewer-palette-fest.r183.gate-frontend-head.json": "accec97a26fc71e2c7385509daa40bb473a84076dfddabfe670580b19e00314e",
+      "docs/reviews/viewer-palette-fest.r184.codex-build.txt": "8ff868f670b2254fec9c623a9ea53062181b45413341fa2702f10b85260664e9",
+      "docs/reviews/viewer-palette-fest.r184.codex-clock-evidence.json": "c9fc127c8a7dd21ece8510b43a090d78ff53bc03b51194551e7ebe4590ffc127",
+      "docs/reviews/viewer-palette-fest.r184.browser-pc-drive2.py": "20f4798e9cbeeacd195fd5220ddaf84a44a7dff97093872d2e56f8164a5afdb0",
+      "docs/reviews/viewer-palette-fest.r184.codex-browser.json": "901fe4691a652d09a0db5890914d78f88ffa82242432300ba28af7d18e2dc207",
+      "docs/reviews/viewer-palette-fest.r183.mutations.txt": "80196214a693e2d25783fd9340579fac2d5db0ea720ce5f2a10a32f2bc211563",
+      "docs/reviews/viewer-palette-fest.r183.codex-reproduce.md": "486ae0dfb6d61aee4e62059723226419a04a518d64c01c1d0149a14ef154bf89",
+      "docs/reviews/viewer-palette-fest.r184.codex-sweep-evidence.json": "376cc86be2dced5af56c19ab902ef98db58bf738d4a2f0f0c7d838dc9f7c6575",
+      "docs/reviews/viewer-palette-fest.r183.codex-unit.json": "6d1dbd5de31ff94ff3c1cbc63d445f44becee49768c2b040d534b6e0820335ea",
+      "docs/reviews/viewer-palette-fest.r183.mutations.py": "1d7a48f43b65b1de26fd9b6495052144760cd3ec602f262a6738de77eb72edb0",
+      "docs/reviews/viewer-palette-fest.r184.codex-browser-port-error.json": "c9ab48eb6f1766ed7053b94b4f76d2cb83d95a27bea7dd3e6ab66dbf17060b48",
+      "docs/reviews/viewer-palette-fest.r184.codex-tools-evidence.json": "8acf8cbd3b9e88609d1375f4d9e92198e25dabaa5e13b9ea9cdef11b6cf4b0b4"
+    }
+  },
+  "new_evidence_sha256": {
+    "viewer-palette-fest.r185.codex-proof.py": "46a12574736a5839a05672f7b0f0fee510e8a567fe631e7866d6523786d78b3a",
+    "viewer-palette-fest.r185.codex-proof.json": "3d7c660f4d01b67632c54dc3b5581ee8cc8ce985a5b788909e3bdd44c8b19dd0"
+  },
+  "request_sha256": "9c20c73b047d13851e61d314f62deef6eba944430049b57abfbc4fdee2c9b91d",
+  "review_append_sha256": "c2e7e14feda12d1039204b05e526693cd229a4591e91249045381c5c0f1c392b",
+  "primary_sources": [
+    "https://www.w3.org/TR/hr-time-3/#examples",
+    "https://docs.python.org/3.13/library/time.html#time.monotonic"
+  ],
+  "source_reads": [
+    "71b167a5:lcnc-gateway/bulk_pipeline.py",
+    "71b167a5:lcnc-gateway/gcode_parse_worker.py",
+    "71b167a5:lcnc-gateway/lcnc_trace.py",
+    "71b167a5:lcnc-webui/src/viewer/collisionWorker.ts"
+  ],
+  "boundaries": {
+    "product_changes": false,
+    "builds_or_browser_runs": false,
+    "machine_commands": false,
+    "live_endpoints_accessed": false,
+    "driver_main_executed": false
+  }
+}
