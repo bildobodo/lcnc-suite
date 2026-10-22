@@ -1,0 +1,136 @@
+{
+  "parent_start_before_worker": {
+    "parent": [
+      10000,
+      30000
+    ],
+    "actual_parse": [
+      20000,
+      25000
+    ],
+    "actual_sweep": [
+      12000,
+      15000
+    ],
+    "certain_from_parent": [
+      10001,
+      29999
+    ],
+    "claimed_overlap_ms": 3000,
+    "actual_overlap_ms": 0
+  },
+  "parent_completion_after_worker": {
+    "parent": [
+      10000,
+      30000
+    ],
+    "actual_parse": [
+      10000,
+      12000
+    ],
+    "actual_sweep": [
+      20000,
+      25000
+    ],
+    "certain_from_parent": [
+      10001,
+      29999
+    ],
+    "claimed_overlap_ms": 5000,
+    "actual_overlap_ms": 0
+  },
+  "local_wall_step": {
+    "calibration": {
+      "hs": 999,
+      "t_gw": 1000,
+      "hr": 1001
+    },
+    "wall_step_at_page_ms": 1400,
+    "wall_step_ms": 100,
+    "actual_parse": [
+      1500,
+      1550
+    ],
+    "parse_wall": [
+      1600,
+      1650
+    ],
+    "sweep": [
+      1605,
+      1645
+    ],
+    "mapped_with_old_theta": [
+      1601,
+      1649
+    ],
+    "actual_overlap_ms": 0
+  },
+  "causal_positive": {
+    "parse_real": [
+      20000,
+      25000
+    ],
+    "parse_vm": [
+      134456.0,
+      135956.0
+    ],
+    "beats": [
+      [
+        20050,
+        134486.0,
+        20150
+      ],
+      [
+        24850,
+        135926.0,
+        24950
+      ]
+    ],
+    "certain_page_interval": [
+      20150,
+      24850
+    ],
+    "sweep": [
+      21000,
+      22000
+    ],
+    "overlap_ms": 1000
+  },
+  "causal_negative_controls": {
+    "parse_already_ended": "no in-parse witnesses",
+    "sweep_before_parse": 0,
+    "sweep_after_parse": 0,
+    "single_heartbeat": null,
+    "delayed_replies_cross": null
+  },
+  "g_gap_semantics": {
+    "active_slices": [
+      [
+        0,
+        1
+      ],
+      [
+        3,
+        4
+      ],
+      [
+        6,
+        7
+      ]
+    ],
+    "safe_parse": [
+      1.2,
+      5.8
+    ],
+    "merged_hull_overlap_ms": 4.6,
+    "actual_active_overlap_ms": 1,
+    "meaning": "hull overlap >2ms witnesses some activity, not >2ms of active work"
+  },
+  "causal_property_check": {
+    "seed": 185,
+    "cases": 10000,
+    "witnesses_found": 275,
+    "false_witnesses": 0,
+    "claim": "every emitted page interval lies within the actual parse interval under arbitrary transport delays and the stated nonuniform monotonic VM clock"
+  }
+}
