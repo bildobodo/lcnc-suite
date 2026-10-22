@@ -89,11 +89,19 @@ describe("limitPlaces", () => {
     expect([...unmarked.lines.keys()], "a move no line shows marks nothing").toEqual([]);
   });
 
-  it("the placeless rows say so and carry no position", () => {
+  it("the placeless rows say why and carry no position", () => {
     const rows = placelessLimitRows([[rec({}), rec({ axis: "Y", value: 501 })]], "mm");
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ kind: "limit", lineLabel: "—", at: "—", note: "place not known — reload the program" });
+    // no stretches: an older parse — a new one places it; never "reload the
+    // program", which parses an unchanged file not at all
+    expect(rows[0]).toMatchObject({ kind: "limit", lineLabel: "—", at: "—",
+                                     note: "place not known — from an older parse; a new parse places it" });
     expect(rows[0]!.what).toBe("X 600 mm > max 500 mm · Y 501 mm > max 500 mm");
     expect(Number.isNaN(rows[0]!.cum)).toBe(true);
+    // stretches the track does not hold: no parse names that, no remedy claimed
+    const t = track();
+    const off = limitPlaces([rec({ runs: [[90, 91]], nruns: 1 })], t, t, false);
+    expect(off.targets).toEqual([]);
+    expect(placelessLimitRows(off.placeless, "mm")[0]!.note).toBe("place not known — its moves are not on the timeline");
   });
 });

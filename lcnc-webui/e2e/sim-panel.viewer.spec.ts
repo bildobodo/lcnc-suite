@@ -549,7 +549,7 @@ test("a limit row stands at its own move and reads its origin's line, never a ra
     ["L2 00:00", "L3 00:08", "L5 00:12", "— —"]);
   expect(list[0]![2]).toContain("X 110 mm > max 100 mm");
   expect(list[2]![2]).toContain("X 130 mm > max 100 mm");
-  expect(list[3]![2]).toMatch(/Y 140 mm > max 100 mm[\s\S]*place not known/);
+  expect(list[3]![2]).toMatch(/Y 140 mm > max 100 mm[\s\S]*place not known — from an older parse; a new parse places it/);
   // the bands are the violating moves: 0–4 s and 8–16 s of 20 — none over the called file's own "6" (4–8 s)
   const bands = await page.locator(".scrubBar .scrubBand.limit").evaluateAll(els => els.map(e => {
     const num = (v: string) => Number(/\* ([-0-9.e]+)\)$/.exec(v)?.[1] ?? NaN);
@@ -563,6 +563,11 @@ test("a limit row stands at its own move and reads its origin's line, never a ra
   await page.waitForTimeout(300);
   expect(await simLine(page).textContent(), "no jump").toBe(pos);
   await expect(page.locator(".simBanner"), "nor the simulation").toHaveCount(0);
+  // the summary's "?" counts it and promises no remedy: a reload of an
+  // unchanged file parses nothing
+  await page.locator('.simPanel .simSummaryRow [aria-label="Help: Summary"]').click();
+  await expect(page.locator(".helpPopover:popover-open")).toContainText("1 of them have no place on the timeline.");
+  await expect(page.locator(".helpPopover:popover-open")).not.toContainText("reload");
 });
 
 // Codex R178 (the rest of VP-I130): the code panel marks a limit on the line
