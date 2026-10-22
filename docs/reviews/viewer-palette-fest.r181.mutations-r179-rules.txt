@@ -1,0 +1,8 @@
+r179_marks_raw_line RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 5 ] to deeply equal [ 2, 5 ] 7s
+r179_marks_placeless_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, 5, 9 ] to deeply equal [ 2, 5 ] 7s
+r179_marks_noline_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: a move no line shows marks nothing: expected [ 5 ] to deeply equal [] 7s
+r179_marks_not_published RED 2 passed (9.3s) Error: expect(received).toEqual(expected) // deep equality | - Expected  - 6 32s
+r179_cut_dropped ANCHOR [0] 0s
+r179_cut_note_dropped ANCHOR [0] 0s
+r179_cut_help_dropped RED   1 failed Error: expect(locator).toContainText(expected) failed | Expected substring: "One row's timeline bands show only the first 32 stretches per axis." 38s
+rebuild ok 53s

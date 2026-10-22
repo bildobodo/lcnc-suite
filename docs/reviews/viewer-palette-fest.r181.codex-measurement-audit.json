@@ -1,0 +1,235 @@
+{
+  "marks_sha256": "e7b4f6507a2039089e2de8578d8059a6fa32e2600e22dbee31e1a670eeb6af3f",
+  "sources": [
+    {
+      "file": "trace.ndjson",
+      "read_initial_bytes": 15828165,
+      "events_in_measurement": 0
+    },
+    {
+      "file": "trace.ndjson.1",
+      "read_initial_bytes": 38482432,
+      "events_in_measurement": 0
+    },
+    {
+      "file": "trace.ndjson.2",
+      "read_initial_bytes": 26150950,
+      "events_in_measurement": 0
+    },
+    {
+      "file": "trace.ndjson.3",
+      "read_initial_bytes": 52429379,
+      "events_in_measurement": 6385
+    },
+    {
+      "file": "trace.ndjson.4",
+      "read_initial_bytes": 1130496,
+      "events_in_measurement": 0
+    },
+    {
+      "file": "trace.ndjson.5",
+      "read_initial_bytes": 3489792,
+      "events_in_measurement": 0
+    }
+  ],
+  "phases": [
+    {
+      "phase": "prep",
+      "seconds": 10.455884864,
+      "windows": 3,
+      "status_frames": 166,
+      "gap_p95_windows_above_50": 2,
+      "gap_p95_median": 200,
+      "gap_p95_max": 217,
+      "gap_max": 227,
+      "apply_max_ms": 1,
+      "apply_mean_window_median_ms": 0.13,
+      "mt_late_max_ms": 44,
+      "heap_present": 0,
+      "event_counts": {
+        "browser.viewer.perf": 3,
+        "gcode.publish": 1,
+        "gcode.refresh_scheduled": 1,
+        "gcode.spawn_start": 1,
+        "gcode.worker_done": 1,
+        "gcode.worker_log": 4,
+        "loop.tick": 10
+      },
+      "largest_gap_window": {
+        "t_wall_ns": 1792608790129254647,
+        "gap_max_ms": 227,
+        "gap_p95_ms": 200,
+        "apply_max_ms": 1,
+        "mt_late_max_ms": 44,
+        "raf_gap_max_ms": 44,
+        "frames": 64
+      }
+    },
+    {
+      "phase": "A_rest",
+      "seconds": 60.003400695,
+      "windows": 20,
+      "status_frames": 1748,
+      "gap_p95_windows_above_50": 0,
+      "gap_p95_median": 49.0,
+      "gap_p95_max": 50,
+      "gap_max": 100,
+      "apply_max_ms": 1,
+      "apply_mean_window_median_ms": 0.03,
+      "mt_late_max_ms": 21,
+      "heap_present": 0,
+      "event_counts": {
+        "browser.viewer.perf": 20,
+        "loop.tick": 60
+      },
+      "largest_gap_window": {
+        "t_wall_ns": 1792608835082101675,
+        "gap_max_ms": 100,
+        "gap_p95_ms": 50,
+        "apply_max_ms": 1,
+        "mt_late_max_ms": 9,
+        "raf_gap_max_ms": 18,
+        "frames": 86
+      }
+    },
+    {
+      "phase": "B_load_haus",
+      "seconds": 269.016381194,
+      "windows": 90,
+      "status_frames": 7787,
+      "gap_p95_windows_above_50": 24,
+      "gap_p95_median": 50.0,
+      "gap_p95_max": 82,
+      "gap_max": 584,
+      "apply_max_ms": 5,
+      "apply_mean_window_median_ms": 0.05,
+      "mt_late_max_ms": 177,
+      "heap_present": 0,
+      "event_counts": {
+        "browser.collision.sweep_done": 1,
+        "browser.collision.sweep_start": 1,
+        "browser.viewer.perf": 90,
+        "gcode.publish": 1,
+        "gcode.refresh_scheduled": 1,
+        "gcode.spawn_start": 1,
+        "gcode.worker_done": 1,
+        "gcode.worker_log": 6,
+        "loop.tick": 269
+      },
+      "largest_gap_window": {
+        "t_wall_ns": 1792609099316515556,
+        "gap_max_ms": 584,
+        "gap_p95_ms": 51,
+        "apply_max_ms": 1,
+        "mt_late_max_ms": 15,
+        "raf_gap_max_ms": 27,
+        "frames": 71
+      }
+    },
+    {
+      "phase": "B_idle_after_check",
+      "seconds": 124.883628538,
+      "windows": 42,
+      "status_frames": 3667,
+      "gap_p95_windows_above_50": 0,
+      "gap_p95_median": 50.0,
+      "gap_p95_max": 50,
+      "gap_max": 67,
+      "apply_max_ms": 1,
+      "apply_mean_window_median_ms": 0.02,
+      "mt_late_max_ms": 38,
+      "heap_present": 0,
+      "event_counts": {
+        "browser.viewer.perf": 42,
+        "loop.tick": 125,
+        "safety.disconnect_disarmed": 1,
+        "safety.explicit_armed": 1,
+        "safety.explicit_disarmed": 1
+      },
+      "largest_gap_window": {
+        "t_wall_ns": 1792609213366499458,
+        "gap_max_ms": 67,
+        "gap_p95_ms": 50,
+        "apply_max_ms": 1,
+        "mt_late_max_ms": 28,
+        "raf_gap_max_ms": 37,
+        "frames": 87
+      }
+    },
+    {
+      "phase": "C_wcs_switches",
+      "seconds": 318.423068791,
+      "windows": 106,
+      "status_frames": 9124,
+      "gap_p95_windows_above_50": 48,
+      "gap_p95_median": 50.0,
+      "gap_p95_max": 89,
+      "gap_max": 206,
+      "apply_max_ms": 3,
+      "apply_mean_window_median_ms": 0.03,
+      "mt_late_max_ms": 107,
+      "heap_present": 0,
+      "event_counts": {
+        "browser.collision.sweep_cancelled": 1,
+        "browser.collision.sweep_done": 1,
+        "browser.collision.sweep_start": 2,
+        "browser.viewer.perf": 106,
+        "loop.tick": 317
+      },
+      "largest_gap_window": {
+        "t_wall_ns": 1792609267432308706,
+        "gap_max_ms": 206,
+        "gap_p95_ms": 89,
+        "apply_max_ms": 1,
+        "mt_late_max_ms": 107,
+        "raf_gap_max_ms": 149,
+        "frames": 67
+      }
+    },
+    {
+      "phase": "D_run_m600",
+      "seconds": 87.982539999,
+      "windows": 29,
+      "status_frames": 2528,
+      "gap_p95_windows_above_50": 0,
+      "gap_p95_median": 50,
+      "gap_p95_max": 50,
+      "gap_max": 134,
+      "apply_max_ms": 2,
+      "apply_mean_window_median_ms": 0.05,
+      "mt_late_max_ms": 68,
+      "heap_present": 0,
+      "event_counts": {
+        "browser.collision.entry_start": 2,
+        "browser.collision.run_check_discarded": 1,
+        "browser.collision.run_check_start": 2,
+        "browser.collision.sweep_done": 5,
+        "browser.collision.sweep_start": 5,
+        "browser.viewer.perf": 29,
+        "gcode.publish": 3,
+        "gcode.refresh_scheduled": 3,
+        "gcode.reparse_table_midrun": 2,
+        "gcode.spawn_start": 3,
+        "gcode.worker_done": 3,
+        "gcode.worker_log": 20,
+        "loop.tick": 88,
+        "run_basis.start": 1
+      },
+      "largest_gap_window": {
+        "t_wall_ns": 1792609570781454195,
+        "gap_max_ms": 134,
+        "gap_p95_ms": 49,
+        "apply_max_ms": 1,
+        "mt_late_max_ms": 68,
+        "raf_gap_max_ms": 29,
+        "frames": 84
+      }
+    }
+  ],
+  "caveats": [
+    "Trace events filtered to original exact phase marks; three-second summaries assigned by receipt time, not interval clipping.",
+    "No commands sent; retrospective read only.",
+    "No reconstruction of a pooled p95 from per-window percentiles.",
+    "Event counts do not measure peak memory or job queue length."
+  ]
+}

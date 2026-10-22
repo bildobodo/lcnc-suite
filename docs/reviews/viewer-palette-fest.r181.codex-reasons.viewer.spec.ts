@@ -1,0 +1,27 @@
+import fs from 'node:fs';
+import {test,expect} from '@playwright/test';
+import {decode,encode} from '@msgpack/msgpack';
+import {ctl} from './ctl';
+import {openLayout,PROFILES,VIEWPORTS} from './layout-fixtures';
+import {simShow} from './simTab';
+const DIR='/tmp/codex-r181-mxspmf64';
+for(const kind of ['legacy','missing-moves'] as const)test(`Codex R181: ${kind} gives its cause without a reload or invented jump`,async({page,context})=>{
+ const raw=decode(fs.readFileSync(`${DIR}/native.msgpack`)) as any;raw.file='/sim.ngc';
+ raw.violations=raw.violations.map(({runs,nruns,...v}:any)=>kind==='legacy'?v:{...v,runs:[[90000,90001]],nruns:1});
+ await context.route(/\/preview(\?|$)/,r=>r.fulfill({contentType:'application/octet-stream',body:Buffer.from(encode(raw))}));
+ await context.route(/\/gcode(\?|$)/,r=>r.fulfill({contentType:'text/plain',body:'G21 G90\nG0 X0 Y0 Z0\no<r177_child> call\nG1 X20 F100\nG1 X30\nG1 X40\nM2\n'}));
+ await openLayout(page,PROFILES[0]!,VIEWPORTS[0]!);
+ await ctl({op:'status_delta',data:{active_file:'/sim.ngc',is_enabled:false,enabled:false}});
+ await ctl({op:'raw',frame:{type:'viewer_gcode_ready',version:5181,file:'/sim.ngc'}});
+ await expect(page.locator('.scrubBar')).toBeVisible();await simShow(page,'limit');
+ const row=page.locator('.simPanel [data-sim-row]');await expect(row).toHaveCount(1);
+ const reason=kind==='legacy'?'from an older parse; a new parse places it':'its moves are not on the timeline';
+ await expect(row).toContainText(reason);await expect(row.locator('.colWhat')).toHaveAttribute('title',new RegExp(reason));
+ await expect(row.locator('.rowPick')).toHaveText('—');await expect(row.locator('.colAt')).toHaveText('—');
+ await row.locator('.rowPick').click();await expect(page.locator('.simBanner')).toHaveCount(0);await expect(page.locator('.scrubBand.limit')).toHaveCount(0);
+ const text=await row.innerText();await page.locator('.simPanel [aria-label="Help: Summary"]').click();
+ const help=page.locator('.helpPopover:popover-open');await expect(help).toContainText('1 of them have no place on the timeline.');await expect(help).not.toContainText('reload');
+ fs.writeFileSync(`${DIR}/reason-${kind}.json`,JSON.stringify({row:text,title:await row.locator('.colWhat').getAttribute('title'),help:await help.innerText(),bands:0},null,2));
+ await page.screenshot({path:`${DIR}/reason-${kind}.png`,fullPage:true});
+ await page.getByRole('tab',{name:'Program',exact:true}).click();await expect(page.locator('.codeLine.violation')).toHaveCount(0);
+});

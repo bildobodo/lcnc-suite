@@ -1,0 +1,4 @@
+r180_cut_one_axis RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ Array(1) ] to deeply equal [ [ 5, 'XY', [ …(2) ] ] ] 7s
+r180_note_no_axis RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'the timeline bands only the first str…' to be 'the timeline bands only the first str…' // Object.is equality | AssertionError: expected 'the timeline bands only the first  7s
+r180_help_not_per_axis RED   1 failed Error: expect(locator).toContainText(expected) failed | Expected substring: "One row's timeline bands show only the first 32 stretches per axis." 37s
+rebuild ok 52s
