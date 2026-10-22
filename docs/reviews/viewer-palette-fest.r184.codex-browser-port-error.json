@@ -1,0 +1,349 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r184-44844luo/repo/lcnc-webui/r184.playwright.config.ts",
+    "rootDir": "/tmp/codex-r184-44844luo/repo/lcnc-webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r184-44844luo/repo/lcnc-webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r184-44844luo/repo/lcnc-webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "frames.spec.ts",
+          "collisions.viewer.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r184-44844luo/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "collisions.viewer.spec.ts",
+      "file": "collisions.viewer.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3)",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 150000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 63,
+                  "error": {
+                    "message": "AggregateError: ",
+                    "stack": "AggregateError: "
+                  },
+                  "errors": [
+                    {
+                      "message": "AggregateError: "
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T21:41:00.578Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r184-44844luo/repo/lcnc-webui/test-results/collisions.viewer-a-parse--19401-l-plan-„Prüfung-im-Lauf“-3-/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "bbbb47f70077cd28aa48-bb450658158468efafad",
+          "file": "collisions.viewer.spec.ts",
+          "line": 670,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "frames.spec.ts",
+      "file": "frames.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "status_delta merges onto prior status and updates the rendered DRO",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 802,
+                  "error": {
+                    "message": "AggregateError: ",
+                    "stack": "AggregateError: "
+                  },
+                  "errors": [
+                    {
+                      "message": "AggregateError: "
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T21:41:00.932Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r184-44844luo/repo/lcnc-webui/test-results/frames-status-delta-merges-3d5f6-nd-updates-the-rendered-DRO/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d63184237f32bf31d674-6fdd3e568180d4a20c14",
+          "file": "frames.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "pong drives the network-latency reading",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1435,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T21:41:02.038Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d63184237f32bf31d674-1dda94a46785cdb0193d",
+          "file": "frames.spec.ts",
+          "line": 40,
+          "column": 1
+        },
+        {
+          "title": "halshow snapshot renders pins and halshow_update applies the delta",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 1714,
+                  "error": {
+                    "message": "AggregateError: ",
+                    "stack": "AggregateError: "
+                  },
+                  "errors": [
+                    {
+                      "message": "AggregateError: "
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T21:41:03.513Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r184-44844luo/repo/lcnc-webui/test-results/frames-halshow-snapshot-re-1e74e-ow-update-applies-the-delta/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d63184237f32bf31d674-c27571605dc07ab914c5",
+          "file": "frames.spec.ts",
+          "line": 49,
+          "column": 1
+        },
+        {
+          "title": "perf rows carry the status age from the worker's receipt and the presses' delay",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 8833,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T21:41:05.629Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d63184237f32bf31d674-370cfa25c0ff2ac29b97",
+          "file": "frames.spec.ts",
+          "line": 67,
+          "column": 1
+        },
+        {
+          "title": "the page reports the parse it sees in flight, first and last frame, with their receipt",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 3,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 458,
+                  "error": {
+                    "message": "AggregateError: ",
+                    "stack": "AggregateError: "
+                  },
+                  "errors": [
+                    {
+                      "message": "AggregateError: "
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-22T21:41:14.514Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r184-44844luo/repo/lcnc-webui/test-results/frames-the-page-reports-th-ff6c0-st-frame-with-their-receipt/error-context.md"
+                    }
+                  ]
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d63184237f32bf31d674-c8ff0b6343a32693a75f",
+          "file": "frames.spec.ts",
+          "line": 105,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-22T21:40:59.851Z",
+    "duration": 15160.815,
+    "expected": 2,
+    "skipped": 0,
+    "unexpected": 4,
+    "flaky": 0
+  }
+}

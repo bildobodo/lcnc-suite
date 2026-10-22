@@ -1,0 +1,70 @@
+{
+  "review": "R184",
+  "head": "71b167a5965b196c8add1afa6936681f1f0cd218",
+  "live_head": "49ad8ec397b1d14d5b427c027d45f8b47cf038cb",
+  "verdict": "findings",
+  "closed": [
+    "VP182-02",
+    "VP183-02",
+    "VP183-03"
+  ],
+  "open": [
+    "VP183-01 rest A (worker execution vs callback time and pauses)",
+    "VP183-01 rest B (an unrelated RTT is no bound on the status frame)",
+    "VP183-04 rest (raf_pauses alone is not evidence of hiding)"
+  ],
+  "repository_checks": {
+    "build": "PASS",
+    "unit": {
+      "passed": 44,
+      "failed": 0
+    },
+    "backend": {
+      "passed": 2,
+      "failed": 0,
+      "binding": "fake; in-process TestClient"
+    },
+    "browser": {
+      "passed": 6,
+      "failed": 0,
+      "initial_harness_failure": "HTTP endpoint redirected but ctl WebSocket endpoint initially still localhost:4174; connection failures in 4 tests. Both endpoints redirected to own mock; six tests pass."
+    },
+    "provided_tool_tests": {
+      "passed": 19,
+      "failed": 0
+    }
+  },
+  "own_probes": {
+    "typescript": {
+      "passed": 7,
+      "failed": 0,
+      "includes": "real module measurements and unchanged extracted viewer functions"
+    },
+    "python": {
+      "passed": 12,
+      "failed": 4,
+      "errors": 0,
+      "failure_cases": [
+        "delayed_worker_completion",
+        "paused_sweep",
+        "unpaired_status_delay",
+        "visible_raf_stall_row"
+      ]
+    }
+  },
+  "boundaries": {
+    "machine_commands": false,
+    "live_endpoints_accessed": false,
+    "driver_main_executed": false,
+    "mock": "127.0.0.1:4188",
+    "archive": "/tmp/codex-r184-44844luo/repo",
+    "nice": 10,
+    "browser_workers": 1
+  },
+  "source_files_verified": 564,
+  "lfs_objects_verified": 4,
+  "archive_adaptations": [
+    "lcnc-webui/e2e/ctl.ts"
+  ],
+  "prior_evidence_unchanged": true
+}

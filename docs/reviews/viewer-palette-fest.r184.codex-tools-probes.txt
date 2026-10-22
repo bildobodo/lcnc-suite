@@ -1,0 +1,93 @@
+test_anchor_rejects_auto_manual_unknown_and_stale_without_command (__main__.Tests.test_anchor_rejects_auto_manual_unknown_and_stale_without_command) ... ok
+test_anchor_still_and_estop_controls (__main__.Tests.test_anchor_still_and_estop_controls) ... ok
+test_envelope_and_trip_controls (__main__.Tests.test_envelope_and_trip_controls) ... ok
+test_previous_watchdog_and_rss_controls (__main__.Tests.test_previous_watchdog_and_rss_controls) ... ok
+test_r183_slow_row_is_kept_and_phase_incomplete (__main__.Tests.test_r183_slow_row_is_kept_and_phase_incomplete) ... ok
+test_r_a_different_heartbeats_rtt_does_not_bound_the_parse_on_frame (__main__.Tests.test_r_a_different_heartbeats_rtt_does_not_bound_the_parse_on_frame) ... FAIL
+test_r_control (__main__.Tests.test_r_control) ... ok
+test_r_no_bound_and_non_run_sweep (__main__.Tests.test_r_no_bound_and_non_run_sweep) ... ok
+test_r_original_completed_case (__main__.Tests.test_r_original_completed_case) ... ok
+test_r_original_cross_page_case (__main__.Tests.test_r_original_cross_page_case) ... ok
+test_r_original_idle_discard_case (__main__.Tests.test_r_original_idle_discard_case) ... ok
+test_r_paused_sweep_is_not_active_during_parse (__main__.Tests.test_r_paused_sweep_is_not_active_during_parse) ... FAIL
+test_r_worker_already_done_before_parse_but_main_consumes_late (__main__.Tests.test_r_worker_already_done_before_parse_but_main_consumes_late) ... FAIL
+test_s_basis_and_no_supersession (__main__.Tests.test_s_basis_and_no_supersession) ... ok
+test_s_control_and_original_rests (__main__.Tests.test_s_control_and_original_rests) ... ok
+test_visible_raf_stall_row_is_not_hidden (__main__.Tests.test_visible_raf_stall_row_is_not_hidden) ... FAIL
+
+======================================================================
+FAIL: test_r_a_different_heartbeats_rtt_does_not_bound_the_parse_on_frame (__main__.Tests.test_r_a_different_heartbeats_rtt_does_not_bound_the_parse_on_frame)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r184-44844luo/probe_tools.py", line 87, in test_r_a_different_heartbeats_rtt_does_not_bound_the_parse_on_frame
+    self.assertEqual(r['verdict'],'R overlap not proven','The largest sampled RTT is no bound on a different, unpaired status frame.')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : The largest sampled RTT is no bound on a different, unpaired status frame.
+
+======================================================================
+FAIL: test_r_paused_sweep_is_not_active_during_parse (__main__.Tests.test_r_paused_sweep_is_not_active_during_parse)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r184-44844luo/probe_tools.py", line 80, in test_r_paused_sweep_is_not_active_during_parse
+    self.assertEqual(r['verdict'],'R overlap not proven','The real pause path emits no event: held 19–27 s across the 20–25 s parse.')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : The real pause path emits no event: held 19–27 s across the 20–25 s parse.
+
+======================================================================
+FAIL: test_r_worker_already_done_before_parse_but_main_consumes_late (__main__.Tests.test_r_worker_already_done_before_parse_but_main_consumes_late)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r184-44844luo/probe_tools.py", line 77, in test_r_worker_already_done_before_parse_but_main_consumes_late
+    self.assertEqual(r['verdict'],'R overlap not proven','Actual sweep 10–12 s, parse 20–25 s. Only completion handling is late (26 s).')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : Actual sweep 10–12 s, parse 20–25 s. Only completion handling is late (26 s).
+
+======================================================================
+FAIL: test_visible_raf_stall_row_is_not_hidden (__main__.Tests.test_visible_raf_stall_row_is_not_hidden)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/usr/lib/python3.13/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/usr/lib/python3.13/asyncio/base_events.py", line 725, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+  File "/tmp/codex-r184-44844luo/probe_tools.py", line 96, in test_visible_raf_stall_row_is_not_hidden
+    self.assertIn(slow,keep,'raf_pauses is a >5 s duration threshold, not evidence of hiding; visibility stayed visible.')
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'cid': '39352f57', 'host': '?', 'vis': 'visible', 'window_ms': 3000, 'frames': 2, 'gap_p50_ms': 5200, 'gap_p95_ms': 5200, 'gap_max_ms': 5200, 'jank_frames': 1, 'jank_ms': 50, 'gap_h': {'5000': 1}, 'apply_mean_ms': 1, 'apply_max_ms': 1, 'apply_h': {'1': 2}, 'age_n': 1, 'age_max_ms': 5190, 'age_h': {'5000': 1}, 'age_neg': 0, 'age_vis_skip': 0, 'vis_changes': 0, 'rt_n': 0, 'rt_invalid': 0, 'rt_net_max_ms': 0, 'rt_net_h': {}, 'in_n': 0, 'in_delay_max_ms': 0, 'in_delay_h': {}, 'in_odd': 0, 'render_mean_ms': 0, 'render_max_ms': 0, 'renders': 0, 'raf_ticks': 2, 'raf_gap_p50_ms': 0, 'raf_gap_p95_ms': 0, 'raf_gap_max_ms': 0, 'raf_pauses': 1, 'mt_probes': 0, 'mt_late_p95_ms': 0, 'mt_late_max_ms': 0, 'mt_blocks': 0, 'mt_block_ms': 20, 'heap_used_mb': None, 't_wall_ns': 112000000000, 'tag': 'browser.viewer.perf', 'page': 'p'} not found in [{'t_wall_ns': 101000000000, 'tag': 'browser.viewer.perf', 'page': 'p', 'vis': 'visible', 'raf_pauses': 0, 'age_h': {'10': 1}}, {'t_wall_ns': 104000000000, 'tag': 'browser.viewer.perf', 'page': 'p', 'vis': 'visible', 'raf_pauses': 0, 'age_h': {'10': 1}}, {'t_wall_ns': 107000000000, 'tag': 'browser.viewer.perf', 'page': 'p', 'vis': 'visible', 'raf_pauses': 0, 'age_h': {'10': 1}}, {'t_wall_ns': 115000000000, 'tag': 'browser.viewer.perf', 'page': 'p', 'vis': 'visible', 'raf_pauses': 0, 'age_h': {'10': 1}}, {'t_wall_ns': 118000000000, 'tag': 'browser.viewer.perf', 'page': 'p', 'vis': 'visible', 'raf_pauses': 0, 'age_h': {'10': 1}}] : raf_pauses is a >5 s duration threshold, not evidence of hiding; visibility stayed visible.
+
+----------------------------------------------------------------------
+Ran 16 tests in 0.008s
+
+FAILED (failures=4)

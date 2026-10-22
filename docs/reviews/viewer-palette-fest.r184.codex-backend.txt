@@ -1,0 +1,7 @@
+..                                                                       [100%]
+[GC] +1837ms gen=2 duration=9.4ms collected=462 uncollectable=0
+[GC] +1844ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +1851ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +1859ms gen=2 duration=7.9ms collected=0 uncollectable=0
+[GC] +1865ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +1872ms gen=2 duration=6.4ms collected=0 uncollectable=0
