@@ -966,14 +966,21 @@ flushes it folds into one apply (`notePendingReceipt`) — an apply of an older
 frame never takes the receipt of one still in the store's batch, Codex R182
 VP182-01; the viewer's first apply is not aged; gateway → socket only bounded
 by `rt_net_h`, the heartbeat round trip timed IN THE WORKER — its send stamp,
-the answering frame's receipt — less the gateway's hold, only for an answer
-to exactly one outstanding heartbeat, else `rt_invalid`, VP182-02),
+the answering frame's receipt — less the gateway's hold, paired by the
+heartbeat's own number (`{"cmd":"heartbeat","seq":N}`, echoed by the gateway
+as `timing.hb_seq`); an answer naming no heartbeat sent here is `rt_invalid`,
+VP182-02),
 `in_delay_h` (a key / pointer press to its
 first listener; with Event Timing `ev_*`, the presses ≥ 16 ms to the next
 paint), and the page's own memory (`mem_path_cpu/gpu`, `mem_contacts`,
-`mem_contact_views` — Firefox has no heap number); every parse's trace events
-name its `job` and spawn and publish the start `basis` (the context digest
-with the drift inputs), so a supersede is proven by id. Tests:
+`mem_contact_views` — Firefox has no heap number), `vis_changes` (the
+window's visibility changes); the collision sweep events carry their request
+`id` and `run_gen`, and the status store reports the gateway's parse in flight
+as the page saw it (`preview.parse_seen` on / off, by `started_ms`, with the
+frame's socket receipt) — the report binds a run check's ACTIVE sweep to a
+parse on one page's clock; every parse's trace events name its `job` and
+spawn and publish the start `basis` (the context digest with the drift
+inputs), so a supersede is proven by id. Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on
