@@ -129,7 +129,10 @@ test("perf rows carry the status age from the worker's receipt and the presses' 
   const aged = rows.filter(r => r.age_n > 0);
   // one clock: a receipt on another time origin would be years off (or negative)
   expect(Math.max(...aged.map(r => r.age_max_ms)), "an age on one clock").toBeLessThan(5000);
-  expect(rows.reduce((a, r) => a + r.in_n, 0)).toBeGreaterThanOrEqual(4);
+  // the four presses may straddle two 3 s windows: the later row may still be
+  // on its way (the 2 s telemetry flush) — wait for it, never read it once
+  // (CI 2026-10-23: 3 of 4 counted when the assertion ran)
+  await expect.poll(() => rows.reduce((a, r) => a + r.in_n, 0), { timeout: 15_000 }).toBeGreaterThanOrEqual(4);
 });
 
 // The gateway's parse in flight as the page SAW it (Codex R183 VP183-01): the
