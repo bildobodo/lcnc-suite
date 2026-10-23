@@ -1,0 +1,97 @@
+{
+  "round": "R192",
+  "revision": "3d040b97",
+  "before": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "size": 2281462,
+      "sha256": "775ad616173de028556f63e53f513b9017c0452d0fc051768ee7e4334f03408a"
+    },
+    "docs/reviews/basiswechsel-last.plan.md": {
+      "size": 17223,
+      "sha256": "d9220b128ec32af7dab12da8a89020da26ff36ec6584fb8562c131cbd54ddb62"
+    },
+    "docs/reviews/viewer-palette-fest.r192.browser-pc-drive2.py": {
+      "size": 19360,
+      "sha256": "d0e971ef527d78fe5f1eb802b22db71edeb936fce2d87970a54c2f9b0cb9dbb7"
+    },
+    "docs/reviews/viewer-palette-fest.r192.browser-pc-report2.py": {
+      "size": 29655,
+      "sha256": "f8fa3e6d90c7ec1112667df948fba65d9170dc0b072d7ae022de8e6ac039c805"
+    },
+    "docs/reviews/viewer-palette-fest.r192.browser-pc-tools-test.py": {
+      "size": 27027,
+      "sha256": "ccab6635a28d4974ca90f33e3b408da2463559d2296e0e4669b4076f624cef10"
+    },
+    "docs/reviews/viewer-palette-fest.r192.browser-pc-tools-test.txt": {
+      "size": 4271,
+      "sha256": "a45dd907699d2ccb2aa3e89fdc4a49450ad2c2307945ad8790a7957d8fb8462d"
+    },
+    "docs/reviews/viewer-palette-fest.r192.gate-backend.txt": {
+      "size": 884,
+      "sha256": "e875e1d84fd4ade6d2dd7d31f1ae60a9c6106473412ad4f51b80f1d9be710e87"
+    },
+    "docs/reviews/viewer-palette-fest.r192.gate-frontend.json": {
+      "size": 738,
+      "sha256": "29b9b2bba3c449ed488848d242d634500fff77cc8ce76b61d88ac3789b40ba2a"
+    },
+    "docs/reviews/viewer-palette-fest.r192.mutations.py": {
+      "size": 36712,
+      "sha256": "1730448ee47265061f9f60ec80a98a7f2edf05c81a7d3fff5417ee16bb6410b0"
+    },
+    "docs/reviews/viewer-palette-fest.r192.mutations.txt": {
+      "size": 30131,
+      "sha256": "c2889cd0fc36141ceb4ba81234236fde8a971db4fa35d65212e1324a8d5df966"
+    }
+  },
+  "preservation": "pre-existing inputs byte-identical; original review retained as prefix",
+  "artifacts": {
+    "docs/reviews/viewer-palette-fest.r192.codex-browser.json": {
+      "size": 4214,
+      "sha256": "269bba001740c6bc49911cce7a520df4a4684352cc75b8e6e9bc985414e3edfd"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-browser.txt": {
+      "size": 963,
+      "sha256": "e1db8657cd2362a6677f04aff246f0edfb3682ba7b471469c0687a0def40bbaf"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-build.txt": {
+      "size": 2384,
+      "sha256": "2f0dc88d8507e362f26b8300e715a142857ff942f55560b426ecc193c37951a2"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-mutation-audit.json": {
+      "size": 33124,
+      "sha256": "99d654103b9752ebd47e01d44d53b2f0412666e50080e3dac4231efadbea3c6d"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-own-unit.txt": {
+      "size": 222,
+      "sha256": "9fb283b61c67080d8eea940975f8facaecb39abac39f6248ace53c497f91ed65"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-playwright.config.ts": {
+      "size": 644,
+      "sha256": "f50fafd0071e0af1dcc49c916bd0c220be04e1016736f19e89fb45b0994a9e62"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-provided-tools.txt": {
+      "size": 4271,
+      "sha256": "7a45b4a625e6bedc172fdd80d729085fdb803854c6528040c464eef4c337d0f4"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-provided-unit.txt": {
+      "size": 226,
+      "sha256": "618de33937d9fdfa257401066a2c11093024e9b61d147d6a8f102d39d4841fbd"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-sequence.json": {
+      "size": 1230,
+      "sha256": "73b9ac66a48dd3962b5b84365610d9099d5b98cd6d0b89b65ddd2ebc00496535"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-sequence.py": {
+      "size": 2221,
+      "sha256": "fd0f55c6bf846d7387b59efad0c83c3a137c2d27af75fdfb743db4dd179117de"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-summary.json": {
+      "size": 1811,
+      "sha256": "1c41cc8dc639f38e55b87b03afe517167bf3a6c58b06bf69f5a86405029c533b"
+    },
+    "docs/reviews/viewer-palette-fest.r192.codex-unit.test.ts": {
+      "size": 3940,
+      "sha256": "439196ba38b8f09deaafab3c6601d2df52dd6347e8b116d5516943248a9da13d"
+    }
+  }
+}

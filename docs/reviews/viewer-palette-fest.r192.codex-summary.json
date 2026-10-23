@@ -1,0 +1,52 @@
+{
+  "request": "R192",
+  "reviewed_revision": "3d040b97e171895c0ce883631c85ffc46c05996a",
+  "live_revision": "be31bae56962019b1f2dd3bf78415dfdd22e60a0",
+  "verdict": "agreement",
+  "scope": "step 0, N1, test corrections, reporting and --to S driver changes",
+  "own_checks": {
+    "typecheck_and_build": "PASS",
+    "provided_unit": 64,
+    "own_unit": 4,
+    "provided_tools": 27,
+    "own_offline_sequence_cases": 2,
+    "browser": {
+      "startTime": "2026-10-23T20:59:42.186Z",
+      "duration": 16692.02,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "diff_check": "PASS"
+  },
+  "provided_gates_inspected": {
+    "frontend": "PASS at 33cfecce: 2553 unit / 552 browser; only frames.spec changed after",
+    "backend": "PASS 1507; unchanged gateway source",
+    "mutation_rules_final": 131,
+    "new_rules_assertion_failures": 14
+  },
+  "measurement_deviation": "single post-N1 S diagnostic accepted, no attribution of an isolated N1 gain; full A/S/R with input still required",
+  "open_outside_scope": [
+    "VP188-02 until target measured",
+    "VP190-01 A-C before conditional E1",
+    "real machine PC acceptance"
+  ],
+  "isolated_root": "/tmp/codex-r192-lplfoh4n",
+  "mock": "127.0.0.1:4188",
+  "browser": "Chromium",
+  "workers": 1,
+  "priority": "nice 10",
+  "harness_notes": [
+    "initial partial archive lacked fixtures; restored exact-revision fixtures before successful unit/build runs",
+    "test tooling gateway import path redirected to archived source",
+    "all external actions in own driver sequence probe stubbed; no live driver main executed"
+  ],
+  "not_repeated": [
+    "full frontend gate",
+    "backend suite",
+    "131 mutations",
+    "live measurement"
+  ],
+  "live_policy": "append review, new r192.codex evidence, done R192 only"
+}

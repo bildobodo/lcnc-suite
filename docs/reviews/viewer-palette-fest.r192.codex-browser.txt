@@ -1,0 +1,17 @@
+[1A[2K[2m[WebServer] [22m(node:2820392) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 2 tests using 1 worker
+
+[1A[2K(node:2820404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2820404) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/2] e2e/collisions.viewer.spec.ts:670:1 › a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3)
+[1A[2K[2/2] e2e/frames.spec.ts:141:1 › the page reports the parse it sees in flight, first and last frame, with their receipt
+[1A[2K  2 passed (16.7s)

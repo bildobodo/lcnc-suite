@@ -1,0 +1,532 @@
+{
+  "method": "last logged result per rule, inspected; mutations not rerun",
+  "counts": {
+    "RED": 131
+  },
+  "rules": {
+    "r183_viewer_newest": {
+      "result": "RED",
+      "line": "r183_viewer_newest RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 10 to be 40 // Object.is equality 6s"
+    },
+    "r183_viewer_kept": {
+      "result": "RED",
+      "line": "r183_viewer_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '20': 1, '110': 1 } to deeply equal { '20': 1, '98': 1 } | AssertionError: expected 1433 to be 23 // Object.is equality 6s"
+    },
+    "r183_store_newest": {
+      "result": "RED",
+      "line": "r183_store_newest RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 9 to be 20 // Object.is equality 6s"
+    },
+    "r183_store_kept": {
+      "result": "RED",
+      "line": "r183_store_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '20': 1, '110': 1 } to deeply equal { '20': 1, '98': 1 } 6s"
+    },
+    "r183_first_apply_aged": {
+      "result": "RED",
+      "line": "r183_first_apply_aged RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 2 to be 1 // Object.is equality 6s"
+    },
+    "r183_vis_not_skipped": {
+      "result": "RED",
+      "line": "r183_vis_not_skipped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be +0 // Object.is equality 6s"
+    },
+    "r183_viewer_no_note": {
+      "result": "RED",
+      "line": "r183_viewer_no_note RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 38s"
+    },
+    "r183_rt_negative": {
+      "result": "RED",
+      "line": "r183_rt_negative RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 7 to be 1 // Object.is equality 7s"
+    },
+    "r182_worker_no_rx": {
+      "result": "RED",
+      "line": "r182_worker_no_rx RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 40s"
+    },
+    "r182_no_key_listener": {
+      "result": "RED",
+      "line": "r182_no_key_listener RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 46s"
+    },
+    "r182_bin_width": {
+      "result": "RED",
+      "line": "r182_bin_width RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '20': 1, '95': 1 } to deeply equal { '20': 1, '98': 1 } | AssertionError: expected [ +0, +0, 19, 20, 20, 95, 100, …(5) ] to deeply equal [ +0, +0, 19, 20, 20, 98, 100, …( 7s"
+    },
+    "r182_hist_kept": {
+      "result": "RED",
+      "line": "r182_hist_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '32': 3, '50': 1, '550': 1 } to deeply equal { '32': 1 } | AssertionError: expected [ { seq: 1, …(7) }, { seq: 4, …(7) } ] to deeply equal [] 7s"
+    },
+    "r182_input_negative": {
+      "result": "RED",
+      "line": "r182_input_negative RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 3 to be 2 // Object.is equality 7s"
+    },
+    "r182_quiet_presses": {
+      "result": "RED",
+      "line": "r182_quiet_presses RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 0 to be greater than 0 | AssertionError: expected 0 to be greater than 0 7s"
+    },
+    "r182_publish_without_job": {
+      "result": "RED",
+      "line": "r182_publish_without_job RED 1 failed in 0.04s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s"
+    },
+    "r182_cancel_without_job": {
+      "result": "RED",
+      "line": "r182_cancel_without_job RED 1 failed in 0.04s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s"
+    },
+    "r182_superseded_without_job": {
+      "result": "RED",
+      "line": "r182_superseded_without_job RED 1 failed in 0.04s FAILED test_bulk_pipeline.py::TestCancelInflight::test_every_event_names_its_job_and_the_basis 0s"
+    },
+    "r182_basis_without_offsets": {
+      "result": "RED",
+      "line": "r182_basis_without_offsets RED 1 failed in 0.04s E       AssertionError: 'd67a174c26ba' == 'd67a174c26ba' : another offset is another basis | test_bulk_pipeline.py:501: AssertionError 0s"
+    },
+    "r182_jobs_not_counted": {
+      "result": "RED",
+      "line": "r182_jobs_not_counted RED 1 failed in 0.04s E       AssertionError: Lists differ: [0, 0, 0, 0] != [1, 2, 3, 4] | test_bulk_pipeline.py:493: AssertionError 0s"
+    },
+    "t_guard_counts_own": {
+      "result": "RED",
+      "line": "t_guard_counts_own RED FAILED (failures=5) FAIL: test_a_trip_stops_and_its_absence_clears_it (test_bpc_tools.DriverGuard.test_a_trip_stops_and_its_absence_clears_it) | FAIL: test_an_armed_remote_page_is_seen (test_bpc_tools.DriverGuard.test_an_armed_remote_page_is_seen) 0s"
+    },
+    "t_guard_ip_filter": {
+      "result": "RED",
+      "line": "t_guard_ip_filter RED FAILED (errors=1) ERROR: test_two_local_armed_clients_are_one_too_many (test_bpc_tools.DriverGuard.test_two_local_armed_clients_are_one_too_many) 1s"
+    },
+    "t_trip_sticky": {
+      "result": "RED",
+      "line": "t_trip_sticky RED FAILED (failures=1) FAIL: test_a_trip_stops_and_its_absence_clears_it (test_bpc_tools.DriverGuard.test_a_trip_stops_and_its_absence_clears_it) 1s"
+    },
+    "t_stale_ignored": {
+      "result": "RED",
+      "line": "t_stale_ignored RED FAILED (errors=1) ERROR: test_no_or_stale_envelope_is_no_pass (test_bpc_tools.DriverGuard.test_no_or_stale_envelope_is_no_pass) 1s"
+    },
+    "t_guard_never_cancels": {
+      "result": "RED",
+      "line": "t_guard_never_cancels RED FAILED (errors=1) ERROR: test_the_guard_cancels_the_running_sequence (test_bpc_tools.DriverGuard.test_the_guard_cancels_the_running_sequence) 2s"
+    },
+    "t_wd_last_dump": {
+      "result": "RED",
+      "line": "t_wd_last_dump RED FAILED (failures=1) FAIL: test_a_later_reset_does_not_move_the_mapping (test_bpc_tools.WatchdogReceipt.test_a_later_reset_does_not_move_the_mapping) 1s"
+    },
+    "t_wd_no_step_check": {
+      "result": "RED",
+      "line": "t_wd_no_step_check RED FAILED (errors=1) ERROR: test_another_instance_or_a_clock_step_is_not_proven (test_bpc_tools.WatchdogReceipt.test_another_instance_or_a_clock_step_is_not_proven) 1s"
+    },
+    "t_wd_no_instance_check": {
+      "result": "RED",
+      "line": "t_wd_no_instance_check RED FAILED (failures=1) FAIL: test_another_instance_or_a_clock_step_is_not_proven (test_bpc_tools.WatchdogReceipt.test_another_instance_or_a_clock_step_is_not_proven) 1s"
+    },
+    "t_wd_no_tick_check": {
+      "result": "RED",
+      "line": "t_wd_no_tick_check RED FAILED (failures=1) FAIL: test_missing_pieces_are_not_proven (test_bpc_tools.WatchdogReceipt.test_missing_pieces_are_not_proven) 1s"
+    },
+    "t_wd_no_anchor_pass": {
+      "result": "RED",
+      "line": "t_wd_no_anchor_pass RED FAILED (failures=1) FAIL: test_missing_pieces_are_not_proven (test_bpc_tools.WatchdogReceipt.test_missing_pieces_are_not_proven) 1s"
+    },
+    "t_rss_no_coverage": {
+      "result": "RED",
+      "line": "t_rss_no_coverage RED FAILED (failures=1) FAIL: test_uncovered_samples_are_not_collected (test_bpc_tools.Memory.test_uncovered_samples_are_not_collected) 1s"
+    },
+    "t_s_ignores_rss": {
+      "result": "RED",
+      "line": "t_s_ignores_rss RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s"
+    },
+    "r184_rt_not_forgotten": {
+      "result": "RED",
+      "line": "r184_rt_not_forgotten RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 2 to be 1 // Object.is equality 6s"
+    },
+    "r184_vis_not_counted": {
+      "result": "RED",
+      "line": "r184_vis_not_counted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected +0 to be 2 // Object.is equality 7s"
+    },
+    "r184_rt_no_seq_reply": {
+      "result": "RED",
+      "line": "r184_rt_no_seq_reply RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 49s"
+    },
+    "r184_gw_no_echo": {
+      "result": "RED",
+      "line": "r184_gw_no_echo RED 1 failed, 1 passed in 1.35s E       AssertionError: Lists differ: [None, None, None, None] != [7, None, None, 9] | test_ws_smoke.py:91: AssertionError 2s"
+    },
+    "r184_gw_bool_seq": {
+      "result": "RED",
+      "line": "r184_gw_bool_seq RED 1 failed, 1 passed in 1.82s E       AssertionError: Lists differ: [7, None, True, 9] != [7, None, None, 9] | test_ws_smoke.py:91: AssertionError 2s"
+    },
+    "r184_parse_seen_dropped": {
+      "result": "RED",
+      "line": "r184_parse_seen_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ { state: 'on', job: 1, …(3) }, …(3) ] | AssertionError: expected [] to deeply equal [ [ 'on', 5, 100 ], …(2) ] 7s"
+    },
+    "r184_parse_seen_e2e": {
+      "result": "RED",
+      "line": "r184_parse_seen_e2e RED   1 failed Error: a parse seen once the socket was up 84s"
+    },
+    "r184_sweep_no_run_gen": {
+      "result": "RED",
+      "line": "r184_sweep_no_run_gen RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 4 36s"
+    },
+    "r184_sweep_done_no_id": {
+      "result": "RED",
+      "line": "r184_sweep_done_no_id RED   1 failed Error: sweep 4 ends once, in its generation | - Expected  - 3 34s"
+    },
+    "t_not_still_idle_only": {
+      "result": "RED",
+      "line": "t_not_still_idle_only RED FAILED (failures=1, errors=1) ERROR: test_the_anchor_needs_a_known_standstill (test_bpc_tools.AnchorStill.test_the_anchor_needs_a_known_standstill) | FAIL: test_no_e_stop_is_sent_unless_still (test_bpc_tools.AnchorStill.test_no_e_stop_is_sent_unless_still) 11s"
+    },
+    "t_anchor_no_still_check": {
+      "result": "RED",
+      "line": "t_anchor_no_still_check RED FAILED (failures=1) FAIL: test_no_e_stop_is_sent_unless_still (test_bpc_tools.AnchorStill.test_no_e_stop_is_sent_unless_still) 11s"
+    },
+    "t_s_extra_ignored": {
+      "result": "RED",
+      "line": "t_s_extra_ignored RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s"
+    },
+    "t_s_no_log_pass": {
+      "result": "RED",
+      "line": "t_s_no_log_pass RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s"
+    },
+    "t_rows_vis_changes_kept": {
+      "result": "RED",
+      "line": "t_rows_vis_changes_kept RED FAILED (failures=1) FAIL: test_rows_go_only_on_evidence_of_a_hidden_page (test_bpc_tools.Rows.test_rows_go_only_on_evidence_of_a_hidden_page) 1s"
+    },
+    "t_target_edges": {
+      "result": "RED",
+      "line": "t_target_edges RED FAILED (errors=1) ERROR: test_the_target_needs_a_complete_phase_and_agreeing_edges (test_bpc_tools.Rows.test_the_target_needs_a_complete_phase_and_agreeing_edges) 1s"
+    },
+    "r186_t0_after_parse": {
+      "result": "RED",
+      "line": "r186_t0_after_parse RED 2 failed in 0.06s E       AssertionError: unexpectedly None | test_parse_span.py:51: AssertionError 0s"
+    },
+    "r186_t1_before_parse": {
+      "result": "RED",
+      "line": "r186_t1_before_parse RED 2 failed in 0.05s E       AssertionError: unexpectedly None | test_parse_span.py:51: AssertionError 0s"
+    },
+    "r186_t1_invented": {
+      "result": "RED",
+      "line": "r186_t1_invented RED 1 failed, 1 passed in 0.06s E       AssertionError: 158808100442519 is not None | test_parse_span.py:52: AssertionError 0s"
+    },
+    "r186_span_not_emitted": {
+      "result": "RED",
+      "line": "r186_span_not_emitted RED 1 failed, 6 passed in 0.05s FAILED test_bulk_pipeline.py::TestCancelInflight::test_the_parse_calls_own_bounds_ride_the_trace 0s"
+    },
+    "r186_span_not_when_cancelled": {
+      "result": "RED",
+      "line": "r186_span_not_when_cancelled RED 1 failed, 6 passed in 0.05s E       AssertionError: Lists differ: [(2, 2000, 5000, 0), (4, 7000, None, 3)] != [(1, 1000, None, 0), (2, 2000, 5000, 0), (4, 7000, None, 3)] | test_bulk_pipeline.py:544: AssertionError 0s"
+    },
+    "r186_span_cancel_unnamed": {
+      "result": "RED",
+      "line": "r186_span_cancel_unnamed RED 1 failed, 6 passed in 0.05s FAILED test_bulk_pipeline.py::TestCancelInflight::test_the_parse_calls_own_bounds_ride_the_trace 0s"
+    },
+    "r186_span_last_wins": {
+      "result": "RED",
+      "line": "r186_span_last_wins RED 1 failed, 6 passed in 0.06s E       AssertionError: {'p0_ns': 99, 'p1_ns': None} != {'p0_ns': 12, 'p1_ns': None} | test_bulk_pipeline.py:555: AssertionError 0s"
+    },
+    "r186_span_worker_log": {
+      "result": "RED",
+      "line": "r186_span_worker_log RED 1 failed, 6 passed in 0.05s E       AssertionError: ['__PARSE_T0__\\t2000', '__PARSE_T1__\\t5000'] is not false | test_bulk_pipeline.py:550: AssertionError 0s"
+    },
+    "r186_refresh_no_job": {
+      "result": "RED",
+      "line": "r186_refresh_no_job RED 1 failed, 6 passed in 5.06s E   AssertionError: Tuples differ: ('drift', 'big.ngc', False, 0, None) != ('drift', 'big.ngc', False, 0, 1) | FAILED test_bulk_pipeline.py::TestCancelInflight::test_cancel_terminates_worker_and_publishes_nothing 5s"
+    },
+    "r186_g_early": {
+      "result": "RED",
+      "line": "r186_g_early RED 1 failed, 1 passed in 1.80s E           AssertionError: 158814936.98010603 not less than or equal to 158814437.347 | test_ws_smoke.py:105: AssertionError 2s"
+    },
+    "r186_g_seconds": {
+      "result": "RED",
+      "line": "r186_g_seconds RED 1 failed, 1 passed in 1.33s E           AssertionError: 158816896.935174 not less than or equal to 158817.397 | test_ws_smoke.py:105: AssertionError 1s"
+    },
+    "r186_g_no_pid": {
+      "result": "RED",
+      "line": "r186_g_no_pid RED 1 failed, 1 passed in 1.82s E           AssertionError: 0 != 2709089 | test_ws_smoke.py:107: AssertionError 2s"
+    },
+    "r186_pairs_invalid_kept": {
+      "result": "RED",
+      "line": "r186_pairs_invalid_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { seq: 1, …(7) }, …(3) ] to deeply equal [ { seq: 1, …(7) }, { seq: 4, …(7) } ] 6s"
+    },
+    "r186_pairs_not_reset": {
+      "result": "RED",
+      "line": "r186_pairs_not_reset RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { seq: 1, …(7) }, { seq: 4, …(7) } ] to deeply equal [] | AssertionError: expected { seq: 1, hs: 1792784033484.943, …(6) } to deeply equal { seq: 1, hs: 1792784033574.943 7s"
+    },
+    "r186_pairs_no_g": {
+      "result": "RED",
+      "line": "r186_pairs_no_g RED   1 failed Error: expect(received).toBeGreaterThan(expected) | Expected: > 0 33s"
+    },
+    "r186_seen_by_start": {
+      "result": "RED",
+      "line": "r186_seen_by_start RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ [ 'on', 5, 100 ], …(2) ] to deeply equal [ [ 'on', 5, 100 ], …(2) ] 7s"
+    },
+    "r186_seen_close_kept": {
+      "result": "RED",
+      "line": "r186_seen_close_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { state: 'on', job: 1, …(3) } ] to deeply equal [ { state: 'on', job: 1, …(3) }, …(2) ] 7s"
+    },
+    "r186_seen_no_off_on_switch": {
+      "result": "RED",
+      "line": "r186_seen_no_off_on_switch RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { state: 'on', job: 1, …(3) }, …(2) ] to deeply equal [ { state: 'on', job: 1, …(3) }, …(3) ] | AssertionError: expected [ [ 'on', 5, 100 ], [ 'on', 6, 133 ] ] to deeply  7s"
+    },
+    "r186_wit_pool_dropped": {
+      "result": "RED",
+      "line": "r186_wit_pool_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ { id: 40, witness: { …(3) } }, …(1) ] 8s"
+    },
+    "r186_wit_shard_unnamed": {
+      "result": "RED",
+      "line": "r186_wit_shard_unnamed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { id: 40, witness: { …(3) } }, …(1) ] to deeply equal [ { id: 40, witness: { …(3) } }, …(1) ] 8s"
+    },
+    "r186_wit_not_asked": {
+      "result": "RED",
+      "line": "r186_wit_not_asked RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 50s"
+    },
+    "r186_wit_page_dropped": {
+      "result": "RED",
+      "line": "r186_wit_page_dropped RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 48s"
+    },
+    "r186_win_start_kept": {
+      "result": "RED",
+      "line": "r186_win_start_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 1792784209989.5, 7200 ] to deeply equal [ 1792784214189.5, 3000 ] 7s"
+    },
+    "t186_row_nominal_window": {
+      "result": "RED",
+      "line": "t186_row_nominal_window RED FAILED (failures=1) FAIL: test_a_row_whose_actual_window_ran_long_is_an_edge_row (test_bpc_tools.Rows.test_a_row_whose_actual_window_ran_long_is_an_edge_row) 1s"
+    },
+    "t186_g_inside_unchecked": {
+      "result": "RED",
+      "line": "t186_g_inside_unchecked RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s"
+    },
+    "t186_pid_unchecked": {
+      "result": "RED",
+      "line": "t186_pid_unchecked RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s"
+    },
+    "t186_no_end_needed": {
+      "result": "RED",
+      "line": "t186_no_end_needed RED FAILED (errors=1) ERROR: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s"
+    },
+    "r187_tick_not_to_shards": {
+      "result": "RED",
+      "line": "r187_tick_not_to_shards RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: 40, side: false, …(9) } to deeply equal { tick: 9 } 8s"
+    },
+    "r187_tick_read_after": {
+      "result": "RED",
+      "line": "r187_tick_read_after RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ …(4) ] to deeply equal [ …(3) ] | AssertionError: expected [ 1, 8 ] to deeply equal [ 7 ] 8s"
+    },
+    "r187_word_every_slice": {
+      "result": "RED",
+      "line": "r187_word_every_slice RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ …(13) ] to deeply equal [ …(3) ] | AssertionError: expected [ 7, 7, 7, 7 ] to deeply equal [ 7 ] 8s"
+    },
+    "r187_word_when_cut": {
+      "result": "RED",
+      "line": "r187_word_when_cut RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { id: 31, witness: { …(3) } } ] to deeply equal [] 8s"
+    },
+    "r187_word_without_slice": {
+      "result": "RED",
+      "line": "r187_word_without_slice RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ …(15) ] to deeply equal [ …(3) ] | AssertionError: expected [ +0, 7, 7, 7, 7 ] to deeply equal [ 7 ] 8s"
+    },
+    "r187_tick_before_answer": {
+      "result": "RED",
+      "line": "r187_tick_before_answer RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ +0, +0, +0 ] to deeply equal [ 1, 2, 3 ] | AssertionError: expected { seq: 1, hs: 1792784256513.995, …(6) } to deeply equal { seq: 1, hs: 1792784256513.995, …(6) } 7s"
+    },
+    "r187_no_tick_sink": {
+      "result": "RED",
+      "line": "r187_no_tick_sink RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ -1, -2, -3 ] to deeply equal [ 1, 2, 3 ] 7s"
+    },
+    "r187_pair_without_send_word": {
+      "result": "RED",
+      "line": "r187_pair_without_send_word RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { seq: 1, …(7) }, { seq: 4, …(7) } ] to deeply equal [ { seq: 1, …(7) }, { seq: 4, …(7) } ] 7s"
+    },
+    "r187_sent_word_dropped": {
+      "result": "RED",
+      "line": "r187_sent_word_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { seq: 1, …(7) }, { seq: 4, …(7) } ] to deeply equal [ { seq: 1, …(7) }, { seq: 4, …(7) } ] 7s"
+    },
+    "r187_viewer_no_tick_post": {
+      "result": "RED",
+      "line": "r187_viewer_no_tick_post RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 50s"
+    },
+    "r187_viewer_word_not_handed": {
+      "result": "RED",
+      "line": "r187_viewer_word_not_handed RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 50s"
+    },
+    "r187_ws_word_ignored": {
+      "result": "RED",
+      "line": "r187_ws_word_ignored RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 48s"
+    },
+    "r187_ws_hbsent_no_word": {
+      "result": "RED",
+      "line": "r187_ws_hbsent_no_word RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 50s"
+    },
+    "r187_client_word_dropped": {
+      "result": "RED",
+      "line": "r187_client_word_dropped RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 49s"
+    },
+    "r187_clk_bounds_swapped": {
+      "result": "RED",
+      "line": "r187_clk_bounds_swapped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, 2001, 1999, +0 ] to deeply equal [ 2, 1994, 2006, +0 ] | AssertionError: expected 1792784536025.738 to be 1792784536015.738 // Object.is equality 7s"
+    },
+    "r187_clk_no_slack": {
+      "result": "RED",
+      "line": "r187_clk_no_slack RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, 1998, 2002, +0 ] to deeply equal [ 2, 1994, 2006, +0 ] | AssertionError: expected 1792784543247.997 to be 1792784543243.997 // Object.is equality 7s"
+    },
+    "r187_clk_union": {
+      "result": "RED",
+      "line": "r187_clk_union RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 2, 1991, 2009, +0 ] to deeply equal [ 2, 1994, 2006, +0 ] 7s"
+    },
+    "r187_clk_no_conflict": {
+      "result": "RED",
+      "line": "r187_clk_no_conflict RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ 1991, 9, +0 ] to deeply equal [ -9, 9, 1 ] 7s"
+    },
+    "r187_receipt_raw": {
+      "result": "RED",
+      "line": "r187_receipt_raw RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1792784566485.608 to be 1792784564476.608 // Object.is equality | AssertionError: expected 100 to be greater than or equal to 2100 7s"
+    },
+    "r187_receipt_latest": {
+      "result": "RED",
+      "line": "r187_receipt_latest RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1792784571650.851 to be 1792784571632.851 // Object.is equality | AssertionError: expected 2095 to be greater than or equal to 2100 7s"
+    },
+    "r187_receipt_unrelated": {
+      "result": "RED",
+      "line": "r187_receipt_unrelated RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1792784580914.166 to be undefined | AssertionError: expected 1792784580914.166 to be undefined 7s"
+    },
+    "r187_reset_kept": {
+      "result": "RED",
+      "line": "r187_reset_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected -Infinity to be undefined | AssertionError: expected -Infinity to be undefined 7s"
+    },
+    "r187_client_raw_receipt": {
+      "result": "RED",
+      "line": "r187_client_raw_receipt RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1792784595276.953 to be undefined 7s"
+    },
+    "r187_client_no_reset": {
+      "result": "RED",
+      "line": "r187_client_no_reset RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1792784604956.02 to be undefined 7s"
+    },
+    "r187_client_word_not_posted": {
+      "result": "RED",
+      "line": "r187_client_word_not_posted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { type: 'witness', tick: 4, n: 10 } to deeply equal { type: 'witness', tick: 4, n: 9 } 7s"
+    },
+    "r187_client_no_exchange": {
+      "result": "RED",
+      "line": "r187_client_no_exchange RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 40s"
+    },
+    "r187_worker_clock_unanswered": {
+      "result": "RED",
+      "line": "r187_worker_clock_unanswered RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 41s"
+    },
+    "r187_status_rx_dropped": {
+      "result": "RED",
+      "line": "r187_status_rx_dropped RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 40s"
+    },
+    "r187_rt_newest_sent": {
+      "result": "RED",
+      "line": "r187_rt_newest_sent RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { '270': 1, '320': 1, '470': 1 } to deeply equal { '320': 1, '1250': 1, '1450': 1 } 7s"
+    },
+    "r187_rt_no_seq_sent": {
+      "result": "RED",
+      "line": "r187_rt_no_seq_sent RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 49s"
+    },
+    "r187_worker_seq_mismatch": {
+      "result": "RED",
+      "line": "r187_worker_seq_mismatch RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 49s"
+    },
+    "r187_pairs_hs_hr_swapped": {
+      "result": "RED",
+      "line": "r187_pairs_hs_hr_swapped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { seq: 1, …(7) }, { seq: 4, …(7) } ] to deeply equal [ { seq: 1, …(7) }, { seq: 4, …(7) } ] | AssertionError: expected { seq: 1, hs: 1792784838805.133, …(6) } to deeply e 7s"
+    },
+    "r187_pairs_uncapped": {
+      "result": "RED",
+      "line": "r187_pairs_uncapped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { seq: 1, …(7) }, …(39) ] to have a length of 32 but got 40 7s"
+    },
+    "t187_tick_before_answer_ok": {
+      "result": "RED",
+      "line": "t187_tick_before_answer_ok RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s"
+    },
+    "t187_word_tick_unchecked": {
+      "result": "RED",
+      "line": "t187_word_tick_unchecked RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s"
+    },
+    "t187_words_any_check": {
+      "result": "RED",
+      "line": "t187_words_any_check RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s"
+    },
+    "t187_word_any_page": {
+      "result": "RED",
+      "line": "t187_word_any_page RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s"
+    },
+    "t187_target_unbound_ok": {
+      "result": "RED",
+      "line": "t187_target_unbound_ok RED FAILED (failures=1) FAIL: test_the_target_needs_every_receipt_on_the_pages_clock (test_bpc_tools.AgeBound.test_the_target_needs_every_receipt_on_the_pages_clock) 1s"
+    },
+    "t187_target_conflict_ok": {
+      "result": "RED",
+      "line": "t187_target_conflict_ok RED FAILED (failures=1) FAIL: test_the_target_needs_every_receipt_on_the_pages_clock (test_bpc_tools.AgeBound.test_the_target_needs_every_receipt_on_the_pages_clock) 1s"
+    },
+    "t189_edges_ignored": {
+      "result": "RED",
+      "line": "t189_edges_ignored RED FAILED (failures=2) FAIL: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) | FAIL: test_codex_r188_truncated_supersede_phase (test_bpc_tools.Rows.test_codex_r188_tru 1s"
+    },
+    "t189_end_edge_ignored": {
+      "result": "RED",
+      "line": "t189_end_edge_ignored RED FAILED (failures=2) FAIL: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) | FAIL: test_codex_r188_truncated_supersede_phase (test_bpc_tools.Rows.test_codex_r188_tru 1s"
+    },
+    "t189_silent_page_covers": {
+      "result": "RED",
+      "line": "t189_silent_page_covers RED FAILED (failures=1) FAIL: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) 1s"
+    },
+    "t189_expected_dropped": {
+      "result": "RED",
+      "line": "t189_expected_dropped RED FAILED (errors=1) ERROR: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) 1s"
+    },
+    "t189_chain_ignored": {
+      "result": "RED",
+      "line": "t189_chain_ignored RED FAILED (failures=1) FAIL: test_rows_whose_windows_chain_are_complete_whatever_their_receipt_gaps (test_bpc_tools.Rows.test_rows_whose_windows_chain_are_complete_whatever_their_receipt_gaps) 1s"
+    },
+    "r192_span_nested_summed": {
+      "result": "RED",
+      "line": "r192_span_nested_summed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { n: 1, sum: 20, max: 20 } to deeply equal { n: +0, sum: +0, max: 20, …(2) } | AssertionError: expected { n: 1, sum: 20, max: 20 } to deeply equal { n: +0, sum: +0, max: 20 7s"
+    },
+    "r192_span_unknown_kept": {
+      "result": "RED",
+      "line": "r192_span_unknown_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { n: 1, sum: 99, max: 99 } to be undefined 7s"
+    },
+    "r192_span_no_finally": {
+      "result": "RED",
+      "line": "r192_span_no_finally RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected undefined to deeply equal { n: 1, sum: 7, max: 7 } 7s"
+    },
+    "r192_span_depth_ignored": {
+      "result": "RED",
+      "line": "r192_span_depth_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { n: 1, sum: 20, max: 20 } to deeply equal { n: +0, sum: +0, max: 20, …(2) } 7s"
+    },
+    "r192_span_not_reset": {
+      "result": "RED",
+      "line": "r192_span_not_reset RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: a window keeps its own: expected { n: 2, sum: 42, max: 30 } to be undefined | AssertionError: expected { n: +0, sum: +0, max: 20, …(2) } to deeply equal { n: +0, sum: +0, max: 20, … 7s"
+    },
+    "r192_transfer_first_five": {
+      "result": "RED",
+      "line": "r192_transfer_first_five RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected Set{ , , , ,  } to deeply equal Set{ , , , , , , , , , , , , , , …(4) } 7s"
+    },
+    "r192_transfer_original": {
+      "result": "RED",
+      "line": "r192_transfer_original RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: an original is never transferred: expected [ , , , ,  ] to not include  | AssertionError: an original is not detached: expected 0 to be greater than 0 7s"
+    },
+    "r192_viewer_no_track_transfer": {
+      "result": "RED",
+      "line": "r192_viewer_no_track_transfer RED   1 failed Error: expect(received).toBeGreaterThanOrEqual(expected) | Expected: >= 5 31s"
+    },
+    "r192_main_copy_untimed": {
+      "result": "RED",
+      "line": "r192_main_copy_untimed RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 1 46s"
+    },
+    "r192_main_post_untimed": {
+      "result": "RED",
+      "line": "r192_main_post_untimed RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 1 45s"
+    },
+    "t192_nested_in_sum": {
+      "result": "RED",
+      "line": "t192_nested_in_sum RED FAILED (failures=1) FAIL: test_spans_pool_per_phase_nested_apart (test_bpc_tools.Spans.test_spans_pool_per_phase_nested_apart) 1s"
+    },
+    "t192_s_reason_unchecked": {
+      "result": "RED",
+      "line": "t192_s_reason_unchecked RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s"
+    },
+    "t192_s_basis_unchecked": {
+      "result": "RED",
+      "line": "t192_s_basis_unchecked RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s"
+    },
+    "t192_s_two_bases": {
+      "result": "RED",
+      "line": "t192_s_two_bases RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s"
+    }
+  }
+}
