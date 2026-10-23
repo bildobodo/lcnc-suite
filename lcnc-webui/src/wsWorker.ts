@@ -20,6 +20,8 @@ type MainMsg =
   | { type: "connect"; url: string; session: string; resumeArmed: boolean; hidden: boolean }
   | { type: "send"; payload: string; cmd?: string; dropIfClosed?: boolean }
   | { type: "updateConfig"; resumeArmed?: boolean; hidden?: boolean; fireHeartbeat?: boolean }
+  | { type: "witness"; tick: number; n: number }
+  | { type: "clock"; p0: number }
   | { type: "close" };
 
 const post = (m: unknown, transfer?: Transferable[]) =>
@@ -30,6 +32,12 @@ let cfg: Cfg | null = null;
 let wantConnected = false;
 
 let hbTimer: ReturnType<typeof setInterval> | null = null;
+let hbSeq = 0;   // the heartbeats' own numbers, echoed in the gateway's timing
+// The highest witness tick the page has handed here (a check during a run
+// computed a real slice that began after it — Codex R186) and its word's
+// number: every heartbeat sent after carries them, so a heartbeat is known to
+// leave after that slice ended, by causality alone (no clock).
+let doneTick = 0, doneN = 0;
 let bufferTimer: ReturnType<typeof setInterval> | null = null;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
 let probeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -119,8 +127,13 @@ function startHeartbeat() {
       // hbsent only on a send that didn't throw — posting it after a swallowed
       // exception recorded heartbeats as sent that never left (silent fallback).
       try {
-        ws.send('{"cmd":"heartbeat"}');
-        post({ type: "hbsent" });
+        // the send's own stamp (global clock) and number: the round trip is
+        // timed here, never from the page's handling of this post, and the
+        // gateway's timing names the heartbeat it answers (Codex R182/R183 VP182-02)
+        const at = performance.timeOrigin + performance.now();
+        const seq = ++hbSeq;
+        ws.send(`{"cmd":"heartbeat","seq":${seq}}`);
+        post({ type: "hbsent", at, seq, dt: doneTick, dn: doneN });
       } catch (e) {
         post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
       }
@@ -295,11 +308,14 @@ function openSocket(probed = false) {
   ws.onmessage = (ev: MessageEvent) => {
     framesRelayedSinceHb++;   // for hb-slip attribution (busy-relaying vs starved)
     lastFrameRxAt = performance.now();  // inbound-stall detection (hbdeliv probe)
+    // The receipt on the global clock (timeOrigin + now compares across the
+    // worker and the page): the start of a status frame's age (viewerPerf).
+    const rx = performance.timeOrigin + lastFrameRxAt;
     if (typeof ev.data === "string") {
-      post({ type: "message", data: ev.data });
+      post({ type: "message", data: ev.data, rx });
     } else {
       // Transfer the ArrayBuffer (zero-copy); the worker doesn't touch it again.
-      post({ type: "message", data: ev.data }, [ev.data as ArrayBuffer]);
+      post({ type: "message", data: ev.data, rx }, [ev.data as ArrayBuffer]);
     }
   };
 
@@ -394,12 +410,24 @@ self.onmessage = (ev: MessageEvent<MainMsg>) => {
       // gateway's last_hb is fresh without waiting up to 1 s for the timer.
       if (msg.fireHeartbeat && ws && ws.readyState === WebSocket.OPEN) {
         try {
-          ws.send('{"cmd":"heartbeat"}');
-          post({ type: "hbsent" });
+          const at = performance.timeOrigin + performance.now();
+          const seq = ++hbSeq;
+          ws.send(`{"cmd":"heartbeat","seq":${seq}}`);
+          post({ type: "hbsent", at, seq, dt: doneTick, dn: doneN });
         } catch (e) {
           post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
         }
       }
+      break;
+
+    case "witness":
+      if (msg.tick > doneTick) { doneTick = msg.tick; doneN = msg.n; }
+      break;
+
+    case "clock":
+      // one half of the page's two-way clock exchange (Codex R186): this
+      // context's clock between the page's send and its receipt of the answer
+      post({ type: "clock", p0: msg.p0, w: performance.timeOrigin + performance.now() });
       break;
 
     case "close":

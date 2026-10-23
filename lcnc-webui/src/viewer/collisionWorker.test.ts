@@ -289,6 +289,95 @@ describe("the regular flow", () => {
   });
 });
 
+describe("a check during a run says its real slices against the page's ticks (the browser-PC witness, Codex R186)", () => {
+  /** A local run, one iterator checkpoint per slice; `ticks` = slice number →
+   *  a tick the page sends before that slice runs. */
+  async function localRun(o: { witness: boolean; ticks?: Record<number, number>; cancelAt?: number }) {
+    const began: number[] = [];
+    let slices = 0;
+    let log: Msg[] | null = null;
+    vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>, _ms: number, cancelled: () => boolean) => {
+      slices++;
+      log?.push({ slice: slices });   // where each slice begins, among the messages
+      const cancel = cancelled();
+      const r = it.next(cancel);
+      if (cancel) { for (let g = 0; g < 4 && !it.next(true).done; g++); return { done: true, cancelled: true, result: null, progress: 0, checkpoints: 1 }; }
+      return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
+                    : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
+    } }));
+    const { sent, send } = await setup(2);   // one core: the local path
+    log = sent;
+    const n = 201, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = 10 - i * 0.1; cum[i] = i * 0.1; lines[i] = i + 1; }
+    send({ ...req(31), ...(o.witness ? { witness: true } : {}), contacts: { generation: 2 },
+           track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    const ticked = new Set<number>();
+    for (let i = 0; i < 2000 && !sent.some(terminal); i++) {
+      // the tick for the next slice, once, before it runs
+      const k = o.ticks?.[slices + 1];
+      if (k !== undefined && !ticked.has(slices + 1)) { ticked.add(slices + 1); send({ tick: k }); began.push(slices + 1); }
+      if (o.cancelAt !== undefined && slices === o.cancelAt) send({ cancel: 31 });
+      await vi.advanceTimersToNextTimerAsync();
+      if (sent.some(m => m.contacts)) send({ contactsAck: 31, generation: 2 });
+    }
+    return { sent, slices };
+  }
+
+  it("says each new tick once, after the first slice that began with it, before the result", async () => {
+    const { sent, slices } = await localRun({ witness: true, ticks: { 3: 1, 6: 2, 7: 5, 9: 4 } });
+    expect(slices).toBeGreaterThan(10);
+    const words = sent.map((m, i) => [m, i] as const).filter(([m]) => m.witness);
+    // tick 4 came after 5: no word of its own (the highest so far is said)
+    expect(words.map(([m]) => m.witness)).toEqual([
+      { shard: null, gen: 2, tick: 1 }, { shard: null, gen: 2, tick: 2 }, { shard: null, gen: 2, tick: 5 }]);
+    // each word follows the slice that BEGAN with its tick (slices 3, 6, 7),
+    // never the tick's arrival
+    const at = (k: number) => sent.findIndex(m => m.slice === k);
+    expect(words.map(([, i]) => i > at(3) && i < at(4))).toEqual([true, false, false]);
+    expect(words[1]![1] > at(6) && words[1]![1] < at(7)).toBe(true);
+    expect(words[2]![1] > at(7) && words[2]![1] < at(8)).toBe(true);
+    expect(words[words.length - 1]![1]).toBeLessThan(sent.findIndex(m => m.result));
+  });
+
+  it("a cancelled check still says the tick of a slice that ran — never of the slice the cancel cut short", async () => {
+    const { sent } = await localRun({ witness: true, ticks: { 2: 7 }, cancelAt: 5 });
+    expect(sent.some(m => m.cancelled)).toBe(true);
+    expect(sent.some(m => m.result), "cancelled, not finished").toBe(false);
+    expect(sent.filter(m => m.witness).map(m => m.witness.tick)).toEqual([7]);
+    // a tick before the slice the cancel ends: that slice ran the epilogue only
+    const cut = await localRun({ witness: true, ticks: { 6: 8 }, cancelAt: 5 });
+    expect(cut.sent.some(m => m.cancelled)).toBe(true);
+    expect(cut.sent.filter(m => m.witness)).toEqual([]);
+  });
+
+  it("a tick with no slice after it says nothing; a check that is not asked says nothing", async () => {
+    const asked = await localRun({ witness: true });
+    expect(asked.sent.some(m => m.witness)).toBe(false);
+    const not = await localRun({ witness: false, ticks: { 2: 3 } });
+    expect(not.sent.some(m => m.result)).toBe(true);
+    expect(not.sent.some(m => m.witness)).toBe(false);
+  });
+
+  it("the pool hands each tick to every shard and passes a shard's word on named by it, even after the run ended", async () => {
+    const { sent, workers, send } = await setup();
+    send({ ...req(40), witness: true });
+    expect(workers).toHaveLength(2);
+    for (const w of workers) expect(w.messages[0]!.witness).toBe(true);
+    send({ tick: 9 });
+    for (const w of workers) expect(last(w.messages)).toEqual({ tick: 9 });
+    // a shard sweeps without a shard option when the pool is one — the
+    // coordinator names it
+    workers[1]!.emit({ id: 40, witness: { shard: null, gen: null, tick: 9 } });
+    send({ cancel: 40 });
+    for (const w of workers) w.emit({ id: 40, cancelled: true });
+    expect(sent.some(m => m.cancelled)).toBe(true);
+    workers[0]!.emit({ id: 40, witness: { shard: null, gen: null, tick: 9 } });
+    expect(sent.filter(m => m.witness)).toEqual([
+      { id: 40, witness: { shard: 1, gen: null, tick: 9 } },
+      { id: 40, witness: { shard: 0, gen: null, tick: 9 } }]);
+  });
+});
+
 describe("the side id −1 (VP-I50)", () => {
   it("a local sweep posts its METADATA after its first slice, then only when it changes — no records (step 4 package 2, C2)", async () => {
     // one iterator checkpoint per slice: the real sweep, observable between;

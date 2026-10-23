@@ -1900,6 +1900,20 @@ def verify_same(path, out) -> bool:
     return same
 
 
+def stamped_parse(ctx: dict, err=None) -> dict:
+    """parse(ctx) between its own bounds on the VM's monotonic clock (Codex
+    R185 VP185-01): `__PARSE_T0__` right before the call, `__PARSE_T1__`
+    right after it returned — the browser-PC report binds a run check's slice
+    to a parse by them; the gateway's spawn and done records lie outside the
+    work by its waits. Each line goes out flushed as it happens: a parse cut
+    short leaves its start and no end, never an invented one."""
+    err = err if err is not None else sys.stderr
+    print(f"__PARSE_T0__\t{time.monotonic_ns()}", file=err, flush=True)
+    result = parse(ctx)
+    print(f"__PARSE_T1__\t{time.monotonic_ns()}", file=err, flush=True)
+    return result
+
+
 def main() -> None:
     import signal
     signal.signal(signal.SIGTERM, _on_sigterm)
@@ -1912,7 +1926,7 @@ def main() -> None:
         sys.exit(2)
     apply_nice(ctx.get("nice"))
     try:
-        result = parse(ctx)
+        result = stamped_parse(ctx)
     except Exception as e:
         print(f"parse failed: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
         sys.exit(3)

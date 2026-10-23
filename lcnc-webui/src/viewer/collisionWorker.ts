@@ -83,7 +83,22 @@ export interface CollisionReq {
    *  back to this core is the next, a side run's too). Absent = records only,
    *  as before. */
   contacts?: { generation: number; budget?: StoreBudget; origin?: number };
+  /** Say the run's real slices against the page's witness ticks (a check
+   *  during a run — the browser-PC report's witness, Codex R185/R186):
+   *  `{id, witness}` words. */
+  witness?: boolean;
 }
+
+/** The page's witness tick: it issues one after each heartbeat answer it
+ *  handled; the coordinator hands it to every shard. */
+export interface CollisionTick { tick: number }
+/** A run's word (Codex R186: a CAUSAL witness, no clock): a real slice of
+ *  this run began after tick `tick` reached the context that computed it — a
+ *  shard's own — and this word left after the slice ended. One word per new
+ *  tick, after the first slice that began with it. `shard` is the pool's
+ *  index (null: this worker alone), `gen` the contact generation (a fall
+ *  back to one core is the next). */
+export interface CollisionWitness { shard: number | null; gen: number | null; tick: number }
 
 export interface CollisionCancel { cancel: number }
 /** The owner applied the oldest contact delta out of request `contactsAck`
@@ -116,6 +131,8 @@ const PAUSE_MAX_MS = 30_000;
 /** Minimum interval between a running sweep's metadata posts (its first
  *  goes after the first slice). */
 const META_MS = 500;
+/** The highest witness tick this context has been handed (see CollisionTick). */
+let _tick = 0;
 
 interface Run {
   id: number;
@@ -151,6 +168,8 @@ interface Run {
   final: Record<string, unknown> | null;
   /** The model pairs' body ids went out with the first delta (round B2). */
   pairsSent: boolean;
+  /** Its witness words, when the request asks (Codex R186): the last tick said. */
+  witness: { shard: number | null; gen: number | null; said: number } | null;
 }
 
 let _resident: { key: string; model: CollisionModel } | null = null;
@@ -191,7 +210,8 @@ function sendContacts(run: Run, extra?: Record<string, unknown>): boolean {
   return true;
 }
 
-type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue | CollisionContactsAck;
+type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | CollisionStop | CollisionContinue | CollisionContactsAck
+  | CollisionTick;
 
 /** Holds a run starts with — the owner's pause, carried over when a pooled
  *  sweep falls back to this core (Codex R90 VP-I49). */
@@ -199,7 +219,7 @@ interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: bool
 
 /** One sweep in THIS worker — the single-core path, a shard's work, and every
  *  side run. */
-function handleLocal(d: Msg, holds: Holds = {}): void {
+function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
   if ("contactsAck" in d) {
     const run = _contactRuns.get(d.contactsAck);
     if (!run?.store || run.store.generation !== d.generation) return;   // another run's — late or early
@@ -306,6 +326,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       snapshot: { take: null, meta: null },
       stopped: false, stopRequested: false, lastMeta: null, nextMetaAt: 0, pump: () => {},
       model, store: null, final: null, pairsSent: false,
+      witness: d.witness ? { shard: options.shard?.index ?? null, gen: d.contacts?.generation ?? null, said: 0 } : null,
     };
     if (d.contacts) {
       // a shard's share of the request's budget, a side run's T/8 (plan 2.4)
@@ -350,6 +371,8 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
         if (run.pausedCam || run.pausedHidden || run.pausedDecode) { setTimeout(pump, PAUSE_POLL_MS); return; }
       }
       let slice;
+      // the tick this slice begins after (a message handled before it ran)
+      const tick = _tick;
       try {
         run.sliceStart = performance.now();
         slice = runSweepSlice(run.it, run.sliceMs, () => run.cancelled);
@@ -361,6 +384,12 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
         restoreBaseTool(run.model);   // the epilogue never ran (TWP-07)
         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
         return;
+      }
+      // the slice ended: its word goes out now, once per new tick — a slice
+      // cut short by a cancel ran only the epilogue, no sweep
+      if (run.witness && !slice.cancelled && tick > run.witness.said) {
+        run.witness.said = tick;
+        self.postMessage({ id, witness: { shard: run.witness.shard, gen: run.witness.gen, tick } });
       }
       if (!slice.done) {
         // The running sweep's metadata: after the first slice, then when it
@@ -559,6 +588,9 @@ function forwardContacts(run: PoolRun, extra?: Record<string, unknown>): boolean
 }
 
 function onShardMessage(k: number, m: any): void {
+  // a shard's witness words go on as they come, whatever became of its run —
+  // real work is evidence of its own (Codex R185); named by the shard
+  if (m.witness) { self.postMessage({ id: m.id, witness: { ...m.witness, shard: k } }); return; }
   if (_sideOnShard && m.id === _sideOnShard.req.id) {
     if (m.progress !== undefined) _sideOnShard.progress = m.progress;
     self.postMessage(m);
@@ -764,6 +796,13 @@ function onLostParked(lp: LostParked, d: Msg): void {
 
 self.onmessage = (e: MessageEvent<Msg>) => {
   const d = e.data;
+  if ("tick" in d) {
+    // here, and on to every shard: a slice that begins after it, begins
+    // after the answer the page issued it for (Codex R186)
+    if (d.tick > _tick) _tick = d.tick;
+    for (const w of _shards) w.postMessage(d);
+    return;
+  }
   if ("contactsAck" in d) {
     // the pool's, a side run's on shard 0, or a run on this core
     if (_poolRun && _poolRun.id === d.contactsAck && _poolRun.stores) {

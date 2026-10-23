@@ -670,21 +670,42 @@ async function runOnL7(page: Page, file: string, version: number) {
 test("a parse made for the run is checked during it: provisional from the machine's line, then in full; idle checks in full (plan „Prüfung im Lauf“ 3)", async ({ page, context }) => {
   test.setTimeout(150_000);
   const file = "/runcheck.ngc";
+  // the page's collision telemetry: the browser-PC report binds a run
+  // check's ACTIVE sweep by its request id and run generation (Codex R183)
+  const tel: Array<Record<string, any>> = [];
+  const perf: Array<Record<string, any>> = [];
+  await page.route("**/telemetry", async (route) => {
+    for (const line of (route.request().postData() ?? "").split("\n")) {
+      try {
+        const e = JSON.parse(line);
+        if (String(e.kind).startsWith("collision.")) tel.push(e);
+        else if (e.kind === "viewer.perf") perf.push(e);
+      } catch { /* not ours */ }
+    }
+    await route.fulfill({ status: 204, body: "" });
+  });
   await runReady(page, context, file, 4201);
   await ctl({ op: "quiet", on: true });
   await runOnL7(page, file, 4201);
-  // the table edge's pinned parse, published for run 9 — and the run's table
-  // turns its rotaries meanwhile: a run's own motion parks nothing (plan 4)
-  await publishInRun(page, file, 4202, pinnedFor(9));
-  // the decode held the sweep and let it go (plan 4)
-  expect(await page.evaluate(() => window.__viewerDiag!.getCollisionHoldLog!())).toEqual(expect.arrayContaining(["decode on", "decode off"]));
-  await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("start provisional 1");
-  // during a run: two workers at most, shorter slices (plan 4)
-  const meta = (await page.evaluate(() => window.__viewerDiag!.getCollisionRequestMeta!()))!;
-  expect(meta.sliceMs).toBe(20);
-  expect(meta.maxShards).toBeLessThanOrEqual(2);
-  for (const a of [5, 10, 15]) await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
-  await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
+  // quiet mode answers no heartbeat: answer them here while the check runs —
+  // the browser-PC witness ticks follow answers (Codex R186)
+  const answering = setInterval(() => { void ctl({ op: "hb_answer" }).catch(() => {}); }, 400);
+  try {
+    // the table edge's pinned parse, published for run 9 — and the run's table
+    // turns its rotaries meanwhile: a run's own motion parks nothing (plan 4)
+    await publishInRun(page, file, 4202, pinnedFor(9));
+    // the decode held the sweep and let it go (plan 4)
+    expect(await page.evaluate(() => window.__viewerDiag!.getCollisionHoldLog!())).toEqual(expect.arrayContaining(["decode on", "decode off"]));
+    await expect.poll(() => runLog(page), { timeout: 10_000 }).toContain("start provisional 1");
+    // during a run: two workers at most, shorter slices (plan 4)
+    const meta = (await page.evaluate(() => window.__viewerDiag!.getCollisionRequestMeta!()))!;
+    expect(meta.sliceMs).toBe(20);
+    expect(meta.maxShards).toBeLessThanOrEqual(2);
+    for (const a of [5, 10, 15]) await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
+    await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
+  } finally {
+    clearInterval(answering);
+  }
   const label = page.locator(".simPanel .checkRow .sub");
   await expect(label).toHaveText("Run check · tool table updated");
   await expect(page.locator(".simSummary .sumItem").first()).toHaveAttribute("aria-label", /· checked in full$/);
@@ -701,6 +722,47 @@ test("a parse made for the run is checked during it: provisional from the machin
   await expect.poll(async () => (await basisOf(page))?.kind, { timeout: 10_000 }).toBe("idle");
   expect(await runLog(page)).toEqual(["start provisional 1", "full", "done", "discard idle"]);
   expect((await page.evaluate(() => window.__viewerDiag!.getCollisionRequestMeta!()))?.sliceMs, "idle: the default slices").toBeNull();
+  // the run check's two sweeps name its generation, each ends under its own id
+  await expect.poll(() => tel.filter(e => e.kind === "collision.run_check_discarded").length, { timeout: 10_000 }).toBe(1);
+  const gen = tel.find(e => e.kind === "collision.run_check_start")?.gen;
+  expect(typeof gen).toBe("number");
+  const runSweeps = tel.filter(e => e.kind === "collision.sweep_start" && e.run_gen === gen);
+  expect(runSweeps.map(e => e.range_from === null ? "full" : "provisional")).toEqual(["provisional", "full"]);
+  for (const st of runSweeps) {
+    expect(tel.filter(e => ["collision.sweep_done", "collision.sweep_cancelled"].includes(e.kind) && e.id === st.id)
+      .map(e => e.run_gen), `sweep ${st.id} ends once, in its generation`).toEqual([gen]);
+  }
+  // the check during the run said the ticks its real slices began after —
+  // named by its request, generation and range, numbered on the page — and
+  // handed each word to the WebSocket worker: a heartbeat sent after carries
+  // it (Codex R186: the R witness's causal link); the idle check says none
+  await expect.poll(() => tel.some(e => e.kind === "collision.sweep_witness"), { timeout: 15_000 }).toBe(true);
+  const wit = tel.filter(e => e.kind === "collision.sweep_witness");
+  for (const w of wit) {
+    const st = runSweeps.find(x => x.id === w.id);
+    expect(st, "only a check during a run").toBeDefined();
+    expect([w.run_gen, w.range_from]).toEqual([gen, st!.range_from]);
+    expect(w.tick).toBeGreaterThan(0);
+  }
+  expect(wit.map(w => w.n), "numbered in order on the page").toEqual(wit.map((_, i) => wit[0]!.n + i));
+  type Pair = { seq: number; ta: number; dt: number | null; dn: number | null };
+  const pairs = () => perf.flatMap(r => r.hb_pairs as Pair[]);
+  // (answered here too: the heartbeat that carries a word must be answered to pair)
+  const answering2 = setInterval(() => { void ctl({ op: "hb_answer" }).catch(() => {}); }, 400);
+  try {
+    await expect.poll(() => pairs().some(p => (p.dn ?? 0) >= wit[0]!.n), { timeout: 15_000 }).toBe(true);
+  } finally {
+    clearInterval(answering2);
+  }
+  const hbB = pairs().find(p => (p.dn ?? 0) >= wit[0]!.n)!;
+  // (the words as they are now: the one B names may have come after `wit`)
+  await expect.poll(() => tel.some(e => e.kind === "collision.sweep_witness" && e.n === hbB.dn), { timeout: 10_000 }).toBe(true);
+  const w = tel.find(e => e.kind === "collision.sweep_witness" && e.n === hbB.dn)!;
+  expect(w, "the word the heartbeat names").toBeDefined();
+  expect(hbB.dt, "with its tick").toBe(w.tick);
+  const hbA = pairs().find(p => p.ta === w.tick);
+  expect(hbA, "the answer the tick followed").toBeDefined();
+  expect(hbA!.seq, "answered before the heartbeat that names the word").toBeLessThan(hbB.seq);
   await expect(label).toHaveText("Collision check");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });

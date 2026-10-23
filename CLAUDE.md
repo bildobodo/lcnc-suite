@@ -953,7 +953,52 @@ a run at most two workers and 20 ms slices (`sliceMs`), a decoding payload
 holds the sweep (`previewDecoding`, worker hold "decode"), the run's own
 rotary motion parks nothing. Owed: the measurement protocol (status frame p95
 < 50 ms, heartbeat gap p99 < 300 ms on the machine PC and a separate browser
-PC) and the live M600 run need a running LinuxCNC. Tests:
+PC) and the live M600 run need a running LinuxCNC. The 2026-10-21 browser-PC
+run (the operator's Mac, which hosts the VM) is a partial proof (Codex R181
+VP181-01); its instruments since: the page's 3 s `browser.viewer.perf` rows
+carry fixed-bin histograms that POOL into a phase's quantiles (`viewerPerf.binOf`
+— a window's p95 never pools): `apply_h` (applyState's own time), `gap_h` (the
+cadence), `age_h` (a status frame's socket receipt in the WS worker — stamped
+`rx` on the global clock, timeOrigin + now — until the applyState that shows
+it or a newer one; the receipt TRAVELS with the buffered status: the store
+keeps the oldest of a flush (`statusReceiptOf`), the viewer the oldest of the
+flushes it folds into one apply (`notePendingReceipt`) — an apply of an older
+frame never takes the receipt of one still in the store's batch, Codex R182
+VP182-01; the viewer's first apply is not aged; gateway → socket only bounded
+by `rt_net_h`, the heartbeat round trip timed IN THE WORKER — its send stamp,
+the answering frame's receipt — less the gateway's hold, paired by the
+heartbeat's own number (`{"cmd":"heartbeat","seq":N}`, echoed by the gateway
+as `timing.hb_seq`); an answer naming no heartbeat sent here is `rt_invalid`,
+VP182-02),
+`in_delay_h` (a key / pointer press to its
+first listener; with Event Timing `ev_*`, the presses ≥ 16 ms to the next
+paint), and the page's own memory (`mem_path_cpu/gpu`, `mem_contacts`,
+`mem_contact_views` — Firefox has no heap number), `vis_changes` (the
+window's visibility changes); the collision sweep events carry their request
+`id` and `run_gen`, and the status store reports the gateway's parse in flight
+as the page saw it (`preview.parse_seen` on / off, by its `job`, with the
+frame's socket receipt — information only); every parse's trace events name
+its `job` and spawn and publish the start `basis` (the context digest with the
+drift inputs), so a supersede is proven by id. The overlap of a check during
+a run with a pinned parse is proven from the ORDER of events (Codex R185,
+R186) — no clock of the VM against the page's, none of one browser context
+against another: the worker stamps `time.monotonic_ns()` right around
+`parse(ctx)` (`__PARSE_T0__` / `__PARSE_T1__` → `gcode.parse_span`, by job, a
+parse cut short without an end); the gateway's heartbeat answer carries
+`g_mono_ms` (its CLOCK_MONOTONIC after the heartbeat's receipt, before the
+answer's send) and `g_pid`; the page issues a witness TICK after each answer
+it handled (`viewerPerf` → the viewer posts it to a check during a run; the
+pool hands it to every shard), a real slice that BEGAN after a tick says it
+after it ENDED (`{id, witness: {shard, gen, tick}}`, the page's
+`collision.sweep_witness` numbered `n`), the page hands the word to the WS
+worker, and every heartbeat it sends after carries the highest (`dt`, `dn`);
+`hb_pairs` holds `{seq, hs, hr, g, pid, ta, dt, dn}`. Two heartbeats whose g
+lie inside a parse, B carrying a word for a tick after A's answer: that slice
+ran inside the parse. The status AGE puts the WS worker's receipt on the
+page's clock through a two-way exchange a heartbeat (`{type: "clock"}`: θ =
+worker − page ∈ [w − p1, w − p0] ± 4 ms, intersected per worker instance, a
+contradiction starts anew — `clk_*`), at its earliest time (an upper bound);
+without a relation a receipt is not aged (`age_unbound`). Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on

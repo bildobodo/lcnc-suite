@@ -133,6 +133,8 @@ function clearStartTimer(): void {
 function spawnWorker(): void {
   const w = new Worker(new URL("../wsWorker.ts", import.meta.url), { type: "module" });
   wsWorker = w;
+  // a new context: its clock relation to the page is a new one (Codex R186)
+  _onEvent?.({ type: "spawned" });
   let heard = false;
   w.onmessage = (ev: MessageEvent) => {
     if (!heard) {
@@ -193,6 +195,15 @@ export function sendCommand(payload: string, cmd: string, dropIfClosed: boolean)
     return true;
   }
   return false;
+}
+
+/** Hand the worker a message of the browser-PC instruments: a witness word
+ *  (`{type: "witness", tick, n}`) or one half of the clock exchange
+ *  (`{type: "clock", p0}`). No-op when no worker exists. */
+export function postWorkerProbe(m: { type: "witness"; tick: number; n: number } | { type: "clock"; p0: number }): void {
+  if (wsWorker) {
+    try { wsWorker.postMessage(m); } catch { /* safe-silent: worker mid-teardown — a lost probe is a missing proof, never a false one */ }
+  }
 }
 
 /** Relay config to the worker (hidden state, immediate heartbeat, resume). */

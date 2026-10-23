@@ -5,14 +5,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const emitted: Array<{ kind: string; fields: Record<string, unknown> }> = [];
-vi.mock("./lcncWs", () => ({
+vi.mock("./ws/telemetry", () => ({
   emitTelemetry: (kind: string, fields: Record<string, unknown>) => { emitted.push({ kind, fields }); },
 }));
 
 import {
-  flushViewerPerf, noteMainThreadProbe, recordApply, recordRafTick, recordRender,
-  resetViewerPerf, setViewerPerfGl,
-  setViewerPerfContext,
+  binOf, flushViewerPerf, noteClockExchange, noteHeartbeatReply, noteHeartbeatSentAt, noteInput, noteMainThreadProbe,
+  notePendingReceipt, noteSlowInput, noteVisibilityChanged,
+  receiptOnPage, recordApply, recordRafTick, recordRender, resetClockRelation, resetViewerPerf, setViewerPerfGl,
+  setViewerPerfContext, setWitnessTickSink,
 } from "./viewerPerf";
 
 function last(): Record<string, unknown> {
@@ -85,6 +86,23 @@ describe("status cadence and render-loop cadence", () => {
     expect(f.raf_ticks).toBe(4);
     expect(f.raf_gap_max_ms).toBe(120);
     expect(f.raf_pauses).toBe(1);
+  });
+
+  it("names each row's ACTUAL window on the global clock — the previous row's end to this one's (Codex R185)", () => {
+    const T0 = performance.timeOrigin;
+    vi.spyOn(performance, "now").mockReturnValue(1_000);
+    resetViewerPerf();
+    recordApply(1, 1_100);
+    vi.spyOn(performance, "now").mockReturnValue(5_200);   // a window the load held 4.2 s
+    flushViewerPerf();
+    const r1 = (x: number) => +x.toFixed(1);
+    expect([last().win_start, last().win_end, last().win_ms]).toEqual([r1(T0 + 1_000), r1(T0 + 5_200), 4_200]);
+    flushViewerPerf();                                       // an idle window says nothing and keeps its start
+    recordApply(2, 7_000);
+    vi.spyOn(performance, "now").mockReturnValue(8_200);
+    flushViewerPerf();
+    expect([last().win_start, last().win_ms]).toEqual([r1(T0 + 5_200), 3_000]);
+    vi.restoreAllMocks();
   });
 
   it("resets every accumulator after a flush", () => {
@@ -218,5 +236,240 @@ describe("context provider", () => {
     expect(f.gl_calls).toBe(115);
     expect(f.display_mode).toBe("part");
     setViewerPerfContext(null);
+  });
+});
+
+describe("histograms that pool (Codex R181 VP181-01)", () => {
+  it("bins by width 1 / 2 / 10 / 50 / 500 ms, each bin at its lower edge", () => {
+    expect([0, 0.4, 19.9, 20, 21.9, 99.9, 100, 499, 500, 1999, 2000, 2700].map(binOf))
+      .toEqual([0, 0, 19, 20, 20, 98, 100, 490, 500, 1950, 2000, 2500]);
+  });
+
+  it("carries every status gap and apply in the window's histograms, and clears them at the flush", () => {
+    for (const t of [1000, 1033, 1066, 1116, 1700]) recordApply(0.4, t);
+    flushViewerPerf();
+    const f = last();
+    expect(f.gap_h).toEqual({ "32": 2, "50": 1, "550": 1 });   // 33, 33, 50, 584
+    expect(f.apply_h).toEqual({ "0": 5 });
+    recordApply(2.5, 1733);
+    flushViewerPerf();
+    expect(last().gap_h).toEqual({ "32": 1 });
+    expect(last().apply_h).toEqual({ "2": 1 });
+  });
+});
+
+describe("status age: the receipt the viewer takes, at its apply", () => {
+  const T0 = performance.timeOrigin;
+
+  it("ages no frame at the viewer's first apply (its build, not the status path)", () => {
+    notePendingReceipt(T0 + 100);
+    recordApply(1, 1500);                 // the viewer built 1.4 s later: no age
+    notePendingReceipt(T0 + 1510);
+    recordApply(1, 1533);
+    flushViewerPerf();
+    const f = last();
+    expect(f.age_n).toBe(1);
+    expect(f.age_max_ms).toBe(23);
+  });
+
+  it("keeps the oldest receipt the viewer took before one apply, and consumes it there", () => {
+    recordApply(1, 990);                  // the viewer is built
+    notePendingReceipt(T0 + 1030);
+    notePendingReceipt(T0 + 1000);        // an older flush taken too (order of notes is free)
+    recordApply(1, 1048);
+    recordApply(1, 1081);                 // a local re-apply: no receipt, no age
+    notePendingReceipt(T0 + 1100);
+    recordApply(1, 1105);
+    flushViewerPerf();
+    const f = last();
+    expect(f.age_n).toBe(2);
+    expect(f.age_max_ms).toBe(48);
+    expect(f.age_h).toEqual({ "5": 1, "48": 1 });
+    expect(f.age_neg).toBe(0);
+  });
+
+  it("ignores a status without a receipt, counts a receipt after its apply and one from before a visibility change apart", () => {
+    recordApply(1, 900);
+    notePendingReceipt(undefined);
+    notePendingReceipt(0);
+    recordApply(1, 1000);
+    notePendingReceipt(T0 + 2000);
+    recordApply(1, 1990);
+    notePendingReceipt(T0 + 2100);        // received, then the page was hidden and shown again
+    noteVisibilityChanged(T0 + 2200);
+    recordApply(1, 5000);
+    flushViewerPerf();
+    const f = last();
+    expect(f.age_n).toBe(0);
+    expect(f.age_neg).toBe(1);
+    expect(f.age_vis_skip).toBe(1);
+    expect(f.age_h).toEqual({});
+  });
+});
+
+describe("the gateway → socket bound, timed in the worker and paired by number (Codex R182/R183 VP182-02)", () => {
+  const T0 = performance.timeOrigin;
+
+  it("pairs an answer with the heartbeat it names, whenever the page handles them", () => {
+    // R182: sent at 10, answered at the worker at 130, hold 20 — the page
+    // handled both posts only at 200/201: both legs are 100, not 0
+    noteHeartbeatSentAt(T0 + 10, 1);
+    noteHeartbeatReply(T0 + 130, 20, 1);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().rt_net_max_ms).toBe(100);
+    expect(last().rt_n).toBe(1);
+  });
+
+  it("pairs a late answer with ITS heartbeat, never the newest one sent (Codex R183)", () => {
+    noteHeartbeatSentAt(T0 + 10, 1);
+    noteHeartbeatSentAt(T0 + 1010, 2);
+    noteHeartbeatReply(T0 + 1500, 20, 1);  // H1's answer, late
+    noteHeartbeatSentAt(T0 + 2010, 3);
+    noteHeartbeatReply(T0 + 2300, 20, 2);  // H2's: 1270 ms for both legs — not 270 against H3
+    noteHeartbeatReply(T0 + 2350, 20, 3);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    const f = last();
+    expect(f.rt_n).toBe(3);
+    expect(f.rt_invalid).toBe(0);
+    expect(f.rt_net_h).toEqual({ "320": 1, "1250": 1, "1450": 1 });   // 320, 1270, 1470
+    expect(f.rt_net_max_ms).toBe(1470);
+  });
+
+  it("gives no bound for an answer naming no heartbeat sent here, an unstamped one or a negative pair", () => {
+    noteHeartbeatSentAt(T0 + 10, 1);
+    noteHeartbeatReply(T0 + 100, 20, 1);
+    noteHeartbeatReply(T0 + 150, 20, 1);   // answered already
+    noteHeartbeatReply(T0 + 160, 20);      // names no heartbeat (an old gateway)
+    noteHeartbeatReply(T0 + 170, 20, 9);   // never sent here
+    noteHeartbeatSentAt(undefined, 4);     // a worker without the stamp: not remembered
+    noteHeartbeatReply(T0 + 2100, 20, 4);
+    noteHeartbeatSentAt(T0 + 3000, 5);
+    noteHeartbeatReply(T0 + 3010, 20, 5);  // hold longer than the round trip
+    noteHeartbeatSentAt(T0 + 4000, 6);
+    noteHeartbeatReply(T0 + 4050, undefined, 6);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    const f = last();
+    expect(f.rt_n).toBe(1);
+    expect(f.rt_invalid).toBe(6);
+  });
+
+  it("keeps each valid pair with the gateway's monotonic stamp, its tick and its send's witness word (Codex R185/R186)", () => {
+    const ticks: number[] = [];
+    setWitnessTickSink(k => ticks.push(k));
+    noteHeartbeatSentAt(T0 + 10, 1, 0, 0);
+    noteHeartbeatReply(T0 + 130, 20, 1, 5_000.25, 4242);
+    noteHeartbeatSentAt(T0 + 1010, 2);
+    noteHeartbeatReply(T0 + 1120, 20, 2);                 // an old gateway: no stamp — a tick, no pair
+    noteHeartbeatSentAt(T0 + 2010, 3);
+    noteHeartbeatReply(T0 + 2015, 20, 3, 7_000, 4242);    // negative: no bound, no tick, no pair
+    noteHeartbeatReply(T0 + 2100, 20, 9, 7_100, 4242);    // never sent here
+    noteHeartbeatSentAt(T0 + 3010, 4, 2, 17);             // sent after the worker was handed word 17 (tick 2)
+    noteHeartbeatReply(T0 + 3140, 20, 4, 8_000.5, 4242);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    // a tick after each valid answer, in order
+    expect(ticks).toEqual([1, 2, 3]);
+    expect(last().hb_pairs).toEqual([
+      { seq: 1, hs: T0 + 10, hr: T0 + 130, g: 5_000.25, pid: 4242, ta: 1, dt: 0, dn: 0 },
+      { seq: 4, hs: T0 + 3010, hr: T0 + 3140, g: 8_000.5, pid: 4242, ta: 3, dt: 2, dn: 17 }]);
+    expect(last().hb_pairs_dropped).toBeUndefined();
+    noteHeartbeatSentAt(T0 + 4010, 5);
+    recordApply(2, 1000);
+    flushViewerPerf();
+    expect(last().hb_pairs).toEqual([]);                 // a window keeps its own
+    setWitnessTickSink(null);
+  });
+
+  it("caps a window's pairs and counts the rest", () => {
+    for (let k = 1; k <= 40; k++) {
+      noteHeartbeatSentAt(T0 + k * 100, k);
+      noteHeartbeatReply(T0 + k * 100 + 50, 1, k, k * 100 + 25, 7);
+    }
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().hb_pairs).toHaveLength(32);
+    expect((last().hb_pairs as unknown[])[0]).toEqual({ seq: 1, hs: T0 + 100, hr: T0 + 150, g: 125, pid: 7, ta: 1, dt: null, dn: null });
+    expect(last().hb_pairs_dropped).toBe(8);
+  });
+
+  it("counts the visibility changes in a window", () => {
+    noteVisibilityChanged(T0 + 10);
+    noteVisibilityChanged(T0 + 20);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().vis_changes).toBe(2);
+    recordApply(1, 1033);
+    flushViewerPerf();
+    expect(last().vis_changes).toBe(0);
+  });
+});
+
+describe("the page ↔ WS worker clock relation and the receipt on the page's clock (Codex R186 VP186-01)", () => {
+  const T0 = performance.timeOrigin;
+
+  it("bounds θ = worker − page by each exchange, keeps the intersection and says it per window", () => {
+    // the worker reads 2000 ms ahead; exchanges of 10 and 4 ms round trip
+    noteClockExchange(T0 + 100, T0 + 2105, T0 + 110);    // θ ∈ [1995 − 4, 2005 + 4]
+    noteClockExchange(T0 + 200, T0 + 2202, T0 + 204);    // θ ∈ [1998 − 4, 2002 + 4]
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect([last().clk_n, last().clk_l, last().clk_u, last().clk_conflicts]).toEqual([2, 1994, 2006, 0]);
+  });
+
+  it("takes a receipt at its earliest page time — a status age is an upper bound — and none without a relation", () => {
+    expect(receiptOnPage(T0 + 5_000)).toBeUndefined();   // no exchange yet
+    noteClockExchange(T0 + 100, T0 + 2105, T0 + 110);
+    // received at worker 5000 = page 3000 (θ 2000); the earliest it can be: 5000 − 2009
+    expect(receiptOnPage(T0 + 5_000)).toBe(T0 + 5_000 - 2009);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().age_unbound).toBe(1);
+  });
+
+  it("a contradiction starts the relation anew; a new worker has none", () => {
+    noteClockExchange(T0 + 100, T0 + 2105, T0 + 110);
+    noteClockExchange(T0 + 200, T0 + 205, T0 + 210);     // θ ≈ 0 now: no common value
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect([last().clk_l, last().clk_u, last().clk_conflicts]).toEqual([-9, 9, 1]);
+    resetClockRelation();
+    expect(receiptOnPage(T0 + 5_000)).toBeUndefined();
+  });
+
+  it("an age from a worker 2 s ahead is no 100 ms (Codex R186's second case)", () => {
+    // true: received at page 10000, applied at page 12100 — 2100 ms; the
+    // worker stamps 12000 (2000 ahead)
+    noteClockExchange(T0 + 9_000, T0 + 11_001, T0 + 9_002);
+    recordApply(0, 1);                                      // the viewer's first build is not aged
+    notePendingReceipt(receiptOnPage(T0 + 12_000));
+    recordApply(1, 12_100);
+    flushViewerPerf();
+    expect(last().age_max_ms).toBeGreaterThanOrEqual(2100);
+    expect(last().age_max_ms).toBeLessThanOrEqual(2100 + 2 + 2 * 4);
+  });
+});
+
+describe("input delay", () => {
+  it("measures a press from its stamp to its first listener; a window with only presses still reports", () => {
+    noteInput(100, 103);
+    noteInput(200, 262);
+    noteInput(300, 290);                  // stamped after it ran: a clock oddity, not a delay
+    flushViewerPerf();
+    const f = last();
+    expect(f.frames).toBe(0);
+    expect(f.in_n).toBe(2);
+    expect(f.in_delay_max_ms).toBe(62);
+    expect(f.in_delay_h).toEqual({ "3": 1, "62": 1 });
+    expect(f.in_odd).toBe(1);
+  });
+
+  it("reports the slow presses only where the browser has Event Timing", () => {
+    noteSlowInput(40, 12);
+    noteInput(10, 11);
+    flushViewerPerf();
+    expect(last()).not.toHaveProperty("ev_n");   // node: no PerformanceObserver "event" entries
   });
 });

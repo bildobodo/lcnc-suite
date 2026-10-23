@@ -15,7 +15,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
@@ -32,7 +32,7 @@ import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
-import { recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
+import { notePendingReceipt, recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl, setWitnessTickSink } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
@@ -50,6 +50,7 @@ import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import { partCollides, startDependentOf } from "./viewer/collision";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
+import type { CollisionWitness } from "./viewer/collisionWorker";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
@@ -2423,6 +2424,8 @@ async function buildFromInit(init: ViewerInit) {
       };
     }
 
+    // the browser-PC witness ticks go to a check during a run (Codex R186)
+    setWitnessTickSink(_colTick);
     // Per-emit context for the frame-timing probe (viewerPerf). Closes over
     // module-level state so it always reads live values; invoked once per
     // summary window, not per frame. Lets the trace correlate hiccups with
@@ -2461,6 +2464,7 @@ async function buildFromInit(init: ViewerInit) {
       // probe so leak detection shares one event line with heap + gap.
       geometries: renderer?.info.memory.geometries ?? 0,
       textures: renderer?.info.memory.textures ?? 0,
+      ..._perfMemory(),
     }));
 
     // Apply any layer visibility that was requested before objects existed
@@ -2504,6 +2508,21 @@ async function buildFromInit(init: ViewerInit) {
     emitTelemetry("viewer.build_failed", { error: String(err) });
     window.__viewerDiag = { ready: false, error: (err as Error).message };
   }
+}
+
+/** What the page itself holds, for the 3 s perf row (Firefox has no heap
+ *  number): the drawn path's ledger (CPU bytes held, GPU bytes uploaded) and
+ *  the collision contact tables with their views — a level that grows over
+ *  repeated replacements is a leak (Codex R181 VP181-01). */
+function _perfMemory(): Record<string, number> {
+  const pm = toolpath.pathMemory();
+  const cs = _contacts.stats();
+  return {
+    mem_path_cpu: pm.cpu.total,
+    mem_path_gpu: pm.gpu.total,
+    mem_contacts: cs.allocated,
+    mem_contact_views: cs.views.published + cs.views.building,
+  };
 }
 
 function applyState(init: ViewerInit, st: ViewerState) {
@@ -3163,6 +3182,29 @@ const collisionRun = shallowRef<{ version: number; runId: number; gen: number; p
 // whether the result on screen stays while it runs (the full after the
 // provisional — its partial findings are not shown).
 let _colReqRunGen: number | null = null;
+/** The run checks' requests by id — their run generation and range start —
+ *  for the witness telemetry, which may come after a newer request took the
+ *  slot (the run check a publication discards is the one that ran during the
+ *  next parse, Codex R185). The last few only. */
+const _colRunReqs = new Map<number, { gen: number; range: number | null }>();
+/** The witness words' numbers on this page (Codex R186's causal link). */
+let _colWitnessN = 0;
+function _colNoteWitness(id: number, w: CollisionWitness) {
+  const r = _colRunReqs.get(id);
+  if (!r) return;
+  // a run check's real slice began after tick `w.tick` and has ended: say it,
+  // then hand it to the WebSocket worker — every heartbeat it sends after
+  // carries it (viewerPerf hb_pairs dt / dn)
+  const n = ++_colWitnessN;
+  emitTelemetry("collision.sweep_witness", { id, run_gen: r.gen, range_from: r.range, shard: w.shard, gen: w.gen,
+                                             tick: w.tick, n });
+  noteWitnessDone(w.tick, n);
+}
+/** A witness tick (viewerPerf issues one after each heartbeat answer it
+ *  handled) goes to the worker while a check during a run computes. */
+function _colTick(tick: number) {
+  if (_colWorker && collisionBusy.value && _colRunReqs.has(_colReqId)) _colWorker.postMessage({ tick });
+}
 let _colKeepShown = false;
 // The main request in flight, whole: re-sent unchanged when the worker asks
 // for the bodies (needBodies) — the basis it was built from too.
@@ -3429,6 +3471,8 @@ function _colGetWorker(): Worker {
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
       const m = ev.data as ColMessage;
+      // a run check's slices, whatever became of its request (Codex R185)
+      if (m.witness) { _colNoteWitness(m.id, m.witness); return; }
       const mine = m.id === _colReqId || (!!_colSide && m.id === _colSide.id);
       // a superseded request's (its cancel went out), the bodies again, our
       // own cancel: at once — everything else of a request's path goes
@@ -3462,7 +3506,7 @@ function _colGetWorker(): Worker {
 }
 /** A message of the collision worker — `firstTouch` set here: it brings
  *  the request's first touch interval. */
-type ColMessage = { id: number; progress?: number; partial?: CollisionResult; firstTouch?: boolean; error?: string; result?: CollisionResult;
+type ColMessage = { id: number; witness?: CollisionWitness; progress?: number; partial?: CollisionResult; firstTouch?: boolean; error?: string; result?: CollisionResult;
                     needBodies?: boolean; cancelled?: boolean; stopped?: boolean; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
                     heldCoverage?: { generation: number; covered: number[] } };
 
@@ -3519,6 +3563,7 @@ function _colOnMessage(m: ColMessage) {
         collisionResumable.value = true;
         collisionStopped.value = { covered: m.result!.truncated?.covered ?? 0, reason: "motion" };
         emitTelemetry("collision.sweep_stopped", {
+          id: m.id, run_gen: _colReqRunGen,
           reason: "motion", covered: m.result!.truncated?.covered ?? 0, intervals: _intervalRows(m.id),
           ms: Math.round(performance.now() - _colStartedAt),
         });
@@ -3529,7 +3574,7 @@ function _colOnMessage(m: ColMessage) {
       collisionPartial.value = null;
       if (m.error) {
         console.error("[collision] sweep failed:", m.error);
-        emitTelemetry("collision.sweep_failed", { msg: m.error });
+        emitTelemetry("collision.sweep_failed", { id: m.id, run_gen: _colReqRunGen, msg: m.error });
         collisionResult.value = null;
         collisionTrack.value = null;
         return;
@@ -3547,6 +3592,10 @@ function _colOnMessage(m: ColMessage) {
       // duration — the viewer perf probe's `sweep_busy` context field says
       // whether one overlapped a slow window; this row says how long it ran.
       emitTelemetry("collision.sweep_done", {
+        // the request and the run check (its generation, null outside a run)
+        // it computed for: the browser-PC report binds a run check's ACTIVE
+        // interval, start to end, to a parse by them (Codex R183 VP183-01)
+        id: m.id, run_gen: _colReqRunGen,
         ms: Math.round(performance.now() - _colStartedAt),
         bvh_ms: Math.round(result.bvhMs), sweep_ms: Math.round(result.sweepMs),
         samples: result.samples, coarsened: result.coarsened,
@@ -3594,6 +3643,7 @@ function cancelCollisionCheck() {
   // unread until it finished. Terminate + lazy recreate is the honest cancel.
   if (collisionBusy.value) {
     emitTelemetry("collision.sweep_cancelled", {
+      id: _colReqId, run_gen: _colReqRunGen,
       ran_ms: Math.round(performance.now() - _colStartedAt), progress: collisionProgress.value,
     });
   }
@@ -3868,7 +3918,8 @@ function _colWcs(basis: CheckBasis): PartFrameWcs {
  *  (`__viewerDiag.setCollisionShards`): undefined = as many as the worker
  *  chooses. */
 let _colMaxShards: number | undefined;
-function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: CheckBasis, range?: { from: number }) {
+function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: CheckBasis, range?: { from: number },
+                          witness = false) {
   const init = viewerInit.value;
   if (!init) return null;
   const modelKey = _colModelKey(init, basis);
@@ -3932,6 +3983,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
   ];
   const msg = {
     id,
+    // a check during a run stamps its slices for the browser-PC report (Codex R185)
+    ...(witness ? { witness: true } : {}),
     machine: _pfMachine(init),           // same shape as CollisionMachine
     bodies: sendBodies ? bodies : undefined,
     modelKey,
@@ -4002,13 +4055,17 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   const id = ++_colReqId;
   _colReleaseContacts();
   const basis = run?.basis ?? _checkBasisNow();
-  const req = _colBuildRequest(track, id, false, basis, run?.range);
+  const req = _colBuildRequest(track, id, false, basis, run?.range, run?.gen != null);
   if (!req) return;
   _colBasis = basis;
   _colPendingCtx = _colContextFor(basis, track, run);
   if (!run?.keepShown) collisionContext.value = _colPendingCtx;
   _colReqMeta = { maxShards: req.msg.maxShards ?? null, sliceMs: req.msg.sliceMs ?? null, range: run?.range?.from ?? null };
   _colReqRunGen = run?.gen ?? null;
+  if (run?.gen != null) {
+    _colRunReqs.set(id, { gen: run.gen, range: run.range?.from ?? null });
+    if (_colRunReqs.size > 8) _colRunReqs.delete(_colRunReqs.keys().next().value as number);
+  }
   _colKeepShown = !!run?.keepShown;
   _colPendingRun = run ? { ...run, basis } : { basis, gen: null };
   collisionPrevious.value = null;   // a check of the displayed preview begins
@@ -4022,7 +4079,8 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   collisionStopped.value = null;
   _colRotaryAtStart = _rotaryNow();
   _colStartedAt = performance.now();
-  emitTelemetry("collision.sweep_start", { points: track.count, bodies: req.bodies });
+  emitTelemetry("collision.sweep_start", { id, run_gen: run?.gen ?? null, range_from: run?.range?.from ?? null,
+                                          points: track.count, bodies: req.bodies });
   try {
     _colGetWorker().postMessage(req.msg, req.transfer);
     _colModelSent = req.modelKey;   // the worker now holds (or is building) this model
@@ -4131,7 +4189,7 @@ function _startRunCheck(): boolean {
     // (a point nothing vouches for keeps its own number, collision.ts noteLine)
     fromLine: from != null ? displayLineForPoint(track, from + 1, true).line ?? track.lines[from + 1] ?? null : null };
   if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();
-  emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from });
+  emitTelemetry("collision.run_check_start", { version: g.publishedVersion ?? null, run: rb.runId, from, gen });
   _colRunLog.push(from != null ? `start provisional ${from}` : "start full");
   runCollisionCheck(track, { basis, gen, ...(from != null ? { range: { from } } : {}) });
   if (bound) _colPostSide(sliceTrack(bound, 0, Math.min(K + 1, bound.count - 1) + 1), bound, track,
@@ -5042,6 +5100,7 @@ onUnmounted(() => {
   themeMedia?.removeEventListener("change", updateSceneTheme);
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
+  setWitnessTickSink(null);
   setViewerPerfGl(null);
   clearTimeout(_pfWcsTimer);
   clearTimeout(_colAutoTimer);
@@ -5139,6 +5198,7 @@ watch(
     if (!msg?.data) return;
     const tm: ToolMeta | null = msg.tool_meta ?? null;
     pendingState = tm ? { ...msg.data, tool_meta: tm } : msg.data;
+    notePendingReceipt(statusReceiptOf(msg));   // its frames' socket receipt waits for the apply
     if (tm && msg.data.tool_number != null) {
       setToolMeta(msg.data.tool_number, tm);
     }

@@ -9286,8 +9286,17 @@ async def ws_endpoint(ws: WebSocket):
                     #   Cycle = Poll + Errors + Parse + Overhead  (server-side)
                     hb_mono = _clients[client_id].hb_mono if client_id in _clients else 0.0
                     if hb_mono > 0:
+                        # ONE stamp for the hold time and `g_mono_ms`: taken
+                        # after the heartbeat's receipt and before this reply
+                        # leaves — the browser-PC report orders a parse's own
+                        # bounds (the worker's, same monotonic clock) against
+                        # the page's send and receipt by it (Codex R185).
+                        # `g_pid` names the gateway that stamped it.
+                        _g_mono = time.monotonic()
                         status_msg["timing"] = {
-                            "server_ms": round((time.monotonic() - hb_mono) * 1000, 2),
+                            "server_ms": round((_g_mono - hb_mono) * 1000, 2),
+                            "g_mono_ms": round(_g_mono * 1000, 3),
+                            "g_pid": os.getpid(),
                             "cycle_ms": _shared_timing.get("cycle_ms", 0),
                             "poll_ms": _shared_timing.get("poll_ms", 0),
                             "errors_ms": _shared_timing.get("errors_ms", 0),
@@ -9305,7 +9314,11 @@ async def ws_endpoint(ws: WebSocket):
                             "encode_ms": _prev_encode_ms,
                         }
                         if client_id in _clients:
+                            # the heartbeat this answers, by the client's own number
+                            if _clients[client_id].hb_seq is not None:
+                                status_msg["timing"]["hb_seq"] = _clients[client_id].hb_seq
                             _clients[client_id].hb_mono = 0.0
+                            _clients[client_id].hb_seq = None
 
                     pre_send = time.monotonic()
                     # Mark the client as having an in-flight send. Cleared in
@@ -9679,6 +9692,9 @@ async def ws_endpoint(ws: WebSocket):
                     _clients[client_id].last_hb = time.time()
                     _clients[client_id].last_hb_mono = _now_mono
                     _clients[client_id].hb_mono = _now_mono
+                    _hb_seq = msg.get("seq")
+                    _clients[client_id].hb_seq = (_hb_seq if isinstance(_hb_seq, int) and not isinstance(_hb_seq, bool)
+                                                  and 0 <= _hb_seq < 2**53 else None)
                     _clients[client_id].hb_ring.append(_now_mono)
                 await ws_send_json(ws, {"type": "pong"})
                 continue

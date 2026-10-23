@@ -15,6 +15,7 @@
 import { computed, ref, shallowRef } from "vue";
 import { OPERATOR_DISPLAY, OPERATOR_ERROR } from "../lcnc";
 import { parsePreviewOrigin, parseRunBasis, type PreviewOrigin, type RunBasis } from "../runBasis";
+import { emitTelemetry } from "./telemetry";
 
 export interface LcncMessage {
   id: number;
@@ -383,6 +384,19 @@ export function notePong(): void {
 let _pendingStatus: any = null;
 let _lastRflTs = 0;   // dedupe for rfl_status frames (same phase repeats per tick)
 let _flushScheduled = false;
+// The oldest socket receipt among the frames folded into the pending status,
+// and per flushed status object the receipt it carries (Codex R182 VP182-01:
+// the receipt travels with the buffered status — the viewer's apply of an
+// older flush never takes the receipt of a frame still waiting here).
+let _pendingRx = 0;
+const _rxOf = new WeakMap<object, number>();
+
+/** The oldest socket receipt (global clock) of the frames folded into this
+ *  flushed status object; undefined for a status no frame carried (a merge
+ *  patch, a frame without a stamp). */
+export function statusReceiptOf(st: unknown): number | undefined {
+  return st && typeof st === "object" ? _rxOf.get(st) : undefined;
+}
 let _lastToolMeta: { num: number; meta: any } | null = null;
 
 /**
@@ -398,8 +412,11 @@ export function rebaseStatusDelta(msg: any): void {
   msg.type = "status";
 }
 
-/** The full former `status` branch of onFrame — behavior preserved verbatim. */
-export function handleStatusMessage(msg: any): void {
+/** The full former `status` branch of onFrame — behavior preserved verbatim.
+ *  `rx` is the frame's socket receipt in the WS worker (global clock): the
+ *  oldest receipt folded into a flush travels with it (`statusReceiptOf`). */
+export function handleStatusMessage(msg: any, rx?: number): void {
+  if (typeof rx === "number" && rx > 0 && (_pendingRx === 0 || rx < _pendingRx)) _pendingRx = rx;
   // Only act on status messages that carry timing (heartbeat-triggered).
   // Plain status messages arrive first and must NOT consume _rtSentAt.
   if (msg.timing) {
@@ -482,6 +499,7 @@ export function handleStatusMessage(msg: any): void {
   // view shows its result — the same line, the same muted path.
   const prWire = msg.preview_refresh;
   _frameHadRefresh = !!(prWire && typeof prWire === "object");
+  _noteParseSeen(_frameHadRefresh ? prWire : null, rx);
   const pr = _frameHadRefresh ? prWire : (previewBasisPending.value
     ? { reason: "tool_offset", file: previewToolBasis.value?.file ?? previewRefresh.value?.file ?? "",
         expected_ms: null, started_ms: previewRefresh.value?.started_ms ?? null, queued: false, superseded: 0 }
@@ -572,6 +590,30 @@ export function handleStatusMessage(msg: any): void {
   }
 }
 
+// The gateway's parse in flight as this page SAW it (Codex R183 VP183-01):
+// each parse's first and last status frames, by the frame's socket receipt
+// on this page's clock. The gateway names the parse by its job (the trace's
+// `job`, Codex R185 — no match on its start time; `started_ms`, its wall
+// clock, rides along). Information beside the report's proof, which orders
+// the parse's own bounds against paired heartbeats (viewerPerf `hb_pairs`).
+let _parseSeen: { key: string; job: number | null; started: number | null; reason: string } | null = null;
+function _parseSeenOff(rxMs: number | null, why?: string): void {
+  if (_parseSeen) emitTelemetry("preview.parse_seen", { state: "off", job: _parseSeen.job, started_ms: _parseSeen.started,
+                                                        rx_ms: rxMs, ...(why ? { why } : {}) });
+  _parseSeen = null;
+}
+function _noteParseSeen(pr: any, rx: number | undefined): void {
+  const rxMs = typeof rx === "number" && rx > 0 ? Math.round((rx - performance.timeOrigin) * 10) / 10 : null;
+  if (!pr) { _parseSeenOff(rxMs); return; }
+  const job = typeof pr.job === "number" ? pr.job : null;
+  const started = typeof pr.started_ms === "number" ? pr.started_ms : null;
+  const key = job !== null ? `j${job}` : `s${started}`;
+  if (_parseSeen && _parseSeen.key === key) return;
+  _parseSeenOff(rxMs);
+  _parseSeen = { key, job, started, reason: String(pr.reason ?? "") };
+  emitTelemetry("preview.parse_seen", { state: "on", job, started_ms: started, reason: _parseSeen.reason, rx_ms: rxMs });
+}
+
 // Hoisted rAF callback (WS-E): one module-level function instead of a fresh
 // closure per scheduled flush on the 30 Hz status path.
 function _flushPending(): void {
@@ -581,6 +623,8 @@ function _flushPending(): void {
     // `status.value`, so it always carries the freshest fetched value even if
     // that fetch resolved while this frame was sitting in the buffer.
     _applyBulkCarry(_pendingStatus);
+    if (_pendingRx > 0) _rxOf.set(_pendingStatus, _pendingRx);
+    _pendingRx = 0;
     status.value = _pendingStatus;
     _pendingStatus = null;
   }
@@ -664,6 +708,9 @@ function _applyBulkCarry(msg: any): void {
 
 /** WS close: latency readouts and RTT anchors are connection-scoped. */
 export function resetOnClose(): void {
+  // a parse seen on the closed socket: its end is not seen here (a restarted
+  // gateway numbers its jobs from 1 again)
+  _parseSeenOff(null, "closed");
   latency.value = null;
   networkLatency.value = null;
   _heartbeatSentAt = _rtSentAt = 0;

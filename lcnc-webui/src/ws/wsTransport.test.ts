@@ -62,9 +62,10 @@ describe("transport lifecycle", () => {
     expect(connect.session).toBeTypeOf("string");
     expect(connect.session.length).toBeGreaterThan(0);
 
-    // Worker events are relayed verbatim to the orchestrator callback.
+    // A spawn says itself first (a new context: a new clock relation, Codex
+    // R186); worker events are relayed verbatim to the orchestrator callback.
     w.onmessage!({ data: { type: "open", attempt: 1 } });
-    expect(events).toEqual([{ type: "open", attempt: 1 }]);
+    expect(events).toEqual([{ type: "spawned" }, { type: "open", attempt: 1 }]);
   });
 
   it("session id is stable across reconnects (sessionStorage-backed)", () => {
@@ -121,12 +122,13 @@ describe("worker supervision", () => {
     const w1 = lastWorker();
     w1.onerror!({ message: "load failed", preventDefault() {} });
     expect(w1.terminated).toBe(true);
-    expect(events).toEqual([expect.objectContaining({ type: "error", kind: "worker_load_failed" })]);
+    expect(events).toEqual([{ type: "spawned" }, expect.objectContaining({ type: "error", kind: "worker_load_failed" })]);
     expect(sendCommand("{}", "heartbeat", false)).toBe(false);   // nothing to post to meanwhile
     vi.advanceTimersByTime(1_999);
     expect(FakeWorker.instances).toHaveLength(1);
     vi.advanceTimersByTime(1);
     expect(FakeWorker.instances).toHaveLength(2);
+    expect(events[events.length - 1], "the respawn says itself").toEqual({ type: "spawned" });
     expect(lastWorker().posted[0]).toMatchObject({ type: "connect", url: "ws://x/ws" });
   });
 
