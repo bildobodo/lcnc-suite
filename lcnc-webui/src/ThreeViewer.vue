@@ -15,7 +15,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, previewDecodeFailure, gcodeRevision, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
@@ -52,6 +52,8 @@ import { partCollides, startDependentOf } from "./viewer/collision";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import type { CollisionWitness } from "./viewer/collisionWorker";
 import { copyTrackForWorker } from "./viewer/colTrackCopy";
+import { freeHold, holdStep, type Hold, type HoldEvent } from "./viewer/bakeHold";
+import { bakeFollowsOffsets, bakeKey, pathBehind, type BakeMode } from "./viewer/pathBasis";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
@@ -710,8 +712,17 @@ const toolpath = createToolpathController({
 // or while the payload's fixture offsets / tool length are known to
 // differ from the live ones, the operator sees "not current" on the
 // geometry itself, not only in a chip.
+// The DRAWN path's own state (VP188-02 E2, plan basiswechsel-last 3b, Codex
+// VP193-01): the key of the bake whose geometry is on screen (set only when
+// a path is APPLIED) against the key of the adopted preview at the live
+// values (null where the path does not follow the offsets). A preview whose
+// parse basis matches proves nothing about the geometry: an offset change
+// held while the gateway re-parsed, or an adopted payload whose part-frame
+// reply is still out, leave the drawn path behind — muted until it is not.
+const drawnKey = ref<string | null>(null);
+const wantKey = ref<string | null>(null);
 const pathStaleNow = computed(() => !!previewRefresh.value || previewWcsStale.value || !!previewTloStale.value
-  || !!previewTableStale.value);
+  || !!previewTableStale.value || pathBehind(drawnKey.value, wantKey.value));
 watch(pathStaleNow, (stale) => { toolpath.setStale(stale); requestRender(); }, { immediate: true });
 // Machine bounds from the LIVE joint limits (status `joint_limits`, joint
 // order → letters via viewer_init.axes), else the INI-derived viewer_init
@@ -1581,6 +1592,7 @@ function ensureCoreGroups(init: ViewerInit) {
   _lastToolMeta = null;
   surface.forgetAfterSceneClear();
   toolpath.forgetAfterSceneClear();
+  drawnKey.value = null;   // the geometry is gone — no key may vouch for it (Codex R194)
 
   // Clear old group references
   for (const key of Object.keys(groups)) delete groups[key];
@@ -2106,6 +2118,18 @@ async function buildFromInit(init: ViewerInit) {
         // The part-B memory ledger (Codex R39 VP39-01): bytes by owner, CPU
         // per unique ArrayBuffer, GPU per buffer actually uploaded.
         getPathMemory: () => toolpath.pathMemory(),
+        // VP188-02 E2: the drawn path's key against the wanted one, the hold
+        getPathBasis: () => ({ drawn: drawnKey.value, want: wantKey.value,
+          behind: pathBehind(drawnKey.value, wantKey.value), stale: pathStaleNow.value,
+          hold: _hold.state, held: _hold.held, mode: _pfAppliedMode, admission: _holdAdmission() }),
+        // test seam: part-frame replies queued until released (a reply "still out")
+        holdPartFrameReplies: (on: boolean) => { _pfHoldReplies = on; },
+        setBakeDebounceMs: (ms: number) => { _pfWcsDebounceMs = ms; },
+        releasePartFrameReplies: () => {
+          const q = _pfHeldReplies.splice(0);
+          for (const ev of q) _pfOnReply(ev);
+          return q.length;
+        },
         // The drawn path's world box, and an explicit camera pose (Codex R39:
         // a segment through the near plane, e2e/fatpaths.viewer.spec.ts).
         getPathBox: () => { const b = toolpath.pathWorldBox(); return b ? { min: b.min.toArray(), max: b.max.toArray() } : null; },
@@ -2767,6 +2791,9 @@ function applyState(init: ViewerInit, st: ViewerState) {
       _pfScheduleWcsRefresh(); _colOnInputChange(st);
     }
   }
+  // The active fixture decides whether a programmed path follows the offsets.
+  if ((st.g5x_index ?? 0) !== _wantIdx) { _wantIdx = st.g5x_index ?? 0; _wantDirty = true; }
+  if (_wantDirty) { _wantDirty = false; _refreshWantKey(); }
   // tool_meta is null on the vast majority of ticks; the gateway sends a fresh
   // object only on a real change, so a reference compare is sufficient + cheap.
   if (toolMeta !== _pv.toolMeta) { _pv.toolMeta = toolMeta; changed = true; }
@@ -2824,6 +2851,18 @@ let _pfPending = false;   // a part-frame transform is in flight (perf-probe con
 let _pfLoadedFor: ViewerGcode | null = null;
 let _pfPayloadId = 0;
 let _pfAppliedMode: "part" | "programmed" | null = null;
+// The key of the part-frame request in flight: the reply that applies sets it
+// as drawn (VP188-02 E2 3b) — request, anchor and key from one snapshot.
+let _pfKeyFor: { id: number; key: string } | null = null;
+// Test seam (__viewerDiag.holdPartFrameReplies): replies queued until released.
+let _pfHoldReplies = false;
+// wantKey is renewed once per status frame, after ALL its fields (Codex R194).
+let _wantDirty = false;
+// The re-bake's debounce (300 ms); a test seam stretches it to make a pending
+// timer observable (__viewerDiag.setBakeDebounceMs).
+let _pfWcsDebounceMs = 300;
+let _wantIdx = -1;
+const _pfHeldReplies: MessageEvent[] = [];
 // The anchor the in-flight part-frame request was baked against — applied
 // together with its reply (never from live status).
 let _pfAnchorFor: { id: number; anchor: AnchorTerms } | null = null;
@@ -2835,77 +2874,87 @@ let _pfWcsTimer: ReturnType<typeof setTimeout> | undefined;
 function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
-    _pfWorker.onmessage = (ev: MessageEvent) => timeSpan("path_reply", () => {
-      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; rapidSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
-      if (m.id !== _pfReqId) return;  // superseded
-      _pfPending = false;
-      const g = viewerGcode.value;
-      if (!g) return;
-      if (m.needPayload != null) {
-        // The worker does not hold this program (recreated, or a transform
-        // that raced a program change): re-send the streams and retry once.
-        _pfLoadedFor = null;
-        applyGcode(g);
-        return;
-      }
-      if (m.error) {
-        console.error("[partFrame] transform failed — programmed preview used:", m.error);
-        _applyProgrammed(g);
-        requestRender();
-        return;
-      }
-      const out: ViewerGcode = {
-        ...g,
-        feedPos: m.feedPos, feed_lines: m.feedLines, feedLineIndex: m.feedLineIndex,
-        rapidPos: m.rapidPos, rapidDist: m.rapidDist,
-        feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
-        // Source track index per baked vertex (subdivided samples share
-        // their segment's): the finding's section addresses both streams.
-        feedSrc: m.feedSrc, rapidSrc: m.rapidSrc,
-        // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
-        // the part; absent when the transform had no boundary to apply.
-        feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
-        // The validator's outside-limits flag carried per baked sample (2026-09-12).
-        feedOutside: m.feedOutside, rapidOutside: m.rapidOutside,
-        // Display LOD levels cut over the BAKED vertices (the payload's own
-        // levels address the programmed vertices, a different space).
-        feedLod: m.feedLod, rapidLod: m.rapidLod, lodTols: m.lodTols, lodMs: m.lodMs,
-      };
-      if ((g.wcsEvents?.length ?? 0) > 1) {
-        // Multi-epoch payload: the shipped bounds boxes mix frames. The
-        // part-frame output is already in the live active frame (per-epoch
-        // terms on the input side, single peel on the output) — recompute
-        // the boxes from it so the overflow tint tests real geometry.
-        const fb = m.feedPos ? boundsOf(m.feedPos) : null;
-        const rb = m.rapidPos ? boundsOf(m.rapidPos) : null;
-        out.motion_bounds = fb && rb
-          ? { min: fb.min.map((v, i) => Math.min(v, rb.min[i]!)),
-              max: fb.max.map((v, i) => Math.max(v, rb.max[i]!)) }
-          : (fb ?? rb);
-        out.bounds = fb
-          ? (rb
-            ? { min: [Math.min(fb.min[0]!, rb.min[0]!), Math.min(fb.min[1]!, rb.min[1]!), fb.min[2]!],
-                max: [Math.max(fb.max[0]!, rb.max[0]!), Math.max(fb.max[1]!, rb.max[1]!), fb.max[2]!] }
-            : fb)
-          : null;
-      }
-      if (!_pfAnchorFor || _pfAnchorFor.id !== m.id) {
-        // Cannot happen (the anchor is stored with the request id) — but a
-        // baked path under the live origin is the exact bug this guards.
-        console.error("[partFrame] reply without its anchor — programmed preview used");
-        _applyProgrammed(g);
-        requestRender();
-        return;
-      }
-      toolpath.apply(toolpathCtx(), out, _pfAnchorFor.anchor);
-      requestRender();
-    });
+    _pfWorker.onmessage = (ev: MessageEvent) => {
+      if (_pfHoldReplies) { _pfHeldReplies.push(ev); return; }
+      _pfOnReply(ev);
+    };
     _pfWorker.onerror = (ev) => {
       console.error("[partFrame] worker error — programmed preview used:", ev.message);
       if (viewerGcode.value) _applyProgrammed(viewerGcode.value);
     };
   }
   return _pfWorker;
+}
+/** The part-frame worker's reply: the baked streams applied under THEIR
+ *  request's anchor, and that request's key set as drawn (VP188-02 E2 3b). */
+function _pfOnReply(ev: MessageEvent) {
+  timeSpan("path_reply", () => {
+    const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; rapidSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
+    if (m.id !== _pfReqId) return;  // superseded
+    _pfPending = false;
+    const g = viewerGcode.value;
+    if (!g) return;
+    if (m.needPayload != null) {
+      // The worker does not hold this program (recreated, or a transform
+      // that raced a program change): re-send the streams and retry once.
+      _pfLoadedFor = null;
+      applyGcode(g);
+      return;
+    }
+    if (m.error) {
+      console.error("[partFrame] transform failed — programmed preview used:", m.error);
+      _applyProgrammed(g);
+      requestRender();
+      return;
+    }
+    const out: ViewerGcode = {
+      ...g,
+      feedPos: m.feedPos, feed_lines: m.feedLines, feedLineIndex: m.feedLineIndex,
+      rapidPos: m.rapidPos, rapidDist: m.rapidDist,
+      feedBreaks: m.feedBreaks, rapidBreaks: m.rapidBreaks,
+      // Source track index per baked vertex (subdivided samples share
+      // their segment's): the finding's section addresses both streams.
+      feedSrc: m.feedSrc, rapidSrc: m.rapidSrc,
+      // Room split (2026-09-11): per drawn vertex, baked room-fixed or on
+      // the part; absent when the transform had no boundary to apply.
+      feedRoom: m.feedRoom, rapidRoom: m.rapidRoom,
+      // The validator's outside-limits flag carried per baked sample (2026-09-12).
+      feedOutside: m.feedOutside, rapidOutside: m.rapidOutside,
+      // Display LOD levels cut over the BAKED vertices (the payload's own
+      // levels address the programmed vertices, a different space).
+      feedLod: m.feedLod, rapidLod: m.rapidLod, lodTols: m.lodTols, lodMs: m.lodMs,
+    };
+    if ((g.wcsEvents?.length ?? 0) > 1) {
+      // Multi-epoch payload: the shipped bounds boxes mix frames. The
+      // part-frame output is already in the live active frame (per-epoch
+      // terms on the input side, single peel on the output) — recompute
+      // the boxes from it so the overflow tint tests real geometry.
+      const fb = m.feedPos ? boundsOf(m.feedPos) : null;
+      const rb = m.rapidPos ? boundsOf(m.rapidPos) : null;
+      out.motion_bounds = fb && rb
+        ? { min: fb.min.map((v, i) => Math.min(v, rb.min[i]!)),
+            max: fb.max.map((v, i) => Math.max(v, rb.max[i]!)) }
+        : (fb ?? rb);
+      out.bounds = fb
+        ? (rb
+          ? { min: [Math.min(fb.min[0]!, rb.min[0]!), Math.min(fb.min[1]!, rb.min[1]!), fb.min[2]!],
+              max: [Math.max(fb.max[0]!, rb.max[0]!), Math.max(fb.max[1]!, rb.max[1]!), fb.max[2]!] }
+          : fb)
+        : null;
+    }
+    if (!_pfAnchorFor || _pfAnchorFor.id !== m.id) {
+      // Cannot happen (the anchor is stored with the request id) — but a
+      // baked path under the live origin is the exact bug this guards.
+      console.error("[partFrame] reply without its anchor — programmed preview used");
+      _applyProgrammed(g);
+      requestRender();
+      return;
+    }
+    if (toolpath.apply(toolpathCtx(), out, _pfAnchorFor.anchor) && _pfKeyFor?.id === m.id) {
+      drawnKey.value = _pfKeyFor.key;   // what this request baked with — never the live values
+    }
+    requestRender();
+  });
 }
 
 function _pfMachine(init: ViewerInit): PartFrameMachine {
@@ -4387,23 +4436,36 @@ function _applyProgrammedNow(g: ViewerGcode) {
       anchor = anchorTerms(live);
     }
   }
-  toolpath.apply(toolpathCtx(), out, anchor);
+  // drawn: the programmed path at the values it was rebased with (a fallback
+  // from a failed part-frame transform names THIS display, not the part's)
+  if (toolpath.apply(toolpathCtx(), out, anchor)) drawnKey.value = _bakeKeyOf(g, "programmed", _pfWcs());
 }
 
 function applyGcode(g: ViewerGcode) {
+  // Any bake uses the live values now: a debounced re-bake still pending
+  // would only repeat it (VP188-02 E2 3a — the adoption and a catch-up
+  // consume it).
+  clearTimeout(_pfWcsTimer);
+  _applyGcodeNow(g);
+  _refreshWantKey();
+}
+function _applyGcodeNow(g: ViewerGcode) {
   if (_partFrameEligible(g)) {
     _pfAppliedMode = "part";
     const id = ++_pfReqId;
     _pfPending = true;
     // The terms the worker peels against — the reply hangs under THIS
-    // anchor, not under whatever the live origin is by then.
-    _pfAnchorFor = { id, anchor: anchorTerms(_pfWcs()) };
+    // anchor, not under whatever the live origin is by then. Request, anchor
+    // and key from ONE snapshot (Codex R194).
+    const wcs = _pfWcs();
+    _pfAnchorFor = { id, anchor: anchorTerms(wcs) };
+    _pfKeyFor = { id, key: _bakeKeyOf(g, "part", wcs) };
     try {
       const w = _pfGetWorker();
       _pfEnsureLoaded(w, g);
       w.postMessage({
         op: "transform", id, payloadId: _pfPayloadId,
-        machine: _pfMachine(viewerInit.value!), wcs: _pfWcs(),
+        machine: _pfMachine(viewerInit.value!), wcs,
         // Epochs (review P2): events + the live table let the worker build
         // per-epoch re-add terms next to the per-vertex `wcs` indices.
         wcsEvents: g.wcsEvents,
@@ -4480,6 +4542,7 @@ function _jointLimitsPlain(): (number[] | null)[] | null {
 // origin, so a WCS change (touch-off, G10, G92, rotation) re-transforms —
 // debounced, these change rarely and never mid-cut at speed.
 function _pfScheduleWcsRefresh() {
+  _wantDirty = true;   // a bake input changed: wantKey after this frame's fields
   _reachSchedule();   // the envelope follows the tool length (and the limits, below)
   // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table
   // changes — but ONLY when the display rebase can differ from identity:
@@ -4489,17 +4552,110 @@ function _pfScheduleWcsRefresh() {
   // gate fix: wcs_frames ships ≥1 row on every modern payload, so the old
   // bare length check re-ran a full rebuild of a 99k-point program on
   // every G43 the toolchange sub issued.
-  if (_pfAppliedMode !== "part") {
-    const evs = viewerGcode.value?.wcsEvents;
-    if (!evs?.length) return;
-    if (evs.length === 1 && !evs[0]!.rewritten
-        && evs[0]!.idx === (vst.value?.g5x_index ?? 0)) return;
-  }
+  if (_pfAppliedMode !== "part" && !_bakeFollowsOffsetsNow(viewerGcode.value)) return;
   clearTimeout(_pfWcsTimer);
   _pfWcsTimer = setTimeout(() => {
-    if (viewerGcode.value) applyGcode(viewerGcode.value);
-  }, 300);
+    // VP188-02 E2 (plan basiswechsel-last 3a): while the gateway re-parses
+    // the program, the bake is held — its publication replaces the path
+    // anyway; the drawn path stays muted meanwhile (pathBehind)
+    const g = viewerGcode.value;
+    if (g && _holdApply({ kind: "bake" })) applyGcode(g);
+  }, _pfWcsDebounceMs);
 }
+
+// ---- VP188-02 E2: the bake hold and the drawn path's key (plan
+// basiswechsel-last 3a/3b, Codex R193/R194) ----
+/** The key of a bake: what it bakes with, as a VALUE (pathBasis.ts). */
+function _bakeKeyOf(g: ViewerGcode, mode: BakeMode, wcs: PartFrameWcs): string {
+  return bakeKey({ file: g.file ?? null, version: g.publishedVersion ?? null, mode,
+                   g5x: wcs.g5x, g92: wcs.g92, rotationDeg: wcs.rotationDeg, tool: wcs.tool,
+                   table: g.wcsEvents?.length ? _pv.wcsTableKey : null });
+}
+/** _pfScheduleWcsRefresh's own criterion: the drawn path is baked from the
+ *  offsets (the part frame; a programmed rebase that can differ). */
+function _bakeFollowsOffsetsNow(g: ViewerGcode | null | undefined): boolean {
+  return !!g && bakeFollowsOffsets(_pfAppliedMode, g.wcsEvents, vst.value?.g5x_index ?? 0);
+}
+/** What should be drawn: the adopted preview at the live values, in the
+ *  display decided for it — null where the path follows the live origin. */
+function _refreshWantKey() {
+  const g = viewerGcode.value;
+  wantKey.value = g && _pfAppliedMode && _bakeFollowsOffsetsNow(g)
+    ? _bakeKeyOf(g, _pfAppliedMode, _pfWcs()) : null;
+}
+let _hold: Hold = freeHold();
+let _holdTimer: ReturnType<typeof setTimeout> | undefined;
+let _connEpoch = 0;
+/** One step of the hold; a new window arms its timer (named by its number —
+ *  an old timer does nothing). Returns whether to bake now. */
+function _holdApply(e: HoldEvent): boolean {
+  const before = _hold.n;
+  const r = holdStep(_hold, e);
+  _hold = r.hold;
+  if (_hold.n !== before) {
+    clearTimeout(_holdTimer);
+    if (_hold.deadline != null) {
+      const n = _hold.n;
+      _holdTimer = setTimeout(() => _holdEvent({ kind: "deadline", n }),
+                              Math.max(0, _hold.deadline - performance.now()));
+    }
+  }
+  return r.bake;
+}
+/** An event from outside the bake timer: a catch-up bake runs at once. */
+function _holdEvent(e: HoldEvent) {
+  const g = viewerGcode.value;
+  if (_holdApply(e) && g) applyGcode(g);
+}
+/** A parse of the program in the status — admitted at EVERY refresh, never
+ *  only at an edge: connected, no run, no simulation, the displayed program,
+ *  a path that follows the offsets. */
+function _holdRefresh() {
+  const pr = previewRefresh.value;
+  if (!pr) return;
+  const g = viewerGcode.value;
+  _holdEvent({ kind: "refresh", admitted: _holdAdmission() === null, file: g?.file ?? "",
+               version: g?.publishedVersion ?? -1, epoch: _connEpoch });
+}
+/** Why a parse in the status holds nothing now — null: admitted. */
+function _holdAdmission(): string | null {
+  const pr = previewRefresh.value;
+  const g = viewerGcode.value;
+  const file = g?.file ?? null;
+  if (!pr) return "no parse";
+  if (!g || file == null) return "no program";
+  if (!connected.value) return "not connected";
+  if (_runInProgress(status.value?.data)) return "a run";
+  if (simMode.value) return "the simulation";
+  if (file.slice(file.lastIndexOf("/") + 1) !== pr.file) return "another program's parse";
+  if (!_bakeFollowsOffsetsNow(g)) return "the path follows the live origin";
+  return null;
+}
+watch(previewRefresh, (pr, old) => {
+  if (pr) _holdRefresh();
+  else if (old) _holdEvent({ kind: "refreshGone", now: performance.now() });
+});
+// ...and whenever the admission itself changes under a parse already in the
+// status (a run that ended a frame after the parse signal was taken, the
+// program displayed): the status and the parse signal need not land together
+watch(_holdAdmission, () => _holdRefresh());
+// the publication's ARRIVAL (viewer_gcode_ready), before fetch and decode
+watch(gcodeRevision, (rev) => {
+  const i = rev.lastIndexOf("#");
+  if (i > 0) _holdEvent({ kind: "arrival", file: rev.slice(0, i), version: Number(rev.slice(i + 1)), now: performance.now() });
+});
+// THIS decode's failure only (never previewLoadError — Codex R191 rest B)
+watch(previewDecodeFailure, (f) => {
+  if (f) _holdEvent({ kind: "decodeFailure", file: f.file, version: f.version });
+});
+// the connection, a run, the simulation end a hold with its catch-up
+watch(connected, (on) => {
+  if (on) return;
+  _connEpoch++;
+  _holdEvent({ kind: "end", catchUp: true });
+});
+watch(() => _runInProgress(status.value?.data), (run) => { if (run) _holdEvent({ kind: "end", catchUp: true }); });
+watch(simMode, (on) => { if (on) _holdEvent({ kind: "end", catchUp: true }); });
 // Joint limits arriving or changing (rare: connect, a runtime window change)
 // resize the reach envelope; the outside-limits flags follow through the
 // gateway's own limits drift edge (a reparse), never a client re-derivation.
@@ -5205,7 +5361,12 @@ watch(
 watch(
   () => viewerGcode.value,
   (g) => {
+    // the adoption ends a hold for this program's newer version (its own
+    // bake follows); another program ends it without a catch-up
+    _holdEvent({ kind: "adopted", file: g?.file ?? null, version: g?.publishedVersion ?? null });
     if (g) applyGcode(g);
+    else _refreshWantKey();
+    _holdRefresh();   // a parse already running for it begins a hold now
   },
 );
 

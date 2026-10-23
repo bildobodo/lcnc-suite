@@ -101,7 +101,7 @@ export interface ToolpathController {
    *  parented under ctx.pathRot and pathAnchor/pathRot are posed from it in
    *  the same call. null = raw program coordinates (no bake): the lines hang
    *  under the LIVE workRotGroup, whose re-add IS the transform. */
-  apply(ctx: ToolpathCtx, g: ViewerGcode, anchor?: AnchorTerms | null): void;
+  apply(ctx: ToolpathCtx, g: ViewerGcode, anchor?: AnchorTerms | null): boolean;
   /** Per rendered frame: picks each chunk's display LOD level from the
    *  world size of a device pixel at its distance (`heightPx` =
    *  drawing-buffer height; a level switch flips visibility) and counts the
@@ -1012,7 +1012,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
 
   return {
     apply(ctx, g, anchor = null) {
-      if (!ctx.scene || !ctx.workOrigin) return;
+      if (!ctx.scene || !ctx.workOrigin) return false;   // nothing applied — no key may say so (VP188-02 E2)
       _lastApply = { g, anchor };
       const workRotGroup = ctx.workRotGroup;
       // Baked geometry rides its OWN anchor, posed here and nowhere else —
@@ -1214,6 +1214,7 @@ export function createToolpathController(deps: ToolpathDeps): ToolpathController
       _peak = held0 + d;
 
       deps.requestRender();
+      return true;
     },
 
     updateBoxPattern(camera, cssW, cssH) {
