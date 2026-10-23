@@ -1,0 +1,14 @@
+test_actual_R188_truncation (__main__.Probes.test_actual_R188_truncation) ... ok
+test_both_saved_reports_and_unchanged_metrics (__main__.Probes.test_both_saved_reports_and_unchanged_metrics) ... ok
+test_exact_edge_threshold (__main__.Probes.test_exact_edge_threshold) ... ok
+test_long_internal_receipt_gap_with_window_chain (__main__.Probes.test_long_internal_receipt_gap_with_window_chain) ... ok
+test_missing_prefix_suffix_single_or_middle (__main__.Probes.test_missing_prefix_suffix_single_or_middle) ... ok
+test_missing_windows_fall_back_per_page (__main__.Probes.test_missing_windows_fall_back_per_page) ... ok
+test_report_expected_pages_wiring_and_historical_page (__main__.Probes.test_report_expected_pages_wiring_and_historical_page) ... ok
+test_silent_or_empty_page (__main__.Probes.test_silent_or_empty_page) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.395s
+
+OK
+Audit output: /tmp/codex-r189-reproduce-q08lmx41
