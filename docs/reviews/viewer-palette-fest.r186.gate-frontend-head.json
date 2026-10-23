@@ -1,0 +1,26 @@
+{
+  "head": "b723994a",
+  "uncommitted": 0,
+  "note": "R186 head: the sharpened parse_seen test",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 441,
+      "tests": "152 files, 2543 passed"
+    }
+  ]
+}

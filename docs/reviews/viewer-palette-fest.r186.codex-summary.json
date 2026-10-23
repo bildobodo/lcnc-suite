@@ -1,0 +1,82 @@
+{
+  "review": "R186",
+  "head": "b723994a1f6f7c6e18cc5ddb4a88cb0aa906a060",
+  "live_head": "55c81560f853360a132a13aa169eec958da7920f",
+  "verdict": "findings",
+  "closed": [
+    "VP185-01",
+    "VP185-02 VM/page event order implemented",
+    "VP183-04 visible RAF stalls no longer excluded"
+  ],
+  "open": [
+    "VP186-01: unbounded browser-context clock offset hidden by delivery/application delay; false-positive R and understated status age"
+  ],
+  "decisions": {
+    "Q1": "not a full combined proof yet; partial measurement remains permitted with unsupported cross-context claims not proven",
+    "Q2": "one-way checks insufficient; bounded per-instance relation or equivalent causal proof required",
+    "Q3": "preview-only synthetic parse ballast accepted for this load; no large payload inference",
+    "calibration_factor": "x2.7 called a lower bound is an estimate drawn from another run check; no additional calibration requested"
+  },
+  "repository_checks": {
+    "build": "PASS",
+    "unit": {
+      "passed": 92,
+      "failed": 0
+    },
+    "backend": {
+      "passed": 67,
+      "failed": 0,
+      "binding": "fake; in-process TestClient; native parse wrapper tested with replaced parse function"
+    },
+    "browser": {
+      "passed": 6,
+      "failed": 0,
+      "flaky": 0
+    },
+    "provided_tool_tests": {
+      "passed": 23,
+      "failed": 0
+    }
+  },
+  "own_probes": {
+    "typescript": {
+      "passed": 8,
+      "failed": 0,
+      "includes": "unchanged extracted viewer consumer and actual status/perf modules"
+    },
+    "python": {
+      "passed": 11,
+      "failed": 2,
+      "errors": 0,
+      "failure_cases": [
+        "delayed_message_masks_collision_clock_shift",
+        "delayed_apply_masks_ws_clock_shift"
+      ]
+    }
+  },
+  "limits": [
+    "clock shifts and message delays are controlled models, not a real host-sleep test on the Mac",
+    "no full gate or all mutations rerun",
+    "no actual full measurement or calibration executed"
+  ],
+  "boundaries": {
+    "machine_commands": false,
+    "live_endpoints_accessed": false,
+    "driver_main_executed": false,
+    "generator_main_executed": false,
+    "mock": "127.0.0.1:4188",
+    "archive": "/tmp/codex-r186-t9s1ym0l/repo",
+    "nice": 10,
+    "browser_workers": 1
+  },
+  "source_files_verified": 565,
+  "lfs_objects_verified": 4,
+  "archive_adaptations": [
+    "lcnc-webui/e2e/ctl.ts"
+  ],
+  "prior_evidence_unchanged": true,
+  "web_sources": [
+    "https://developer.mozilla.org/en-US/docs/Web/API/Performance/timeOrigin#synchronizing_time_between_contexts",
+    "https://bugzilla.mozilla.org/show_bug.cgi?id=1710762"
+  ]
+}

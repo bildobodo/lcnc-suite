@@ -1,0 +1,36 @@
+test_no_e_stop_is_sent_unless_still (test_bpc_tools.AnchorStill.test_no_e_stop_is_sent_unless_still) ... ok
+test_the_anchor_needs_a_known_standstill (test_bpc_tools.AnchorStill.test_the_anchor_needs_a_known_standstill)
+Codex R183 VP183-03 anchor_not_still. ... ok
+test_a_trip_stops_and_its_absence_clears_it (test_bpc_tools.DriverGuard.test_a_trip_stops_and_its_absence_clears_it) ... ok
+test_an_armed_remote_page_is_seen (test_bpc_tools.DriverGuard.test_an_armed_remote_page_is_seen) ... ok
+test_no_or_stale_envelope_is_no_pass (test_bpc_tools.DriverGuard.test_no_or_stale_envelope_is_no_pass) ... ok
+test_only_this_client_armed_passes (test_bpc_tools.DriverGuard.test_only_this_client_armed_passes) ... ok
+test_the_guard_cancels_the_running_sequence (test_bpc_tools.DriverGuard.test_the_guard_cancels_the_running_sequence) ... ok
+test_two_local_armed_clients_are_one_too_many (test_bpc_tools.DriverGuard.test_two_local_armed_clients_are_one_too_many)
+Codex's two_local_clients: an IP filter hid both. ... ok
+test_covered_samples_count_workers_at_once (test_bpc_tools.Memory.test_covered_samples_count_workers_at_once) ... ok
+test_uncovered_samples_are_not_collected (test_bpc_tools.Memory.test_uncovered_samples_are_not_collected) ... ok
+test_a_late_row_of_a_visible_page_stays_in_the_quantile (test_bpc_tools.Rows.test_a_late_row_of_a_visible_page_stays_in_the_quantile)
+Codex R183 VP183-04 visible_stall_rows: 60 ages of 100 ms in the row ... ok
+test_a_row_whose_actual_window_ran_long_is_an_edge_row (test_bpc_tools.Rows.test_a_row_whose_actual_window_ran_long_is_an_edge_row)
+Codex R185: the row's own span (win_ms), not the timer's 3 s, says ... ok
+test_a_visible_stall_with_a_long_frame_gap_keeps_its_peak (test_bpc_tools.Rows.test_a_visible_stall_with_a_long_frame_gap_keeps_its_peak)
+Codex R184 VP183-04 rest: a visible page, no visibility change, two ... ok
+test_rows_go_only_on_evidence_of_a_hidden_page (test_bpc_tools.Rows.test_rows_go_only_on_evidence_of_a_hidden_page) ... ok
+test_the_target_needs_a_complete_phase_and_agreeing_edges (test_bpc_tools.Rows.test_the_target_needs_a_complete_phase_and_agreeing_edges) ... ok
+test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) ... ok
+test_r_proven_by_two_heartbeats_inside_the_parse_and_a_slice_between (test_bpc_tools.Verdicts.test_r_proven_by_two_heartbeats_inside_the_parse_and_a_slice_between)
+Codex R185's example: the parse 20–25 s, A answered at 20.15 s, B ... ok
+test_r_takes_no_witness_from_a_clock_that_read_ahead_or_a_check_of_no_run (test_bpc_tools.Verdicts.test_r_takes_no_witness_from_a_clock_that_read_ahead_or_a_check_of_no_run) ... ok
+test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) ... ok
+test_a_gap_in_the_phase_is_listed_and_one_outside_is_not (test_bpc_tools.WatchdogReceipt.test_a_gap_in_the_phase_is_listed_and_one_outside_is_not) ... ok
+test_a_later_reset_does_not_move_the_mapping (test_bpc_tools.WatchdogReceipt.test_a_later_reset_does_not_move_the_mapping)
+The anchor is drive2's own reset, never the log's last one. ... ok
+test_another_instance_or_a_clock_step_is_not_proven (test_bpc_tools.WatchdogReceipt.test_another_instance_or_a_clock_step_is_not_proven)
+Codex's reset_mismatch and clock_step: a later log (the anchor's dump ... ok
+test_missing_pieces_are_not_proven (test_bpc_tools.WatchdogReceipt.test_missing_pieces_are_not_proven) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.507s
+
+OK

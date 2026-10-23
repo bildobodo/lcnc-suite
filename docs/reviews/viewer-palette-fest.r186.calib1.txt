@@ -1,0 +1,35 @@
+run: cycle start at 0 s, end at 598.4 s
+   -37.4 s  gateway gcode.spawn_start                  {"reason": "file"}
+   -34.7 s  gateway gcode.worker_done                  {"parse_ms": 2619.8}
+   -34.7 s  gateway gcode.publish                      {}
+   -33.8 s  page collision.sweep_start                 {}
+    -9.7 s  page collision.sweep_done                  {"ms": 23306, "samples": 205975, "covered": 1}
+     9.8 s  gateway gcode.reparse_table_midrun         {"reason": "table_mtime"}
+     9.8 s  gateway gcode.spawn_start                  {"reason": "midrun:table_mtime", "pinned": true}
+    12.6 s  gateway gcode.worker_done                  {"parse_ms": 2820.1}
+    12.6 s  gateway gcode.publish                      {"pinned": true}
+    14.4 s  page collision.run_check_start             {}
+    14.4 s  page collision.sweep_start                 {}
+    14.4 s  page collision.entry_start                 {}
+    37.5 s  page collision.sweep_done                  {"ms": 23055, "samples": 55398, "covered": 1}
+    37.5 s  page collision.sweep_start                 {}
+    40.9 s  gateway gcode.reparse_table_midrun         {"reason": "table_mtime"}
+    40.9 s  gateway gcode.spawn_start                  {"reason": "midrun:table_mtime", "pinned": true}
+    44.3 s  gateway gcode.worker_done                  {"parse_ms": 3347.0}
+    44.3 s  gateway gcode.publish                      {"pinned": true}
+    45.5 s  page collision.run_check_discarded         {}
+    45.5 s  page collision.sweep_cancelled             {}
+    45.5 s  page collision.run_check_start             {}
+    45.5 s  page collision.sweep_start                 {}
+    45.5 s  page collision.entry_start                 {}
+    69.6 s  page collision.sweep_done                  {"ms": 23272, "samples": 55343, "covered": 1}
+    69.6 s  page collision.sweep_start                 {}
+    93.7 s  page collision.sweep_done                  {"ms": 24430, "samples": 58190, "covered": 1}
+   598.6 s  page collision.run_check_discarded         {}
+   599.2 s  gateway gcode.spawn_start                  {"reason": "tool_offset"}
+   600.7 s  page collision.sweep_start                 {}
+   604.8 s  gateway gcode.worker_done                  {"parse_ms": 5590.1}
+   604.8 s  gateway gcode.publish                      {}
+   606.7 s  page collision.sweep_cancelled             {}
+   606.7 s  page collision.sweep_start                 {}
+   652.9 s  page collision.sweep_done                  {"ms": 46242, "samples": 207550, "covered": 1}
