@@ -601,6 +601,8 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 
 - **Browser-PC-Messmittel, Korrektur VP186-01 (R186 → R187):** R ohne Browser-Uhr — die Seite vergibt nach jeder Herzschlag-Antwort einen Tick, ein echter Slice der Prüfung im Lauf, der danach begann, meldet sich nach seinem Ende, der WS-Worker trägt die Meldung mit jedem späteren Herzschlag; das Statusalter über einen zweiseitigen Uhrenaustausch Seite ↔ WS-Worker je Herzschlag (Obergrenze; ohne Beziehung kein Alter). Die zeitgestempelten Slices und die einseitigen Prüfungen sind entfernt.
 
+- **Browser-PC-Messung (R188):** zwei vollständige Läufe am 23. Oktober (Mac-Firefox des Operators, die VM auf demselben Mac): S met und R-Überlappung nachgewiesen in beiden; Statusalter p95 36 ms in allen Phasen außer den acht schnellen Versatzwechseln (58 / 68 ms — jede Änderung startet die Kollisionsprüfung des 600 000-Punkte-Pfads neu; ein Produktpunkt); Eingabe p95 ≤ 16 ms; HAL-Watchdog jede Phase < 201 ms. Phase S wechselt jetzt den G54-Versatz (ein G54/G55-Wechsel löst keinen Neu-Parse aus); Vollständigkeit über die Fensterkette.
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).

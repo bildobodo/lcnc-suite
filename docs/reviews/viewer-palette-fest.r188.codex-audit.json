@@ -1,0 +1,1981 @@
+{
+  "review": "R188",
+  "runs": [
+    {
+      "run": 1,
+      "report_exact_match": true,
+      "phases": [
+        {
+          "phase": "prep",
+          "duration_s": 12.758751872,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 4,
+              "receipt_edge_start_s": 2.580388907,
+              "receipt_edge_end_s": 1.178048325,
+              "page_window_ms": 12016,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 40.0,
+          "age_max_ms": 47,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 50,
+          "workers_max_at_sample": 0,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 53146011,
+              "max_sampled": 53146011,
+              "last": 0
+            },
+            "mem_path_gpu": {
+              "first": 98200,
+              "max_sampled": 98200,
+              "last": 0
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 171716,
+              "max_sampled": 171852,
+              "last": 171852
+            },
+            "workers_peak_kb": [],
+            "workers_at_once_max": 0
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 1,
+              "hb_wake_max_ms": 176.0,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "not proven",
+              "why": "the phase begins before the anchor"
+            }
+          },
+          "sweep_starts": []
+        },
+        {
+          "phase": "A_rest",
+          "duration_s": 60.102871338,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 20,
+              "receipt_edge_start_s": 1.825345509,
+              "receipt_edge_end_s": 1.262756339,
+              "page_window_ms": 60017,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 36.0,
+          "age_max_ms": 40,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 237,
+          "workers_max_at_sample": 0,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_path_gpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 171852,
+              "max_sampled": 171852,
+              "last": 141188
+            },
+            "workers_peak_kb": [],
+            "workers_at_once_max": 0
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": []
+        },
+        {
+          "phase": "A_input",
+          "duration_s": 40.055469924,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 13,
+              "receipt_edge_start_s": 1.743340374,
+              "receipt_edge_end_s": 2.302165511,
+              "page_window_ms": 39019,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 36.0,
+          "age_max_ms": 45,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 159,
+          "workers_max_at_sample": 0,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_path_gpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 141188,
+              "max_sampled": 141192,
+              "last": 141192
+            },
+            "workers_peak_kb": [],
+            "workers_at_once_max": 0
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": []
+        },
+        {
+          "phase": "S_load",
+          "duration_s": 68.249842674,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 23,
+              "receipt_edge_start_s": 0.700720919,
+              "receipt_edge_end_s": 1.52653788,
+              "page_window_ms": 69025,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 38.0,
+          "age_max_ms": 82,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 298,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 0,
+              "max_sampled": 53146011,
+              "last": 53146011
+            },
+            "mem_path_gpu": {
+              "first": 0,
+              "max_sampled": 98200,
+              "last": 98200
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 141192,
+              "max_sampled": 159004,
+              "last": 136884
+            },
+            "workers_peak_kb": [
+              921632
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 17,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776169083763009
+            }
+          ]
+        },
+        {
+          "phase": "S_supersede",
+          "duration_s": 48.016758368,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 16,
+              "receipt_edge_start_s": 1.476490758,
+              "receipt_edge_end_s": 1.475229158,
+              "page_window_ms": 48060,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [
+                {
+                  "receipt_s": 4.955011888,
+                  "page_gap_ms": 0,
+                  "first_ns": 1792776236193212812,
+                  "second_ns": 1792776241148224700
+                },
+                {
+                  "receipt_s": 4.670088891,
+                  "page_gap_ms": 0,
+                  "first_ns": 1792776260484483958,
+                  "second_ns": 1792776265154572849
+                }
+              ],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 58.0,
+          "age_p99_ms": 96.0,
+          "age_max_ms": 132,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 58.0,
+            "age_p95_interior_rows": 62.0,
+            "verdict": "not met"
+          },
+          "rss_rows": 362,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 53146011,
+              "max_sampled": 53146011,
+              "last": 53146011
+            },
+            "mem_path_gpu": {
+              "first": 98200,
+              "max_sampled": 98200,
+              "last": 98200
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 32,
+              "max_sampled": 32,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 136884,
+              "max_sampled": 159284,
+              "last": 133764
+            },
+            "workers_peak_kb": [
+              288648,
+              293732,
+              294784,
+              298600,
+              310872,
+              312060,
+              325564,
+              934888
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 19,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776229103791856
+            },
+            {
+              "id": 21,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776234137141954
+            },
+            {
+              "id": 23,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776238341921958
+            },
+            {
+              "id": 25,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776241148394531
+            },
+            {
+              "id": 27,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776246332254713
+            },
+            {
+              "id": 29,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776248349198967
+            },
+            {
+              "id": 31,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776254532586244
+            },
+            {
+              "id": 33,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776258132247403
+            }
+          ]
+        },
+        {
+          "phase": "S_settle",
+          "duration_s": 122.107343772,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 41,
+              "receipt_edge_start_s": 1.524840617,
+              "receipt_edge_end_s": 0.536503286,
+              "page_window_ms": 123057,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 38.0,
+          "age_max_ms": 105,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 483,
+          "workers_max_at_sample": 0,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 53146011,
+              "max_sampled": 53146011,
+              "last": 53146011
+            },
+            "mem_path_gpu": {
+              "first": 98200,
+              "max_sampled": 98200,
+              "last": 98200
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 133764,
+              "max_sampled": 133768,
+              "last": 133768
+            },
+            "workers_peak_kb": [],
+            "workers_at_once_max": 0
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 35,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792776277169064164
+            }
+          ]
+        },
+        {
+          "phase": "R_load",
+          "duration_s": 38.220414167,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 12,
+              "receipt_edge_start_s": 2.169163168,
+              "receipt_edge_end_s": 2.742517422,
+              "page_window_ms": 36015,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 38.0,
+          "age_max_ms": 45,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 167,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 53146011,
+              "max_sampled": 53146011,
+              "last": 1469281
+            },
+            "mem_path_gpu": {
+              "first": 98200,
+              "max_sampled": 98200,
+              "last": 21764
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 32,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 133892,
+              "max_sampled": 134040,
+              "last": 134040
+            },
+            "workers_peak_kb": [
+              62808
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 37,
+              "points": 12057,
+              "run_gen": null,
+              "t_wall_ns": 1792776403224444069
+            }
+          ]
+        },
+        {
+          "phase": "R_run",
+          "duration_s": 819.948717296,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 274,
+              "receipt_edge_start_s": 0.2578756,
+              "receipt_edge_end_s": 0.192434808,
+              "page_window_ms": 822497,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [
+                {
+                  "receipt_s": 4.90266966,
+                  "page_gap_ms": 0,
+                  "first_ns": 1792776518349140005,
+                  "second_ns": 1792776523251809665
+                }
+              ],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 38.0,
+          "age_max_ms": 44,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 3271,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 1469281,
+              "max_sampled": 1469281,
+              "last": 1469281
+            },
+            "mem_path_gpu": {
+              "first": 21764,
+              "max_sampled": 21764,
+              "last": 21764
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 32,
+              "max_sampled": 64,
+              "last": 64
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 134040,
+              "max_sampled": 134336,
+              "last": 134336
+            },
+            "workers_peak_kb": [
+              57472,
+              59336
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 39,
+              "points": 12057,
+              "run_gen": 1,
+              "t_wall_ns": 1792776451231597873
+            },
+            {
+              "id": 42,
+              "points": 12057,
+              "run_gen": 2,
+              "t_wall_ns": 1792776474276926848
+            },
+            {
+              "id": 43,
+              "points": 12057,
+              "run_gen": 2,
+              "t_wall_ns": 1792776497328914797
+            }
+          ]
+        },
+        {
+          "phase": "R_settle",
+          "duration_s": 60.020069483,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 20,
+              "receipt_edge_start_s": 2.019720003,
+              "receipt_edge_end_s": 0.165231549,
+              "page_window_ms": 60047,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 40.0,
+          "age_max_ms": 119,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 259,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 1469281,
+              "max_sampled": 1483777,
+              "last": 1483777
+            },
+            "mem_path_gpu": {
+              "first": 21764,
+              "max_sampled": 24860,
+              "last": 24860
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 134336,
+              "max_sampled": 134920,
+              "last": 134920
+            },
+            "workers_peak_kb": [
+              57856
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 45,
+              "points": 12057,
+              "run_gen": null,
+              "t_wall_ns": 1792777257940109289
+            },
+            {
+              "id": 47,
+              "points": 12057,
+              "run_gen": null,
+              "t_wall_ns": 1792777264745422997
+            }
+          ]
+        }
+      ],
+      "r_source_verified": true,
+      "r_proof": {
+        "parse": {
+          "job": 17,
+          "gateway_pid": 2356275,
+          "file": "bpc_run.ngc",
+          "p0_ns": 151266519197182,
+          "p1_ns": 151271293950482,
+          "t_wall_ns": 1792776472965061524
+        },
+        "heartbeat_a": {
+          "seq": 979,
+          "hs": 1792754550180,
+          "hr": 1792754550207,
+          "g": 151266524.262,
+          "pid": 2356275,
+          "ta": 900,
+          "dt": 899,
+          "dn": 17
+        },
+        "heartbeat_b": {
+          "seq": 980,
+          "hs": 1792754551181,
+          "hr": 1792754551197,
+          "g": 151267514.06,
+          "pid": 2356275,
+          "ta": 901,
+          "dt": 900,
+          "dn": 18
+        },
+        "page": "rhpl0tia",
+        "word": {
+          "id": 39,
+          "run_gen": 1,
+          "range_from": 19,
+          "shard": 1,
+          "gen": 0,
+          "tick": 900,
+          "n": 18,
+          "t_wall_ns": 1792776468945460755
+        },
+        "sweep": "provisional"
+      },
+      "r_source_sha256": [
+        "3de988ffe4943aa7b1a145e8aae998acc00f453fe1c398c62a9b1dc5b3f63cce",
+        "aba18d1bf0603daf09d7a5bfe2fec159bda193ed10e30c534ec060edadf5e91c",
+        "aba18d1bf0603daf09d7a5bfe2fec159bda193ed10e30c534ec060edadf5e91c",
+        "d492761baabf5aec0033d20ad0d13633a09a6b065d4bdd798cb88d99a3d48983"
+      ],
+      "s_source_verified": true,
+      "switches": [
+        {
+          "job": 7,
+          "z": -399.0,
+          "basis": "0d0e531fc5d7",
+          "spawn_ns": 1792776230061391696,
+          "cancel_ns": 1792776234173644177,
+          "publish_ns": null
+        },
+        {
+          "job": 8,
+          "z": -398.0,
+          "basis": "4bbe733f7f2d",
+          "spawn_ns": 1792776234196543289,
+          "cancel_ns": 1792776238211396367,
+          "publish_ns": null
+        },
+        {
+          "job": 9,
+          "z": -399.0,
+          "basis": "0d0e531fc5d7",
+          "spawn_ns": 1792776238249563024,
+          "cancel_ns": 1792776242270636292,
+          "publish_ns": null
+        },
+        {
+          "job": 10,
+          "z": -398.0,
+          "basis": "4bbe733f7f2d",
+          "spawn_ns": 1792776242290549817,
+          "cancel_ns": 1792776246325815300,
+          "publish_ns": null
+        },
+        {
+          "job": 11,
+          "z": -399.0,
+          "basis": "0d0e531fc5d7",
+          "spawn_ns": 1792776246351539037,
+          "cancel_ns": 1792776250386972053,
+          "publish_ns": null
+        },
+        {
+          "job": 12,
+          "z": -398.0,
+          "basis": "4bbe733f7f2d",
+          "spawn_ns": 1792776250403384290,
+          "cancel_ns": 1792776254400180664,
+          "publish_ns": null
+        },
+        {
+          "job": 13,
+          "z": -399.0,
+          "basis": "0d0e531fc5d7",
+          "spawn_ns": 1792776254435455436,
+          "cancel_ns": 1792776258440162089,
+          "publish_ns": null
+        },
+        {
+          "job": 14,
+          "z": -398.0,
+          "basis": "4bbe733f7f2d",
+          "spawn_ns": 1792776258471246082,
+          "cancel_ns": null,
+          "publish_ns": 1792776275505887497
+        }
+      ]
+    },
+    {
+      "run": 2,
+      "report_exact_match": true,
+      "phases": [
+        {
+          "phase": "prep",
+          "duration_s": 12.539742867,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 4,
+              "receipt_edge_start_s": 2.674034488,
+              "receipt_edge_end_s": 0.864824756,
+              "page_window_ms": 12001,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 38.0,
+          "age_max_ms": 47,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 50,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 1483777,
+              "max_sampled": 1483777,
+              "last": 0
+            },
+            "mem_path_gpu": {
+              "first": 24860,
+              "max_sampled": 24860,
+              "last": 0
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 32,
+              "max_sampled": 32,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 134928,
+              "max_sampled": 134932,
+              "last": 134932
+            },
+            "workers_peak_kb": [
+              27444
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 1,
+              "hb_wake_max_ms": 128.0,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "not proven",
+              "why": "the phase begins before the anchor"
+            }
+          },
+          "sweep_starts": []
+        },
+        {
+          "phase": "A_rest",
+          "duration_s": 60.106206573,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 20,
+              "receipt_edge_start_s": 2.136922297,
+              "receipt_edge_end_s": 0.94583925,
+              "page_window_ms": 60027,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 36.0,
+          "age_max_ms": 44,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 238,
+          "workers_max_at_sample": 0,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_path_gpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 134932,
+              "max_sampled": 134932,
+              "last": 134932
+            },
+            "workers_peak_kb": [],
+            "workers_at_once_max": 0
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": []
+        },
+        {
+          "phase": "A_input",
+          "duration_s": 40.052313998,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 13,
+              "receipt_edge_start_s": 2.059833383,
+              "receipt_edge_end_s": 1.982210852,
+              "page_window_ms": 39013,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 36.0,
+          "age_max_ms": 44,
+          "input_p95": {
+            "n": 397,
+            "value": 10.0
+          },
+          "input_max_ms": 14,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 158,
+          "workers_max_at_sample": 0,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_path_gpu": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 134936,
+              "max_sampled": 134940,
+              "last": 134940
+            },
+            "workers_peak_kb": [],
+            "workers_at_once_max": 0
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": []
+        },
+        {
+          "phase": "S_load",
+          "duration_s": 68.258033532,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 23,
+              "receipt_edge_start_s": 1.021072719,
+              "receipt_edge_end_s": 1.217649933,
+              "page_window_ms": 69026,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 38.0,
+          "age_max_ms": 181,
+          "input_p95": {
+            "n": 826,
+            "value": 9.0
+          },
+          "input_max_ms": 104,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 299,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 0,
+              "max_sampled": 67546171,
+              "last": 67546171
+            },
+            "mem_path_gpu": {
+              "first": 0,
+              "max_sampled": 98200,
+              "last": 98200
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 134940,
+              "max_sampled": 178700,
+              "last": 156464
+            },
+            "workers_peak_kb": [
+              927432
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 50,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778693571657106
+            }
+          ]
+        },
+        {
+          "phase": "S_supersede",
+          "duration_s": 49.563540846,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 16,
+              "receipt_edge_start_s": 1.784507314,
+              "receipt_edge_end_s": 2.717079405,
+              "page_window_ms": 48038,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 68.0,
+          "age_p99_ms": 110.0,
+          "age_max_ms": 177,
+          "input_p95": {
+            "n": 166,
+            "value": 16.0
+          },
+          "input_max_ms": 56,
+          "target": {
+            "age_p95_all_rows": 68.0,
+            "age_p95_interior_rows": 72.0,
+            "verdict": "not met"
+          },
+          "rss_rows": 370,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 67546171,
+              "max_sampled": 67546171,
+              "last": 67546171
+            },
+            "mem_path_gpu": {
+              "first": 98200,
+              "max_sampled": 98200,
+              "last": 98200
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 32,
+              "max_sampled": 32,
+              "last": 0
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 156464,
+              "max_sampled": 184156,
+              "last": 147848
+            },
+            "workers_peak_kb": [
+              287368,
+              294812,
+              294856,
+              295984,
+              299280,
+              311644,
+              321752,
+              938992
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 52,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778753689384378
+            },
+            {
+              "id": 54,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778758890958683
+            },
+            {
+              "id": 56,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778761376259948
+            },
+            {
+              "id": 58,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778767490561426
+            },
+            {
+              "id": 60,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778771120789293
+            },
+            {
+              "id": 62,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778775551105958
+            },
+            {
+              "id": 64,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778779587349454
+            },
+            {
+              "id": 66,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778783165450319
+            }
+          ]
+        },
+        {
+          "phase": "S_settle",
+          "duration_s": 124.166290117,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 42,
+              "receipt_edge_start_s": 0.258772862,
+              "receipt_edge_end_s": 0.836626627,
+              "page_window_ms": 126071,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 46.0,
+          "age_max_ms": 246,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 490,
+          "workers_max_at_sample": 0,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 67546171,
+              "max_sampled": 67546171,
+              "last": 67546171
+            },
+            "mem_path_gpu": {
+              "first": 98200,
+              "max_sampled": 98200,
+              "last": 98200
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 147848,
+              "max_sampled": 147852,
+              "last": 147852
+            },
+            "workers_peak_kb": [],
+            "workers_at_once_max": 0
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 68,
+              "points": 600003,
+              "run_gen": null,
+              "t_wall_ns": 1792778803806486906
+            }
+          ]
+        },
+        {
+          "phase": "R_load",
+          "duration_s": 56.269726553,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 19,
+              "receipt_edge_start_s": 2.140288125,
+              "receipt_edge_end_s": 0.083018015,
+              "page_window_ms": 57026,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 38.0,
+          "age_max_ms": 110,
+          "input_p95": {
+            "n": 1,
+            "value": 2.0
+          },
+          "input_max_ms": 1,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 238,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 67546171,
+              "max_sampled": 67546171,
+              "last": 1483777
+            },
+            "mem_path_gpu": {
+              "first": 98200,
+              "max_sampled": 98200,
+              "last": 24860
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 32,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 147852,
+              "max_sampled": 148704,
+              "last": 148704
+            },
+            "workers_peak_kb": [
+              46124
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 70,
+              "points": 12057,
+              "run_gen": null,
+              "t_wall_ns": 1792778930801920553
+            }
+          ]
+        },
+        {
+          "phase": "R_run",
+          "duration_s": 828.396150245,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 276,
+              "receipt_edge_start_s": 2.91577776,
+              "receipt_edge_end_s": 0.031538479,
+              "page_window_ms": 828427,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [
+                {
+                  "receipt_s": 4.734666128,
+                  "page_gap_ms": 0,
+                  "first_ns": 1792779031114067697,
+                  "second_ns": 1792779035848733825
+                }
+              ],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 36.0,
+          "age_max_ms": 50,
+          "input_p95": {
+            "n": 1453,
+            "value": 10.0
+          },
+          "input_max_ms": 18,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 3310,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 1483777,
+              "max_sampled": 1483777,
+              "last": 1483777
+            },
+            "mem_path_gpu": {
+              "first": 24860,
+              "max_sampled": 24860,
+              "last": 24860
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 32,
+              "max_sampled": 64,
+              "last": 64
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 148708,
+              "max_sampled": 152816,
+              "last": 152816
+            },
+            "workers_peak_kb": [
+              46100,
+              46116
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 72,
+              "points": 12057,
+              "run_gen": 3,
+              "t_wall_ns": 1792778999271766580
+            },
+            {
+              "id": 75,
+              "points": 12057,
+              "run_gen": 4,
+              "t_wall_ns": 1792779029357132644
+            },
+            {
+              "id": 76,
+              "points": 12057,
+              "run_gen": 4,
+              "t_wall_ns": 1792779051499321850
+            }
+          ]
+        },
+        {
+          "phase": "R_settle",
+          "duration_s": 60.022200189,
+          "coverage": {
+            "rhpl0tia": {
+              "rows": 20,
+              "receipt_edge_start_s": 2.270966962,
+              "receipt_edge_end_s": 0.005456846,
+              "page_window_ms": 60038,
+              "chain_breaks": 0,
+              "long_receipt_gaps": [],
+              "previous_window_adjacent": true,
+              "next_window_adjacent": true
+            }
+          },
+          "age_p95_ms": 36.0,
+          "age_p99_ms": 42.0,
+          "age_max_ms": 128,
+          "input_p95": {
+            "n": 0
+          },
+          "input_max_ms": 0,
+          "target": {
+            "age_p95_all_rows": 36.0,
+            "age_p95_interior_rows": 36.0,
+            "verdict": "met"
+          },
+          "rss_rows": 261,
+          "workers_max_at_sample": 1,
+          "page_memory": {
+            "mem_path_cpu": {
+              "first": 1483777,
+              "max_sampled": 1483777,
+              "last": 1483777
+            },
+            "mem_path_gpu": {
+              "first": 24860,
+              "max_sampled": 24860,
+              "last": 24860
+            },
+            "mem_contacts": {
+              "first": 0,
+              "max_sampled": 0,
+              "last": 0
+            },
+            "mem_contact_views": {
+              "first": 0,
+              "max_sampled": 32,
+              "last": 32
+            },
+            "heap_used_mb": "not collected"
+          },
+          "process_memory": {
+            "status": "sampled",
+            "gateway_kb": {
+              "first": 152816,
+              "max_sampled": 152816,
+              "last": 152816
+            },
+            "workers_peak_kb": [
+              56012
+            ],
+            "workers_at_once_max": 1
+          },
+          "watchdog": {
+            "gateway_pre_send": {
+              "hb_wake_over_100ms": 0,
+              "hb_wake_max_ms": null,
+              "hb_stall_over_200ms": 0,
+              "hb_stall_max_ms": null
+            },
+            "watchdog_receipt": {
+              "status": "bound",
+              "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+            }
+          },
+          "sweep_starts": [
+            {
+              "id": 78,
+              "points": 12057,
+              "run_gen": null,
+              "t_wall_ns": 1792779812571266740
+            },
+            {
+              "id": 81,
+              "points": 12057,
+              "run_gen": null,
+              "t_wall_ns": 1792779819275243536
+            }
+          ]
+        }
+      ],
+      "r_source_verified": true,
+      "r_proof": {
+        "parse": {
+          "job": 31,
+          "gateway_pid": 2356275,
+          "file": "bpc_run.ngc",
+          "p0_ns": 153819983699225,
+          "p1_ns": 153824946104412,
+          "t_wall_ns": 1792779026618937296
+        },
+        "heartbeat_a": {
+          "seq": 3524,
+          "hs": 1792757104366,
+          "hr": 1792757104381,
+          "g": 153820678.649,
+          "pid": 2356275,
+          "ta": 3224,
+          "dt": 3223,
+          "dn": 99
+        },
+        "heartbeat_b": {
+          "seq": 3525,
+          "hs": 1792757105367,
+          "hr": 1792757105376,
+          "g": 153821674.716,
+          "pid": 2356275,
+          "ta": 3225,
+          "dt": 3224,
+          "dn": 100
+        },
+        "page": "rhpl0tia",
+        "word": {
+          "id": 72,
+          "run_gen": 3,
+          "range_from": null,
+          "shard": 1,
+          "gen": 0,
+          "tick": 3224,
+          "n": 100,
+          "t_wall_ns": 1792779024435038832
+        },
+        "sweep": "full"
+      },
+      "r_source_sha256": [
+        "e1649fa278a5e1ae3b8710ddaa4a35c57429136a5867d4a228d5688e6224b461",
+        "12d28074f33a115ab000a28c528f0f7446075acc2c73594e6a51120dda57ff63",
+        "12d28074f33a115ab000a28c528f0f7446075acc2c73594e6a51120dda57ff63",
+        "47dc91571dcf0a9944000171dcfd69e98876ba7b7fbf8517db58774be1bb9395"
+      ],
+      "s_source_verified": true,
+      "switches": [
+        {
+          "job": 21,
+          "z": -399.0,
+          "basis": "35f2a59d5439",
+          "spawn_ns": 1792778755159161908,
+          "cancel_ns": 1792778759268967102,
+          "publish_ns": null
+        },
+        {
+          "job": 22,
+          "z": -398.0,
+          "basis": "031ea32aacd6",
+          "spawn_ns": 1792778759303040249,
+          "cancel_ns": 1792778763320754313,
+          "publish_ns": null
+        },
+        {
+          "job": 23,
+          "z": -399.0,
+          "basis": "35f2a59d5439",
+          "spawn_ns": 1792778763355943532,
+          "cancel_ns": 1792778767344958642,
+          "publish_ns": null
+        },
+        {
+          "job": 24,
+          "z": -398.0,
+          "basis": "031ea32aacd6",
+          "spawn_ns": 1792778767374519794,
+          "cancel_ns": 1792778771369878547,
+          "publish_ns": null
+        },
+        {
+          "job": 25,
+          "z": -399.0,
+          "basis": "35f2a59d5439",
+          "spawn_ns": 1792778771403231118,
+          "cancel_ns": 1792778775427972775,
+          "publish_ns": null
+        },
+        {
+          "job": 26,
+          "z": -398.0,
+          "basis": "031ea32aacd6",
+          "spawn_ns": 1792778775461088599,
+          "cancel_ns": 1792778779458816660,
+          "publish_ns": null
+        },
+        {
+          "job": 27,
+          "z": -399.0,
+          "basis": "35f2a59d5439",
+          "spawn_ns": 1792778779495325699,
+          "cancel_ns": 1792778783518246374,
+          "publish_ns": null
+        },
+        {
+          "job": 28,
+          "z": -398.0,
+          "basis": "031ea32aacd6",
+          "spawn_ns": 1792778783543021784,
+          "cancel_ns": null,
+          "publish_ns": 1792778801373844723
+        }
+      ]
+    }
+  ],
+  "coverage_counterexamples": {
+    "complete": {
+      "input_rows": 20,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 0,
+        "largest_gap_s": null,
+        "complete_by_receipt_gaps": true
+      },
+      "target": {
+        "age_p95_all_rows": 110.0,
+        "age_p95_interior_rows": 110.0,
+        "verdict": "not met"
+      }
+    },
+    "lost_suffix": {
+      "input_rows": 10,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 31.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 11.0,
+        "age_p95_interior_rows": 11.0,
+        "verdict": "met"
+      }
+    },
+    "one_fast_row": {
+      "input_rows": 1,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 2,
+        "largest_gap_s": 49.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 11.0,
+        "age_p95_interior_rows": 11.0,
+        "verdict": "met"
+      }
+    },
+    "lost_middle": {
+      "input_rows": 19,
+      "coverage": {
+        "complete": false,
+        "by": "window chain",
+        "chain_breaks": 1,
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 6.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 110.0,
+        "age_p95_interior_rows": 110.0,
+        "verdict": "not proven",
+        "why": "the phase's rows have gaps (incomplete)"
+      }
+    }
+  },
+  "actual_phase_prefix_counterexamples": [
+    {
+      "run": 1,
+      "kept_rows": 3,
+      "real_rows": 16,
+      "removed_tail_s": 41.506672723,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 41.5,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 42.0,
+        "age_p95_interior_rows": 46.0,
+        "verdict": "met"
+      }
+    }
+  ],
+  "durable_raw_records": 16657,
+  "provided_tests": "24 passed (tools report/driver test, isolated imports, no sockets)"
+}

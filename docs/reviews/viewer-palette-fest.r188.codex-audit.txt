@@ -1,0 +1,94 @@
+{
+  "runs_exactly_reproduced": 2,
+  "r_proofs_verified": 2,
+  "s_lifecycles_verified": 2,
+  "counterexamples": {
+    "complete": {
+      "input_rows": 20,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 0,
+        "largest_gap_s": null,
+        "complete_by_receipt_gaps": true
+      },
+      "target": {
+        "age_p95_all_rows": 110.0,
+        "age_p95_interior_rows": 110.0,
+        "verdict": "not met"
+      }
+    },
+    "lost_suffix": {
+      "input_rows": 10,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 31.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 11.0,
+        "age_p95_interior_rows": 11.0,
+        "verdict": "met"
+      }
+    },
+    "one_fast_row": {
+      "input_rows": 1,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 2,
+        "largest_gap_s": 49.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 11.0,
+        "age_p95_interior_rows": 11.0,
+        "verdict": "met"
+      }
+    },
+    "lost_middle": {
+      "input_rows": 19,
+      "coverage": {
+        "complete": false,
+        "by": "window chain",
+        "chain_breaks": 1,
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 6.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 110.0,
+        "age_p95_interior_rows": 110.0,
+        "verdict": "not proven",
+        "why": "the phase's rows have gaps (incomplete)"
+      }
+    }
+  },
+  "real_prefix_counterexamples": [
+    {
+      "run": 1,
+      "kept_rows": 3,
+      "real_rows": 16,
+      "removed_tail_s": 41.506672723,
+      "coverage": {
+        "complete": true,
+        "by": "window chain",
+        "chain_breaks": 0,
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 41.5,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 42.0,
+        "age_p95_interior_rows": 46.0,
+        "verdict": "met"
+      }
+    }
+  ],
+  "saved_event_rows": 16657
+}
