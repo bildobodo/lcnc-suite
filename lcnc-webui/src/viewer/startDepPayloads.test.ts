@@ -525,7 +525,9 @@ function coordinator(track: any, wcs: any, opts: { joints?: number[] | null; why
   const code = ts.transpileModule(prelude + texts.join("\n") + expose,
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext } }).outputText;
   const deps = { track, wcs, opts, runBeginOf, runBeginView, buildEntryTrack, sliceTrack, mergeBeginningOntoBase,
-                 displayLineForPoint, startDependentOf, console: { error: () => {} } };
+                 displayLineForPoint, startDependentOf, console: { error: () => {} },
+                 // the viewer times its posts (VP188-02 step 0) — the work itself runs here
+                 timeSpan: <T>(_name: string, fn: () => T): T => fn() };
   return new Function(...Object.keys(deps), code)(...Object.values(deps));
 }
 const swept = (t: any, raw: Record<string, any>) => sweep(t, [500, 0, 0], raw);
