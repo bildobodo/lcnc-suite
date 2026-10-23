@@ -1,0 +1,44 @@
+{
+  "review": "R188",
+  "verdict": "findings",
+  "reviewed_product": "e8e88fd0",
+  "live_head": "4fae33addac53508c5e1325612c081c2ee4732af",
+  "measurement_scope": "VP181-01 missing measurements supplied for the documented shared Mac/VM host; full performance acceptance still open",
+  "findings": [
+    {
+      "id": "VP188-01",
+      "priority": "P2",
+      "kind": "report completeness",
+      "detail": "Window-chain rule ignores both phase edges; actual failing S phase turns met after losing last 13 of 16 rows (41.507 s).",
+      "new_measurement_required": false
+    },
+    {
+      "id": "VP188-02",
+      "priority": "P2",
+      "kind": "confirmed product performance",
+      "detail": "Status-age upper bound p95 58/68 ms in S_supersede fails 50 ms target; may be a separate product task."
+    }
+  ],
+  "decisions": {
+    "g54_offset_toggle": "accepted",
+    "window_chain": "accepted for internal gaps only; retain separate phase-edge coverage",
+    "R_overlap": "proven in both runs, raw source checked",
+    "S_functional": "met in both runs, raw source checked"
+  },
+  "tests": {
+    "provided_tools": 24,
+    "exact_report_reproductions": 2,
+    "independent_quantiles": "all phases, both runs",
+    "synthetic_coverage_cases": 4,
+    "actual_data_loss_counterexample": 1,
+    "durable_only_reproduction": "PASS",
+    "product_gates": "not rerun; no product changes"
+  },
+  "boundaries": {
+    "live_endpoints_accessed": false,
+    "machine_commands": false,
+    "driver_or_calibration_main_executed": false,
+    "product_edits": false,
+    "temporary_root": "/tmp/codex-r188-cc5ox9ki"
+  }
+}

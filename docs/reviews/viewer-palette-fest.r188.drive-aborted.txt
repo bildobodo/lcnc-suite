@@ -1,0 +1,21 @@
+19:13:04 ok arm 
+mark prep at 19:13:06
+19:13:06 ok estop_reset 
+19:13:08 watchdog anchor {'wd_ms': 12186720, 'wall_ns': 1792775586406831656, 'wd_pid': 2356148, 'wd_log_bytes': 44672, 'gwlog': 4731, 'local': '19:13:08'}
+19:13:08 ok machine_on 
+19:13:08 ok home_all 
+19:13:08 setup {'commit': '4fae33addac53508c5e1325612c081c2ee4732af', 'vm_cpus': 6, 'pages': ['9ok6gt09', 'rhpl0tia'], 'browser_ua': ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0'], 'event_timing': True, 'heap': False}
+19:13:08 ok load_file blank.ngc
+mark A_rest at 19:13:18
+19:14:19 ok mdi (MSG, BPC: jetzt 40 s lang die Pfeiltaste nach unten gedrueckt halten)
+mark A_input at 19:14:19
+19:14:59 ok mdi (MSG, BPC: Taste loslassen)
+mark S_load at 19:14:59
+19:14:59 ok load_file bpc_parse.ngc
+19:15:07 published bpc_parse.ngc 7709.3 ms encode
+19:16:07 settled bpc_parse.ngc check sweeps started 1, done 1, other ends 0 last done 43013 ms
+mark S_supersede at 19:16:07
+19:16:07 ok mdi G55
+19:16:37 STOP: timeout (30 s): G55: a parse spawned for it
+mark stopped at 19:16:37
+19:16:37 ok arm 

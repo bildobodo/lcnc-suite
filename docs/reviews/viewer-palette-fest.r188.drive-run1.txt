@@ -1,0 +1,53 @@
+19:20:44 ok arm 
+mark prep at 19:20:46
+19:20:46 ok estop 
+19:20:47 ok estop_reset 
+19:20:48 watchdog anchor {'wd_ms': 12647249, 'wall_ns': 1792776046935497944, 'wd_pid': 2356148, 'wd_log_bytes': 49582, 'gwlog': 6553, 'local': '19:20:48'}
+19:20:48 ok machine_on 
+19:20:49 setup {'commit': '4fae33addac53508c5e1325612c081c2ee4732af', 'vm_cpus': 6, 'pages': ['rhpl0tia'], 'browser_ua': ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0'], 'event_timing': True, 'heap': False}
+19:20:49 ok load_file blank.ngc
+mark A_rest at 19:20:59
+19:21:59 ok mdi (MSG, BPC: jetzt 40 s lang die Pfeiltaste nach unten gedrueckt halten)
+mark A_input at 19:21:59
+19:22:39 ok mdi (MSG, BPC: Taste loslassen)
+mark S_load at 19:22:39
+19:22:39 ok load_file bpc_parse.ngc
+19:22:47 published bpc_parse.ngc 7720.3 ms encode
+19:23:47 settled bpc_parse.ngc check sweeps started 1, done 1, other ends 0 last done 42745 ms
+mark S_supersede at 19:23:47
+19:23:47 ok mdi G10 L2 P1 Z-399.000
+19:23:50 switch 1: G54 Z-399.000 -> job 7 (wcsoff:G54:z)
+19:23:51 ok mdi G10 L2 P1 Z-398.000
+19:23:54 switch 2: G54 Z-398.000 -> job 8 (wcsoff:G54:z)
+19:23:55 ok mdi G10 L2 P1 Z-399.000
+19:23:58 switch 3: G54 Z-399.000 -> job 9 (wcsoff:G54:z)
+19:23:59 ok mdi G10 L2 P1 Z-398.000
+19:24:02 switch 4: G54 Z-398.000 -> job 10 (wcsoff:G54:z)
+19:24:03 ok mdi G10 L2 P1 Z-399.000
+19:24:06 switch 5: G54 Z-399.000 -> job 11 (wcsoff:G54:z)
+19:24:07 ok mdi G10 L2 P1 Z-398.000
+19:24:10 switch 6: G54 Z-398.000 -> job 12 (wcsoff:G54:z)
+19:24:12 ok mdi G10 L2 P1 Z-399.000
+19:24:14 switch 7: G54 Z-399.000 -> job 13 (wcsoff:G54:z)
+19:24:16 ok mdi G10 L2 P1 Z-398.000
+19:24:18 switch 8: G54 Z-398.000 -> job 14 (wcsoff:G54:z)
+19:24:35 supersede: jobs [(7, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (8, 'G54 Z-398.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (9, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (10, 'G54 Z-398.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (11, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (12, 'G54 Z-398.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (13, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (14, 'G54 Z-398.000', ['gcode.publish'])]
+mark S_settle at 19:24:35
+19:25:37 settled the last basis's check sweeps started 1, done 1, other ends 1 last done 45648 ms
+mark R_load at 19:26:37
+19:26:37 ok load_file bpc_run.ngc
+19:26:41 published bpc_run.ngc 3954.4 ms encode
+19:27:15 settled bpc_run.ngc check sweeps started 1, done 1, other ends 0 last done 22821 ms
+mark R_run at 19:27:15
+19:27:16 ok cycle_start 
+19:27:16 running
+19:27:17 tool change requested — confirm (the dialog's Confirm)
+19:27:17 ok confirm_tool_change 
+19:27:39 tool change requested — confirm (the dialog's Confirm)
+19:27:40 ok confirm_tool_change 
+19:40:55 run ended
+mark R_settle at 19:40:55
+19:40:55 settled the check after the run sweeps started 4, done 3, other ends 1 last done 23094 ms
+mark end at 19:41:55
+19:41:55 sequence complete
+19:41:56 ok arm 
