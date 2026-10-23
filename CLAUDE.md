@@ -980,19 +980,25 @@ as the page saw it (`preview.parse_seen` on / off, by its `job`, with the
 frame's socket receipt — information only); every parse's trace events name
 its `job` and spawn and publish the start `basis` (the context digest with the
 drift inputs), so a supersede is proven by id. The overlap of a check during
-a run with a pinned parse is proven from the ORDER of events (Codex R185):
-the worker stamps `time.monotonic_ns()` right around `parse(ctx)`
-(`__PARSE_T0__` / `__PARSE_T1__` → `gcode.parse_span`, by job, a parse cut
-short without an end); the gateway's heartbeat answer carries `g_mono_ms`
-(its CLOCK_MONOTONIC after the heartbeat's receipt, before the answer's send)
-and `g_pid`; the page keeps each paired heartbeat as `[seq, send, receipt, g,
-pid]` (`hb_pairs`); a check during a run stamps its REAL slices in the context
-that computes them (`witness` request → `{id, witness: {shard, gen, s, at}}`
-words, the first slice of each 250 ms, every 2 s and at its end, cancelled
-too; the page's `collision.sweep_witness` with `ahead_ms`, the worker's clock
-against its own — a context created after a host sleep reads ahead). Two
-heartbeats whose g lie inside a parse bound a page-clock window inside it;
-one real slice there is the witness. Tests:
+a run with a pinned parse is proven from the ORDER of events (Codex R185,
+R186) — no clock of the VM against the page's, none of one browser context
+against another: the worker stamps `time.monotonic_ns()` right around
+`parse(ctx)` (`__PARSE_T0__` / `__PARSE_T1__` → `gcode.parse_span`, by job, a
+parse cut short without an end); the gateway's heartbeat answer carries
+`g_mono_ms` (its CLOCK_MONOTONIC after the heartbeat's receipt, before the
+answer's send) and `g_pid`; the page issues a witness TICK after each answer
+it handled (`viewerPerf` → the viewer posts it to a check during a run; the
+pool hands it to every shard), a real slice that BEGAN after a tick says it
+after it ENDED (`{id, witness: {shard, gen, tick}}`, the page's
+`collision.sweep_witness` numbered `n`), the page hands the word to the WS
+worker, and every heartbeat it sends after carries the highest (`dt`, `dn`);
+`hb_pairs` holds `{seq, hs, hr, g, pid, ta, dt, dn}`. Two heartbeats whose g
+lie inside a parse, B carrying a word for a tick after A's answer: that slice
+ran inside the parse. The status AGE puts the WS worker's receipt on the
+page's clock through a two-way exchange a heartbeat (`{type: "clock"}`: θ =
+worker − page ∈ [w − p1, w − p0] ± 4 ms, intersected per worker instance, a
+contradiction starts anew — `clk_*`), at its earliest time (an upper bound);
+without a relation a receipt is not aged (`age_unbound`). Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on

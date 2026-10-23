@@ -40,20 +40,36 @@
 //               the viewer the oldest of the flushes it folds into one
 //               apply (`notePendingReceipt`) — a frame still waiting in the
 //               store keeps its receipt past an apply of an older one.
-//               Both ends read the global clock (timeOrigin + now). Not in
-//               it: the network, the viewer's first build, the render after
-//               the apply. The gateway → socket leg is bounded by the
+//               The receipt is the WS worker's stamp, put on THIS page's
+//               clock by a two-way exchange (Codex R186 VP186-01: the two
+//               contexts' timeOrigin + now may stand apart — a context made
+//               after a host sleep reads ahead): each exchange — the page's
+//               send p0, the worker's stamp w, the page's receipt p1 — bounds
+//               θ = worker − page to [w − p1, w − p0] (± CLK_SLACK_MS for the
+//               coarsened stamps); their intersection holds for the worker
+//               instance, an empty one is a contradiction and starts anew,
+//               a new worker starts with none. A receipt is taken at its
+//               EARLIEST possible page time (rx − U), so an age is a
+//               conservative UPPER bound; without a relation it is not
+//               taken (`age_unbound`). Not in it: the network, the viewer's
+//               first build, the render after the apply. The gateway →
+//               socket leg is bounded by the
 //               heartbeat round trip timed IN THE WORKER (send and the
 //               answering frame's receipt) less the gateway's hold
 //               (`rt_net_*`, both legs), paired by the heartbeat's own number
 //               the gateway's timing echoes (`hb_seq`, Codex R183 VP182-02);
 //               an answer naming no heartbeat sent here is no bound
-//               (`rt_invalid`). Each paired heartbeat also rides the row
-//               as `[seq, send, receipt, g, gateway pid]` (`hb_pairs`):
-//               `g` is the gateway's monotonic clock between the
-//               heartbeat's receipt and the answer's send, so a parse's own
-//               bounds (the worker's, same clock) order against the page's
-//               send and receipt by it (Codex R185) — no clock offset.
+//               (`rt_invalid`) — one context's clock, no relation needed.
+//               Each paired heartbeat also rides the row (`hb_pairs`) with
+//               `g`, the gateway's monotonic clock between the heartbeat's
+//               receipt and the answer's send (a parse's own bounds read the
+//               same clock), the witness tick the page issued after handling
+//               the answer (`ta`), and the highest witness word the WS worker
+//               had been handed when it SENT that heartbeat (`dt` tick, `dn`
+//               its number): a run check's real slice that began after tick
+//               `ta` of answer A and whose word reached the worker before
+//               heartbeat B left lies between them by causality alone
+//               (Codex R186) — no clock of any browser context compared.
 //   inputDelay — a key or pointer press until its first listener runs
 //               (`in_delay_*`, the event's own timeStamp — the queueing a
 //               busy main thread adds); with the Event Timing API also the
@@ -151,14 +167,28 @@ let _visChanges = 0;        // visibility changes in the window: a row with one 
 
 // Heartbeat round trip in the worker less the gateway's hold: both network legs.
 const HB_KEEP = 16;                           // sends remembered (≈ 16 s at 1 Hz)
-const _hbSent = new Map<number, number>();    // heartbeat number → the worker's send (global clock)
+// heartbeat number → the worker's send stamp (its clock) and the witness word
+// it had been handed by then
+const _hbSent = new Map<number, { at: number; dt: number | null; dn: number | null }>();
 const _rtNetH = new Map<number, number>();
 let _rtN = 0, _rtNetMax = 0, _rtInvalid = 0;
 // The window's paired heartbeats with the gateway's monotonic stamp (1 Hz:
 // three a window; the cap is a bound, never reached at that rate).
 const HB_PAIRS_MAX = 32;
-const _hbPairs: Array<[number, number, number, number, number]> = [];
+interface HbPair { seq: number; hs: number; hr: number; g: number; pid: number; ta: number; dt: number | null; dn: number | null }
+const _hbPairs: HbPair[] = [];
 let _hbPairsDropped = 0;
+// The witness ticks (Codex R186): one after each valid answer, handed to the
+// sink (the viewer posts it to a check during a run).
+let _tick = 0;
+let _tickSink: ((tick: number) => void) | null = null;
+export function setWitnessTickSink(fn: ((tick: number) => void) | null): void { _tickSink = fn; }
+
+// The page ↔ WS worker clock relation θ = worker − page ∈ [_clkL, _clkU]
+// (see the header); none until the first exchange of the worker instance.
+const CLK_SLACK_MS = 4;    // two coarsened stamps (timeOrigin and now, ≤ 1 ms each) on either side
+let _clkL = -Infinity, _clkU = Infinity, _clkValid = false;
+let _clkN = 0, _clkConflicts = 0, _ageUnbound = 0;
 
 // Input delay.
 const _inDelayH = new Map<number, number>();
@@ -259,9 +289,10 @@ export function noteVisibilityChanged(atEpochMs: number = _epochNow(performance.
 
 /** The WS worker sent heartbeat number `seq` at `atEpochMs` (global clock,
  *  the worker's stamp — never the main thread's handling of the post). */
-export function noteHeartbeatSentAt(atEpochMs: unknown, seq: unknown): void {
+export function noteHeartbeatSentAt(atEpochMs: unknown, seq: unknown, doneTick?: unknown, doneN?: unknown): void {
   if (!_enabled || typeof seq !== 'number' || !(typeof atEpochMs === 'number' && atEpochMs > 0)) return;
-  _hbSent.set(seq, atEpochMs);
+  _hbSent.set(seq, { at: atEpochMs, dt: typeof doneTick === 'number' ? doneTick : null,
+                     dn: typeof doneN === 'number' ? doneN : null });
   if (_hbSent.size > HB_KEEP) _hbSent.delete(_hbSent.keys().next().value as number);
 }
 
@@ -275,7 +306,8 @@ export function noteHeartbeatSentAt(atEpochMs: unknown, seq: unknown): void {
 export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown, hbSeq?: unknown,
                                    gMonoMs?: unknown, gPid?: unknown): void {
   if (!_enabled) return;
-  const sentAt = typeof hbSeq === 'number' ? _hbSent.get(hbSeq) : undefined;
+  const sent = typeof hbSeq === 'number' ? _hbSent.get(hbSeq) : undefined;
+  const sentAt = sent?.at;
   if (typeof hbSeq === 'number') for (const k of [..._hbSent.keys()]) if (k <= hbSeq) _hbSent.delete(k);
   const ok = sentAt !== undefined && typeof rxEpochMs === 'number' && rxEpochMs > 0
     && typeof serverMs === 'number' && Number.isFinite(serverMs);
@@ -284,10 +316,44 @@ export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown, hbSeq?
   _rtN++;
   _histAdd(_rtNetH, net);
   if (net > _rtNetMax) _rtNetMax = net;
+  // the tick goes out after this answer was handled — whatever computes after
+  // it computes after the answer's g was stamped
+  const ta = ++_tick;
+  _tickSink?.(ta);
   if (typeof gMonoMs === 'number' && Number.isFinite(gMonoMs) && typeof gPid === 'number') {
-    if (_hbPairs.length < HB_PAIRS_MAX) _hbPairs.push([hbSeq as number, sentAt as number, rxEpochMs as number, gMonoMs, gPid]);
-    else _hbPairsDropped++;
+    if (_hbPairs.length < HB_PAIRS_MAX) {
+      _hbPairs.push({ seq: hbSeq as number, hs: sentAt as number, hr: rxEpochMs as number, g: gMonoMs, pid: gPid,
+                      ta, dt: sent!.dt, dn: sent!.dn });
+    } else _hbPairsDropped++;
   }
+}
+
+/** A new WS worker: no clock relation to it yet. */
+export function resetClockRelation(): void {
+  _clkL = -Infinity; _clkU = Infinity; _clkValid = false;
+}
+
+/** One exchange: the page sent at `p0` (its clock), the worker stamped `w`
+ *  (its clock), the page received at `p1`. θ = worker − page ∈ [w − p1, w − p0]
+ *  widened by CLK_SLACK_MS; intersected with the relation so far. An empty
+ *  intersection contradicts a constant relation: counted, and this exchange
+ *  starts it anew. */
+export function noteClockExchange(p0: unknown, w: unknown, p1: number): void {
+  if (!_enabled || typeof p0 !== 'number' || typeof w !== 'number' || !(p1 >= p0)) return;
+  const lo = w - p1 - CLK_SLACK_MS, hi = w - p0 + CLK_SLACK_MS;
+  _clkN++;
+  if (_clkValid && (lo > _clkU || hi < _clkL)) { _clkConflicts++; _clkValid = false; }
+  if (!_clkValid) { _clkL = lo; _clkU = hi; _clkValid = true; return; }
+  _clkL = Math.max(_clkL, lo); _clkU = Math.min(_clkU, hi);
+}
+
+/** A WS-worker receipt stamp at its EARLIEST possible time on this page's
+ *  clock (rx − U): an age from it is an upper bound. Undefined — and counted —
+ *  while no relation holds. */
+export function receiptOnPage(rxWorker: unknown): number | undefined {
+  if (typeof rxWorker !== 'number' || !(rxWorker > 0)) return undefined;
+  if (!_clkValid) { if (_enabled) _ageUnbound++; return undefined; }
+  return rxWorker - _clkU;
 }
 
 /** A key or pointer press: its first listener ran `now − timeStamp` after
@@ -480,8 +546,14 @@ export function flushViewerPerf(): void {
     rt_invalid: _rtInvalid,        // answers not paired with exactly one stamped heartbeat, or negative
     rt_net_max_ms: +_rtNetMax.toFixed(1),
     rt_net_h: _histOut(_rtNetH),
-    hb_pairs: _hbPairs.slice(),    // [seq, send, receipt (page clock), g (gateway monotonic ms), gateway pid]
+    hb_pairs: _hbPairs.slice(),    // {seq, hs, hr (worker clock), g (gateway monotonic ms), pid, ta, dt, dn}
     ...(_hbPairsDropped ? { hb_pairs_dropped: _hbPairsDropped } : {}),
+    // the page ↔ WS worker clock relation at the window's end (θ = worker − page)
+    clk_n: _clkN,
+    clk_l: _clkValid ? +_clkL.toFixed(3) : null,
+    clk_u: _clkValid ? +_clkU.toFixed(3) : null,
+    clk_conflicts: _clkConflicts,
+    age_unbound: _ageUnbound,      // receipts not put on the page's clock (no relation yet): not aged
     // input: press → first listener (and, Event Timing, the presses ≥ 16 ms to the next paint)
     in_n: _inN,
     in_delay_max_ms: +_inDelayMax.toFixed(1),
@@ -545,6 +617,7 @@ function _resetHistograms(): void {
   _ageH.clear(); _ageN = _ageMax = _ageNeg = _ageVisSkip = _visChanges = 0;
   _rtNetH.clear(); _rtN = _rtNetMax = _rtInvalid = 0;
   _hbPairs.length = 0; _hbPairsDropped = 0;
+  _clkN = _clkConflicts = _ageUnbound = 0;
   _inDelayH.clear(); _inN = _inDelayMax = _inOdd = 0;
   _evDurH.clear(); _evDelayH.clear(); _evN = _evDurMax = 0;
 }
@@ -558,6 +631,8 @@ export function resetViewerPerf(): void {
   _pendingRx = 0;
   _visChangedAt = 0;
   _hbSent.clear();
+  resetClockRelation();
+  _tick = 0;
   _gaps.length = 0;
   _renderSum = _renderMax = _renderCount = 0;
   _lastApplyTs = 0;

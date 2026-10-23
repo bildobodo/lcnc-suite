@@ -20,6 +20,8 @@ type MainMsg =
   | { type: "connect"; url: string; session: string; resumeArmed: boolean; hidden: boolean }
   | { type: "send"; payload: string; cmd?: string; dropIfClosed?: boolean }
   | { type: "updateConfig"; resumeArmed?: boolean; hidden?: boolean; fireHeartbeat?: boolean }
+  | { type: "witness"; tick: number; n: number }
+  | { type: "clock"; p0: number }
   | { type: "close" };
 
 const post = (m: unknown, transfer?: Transferable[]) =>
@@ -31,6 +33,11 @@ let wantConnected = false;
 
 let hbTimer: ReturnType<typeof setInterval> | null = null;
 let hbSeq = 0;   // the heartbeats' own numbers, echoed in the gateway's timing
+// The highest witness tick the page has handed here (a check during a run
+// computed a real slice that began after it — Codex R186) and its word's
+// number: every heartbeat sent after carries them, so a heartbeat is known to
+// leave after that slice ended, by causality alone (no clock).
+let doneTick = 0, doneN = 0;
 let bufferTimer: ReturnType<typeof setInterval> | null = null;
 let connectTimer: ReturnType<typeof setTimeout> | null = null;
 let probeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -126,7 +133,7 @@ function startHeartbeat() {
         const at = performance.timeOrigin + performance.now();
         const seq = ++hbSeq;
         ws.send(`{"cmd":"heartbeat","seq":${seq}}`);
-        post({ type: "hbsent", at, seq });
+        post({ type: "hbsent", at, seq, dt: doneTick, dn: doneN });
       } catch (e) {
         post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
       }
@@ -406,11 +413,21 @@ self.onmessage = (ev: MessageEvent<MainMsg>) => {
           const at = performance.timeOrigin + performance.now();
           const seq = ++hbSeq;
           ws.send(`{"cmd":"heartbeat","seq":${seq}}`);
-          post({ type: "hbsent", at, seq });
+          post({ type: "hbsent", at, seq, dt: doneTick, dn: doneN });
         } catch (e) {
           post({ type: "error", kind: "hb_send_failed", msg: String((e as Error)?.message ?? e) });
         }
       }
+      break;
+
+    case "witness":
+      if (msg.tick > doneTick) { doneTick = msg.tick; doneN = msg.n; }
+      break;
+
+    case "clock":
+      // one half of the page's two-way clock exchange (Codex R186): this
+      // context's clock between the page's send and its receipt of the answer
+      post({ type: "clock", p0: msg.p0, w: performance.timeOrigin + performance.now() });
       break;
 
     case "close":

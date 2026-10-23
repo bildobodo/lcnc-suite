@@ -21,10 +21,10 @@ import { enableWakeLock, disableWakeLock } from "./wakeLock";
 import { applyHalshowSnapshot, applyHalshowUpdate, resetHalshow } from "./ws/halshowStore";
 import { emitTelemetry } from "./ws/telemetry";
 import { macroFilesVersion } from "./macroFiles";
-import { noteHeartbeatReply, noteHeartbeatSentAt } from "./viewerPerf";
+import { noteClockExchange, noteHeartbeatReply, noteHeartbeatSentAt, receiptOnPage, resetClockRelation } from "./viewerPerf";
 import {
   buildWsUrl, captureArmedForResume, connectTransport,
-  persistArmedForReload, postWorkerConfig, sendCommand, terminateTransport,
+  persistArmedForReload, postWorkerConfig, postWorkerProbe, sendCommand, terminateTransport,
 } from "./ws/wsTransport";
 import {
   fetchCompGrid, fetchSurfacePoints, resetBulkVersionsOnClose,
@@ -76,6 +76,13 @@ export {
   halPins, halSignals, halParams, halInitialized,
   type HalPin, type HalSignalPin, type HalSignal, type HalParam,
 } from "./ws/halshowStore";
+
+/** A check during a run computed a real slice that began after witness tick
+ *  `tick` (its word number `n`): the WS worker carries the highest such word
+ *  on every heartbeat it sends after (Codex R186 — the causal link). */
+export function noteWitnessDone(tick: number, n: number): void {
+  postWorkerProbe({ type: "witness", tick, n });
+}
 
 // Tab visibility changes — the known storm trigger.
 //   1. Emit a telemetry event for the trace bus (off-band signal).
@@ -172,7 +179,19 @@ function onWorkerMessage(m: any) {
 
     case "hbsent":
       noteHeartbeatSent();   // RTT anchor crossed by function call only (A1 rule)
-      noteHeartbeatSentAt(m.at, m.seq);   // the worker's own send stamp and number (viewerPerf's bound)
+      // the worker's own send stamp and number (viewerPerf's bound) and the
+      // witness word it had by then (the R overlap's causal link, Codex R186)
+      noteHeartbeatSentAt(m.at, m.seq, m.dt, m.dn);
+      // one exchange of the page ↔ worker clock relation a heartbeat
+      postWorkerProbe({ type: "clock", p0: performance.timeOrigin + performance.now() });
+      break;
+
+    case "clock":
+      noteClockExchange(m.p0, m.w, performance.timeOrigin + performance.now());
+      break;
+
+    case "spawned":
+      resetClockRelation();   // a new worker: a new clock relation
       break;
 
     case "hbslip":
@@ -292,7 +311,9 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
     if (msg.type === "status") {
       // a heartbeat's answer: the round trip timed in the worker (viewerPerf)
       if (msg.timing) noteHeartbeatReply(rx, msg.timing.server_ms, msg.timing.hb_seq, msg.timing.g_mono_ms, msg.timing.g_pid);
-      handleStatusMessage(msg, rx);   // its age runs from the worker's receipt
+      // its age runs from the worker's receipt, at its earliest time on this
+      // page's clock (the two-way relation, Codex R186) — none without one
+      handleStatusMessage(msg, receiptOnPage(rx));
     } else if (msg.type === "status_error") {
       handleStatusError(msg);
     } else if (msg.type === "reply") {

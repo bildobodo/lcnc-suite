@@ -86,22 +86,37 @@ test("perf rows carry the status age from the worker's receipt and the presses' 
   // worker's clock: a send stamp lost on the way to the page leaves rt_n 0
   await expect.poll(() => rows.some(r => r.rt_n > 0), { timeout: 15_000 }).toBe(true);
   // every paired heartbeat rides its row with the gateway's monotonic stamp
-  // and pid (Codex R185 — the report orders a parse's own bounds by them): a
-  // stamp lost between the timing and the page leaves rt_n without a pair
-  const pairs = rows.flatMap(r => r.hb_pairs as Array<[number, number, number, number, number]>);
+  // and pid (Codex R185 — the report orders a parse's own bounds by them) and
+  // the witness tick issued after it (R186): a stamp lost between the timing
+  // and the page leaves rt_n without a pair
+  type Pair = { seq: number; hs: number; hr: number; g: number; pid: number; ta: number; dt: number | null; dn: number | null };
+  const pairs = rows.flatMap(r => r.hb_pairs as Pair[]);
   expect(pairs.length).toBeGreaterThan(0);
   for (const r of rows) expect(r.hb_pairs.length, "one pair per paired heartbeat").toBe(r.rt_n);
-  for (const [seq, hs, hr, g, pid] of pairs) {
-    expect(Number.isInteger(seq)).toBe(true);
-    expect(hs, "the send before the answer's receipt, on one clock").toBeLessThan(hr);
-    expect(hr - hs).toBeLessThan(5000);
-    expect(typeof g).toBe("number");
-    expect(pid).toBeGreaterThan(0);
+  for (const p of pairs) {
+    expect(Number.isInteger(p.seq)).toBe(true);
+    expect(p.hs, "the send before the answer's receipt, on the worker's clock").toBeLessThan(p.hr);
+    expect(p.hr - p.hs).toBeLessThan(5000);
+    expect(typeof p.g).toBe("number");
+    expect(p.pid).toBeGreaterThan(0);
+    expect(p.dt, "the worker said its witness word with the send").toBe(0);   // no check during a run here
   }
   for (let i = 1; i < pairs.length; i++) {
-    expect(pairs[i]![0]).toBeGreaterThan(pairs[i - 1]![0]);
-    expect(pairs[i]![3], "the gateway's clock runs on with the heartbeats").toBeGreaterThan(pairs[i - 1]![3]);
+    expect(pairs[i]!.seq).toBeGreaterThan(pairs[i - 1]!.seq);
+    expect(pairs[i]!.g, "the gateway's clock runs on with the heartbeats").toBeGreaterThan(pairs[i - 1]!.g);
+    expect(pairs[i]!.ta, "a tick after each answer, in order").toBeGreaterThan(pairs[i - 1]!.ta);
   }
+  // the receipts are on the page's clock through the two-way exchange with
+  // the worker (Codex R186): a relation in every row once the first exchange
+  // is in, narrow at rest; the frames before it are not aged
+  await expect.poll(() => rows.some(r => r.clk_n > 0), { timeout: 15_000 }).toBe(true);
+  const related = rows.filter(r => r.clk_l !== null);
+  expect(related.length).toBeGreaterThan(0);
+  for (const r of related) {
+    expect(r.clk_u - r.clk_l, "a narrow relation at rest").toBeLessThan(200);
+    expect(r.clk_conflicts).toBe(0);
+  }
+  expect(rows.filter(r => r.age_n > 0).every(r => r.clk_l !== null), "an aged row has its relation").toBe(true);
   const sum = (h: Record<string, number>) => Object.values(h).reduce((a, b) => a + b, 0);
   for (const r of rows) {
     expect(sum(r.age_h), "every age sample is binned").toBe(r.age_n);
@@ -129,13 +144,25 @@ test("the page reports the parse it sees in flight, first and last frame, with t
   });
   await page.goto(MOCK);
   await expect(page.locator("#app")).toBeVisible();
-  const pr = { reason: "wcsoff:G55:z", file: "p.ngc", expected_ms: 9000, started_ms: 1234567, queued: false, superseded: 0 };
-  // an envelope key on a status_delta: the mock's state (armed, data) stays
-  // as the parallel tests of this project expect it
-  await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: pr } });
-  await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: null } });
-  await expect.poll(() => seen.filter(e => e.started_ms === 1234567).map(e => e.state), { timeout: 15_000 }).toEqual(["on", "off"]);
-  const [on, off] = seen.filter(e => e.started_ms === 1234567);
-  expect(typeof on.rx_ms).toBe("number");
-  expect(off.rx_ms).toBeGreaterThanOrEqual(on.rx_ms);
+  // a receipt is on the page's clock once the page ↔ worker clock relation
+  // holds (Codex R186: the first exchange rides the first heartbeat) — until
+  // then a parse is said without one; a parse per attempt (its own job)
+  // (the mock broadcasts to every page: jobs of this run's own, so a parallel
+  // copy of this test sees them only as other parses)
+  const base = 1_000 * (Date.now() % 1_000_000) + Math.floor(Math.random() * 1_000);
+  let on: Record<string, any> | undefined, off: Record<string, any> | undefined;
+  for (let k = 1; k <= 10 && typeof on?.rx_ms !== "number"; k++) {
+    const pr = { reason: "wcsoff:G55:z", file: "p.ngc", expected_ms: 9000, started_ms: 1234567 + k, job: base + k,
+                 queued: false, superseded: 0 };
+    // an envelope key on a status_delta: the mock's state (armed, data) stays
+    // as the parallel tests of this project expect it
+    await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: pr } });
+    await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: null } });
+    await expect.poll(() => seen.filter(e => e.job === base + k).map(e => e.state), { timeout: 15_000 }).toEqual(["on", "off"]);
+    [on, off] = seen.filter(e => e.job === base + k);
+    if (typeof on!.rx_ms !== "number") await page.waitForTimeout(500);
+  }
+  expect(typeof on!.rx_ms).toBe("number");
+  expect(on!.started_ms).toBeGreaterThan(1234567);
+  expect(off!.rx_ms).toBeGreaterThanOrEqual(on!.rx_ms);
 });

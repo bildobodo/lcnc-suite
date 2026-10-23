@@ -230,7 +230,10 @@ wss.on("connection", (ws) => {
       cmds.push(msg);
       if (cmds.length > 50) cmds.shift();
     }
-    if (cmd === "heartbeat") ws.send(JSON.stringify({ type: "pong" }));
+    if (cmd === "heartbeat") {
+      ws.send(JSON.stringify({ type: "pong" }));
+      if (Number.isInteger(msg?.seq)) ws.lastHbSeq = msg.seq;   // for {op: "hb_answer"} in quiet mode
+    }
     // "silent": a gateway that does not answer (yet) — the scripted slow read
     if (cmd && replies[cmd] === "silent") { /* no reply */ }
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
@@ -254,6 +257,7 @@ wss.on("connection", (ws) => {
 // spec can sequence assert-before -> broadcast -> assert-after without races.
 //   {op: "status_delta", data: {...}}  fold into state.data + broadcast delta
 //   {op: "raw", frame: {...}}          broadcast any frame verbatim
+//   {op: "hb_answer"}                  answer each client's latest heartbeat (quiet mode)
 ctlWss.on("connection", (ws) => {
   ws.on("error", () => {}); // spec closes the ctl socket right after the reply
   ws.on("message", (buf) => {
@@ -272,6 +276,15 @@ ctlWss.on("connection", (ws) => {
         ...("tool_meta" in m ? { tool_meta: m.tool_meta } : {}) }));
     } else if (m.op === "quiet") {
       quiet = m.on === true;
+    } else if (m.op === "hb_answer") {
+      // quiet mode answers no heartbeat on its own: this answers each
+      // client's latest one (a status_delta with its timing, as the gateway's)
+      // — the browser-PC witness ticks follow answers (Codex R186)
+      for (const client of wss.clients) {
+        if (client.readyState !== 1 || !Number.isInteger(client.lastHbSeq)) continue;
+        client.send(JSON.stringify(withEnvelope({ type: "status_delta", armed: state.armed, data: {},
+          timing: { server_ms: 0.2, hb_seq: client.lastHbSeq, g_mono_ms: Math.round(performance.now() * 1000) / 1000, g_pid: process.pid } })));
+      }
     } else if (m.op === "reset") {
       // Restore pristine state between tests. The mock is ONE process shared by
       // every spec (frames.spec mutates state.data via status_delta, and

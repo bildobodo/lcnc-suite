@@ -15,7 +15,7 @@ import {
   failedParts, loadMachineAssets, getCachedGeometry, getCollisionGeometry, getToolMeta, setToolMeta, machineReady,
 } from "./viewer/machineAssetCache";
 
-import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
+import { viewerInit, viewerGcode, status, statusReceiptOf, emitTelemetry, noteWitnessDone, previewRefresh, previewRefreshElapsedMs, previewRefreshLabel, previewRefreshPct, previewTableStale, previewBasisPending, runBasis, previewOrigin, previewDecoding, connected, type ViewerInit, type ViewerGcode } from "./lcncWs";
 import { loadViewerDefaults, loadCameraDefaults, saveCameraDefaults, ALL_LAYERS, ON_TOP_FALLBACK, ON_TOP_LAYERS, settingsVersion, type OnTopLayer, type Vec3, type Layer } from "./defaults";
 import { applyOnTop, ON_TOP_ORDER } from "./viewer/onTop";
 import { confirmedToolsetter } from "./toolsetterVars";
@@ -32,7 +32,7 @@ import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
-import { notePendingReceipt, recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl } from "./viewerPerf";
+import { notePendingReceipt, recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl, setWitnessTickSink } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
@@ -2424,6 +2424,8 @@ async function buildFromInit(init: ViewerInit) {
       };
     }
 
+    // the browser-PC witness ticks go to a check during a run (Codex R186)
+    setWitnessTickSink(_colTick);
     // Per-emit context for the frame-timing probe (viewerPerf). Closes over
     // module-level state so it always reads live values; invoked once per
     // summary window, not per frame. Lets the trace correlate hiccups with
@@ -3185,14 +3187,23 @@ let _colReqRunGen: number | null = null;
  *  slot (the run check a publication discards is the one that ran during the
  *  next parse, Codex R185). The last few only. */
 const _colRunReqs = new Map<number, { gen: number; range: number | null }>();
+/** The witness words' numbers on this page (Codex R186's causal link). */
+let _colWitnessN = 0;
 function _colNoteWitness(id: number, w: CollisionWitness) {
   const r = _colRunReqs.get(id);
   if (!r) return;
-  // the worker's clock when it posted against this page's at receipt: never
-  // ahead on one clock (a context created after a host sleep is)
-  const ahead = typeof w.at === "number" ? +(w.at - (performance.timeOrigin + performance.now())).toFixed(3) : null;
+  // a run check's real slice began after tick `w.tick` and has ended: say it,
+  // then hand it to the WebSocket worker — every heartbeat it sends after
+  // carries it (viewerPerf hb_pairs dt / dn)
+  const n = ++_colWitnessN;
   emitTelemetry("collision.sweep_witness", { id, run_gen: r.gen, range_from: r.range, shard: w.shard, gen: w.gen,
-                                             s: w.s, ahead_ms: ahead, ...(w.capped ? { capped: true } : {}) });
+                                             tick: w.tick, n });
+  noteWitnessDone(w.tick, n);
+}
+/** A witness tick (viewerPerf issues one after each heartbeat answer it
+ *  handled) goes to the worker while a check during a run computes. */
+function _colTick(tick: number) {
+  if (_colWorker && collisionBusy.value && _colRunReqs.has(_colReqId)) _colWorker.postMessage({ tick });
 }
 let _colKeepShown = false;
 // The main request in flight, whole: re-sent unchanged when the worker asks
@@ -5089,6 +5100,7 @@ onUnmounted(() => {
   themeMedia?.removeEventListener("change", updateSceneTheme);
   document.removeEventListener("visibilitychange", _onVisibilityChange);
   setViewerPerfContext(null);
+  setWitnessTickSink(null);
   setViewerPerfGl(null);
   clearTimeout(_pfWcsTimer);
   clearTimeout(_colAutoTimer);

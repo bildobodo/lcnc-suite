@@ -10,10 +10,10 @@ vi.mock("./ws/telemetry", () => ({
 }));
 
 import {
-  binOf, flushViewerPerf, noteHeartbeatReply, noteHeartbeatSentAt, noteInput, noteMainThreadProbe,
+  binOf, flushViewerPerf, noteClockExchange, noteHeartbeatReply, noteHeartbeatSentAt, noteInput, noteMainThreadProbe,
   notePendingReceipt, noteSlowInput, noteVisibilityChanged,
-  recordApply, recordRafTick, recordRender, resetViewerPerf, setViewerPerfGl,
-  setViewerPerfContext,
+  receiptOnPage, recordApply, recordRafTick, recordRender, resetClockRelation, resetViewerPerf, setViewerPerfGl,
+  setViewerPerfContext, setWitnessTickSink,
 } from "./viewerPerf";
 
 function last(): Record<string, unknown> {
@@ -356,24 +356,31 @@ describe("the gateway → socket bound, timed in the worker and paired by number
     expect(f.rt_invalid).toBe(6);
   });
 
-  it("keeps each valid pair with the gateway's monotonic stamp for the row, and only valid ones (Codex R185)", () => {
-    noteHeartbeatSentAt(T0 + 10, 1);
+  it("keeps each valid pair with the gateway's monotonic stamp, its tick and its send's witness word (Codex R185/R186)", () => {
+    const ticks: number[] = [];
+    setWitnessTickSink(k => ticks.push(k));
+    noteHeartbeatSentAt(T0 + 10, 1, 0, 0);
     noteHeartbeatReply(T0 + 130, 20, 1, 5_000.25, 4242);
     noteHeartbeatSentAt(T0 + 1010, 2);
-    noteHeartbeatReply(T0 + 1120, 20, 2);                 // an old gateway: no stamp, a bound but no pair
+    noteHeartbeatReply(T0 + 1120, 20, 2);                 // an old gateway: no stamp — a tick, no pair
     noteHeartbeatSentAt(T0 + 2010, 3);
-    noteHeartbeatReply(T0 + 2015, 20, 3, 7_000, 4242);    // negative: no bound, no pair
+    noteHeartbeatReply(T0 + 2015, 20, 3, 7_000, 4242);    // negative: no bound, no tick, no pair
     noteHeartbeatReply(T0 + 2100, 20, 9, 7_100, 4242);    // never sent here
-    noteHeartbeatSentAt(T0 + 3010, 4);
+    noteHeartbeatSentAt(T0 + 3010, 4, 2, 17);             // sent after the worker was handed word 17 (tick 2)
     noteHeartbeatReply(T0 + 3140, 20, 4, 8_000.5, 4242);
     recordApply(1, 1000);
     flushViewerPerf();
-    expect(last().hb_pairs).toEqual([[1, T0 + 10, T0 + 130, 5_000.25, 4242], [4, T0 + 3010, T0 + 3140, 8_000.5, 4242]]);
+    // a tick after each valid answer, in order
+    expect(ticks).toEqual([1, 2, 3]);
+    expect(last().hb_pairs).toEqual([
+      { seq: 1, hs: T0 + 10, hr: T0 + 130, g: 5_000.25, pid: 4242, ta: 1, dt: 0, dn: 0 },
+      { seq: 4, hs: T0 + 3010, hr: T0 + 3140, g: 8_000.5, pid: 4242, ta: 3, dt: 2, dn: 17 }]);
     expect(last().hb_pairs_dropped).toBeUndefined();
     noteHeartbeatSentAt(T0 + 4010, 5);
     recordApply(2, 1000);
     flushViewerPerf();
     expect(last().hb_pairs).toEqual([]);                 // a window keeps its own
+    setWitnessTickSink(null);
   });
 
   it("caps a window's pairs and counts the rest", () => {
@@ -384,7 +391,7 @@ describe("the gateway → socket bound, timed in the worker and paired by number
     recordApply(1, 1000);
     flushViewerPerf();
     expect(last().hb_pairs).toHaveLength(32);
-    expect((last().hb_pairs as unknown[])[0]).toEqual([1, T0 + 100, T0 + 150, 125, 7]);
+    expect((last().hb_pairs as unknown[])[0]).toEqual({ seq: 1, hs: T0 + 100, hr: T0 + 150, g: 125, pid: 7, ta: 1, dt: null, dn: null });
     expect(last().hb_pairs_dropped).toBe(8);
   });
 
@@ -397,6 +404,51 @@ describe("the gateway → socket bound, timed in the worker and paired by number
     recordApply(1, 1033);
     flushViewerPerf();
     expect(last().vis_changes).toBe(0);
+  });
+});
+
+describe("the page ↔ WS worker clock relation and the receipt on the page's clock (Codex R186 VP186-01)", () => {
+  const T0 = performance.timeOrigin;
+
+  it("bounds θ = worker − page by each exchange, keeps the intersection and says it per window", () => {
+    // the worker reads 2000 ms ahead; exchanges of 10 and 4 ms round trip
+    noteClockExchange(T0 + 100, T0 + 2105, T0 + 110);    // θ ∈ [1995 − 4, 2005 + 4]
+    noteClockExchange(T0 + 200, T0 + 2202, T0 + 204);    // θ ∈ [1998 − 4, 2002 + 4]
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect([last().clk_n, last().clk_l, last().clk_u, last().clk_conflicts]).toEqual([2, 1994, 2006, 0]);
+  });
+
+  it("takes a receipt at its earliest page time — a status age is an upper bound — and none without a relation", () => {
+    expect(receiptOnPage(T0 + 5_000)).toBeUndefined();   // no exchange yet
+    noteClockExchange(T0 + 100, T0 + 2105, T0 + 110);
+    // received at worker 5000 = page 3000 (θ 2000); the earliest it can be: 5000 − 2009
+    expect(receiptOnPage(T0 + 5_000)).toBe(T0 + 5_000 - 2009);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().age_unbound).toBe(1);
+  });
+
+  it("a contradiction starts the relation anew; a new worker has none", () => {
+    noteClockExchange(T0 + 100, T0 + 2105, T0 + 110);
+    noteClockExchange(T0 + 200, T0 + 205, T0 + 210);     // θ ≈ 0 now: no common value
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect([last().clk_l, last().clk_u, last().clk_conflicts]).toEqual([-9, 9, 1]);
+    resetClockRelation();
+    expect(receiptOnPage(T0 + 5_000)).toBeUndefined();
+  });
+
+  it("an age from a worker 2 s ahead is no 100 ms (Codex R186's second case)", () => {
+    // true: received at page 10000, applied at page 12100 — 2100 ms; the
+    // worker stamps 12000 (2000 ahead)
+    noteClockExchange(T0 + 9_000, T0 + 11_001, T0 + 9_002);
+    recordApply(0, 1);                                      // the viewer's first build is not aged
+    notePendingReceipt(receiptOnPage(T0 + 12_000));
+    recordApply(1, 12_100);
+    flushViewerPerf();
+    expect(last().age_max_ms).toBeGreaterThanOrEqual(2100);
+    expect(last().age_max_ms).toBeLessThanOrEqual(2100 + 2 + 2 * 4);
   });
 });
 

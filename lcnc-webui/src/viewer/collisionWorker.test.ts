@@ -289,88 +289,91 @@ describe("the regular flow", () => {
   });
 });
 
-describe("a check during a run stamps its real slices (the browser-PC witness, Codex R185)", () => {
-  /** Slices of `ms` on the worker's clock, one iterator checkpoint each. */
-  async function localRun(ms: number, o: { witness: boolean; cancelAt?: number }) {
-    let clock = 1000;
+describe("a check during a run says its real slices against the page's ticks (the browser-PC witness, Codex R186)", () => {
+  /** A local run, one iterator checkpoint per slice; `ticks` = slice number →
+   *  a tick the page sends before that slice runs. */
+  async function localRun(o: { witness: boolean; ticks?: Record<number, number>; cancelAt?: number }) {
+    const began: number[] = [];
+    let slices = 0;
+    let send!: (d: Msg) => void;
+    let log: Msg[] | null = null;
     vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>, _ms: number, cancelled: () => boolean) => {
-      clock += ms;
+      slices++;
+      log?.push({ slice: slices });   // where each slice begins, among the messages
       const cancel = cancelled();
       const r = it.next(cancel);
       if (cancel) { for (let g = 0; g < 4 && !it.next(true).done; g++); return { done: true, cancelled: true, result: null, progress: 0, checkpoints: 1 }; }
       return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
                     : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
     } }));
-    const { sent, send } = await setup(2);   // one core: the local path
-    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    const env = await setup(2);   // one core: the local path
+    send = env.send;
+    const { sent } = env;
+    log = sent;
     const n = 201, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
     for (let i = 0; i < n; i++) { pos[i * 3] = 10 - i * 0.1; cum[i] = i * 0.1; lines[i] = i + 1; }
     send({ ...req(31), ...(o.witness ? { witness: true } : {}), contacts: { generation: 2 },
            track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    const ticked = new Set<number>();
     for (let i = 0; i < 2000 && !sent.some(terminal); i++) {
-      if (o.cancelAt !== undefined && sent.filter(m => m.progress != null).length === o.cancelAt) send({ cancel: 31 });
+      // the tick for the next slice, once, before it runs
+      const k = o.ticks?.[slices + 1];
+      if (k !== undefined && !ticked.has(slices + 1)) { ticked.add(slices + 1); send({ tick: k }); began.push(slices + 1); }
+      if (o.cancelAt !== undefined && slices === o.cancelAt) send({ cancel: 31 });
       await vi.advanceTimersToNextTimerAsync();
-      const ack = sent.filter(m => m.contacts).length;
-      if (ack) send({ contactsAck: 31, generation: 2 });
+      if (sent.some(m => m.contacts)) send({ contactsAck: 31, generation: 2 });
     }
-    return sent;
+    return { sent, slices };
   }
 
-  it("keeps the first slice of each 250 ms, as its start and end, and says them before the result", async () => {
-    const sent = await localRun(100, { witness: true });
-    const words = sent.filter(m => m.witness);
-    const end = sent.findIndex(m => m.result);
-    expect(end).toBeGreaterThan(0);
-    expect(words.length).toBeGreaterThan(1);
-    expect(sent.findIndex(m => m === words[words.length - 1])).toBeLessThan(end);
-    for (const m of words) expect([m.id, m.witness.shard, m.witness.gen]).toEqual([31, null, 2]);
-    // each word carries the computing context's clock as it leaves
-    for (const m of words) expect(m.witness.at - performance.timeOrigin).toBeGreaterThanOrEqual(m.witness.s[m.witness.s.length - 1] - performance.timeOrigin);
-    const s = words.flatMap(m => m.witness.s as number[]).map(t => t - performance.timeOrigin);
-    const slices = sent.filter(m => m.progress != null).length + 1;
-    expect(s[0]).toBe(1000);                                     // the first slice: right before and after it
-    expect(s[1]).toBe(1100);
-    for (let i = 0; i < s.length; i += 2) expect(s[i + 1]! - s[i]!).toBe(100);
-    const buckets = s.filter((_, i) => i % 2 === 0).map(t => Math.floor((t + performance.timeOrigin) / 250));
-    expect(new Set(buckets).size, "one a bucket").toBe(buckets.length);
-    expect(s.length / 2).toBeLessThan(slices);                   // sampled, not every slice
-    expect(s.length / 2).toBeGreaterThanOrEqual(Math.floor(slices * 100 / 250) - 1);
-    // at most one word every 2 s of the worker's clock while it runs, the last at its end
-    expect(words.length).toBeLessThanOrEqual(Math.ceil(slices * 100 / 2000) + 1);
-  });
-
-  it("a cancelled check says its slices before the acknowledgement", async () => {
-    const sent = await localRun(100, { witness: true, cancelAt: 10 });
-    const ack = sent.findIndex(m => m.cancelled);
-    expect(ack).toBeGreaterThan(0);
+  it("says each new tick once, after the first slice that began with it, before the result", async () => {
+    const { sent, slices } = await localRun({ witness: true, ticks: { 3: 1, 6: 2, 7: 5, 9: 4 } });
+    expect(slices).toBeGreaterThan(10);
     const words = sent.map((m, i) => [m, i] as const).filter(([m]) => m.witness);
-    expect(words.length).toBeGreaterThan(0);
-    expect(words[words.length - 1]![1]).toBeLessThan(ack);
+    // tick 4 came after 5: no word of its own (the highest so far is said)
+    expect(words.map(([m]) => m.witness)).toEqual([
+      { shard: null, gen: 2, tick: 1 }, { shard: null, gen: 2, tick: 2 }, { shard: null, gen: 2, tick: 5 }]);
+    // each word follows the slice that BEGAN with its tick (slices 3, 6, 7),
+    // never the tick's arrival
+    const at = (k: number) => sent.findIndex(m => m.slice === k);
+    expect(words.map(([, i]) => i > at(3) && i < at(4))).toEqual([true, false, false]);
+    expect(words[1]![1] > at(6) && words[1]![1] < at(7)).toBe(true);
+    expect(words[2]![1] > at(7) && words[2]![1] < at(8)).toBe(true);
+    expect(words[words.length - 1]![1]).toBeLessThan(sent.findIndex(m => m.result));
+  });
+
+  it("a cancelled check still says the tick of a slice that ran", async () => {
+    const { sent } = await localRun({ witness: true, ticks: { 2: 7 }, cancelAt: 5 });
+    expect(sent.some(m => m.cancelled)).toBe(true);
     expect(sent.some(m => m.result), "cancelled, not finished").toBe(false);
-    expect(words.flatMap(([m]) => m.witness.s).length / 2).toBeGreaterThanOrEqual(4);   // 1 s of 100 ms slices, 4 a second
+    expect(sent.filter(m => m.witness).map(m => m.witness.tick)).toEqual([7]);
   });
 
-  it("a check that is not asked says nothing", async () => {
-    const sent = await localRun(100, { witness: false });
-    expect(sent.some(m => m.result)).toBe(true);
-    expect(sent.some(m => m.witness)).toBe(false);
+  it("a tick with no slice after it says nothing; a check that is not asked says nothing", async () => {
+    const asked = await localRun({ witness: true });
+    expect(asked.sent.some(m => m.witness)).toBe(false);
+    const not = await localRun({ witness: false, ticks: { 2: 3 } });
+    expect(not.sent.some(m => m.result)).toBe(true);
+    expect(not.sent.some(m => m.witness)).toBe(false);
   });
 
-  it("the pool asks each shard and passes its slices on named by the shard, even after the run ended", async () => {
+  it("the pool hands each tick to every shard and passes a shard's word on named by it, even after the run ended", async () => {
     const { sent, workers, send } = await setup();
     send({ ...req(40), witness: true });
     expect(workers).toHaveLength(2);
     for (const w of workers) expect(w.messages[0]!.witness).toBe(true);
+    send({ tick: 9 });
+    for (const w of workers) expect(last(w.messages)).toEqual({ tick: 9 });
     // a shard sweeps without a shard option when the pool is one — the
     // coordinator names it
-    workers[1]!.emit({ id: 40, witness: { shard: null, gen: null, s: [5, 25] } });
+    workers[1]!.emit({ id: 40, witness: { shard: null, gen: null, tick: 9 } });
     send({ cancel: 40 });
     for (const w of workers) w.emit({ id: 40, cancelled: true });
     expect(sent.some(m => m.cancelled)).toBe(true);
-    workers[0]!.emit({ id: 40, witness: { shard: null, gen: null, s: [7, 27, 300, 320] } });
+    workers[0]!.emit({ id: 40, witness: { shard: null, gen: null, tick: 9 } });
     expect(sent.filter(m => m.witness)).toEqual([
-      { id: 40, witness: { shard: 1, gen: null, s: [5, 25] } },
-      { id: 40, witness: { shard: 0, gen: null, s: [7, 27, 300, 320] } }]);
+      { id: 40, witness: { shard: 1, gen: null, tick: 9 } },
+      { id: 40, witness: { shard: 0, gen: null, tick: 9 } }]);
   });
 });
 
