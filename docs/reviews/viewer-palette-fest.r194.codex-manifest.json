@@ -1,0 +1,30 @@
+{
+  "round": "R194",
+  "verdict": "agreement",
+  "scope": "Plan version 4 only; VP193-01 closed at plan level",
+  "revision": "85bcce44c28e8420e8fc8dac4412cb655c840321",
+  "review_heading_line": 24376,
+  "input_files_before": {
+    "docs/reviews/basiswechsel-last.plan.md": {
+      "bytes": 22043,
+      "sha256": "4400a3a38f1abbf4c5dc60017075e633dd0007381658aaf8aafd3361a6dbd209"
+    },
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 2305093,
+      "sha256": "084ce22281ac8a6744052b9a67b4776cfd5962d904786b869141b0cd3dfe5c5e"
+    }
+  },
+  "checks": "Static plan/source review; no new product tests or measurement run",
+  "product_changes": false,
+  "machine_commands": false,
+  "evidence": {
+    "viewer-palette-fest.r194.codex-plan-input.md": {
+      "bytes": 22043,
+      "sha256": "4400a3a38f1abbf4c5dc60017075e633dd0007381658aaf8aafd3361a6dbd209"
+    },
+    "viewer-palette-fest.r194.codex-source-check.json": {
+      "bytes": 625,
+      "sha256": "9b3f6e02067fa74c73ca9eb63c463aa34e102ec7dd1431af55c319b84f36f9a7"
+    }
+  }
+}

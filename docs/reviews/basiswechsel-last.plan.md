@@ -1,16 +1,22 @@
 # VP188-02 — Statusalter bei wiederholten Versatzwechseln (Plan)
 
-**Fassung 3 · 23. Oktober 2026 · Zweig `feat/vp188-basiswechsel` (Schritt 0 und N1 gebaut, R192 Agreement, gemergt `a8486ee9`) · Merge nach `development` über den Integrationszweig, nie `main`.**
+**Fassung 4 · 24. Oktober 2026 · Zweig `feat/vp188-basiswechsel` (Schritt 0 und N1 gebaut, R192 Agreement, gemergt `a8486ee9`) · Merge nach `development` über den Integrationszweig, nie `main`.**
 
-Fassung 2 hat Codex in R191 angenommen, Schritt 0 und N1 sind gebaut (R192 Agreement).
+Bisheriger Verlauf:
+- R191 hat aus Fassung 2 Schritt 0 und N1 freigegeben. Die Reste A–C des Zustandsvertrags blieben dabei für E1 offen.
+- Schritt 0 und N1 sind gebaut (R192 Agreement).
+- Der Diagnoselauf danach zeigt: Das Ziel ist weiter verfehlt, und die Hauptlast ist der Neuaufbau des gezeichneten Pfads (Abschnitt 1).
+- Der Operator wählte am 23. Oktober „Pfad wartet“: E2 in enger Form.
+- R193 nahm den Wegfall von E1 und die Richtung von E2 an. Mit VP193-01 verlangte es einen eigenen Vertrag für den **tatsächlich gezeichneten** Pfad.
 
-Fassung 3 folgt dem Diagnoselauf nach N1:
-- **Ergebnis:** Das Ziel ist weiter verfehlt.
-- **Hauptlast:** der Neuaufbau des gezeichneten Pfads, nicht die Kollisionsprüfung.
-- **Operator-Entscheidung (23. Oktober, 23:20):** „Pfad wartet“, die **enge Form von E2**.
-- **E1 entfällt** auf diesen Befund.
-
-Geändert sind 1, 3, 5 und 6; neu ist Abschnitt 9. Die Antworten auf R190 (Abschnitt 8) bleiben stehen.
+Fassung 4:
+- **Abschnitt 3** trennt Halten (3a), übernommene Vorschau und angewandten Pfadstand (3b). Er nimmt die Konkretisierungen aus R193 auf:
+  - Geltungsbereich am vorhandenen Kriterium;
+  - Zulassung bei jedem `preview_refresh`;
+  - Zeitgeber verbraucht;
+  - die erste Rückmeldung als erwarteter Ablauf, nicht als Zusage.
+- **Abschnitt 5** hat neue Wächter.
+- **Abschnitt 10** enthält die Antworten auf R193.
 
 ## 1 · Ausgangslage
 
@@ -46,9 +52,9 @@ Das Ziel wird nicht gelockert.
 | `col_cancel` | 16 | 2 | 1 |
 | `col_post`, `pf_load` | 8, 8 | 0, 0 | 0, 0 |
 
-- Daneben `render_max` 86 ms, das Hochladen der neu gebauten Geometrie beim nächsten Render, und `mt_late_max` 164 ms.
+- Daneben `render_max` 86 ms und `mt_late_max` 164 ms. `render_max` ist die ganze gemessene Render-Spanne, kein eigens gemessenes GPU-Hochladen (R193).
 - **Lesart:** Die Spannen erklären den Hauptteil, nicht alles. `path_reply` und der folgende Render sind die dominante Last. Die Prüfung kostet den Hauptthread etwa 5 ms je Wechsel.
-  - **Folge für E1:** E1 (die Prüfung wartet) erreicht das Ziel nicht.
+  - **Folge für E1:** E1 (die Prüfung wartet) adressiert die gemessene Hauptlast nicht.
   - **Folge für E2:** Sieben der acht Neuaufbauten ersetzt die Veröffentlichung ohnehin.
 - **Vergleich zu R188:** Das Alter in S_supersede ist ähnlich (58/68 vorher, 60 jetzt). Ein isolierter Gewinn von N1 ist damit nicht belegt (R192: kein Vorher-Lauf).
 
@@ -61,80 +67,132 @@ Wie in Fassung 2. Gebaut und angenommen:
 
 ## 3 · Verhaltensänderung · E2 in enger Form (Operator-Entscheidung)
 
-**E1 entfällt.** Der Befund in 1 zeigt, dass die Prüfung nicht die Last ist. Bleibt das Ziel nach E2 verfehlt, kommt E1 nicht zurück, ohne dass eine neue Messung es begründet.
+**E1 entfällt.**
+- E1 adressiert die gemessene Hauptlast nicht (R193: so formuliert statt „erreicht das Ziel nicht“; ein Gegenversuch wurde nicht gemacht).
+- Bleibt das Ziel nach E2 verfehlt, kommt E1 nicht ohne eine neue Messung zurück, die es begründet.
 
-**E2 eng · Der Pfad wartet, solange ein Neu-Parse der geladenen Datei unterwegs ist.**
+**E2 eng.** Der Pfad wird nicht neu gebacken, solange ein Neu-Parse der geladenen Datei unterwegs ist. Er bleibt gedämpft, bis der **passende Pfad tatsächlich gezeichnet** ist (VP193-01).
+
+Drei getrennte Dinge (VP193-01):
+1. das **Halten** (3a) — wann eine Neuback-Anforderung zurückgestellt wird;
+2. die **übernommene Vorschau** (`viewerGcode`, wie heute);
+3. der **angewandte Pfadstand** (3b) — wofür die gezeichnete Geometrie tatsächlich gebacken wurde. Er allein entscheidet, ob der gezeichnete Pfad aktuell ist.
+
+### 3a · Das Halten
+
+**Geltungsbereich: das vorhandene Kriterium.** Eine Funktion `_bakeFollowsOffsets(g)` fasst die Bedingung zusammen, die `_pfScheduleWcsRefresh` heute anwendet:
+- Teil-Modus;
+- oder ein programmierter Pfad, dessen Neuverankerung von der Identität abweichen kann:
+  - mehr als eine Epoche,
+  - eine vom Programm umgeschriebene Epoche 0,
+  - eine Epoche-0-Zuordnung, die nicht die aktive ist.
+
+R193 zeigte 0/1/1 Zeitgeber für den ausgenommenen Fall, die umgeschriebene Epoche und die andere aktive Zuordnung. Nur dieser Bereich wird gehalten und bekommt den Pfadstand aus 3b. Die Reichweitenhülle (`_reachSchedule`) bleibt ungehalten.
 
 **Regel:**
-- Ein Versatzwechsel ohne laufenden Neu-Parse backt den Pfad wie heute nach 300 ms neu. Das ist die unmittelbare Rückmeldung beim Antasten.
-- Ist ein Neu-Parse der geladenen Datei unterwegs, wird nicht gebacken. Der Pfad bleibt auf seinem zuletzt gebackenen Stand, als veraltet gedämpft wie heute (`pathStaleNow`).
-- Die Übernahme der neuen Vorschau backt mit den **Live-Versätzen** (`applyGcode` → `_pfWcs()` aus `_pv`). Der Pfad steht danach am aktuellen Ort, gleich auf welcher Basis der Parse lief.
+- Eine Neuback-Anforderung über `_pfScheduleWcsRefresh` startet wie heute einen 300-ms-Zeitgeber. Das betrifft G5x, G92, XY-Rotation, die Versatztabelle und den Werkzeugversatz ohne Werkzeugbasis.
+- Beim Ablauf entscheidet der Haltezustand:
+  - `frei` → `applyGcode` wie heute.
+  - sonst wird **nicht** gebacken, und der Wechsel ist vermerkt.
+- **Erwarteter Ablauf im S-Fall** (keine allgemeine Zusage, R193): Der erste Wechsel backt nach 300 ms. `preview_refresh` erscheint erst 2–4 s nach dem Wechsel. Kommt ein Parse-Signal vor Ablauf der 300 ms, wird auch der erste Wechsel gehalten.
+- Die Werkstück-Markierung folgt immer sofort; sie ist davon getrennt.
 
-**Gilt für** jede Neuback-Anforderung über `_pfScheduleWcsRefresh`: G5x, G92, XY-Rotation, die Versatztabelle und den Werkzeugversatz ohne Werkzeugbasis.
-- Die Reichweitenhülle (`_reachSchedule`) bleibt ungehalten.
-- Wie in R190: nur die gebackene Darstellung mit eigenem Anker, also Teil-Modus und programmierter Pfad mehrerer Epochen. Ein programmierter Pfad einer Epoche folgt dem Live-Ursprung weiter, denn die Anforderung entfällt dort schon heute.
-
-**Besitzer des Haltens:** ein Halt `H`, gebunden an
+**Besitzer `H`:**
 - die angezeigte Revision `<voller Pfad>#<publishedVersion>` von `viewerGcode`,
 - die Verbindungsepoche,
 - eine lokale Nummer.
 
-`preview_refresh` trägt nur den Basisnamen. Er muss zum Basisnamen der angezeigten Datei passen. Entschieden wird über die volle Revision der Veröffentlichung.
+`preview_refresh` trägt nur den Basisnamen; er muss zum Basisnamen der angezeigten Datei passen. Entschieden wird über die volle Revision der Veröffentlichung.
+
+**Ein Halten beginnt nur unter Zulassung.** Geprüft wird **bei jedem** `preview_refresh`, nicht nur bei einer Eintrittskante:
+- verbunden;
+- Maschine ohne Lauf (kein AUTO-Lauf, Interpreter im Leerlauf);
+- keine Simulation;
+- angezeigte Datei;
+- Pfad im Geltungsbereich.
+
+Ohne Zulassung bleibt der Zustand `frei`. Ein `preview_refresh` bei bereits laufender Maschine oder aktiver Simulation hält also nichts.
 
 **Zustände und Übergänge:**
 
-| Zustand | betreten bei | Versatzwechsel dort | verlassen bei |
+| Zustand | betreten bei | Zeitgeber läuft dort ab | verlassen bei |
 |---|---|---|---|
-| `frei` | Anfang; Ende jedes Haltens | backt wie heute (300 ms) | `preview_refresh` der geladenen Datei erscheint → `parsing` |
-| `parsing` | `preview_refresh` (mit `job`) | **gehalten**: nichts angefordert, vermerkt | `preview_refresh` fehlt → `after_parse`; Ankunft `viewer_gcode_ready` dieser Datei mit neuerer Version `v` → `loading` |
-| `after_parse` | der Parse fehlt im Status (Ersetzungslücke, im Lauf 37 ms zwischen `off` von Job 41 und `on` von Job 42); Frist 6 s ab da | gehalten | neuer `preview_refresh` → `parsing`; Ankunft mit `v` → `loading`; Frist → **Ende mit Nachbacken** |
-| `loading` | Ankunft mit Version `v` (vor Abruf und Dekodierung); Frist 20 s ab da | gehalten | `viewerGcode` mit `publishedVersion = v` und derselben Datei übernommen → `frei` (die Übernahme backt); Fehler **dieser** Dekodierung (Version `v`) → **Ende mit Nachbacken**; neuere Ankunft → `loading` mit ihr; Frist → **Ende mit Nachbacken** |
+| `frei` | Anfang; Ende jedes Haltens | backt wie heute | zugelassener `preview_refresh` → `parsing` |
+| `parsing` | `preview_refresh` (mit `job`) | gehalten, vermerkt | `preview_refresh` fehlt → `after_parse`; Ankunft `viewer_gcode_ready` dieser Datei mit neuerer Version `v` → `loading` |
+| `after_parse` | der Parse fehlt im Status (Ersetzungslücke, im Lauf 37 ms zwischen `off` von Job 41 und `on` von Job 42); Frist 6 s | gehalten | zugelassener `preview_refresh` → `parsing`; Ankunft mit `v` → `loading`; Frist → **Ende mit Nachbacken** |
+| `loading` | Ankunft mit Version `v` (vor Abruf und Dekodierung); Frist 20 s | gehalten | Übernahme (`viewerGcode` mit `publishedVersion = v`, dieselbe Datei) → `frei`; Fehler **dieser** Dekodierung (`previewDecodeFailure` mit `v`) → **Ende mit Nachbacken**; neuere Ankunft → `loading` mit ihr; Frist → **Ende mit Nachbacken** |
 
-**Ende mit Nachbacken:**
-- Endet das Halten ohne Übernahme einer neuen Vorschau und wurde ein Wechsel gehalten, wird **einmal** sofort gebacken, auf der angezeigten Vorschau mit den Live-Versätzen.
-- Kein Wechsel geht damit verloren. Das gilt auch dann, wenn ein späteres Statusbild dieselben Werte zeigt und `_numArrChanged` keinen Wechsel mehr meldet.
+- **Übernahme:** Die Übernahme ruft wie heute `applyGcode` mit den Live-Versätzen auf. `loading → frei` lässt damit nur weitere Anforderungen zu; es heißt **nicht**, dass der Pfad aktuell ist (VP193-01). Das entscheidet 3b.
+- **Ende mit Nachbacken:** Endet das Halten ohne Übernahme und wurde ein Wechsel vermerkt, wird **einmal** sofort `applyGcode` auf der angezeigten Vorschau aufgerufen.
+  - Gilt bei Fristablauf, beim eigenen Dekodierfehler, bei Verbindungsverlust, Laufbeginn und Simulationseintritt.
+  - Kein Wechsel geht verloren, auch wenn ein späteres Statusbild dieselben Werte zeigt und `_numArrChanged` nichts mehr meldet.
+  - Ein Dateiwechsel endet ohne Nachbacken; die neue Datei bringt ihre Übernahme.
+  - Ein Nachbacken ist eine **Anforderung**. Erst seine Anwendung macht den Pfad aktuell (3b). Ein erfolgloser Aufbau beweist nichts.
+- **Zeitgeber:** Übernahme und Nachbacken verbrauchen einen ausstehenden 300-ms-Zeitgeber (gelöscht). Er wiederholt danach nicht denselben Aufbau.
+- **Laufende Part-Frame-Antwort** (R193 Frage 2 angenommen):
+  - Eine vor dem Halten angeforderte Antwort wird mit **ihrem eigenen Anker** angewandt, wie heute (`_pfAnchorFor`). Die vorhandenen Prüfungen auf überholte Anfragen und Darstellungswechsel bleiben.
+  - Ihre Anwendung erledigt keinen später vermerkten Wechsel und löscht nicht die Dämpfung aus 3b.
 
-**Beenden aus jedem Zustand:**
-- **Mit Nachbacken:**
-  - **Verbindung verloren** (neue Epoche): nach dem Wiederverbinden gilt das übliche Verhalten.
-  - **Lauf beginnt:** Prüfungen und Pfad im Lauf haben ihre eigenen Regeln.
-  - **Simulationseintritt:** Die Simulation zeigt den Pfad an seinem gültigen Ort.
-- **Ohne Nachbacken:**
-  - **Datei gewechselt oder entladen:** Die neue Datei bringt ihre Übernahme.
+### 3b · Der angewandte Pfadstand (VP193-01)
 
-**Laufende Part-Frame-Antwort:**
-- Eine Antwort, die **vor** Beginn des Haltens angefordert wurde, wird angewandt. Sie ist die Rückmeldung des ersten Wechsels.
-- Während des Haltens wird keine angefordert.
-- Das ändert die R190-Regel („verworfen, solange gehalten“). In der engen Form gibt es im Halten keine eigene Anforderung, die man verwerfen müsste.
-- Ein 300-ms-Zeitgeber, der im Halten abläuft, entscheidet beim Ablauf: gehalten, also vermerkt.
+**Der Bauschlüssel.** Jede Bake-Anforderung bekommt einen Schlüssel aus genau dem, womit sie backt:
+- die Revision `<voller Pfad>#<publishedVersion>`;
+- die Darstellung (Teil bzw. programmiert);
+- `_pfWcs()`: G5x, G92, Rotation, der Werkzeugversatz vor der ersten Zeile;
+- bei epochenbewussten Payloads die Versatztabelle `_pv.wcsTable`.
 
-**Die Reste aus R191 (VP190-01), auf E2 übertragen:**
-- **A · die Basis der übernommenen Vorschau:**
-  - Die Übernahme backt mit den Live-Versätzen. Der gezeichnete Pfad stimmt deshalb nach jeder Übernahme mit der Maschine überein.
-  - Weicht die Parse-Basis ab (ein Wechsel nach dem Parse-Beginn), bleibt `previewWcsStale` wahr und der Pfad gedämpft. Der Gateway parst erneut, und sein `preview_refresh` beginnt ein neues Halten.
-- **B · nur der eigene Fehler:**
-  - Gezählt wird nur der Fehler der Dekodierung der Version `v`: die Fehlerantwort des Preview-Workers bzw. sein `onerror`, während `v` aussteht.
-  - Er wird als eigenes Signal ausgegeben (`previewDecodeFailure {file, version}`), nie über das gemischte `previewLoadError`, das auch Oberflächen- und Kompensationsfehler trägt.
-- **C · begrenztes Laden:** `loading` endet spätestens nach 20 s mit Nachbacken.
-  - Das ist eine Schranke, kein Fehlerbeweis.
-  - Im Diagnoselauf lagen zwischen dem Ende des letzten Parses (`parse_seen off`, Job 42) und dem Start der Prüfung auf der übernommenen Vorschau 0,8 s. Darin stecken Abruf, Dekodierung und die 400 ms der Prüfplanung. Die Dekodierung selbst wird nicht eigens gemessen.
+**Was der Schlüssel bewirkt:**
+- Die Part-Frame-Anfrage trägt ihn (neben `id` und Anker). Die angewandte Antwort setzt `drawnKey` auf **ihren** Schlüssel.
+- `_applyProgrammed` setzt `drawnKey` beim Anwenden.
+- Ein Fehlerweg setzt `drawnKey` nur dort, wo ein Pfad tatsächlich angewandt wird. Das ist der Rückfall des Part-Frame-Workers auf `_applyProgrammed`.
 
-**Anzeige:**
-- Wie heute: der Pfad gedämpft, solange `preview_refresh` läuft oder die Vorschau andere Versätze trägt. Dazu die HUD-Zeile „Preview re-parsing“, deren „?“ sagt, dass Pfad, Limit-Marken und Simulation mit der neuen Vorschau kommen.
-- In der Ersetzungslücke bleibt der Pfad gedämpft (`previewWcsStale`). Die Zeile „Preview uses older offsets“ erscheint erst nach ihrer Gnadenfrist von 5 s. Daran ändert sich nichts.
+**Was zu zeichnen ist.** `wantKey` ist derselbe Schlüssel aus der übernommenen Vorschau und den **Live**-Werten. Er wird mit derselben Funktion gebildet und bei jeder Änderung dieser Quellen erneuert. Das geschieht dort, wo `applyState` `_pv` setzt (G5x, G92, Rotation, Tabelle, Werkzeugversatz), bei der Übernahme und beim Wechsel der Darstellung. `_pv` selbst ist nicht reaktiv; der Schlüssel wird deshalb als eigener reaktiver Wert geführt.
 
-**Kollisionsprüfung:**
-- Unverändert: Abbruch und Neustart je Wechsel, gegen die Live-Versätze.
-- Ihre Befunde hängen nicht am gezeichneten Pfad, denn Zeitleiste und Tönung lesen die Prüfung.
+**Gedämpft wird** zusätzlich, solange `_bakeFollowsOffsets(viewerGcode) && drawnKey !== wantKey`. Neu heißt der Ausdruck damit:
 
-**Abwägung (vom Operator gewählt):**
-- Bei 600 000 Zeilen bleibt der Pfad nach einem **zweiten** schnellen Wechsel bis zur neuen Vorschau am alten Ort, 7–16 s, gedämpft.
-- Der erste Wechsel verschiebt ihn sofort. Die Werkstück-Markierung folgt immer sofort.
-- Kleine Programme parsen in unter einer Sekunde; dort ist kaum ein Unterschied zu sehen.
+`pathStaleNow = previewRefresh || previewWcsStale || previewTloStale || previewTableStale || pathBehind`
 
-**Erwartung im S-Fall:**
-- Gebacken wird nur noch zweimal: beim ersten Wechsel und bei der Übernahme, statt neunmal (acht Wechsel und die Übernahme).
-- Ob das Ziel damit erreicht ist, zeigt erst die Messung (Abschnitt 6).
+- Die vorhandenen Gründe einer veralteten **Parse**-Basis bleiben daneben: Neu-Verankern ersetzt kein Neu-Parsen parameterabhängiger Programmlogik (R193).
+- `pathBehind` verschwindet erst, wenn ein Pfad mit dem **aktuellen** `wantKey` angewandt ist.
+  - Eine ältere, zulässige Antwort darf gezeichnet werden, erledigt aber den neueren Wunsch nicht.
+  - Ändern sich die Live-Werte danach, ändert sich `wantKey`, und die Dämpfung kehrt zurück, bis der passende Aufbau angewandt ist.
+
+**Die beiden Fälle aus R193:**
+1. **A→B→A:**
+   - Die Vorschau wurde mit A geparst, der erste Wechsel auf B gebacken, also `drawnKey` mit B.
+   - Der Wechsel zurück auf A wird gehalten. Damit ist `wantKey` A, `drawnKey` B, und `pathBehind` dämpft, auch wenn `preview_refresh` fehlt und `previewWcsStale` falsch ist.
+   - Erst die Übernahme bzw. das Nachbacken mit A beendet es, und zwar mit der **Anwendung**.
+2. **Übernahme ohne Antwort:**
+   - Nach `viewerGcode = v11` ist `wantKey` v11, `drawnKey` noch v10. Der Pfad bleibt gedämpft, bis die Part-Frame-Antwort für v11 angewandt ist.
+
+**Diagnose:** `__viewerDiag.getPathBasis()` liefert `{drawn, want, behind, hold}` für die Wächter.
+
+### 3c · Die Reste aus R191, auf E2 übertragen
+
+- **A:**
+  - Die Übernahme backt mit den Live-Versätzen.
+  - Aktuell ist der Pfad erst mit der Anwendung, deren Schlüssel `wantKey` ist (3b).
+  - Eine abweichende Parse-Basis bleibt über `previewWcsStale` gedämpft, und ihr Neu-Parse beginnt ein neues Halten.
+- **B:** Gezählt wird nur der Fehler der Dekodierung der Version `v`.
+  - Das ist die Fehlerantwort des Preview-Workers bzw. sein `onerror`, während `v` aussteht.
+  - Er wird als eigenes Signal ausgegeben (`previewDecodeFailure {file, version}`), nie über das gemischte `previewLoadError`.
+  - Ein Fehler einer anderen Datei oder Version tut nichts.
+- **C:** `loading` endet spätestens nach 20 s mit Nachbacken.
+  - Das ist eine gewählte endliche Wartefrist, kein Fehlerbeweis.
+  - Die rund 0,8 s im Lauf (vom Parse-Ende bis zur Prüfung auf der übernommenen Vorschau) sind keine Dekodiermessung.
+  - Eine spätere echte Übernahme läuft weiter normal. Alte Fristen (andere Nummer) tun nichts.
+
+### 3d · Anzeige, Prüfung, Abwägung
+
+- **Anzeige:**
+  - Der Pfad ist gedämpft nach `pathStaleNow` (3b).
+  - Die HUD-Zeile „Preview re-parsing“ bleibt, wie sie ist. Ihr „?“ sagt schon, dass Pfad, Limit-Marken und Simulation mit der neuen Vorschau kommen.
+  - Für `pathBehind` ohne laufenden Parse kommt keine eigene Zeile. Die Dämpfung ist das Zeichen, wie bei den anderen Stale-Gründen.
+- **Kollisionsprüfung:** unverändert. Sie liest die Prüfung, nicht den gezeichneten Pfad.
+- **Abwägung (vom Operator gewählt):**
+  - Bei 600 000 Zeilen bleibt der Pfad nach einem gehaltenen Wechsel bis zur neuen Vorschau am alten Ort, 7–16 s, gedämpft.
+  - Kleine Programme parsen in unter einer Sekunde.
+- **Erwartung im S-Fall:** zwei Neuaufbauten statt neun. Ob das das Ziel erreicht, zeigt erst die Messung.
 
 ## 4 · Verhaltensneutrale Korrekturen
 
@@ -142,26 +200,36 @@ Wie in Fassung 2. Gebaut und angenommen:
 - **N2 · Einfahrbahn entprellt:** unverändert getrennt, nicht Teil dieses Schritts.
 - **N3:**
   - Den Pfadaufbau in Schritte zu teilen hat der Operator nicht gewählt.
-  - Das GPU-Hochladen bliebe dabei, `render_max` war 86 ms.
+  - Der folgende Render bliebe dabei; `render_max` war 86 ms.
 
 ## 5 · Tests, Gates, Review
 
-- **Unit** (`viewer/bakeHold.ts`, rein):
+- **Unit** (`viewer/bakeHold.ts` und `viewer/pathBasis.ts`, rein):
   - jede Zeile der Tabelle;
-  - jede Endbedingung mit und ohne gehaltenen Wechsel;
+  - die Zulassung bei jedem `preview_refresh` (Lauf, Simulation, keine Verbindung schon vorher);
+  - jede Endbedingung mit und ohne vermerkten Wechsel;
   - einmaliges Nachbacken;
   - die beiden Fristen und ihre Nummer (alte Fristen tun nichts);
   - die Bindung an volle Revision und Epoche;
-  - ein Dekodierfehler einer anderen Version beendet nichts.
+  - ein Dekodierfehler einer anderen Datei oder Version beendet nichts;
+  - der Bauschlüssel: gleiche Eingaben gleicher Schlüssel, jede Eingabe ändert ihn;
+  - `pathBehind` nur im Geltungsbereich, und für den ausgenommenen Fall, die umgeschriebene Epoche und die andere aktive Zuordnung wie `_bakeFollowsOffsets`.
 - **Browser** (über den Mock; gezählt über `__viewerDiag.getPathMemory().generation` und `span_path_reply`):
   1. Versatzwechsel ohne Parse: genau ein Neuaufbau.
   2. Erster Wechsel, dann `preview_refresh`, dann weitere Wechsel mit und ohne Lücke: kein weiterer Neuaufbau. Veröffentlichung, Übernahme: genau ein Neuaufbau, an den Live-Versätzen.
   3. `preview_refresh` verschwindet ohne Veröffentlichung: nach 6 s genau ein Nachbacken, und nur, wenn ein Wechsel gehalten war.
   4. Ankunft ohne Übernahme: Ein Fehler dieser Dekodierung backt nach. Ein Fehler der Oberflächenpunkte tut es nicht. Nach 20 s backt die Frist nach.
-  5. Verbindungsverlust, Laufbeginn und Simulationseintritt im Halten backen nach. Ein Dateiwechsel backt nicht nach.
-  6. Eine vor dem Halten angeforderte Part-Frame-Antwort wird angewandt.
-  7. Ein programmierter Pfad einer Epoche folgt weiter.
-- **Mutationen:** jede Haltebedingung, das Nachbacken, die Fristen, die Fehlerquelle, die Bindung.
+  5. Verbindungsverlust, Laufbeginn und Simulationseintritt im Halten backen nach. Ein Dateiwechsel backt nicht nach. Ein `preview_refresh` bei schon laufender Maschine oder schon aktiver Simulation hält nichts.
+  6. Eine vor dem Halten angeforderte Part-Frame-Antwort wird angewandt, mit ihrem eigenen Anker.
+  7. Der programmierte Pfad im ausgenommenen Fall folgt weiter; die umgeschriebene Epoche wird gehalten.
+  8. Ein ausstehender 300-ms-Zeitgeber backt nach Übernahme oder Nachbacken nicht noch einmal.
+- **Browser, VP193-01** (die Dämpfung über `toolpath`s Stale-Zustand und `__viewerDiag.getPathBasis()`):
+  1. **A→B→A mit Ersetzungslücke:** gedämpft, solange `drawn` B ist, auch ohne `preview_refresh` und bei `previewWcsStale` falsch. Erst die Anwendung mit A beendet es.
+  2. **Dasselbe mit Ladephase:** die Ankunft, dann eine verzögerte Dekodierung.
+  3. **Übernahme ohne Antwort:** Die Part-Frame-Antwort wird zurückgehalten. Gedämpft bis zur Antwort für die neue Version an den Live-Werten.
+  4. **Eine vor dem Halten angeforderte Antwort nach einem weiteren vermerkten Wechsel:** wird gezeichnet, die Dämpfung bleibt bis zum passenden Aufbau.
+  5. **Ein gescheiterter Aufbau:** Der Worker fällt aus, der Rückfall auf den programmierten Pfad wird angewandt. Er setzt `drawn`, und die Dämpfung folgt seinem Schlüssel.
+- **Mutationen:** jede Haltebedingung, die Zulassung, das Nachbacken, die Fristen, die Fehlerquelle, die Bindung, jeder Bestandteil des Bauschlüssels, `pathBehind` in `pathStaleNow`, das Setzen von `drawnKey` nur bei Anwendung.
 - **Gates:** Frontend (Lint, Build, Unit, Browser); Backend unverändert, kein Gateway-Code.
 - **Codex-Runden:** diese Fassung, dann die Umsetzung.
 
@@ -199,3 +267,16 @@ Wie in Fassung 2. Gebaut und angenommen:
 | R191 · VP190-01 Reste A–C (nur für E1) | E1 entfällt; die Reste gelten sinngemäß für E2. | Abschnitt 3: A durch Backen mit Live-Versätzen bei der Übernahme; B über ein eigenes Signal `previewDecodeFailure` statt `previewLoadError`; C als Frist 20 s für `loading`. |
 | R192 · Ablaufhinweis ohne Eingabe | Angenommen. | `--no-keys`: keine Tastenaufforderung, eine Meldung „Messlauf ohne Eingabe“, `setup.json.keys_requested`, `presses` je Phase im Bericht. Der Diagnoselauf ist ausdrücklich keine Eingabe-Abnahme. |
 | R192 · Grenzen des einzelnen Laufs | Angenommen. | Abschnitt 1: kein isolierter N1-Gewinn belegt; VP188-02 bleibt offen bis zur Abnahme mit A, S, R. |
+
+## 10 · Antworten auf R193 (Fassung 4)
+
+| Punkt | Antwort | Änderung |
+|---|---|---|
+| Frage 1 · E1 entfällt, E2 eng | Angenommen, mit der Präzisierung. | Abschnitte 1 und 3: „E1 adressiert die gemessene Hauptlast nicht“; `render_max` als ganze Render-Spanne benannt. |
+| Frage 2 · laufende Part-Frame-Antwort | Angenommen. | 3a: Sie wird mit ihrem eigenen Anker angewandt; die Prüfungen auf überholte Anfragen bleiben. Sie erledigt keinen später vermerkten Wechsel und löscht die Dämpfung nicht. |
+| Frage 3 · 20 s | Angenommen. | 3c: gewählte endliche Frist, kein Fehlerbeweis; 0,8 s keine Dekodiermessung; eine spätere Übernahme läuft normal; alte Fristen und fremde Fehler wirkungslos. |
+| VP193-01 · angewandter Pfadstand | Angenommen. | 3b: Bauschlüssel je Anforderung, `drawnKey` erst bei Anwendung, `wantKey` aus übernommener Vorschau und Live-Werten, `pathBehind` in `pathStaleNow`; die Parse-Gründe bleiben daneben. 3a: `loading → frei` heißt nicht aktuell; Nachbacken ist eine Anforderung. Abschnitt 5: Wächter A→B→A mit Lücke und Ladephase, verzögerte Antwort, frühere Antwort nach weiterem Wechsel, gescheiterter Aufbau. |
+| Geltungsbereich | Angenommen. | 3a: `_bakeFollowsOffsets` mit dem vorhandenen Kriterium; Wächter für die drei Fälle. |
+| Lauf, Simulation, Verbindung | Angenommen. | 3a: Zulassung bei jedem `preview_refresh`; Wächter mit dem Zustand schon vor dem Parse-Signal; Zeitgeber werden bei Übernahme und Nachbacken verbraucht. |
+| Erste Rückmeldung | Angenommen. | 3a: als erwarteter Ablauf des S-Falls formuliert, die Werkstück-Markierung getrennt. |
+| Historie | Angenommen. | Kopf: R191 gab Schritt 0 und N1 frei, A–C blieben offen. |
