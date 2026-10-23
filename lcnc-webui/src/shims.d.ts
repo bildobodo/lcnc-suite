@@ -83,10 +83,13 @@ interface ViewerDiag {
   // wanted one, the hold; a seam that keeps part-frame replies out
   getPathBasis?: () => { drawn: string | null; want: string | null; behind: boolean; stale: boolean;
     hold: "free" | "parsing" | "after_parse" | "loading"; held: boolean; mode: "part" | "programmed" | null;
+    /** The display the preview mode asks for — a fallback never changes it. */
+    wantMode: "part" | "programmed" | null;
     /** Why a parse in the status holds nothing now — null: admitted. */
     admission: string | null };
   holdPartFrameReplies?: (on: boolean) => void;
   setBakeDebounceMs?: (ms: number) => void;
+  failNextPartFrameReply?: () => void;
   releasePartFrameReplies?: () => number;
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
   projectRoleSegments?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number }[];

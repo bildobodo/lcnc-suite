@@ -334,3 +334,22 @@ test("a programmed path with a rewritten epoch is held while the program re-pars
   expect(await builds(page)).toBe(g);
   await parse(null);
 });
+
+test("a failed part-frame bake: the programmed fallback is drawn, named, and MUTED until the part frame is drawn again", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  const z0 = await boxZ(page);
+  await page.evaluate(() => window.__viewerDiag!.failNextPartFrameReply!());
+  await setZ(page, -10);
+  await expect.poll(async () => (await basis(page)).drawn ?? "", { timeout: 10_000 }).toContain('"programmed"');
+  const b = await basis(page);
+  expect(b.wantMode, "the display asked for stays the part frame").toBe("part");
+  expect(b.want).toContain('"part"');
+  expect(b.behind, "a fallback is no current path on the part").toBe(true);
+  expect(await muted(page)).toBe(true);
+  // the next offset change bakes the part frame again
+  await setZ(page, -20);
+  await waitClear(page);
+  expect((await basis(page)).drawn).toContain('"part"');
+  expect(await boxZ(page)).toBeCloseTo(z0 - 20, 3);
+});

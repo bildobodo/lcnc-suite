@@ -1037,13 +1037,13 @@ live values, renewed once per status frame; `pathStaleNow` adds
 `pathBehind(drawn, want)` beside the parse-basis reasons: an adoption whose
 part-frame reply is still out, or a change back to the preview's basis while
 the drawn path stands elsewhere, stays muted until the matching path is drawn.
-Any `applyGcode` consumes a pending 300 ms re-bake. `__viewerDiag.getPathBasis`
+Any `applyGcode` consumes a pending 300 ms re-bake. The WANTED display is decided at every `applyGcode` (`_wantMode`: the part frame where the preview mode and payload ask for it) and never changed by a fallback: a programmed path drawn because the part-frame transform failed (the reply's error, a missing anchor, the worker's onerror, the post's own catch) is drawn and named in `drawnKey` (mode programmed) and stays MUTED until the part frame is drawn again. `__viewerDiag.getPathBasis`
 ({drawn, want, behind, stale, hold, held, mode, admission}),
-`holdPartFrameReplies` / `releasePartFrameReplies`, `setBakeDebounceMs` (seams);
+`holdPartFrameReplies` / `releasePartFrameReplies`, `setBakeDebounceMs`, `failNextPartFrameReply` (seams);
 `bakeHold.test.ts`, `pathBasis.test.ts`, `e2e/bake-hold.viewer.spec.ts` (A→B→A
 with the gap and the loading, a reply out after the adoption, a pre-hold reply
 after a held change, the windows, THIS decode's failure, the run before and
-during a hold, the connection, the consumed timer, the programmed scope).
+during a hold, the connection, the consumed timer, the programmed scope, a failed part bake).
 Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,

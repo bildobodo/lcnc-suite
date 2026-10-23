@@ -2121,10 +2121,12 @@ async function buildFromInit(init: ViewerInit) {
         // VP188-02 E2: the drawn path's key against the wanted one, the hold
         getPathBasis: () => ({ drawn: drawnKey.value, want: wantKey.value,
           behind: pathBehind(drawnKey.value, wantKey.value), stale: pathStaleNow.value,
-          hold: _hold.state, held: _hold.held, mode: _pfAppliedMode, admission: _holdAdmission() }),
+          hold: _hold.state, held: _hold.held, mode: _pfAppliedMode, wantMode: _wantMode,
+          admission: _holdAdmission() }),
         // test seam: part-frame replies queued until released (a reply "still out")
         holdPartFrameReplies: (on: boolean) => { _pfHoldReplies = on; },
         setBakeDebounceMs: (ms: number) => { _pfWcsDebounceMs = ms; },
+        failNextPartFrameReply: () => { _pfFailNext = true; },
         releasePartFrameReplies: () => {
           const q = _pfHeldReplies.splice(0);
           for (const ev of q) _pfOnReply(ev);
@@ -2861,6 +2863,12 @@ let _wantDirty = false;
 // The re-bake's debounce (300 ms); a test seam stretches it to make a pending
 // timer observable (__viewerDiag.setBakeDebounceMs).
 let _pfWcsDebounceMs = 300;
+// The display the preview mode asks for (part or programmed), decided at every
+// applyGcode — never changed by a fallback: a programmed path drawn because the
+// part frame failed is no current path on the part (VP193-01, Codex R194).
+let _wantMode: BakeMode | null = null;
+// Test seam (__viewerDiag.failNextPartFrameReply): the next reply is a failure.
+let _pfFailNext = false;
 let _wantIdx = -1;
 const _pfHeldReplies: MessageEvent[] = [];
 // The anchor the in-flight part-frame request was baked against — applied
@@ -2876,6 +2884,11 @@ function _pfGetWorker(): Worker {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
       if (_pfHoldReplies) { _pfHeldReplies.push(ev); return; }
+      if (_pfFailNext) {
+        _pfFailNext = false;
+        _pfOnReply({ data: { id: (ev.data as { id: number }).id, error: "test seam: transform failed" } } as MessageEvent);
+        return;
+      }
       _pfOnReply(ev);
     };
     _pfWorker.onerror = (ev) => {
@@ -4450,7 +4463,8 @@ function applyGcode(g: ViewerGcode) {
   _refreshWantKey();
 }
 function _applyGcodeNow(g: ViewerGcode) {
-  if (_partFrameEligible(g)) {
+  _wantMode = _partFrameEligible(g) ? "part" : "programmed";
+  if (_wantMode === "part") {
     _pfAppliedMode = "part";
     const id = ++_pfReqId;
     _pfPending = true;
@@ -4580,8 +4594,8 @@ function _bakeFollowsOffsetsNow(g: ViewerGcode | null | undefined): boolean {
  *  display decided for it — null where the path follows the live origin. */
 function _refreshWantKey() {
   const g = viewerGcode.value;
-  wantKey.value = g && _pfAppliedMode && _bakeFollowsOffsetsNow(g)
-    ? _bakeKeyOf(g, _pfAppliedMode, _pfWcs()) : null;
+  wantKey.value = g && _wantMode && bakeFollowsOffsets(_wantMode, g.wcsEvents, vst.value?.g5x_index ?? 0)
+    ? _bakeKeyOf(g, _wantMode, _pfWcs()) : null;
 }
 let _hold: Hold = freeHold();
 let _holdTimer: ReturnType<typeof setTimeout> | undefined;
