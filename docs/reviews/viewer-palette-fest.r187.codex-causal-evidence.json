@@ -1,0 +1,115 @@
+{
+  "delayedWord": {
+    "events": [
+      {
+        "tag": "browser.collision.sweep_witness",
+        "page": "P",
+        "id": 42,
+        "run_gen": 7,
+        "range_from": 0,
+        "shard": 0,
+        "gen": 1,
+        "tick": 1,
+        "n": 1
+      },
+      {
+        "tag": "browser.viewer.perf",
+        "page": "P",
+        "cid": "d7507913",
+        "host": "?",
+        "vis": "visible",
+        "window_ms": 3000,
+        "win_start": 1792757756845.3,
+        "win_end": 1792757756846,
+        "win_ms": 0.7,
+        "frames": 1,
+        "gap_p50_ms": 0,
+        "gap_p95_ms": 0,
+        "gap_max_ms": 0,
+        "jank_frames": 0,
+        "jank_ms": 50,
+        "gap_h": {},
+        "apply_mean_ms": 1,
+        "apply_max_ms": 1,
+        "apply_h": {
+          "1": 1
+        },
+        "age_n": 0,
+        "age_max_ms": 0,
+        "age_h": {},
+        "age_neg": 0,
+        "age_vis_skip": 0,
+        "vis_changes": 0,
+        "rt_n": 3,
+        "rt_invalid": 0,
+        "rt_net_max_ms": 90,
+        "rt_net_h": {
+          "90": 3
+        },
+        "hb_pairs": [
+          {
+            "seq": 1,
+            "hs": 1792757776647.159,
+            "hr": 1792757776747.159,
+            "g": 10150,
+            "pid": 1,
+            "ta": 1,
+            "dt": 0,
+            "dn": 0
+          },
+          {
+            "seq": 2,
+            "hs": 1792757776947.159,
+            "hr": 1792757777047.159,
+            "g": 10450,
+            "pid": 1,
+            "ta": 2,
+            "dt": 0,
+            "dn": 0
+          },
+          {
+            "seq": 3,
+            "hs": 1792757777347.159,
+            "hr": 1792757777447.159,
+            "g": 10850,
+            "pid": 1,
+            "ta": 3,
+            "dt": 1,
+            "dn": 1
+          }
+        ],
+        "clk_n": 0,
+        "clk_l": null,
+        "clk_u": null,
+        "clk_conflicts": 0,
+        "age_unbound": 0,
+        "in_n": 0,
+        "in_delay_max_ms": 0,
+        "in_delay_h": {},
+        "in_odd": 0,
+        "render_mean_ms": 0,
+        "render_max_ms": 0,
+        "renders": 0,
+        "raf_ticks": 0,
+        "raf_gap_p50_ms": 0,
+        "raf_gap_p95_ms": 0,
+        "raf_gap_max_ms": 0,
+        "raf_pauses": 0,
+        "mt_probes": 0,
+        "mt_late_p95_ms": 0,
+        "mt_late_max_ms": 0,
+        "mt_blocks": 0,
+        "mt_block_ms": 20,
+        "heap_used_mb": null
+      }
+    ],
+    "actualSlice": [
+      10250,
+      10300
+    ],
+    "actualParse": [
+      10000,
+      11000
+    ]
+  }
+}

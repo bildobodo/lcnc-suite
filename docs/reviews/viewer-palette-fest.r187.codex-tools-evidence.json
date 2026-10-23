@@ -1,0 +1,309 @@
+{
+  "actual_chain_before_word": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 2
+        },
+        "why": "no heartbeat inside it sent after a run check's word for a tick after an answer inside it"
+      }
+    ],
+    "run_check_words": 1
+  },
+  "actual_chain_after_word": {
+    "verdict": "R overlap proven",
+    "proof": {
+      "parse": {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "p0_ns": 10000000000,
+        "p1_ns": 11000000000,
+        "t_wall_ns": 15000000000
+      },
+      "heartbeat_a": {
+        "seq": 1,
+        "hs": 1792757776647.159,
+        "hr": 1792757776747.159,
+        "g": 10150,
+        "pid": 1,
+        "ta": 1,
+        "dt": 0,
+        "dn": 0
+      },
+      "heartbeat_b": {
+        "seq": 3,
+        "hs": 1792757777347.159,
+        "hr": 1792757777447.159,
+        "g": 10850,
+        "pid": 1,
+        "ta": 3,
+        "dt": 1,
+        "dn": 1
+      },
+      "page": "P",
+      "word": {
+        "id": 42,
+        "run_gen": 7,
+        "range_from": 0,
+        "shard": 0,
+        "gen": 1,
+        "tick": 1,
+        "n": 1,
+        "t_wall_ns": 15000000000
+      },
+      "sweep": "provisional"
+    },
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 3
+        }
+      }
+    ]
+  },
+  "browser_clock_shift": {
+    "verdict": "R overlap proven",
+    "proof": {
+      "parse": {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "p0_ns": 10000000000,
+        "p1_ns": 11000000000,
+        "t_wall_ns": 15000000000
+      },
+      "heartbeat_a": {
+        "seq": 1,
+        "hs": 792757776647.1589,
+        "hr": 792757776747.1589,
+        "g": 10150,
+        "pid": 1,
+        "ta": 1,
+        "dt": 0,
+        "dn": 0
+      },
+      "heartbeat_b": {
+        "seq": 3,
+        "hs": 792757777347.1589,
+        "hr": 792757777447.1589,
+        "g": 10850,
+        "pid": 1,
+        "ta": 3,
+        "dt": 1,
+        "dn": 1
+      },
+      "page": "P",
+      "word": {
+        "id": 42,
+        "run_gen": 7,
+        "range_from": 0,
+        "shard": 0,
+        "gen": 1,
+        "tick": 1,
+        "n": 1,
+        "t_wall_ns": 15000000000
+      },
+      "sweep": "provisional"
+    },
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 3
+        }
+      }
+    ]
+  },
+  "no_end": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "why": "no end stamp (cut short)"
+      }
+    ],
+    "run_check_words": 1
+  },
+  "idle_word": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 3
+        },
+        "why": "the word the heartbeat names is not in the trace"
+      }
+    ],
+    "run_check_words": 0
+  },
+  "missing_word": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 3
+        },
+        "why": "the word the heartbeat names is not in the trace"
+      }
+    ],
+    "run_check_words": 0
+  },
+  "wrong_word": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 3
+        },
+        "why": "the word the heartbeat names is not in the trace"
+      }
+    ],
+    "run_check_words": 1
+  },
+  "other_page": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 3
+        },
+        "why": "the word the heartbeat names is not in the trace"
+      }
+    ],
+    "run_check_words": 1
+  },
+  "other_gateway": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 2
+        },
+        "why": "no heartbeat inside it sent after a run check's word for a tick after an answer inside it"
+      }
+    ],
+    "run_check_words": 1
+  },
+  "old_collision_before_parse": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 2
+        },
+        "why": "no heartbeat inside it sent after a run check's word for a tick after an answer inside it"
+      }
+    ],
+    "run_check_words": 1
+  },
+  "old_ws_clock_after_parse": {
+    "verdict": "R overlap not proven",
+    "why": "no witness (see parses)",
+    "parses": [
+      {
+        "job": 9,
+        "gateway_pid": 1,
+        "file": "synthetic.ngc",
+        "cancelled": null,
+        "parse_ms": 1000.0,
+        "heartbeats_inside": {
+          "P": 2
+        },
+        "why": "no heartbeat inside it sent after a run check's word for a tick after an answer inside it"
+      }
+    ],
+    "run_check_words": 1
+  },
+  "age_positive": {
+    "age_p95_all_rows": 32.0,
+    "age_p95_interior_rows": 32.0,
+    "verdict": "met"
+  },
+  "random_causality": {
+    "cases": 10000,
+    "seed": 187,
+    "proven": 536,
+    "unproven": 9464,
+    "false_positives": 0
+  },
+  "age_none": {
+    "age_p95_all_rows": 11.0,
+    "age_p95_interior_rows": 11.0,
+    "verdict": "not proven",
+    "why": "receipts not on the page's clock: 1, relation contradictions: 0, ages below zero: 0"
+  },
+  "age_restarted": {
+    "age_p95_all_rows": 11.0,
+    "age_p95_interior_rows": 11.0,
+    "verdict": "not proven",
+    "why": "receipts not on the page's clock: 1, relation contradictions: 0, ages below zero: 0"
+  },
+  "age_conflict": {
+    "age_p95_all_rows": 11.0,
+    "age_p95_interior_rows": 11.0,
+    "verdict": "not proven",
+    "why": "receipts not on the page's clock: 0, relation contradictions: 1, ages below zero: 0"
+  },
+  "_result": {
+    "run": 10,
+    "failures": 0,
+    "errors": 0
+  }
+}

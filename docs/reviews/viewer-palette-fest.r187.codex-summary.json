@@ -1,0 +1,70 @@
+{
+  "review": "R187",
+  "head": "e8e88fd0470d40180ab0c8294de676b0d34bb42b",
+  "live_head": "b1c0e6f6bd83903c5effc2dbbb8ad70a61ded79a",
+  "verdict": "agreement",
+  "closed": [
+    "VP186-01"
+  ],
+  "open_in_review_scope": [],
+  "decision": "Measurement instruments accepted; full run may proceed under the agreed setup. Full measurement result and VP181-01 combined-load acceptance remain outstanding.",
+  "repository_checks": {
+    "build": "PASS",
+    "unit": {
+      "passed": 112,
+      "failed": 0
+    },
+    "browser": {
+      "passed": 6,
+      "failed": 0,
+      "flaky": 0
+    },
+    "provided_tool_tests": {
+      "passed": 23,
+      "failed": 0,
+      "harness_note": "First attempted with system Python, which lacks msgspec; rerun using the project venv as the supplied test header specifies."
+    },
+    "backend": "unchanged from R186; not rerun"
+  },
+  "own_probes": {
+    "typescript": {
+      "passed": 5,
+      "failed": 0,
+      "clock_cases": 2000
+    },
+    "python": {
+      "passed": 10,
+      "failed": 0,
+      "causal_cases": 10000,
+      "positive_witnesses": 536,
+      "false_positives": 0
+    },
+    "browser_worker_termination": {
+      "tests": 1,
+      "iterations": 10,
+      "late_messages_observed": 0
+    }
+  },
+  "limits": [
+    "no real Mac host-sleep test",
+    "no full gate or all mutations rerun",
+    "no full measurement or calibration executed",
+    "constant per-instance clock relation with documented timestamp precision assumed for the status-age bound"
+  ],
+  "boundaries": {
+    "machine_commands": false,
+    "live_endpoints_accessed": false,
+    "driver_main_executed": false,
+    "generator_main_executed": false,
+    "mock": "127.0.0.1:4188",
+    "archive": "/tmp/codex-r187-b4k897uq/repo",
+    "nice": 10,
+    "browser_workers": 1
+  },
+  "source_files_verified": 566,
+  "lfs_objects_verified": 4,
+  "archive_adaptations": [
+    "lcnc-webui/e2e/ctl.ts"
+  ],
+  "prior_evidence_unchanged": true
+}

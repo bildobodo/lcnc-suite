@@ -1,0 +1,26 @@
+{
+  "head": "e8e88fd0",
+  "uncommitted": 0,
+  "note": "R187 head: tests only since the full gate",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 7
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 14
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 424,
+      "tests": "153 files, 2549 passed"
+    }
+  ]
+}

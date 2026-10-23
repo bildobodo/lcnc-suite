@@ -1,0 +1,33 @@
+{
+  "head": "e28e4ac1",
+  "uncommitted": 0,
+  "note": "R187: Codex R186 \u2014 the R witness by causality, the status age by a two-way clock relation",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "FAIL",
+      "seconds": 6
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 15
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "FAIL",
+      "seconds": 438
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2292,
+      "tests": "552 passed",
+      "note": "run alone"
+    }
+  ]
+}
