@@ -1,0 +1,57 @@
+{
+  "review": "R190",
+  "head": "084b8e4a88e81aa95229d3c8ba9398635bd5b314",
+  "original_files": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "size": 2255498,
+      "sha256": "0cc3cc605dd325283539f29330fb9989621f11d2c6484704f5e64c4bd6fe0d68"
+    },
+    "docs/reviews/basiswechsel-last.plan.md": {
+      "size": 9515,
+      "sha256": "45f8b31b1be731eaa733c63c83ce9ab5d389a63b7a3360b4c7ead89fc60f385c"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "size": 84903,
+      "sha256": "306561045aabeaf61c50d6a12e985c5953ce54546d309cc7a4b568b5551f1c4b"
+    }
+  },
+  "new_artifacts": {
+    "viewer-palette-fest.r190.codex-plan-input.md": {
+      "bytes": 9515,
+      "sha256": "45f8b31b1be731eaa733c63c83ce9ab5d389a63b7a3360b4c7ead89fc60f385c"
+    },
+    "viewer-palette-fest.r190.codex-probe.py": {
+      "bytes": 3426,
+      "sha256": "37a6db02f8bfc8fd794683e07b60f80e49340a2ed4e3f271e650d8d3372c68bb"
+    },
+    "viewer-palette-fest.r190.codex-probe.txt": {
+      "bytes": 898,
+      "sha256": "96256ea09ccb9fc7d3e2d04ddefc4996cefce9ad226380a4f5898c70962a7154"
+    },
+    "viewer-palette-fest.r190.codex-refresh-observability.json": {
+      "bytes": 897,
+      "sha256": "dac61c38fbe8c697ee1c8882a0fc82b9b791f6bae38f4cf94ecb60d7f2ffa52a"
+    },
+    "viewer-palette-fest.r190.codex-source-contracts.json": {
+      "bytes": 28803,
+      "sha256": "8d1b61648a0df97783eeedd8dc46902fe5fcaecedbb2f8adc4552bd8899c961b"
+    },
+    "viewer-palette-fest.r190.codex-summary.json": {
+      "bytes": 1154,
+      "sha256": "5542a0ec1c1392182519594389af114122dc7e643fda2bd561149f3a829e45c6"
+    }
+  },
+  "source_files": {
+    "lcnc-gateway/bulk_pipeline.py": "88cf13296ee6c790fb53596d4793b72bdb0719ecd6d9d976b4c3ac5e874f8854",
+    "lcnc-webui/src/ws/statusStore.ts": "649fdc77718e579b6b7f39983ad87137c8f13a73bcf582ddcc81b1166651a462",
+    "lcnc-webui/src/ws/bulkData.ts": "cc30c239ec61cbf2b61ba8fb1a1c4cc68f6c4777ef82f474a719d3a94b9666a3",
+    "lcnc-webui/src/ThreeViewer.vue": "d9ac8150860d3332553a1f351b9a8db434123919cd4c49770e3e601c956c6c35",
+    "lcnc-webui/src/ScrubBar.vue": "b310e84b51a295b89f857f0ece3eb419fb6f239477765a10965f0ff7840a9527",
+    "lcnc-webui/src/viewer/toolpathController.ts": "2715750c008aa3ec54a363db96d0c9be65873331314d3a9f94c4027ffa102968",
+    "docs/reviews/viewer-palette-fest.r188.browser-pc-drive2.py": "fa36ec11adcbe9460733343646ffc1a7bd08fb83c67fd7027bd0ad0725e43ab1"
+  },
+  "live_review_prefix_bytes": 2255498,
+  "reproduce": "From a read-only checkout/archive of 084b8e4a: R190_REPO=/path/to/checkout R190_OUT=/tmp/chosen-output python3 docs/reviews/viewer-palette-fest.r190.codex-probe.py. Uses only Python stdlib, AST extracts existing preview_refresh_status without importing gateway or opening services. Emits state outputs and inspected source excerpts. plan-input.md is the exact uncommitted candidate reviewed; it is not modified.",
+  "scope": "Plan review, not implemented-product verification. No full gate is meaningful for the proposed changes yet.",
+  "temporary_root": "/tmp/codex-r190-6kucf91o"
+}
