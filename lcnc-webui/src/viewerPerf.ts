@@ -113,6 +113,10 @@ function _epochNow(now: number): number {
 }
 
 let _enabled = true;
+// The window's ACTUAL start on the global clock (Codex R185: the nominal
+// WINDOW_MS is only the timer's period — under load a window runs longer):
+// the last emitted row's end, the module's load before the first.
+let _winStart = _epochNow(typeof performance !== 'undefined' ? performance.now() : 0);
 
 // Stable per-page-load client identity, so summaries from different browsers/
 // tabs can be told apart in the trace (the telemetry POST `peer` is a fresh
@@ -443,11 +447,15 @@ export function flushViewerPerf(): void {
   const mt = _sorted(_mtLate);
   const gpuB = _sorted(_gpuBehind);
   const gpuM = _sorted(_gpuMs);
+  const winEnd = _epochNow(performance.now());
   emitTelemetry('viewer.perf', {
     cid: _clientId,                // stable per-page-load id (separates tabs)
     host: _host,                   // localhost = local VM browser, IP = remote
     vis: typeof document !== 'undefined' ? document.visibilityState : '?',
-    window_ms: WINDOW_MS,
+    window_ms: WINDOW_MS,          // the nominal period; the row's own span is win_*
+    win_start: +_winStart.toFixed(1),   // global clock: the previous row's end
+    win_end: +winEnd.toFixed(1),
+    win_ms: +(winEnd - _winStart).toFixed(1),
     // STATUS frames applied (30 Hz active / 5 Hz idle poll) — not the render loop
     frames: _frames,
     gap_p50_ms: +_percentile(sorted, 50).toFixed(1),
@@ -513,6 +521,7 @@ export function flushViewerPerf(): void {
     heap_used_mb: _heapUsedMb(),   // null on non-Chromium
     ...(_context?.() ?? {}),
   });
+  _winStart = winEnd;
   _frames = 0;
   _gaps.length = 0;
   _gapMax = 0;
@@ -543,6 +552,7 @@ function _resetHistograms(): void {
 /** Test/HMR helper: forget every sample and clock anchor. */
 export function resetViewerPerf(): void {
   _dropFences();
+  _winStart = _epochNow(performance.now());
   _frames = _gapMax = _jank = _applySum = _applyMax = 0;
   _resetHistograms();
   _pendingRx = 0;

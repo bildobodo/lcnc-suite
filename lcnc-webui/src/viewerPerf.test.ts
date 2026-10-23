@@ -88,6 +88,23 @@ describe("status cadence and render-loop cadence", () => {
     expect(f.raf_pauses).toBe(1);
   });
 
+  it("names each row's ACTUAL window on the global clock — the previous row's end to this one's (Codex R185)", () => {
+    const T0 = performance.timeOrigin;
+    vi.spyOn(performance, "now").mockReturnValue(1_000);
+    resetViewerPerf();
+    recordApply(1, 1_100);
+    vi.spyOn(performance, "now").mockReturnValue(5_200);   // a window the load held 4.2 s
+    flushViewerPerf();
+    const r1 = (x: number) => +x.toFixed(1);
+    expect([last().win_start, last().win_end, last().win_ms]).toEqual([r1(T0 + 1_000), r1(T0 + 5_200), 4_200]);
+    flushViewerPerf();                                       // an idle window says nothing and keeps its start
+    recordApply(2, 7_000);
+    vi.spyOn(performance, "now").mockReturnValue(8_200);
+    flushViewerPerf();
+    expect([last().win_start, last().win_ms]).toEqual([r1(T0 + 5_200), 3_000]);
+    vi.restoreAllMocks();
+  });
+
   it("resets every accumulator after a flush", () => {
     recordApply(2, 100);
     recordApply(2, 133);
