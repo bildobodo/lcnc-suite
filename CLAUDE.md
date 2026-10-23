@@ -951,11 +951,19 @@ VP-I70). A new publication, another basis revision, another run, a
 lost connection and idle discard it; idle starts the full check. Load: during
 a run at most two workers and 20 ms slices (`sliceMs`), a decoding payload
 holds the sweep (`previewDecoding`, worker hold "decode"), the run's own
-rotary motion parks nothing. Owed: the measurement protocol (status frame p95
-< 50 ms, heartbeat gap p99 < 300 ms on the machine PC and a separate browser
-PC) and the live M600 run need a running LinuxCNC. The 2026-10-21 browser-PC
-run (the operator's Mac, which hosts the VM) is a partial proof (Codex R181
-VP181-01); its instruments since: the page's 3 s `browser.viewer.perf` rows
+rotary motion parks nothing. The browser-PC measurement (status frame age
+p95 < 50 ms, heartbeat gap p99 < 300 ms) on the operator's Mac — which hosts
+the VM, no separate PC — is done (2026-10-23, two full runs, Codex R188/R189;
+`~/claude-work/bpc`, `drive2.py` / `bpc2.py report`): the run check's overlap
+with a pinned parse proven, the parse supersede met, age (an upper bound) p95
+36 ms in every phase but eight G54 offset changes in 30 s on the 600 000-line
+program (p95 58 / 68 ms — each change restarts the page's check of the whole
+track and re-bakes the path: OPEN as its own product item, VP188-02, the target
+not relaxed), key input p95 ≤ 16 ms, the HAL watchdog's receipt < 201 ms in
+every phase, one parse worker at a time. A change of the ACTIVE fixture alone
+raises no re-parse (no drift edge reads the index; the WCS edge compares the
+table) — the run's S phase toggles G54 Z by `G10 L2`. Owed: the acceptance on
+the machine PC and the live M600 run. The instruments: the page's 3 s `browser.viewer.perf` rows
 carry fixed-bin histograms that POOL into a phase's quantiles (`viewerPerf.binOf`
 — a window's p95 never pools): `apply_h` (applyState's own time), `gap_h` (the
 cadence), `age_h` (a status frame's socket receipt in the WS worker — stamped
