@@ -15,6 +15,9 @@ const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"))
 const FILE = "/nc/hold.ngc";
 const FEED = [[-50, 0, -100], [50, 0, -100], [50, 20, -100]];
 const z9 = (z = 0) => [0, 0, z, 0, 0, 0, 0, 0, 0];
+const INIT = { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
+  parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
+  workGroup: machine.workGroup, toolGroup: machine.toolGroup };
 
 function payload(o: { abc?: boolean; frames?: number[][] } = {}) {
   return Buffer.from(encode({ file: FILE, preview_schema: 11, feed: FEED, feed_lines: [1, 2, 3], feed_seq: [1, 2, 3],
@@ -38,9 +41,7 @@ async function prepare(page: Page, context: BrowserContext, o: {
   await context.route("**/xyzac-model/*.stl", r => r.fulfill({ contentType: "application/octet-stream",
     body: readFileSync(new URL(new URL(r.request().url()).pathname.split("/").pop()!, MODEL)) }));
   await openLayout(page, PROFILES[1]!, VIEWPORTS.find(v => v.name === "desktop")!);
-  await ctl({ op: "setViewerInit", data: { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
-    parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
-    workGroup: machine.workGroup, toolGroup: machine.toolGroup } });
+  await ctl({ op: "setViewerInit", data: INIT });
   await ctl({ op: "status_delta", data: { active_file: FILE, joint_pos: [0, 0, 0, 0, 0], actual_position: [0, 0, 0, 0, 0],
     g5x_index: 1, g5x_offset: z9(), g92_offset: z9(), tool_offset: z9(), rotation_xy: 0,
     is_enabled: false, enabled: false, interp_state: 1, task_mode: 1 } });
@@ -352,4 +353,18 @@ test("a failed part-frame bake: the programmed fallback is drawn, named, and MUT
   await waitClear(page);
   expect((await basis(page)).drawn).toContain('"part"');
   expect(await boxZ(page)).toBeCloseTo(z0 - 20, 3);
+});
+
+test("a scene rebuild leaves no key vouching for the new geometry: behind until the path is drawn again", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(true));
+  await ctl({ op: "setViewerInit", data: INIT });          // the same machine again: a real scene rebuild
+  await expect.poll(async () => {
+    const b = await basisOrNull(page);
+    return b ? { drawn: b.drawn, behind: b.behind } : null;
+  }, { timeout: 20_000 }).toEqual({ drawn: null, behind: true });
+  await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(false));
+  await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!());
+  await waitClear(page);
 });

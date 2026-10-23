@@ -1043,7 +1043,7 @@ Any `applyGcode` consumes a pending 300 ms re-bake. The WANTED display is decide
 `bakeHold.test.ts`, `pathBasis.test.ts`, `e2e/bake-hold.viewer.spec.ts` (A→B→A
 with the gap and the loading, a reply out after the adoption, a pre-hold reply
 after a held change, the windows, THIS decode's failure, the run before and
-during a hold, the connection, the consumed timer, the programmed scope, a failed part bake).
+during a hold, the connection, the consumed timer, the programmed scope, a failed part bake, a scene rebuild).
 Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
