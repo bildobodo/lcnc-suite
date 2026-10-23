@@ -1,0 +1,145 @@
+{
+  "config": {
+    "configFile": "/tmp/codex-r191-6o8d_ljh/webui/r191.config.ts",
+    "rootDir": "/tmp/codex-r191-6o8d_ljh/webui/e2e",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/tmp/codex-r191-6o8d_ljh/webui/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/tmp/codex-r191-6o8d_ljh/webui/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "frames.spec.ts",
+          "r191.split.spec.ts"
+        ],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/tmp/codex-r191-6o8d_ljh/negative.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.60.0",
+    "workers": 1,
+    "webServer": {
+      "command": "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+      "url": "http://127.0.0.1:4188",
+      "reuseExistingServer": false,
+      "timeout": 60000
+    }
+  },
+  "suites": [
+    {
+      "title": "r191.split.spec.ts",
+      "file": "r191.split.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "perf rows carry the status age from the worker's receipt and the presses' delay",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 30000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 8862,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m4\u001b[39m\nReceived:    \u001b[31m3\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m4\u001b[39m\nReceived:    \u001b[31m3\u001b[39m\n    at /tmp/codex-r191-6o8d_ljh/webui/e2e/r191.split.spec.ts:138:48",
+                    "location": {
+                      "file": "/tmp/codex-r191-6o8d_ljh/webui/e2e/r191.split.spec.ts",
+                      "column": 48,
+                      "line": 138
+                    },
+                    "snippet": "  136 |   // on its way (the 2 s telemetry flush) — wait for it, never read it once\n  137 |   // (CI 2026-10-23: 3 of 4 counted when the assertion ran)\n> 138 |   expect(rows.reduce((a, r) => a + r.in_n, 0)).toBeGreaterThanOrEqual(4);\n      |                                                ^\n  139 | });\n  140 |\n  141 | // The gateway's parse in flight as the page SAW it (Codex R183 VP183-01): the"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/tmp/codex-r191-6o8d_ljh/webui/e2e/r191.split.spec.ts",
+                        "column": 48,
+                        "line": 138
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m4\u001b[39m\nReceived:    \u001b[31m3\u001b[39m\n\n  136 |   // on its way (the 2 s telemetry flush) — wait for it, never read it once\n  137 |   // (CI 2026-10-23: 3 of 4 counted when the assertion ran)\n> 138 |   expect(rows.reduce((a, r) => a + r.in_n, 0)).toBeGreaterThanOrEqual(4);\n      |                                                ^\n  139 | });\n  140 |\n  141 | // The gateway's parse in flight as the page SAW it (Codex R183 VP183-01): the\n    at /tmp/codex-r191-6o8d_ljh/webui/e2e/r191.split.spec.ts:138:48"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-23T19:15:31.836Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/tmp/codex-r191-6o8d_ljh/webui/test-results/r191.split-perf-rows-carry-df611-ceipt-and-the-presses-delay/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/tmp/codex-r191-6o8d_ljh/webui/e2e/r191.split.spec.ts",
+                    "column": 48,
+                    "line": 138
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "8c2975702c2c66f6b2a2-5127d2b86806e0a9326d",
+          "file": "r191.split.spec.ts",
+          "line": 67,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-23T19:15:31.375Z",
+    "duration": 9386.247,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}
