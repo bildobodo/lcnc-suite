@@ -755,7 +755,9 @@ test("a parse made for the run is checked during it: provisional from the machin
     clearInterval(answering2);
   }
   const hbB = pairs().find(p => (p.dn ?? 0) >= wit[0]!.n)!;
-  const w = wit.find(x => x.n === hbB.dn)!;
+  // (the words as they are now: the one B names may have come after `wit`)
+  await expect.poll(() => tel.some(e => e.kind === "collision.sweep_witness" && e.n === hbB.dn), { timeout: 10_000 }).toBe(true);
+  const w = tel.find(e => e.kind === "collision.sweep_witness" && e.n === hbB.dn)!;
   expect(w, "the word the heartbeat names").toBeDefined();
   expect(hbB.dt, "with its tick").toBe(w.tick);
   const hbA = pairs().find(p => p.ta === w.tick);

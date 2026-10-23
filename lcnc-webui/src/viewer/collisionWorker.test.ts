@@ -342,11 +342,15 @@ describe("a check during a run says its real slices against the page's ticks (th
     expect(words[words.length - 1]![1]).toBeLessThan(sent.findIndex(m => m.result));
   });
 
-  it("a cancelled check still says the tick of a slice that ran", async () => {
+  it("a cancelled check still says the tick of a slice that ran — never of the slice the cancel cut short", async () => {
     const { sent } = await localRun({ witness: true, ticks: { 2: 7 }, cancelAt: 5 });
     expect(sent.some(m => m.cancelled)).toBe(true);
     expect(sent.some(m => m.result), "cancelled, not finished").toBe(false);
     expect(sent.filter(m => m.witness).map(m => m.witness.tick)).toEqual([7]);
+    // a tick before the slice the cancel ends: that slice ran the epilogue only
+    const cut = await localRun({ witness: true, ticks: { 6: 8 }, cancelAt: 5 });
+    expect(cut.sent.some(m => m.cancelled)).toBe(true);
+    expect(cut.sent.filter(m => m.witness)).toEqual([]);
   });
 
   it("a tick with no slice after it says nothing; a check that is not asked says nothing", async () => {

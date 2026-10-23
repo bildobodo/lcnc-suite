@@ -385,8 +385,9 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
         return;
       }
-      // the slice ended: its word goes out now, once per new tick
-      if (run.witness && tick > run.witness.said) {
+      // the slice ended: its word goes out now, once per new tick — a slice
+      // cut short by a cancel ran only the epilogue, no sweep
+      if (run.witness && !slice.cancelled && tick > run.witness.said) {
         run.witness.said = tick;
         self.postMessage({ id, witness: { shard: run.witness.shard, gen: run.witness.gen, tick } });
       }
