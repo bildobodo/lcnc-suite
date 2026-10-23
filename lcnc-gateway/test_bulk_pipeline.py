@@ -11,7 +11,7 @@ import tempfile
 import types
 import unittest
 
-from bulk_pipeline import BulkPipeline, ctx_digest
+from bulk_pipeline import BulkPipeline, ctx_digest, parse_span_of
 from gateway_util import program_source
 
 
@@ -424,8 +424,8 @@ class TestCancelInflight(unittest.TestCase):
                         break
                 self.assertIsNotNone(b.gcode_parse_proc)
                 st = b.preview_refresh_status()
-                self.assertEqual((st["reason"], st["file"], st["queued"], st["superseded"]),
-                                 ("drift", "big.ngc", False, 0))
+                self.assertEqual((st["reason"], st["file"], st["queued"], st["superseded"], st["job"]),
+                                 ("drift", "big.ngc", False, 0, b.job_seq))
                 self.assertGreater(st["expected_ms"], 0)
                 self.assertTrue(b.cancel_inflight("wcsoff:G54:x"))
                 self.assertFalse(b.cancel_inflight("rotary:A"))   # idempotent per parse
@@ -502,6 +502,58 @@ class TestCancelInflight(unittest.TestCase):
         self.assertNotEqual(spawns[0]["basis"], spawns[1]["basis"], "another fixture is another basis")
         self.assertEqual(spawns[1]["basis"], spawns[2]["basis"], "the same start is the same basis")
         self.assertRegex(spawns[0]["basis"], r"^[0-9a-f]{12}$")
+
+    def test_the_parse_calls_own_bounds_ride_the_trace(self):
+        """Codex R185 VP185-01: the worker's `__PARSE_T0__` / `__PARSE_T1__`
+        stamps (its monotonic clock right around parse(ctx)) reach the trace as
+        ONE gcode.parse_span per parse, by job, whatever became of it — a
+        cancelled parse with its start and no end, never an invented one; no
+        stamp, no span; the lines never become worker_log noise."""
+        stat = types.SimpleNamespace(ini_filename=self.ini, g5x_index=1)
+        b = BulkPipeline(get_stat=lambda: stat, get_machine_units=lambda: "mm",
+                         build_wcs_rotation_patches=lambda: {}, get_wcs_off_flat=lambda: [0.0, 0.0, 0.0])
+        proc = _FakeProc()
+
+        def held(ctx_bytes, timeout):
+            b.gcode_parse_proc = proc
+            proc.terminated.wait(5.0)
+            return (proc.poll(), b"", b"__PARSE_T0__\t1000\n")
+        b._run_gcode_worker_blocking = held
+        events, restore = self._recording()
+        try:
+            async def cancelled():
+                self.assertTrue(b.schedule_refresh(self.ngc, "wcsoff:G55:z", asyncio.create_task))
+                for _ in range(200):
+                    await asyncio.sleep(0.005)
+                    if b.gcode_parse_proc is not None:
+                        break
+                self.assertTrue(b.cancel_inflight("wcsoff:G56:z"))
+                await asyncio.wait_for(asyncio.gather(*[t for t in asyncio.all_tasks()
+                                                        if t is not asyncio.current_task()]), 5.0)
+            asyncio.run(cancelled())
+            b._run_gcode_worker_blocking = lambda ctx_bytes, timeout: (
+                0, b"x" * 8, b"__PARSE_T0__\t2000\n__PARSE_T1__\t5000\n__SCHEMA__\t8\n")
+            asyncio.run(b.refresh_gcode_preview(self.ngc, reason="file"))
+            b._run_gcode_worker_blocking = lambda ctx_bytes, timeout: (0, b"x" * 8, b"__SCHEMA__\t8\n")
+            asyncio.run(b.refresh_gcode_preview(self.ngc, reason="file"))
+            b._run_gcode_worker_blocking = lambda ctx_bytes, timeout: (3, b"", b"__PARSE_T0__\t7000\nparse failed: x\n")
+            asyncio.run(b.refresh_gcode_preview(self.ngc, reason="file"))
+        finally:
+            restore()
+        spans = [f for t, f in events if t == "gcode.parse_span"]
+        self.assertEqual([(f["job"], f["p0_ns"], f["p1_ns"], f["rc"]) for f in spans],
+                         [(1, 1000, None, spans[0]["rc"]), (2, 2000, 5000, 0), (4, 7000, None, 3)])
+        self.assertEqual(spans[0]["cancelled"], "wcsoff:G56:z")
+        self.assertNotIn("cancelled", spans[1])
+        self.assertTrue(all(f["file"] == "big.ngc" for f in spans))
+        logs = [f["line"] for t, f in events if t == "gcode.worker_log"]
+        self.assertFalse([ln for ln in logs if ln.startswith("__PARSE_T")])
+
+    def test_parse_span_of_reads_the_first_of_each_and_nothing_malformed(self):
+        self.assertEqual(parse_span_of(None), {"p0_ns": None, "p1_ns": None})
+        self.assertEqual(parse_span_of(b"__PARSE_T0__\t12\n__PARSE_T1__\t34\n"), {"p0_ns": 12, "p1_ns": 34})
+        self.assertEqual(parse_span_of(b"__PARSE_T0__\t12\n__PARSE_T0__\t99\n"), {"p0_ns": 12, "p1_ns": None})
+        self.assertEqual(parse_span_of(b"__PARSE_T0__\tx\n__PARSE_T1__\t34\n"), {"p0_ns": None, "p1_ns": 34})
 
     def test_expected_time_history_and_timeout_scale(self):
         b = _pipeline(self.ini)

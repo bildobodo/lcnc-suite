@@ -83,7 +83,26 @@ export interface CollisionReq {
    *  back to this core is the next, a side run's too). Absent = records only,
    *  as before. */
   contacts?: { generation: number; budget?: StoreBudget; origin?: number };
+  /** Stamp the sweep's slices where they run (a check during a run — the
+   *  browser-PC report's witness, Codex R185): `{id, witness}` messages. */
+  witness?: boolean;
 }
+
+/** A sweep's real slices on the global clock (`timeOrigin + now`, the clock
+ *  of the WebSocket worker's heartbeat stamps), stamped right before and
+ *  after the slice in the context that computes it — a shard's own (Codex
+ *  R185: a witness is ONE real slice of one shard inside a parse's safe
+ *  window; never a span from the first start to the last end). `s` = start,
+ *  end, start, end …: the first slice that starts in each WITNESS_BUCKET_MS,
+ *  so a window of a second or more holds one while the shard computes;
+ *  `capped` once WITNESS_MAX are kept. `shard` is the pool's index (null:
+ *  this worker alone), `gen` the contact generation (a fall back to one core
+ *  is the next). `at` is the computing context's clock when the word left:
+ *  the page compares it with its own on receipt — a context created after a
+ *  sleep of the host reads ahead of the page's (the clocks are each
+ *  context's creation wall time plus a monotonic clock that may stand still
+ *  in a sleep), and its stamps are no witness then. */
+export interface CollisionWitness { shard: number | null; gen: number | null; s: number[]; capped?: boolean; at?: number }
 
 export interface CollisionCancel { cancel: number }
 /** The owner applied the oldest contact delta out of request `contactsAck`
@@ -116,6 +135,30 @@ const PAUSE_MAX_MS = 30_000;
 /** Minimum interval between a running sweep's metadata posts (its first
  *  goes after the first slice). */
 const META_MS = 500;
+/** The witness's sampling, its bound and how often it goes out (see
+ *  CollisionWitness). */
+const WITNESS_BUCKET_MS = 250;
+const WITNESS_MAX = 4096;
+const WITNESS_FLUSH_MS = 2000;
+
+interface Witness { w: CollisionWitness; bucket: number; kept: number; nextFlush: number }
+function witnessNote(wt: Witness, start: number, end: number): void {
+  const b = Math.floor(start / WITNESS_BUCKET_MS);
+  if (b === wt.bucket) return;
+  wt.bucket = b;
+  if (wt.kept >= WITNESS_MAX) { wt.w.capped = true; return; }
+  wt.w.s.push(start, end);
+  wt.kept++;
+}
+/** The slices kept since the last word — at most every WITNESS_FLUSH_MS, and
+ *  at once at the run's end (`now`). */
+function witnessFlush(id: number, wt: Witness | null, now: boolean): void {
+  if (!wt || (!now && performance.now() < wt.nextFlush)) return;
+  wt.nextFlush = performance.now() + WITNESS_FLUSH_MS;
+  if (wt.w.s.length === 0 && !(now && wt.w.capped)) return;
+  self.postMessage({ id, witness: { ...wt.w, at: performance.timeOrigin + performance.now() } });
+  wt.w.s = [];
+}
 
 interface Run {
   id: number;
@@ -151,6 +194,8 @@ interface Run {
   final: Record<string, unknown> | null;
   /** The model pairs' body ids went out with the first delta (round B2). */
   pairsSent: boolean;
+  /** Its slices for the witness, when the request asks (Codex R185). */
+  witness: Witness | null;
 }
 
 let _resident: { key: string; model: CollisionModel } | null = null;
@@ -306,6 +351,8 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       snapshot: { take: null, meta: null },
       stopped: false, stopRequested: false, lastMeta: null, nextMetaAt: 0, pump: () => {},
       model, store: null, final: null, pairsSent: false,
+      witness: d.witness ? { w: { shard: options.shard?.index ?? null, gen: d.contacts?.generation ?? null, s: [] },
+                             bucket: NaN, kept: 0, nextFlush: 0 } : null,
     };
     if (d.contacts) {
       // a shard's share of the request's budget, a side run's T/8 (plan 2.4)
@@ -336,6 +383,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
     const park = () => {
       run.stopRequested = false;
       run.stopped = true;
+      witnessFlush(id, run.witness, true);
       self.postMessage({ id, stopped: true, result: run.snapshot.take!("stopped") });
       sendContacts(run);
     };
@@ -353,12 +401,15 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       try {
         run.sliceStart = performance.now();
         slice = runSweepSlice(run.it, run.sliceMs, () => run.cancelled);
-        run.activeMs += performance.now() - run.sliceStart;
+        const sliceEnd = performance.now();
+        run.activeMs += sliceEnd - run.sliceStart;
+        if (run.witness) witnessNote(run.witness, performance.timeOrigin + run.sliceStart, performance.timeOrigin + sliceEnd);
         run.sliceStart = 0;
       } catch (err) {
         release();
         _contactRuns.delete(id);
         restoreBaseTool(run.model);   // the epilogue never ran (TWP-07)
+        witnessFlush(id, run.witness, true);
         self.postMessage({ id, error: String((err as Error)?.message ?? err) });
         return;
       }
@@ -373,6 +424,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
           run.nextMetaAt = performance.now() + META_MS;
         }
         self.postMessage(partial ? { id, progress: slice.progress, partial } : { id, progress: slice.progress });
+        witnessFlush(id, run.witness, false);
         // the contacts so far — the first interval at the end of the slice that
         // wrote it — while no delta waits for its acknowledgement
         sendContacts(run);
@@ -382,6 +434,7 @@ function handleLocal(d: Msg, holds: Holds = {}): void {
       }
       release();
       clearSnapshot(run.snapshot);
+      witnessFlush(id, run.witness, true);
       if (slice.cancelled) { _contactRuns.delete(id); self.postMessage({ id, cancelled: true }); return; }
       if (run.store) {
         // the last delta rides with the result — after the owner acknowledged
@@ -559,6 +612,9 @@ function forwardContacts(run: PoolRun, extra?: Record<string, unknown>): boolean
 }
 
 function onShardMessage(k: number, m: any): void {
+  // a shard's slices go on as they come, whatever became of its run — real
+  // work is evidence of its own (Codex R185); named by the shard
+  if (m.witness) { self.postMessage({ id: m.id, witness: { ...m.witness, shard: k } }); return; }
   if (_sideOnShard && m.id === _sideOnShard.req.id) {
     if (m.progress !== undefined) _sideOnShard.progress = m.progress;
     self.postMessage(m);

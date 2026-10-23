@@ -720,6 +720,27 @@ test("a parse made for the run is checked during it: provisional from the machin
     expect(tel.filter(e => ["collision.sweep_done", "collision.sweep_cancelled"].includes(e.kind) && e.id === st.id)
       .map(e => e.run_gen), `sweep ${st.id} ends once, in its generation`).toEqual([gen]);
   }
+  // each sweep of the check during the run stamped its real slices where they
+  // ran — named by its request, generation and range — on the page's global
+  // clock, inside its own start and end; the idle check none (Codex R185:
+  // the browser-PC report's witness)
+  await expect.poll(() => runSweeps.every(st => tel.some(e => e.kind === "collision.sweep_witness" && e.id === st.id)),
+                    { timeout: 10_000 }).toBe(true);
+  for (const w of tel.filter(e => e.kind === "collision.sweep_witness")) {
+    const st = runSweeps.find(x => x.id === w.id);
+    expect(st, "only a check during a run").toBeDefined();
+    expect([w.run_gen, w.range_from]).toEqual([gen, st!.range_from]);
+    expect(typeof w.ahead_ms, "the worker's clock at its word against the page's").toBe("number");
+    expect(w.ahead_ms, "never ahead of the page on one clock").toBeLessThanOrEqual(2);
+    const end = tel.find(e => ["collision.sweep_done", "collision.sweep_cancelled"].includes(e.kind) && e.id === w.id)!;
+    expect(w.s.length % 2).toBe(0);
+    expect(w.s.length).toBeGreaterThan(0);
+    for (let i = 0; i < w.s.length; i += 2) {
+      expect(w.s[i]).toBeLessThanOrEqual(w.s[i + 1]);
+      expect(w.s[i], "after its request on one clock").toBeGreaterThan(st!.t_wall_ms - 1000);
+      expect(w.s[i + 1], "before its end").toBeLessThan(end.t_wall_ms + 1000);
+    }
+  }
   await expect(label).toHaveText("Collision check");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });

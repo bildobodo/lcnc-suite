@@ -48,7 +48,12 @@
 //               (`rt_net_*`, both legs), paired by the heartbeat's own number
 //               the gateway's timing echoes (`hb_seq`, Codex R183 VP182-02);
 //               an answer naming no heartbeat sent here is no bound
-//               (`rt_invalid`).
+//               (`rt_invalid`). Each paired heartbeat also rides the row
+//               as `[seq, send, receipt, g, gateway pid]` (`hb_pairs`):
+//               `g` is the gateway's monotonic clock between the
+//               heartbeat's receipt and the answer's send, so a parse's own
+//               bounds (the worker's, same clock) order against the page's
+//               send and receipt by it (Codex R185) — no clock offset.
 //   inputDelay — a key or pointer press until its first listener runs
 //               (`in_delay_*`, the event's own timeStamp — the queueing a
 //               busy main thread adds); with the Event Timing API also the
@@ -145,6 +150,11 @@ const HB_KEEP = 16;                           // sends remembered (≈ 16 s at 1
 const _hbSent = new Map<number, number>();    // heartbeat number → the worker's send (global clock)
 const _rtNetH = new Map<number, number>();
 let _rtN = 0, _rtNetMax = 0, _rtInvalid = 0;
+// The window's paired heartbeats with the gateway's monotonic stamp (1 Hz:
+// three a window; the cap is a bound, never reached at that rate).
+const HB_PAIRS_MAX = 32;
+const _hbPairs: Array<[number, number, number, number, number]> = [];
+let _hbPairsDropped = 0;
 
 // Input delay.
 const _inDelayH = new Map<number, number>();
@@ -256,8 +266,10 @@ export function noteHeartbeatSentAt(atEpochMs: unknown, seq: unknown): void {
  *  legs = receipt − that heartbeat's send − hold. An answer naming no
  *  heartbeat remembered here, unstamped or negative is no bound — counted
  *  apart, never 0 ms. Its number and every older one are forgotten: a
- *  heartbeat is answered once. */
-export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown, hbSeq?: unknown): void {
+ *  heartbeat is answered once. A valid pair with the gateway's monotonic
+ *  stamp `gMonoMs` and its pid is kept for the row (`hb_pairs`). */
+export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown, hbSeq?: unknown,
+                                   gMonoMs?: unknown, gPid?: unknown): void {
   if (!_enabled) return;
   const sentAt = typeof hbSeq === 'number' ? _hbSent.get(hbSeq) : undefined;
   if (typeof hbSeq === 'number') for (const k of [..._hbSent.keys()]) if (k <= hbSeq) _hbSent.delete(k);
@@ -268,6 +280,10 @@ export function noteHeartbeatReply(rxEpochMs: unknown, serverMs: unknown, hbSeq?
   _rtN++;
   _histAdd(_rtNetH, net);
   if (net > _rtNetMax) _rtNetMax = net;
+  if (typeof gMonoMs === 'number' && Number.isFinite(gMonoMs) && typeof gPid === 'number') {
+    if (_hbPairs.length < HB_PAIRS_MAX) _hbPairs.push([hbSeq as number, sentAt as number, rxEpochMs as number, gMonoMs, gPid]);
+    else _hbPairsDropped++;
+  }
 }
 
 /** A key or pointer press: its first listener ran `now − timeStamp` after
@@ -456,6 +472,8 @@ export function flushViewerPerf(): void {
     rt_invalid: _rtInvalid,        // answers not paired with exactly one stamped heartbeat, or negative
     rt_net_max_ms: +_rtNetMax.toFixed(1),
     rt_net_h: _histOut(_rtNetH),
+    hb_pairs: _hbPairs.slice(),    // [seq, send, receipt (page clock), g (gateway monotonic ms), gateway pid]
+    ...(_hbPairsDropped ? { hb_pairs_dropped: _hbPairsDropped } : {}),
     // input: press → first listener (and, Event Timing, the presses ≥ 16 ms to the next paint)
     in_n: _inN,
     in_delay_max_ms: +_inDelayMax.toFixed(1),
@@ -517,6 +535,7 @@ function _resetHistograms(): void {
   _gapH.clear(); _applyH.clear();
   _ageH.clear(); _ageN = _ageMax = _ageNeg = _ageVisSkip = _visChanges = 0;
   _rtNetH.clear(); _rtN = _rtNetMax = _rtInvalid = 0;
+  _hbPairs.length = 0; _hbPairsDropped = 0;
   _inDelayH.clear(); _inN = _inDelayMax = _inOdd = 0;
   _evDurH.clear(); _evDelayH.clear(); _evN = _evDurMax = 0;
 }

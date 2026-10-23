@@ -85,6 +85,23 @@ test("perf rows carry the status age from the worker's receipt and the presses' 
   // the heartbeat's answer (the mock's status with timing) is paired in the
   // worker's clock: a send stamp lost on the way to the page leaves rt_n 0
   await expect.poll(() => rows.some(r => r.rt_n > 0), { timeout: 15_000 }).toBe(true);
+  // every paired heartbeat rides its row with the gateway's monotonic stamp
+  // and pid (Codex R185 — the report orders a parse's own bounds by them): a
+  // stamp lost between the timing and the page leaves rt_n without a pair
+  const pairs = rows.flatMap(r => r.hb_pairs as Array<[number, number, number, number, number]>);
+  expect(pairs.length).toBeGreaterThan(0);
+  for (const r of rows) expect(r.hb_pairs.length, "one pair per paired heartbeat").toBe(r.rt_n);
+  for (const [seq, hs, hr, g, pid] of pairs) {
+    expect(Number.isInteger(seq)).toBe(true);
+    expect(hs, "the send before the answer's receipt, on one clock").toBeLessThan(hr);
+    expect(hr - hs).toBeLessThan(5000);
+    expect(typeof g).toBe("number");
+    expect(pid).toBeGreaterThan(0);
+  }
+  for (let i = 1; i < pairs.length; i++) {
+    expect(pairs[i]![0]).toBeGreaterThan(pairs[i - 1]![0]);
+    expect(pairs[i]![3], "the gateway's clock runs on with the heartbeats").toBeGreaterThan(pairs[i - 1]![3]);
+  }
   const sum = (h: Record<string, number>) => Object.values(h).reduce((a, b) => a + b, 0);
   for (const r of rows) {
     expect(sum(r.age_h), "every age sample is binned").toBe(r.age_n);

@@ -976,11 +976,23 @@ paint), and the page's own memory (`mem_path_cpu/gpu`, `mem_contacts`,
 `mem_contact_views` — Firefox has no heap number), `vis_changes` (the
 window's visibility changes); the collision sweep events carry their request
 `id` and `run_gen`, and the status store reports the gateway's parse in flight
-as the page saw it (`preview.parse_seen` on / off, by `started_ms`, with the
-frame's socket receipt) — the report binds a run check's ACTIVE sweep to a
-parse on one page's clock; every parse's trace events name its `job` and
-spawn and publish the start `basis` (the context digest with the drift
-inputs), so a supersede is proven by id. Tests:
+as the page saw it (`preview.parse_seen` on / off, by its `job`, with the
+frame's socket receipt — information only); every parse's trace events name
+its `job` and spawn and publish the start `basis` (the context digest with the
+drift inputs), so a supersede is proven by id. The overlap of a check during
+a run with a pinned parse is proven from the ORDER of events (Codex R185):
+the worker stamps `time.monotonic_ns()` right around `parse(ctx)`
+(`__PARSE_T0__` / `__PARSE_T1__` → `gcode.parse_span`, by job, a parse cut
+short without an end); the gateway's heartbeat answer carries `g_mono_ms`
+(its CLOCK_MONOTONIC after the heartbeat's receipt, before the answer's send)
+and `g_pid`; the page keeps each paired heartbeat as `[seq, send, receipt, g,
+pid]` (`hb_pairs`); a check during a run stamps its REAL slices in the context
+that computes them (`witness` request → `{id, witness: {shard, gen, s, at}}`
+words, the first slice of each 250 ms, every 2 s and at its end, cancelled
+too; the page's `collision.sweep_witness` with `ahead_ms`, the worker's clock
+against its own — a context created after a host sleep reads ahead). Two
+heartbeats whose g lie inside a parse bound a page-clock window inside it;
+one real slice there is the witness. Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on

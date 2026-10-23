@@ -339,6 +339,38 @@ describe("the gateway → socket bound, timed in the worker and paired by number
     expect(f.rt_invalid).toBe(6);
   });
 
+  it("keeps each valid pair with the gateway's monotonic stamp for the row, and only valid ones (Codex R185)", () => {
+    noteHeartbeatSentAt(T0 + 10, 1);
+    noteHeartbeatReply(T0 + 130, 20, 1, 5_000.25, 4242);
+    noteHeartbeatSentAt(T0 + 1010, 2);
+    noteHeartbeatReply(T0 + 1120, 20, 2);                 // an old gateway: no stamp, a bound but no pair
+    noteHeartbeatSentAt(T0 + 2010, 3);
+    noteHeartbeatReply(T0 + 2015, 20, 3, 7_000, 4242);    // negative: no bound, no pair
+    noteHeartbeatReply(T0 + 2100, 20, 9, 7_100, 4242);    // never sent here
+    noteHeartbeatSentAt(T0 + 3010, 4);
+    noteHeartbeatReply(T0 + 3140, 20, 4, 8_000.5, 4242);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().hb_pairs).toEqual([[1, T0 + 10, T0 + 130, 5_000.25, 4242], [4, T0 + 3010, T0 + 3140, 8_000.5, 4242]]);
+    expect(last().hb_pairs_dropped).toBeUndefined();
+    noteHeartbeatSentAt(T0 + 4010, 5);
+    recordApply(2, 1000);
+    flushViewerPerf();
+    expect(last().hb_pairs).toEqual([]);                 // a window keeps its own
+  });
+
+  it("caps a window's pairs and counts the rest", () => {
+    for (let k = 1; k <= 40; k++) {
+      noteHeartbeatSentAt(T0 + k * 100, k);
+      noteHeartbeatReply(T0 + k * 100 + 50, 1, k, k * 100 + 25, 7);
+    }
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().hb_pairs).toHaveLength(32);
+    expect((last().hb_pairs as unknown[])[0]).toEqual([1, T0 + 100, T0 + 150, 125, 7]);
+    expect(last().hb_pairs_dropped).toBe(8);
+  });
+
   it("counts the visibility changes in a window", () => {
     noteVisibilityChanged(T0 + 10);
     noteVisibilityChanged(T0 + 20);

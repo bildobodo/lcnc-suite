@@ -59,6 +59,24 @@ def ctx_digest(ctx: Optional[dict]) -> Optional[str]:
     return hashlib.sha256(json.dumps(body, sort_keys=True, default=repr).encode()).hexdigest()
 
 
+def parse_span_of(stderr: Optional[bytes]) -> dict:
+    """The parse call's own bounds from the worker's `__PARSE_T0__` /
+    `__PARSE_T1__` lines (Codex R185 VP185-01): `time.monotonic_ns()` in the
+    worker right before and after `parse(ctx)` — the VM's monotonic clock,
+    which the gateway's heartbeat stamp `g` reads too. A missing or malformed
+    line is None (a parse cut short has no end, never an invented one); the
+    first of each counts."""
+    span: dict = {"p0_ns": None, "p1_ns": None}
+    for ln in (stderr or b"").decode(errors="replace").splitlines():
+        for tag, key in (("__PARSE_T0__\t", "p0_ns"), ("__PARSE_T1__\t", "p1_ns")):
+            if ln.startswith(tag) and span[key] is None:
+                try:
+                    span[key] = int(ln[len(tag):])
+                except ValueError:
+                    span[key] = None
+    return span
+
+
 async def terminate_parse_proc(proc) -> None:
     """Terminate an in-flight parse subprocess, bounded so a stuck child can't
     hang the deterministic shutdown: SIGTERM, wait ≤1 s, then SIGKILL. wait() is a
@@ -667,6 +685,9 @@ class BulkPipeline:
             return None
         return {"reason": inf.get("reason"), "file": os.path.basename(inf.get("file") or ""),
                 "expected_ms": inf.get("expected_ms"), "started_ms": inf.get("started_ms"),
+                # the parse job (the trace's `job`): the page names the parse
+                # it saw by it (Codex R185 — no ±50 ms match on started_ms)
+                "job": inf.get("job"),
                 "queued": bool(self.reparse_pending),
                 "superseded": self.superseded_total}
 
@@ -821,6 +842,13 @@ class BulkPipeline:
                             timeout_s=round(timeout_s, 1), expected_ms=expected_ms)
                 return
             t_communicated = time.monotonic()
+            # the parse call's own bounds, whatever became of it (a cancelled
+            # parse ran too) — for the browser-PC report's run-check witness
+            _span = parse_span_of(stderr)
+            if _span["p0_ns"] is not None:
+                _trace.emit("gcode.parse_span", job=_job, rc=returncode, file=os.path.basename(filepath), **_span,
+                            **({"pinned": True} if pinned else {}),
+                            **({"cancelled": self.cancel_reason} if self.cancel_reason is not None else {}))
             if self.cancel_reason is not None:
                 # Superseded by cancel_inflight: the result (if any) was
                 # computed from stale inputs — never publish it. The caller
@@ -949,6 +977,8 @@ class BulkPipeline:
                         except (IndexError, ValueError):
                             _trace.emit("gcode.params_line_malformed",
                                         level="warn", line=ln[:160])
+                    elif ln.startswith("__PARSE_T"):
+                        pass   # the parse call's bounds: gcode.parse_span above
                     elif ln == "__SAME__":
                         worker_same = True
                     elif ln.startswith("__VERIFY__"):

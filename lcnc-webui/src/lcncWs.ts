@@ -291,7 +291,7 @@ function onFrame(data: string | ArrayBuffer, rx?: number) {
 
     if (msg.type === "status") {
       // a heartbeat's answer: the round trip timed in the worker (viewerPerf)
-      if (msg.timing) noteHeartbeatReply(rx, msg.timing.server_ms, msg.timing.hb_seq);
+      if (msg.timing) noteHeartbeatReply(rx, msg.timing.server_ms, msg.timing.hb_seq, msg.timing.g_mono_ms, msg.timing.g_pid);
       handleStatusMessage(msg, rx);   // its age runs from the worker's receipt
     } else if (msg.type === "status_error") {
       handleStatusError(msg);

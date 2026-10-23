@@ -50,6 +50,7 @@ import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import { partCollides, startDependentOf } from "./viewer/collision";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
+import type { CollisionWitness } from "./viewer/collisionWorker";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
@@ -3179,6 +3180,20 @@ const collisionRun = shallowRef<{ version: number; runId: number; gen: number; p
 // whether the result on screen stays while it runs (the full after the
 // provisional — its partial findings are not shown).
 let _colReqRunGen: number | null = null;
+/** The run checks' requests by id — their run generation and range start —
+ *  for the witness telemetry, which may come after a newer request took the
+ *  slot (the run check a publication discards is the one that ran during the
+ *  next parse, Codex R185). The last few only. */
+const _colRunReqs = new Map<number, { gen: number; range: number | null }>();
+function _colNoteWitness(id: number, w: CollisionWitness) {
+  const r = _colRunReqs.get(id);
+  if (!r) return;
+  // the worker's clock when it posted against this page's at receipt: never
+  // ahead on one clock (a context created after a host sleep is)
+  const ahead = typeof w.at === "number" ? +(w.at - (performance.timeOrigin + performance.now())).toFixed(3) : null;
+  emitTelemetry("collision.sweep_witness", { id, run_gen: r.gen, range_from: r.range, shard: w.shard, gen: w.gen,
+                                             s: w.s, ahead_ms: ahead, ...(w.capped ? { capped: true } : {}) });
+}
 let _colKeepShown = false;
 // The main request in flight, whole: re-sent unchanged when the worker asks
 // for the bodies (needBodies) — the basis it was built from too.
@@ -3445,6 +3460,8 @@ function _colGetWorker(): Worker {
     _colModelSent = null;   // a fresh worker holds no model
     _colWorker.onmessage = (ev: MessageEvent) => {
       const m = ev.data as ColMessage;
+      // a run check's slices, whatever became of its request (Codex R185)
+      if (m.witness) { _colNoteWitness(m.id, m.witness); return; }
       const mine = m.id === _colReqId || (!!_colSide && m.id === _colSide.id);
       // a superseded request's (its cancel went out), the bodies again, our
       // own cancel: at once — everything else of a request's path goes
@@ -3478,7 +3495,7 @@ function _colGetWorker(): Worker {
 }
 /** A message of the collision worker — `firstTouch` set here: it brings
  *  the request's first touch interval. */
-type ColMessage = { id: number; progress?: number; partial?: CollisionResult; firstTouch?: boolean; error?: string; result?: CollisionResult;
+type ColMessage = { id: number; witness?: CollisionWitness; progress?: number; partial?: CollisionResult; firstTouch?: boolean; error?: string; result?: CollisionResult;
                     needBodies?: boolean; cancelled?: boolean; stopped?: boolean; contacts?: StoreDelta[]; contactPairs?: Array<[string, string]>;
                     heldCoverage?: { generation: number; covered: number[] } };
 
@@ -3890,7 +3907,8 @@ function _colWcs(basis: CheckBasis): PartFrameWcs {
  *  (`__viewerDiag.setCollisionShards`): undefined = as many as the worker
  *  chooses. */
 let _colMaxShards: number | undefined;
-function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: CheckBasis, range?: { from: number }) {
+function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: CheckBasis, range?: { from: number },
+                          witness = false) {
   const init = viewerInit.value;
   if (!init) return null;
   const modelKey = _colModelKey(init, basis);
@@ -3954,6 +3972,8 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
   ];
   const msg = {
     id,
+    // a check during a run stamps its slices for the browser-PC report (Codex R185)
+    ...(witness ? { witness: true } : {}),
     machine: _pfMachine(init),           // same shape as CollisionMachine
     bodies: sendBodies ? bodies : undefined,
     modelKey,
@@ -4024,13 +4044,17 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   const id = ++_colReqId;
   _colReleaseContacts();
   const basis = run?.basis ?? _checkBasisNow();
-  const req = _colBuildRequest(track, id, false, basis, run?.range);
+  const req = _colBuildRequest(track, id, false, basis, run?.range, run?.gen != null);
   if (!req) return;
   _colBasis = basis;
   _colPendingCtx = _colContextFor(basis, track, run);
   if (!run?.keepShown) collisionContext.value = _colPendingCtx;
   _colReqMeta = { maxShards: req.msg.maxShards ?? null, sliceMs: req.msg.sliceMs ?? null, range: run?.range?.from ?? null };
   _colReqRunGen = run?.gen ?? null;
+  if (run?.gen != null) {
+    _colRunReqs.set(id, { gen: run.gen, range: run.range?.from ?? null });
+    if (_colRunReqs.size > 8) _colRunReqs.delete(_colRunReqs.keys().next().value as number);
+  }
   _colKeepShown = !!run?.keepShown;
   _colPendingRun = run ? { ...run, basis } : { basis, gen: null };
   collisionPrevious.value = null;   // a check of the displayed preview begins

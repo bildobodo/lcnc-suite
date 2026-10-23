@@ -241,9 +241,11 @@ wss.on("connection", (ws) => {
     // answer everything -> stay connected & armed; the status answering a
     // heartbeat carries the gateway's hold and that heartbeat's number like
     // the gateway's first status after one (`timing.server_ms`, `hb_seq` —
-    // the page's round-trip bound pairs them)
+    // the page's round-trip bound pairs them), with its monotonic stamp and
+    // pid (`g_mono_ms`, `g_pid` — the browser-PC report's ordering, R185)
     if (!quiet) ws.send(JSON.stringify(cmd === "heartbeat"
-      ? { ...withEnvelope(state), timing: { server_ms: 0.2, ...(Number.isInteger(msg?.seq) ? { hb_seq: msg.seq } : {}) } }
+      ? { ...withEnvelope(state), timing: { server_ms: 0.2, ...(Number.isInteger(msg?.seq) ? { hb_seq: msg.seq } : {}),
+                                            g_mono_ms: Math.round(performance.now() * 1000) / 1000, g_pid: process.pid } }
       : withEnvelope(state)));
   });
 });

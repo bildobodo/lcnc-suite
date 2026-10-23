@@ -592,22 +592,26 @@ export function handleStatusMessage(msg: any, rx?: number): void {
 
 // The gateway's parse in flight as this page SAW it (Codex R183 VP183-01):
 // each parse's first and last status frames, by the frame's socket receipt
-// on this page's clock — the browser-PC report binds a run check's active
-// sweep to a parse with them. The gateway names the parse by its start
-// (`started_ms`, its own wall clock — the spawn's trace record).
-let _parseSeen: { started: number | null; reason: string } | null = null;
+// on this page's clock. The gateway names the parse by its job (the trace's
+// `job`, Codex R185 — no match on its start time; `started_ms`, its wall
+// clock, rides along). Information beside the report's proof, which orders
+// the parse's own bounds against paired heartbeats (viewerPerf `hb_pairs`).
+let _parseSeen: { key: string; job: number | null; started: number | null; reason: string } | null = null;
+function _parseSeenOff(rxMs: number | null, why?: string): void {
+  if (_parseSeen) emitTelemetry("preview.parse_seen", { state: "off", job: _parseSeen.job, started_ms: _parseSeen.started,
+                                                        rx_ms: rxMs, ...(why ? { why } : {}) });
+  _parseSeen = null;
+}
 function _noteParseSeen(pr: any, rx: number | undefined): void {
-  const started = pr && typeof pr.started_ms === "number" ? pr.started_ms : pr ? null : undefined;
   const rxMs = typeof rx === "number" && rx > 0 ? Math.round((rx - performance.timeOrigin) * 10) / 10 : null;
-  if (started === undefined) {
-    if (_parseSeen) emitTelemetry("preview.parse_seen", { state: "off", started_ms: _parseSeen.started, rx_ms: rxMs });
-    _parseSeen = null;
-    return;
-  }
-  if (_parseSeen && _parseSeen.started === started) return;
-  if (_parseSeen) emitTelemetry("preview.parse_seen", { state: "off", started_ms: _parseSeen.started, rx_ms: rxMs });
-  _parseSeen = { started, reason: String(pr.reason ?? "") };
-  emitTelemetry("preview.parse_seen", { state: "on", started_ms: started, reason: _parseSeen.reason, rx_ms: rxMs });
+  if (!pr) { _parseSeenOff(rxMs); return; }
+  const job = typeof pr.job === "number" ? pr.job : null;
+  const started = typeof pr.started_ms === "number" ? pr.started_ms : null;
+  const key = job !== null ? `j${job}` : `s${started}`;
+  if (_parseSeen && _parseSeen.key === key) return;
+  _parseSeenOff(rxMs);
+  _parseSeen = { key, job, started, reason: String(pr.reason ?? "") };
+  emitTelemetry("preview.parse_seen", { state: "on", job, started_ms: started, reason: _parseSeen.reason, rx_ms: rxMs });
 }
 
 // Hoisted rAF callback (WS-E): one module-level function instead of a fresh
@@ -704,6 +708,9 @@ function _applyBulkCarry(msg: any): void {
 
 /** WS close: latency readouts and RTT anchors are connection-scoped. */
 export function resetOnClose(): void {
+  // a parse seen on the closed socket: its end is not seen here (a restarted
+  // gateway numbers its jobs from 1 again)
+  _parseSeenOff(null, "closed");
   latency.value = null;
   networkLatency.value = null;
   _heartbeatSentAt = _rtSentAt = 0;

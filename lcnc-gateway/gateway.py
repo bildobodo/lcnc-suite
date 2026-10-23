@@ -9286,8 +9286,17 @@ async def ws_endpoint(ws: WebSocket):
                     #   Cycle = Poll + Errors + Parse + Overhead  (server-side)
                     hb_mono = _clients[client_id].hb_mono if client_id in _clients else 0.0
                     if hb_mono > 0:
+                        # ONE stamp for the hold time and `g_mono_ms`: taken
+                        # after the heartbeat's receipt and before this reply
+                        # leaves — the browser-PC report orders a parse's own
+                        # bounds (the worker's, same monotonic clock) against
+                        # the page's send and receipt by it (Codex R185).
+                        # `g_pid` names the gateway that stamped it.
+                        _g_mono = time.monotonic()
                         status_msg["timing"] = {
-                            "server_ms": round((time.monotonic() - hb_mono) * 1000, 2),
+                            "server_ms": round((_g_mono - hb_mono) * 1000, 2),
+                            "g_mono_ms": round(_g_mono * 1000, 3),
+                            "g_pid": os.getpid(),
                             "cycle_ms": _shared_timing.get("cycle_ms", 0),
                             "poll_ms": _shared_timing.get("poll_ms", 0),
                             "errors_ms": _shared_timing.get("errors_ms", 0),
