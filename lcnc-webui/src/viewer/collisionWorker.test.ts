@@ -295,7 +295,6 @@ describe("a check during a run says its real slices against the page's ticks (th
   async function localRun(o: { witness: boolean; ticks?: Record<number, number>; cancelAt?: number }) {
     const began: number[] = [];
     let slices = 0;
-    let send!: (d: Msg) => void;
     let log: Msg[] | null = null;
     vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>, _ms: number, cancelled: () => boolean) => {
       slices++;
@@ -306,9 +305,7 @@ describe("a check during a run says its real slices against the page's ticks (th
       return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
                     : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
     } }));
-    const env = await setup(2);   // one core: the local path
-    send = env.send;
-    const { sent } = env;
+    const { sent, send } = await setup(2);   // one core: the local path
     log = sent;
     const n = 201, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
     for (let i = 0; i < n; i++) { pos[i * 3] = 10 - i * 0.1; cum[i] = i * 0.1; lines[i] = i + 1; }
