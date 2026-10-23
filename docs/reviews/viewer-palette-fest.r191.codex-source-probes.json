@@ -1,0 +1,46 @@
+{
+  "revision": "1adfc403",
+  "kind": "unchanged-source characterization; E1 is not built",
+  "results": [
+    {
+      "name": "a newer adopted version can still carry the preceding WCS basis",
+      "pass": true,
+      "fixture": {
+        "shownVersionBefore": 10,
+        "incomingVersion": 11,
+        "currentWishG54Z": 20,
+        "incomingG54Z": 10
+      },
+      "currentHelperSaysStale": true,
+      "matchingBasisSaysStale": false,
+      "existingDecodeGuardKey": "/nc_files/example.ngc#11:0,0,0",
+      "conclusion": "The existing decode key contains file/version/tool basis, not the live WCS basis. Version adoption alone does not prove E1 wish compatibility."
+    },
+    {
+      "name": "previewLoadError also reports an unrelated surface channel failure",
+      "pass": true,
+      "previewError": null,
+      "namedLoadError": "surface-only failure",
+      "conclusion": "This union is not evidence of a failure to load the preview for wish W."
+    },
+    {
+      "name": "a pending HTTP body gives neither a decoded reply nor an error",
+      "pass": true,
+      "httpStatus": 200,
+      "body": "deliberately pending",
+      "settled": false,
+      "replies": 0,
+      "workerDeadlines": 0,
+      "limitation": "No real network or elapsed-time claim; the unchanged worker is exercised with a pending body. There is no application deadline to advance."
+    },
+    {
+      "name": "an actual body rejection produces the error E1 plans to consume",
+      "pass": true,
+      "reply": {
+        "version": 11,
+        "basisKey": "/nc_files/example.ngc#11:0,0,0",
+        "error": "injected body failure"
+      }
+    }
+  ]
+}

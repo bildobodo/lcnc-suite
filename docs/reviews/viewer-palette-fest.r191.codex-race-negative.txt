@@ -1,0 +1,36 @@
+[1A[2K[2m[WebServer] [22m(node:2685284) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+Running 1 test using 1 worker
+
+[1A[2K(node:2685296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K(node:2685296) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1A[2K[1/1] e2e/r191.split.spec.ts:67:1 › perf rows carry the status age from the worker's receipt and the presses' delay
+[1A[2K  1) e2e/r191.split.spec.ts:67:1 › perf rows carry the status age from the worker's receipt and the presses' delay 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32m4[39m
+    Received:    [31m3[39m
+
+      136 |   // on its way (the 2 s telemetry flush) — wait for it, never read it once
+      137 |   // (CI 2026-10-23: 3 of 4 counted when the assertion ran)
+    > 138 |   expect(rows.reduce((a, r) => a + r.in_n, 0)).toBeGreaterThanOrEqual(4);
+          |                                                ^
+      139 | });
+      140 |
+      141 | // The gateway's parse in flight as the page SAW it (Codex R183 VP183-01): the
+        at /tmp/codex-r191-6o8d_ljh/webui/e2e/r191.split.spec.ts:138:48
+
+    Error Context: test-results/r191.split-perf-rows-carry-df611-ceipt-and-the-presses-delay/error-context.md
+
+
+[1A[2K  1 failed
+    e2e/r191.split.spec.ts:67:1 › perf rows carry the status age from the worker's receipt and the presses' delay 

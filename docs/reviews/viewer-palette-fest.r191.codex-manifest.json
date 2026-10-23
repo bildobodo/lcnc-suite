@@ -1,0 +1,97 @@
+{
+  "round": "R191",
+  "head": "1adfc4036f7d5ab8fb77520a9ad9d10d4bf0ddda",
+  "before": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "size": 2266841,
+      "sha256": "969c319366fb6d12723c3ba470c44961e16b6c87e803580b08e28efe39b5e484"
+    },
+    "docs/reviews/basiswechsel-last.plan.md": {
+      "size": 17223,
+      "sha256": "d9220b128ec32af7dab12da8a89020da26ff36ec6584fb8562c131cbd54ddb62"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "size": 84903,
+      "sha256": "306561045aabeaf61c50d6a12e985c5953ce54546d309cc7a4b568b5551f1c4b"
+    },
+    "docs/reviews/viewer-palette-fest.r190.codex-manifest.json": {
+      "size": 3050,
+      "sha256": "126904000461d8156adeb2472b1c9c080e6de2d6cffa28acaa745f2a83f7e8c0"
+    },
+    "docs/reviews/viewer-palette-fest.r190.codex-probe.txt": {
+      "size": 898,
+      "sha256": "96256ea09ccb9fc7d3e2d04ddefc4996cefce9ad226380a4f5898c70962a7154"
+    },
+    "docs/reviews/viewer-palette-fest.r190.codex-probe.py": {
+      "size": 3426,
+      "sha256": "37a6db02f8bfc8fd794683e07b60f80e49340a2ed4e3f271e650d8d3372c68bb"
+    },
+    "docs/reviews/viewer-palette-fest.r190.codex-source-contracts.json": {
+      "size": 28803,
+      "sha256": "8d1b61648a0df97783eeedd8dc46902fe5fcaecedbb2f8adc4552bd8899c961b"
+    },
+    "docs/reviews/viewer-palette-fest.r190.codex-summary.json": {
+      "size": 1154,
+      "sha256": "5542a0ec1c1392182519594389af114122dc7e643fda2bd561149f3a829e45c6"
+    },
+    "docs/reviews/viewer-palette-fest.r190.codex-plan-input.md": {
+      "size": 9515,
+      "sha256": "45f8b31b1be731eaa733c63c83ce9ab5d389a63b7a3360b4c7ead89fc60f385c"
+    },
+    "docs/reviews/viewer-palette-fest.r190.codex-refresh-observability.json": {
+      "size": 897,
+      "sha256": "dac61c38fbe8c697ee1c8882a0fc82b9b791f6bae38f4cf94ecb60d7f2ffa52a"
+    }
+  },
+  "preservation": "all before files byte-identical; review original bytes retained as prefix",
+  "artifacts": {
+    "docs/reviews/viewer-palette-fest.r191.codex-browser.json": {
+      "size": 4067,
+      "sha256": "ba11a22be86282767fae8fbf68c6077b1a342b247744787b3607ff9ecf720a12"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-browser.txt": {
+      "size": 877,
+      "sha256": "ab01cab19422b373568a10eb86c82ce5038e39c877a19c3006103efb95d18cb8"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-frames.patch": {
+      "size": 1000,
+      "sha256": "ec3e4508dbe90672f55f496ffa51395f0a81a82e6ac9a102bd6de2c0e7a5b6da"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-plan-input.md": {
+      "size": 17223,
+      "sha256": "d9220b128ec32af7dab12da8a89020da26ff36ec6584fb8562c131cbd54ddb62"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-playwright.config.ts": {
+      "size": 569,
+      "sha256": "1ad520679948db5fdd0cd4e0bb2a700ed9353c2ae267f0baaf76c325f0bf8dd5"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-race-negative.json": {
+      "size": 5775,
+      "sha256": "a9eb11c584be6efac11bb72cafe7a1b28d41556aedceb502cb5ffa9cc5f6ecdd"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-race-negative.txt": {
+      "size": 1780,
+      "sha256": "2cd6019ffd218a0af6987da2d676bdb1f0e26234055cb2caa9fa4e9a7b8c114e"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-race.spec.ts": {
+      "size": 10301,
+      "sha256": "b1375b38b9408258ed9a2ac030d03bed8b101d1ea5ed9a908510c937ce8c57f1"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-source-contracts.json": {
+      "size": 14138,
+      "sha256": "d3b5e985614524b54e2ecd403e8ed5d8d0813b22829f27528cb0d3fd6cb69119"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-source-probes.cjs": {
+      "size": 5438,
+      "sha256": "3b2250ca15b2328fe0ce84e5646853736dbc337d5a002f9d2bbcee311c4d4e83"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-source-probes.json": {
+      "size": 1638,
+      "sha256": "48e8f783424f7cbd0281789023d763b215fc2a1f6f93f1158bdd002b96ec2e93"
+    },
+    "docs/reviews/viewer-palette-fest.r191.codex-summary.json": {
+      "size": 1851,
+      "sha256": "218642b59f3cc297eb5eea5f41e0ed59d7c4cee1d47301f19aa892e3005e5cc2"
+    }
+  }
+}

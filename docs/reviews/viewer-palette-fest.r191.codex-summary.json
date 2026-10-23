@@ -1,0 +1,63 @@
+{
+  "request": "R191",
+  "revision": "1adfc4036f7d5ab8fb77520a9ad9d10d4bf0ddda",
+  "plan": "uncommitted live version 2; preserved snapshot",
+  "verdict": "findings",
+  "technical_start_accepted": [
+    "step 0",
+    "N1",
+    "measurement after N1"
+  ],
+  "remaining": "VP190-01: E1 needs matching WCS adoption, preview-only wish-bound errors, and a bounded loading exit",
+  "source_probes": {
+    "passed": 4,
+    "purpose": "characterize unchanged source contracts; no E1 implementation exists"
+  },
+  "browser": {
+    "positive": {
+      "startTime": "2026-10-23T19:13:52.650Z",
+      "duration": 21116.515,
+      "expected": 2,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "negative": {
+      "startTime": "2026-10-23T19:15:31.375Z",
+      "duration": 9386.247,
+      "expected": 0,
+      "skipped": 0,
+      "unexpected": 1,
+      "flaky": 0
+    },
+    "negative_expected": "the old one-shot assertion reads 3 before the fourth key press is reported"
+  },
+  "environment": {
+    "mock": "127.0.0.1:4188",
+    "browser": "Chromium",
+    "workers": 1,
+    "priority": "nice 10",
+    "harness": "/tmp/codex-r191-6o8d_ljh/webui",
+    "built_app_reused": "/tmp/codex-r187-b4k897uq/repo/lcnc-webui/dist",
+    "built_revision": "e8e88fd0",
+    "unchanged_paths_verified": [
+      "lcnc-webui/src",
+      "lcnc-webui/public",
+      "lcnc-webui/package.json",
+      "lcnc-webui/package-lock.json",
+      "lcnc-webui/vite.config.ts",
+      "lcnc-webui/scripts",
+      "lcnc-webui/e2e/mock-gateway.mjs",
+      "lcnc-gateway"
+    ]
+  },
+  "not_run": [
+    "full gate",
+    "new build",
+    "Mac measurement",
+    "driver",
+    "machine commands"
+  ],
+  "sandbox": "initial mock bind EPERM; approved isolated rerun, not a product-test failure",
+  "checks": "existing review bytes and all before.json files unchanged before append"
+}
