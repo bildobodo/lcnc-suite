@@ -32,7 +32,7 @@ import { runPlayhead } from "./viewer/runPlayhead";
 import { fmtCoord, fmtProgressTimes, fmtRpm, fmtNum, fmtPct, NO_VALUE } from "./format";
 import { framePose as defaultFramePose, DEFAULT_FRAME_DIR, orthoEyeDistance } from "./viewer/cameraFraming";
 import { useAxes, DEFAULT_AXES } from "./useAxes";
-import { notePendingReceipt, recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl, setWitnessTickSink } from "./viewerPerf";
+import { notePendingReceipt, recordApply, recordRafTick, recordRender, setViewerPerfContext, setViewerPerfGl, setWitnessTickSink, timeSpan } from "./viewerPerf";
 import { disposeObject } from "./viewer/disposal";
 import { normalizeKinematics, type KinRuntime } from "./viewer/kinematics";
 import { lineDistances, tipWcs, wcsTerms, type PartFrameMachine, type PartFrameWcs, anchorTerms, type AnchorTerms } from "./viewer/partFrame";
@@ -51,6 +51,7 @@ import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import { partCollides, startDependentOf } from "./viewer/collision";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import type { CollisionWitness } from "./viewer/collisionWorker";
+import { copyTrackForWorker } from "./viewer/colTrackCopy";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
 import { planEntryCheck } from "./viewer/sweepEntry";
@@ -2834,7 +2835,7 @@ let _pfWcsTimer: ReturnType<typeof setTimeout> | undefined;
 function _pfGetWorker(): Worker {
   if (!_pfWorker) {
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
-    _pfWorker.onmessage = (ev: MessageEvent) => {
+    _pfWorker.onmessage = (ev: MessageEvent) => timeSpan("path_reply", () => {
       const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; rapidSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };
       if (m.id !== _pfReqId) return;  // superseded
       _pfPending = false;
@@ -2898,7 +2899,7 @@ function _pfGetWorker(): Worker {
       }
       toolpath.apply(toolpathCtx(), out, _pfAnchorFor.anchor);
       requestRender();
-    };
+    });
     _pfWorker.onerror = (ev) => {
       console.error("[partFrame] worker error — programmed preview used:", ev.message);
       if (viewerGcode.value) _applyProgrammed(viewerGcode.value);
@@ -3214,7 +3215,11 @@ let _colPendingRun: RunSweep | undefined;
 // "discard <why>".
 const _colRunLog: string[] = [];
 // The last main request's load settings (__viewerDiag.getCollisionRequestMeta).
-let _colReqMeta: { maxShards: number | null; sliceMs: number | null; range: number | null } | null = null;
+// `copies` (the track columns copied for it), `transferred` (the buffers in
+// its transfer list) and `detached` (those the send took — a buffer only
+// cloned stays attached): VP188-02 N1, nothing cloned twice.
+let _colReqMeta: { maxShards: number | null; sliceMs: number | null; range: number | null;
+                   copies?: number; transferred?: number; detached?: number } | null = null;
 /** The entry track's result: the overlay merged onto the base result (cums
  *  shifted by the entry length, two baselines reported). Null until both
  *  exist — a base sweep still running shows as running, not as "no result". */
@@ -3954,33 +3959,12 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
   }
   if (skipped) console.warn(`[collision] ${skipped} machine part(s) not loaded — checked without them`);
   // Track arrays are copied — transferring the originals would detach the
-  // buffers viewerGcode (and the scrub bar) still read.
-  const trackCopy = {
-    pos: track.pos.slice(), abc: track.abc.slice(), lines: track.lines.slice(),
-    rapid: track.rapid.slice(), cum: track.cum.slice(), count: track.count,
-    mode: track.mode?.slice(),  // raw switchkins types — the sweep poses per segment
-    frame: track.frame?.slice(),  // TWP frame indices (+ triplets below)
-    frames: track.frames,         // small list — structured-cloned, not transferred
-    brk: track.brk?.slice(),      // kins-flip relabel flags — excluded from the sweep
-    ustart: track.ustart?.slice(), // unknown starts — named in the result, never assumed swept
-    depEnd: track.depEnd,          // the start-dependent beginning: baseline at K, named (plan E7)
-    startUnbound: track.startUnbound,   // ...and named not checkable when no start binds (VP-I84)
-    dep: track.dep?.slice(),       // ...and where it lies on a bound track
-    wcs: track.wcsEpoch?.slice(), // per-segment WCS epoch (terms in options below)
-    tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)
-    unpredicted: track.unpredicted?.slice(),  // after an unpredicted tool measurement (M600)
-    band: track.band?.slice(),    // a probe's braking range: contacts there only `possible`
-    cond: track.cond?.slice(),    // after a predicted measurement: the path is conditional
-    lineOk: track.lineOk?.slice(), sub: track.sub?.slice(), cline: track.cline?.slice(),  // the lines a note names
-  };
+  // buffers viewerGcode (and the scrub bar) still read — and every copy is
+  // transferred, none cloned twice (VP188-02 N1)
+  const { trackCopy, transfer: trackTransfer, copies } = copyTrackForWorker(track);
   // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the
   // TS-only Transferable name trips eslint's no-undef in SFC scripts.
-  const transfer: ArrayBuffer[] = [
-    ...bodies.map(b => b.positions.buffer as ArrayBuffer),
-    trackCopy.pos.buffer as ArrayBuffer, trackCopy.abc.buffer as ArrayBuffer,
-    trackCopy.lines.buffer as ArrayBuffer, trackCopy.rapid.buffer as ArrayBuffer,
-    trackCopy.cum.buffer as ArrayBuffer,
-  ];
+  const transfer: ArrayBuffer[] = [...bodies.map(b => b.positions.buffer as ArrayBuffer), ...trackTransfer];
   const msg = {
     id,
     // a check during a run stamps its slices for the browser-PC report (Codex R185)
@@ -4035,7 +4019,7 @@ function _colBuildRequest(track: ScrubTrack, id: number, side: boolean, basis: C
       ...(range ? { range } : {}),
     },
   };
-  return { msg, transfer, modelKey, bodies: bodies.length };
+  return { msg, transfer, modelKey, bodies: bodies.length, copies };
 }
 
 /** A check DURING a run (plan „Prüfung im Lauf“ 3a/3b): the provisional
@@ -4055,7 +4039,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   const id = ++_colReqId;
   _colReleaseContacts();
   const basis = run?.basis ?? _checkBasisNow();
-  const req = _colBuildRequest(track, id, false, basis, run?.range, run?.gen != null);
+  const req = timeSpan("col_copy", () => _colBuildRequest(track, id, false, basis, run?.range, run?.gen != null));
   if (!req) return;
   _colBasis = basis;
   _colPendingCtx = _colContextFor(basis, track, run);
@@ -4082,7 +4066,9 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   emitTelemetry("collision.sweep_start", { id, run_gen: run?.gen ?? null, range_from: run?.range?.from ?? null,
                                           points: track.count, bodies: req.bodies });
   try {
-    _colGetWorker().postMessage(req.msg, req.transfer);
+    timeSpan("col_post", () => _colGetWorker().postMessage(req.msg, req.transfer));
+    _colReqMeta = { ..._colReqMeta!, copies: req.copies, transferred: req.transfer.length,
+                    detached: req.transfer.filter(b => b.byteLength === 0).length };
     _colModelSent = req.modelKey;   // the worker now holds (or is building) this model
     _colApplyPauses();
   } catch (err) {
@@ -4106,7 +4092,7 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
   // sim entry: the machine is off and idle — the live state, which is the
   // base result's basis (a change since cleared it, _colOnInputChange); a
   // run check's bound beginning: the run's basis
-  const req = _colBuildRequest(toRaw(slice) as ScrubTrack, id, true, run?.basis ?? _liveCheckBasis());
+  const req = timeSpan("col_copy", () => _colBuildRequest(toRaw(slice) as ScrubTrack, id, true, run?.basis ?? _liveCheckBasis()));
   if (!req) {
     if (run) _colRunSideFailed(run.gen, "the check could not be built");
     return;
@@ -4118,7 +4104,7 @@ function _colPostSide(slice: ScrubTrack, entry: ScrubTrack, base: ScrubTrack, sh
   _colSideProgress = 0;
   emitTelemetry("collision.entry_start", { bodies: req.bodies, shift });
   try {
-    _colGetWorker().postMessage(req.msg, req.transfer);
+    timeSpan("col_post", () => _colGetWorker().postMessage(req.msg, req.transfer));
     _colModelSent = req.modelKey;
     if (run) collisionRunSideState.value = { gen: run.gen, side: { state: "running" } };
   } catch (err) {
@@ -4262,6 +4248,9 @@ watch(() => status.value?.data?.interp_state, (st, prev) => {
 // honestly and re-run (debounced; touch-off sequences change several
 // values in quick succession).
 function _colOnInputChange(st?: any) {
+  timeSpan("col_cancel", () => _colOnInputChangeNow(st));
+}
+function _colOnInputChangeNow(st?: any) {
   _colInputsRev.value++;   // the card's "changed since" (step 4 plan 1c)
   // A run in progress changes these itself (an early G92, its M6): the
   // result stays with the basis it was built from (plan „Prüfung im Lauf“
@@ -4361,6 +4350,9 @@ function _programmedRoomMask(src: Uint32Array | undefined, mode: Uint8Array | un
 }
 
 function _applyProgrammed(g: ViewerGcode) {
+  timeSpan("path_programmed", () => _applyProgrammedNow(g));
+}
+function _applyProgrammedNow(g: ViewerGcode) {
   const roomEnd = _roomEnd(g);
   const feedRoom = _programmedRoomMask(g.feedSrc, g.feedMode, roomEnd);
   const rapidRoom = _programmedRoomMask(g.rapidSrc, g.rapidMode, roomEnd);
@@ -4443,6 +4435,9 @@ function applyGcode(g: ViewerGcode) {
  *  worker). Copies: the transfer must not detach viewerGcode's raw buffers —
  *  they are still read by the programmed-mode path and the sweep. */
 function _pfEnsureLoaded(w: Worker, g: ViewerGcode) {
+  timeSpan("pf_load", () => _pfEnsureLoadedNow(w, g));
+}
+function _pfEnsureLoadedNow(w: Worker, g: ViewerGcode) {
   if (_pfLoadedFor === g) return;
   const fp = g.feedPos ?? new Float32Array(0);
   const fa = g.feedAbc && g.feedAbc.length === fp.length ? g.feedAbc : new Float32Array(fp.length);

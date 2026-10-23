@@ -154,18 +154,35 @@ test("the page reports the parse it sees in flight, first and last frame, with t
   // (the mock broadcasts to every page: jobs of this run's own, so a parallel
   // copy of this test sees them only as other parses)
   const base = 1_000 * (Date.now() % 1_000_000) + Math.floor(Math.random() * 1_000);
+  // a frame broadcast before the page's socket is up reaches nobody (gate
+  // 2026-10-23, under load: neither word of the first parse) — such an
+  // attempt is only lost; the next one is a parse of its own. The attempts
+  // end by 60 s, inside the test's own 90 s: a page that never says a parse
+  // fails at the assertion below, not at the timeout
+  test.setTimeout(90_000);
+  const until = Date.now() + 60_000;
   let on: Record<string, any> | undefined, off: Record<string, any> | undefined;
-  for (let k = 1; k <= 10 && typeof on?.rx_ms !== "number"; k++) {
+  for (let k = 1; Date.now() < until && typeof on?.rx_ms !== "number"; k++) {
     const pr = { reason: "wcsoff:G55:z", file: "p.ngc", expected_ms: 9000, started_ms: 1234567 + k, job: base + k,
                  queued: false, superseded: 0 };
     // an envelope key on a status_delta: the mock's state (armed, data) stays
     // as the parallel tests of this project expect it
     await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: pr } });
     await ctlSend({ op: "status_delta", data: {}, envelope: { preview_refresh: null } });
-    await expect.poll(() => seen.filter(e => e.job === base + k).map(e => e.state), { timeout: 15_000 }).toEqual(["on", "off"]);
-    [on, off] = seen.filter(e => e.job === base + k);
+    const words = () => seen.filter(e => e.job === base + k);
+    const waitFor = async (ms: number) => {   // the 2 s telemetry flush, with room
+      const deadline = Date.now() + ms;
+      while (Date.now() < deadline && words().length < 2) await page.waitForTimeout(100);
+    };
+    await waitFor(6_000);
+    if (words().length === 1) await waitFor(6_000);   // the second word in a later flush
+    const got = words();
+    if (got.length === 0) continue;
+    expect(got.map(e => e.state), "one parse: its first and its last frame").toEqual(["on", "off"]);
+    [on, off] = got;
     if (typeof on!.rx_ms !== "number") await page.waitForTimeout(500);
   }
+  expect(on, "a parse seen once the socket was up").toBeDefined();
   expect(typeof on!.rx_ms).toBe("number");
   expect(on!.started_ms).toBeGreaterThan(1234567);
   expect(off!.rx_ms).toBeGreaterThanOrEqual(on!.rx_ms);

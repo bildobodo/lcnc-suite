@@ -700,6 +700,11 @@ test("a parse made for the run is checked during it: provisional from the machin
     // during a run: two workers at most, shorter slices (plan 4)
     const meta = (await page.evaluate(() => window.__viewerDiag!.getCollisionRequestMeta!()))!;
     expect(meta.sliceMs).toBe(20);
+    // every track column copied for the worker went over by transfer — taken
+    // from the page (detached), none cloned a second time (VP188-02 N1)
+    expect(meta.copies).toBeGreaterThanOrEqual(5);
+    expect(meta.transferred).toBeGreaterThanOrEqual(meta.copies!);
+    expect(meta.detached, "every listed buffer was taken by the send").toBe(meta.transferred);
     expect(meta.maxShards).toBeLessThanOrEqual(2);
     for (const a of [5, 10, 15]) await ctl({ op: "status_delta", data: { rotary_abc: [a, 0, 0] } });
     await expect.poll(() => runLog(page), { timeout: 60_000 }).toEqual(["start provisional 1", "full", "done"]);
@@ -763,6 +768,17 @@ test("a parse made for the run is checked during it: provisional from the machin
   const hbA = pairs().find(p => p.ta === w.tick);
   expect(hbA, "the answer the tick followed").toBeDefined();
   expect(hbA!.seq, "answered before the heartbeat that names the word").toBeLessThan(hbB.seq);
+  // a check that started is timed where it ran: building its request and the
+  // synchronous post, in the page's perf rows (VP188-02 step 0 — a real call
+  // path, not the collector alone)
+  // — every start, the main checks' and the entry move's alike
+  const starts = tel.filter(e => e.kind === "collision.sweep_start" || e.kind === "collision.entry_start").length;
+  const spanN = (k: string) => perf.reduce((a, r) => a + (r[k]?.n ?? 0), 0);
+  await expect.poll(() => [spanN("span_col_copy") >= starts, spanN("span_col_post") >= starts],
+                    { timeout: 10_000 }).toEqual([true, true]);
+  const copy = perf.find(r => r.span_col_copy?.n > 0)!.span_col_copy;
+  expect(copy.sum).toBeGreaterThan(0);
+  expect(copy.max).toBeLessThanOrEqual(copy.sum);
   await expect(label).toHaveText("Collision check");
   await ctl({ op: "quiet", on: false });
   await ctl({ op: "reset" });
