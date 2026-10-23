@@ -1,0 +1,46 @@
+test_constant_offset_interval_control_instead_of_sign_check (__main__.Proof.test_constant_offset_interval_control_instead_of_sign_check) ... ok
+test_contract_delayed_apply_cannot_mask_ws_clock_shift (__main__.Proof.test_contract_delayed_apply_cannot_mask_ws_clock_shift) ... FAIL
+test_contract_delayed_message_cannot_mask_collision_clock_shift (__main__.Proof.test_contract_delayed_message_cannot_mask_collision_clock_shift) ... FAIL
+test_detected_collision_clock_ahead_is_rejected (__main__.Proof.test_detected_collision_clock_ahead_is_rejected) ... ok
+test_detected_ws_clock_ahead_is_rejected (__main__.Proof.test_detected_ws_clock_ahead_is_rejected) ... ok
+test_late_completion_does_not_extend_source_work (__main__.Proof.test_late_completion_does_not_extend_source_work) ... ok
+test_no_worker_end_no_proof (__main__.Proof.test_no_worker_end_no_proof) ... ok
+test_other_gateway_cannot_lend_heartbeats (__main__.Proof.test_other_gateway_cannot_lend_heartbeats) ... ok
+test_pages_are_not_mixed (__main__.Proof.test_pages_are_not_mixed) ... ok
+test_parent_interval_never_replaces_parse_call (__main__.Proof.test_parent_interval_never_replaces_parse_call) ... ok
+test_pauses_are_not_filled (__main__.Proof.test_pauses_are_not_filled) ... ok
+test_positive_single_source_slice (__main__.Proof.test_positive_single_source_slice) ... ok
+test_resolution_takes_away_a_boundary_only_intersection (__main__.Proof.test_resolution_takes_away_a_boundary_only_intersection) ... ok
+
+======================================================================
+FAIL: test_contract_delayed_apply_cannot_mask_ws_clock_shift (__main__.Proof.test_contract_delayed_apply_cannot_mask_ws_clock_shift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r186-t9s1ym0l/probe_tools.py", line 104, in test_contract_delayed_apply_cannot_mask_ws_clock_shift
+    self.assertEqual(got, 'R overlap not proven', 'the shifted heartbeat window falls after the true parse')
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : the shifted heartbeat window falls after the true parse
+
+======================================================================
+FAIL: test_contract_delayed_message_cannot_mask_collision_clock_shift (__main__.Proof.test_contract_delayed_message_cannot_mask_collision_clock_shift)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r186-t9s1ym0l/probe_tools.py", line 89, in test_contract_delayed_message_cannot_mask_collision_clock_shift
+    self.assertEqual(got, 'R overlap not proven',
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                     'actual slice 8300..8350, parse 10000..11000; delayed arrival masks +2000 ms')
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'R overlap proven' != 'R overlap not proven'
+- R overlap proven
++ R overlap not proven
+?           ++++
+ : actual slice 8300..8350, parse 10000..11000; delayed arrival masks +2000 ms
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.001s
+
+FAILED (failures=2)

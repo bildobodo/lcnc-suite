@@ -597,6 +597,8 @@ Codex hat zwei Umsetzungsrunden angenommen (R139, Antwort 6):
 
 - **Browser-PC-Messmittel, zweite Korrektur (R183 → R184):** Herzschläge tragen eine Nummer, die der Gateway in der Zeitangabe zurückgibt (Paarung nach Kennung); die Seite meldet die Sweeps mit Anfrage und Laufgeneration und den laufenden Parse, wie sie ihn sieht — das R-Urteil liest das aktive Rechenintervall auf einer Seitenuhr mit der gemessenen Netzschranke; S wird gegen das Wechselprotokoll geprüft; der Anker verlangt bekannten Stillstand; Telemetriezeilen fallen nur bei Belegen einer verborgenen Seite weg, Lücken machen eine Phase unvollständig. Die Trace-Rotation je Prozess bleibt ein eigener Punkt.
 
+- **Browser-PC-Messmittel, der R-Vertrag (R185 → R186):** Der Parse-Prozess stempelt seine eigenen Grenzen (`gcode.parse_span`), die Herzschlag-Antwort trägt die Monotonzeit des Gateways (`g_mono_ms`, `g_pid`), die Seite hält jedes gepaarte Paar, eine Prüfung im Lauf stempelt ihre echten Slices dort, wo sie rechnen (`collision.sweep_witness`, mit der Uhr des Workers gegen die der Seite); R folgt allein aus der Reihenfolge — zwei Herzschläge im Parse, ein Slice zwischen ihnen. Perf-Zeilen nennen ihre tatsächliche Fensterspanne, `parse_seen` den Auftrag. `bpc_run` kalibriert: eine Schleife nur in der Vorschau macht jeden Parse 4–6 s lang, der zweite Parse liegt in der ersten Prüfung im Lauf (geschätzt ×3,3).
+
 ## 9 · Nicht in diesem Paket
 
 - Das Kontaktzertifikat für anhaltende Durchdringung (eigener Plan nach Paket 2).
