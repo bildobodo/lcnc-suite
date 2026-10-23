@@ -1,0 +1,35 @@
+{
+  "events": 12979,
+  "tags": {
+    "wd.tick_summary": 11546,
+    "wd.trip_reset": 1,
+    "browser.viewer.perf": 1323,
+    "browser.collision.sweep_start": 11,
+    "browser.collision.sweep_done": 3,
+    "safety.explicit_armed": 2,
+    "safety.explicit_disarmed": 2,
+    "gcode.refresh_scheduled": 10,
+    "gcode.spawn_start": 10,
+    "gcode.parse_span": 10,
+    "gcode.worker_log": 12,
+    "gcode.worker_done": 3,
+    "gcode.publish": 3,
+    "browser.preview.parse_seen": 20,
+    "gcode.reparse_wcsoff_drift": 1,
+    "browser.collision.sweep_cancelled": 8,
+    "gcode.reparse_superseded": 7,
+    "gcode.parse_cancelled": 7
+  },
+  "rss": 1628,
+  "active_pages_in_run": {
+    "k1iipz2t": 120
+  },
+  "last_seen_by_page": {
+    "rhpl0tia": 1792789436103698291,
+    "k1iipz2t": 1792789904289803384
+  },
+  "run": [
+    1792789531048775068,
+    1792789890979972287
+  ]
+}

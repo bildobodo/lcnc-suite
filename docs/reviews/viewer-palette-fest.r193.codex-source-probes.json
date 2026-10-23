@@ -1,0 +1,70 @@
+{
+  "revision": "a8486ee9",
+  "kind": "actual current helpers and extracted Vue callbacks; planned hold is only the named skipped refresh; no renderer or network",
+  "results": [
+    {
+      "name": "A -> B baked -> A held; no refresh word",
+      "pass": true,
+      "state": {
+        "payloadVersion": 10,
+        "payloadZ": 10,
+        "liveZ": 10,
+        "drawn": {
+          "version": 10,
+          "anchorZ": 20
+        },
+        "pending": false,
+        "previewWcsStale": false,
+        "pathStaleNow": false
+      },
+      "fixture": "Only the skipped apply is the proposed hold; the stale expressions and reply/apply wiring are unmodified source."
+    },
+    {
+      "name": "matching payload adopted while its transform is pending",
+      "pass": true,
+      "state": {
+        "payloadVersion": 11,
+        "payloadZ": 30,
+        "liveZ": 30,
+        "drawn": {
+          "version": 10,
+          "anchorZ": 20
+        },
+        "pending": true,
+        "previewWcsStale": false,
+        "pathStaleNow": false
+      }
+    },
+    {
+      "name": "only the matching reply actually applies the new geometry",
+      "pass": true,
+      "state": {
+        "payloadVersion": 11,
+        "payloadZ": 30,
+        "liveZ": 30,
+        "drawn": {
+          "version": 11,
+          "anchorZ": 30
+        },
+        "pending": false,
+        "previewWcsStale": false,
+        "pathStaleNow": false
+      }
+    },
+    {
+      "name": "single active non-rewritten",
+      "pass": true,
+      "timersScheduled": 0
+    },
+    {
+      "name": "single rewritten",
+      "pass": true,
+      "timersScheduled": 1
+    },
+    {
+      "name": "single other fixture",
+      "pass": true,
+      "timersScheduled": 1
+    }
+  ]
+}

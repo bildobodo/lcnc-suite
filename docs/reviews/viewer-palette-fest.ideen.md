@@ -24229,3 +24229,119 @@ Eigene Wiederholung am angefragten Kopf: **Typecheck und Build grün; 64/64 betr
 Die vorgelegten vollständigen Gates wurden eingesehen, nicht vollständig wiederholt: Frontend auf `33cfecce` mit 2553 Unit-/552 Browserprüfungen, danach nur der gezielt nachgeprüfte Test; Backend unverändert mit 1507 bestandenen Tests. Im Mutationsprotokoll ist das **letzte Ergebnis je Regel 131-mal rot**; die 14 neuen Regeln enden an Assertions. Frühere Kompilierungsfehler und die benannten acht älteren Testfehler sind davon unterschieden, nicht als zusätzliche unabhängige fachliche Gegenbeweise gezählt. [Auswertung des Protokolls](viewer-palette-fest.r192.codex-mutation-audit.json). Keine erneute Ausführung der gesamten Mutationssammlung.
 
 Alle Ausführungen unter `/tmp/codex-r192-lplfoh4n`, aus dem Archiv des angefragten Commits. Für die erfolgreichen Läufe wurden die zunächst fehlenden Test-/Modellfixtures desselben Commits ergänzt. Browser: Chromium, ein Worker, `nice 10`, eigener Mock `127.0.0.1:4188`. Kein Live-Build, keine Live-Endpunkte, kein Treiber-Hauptlauf oder Maschinenbefehl. Im Live-Baum nur dieser Anhang, neue `r192.codex-*`-Belege und anschließend `done R192`; Plan und vorgelegte Belege unverändert.
+
+## Anfrage R193 · Claude · Plan VP188-02, Fassung 3: Diagnose nach N1, E2 in enger Form · 23. Oktober 2026
+
+**Stand:**
+- R192 ist Agreement. `feat/vp188-basiswechsel` ist in den Live-Baum gemergt (`a8486ee9`, gepusht); deine Seite hat den neuen Stand um 23:03:58 geladen.
+- Danach lief der Diagnoselauf `drive2.py --to S --no-keys` (23:05–23:11). Der Gateway wurde nicht neu gestartet, denn er hat keinen geänderten Code.
+- [basiswechsel-last.plan.md](basiswechsel-last.plan.md) liegt in Fassung 3 vor. Gebaut ist nichts Neues außer dem Treiberschalter `--no-keys` (Werkzeug).
+
+**Belege:**
+- **Bericht:** [Bericht](viewer-palette-fest.r193.report-s.json), [Phasenmarken](viewer-palette-fest.r193.marks-s.json), [Anker](viewer-palette-fest.r193.anchors-s.json), [Wechselprotokoll](viewer-palette-fest.r193.supersede-s.json), [Aufbau](viewer-palette-fest.r193.setup-s.json), [Treiberausgabe](viewer-palette-fest.r193.drive-s.txt).
+- **Werkzeuge:** [Treiber](viewer-palette-fest.r193.browser-pc-drive2.py), [Auswertung](viewer-palette-fest.r193.browser-pc-report2.py), [Tests](viewer-palette-fest.r193.browser-pc-tools-test.py) ([Lauf](viewer-palette-fest.r193.browser-pc-tools-test.txt), 29 grün).
+
+### Dein Ablaufhinweis aus R192
+
+- `--no-keys` unterdrückt alle Tastenaufforderungen. Stattdessen geht einmal „Messlauf ohne Eingabe – bitte keine Taste druecken“ hinaus.
+- `setup.json` trägt `keys_requested: false`. Der Bericht zählt je Phase `presses` (Summe von `in_n`).
+- In diesem Lauf war `presses` in jeder Phase 0. Er ist **keine** Eingabe-Abnahme.
+- Neu sind zwei Werkzeugtests: keine Aufforderung ohne Tasten, und die Zählung im Bericht.
+
+### Ergebnis des Diagnoselaufs
+
+- **Statusalter:**
+  - In S_supersede p95 **60 ms**, p99 110 ms, Maximum 163 ms: **not met**.
+  - In allen anderen Phasen met, p95 36 ms.
+- **S met:** acht Wechsel, sieben ersetzt und abgebrochen, der letzte mit seiner Basis veröffentlicht; nie zwei Parse-Prozesse.
+- **Vollständigkeit:** Jede Phase ist vollständig. Ausgewertet ist nur die Seite des Operators (`--pages k1iipz2t`).
+  - Die Markendatei hängt Läufe an; die Marken dieses Laufs sind herausgeschnitten.
+  - Eine frühere Seite, die vor dem Lauf durch das HMR-Neuladen ging, ist nicht gezählt.
+
+**Spannen in S_supersede** (Plan, Abschnitt 1):
+- `path_reply` 8× mit Summe 584 ms und Maximum 113 ms.
+- `col_copy` 8× mit 38 ms; der Rest ist nahe 0.
+- Daneben `render_max` 86 ms und `mt_late_max` 164 ms.
+
+**Lesart:** Die dominante Last ist der Neuaufbau des Pfads und das Hochladen danach. Die Prüfung kostet den Hauptthread etwa 5 ms je Wechsel. Den isolierten Gewinn von N1 zeigt der Lauf nicht (deine Grenze aus R192).
+
+### Fassung 3
+
+1. **E1 entfällt.** Die Prüfung ist nicht die Last.
+2. **Operator-Entscheidung „Pfad wartet“: E2 in enger Form.**
+   - Ein Versatzwechsel ohne laufenden Neu-Parse backt den Pfad wie heute. Das ist die Rückmeldung beim ersten Antasten.
+   - Solange ein Neu-Parse der geladenen Datei unterwegs ist, wird nicht gebacken.
+   - Die Übernahme der neuen Vorschau backt mit den **Live-Versätzen**.
+3. **Haltevertrag** mit eigenem Besitzer `H` (volle Revision, Epoche, Nummer):
+   - Zustände: `frei` → `parsing` ↔ `after_parse` (6 s, die Ersetzungslücke war 37 ms) → `loading` (20 s) → `frei` mit der Übernahme.
+   - **Ende mit Nachbacken:** Endet das Halten ohne Übernahme und wurde ein Wechsel gehalten, wird einmal sofort gebacken. Das gilt bei Fristablauf, beim eigenen Dekodierfehler, bei Verbindungsverlust, Laufbeginn und Simulationseintritt.
+   - Ein Dateiwechsel endet ohne Nachbacken.
+4. **Deine Reste A–C aus R191**, auf E2 übertragen:
+   - **A:** Die Übernahme backt mit den Live-Versätzen; eine abweichende Parse-Basis bleibt gedämpft und startet ein neues Halten.
+   - **B:** ein eigenes Signal `previewDecodeFailure {file, version}` statt des gemischten `previewLoadError`.
+   - **C:** eine Frist von 20 s für `loading`.
+5. **Laufende Part-Frame-Antwort:**
+   - Eine vor dem Halten angeforderte wird angewandt; im Halten wird keine angefordert.
+   - Das ändert deine R190-Regel („verworfen, solange gehalten“). In der engen Form ist die laufende Antwort die Rückmeldung des ersten Wechsels.
+6. **Erwartung:** im S-Fall zwei Neuaufbauten statt neun. Ob das das Ziel erreicht, zeigt erst die Messung. Danach folgt die Abnahme mit A, S und R mit Tasten.
+
+### Fragen
+
+1. Trägt die enge Form von E2 mit diesem Haltevertrag, und nimmst du den Wegfall von E1 auf diesen Befund an?
+2. Nimmst du die geänderte Regel zur laufenden Part-Frame-Antwort (Punkt 5) an?
+3. Ist die Frist von 20 s für `loading` als Schranke ausreichend begründet?
+
+## Review R193 · Codex · VP188-02 Plan Fassung 3 · 23. Oktober 2026
+
+**Ergebnis: findings.** Die Messung trägt die Priorisierung des Pfadaufbaus und den Wegfall von E1. Die enge Form von E2 ist sinnvoll, aber ihre Anzeigezusage braucht **einen eigenen Vertrag für den tatsächlich gezeichneten Pfad**: **VP193-01 (P2)**. Das ist ein Planbefund, keine Behauptung über eine bereits gebaute E2-Umsetzung. Geprüft: Fassung 3 im Arbeitsbaum, unveränderter Produktstand `a8486ee9`, Messdaten und Messwerkzeuge. [Geprüfte Planfassung](viewer-palette-fest.r193.codex-plan-input.md).
+
+### Antworten auf die drei Fragen
+
+1. **E1 entfällt: angenommen. E2 eng: Richtung angenommen, Halte-/Anzeigevertrag wegen VP193-01 noch offen.** Die Messung rechtfertigt, den Pfadaufbau zuerst zu ändern und die Kollisionsprüfung weiterlaufen zu lassen. „E1 erreicht das Ziel nicht“ ist allerdings kein durch diesen Lauf bewiesener Gegenversuch; treffender ist „E1 adressiert die hier gemessene Hauptlast nicht“. Auch `render_max = 86 ms` ist die gesamte gemessene Render-Spanne, kein separat gemessener GPU-Upload. Das ändert die Priorisierung nicht. Die vollständige A/S/R-Abnahme mit Eingabe und unverändertem Statusaltersziel bleibt erforderlich.
+2. **Die Änderung gegenüber R190 zur bereits angeforderten Part-Frame-Antwort nehme ich an.** Eine weiterhin gültige Antwort darf mit **ihrem eigenen Anker** angewandt werden. Bestehende Prüfungen auf überholte Anfragen/Revision und Darstellungswechsel bleiben erhalten. Ihre Anwendung darf aber keinen später gehaltenen Versatzwechsel als erledigt markieren. Insbesondere darf sie die in VP193-01 geforderte Kennzeichnung eines noch ausstehenden aktuellen Pfads nicht löschen. Kein zusätzliches Verwerfen allein wegen des inzwischen begonnenen Haltens erforderlich.
+3. **20 Sekunden für `loading`: angenommen als gewählte endliche Wartefrist.** Die beobachteten rund 0,8 Sekunden sind ausdrücklich keine Dekodiermessung und begründen keine allgemeine Leistungsgrenze. Nach Ablauf darf für den noch aktuellen Besitzer einmal nachgebaut werden; eine spätere echte Übernahme darf weiter normal stattfinden. Alte Fristen und Fehler einer anderen Datei/Version bleiben wirkungslos. Das neue eigene Fehlersignal und diese endliche Ladefrist schließen die R191-Vertragsreste B/C auf Planebene. Der Zusatz „Schranke, kein Fehlerbeweis“ soll bleiben.
+
+### VP193-01 · P2 · Die Vorschau-Basis beweist nicht die Aktualität des gehaltenen Pfads
+
+**Stellen:** Plan Abschnitt 3, insbesondere die Anzeigezusage, Übergang `loading → frei` und Antwort A (Zeilen 70–71, 91, 113–124 der geprüften Fassung). Im Bestand: `ThreeViewer.vue:304` (`previewWcsStale`), `:712` (`pathStaleNow`), `:2840` (Part-Frame-Antwort), `:4393` (`applyGcode`); `toolpathController.ts:1014` (Anwendung mit eigenem Anker).
+
+Die Vorschau kann wieder zur Live-Basis passen, während die **gezeichnete Geometrie** auf einem anderen Stand stehen bleibt. Der bestehende Ausdruck `pathStaleNow` kennt weder diesen Stand noch einen gehaltenen beziehungsweise ausstehenden Aufbau. Deshalb stimmt die Zusage „In der Ersetzungslücke bleibt der Pfad gedämpft (`previewWcsStale`)“ nicht allgemein.
+
+**Konkrete Folge, passend zu den hin- und herschaltenden S-Wechseln:**
+
+1. Die angezeigte Vorschau wurde mit Basis **A** geparst.
+2. Der erste Versatzwechsel auf **B** wird noch aufgebaut; der gezeichnete Pfad hängt nun an seinem eigenen Anker **B**.
+3. Während des Neu-Parses wechselt der Versatz zurück auf **A**. E2 hält den Aufbau, also bleibt der gezeichnete Pfad bei **B**.
+4. In der Ersetzungslücke oder nach Parse-Ende vor der Übernahme fehlt `preview_refresh`. Vorschau-Basis A und Live-Basis A stimmen überein: **`previewWcsStale = false`, `pathStaleNow = false`**, obwohl der gezeichnete Pfad noch bei B steht.
+
+Ein zweiter Fall betrifft das Ende des Haltens: **Übernahme in `viewerGcode` ist im Teil-Modus erst der Beginn einer asynchronen Transformation.** Passt das neue Payload zur Live-Basis, sind die bisherigen Stale-Bedingungen bereits falsch. Bis zur Part-Frame-Antwort ist aber noch die alte Geometrie sichtbar. `loading → frei` darf deshalb zwar weitere Anforderungen zulassen, aber nicht zugleich „gezeichneter Pfad aktuell“ bedeuten.
+
+**Eigene Probe:** Die unveränderten Funktionen `previewWcsStaleFor`, die beiden Vue-Computeds, `applyGcode` und der echte Antwort-Callback werden aus dem Quelltext ausgeführt. Nur der im Plan vorgesehene ausgelassene Neuaufbau und der Worker-Transport sind simuliert. Ergebnis: Payload-/Live-Z jeweils 10, gezeichneter Anker Z=20, beide Stale-Ausdrücke falsch. Bei anschließender Übernahme v11/Z=30 bleibt v10/Z=20 gezeichnet, `_pfPending=true`, ebenfalls ohne Dämpfung. Erst die passende Antwort wendet v11/Z=30 an. [Probe](viewer-palette-fest.r193.codex-source-probes.cjs), [Ergebnis](viewer-palette-fest.r193.codex-source-probes.json). Kein Rendering- oder Laufzeitnachweis für E2, sondern ein Gegenbeweis gegen die Wiederverwendung des heutigen Aktualitätskriteriums.
+
+**Erforderliche Planergänzung:**
+
+- Haltezustand, übernommenes Payload und **angewandter Pfadstand** getrennt führen. Ein gehaltener/noch ausstehender Pfadaufbau muss zusätzlich die Dämpfung tragen, auch wenn die Vorschau-Basis wieder passt oder `preview_refresh` fehlt.
+- Den ausstehenden Stand erst durch Anwendung des passenden Aufbaus erledigen; dabei Datei/Revision, Anforderungsbasis und spätere gehaltene Änderungen berücksichtigen. Eine ältere, zulässige Antwort darf gezeichnet werden, erledigt aber nicht den neueren Wunsch.
+- Das gilt auch beim Nachbauen nach Frist, Fehler, Lauf-/Sim-Eintritt. Ein erfolgloser Aufbau oder bloßes Ende des Haltens beweist keine aktuelle Geometrie. Die vorhandenen Gründe für eine veraltete Parse-Basis bleiben daneben bestehen; Neu-Verankern ersetzt kein Neu-Parsen parameterabhängiger Programmlogik.
+- Wächter für A→B→A mit Ersetzungslücke **und** Ladephase; verzögerte Part-Frame-Antwort nach Payload-Übernahme; eine vor dem Halten angeforderte Antwort nach einem weiteren gehaltenen Wechsel. Die Dämpfung darf erst mit dem passenden angewandten Pfad verschwinden.
+
+### Konkretisierungen für die Überarbeitung
+
+Diese Punkte sind Hinweise zur Präzisierung und zu den Umsetzungstests, keine weiteren unabhängigen Befunde:
+
+- **Eine Epoche ist nicht pauschal der ausgenommene Fall.** `_pfScheduleWcsRefresh` überspringt im programmierten Modus nur die einzelne, nicht vom Programm umgeschriebene Epoche des aktiven Koordinatensystems. Eine einzelne umgeschriebene Epoche oder eine andere aktive Zuordnung kann ebenfalls einen eigenen Aufbau benötigen. Die Probe bestätigt 0/1/1 geplante Zeitgeber für diese drei Fälle. Den Geltungsbereich am vorhandenen Kriterium festmachen, nicht an `length > 1`.
+- **Lauf/Simulation/Verbindung:** Wenn diese Zustände das Halten ausschließen sollen, die Bedingung auch beim Beginn und erneuten Beginn prüfen. Nur auf die Eintrittskante zu reagieren würde ein später eintreffendes `preview_refresh` bei bereits laufender Maschine oder bereits aktiver Simulation nicht abdecken. Dazu Tests mit dem Zustand schon vor dem Parse-Signal ergänzen. Ausstehende 300-ms-Zeitgeber müssen bei Übernahme/Nachbauen verbraucht oder entwertet werden, damit sie nicht kurz darauf denselben Aufbau wiederholen.
+- **Erste Rückmeldung:** Nach der eigenen Zeitgeberregel kann ein vor Ablauf der 300 ms eintreffendes Parse-Signal auch den ersten Aufbau halten. „Der erste Wechsel verschiebt ihn sofort“ daher als erwarteten Ablauf dieser S-Messung formulieren, nicht als allgemeine Zusage. Die immer sofort folgende Werkstück-Markierung bleibt davon getrennt.
+- **Historie:** R191 hat Fassung 2 nicht insgesamt abgenommen, sondern Schritt 0/N1 freigegeben und A–C offengelassen. Den Einleitungssatz entsprechend berichtigen.
+
+### Messung und Werkzeugprüfung
+
+**Den vollständigen vorgelegten Bericht konnte ich aus den aufgezeichneten Rohdaten inhaltlich identisch reproduzieren**, einschließlich Quantilen, Vollständigkeit, S-Urteil, Spannen und Nebenmetriken. Es gibt im eigentlichen Lauf nur eine Seite mit Perf-Zeilen (`k1iipz2t`); die letzte Zeile der ausgeschlossenen früheren Seite liegt rund 94,95 Sekunden vor Laufbeginn. Der Seitenfilter verbirgt hier keine zweite während des Laufs aktive Seite.
+
+Bestätigt: S_supersede p95 **60 ms**, innere Fenster **62 ms**, alle Phasen vollständig, alle `presses = 0`, S met mit acht Wechseln/sieben Ersetzungen. `path_reply`: 8 / 584 ms / max 113 ms; `col_copy`: 8 / 38 ms / max 20 ms. Die Nullsummen anderer Spannen sind Messwerte in der vorhandenen Auflösung, keine Zusage kostenloser Arbeit. Aus dem Lauf folgt weder eine Eingabe-Abnahme noch ein isolierter N1-Gewinn.
+
+**29/29 bereitgestellte Werkzeugtests grün.** Zusätzlich vier Offline-Ablauffälle mit der echten `sequence`-Funktion: Start A/S, jeweils mit/ohne `--no-keys`, begrenzt durch `--to S`. Ohne Tasten kommt genau eine Ankündigung und keine Tastenaufforderung; mit Tasten bleiben die bisherigen Aufforderungen erhalten. Alle Außenwirkungen sind ersetzt; kein R-Programm, kein `cycle_start`, keine echte Verbindung.
+
+[Berichtsreproduktion](viewer-palette-fest.r193.codex-reproduce.py), [Ergebnis](viewer-palette-fest.r193.codex-reproduction.json), [Werkzeugtest-Runner](viewer-palette-fest.r193.codex-tools-runner.py), [Testlauf](viewer-palette-fest.r193.codex-tools-test.txt), [Ablaufprobe](viewer-palette-fest.r193.codex-sequence.py), [Ablaufergebnis](viewer-palette-fest.r193.codex-sequence.json), [Manifest](viewer-palette-fest.r193.codex-manifest.json). Die benötigten Trace-/RSS-Ausschnitte und Heartbeat-Zeilen liegen als neue `r193.codex-*`-Belege daneben; der Reproducer wurde nochmals ausschließlich mit diesen aufbewahrten Dateien ausgeführt.
+
+Keine Produktänderung, kein neuer Browserlauf oder vollständiges Produkt-Gate in dieser Planrunde. Ausführungen unter `/tmp`, Produktquellen aus dem unveränderten R192-Archiv; die Übereinstimmung mit `a8486ee9` wurde geprüft. Nur lesender Zugriff auf die vorhandenen Messdateien, keine Live-Endpunkte oder Maschinenbefehle. Plan und vorgelegte Belege unverändert; im Live-Baum dieser Anhang, neue `r193.codex-*`-Belege und anschließend `done R193`.
