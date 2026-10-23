@@ -1,0 +1,193 @@
+{
+  "review": "R189",
+  "original_files": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "size": 2249559,
+      "sha256": "99a06af7e0625a8a6e33dc368e2249675f8a6959fda5b022aca31a995679e075"
+    },
+    "docs/reviews/kollision-paket2.plan.md": {
+      "size": 84903,
+      "sha256": "306561045aabeaf61c50d6a12e985c5953ce54546d309cc7a4b568b5551f1c4b"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-setup.json": {
+      "size": 861,
+      "sha256": "c8e16fd76154085189ff6ee2f27af1295eef007b4f19937d0214c58b8748f391"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-heartbeat-logs.json": {
+      "size": 66572,
+      "sha256": "ec40d502577fddb1aab91700c27cc4e835fba58bdcb44e2500b675e688bf715f"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-audit.json": {
+      "size": 56216,
+      "sha256": "1fd229e76d3730373d70e6a11b87eb4c4f4cae15cf061abce305b4ec69db8bad"
+    },
+    "docs/reviews/viewer-palette-fest.r188.r-proof-run1.json": {
+      "size": 686,
+      "sha256": "a55422d0880e66004369ddd23057cf7382831d8e55de1178661dd8650647b2f5"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-manifest.json": {
+      "size": 8366,
+      "sha256": "1097ea00c0def3cdb2dec751926f5908227eb04a104a8d349d665dc090dd420b"
+    },
+    "docs/reviews/viewer-palette-fest.r188.marks-run1.json": {
+      "size": 1026,
+      "sha256": "778ca8a61aff2d08bd3dbe534a7c1485442eb7475645f177dd6a05d4672b91a0"
+    },
+    "docs/reviews/viewer-palette-fest.r188.marks-run2.json": {
+      "size": 1029,
+      "sha256": "aba4e412e8e41e28caf7d2373e2b6ee2d87da7d9985a6d74c80b0e2844c65b57"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-events.jsonl.gz": {
+      "size": 615597,
+      "sha256": "6f46eeb5e78676a8f1e00389557f621202f99e3d2b23be48cc11f9a4076a49da"
+    },
+    "docs/reviews/viewer-palette-fest.r188.supersede-run1.json": {
+      "size": 2168,
+      "sha256": "b843df77cd49bcf52239dda52d4934d8abf93f471470ab290ec3b389ecddebc6"
+    },
+    "docs/reviews/viewer-palette-fest.r188.anchors-run1.json": {
+      "size": 137,
+      "sha256": "5c1005ba216637aca8b41bae974da787bd975b357080a5f4387ae9bbc8c7eb9b"
+    },
+    "docs/reviews/viewer-palette-fest.r188.drive-aborted.txt": {
+      "size": 1092,
+      "sha256": "388f7738d1331ce200e9a055aa68b1d7ae4dbd55414fbdd482f2fc9fcda35d86"
+    },
+    "docs/reviews/viewer-palette-fest.r188.browser-pc-tools-test.txt": {
+      "size": 3719,
+      "sha256": "fba8812b5b74671b499899fd768fb971c439a6571400a108000cdbf49f4c501c"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-audit.py": {
+      "size": 10901,
+      "sha256": "fa09395ee53547eab24a4bede5cfda6a1bc7c508ef52ada3b55dd532997f2fbc"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-rss.jsonl.gz": {
+      "size": 81666,
+      "sha256": "0c9d90def96a5a2ca58c8eb0dd412f314bc995d49d4ed6c1098bdd898ee1595a"
+    },
+    "docs/reviews/viewer-palette-fest.r188.browser-pc-report2.py": {
+      "size": 27145,
+      "sha256": "b728c6e604602979348685da9458821eec1bfa65583d360c8cd31bfb588340e4"
+    },
+    "docs/reviews/viewer-palette-fest.r188.r-proof-run2.json": {
+      "size": 691,
+      "sha256": "bb9aa45af0c576b5107d19338aab9ad5508e5fb320dce1d8dc9a3a2f20d9bf73"
+    },
+    "docs/reviews/viewer-palette-fest.r188.browser-pc-tools-test.py": {
+      "size": 23543,
+      "sha256": "6d735ae0f26b0cdb962b58491e28677fcb86169c148d1f23a3322ed3752742fc"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-reproduction.txt": {
+      "size": 2319,
+      "sha256": "8d91d2675b5fe277f49242d9fd68abc4d114f7384ebb5e6cfefd13c0eddba7f7"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-provided-tests.txt": {
+      "size": 3719,
+      "sha256": "bb64d1bb6a140902a874aa3cf6f81b2119343d595c4cc3492ce21a6653a4a319"
+    },
+    "docs/reviews/viewer-palette-fest.r188.browser-pc-drive2.py": {
+      "size": 18779,
+      "sha256": "fa36ec11adcbe9460733343646ffc1a7bd08fb83c67fd7027bd0ad0725e43ab1"
+    },
+    "docs/reviews/viewer-palette-fest.r188.anchors-run2.json": {
+      "size": 137,
+      "sha256": "e3c88a96b94d417dc6ca9e9b7300bafeff0a870fab4139c2b293623d44da8c91"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-reproduce.py": {
+      "size": 1518,
+      "sha256": "8c5d06fc946691022272b30430588d0bb9a1bc3e6a7a270ddf558cd4afe227c6"
+    },
+    "docs/reviews/viewer-palette-fest.r188.report-run1.json": {
+      "size": 39085,
+      "sha256": "7cf88769fa933b7f4adf44064e1f04deba9f095a6befd8b385bcce17572e5591"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-summary.json": {
+      "size": 1605,
+      "sha256": "1eb32fc00f45f9c98fa1df3fcba0faa21c9e61d55c6cde61bb5c27241cf79213"
+    },
+    "docs/reviews/viewer-palette-fest.r188.drive-run2.txt": {
+      "size": 3117,
+      "sha256": "9587b3e37f543772f19bdf820e300d78a4f3d12cbcb120756ce600ef39210c1d"
+    },
+    "docs/reviews/viewer-palette-fest.r188.report-run2.json": {
+      "size": 39490,
+      "sha256": "4da99498156a23a36b3cb7dec77ddca2fd1f5d27cd61e15ee18d969f7c15cdf2"
+    },
+    "docs/reviews/viewer-palette-fest.r188.codex-audit.txt": {
+      "size": 2270,
+      "sha256": "28f79a342cc46a4b6fe7876a1b2168c725210b446c509fb7528064bbf648beaa"
+    },
+    "docs/reviews/viewer-palette-fest.r188.supersede-run2.json": {
+      "size": 2171,
+      "sha256": "6b96c96631ad1743a6a66532cbeb893cc102e5e060947afa2dc2509f545618e8"
+    },
+    "docs/reviews/viewer-palette-fest.r188.drive-run1.txt": {
+      "size": 3111,
+      "sha256": "7d1ff24300a4fc596d4b28323d6a74ac463db77d91e975fe74c02223a6d8234e"
+    },
+    "docs/reviews/viewer-palette-fest.r189.browser-pc-tools-test.txt": {
+      "size": 4100,
+      "sha256": "6dbd8d557dcc785b7543713047b9b075645bf61aa24ae474fad3eba9cc6967a6"
+    },
+    "docs/reviews/viewer-palette-fest.r189.browser-pc-report2.py": {
+      "size": 28417,
+      "sha256": "72bd047b74f24e8e2d98b5ac93adf4c3c5affb60cbc9bcdadc237e0cfef0ef9a"
+    },
+    "docs/reviews/viewer-palette-fest.r189.mutations.txt": {
+      "size": 1152,
+      "sha256": "312e70651360a11fc2b98ee90953f0eedfd905ee3889dd2de574cddd79e8a7ba"
+    },
+    "docs/reviews/viewer-palette-fest.r189.mutations.py": {
+      "size": 6551,
+      "sha256": "54c4ad38395b2924312562a4f6f532e2d341c4cbeda0599dc59717efdba135c0"
+    },
+    "docs/reviews/viewer-palette-fest.r189.report-run1.json": {
+      "size": 40406,
+      "sha256": "fe9066a89ab0edb40e643f53ccfa0f81b9770450e58c0e866da08c8c6bd48dad"
+    },
+    "docs/reviews/viewer-palette-fest.r189.browser-pc-tools-test.py": {
+      "size": 25740,
+      "sha256": "cc9d973d270c301bad1cd4a69a638b5f51d4db020898258c2856993b8c044c9c"
+    },
+    "docs/reviews/viewer-palette-fest.r189.report-run2.json": {
+      "size": 40813,
+      "sha256": "3ff3bfa54dd1fae712a2ba469c02cc645e60635a94d47493f1781302ec1642db"
+    }
+  },
+  "new_artifacts": {
+    "viewer-palette-fest.r189.codex-provided-tests.txt": {
+      "bytes": 4100,
+      "sha256": "8c056c2e348d83ced9a86c30ae2066ec6edc83500090afdea47a13a01042e720"
+    },
+    "viewer-palette-fest.r189.codex-probes.py": {
+      "bytes": 6720,
+      "sha256": "ad78de402a8e219420fed99dcde3efc46bdd9fc15ced53251246803c6d95b3ef"
+    },
+    "viewer-palette-fest.r189.codex-probes.json": {
+      "bytes": 16118,
+      "sha256": "bbd95c9122b0b7bb384fb28eb2431d12602c57f94359b38cbb1dc828d76a266a"
+    },
+    "viewer-palette-fest.r189.codex-probes.txt": {
+      "bytes": 924,
+      "sha256": "38c80f6ce514ef41bdab0979815bfbfb2124fb80de55be9181cdb72caf013ff8"
+    },
+    "viewer-palette-fest.r189.codex-reproduce.py": {
+      "bytes": 1519,
+      "sha256": "fa6ef71072b60843b964e484422dd34a92cea65b1ff8135c63a10e7c3bebc6d4"
+    },
+    "viewer-palette-fest.r189.codex-reproduction.txt": {
+      "bytes": 973,
+      "sha256": "c608302238d341042e054b38efa7faf553da166f28d0426256b9adbb5f342fe4"
+    },
+    "viewer-palette-fest.r189.codex-summary.json": {
+      "bytes": 851,
+      "sha256": "bc3b26ae7e97b8a5608453729e8075387ef2b11469ed52911bfc60b5d4a1d840"
+    }
+  },
+  "live_review_prefix_bytes": 2249559,
+  "reproduce": "python3 docs/reviews/viewer-palette-fest.r189.codex-reproduce.py docs/reviews (system Python sufficient). Extracts the preserved R188 events/RSS/log evidence into /tmp, imports unchanged r182 bpc.py and r189 report2.py, runs the eight independent probes. Never uses live logs, sockets or the driver.",
+  "provided_tests": "Copied r189 tools test/report, r188 drive2, r182 drive/bpc, r183 tracetail into /tmp. Redirected only hardcoded ws_fanout import to e8e88fd0 archive /tmp/codex-r187-b4k897uq/repo/lcnc-gateway. Project venv Python -m unittest test_bpc_tools -v: 26 passed.",
+  "report_comparison": "Explicitly supplied the pages recorded in each original report, including historical 9ok6gt09; active pages still computed by the unchanged report() code. Own integration probe injects historical-only and active-then-silent pages and verifies report() handling.",
+  "mutations": "Supplied five mutation results inspected, not rerun (one fails through missing-key error, four through assertions); own report-level probe additionally covers expected-page wiring.",
+  "temporary_root": "/tmp/codex-r189-mqkah3j3"
+}

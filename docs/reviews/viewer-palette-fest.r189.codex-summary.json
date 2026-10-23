@@ -1,0 +1,29 @@
+{
+  "review": "R189",
+  "verdict": "agreement",
+  "closed": [
+    "VP188-01",
+    "VP181-01 measurement follow-up for documented shared Mac/VM host"
+  ],
+  "still_open": [
+    "VP188-02 status age during S_supersede (p95 58/68 ms versus 50 ms target)",
+    "acceptance on actual machine PC"
+  ],
+  "product_performance_acceptance_complete": false,
+  "tests": {
+    "provided_tools": 26,
+    "own_probes": 8,
+    "reports_exactly_reproduced": 2,
+    "all_phase_values_except_coverage_unchanged": true,
+    "durable_evidence_only_reproduction": "PASS",
+    "product_gates": "not rerun; no product changes"
+  },
+  "boundaries": {
+    "live_endpoints_accessed": false,
+    "machine_commands": false,
+    "live_logs_used": false,
+    "product_edits": false,
+    "driver_main_executed": false
+  },
+  "live_head": "e9b69987e114ef6d264ff8e688683839b469584a"
+}

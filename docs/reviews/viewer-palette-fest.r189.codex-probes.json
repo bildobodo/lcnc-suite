@@ -1,0 +1,637 @@
+{
+  "actual_R188_counterexample": {
+    "full": {
+      "coverage": {
+        "complete": true,
+        "pages": {
+          "rhpl0tia": {
+            "rows": 16,
+            "by": "window chain",
+            "inner_breaks": 0,
+            "edge_start_s": 1.48,
+            "edge_end_s": 1.48,
+            "complete": true
+          }
+        },
+        "gaps_over_4_5_s": 2,
+        "largest_gap_s": 5.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 58.0,
+        "age_p95_interior_rows": 62.0,
+        "verdict": "not met"
+      }
+    },
+    "first_3": {
+      "coverage": {
+        "complete": false,
+        "pages": {
+          "rhpl0tia": {
+            "rows": 3,
+            "by": "window chain",
+            "inner_breaks": 0,
+            "edge_start_s": 1.48,
+            "edge_end_s": 41.51,
+            "complete": false
+          }
+        },
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 41.5,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 42.0,
+        "age_p95_interior_rows": 46.0,
+        "verdict": "not proven",
+        "why": "the phase's rows have gaps (incomplete)"
+      }
+    }
+  },
+  "reports": [
+    {
+      "run": 1,
+      "exact_report_match": true,
+      "all_noncoverage_phase_values_unchanged": true,
+      "coverage": {
+        "prep": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 4,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.58,
+              "edge_end_s": 1.18,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "A_rest": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 20,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.83,
+              "edge_end_s": 1.26,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "A_input": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 13,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.74,
+              "edge_end_s": 2.3,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "S_load": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 23,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.7,
+              "edge_end_s": 1.53,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "S_supersede": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 16,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.48,
+              "edge_end_s": 1.48,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 2,
+          "largest_gap_s": 5.0,
+          "complete_by_receipt_gaps": false
+        },
+        "S_settle": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 41,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.52,
+              "edge_end_s": 0.54,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "R_load": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 12,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.17,
+              "edge_end_s": 2.74,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "R_run": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 274,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.26,
+              "edge_end_s": 0.19,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 1,
+          "largest_gap_s": 4.9,
+          "complete_by_receipt_gaps": false
+        },
+        "R_settle": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 20,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.02,
+              "edge_end_s": 0.17,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        }
+      }
+    },
+    {
+      "run": 2,
+      "exact_report_match": true,
+      "all_noncoverage_phase_values_unchanged": true,
+      "coverage": {
+        "prep": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 4,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.67,
+              "edge_end_s": 0.86,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "A_rest": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 20,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.14,
+              "edge_end_s": 0.95,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "A_input": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 13,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.06,
+              "edge_end_s": 1.98,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "S_load": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 23,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.02,
+              "edge_end_s": 1.22,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "S_supersede": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 16,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.78,
+              "edge_end_s": 2.72,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "S_settle": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 42,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.26,
+              "edge_end_s": 0.84,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "R_load": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 19,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.14,
+              "edge_end_s": 0.08,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "R_run": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 276,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.92,
+              "edge_end_s": 0.03,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 1,
+          "largest_gap_s": 4.7,
+          "complete_by_receipt_gaps": false
+        },
+        "R_settle": {
+          "complete": true,
+          "pages": {
+            "rhpl0tia": {
+              "rows": 20,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.27,
+              "edge_end_s": 0.01,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        }
+      }
+    }
+  ],
+  "edge_thresholds": {
+    "start_4.5s_plus_0ns": {
+      "complete": true,
+      "pages": {
+        "p": {
+          "rows": 5,
+          "by": "window chain",
+          "inner_breaks": 0,
+          "edge_start_s": 4.5,
+          "edge_end_s": 4.5,
+          "complete": true
+        }
+      },
+      "gaps_over_4_5_s": 0,
+      "largest_gap_s": null,
+      "complete_by_receipt_gaps": true
+    },
+    "start_4.5s_plus_1ns": {
+      "complete": false,
+      "pages": {
+        "p": {
+          "rows": 5,
+          "by": "window chain",
+          "inner_breaks": 0,
+          "edge_start_s": 4.5,
+          "edge_end_s": 4.5,
+          "complete": false
+        }
+      },
+      "gaps_over_4_5_s": 1,
+      "largest_gap_s": 4.5,
+      "complete_by_receipt_gaps": false
+    },
+    "end_4.5s_plus_0ns": {
+      "complete": true,
+      "pages": {
+        "p": {
+          "rows": 5,
+          "by": "window chain",
+          "inner_breaks": 0,
+          "edge_start_s": 4.5,
+          "edge_end_s": 4.5,
+          "complete": true
+        }
+      },
+      "gaps_over_4_5_s": 0,
+      "largest_gap_s": null,
+      "complete_by_receipt_gaps": true
+    },
+    "end_4.5s_plus_1ns": {
+      "complete": false,
+      "pages": {
+        "p": {
+          "rows": 5,
+          "by": "window chain",
+          "inner_breaks": 0,
+          "edge_start_s": 4.5,
+          "edge_end_s": 4.5,
+          "complete": false
+        }
+      },
+      "gaps_over_4_5_s": 1,
+      "largest_gap_s": 4.5,
+      "complete_by_receipt_gaps": false
+    }
+  },
+  "delayed_internal_row": {
+    "complete": true,
+    "pages": {
+      "p": {
+        "rows": 7,
+        "by": "window chain",
+        "inner_breaks": 0,
+        "edge_start_s": 2.0,
+        "edge_end_s": 1.0,
+        "complete": true
+      }
+    },
+    "gaps_over_4_5_s": 1,
+    "largest_gap_s": 4.9,
+    "complete_by_receipt_gaps": false
+  },
+  "synthetic_truncation": {
+    "full": {
+      "coverage": {
+        "complete": true,
+        "pages": {
+          "p": {
+            "rows": 20,
+            "by": "window chain",
+            "inner_breaks": 0,
+            "edge_start_s": 3.0,
+            "edge_end_s": 1.0,
+            "complete": true
+          }
+        },
+        "gaps_over_4_5_s": 0,
+        "largest_gap_s": null,
+        "complete_by_receipt_gaps": true
+      },
+      "target": {
+        "age_p95_all_rows": 110.0,
+        "age_p95_interior_rows": 110.0,
+        "verdict": "not met"
+      }
+    },
+    "missing_prefix": {
+      "coverage": {
+        "complete": false,
+        "pages": {
+          "p": {
+            "rows": 10,
+            "by": "window chain",
+            "inner_breaks": 0,
+            "edge_start_s": 33.0,
+            "edge_end_s": 1.0,
+            "complete": false
+          }
+        },
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 33.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 110.0,
+        "age_p95_interior_rows": 110.0,
+        "verdict": "not proven",
+        "why": "the phase's rows have gaps (incomplete)"
+      }
+    },
+    "missing_suffix": {
+      "coverage": {
+        "complete": false,
+        "pages": {
+          "p": {
+            "rows": 10,
+            "by": "window chain",
+            "inner_breaks": 0,
+            "edge_start_s": 3.0,
+            "edge_end_s": 31.0,
+            "complete": false
+          }
+        },
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 31.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 11.0,
+        "age_p95_interior_rows": 11.0,
+        "verdict": "not proven",
+        "why": "the phase's rows have gaps (incomplete)"
+      }
+    },
+    "single_inner": {
+      "coverage": {
+        "complete": false,
+        "pages": {
+          "p": {
+            "rows": 1,
+            "by": "window chain",
+            "inner_breaks": 0,
+            "edge_start_s": 12.0,
+            "edge_end_s": 49.0,
+            "complete": false
+          }
+        },
+        "gaps_over_4_5_s": 2,
+        "largest_gap_s": 49.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 11.0,
+        "age_p95_interior_rows": 11.0,
+        "verdict": "not proven",
+        "why": "the phase's rows have gaps (incomplete)"
+      }
+    },
+    "missing_middle": {
+      "coverage": {
+        "complete": false,
+        "pages": {
+          "p": {
+            "rows": 19,
+            "by": "window chain",
+            "inner_breaks": 1,
+            "edge_start_s": 3.0,
+            "edge_end_s": 1.0,
+            "complete": false
+          }
+        },
+        "gaps_over_4_5_s": 1,
+        "largest_gap_s": 6.0,
+        "complete_by_receipt_gaps": false
+      },
+      "target": {
+        "age_p95_all_rows": 110.0,
+        "age_p95_interior_rows": 110.0,
+        "verdict": "not proven",
+        "why": "the phase's rows have gaps (incomplete)"
+      }
+    }
+  },
+  "per_page_receipt_fallback": {
+    "complete": false,
+    "pages": {
+      "p": {
+        "rows": 5,
+        "by": "receipt gaps",
+        "inner_breaks": 1,
+        "edge_start_s": 2.0,
+        "edge_end_s": 3.0,
+        "complete": false
+      },
+      "q": {
+        "rows": 6,
+        "by": "window chain",
+        "inner_breaks": 0,
+        "edge_start_s": 2.0,
+        "edge_end_s": 3.0,
+        "complete": true
+      }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+  },
+  "report_wiring": {
+    "historical_only_all_complete": true,
+    "active_then_silent_all_incomplete": true,
+    "silent_phase": {
+      "complete": false,
+      "pages": {
+        "9ok6gt09": {
+          "rows": 0,
+          "complete": false
+        },
+        "rhpl0tia": {
+          "rows": 20,
+          "by": "window chain",
+          "inner_breaks": 0,
+          "edge_start_s": 1.83,
+          "edge_end_s": 1.26,
+          "complete": true
+        }
+      },
+      "gaps_over_4_5_s": 0,
+      "largest_gap_s": null,
+      "complete_by_receipt_gaps": true
+    },
+    "silent_phase_target": {
+      "age_p95_all_rows": 36.0,
+      "age_p95_interior_rows": 36.0,
+      "verdict": "not proven",
+      "why": "the phase's rows have gaps (incomplete)"
+    }
+  },
+  "silent_page": {
+    "complete": false,
+    "pages": {
+      "p": {
+        "rows": 6,
+        "by": "window chain",
+        "inner_breaks": 0,
+        "edge_start_s": 2.0,
+        "edge_end_s": 3.0,
+        "complete": true
+      },
+      "q": {
+        "rows": 0,
+        "complete": false
+      }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+  },
+  "tests": {
+    "run": 8,
+    "failures": 0,
+    "errors": 0
+  }
+}
