@@ -1,0 +1,27 @@
+{
+  "review": "R190",
+  "verdict": "findings",
+  "plan": "basiswechsel-last.plan.md Fassung 1",
+  "head": "084b8e4a88e81aa95229d3c8ba9398635bd5b314",
+  "findings": [
+    {
+      "id": "VP190-01",
+      "priority": "P2",
+      "scope": "E1 lifecycle and fallback contract",
+      "need": "Bind the wait to the current file/version/basis/connection; distinguish parse end from matching frontend adoption and supersede gaps; bounded one-shot fallback; guard simulation entry too."
+    }
+  ],
+  "answers": {
+    "sequence": "attribute first; measure neutral N1 before behavior changes; E1 if needed and operator-decided; E2 conditional",
+    "six_seconds": "acceptable optimistic grace, not proof of promised parse or failure; new backend drift signal not required"
+  },
+  "remaining_product_item": "VP188-02",
+  "evidence": "Existing unchanged preview_refresh_status extracted via AST and executed on six local state fixtures; source passages inspected. No proposed implementation tested.",
+  "boundaries": {
+    "live_ports": false,
+    "machine_commands": false,
+    "product_edits": false,
+    "builds_or_browsers": false,
+    "plan_changed": false
+  }
+}

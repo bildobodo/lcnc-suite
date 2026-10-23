@@ -1,0 +1,147 @@
+{
+  "lcnc-gateway/bulk_pipeline.py": {
+    "sha256": "88cf13296ee6c790fb53596d4793b72bdb0719ecd6d9d976b4c3ac5e874f8854",
+    "excerpts": [
+      {
+        "first_line": 678,
+        "last_line": 692,
+        "text": "    def preview_refresh_status(self) -> Optional[dict]:\n        \"\"\"The status wire's `preview_refresh` (2026-09-05): what the\n        gateway is re-parsing and why, with the expected duration, so the\n        operator sees the wait instead of a silently stale preview. None\n        when no parse runs (the key is then absent from the frame).\"\"\"\n        inf = self.inflight\n        if inf is None or not self.refresh_running:\n            return None\n        return {\"reason\": inf.get(\"reason\"), \"file\": os.path.basename(inf.get(\"file\") or \"\"),\n                \"expected_ms\": inf.get(\"expected_ms\"), \"started_ms\": inf.get(\"started_ms\"),\n                # the parse job (the trace's `job`): the page names the parse\n                # it saw by it (Codex R185 \u2014 no \u00b150 ms match on started_ms)\n                \"job\": inf.get(\"job\"),\n                \"queued\": bool(self.reparse_pending),\n                \"superseded\": self.superseded_total}"
+      },
+      {
+        "first_line": 1004,
+        "last_line": 1021,
+        "text": "                        stdout_bytes=len(stdout))\n            if worker_same and not stdout:\n                # Verified at the actual offset: the published payload stays;\n                # only its tool basis moves to the start the worker seeded.\n                if self.basis_of(worker_tlo) is not None:\n                    self._set_tool_basis(self.basis_of(worker_tlo))\n                    _trace.emit(\"gcode.reparse_verified_same\", job=_job, file=os.path.basename(filepath),\n                                basis=self.tool_basis, version=self.preview_version,\n                                total_ms=round((time.monotonic() - t_start) * 1000, 1))\n                else:\n                    _trace.emit(\"gcode.verify_same_without_start\", level=\"warn\", job=_job,\n                                file=os.path.basename(filepath))\n                return\n            if not stdout:\n                _trace.emit(\"gcode.preview_refresh_failed\", level=\"warn\", job=_job,\n                            file=filepath, exc=\"EmptyOutput\", msg=\"worker emitted no bytes\")\n                return\n"
+      },
+      {
+        "first_line": 1095,
+        "last_line": 1113,
+        "text": "            if not pinned:\n                # A niced mid-run parse is no estimate for the next idle one.\n                self.parse_ms_by_file[filepath] = round((t_gz_done - t_start) * 1000)\n            _trace.emit(\"gcode.publish\", job=_job, basis=_basis, active_idx=active_idx,\n                        **({\"pinned\": True} if pinned else {}),\n                        version=self.preview_version,\n                        schema=worker_schema,\n                        gzip_ms=round((t_gz_done - t_gz0) * 1000, 1),\n                        bytes=len(stdout),\n                        bytes_gz=len(preview_bytes_gz) if preview_bytes_gz else 0,\n                        total_ms=round((t_gz_done - t_start) * 1000, 1))\n        except Exception as e:\n            _trace.emit(\"gcode.preview_refresh_failed\", level=\"warn\", job=_job,\n                        file=filepath, exc=type(e).__name__, msg=str(e))\n        finally:\n            self.refresh_running = False\n            self.gcode_parse_proc = None\n            self.inflight = None\n            if _verify_path:"
+      }
+    ]
+  },
+  "lcnc-webui/src/ws/statusStore.ts": {
+    "sha256": "649fdc77718e579b6b7f39983ad87137c8f13a73bcf582ddcc81b1166651a462",
+    "excerpts": [
+      {
+        "first_line": 100,
+        "last_line": 128,
+        "text": "// The verified TOOL BASIS of the published payload (VP-I20, plan Fassungen\n// 4\u20136): present after a verify at the actual start offset found the payload,\n// normalised to it, the same for every consumer \u2014 bound to the file and\n// version it was verified for. bulkData re-decodes that version at it.\nexport const previewToolBasis = ref<{ file: string; version: number; xyz: number[] } | null>(null);\n// A changed tool basis not yet APPLIED to the view (VP-I23, Codex R58): set\n// when the status brings a different basis, cleared by bulkData once the\n// payload decoded at it is on screen \u2014 or at once when nothing is to be\n// re-decoded (another file or version). Only the matching reply clears it,\n// never an older one or a worker error. While set, the preview counts as\n// being refreshed (previewRefresh, reason \"tool_offset\").\nexport const previewBasisPending = ref(false);\n// Where the published preview comes from (plan \u201ePr\u00fcfung im Lauf\u201c 1b): its\n// version, file, text, reason, whether it was a pinned mid-run parse and the\n// run it belongs to. Rides every status frame while a preview is published.\nexport const previewOrigin = ref<PreviewOrigin | null>(null);\n// The run's basis (plan 1a), taken by the gateway before the start was\n// written; rides every frame until the next start \u2014 a client connecting\n// mid-run has it too.\nexport const runBasis = ref<RunBasis | null>(null);\nlet _previewOriginKey = \"\";\nlet _runBasisKey = \"\";\nlet _frameHadRefresh = false;\n/** bulkData: the view shows the requested basis (or needs none). */\nexport function endPreviewBasisPending(): void {\n  if (!previewBasisPending.value) return;\n  previewBasisPending.value = false;\n  if (!_frameHadRefresh && previewRefresh.value !== null) {\n    previewRefresh.value = null;"
+      },
+      {
+        "first_line": 133,
+        "last_line": 148,
+        "text": "// `preview_refresh` on every status frame while its parse worker runs \u2014\n// reason (the edge that scheduled it), file, expected duration (its last\n// measured publish for that file, else size-based), whether a restart is\n// already queued behind it, and how many parses this one superseded.\n// Absent = nothing running. `seenAt` is THIS client's clock at first sight\n// of the parse (started_ms identity) \u2014 elapsed time is measured locally,\n// never from the gateway's wall clock (VM clock steps).\nexport interface PreviewRefresh {\n  reason: string;\n  file: string;\n  expected_ms: number | null;\n  started_ms: number | null;\n  queued: boolean;\n  superseded: number;\n  seenAt: number;\n}"
+      },
+      {
+        "first_line": 496,
+        "last_line": 532,
+        "text": "  // Preview re-parse in flight \u2014 present while the gateway's worker runs,\n  // and (VP-I23) while the client still re-decodes the payload at a basis\n  // the gateway verified: the check is not over for the operator until the\n  // view shows its result \u2014 the same line, the same muted path.\n  const prWire = msg.preview_refresh;\n  _frameHadRefresh = !!(prWire && typeof prWire === \"object\");\n  _noteParseSeen(_frameHadRefresh ? prWire : null, rx);\n  const pr = _frameHadRefresh ? prWire : (previewBasisPending.value\n    ? { reason: \"tool_offset\", file: previewToolBasis.value?.file ?? previewRefresh.value?.file ?? \"\",\n        expected_ms: null, started_ms: previewRefresh.value?.started_ms ?? null, queued: false, superseded: 0 }\n    : null);\n  if (pr && typeof pr === \"object\") {\n    const cur = previewRefresh.value;\n    const sameParse = !!cur && cur.started_ms === (pr.started_ms ?? null) && cur.file === String(pr.file ?? \"\");\n    if (!sameParse || cur!.reason !== String(pr.reason ?? \"\") || cur!.queued !== !!pr.queued\n        || cur!.superseded !== Number(pr.superseded ?? 0)) {\n      previewRefresh.value = {\n        reason: String(pr.reason ?? \"\"), file: String(pr.file ?? \"\"),\n        expected_ms: typeof pr.expected_ms === \"number\" ? pr.expected_ms : null,\n        started_ms: typeof pr.started_ms === \"number\" ? pr.started_ms : null,\n        queued: !!pr.queued, superseded: Number(pr.superseded ?? 0),\n        seenAt: sameParse ? cur!.seenAt : performance.now(),\n      };\n      _syncPreviewRefreshTimer();\n    }\n  } else if (previewRefresh.value !== null) {\n    previewRefresh.value = null;\n    _syncPreviewRefreshTimer();\n  }\n  // preview_origin / run_basis: reassigned only when the value changes (a\n  // watcher keyed on them must not fire 30 times a second).\n  const poKey = msg.preview_origin ? JSON.stringify(msg.preview_origin) : \"\";\n  if (poKey !== _previewOriginKey) {\n    _previewOriginKey = poKey;\n    previewOrigin.value = parsePreviewOrigin(msg.preview_origin);\n  }\n  const rbKey = msg.run_basis ? JSON.stringify(msg.run_basis) : \"\";"
+      }
+    ]
+  },
+  "lcnc-webui/src/ws/bulkData.ts": {
+    "sha256": "cc30c239ec61cbf2b61ba8fb1a1c4cc68f6c4777ef82f474a719d3a94b9666a3",
+    "excerpts": [
+      {
+        "first_line": 875,
+        "last_line": 905,
+        "text": "  _previewWorker = new Worker(new URL(\"../previewWorker.ts\", import.meta.url), { type: \"module\" });\n  _previewWorker.onmessage = (ev: MessageEvent) => {\n    const m = ev.data as { version: number; basisKey?: string; gcode?: ViewerGcode; error?: string };\n    if (m.version !== _previewLastVersion) return;  // stale \u2014 newer load in flight\n    if (m.basisKey !== undefined && m.basisKey !== _previewWantKey) return;  // another basis wanted now (R59)\n    // (a worker error keeps a pending basis change pending \u2014 VP-I23)\n    previewDecoding.value = false;\n    if (m.error) {\n      console.error(\"preview load failed\", m.error);\n      _previewErr.value = `/preview failed: ${m.error}`;\n      if (_previewLastVersion === m.version) _previewLastVersion = -1;  // allow retry\n      return;\n    }\n    // markRaw: the payload holds transferred Float32Array/Uint32Array buffers;\n    // letting Vue deep-proxy them would wrap the typed arrays in a Proxy, which\n    // breaks/slows THREE.BufferAttribute's GPU upload. Consumers only react to\n    // the ref reassignment, not deep mutation, so raw is correct here.\n    if (m.gcode) m.gcode.publishedVersion = m.version;\n    viewerGcode.value = m.gcode ? markRaw(m.gcode) : null;\n    _previewErr.value = null;\n    if (m.basisKey !== undefined) {\n      _previewAppliedKey = m.basisKey;\n      endPreviewBasisPending();\n    }\n  };\n  _previewWorker.onerror = (ev) => {\n    previewDecoding.value = false;\n    console.error(\"previewWorker error\", ev.message);\n    _previewErr.value = `preview worker error: ${ev.message}`;\n    _previewLastVersion = -1;\n  };"
+      },
+      {
+        "first_line": 918,
+        "last_line": 946,
+        "text": "let _previewWantKey = \"\";\nlet _previewAppliedKey = \"\";    // the decode ON SCREEN (its reply landed)\n\n/** The basis a payload is decoded at: the gateway's verified basis only\n *  for exactly this file AND version (Codex R58 VP-I24 \u2014 the version alone\n *  is a per-gateway counter, no file identity), else null = its own start. */\nfunction _basisFor(version: number, file: string | null): number[] | null {\n  const b = previewToolBasis.value;\n  return b && file != null && b.file === file && b.version === version ? [...b.xyz] : null;\n}\n\nfunction _keyOf(version: number, file: string | null, basis: number[] | null): string {\n  return `${file ?? \"\"}#${version}:${basis ? basis.join(\",\") : \"start\"}`;\n}\n\nfunction _postPreview(version: number, file: string | null, basis: number[] | null) {\n  _previewWantKey = _keyOf(version, file, basis);\n  previewDecoding.value = true;\n  _ensurePreviewWorker().postMessage({ version, url: `/preview?v=${version}`, basis,\n                                       basisKey: _previewWantKey });\n}\n\nfunction _fetchPreview(version: number, file: string | null) {\n  if (version === _previewLastVersion) return;\n  _previewLastVersion = version;\n  _previewLastFile = file;\n  _postPreview(version, file, _basisFor(version, file));\n}\n"
+      }
+    ]
+  },
+  "lcnc-webui/src/ThreeViewer.vue": {
+    "sha256": "d9ac8150860d3332553a1f351b9a8db434123919cd4c49770e3e601c956c6c35",
+    "excerpts": [
+      {
+        "first_line": 2631,
+        "last_line": 2645,
+        "text": "  // keep the per-frame loop allocation-free.\n  _liveWcs.g5x = st.g5x_offset ?? _EMPTY_NUMS;\n  _liveWcs.g92 = st.g92_offset ?? _EMPTY_NUMS;\n  _liveWcs.rotationDeg = st.rotation_xy ?? 0;\n  anchorTerms(_liveWcs, _liveAnchor);\n  if (workOrigin) {\n    workOrigin.position.set(_liveAnchor.ox, _liveAnchor.oy, _liveAnchor.oz);\n    if (roomOrigin) roomOrigin.position.set(_liveAnchor.ox, _liveAnchor.oy, _liveAnchor.oz);\n  }\n  if (workRotGroup) {\n    workRotGroup.rotation.z = _liveAnchor.thetaDeg * Math.PI / 180;\n    if (roomRotGroup) roomRotGroup.rotation.z = _liveAnchor.thetaDeg * Math.PI / 180;\n  }\n  // The active-fixture triad and the machine ghost are posed by\n  // placeWorkMarkers at the tail of this function (after the render diff)."
+      },
+      {
+        "first_line": 2834,
+        "last_line": 2857,
+        "text": "function _pfGetWorker(): Worker {\n  if (!_pfWorker) {\n    _pfWorker = new Worker(new URL(\"./viewer/partFrameWorker.ts\", import.meta.url), { type: \"module\" });\n    _pfWorker.onmessage = (ev: MessageEvent) => {\n      const m = ev.data as { id: number; error?: string; needPayload?: number; feedPos?: Float32Array; feedLines?: Uint32Array; feedLineIndex?: LineIndex; rapidPos?: Float32Array; rapidDist?: Float32Array; feedBreaks?: Uint32Array; rapidBreaks?: Uint32Array; feedSrc?: Uint32Array; rapidSrc?: Uint32Array; feedRoom?: Uint8Array; rapidRoom?: Uint8Array; frameFlips?: number; feedOutside?: Uint8Array; rapidOutside?: Uint8Array; feedLod?: Uint32Array[]; rapidLod?: Uint32Array[]; lodTols?: number[]; lodMs?: number };\n      if (m.id !== _pfReqId) return;  // superseded\n      _pfPending = false;\n      const g = viewerGcode.value;\n      if (!g) return;\n      if (m.needPayload != null) {\n        // The worker does not hold this program (recreated, or a transform\n        // that raced a program change): re-send the streams and retry once.\n        _pfLoadedFor = null;\n        applyGcode(g);\n        return;\n      }\n      if (m.error) {\n        console.error(\"[partFrame] transform failed \u2014 programmed preview used:\", m.error);\n        _applyProgrammed(g);\n        requestRender();\n        return;\n      }\n      const out: ViewerGcode = {\n        ...g,"
+      },
+      {
+        "first_line": 3697,
+        "last_line": 3717,
+        "text": " *  (the worker holds one sweep). */\nfunction runEntryCheck(entry: ScrubTrack, base: ScrubTrack | null) {\n  // The program's own sweep is never cancelled for a sim entry; the entry\n  // segment runs BESIDE it as a side sweep (viewer/sweepEntry.ts).\n  const plan = planEntryCheck({\n    entry, base,\n    mainTrack: collisionTrack.value, hasMainResult: !!collisionResult.value,\n    mainBusy: collisionBusy.value, mainResumable: collisionResumable.value,\n    pendingTrack: _colPendingTrack,\n    overlayTrack: collisionEntry.value?.track ?? null, sideTrack: _colSide?.entry ?? null,\n  });\n  if (!base) return;\n  if (plan.runBase) { cancelCollisionCheck(); runCollisionCheck(base); }\n  // The side sweep covers the entry move AND the program's start-dependent\n  // beginning bound to this start (parity-ef plan E7): the base draws and\n  // checks nothing before its point K, so the overlay shifts the base result\n  // by the time to K.\n  const K = base?.depEnd ?? 0;\n  const end = Math.min(K + 1, entry.count - 1);\n  if (plan.runSide && entry.count >= 2) _colPostSide(sliceTrack(entry, 0, end + 1), entry, base, entry.cum[end]!);\n}"
+      },
+      {
+        "first_line": 3970,
+        "last_line": 4008,
+        "text": "    tlo: track.tlo?.slice(),      // per-segment TLO/tool event (events in options below)\n    unpredicted: track.unpredicted?.slice(),  // after an unpredicted tool measurement (M600)\n    band: track.band?.slice(),    // a probe's braking range: contacts there only `possible`\n    cond: track.cond?.slice(),    // after a predicted measurement: the path is conditional\n    lineOk: track.lineOk?.slice(), sub: track.sub?.slice(), cline: track.cline?.slice(),  // the lines a note names\n  };\n  // ArrayBuffer[] (not Transferable[]): every entry is a buffer, and the\n  // TS-only Transferable name trips eslint's no-undef in SFC scripts.\n  const transfer: ArrayBuffer[] = [\n    ...bodies.map(b => b.positions.buffer as ArrayBuffer),\n    trackCopy.pos.buffer as ArrayBuffer, trackCopy.abc.buffer as ArrayBuffer,\n    trackCopy.lines.buffer as ArrayBuffer, trackCopy.rapid.buffer as ArrayBuffer,\n    trackCopy.cum.buffer as ArrayBuffer,\n  ];\n  const msg = {\n    id,\n    // a check during a run stamps its slices for the browser-PC report (Codex R185)\n    ...(witness ? { witness: true } : {}),\n    machine: _pfMachine(init),           // same shape as CollisionMachine\n    bodies: sendBodies ? bodies : undefined,\n    modelKey,\n    // The DISPLAYED marker dims \u2014 same visual-length formula as the marker\n    // build (min length + shank sink into the holder). Using the raw tool\n    // length made the collision body SHORTER than the tool on screen: the\n    // model visibly touched while the sweep saw clearance.\n    tool: _toolVisual(basis.toolDiam, basis.toolLen),\n    track: trackCopy,\n    wcs: _colWcs(basis),\n    side: side || undefined,   // beside the main sweep (entry segment)\n    // the contact tables \u2014 what the sweep finds (step 4 package 2; a side\n    // run's share is the worker's T/8)\n    contacts: { generation: 0 },\n    // During a run at most two workers (plan \u201ePr\u00fcfung im Lauf\u201c 4: the\n    // machine is cutting; the check must not take the cores from the page).\n    maxShards: _runInProgress(status.value?.data) ? Math.min(2, _colMaxShards ?? 2) : _colMaxShards,\n    // ... and shorter slices between its message checks (20 instead of 40 ms)\n    sliceMs: _runInProgress(status.value?.data) ? 20 : undefined,\n    options: {\n      margin: COLLISION_MARGIN_MM * _unitScale,"
+      },
+      {
+        "first_line": 4142,
+        "last_line": 4157,
+        "text": "function _colScheduleAuto() {\n  clearTimeout(_colAutoTimer);\n  _colAutoTimer = setTimeout(() => {\n    if (simMode.value) return;               // ScrubBar re-checks with the entry track\n    if (!machineReady.value) return;         // geometry loading \u2014 machineReady watcher retries\n    if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)\n    if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) {\n      if (!_startRunCheck()) _colHeldByRun = true;\n      return;\n    }\n    _colHeldByRun = false;\n    if (!viewerGcode.value?.scrubTrack) return;\n    if (collisionBusy.value || collisionResumable.value) cancelCollisionCheck();\n    runCollisionCheck();\n  }, 400);\n}"
+      },
+      {
+        "first_line": 4264,
+        "last_line": 4279,
+        "text": "function _colOnInputChange(st?: any) {\n  _colInputsRev.value++;   // the card's \"changed since\" (step 4 plan 1c)\n  // A run in progress changes these itself (an early G92, its M6): the\n  // result stays with the basis it was built from (plan \u201ePr\u00fcfung im Lauf\u201c\n  // 2) \u2014 decided on the SAME status frame as the change; the end of the\n  // run compares that basis with the state then (the interp watcher).\n  if (st && _runInProgress(st)) return;\n  if (!collisionResult.value && !collisionBusy.value && !collisionEntry.value && !_colSide) return;\n  cancelCollisionCheck();\n  collisionResult.value = null;\n  collisionTrack.value = null;\n  _colDropEntry();\n  emit(\"collision-lines\", null);\n  _updateClashTint(null, null);\n  _colScheduleAuto();\n}"
+      },
+      {
+        "first_line": 4487,
+        "last_line": 4508,
+        "text": "function _pfScheduleWcsRefresh() {\n  _reachSchedule();   // the envelope follows the tool length (and the limits, below)\n  // Epoch-aware programmed payloads (review P2) also re-apply on WCS/table\n  // changes \u2014 but ONLY when the display rebase can differ from identity:\n  // more than one epoch, a program-rewritten epoch 0, or an epoch-0\n  // fixture other than the ACTIVE one (workOrigin carries the active\n  // fixture live, so an identity rebase needs no geometry rebuild). W2 P5\n  // gate fix: wcs_frames ships \u22651 row on every modern payload, so the old\n  // bare length check re-ran a full rebuild of a 99k-point program on\n  // every G43 the toolchange sub issued.\n  if (_pfAppliedMode !== \"part\") {\n    const evs = viewerGcode.value?.wcsEvents;\n    if (!evs?.length) return;\n    if (evs.length === 1 && !evs[0]!.rewritten\n        && evs[0]!.idx === (vst.value?.g5x_index ?? 0)) return;\n  }\n  clearTimeout(_pfWcsTimer);\n  _pfWcsTimer = setTimeout(() => {\n    if (viewerGcode.value) applyGcode(viewerGcode.value);\n  }, 300);\n}\n// Joint limits arriving or changing (rare: connect, a runtime window change)"
+      }
+    ]
+  },
+  "lcnc-webui/src/ScrubBar.vue": {
+    "sha256": "b310e84b51a295b89f857f0ece3eb419fb6f239477765a10965f0ff7840a9527",
+    "excerpts": [
+      {
+        "first_line": 149,
+        "last_line": 155,
+        "text": "// then threw DataCloneError (\"Proxy object could not be cloned\") AFTER the\n// busy flag was set, pinning the Check chip at 0% for the whole sim session\n// (trace: browser.error.console \u00d78 over two days). Nothing watches the\n// track deeply \u2014 consumers react to the ref reassignment only.\nconst entryTrack = shallowRef<ScrubTrack | null>(null);\nconst track = computed(() => entryTrack.value ?? baseTrack.value);\nconst running = computed(() => (st.value.interp_state ?? INTERP_IDLE) !== INTERP_IDLE);"
+      },
+      {
+        "first_line": 324,
+        "last_line": 352,
+        "text": "function enterSim(): boolean {\n  if (simMode.value) return true;\n  if (!baseTrack.value || running.value || !machineOff.value) return false;\n  simMode.value = true;\n  const jp = st.value.joint_pos;\n  _baseJoints = Array.isArray(jp) ? [...jp] : [];\n  _buildEntryTrack();\n  sPos.value = 0;   // 0 = the machine's live position (entry-move start)\n  applyPos();       // pose immediately \u2014 the mode announces itself\n  // The entry move is the only new motion: ThreeViewer sweeps just that\n  // segment against the current base result (or nothing, when the machine\n  // already sits at the first point) \u2014 no full re-sweep on entry.\n  if (track.value) emit(\"check-entry\", track.value, baseTrack.value);\n  return true;\n}\n\nfunction exitSim() {\n  playing.value = false;\n  if (!simMode.value) return;\n  simMode.value = false;\n  // The entry track STAYS after exit: the entry move is the rapid the next\n  // cycle start will actually make from where the machine sits, and its\n  // verdict (operator-caught 2026-09-12: a clash in sim, \"clear\" on exit)\n  // must not vanish with the mode. It is dropped when a run starts or the\n  // program changes, and REBUILT from the new pose when the machine moves\n  // (the joint watcher below) \u2014 the base result keeps its own identity, so\n  // keeping the entry track no longer costs a re-sweep on re-entry.\n  emit(\"pose\", null, null, null, null, null, null, null, null);\n  subExecState.value = null;"
+      },
+      {
+        "first_line": 378,
+        "last_line": 390,
+        "text": "let _wcsCheckTimer: ReturnType<typeof setTimeout> | undefined;\nwatch(_wcsKey, () => {\n  if (entryTrack.value) _buildEntryTrack();\n  applyPos();\n  clearTimeout(_wcsCheckTimer);\n  if (simMode.value) {\n    _wcsCheckTimer = setTimeout(() => {\n      if (simMode.value && track.value) {\n        emit(\"cancel-check\");\n        emit(\"check-entry\", track.value, baseTrack.value);\n      }\n    }, 500);\n  }"
+      },
+      {
+        "first_line": 396,
+        "last_line": 405,
+        "text": "// must not itself trigger an exit.\nwatch(running, (r) => {\n  if (!r) return;\n  exitSim();\n  entryTrack.value = null;   // the run's approach is real motion, followed positionally\n});\nwatch(baseTrack, () => {\n  exitSim(); entryTrack.value = null; sPos.value = 0;\n  _runWatcher.reset(); runOffPath.value = false; runLineState.value = null;\n  subExecState.value = null;"
+      },
+      {
+        "first_line": 419,
+        "last_line": 438,
+        "text": "  }\n  return false;\n}\nwatch(st, (d) => {\n  const jp = d.joint_pos;\n  if (simMode.value) {\n    if (_movedFromEntryPose(jp)) exitSim();\n    return;\n  }\n  if (!entryTrack.value || !_movedFromEntryPose(jp)) return;\n  clearTimeout(_entrySettleTimer);\n  _entrySettleTimer = setTimeout(() => {\n    const now = st.value.joint_pos;\n    if (simMode.value || running.value || !entryTrack.value || !Array.isArray(now)) return;\n    _baseJoints = [...now];\n    _buildEntryTrack();\n    if (track.value) emit(\"check-entry\", track.value, baseTrack.value);\n  }, ENTRY_SETTLE_MS);\n});\n"
+      }
+    ]
+  },
+  "lcnc-webui/src/viewer/toolpathController.ts": {
+    "sha256": "2715750c008aa3ec54a363db96d0c9be65873331314d3a9f94c4027ffa102968",
+    "excerpts": [
+      {
+        "first_line": 1014,
+        "last_line": 1037,
+        "text": "    apply(ctx, g, anchor = null) {\n      if (!ctx.scene || !ctx.workOrigin) return;\n      _lastApply = { g, anchor };\n      const workRotGroup = ctx.workRotGroup;\n      // Baked geometry rides its OWN anchor, posed here and nowhere else \u2014\n      // the pose and the vertices change in the same call (the run-time\n      // \"jump then return\" was the live origin moving ahead of a re-bake).\n      const baked = anchor != null && ctx.pathAnchor != null && ctx.pathRot != null;\n      const lineParent: THREE.Group | null = baked ? ctx.pathRot : workRotGroup;\n      // Room-fixed parent, same rule: a bake's own anchor, else the live\n      // origin \u2014 under the MACHINE frame. null = the machine has no work-\n      // chain rotary (every vertex rides, as before).\n      const roomParent: THREE.Group | null = baked ? ctx.roomRot : ctx.roomRotGroup;\n      _lineParent = lineParent;\n      if (baked) {\n        ctx.pathAnchor!.position.set(anchor!.ox, anchor!.oy, anchor!.oz);\n        ctx.pathRot!.rotation.z = THREE.MathUtils.degToRad(anchor!.thetaDeg);\n        if (ctx.roomAnchor && ctx.roomRot) {\n          ctx.roomAnchor.position.set(anchor!.ox, anchor!.oy, anchor!.oz);\n          ctx.roomRot.rotation.z = THREE.MathUtils.degToRad(anchor!.thetaDeg);\n        }\n      }\n\n      // Program change: free every replaced line (geometry + material)."
+      }
+    ]
+  },
+  "docs/reviews/viewer-palette-fest.r188.browser-pc-drive2.py": {
+    "sha256": "fa36ec11adcbe9460733343646ffc1a7bd08fb83c67fd7027bd0ad0725e43ab1",
+    "excerpts": [
+      {
+        "first_line": 348,
+        "last_line": 387,
+        "text": "\n    if ORDER.index(start) <= ORDER.index(\"A\"):\n        await c.cmd({\"cmd\": \"load_file\", \"path\": os.path.join(NC, \"blank.ngc\")})\n        await asyncio.sleep(10)\n        bpc.mark(\"A_rest\")\n        await asyncio.sleep(60)\n        await mdi_msg(c, \"jetzt 40 s lang die Pfeiltaste nach unten gedrueckt halten\")\n        bpc.mark(\"A_input\")\n        await asyncio.sleep(40)\n        await mdi_msg(c, \"Taste loslassen\")\n\n    if ORDER.index(start) <= ORDER.index(\"S\"):\n        bpc.mark(\"S_load\")\n        t = time.time_ns()\n        await c.cmd({\"cmd\": \"load_file\", \"path\": os.path.join(NC, \"bpc_parse.ngc\")})\n        await wait_publish(c, t, 600, \"bpc_parse.ngc\")\n        await wait_settled(c, t, 1800, \"bpc_parse.ngc check\")\n        bpc.mark(\"S_supersede\")\n        jobs = await supersede(c, opt(\"--switches\", 8), opt(\"--hold\", 1.5))\n        with open(os.path.join(HERE, \"supersede.json\"), \"w\") as f:\n            json.dump(jobs, f, indent=1)\n        bpc.mark(\"S_settle\")\n        await wait_settled(c, jobs[-1][\"spawn_ns\"], 1800, \"the last basis's check\")\n        await asyncio.sleep(60)\n\n    bpc.mark(\"R_load\")\n    t = time.time_ns()\n    await c.cmd({\"cmd\": \"load_file\", \"path\": os.path.join(NC, \"bpc_run.ngc\")})\n    await wait_publish(c, t, 300, \"bpc_run.ngc\")\n    await wait_settled(c, t, 1800, \"bpc_run.ngc check\", quiet_s=8.0)\n    bpc.mark(\"R_run\")\n    await c.cmd({\"cmd\": \"cycle_start\"})\n    await c.until(lambda s: s.get(\"interp_state\") != 1, 15, \"run started\")\n    log(\"running\")\n    await c.until(lambda s: s.get(\"interp_state\") == 1 and not s.get(\"tool_change_requested\"), 1800, \"run end\",\n                  tick=lambda: confirm_tool_changes(c))\n    log(\"run ended\")\n    bpc.mark(\"R_settle\")\n    await wait_settled(c, t, 1200, \"the check after the run\", quiet_s=10.0)\n    await asyncio.sleep(60)"
+      }
+    ]
+  }
+}

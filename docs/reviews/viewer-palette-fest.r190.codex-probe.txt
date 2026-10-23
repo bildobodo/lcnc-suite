@@ -1,0 +1,22 @@
+{
+  "kind": "existing-source observability probe, not execution of proposed E1",
+  "source_sha256": "88cf13296ee6c790fb53596d4793b72bdb0719ecd6d9d976b4c3ac5e874f8854",
+  "method_line": 678,
+  "states": {
+    "no_parse_started": null,
+    "parse_running": {
+      "reason": "wcsoff:G54:z",
+      "file": "part.ngc",
+      "expected_ms": 10000,
+      "started_ms": 1000,
+      "job": 17,
+      "queued": false,
+      "superseded": 0
+    },
+    "superseded_waiting_to_restart": null,
+    "published_fetch_or_decode_not_applied": null,
+    "failed_without_publish": null,
+    "same_result_no_new_payload": null
+  },
+  "conclusion": "preview_refresh disappearance alone cannot distinguish not-yet-started, supersede gap, successful publication awaiting frontend application, failure, or same-result completion. Other current-file/version/decode inputs or explicitly bounded uncertainty are required."
+}
