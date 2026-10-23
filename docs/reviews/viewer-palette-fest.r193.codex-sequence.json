@@ -1,0 +1,107 @@
+{
+  "kind": "actual sequence function with all external work stubbed",
+  "cases": [
+    {
+      "no_keys": true,
+      "from": "A",
+      "to": "S",
+      "marks": [
+        "prep",
+        "A_rest",
+        "A_input",
+        "S_load",
+        "S_supersede",
+        "S_settle",
+        "end"
+      ],
+      "commands": [
+        {
+          "cmd": "load_file",
+          "path": "/home/cnc/linuxcnc/nc_files/blank.ngc"
+        },
+        {
+          "cmd": "load_file",
+          "path": "/home/cnc/linuxcnc/nc_files/bpc_parse.ngc"
+        }
+      ],
+      "prompts": [
+        "Messlauf ohne Eingabe - bitte keine Taste druecken"
+      ],
+      "pass": true
+    },
+    {
+      "no_keys": true,
+      "from": "S",
+      "to": "S",
+      "marks": [
+        "S_load",
+        "S_supersede",
+        "S_settle",
+        "end"
+      ],
+      "commands": [
+        {
+          "cmd": "load_file",
+          "path": "/home/cnc/linuxcnc/nc_files/bpc_parse.ngc"
+        }
+      ],
+      "prompts": [
+        "Messlauf ohne Eingabe - bitte keine Taste druecken"
+      ],
+      "pass": true
+    },
+    {
+      "no_keys": false,
+      "from": "A",
+      "to": "S",
+      "marks": [
+        "prep",
+        "A_rest",
+        "A_input",
+        "S_load",
+        "S_supersede",
+        "S_settle",
+        "end"
+      ],
+      "commands": [
+        {
+          "cmd": "load_file",
+          "path": "/home/cnc/linuxcnc/nc_files/blank.ngc"
+        },
+        {
+          "cmd": "load_file",
+          "path": "/home/cnc/linuxcnc/nc_files/bpc_parse.ngc"
+        }
+      ],
+      "prompts": [
+        "jetzt 40 s lang die Pfeiltaste nach unten gedrueckt halten",
+        "Taste loslassen",
+        "jetzt die Pfeiltaste nach unten gedrueckt halten (Versatzwechsel)",
+        "Taste loslassen"
+      ],
+      "pass": true
+    },
+    {
+      "no_keys": false,
+      "from": "S",
+      "to": "S",
+      "marks": [
+        "S_load",
+        "S_supersede",
+        "S_settle",
+        "end"
+      ],
+      "commands": [
+        {
+          "cmd": "load_file",
+          "path": "/home/cnc/linuxcnc/nc_files/bpc_parse.ngc"
+        }
+      ],
+      "prompts": [
+        "jetzt die Pfeiltaste nach unten gedrueckt halten (Versatzwechsel)",
+        "Taste loslassen"
+      ],
+      "pass": true
+    }
+  ]
+}

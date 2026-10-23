@@ -1,0 +1,62 @@
+{
+  "full_report_identical": true,
+  "active_pages": [
+    "k1iipz2t"
+  ],
+  "previous_page_last_seconds_before_run": 94.945076777,
+  "all_phases_complete": true,
+  "all_press_counts_zero": true,
+  "S_age_p95": 60,
+  "S_interior_age_p95": 62,
+  "S_verdict": {
+    "verdict": "S met",
+    "why": [],
+    "superseded": 7,
+    "switches": 8
+  },
+  "S_spans": {
+    "spans": {
+      "col_cancel": {
+        "n": 16,
+        "sum_ms": 2.0,
+        "max_ms": 1,
+        "nested_n": 0,
+        "nested_sum_ms": 0.0
+      },
+      "pf_load": {
+        "n": 8,
+        "sum_ms": 0.0,
+        "max_ms": 0.0,
+        "nested_n": 0,
+        "nested_sum_ms": 0.0
+      },
+      "col_copy": {
+        "n": 8,
+        "sum_ms": 38.0,
+        "max_ms": 20,
+        "nested_n": 0,
+        "nested_sum_ms": 0.0
+      },
+      "col_post": {
+        "n": 8,
+        "sum_ms": 0.0,
+        "max_ms": 0.0,
+        "nested_n": 0,
+        "nested_sum_ms": 0.0
+      },
+      "path_reply": {
+        "n": 8,
+        "sum_ms": 584.0,
+        "max_ms": 113,
+        "nested_n": 0,
+        "nested_sum_ms": 0.0
+      }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 624.0,
+    "main_thread_late_max_ms": 164,
+    "render_max_ms": 86
+  },
+  "gap_41_to_42_ms_by_page_receipt": 38,
+  "output": "/tmp/codex-r193-reproduce-7ztsxmkm"
+}
