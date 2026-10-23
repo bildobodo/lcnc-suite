@@ -771,8 +771,11 @@ test("a parse made for the run is checked during it: provisional from the machin
   // a check that started is timed where it ran: building its request and the
   // synchronous post, in the page's perf rows (VP188-02 step 0 — a real call
   // path, not the collector alone)
-  await expect.poll(() => perf.some(r => r.span_col_copy?.n > 0) && perf.some(r => r.span_col_post?.n > 0),
-                    { timeout: 10_000 }).toBe(true);
+  // — every start, the main checks' and the entry move's alike
+  const starts = tel.filter(e => e.kind === "collision.sweep_start" || e.kind === "collision.entry_start").length;
+  const spanN = (k: string) => perf.reduce((a, r) => a + (r[k]?.n ?? 0), 0);
+  await expect.poll(() => [spanN("span_col_copy") >= starts, spanN("span_col_post") >= starts],
+                    { timeout: 10_000 }).toEqual([true, true]);
   const copy = perf.find(r => r.span_col_copy?.n > 0)!.span_col_copy;
   expect(copy.sum).toBeGreaterThan(0);
   expect(copy.max).toBeLessThanOrEqual(copy.sum);
