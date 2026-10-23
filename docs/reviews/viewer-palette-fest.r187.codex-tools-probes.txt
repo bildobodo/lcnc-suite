@@ -1,0 +1,15 @@
+test_actual_collector_chain_proves_only_the_later_heartbeat (__main__.Proof.test_actual_collector_chain_proves_only_the_later_heartbeat) ... ok
+test_browser_offsets_are_irrelevant_to_r (__main__.Proof.test_browser_offsets_are_irrelevant_to_r) ... ok
+test_missing_end_and_non_run_words_stay_unknown (__main__.Proof.test_missing_end_and_non_run_words_stay_unknown) ... ok
+test_missing_word_or_wrong_word_is_not_a_witness (__main__.Proof.test_missing_word_or_wrong_word_is_not_a_witness) ... ok
+test_no_cross_page_or_gateway_join (__main__.Proof.test_no_cross_page_or_gateway_join) ... ok
+test_old_r186_collision_word_before_parse_has_an_older_tick (__main__.Proof.test_old_r186_collision_word_before_parse_has_an_older_tick) ... ok
+test_old_r186_slice_after_parse_needs_a_later_heartbeat_outside_it (__main__.Proof.test_old_r186_slice_after_parse_needs_a_later_heartbeat_outside_it) ... ok
+test_positive_age_bound_can_pass (__main__.Proof.test_positive_age_bound_can_pass) ... ok
+test_r_causal_order_with_random_delays (__main__.Proof.test_r_causal_order_with_random_delays) ... ok
+test_real_unknown_and_conflict_rows_cannot_pass_age_target (__main__.Proof.test_real_unknown_and_conflict_rows_cannot_pass_age_target) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.025s
+
+OK
