@@ -37,7 +37,7 @@ it("names a parse by its job, never by its start time", () => {
   frame(pr(1000, "file", 5), 100);
   frame(pr(1000, "file", 6), 133);          // the same wall-clock start, another job: another parse
   frame(pr(1500, "file", 6), 166);          // the same job: the same parse
-  expect(seen().map(e => [e.state, e.job])).toEqual([["on", 5], ["off", 5], ["on", 6]]);
+  expect(seen().map(e => [e.state, e.job, e.rx_ms])).toEqual([["on", 5, 100], ["off", 5, 133], ["on", 6, 133]]);
 });
 
 it("a closed socket ends the parse it saw, without a receipt", () => {
