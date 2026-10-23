@@ -184,6 +184,47 @@ let _tick = 0;
 let _tickSink: ((tick: number) => void) | null = null;
 export function setWitnessTickSink(fn: ((tick: number) => void) | null): void { _tickSink = fn; }
 
+// Main-thread SPANS (VP188-02 step 0, plan basiswechsel-last 2): the
+// synchronous work a change of the work offsets sets off, by a FIXED list of
+// names, per window {n, sum, max}; a span inside another one counts as
+// nested (nested_n / nested_sum) and never into the outer CPU sum, an
+// unknown name only into span_unknown. Closed in `finally` — an error path
+// is timed too.
+const SPAN_NAMES = ["col_copy", "col_post", "col_cancel", "path_reply", "path_programmed", "pf_load", "entry_track"] as const;
+export type SpanName = typeof SPAN_NAMES[number];
+interface SpanAcc { n: number; sum: number; max: number; nested_n: number; nested_sum: number }
+const _spans = new Map<string, SpanAcc>();
+let _spanDepth = 0, _spanUnknown = 0;
+export function noteSpan(name: string, ms: number, nested = false): void {
+  if (!_enabled) return;
+  if (!(SPAN_NAMES as readonly string[]).includes(name)) { _spanUnknown++; return; }
+  let a = _spans.get(name);
+  if (!a) { a = { n: 0, sum: 0, max: 0, nested_n: 0, nested_sum: 0 }; _spans.set(name, a); }
+  if (nested) { a.nested_n++; a.nested_sum += ms; } else { a.n++; a.sum += ms; }
+  if (ms > a.max) a.max = ms;
+}
+/** `fn` timed as span `name` (performance.now() around it, this context). */
+export function timeSpan<T>(name: SpanName, fn: () => T): T {
+  const nested = _spanDepth > 0;
+  const t0 = performance.now();
+  _spanDepth++;
+  try {
+    return fn();
+  } finally {
+    _spanDepth--;
+    noteSpan(name, performance.now() - t0, nested);
+  }
+}
+function _spanFields(): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, a] of _spans) {
+    out[`span_${k}`] = { n: a.n, sum: +a.sum.toFixed(2), max: +a.max.toFixed(2),
+                         ...(a.nested_n ? { nested_n: a.nested_n, nested_sum: +a.nested_sum.toFixed(2) } : {}) };
+  }
+  if (_spanUnknown) out.span_unknown = _spanUnknown;
+  return out;
+}
+
 // The page ↔ WS worker clock relation θ = worker − page ∈ [_clkL, _clkU]
 // (see the header); none until the first exchange of the worker instance.
 const CLK_SLACK_MS = 4;    // two coarsened stamps (timeOrigin and now, ≤ 1 ms each) on either side
@@ -554,6 +595,7 @@ export function flushViewerPerf(): void {
     clk_u: _clkValid ? +_clkU.toFixed(3) : null,
     clk_conflicts: _clkConflicts,
     age_unbound: _ageUnbound,      // receipts not put on the page's clock (no relation yet): not aged
+    ..._spanFields(),              // main-thread spans of an offset change (span_<name>: {n, sum, max})
     // input: press → first listener (and, Event Timing, the presses ≥ 16 ms to the next paint)
     in_n: _inN,
     in_delay_max_ms: +_inDelayMax.toFixed(1),
@@ -618,6 +660,7 @@ function _resetHistograms(): void {
   _rtNetH.clear(); _rtN = _rtNetMax = _rtInvalid = 0;
   _hbPairs.length = 0; _hbPairsDropped = 0;
   _clkN = _clkConflicts = _ageUnbound = 0;
+  _spans.clear(); _spanUnknown = 0;
   _inDelayH.clear(); _inN = _inDelayMax = _inOdd = 0;
   _evDurH.clear(); _evDelayH.clear(); _evN = _evDurMax = 0;
 }

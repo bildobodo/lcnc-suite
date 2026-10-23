@@ -13,7 +13,7 @@ import {
   binOf, flushViewerPerf, noteClockExchange, noteHeartbeatReply, noteHeartbeatSentAt, noteInput, noteMainThreadProbe,
   notePendingReceipt, noteSlowInput, noteVisibilityChanged,
   receiptOnPage, recordApply, recordRafTick, recordRender, resetClockRelation, resetViewerPerf, setViewerPerfGl,
-  setViewerPerfContext, setWitnessTickSink,
+  setViewerPerfContext, setWitnessTickSink, noteSpan, timeSpan,
 } from "./viewerPerf";
 
 function last(): Record<string, unknown> {
@@ -449,6 +449,39 @@ describe("the page ↔ WS worker clock relation and the receipt on the page's cl
     flushViewerPerf();
     expect(last().age_max_ms).toBeGreaterThanOrEqual(2100);
     expect(last().age_max_ms).toBeLessThanOrEqual(2100 + 2 + 2 * 4);
+  });
+});
+
+describe("main-thread spans of an offset change (VP188-02 step 0)", () => {
+  it("sums each fixed name per window, keeps the max, counts a nested span apart and an unknown name only", () => {
+    noteSpan("col_copy", 12);
+    noteSpan("col_copy", 30);
+    noteSpan("col_post", 4);
+    noteSpan("path_programmed", 20, true);          // inside path_reply: never its own CPU time
+    noteSpan("whatever", 99);
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().span_col_copy).toEqual({ n: 2, sum: 42, max: 30 });
+    expect(last().span_col_post).toEqual({ n: 1, sum: 4, max: 4 });
+    expect(last().span_path_programmed).toEqual({ n: 0, sum: 0, max: 20, nested_n: 1, nested_sum: 20 });
+    expect(last().span_unknown).toBe(1);
+    expect(last().span_whatever).toBeUndefined();
+    recordApply(2, 1000);
+    flushViewerPerf();
+    expect(last().span_col_copy, "a window keeps its own").toBeUndefined();
+  });
+
+  it("times a call, marks the inner one nested, and closes on a throw", () => {
+    let clock = 100;
+    vi.spyOn(performance, "now").mockImplementation(() => clock);
+    timeSpan("path_reply", () => { clock += 5; timeSpan("path_programmed", () => { clock += 20; }); clock += 3; });
+    expect(() => timeSpan("pf_load", () => { clock += 7; throw new Error("x"); })).toThrow("x");
+    recordApply(1, 1000);
+    flushViewerPerf();
+    expect(last().span_path_reply).toEqual({ n: 1, sum: 28, max: 28 });
+    expect(last().span_path_programmed).toEqual({ n: 0, sum: 0, max: 20, nested_n: 1, nested_sum: 20 });
+    expect(last().span_pf_load).toEqual({ n: 1, sum: 7, max: 7 });
+    vi.restoreAllMocks();
   });
 });
 

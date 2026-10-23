@@ -1006,7 +1006,16 @@ ran inside the parse. The status AGE puts the WS worker's receipt on the
 page's clock through a two-way exchange a heartbeat (`{type: "clock"}`: θ =
 worker − page ∈ [w − p1, w − p0] ± 4 ms, intersected per worker instance, a
 contradiction starts anew — `clk_*`), at its earliest time (an upper bound);
-without a relation a receipt is not aged (`age_unbound`). Tests:
+without a relation a receipt is not aged (`age_unbound`). Main-thread SPANS
+(VP188-02 step 0, plan `docs/reviews/basiswechsel-last.plan.md`): `viewerPerf.timeSpan`
+times a fixed list of synchronous work an offset change sets off —
+`col_copy` / `col_post` (a check's request and its post), `col_cancel`,
+`path_reply` (the part-frame reply with `toolpath.apply`), `path_programmed`,
+`pf_load`, `entry_track` — per window `span_<name>: {n, sum, max}`, a span
+inside another one as `nested_*` (never in the outer sum); the report pools
+them per phase (`main_thread`). The check's request transfers every track
+column it copies, none cloned twice (`viewer/colTrackCopy.ts`, N1;
+`getCollisionRequestMeta` says copies / transferred / detached). Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on

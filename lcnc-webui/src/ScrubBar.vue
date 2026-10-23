@@ -14,6 +14,7 @@ import { lineRange } from "./viewer/lineIndex";
 import { status, viewerGcode, viewerInit, gcodeContent, emitTelemetry } from "./lcncWs";
 import { INTERP_IDLE } from "./lcnc";
 import { simMode } from "./simMode";
+import { timeSpan } from "./viewerPerf";
 import {
   sampleTrack, jointsForSample, buildEntryTrack,
   machineFromJoints, displayLineForPoint, atTrackEnd, lineRunAround, lineSpanCum,
@@ -306,6 +307,9 @@ function liveKinsFrame(): [number, number, number] | null {
 }
 
 function _buildEntryTrack() {
+  timeSpan("entry_track", _buildEntryTrackNow);
+}
+function _buildEntryTrackNow() {
   const base = baseTrack.value;
   if (!base || !_baseJoints.length) {
     entryTrack.value = null;
