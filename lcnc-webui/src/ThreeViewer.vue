@@ -50,9 +50,9 @@ import { displayDecision } from "./viewer/displayPipeline";
 import type { CollisionBody, CollisionResult } from "./viewer/collision";
 import { partCollides, startDependentOf } from "./viewer/collision";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
-import type { CollisionWitness } from "./viewer/collisionWorker";
+import type { CollisionWitness, PauseWhy } from "./viewer/collisionWorker";
 import { copyTrackForWorker } from "./viewer/colTrackCopy";
-import { freeHold, holdStep, type Hold, type HoldEvent } from "./viewer/bakeHold";
+import { freeHold, holdStep, type Hold, type HoldEvent, type HoldStep } from "./viewer/bakeHold";
 import { bakeFollowsOffsets, bakeKey, pathBehind, type BakeMode } from "./viewer/pathBasis";
 import { mergeBeginningOntoBase, mergeEntryResult } from "./viewer/sweepMerge";
 import { runBeginOf, runBeginView, type RunBeginStart, type RunSide } from "./viewer/startDep";
@@ -97,6 +97,11 @@ let _pipSkipNext = 0;
 // Set at teardown: a part-frame worker asked for after it is said loudly
 // (Codex R195 VP-I133 — the hold's timer used to create one).
 let _unmounted = false;
+// The re-parse hold of the path and the check (VP188-02 E2/E1, plan
+// basiswechsel-last 3a/3e) — declared here: the check's pauses read it.
+let _hold: Hold = freeHold();
+let _holdTimer: ReturnType<typeof setTimeout> | undefined;
+let _connEpoch = 0;
 
 function togglePip() {
   pipVisible.value = !pipVisible.value;
@@ -2124,7 +2129,7 @@ async function buildFromInit(init: ViewerInit) {
         // VP188-02 E2: the drawn path's key against the wanted one, the hold
         getPathBasis: () => ({ drawn: drawnKey.value, want: wantKey.value,
           behind: pathBehind(drawnKey.value, wantKey.value), stale: pathStaleNow.value,
-          hold: _hold.state, held: _hold.held, mode: _pfAppliedMode, wantMode: _wantMode,
+          hold: _hold.state, held: _hold.held, checkHeld: _hold.checkHeld, mode: _pfAppliedMode, wantMode: _wantMode,
           admission: _holdAdmission() }),
         // test seam: part-frame replies queued until released (a reply "still out")
         holdPartFrameReplies: (on: boolean) => { _pfHoldReplies = on; },
@@ -2379,6 +2384,10 @@ async function buildFromInit(init: ViewerInit) {
         getCollisionRequestMeta: () => (_colReqMeta ? { ..._colReqMeta } : null),
         getCollisionStopped: () => (collisionStopped.value ? { ...collisionStopped.value } : null),
         getCollisionHoldLog: () => _colHoldLog.slice(),
+        // Main checks started, and whether one runs, waits parked, or has a
+        // result (VP188-02 E1: the check waits at the re-parse hold).
+        getCollisionActivity: () => ({ starts: _colStarts, busy: collisionBusy.value,
+          resumable: collisionResumable.value, result: !!collisionResult.value }),
         getCollisionRange: () => (collisionResult.value?.range ? { ...collisionResult.value.range,
           boundary: (collisionResult.value.boundaryContacts ?? []).length } : null),
         // The earlier preview's verdict, kept named while a run goes on (1c).
@@ -3905,16 +3914,20 @@ function _colOnRotarySettled() {
 let _camMoving = false;
 // Every hold the viewer asked for, in order (__viewerDiag.getCollisionHoldLog).
 const _colHoldLog: string[] = [];
-function _colSetPaused(why: "camera" | "hidden" | "decode", on: boolean) {
+// Main checks started (__viewerDiag.getCollisionActivity — the E1 guards).
+let _colStarts = 0;
+function _colSetPaused(why: PauseWhy, on: boolean) {
   _colHoldLog.push(`${why} ${on ? "on" : "off"}`);
   if (_colHoldLog.length > 50) _colHoldLog.shift();
-  if (!_colWorker || !collisionBusy.value) return;
+  // a parked check holds too: a continue under a hold computes nothing (R197)
+  if (!_colWorker || (!collisionBusy.value && !collisionResumable.value)) return;
   _colWorker.postMessage(on ? { pause: _colReqId, why } : { resume: _colReqId, why });
 }
 function _colApplyPauses() {
   if (_camMoving) _colSetPaused("camera", true);
   if (document.hidden) _colSetPaused("hidden", true);
   if (previewDecoding.value) _colSetPaused("decode", true);
+  if (_holdActive()) _colSetPaused("reparse", true);
 }
 // A payload being decoded: the sweep waits (plan „Prüfung im Lauf“ 4).
 watch(previewDecoding, (on) => _colSetPaused("decode", on));
@@ -4121,6 +4134,7 @@ function runCollisionCheck(trackOverride?: ScrubTrack, run?: RunSweep) {
   collisionPrevious.value = null;   // a check of the displayed preview begins
   _colPendingTrack = track;
   collisionBusy.value = true;
+  _colStarts++;
   _colStopPending = false;
   collisionProgress.value = 0;
   if (!_colKeepShown) collisionResult.value = null;
@@ -4197,6 +4211,10 @@ function _colScheduleAuto() {
     if (simMode.value) return;               // ScrubBar re-checks with the entry track
     if (!machineReady.value) return;         // geometry loading — machineReady watcher retries
     if (previewBasisPending.value) return;   // the payload at the new basis schedules it (VP-I23)
+    // VP188-02 E1 (plan basiswechsel-last 3e): while the gateway re-parses
+    // the program the re-check is noted, not started — its publication
+    // brings the new version's check; an end without one asks again once
+    if (!_holdApply({ kind: "check" }).check) return;
     if ((status.value?.data?.interp_state ?? INTERP_IDLE) !== INTERP_IDLE) {
       if (!_startRunCheck()) _colHeldByRun = true;
       return;
@@ -4577,7 +4595,7 @@ function _pfScheduleWcsRefresh() {
     // the program, the bake is held — its publication replaces the path
     // anyway; the drawn path stays muted meanwhile (pathBehind)
     const g = viewerGcode.value;
-    if (g && _holdApply({ kind: "bake" })) applyGcode(g);
+    if (g && _holdApply({ kind: "bake" }).bake) applyGcode(g);
   }, _pfWcsDebounceMs);
 }
 
@@ -4601,13 +4619,15 @@ function _refreshWantKey() {
   wantKey.value = g && _wantMode && bakeFollowsOffsets(_wantMode, g.wcsEvents, vst.value?.g5x_index ?? 0)
     ? _bakeKeyOf(g, _wantMode, _pfWcs()) : null;
 }
-let _hold: Hold = freeHold();
-let _holdTimer: ReturnType<typeof setTimeout> | undefined;
-let _connEpoch = 0;
+/** A hold is on: a re-parse of the displayed program is in flight. */
+function _holdActive(): boolean {
+  return _hold.state !== "free";
+}
 /** One step of the hold; a new window arms its timer (named by its number —
- *  an old timer does nothing). Returns whether to bake now. */
-function _holdApply(e: HoldEvent): boolean {
-  const before = _hold.n;
+ *  an old timer does nothing). The check pauses as the hold begins and goes
+ *  on as it ends — at those two edges only, not at every window (E1). */
+function _holdApply(e: HoldEvent): HoldStep {
+  const before = _hold.n, wasOn = _holdActive();
   const r = holdStep(_hold, e);
   _hold = r.hold;
   if (_hold.n !== before) {
@@ -4618,16 +4638,21 @@ function _holdApply(e: HoldEvent): boolean {
                               Math.max(0, _hold.deadline - performance.now()));
     }
   }
-  return r.bake;
+  if (_holdActive() !== wasOn) _colSetPaused("reparse", !wasOn);
+  return r;
 }
-/** An event from outside the bake timer: a catch-up bake runs at once. */
+/** An event from outside the bake timer: a catch-up bake runs at once; a
+ *  catch-up check goes through the auto check (its own conditions decide). */
 function _holdEvent(e: HoldEvent) {
   const g = viewerGcode.value;
-  if (_holdApply(e) && g) applyGcode(g);
+  const r = _holdApply(e);
+  if (r.bake && g) applyGcode(g);
+  if (r.check) _colScheduleAuto();
 }
 /** A parse of the program in the status — admitted at EVERY refresh, never
  *  only at an edge: connected, the interpreter KNOWN idle, no simulation, the
- *  displayed program, a path that follows the offsets. */
+ *  displayed program. No path scope (E1): the check follows the offsets for
+ *  every program, and a path outside the scope never asks to bake. */
 function _holdRefresh() {
   const pr = previewRefresh.value;
   if (!pr) return;
@@ -4652,7 +4677,6 @@ function _holdAdmission(): string | null {
   if (interp !== INTERP_IDLE) return "the interpreter is busy";
   if (simMode.value) return "the simulation";
   if (file.slice(file.lastIndexOf("/") + 1) !== pr.file) return "another program's parse";
-  if (!_bakeFollowsOffsetsNow(g)) return "the path follows the live origin";
   return null;
 }
 watch(previewRefresh, (pr, old) => {
@@ -5938,7 +5962,7 @@ defineExpose({
           <!-- The line names the state only; the reason sits in its "?"
                (operator 2026-10-01: "Preview re-parsing" is enough — the
                reason only took width). -->
-          <div class="hudWarn">Preview re-parsing<HelpIcon label="Preview re-parsing">Why: {{ previewRefreshLabel(previewRefresh.reason) }}. Path, limit marks and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
+          <div class="hudWarn">Preview re-parsing<HelpIcon label="Preview re-parsing">Why: {{ previewRefreshLabel(previewRefresh.reason) }}. Path, limits, collision check and simulation update when it lands — {{ fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms) }}.</HelpIcon></div>
           <div class="progressTrack" :title="fmtProgressTimes(previewRefreshElapsedMs, previewRefresh.expected_ms)"><div class="progressFill" :style="{ width: previewRefreshPct + '%' }"></div></div>
         </template>
         <div v-else-if="showWcsStaleLine" class="hudWarn">Preview uses older offsets — re-parses when idle<HelpIcon label="Preview offsets">A work offset changed after parsing — re-parses once the machine is idle.</HelpIcon></div>

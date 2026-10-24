@@ -260,6 +260,111 @@ describe("a failing sub-worker (VP-I48, VP-I49)", () => {
   });
 });
 
+describe("the re-parse hold (VP188-02 E1, plan basiswechsel-last 3e, Codex R197)", () => {
+  /** A local run (one core) whose slices are counted, its contact deltas
+   *  acknowledged as they come. */
+  async function counted() {
+    let slices = 0;
+    vi.doMock("./sweepPump", () => ({ runSweepSlice: (it: Iterator<number | undefined, CollisionResult>, _ms: number, cancelled: () => boolean) => {
+      slices++;
+      const cancel = cancelled();
+      const r = it.next(cancel);
+      if (cancel) { for (let g = 0; g < 4 && !it.next(true).done; g++); return { done: true, cancelled: true, result: null, progress: 0, checkpoints: 1 }; }
+      return r.done ? { done: true, cancelled: false, result: r.value, progress: 1, checkpoints: 1 }
+                    : { done: false, cancelled: false, result: null, progress: r.value ?? 0, checkpoints: 1 };
+    } }));
+    const { sent, send } = await setup(2);   // one core: the local path
+    const n = 201, pos = new Float32Array(n * 3), cum = new Float32Array(n), lines = new Uint32Array(n);
+    for (let i = 0; i < n; i++) { pos[i * 3] = 10 - i * 0.1; cum[i] = i * 0.1; lines[i] = i + 1; }
+    send({ ...req(41), contacts: { generation: 2 },
+           track: { pos, abc: new Float32Array(n * 3), cum, rapid: new Uint8Array(n).fill(1), lines, count: n } });
+    // every delta acknowledged as it comes (as the page does — localRun's way)
+    const ack = () => { if (sent.some(m => m.contacts)) send({ contactsAck: 41, generation: 2 }); };
+    /** Timers forward, the deltas acknowledged on the way. */
+    const run = async (ms: number) => { for (let t = 0; t < ms; t += 50) { await vi.advanceTimersByTimeAsync(50); ack(); } };
+    /** The next timer only — one slice of a running check. */
+    const step = async (k: number) => { for (let i = 0; i < k; i++) { await vi.advanceTimersToNextTimerAsync(); ack(); } };
+    return { sent, send, run, step, slices: () => slices, done: () => sent.some(m => m.id === 41 && m.result && !m.stopped) };
+  }
+
+  it("a running check computes no slice while held — the decode hold released apart — and goes on at its own resume", async () => {
+    const t = await counted();
+    await t.step(3);
+    expect(t.slices(), "it ran before the hold").toBeGreaterThan(0);
+    expect(t.done()).toBe(false);
+    t.send({ pause: 41, why: "reparse" });
+    t.send({ pause: 41, why: "decode" });
+    await t.step(1);                         // a slice already due ends at its checkpoint
+    const held = t.slices();
+    await t.run(5000);
+    expect(t.slices(), "no slice under the hold").toBe(held);
+    t.send({ resume: 41, why: "decode" });
+    await t.run(5000);
+    expect(t.slices(), "decode released, the re-parse still holds").toBe(held);
+    t.send({ resume: 41, why: "reparse" });
+    await t.run(20_000);
+    expect(t.done(), "its own resume lets it finish").toBe(true);
+  });
+
+  it("a check parked under the hold computes nothing after continue until the hold ends", async () => {
+    const t = await counted();
+    await t.step(3);
+    expect(t.done()).toBe(false);
+    t.send({ pause: 41, why: "reparse" });
+    t.send({ stop: 41 });
+    await t.run(200);
+    expect(t.sent.filter(m => m.id === 41 && m.stopped), "parked").toHaveLength(1);
+    const held = t.slices();
+    t.send({ continue: 41 });
+    await t.run(5000);
+    expect(t.slices(), "continued, still held").toBe(held);
+    expect(t.done()).toBe(false);
+    t.send({ resume: 41, why: "reparse" });
+    await t.run(20_000);
+    expect(t.done()).toBe(true);
+  });
+
+  it("a pooled check: the hold reaches every shard and stays through the fall back until its own resume", async () => {
+    const { sent, workers, send } = await setup();
+    send(req(42));
+    send({ pause: 42, why: "reparse" });
+    send({ pause: 42, why: "decode" });
+    for (const w of workers) expect(w.messages).toContainEqual({ pause: 42, why: "reparse" });
+    workers[1]!.fail();
+    send({ resume: 42, why: "decode" });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sent.some(m => m.id === 42 && m.result), "still held").toBe(false);
+    send({ resume: 42, why: "reparse" });
+    await vi.runAllTimersAsync();
+    expect(sent.filter(m => m.id === 42 && m.result)).toHaveLength(1);
+  });
+
+  it("a hold released while the pool ran holds nothing after the fall back", async () => {
+    const { sent, workers, send } = await setup();
+    send(req(43));
+    send({ pause: 43, why: "reparse" });
+    send({ resume: 43, why: "reparse" });
+    workers[1]!.fail();
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sent.filter(m => m.id === 43 && m.result)).toHaveLength(1);
+  });
+
+  it("a parked pooled check whose shards failed: continue under the hold computes nothing until its resume", async () => {
+    const { sent, workers, send } = await setup();
+    send(req(44));
+    send({ stop: 44 });
+    for (const w of workers) w.emit({ id: 44, stopped: true, result: result([], 0.2, "stopped") });
+    workers[1]!.fail();
+    send({ pause: 44, why: "reparse" });     // the lost parked sweep keeps it
+    send({ continue: 44 });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sent.some(m => m.id === 44 && m.result && !m.stopped), "held").toBe(false);
+    send({ resume: 44, why: "reparse" });
+    await vi.runAllTimersAsync();
+    expect(sent.filter(m => m.id === 44 && m.result && !m.stopped)).toHaveLength(1);
+  });
+});
+
 describe("the regular flow", () => {
   it("stop, continue, finish and a shard's error reach the owner", async () => {
     const { sent, workers, send } = await setup();

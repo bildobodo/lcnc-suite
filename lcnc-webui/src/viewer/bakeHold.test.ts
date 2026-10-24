@@ -17,6 +17,9 @@ const run = (h: Hold, ...es: HoldEvent[]) => {
 const refresh = (admitted = true, file = F, version = 10, epoch = 0): HoldEvent =>
   ({ kind: "refresh", admitted, file, version, epoch });
 const bake: HoldEvent = { kind: "bake" };
+const check: HoldEvent = { kind: "check" };
+/** The steps' check outputs, in order. */
+const checks = (h: Hold, ...es: HoldEvent[]) => es.map(e => { const r = holdStep(h, e); h = r.hold; return r.check; });
 
 describe("the bake hold (VP188-02 E2)", () => {
   it("free bakes; an admitted refresh holds every later bake, once noted", () => {
@@ -126,7 +129,7 @@ describe("the bake hold (VP188-02 E2)", () => {
     expect(holdStep(held, { kind: "adopted", file: F, version: 10 }).hold).toBe(held);
     // free: an end does nothing
     const f = freeHold(4);
-    expect(holdStep(f, { kind: "end", catchUp: true })).toEqual({ hold: f, bake: false });
+    expect(holdStep(f, { kind: "end", catchUp: true })).toEqual({ hold: f, bake: false, check: false });
   });
 
   it("a refresh for another program or connection ends the hold with its catch-up", () => {
@@ -160,4 +163,61 @@ describe("the bake hold (VP188-02 E2)", () => {
     }
     for (const n of seen) if (n !== h.n) expect(holdStep(h, { kind: "deadline", n }).hold).toBe(h);
   });
+
+  // VP188-02 E1 (plan Fassung 5 3e, Codex R197): the collision check waits at
+  // the same hold — its note apart from the bake's
+  describe("the collision check at the same hold (E1)", () => {
+    it("free checks now; held, a check is noted once — the bake's note apart", () => {
+      expect(holdStep(freeHold(), check)).toEqual({ hold: freeHold(), bake: false, check: true });
+      let h = run(freeHold(), refresh()).h;
+      const r = holdStep(h, check);
+      expect([r.check, r.bake, r.hold.checkHeld, r.hold.held]).toEqual([false, false, true, false]);
+      expect(holdStep(r.hold, check).hold, "noted once").toBe(r.hold);
+      h = run(h, bake).h;
+      expect([h.held, h.checkHeld], "a bake does not note a check").toEqual([true, false]);
+    });
+
+    it("an end without an adoption checks again once, only when noted — every end, with the bake's own catch-up apart", () => {
+      const ends: Array<[string, (h: Hold) => HoldEvent]> = [
+        ["the gap's window", h => ({ kind: "deadline", n: h.n })],
+        ["the connection, a run, the simulation", () => ({ kind: "end", catchUp: true })],
+        ["a refresh not admitted", () => refresh(false)],
+        ["another connection's refresh", () => refresh(true, F, 10, 1)],
+      ];
+      for (const [why, end] of ends) {
+        const base = why === "the gap's window" ? [refresh(), { kind: "refreshGone", now: 0 } as HoldEvent] : [refresh()];
+        const noted = run(freeHold(), ...base, check).h;
+        const r = holdStep(noted, end(noted));
+        expect([r.check, r.bake, r.hold.state], `${why}: noted`).toEqual([true, false, "free"]);
+        const quiet = run(freeHold(), ...base).h;
+        expect(holdStep(quiet, end(quiet)).check, `${why}: nothing noted`).toBe(false);
+        const both = run(freeHold(), ...base, check, bake).h;
+        const rb = holdStep(both, end(both));
+        expect([rb.check, rb.bake], `${why}: both noted`).toEqual([true, true]);
+      }
+      // loading: its window and THIS decode's failure
+      const l = run(freeHold(), refresh(), check, { kind: "arrival", file: F, version: 11, now: 0 }).h;
+      expect(holdStep(l, { kind: "deadline", n: l.n }).check).toBe(true);
+      expect(holdStep(l, { kind: "decodeFailure", file: F, version: 11 }).check).toBe(true);
+    });
+
+    it("an adoption, another program and an end without catch-up check nothing — the adoption schedules its own", () => {
+      const l = run(freeHold(), refresh(), check, { kind: "arrival", file: F, version: 11, now: 0 }).h;
+      expect(checks(l, { kind: "adopted", file: F, version: 11 })).toEqual([false]);
+      const p = run(freeHold(), refresh(), check).h;
+      expect(checks(p, { kind: "adopted", file: "/nc/q.ngc", version: 3 })).toEqual([false]);
+      expect(checks(p, { kind: "end", catchUp: false })).toEqual([false]);
+      // ...and the next hold starts without the old note
+      const again = run(holdStep(p, { kind: "adopted", file: "/nc/q.ngc", version: 3 }).hold, refresh(true, "/nc/q.ngc", 3)).h;
+      expect(again.checkHeld).toBe(false);
+      expect(holdStep(again, { kind: "end", catchUp: true }).check, "no old note runs again").toBe(false);
+    });
+
+    it("the supersede gap keeps the note: parsing → after_parse → parsing, one check at the end", () => {
+      const h = run(freeHold(), refresh(), check, { kind: "refreshGone", now: 0 }, refresh(), { kind: "refreshGone", now: 5 }).h;
+      expect([h.state, h.checkHeld]).toEqual(["after_parse", true]);
+      expect(checks(h, { kind: "deadline", n: h.n })).toEqual([true]);
+    });
+  });
 });
+
