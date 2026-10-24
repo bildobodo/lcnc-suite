@@ -1,0 +1,121 @@
+[
+ {
+  "switch": 1,
+  "to": "G54 Z-399.000",
+  "z": -399.0,
+  "variant": "offset",
+  "job": 89,
+  "basis": "5b55e1b1918b",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852163168573390,
+  "spawn_ns": 1792852166764911811,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 2,
+  "to": "G54 Z-398.000",
+  "z": -398.0,
+  "variant": "offset",
+  "job": 90,
+  "basis": "93fa13e1c910",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852168450925092,
+  "spawn_ns": 1792852170887993105,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 3,
+  "to": "G54 Z-399.000",
+  "z": -399.0,
+  "variant": "offset",
+  "job": 91,
+  "basis": "5b55e1b1918b",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852172449593275,
+  "spawn_ns": 1792852174970981925,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 4,
+  "to": "G54 Z-398.000",
+  "z": -398.0,
+  "variant": "offset",
+  "job": 92,
+  "basis": "93fa13e1c910",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852176636255980,
+  "spawn_ns": 1792852178991483799,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 5,
+  "to": "G54 Z-399.000",
+  "z": -399.0,
+  "variant": "offset",
+  "job": 93,
+  "basis": "5b55e1b1918b",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852180629330010,
+  "spawn_ns": 1792852183029447139,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 6,
+  "to": "G54 Z-398.000",
+  "z": -398.0,
+  "variant": "offset",
+  "job": 94,
+  "basis": "93fa13e1c910",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852184624971665,
+  "spawn_ns": 1792852187104807568,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 7,
+  "to": "G54 Z-399.000",
+  "z": -399.0,
+  "variant": "offset",
+  "job": 95,
+  "basis": "5b55e1b1918b",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852188618074538,
+  "spawn_ns": 1792852191174325777,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 8,
+  "to": "G54 Z-398.000",
+  "z": -398.0,
+  "variant": "offset",
+  "job": 96,
+  "basis": "93fa13e1c910",
+  "reason": "wcsoff:G54:z",
+  "switch_ns": 1792852192819646972,
+  "spawn_ns": 1792852195105522991,
+  "ended": [
+   "gcode.publish"
+  ]
+ }
+]

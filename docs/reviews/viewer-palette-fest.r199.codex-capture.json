@@ -1,0 +1,20 @@
+{
+  "from": 1792847934551974812,
+  "to": 1792853295974591178,
+  "trace_sources": {
+    "/home/cnc/lcnc-suite/runlogs/trace.ndjson": 20907,
+    "/home/cnc/lcnc-suite/runlogs/trace.ndjson.1": 16495,
+    "/home/cnc/lcnc-suite/runlogs/trace.ndjson.2": 0,
+    "/home/cnc/lcnc-suite/runlogs/trace.ndjson.3": 5247,
+    "/home/cnc/lcnc-suite/runlogs/trace.ndjson.4": 0,
+    "/home/cnc/lcnc-suite/runlogs/trace.ndjson.5": 0
+  },
+  "events": 42649,
+  "rss": 6920,
+  "raw_sha256": {
+    "hal_watchdog.log": "976ca293fd5421463d015c9f58c2ecac07e0b6560305bc5f56a44734d32a557b",
+    "gateway.log": "8167cd97f2423e481c54b98cdc460b91afc81e16c361936d823c441ff5b1cd29",
+    "rss.jsonl": "166154f40b5ccf00d96f5f8bc8bffd8ab21468c3129d2801ade5498201bcc73d",
+    "trace.ndjson": "62c41b964c891149ba5b5e40a832c03e785e2d9fa4713eccf4bc926fc02a6cca"
+  }
+}

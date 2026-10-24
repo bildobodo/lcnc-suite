@@ -1,0 +1,56 @@
+16:26:18 ok arm 
+mark prep at 16:26:20
+16:26:20 ok estop 
+16:26:20 ok estop_reset 
+16:26:22 watchdog anchor {'wd_ms': 88580888, 'wall_ns': 1792851980574968945, 'wd_pid': 2356148, 'wd_log_bytes': 99149, 'gwlog': 36412, 'local': '16:26:22'}
+16:26:22 ok machine_on 
+16:26:22 setup {'commit': '3d2a7c725c1bb82047d62d7b455c93926c40c8a5', 'vm_cpus': 6, 'pages': ['y3jq4dik'], 'browser_ua': ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0'], 'event_timing': True, 'heap': False}
+16:26:22 ok mdi (MSG, BPC: Messlauf ohne Eingabe - bitte keine Taste druecken)
+16:26:22 ok load_file blank.ngc
+mark A_rest at 16:26:32
+16:27:32 key prompt left out (--no-keys) jetzt 40 s lang die Pfeiltaste nach unten gedrueckt halten
+mark A_input at 16:27:32
+16:28:12 key prompt left out (--no-keys) Taste loslassen
+mark S_load at 16:28:12
+16:28:12 ok load_file bpc_parse.ngc
+16:28:21 published bpc_parse.ngc 8045.1 ms encode
+16:29:23 settled bpc_parse.ngc check sweeps started 1, done 1, other ends 0 last done 43796 ms
+mark S_supersede at 16:29:23
+16:29:23 key prompt left out (--no-keys) jetzt die Pfeiltaste nach unten gedrueckt halten (Versatzwechsel)
+16:29:23 ok mdi G10 L2 P1 Z-399.000
+16:29:26 switch 1: G54 Z-399.000 -> job 89 (wcsoff:G54:z)
+16:29:28 ok mdi G10 L2 P1 Z-398.000
+16:29:30 switch 2: G54 Z-398.000 -> job 90 (wcsoff:G54:z)
+16:29:32 ok mdi G10 L2 P1 Z-399.000
+16:29:35 switch 3: G54 Z-399.000 -> job 91 (wcsoff:G54:z)
+16:29:36 ok mdi G10 L2 P1 Z-398.000
+16:29:39 switch 4: G54 Z-398.000 -> job 92 (wcsoff:G54:z)
+16:29:40 ok mdi G10 L2 P1 Z-399.000
+16:29:43 switch 5: G54 Z-399.000 -> job 93 (wcsoff:G54:z)
+16:29:44 ok mdi G10 L2 P1 Z-398.000
+16:29:47 switch 6: G54 Z-398.000 -> job 94 (wcsoff:G54:z)
+16:29:48 ok mdi G10 L2 P1 Z-399.000
+16:29:51 switch 7: G54 Z-399.000 -> job 95 (wcsoff:G54:z)
+16:29:52 ok mdi G10 L2 P1 Z-398.000
+16:29:55 switch 8: G54 Z-398.000 -> job 96 (wcsoff:G54:z)
+16:30:03 supersede: jobs [(89, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (90, 'G54 Z-398.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (91, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (92, 'G54 Z-398.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (93, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (94, 'G54 Z-398.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (95, 'G54 Z-399.000', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (96, 'G54 Z-398.000', ['gcode.publish'])]
+mark S_settle at 16:30:03
+16:30:03 key prompt left out (--no-keys) Taste loslassen
+16:31:14 settled the last basis's check sweeps started 1, done 1, other ends 0 last done 50704 ms
+mark R_load at 16:32:14
+16:32:14 ok load_file bpc_run.ngc
+16:32:18 published bpc_run.ngc 4021.6 ms encode
+16:33:12 settled bpc_run.ngc check sweeps started 1, done 1, other ends 0 last done 42895 ms
+mark R_run at 16:33:12
+16:33:12 ok cycle_start 
+16:33:12 running
+16:33:15 tool change requested — confirm (the dialog's Confirm)
+16:33:15 ok confirm_tool_change 
+16:33:45 tool change requested — confirm (the dialog's Confirm)
+16:33:45 ok confirm_tool_change 
+16:47:00 run ended
+mark R_settle at 16:47:00
+16:47:00 settled the check after the run sweeps started 4, done 3, other ends 1 last done 46292 ms
+mark end at 16:48:00
+16:48:00 sequence complete
+16:48:01 ok arm 

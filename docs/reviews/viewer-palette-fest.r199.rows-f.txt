@@ -1,0 +1,75 @@
+   1.78 ROW {"gap_p50_ms":34,"gap_p95_ms":50,"gap_max_ms":52,"apply_mean_ms":0.01,"apply_max_ms":1,"age_n":86,"age_max_ms":36,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0,"render_max_ms":0,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":18,"raf_gap_max_ms":24,"raf_pauses":0,"mt_probes":273,"mt_late_p95_ms":7,"mt_late_max_ms":23,"mt_blocks":1,"mt_block_ms":20,"gpu_fences":0,"gpu_behind_p95":0,"gpu_behind_max":0,"gpu_done_p95_ms":0,"gpu_done_max_ms":0,"gpu_dropped":0}
+        age_h {'18': 1, '20': 6, '22': 12, '24': 7, '26': 7, '28': 12, '30': 10, '32': 13, '34': 16, '36': 2}
+   1.78 browser.collision.sweep_start {"id": 15, "run_gen": null}
+   3.59 gcode.reparse_wcsoff_drift {"reason": "wcsoff:G54:z"}
+   3.59 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+   3.60 gcode.spawn_start {"job": 89, "reason": "wcsoff:G54:z"}
+   4.77 ROW {"gap_p50_ms":34,"gap_p95_ms":67,"gap_max_ms":100,"apply_mean_ms":0,"apply_max_ms":0,"age_n":78,"age_max_ms":122,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"span_pf_load":{"n":1,"sum":0,"max":0},"span_col_copy":{"n":1,"sum":3,"max":3},"span_col_post":{"n":1,"sum":0,"max":0},"span_path_reply":{"n":1,"sum":74,"max":74},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":9.25,"render_max_ms":31,"raf_ticks":167,"raf_gap_p50_ms":17,"raf_gap_p95_ms":28,"raf_gap_max_ms":85,"raf_pauses":0,"mt_probes":253,"mt_late_p95_ms":9,"mt_late_max_ms":108,"mt_blocks":1,"mt_block_ms":20,"gpu_fences":4,"gpu_behind_p95":2,"gpu_behind_max":2,"gpu_done_p95_ms":
+        age_h {'20': 3, '22': 11, '24': 9, '26': 8, '28': 9, '30': 8, '32': 11, '34': 9, '36': 1, '40': 1, '42': 1, '44': 1, '48': 1, '50': 1, '56': 1, '68': 1, '110': 1, '120': 1}
+   7.33 browser.collision.sweep_cancelled {"id": 15, "run_gen": null, "ran_ms": 4796}
+   7.33 ROW {"gap_p50_ms":33,"gap_p95_ms":51,"gap_max_ms":52,"apply_mean_ms":0.05,"apply_max_ms":1,"age_n":87,"age_max_ms":39,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":1,"render_max_ms":1,"raf_ticks":179,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":37,"raf_pauses":0,"mt_probes":285,"mt_late_p95_ms":7,"mt_late_max_ms":12,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":1,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":17,"gpu_done_max_ms":17,"gpu_dropped":0}
+        age_h {'20': 9, '22': 11, '24': 13, '26': 7, '28': 11, '30': 14, '32': 9, '34': 9, '36': 2, '38': 2}
+   7.64 gcode.reparse_superseded {"reason": "wcsoff:G54:z", "job": 89, "ran_ms": 4045}
+   7.71 gcode.parse_span {"job": 89}
+   7.71 gcode.parse_cancelled {"job": 89, "reason": "wcsoff:G54:z", "ran_ms": 4114}
+   7.71 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+   7.72 gcode.spawn_start {"job": 90, "reason": "wcsoff:G54:z"}
+   9.72 ROW {"gap_p50_ms":34,"gap_p95_ms":50,"gap_max_ms":51,"apply_mean_ms":0.01,"apply_max_ms":1,"age_n":86,"age_max_ms":41,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0,"render_max_ms":0,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":25,"raf_pauses":0,"mt_probes":286,"mt_late_p95_ms":6,"mt_late_max_ms":8,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":1,"gpu_behind_p95":2,"gpu_behind_max":2,"gpu_done_p95_ms":25,"gpu_done_max_ms":25,"gpu_dropped":0}
+        age_h {'20': 5, '22': 11, '24': 8, '26': 13, '28': 12, '30': 10, '32': 12, '34': 10, '36': 4, '40': 1}
+  11.69 gcode.reparse_superseded {"reason": "wcsoff:G54:z", "job": 90, "ran_ms": 3972}
+  11.79 gcode.parse_span {"job": 90}
+  11.79 gcode.parse_cancelled {"job": 90, "reason": "wcsoff:G54:z", "ran_ms": 4068}
+  11.80 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+  11.80 gcode.spawn_start {"job": 91, "reason": "wcsoff:G54:z"}
+  13.78 ROW {"gap_p50_ms":34,"gap_p95_ms":49,"gap_max_ms":50,"apply_mean_ms":0.03,"apply_max_ms":1,"age_n":87,"age_max_ms":38,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0,"render_max_ms":0,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":24,"raf_pauses":0,"mt_probes":279,"mt_late_p95_ms":6,"mt_late_max_ms":10,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":2,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":16,"gpu_done_max_ms":16,"gpu_dropped":0}
+        age_h {'20': 9, '22': 15, '24': 10, '26': 6, '28': 8, '30': 8, '32': 18, '34': 11, '36': 1, '38': 1}
+  15.71 gcode.reparse_superseded {"reason": "wcsoff:G54:z", "job": 91, "ran_ms": 3906}
+  15.82 gcode.parse_span {"job": 91}
+  15.82 gcode.parse_cancelled {"job": 91, "reason": "wcsoff:G54:z", "ran_ms": 4013}
+  15.82 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+  15.82 gcode.spawn_start {"job": 92, "reason": "wcsoff:G54:z"}
+  16.78 ROW {"gap_p50_ms":33,"gap_p95_ms":49,"gap_max_ms":51,"apply_mean_ms":0.05,"apply_max_ms":1,"age_n":87,"age_max_ms":36,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0.5,"render_max_ms":1,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":19,"raf_pauses":0,"mt_probes":280,"mt_late_p95_ms":7,"mt_late_max_ms":23,"mt_blocks":1,"mt_block_ms":20,"gpu_fences":2,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":16,"gpu_done_max_ms":16,"gpu_dropped":0}
+        age_h {'20': 5, '22': 4, '24': 6, '26': 12, '28': 17, '30': 15, '32': 7, '34': 17, '36': 4}
+  19.75 gcode.reparse_superseded {"reason": "wcsoff:G54:z", "job": 92, "ran_ms": 3930}
+  19.78 ROW {"gap_p50_ms":34,"gap_p95_ms":50,"gap_max_ms":68,"apply_mean_ms":0.03,"apply_max_ms":1,"age_n":87,"age_max_ms":36,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0,"render_max_ms":0,"raf_ticks":181,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":20,"raf_pauses":0,"mt_probes":282,"mt_late_p95_ms":6,"mt_late_max_ms":12,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":1,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":15,"gpu_done_max_ms":15,"gpu_dropped":0}
+        age_h {'20': 4, '22': 14, '24': 10, '26': 9, '28': 12, '30': 8, '32': 16, '34': 11, '36': 3}
+  19.83 gcode.parse_span {"job": 92}
+  19.83 gcode.parse_cancelled {"job": 92, "reason": "wcsoff:G54:z", "ran_ms": 4009}
+  19.85 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+  19.86 gcode.spawn_start {"job": 93, "reason": "wcsoff:G54:z"}
+  21.86 ROW {"gap_p50_ms":33,"gap_p95_ms":50,"gap_max_ms":51,"apply_mean_ms":0.01,"apply_max_ms":1,"age_n":87,"age_max_ms":37,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":1,"render_max_ms":1,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":20,"raf_pauses":0,"mt_probes":278,"mt_late_p95_ms":7,"mt_late_max_ms":10,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":1,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":16,"gpu_done_max_ms":16,"gpu_dropped":0}
+        age_h {'19': 1, '20': 6, '22': 6, '24': 8, '26': 15, '28': 11, '30': 14, '32': 10, '34': 11, '36': 5}
+  23.76 gcode.reparse_superseded {"reason": "wcsoff:G54:z", "job": 93, "ran_ms": 3898}
+  23.90 gcode.parse_span {"job": 93}
+  23.90 gcode.parse_cancelled {"job": 93, "reason": "wcsoff:G54:z", "ran_ms": 4039}
+  23.93 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+  23.94 gcode.spawn_start {"job": 94, "reason": "wcsoff:G54:z"}
+  25.78 ROW {"gap_p50_ms":34,"gap_p95_ms":49,"gap_max_ms":68,"apply_mean_ms":0.01,"apply_max_ms":1,"age_n":86,"age_max_ms":56,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0.5,"render_max_ms":1,"raf_ticks":179,"raf_gap_p50_ms":17,"raf_gap_p95_ms":18,"raf_gap_max_ms":35,"raf_pauses":0,"mt_probes":277,"mt_late_p95_ms":6,"mt_late_max_ms":22,"mt_blocks":1,"mt_block_ms":20,"gpu_fences":2,"gpu_behind_p95":2,"gpu_behind_max":2,"gpu_done_p95_ms":30,"gpu_done_max_ms":30,"gpu_dropped":0}
+        age_h {'19': 1, '20': 1, '22': 13, '24': 11, '26': 9, '28': 7, '30': 9, '32': 17, '34': 12, '36': 5, '56': 1}
+  27.79 gcode.reparse_superseded {"reason": "wcsoff:G54:z", "job": 94, "ran_ms": 3858}
+  27.98 gcode.parse_span {"job": 94}
+  27.98 gcode.parse_cancelled {"job": 94, "reason": "wcsoff:G54:z", "ran_ms": 4046}
+  28.00 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+  28.01 gcode.spawn_start {"job": 95, "reason": "wcsoff:G54:z"}
+  28.78 ROW {"gap_p50_ms":34,"gap_p95_ms":50,"gap_max_ms":67,"apply_mean_ms":0.03,"apply_max_ms":1,"age_n":86,"age_max_ms":38,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":1,"render_max_ms":2,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":18,"raf_gap_max_ms":19,"raf_pauses":0,"mt_probes":282,"mt_late_p95_ms":6,"mt_late_max_ms":9,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":2,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":16,"gpu_done_max_ms":16,"gpu_dropped":0}
+        age_h {'19': 1, '20': 3, '22': 10, '24': 11, '26': 9, '28': 16, '30': 9, '32': 12, '34': 10, '36': 4, '38': 1}
+  31.78 ROW {"gap_p50_ms":33,"gap_p95_ms":50,"gap_max_ms":52,"apply_mean_ms":0.02,"apply_max_ms":1,"age_n":88,"age_max_ms":37,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"span_col_cancel":{"n":2,"sum":0,"max":0},"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":1,"render_max_ms":1,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":18,"raf_gap_max_ms":19,"raf_pauses":0,"mt_probes":283,"mt_late_p95_ms":6,"mt_late_max_ms":9,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":1,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":16,"gpu_done_max_ms":16,"gpu_dropped":0}
+        age_h {'20': 7, '22': 8, '24': 11, '26': 10, '28': 14, '30': 13, '32': 12, '34': 10, '36': 3}
+  31.83 gcode.reparse_superseded {"reason": "wcsoff:G54:z", "job": 95, "ran_ms": 3821}
+  31.90 gcode.parse_span {"job": 95}
+  31.90 gcode.parse_cancelled {"job": 95, "reason": "wcsoff:G54:z", "ran_ms": 3896}
+  31.93 gcode.refresh_scheduled {"reason": "wcsoff:G54:z"}
+  31.94 gcode.spawn_start {"job": 96, "reason": "wcsoff:G54:z"}
+  33.93 ROW {"gap_p50_ms":34,"gap_p95_ms":49,"gap_max_ms":53,"apply_mean_ms":0.03,"apply_max_ms":1,"age_n":86,"age_max_ms":37,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":1,"render_max_ms":1,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":24,"raf_pauses":0,"mt_probes":276,"mt_late_p95_ms":6,"mt_late_max_ms":15,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":1,"gpu_behind_p95":1,"gpu_behind_max":1,"gpu_done_p95_ms":8,"gpu_done_max_ms":8,"gpu_dropped":0}
+        age_h {'19': 1, '20': 7, '22': 9, '24': 7, '26': 9, '28': 12, '30': 10, '32': 12, '34': 17, '36': 2}
+  37.79 ROW {"gap_p50_ms":33,"gap_p95_ms":47,"gap_max_ms":52,"apply_mean_ms":0.03,"apply_max_ms":1,"age_n":87,"age_max_ms":37,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0,"render_max_ms":0,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":19,"raf_gap_max_ms":20,"raf_pauses":0,"mt_probes":273,"mt_late_p95_ms":6,"mt_late_max_ms":21,"mt_blocks":1,"mt_block_ms":20,"gpu_fences":0,"gpu_behind_p95":0,"gpu_behind_max":0,"gpu_done_p95_ms":0,"gpu_done_max_ms":0,"gpu_dropped":0}
+        age_h {'19': 1, '20': 6, '22': 7, '24': 13, '26': 10, '28': 12, '30': 12, '32': 8, '34': 16, '36': 2}
+  39.97 gcode.parse_span {"job": 96}
+  39.97 gcode.worker_log {}
+  39.97 gcode.worker_log {}
+  39.97 gcode.worker_log {}
+  39.97 gcode.worker_log {}
+  39.97 gcode.worker_done {"job": 96}
+  40.53 gcode.publish {"job": 96}
+  40.79 ROW {"gap_p50_ms":34,"gap_p95_ms":50,"gap_max_ms":50,"apply_mean_ms":0,"apply_max_ms":0,"age_n":87,"age_max_ms":37,"age_neg":0,"age_vis_skip":0,"age_unbound":0,"in_delay_max_ms":0,"ev_n":0,"ev_dur_max_ms":0,"render_mean_ms":0,"render_max_ms":0,"raf_ticks":180,"raf_gap_p50_ms":17,"raf_gap_p95_ms":18,"raf_gap_max_ms":20,"raf_pauses":0,"mt_probes":274,"mt_late_p95_ms":6,"mt_late_max_ms":10,"mt_blocks":0,"mt_block_ms":20,"gpu_fences":0,"gpu_behind_p95":0,"gpu_behind_max":0,"gpu_done_p95_ms":0,"gpu_done_max_ms":0,"gpu_dropped":0}
+        age_h {'20': 5, '22': 10, '24': 19, '26': 9, '28': 7, '30': 8, '32': 11, '34': 13, '36': 5}

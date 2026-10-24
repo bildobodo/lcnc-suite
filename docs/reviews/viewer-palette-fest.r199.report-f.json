@@ -1,0 +1,2261 @@
+{
+ "pages": [
+  "y3jq4dik"
+ ],
+ "anchor": {
+  "wd_ms": 88580888,
+  "wall_ns": 1792851980574968945,
+  "wd_pid": 2356148,
+  "wd_log_bytes": 99149,
+  "gwlog": 36412,
+  "local": "16:26:22"
+ },
+ "phases": [
+  {
+   "phase": "prep",
+   "from": "16:26:20",
+   "to": "16:26:32",
+   "seconds": 12.7,
+   "page_rows": 4,
+   "page_rows_excluded": {},
+   "page_rows_interior": 2,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 4,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 1.64,
+      "edge_end_s": 2.04,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 343,
+    "execution_ms": {
+     "n": 343,
+     "p50": 1.0,
+     "p95": 2.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 343,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 56.0,
+     "max": 117,
+     "share_over_50": 0.0671
+    },
+    "age_ms": {
+     "n": 343,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 36.0,
+     "max": 38,
+     "share_over_50": 0.0,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 12,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 11,
+     "p50": 1.0,
+     "p95": 8.0,
+     "p99": 8.0,
+     "max": 7,
+     "invalid_pairs": 1
+    }
+   },
+   "status_interior": {
+    "frames": 175,
+    "execution_ms": {
+     "n": 175,
+     "p50": 1.0,
+     "p95": 2.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 175,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 51,
+     "share_over_50": 0.0514
+    },
+    "age_ms": {
+     "n": 175,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 36,
+     "share_over_50": 0.0,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 6,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 5,
+     "p50": 1.0,
+     "p95": 2.0,
+     "p99": 2.0,
+     "max": 1.1,
+     "invalid_pairs": 1
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 36.0,
+    "age_p95_interior_rows": 36.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 19,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 67546171,
+     "max_sampled": 67546171,
+     "last": 0
+    },
+    "mem_path_gpu": {
+     "first": 98200,
+     "max_sampled": 98200,
+     "last": 0
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 32,
+     "max_sampled": 32,
+     "last": 0
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {
+     "path_programmed": {
+      "n": 1,
+      "sum_ms": 1.0,
+      "max_ms": 1,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 1.0,
+    "main_thread_late_max_ms": 19,
+    "render_max_ms": 2
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 2,
+     "hb_wake_max_ms": 115.0,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "not proven",
+     "why": "the phase begins before the anchor"
+    }
+   },
+   "parse_jobs": [
+    {
+     "job": 87,
+     "reason": "file",
+     "idx": 1,
+     "basis": "3af00ce6807c",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "parse_span",
+      "worker_done",
+      "publish"
+     ],
+     "ran_ms": 80,
+     "published": {
+      "idx": 1,
+      "basis": "3af00ce6807c",
+      "version": 1792758141
+     }
+    }
+   ],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 191736,
+     "max_sampled": 191740,
+     "last": 191740
+    },
+    "workers_peak_kb": [],
+    "workers_at_once_max": 0
+   },
+   "collision": {},
+   "safety": [
+    "wd.trip_reset"
+   ]
+  },
+  {
+   "phase": "A_rest",
+   "from": "16:26:32",
+   "to": "16:27:32",
+   "seconds": 60.0,
+   "page_rows": 20,
+   "page_rows_excluded": {},
+   "page_rows_interior": 18,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 20,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 0.96,
+      "edge_end_s": 2.02,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 1748,
+    "execution_ms": {
+     "n": 1748,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1748,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 52,
+     "share_over_50": 0.0543
+    },
+    "age_ms": {
+     "n": 1748,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 43,
+     "share_over_50": 0.0,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 60,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 56,
+     "p50": 2.0,
+     "p95": 7.0,
+     "p99": 9.0,
+     "max": 8.3,
+     "invalid_pairs": 4
+    }
+   },
+   "status_interior": {
+    "frames": 1573,
+    "execution_ms": {
+     "n": 1573,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1573,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 52,
+     "share_over_50": 0.0534
+    },
+    "age_ms": {
+     "n": 1573,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 43,
+     "share_over_50": 0.0,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 54,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 50,
+     "p50": 2.0,
+     "p95": 7.0,
+     "p99": 8.0,
+     "max": 7.3,
+     "invalid_pairs": 4
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 36.0,
+    "age_p95_interior_rows": 36.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 21,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_path_gpu": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {},
+    "unknown": 0,
+    "top_level_sum_ms": 0,
+    "main_thread_late_max_ms": 21,
+    "render_max_ms": 0
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 191740,
+     "max_sampled": 191740,
+     "last": 191740
+    },
+    "workers_peak_kb": [],
+    "workers_at_once_max": 0
+   },
+   "collision": {},
+   "safety": []
+  },
+  {
+   "phase": "A_input",
+   "from": "16:27:32",
+   "to": "16:28:12",
+   "seconds": 40.0,
+   "page_rows": 14,
+   "page_rows_excluded": {},
+   "page_rows_interior": 12,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 14,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 0.98,
+      "edge_end_s": 0.0,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 1224,
+    "execution_ms": {
+     "n": 1224,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1224,
+     "p50": 34.0,
+     "p95": 50.0,
+     "p99": 52.0,
+     "max": 52,
+     "share_over_50": 0.0498
+    },
+    "age_ms": {
+     "n": 1224,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 41,
+     "share_over_50": 0.0,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 42,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 39,
+     "p50": 2.0,
+     "p95": 7.0,
+     "p99": 8.0,
+     "max": 7.7,
+     "invalid_pairs": 3
+    }
+   },
+   "status_interior": {
+    "frames": 1049,
+    "execution_ms": {
+     "n": 1049,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1049,
+     "p50": 34.0,
+     "p95": 50.0,
+     "p99": 52.0,
+     "max": 52,
+     "share_over_50": 0.0486
+    },
+    "age_ms": {
+     "n": 1049,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 37,
+     "share_over_50": 0.0,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 36,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 33,
+     "p50": 2.0,
+     "p95": 7.0,
+     "p99": 8.0,
+     "max": 7.7,
+     "invalid_pairs": 3
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 36.0,
+    "age_p95_interior_rows": 36.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 19,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_path_gpu": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {},
+    "unknown": 0,
+    "top_level_sum_ms": 0,
+    "main_thread_late_max_ms": 19,
+    "render_max_ms": 0
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 191740,
+     "max_sampled": 191740,
+     "last": 191740
+    },
+    "workers_peak_kb": [],
+    "workers_at_once_max": 0
+   },
+   "collision": {},
+   "safety": []
+  },
+  {
+   "phase": "S_load",
+   "from": "16:28:12",
+   "to": "16:29:23",
+   "seconds": 70.3,
+   "page_rows": 23,
+   "page_rows_excluded": {},
+   "page_rows_interior": 21,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 23,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 2.08,
+      "edge_end_s": 1.23,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 1995,
+    "execution_ms": {
+     "n": 1995,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 2
+    },
+    "cadence_ms": {
+     "n": 1995,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 162,
+     "share_over_50": 0.0586
+    },
+    "age_ms": {
+     "n": 1995,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 102,
+     "share_over_50": 0.003,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 68,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 62,
+     "p50": 2.0,
+     "p95": 10.0,
+     "p99": 130.0,
+     "max": 120,
+     "invalid_pairs": 6
+    }
+   },
+   "status_interior": {
+    "frames": 1820,
+    "execution_ms": {
+     "n": 1820,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 2
+    },
+    "cadence_ms": {
+     "n": 1820,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 162,
+     "share_over_50": 0.0604
+    },
+    "age_ms": {
+     "n": 1820,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 102,
+     "share_over_50": 0.0033,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 62,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 57,
+     "p50": 2.0,
+     "p95": 11.0,
+     "p99": 130.0,
+     "max": 120,
+     "invalid_pairs": 5
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 36.0,
+    "age_p95_interior_rows": 36.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 129,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 0,
+     "max_sampled": 67546171,
+     "last": 67546171
+    },
+    "mem_path_gpu": {
+     "first": 0,
+     "max_sampled": 98200,
+     "last": 98200
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 0,
+     "max_sampled": 32,
+     "last": 32
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {
+     "pf_load": {
+      "n": 1,
+      "sum_ms": 2.0,
+      "max_ms": 2,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_copy": {
+      "n": 1,
+      "sum_ms": 2.0,
+      "max_ms": 2,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_post": {
+      "n": 1,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "path_reply": {
+      "n": 1,
+      "sum_ms": 82.0,
+      "max_ms": 82,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 86.0,
+    "main_thread_late_max_ms": 129,
+    "render_max_ms": 35
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [
+    {
+     "job": 88,
+     "reason": "file",
+     "idx": 1,
+     "basis": "93fa13e1c910",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "parse_span",
+      "worker_done",
+      "publish"
+     ],
+     "ran_ms": 8045,
+     "published": {
+      "idx": 1,
+      "basis": "93fa13e1c910",
+      "version": 1792758142
+     }
+    }
+   ],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 191740,
+     "max_sampled": 238596,
+     "last": 202252
+    },
+    "workers_peak_kb": [
+     915364
+    ],
+    "workers_at_once_max": 1
+   },
+   "collision": {
+    "sweep_start": 1,
+    "sweep_done": 1,
+    "done_ms": [
+     43796
+    ]
+   },
+   "safety": []
+  },
+  {
+   "phase": "S_supersede",
+   "from": "16:29:23",
+   "to": "16:30:03",
+   "seconds": 40.7,
+   "page_rows": 13,
+   "page_rows_excluded": {},
+   "page_rows_interior": 11,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 13,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 1.78,
+      "edge_end_s": 2.9,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 1118,
+    "execution_ms": {
+     "n": 1118,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1118,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 54.0,
+     "max": 100,
+     "share_over_50": 0.0608
+    },
+    "age_ms": {
+     "n": 1118,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 40.0,
+     "max": 122,
+     "share_over_50": 0.0054,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 39,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 34,
+     "p50": 2.0,
+     "p95": 7.0,
+     "p99": 9.0,
+     "max": 8.3,
+     "invalid_pairs": 5
+    }
+   },
+   "status_interior": {
+    "frames": 954,
+    "execution_ms": {
+     "n": 954,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 954,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 54.0,
+     "max": 68,
+     "share_over_50": 0.0514
+    },
+    "age_ms": {
+     "n": 954,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 56,
+     "share_over_50": 0.001,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 33,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 28,
+     "p50": 2.0,
+     "p95": 7.0,
+     "p99": 9.0,
+     "max": 8.3,
+     "invalid_pairs": 5
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 36.0,
+    "age_p95_interior_rows": 36.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 108,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 67546171,
+     "max_sampled": 67546171,
+     "last": 67546171
+    },
+    "mem_path_gpu": {
+     "first": 98200,
+     "max_sampled": 98200,
+     "last": 98200
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 32,
+     "max_sampled": 32,
+     "last": 0
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {
+     "col_cancel": {
+      "n": 16,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "pf_load": {
+      "n": 1,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_copy": {
+      "n": 1,
+      "sum_ms": 3.0,
+      "max_ms": 3,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_post": {
+      "n": 1,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "path_reply": {
+      "n": 1,
+      "sum_ms": 74.0,
+      "max_ms": 74,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 77.0,
+    "main_thread_late_max_ms": 108,
+    "render_max_ms": 31
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [
+    {
+     "job": 89,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "5b55e1b1918b",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "reparse_superseded",
+      "parse_span",
+      "parse_cancelled"
+     ],
+     "ran_ms": 4114
+    },
+    {
+     "job": 90,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "93fa13e1c910",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "reparse_superseded",
+      "parse_span",
+      "parse_cancelled"
+     ],
+     "ran_ms": 4068
+    },
+    {
+     "job": 91,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "5b55e1b1918b",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "reparse_superseded",
+      "parse_span",
+      "parse_cancelled"
+     ],
+     "ran_ms": 4013
+    },
+    {
+     "job": 92,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "93fa13e1c910",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "reparse_superseded",
+      "parse_span",
+      "parse_cancelled"
+     ],
+     "ran_ms": 4009
+    },
+    {
+     "job": 93,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "5b55e1b1918b",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "reparse_superseded",
+      "parse_span",
+      "parse_cancelled"
+     ],
+     "ran_ms": 4039
+    },
+    {
+     "job": 94,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "93fa13e1c910",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "reparse_superseded",
+      "parse_span",
+      "parse_cancelled"
+     ],
+     "ran_ms": 4046
+    },
+    {
+     "job": 95,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "5b55e1b1918b",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "reparse_superseded",
+      "parse_span",
+      "parse_cancelled"
+     ],
+     "ran_ms": 3896
+    },
+    {
+     "job": 96,
+     "reason": "wcsoff:G54:z",
+     "idx": 1,
+     "basis": "93fa13e1c910",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "parse_span",
+      "worker_done",
+      "publish"
+     ],
+     "ran_ms": 8588,
+     "published": {
+      "idx": 1,
+      "basis": "93fa13e1c910",
+      "version": 1792758143
+     }
+    }
+   ],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 202252,
+     "max_sampled": 231056,
+     "last": 231056
+    },
+    "workers_peak_kb": [
+     607872,
+     615488,
+     617028,
+     622632,
+     624876,
+     627772,
+     649172,
+     939396
+    ],
+    "workers_at_once_max": 1
+   },
+   "verdict": {
+    "verdict": "S met",
+    "why": [],
+    "superseded": 7,
+    "switches": 8
+   },
+   "collision": {
+    "sweep_start": 1,
+    "sweep_cancelled": 1
+   },
+   "safety": []
+  },
+  {
+   "phase": "S_settle",
+   "from": "16:30:03",
+   "to": "16:32:14",
+   "seconds": 130.2,
+   "page_rows": 44,
+   "page_rows_excluded": {},
+   "page_rows_interior": 42,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 44,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 0.1,
+      "edge_end_s": 1.0,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 3796,
+    "execution_ms": {
+     "n": 3796,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 2
+    },
+    "cadence_ms": {
+     "n": 3796,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 54.0,
+     "max": 177,
+     "share_over_50": 0.0661
+    },
+    "age_ms": {
+     "n": 3796,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 176,
+     "share_over_50": 0.0016,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 132,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 125,
+     "p50": 2.0,
+     "p95": 6.0,
+     "p99": 12.0,
+     "max": 19.1,
+     "invalid_pairs": 7
+    }
+   },
+   "status_interior": {
+    "frames": 3625,
+    "execution_ms": {
+     "n": 3625,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 2
+    },
+    "cadence_ms": {
+     "n": 3625,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 54.0,
+     "max": 152,
+     "share_over_50": 0.0665
+    },
+    "age_ms": {
+     "n": 3625,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 156,
+     "share_over_50": 0.0011,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 126,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 120,
+     "p50": 2.0,
+     "p95": 6.0,
+     "p99": 12.0,
+     "max": 19.1,
+     "invalid_pairs": 6
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 36.0,
+    "age_p95_interior_rows": 36.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 120,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 67546171,
+     "max_sampled": 67546171,
+     "last": 67546171
+    },
+    "mem_path_gpu": {
+     "first": 98200,
+     "max_sampled": 98200,
+     "last": 98200
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 0,
+     "max_sampled": 32,
+     "last": 32
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {
+     "pf_load": {
+      "n": 1,
+      "sum_ms": 2.0,
+      "max_ms": 2,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_copy": {
+      "n": 1,
+      "sum_ms": 2.0,
+      "max_ms": 2,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_post": {
+      "n": 1,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "path_reply": {
+      "n": 1,
+      "sum_ms": 83.0,
+      "max_ms": 83,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 87.0,
+    "main_thread_late_max_ms": 120,
+    "render_max_ms": 31
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 231060,
+     "max_sampled": 231064,
+     "last": 231064
+    },
+    "workers_peak_kb": [],
+    "workers_at_once_max": 0
+   },
+   "collision": {
+    "sweep_start": 1,
+    "sweep_done": 1,
+    "done_ms": [
+     50704
+    ]
+   },
+   "safety": []
+  },
+  {
+   "phase": "R_load",
+   "from": "16:32:14",
+   "to": "16:33:12",
+   "seconds": 58.3,
+   "page_rows": 19,
+   "page_rows_excluded": {},
+   "page_rows_interior": 17,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 19,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 2.0,
+      "edge_end_s": 2.28,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 1644,
+    "execution_ms": {
+     "n": 1644,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1644,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 54.0,
+     "max": 66,
+     "share_over_50": 0.0657
+    },
+    "age_ms": {
+     "n": 1644,
+     "p50": 30.0,
+     "p95": 38.0,
+     "p99": 38.0,
+     "max": 64,
+     "share_over_50": 0.0006,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 57,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 49,
+     "p50": 2.0,
+     "p95": 6.0,
+     "p99": 8.0,
+     "max": 8,
+     "invalid_pairs": 8
+    }
+   },
+   "status_interior": {
+    "frames": 1472,
+    "execution_ms": {
+     "n": 1472,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1472,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 54.0,
+     "max": 65,
+     "share_over_50": 0.0679
+    },
+    "age_ms": {
+     "n": 1472,
+     "p50": 30.0,
+     "p95": 38.0,
+     "p99": 38.0,
+     "max": 64,
+     "share_over_50": 0.0007,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 51,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 44,
+     "p50": 2.0,
+     "p95": 6.0,
+     "p99": 8.0,
+     "max": 8,
+     "invalid_pairs": 7
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 38.0,
+    "age_p95_interior_rows": 38.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 17,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 67546171,
+     "max_sampled": 67546171,
+     "last": 1483777
+    },
+    "mem_path_gpu": {
+     "first": 98200,
+     "max_sampled": 98200,
+     "last": 24860
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 32,
+     "max_sampled": 32,
+     "last": 32
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {
+     "pf_load": {
+      "n": 1,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "path_reply": {
+      "n": 1,
+      "sum_ms": 7.0,
+      "max_ms": 7,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_copy": {
+      "n": 1,
+      "sum_ms": 1.0,
+      "max_ms": 1,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_post": {
+      "n": 1,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 8.0,
+    "main_thread_late_max_ms": 17,
+    "render_max_ms": 20
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [
+    {
+     "job": 97,
+     "reason": "file",
+     "idx": 1,
+     "basis": "521b1d1bc1ca",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "parse_span",
+      "worker_done",
+      "publish"
+     ],
+     "ran_ms": 4021,
+     "published": {
+      "idx": 1,
+      "basis": "521b1d1bc1ca",
+      "version": 1792758144
+     }
+    }
+   ],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 231064,
+     "max_sampled": 231068,
+     "last": 231068
+    },
+    "workers_peak_kb": [
+     58436
+    ],
+    "workers_at_once_max": 1
+   },
+   "collision": {
+    "sweep_start": 1,
+    "sweep_done": 1,
+    "done_ms": [
+     42895
+    ]
+   },
+   "safety": []
+  },
+  {
+   "phase": "R_run",
+   "from": "16:33:12",
+   "to": "16:47:00",
+   "seconds": 828.6,
+   "page_rows": 276,
+   "page_rows_excluded": {},
+   "page_rows_interior": 274,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 276,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 0.72,
+      "edge_end_s": 2.35,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 5,
+    "largest_gap_s": 4.8,
+    "complete_by_receipt_gaps": false
+   },
+   "status": {
+    "frames": 23952,
+    "execution_ms": {
+     "n": 23952,
+     "p50": 1.0,
+     "p95": 2.0,
+     "p99": 2.0,
+     "max": 2
+    },
+    "cadence_ms": {
+     "n": 23952,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 61,
+     "share_over_50": 0.0577
+    },
+    "age_ms": {
+     "n": 23952,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 52,
+     "share_over_50": 0.0001,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 825,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 751,
+     "p50": 2.0,
+     "p95": 8.0,
+     "p99": 10.0,
+     "max": 18.8,
+     "invalid_pairs": 74
+    }
+   },
+   "status_interior": {
+    "frames": 23781,
+    "execution_ms": {
+     "n": 23781,
+     "p50": 1.0,
+     "p95": 2.0,
+     "p99": 2.0,
+     "max": 2
+    },
+    "cadence_ms": {
+     "n": 23781,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 61,
+     "share_over_50": 0.0578
+    },
+    "age_ms": {
+     "n": 23781,
+     "p50": 30.0,
+     "p95": 36.0,
+     "p99": 38.0,
+     "max": 52,
+     "share_over_50": 0.0001,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 819,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 748,
+     "p50": 2.0,
+     "p95": 8.0,
+     "p99": 10.0,
+     "max": 18.8,
+     "invalid_pairs": 71
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 36.0,
+    "age_p95_interior_rows": 36.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 34,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 1483777,
+     "max_sampled": 1483777,
+     "last": 1483777
+    },
+    "mem_path_gpu": {
+     "first": 24860,
+     "max_sampled": 24860,
+     "last": 24860
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 32,
+     "max_sampled": 64,
+     "last": 64
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {
+     "col_cancel": {
+      "n": 6,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "pf_load": {
+      "n": 2,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "path_reply": {
+      "n": 2,
+      "sum_ms": 14.0,
+      "max_ms": 7,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_copy": {
+      "n": 5,
+      "sum_ms": 1.0,
+      "max_ms": 1,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_post": {
+      "n": 5,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 15.0,
+    "main_thread_late_max_ms": 34,
+    "render_max_ms": 20
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [
+    {
+     "job": 98,
+     "reason": "midrun:table_mtime",
+     "idx": 1,
+     "basis": "dc36bd0a28ed",
+     "pinned": true,
+     "events": [
+      "spawn_start",
+      "parse_span",
+      "worker_done",
+      "publish"
+     ],
+     "ran_ms": 4229,
+     "published": {
+      "idx": 1,
+      "basis": "dc36bd0a28ed",
+      "version": 1792758145
+     }
+    },
+    {
+     "job": 99,
+     "reason": "midrun:table_mtime",
+     "idx": 1,
+     "basis": "dc36bd0a28ed",
+     "pinned": true,
+     "events": [
+      "spawn_start",
+      "parse_span",
+      "worker_done",
+      "publish"
+     ],
+     "ran_ms": 5103,
+     "published": {
+      "idx": 1,
+      "basis": "dc36bd0a28ed",
+      "version": 1792758146
+     }
+    }
+   ],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 231068,
+     "max_sampled": 231068,
+     "last": 143140
+    },
+    "workers_peak_kb": [
+     58100,
+     60028
+    ],
+    "workers_at_once_max": 1
+   },
+   "verdict": {
+    "verdict": "R overlap proven",
+    "proof": {
+     "parse": {
+      "job": 99,
+      "gateway_pid": 2356275,
+      "file": "bpc_run.ngc",
+      "p0_ns": 227231552622942,
+      "p1_ns": 227236565007964,
+      "t_wall_ns": 1792852438238445100
+     },
+     "heartbeat_a": {
+      "seq": 928,
+      "hs": 1792830515812,
+      "hr": 1792830515834,
+      "g": 227232527.528,
+      "pid": 2356275,
+      "ta": 843,
+      "dt": 842,
+      "dn": 29
+     },
+     "heartbeat_b": {
+      "seq": 929,
+      "hs": 1792830516814,
+      "hr": 1792830516849,
+      "g": 227233542.035,
+      "pid": 2356275,
+      "ta": 844,
+      "dt": 843,
+      "dn": 30
+     },
+     "page": "y3jq4dik",
+     "word": {
+      "id": 22,
+      "run_gen": 1,
+      "range_from": null,
+      "shard": 1,
+      "gen": 0,
+      "tick": 843,
+      "n": 30,
+      "t_wall_ns": 1792852435255096532
+     },
+     "sweep": "full"
+    },
+    "parses": [
+     {
+      "job": 98,
+      "gateway_pid": 2356275,
+      "file": "bpc_run.ngc",
+      "cancelled": null,
+      "parse_ms": 4151.2,
+      "heartbeats_inside": {
+       "y3jq4dik": 4
+      },
+      "why": "no heartbeat inside it sent after a run check's word for a tick after an answer inside it"
+     },
+     {
+      "job": 99,
+      "gateway_pid": 2356275,
+      "file": "bpc_run.ngc",
+      "cancelled": null,
+      "parse_ms": 5012.4,
+      "heartbeats_inside": {
+       "y3jq4dik": 4
+      }
+     }
+    ]
+   },
+   "collision": {
+    "run_check_start": 2,
+    "sweep_start": 3,
+    "entry_start": 2,
+    "sweep_witness": 107,
+    "run_check_discarded": 1,
+    "sweep_cancelled": 1,
+    "sweep_done": 2,
+    "done_ms": [
+     24249,
+     46292
+    ]
+   },
+   "safety": []
+  },
+  {
+   "phase": "R_settle",
+   "from": "16:47:00",
+   "to": "16:48:00",
+   "seconds": 60.0,
+   "page_rows": 20,
+   "page_rows_excluded": {},
+   "page_rows_interior": 18,
+   "coverage": {
+    "complete": true,
+    "pages": {
+     "y3jq4dik": {
+      "rows": 20,
+      "by": "window chain",
+      "inner_breaks": 0,
+      "edge_start_s": 0.66,
+      "edge_end_s": 2.34,
+      "complete": true
+     }
+    },
+    "gaps_over_4_5_s": 0,
+    "largest_gap_s": null,
+    "complete_by_receipt_gaps": true
+   },
+   "status": {
+    "frames": 1725,
+    "execution_ms": {
+     "n": 1725,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1725,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 137,
+     "share_over_50": 0.058
+    },
+    "age_ms": {
+     "n": 1725,
+     "p50": 30.0,
+     "p95": 38.0,
+     "p99": 40.0,
+     "max": 112,
+     "share_over_50": 0.0058,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 59,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 56,
+     "p50": 2.0,
+     "p95": 7.0,
+     "p99": 12.0,
+     "max": 11.4,
+     "invalid_pairs": 3
+    }
+   },
+   "status_interior": {
+    "frames": 1551,
+    "execution_ms": {
+     "n": 1551,
+     "p50": 1.0,
+     "p95": 1.0,
+     "p99": 2.0,
+     "max": 1
+    },
+    "cadence_ms": {
+     "n": 1551,
+     "p50": 34.0,
+     "p95": 52.0,
+     "p99": 52.0,
+     "max": 137,
+     "share_over_50": 0.0587
+    },
+    "age_ms": {
+     "n": 1551,
+     "p50": 30.0,
+     "p95": 38.0,
+     "p99": 40.0,
+     "max": 112,
+     "share_over_50": 0.0064,
+     "neg": 0,
+     "before_visibility_change": 0,
+     "is": "an upper bound: the receipt at its earliest time on the page's clock",
+     "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "clock_relation": {
+     "exchanges": 53,
+     "width_max_ms": 6,
+     "conflicts": 0,
+     "receipts_unbound": 0
+    },
+    "gateway_to_socket_bound_ms": {
+     "n": 50,
+     "p50": 2.0,
+     "p95": 6.0,
+     "p99": 12.0,
+     "max": 11.4,
+     "invalid_pairs": 3
+    }
+   },
+   "target_age_p95_under_50ms": {
+    "age_p95_all_rows": 38.0,
+    "age_p95_interior_rows": 38.0,
+    "verdict": "met"
+   },
+   "input": {
+    "presses": 0,
+    "delay_ms": {
+     "n": 0,
+     "max": 0
+    },
+    "odd": 0,
+    "slow_to_paint_16ms": {
+     "n": 0,
+     "max": 0
+    }
+   },
+   "main_thread_late_max_ms": 26,
+   "page_memory": {
+    "mem_path_cpu": {
+     "first": 1483777,
+     "max_sampled": 1483777,
+     "last": 1483777
+    },
+    "mem_path_gpu": {
+     "first": 24860,
+     "max_sampled": 24860,
+     "last": 24860
+    },
+    "mem_contacts": {
+     "first": 0,
+     "max_sampled": 0,
+     "last": 0
+    },
+    "mem_contact_views": {
+     "first": 64,
+     "max_sampled": 64,
+     "last": 32
+    },
+    "heap_used_mb": "not collected"
+   },
+   "main_thread": {
+    "spans": {
+     "col_copy": {
+      "n": 2,
+      "sum_ms": 2.0,
+      "max_ms": 2,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "col_post": {
+      "n": 2,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "pf_load": {
+      "n": 1,
+      "sum_ms": 0.0,
+      "max_ms": 0.0,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     },
+     "path_reply": {
+      "n": 1,
+      "sum_ms": 6.0,
+      "max_ms": 6,
+      "nested_n": 0,
+      "nested_sum_ms": 0.0
+     }
+    },
+    "unknown": 0,
+    "top_level_sum_ms": 8.0,
+    "main_thread_late_max_ms": 26,
+    "render_max_ms": 20
+   },
+   "hal_heartbeat": {
+    "gateway_pre_send": {
+     "hb_wake_over_100ms": 0,
+     "hb_wake_max_ms": null,
+     "hb_stall_over_200ms": 0,
+     "hb_stall_max_ms": null
+    },
+    "watchdog_receipt": {
+     "status": "bound",
+     "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+    }
+   },
+   "parse_jobs": [
+    {
+     "job": 100,
+     "reason": "tool_offset",
+     "idx": 1,
+     "basis": "4e73bbc9eb63",
+     "pinned": false,
+     "events": [
+      "spawn_start",
+      "parse_span",
+      "worker_done",
+      "reparse_verified_same"
+     ],
+     "ran_ms": 5158
+    }
+   ],
+   "parse_overlap": 0,
+   "process_memory": {
+    "status": "sampled",
+    "gateway_kb": {
+     "first": 143140,
+     "max_sampled": 143268,
+     "last": 143268
+    },
+    "workers_peak_kb": [
+     64996
+    ],
+    "workers_at_once_max": 1
+   },
+   "collision": {
+    "run_check_discarded": 1,
+    "sweep_start": 2,
+    "sweep_cancelled": 1,
+    "sweep_done": 1,
+    "done_ms": [
+     44978
+    ]
+   },
+   "safety": []
+  }
+ ]
+}
