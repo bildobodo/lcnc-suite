@@ -94,6 +94,9 @@ let palette: ViewerPalette = resolveViewerPalette(readRootToken, viewerDefaults)
 // ─── Camera PIP visibility ───────────────────────────────────────
 const pipVisible = ref(loadCameraDefaults().pipVisible);
 let _pipSkipNext = 0;
+// Set at teardown: a part-frame worker asked for after it is said loudly
+// (Codex R195 VP-I133 — the hold's timer used to create one).
+let _unmounted = false;
 
 function togglePip() {
   pipVisible.value = !pipVisible.value;
@@ -2881,6 +2884,7 @@ let _pfWcsTimer: ReturnType<typeof setTimeout> | undefined;
 
 function _pfGetWorker(): Worker {
   if (!_pfWorker) {
+    if (_unmounted) console.error("[partFrame] a worker asked for after the viewer's teardown (VP-I133)");
     _pfWorker = new Worker(new URL("./viewer/partFrameWorker.ts", import.meta.url), { type: "module" });
     _pfWorker.onmessage = (ev: MessageEvent) => {
       if (_pfHoldReplies) { _pfHeldReplies.push(ev); return; }
@@ -4622,8 +4626,8 @@ function _holdEvent(e: HoldEvent) {
   if (_holdApply(e) && g) applyGcode(g);
 }
 /** A parse of the program in the status — admitted at EVERY refresh, never
- *  only at an edge: connected, no run, no simulation, the displayed program,
- *  a path that follows the offsets. */
+ *  only at an edge: connected, the interpreter KNOWN idle, no simulation, the
+ *  displayed program, a path that follows the offsets. */
 function _holdRefresh() {
   const pr = previewRefresh.value;
   if (!pr) return;
@@ -4640,6 +4644,12 @@ function _holdAdmission(): string | null {
   if (!g || file == null) return "no program";
   if (!connected.value) return "not connected";
   if (_runInProgress(status.value?.data)) return "a run";
+  // idle from the controller itself, whatever run basis there is: an AUTO run
+  // without one, an MDI executing, an unknown state hold nothing (Codex R195
+  // VP-I132 — the run-basis helper answers another question)
+  const interp = status.value?.data?.interp_state;
+  if (interp == null) return "interpreter state unknown";
+  if (interp !== INTERP_IDLE) return "the interpreter is busy";
   if (simMode.value) return "the simulation";
   if (file.slice(file.lastIndexOf("/") + 1) !== pr.file) return "another program's parse";
   if (!_bakeFollowsOffsetsNow(g)) return "the path follows the live origin";
@@ -4662,13 +4672,15 @@ watch(gcodeRevision, (rev) => {
 watch(previewDecodeFailure, (f) => {
   if (f) _holdEvent({ kind: "decodeFailure", file: f.file, version: f.version });
 });
-// the connection, a run, the simulation end a hold with its catch-up
+// the connection, the interpreter leaving idle (a run, an MDI — with a run
+// basis or none, VP-I132), the simulation end a hold with its catch-up — in
+// the gap and the loading too, where no parse in the status asks again
 watch(connected, (on) => {
   if (on) return;
   _connEpoch++;
   _holdEvent({ kind: "end", catchUp: true });
 });
-watch(() => _runInProgress(status.value?.data), (run) => { if (run) _holdEvent({ kind: "end", catchUp: true }); });
+watch(() => status.value?.data?.interp_state === INTERP_IDLE, (idle) => { if (!idle) _holdEvent({ kind: "end", catchUp: true }); });
 watch(simMode, (on) => { if (on) _holdEvent({ kind: "end", catchUp: true }); });
 // Joint limits arriving or changing (rare: connect, a runtime window change)
 // resize the reach envelope; the outside-limits flags follow through the
@@ -5258,6 +5270,12 @@ function applyViewerDefaults() {
 }
 
 onUnmounted(() => {
+  _unmounted = true;
+  // the bake hold ends with the viewer, without its catch-up: its window's
+  // timer and a reply still held would rebuild for a gone scene (VP-I133)
+  clearTimeout(_holdTimer);
+  _hold = freeHold(_hold.n + 1);
+  _pfHeldReplies.length = 0;
   if (_g30Timer) clearTimeout(_g30Timer);
   _g30Timer = null;
   _g30Gen++;

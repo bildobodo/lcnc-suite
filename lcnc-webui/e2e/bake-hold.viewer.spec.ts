@@ -426,3 +426,94 @@ test("a scene rebuild leaves no key vouching for the new geometry: behind until 
   await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!());
   await waitClear(page);
 });
+
+// Codex R195 VP-I133: a hold's window outlives no viewer. Torn down in the
+// gap and in the loading with a change held, the window's end bakes nothing:
+// no part-frame worker is created for the gone component, and a reply held
+// at the teardown is dropped, not applied.
+for (const state of ["after_parse", "loading"] as const) {
+  test(`the viewer torn down in ${state} with a change held: no worker after it, no reply applied`, async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await page.addInitScript(() => {
+      const log: string[] = [];
+      (window as unknown as { __workerLog: string[] }).__workerLog = log;
+      const Real = window.Worker;
+      window.Worker = class extends Real {
+        private label: string;
+        constructor(url: string | URL, opts?: WorkerOptions) { super(url, opts); this.label = String(url); log.push(`create ${this.label}`); }
+        terminate() { log.push(`terminate ${this.label}`); super.terminate(); }
+      } as typeof Worker;
+    });
+    await prepare(page, context, { stall: [104] });
+    // a reply asked for before the hold, still out at the teardown
+    await page.evaluate(() => window.__viewerDiag!.holdPartFrameReplies!(true));
+    await setZ(page, -5);
+    await pastDebounce(page);
+    await parse(1);
+    await waitHold(page, "parsing");
+    await setZ(page, -10);
+    await pastDebounce(page);
+    expect((await basis(page)).held).toBe(true);
+    await parse(null);
+    if (state === "loading") await publish(104);   // arrives, never answered
+    await waitHold(page, state);
+    const partFrame = (log: string[], kind: string) => log.filter(l => l.startsWith(kind) && l.includes("partFrameWorker")).length;
+    const before = await page.evaluate(() => {
+      const app = (document.getElementById("app") as unknown as { __vue_app__?: { unmount(): void } }).__vue_app__;
+      if (!app) throw new Error("Vue root not found");
+      app.unmount();
+      return [...(window as unknown as { __workerLog: string[] }).__workerLog];
+    });
+    expect(partFrame(before, "terminate"), "the teardown ends its worker").toBe(partFrame(before, "create"));
+    // past the window's end (6 s in the gap, 20 s in the loading)
+    await page.waitForTimeout(state === "loading" ? 21_000 : 7_000);
+    const released = await page.evaluate(() => window.__viewerDiag!.releasePartFrameReplies!());
+    expect(released, "a reply held at the teardown is dropped").toBe(0);
+    const after = await page.evaluate(() => [...(window as unknown as { __workerLog: string[] }).__workerLog]);
+    expect(partFrame(after, "create"), "no part-frame worker after the teardown").toBe(partFrame(before, "create"));
+  });
+}
+
+// Codex R195 VP-I132: the hold asks the CONTROLLER whether the interpreter is
+// idle, never whether a run basis says a run — an AUTO run without a run
+// basis, an MDI executing and an unknown state hold nothing, and each ends a
+// hold already there, in the gap and in the loading too (no parse asks again).
+const BUSY = [
+  { name: "an AUTO run without a run basis", data: { task_mode: 2, interp_state: 2 }, why: "the interpreter is busy", end: "after_parse" },
+  { name: "an MDI executing", data: { task_mode: 3, interp_state: 2 }, why: "the interpreter is busy", end: "loading" },
+  { name: "an unknown interpreter state", data: { task_mode: 1, interp_state: null }, why: "interpreter state unknown", end: "after_parse" },
+] as const;
+const IDLE = { task_mode: 1, interp_state: 1 };
+for (const c of BUSY) {
+  test(`${c.name}: no hold begins, and one in ${c.end} ends at once with its catch-up`, async ({ page, context }) => {
+    test.setTimeout(90_000);
+    await prepare(page, context, { stall: [105] });
+    const z0 = await boxZ(page);
+    // before the parse signal: admitted never, the change re-bakes as without a parse
+    await ctl({ op: "status_delta", data: c.data });
+    await parse(1);
+    await expect.poll(async () => (await basis(page)).admission).toBe(c.why);
+    expect((await basis(page)).hold).toBe("free");
+    let g = await builds(page);
+    await setZ(page, -10);
+    await waitDrawn(page);
+    expect(await builds(page)).toBe(g + 1);
+    // idle again: the same parse holds
+    await ctl({ op: "status_delta", data: IDLE });
+    await waitHold(page, "parsing");
+    await setZ(page, -20);
+    await pastDebounce(page);
+    expect((await basis(page)).held).toBe(true);
+    g = await builds(page);
+    await parse(null);
+    if (c.end === "loading") await publish(105);    // arrives, never answered
+    await waitHold(page, c.end);
+    await ctl({ op: "status_delta", data: c.data });
+    await expect.poll(() => builds(page), { message: `caught up as the interpreter left idle, not at the ${c.end === "loading" ? 20 : 6} s window's end`, timeout: 3_000 })
+      .toBe(g + 1);
+    expect((await basis(page)).hold).toBe("free");
+    await waitDrawn(page);
+    expect(await boxZ(page), "at the live offsets").toBeCloseTo(z0 - 20, 3);
+    await ctl({ op: "status_delta", data: IDLE });
+  });
+}
