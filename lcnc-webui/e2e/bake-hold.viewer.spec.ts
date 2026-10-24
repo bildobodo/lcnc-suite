@@ -15,6 +15,12 @@ const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"))
 const FILE = "/nc/hold.ngc";
 const FEED = [[-50, 0, -100], [50, 0, -100], [50, 20, -100]];
 const z9 = (z = 0) => [0, 0, z, 0, 0, 0, 0, 0, 0];
+// the envelope's run_basis as the gateway sends it once the start was
+// written (scripts/test_fixtures/run_check_wire.json; collisions.viewer.spec)
+const RUN = { run_basis: { run_id: 7, state: "sent", file: FILE, source: "s", version: 100, ctx_digest: "d",
+  tool_basis_rev: 1, verified: true, why: null,
+  start: { g5x_index: 1, g5x_offset: z9(), g92_offset: z9(), rotation_xy: 0, wcs_table: null, tool_number: 0,
+           tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: z9() } } };
 const INIT = { units: "mm", stl_base_url: "/xyzac-model/", axes: ["X", "Y", "Z", "A", "C"],
   parts: machine.parts, groups: machine.groups, kinematics: machine.kinematics,
   workGroup: machine.workGroup, toolGroup: machine.toolGroup };
@@ -241,14 +247,8 @@ test("the loading has a bound: 20 s without its adoption, one catch-up", async (
 test("admitted at every refresh: a run already going holds nothing; a run beginning in a hold catches up", async ({ page, context }) => {
   test.setTimeout(60_000);
   await prepare(page, context);
-  // the envelope's run_basis as the gateway sends it once the start was
-  // written (scripts/test_fixtures/run_check_wire.json; collisions.viewer.spec)
-  const run = { run_basis: { run_id: 7, state: "sent", file: FILE, source: "s", version: 100, ctx_digest: "d",
-    tool_basis_rev: 1, verified: true, why: null,
-    start: { g5x_index: 1, g5x_offset: z9(), g92_offset: z9(), rotation_xy: 0, wcs_table: null, tool_number: 0,
-             tool_diameter: null, tool_length: null, tool_table_z: null, tool_offset: z9() } } };
   // the run first, then the parse signal: no hold
-  await ctl({ op: "status_delta", envelope: run, data: { task_mode: 2, interp_state: 2 } });
+  await ctl({ op: "status_delta", envelope: RUN, data: { task_mode: 2, interp_state: 2 } });
   await parse(1);
   await expect.poll(async () => (await basis(page)).admission).toBe("a run");
   expect((await basis(page)).hold).toBe("free");
@@ -264,11 +264,44 @@ test("admitted at every refresh: a run already going holds nothing; a run beginn
   await setZ(page, -20);
   await pastDebounce(page);
   g = await builds(page);
-  await ctl({ op: "status_delta", envelope: run, data: { task_mode: 2, interp_state: 2 } });
+  await ctl({ op: "status_delta", envelope: RUN, data: { task_mode: 2, interp_state: 2 } });
   await waitHold(page, "free");
   await waitDrawn(page);
   expect(await builds(page)).toBe(g + 1);
   await parse(null);
+});
+
+test("a run or the simulation beginning in the gap or the loading ends the hold at once — no parse in the status says so", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context, { stall: [101] });
+  // the supersede gap: the parse has ended, no preview_refresh in the status
+  await parse(1);
+  await waitHold(page, "parsing");
+  await setZ(page, -10);
+  await pastDebounce(page);
+  let g = await builds(page);
+  await parse(null);
+  await waitHold(page, "after_parse");
+  await ctl({ op: "status_delta", envelope: RUN, data: { task_mode: 2, interp_state: 2 } });
+  await expect.poll(() => builds(page), { message: "caught up at the run's start, not at the 6 s window's end", timeout: 3_000 })
+    .toBe(g + 1);
+  expect((await basis(page)).hold).toBe("free");
+  await ctl({ op: "status_delta", envelope: { run_basis: null }, data: { task_mode: 1, interp_state: 1 } });
+  // the loading: the newer version arrived and is never answered
+  await parse(2);
+  await waitHold(page, "parsing");
+  await setZ(page, -20);
+  await pastDebounce(page);
+  g = await builds(page);
+  await parse(null);
+  await publish(101);
+  await waitHold(page, "loading");
+  await page.locator(".scrubBar input.toggle").check();
+  await expect(page.locator(".simBanner")).toBeVisible();
+  await expect.poll(() => builds(page), { message: "caught up at the simulation's start, not at the 20 s window's end", timeout: 3_000 })
+    .toBe(g + 1);
+  expect((await basis(page)).hold).toBe("free");
+  await page.locator(".scrubBar input.toggle").uncheck();
 });
 
 test("a lost connection in a hold catches up", async ({ page, context }) => {

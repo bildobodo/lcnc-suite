@@ -153,6 +153,10 @@ describe("the bake hold (VP188-02 E2)", () => {
       expect(h.state, "each step is a transition").not.toBe(before);
       expect(seen.has(h.n)).toBe(false);
       seen.add(h.n);
+      // in a window, every earlier window's timer does nothing — only its own ends it
+      if (h.state === "after_parse" || h.state === "loading") {
+        for (const n of seen) if (n !== h.n) expect(holdStep(h, { kind: "deadline", n }).hold, `timer ${n} in ${h.state}`).toBe(h);
+      }
     }
     for (const n of seen) if (n !== h.n) expect(holdStep(h, { kind: "deadline", n }).hold).toBe(h);
   });
