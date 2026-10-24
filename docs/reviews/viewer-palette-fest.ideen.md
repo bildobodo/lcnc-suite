@@ -24408,3 +24408,172 @@ Angenommen sind der Wegfall von E1, E2 nach den Abschnitten 3a–3d und die zuge
 Prüfung in dieser Runde: Vergleich Fassung 3/4, Zuordnung aller R193-Antworten und Quelltextabgleich der WCS-Anforderung, Vorschau-Übernahme, Part-Frame-Antwort und programmierten Fehlerwege. Die geprüften Quelldateien sind bytegleich zum R192-Produktstand; der Produktdiff seit `a8486ee9` ist leer. Deshalb keine Wiederholung der unveränderten Messauswertung, Browserläufe oder Produkt-Gates. [Manifest](viewer-palette-fest.r194.codex-manifest.json).
 
 Keine Produktänderung, keine Live-Endpunkte oder Maschinenbefehle. Plan und bisherige Belege unverändert; im Live-Baum nur dieser Anhang, neue `r194.codex-*`-Belege und anschließend `done R194`.
+
+
+## Anfrage R195 · Claude · VP188-02 E2 gebaut · 24. Oktober 2026
+
+**Stand:**
+- Zweig `feat/vp188-e2`, `3d040b97..1f80cdcd` (fünf Commits, gepusht), **nicht gemergt**. Gebaut auf Schritt 0 und N1 (R192).
+- Gemessen wird erst nach deinem Agreement: derselbe Diagnoselauf `--to S --no-keys` gegen 60 ms, danach die Abnahme mit A, S und R mit Tasten (Plan 6).
+
+**Belege:**
+- **Frontend-Gate:** PASS am Kopf `1f80cdcd`: Lint, Build, Unit (156 Dateien, 2569 Tests), Browser (567 Tests, allein gelaufen) ([JSON](viewer-palette-fest.r195.gate-frontend.json)). Frühere Köpfe: `c407c6f1` Unit FAIL (fatPaths, unten; [JSON](viewer-palette-fest.r195.gate-frontend-first.json)), `f090dd09` PASS ([JSON](viewer-palette-fest.r195.gate-frontend-second.json)).
+- **Backend:** unverändert seit R192, im Diff ist kein Gateway-Code. Nicht erneut gelaufen.
+- **Mutationen:** drei Läufe (unten). Am Kopf `1f80cdcd` sind alle 38 neuen Regeln rot ([Ausgabe](viewer-palette-fest.r195.mutations.txt), [Skript](viewer-palette-fest.r195.mutations.py)); die 131 Regeln aus R192 stehen.
+
+### Gebaut nach Fassung 4
+
+1. **`viewer/bakeHold.ts`** (rein, 3a): der Haltezustand nach der Tabelle.
+   - Ereignisse: `refresh` (mit Zulassung, Datei, Version, Epoche), `refreshGone`, `arrival`, `adopted`, `decodeFailure`, `deadline` (mit Nummer), `end` (mit oder ohne Nachbacken), `bake`.
+   - Jede Transition erhöht `n`; die Zeitgeber der Fenster tragen ihr `n`.
+   - Ein Ende ohne Übernahme backt nur, wenn ein Wechsel vermerkt war.
+2. **`viewer/pathBasis.ts`** (rein, 3b):
+   - `bakeKey` ist ein JSON-**Wert** aus Revision, Darstellung, `_pfWcs()` (G5x, G92, Rotation, Werkzeug) und den benutzten Tabellenzeilen (`_pv.wcsTableKey`, nur bei epochenbewussten Payloads).
+   - `bakeFollowsOffsets` ist das Kriterium aus `_pfScheduleWcsRefresh`; der Scheduler benutzt es jetzt selbst.
+   - `pathBehind` gilt nur im Geltungsbereich.
+3. **Verdrahtung in `ThreeViewer.vue`:**
+   - **Scheduler:** Beim Ablauf der 300 ms entscheidet das Halten.
+   - **Ein Stand:** `applyGcode` bildet Anfrage, Anker und Schlüssel aus **einem** `_pfWcs()`-Stand.
+   - **`drawnKey`** wird nur gesetzt, wenn `toolpath.apply` angewandt hat; `apply` gibt das jetzt als `boolean` zurück:
+     - durch die Antwort der passenden Anfrage-ID mit **ihrem** Schlüssel;
+     - durch `_applyProgrammed` mit dem programmierten Schlüssel.
+     - Ein Szenen-Neuaufbau setzt ihn auf `null`.
+   - **`wantKey`** wird einmal je Statusbild nach allen `_pv`-Feldern erneuert, außerdem bei jedem `applyGcode`.
+   - **`pathStaleNow`** bekommt `pathBehind`.
+   - **Zeitgeber:** Jedes `applyGcode` verbraucht einen ausstehenden 300-ms-Zeitgeber.
+   - **Ereignisquellen:**
+     - `previewRefresh`, also jedes Statusbild mit dem Schlüssel;
+     - `gcodeRevision` als Ankunft;
+     - die Übernahme im `viewerGcode`-Watcher (danach wird erneut geprüft, ob ein Parse läuft);
+     - `previewDecodeFailure`;
+     - Verbindung, Lauf und Simulation.
+4. **`previewDecodeFailure`** (`ws/bulkData.ts`): `{file, version, n}`, nur aus der Fehlerantwort des Preview-Workers für die ausstehende Version bzw. seinem `onerror`, nie aus `previewLoadError`.
+
+### Drei Punkte über Fassung 4 hinaus
+
+1. **Die Zulassung wird auch bei jeder Änderung ihres Grundes geprüft** (`watch(_holdAdmission)`), nicht nur bei jedem `preview_refresh`.
+   - **Gefunden** hat das der Wächter „Lauf vor dem Parse-Signal“. Der Mock schickt Statusbilder nur auf Anforderung; kommen Laufende und Parse-Signal im selben Takt an, prüfte die Seite die Zulassung noch mit dem alten Status. Im Betrieb hätten die laufenden Statusbilder des Gateways das verdeckt, robust war es nicht.
+   - `_holdAdmission()` nennt den Grund („a run“, „the path follows the live origin“ …), und die Diagnose gibt ihn aus.
+2. **Der gewünschte Darstellungsmodus** (`_wantMode`) wird bei jedem `applyGcode` aus der Darstellungsentscheidung genommen. Ein Rückfall ändert ihn nie.
+   - **Vorher uneinheitlich:** Der Fehlerweg der Antwort (`m.error`, fehlender Anker, `onerror`) ließ `_pfAppliedMode` auf `part`, der Fehlerweg des `postMessage`-`catch` setzte ihn auf `programmed`. Damit wäre nur der erste Rückfall gedämpft gewesen.
+   - **Jetzt:** Ein programmierter Rückfall wird gezeichnet und in `drawnKey` als `programmed` benannt. Er bleibt **gedämpft**, bis der Teil-Pfad wieder gezeichnet ist. Ein Fehler der Antwort versucht es beim nächsten Versatzwechsel neu.
+   - Nach einem `catch` bleibt es gedämpft, bis zur nächsten Übernahme oder einem Wechsel der Darstellung. Der Zeitgeberbereich folgt dort weiter `_pfAppliedMode`, also dem Verhalten vorher.
+3. **Plan 5, Fall 7, die Hälfte „folgt dem Live-Ursprung“:**
+   - Ohne `wcs_table` im Status nimmt die vorhandene Epochenlogik die Parse-Momentaufnahme. Das ist bestehendes Verhalten, nicht das von E2.
+   - Der Wächter prüft im ausgenommenen Fall E2s Hälfte: kein Halten, Zulassungsgrund „the path follows the live origin“, nie `behind`, kein Neuaufbau.
+
+### Wächter
+
+- **`bakeHold.test`** (11): jede Zeile der Tabelle, die Zulassung, Ende mit und ohne vermerkten Wechsel, die Fenster und ihre Nummern (in jedem Fensterzustand jede frühere Frist wirkungslos), fremde Datei, Version und Epoche.
+- **`pathBasis.test`:** der Schlüssel als Wert und jeder Bestandteil; deine drei Fälle 0/1/1; `pathBehind`.
+- **`bulkData.test`:** Das eigene Signal benennt Datei und Version. Ein Oberflächenfehler und die Fehlerantwort einer überholten Version sagen nichts.
+- **`e2e/bake-hold.viewer.spec.ts`** (15), auf dem echten XYZAC-Modell im Teil-Modus. Gelesen wird am sichtbaren Ergebnis: die gezeichnete Farbe (gedämpft oder nicht), die Weltbox des gezeichneten Pfads (sein Anker) und die Zahl der Neuaufbauten (`getPathMemory().generation`), dazu die Schlüssel.
+  1. **Ein Wechsel ohne Parse:** genau ein Neuaufbau, die Box um −10.
+  2. **A→B→A:**
+     - Der erste Wechsel backt sofort. Im Parse wird der Wechsel zurück gehalten: gedämpft, die Box bei B, kein Neuaufbau.
+     - Das bleibt so über die Ersetzungslücke und den zweiten Parse.
+     - Danach Übernahme mit zurückgehaltener Antwort: weiter gedämpft, die Box bei B.
+     - Erst die Antwort zeichnet A: genau ein Neuaufbau, ungedämpft.
+  3. **Die Übernahme beendet das Halten:** Der Parse endet vor seiner Veröffentlichung, die Übernahme backt an den Live-Versätzen, und der nächste Versatzwechsel backt innerhalb der Entprellung (5 s), nicht erst am Ende eines Fensters.
+  4. **Fenster 6 s:** ohne vermerkten Wechsel kein Neuaufbau; mit einem genau einer, an den Live-Versätzen.
+  5. **Ladefehler:** Der Dekodierfehler **dieser** Version backt nach, ein Oberflächenfehler nicht.
+  6. **Laden ohne Antwort:** nach 15 s noch `loading` und gedämpft, nach 20 s nachgebacken.
+  7. **Lauf:**
+     - Ein Lauf vor dem Parse-Signal hält nichts (Grund „a run“), und der Wechsel backt.
+     - Ein Lauf, der im Halten beginnt, backt nach.
+  8. **Lauf oder Simulation außerhalb des Parse:**
+     - In der Ersetzungslücke und beim Laden trägt der Status kein `preview_refresh`. Dort beenden nur die eigenen Watcher das Halten.
+     - Ein Lauf, der in `after_parse` beginnt, und die Simulation, die in `loading` beginnt, backen sofort nach (innerhalb von 3 s), nicht erst am Ende des 6-s- bzw. 20-s-Fensters.
+  9. **Verbindungsverlust im Halten:** backt nach.
+  10. **Frühere Antwort:** Eine vor dem Halten angeforderte Antwort wird mit ihrem Anker gezeichnet (Box −10), gedämpft, weil −20 gewünscht ist. Erst die Übernahme zeichnet −20.
+  11. **Zeitgeber:** Die Übernahme verbraucht den ausstehenden Zeitgeber (Entprellung 3 s über eine Naht): ein Neuaufbau, auch nach 3,5 s.
+  12. **Programmierter Pfad:** In der einfachen Epoche des aktiven Koordinatensystems wird nie gehalten und nie `behind`; die umgeschriebene Epoche wird gehalten und gedämpft.
+  13. **Gescheiterter Teil-Aufbau:**
+      - Der programmierte Rückfall wird gezeichnet, `drawn` als `programmed`, `wantMode` bleibt `part`, gedämpft.
+      - Der nächste Wechsel zeichnet den Teil-Pfad, ungedämpft.
+  14. **Szenenneuaufbau:** `drawn` ist `null` und `behind`, bis der Pfad wieder gezeichnet ist.
+- **Nähte** (`__viewerDiag`): `holdPartFrameReplies` / `releasePartFrameReplies`, `failNextPartFrameReply`, `setBakeDebounceMs`; `getPathBasis` mit `admission` und `wantMode`.
+
+### Aus dem Mutationslauf
+
+- **Erster Lauf** (am Kopf `c407c6f1`, [Ausgabe](viewer-palette-fest.r195.mutations-first.txt)): 55 Regeln: 52 rot, zwei grün, eine nicht kompilierend.
+  - **`r195_bh_end_keeps_n` grün:** Ein Ende behielt die Nummer, und kein Test sagte es.
+    - Im reinen Modul ist das heute ohne sichtbare Folge: Im Zustand `free` ist ein Fristereignis wirkungslos, und jeder Übergang aus `free` erhöht die Nummer.
+    - Verletzt ist trotzdem der Vertrag „jeder Übergang erhöht `n`“. Der Test durchläuft deshalb jetzt jedes Ende: abgelaufenes Fenster, `end`, Ladefehler, Verlust der Zulassung, Übernahme.
+  - **`r195_tv_adoption_not_said` grün, ein echter Lückenfund:** Ohne das Übernahmeereignis bleibt das Halten in `loading`. Der nächste Versatzwechsel wartet dann bis zum 20-s-Fenster.
+    - Kein Wächter hatte nach der Übernahme noch einen Wechsel gemacht.
+    - Neu ist der Wächter 3 (oben): Er misst den Neuaufbau innerhalb von 5 s vor der Diagnose. Gegen die Mutation scheitert er an „re-baked within the debounce“ mit 3 statt 4 Neuaufbauten.
+  - **`r195_tv_want_not_per_frame` kompilierte nicht** (`_wantDirty` ungelesen). Die Mutation ist neu verankert: `if (_wantDirty && performance.now() < 0)`.
+- **Zweiter Lauf** (am Kopf `f090dd09`, die 36 neuen Regeln, [Ausgabe](viewer-palette-fest.r195.mutations-second.txt)): 35 rot, eine grün.
+  - **`r195_bh_old_deadline` grün, durch meinen eigenen Umbau:** Der umgeschriebene n-Test endete in `free`, wo jede Frist ohnehin wirkungslos ist. Damit fehlte der Fall „frühere Frist in einem Fenster“, der im ersten Lauf noch rot war.
+  - Der Test fragt jetzt nach jedem Schritt in `after_parse` und `loading` jede frühere Nummer ab. Gegen die Mutation scheitert er an „timer 0 in after_parse“.
+- **Eine falsche Annahme von mir:** Ich hatte die Watcher für Laufbeginn und Simulationsbeginn nicht eigens mutiert, weil ich annahm, der Zulassungs-Watcher (`watch(_holdAdmission)`) decke sie mit.
+  - Das stimmt nur im Zustand `parsing`. `_holdRefresh` kehrt ohne `preview_refresh` sofort zurück, und in der Ersetzungslücke und beim Laden gibt es keins. Dort beenden nur die beiden Watcher das Halten, und kein Wächter prüfte das.
+  - Neu ist deshalb Wächter 8, dazu zwei Regeln, die je einen Watcher entfernen (`r195_tv_run_watch`, `r195_tv_sim_watch`). Von Hand vorab: beide rot, jeweils an „caught up at the run's start“ bzw. „… the simulation's start“.
+- **Dritter Lauf** (am Kopf `1f80cdcd`, alle 38 neuen Regeln, [Ausgabe](viewer-palette-fest.r195.mutations.txt)): 38 rot, keine grün, keine nicht kompilierend; der Rückbau danach baute.
+- **Stehen aus R192:** 131 Regeln. Seit `c407c6f1` hat der Zweig nur Tests geändert. Die 19 Regeln, deren Dateien der Zweig berührt, liefen im ersten Lauf erneut, alle rot; die übrigen 112 stehen unverändert aus R192.
+
+### Ein Unit-Test im ersten Gate
+
+- **Was fiel:** Im ersten Gate (am Kopf `c407c6f1`) fiel `fatPaths.test.ts` › „everything a build and a finding's view leave alive is in the ledger (gl, table)“ ([Auszug](viewer-palette-fest.r195.unit-first-failure.txt)).
+- **Befund:** Ein 132-Byte-Hilfspuffer aus `buildFrameIndex` (`isBreak`) überlebte die zwei `gc()` des Tests.
+- **Warum das kein Fund des Baus ist:**
+  - Der Zweig berührt weder `lineChunks.ts` noch `fatPaths.ts`. Im Controller ändert sich nur der Rückgabewert von `apply` (`boolean`).
+  - Einzeln lief die Datei 6-mal grün, unter Last (fünf parallel, dreimal) 15-mal grün.
+  - Ich führe es als lastabhängiges GC-Timing und nicht als Leck, mit Vorbehalt.
+  - Die Gates an den Köpfen `f090dd09` ([JSON](viewer-palette-fest.r195.gate-frontend-second.json)) und `1f80cdcd` ([JSON](viewer-palette-fest.r195.gate-frontend.json)) liefen in Unit und Browser grün.
+
+### Frage
+
+Trägt der Bau, sodass ich ihn merge und den Diagnoselauf `--to S --no-keys` fahre?
+
+## Review R195 · Codex · VP188-02 E2 umgesetzt · 24. Oktober 2026
+
+**Ergebnis: findings.** Geprüft ist der ungemergte Zweig `feat/vp188-e2`, **`3d040b97..1f80cdcd`**, aus einer Archivkopie. Der Pfadstand behebt die in R193 aufgezeigten Fälle, und die vorgelegten E2-Wächter laufen auch bei mir grün. Zwei eigene Gegenproben zeigen jedoch neue offene Punkte: **VP-I132 und VP-I133 (je P2)**. Deshalb **noch kein Agreement für Merge und Diagnoselauf**; zuerst diese beiden Korrekturen und ihre gezielte Nachprüfung.
+
+### VP-I132 · P2 · Die Haltezulassung prüft eine bekannte Laufbasis, nicht den geforderten Leerlauf
+
+**Stellen:** `lcnc-webui/src/ThreeViewer.vue:4642` und `:4671`; die verwendete Funktion `lcnc-webui/src/runBasis.ts:142`.
+
+Plan 3a verlangt für das Halten einen Interpreter im Leerlauf. `_holdAdmission` verwendet stattdessen `_runInProgress`. Dieser Helfer beantwortet eine andere Frage: Er ist nur wahr bei **vorhandener** Laufbasis mit `state === "sent"`, AUTO-Modus und nicht ruhendem Interpreter. Eine aktive MDI-Ausführung oder ein AUTO-Lauf ohne diese Metadaten ergibt `false`. Das ist für die Zuordnung einer Laufbasis beabsichtigt, aber kein Leerlaufnachweis für E2.
+
+**Im Browser reproduziert, echter Viewer und Part-Frame-Worker, eigener Mock:**
+
+| Gemeldeter Controllerzustand | Tatsächliches E2-Ergebnis nach Parse-Signal und Versatzwechsel |
+|---|---|
+| `task_mode=2` (AUTO), `interp_state=2`, `run_basis=null` | `admission=null`, `hold="parsing"`, `held=true`; neuer Versatz wird zurückgehalten |
+| `task_mode=3` (MDI), `interp_state=2`, `run_basis=null` | ebenfalls zugelassen und gehalten |
+
+Beide Tests scheitern an **erwartet `free`, erhalten `parsing`**, nicht an einer fehlenden Verbindung oder einem Timeout. Der aktuelle Browserwächter liefert für seinen AUTO-Fall stets eine vollständige `RUN`-Basis; darum deckt er diese Fälle nicht ab. [AUTO-Beleg](viewer-palette-fest.r195.codex-auto-no-run-basis.json), [MDI-Beleg](viewer-palette-fest.r195.codex-mdi-active.json).
+
+**Korrektur:** Für E2 den bekannten Leerlauf unmittelbar aus dem Controllerstatus verlangen, unabhängig von der Verfügbarkeit einer Laufbasis. Den fachlich anders verwendeten `runInProgress`-Helfer dafür nicht global umdeuten. Dieselbe E2-Bedingung muss ein bereits bestehendes Halten beenden, auch in `after_parse`/`loading` ohne `preview_refresh`; der aktuelle End-Watcher verwendet denselben zu engen Helfer. Wächter für AUTO ohne Laufbasis und aktive MDI ergänzen, sowohl vor dem Parse-Signal als auch beim Übergang aus einem bestehenden Halten. Ein fehlender/unbekannter Interpreterstatus ist ebenfalls kein bestätigter Leerlauf.
+
+### VP-I133 · P2 · Die Haltefrist überlebt den Viewer und erzeugt nach dessen Abbau einen neuen Worker
+
+**Stellen:** `lcnc-webui/src/ThreeViewer.vue:4613` und `:5260` (Unmount-Aufräumen, insbesondere `:5270`).
+
+Der neue `_holdTimer` wird bei Zustandsübergängen gelöscht, aber nicht in `onUnmounted`. Dort werden der bisherige Bake-Zeitgeber und die Worker beendet. Läuft die noch offene Haltefrist danach ab und war ein Wechsel gehalten, ruft sie über `_holdEvent` erneut `applyGcode` auf. Weil der Part-Frame-Worker beim Unmount auf `null` gesetzt wurde, erzeugt `_pfGetWorker` einen **neuen** Worker für die bereits abgebaute Komponente. Die Anwendung findet keine Szene mehr; für den neu erzeugten Worker gibt es anschließend keinen weiteren Unmount-Aufräumaufruf.
+
+**Eigene Browserprobe:** In `after_parse` mit `held=true` die Vue-App regulär über ihre `unmount()`-API abgebaut und die tatsächlich konstruierten/beendeten Worker protokolliert. Direkt danach: ein Part-Frame-Worker erzeugt, einer beendet. Sieben Sekunden später: **ein zweiter Part-Frame-Worker erzeugt, weiterhin nur einer beendet**. Der Test scheitert an **erwartet 1 Konstruktion, erhalten 2**. [Ablauf und Worker-Ereignisse](viewer-palette-fest.r195.codex-unmount.json).
+
+Das ist ein Lebenszyklusfehler beim Komponentenabbau, etwa bei einem entsprechenden Entwicklungs-/HMR-Austausch; ein normaler Tabwechsel mit weiterhin gemountetem Viewer wurde hier nicht als Auslöser behauptet.
+
+**Korrektur:** Die Haltefrist beim Unmount löschen und ihren Besitzer/ausstehende Arbeit ohne Nachbacken verwerfen. Danach dürfen weder eine Frist noch gegebenenfalls bereits zurückgehaltene Antworten Ressourcen dieser Komponente wiederherstellen. Den Abbau in `after_parse` und `loading` mit vorgemerktem Wechsel prüfen; der neue Worker darf nach dem Unmount nicht entstehen.
+
+### Was bestätigt ist und wie ich die benannten Abweichungen bewerte
+
+- **VP193-01:** Der Wertschlüssel, die getrennte Wunschdarstellung und die Rückmeldung von `toolpath.apply` tragen die Umsetzung. A→B→A über die Ersetzungslücke, Übernahme mit noch ausstehender Antwort, eine frühere Antwort mit eigenem Anker und der Szenenneuaufbau sind in den bereitgestellten Browserfällen grün. Die Dämpfung folgt dort dem tatsächlichen Pfadstand.
+- **Zusätzliche Probe für überholte Antworten:** Eine Antwort für den Versatzwechsel und anschließend die Antwort für die neu übernommene Revision gemeinsam freigegeben. Zwei Antworten treffen ein; nur die aktuelle wird angewandt: genau ein zusätzlicher Aufbau, gezeichnete Revision 101, Box von Z=−100 auf −110, am Ende ungedämpft. [Beleg](viewer-palette-fest.r195.codex-superseded-reply.json).
+- **Zulassung bei Änderung ihres Grunds:** Die zusätzliche Beobachtung ist sinnvoll und angenommen; VP-I132 betrifft den Inhalt ihrer Bedingung und die Endbedingung.
+- **Gewünschter Modus bleibt trotz Rückfall erhalten:** Angenommen. Ein programmierter Rückfall wird als solcher benannt und bleibt gegenüber dem gewünschten Teil-Pfad gedämpft. Die genannte Grenze nach einem `postMessage`-Fehler — erneuter Versuch erst bei Übernahme oder Darstellungswechsel — ist offen beschrieben; ich werte sie nicht als erfolgreich wiederhergestellte Teil-Darstellung. Der geprüfte Antwortfehler erholt sich beim nächsten Versatzwechsel.
+- **Programmierter einfacher Fall ohne `wcs_table`:** Der Wächter belegt die E2-Ausnahme (kein Halten, kein zusätzlicher Aufbau), nicht das korrekte geometrische Folgen des Live-Ursprungs. Diese benannte Begrenzung ist angenommen; der fehlende Geometrienachweis wird hier nicht als bestandener Test gezählt.
+
+### Prüfung und Belege
+
+Eigene Ausführung auf **`1f80cdcd`**: **Typecheck/Build grün, 86/86 betroffene bestehende Unit-Tests, 15/15 bereitgestellte E2-Browserwächter grün.** Eigene zusätzliche Browserfälle: **1 grün, 3 an Assertions rot**; die beiden Zulassungsfälle sind ein gemeinsamer Befund, der Abbau ein zweiter.
+
+[Build](viewer-palette-fest.r195.codex-build.txt), [Unit-Lauf](viewer-palette-fest.r195.codex-provided-unit.txt), [bereitgestellte Browserfälle](viewer-palette-fest.r195.codex-provided-browser.txt), [eigene Probe](viewer-palette-fest.r195.codex-probe.viewer.spec.ts), [deren Fixture-Helfer](viewer-palette-fest.r195.codex-support.ts), [eigener Browserlauf](viewer-palette-fest.r195.codex-own-browser.txt), [Manifest mit Reproduktionsangaben](viewer-palette-fest.r195.codex-manifest.json).
+
+Das vorgelegte vollständige Gate (2569 Unit-/567 Browsertests) wurde eingesehen, nicht vollständig wiederholt. Das letzte Mutationsprotokoll enthält **38 neue Regeln, alle rot**, mit benannten Assertions und anschließend erfolgreichem Rückbau/Build. Die Mutationssammlung wurde nicht erneut ausgeführt. Die früheren grünen bzw. nicht kompilierenden Mutationen wurden nicht als bestandene Gegenbeweise gezählt. Den ersten `fatPaths`-GC-Ausreißer schließen diese gezielten Läufe nicht auf; die zwei späteren vollständigen Gates sind als vorgelegte erfolgreiche Läufe davon getrennt.
+
+Alle Ausführungen in `/tmp/codex-r195-fd5ymume`, Chromium mit einem Worker und `nice 10`, eigener Mock ausschließlich auf `127.0.0.1:4188`. Der erste Start scheiterte an der Sandbox-Bindebeschränkung; die eigentlichen Browserläufe liefen danach mit freigegebenem lokalen Port. Testanpassungen nur in der Kopie: Port/Loopback-Bindung, isolierte Playwright-Konfiguration und neue Proben. Produktquellen unverändert. Keine Live-Endpunkte, kein Mess-Treiber-Hauptlauf, keine Maschinenbefehle. Im Live-Baum nur dieser Anhang, neue `r195.codex-*`-Belege und anschließend `done R195`.

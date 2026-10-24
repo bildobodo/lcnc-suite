@@ -1,0 +1,26 @@
+[2m[WebServer] [22m(node:3322773) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 15 tests using 1 worker
+
+(node:3322799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3322799) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/bake-hold.viewer.spec.ts:103:1 › an offset change without a parse re-bakes once, at the new offsets (4.1s)
+  ✓   2 e2e/bake-hold.viewer.spec.ts:113:1 › A→B→A held across the supersede gap and the loading: muted until the matching path is DRAWN (VP193-01) (5.6s)
+  ✓   3 e2e/bake-hold.viewer.spec.ts:155:1 › the adoption ends the hold: the next offset change re-bakes at once, no window left to wait out (5.3s)
+  ✓   4 e2e/bake-hold.viewer.spec.ts:180:1 › the supersede window runs out: ONE catch-up bake — only when a change was held (18.9s)
+  ✓   5 e2e/bake-hold.viewer.spec.ts:209:1 › only THIS decode's failure ends the loading with its catch-up; a surface-points failure does not (5.0s)
+  ✓   6 e2e/bake-hold.viewer.spec.ts:228:1 › the loading has a bound: 20 s without its adoption, one catch-up (25.4s)
+  ✓   7 e2e/bake-hold.viewer.spec.ts:247:1 › admitted at every refresh: a run already going holds nothing; a run beginning in a hold catches up (5.4s)
+  ✓   8 e2e/bake-hold.viewer.spec.ts:274:1 › a run or the simulation beginning in the gap or the loading ends the hold at once — no parse in the status says so (6.7s)
+  ✓   9 e2e/bake-hold.viewer.spec.ts:307:1 › a lost connection in a hold catches up (4.4s)
+  ✓  10 e2e/bake-hold.viewer.spec.ts:322:1 › a reply asked for before the hold is drawn with its own anchor; a later held change keeps the path muted (6.4s)
+  ✓  11 e2e/bake-hold.viewer.spec.ts:345:1 › the adoption consumes a pending re-bake: no second bake after it (7.5s)
+  ✓  12 e2e/bake-hold.viewer.spec.ts:359:1 › a programmed path: the plain epoch of the active fixture is never held nor behind (4.3s)
+  ✓  13 e2e/bake-hold.viewer.spec.ts:378:1 › a programmed path with a rewritten epoch is held while the program re-parses (5.1s)
+  ✓  14 e2e/bake-hold.viewer.spec.ts:397:1 › a failed part-frame bake: the programmed fallback is drawn, named, and MUTED until the part frame is drawn again (5.5s)
+  ✓  15 e2e/bake-hold.viewer.spec.ts:416:1 › a scene rebuild leaves no key vouching for the new geometry: behind until the path is drawn again (5.1s)
+
+  15 passed (1.9m)

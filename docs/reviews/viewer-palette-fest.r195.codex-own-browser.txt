@@ -1,0 +1,123 @@
+[2m[WebServer] [22m(node:3325493) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:3325505) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3325505) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: auto-no-run-basis is not idle and must not hold (5.0s)
+(node:3325701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3325701) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: mdi-active is not idle and must not hold (5.6s)
+(node:3325930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3325930) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 e2e/r195-codex.viewer.spec.ts:18:1 › Codex: a superseded part-frame reply cannot fulfil the newly adopted payload (6.7s)
+  ✘  4 e2e/r195-codex.viewer.spec.ts:32:1 › Codex: unmount cancels the hold deadline and does not create another worker (12.2s)
+
+
+  1) e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: auto-no-run-basis is not idle and must not hold 
+
+    Error: an executing interpreter must not enter a hold
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"free"[39m
+    Received: [31m"parsing"[39m
+
+      12 |   await setZ(page,-10);await pastDebounce(page);
+      13 |   const b=await basis(page);save(name,{input:{task_mode:mode,interp_state:2,run_basis:null},basis:b});
+    > 14 |   expect(b.hold,'an executing interpreter must not enter a hold').toBe('free');
+         |                                                                   ^
+      15 |  });
+      16 | }
+      17 |
+        at /tmp/codex-r195-fd5ymume/repo/lcnc-webui/e2e/r195-codex.viewer.spec.ts:14:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r195-codex.viewer-Codex-ad-b01f4--not-idle-and-must-not-hold/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r195-codex.viewer-Codex-ad-b01f4--not-idle-and-must-not-hold/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r195-codex.viewer-Codex-ad-b01f4--not-idle-and-must-not-hold/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r195-codex.viewer-Codex-ad-b01f4--not-idle-and-must-not-hold/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: mdi-active is not idle and must not hold ─
+
+    Error: an executing interpreter must not enter a hold
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m"free"[39m
+    Received: [31m"parsing"[39m
+
+      12 |   await setZ(page,-10);await pastDebounce(page);
+      13 |   const b=await basis(page);save(name,{input:{task_mode:mode,interp_state:2,run_basis:null},basis:b});
+    > 14 |   expect(b.hold,'an executing interpreter must not enter a hold').toBe('free');
+         |                                                                   ^
+      15 |  });
+      16 | }
+      17 |
+        at /tmp/codex-r195-fd5ymume/repo/lcnc-webui/e2e/r195-codex.viewer.spec.ts:14:67
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r195-codex.viewer-Codex-ad-c7c67--not-idle-and-must-not-hold/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r195-codex.viewer-Codex-ad-c7c67--not-idle-and-must-not-hold/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r195-codex.viewer-Codex-ad-c7c67--not-idle-and-must-not-hold/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r195-codex.viewer-Codex-ad-c7c67--not-idle-and-must-not-hold/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r195-codex.viewer.spec.ts:32:1 › Codex: unmount cancels the hold deadline and does not create another worker 
+
+    Error: no delayed part-frame worker after component teardown
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32m1[39m
+    Received: [31m2[39m
+
+      51 |  save('unmount',{basisBeforeUnmount:b,before,after});
+      52 |  const creates=(arr:any[])=>arr.filter(x=>x.kind==='create'&&x.url.includes('partFrameWorker')).length;
+    > 53 |  expect(creates(after),'no delayed part-frame worker after component teardown').toBe(creates(before));
+         |                                                                                 ^
+      54 | });
+      55 |
+        at /tmp/codex-r195-fd5ymume/repo/lcnc-webui/e2e/r195-codex.viewer.spec.ts:53:81
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r195-codex.viewer-Codex-un-1e3ce-s-not-create-another-worker/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r195-codex.viewer-Codex-un-1e3ce-s-not-create-another-worker/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r195-codex.viewer-Codex-un-1e3ce-s-not-create-another-worker/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r195-codex.viewer-Codex-un-1e3ce-s-not-create-another-worker/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: auto-no-run-basis is not idle and must not hold 
+    e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: mdi-active is not idle and must not hold ──
+    e2e/r195-codex.viewer.spec.ts:32:1 › Codex: unmount cancels the hold deadline and does not create another worker 
+  1 passed (33.0s)

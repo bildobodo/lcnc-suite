@@ -1,0 +1,33 @@
+{
+  "head": "c407c6f1",
+  "uncommitted": 0,
+  "note": "R195: VP188-02 E2 built",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 7
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 14
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "FAIL",
+      "seconds": 454
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2428,
+      "tests": "565 passed",
+      "note": "run alone"
+    }
+  ]
+}

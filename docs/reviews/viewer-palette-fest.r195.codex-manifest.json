@@ -1,0 +1,144 @@
+{
+  "round": "R195",
+  "verdict": "findings",
+  "findings": [
+    "VP-I132",
+    "VP-I133"
+  ],
+  "review_heading_line": 24530,
+  "reviewed_revision": "1f80cdcd898d54189ba029b853fd797ba7d47b0f",
+  "live_head_at_review": "328fcef2ccfbd7cc298b7608d2d87ac1ece0e5e6",
+  "input_files_before": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 2322663,
+      "sha256": "dd981659d1872c35c7810be072e11a68a745a7b130be2a9745a3a10fb0da2a7a"
+    },
+    "docs/reviews/basiswechsel-last.plan.md": {
+      "bytes": 22043,
+      "sha256": "4400a3a38f1abbf4c5dc60017075e633dd0007381658aaf8aafd3361a6dbd209"
+    },
+    "docs/reviews/viewer-palette-fest.r195.gate-frontend-first.json": {
+      "bytes": 677,
+      "sha256": "c7c164155d571c0dac91e5ad7d4c734f9d67970eb377b7797292192adfa251ef"
+    },
+    "docs/reviews/viewer-palette-fest.r195.gate-frontend-second.json": {
+      "bytes": 743,
+      "sha256": "e023e930f0a231768011801df6527ce2ab974e0f9ee2eaa4d280b5bfb0eb2198"
+    },
+    "docs/reviews/viewer-palette-fest.r195.gate-frontend.json": {
+      "bytes": 760,
+      "sha256": "f66fd4dd9a722b37af52cee5887e6a6a75c89e18847a3e5da99a8cfbf89fcc2a"
+    },
+    "docs/reviews/viewer-palette-fest.r195.mutations-first.txt": {
+      "bytes": 8334,
+      "sha256": "5f37016eaa3f8bf225c440b03b39e8dd68b797759f37880f9537f6cd9b33f50a"
+    },
+    "docs/reviews/viewer-palette-fest.r195.mutations-second.txt": {
+      "bytes": 5887,
+      "sha256": "dc94b839b4f1ee435a0107fcdbe05eeebb6f456d40961b75d1c56ebd282514ca"
+    },
+    "docs/reviews/viewer-palette-fest.r195.mutations.py": {
+      "bytes": 46825,
+      "sha256": "f259675e70f43767a2681d8620f27e6a781964e2adb569042b93248018b4bb8b"
+    },
+    "docs/reviews/viewer-palette-fest.r195.mutations.txt": {
+      "bytes": 6316,
+      "sha256": "73a034586cf7877e0d673ca02c429d366d3971697eddb8450da9a7edf075e69e"
+    },
+    "docs/reviews/viewer-palette-fest.r195.unit-first-failure.txt": {
+      "bytes": 989,
+      "sha256": "11b42ba40afea75374005b17c61c8608b2059201356d31f99eb653f8a41cbe5a"
+    }
+  },
+  "product_source_hashes": {
+    "lcnc-webui/src/ThreeViewer.vue": "3c6b814b3d28ec3425431c2038407c80ebe1f7b44dd384e8922b5e86b3d06055",
+    "lcnc-webui/src/lcncWs.exports.test.ts": "c61ae134984e3882a7fdc1723b99392f5ba14bbb287036430dea1803ad9d64cc",
+    "lcnc-webui/src/lcncWs.ts": "0c08a9a8a17cb03fdf0f99b370499512be7cd00f62e732d0477ff618438bf457",
+    "lcnc-webui/src/shims.d.ts": "ae8aad9deb88542e31ceaf2c4ef486faee6af31c3af61a676b3643e8ac0078f1",
+    "lcnc-webui/src/viewer/bakeHold.test.ts": "2beb97830977d8babe23b6b75006b3e8795a63232cc32b7044c8bfd5fcf3f50d",
+    "lcnc-webui/src/viewer/bakeHold.ts": "005b65d1f48eb4f25c23756ac78004fc3285b7d139a40256ed4cd882d1d42326",
+    "lcnc-webui/src/viewer/pathBasis.test.ts": "052d3b72ce420a74dc0345a189b8e0ed90b6f8a9b701e8732aa4482ad67bd1b8",
+    "lcnc-webui/src/viewer/pathBasis.ts": "9cd42308f0c27270a2e6b4f72abe7dd68c3488fd0f6b7f03797ac5b3f071532f",
+    "lcnc-webui/src/viewer/toolpathController.ts": "d5281cedcee8925e835ae6f93bc31187b25ab8caaf5b789713e0e69880cc543f",
+    "lcnc-webui/src/ws/bulkData.test.ts": "66c51c509e7f74dc877e05e9d2b0d3a077e0fe68a5ad2b2566d8128ec842f0ad",
+    "lcnc-webui/src/ws/bulkData.ts": "76f3436937c2edded487335dc5b723d16ad80716909d8dd30374c079d3b4f774"
+  },
+  "validation": {
+    "build": "PASS",
+    "provided_units": 86,
+    "provided_browser": 15,
+    "own_browser_pass": 1,
+    "own_browser_assertion_failures": 3,
+    "mutations_observed_red": 38,
+    "mutation_run_repeated": false,
+    "full_gate_repeated": false
+  },
+  "reproduction": {
+    "archive_root": "/tmp/codex-r195-fd5ymume/repo",
+    "archive_paths": [
+      "lcnc-webui",
+      "scripts",
+      "test-fixtures",
+      "lcnc-suite",
+      "examples"
+    ],
+    "dependencies": "/tmp/codex-r187-b4k897uq/repo/lcnc-webui/node_modules",
+    "mock": "127.0.0.1:4188 only",
+    "test_helpers": "e2e/ctl.ts localhost:4174 replaced by 127.0.0.1:4188; mock-gateway.mjs listen binds 127.0.0.1",
+    "own_probe_copy": "codex-probe.viewer.spec.ts -> e2e/r195-codex.viewer.spec.ts; codex-support.ts -> e2e/r195-codex-support.ts; adjust only /tmp/codex-r195-fd5ymume output directory if absent",
+    "provided_unit_command": "nice -n 10 npx vitest run src/viewer/bakeHold.test.ts src/viewer/pathBasis.test.ts src/ws/bulkData.test.ts src/lcncWs.exports.test.ts src/viewer/toolpathController.test.ts",
+    "provided_browser_command": "nice -n 10 npx playwright test e2e/bake-hold.viewer.spec.ts --config codex.playwright.config.ts",
+    "own_browser_command": "nice -n 10 npx playwright test e2e/r195-codex.viewer.spec.ts --config codex.playwright.config.ts",
+    "browser": "Chromium, one worker; no live endpoints"
+  },
+  "evidence": {
+    "viewer-palette-fest.r195.codex-auto-no-run-basis.json": {
+      "bytes": 480,
+      "sha256": "61081af476a60b4c7a7456d24a5836c1fc32a1b72a322e5a179da5578ee4e358"
+    },
+    "viewer-palette-fest.r195.codex-build.txt": {
+      "bytes": 2438,
+      "sha256": "43cd628931d8222311ef1a23fac623100c939c5fc7e0852f3cae97e43c5f2856"
+    },
+    "viewer-palette-fest.r195.codex-mdi-active.json": {
+      "bytes": 480,
+      "sha256": "582132fa18f6503547f4b41149feb9c09ca42c8fa2667c77076a8176fd628ac4"
+    },
+    "viewer-palette-fest.r195.codex-own-browser.txt": {
+      "bytes": 8937,
+      "sha256": "67b47df238e6ab91eeb66abf3e261373e7d805b34f8cfccad71b43da2064766a"
+    },
+    "viewer-palette-fest.r195.codex-plan-input.md": {
+      "bytes": 22043,
+      "sha256": "4400a3a38f1abbf4c5dc60017075e633dd0007381658aaf8aafd3361a6dbd209"
+    },
+    "viewer-palette-fest.r195.codex-playwright.config.ts": {
+      "bytes": 537,
+      "sha256": "11cc5f11d1ef980087fd40e0826ca272f3d9c6de87e8abd4a746aa39ee49fbda"
+    },
+    "viewer-palette-fest.r195.codex-probe.viewer.spec.ts": {
+      "bytes": 3167,
+      "sha256": "55042235e5f6c53fbb1a56a99a8eda063633e0cd0180bc1ceedcc7685ea67fe1"
+    },
+    "viewer-palette-fest.r195.codex-provided-browser.txt": {
+      "bytes": 2744,
+      "sha256": "7fa3b207a8ced0dbcd74a22ff0c3500402093d5bc069189624a5494d2349a20d"
+    },
+    "viewer-palette-fest.r195.codex-provided-unit.txt": {
+      "bytes": 226,
+      "sha256": "1145a2a0eb72cdc6d28752b4d97cb9a9d090dfb361c6eaa0604dc442b026b836"
+    },
+    "viewer-palette-fest.r195.codex-superseded-reply.json": {
+      "bytes": 500,
+      "sha256": "0d0d68dca5b10f1a25a1fba2e40845d6e5f5e0f024b4bc3715ac44995fb85d40"
+    },
+    "viewer-palette-fest.r195.codex-support.ts": {
+      "bytes": 6253,
+      "sha256": "9b067f5c49b5d7511fe985e909fbb677d731b8bd17aaebaa448f0c367fec4343"
+    },
+    "viewer-palette-fest.r195.codex-unmount.json": {
+      "bytes": 3238,
+      "sha256": "23d5f467e1014e23d8ee93558ab9925ae203afb968c38695c488852af09da24d"
+    }
+  }
+}

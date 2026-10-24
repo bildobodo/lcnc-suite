@@ -1,0 +1,26 @@
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/viewer/fatPaths.test.ts > the fat path draws exactly the GL path's pairs (Codex R39) > everything a build and a finding's view leave alive is in the ledger (gl, table)
+AssertionError: expected [ Array(1) ] to deeply equal []
+
+- Expected
++ Received
+
+- []
++ [
++   "buildFrameIndex (/home/cnc/lcnc-suite-c2/lcnc-webui/src/viewer/lineChunks.ts:48:19): 132 B",
++ ]
+
+ ❯ src/viewer/fatPaths.test.ts:519:92
+    517|         expect(alive.length, "the build holds what it drew").toBeGreat…
+    518|         const held = c.heldBuffers();
+    519|         expect(alive.filter(a => !held.has(a.buffer)).map(a => `${a.si…
+       |                                                                                            ^
+    520|       });
+    521|     }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 155 passed (156)
+      Tests  1 failed | 2568 passed (2569)

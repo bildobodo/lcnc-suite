@@ -1,0 +1,117 @@
+{
+  "basisBeforeUnmount": {
+    "drawn": "[\"/nc/hold.ngc\",100,\"part\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "want": "[\"/nc/hold.ngc\",100,\"part\",[0,0,-10,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "behind": true,
+    "stale": true,
+    "hold": "after_parse",
+    "held": true,
+    "mode": "part",
+    "wantMode": "part",
+    "admission": "no parse"
+  },
+  "before": [
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/wsWorker-KKeHcbK3.js"
+    },
+    {
+      "kind": "create",
+      "url": "blob:http://127.0.0.1:4188/eb50ab38-13ac-46de-b062-e5faa59aa9c2"
+    },
+    {
+      "kind": "terminate",
+      "url": "blob:http://127.0.0.1:4188/eb50ab38-13ac-46de-b062-e5faa59aa9c2"
+    },
+    {
+      "kind": "create",
+      "url": "blob:http://127.0.0.1:4188/e4d62191-d187-4656-8076-3cd2ed36370e"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/previewWorker-zTzcNKFy.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/machineNormalsWorker-DL0aYzwZ.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/partFrameWorker-xK0qWczC.js"
+    },
+    {
+      "kind": "terminate",
+      "url": "http://127.0.0.1:4188/static/machineNormalsWorker-DL0aYzwZ.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/edgeWorker-eka59H6v.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/collisionWorker-F43FQjpR.js"
+    },
+    {
+      "kind": "terminate",
+      "url": "http://127.0.0.1:4188/static/partFrameWorker-xK0qWczC.js"
+    },
+    {
+      "kind": "terminate",
+      "url": "http://127.0.0.1:4188/static/collisionWorker-F43FQjpR.js"
+    }
+  ],
+  "after": [
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/wsWorker-KKeHcbK3.js"
+    },
+    {
+      "kind": "create",
+      "url": "blob:http://127.0.0.1:4188/eb50ab38-13ac-46de-b062-e5faa59aa9c2"
+    },
+    {
+      "kind": "terminate",
+      "url": "blob:http://127.0.0.1:4188/eb50ab38-13ac-46de-b062-e5faa59aa9c2"
+    },
+    {
+      "kind": "create",
+      "url": "blob:http://127.0.0.1:4188/e4d62191-d187-4656-8076-3cd2ed36370e"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/previewWorker-zTzcNKFy.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/machineNormalsWorker-DL0aYzwZ.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/partFrameWorker-xK0qWczC.js"
+    },
+    {
+      "kind": "terminate",
+      "url": "http://127.0.0.1:4188/static/machineNormalsWorker-DL0aYzwZ.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/edgeWorker-eka59H6v.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/collisionWorker-F43FQjpR.js"
+    },
+    {
+      "kind": "terminate",
+      "url": "http://127.0.0.1:4188/static/partFrameWorker-xK0qWczC.js"
+    },
+    {
+      "kind": "terminate",
+      "url": "http://127.0.0.1:4188/static/collisionWorker-F43FQjpR.js"
+    },
+    {
+      "kind": "create",
+      "url": "http://127.0.0.1:4188/static/partFrameWorker-xK0qWczC.js"
+    }
+  ]
+}

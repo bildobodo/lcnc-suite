@@ -1,0 +1,37 @@
+r195_bh_bakes_when_held RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected false to be true // Object.is equality 7s
+r195_bh_unadmitted_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'parsing' to be 'free' // Object.is equality | AssertionError: each step is a transition: expected 'parsing' not to be 'parsing' // Object.is equality 7s
+r195_bh_epoch_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected false to be true // Object.is equality 7s
+r195_bh_gap_unwindowed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected null to be 7000 // Object.is equality 7s
+r195_bh_gap_ends RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'free' to be 'after_parse' // Object.is equality | AssertionError: expected false to be true // Object.is equality 7s
+r195_bh_older_arrival RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { state: 'loading', n: 2, …(4) } to be { state: 'parsing', n: 1, …(4) } // Object.is equality 7s
+r195_bh_loading_unwindowed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected null to be 20500 // Object.is equality 7s
+r195_bh_same_version_frees RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { state: 'free', n: 2, …(4) } to be { state: 'parsing', n: 1, …(4) } // Object.is equality 7s
+r195_bh_other_program_catchup RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected true to be false // Object.is equality 7s
+r195_bh_any_decode_failure RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { state: 'free', n: 3, …(4) } to be { state: 'loading', n: 2, …(4) } // Object.is equality 7s
+r195_bh_old_deadline GREEN!       Tests  11 passed (11)  7s
+r195_bh_catchup_unheld RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be +0 // Object.is equality | AssertionError: expected true to be false // Object.is equality 7s
+r195_bh_end_keeps_n RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected true to be false // Object.is equality 7s
+r195_pb_key_no_table RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: {"table":"G55:1,2,3"}: expected '["/nc/p.ngc",10,"part",[1,2,3],[0,0,0…' not to be '["/nc/p.ngc",10,"part",[1,2,3],[0,0,0…' // Object.is equality 7s
+r195_pb_key_no_mode RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: {"mode":"programmed"}: expected '["/nc/p.ngc",10,[1,2,3],[0,0,0],0,[0,…' not to be '["/nc/p.ngc",10,[1,2,3],[0,0,0],0,[0,…' // Object.is equality 7s
+r195_pb_key_no_rotation RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: {"rotationDeg":15}: expected '["/nc/p.ngc",10,"part",[1,2,3],[0,0,0…' not to be '["/nc/p.ngc",10,"part",[1,2,3],[0,0,0…' // Object.is equality 7s
+r195_pb_key_by_reference RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected '["/nc/p.ngc",10,"part",{"0":1,"1":2,"…' to be '["/nc/p.ngc",10,"part",[1,2,3],[0,0,0…' // Object.is equality 7s
+r195_pb_rewritten_out RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected false to be true // Object.is equality 7s
+r195_pb_behind_out_of_scope RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected true to be false // Object.is equality 7s
+r195_bd_mixed_failure RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { Object (file, version, ...) } to be { Object (file, version, ...) } // Object.is equality 7s
+r195_bd_reply_failure_unsaid RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected null to match object { file: '/nc/e.ngc', version: 81 } 7s
+r195_tv_timer_not_held RED 5 passed (1.7m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 126s
+r195_tv_behind_unmuted RED 11 passed (1.7m) Error: muted without a parse and with the preview's basis back at the live one | Expected: true 125s
+r195_tv_drawn_is_wanted RED 13 passed (1.8m) Error: drawn −10, wanted −20 | Expected: true 131s
+r195_tv_timer_not_consumed RED 13 passed (1.8m) Error: the timer was consumed | Expected: 3 130s
+r195_tv_admission_watch RED 13 passed (1.9m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "parsing" 139s
+r195_tv_admission_run RED 13 passed (1.9m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "a run" 138s
+r195_tv_admission_scope RED 13 passed (1.8m) Error: no hold — nothing it could hold | Expected: "free" 128s
+r195_tv_fallback_named_part RED 13 passed (1.9m) Error: expect(received).toContain(expected) // indexOf | Expected substring: "\"programmed\"" 137s
+r195_tv_scene_clear_keeps RED 13 passed (2.1m) Error: expect(received).toEqual(expected) // deep equality | - Expected  - 2 148s
+r195_tv_want_not_per_frame RED 4 passed (2.4m) Error: drawn B, wanted A | Expected: true 169s
+r195_tv_connection_no_catchup RED 13 passed (1.9m) Error: expect(received).toBe(expected) // Object.is equality | Expected: 3 139s
+r195_tv_adoption_not_said RED 13 passed (1.8m) Error: re-baked within the debounce, not at a window's end | Expected: 4 134s
+r195_tv_arrival_not_said RED 13 passed (1.7m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "loading" 127s
+r195_tv_key_from_live_later RED 2 passed (4.5m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 294s
+r195_tv_want_mode_from_fallback RED 13 passed (2.1m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 148s
+rebuild ok 164s
