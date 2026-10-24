@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r195-fd5ymume/repo/lcnc-webui
+
+
+ Test Files  5 passed (5)
+      Tests  86 passed (86)
+   Start at  05:47:43
+   Duration  338ms (transform 475ms, setup 0ms, import 753ms, tests 166ms, environment 0ms)
+

@@ -1,0 +1,18 @@
+{
+  "input": {
+    "task_mode": 3,
+    "interp_state": 2,
+    "run_basis": null
+  },
+  "basis": {
+    "drawn": "[\"/nc/hold.ngc\",100,\"part\",[0,0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "want": "[\"/nc/hold.ngc\",100,\"part\",[0,0,-10,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "behind": true,
+    "stale": true,
+    "hold": "parsing",
+    "held": true,
+    "mode": "part",
+    "wantMode": "part",
+    "admission": null
+  }
+}
