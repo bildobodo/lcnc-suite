@@ -31,6 +31,9 @@ python3 -m pip install -U pip
 echo "==> Installing requirements..."
 python3 -m pip install -r "$REQ_FILE"
 
+echo "==> Checking that numpy comes from the system (issues #12, #42)..."
+python3 "$ROOT_DIR/venv_check.py"
+
 echo "==> Verifying imports..."
 python3 -c "import linuxcnc, fastapi, uvicorn; print('OK: linuxcnc + fastapi + uvicorn')"
 
