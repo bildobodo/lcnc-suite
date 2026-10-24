@@ -1,0 +1,121 @@
+[
+ {
+  "switch": 1,
+  "to": "touch 1",
+  "z": null,
+  "variant": "touch",
+  "job": 69,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832872133478915,
+  "spawn_ns": 1792832872164702325,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 2,
+  "to": "touch 2",
+  "z": null,
+  "variant": "touch",
+  "job": 70,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832876144416482,
+  "spawn_ns": 1792832876268398453,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 3,
+  "to": "touch 3",
+  "z": null,
+  "variant": "touch",
+  "job": 71,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832880150680413,
+  "spawn_ns": 1792832880248402201,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 4,
+  "to": "touch 4",
+  "z": null,
+  "variant": "touch",
+  "job": 72,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832884157254852,
+  "spawn_ns": 1792832884262626794,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 5,
+  "to": "touch 5",
+  "z": null,
+  "variant": "touch",
+  "job": 73,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832888162212041,
+  "spawn_ns": 1792832888268178902,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 6,
+  "to": "touch 6",
+  "z": null,
+  "variant": "touch",
+  "job": 74,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832892167398028,
+  "spawn_ns": 1792832892255977157,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 7,
+  "to": "touch 7",
+  "z": null,
+  "variant": "touch",
+  "job": 75,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832896172899523,
+  "spawn_ns": 1792832896281333811,
+  "ended": [
+   "gcode.parse_cancelled",
+   "gcode.reparse_superseded"
+  ]
+ },
+ {
+  "switch": 8,
+  "to": "touch 8",
+  "z": null,
+  "variant": "touch",
+  "job": 76,
+  "basis": "93fa13e1c910",
+  "reason": "file",
+  "switch_ns": 1792832900178304233,
+  "spawn_ns": 1792832900272685967,
+  "ended": [
+   "gcode.publish"
+  ]
+ }
+]

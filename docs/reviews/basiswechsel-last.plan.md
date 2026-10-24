@@ -1,22 +1,23 @@
 # VP188-02 — Statusalter bei wiederholten Versatzwechseln (Plan)
 
-**Fassung 4 · 24. Oktober 2026 · Zweig `feat/vp188-basiswechsel` (Schritt 0 und N1 gebaut, R192 Agreement, gemergt `a8486ee9`) · Merge nach `development` über den Integrationszweig, nie `main`.**
+**Fassung 5 · 24. Oktober 2026 · Gebaut und gemergt: Schritt 0 und N1 (`feat/vp188-basiswechsel`, R192, `a8486ee9`), E2 (`feat/vp188-e2`, R196, `25274d40`). E1 auf einem neuen Zweig `feat/vp188-e1` · Merge nach `development` über den Integrationszweig, nie `main`.**
 
 Bisheriger Verlauf:
 - R191 hat aus Fassung 2 Schritt 0 und N1 freigegeben. Die Reste A–C des Zustandsvertrags blieben dabei für E1 offen.
 - Schritt 0 und N1 sind gebaut (R192 Agreement).
-- Der Diagnoselauf danach zeigt: Das Ziel ist weiter verfehlt, und die Hauptlast ist der Neuaufbau des gezeichneten Pfads (Abschnitt 1).
+- Der Diagnoselauf danach zeigt: Das Ziel ist weiter verfehlt, und die Hauptlast **des Hauptthreads** ist der Neuaufbau des gezeichneten Pfads (Abschnitt 1).
 - Der Operator wählte am 23. Oktober „Pfad wartet“: E2 in enger Form.
 - R193 nahm den Wegfall von E1 und die Richtung von E2 an. Mit VP193-01 verlangte es einen eigenen Vertrag für den **tatsächlich gezeichneten** Pfad.
+- R194 gab Fassung 4 frei. R195 fand VP-I132 und VP-I133, R196 gab den Bau frei.
+- **Nach E2** (Abschnitt 1b): E2 hält 7 von 8 Neuaufbauten, das Ziel bleibt verfehlt (p95 80 / 62 ms). Es fehlen Animationsframes, während die Timer-Verspätung des Hauptthreads niedrig bleibt.
+- Der Operator wählte am 24. Oktober einen **Trennungslauf**. Er zeigt: Der Parse des Gateways allein kostet nichts; die Kollisionsprüfung, die neben ihm neu startet, nimmt dem Browser die Frames. Das ist die Messung, ohne die E1 laut Fassung 4 nicht zurückkommt.
 
-Fassung 4:
-- **Abschnitt 3** trennt Halten (3a), übernommene Vorschau und angewandten Pfadstand (3b). Er nimmt die Konkretisierungen aus R193 auf:
-  - Geltungsbereich am vorhandenen Kriterium;
-  - Zulassung bei jedem `preview_refresh`;
-  - Zeitgeber verbraucht;
-  - die erste Rückmeldung als erwarteter Ablauf, nicht als Zusage.
-- **Abschnitt 5** hat neue Wächter.
-- **Abschnitt 10** enthält die Antworten auf R193.
+Fassung 5:
+- **Abschnitt 1b:** die Läufe nach E2 und der Trennungslauf.
+- **Abschnitt 3e:** E1 — die Prüfung wartet am **selben** Halten wie der Pfad.
+- **Abschnitt 3a:** Die Zulassung verliert die Bedingung „Pfad im Geltungsbereich“. Das korrigiert einen vereinbarten Punkt aus R193; die Begründung steht dort.
+- **Abschnitte 5–7:** Wächter, Messung, die Rechenbudget-Beobachtung.
+- **Abschnitt 11:** R194–R196.
 
 ## 1 · Ausgangslage
 
@@ -58,6 +59,35 @@ Das Ziel wird nicht gelockert.
   - **Folge für E2:** Sieben der acht Neuaufbauten ersetzt die Veröffentlichung ohnehin.
 - **Vergleich zu R188:** Das Alter in S_supersede ist ähnlich (58/68 vorher, 60 jetzt). Ein isolierter Gewinn von N1 ist damit nicht belegt (R192: kein Vorher-Lauf).
 
+## 1b · Nach E2 (24. Oktober)
+
+**Läufe** (`drive2.py --to S --no-keys`, die Seite des Operators: Firefox auf dem Mac, der auch die VM trägt; S_supersede, je acht ersetzte Parse-Prozesse im Abstand von etwa 4 s):
+
+| | vor E2 (R192) | E2, Lauf 1 | E2, Lauf 2 | Trennungslauf |
+|---|---|---|---|---|
+| Auslöser je Schritt | G54 Z ±1 mm | G54 Z ±1 mm | G54 Z ±1 mm | **neue Dateizeit** |
+| Pfad-Neuaufbauten (`path_reply`) | 8 · Σ 584 ms | 1 · 88 ms | 1 · 54 ms | 0 |
+| Hauptthread-Spannen gesamt | 624 ms | 107 ms | 74 ms | 0 |
+| Prüfungen gestartet / abgebrochen | 8 / 7 | 8 / 7 | 8 / 7 | 0 / 0 |
+| Statusalter p95 / p99 / max (ms) | 60 / 110 / 163 | **80 / 130 / 167** | **62 / 110 / 134** | **36 / 38 / 46** |
+| Statusbilder über 50 ms | 6,4 % | 10,9 % | 7,5 % | 0 % |
+| Animationsframes je 3-s-Zeile (sonst 180) | 162 | 153 | 161 | 180 |
+| rAF-Lücke p95, Mittel der Zeilen (ms) | 33 | 40 | 34 | 18 |
+| Timer-Verspätung p95, größte Zeile (ms) | 14 | 15 | 12 | 10 |
+| letzter Parse bis zur Veröffentlichung | 18,2 s | 21,9 s | 18,9 s | **8,1 s** |
+
+- **E2 wirkt wie gebaut:** Der eine Neuaufbau ist der erste Wechsel; er backt nach 300 ms, das Parse-Signal kommt erst nach etwa 4 s. Die übrigen sieben werden gehalten.
+- **Das Ziel bleibt verfehlt.** Zwei Läufe streuen wie die drei davor (58, 68, 60): kein Gewinn über die Streuung.
+- **Es fehlen Frames bei niedriger Timer-Verspätung.** Die Statusbilder werden je Animationsframe angewandt. In S_supersede fehlen Frames (153–162 statt 180 je Zeile, Lücken bis 139 ms), während die Timer-Verspätung des Hauptthreads p95 ≤ 15 ms bleibt. Das heißt nicht, dass der Hauptthread jederzeit frei war: einzelne Maxima reichen bis 138 ms (R197). Dasselbe Muster war vor E2 da; die Spannen des Hauptthreads konnten es nicht zeigen.
+- **Der Trennungslauf** (`drive2.py --touch --hold 3.8`): Statt eines Versatzwechsels bekommt `bpc_parse.ngc` eine neue Dateizeit. Der Gateway ersetzt seinen Parse genauso (Dateikante, sieben Abbrüche, jeder nach etwa 4 s; S met), die Seite sieht keinen geänderten Wert: kein Neuaufbau, keine neue Prüfung. Die Frames bleiben vollständig, das Alter bei 36 ms. Der Lauf ändert neben den Prüfstarts auch den Auslöser und vermeidet den ersten Neuaufbau (R197); er trennt die Arbeiten, nicht deren Mechanismus.
+- **Die übrigen Zellen:** Parse allein (S_load, Trennungslauf) und Prüfung allein (S_settle, 45–53 s) erreichen das Ziel in jedem Lauf. Erst Prüfung und Parse gleichzeitig nehmen die Frames; in den Zeilen nach dem letzten Wechsel, wo beide ohne neuen Start weiterlaufen, ist der Verlust kleiner (rAF 161–174 je Zeile).
+- **Konkurrenz der Arbeiten:** Der letzte Parse braucht neben der laufenden Prüfung 17–22 s (fünf Versatzläufe), allein 7,6–8,1 s (S_load jedes Laufs, Trennungslauf). Die Prüfung rechnet in K = Kerne − 2 Workern.
+  - **Hypothese** (R197): Zusammen mit dem Parse in der VM bleibt dem Browser zu wenig Rechenzeit für seine Frames. Gemessen ist die Konkurrenz der Arbeiten, nicht der Zustand des Schedulers; Kernbelegung und eine Compositor- oder GPU-Ursache sind nicht isoliert.
+- **Nebenbefund:** Die Rundlaufzeit Seite ↔ Gateway steigt in S_supersede auf 34–50 ms (sonst 12–16). Das sind drei Stichproben je Zeile; es passt zum Bild und ist kein eigener Beleg.
+- **Grenzen:** ein Trennungslauf gegen fünf Versatzläufe. Er belegt diesen Aufbau (Browser und VM auf einem Mac), nicht den Maschinen-PC.
+
+**Folge:** E1 adressiert die gemessene Konkurrenz. Der Pfad (E2) war die Hauptlast des **Hauptthreads**, die Prüfung neben dem Parse ist die Last des **Rechners**.
+
 ## 2 · Schritt 0 · gebaut (R192)
 
 Wie in Fassung 2. Gebaut und angenommen:
@@ -65,11 +95,11 @@ Wie in Fassung 2. Gebaut und angenommen:
 - die Auswertung `main_thread` je Phase;
 - `drive2.py --to S` und neu `--no-keys`: keine Tastenaufforderung, eine Meldung „Messlauf ohne Eingabe“, `setup.json.keys_requested`; der Bericht zählt `presses` je Phase.
 
-## 3 · Verhaltensänderung · E2 in enger Form (Operator-Entscheidung)
+## 3 · Verhaltensänderung · E2 in enger Form (Operator-Entscheidung) und E1 (Fassung 5)
 
-**E1 entfällt.**
-- E1 adressiert die gemessene Hauptlast nicht (R193: so formuliert statt „erreicht das Ziel nicht“; ein Gegenversuch wurde nicht gemacht).
-- Bleibt das Ziel nach E2 verfehlt, kommt E1 nicht ohne eine neue Messung zurück, die es begründet.
+**E1 kommt mit einer Messung zurück (Fassung 5).**
+- Fassung 4: E1 adressiert die gemessene Hauptlast **des Hauptthreads** nicht; ohne eine Messung, die es begründet, kommt E1 nicht zurück.
+- Der Trennungslauf (Abschnitt 1b) ist diese Messung: Die Prüfung, die neben dem Parse neu startet, nimmt dem Browser die Frames. E1 steht in 3e.
 
 **E2 eng.** Der Pfad wird nicht neu gebacken, solange ein Neu-Parse der geladenen Datei unterwegs ist. Er bleibt gedämpft, bis der **passende Pfad tatsächlich gezeichnet** ist (VP193-01).
 
@@ -87,7 +117,7 @@ Drei getrennte Dinge (VP193-01):
   - eine vom Programm umgeschriebene Epoche 0,
   - eine Epoche-0-Zuordnung, die nicht die aktive ist.
 
-R193 zeigte 0/1/1 Zeitgeber für den ausgenommenen Fall, die umgeschriebene Epoche und die andere aktive Zuordnung. Nur dieser Bereich wird gehalten und bekommt den Pfadstand aus 3b. Die Reichweitenhülle (`_reachSchedule`) bleibt ungehalten.
+R193 zeigte 0/1/1 Zeitgeber für den ausgenommenen Fall, die umgeschriebene Epoche und die andere aktive Zuordnung. Nur **Bake-Anforderungen** dieses Bereichs werden gehalten und bekommen den Pfadstand aus 3b (die Prüfung wartet für jedes Programm, 3e). Die Reichweitenhülle (`_reachSchedule`) bleibt ungehalten.
 
 **Regel:**
 - Eine Neuback-Anforderung über `_pfScheduleWcsRefresh` startet wie heute einen 300-ms-Zeitgeber. Das betrifft G5x, G92, XY-Rotation, die Versatztabelle und den Werkzeugversatz ohne Werkzeugbasis.
@@ -106,12 +136,17 @@ R193 zeigte 0/1/1 Zeitgeber für den ausgenommenen Fall, die umgeschriebene Epoc
 
 **Ein Halten beginnt nur unter Zulassung.** Geprüft wird **bei jedem** `preview_refresh`, nicht nur bei einer Eintrittskante:
 - verbunden;
-- Maschine ohne Lauf (kein AUTO-Lauf, Interpreter im Leerlauf);
+- Maschine ohne Lauf: der Interpreterzustand aus dem Status, bekannt und im Leerlauf (R195 VP-I132);
 - keine Simulation;
-- angezeigte Datei;
-- Pfad im Geltungsbereich.
+- angezeigte Datei.
 
 Ohne Zulassung bleibt der Zustand `frei`. Ein `preview_refresh` bei bereits laufender Maschine oder aktiver Simulation hält also nichts.
+
+**Fassung 5 · ohne „Pfad im Geltungsbereich“.** Fassung 4 ließ ein Halten nur zu, wenn der Pfad den Versätzen folgt. Mit E1 (3e) hat das Halten einen zweiten Nutzer: Die Prüfung hängt für **jedes** Programm von den Versätzen ab. Deshalb entfällt die Bedingung in der Zulassung.
+- **Für den Pfad ändert sich nichts.** Außerhalb des Geltungsbereichs kehrt `_pfScheduleWcsRefresh` vor seinem Zeitgeber zurück: Es entsteht keine Bake-Anforderung, die gehalten werden könnte, also auch kein vermerkter Wechsel und kein Nachbacken. Der Pfad folgt dort wie heute sofort seinem Live-Anker.
+- `pathBehind` bleibt auf den Geltungsbereich beschränkt (`wantKey` ist außerhalb `null`).
+- Wechselt ein Programm während eines Haltens in den Geltungsbereich (eine Epoche-0-Zuordnung wird aktiv), wird sein nächster Wechsel gehalten wie jeder andere.
+- **Wächter:** ein Programm außerhalb des Geltungsbereichs, ein Versatzwechsel unter einem Parse: der Pfad folgt sofort, kein Neuaufbau angefordert, die Prüfung wartet.
 
 **Zustände und Übergänge:**
 
@@ -188,11 +223,61 @@ Ohne Zulassung bleibt der Zustand `frei`. Ein `preview_refresh` bei bereits lauf
   - Der Pfad ist gedämpft nach `pathStaleNow` (3b).
   - Die HUD-Zeile „Preview re-parsing“ bleibt, wie sie ist. Ihr „?“ sagt schon, dass Pfad, Limit-Marken und Simulation mit der neuen Vorschau kommen.
   - Für `pathBehind` ohne laufenden Parse kommt keine eigene Zeile. Die Dämpfung ist das Zeichen, wie bei den anderen Stale-Gründen.
-- **Kollisionsprüfung:** unverändert. Sie liest die Prüfung, nicht den gezeichneten Pfad.
+- **Kollisionsprüfung:** wartet am selben Halten (3e, Fassung 5).
 - **Abwägung (vom Operator gewählt):**
   - Bei 600 000 Zeilen bleibt der Pfad nach einem gehaltenen Wechsel bis zur neuen Vorschau am alten Ort, 7–16 s, gedämpft.
   - Kleine Programme parsen in unter einer Sekunde.
 - **Erwartung im S-Fall:** zwei Neuaufbauten statt neun. Ob das das Ziel erreicht, zeigt erst die Messung.
+
+### 3e · E1 · Die Prüfung wartet am selben Halten (Fassung 5)
+
+**Ein Halten, zwei Nutzer.** Das Halten aus 3a entscheidet auch über die Kollisionsprüfung. Es gibt kein zweites Halten mit eigener Zulassung und eigenen Fristen.
+
+**Solange das Halten nicht `frei` ist:**
+1. **Kein Neustart.** Eine Neuprüfung nach einem Versatz- oder Werkzeugwechsel (`_colScheduleAuto`, 400 ms) startet nicht, sie wird **vermerkt**.
+   - Beim Wechsel werden die Befunde wie heute verworfen; sie gehören zu den alten Werten.
+   - Ein weiterer Wechsel ohne laufende Prüfung und ohne Befund plant schon heute nichts; der eine Vermerk deckt ihn, denn das Nachprüfen beginnt am Live-Stand.
+2. **Eine laufende Prüfung pausiert.** Ein eigener Halt `reparse` im Prüf-Worker, unabhängig von `camera`, `hidden` und `decode`, je mit eigener Freigabe: kein Rechnen, der Stand bleibt.
+   - Gesendet nur beim Übergang `frei` ↔ gehalten, nicht bei jedem Zustandswechsel innerhalb des Haltens (die Ersetzungslücke wechselt `parsing` ↔ `after_parse`).
+   - Eine während des Haltens gesendete Prüfung beginnt pausiert (`_colApplyPauses`).
+   - Der Rückfall auf einen Kern nimmt den Halt mit (`Holds`, wie `pausedDecode`).
+
+**Ende des Haltens:**
+- **Übernahme der neueren Version:** Der vorhandene `viewerGcode`-Beobachter bricht die alte Prüfung ab und plant die der neuen Version (400 ms). Das Halten endet in derselben Änderung synchron; der Zeitgeber findet es `frei` vor, gleich in welcher Reihenfolge die beiden Beobachter laufen. Kein Nachprüfen.
+- **Ende ohne Übernahme** (Frist, eigener Dekodierfehler, Verbindung, Laufbeginn, Simulation):
+  - War ein Neustart vermerkt, wird er **einmal** über `_colScheduleAuto` angefordert. Dessen eigene Bedingungen entscheiden weiter: im Lauf die Prüfung im Lauf bzw. `_colHeldByRun`, in der Simulation die ScrubBar.
+  - Sonst setzt die pausierte Prüfung fort.
+- **Ein anderes Programm:** kein Nachprüfen; sein Laden plant seine Prüfung.
+- **Abbau des Viewers:** Das Halten wird ohne Nachprüfen verworfen; `_colAutoTimer` wird dort schon gelöscht (VP-I133 sinngemäß).
+
+**Reiner Zustand.** `bakeHold.ts` bekommt einen zweiten Vermerk:
+- Ereignis `check`: `frei` → jetzt prüfen; sonst vermerken.
+- `HoldStep.check`: Nachprüfen beim Ende ohne Übernahme, nur mit Vermerk.
+- `held` bleibt der Bake-Vermerk; beide sind unabhängig.
+
+**Reste A–C aus R191 für die Prüfung:**
+- **A:** Die Prüfung der übernommenen Version beginnt mit dem Live-Stand bei ihrem Start (`CheckBasis`); ein gehaltener Wechsel ist darin enthalten. Eine abweichende Parse-Basis bleibt sichtbar wie heute, ihr Neu-Parse beginnt ein neues Halten.
+- **B, C:** über das gemeinsame Halten (nur der eigene Dekodierfehler, Frist 20 s für `loading`).
+
+**Nicht gehalten:**
+- **Seitenprüfungen** (die Einfahrbahn nach einer Bewegung außerhalb der Simulation, der Anfang einer Prüfung im Lauf): eigene Wege, eine Umfangsgrenze. **Keine** Zusage kurzer Rechenzeit: Die startabhängige Anfangsstrecke kann das ganze Programm umfassen (R197). Die Messung hält Grund- und Seitenprüfung auseinander. E1 begrenzt weder deren Rechenzeit noch allgemein die Rechnerlast. Benannt, nicht gebaut.
+- **Die Prüfung im Lauf:** Ein Lauf lässt kein Halten zu.
+- **Die Prüfung nach dem Laden:** Sie beginnt erst mit der Vorschau, also nach dem Parse.
+
+**Anzeige:**
+- Das Sim-Tab liest „Collisions not checked“, solange die Befunde verworfen sind, bzw. bei einer pausierten Prüfung ihren Stand („12 % checked“), wie bei den anderen Halten. Kein neues Wort.
+- Das „?“ der HUD-Zeile „Preview re-parsing“ nennt die Prüfung: „Path, limits, collision check and simulation update when it lands“. Die Länge mit Grund und Zeit wird im Bau gegen die Hilfe-Grenze geprüft.
+
+**Was entfällt, was es kostet:**
+- Es entfallen die vorläufigen Befunde einer neu gestarteten Prüfung zwischen 0,4 s und der Veröffentlichung. Die Veröffentlichung verwarf sie bisher ohnehin; auf 600 000 Zeilen lief keine bis zum Ende (3,6–5,3 s bis zum Abbruch).
+- Endet ein Parse ohne Veröffentlichung (ein Prüf-Parse mit gleichem Ergebnis, `__SAME__`), wartet die Prüfung die 6 s der Lücke ab, bevor sie fortsetzt oder neu startet.
+
+**Erwarteter Ablauf im S-Fall** (Abnahmekriterium der Messung, Abschnitt 6):
+1. Wechsel 1: Neuaufbau nach 300 ms, Prüfung nach 400 ms, beide ohne Parse daneben (der Parse beginnt nach etwa 4 s).
+2. Parse-Signal → `parsing` → die laufende Prüfung pausiert.
+3. Wechsel 2: Befunde verworfen, die pausierte Prüfung abgebrochen, Neustart vermerkt. Wechsel 3–8: nichts.
+4. Veröffentlichung → Übernahme → ein Neuaufbau und eine Prüfung, ohne Parse daneben.
+- Im Bericht für S_supersede: `sweep_start` **1**, `sweep_cancelled` **1**, `path_reply` 1.
 
 ## 4 · Verhaltensneutrale Korrekturen
 
@@ -230,22 +315,47 @@ Ohne Zulassung bleibt der Zustand `frei`. Ein `preview_refresh` bei bereits lauf
   4. **Eine vor dem Halten angeforderte Antwort nach einem weiteren vermerkten Wechsel:** wird gezeichnet, die Dämpfung bleibt bis zum passenden Aufbau.
   5. **Ein gescheiterter Aufbau:** Der Worker fällt aus, der Rückfall auf den programmierten Pfad wird angewandt. Er setzt `drawn`, und die Dämpfung folgt seinem Schlüssel.
 - **Mutationen:** jede Haltebedingung, die Zulassung, das Nachbacken, die Fristen, die Fehlerquelle, die Bindung, jeder Bestandteil des Bauschlüssels, `pathBehind` in `pathStaleNow`, das Setzen von `drawnKey` nur bei Anwendung.
+- **E1 (Fassung 5), Unit** (`bakeHold.ts`):
+  - `check` frei → jetzt; gehalten → vermerkt, einmal; `held` und der Prüf-Vermerk unabhängig;
+  - Nachprüfen bei jedem Ende ohne Übernahme nur mit Vermerk; Übernahme und anderes Programm ohne;
+  - die Zulassung ohne die Geltungsbereichs-Bedingung.
+- **E1, Prüf-Worker** (`collisionWorker.test.ts`, über die Ersatz-Worker): der Halt `reparse` hält und gibt frei, unabhängig von `decode` und `camera`; der Rückfall auf einen Kern trägt ihn mit.
+- **E1, Browser** (über den Mock; gezählt über `browser.collision.sweep_*` bzw. `__viewerDiag` und den Haltelog):
+  1. Versatzwechsel ohne Parse: genau eine Neuprüfung, wie heute.
+  2. Wechsel, dann `preview_refresh`: Die laufende Prüfung pausiert (Haltelog `reparse on`). Weitere Wechsel: kein Start. Übernahme: genau eine Prüfung der neuen Version, am Live-Stand.
+  3. Die Ersetzungslücke (`parsing` → `after_parse` → `parsing`): kein weiteres `reparse`-Senden.
+  4. `preview_refresh` verschwindet ohne Veröffentlichung: nach 6 s mit Vermerk genau eine Neuprüfung; ohne Vermerk setzt die pausierte fort (`reparse off`), kein Start.
+  5. Ein Lauf, die Simulation, die Verbindung im Halten: Nachprüfen über `_colScheduleAuto`, dessen Bedingungen gelten (im Lauf kein Start auf der Grundlinie).
+  6. Ein Programm außerhalb des Geltungsbereichs: Versatzwechsel unter einem Parse → der Pfad folgt **geometrisch** sofort seinem Live-Anker (gemessen an der gezeichneten Lage, nicht nur am Aufbauzähler), kein Neuaufbau angefordert, die Prüfung wartet (ersetzt den Fall „nichts zu halten“ aus R195).
+  7. Abbau im Halten mit vermerktem Neustart: danach keine Prüfung, kein neuer Worker.
+  8. Das „?“ der HUD-Zeile nennt die Prüfung.
+- **E1, Mutationen:** der Vermerk, das Nachprüfen, die Pause beim Übergang, die Freigabe, der Rückfall mit `pausedReparse`, die Zulassung ohne Geltungsbereich, die Übernahme ohne Nachprüfen.
 - **Gates:** Frontend (Lint, Build, Unit, Browser); Backend unverändert, kein Gateway-Code.
 - **Codex-Runden:** diese Fassung, dann die Umsetzung.
 
 ## 6 · Messungen
 
-1. **Nach E2:** derselbe Diagnoselauf `--to S --no-keys`, gegen 60 ms aus Abschnitt 1. Der Bericht nennt die Spannen vorher und nachher und die Zahl der Neuaufbauten.
+1. **Nach E2:** derselbe Diagnoselauf `--to S --no-keys`, gegen 60 ms aus Abschnitt 1. Der Bericht nennt die Spannen vorher und nachher und die Zahl der Neuaufbauten. **Gelaufen** (Abschnitt 1b): zweimal, verfehlt; dazu der Trennungslauf.
+1b. **Nach E1:** derselbe Diagnoselauf (Versatzwechsel) `--to S --no-keys`.
+   - **Ablauf** wie in 3e erwartet: S_supersede `sweep_start` 1, `sweep_cancelled` 1, `path_reply` 1, S met.
+   - **Frames:** Animationsframes je Zeile und rAF-Lücke wie im Trennungslauf (180, 18 ms), daneben das Statusalter gegen 80 / 62 ms (E2) und 36 ms (Trennungslauf).
+   - **Parse:** der letzte Parse wieder um 8 s statt 17–22 s.
+   - Verfehlt der Lauf das Ziel mit dem erwarteten Ablauf: zurück zum Operator, mit der Zeilentabelle.
 2. **Abnahme:** A, S und R vollständig, die Seite des Operators.
    - **Eingabe:** mit Tasten. Die Aufforderungen zu Beginn von S_supersede und S_settle sind schon gebaut. Die Eingabe belegen die Ereignisse (`presses`, `in_n`).
    - **Ziel:** Statusalter p95 < 50 ms in S_supersede, keine Verschlechterung anderswo, S met, R proven.
-   - **Wenn das Ziel nach E2 verfehlt bleibt:** zurück zum Operator, mit der neuen Spannentabelle.
+   - **Wenn das Ziel nach E2 verfehlt bleibt:** zurück zum Operator, mit der neuen Spannentabelle. (Geschehen; der Operator wählte den Trennungslauf.)
+   - Die Abnahme folgt nach E1.
 
 ## 7 · Nicht in diesem Plan
 
 - Die Abnahme auf dem echten Maschinen-PC und der Live-Lauf mit M600 bleiben eigene Punkte.
 - Ein G54/G55-Wechsel ohne Versatzänderung löst keinen Neu-Parse aus. Das bleibt benannt.
 - N2 bleibt getrennt.
+- **Das Rechenbudget der Prüfung auf einem geteilten Rechner** (benannt, nicht gebaut): K = Kerne − 2 lässt dem Browser zwei Kerne und rechnet nicht mit einem Gateway auf demselben Rechner. Auf dem Mac des Operators (er trägt die VM) brauchte der Parse neben der Prüfung 17–22 s statt 8 s, und die Frames fehlten. Dasselbe gilt für einen Maschinen-PC mit dem Browser am selben Gerät.
+  - E1 nimmt die Überlappung nur während eines Neu-Parse. Die Prüfung eines frisch geladenen Programms rechnet weiter neben allem anderen.
+  - Die nicht gewählte Alternative ist ein kleineres K: Es verlängert jede Prüfung und verschiebt das Problem, statt die Überlappung zu vermeiden. Offener Punkt für die Abnahme am Maschinen-PC.
+- **Der Trennungslauf** (`drive2.py --touch`) ist ein Messwerkzeug, kein Produktpfad. Er bleibt für spätere Läufe erhalten.
 
 ## 8 · Antworten auf R190
 
@@ -280,3 +390,13 @@ Ohne Zulassung bleibt der Zustand `frei`. Ein `preview_refresh` bei bereits lauf
 | Lauf, Simulation, Verbindung | Angenommen. | 3a: Zulassung bei jedem `preview_refresh`; Wächter mit dem Zustand schon vor dem Parse-Signal; Zeitgeber werden bei Übernahme und Nachbacken verbraucht. |
 | Erste Rückmeldung | Angenommen. | 3a: als erwarteter Ablauf des S-Falls formuliert, die Werkstück-Markierung getrennt. |
 | Historie | Angenommen. | Kopf: R191 gab Schritt 0 und N1 frei, A–C blieben offen. |
+
+## 11 · R194–R196 (Fassung 5)
+
+| Punkt | Antwort | Änderung |
+|---|---|---|
+| R194 · Agreement für Fassung 4 | Gebaut. | E2 auf `feat/vp188-e2`. |
+| R195 · VP-I132 | Behoben. | 3a: Zulassung und Ende lesen den Interpreterzustand aus dem Status, bekannt und im Leerlauf. Gemessen: 40 MDI-Versatzwechsel, kein Statusbild außerhalb des Leerlaufs. |
+| R195 · VP-I133 | Behoben. | Der Abbau verwirft Frist, Halten und zurückgehaltene Antworten. |
+| R196 · Agreement, Diagnoselauf | Gemergt `25274d40`, zwei Läufe und der Trennungslauf. | Abschnitt 1b; E1 in 3e; die Abnahme folgt nach E1. |
+| R197 · Agreement, Präzisierungen | Angenommen. | 1b: Frames bei niedriger Timer-Verspätung (Maxima benannt), die Rechnerlast als Hypothese, der Trennungslauf ändert auch Auslöser und ersten Neuaufbau. 3a: „Nur dieser Bereich“ bezieht sich auf Bake-Anforderungen. 3e: Seitenprüfungen ohne Millisekunden-Zusage. 5: Fall 6 misst die Geometrie. Umsetzungshinweise (Zeitgeber-Ablauf, `pausedReparse` durch alle Besitzer, Reihenfolgen) gehen in den Bau. |

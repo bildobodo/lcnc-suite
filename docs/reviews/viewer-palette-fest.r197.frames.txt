@@ -1,0 +1,28 @@
+== R192 (marks-r192s-20261023.json, page k1iipz2t)
+prep         rows   4 raf_ticks/row  180.0 raf_gap_p95 max   18 mean  18.0 raf_gap_max   24 mt_late_p95 max  13 mt_late_max max   19 gpu_done_max  16 age>50 0/338 = 0.000
+A_rest       rows  20 raf_ticks/row  180.2 raf_gap_p95 max   19 mean  18.1 raf_gap_max   29 mt_late_p95 max  13 mt_late_max max   26 gpu_done_max   0 age>50 0/1731 = 0.000
+A_input      rows  14 raf_ticks/row  180.1 raf_gap_p95 max   19 mean  18.1 raf_gap_max   29 mt_late_p95 max  12 mt_late_max max   25 gpu_done_max   0 age>50 0/1209 = 0.000
+S_load       rows  23 raf_ticks/row  179.2 raf_gap_p95 max   20 mean  18.4 raf_gap_max  118 mt_late_p95 max  10 mt_late_max max  147 gpu_done_max  30 age>50 4/1979 = 0.002
+S_supersede  rows  17 raf_ticks/row  161.8 raf_gap_p95 max   62 mean  33.4 raf_gap_max  135 mt_late_p95 max  14 mt_late_max max  164 gpu_done_max  54 age>50 78/1345 = 0.058
+S_settle     rows  42 raf_ticks/row  179.5 raf_gap_p95 max   26 mean  18.7 raf_gap_max  110 mt_late_p95 max  13 mt_late_max max   67 gpu_done_max  21 age>50 6/3607 = 0.002
+== E2-run1 (marks-r196s-20261024.json, page yss6ayq3)
+prep         rows   4 raf_ticks/row  180.0 raf_gap_p95 max   19 mean  18.2 raf_gap_max   29 mt_late_p95 max  10 mt_late_max max   15 gpu_done_max  15 age>50 0/340 = 0.000
+A_rest       rows  20 raf_ticks/row  180.1 raf_gap_p95 max   19 mean  18.1 raf_gap_max   29 mt_late_p95 max  13 mt_late_max max   25 gpu_done_max   0 age>50 0/1731 = 0.000
+A_input      rows  13 raf_ticks/row  180.2 raf_gap_p95 max   19 mean  18.1 raf_gap_max   29 mt_late_p95 max  13 mt_late_max max   20 gpu_done_max   0 age>50 0/1123 = 0.000
+S_load       rows  24 raf_ticks/row  179.0 raf_gap_p95 max   32 mean  18.8 raf_gap_max  121 mt_late_p95 max  12 mt_late_max max  153 gpu_done_max  30 age>50 4/2060 = 0.002
+S_supersede  rows  18 raf_ticks/row  153.4 raf_gap_p95 max   66 mean  39.8 raf_gap_max  139 mt_late_p95 max  15 mt_late_max max  138 gpu_done_max  34 age>50 144/1407 = 0.102
+S_settle     rows  44 raf_ticks/row  178.9 raf_gap_p95 max   32 mean  18.5 raf_gap_max   89 mt_late_p95 max  11 mt_late_max max  114 gpu_done_max  13 age>50 11/3818 = 0.003
+== E2-run2 (marks-r196s2-20261024.json, page yss6ayq3)
+prep         rows   4 raf_ticks/row  180.0 raf_gap_p95 max   19 mean  18.2 raf_gap_max   22 mt_late_p95 max   7 mt_late_max max   19 gpu_done_max  30 age>50 0/336 = 0.000
+A_rest       rows  20 raf_ticks/row  180.1 raf_gap_p95 max   19 mean  18.2 raf_gap_max   26 mt_late_p95 max   8 mt_late_max max   21 gpu_done_max   0 age>50 0/1729 = 0.000
+A_input      rows  13 raf_ticks/row  180.2 raf_gap_p95 max   18 mean  18.0 raf_gap_max   30 mt_late_p95 max   8 mt_late_max max   22 gpu_done_max   0 age>50 0/1124 = 0.000
+S_load       rows  24 raf_ticks/row  179.0 raf_gap_p95 max   31 mean  18.8 raf_gap_max  189 mt_late_p95 max   9 mt_late_max max  210 gpu_done_max  21 age>50 5/2054 = 0.002
+S_supersede  rows  17 raf_ticks/row  161.4 raf_gap_p95 max   52 mean  34.4 raf_gap_max  124 mt_late_p95 max  12 mt_late_max max   82 gpu_done_max  40 age>50 90/1354 = 0.066
+S_settle     rows  42 raf_ticks/row  179.5 raf_gap_p95 max   31 mean  18.8 raf_gap_max   73 mt_late_p95 max  12 mt_late_max max  104 gpu_done_max  15 age>50 4/3606 = 0.001
+== touch (marks-r196t-20261024.json, page yss6ayq3)
+prep         rows   4 raf_ticks/row  180.2 raf_gap_p95 max   18 mean  18.0 raf_gap_max   30 mt_late_p95 max   8 mt_late_max max   18 gpu_done_max  34 age>50 0/339 = 0.000
+A_rest       rows  20 raf_ticks/row  180.1 raf_gap_p95 max   18 mean  18.0 raf_gap_max   26 mt_late_p95 max   8 mt_late_max max   16 gpu_done_max   0 age>50 0/1752 = 0.000
+A_input      rows  13 raf_ticks/row  180.1 raf_gap_p95 max   18 mean  17.8 raf_gap_max   31 mt_late_p95 max   8 mt_late_max max   22 gpu_done_max   0 age>50 0/1139 = 0.000
+S_load       rows  22 raf_ticks/row  179.0 raf_gap_p95 max   19 mean  18.0 raf_gap_max  161 mt_late_p95 max   8 mt_late_max max  187 gpu_done_max  18 age>50 5/1906 = 0.003
+S_supersede  rows  12 raf_ticks/row  180.2 raf_gap_p95 max   19 mean  18.2 raf_gap_max   30 mt_late_p95 max  10 mt_late_max max   23 gpu_done_max  16 age>50 0/1043 = 0.000
+S_settle     rows  42 raf_ticks/row  179.4 raf_gap_p95 max   22 mean  18.3 raf_gap_max  100 mt_late_p95 max  12 mt_late_max max  177 gpu_done_max  32 age>50 10/3616 = 0.003

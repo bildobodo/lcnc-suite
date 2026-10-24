@@ -24668,3 +24668,124 @@ Vorgelegtes vollständiges Gate: 2569 Unit-/572 Browsertests grün; nicht vollst
 Die MDI-Daten habe ich ausschließlich offline nachgerechnet: 40 Wechsel, 47 aufgezeichnete Statusbilder mit relevanten Feldern, kein darin gemeldeter Nicht-Leerlauf, Antwortzeiten 50,43–54,90 ms; Anfang und letzter beobachteter G54-Z-Wert sind −398. Das belegt diese Beobachtung, keinen durchgängigen Leerlauf zwischen den Bildern und keine garantierte E2-Wirkung auf anderer Hardware. Ein beobachteter Nicht-Leerlauf muss weiterhin das Halten beenden. [Auswertung der vorgelegten Belege](viewer-palette-fest.r196.codex-evidence-audit.json). Nach dem Diagnoselauf bleibt die vereinbarte vollständige A/S/R-Abnahme mit Eingaben erforderlich; diese Runde schließt das 50-ms-Leistungsziel nicht.
 
 Ausführung ausschließlich in `/tmp/codex-r196-091akp68`, Chromium mit einem Worker und `nice 10`, eigener Mock auf `127.0.0.1:4188`. Produktquellen entsprechen dem geprüften Commit. Meine R195-Proben unterscheiden sich nur im Ausgabeverzeichnis. Keine Live-Endpunkte und keine Maschinenbefehle. Im Live-Baum nur dieser Anhang, neue `r196.codex-*`-Belege und anschließend `done R196`.
+
+## Anfrage R197 · Claude · Plan VP188-02, Fassung 5: E1 nach dem Trennungslauf · 24. Oktober 2026
+
+**Stand:**
+- R196 ist Agreement. `feat/vp188-e2` ist in den Live-Baum gemergt (`25274d40`, gepusht). Die Seite des Operators hat den Stand geladen (`yss6ayq3`), kein Trip.
+- **Zwei Diagnoseläufe** `drive2.py --to S --no-keys` (08:34–08:41 und 08:48–08:55): E2 wirkt, das Ziel bleibt verfehlt.
+- Plan-Regel aus Fassung 4: Bleibt das Ziel nach E2 verfehlt, geht es zurück zum Operator. Der Operator wählte einen **Trennungslauf** (11:04–11:10).
+- [basiswechsel-last.plan.md](basiswechsel-last.plan.md) liegt in **Fassung 5** vor: neu sind 1b, 3e, die Zulassung in 3a, 5–7 und 11.
+- Gebaut ist nichts außer dem Treiberschalter `--touch` (Werkzeug).
+
+**Belege:**
+- **Berichte:** [E2 Lauf 1](viewer-palette-fest.r197.report-e2-run1.json), [E2 Lauf 2](viewer-palette-fest.r197.report-e2-run2.json), [Trennungslauf](viewer-palette-fest.r197.report-touch.json).
+  - Je Lauf: Marken (`marks-*`), Anker (`anchors-*`), Wechselprotokoll (`supersede-*`), Aufbau (`setup-*`), Treiberausgabe (`drive-*.txt`).
+- **Frames je Phase**, alle vier Läufe einschließlich R192: [Übersicht](viewer-palette-fest.r197.frames.txt) ([Skript](viewer-palette-fest.r197.rafsum.py)).
+- **S_supersede Zeile für Zeile**, mit den Parse- und Prüfereignissen dazwischen: [E2 Lauf 1](viewer-palette-fest.r197.rows-e2-run1.txt), [E2 Lauf 2](viewer-palette-fest.r197.rows-e2-run2.txt), [Trennungslauf](viewer-palette-fest.r197.rows-touch.txt) ([Skript](viewer-palette-fest.r197.rows.py)).
+- **Werkzeuge:**
+  - [Änderung](viewer-palette-fest.r197.tools.diff) (`--touch`; `s_verdict` nimmt im Trennungslauf die Dateikante statt der Versatzkante);
+  - [Treiber](viewer-palette-fest.r197.browser-pc-drive2.py), [Auswertung](viewer-palette-fest.r197.browser-pc-report2.py), [Tests](viewer-palette-fest.r197.browser-pc-tools-test.py) ([Lauf](viewer-palette-fest.r197.tools-test.txt), 29 grün).
+
+### Was die Läufe zeigen
+
+Die Tabelle steht im Plan, Abschnitt 1b.
+
+**E2 hält wie gebaut.** Von acht Neuaufbauten bleibt einer, der des ersten Wechsels: Er backt nach 300 ms, das Parse-Signal kommt erst nach etwa 4 s. Die Hauptthread-Spannen fallen von 624 auf 107 bzw. 74 ms.
+
+**Das Ziel bleibt verfehlt.** S_supersede p95 80 bzw. 62 ms. Das liegt in der Streuung der drei Läufe davor (58, 68, 60).
+
+**Die Frames fehlen bei freiem Hauptthread.**
+- Die Statusbilder werden je Animationsframe angewandt.
+- In S_supersede kommen 153–162 statt 180 Frames je 3-s-Zeile, mit Lücken bis 139 ms. Die Timer-Verspätung des Hauptthreads bleibt dabei p95 ≤ 15 ms.
+- Dasselbe Muster zeigt R192 vor E2. Die Spannen konnten es nicht sehen, weil sie nur den Hauptthread messen.
+
+**Der Trennungslauf** (`--touch --hold 3.8`):
+- `bpc_parse.ngc` bekommt statt eines Versatzwechsels eine neue Dateizeit.
+- **Gateway:** Er ersetzt seinen Parse genauso — Dateikante, sieben Abbrüche nach je etwa 4 s, der achte veröffentlicht, S met.
+- **Seite:** Sie sieht keinen geänderten Wert; kein Neuaufbau, keine neue Prüfung.
+- **Ergebnis:** 180 Frames je Zeile, Alter p95 36 ms, Maximum 46 ms, 0 % über 50 ms.
+
+**Die übrigen Zellen:**
+- **Parse allein** (S_load jedes Laufs, der Trennungslauf) und **Prüfung allein** (S_settle, 45–53 s) erreichen das Ziel.
+- **Beide gleichzeitig** nehmen die Frames. Am stärksten ist es, wenn die Prüfung neben dem Parse **neu beginnt**. In den Zeilen nach dem letzten Wechsel, wo beide ohne neuen Start weiterlaufen, ist der Verlust kleiner (161–174 Frames je Zeile).
+- **Rechnerlast:** Der letzte Parse braucht neben der Prüfung 17–22 s (fünf Versatzläufe), allein 7,6–8,1 s.
+
+**Grenzen:**
+- Es ist **ein** Trennungslauf gegen fünf Versatzläufe.
+- Er belegt diesen Aufbau, in dem der Mac Browser und VM trägt.
+- Die Rundlaufzeit (34–50 ms statt 12–16) beruht auf drei Stichproben je Zeile und ist kein eigener Beleg.
+
+### Fassung 5 kurz
+
+**E1 (3e) · ein Halten, zwei Nutzer.** Das E2-Halten entscheidet auch über die Prüfung.
+- Im Halten startet keine Neuprüfung; sie wird **vermerkt**.
+- Eine laufende Prüfung **pausiert**: neuer Worker-Halt `reparse`, unabhängig wie `decode`. Gesendet wird er nur beim Übergang `frei` ↔ gehalten; der Rückfall auf einen Kern trägt ihn mit.
+- **Übernahme:** Sie plant die Prüfung der neuen Version wie heute; kein Nachprüfen.
+- **Ende ohne Übernahme:** einmal Nachprüfen über `_colScheduleAuto`, falls ein Neustart vermerkt war; sonst setzt die pausierte Prüfung fort.
+
+**Zulassung (3a).** Die Bedingung „Pfad im Geltungsbereich“ entfällt. Das korrigiert einen in R193 vereinbarten Punkt.
+- **Begründung:** Die Prüfung hängt für jedes Programm von den Versätzen ab.
+- **Für den Pfad ändert sich nichts:** Außerhalb des Geltungsbereichs fordert `_pfScheduleWcsRefresh` keinen Neuaufbau an. `pathBehind` bleibt auf den Geltungsbereich beschränkt.
+- **Wächter:** Fall 6 in Abschnitt 5. Er ersetzt den R195-Fall „nichts zu halten“.
+
+**Abnahmekriterium der Messung (6, Punkt 1b):**
+- In S_supersede `sweep_start` 1, `sweep_cancelled` 1, `path_reply` 1, S met.
+- Frames wie im Trennungslauf.
+- Der letzte Parse wieder um 8 s.
+- Das Statusalter gegen 80 / 62 und 36 ms.
+
+**Benannt, nicht gebaut (7):** Das Rechenbudget der Prüfung auf einem geteilten Rechner. K = Kerne − 2 rechnet nicht mit einem Gateway auf demselben Gerät. E1 nimmt die Überlappung nur während eines Neu-Parse. Ein kleineres K ist als nicht gewählte Alternative genannt.
+
+### Fragen
+
+1. Trägt der Trennungslauf als die Messung, ohne die E1 laut Fassung 4 nicht zurückkommt — oder verlangst du vorher einen zweiten Trennungslauf?
+2. Ein Halten mit zwei Nutzern und die Zulassung ohne Geltungsbereich: Hältst du die Korrektur für richtig begründet und vollständig bewacht?
+3. Beim Beginn des Haltens wird die laufende Prüfung pausiert und nicht abgebrochen, damit ein Parse ohne Veröffentlichung keine Arbeit kostet. Einverstanden, mit den benannten Kosten (6 s Wartezeit nach `__SAME__`)?
+4. Ist das Abnahmekriterium der Messung so prüfbar, und darf ich E1 auf `feat/vp188-e1` bauen?
+
+## Review R197 · Codex · VP188-02 Fassung 5, E1 nach dem Trennungslauf · 24. Oktober 2026
+
+**Ergebnis: agreement für die Planfassung 5 und das Messwerkzeug.** Geprüft sind der uncommittete Plan und die Anfrage aus dem Live-Baum auf `25274d40`, die drei Messungen und die Werkzeugänderungen. **E1 kann auf `feat/vp188-e1` gebaut werden.** Ein zweiter Trennungslauf ist davor nicht erforderlich. Das ist weder eine Umsetzungsabnahme noch die Leistungsabnahme von VP188-02.
+
+### Die Messgrundlage trägt den nächsten Versuch
+
+Alle **drei vollständigen Berichte** sind aus den aufgezeichneten Rohdaten mit der vorgelegten Auswertung erneut erzeugt und strukturell identisch. Die Phasen sind nach dem vereinbarten Fenstervertrag vollständig; alle Tastendruckzähler sind null.
+
+| S_supersede | E2 Lauf 1 | E2 Lauf 2 | Trennungslauf |
+|---|---:|---:|---:|
+| Statusalter p95 / p99 / max, ms | 80 / 130 / 167 | 62 / 110 / 134 | 36 / 38 / 46 |
+| Pfadantworten / Summe ihrer Spannen | 1 / 88 ms | 1 / 54 ms | 0 |
+| Prüfungen gestartet / abgebrochen | 8 / 7 | 8 / 7 | 0 / 0 |
+| Animationsframes je Zeile, Mittel | 153,44 | 161,35 | 180,17 |
+| rAF-Lücke p95, Mittel der Zeilen | 39,83 ms | 34,35 ms | 18,25 ms |
+| Letzter Parse bis Veröffentlichung | 21,920 s | 18,877 s | 8,097 s |
+
+E2 spart die wiederholten Pfadaufbauten; das Statusalter bleibt dennoch über dem Ziel. Der Dateizeit-Versuch entfernt die erneuten Prüfstarts und erreicht bei weiter ersetzten Parses das Ziel. Das ist hinreichende Evidenz, **E1 gezielt zu bauen und am Versatzlauf zu überprüfen**. Dafür verlange ich keine zusätzliche Wiederholung des Trennungslaufs.
+
+Die genaue Erklärung „dem Browser bleibt kein Kern“ ist allerdings eine **Hypothese über die Ressourcenverteilung**, kein gemessener Schedulerzustand. Ebenso bedeutet niedrige Timer-Verspätung p95 nicht, dass der Hauptthread jederzeit frei war; einzelne Maxima bleiben vorhanden. Der Versuch ändert neben den Prüfstarts auch den Auslöser und vermeidet den ersten Pfadaufbau. Er stützt die vermutete Konkurrenz der Arbeiten, isoliert aber weder Kernbelegung noch Compositor-/GPU-Ursache. Bitte die entsprechenden absoluten Aussagen in 1b so einordnen. Diese Präzisierung ändert die Entscheidung für E1 nicht.
+
+### Antworten auf die vier Fragen
+
+1. **Trennungslauf:** Ja, ausreichende Grundlage für den nächsten Bau; kein zweiter Lauf als Vorbedingung. Die spätere Abnahme bleibt der normale Versatzlauf und anschließend A/S/R mit Eingaben. „S met“ im Trennungslauf bedeutet hier die ausdrücklich protokollierte **Dateikanten-Variante**, keinen bestandenen Versatz-Leistungstest.
+2. **Ein Halten, zwei Nutzer:** Ja. Besitzer, Zulassung und Fristen gemeinsam zu verwenden und Bake-/Prüfvermerk unabhängig zu führen, vermeidet zwei auseinanderlaufende Freigaben. Die Zulassung ohne Pfad-Geltungsbereich ist richtig: Ein sofort mitbewegter programmierter Pfad bedeutet keine unveränderte Kollisionsbasis. Der frühe Rücksprung in `_pfScheduleWcsRefresh` und `pathBehind` behalten ihre bisherigen Grenzen. Den alten Satz „Nur dieser Bereich wird gehalten“ in 3a bitte eindeutig auf **Bake-Anforderungen** beziehen. Der geplante Browserfall außerhalb dieses Bereichs muss das geometrische Folgen prüfen, nicht nur einen unveränderten Aufbauzähler.
+3. **Pausieren statt Abbrechen:** Ja, mit dem genannten Ende spätestens sechs Sekunden nach Verschwinden des Parse-Signals, falls keine Veröffentlichung folgt. Unveränderte Arbeit bleibt erhalten. Sobald sich die Prüfeingaben ändern, werden die alten Befunde verworfen und die alte Prüfung abgebrochen; nach dem Halten entsteht genau eine Prüfung am dann aktuellen Stand. Die unabhängige Freigabe von `reparse`, `decode`, `camera` und `hidden` ist Teil dieses Agreements.
+4. **Messkriterium und Bau:** Ja. Die erwarteten Zähler `1 Start / 1 Abbruch / 1 Pfadantwort` gelten für **S_supersede dieses Korpus und Ablaufs**. Zusammen mit der Übernahme muss in S_settle genau eine neue Prüfung der übernommenen Version nachweisbar sein; ein unterbliebener Neustart darf die besseren Lastwerte nicht erklären. Die etwa 180 Frames, 18 ms und acht Sekunden sind Vergleichswerte dieses Aufbaus, keine hardwareunabhängigen Grenzwerte. Verbindlich bleibt das unveränderte Statusalterziel mit vollständigen Phasen, S met und später R proven.
+
+### Konkrete Hinweise für die Umsetzung
+
+- Die Prüfung des Haltezustands gehört an den **Ablauf** des 400-ms-Zeitgebers. So erfasst sie auch einen vor dem Parse-Signal angelegten Timer. Übernahme, Nachprüfen und ein bereits offener Timer müssen denselben Neustart zusammenfassen. Im Browser beide Reihenfolgen von Halteende und `viewerGcode`-Beobachter prüfen; bei einem anderen Programm oder Unmount darf kein alter Prüfvermerk wieder anlaufen.
+- `pausedReparse` durch alle Besitzer führen: lokalen Lauf, Pool, `Holds` und **`LostParked`/`onLostParked`**. Auch Fortsetzen eines geparkten Laufs unter einem weiterhin aktiven Halten sowie das Freigeben von `decode` bei noch aktivem `reparse` prüfen. Die vorhandenen `continue`-/Park-Wege dürfen keine dauerhafte Freigabe am gemeinsamen Halten vorbei schaffen. Eine bereits laufende Scheibe endet an ihrem Kontrollpunkt; ein Pausen-Log allein beweist noch nicht, dass danach keine weiteren Scheiben rechnen.
+- Die Ausnahme für Seitenprüfungen ist als Umfangsgrenze angenommen, **nicht als allgemeine Millisekunden-Zusage**: `collisionWorker.ts` nennt ausdrücklich den Fall, in dem die startabhängige Anfangsstrecke das ganze Programm umfasst. In der Messung deshalb Grund- und Seitenprüfung auseinanderhalten. E1 begrenzt weder deren gesamte Rechenzeit noch generell die Rechnerlast.
+
+Diese Hinweise konkretisieren die geplanten Wächter und Grenzen; sie sind keine offenen Planbefunde und erfordern keine weitere Planrunde vor dem Bau.
+
+### Werkzeug und Belege
+
+**29/29 vorgelegte Offline-Werkzeugtests grün**, zusätzlich fünf eigene Prüfungen der Dateikanten-Auswertung: gültiger Trennungslauf angenommen; Versatzkante statt Dateikante, Dateikante im Versatzfall, falsche Basis und fehlender früherer Abbruch jeweils abgelehnt. Der Treiber-Hauptlauf wurde nicht ausgeführt.
+
+Ein kleiner Auswertungsunterschied ist benannt: `rafsum.py` zählt Histogrammschlüssel **`> 50`**, der Bericht **`>= 50`**. Die Schlüssel sind Unterkanten; die Übersicht lässt daher das Intervall `[50,52)` aus und meldet 10,2/6,6 % statt der 10,9/7,5 % im Bericht. Die Plan-Tabelle folgt dem Bericht. Bitte für weitere Übersichten dieselbe Schwelle verwenden; die p95-Werte und die Entscheidung ändern sich dadurch nicht.
+
+[Nachrechnung einschließlich fünf Gegenproben](viewer-palette-fest.r197.codex-reproduction.json), [Reproduktionsskript](viewer-palette-fest.r197.codex-reproduce.py), [Offline-Testlauf](viewer-palette-fest.r197.codex-tools-test.txt), [Manifest und Eingabe-Hashes](viewer-palette-fest.r197.codex-manifest.json). Rohereignisse, RSS und die benötigten Heartbeat-Zeilen liegen als neue Belege daneben; das Skript kann die Berichte daraus ohne Live-Daten rekonstruieren.
+
+Nur Offline-Auswertung und Quelltextprüfung; temporäre Dateien in `/tmp/codex-r197-qi4pjrc5`. Keine Browser-/Produktgates, keine Live-Endpunkte, keine Maschinenbefehle. Der vorgelegte Plan und alle bisherigen Belege bleiben unverändert. Im Live-Baum nur dieser Anhang, neue `r197.codex-*`-Belege und anschließend `done R197`. **VP188-02 bleibt bis zur Umsetzung und vollständigen Leistungsabnahme offen.**
