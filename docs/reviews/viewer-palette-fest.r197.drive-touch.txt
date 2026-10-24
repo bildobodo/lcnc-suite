@@ -1,0 +1,34 @@
+11:04:50 ok arm 
+mark prep at 11:04:53
+11:04:53 ok estop 
+11:04:53 ok estop_reset 
+11:04:55 watchdog anchor {'wd_ms': 69293867, 'wall_ns': 1792832693554054626, 'wd_pid': 2356148, 'wd_log_bytes': 74179, 'gwlog': 25885, 'local': '11:04:55'}
+11:04:55 ok machine_on 
+11:04:55 setup {'commit': '25274d402a05897fc43afc4a6d5ceeb416f438b8', 'vm_cpus': 6, 'pages': ['yss6ayq3'], 'browser_ua': ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0'], 'event_timing': True, 'heap': False}
+11:04:55 ok mdi (MSG, BPC: Messlauf ohne Eingabe - bitte keine Taste druecken)
+11:04:55 ok load_file blank.ngc
+mark A_rest at 11:05:05
+11:06:05 key prompt left out (--no-keys) jetzt 40 s lang die Pfeiltaste nach unten gedrueckt halten
+mark A_input at 11:06:05
+11:06:45 key prompt left out (--no-keys) Taste loslassen
+mark S_load at 11:06:45
+11:06:45 ok load_file bpc_parse.ngc
+11:06:54 published bpc_parse.ngc 7599.6 ms encode
+11:07:52 settled bpc_parse.ngc check sweeps started 1, done 1, other ends 0 last done 42167 ms
+mark S_supersede at 11:07:52
+11:07:52 key prompt left out (--no-keys) jetzt die Pfeiltaste nach unten gedrueckt halten (Versatzwechsel)
+11:07:52 switch 1: touch 1 -> job 69 (file)
+11:07:56 switch 2: touch 2 -> job 70 (file)
+11:08:00 switch 3: touch 3 -> job 71 (file)
+11:08:04 switch 4: touch 4 -> job 72 (file)
+11:08:08 switch 5: touch 5 -> job 73 (file)
+11:08:12 switch 6: touch 6 -> job 74 (file)
+11:08:16 switch 7: touch 7 -> job 75 (file)
+11:08:20 switch 8: touch 8 -> job 76 (file)
+11:08:28 supersede: jobs [(69, 'touch 1', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (70, 'touch 2', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (71, 'touch 3', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (72, 'touch 4', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (73, 'touch 5', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (74, 'touch 6', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (75, 'touch 7', ['gcode.parse_cancelled', 'gcode.reparse_superseded']), (76, 'touch 8', ['gcode.publish'])]
+mark S_settle at 11:08:28
+11:08:28 key prompt left out (--no-keys) Taste loslassen
+11:09:30 settled the last basis's check sweeps started 1, done 1, other ends 0 last done 44209 ms
+mark end at 11:10:30
+11:10:30 sequence complete (to S)
+11:10:31 ok arm 

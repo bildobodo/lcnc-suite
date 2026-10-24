@@ -1,0 +1,92 @@
+--- bak-drive2.py.r196	2026-10-24 11:04:20.893777758 +0200
++++ drive2.py	2026-10-24 11:04:35.965840309 +0200
+@@ -34,12 +34,17 @@
+ Any refusal, timeout or guard breach stops the run (a running program is
+ aborted) and says why. The WS token is read from the INI, never printed.
+ 
+-  drive2.py [--check] [--from PHASE] [--to S] [--no-keys] [--switches N] [--hold S]
++  drive2.py [--check] [--from PHASE] [--to S] [--no-keys] [--touch] [--switches N] [--hold S]
+ 
+   --to S ends after S_settle: no R phase, no cycle start (VP188-02 step 0).
+   --no-keys asks for no key: one message at the start says so instead of the
+   hold / release prompts (a diagnosis run, no input acceptance — Codex R192);
+   setup.json records it, the report counts the presses that came anyway.
++  --touch (the separating run, VP188-02 after E2): S_supersede gives the
++  program file a new time instead of changing G54's Z — the gateway
++  supersedes and respawns its parse each time (file edge) while the page's
++  live offsets, its path and its check stay as they are. --hold sets the
++  pace (3.8 s ≈ the offset run's 4 s between spawns).
+ """
+ import asyncio
+ import glob
+@@ -264,6 +269,7 @@
+         "page_host": sorted({r.get("host") for r in perf}),
+         "event_timing": any("ev_n" in r for r in perf),
+         "keys_requested": not NO_KEYS,
++        "s_variant": "touch" if TOUCH else "offset",
+         "heap": any(r.get("heap_used_mb") is not None for r in perf),
+         "programs": [program_record(n) for n in ("bpc_parse.ngc", "bpc_run.ngc")],
+         "status": {k: c.st.get(k) for k in ("estop", "enabled", "homed", "g5x_index", "tool_in_spindle")},
+@@ -275,6 +281,7 @@
+ 
+ 
+ NO_KEYS = "--no-keys" in sys.argv
++TOUCH = "--touch" in sys.argv
+ 
+ 
+ async def key_msg(c, text):
+@@ -320,13 +327,22 @@
+     if c.st.get("g5x_index") != 1:
+         raise Stop("G54 is not the active fixture")
+     for k in range(n):
+-        z = z0 - 1.0 if k % 2 == 0 else z0
+-        target = f"G54 Z{z:.3f}"
+-        t = time.time_ns()
+-        await c.cmd({"cmd": "mdi", "text": f"G10 L2 P1 Z{z:.3f}"})
+-        sp = await wait_trace(lambda r: str(r.get("reason") or "").startswith("wcsoff:"), t, 30,
+-                              f"{target}: a parse spawned for it", ("gcode.spawn_start",))
+-        jobs.append({"switch": k + 1, "to": target, "z": z, "job": sp.get("job"), "basis": sp.get("basis"),
++        if TOUCH:
++            # the separating run: a new file time, nothing the page sees
++            z, target = None, f"touch {k + 1}"
++            t = time.time_ns()
++            os.utime(os.path.join(NC, "bpc_parse.ngc"), ns=(t, t))
++            sp = await wait_trace(lambda r: r.get("reason") == "file", t, 30,
++                                  f"{target}: a parse spawned for it", ("gcode.spawn_start",))
++        else:
++            z = z0 - 1.0 if k % 2 == 0 else z0
++            target = f"G54 Z{z:.3f}"
++            t = time.time_ns()
++            await c.cmd({"cmd": "mdi", "text": f"G10 L2 P1 Z{z:.3f}"})
++            sp = await wait_trace(lambda r: str(r.get("reason") or "").startswith("wcsoff:"), t, 30,
++                                  f"{target}: a parse spawned for it", ("gcode.spawn_start",))
++        jobs.append({"switch": k + 1, "to": target, "z": z, "variant": "touch" if TOUCH else "offset",
++                     "job": sp.get("job"), "basis": sp.get("basis"),
+                      "reason": sp.get("reason"), "switch_ns": t, "spawn_ns": sp["t_wall_ns"]})
+         log(f"switch {k + 1}: {target} -> job {sp.get('job')} ({sp.get('reason')})")
+         if k + 1 < n:
+--- bak-bpc2.py.r196	2026-10-24 11:04:20.893777758 +0200
++++ bpc2.py	2026-10-24 11:04:35.965840309 +0200
+@@ -348,9 +348,11 @@
+         if j is None:
+             why.append(f"switch {sw.get('switch')}: job {sw.get('job')} not in the trace")
+             continue
+-        if not str(j.get("reason") or "").startswith("wcsoff:") or j["basis"] != sw.get("basis"):
++        touch = sw.get("variant") == "touch"         # the separating run: the file edge
++        edge = j.get("reason") == "file" if touch else str(j.get("reason") or "").startswith("wcsoff:")
++        if not edge or j["basis"] != sw.get("basis"):
+             why.append(f"switch {sw.get('switch')}: job {j['job']} parsed for {j.get('reason')} basis {j['basis']}, "
+-                       f"not the offset edge of {sw.get('to')} with {sw.get('basis')}")
++                       f"not the {'file' if touch else 'offset'} edge of {sw.get('to')} with {sw.get('basis')}")
+         if k < len(switches) - 1:
+             if not {"reparse_superseded", "parse_cancelled"} <= set(j["events"]):
+                 why.append(f"switch {sw.get('switch')}: job {j['job']} was not superseded and cancelled ({j['events']})")
+@@ -358,7 +360,7 @@
+             why.append(f"the last switch's job {j['job']} was not published with its basis")
+     # the last basis is the start's offsets again: the same digest as each
+     # earlier switch to that value
+-    same = [sw for sw in switches[:-1] if sw.get("z") == switches[-1].get("z")]
++    same = [sw for sw in switches[:-1] if sw.get("z") is not None and sw.get("z") == switches[-1].get("z")]
+     if any(sw.get("basis") != switches[-1].get("basis") for sw in same):
+         why.append("one offset, two bases — the basis is not the offsets'")
+     extra = sorted(set(by) - {sw.get("job") for sw in switches})

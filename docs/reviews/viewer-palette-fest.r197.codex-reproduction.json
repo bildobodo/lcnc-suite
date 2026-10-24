@@ -1,0 +1,270 @@
+{
+  "e2-run1": {
+    "full_report_identical": true,
+    "all_phases_complete": true,
+    "all_press_counts_zero": true,
+    "S_age": {
+      "n": 1407,
+      "p50": 32.0,
+      "p95": 80.0,
+      "p99": 130.0,
+      "max": 167,
+      "share_over_50": 0.1095,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "is": "an upper bound: the receipt at its earliest time on the page's clock",
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "S_interior_age": {
+      "n": 1242,
+      "p50": 32.0,
+      "p95": 80.0,
+      "p99": 130.0,
+      "max": 167,
+      "share_over_50": 0.1184,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "is": "an upper bound: the receipt at its earliest time on the page's clock",
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "S_verdict": {
+      "verdict": "S met",
+      "why": [],
+      "superseded": 7,
+      "switches": 8
+    },
+    "S_collision": {
+      "sweep_start": 8,
+      "sweep_cancelled": 7
+    },
+    "S_main_thread": {
+      "spans": {
+        "col_cancel": {
+          "n": 16,
+          "sum_ms": 1.0,
+          "max_ms": 1,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "pf_load": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_copy": {
+          "n": 8,
+          "sum_ms": 18.0,
+          "max_ms": 3,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_post": {
+          "n": 8,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "path_reply": {
+          "n": 1,
+          "sum_ms": 88.0,
+          "max_ms": 88,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        }
+      },
+      "unknown": 0,
+      "top_level_sum_ms": 107.0,
+      "main_thread_late_max_ms": 138,
+      "render_max_ms": 36
+    },
+    "raf_ticks_mean": 153.44444444444446,
+    "raf_gap_p95_mean": 39.833333333333336,
+    "raf_gap_max": 139,
+    "timer_lateness_p95_max": 15,
+    "age_histogram_lower_edge_ge50": 0.10945273631840796,
+    "age_histogram_lower_edge_gt50": 0.1023454157782516,
+    "last_parse_ms": 21920
+  },
+  "e2-run2": {
+    "full_report_identical": true,
+    "all_phases_complete": true,
+    "all_press_counts_zero": true,
+    "S_age": {
+      "n": 1354,
+      "p50": 30.0,
+      "p95": 62.0,
+      "p99": 110.0,
+      "max": 134,
+      "share_over_50": 0.0746,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "is": "an upper bound: the receipt at its earliest time on the page's clock",
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "S_interior_age": {
+      "n": 1190,
+      "p50": 30.0,
+      "p95": 64.0,
+      "p99": 110.0,
+      "max": 125,
+      "share_over_50": 0.079,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "is": "an upper bound: the receipt at its earliest time on the page's clock",
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "S_verdict": {
+      "verdict": "S met",
+      "why": [],
+      "superseded": 7,
+      "switches": 8
+    },
+    "S_collision": {
+      "sweep_start": 8,
+      "sweep_cancelled": 7
+    },
+    "S_main_thread": {
+      "spans": {
+        "col_cancel": {
+          "n": 16,
+          "sum_ms": 2.0,
+          "max_ms": 1,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "pf_load": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_copy": {
+          "n": 8,
+          "sum_ms": 17.0,
+          "max_ms": 3,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_post": {
+          "n": 8,
+          "sum_ms": 1.0,
+          "max_ms": 1,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "path_reply": {
+          "n": 1,
+          "sum_ms": 54.0,
+          "max_ms": 54,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        }
+      },
+      "unknown": 0,
+      "top_level_sum_ms": 74.0,
+      "main_thread_late_max_ms": 82,
+      "render_max_ms": 31
+    },
+    "raf_ticks_mean": 161.35294117647058,
+    "raf_gap_p95_mean": 34.35294117647059,
+    "raf_gap_max": 124,
+    "timer_lateness_p95_max": 12,
+    "age_histogram_lower_edge_ge50": 0.07459379615952733,
+    "age_histogram_lower_edge_gt50": 0.06646971935007386,
+    "last_parse_ms": 18877
+  },
+  "touch": {
+    "full_report_identical": true,
+    "all_phases_complete": true,
+    "all_press_counts_zero": true,
+    "S_age": {
+      "n": 1043,
+      "p50": 30.0,
+      "p95": 36.0,
+      "p99": 38.0,
+      "max": 46,
+      "share_over_50": 0.0,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "is": "an upper bound: the receipt at its earliest time on the page's clock",
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "S_interior_age": {
+      "n": 782,
+      "p50": 30.0,
+      "p95": 36.0,
+      "p99": 38.0,
+      "max": 46,
+      "share_over_50": 0.0,
+      "neg": 0,
+      "before_visibility_change": 0,
+      "is": "an upper bound: the receipt at its earliest time on the page's clock",
+      "not_in_it": "the network, the viewer's first build, the render after the apply"
+    },
+    "S_verdict": {
+      "verdict": "S met",
+      "why": [],
+      "superseded": 7,
+      "switches": 8
+    },
+    "S_collision": {},
+    "S_main_thread": {
+      "spans": {},
+      "unknown": 0,
+      "top_level_sum_ms": 0,
+      "main_thread_late_max_ms": 23,
+      "render_max_ms": 4
+    },
+    "raf_ticks_mean": 180.16666666666666,
+    "raf_gap_p95_mean": 18.25,
+    "raf_gap_max": 30,
+    "timer_lateness_p95_max": 10,
+    "age_histogram_lower_edge_ge50": 0.0,
+    "age_histogram_lower_edge_gt50": 0.0,
+    "last_parse_ms": 8097
+  },
+  "touch_tool_probes": {
+    "touch accepted": {
+      "verdict": "S met",
+      "why": [],
+      "superseded": 7,
+      "switches": 8
+    },
+    "offset edge rejected for touch": {
+      "verdict": "S not met",
+      "why": [
+        "switch 1: job 69 parsed for wcsoff:G54:z basis 93fa13e1c910, not the file edge of touch 1 with 93fa13e1c910"
+      ],
+      "superseded": 7,
+      "switches": 8
+    },
+    "file edge rejected for offset": {
+      "verdict": "S not met",
+      "why": [
+        "switch 1: job 69 parsed for file basis 93fa13e1c910, not the offset edge of touch 1 with 93fa13e1c910"
+      ],
+      "superseded": 7,
+      "switches": 8
+    },
+    "wrong basis rejected": {
+      "verdict": "S not met",
+      "why": [
+        "switch 1: job 69 parsed for file basis 93fa13e1c910, not the file edge of touch 1 with wrong"
+      ],
+      "superseded": 7,
+      "switches": 8
+    },
+    "uncancelled earlier job rejected": {
+      "verdict": "S not met",
+      "why": [
+        "switch 1: job 69 was not superseded and cancelled (['spawn_start', 'reparse_superseded', 'parse_span'])"
+      ],
+      "superseded": 6,
+      "switches": 8
+    }
+  }
+}
