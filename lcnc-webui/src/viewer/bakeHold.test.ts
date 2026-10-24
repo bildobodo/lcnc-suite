@@ -136,12 +136,21 @@ describe("the bake hold (VP188-02 E2)", () => {
     expect(holdStep(held, refresh(true, F, 10, 0)).hold).toBe(held);   // the burst's next job
   });
 
-  it("every transition bumps the number; a timer of an earlier window does nothing", () => {
+  it("every transition bumps the number, an end too; a timer of an earlier window does nothing", () => {
     let h = freeHold();
     const seen = new Set<number>([h.n]);
-    for (const e of [refresh(), { kind: "refreshGone", now: 0 } as HoldEvent, refresh(),
-                     { kind: "arrival", file: F, version: 11, now: 0 } as HoldEvent]) {
-      h = holdStep(h, e).hold;
+    const gone = (): HoldEvent => ({ kind: "refreshGone", now: 0 });
+    const arrive = (version: number): HoldEvent => ({ kind: "arrival", file: F, version, now: 0 });
+    for (const e of [refresh(), gone, refresh, () => arrive(11),
+                     (): HoldEvent => ({ kind: "deadline", n: h.n }),                       // loading's window ends
+                     refresh, (): HoldEvent => ({ kind: "end", catchUp: true }),           // a run
+                     refresh, () => arrive(12), (): HoldEvent => ({ kind: "decodeFailure", file: F, version: 12 }),
+                     refresh, gone, (): HoldEvent => ({ kind: "deadline", n: h.n }),       // the gap's window ends
+                     refresh, () => refresh(false),                                       // admission lost
+                     refresh, () => arrive(13), (): HoldEvent => ({ kind: "adopted", file: F, version: 13 })]) {
+      const before = h.state;
+      h = holdStep(h, typeof e === "function" ? e() : e).hold;
+      expect(h.state, "each step is a transition").not.toBe(before);
       expect(seen.has(h.n)).toBe(false);
       seen.add(h.n);
     }

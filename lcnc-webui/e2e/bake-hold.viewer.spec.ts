@@ -146,6 +146,31 @@ test("A→B→A held across the supersede gap and the loading: muted until the m
   await waitClear(page);
 });
 
+test("the adoption ends the hold: the next offset change re-bakes at once, no window left to wait out", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  const z0 = await boxZ(page);
+  await parse(1);
+  await waitHold(page, "parsing");
+  const g0 = await builds(page);
+  await setZ(page, -10);                         // held
+  await pastDebounce(page);
+  expect(await builds(page)).toBe(g0);
+  await parse(null);                             // the parse ends, then its publication arrives
+  await waitHold(page, "after_parse");
+  await publish(101);
+  await expect.poll(async () => (await basis(page)).want ?? "").toContain("101");
+  await waitDrawn(page);
+  expect(await boxZ(page), "the adoption bakes at the live offsets").toBeCloseTo(z0 - 10, 3);
+  expect(await builds(page)).toBe(g0 + 1);
+  await setZ(page, -20);                         // no parse: the debounce alone
+  await expect.poll(() => builds(page), { message: "re-baked within the debounce, not at a window's end", timeout: 5_000 })
+    .toBe(g0 + 2);
+  await waitClear(page);
+  expect(await boxZ(page)).toBeCloseTo(z0 - 20, 3);
+  expect((await basis(page)).hold).toBe("free");
+});
+
 test("the supersede window runs out: ONE catch-up bake — only when a change was held", async ({ page, context }) => {
   test.setTimeout(60_000);
   await prepare(page, context);
