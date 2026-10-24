@@ -1,0 +1,18 @@
+{
+  "released": 2,
+  "basis": {
+    "drawn": "[\"/nc/hold.ngc\",101,\"part\",[0,0,-10,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "want": "[\"/nc/hold.ngc\",101,\"part\",[0,0,-10,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "behind": false,
+    "stale": false,
+    "hold": "free",
+    "held": false,
+    "mode": "part",
+    "wantMode": "part",
+    "admission": "no parse"
+  },
+  "buildsBefore": 2,
+  "buildsAfter": 3,
+  "zBefore": -100,
+  "zAfter": -110
+}

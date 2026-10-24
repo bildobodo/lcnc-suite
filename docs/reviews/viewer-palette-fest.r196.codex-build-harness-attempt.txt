@@ -1,0 +1,5 @@
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+e2e/r195-codex-support.ts(20,7): error TS6133: 'RUN' is declared but its value is never read.

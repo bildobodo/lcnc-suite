@@ -1,0 +1,2 @@
+import { defineConfig } from "@playwright/test";
+export default defineConfig({ testDir:"./e2e", fullyParallel:false, workers:1, timeout:60000, expect:{timeout:10000}, reporter:"list", use:{browserName:"chromium",headless:true,baseURL:"http://127.0.0.1:4188",locale:"en-GB",timezoneId:"UTC",trace:"retain-on-failure",screenshot:"only-on-failure",launchOptions:{ignoreDefaultArgs:["--hide-scrollbars"]}}, webServer:{command:"MOCK_PORT=4188 node e2e/mock-gateway.mjs",url:"http://127.0.0.1:4188",reuseExistingServer:false,timeout:30000}});

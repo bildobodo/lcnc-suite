@@ -1,0 +1,56 @@
+{
+  "mdi": {
+    "sends": 40,
+    "reported_n": 40,
+    "received_rows": 47,
+    "interp_values_after_delta_merge": [
+      "1"
+    ],
+    "mode_values_after_delta_merge": [
+      "3"
+    ],
+    "reply_ms_min": 50.43265101267025,
+    "reply_ms_max": 54.90243999520317,
+    "initial_z": -398.0,
+    "last_requested_z": -398.0,
+    "last_observed_z": -398.0,
+    "limitation": "Provided observations only. No new live run; no claim about controller states between received frames."
+  },
+  "mutation_lines_found": 33,
+  "all_found_red": true,
+  "ids": [
+    "r183_viewer_no_note",
+    "r184_sweep_no_run_gen",
+    "r184_sweep_done_no_id",
+    "r186_wit_not_asked",
+    "r186_wit_page_dropped",
+    "r187_viewer_no_tick_post",
+    "r187_viewer_word_not_handed",
+    "r192_viewer_no_track_transfer",
+    "r192_main_copy_untimed",
+    "r192_main_post_untimed",
+    "r195_tv_timer_not_held",
+    "r195_tv_behind_unmuted",
+    "r195_tv_drawn_is_wanted",
+    "r195_tv_timer_not_consumed",
+    "r195_tv_admission_watch",
+    "r195_tv_admission_run",
+    "r195_tv_admission_scope",
+    "r195_tv_fallback_named_part",
+    "r195_tv_scene_clear_keeps",
+    "r195_tv_want_not_per_frame",
+    "r195_tv_sim_watch",
+    "r195_tv_connection_no_catchup",
+    "r195_tv_adoption_not_said",
+    "r195_tv_arrival_not_said",
+    "r195_tv_key_from_live_later",
+    "r195_tv_want_mode_from_fallback",
+    "r196_tv_admission_busy_ignored",
+    "r196_tv_admission_unknown_idle",
+    "r196_tv_end_watch_run_only",
+    "r196_tv_end_watch_unknown_idle",
+    "r196_tv_end_watch_removed",
+    "r196_tv_unmount_hold_kept",
+    "r196_tv_unmount_replies_kept"
+  ]
+}
