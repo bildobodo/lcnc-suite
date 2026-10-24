@@ -10,6 +10,8 @@ import { openLayout, PROFILES, VIEWPORTS } from "./layout-fixtures";
 // actually drawn — read at the visible result: the drawn colour (muted or
 // not), the drawn path's world box (its anchor), the path's build count —
 // beside the diagnostic keys. On the real XYZAC model, in the part frame.
+// E1 (plan Fassung 5 3e, Codex R197): the collision check waits at the same
+// hold — read at its starts, whether one runs, and the offsets it read.
 const MODEL = new URL("../../examples/sim_config/machine-5axis-xyzac/", import.meta.url);
 const machine = JSON.parse(readFileSync(new URL("machine.json", MODEL), "utf8"));
 const FILE = "/nc/hold.ngc";
@@ -34,6 +36,9 @@ function payload(o: { abc?: boolean; frames?: number[][] } = {}) {
 
 async function prepare(page: Page, context: BrowserContext, o: {
   bad?: number[]; stall?: number[]; abc?: boolean; frames?: number[][];
+  /** The fixture table to send with the live offsets (a machine's G54 row
+   *  equals its live G54) — the mock's own (setAxes: G54 = 10.123 …) does not. */
+  table?: boolean;
 } = {}) {
   const body = payload(o);
   await context.route(/\/preview(\?|$)/, r => {
@@ -50,7 +55,9 @@ async function prepare(page: Page, context: BrowserContext, o: {
   await ctl({ op: "setViewerInit", data: INIT });
   await ctl({ op: "status_delta", data: { active_file: FILE, joint_pos: [0, 0, 0, 0, 0], actual_position: [0, 0, 0, 0, 0],
     g5x_index: 1, g5x_offset: z9(), g92_offset: z9(), tool_offset: z9(), rotation_xy: 0,
-    is_enabled: false, enabled: false, interp_state: 1, task_mode: 1 } });
+    is_enabled: false, enabled: false, interp_state: 1, task_mode: 1,
+    ...(o.table ? { wcs_table: ["G54", "G55", "G56", "G57", "G58", "G59", "G59.1", "G59.2", "G59.3"]
+      .map(name => ({ name, x: 0, y: 0, z: 0, a: 0, c: 0, r: 0 })) } : {}) } });
   await publish(100);
   await waitDrawn(page);
 }
@@ -95,6 +102,21 @@ const waitHold = (page: Page, state: Basis["hold"]) =>
   expect.poll(async () => (await basis(page)).hold, { timeout: 10_000 }).toBe(state);
 /** The 300 ms re-bake timer has fired (and found the hold). */
 const pastDebounce = (page: Page) => page.waitForTimeout(700);
+// E1: the check
+const activity = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionActivity!());
+const holdLog = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionHoldLog!());
+const reparseLog = async (page: Page) => (await holdLog(page)).filter(l => l.startsWith("reparse"));
+/** The offsets the last main check read: its G54 Z. */
+const checkZ = (page: Page) => page.evaluate(() => window.__viewerDiag!.getCollisionBasis!()?.g5x[2] ?? null);
+const camera = (page: Page, on: boolean) => page.evaluate(o => window.__viewerDiag!.setCameraHold!(o), on);
+/** A check with its result on hand, none running, none parked (a parked
+ *  check shows its sweep so far as a result too). */
+async function waitChecked(page: Page) {
+  await expect.poll(async () => { const a = await activity(page); return !a.busy && !a.resumable && a.result; },
+                    { timeout: 30_000 }).toBe(true);
+}
+/** The 400 ms re-check timer has fired (and found the hold). */
+const pastCheckDebounce = (page: Page) => page.waitForTimeout(900);
 
 test.afterEach(async () => {
   await ctl({ op: "reset" });
@@ -356,23 +378,37 @@ test("the adoption consumes a pending re-bake: no second bake after it", async (
   await page.evaluate(() => window.__viewerDiag!.setBakeDebounceMs!(300));
 });
 
-test("a programmed path: the plain epoch of the active fixture is never held nor behind", async ({ page, context }) => {
+test("a programmed path: the plain epoch of the active fixture is never held nor behind — it follows at once, the check waits (E1)", async ({ page, context }) => {
   test.setTimeout(60_000);
   // one epoch of the active fixture G54 (idx 1), not rewritten: out of scope
-  await prepare(page, context, { abc: false, frames: [[0, 1, 0, 0, ...Array(12).fill(0)]] });
+  // the table as a machine has it: its G54 row is the live G54 (the mock's
+  // own differs, and the path drawn against it is rebased — anchored, not
+  // following; whether it arrived before the first build was a race)
+  await prepare(page, context, { abc: false, frames: [[0, 1, 0, 0, ...Array(12).fill(0)]], table: true });
   const b = await basis(page);
   expect(b.mode).toBe("programmed");
   expect(b.want, "the path follows the live origin — nothing to bake").toBeNull();
-  const g = await builds(page);
+  await waitChecked(page);
+  const [g, z0, s0] = [await builds(page), await boxZ(page), (await activity(page)).starts];
   await parse(1);
+  // admitted without the path scope (E1): the hold is the check's too
+  await waitHold(page, "parsing");
+  expect((await basis(page)).admission).toBeNull();
   await sendZ(-10);
-  await pastDebounce(page);
+  // the drawn path follows its live anchor AT ONCE — geometry, not a build
+  await expect.poll(() => boxZ(page), { timeout: 3_000 }).toBeCloseTo(z0 - 10, 3);
+  await pastCheckDebounce(page);
   const after = await basis(page);
-  expect(after.hold, "no hold — nothing it could hold").toBe("free");
-  expect(after.admission).toBe("the path follows the live origin");
   expect(after.behind, "never behind: nothing to bake").toBe(false);
+  expect(after.held, "no bake asked for, none noted").toBe(false);
   expect(await builds(page), "no re-bake asked for (the scheduler's own exception)").toBe(g);
+  expect(after.checkHeld, "the check's restart noted").toBe(true);
+  expect((await activity(page)).starts, "no check starts beside the parse").toBe(s0);
   await parse(null);
+  await publish(101);
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 10_000 }).toBe(s0 + 1);
+  await waitChecked(page);
+  expect(await checkZ(page), "the adoption's check at the live offsets").toBe(-10);
 });
 
 test("a programmed path with a rewritten epoch is held while the program re-parses", async ({ page, context }) => {
@@ -457,7 +493,9 @@ for (const state of ["after_parse", "loading"] as const) {
     await parse(null);
     if (state === "loading") await publish(104);   // arrives, never answered
     await waitHold(page, state);
+    expect((await basis(page)).checkHeld, "a check restart noted too (E1)").toBe(true);
     const partFrame = (log: string[], kind: string) => log.filter(l => l.startsWith(kind) && l.includes("partFrameWorker")).length;
+    const checker = (log: string[]) => log.filter(l => l.startsWith("create") && l.includes("collisionWorker")).length;
     const before = await page.evaluate(() => {
       const app = (document.getElementById("app") as unknown as { __vue_app__?: { unmount(): void } }).__vue_app__;
       if (!app) throw new Error("Vue root not found");
@@ -471,6 +509,7 @@ for (const state of ["after_parse", "loading"] as const) {
     expect(released, "a reply held at the teardown is dropped").toBe(0);
     const after = await page.evaluate(() => [...(window as unknown as { __workerLog: string[] }).__workerLog]);
     expect(partFrame(after, "create"), "no part-frame worker after the teardown").toBe(partFrame(before, "create"));
+    expect(checker(after), "no check after the teardown (E1)").toBe(checker(before));
   });
 }
 
@@ -517,3 +556,178 @@ for (const c of BUSY) {
     await ctl({ op: "status_delta", data: IDLE });
   });
 }
+
+// ---- E1 (plan basiswechsel-last Fassung 5 3e, Codex R197): the collision
+// check waits at the same hold. Beside the gateway's parse its restart took
+// the browser's frames; while the program re-parses no check starts, a
+// running one pauses (its own worker hold), and the publication brings
+// exactly one check of the new version at the live offsets. ----
+
+test("E1: an offset change without a parse re-checks once, at the new offsets", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  await waitChecked(page);
+  const s0 = (await activity(page)).starts;
+  await setZ(page, -10);
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 5_000 }).toBe(s0 + 1);
+  await waitChecked(page);
+  expect(await checkZ(page)).toBe(-10);
+});
+
+test("E1: a running check pauses at the parse signal; later changes start none; the adoption starts ONE check at the live offsets", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context);
+  await waitChecked(page);
+  const s0 = (await activity(page)).starts;
+  // a check still running when the parse begins (a camera hold keeps it so)
+  await camera(page, true);
+  await setZ(page, -5);
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 5_000 }).toBe(s0 + 1);
+  expect((await activity(page)).busy).toBe(true);
+  await parse(1);
+  await waitHold(page, "parsing");
+  expect(await reparseLog(page)).toEqual(["reparse on"]);
+  // the camera lets go: the re-parse still holds it — no result comes
+  await camera(page, false);
+  await page.waitForTimeout(2_000);
+  let a = await activity(page);
+  expect([a.busy, a.result], "still held by the re-parse").toEqual([true, false]);
+  // a later change: the paused check ends with its findings, the restart is noted
+  await setZ(page, -10);
+  await pastCheckDebounce(page);
+  a = await activity(page);
+  expect(a.starts, "no check starts in the hold").toBe(s0 + 1);
+  expect([a.busy, a.result]).toEqual([false, false]);
+  expect((await basis(page)).checkHeld).toBe(true);
+  await setZ(page, -20);
+  await pastCheckDebounce(page);
+  expect((await activity(page)).starts, "nor at a third change").toBe(s0 + 1);
+  // the publication: ONE check of the new version, at the live offsets
+  await parse(null);
+  await publish(101);
+  await waitHold(page, "free");
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 10_000 }).toBe(s0 + 2);
+  await waitChecked(page);
+  expect(await checkZ(page)).toBe(-20);
+  await page.waitForTimeout(1_500);
+  expect((await activity(page)).starts, "exactly one").toBe(s0 + 2);
+  expect(await reparseLog(page)).toEqual(["reparse on", "reparse off"]);
+});
+
+test("E1: the supersede gap sends the check's hold once — not at every window", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  await waitChecked(page);
+  await parse(1);
+  await waitHold(page, "parsing");
+  await parse(null);
+  await waitHold(page, "after_parse");
+  await parse(2);
+  await waitHold(page, "parsing");
+  await parse(null);
+  await waitHold(page, "after_parse");
+  expect(await reparseLog(page), "on once, through the gaps").toEqual(["reparse on"]);
+  await publish(101);
+  await waitHold(page, "free");
+  expect(await reparseLog(page)).toEqual(["reparse on", "reparse off"]);
+});
+
+test("E1: a parse that ends without a publication — a noted restart checks once after the gap; without one the paused check goes on", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  // noted: one check after the 6 s gap, at the live offsets
+  await prepare(page, context);
+  await waitChecked(page);
+  let s0 = (await activity(page)).starts;
+  await parse(1);
+  await waitHold(page, "parsing");
+  await setZ(page, -10);
+  await pastCheckDebounce(page);
+  expect((await activity(page)).starts).toBe(s0);
+  await parse(null);
+  await waitHold(page, "after_parse");
+  await page.waitForTimeout(4_000);
+  expect((await activity(page)).starts, "not before the gap's end").toBe(s0);
+  await expect.poll(async () => (await activity(page)).starts, { message: "one check at the gap's end", timeout: 6_000 }).toBe(s0 + 1);
+  await waitChecked(page);
+  expect(await checkZ(page)).toBe(-10);
+  // nothing noted: the check paused by the hold goes on — no new start
+  await camera(page, true);
+  await setZ(page, -20);
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 5_000 }).toBe(s0 + 2);
+  s0 += 2;
+  await parse(2);
+  await waitHold(page, "parsing");
+  await camera(page, false);
+  await parse(null);
+  await waitHold(page, "after_parse");
+  await waitHold(page, "free");
+  await waitChecked(page);
+  expect((await activity(page)).starts, "the paused check went on, none started").toBe(s0);
+  expect((await reparseLog(page)).slice(-2)).toEqual(["reparse on", "reparse off"]);
+  expect(await checkZ(page)).toBe(-20);
+});
+
+test("E1: a run beginning in a hold with a noted restart — the catch-up goes through the auto check: none in the run, one at idle", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  await waitChecked(page);
+  const s0 = (await activity(page)).starts;
+  await parse(1);
+  await waitHold(page, "parsing");
+  await setZ(page, -10);
+  await pastCheckDebounce(page);
+  expect((await basis(page)).checkHeld).toBe(true);
+  // an AUTO run without a run basis: the hold ends, its check is held by the run
+  await ctl({ op: "status_delta", data: { task_mode: 2, interp_state: 2 } });
+  await waitHold(page, "free");
+  await pastCheckDebounce(page);
+  expect((await activity(page)).starts, "no baseline check in the run").toBe(s0);
+  // idle again with the parse still in the status: the hold begins anew and
+  // the run's held check is noted in it — still none beside the parse
+  await ctl({ op: "status_delta", data: { task_mode: 1, interp_state: 1 } });
+  await waitHold(page, "parsing");
+  await pastCheckDebounce(page);
+  expect((await activity(page)).starts, "none beside the parse").toBe(s0);
+  expect((await basis(page)).checkHeld).toBe(true);
+  // the parse ends without a publication: one check after the gap
+  await parse(null);
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 10_000 }).toBe(s0 + 1);
+  await waitChecked(page);
+  expect(await checkZ(page)).toBe(-10);
+});
+
+test("E1: a check parked by a rotary jog under the hold goes on after the hold — never left paused", async ({ page, context }) => {
+  test.setTimeout(90_000);
+  await prepare(page, context);
+  await ctl({ op: "status_delta", data: { rotary_abc: [0, 0, 0] } });
+  await waitChecked(page);
+  const s0 = (await activity(page)).starts;
+  await camera(page, true);
+  await setZ(page, -5);
+  await expect.poll(async () => (await activity(page)).starts, { timeout: 5_000 }).toBe(s0 + 1);
+  await parse(1);
+  await waitHold(page, "parsing");
+  await camera(page, false);
+  await parse(null);
+  await waitHold(page, "after_parse");
+  await page.waitForTimeout(3_000);
+  // a rotary jog parks the check the re-parse holds
+  await ctl({ op: "status_delta", data: { rotary_abc: [1, 0, 0] } });
+  await expect.poll(async () => (await activity(page)).resumable, { timeout: 5_000 }).toBe(true);
+  // the hold ends (the gap's 6 s) before the pose counts as settled (4.5 s
+  // after the jog): it lets go of the PARKED check, which the settle continues
+  await waitHold(page, "free");
+  expect((await activity(page)).resumable, "still parked as the hold ends").toBe(true);
+  await waitChecked(page);
+  expect((await activity(page)).starts, "continued, not restarted").toBe(s0 + 1);
+});
+
+test("E1: the re-parse line's help names the collision check", async ({ page, context }) => {
+  test.setTimeout(60_000);
+  await prepare(page, context);
+  await parse(1);
+  await expect(page.locator(".hudWarn", { hasText: "Preview re-parsing" })).toHaveCount(1);
+  await expect(page.getByText("Path, limits, collision check and simulation update when it lands", { exact: false })).toHaveCount(1);
+  await parse(null);
+});
+

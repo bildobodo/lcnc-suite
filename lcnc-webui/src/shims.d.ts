@@ -68,6 +68,8 @@ interface ViewerDiag {
   getCollisionRequestMeta?: () => { maxShards: number | null; sliceMs: number | null; range: number | null; copies?: number; transferred?: number; detached?: number } | null;
   getCollisionStopped?: () => { covered: number; reason: "motion" } | null;
   getCollisionHoldLog?: () => string[];
+  /** Main checks started; one running, one parked, a result on hand (E1). */
+  getCollisionActivity?: () => { starts: number; busy: boolean; resumable: boolean; result: boolean };
   getCollisionRange?: () => { fromCum: number; fromLine: number; empty?: true; boundary: number } | null;
   getLabels?: () => { total: number; laidOut: number };
   // Viewer contrast plan (R1/R2): each role's drawn material kind (the form
@@ -82,7 +84,9 @@ interface ViewerDiag {
   // VP188-02 E2 (plan basiswechsel-last 3a/3b): the drawn path's key, the
   // wanted one, the hold; a seam that keeps part-frame replies out
   getPathBasis?: () => { drawn: string | null; want: string | null; behind: boolean; stale: boolean;
-    hold: "free" | "parsing" | "after_parse" | "loading"; held: boolean; mode: "part" | "programmed" | null;
+    hold: "free" | "parsing" | "after_parse" | "loading"; held: boolean;
+    /** A collision re-check noted while holding (E1). */
+    checkHeld: boolean; mode: "part" | "programmed" | null;
     /** The display the preview mode asks for — a fallback never changes it. */
     wantMode: "part" | "programmed" | null;
     /** Why a parse in the status holds nothing now — null: admitted. */

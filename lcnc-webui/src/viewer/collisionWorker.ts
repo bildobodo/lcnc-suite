@@ -111,9 +111,11 @@ export interface CollisionStop { stop: number }
 /** Resume a parked sweep. */
 export interface CollisionContinue { continue: number }
 /** camera: interaction (expires after PAUSE_MAX_MS); hidden: a hidden tab;
- *  decode: a preview payload being decoded (plan „Prüfung im Lauf“ 4) —
- *  independent holds, each released by its own resume. */
-export type PauseWhy = "camera" | "hidden" | "decode";
+ *  decode: a preview payload being decoded (plan „Prüfung im Lauf“ 4);
+ *  reparse: the gateway re-parses the displayed program (VP188-02 E1 — the
+ *  check beside the parse took the browser's frames) — independent holds,
+ *  each released by its own resume. */
+export type PauseWhy = "camera" | "hidden" | "decode" | "reparse";
 /** Hold the running sweep (see header); `resume` with the same `why` lets
  *  it go — both holds must be released. */
 export interface CollisionPause { pause: number; why: PauseWhy }
@@ -142,6 +144,7 @@ interface Run {
   pausedCamAt: number;
   pausedHidden: boolean;
   pausedDecode: boolean;
+  pausedReparse: boolean;
   sliceMs: number;
   /** Active (unpaused) time accumulated by finished slices. */
   activeMs: number;
@@ -215,7 +218,19 @@ type Msg = CollisionReq | CollisionCancel | CollisionPause | CollisionResume | C
 
 /** Holds a run starts with — the owner's pause, carried over when a pooled
  *  sweep falls back to this core (Codex R90 VP-I49). */
-interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: boolean; pausedDecode?: boolean }
+interface Holds { pausedCam?: boolean; pausedCamAt?: number; pausedHidden?: boolean; pausedDecode?: boolean;
+                  pausedReparse?: boolean }
+/** The owner's holds as a run, a pooled run and a lost parked one keep them. */
+interface HoldFlags { pausedCam: boolean; pausedCamAt: number; pausedHidden: boolean; pausedDecode: boolean;
+                      pausedReparse: boolean }
+/** One hold set or released — the others untouched (each its own resume). */
+function setHold(h: HoldFlags, why: PauseWhy, on: boolean): void {
+  if (why === "hidden") h.pausedHidden = on;
+  else if (why === "decode") h.pausedDecode = on;
+  else if (why === "reparse") h.pausedReparse = on;
+  else if (!on) h.pausedCam = false;
+  else if (!h.pausedCam) { h.pausedCam = true; h.pausedCamAt = performance.now(); }
+}
 
 /** One sweep in THIS worker — the single-core path, a shard's work, and every
  *  side run. */
@@ -259,19 +274,11 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
     return;
   }
   if ("pause" in d) {
-    if (_run && _run.id === d.pause) {
-      if (d.why === "hidden") _run.pausedHidden = true;
-      else if (d.why === "decode") _run.pausedDecode = true;
-      else if (!_run.pausedCam) { _run.pausedCam = true; _run.pausedCamAt = performance.now(); }
-    }
+    if (_run && _run.id === d.pause) setHold(_run, d.why, true);
     return;
   }
   if ("resume" in d) {
-    if (_run && _run.id === d.resume) {
-      if (d.why === "hidden") _run.pausedHidden = false;
-      else if (d.why === "decode") _run.pausedDecode = false;
-      else _run.pausedCam = false;
-    }
+    if (_run && _run.id === d.resume) setHold(_run, d.why, false);
     return;
   }
   const side = !!d.side;
@@ -321,7 +328,7 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
     const run: Run = {
       id, it: null as unknown as SweepIter, cancelled: false,
       pausedCam: !!holds.pausedCam, pausedCamAt: holds.pausedCamAt ?? 0, pausedHidden: !!holds.pausedHidden,
-      pausedDecode: !!holds.pausedDecode, sliceMs: d.sliceMs ?? SLICE_MS,
+      pausedDecode: !!holds.pausedDecode, pausedReparse: !!holds.pausedReparse, sliceMs: d.sliceMs ?? SLICE_MS,
       activeMs: 0, sliceStart: 0,
       snapshot: { take: null, meta: null },
       stopped: false, stopRequested: false, lastMeta: null, nextMetaAt: 0, pump: () => {},
@@ -361,14 +368,15 @@ function handleLocal(d: Exclude<Msg, CollisionTick>, holds: Holds = {}): void {
       sendContacts(run);
     };
     const pump = () => {
-      if ((run.pausedCam || run.pausedHidden || run.pausedDecode) && !run.cancelled) {
+      if ((run.pausedCam || run.pausedHidden || run.pausedDecode || run.pausedReparse) && !run.cancelled) {
         // A stop during a pause parks right here — the generator is
         // suspended at a checkpoint already; waiting for the pause to end
         // and one more slice to run would be the stop the operator saw
-        // ignored (2026-09-12).
+        // ignored (2026-09-12). The re-parse hold stays: a continue while
+        // the owner still holds computes nothing (Codex R197).
         if (run.stopRequested && run.snapshot.take) { run.pausedCam = false; run.pausedHidden = false; run.pausedDecode = false; park(); return; }
         if (run.pausedCam && performance.now() - run.pausedCamAt >= PAUSE_MAX_MS) run.pausedCam = false;   // lost resume
-        if (run.pausedCam || run.pausedHidden || run.pausedDecode) { setTimeout(pump, PAUSE_POLL_MS); return; }
+        if (run.pausedCam || run.pausedHidden || run.pausedDecode || run.pausedReparse) { setTimeout(pump, PAUSE_POLL_MS); return; }
       }
       let slice;
       // the tick this slice begins after (a message handled before it ran)
@@ -488,6 +496,7 @@ interface PoolRun {
   pausedCamAt: number;
   pausedHidden: boolean;
   pausedDecode: boolean;
+  pausedReparse: boolean;
   /** A stop went out and is not answered yet. */
   stopPending: boolean;
   /** The owner holds a `stopped` result: parked until continue. */
@@ -507,7 +516,7 @@ interface PoolRun {
 }
 /** A parked pooled sweep whose shards failed: nothing computes until the
  *  owner continues it (from the beginning, here) or cancels it. */
-interface LostParked { req: CollisionReq; pausedCam: boolean; pausedCamAt: number; pausedHidden: boolean; pausedDecode: boolean }
+interface LostParked extends HoldFlags { req: CollisionReq }
 
 let _shards: Worker[] = [];
 let _shardModel: string[] = [];          // the modelKey each shard holds
@@ -731,7 +740,7 @@ function poolFailed(): void {
   if (run && !run.ended) {
     run.ended = true;
     const holds = { pausedCam: run.pausedCam, pausedCamAt: run.pausedCamAt, pausedHidden: run.pausedHidden,
-                    pausedDecode: run.pausedDecode };
+                    pausedDecode: run.pausedDecode, pausedReparse: run.pausedReparse };
     if (run.cancelling) {
       self.postMessage({ id: run.id, cancelled: true });
     } else if (run.parkedPosted || run.stopPending) {
@@ -782,15 +791,8 @@ function ensureShards(n: number): boolean {
 function onLostParked(lp: LostParked, d: Msg): void {
   if ("cancel" in d) { _lostParked = null; self.postMessage({ id: lp.req.id, cancelled: true }); }
   else if ("continue" in d) { _lostParked = null; handleLocal(onThisCore(lp.req), lp); }
-  else if ("pause" in d) {
-    if (d.why === "hidden") lp.pausedHidden = true;
-    else if (d.why === "decode") lp.pausedDecode = true;
-    else if (!lp.pausedCam) { lp.pausedCam = true; lp.pausedCamAt = performance.now(); }
-  } else if ("resume" in d) {
-    if (d.why === "hidden") lp.pausedHidden = false;
-    else if (d.why === "decode") lp.pausedDecode = false;
-    else lp.pausedCam = false;
-  }
+  else if ("pause" in d) setHold(lp, d.why, true);
+  else if ("resume" in d) setHold(lp, d.why, false);
   // A stop: it is parked already.
 }
 
@@ -842,13 +844,9 @@ self.onmessage = (e: MessageEvent<Msg>) => {
         // counts as acknowledged.
         run.cancelled = run.final.filter((r, i) => r && !run.parked[i]).length;
       } else if ("pause" in d) {
-        if (d.why === "hidden") run.pausedHidden = true;
-        else if (d.why === "decode") run.pausedDecode = true;
-        else if (!run.pausedCam) { run.pausedCam = true; run.pausedCamAt = performance.now(); }
+        setHold(run, d.why, true);
       } else if ("resume" in d) {
-        if (d.why === "hidden") run.pausedHidden = false;
-        else if (d.why === "decode") run.pausedDecode = false;
-        else run.pausedCam = false;
+        setHold(run, d.why, false);
       }
       for (const w of _shards) w.postMessage(d);
       return;
@@ -883,7 +881,7 @@ self.onmessage = (e: MessageEvent<Msg>) => {
   _poolRun = { id: req.id, k, req, progress: new Array(k).fill(0), partial: new Array(k).fill(undefined),
                final: new Array(k).fill(undefined), parked: new Array(k).fill(false), cancelled: 0, ended: false,
                posted: -1, partialDirty: false, nextPartialAt: 0, pausedCam: false, pausedCamAt: 0,
-               pausedHidden: false, pausedDecode: false, stopPending: false, parkedPosted: false, cancelling: false,
+               pausedHidden: false, pausedDecode: false, pausedReparse: false, stopPending: false, parkedPosted: false, cancelling: false,
                stores: req.contacts
                  ? Array.from({ length: k }, () => new ContactStore(req.id, req.contacts!.generation, shareOf(req.contacts!.budget ?? REQUEST_BUDGET, k)))
                  : null,

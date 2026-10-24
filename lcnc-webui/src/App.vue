@@ -268,7 +268,7 @@ const previewRefreshFile = computed(() => (previewRefresh.value?.file ?? '').rep
 const previewRefreshTitle = computed(() => {
   const pr = previewRefresh.value;
   if (!pr) return '';
-  return `Re-parsing ${pr.file} — ${previewRefreshTimes.value}${pr.queued ? '; another re-parse is queued behind it' : ''}. The toolpath, soft-limit marks and simulation are stale until it lands. The gateway re-parses whenever an input the preview was built from changes (fixture offsets, rotary pose, kinematics mode, tool length, soft-limit window, the file). Reason: ${pr.reason}. Superseded parses so far: ${pr.superseded}.`;
+  return `Re-parsing ${pr.file} — ${previewRefreshTimes.value}${pr.queued ? '; another re-parse is queued behind it' : ''}. The toolpath, soft-limit marks, collision check and simulation are stale until it lands. The gateway re-parses whenever an input the preview was built from changes (fixture offsets, rotary pose, kinematics mode, tool length, soft-limit window, the file). Reason: ${pr.reason}. Superseded parses so far: ${pr.superseded}.`;
 });
 
 const machineStateColor = computed(() => {

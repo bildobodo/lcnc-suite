@@ -1026,8 +1026,25 @@ THIS decode's failure `previewDecodeFailure` (never the mixed
 `previewLoadError`), the connection, a run, the simulation — bakes ONCE when a
 change was held; another program ends it without). Admitted at every
 `preview_refresh` and whenever the admission's reason changes (`_holdAdmission`:
-connected, no run, no simulation, the displayed program, a path that follows
-the offsets — `_pfScheduleWcsRefresh`'s own criterion, `pathBasis.bakeFollowsOffsets`).
+connected, the interpreter KNOWN idle from the status — an AUTO run without a
+run basis, an MDI, an unknown state hold nothing and end a hold at once, Codex
+R195 VP-I132 —, no simulation, the displayed program); only a path that
+follows the offsets (`_pfScheduleWcsRefresh`'s own criterion,
+`pathBasis.bakeFollowsOffsets`) ever ASKS to bake. The viewer's teardown drops
+the hold, its window's timer and held replies without a catch-up (VP-I133).
+E1 (plan Fassung 5 3e, Codex R197): two S runs after E2 still missed the target
+(p95 80 / 62 ms) with frames missing at low timer lateness; a separating run
+(`drive2.py --touch`: a new file time — the gateway's parse churn, no restart
+on the page) met it (p95 36), so the COLLISION CHECK waits at the SAME hold:
+its re-check (`_colScheduleAuto`, asked at the 400 ms timer's expiry) is NOTED
+in a hold (`checkHeld`, apart from the bake's `held`) and asked again ONCE on
+an end without an adoption (an adoption schedules the new version's own
+check); a running check PAUSES through the worker hold `reparse` (independent
+of camera / hidden / decode), sent only on the free ↔ held edges, posted to a
+parked check too, and kept by the worker through a park, the pool, its fall
+back and a lost parked run — a continue under the hold computes nothing. Its
+admission has no path scope since E1: the check follows the offsets for every
+program.
 The DRAWN path has its own state (`viewer/pathBasis.ts`, VP193-01): every bake
 request carries the key of what it bakes with (revision, display mode,
 `_pfWcs()`, the used table rows) — request, anchor and key from one snapshot —,
@@ -1038,12 +1055,16 @@ live values, renewed once per status frame; `pathStaleNow` adds
 part-frame reply is still out, or a change back to the preview's basis while
 the drawn path stands elsewhere, stays muted until the matching path is drawn.
 Any `applyGcode` consumes a pending 300 ms re-bake. The WANTED display is decided at every `applyGcode` (`_wantMode`: the part frame where the preview mode and payload ask for it) and never changed by a fallback: a programmed path drawn because the part-frame transform failed (the reply's error, a missing anchor, the worker's onerror, the post's own catch) is drawn and named in `drawnKey` (mode programmed) and stays MUTED until the part frame is drawn again. `__viewerDiag.getPathBasis`
-({drawn, want, behind, stale, hold, held, mode, admission}),
+({drawn, want, behind, stale, hold, held, checkHeld, mode, admission}),
+`getCollisionActivity` ({starts, busy, resumable, result}),
 `holdPartFrameReplies` / `releasePartFrameReplies`, `setBakeDebounceMs`, `failNextPartFrameReply` (seams);
 `bakeHold.test.ts`, `pathBasis.test.ts`, `e2e/bake-hold.viewer.spec.ts` (A→B→A
 with the gap and the loading, a reply out after the adoption, a pre-hold reply
 after a held change, the windows, THIS decode's failure, the run before and
-during a hold, the connection, the consumed timer, the programmed scope, a failed part bake, a scene rebuild).
+during a hold, the connection, the consumed timer, the programmed scope, a failed part bake, a scene rebuild,
+the teardown, the controller's idle; E1: the paused check, no start in the hold, ONE at the adoption at the live
+offsets, the gap's edges, the catch-up after a parse without publication, a run in the hold, a check parked by a
+rotary jog under the hold, the help line), `collisionWorker.test.ts` (the `reparse` hold through every owner).
 Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
