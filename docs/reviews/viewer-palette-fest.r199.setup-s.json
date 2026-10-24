@@ -1,0 +1,43 @@
+{
+ "at": "2026-10-24 16:18:56",
+ "commit": "3d2a7c725c1bb82047d62d7b455c93926c40c8a5",
+ "src_dirty": "",
+ "vm_cpus": 6,
+ "vm_mem": "MemTotal:       19962240 kB",
+ "vm_kernel": "6.12.107+deb13-arm64",
+ "pages": [
+  "y3jq4dik",
+  "yss6ayq3"
+ ],
+ "browser_ua": [
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0"
+ ],
+ "page_host": [
+  "192.168.64.4"
+ ],
+ "event_timing": true,
+ "keys_requested": false,
+ "s_variant": "offset",
+ "heap": false,
+ "programs": [
+  {
+   "name": "bpc_parse.ngc",
+   "bytes": 11695465,
+   "lines": 600011,
+   "sha256": "5297e6b96fa4517a21041e21ec982455624ad5b3e3dc3d5ea820dbff383b513c"
+  },
+  {
+   "name": "bpc_run.ngc",
+   "bytes": 335167,
+   "lines": 12045,
+   "sha256": "5891a2668ebd7df12de7af431757e3787674ce28768108cc4ea2fa3759d90cf2"
+  }
+ ],
+ "status": {
+  "estop": false,
+  "enabled": true,
+  "homed": true,
+  "g5x_index": 1,
+  "tool_in_spindle": null
+ }
+}

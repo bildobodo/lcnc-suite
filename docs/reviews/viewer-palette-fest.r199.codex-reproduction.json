@@ -1,0 +1,1218 @@
+{
+  "s": {
+    "full_report_identical": true,
+    "phases": {
+      "prep": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 4,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.1,
+              "edge_end_s": 2.99,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 344,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 38,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 170,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 38,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "not proven",
+            "why": "the phase begins before the anchor"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "A_rest": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 20,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.01,
+              "edge_end_s": 2.95,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1751,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 43,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1576,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 43,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "A_input": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 14,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.05,
+              "edge_end_s": 0.94,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1225,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 43,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1050,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 38,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "S_load": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 23,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.06,
+              "edge_end_s": 0.17,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1996,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 40.0,
+          "max": 128,
+          "share_over_50": 0.0025,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1823,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 40.0,
+          "max": 128,
+          "share_over_50": 0.0027,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "S_supersede": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 13,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.53,
+              "edge_end_s": 2.01,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1128,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 40.0,
+          "max": 133,
+          "share_over_50": 0.0035,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 962,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 43,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "S_settle": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 42,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.99,
+              "edge_end_s": 0.13,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 3645,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 114,
+          "share_over_50": 0.0027,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 3478,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 74,
+          "share_over_50": 0.0023,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 3,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      }
+    },
+    "observed_pages": {
+      "yss6ayq3": {
+        "rows_in_run": 0,
+        "last_row_ns": 1792851502512761955,
+        "host": "192.168.64.4"
+      },
+      "y3jq4dik": {
+        "rows_in_run": 116,
+        "last_row_ns": 1792851894822927746,
+        "host": "192.168.64.4"
+      }
+    },
+    "S_verdict": {
+      "verdict": "S met",
+      "why": [],
+      "superseded": 7,
+      "switches": 8
+    },
+    "S_collision": {
+      "sweep_start": 1,
+      "sweep_cancelled": 1
+    },
+    "S_spans": {
+      "spans": {
+        "col_cancel": {
+          "n": 16,
+          "sum_ms": 1.0,
+          "max_ms": 1,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "pf_load": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_copy": {
+          "n": 1,
+          "sum_ms": 3.0,
+          "max_ms": 3,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_post": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "path_reply": {
+          "n": 1,
+          "sum_ms": 64.0,
+          "max_ms": 64,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        }
+      },
+      "unknown": 0,
+      "top_level_sum_ms": 68.0,
+      "main_thread_late_max_ms": 103,
+      "render_max_ms": 28
+    },
+    "S_settle_collision": {
+      "sweep_start": 1,
+      "sweep_done": 1,
+      "done_ms": [
+        46301
+      ]
+    },
+    "S_settle_spans": {
+      "spans": {
+        "pf_load": {
+          "n": 1,
+          "sum_ms": 17.0,
+          "max_ms": 17,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_copy": {
+          "n": 1,
+          "sum_ms": 2.0,
+          "max_ms": 2,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_post": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "path_reply": {
+          "n": 1,
+          "sum_ms": 50.0,
+          "max_ms": 50,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        }
+      },
+      "unknown": 0,
+      "top_level_sum_ms": 69.0,
+      "main_thread_late_max_ms": 137,
+      "render_max_ms": 76
+    },
+    "raf_ticks_mean": 179.07692307692307,
+    "raf_gap_p95_mean": 18.46153846153846,
+    "last_parse_ms": 8337
+  },
+  "f": {
+    "full_report_identical": true,
+    "phases": {
+      "prep": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 4,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.64,
+              "edge_end_s": 2.04,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 343,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 36.0,
+          "max": 38,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 175,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 36,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 2,
+            "hb_wake_max_ms": 115.0,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "not proven",
+            "why": "the phase begins before the anchor"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "A_rest": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 20,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.96,
+              "edge_end_s": 2.02,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1748,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 43,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1573,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 43,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "A_input": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 14,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.98,
+              "edge_end_s": 0.0,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1224,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 41,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1049,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 37,
+          "share_over_50": 0.0,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "S_load": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 23,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.08,
+              "edge_end_s": 1.23,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1995,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 102,
+          "share_over_50": 0.003,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1820,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 102,
+          "share_over_50": 0.0033,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "S_supersede": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 13,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 1.78,
+              "edge_end_s": 2.9,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1118,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 40.0,
+          "max": 122,
+          "share_over_50": 0.0054,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 954,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 56,
+          "share_over_50": 0.001,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "S_settle": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 44,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.1,
+              "edge_end_s": 1.0,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 3796,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 176,
+          "share_over_50": 0.0016,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 3625,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 156,
+          "share_over_50": 0.0011,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "R_load": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 19,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 2.0,
+              "edge_end_s": 2.28,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1644,
+          "p50": 30.0,
+          "p95": 38.0,
+          "p99": 38.0,
+          "max": 64,
+          "share_over_50": 0.0006,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1472,
+          "p50": 30.0,
+          "p95": 38.0,
+          "p99": 38.0,
+          "max": 64,
+          "share_over_50": 0.0007,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 38.0,
+          "age_p95_interior_rows": 38.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "R_run": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 276,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.72,
+              "edge_end_s": 2.35,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 5,
+          "largest_gap_s": 4.8,
+          "complete_by_receipt_gaps": false
+        },
+        "age": {
+          "n": 23952,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 52,
+          "share_over_50": 0.0001,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 23781,
+          "p50": 30.0,
+          "p95": 36.0,
+          "p99": 38.0,
+          "max": 52,
+          "share_over_50": 0.0001,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 36.0,
+          "age_p95_interior_rows": 36.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      },
+      "R_settle": {
+        "coverage": {
+          "complete": true,
+          "pages": {
+            "y3jq4dik": {
+              "rows": 20,
+              "by": "window chain",
+              "inner_breaks": 0,
+              "edge_start_s": 0.66,
+              "edge_end_s": 2.34,
+              "complete": true
+            }
+          },
+          "gaps_over_4_5_s": 0,
+          "largest_gap_s": null,
+          "complete_by_receipt_gaps": true
+        },
+        "age": {
+          "n": 1725,
+          "p50": 30.0,
+          "p95": 38.0,
+          "p99": 40.0,
+          "max": 112,
+          "share_over_50": 0.0058,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "age_interior": {
+          "n": 1551,
+          "p50": 30.0,
+          "p95": 38.0,
+          "p99": 40.0,
+          "max": 112,
+          "share_over_50": 0.0064,
+          "neg": 0,
+          "before_visibility_change": 0,
+          "is": "an upper bound: the receipt at its earliest time on the page's clock",
+          "not_in_it": "the network, the viewer's first build, the render after the apply"
+        },
+        "target": {
+          "age_p95_all_rows": 38.0,
+          "age_p95_interior_rows": 38.0,
+          "verdict": "met"
+        },
+        "presses": 0,
+        "hal_heartbeat": {
+          "gateway_pre_send": {
+            "hb_wake_over_100ms": 0,
+            "hb_wake_max_ms": null,
+            "hb_stall_over_200ms": 0,
+            "hb_stall_max_ms": null
+          },
+          "watchdog_receipt": {
+            "status": "bound",
+            "statement": "no True-to-True receipt gap over 200 ms (integer ms: every gap < 201 ms)"
+          }
+        },
+        "parse_overlap": 0
+      }
+    },
+    "observed_pages": {
+      "yss6ayq3": {
+        "rows_in_run": 0,
+        "last_row_ns": 1792851502512761955,
+        "host": "192.168.64.4"
+      },
+      "y3jq4dik": {
+        "rows_in_run": 433,
+        "last_row_ns": 1792853293640588477,
+        "host": "192.168.64.4"
+      }
+    },
+    "S_verdict": {
+      "verdict": "S met",
+      "why": [],
+      "superseded": 7,
+      "switches": 8
+    },
+    "S_collision": {
+      "sweep_start": 1,
+      "sweep_cancelled": 1
+    },
+    "S_spans": {
+      "spans": {
+        "col_cancel": {
+          "n": 16,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "pf_load": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_copy": {
+          "n": 1,
+          "sum_ms": 3.0,
+          "max_ms": 3,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_post": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "path_reply": {
+          "n": 1,
+          "sum_ms": 74.0,
+          "max_ms": 74,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        }
+      },
+      "unknown": 0,
+      "top_level_sum_ms": 77.0,
+      "main_thread_late_max_ms": 108,
+      "render_max_ms": 31
+    },
+    "S_settle_collision": {
+      "sweep_start": 1,
+      "sweep_done": 1,
+      "done_ms": [
+        50704
+      ]
+    },
+    "S_settle_spans": {
+      "spans": {
+        "pf_load": {
+          "n": 1,
+          "sum_ms": 2.0,
+          "max_ms": 2,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_copy": {
+          "n": 1,
+          "sum_ms": 2.0,
+          "max_ms": 2,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "col_post": {
+          "n": 1,
+          "sum_ms": 0.0,
+          "max_ms": 0.0,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        },
+        "path_reply": {
+          "n": 1,
+          "sum_ms": 83.0,
+          "max_ms": 83,
+          "nested_n": 0,
+          "nested_sum_ms": 0.0
+        }
+      },
+      "unknown": 0,
+      "top_level_sum_ms": 87.0,
+      "main_thread_late_max_ms": 120,
+      "render_max_ms": 31
+    },
+    "raf_ticks_mean": 178.92307692307693,
+    "raf_gap_p95_mean": 19.384615384615383,
+    "last_parse_ms": 8588,
+    "R_proof_identical": true,
+    "R_verdict": {
+      "verdict": "R overlap proven",
+      "proof": {
+        "parse": {
+          "job": 99,
+          "gateway_pid": 2356275,
+          "file": "bpc_run.ngc",
+          "p0_ns": 227231552622942,
+          "p1_ns": 227236565007964,
+          "t_wall_ns": 1792852438238445100
+        },
+        "heartbeat_a": {
+          "seq": 928,
+          "hs": 1792830515812,
+          "hr": 1792830515834,
+          "g": 227232527.528,
+          "pid": 2356275,
+          "ta": 843,
+          "dt": 842,
+          "dn": 29
+        },
+        "heartbeat_b": {
+          "seq": 929,
+          "hs": 1792830516814,
+          "hr": 1792830516849,
+          "g": 227233542.035,
+          "pid": 2356275,
+          "ta": 844,
+          "dt": 843,
+          "dn": 30
+        },
+        "page": "y3jq4dik",
+        "word": {
+          "id": 22,
+          "run_gen": 1,
+          "range_from": null,
+          "shard": 1,
+          "gen": 0,
+          "tick": 843,
+          "n": 30,
+          "t_wall_ns": 1792852435255096532
+        },
+        "sweep": "full"
+      },
+      "parses": [
+        {
+          "job": 98,
+          "gateway_pid": 2356275,
+          "file": "bpc_run.ngc",
+          "cancelled": null,
+          "parse_ms": 4151.2,
+          "heartbeats_inside": {
+            "y3jq4dik": 4
+          },
+          "why": "no heartbeat inside it sent after a run check's word for a tick after an answer inside it"
+        },
+        {
+          "job": 99,
+          "gateway_pid": 2356275,
+          "file": "bpc_run.ngc",
+          "cancelled": null,
+          "parse_ms": 5012.4,
+          "heartbeats_inside": {
+            "y3jq4dik": 4
+          }
+        }
+      ]
+    }
+  }
+}

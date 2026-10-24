@@ -1,0 +1,157 @@
+{
+  "s": {
+    "main_sweeps": [
+      {
+        "tag": "browser.collision.sweep_start",
+        "id": 7,
+        "t_perf_ms": 212937,
+        "t_wall_ns": 1792851717438606907
+      },
+      {
+        "tag": "browser.collision.sweep_cancelled",
+        "id": 7,
+        "t_perf_ms": 217978,
+        "t_wall_ns": 1792851720741654042
+      },
+      {
+        "tag": "browser.collision.sweep_start",
+        "id": 10,
+        "t_perf_ms": 253850,
+        "t_wall_ns": 1792851756768347486
+      },
+      {
+        "tag": "browser.collision.sweep_done",
+        "id": 10,
+        "t_perf_ms": 300151,
+        "t_wall_ns": 1792851804651210038,
+        "ms": 46301,
+        "covered": 1,
+        "truncated": null,
+        "samples": 9602866,
+        "coarsened": false,
+        "uncertified": false
+      }
+    ],
+    "parse_first_seen_perf_ms": 216425,
+    "cancel_after_parse_seen_ms": 1553,
+    "cancel_page_wall_ms": 1792851720471,
+    "second_switch_gateway_wall_ns": 1792851720407478882,
+    "warning": "No subtraction across VM and page wall clocks used as a causal proof; the driver second switch and cancellation are corroborating timing only.",
+    "last_publication": {
+      "t_wall_ns": 1792851755619617839,
+      "t_mono_ms": 88355517.13,
+      "proc": "gateway",
+      "pid": 2356275,
+      "tag": "gcode.publish",
+      "level": "info",
+      "job": 86,
+      "basis": "93fa13e1c910",
+      "active_idx": 1,
+      "version": 1792758140,
+      "schema": 11,
+      "gzip_ms": 539.0,
+      "bytes": 22802137,
+      "bytes_gz": 3727775,
+      "total_ms": 8336.3
+    },
+    "last_parse_off_perf_ms": 253139,
+    "start_after_last_parse_off_ms": 711,
+    "supersede_gap_ms": [
+      33,
+      35,
+      34,
+      34,
+      33,
+      34,
+      35
+    ],
+    "input_rows": [
+      {
+        "page_perf_ms": 324294,
+        "count": 1,
+        "after_done_row_end_ms": 24143,
+        "window_ms": 3000
+      },
+      {
+        "page_perf_ms": 333294,
+        "count": 2,
+        "after_done_row_end_ms": 33143,
+        "window_ms": 3000
+      }
+    ],
+    "input_counter_semantics": "keydown OR pointerdown; counts cannot identify which kind",
+    "all_clock_relations_bound": true,
+    "max_phase_edge_s": 2.99
+  },
+  "f": {
+    "main_sweeps": [
+      {
+        "tag": "browser.collision.sweep_start",
+        "id": 15,
+        "t_perf_ms": 661196,
+        "t_wall_ns": 1792852164944043066
+      },
+      {
+        "tag": "browser.collision.sweep_cancelled",
+        "id": 15,
+        "t_perf_ms": 665992,
+        "t_wall_ns": 1792852170494525127
+      },
+      {
+        "tag": "browser.collision.sweep_start",
+        "id": 18,
+        "t_perf_ms": 701927,
+        "t_wall_ns": 1792852206440695550
+      },
+      {
+        "tag": "browser.collision.sweep_done",
+        "id": 18,
+        "t_perf_ms": 752631,
+        "t_wall_ns": 1792852257133427452,
+        "ms": 50704,
+        "covered": 1,
+        "truncated": null,
+        "samples": 9602866,
+        "coarsened": false,
+        "uncertified": false
+      }
+    ],
+    "parse_first_seen_perf_ms": 664294,
+    "cancel_after_parse_seen_ms": 1698,
+    "cancel_page_wall_ms": 1792852168487,
+    "second_switch_gateway_wall_ns": 1792852168450925092,
+    "warning": "No subtraction across VM and page wall clocks used as a causal proof; the driver second switch and cancellation are corroborating timing only.",
+    "last_publication": {
+      "t_wall_ns": 1792852203693847676,
+      "t_mono_ms": 88803591.36,
+      "proc": "gateway",
+      "pid": 2356275,
+      "tag": "gcode.publish",
+      "level": "info",
+      "job": 96,
+      "basis": "93fa13e1c910",
+      "active_idx": 1,
+      "version": 1792758143,
+      "schema": 11,
+      "gzip_ms": 552.3,
+      "bytes": 22802137,
+      "bytes_gz": 3727775,
+      "total_ms": 8588.3
+    },
+    "last_parse_off_perf_ms": 701215,
+    "start_after_last_parse_off_ms": 712,
+    "supersede_gap_ms": [
+      34,
+      33,
+      35,
+      33,
+      34,
+      33,
+      34
+    ],
+    "input_rows": [],
+    "input_counter_semantics": "keydown OR pointerdown; counts cannot identify which kind",
+    "all_clock_relations_bound": true,
+    "max_phase_edge_s": 2.9
+  }
+}
