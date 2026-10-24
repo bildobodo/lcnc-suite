@@ -1,0 +1,107 @@
+r183_viewer_no_note RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 45s
+t_wd_last_dump RED FAILED (failures=1) FAIL: test_a_later_reset_does_not_move_the_mapping (test_bpc_tools.WatchdogReceipt.test_a_later_reset_does_not_move_the_mapping) 1s
+t_wd_no_step_check RED FAILED (errors=1) ERROR: test_another_instance_or_a_clock_step_is_not_proven (test_bpc_tools.WatchdogReceipt.test_another_instance_or_a_clock_step_is_not_proven) 1s
+t_wd_no_instance_check RED FAILED (failures=1) FAIL: test_another_instance_or_a_clock_step_is_not_proven (test_bpc_tools.WatchdogReceipt.test_another_instance_or_a_clock_step_is_not_proven) 1s
+t_wd_no_tick_check RED FAILED (failures=1) FAIL: test_missing_pieces_are_not_proven (test_bpc_tools.WatchdogReceipt.test_missing_pieces_are_not_proven) 1s
+t_wd_no_anchor_pass RED FAILED (failures=1) FAIL: test_missing_pieces_are_not_proven (test_bpc_tools.WatchdogReceipt.test_missing_pieces_are_not_proven) 1s
+t_rss_no_coverage RED FAILED (failures=1) FAIL: test_uncovered_samples_are_not_collected (test_bpc_tools.Memory.test_uncovered_samples_are_not_collected) 1s
+t_s_ignores_rss RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s
+r184_sweep_no_run_gen RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 4 40s
+r184_sweep_done_no_id RED   1 failed Error: sweep 4 ends once, in its generation | - Expected  - 3 41s
+t_s_extra_ignored RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s
+t_s_no_log_pass RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s
+t_rows_vis_changes_kept RED FAILED (failures=1) FAIL: test_rows_go_only_on_evidence_of_a_hidden_page (test_bpc_tools.Rows.test_rows_go_only_on_evidence_of_a_hidden_page) 1s
+t_target_edges RED FAILED (errors=1) ERROR: test_the_target_needs_a_complete_phase_and_agreeing_edges (test_bpc_tools.Rows.test_the_target_needs_a_complete_phase_and_agreeing_edges) 1s
+r186_wit_pool_dropped RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [] to deeply equal [ { id: 40, witness: { …(3) } }, …(1) ] 9s
+r186_wit_shard_unnamed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { id: 40, witness: { …(3) } }, …(1) ] to deeply equal [ { id: 40, witness: { …(3) } }, …(1) ] 9s
+r186_wit_not_asked RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 54s
+r186_wit_page_dropped RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 56s
+t186_row_nominal_window RED FAILED (failures=1) FAIL: test_a_row_whose_actual_window_ran_long_is_an_edge_row (test_bpc_tools.Rows.test_a_row_whose_actual_window_ran_long_is_an_edge_row) 1s
+t186_g_inside_unchecked RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s
+t186_pid_unchecked RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s
+t186_no_end_needed RED FAILED (errors=1) ERROR: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s
+r187_tick_not_to_shards RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { id: 40, side: false, …(9) } to deeply equal { tick: 9 } 9s
+r187_tick_read_after RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ …(4) ] to deeply equal [ …(3) ] | AssertionError: expected [ 1, 8 ] to deeply equal [ 7 ] 9s
+r187_word_every_slice RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ …(13) ] to deeply equal [ …(3) ] | AssertionError: expected [ 7, 7, 7, 7 ] to deeply equal [ 7 ] 9s
+r187_word_when_cut RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ { id: 31, witness: { …(3) } } ] to deeply equal [] 9s
+r187_word_without_slice RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ …(15) ] to deeply equal [ …(3) ] | AssertionError: expected [ +0, 7, 7, 7, 7 ] to deeply equal [ 7 ] 9s
+r187_viewer_no_tick_post RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 57s
+r187_viewer_word_not_handed RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 56s
+t187_tick_before_answer_ok RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s
+t187_word_tick_unchecked RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s
+t187_words_any_check RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s
+t187_word_any_page RED FAILED (failures=1) FAIL: test_r_counterexamples_read_not_proven (test_bpc_tools.Verdicts.test_r_counterexamples_read_not_proven) 1s
+t187_target_unbound_ok RED FAILED (failures=1) FAIL: test_the_target_needs_every_receipt_on_the_pages_clock (test_bpc_tools.AgeBound.test_the_target_needs_every_receipt_on_the_pages_clock) 1s
+t187_target_conflict_ok RED FAILED (failures=1) FAIL: test_the_target_needs_every_receipt_on_the_pages_clock (test_bpc_tools.AgeBound.test_the_target_needs_every_receipt_on_the_pages_clock) 1s
+t189_edges_ignored RED FAILED (failures=2) FAIL: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) | FAIL: test_codex_r188_truncated_supersede_phase (test_bpc_tools.Rows.test_codex_r188_tru 1s
+t189_end_edge_ignored RED FAILED (failures=2) FAIL: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) | FAIL: test_codex_r188_truncated_supersede_phase (test_bpc_tools.Rows.test_codex_r188_tru 1s
+t189_silent_page_covers RED FAILED (failures=1) FAIL: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) 1s
+t189_expected_dropped RED FAILED (errors=1) ERROR: test_a_chained_stretch_never_speaks_for_the_whole_phase (test_bpc_tools.Rows.test_a_chained_stretch_never_speaks_for_the_whole_phase) 1s
+t189_chain_ignored RED FAILED (failures=1) FAIL: test_rows_whose_windows_chain_are_complete_whatever_their_receipt_gaps (test_bpc_tools.Rows.test_rows_whose_windows_chain_are_complete_whatever_their_receipt_gaps) 1s
+r192_viewer_no_track_transfer RED   1 failed Error: expect(received).toBeGreaterThanOrEqual(expected) | Expected: >= 5 37s
+r192_main_copy_untimed RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 1 51s
+r192_main_post_untimed RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 1 51s
+t192_s_reason_unchecked RED FAILED (failures=2) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) | FAIL: test_s_of_the_separating_run_takes_the_file_edge (test_bpc_tools.Verdicts.test_s_of_the_separating_run_takes_the_file_edge) 1s
+t192_s_basis_unchecked RED FAILED (failures=2) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) | FAIL: test_s_of_the_separating_run_takes_the_file_edge (test_bpc_tools.Verdicts.test_s_of_the_separating_run_takes_the_file_edge) 1s
+t192_s_two_bases RED FAILED (failures=1) FAIL: test_s_against_the_switch_log (test_bpc_tools.Verdicts.test_s_against_the_switch_log) 1s
+t192_nested_in_sum RED FAILED (failures=1) FAIL: test_spans_pool_per_phase_nested_apart (test_bpc_tools.Spans.test_spans_pool_per_phase_nested_apart) 1s
+r195_bh_bakes_when_held RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected false to be true // Object.is equality | AssertionError: the gap's window: both noted: expected [ true, false ] to deeply equal [ true, true ] 9s
+r195_bh_unadmitted_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'parsing' to be 'free' // Object.is equality | AssertionError: each step is a transition: expected 'parsing' not to be 'parsing' // Object.is equality 8s
+r195_bh_epoch_ignored RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected false to be true // Object.is equality | AssertionError: another connection's refresh: noted: expected [ false, false, 'parsing' ] to deeply equal [ true, false, 'free' ][ 8s
+r195_bh_gap_unwindowed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected null to be 7000 // Object.is equality 8s
+r195_bh_gap_ends RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 6 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 'free' to be 'after_parse' // Object.is equality | AssertionError: expected false to be true // Object.is equality 9s
+r195_bh_older_arrival RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { state: 'loading', n: 2, …(5) } to be { state: 'parsing', n: 1, …(5) } // Object.is equality 9s
+r195_bh_loading_unwindowed RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected null to be 20500 // Object.is equality 9s
+r195_bh_same_version_frees RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { state: 'free', n: 2, …(5) } to be { state: 'parsing', n: 1, …(5) } // Object.is equality 8s
+r195_bh_other_program_catchup RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected true to be false // Object.is equality | AssertionError: expected [ true ] to deeply equal [ false ] 8s
+r195_bh_any_decode_failure RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected { state: 'free', n: 3, …(5) } to be { state: 'loading', n: 2, …(5) } // Object.is equality 9s
+r195_bh_old_deadline RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: timer 0 in after_parse: expected { state: 'free', n: 3, …(5) } to be { state: 'after_parse', n: 2, …(5) } // Object.is equality 9s
+r195_bh_catchup_unheld RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected 1 to be +0 // Object.is equality | AssertionError: expected true to be false // Object.is equality 9s
+r195_bh_end_keeps_n RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected true to be false // Object.is equality 9s
+r195_tv_timer_not_held RED 12 passed (4.1m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 274s
+r195_tv_behind_unmuted RED 24 passed (4.5m) Error: muted without a parse and with the preview's basis back at the live one | Expected: true 299s
+r195_tv_drawn_is_wanted RED 26 passed (4.4m) Error: drawn −10, wanted −20 | Expected: true 290s
+r195_tv_timer_not_consumed RED 26 passed (4.3m) Error: the timer was consumed | Expected: 3 288s
+r195_tv_admission_watch RED 21 passed (5.3m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "parsing" 346s
+r195_tv_admission_run RED 26 passed (4.5m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "a run" 297s
+r195_tv_fallback_named_part RED 26 passed (4.6m) Error: expect(received).toContain(expected) // indexOf | Expected substring: "\"programmed\"" 302s
+r195_tv_scene_clear_keeps RED 26 passed (4.6m) Error: expect(received).toEqual(expected) // deep equality | - Expected  - 2 306s
+r195_tv_want_not_per_frame RED 8 passed (5.2m) Error: drawn B, wanted A | Expected: true 337s
+r195_tv_sim_watch RED 26 passed (4.2m) Error: caught up at the simulation's start, not at the 20 s window's end | Expected: 4 278s
+r195_tv_connection_no_catchup RED 26 passed (4.3m) Error: expect(received).toBe(expected) // Object.is equality | Expected: 3 286s
+r195_tv_adoption_not_said RED 23 passed (4.6m) Error: re-baked within the debounce, not at a window's end | Expected: 4 304s
+r195_tv_arrival_not_said RED 23 passed (4.2m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "loading" 278s
+r195_tv_key_from_live_later RED 2 passed (9.4m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 587s
+r195_tv_want_mode_from_fallback RED 26 passed (4.8m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 312s
+r196_tv_admission_busy_ignored RED 24 passed (4.4m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "the interpreter is busy" 290s
+r196_tv_admission_unknown_idle RED 26 passed (4.2m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "interpreter state unknown" 273s
+r196_tv_end_watch_run_only RED 24 passed (4.5m) Error: caught up as the interpreter left idle, not at the 6 s window's end | Expected: 4 292s
+r196_tv_end_watch_unknown_idle RED 26 passed (4.3m) Error: caught up as the interpreter left idle, not at the 6 s window's end | Expected: 4 282s
+r196_tv_end_watch_removed RED 23 passed (4.4m) Error: caught up at the run's start, not at the 6 s window's end | Expected: 3 289s
+r196_tv_unmount_hold_kept RED 25 passed (4.3m) Error: a reply held at the teardown is dropped | Expected: 0 287s
+r196_tv_unmount_replies_kept RED 25 passed (4.3m) Error: a reply held at the teardown is dropped | Expected: 0 286s
+r198_bh_check_never_noted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ false, false, false, false ] to deeply equal [ false, false, true, false ] | AssertionError: the gap's window: noted: expected [ false, false, 'free' ] to deeply equal [  8s
+r198_bh_check_while_held RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ true, false, false, false ] to deeply equal [ false, false, true, false ] | AssertionError: the gap's window: noted: expected [ false, false, 'free' ] to deeply equal [ t 8s
+r198_bh_check_catchup_off RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the gap's window: noted: expected [ false, false, 'free' ] to deeply equal [ true, false, 'free' ] | AssertionError: expected [ false ] to deeply equal [ true ] 8s
+r198_bh_check_catchup_unnoted RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: the gap's window: nothing noted: expected true to be false // Object.is equality | AssertionError: no old note runs again: expected true to be false // Object.is equality 8s
+r198_bh_adoption_checks RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ true ] to deeply equal [ false ] 8s
+r198_bh_note_as_bake RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: expected [ false, false, false, true ] to deeply equal [ false, false, true, false ] | AssertionError: the gap's window: noted: expected [ false, true, 'free' ] to deeply equal [ tr 8s
+r198_cw_reparse_as_camera RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: continued, still held: expected 15 to be 4 // Object.is equality | AssertionError: still held: expected true to be false // Object.is equality 9s
+r198_cw_pump_ignores_reparse RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: decode released, the re-parse still holds: expected 15 to be 4 // Object.is equality | AssertionError: continued, still held: expected 15 to be 4 // Object.is equality 9s
+r198_cw_park_clears_reparse RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: continued, still held: expected 15 to be 4 // Object.is equality 9s
+r198_cw_fallback_drops_reparse RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: still held: expected true to be false // Object.is equality 9s
+r198_cw_local_ignores_holds RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: still held: expected true to be false // Object.is equality | AssertionError: held: expected true to be false // Object.is equality 9s
+r198_cw_lost_parked_ignores RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: held: expected true to be false // Object.is equality 9s
+r198_cw_pool_not_kept RED ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯ AssertionError: still held: expected true to be false // Object.is equality 9s
+r198_tv_timer_no_hold RED 21 passed (3.3m) Error: the check's restart noted | Expected: true 226s
+r198_tv_no_pause_edge RED 23 passed (4.1m) Error: expect(received).toEqual(expected) // deep equality | - Expected  - 3 274s
+r198_tv_pause_every_window RED 25 passed (4.3m) Error: expect(received).toEqual(expected) // deep equality | - Expected  - 0 283s
+r198_tv_catchup_check_dropped RED 25 passed (3.9m) Error: one check at the gap's end | Expected: 2 258s
+r198_tv_admission_scope_back RED 26 passed (4.2m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "parsing" 279s
+r198_tv_parked_not_paused RED 26 passed (4.8m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 311s
+r198_tv_help_unnamed RED 26 passed (4.4m) Error: expect(locator).toHaveCount(expected) failed | Expected: 1 287s
+t198_touch_any_edge RED FAILED (failures=1) FAIL: test_s_of_the_separating_run_takes_the_file_edge (test_bpc_tools.Verdicts.test_s_of_the_separating_run_takes_the_file_edge) 1s
+t198_touch_offset_edge RED FAILED (failures=1) FAIL: test_s_of_the_separating_run_takes_the_file_edge (test_bpc_tools.Verdicts.test_s_of_the_separating_run_takes_the_file_edge) 1s
+t198_one_offset_in_touch RED FAILED (failures=1) FAIL: test_s_of_the_separating_run_takes_the_file_edge (test_bpc_tools.Verdicts.test_s_of_the_separating_run_takes_the_file_edge) 1s
+rebuild ok 20s
+# r198_tv_no_pause_edge and r198_tv_pause_every_window: re-anchored after a NOCOMPILE first run (TS6133, wasOn unused); lines above from the re-run (mutations-r198.reanchor.txt)

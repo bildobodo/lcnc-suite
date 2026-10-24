@@ -1,0 +1,38 @@
+[2m[WebServer] [22m(node:4043146) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 27 tests using 1 worker
+
+(node:4043172) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4043172) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/bake-hold.viewer.spec.ts:125:1 › an offset change without a parse re-bakes once, at the new offsets (5.1s)
+  ✓   2 e2e/bake-hold.viewer.spec.ts:135:1 › A→B→A held across the supersede gap and the loading: muted until the matching path is DRAWN (VP193-01) (7.2s)
+  ✓   3 e2e/bake-hold.viewer.spec.ts:177:1 › the adoption ends the hold: the next offset change re-bakes at once, no window left to wait out (6.7s)
+  ✓   4 e2e/bake-hold.viewer.spec.ts:202:1 › the supersede window runs out: ONE catch-up bake — only when a change was held (20.2s)
+  ✓   5 e2e/bake-hold.viewer.spec.ts:231:1 › only THIS decode's failure ends the loading with its catch-up; a surface-points failure does not (6.3s)
+  ✓   6 e2e/bake-hold.viewer.spec.ts:250:1 › the loading has a bound: 20 s without its adoption, one catch-up (25.1s)
+  ✓   7 e2e/bake-hold.viewer.spec.ts:269:1 › admitted at every refresh: a run already going holds nothing; a run beginning in a hold catches up (6.3s)
+  ✓   8 e2e/bake-hold.viewer.spec.ts:296:1 › a run or the simulation beginning in the gap or the loading ends the hold at once — no parse in the status says so (8.0s)
+  ✓   9 e2e/bake-hold.viewer.spec.ts:329:1 › a lost connection in a hold catches up (5.0s)
+  ✓  10 e2e/bake-hold.viewer.spec.ts:344:1 › a reply asked for before the hold is drawn with its own anchor; a later held change keeps the path muted (6.8s)
+  ✓  11 e2e/bake-hold.viewer.spec.ts:367:1 › the adoption consumes a pending re-bake: no second bake after it (7.9s)
+  ✓  12 e2e/bake-hold.viewer.spec.ts:381:1 › a programmed path: the plain epoch of the active fixture is never held nor behind — it follows at once, the check waits (E1) (8.9s)
+  ✓  13 e2e/bake-hold.viewer.spec.ts:414:1 › a programmed path with a rewritten epoch is held while the program re-parses (5.3s)
+  ✓  14 e2e/bake-hold.viewer.spec.ts:433:1 › a failed part-frame bake: the programmed fallback is drawn, named, and MUTED until the part frame is drawn again (5.6s)
+  ✓  15 e2e/bake-hold.viewer.spec.ts:452:1 › a scene rebuild leaves no key vouching for the new geometry: behind until the path is drawn again (5.3s)
+  ✓  16 e2e/bake-hold.viewer.spec.ts:471:3 › the viewer torn down in after_parse with a change held: no worker after it, no reply applied (12.6s)
+  ✓  17 e2e/bake-hold.viewer.spec.ts:471:3 › the viewer torn down in loading with a change held: no worker after it, no reply applied (26.6s)
+  ✓  18 e2e/bake-hold.viewer.spec.ts:527:3 › an AUTO run without a run basis: no hold begins, and one in after_parse ends at once with its catch-up (5.9s)
+  ✓  19 e2e/bake-hold.viewer.spec.ts:527:3 › an MDI executing: no hold begins, and one in loading ends at once with its catch-up (6.3s)
+  ✓  20 e2e/bake-hold.viewer.spec.ts:527:3 › an unknown interpreter state: no hold begins, and one in after_parse ends at once with its catch-up (6.5s)
+  ✓  21 e2e/bake-hold.viewer.spec.ts:566:1 › E1: an offset change without a parse re-checks once, at the new offsets (8.2s)
+  ✓  22 e2e/bake-hold.viewer.spec.ts:577:1 › E1: a running check pauses at the parse signal; later changes start none; the adoption starts ONE check at the live offsets (14.8s)
+  ✓  23 e2e/bake-hold.viewer.spec.ts:617:1 › E1: the supersede gap sends the check's hold once — not at every window (6.5s)
+  ✓  24 e2e/bake-hold.viewer.spec.ts:635:1 › E1: a parse that ends without a publication — a noted restart checks once after the gap; without one the paused check goes on (22.1s)
+  ✓  25 e2e/bake-hold.viewer.spec.ts:670:1 › E1: a run beginning in a hold with a noted restart — the catch-up goes through the auto check: none in the run, one at idle (17.2s)
+  ✓  26 e2e/bake-hold.viewer.spec.ts:699:1 › E1: a check parked by a rotary jog under the hold goes on after the hold — never left paused (14.9s)
+  ✓  27 e2e/bake-hold.viewer.spec.ts:725:1 › E1: the re-parse line's help names the collision check (4.3s)
+
+  27 passed (4.6m)

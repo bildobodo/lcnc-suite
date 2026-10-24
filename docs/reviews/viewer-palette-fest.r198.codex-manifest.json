@@ -1,0 +1,175 @@
+{
+  "round": "R198",
+  "verdict": "agreement",
+  "reviewed_revision": "cce8a3f6f94c275bdc2eafd87c106e826ff4a2fd",
+  "base": "25274d40",
+  "live_head_at_review": "d4ab17e1e95cbc3e305ca7462b57c2f952733a41",
+  "input_files_before": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 2363544,
+      "sha256": "6b092e0a6cbb74848e9757009977628d43e5f14cc6361782f56b9a7096eeb259"
+    },
+    "docs/reviews/basiswechsel-last.plan.md": {
+      "bytes": 36847,
+      "sha256": "4be3818fb835b2423174f80183494cd4ca8fd9decc7bc405feab1e445623fab1"
+    },
+    "docs/reviews/viewer-palette-fest.r198.tools-test.txt": {
+      "bytes": 99,
+      "sha256": "a988803eccbccd4e72aacb85c33d6cc5437b7b113d302865d848516baa37a0e1"
+    },
+    "docs/reviews/viewer-palette-fest.r198.gate-frontend.json": {
+      "bytes": 757,
+      "sha256": "e2cc5c3386bda8742f51a7b99729b621786a46a091cc148046d7223f03598d79"
+    },
+    "docs/reviews/viewer-palette-fest.r198.mutations-first.txt": {
+      "bytes": 18093,
+      "sha256": "f7864993c431a69ab7a03a945cb4bb67e1bf83c9823ff76a7c198c739774e6fa"
+    },
+    "docs/reviews/viewer-palette-fest.r198.browser-pc-tools-test.py": {
+      "bytes": 30780,
+      "sha256": "481ef519afe4a55ee73d52afc57b7da26a9c26d4071be8969f23da69531fccfc"
+    },
+    "docs/reviews/viewer-palette-fest.r198.tools-test.diff": {
+      "bytes": 3327,
+      "sha256": "8258ebbf87cf88345726631c9c413cdfebd2d685bdafe8c1de02f49b59fe9873"
+    },
+    "docs/reviews/viewer-palette-fest.r198.mutations.txt": {
+      "bytes": 18257,
+      "sha256": "afdd8df2cc7f5c323dbcf2f24e23f48419a4a8901514824616d6a72df0a40290"
+    },
+    "docs/reviews/viewer-palette-fest.r198.mutations-reanchor.txt": {
+      "bytes": 270,
+      "sha256": "17571078d1bbedc1405e1390b26255487c2ca79a4582fe824b49d6fbf12d378f"
+    },
+    "docs/reviews/viewer-palette-fest.r198.mutations.py": {
+      "bytes": 54345,
+      "sha256": "37ef94b31fa2643e06e3920dd4f1a6e8b2cd1076c09a68fc09aaf1953ac39d38"
+    }
+  },
+  "product_source_hashes": {
+    "lcnc-webui/e2e/bake-hold.viewer.spec.ts": "e6494c5b0d3fe0f4480b8014ca7f1f8c38c8b130e6eb90f1984241aca44c1198",
+    "lcnc-webui/src/App.vue": "65b52ae08b8eb38bb7f120589bf223f2b4dd49b33e8629c4958f8cb575b3109f",
+    "lcnc-webui/src/ThreeViewer.vue": "23975ed17becac10a686350396b54d0f2875d0fac590a24c17acc1270eba8ed5",
+    "lcnc-webui/src/shims.d.ts": "397ea0872f8a63ff29178d42bcd1adaea1a91b636d6f2736429d6f316407f5af",
+    "lcnc-webui/src/viewer/bakeHold.test.ts": "6a706de81825bd953ec8ac6ebc26b93f1deff3ffd64cb931df7de708d383d8f6",
+    "lcnc-webui/src/viewer/bakeHold.ts": "5e55f04b2fcbd79df53fe5748bed305d956ccfd45329afe75fd9a85e4ff9af82",
+    "lcnc-webui/src/viewer/collisionWorker.test.ts": "c97e8dcbbcfd256b2250cc63f9a521fb77b992de78e673d2e752ba6b985402d9",
+    "lcnc-webui/src/viewer/collisionWorker.ts": "39eab92d9a224e23304bb5f6f475a146b6ea86d144324bda4beb6b0131db9b85"
+  },
+  "reproduction": {
+    "archive_root": "/tmp/codex-r198-7siq0rmu/repo",
+    "archive_paths": [
+      "lcnc-webui",
+      "lcnc-gateway",
+      "scripts",
+      "test-fixtures",
+      "lcnc-suite",
+      "examples"
+    ],
+    "dependencies": "/tmp/codex-r187-b4k897uq/repo/lcnc-webui/node_modules",
+    "mock": "127.0.0.1:4188 only",
+    "test_helper_edits": "e2e/ctl.ts localhost:4174 -> 127.0.0.1:4188; mock-gateway.mjs listen binds 127.0.0.1",
+    "browser": "Chromium headless, one worker, nice 10",
+    "build": "nice -n 10 npm run build (before own probe files added)",
+    "unit": "nice -n 10 npx vitest run src/viewer/bakeHold.test.ts src/viewer/pathBasis.test.ts src/viewer/collisionWorker.test.ts",
+    "provided_browser": "nice -n 10 npx playwright test e2e/bake-hold.viewer.spec.ts --config codex.playwright.config.ts",
+    "own_browser": "nice -n 10 npx playwright test e2e/r198-codex.viewer.spec.ts --config codex.playwright.config.ts",
+    "own_files": {
+      "codex-probe.viewer.spec.ts": "e2e/r198-codex.viewer.spec.ts",
+      "codex-support.ts": "e2e/r198-codex-support.ts",
+      "codex-playwright.config.ts": "codex.playwright.config.ts",
+      "codex-probe-first.ts": "the original four-case probe; keep separate, not run alongside final probe"
+    },
+    "tools": "R198 offline test file with gateway import redirected to archive; dependencies bpc/drive from R182, tracetail from R183, report2/drive2 from R197; VENV/python -m unittest test_bpc_tools -v; no driver main",
+    "own_browser_sim": "nice -n 10 npx playwright test e2e/r198-codex.viewer.spec.ts -g 'simulation|Sim releases' --config codex.playwright.config.ts",
+    "own_output_paths": "Sonde writes JSON to /tmp/codex-r198-7siq0rmu; adapt only this destination if moved."
+  },
+  "no_live_endpoints_or_machine_commands": true,
+  "results": {
+    "build": "PASS",
+    "unit": {
+      "passed": 67,
+      "files": 3
+    },
+    "provided_browser": {
+      "passed": 27
+    },
+    "own_browser": {
+      "passed": 5,
+      "execution": "first run 3 passed / 1 failed due to incorrect expectation of completion during deliberately stalled decode; corrected simulation case and controlled decode release both passed in targeted run"
+    },
+    "tools": {
+      "passed": 30
+    },
+    "full_gate_repeated": false,
+    "mutations_repeated": false,
+    "provided_mutations_red": 105,
+    "performance_acceptance": "open"
+  },
+  "evidence": {
+    "viewer-palette-fest.r198.codex-build.txt": {
+      "bytes": 2438,
+      "sha256": "4c0bb6c07a975931c206bece3a54804f47f01dc56d1d8e8fc61d4c5cef3111b3"
+    },
+    "viewer-palette-fest.r198.codex-unit.txt": {
+      "bytes": 226,
+      "sha256": "5698812c3a6aa124d7a79a0ab36a1883ba164fde42ca1d5f0f936893f134fb59"
+    },
+    "viewer-palette-fest.r198.codex-provided-browser.txt": {
+      "bytes": 4610,
+      "sha256": "0e3c1041590388e00b9f036fa00eded9829854c27a34ce603b8650dd768c7d47"
+    },
+    "viewer-palette-fest.r198.codex-own-browser-first.txt": {
+      "bytes": 3824,
+      "sha256": "42c437493fe268af55a8d04152b127ff19b9d4289f29b10adeb88b07eb75fc67"
+    },
+    "viewer-palette-fest.r198.codex-own-browser-sim.txt": {
+      "bytes": 873,
+      "sha256": "721e31726d7d80d7616f842f4afb5b2f670008993889172a789c9166d1c8cdf7"
+    },
+    "viewer-palette-fest.r198.codex-tools-test.txt": {
+      "bytes": 4655,
+      "sha256": "dc9963636539379a38d29517ce11613da17a4a4501e35d04b9512a0d27860cc1"
+    },
+    "viewer-palette-fest.r198.codex-probe-first.ts": {
+      "bytes": 4459,
+      "sha256": "8710281ab0ea428fe29e26ef026d1f2de68a1e0ddf3333b0b832f6a091edf178"
+    },
+    "viewer-palette-fest.r198.codex-probe.viewer.spec.ts": {
+      "bytes": 5801,
+      "sha256": "afbf6ff17d33661fd537db583125c64f3edd3ff9c8e80eb00c30206606c819d8"
+    },
+    "viewer-palette-fest.r198.codex-support.ts": {
+      "bytes": 7850,
+      "sha256": "5dde235b858fd93ba5a015227c977a188e8ffada5272263e0a5b557803a39fdf"
+    },
+    "viewer-palette-fest.r198.codex-playwright.config.ts": {
+      "bytes": 537,
+      "sha256": "11cc5f11d1ef980087fd40e0826ca272f3d9c6de87e8abd4a746aa39ee49fbda"
+    },
+    "viewer-palette-fest.r198.codex-mutations-audit.json": {
+      "bytes": 3315,
+      "sha256": "82511bbcbb8889391df3301b5c5b37128d29df2cb7dcdd822fdfa899a26bda47"
+    },
+    "viewer-palette-fest.r198.codex-pending-timer.json": {
+      "bytes": 605,
+      "sha256": "bbdbe9cf66e379d705652b4809447ff90ec1e9e558f5788ff2c9bd2e3e20d13e"
+    },
+    "viewer-palette-fest.r198.codex-decode-failure.json": {
+      "bytes": 605,
+      "sha256": "dca7c38ff67209466843036d1414c6685e9b59999896dbf7f85c3156ffebff1d"
+    },
+    "viewer-palette-fest.r198.codex-program-change.json": {
+      "bytes": 597,
+      "sha256": "fa80f4d6ab731feb85ac03a520118991ba203ec23cd9ca893587e4dceeee780d"
+    },
+    "viewer-palette-fest.r198.codex-sim-entry.json": {
+      "bytes": 628,
+      "sha256": "fcd979bbccd9bcb319051c95b9c30a878a8739e4c684e0adb3e4d7722c3ca3e0"
+    },
+    "viewer-palette-fest.r198.codex-sim-decode.json": {
+      "bytes": 1448,
+      "sha256": "4242243ba564b6f3ad3adcf3e1c4a6ea3f332abc06ce5bf67793f1150f132c04"
+    }
+  }
+}

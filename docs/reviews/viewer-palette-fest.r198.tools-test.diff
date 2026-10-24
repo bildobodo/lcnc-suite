@@ -1,0 +1,52 @@
+--- /home/cnc/claude-work/bpc/bak-test_bpc_tools.py.r196	2026-10-24 12:16:26.405202898 +0200
++++ /home/cnc/claude-work/bpc/test_bpc_tools.py	2026-10-24 12:17:29.705409249 +0200
+@@ -379,6 +379,49 @@
+         self.assertEqual(bpc2.s_verdict(js, ov, sampled, log)["verdict"], "S met")
+         self.assertEqual(bpc2.s_verdict(js, ov, {"status": "not collected"}, log)["verdict"], "S not met")
+ 
++    def touch(self):
++        """The separating run (drive2 --touch): each step a new file time, the
++        gateway's file edge; one basis throughout."""
++        recs, log = [], []
++        for j in range(1, 5):
++            t = j * 10
++            recs.append(ev("gcode.spawn_start", t, job=j, basis="bt", active_idx=1, reason="file"))
++            log.append({"switch": j, "to": f"touch {j}", "z": None, "variant": "touch", "job": j, "basis": "bt"})
++            if j < 4:
++                recs.append(ev("gcode.reparse_superseded", t + 3, job=j))
++                recs.append(ev("gcode.parse_cancelled", t + 3.1, job=j))
++        recs.append(ev("gcode.publish", 49, job=4, basis="bt", active_idx=1))
++        return recs, log
++
++    def test_s_of_the_separating_run_takes_the_file_edge(self):
++        sampled = {"status": "sampled", "workers_at_once_max": 1}
++        recs, log = self.touch()
++        js, ov = bpc2.jobs(recs)
++        self.assertEqual(bpc2.s_verdict(js, ov, sampled, log)["verdict"], "S met")
++        recs, log = self.touch()                        # an offset edge in a touch run
++        recs[0]["reason"] = "wcsoff:G54:z"
++        js, ov = bpc2.jobs(recs)
++        self.assertIn("not the file edge", " ".join(bpc2.s_verdict(js, ov, sampled, log)["why"]))
++        recs, log = self.supersede()                    # the file edge in an offset run (above too)
++        next(r for r in recs if r["tag"] == "gcode.spawn_start" and r["job"] == 2)["reason"] = "file"
++        js, ov = bpc2.jobs(recs)
++        self.assertIn("not the offset edge", " ".join(bpc2.s_verdict(js, ov, sampled, log)["why"]))
++        recs, log = self.touch()                        # another basis in a touch run
++        log[1]["basis"] = "other"
++        js, ov = bpc2.jobs(recs)
++        self.assertIn("not the file edge", " ".join(bpc2.s_verdict(js, ov, sampled, log)["why"]))
++        recs, log = self.touch()                        # a basis per touch (one naming the file time):
++        for r in (r for r in recs if r["tag"] in ("gcode.spawn_start", "gcode.publish")):
++            r["basis"] = f"bt{r['job']}"
++        for sw in log:
++            sw["basis"] = f"bt{sw['job']}"
++        js, ov = bpc2.jobs(recs)                        # no "one offset" — a touch changes none
++        self.assertEqual(bpc2.s_verdict(js, ov, sampled, log)["verdict"], "S met")
++        recs, log = self.touch()                        # an earlier touch's parse not cancelled
++        recs = [r for r in recs if not (r["tag"] == "gcode.parse_cancelled" and r.get("job") == 2)]
++        js, ov = bpc2.jobs(recs)
++        self.assertIn("job 2 was not superseded", " ".join(bpc2.s_verdict(js, ov, sampled, log)["why"]))
++
+     def pinned(self, spawn=20, pub=25):
+         return [ev("gcode.spawn_start", spawn, job=7, pinned=True, basis="x", active_idx=1),
+                 ev("gcode.publish", pub, job=7, pinned=True, basis="x", active_idx=1)]

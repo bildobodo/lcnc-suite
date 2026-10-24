@@ -1,0 +1,27 @@
+{
+  "before": 1,
+  "after": {
+    "starts": 2,
+    "busy": false,
+    "resumable": false,
+    "result": true
+  },
+  "basis": {
+    "drawn": "[\"/nc/hold.ngc\",100,\"part\",[0,0,-10,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "want": "[\"/nc/hold.ngc\",100,\"part\",[0,0,-10,0,0,0,0,0,0],[0,0,0,0,0,0,0,0,0],0,[0,0,0,0,0,0,0,0,0],null]",
+    "behind": false,
+    "stale": true,
+    "hold": "free",
+    "held": false,
+    "checkHeld": false,
+    "mode": "part",
+    "wantMode": "part",
+    "admission": "the simulation"
+  },
+  "log": [
+    "reparse on",
+    "reparse on",
+    "reparse off"
+  ],
+  "z": -10
+}

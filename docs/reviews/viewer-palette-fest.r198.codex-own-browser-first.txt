@@ -1,0 +1,54 @@
+[2m[WebServer] [22m(node:4049212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:4049238) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4049238) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/r198-codex.viewer.spec.ts:10:1 › Codex: a pre-existing debounce is held at firing, then adoption schedules exactly once (10.3s)
+  ✓  2 e2e/r198-codex.viewer.spec.ts:25:1 › Codex: a failed decode ends the collision hold with exactly one retry of the shown version (10.5s)
+  ✓  3 e2e/r198-codex.viewer.spec.ts:38:1 › Codex: changing the program discards the old check note and its old gap deadline (16.4s)
+  ✘  4 e2e/r198-codex.viewer.spec.ts:58:1 › Codex: entering simulation releases a pending check and checks on the live offsets (39.3s)
+
+
+  1) e2e/r198-codex.viewer.spec.ts:58:1 › Codex: entering simulation releases a pending check and checks on the live offsets 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBe[2m([22m[32mexpected[39m[2m) // Object.is equality[22m
+
+    Expected: [32mtrue[39m
+    Received: [31mfalse[39m
+
+    Call Log:
+    - Timeout 30000ms exceeded while waiting on the predicate
+
+       at r198-codex-support.ts:116
+
+      114 | async function waitChecked(page: Page) {
+      115 |   await expect.poll(async () => { const a = await activity(page); return !a.busy && !a.resumable && a.result; },
+    > 116 |                     { timeout: 30_000 }).toBe(true);
+          |                                          ^
+      117 | }
+      118 | /** The 400 ms re-check timer has fired (and found the hold). */
+      119 | const pastCheckDebounce = (page: Page) => page.waitForTimeout(900);
+        at waitChecked (/tmp/codex-r198-7siq0rmu/repo/lcnc-webui/e2e/r198-codex-support.ts:116:42)
+        at /tmp/codex-r198-7siq0rmu/repo/lcnc-webui/e2e/r198-codex.viewer.spec.ts:67:9
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r198-codex.viewer-Codex-en-0cc26--checks-on-the-live-offsets/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r198-codex.viewer-Codex-en-0cc26--checks-on-the-live-offsets/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r198-codex.viewer-Codex-en-0cc26--checks-on-the-live-offsets/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r198-codex.viewer-Codex-en-0cc26--checks-on-the-live-offsets/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    e2e/r198-codex.viewer.spec.ts:58:1 › Codex: entering simulation releases a pending check and checks on the live offsets 
+  3 passed (1.3m)
