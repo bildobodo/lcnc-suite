@@ -1,0 +1,35 @@
+[2m[WebServer] [22m(node:3523341) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 24 tests using 1 worker
+
+(node:3523367) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3523367) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/bake-hold.viewer.spec.ts:103:1 › an offset change without a parse re-bakes once, at the new offsets (3.6s)
+  ✓   2 e2e/bake-hold.viewer.spec.ts:113:1 › A→B→A held across the supersede gap and the loading: muted until the matching path is DRAWN (VP193-01) (5.5s)
+  ✓   3 e2e/bake-hold.viewer.spec.ts:155:1 › the adoption ends the hold: the next offset change re-bakes at once, no window left to wait out (5.3s)
+  ✓   4 e2e/bake-hold.viewer.spec.ts:180:1 › the supersede window runs out: ONE catch-up bake — only when a change was held (19.3s)
+  ✓   5 e2e/bake-hold.viewer.spec.ts:209:1 › only THIS decode's failure ends the loading with its catch-up; a surface-points failure does not (5.0s)
+  ✓   6 e2e/bake-hold.viewer.spec.ts:228:1 › the loading has a bound: 20 s without its adoption, one catch-up (25.1s)
+  ✓   7 e2e/bake-hold.viewer.spec.ts:247:1 › admitted at every refresh: a run already going holds nothing; a run beginning in a hold catches up (5.5s)
+  ✓   8 e2e/bake-hold.viewer.spec.ts:274:1 › a run or the simulation beginning in the gap or the loading ends the hold at once — no parse in the status says so (6.7s)
+  ✓   9 e2e/bake-hold.viewer.spec.ts:307:1 › a lost connection in a hold catches up (4.2s)
+  ✓  10 e2e/bake-hold.viewer.spec.ts:322:1 › a reply asked for before the hold is drawn with its own anchor; a later held change keeps the path muted (5.8s)
+  ✓  11 e2e/bake-hold.viewer.spec.ts:345:1 › the adoption consumes a pending re-bake: no second bake after it (7.4s)
+  ✓  12 e2e/bake-hold.viewer.spec.ts:359:1 › a programmed path: the plain epoch of the active fixture is never held nor behind (4.0s)
+  ✓  13 e2e/bake-hold.viewer.spec.ts:378:1 › a programmed path with a rewritten epoch is held while the program re-parses (4.4s)
+  ✓  14 e2e/bake-hold.viewer.spec.ts:397:1 › a failed part-frame bake: the programmed fallback is drawn, named, and MUTED until the part frame is drawn again (4.7s)
+  ✓  15 e2e/bake-hold.viewer.spec.ts:416:1 › a scene rebuild leaves no key vouching for the new geometry: behind until the path is drawn again (4.6s)
+  ✓  16 e2e/bake-hold.viewer.spec.ts:435:3 › the viewer torn down in after_parse with a change held: no worker after it, no reply applied (12.1s)
+  ✓  17 e2e/bake-hold.viewer.spec.ts:435:3 › the viewer torn down in loading with a change held: no worker after it, no reply applied (26.0s)
+  ✓  18 e2e/bake-hold.viewer.spec.ts:488:3 › an AUTO run without a run basis: no hold begins, and one in after_parse ends at once with its catch-up (5.1s)
+  ✓  19 e2e/bake-hold.viewer.spec.ts:488:3 › an MDI executing: no hold begins, and one in loading ends at once with its catch-up (6.4s)
+  ✓  20 e2e/bake-hold.viewer.spec.ts:488:3 › an unknown interpreter state: no hold begins, and one in after_parse ends at once with its catch-up (6.6s)
+  ✓  21 e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: auto-no-run-basis is not idle and must not hold (5.1s)
+  ✓  22 e2e/r195-codex.viewer.spec.ts:8:2 › Codex admission: mdi-active is not idle and must not hold (5.4s)
+  ✓  23 e2e/r195-codex.viewer.spec.ts:18:1 › Codex: a superseded part-frame reply cannot fulfil the newly adopted payload (6.6s)
+  ✓  24 e2e/r195-codex.viewer.spec.ts:32:1 › Codex: unmount cancels the hold deadline and does not create another worker (11.6s)
+
+  24 passed (3.3m)

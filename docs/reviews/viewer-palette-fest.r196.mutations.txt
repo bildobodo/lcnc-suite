@@ -1,0 +1,34 @@
+r183_viewer_no_note RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 41s
+r184_sweep_no_run_gen RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 4 36s
+r184_sweep_done_no_id RED   1 failed Error: sweep 4 ends once, in its generation | - Expected  - 3 35s
+r186_wit_not_asked RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 51s
+r186_wit_page_dropped RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 50s
+r187_viewer_no_tick_post RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 49s
+r187_viewer_word_not_handed RED   1 failed Error: expect(received).toBe(expected) // Object.is equality | Expected: true 50s
+r192_viewer_no_track_transfer RED   1 failed Error: expect(received).toBeGreaterThanOrEqual(expected) | Expected: >= 5 32s
+r192_main_copy_untimed RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 1 48s
+r192_main_post_untimed RED   1 failed Error: expect(received).toEqual(expected) // deep equality | - Expected  - 1 46s
+r195_tv_timer_not_held RED 5 passed (2.3m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 159s
+r195_tv_behind_unmuted RED 17 passed (2.6m) Error: muted without a parse and with the preview's basis back at the live one | Expected: true 182s
+r195_tv_drawn_is_wanted RED 19 passed (2.8m) Error: drawn −10, wanted −20 | Expected: true 189s
+r195_tv_timer_not_consumed RED 19 passed (2.8m) Error: the timer was consumed | Expected: 3 189s
+r195_tv_admission_watch RED 16 passed (3.3m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "parsing" 221s
+r195_tv_admission_run RED 19 passed (2.9m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "a run" 196s
+r195_tv_admission_scope RED 19 passed (2.8m) Error: no hold — nothing it could hold | Expected: "free" 188s
+r195_tv_fallback_named_part RED 19 passed (2.9m) Error: expect(received).toContain(expected) // indexOf | Expected substring: "\"programmed\"" 196s
+r195_tv_scene_clear_keeps RED 19 passed (3.1m) Error: expect(received).toEqual(expected) // deep equality | - Expected  - 2 208s
+r195_tv_want_not_per_frame RED 4 passed (3.7m) Error: drawn B, wanted A | Expected: true 246s
+r195_tv_sim_watch RED 19 passed (2.8m) Error: caught up at the simulation's start, not at the 20 s window's end | Expected: 4 192s
+r195_tv_connection_no_catchup RED 19 passed (2.9m) Error: expect(received).toBe(expected) // Object.is equality | Expected: 3 198s
+r195_tv_adoption_not_said RED 19 passed (2.8m) Error: re-baked within the debounce, not at a window's end | Expected: 4 191s
+r195_tv_arrival_not_said RED 16 passed (2.8m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "loading" 192s
+r195_tv_key_from_live_later RED 2 passed (6.7m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 422s
+r195_tv_want_mode_from_fallback RED 19 passed (3.1m) Error: expect(received).toBe(expected) // Object.is equality | Expected: true 207s
+r196_tv_admission_busy_ignored RED 18 passed (3.0m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "the interpreter is busy" 204s
+r196_tv_admission_unknown_idle RED 19 passed (2.9m) Error: expect(received).toBe(expected) // Object.is equality | Expected: "interpreter state unknown" 195s
+r196_tv_end_watch_run_only RED 17 passed (2.8m) Error: caught up as the interpreter left idle, not at the 6 s window's end | Expected: 4 194s
+r196_tv_end_watch_unknown_idle RED 19 passed (2.8m) Error: caught up as the interpreter left idle, not at the 6 s window's end | Expected: 4 192s
+r196_tv_end_watch_removed RED 16 passed (2.9m) Error: caught up at the run's start, not at the 6 s window's end | Expected: 3 198s
+r196_tv_unmount_hold_kept RED 18 passed (2.8m) Error: a reply held at the teardown is dropped | Expected: 0 191s
+r196_tv_unmount_replies_kept RED 18 passed (2.8m) Error: a reply held at the teardown is dropped | Expected: 0 191s
+rebuild ok 206s

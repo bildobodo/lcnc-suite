@@ -1,0 +1,140 @@
+{
+  "round": "R196",
+  "verdict": "agreement",
+  "reviewed_revision": "24131f994f1f21ef61f4fbdc601e16b53cb85ffb",
+  "delta_reviewed": "1f80cdcd..24131f99",
+  "live_head_at_review": "3b6668891da4b7dde3fed07fc0b10e3cc7926225",
+  "input_files_before": {
+    "docs/reviews/viewer-palette-fest.ideen.md": {
+      "bytes": 2336437,
+      "sha256": "f064361ffb3ab4b1eb19d71f15d0238e43baeb88ffbf1ca238fa23fbf027b1ed"
+    },
+    "docs/reviews/basiswechsel-last.plan.md": {
+      "bytes": 22043,
+      "sha256": "4400a3a38f1abbf4c5dc60017075e633dd0007381658aaf8aafd3361a6dbd209"
+    },
+    "docs/reviews/viewer-palette-fest.r196.gate-frontend.json": {
+      "bytes": 777,
+      "sha256": "ea68de8d3802eba737dfb41ea48683499ae2045fb25d5c945922bb50e8747804"
+    },
+    "docs/reviews/viewer-palette-fest.r196.mdi-frames.jsonl": {
+      "bytes": 7680,
+      "sha256": "7e99187c7a47e95d16861909aef239eb93aedcb15b00acf91528602cc13e91f3"
+    },
+    "docs/reviews/viewer-palette-fest.r196.mdi-frames.py": {
+      "bytes": 3616,
+      "sha256": "98e858e555ca05d6770ef8dc57343f5e4a9cfb2703d3f121d228cb641baeabed"
+    },
+    "docs/reviews/viewer-palette-fest.r196.mutations.py": {
+      "bytes": 48658,
+      "sha256": "ccc2d4d1fa9f70d8fc35ad502a9b3e9f62781b6e881ea110b0afbd53580efd01"
+    },
+    "docs/reviews/viewer-palette-fest.r196.mutations.txt": {
+      "bytes": 4158,
+      "sha256": "f44eee75ec2c02a951fbb52037a5ada83036ddfa1037378c11712df19de3218e"
+    }
+  },
+  "product_source_hashes": {
+    "lcnc-webui/src/ThreeViewer.vue": "11f6832238b36c9fac3b950c119b913b4f00168e7a9cb71e9dcafc27be299df3",
+    "lcnc-webui/src/lcncWs.exports.test.ts": "c61ae134984e3882a7fdc1723b99392f5ba14bbb287036430dea1803ad9d64cc",
+    "lcnc-webui/src/lcncWs.ts": "0c08a9a8a17cb03fdf0f99b370499512be7cd00f62e732d0477ff618438bf457",
+    "lcnc-webui/src/shims.d.ts": "ae8aad9deb88542e31ceaf2c4ef486faee6af31c3af61a676b3643e8ac0078f1",
+    "lcnc-webui/src/viewer/bakeHold.test.ts": "2beb97830977d8babe23b6b75006b3e8795a63232cc32b7044c8bfd5fcf3f50d",
+    "lcnc-webui/src/viewer/bakeHold.ts": "005b65d1f48eb4f25c23756ac78004fc3285b7d139a40256ed4cd882d1d42326",
+    "lcnc-webui/src/viewer/pathBasis.test.ts": "052d3b72ce420a74dc0345a189b8e0ed90b6f8a9b701e8732aa4482ad67bd1b8",
+    "lcnc-webui/src/viewer/pathBasis.ts": "9cd42308f0c27270a2e6b4f72abe7dd68c3488fd0f6b7f03797ac5b3f071532f",
+    "lcnc-webui/src/viewer/toolpathController.ts": "d5281cedcee8925e835ae6f93bc31187b25ab8caaf5b789713e0e69880cc543f",
+    "lcnc-webui/src/ws/bulkData.test.ts": "66c51c509e7f74dc877e05e9d2b0d3a077e0fe68a5ad2b2566d8128ec842f0ad",
+    "lcnc-webui/src/ws/bulkData.ts": "76f3436937c2edded487335dc5b723d16ad80716909d8dd30374c079d3b4f774"
+  },
+  "reproduction": {
+    "archive_root": "/tmp/codex-r196-091akp68/repo",
+    "archive_paths": [
+      "lcnc-webui",
+      "scripts",
+      "test-fixtures",
+      "lcnc-suite",
+      "examples"
+    ],
+    "dependencies": "/tmp/codex-r187-b4k897uq/repo/lcnc-webui/node_modules",
+    "mock": "127.0.0.1:4188 only",
+    "test_helpers": "e2e/ctl.ts localhost:4174 -> 127.0.0.1:4188; mock-gateway.mjs listen binds 127.0.0.1",
+    "browser": "Chromium, headless, one worker, nice 10",
+    "build_command": "nice -n 10 npm run build",
+    "browser_command": "nice -n 10 npx playwright test e2e/bake-hold.viewer.spec.ts e2e/r195-codex.viewer.spec.ts --config codex.playwright.config.ts",
+    "probe_reuse": "R195 assertions and behavior unchanged; only the output directory changed to /tmp/codex-r196-091akp68",
+    "own_files_for_run": {
+      "codex-probe.viewer.spec.ts": "e2e/r195-codex.viewer.spec.ts",
+      "codex-support.ts": "e2e/r195-codex-support.ts",
+      "codex-playwright.config.ts": "codex.playwright.config.ts"
+    },
+    "build_order": "Build archived sources before adding the two R195 probe files. Initial build with the probe helper present reported its unused RUN constant; product build without these extra files passed. Reintroduced both probe files unchanged before Playwright.",
+    "no_live_endpoints_or_machine_commands": true
+  },
+  "closed_findings": [
+    "VP-I132",
+    "VP-I133"
+  ],
+  "new_findings": [],
+  "validation": {
+    "build": "PASS",
+    "provided_browser": 20,
+    "old_own_browser": 4,
+    "total_browser": 24,
+    "mutations_observed_red": 33,
+    "mutation_run_repeated": false,
+    "full_gate_repeated": false,
+    "new_performance_measurement": false
+  },
+  "evidence": {
+    "viewer-palette-fest.r196.codex-build.txt": {
+      "bytes": 2438,
+      "sha256": "b17ddae227f53d2d7d11192cac57f34dc52bc65ee35f1b8537a68816da0eb0a7"
+    },
+    "viewer-palette-fest.r196.codex-build-harness-attempt.txt": {
+      "bytes": 148,
+      "sha256": "3f4677b79d3cd77a7042848dae43513d05f9ee89dd5da6b6f34a2ee53104f36b"
+    },
+    "viewer-palette-fest.r196.codex-browser.txt": {
+      "bytes": 3994,
+      "sha256": "4a97f441be7ef02e18b65bee2a1cc8f77123047d8954add4e317b98d40d95176"
+    },
+    "viewer-palette-fest.r196.codex-probe.viewer.spec.ts": {
+      "bytes": 3167,
+      "sha256": "c3dcb408c496b6033155cf7ae8c7c72c8c8011bebaa0c19101d3bc8a3e7674b8"
+    },
+    "viewer-palette-fest.r196.codex-support.ts": {
+      "bytes": 6253,
+      "sha256": "9b067f5c49b5d7511fe985e909fbb677d731b8bd17aaebaa448f0c367fec4343"
+    },
+    "viewer-palette-fest.r196.codex-playwright.config.ts": {
+      "bytes": 537,
+      "sha256": "11cc5f11d1ef980087fd40e0826ca272f3d9c6de87e8abd4a746aa39ee49fbda"
+    },
+    "viewer-palette-fest.r196.codex-evidence-audit.json": {
+      "bytes": 1629,
+      "sha256": "3e523081ae70c7f05ddba5c9467c14ba260dc8aa51acf1513353ba4f9702bcaf"
+    },
+    "viewer-palette-fest.r196.codex-auto-no-run-basis.json": {
+      "bytes": 502,
+      "sha256": "785a60d39c8a42232684e01e568f01a1d04be5e9cca1eccfcaecbb85b87991d3"
+    },
+    "viewer-palette-fest.r196.codex-mdi-active.json": {
+      "bytes": 502,
+      "sha256": "3974a817fb5cb19577cd30bf068a6c2081bc52f3ec9b1ced2093c9de7a178e74"
+    },
+    "viewer-palette-fest.r196.codex-superseded-reply.json": {
+      "bytes": 500,
+      "sha256": "0d0d68dca5b10f1a25a1fba2e40845d6e5f5e0f024b4bc3715ac44995fb85d40"
+    },
+    "viewer-palette-fest.r196.codex-unmount.json": {
+      "bytes": 3129,
+      "sha256": "39df3b7116d002abb8fb8716b61b6dae123c506ffd8d1d64ddb80d195c4e7e6d"
+    }
+  },
+  "review_heading_line": 24644,
+  "review_append": {
+    "bytes": 4871,
+    "sha256": "8dc03182b6fd38be7b28405cc4c1b7e6632ba5e1eb82439949b01b261c0fcac2"
+  }
+}
