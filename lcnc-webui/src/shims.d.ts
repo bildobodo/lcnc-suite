@@ -79,6 +79,18 @@ interface ViewerDiag {
   setCameraPose?: (position: number[], target: number[]) => void;
   getPathMemory?: () => { mode: string; cpu: Record<string, number>; gpu: Record<string, number>; allocated: number; peak: number;
     generation: number; pairs: { source: number; lod: number; drawn: number } };
+  // VP188-02 E2 (plan basiswechsel-last 3a/3b): the drawn path's key, the
+  // wanted one, the hold; a seam that keeps part-frame replies out
+  getPathBasis?: () => { drawn: string | null; want: string | null; behind: boolean; stale: boolean;
+    hold: "free" | "parsing" | "after_parse" | "loading"; held: boolean; mode: "part" | "programmed" | null;
+    /** The display the preview mode asks for — a fallback never changes it. */
+    wantMode: "part" | "programmed" | null;
+    /** Why a parse in the status holds nothing now — null: admitted. */
+    admission: string | null };
+  holdPartFrameReplies?: (on: boolean) => void;
+  setBakeDebounceMs?: (ms: number) => void;
+  failNextPartFrameReply?: () => void;
+  releasePartFrameReplies?: () => number;
   projectRole?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number } | null;
   projectRoleSegments?: (role: string) => { x: number; y: number; dx: number; dy: number; length: number }[];
   // Viewer contrast plan (V4): the tilted work plane as drawn, and a seam to

@@ -279,6 +279,32 @@ describe("preview worker channel", () => {
     expect(previewDecoding.value).toBe(false);
   });
 
+  it("THIS decode's failure is said with its file and version — never another channel's (VP188-02 E2, R191 rest B)", async () => {
+    const { previewDecodeFailure } = await import("./bulkData");
+    fetchImpl = () => Promise.resolve(new Response("G0 X0", { status: 200 }));
+    handleViewerGcodeReady({ version: 80, file: "/nc/e.ngc" });
+    const w = FakeWorker.instances[FakeWorker.instances.length - 1]!;
+    const before = previewDecodeFailure.value;
+    // a surface-points failure is the mixed previewLoadError, never this
+    fetchImpl = () => httpError(503);
+    fetchSurfacePoints(9001, () => {});
+    await flush();
+    expect(fetchCalls.some(c => c.url.startsWith("/surface_points"))).toBe(true);   // it failed (503)
+    expect(previewDecodeFailure.value).toBe(before);
+    // a superseded version's error reply is dropped like its success
+    handleViewerGcodeReady({ version: 81, file: "/nc/e.ngc" });
+    w.onmessage?.({ data: { version: 80, basisKey: "/nc/e.ngc#80:start", error: "old" } } as any);
+    expect(previewDecodeFailure.value).toBe(before);
+    w.onmessage?.({ data: { version: 81, basisKey: "/nc/e.ngc#81:start", error: "bad bytes" } } as any);
+    expect(previewDecodeFailure.value).toMatchObject({ file: "/nc/e.ngc", version: 81 });
+    const n81 = previewDecodeFailure.value!.n;
+    // the worker's own error while a version is out names that version
+    handleViewerGcodeReady({ version: 82, file: "/nc/e.ngc" });
+    w.onerror?.({ message: "worker died" });
+    expect(previewDecodeFailure.value).toMatchObject({ file: "/nc/e.ngc", version: 82 });
+    expect(previewDecodeFailure.value!.n).toBeGreaterThan(n81);
+  });
+
   it("a verified tool basis re-decodes the payload on screen — this file AND version only (VP-I20, R58 VP-I24)", async () => {
     const { previewToolBasis, previewBasisPending } = await import("./statusStore");
     const { nextTick } = await import("vue");

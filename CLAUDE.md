@@ -1015,7 +1015,36 @@ times a fixed list of synchronous work an offset change sets off —
 inside another one as `nested_*` (never in the outer sum); the report pools
 them per phase (`main_thread`). The check's request transfers every track
 column it copies, none cloned twice (`viewer/colTrackCopy.ts`, N1;
-`getCollisionRequestMeta` says copies / transferred / detached). Tests:
+`getCollisionRequestMeta` says copies / transferred / detached). The S run
+after it still missed the age target (p95 60 ms): the dominant cost was the
+path RE-BAKE per offset change (`path_reply` 8 × mean 73 / max 113 ms), the
+check ~5 ms. E2 (operator's choice, plan Fassung 4, Codex R193/R194): while the
+gateway re-parses the loaded program the re-bake is HELD (`viewer/bakeHold.ts`,
+pure: free → parsing ↔ after_parse 6 s → loading 20 s → free at the adoption,
+whose own bake uses the LIVE offsets; ending without an adoption — a window,
+THIS decode's failure `previewDecodeFailure` (never the mixed
+`previewLoadError`), the connection, a run, the simulation — bakes ONCE when a
+change was held; another program ends it without). Admitted at every
+`preview_refresh` and whenever the admission's reason changes (`_holdAdmission`:
+connected, no run, no simulation, the displayed program, a path that follows
+the offsets — `_pfScheduleWcsRefresh`'s own criterion, `pathBasis.bakeFollowsOffsets`).
+The DRAWN path has its own state (`viewer/pathBasis.ts`, VP193-01): every bake
+request carries the key of what it bakes with (revision, display mode,
+`_pfWcs()`, the used table rows) — request, anchor and key from one snapshot —,
+`drawnKey` is set only when a path is APPLIED (`toolpath.apply` now says
+whether it did; a scene clear drops it), `wantKey` is the adopted preview at the
+live values, renewed once per status frame; `pathStaleNow` adds
+`pathBehind(drawn, want)` beside the parse-basis reasons: an adoption whose
+part-frame reply is still out, or a change back to the preview's basis while
+the drawn path stands elsewhere, stays muted until the matching path is drawn.
+Any `applyGcode` consumes a pending 300 ms re-bake. The WANTED display is decided at every `applyGcode` (`_wantMode`: the part frame where the preview mode and payload ask for it) and never changed by a fallback: a programmed path drawn because the part-frame transform failed (the reply's error, a missing anchor, the worker's onerror, the post's own catch) is drawn and named in `drawnKey` (mode programmed) and stays MUTED until the part frame is drawn again. `__viewerDiag.getPathBasis`
+({drawn, want, behind, stale, hold, held, mode, admission}),
+`holdPartFrameReplies` / `releasePartFrameReplies`, `setBakeDebounceMs`, `failNextPartFrameReply` (seams);
+`bakeHold.test.ts`, `pathBasis.test.ts`, `e2e/bake-hold.viewer.spec.ts` (A→B→A
+with the gap and the loading, a reply out after the adoption, a pre-hold reply
+after a held change, the windows, THIS decode's failure, the run before and
+during a hold, the connection, the consumed timer, the programmed scope, a failed part bake, a scene rebuild).
+Tests:
 `test_bulk_pipeline.TestRunBinding`, `test_command_dispatch` (run basis),
 `checkBasis.test.ts`, `collisionRange.test.ts`, `collisionRangeOracle.test.ts`,
 `contactView.test.ts`, `collisions.viewer.spec` (plan 1c–4; R116: a tap on

@@ -63,7 +63,7 @@ export {
 // sees "preview is stale" rather than a possibly outdated toolpath.
 export {
   viewerInit, viewerGcode, toolTableVersion, gcodeContent, gcodeRevision, gcodeTextRevision, gcodeTextSource, previewLoadError, previewParseError,
-  previewDecoding,
+  previewDecoding, previewDecodeFailure,
   previewRefusal,
   type ViewerPart, type KinematicsList, type ViewerInit, type ViewerGcode,
 } from "./ws/bulkData";

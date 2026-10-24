@@ -686,6 +686,13 @@ export const gcodeContent = ref<string | null>(null);
 // post to its reply or failure. The collision check pauses meanwhile (plan
 // „Prüfung im Lauf“ 4: the decode and a sweep would compete for the cores).
 export const previewDecoding = ref(false);
+// THIS preview request's own failure (VP188-02 E2, Codex R191 rest B): the
+// decode of `version` of `file` failed — the worker's error reply or its
+// onerror while that version was outstanding. Never previewLoadError, which
+// also carries the surface points' and the compensation grid's fetches.
+// `n` makes every failure a change of its own.
+export const previewDecodeFailure = ref<{ file: string | null; version: number; n: number } | null>(null);
+let _decodeFailures = 0;
 // The PUBLISHED program revision, `<file>#<version>` of the latest
 // viewer_gcode_ready — set on ARRIVAL, before the text fetch, so a hold
 // bound to it (Start / Step / Resume / Run from line) is cancelled the
@@ -882,6 +889,7 @@ function _ensurePreviewWorker(): Worker {
     if (m.error) {
       console.error("preview load failed", m.error);
       _previewErr.value = `/preview failed: ${m.error}`;
+      previewDecodeFailure.value = { file: _previewLastFile, version: m.version, n: ++_decodeFailures };
       if (_previewLastVersion === m.version) _previewLastVersion = -1;  // allow retry
       return;
     }
@@ -901,6 +909,9 @@ function _ensurePreviewWorker(): Worker {
     previewDecoding.value = false;
     console.error("previewWorker error", ev.message);
     _previewErr.value = `preview worker error: ${ev.message}`;
+    if (_previewLastVersion >= 0) {
+      previewDecodeFailure.value = { file: _previewLastFile, version: _previewLastVersion, n: ++_decodeFailures };
+    }
     _previewLastVersion = -1;
   };
   return _previewWorker;
