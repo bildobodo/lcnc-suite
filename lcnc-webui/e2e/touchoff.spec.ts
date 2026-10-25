@@ -705,10 +705,13 @@ test("tool-change confirm: once per request, retry after a refusal, nothing with
     expect(confirms).toHaveLength(1);
     expect(confirms[0]!.request, "the confirmation names its request (button gates BG-17)").toBe(41);
     // Refusal → the button comes back; a second confirm goes out.
-    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "confirm_tool_change", req_id: confirms[0]!.req_id, ok: false, error: "not pending" } });
+    await ctlSend({ op: "raw", frame: { type: "reply", cmd: "confirm_tool_change", req_id: confirms[0]!.req_id, ok: false, error: "Confirmation not sent — confirm again" } });
     await expect(dialog.getByRole("button", { name: "Confirm", exact: true })).toBeEnabled();
+    // the refusal shows in the dialog (button gates BG-20)
+    await expect(dialog.getByRole("alert")).toHaveText("Confirmation not sent — confirm again");
     await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
     await expect.poll(async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
+    await expect(dialog.getByRole("alert"), "a new press clears the old refusal").toHaveCount(0);
     // Request ends → dialog gone; nothing more is sent.
     await ctlSend({ op: "status_delta", data: { tool_change_requested: false, tool_change_tool: null, permissions: PERMS_ALL } });
     await expect(dialog).toHaveCount(0);

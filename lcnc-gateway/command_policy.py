@@ -329,7 +329,11 @@ def kins_runnable(s: MachineState) -> Optional[str]:
         return _unsupported_mode_msg(s)
     if k == 2 and not s.twp_active:
         return "Plane kinematics without a plane — select Machine"
-    if k == 2 and s.g5x_index is not None and s.g5x_index != 6:
+    if k == 2 and s.g5x_index is None:
+        # Plane needs G59 KNOWN: an unread fixture is no G59 (button gates
+        # BG-12, Codex R206). The other modes need no fixture here.
+        return "Active work offset unknown — wait for status"
+    if k == 2 and s.g5x_index != 6:
         return "Plane kinematics without G59 — select Plane or Machine"
     return None
 

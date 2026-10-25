@@ -16,7 +16,7 @@ from pathlib import Path
 import linuxcnc
 
 from dataclasses import dataclass, field, replace as _dc_replace
-from typing import Any, Dict, Optional, List, Tuple
+from typing import Any, Callable, Dict, Optional, List, Tuple
 from fastapi.staticfiles import StaticFiles
 import re
 import shutil
@@ -3288,7 +3288,13 @@ def _run_for_pin(file: Optional[str]) -> Optional[Dict[str, Any]]:
     return rb
 
 
-async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None) -> int:
+class _StartRefused(PermissionError):
+    """A program start refused at its last moment (button gates BG-09 /
+    BG-12): the reply says why, nothing was written."""
+
+
+async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None,
+                        admit: Optional[Callable[[], Optional[str]]] = None) -> int:
     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
 
     Every `CMD.* + wait_complete()` pair must go through here. Returns
@@ -3309,6 +3315,11 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     stored serial (N slices ≡ one long wait to 10 ms), each return lets the
     loop breathe, and a cancel lands after the current slice. The command
     WRITE `cmd_fn(*args)` is never interrupted.
+
+    `admit`: a program start's last check (button gates BG-09 / BG-12, Codex
+    R206) — run after every awaited preparation here (the run basis, the
+    start claim) and right before the write; a refusal raises _StartRefused
+    with nothing written.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
@@ -3336,6 +3347,14 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         if run_basis is not None:
             run_basis["state"] = "unsent"   # cancelled before the write: no run
         raise
+    if admit is not None:
+        refused = admit()
+        if refused:
+            if claim is not None:
+                claim.state = "unsent"   # nothing reached the controller
+            if run_basis is not None:
+                run_basis["state"] = "unsent"
+            raise _StartRefused(refused)
 
     def _run():
         try:
@@ -3676,8 +3695,8 @@ def _tool_change_request_refusal(request) -> Optional[str]:
     replaced it — the number the dialog showed must be the current one, and
     the tool asked for now must be the one that number was given for (the
     next request raised between two polls) — and a request is confirmed
-    once: a second client's late confirm is refused."""
-    global _tool_change_confirmed
+    once: a second client's late confirm is refused. Booked only after the
+    message was delivered (_book_tool_change_confirmed, BG-20)."""
     current = _status_runtime.tool_change_seq
     prep = _reader_fresh_get("tool_prep_number")
     if (not isinstance(request, int) or isinstance(request, bool) or request != current
@@ -3685,8 +3704,14 @@ def _tool_change_request_refusal(request) -> Optional[str]:
         return "Tool change request changed — confirm again"
     if request == _tool_change_confirmed:
         return "Tool change already confirmed"
-    _tool_change_confirmed = request
     return None
+
+
+def _book_tool_change_confirmed(request: int) -> None:
+    """The request whose confirmation was DELIVERED (BG-20) — the one a
+    second confirm is refused for."""
+    global _tool_change_confirmed
+    _tool_change_confirmed = request
 
 
 def require_tool_change_pending():
@@ -3831,7 +3856,7 @@ def _program_start_refusal(armed: bool) -> Optional[str]:
         base,
         kins_type=None if kins is None else int(round(float(kins))),
         twp_active=active is not None and bool(active),
-        g5x_index=base.g5x_index if g5x is None else int(g5x)))
+        g5x_index=None if g5x is None else int(g5x)))
 
 
 def _rfl_finished(task: asyncio.Task) -> None:
@@ -4124,13 +4149,19 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
         _rfl_phase("starting")
         async with _get_cmd_lock():
             # The handler's admission is minutes old: the same current read
-            # decides right before the start (button gates BG-09 / BG-12).
+            # decides — early, and again at the write itself, after the mode
+            # switch (button gates BG-09 / BG-12, Codex R206).
             why = _program_start_refusal(True)
             if why:
                 _rfl_phase("failed", False, why)
                 return
             await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
+            try:
+                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
+                                    admit=lambda: _program_start_refusal(True))
+            except _StartRefused as refused:
+                _rfl_phase("failed", False, str(refused))
+                return
         # Consumed by the skim (o<450> self-clears #3116); _skip_flag_unknown
         # stays set — an abort in the skim leaves it, the next start clears.
         flag_armed = False
@@ -5014,7 +5045,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 if refused:
                     return refused
                 await set_mode(linuxcnc.MODE_AUTO)
-                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None)
+                await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None,
+                                    admit=lambda: _program_start_refusal(armed))
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -5110,7 +5142,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 elif spindle_dir == "reverse":
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
             await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
+                                admit=lambda: _program_start_refusal(armed))
             return {"ok": True}
 
         # jog left intact (even if you're not using it right now)
@@ -5264,7 +5297,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if refused:
                 return refused
             await set_mode(linuxcnc.MODE_AUTO)
-            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None)  # Start from beginning
+            await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None,  # Start from beginning
+                                admit=lambda: _program_start_refusal(armed))
             return {"ok": True}
 
         if cmd == "cycle_pause":
@@ -5579,12 +5613,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if cmd == "confirm_tool_change":
             require_armed(armed)
             require_tool_change_pending()
-            refused = _tool_change_request_refusal(msg.get("request"))
+            request = msg.get("request")
+            refused = _tool_change_request_refusal(request)
             if refused:
                 return {"ok": False, "error": refused}
             _loop = asyncio.get_event_loop()
-            await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
-            return {"ok": True}
+            delivered = await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
+            # Booked only when delivered (button gates BG-20, Codex R206): a
+            # message that never left must not use the request up. A retry
+            # names the same request — the binding keeps it off any other.
+            if delivered is True:
+                _book_tool_change_confirmed(request)
+                return {"ok": True}
+            _trace.emit("toolchange.confirm_not_delivered", level="warn",
+                        request=request, outcome=str(delivered))
+            if delivered is False:
+                return {"ok": False, "error": "Confirmation not sent — confirm again"}
+            return {"ok": False, "error": "Confirmation unclear — confirm again if still asked"}
 
         if cmd == "simulate_probe_trip":
             require_armed(armed)

@@ -342,15 +342,24 @@ class HalBridge:
         self._wd_slow_count = 0
         return out
 
-    def watchdog_send(self, msg: dict) -> None:
-        """Send a pin-update message to the HAL watchdog via socket."""
+    def watchdog_send(self, msg: dict) -> Optional[bool]:
+        """Send a pin-update message to the HAL watchdog via socket.
+
+        Says what happened (button gates BG-20, Codex R206 — the M6
+        confirmation must not count a message that never left): True =
+        written in full to a helper that is not still deciding on our hello;
+        False = nothing written (no socket, closed while draining, a broken
+        socket); None = unclear (a timeout part-way through `sendall`, or
+        the helper's verdict still pending — it applies what follows the
+        hello only once it admits us). The heartbeat and the other pins
+        ignore it."""
         if self._wd_sock is None:
             self.watchdog_connect()
         if self._wd_sock is None:
-            return
+            return False
         self._wd_poll_reply()
         if self._wd_sock is None:
-            return  # rejected / closed while draining the verdict
+            return False  # rejected / closed while draining the verdict
         _send_t0 = time.monotonic()
         try:
             self._wd_sock.sendall((json.dumps(msg) + "\n").encode())
@@ -365,7 +374,7 @@ class HalBridge:
             _trace.emit("hal.send_timeout", level="warn",
                         send_ms=round(_send_dt_to, 1),
                         msg_keys=list(msg.keys()))
-            return
+            return None
         except (OSError, BrokenPipeError):
             # A helper that rejected us writes the verdict and closes at once;
             # a send racing that close hits EPIPE with the verdict still
@@ -378,7 +387,7 @@ class HalBridge:
                 self.watchdog_disconnect()  # close the broken fd; reconnect on next send
                 _trace.emit("hal.send_disconnect", level="warn",
                             msg_keys=list(msg.keys()))
-            return
+            return False
         _send_dt = (time.monotonic() - _send_t0) * 1000
         if _send_dt > 30:
             _trace.emit("hal.send_slow", level="warn",
@@ -386,6 +395,7 @@ class HalBridge:
                         msg_keys=list(msg.keys()))
             self._wd_slow_count += 1
         self._wd_send_agg.record(ms=_send_dt)
+        return None if self._wd_state == "awaiting" else True
 
     def watchdog_outq(self) -> int:
         """Bytes queued in the kernel send buffer for the watchdog socket.

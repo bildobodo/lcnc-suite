@@ -957,13 +957,21 @@ const confirmSent = ref<string | null>(null);
 function confirmToolChange() {
   if (!toolChangeRequested.value || confirmSent.value) return;
   const seq = toolChangeSeq.value;
+  confirmRefusal.value = null;
   const id = fire({ cmd: "confirm_tool_change", ...(seq != null ? { request: seq } : {}) }, 'toolChangeConfirm');
   if (id) confirmSent.value = id;
 }
-watch(toolChangeRequested, (req) => { if (!req) confirmSent.value = null; });
-watch([toolChangeSeq, toolChangeTool], () => { confirmSent.value = null; });
+watch(toolChangeRequested, (req) => { if (!req) { confirmSent.value = null; confirmRefusal.value = null; } });
+// A confirmation the gateway refused or could not deliver says so IN the
+// dialog (button gates BG-20): the button is back, a deliberate press tries
+// again — bound to the same request.
+const confirmRefusal = ref<string | null>(null);
+watch([toolChangeSeq, toolChangeTool], () => { confirmSent.value = null; confirmRefusal.value = null; });
 watch(lastReply, (r) => {
-  if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) confirmSent.value = null;
+  if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) {
+    confirmSent.value = null;
+    confirmRefusal.value = r.error ?? "Confirmation refused";
+  }
 });
 watch(connected, (c) => { if (!c) confirmSent.value = null; });
 
@@ -2385,6 +2393,7 @@ watch(viewerGcode, (newGcode) => {
             <template v-else>
               Remove tool and press Confirm
             </template>
+            <div v-if="confirmRefusal" class="statusNote error" role="alert">{{ confirmRefusal }}</div>
           </div>
           <template #actions>
             <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />

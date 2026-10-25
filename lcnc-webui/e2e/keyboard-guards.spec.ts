@@ -747,12 +747,23 @@ test("a held jog key keeps its stop when the key map changes on another client (
   await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
 });
 
-test("a held letter jog keeps its stop when Shift turns it upper case (Codex R205)", async ({ page }) => {
+test("a held letter jog keeps its stop when Shift turns it upper case (Codex R205/R206)", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as any).__keys = [];
+    for (const n of ["keydown", "keyup"]) window.addEventListener(n, (e: Event) => {
+      const k = e as KeyboardEvent;
+      (window as any).__keys.push({ type: k.type, key: k.key, code: k.code });
+    }, true);
+  });
   await holdContJog(page, "q", { "jog_x+": "q" });
   await page.keyboard.down("Shift");
-  await page.keyboard.up("q");
+  await page.keyboard.up("Q");
   await page.keyboard.up("Shift");
   await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
+  // the release really carried the upper case key (Codex R206)
+  const keys = await page.evaluate(() => (window as any).__keys as { type: string; key: string; code: string }[]);
+  expect(keys).toContainEqual({ type: "keydown", key: "q", code: "KeyQ" });
+  expect(keys).toContainEqual({ type: "keyup", key: "Q", code: "KeyQ" });
 });
 
 test("settings save status: Saving… on a change, Saved on the gateway's ok, the reason on ok:false", async ({ page }) => {

@@ -160,8 +160,8 @@ TIER 3 — Machine enabled (base = armed + !estop + enabled)
   pause ──────────────── isRunning + !isPaused — a STOP: no arm, sim or busy term (BG-08)   Pause (AUTO or MDI)
   spindleStop ────────── !estop + enabled + isIdle — a STOP: no arm, homing, sim or busy (BG-18; running/paused: the program owns the spindle)   Spindle Stop
   resume ─────────────── base + isPaused                              Resume
-  step ───────────────── base + (isPaused OR the `run` rule: idle + homed + kins runnable — BG-09)   Single-step
-  toolChangeConfirm ──── armed + a FRESH pending tool-change request; closed in sim (BG-17)   M6 Confirm
+  step ───────────────── base + (isPaused OR the `run` rule: idle + homed + kins runnable — BG-09; a program start re-reads the kinematics from the controller at the write, `_cmd_blocking(admit=)`)   Single-step
+  toolChangeConfirm ──── armed + a FRESH pending tool-change request; closed in sim; the command names the request (`tool_change_seq`), booked once only when delivered (BG-17/BG-20)   M6 Confirm
 
 TIER 4 — Machine idle (requires base + isIdle)
   idle ───────────────── base + isIdle + !busy                        Banner home, mode select
@@ -200,7 +200,7 @@ Every idle / running / paused rule is preceded by "the interpreter state was rea
 
 **Client-local overlay terms** (`applyClientOverlay`): `armed` (per-client), `busy` (per-tab debounce), and `sim` (`simMode.ts` — viewer simulation mode: the model shows the program, not the machine, so all machine-action gates close except `always`/`armed`/`setup`; see "Program scrub"). None of the three closes a STOP (`STOP_GATES`: abort, pause, spindleStop — the backend's decision passes as is); `cycle_pause` and `spindle_stop` are never debounced and, in the gateway, stop-class commands (`_WS_STOP_CMDS`).
 
-**A started jog owns its stop** (`jogGesture.ts`, button gates BG-06): keyboard, pointer and D-pad record at the press what they started (axes, continuous or a step) and the release stops exactly that — never what the step selector, the key map or the Z modifier say by then.
+**A started jog owns its stop** (`jogGesture.ts`, button gates BG-06): keyboard (keyed by the physical key, `code`), pointer and D-pad record at the press what they started (axes, continuous or a step) and the release stops exactly that — never what the step selector, the key map or the Z modifier say by then.
 
 ### Machine Controls Catalog (`machineControls.ts`)
 

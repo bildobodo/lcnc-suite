@@ -65,7 +65,10 @@ An enabled control means the action is admissible in the last CONFIRMED state;
 the server re-checks before the effect. Package A closed what made that false:
 - *A started jog owns its stop* (BG-06, reproduced by Codex in R202): keyboard,
   pointer and D-pad record at the press what they started (`jogGesture.ts`:
-  axes, continuous or a step) and the release sends that gesture's stop. They
+  axes, continuous or a step) and the release sends that gesture's stop. A
+  keyboard gesture is keyed by the PHYSICAL key (`code`, R205): a key map
+  saved on another client while the key is held, or Shift turning "q" into
+  "Q", no longer loses the stop. They
   used to re-read the step selector (a Cont jog whose step became 1 mm mid-hold
   sent no `jog_stop` — the machine kept moving), the D-pad re-read the Z
   modifier (Z jog, modifier let go first → `jog_stop` for Y), and the pad's
@@ -74,9 +77,16 @@ the server re-checks before the effect. Package A closed what made that false:
   waits for the `jog` gate; the gateway's disarm jog-stop stops an unhomed
   machine's jog too (BG-07 part).
 - *Step from idle is a start* (BG-09): `step` = paused OR the `run` rule (idle,
-  homed, kins runnable); `_start_guard(program=True)` re-checks `kins_runnable`
-  for Cycle Start, run from line and Step from idle — never for an MDI line,
-  the way out of a stranded frame. Run from line's confirm runs under `run`.
+  homed, kins runnable). A program start's kinematics are read from the
+  CONTROLLER (`_program_start_refusal`: the fixture from a STAT poll, kins and
+  plane from the reader now — the broadcast's `reader_fresh` was the freshness
+  when it was built, R205), early in `_start_guard(program=True)` and again at
+  the write itself (`_cmd_blocking(..., admit=)`, after the mode switch, the
+  run basis and the start claim — R206; `_StartRefused`, nothing written), for
+  Cycle Start, Step from idle and both run-from-line paths (the sequence's
+  AUTO_RUN minutes after its handler). Never for an MDI line, the way out of a
+  stranded frame. Plane kins needs G59 KNOWN: an unread fixture refuses
+  (R206). Run from line's confirm runs under `run`.
 - *Unknown is closed* (BG-12): `interp_state` None is no longer INTERP_IDLE
   (`interp_known`, `STATE_UNKNOWN` before every idle/running/paused rule); the
   reader-derived policy inputs (kins type, plane, head pose, eoffset, the
@@ -89,7 +99,17 @@ the server re-checks before the effect. Package A closed what made that false:
   Handlers read the reader through `_reader_fresh_get`.
 - *The M6 confirmation* (BG-17) has its own gate `toolChangeConfirm`: armed and
   a FRESH pending request, closed in simulation (it continues the real
-  interpreter); a confirmation waiting for a replaced request is dropped.
+  interpreter). It names the request it answers (R205): `tool_change_seq`, a
+  new number per observed rising edge of `iocontrol.0.tool-change` and per
+  tool change while raised (`StatusRuntime.track_tool_change`); the gateway
+  refuses an earlier number, a tool that changed since, a confirmation without
+  one, and a second confirmation of a request. The dialog's Confirm is rebuilt
+  per request (`:key`) — a press begun on T7 confirms nothing after T9 replaced
+  it. A request is booked as confirmed only when `watchdog_send` reports the
+  message DELIVERED (R206: True / False = nothing written / None = unclear); a
+  refused or unclear confirmation shows in the dialog and a deliberate press
+  tries again, bound to the same request. Boundary: two requests for the SAME
+  tool whose low phase falls between two polls stay one observed request.
 - *Stops need no arm* (BG-08 / BG-18): `abort` has no requirement, `pause` is
   running-and-not-paused (AUTO or MDI), `spindleStop` is on + idle without arm
   or homing and sends the direct NML stop without a MANUAL switch (task takes it
