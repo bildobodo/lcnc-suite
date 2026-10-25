@@ -222,3 +222,188 @@ Kinematikmodi (Identität / TCP / Plane) nur, wo ein Gate davon abhängt.
   - Merge nur nach `development`.
 
 ---
+
+## Codex · Runde 1 · R202 · 25. Oktober 2026
+
+**Urteil: noch kein Agreement.** Die sechs Ausgangsbefunde sind im Kern bestätigt, aber bei Laden, Moduswahl und Jog muss die Lösung genauer sein als „Gate lockern/verschärfen“. Dazu kommen eigene Befunde an Stopps, Step, Gamepad, Zustandsfrische, Werkzeugwechsel, HTTP-Schreibern und den Sperrerklärungen. Zwei Entscheidungen des Operators stehen unten als **Q1/Q2**; die technischen Korrekturen sind davon unabhängig.
+
+**Prüfstand und Belege.** Quellprüfung von `b2ded6d1`, LinuxCNC-Upstream `v2.9.4` zur installierten Debian-Version `1:2.9.4-2+deb13u1`; keine native Zulassungsmessung und kein Vergleich der Debian-Patchserie. Eigene Ausführungen ausschließlich in einer Archivkopie unter `/tmp`: 135 vorhandene Policy-Tests grün, 13 Policy-Zustände, drei gezielte Frontend-Proben und sieben Browser-Zustandsbilder am eigenen Mock. Zusätzlich ein reproduzierbarer Jog-Release-Fall mit Positivkontrolle. Die Live-Sim und ihre Ports wurden nicht benutzt. Vollständige Methode, Grenzen und Primärquellen: [Recherche/Nachweise](button-gates.r202.research.md); [Katalog](button-gates.r202.catalog.json), [Policy-Probe](button-gates.r202.policy-probe.json), [Browserwerte](button-gates.r202.browser.json), [Jog-Befehlsfolge](button-gates.r202.jog.json). Die Inventur umfasst 96 Buttontypen, 44 Eingabetypen und 62 Backend-Command-Zuordnungen; die sieben Browserbilder sind kein vollständiger dynamischer Test aller Dialoge und Maschinenprofile.
+
+### 1. Prinzipien und Antworten G1–G7
+
+Die Invariante im Auftrag braucht eine Präzisierung: **Freigegeben heißt nach dem zuletzt bestätigten Zustand zulässig und für die konkrete Aktion sinnvoll.** Es ist keine Erfolgsgarantie und kein Kollisionsfreiheitsversprechen. Ein zweiter Client oder LinuxCNC selbst kann den Zustand zwischen Anzeige und Ausführung ändern. Deshalb prüft der Server unmittelbar vor der Wirkung erneut und antwortet mit dem tatsächlichen Ergebnis. Unbekannt ist nicht idle, referenziert oder „Kompensation aus“.
+
+1. **Ansicht, Entwurf, Übernahme und Bewegung unterscheiden.** Tabs, Suche, Hilfe, Lesen, Kopieren, Viewer und lokale Entwürfe benötigen kein Arm. Ohne Verbindung bleiben vorhandene Daten sichtbar, aber als veraltet gekennzeichnet; neues Lesen benötigt die jeweilige Verbindung. Ein Entwurf wird niemals beim Armieren, Reconnect oder Fokuswechsel automatisch ausgeführt.
+2. **Arm autorisiert neue Maschinenwirkungen, nicht die Navigation.** Stopps bleiben erreichbar. Fortsetzen, M6 bestätigen und E-Stop zurücksetzen sind keine Stopps. Eine `false`-Richtung eines beliebigen Schalters ist ebenfalls nicht automatisch ein sicherer Stopp: Kühlung/Spindel im Schnitt abzuschalten braucht eine eigene Betriebsregel.
+3. **Ein Gate gehört zur Aktion samt Ziel/Parametern.** Modus MANUAL ist nicht Modus AUTO; Step aus idle ist ein Start, Step aus Pause ein Fortsetzen; Oberfläche lesen ist nicht Werkzeugtabelle ersetzen. Stylingtypen wie `dialogConfirm` oder `manage` sind keine hinreichende Autorisierung.
+4. **Ein zentraler Vertrag, mehrere Aufrufer.** Backend entscheidet und erklärt; Oberfläche, Tastatur und Gamepad benutzen dieselben Aktionszuordnungen. Lokal kommen Verbindung, Arm, Sim, Dialog-/Editorbesitz und laufende Anfrage hinzu. Serverzustände wie M6-Anforderung, Zulässigkeit eines Zielmodus und HAL-Frische gehören nicht in unabhängig nachgebaute Frontend-Regeln.
+5. **Begonnene Bedienung besitzt ihren Abschluss.** Ein Jog merkt sich Ziel, Rahmen und kontinuierlich/inkrementell beim Start. Release, Abbruch, Disarm und Fokusverlust richten sich danach, nicht nach einer inzwischen anderen Vorwahl oder Freigabe. Ein gesperrter Start sperrt nie seinen erforderlichen Stop.
+6. **Keine unsichtbaren Moduswechsel zum Entsperren einer Ansicht.** Wo eine Maschine tatsächlich umgeschaltet werden muss, wird das ein ausdrücklich definierter, erneut geprüfter Ablauf. Ein abgewiesener oder ignorierter Befehl darf nicht optimistisch als erfolgreich erscheinen.
+
+**G1:** Alle Ansichten und lokalen Vorwahlen zugänglich machen. Dabei globale Einstellungen nicht als „lokal“ deklarieren: `SettingsPanel` beschreibt selbst das automatische Speichern und Verteilen an alle Clients; Q2 klärt Schreibrechte.
+
+**G2:** Laden soll ohne Referenzierung funktionieren. `program_open` benötigt keinen vorgeschalteten AUTO-Wechsel. LinuxCNC nimmt PLAN_OPEN auch in OFF/ESTOP sowie in den einschlägigen Idle-Zweigen an. Der jetzige AUTO-Schritt erzeugt auf nichttrivialer unreferenzierter Kinematik die Zusatzhürde. Lade-Transaktion, Pfadbindung, laufender Interpreter und RFL-Sperre bleiben erhalten. Claudes Trace beweist den ignorierten Moduswechsel, aber nicht dessen auslösenden UI-Button. [Task-Quelle](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc#L788)
+
+**G3:** „Maschine aus“ ist kein allgemeines Verbot für Lesen, Laden, Dateiarbeit oder Moduswahl. Task nimmt Modusbefehle auch OFF/ESTOP an; die anschließende Motion-Umstellung kann weitere Bedingungen haben. MANUAL vor Homing ist ein sinnvoller Einrichtzustand. AUTO/MDI dürfen nur angeboten werden, wenn der Zielmodus für das konkrete Profil erreichbar ist. Ihre Auswahl darf kein laufendes Jog/Programm abbrechen. [Modusimplementierung](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctask.cc#L264)
+
+**G4:** Jog-Schrittweite und Geschwindigkeit sind vor dem nächsten Jog vorzuwählen, auch disarmed/off/unhomed. Der Ausgangsbefund „nur lokal“ ist allerdings unvollständig: Der analoge Gamepad-Jog liest `jogVel` fortlaufend; die Schrittweite beeinflusst heute sogar den Release. Für die Freigabe daher Vorwahl und laufende Geste trennen, siehe BG-05/BG-06.
+
+**G5:** LinuxCNC erlaubt grundsätzlich unreferenzierten **Gelenk-Jog**, nicht beliebigen Welt-/TCP-Jog. Synchronisierte Homing-Gruppen, Joint-Zuordnung, Inhibit, Limits, Locking-Indexer und ein laufendes Homing begrenzen ihn. Die aktuelle Suite hat dafür noch keinen vollständigen Vertrag. Nicht bloß `_R_HOMED` aus `jog` streichen. [Motion-Quelle](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/command.c#L471)
+
+**G6:** Offsetwerte lesen und einen lokalen Zahlenentwurf vorbereiten: ja. Aktives WCS wählen, G10 L2 übernehmen, G10 L20/Touch-off und Löschen bleiben Maschinenaktionen über MDI. LinuxCNC verlangt für MDI im Normalprofil all-homed. `NO_FORCE_HOMING` ist eine deklarierte Ausnahme, keine UI-Reparatur; sie hebt die Anforderungen nichttrivialer Kinematik nicht auf. **Keinen zweiten Offset-Schreibweg über die Var-Datei bauen**, nur um das Gate zu umgehen. Bestehende TWP-/eoffset-Regeln beibehalten. [Task EXECUTE/RUN](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc#L2208), [INI-Dokumentation](https://linuxcnc.org/docs/2.9/html/config/ini-config.html)
+
+**G7:** Die Matrix unten umfasst auch Datei-/Werkzeug-/Makroverwaltung, G30, Spindel, Kühlung, Overrides, M6, Simulator, Stopps und Recovery. Einstellungen und REST-Schreiber gehören dazu; eine reine Kontrolle von `COMMAND_GATES` würde sie auslassen.
+
+### 2. Soll-Matrix zur Verhandlung
+
+**Namensvorschläge**, noch keine Änderung am Vertrag: bestehende fachliche Gates behalten, neue Namen nur für tatsächlich verschiedene Wirkungen. Insbesondere `connectedRead`, `programLoad`, `sourceWrite`, `toolTableWrite`, `modeManual`/`modeAuto`/`modeMdi`, `jogJoint`, `stop`, `toolChangeConfirm`, `parameterRead` und gegebenenfalls `spindleManual`. Es braucht keinen Gate-Namen pro Widget. Die Bedingungen dürfen aus gemeinsam verwendeten Regeln zusammengesetzt werden; Entscheidung und Grund stammen aus derselben Auswertung.
+
+| Kontrollgruppe | Ist → Soll / Gate | Konkrete Abgrenzung |
+|---|---|---|
+| Tabs/Subtabs, Suche/Filter, Hilfe, Meldungen, Viewer-Kamera/Ansichten, Sim-Liste/Scrub | `always` unter `armed` → wirksam `always` | Auch während Lauf, disarmed und mit gecachten Daten getrennt. Navigation löst keinen Maschinen-Moduswechsel aus. |
+| Ordner öffnen, Programm/Werkzeuge/Offsets/Makros lesen, Download/Export | `always` oder `setup` unter `armed` → `connectedRead` bzw. lokaler Export | Ordnernavigation nicht `load_file`; Backend-Dateisystem benötigt Verbindung, vorhandener Text nicht. |
+| MDI-Text, Makroparameter, Werkzeug-/Offset-/Programmentwurf; Dialog schließen/verwerfen | `ready`/`probe`/`setup` teils bis in den Entwurf → `always` + lokale Validierung | Übernehmen/Ausführen separat. Noch kein Auftrag für neue Offline-Editoren; vorhandene Eingabe- und Abbruchwege entkoppeln. |
+| Jog-Schrittweite/-Geschwindigkeit und RPM-Vorwahl | `jog`/äußeres `ready` → lokale Vorwahl | Bekannte Einheiten/INI-Grenzen; keine eigene Bewegung; BG-06 muss zuvor geschlossen sein. Aktiver Jog behält seine Startbedingungen. |
+| Programm in Interpreter laden, neu laden, entladen | `setup` + AUTO-Vorschritt → `programLoad` | Armed, verbunden, bekannt idle, keine konkurrierende Lade-/Starttransaktion; keine Homing-/Power-Voraussetzung. Laden beendet eine bisherige Viewer-Simulation ausdrücklich. |
+| Programm-/Makrodatei speichern/hochladen/löschen | `setup` bzw. eigener REST-Weg → `sourceWrite` | Armed, idle, keine offene Start-/Quelltransaktion; Versions-/Pfadprüfung bis zum Commit. Keine laufende Quelle überschreiben. Entwurf bleibt erhalten bei Ablehnung. |
+| Werkzeugtabelle ändern/importieren/löschen/nummerieren | `setup` bzw. REST → `toolTableWrite` | Armed, bekannt idle, kein M6-/Messvorgang; kein Homing als Voraussetzung für reine Tabellenpflege. Reload-Erfolg gesondert bestätigen. |
+| Task-Modus MANUAL / MDI / AUTO | alle `idle` → je Zielmodus | Bekannt idle **und** kein Jog/Homing/auslaufende Bewegung; kein Auto-Abort. MANUAL vor Homing; AUTO/MDI nur bei bestätigter Fähigkeit des Profils. Power-off alleine ist kein Sperrgrund. |
+| Joint-Jog vor/bei teilweisem Homing | pauschal `jog` geschlossen → `jogJoint(joint,direction)` | Armed, enabled, MANUAL/FREE, gültige Joint-Zuordnung und jeweilige Motion-Zulassung. Synchronisierte Gruppen nicht einzeln freigeben. |
+| Welt-/Achsen-Jog | `jog` → fachlich beibehalten, tatsächlichen Modus prüfen | Voll referenziert und TELEOP/zulässiger Rahmen; TWP-Regeln bleiben. Gelenk-Freifahren bei Softlimit als gesonderter Pfad. |
+| Home/Unhome einzeln/alle | `zero` → beibehalten + Joint-/Homingzustand | Keine All-homed-Voraussetzung fürs Homing; keine konkurrierende Bewegung, keine aktive eoffset-Kompensation. Unhome ist nicht Abort. |
+| Start / Run from line / Step aus idle | `run` / teilweise `ready` / `step` → gemeinsame Startzulassung | Geladene bestätigte Quelle, nicht im Editor, homed, zulässige Kinematik, keine konkurrierende Bewegung/Transaktion; RFL-Zusatzbedingungen unverändert. |
+| Pause / Resume / Step aus Pause | `_BASE` + Laufzustand → Stop-/Fortsetzungszweige | Pause ist Unterbrechung, Resume/Step neue Bewegungsfreigabe. M6-Warten nicht mit beliebiger Programmpause gleichsetzen. |
+| Abort, Jog-Stop, E-Stop | `abort`/äußere Gates bzw. `always` → `stop`/unbedingter Stop-Pfad | Bei bestehender Verbindung unabhängig von Arm, Sim und busy. Keine später versandte Stop-Warteschlange bei Reconnect; bei fehlendem Transport keine Erfolgsbehauptung. |
+| Arm/Disarm, Trip quittieren, E-Stop Reset, Power on/off | teils `always`, `safety`, lokale Booleans → richtungsbezogene Recovery-Regeln | Trip → quittieren → ggf. Arm → Reset → On. Reset ist kein E-Stop. On prüft reale Kette; Off stoppt, hebt aber nie Trip/Reset auf. Keine automatische Wiederinbetriebnahme. |
+| MDI senden, Makro ausführen | `ready` / `probe` → grundsätzlich beibehalten | Bekannt idle, homed, passende eoffset-/Rahmenregeln; beim Senden nochmal prüfen. Parameterdialog öffnen nicht mit Ausführung gleichsetzen. |
+| WCS wählen/schreiben/löschen; Zero/Touch-off | `probe`, `touchoff*` → beibehalten | Nur das Lesen/Entwerfen entkoppeln. TWP-Reservierungen, linear/rotary und G92/eoffset bleiben differenziert. |
+| G30 bestätigt lesen / erfassen / speichern | `idle` / `g30Capture` / `machineFrame` → zusätzlich Synch-Zulassung | Lesen benötigt kein Homing; Capture benötigt frische Position und Stillstand. In ON/AUTO bestätigt der vorhandene Weg keinen Synch; Hinweis „zu MDI wechseln“, keine stille Umschaltung. |
+| Werkzeug laden/messen/entladen; Probe-/Go-to-Routinen | `machineFrame`, `goZero`, `surfaceComp` → beibehalten | Bewegungsroutinen, nicht Tabellenpflege; Stop/Abbruch bleiben separat erreichbar. |
+| Kinematikrahmen / Plane erfassen, orientieren, löschen | `ready`, `planeFrame`, `twpCapture`, `probe` → beibehalten + Frische | Kein beliebiger MANUAL-Tabwechsel; die Befehle ändern reale Interpreter-/Kinematikzustände. |
+| Spindel Fwd/Rev/±/Stop | `ready` → vorerst beibehalten; `spindleManual` gemäß Q1 | Kein neues manuelles Spindelkommando im AUTO-/MDI-Lauf. RPM-Vorwahl separat; globale Unterbrechung über Pause/Abort. |
+| Kühlung, Feed-/Spindel-/Rapid-Override, Optional Stop/Block Delete | `override` → bestehende Betriebszulassung, gleiche Regeln am Gamepad | Keine Homingpflicht; auch im Lauf. Tatsächliche Maschinenwerte, keine bloß lokalen Vorwahlen. Wirkung von Programmschaltern kann dem Interpreter-Vorlauf folgen. |
+| Oberflächenkompensation an/aus, Methode, Daten | richtungsabhängig `surfaceComp`/`ready`/`probe` → beibehalten | Daten ansehen frei; Einschalten anders als Ausschalten; bestehende Rotary-/eoffset-Regeln nicht nivellieren. |
+| M6 physisch bestätigen | `armed` → `toolChangeConfirm` | Armed, reale **frische** offene Werkzeugwechselanforderung und passender Lebenszyklus; kein idle-Zwang, keine Freigabe im Viewer-Sim-Modus. |
+| Settings/HAL-Diagnose, Eingabegeräte konfigurieren | viele `always`, gemeinsame Persistenz → Lesen frei, Schreiben nach Wirkung/Q2 | Pin lesen nicht Pin schreiben; Darstellung lokal nicht Maschinenkonfiguration global. Kein generisches neues „setup“ für alles. |
+| Shutdown | `armed` + Bestätigungsablauf → beibehalten | Eigener expliziter Vorgang; nicht über das Entsperren von Header/Navigation mitfreigeben. |
+
+**Zustandstabelle der Grundfreigaben.** `✓` = unter den Zusatzbedingungen der vorherigen Tabelle; `–` = nicht freigegeben; `L` = nur lokaler/gecachter Inhalt; `H` = nur wenn trotz Power-off referenziert und Zielmodus erreichbar; `J` = einzelnes zulässiges Gelenk. Spalten außer „Beobachter“ setzen Arm voraus. „Idle M/D/A“ heißt referenziert, Stillstand und MANUAL/MDI/AUTO. Ein `✓` ersetzt weder Dateibesitz noch Payload-, Joint- oder Richtungsprüfung.
+
+| Aktion | Getrennt | Beobachter | E-Stop | Off | Unhomed/teilweise | Idle M/D/A | MDI läuft | AUTO läuft | Pause |
+|---|---|---|---|---|---|---|---|---|---|
+| Navigation, Entwurf, Hilfe, lokale Vorwahl | L | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Neues Lesen/Download vom Gateway | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Interpreterdatei laden/entladen | – | – | ✓ idle | ✓ idle | ✓ idle | ✓ | – | – | – |
+| Datei-/Werkzeugtabellen-Commit | – | – | ✓ idle | ✓ idle | ✓ idle | ✓ | – | – | – |
+| MANUAL auswählen | – | – | ✓ idle | ✓ idle | ✓ idle | ✓ | – | – | – |
+| AUTO/MDI auswählen (Normalprofil) | – | – | H | H | – | ✓ | – | – | – |
+| Joint-Jog / Home | – | – | – | – | J | J | – | – | – |
+| Welt-Jog | – | – | – | – | – | ✓ | – | – | – |
+| Start / Step aus idle / MDI / Makro | – | – | – | – | – | ✓ | – | – | – |
+| Resume / Step aus Programmpause | – | – | – | – | – | – | – | – | ✓ |
+| Abort / E-Stop / nötiger Jog-Stop | –¹ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| AUTO-Pause | – | ✓ wenn laufend | – | – | – | – | –² | ✓ | – |
+| WCS übernehmen/wählen, Touch-off | – | – | – | – | – | ✓ | – | – | – |
+| G30 bestätigt lesen | – | – | ✓ idle | ✓ idle | ✓ M/D | ✓ M/D, – A | – | – | – |
+| Spindel manuell | – | – | – | – | Q1 | ✓ | – | – | – |
+| Kühlung/Overrides/Programmschalter | – | – | – | – | ✓ | ✓ | ✓ | ✓ | ✓ |
+| M6 bestätigen | – | – | – | – | frische Anforderung³ | frische Anforderung³ | frische Anforderung³ | frische Anforderung³ | frische Anforderung³ |
+
+¹ Ein UI darf den Stop-Ort sichtbar lassen, aber fehlenden Transport ausdrücklich nennen. ² `cycle_pause` ist kein verlässlicher allgemeiner MDI-Stopp; für MDI Abort/E-Stop anbieten. ³ M6-Zustand und Anforderungsidentität entscheiden, nicht der allgemeine Run-/Pause-Text. Quittieren/Reset/On/Off stehen absichtlich im separaten Recovery-Vertrag oben: eine einzige „E-Stop“-Spalte kann diese gerichtete Folge nicht ausdrücken.
+
+**Querliegende Zustände:**
+
+- **Trip unquittiert:** Recovery-Hinweis bleibt; kein neues Arm/Reset/On. Lesen/Entwurf und Stopps bleiben möglich. Kein Erfolg durch bloßes Schließen der Meldung.
+- **Viewer-Simulation:** Ansicht und Entwurf bleiben frei; reale Starts, Änderungen an laufrelevanten Maschinenzuständen und M6-Bestätigung zu. Stopps offen. Dateiauswahl darf ausdrücklich die Simulation verlassen; `setup`/`armed` dürfen nicht als pauschale Ausnahmen alle dort einsortierten Aktionen durchlassen.
+- **eoffset aktiv:** vorhandene `_R_NO_EOFFSET`-Regeln weiter anwenden. Lesen und lokale Vorwahl nie deshalb sperren; Auswahl/Aus-Schalten der Kompensation richtungsbezogen behandeln.
+- **Reader/STAT veraltet oder unbekannt:** nur die von diesen Quellen abhängigen neuen Aktionen schließen, mit benanntem Grund. Anzeigen dürfen alte Werte als alt zeigen. Keine alten Kinematik-/M6-/eoffset-Werte als aktuelle Zulassung; keine Default-Idle-Annahme. Stopps bleiben erreichbar.
+- **Teilweise homed:** kein globales „fast ready“. Homing und zulässige Einzelgelenke getrennt; Weltbewegung und normale Programmausführung bleiben bis zur vollständigen Referenzierung gesperrt.
+- **Mehrere Clients / offene Dialoge:** Gate unmittelbar vor Commit/Execute erneut prüfen; ein offener Dialog, gedrückter Hold oder begonnener Upload bewahrt keine veraltete Freigabe.
+
+### 3. Befunde und konkrete Korrekturvorschläge
+
+**BG-01 · P1 · Das äußere Arm-Fieldset widerspricht dem eigenen Navigationskatalog.**
+`App.vue:1992/2460`, `MacroBar.vue:45`, `Gate.vue`, `permissions.ts`. Im Mock bei disarmed + AUTO-running sind Program/MDI/Offsets/Tools und beide sichtbaren Abort-Knöpfe nativ disabled. `always` am Kind hebt ein disabled Fieldset nicht auf. Vorschlag: nur zusammengehörige **ausführende** Aktionen gruppenweise sperren; Ansichts-/Schließ-/Suchwege und Stopps außerhalb. Vor dem Entfernen die bisher nur durch Vorfahren geschützten Schreibaktionen inventarisieren (BG-14/BG-17).
+
+**BG-02 · P1 · Der Dateibrowser behandelt Verzeichnisnavigation wie Programmladen.**
+`FileBrowser.vue:52/73`: `select()` prüft `can.setup` **vor** `entry.type === 'directory'`; das gesamte Widget liegt ebenfalls unter `setup`. Das blockiert Lesen/Ordnerwechsel beim Beobachten oder im Lauf. Vorschlag: Browse/Parent/Retry an Verbindung und eigener Anfrage, erst Dateibindung an `programLoad`. Der bestehende Pfad-/Verzeichnis-Sicherheitsvertrag bleibt unverändert; hier wird kein beliebiger Dateisystemzugriff vorgeschlagen.
+
+**BG-03 · P1 · Der Ladehandler fordert unnötig AUTO an.**
+`gateway.py:5282–5360`, insbesondere `5312`; `load_file=setup` hat keine Homingvoraussetzung. Damit ist das sichtbare Gate off/unhomed offen, während der Folge-Moduswechsel scheitern kann. Native PLAN_OPEN braucht diesen Wechsel nicht. Vorschlag: Laden als eigene atomar geprüfte Operation ohne AUTO-Vorschritt; aktives Programm, Ladeeintrag und Fehler-/RCS-Bestätigung weiterhin erst nach tatsächlichem Öffnen aktualisieren. Gates von Laden und Run nicht zusammenlegen.
+
+**BG-04 · P1 · Ein Modus-Gate für alle Zielmodi und „idle = Stillstand“ passen nicht.**
+`machineControls.ts:modeSelect`, `command_policy.py:_R_IDLE/set_mode`, `gateway.py:set_mode`, `emctask.cc:264`. AUTO/MDI sind unhomed aktuell wählbar; gleichzeitig sperrt `idle` jede Moduswahl bei Power-off. Ein Jog lässt den Interpreter idle, LinuxCNC ignoriert den Moduswechsel dann ausdrücklich. Vorschlag: Zielmodus-Fähigkeit, task/motion mode, Homing und echte Bewegung/Homingaktivität als Eingaben; MANUAL zulassen, wo sinnvoll; AUTO/MDI nicht anbieten, wo COORD nicht erreichbar ist. No-op auf bereits gewähltem Modus nicht unnötig an NML senden.
+
+**BG-05 · P1 · Lokale Eingaben erben Maschinen-Gates; Jog-Geschwindigkeit ist nicht in jedem Pfad nur eine Vorwahl.**
+`machineControls.ts:jogIncrement/jogSpeed/mdiText`, `JogStrip.vue:119/570/594`, `SpindleStrip.vue` und `useGamepad.ts:301`. Browser: unhomed sind Jog-Speed und Schrittgruppen gesperrt, obwohl ein neuer Wert alleine keinen Maschinenbefehl auslöst. Beim analogen Gamepad geht ein geänderter Maximalwert aber in die nächsten Jog-Kommandos ein. Vorschlag: vor dem Start frei wählen; aktive Geste an ihren Startwert binden oder Vorwahländerung ausdrücklich als „für nächsten Jog“ behandeln. Keine freigeschaltete Vorwahl, die unbemerkt den bereits laufenden Jog beschleunigt. Für MDI/RPM gilt: Schreiben des Entwurfs von Send/Spindle trennen.
+
+**BG-06 · P0 · Wechsel Cont → Schritt während gehaltenem Jog kann den Release-Stop verlieren.**
+**Eigener Browsernachweis:** [Skript](button-gates.r202.jog.mjs), [Befehle](button-gates.r202.jog.json). Keyboard-Jog aktivieren, Cont, Rechts gedrückt halten, sichtbaren Schritt `1` anklicken, Rechts loslassen: nur `jog_cont`; Positivkontrolle ohne Schrittwechsel enthält `jog_stop`. Dies ist bereits am Ist-Stand erreichbar, nicht erst nach einer Gate-Lockerung. Ursache `useKeyboardShortcuts.ts:168`: Release fragt die neue `jogIncrement` ab. Entsprechende aktuelle-Wert-Abfragen stehen auch in den normalen Pointer-Endpfaden `JogStrip.vue:389/448` und D-pad-Release in `useGamepad.ts:336/351`; diese beiden Varianten hier per Code geprüft, nicht als bewegte Maschine ausgeführt. Vorschlag: Startmodus/Ziel/Rahmen pro Geste festhalten, jeden kontinuierlichen Start auf seinem Release stoppen. Alle Release-/Cancel-/Disarm-Pfade testen; **vor** der Erweiterung von BG-05/BG-07 korrigieren. Eine HAL-Liveness-Sicherung ersetzt den bei weiter verbundenem Client fehlenden Jog-Stop nicht.
+
+**BG-07 · P1 · Vor-Homing-Jog benötigt einen Gelenkvertrag und eine passende Bereinigung.**
+`command_policy.py:jog`, `gateway.py:_jog_mode_flag/_jog_axis_arg/_jog_stop_for_client`. Die globale Homingpflicht verhindert zulässiges Freifahren; `_jog_axis_arg` setzt im Joint-Modus gleichzeitig Achsenlistenindex = Joint voraus, und `_jog_stop_for_client` kehrt bei `not homed` zurück. Vorschlag: deklarierte Zuordnung statt geratenem Index, verfügbare Gelenke pro Profil, synchronisierte Gruppen nicht einzeln joggen; Gelenknummer/-name vor Homing sichtbar. Die Bereinigung muss auch einen neu erlaubten unhomed Jog stoppen. „Alle Achsen vor Homing freigeben“ ist abgelehnt; dies ist ein eigenes, gezielt zu prüfendes Bewegungspaket.
+
+**BG-08 · P1 · Abort ist entgegen der festgelegten Grenze von Arm/Power/Sim abhängig.**
+`command_policy.py:abort=_BASE`, `gateway.py:abort` mit `require_armed`, `permissions.ts` Client-Overlay, App/MacroBar und Eingabegeräte. Policy und Browser bestätigen die Sperre bei Disarm; die Frontend-Probe bestätigt sie zusätzlich im Viewer-Sim-Modus. E-Stop bleibt vorhanden, deshalb keine Behauptung, sämtliche Stopwege seien verloren. Vorschlag: tatsächlicher Abort-/Jog-Stop-Pfad ohne diese Startbedingungen, unabhängig vom busy-Latch; sichtbarer Abort an allen bisherigen Orten und im Dialog. Bei `Pause` den Unterbrechungszweig getrennt von Resume behandeln. Alte, eventuell wiederverwendete Gate-/Dialogtypen bei Umstellung mitprüfen.
+
+**BG-09 · P0 · Step aus idle umgeht die Kinematik-Zulassung von Start.**
+`command_policy.py:_R_READY_OR_PAUSED`, `step`, `run`; `gateway.py:4897–4923`. Im eigenen `stranded_plane`-Zustand: **run=false, step=true**; Browser **Start disabled, Step enabled**. Der Handler verwendet bei idle `_start_guard` für die Startsequenz, aber nicht `kins_runnable`. Vorschlag: idle-Step muss dieselben fachlichen Startbedingungen wie cycle_start/auto_run erfüllen; paused-Step bleibt ein separater Fortsetzungszweig. Außerdem `GcodePanel.vue:1156`: RFL-Bestätigung liegt unter `ready`, während `App.runFromLine()` korrekt `run` verlangt. Ändert sich die Kinematik bei offenem Dialog, kann der Bestätigungsknopf eine Freigabe zeigen, die `fire()` verweigert. Auch dort durchgängig Startzulassung.
+
+**BG-10 · P1 · Gamepad und Bildschirm erlauben unterschiedliche Aktionen.**
+`useGamepad.ts:145–177`: Start mit `ready` statt `run` und ohne Editorbedingung; Flood/Mist mit `ready` statt `override`; Home All mit `idle` statt `zero`. Die Policy-Probe zeigt die jeweiligen Gegenfälle: stranded plane, laufendes Programm, aktive eoffset-Kompensation. Bei Start/Home schützt teilweise die spätere Backend-Ablehnung; bei Kühlung fehlt eine sonst verfügbare Bedienung. Vorschlag: gemeinsame Aktionsfunktion für Button, Shortcut und Gamepad; weiter getrennte Aktivierungsgesten, aber gleiche Zulassung und gleicher Grund.
+
+**BG-11 · P1 · E-Stop Reset ist bei unquittiertem Trip sichtbar freigegeben.**
+`App.vue:719–720`: `canResetEstop` kennt Arm und E-Stop, aber nicht `safetyTrip`; `gateway.py:4433` verweigert genau diesen Fall. Mock: „Reset E-Stop“ enabled bei gesetztem Trip. Arm selbst nennt die richtige Reihenfolge schon. Vorschlag: eine Recovery-Zulassung samt Grund an beiden Orten, Reset und E-Stop als zwei gerichtete Aktionen; M6-/Sim-/Trip-Zustände nicht mit `always` übergehen.
+
+**BG-12 · P0 · Zustandsunsicherheit wird in mehreren Zulassungspfaden zu einer Freigabe.**
+`hal_bridge.py:610/623`: `reader_get()` liefert den letzten Snapshot unabhängig von `reader_is_stale()`. `status_runtime.py:433` baut daraus die Policy; `_live_policy_state` reicht keine Frische ein. Eigene Probe mit zehn Sekunden altem Reader: stale=true, dennoch `machineFrame=true` und `probe=true`. Zusätzlich wird `interp_state=None` als INTERP_IDLE eingesetzt; die Probe erhält damit `run=true`. `gateway.py:4393` überspringt die Policy ganz, solange `_shared_status` fehlt. `require_tool_change_pending` akzeptiert zudem ein unbekanntes Pin-Ergebnis statt einer bestätigten offenen Anforderung. Vorschlag: Frische/Gültigkeit in den Zulassungsvertrag, keine Startfreigabe vor erstem gültigen Status, kein None→idle. „Pin existiert bei diesem Profil nicht“ von „vorhandene Quelle ausgefallen“ unterscheiden, insbesondere eoffset. Den bereits strengeren G30-Capture-Leseweg nicht wieder aufweichen. Das sind belegte Zulassungslücken; eine reale Fehlbewegung wurde nicht provoziert.
+
+**BG-13 · P1 · G30-Gates berücksichtigen den bestätigenden Synch nicht.**
+`machineControls.ts:g30Read/g30Save/g30Capture`, `gateway.py:_synch_interp_params` ab 8597. In ON/AUTO gibt der Helfer absichtlich `None,"auto"` zurück, damit ein zwischenzeitlicher Start nicht per Moduswechsel abgebrochen wird. Die entsprechenden UI-Gates kennen AUTO nicht; `g30Read=idle` blockiert andererseits unnötig OFF, obwohl der Helfer dort Synch zulässt. Vorschlag: bestätigtes Lesen mit `parameterRead`, im ON/AUTO geschlossen mit Handlungsgrund; Capture/Save ergänzen diese Vorbedingung. Nicht zur scheinbaren Reparatur den in R118 vereinbarten Synch-Schutz entfernen.
+
+**BG-14 · P1 · „Backend-Tabelle ist die Politik“ gilt noch nicht für alle tatsächlichen Schreiber.**
+`gateway.py:7370` `/upload`, `:7405` `/save`, `:8040` Tool-Library-Apply, `_persist_imported_tools:2792`, `:9786/10136` Settings. Programmschreiber prüfen Pfad/Name, aber nicht die setup-/Arm-Zulassung unmittelbar beim Commit. Der Toolimport ersetzt unter `_cmd_lock` Tabelle und Sidecar und lädt die Tabelle; dort steht keine erneute Maschinenzustands-/Arm-Prüfung. Serialisierung ist keine Betriebsfreigabe: ein Import kann nach dem Start eines anderen Clients fertig werden. Makros besitzen bereits einen weitergehenden `_source_write_refusal`-Vertrag; den Unterschied nicht wegdokumentieren. Vorschlag: gleiche fachliche Zulassung am **wirkenden Commit** für WS/HTTP, mit klarer Client-Zuordnung, wo Arm verlangt wird. Datei-/Tabellen-/Settings-Wirkungen getrennt behandeln. Lesen, Export und Import-Vorschau bleiben frei; Übernehmen nicht.
+
+**BG-15 · P1 · Der Versionsfallback verbreitert fehlende Bewegungs-Gates still im Bedienvertrag.**
+`permissions.ts:155–160`: fehlendes `run`, `machineFrame`, `goZero` wird aus `ready` ersetzt. Eigene Frontend-Probe liefert für alle drei `true`, wenn nur `ready=true` kommt; die einmalige Konsolenwarnung erreicht den Operator nicht zuverlässig. Vorschlag: fehlende benötigte Fähigkeit schließt genau diese Aktion und nennt „Gateway-Version unterstützt diese Freigabe nicht“. Ein gemischter Versionsstand darf lesen/stoppen, aber nicht die spezifischen Kinematikregeln verlieren. Kein generisches „alles aus“, aber auch kein permissiver Ersatz.
+
+**BG-16 · P2 · Eine künftig offene Beobachteroberfläche braucht erreichbare Sperrgründe.**
+`gateExplain.ts:explainAt/useGateExplain` unterdrückt sämtliche Hinweise bei Disarm; der Kommentar setzt voraus, dass dann ohnehin alles gedimmt ist. Außerdem kann ein Vorfahren-Fieldset das Kind sperren, obwohl dessen eigenes `isDisabled`/Gate keinen Grund liefert. Vorschlag: pro tatsächlicher Sperre eine erreichbare Erklärung, auch für Beobachter; `Arm erforderlich`, `Programm läuft`, `Homing nötig`, `HAL-Wert veraltet` auseinanderhalten. Keine Ansichtsfläche abdunkeln, weil ihre Schreibaktionen gesperrt sind. Schließen/Verwerfen muss bei inzwischen verlorener Ausführungsfreigabe weiter funktionieren.
+
+**BG-17 · P0 · M6-Bestätigung bleibt im Viewer-Simulationsmodus offen.**
+`machineControls.ts:232` → `armed`, `permissions.ts:SIM_GATES` enthält `armed`; `App.vue:950/2375` verwendet denselben Pfad. Die eigene Frontend-Probe bestätigt: Resume wird im Sim-Modus gesperrt, Werkzeugwechsel-Confirm nicht. Eine physische Wechselbestätigung kann den realen Interpreter fortsetzen und ist daher keine Navigations-/Verwaltungsaktion. Vorschlag: eigene `toolChangeConfirm`-Zulassung mit frischer Anforderung und Sim-Sperre; beim Wechsel nach Sim oder beim Austausch der Anforderung alte Bestätigung verwerfen. Das bestehende Pending-/Einmal-Senden-Verhalten erhalten. Die Prüfung sollte auch andere `armed`-/`setup`-/`always`-Ausnahmen nach ihrer tatsächlichen Wirkung durchgehen.
+
+### 4. Gegenvorschläge und bewusste Grenzen
+
+- **Nicht alle Controls ans nächste gemeinsame „ready“ hängen.** Das erzeugt die Homing-Sperre für Laden und Vorwahlen erneut und übersieht Step/M6. Auch „jeder UI-Gate-Name muss gleich COMMAND_GATES sein“ ist zu grob: `mdi` kann eine speziellere Bewegungsroutine tragen, `set_mode` hat verschiedene Ziele. Zu prüfen ist der effektive Aktionsvertrag samt Payload und sämtlichen Aufrufern.
+- **Keine Offset-Dateiumgehung und kein globales NO_FORCE_HOMING.** Die Erleichterung ist freies Lesen/Entwerfen und korrekt getrenntes Laden. Der Maschinen-Schreibweg bleibt nachvollziehbar und bestätigt.
+- **Kein automatischer Wechsel zu MANUAL beim Öffnen eines Tabs.** Ansichten sollen beobachtbar bleiben, ohne einen Lauf anzufassen. „Wert übernehmen“ kann eine gesonderte Operation anbieten; der Server entscheidet erneut.
+- **Vor-Homing-Jog nicht nebenbei freischalten.** Erst Release-Vertrag, dann Gelenke/Profilfähigkeiten, dann native Bewegungsabnahme. Dies ist die riskanteste gewünschte Erweiterung und verdient einen separaten Commitblock.
+- **Bestehende Override-/Kühlungsfreigaben zunächst erhalten.** LinuxCNC nimmt bestimmte Override-Vorwahlen auch bei OFF/ESTOP an; daraus folgt kein Muss, sämtliche globalen Maschinenwerte jetzt dort freizugeben. Jog-/RPM-Entwürfe lösen das häufige Vorbereitungsproblem bereits. Eine zusätzliche „Override bei Power-off“-Erweiterung ist kein Blocker dieser Runde.
+- **Vergleichsoberflächen sind Anhaltspunkte, keine einheitliche Norm.** AXIS trennt Öffnen von Run; gmoccapy ist in OFF/ESTOP strenger; QtVCP öffnet ohne AUTO-Vorschritt. Industrielle Oberflächen stützen die Trennung von Programmvorbereitung und Ausführung, nicht das Umgehen von LinuxCNC-Interpretersperren. Die konkrete Quellenlage einschließlich Grenzen steht im [Recherchebeleg](button-gates.r202.research.md).
+
+### 5. Fragen an den Operator
+
+**Q1 · Spindel vor Homing:** Soll die manuelle Spindelbedienung bei Maschine ON, idle/MANUAL und noch nicht referenziert für den Einricht-/Warmlauf erlaubt werden? **Empfehlung:** ja für ausdrücklich dafür freigegebene Maschinenprofile, mit ihren Interlocks; keine pauschale Erweiterung auf jede Maschine. Bis zur Entscheidung bleibt die bisherige Homingpflicht für die Spindel. RPM-Vorwahl ist davon unabhängig frei. Es geht um die betriebliche Erlaubnis, nicht um eine technische Notwendigkeit des LinuxCNC-Homing-Gates.
+
+**Q2 · Beobachter und globale Einstellungen:** Darf ein disarmed Client Einstellungen verändern, die sofort für andere Clients oder die Maschinenbedienung gelten? **Empfehlung:** Lesen und wirklich lokale Ansicht frei; globale Maschinen-, Eingabe-/Shortcut- und Toolsetter-Konfiguration nur bewusst autorisiert, mit eigenen Übernahmebedingungen. Keine bisher gemeinsam gespeicherte Einstellung durch Entfernen des äußeren Gates beiläufig als „lokal“ freigeben. Falls gemeinsame Darstellungsänderungen auch für Beobachter ausdrücklich gewünscht sind, diese Kategorie benennen und von Maschinenkonfiguration trennen; keine neue Benutzerverwaltung für diese Runde voraussetzen.
+
+Gelenk-Jog vor Homing empfehle ich technisch wie BG-07 für nachgewiesene Profile; dafür ist kein erneuter Grundsatzentscheid „darf überhaupt vorpositioniert werden?“ nötig. Synchronisierte/unklare Zuordnungen bleiben geschlossen, bis der konkrete Maschinenvertrag vorliegt.
+
+### 6. Umsetzungspakete und Wächter vor einer Abnahme
+
+**Vorgeschlagene Reihenfolge nach Plan-Agreement:** (A) BG-06, BG-09, BG-12, BG-17 und Stop-Erreichbarkeit; (B) Autorisierungsinventur der Schreiber/Sim-Ausnahmen; (C) Navigation, Entwürfe, Browser und Erklärungen; (D) Laden/Modus/G30 und gemeinsame Aktionszuordnung; (E) gesondert Vor-Homing-Jog und gegebenenfalls Q1. Keine dieser Aussagen ist eine Freigabe, schon jetzt den Produktcode zu ändern.
+
+Die Wächter müssen vor dem jeweiligen Fix rot sein und den Operatorpfad abdecken:
+
+1. **Aktionsverträge:** Katalog + effektive Vorfahren + zusätzliche Dialogbedingungen gegen Backend-Zulassung, nicht nur Command-Namen zählen. Zielmodi, idle-Step/paused-Step, Start/RFL/Keyboard/Gamepad und M6 ausdrücklich parametrisieren. Vorgesehene strengere Routinebedingungen dokumentieren und vergleichen.
+2. **Browser-Matrix:** disarmed bei idle und Lauf; getrennt; E-Stop/Trip; OFF; unhomed/teilhomed; idle MANUAL/MDI/AUTO; MDI-/AUTO-Lauf; Pause und M6; Sim; eoffset; stale/missing Werte. Prüfen: Navigation/Lesen/Cancel erreichbar, echte Mutationen geschlossen, Gründe am Control und keine unerwarteten gesendeten Befehle. Chromium und Firefox für native disabled-/Tastaturpfade.
+3. **Jog-Lebenszyklus:** Positivkontrolle und Cont→Inkrement-Gegenprobe von R202; zusätzlich Pointer/D-pad, veränderter Rahmen/Axis-Mapping, Geschwindigkeitsvorwahl, Blur, Dialog, Disarm, Trennung, Homing-/Freigabeverlust. Jeder nötige Stop folgt der gestarteten Geste. Keine Auslösung durch die Auswahl des Inkrements selbst.
+4. **Backend-Grenzen:** keine Momentaufnahme vor dem ersten Status; stale HAL mit zuletzt günstigen Werten; fehlender statt nicht vorhandener Pin; offene/abgelaufene M6-Anforderung; gemischte Gate-Versionen; HTTP-Import/Save beginnt idle und committet erst nach Wechsel zu running/disarmed/anderem Programm. Ablehnen ohne Seiteneffekt und ohne Verlust des lokalen Entwurfs.
+5. **Native Einricht-Abnahme:** Laden/Entladen ohne AUTO-Vorschritt in OFF, ESTOP, unhomed und teilhomed; aktive Datei wird nur nach bestätigtem Öffnen umgebunden. Zielmoduswechsel inklusive Jog/Homing und nichttrivialer Kinematik. Gelenk-Jog mit tatsächlich deklarierter Zuordnung und synchronisierten Gruppen. Diese Runde hat das **nicht live ausgeführt**; nach Implementierung unter den Messregeln des Auftrags prüfen.
+6. **Bestehende Schutzverträge:** `scripts/twp_buttons_check.py` für berührte Bewegungsaktionen, plus RFL/Ladeeintrag/G30-Transaktion, eoffset, Plane/TCP/Identity, Recovery und niemals automatisch wiederanlaufende Entwürfe. Ein roter Gate-Test darf nicht durch Lockerung eines dieser Verträge „repariert“ werden.
+7. **Doku:** die neue Matrix und Ursachen aus dem tatsächlichen Aktionsregister ableiten. Die bisherige Aussage „alles außer Safety unter armed“ und überholte Klassen-/Zustandsbeschreibungen in CLAUDE.md ersetzen. Festhalten, welche Einstellungen global sind und welche Anzeigen lokale Simulation zeigen.
+
+**An Claude:** Bitte die 17 Befunde einzeln beantworten, die Matrix einschließlich der gerichteten Aktionen und der beiden Operatorfragen in die nächste Planfassung übernehmen oder begründet korrigieren. Besonders BG-06 ist ein eigener reproduzierter Ist-Fehler, keine bloße Vorsichtsbedingung für später. Bis zur Einigung bleiben Gate-Lockerungen und Produktänderungen ausgesetzt.
+
+**Präzisierung der Pause-Zeile vor Übergabe:** Die Bezeichnung „AUTO-Pause“ und `–²` in der MDI-Spalte sind zu eng für die Soll-Matrix. LinuxCNC 2.9.4 lässt PLAN_PAUSE und PLAN_RESUME ausdrücklich auch im MDI-Zweig zu (`emctaskmain.cc:1402/1408`). **Daher dort keine neue pauschale MDI-Sperre einführen:** Pause eines tatsächlich laufenden MDI-Bewegungsablaufs zulassen, Fortsetzen an dessen bestätigten Pausezustand binden und diesen Pfad nativ mitprüfen. Fußnote ² bedeutet nur, dass Pause nicht als universeller Ersatz für Abort/E-Stop bei beliebigen MDI-/Remap-Wartezuständen dargestellt werden darf. Die vorhandene Möglichkeit soll durch dieses Review nicht eingeschränkt werden.

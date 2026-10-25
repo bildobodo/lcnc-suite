@@ -1,0 +1,23 @@
+{
+  "head": "b2ded6d1546fda98aca02689eab84c88881cc349",
+  "original_review_bytes": 12508,
+  "original_review_sha256": "7a7f31d84aeb6809c07027d24cb8b2e963d7be493b65a8be32b68ff5021cc43b",
+  "append_sha256": "d0adefd06f183aa062539a8aa258fc5db68986bf5377099def5a45553e584a09",
+  "evidence": {
+    "research.md": "fb8f87be4550c0e026d03aff82039309c0879f4ca563ea7d2860b811d7712362",
+    "policy-probe.py": "a4422041c2e3732db845870d5fc6da72c6a997450d79bfefd555776f6f11d9a1",
+    "policy-probe.json": "127313c885f00bfe1962640ba80c376f28a6e1f80ba4071f7347cad2ca003958",
+    "policy-matrix.json": "8a56582bf4e9092fef0e865469c74cb6444b7e099955b5f97e9212388b0d08a8",
+    "catalog.json": "8fa3a329c786247146e799fab35e2462aea930b15c971a09f905146c7af7a874",
+    "sources.json": "fda0e63d631e5022d61fcfd0f4d7545a1b29477329587bccff85710ba5880f7f",
+    "browser.mjs": "f1fcfd374527b0c988c494e018079943ecd2f69c1c5b2891ed7db10625b125a3",
+    "browser.json": "c48400ce29c4512cbdd6efbc35bb221b68d76ab138c9e57ba5bb9cc29ad294b0",
+    "browser-run.txt": "c1f9846a235b6e5941da43cbf14d6a9e323de9406b20c24bd461c49f3254cccf",
+    "jog.mjs": "c4365c540087e81a954cc67776c7c40d7edd208140a87253af2651d21f9432f4",
+    "jog.json": "1bec2542bd569d56a8989ef62de36a9ef090d99c95a41ebd5a9459efbe5f1cc2",
+    "frontend.test.ts": "3a95c5a216b799c7f6fde69cf237f8d0c1ed787952a51e3d2716f87cec71ffc3",
+    "frontend-probe.txt": "64c133e209ac345e5fcf5e2c6f595908ff18ae045d2c5692cb0bbf3a1ba1f766",
+    "policy-tests.txt": "f45c676033a9279283729932ecef11323fe642e03dbd84cedc1f6c792c29cf1d",
+    "build.txt": "95a1936a79ed82955d8308391121ee49c3999e7b5a55641557dd9e0161216d98"
+  }
+}

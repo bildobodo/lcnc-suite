@@ -1,0 +1,27 @@
+{
+  "time": "2026-10-25T18:45:44.589Z",
+  "head": "b2ded6d1",
+  "scope": "Own mock only; no LinuxCNC commands",
+  "baseline": [
+    {
+      "cmd": "jog_cont",
+      "axis": 0,
+      "vel": 10,
+      "req_id": "k8u09w-5"
+    },
+    {
+      "cmd": "jog_stop",
+      "axis": 0,
+      "req_id": "k8u09w-6"
+    }
+  ],
+  "continuous_then_increment_then_release": [
+    {
+      "cmd": "jog_cont",
+      "axis": 0,
+      "vel": 10,
+      "req_id": "k8u09w-7"
+    }
+  ],
+  "errors": []
+}

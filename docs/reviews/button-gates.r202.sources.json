@@ -1,0 +1,81 @@
+{
+  "installed_linuxcnc": "1:2.9.4-2+deb13u1 arm64",
+  "upstream": "v2.9.4; Debian downstream patches not compared",
+  "sources": [
+    {
+      "file": "emctaskmain.cc",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e"
+    },
+    {
+      "file": "emctask.cc",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctask.cc",
+      "sha256": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1"
+    },
+    {
+      "file": "taskintf.cc",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/taskintf.cc",
+      "sha256": "ad9f53fccb52d42419e3688a16f1edc7b0bfbd86a37767d5f1015b0a17e82327"
+    },
+    {
+      "file": "motion-command.c",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/command.c",
+      "sha256": "5169c0fd2e7ea59cda233cf42e83facd56b578e95ec0771be49711f42ff6c15a"
+    },
+    {
+      "file": "control.c",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/control.c",
+      "sha256": "4c92fd34b9ae99a5adee2bf13b914afa6f4aab784ecc229aafad42c69fabc34e"
+    },
+    {
+      "file": "axis.py",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/usr_intf/axis/scripts/axis.py",
+      "sha256": "2cb0dde4fb04c86ac219bce9b519e709cac73f8dcc79b2d5425854b37c908440"
+    },
+    {
+      "file": "axis.tcl",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/share/axis/tcl/axis.tcl",
+      "sha256": "7fbe15c792735542f913a292233c4fd92af315588ade20e0f005cfcf43f29d19"
+    },
+    {
+      "file": "gmoccapy.py",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/usr_intf/gmoccapy/gmoccapy.py",
+      "sha256": "1d9b578f07f51d81ab380e24fe75fede2ed0bd06fe2b2239326dc22954a7d0ed"
+    },
+    {
+      "file": "qt_action.py",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/lib/python/qtvcp/qt_action.py",
+      "sha256": "9b10674b0f775bffa27daf3da7b521673e0136cbd8dd1c2f863814e577a4ec58"
+    },
+    {
+      "file": "qtvcp-action_button.py",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/lib/python/qtvcp/widgets/action_button.py",
+      "sha256": "3412a2bfc7c1008e188b4e2e46cb4c2fcd1b6b301bc759813f9e624cbd4e1ef1"
+    },
+    {
+      "file": "qtvcp-file_manager.py",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/lib/python/qtvcp/widgets/file_manager.py",
+      "sha256": "19ca802a32691ce99d1bba627b48c854e450ab8ed888d9945aa532cc230aa0a6"
+    },
+    {
+      "file": "qtdragon_handler.py",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/share/qtvcp/screens/qtdragon/qtdragon_handler.py",
+      "sha256": "b00f5b5a5c3acace9c2a2fb997d5e53d561df1533c5e06c118d3fc149d6d3d03"
+    },
+    {
+      "file": "qtpyvcp-machine_actions.py",
+      "url": "https://github.com/kcjengr/qtpyvcp/blob/e328b8c42928f146ee41d84fa134909fae1955fe/src/qtpyvcp/actions/machine_actions.py",
+      "sha256": "75803cdcf406781acf9c543438aadaea4ffb8f3ec09c51b28edd033ab5f146de"
+    },
+    {
+      "file": "qtpyvcp-program_actions.py",
+      "url": "https://github.com/kcjengr/qtpyvcp/blob/e328b8c42928f146ee41d84fa134909fae1955fe/src/qtpyvcp/actions/program_actions.py",
+      "sha256": "5a7c267e7ef2a03624ee1cff8f1c200ccb25880a0c8d7304224406df6f4c8c8f"
+    },
+    {
+      "file": "probe_basic.ui",
+      "url": "https://github.com/kcjengr/probe_basic/blob/df2ca1ebd308da34278ae6e79d67e3e2e8069780/probe_basic/probe_basic.ui",
+      "sha256": "b4d56701770ba6a29d12fd4258b53268e9a8b30032914701e7640ac025e425b7"
+    }
+  ]
+}

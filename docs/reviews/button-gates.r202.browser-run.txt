@@ -1,0 +1,1 @@
+{"states":["idle","unhomed","off","observer_running","unacked_trip","stranded_plane","estop_browser_open"],"counts":{"idle":87,"unhomed":88,"off":87,"observer_running":88,"unacked_trip":88,"stranded_plane":87,"estop_browser_open":95},"errors":[]}

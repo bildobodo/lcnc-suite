@@ -1,0 +1,5865 @@
+{
+  "time": "2026-10-25T18:37:20.650Z",
+  "head": "b2ded6d1",
+  "source": "Archive frontend with backend-generated permissions; mock only, no real machine commands",
+  "states": {
+    "idle": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Connection details",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Connection details"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Messages (0)",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Messages (0)"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "G-code Reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "G-code Reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fullscreen",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Fullscreen"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Shut Down",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Shut Down LinuxCNC"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset view",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset view"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Clear backplot",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Clear backplot"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Show camera",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Show camera"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "3D Viewer settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "3D Viewer settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Program",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Probing",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Offsets",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Tools",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Macros",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Sim",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Start",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Step",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Pause",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "More program actions",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "ArmDisarm",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "E-StopReset",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Power onPower off",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Active codes — open in the G-code reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Open the active codes in the G-code reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y+",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X-",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X+",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y-",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z+",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z-",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Jog speed",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset jog speed to 600 mm/min",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset jog speed to 600 mm/min"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Cont",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".001",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".01",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".1",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "1",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Manual",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Auto",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Machine",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Identity kinematics — jog along machine axes"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "TCP",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "TCP kinematics — jog in the work frame"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off X · TCP · G54",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero X",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero X"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome X",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome X"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Y · TCP · G54",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Y",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Y"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Y",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Y"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Z · TCP · G54",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Z",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Z",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero XYZ",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Zero the linear axes only"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home AllUnhome All",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to G30",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to the G30 position"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to MCS 0",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to machine zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to WCS 0",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to work zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G54",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G55",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G56",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G57",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G58",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.1",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.2",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.3",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Feed override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset feed override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset feed override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset spindle override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset spindle override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Rapid override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset rapid override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset rapid override to 100 %"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Rev",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fwd",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle speed",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Tool Table",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      }
+    ],
+    "unhomed": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Connection details",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Connection details"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Messages (0)",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Messages (0)"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "G-code Reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "G-code Reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fullscreen",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Fullscreen"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Shut Down",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Shut Down LinuxCNC"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home All",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset view",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset view"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Clear backplot",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Clear backplot"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Show camera",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Show camera"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "3D Viewer settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "3D Viewer settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Program",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Probing",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Offsets",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Tools",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Macros",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Sim",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Start",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Step",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Pause",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "More program actions",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "ArmDisarm",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "E-StopReset",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Power onPower off",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Active codes — open in the G-code reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Open the active codes in the G-code reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Jog speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Not homed — press Home All"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset jog speed to 600 mm/min",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset jog speed to 600 mm/min"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Cont",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".001",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".01",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Manual",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Auto",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Machine",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "Identity kinematics — jog along machine axes"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "TCP",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "TCP kinematics — jog in the work frame"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off X · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Not homed — press Home All"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero X"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home X",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to home X"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Y · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Not homed — press Home All"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Y"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home Y",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to home Y"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Z · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Not homed — press Home All"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home Z",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to home Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero XYZ",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Zero the linear axes only"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home AllUnhome All",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to G30",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to the G30 position"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to MCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to machine zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to WCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to work zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G54",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G55",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G56",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G57",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G58",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.2",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.3",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Feed override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset feed override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset feed override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset spindle override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset spindle override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Rapid override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset rapid override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset rapid override to 100 %"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Rev",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fwd",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Tool Table",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      }
+    ],
+    "off": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Connection details",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Connection details"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Messages (0)",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Messages (0)"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "G-code Reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "G-code Reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fullscreen",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Fullscreen"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Shut Down",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Shut Down LinuxCNC"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset view",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset view"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Clear backplot",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Clear backplot"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Show camera",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Show camera"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "3D Viewer settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "3D Viewer settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Program",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Probing",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Offsets",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Tools",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Macros",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Sim",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Start",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Step",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Pause",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "More program actions",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "ArmDisarm",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "E-StopReset",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Power onPower off",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Active codes — open in the G-code reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Open the active codes in the G-code reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Jog speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Machine off — press Power on"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset jog speed to 600 mm/min",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset jog speed to 600 mm/min"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Cont",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".001",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".01",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Manual",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Auto",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Machine",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "Identity kinematics — jog along machine axes"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "TCP",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "TCP kinematics — jog in the work frame"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off X · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Machine off — press Power on"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero X"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome X"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Y · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Machine off — press Power on"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Y"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Y"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Z · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Machine off — press Power on"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero XYZ",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Zero the linear axes only"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home AllUnhome All",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to G30",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to the G30 position"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to MCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to machine zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to WCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to work zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G54",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G55",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G56",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G57",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G58",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.2",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.3",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Feed override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Machine off — press Power on"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset feed override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset feed override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Machine off — press Power on"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset spindle override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset spindle override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Rapid override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Machine off — press Power on"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset rapid override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset rapid override to 100 %"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Rev",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fwd",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Tool Table",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      }
+    ],
+    "observer_running": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Connection details",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Connection details"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Messages (0)",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Messages (0)"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "G-code Reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "G-code Reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fullscreen",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Fullscreen"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Shut Down",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Shut Down LinuxCNC"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset view",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Reset view"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Clear backplot",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Clear backplot"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Show camera",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Show camera"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "3D Viewer settings",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "3D Viewer settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Program",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "MDI",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Probing",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Offsets",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Tools",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Macros",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Sim",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Start",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Step",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Pause",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "More program actions",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "ArmDisarm",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "E-StopReset",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Power onPower off",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "safety"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Active codes — open in the G-code reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Open the active codes in the G-code reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Jog speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset jog speed to 600 mm/min",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Reset jog speed to 600 mm/min"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Cont",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".001",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".01",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".1",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "1",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Manual",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "MDI",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Auto",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Machine",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Identity kinematics — jog along machine axes"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "TCP",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "TCP kinematics — jog in the work frame"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off X · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to zero X"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to unhome X"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Y · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to zero Y"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to unhome Y"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Z · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to zero Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to unhome Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero XYZ",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Zero the linear axes only"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home AllUnhome All",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to G30",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to move to the G30 position"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to MCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to move to machine zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to WCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": "Hold to move to work zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G54",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G55",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G56",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G57",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G58",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.1",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.2",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.3",
+        "disabled": true,
+        "ariaDisabled": "true",
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Feed override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "override"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset feed override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "override"
+        ],
+        "title": "Reset feed override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "override"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset spindle override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "override"
+        ],
+        "title": "Reset spindle override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Rapid override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "override"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset rapid override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "override"
+        ],
+        "title": "Reset rapid override to 100 %"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Rev",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "ready"
+        ],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fwd",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "ready"
+        ],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed",
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Tool Table",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "armed"
+        ],
+        "title": null
+      }
+    ],
+    "unacked_trip": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Connection details",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Connection details"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Messages (0)",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Messages (0)"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "G-code Reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "G-code Reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fullscreen",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Fullscreen"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Shut Down",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Shut Down LinuxCNC"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Acknowledge",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset view",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset view"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Clear backplot",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Clear backplot"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Show camera",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Show camera"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "3D Viewer settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "3D Viewer settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Program",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Probing",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Offsets",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Tools",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Macros",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Sim",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Start",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Step",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Pause",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "More program actions",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "ArmDisarm",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset E-Stop",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset E-Stop"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Power onPower off",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "safety"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Active codes — open in the G-code reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Open the active codes in the G-code reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Jog speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset jog speed to 600 mm/min",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset jog speed to 600 mm/min"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Cont",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".001",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".01",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Manual",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Auto",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Machine",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "Identity kinematics — jog along machine axes"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "TCP",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "TCP kinematics — jog in the work frame"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off X · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero X"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome X"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Y · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Y"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Y"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Z · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero XYZ",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Zero the linear axes only"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home AllUnhome All",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to G30",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to the G30 position"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to MCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to machine zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to WCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to work zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G54",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G55",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G56",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G57",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G58",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.2",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.3",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Feed override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset feed override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset feed override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset spindle override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset spindle override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Rapid override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset rapid override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset rapid override to 100 %"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Rev",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fwd",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Tool Table",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      }
+    ],
+    "stranded_plane": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Connection details",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Connection details"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Messages (0)",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Messages (0)"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "G-code Reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "G-code Reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fullscreen",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Fullscreen"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Shut Down",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Shut Down LinuxCNC"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset view",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset view"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Clear backplot",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Clear backplot"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Show camera",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Show camera"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "3D Viewer settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "3D Viewer settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Program",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Probing",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Offsets",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Tools",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Macros",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Sim",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Start",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Step",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Pause",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "More program actions",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "ArmDisarm",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "E-StopReset",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Power onPower off",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Active codes — open in the G-code reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Open the active codes in the G-code reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y+",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X-",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X+",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y-",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z+",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z-",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Jog speed",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset jog speed to 600 mm/min",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset jog speed to 600 mm/min"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Cont",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".001",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".01",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".1",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "1",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Manual",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Auto",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Machine",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Identity kinematics — jog along machine axes"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "TCP",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "TCP kinematics — jog in the work frame"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off X · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "No active plane — press Orient or select Machine"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero X"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome X",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome X"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Y · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "No active plane — press Orient or select Machine"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Y"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Y",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Y"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Z · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "No active plane — press Orient or select Machine"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Z",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero XYZ",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Zero the linear axes only"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home AllUnhome All",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to G30",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to the G30 position"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to MCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to machine zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to WCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to work zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G54",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G55",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G56",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G57",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G58",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.1",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.2",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.3",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Feed override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset feed override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset feed override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset spindle override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset spindle override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Rapid override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset rapid override to 100 %",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset rapid override to 100 %"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Rev",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fwd",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to activate"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle speed",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Tool Table",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      }
+    ],
+    "estop_browser_open": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Connection details",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Connection details"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Messages (0)",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Messages (0)"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "G-code Reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "G-code Reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fullscreen",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Fullscreen"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Shut Down",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Shut Down LinuxCNC"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset view",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset view"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Clear backplot",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Clear backplot"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Show camera",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Show camera"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "3D Viewer settings",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "3D Viewer settings"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Program",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Probing",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Offsets",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Tools",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Macros",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "name": "Sim",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Start",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Step",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Pause",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Abort",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "More program actions",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Edit",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reload",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unload",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Files",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Upload",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Download",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "ArmDisarm",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset E-Stop",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset E-Stop"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Power onPower off",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "safety"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Active codes — open in the G-code reference",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Open the active codes in the G-code reference"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "X+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Y-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z+",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Z-",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Jog speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset jog speed to 600 mm/min",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Reset jog speed to 600 mm/min"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Cont",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".001",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".01",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": ".1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Manual",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "MDI",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Auto",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "Machine",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "Identity kinematics — jog along machine axes"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "TCP",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": "TCP kinematics — jog in the work frame"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off X · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero X"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome X",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome X"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Y · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Y"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Y",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Y"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Touch off Z · TCP · G54",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to zero Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Unhome Z",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to unhome Z"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Zero XYZ",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Zero the linear axes only"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Home AllUnhome All",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to G30",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to the G30 position"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to MCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to machine zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Go to WCS 0",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": "Hold to move to work zero"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G54",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G55",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G56",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G57",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G58",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.1",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.2",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": "radio",
+        "name": "G59.3",
+        "disabled": false,
+        "ariaDisabled": "true",
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Feed override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset feed override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset feed override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset spindle override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset spindle override to 100 %"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Rapid override",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "E-Stop active — reset E-Stop first"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Reset rapid override to 100 %",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "override"
+        ],
+        "title": "Reset rapid override to 100 %"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Rev",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Stop",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Fwd",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": "Spindle speed",
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [
+          "ready"
+        ],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "name": null,
+        "disabled": true,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "name": "Tool Table",
+        "disabled": false,
+        "ariaDisabled": null,
+        "disabledAncestors": [],
+        "title": null
+      }
+    ]
+  },
+  "errors": []
+}

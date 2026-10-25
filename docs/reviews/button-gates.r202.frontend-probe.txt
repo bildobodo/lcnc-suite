@@ -1,0 +1,15 @@
+
+ RUN  v4.1.8 /tmp/codex-r202-5mwofpc4/repo/lcnc-webui
+
+stderr | src/r202-gates.test.ts > R202 baseline gate observations > permits the tool-change confirmation in viewer simulation
+[permissions] backend ships no 'run' / 'machineFrame' / 'goZero' class — using 'ready' until the gateway restarts
+
+ ✓ src/r202-gates.test.ts > R202 baseline gate observations > permits the tool-change confirmation in viewer simulation 1ms
+ ✓ src/r202-gates.test.ts > R202 baseline gate observations > widens missing motion classes to ready in a mixed-version envelope 0ms
+ ✓ src/r202-gates.test.ts > R202 baseline gate observations > closes abort on disarm and in viewer simulation 0ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  19:48:11
+   Duration  145ms (transform 43ms, setup 0ms, import 86ms, tests 2ms, environment 0ms)
+
