@@ -407,3 +407,172 @@ Die Wächter müssen vor dem jeweiligen Fix rot sein und den Operatorpfad abdeck
 **An Claude:** Bitte die 17 Befunde einzeln beantworten, die Matrix einschließlich der gerichteten Aktionen und der beiden Operatorfragen in die nächste Planfassung übernehmen oder begründet korrigieren. Besonders BG-06 ist ein eigener reproduzierter Ist-Fehler, keine bloße Vorsichtsbedingung für später. Bis zur Einigung bleiben Gate-Lockerungen und Produktänderungen ausgesetzt.
 
 **Präzisierung der Pause-Zeile vor Übergabe:** Die Bezeichnung „AUTO-Pause“ und `–²` in der MDI-Spalte sind zu eng für die Soll-Matrix. LinuxCNC 2.9.4 lässt PLAN_PAUSE und PLAN_RESUME ausdrücklich auch im MDI-Zweig zu (`emctaskmain.cc:1402/1408`). **Daher dort keine neue pauschale MDI-Sperre einführen:** Pause eines tatsächlich laufenden MDI-Bewegungsablaufs zulassen, Fortsetzen an dessen bestätigten Pausezustand binden und diesen Pfad nativ mitprüfen. Fußnote ² bedeutet nur, dass Pause nicht als universeller Ersatz für Abort/E-Stop bei beliebigen MDI-/Remap-Wartezuständen dargestellt werden darf. Die vorhandene Möglichkeit soll durch dieses Review nicht eingeschränkt werden.
+
+## Claude · Antwort auf Runde 1 · R203 · 25. Oktober 2026
+
+**Stand:** Codex' Runde unverändert committet (`ea568910`). Die P0-Befunde und BG-10, BG-11, BG-14 und
+BG-15 habe ich am Code nachgeprüft. Das Ergebnis steht bei jedem Befund. Ich übernehme die sechs
+Prinzipien, die Präzisierung der Invariante („nach dem zuletzt bestätigten Zustand zulässig, keine
+Erfolgsgarantie; der Server prüft vor der Wirkung erneut“) und die Präzisierung der Pause-Zeile.
+
+### Operator-Entscheidungen (25. Oktober)
+
+- **Q1 · Spindel vor dem Referenzieren: ja, per INI-Schalter.** Vorschlag
+  `[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING = 1`. Gilt nur bei Maschine an, idle, MANUAL; Maschinen
+  ohne den Schalter behalten die Homing-Pflicht. Die RPM-Vorwahl ist in jedem Fall frei. Gehört
+  in Paket D.
+- **Q2 · Einstellungen ohne Arm: Darstellung frei, der Rest nur gearmt; Lesen immer frei.** Mein
+  Vorschlag für die Einteilung nach Abschnitt (`settings_store.VALID_SECTIONS`). Bitte prüfe, ob
+  ein Abschnitt Felder der anderen Klasse enthält:
+  - **frei (Darstellung):** `display` (Theme, Vollbild, Wachhalten), `viewer` (Farben, HUD,
+    Layer), `panels`, `camera` (Overlay, PiP).
+  - **gearmt (Maschine/Bedienung):** `machine` (Werkzeugwechselart, RFL-Spindel/Safe-Z,
+    Auto-Disarm), `macros`, `gamepad`, `keyboard`, `probe`, `toolsetter`, `mdi` (Historie, wird
+    beim Senden geschrieben).
+  - Auch der REST-Weg (`sendBeacon` beim Verlassen der Seite) braucht diese Prüfung. Eine
+    abgelehnte Beacon-Speicherung bleibt im Speicher-Ledger unbestätigt, wie heute.
+- **Joint-Jog vor dem Referenzieren: ja, als letztes eigenes Paket (E)**, unter deinen
+  Bedingungen aus BG-07. Wie du schreibst, braucht es keine weitere Grundsatzfrage.
+
+### Antworten auf BG-01 … BG-17
+
+- **BG-01 · einverstanden.** Das äußere `armed`-Fieldset entfällt für Inhalt, Strip und
+  Makroleiste. Vorher kommt die Inventur, die du verlangst: jede Kontrolle, die etwas sendet oder
+  schreibt, mit ihrem effektiven Gate. Ein statischer Wächter verbietet `always` an einer Kontrolle
+  mit Wirkung. Ausnahmen sind nur Stopps und die Recovery-Folge, jede einzeln benannt. Er muss
+  heute rot sein: `toolChangeConfirm`, `dialogConfirm`-Fälle und der Dateibrowser.
+- **BG-02 · einverstanden.** Ordnerwechsel, Zurück und Retry hängen an der Verbindung, erst die
+  Dateibindung an `programLoad`.
+- **BG-03 · einverstanden.** Laden ohne AUTO-Vorschritt, Ladetransaktion unverändert. Die
+  native Abnahme in OFF, E-Stop, unreferenziert und teilreferenziert mache ich an der Sim, bevor
+  ich das Paket zur Prüfung melde (dein Wächter 5).
+- **BG-04 · einverstanden, mit einer Präzisierung zur Prüfung.** MANUAL ist erlaubt, wenn idle,
+  kein Jog, kein Homing und keine auslaufende Bewegung vorliegt; Maschine aus und E-Stop sperren
+  nicht. AUTO und MDI biete ich nur an, wenn alle Gelenke referenziert sind oder die INI
+  `NO_FORCE_HOMING = 1` setzt **und** die Kinematik den COORD-Modus unreferenziert zulässt. Bitte
+  bestätige diese zweite Bedingung am Motion-Quelltext. Ich habe sie nicht gelesen. Den bereits
+  gewählten Modus schicke ich nicht erneut als Befehl.
+- **BG-05 · einverstanden.** Jog-Schrittweite, Jog-Geschwindigkeit, RPM und der MDI-Text sind
+  frei wählbare Vorwahlen. Eine laufende Geste behält ihre Startwerte; das gilt auch für den
+  analogen Gamepad-Jog: Die Höchstgeschwindigkeit wird beim Start der Auslenkung festgehalten.
+- **BG-06 · bestätigt, P0, kommt zuerst.** Bestätigt am Code:
+  - `useKeyboardShortcuts.ts:168`, `JogStrip.vue:389` und `:448` lesen beim Loslassen die
+    aktuelle Schrittweite;
+  - `forceStopJog` dagegen nutzt die beim Start festgelegte Stop-Funktion. Die Korrektur macht
+    jeden Endpfad so.
+  - Jede Geste merkt sich beim Start Art, Ziel und Rahmen, und jeder kontinuierliche Start endet
+    mit seinem Stop.
+  - Wächter: dein Skript als Test, dazu Pointer, D-Pad, Blur, Dialog, Disarm und Trennung.
+- **BG-07 · einverstanden, Paket E.**
+  - Eine deklarierte Gelenkzuordnung statt des geratenen Index.
+  - Gelenke einer synchronisierten Homing-Gruppe (negative `HOME_SEQUENCE`) und Gantry-Paare
+    bleiben geschlossen.
+  - `_jog_stop_for_client` muss auch unreferenziert stoppen; das ist schon in Paket A nötig, weil
+    sonst ein künftiger unreferenzierter Jog keinen Disarm-Stop hätte.
+  - Abnahme an der Sim, dann an der echten Maschine.
+- **BG-08 · einverstanden.**
+  - `abort` und `jog_stop` gehen unabhängig von Arm, Sim, busy und Maschine an. Im Gateway
+    entfällt dafür `require_armed`. Bestehen bleiben das Ablehnen ohne Verbindung und der Satz
+    „nicht gesendet“.
+  - Pause eines laufenden Ablaufs (AUTO oder MDI) wird ebenfalls eine Unterbrechung ohne Arm;
+    Resume und Step aus der Pause brauchen Arm.
+  - Das widerspricht nicht „armed = Berechtigung“: E-Stop ist für Beobachter schon heute `always`.
+- **BG-09 · bestätigt, P0.** `_R_READY_OR_PAUSED` (`command_policy.py:154`) und der
+  `auto_step`-Zweig prüfen `kins_runnable` nicht, der `_start_guard` auch nicht. Die Korrektur:
+  - Step aus idle bekommt im Backend genau die `run`-Bedingungen; Step aus der Pause bleibt ein
+    eigener Zweig.
+  - Der Handler prüft vor `set_mode(AUTO)` erneut.
+  - Die RFL-Bestätigung (`GcodePanel.vue:1156`) läuft durchgängig unter `run`.
+  - `scripts/twp_buttons_check.py` gehört zur Abnahme.
+- **BG-10 · bestätigt.** Eine gemeinsame Aktionsfunktion für Button, Shortcut und Gamepad, mit
+  derselben Zulassung und demselben Grund. Belegt am Gamepad:
+  - Start mit `ready` und ohne Editorbedingung;
+  - Kühlung mit `ready` statt `override`;
+  - Home All mit `idle` statt `zero` (`useGamepad.ts:145–177`).
+- **BG-11 · bestätigt.** `canResetEstop` (`App.vue:720`) kennt den Trip nicht. Die Recovery-Folge
+  (quittieren → Arm → Reset → On) wird eine gerichtete Zulassung im Backend-Tisch, mit dem Trip
+  als Eingang des Policy-Zustands. Das Frontend hat dann keinen eigenen Boolean mehr.
+- **BG-12 · bestätigt, P0.** Bestätigt am Code:
+  - `status_runtime.py:460` macht `None` zu INTERP_IDLE;
+  - die Reader-Werte (`kins_type`, `eoffset_enabled`, `tool_change`) gehen ohne
+    `reader_is_stale()` in die Policy;
+  - ohne `_shared_status` wird die Prüfung nur protokolliert, nicht abgelehnt (`gateway.py:4400`).
+
+  Vorschlag:
+  - **Unbekannter Interpreterzustand:** schließt alle neuen Aktionen außer Stopps.
+  - **Vor dem ersten Status:** ein Befehl außer Stopp und Arm wird abgelehnt.
+  - **Reader veraltet:** jeder daraus stammende Eingang wird `None`, also unbekannt.
+  - **eoffset:** Den Fall „der Pin existiert in diesem Profil nicht“ unterscheide ich über die
+    Deklaration, wie bei `kins_switchable`. Sonst bliebe die Kompensation auf einer Maschine ohne
+    eoffset für immer geschlossen.
+  - **M6-Bestätigung:** nur bei bestätigt offener Anforderung. Bei veraltetem Reader nennt sie
+    den Grund; Abort bleibt.
+- **BG-13 · einverstanden.**
+  - Das bestätigte Lesen bekommt ein eigenes Gate `parameterRead`: in ON/AUTO geschlossen mit dem
+    vorhandenen Grund („zu MDI wechseln“), sonst auch bei Maschine aus offen.
+  - Capture und Save bekommen dieselbe Vorbedingung dazu.
+  - Der Synch-Schutz aus R118 bleibt.
+- **BG-14 · bestätigt, mit einem Designvorschlag zur Prüfung.**
+  - `/import-tool-library/apply` ersetzt Tabelle und Sidecar ohne Zustandsprüfung.
+  - Für die Zulassung am wirkenden Commit schlage ich vor: Jede schreibende HTTP-Route trägt die
+    WS-Sitzung des Clients (`X-Client-Session`, beim Beacon als Query-Parameter wie das Token).
+  - Das Gateway löst daraus den verbundenen Client und dessen Arm auf. Unmittelbar vor dem Commit
+    prüft es den Live-Zustand mit derselben Regel wie das WS-Gegenstück: `setup` für Upload, Save
+    und Werkzeugimport; die Makro-Schreiber behalten `_source_write_refusal`.
+  - Ohne verbundene Sitzung lehnt es ab mit „Arm required“.
+  - Die Alternative, die Commits über WS zu führen, halte ich für Uploads für schlechter. Siehst
+    du einen einfacheren sicheren Weg?
+- **BG-15 · einverstanden, schärfer.** Der Fallback (`permissions.ts:155`) wird ganz gelöscht.
+  Frontend und Gateway kommen aus einem Baum, das Mischfenster vom 3. September ist vorbei. Eine
+  fehlende Klasse schließt ihre Aktionen mit dem Grund „Gateway kennt diese Freigabe nicht —
+  Gateway neu starten“.
+- **BG-16 · einverstanden.**
+  - Eine Erklärung je tatsächlicher Sperre, auch für Beobachter: Arm, Lauf, Homing, veralteter
+    Wert.
+  - `explainAt` unterdrückt bei Disarm nichts mehr; „Arm erforderlich“ ist dann der Grund.
+  - Schließen und Verwerfen bleiben offen.
+- **BG-17 · einverstanden.** `toolChangeConfirm` bekommt eine eigene Zulassung: frische offene
+  Anforderung, nicht im Sim-Modus. Eine Bestätigung, die vor dem Wechsel in den Sim-Modus oder
+  vor einer neuen Anforderung vorbereitet war, wird verworfen. Die Durchsicht der übrigen
+  `armed`-, `setup`- und `always`-Ausnahmen ist Teil der Inventur von BG-01.
+
+### Eigene Punkte
+
+- **BG-18 (neu) · P1 · Spindel-Stopp hängt am Homing.**
+  - `spindle_stop` = `ready` verlangt idle **und** referenziert.
+  - Eine Spindel, die unreferenziert läuft, wäre sonst nur über Abort oder E-Stop zu stoppen:
+    nach einem Unhome bei laufender Spindel, und künftig nach Q1.
+  - Vorschlag: `spindle_stop` gehört zur Stopp-Klasse (Basis + idle, ohne Homing; im Lauf bleibt
+    das Programm Eigentümer, dort gelten Pause und Abort). Bitte prüfe, ob LinuxCNC den
+    NML-Spindelstopp in jedem Task-Modus annimmt.
+- **Der Wächter „Aktionsvertrag“** ersetzt meinen zu groben Vorschlag „Katalog-Gate =
+  `COMMAND_GATES`“. Er vergleicht je Aktion samt Ziel und Parametern, über alle Aufrufer.
+  Einverstanden mit deinem Gegenvorschlag.
+- **Matrix:** Ich übernehme sie mit drei Änderungen:
+  - Spindel manuell, unreferenziert: „INI-Schalter“ statt Q1.
+  - Pause: „Pause (AUTO oder MDI)“, Beobachter ✓ wenn laufend.
+  - Neue Zeile „Spindel-Stopp“: ✓ in Unhomed und Idle, im Lauf –.
+
+  Einstellungen kommen als zwei Zeilen dazu: „Darstellung“ wie Navigation, „Maschine/Bedienung“
+  wie der Datei-Commit.
+
+### Pakete und Arbeitsweise
+
+- **Reihenfolge wie vorgeschlagen:**
+  - A: BG-06, BG-09, BG-12, BG-17, BG-08, der Stopp-Pfad von BG-18 und der unreferenzierte Stopp
+    aus BG-07;
+  - B: Inventur der Schreiber und Ausnahmen (BG-14, BG-17-Rest, BG-15, Q2);
+  - C: Navigation, Entwürfe, Dateibrowser, Erklärungen (BG-01, BG-02, BG-05, BG-16);
+  - D: Laden, Modus, G30, gemeinsame Aktionsfunktion, Recovery, Q1 (BG-03, BG-04, BG-10, BG-11,
+    BG-13);
+  - E: Joint-Jog (BG-07).
+- **Branch:** `feat/button-gates` von `development`, in einem eigenen Worktree. Der Live-Baum
+  wird ausgeliefert.
+- **Ablauf je Paket:** Wächter vorher rot, dann Implementierungsrunde mit dir. Merge nur nach
+  `development`.
+- **Doku:** CLAUDE.md und `docs/architecture/safety-and-permissions.md` bekommen die neue Matrix
+  und die Prinzipien in Paket C. Die Tier-Tabelle „alles außer Safety unter armed“ wird ersetzt.
+
+**Bitte prüfen:** die beiden Präzisierungen zum Prüfen (BG-04 COORD, BG-14 Sitzung), BG-18, die
+Q2-Einteilung und die geänderten Matrixzeilen. Wenn das trägt, bitte `agreement` für den Plan;
+Produktänderungen beginnen erst danach.
