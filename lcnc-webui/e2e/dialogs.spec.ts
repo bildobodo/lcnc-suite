@@ -32,11 +32,16 @@ import { sidewaysOverflow, thickScrollbars } from "./layout-audit";
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true, armed: true, always: true,
 };
+// A pending manual tool change as the gateway reports it: the request and its
+// gate (button gates BG-17: toolChangeConfirm = armed + a fresh request).
+const M6_PENDING = { tool_change_requested: true, tool_change_tool: 3, permissions: { ...PERMS_ALL, toolChangeConfirm: true } };
+const M6_DONE = { tool_change_requested: false, permissions: PERMS_ALL };
+
 
 const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log",
                         "tab_visibility", "save_settings", "load_file"];
@@ -283,10 +288,10 @@ const ROWS: Row[] = [
     id: "5 Tool change", title: "Load Tool into Spindle", tier: "sm", backdrop: "stays", machine: true,
     focus: (d) => d, actions: ["Abort", "Confirm"],
     open: async () => {
-      await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3 } });
+      await ctl({ op: "status_delta", data: M6_PENDING });
       return null;
     },
-    close: async () => { await ctl({ op: "status_delta", data: { tool_change_requested: false } }); },
+    close: async () => { await ctl({ op: "status_delta", data: M6_DONE }); },
   },
   {
     id: "6 Macro parameters", title: "Face top", tier: "md", backdrop: "stays", settings: MACRO_BAR, before: macroFolder,
@@ -716,7 +721,7 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
   const toolChange = page.getByRole("dialog", { name: "Load Tool into Spindle", exact: true });
 
   const pauseAndResume = async (expr: string) => {
-    await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3 } });
+    await ctl({ op: "status_delta", data: M6_PENDING });
     await expect(toolChange).toBeVisible();
     await expect(nk, "the parent's keypad is paused").toHaveCount(0);
     await page.waitForTimeout(700);   // > two visibility polls (300 ms)
@@ -729,7 +734,7 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
     const box = (await field.boundingBox())!;
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await expect(nk).toHaveCount(0);
-    await ctl({ op: "status_delta", data: { tool_change_requested: false } });
+    await ctl({ op: "status_delta", data: M6_DONE });
     await expect(toolChange).toHaveCount(0);
     await field.click();
     await expect(nk.locator("[data-draft]")).toHaveText("draft");
@@ -749,9 +754,9 @@ test("UI-D06: a dialog over a field's keypad pauses it — the draft survives un
   await page.keyboard.type("7");
   await editor.locator(".dialogTitle").click();
   await expect(nk).toHaveCount(0);
-  await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3 } });
+  await ctl({ op: "status_delta", data: M6_PENDING });
   await expect(toolChange).toBeVisible();
-  await ctl({ op: "status_delta", data: { tool_change_requested: false } });
+  await ctl({ op: "status_delta", data: M6_DONE });
   await expect(toolChange).toHaveCount(0);
   await field.click();
   await expect(nk.locator("[data-draft]")).toHaveText("draft");
@@ -800,8 +805,8 @@ test("UI-DI01: a machine flow stays the operating position whichever dialog open
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   const shutdown = page.getByRole("dialog", { name: "Shut Down LinuxCNC?", exact: true });
   const messages = page.getByRole("dialog", { name: /^Messages/ });
-  const requestToolChange = () => ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 5 } });
-  const endToolChange = () => ctl({ op: "status_delta", data: { tool_change_requested: false } });
+  const requestToolChange = () => ctl({ op: "status_delta", data: { ...M6_PENDING, tool_change_tool: 5 } });
+  const endToolChange = () => ctl({ op: "status_delta", data: M6_DONE });
   const expectOperating = async (d: Locator, focus: Locator) => {
     await expect.poll(() => topId(page), "the registry's top is the visible dialog").toBe(await d.getAttribute("id"));
     await expect(focus).toBeFocused();
@@ -887,13 +892,13 @@ test("UI-DI02: a lower dialog closing under a surviving top leaves focus in the 
   const cancel = shutdown.getByRole("button", { name: "Cancel", exact: true });
 
   // Two flows: the tool change (machine) under the Shutdown confirm.
-  await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 5 } });
+  await ctl({ op: "status_delta", data: { ...M6_PENDING, tool_change_tool: 5 } });
   await expect(toolChange).toBeVisible();
   const shutdownBtn = page.getByTitle("Shut Down LinuxCNC", { exact: true });
   await shutdownBtn.click();
   await expect(cancel).toBeFocused();
   // The machine ends the tool change while the confirm stays.
-  await ctl({ op: "status_delta", data: { tool_change_requested: false } });
+  await ctl({ op: "status_delta", data: M6_DONE });
   await expect(toolChange).toHaveCount(0);
   await settle(page);
   await expect(cancel, "focus stays on the surviving top").toBeFocused();
@@ -986,12 +991,12 @@ test("UI-DI04: after a disarm the focus fallback is a focusable target — the d
   //    disarmed, the machine ends the tool change.
   await openTools(page);
   await page.locator("input.toolSearch").click();
-  await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 5 } });
+  await ctl({ op: "status_delta", data: { ...M6_PENDING, tool_change_tool: 5 } });
   await expect(toolChange).toBeVisible();
   await page.getByTitle("Settings", { exact: true }).click();
   await expect(settings).toHaveCount(1);
   await disarm();
-  await ctl({ op: "status_delta", data: { tool_change_requested: false } });
+  await ctl({ op: "status_delta", data: M6_DONE });
   await expect(toolChange).toHaveCount(0);
   await expectHeld(settings);
   await ctl({ op: "clearCmds" });
@@ -1020,10 +1025,10 @@ test("UI-DI04: after a disarm the focus fallback is a focusable target — the d
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await page.getByTitle("G-code Reference", { exact: true }).click();
   await expect(reference).toBeVisible();
-  await ctl({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 5 } });
+  await ctl({ op: "status_delta", data: { ...M6_PENDING, tool_change_tool: 5 } });
   await expect(toolChange).toBeVisible();
   await disarm();
-  await ctl({ op: "status_delta", data: { tool_change_requested: false } });
+  await ctl({ op: "status_delta", data: M6_DONE });
   await expect(toolChange).toHaveCount(0);
   await expectHeld(reference);
 

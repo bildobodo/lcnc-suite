@@ -18,7 +18,7 @@ const frameOption = (page: Page, v: number) =>
 
 const PERMS_ALL = {
   idle: true, jog: true, override: true, ready: true, run: true, pause: false,
-  resume: false, step: true, abort: true, probe: true, zero: true,
+  resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true, armed: true, always: true,
@@ -690,7 +690,8 @@ test("tool-change confirm: once per request, retry after a refusal, nothing with
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctlSend({ op: "quiet", on: true });
   try {
-    await ctlSend({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3, permissions: PERMS_ALL } });
+    // the gateway ships toolChangeConfirm with a fresh pending request (button gates BG-17)
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: true, tool_change_tool: 3, permissions: { ...PERMS_ALL, toolChangeConfirm: true } } });
     const dialog = page.locator(".safetyDialog .dialog", { hasText: "Load Tool into Spindle" });
     await expect(dialog).toBeVisible();
     await ctlSend({ op: "clearCmds" });
@@ -708,7 +709,7 @@ test("tool-change confirm: once per request, retry after a refusal, nothing with
     await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
     await expect.poll(async () => ((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
     // Request ends → dialog gone; nothing more is sent.
-    await ctlSend({ op: "status_delta", data: { tool_change_requested: false, tool_change_tool: null } });
+    await ctlSend({ op: "status_delta", data: { tool_change_requested: false, tool_change_tool: null, permissions: PERMS_ALL } });
     await expect(dialog).toHaveCount(0);
     expect(((await ctlSend({ op: "lastCmds" })).cmds ?? []).filter((c: any) => c.cmd === "confirm_tool_change").length).toBe(2);
   } finally {

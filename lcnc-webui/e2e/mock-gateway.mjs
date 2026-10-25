@@ -114,7 +114,7 @@ const state = {
     work_pos: [12.345, 1.0, -5.5],      // frames.spec asserts the rendered DRO
     permissions: {
       idle: true, jog: true, override: true, ready: true, pause: false,
-      resume: false, step: true, abort: true, probe: true, zero: true,
+      resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
       touchoff: true, touchoffRotary: true, twpCapture: true,
       surfaceComp: true, safety: true, setup: true, armed: true, always: true,
     },
