@@ -353,9 +353,16 @@ class TestStepHandlerChecksTheStartRule(_Handlers):
     even when the dispatcher's check was passed (a snapshot that changed
     between the check and the handler)."""
 
-    def test_auto_step_from_idle_refused_on_a_stranded_plane(self):
+    def _strand_now(self):
+        # the controller's current answer agrees with the broadcast (the
+        # start re-reads it — TestStartChecksTheControllerNow)
         gateway._kins_is_switchable = lambda: True
         gateway._twp_capable = lambda: True
+        gateway._reader_is_stale = lambda: False
+        gateway._reader_get = {"kins_type": 2.0, "twp_active": 0}.get
+
+    def test_auto_step_from_idle_refused_on_a_stranded_plane(self):
+        self._strand_now()
         import unittest.mock
         with unittest.mock.patch.object(gateway, "check_command", lambda *_a: None):
             r = self._send({"cmd": "auto_step"}, kins_type=2.0, twp_active=False,
@@ -365,8 +372,7 @@ class TestStepHandlerChecksTheStartRule(_Handlers):
         self.assertNotIn("auto", self.cmd.names())
 
     def test_cycle_start_too(self):
-        gateway._kins_is_switchable = lambda: True
-        gateway._twp_capable = lambda: True
+        self._strand_now()
         import unittest.mock
         with unittest.mock.patch.object(gateway, "check_command", lambda *_a: None):
             r = self._send({"cmd": "cycle_start"}, kins_type=2.0, twp_active=False,
@@ -376,22 +382,61 @@ class TestStepHandlerChecksTheStartRule(_Handlers):
 
 
 class TestToolChangeConfirmHandler(_Handlers):
-    """BG-12 / BG-17: the confirmation needs a FRESH pending request."""
+    """BG-12 / BG-17: the confirmation needs a FRESH pending request — and
+    names the request it answers (Codex R205: a press begun on T7 confirmed
+    the T9 request that replaced it)."""
 
-    def _confirm(self, *, stale, pending):
+    def setUp(self):
+        super().setUp()
+        rt = gateway._status_runtime
+        saved = (rt.tool_change_seq, rt.tool_change_tool, gateway._tool_change_confirmed)
+        rt.tool_change_seq, rt.tool_change_tool = 5, 7
+        gateway._tool_change_confirmed = None
+
+        def restore():
+            rt.tool_change_seq, rt.tool_change_tool, gateway._tool_change_confirmed = saved
+        self.addCleanup(restore)
+
+    def _confirm(self, *, stale, pending, request=5, tool=7):
         gateway._reader_is_stale = lambda: stale
-        gateway._reader_get = {"tool_change": pending}.get
+        gateway._reader_get = {"tool_change": pending, "tool_prep_number": tool}.get
         sent = []
+        msg = {"cmd": "confirm_tool_change"}
+        if request is not None:
+            msg["request"] = request
         import unittest.mock
         with unittest.mock.patch.object(gateway, "_hal_send", lambda m: sent.append(m)), \
                 unittest.mock.patch.object(gateway, "check_command", lambda *_a: None):
-            r = self._send({"cmd": "confirm_tool_change"}, interp_state=linuxcnc.INTERP_READING)
+            r = self._send(msg, interp_state=linuxcnc.INTERP_READING)
         return r, sent
 
     def test_a_fresh_pending_request_is_confirmed(self):
         r, sent = self._confirm(stale=False, pending=True)
         self.assertTrue(r["ok"], r)
         self.assertEqual(sent, [{"tool_changed": True}])
+
+    def test_a_request_is_confirmed_once(self):
+        self.assertTrue(self._confirm(stale=False, pending=True)[0]["ok"])
+        r, sent = self._confirm(stale=False, pending=True)
+        self.assertFalse(r["ok"])
+        self.assertEqual(sent, [])
+
+    def test_a_confirmation_for_an_earlier_request_refuses(self):
+        r, sent = self._confirm(stale=False, pending=True, request=4)
+        self.assertFalse(r["ok"])
+        self.assertIn("changed", r["error"])
+        self.assertEqual(sent, [])
+
+    def test_a_tool_that_changed_since_the_last_poll_refuses(self):
+        # the next request raised between two polls: same number, other tool
+        r, sent = self._confirm(stale=False, pending=True, tool=9)
+        self.assertFalse(r["ok"])
+        self.assertEqual(sent, [])
+
+    def test_a_confirmation_without_its_request_refuses(self):
+        r, sent = self._confirm(stale=False, pending=True, request=None)
+        self.assertFalse(r["ok"])
+        self.assertEqual(sent, [])
 
     def test_a_stale_reader_refuses(self):
         r, sent = self._confirm(stale=True, pending=True)
@@ -402,6 +447,61 @@ class TestToolChangeConfirmHandler(_Handlers):
         r, sent = self._confirm(stale=False, pending=None)
         self.assertFalse(r["ok"])
         self.assertEqual(sent, [])
+
+
+class TestStartChecksTheControllerNow(_Handlers):
+    """BG-09 / BG-12 (Codex R205): a program start re-reads the kinematics
+    and the reader's freshness NOW — the broadcast's reader_fresh is the
+    freshness when it was built. The source changes AFTER the broadcast."""
+
+    def run_case(self, cmd, stale, current_kins, **snapshot):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        gateway._reader_is_stale = lambda: stale
+        gateway._reader_get = {"kins_type": current_kins, "twp_active": False,
+                               "twp_defined": False}.get
+
+        async def mode(value):
+            self.cmd.calls.append(("mode", (value,), {}))
+            gateway.STAT.task_mode = value
+        old = dict(kins_type=0.0, twp_active=False, g5x_index=1, reader_fresh=True)
+        old.update(snapshot)
+        import unittest.mock
+        with unittest.mock.patch.object(gateway, "set_mode", mode):
+            return self._send({"cmd": cmd}, **old)
+
+    def refused(self, cmd, stale, current_kins, **snapshot):
+        r = self.run_case(cmd, stale, current_kins, **snapshot)
+        self.assertFalse(r["ok"], r)
+        self.assertNotIn("auto", self.cmd.names())
+        return r
+
+    def test_cycle_start_with_the_reader_stale_now(self):
+        self.assertIn("unknown", self.refused("cycle_start", True, 0.0)["error"])
+
+    def test_step_with_the_reader_stale_now(self):
+        self.refused("auto_step", True, 0.0)
+
+    def test_cycle_start_with_plane_kins_now(self):
+        self.assertIn("without a plane", self.refused("cycle_start", False, 2.0)["error"])
+
+    def test_step_with_plane_kins_now(self):
+        self.refused("auto_step", False, 2.0)
+
+    def test_control_a_runnable_start_and_step_go(self):
+        for cmd in ("cycle_start", "auto_step"):
+            with self.subTest(cmd=cmd):
+                self.cmd.calls.clear()
+                r = self.run_case(cmd, False, 0.0)
+                self.assertTrue(r["ok"], r)
+                self.assertIn("auto", self.cmd.names())
+
+    def test_the_rfl_start_uses_the_same_check(self):
+        # The run-from-line sequence starts minutes after its handler: its
+        # final AUTO_RUN re-checks with the same controller read.
+        import inspect
+        src = inspect.getsource(gateway._rfl_sequence)
+        self.assertIn("_program_start_refusal(", src)
 
 
 class TestDisarmJogStopUnhomed(_Handlers):

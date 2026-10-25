@@ -1,0 +1,17 @@
+{'case': 'test_control_cached_stale_refuses', 'reply': {'ok': False, 'error': 'Kinematics mode unknown — HAL reader stale'}, 'commands': [], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': True, 'reader_kins_now': 0}
+{'case': 'test_control_cached_strand_refuses', 'reply': {'ok': False, 'error': 'Plane kinematics without a plane — select Machine'}, 'commands': [], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': False, 'reader_kins_now': 2}
+{'case': 'test_control_runnable_cycle_start', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': ['kins_type', 'twp_active'], 'freshness_calls': [False, False], 'reader_stale_now': False, 'reader_kins_now': 0}
+{'case': 'test_control_runnable_step', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': ['kins_type', 'twp_active'], 'freshness_calls': [False, False], 'reader_stale_now': False, 'reader_kins_now': 0}
+{'case': 'test_cycle_start_rechecks_current_kinematics', 'reply': {'ok': False, 'error': 'Plane kinematics without a plane — select Machine'}, 'commands': [], 'reader_calls': ['kins_type', 'twp_active'], 'freshness_calls': [False, False], 'reader_stale_now': False, 'reader_kins_now': 2}
+{'case': 'test_cycle_start_rechecks_reader_freshness_now', 'reply': {'ok': False, 'error': 'Kinematics mode unknown — HAL reader stale'}, 'commands': [], 'reader_calls': [], 'freshness_calls': [True, True], 'reader_stale_now': True, 'reader_kins_now': 0}
+{'case': 'test_step_rechecks_current_kinematics', 'reply': {'ok': False, 'error': 'Plane kinematics without a plane — select Machine'}, 'commands': [], 'reader_calls': ['kins_type', 'twp_active'], 'freshness_calls': [False, False], 'reader_stale_now': False, 'reader_kins_now': 2}
+{'case': 'test_step_rechecks_reader_freshness_now', 'reply': {'ok': False, 'error': 'Kinematics mode unknown — HAL reader stale'}, 'commands': [], 'reader_calls': [], 'freshness_calls': [True, True], 'reader_stale_now': True, 'reader_kins_now': 0}
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_control_cached_stale_refuses
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_control_cached_strand_refuses
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_control_runnable_cycle_start
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_control_runnable_step
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_cycle_start_rechecks_current_kinematics
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_cycle_start_rechecks_reader_freshness_now
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_step_rechecks_current_kinematics
+PASSED test_r205_probe_tmp.py::TestCurrentStartBasis::test_step_rechecks_reader_freshness_now
+8 passed in 0.15s

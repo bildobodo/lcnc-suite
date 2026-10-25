@@ -40,16 +40,19 @@ class SimulatorClient:
 
     def receive(self):
         import msgspec
-        confirming = False
+        confirmed = None
         try:
             for raw in self.ws:
                 msg = msgspec.msgpack.decode(raw) if isinstance(raw, bytes) else json.loads(raw)
                 if isinstance(msg.get("data"), dict):
                     self.status.update(msg["data"])
                     requested = self.status.get("tool_change_requested", False)
-                    if requested and not confirming:
-                        self.send({"cmd": "confirm_tool_change"})
-                    confirming = bool(requested)
+                    seq = self.status.get("tool_change_seq")
+                    if requested and seq != confirmed:
+                        # once per request, naming the request it answers
+                        # (button gates BG-17)
+                        self.send({"cmd": "confirm_tool_change", "request": seq})
+                        confirmed = seq
                 if "ok" in msg:
                     self.replies.put(msg)
             if not self.stop.is_set():

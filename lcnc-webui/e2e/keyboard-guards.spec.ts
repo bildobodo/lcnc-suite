@@ -714,6 +714,47 @@ test("a continuous jog keeps its stop when the step changes mid-hold (button gat
   expect((await recordedCmds()).filter(c => c.startsWith("jog_"))).toEqual(["jog_incr"]);
 });
 
+/** A continuous keyboard jog held on X+ (ArrowRight by default). */
+async function holdContJog(page: Page, key: string, mapping: Record<string, string> = {}) {
+  await openReady(page);
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping } } } });
+  const steps = page.getByRole("radiogroup", { name: "Jog step", exact: true });
+  await steps.getByRole("radio", { name: "Cont", exact: true }).click();
+  await focusBody(page);
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.down(key);
+  await expect.poll(recordedCmds).toContain("jog_cont");
+}
+
+async function jogCmds(): Promise<{ cmd?: string; axis?: number }[]> {
+  const sent = await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; axis?: number }[] };
+  return (sent.cmds ?? []).filter(c => (c.cmd ?? "").startsWith("jog_"));
+}
+
+test("a held jog key keeps its stop when the key map changes on another client (Codex R205)", async ({ page }) => {
+  await holdContJog(page, "ArrowRight");
+  // another client saves a map where X+ is "q": the held ArrowRight is no
+  // jog key any more — its release must still stop the jog it started
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true, mapping: { "jog_x+": "q" } } } } });
+  await page.waitForTimeout(350);
+  await page.keyboard.up("ArrowRight");
+  await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
+  // the new map arrived: "q" starts a jog of its own and stops it
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.down("q");
+  await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_cont", axis: 0 }));
+  await page.keyboard.up("q");
+  await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
+});
+
+test("a held letter jog keeps its stop when Shift turns it upper case (Codex R205)", async ({ page }) => {
+  await holdContJog(page, "q", { "jog_x+": "q" });
+  await page.keyboard.down("Shift");
+  await page.keyboard.up("q");
+  await page.keyboard.up("Shift");
+  await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
+});
+
 test("settings save status: Saving… on a change, Saved on the gateway's ok, the reason on ok:false", async ({ page }) => {
   // UX-08: the header's "saved automatically" is a promise with a proof —
   // the status follows the correlated reply, never the send alone.

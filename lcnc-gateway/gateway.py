@@ -3664,6 +3664,11 @@ def require_no_rotary_tilt():
             "feature (the map does not tilt or ride the platter)")
 
 
+# The tool-change request the gateway last confirmed (button gates BG-17):
+# a request is confirmed once.
+_tool_change_confirmed: Optional[int] = None
+
+
 def require_tool_change_pending():
     """Refuse a manual-toolchange confirmation when iocontrol is not asking for
     one.
@@ -3759,19 +3764,13 @@ async def _start_guard(armed: bool, clears_flag: bool = False,
     once the interpreter took the clear does anything start. `clears_flag`:
     the command's own values carry #3116=0 (_skip_flag_cleared).
     `program`: a PROGRAM start (Cycle Start, run from line, Step from idle)
-    — the kinematics must be runnable, re-checked here on the current
-    snapshot behind the dispatcher's gate (button gates BG-09: Step from
-    idle had no kinematics rule at all). An MDI line is no program start: it
-    is how a stranded frame is fixed (M428, G69)."""
+    — the kinematics must be runnable on a CURRENT controller read, after
+    every preliminary step of this guard (_program_start_refusal; button
+    gates BG-09 / BG-12). An MDI line is no program start: it is how a
+    stranded frame is fixed (M428, G69)."""
     why = _rfl_busy_reason()
     if why:
         return {"ok": False, "error": why}
-    if program:
-        if _shared_status is None:
-            return {"ok": False, "error": "Machine status not read yet — wait"}
-        why = kins_runnable(_live_policy_state(armed))
-        if why:
-            return {"ok": False, "error": why}
     if _skip_flag_unknown and not clears_flag:
         # A refused switch (a jog held) says so itself — the MDI below would
         # swallow it into "not cleared".
@@ -3781,7 +3780,38 @@ async def _start_guard(armed: bool, clears_flag: bool = False,
             _trace.emit("rfl.flag_clear_failed", level="warn", by="start")
             return {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"}
         _trace.emit("rfl.flag_cleared", by="start")
+    if program:
+        why = _program_start_refusal(armed)
+        if why:
+            return {"ok": False, "error": why}
     return None
+
+
+def _program_start_refusal(armed: bool) -> Optional[str]:
+    """May a PROGRAM start now? None = yes, else the refusal — the kinematics
+    rule (kins_runnable) on a CURRENT read (button gates BG-09 / BG-12, Codex
+    R205): the fixture from a STAT poll that succeeded now, the kins mode and
+    the plane from the reader read now. The broadcast lags a poll, and its
+    reader_fresh is the freshness when it was BUILT — a stale reader or a
+    mode switched since then refuses here. Called last before the start:
+    from _start_guard after its flag clear, and by the run-from-line
+    sequence right before its AUTO_RUN, minutes after its handler."""
+    if _shared_status is None:
+        return "Machine status not read yet — wait"
+    base = _live_policy_state(armed)
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no start
+        _trace.emit_exc("start.stat_poll_failed", e)
+        return "Machine status not read — start again"
+    g5x = safe_get("g5x_index", None)
+    kins = _reader_fresh_get("kins_type")
+    active = _reader_fresh_get("twp_active")
+    return kins_runnable(_dc_replace(
+        base,
+        kins_type=None if kins is None else int(round(float(kins))),
+        twp_active=active is not None and bool(active),
+        g5x_index=base.g5x_index if g5x is None else int(g5x)))
 
 
 def _rfl_finished(task: asyncio.Task) -> None:
@@ -4073,6 +4103,12 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
                     await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, spindle_speed, wait=None)
         _rfl_phase("starting")
         async with _get_cmd_lock():
+            # The handler's admission is minutes old: the same current read
+            # decides right before the start (button gates BG-09 / BG-12).
+            why = _program_start_refusal(True)
+            if why:
+                _rfl_phase("failed", False, why)
+                return
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None)
         # Consumed by the skim (o<450> self-clears #3116); _skip_flag_unknown
@@ -5523,6 +5559,20 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if cmd == "confirm_tool_change":
             require_armed(armed)
             require_tool_change_pending()
+            # The confirmation names the request it answers (button gates
+            # BG-17, Codex R205): a press begun on one request must not
+            # confirm the one that replaced it, and a request is confirmed
+            # once — a second client's late confirm is refused.
+            global _tool_change_confirmed
+            request = msg.get("request")
+            current = _status_runtime.tool_change_seq
+            prep = _reader_fresh_get("tool_prep_number")
+            if (not isinstance(request, int) or isinstance(request, bool) or request != current
+                    or prep is None or int(prep) != _status_runtime.tool_change_tool):
+                return {"ok": False, "error": "Tool change request changed — confirm again"}
+            if request == _tool_change_confirmed:
+                return {"ok": False, "error": "Tool change already confirmed"}
+            _tool_change_confirmed = request
             _loop = asyncio.get_event_loop()
             await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
             return {"ok": True}

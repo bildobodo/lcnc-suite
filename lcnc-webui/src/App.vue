@@ -941,6 +941,11 @@ const activeCodeWords = computed(() => `${activeGcodes.value} ${activeMcodes.val
 // Tool change dialog (global — tool changes can happen from any context)
 const toolChangeRequested = computed(() => !!st.value.tool_change_requested);
 const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
+// The pending request's identity (button gates BG-17, Codex R205): the
+// confirmation names it, and the Confirm button is rebuilt for every new
+// request — a press begun on one request never confirms the next.
+const toolChangeSeq = computed<number | null>(() => st.value.tool_change_seq ?? null);
+const toolChangeConfirmKey = computed(() => `${toolChangeSeq.value}:${toolChangeTool.value}:${simMode.value}:${connected.value}`);
 // Confirm exactly once per request (UI-05): `confirmSent` holds the req_id
 // of the confirm that actually went out (fire() returns null when nothing
 // was sent — never a pending). It clears when the request ends, when the
@@ -951,11 +956,12 @@ const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
 const confirmSent = ref<string | null>(null);
 function confirmToolChange() {
   if (!toolChangeRequested.value || confirmSent.value) return;
-  const id = fire({ cmd: "confirm_tool_change" }, 'toolChangeConfirm');
+  const seq = toolChangeSeq.value;
+  const id = fire({ cmd: "confirm_tool_change", ...(seq != null ? { request: seq } : {}) }, 'toolChangeConfirm');
   if (id) confirmSent.value = id;
 }
 watch(toolChangeRequested, (req) => { if (!req) confirmSent.value = null; });
-watch(toolChangeTool, () => { confirmSent.value = null; });
+watch([toolChangeSeq, toolChangeTool], () => { confirmSent.value = null; });
 watch(lastReply, (r) => {
   if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) confirmSent.value = null;
 });
@@ -2382,7 +2388,7 @@ watch(viewerGcode, (newGcode) => {
           </div>
           <template #actions>
             <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
-            <MachineBtn type="toolChangeConfirm" :disabled="!toolChangeRequested || !!confirmSent"
+            <MachineBtn :key="toolChangeConfirmKey" type="toolChangeConfirm" :disabled="!toolChangeRequested || !!confirmSent"
                         :reason="confirmSent ? 'Confirmation sent — waiting for the controller' : undefined"
                         @click="confirmToolChange">{{ confirmSent ? 'Confirming…' : 'Confirm' }}</MachineBtn>
           </template>

@@ -202,6 +202,27 @@ class TestPollStatus(unittest.TestCase):
         self.assertFalse(stale.permissions["probe"])
         self.assertIn("unknown", stale.permission_reasons["probe"].lower())
 
+    def test_a_tool_change_request_has_an_identity(self):
+        # Button gates BG-17 (Codex R205): a confirmation names its request.
+        # A new number on every rising edge and on a tool change while the
+        # request stays raised (the next one came between two polls).
+        snap = {"tool_change": True, "tool_prep_number": 7}
+        rt = _runtime(stat=self._stat(), snapshot=snap)
+        first = rt.poll_status().tool_change_seq
+        self.assertIsNotNone(first)
+        self.assertEqual(rt.poll_status().tool_change_seq, first, "the same request")
+        snap["tool_prep_number"] = 9
+        second = rt.poll_status().tool_change_seq
+        self.assertEqual(second, first + 1)
+        snap["tool_change"] = False
+        self.assertIsNone(rt.poll_status().tool_change_seq)
+        snap["tool_change"] = True
+        self.assertEqual(rt.poll_status().tool_change_seq, second + 1, "same tool, a new request")
+        snap["tool_change"] = None   # reader gap: no edge invented
+        rt.poll_status()
+        snap["tool_change"] = True
+        self.assertEqual(rt.poll_status().tool_change_seq, second + 1)
+
     def test_policy_state_carries_the_touchoff_inputs(self):
         # The touch-off gates (2026-08-30) read kins mode × fixture × table
         # pose from the SAME snapshot the broadcast carries: raw pin rounded,

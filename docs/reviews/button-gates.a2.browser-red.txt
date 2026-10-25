@@ -1,0 +1,13 @@
+# red run on a46fb237 (package A as reviewed in R205), the new guards copied in
+  1) [serial-guards] › e2e/keyboard-guards.spec.ts:734:1 › a held jog key keeps its stop when the key map changes on another client (Codex R205) 
+    Expected value: ObjectContaining {"axis": 0, "cmd": "jog_stop"}
+    Received array: [{"axis": 0, "cmd": "jog_cont", "req_id": "xwet4s-5", "vel": 10}]
+    test-results/keyboard-guards-a-held-jog-44ee0--another-client-Codex-R205--serial-guards/test-failed-1.png
+  1 failed
+  1 passed (17.2s)
+  1) [serial-touchoff] › e2e/touchoff.spec.ts:722:1 › a press begun on one tool-change request never confirms the next (Codex R205) 
+    Error: the old press confirms nothing
+    - Expected  - 1
+    + Received  + 6
+    test-results/touchoff-a-press-begun-on--3868a-nfirms-the-next-Codex-R205--serial-touchoff/test-failed-1.png
+  1 failed

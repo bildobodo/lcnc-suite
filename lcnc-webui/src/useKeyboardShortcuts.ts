@@ -53,9 +53,13 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     return map;
   });
 
-  // The keyboard jogs in progress, each with what it STARTED (BG-06): the
-  // keyup stops that, never what the step or the key map say by then.
+  // The keyboard jogs in progress, keyed by the PHYSICAL key that started
+  // them (`code`), each with what it STARTED (BG-06): the keyup stops that —
+  // never what the step, the key map (a remap saved on another client while
+  // the key is held, Codex R205) or a modifier (Shift turns "q" into "Q")
+  // say by then.
   const jogGestures = new JogGestures<string>(reactive(new Map<string, JogGesture>()));
+  const physicalKey = (e: KeyboardEvent) => e.code || e.key;
 
   function jogActionToAxis(action: string): { axis: number; dir: 1 | -1; isAngular: boolean } | null {
     const match = action.match(/^jog_([a-z])([+-])$/);
@@ -124,7 +128,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     if (action.startsWith("jog_")) {
       if (!keyboardConfig.value.jogEnabled) return;
       e.preventDefault();
-      if (e.repeat || jogGestures.has(action)) return;
+      if (e.repeat || jogGestures.has(physicalKey(e))) return;
       if (!opts.permissions.value.jog) return;
       const jog = jogActionToAxis(action);
       if (!jog) return;
@@ -135,7 +139,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
       } else {
         opts.send({ cmd: "jog_cont", axis: jog.axis, vel });
       }
-      jogGestures.start(action, { axes: [jog.axis], cont: !(step > 0) });
+      jogGestures.start(physicalKey(e), { axes: [jog.axis], cont: !(step > 0) });
       return;
     }
 
@@ -165,9 +169,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
   // key is held must not suppress the release → jog_stop (the guards above
   // live in the keydown path only).
   function onKeyUp(e: KeyboardEvent) {
-    const action = reverseKeyMap.value.get(e.key);
-    if (!action || !action.startsWith("jog_")) return;
-    const stop = jogGestures.end(action);
+    const stop = jogGestures.end(physicalKey(e));
     if (stop) opts.send(stop);
   }
 

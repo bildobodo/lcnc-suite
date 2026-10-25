@@ -356,6 +356,9 @@ class StatusPayload:
 
     # tool change (HAL iocontrol)
     tool_change_requested: Optional[bool]
+    #: The pending request's identity (button gates BG-17, Codex R205): a
+    #: confirmation names the request it answers. None while none is pending.
+    tool_change_seq: Optional[int]
     tool_change_tool: Optional[int]
     tool_change_info: Optional[dict]
 
@@ -603,6 +606,13 @@ class StatusRuntime:
         self._var_file_path_cache_val: Optional[str] = None
         # Program timer (server-authoritative elapsed clock)
         self._program_start_mono: Optional[float] = None
+        # The manual tool-change request's identity (button gates BG-17):
+        # a new number on every observed rising edge of iocontrol's
+        # tool-change and on a tool change while it stays raised — the next
+        # request came between two polls. A confirmation names its number.
+        self.tool_change_seq = 0
+        self.tool_change_tool: Optional[int] = None
+        self._tc_prev: Optional[bool] = None
         self._program_paused_accum_ms = 0
         self._program_pause_start_mono: Optional[float] = None
         self._program_active_last = False
@@ -1173,6 +1183,8 @@ class StatusRuntime:
                     _trace.emit("toolchange.info_lookup_failed", level="warn",
                                 tool=tool_change_tool, exc=type(e).__name__, msg=str(e))
 
+        tool_change_seq = self.track_tool_change(tool_change_requested, tool_change_tool)
+
         spindle_ovr = self.get_spindle_override()
 
         # Spindle speed: pass None through if reader has no snapshot yet (or the
@@ -1263,6 +1275,7 @@ class StatusRuntime:
             tool_length=tool_length,
             tool_table_z=tool_table_z,
             tool_change_requested=tool_change_requested,
+            tool_change_seq=tool_change_seq,
             tool_change_tool=tool_change_tool,
             tool_change_info=tool_change_info,
             probe_tripped=bool(safe_get("probe_tripped", 0)),
@@ -1295,6 +1308,20 @@ class StatusRuntime:
         payload.permissions = evaluate_permissions(_pstate)
         payload.permission_reasons = permission_reasons(_pstate)
         return payload
+
+    def track_tool_change(self, requested: Optional[bool], tool: Optional[int]) -> Optional[int]:
+        """The pending request's number, or None while none is pending. A
+        rising edge or a new tool while raised is a new request; an unread
+        pin (None) keeps the last reading — no edge invented. Two requests
+        for the SAME tool whose low phase falls between two polls stay one:
+        nothing tells them apart at the reader's rate, and the second needs
+        no new tool in the spindle."""
+        if requested is True and (self._tc_prev is not True or tool != self.tool_change_tool):
+            self.tool_change_seq += 1
+            self.tool_change_tool = tool
+        if requested is not None:
+            self._tc_prev = requested
+        return self.tool_change_seq if requested is True else None
 
     def poll_and_serialize(self):
         """Executor-thread helper: poll STAT + serialize to dict in one hop.

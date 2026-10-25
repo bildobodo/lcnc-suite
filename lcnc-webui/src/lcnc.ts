@@ -103,7 +103,7 @@ export type WsCommand =
   | { cmd: "set_compensation"; enable: boolean }
   | { cmd: "set_compensation_method"; method: number }
   // Tool change
-  | { cmd: "confirm_tool_change" }
+  | { cmd: "confirm_tool_change"; request?: number }
   // Offsets
   | { cmd: "get_wcs_table" }
   | { cmd: "clear_wcs"; target: string }
