@@ -1,0 +1,18 @@
+{
+  "result": "PASS",
+  "retained_records": 35875,
+  "phase_start_ns": 1792946452310942358,
+  "phase_end_ns": 1792947749362157512,
+  "records_between_marks": 9734,
+  "records_equal_to_direct_read": true,
+  "repeat_polls_unchanged": 3,
+  "publication_jobs": {
+    "103": 1,
+    "104": 1,
+    "112": 1,
+    "113": 1,
+    "114": 1,
+    "115": 1
+  },
+  "wd.trip_reset": 1
+}

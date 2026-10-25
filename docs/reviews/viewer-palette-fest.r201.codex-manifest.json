@@ -1,0 +1,112 @@
+{
+  "round": "R201",
+  "revision": "f110ad95b0f011fee6c812a6d13309df12099c48",
+  "verdict": "agreement: VP200-01 closed",
+  "inputs": {
+    "viewer-palette-fest.r182.browser-pc-bpc.py": {
+      "bytes": 8258,
+      "sha256": "d2c5b2f78f18ae45daf3ae05e7aa9447f1888c87102940191c81a09d8cec167d"
+    },
+    "viewer-palette-fest.r197.browser-pc-report2.py": {
+      "bytes": 29916,
+      "sha256": "b4211f7697bad1e26ede088375d486ea0011bafccf392efff7dc1800f5808dff"
+    },
+    "viewer-palette-fest.r182.browser-pc-drive.py": {
+      "bytes": 12630,
+      "sha256": "4f3055239b7697834492efa80b118d89eb713350055e643c843d890b5799e64c"
+    },
+    "viewer-palette-fest.r197.browser-pc-drive2.py": {
+      "bytes": 20932,
+      "sha256": "802e97116b5838f9cc37155c137836b26984531eb35c685d34628ef9a31355e7"
+    },
+    "viewer-palette-fest.r201.browser-pc-tracetail.py": {
+      "bytes": 2892,
+      "sha256": "2af41bed0559e44ed3d9835b2f3226bbc3b6cc1007db0f7cba97dbe5f6ad1908"
+    },
+    "viewer-palette-fest.r201.browser-pc-tools-test.py": {
+      "bytes": 36237,
+      "sha256": "1c765b7ae76968d7afb4ec09170d3e65351d4053313cddebe9d4f6a0f6f177f2"
+    },
+    "viewer-palette-fest.r200.codex-tracetail-probe.py": {
+      "bytes": 2851,
+      "sha256": "81d9bf4a338aa477249e65ffbcf6306051ca279e402e5b9c97a1ad37c803c4aa"
+    },
+    "viewer-palette-fest.r201.tools.diff": {
+      "bytes": 5626,
+      "sha256": "28ddc25aa8cf552ed9b4f9e7dc4a463a8f3449c5f3d84cbdea6e3363eb3c319f"
+    },
+    "viewer-palette-fest.r200.codex-events.jsonl.gz": {
+      "bytes": 1125985,
+      "sha256": "267cd02324aab6073520340502f7e58c5d6c7bba96d24f1bcd7541e2944cfdb2"
+    },
+    "viewer-palette-fest.r200.marks-f.json": {
+      "bytes": 1036,
+      "sha256": "d26b6d0080a2806e5884ea4eefc06068d63e63a4bdcc98af9722c1f4897c46f9"
+    },
+    "viewer-palette-fest.ideen.md": {
+      "bytes": 2400445,
+      "sha256": "286c0f05d679f7214c4ca054a0925c78cf7a682af09e5bb978418dd53b7d3d88"
+    }
+  },
+  "tools_tests": "35 PASS; test-only gateway import redirected to archived /tmp/codex-r198-7siq0rmu/repo/lcnc-gateway",
+  "unchanged_R200_own_probes": "4 PASS",
+  "extra_fd_boundary_probes": "2 PASS",
+  "negative_control": "R201 reader tests against R200 reader: 4 PASS, 1 expected FAIL (duplicate events on rotation)",
+  "replay": {
+    "result": "PASS",
+    "retained_records": 35875,
+    "phase_start_ns": 1792946452310942358,
+    "phase_end_ns": 1792947749362157512,
+    "records_between_marks": 9734,
+    "records_equal_to_direct_read": true,
+    "repeat_polls_unchanged": 3,
+    "publication_jobs": {
+      "103": 1,
+      "104": 1,
+      "112": 1,
+      "113": 1,
+      "114": 1,
+      "115": 1
+    },
+    "wd.trip_reset": 1
+  },
+  "live_tool_sha256": "2af41bed0559e44ed3d9835b2f3226bbc3b6cc1007db0f7cba97dbe5f6ad1908",
+  "scope": "Offline tooling only, no product changes, no live endpoints or machine commands; performance acceptance from R200 unchanged.",
+  "commands": [
+    "In a temporary tools directory: bpc.py and drive.py from R182 evidence; bpc2.py and drive2.py from R197 evidence; tracetail.py and test_bpc_tools.py from R201 evidence. Redirect the gateway import in the test copy to the archived gateway. PYTHONDONTWRITEBYTECODE=1 /home/cnc/lcnc-suite/lcnc-gateway/.venv/bin/python -m unittest test_bpc_tools -v",
+    "Copy unchanged viewer-palette-fest.r200.codex-tracetail-probe.py beside temporary tracetail.py as test_codex_tracetail.py; PYTHONDONTWRITEBYTECODE=1 python3 -m unittest test_codex_tracetail -v",
+    "Copy r201.codex-fd-boundaries.py as test_fd_boundaries.py; PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=<temporary-tools-dir> python3 -m unittest test_fd_boundaries -v",
+    "Negative control in separate temporary directory with R200 tracetail.py: python -m unittest test_bpc_tools.TraceTailBoundaries test_bpc_tools.TraceTailInodes -v",
+    "PYTHONDONTWRITEBYTECODE=1 python3 docs/reviews/viewer-palette-fest.r201.codex-replay.py docs/reviews"
+  ],
+  "evidence": {
+    "viewer-palette-fest.r201.codex-tools-test.txt": {
+      "bytes": 5349,
+      "sha256": "50e2037cf3ff3d994990ab25e865a5589900569fcebb8434e08a71426a2eedb4"
+    },
+    "viewer-palette-fest.r201.codex-own-probes.txt": {
+      "bytes": 689,
+      "sha256": "602d43fb0798d381ba8f270db82050df73b2011bbe9f346f93557fe67cf5cb40"
+    },
+    "viewer-palette-fest.r201.codex-r200-negative.txt": {
+      "bytes": 1840,
+      "sha256": "aa63dbc68cf9563d1da34f6988f2fecaec4a54d792e05e7901550d734ea3b83d"
+    },
+    "viewer-palette-fest.r201.codex-fd-boundaries.py": {
+      "bytes": 2649,
+      "sha256": "0ea6641898e51493083ad23f59c6fb70b631608937d83a3a8a4d0f43090fc339"
+    },
+    "viewer-palette-fest.r201.codex-fd-boundaries.txt": {
+      "bytes": 394,
+      "sha256": "0988581bbcbaf15d41bc3bc042844487f2bd44783490e7b3d48a3270fbe486f2"
+    },
+    "viewer-palette-fest.r201.codex-replay.py": {
+      "bytes": 2221,
+      "sha256": "1ef63b5a8fde762118a70a8c1670d13b9e533c2124db2722bd45d790686b3890"
+    },
+    "viewer-palette-fest.r201.codex-replay.json": {
+      "bytes": 370,
+      "sha256": "fc1ae49a4432e87279b4741d7554e581daf3652e8177d05330d2b217bdc3b2fe"
+    }
+  }
+}

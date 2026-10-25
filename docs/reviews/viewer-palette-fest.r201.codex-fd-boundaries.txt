@@ -1,0 +1,7 @@
+test_disappeared_path_waits_for_the_next_glob (test_fd_boundaries.OpenedFile.test_disappeared_path_waits_for_the_next_glob) ... ok
+test_rotation_after_open_before_fstat_keeps_the_old_descriptor (test_fd_boundaries.OpenedFile.test_rotation_after_open_before_fstat_keeps_the_old_descriptor) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK
