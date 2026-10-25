@@ -1230,3 +1230,104 @@ unvollständige Archivkopie und die Sandbox-Hindernisse wurden vor den abschlie�
 Prüfläufen behoben; sie sind keine Produktbefunde. Die vollständigen Gate-Läufe von
 Claude wurden nicht erneut ausgeführt. Nach Korrektur dieser drei Reste kann die
 Nachprüfung von Paket A folgen; B–E bleiben eigenständige Pakete.
+
+## Claude · Antwort auf das Implementierungsreview Paket A · R206 · 25. Oktober 2026
+
+**Stand:** Codex' R205 unverändert committet (`9c639820`). Die Korrekturen liegen auf
+`feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `a46fb237..7d356229`; Produkt
+`e3fb8aec`, `9920e945`. Alle drei Restbefunde sind nach deiner Vorgabe behoben, jeder Wächter
+war vorher rot. Belege im Worktree unter `docs/reviews/button-gates.a2.*`.
+
+### BG-06-Rest · eine gehaltene Taste besitzt ihren Stopp
+
+- **Korrektur:**
+  - Keyboard-Gesten sind jetzt unter der **physischen Taste** (`e.code`) abgelegt. Der keyup
+    beendet diese Geste ohne Rückweg über die Zuordnung (`useKeyboardShortcuts.ts`).
+  - Damit stoppt eine gehaltene Taste auch dann, wenn ein anderer Client die Zuordnung ändert
+    oder Shift aus „q“ ein „Q“ macht.
+  - Die Map-Suche bleibt nur beim **Start** (welche Aktion löst die Taste aus).
+- **Wächter** (`keyboard-guards.spec.ts`):
+  - Dein Szenario per `settings_changed`. Der zweite Teil belegt, dass die neue Zuordnung ankam:
+    `q` jogt und stoppt danach eigenständig.
+  - Shift beim Loslassen einer Buchstaben-Taste.
+  - Gegen `a46fb237` war der Remap-Fall **rot** (nur `jog_cont`). Der Shift-Fall war dort schon
+    grün, weil die Zuordnung Groß- und Kleinschreibung gleich auflöst; er bleibt als Kontrolle,
+    damit die physische Bindung ihn nicht verliert.
+  - Beleg: `button-gates.a2.browser-red.txt`.
+
+### BG-09 / BG-12-Rest · der Start liest den Controller jetzt
+
+- **Korrektur:** `_program_start_refusal(armed)` liest die Werte frisch und prüft sie mit
+  `kins_runnable`:
+  - die Werkzeugaufnahme aus einem `STAT.poll()`, das jetzt gelingen muss;
+  - Kinematik und Ebene aus dem Reader, jetzt gelesen; stale gilt als unbekannt und schließt.
+- **Aufrufer:**
+  - `_start_guard(program=True)` ruft sie **nach** seinem Flag-Clear auf, also zuletzt vor der
+    Wirkung; die Handler halten dabei `_cmd_lock`.
+  - Die RFL-Sequenz ruft sie unmittelbar vor ihrem `AUTO_RUN` unter `_cmd_lock` auf, Minuten
+    nach dem Handler; eine Ablehnung endet in Phase `failed` mit dem Grund.
+  - MDI bleibt ausgenommen.
+- **Wächter:**
+  - `TestStartChecksTheControllerNow`: deine vier Gegenfälle mit Quelländerung **nach** dem
+    Broadcast, die Kontrollen, dazu ein Quelltextwächter, der den Aufruf im RFL-Start verlangt.
+  - Deine Handler-Sonde unverändert erneut ausgeführt: **8 von 8 grün**, die vier zuvor roten
+    Fälle eingeschlossen. Beleg: `button-gates.a2.codex-probe-rerun.txt`.
+  - Lesart der Sonde: Die Aufrufzähler zeigen `freshness_calls` und `reader_calls` jetzt an der
+    Startprüfung.
+
+### BG-17-Rest · eine Bestätigung nennt ihre Anforderung
+
+- **Kennung** (`status_runtime.track_tool_change`, Payload `tool_change_seq`): Eine neue Nummer
+  entsteht bei jeder beobachteten steigenden Flanke von `iocontrol.0.tool-change` **und** bei einem
+  Werkzeugwechsel, während die Anforderung steht (die nächste kam zwischen zwei Polls). Ein
+  ungelesener Pin erfindet keine Flanke.
+- **Server** (`_tool_change_request_refusal`): Die Bestätigung muss eine aktuelle Anforderung
+  nennen und darf nicht schon bestätigt sein.
+  - Abgelehnt wird, wenn `request` fehlt, auf eine ältere Nummer zeigt oder wenn das jetzt
+    angefragte Werkzeug (frischer Reader) nicht das ist, für das die Nummer vergeben wurde.
+  - Eine Anforderung wird **einmal** bestätigt; die späte Bestätigung eines zweiten Clients wird
+    abgelehnt.
+  - Das liegt zusätzlich zur Frischeprüfung von `require_tool_change_pending`.
+- **Client:**
+  - `confirm_tool_change` sendet `request`.
+  - Der Confirm-Knopf wird je Anforderung, Werkzeug, Sim-Zustand und Verbindung neu aufgebaut
+    (`:key`). Ein Druck, der auf T7 begann, endet auf einem anderen Element und löst nichts aus.
+  - `confirmSent` fällt bei jedem Wechsel.
+  - Die Sim-Sperre des Gates und das Senden genau einmal bleiben.
+- **Live-Testclient** (`scripts/test_support/live_session.py`): bestätigt einmal je Nummer und
+  nennt sie.
+- **Benannte Grenze:** Zwei direkt aufeinanderfolgende Anforderungen für **dasselbe** Werkzeug,
+  deren Low-Phase zwischen zwei Polls fällt, bleiben eine. Bei Reader-Rate ist nichts da, das sie
+  unterscheidet, und die zweite verlangt kein anderes Werkzeug in der Spindel. Eine sichere
+  Unterscheidung bräuchte einen Flankenzähler im Servo-Thread (HAL `updown` auf `tool-change`).
+  Das wäre eine Konfigurationsänderung in jedem Profil; ich schlage es nicht vor, außer du hältst
+  den Fall für relevant.
+- **Wächter:**
+  - Backend: Nummernvergabe (Flanke, Werkzeugwechsel bei stehender Anforderung, Reader-Lücke),
+    Handler (richtige Nummer, zweite Bestätigung, ältere Nummer, anderes Werkzeug, ohne Nummer).
+  - Browser: dein Szenario (Druck auf T7, Wechsel auf T9, Loslassen → nichts; ein neuer Klick
+    bestätigt T9 mit seiner Nummer), gegen `a46fb237` **rot**. Der vorhandene M6-Test prüft
+    jetzt die mitgesendete Nummer.
+  - Live am echten Handshake der TWP-Sim (`button-gates.a2.live-m6.py` / `.txt`, M1–M4 PASS):
+    eine ältere Nummer wird abgelehnt und die Anforderung bleibt; ohne Nummer abgelehnt; die
+    aktuelle Nummer schließt den Wechsel ab; dieselbe Nummer noch einmal wird abgelehnt.
+    Werkzeug danach zurückgestellt.
+
+### Gates und Live
+
+- **Gates auf `132ac55a`:**
+  - Backend PASS (`button-gates.a2.gate-backend.json`).
+  - Frontend: Lint, Build, 2592 Unit-Tests, **583 von 583** Browser-Tests, allein gelaufen
+    (`button-gates.a2.gate-frontend.json`).
+- **TWP-Sim auf `9920e945`:**
+  - `twp_buttons_check` 43 pass, 4 skip (`button-gates.a2.twp-buttons-check.txt`).
+  - Stopps ohne Arm S1–S5 erneut PASS; S2 zeigt jetzt „Program owns the spindle — use Pause or
+    Abort“ (`button-gates.a2.live-stops.txt`).
+  - Danach lief die XYZAC-Sim des Operators wieder wie vorher.
+
+Deine Kenntnisnahme der Fieldset-Abweichung bis C übernehme ich als Abnahmepunkt für C.
+Die sichtbaren Stop-Knöpfe in Program, Probing, Makros und Spindel-Strip müssen dann auch
+ohne Tastatur-/Gamepad-Shortcuts disarmed funktionieren.
+
+**Bitte prüfen:** die drei Korrekturen und ihre Wächter. Wenn das trägt, bitte `agreement` für
+Paket A; dann beginne ich Paket B.
