@@ -9425,3 +9425,47 @@ loaded in every session. Its long entries moved verbatim to
 details, the machine model, the preview, scrub and run, the collision check;
 every former line is in the new set, checked line by line); `CLAUDE.md` keeps
 the architecture, the rules in short and the mandatory checklists (80 KB).
+
+## 2026-10-25 — Button gates: arm authorizes effects, not navigation; one action contract (review button-gates, Codex R202–R204, operator)
+
+The operator asked which control may act in which state: disarm blocked
+navigation, Load was enabled unhomed and then failed, mode select and the jog
+step were locked with the machine off, offsets locked unhomed. Codex reviewed
+`b2ded6d1` (LinuxCNC v2.9.4 source, an archive copy, its own mock); the plan
+was agreed in three rounds. Record: `docs/reviews/button-gates.review.md`.
+
+**Principles.** An enabled control means the action is admissible in the
+last confirmed state, never a promise; the server re-checks right before the
+effect. Viewing, reading, drafting and local preselection need no arm; arm
+authorizes new machine effects. Stops (Abort, jog stop, pause of a running
+sequence, spindle stop at idle) need no arm, no homing, no sim exception, no
+busy latch. A gate belongs to the action with its target (MANUAL is not AUTO;
+Step from idle is a start). Button, shortcut and gamepad share one action
+map. A started gesture owns its end. Unknown is never idle, homed or "no
+compensation". No hidden mode switch to unlock a view.
+
+**Operator decisions.** Q1: spindle before homing per INI switch
+(`WEBUI_SPINDLE_BEFORE_HOMING`, default off; ON + idle + MANUAL). Q2: display
+settings (`display`, `viewer`, `panels`, `camera`) may be changed without arm;
+the other sections need the writer's arm (no idle). Joint jog before homing:
+yes, as the last separate package.
+
+**Agreed changes (BG-01…BG-19)**, in packages: A — the release stop follows
+the started jog (BG-06, reproduced), Step from idle takes the `run` rule
+(BG-09), stale/unknown state closes (BG-12), M6 confirm closed in sim and
+bound to a fresh request (BG-17), stops without arm (BG-08, BG-18). B — HTTP
+writers bound to a per-connection `conn_key` and checked at the commit under
+the start-claim lock (`sourceWrite`, `toolTableWrite`, E-Stop allowed), the
+permissive version fallback removed (BG-15), `settingsWrite(section)` with
+draft ≠ active. C — the outer `armed` fieldset goes (BG-01), folder browsing
+is not loading (BG-02), preselections free (BG-05), reasons for observers
+(BG-16). D — Load without the AUTO step (BG-03), mode gate per target with
+COORD capability from `STAT.kinematics_type` (BG-04), one action map
+(BG-10), recovery order in the backend table (BG-11), G30 read gate
+(BG-13), Q1. E — joint jog before homing (BG-07).
+
+**Not built:** a grace window for a settings beacon after the connection
+ended — a protected save the server can no longer admit stays unconfirmed;
+closing the page before the save is confirmed may lose the last change. No
+offset write path around MDI (LinuxCNC requires homing for MDI; reading and
+drafting offsets is free). No global `NO_FORCE_HOMING`.
