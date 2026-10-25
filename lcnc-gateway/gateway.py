@@ -3669,6 +3669,26 @@ def require_no_rotary_tilt():
 _tool_change_confirmed: Optional[int] = None
 
 
+def _tool_change_request_refusal(request) -> Optional[str]:
+    """Does this confirmation answer the CURRENT request? None = yes (and it
+    is recorded as confirmed), else the refusal (button gates BG-17, Codex
+    R205): a press begun on one request must not confirm the one that
+    replaced it — the number the dialog showed must be the current one, and
+    the tool asked for now must be the one that number was given for (the
+    next request raised between two polls) — and a request is confirmed
+    once: a second client's late confirm is refused."""
+    global _tool_change_confirmed
+    current = _status_runtime.tool_change_seq
+    prep = _reader_fresh_get("tool_prep_number")
+    if (not isinstance(request, int) or isinstance(request, bool) or request != current
+            or prep is None or int(round(float(prep))) != _status_runtime.tool_change_tool):
+        return "Tool change request changed — confirm again"
+    if request == _tool_change_confirmed:
+        return "Tool change already confirmed"
+    _tool_change_confirmed = request
+    return None
+
+
 def require_tool_change_pending():
     """Refuse a manual-toolchange confirmation when iocontrol is not asking for
     one.
@@ -5559,20 +5579,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if cmd == "confirm_tool_change":
             require_armed(armed)
             require_tool_change_pending()
-            # The confirmation names the request it answers (button gates
-            # BG-17, Codex R205): a press begun on one request must not
-            # confirm the one that replaced it, and a request is confirmed
-            # once — a second client's late confirm is refused.
-            global _tool_change_confirmed
-            request = msg.get("request")
-            current = _status_runtime.tool_change_seq
-            prep = _reader_fresh_get("tool_prep_number")
-            if (not isinstance(request, int) or isinstance(request, bool) or request != current
-                    or prep is None or int(prep) != _status_runtime.tool_change_tool):
-                return {"ok": False, "error": "Tool change request changed — confirm again"}
-            if request == _tool_change_confirmed:
-                return {"ok": False, "error": "Tool change already confirmed"}
-            _tool_change_confirmed = request
+            refused = _tool_change_request_refusal(msg.get("request"))
+            if refused:
+                return {"ok": False, "error": refused}
             _loop = asyncio.get_event_loop()
             await _loop.run_in_executor(None, _hal_send, {"tool_changed": True})
             return {"ok": True}
