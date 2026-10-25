@@ -33,8 +33,18 @@ def _decode(message) -> dict:
     # TestClient.receive() yields the raw ASGI message dict.
     if message.get("bytes") is not None:
         return msgspec.msgpack.decode(message["bytes"])
+    if message.get("text") is None:
+        # websocket.close: say why instead of a KeyError (issue #43)
+        raise AssertionError(f"server closed the socket: code={message.get('code')} "
+                             f"reason={message.get('reason')!r}")
     import json
     return json.loads(message["text"])
+
+
+class TestDecodeNamesAClose(unittest.TestCase):
+    def test_a_close_fails_with_its_code_and_reason(self):
+        with self.assertRaisesRegex(AssertionError, "code=1000 reason='Heartbeat timeout'"):
+            _decode({"type": "websocket.close", "code": 1000, "reason": "Heartbeat timeout"})
 
 
 class TestStatusFanoutDelivers(unittest.TestCase):
@@ -63,19 +73,61 @@ class TestStatusFanoutDelivers(unittest.TestCase):
 class TestHeartbeatTimingNamesItsHeartbeat(unittest.TestCase):
     """Codex R183 VP182-02: the status that carries a heartbeat's timing names
     that heartbeat by the client's own `seq`, so a late answer can never be
-    paired with a later heartbeat; a heartbeat without one gets none."""
+    paired with a later heartbeat; a heartbeat without one gets none.
+
+    A timing rides only the connected status path, so the fake is pinned
+    connected (as in test_ws_lifecycle / test_ws_command_worker): unpinned,
+    the connection followed the HOST — the boot connect and the poller's PID
+    check probe the real linuxcncsvr and its NML (`_nml_connectable` runs the
+    real binding in a subprocess) — and the tests skipped, passed, or, when a
+    reconnect held the poller past `_HB_STALL_SEC` while a beat waited,
+    the gateway evicted the silent client (close 1000 "Heartbeat timeout",
+    the KeyError of issue #43)."""
+
+    def setUp(self):
+        if not getattr(gateway.linuxcnc, "__lcnc_fake__", False):
+            self.skipTest("needs the fake binding (run under pytest)")
+        self.addCleanup(setattr, gateway, "_get_lcnc_pid", gateway._get_lcnc_pid)
+        self.addCleanup(setattr, gateway, "_nml_connectable", gateway._nml_connectable)
+        gateway._get_lcnc_pid = lambda: 424242
+        gateway._nml_connectable = lambda: True
+        self.assertTrue(gateway.try_connect_lcnc(), "fake linuxcnc must connect")
+
+    def _connected(self, ws):
+        """Pump numbered heartbeats until a full status answers the last one:
+        the connect handshake is over and no heartbeat is outstanding, so a
+        beat's wait below measures only its own answer."""
+        deadline = time.monotonic() + 15.0
+        pump, seen = 1000, []
+        while time.monotonic() < deadline:
+            ws.send_json({"cmd": "heartbeat", "seq": pump})
+            asked = time.monotonic()
+            while time.monotonic() - asked < 1.0:
+                msg = _decode(ws.receive())
+                seen.append(msg.get("type", "?"))
+                if (msg.get("timing") or {}).get("hb_seq") == pump:
+                    return
+            pump += 1
+        self.fail(f"no full status answered a heartbeat within 15 s; saw {sorted(set(seen))}")
 
     def _timings(self, beats, bounds=None):
+        # Each beat must be answered before the gateway would evict a client
+        # that sends nothing meanwhile — a failure names the beat, never a close.
+        wait = gateway._HB_STALL_SEC - 0.5
         out = []
-        deadline = time.monotonic() + 15.0
         with TestClient(gateway.app) as client:
             with client.websocket_connect("/ws") as ws:
                 ws.send_json({"cmd": "hello", "session": "seq", "resume_armed": False})
+                self._connected(ws)
                 for beat in beats:
                     sent = time.monotonic()
                     ws.send_json(beat)
-                    while time.monotonic() < deadline:
+                    seen = []
+                    while True:
+                        self.assertLess(time.monotonic() - sent, wait,
+                                        f"no timing for {beat} within {wait} s; saw {seen}")
                         msg = _decode(ws.receive())
+                        seen.append(msg.get("type", "?"))
                         if msg.get("type") in ("status", "status_delta") and msg.get("timing"):
                             out.append(msg["timing"])
                             if bounds is not None:
@@ -86,8 +138,6 @@ class TestHeartbeatTimingNamesItsHeartbeat(unittest.TestCase):
     def test_the_timing_echoes_the_heartbeat_number(self):
         t = self._timings([{"cmd": "heartbeat", "seq": 7}, {"cmd": "heartbeat"}, {"cmd": "heartbeat", "seq": True},
                            {"cmd": "heartbeat", "seq": 9}])
-        if not t:
-            self.skipTest("no full status under the fake binding (status_error path)")
         self.assertEqual([x.get("hb_seq") for x in t], [7, None, None, 9])
         self.assertTrue(all("server_ms" in x for x in t))
 
@@ -98,8 +148,6 @@ class TestHeartbeatTimingNamesItsHeartbeat(unittest.TestCase):
         its receipt; `g_pid` names the gateway."""
         bounds = []
         t = self._timings([{"cmd": "heartbeat", "seq": 3}, {"cmd": "heartbeat", "seq": 4}], bounds)
-        if not t:
-            self.skipTest("no full status under the fake binding (status_error path)")
         for x, (sent, got) in zip(t, bounds):
             self.assertIsInstance(x["g_mono_ms"], float)
             self.assertLessEqual(sent * 1000 - 0.001, x["g_mono_ms"])
