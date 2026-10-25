@@ -1,0 +1,30 @@
+=== M6 confirmation bound to its request (tool 0 -> 2) ===
+  PASS  M1 a confirmation naming an earlier request is refused, the request stays
+  PASS  M4 a confirmation without its request is refused
+  PASS  M2 the confirmation naming the current request completes the change
+  PASS  M3 the same confirmation again is refused, nothing pending
+restore: True tool 0
+{
+ "results": [
+  [
+   "M1 a confirmation naming an earlier request is refused, the request stays",
+   "PASS",
+   "pending=True seq=1 reply={'ok': False, 'error': 'confirm_tool_change refused: Tool change request changed \u2014 confirm again'} tool=0"
+  ],
+  [
+   "M4 a confirmation without its request is refused",
+   "PASS",
+   "reply={'ok': False, 'error': 'confirm_tool_change refused: Tool change request changed \u2014 confirm again'}"
+  ],
+  [
+   "M2 the confirmation naming the current request completes the change",
+   "PASS",
+   "reply={'type': 'reply', 'cmd': 'confirm_tool_change', 'ok': True} tool=2 interp=1"
+  ],
+  [
+   "M3 the same confirmation again is refused, nothing pending",
+   "PASS",
+   "reply={'ok': False, 'error': 'confirm_tool_change refused: No tool change pending'} requested=False"
+  ]
+ ]
+}
