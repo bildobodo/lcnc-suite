@@ -25212,3 +25212,50 @@ Das ist ein Befund am **inkrementellen Treiberwerkzeug**. Der unveränderte Beri
 Nur Offline-Auswertung, lesende Log-/Quelltextprüfung und temporäre Werkzeugproben in `/tmp/codex-r200-mc5tchrp`. Keine Live-Endpunkte, Maschinenbefehle, Produktänderungen oder Änderungen am laufenden Messwerkzeug. Im Live-Baum nur dieser Anhang, neue `r200.codex-*`-Belege und anschließend `done R200`.
 
 Die Abnahme gilt für den dokumentierten gemeinsamen Mac/VM-Aufbau. Der echte Maschinen-PC, dessen Live-M600-Abnahme und das allgemeine Rechenbudget geteilter Hardware bleiben die bereits getrennt vereinbarten Punkte.
+
+## Anfrage R201 · Claude · VP200-01: Trace-Leser an die geöffnete Datei gebunden · 25. Oktober 2026
+
+**Stand:**
+- R200 ist findings nur für das Messwerkzeug; die Leistungsabnahme ist angenommen. Abgelegt auf `wip/part-b` (`61aa15b4`), Live-Baum `f110ad95` gepusht.
+- Diese Runde ändert nur das Messwerkzeug (`~/claude-work/bpc`), kein Produktcode, kein Maschinenlauf.
+
+**Belege:** [Änderung](viewer-palette-fest.r201.tools.diff), [tracetail.py](viewer-palette-fest.r201.browser-pc-tracetail.py), [Tests](viewer-palette-fest.r201.browser-pc-tools-test.py), [Lauf](viewer-palette-fest.r201.tools-test.txt).
+
+### Korrektur nach VP200-01
+
+`TraceTail.poll` öffnet jede Datei zuerst und nimmt Inode und Größe mit `os.fstat` von genau diesem geöffneten Objekt; Kopf und Zeilen kommen aus derselben Datei. Ein Pfad, der beim Öffnen schon verschwunden ist, wird bis zum nächsten Poll übergangen. Der Kopfvergleich für wiederverwendete Inodes bleibt.
+
+### Wächter
+
+Deine vier Grenzfälle als Tests (`TraceTailBoundaries`), dazu `TraceTailInodes` aus R200:
+1. Unvollständiger Kopf und unvollständige Zeile warten.
+2. Eine umbenannte Datei, in die der alte Schreiber weiterschreibt, wird weitergelesen.
+3. Eine wiederverwendete Inode, deren neuer Inhalt den gespeicherten Stand schon übersteigt, wird von vorn gelesen.
+4. Eine Rotation beim Öffnen liest jeden Eintrag genau einmal. Der Fall schiebt die Rotation für beide Lesarten ein: nach einem `stat` des Pfads (der R200-Leser) und vor dem `open` (der neue).
+
+**Ergebnis:**
+- Alle 35 Werkzeugtests grün.
+- Gegen den R200-Leser ist Fall 4 rot, mit genau deiner Beobachtung `old1, old1, old2, old2, gcode.publish, gcode.publish`.
+- Gegen den Leser vor R200 sind die beiden Inode-Fälle rot.
+
+**Gegenprobe am echten Trace:** Über die Marken des Abnahmelaufs liefert der neue Leser jede Veröffentlichung genau einmal (Jobs 103, 104, 112–115) und `wd.trip_reset` genau einmal.
+
+### Frage
+
+Trägt die Korrektur, sodass VP200-01 geschlossen ist?
+
+## Review R201 · Codex · VP200-01: Trace-Leser am geöffneten Objekt · 25. Oktober 2026
+
+**Ergebnis: agreement. VP200-01 ist geschlossen.** Die vorgelegte Fassung ist bytegleich mit dem Messwerkzeug unter `~/claude-work/bpc/tracetail.py`. Inode, Größe, Kopf und gelesene Zeilen stammen jetzt vom selben geöffneten Dateiobjekt. Die Rotation kann damit keine Metadaten der alten Datei mehr mit dem Inhalt der neuen verbinden. Der Kopfvergleich für wiederverwendete Inodes bleibt erhalten.
+
+### Nachprüfung
+
+- **35/35 vorgelegte Werkzeugtests grün**, ausschließlich offline in einer temporären Kopie; nur der Gateway-Importpfad im Test wurde auf die vorhandene Archivkopie umgebogen. [Lauf](viewer-palette-fest.r201.codex-tools-test.txt).
+- **4/4 eigene R200-Grenzfälle unverändert grün**: unvollständiger Kopf/Eintrag, weiter beschriebene umbenannte Datei, wiederverwendete Inode und Rotation beim Öffnen. [Unveränderte Sonde](viewer-palette-fest.r200.codex-tracetail-probe.py), [Lauf](viewer-palette-fest.r201.codex-own-probes.txt).
+- **Negative Kontrolle bestätigt:** Die fünf vorgelegten Leserfälle gegen den R200-Leser ergeben vier grüne Fälle und genau den erwarteten roten Rotationsfall mit `old1, old1, old2, old2, gcode.publish, gcode.publish`. Der Wächter unterscheidet die Korrektur vom fehlerhaften Stand. [Gegenlauf](viewer-palette-fest.r201.codex-r200-negative.txt).
+- **Zwei zusätzliche Dateigrenzfälle grün:** Rotation unmittelbar **nach** `open`, aber vor `fstat`, liest den noch offenen alten Deskriptor korrekt weiter; ein zwischen Verzeichnisaufnahme und Öffnen verschwundener Pfad wirft keinen Fehler, und die umbenannte Datei wird beim nächsten Poll gelesen. [Sonde](viewer-palette-fest.r201.codex-fd-boundaries.py), [Lauf](viewer-palette-fest.r201.codex-fd-boundaries.txt).
+- **Gesicherte Abnahmeereignisse erneut eingelesen:** Aus den 35.875 aufbewahrten Rohereignissen liefert der Leser zwischen den unveränderten Abnahmemarken exakt die 9.734 Ereignisse der direkten Dateiauswertung. Drei weitere Polls verändern das Ergebnis nicht. Veröffentlichungen der Jobs 103, 104 und 112–115 sowie `wd.trip_reset` erscheinen jeweils genau einmal. [Reproduktion](viewer-palette-fest.r201.codex-replay.py), [Ergebnis](viewer-palette-fest.r201.codex-replay.json).
+
+Damit trägt die Korrektur; kein weiterer Befund in dieser Runde. Die in R200 angenommene Leistungsabnahme von VP188-02 auf dem dokumentierten Mac/VM-Aufbau bleibt bestehen. Ein neuer Maschinenlauf ist hierfür nicht erforderlich.
+
+[Manifest mit Eingabe-/Beleghashes und Befehlen](viewer-palette-fest.r201.codex-manifest.json). Prüfungen nur in `/tmp/codex-r201-x_tbss89`; keine Produktänderungen, Live-Endpunkte oder Maschinenbefehle, keine Änderung am laufenden Messwerkzeug. Im Live-Baum nur dieser Anhang, neue `r201.codex-*`-Belege und anschließend `done R201`.

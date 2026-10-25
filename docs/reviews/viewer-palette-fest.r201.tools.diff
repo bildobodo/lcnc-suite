@@ -1,0 +1,122 @@
+--- bak-tracetail.py.r201	2026-10-25 18:19:12.586097609 +0100
++++ tracetail.py	2026-10-25 18:19:13.758104198 +0100
+@@ -27,12 +27,15 @@
+     def poll(self):
+         for path in glob.glob(os.path.join(self.logs, "trace.ndjson*")):
+             try:
+-                st = os.stat(path)
++                f = open(path, "rb")             # rotated away meanwhile: next poll
+             except OSError:
+                 continue
+-            if st.st_size < HEAD:
+-                continue                         # no whole record yet
+-            with open(path, "rb") as f:
++            with f:
++                # inode, size and head of THIS open file (Codex R200 VP200-01:
++                # a stat of the path and a later open could meet two files)
++                st = os.fstat(f.fileno())
++                if st.st_size < HEAD:
++                    continue                     # no whole record yet
+                 head = f.read(HEAD)
+                 known = self.off.get(st.st_ino)
+                 start = known[1] if known and known[0] == head else 0
+--- bak-test_bpc_tools.py.r201	2026-10-25 18:19:12.586097609 +0100
++++ test_bpc_tools.py	2026-10-25 18:19:12.594097654 +0100
+@@ -583,3 +583,97 @@
+             with open(path, "a") as f:           # the same file grows: no record twice
+                 f.write(rec(t0 + 101, "next"))
+             self.assertEqual([r["tag"] for r in tail.since(t0 + 100)], ["gcode.publish", "next"])
++
++
++class TraceTailBoundaries(unittest.TestCase):
++    """Codex R200's boundary cases (VP200-01): a partial head or line waits,
++    a renamed file read on, a reused inode already past the saved offset,
++    and a rotation while the reader opens the path."""
++
++    @staticmethod
++    def row(t, tag):
++        return (json.dumps({"t_wall_ns": t, "tag": tag, "pad": "x" * 80}, separators=(",", ":")) + "\n").encode()
++
++    def test_a_partial_head_and_line_wait(self):
++        from tracetail import TraceTail
++        with tempfile.TemporaryDirectory() as d:
++            p = os.path.join(d, "trace.ndjson")
++            r = self.row(100, "one")
++            with open(p, "wb") as f:
++                f.write(r[:20])
++            tail = TraceTail(0, logs=d)
++            self.assertEqual(tail.since(0), [])
++            with open(p, "ab") as f:
++                f.write(r[20:60])
++            self.assertEqual(tail.since(0), [])
++            with open(p, "ab") as f:
++                f.write(r[60:])
++            self.assertEqual([x["tag"] for x in tail.since(0)], ["one"])
++            self.assertEqual(len(tail.since(0)), 1)
++
++    def test_a_renamed_file_is_read_on(self):
++        from tracetail import TraceTail
++        with tempfile.TemporaryDirectory() as d:
++            p, q = os.path.join(d, "trace.ndjson"), os.path.join(d, "trace.ndjson.1")
++            with open(p, "wb") as f:
++                f.write(self.row(100, "old"))
++            tail = TraceTail(0, logs=d)
++            self.assertEqual(len(tail.since(0)), 1)
++            os.rename(p, q)
++            with open(p, "wb") as f:
++                f.write(self.row(101, "new"))
++            with open(q, "ab") as f:
++                f.write(self.row(102, "late old writer"))
++            self.assertEqual([x["tag"] for x in tail.since(0)], ["old", "new", "late old writer"])
++            self.assertEqual(len(tail.since(0)), 3)
++
++    def test_a_reused_inode_already_past_the_saved_offset(self):
++        from tracetail import TraceTail
++        with tempfile.TemporaryDirectory() as d:
++            p = os.path.join(d, "trace.ndjson")
++            with open(p, "wb") as f:
++                f.write(self.row(100, "old"))
++            tail = TraceTail(0, logs=d)
++            tail.since(0)
++            ino = os.stat(p).st_ino
++            with open(p, "wb") as f:
++                f.write(self.row(101, "new1") + self.row(102, "new2"))
++            self.assertEqual(os.stat(p).st_ino, ino)
++            self.assertEqual([x["tag"] for x in tail.since(0)], ["old", "new1", "new2"])
++
++    def test_a_rotation_while_the_path_is_opened_reads_each_record_once(self):
++        import builtins
++        from unittest import mock
++        import tracetail
++        with tempfile.TemporaryDirectory() as d:
++            p, q = os.path.join(d, "trace.ndjson"), os.path.join(d, "trace.ndjson.1")
++            with open(p, "wb") as f:
++                f.write(self.row(100, "old1") + self.row(101, "old2"))
++            tail = tracetail.TraceTail(0, logs=d)
++            tail.since(0)
++            rotated = False
++
++            def rotate():
++                nonlocal rotated
++                rotated = True
++                os.rename(p, q)
++                with real_open(p, "wb") as f:
++                    f.write(self.row(102, "gcode.publish"))
++
++            real_stat, real_open = os.stat, builtins.open
++
++            def stat_then_rotate(path, *a, **k):   # the race for a reader that stats the path
++                s = real_stat(path, *a, **k)
++                if path == p and not rotated:
++                    rotate()
++                return s
++
++            def rotate_then_open(path, *a, **k):   # the race for a reader that opens first
++                if path == p and not rotated:
++                    rotate()
++                return real_open(path, *a, **k)
++            with mock.patch("tracetail.os.stat", side_effect=stat_then_rotate), \
++                    mock.patch("tracetail.open", side_effect=rotate_then_open, create=True):
++                tail.poll()
++            self.assertTrue(rotated)
++            self.assertEqual([x["tag"] for x in tail.since(0)], ["old1", "old2", "gcode.publish"])

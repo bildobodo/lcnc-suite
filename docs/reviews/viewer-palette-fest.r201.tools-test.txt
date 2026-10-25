@@ -1,0 +1,11 @@
+== the fixed tracetail.py: every tool test
+35 passed in 0.59s
+== the reader tests against the R200 reader
+E           AssertionError: Lists differ: ['old1', 'old1', 'old2', 'old2', 'gcode.publish', 'gcode.publish'] != ['old1', 'old2', 'gcode.publish']
+FAILED test_bpc_tools.py::TraceTailBoundaries::test_a_rotation_while_the_path_is_opened_reads_each_record_once
+1 failed, 4 passed, 30 deselected in 0.09s
+== the reader tests against the reader before R200
+FAILED test_bpc_tools.py::TraceTailInodes::test_a_reused_inode_with_new_content_is_read_from_the_start
+FAILED test_bpc_tools.py::TraceTailBoundaries::test_a_reused_inode_already_past_the_saved_offset
+2 failed, 3 passed, 30 deselected in 0.10s
+restored the fixed reader
