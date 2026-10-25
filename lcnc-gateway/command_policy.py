@@ -42,7 +42,10 @@ class MachineState:
     is_idle: bool
     is_running: bool
     is_paused: bool
-    eoffset_enabled: bool
+    #: Surface compensation's Z eoffset is on. None = UNKNOWN (the HAL reader
+    #: is stale, or the pin unread on a machine with a Z axis): the eoffset
+    #: gates refuse — unknown is never "no compensation" (button gates BG-12).
+    eoffset_enabled: Optional[bool]
     #: Every configured rotary axis parked at zero (status_runtime.rotary_at_zero).
     #: Defaults to False so a caller that forgets to supply it gets the CLOSED
     #: gate, not the open one — the machine is built in exactly one place
@@ -100,6 +103,13 @@ class MachineState:
     #: (Codex R25 OP-I02: an idle interpreter is no standstill, a manual jog
     #: keeps INTERP_IDLE). Closed default like every field above.
     motion_still: Optional[bool] = None
+    #: The interpreter state was READ (STAT.interp_state not None). False: no
+    #: gate that needs idle / running / paused opens — an unread state is not
+    #: idle (button gates BG-12). Closed default like every field above.
+    interp_known: bool = False
+    #: iocontrol asks for a manual tool change (HAL tool-change, fresh reader
+    #: only). None = unknown — the confirmation stays closed (BG-12 / BG-17).
+    tool_change_pending: Optional[bool] = None
 
 
 #: Below this |current_vel| (machine units per second) the machine stands —
@@ -142,17 +152,26 @@ NOT_ARMED = "Not armed — press Arm"
 _R_ARMED = (lambda s: s.armed, NOT_ARMED)
 _R_NOT_ESTOP = (lambda s: not s.is_estop, "E-Stop active — reset E-Stop first")
 _R_ENABLED = (lambda s: s.is_enabled, "Machine off — press Power on")
+# An unread interpreter state is not idle (button gates BG-12): this rule
+# stands before every idle / running / paused rule, so a denial says the
+# state is unknown rather than "busy".
+STATE_UNKNOWN = "Machine state unknown — wait for status"
+_R_INTERP_KNOWN = (lambda s: s.interp_known, STATE_UNKNOWN)
 _R_IDLE = (lambda s: s.is_idle, "Machine busy — wait until it is idle")
 _R_HOMED = (lambda s: s.is_homed, "Not homed — press Home All")
-_R_NO_EOFFSET = (lambda s: not s.eoffset_enabled,
+_R_EOFFSET_KNOWN = (lambda s: s.eoffset_enabled is not None,
+                    "Surface compensation state unknown — HAL reader stale")
+_R_NO_EOFFSET = (lambda s: s.eoffset_enabled is False,
                  "Surface compensation on — switch it off first")
 _R_ROTARY_ZERO = (lambda s: s.rotary_at_zero,
                   "Rotary not at 0 — surface maps are 3-axis only")
 _R_RUNNING = (lambda s: s.is_running, "No program running")
 _R_NOT_PAUSED = (lambda s: not s.is_paused, "Program already paused")
 _R_PAUSED = (lambda s: s.is_paused, "No program paused")
-_R_READY_OR_PAUSED = (lambda s: (s.is_idle and s.is_homed) or s.is_paused,
-                      "Step needs a homed idle machine, or a pause")
+_R_TOOL_CHANGE_KNOWN = (lambda s: s.tool_change_pending is not None,
+                        "Tool change request unknown — HAL reader stale")
+_R_TOOL_CHANGE_PENDING = (lambda s: s.tool_change_pending is True,
+                          "No tool change pending")
 
 
 # ---------------------------------------------------------------------------
@@ -311,6 +330,20 @@ def kins_runnable(s: MachineState) -> Optional[str]:
     return None
 
 
+def step_refusal(s: MachineState) -> Optional[str]:
+    """May Step fire? None = yes, else the refusal. Out of a pause Step
+    continues the program; from idle it STARTS it — the `run` rule, the
+    kinematics included (button gates BG-09: the stranded Plane-kins state
+    refused Cycle Start and let Step through). Pure."""
+    if s.is_paused:
+        return None
+    if not s.is_idle:
+        return "Program running — pause first to step"
+    if not s.is_homed:
+        return _R_HOMED[1]
+    return kins_runnable(s)
+
+
 def machine_frame_required(s: MachineState) -> Optional[str]:
     """May a G53-moving routine run? None = yes, else the refusal.
 
@@ -438,6 +471,8 @@ def plane_frame_check(s: MachineState) -> Optional[str]:
 
 _R_RUNNABLE = (lambda s: kins_runnable(s) is None,
                "Plane kinematics without a plane — select Machine")
+_R_STEP = (lambda s: step_refusal(s) is None,
+           "Step needs a homed idle machine, or a pause")
 
 
 _R_TOUCHOFF_LINEAR = (
@@ -493,45 +528,59 @@ def twp_capture_check(s: MachineState) -> Optional[str]:
 
 
 _BASE = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
+# Every idle rule is preceded by "the state was read" (BG-12), every eoffset
+# rule by "the eoffset is known".
+_IDLE = (_R_INTERP_KNOWN, _R_IDLE)
+_NO_EOFFSET = (_R_EOFFSET_KNOWN, _R_NO_EOFFSET)
 
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
 GATE_REQUIREMENTS: Dict[str, tuple] = {
-    "idle":     _BASE + (_R_IDLE,),
-    "jog":      _BASE + (_R_IDLE, _R_HOMED),
+    "idle":     _BASE + _IDLE,
+    "jog":      _BASE + _IDLE + (_R_HOMED,),
     "override": _BASE,
-    "ready":    _BASE + (_R_IDLE, _R_HOMED),
+    "ready":    _BASE + _IDLE + (_R_HOMED,),
     # Program start (Cycle Start / run-from-line): `ready` plus the
     # kinematics-runnable rule above — a stranded Plane-kins state (post-M2)
     # must not start a program in the tilted frame (2026-09-03).
-    "run":      _BASE + (_R_IDLE, _R_HOMED, _R_RUNNABLE),
+    "run":      _BASE + _IDLE + (_R_HOMED, _R_RUNNABLE),
     # G53-moving routines (go-to Home/G30, tool change / toolsetter, probing
     # cycles): identity kinematics only — see machine_frame_required.
-    "machineFrame": _BASE + (_R_IDLE, _R_HOMED, _R_MACHINE_FRAME),
+    "machineFrame": _BASE + _IDLE + (_R_HOMED, _R_MACHINE_FRAME),
     # G30 Capture (operator P4): machineFrame AND the machine stands — the
     # current position is what gets taken over.
-    "g30Capture": _BASE + (_R_IDLE, _R_HOMED, _R_MACHINE_FRAME, _R_MOTION_KNOWN, _R_STILL),
+    "g30Capture": _BASE + _IDLE + (_R_HOMED, _R_MACHINE_FRAME, _R_MOTION_KNOWN, _R_STILL),
     # The → Zero button: Machine frame (subroutine) or Plane frame (retract
     # along the tool axis, then X0 Y0 in the plane); TCP refuses.
-    "goZero":   _BASE + (_R_IDLE, _R_HOMED, _R_GOZERO),
+    "goZero":   _BASE + _IDLE + (_R_HOMED, _R_GOZERO),
     # The Plane jog frame radio (set_kins_mode 2): TWP machine, plane
     # defined, head aligned — see plane_frame_check. Machine/TCP stay on
     # `ready` like the MDI remap they run.
-    "planeFrame": _BASE + (_R_IDLE, _R_HOMED) + _PLANE_FRAME_RULES,
-    "pause":    _BASE + (_R_RUNNING, _R_NOT_PAUSED),
-    "resume":   _BASE + (_R_PAUSED,),
-    "step":     _BASE + (_R_READY_OR_PAUSED,),
-    "abort":    _BASE,
-    "probe":    _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET),
-    "zero":     _BASE + (_R_IDLE, _R_NO_EOFFSET),
+    "planeFrame": _BASE + _IDLE + (_R_HOMED,) + _PLANE_FRAME_RULES,
+    # Stops need no arm (button gates BG-08: arm authorizes NEW machine
+    # effects; E-Stop was already `always`). Pause interrupts a running
+    # sequence — AUTO or MDI; resuming it is new motion and needs arm.
+    "pause":    (_R_INTERP_KNOWN, _R_RUNNING, _R_NOT_PAUSED),
+    "resume":   _BASE + (_R_INTERP_KNOWN, _R_PAUSED),
+    # Step out of a pause continues; from idle it is a START (BG-09).
+    "step":     _BASE + (_R_INTERP_KNOWN, _R_STEP),
+    "abort":    (),
+    # The spindle stop at idle (BG-18): no arm, no homing; while a program
+    # or an MDI runs or pauses the program owns the spindle — Pause / Abort.
+    "spindleStop": (_R_NOT_ESTOP, _R_ENABLED) + _IDLE,
+    # The manual tool-change confirmation (BG-17): it continues the real
+    # interpreter, so armed — and only for a FRESH pending request.
+    "toolChangeConfirm": (_R_ARMED, _R_TOOL_CHANGE_KNOWN, _R_TOOL_CHANGE_PENDING),
+    "probe":    _BASE + _IDLE + (_R_HOMED,) + _NO_EOFFSET,
+    "zero":     _BASE + _IDLE + _NO_EOFFSET,
     # Touch-off (G10 L20 / the Plane-mode remap route): `probe` plus the
     # kins-mode × fixture rule above. Two classes because the per-axis
     # controls differ: rotary letters are identity + G54 only.
-    "touchoff":       _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_LINEAR),
-    "touchoffRotary": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_TOUCHOFF_ROTARY),
+    "touchoff":       _BASE + _IDLE + (_R_HOMED,) + _NO_EOFFSET + (_R_TOUCHOFF_LINEAR,),
+    "touchoffRotary": _BASE + _IDLE + (_R_HOMED,) + _NO_EOFFSET + (_R_TOUCHOFF_ROTARY,),
     # One-button plane capture at the tool tip (o<twp_capture>): plane from
     # the live rotaries, origin at the tip, no-move orient. Defined through
     # twp_capture_check above.
-    "twpCapture": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET) + _TWP_CAPTURE_RULES,
+    "twpCapture": _BASE + _IDLE + (_R_HOMED,) + _NO_EOFFSET + _TWP_CAPTURE_RULES,
     # May the operator START surface-map work — probe a new map, or switch
     # compensation ON? `probe` plus "the tool is normal to the mapped surface
     # and the map's grid is aligned to the work". Deliberately NOT the gate on
@@ -540,12 +589,17 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     # class for the ON affordance and the scan button; the backend enforces it
     # handler-side (require_no_rotary_tilt) and inside surface_scan.ngc, which
     # also covers an operator typing the MDI by hand.
-    "surfaceComp": _BASE + (_R_IDLE, _R_HOMED, _R_NO_EOFFSET, _R_ROTARY_ZERO),
+    "surfaceComp": _BASE + _IDLE + (_R_HOMED,) + _NO_EOFFSET + (_R_ROTARY_ZERO,),
     "safety":   (_R_ARMED, _R_NOT_ESTOP),            # no `enabled` — Machine On/Off
-    "setup":    (_R_ARMED, _R_NOT_ESTOP, _R_IDLE),   # no `enabled` — admin/idle ops
+    "setup":    (_R_ARMED, _R_NOT_ESTOP) + _IDLE,    # no `enabled` — admin/idle ops
     "armed":    (_R_ARMED,),
     "always":   (),
 }
+
+#: Gates with no requirement at all — the only ones a command may pass
+#: before the gateway has read a status (BG-12): E-Stop, Arm, the jog stops,
+#: Abort. Everything else needs a state to be judged against.
+STATELESS_GATES = frozenset(g for g, reqs in GATE_REQUIREMENTS.items() if not reqs)
 
 
 def evaluate_permissions(s: MachineState) -> Dict[str, bool]:
@@ -566,6 +620,8 @@ def _gate_reason(gate: str, s: MachineState) -> Optional[str]:
             # The composite rules' reasons name the exact stranded state.
             if ok is _R_RUNNABLE[0]:
                 return kins_runnable(s) or message
+            if ok is _R_STEP[0]:
+                return step_refusal(s) or message
             if ok is _R_MACHINE_FRAME[0]:
                 return machine_frame_required(s) or message
             if ok is _R_GOZERO[0]:
@@ -634,7 +690,7 @@ COMMAND_GATES: Dict[str, str] = {
     # --- spindle / coolant ---
     "spindle_forward": "ready",
     "spindle_reverse": "ready",
-    "spindle_stop": "ready",
+    "spindle_stop": "spindleStop",
     "spindle_increase": "ready",
     "spindle_decrease": "ready",
     # --- coolant (override gate: usable during execution, like overrides;
@@ -693,11 +749,10 @@ COMMAND_GATES: Dict[str, str] = {
     "set_compensation": "ready",
     "set_compensation_method": "probe",
     # Confirming a manual tool change is meaningful only while iocontrol is
-    # actually asking for one; machine state cannot express that, so the real
-    # precondition is handler-side (require_tool_change_pending). `armed` is
-    # the state gate — the operation must remain available while a program is
-    # paused at M6, which is exactly when it is used.
-    "confirm_tool_change": "armed",
+    # actually asking for one: the gate is armed + a FRESH pending request
+    # (button gates BG-17; the handler re-reads it, require_tool_change_pending).
+    # No idle / ready term — it is used mid-program, at the M6.
+    "confirm_tool_change": "toolChangeConfirm",
     # Debug affordance that forces the probe input. Gating it on idle/ready
     # would break its ONLY purpose (exercising a probe cycle's reaction while
     # that cycle is running), so `armed` is the honest gate — the change here

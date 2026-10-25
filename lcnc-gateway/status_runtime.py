@@ -399,6 +399,12 @@ class StatusPayload:
     # (review #5). None until the first poll.
     is_estop: Optional[bool] = None
     is_enabled: Optional[bool] = None
+    # The HAL reader's snapshot was fresh when this payload was built. The
+    # reader-derived POLICY inputs (kins mode, the plane, the eoffset, the
+    # tool-change request) count only then; the displayed values keep their
+    # last reading and the reader_stale banner says so (button gates BG-12).
+    # False by default: a payload that does not say is stale.
+    reader_fresh: bool = False
 
 
 _CAPTURE_OFFSET_EPS = 1e-6  # matches the remap's rotary_offsets_nonzero
@@ -430,6 +436,27 @@ def capture_g92_xyz_clean(g92_offset) -> bool:
     return all(abs(v) <= _CAPTURE_OFFSET_EPS for v in g92l)
 
 
+#: Canonical Z bit of STAT.axis_mask.
+_Z_AXIS_BIT = 1 << 2
+
+
+def eoffset_state(value, reader_fresh: bool, axis_mask) -> Optional[bool]:
+    """Surface compensation's Z eoffset as a policy input: True / False, or
+    None = unknown (closed). A stale reader is unknown. A fresh reader without
+    the pin is unknown on a machine with a Z axis (the pin failed to read) —
+    and off on a machine without one: there is no axis.z.eoffset-enable to be
+    on (BG-12, Codex R203: a declaration, not a guess). Pure."""
+    if not reader_fresh:
+        return None
+    if value is not None:
+        return bool(value)
+    try:
+        has_z = bool(int(axis_mask) & _Z_AXIS_BIT)
+    except (TypeError, ValueError):
+        return None
+    return None if has_z else False
+
+
 def policy_state_from_payload(p: "StatusPayload", armed: bool,
                               kins_switchable: bool = True,
                               twp_capable: bool = False,
@@ -456,22 +483,37 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
 
     `busy` is intentionally absent (see command_policy module docstring): it is a
     per-tab client debounce the gateway can't observe, overlaid client-side."""
+    # The HAL reader's values are policy inputs only while it is fresh
+    # (button gates BG-12): a stale snapshot keeps its last reading, and a
+    # last "identity" / "no compensation" / "no request" is no answer now.
+    fresh = getattr(p, "reader_fresh", False) is True
+
+    def _reader(name):
+        return getattr(p, name, None) if fresh else None
+
     emc = p.emc_enable_in
-    interp = p.interp_state if p.interp_state is not None else linuxcnc.INTERP_IDLE
+    # An unread interpreter state is UNKNOWN, not idle (BG-12): every
+    # idle / running / paused gate closes and says so.
+    interp = p.interp_state
+    interp_known = interp is not None
     # Treat INTERP_PAUSED as paused even if the STAT.paused flag lags — matching
     # update_program_timer. Otherwise, in that transient both pause and resume
     # gates close and the operator can't resume a paused program (review #1).
-    is_paused = bool(p.paused) or interp == linuxcnc.INTERP_PAUSED
+    is_paused = interp_known and (bool(p.paused) or interp == linuxcnc.INTERP_PAUSED)
     return _PolicyMachineState(
         armed=armed,
         is_estop=bool(p.estop) or (emc is False),
         is_enabled=bool(p.enabled) and (emc is not False),
         is_homed=bool(p.homed),
-        is_idle=(interp == linuxcnc.INTERP_IDLE),
+        is_idle=interp_known and (interp == linuxcnc.INTERP_IDLE),
         is_running=(not is_paused)
         and interp in (linuxcnc.INTERP_READING, linuxcnc.INTERP_WAITING),
         is_paused=is_paused,
-        eoffset_enabled=bool(p.eoffset_enabled),
+        interp_known=interp_known,
+        eoffset_enabled=eoffset_state(_reader("eoffset_enabled"), fresh,
+                                      getattr(p, "axis_mask", None)),
+        tool_change_pending=(None if (_tc := _reader("tool_change_requested")) is None
+                             else bool(_tc)),
         # None (position unreadable) reads as NOT at zero: a gate that cannot
         # see the rotaries must refuse, not assume. This is the opposite of the
         # eoffset convention above deliberately — an absent eoffset pin means
@@ -485,10 +527,10 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         identity_first=bool(identity_first),
         # getattr: a partial payload (test doubles, an older envelope) reads as
         # UNKNOWN — the closed gate — never as identity/G54.
-        kins_type=(None if (_kt := getattr(p, "kins_type", None)) is None
+        kins_type=(None if (_kt := _reader("kins_type")) is None
                    else int(round(float(_kt)))),
         g5x_index=(None if (_gi := getattr(p, "g5x_index", None)) is None else int(_gi)),
-        twp_active=(getattr(p, "twp_active", None) is True),
+        twp_active=(_reader("twp_active") is True),
         # Table A at the datum within the provenance window; an absent
         # canonical position reads as NOT at zero (closed), like the rotary
         # rule above.
@@ -496,14 +538,13 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
                    and abs(float(_ra[0])) <= PROV_A_EPS),
         # Capture-plane gate inputs (2026-08-31): absent table/offset data
         # reads CLOSED, like every rule above.
-        twp_defined=(getattr(p, "twp_defined", None) is True),
+        twp_defined=(_reader("twp_defined") is True),
         # Head aligned with the plane (TWP-04): the A/B/C orient stamp vs the
         # live rotaries; unknown (no stamp, sentinel, missing reading) is
         # CLOSED, never "aligned".
         twp_aligned=(twp_head_aligned(
-            (getattr(p, "twp_pose_a", None), getattr(p, "twp_pose_b", None),
-             getattr(p, "twp_pose_c", None)),
-            getattr(p, "rotary_abc", None), getattr(p, "twp_defined", None)) is True),
+            (_reader("twp_pose_a"), _reader("twp_pose_b"), _reader("twp_pose_c")),
+            getattr(p, "rotary_abc", None), _reader("twp_defined")) is True),
         rotary_offsets_clean=capture_rotary_offsets_clean(
             getattr(p, "wcs_table", None), getattr(p, "g92_offset", None)),
         g92_xyz_clean=capture_g92_xyz_clean(getattr(p, "g92_offset", None)),
@@ -525,6 +566,7 @@ class StatusRuntime:
         get_kins_switchable: Callable[[], bool] = lambda: True,
         get_twp_capable: Callable[[], bool] = lambda: False,
         get_identity_first: Callable[[], bool] = lambda: False,
+        get_reader_fresh: Callable[[], bool] = lambda: False,
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
         get_instance: Callable[[], Optional[tuple]] = lambda: None,
         load_record_path: Optional[str] = None,
@@ -536,6 +578,9 @@ class StatusRuntime:
         self._get_kins_switchable = get_kins_switchable
         self._get_twp_capable = get_twp_capable
         self._get_identity_first = get_identity_first
+        # The reader's freshness at build time — the policy inputs it feeds
+        # count only while it is fresh (BG-12). Default stale = closed.
+        self._get_reader_fresh = get_reader_fresh
         self._get_prov_a = get_prov_a
         self._get_err = get_err
         self._reader_get = reader_get
@@ -1235,6 +1280,7 @@ class StatusRuntime:
             rotary_at_zero=rotary_at_zero(
                 to_float_list(safe_get("actual_position", None)), axis_mask),
         )
+        payload.reader_fresh = bool(self._get_reader_fresh())
         # Backend-authoritative permissions from this very snapshot (issue #19).
         # armed=True; the per-client armed/busy overlay happens client-side.
         # One safety-merge: build the policy state once, broadcast its merged

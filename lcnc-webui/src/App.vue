@@ -944,15 +944,18 @@ const toolChangeTool = computed(() => st.value.tool_change_tool ?? null);
 // Confirm exactly once per request (UI-05): `confirmSent` holds the req_id
 // of the confirm that actually went out (fire() returns null when nothing
 // was sent — never a pending). It clears when the request ends, when the
-// gateway refuses it (retry allowed) and on disconnect. Gate `armed`: the
-// change happens mid-program, never at idle/ready.
+// gateway refuses it (retry allowed), on disconnect and when the request is
+// replaced by another tool's. Gate `toolChangeConfirm`: armed and a FRESH
+// pending request, closed in simulation (button gates BG-17) — the change
+// happens mid-program, never at idle/ready.
 const confirmSent = ref<string | null>(null);
 function confirmToolChange() {
   if (!toolChangeRequested.value || confirmSent.value) return;
-  const id = fire({ cmd: "confirm_tool_change" }, 'armed');
+  const id = fire({ cmd: "confirm_tool_change" }, 'toolChangeConfirm');
   if (id) confirmSent.value = id;
 }
 watch(toolChangeRequested, (req) => { if (!req) confirmSent.value = null; });
+watch(toolChangeTool, () => { confirmSent.value = null; });
 watch(lastReply, (r) => {
   if (r && confirmSent.value && r.req_id === confirmSent.value && r.ok === false) confirmSent.value = null;
 });
@@ -1622,8 +1625,9 @@ function spindleReverse(speed: number) {
   fire({ cmd: "spindle_reverse", speed }, 'ready');
 }
 
+// The spindle stop at idle needs no arm and no homing (button gates BG-18).
 function spindleStop() {
-  fire({ cmd: "spindle_stop" }, 'ready');
+  fire({ cmd: "spindle_stop" }, 'spindleStop');
 }
 
 function spindleIncrease() {
@@ -1659,7 +1663,7 @@ function unloadFile() {
 const {
   keyboardConfig,
   setKeyboardConfig,
-  clearJogState: clearKeyboardJogState,
+  stopJogs: stopKeyboardJogs,
   jogActive: keyboardJogActive,
 } = useKeyboardShortcuts({
   jogVel,
@@ -1735,11 +1739,17 @@ watch(settingsVersion, () => {
 });
 
 /** ---------- safety: stop jog on focus loss ---------- */
+// A started jog owns its stop (button gates BG-06): every gesture's own stop
+// goes out — the pointer registry's, the keyboard's and the gamepad's, each
+// from what the gesture STARTED. The per-axis sweep is the belt and braces;
+// it no longer waits for the jog gate either — a closed start never closes
+// the stop it needs (the gateway ignores a stop for an axis it did not start).
 function stopAllJog() {
-  forceStopAllJogs();          // clear pointer-based jog state + send stops
-  clearKeyboardJogState();     // clear active keyboard-jog action set
-  gamepad.stopAllJog();
-  if (!permissions.value.jog) return; // no jog possible unless armed + enabled + homed
+  const hadGesture = keyboardJogActive.value || activeJogKeys.size > 0;
+  forceStopAllJogs();          // the pointer gestures' own stops
+  stopKeyboardJogs();          // the keyboard gestures' own stops
+  gamepad.stopAllJog();        // the pad's analog and D-pad gestures
+  if (!hadGesture && !permissions.value.jog) return;
   if (isRunning.value || isPaused.value) return; // no jog during program execution
   for (let i = 0; i < axes.value.length; i++) {
     send({ cmd: "jog_stop", axis: i });

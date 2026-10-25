@@ -74,7 +74,8 @@ export const BUTTON_TYPES = {
   // Spindle
   spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
   spindleRev:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
-  spindleStop:     { gate: 'ready',    variant: 'danger',  size: 'md' },
+  // The spindle stop at idle: no arm, no homing (button gates BG-18).
+  spindleStop:     { gate: 'spindleStop', variant: 'danger',  size: 'md' },
   spindleIncrease: { gate: 'ready',    variant: 'default', size: 'md' },
   spindleDecrease: { gate: 'ready',    variant: 'default', size: 'md' },
 
@@ -158,7 +159,6 @@ export const BUTTON_TYPES = {
   simTrip:        { gate: 'always',   variant: 'default', size: 'md' },
 
   // ── Gated dialog actions (confirm/danger that require machine state) ──
-  dialogBase:     { gate: 'abort',   variant: 'primary', size: 'md' },
   dialogReady:    { gate: 'ready',   variant: 'primary', size: 'md' },
   dialogReadyDanger: { gate: 'ready', variant: 'danger', size: 'md' },
   // A destructive dialog action under the action's own gate (N42): the look
@@ -227,9 +227,9 @@ export const BUTTON_TYPES = {
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
   // Banner Home All: `home_all` is ZERO-tier on the backend (idle + !eoffset).
   bannerHome:     { gate: 'zero',    variant: 'default', size: 'md', hold: true },
-  // Manual tool-change confirm: meaningful only while iocontrol asks for one;
-  // the state gate is `armed` (it happens mid-program, never idle/ready).
-  toolChangeConfirm: { gate: 'armed', variant: 'primary', size: 'md' },
+  // Manual tool-change confirm: armed and a FRESH pending request, closed in
+  // simulation (button gates BG-17) — mid-program, never idle/ready.
+  toolChangeConfirm: { gate: 'toolChangeConfirm', variant: 'primary', size: 'md' },
   headerIcon:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
   // A DetailsPopover's trigger beside a section's "?" in the side pane (the
   // Sim tab's check basis): reading, never a machine action — the icon look

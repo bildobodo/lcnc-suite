@@ -23,6 +23,7 @@ import type { Permissions } from "./permissions";
 import type { WsCommand } from "./lcnc";
 
 import { isRotaryAxis } from "./useAxes";
+import { JogGestures, type JogGesture } from "./jogGesture";
 
 interface UseKeyboardShortcutsOptions {
   jogVel: Ref<number>;
@@ -52,7 +53,9 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     return map;
   });
 
-  const jogActions = reactive(new Set<string>());
+  // The keyboard jogs in progress, each with what it STARTED (BG-06): the
+  // keyup stops that, never what the step or the key map say by then.
+  const jogGestures = new JogGestures<string>(reactive(new Map<string, JogGesture>()));
 
   function jogActionToAxis(action: string): { axis: number; dir: 1 | -1; isAngular: boolean } | null {
     const match = action.match(/^jog_([a-z])([+-])$/);
@@ -121,17 +124,18 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     if (action.startsWith("jog_")) {
       if (!keyboardConfig.value.jogEnabled) return;
       e.preventDefault();
-      if (e.repeat || jogActions.has(action)) return;
+      if (e.repeat || jogGestures.has(action)) return;
       if (!opts.permissions.value.jog) return;
       const jog = jogActionToAxis(action);
       if (!jog) return;
-      jogActions.add(action);
       const vel = (jog.isAngular ? opts.angularJogVel.value : opts.jogVel.value) * jog.dir;
-      if (opts.jogIncrement.value > 0) {
-        opts.send({ cmd: "jog_incr", axis: jog.axis, vel, distance: opts.jogIncrement.value * jog.dir });
+      const step = opts.jogIncrement.value;
+      if (step > 0) {
+        opts.send({ cmd: "jog_incr", axis: jog.axis, vel, distance: step * jog.dir });
       } else {
         opts.send({ cmd: "jog_cont", axis: jog.axis, vel });
       }
+      jogGestures.start(action, { axes: [jog.axis], cont: !(step > 0) });
       return;
     }
 
@@ -163,13 +167,8 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
   function onKeyUp(e: KeyboardEvent) {
     const action = reverseKeyMap.value.get(e.key);
     if (!action || !action.startsWith("jog_")) return;
-    if (jogActions.has(action)) {
-      jogActions.delete(action);
-      if (opts.jogIncrement.value <= 0) {
-        const jog = jogActionToAxis(action);
-        if (jog) opts.send({ cmd: "jog_stop", axis: jog.axis });
-      }
-    }
+    const stop = jogGestures.end(action);
+    if (stop) opts.send(stop);
   }
 
   function setKeyboardConfig(cfg: KeyboardDefaults) {
@@ -178,12 +177,12 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     saveKeyboardDefaults(normalized);
   }
 
-  /** Clear the active-jog-action set. Used by App.vue's global stopAllJog
-   *  so a focus-loss / visibility-change / disabled-toggle stop is reflected
-   *  in our internal state. Does NOT send jog_stop commands — that's the
-   *  caller's responsibility (it also handles pointer + gamepad). */
-  function clearJogState() {
-    jogActions.clear();
+  /** End every keyboard jog with the stop it owns. Used by App.vue's global
+   *  stopAllJog (focus loss, visibility change, a disabled toggle, a tab
+   *  switch): each continuous gesture's own axis, whatever the step or the
+   *  key map say now (BG-06). */
+  function stopJogs() {
+    for (const c of jogGestures.endAll()) opts.send(c);
   }
 
   // Cross-client sync: another tab saved keyboard config → re-read.
@@ -205,8 +204,8 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
   return {
     keyboardConfig,
     setKeyboardConfig,
-    clearJogState,
+    stopJogs,
     /** A keyboard jog is running (a jog key held down). */
-    jogActive: computed(() => jogActions.size > 0),
+    jogActive: computed(() => jogGestures.size > 0),
   };
 }

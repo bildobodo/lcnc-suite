@@ -1,0 +1,779 @@
+FFFFFFFFFFFFFFFFFFFFFFFFF.FFF.F.FFF..FFF                                 [100%]
+=================================== FAILURES ===================================
+_____________ TestStepTakesTheStartRule.test_a_ready_machine_steps _____________
+
+self = <test_button_gates.TestStepTakesTheStartRule testMethod=test_a_ready_machine_steps>
+
+    def test_a_ready_machine_steps(self):
+>       self.assertTrue(evaluate_permissions(state())["step"])
+                                             ^^^^^^^
+
+test_button_gates.py:81: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+__ TestStepTakesTheStartRule.test_step_from_idle_refuses_where_start_refuses ___
+
+self = <test_button_gates.TestStepTakesTheStartRule testMethod=test_step_from_idle_refuses_where_start_refuses>
+
+    def test_step_from_idle_refuses_where_start_refuses(self):
+>       p = evaluate_permissions(stranded_plane())
+                                 ^^^^^^^^^^^^^^^^
+
+test_button_gates.py:64: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:57: in stranded_plane
+    return state(**base)
+           ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'g5x_index': 1, 'kins_switchable': True, 'kins_type': 2, 'twp_active': False, ...}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+_______ TestStepTakesTheStartRule.test_step_from_idle_still_needs_homing _______
+
+self = <test_button_gates.TestStepTakesTheStartRule testMethod=test_step_from_idle_still_needs_homing>
+
+    def test_step_from_idle_still_needs_homing(self):
+>       self.assertIn("homed", permission_reasons(state(is_homed=False))["step"].lower())
+                                                  ^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:78: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'is_homed': False}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+_ TestStepTakesTheStartRule.test_step_out_of_a_pause_continues_and_is_not_a_start _
+
+self = <test_button_gates.TestStepTakesTheStartRule testMethod=test_step_out_of_a_pause_continues_and_is_not_a_start>
+
+    def test_step_out_of_a_pause_continues_and_is_not_a_start(self):
+>       self.assertTrue(evaluate_permissions(paused(
+            kins_switchable=True, twp_capable=True, kins_type=2, twp_active=False,
+            g5x_index=1))["step"])
+
+test_button_gates.py:73: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:49: in paused
+    return state(is_idle=False, is_paused=True, **over)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'g5x_index': 1, 'is_idle': False, 'is_paused': True, 'kins_switchable': True, ...}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+____ TestStepTakesTheStartRule.test_the_denial_names_the_kinematics_reason _____
+
+self = <test_button_gates.TestStepTakesTheStartRule testMethod=test_the_denial_names_the_kinematics_reason>
+
+    def test_the_denial_names_the_kinematics_reason(self):
+>       self.assertIn("without a plane", check_command("auto_step", stranded_plane()))
+                                                                    ^^^^^^^^^^^^^^^^
+
+test_button_gates.py:69: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:57: in stranded_plane
+    return state(**base)
+           ^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'g5x_index': 1, 'kins_switchable': True, 'kins_type': 2, 'twp_active': False, ...}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+______ TestUnknownIsClosed.test_unknown_eoffset_closes_the_eoffset_gates _______
+
+self = <test_button_gates.TestUnknownIsClosed testMethod=test_unknown_eoffset_closes_the_eoffset_gates>
+
+    def test_unknown_eoffset_closes_the_eoffset_gates(self):
+>       s = state(eoffset_enabled=None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'eoffset_enabled': None}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': None, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+_ TestUnknownIsClosed.test_unknown_interpreter_closes_every_gate_that_needs_it _
+
+self = <test_button_gates.TestUnknownIsClosed testMethod=test_unknown_interpreter_closes_every_gate_that_needs_it>
+
+    def test_unknown_interpreter_closes_every_gate_that_needs_it(self):
+>       s = state(interp_known=False, is_idle=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:92: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'interp_known': False, 'is_idle': False}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+___ TestUnknownIsClosed.test_unknown_interpreter_leaves_the_stateless_gates ____
+
+self = <test_button_gates.TestUnknownIsClosed testMethod=test_unknown_interpreter_leaves_the_stateless_gates>
+
+    def test_unknown_interpreter_leaves_the_stateless_gates(self):
+>       p = evaluate_permissions(state(interp_known=False, is_idle=False))
+                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'interp_known': False, 'is_idle': False}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+_ TestUnknownIsClosed.test_unknown_tool_change_request_closes_the_confirmation _
+
+self = <test_button_gates.TestUnknownIsClosed testMethod=test_unknown_tool_change_request_closes_the_confirmation>
+
+    def test_unknown_tool_change_request_closes_the_confirmation(self):
+>       s = state(is_idle=False, is_running=True, tool_change_pending=None)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:115: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'is_idle': False, 'is_running': True, 'tool_change_pending': None}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+________________ TestToolChangeConfirmGate.test_closed_disarmed ________________
+
+self = <test_button_gates.TestToolChangeConfirmGate testMethod=test_closed_disarmed>
+
+    def test_closed_disarmed(self):
+>       self.assertFalse(evaluate_permissions(running(armed=False, tool_change_pending=True))["toolChangeConfirm"])
+                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:132: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:45: in running
+    return state(is_idle=False, is_running=True, **over)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'armed': False, 'is_idle': False, 'is_running': True, 'tool_change_pending': True}
+base = {'a_at_zero': True, 'armed': False, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+___________ TestToolChangeConfirmGate.test_closed_without_a_request ____________
+
+self = <test_button_gates.TestToolChangeConfirmGate testMethod=test_closed_without_a_request>
+
+    def test_closed_without_a_request(self):
+>       s = running(tool_change_pending=False)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:127: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:45: in running
+    return state(is_idle=False, is_running=True, **over)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'is_idle': False, 'is_running': True, 'tool_change_pending': False}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+______________ TestToolChangeConfirmGate.test_command_maps_to_it _______________
+
+self = <test_button_gates.TestToolChangeConfirmGate testMethod=test_command_maps_to_it>
+
+    def test_command_maps_to_it(self):
+>       self.assertEqual(COMMAND_GATES["confirm_tool_change"], "toolChangeConfirm")
+E       AssertionError: 'armed' != 'toolChangeConfirm'
+E       - armed
+E       + toolChangeConfirm
+
+test_button_gates.py:135: AssertionError
+_ TestToolChangeConfirmGate.test_open_for_an_armed_client_with_a_pending_request _
+
+self = <test_button_gates.TestToolChangeConfirmGate testMethod=test_open_for_an_armed_client_with_a_pending_request>
+
+    def test_open_for_an_armed_client_with_a_pending_request(self):
+>       self.assertTrue(evaluate_permissions(running(tool_change_pending=True))["toolChangeConfirm"])
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:124: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:45: in running
+    return state(is_idle=False, is_running=True, **over)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'is_idle': False, 'is_running': True, 'tool_change_pending': True}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+__________________ TestStopsNeedNoArm.test_abort_in_any_state __________________
+
+self = <test_button_gates.TestStopsNeedNoArm testMethod=test_abort_in_any_state>
+
+    def test_abort_in_any_state(self):
+>       for s in (state(armed=False), state(is_estop=True, is_enabled=False),
+                  ^^^^^^^^^^^^^^^^^^
+                  state(interp_known=False, is_idle=False), running(armed=False)):
+
+test_button_gates.py:148: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'armed': False}
+base = {'a_at_zero': True, 'armed': False, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+____________ TestStopsNeedNoArm.test_commands_map_to_the_stop_gates ____________
+
+self = <test_button_gates.TestStopsNeedNoArm testMethod=test_commands_map_to_the_stop_gates>
+
+    def test_commands_map_to_the_stop_gates(self):
+        self.assertEqual(COMMAND_GATES["abort"], "abort")
+        self.assertEqual(COMMAND_GATES["cycle_pause"], "pause")
+>       self.assertEqual(COMMAND_GATES["spindle_stop"], "spindleStop")
+E       AssertionError: 'ready' != 'spindleStop'
+E       - ready
+E       + spindleStop
+
+test_button_gates.py:145: AssertionError
+_______ TestStopsNeedNoArm.test_pause_of_a_running_sequence_without_arm ________
+
+self = <test_button_gates.TestStopsNeedNoArm testMethod=test_pause_of_a_running_sequence_without_arm>
+
+    def test_pause_of_a_running_sequence_without_arm(self):
+>       self.assertTrue(evaluate_permissions(running(armed=False))["pause"])
+                                             ^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:45: in running
+    return state(is_idle=False, is_running=True, **over)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'armed': False, 'is_idle': False, 'is_running': True}
+base = {'a_at_zero': True, 'armed': False, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+________________ TestStopsNeedNoArm.test_resume_still_needs_arm ________________
+
+self = <test_button_gates.TestStopsNeedNoArm testMethod=test_resume_still_needs_arm>
+
+    def test_resume_still_needs_arm(self):
+>       self.assertFalse(evaluate_permissions(paused(armed=False))["resume"])
+                                              ^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:49: in paused
+    return state(is_idle=False, is_paused=True, **over)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'armed': False, 'is_idle': False, 'is_paused': True}
+base = {'a_at_zero': True, 'armed': False, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+______ TestStopsNeedNoArm.test_spindle_stop_at_idle_without_arm_or_homing ______
+
+self = <test_button_gates.TestStopsNeedNoArm testMethod=test_spindle_stop_at_idle_without_arm_or_homing>
+
+    def test_spindle_stop_at_idle_without_arm_or_homing(self):
+>       self.assertTrue(evaluate_permissions(state(armed=False, is_homed=False))["spindleStop"])
+                                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:163: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'armed': False, 'is_homed': False}
+base = {'a_at_zero': True, 'armed': False, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+_________ TestStopsNeedNoArm.test_spindle_stop_closed_off_and_in_estop _________
+
+self = <test_button_gates.TestStopsNeedNoArm testMethod=test_spindle_stop_closed_off_and_in_estop>
+
+    def test_spindle_stop_closed_off_and_in_estop(self):
+>       self.assertFalse(evaluate_permissions(state(is_enabled=False))["spindleStop"])
+                                              ^^^^^^^^^^^^^^^^^^^^^^^
+
+test_button_gates.py:171: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'is_enabled': False}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+_ TestStopsNeedNoArm.test_spindle_stop_closed_while_the_program_owns_the_spindle _
+
+self = <test_button_gates.TestStopsNeedNoArm testMethod=test_spindle_stop_closed_while_the_program_owns_the_spindle>
+
+    def test_spindle_stop_closed_while_the_program_owns_the_spindle(self):
+>       for s in (running(), paused()):
+                  ^^^^^^^^^
+
+test_button_gates.py:166: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_button_gates.py:45: in running
+    return state(is_idle=False, is_running=True, **over)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+over = {'is_idle': False, 'is_running': True}
+base = {'a_at_zero': True, 'armed': True, 'eoffset_enabled': False, 'g5x_index': 1, ...}
+
+    def state(**over) -> MachineState:
+        """A homed, idle, enabled, armed plain machine with every input known."""
+        base = dict(
+            armed=True, is_estop=False, is_enabled=True, is_homed=True,
+            is_idle=True, is_running=False, is_paused=False, eoffset_enabled=False,
+            rotary_at_zero=True, kins_switchable=False, kins_type=None, g5x_index=1,
+            twp_active=False, a_at_zero=True, interp_known=True, tool_change_pending=False,
+        )
+        base.update(over)
+>       return MachineState(**base)
+               ^^^^^^^^^^^^^^^^^^^^
+E       TypeError: MachineState.__init__() got an unexpected keyword argument 'interp_known'
+
+test_button_gates.py:41: TypeError
+___ TestPolicyInputsFromTheSnapshot.test_a_fresh_reader_passes_them_through ____
+
+self = <test_button_gates.TestPolicyInputsFromTheSnapshot testMethod=test_a_fresh_reader_passes_them_through>
+
+    def test_a_fresh_reader_passes_them_through(self):
+        s = self._state(kins_type=0.0, eoffset_enabled=False, tool_change_requested=True)
+        self.assertEqual(s.kins_type, 0)
+        self.assertIs(s.eoffset_enabled, False)
+>       self.assertIs(s.tool_change_pending, True)
+                      ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'MachineState' object has no attribute 'tool_change_pending'
+
+test_button_gates.py:206: AttributeError
+_______ TestPolicyInputsFromTheSnapshot.test_a_read_interpreter_is_known _______
+
+self = <test_button_gates.TestPolicyInputsFromTheSnapshot testMethod=test_a_read_interpreter_is_known>
+
+    def test_a_read_interpreter_is_known(self):
+>       self.assertTrue(self._state().interp_known)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'MachineState' object has no attribute 'interp_known'
+
+test_button_gates.py:222: AttributeError
+__ TestPolicyInputsFromTheSnapshot.test_a_snapshot_without_freshness_is_stale __
+
+self = <test_button_gates.TestPolicyInputsFromTheSnapshot testMethod=test_a_snapshot_without_freshness_is_stale>
+
+    def test_a_snapshot_without_freshness_is_stale(self):
+        p = _payload(kins_type=0.0)
+        del p.reader_fresh
+        s = gateway._policy_state_from_payload(p, armed=True, kins_switchable=True)
+>       self.assertIsNone(s.kins_type)
+E       AssertionError: 0 is not None
+
+test_button_gates.py:212: AssertionError
+_ TestPolicyInputsFromTheSnapshot.test_a_stale_reader_leaves_its_inputs_unknown _
+
+self = <test_button_gates.TestPolicyInputsFromTheSnapshot testMethod=test_a_stale_reader_leaves_its_inputs_unknown>
+
+    def test_a_stale_reader_leaves_its_inputs_unknown(self):
+        s = self._state(reader_fresh=False, kins_type=0.0, eoffset_enabled=False,
+                        tool_change_requested=True, twp_active=True, twp_defined=True)
+>       self.assertIsNone(s.kins_type)
+E       AssertionError: 0 is not None
+
+test_button_gates.py:196: AssertionError
+_ TestPolicyInputsFromTheSnapshot.test_an_absent_eoffset_pin_on_a_machine_with_z_is_unknown _
+
+self = <test_button_gates.TestPolicyInputsFromTheSnapshot testMethod=test_an_absent_eoffset_pin_on_a_machine_with_z_is_unknown>
+
+    def test_an_absent_eoffset_pin_on_a_machine_with_z_is_unknown(self):
+>       self.assertIsNone(self._state(eoffset_enabled=None).eoffset_enabled)
+E       AssertionError: False is not None
+
+test_button_gates.py:229: AssertionError
+_ TestPolicyInputsFromTheSnapshot.test_an_unread_interpreter_is_unknown_not_idle _
+
+self = <test_button_gates.TestPolicyInputsFromTheSnapshot testMethod=test_an_unread_interpreter_is_unknown_not_idle>
+
+    def test_an_unread_interpreter_is_unknown_not_idle(self):
+        s = self._state(interp_state=None)
+>       self.assertFalse(s.interp_known)
+                         ^^^^^^^^^^^^^^
+E       AttributeError: 'MachineState' object has no attribute 'interp_known'
+
+test_button_gates.py:216: AttributeError
+____ TestStopHandlersWithoutArm.test_abort_disarmed_reaches_the_controller _____
+
+self = <test_button_gates.TestStopHandlersWithoutArm testMethod=test_abort_disarmed_reaches_the_controller>
+
+    def test_abort_disarmed_reaches_the_controller(self):
+        r = self._send({"cmd": "abort"}, armed=False)
+>       self.assertTrue(r["ok"], r)
+E       AssertionError: False is not true : {'ok': False, 'error': 'Not armed — press Arm'}
+
+test_button_gates.py:295: AssertionError
+___ TestStopHandlersWithoutArm.test_pause_disarmed_pauses_a_running_program ____
+
+self = <test_button_gates.TestStopHandlersWithoutArm testMethod=test_pause_disarmed_pauses_a_running_program>
+
+    def test_pause_disarmed_pauses_a_running_program(self):
+        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+        gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        r = self._send({"cmd": "cycle_pause"}, armed=False, interp_state=linuxcnc.INTERP_READING)
+>       self.assertTrue(r["ok"], r)
+E       AssertionError: False is not true : {'ok': False, 'error': 'Not armed — press Arm'}
+
+test_button_gates.py:302: AssertionError
+_ TestStopHandlersWithoutArm.test_spindle_stop_disarmed_and_unhomed_stops_without_a_mode_switch _
+
+self = <test_button_gates.TestStopHandlersWithoutArm testMethod=test_spindle_stop_disarmed_and_unhomed_stops_without_a_mode_switch>
+
+    def test_spindle_stop_disarmed_and_unhomed_stops_without_a_mode_switch(self):
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        r = self._send({"cmd": "spindle_stop"}, armed=False, homed=False)
+>       self.assertTrue(r["ok"], r)
+E       AssertionError: False is not true : {'ok': False, 'error': 'Not armed — press Arm'}
+
+test_button_gates.py:314: AssertionError
+______________ TestNoStatusYet.test_a_machine_command_is_refused _______________
+
+self = <test_button_gates.TestNoStatusYet testMethod=test_a_machine_command_is_refused>
+
+    def test_a_machine_command_is_refused(self):
+        r = self._send_without_status({"cmd": "mdi", "text": "G0 X0"})
+        self.assertFalse(r["ok"])
+>       self.assertIn("status", r["error"].lower())
+E       AssertionError: 'status' not found in 'valueerror: linuxcnc kept manual (asked for mdi)'
+
+test_button_gates.py:338: AssertionError
+______________________ TestNoStatusYet.test_abort_passes _______________________
+
+self = <test_button_gates.TestNoStatusYet testMethod=test_abort_passes>
+
+    def test_abort_passes(self):
+        r = self._send_without_status({"cmd": "abort"}, armed=False)
+>       self.assertTrue(r["ok"], r)
+E       AssertionError: False is not true : {'ok': False, 'error': 'Not armed — press Arm'}
+
+test_button_gates.py:343: AssertionError
+_ TestStepHandlerChecksTheStartRule.test_auto_step_from_idle_refused_on_a_stranded_plane _
+
+self = <test_button_gates.TestStepHandlerChecksTheStartRule testMethod=test_auto_step_from_idle_refused_on_a_stranded_plane>
+
+    def test_auto_step_from_idle_refused_on_a_stranded_plane(self):
+        gateway._kins_is_switchable = lambda: True
+        gateway._twp_capable = lambda: True
+        import unittest.mock
+        with unittest.mock.patch.object(gateway, "check_command", lambda *_a: None):
+            r = self._send({"cmd": "auto_step"}, kins_type=2.0, twp_active=False,
+                           g5x_index=1, twp_defined=True)
+        self.assertFalse(r["ok"])
+>       self.assertIn("without a plane", r["error"])
+E       AssertionError: 'without a plane' not found in 'ValueError: LinuxCNC kept MANUAL (asked for AUTO)'
+
+test_button_gates.py:360: AssertionError
+___________ TestToolChangeConfirmHandler.test_a_stale_reader_refuses ___________
+
+self = <test_button_gates.TestToolChangeConfirmHandler testMethod=test_a_stale_reader_refuses>
+
+    def test_a_stale_reader_refuses(self):
+        r, sent = self._confirm(stale=True, pending=True)
+>       self.assertFalse(r["ok"])
+E       AssertionError: True is not false
+
+test_button_gates.py:394: AssertionError
+_________ TestToolChangeConfirmHandler.test_an_unknown_request_refuses _________
+
+self = <test_button_gates.TestToolChangeConfirmHandler testMethod=test_an_unknown_request_refuses>
+
+    def test_an_unknown_request_refuses(self):
+        r, sent = self._confirm(stale=False, pending=None)
+>       self.assertFalse(r["ok"])
+E       AssertionError: True is not false
+
+test_button_gates.py:399: AssertionError
+______ TestDisarmJogStopUnhomed.test_an_unhomed_machine_s_jog_is_stopped _______
+
+self = <test_button_gates.TestDisarmJogStopUnhomed testMethod=test_an_unhomed_machine_s_jog_is_stopped>
+
+    def test_an_unhomed_machine_s_jog_is_stopped(self):
+        gateway.STAT.homed = [0, 0, 0]
+        gateway.STAT.joints = 3
+        gateway._active_jogs.clear()
+        gateway._active_jogs.add(1)
+    
+        async def go():
+            async with gateway._get_cmd_lock():
+                await gateway._jog_stop_for_client()
+        _run(go())
+        args = self.cmd.args_of("jog")
+>       self.assertIsNotNone(args, "the jog was never stopped")
+E       AssertionError: unexpectedly None : the jog was never stopped
+
+test_button_gates.py:417: AssertionError
+=========================== short test summary info ============================
+FAILED test_button_gates.py::TestStepTakesTheStartRule::test_a_ready_machine_steps
+FAILED test_button_gates.py::TestStepTakesTheStartRule::test_step_from_idle_refuses_where_start_refuses
+FAILED test_button_gates.py::TestStepTakesTheStartRule::test_step_from_idle_still_needs_homing
+FAILED test_button_gates.py::TestStepTakesTheStartRule::test_step_out_of_a_pause_continues_and_is_not_a_start
+FAILED test_button_gates.py::TestStepTakesTheStartRule::test_the_denial_names_the_kinematics_reason
+FAILED test_button_gates.py::TestUnknownIsClosed::test_unknown_eoffset_closes_the_eoffset_gates
+FAILED test_button_gates.py::TestUnknownIsClosed::test_unknown_interpreter_closes_every_gate_that_needs_it
+FAILED test_button_gates.py::TestUnknownIsClosed::test_unknown_interpreter_leaves_the_stateless_gates
+FAILED test_button_gates.py::TestUnknownIsClosed::test_unknown_tool_change_request_closes_the_confirmation
+FAILED test_button_gates.py::TestToolChangeConfirmGate::test_closed_disarmed
+FAILED test_button_gates.py::TestToolChangeConfirmGate::test_closed_without_a_request
+FAILED test_button_gates.py::TestToolChangeConfirmGate::test_command_maps_to_it
+FAILED test_button_gates.py::TestToolChangeConfirmGate::test_open_for_an_armed_client_with_a_pending_request
+FAILED test_button_gates.py::TestStopsNeedNoArm::test_abort_in_any_state - Ty...
+FAILED test_button_gates.py::TestStopsNeedNoArm::test_commands_map_to_the_stop_gates
+FAILED test_button_gates.py::TestStopsNeedNoArm::test_pause_of_a_running_sequence_without_arm
+FAILED test_button_gates.py::TestStopsNeedNoArm::test_resume_still_needs_arm
+FAILED test_button_gates.py::TestStopsNeedNoArm::test_spindle_stop_at_idle_without_arm_or_homing
+FAILED test_button_gates.py::TestStopsNeedNoArm::test_spindle_stop_closed_off_and_in_estop
+FAILED test_button_gates.py::TestStopsNeedNoArm::test_spindle_stop_closed_while_the_program_owns_the_spindle
+FAILED test_button_gates.py::TestPolicyInputsFromTheSnapshot::test_a_fresh_reader_passes_them_through
+FAILED test_button_gates.py::TestPolicyInputsFromTheSnapshot::test_a_read_interpreter_is_known
+FAILED test_button_gates.py::TestPolicyInputsFromTheSnapshot::test_a_snapshot_without_freshness_is_stale
+FAILED test_button_gates.py::TestPolicyInputsFromTheSnapshot::test_a_stale_reader_leaves_its_inputs_unknown
+FAILED test_button_gates.py::TestPolicyInputsFromTheSnapshot::test_an_absent_eoffset_pin_on_a_machine_with_z_is_unknown
+FAILED test_button_gates.py::TestPolicyInputsFromTheSnapshot::test_an_unread_interpreter_is_unknown_not_idle
+FAILED test_button_gates.py::TestStopHandlersWithoutArm::test_abort_disarmed_reaches_the_controller
+FAILED test_button_gates.py::TestStopHandlersWithoutArm::test_pause_disarmed_pauses_a_running_program
+FAILED test_button_gates.py::TestStopHandlersWithoutArm::test_spindle_stop_disarmed_and_unhomed_stops_without_a_mode_switch
+FAILED test_button_gates.py::TestNoStatusYet::test_a_machine_command_is_refused
+FAILED test_button_gates.py::TestNoStatusYet::test_abort_passes - AssertionEr...
+FAILED test_button_gates.py::TestStepHandlerChecksTheStartRule::test_auto_step_from_idle_refused_on_a_stranded_plane
+FAILED test_button_gates.py::TestToolChangeConfirmHandler::test_a_stale_reader_refuses
+FAILED test_button_gates.py::TestToolChangeConfirmHandler::test_an_unknown_request_refuses
+FAILED test_button_gates.py::TestDisarmJogStopUnhomed::test_an_unhomed_machine_s_jog_is_stopped

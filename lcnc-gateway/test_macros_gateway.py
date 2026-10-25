@@ -736,7 +736,8 @@ class RunMacro(_Folder):
         from types import SimpleNamespace
         gateway._shared_status = SimpleNamespace(estop=False, enabled=True, emc_enable_in=True, homed=True,
                                                  interp_state=linuxcnc.INTERP_IDLE, paused=False,
-                                                 eoffset_enabled=False, rotary_at_zero=True)
+                                                 eoffset_enabled=False, rotary_at_zero=True,
+                                                 reader_fresh=True)
         msg = {"cmd": "run_macro", "name": "face_top", "args": [1.5, 400], "revision": rev(FACE)}
         msg.update(over)
         return _run(gateway.handle_command(msg, True))

@@ -168,6 +168,9 @@ export function isQueueSafe(cmd: string): boolean {
  */
 const NEVER_DEBOUNCED = new Set<string>([
   "abort", "estop", "estop_reset", "jog_stop", "jog_stop_multi",
+  // the stops of button gates BG-08 / BG-18: a pause or a spindle stop is
+  // never dropped because another command is still settling
+  "cycle_pause", "spindle_stop",
 ]);
 
 export function isNeverDebounced(cmd: string): boolean {
@@ -192,6 +195,7 @@ export const DEFAULT_COOLDOWN_MS = 200;
 const COMMAND_COOLDOWN_MS: Record<string, number> = {
   // Stop/abort: never debounced at all (see NEVER_DEBOUNCED).
   abort: 0, estop: 0, estop_reset: 0, jog_stop: 0, jog_stop_multi: 0,
+  cycle_pause: 0, spindle_stop: 0,
   // Modal flags — instant toggles, no motion started.
   set_optional_stop: 0,
   set_block_delete: 0,

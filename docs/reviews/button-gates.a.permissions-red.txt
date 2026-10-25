@@ -1,0 +1,18 @@
+ ❯ src/permissions.test.ts (20 tests | 7 failed) 11ms
+     × disarmed closes everything except always and the stops 4ms
+     × a stop follows the backend: closed there, closed here 0ms
+     × busy closes the busy-subset but not jog/abort 0ms
+     × closes every machine-action gate while sim is active 1ms
+     × keeps the stops open in sim (BG-08) 0ms
+     × names the client-local terms and passes the backend's reason through otherwise 0ms
+     × a stop carries no client-local reason: only the backend's (BG-08) 0ms
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 7 ⎯⎯⎯⎯⎯⎯⎯
+ FAIL  src/permissions.test.ts > applyClientOverlay > disarmed closes everything except always and the stops
+ FAIL  src/permissions.test.ts > applyClientOverlay > a stop follows the backend: closed there, closed here
+ FAIL  src/permissions.test.ts > applyClientOverlay > busy closes the busy-subset but not jog/abort
+ FAIL  src/permissions.test.ts > simulation-mode overlay (client-local, simMode.ts) > closes every machine-action gate while sim is active
+ FAIL  src/permissions.test.ts > simulation-mode overlay (client-local, simMode.ts) > keeps the stops open in sim (BG-08)
+ FAIL  src/permissions.test.ts > applyClientOverlayReasons (U-06, review 2026-09-14) > names the client-local terms and passes the backend's reason through otherwise
+ FAIL  src/permissions.test.ts > applyClientOverlayReasons (U-06, review 2026-09-14) > a stop carries no client-local reason: only the backend's (BG-08)
+ Test Files  1 failed (1)
+      Tests  7 failed | 13 passed (20)

@@ -1153,7 +1153,9 @@ async function saveEdit() {
 
         <template #actions>
           <MachineBtn type="dialogCancel" @click="showRunDialog = false">Cancel</MachineBtn>
-          <Gate gate="ready" class="row-controls">
+          <!-- A program start: the `run` rule, the kinematics included — the
+               same gate App.runFromLine() fires under (button gates BG-09) -->
+          <Gate gate="run" class="row-controls">
             <!-- Starting motion is a hold (D6): bound to the program and the line -->
             <MachineBtn type="dialogConfirm" :disabled="rflBlocked || programLoading || rflSetterUnset" :reason="programLoading ? LOADING_REASON : rflSetterUnset ? rflSetterReason : undefined" hold :hold-key="`${programHoldKey}:${selectedLine}`" @click="confirmRunFromLine">{{ rflPreTool > 0 ? `Measure T${rflPreTool} + Run from Line ${selectedLine}` : `Run from Line ${selectedLine}` }}</MachineBtn>
           </Gate>

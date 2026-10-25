@@ -146,6 +146,7 @@ base = armed && !estop && enabled
 ```
 TIER 0 — Unconditional
   always ─────────────── true                                         Arm, E-Stop, UI nav
+  abort ──────────────── true — a STOP: no arm, sim or busy term (button gates BG-08)   Abort
 
 TIER 1 — Client state (no machine state needed)
   armed ──────────────── s.armed                                      Outer content gate
@@ -155,11 +156,12 @@ TIER 2 — Machine power (no enabled needed)
   setup ──────────────── armed + !estop + isIdle + !busy              File ops, tool edits, settings reset
 
 TIER 3 — Machine enabled (base = armed + !estop + enabled)
-  abort ──────────────── base                                         Abort, Shutdown
   override ───────────── base + !busy                                 Feed/Spindle/Rapid overrides
-  pause ──────────────── base + isRunning + !isPaused                 Pause
+  pause ──────────────── isRunning + !isPaused — a STOP: no arm, sim or busy term (BG-08)   Pause (AUTO or MDI)
+  spindleStop ────────── !estop + enabled + isIdle — a STOP: no arm, homing, sim or busy (BG-18; running/paused: the program owns the spindle)   Spindle Stop
   resume ─────────────── base + isPaused                              Resume
-  step ───────────────── base + ((isIdle+!busy+isHomed) OR isPaused)  Single-step
+  step ───────────────── base + (isPaused OR the `run` rule: idle + homed + kins runnable — BG-09)   Single-step
+  toolChangeConfirm ──── armed + a FRESH pending tool-change request; closed in sim (BG-17)   M6 Confirm
 
 TIER 4 — Machine idle (requires base + isIdle)
   idle ───────────────── base + isIdle + !busy                        Banner home, mode select
@@ -184,17 +186,21 @@ TIER 5 — Full ready (requires everything)
 Disconnected      → always
 Armed             → + armed
 E-Stop Cleared    → + safety, setup (if idle)
-Machine On        → + abort, override, idle, zero, jog (TIER 3+4)
+Machine On        → + override, idle, zero, jog, spindleStop (TIER 3+4)
 Homed             → + ready, probe, step (TIER 5)
-Running           → abort, override, pause, step remain; idle/ready/jog close
+Running           → abort, override, pause remain; idle/ready/jog/step/spindleStop close
 Paused            → abort, override, resume, step remain; pause closes
 ```
+
+Every idle / running / paused rule is preceded by "the interpreter state was read" and every eoffset rule by "the eoffset is known": an unread state or a stale HAL reader closes those gates with that reason, never reads as idle / "no compensation" (button gates BG-12). Before the first status the gateway refuses every command whose gate has a requirement (`command_policy.STATELESS_GATES`: E-Stop, Arm, the jog stops, Abort pass).
 
 **Touch-off under kinematics modes:** a touch-off is the gateway command `touchoff {axes}` (`command_policy.touchoff_route`), never a client-built `G10 L20`: identity → G54–G58 (rotary letters G54 only); TCP → G54–G58 with the table at A=0; Plane (kins 2) → G59 with the plane active, written through the plane into G54 by the remap (`M535`), the gateway seeding its G54 row only after the helper's `twp-datum-seq` advanced. G59–G59.3 are the TWP remap's scratch rows, never a touch-off target. The viewer draws ONE work-system marker, the active fixture, where the part's zero physically is (`viewer/programZero.ts`). **Motion buttons:** `scripts/twp_buttons_check.py` is the acceptance gate for any change touching a motion button. A `jog_stop` for an axis the gateway did not start is a traced no-op; `set_mode` verifies the switch and names only what it sees; a retract NEVER lowers Z (`#<_abs_z>` guard). Details: [docs/architecture/safety-and-permissions.md](docs/architecture/safety-and-permissions.md).
 
 **LinuxCNC enforces very little** — mode sequence (MDI needs MODE_MDI) and state transitions only. Our gates enforce: armed state (web-safety invention), idle-vs-running checks, homing requirements, and eoffset contamination prevention. The `set_mode()` + `reject_if_auto_running()` functions in gateway.py are the real backend gatekeepers.
 
-**Client-local overlay terms** (`applyClientOverlay`): `armed` (per-client), `busy` (per-tab debounce), and `sim` (`simMode.ts` — viewer simulation mode: the model shows the program, not the machine, so all machine-action gates close except `always`/`armed`/`setup`; see "Program scrub").
+**Client-local overlay terms** (`applyClientOverlay`): `armed` (per-client), `busy` (per-tab debounce), and `sim` (`simMode.ts` — viewer simulation mode: the model shows the program, not the machine, so all machine-action gates close except `always`/`armed`/`setup`; see "Program scrub"). None of the three closes a STOP (`STOP_GATES`: abort, pause, spindleStop — the backend's decision passes as is); `cycle_pause` and `spindle_stop` are never debounced and, in the gateway, stop-class commands (`_WS_STOP_CMDS`).
+
+**A started jog owns its stop** (`jogGesture.ts`, button gates BG-06): keyboard, pointer and D-pad record at the press what they started (axes, continuous or a step) and the release stops exactly that — never what the step selector, the key map or the Z modifier say by then.
 
 ### Machine Controls Catalog (`machineControls.ts`)
 

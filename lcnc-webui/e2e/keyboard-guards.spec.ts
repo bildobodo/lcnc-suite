@@ -685,6 +685,35 @@ test("a jog key released after a field opened mid-jog still sends jog_stop", asy
   await expect.poll(recordedCmds).toContain("jog_stop");
 });
 
+test("a continuous jog keeps its stop when the step changes mid-hold (button gates BG-06)", async ({ page }) => {
+  // Codex R202's reproduction: Cont, hold ArrowRight, pick the step "1",
+  // release — the release re-read the step and sent no jog_stop, the
+  // machine kept moving. The release stops what the press started.
+  await openReady(page);
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true } } } });
+  const steps = page.getByRole("radiogroup", { name: "Jog step", exact: true });
+  await steps.getByRole("radio", { name: "Cont", exact: true }).click();
+  await focusBody(page);
+  await ctl({ op: "clearCmds" });
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(recordedCmds).toContain("jog_cont");
+  await steps.getByRole("radio", { name: "1", exact: true }).click();
+  await page.keyboard.up("ArrowRight");
+  await expect.poll(recordedCmds).toContain("jog_stop");
+  const sent = (await ctl({ op: "lastCmds" }) as { cmds?: { cmd?: string; axis?: number }[] }).cmds ?? [];
+  const started = sent.find(c => c.cmd === "jog_cont");
+  const stopped = sent.filter(c => c.cmd === "jog_stop");
+  expect(stopped.map(c => c.axis)).toContain(started?.axis);
+  // the step picked mid-hold applies to the NEXT press: one jog_incr, no stop
+  await ctl({ op: "clearCmds" });
+  await focusBody(page);
+  await page.keyboard.down("ArrowRight");
+  await expect.poll(recordedCmds).toContain("jog_incr");
+  await page.keyboard.up("ArrowRight");
+  await page.waitForTimeout(300);
+  expect((await recordedCmds()).filter(c => c.startsWith("jog_"))).toEqual(["jog_incr"]);
+});
+
 test("settings save status: Saving… on a change, Saved on the gateway's ok, the reason on ok:false", async ({ page }) => {
   // UX-08: the header's "saved automatically" is a promise with a proof —
   // the status follows the correlated reply, never the send alone.

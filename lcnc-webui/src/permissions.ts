@@ -11,7 +11,9 @@ import { computed, inject, type ComputedRef, type InjectionKey } from "vue";
  * cannot observe:
  *
  *   - `armed` — this client's server-authoritative arming. ANDed into every
- *     gate except `always` (Arm / E-Stop stay reachable while disarmed).
+ *     gate except `always` (Arm / E-Stop stay reachable while disarmed) and
+ *     the stops (STOP_GATES: Abort, Pause, the spindle stop — button gates
+ *     BG-08 / BG-18: arm authorizes new machine effects, a stop is none).
  *   - `busy`  — a per-tab debounce while a command settles. ANDed as `!busy`
  *     into the gates that carried a top-level `!busy` term in the old formula.
  *
@@ -65,8 +67,15 @@ export type Permissions = {
   resume: boolean;
   /** step: single-step (ready to start OR paused to continue) */
   step: boolean;
-  /** abort: can abort/stop */
+  /** abort: can abort — in every state, without arm (a stop, BG-08) */
   abort: boolean;
+  /** spindleStop: the spindle stop at idle — machine on, interpreter idle;
+   *  no arm, no homing (BG-18). While a program or MDI runs or pauses it
+   *  owns the spindle: Pause / Abort. */
+  spindleStop: boolean;
+  /** toolChangeConfirm: the manual tool-change confirmation — armed and a
+   *  FRESH pending request; closed in simulation (BG-17). */
+  toolChangeConfirm: boolean;
   /** probe: ready + no eoffset (probing with comp active contaminates) */
   probe: boolean;
   /** zero: idle + no eoffset (zeroing with comp active bakes offset into G5x) */
@@ -105,7 +114,7 @@ export type Permissions = {
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
   "idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "pause", "resume", "step",
-  "abort", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
+  "abort", "spindleStop", "toolChangeConfirm", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
   "surfaceComp",
   "safety", "setup", "armed", "always",
 ] as const;
@@ -134,13 +143,25 @@ const SIM_GATES: ReadonlySet<keyof Permissions> = new Set([
   "always", "armed", "setup",
 ]);
 
+/**
+ * The stops (button gates BG-08 / BG-18, Codex R202–R204): no client-local
+ * term closes them — not disarmed (arm authorizes NEW machine effects; E-Stop
+ * was always open to every client), not the busy latch of another command,
+ * not simulation mode. The backend judges the state (Pause: something runs;
+ * the spindle stop: machine on and idle); its decision passes through as is.
+ */
+const STOP_GATES: ReadonlySet<keyof Permissions> = new Set([
+  "abort", "pause", "spindleStop",
+]);
+
 /** The backend's machine-state permission dict (computed with `armed=true`). */
 export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
 
 /**
  * Apply the client-local overlay to the backend-broadcast machine permissions.
- * `always` is unconditional; every other gate requires `armed`; busy-subset
- * gates also require `!busy`. Absent backend perms (before the first status)
+ * `always` is unconditional; a stop (STOP_GATES) is the backend's decision
+ * alone; every other gate requires `armed`; busy-subset gates also require
+ * `!busy`. Absent backend perms (before the first status)
  * yield all-false except `always` — the safe default.
  */
 let _warnedNoRun = false;
@@ -161,6 +182,7 @@ export function applyClientOverlay(
   }
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
+    if (STOP_GATES.has(g)) { out[g] = !!machine?.[g]; continue; }
     out[g] = !!machine?.[g] && armed
       && (BUSY_GATES.has(g) ? !busy : true)
       && (sim ? SIM_GATES.has(g) : true);
@@ -198,6 +220,11 @@ export function applyClientOverlayReasons(
   const out: PermissionReasons = {};
   for (const g of GATE_NAMES) {
     if (g === "always") continue;
+    if (STOP_GATES.has(g)) {
+      const r = machine?.[g];
+      if (r) out[g] = r;
+      continue;
+    }
     if (!armed) { out[g] = CLIENT_REASONS.notArmed; continue; }
     if (sim && !SIM_GATES.has(g)) { out[g] = CLIENT_REASONS.sim; continue; }
     if (busy && BUSY_GATES.has(g)) { out[g] = CLIENT_REASONS.settling; continue; }

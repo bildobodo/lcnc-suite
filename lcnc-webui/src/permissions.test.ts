@@ -11,6 +11,8 @@ import { applyClientOverlay, type MachinePermissions } from "./permissions";
 const MACHINE_READY: MachinePermissions = {
   idle: true, jog: true, override: true, ready: true, run: true, machineFrame: true, goZero: true, planeFrame: true,
   pause: false, resume: false, step: true, abort: true,
+  // the spindle stop at idle; no tool change is pending
+  spindleStop: true, toolChangeConfirm: false,
   probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true,
   armed: true, always: true,
@@ -26,13 +28,26 @@ describe("applyClientOverlay", () => {
     expect(p.always).toBe(true);
   });
 
-  it("disarmed closes everything except always", () => {
+  it("disarmed closes everything except always and the stops", () => {
     const p = applyClientOverlay(MACHINE_READY, false, false);
     expect(p.ready).toBe(false);
     expect(p.safety).toBe(false);
     expect(p.armed).toBe(false);
-    expect(p.abort).toBe(false);
     expect(p.always).toBe(true);
+    // Button gates BG-08 / BG-18: a stop needs no arm — the backend's
+    // decision passes through (it judges the state; arm is not its term).
+    expect(p.abort).toBe(true);
+    expect(p.spindleStop).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, pause: true }, false, false).pause).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, resume: true }, false, false).resume).toBe(false);
+    // The M6 confirmation continues the program: armed (BG-17).
+    expect(applyClientOverlay({ ...MACHINE_READY, toolChangeConfirm: true }, false, false).toolChangeConfirm).toBe(false);
+  });
+
+  it("a stop follows the backend: closed there, closed here", () => {
+    const p = applyClientOverlay({ ...MACHINE_READY, spindleStop: false, abort: false }, false, false);
+    expect(p.spindleStop).toBe(false);
+    expect(p.abort).toBe(false);
   });
 
   it("busy closes the busy-subset but not jog/abort", () => {
@@ -47,6 +62,9 @@ describe("applyClientOverlay", () => {
     // gates without a busy term stay open
     expect(p.jog).toBe(true);
     expect(p.abort).toBe(true);
+    // a stop is never held behind the latch of another command
+    expect(p.spindleStop).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, pause: true }, true, true).pause).toBe(true);
   });
 
   it("absent backend permissions yield all-false except always (safe default)", () => {
@@ -75,9 +93,17 @@ describe("simulation-mode overlay (client-local, simMode.ts)", () => {
     expect(p.idle).toBe(false);
     expect(p.override).toBe(false);
     expect(p.step).toBe(false);
-    expect(p.abort).toBe(false);
     // Machine On needs a purposeful sim exit first.
     expect(p.safety).toBe(false);
+    // The M6 confirmation continues the REAL interpreter (BG-17).
+    expect(applyClientOverlay({ ...MACHINE_READY, toolChangeConfirm: true }, true, false, true).toolChangeConfirm).toBe(false);
+  });
+
+  it("keeps the stops open in sim (BG-08)", () => {
+    const p = applyClientOverlay({ ...MACHINE_READY, pause: true }, true, false, true);
+    expect(p.abort).toBe(true);
+    expect(p.pause).toBe(true);
+    expect(p.spindleStop).toBe(true);
   });
 
   it("keeps always, armed, and setup open in sim", () => {
@@ -155,6 +181,16 @@ describe("applyClientOverlayReasons (U-06, review 2026-09-14)", () => {
     const sim = applyClientOverlayReasons(backend, true, false, true);
     expect(sim.ready).toBe(CLIENT_REASONS.sim);
     expect(sim.setup).toBeUndefined();      // stays open in sim
+    expect(sim.toolChangeConfirm).toBe(CLIENT_REASONS.sim);
+  });
+  it("a stop carries no client-local reason: only the backend's (BG-08)", () => {
+    const stops = { pause: "No program running", spindleStop: "Machine off — press Power on" };
+    for (const [armed, busy, sim] of [[false, false, false], [true, true, false], [true, false, true]] as const) {
+      const r = applyClientOverlayReasons(stops, armed, busy, sim);
+      expect(r.abort).toBeUndefined();
+      expect(r.pause).toBe("No program running");
+      expect(r.spindleStop).toBe("Machine off — press Power on");
+    }
   });
   it("a closed gate without a shipped reason stays unexplained, never invented", () => {
     expect(applyClientOverlayReasons(null, true, false, false)).toEqual({});

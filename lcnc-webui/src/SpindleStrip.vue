@@ -33,7 +33,10 @@ const emit = defineEmits<{
 <template>
   <div class="stripSection">
     <div class="sub">Spindle</div>
-    <Gate gate="ready" class="spnBlock stack-controls">
+    <!-- The direction row self-gates per button: the stop at idle needs no
+         homing (button gates BG-18), so it lives outside the `ready` fieldset;
+         Rev / Fwd / ± keep `ready` from the catalog. -->
+    <div class="spnBlock stack-controls">
       <div class="spDirRow row-controls">
         <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)">
           <span class="btn-label"><RotateCcw :size="14" /> Rev</span>
@@ -47,7 +50,7 @@ const emit = defineEmits<{
         </MachineBtn>
       </div>
 
-      <div class="spRpmRow row-controls">
+      <Gate gate="ready" class="spRpmRow row-controls">
         <MachineBtn type="spindleDecrease" @click="emit('spindleDecrease')">
           <Minus :size="14" />
         </MachineBtn>
@@ -55,9 +58,9 @@ const emit = defineEmits<{
         <MachineBtn type="spindleIncrease" @click="emit('spindleIncrease')">
           <Plus :size="14" />
         </MachineBtn>
-      </div>
+      </Gate>
 
-    </Gate>
+    </div>
 
     <div class="sep"></div>
 

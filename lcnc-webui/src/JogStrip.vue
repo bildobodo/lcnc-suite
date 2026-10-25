@@ -4,7 +4,8 @@ import { computed, inject, ref, watch, nextTick, onMounted, onUnmounted, type Re
 import { send } from "./lcncWs";
 import { usePermissions } from "./permissions";
 import { INPUT_DEFS } from "./machineControls";
-import { registerJog, unregisterJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
+import { registerJog, activeJogKeys, forceStopAllJogs, forceStopJog, jogKeyFor } from "./useJogPointers";
+import { stopFor, type JogGesture } from "./jogGesture";
 import { useAxes } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import MachineSelect from "./MachineSelect.vue";
@@ -337,11 +338,14 @@ function stopAllJog() {
   }
 }
 
-function makeBtnStopFn(btn: JogDef): () => void {
-  const isDiag = btn.axis2 != null;
-  if (props.jogIncrement > 0) return () => {};
-  if (isDiag) return () => send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
-  return () => send({ cmd: "jog_stop", axis: btn.axis });
+// A gesture's stop is decided at its START (button gates BG-06): the step
+// selected then and the axes pressed — a step changed mid-hold must not
+// leave a continuous jog without its jog_stop.
+function stopFnFor(gesture: JogGesture): () => void {
+  return () => {
+    const c = stopFor(gesture);
+    if (c) send(c);
+  };
 }
 
 function startJog(btn: JogDef, e: PointerEvent) {
@@ -377,7 +381,10 @@ function startJog(btn: JogDef, e: PointerEvent) {
     }
   }
 
-  registerJog(e.pointerId, btn.label, makeBtnStopFn(btn), el);
+  registerJog(e.pointerId, btn.label, stopFnFor({
+    axes: isDiag ? [btn.axis, btn.axis2!] : [btn.axis],
+    cont: !(props.jogIncrement > 0),
+  }), el);
 }
 
 function stopJog(btn: JogDef, e: PointerEvent) {
@@ -385,19 +392,8 @@ function stopJog(btn: JogDef, e: PointerEvent) {
   // this jog may stop it — a second finger tapping the held button must
   // not send jog_stop for a jog it doesn't own (registry desync).
   if (jogKeyFor(e.pointerId) !== btn.label) return;
-
-  if (props.jogIncrement <= 0) {
-    const isDiag = btn.axis2 != null;
-    if (isDiag) {
-      send({ cmd: "jog_stop_multi", axes: [btn.axis, btn.axis2!] });
-    } else {
-      send({ cmd: "jog_stop", axis: btn.axis });
-    }
-  }
-
-  unregisterJog(e.pointerId);
-  // safe-silent: releasing an already-released pointer throws harmlessly
-  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+  // The stop the gesture registered at its start; releases the capture.
+  forceStopJog(e.pointerId);
 }
 
 /**
@@ -435,8 +431,7 @@ function startAxisJog(axisIndex: number, dir: 1 | -1, vel: number, e: PointerEve
     send({ cmd: "jog_cont", axis: axisIndex, vel: vel * dir });
   }
 
-  const stopFn = props.jogIncrement > 0 ? () => {} : () => send({ cmd: "jog_stop", axis: axisIndex });
-  registerJog(e.pointerId, key, stopFn, el);
+  registerJog(e.pointerId, key, stopFnFor({ axes: [axisIndex], cont: !(props.jogIncrement > 0) }), el);
 }
 
 function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
@@ -444,14 +439,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
   const key = `${letter}${dir > 0 ? "+" : "-"}`;
   // Ownership guard — see stopJog.
   if (jogKeyFor(e.pointerId) !== key) return;
-
-  if (props.jogIncrement <= 0) {
-    send({ cmd: "jog_stop", axis: axisIndex });
-  }
-
-  unregisterJog(e.pointerId);
-  // safe-silent: releasing an already-released pointer throws harmlessly
-  try { (e.currentTarget as HTMLElement)?.releasePointerCapture?.(e.pointerId); } catch {}
+  forceStopJog(e.pointerId);
 }
 </script>
 

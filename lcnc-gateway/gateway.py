@@ -104,7 +104,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, motion_still_of, check_command, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -321,7 +321,12 @@ _WS_CMD_QUEUE_MAX = 32
 # Stop-class commands are never rejected by backpressure ("no stop command
 # may be droppable", docs/decisions.md) — a 4× hard cap still bounds a
 # broken client.
-_WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop"})
+# cycle_pause and spindle_stop are stops too (button gates BG-08/BG-18): a
+# full queue never rejects them and an abort never cancels them — a pause or
+# a spindle stop that runs after an abort is harmless; one that is dropped
+# is not.
+_WS_STOP_CMDS = frozenset({"jog_stop", "jog_stop_multi", "abort", "estop",
+                           "cycle_pause", "spindle_stop"})
 # abort/estop SUPERSEDE the work this client queued before them and PREEMPT
 # any in-flight non-stop handler on EVERY client (2026-09-05): a stop must
 # never wait behind a 30 s MDI wait, and abort/E-Stop are machine-global, so
@@ -936,6 +941,13 @@ _reader_recv_loop = _hal_bridge.reader_recv_loop
 _reader_request = _hal_bridge.reader_request
 _reader_get = _hal_bridge.reader_get
 _reader_is_stale = _hal_bridge.reader_is_stale
+
+
+def _reader_fresh_get(field: str):
+    """A reader value only while its snapshot is fresh, else None — for a
+    POLICY decision (button gates BG-12): a stale snapshot's last value is
+    no answer now. Displays keep _reader_get and the reader_stale banner."""
+    return None if _reader_is_stale() else _reader_get(field)
 
 # Safety-chain completeness banner (review group B1). Grace covers the
 # concurrent process bring-up window; after it, a down watchdog socket or a
@@ -2387,6 +2399,8 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_kins_switchable=lambda: _kins_is_switchable(),
     get_twp_capable=lambda: _twp_capable(),
     get_identity_first=lambda: _identity_first(),
+    # The reader-derived policy inputs count only while it is fresh (BG-12).
+    get_reader_fresh=lambda: not _hal_bridge.reader_is_stale(),
     # Raw W1 stamps (late-bound: _prov_cache is defined below). No
     # falsification pass — a hand-typed G10 under a reserved fixture is the
     # documented operator-caused escape.
@@ -3596,9 +3610,8 @@ async def _jog_stop_for_client() -> None:
     interp = safe_get("interp_state", None)
     if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
         return  # program running — no jog to stop, must not switch mode
-    homed = normalize_homed(safe_get("homed", None))
-    if not homed:
-        return  # nothing to jog-stop if not homed
+    # Homed or not: a jog the gateway started is stopped (button gates BG-07 —
+    # a joint jog before homing must stop on a disarm like any other).
     if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_for_client"):
         return  # an MDI is executing — no jog can be in flight; a mode switch would abort it
     await set_mode(linuxcnc.MODE_MANUAL)
@@ -3619,9 +3632,15 @@ def require_no_eoffset():
     bake the eoffset into the new offset (the current position the offset is
     derived from is contaminated). LinuxCNC itself doesn't enforce this web-UI
     gate, so a direct client could otherwise bypass it. Mirrors the frontend's
-    `!eoffsetEnabled` condition: only blocks when the pin is definitely enabled
-    (None/stale → allowed, matching the UI)."""
-    if _reader_get("z_eoffset_enable"):
+    `!eoffsetEnabled` condition. Unknown is not "off" (button gates BG-12): a
+    stale reader, or an unread pin on a machine with a Z axis, refuses — the
+    same eoffset_state rule the gates use."""
+    on = _status_runtime_mod.eoffset_state(
+        _reader_fresh_get("z_eoffset_enable"), not _reader_is_stale(),
+        safe_get("axis_mask", None))
+    if on is None:
+        raise PermissionError("Surface compensation state unknown — HAL reader stale")
+    if on:
         raise PermissionError("Surface compensation active — clear the eoffset before editing work offsets")
 
 
@@ -3656,11 +3675,14 @@ def require_tool_change_pending():
     means the confirmation is meaningless at best and desynchronises the
     toolchange handshake at worst.
 
-    Same None/stale convention as require_no_eoffset(): only blocks when the pin
-    DEFINITELY says no change is pending (`is False`), so an absent or stale
-    reader snapshot allows the command rather than stranding an operator
-    mid-change."""
-    if _reader_get("tool_change") is False:
+    Only a FRESH pending request is confirmed (button gates BG-12 / BG-17):
+    an absent or stale reader is no request — asserting tool-changed into a
+    handshake nobody asked for desynchronises it. The operator is not
+    stranded: the reader_stale banner says why, Abort stays."""
+    pending = _reader_fresh_get("tool_change")
+    if pending is None:
+        raise PermissionError("Tool change request unknown — HAL reader stale")
+    if pending is not True:
         raise PermissionError("No tool change pending")
 
 
@@ -3727,17 +3749,29 @@ def _rfl_busy() -> bool:
     return any(t is not None and not t.done() for t in (_rfl_task, _rfl_flag_task))
 
 
-async def _start_guard(armed: bool, clears_flag: bool = False) -> Optional[dict]:
+async def _start_guard(armed: bool, clears_flag: bool = False,
+                       program: bool = False) -> Optional[dict]:
     """Before a start from idle — a program, a first step, an MDI line, a
     tool change (an M6 remap may run the routine): None to go on, else the
     refusal (Codex R18 XZ-11 — a normal start took over an old skip flag).
     While run from line starts or ends, its flag is not settled: refused.
     A flag that may be set is cleared first, in this same command — only
     once the interpreter took the clear does anything start. `clears_flag`:
-    the command's own values carry #3116=0 (_skip_flag_cleared)."""
+    the command's own values carry #3116=0 (_skip_flag_cleared).
+    `program`: a PROGRAM start (Cycle Start, run from line, Step from idle)
+    — the kinematics must be runnable, re-checked here on the current
+    snapshot behind the dispatcher's gate (button gates BG-09: Step from
+    idle had no kinematics rule at all). An MDI line is no program start: it
+    is how a stranded frame is fixed (M428, G69)."""
     why = _rfl_busy_reason()
     if why:
         return {"ok": False, "error": why}
+    if program:
+        if _shared_status is None:
+            return {"ok": False, "error": "Machine status not read yet — wait"}
+        why = kins_runnable(_live_policy_state(armed))
+        if why:
+            return {"ok": False, "error": why}
     if _skip_flag_unknown and not clears_flag:
         # A refused switch (a jog held) says so itself — the MDI below would
         # swallow it into "not cleared".
@@ -4396,10 +4430,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
         if _deny is not None:
             _trace.emit("ws.command_denied", level="warn", cmd=cmd, reason=_deny)
             return {"ok": False, "error": _deny}
-    else:
-        # No status snapshot yet (pre-first-poll window). Can't evaluate state;
-        # the handler-level guards still apply. Trace so the gap is auditable.
-        _trace.emit("policy.check_skipped_no_state", level="warn", cmd=cmd)
+    elif COMMAND_GATES.get(cmd) is not None and COMMAND_GATES[cmd] not in STATELESS_GATES:
+        # No status snapshot yet (pre-first-poll window): nothing to judge the
+        # command against, so only the gates that need no state pass — E-Stop,
+        # Arm, the jog stops, Abort (button gates BG-12; this used to let
+        # every command through to its handler).
+        _trace.emit("ws.command_denied", level="warn", cmd=cmd, reason="no status yet")
+        return {"ok": False, "error": "Machine status not read yet — wait"}
 
     # Payload BOUNDS against what the machine declares (issue #27). Separate
     # claim from finite_int/finite_float's TYPE check in the handlers — see the
@@ -4508,7 +4545,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "abort":
-            require_armed(armed)
+            # A stop needs no arm (button gates BG-08): arm authorizes NEW
+            # machine effects — E-Stop was already open to every client.
             await _cmd_blocking(CMD.abort, wait=None)
             return {"ok": True}
 
@@ -4916,7 +4954,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # Idle → start program and step. A paused program is one a
                 # start already cleared the skip flag for — or run from
                 # line's own, whose skim owns it; no MDI while paused.
-                refused = await _start_guard(armed)
+                refused = await _start_guard(armed, program=True)
                 if refused:
                     return refused
                 await set_mode(linuxcnc.MODE_AUTO)
@@ -4994,7 +5032,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 # The skim of lines before N runs the M600 bodies: a flag that
                 # may be set is cleared first (Codex R18 XZ-11); with a
                 # pre-measurement its values carry the clear.
-                refused = await _start_guard(armed, clears_flag=bool(pre_tool))
+                refused = await _start_guard(armed, clears_flag=bool(pre_tool), program=True)
                 if refused:
                     return refused
                 if pre_tool:
@@ -5006,7 +5044,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                            program=identity)
                 return {"ok": True, "rfl": "started"}
 
-            refused = await _start_guard(armed)
+            refused = await _start_guard(armed, program=True)
             if refused:
                 return refused
             if spindle_dir and spindle_speed > 0:
@@ -5166,7 +5204,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
 
         if cmd == "cycle_start":
             require_armed(armed)
-            refused = await _start_guard(armed)
+            refused = await _start_guard(armed, program=True)
             if refused:
                 return refused
             await set_mode(linuxcnc.MODE_AUTO)
@@ -5174,7 +5212,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "cycle_pause":
-            require_armed(armed)
+            # Interrupting a running sequence is a stop (BG-08); resuming it
+            # is new motion and keeps require_armed below.
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_PAUSE, wait=None)
             return {"ok": True}
 
@@ -5215,8 +5254,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             return {"ok": True}
 
         if cmd == "spindle_stop":
-            require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
+            # The spindle stop at idle (button gates BG-18): no arm, no
+            # homing, and no MANUAL switch on the way — task takes the direct
+            # spindle stop in MANUAL, MDI and AUTO while the interpreter is
+            # idle. A program or an MDI that started since the gate's
+            # snapshot owns the spindle: refused, Pause / Abort are the stops.
+            STAT.poll()
+            if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
+                return {"ok": False, "error": "Program running — use Pause or Abort"}
             await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_OFF, wait=None)
             return {"ok": True}
 

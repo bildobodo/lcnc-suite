@@ -34,6 +34,9 @@ def _payload(**over):
         estop=False, enabled=True, emc_enable_in=True, homed=True,
         interp_state=linuxcnc.INTERP_IDLE, paused=False, eoffset_enabled=False,
         rotary_at_zero=True,
+        # The HAL reader is fresh: its values count as policy inputs (button
+        # gates BG-12 — a snapshot that does not say is stale).
+        reader_fresh=True,
     )
     base.update(over)
     return SimpleNamespace(**base)
@@ -1821,18 +1824,23 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self._switchable = gateway._kins_is_switchable
         self._capable = gateway._twp_capable
         self._reader_get = gateway._reader_get
+        self._reader_is_stale = gateway._reader_is_stale
         self._identity_first = gateway._identity_first
         self._kins_cmd_cache = gateway._kins_mode_cmd_cache
         self._prov = dict(gateway._prov_cache)
         gateway._prov_cache.clear()
         self._skip_flag = gateway._skip_flag_unknown
         gateway._skip_flag_unknown = False   # these starts are about the mode, not the flag
+        # A fresh, empty reader by default (the eoffset pin read off): a stale
+        # one refuses every eoffset-guarded handler (button gates BG-12).
+        self._reader()
 
     def tearDown(self):
         gateway._skip_flag_unknown = self._skip_flag
         gateway._kins_is_switchable = self._switchable
         gateway._twp_capable = self._capable
         gateway._reader_get = self._reader_get
+        gateway._reader_is_stale = self._reader_is_stale
         gateway._identity_first = self._identity_first
         gateway._kins_mode_cmd_cache = self._kins_cmd_cache
         gateway._prov_cache.clear()
@@ -1840,8 +1848,12 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
 
     def _reader(self, **pins):
         """Scripted HAL-reader snapshot — the controller's own answer, as
-        distinct from the published status payload (R-02)."""
+        distinct from the published status payload (R-02). A FRESH one that
+        carries the eoffset pin like the real reader: unknown refuses
+        (button gates BG-12)."""
+        pins.setdefault("z_eoffset_enable", False)
         gateway._reader_get = pins.get
+        gateway._reader_is_stale = lambda: False
 
     # The two shipped switchkins configurations, read from the remap subs
     # THEMSELVES rather than restated here (R-01): the point of the finding is

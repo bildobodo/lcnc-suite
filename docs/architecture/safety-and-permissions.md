@@ -59,3 +59,47 @@ step skips when already at/above; the matrix certifies the frame premise
 (`#<_abs_z>` == machine-frame Z with a TLO active) and both branches from
 above/below machine zero (the above rows SKIP with the reason on a Z0-at-top
 config).
+
+**Button gates, package A (2026-10-25, review `docs/reviews/button-gates.review.md`, Codex R202–R204).**
+An enabled control means the action is admissible in the last CONFIRMED state;
+the server re-checks before the effect. Package A closed what made that false:
+- *A started jog owns its stop* (BG-06, reproduced by Codex in R202): keyboard,
+  pointer and D-pad record at the press what they started (`jogGesture.ts`:
+  axes, continuous or a step) and the release sends that gesture's stop. They
+  used to re-read the step selector (a Cont jog whose step became 1 mm mid-hold
+  sent no `jog_stop` — the machine kept moving), the D-pad re-read the Z
+  modifier (Z jog, modifier let go first → `jog_stop` for Y), and the pad's
+  analog channel stopped a D-pad jog it had not started one frame after the
+  press. App's focus-loss stop sends every gesture's own stop and no longer
+  waits for the `jog` gate; the gateway's disarm jog-stop stops an unhomed
+  machine's jog too (BG-07 part).
+- *Step from idle is a start* (BG-09): `step` = paused OR the `run` rule (idle,
+  homed, kins runnable); `_start_guard(program=True)` re-checks `kins_runnable`
+  for Cycle Start, run from line and Step from idle — never for an MDI line,
+  the way out of a stranded frame. Run from line's confirm runs under `run`.
+- *Unknown is closed* (BG-12): `interp_state` None is no longer INTERP_IDLE
+  (`interp_known`, `STATE_UNKNOWN` before every idle/running/paused rule); the
+  reader-derived policy inputs (kins type, plane, head pose, eoffset, the
+  tool-change request) count only while the reader is fresh
+  (`StatusPayload.reader_fresh`, `policy_state_from_payload`) — the payload
+  keeps the last reading for the display, the reader_stale banner says it is
+  old. An unread eoffset pin is unknown on a machine with Z and off on one
+  without (`eoffset_state`: a declaration, not a guess). Before the first
+  status only `STATELESS_GATES` pass the dispatcher (it used to skip the check).
+  Handlers read the reader through `_reader_fresh_get`.
+- *The M6 confirmation* (BG-17) has its own gate `toolChangeConfirm`: armed and
+  a FRESH pending request, closed in simulation (it continues the real
+  interpreter); a confirmation waiting for a replaced request is dropped.
+- *Stops need no arm* (BG-08 / BG-18): `abort` has no requirement, `pause` is
+  running-and-not-paused (AUTO or MDI), `spindleStop` is on + idle without arm
+  or homing and sends the direct NML stop without a MANUAL switch (task takes it
+  in MANUAL, MDI and AUTO at idle; a run that started since the snapshot is
+  refused — the program owns the spindle). The client overlay never closes a
+  stop (`STOP_GATES`), `cycle_pause` / `spindle_stop` are never debounced and
+  are stop-class in the gateway queue. Resume, Step and the M6 confirmation are
+  no stops. **Deviation until package C:** the Abort and Pause buttons inside the
+  outer `armed` fieldset (G-code panel, Probing, Macros, the macro bar) and the
+  strip's spindle stop are still disabled by that fieldset while disarmed; the
+  banner's Abort, every dialog's Abort, the keyboard and the gamepad reach the
+  stops now. The unused `dialogBase` catalog type (the `abort` gate as a
+  "machine on" proxy) was removed.

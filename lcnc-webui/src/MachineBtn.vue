@@ -116,7 +116,9 @@ const btnRef = ref<{ $el?: HTMLElement } | null>(null);
 // The anchor is a getter: a closing gate swaps the Btn into its .btnTip
 // wrapper in the same flush, and the hint is placed after that render.
 function showHint(text: string) { showBtnHint(() => btnRef.value?.$el, text); }
-const STOP_TYPES = new Set(['abort', 'bannerAbort', 'estop', 'arm', 'machineOn']);
+// Never held behind the busy latch (lcnc.ts NEVER_DEBOUNCED): the stops of
+// button gates BG-08 / BG-18 included.
+const STOP_TYPES = new Set(['abort', 'bannerAbort', 'estop', 'arm', 'machineOn', 'pause', 'spindleStop']);
 function busyWillDrop(): boolean {
   return busy.value && def.value.gate !== 'always' && !STOP_TYPES.has(props.type);
 }
