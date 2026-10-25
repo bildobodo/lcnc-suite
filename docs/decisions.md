@@ -9371,3 +9371,57 @@ delivered and acknowledged. And a gap row the closing refinement could not
 write left the result complete; `finish`'s refusals now count before the
 result goes out.
 
+
+## 2026-10-25 — The simulation is feature-complete: validation next, the rest deferred or closed (operator)
+
+VP188-02 is closed for the operator's Mac with the VM (Codex R200, R201): the
+keyed A/S/R run of 2026-10-25 met status age p95 36 ms in S_supersede with 370
+presses, every other phase p95 36 ms, the run check's overlap with a pinned
+parse proven. With it the browser-PC measurement is accepted on that setup.
+
+**Feature freeze for the simulation** (operator, same day). Nothing new is
+built until real use asks for it. The code grew from about 31 000 lines of
+product code on 2026-08-01 to about 89 000 (61 000 frontend, 28 000 gateway),
+with about 90 000 lines of tests; since 2026-10-21 the work went into review
+rounds and evidence, not features. Part of that size is the domain (RS274
+semantics, kinematics labelings, the certified collision check); part has
+accumulated (`ThreeViewer.vue` 6 300 lines, `gateway.py` 10 000). No refactor
+for its own sake — the guarantees hang on the tests, and a large split puts
+them at risk; split only where a change forces it.
+
+**Next — validation, not features:** the acceptance on the machine PC, a live
+M600 run, the touchscreen validation that gates `main`. Only `development` is
+tested on the real machine.
+
+**Measured, not built:** the collision check's compute budget on shared
+hardware (plan basiswechsel-last Fassung 5 §7: K = cores − 2 shards does not
+count a gateway on the same computer). On a panel PC where browser, gateway
+and LinuxCNC share the cores, the check's workers compete with the heartbeat
+path — safety margin, not performance. The machine-PC acceptance looks at the
+gateway's `hb_stall` and the watchdog's receipt gaps while a collision check
+runs; if it bites, a smaller K is the known lever.
+
+**Deferred, demand-driven:**
+- Step 4 package 3, declared allowed contacts (`allowedContacts`, VP84-02,
+  plan kollision-schritt4): reopened when a real machine model shows a false
+  finding the static rule (rest ∧ first pose) causes, or needs "mechanical
+  range left" as a finding. It is no speed-up: designed contacts the static
+  rule finds are never queried today, and the measured cost of haus.ngc in
+  the operator's 2026-10-07 pose went to real penetrations (95.6 % of the time
+  in distance queries, 99.9 % of that on pairs with findings).
+- The contact certificate for lasting penetration (plan kollision-schritt4,
+  "Nicht in diesem Plan"): it speeds up programs that already collide
+  massively; their first finding arrives in under a second regardless.
+- The closest-approach refinement stays shelved (operator, earlier).
+
+**Closed with a reason:** step 5, the track split into sections checked in
+parallel. The pair shards already give ×2–4, and the section seams reopen
+the state question of R114 (a contact, a certificate, a cutting origin
+crossing the seam).
+
+**The guide:** `CLAUDE.md` had grown to 367 KB, a history of every feature
+loaded in every session. Its long entries moved verbatim to
+`docs/architecture/` (frontend modules, UI patterns, safety and permission
+details, the machine model, the preview, scrub and run, the collision check;
+every former line is in the new set, checked line by line); `CLAUDE.md` keeps
+the architecture, the rules in short and the mandatory checklists (80 KB).
