@@ -1,0 +1,6 @@
+# Quelle: runlogs/trace.ndjson* (Live-Sim XYZAC, Gateway pid 2356275), Auszug 25.10.2026, alle Ereignisse task.mode_switch_ignored
+# mode 2 = AUTO, actual 1 = MANUAL; task_state 4 = ON, 2 = ESTOP_RESET (Maschine aus)
+2026-10-25 19:11:55 {"t_wall_ns":1792951915874151008,"t_mono_ms":188515771.663,"proc":"gateway","pid":2356275,"tag":"task.mode_switch_ignored","level":"warn","mode":2,"actual":1,"jogging":false,"task_state":4,"homed":false}
+2026-10-25 19:12:21 {"t_wall_ns":1792951941177342294,"t_mono_ms":188541074.855,"proc":"gateway","pid":2356275,"tag":"task.mode_switch_ignored","level":"warn","mode":2,"actual":1,"jogging":false,"task_state":4,"homed":false}
+2026-10-25 19:13:28 {"t_wall_ns":1792952008157459103,"t_mono_ms":188608054.971,"proc":"gateway","pid":2356275,"tag":"task.mode_switch_ignored","level":"warn","mode":2,"actual":1,"jogging":false,"task_state":4,"homed":false}
+2026-10-25 19:14:01 {"t_wall_ns":1792952041661522346,"t_mono_ms":188641559.034,"proc":"gateway","pid":2356275,"tag":"task.mode_switch_ignored","level":"warn","mode":2,"actual":1,"jogging":false,"task_state":2,"homed":false}
