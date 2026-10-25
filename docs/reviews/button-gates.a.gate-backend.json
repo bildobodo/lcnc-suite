@@ -1,6 +1,6 @@
 {
   "mode": "offline",
-  "started": "2026-10-25T20:26:19.393009+00:00",
+  "started": "2026-10-25T21:33:31.112030+00:00",
   "root": "/home/cnc/lcnc-suite-gates",
   "gates": [
     {
@@ -12,11 +12,11 @@
       ],
       "cwd": "/home/cnc/lcnc-suite-gates/lcnc-gateway",
       "log": "backend.log",
-      "started": "2026-10-25T20:26:19.400285+00:00",
+      "started": "2026-10-25T21:33:31.120235+00:00",
       "status": "pass",
       "exit_code": 0,
-      "seconds": 65.66,
-      "finished": "2026-10-25T20:27:25.056289+00:00",
+      "seconds": 66.38,
+      "finished": "2026-10-25T21:34:37.499039+00:00",
       "notes": []
     },
     {
@@ -27,11 +27,11 @@
       ],
       "cwd": "/home/cnc/lcnc-suite-gates",
       "log": "5axis-model.log",
-      "started": "2026-10-25T20:27:25.056505+00:00",
+      "started": "2026-10-25T21:34:37.499308+00:00",
       "status": "pass",
       "exit_code": 0,
-      "seconds": 0.82,
-      "finished": "2026-10-25T20:27:25.879108+00:00",
+      "seconds": 0.77,
+      "finished": "2026-10-25T21:34:38.270161+00:00",
       "notes": []
     },
     {
@@ -44,11 +44,11 @@
       ],
       "cwd": "/home/cnc/lcnc-suite-gates",
       "log": "audit-css.log",
-      "started": "2026-10-25T20:27:25.879281+00:00",
+      "started": "2026-10-25T21:34:38.270346+00:00",
       "status": "pass",
       "exit_code": 0,
-      "seconds": 1.22,
-      "finished": "2026-10-25T20:27:27.101882+00:00",
+      "seconds": 1.08,
+      "finished": "2026-10-25T21:34:39.355249+00:00",
       "notes": []
     },
     {
@@ -61,11 +61,11 @@
       ],
       "cwd": "/home/cnc/lcnc-suite-gates",
       "log": "review-handshake.log",
-      "started": "2026-10-25T20:27:27.102203+00:00",
+      "started": "2026-10-25T21:34:39.355411+00:00",
       "status": "pass",
       "exit_code": 0,
-      "seconds": 4.57,
-      "finished": "2026-10-25T20:27:31.668072+00:00",
+      "seconds": 4.51,
+      "finished": "2026-10-25T21:34:43.862377+00:00",
       "notes": []
     },
     {
@@ -78,11 +78,11 @@
       ],
       "cwd": "/home/cnc/lcnc-suite-gates",
       "log": "readback-target.log",
-      "started": "2026-10-25T20:27:31.668262+00:00",
+      "started": "2026-10-25T21:34:43.862574+00:00",
       "status": "pass",
       "exit_code": 0,
-      "seconds": 0.17,
-      "finished": "2026-10-25T20:27:31.839565+00:00",
+      "seconds": 0.16,
+      "finished": "2026-10-25T21:34:44.027582+00:00",
       "notes": []
     },
     {
@@ -95,19 +95,21 @@
       ],
       "cwd": "/home/cnc/lcnc-suite-gates",
       "log": "parity-compare.log",
-      "started": "2026-10-25T20:27:31.839752+00:00",
+      "started": "2026-10-25T21:34:44.027755+00:00",
       "status": "pass",
       "exit_code": 0,
       "seconds": 0.16,
-      "finished": "2026-10-25T20:27:32.003819+00:00",
+      "finished": "2026-10-25T21:34:44.191811+00:00",
       "notes": []
     }
   ],
-  "commit": "d24adda0ffacf32d3e38ad5ef6d64f934bc2cc9b",
+  "commit": "ad761e47c5f1c5d00baf746a0a63a851141e79aa",
   "tracked_changes": [],
   "runner_sha256": "ad2a70abaac46b079e3e0e3e02afc5b745eba88f98910c8cdd40149d4a6ca2d7",
   "status": "pass",
-  "changed_file_sha256": {},
+  "changed_file_sha256": {
+    "docs/reviews/button-gates.a.gate-frontend.json": "26cc64aa01556538f01fa310698612cb3b97f069d2419d5dbbe9e633244f08df"
+  },
   "not_run": [],
-  "finished": "2026-10-25T20:27:32.003983+00:00"
+  "finished": "2026-10-25T21:34:44.191999+00:00"
 }
