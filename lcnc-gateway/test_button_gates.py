@@ -21,6 +21,7 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()   # MUST precede `import gateway`
 import gateway  # noqa: E402
 from command_policy import (  # noqa: E402
+    SPINDLE_OWNED,
     COMMAND_GATES,
     MachineState,
     check_command,
@@ -166,6 +167,9 @@ class TestStopsNeedNoArm(unittest.TestCase):
         for s in (running(), paused()):
             with self.subTest(state=s):
                 self.assertFalse(evaluate_permissions(s)["spindleStop"])
+                # the dimmed stop names the stops that do work (live R205 S2
+                # read "Machine busy — wait until it is idle")
+                self.assertEqual(permission_reasons(s)["spindleStop"], SPINDLE_OWNED)
 
     def test_spindle_stop_closed_off_and_in_estop(self):
         self.assertFalse(evaluate_permissions(state(is_enabled=False))["spindleStop"])

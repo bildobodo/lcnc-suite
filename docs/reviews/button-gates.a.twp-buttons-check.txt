@@ -1,0 +1,107 @@
+=== 0. preconditions ===
+  G54=[-100.0, 140.0, -725.0] stamped=0 toolsetter=yes
+
+=== 1. Machine frame (M428) ===
+  PASS  [Machine] Zero All routes to the mdi touch-off and stamps G54
+  PASS  [Machine] G54 stamp: kins 0, A 0
+  PASS  [Machine] → Home / → G30 gate 'machineFrame' open
+  PASS  [Machine] → Zero gate 'goZero' open
+  PASS  [Machine] Cycle Start gate 'run' open
+  PASS  [Machine] Tool measure / load gate 'machineFrame' open
+  PASS  [Machine] Probe op gate 'machineFrame' open
+  PASS  [Machine] → Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)
+  SKIP  [Machine] → Zero from ABOVE Z0  — Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable — the guard's skip branch is dead by construction on this config
+  PASS  [Machine] → Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0
+  SKIP  [Machine] → Home from ABOVE Z0  — Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable — the guard's skip branch is dead by construction on this config
+  PASS  [Machine] → G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183
+  SKIP  [Machine] → G30 from ABOVE Z0  — Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable — the guard's skip branch is dead by construction on this config
+  PASS  [Machine] #<_abs_z> == machine-frame Z with a 12.5 TLO active; #<_z> == abs - G5x - G92 - TLO
+  PASS  [Machine] Zero All at A=20 stamps A 20
+  PASS  [Machine] → Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)
+  PASS  [Machine] → Zero while the A jog is HELD: the jog is real (A moving) and → Zero is REFUSED with the reason (mode change while jogging)
+  PASS  [Machine] → Zero after releasing the A jog completes (A 20, X/Y zero)
+  PASS  [Machine] a stray jog_stop during the → Zero MDI does not abort it (A 20, X/Y zero)
+  SKIP  [Machine] Tool measure (M600) run  — toolsetter configured — run manually, not by this script
+
+=== 2. TCP (M429, table at A=0) ===
+  PASS  [TCP] → Home / → G30 gate 'machineFrame' closed
+  PASS  [TCP] → Zero gate 'goZero' closed
+  PASS  [TCP] Cycle Start gate 'run' open
+  PASS  [TCP] Tool measure / load gate 'machineFrame' closed
+  PASS  [TCP] Probe op gate 'machineFrame' closed
+  PASS  [TCP] → Zero refused with a reason naming where it works (Machine frame and Plane)
+  PASS  [TCP] tool_change refused backend-side (Machine frame required)
+  PASS  [TCP] Zero Z at A=0 routes to the mdi touch-off
+  PASS  [TCP] Zero All at A=0 under TCP stamps G54 with kins 1
+  PASS  [Machine] → Zero in Machine frame refuses a fixture stamped under TCP (numbers are table-frame)
+  PASS  [Machine] Zero All back in the Machine frame re-stamps G54 (kins 0)
+
+=== 3. Plane (captured at the tip, G59) ===
+  PASS  [Plane] Capture defines the plane at the tip (kins 2, G59)
+  PASS  [Plane] → Home / → G30 gate 'machineFrame' closed
+  PASS  [Plane] → Zero gate 'goZero' open
+  PASS  [Plane] Cycle Start gate 'run' open
+  PASS  [Plane] Tool measure / load gate 'machineFrame' closed
+  PASS  [Plane] Probe op gate 'machineFrame' closed
+  PASS  [Plane] Zero Z routes through the plane; DRO reads the entered value
+  PASS  [Plane] → Zero: retracts along the tool axis to ≥ 25, then X0 Y0 in the plane; rotaries untouched
+  PASS  [Plane] Cycle Start (G54 under Plane kins — the M2 strand) gate 'run' closed
+  PASS  [Plane] → Zero (G54 under Plane kins) gate 'goZero' closed
+  PASS  [Plane] Step (G54 under Plane kins — a start) gate 'step' closed
+  PASS  [Plane] Step refused in the M2 strand, nothing started
+  PASS  [Plane] Cycle Start (G59 again) gate 'run' open
+  PASS  [Plane] Step (G59 again) gate 'step' open
+  PASS  [Plane] Plane: +Z jog (tool axis) runs joint Z past its ceiling; machine stays ON; status reports joints_beyond_limit == ['Z']
+  PASS  [Plane] Plane: after the fault a UI −Z jog moves the joint back inside (joint mode), the report clears, and MDI works again
+
+=== table ===
+PASS | Machine | Zero All routes to the mdi touch-off and stamps G54
+PASS | Machine | G54 stamp: kins 0, A 0
+PASS | Machine | → Home / → G30 gate 'machineFrame' open
+PASS | Machine | → Zero gate 'goZero' open
+PASS | Machine | Cycle Start gate 'run' open
+PASS | Machine | Tool measure / load gate 'machineFrame' open
+PASS | Machine | Probe op gate 'machineFrame' open
+PASS | Machine | → Zero from BELOW Z0 (G53 Z-60): Z at machine top exactly, X/Y at work zero, A back to the stamp (0)
+SKIP | Machine | → Zero from ABOVE Z0
+PASS | Machine | → Home from BELOW Z0: Z to machine top, X/Y to machine zero, A 0
+SKIP | Machine | → Home from ABOVE Z0
+PASS | Machine | → G30 from BELOW Z0: retracts to the top first (max Z seen ~ 0), then lands on #5181..#5183
+SKIP | Machine | → G30 from ABOVE Z0
+PASS | Machine | #<_abs_z> == machine-frame Z with a 12.5 TLO active; #<_z> == abs - G5x - G92 - TLO
+PASS | Machine | Zero All at A=20 stamps A 20
+PASS | Machine | → Zero after jogging A away: table returns to A 20 and X/Y read zero (tip on the datum)
+PASS | Machine | → Zero while the A jog is HELD: the jog is real (A moving) and → Zero is REFUSED with the reason (mode change while jogging)
+PASS | Machine | → Zero after releasing the A jog completes (A 20, X/Y zero)
+PASS | Machine | a stray jog_stop during the → Zero MDI does not abort it (A 20, X/Y zero)
+SKIP | Machine | Tool measure (M600) run
+PASS | TCP     | → Home / → G30 gate 'machineFrame' closed
+PASS | TCP     | → Zero gate 'goZero' closed
+PASS | TCP     | Cycle Start gate 'run' open
+PASS | TCP     | Tool measure / load gate 'machineFrame' closed
+PASS | TCP     | Probe op gate 'machineFrame' closed
+PASS | TCP     | → Zero refused with a reason naming where it works (Machine frame and Plane)
+PASS | TCP     | tool_change refused backend-side (Machine frame required)
+PASS | TCP     | Zero Z at A=0 routes to the mdi touch-off
+PASS | TCP     | Zero All at A=0 under TCP stamps G54 with kins 1
+PASS | Machine | → Zero in Machine frame refuses a fixture stamped under TCP (numbers are table-frame)
+PASS | Machine | Zero All back in the Machine frame re-stamps G54 (kins 0)
+PASS | Plane   | Capture defines the plane at the tip (kins 2, G59)
+PASS | Plane   | → Home / → G30 gate 'machineFrame' closed
+PASS | Plane   | → Zero gate 'goZero' open
+PASS | Plane   | Cycle Start gate 'run' open
+PASS | Plane   | Tool measure / load gate 'machineFrame' closed
+PASS | Plane   | Probe op gate 'machineFrame' closed
+PASS | Plane   | Zero Z routes through the plane; DRO reads the entered value
+PASS | Plane   | → Zero: retracts along the tool axis to ≥ 25, then X0 Y0 in the plane; rotaries untouched
+PASS | Plane   | Cycle Start (G54 under Plane kins — the M2 strand) gate 'run' closed
+PASS | Plane   | → Zero (G54 under Plane kins) gate 'goZero' closed
+PASS | Plane   | Step (G54 under Plane kins — a start) gate 'step' closed
+PASS | Plane   | Step refused in the M2 strand, nothing started
+PASS | Plane   | Cycle Start (G59 again) gate 'run' open
+PASS | Plane   | Step (G59 again) gate 'step' open
+PASS | Plane   | Plane: +Z jog (tool axis) runs joint Z past its ceiling; machine stays ON; status reports joints_beyond_limit == ['Z']
+PASS | Plane   | Plane: after the fault a UI −Z jog moves the joint back inside (joint mode), the report clears, and MDI works again
+
+ALL PASS (43 pass, 4 skip)
+  (teardown: g69, M428, rotaries 0, Z up, G54 + provenance restored)

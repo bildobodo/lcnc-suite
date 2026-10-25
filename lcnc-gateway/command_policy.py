@@ -168,6 +168,10 @@ _R_ROTARY_ZERO = (lambda s: s.rotary_at_zero,
 _R_RUNNING = (lambda s: s.is_running, "No program running")
 _R_NOT_PAUSED = (lambda s: not s.is_paused, "Program already paused")
 _R_PAUSED = (lambda s: s.is_paused, "No program paused")
+# The spindle stop while a program or an MDI runs or pauses: the program owns
+# the spindle (button gates BG-18) — the dimmed stop names the stops that work.
+SPINDLE_OWNED = "Program owns the spindle — use Pause or Abort"
+_R_SPINDLE_FREE = (lambda s: s.is_idle, SPINDLE_OWNED)
 _R_TOOL_CHANGE_KNOWN = (lambda s: s.tool_change_pending is not None,
                         "Tool change request unknown — HAL reader stale")
 _R_TOOL_CHANGE_PENDING = (lambda s: s.tool_change_pending is True,
@@ -566,7 +570,7 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     "abort":    (),
     # The spindle stop at idle (BG-18): no arm, no homing; while a program
     # or an MDI runs or pauses the program owns the spindle — Pause / Abort.
-    "spindleStop": (_R_NOT_ESTOP, _R_ENABLED) + _IDLE,
+    "spindleStop": (_R_NOT_ESTOP, _R_ENABLED, _R_INTERP_KNOWN, _R_SPINDLE_FREE),
     # The manual tool-change confirmation (BG-17): it continues the real
     # interpreter, so armed — and only for a FRESH pending request.
     "toolChangeConfirm": (_R_ARMED, _R_TOOL_CHANGE_KNOWN, _R_TOOL_CHANGE_PENDING),

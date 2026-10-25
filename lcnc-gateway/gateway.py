@@ -104,7 +104,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -5261,7 +5261,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             # snapshot owns the spindle: refused, Pause / Abort are the stops.
             STAT.poll()
             if safe_get("interp_state", None) != linuxcnc.INTERP_IDLE:
-                return {"ok": False, "error": "Program running — use Pause or Abort"}
+                return {"ok": False, "error": SPINDLE_OWNED}
             await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_OFF, wait=None)
             return {"ok": True}
 

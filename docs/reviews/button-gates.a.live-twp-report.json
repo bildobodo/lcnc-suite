@@ -1,0 +1,136 @@
+{
+  "mode": "live-twp",
+  "started": "2026-10-25T20:25:57.395128+00:00",
+  "root": "/home/cnc/lcnc-suite-gates",
+  "gates": [
+    {
+      "name": "twp_buttons_check",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/twp_buttons_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "twp_buttons_check.log",
+      "started": "2026-10-25T20:25:59.122437+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 63.97,
+      "finished": "2026-10-25T20:27:03.093038+00:00",
+      "notes": [
+        "SKIP  [Machine] \u2192 Zero from ABOVE Z0  \u2014 Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable \u2014 the guard's skip branch is dead by construction on this config",
+        "SKIP  [Machine] \u2192 Home from ABOVE Z0  \u2014 Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable \u2014 the guard's skip branch is dead by construction on this config",
+        "SKIP  [Machine] \u2192 G30 from ABOVE Z0  \u2014 Z MAX_LIMIT 0.01 <= 50: above machine zero is unreachable \u2014 the guard's skip branch is dead by construction on this config",
+        "SKIP  [Machine] Tool measure (M600) run  \u2014 toolsetter configured \u2014 run manually, not by this script",
+        "SKIP | Machine | \u2192 Zero from ABOVE Z0",
+        "SKIP | Machine | \u2192 Home from ABOVE Z0",
+        "SKIP | Machine | \u2192 G30 from ABOVE Z0",
+        "SKIP | Machine | Tool measure (M600) run",
+        "ALL PASS (43 pass, 4 skip)"
+      ]
+    },
+    {
+      "name": "twp_reorient_check",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/twp_reorient_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "twp_reorient_check.log",
+      "started": "2026-10-25T20:27:03.093358+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 11.41,
+      "finished": "2026-10-25T20:27:14.501238+00:00",
+      "notes": []
+    },
+    {
+      "name": "twp_capture_check",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/twp_capture_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "twp_capture_check.log",
+      "started": "2026-10-25T20:27:14.501437+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 45.86,
+      "finished": "2026-10-25T20:28:00.359360+00:00",
+      "notes": []
+    },
+    {
+      "name": "twp_touchoff_check",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/twp_touchoff_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "twp_touchoff_check.log",
+      "started": "2026-10-25T20:28:00.360465+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 12.36,
+      "finished": "2026-10-25T20:28:12.718658+00:00",
+      "notes": []
+    },
+    {
+      "name": "twp_touchoff_plane_check",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/twp_touchoff_plane_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "twp_touchoff_plane_check.log",
+      "started": "2026-10-25T20:28:12.718837+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 23.88,
+      "finished": "2026-10-25T20:28:36.602101+00:00",
+      "notes": []
+    },
+    {
+      "name": "twp_g683_check",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/twp_g683_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "twp_g683_check.log",
+      "started": "2026-10-25T20:28:36.602489+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 9.31,
+      "finished": "2026-10-25T20:28:45.911019+00:00",
+      "notes": []
+    },
+    {
+      "name": "twp_adverse_check",
+      "command": [
+        "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+        "/home/cnc/lcnc-suite-gates/scripts/twp_adverse_check.py"
+      ],
+      "cwd": "/home/cnc/lcnc-suite-gates",
+      "log": "twp_adverse_check.log",
+      "started": "2026-10-25T20:28:45.911184+00:00",
+      "status": "pass",
+      "exit_code": 0,
+      "seconds": 39.0,
+      "finished": "2026-10-25T20:29:24.915958+00:00",
+      "notes": []
+    }
+  ],
+  "commit": "d24adda0ffacf32d3e38ad5ef6d64f934bc2cc9b",
+  "tracked_changes": [],
+  "runner_sha256": "ad2a70abaac46b079e3e0e3e02afc5b745eba88f98910c8cdd40149d4a6ca2d7",
+  "status": "pass",
+  "changed_file_sha256": {},
+  "ini": "/home/cnc/linuxcnc/configs/lcnc_suite_sim_gates/lcnc_suite_sim_6axis_twp_xyzabc.ini",
+  "ini_sha256": "4f60a0795f70ad875ba553c1a13d6c581680446a521224231fd5e4fde8de343c",
+  "scope": "partial",
+  "omitted_gates": [
+    "preview-goldens",
+    "live-parity"
+  ],
+  "not_run": [],
+  "finished": "2026-10-25T20:29:24.973060+00:00"
+}
