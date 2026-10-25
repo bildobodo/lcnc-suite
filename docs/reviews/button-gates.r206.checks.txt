@@ -1,0 +1,120 @@
+R206 / Codex / 2026-10-26
+Reviewed product: feat/button-gates a46fb237..7d356229
+Exact product head: 7d3562294d1bccb0ac714801aa3c2ee02a03bbd4
+Live review tree: bcfcd596e503a04a716133101f4f0f8964a22deb
+Isolated archive: /tmp/codex-r206-c8gasddr/repo
+No builds/tests/checkouts in either product worktree; no access to :8000/:5173.
+Own mock: archived e2e/mock-gateway.mjs, MOCK_PORT=4188. Closed after probes.
+
+Commands in the archive:
+Frontend: npm run build
+Backend (Python from the existing test venv):
+  python -m pytest test_button_gates.py test_command_policy.py test_command_dispatch.py test_status_runtime.py test_r205_codex.py -q -o addopts=''
+  test_r205_codex.py is the unchanged button-gates.r205.backend.py (8 tests).
+  Total: 362 pass, 69 subtests pass (includes those 8 R205 tests).
+New backend probe:
+  copy button-gates.r206.backend.py to lcnc-gateway/test_r206_codex.py
+  python -m pytest test_r206_codex.py -q -s -o addopts=''
+  6 failing contract assertions, 4 passing controls. Exact output in .backend.txt.
+  Real dispatcher, start guards, set_mode, _cmd_blocking and watchdog_send.
+  All controller calls use fake_linuxcnc; HAL uses an in-memory socket double.
+  VINIT PID discovery is read-only import metadata; __lcnc_fake__ is asserted.
+  RFL probe stubs only the program identity check and phase recorder.
+  The run-basis-boundary probe supplies a controlled async capture result;
+  it exercises the named auto method and _cmd_blocking's real awaiting path.
+Browser R205 probe: unchanged script, R205_OUT selects the result file.
+  Six scenarios now green; missing seq in that old fixture means the script
+  alone proves DOM invalidation, not the new server binding contract.
+Existing browser tests: isolated config, Chromium, one worker, no webServer.
+  Only e2e/ctl.ts URLs changed from localhost:4174 to 127.0.0.1:4188 in archive.
+  node node_modules/@playwright/test/cli.js test --config=r206.playwright.config.ts --grep 'keeps its stop|a press begun on one tool-change|tool-change confirm: once'
+  5/5 pass (keyboard-guards and touchoff).
+Extra browser controls:
+  copy button-gates.r206.browser-extra.mjs into archived lcnc-webui
+  R206_OUT=/tmp/button-gates.r206.browser-extra.json node button-gates.r206.browser-extra.mjs
+  Genuine keyup Q / code KeyQ, and Space release after a new request for the
+  same tool (41 -> 42); new deliberate press names 42. Both pass.
+
+Final targeted backend output:
+................................................ [ 13%]
+........................................................................ [ 33%]
+..................................................................... [ 52%]
+.......................................... [ 63%]
+............................................................ [ 80%]
+.......................................................................  [100%]
+362 passed, 69 subtests passed in 2.96s
+[GC] +2781ms gen=2 duration=11.3ms collected=1934 uncollectable=0
+[GC] +2790ms gen=2 duration=9.1ms collected=0 uncollectable=0
+[GC] +2799ms gen=2 duration=8.8ms collected=0 uncollectable=0
+[GC] +2810ms gen=2 duration=10.4ms collected=0 uncollectable=0
+[GC] +2819ms gen=2 duration=9.5ms collected=0 uncollectable=0
+[GC] +2829ms gen=2 duration=9.8ms collected=0 uncollectable=0
+
+Existing browser output (ANSI cursor escapes removed):
+
+Running 5 tests using 1 worker
+
+(node:1908896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+(node:1908896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/5] e2e/keyboard-guards.spec.ts:688:1 › a continuous jog keeps its stop when the step changes mid-hold (button gates BG-06)
+[2/5] e2e/keyboard-guards.spec.ts:734:1 › a held jog key keeps its stop when the key map changes on another client (Codex R205)
+[3/5] e2e/keyboard-guards.spec.ts:750:1 › a held letter jog keeps its stop when Shift turns it upper case (Codex R205)
+[4/5] e2e/touchoff.spec.ts:688:1 › tool-change confirm: once per request, retry after a refusal, nothing without a request
+[5/5] e2e/touchoff.spec.ts:722:1 › a press begun on one tool-change request never confirms the next (Codex R205)
+  5 passed (7.3s)
+
+Build output:
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2120 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-ByvNut9C.css                 7.81 kB │ gzip:   1.94 kB
+dist/static/index-CHypVVvB.css                      95.00 kB │ gzip:  17.36 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-8DUWu1IG.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-D5zgPh42.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-Hqw9k5Ey.js                276.02 kB │ gzip: 104.05 kB
+dist/static/index-BSiIDYJ5.js                      654.74 kB │ gzip: 210.72 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.17s
+
+Evidence SHA256:
+6039908f19dfc5e46cb3f644ee79e4b97cdabb863a3599b684bf488f88003f13  button-gates.r206.backend.py
+5c506acd83b8a7ad981b47c6d480af48e07a7f3137d8bed2be0557959dbab791  button-gates.r206.backend.txt
+a8afe6d880a339250dc8620f83bf211f3961a56d14398608cf7af94e2ddb5f07  button-gates.r206.browser-extra.json
+5da00ffce1c49c4da30c4e346ea38a4b558786f6c29f4ce66f5e6ef12fb8ecc7  button-gates.r206.browser-extra.mjs
+36f6cc6aaf91d5000da155f8d2e806c7827ab4ea15f7df484ac28e3bfe706886  button-gates.r206.browser-r205.json

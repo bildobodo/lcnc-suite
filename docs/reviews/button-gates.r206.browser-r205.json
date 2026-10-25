@@ -1,0 +1,114 @@
+{
+  "executed_head": "7d3562294d1bccb0ac714801aa3c2ee02a03bbd4",
+  "source": "button-gates.r205.browser.mjs (byte-identical)",
+  "note": "The nested head is a literal in the old probe, not the execution target. The old mock fixtures carry no tool_change_seq; the new contract is additionally covered by touchoff.spec and browser-extra.",
+  "result": {
+    "head": "a46fb237",
+    "mock": "http://127.0.0.1:4188",
+    "results": [
+      {
+        "name": "control_step_changed",
+        "commands": [
+          {
+            "cmd": "jog_cont",
+            "axis": 0,
+            "vel": 10,
+            "req_id": "uqul6p-5"
+          },
+          {
+            "cmd": "jog_stop",
+            "axis": 0,
+            "req_id": "uqul6p-6"
+          }
+        ]
+      },
+      {
+        "name": "remote_remap_while_held",
+        "after_release": [
+          {
+            "cmd": "jog_cont",
+            "axis": 0,
+            "vel": 10,
+            "req_id": "hl9ymc-5"
+          },
+          {
+            "cmd": "jog_stop",
+            "axis": 0,
+            "req_id": "hl9ymc-6"
+          }
+        ],
+        "after_new_key": [
+          {
+            "cmd": "jog_cont",
+            "axis": 0,
+            "vel": 10,
+            "req_id": "hl9ymc-5"
+          },
+          {
+            "cmd": "jog_stop",
+            "axis": 0,
+            "req_id": "hl9ymc-6"
+          },
+          {
+            "cmd": "jog_cont",
+            "axis": 0,
+            "vel": 10,
+            "req_id": "hl9ymc-7"
+          },
+          {
+            "cmd": "jog_stop",
+            "axis": 0,
+            "req_id": "hl9ymc-8"
+          }
+        ],
+        "expected_release_stop": true
+      },
+      {
+        "name": "disarm_while_held_control",
+        "commands": [
+          {
+            "cmd": "jog_cont",
+            "axis": 0,
+            "vel": 10,
+            "req_id": "785s0e-4"
+          },
+          {
+            "cmd": "jog_stop",
+            "axis": 0,
+            "req_id": "785s0e-6"
+          }
+        ]
+      },
+      {
+        "name": "pointer_cont_to_step_control",
+        "commands": [
+          {
+            "cmd": "jog_cont",
+            "axis": 2,
+            "vel": 10,
+            "req_id": "82zzcn-5"
+          },
+          {
+            "cmd": "jog_stop",
+            "axis": 2,
+            "req_id": "82zzcn-6"
+          }
+        ]
+      },
+      {
+        "name": "confirm_unchanged_request_control",
+        "commands": [
+          {
+            "cmd": "confirm_tool_change",
+            "req_id": "bxsviz-5"
+          }
+        ]
+      },
+      {
+        "name": "confirm_request_changes_between_press_and_release",
+        "after_release": [],
+        "obsolete_confirmation_discarded": true
+      }
+    ]
+  }
+}

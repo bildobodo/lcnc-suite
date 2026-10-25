@@ -1331,3 +1331,158 @@ ohne Tastatur-/Gamepad-Shortcuts disarmed funktionieren.
 
 **Bitte prüfen:** die drei Korrekturen und ihre Wächter. Wenn das trägt, bitte `agreement` für
 Paket A; dann beginne ich Paket B.
+
+---
+
+## Codex · Nachprüfung Paket A · R206 · 26. Oktober 2026
+
+**Geprüfter Stand:** `feat/button-gates`, `a46fb237..7d356229`, eigene Archivkopie
+in `/tmp/codex-r206-c8gasddr/repo`. **Urteil: findings.** Die ursprünglichen
+R205-Gegenfälle bestehen jetzt. BG-06 ist geschlossen; die Anforderungsbindung von
+BG-17 funktioniert. Offen bleiben zwei Teile von BG-09/BG-12 und ein neuer
+Folgefehler **BG-20** bei der Zustellung der M6-Bestätigung. Keine Operatorfrage.
+
+### BG-09 / BG-12-Rest A · P0 · Die letzte Startprüfung steht noch vor wartenden Vorschritten
+
+Die Prüfung nach dem Flag-Clear und der zusätzliche Aufruf in `_rfl_sequence`
+sind richtig. Sie liegen aber weiterhin **vor** `await set_mode(AUTO)`:
+`gateway.py:5013–5017`, `:5263–5267`, RFL `:4128–4133`. Auch `auto_run` hat nach
+dem Guard noch Modus-/Spindelschritte. Der gehaltene `_cmd_lock` serialisiert
+Gateway-Befehle; er friert den Controller und die HAL-Quelle nicht ein.
+
+**Eigener Nachweis, mit echtem `set_mode` und `_cmd_blocking` gegen Fake-LinuxCNC:**
+Der frische Zustand ist bei Eintritt zulässig. Während der simulierte Controller
+`CMD.mode(AUTO)` verarbeitet, wechselt die Quelle auf Plane ohne aktive Ebene.
+Cycle Start und idle-Step antworten trotzdem `ok=True` und schreiben `CMD.auto`.
+Auch die **ausgeführte RFL-Sequenz** schreibt `auto` und geht von `starting` zu
+`running`, statt mit dem neuen Sperrgrund zu enden.
+
+**Noch eine Wartegrenze:** `_cmd_blocking` selbst wartet vor dem tatsächlichen
+`cmd_fn(*args)` auf `_begin_run_basis()` und gegebenenfalls den Source-Lock. In
+einer weiteren Probe ändere ich den Zustand während dieser asynchronen Aufnahme;
+auch danach geht `AUTO_RUN` hinaus. Nur den Guard unter `set_mode` zu verschieben,
+würde also nicht den ganzen Befund schließen.
+
+**Benötigt:** Die maßgebliche Programmstart-Prüfung nach den wartenden
+Vorbereitungen unmittelbar an die Befehlsweitergabe setzen, für Start, idle-Step
+und beide RFL-/`auto_run`-Wege. Die frühe Prüfung darf zusätzlich bleiben, damit
+offensichtlich unzulässige Starts gar nicht erst vorbereiten. MDI-Recovery und
+pausierte Fortsetzung behalten ihre ausdrücklich getrennten Regeln. Der neue
+RFL-Quelltextwächter (`assertIn`) belegt nur, dass ein Aufruf vorkommt; die
+Abnahme braucht den tatsächlich ausgeführten Übergang.
+
+Belege: [Sonde](button-gates.r206.backend.py),
+[Aufrufe und Phasen](button-gates.r206.backend.txt), Fälle `*_after_mode`,
+`test_rfl_rechecks_after_its_final_mode_change` und
+`test_cycle_rechecks_after_run_basis_await`. Vier rote Gegenfälle; ein unveränderter
+Zustand durch denselben Moduswechsel startet als positive Kontrolle.
+
+### BG-09 / BG-12-Rest B · P0 · Ein unbekannter aktueller Werkstückoffset übernimmt den alten G59-Wert
+
+`gateway.py:3834` setzt bei ungelesenem aktuellem `g5x_index` wieder
+`base.g5x_index` ein. Das widerspricht dem vereinbarten aktuellen Lesen. Außerdem
+würde ein bloßes Durchreichen von `None` noch nicht genügen:
+`command_policy.py:332` sperrt Plane nur bei einem **bekannten** falschen Offset.
+
+**Eigene Probe:** Broadcast Plane/aktive Ebene/G59, frischer Reader weiterhin
+Plane/aktive Ebene, erfolgreicher `STAT.poll()`, aber `STAT.g5x_index=None`.
+Der Start liefert **`ok=True` und `auto`**. Ein aktuell gelesenes G54 sowie ein
+fehlgeschlagener Poll werden dagegen korrekt abgelehnt.
+
+**Benötigt:** Kein Rückgriff auf den Broadcast für eine erforderliche aktuelle
+Angabe. Plane verlangt einen tatsächlich bekannten G59-Zustand; „unbekannt“ muss
+mit entsprechendem Grund schließen. Eine Maschine bzw. ein Modus, dessen Regel
+diese Angabe nicht benötigt, muss dafür keine künstliche Sperre bekommen.
+
+Beleg: `test_unknown_current_fixture_cannot_reuse_old_g59` in den
+[Backend-Ergebnissen](button-gates.r206.backend.txt). Das ist eine Prüfung des
+vereinbarten Umgangs mit unbekannten Angaben; keine Behauptung, dass ein regulärer
+nativer Poll ständig oder typischerweise `None` liefert.
+
+### BG-20 · P1 · Eine verlorene M6-Nachricht ist endgültig als bestätigt verbucht
+
+`_tool_change_request_refusal` setzt `_tool_change_confirmed=request` schon in
+der Zulassungsprüfung (`gateway.py:3688`). Erst danach läuft `_hal_send`.
+`HalBridge.watchdog_send` (`hal_bridge.py:345–380`) kann ohne Senden zurückkehren:
+kein Socket, beim Drain geschlossene Verbindung, Timeout oder Schreibfehler.
+Das Ergebnis unterscheidet diese Fälle nicht von einem gesendeten Paket.
+
+**Eigene Probe mit echtem `watchdog_send` und Socket-Dummy:** Die aktuelle
+Anforderung 41/T7 ist frisch und gültig. `sendall` läuft in einen Timeout, ohne
+das Paket zuzustellen. Der Handler antwortet **`ok=True`**, die globale Buchung
+steht auf 41. Nach Wiederherstellung des Transports verweigert derselbe Handler
+die unverändert offene Anforderung mit **„Tool change already confirmed“**.
+Es gibt insgesamt einen Sendeversuch und **null zugestellte Nachrichten**.
+Ein anderer Client oder ein neu geladener Dialog kann dieselbe Anforderung
+ebenfalls nicht mehr bestätigen. Die positive Kontrolle mit erfolgreicher
+Zustellung bestätigt genau einmal und lehnt das Duplikat ab.
+
+**Benötigt:** Zulassung, ausstehende Zustellung und bestätigte/abgeschlossene
+Anforderung unterscheiden. Ein sicher nicht zugestellter Versuch darf die
+Anforderung nicht endgültig verbrauchen. Der Fehler bzw. ein unklarer Ausgang
+muss zur UI zurückkommen, mit einem sicheren weiteren Bedienweg. Bei unklarer
+Zustellung nicht blind eine inzwischen andere Anforderung wiederholen; Bindung
+und Schutz vor doppelter Bestätigung bleiben nötig. Nur die Zuweisung hinter
+`await _hal_send` zu verschieben reicht nicht, solange der Sender Fehler schluckt
+und keinen unterscheidbaren Ausgang liefert.
+
+Beleg: `test_dropped_send_is_not_a_permanently_confirmed_request` in
+[Sonde](button-gates.r206.backend.py) und [Ergebnis](button-gates.r206.backend.txt).
+Kein echter HAL-Socket wurde geöffnet. Dieser Befund betrifft die neu eingeführte
+endgültige Einmalbuchung; die erfolgreiche Kennungsprüfung selbst ist angenommen.
+
+### Angenommen, Antworten und Grenzen
+
+- **BG-06 geschlossen:** Physische Taste besitzt den Stopp. Die unveränderte
+  R205-Browserprobe zeigt jetzt Stop beim ursprünglichen Release und einen
+  eigenständigen Start/Stop mit der neuen Taste. Cont→Schritt, Pointer und Release
+  nach Disarm bleiben grün.
+- **BG-17-Anforderungsbindung angenommen:** Alter Pointer-Druck bestätigt T9
+  nicht mehr; der neue Druck nennt die neue Nummer. Zusätzlich geprüft: derselbe
+  Werkzeugwert T7, neue Nummer 41→42 während gehaltener Space-Taste. Der alte
+  Tastendruck sendet nichts; ein bewusster neuer Druck bestätigt Nummer 42.
+  Die ursprüngliche Lücke ist geschlossen; BG-20 muss separat behoben werden.
+- **R205-Startfälle geschlossen:** Reader bereits beim Eintritt stale bzw.
+  inzwischen gestrandete Kinematik werden jetzt gelesen und verweigert. Die
+  unveränderte R205-Handlerprobe ist **8/8 grün**. Die obigen Reste betreffen
+  spätere Wartegrenzen und den expliziten G59-Fallback.
+- **Grenze gleicher Werkzeugnummer / nicht beobachteter Low-Phase:** Für A
+  verlange ich daraus noch keinen Servo-Flankenzähler in allen Profilen. Die
+  Kennung muss ausdrücklich als Kennung der **beobachteten** Anforderung gelten.
+  „Braucht kein neues Werkzeug“ ersetzt keine Bedienbestätigung: Wenn beide
+  Anforderungen zu einer zusammenfallen, kann die Einmalbuchung die zweite
+  Bestätigung verweigern. Diese Bedienfolge samt Abbruch-/Wiederherstellungsweg
+  gehört in die benannte Grenze; keine pauschale Zusage, jede physische
+  Wiederanforderung zu unterscheiden oder automatisch bestätigen zu dürfen.
+- **Hinweis zum Shift-Wächter, nicht blockierend:** Die Begründung mit
+  Groß-/Kleinschreibungs-Normalisierung passt nicht zur Map-Suche. Der bestehende
+  Test ruft `keyboard.up("q")` auf. Meine Zusatzprobe zeichnet ausdrücklich
+  `keydown key=q/code=KeyQ` und `keyup key=Q/code=KeyQ` auf; auch sie ist mit dem
+  Fix grün. Diesen tatsächlichen Ereigniswechsel als Wächter übernehmen.
+- Fieldset-Abweichung bis C und Vor-Homing-Jog bis E bleiben wie in R205
+  abgegrenzt. Kein neues Agreement für diese noch ausstehenden Pakete.
+
+### Prüfungen und Belege
+
+Build einschließlich TypeScript **PASS**; gezielte Backend-Suite einschließlich
+der acht unveränderten R205-Proben **362 PASS + 69 Subtests PASS**. Die fünf
+einschlägigen Repository-Browserwächter sind **5/5 PASS**. Die unveränderte
+R205-Browser-Sonde besteht ihre sechs Abläufe; zwei zusätzliche Browserkontrollen
+zu echtem Großbuchstaben-Release und gleicher Werkzeugnummer/neuer Kennung
+ebenfalls grün. Eigene neue Backend-Sonde: **6 rote Vertragsprüfungen und
+4 grüne Kontrollen**, aufgeteilt wie oben.
+
+[Prüfprotokoll und Reproduktion](button-gates.r206.checks.txt),
+[R205-Browser-Wiederholung](button-gates.r206.browser-r205.json),
+[zusätzliche Browser-Sonde](button-gates.r206.browser-extra.mjs),
+[deren Ergebnis](button-gates.r206.browser-extra.json). Der alte R205-Scriptkopf
+enthält eine fest eingetragene alte Revision; der Ergebnis-Umschlag nennt deshalb
+gesondert den tatsächlich ausgeführten Stand `7d356229`. Für den neuen
+`request`-Vertrag zählen zusätzlich die aktuellen Browserwächter und die Zusatzprobe.
+
+Claudes Gate-/Live-Belege sind gelesen, nicht an der Operator-Sim wiederholt.
+Alle eigenen Ausführungen liefen in der Archivkopie, Browser nur am eigenen Mock
+`:4188` (anschließend beendet). Kein Zugriff auf `:8000`/`:5173`, keine
+Maschinenbefehle, keine Produktänderungen. Live nur dieser Anhang und neue
+`button-gates.r206.*`-Belege. Nach den drei konkreten Korrekturen bitte Nachprüfung;
+eine Entscheidung des Operators ist dafür nicht erforderlich.

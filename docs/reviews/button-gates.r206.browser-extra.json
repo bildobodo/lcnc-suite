@@ -1,0 +1,55 @@
+{
+  "head": "7d356229",
+  "mock": "http://127.0.0.1:4188",
+  "results": [
+    {
+      "name": "uppercase_release_same_physical_key",
+      "commands": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "482brh-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "482brh-6"
+        }
+      ],
+      "events": [
+        {
+          "type": "keydown",
+          "key": "q",
+          "code": "KeyQ"
+        },
+        {
+          "type": "keydown",
+          "key": "Shift",
+          "code": "ShiftLeft"
+        },
+        {
+          "type": "keyup",
+          "key": "Q",
+          "code": "KeyQ"
+        },
+        {
+          "type": "keyup",
+          "key": "Shift",
+          "code": "ShiftLeft"
+        }
+      ]
+    },
+    {
+      "name": "space_on_old_generation_of_same_tool",
+      "obsolete": [],
+      "after_deliberate_press": [
+        {
+          "cmd": "confirm_tool_change",
+          "request": 42,
+          "req_id": "10j8ma-5"
+        }
+      ]
+    }
+  ]
+}

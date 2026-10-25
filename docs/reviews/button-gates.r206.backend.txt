@@ -1,0 +1,129 @@
+[VINIT] session bound to linuxcncsvr pid=1835077 start=34064776
+[VINIT] try_connect_lcnc OK, pid=1835077
+[VINIT] Loaded machine config: 3-Axis Mill
+..{'case': 'test_control_unchanged_after_mode', 'reply': {'ok': True}, 'now': {'kins_type': 0.0, 'twp_active': False}, 'commands': ['mode', 'wait_complete', 'auto']}
+.{'case': 'test_cycle_rechecks_after_mode', 'reply': {'ok': True}, 'now': {'kins_type': 2.0, 'twp_active': False}, 'commands': ['mode', 'wait_complete', 'auto']}
+F{'case': 'test_cycle_rechecks_after_run_basis_await', 'reply': {'ok': True}, 'commands': ['auto'], 'now': {'kins_type': 2.0, 'twp_active': False}}
+F{'case': 'test_rfl_rechecks_after_its_final_mode_change', 'commands': ['mode', 'wait_complete', 'auto'], 'phases': [('starting',), ('running',)], 'now': {'kins_type': 2.0, 'twp_active': False}}
+F{'case': 'test_step_rechecks_after_mode', 'reply': {'ok': True}, 'now': {'kins_type': 2.0, 'twp_active': False}, 'commands': ['mode', 'wait_complete', 'auto']}
+F{'case': 'test_unknown_current_fixture_cannot_reuse_old_g59', 'current_fixture': None, 'broadcast_fixture': 6, 'reply': {'ok': True}, 'commands': ['auto']}
+F.{'case': 'test_dropped_send_is_not_a_permanently_confirmed_request', 'first': {'ok': True}, 'retry': {'ok': False, 'error': 'Tool change already confirmed'}, 'socket_attempts': ['{"tool_changed": true}'], 'delivered': [], 'booked_confirmed': 41}
+F
+=================================== FAILURES ===================================
+___________ TestStartAfterPreparation.test_cycle_rechecks_after_mode ___________
+
+self = <test_r206_codex.TestStartAfterPreparation testMethod=test_cycle_rechecks_after_mode>
+
+    def test_cycle_rechecks_after_mode(self):
+        r = self.run_after_mode('cycle_start', True)
+>       self.assertFalse(r['ok'], 'The frame changed during awaited mode preparation')
+E       AssertionError: True is not false : The frame changed during awaited mode preparation
+
+test_r206_codex.py:41: AssertionError
+_____ TestStartAfterPreparation.test_cycle_rechecks_after_run_basis_await ______
+
+self = <test_r206_codex.TestStartAfterPreparation testMethod=test_cycle_rechecks_after_run_basis_await>
+
+    def test_cycle_rechecks_after_run_basis_await(self):
+        # _cmd_blocking itself awaits capture/file IO before calling CMD.auto.
+        # A check moved only below set_mode would still precede this boundary.
+        gateway.STAT.task_mode=linuxcnc.MODE_AUTO
+        original_auto=self.cmd.auto
+        def auto(*args):
+            return original_auto(*args)
+        self.cmd.auto=auto  # the real method name selects the real start path
+        saved_claims=list(gateway._source_claims)
+        self.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), saved_claims))
+        async def capture():
+            self.now.update(kins_type=2.0,twp_active=False)
+            return None
+        with patch.object(gateway,'_begin_run_basis',capture), \
+             patch.object(gateway,'_ts_program_writes',lambda:set()), \
+             patch.object(gateway,'_ts_mark_assumed',lambda _:None):
+            r=self._send({'cmd':'cycle_start'},kins_type=0.0,twp_active=False,g5x_index=1,reader_fresh=True)
+        print({'case':self.id().split('.')[-1],'reply':r,'commands':self.cmd.names(),'now':self.now})
+>       self.assertFalse(r['ok'],'The final write must follow all awaited preparation')
+E       AssertionError: True is not false : The final write must follow all awaited preparation
+
+test_r206_codex.py:89: AssertionError
+___ TestStartAfterPreparation.test_rfl_rechecks_after_its_final_mode_change ____
+
+self = <test_r206_codex.TestStartAfterPreparation testMethod=test_rfl_rechecks_after_its_final_mode_change>
+
+    def test_rfl_rechecks_after_its_final_mode_change(self):
+        gateway._shared_status=base._payload(kins_type=0.0,twp_active=False,g5x_index=1,reader_fresh=True)
+        original_mode=self.cmd.mode
+        def mode(value):
+            original_mode(value)
+            gateway.STAT.task_mode=value
+            self.now.update(kins_type=2.0,twp_active=False)
+        self.cmd.mode=mode
+        phases=[]
+        async def unchanged(_program):
+            return None
+        with patch.object(gateway,'_rfl_program_changed',unchanged), \
+             patch.object(gateway,'_rfl_phase',lambda *args:phases.append(args)):
+            base._run(gateway._rfl_sequence(10,0,False,None,0,program=object()))
+        print({'case':self.id().split('.')[-1],'commands':self.cmd.names(),'phases':phases,'now':self.now})
+>       self.assertNotIn('auto',self.cmd.names(),'Final RFL mode preparation changed the frame')
+E       AssertionError: 'auto' unexpectedly found in ['mode', 'wait_complete', 'auto'] : Final RFL mode preparation changed the frame
+
+test_r206_codex.py:68: AssertionError
+___________ TestStartAfterPreparation.test_step_rechecks_after_mode ____________
+
+self = <test_r206_codex.TestStartAfterPreparation testMethod=test_step_rechecks_after_mode>
+
+    def test_step_rechecks_after_mode(self):
+        r = self.run_after_mode('auto_step', True)
+>       self.assertFalse(r['ok'], 'The frame changed during awaited mode preparation')
+E       AssertionError: True is not false : The frame changed during awaited mode preparation
+
+test_r206_codex.py:46: AssertionError
+_ TestStartAfterPreparation.test_unknown_current_fixture_cannot_reuse_old_g59 __
+
+self = <test_r206_codex.TestStartAfterPreparation testMethod=test_unknown_current_fixture_cannot_reuse_old_g59>
+
+    def test_unknown_current_fixture_cannot_reuse_old_g59(self):
+        self.now.update(kins_type=2.0, twp_active=True)
+        gateway.STAT.task_mode = linuxcnc.MODE_AUTO
+        gateway.STAT.g5x_index = None
+        r = self._send({'cmd':'cycle_start'}, kins_type=2.0, twp_active=True,
+                       g5x_index=6, reader_fresh=True)
+        print({'case':self.id().split('.')[-1], 'current_fixture':None,
+               'broadcast_fixture':6,'reply':r,'commands':self.cmd.names()})
+>       self.assertFalse(r['ok'], 'An unread fixture at Plane must not reuse the old G59')
+E       AssertionError: True is not false : An unread fixture at Plane must not reuse the old G59
+
+test_r206_codex.py:100: AssertionError
+_ TestToolChangeDelivery.test_dropped_send_is_not_a_permanently_confirmed_request _
+
+self = <test_r206_codex.TestToolChangeDelivery testMethod=test_dropped_send_is_not_a_permanently_confirmed_request>
+
+    def test_dropped_send_is_not_a_permanently_confirmed_request(self):
+        sock=SocketDouble(True)
+        self.bridge._wd_sock=sock
+        with patch.object(gateway,'_hal_send',self.bridge.watchdog_send):
+            first=self.confirm()
+            sock.timeout=False
+            second=self.confirm()
+        print({'case':self.id().split('.')[-1], 'first':first, 'retry':second,
+               'socket_attempts':sock.attempts,'delivered':sock.delivered,
+               'booked_confirmed':gateway._tool_change_confirmed})
+>       self.assertFalse(first['ok'], 'A dropped packet cannot be reported as confirmed')
+E       AssertionError: True is not false : A dropped packet cannot be reported as confirmed
+
+test_r206_codex.py:161: AssertionError
+=========================== short test summary info ============================
+FAILED test_r206_codex.py::TestStartAfterPreparation::test_cycle_rechecks_after_mode
+FAILED test_r206_codex.py::TestStartAfterPreparation::test_cycle_rechecks_after_run_basis_await
+FAILED test_r206_codex.py::TestStartAfterPreparation::test_rfl_rechecks_after_its_final_mode_change
+FAILED test_r206_codex.py::TestStartAfterPreparation::test_step_rechecks_after_mode
+FAILED test_r206_codex.py::TestStartAfterPreparation::test_unknown_current_fixture_cannot_reuse_old_g59
+FAILED test_r206_codex.py::TestToolChangeDelivery::test_dropped_send_is_not_a_permanently_confirmed_request
+6 failed, 4 passed in 0.20s
+[GC] +117ms gen=2 duration=9.3ms collected=632 uncollectable=0
+[GC] +126ms gen=2 duration=8.8ms collected=0 uncollectable=0
+[GC] +133ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +139ms gen=2 duration=6.0ms collected=0 uncollectable=0
+[GC] +146ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +153ms gen=2 duration=6.8ms collected=0 uncollectable=0
