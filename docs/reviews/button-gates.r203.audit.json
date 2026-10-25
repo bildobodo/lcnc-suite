@@ -1,0 +1,109 @@
+{
+  "round": "R203",
+  "commit": "d82d5e2ecd8ee6599d70f5bd3909e6737678f345",
+  "method": "Static assertions in archived sources; no live or new-gate runtime test",
+  "upstream": "LinuxCNC v2.9.4; hashes match R202; Debian downstream patches not compared",
+  "coord": {
+    "source": "motion-command.c",
+    "line": 569,
+    "unhomed_requires_reported_kinType": "KINEMATICS_IDENTITY",
+    "switchkins_runtime_frame_is_not_the_test": true
+  },
+  "native_spindle_off": [
+    {
+      "state": "OFF/ESTOP/ESTOP_RESET",
+      "from_line": 788,
+      "to_line_exclusive": 889,
+      "direct_spindle_off_in_admission_list": false
+    },
+    {
+      "state": "ON/MANUAL",
+      "from_line": 893,
+      "to_line_exclusive": 1013,
+      "direct_spindle_off_in_admission_list": true
+    },
+    {
+      "state": "ON/AUTO/IDLE",
+      "from_line": 1015,
+      "to_line_exclusive": 1120,
+      "direct_spindle_off_in_admission_list": true
+    },
+    {
+      "state": "ON/AUTO/READING",
+      "from_line": 1120,
+      "to_line_exclusive": 1192,
+      "direct_spindle_off_in_admission_list": false
+    },
+    {
+      "state": "ON/AUTO/PAUSED",
+      "from_line": 1192,
+      "to_line_exclusive": 1276,
+      "direct_spindle_off_in_admission_list": true
+    },
+    {
+      "state": "ON/AUTO/WAITING",
+      "from_line": 1276,
+      "to_line_exclusive": 1360,
+      "direct_spindle_off_in_admission_list": false
+    },
+    {
+      "state": "ON/MDI",
+      "from_line": 1360,
+      "to_line_exclusive": 1465,
+      "direct_spindle_off_in_admission_list": true
+    }
+  ],
+  "binding_evidence": {
+    "client_supplied_session_assignment_line": 9717,
+    "sessionStorage_reuse_line": 25,
+    "design_counterexample_not_runtime_probe": {
+      "clients": [
+        {
+          "connection": "A",
+          "session": "same-id",
+          "armed": true
+        },
+        {
+          "connection": "B",
+          "session": "same-id",
+          "armed": false
+        }
+      ],
+      "http_header": {
+        "X-Client-Session": "same-id"
+      },
+      "conclusion": "The header alone cannot identify which connected client sent the write."
+    }
+  },
+  "spindle_and_writer_gates": {
+    "base_line": 495,
+    "setup_line": 545,
+    "spindle_stop_handler_line": 5217,
+    "base_still_requires_arm": true,
+    "setup_still_excludes_estop": true,
+    "macro_source_guard_line": 3102
+  },
+  "settings": {
+    "mdi_send_line": 52,
+    "save_line": 231,
+    "persistence_debounce_ms": 300,
+    "keyboard_applied_before_save_line": 177,
+    "gamepad_applied_before_save_line": 1702,
+    "ledger_reply_line": 147,
+    "reset_route_line": 10155,
+    "design_counterexample_not_runtime_probe": "An armed idle client sends MDI; the 300-ms delayed history save reaches an idle-only gate while MDI is still running."
+  },
+  "sha256": {
+    "lcnc-gateway/gateway.py": "49dc4065abe49b484aff4e23eb70f7bb5de5564fedf1702d266dd61dd3346371",
+    "lcnc-gateway/command_policy.py": "217a1c83e1a2d37d2b06b0b7dd46fe03fdb4fe9e653ae641c54fa7af8c757d00",
+    "lcnc-webui/src/ws/wsTransport.ts": "9a4cd5b5875a17ce9f580546800bc11ef94e27955777d06f2317d7fb7b32364a",
+    "lcnc-webui/src/defaults.ts": "cac97459c8ddc4b58843e5a1b30c67d8f24ae7270bde42caf45922c612b5b77c",
+    "lcnc-webui/src/useMdiHistory.ts": "a4857330ec35a2b6b03cc4b832cc69743a8d75ad587274e5d71396a5d29f322c",
+    "lcnc-webui/src/useKeyboardShortcuts.ts": "808a1d98bc3c4d07674acba1d16e7c6c24d92f637acf119726d7dc9985193f8d",
+    "lcnc-webui/src/App.vue": "65b52ae08b8eb38bb7f120589bf223f2b4dd49b33e8629c4958f8cb575b3109f",
+    "lcnc-webui/src/settingsSaveStatus.ts": "2de2fd7a42abf4df55b6bffa7befbd3be32eef5be2c56886f1e23c408e6584d9",
+    "lcnc-gateway/settings_store.py": "93f58db7f8e688f3841b7a8733ec4e553d47e33ba2588c4e09ce4c40574c4013",
+    "emctaskmain.cc": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e",
+    "motion-command.c": "5169c0fd2e7ea59cda233cf42e83facd56b578e95ec0771be49711f42ff6c15a"
+  }
+}

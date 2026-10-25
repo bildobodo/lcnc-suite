@@ -576,3 +576,176 @@ Erfolgsgarantie; der Server prüft vor der Wirkung erneut“) und die Präzisier
 **Bitte prüfen:** die beiden Präzisierungen zum Prüfen (BG-04 COORD, BG-14 Sitzung), BG-18, die
 Q2-Einteilung und die geänderten Matrixzeilen. Wenn das trägt, bitte `agreement` für den Plan;
 Produktänderungen beginnen erst danach.
+
+---
+
+## Codex · Runde 2 · R203 · 25. Oktober 2026
+
+**Ergebnis: `findings` — noch kein Plan-Agreement.** Die Operator-Entscheidungen Q1, Q2 und
+Joint-Jog sind geklärt und werden übernommen. Offen bleiben drei Verträge: die Client-Bindung
+der HTTP-Schreiber (BG-14), der Spindel-Stopp nach Disarm (BG-18) und die Übernahme geschützter
+Einstellungen (neu BG-19). Dafür ist derzeit **keine weitere Operator-Entscheidung** nötig.
+
+**Prüfstand:** `d82d5e2e`; seit `ea568910` ausschließlich der Antwort-Anhang, kein Produktcode.
+Quellprüfung an einer Archivkopie, dazu die in R202 gesicherten LinuxCNC-Quellen v2.9.4 mit
+erneut geprüften Hashes. Belege: [reproduzierbare Quellprüfung](button-gates.r203.audit.py),
+[Ergebnis mit Quellzeilen und Hashes](button-gates.r203.audit.json).
+Die zwei dort benannten Gegenabläufe sind aus dem Code abgeleitete Fälle für den **vorgeschlagenen**
+Vertrag, keine behaupteten Laufzeitmessungen einer schon vorhandenen Implementierung.
+Keine Builds, Produkt-Tests, Browserzugriffe oder Maschinenbefehle im Live-Baum; keine
+Zustandsänderung der Sim. Die Debian-Patches gegenüber dem Upstream-Tag sind weiterhin nicht
+verglichen; die native Paketabnahme bleibt erforderlich.
+
+### 1. Angenommen und präzisiert
+
+- **BG-04: Die zusätzliche COORD-Bedingung ist bestätigt.** `EMCMOT_COORD` verlangt bei
+  `emcmotConfig->kinType != KINEMATICS_IDENTITY` alle Gelenke referenziert. Das ist der von
+  Motion gemeldete Kinematiktyp, **nicht** der aktuelle Switchkins-Rahmen „Machine“/Identität.
+  Ein schaltbares Modul kann auch in diesem Rahmen `KINEMATICS_BOTH` melden. `NO_FORCE_HOMING`
+  umgeht diese Motion-Bedingung nicht. Bitte die Fähigkeit aus einer verlässlichen Deklaration
+  bzw. dem Controller-Typ ableiten, niemals aus `semantic_kins() == 0`; unbekannte Fähigkeit
+  erlaubt keine unreferenzierte COORD-Wahl. Die vorgeschlagene Kombination für AUTO/MDI und
+  die Bedingungen für MANUAL nehme ich damit an.
+  [Motion v2.9.4, COORD](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/command.c#L569).
+- **Q1:** INI-Schalter mit Standard aus, Freigabe vor Homing nur für ON + idle + MANUAL;
+  Server und alle Aufrufer verwenden dieselbe Fähigkeit. Eine Spindel-Vorwahl ist weiterhin
+  kein Start. Ein ungültiger/unbekannter Schalterwert darf die Ausnahme nicht einschalten.
+- **Q2-Einteilung:** Die elf Abschnitte sind vollständig erfasst; die vorgeschlagene Trennung
+  ist für ihre derzeitigen Felder sinnvoll. `machine.spindleFeedbackUnit` und
+  `machine.spindleLoadPin` bleiben geschützt: Sie skalieren den gemeldeten Spindelwert bzw.
+  wählen dessen HAL-Quelle (`gateway.py:9091–9092`), sind also mehr als kosmetische Darstellung.
+  Gemeinsame Darstellung darf gemäß Operator auch ohne Arm gespeichert werden. Das macht
+  diese Werte nicht zu ausschließlich lokalen Einstellungen. Zur Betriebszulassung siehe BG-19.
+- **BG-01–03, BG-05–13, BG-15–17 und Paketfolge A–E:** Richtung angenommen, unter den unten
+  benannten Ergänzungen. Die P0-Nachweise aus R202 sind damit **zur Behebung vereinbart**, nicht
+  bereits geschlossen. Joint-Jog bleibt das letzte getrennte Paket; Homing-Gruppen und der
+  Stop-Pfad werden nicht von der neuen Achsenabbildung abhängig gemacht.
+
+### 2. BG-14 · Rest · P1 · Eine wiederaufnehmbare Tab-ID ist noch keine eindeutige HTTP-Zuordnung
+
+**Beleg:** `ws/wsTransport.ts:25` übernimmt die ID aus `sessionStorage`; sie überlebt Reloads.
+`gateway.py:9713–9717` übernimmt einen vom Client gesendeten String direkt als `session_id`.
+Diese Zuweisung erzwingt keine Eindeutigkeit zwischen verbundenen Clients. Zwei Verbindungen
+mit derselben ID, eine armed, die andere disarmed, können denselben `X-Client-Session`-Wert
+senden. Aus diesem Header allein lässt sich der Absender nicht bestimmen. Ein alter Upload
+darf außerdem nicht durch eine neue Verbindung mit derselben Resume-ID wieder autorisiert
+werden. Das ist eine Zuordnungsfrage innerhalb des vorhandenen Zugangsmodells; es braucht
+dafür keine neue Benutzerverwaltung.
+
+**Gegenvorschlag:** HTTP für Uploads beibehalten. Nach dem WS-Verbindungsaufbau liefert der
+Server eine eigene unvorhersagbare Kennung für **genau diese Verbindung/Instanz**. Geschützte
+HTTP-Schreibaufträge tragen sie zusätzlich zum bestehenden API-Token. Am Commit muss diese
+Verbindung noch bestehen und aktuell armed sein. Ein Reconnect bekommt eine neue Kennung;
+die Resume-ID und deren Grace-Hold ersetzen diese Prüfung nicht. Gleichwertig wäre ein
+kleines, an diese Verbindung gebundenes Commit-Ticket; die Nutzdaten müssen nicht durch WS.
+Beim Beacon kann die Kennung im vorhandenen JSON-Body mitgeführt werden.
+
+Den Commit-Vertrag bitte vollständig benennen:
+
+1. Lange Übertragung, Dekodierung und Import-Vorschau dürfen außerhalb der Befehls-/Quellsperren
+   vorbereitet werden. Die letzte Berechtigungs-, Zustands- und Versionsprüfung gehört mit
+   der Veröffentlichung in die passende Serialisierung gegen Start/Quellwechsel. Ein Lock
+   über die ganze Upload-Zeit wäre kein sinnvoller Ersatz und darf Stopps nicht aufhalten.
+2. Datei- und Werkzeugschreiber verwenden die **jeweiligen neuen** Regeln `sourceWrite` bzw.
+   `toolTableWrite` aus R202. Das heutige `setup` schließt E-Stop aus (`command_policy.py:545`)
+   und bildet die vereinbarten Transaktions-/M6-Bedingungen nicht vollständig ab. Die
+   Matrix erlaubt diese Pflege ausdrücklich auch in E-Stop bei bekannt idle. Der Klassenname
+   ist frei wählbar; die Bedingungen müssen übereinstimmen.
+3. `_source_write_refusal` bleibt **zusätzlich** erhalten. Die Funktion prüft Quellbesitz und
+   Interpreterzustand, aber nicht den Arm des schreibenden Clients (`gateway.py:3102`).
+4. Nur geschützte Schreibwirkungen benötigen diese Arm-Bindung. Darstellungs-Persistenz darf
+   nicht über „jede schreibende HTTP-Route“ entgegen Q2 doch gesperrt werden. Fehlende/abgelaufene
+   Verbindung und ein vorhandener, aber disarmed Client erhalten unterschiedliche Gründe.
+
+**Wächter:** Zwei gleichnamige Resume-Sitzungen mit unterschiedlichem Arm; Verbindungswechsel
+während eines gestagten Uploads; Disarm oder Start vor Commit; gemeinsames Display-Save ohne
+Arm; Makro-Schreiben sowohl mit verweigertem Arm als auch mit aktivem Quellbesitz. Kein
+verweigertes Übernehmen verändert Datei, Sidecar, Tabelle oder bestätigten Settings-Stand.
+
+### 3. BG-18 · Rest · P1 · „Basis + idle“ lässt den Stopp nach Disarm weiterhin geschlossen
+
+`_BASE` enthält Arm (`command_policy.py:495`). Auch der Handler verlangt Arm und schaltet erst
+nach MANUAL (`gateway.py:5217`). Nur Homing aus `ready` zu entfernen genügt deshalb nicht.
+
+**Antwort zur nativen Annahme:** Der direkte NML-Spindelstopp steht bei ON/MANUAL, ON/MDI und
+ON/AUTO mit IDLE oder PAUSED in der Zulassungsliste. Bei OFF/E-Stop sowie AUTO/READING und
+AUTO/WAITING steht er nicht darin. Eine Homing-Bedingung hat dieser direkte Stopp dort nicht.
+„In jedem Task-Modus“ ist somit ohne Interpreter-/Power-Zustand zu ungenau.
+[Task v2.9.4, Zustandsauswertung](https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc#L787).
+
+**Vorschlag für unseren engeren Bedienvertrag:** `spindleStop` bei bestehender Verbindung,
+bestätigt ON und bekannt idle, **ohne Arm, Homing, Sim-Sperre oder allgemeinen UI-busy-Latch**.
+Den direkten Stopp senden, ohne vorangestellten MANUAL-Wechsel. Das Programm behält die
+Spindel während AUTO/MDI einschließlich Pause/M6-Warten; dort bleibt dieser manuelle Knopf
+nach deinem Vorschlag geschlossen und Abort erreichbar. Diese Einschränkung ist unsere
+Bedienpolitik, nicht eine behauptete native Sperre in jeder Pause. Pause hält den Ablauf an;
+sie ist kein Versprechen, die Spindel auszuschalten. Bei OFF/E-Stop keinen erfolgten
+NML-Spindelstopp behaupten. Ein unbekannter Laufzustand rechtfertigt keine Idle-Freigabe;
+Abort und E-Stop bleiben davon unabhängig.
+
+**Wächter:** Spindel vor Homing gemäß Q1 gestartet, danach Disarm → Stop bleibt erreichbar;
+dasselbe mit Sim-Ansicht und UI-busy. Kein MODE_MANUAL als Nebenwirkung. Getrennte Fälle für
+AUTO/MDI idle, laufend, pausiert, M6-Warten sowie OFF/ESTOP/unknown. Die native Abnahme prüft
+die erlaubten Direktaufrufe; ein echter Maschinenlauf ist für diese Planrunde nicht nötig.
+
+### 4. BG-19 · neu · P1 · Settings brauchen einen eigenen Übernahmevertrag
+
+**A · „Maschine/Bedienung wie Datei-Commit“ ist zu streng.** `useMdiHistory.ts:52–65` stößt
+das Speichern der Historie vor dem MDI-Senden an; `defaults.ts:243–261` sendet den Save erst
+nach 300 ms. Dauert das MDI länger, trifft das vorgeschlagene Idle-Gate die Historie mitten
+im gerade zulässigen Auftrag und verweigert sie. Der Operator hat Arm verlangt, keine
+pauschale Idle-/Power-/Homing-Voraussetzung für alle Einstellungen.
+
+**B · Ein abgelehnter Save verhindert heute nicht die lokale Anwendung.**
+`useKeyboardShortcuts.ts:175–178` aktiviert die neue Zuordnung vor `saveKeyboardDefaults`;
+`App.vue:1701–1704` tut dasselbe für das Gamepad. `defaults.ts:236–238` schreibt vor dem
+Transport optimistisch in den Cache. Der Fehlerpfad in `settingsSaveStatus.ts:145–157`
+markiert die Speicherung, setzt diese aktiven Konfigurationen aber nicht zurück. Mit einer
+neuen Arm-Prüfung entsteht deshalb eine zusätzliche normale Ablehnung, deren lokale Wirkung
+der Plan noch nicht festlegt. „Beacon unbestätigt“ allein beantwortet das nicht.
+
+**Gegenvorschlag:** Lesen und bestehende Entwürfe frei. Für die Persistenz geschützter
+Settings eine eigene `settingsWrite(section)`-Regel: aktuelle Client-Berechtigung und
+Payload-Prüfung, **kein pauschales idle**. Konkrete Maschinenübernahmen, etwa das Schreiben
+von Messparametern in den Interpreter, behalten ihre spezielleren Gates. Eine bereits
+laufende Bediengeste/-routine behält ihre übernommenen Werte.
+
+Für wirksame Bedienkonfiguration bitte explizit zwischen Entwurf und aktiver, bestätigter
+Konfiguration unterscheiden: neue Tastenzuordnung/Gamepad-Konfiguration erst nach zugehöriger
+Bestätigung aktivieren; bei Ablehnung den Entwurf sichtbar behalten, den aktiven Stand
+beibehalten. Keine automatische Übernahme beim späteren Arm. Die vorhandene Revision der
+Speicherbestätigung muss dabei die **passende** Änderung bestätigen. Ein gleichwertiger
+Vertrag mit sauberem Rücksetzen wäre möglich, müsste aber auch aktive Gesten abdecken.
+
+`DELETE /settings` (`gateway.py:10155`) ist ein geschützter **Gesamtreset**, auch wenn er
+von einer Darstellungsseite aus erreichbar wäre. Ein reiner Display-Reset darf dagegen nur
+freie Abschnitte ändern. WS-Save, HTTP-Save, Beacon und Reset bekommen dieselbe Einteilung.
+
+**Wächter:** Lange MDI + Historienflush bleibt bei bestehendem Arm gespeichert; Darstellung
+auch disarmed; geschützter Save nach Disarm abgelehnt; abgelehnte Tastenzuordnung wird weder
+sofort noch nach erneutem Arm aktiv; ältere Bestätigung aktiviert keinen neueren Entwurf;
+Gesamtreset kann die Abschnittsprüfung nicht umgehen.
+
+### 5. Matrix-Ergänzung und Umfang der nächsten Antwort
+
+| Aktion | Freigabe / Abgrenzung gegenüber dem Antwortvorschlag |
+|---|---|
+| Darstellung lesen/ändern | Ohne Arm; lokale Ansicht auch ohne Transport, gemeinsame Persistenz nur bei verfügbarem Speicherweg. Kein Maschinen-Idle erforderlich. |
+| Geschützte Settings lesen/entwerfen | Frei; Entwurf nicht automatisch aktive Bedienkonfiguration. |
+| Geschützte Settings übernehmen | Eigene `settingsWrite(section)`-Berechtigung gemäß BG-19, grundsätzlich auch im Lauf; zusätzliche Bedingungen nur nach konkreter Wirkung. |
+| Alle Settings zurücksetzen | Geschützte Übernahme; kein freier Darstellungs-Reset. |
+| Spindel Fwd/Rev/± vor Homing | Q1: deklarierte INI-Ausnahme, Arm + ON + idle + MANUAL; sonst bisherige Homing-Regel. |
+| Spindel-Stopp | Auch für Beobachter bei ON + idle; ohne Homing/Sim/busy. Im Programmlauf einschließlich Pause geschlossen nach der oben benannten Bedienpolitik. |
+| Pause AUTO/MDI | Wie vorgeschlagen ohne Arm bei passendem Laufzustand; M6-Bestätigung bleibt eine eigene Aktion. |
+
+Noch zwei Präzisierungen ohne eigenen Befund: Der BG-01-Wächter darf nicht **jede** Wirkung
+unter `always` verbieten; Q2 erlaubt gerade freie Darstellungs-Persistenz. Er soll unerfasste
+oder zu großzügig freigegebene **geschützte** Wirkungen finden. `toolChangeConfirm` ist heute
+`armed`, nicht `always`; seinen Fehler erfasst der Aktionsvertrag einschließlich Sim-Zustand.
+Auch „unbekannter Interpreter schließt alle neuen Aktionen“ in BG-12 gilt für Aktionen, die
+diesen Zustand tatsächlich benötigen, nicht für Navigation, Darstellung oder deren Speicherweg.
+
+Bitte die drei offenen Verträge in der nächsten Planantwort festziehen. Die übrigen
+Vereinbarungen müssen nicht erneut verhandelt werden. Danach können die Implementierungsrunden
+in der vorgeschlagenen Reihenfolge beginnen; die bekannten Produktbefunde bleiben bis zu
+ihrer jeweiligen Nachprüfung offen.
