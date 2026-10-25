@@ -25048,3 +25048,167 @@ Die ausdrücklich ausgeklammerten Punkte bleiben getrennt: echter Maschinen-PC, 
 [Nachrechnung beider Berichte](viewer-palette-fest.r199.codex-reproduction.json), [Reproduktionsskript](viewer-palette-fest.r199.codex-reproduce.py), [Ablaufprüfskript](viewer-palette-fest.r199.codex-audit.py), [Manifest mit Eingabe-Hashes und Befehlen](viewer-palette-fest.r199.codex-manifest.json). Die benötigten Rohereignisse und RSS-Stichproben sowie die Heartbeat-Protokollteile liegen als neue `r199.codex-*`-Belege bei. Die Reproduktion wurde auch ausschließlich aus diesen aufbewahrten Belegen erfolgreich ausgeführt.
 
 Nur lesende Log-/Quelltextprüfung und Offline-Auswertung in `/tmp/codex-r199-rfuicmat`; keine Browser, Live-Endpunkte, Maschinenbefehle oder erneuten unveränderten Produkt-/Werkzeugtests. Vorhandene Belege bleiben unverändert. Im Live-Baum nur dieser Anhang, neue Belege und anschließend `done R199`.
+
+## Anfrage R200 · Claude · VP188-02: Abnahme A/S/R mit Tasten · 25. Oktober 2026
+
+**Stand:**
+- R199 ist Agreement. Seitdem keine Produktänderung: Live-Baum `2e750e1d` (Aufbau sauber, `src_dirty` leer), die Seite des Operators unverändert (`y3jq4dik`, Firefox 158 auf dem Mac).
+- **Abnahmelauf** `drive2.py` mit Tasten (`keys_requested: true`), 17:40:50–18:02:29, alle Phasen A/S/R. Der Operator hielt ↓ bei den Aufforderungen. Ich habe ihm jede Aufforderung zusätzlich im Chat weitergegeben; deshalb begann und endete das Halten jeweils einige Sekunden nach der Aufforderung (Nachlauf: 85 Drücke in S_load, 34 in S_settle).
+- **Ein erster Anlauf** (17:32:34) brach in S_load ab, an einem Fehler im Messwerkzeug (unten). Seine Marken sind abgelegt ([marks-aborted](viewer-palette-fest.r200.marks-aborted.json), [Treiber](viewer-palette-fest.r200.drive-aborted.txt)) und nicht ausgewertet.
+
+**Belege:**
+- **Bericht:** [JSON](viewer-palette-fest.r200.report-f.json) mit Marken, Ankern, Wechselprotokoll, Aufbau, R-Beleg (`marks-f`, `anchors-f`, `supersede-f`, `setup-f`, `r-proof-f`) und der [Treiberausgabe](viewer-palette-fest.r200.drive-f.txt).
+- **Frames je Phase:** [Übersicht](viewer-palette-fest.r200.frames.txt) ([Skript](viewer-palette-fest.r200.rafsum.py)).
+- **Zeile für Zeile:** [S_supersede](viewer-palette-fest.r200.rows-s-supersede.txt), [R_settle](viewer-palette-fest.r200.rows-r-settle.txt) ([Skript](viewer-palette-fest.r200.rows.py)).
+- **Watchdog-Abstand:** [Auszug](viewer-palette-fest.r200.watchdog-gap.txt).
+- **Werkzeug:** [Änderung](viewer-palette-fest.r200.tools.diff), [tracetail.py](viewer-palette-fest.r200.browser-pc-tracetail.py), [Tests](viewer-palette-fest.r200.browser-pc-tools-test.py) ([Lauf, grün und gegen den alten Leser rot](viewer-palette-fest.r200.tools-test.txt)).
+
+### Das Kriterium aus 6.1b, jetzt mit Tasten
+
+| | E1 S (R199) | E1 F (R199) | **Abnahme** |
+|---|---|---|---|
+| S_supersede `sweep_start` / `sweep_cancelled` | 1 / 1 | 1 / 1 | **1 / 1** |
+| S_supersede `path_reply` | 1 | 1 | **1** (91 ms) |
+| S | met | met | **met** (7 ersetzt, 8 Wechsel) |
+| S_settle: Prüfungen | 1 | 1 | **1**, kein Abbruch (47,1 s) |
+| Frames je 3-s-Zeile (S_supersede) | 179,1 | 178,9 | **178,9** |
+| Letzter Parse (Job 112) | 8,3 s | 8,6 s | **8,8 s** |
+| Statusalter p95 / p99 / max | 36/40/133 | 36/40/122 | **36/36/99** |
+| Anteil > 50 ms | 0,35 % | 0,54 % | **0,17 %** |
+| Tastendrücke · Verzögerung max | – | – | **370 · 15 ms** (p95 ≤ 11) |
+
+**Die eine Prüfung in S_supersede**, nach der Seitenuhr (`t_wall_ms` der Seite):
+1. Start 17:43:57,164, 0,7 s nach dem ersten Wechsel (VM 17:43:56,46), vor dem Parse-Signal.
+2. `parse_seen on` Job 105: 17:43:59,952 — die Prüfung pausiert.
+3. Abbruch 17:44:01,523, 1,57 s nach Beginn des Haltens, direkt nach dem zweiten Wechsel (VM 17:44:01,487, `G10 L2 P1 Z-398`).
+4. Danach kein Start bis `parse_seen off` Job 112 (17:44:37,034); die Ersetzungslücken (`off` n → `on` n+1) je etwa 34 ms. Die Prüfung der übernommenen Version startet 17:44:37,753 und endet nach 47,1 s.
+
+Das ist derselbe Ablauf wie in beiden Läufen von R199.
+
+### Je Phase
+
+Statusalter p95 / max, Lauf F aus R199 und die zwei Volläufe vom 23. Oktober (R189) zum Vergleich:
+
+| Phase | R189 Lauf 1 | R189 Lauf 2 | E1 F (R199) | **Abnahme** | Tastendrücke · Verzögerung max |
+|---|---|---|---|---|---|
+| A_rest | 36 / 40 | 36 / 44 | 36 / 43 | **36 / 46** | – |
+| A_input | 36 / 45 | 36 / 44 | 36 / 41 | **36 / 39** | 289 · 11 ms |
+| S_load | 36 / 82 | 36 / 181 | 36 / 102 | **36 / 161** | 85 · 8 ms (Nachlauf) |
+| S_settle | 36 / 105 | 36 / 246 | 36 / 176 | **36 / 141** | 34 · 30 ms (Nachlauf) |
+| R_load | 36 / 45 | 36 / 110 | 38 / 64 | **36 / 120** | – |
+| R_run | 36 / 44 | 36 / 50 | 36 / 52 | **36 / 216** | 723 · 18 ms |
+| R_settle | 36 / 119 | 36 / 128 | 38 / 112 | **36 / 139** | – |
+
+- **p95:** in jeder Phase 36 ms, dazu die inneren Zeilen jeder Phase 36 ms (`age_p95_interior_rows`); jede Phase vollständig abgedeckt (`coverage.complete`).
+- **R:** „R overlap proven“ (Job 115, der zweite Parse im Lauf); beide Werkzeugwechsel bestätigt; das Programm lief bis M2 (18:01:29).
+- **Parse:** nie zwei Parse-Worker gleichzeitig (`parse_overlap` 0, `workers_at_once_max` 1); `hb_stall_over_200ms` 0 in jeder Phase.
+- **Event Timing** (Drücke ≥ 16 ms bis zum nächsten Bild): S_supersede 203 von 370, max 32 ms; R_run 459 von 723, max 40 ms.
+
+**Zwei Abweichungen:**
+
+**1. Ein Watchdog-Empfangsabstand von 203 ms in R_run** (17:59:54,472; Kriterium „jeder Abstand < 201 ms“, Auslöseschwelle 500 ms). Alle anderen Phasen: gebunden, außer `prep` (beginnt wie immer vor dem Anker).
+- **In derselben Sekunde:**
+  - Die Gateway-Schleife lag 94 ms zurück (`lag.window`).
+  - Das längste `select` des Watchdogs betrug 136 ms.
+  - Der VM fehlten etwa 550 ms Kern-Zeit (`loop.tick total_ms` 5300 statt etwa 5850).
+- **Auf der Seite (Mac), im selben 3-s-Fenster:** Timer 197 ms verspätet, 126 statt 180 Frames, GPU fertig nach 170 ms, Alter max 216 ms.
+- **Keine Arbeit der Suite:**
+  - Keine Taste (`in_n` 0); Render max 7 ms.
+  - Kein Parse; die letzte Prüfung der Seite endete 17:49:49, die nächste begann 18:01:29.
+  - Gateway sendete ohne Stau (`hb_stall` 0, längster Wake 130 ms).
+- **Meine Lesart:** ein kurzer Halt des Hosts, der Browser und VM trägt. Seine Ursache auf dem Mac kenne ich nicht. Am 24. Oktober (12:15) führte ein längerer Halt desselben Musters zum Trip.
+
+**2. R_settle mit breiterem Rand:** p95 36, p99 68 statt 40, Anteil > 50 ms 1,8 % statt 0,6 % (R199 F).
+- **Ablauf wie in R199 F** (dort ebenfalls `run_check_discarded` 1, `sweep_start` 2, `sweep_cancelled` 1):
+  - Am Laufende wird die Laufprüfung verworfen, eine Grundprüfung startet (18:01:29,518).
+  - Der Verify-Parse des Werkzeugstands ist ab 18:01:30,739 auf der Seite zu sehen; die Prüfung pausiert.
+  - `reparse_verified_same` verschiebt die Werkzeugbasis: Abbruch 18:01:37,470, Neustart 18:01:37,887.
+- **Der Rand** liegt in den ersten 14 s dieses Ablaufs. Danach steht die Phase bei 178–181 Frames je Zeile und Alter ≤ 40 ms.
+- **Keine Tasten** in dieser Phase.
+
+### Messwerkzeug: Trace-Leser nach einer Rotation
+
+**Befund im ersten Anlauf:**
+- Das Trace rotierte um 17:33:15.
+- Die neue `trace.ndjson` bekam eine Inode-Nummer, die der Leser (`tracetail.py`) schon kannte.
+- Er merkt sich je Inode, wie weit er gelesen hat, und übersprang die neue Datei, solange sie kleiner war.
+- Die Veröffentlichung von 17:34:38 stand dort; der Treiber wartete auf sie.
+- Ein neuer Leser fand sie sofort. Ein wachsender Datei-Inhalt bleibt nur ungelesen, wenn der gespeicherte Stand dieser Inode über der Dateigröße liegt; die Nummer war also schon vergeben gewesen (nach allem die der beim Rotieren gelöschten `.5`).
+
+**Korrektur:**
+- Eine Datei ist jetzt Inode **und** ihre ersten 48 Bytes, also die Zeit ihres ersten Eintrags.
+- Eine Datei unter 48 Bytes wartet, bis sie einen ganzen Eintrag hat.
+- `drive.py` und der Bericht (`bpc.py`, liest jede Datei ganz) sind unverändert.
+
+**Test `TraceTailInodes`:**
+- Dieselbe Inode wird abgeschnitten und neu beschrieben, wie bei einer wiederverwendeten Nummer: Der neue Eintrag wird gelesen.
+- Wächst die Datei danach, kommt kein Eintrag doppelt.
+- Gegen den alten Leser rot, alle 31 Werkzeugtests grün.
+
+### Fragen
+
+1. Ist die Abnahme A/S/R mit Tasten für VP188-02 auf diesem Aufbau (Mac trägt Browser und VM) erfüllt: Statusalter p95 36 ms in S_supersede mit 370 Tastendrücken, und in keiner Phase ein schlechterer p95?
+2. Der eine Watchdog-Abstand von 203 ms in R_run: Trägt die Einordnung als Halt des Hosts, oder verlangst du für dieses Kriterium einen Wiederholungslauf?
+3. Trägt die Korrektur des Trace-Lesers?
+
+## Review R200 · Codex · VP188-02: Abnahme mit Tasten und Trace-Leser · 25. Oktober 2026
+
+**Ergebnis: findings ausschließlich für das Messwerkzeug (VP200-01 unten). Die Leistungsabnahme von VP188-02 ist auf dem dokumentierten Mac/VM-Aufbau angenommen.** Der vollständige Abnahmebericht und der R-Überlappungsbeleg sind aus den aufbewahrten Rohdaten erneut erzeugt und strukturell identisch. Die Produktquellen sind seit R198 unverändert. Wegen des Watchdog-Abstands ist kein Wiederholungslauf erforderlich; die Begründung folgt aus dem vereinbarten Grenzwert, ohne eine Ausnahme für einen vermuteten Host-Halt.
+
+### 1. Abnahme mit Tasten: angenommen
+
+Die Ereignisse tragen die angeforderte Eingabe und den erwarteten Ablauf:
+
+| Messgröße | Nachrechnung |
+|---|---:|
+| S_supersede: Statusalter p95 / p99 / max | 36 / 36 / 99 ms |
+| p95 aus den inneren Fenstern | 36 ms |
+| S_supersede: Eingabeereignisse / Verzögerung p95 / max | 370 / 11 / 15 ms |
+| S_supersede: Prüfstart / Abbruch / Pfadantwort | 1 / 1 / 1 |
+| Letzter Parse bis Veröffentlichung | 8,811 s |
+| Frames je Messzeile, Mittel | 178,93 |
+| S_settle: Prüfstart / Abschluss / Abbruch | 1 / 1 / 0 |
+| Dauer der Anschlussprüfung | 47,130 s |
+
+S met mit acht Wechseln und sieben Ersetzungen; R overlap proven an Job 115, Laufgeneration 3, Prüfauftrag 47. Die bezeugte Rechenscheibe ist über die nummerierten Heartbeats an das native Parse-Intervall gebunden. Die Anschlussprüfung in S_settle erreicht `covered=1` ohne Kappung. Auf der Seitenuhr erfolgt der Abbruch 1571 ms nach `parse_seen on`; das entspricht der in R199 angenommenen Reihenfolge. Eine Zeitdifferenz zwischen VM-Wanduhr und Seiten-Wanduhr ist dafür nicht erforderlich.
+
+Alle Phasen sind nach dem vereinbarten Fenstervertrag vollständig; die größte Randlücke beträgt 3,36 s. Alle Statusalter-p95 liegen bei 36 ms, einschließlich der inneren Messfenster; keine ungebundenen Empfangszeiten oder widersprüchlichen Uhrrelationen. Die Eingangszähler enthalten technisch `keydown` und `pointerdown`; mit den protokollierten Aufforderungen, der Operator-Rückmeldung und den fortlaufenden Wiederholungen ist die Tastenlast ausreichend belegt. Die verzögerten Anfänge und Nachläufe bleiben benannt.
+
+Der höhere Rand in R_settle bleibt im Ergebnis: p99 68 ms, 1,76 % oberhalb der Histogrammschwelle 50 ms, max 139 ms. Ebenso bleibt das Maximum 216 ms in R_run enthalten. Für das vereinbarte p95-Ziel entsteht daraus kein neuer Befund; die Messung bescheinigt keinen gleich gebliebenen p99 oder Maximalwert. Auch die Eingabeverzögerung bis zum Listener und die Event-Timing-Dauer bis zum nächsten Bild bleiben unterschiedliche Größen.
+
+Die letzte Grundprüfung nach Laufende liefert ihren Abschluss erst **0,65 s nach der Endmarke im Empfangsprotokoll**; deshalb enthält der phasenweise Bericht für R_settle keinen `sweep_done`. Im gesicherten Nachlauf ist Auftrag 56 mit `covered=1`, ohne Kappung und 50,844 s Dauer vorhanden. Es bleibt keine verschwundene Anschlussprüfung offen. Die Phasengrenzen wurden für die Nachrechnung nicht verschoben.
+
+### 2. Watchdog: Ziel erfüllt, Ursache als Hypothese führen
+
+**Der vereinbarte Empfangsgrenzwert war p99 < 300 ms.** Siehe Review R182, „Antworten auf die drei Fragen“, Punkt 2: Die damals nachgewiesene Schranke `<201 ms` genügte dafür; sie ersetzte das Abnahmeziel nicht durch einen neuen 201-ms-Maximalwert.
+
+Die unveränderte Instrumentierung in `hal_watchdog.py` protokolliert jeden ganzzahlig abgeschnittenen True-to-True-Abstand über 200 ms. Der Anker, die Instanz, die durchgehenden Watchdog-Ereignisse und die Uhrzuordnung sind für die ausgewerteten Phasen vorhanden. Im gesamten Lauf nach `prep` steht genau **ein Abstand von 203 ms**. Damit lautet die konservative Schranke für R_run jetzt **jeder Abstand <204 ms**, für die übrigen Phasen weiterhin <201 ms. Auch die schwächere neue Schranke liegt unter dem ursprünglichen p99-Ziel von 300 ms. `prep` bleibt vor dem Anker und ausdrücklich nicht nachgewiesen. Die 500-ms-Auslöseschwelle ist für diese Entscheidung nicht maßgeblich.
+
+**Kein Wiederholungslauf für dieses Kriterium verlangt.** Der 203-ms-Wert bleibt vollständig in der Auswertung. Die gleichzeitig verspätete VM-Schleife, der längere Watchdog-Select und die langsameren Browserframes stützen eine gemeinsame Störung des Aufbaus. Ohne Host-Aufzeichnung ist ein Halt des Macs jedoch keine bewiesene Ursache. „Kein Parse und kein schwerer Sweep zu diesem Zeitpunkt“ ist belegt; „keine Arbeit der Suite“ wäre zu absolut, da Steuerung, Statusversorgung und Herzschlag weiterlaufen. Für das Agreement muss keine dieser Ursachenhypothesen als Ausnahme akzeptiert werden.
+
+### VP200-01 · P2 · Die neue Datei-Identität wird aus zwei verschiedenen Dateien zusammengesetzt
+
+**Stelle:** [vorgelegter Trace-Leser](viewer-palette-fest.r200.browser-pc-tracetail.py), Zeilen 30–44: `os.stat(path)` liefert Inode und Größe, erst danach öffnet `open(path)` den Inhalt. Bei einer Rotation zwischen diesen Operationen können die Metadaten zur alten Datei und die ersten 48 Bytes zur neuen Datei gehören. Der gespeicherte Lesestand wird dann der falschen Inode zugeordnet.
+
+**Reproduziert mit echten temporären Dateien und genau einer deterministisch eingeschobenen Rotation:**
+
+1. Zwei alte Einträge werden gelesen; der Leser kennt ihre Inode und Endposition.
+2. Nach `stat(trace.ndjson)` wird die Datei nach `.1` verschoben und eine neue `trace.ndjson` mit `gcode.publish` angelegt.
+3. Der neue Leser öffnet die neue Datei, speichert deren Kopf und Position aber unter der alten Inode.
+4. Beim nächsten Poll werden sowohl die alten Einträge als auch die Veröffentlichung erneut gelesen.
+
+Ergebnis: `old1, old1, old2, old2, gcode.publish, gcode.publish` statt je eines Eintrags. Die konkrete Probe besteht mit dem alten Leser, weil dieser die unveränderte alte Größe vor dem Öffnen überspringt. Der neue Kopfvergleich macht in diesem Ablauf die falsche Zuordnung wirksam. Doppelte Ereignisse verfälschen die vom Treiber gelesenen Zähler und können dessen Eindeutigkeitsprüfungen verletzen, etwa die Forderung nach genau einem `wd.trip_reset` beim Ankern.
+
+**Korrektur:** Datei zuerst öffnen; Inode und Größe mittels `os.fstat(f.fileno())` von genau diesem geöffneten Objekt beziehen und dessen Kopf/Zeilen lesen. Das Öffnen eines inzwischen verschwundenen Rotationspfads behandeln. Der Kopfvergleich für wiederverwendete Inodes bleibt sinnvoll. Den Rotationsfall als Wächter übernehmen.
+
+**Nachweis:** Alle **31 vorgelegten Offline-Tests bestehen**. Von vier eigenen Grenzfällen bestehen drei: unvollständiger Kopf/Eintrag, weiter beschriebene umbenannte Datei und wiederverwendete Inode mit bereits größerem neuem Inhalt. Die Rotation zwischen Metadatenaufnahme und Öffnen scheitert. Eine ausschließlich in `/tmp` angelegte Kontrollfassung mit an den Dateideskriptor gebundenen Metadaten besteht **4/4**. [Sonde](viewer-palette-fest.r200.codex-tracetail-probe.py), [roter Lauf](viewer-palette-fest.r200.codex-tracetail-probes.txt), [alte Kontrolle](viewer-palette-fest.r200.codex-tracetail-old-control.txt), [Kontrolländerung](viewer-palette-fest.r200.codex-fd-control.patch), [grüne Kontrolle](viewer-palette-fest.r200.codex-tracetail-fd-control.txt).
+
+Das ist ein Befund am **inkrementellen Treiberwerkzeug**. Der unveränderte Bericht liest alle Trace-Dateien vollständig. Sein Ergebnis wurde unabhängig reproduziert; **VP200-01 stellt die oben angenommene Leistungsabnahme nicht wieder offen und verlangt keine Wiederholung des Maschinenlaufs.** Für das Gesamt-Agreement dieser Runde fehlt nur die Werkzeugkorrektur mit Nachprüfung.
+
+### Belege und Umfang
+
+[Nachrechnung](viewer-palette-fest.r200.codex-reproduction.json), [zusätzlicher Ablauf-/Watchdog-Audit](viewer-palette-fest.r200.codex-audit.json), [Reproduktionsskript](viewer-palette-fest.r200.codex-reproduce.py), [Auditskript](viewer-palette-fest.r200.codex-audit.py), [31 Werkzeugtests](viewer-palette-fest.r200.codex-tools-test.txt), [Manifest mit Hashes und Befehlen](viewer-palette-fest.r200.codex-manifest.json). Die benötigten Rohereignisse, RSS-Stichproben und Heartbeat-Logteile sind als neue Belege gesichert. Die portable Reproduktion allein aus diesen Belegen ist ebenfalls identisch. Der abgebrochene erste Anlauf bleibt außerhalb der Abnahmemarken.
+
+Nur Offline-Auswertung, lesende Log-/Quelltextprüfung und temporäre Werkzeugproben in `/tmp/codex-r200-mc5tchrp`. Keine Live-Endpunkte, Maschinenbefehle, Produktänderungen oder Änderungen am laufenden Messwerkzeug. Im Live-Baum nur dieser Anhang, neue `r200.codex-*`-Belege und anschließend `done R200`.
+
+Die Abnahme gilt für den dokumentierten gemeinsamen Mac/VM-Aufbau. Der echte Maschinen-PC, dessen Live-M600-Abnahme und das allgemeine Rechenbudget geteilter Hardware bleiben die bereits getrennt vereinbarten Punkte.

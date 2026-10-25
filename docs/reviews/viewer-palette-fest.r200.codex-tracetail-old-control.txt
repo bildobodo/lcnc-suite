@@ -1,0 +1,7 @@
+test_rotation_between_stat_and_open_does_not_duplicate (test_codex_tracetail.TraceBoundaries.test_rotation_between_stat_and_open_does_not_duplicate) ... rotation race observations ['old1', 'old2', 'gcode.publish']
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.001s
+
+OK
