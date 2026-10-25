@@ -1028,7 +1028,8 @@ unreferenzierte Disarm-Stopp aus BG-07.
 - **Noch gesperrt bei Disarm:** Die Abort- und Pause-Knöpfe **im** äußeren `armed`-Fieldset
   (G-Code-Tab, Probing, Makros, Makroleiste) und der Spindel-Stopp im Strip.
 - **Ohne Arm schon erreichbar:** Banner-Abort und das Abort jedes Dialogs (beide außerhalb des
-  Fieldsets), Tastatur und Gamepad.
+  Fieldsets). Tastatur und Gamepad nur, wenn auf dem Client Tastatur-Shortcuts bzw.
+  Gamepad-Knöpfe eingeschaltet sind (`buttonsEnabled`).
 - **Folge der vereinbarten Matrix:** Ein nicht gearmter Client mit aktiven Tastatur-Shortcuts
   pausiert einen laufenden Ablauf mit der Leertaste. Mit Escape (E-Stop) konnte er das schon immer.
 
@@ -1060,6 +1061,15 @@ unreferenzierte Disarm-Stopp aus BG-07.
 
   S2 zeigte damals noch den allgemeinen Text „Machine busy“; deshalb gibt es jetzt
   `SPINDLE_OWNED`.
+- **Was nur offline belegt ist:**
+  - **BG-06:** belegt über Mock und Unit-Tests, nicht an der Sim. Das Gateway behandelt `jog_stop`
+    unverändert; der Fehler lag im Client. Neu getestet sind Tastatur (Playwright), D-Pad und das
+    Gestenmodul (Vitest). Der Pointer-Release und Disarm bei gehaltenem Jog sind durch die
+    Konstruktion abgedeckt (die Registry ruft die beim Start gespeicherte Stop-Funktion), nicht
+    durch einen neuen Test.
+  - **BG-07 (Teil):** Der unreferenzierte Disarm-Stopp ist nur per Unit-Test belegt. Nativ ist er
+    erst mit Paket E erreichbar, wo ein Jog vor dem Referenzieren möglich wird; dort folgt die
+    Live-Prüfung.
 
 **Bitte prüfen:**
 
