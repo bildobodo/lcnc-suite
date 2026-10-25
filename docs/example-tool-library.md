@@ -74,8 +74,17 @@ simulation defaults; measure the installed tools before machining. Changing a
 measured offset never stretches their physical geometry.
 
 Numbers are T1001–T1021 (Fusion) and T2001–T2015 (FreeCAD). These ranges are not
-reserved by LinuxCNC. The examples have stable source IDs and descriptions
-prefixed with `Example / Fusion /` or `Example / FreeCAD /`.
+reserved by LinuxCNC; they keep the library apart from a machine's own T1–T99
+when it is imported into a real tool table. The examples have stable source IDs
+and descriptions prefixed with `Example / Fusion /` or `Example / FreeCAD /`.
+
+The simulator tables also carry a shop's own tools numbered from 1: each
+profile's T1 (its demo program is measured for it), then T2–T14, the T50 face
+mill and the T99 probe (`SHOP` in `scripts/build_example_tool_library.py`).
+Test programs call these numbers (T2, T3, T8, T13 …); a table without them
+stops LinuxCNC's interpreter at the first such T word ("Requested tool 13 not
+found in the tool table") and the preview shows nothing of the program
+(`lcnc-gateway/test_example_program_tools.py`).
 
 ## Contents
 

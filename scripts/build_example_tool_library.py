@@ -100,6 +100,32 @@ def build():
             'tools': entries}
 
 
+# The shop's own tools, numbered from 1 (operator 2026-09-29): the test
+# programs call them by these numbers (T2, T3, T8, T13 …) — a sim table with
+# only the library's T1001+/T2001+ refused every such program at its first T
+# word ("Requested tool 13 not found in the tool table") and the preview
+# showed nothing. The library keeps its 1000/2000 blocks: imported into a
+# real machine's table, they never collide with its T1–T99. Each profile
+# keeps its own T1 (the demo program is measured for it); the shop's tools
+# follow from T2.
+SHOP = (
+    'T2 P2 Z47.690467 D6.000000 ; 6mm 30\u00b0 Engraving Tool\n'
+    'T3 P3 Z22.000000 D6.000000 ; 6mm 45\u00b0 Engraving Tool\n'
+    'T4 P4 Z73.168800 D6.000000 ; 6mm 60\u00b0 Engraving Tool\n'
+    'T5 P5 Z22.000000 D6.000000 ; 6mm 90\u00b0 Engraving Tool\n'
+    'T6 P6 Z60.000000 D6.000000 ; 6mm Ball Endmill\n'
+    'T7 P7 Z66.000000 D6.000000 ; 6mm Flat Endmill\n'
+    'T8 P8 Z68.000000 D8.000000 ; 8mm Flat Endmill\n'
+    'T9 P9 Z56.000000 D10.000000 ; 10mm Spot Drill\n'
+    'T10 P10 Z49.000000 D12.000000 ; 12mm Flat Endmill\n'
+    'T11 P11 Z58.000000 D16.000000 ; 16mm Flat Endmill\n'
+    'T12 P12 Z30.000000 D6.000000 ; Inlay cutter D6x20x50 5.7\u00b0 R1\n'
+    'T13 P13 Z65.067133 D8.000000 ; Inlay cutter D8x47x100 3.7\u00b0 R1\n'
+    'T14 P14 Z42.540000 D3.000000 ; 3mm tool\n'
+    'T50 P50 Z50.000000 D50.000000 ; 50mm Face Mill\n'
+    'T99 P99 Z40.000000 D3.000000 ; 3D Touch Probe\n'
+)
+
 def seeds():
     """Fresh simulator tables; keep each demo program's original tool numbers."""
     sys.path.insert(0, str(ROOT / 'lcnc-gateway'))
@@ -109,9 +135,9 @@ def seeds():
     metadata = {str(t['T']): {k: t[k] for k in _TOOL_META_FIELDS if k in t} for t in tools}
     rows = ''.join(f"T{t['T']} P{t['T']} Z{initial_z_offset(t):.6f} D{t['D']:.6f} ; {t['description']}\n" for t in tools)
     demos = {
-        'xyz3': 'T1 P1 Z50 D6 ; Example end mill\nT2 P2 Z40 D3 ; Example probe\nT3 P3 Z22 D6 ; Example tool\n',
-        'xyzac5': 'T1 P1 Z100 D12 ; XYZAC demo: 12 mm end mill, 100 mm gauge length\n',
-        'xyzabc6': 'T1 P1 Z200.000 D14.000 ; Gantry example, 200 mm gauge length, 14 mm diameter\n',
+        'xyz3': 'T1 P1 Z50 D6 ; Example end mill\n' + SHOP,
+        'xyzac5': 'T1 P1 Z100 D12 ; XYZAC demo: 12 mm end mill, 100 mm gauge length\n' + SHOP,
+        'xyzabc6': 'T1 P1 Z200.000 D14.000 ; Gantry example, 200 mm gauge length, 14 mm diameter\n' + SHOP,
     }
     result = {}
     for directory, demo in demos.items():
