@@ -4,10 +4,15 @@
 # system LinuxCNC install and reached via --system-site-packages in the
 # venv — they must NOT be listed here. Listing numpy invites a venv-local
 # 2.x install that shadows the system 1.x and breaks system scipy's C ABI
-# (see GitHub issue #12).
+# (see GitHub issue #12). Nothing listed here may PULL numpy in either: a
+# package whose metadata asks for a numpy the system lacks makes pip install
+# one into the venv (issue #42). install.sh and setup-venv.sh run
+# venv_check.py after pip and fail when numpy comes from the venv; run it by
+# hand after a manual `pip install -r` (README, Option C).
 #
-# Floor-pinned (>=) until a fresh-machine end-to-end smoke test fixes
-# known-good versions. See GitHub issue #10.
+# Floor-pinned (>=), plus the one cap below with its reason, until a
+# fresh-machine end-to-end smoke test fixes known-good versions. See GitHub
+# issue #10.
 
 # Web framework
 fastapi>=0.110
@@ -23,7 +28,12 @@ click>=8.1
 
 # Optional: camera streaming — only imported when LCNC_CAMERA_SOURCE is set.
 # The gateway degrades gracefully (try/except ImportError) if missing.
-opencv-python-headless>=4.8
+# Capped below 4.12: 4.12.0.88 is the first release that declares
+# numpy>=2 (4.13 and 5.0 too), so on a system numpy 1.x (Debian 12: 1.24)
+# pip installed numpy 2 into the venv (issue #42). 4.11.0.86 asks
+# numpy>=1.23.5 on Python 3.11 (>=1.26 on 3.12+) and runs on numpy 2 too
+# (Debian 13: 2.2).
+opencv-python-headless>=4.8,<4.12
 
 # test-only: starlette TestClient transport (test_ws_smoke.py)
 httpx

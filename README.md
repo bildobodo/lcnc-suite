@@ -331,6 +331,7 @@ git lfs pull
 python3 -m venv lcnc-gateway/.venv --system-site-packages
 source lcnc-gateway/.venv/bin/activate
 pip install -r lcnc-gateway/requirements.txt
+python3 lcnc-gateway/venv_check.py   # numpy must stay the system's (issue #42)
 deactivate
 
 # 3. Node.js dependencies

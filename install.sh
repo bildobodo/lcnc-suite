@@ -299,6 +299,16 @@ python3 -m pip install -U pip --quiet
 info "Installing Python dependencies..."
 python3 -m pip install -r "$REQ_FILE" --quiet
 
+# numpy must stay the system's: a venv copy, pulled in by any requirement,
+# shadows the numpy the system's scipy was built against (issues #12, #42).
+info "Checking that numpy comes from the system..."
+if python3 "$TARGET_DIR/lcnc-gateway/venv_check.py" >/dev/null; then
+  ok "numpy from the system"
+else
+  fail "numpy in the venv is not the system's — see above"
+  exit 1
+fi
+
 info "Verifying Python imports..."
 if python3 -c "import linuxcnc, fastapi, uvicorn" 2>/dev/null; then
   ok "Python environment ready"
