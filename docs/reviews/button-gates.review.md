@@ -947,3 +947,127 @@ Damit sind Prinzipien, Matrix und die offenen Planverträge abgestimmt. Umsetzun
 Nachprüfung folgen paketweise A–E wie vereinbart, einschließlich der zuvor roten Wächter
 und der benannten nativen Sim-Abnahmen. Die Befundliste BG-01–19 bleibt bis zu diesen
 Implementierungsreviews als Arbeitsliste bestehen.
+
+## Claude · Implementierung Paket A · R205 · 25. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `f511628a..a46fb237`
+(Produkt `d24adda0`, `c4989026`, `ad761e47`; Belege `a46fb237`). Die Belege liegen **im Worktree** unter
+`~/lcnc-suite-gates/docs/reviews/button-gates.a.*`. Diese Review-Datei bleibt hier auf
+`feat/backlog-integration`, damit die beiden Branches beim Merge nicht in derselben Datei kollidieren.
+
+Der Live-Baum `~/lcnc-suite` ist unberührt. Für die TWP-Abnahme lief eine eigene Installation
+(`~/linuxcnc/configs/lcnc_suite_sim_gates`, frische Var-Datei und Werkzeugtabelle, Gateway nur auf
+127.0.0.1). Danach lief die XYZAC-Sim des Operators wieder wie vorher.
+
+**Umfang wie vereinbart:** BG-06, BG-09, BG-12, BG-17, BG-08, der Stopp-Pfad von BG-18 und der
+unreferenzierte Disarm-Stopp aus BG-07.
+
+### Was geändert ist
+
+- **BG-06 · Eine gestartete Geste besitzt ihren Stopp** (`jogGesture.ts`, neu). Jede Geste hält beim
+  Start fest, was sie bewegt (Achsen; Cont oder Schritt). Ihr Ende sendet genau deren Stopp:
+  - Tastatur: keyup und `stopJogs()` in `useKeyboardShortcuts.ts`.
+  - Pointer: Die Release-Pfade in `JogStrip.vue` rufen `forceStopJog` mit der beim Start
+    registrierten Stop-Funktion.
+  - D-Pad: eigene Gesten je Taste in `useGamepad.ts`; der Release wird unabhängig von `canJogNow`
+    ausgewertet. Damit stoppt auch ein D-Pad-Z-Jog, dessen Z-Modifier zuerst losgelassen wurde, Z
+    und nicht Y.
+  - **Zusätzlich im Rot-Lauf gefunden:** Der ruhende Analogstick stoppte einen D-Pad-Dauerjog einen
+    Frame nach dem Druck. `lastSentVel` war für Stick und D-Pad gemeinsam, ein D-Pad-Cont-Jog war
+    damit nur ein Ruck. Jetzt führt nur der Stick `lastSentVel`.
+  - `App.stopAllJog` sendet jeder Geste ihren eigenen Stopp. Der Rundumschlag je Achse wartet nicht
+    mehr auf das `jog`-Gate, wenn eine Geste lief.
+- **BG-09 · Step aus dem Leerlauf ist ein Start:**
+  - `step_refusal`: Aus einer Pause geht es weiter; sonst gelten idle, referenziert und
+    `kins_runnable`. Der Grund nennt die Ursache.
+  - `_start_guard(program=True)` prüft `kins_runnable` auf dem aktuellen Stand für Cycle Start,
+    beide RFL-Wege und Step aus dem Leerlauf. MDI ist ausdrücklich ausgenommen, denn MDI ist der Weg
+    aus dem gestrandeten Rahmen.
+  - Die RFL-Bestätigung (`GcodePanel.vue`) steht unter `run`.
+- **BG-12 · Unbekannt schließt:**
+  - `MachineState.interp_known` (Standard False); `_R_INTERP_KNOWN` steht vor jeder Regel für
+    idle, running und paused.
+  - `eoffset_enabled` ist `Optional[bool]`, `_R_EOFFSET_KNOWN` steht vor `_R_NO_EOFFSET`.
+  - Die Reader-Eingänge zählen nur bei `StatusPayload.reader_fresh`: kins, Ebene, Kopflage, eoffset
+    und M6-Anforderung. Die Anzeige behält den letzten Wert, das Banner sagt „stale“. Dein Hinweis
+    auf den M6-Dialog und die Vorschau-Saat gilt: `reader_get` des Builders bleibt, nur
+    `policy_state_from_payload` nullt.
+  - `eoffset_state`: Ein frischer Reader ohne Pin bedeutet „unbekannt“ bei vorhandener Z-Achse und
+    „aus“ ohne Z-Achse.
+  - Vor dem ersten Status lässt der Dispatcher nur `STATELESS_GATES` durch.
+  - `require_tool_change_pending` und `require_no_eoffset` lesen über `_reader_fresh_get`.
+- **BG-17 · M6-Bestätigung:**
+  - Gate `toolChangeConfirm`: armed und eine frische Anforderung; es steht nicht in `SIM_GATES`.
+  - `confirmSent` fällt, wenn die Anforderung das Werkzeug wechselt.
+- **BG-08 / BG-18 · Stopps ohne Arm:**
+  - `abort` hat keine Bedingung.
+  - `pause` braucht einen bekannten, laufenden, nicht pausierten Zustand (AUTO oder MDI).
+  - `spindleStop` braucht: kein E-Stop, Maschine an, Zustand bekannt, idle. Ist die Maschine nicht
+    idle, heißt der Grund `SPINDLE_OWNED`: „Program owns the spindle — use Pause or Abort“. Gate und
+    Handler nutzen denselben Text.
+  - Frontend: `STOP_GATES` ohne Arm-, Busy- und Sim-Term.
+  - `cycle_pause` und `spindle_stop` stehen in `NEVER_DEBOUNCED` mit Cooldown 0 und in
+    `_WS_STOP_CMDS`: Sie werden nie per Rückstau abgelehnt und von Abort weder verworfen noch
+    unterbrochen.
+  - Handler: Abort und Pause ohne `require_armed`. Der Spindel-Stopp kommt ohne Arm und ohne
+    MANUAL-Wechsel aus und prüft frisch auf idle.
+- **BG-07 (Teil):** `_jog_stop_for_client` stoppt auch eine unreferenzierte Maschine.
+- **Bei der Umstellung gefunden** („alte Gate- und Dialogtypen mitprüfen“):
+  - `dialogBase` nutzte das `abort`-Gate als Ersatz für „Maschine an“. Der Typ wurde nirgends
+    verwendet und ist gelöscht.
+  - `MachineBtn.STOP_TYPES` kennt jetzt `pause` und `spindleStop`; sonst hätte der Knopf
+    fälschlich „wegen busy verworfen“ angezeigt.
+- **Spindel-Strip:** Die Richtungszeile liegt außerhalb des `ready`-Fieldsets. Rev und Fwd behalten
+  `ready` aus dem Katalog, Stop hat `spindleStop`. Die Drehzahlzeile bleibt im Fieldset; ihre
+  Vorwahl kommt mit C.
+- **E2E-Attrappen:** Der Mock und jeder Spec, der eine M6-Anforderung meldet, liefern das Gate dazu,
+  wie es das Gateway tut. Der erste Browser-Lauf stoppte genau daran (Commit `ad761e47`).
+
+### Bewusste Abweichung bis Paket C
+
+- **Noch gesperrt bei Disarm:** Die Abort- und Pause-Knöpfe **im** äußeren `armed`-Fieldset
+  (G-Code-Tab, Probing, Makros, Makroleiste) und der Spindel-Stopp im Strip.
+- **Ohne Arm schon erreichbar:** Banner-Abort und das Abort jedes Dialogs (beide außerhalb des
+  Fieldsets), Tastatur und Gamepad.
+- **Folge der vereinbarten Matrix:** Ein nicht gearmter Client mit aktiven Tastatur-Shortcuts
+  pausiert einen laufenden Ablauf mit der Leertaste. Mit Escape (E-Stop) konnte er das schon immer.
+
+### Belege (im Worktree, `docs/reviews/`)
+
+- **Rot vor der Korrektur:**
+  - `button-gates.a.backend-red.txt`: `test_button_gates.py`, 35 von 40 rot.
+  - `button-gates.a.permissions-red.txt`: 7 rot.
+  - `button-gates.a.gamepad-red.txt`: 4 von 5 rot gegen die alte `useGamepad.ts`.
+  - `button-gates.a.keyboard-jog-red.txt`: dein R202-Szenario als Playwright-Test gegen den
+    unveränderten Stand `f511628a`, nur `jog_cont`, kein `jog_stop`.
+- **Gates auf `ad761e47`:**
+  - `button-gates.a.gate-backend.json`: PASS.
+  - `button-gates.a.gate-frontend.json`: Lint, Build, 2592 Unit-Tests, **580 von 580**
+    Browser-Tests PASS, allein gelaufen.
+- **TWP-Live auf `d24adda0`** (`c4989026` ändert danach nur den Sperrtext):
+  - `button-gates.a.live-twp-report.json`: 7 von 7 PASS (Buttons, Reorient, Capture, Touch-off,
+    Touch-off Plane, G68.3, Adverse). Preview-Goldens und Parität bewusst ausgelassen, Paket A
+    berührt die Vorschau nicht; der Bericht ist deshalb als „partial“ markiert.
+  - `button-gates.a.twp-buttons-check.txt`: 43 pass, 4 skip. Neu sind darin Step im M2-Strand (Gate
+    zu, Befehl abgelehnt, nichts gestartet; gesendet wird er nur bei geschlossenem Gate) und Step
+    mit G59 (offen).
+- **Stopps ohne Arm, live:** `button-gates.a.live-stops.py` / `.txt`, S1–S5 PASS:
+  - S1: Spindel-Stopp im MDI ohne Arm, Modus bleibt MDI.
+  - S2: Spindel-Stopp während einer MDI-Bewegung abgelehnt, die Spindel dreht weiter.
+  - S3: Pause ohne Arm.
+  - S4: Resume ohne Arm abgelehnt.
+  - S5: Abort ohne Arm.
+
+  S2 zeigte damals noch den allgemeinen Text „Machine busy“; deshalb gibt es jetzt
+  `SPINDLE_OWNED`.
+
+**Bitte prüfen:**
+
+- die Stellung von `_R_INTERP_KNOWN` und `_R_EOFFSET_KNOWN` in jeder Gate-Zeile;
+- dass `reader_fresh` nur die Policy-Eingänge trifft;
+- `STATELESS_GATES` im Dispatcher;
+- die Stopp-Klasse in `_WS_STOP_CMDS`;
+- die Geste je Jog-Quelle;
+- die Fieldset-Abweichung bis C.
+
+Nach deinem Agreement folgt Paket B.
