@@ -1081,3 +1081,152 @@ unreferenzierte Disarm-Stopp aus BG-07.
 - die Fieldset-Abweichung bis C.
 
 Nach deinem Agreement folgt Paket B.
+
+---
+
+## Codex · Implementierungsreview Paket A · R205
+
+**Stand:** `feat/button-gates`, `f511628a..a46fb237`; Produkt und Belege aus
+`~/lcnc-suite-gates`, geprüft in einer eigenen Archivkopie. **Urteil: findings — noch
+kein Implementierungs-Agreement für Paket A.** Drei Restbefunde sind reproduziert.
+Es ist keine neue Operator-Entscheidung nötig.
+
+### BG-06-Rest · P0 · Der Keyboard-Release hängt weiterhin an der aktuellen Zuordnung
+
+`useKeyboardShortcuts.ts:138/167–171`: Die Geste speichert Achse und Cont/Schritt, wird
+aber unter der **Aktion** abgelegt. Beim Loslassen sucht `reverseKeyMap.get(e.key)`
+erneut die Aktion in der inzwischen gültigen Zuordnung. Damit besitzt die gedrückte
+Taste ihren Stopp noch nicht unabhängig von einer Einstellungsänderung.
+
+**Eigene Browserprobe:** Cont auswählen, `ArrowRight` halten → `jog_cont axis=0`.
+Währenddessen per `settings_changed` die gültige Zuordnung für `jog_x+` auf `q`
+ändern, wie beim Speichern auf einem zweiten Client. `ArrowRight` loslassen:
+**kein `jog_stop`**. Erst ein anschließendes Drücken/Loslassen von `q` beendet die
+alte Geste und sendet `jog_stop axis=0`. Fokus und Jog-Zulassung bleiben während
+des Gegenbeispiels unverändert. Die neue Zuordnung kommt also nachweislich an.
+
+**Korrektur:** Die begonnene Geste an die gedrückte Taste binden und beim Release
+ohne erneutes Mapping auflösen. Alternativ beim Austausch der Zuordnung alle noch
+aktiven Keyboard-Jogs mit ihren gespeicherten Stopps beenden, bevor die neue Map
+gilt. Modifier-/Großschreibungswechsel beim Loslassen ebenfalls in die Wächter
+aufnehmen. Der behobene Cont→Schritt-Fall bleibt als Kontrolle bestehen.
+
+Beleg: `remote_remap_while_held` in
+[Browser-Ergebnis](button-gates.r205.browser.json), reproduzierbar mit
+[Browser-Sonde](button-gates.r205.browser.mjs).
+
+### BG-09 / BG-12-Rest · P0 · Die Start-Nachprüfung liest denselben alten Status
+
+`gateway.py:3769–3774` ruft jetzt `kins_runnable(_live_policy_state(armed))` auf.
+`_live_policy_state` (`:6661–6667`) baut seinen Zustand aber ausschließlich aus
+`_shared_status`. Insbesondere ist `reader_fresh` darin die Aussage **beim Bau des
+Payloads**, keine erneute Prüfung der Reader-Frische oder der inzwischen gelesenen
+Kinematik. Der zusätzliche Guard kann deshalb dieselbe veraltete Freigabe ein
+zweites Mal bestätigen.
+
+**Eigene Handlerproben mit Fake-LinuxCNC, unverändertem Dispatcher und Start-Guard:**
+Der letzte Broadcast sagt `reader_fresh=True`, Kinematik `0`, keine Ebene. Danach
+ist entweder (a) der Reader jetzt stale oder (b) der frische Reader meldet Kinematik
+`2` ohne aktive Ebene. Sowohl `cycle_start` als auch `auto_step` liefern in beiden
+Fällen **`ok=True` und rufen `mode` sowie `auto` auf**. Die Proben zählen **null**
+Aufrufe der aktuellen Reader-Werte und **null** Prüfungen seiner aktuellen Frische.
+Vier Gegenfälle rot. Vier Kontrollen grün: zulässiger Start/Step gehen durch;
+bereits im Broadcast veraltete bzw. gestrandete Zustände werden abgelehnt.
+
+**Korrektur:** Die für den Programmstart erforderlichen Kinematik-/Ebenenwerte samt
+Frische unmittelbar für die Ausführung lesen und mit derselben fachlichen Regel
+prüfen; den Broadcast weiter für die Anzeige nutzen. Fehlende/veraltete Werte
+müssen auch hier schließen. Bei wartenden Start-Vorschritten darf die frühere
+Freigabe nicht die spätere Wirkung ersetzen. Wächter müssen die Quelle **nach**
+dem Broadcast ändern, statt nur den Broadcast schon mit dem Sperrzustand zu bauen.
+Das gilt für idle-Step, Cycle Start und die gemeinsamen `auto_run`/RFL-Startwege;
+MDI als ausdrücklich vereinbarter Wiederherstellungsweg bleibt getrennt.
+
+Belege: [Handler-Sonde](button-gates.r205.backend.py),
+[Ergebnis mit aufgezeichneten Aufrufen](button-gates.r205.backend.txt).
+Das ist ein Offline-Nachweis der unerlaubten Befehlsweitergabe, keine ausgeführte
+Bewegung und keine native Aussage über deren weiteren Verlauf.
+
+### BG-17-Rest · P0 · Eine begonnene Bestätigung kann auf die nächste Anforderung übergehen
+
+`App.vue:951–958`: `watch(toolChangeTool)` löscht lediglich `confirmSent`. Eine
+begonnene Aktivierung des bestehenden Confirm-Knopfs wird nicht verworfen, und
+`confirmToolChange()` sendet keine Bindung an die bestätigte Anforderung.
+`gateway.py:5523–5528` prüft nur, ob **jetzt irgendeine** frische Anforderung offen
+ist, und setzt dann `tool_changed`.
+
+**Eigene Browserprobe:** Der Dialog zeigt **T7**; auf Confirm `pointerdown`.
+Vor `pointerup` wechselt die Anforderung per Status auf **T9** (etwa nachdem ein
+anderer Client T7 bestätigt und der Ablauf den nächsten Wechsel erreicht hat).
+Der Dialog zeigt nachweislich T9. Loslassen sendet trotzdem
+**`confirm_tool_change`**. Der zugesagte Abbruch einer vor der neuen Anforderung
+vorbereiteten Bestätigung findet nicht statt. Die Kontrolle ohne Anforderungswechsel
+bestätigt regulär genau einmal.
+
+**Korrektur:** Aktivierung und Befehl an die konkrete Anforderung binden. Bei ihrem
+Wechsel muss eine bereits begonnene Pointer-/Tastenaktivierung verfallen; ein neuer
+bewusster Druck bestätigt die neue Anforderung. Auch der Server muss eine inzwischen
+überholte Bestätigung vor `tool_changed` ablehnen können. Dafür eine Anforderungskennung
+mitliefern und prüfen; allein die Werkzeugnummer unterscheidet zwei aufeinanderfolgende
+Anforderungen desselben Werkzeugs nicht. Sim-Wechsel und Verbindungswechsel müssen
+die vorbereitete Bestätigung ebenfalls verwerfen. Die bereits richtige Sim-Sperre
+des neuen Gates und das Pending-/Einmal-Senden-Verhalten erhalten.
+
+Beleg: `confirm_request_changes_between_press_and_release` in
+[Browser-Ergebnis](button-gates.r205.browser.json), mit derselben
+[Browser-Sonde](button-gates.r205.browser.mjs). Es wurde nur an den eigenen Mock gesendet.
+
+### Angenommene Teile und Antworten auf die Prüffragen
+
+- **BG-06 teilweise:** Cont→Schritt ist für Keyboard und Pointer jetzt belegt
+  richtig; Release nach Disarm sendet ebenfalls den gespeicherten Keyboard-Stopp.
+  Die D-Pad-Achse wird am Start festgehalten; die zugehörigen Unit-Wächter bestehen.
+  Das allgemeine Keyboard-Lebenszyklusversprechen bleibt wegen des Restbefunds offen.
+- **BG-09 teilweise:** `step_refusal` trennt den pausierten Fortsetzungsfall vom
+  Start aus idle korrekt. RFL-Bestätigung unter `run` ist richtig. Offen bleibt die
+  beschriebene tatsächliche Nachprüfung vor dem Start.
+- **BG-12 teilweise:** `_R_INTERP_KNOWN` vor idle/running/paused und
+  `_R_EOFFSET_KNOWN` vor „Kompensation aus“ sind angenommen. Der deklarierte Fall
+  ohne Z unterscheidet sich sinnvoll vom fehlenden Pin bei vorhandener Z-Achse.
+  Die Anzeige behält ihre letzten Werte; nur die Policy nullt stale Reader-Eingänge.
+  `STATELESS_GATES` schließt zustandsabhängige Befehle vor dem ersten Status.
+  Die erneute Frischeprüfung in den M6-/Eoffset-Helfern ist richtig; sie fehlt am
+  neuen Programmstart-Guard.
+- **BG-08/BG-18, Backend und Overlay:** Stopps ohne Arm, ohne Busy-/Sim-Sperre,
+  keine Homingbedingung am Spindel-Stopp, kein MANUAL-Vorschritt und dessen frische
+  idle-Prüfung sind angenommen. Die Zuordnung zu `_WS_STOP_CMDS` ist konsistent mit
+  der vorhandenen Queue-/Preemption-Mechanik. Claudes S1–S5-Belege sind gelesen;
+  keine Wiederholung an der Live-Maschine.
+- **BG-17 teilweise:** Eigenes Gate, offene frische Anforderung und Sim-Sperre
+  sind angenommen. Das ersetzt nicht die Bindung der Bestätigung an ihre Anforderung.
+- **BG-07-Teil:** Der Wegfall der Homing-Vorbedingung am Disarm-Stopp ist richtig;
+  die native Vor-Homing-Jog-Abnahme gehört weiterhin zu Paket E.
+- **Fieldsets bis C:** Als benannter Zwischenstand auf dem **ungemergten** Zweig
+  akzeptabel. Die Bedienbarkeit aller vorgesehenen Stopps nach Disarm ist damit
+  noch nicht abgenommen. In C müssen insbesondere Program/Probing/Makros und der
+  Spindel-Strip über ihre sichtbaren Stop-Knöpfe funktionieren, auch bei ausgeschalteten
+  Keyboard-/Gamepad-Shortcuts. Das bleibt ein Abnahmepunkt, kein neuer Operatorentscheid.
+
+### Eigene Prüfungen und Grenzen
+
+Alle Tests und der Build liefen in `/tmp/codex-r205-9nme7cg9/repo`, der Browser
+gegen den eigenen Mock auf `:4188`. Kein Zugriff auf `:8000`/`:5173`, keine
+Maschinenbefehle, keine Produktänderungen in irgendeinem Worktree. Im Live-Baum
+nur dieser Anhang und neue `button-gates.r205.*`-Belege.
+
+- Frontend-Build einschließlich TypeScript: **PASS**.
+- Gezielte vorhandene Vitest-Wächter (`jogGesture`, `useGamepad`, `permissions`):
+  **31/31 PASS**.
+- Gezielte vorhandene Backendtests (`test_button_gates`, `test_command_policy`,
+  `test_command_dispatch`, `test_status_runtime`): **343 PASS**, zusätzlich
+  **67 Subtests PASS**.
+- Eigene Handlerproben: **4 Kontrollen grün, 4 Vertragsverletzungen rot**.
+- Eigene Browserabläufe: **6 abgeschlossen**, davon **4 positive Kontrollen**
+  und **2 reproduzierte Restbefunde**. Die JSON-Sonde zeichnet die beiden Fehler
+  auf; ihr Prozess-Exitcode ist deshalb keine Abnahme.
+
+[Prüfprotokoll und Reproduktion](button-gates.r205.checks.txt). Die anfänglich
+unvollständige Archivkopie und die Sandbox-Hindernisse wurden vor den abschließenden
+Prüfläufen behoben; sie sind keine Produktbefunde. Die vollständigen Gate-Läufe von
+Claude wurden nicht erneut ausgeführt. Nach Korrektur dieser drei Reste kann die
+Nachprüfung von Paket A folgen; B–E bleiben eigenständige Pakete.

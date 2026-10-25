@@ -1,0 +1,116 @@
+R205 / Codex / 2026-10-25
+Product reviewed: feat/button-gates f511628a..a46fb237
+Exact reviewed head: a46fb237e96e01778a937cf4a2f8b23ef80dab76
+Live tree at review start: e5015d1b86ce10c02642fb098a99336b653abf21
+Isolated archive: /tmp/codex-r205-9nme7cg9/repo
+All builds/tests ran in that archive. No requests to :8000 or :5173.
+Backend imports fake_linuxcnc before gateway; no native controller binding.
+[VINIT] process discovery in the test log is import-time metadata only;
+linuxcnc.__lcnc_fake__ is asserted in the independent backend probe.
+Mock: own archived e2e/mock-gateway.mjs, MOCK_PORT=4188, Chromium.
+No live measurements or machine commands were performed.
+
+Commands (in the corresponding archived subdirectory):
+Frontend:
+  npm run build
+  npm test -- --run src/jogGesture.test.ts src/useGamepad.test.ts src/permissions.test.ts --maxWorkers=1
+Backend (Python with the worktree venv's installed test dependencies):
+  python -m pytest test_button_gates.py test_command_policy.py test_command_dispatch.py test_status_runtime.py -o addopts='' -q
+Own backend probe:
+  copy button-gates.r205.backend.py to lcnc-gateway/test_r205_codex.py
+  python -m pytest test_r205_codex.py -q -s -o addopts=''
+  Result: 4 expected-contract assertions FAIL, 4 positive controls PASS.
+  Exact test output: button-gates.r205.backend.txt
+Own browser probe:
+  copy button-gates.r205.browser.mjs into lcnc-webui/
+  start MOCK_PORT=4188 node e2e/mock-gateway.mjs in that archive
+  node button-gates.r205.browser.mjs
+  R205_OUT can select the JSON output path (default /tmp/button-gates.r205.browser.json).
+  Six completed scenarios: four positive controls, two reproduced defects.
+  Output: button-gates.r205.browser.json. False booleans are the defects;
+  this measurement script records them rather than exiting on the first.
+
+Harness notes (resolved; not product findings):
+The first partial archive lacked test-fixtures and examples/remap_subs;
+these were subsequently extracted from the SAME a46fb237 and the affected
+build/backend runs were repeated. The restricted sandbox blocked local
+server binding and asyncio shutdown, so the isolated fake/mock checks were
+run with the approved sandbox exception. No live service was used.
+
+Final targeted backend output:
+.................................................. [ 14%]
+........................................................................ [ 35%]
+..................................................................... [ 55%]
+...................................................................................................... [ 85%]
+..................................................                       [100%]
+343 passed, 67 subtests passed in 2.80s
+[GC] +2717ms gen=2 duration=12.1ms collected=1143 uncollectable=0
+[GC] +2724ms gen=2 duration=7.3ms collected=0 uncollectable=0
+[GC] +2733ms gen=2 duration=8.8ms collected=0 uncollectable=0
+[GC] +2741ms gen=2 duration=7.8ms collected=0 uncollectable=0
+[GC] +2750ms gen=2 duration=9.3ms collected=0 uncollectable=0
+[GC] +2758ms gen=2 duration=7.7ms collected=0 uncollectable=0
+
+Final targeted frontend unit output:
+
+> lcnc-webui@0.0.0 test
+> vitest run src/jogGesture.test.ts src/useGamepad.test.ts src/permissions.test.ts --maxWorkers=1
+
+
+ RUN  v4.1.8 /tmp/codex-r205-9nme7cg9/repo/lcnc-webui
+
+
+ Test Files  3 passed (3)
+      Tests  31 passed (31)
+   Start at  22:38:24
+   Duration  415ms (transform 144ms, setup 0ms, import 242ms, tests 11ms, environment 0ms)
+
+
+Final frontend build output:
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+vite v7.3.5 building client environment for production...
+transforming...
+✓ 2120 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                                      0.59 kB │ gzip:   0.33 kB
+dist/static/wsWorker-KKeHcbK3.js                     4.77 kB
+dist/static/previewWorker-zTzcNKFy.js               32.55 kB
+dist/static/partFrameWorker-xK0qWczC.js             45.60 kB
+dist/static/machineNormalsWorker-DL0aYzwZ.js        74.14 kB
+dist/static/edgeWorker-eka59H6v.js                  83.09 kB
+dist/static/JetBrainsMono-Regular-BQaDgvhP.woff2    92.16 kB
+dist/static/JetBrainsMono-SemiBold-BM8Dc2t-.woff2   94.47 kB
+dist/static/reachWorker-DyxK9g4-.js                108.18 kB
+dist/static/Inter-Regular-L-twW0ba.woff            196.25 kB
+dist/static/collisionWorker-vT9Lkn9S.js            207.84 kB
+dist/static/InterVariable-DiVDrmQJ.woff2           352.24 kB
+dist/static/ToolPreview-h0nbom5n.css                 0.09 kB │ gzip:   0.10 kB
+dist/static/ThreeViewer-ByvNut9C.css                 7.81 kB │ gzip:   1.94 kB
+dist/static/index-CDmmnJ2_.css                      95.00 kB │ gzip:  17.36 kB
+dist/static/gcodeCmLanguage-3ZO1yr3F.js              1.00 kB │ gzip:   0.51 kB
+dist/static/ToolPreview-BGe2oORq.js                  2.16 kB │ gzip:   1.20 kB
+dist/static/toolGeometry-DQeB6iDo.js                 9.05 kB │ gzip:   3.35 kB
+dist/static/msgpack-BkQaaVuN.js                     13.97 kB │ gzip:   4.25 kB
+dist/static/index-BE60FhhY.js                       28.84 kB │ gzip:   9.54 kB
+dist/static/index-CX_61fY8.js                       48.96 kB │ gzip:  16.39 kB
+dist/static/index-tky6Dhx3.js                       50.88 kB │ gzip:  17.70 kB
+dist/static/index-o9DEOgyx.js                      200.76 kB │ gzip:  65.35 kB
+dist/static/ThreeViewer-TKyVwzvW.js                276.02 kB │ gzip: 104.05 kB
+dist/static/index-y0oPpsT4.js                      654.62 kB │ gzip: 210.58 kB
+dist/static/three-D_Nc9AAY.js                      881.98 kB │ gzip: 242.57 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 5.20s
+
+Evidence SHA256:
+c23128d1b61b3be2b12007e09c08ccb4ec462fee629d1ed127cea320d743390c  button-gates.r205.backend.py
+d561a7e0037a90936e0ddeceea35b36c475df7b3e61e294a3efcab3bd458d8bb  button-gates.r205.backend.txt
+7c703ac0b6011ee0a12a5809e06db8a6afbbd73daac4a63ee0c10fac2c164817  button-gates.r205.browser.mjs
+66541f26e76769c3582730f3487d72b1ad81b21c96c2ce6f157dabf8a1836d2d  button-gates.r205.browser.json

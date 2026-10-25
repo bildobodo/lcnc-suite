@@ -1,0 +1,98 @@
+{
+  "head": "a46fb237",
+  "mock": "http://127.0.0.1:4188",
+  "results": [
+    {
+      "name": "control_step_changed",
+      "commands": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "dmcx8y-4"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "dmcx8y-6"
+        }
+      ]
+    },
+    {
+      "name": "remote_remap_while_held",
+      "after_release": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "w3kt9l-5"
+        }
+      ],
+      "after_new_key": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "w3kt9l-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "w3kt9l-6"
+        }
+      ],
+      "expected_release_stop": false
+    },
+    {
+      "name": "disarm_while_held_control",
+      "commands": [
+        {
+          "cmd": "jog_cont",
+          "axis": 0,
+          "vel": 10,
+          "req_id": "994ls0-4"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 0,
+          "req_id": "994ls0-6"
+        }
+      ]
+    },
+    {
+      "name": "pointer_cont_to_step_control",
+      "commands": [
+        {
+          "cmd": "jog_cont",
+          "axis": 2,
+          "vel": 10,
+          "req_id": "nv8u1j-5"
+        },
+        {
+          "cmd": "jog_stop",
+          "axis": 2,
+          "req_id": "nv8u1j-6"
+        }
+      ]
+    },
+    {
+      "name": "confirm_unchanged_request_control",
+      "commands": [
+        {
+          "cmd": "confirm_tool_change",
+          "req_id": "6sdlv8-5"
+        }
+      ]
+    },
+    {
+      "name": "confirm_request_changes_between_press_and_release",
+      "after_release": [
+        {
+          "cmd": "confirm_tool_change",
+          "req_id": "ege6xq-5"
+        }
+      ],
+      "obsolete_confirmation_discarded": false
+    }
+  ]
+}

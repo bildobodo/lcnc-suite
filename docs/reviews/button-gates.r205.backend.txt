@@ -1,0 +1,73 @@
+[VINIT] session bound to linuxcncsvr pid=1713839 start=33499872
+[VINIT] try_connect_lcnc OK, pid=1713839
+[VINIT] Loaded machine config: 3-Axis Mill
+{'case': 'test_control_cached_stale_refuses', 'reply': {'ok': False, 'error': 'Kinematics mode unknown — HAL reader stale'}, 'commands': [], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': True, 'reader_kins_now': 0}
+.{'case': 'test_control_cached_strand_refuses', 'reply': {'ok': False, 'error': 'Plane kinematics without a plane — select Machine'}, 'commands': [], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': False, 'reader_kins_now': 2}
+.{'case': 'test_control_runnable_cycle_start', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': False, 'reader_kins_now': 0}
+.{'case': 'test_control_runnable_step', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': False, 'reader_kins_now': 0}
+.{'case': 'test_cycle_start_rechecks_current_kinematics', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': False, 'reader_kins_now': 2}
+F{'case': 'test_cycle_start_rechecks_reader_freshness_now', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': True, 'reader_kins_now': 0}
+F{'case': 'test_step_rechecks_current_kinematics', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': False, 'reader_kins_now': 2}
+F{'case': 'test_step_rechecks_reader_freshness_now', 'reply': {'ok': True}, 'commands': ['mode', 'auto'], 'reader_calls': [], 'freshness_calls': [], 'reader_stale_now': True, 'reader_kins_now': 0}
+F
+=================================== FAILURES ===================================
+______ TestCurrentStartBasis.test_cycle_start_rechecks_current_kinematics ______
+
+self = <test_r205_codex.TestCurrentStartBasis testMethod=test_cycle_start_rechecks_current_kinematics>
+
+    def test_cycle_start_rechecks_current_kinematics(self):
+>       self.check_rejected('cycle_start', False, 2)
+
+test_r205_codex.py:51: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r205_codex.py:41: in check_rejected
+    self.assertFalse(result['ok'], 'A formerly runnable broadcast cannot authorize a start against the current HAL state')
+E   AssertionError: True is not false : A formerly runnable broadcast cannot authorize a start against the current HAL state
+_____ TestCurrentStartBasis.test_cycle_start_rechecks_reader_freshness_now _____
+
+self = <test_r205_codex.TestCurrentStartBasis testMethod=test_cycle_start_rechecks_reader_freshness_now>
+
+    def test_cycle_start_rechecks_reader_freshness_now(self):
+>       self.check_rejected('cycle_start', True, 0)
+
+test_r205_codex.py:45: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r205_codex.py:41: in check_rejected
+    self.assertFalse(result['ok'], 'A formerly runnable broadcast cannot authorize a start against the current HAL state')
+E   AssertionError: True is not false : A formerly runnable broadcast cannot authorize a start against the current HAL state
+_________ TestCurrentStartBasis.test_step_rechecks_current_kinematics __________
+
+self = <test_r205_codex.TestCurrentStartBasis testMethod=test_step_rechecks_current_kinematics>
+
+    def test_step_rechecks_current_kinematics(self):
+>       self.check_rejected('auto_step', False, 2)
+
+test_r205_codex.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r205_codex.py:41: in check_rejected
+    self.assertFalse(result['ok'], 'A formerly runnable broadcast cannot authorize a start against the current HAL state')
+E   AssertionError: True is not false : A formerly runnable broadcast cannot authorize a start against the current HAL state
+________ TestCurrentStartBasis.test_step_rechecks_reader_freshness_now _________
+
+self = <test_r205_codex.TestCurrentStartBasis testMethod=test_step_rechecks_reader_freshness_now>
+
+    def test_step_rechecks_reader_freshness_now(self):
+>       self.check_rejected('auto_step', True, 0)
+
+test_r205_codex.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r205_codex.py:41: in check_rejected
+    self.assertFalse(result['ok'], 'A formerly runnable broadcast cannot authorize a start against the current HAL state')
+E   AssertionError: True is not false : A formerly runnable broadcast cannot authorize a start against the current HAL state
+=========================== short test summary info ============================
+FAILED test_r205_codex.py::TestCurrentStartBasis::test_cycle_start_rechecks_current_kinematics
+FAILED test_r205_codex.py::TestCurrentStartBasis::test_cycle_start_rechecks_reader_freshness_now
+FAILED test_r205_codex.py::TestCurrentStartBasis::test_step_rechecks_current_kinematics
+FAILED test_r205_codex.py::TestCurrentStartBasis::test_step_rechecks_reader_freshness_now
+4 failed, 4 passed in 0.18s
+[GC] +110ms gen=2 duration=12.0ms collected=714 uncollectable=0
+[GC] +117ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +124ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +130ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +137ms gen=2 duration=6.1ms collected=0 uncollectable=0
+[GC] +144ms gen=2 duration=7.2ms collected=0 uncollectable=0
