@@ -1,0 +1,83 @@
+--- bak-tracetail.py.r200	2026-10-25 17:40:30.344797256 +0100
++++ tracetail.py	2026-10-25 17:40:31.280803720 +0100
+@@ -5,19 +5,23 @@
+ renamed inode (2026-10-22: the watchdog's records were in trace.ndjson.2
+ while the gateway wrote trace.ndjson). A reader of the newest one or two files
+ misses records; this one follows every file by inode and reads only what each
+-gained since the last call."""
++gained since the last call. A file is its inode AND its first bytes: a rotation
++removes `.5`, and the new trace.ndjson may get its inode number (2026-10-25:
++the new file was taken for the old one read to 52 MB and skipped — the run
++waited for a publish it had)."""
+ import glob
+ import json
+ import os
+ 
+ LOGS = os.path.expanduser("~/lcnc-suite/runlogs")
++HEAD = 48                               # a record's first bytes: its own time
+ 
+ 
+ class TraceTail:
+     def __init__(self, floor_ns: int, logs: str = LOGS):
+         self.floor = floor_ns           # records before this are never kept
+         self.logs = logs
+-        self.off = {}                   # inode -> bytes read
++        self.off = {}                   # inode -> (first bytes, bytes read)
+         self.recs = []                  # (t_wall_ns, record), arrival order
+ 
+     def poll(self):
+@@ -26,14 +30,18 @@
+                 st = os.stat(path)
+             except OSError:
+                 continue
+-            start = self.off.get(st.st_ino, 0)
+-            if st.st_size <= start:
+-                continue
++            if st.st_size < HEAD:
++                continue                         # no whole record yet
+             with open(path, "rb") as f:
++                head = f.read(HEAD)
++                known = self.off.get(st.st_ino)
++                start = known[1] if known and known[0] == head else 0
++                if st.st_size <= start:
++                    continue
+                 f.seek(start)
+                 data = f.read(st.st_size - start)
+             end = data.rfind(b"\n") + 1          # a line still being written waits
+-            self.off[st.st_ino] = start + end
++            self.off[st.st_ino] = (head, start + end)
+             for raw in data[:end].splitlines():
+                 if not raw.startswith(b'{"t_wall_ns":'):
+                     continue
+--- bak-test_bpc_tools.py.r200	2026-10-25 17:38:39.236018089 +0100
++++ test_bpc_tools.py	2026-10-25 17:40:30.348797284 +0100
+@@ -557,3 +557,29 @@
+             self.assertEqual(sent, ["(MSG, BPC: Taste loslassen)"])
+         finally:
+             drive2.NO_KEYS = old
++
++
++class TraceTailInodes(unittest.TestCase):
++    """A file is its inode and its first bytes (2026-10-25): a new trace file
++    that takes a removed file's inode number is read from its start."""
++
++    def test_a_reused_inode_with_new_content_is_read_from_the_start(self):
++        from tracetail import TraceTail
++        rec = lambda t, tag: json.dumps({"t_wall_ns": t, "tag": tag, "pad": "x" * 40},
++                                        separators=(",", ":")) + "\n"
++        with tempfile.TemporaryDirectory() as d:
++            path = os.path.join(d, "trace.ndjson")
++            t0 = time.time_ns()
++            with open(path, "w") as f:
++                for k in range(50):
++                    f.write(rec(t0 + k, "old"))
++            tail = TraceTail(0, logs=d)
++            self.assertEqual(len(tail.since(t0)), 50)
++            ino = os.stat(path).st_ino
++            with open(path, "w") as f:           # same inode, new and shorter
++                f.write(rec(t0 + 100, "gcode.publish"))
++            self.assertEqual(os.stat(path).st_ino, ino)
++            self.assertEqual([r["tag"] for r in tail.since(t0 + 100)], ["gcode.publish"])
++            with open(path, "a") as f:           # the same file grows: no record twice
++                f.write(rec(t0 + 101, "next"))
++            self.assertEqual([r["tag"] for r in tail.since(t0 + 100)], ["gcode.publish", "next"])

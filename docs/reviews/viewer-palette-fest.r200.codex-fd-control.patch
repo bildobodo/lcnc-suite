@@ -1,0 +1,20 @@
+--- provided/tracetail.py
++++ temporary-control/tracetail.py
+@@ -27,12 +27,13 @@
+     def poll(self):
+         for path in glob.glob(os.path.join(self.logs, "trace.ndjson*")):
+             try:
+-                st = os.stat(path)
++                f = open(path, "rb")
+             except OSError:
+                 continue
+-            if st.st_size < HEAD:
+-                continue                         # no whole record yet
+-            with open(path, "rb") as f:
++            with f:
++                st = os.fstat(f.fileno())
++                if st.st_size < HEAD:
++                    continue
+                 head = f.read(HEAD)
+                 known = self.off.get(st.st_ino)
+                 start = known[1] if known and known[0] == head else 0

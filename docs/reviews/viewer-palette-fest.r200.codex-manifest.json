@@ -1,0 +1,169 @@
+{
+  "round": "R200",
+  "verdict": "findings: measurement accepted on documented setup; VP200-01 in trace reader remains open",
+  "revision": "2e750e1d3a9b268b0e0c52016631d4a2bde8a4d9",
+  "report_identical": true,
+  "R_proof_identical": true,
+  "provided_offline_tools_tests_passed": 31,
+  "own_reader_probes": {
+    "provided": "3 PASS, 1 FAIL (rotation between stat and open)",
+    "old_reader": "rotation case PASS",
+    "fd_control_in_tmp_only": "4 PASS"
+  },
+  "product_tests_repeated": false,
+  "no_live_endpoints_or_machine_commands": true,
+  "input_files": {
+    "viewer-palette-fest.ideen.md": {
+      "bytes": 2389491,
+      "sha256": "cddc4a4460adc174a5884ffb017e52d49e8357f59f82e2b977c2eff65fcf6b33"
+    },
+    "basiswechsel-last.plan.md": {
+      "bytes": 36847,
+      "sha256": "4be3818fb835b2423174f80183494cd4ca8fd9decc7bc405feab1e445623fab1"
+    },
+    "viewer-palette-fest.r200.anchors-f.json": {
+      "bytes": 140,
+      "sha256": "1c1bee21288a5386dc8ea77ad5e4e6ed8a0aa113787f212b2d52f904ac3bee4c"
+    },
+    "viewer-palette-fest.r200.browser-pc-tools-test.py": {
+      "bytes": 32149,
+      "sha256": "4558397addcca3a046f0f575e0f74a6521e38e8d3eaba1a8a12cd92d06500d22"
+    },
+    "viewer-palette-fest.r200.browser-pc-tracetail.py": {
+      "bytes": 2661,
+      "sha256": "f394309c08dfcb00d02c08c2882027e349d33fbf91820d9e3f18fc783f4aa22a"
+    },
+    "viewer-palette-fest.r200.drive-aborted.txt": {
+      "bytes": 785,
+      "sha256": "4e65d4c6f67c853fcd59257668d2772ee1fddb1ffe98d204132cd200726f251e"
+    },
+    "viewer-palette-fest.r200.drive-f.txt": {
+      "bytes": 3274,
+      "sha256": "2169073caec308b45dcfc550d594a78e7680c00d156cb0286036994eaf35aee9"
+    },
+    "viewer-palette-fest.r200.frames.txt": {
+      "bytes": 1550,
+      "sha256": "54dcda7ac0c88147b642468b140a64157a7c7fae642fc6d3850b1064e0f88398"
+    },
+    "viewer-palette-fest.r200.marks-aborted.json": {
+      "bytes": 413,
+      "sha256": "746b656279761538fd588448aea06404c726ef5c6870e7a2dfab6c7beb531941"
+    },
+    "viewer-palette-fest.r200.marks-f.json": {
+      "bytes": 1036,
+      "sha256": "d26b6d0080a2806e5884ea4eefc06068d63e63a4bdcc98af9722c1f4897c46f9"
+    },
+    "viewer-palette-fest.r200.r-proof-f.json": {
+      "bytes": 699,
+      "sha256": "7f3c5b498e8a22113eb73906ffaf1fdc7234ebeb6ec61b40165e6e3376e36914"
+    },
+    "viewer-palette-fest.r200.rafsum.py": {
+      "bytes": 1265,
+      "sha256": "04022e6557c4484964d8266f05a7a21ac0ed7aca55ea04893a58722f104a9288"
+    },
+    "viewer-palette-fest.r200.report-f.json": {
+      "bytes": 45815,
+      "sha256": "e254188002611a1659d52a144943c3da9cb9bcfec05cc5810e5c1ccf35024856"
+    },
+    "viewer-palette-fest.r200.rows-r-settle.txt": {
+      "bytes": 15050,
+      "sha256": "6844b56b7eebb12dd1ddd6b8e3ff828417dfb2e785e1931b673b83092ed4507f"
+    },
+    "viewer-palette-fest.r200.rows-s-supersede.txt": {
+      "bytes": 13224,
+      "sha256": "d1b3b4ee91498115c3866dc8ee1d9f4181e2dae22165605b88fc9da827d63e72"
+    },
+    "viewer-palette-fest.r200.rows.py": {
+      "bytes": 1235,
+      "sha256": "e80695597ae186e9d590eec4306febde07d6554793cc8110002b78fc36d5c54f"
+    },
+    "viewer-palette-fest.r200.setup-f.json": {
+      "bytes": 910,
+      "sha256": "4ed81c86e7644822138243fbae6abc450d2e71ea8c7a45862a0c5b7fd42a4108"
+    },
+    "viewer-palette-fest.r200.supersede-f.json": {
+      "bytes": 2363,
+      "sha256": "24eb0c2944dee25d03487062743a2461288c9dd226a75d610d4080ac198f22ca"
+    },
+    "viewer-palette-fest.r200.tools-test.txt": {
+      "bytes": 400,
+      "sha256": "034e09a30ee71aebd093eacf03921f0a55b1219bea0ea6ffd090efa37169dfd8"
+    },
+    "viewer-palette-fest.r200.tools.diff": {
+      "bytes": 3931,
+      "sha256": "1e073bbee453d91933600b731dfddbf1d329b99a9db26e8ad36f0898bc7adaaf"
+    },
+    "viewer-palette-fest.r200.watchdog-gap.txt": {
+      "bytes": 6238,
+      "sha256": "267629bb49d7d8c1a8568f914ce913dc46b0207bfa36355b322ab20457d353c6"
+    }
+  },
+  "reproduction": "python3 docs/reviews/viewer-palette-fest.r200.codex-reproduce.py docs/reviews - /tmp/r200-reproduced",
+  "audit_command": "python3 docs/reviews/viewer-palette-fest.r200.codex-audit.py docs/reviews /tmp/r200-reproduced /tmp/r200-audit.json",
+  "trace_probe": "Copy r200.browser-pc-tracetail.py to a temporary folder as tracetail.py and r200.codex-tracetail-probe.py as test_codex_tracetail.py; python3 -m unittest test_codex_tracetail -v. Old control uses r183.browser-pc-tracetail.py and only the rotation case. fd control applies the retained patch to the temporary copy and reruns all four cases. No live tooling changed.",
+  "tool_tests": "R200 test file in temp tools; bpc/drive from R182, bpc2/drive2 from R197, tracetail from R200; gateway import redirected to /tmp/codex-r198-7siq0rmu/repo/lcnc-gateway; live gateway venv Python with PYTHONDONTWRITEBYTECODE=1, python -m unittest test_bpc_tools -v; no driver main",
+  "script_sha256": {
+    "viewer-palette-fest.r182.browser-pc-bpc.py": "d2c5b2f78f18ae45daf3ae05e7aa9447f1888c87102940191c81a09d8cec167d",
+    "viewer-palette-fest.r197.browser-pc-report2.py": "b4211f7697bad1e26ede088375d486ea0011bafccf392efff7dc1800f5808dff",
+    "viewer-palette-fest.r200.browser-pc-tracetail.py": "f394309c08dfcb00d02c08c2882027e349d33fbf91820d9e3f18fc783f4aa22a",
+    "viewer-palette-fest.r183.browser-pc-tracetail.py": "25ed18204b5b8682e3090d1ee17c9f36418b3ca14a702d6cf2f36431d8fcb5c1"
+  },
+  "files": {
+    "viewer-palette-fest.r200.codex-events.jsonl.gz": {
+      "bytes": 1125985,
+      "sha256": "267cd02324aab6073520340502f7e58c5d6c7bba96d24f1bcd7541e2944cfdb2"
+    },
+    "viewer-palette-fest.r200.codex-rss.jsonl.gz": {
+      "bytes": 51238,
+      "sha256": "12171aa1f933b5f0a8bb1409eebb7085bc6264d489da83ac207a4df57e87a263"
+    },
+    "viewer-palette-fest.r200.codex-heartbeat-logs.json": {
+      "bytes": 129888,
+      "sha256": "1e04dd629d180f4e5210acc8e8959f4c76c0eafb9dda8f7618f225bce1839485"
+    },
+    "viewer-palette-fest.r200.codex-reproduce.py": {
+      "bytes": 4997,
+      "sha256": "ab8de40b9085d1dc156098a32a73ff6402c75f5eb30989ad208a0b8cbfc5b42c"
+    },
+    "viewer-palette-fest.r200.codex-reproduction.json": {
+      "bytes": 21102,
+      "sha256": "90b8f9b4832ec926510a7b6bd13830b3e48f080ed1d6cf1a1900d519563f3266"
+    },
+    "viewer-palette-fest.r200.codex-audit.py": {
+      "bytes": 4795,
+      "sha256": "965824cd980b52f5b096cd1eaacc7de047f78374b0da540d1b78a5da8c45d381"
+    },
+    "viewer-palette-fest.r200.codex-audit.json": {
+      "bytes": 44010,
+      "sha256": "c53b6bc29adb28af830ae9b18431a8c0b9748153b5b8d5dea0e769b97a6ff0fc"
+    },
+    "viewer-palette-fest.r200.codex-capture.json": {
+      "bytes": 829,
+      "sha256": "236a21607fed6b4aed69a56892e88c9bda39567ae63c967b67ba3bdf44172810"
+    },
+    "viewer-palette-fest.r200.codex-tools-test.txt": {
+      "bytes": 4815,
+      "sha256": "d3ab364c91fc59f6bfac321117d3bf452a4c3777d42bb2aa3a123eab5fe5096f"
+    },
+    "viewer-palette-fest.r200.codex-tracetail-probe.py": {
+      "bytes": 2851,
+      "sha256": "81d9bf4a338aa477249e65ffbcf6306051ca279e402e5b9c97a1ad37c803c4aa"
+    },
+    "viewer-palette-fest.r200.codex-tracetail-probes.txt": {
+      "bytes": 1684,
+      "sha256": "9ef72399500fcf64ac8a3510d512710e5a9560d45be320e4273459c03abb4224"
+    },
+    "viewer-palette-fest.r200.codex-tracetail-old-control.txt": {
+      "bytes": 314,
+      "sha256": "9f3485abd8df118cd733383cfc09fdb58b4af9fdd0cd1ded446cf853f252699a"
+    },
+    "viewer-palette-fest.r200.codex-tracetail-fd-control.txt": {
+      "bytes": 689,
+      "sha256": "602d43fb0798d381ba8f270db82050df73b2011bbe9f346f93557fe67cf5cb40"
+    },
+    "viewer-palette-fest.r200.codex-fd-control.patch": {
+      "bytes": 761,
+      "sha256": "cca682a103f020eeeae6a9e6c21dd9315ece508aef6fbcf483abedbf2f4d8aac"
+    }
+  }
+}

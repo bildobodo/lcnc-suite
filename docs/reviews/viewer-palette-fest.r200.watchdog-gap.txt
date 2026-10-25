@@ -1,0 +1,54 @@
+The one watchdog receipt gap over 200 ms since this run's anchor (hal_watchdog.log, mapped by the anchor):
+   17:59:54.472 gap 203 ms    [HB-RISING] +184194786ms True-to-True gap 203ms
+
+Trace 17:59:51-17:59:58 (VM clock): gateway loop, lag windows, watchdog ticks, launcher's proc.status, gcode / collision events
+17:59:51.180 proc.status {'rq_wait_ns': 387037413202, 'nonvoluntary_ctxt': 1658694}
+17:59:51.190 hal.send_summary {'job': None, 'id': None, 'count': 30, 'max_ms': 0.041, 'slow_count': 0}
+17:59:51.224 wd.tick_summary {'ticks': 10, 'avg_select_ms': 34.238, 'max_select_ms': 35.212, 'msgs': 10, 'hb_ok': True}
+17:59:51.578 wd.tick_summary {'ticks': 10, 'avg_select_ms': 35.326, 'max_select_ms': 37.6, 'msgs': 10, 'hb_ok': True}
+17:59:51.907 loop.tick {'user_ms': 70.0, 'system_ms': 20.0, 'idle_ms': 5780.0, 'iowait_ms': 0.0, 'steal_ms': 0.0, 'total_ms': 5870.0, 'dt_s': 1.001}
+17:59:51.935 wd.tick_summary {'ticks': 10, 'avg_select_ms': 35.649, 'max_select_ms': 37.823, 'msgs': 10, 'hb_ok': True}
+17:59:52.187 proc.status {'rq_wait_ns': 387037480953, 'nonvoluntary_ctxt': 1658694}
+17:59:52.241 hal.send_summary {'job': None, 'id': None, 'count': 30, 'max_ms': 0.04, 'slow_count': 0}
+17:59:52.276 wd.tick_summary {'ticks': 10, 'avg_select_ms': 34.09, 'max_select_ms': 34.724, 'msgs': 10, 'hb_ok': True}
+17:59:52.617 wd.tick_summary {'ticks': 10, 'avg_select_ms': 34.019, 'max_select_ms': 34.924, 'msgs': 10, 'hb_ok': True}
+17:59:52.910 loop.tick {'user_ms': 50.0, 'system_ms': 30.0, 'idle_ms': 5800.0, 'iowait_ms': 0.0, 'steal_ms': 0.0, 'total_ms': 5880.0, 'dt_s': 1.003}
+17:59:52.955 wd.tick_summary {'ticks': 10, 'avg_select_ms': 33.764, 'max_select_ms': 34.73, 'msgs': 10, 'hb_ok': True}
+17:59:53.195 proc.status {'rq_wait_ns': 387037616036, 'nonvoluntary_ctxt': 1658694}
+17:59:53.261 hal.send_summary {'job': None, 'id': None, 'count': 30, 'max_ms': 0.069, 'slow_count': 0}
+17:59:53.296 wd.tick_summary {'ticks': 10, 'avg_select_ms': 34.08, 'max_select_ms': 34.73, 'msgs': 10, 'hb_ok': True}
+17:59:53.639 wd.tick_summary {'ticks': 10, 'avg_select_ms': 34.212, 'max_select_ms': 34.621, 'msgs': 10, 'hb_ok': True}
+17:59:53.911 loop.tick {'user_ms': 70.0, 'system_ms': 60.0, 'idle_ms': 5690.0, 'iowait_ms': 0.0, 'steal_ms': 0.0, 'total_ms': 5820.0, 'dt_s': 1.001}
+17:59:53.987 wd.tick_summary {'ticks': 10, 'avg_select_ms': 34.776, 'max_select_ms': 36.722, 'msgs': 10, 'hb_ok': True}
+17:59:54.205 proc.status {'rq_wait_ns': 387037850078, 'nonvoluntary_ctxt': 1658694}
+17:59:54.304 hal.send_summary {'job': None, 'id': None, 'count': 30, 'max_ms': 0.096, 'slow_count': 0}
+17:59:54.440 wd.tick_summary {'ticks': 10, 'avg_select_ms': 45.179, 'max_select_ms': 135.926, 'msgs': 10, 'hb_ok': True}
+17:59:54.442 lag.window {'drift_ms': 94.4, 'window_ms': 99.4, 'dominant_phase': 'reader_recv.readline'}
+17:59:54.815 lag.window {'drift_ms': 51.4, 'window_ms': 56.4, 'dominant_phase': 'ws_send_measured.send_done peer=127.0.0.1:42690'}
+17:59:54.914 wd.tick_summary {'ticks': 10, 'avg_select_ms': 43.844, 'max_select_ms': 93.523, 'msgs': 10, 'hb_ok': True}
+17:59:54.915 loop.tick {'user_ms': 280.0, 'system_ms': 110.0, 'idle_ms': 4870.0, 'iowait_ms': 0.0, 'steal_ms': 0.0, 'total_ms': 5300.0, 'dt_s': 1.004}
+17:59:55.159 lag.window {'drift_ms': 78.6, 'window_ms': 83.6, 'dominant_phase': 'reader_recv.readline'}
+17:59:55.319 proc.status {'rq_wait_ns': 387084391577, 'nonvoluntary_ctxt': 1658749}
+17:59:55.360 wd.tick_summary {'ticks': 10, 'avg_select_ms': 44.402, 'max_select_ms': 96.024, 'msgs': 10, 'hb_ok': True}
+17:59:55.670 hal.send_summary {'job': None, 'id': None, 'count': 30, 'max_ms': 10.539, 'slow_count': 0}
+17:59:55.704 wd.tick_summary {'ticks': 10, 'avg_select_ms': 34.275, 'max_select_ms': 34.665, 'msgs': 10, 'hb_ok': True}
+17:59:55.917 loop.tick {'user_ms': 230.0, 'system_ms': 220.0, 'idle_ms': 4890.0, 'iowait_ms': 20.0, 'steal_ms': 0.0, 'total_ms': 5380.0, 'dt_s': 1.001}
+17:59:56.063 wd.tick_summary {'ticks': 10, 'avg_select_ms': 35.811, 'max_select_ms': 52.445, 'msgs': 10, 'hb_ok': True}
+17:59:56.392 proc.status {'rq_wait_ns': 387086554742, 'nonvoluntary_ctxt': 1658750}
+17:59:56.432 wd.tick_summary {'ticks': 10, 'avg_select_ms': 36.614, 'max_select_ms': 49.071, 'msgs': 10, 'hb_ok': True}
+17:59:56.740 hal.send_summary {'job': None, 'id': None, 'count': 30, 'max_ms': 0.97, 'slow_count': 0}
+17:59:56.774 wd.tick_summary {'ticks': 10, 'avg_select_ms': 33.801, 'max_select_ms': 34.492, 'msgs': 10, 'hb_ok': True}
+17:59:56.919 loop.tick {'user_ms': 210.0, 'system_ms': 130.0, 'idle_ms': 5330.0, 'iowait_ms': 10.0, 'steal_ms': 0.0, 'total_ms': 5680.0, 'dt_s': 1.002}
+17:59:57.115 wd.tick_summary {'ticks': 10, 'avg_select_ms': 33.984, 'max_select_ms': 34.825, 'msgs': 10, 'hb_ok': True}
+17:59:57.404 proc.status {'rq_wait_ns': 387086723075, 'nonvoluntary_ctxt': 1658751}
+17:59:57.455 wd.tick_summary {'ticks': 10, 'avg_select_ms': 33.954, 'max_select_ms': 34.531, 'msgs': 10, 'hb_ok': True}
+17:59:57.761 hal.send_summary {'job': None, 'id': None, 'count': 30, 'max_ms': 0.102, 'slow_count': 0}
+17:59:57.795 wd.tick_summary {'ticks': 10, 'avg_select_ms': 33.994, 'max_select_ms': 34.514, 'msgs': 10, 'hb_ok': True}
+17:59:57.921 loop.tick {'user_ms': 80.0, 'system_ms': 60.0, 'idle_ms': 5710.0, 'iowait_ms': 0.0, 'steal_ms': 0.0, 'total_ms': 5850.0, 'dt_s': 1.002}
+
+The page's viewer.perf rows around it (page wall clock t_wall_ms = the row's end; each row covers ~3 s):
+17:59:48.220 {'age_max_ms': 35, 'raf_ticks': 180, 'raf_gap_max_ms': 19, 'mt_late_max_ms': 20, 'gpu_done_max_ms': 17, 'render_max_ms': 1, 'in_n': 0, 'ev_dur_max_ms': 0}
+17:59:51.221 {'age_max_ms': 34, 'raf_ticks': 180, 'raf_gap_max_ms': 19, 'mt_late_max_ms': 12, 'gpu_done_max_ms': 17, 'render_max_ms': 2, 'in_n': 0, 'ev_dur_max_ms': 0}
+17:59:54.223 {'age_max_ms': 35, 'raf_ticks': 180, 'raf_gap_max_ms': 25, 'mt_late_max_ms': 25, 'gpu_done_max_ms': 23, 'render_max_ms': 2, 'in_n': 0, 'ev_dur_max_ms': 0}
+17:59:57.223 {'age_max_ms': 216, 'raf_ticks': 126, 'raf_gap_max_ms': 190, 'mt_late_max_ms': 197, 'gpu_done_max_ms': 170, 'render_max_ms': 7, 'in_n': 0, 'ev_dur_max_ms': 0}
+18:00:00.232 {'age_max_ms': 154, 'raf_ticks': 159, 'raf_gap_max_ms': 98, 'mt_late_max_ms': 97, 'gpu_done_max_ms': 90, 'render_max_ms': 6, 'in_n': 0, 'ev_dur_max_ms': 0}

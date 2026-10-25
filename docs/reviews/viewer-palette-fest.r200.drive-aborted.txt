@@ -1,0 +1,14 @@
+17:32:34 ok arm 
+mark prep at 17:32:37
+17:32:37 ok estop 
+17:32:37 ok estop_reset 
+17:32:39 watchdog anchor {'wd_ms': 182557671, 'wall_ns': 1792945957357702644, 'wd_pid': 2356148, 'wd_log_bytes': 104107, 'gwlog': 40453, 'local': '17:32:39'}
+17:32:39 ok machine_on 
+17:32:39 setup {'commit': '2e750e1d3a9b268b0e0c52016631d4a2bde8a4d9', 'vm_cpus': 6, 'pages': ['y3jq4dik'], 'browser_ua': ['Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:158.0) Gecko/20100101 Firefox/158.0'], 'event_timing': True, 'heap': False}
+17:32:39 ok load_file blank.ngc
+mark A_rest at 17:32:49
+17:33:49 ok mdi (MSG, BPC: jetzt 40 s lang die Pfeiltaste nach unten gedrueckt halten)
+mark A_input at 17:33:49
+17:34:29 ok mdi (MSG, BPC: Taste loslassen)
+mark S_load at 17:34:29
+17:34:30 ok load_file bpc_parse.ngc

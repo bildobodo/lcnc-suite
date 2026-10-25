@@ -1,0 +1,10 @@
+test_incomplete_head_and_line_wait (test_codex_tracetail.TraceBoundaries.test_incomplete_head_and_line_wait) ... ok
+test_renamed_file_keeps_growing (test_codex_tracetail.TraceBoundaries.test_renamed_file_keeps_growing) ... ok
+test_reused_inode_already_larger_than_saved_offset (test_codex_tracetail.TraceBoundaries.test_reused_inode_already_larger_than_saved_offset) ... ok
+test_rotation_between_stat_and_open_does_not_duplicate (test_codex_tracetail.TraceBoundaries.test_rotation_between_stat_and_open_does_not_duplicate) ... rotation race observations ['old1', 'old2', 'gcode.publish']
+ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.001s
+
+OK

@@ -1,0 +1,30 @@
+test_incomplete_head_and_line_wait (test_codex_tracetail.TraceBoundaries.test_incomplete_head_and_line_wait) ... ok
+test_renamed_file_keeps_growing (test_codex_tracetail.TraceBoundaries.test_renamed_file_keeps_growing) ... ok
+test_reused_inode_already_larger_than_saved_offset (test_codex_tracetail.TraceBoundaries.test_reused_inode_already_larger_than_saved_offset) ... ok
+test_rotation_between_stat_and_open_does_not_duplicate (test_codex_tracetail.TraceBoundaries.test_rotation_between_stat_and_open_does_not_duplicate) ... rotation race observations ['old1', 'old1', 'old2', 'old2', 'gcode.publish', 'gcode.publish']
+FAIL
+
+======================================================================
+FAIL: test_rotation_between_stat_and_open_does_not_duplicate (test_codex_tracetail.TraceBoundaries.test_rotation_between_stat_and_open_does_not_duplicate)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r200-mc5tchrp/tools/test_codex_tracetail.py", line 53, in test_rotation_between_stat_and_open_does_not_duplicate
+    self.assertEqual(actual,['old1','old2','gcode.publish'])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['old1', 'old1', 'old2', 'old2', 'gcode.publish', 'gcode.publish'] != ['old1', 'old2', 'gcode.publish']
+
+First differing element 1:
+'old1'
+'old2'
+
+First list contains 3 additional elements.
+First extra element 3:
+'old2'
+
+- ['old1', 'old1', 'old2', 'old2', 'gcode.publish', 'gcode.publish']
++ ['old1', 'old2', 'gcode.publish']
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+FAILED (failures=1)
