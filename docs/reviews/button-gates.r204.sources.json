@@ -1,0 +1,74 @@
+{
+  "round": "R204",
+  "commit": "4bfdc7597b7e28a8e99a6b752db3b8ec5074e1d1",
+  "method": "Read-only source and plan inspection; no runtime tests, builds or controller access",
+  "changed_files_in_requested_range": [
+    "docs/reviews/button-gates.review.md"
+  ],
+  "evidence": {
+    "flush_pending_per_section": {
+      "file": "lcnc-webui/src/defaults.ts",
+      "line": 181
+    },
+    "flush_on_hidden_not_only_close": {
+      "file": "lcnc-webui/src/defaults.ts",
+      "line": 198
+    },
+    "visibility_updates_worker_configuration": {
+      "file": "lcnc-webui/src/lcncWs.ts",
+      "line": 93
+    },
+    "beacon_is_unconfirmed_in_ledger": {
+      "file": "lcnc-webui/src/settingsSaveStatus.ts",
+      "line": 164
+    },
+    "confirmed_server_state_replaces_cache": {
+      "file": "lcnc-webui/src/defaults.ts",
+      "line": 150
+    },
+    "source_gate_and_publication": {
+      "file": "lcnc-gateway/gateway.py",
+      "line": 7339
+    },
+    "tool_import_command_lock": {
+      "file": "lcnc-gateway/gateway.py",
+      "line": 2792
+    }
+  },
+  "sources": [
+    {
+      "url": "https://linuxcnc.org/docs/2.9/html/config/python-interface.html",
+      "claim": "kinematics_type is an integer status attribute with the four documented KINEMATICS enum values"
+    },
+    {
+      "url": "https://www.w3.org/TR/beacon/#sendbeacon-method",
+      "claim": "Beacon return value acknowledges queueing, not successful server acceptance; the document may unload during transfer"
+    }
+  ],
+  "decision": "Accept the offered strict-connection alternative: no 5-second authority for closed connections; a previously admitted atomic commit may finish.",
+  "limits": [
+    "The proposed gates are not implemented.",
+    "No end-to-end Beacon delivery or native machine acceptance is claimed."
+  ],
+  "files": {
+    "lcnc-gateway/gateway.py": {
+      "sha256": "49dc4065abe49b484aff4e23eb70f7bb5de5564fedf1702d266dd61dd3346371",
+      "identical_to_R203": true
+    },
+    "lcnc-gateway/settings_store.py": {
+      "sha256": "93f58db7f8e688f3841b7a8733ec4e553d47e33ba2588c4e09ce4c40574c4013",
+      "identical_to_R203": true
+    },
+    "lcnc-webui/src/defaults.ts": {
+      "sha256": "cac97459c8ddc4b58843e5a1b30c67d8f24ae7270bde42caf45922c612b5b77c",
+      "identical_to_R203": true
+    },
+    "lcnc-webui/src/settingsSaveStatus.ts": {
+      "sha256": "2de2fd7a42abf4df55b6bffa7befbd3be32eef5be2c56886f1e23c408e6584d9",
+      "identical_to_R203": true
+    },
+    "lcnc-webui/src/lcncWs.ts": {
+      "sha256": "0c08a9a8a17cb03fdf0f99b370499512be7cd00f62e732d0477ff618438bf457"
+    }
+  }
+}
