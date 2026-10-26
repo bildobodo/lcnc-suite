@@ -1,0 +1,203 @@
+{
+  "review": "R211",
+  "product_commit": "fcc1b3d419d9608d0136f35d39b372a5294e3098",
+  "base": "a8b0b03f",
+  "live_head_read": "7a4b0291f1aeb65436a533b8b342cecddf8a949b",
+  "archive": "/tmp/codex-r211-r9uo3fze/repo",
+  "live_ports_used": [],
+  "sources": {
+    "lcnc-gateway/gateway.py": "024a9e9e86a3cefe5bba837c6731ef7faea12bd27122ed63c7945d67775faee8",
+    "lcnc-gateway/settings_store.py": "ce072b82237b48b967b7212edd4008f0e85e150dc8b8efea5d78c6d37a019c0f",
+    "lcnc-gateway/command_policy.py": "d6bd1a7b80d3ed623cca2c736f96fde87928fed500e3738ea38fcd9b90254786",
+    "lcnc-gateway/ws_fanout.py": "7a7807aaba49cc7785338ff8c6f4bcff6150d185cb0d9839ac4b3b9586d47907",
+    "lcnc-webui/src/defaults.ts": "36fa1c16a14b0082341457a03f8f34e5fa92e65f2586c76eb9745360ceeb63ea",
+    "lcnc-webui/src/lcncWs.ts": "1472f7add3e8fb39ac6496a2a60a5a454d9ef06de611a8a27a629a1fc993b037",
+    "lcnc-webui/src/permissions.ts": "f062039229f4a43774899e7f8eea017c275cc49d6664c04a12ee07f29ac77596"
+  },
+  "counterexamples": [
+    {
+      "case": "test_macro_during_program_load",
+      "result": {
+        "ok": true,
+        "macro": {
+          "name": "face_top",
+          "title": "Face top",
+          "units": "mm",
+          "frame": null,
+          "params": [
+            {
+              "n": 1,
+              "key": "depth",
+              "label": "Depth",
+              "unit": "length",
+              "default": 0.5,
+              "min": 0.0,
+              "max": 5.0,
+              "integer": false
+            },
+            {
+              "n": 2,
+              "key": "feed",
+              "label": "Feed",
+              "unit": "feed",
+              "default": 600.0,
+              "min": 1.0,
+              "max": null,
+              "integer": false
+            }
+          ],
+          "description": [],
+          "errors": [],
+          "warnings": [],
+          "revision": "9c6c5d25ee22993410928695fbe109972b96aa7506e5ed8b470f1e9e8a74f5e8",
+          "mtime": 1793009815.7213576,
+          "runnable": true,
+          "reason": null
+        }
+      },
+      "changed": true
+    },
+    {
+      "case": "test_macro_during_rfl_transaction",
+      "result": {
+        "ok": true,
+        "macro": {
+          "name": "face_top",
+          "title": "Face top",
+          "units": "mm",
+          "frame": null,
+          "params": [
+            {
+              "n": 1,
+              "key": "depth",
+              "label": "Depth",
+              "unit": "length",
+              "default": 0.5,
+              "min": 0.0,
+              "max": 5.0,
+              "integer": false
+            },
+            {
+              "n": 2,
+              "key": "feed",
+              "label": "Feed",
+              "unit": "feed",
+              "default": 600.0,
+              "min": 1.0,
+              "max": null,
+              "integer": false
+            }
+          ],
+          "description": [],
+          "errors": [],
+          "warnings": [],
+          "revision": "9c6c5d25ee22993410928695fbe109972b96aa7506e5ed8b470f1e9e8a74f5e8",
+          "mtime": 1793009815.7373576,
+          "runnable": true,
+          "reason": null
+        }
+      },
+      "changed": true
+    },
+    {
+      "case": "test_program_without_known_interpreter",
+      "result": {
+        "ok": true,
+        "path": "/tmp/tmpv7z0w9x0/prog.ngc",
+        "filename": "prog.ngc",
+        "size": 6
+      },
+      "published": true
+    },
+    {
+      "case": "test_cancel_keeps_http_table_serialization",
+      "lock_while_thread_waits": false,
+      "second_import_overtook": true,
+      "order": [
+        "table Z99",
+        "reload",
+        "metadata B",
+        "table Z12"
+      ],
+      "table": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P1     Z+00012.000000  D+0003.000000\n",
+      "metadata": {
+        "writer": "B"
+      }
+    },
+    {
+      "case": "test_cancel_keeps_ws_table_serialization",
+      "lock_while_thread_waits": false,
+      "second_import_overtook": true,
+      "order": [
+        "table Z99",
+        "reload",
+        "metadata B",
+        "table Z12.0"
+      ],
+      "table": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P1     Z+00012.000000  D+0003.000000\n",
+      "metadata": {
+        "writer": "B"
+      }
+    },
+    {
+      "case": "test_disarm_during_table_read_is_seen_at_commit",
+      "armed_at_write": false,
+      "replies": [
+        {
+          "type": "reply",
+          "cmd": "save_tool",
+          "ok": true
+        }
+      ],
+      "writes": 1
+    },
+    {
+      "case": "test_control_connected_armed_reset",
+      "result": "{'ok': True}",
+      "changed": true,
+      "on_disk": {}
+    },
+    {
+      "case": "test_control_connected_armed_settings_save",
+      "result": "{'ok': True}",
+      "changed": true,
+      "on_disk": {
+        "probe.ini": {
+          "keyboard": {
+            "jogEnabled": true
+          }
+        }
+      }
+    },
+    {
+      "case": "test_disarm_while_reset_waits_for_store_lock",
+      "result": "{'ok': True}",
+      "changed": true,
+      "on_disk": {}
+    },
+    {
+      "case": "test_disarm_while_settings_wait_for_store_lock",
+      "result": "{'ok': True}",
+      "changed": true,
+      "on_disk": {
+        "probe.ini": {
+          "keyboard": {
+            "jogEnabled": true
+          }
+        }
+      }
+    },
+    {
+      "case": "test_disconnect_while_settings_wait_for_store_lock",
+      "result": "{'ok': True}",
+      "changed": true,
+      "on_disk": {
+        "probe.ini": {
+          "keyboard": {
+            "jogEnabled": true
+          }
+        }
+      }
+    }
+  ]
+}

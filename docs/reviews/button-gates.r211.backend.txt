@@ -1,0 +1,219 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/codex-r211-r9uo3fze/repo/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... [VINIT] session bound to linuxcncsvr pid=2259380 start=36010870
+[VINIT] try_connect_lcnc OK, pid=2259380
+[VINIT] Loaded machine config: 3-Axis Mill
+collected 11 items
+
+test_codex_r211.py::TestMacroAdmission::test_macro_during_program_load {"case": "test_macro_during_program_load", "result": {"ok": true, "macro": {"name": "face_top", "title": "Face top", "units": "mm", "frame": null, "params": [{"n": 1, "key": "depth", "label": "Depth", "unit": "length", "default": 0.5, "min": 0.0, "max": 5.0, "integer": false}, {"n": 2, "key": "feed", "label": "Feed", "unit": "feed", "default": 600.0, "min": 1.0, "max": null, "integer": false}], "description": [], "errors": [], "warnings": [], "revision": "9c6c5d25ee22993410928695fbe109972b96aa7506e5ed8b470f1e9e8a74f5e8", "mtime": 1793009815.7213576, "runnable": true, "reason": null}}, "changed": true}
+FAILED
+test_codex_r211.py::TestMacroAdmission::test_macro_during_rfl_transaction {"case": "test_macro_during_rfl_transaction", "result": {"ok": true, "macro": {"name": "face_top", "title": "Face top", "units": "mm", "frame": null, "params": [{"n": 1, "key": "depth", "label": "Depth", "unit": "length", "default": 0.5, "min": 0.0, "max": 5.0, "integer": false}, {"n": 2, "key": "feed", "label": "Feed", "unit": "feed", "default": 600.0, "min": 1.0, "max": null, "integer": false}], "description": [], "errors": [], "warnings": [], "revision": "9c6c5d25ee22993410928695fbe109972b96aa7506e5ed8b470f1e9e8a74f5e8", "mtime": 1793009815.7373576, "runnable": true, "reason": null}}, "changed": true}
+FAILED
+test_codex_r211.py::TestNoController::test_program_without_known_interpreter {"case": "test_program_without_known_interpreter", "result": {"ok": true, "path": "/tmp/tmpv7z0w9x0/prog.ngc", "filename": "prog.ngc", "size": 6}, "published": true}
+FAILED
+test_codex_r211.py::TestWsToolCurrentWriter::test_cancel_keeps_http_table_serialization {"case": "test_cancel_keeps_http_table_serialization", "lock_while_thread_waits": false, "second_import_overtook": true, "order": ["table Z99", "reload", "metadata B", "table Z12"], "table": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P1     Z+00012.000000  D+0003.000000\n", "metadata": {"writer": "B"}}
+FAILED
+test_codex_r211.py::TestWsToolCurrentWriter::test_cancel_keeps_ws_table_serialization {"case": "test_cancel_keeps_ws_table_serialization", "lock_while_thread_waits": false, "second_import_overtook": true, "order": ["table Z99", "reload", "metadata B", "table Z12.0"], "table": ";Tool  Pocket Z Offset     Diameter     Remark\nT1     P1     Z+00012.000000  D+0003.000000\n", "metadata": {"writer": "B"}}
+FAILED
+test_codex_r211.py::TestWsToolCurrentWriter::test_disarm_during_table_read_is_seen_at_commit {"case": "test_disarm_during_table_read_is_seen_at_commit", "armed_at_write": false, "replies": [{"type": "reply", "cmd": "save_tool", "ok": true}], "writes": 1}
+FAILED
+test_codex_r211.py::TestSettingsCommit::test_control_connected_armed_reset {"case": "test_control_connected_armed_reset", "result": "{'ok': True}", "changed": true, "on_disk": {}}
+PASSED
+test_codex_r211.py::TestSettingsCommit::test_control_connected_armed_settings_save {"case": "test_control_connected_armed_settings_save", "result": "{'ok': True}", "changed": true, "on_disk": {"probe.ini": {"keyboard": {"jogEnabled": true}}}}
+PASSED
+test_codex_r211.py::TestSettingsCommit::test_disarm_while_reset_waits_for_store_lock {"case": "test_disarm_while_reset_waits_for_store_lock", "result": "{'ok': True}", "changed": true, "on_disk": {}}
+FAILED
+test_codex_r211.py::TestSettingsCommit::test_disarm_while_settings_wait_for_store_lock {"case": "test_disarm_while_settings_wait_for_store_lock", "result": "{'ok': True}", "changed": true, "on_disk": {"probe.ini": {"keyboard": {"jogEnabled": true}}}}
+FAILED
+test_codex_r211.py::TestSettingsCommit::test_disconnect_while_settings_wait_for_store_lock {"case": "test_disconnect_while_settings_wait_for_store_lock", "result": "{'ok': True}", "changed": true, "on_disk": {"probe.ini": {"keyboard": {"jogEnabled": true}}}}
+FAILED
+
+=================================== FAILURES ===================================
+______________ TestMacroAdmission.test_macro_during_program_load _______________
+
+self = <test_codex_r211.TestMacroAdmission testMethod=test_macro_during_program_load>
+
+    def test_macro_during_program_load(self):
+        gateway._status_runtime._changing = True
+        self.assertIsNotNone(gateway._write_admission_refusal(self.conn_key))
+>       self.save_and_check()
+
+test_codex_r211.py:49: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_codex_r211.py:44: in save_and_check
+    self.assertEqual(after, before, 'macro published while sourceWrite should be closed')
+E   AssertionError: b'(MA[137 chars]  G21 G90 G94\n  G1 Z[-#1] F#2\no<face_top> endsub\n(review)\n' != b'(MA[137 chars]  G21 G90 G94\n  G1 Z[-#1] F#2\no<face_top> endsub\n' : macro published while sourceWrite should be closed
+_____________ TestMacroAdmission.test_macro_during_rfl_transaction _____________
+
+self = <test_codex_r211.TestMacroAdmission testMethod=test_macro_during_rfl_transaction>
+
+    def test_macro_during_rfl_transaction(self):
+        gateway._rfl_task = _Pending()
+        self.assertIsNotNone(gateway._write_admission_refusal(self.conn_key))
+>       self.save_and_check()
+
+test_codex_r211.py:54: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_codex_r211.py:44: in save_and_check
+    self.assertEqual(after, before, 'macro published while sourceWrite should be closed')
+E   AssertionError: b'(MA[137 chars]  G21 G90 G94\n  G1 Z[-#1] F#2\no<face_top> endsub\n(review)\n' != b'(MA[137 chars]  G21 G90 G94\n  G1 Z[-#1] F#2\no<face_top> endsub\n' : macro published while sourceWrite should be closed
+___________ TestNoController.test_program_without_known_interpreter ____________
+
+self = <test_codex_r211.TestNoController testMethod=test_program_without_known_interpreter>
+
+    def test_program_without_known_interpreter(self):
+        with tempfile.TemporaryDirectory() as d, patch.object(gateway, 'STAT', None), \
+             patch.object(gateway, 'lcnc_connected', False), \
+             patch.object(gateway, 'get_nc_files_dir', lambda: d), \
+             patch.object(gateway, '_program_name_refusal', lambda _: None):
+            gateway._source_lock = None
+            async def run():
+                try: return await gateway.upload_gcode(_FakeUpload(b'G0 X1\n'), 0, x_conn_key=self.writer.conn_key)
+                except gateway.HTTPException as e: return {'http': e.status_code}
+            result = asyncio.run(run())
+            changed = Path(d, 'prog.ngc').exists()
+            print(json.dumps({'case': self._testMethodName, 'result': result, 'published': changed}))
+>           self.assertFalse(changed, 'STAT=None is not a known idle interpreter')
+E           AssertionError: True is not false : STAT=None is not a known idle interpreter
+
+test_codex_r211.py:69: AssertionError
+______ TestWsToolCurrentWriter.test_cancel_keeps_http_table_serialization ______
+
+self = <test_codex_r211.TestWsToolCurrentWriter testMethod=test_cancel_keeps_http_table_serialization>
+
+>   def test_cancel_keeps_http_table_serialization(self): self._cancel_case()
+                                                          ^^^^^^^^^^^^^^^^^^^
+
+test_codex_r211.py:153: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_codex_r211.py:151: in _cancel_case
+    asyncio.run(run())
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:725: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+test_codex_r211.py:145: in run
+    self.assertFalse(overtook, 'second import overtook a cancelled but still writing first import')
+E   AssertionError: True is not false : second import overtook a cancelled but still writing first import
+_______ TestWsToolCurrentWriter.test_cancel_keeps_ws_table_serialization _______
+
+self = <test_codex_r211.TestWsToolCurrentWriter testMethod=test_cancel_keeps_ws_table_serialization>
+
+>   def test_cancel_keeps_ws_table_serialization(self): self._cancel_case(ws_first=True)
+                                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_codex_r211.py:154: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_codex_r211.py:151: in _cancel_case
+    asyncio.run(run())
+/usr/lib/python3.13/asyncio/runners.py:195: in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/runners.py:118: in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:725: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+test_codex_r211.py:145: in run
+    self.assertFalse(overtook, 'second import overtook a cancelled but still writing first import')
+E   AssertionError: True is not false : second import overtook a cancelled but still writing first import
+___ TestWsToolCurrentWriter.test_disarm_during_table_read_is_seen_at_commit ____
+
+self = <test_codex_r211.TestWsToolCurrentWriter testMethod=test_disarm_during_table_read_is_seen_at_commit>
+
+    def test_disarm_during_table_read_is_seen_at_commit(self):
+        gateway._shared_status = _payload()
+        gateway._cmd_lock = None
+        replies, writes = [], []
+        def read(_):
+            # Another task auto-disarms the client while file preparation is underway.
+            self.writer.armed = False
+            return [{'T': 1, 'P': 1, 'Z': 0., 'D': 3., 'remark': ''}]
+        async def reply(ws, msg): replies.append(msg)
+        async def reload(): pass
+        with patch.object(gateway, 'parse_tool_table', read), \
+             patch.object(gateway, 'get_tool_tbl_path', lambda: '/tmp/r211-unused.tbl'), \
+             patch.object(gateway, 'write_tool_table', lambda *a: writes.append(a)), \
+             patch.object(gateway, 'load_tool_library', lambda: {}), \
+             patch.object(gateway, 'save_tool_library', lambda *a: None), \
+             patch.object(gateway, '_reload_tool_table_and_bump', reload), \
+             patch.object(gateway, 'ws_send_json', reply):
+            asyncio.run(gateway._execute_client_command(901, self.writer, None,
+                {'cmd': 'save_tool', 'tool_number': 1, 'z_offset': 12}))
+        print(json.dumps({'case': self._testMethodName, 'armed_at_write': self.writer.armed,
+                          'replies': replies, 'writes': len(writes)}))
+>       self.assertEqual(writes, [], 'dispatch-time armed=True survived disarm before write')
+E       AssertionError: Lists differ: [('/tmp/r211-unused.tbl', [{'T': 1, 'P': 1[34 chars]'}])] != []
+E       
+E       First list contains 1 additional elements.
+E       First extra element 0:
+E       ('/tmp/r211-unused.tbl', [{'T': 1, 'P': 1, 'Z': 12.0, 'D': 3.0, 'remark': ''}])
+E       
+E       + []
+E       - [('/tmp/r211-unused.tbl',
+E       -   [{'D': 3.0, 'P': 1, 'T': 1, 'Z': 12.0, 'remark': ''}])] : dispatch-time armed=True survived disarm before write
+
+test_codex_r211.py:93: AssertionError
+_______ TestSettingsCommit.test_disarm_while_reset_waits_for_store_lock ________
+
+self = <test_codex_r211.TestSettingsCommit testMethod=test_disarm_while_reset_waits_for_store_lock>
+
+>   def test_disarm_while_reset_waits_for_store_lock(self): self._case(reset=True)
+                                                            ^^^^^^^^^^^^^^^^^^^^^^
+
+test_codex_r211.py:190: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_codex_r211.py:186: in _case
+    self.assertEqual(changed, retain_arm, 'settings admission preceded the store lock wait')
+E   AssertionError: True != False : settings admission preceded the store lock wait
+______ TestSettingsCommit.test_disarm_while_settings_wait_for_store_lock _______
+
+self = <test_codex_r211.TestSettingsCommit testMethod=test_disarm_while_settings_wait_for_store_lock>
+
+>   def test_disarm_while_settings_wait_for_store_lock(self): self._case()
+                                                              ^^^^^^^^^^^^
+
+test_codex_r211.py:188: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_codex_r211.py:186: in _case
+    self.assertEqual(changed, retain_arm, 'settings admission preceded the store lock wait')
+E   AssertionError: True != False : settings admission preceded the store lock wait
+____ TestSettingsCommit.test_disconnect_while_settings_wait_for_store_lock _____
+
+self = <test_codex_r211.TestSettingsCommit testMethod=test_disconnect_while_settings_wait_for_store_lock>
+
+>   def test_disconnect_while_settings_wait_for_store_lock(self): self._case(disconnect=True)
+                                                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+test_codex_r211.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_codex_r211.py:186: in _case
+    self.assertEqual(changed, retain_arm, 'settings admission preceded the store lock wait')
+E   AssertionError: True != False : settings admission preceded the store lock wait
+=========================== short test summary info ============================
+FAILED test_codex_r211.py::TestMacroAdmission::test_macro_during_program_load
+FAILED test_codex_r211.py::TestMacroAdmission::test_macro_during_rfl_transaction
+FAILED test_codex_r211.py::TestNoController::test_program_without_known_interpreter
+FAILED test_codex_r211.py::TestWsToolCurrentWriter::test_cancel_keeps_http_table_serialization
+FAILED test_codex_r211.py::TestWsToolCurrentWriter::test_cancel_keeps_ws_table_serialization
+FAILED test_codex_r211.py::TestWsToolCurrentWriter::test_disarm_during_table_read_is_seen_at_commit
+FAILED test_codex_r211.py::TestSettingsCommit::test_disarm_while_reset_waits_for_store_lock
+FAILED test_codex_r211.py::TestSettingsCommit::test_disarm_while_settings_wait_for_store_lock
+FAILED test_codex_r211.py::TestSettingsCommit::test_disconnect_while_settings_wait_for_store_lock
+========================= 9 failed, 2 passed in 0.37s ==========================
+[GC] +293ms gen=2 duration=9.8ms collected=607 uncollectable=0
+[GC] +301ms gen=2 duration=7.4ms collected=0 uncollectable=0
+[GC] +307ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +313ms gen=2 duration=6.2ms collected=0 uncollectable=0
+[GC] +321ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +327ms gen=2 duration=6.3ms collected=0 uncollectable=0

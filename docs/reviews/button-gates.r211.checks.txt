@@ -1,0 +1,40 @@
+R211 / 2026-10-26 — own archive of fcc1b3d4, no live machine access.
+Live review head: 7a4b0291. Product source worktree: /home/cnc/lcnc-suite-gates, read only.
+Execution directory: /tmp/codex-r211-r9uo3fze/repo.
+Archive inputs: lcnc-gateway lcnc-webui scripts examples subroutines test-fixtures docs/architecture CLAUDE.md.
+node_modules copied into the archive from the product worktree.
+Python: /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python.
+Backend conftest and independent probe install fake_linuxcnc before importing gateway.
+VINIT messages inspect process metadata only; assertions explicitly require __lcnc_fake__.
+No port 8000/5173 access, no machine commands. All written data in probes is in temporary directories.
+
+Existing targeted backend suite (exit 0; 246 tests, independently counted via collect-only):
+  cd <archive>/lcnc-gateway
+  timeout -k 3s 100s <python> -m pytest -q test_button_gates_b.py test_macros_gateway.py test_upload_conflict.py test_tool_refresh.py test_freecad_import.py test_command_dispatch.py
+  Output: button-gates.r211.targeted-backend.txt. Repo addopts already contains -q; double quiet omits the summary.
+
+Independent contract probes:
+  Copy button-gates.r211.backend.py to <archive>/lcnc-gateway/test_codex_r211.py
+  cd <archive>/lcnc-gateway
+  timeout -k 3s 60s <python> -m pytest -vv -s test_codex_r211.py
+  Final result: 9 failed, 2 passed, exit 1 (expected contract assertions demonstrate the open findings).
+  Two positive controls: connected armed settings save and reset under the same store lock.
+  Temporary real settings.json and tool.tbl files used; reload and command transport stubbed.
+  Cancellation probes for HTTP and WS both: B table -> B reload -> B metadata -> A table.
+  JSON extracts and source hashes: button-gates.r211.checks.json.
+
+Frontend archive:
+  npm run build: exit 0, bundle-size warning only.
+  npx vitest run src/settingsDraft.test.ts src/settingsSections.test.ts src/settingsSaveStatus.test.ts src/permissions.test.ts src/useMacros.test.ts
+  57 tests / 5 files PASS.
+
+Browser archive, own mock only:
+  Replace localhost:4174 with 127.0.0.1:4188 in archive e2e/ctl.ts ONLY.
+  Copy button-gates.r211.playwright.config.ts to archive lcnc-webui/r211.config.ts.
+  MOCK_PORT=4188 nice -n 10 node e2e/mock-gateway.mjs
+  nice -n 10 npx playwright test -c r211.config.ts --grep 'a refused key-map|held jog key keeps|settings save status'
+  6/6 PASS, 14.2 seconds. The formerly flaky held-jog map test passed once; this does not prove flake removal.
+  This mock has no conn_key in hello, as Claude stated. Header integration relied on code review + reading Claude's live-browser evidence; not independently repeated live.
+  Mock terminated after tests. All own exec/test processes completed.
+
+No product edits, commits, or new builds in either shared worktree. Only review appendix and new R211 evidence in live docs/reviews; handshake done separately.

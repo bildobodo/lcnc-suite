@@ -1,0 +1,16 @@
+
+Running 6 tests using 1 worker
+
+(node:2658212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2658212) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/keyboard-guards.spec.ts:739:1 › a held jog key keeps its stop when the key map changes on another client (Codex R205) (1.5s)
+  ✓  2 e2e/keyboard-guards.spec.ts:774:1 › settings save status: Saving… on a change, Saved on the gateway's ok, the reason on ok:false (2.1s)
+SAVE_OLD_REPLY 145 samples before the second request: ["Saving…"]
+  ✓  3 e2e/keyboard-guards.spec.ts:809:1 › settings save status (UI-I12): a failed section stays visible behind another section's ok; an old reply never says Saved for a newer change (3.4s)
+  ✓  4 e2e/keyboard-guards.spec.ts:881:1 › settings save status (UI-I12 rest): a page-hide save goes by beacon and only the server's state confirms it (1.7s)
+  ✓  5 e2e/keyboard-guards.spec.ts:929:1 › settings save status (UI-I12 round 7): a page-hide save that never landed reads as not saved, never Saved or pending for good (1.9s)
+  ✓  6 e2e/keyboard-guards.spec.ts:1002:1 › a refused key-map change acts nowhere; the draft stays; the server holding it makes it act (button gates BG-19) (3.0s)
+
+  6 passed (14.2s)
