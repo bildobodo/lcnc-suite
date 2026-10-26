@@ -1,0 +1,61 @@
+[VINIT] session bound to linuxcncsvr pid=1930565 start=34507871
+[VINIT] try_connect_lcnc OK, pid=1930565
+[VINIT] Loaded machine config: 3-Axis Mill
+{"case": "test_control_queued_unchanged_start_succeeds", "trace": [{"admit": null, "thread": "MainThread", "state": {"kins_type": 0.0, "twp_active": false}}, {"release_worker_with_state": {"kins_type": 0.0, "twp_active": false}}, {"reply": {"ok": true}, "commands": ["auto"]}]}
+.{"case": "test_cycle_refuses_a_frame_changed_while_write_queued", "trace": [{"admit": null, "thread": "MainThread", "state": {"kins_type": 0.0, "twp_active": false}}, {"release_worker_with_state": {"kins_type": 2.0, "twp_active": false}}, {"reply": {"ok": true}, "commands": ["auto"]}]}
+F{"case": "test_idle_step_refuses_a_frame_changed_while_write_queued", "trace": [{"admit": null, "thread": "MainThread", "state": {"kins_type": 0.0, "twp_active": false}}, {"release_worker_with_state": {"kins_type": 2.0, "twp_active": false}}, {"reply": {"ok": true}, "commands": ["auto"]}]}
+F.[WD] bad json from gateway: Expecting ':' delimiter: line 1 column 13 (char 12)
+{"case": "test_partial_timeout_then_retry_cannot_book_a_dropped_message", "first": {"ok": false, "error": "Confirmation unclear \u2014 confirm again if still asked"}, "second": {"ok": true}, "third": {"ok": false, "error": "Tool change already confirmed"}, "written_fragments": ["{\"tool_cha", "{\"tool_changed\": true}\n"], "pins": {}, "parser_warnings": [[["wd.bad_msg"], {"level": "warn", "err": "Expecting ':' delimiter: line 1 column 13 (char 12)"}]], "booked": 41}
+F
+=================================== FAILURES ===================================
+__ TestStartWriteQueue.test_cycle_refuses_a_frame_changed_while_write_queued ___
+
+self = <r207_probe.TestStartWriteQueue testMethod=test_cycle_refuses_a_frame_changed_while_write_queued>
+
+    def test_cycle_refuses_a_frame_changed_while_write_queued(self):
+        reply=self.exercise('cycle_start',True)
+>       self.assertFalse(reply['ok'],'Admission precedes the executor queue, not the write')
+E       AssertionError: True is not false : Admission precedes the executor queue, not the write
+
+r207_probe.py:90: AssertionError
+_ TestStartWriteQueue.test_idle_step_refuses_a_frame_changed_while_write_queued _
+
+self = <r207_probe.TestStartWriteQueue testMethod=test_idle_step_refuses_a_frame_changed_while_write_queued>
+
+    def test_idle_step_refuses_a_frame_changed_while_write_queued(self):
+        reply=self.exercise('auto_step',True)
+>       self.assertFalse(reply['ok'],'Admission precedes the executor queue, not the write')
+E       AssertionError: True is not false : Admission precedes the executor queue, not the write
+
+r207_probe.py:95: AssertionError
+_ TestPartialToolConfirmation.test_partial_timeout_then_retry_cannot_book_a_dropped_message _
+
+self = <r207_probe.TestPartialToolConfirmation testMethod=test_partial_timeout_then_retry_cannot_book_a_dropped_message>
+
+    def test_partial_timeout_then_retry_cannot_book_a_dropped_message(self):
+        sock=PartialSocket(self.rx)
+        self.bridge._wd_sock=sock
+        with patch.object(gateway,'_hal_send',self.bridge.watchdog_send):
+            first=self.confirm()
+            self.assertFalse(first['ok'])
+            second=self.confirm()
+            third=self.confirm()
+        print(json.dumps({'case':self.id().split('.')[-1], 'first':first,'second':second,'third':third,
+            'written_fragments':sock.fragments,'pins':self.rx['comp'],'parser_warnings':self.rx['warnings'],
+            'booked':gateway._tool_change_confirmed}))
+>       self.assertFalse(second['ok'] and not self.rx['comp'].get('tool-changed'),
+            'Retry reported successful although the real receiver dropped the joined JSON')
+E       AssertionError: True is not false : Retry reported successful although the real receiver dropped the joined JSON
+
+r207_probe.py:172: AssertionError
+=========================== short test summary info ============================
+FAILED r207_probe.py::TestStartWriteQueue::test_cycle_refuses_a_frame_changed_while_write_queued
+FAILED r207_probe.py::TestStartWriteQueue::test_idle_step_refuses_a_frame_changed_while_write_queued
+FAILED r207_probe.py::TestPartialToolConfirmation::test_partial_timeout_then_retry_cannot_book_a_dropped_message
+3 failed, 2 passed in 0.18s
+[GC] +107ms gen=2 duration=13.4ms collected=477 uncollectable=0
+[GC] +122ms gen=2 duration=14.7ms collected=0 uncollectable=0
+[GC] +129ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +135ms gen=2 duration=6.1ms collected=0 uncollectable=0
+[GC] +141ms gen=2 duration=5.9ms collected=0 uncollectable=0
+[GC] +147ms gen=2 duration=6.2ms collected=0 uncollectable=0

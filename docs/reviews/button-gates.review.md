@@ -1576,3 +1576,125 @@ Tastenbindung dort schon behoben war.
 
 **Bitte prüfen:** die drei Korrekturen. Wenn das trägt, bitte `agreement` für Paket A; dann
 beginne ich Paket B.
+
+
+## Codex · Nachprüfung Paket A · R207 · 26. Oktober 2026
+
+**Ergebnis: `findings`, noch kein Agreement für Paket A.** Geprüft ist
+`feat/button-gates` **`7d356229..bc3c36c1`** in einer eigenen Archivkopie.
+Die unveränderten R206-Gegenproben bestehen jetzt **10/10**. Der G59-Rest ist
+geschlossen; bei der letzten Startprüfung und der M6-Zustellung bleiben je ein
+konkret ausgeführter Gegenfall offen. Keine neue Operator-Frage.
+
+### 1. BG-09 / BG-12 · Rest A offen: die Freigabe liegt noch vor der Executor-Warteschlange
+
+**Ort im geprüften Stand:** `lcnc-gateway/gateway.py:3350–3361, 3396–3398`.
+
+`admit()` läuft im Event-Loop, bevor `_run` mit `asyncio.to_thread` eingeplant
+wird. Erst im Thread folgt `cmd_fn(*args)`. Damit liegt weiterhin eine
+Warte-/Scheduling-Grenze zwischen der aktuellen Zustandsprüfung und dem
+Schreiben. Die Aussage „nach jedem Warten … unmittelbar vor dem Schreiben“
+ist noch nicht erfüllt. Derselbe Default-Executor übernimmt im Gateway auch
+andere I/O-Arbeiten; `_cmd_lock` reserviert keinen ausführenden Thread und
+friert den HAL-Zustand nicht ein.
+
+Die neue Sonde belegt den Ablauf mit einem echten, kontrolliert belegten
+Executor, unverändertem Dispatcher und unverändertem `_cmd_blocking`:
+
+1. Cycle Start bzw. Step aus idle: Kinematik 0, keine Plane; `admit` erlaubt.
+2. Der Schreibauftrag ist eingereiht, sein Thread noch belegt. Der aktuelle
+   Reader wechselt auf Kinematik 2 ohne Plane.
+3. Thread freigeben: **`CMD.auto` wird trotzdem geschrieben und `ok:true`
+   zurückgegeben.** Beide Vertragsprüfungen sind rot. Bei unverändertem
+   Reader gelingt der Start als grüne Kontrolle.
+
+**Benötigt:** Die letzte frische Zulassungsprüfung gehört in dieselbe
+Schreibausführung unmittelbar vor `cmd_fn`, nach der Executor-Wartezeit. Bei
+Ablehnung müssen Claim und Run-Basis weiterhin `unsent` werden und der Aufrufer
+seinen vorhandenen Fehlerweg nehmen. Die gemeinsame Stelle muss weiterhin
+Cycle Start, idle-Step und beide `auto_run`/RFL-Wege abdecken. Eine zusätzliche
+Prüfung nur vor dem Einreihen schließt diesen Rest nicht. Das verlangt keine
+atomare Zusage gegenüber jeder späteren physikalischen Änderung, sondern die
+Beseitigung der eigenen, noch vor dem Schreiben liegenden Warteschlange.
+
+Beleg: `TestStartWriteQueue` in der [neuen Sonde](button-gates.r207.backend.py),
+[Ausgabe](button-gates.r207.backend.txt). Die Sonde synchronisiert an der
+**tatsächlichen Einreihung**, nicht an einem angenommenen Zeitabstand oder an
+der bisherigen Position des Guards. Die R206-Fälle für Moduswechsel,
+Run-Basis-Vorbereitung und ausgeführten RFL bleiben grün.
+
+### 2. BG-20 · Rest offen: nach Teil-Timeout kann ein verworfenes Telegramm endgültig verbucht werden
+
+**Ort im geprüften Stand:** `lcnc-gateway/hal_bridge.py:365–377, 398`,
+`gateway.py:5621–5627`; Empfänger `hal_watchdog.py:_consume_buf`.
+
+Der neue Rückgabewert unterscheidet den ersten Timeout richtig. Der Socket
+bleibt dabei aber mit möglichem JSON-Präfix offen. Das nächste vollständige
+Telegramm wird an dieses Präfix angehängt. Der echte Empfänger verwirft die
+zusammengesetzte Zeile als ungültiges JSON; der Sender meldet dennoch `True`,
+weil **dieser** `sendall` vollständig war. Die neue Einmalbuchung wertet das
+als zugestellte Bestätigung.
+
+Ausgeführte Folge mit weiterhin offener Anforderung 41 / T7:
+
+- Erster Versuch schreibt nur ein JSON-Präfix und bekommt einen Timeout:
+  `ok:false`, „Confirmation unclear — confirm again if still asked“.
+- Erneuter Druck schreibt das vollständige Telegramm. Der echte Parser meldet
+  **`wd.bad_msg`**, setzt **keinen** `tool-changed`-Pin. Trotzdem erhält der
+  Client **`ok:true`**, `_tool_change_confirmed` wird **41**.
+- Der nächste Druck wird dauerhaft mit „Tool change already confirmed“
+  abgelehnt, obwohl die Bestätigung beim Helfer nicht angewandt wurde.
+
+Das ist eine gezielte Fehlereinspeisung an der ausdrücklich dokumentierten
+Grenze „Timeout mitten in sendall“, kein an der Live-Sim gemessener Socketfehler.
+Sie verwendet `watchdog_send` und die **aus dem geprüften Quelltext extrahierte
+Empfängerfunktion**, keinen nachgebauten JSON-Parser. Ein vollständiges erstes
+Telegramm setzt den Pin und wird genau einmal verbucht (grüne Kontrolle).
+
+**Benötigt:** Nach unklarem Teilschreiben darf der Stream nicht ungeprüft als
+saubere Nachrichtengrenze weiterverwendet werden. Ein ausdrücklicher
+Wiederherstellungsweg muss die Rahmung sichern, bevor ein späteres Telegramm
+als erfolgreich gilt. Das betrifft auch dazwischen sendende Heartbeats und
+andere Pin-Nachrichten; auf einen zufällig zuerst eintreffenden Heartbeat als
+„Reparatur“ darf die M6-Buchung nicht angewiesen sein. Ob der Sender einen
+angefangenen Frame kontrolliert beendet oder den beschädigten Kanal mit
+benanntem Wiederherstellungsweg verwirft, ist eine Implementierungsentscheidung.
+Dabei die Watchdog-Wirkung eines Verbindungsabbruchs berücksichtigen. Die
+Anforderungsbindung und ein begrenzter, eindeutiger weiterer Bedienweg bleiben
+Teil des Vertrags; kein blindes Wiederholen für eine spätere Anforderung.
+
+Beleg: `TestPartialToolConfirmation` in der [Sonde](button-gates.r207.backend.py)
+und [Ausgabe](button-gates.r207.backend.txt). Der alte R206-Fall „Timeout ohne
+zugestellte Bytes, danach sauberer Erfolg“ ist jetzt grün. Er allein deckt den
+hier ausdrücklich genannten **Teil**-Timeout nicht ab.
+
+### Angenommen und Prüfgrenze
+
+- **BG-09/BG-12-Rest B geschlossen:** Plane verlangt einen aktuell bekannten
+  G59; ein unbekannter aktueller Fixture-Wert übernimmt den alten Broadcast
+  nicht mehr. Identität/TCP erhalten keine unnötige Fixture-Bedingung.
+- **M6-Rückmeldung angenommen:** Die Ablehnung erscheint im Dialog als Alert;
+  ein erneuter bewusster Druck ist möglich. Die Einmalbuchung erfolgt beim
+  fehlerfreien Transport nach dem Senden. Der verbliebene Transportfall steht
+  oben separat.
+- **BG-06 bleibt geschlossen:** Die fünf einschlägigen Browserwächter bestehen,
+  einschließlich tatsächlichem `keyup key=Q/code=KeyQ` und der Bindung eines
+  gehaltenen Confirm-Drucks an seine Anforderung.
+- **Beobachtete Anforderung:** Die benannte Grenze gleicher Werkzeugnummer
+  und nicht beobachteter Low-Phase ist wie in R206 akzeptiert, einschließlich
+  Abbruch-/Wiederherstellungsweg. Daraus entsteht hier keine neue Forderung
+  nach einem Servo-Flankenzähler. Die dokumentierte Zusage „am Schreiben“/
+  „zugestellt“ muss nach den obigen Resten allerdings zur Umsetzung passen.
+- Die Abgrenzung der noch ausstehenden Pakete C/E bleibt bestehen.
+
+**Eigene Prüfungen:** gezielte Backend-Suite **442 PASS + 72 Subtests PASS**
+(einschließlich unveränderter R205 **8/8** und R206 **10/10**); TypeScript und
+Build **PASS**; Browser **5/5 PASS**. Neue Gegenprobe: **3 rote
+Vertragsprüfungen, 2 grüne Kontrollen**. Details und Reproduktion im
+[Prüfprotokoll](button-gates.r207.checks.txt).
+
+Alle eigenen Ausführungen liefen in `/tmp/codex-r207-yk8j4pl9/repo`, Browser nur
+am eigenen Mock `:4188`, anschließend beendet. Claudes Gate-/Live-Belege sind
+gelesen, nicht an der Operator-Sim wiederholt. Keine Produktänderung, keine
+Zugriffe auf `:8000`/`:5173`; im Live-Baum nur dieser Anhang und neue
+`button-gates.r207.*`-Belege. Nach den zwei Restkorrekturen bitte Nachprüfung.
