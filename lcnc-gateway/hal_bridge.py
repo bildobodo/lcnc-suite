@@ -79,10 +79,17 @@ PEER_CLOSED_BACKOFF_SEC = 1.0
 HELPER_REPLY_SEC = 2.0
 # "Not dialling while unbound" is logged at most this often.
 UNBOUND_DEFER_EMIT_SEC = 5.0
-# How long a watchdog send waits for another one in flight (button gates
-# BG-20, Codex R208): a little over the socket's 50 ms send timeout, so the
-# write in progress finishes or times out meanwhile — bounded for the
-# heartbeat on the event loop.
+# The watchdog stream's time budgets (button gates BG-20 / BG-21, Codex
+# R208/R209) — each operation is bounded on its own, none is a total:
+#   _WD_IO_TIMEOUT  every socket operation: connect, the hello, one frame's
+#                   sendall (socket.timeout, set BEFORE connect);
+#   _WD_SEND_WAIT   how long a send waits for another in flight to give the
+#                   stream up — a little over one socket operation, so the
+#                   write in progress finishes or times out meanwhile.
+# The lock holder is therefore bounded (connect + hello + one frame, the
+# verdict drain never blocks): Disconnect waits for it without a deadline of
+# its own and never loses its effect.
+_WD_IO_TIMEOUT = 0.05
 _WD_SEND_WAIT = 0.06
 
 
@@ -262,8 +269,11 @@ class HalBridge:
             return
         sock = _socket.socket(_socket.AF_UNIX, _socket.SOCK_STREAM)
         try:
+            # The timeout BEFORE connect (button gates BG-21, Codex R209): a
+            # listener whose accept queue is full made connect() wait without
+            # end — and the stream lock with it, Disconnect included.
+            sock.settimeout(_WD_IO_TIMEOUT)
             sock.connect(self._watchdog_path)
-            sock.settimeout(0.05)
             sock.sendall((json.dumps(hello) + "\n").encode())
             self._wd_sock = sock
             self._wd_state = "awaiting"

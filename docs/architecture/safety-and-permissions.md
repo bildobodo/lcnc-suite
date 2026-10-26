@@ -112,7 +112,10 @@ the server re-checks before the effect. Package A closed what made that false:
   watchdog drops it and never applies it late or joins it to the next — R207;
   one writer owns the stream, `HalBridge._wd_lock` over send, connect and
   disconnect: a send waits at most `_WD_SEND_WAIT` 60 ms for another in flight,
-  else returns False, nothing written — R208); a
+  else returns False, nothing written — R208; every socket operation, connect
+  included, is bounded by `_WD_IO_TIMEOUT` 50 ms set BEFORE connect, so the
+  lock holder is bounded and Disconnect waits for it without losing its
+  effect — R209); a
   refused or unclear confirmation shows in the dialog and a deliberate press
   tries again, bound to the same request. Boundary: two requests for the SAME
   tool whose low phase falls between two polls stay one observed request.
