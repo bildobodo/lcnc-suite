@@ -1,0 +1,22 @@
+[VINIT] session bound to linuxcncsvr pid=2032887 start=34975972
+[VINIT] try_connect_lcnc OK, pid=2032887
+[VINIT] Loaded machine config: 3-Axis Mill
+test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely (r209_probe.TestConnectTimeBound.test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely) ... FAIL
+
+======================================================================
+FAIL: test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely (r209_probe.TestConnectTimeBound.test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/codex-r209-tim7ylqj/repo/lcnc-gateway/r209_probe.py", line 167, in test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely
+    self.assertTrue(bounded_send,
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+                    'The real connect has no timeout; the 60 ms lock limit does not bound this send')
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: False is not true : The real connect has no timeout; the 60 ms lock limit does not bound this send
+
+----------------------------------------------------------------------
+Ran 1 test in 0.251s
+
+FAILED (failures=1)
+{"case": "real_full_accept_queue", "disconnect_seconds": 1.625041477382183e-06, "send_finished_by_250ms": false, "disconnect_finished_by_250ms": true, "send_result": null, "send_seconds": 0.25077974103624}
+[GC] +303ms gen=2 duration=7.5ms collected=113 uncollectable=0

@@ -1,0 +1,72 @@
+R209 / Codex / 2026-10-26
+Product: feat/button-gates 66f58e2a..be63d3d4
+Exact head: be63d3d443b1b713fdaa2bcb146d5023672d58a8
+Live review tree: a6c31f3d45c3d0bb286e8a50e27eb71737d9ec40
+Own archive: /tmp/codex-r209-tim7ylqj/repo
+No product changes, no tests/builds/checkouts in either worktree.
+No access to live ports or HAL sockets. No machine commands.
+
+Targeted backend in archived lcnc-gateway:
+  /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python -m pytest test_button_gates.py test_button_gates_r208.py test_command_policy.py test_command_dispatch.py test_status_runtime.py test_rfl_guard.py test_hal_bridge.py r205_probe.py r206_probe.py r207_probe.py r208_probe.py -q -o addopts=''
+  The r205/r206/r207/r208 files are unchanged copies of the earlier evidence.
+  464 PASS + 1958 subtests PASS (includes the same 943 R208 combinations both
+  in the adopted repository guard and in the unchanged independent copy).
+
+New probe:
+  copy button-gates.r209.backend.py to archived lcnc-gateway/r209_probe.py
+  python -m pytest r209_probe.py -q -s -o addopts=''
+  1 failing assertion, 2 passing controls.
+  fake_linuxcnc installed and asserted. VINIT PID discovery is read-only
+  import metadata, not use of a real LinuxCNC binding.
+  Busy M6: held stream lock, actual dispatcher -> executor -> bridge; false
+  response unbooked, no queued bytes, deliberate retry sets pin and books.
+  Disconnect ownership: a 25 ms socket stand-in send finishes before close.
+  Connect time bound: REAL AF_UNIX listener in a /tmp TemporaryDirectory,
+  backlog=0, its one pending slot occupied, no accept until cleanup. A second
+  nonblocking/timeout socket proves queue saturation (Linux EAGAIN). The
+  actual bridge connect is unmodified; only entry is observed with an Event.
+  Writer and disconnect each remain unfinished at their 250 ms observation.
+  Accept in cleanup releases connect; both threads joined and sockets closed.
+  No live helper or endpoint used. The test deliberately observes a blocked
+  accept queue; it is not a latency benchmark of the operator's machine.
+
+Baseline comparison against 66f58e2a (same test, only HalBridge swapped):
+  git show 66f58e2a:lcnc-gateway/hal_bridge.py > r209_prior_hal_bridge.py
+  Save the following as r209_baseline_runner.py, then run python r209_baseline_runner.py:
+import unittest
+import r209_probe
+import r209_prior_hal_bridge
+r209_probe.HalBridge = r209_prior_hal_bridge.HalBridge
+suite=unittest.defaultTestLoader.loadTestsFromTestCase(r209_probe.TestConnectTimeBound)
+result=unittest.TextTestRunner(verbosity=2).run(suite)
+raise SystemExit(not result.wasSuccessful())
+
+  Baseline: send still blocked at 250 ms, but disconnect completed immediately.
+  R209: send still blocked at 250 ms; disconnect then blocked for another
+  observed 250 ms. Both return only after accept is allowed. This separates
+  the inherited connect defect from the new lifecycle lock propagation.
+
+Frontend diff f1488199..be63d3d4 is empty: no new build or browser run.
+Claude's a5 backend gate (aa87aea6) and M6/stops/TWP live evidence read,
+not repeated live. M6 4 PASS, stops 5 PASS, TWP 43 PASS / 4 SKIP.
+
+Targeted output:
+................................................ [ 10%]
+................................................................. [ 24%]
+........................................................................ [ 39%]
+................................................................................................... [ 61%]
+........................................................................ [ 76%]
+..................................................................... [ 91%]
+.......................................                           [100%]
+464 passed, 1958 subtests passed in 13.04s
+[GC] +12861ms gen=2 duration=11.4ms collected=544 uncollectable=0
+[GC] +12869ms gen=2 duration=8.6ms collected=0 uncollectable=0
+[GC] +12878ms gen=2 duration=8.4ms collected=0 uncollectable=0
+[GC] +12886ms gen=2 duration=8.0ms collected=0 uncollectable=0
+[GC] +12893ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +12902ms gen=2 duration=8.9ms collected=0 uncollectable=0
+
+Evidence SHA256:
+baf23b7817cde55ec2152e2efc1dabdbe8d0a3167e2bd4d4c21c631e54cbde7f  button-gates.r209.backend.py
+27b1c8252979c4a1d01aeb4a8928f24baaf41f06eb3ac792a4929d350a0ab1b2  button-gates.r209.backend.txt
+1bd9b041f816929a609510726ec9ca9acb0aa6dc4a005c15ef04af64e1417ad6  button-gates.r209.baseline.txt

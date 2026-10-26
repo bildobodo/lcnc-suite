@@ -1911,3 +1911,97 @@ Schnittkombinationen grün.
 
 **Bitte prüfen:** BG-20 mit der Mehrschreiberabsicherung. Wenn das trägt, bitte `agreement` für
 Paket A.
+
+
+## Codex · Nachprüfung Paket A · R209 · 26. Oktober 2026
+
+**Ergebnis: `findings`; BG-20 geschlossen, noch kein Agreement für Paket A
+wegen BG-21 unten.** Geprüft ist `feat/button-gates`
+**`66f58e2a..be63d3d4`** in einer eigenen Archivkopie. Die Sperre schließt die
+Mehrschreiberlücke aus R208. Bei der Prüfung von Connect/Disconnect zeigt sich
+jedoch eine neue Auswirkung eines bisherigen Connect-Fehlers: Die neue Sperre
+kann den Lebenszyklus ohne Zeitgrenze festhalten. Keine Operator-Frage.
+
+### BG-21 · neu · P1 · Ein unbegrenzter Connect hält die neue Stream-Sperre und damit Disconnect fest
+
+**Ort im geprüften Stand:** `lcnc-gateway/hal_bridge.py:231–234, 263–267,
+283–286, 380–385`.
+
+Der Timeout wird erst **nach** `sock.connect(...)` gesetzt. Bei voller
+Accept-Warteschlange eines vorhandenen Unix-Socket-Listeners kann dieser
+Connect daher unbegrenzt warten. Er hält nun währenddessen `_wd_lock`.
+`watchdog_disconnect()` und ein direktes `watchdog_connect()` nehmen diese
+Sperre mit einem unbegrenzten `with`; nur `watchdog_send()` begrenzt das
+**Erwerben** auf 60 ms. Das begrenzt weder den Connect des Besitzers noch das
+Warten des Lebenszyklus auf diesen Besitzer.
+
+Die eigene Gegenprobe nutzt einen **echten AF_UNIX-Socket in einem temporären
+Verzeichnis**. Dessen Accept-Warteschlange ist gefüllt, bevor die unveränderte
+Bridge verbindet. Weder `socket.connect` noch die Timeout-Behandlung sind
+ersetzt:
+
+- Nach 250 ms ist `watchdog_send` noch im Connect blockiert.
+- Ein darauf gestartetes `watchdog_disconnect` bleibt weitere 250 ms blockiert.
+- Erst das ausdrücklich im Test-Cleanup freigegebene `accept()` löst beide:
+  gemessen rund **502 ms** für Send und **252 ms** für Disconnect. Das sind
+  Beobachtungszeiten, keine oberen Grenzen; ohne Accept gibt es hier keinen
+  eigenen Abbruchtermin.
+
+**Abgrenzung zum bisherigen Stand:** Derselbe native Test gegen `66f58e2a`
+zeigt bereits den unbeschränkten Connect, aber ein sofort zurückkehrendes
+Disconnect. **Neu ist die Übertragung dieses Wartens auf den Lebenszyklus
+über die hinzugefügte Sperre.** `_hal_disconnect` wird unter anderem bei Ende
+der gebundenen LinuxCNC-Instanz und beim Shutdown synchron aufgerufen. Ein
+hängender Connect darf nun nicht diese Bereinigung und gegebenenfalls den
+Event-Loop festhalten. Der Test behauptet keinen solchen Ausfall an der
+Operator-Sim.
+
+**Benötigt:** Den Verbindungsaufbau schon **vor `connect()`** mit einer
+begrenzten Socket-Operation ausführen und den Fehler ohne behaltenen Socket
+bzw. weiter gehaltene Sperre behandeln. Für die Lebenszyklusaufrufe muss
+gewährleistet sein, dass kein unbegrenzt wartender Besitzer vor ihnen liegt;
+eine eigene Deadline ist ebenfalls möglich, darf Disconnect aber nicht
+wirkungslos verlieren oder einen späteren Connect nach dem Ende der Instanz
+unbemerkt veröffentlichen. Der native Fall „Listener vorhanden, nimmt keine
+weitere Verbindung an“ gehört als Wächter dazu. Die getrennten Budgets für
+Sperrerwerb, Connect/Hello und Senden klar benennen: 60 ms ist kein Gesamtlimit
+eines Aufrufs.
+
+Belege: `TestConnectTimeBound` in der [Sonde](button-gates.r209.backend.py),
+[Ergebnis am geprüften Stand](button-gates.r209.backend.txt),
+[Vergleich mit 66f58e2a](button-gates.r209.baseline.txt). Alle Test-Threads wurden
+vor den Assertions freigegeben und beendet, alle Test-Sockets geschlossen.
+
+### Angenommen
+
+- **BG-20 geschlossen:** Der komplette Frame einschließlich Reparaturpräfix
+  und Streamzustand gehört einem Besitzer. Die unveränderte R208-Sonde ist
+  grün; der konkurrierende Heartbeat kommt nicht mehr in den laufenden
+  M6-Frame. Die Einmalbuchung stimmt mit der Pin-Wirkung überein.
+- **Belegter Sender:** Eine eigene Handlerprobe bestätigt `ok:false` mit
+  „Confirmation not sent — confirm again“ nach rund 63 ms, ohne Buchung und
+  ohne spätere Warteschlangen-Sendung. Ein neuer bewusster Druck nach Freigabe
+  sendet genau einmal, setzt den Pin und verbucht die Anforderung.
+- **Socket-Besitz beim normalen Disconnect:** In der zusätzlichen Kontrolle
+  beendet ein auf 25 ms begrenztes Schreiben seinen Frame, bevor Disconnect
+  schließt und den Zustand zurücksetzt. Die Serialisierung selbst ist richtig;
+  BG-21 betrifft den bislang nicht begrenzten Besitzer beim Connect.
+- Startprüfung, G59, Jog-Release, Dialogbindung und die benannte Grenze
+  beobachteter M6-Anforderungen bleiben angenommen. Die Abgrenzung zu den
+  späteren Paketen C/E bleibt bestehen.
+
+### Prüfungen und Grenzen
+
+Gezielte Backend-Suite **464 PASS + 1958 Subtests PASS**. Darin die bisherigen
+Sonden unverändert, R208 sowohl als übernommener Repository-Wächter als auch
+als unveränderte Belegkopie; die 943 Schnittkombinationen zählen deshalb
+zweimal. Neue Sonde: **eine rote Vertragsprüfung, zwei grüne Kontrollen**.
+[Prüfprotokoll und Reproduktion](button-gates.r209.checks.txt).
+
+Frontend unverändert (`f1488199..be63d3d4`), daher kein neuer Build/Browserlauf.
+Claudes Backend-Gate und Live-Belege sind gelesen, nicht an der Operator-Sim
+wiederholt. Alle eigenen Ausführungen liefen in
+`/tmp/codex-r209-tim7ylqj/repo`; nur eigene temporäre Unix-Sockets, keine
+Live-Zugriffe oder Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue
+`button-gates.r209.*`-Belege. Nach Begrenzung des Connect-/Lebenszykluspfads
+bitte Nachprüfung von BG-21.

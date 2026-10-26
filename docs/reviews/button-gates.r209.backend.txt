@@ -1,0 +1,89 @@
+[VINIT] session bound to linuxcncsvr pid=2032887 start=34975972
+[VINIT] try_connect_lcnc OK, pid=2032887
+[VINIT] Loaded machine config: 3-Axis Mill
+{"case": "busy_m6", "first": {"ok": false, "error": "Confirmation not sent \u2014 confirm again"}, "retry": {"ok": true}, "seconds": 0.063, "frames": ["{\"tool_changed\": true}\n"], "pins": {"tool-changed": true}, "booked": 41}
+.{"case": "disconnect_owner", "events": ["send entered", "send returned", "close"], "outcomes": [true]}
+.{"case": "real_full_accept_queue", "send_finished_by_250ms": false, "disconnect_finished_by_250ms": false, "send_result": null, "send_seconds": 0.5017940680263564, "disconnect_seconds": 0.25165441300487146}
+F
+=================================== FAILURES ===================================
+_ TestConnectTimeBound.test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely _
+
+self = <r209_probe.TestConnectTimeBound testMethod=test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely>
+
+    def test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely(self):
+        with tempfile.TemporaryDirectory(prefix='r209-backlog-',dir='/tmp') as d:
+            path=str(Path(d)/'watchdog.sock')
+            srv=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+            srv.bind(path);srv.listen(0);srv.settimeout(1)
+            # Linux accepts one pending connection with backlog=0. Fill that
+            # slot without consuming it, like a listening helper not accepting.
+            filler=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+            filler.settimeout(.1);filler.connect(path)
+            # Prove the accept queue is full before exercising the bridge.
+            extra=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM);extra.settimeout(.02)
+            try:
+                extra.connect(path)
+                raise AssertionError('probe setup did not saturate the accept queue')
+            except (socket.timeout, BlockingIOError):
+                pass
+            finally:
+                extra.close()
+            b=new_bridge(watchdog_path=path)
+            entered,send_done,disc_done=threading.Event(),threading.Event(),threading.Event()
+            results={};accepted=[]
+            # Observe only that the real connect method has been entered;
+            # socket.connect and its timeout behavior are not patched.
+            connect_name=('_watchdog_connect_locked' if hasattr(b,'_watchdog_connect_locked')
+                          else 'watchdog_connect')
+            real_connect=getattr(b,connect_name)
+            def observe_connect():
+                entered.set()
+                return real_connect()
+            setattr(b,connect_name,observe_connect)
+            def send():
+                t0=time.monotonic()
+                try:results['send_result']=b.watchdog_send({'heartbeat':True})
+                except BaseException as e:results['send_error']=repr(e)
+                finally:results['send_seconds']=time.monotonic()-t0;send_done.set()
+            def disconnect():
+                t0=time.monotonic()
+                b.watchdog_disconnect()
+                results['disconnect_seconds']=time.monotonic()-t0;disc_done.set()
+            writer=threading.Thread(target=send,daemon=True)
+            closer=threading.Thread(target=disconnect,daemon=True)
+            writer.start()
+            try:
+                self.assertTrue(entered.wait(1))
+                bounded_send=send_done.wait(.25)
+                closer.start()
+                bounded_disconnect=disc_done.wait(.25)
+                results.update(send_finished_by_250ms=bounded_send,
+                               disconnect_finished_by_250ms=bounded_disconnect)
+            finally:
+                # Only now let the helper accept: the blocked connect gains
+                # space, so the real bridge and waiting lifecycle can finish.
+                try:
+                    conn,_=srv.accept();accepted.append(conn)
+                    writer.join(1);closer.join(1)
+                finally:
+                    b.watchdog_disconnect()
+                    filler.close()
+                    for conn in accepted:conn.close()
+                    srv.close()
+            print(json.dumps({'case':'real_full_accept_queue',**results}))
+            self.assertFalse(writer.is_alive())
+            self.assertFalse(closer.is_alive())
+>           self.assertTrue(bounded_send,
+                            'The real connect has no timeout; the 60 ms lock limit does not bound this send')
+E           AssertionError: False is not true : The real connect has no timeout; the 60 ms lock limit does not bound this send
+
+r209_probe.py:167: AssertionError
+=========================== short test summary info ============================
+FAILED r209_probe.py::TestConnectTimeBound::test_full_accept_queue_does_not_hold_send_and_disconnect_indefinitely
+1 failed, 2 passed in 0.74s
+[GC] +660ms gen=2 duration=8.8ms collected=539 uncollectable=0
+[GC] +666ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +673ms gen=2 duration=6.3ms collected=0 uncollectable=0
+[GC] +679ms gen=2 duration=6.1ms collected=0 uncollectable=0
+[GC] +685ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +692ms gen=2 duration=6.5ms collected=0 uncollectable=0
