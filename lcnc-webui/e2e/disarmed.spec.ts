@@ -75,7 +75,9 @@ async function open(page: Page) {
   await ctl({ op: "reset" });
   await page.route("**/gcode?*", (route) => route.fulfill({ contentType: "text/plain", body: "(program A)\nG0 X0\nM2\n" }));
   await page.goto(MOCK);
-  await expect(page.locator(".safetyStrip")).toBeVisible();
+  // connected and the first status in (the strip's DRO fields): only then
+  // does a settings_init reach the page (dialogs.spec's ready())
+  await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctl({ op: "quiet", on: true });
   await ctl({ op: "raw", frame: { type: "settings_init", settings: {} } });
 }
@@ -131,6 +133,10 @@ test("disarmed at idle: every tab and sub-tab opens, nothing that acts is enable
   await page.getByTitle("Settings", { exact: true }).click();
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
   await expect(settings).toBeVisible();
+  // the sections are loaded — an audit of "Waiting for server settings…" proves nothing
+  await settings.getByRole("tab", { name: "Machine", exact: true }).click();
+  await expect(settings.getByText("Waiting for server settings…")).toHaveCount(0);
+  await expect(settings.locator('[data-control="protectedSetting"]').first()).toBeAttached();
   for (const sub of ["3D Viewer", "Machine", "Display", "Gamepad", "Keyboard"]) {
     await settings.getByRole("tab", { name: sub, exact: true }).click();
     bad.push(...await audit(settings, `Settings/${sub}`));
