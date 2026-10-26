@@ -1,0 +1,55 @@
+R210 / Codex / 2026-10-26
+Product: feat/button-gates be63d3d4..a8b0b03f
+Exact head: a8b0b03f3b57a240404f9894bd81c55a73cc1247
+Live review tree: cdcfc94e332340e9d1128df84293be044107cdd5
+Own archive: /tmp/codex-r210-rx_jpnf7/repo
+No product changes; no tests/builds/checkouts in either worktree.
+No live endpoint, HAL socket or machine command used.
+
+Targeted backend, run in archived lcnc-gateway:
+  /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python -m pytest test_button_gates.py test_button_gates_r208.py test_button_gates_r209.py test_command_policy.py test_command_dispatch.py test_status_runtime.py test_rfl_guard.py test_hal_bridge.py r205_probe.py r206_probe.py r207_probe.py r208_probe.py r209_probe.py -q -o addopts=''
+  r205/r206/r207/r208/r209 are byte-identical copies of previous evidence.
+  470 PASS + 1958 subtests PASS. The 943 R208 combinations run both in the
+  adopted repository guard and in the independent unchanged copy.
+
+Native follow-up and recovery:
+  copy button-gates.r210.backend.py to archived lcnc-gateway/r210_probe.py
+  python -m pytest r209_probe.py r210_probe.py -q -s -o addopts=''
+  4/4 PASS: unchanged R209's 3 tests plus 1 new recovery test.
+  R209 uses fake_linuxcnc (asserted). VINIT PID lines are read-only import
+  metadata. The new r210 probe itself imports no gateway or HAL binding.
+  AF_UNIX sockets bind only inside /tmp TemporaryDirectories. The new test
+  fills a listener's accept queue, confirms False with no retained socket,
+  proves another thread can disconnect (RLock cannot fool the check through
+  same-thread re-entry), then drains the queue and accepts a new connection.
+  Real welcome reply -> admitted sender -> one tool_changed JSON frame ->
+  disconnect. Threads joined and sockets closed. No live helper is used.
+  The full-queue connect returned EAGAIN immediately here (0.04-0.07 ms),
+  rather than spending the 50 ms upper I/O budget; neither send nor disconnect
+  waits for accept any longer.
+
+Frontend: git diff --name-only f1488199..a8b0b03f -- lcnc-webui is empty.
+No new frontend build/browser run. No mock server started.
+Claude a6 backend gate (1445df55), M6 4 PASS and TWP 43 PASS / 4 SKIP evidence
+read, not repeated at the operator's simulator.
+
+Targeted backend output:
+................................................ [ 10%]
+................................................................. [ 24%]
+........................................................................ [ 39%]
+....................................................... [ 51%]
+............................................ [ 60%]
+........................................................................ [ 75%]
+..................................................................... [ 90%]
+.............................................                     [100%]
+470 passed, 1958 subtests passed in 13.28s
+[GC] +13105ms gen=2 duration=10.6ms collected=83 uncollectable=0
+[GC] +13113ms gen=2 duration=8.5ms collected=0 uncollectable=0
+[GC] +13123ms gen=2 duration=9.5ms collected=0 uncollectable=0
+[GC] +13131ms gen=2 duration=8.5ms collected=0 uncollectable=0
+[GC] +13139ms gen=2 duration=7.7ms collected=0 uncollectable=0
+[GC] +13148ms gen=2 duration=9.1ms collected=0 uncollectable=0
+
+Evidence SHA256:
+6ccc348776a72fddc0d4af0f4d1b1e3b77d3b49652b84e011ea182ce4729b375  button-gates.r210.backend.py
+b25d8cf1ba72687268c3f9ed42039def54d3a416e46759d09d25fe8faed4f48e  button-gates.r210.backend.txt

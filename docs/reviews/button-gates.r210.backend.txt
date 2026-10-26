@@ -1,0 +1,15 @@
+[VINIT] session bound to linuxcncsvr pid=2050359 start=35048773
+[VINIT] try_connect_lcnc OK, pid=2050359
+[VINIT] Loaded machine config: 3-Axis Mill
+{"case": "busy_m6", "first": {"ok": false, "error": "Confirmation not sent \u2014 confirm again"}, "retry": {"ok": true}, "seconds": 0.066, "frames": ["{\"tool_changed\": true}\n"], "pins": {"tool-changed": true}, "booked": 41}
+.{"case": "disconnect_owner", "events": ["send entered", "send returned", "close"], "outcomes": [true]}
+.{"case": "real_full_accept_queue", "send_result": false, "send_seconds": 7.170898607000709e-05, "disconnect_seconds": 1.249951310455799e-06, "send_finished_by_250ms": true, "disconnect_finished_by_250ms": true}
+.{"case": "full_queue_then_reconnect", "first": false, "first_ms": 0.037, "admission_send": null, "final": true, "frames": [{"instance": [1234, 5678]}, {"connected": true}, {"heartbeat": false}, {"heartbeat": false}, {"tool_changed": true}], "closed": true}
+.
+4 passed in 0.24s
+[GC] +162ms gen=2 duration=8.6ms collected=662 uncollectable=0
+[GC] +169ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +175ms gen=2 duration=6.3ms collected=0 uncollectable=0
+[GC] +181ms gen=2 duration=5.9ms collected=0 uncollectable=0
+[GC] +187ms gen=2 duration=6.2ms collected=0 uncollectable=0
+[GC] +193ms gen=2 duration=6.0ms collected=0 uncollectable=0
