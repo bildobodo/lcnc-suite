@@ -201,6 +201,26 @@ const compact = computed(() => isPortrait.value && activeKind.value !== null);
   padding-left: var(--gap-tight);
   padding-right: var(--gap-tight);
 }
+/* A dimmed safety button with a reason is wrapped in .btnTip (BG-16: Power
+   in E-Stop explains with the safety Gate's reason, Arm during a trip): the
+   wrapper takes .safetyBtn and only PLACES — its button keeps the stacked
+   interior, so the dimmed footprint is the enabled one. Layout only. */
+.safetyBtn.btnTip {
+  flex-direction: row;
+  align-items: stretch;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* audit-ok: the wrapped button is Btn.vue's root — no utility class reaches it */
+.safetyBtn.btnTip > :deep(button) {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-tight);
+  padding-left: var(--gap-tight);
+  padding-right: var(--gap-tight);
+}
 /* Portrait: the 280 px column gives each button ~74 px — POWER OFF (78 px)
    wraps onto two lines instead of clipping; the row grows for all three
    (block buttons stretch), which the 150 % portrait budget test measures. */
