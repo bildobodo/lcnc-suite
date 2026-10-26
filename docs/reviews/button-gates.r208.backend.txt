@@ -1,0 +1,32 @@
+[VINIT] session bound to linuxcncsvr pid=2015996 start=34906670
+[VINIT] try_connect_lcnc OK, pid=2015996
+[VINIT] Loaded machine config: 3-Axis Mill
+uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuu{"case": "all_first_and_repair_cut_positions", "combinations": 943}
+.{"case": "refused_thread_write", "basis": {"state": "unsent"}, "claims": ["unsent"]}
+.[WD] bad json from gateway: Unterminated string starting at: line 1 column 2 (char 1)
+{"case": "test_control_heartbeat_after_confirmation_keeps_both_messages", "replies": {"confirm": {"ok": true}, "heartbeat": true, "repeat": {"ok": false, "error": "Tool change already confirmed"}}, "fragments": ["{\"connect", "#\n{\"tool_changed\": true}", "\n", "{\"heartbeat\": true, \"connected\": true}\n"], "pins": {"tool-changed": true, "heartbeat": true, "connected": true}, "booked": 41, "open": false, "parser_warnings": [[["wd.bad_msg"], {"level": "warn", "err": "Unterminated string starting at: line 1 column 2 (char 1)"}]]}
+.[WD] bad json from gateway: Unterminated string starting at: line 1 column 2 (char 1)
+[WD] bad json from gateway: Extra data: line 1 column 23 (char 22)
+{"case": "test_heartbeat_cannot_invalidate_an_inflight_confirmation_and_book_it", "replies": {"heartbeat": true, "confirm": {"ok": true}, "repeat": {"ok": false, "error": "Tool change already confirmed"}}, "fragments": ["{\"connect", "#\n{\"tool_changed\": true}", "#\n{\"heartbeat\": true, \"connected\": true}\n", "\n"], "pins": {"heartbeat": true, "connected": true}, "booked": 41, "open": false, "parser_warnings": [[["wd.bad_msg"], {"level": "warn", "err": "Unterminated string starting at: line 1 column 2 (char 1)"}], [["wd.bad_msg"], {"level": "warn", "err": "Extra data: line 1 column 23 (char 22)"}]]}
+F
+=================================== FAILURES ===================================
+_ TestConcurrentRecovery.test_heartbeat_cannot_invalidate_an_inflight_confirmation_and_book_it _
+
+self = <r208_probe.TestConcurrentRecovery testMethod=test_heartbeat_cannot_invalidate_an_inflight_confirmation_and_book_it>
+
+    def test_heartbeat_cannot_invalidate_an_inflight_confirmation_and_book_it(self):
+        replies,rx=self.exercise(True)
+>       self.assertFalse(replies['confirm']['ok'] and not rx['comp'].get('tool-changed'),
+                         'Second writer invalidated an active frame; confirm still reported success')
+E       AssertionError: True is not false : Second writer invalidated an active frame; confirm still reported success
+
+r208_probe.py:173: AssertionError
+=========================== short test summary info ============================
+FAILED r208_probe.py::TestConcurrentRecovery::test_heartbeat_cannot_invalidate_an_inflight_confirmation_and_book_it
+1 failed, 3 passed, 943 subtests passed in 1.02s
+[GC] +947ms gen=2 duration=8.5ms collected=506 uncollectable=0
+[GC] +954ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +961ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +967ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +974ms gen=2 duration=6.3ms collected=0 uncollectable=0
+[GC] +980ms gen=2 duration=6.3ms collected=0 uncollectable=0

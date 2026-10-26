@@ -1,0 +1,64 @@
+R208 / Codex / 2026-10-26
+Product: feat/button-gates bc3c36c1..66f58e2a
+Exact head: 66f58e2a838b6fa28ab1899e7873f7bb927b4224
+Live review tree: 760c84d5c1ab1cf9621e0837dceb6fa946798f84
+Own archive: /tmp/codex-r208-926eolg0/repo
+No builds/tests/checkouts in the live or Claude worktree.
+No live access, no sockets opened by the new probe, no machine commands.
+
+Targeted backend, executed in the archive's lcnc-gateway directory:
+  /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python -m pytest test_button_gates.py test_command_policy.py test_command_dispatch.py test_status_runtime.py test_rfl_guard.py test_hal_bridge.py r205_probe.py r206_probe.py r207_probe.py -q -o addopts=''
+  The r205/r206/r207 probe files are byte-for-byte copies of the prior evidence.
+  455 PASS + 72 subtests PASS; includes R205 8/8, R206 10/10, R207 5/5.
+
+New evidence:
+  copy button-gates.r208.backend.py to archived lcnc-gateway/r208_probe.py
+  python -m pytest r208_probe.py -q -s -o addopts=''
+  1 failing assertion, 3 passing tests, 943 passing subtests.
+  The source imports test_button_gates (which installs fake_linuxcnc) and
+  asserts __lcnc_fake__. VINIT PID metadata is read-only process discovery.
+  The receiver uses the repository's _consume_buf compiled from its AST;
+  hal_watchdog.py's top-level HAL/socket/startup code is never executed.
+  TestSequentialRecovery: each prefix length of the first 23-byte M6 frame
+  and of a second 41-byte repair+heartbeat frame (23*41=943); the final clean
+  frame must land and neither interrupted one may apply late.
+  TestStartClaimBookkeeping: the real _cmd_blocking with a named auto start;
+  an injected run-basis capture avoids IO. Both ledgers must be unsent.
+  TestConcurrentRecovery: real handle_command -> executor -> watchdog_send.
+  A socket stand-in feeds all but the confirmation's newline and yields its
+  thread on an Event; the main thread calls the same bridge with the exact
+  heartbeat-loop packet shape. The first failed frame is sent through the
+  real bridge too; no repair flag is injected. Real receiver output and the
+  gateway's final booking are observed. This is controlled transport fault
+  injection, not a claim of a measured failure on the operator's machine.
+  The corresponding sequential control applies both messages and books once.
+
+Frontend:
+  git diff --name-only f1488199..66f58e2a -- lcnc-webui
+  Empty. No new frontend build or browser run; the R207 results remain
+  applicable to the unchanged frontend. No mock/preview server started.
+
+Claude evidence read: button-gates.a4.gate-backend.json (PASS at 55712aaa),
+  a4.live-m6.txt (4 PASS), a4.live-stops.txt (5 PASS),
+  a4.twp-buttons-check.txt (43 PASS / 4 SKIP). Not repeated live.
+
+Targeted output:
+................................................ [ 10%]
+........................................................................ [ 26%]
+........................................................................ [ 42%]
+................................................. [ 52%]
+.................................................. [ 63%]
+........................................................................ [ 79%]
+..................................................................... [ 94%]
+.......................                                                  [100%]
+455 passed, 72 subtests passed in 11.04s
+[GC] +10875ms gen=2 duration=11.0ms collected=3609 uncollectable=0
+[GC] +10884ms gen=2 duration=8.3ms collected=0 uncollectable=0
+[GC] +10891ms gen=2 duration=7.6ms collected=0 uncollectable=0
+[GC] +10899ms gen=2 duration=7.4ms collected=0 uncollectable=0
+[GC] +10906ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +10913ms gen=2 duration=7.4ms collected=0 uncollectable=0
+
+Evidence SHA256:
+9213365d1559ceadb52ebac9d56eec47029305da114c0714b34b84e3fb647914  button-gates.r208.backend.py
+a607f45a42ef00453b9bfb7d3f55004a0e3d868f7a37db54a2cde25f73b8aaa1  button-gates.r208.backend.txt
