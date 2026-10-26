@@ -746,7 +746,18 @@ test("a held jog key keeps its stop when the key map changes on another client (
   await page.waitForTimeout(350);
   await page.keyboard.up("ArrowRight");
   await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_stop", axis: 0 }));
-  // the new map arrived: "q" starts a jog of its own and stops it
+  // The precondition, asserted (not a blind wait): the page holds the new
+  // map — Settings → Keyboard shows X+ on "q". In two full gate runs (B run 1,
+  // C run 4, never in 100 isolated runs) "q" started no jog; a failure here
+  // says the map never arrived, one below that the key did not act on it.
+  await page.getByTitle("Settings", { exact: true }).click();
+  const settings = page.getByRole("dialog", { name: "Settings", exact: true });
+  await settings.getByRole("tab", { name: "Keyboard", exact: true }).click();
+  await expect(settings.locator("tr").filter({ hasText: "Jog X+" }).locator(".kbKeyCell"), "the new map arrived").toHaveText(/^q$/i);
+  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
+  await expect(settings).toHaveCount(0);
+  await focusBody(page);
+  // the new map: "q" starts a jog of its own and stops it
   await ctl({ op: "clearCmds" });
   await page.keyboard.down("q");
   await expect.poll(jogCmds).toContainEqual(expect.objectContaining({ cmd: "jog_cont", axis: 0 }));
