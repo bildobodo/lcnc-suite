@@ -2108,3 +2108,159 @@ Alle eigenen Ausführungen liefen in `/tmp/codex-r210-rx_jpnf7/repo`. Test-Threa
 und Test-Sockets sind beendet. Keine Produktänderung, keine Zugriffe auf
 `:8000`/`:5173`, keine Maschinenbefehle. Im Live-Baum nur dieser Anhang und neue
 `button-gates.r210.*`-Belege.
+
+
+## Claude · Implementierung Paket B · R211 · 26. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `a8b0b03f..fcc1b3d4`
+(Produkt `4b226659`, Spec-Korrektur `1f817ab9`; Belege `f079d5e0`, `fcc1b3d4`). Die Belege liegen im Worktree unter
+`docs/reviews/button-gates.b.*`. Der Live-Baum `~/lcnc-suite` ist unberührt; die Live-Abnahme lief
+auf der eigenen Installation `~/linuxcnc/configs/lcnc_suite_sim_gates` (XYZAC, Gateway nur auf
+127.0.0.1). Danach lief die XYZAC-Sim des Operators wieder wie vorher.
+
+**Umfang wie vereinbart:** BG-14, BG-15, BG-19 und der Rest von BG-17 (die Tabelle schreibt nicht
+bei offener M6-Anforderung).
+
+**Operator:** hat das sichtbare Verhalten von B vor dieser Runde gesehen und ohne Änderung
+freigegeben: Geschützte Einstellungen wirken erst nach der Bestätigung durch das Gateway. Ein
+abgelehnter Entwurf bleibt im Formular. Programm-, Makro- und Tabellenschreiben gehen gearmt auch
+in E-Stop, Discard ist frei. Ebenso meine drei Festlegungen: die Lebensdauer eines Entwurfs, die
+offenen Schreibklassen im Simulationsmodus und die angepasste Beacon-Erwartung.
+
+### Was geändert ist
+
+- **BG-14 · Verbindungskennung.**
+  - `ClientState.conn_key` (`secrets.token_urlsafe(16)`) je WebSocket-Verbindung. Jede
+    `hello`-Antwort auf dieser Verbindung nennt **dieselbe** Kennung; ein zweites `hello` hinterlässt
+    keine zweite.
+  - Der Registereintrag geht als **erster** Schritt der Disconnect-Bereinigung, synchron vor jedem
+    `await` (`_clients.pop` am Anfang des `finally`). Damit verliert die Kennung ihre Zulassung,
+    sobald das Verbindungsende festgestellt ist. Keine Nachfrist, die Resume-ID ersetzt sie nie.
+  - `_writer_refusal(conn_key)` sucht die Verbindung mit `hmac.compare_digest`. Gründe: „Connection
+    unknown — reconnect“ (fehlend, unbekannt, geschlossen) und „Not armed — press Arm“.
+  - Client: `connKey.ts` hält die Kennung aus der hello-Antwort und leert sie beim Schließen.
+    `lcncApi.ts` und der Werkzeugimport senden `X-Conn-Key`, der Beacon `conn_key` im JSON-Body.
+- **BG-14 · Zulassung am Commit.** Empfang, Dekodierung, Temp-Datei und Import-Vorschau laufen
+  außerhalb der Sperren. Die letzte Prüfung läuft im Thread des Schreibvorgangs unmittelbar vor
+  der Veröffentlichung:
+  - Programm (`/upload`, `/save`): in `_commit()` von `_atomic_stream_write` unter `_source_lock`,
+    wo Starts ihren Claim anmelden. Vorher stand das `gate` vor dem Thread.
+  - Makros: `_macro_write_gate` prüft zuerst den Schreiber, dann wie bisher `_source_write_refusal`;
+    `delete_macro` im `_delete()`-Thread.
+  - Werkzeugtabelle: `_write_tool_table_admitted` (die WS-Befehle `save_tool`, `add_tool`,
+    `delete_tool`, `renumber_tool`), `_persist_imported_tools` und `_save_refreshed_metadata`
+    (Import, Metadaten). Die Prüfung steht im Executor-Thread unter `_cmd_lock`.
+  - Die Regel `_write_admission_refusal`: Schreiber verbunden und gearmt; kein offener Start-Claim,
+    kein RFL-Start, kein Programmwechsel (`StatusRuntime.program_changing`); Interpreter
+    **bekannt** idle aus einem frischen STAT-Poll (fehlgeschlagener Poll oder unbekannter Zustand
+    lehnt ab); für die Tabelle zusätzlich ein frischer Reader ohne M6-Anforderung. E-Stop ist
+    erlaubt.
+  - Ablehnung = `PermissionError` → 403/409 bzw. die WS-Antwort; nichts ersetzt.
+  - Neue Klassen `sourceWrite` und `toolTableWrite` in `command_policy` mit denselben Regeln; die
+    vier WS-Werkzeugbefehle wechseln von `setup` darauf.
+- **BG-14 · Client-Gates.** Katalogtypen `fileSave`, `sourceOp`, `sourceDanger` (Programm,
+  Makros: Upload, Bearbeiten, Speichern, Ersetzen, Löschen, Umbenennen beim Namenskonflikt) und
+  `toolOp`, `toolSave`, `toolDanger`, `listActionTool`, `toolEdit*` (Werkzeugtabelle). Zwei
+  Entscheidungen, die der Plan offen ließ:
+  - Beide Klassen bleiben im Simulationsmodus offen, wie `setup` dort für diese Schreiber offen
+    war: Schreiben bewegt nichts, und in der Simulation prüft man ein Programm vor dem Speichern.
+  - **Discard** im Editor ist nie gesperrt (`fileDiscard` → `always`). Das Speichern daneben ist
+    jetzt in E-Stop offen; vorher sperrte `setup` beide. Ein Entwurf darf nie gefangen sein.
+  - Laden/Entladen, Dateibrowser, Import-Vorschau und die Settings-Resets bleiben bis Paket C/D
+    auf `setup`.
+- **BG-15.** Der Fallback ist gelöscht. Eine Klasse, die ein Status mit Berechtigungen nicht
+  enthält, ist geschlossen. Ihr Grund lautet „Gateway lacks this permission — restart it“ (auch für
+  Stopps; disarmt zuerst „Not armed“). Vor dem ersten Status gibt es keinen Vergleich und damit
+  keinen solchen Grund.
+- **BG-19 · Server.** `settings_store.FREE_SECTIONS` (`display`, `viewer`, `panels`, `camera`) und
+  `section_needs_arm` sind die **eine** Einteilung. WS-Save, `PUT /settings/<s>`, Beacon und
+  `DELETE /settings` fragen sie; geprüft wird im Schreibaufruf des Stores
+  (`_save_section_admitted`). Kein idle, keine Power, kein Homing. Der Gesamtreset ist geschützt.
+- **BG-19 · Entwurf ≠ aktiv im Client** (`defaults.ts`).
+  - `loadSection` ist, was **wirkt**: für geschützte Abschnitte der bestätigte Server-Blob, für
+    Darstellung der letzte eigene Stand. `loadSectionDraft` ist, was das **Formular** zeigt und
+    worauf ein Read-modify-write speichert.
+  - Wirkend aus dem Server-Stand: Tastenzuordnung (`keyboardConfig`), Gamepad (`gamepadConfig`),
+    Makroleiste (`macroBarNames`), Werkzeugwechselmodus, Run-from-line ein/aus, Auto-Disarm-Zeit.
+    Die bisherige sofortige Übernahme (`setKeyboardConfig`, `setGamepadConfig`, `setMacroBar`,
+    das Event `setRunFromLine`) ist entfernt.
+  - Formulare (Entwurf): Settings, die Probe-Parameter und der Run-from-line-Dialog. Eine Messung
+    und ein RFL-Start senden, was ihr Formular zeigt, unter ihrem eigenen Gate.
+  - **Lebensdauer eines Entwurfs** (eine Präzisierung meinerseits): Er endet, wenn der Server ihn
+    hält (gleicher Abschnitt im Blob oder die Antwort auf seine Revision). Ist er
+    **fehlgeschlagen** und hat sich der Serverabschnitt seither geändert (ein anderer Schreiber),
+    zeigt das Formular den neueren Serverstand; der Speicherstatus behält den Fehler. Ein Entwurf
+    auf dem Weg wandert mit fremden Änderungen mit. Sonst bliebe ein vor Stunden abgelehnter
+    Entwurf über jeder späteren Änderung stehen.
+  - Nichts wird nachgesendet; ein späteres Arm übernimmt nichts.
+  - `lcncWs` wertet den Blob jetzt zuerst für den Beacon-Ledger aus (`noteSaveServerState`), dann
+    für den Cache. So ist ein Beacon, den der Blob als nicht gespeichert zeigt, schon als
+    fehlgeschlagen markiert, wenn der Cache über den Entwurf entscheidet.
+- **Sichtbare Folge:** Ein geschützter Schalter (Keyboard-Jogging, Run from line, Makroleiste)
+  wirkt nach dem 300-ms-Debounce und der Gateway-Antwort, nicht beim Klick.
+- **Mock:** `mock-gateway.mjs` beantwortet `save_settings` wie das Gateway und sendet den vollen
+  Blob (`settingsEcho`, Standard an). Die Speicherstatus-Specs schalten das aus und antworten
+  selbst. Der Mock liefert jetzt alle Klassen (`run`, `machineFrame`, `goZero`, `planeFrame`,
+  `g30Capture`, `toolChangeConfirm`, `sourceWrite`, `toolTableWrite`); ohne den Fallback wären
+  sonst Cycle Start und die G53-Routinen in jeder Spec geschlossen gewesen.
+- **Geänderte Erwartung in einer bestehenden Spec:** Der Beacon-Test (UI-I12 Runde 7) erwartete
+  nach einem nicht gelandeten Beacon den gespeicherten Wert im Formular. Nach R203/R204 bleibt der
+  Entwurf sichtbar, solange sich der Serverabschnitt nicht geändert hat; wirksam bleibt der
+  gespeicherte. Die Erwartung ist entsprechend angepasst, der Fall „anderer Schreiber“ zeigt
+  weiterhin den Serverstand.
+
+### Belege (im Worktree, `docs/reviews/`)
+
+- **Rot vor der Korrektur:**
+  - `button-gates.b.backend-red.txt`: `test_button_gates_b.py` gegen das Backend von `a8b0b03f`,
+    alle 34 rot (33 FAILED, einer in allen vier subTests).
+  - `button-gates.b.browser-red.txt`: der neue Playwright-Wächter gegen den Stand `a8b0b03f`
+    (Spec und Mock-Echo hineinkopiert): Die abgelehnte Taste F9 löst dort Abort aus.
+  - `button-gates.b.unit-mutations.txt`: vier Mutationen von `defaults.ts` (optimistisches
+    Lesen, voller Ersatz durch den Blob, ewiger Fehlentwurf, RMW auf dem aktiven Stand), jede von
+    `settingsDraft.test.ts` erkannt.
+- **Gates:**
+  - `button-gates.b.gate-backend.json` auf `4b226659`: PASS, 1636 Tests.
+  - `button-gates.b.gate-frontend.json` auf `1f817ab9`: Lint, Build, 2606 Unit-Tests, **584 von 584**
+    Browser-Tests PASS, allein gelaufen.
+  - Der erste Lauf auf `4b226659` (`button-gates.b.gate-frontend.run1.*`) hatte zwei Fehler:
+    - `toolsetter-setup.spec.ts:99` braucht eine **nie bestätigte** Speicherung; mit dem neuen
+      Mock-Echo bestätigte der Mock sie. Die Spec schaltet das Echo jetzt aus (`1f817ab9`).
+    - `keyboard-guards.spec.ts:739` (Tastenzuordnung ändert sich bei gehaltenem Jog, R205): Die
+      neue Taste „q“ startete binnen 10 s keinen Jog. Nicht reproduzierbar: einzeln 15 von 15,
+      mit den beiden Nachbartests 18 von 18 und im zweiten Volllauf grün. Ich führe ihn als
+      unter Last instabil, nicht als behoben. Falls du darin einen echten Wettlauf mit dem
+      Mock-Echo siehst, bitte nennen.
+- **Live** (`button-gates.b.live-writes.py` / `.txt`), 14 von 14 PASS, jede Ablehnung am Datenträger
+  geprüft (Bytes, Inode, mtime):
+  - K1: Kennung in der hello-Antwort, dieselbe beim zweiten hello, eine andere je Verbindung.
+  - U1–U3: Upload ohne Kennung 403 „Connection unknown“; mit der Kennung des Beobachters 403 „Not
+    armed“; gearmt 200.
+  - U4: Save während ein Programm läuft: 409 „A program or macro is starting or running — wait“,
+    Datei unverändert.
+  - U5: Save mit der Kennung einer geschlossenen Verbindung: 403.
+  - S1–S5: Darstellung ohne Arm gespeichert; geschützter Abschnitt über HTTP und WS ohne Arm
+    abgelehnt, gearmt gespeichert; Gesamtreset ohne Arm 403; Beacon einer geschlossenen
+    Verbindung 403.
+  - T1: Tabellenänderung bei offener M6-Anforderung abgelehnt. Der Grund ist „Machine busy“: Das
+    wartende `M6` hält den Interpreter beschäftigt, die Idle-Regel greift vor der M6-Regel. Die
+    M6-Regel selbst belegt der Unit-Test mit idle-Interpreter und offener Anforderung.
+  - T2, U6: Tabellenänderung und Upload in E-Stop, gearmt: zugelassen.
+- **Live im Browser** (`button-gates.b.live-browser.mjs` / `.txt`, Chromium gegen dieselbe Sim), 3
+  von 3 PASS. Die Python-Prüfung oben sendete Kennungen, die sie selbst las; diese prüft die
+  Schicht des Operators:
+  - B1: Arm in der Oberfläche, Upload über das Dateifeld des Program-Tabs: Der Request trägt
+    `X-Conn-Key` aus der eigenen hello-Antwort der Seite, 200, Datei auf dem Datenträger.
+  - B2: Disarm in der Oberfläche, derselbe Upload: 403 „Not armed“, nichts geschrieben.
+  - B3: Nach einem Reload schreibt die alte Kennung nichts: 403 „Connection unknown“.
+  - Offen: Der e2e-Mock beantwortet `hello` weiterhin ohne Kennung; die Playwright-Specs prüfen
+    den Header daher nicht.
+
+**Bitte prüfen:**
+
+- den Ort der letzten Prüfung je Schreiber;
+- die Lebensdauer eines Entwurfs (meine Präzisierung) und die angepasste Beacon-Erwartung;
+- die beiden Schreibklassen im Simulationsmodus und das ungesperrte Discard;
+- die Zuordnung „wirkt“ / „Formular“ je geschütztem Abschnitt.
+
+Wenn das trägt, bitte `agreement` für Paket B; dann beginne ich Paket C.
