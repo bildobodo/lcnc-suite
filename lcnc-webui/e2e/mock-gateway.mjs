@@ -113,10 +113,16 @@ const state = {
     interp_state: 1, paused: false, eoffset_enabled: false,
     work_pos: [12.345, 1.0, -5.5],      // frames.spec asserts the rendered DRO
     permissions: {
-      idle: true, jog: true, override: true, ready: true, pause: false,
-      resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
+      // every class the gateway ships (button gates BG-15: a missing class
+      // is closed — the client no longer reads run / machineFrame / goZero
+      // from ready); planeFrame, g30Capture and the M6 confirmation closed
+      idle: true, jog: true, override: true, ready: true, run: true, machineFrame: true,
+      goZero: true, planeFrame: false, g30Capture: false, pause: false,
+      resume: false, step: true, abort: true, spindleStop: true, toolChangeConfirm: false,
+      probe: true, zero: true,
       touchoff: true, touchoffRotary: true, twpCapture: true,
-      surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+      surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true,
+      armed: true, always: true,
     },
   },
 };
@@ -212,6 +218,14 @@ let replies = {};
 // sets it null or resets; the client drops a key a frame lacks.
 let envelope = {};
 const withEnvelope = (frame) => ({ ...frame, ...envelope });
+// The gateway's settings store (button gates BG-19): a protected section
+// acts on the page only once the SERVER holds it — the real gateway answers
+// a save_settings and sends every client the full blob (settings_changed).
+// The mock does the same with the blob a spec last sent (a raw
+// settings_init / settings_changed) plus the page's saves. A spec that
+// answers saves itself (the save-status ledger) turns it off: settingsEcho.
+let settingsStore = {};
+let settingsEcho = true;
 
 wss.on("connection", (ws) => {
   ws.on("error", () => {}); // page teardown mid-write is routine in e2e
@@ -237,6 +251,11 @@ wss.on("connection", (ws) => {
     // "silent": a gateway that does not answer (yet) — the scripted slow read
     if (cmd && replies[cmd] === "silent") { /* no reply */ }
     else if (cmd && replies[cmd]) ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ...replies[cmd] }));
+    else if (cmd === "save_settings" && settingsEcho && typeof msg.section === "string") {
+      settingsStore = { ...settingsStore, [msg.section]: msg.data };
+      ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true }));
+      broadcast({ type: "settings_changed", settings: settingsStore });
+    }
     // a gateway always answers a table read: an empty table unless scripted
     // (the Tools tab says a missing reply after 8 s — 2026-10-04)
     else if (cmd === "get_tool_table") ws.send(JSON.stringify({ type: "reply", cmd, req_id: msg.req_id, ok: true, tools: [] }));
@@ -300,6 +319,8 @@ ctlWss.on("connection", (ws) => {
       refuseWs = false;
       replies = {};
       envelope = {};
+      settingsStore = {};
+      settingsEcho = true;
       activeViewerInit = VIEWER_INIT;
       state.armed = PRISTINE.armed;
       state.data = structuredClone(PRISTINE.data);
@@ -357,7 +378,12 @@ ctlWss.on("connection", (ws) => {
       _gcodeVer++;
       broadcast({ type: "viewer_gcode_ready", version: _gcodeVer, file: "/leak.ngc" });
     } else if (m.op === "raw") {
+      if (m.frame?.type === "settings_init" || m.frame?.type === "settings_changed") {
+        settingsStore = structuredClone(m.frame.settings ?? {});
+      }
       broadcast(m.frame);
+    } else if (m.op === "settingsEcho") {
+      settingsEcho = !!m.on;
     } else if (m.op === "lastCmds") {
       ws.send(JSON.stringify({ ok: true, op: m.op, cmds }));
       return;

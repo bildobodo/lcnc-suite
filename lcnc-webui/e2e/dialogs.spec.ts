@@ -35,7 +35,7 @@ const PERMS_ALL = {
   resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
 };
 // A pending manual tool change as the gateway reports it: the request and its
 // gate (button gates BG-17: toolChangeConfirm = armed + a fresh request).
@@ -649,7 +649,7 @@ for (const row of ROWS) {
 test("UI-D01: from inside a dialog Tab reaches the banner's Abort — Enter sends exactly abort, also stacked and with a helper open", async ({ page }) => {
   await fakeGamepad(page);   // its profile's Remove asks over Settings, open while a program runs
   await ready(page, { gamepad: { profiles: { [PAD_ID]: { id: PAD_ID, buttons: {}, sticks: {} } } } });
-  const running = { interp_state: 2, task_mode: 2, permissions: { ...PERMS_ALL, pause: true, idle: false, ready: false, run: false, setup: false } };
+  const running = { interp_state: 2, task_mode: 2, permissions: { ...PERMS_ALL, pause: true, idle: false, ready: false, run: false, setup: false, sourceWrite: false, toolTableWrite: false } };
   await ctl({ op: "status_delta", data: running });
   const abortBtn = page.locator(".bannerActions").getByRole("button", { name: /Abort/ });
   await expect(abortBtn).toBeVisible();

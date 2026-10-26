@@ -11,7 +11,7 @@
 // shared store.
 
 import { computed, ref, watch } from "vue";
-import { loadMacrosDefaults, saveMacrosDefaults, settingsVersion } from "./defaults";
+import { loadMacrosDefaults, loadMacrosDraft, saveMacrosDefaults, settingsVersion } from "./defaults";
 import type { Permissions } from "./permissions";
 import type { MacroFile } from "./lcncApi";
 import { macroFileByName, macroFolder, macroEditorBasis } from "./macroFiles";
@@ -40,8 +40,11 @@ function noteEarlierMacros(list: unknown[]) {
 }
 
 export function useMacros(opts: UseMacrosOptions) {
-  /** The macro FILES on the bar, in order: names from the `bar` key. */
+  /** The macro FILES on the bar, in order: names from the `bar` key — as
+   *  the server holds it (button gates BG-19: a refused change puts no
+   *  button on the bar). `macroBarDraft` is what the Macros tab shows. */
   const macroBarNames = ref<string[]>(loadMacrosDefaults().bar ?? []);
+  const macroBarDraft = ref<string[]>(loadMacrosDraft().bar ?? []);
   const macroParamDialog = ref<MacroParamDialogState | null>(null);
   noteEarlierMacros(loadMacrosDefaults().macros);
 
@@ -50,6 +53,7 @@ export function useMacros(opts: UseMacrosOptions) {
   watch(settingsVersion, () => {
     const d = loadMacrosDefaults();
     macroBarNames.value = d.bar ?? [];
+    macroBarDraft.value = loadMacrosDraft().bar ?? [];
     noteEarlierMacros(d.macros);
   });
 
@@ -81,8 +85,8 @@ export function useMacros(opts: UseMacrosOptions) {
   /** The macro files on the bar, in order (the Macros tab's toggle and
    *  arrows): saved with the rest of the section unchanged. */
   function setMacroBar(names: string[]) {
-    macroBarNames.value = names;
-    saveMacrosDefaults({ ...loadMacrosDefaults(), bar: names });
+    macroBarDraft.value = names;
+    saveMacrosDefaults({ ...loadMacrosDraft(), bar: names });
   }
 
   function confirmMacroParams() {
@@ -120,6 +124,7 @@ export function useMacros(opts: UseMacrosOptions) {
 
   return {
     macroBarNames,
+    macroBarDraft,
     setMacroBar,
     macroParamDialog,
     dialogFile,

@@ -169,6 +169,10 @@ class TestUploadRoute(unittest.TestCase):
     """The route maps the ``overwrite`` query to the replace flag."""
 
     def setUp(self):
+        from writer_fixture import armed_writer   # button gates BG-14
+        self.conn_key = armed_writer(self)
+        gateway.STAT = linuxcnc.stat()
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         self.tmp = tempfile.mkdtemp()
         self._patch = mock.patch.object(gateway, "get_nc_files_dir", return_value=self.tmp)
         self._patch.start()
@@ -178,15 +182,15 @@ class TestUploadRoute(unittest.TestCase):
         shutil.rmtree(self.tmp, ignore_errors=True)
 
     def test_default_refuses_replace_and_flag_allows_it(self):
-        first = _run(gateway.upload_gcode(_FakeUpload(b"ONE\n", "a.ngc"), overwrite=0))
+        first = _run(gateway.upload_gcode(_FakeUpload(b"ONE\n", "a.ngc"), overwrite=0, x_conn_key=self.conn_key))
         self.assertTrue(first["ok"])
         with self.assertRaises(HTTPException) as cm:
-            _run(gateway.upload_gcode(_FakeUpload(b"TWO\n", "a.ngc"), overwrite=0))
+            _run(gateway.upload_gcode(_FakeUpload(b"TWO\n", "a.ngc"), overwrite=0, x_conn_key=self.conn_key))
         self.assertEqual(cm.exception.status_code, 409)
         self.assertEqual(cm.exception.detail["filename"], "a.ngc")
         with open(os.path.join(self.tmp, "a.ngc"), "rb") as f:
             self.assertEqual(f.read(), b"ONE\n")
-        second = _run(gateway.upload_gcode(_FakeUpload(b"TWO\n", "a.ngc"), overwrite=1))
+        second = _run(gateway.upload_gcode(_FakeUpload(b"TWO\n", "a.ngc"), overwrite=1, x_conn_key=self.conn_key))
         self.assertTrue(second["ok"])
         with open(os.path.join(self.tmp, "a.ngc"), "rb") as f:
             self.assertEqual(f.read(), b"TWO\n")

@@ -132,3 +132,61 @@ the server re-checks before the effect. Package A closed what made that false:
   banner's Abort, every dialog's Abort, the keyboard and the gamepad reach the
   stops now. The unused `dialogBase` catalog type (the `abort` gate as a
   "machine on" proxy) was removed.
+
+### Package B — writers and settings (button gates BG-14, BG-15, BG-19)
+
+- *A write names its connection* (BG-14, Codex R203/R204): the gateway mints
+  `conn_key` (`secrets.token_urlsafe(16)`) per WebSocket CONNECTION
+  (`ClientState`), sends it with every hello reply on it (the same key — a
+  second hello leaves no second one), and removes it with the registry entry as
+  the disconnect cleanup's first step. A protected HTTP write sends it as
+  `X-Conn-Key` (the page-hide beacon in its JSON body, beside `data`);
+  `_writer_refusal` finds an open, ARMED connection by it
+  (`hmac.compare_digest`), else "Connection unknown — reconnect" or "Not armed
+  — press Arm". No grace after the close, the resume id never stands in for it
+  (Codex R204: a protected save the server can no longer admit stays
+  unconfirmed in the page's ledger).
+- *Admitted at the commit:* the receive, the decode, the temp file and the
+  import preview run outside every lock; the last check — the connection, then
+  `_write_admission_refusal` (no open start claim, no run from line starting,
+  no program change, the interpreter KNOWN idle on a fresh STAT poll, and for
+  the table a fresh reader with no M6 request) — runs in the write's own
+  thread right before the publish: the program publish inside
+  `_atomic_stream_write`'s `_commit()` under `_source_lock` (where starts take
+  their claim), the macro writers in `_macro_write_gate` (plus
+  `_source_write_refusal`), the tool table in `_write_tool_table_admitted`
+  (the WS edits) and `_persist_imported_tools` / `_save_refreshed_metadata`
+  (import, refresh) — refusal = PermissionError → 403/409 or the WS reply,
+  nothing replaced. E-Stop is allowed: maintenance. The client gates are the
+  same rules: `sourceWrite`, `toolTableWrite` (catalog `fileSave`, `sourceOp`,
+  `sourceDanger`, `toolOp`, `toolSave`, `toolDanger`, `listActionTool`,
+  `listActionSource`, `toolEdit*`, `uploadName`); both stay open in simulation
+  (a write moves nothing — what `setup` allowed there). Discard (`fileDiscard`)
+  is never gated: it writes nothing, and the Save beside it is now open in
+  E-Stop.
+- *No permissive fallback* (BG-15): a status that carries permissions but not
+  a class closes that class with "Gateway lacks this permission — restart it";
+  `run` / `machineFrame` / `goZero` are no longer read from `ready`.
+- *Settings* (BG-19, operator Q2): `settings_store.FREE_SECTIONS` (`display`,
+  `viewer`, `panels`, `camera`) save for any connected client; every other
+  section needs the writer's arm — no idle, power or homing term (the MDI
+  history saves during a long MDI). WS `save_settings`, `PUT /settings/<s>`,
+  the beacon and `DELETE /settings` (a protected global reset) ask
+  `section_needs_arm`, the save inside the store's write
+  (`_save_section_admitted`).
+- *Draft ≠ active* (BG-19): in the client a protected section acts only once
+  the SERVER holds it. `defaults.loadSection` is what acts — the server's
+  confirmed blob for a protected section, this tab's latest for a display
+  section; `loadSectionDraft` is what a form shows and saves onto. The key map
+  (`keyboardConfig` vs `keyboardDraft`), the pad (`gamepadConfig` vs
+  `gamepadDraft`), the macro bar (`macroBarNames` vs `macroBarDraft`), the
+  tool-change mode, run from line and the auto-disarm time follow the server's
+  blob; Settings, Probing's parameters and the run-from-line dialog are forms
+  (a probe and a run-from-line start send what their form shows, under their
+  own gates). A draft ends when the server holds it (an equal section, or the
+  reply for its revision), when it failed and the server's section changed
+  since (another writer's state shows; the failure stays in the save status),
+  or with the next change; on its way it rides along with other writers'
+  changes. Nothing resends it — a later Arm or a reconnect applies nothing. The
+  e2e mock answers `save_settings` and sends the blob like the gateway
+  (`settingsEcho`; the save-status specs turn it off and answer themselves).

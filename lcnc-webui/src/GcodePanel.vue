@@ -9,7 +9,7 @@ import MoreMenu from "./MoreMenu.vue";
 import { closeTextSessionIf, EDITOR_OWNER } from "./inputSession";
 import { splitSubLines, expansionAllowed, totalRows, rowAt, rowForMain, rowForSub, type SubExpansion } from "./subRows";
 import { usePermissions } from "./permissions";
-import { loadMachineDefaults, saveMachineDefaults, settingsVersion } from "./defaults";
+import { loadMachineDraft, saveMachineDefaults, settingsVersion } from "./defaults";
 import { confirmedToolsetter } from "./toolsetterVars";
 import { scanToolchangesBefore, scanEntryPositionBefore, revisionParts, type RflToolchangeScan, type RflEntryScan, type RflRunOptions } from "./gcodeRfl";
 import { highlightGcode, type Token } from "./gcodeHighlight";
@@ -549,7 +549,7 @@ function onDragLeave(_e: DragEvent) {
 
 function onDrop(e: DragEvent) {
   dragOver.value = false;
-  if (!can.value.setup || editing.value) return;
+  if (!can.value.sourceWrite || editing.value) return;
   const file = e.dataTransfer?.files[0];
   if (file) handleUpload(file);
 }
@@ -619,8 +619,10 @@ function dropSelection() {
 watch(() => props.activeFile, dropSelection);
 watch(() => props.gcodeContent, (now, before) => { if (now !== before) dropSelection(); });
 
+// The run-from-line dialog is a form: it shows — and starts with — this
+// tab's latest values, confirmed or not (button gates BG-19).
 function readRflDefaults() {
-  const mach = loadMachineDefaults();
+  const mach = loadMachineDraft();
   dialogSpindleDir.value = mach.rflSpindleDir;
   dialogSpindleSpeed.value = mach.rflSpindleRpm;
   dialogSafeZ.value = mach.rflSafeZ;
@@ -677,7 +679,7 @@ function confirmRunFromLine() {
   const parts = revisionParts(props.programTextRevision);
   if (!selectedLine.value || rflBlocked.value || programLoading.value || !parts) return;
   const program = { ...parts, source: props.programTextSource };
-  const mach = loadMachineDefaults();
+  const mach = loadMachineDraft();
   if (mach.rflSafeZ !== dialogSafeZ.value) {
     saveMachineDefaults({ ...mach, rflSafeZ: dialogSafeZ.value });
   }
@@ -878,7 +880,7 @@ async function saveEdit() {
             <MachineToggle gate="optionalStop" v-model="optionalStopModel" label="M01" />
             <MachineToggle gate="blockDelete" v-model="blockDeleteModel" label="/BD" />
           </div>
-          <MachineBtn type="fileOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
+          <MachineBtn type="sourceOp" class="actionBtn" @click="enterEdit" :disabled="!activeFile || editing">
             Edit
           </MachineBtn>
           <MachineBtn type="fileOp" class="actionBtn" @click="reloadFile" :disabled="!activeFile || loading || editing">
@@ -893,7 +895,7 @@ async function saveEdit() {
             :disabled="loading || editing" :reason="editing ? 'Finish or discard the edit first' : undefined">
             Files
           </MachineBtn>
-          <MachineBtn type="fileOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
+          <MachineBtn type="sourceOp" class="actionBtn" @click="($refs.fileInput as HTMLInputElement).click()" :disabled="editing"
             :reason="editing ? 'Finish or discard the edit first' : undefined">
             Upload
           </MachineBtn>
@@ -945,8 +947,8 @@ async function saveEdit() {
     <!-- Code area wrapper (drop overlay target) -->
     <div v-show="!showBrowser || activeFile || editing" class="codeArea">
       <!-- Drop overlay -->
-      <div v-if="dragOver" class="dropOverlay stack-sections" :class="{ denied: !can.setup }">
-        <svg v-if="can.setup" class="dropIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <div v-if="dragOver" class="dropOverlay stack-sections" :class="{ denied: !can.sourceWrite }">
+        <svg v-if="can.sourceWrite" class="dropIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7 10 12 15 17 10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
@@ -955,7 +957,7 @@ async function saveEdit() {
           <circle cx="12" cy="12" r="10"/>
           <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
         </svg>
-        <div class="dropText">{{ can.setup ? 'Drop program file to upload' : 'Not permitted' }}</div>
+        <div class="dropText">{{ can.sourceWrite ? 'Drop program file to upload' : 'Not permitted' }}</div>
       </div>
 
       <!-- Line numbers belong to a called sub / remap, not this file: the run
@@ -1060,7 +1062,7 @@ async function saveEdit() {
 
     <!-- Upload name conflict (UI-09): the gateway refused to replace. A form
          (a new name), so the backdrop does nothing (N41); Cancel stays
-         outside the setup Gate — the dialog always closes. -->
+         outside the write Gate — the dialog always closes. -->
     <DialogFrame v-if="uploadConflict" kind="form" size="md" title="Upload Conflict">
       <div class="dialogContent stack-controls">
         <div class="dialogBody">
@@ -1075,9 +1077,9 @@ async function saveEdit() {
       </div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="uploadConflict = null">Cancel</MachineBtn>
-        <Gate gate="setup" class="row-controls">
-          <MachineBtn type="fileOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
-          <MachineBtn type="dialogDangerSetup" @click="uploadReplace">Replace</MachineBtn>
+        <Gate gate="sourceWrite" class="row-controls">
+          <MachineBtn type="sourceOp" :disabled="!uploadRenameValid" @click="uploadRename">Rename</MachineBtn>
+          <MachineBtn type="sourceDanger" @click="uploadReplace">Replace</MachineBtn>
         </Gate>
       </template>
     </DialogFrame>

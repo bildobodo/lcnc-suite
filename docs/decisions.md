@@ -9469,3 +9469,19 @@ ended — a protected save the server can no longer admit stays unconfirmed;
 closing the page before the save is confirmed may lose the last change. No
 offset write path around MDI (LinuxCNC requires homing for MDI; reading and
 drafting offsets is free). No global `NO_FORCE_HOMING`.
+
+**Package B as built (2026-10-26, before its implementation review).** Three
+choices the plan left open: (1) a protected draft that FAILED ends when the
+server's section changes after it was made — another writer's newer state is
+what the form shows then, the save status keeps the failure; a draft still on
+its way rides along (else two tabs editing one section would flicker, and a
+draft refused hours ago would hide every later change). (2) `sourceWrite` and
+`toolTableWrite` stay open in simulation, as `setup` did for these writes: a
+write moves nothing, and the simulation is where a program is checked before
+it is saved. (3) The editor's Discard is never gated — the Save beside it is
+now open in E-Stop, and an edit must never be trapped. The e2e mock answers a
+settings save and broadcasts the blob like the gateway (`settingsEcho`): a
+mock that never confirmed made every UI-saved protected setting look inactive.
+A visible consequence: a protected toggle (keyboard jogging, run from line,
+the macro bar) acts after its 300 ms debounce and the gateway's answer, not
+on the click.

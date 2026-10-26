@@ -57,7 +57,7 @@ import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
 import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
-import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
+import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
 import { useMediaMql } from "./useMediaMql";
@@ -757,7 +757,7 @@ watch(() => permissions.value.ready, (ok) => { if (!ok) closeTextSessionIf(MDI_O
 // client-local overlay's own — what a dimmed control shows on hover and
 // says on tap (MachineBtn), and what fire() reports when it drops a send.
 const permissionReasons = computed<PermissionReasons>(() =>
-  applyClientOverlayReasons(st.value.permission_reasons, armed.value, busy.value, simMode.value));
+  applyClientOverlayReasons(st.value.permission_reasons, armed.value, busy.value, simMode.value, st.value.permissions));
 provide(PERMISSION_REASONS_KEY, permissionReasons);
 
 // Provide a probing flag so catalog-aware MachineBtn instances with
@@ -1142,6 +1142,7 @@ function confirmSettingsDiscard() {
 // Macro state + execution (macro FILES, package 5). See useMacros.ts.
 const {
   macroBarNames,
+  macroBarDraft,
   setMacroBar,
   macroParamDialog,
   dialogFile,
@@ -1676,6 +1677,7 @@ function unloadFile() {
 // sync (settingsVersion → re-read loadKeyboardDefaults) lives inside.
 const {
   keyboardConfig,
+  keyboardDraft,
   setKeyboardConfig,
   stopJogs: stopKeyboardJogs,
   jogActive: keyboardJogActive,
@@ -1701,7 +1703,10 @@ const {
 const clearMessagesAsk = ref(false);
 
 /** ---------- gamepad jogging ---------- */
+// The pad's configuration that ACTS is the server's (button gates BG-19);
+// Settings edits the draft, which acts once the server holds it.
 const gamepadConfig = ref<GamepadDefaults>(loadGamepadDefaults());
+const gamepadDraft = ref<GamepadDefaults>(loadGamepadDraft());
 const gamepadGated = computed(() => settingsDialogOpen.value);
 const gamepad = useGamepad({
   jogVel,
@@ -1717,7 +1722,7 @@ const gamepad = useGamepad({
 });
 
 function setGamepadConfig(cfg: GamepadDefaults) {
-  gamepadConfig.value = cfg;
+  gamepadDraft.value = cfg;
   saveGamepadDefaults(cfg);
 }
 
@@ -1740,6 +1745,7 @@ watch(settingsVersion, () => {
   const mach = loadMachineDefaults();
   runFromLineEnabled.value = mach.runFromLine;
   gamepadConfig.value = loadGamepadDefaults();
+  gamepadDraft.value = loadGamepadDraft();
   const disp = loadDisplayDefaults();
   if (disp.theme !== themeMode.value) {
     themeMode.value = disp.theme;
@@ -2206,7 +2212,7 @@ watch(viewerGcode, (newGcode) => {
                   <MachineBtn type="toolUnload" :disabled="unloadUsesToolsetter && !toolsetter.ok" :reason="toolsetterReason" @click="unloadTool">Unload</MachineBtn>
                   <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
                   <MoreMenu class="actionEnd" label="More tool actions">
-                    <MachineBtn type="manage" @click="toolTableRef?.openAdd()">New</MachineBtn>
+                    <MachineBtn type="toolOp" @click="toolTableRef?.openAdd()">New</MachineBtn>
                     <!-- ONE files toggle (N82): pressed while the library browser shows -->
                     <MachineBtn type="fileOp" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
                                 :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
@@ -2227,7 +2233,7 @@ watch(viewerGcode, (newGcode) => {
             <SimPanel />
           </template>
           <template #macros>
-            <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarNames" @run="runMacroFile" @update-bar="setMacroBar" />
+            <MacrosPanel ref="macrosPanelRef" :bar-names="macroBarDraft" @run="runMacroFile" @update-bar="setMacroBar" />
           </template>
         </TabPanel>
 
@@ -2337,15 +2343,14 @@ watch(viewerGcode, (newGcode) => {
               :initialTab="settingsInitialTab"
               :gamepadConnected="gamepad.gamepadConnected.value"
               :gamepadName="gamepad.gamepadName.value"
-              :gamepadConfig="gamepadConfig"
+              :gamepadConfig="gamepadDraft"
               :gamepadMappingSource="gamepad.gamepadMappingSource.value"
               @setLayerOnTop="(l: OnTopLayer, on: boolean) => viewerRef?.setLayerOnTop?.(l, on)"
               @setProjection="(p: Projection) => { viewerProjection = p; setProjection(p); }"
               @setTrackMode="(m: TrackMode) => { viewerTrackMode = m; viewerRef?.setTrackingMode?.(m); }"
               @toggleLayer="(l: Layer, on: boolean) => { viewerLayers[l] = on; viewerRef?.setLayerVisible?.(l, on); }"
-              :keyboardConfig="keyboardConfig"
+              :keyboardConfig="keyboardDraft"
               @setKeyboardConfig="setKeyboardConfig"
-              @setRunFromLine="runFromLineEnabled = $event"
               @setGamepadConfig="setGamepadConfig" />
           </div>
       </DialogFrame>

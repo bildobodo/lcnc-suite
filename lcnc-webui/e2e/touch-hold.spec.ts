@@ -18,7 +18,7 @@ const PERMS_ALL = {
   resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
 };
 
 async function recorded(cmd: string): Promise<number> {

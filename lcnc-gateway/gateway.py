@@ -2,6 +2,7 @@
 import asyncio
 import gzip
 import hashlib
+import hmac
 import json
 import math
 import time
@@ -21,7 +22,7 @@ from fastapi.staticfiles import StaticFiles
 import re
 import shutil
 from urllib.parse import urlsplit
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Body, Query, Request, Depends
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, UploadFile, File, Form, HTTPException, Body, Query, Request, Depends, Header
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse, JSONResponse, FileResponse, Response
 
@@ -104,7 +105,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import NOT_ARMED, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import NOT_ARMED, STATE_UNKNOWN, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -112,7 +113,7 @@ from tool_table import (
     _TOOL_META_FIELDS,
     tool_visual_metadata,
 )
-from settings_store import SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS
+from settings_store import SettingsStore, VALID_SECTIONS as _VALID_SETTINGS_SECTIONS, section_needs_arm
 import status_runtime as _status_runtime_mod
 from status_runtime import StatusPayload
 import bulk_pipeline as _bulk_mod
@@ -2803,7 +2804,8 @@ async def _reload_tool_table_and_bump():
     _tool_table_version += 1
 
 
-async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict) -> None:
+async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
+                                  conn_key=None) -> None:
     """Persist a full tool-table replacement (the REST Fusion import) atomically
     w.r.t. every other tool / NML operation (issue #24).
 
@@ -2815,8 +2817,16 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict)
     tool_library.json (lost update) AND call `_cmd_blocking` without the lock.
     The blocking file writes run off the event loop via `run_in_executor`."""
     loop = asyncio.get_event_loop()
+
+    def _replace():
+        # Admitted at the write itself (button gates BG-14): the writer's
+        # connection, the toolTableWrite rule on a current read.
+        why = _write_admission_refusal(conn_key, tool_table=True)
+        if why:
+            raise HTTPException(status_code=409, detail=why)
+        write_tool_table(tbl_path, tbl_tools)
     async with _get_cmd_lock():
-        await loop.run_in_executor(None, write_tool_table, tbl_path, tbl_tools)
+        await loop.run_in_executor(None, _replace)
         await _reload_tool_table_and_bump()
         await loop.run_in_executor(None, save_tool_library, library)
 
@@ -3681,6 +3691,102 @@ def require_no_rotary_tilt():
         raise PermissionError(
             "Rotary axis not at zero — surface-map Z compensation is a 3-axis "
             "feature (the map does not tilt or ride the platter)")
+
+
+#: A protected HTTP write whose connection is not (any more) connected
+#: (button gates BG-14): the page gets a new key with its next hello.
+CONN_UNKNOWN = "Connection unknown — reconnect"
+
+
+def _writer_refusal(conn_key) -> Optional[str]:
+    """Is a protected write's writer a connected, ARMED client? None = yes,
+    else the refusal (button gates BG-14, Codex R204). The key is the one
+    THIS connection got with its hello; its registry entry goes as the
+    disconnect cleanup's first step, so a key whose connection ended writes
+    nothing — no grace, and the resume id never stands in for it."""
+    if not isinstance(conn_key, str) or not conn_key:
+        return CONN_UNKNOWN
+    for c in list(_clients.values()):
+        if hmac.compare_digest(c.conn_key, conn_key):
+            return None if c.armed else NOT_ARMED
+    return CONN_UNKNOWN
+
+
+def _require_writer(conn_key) -> None:
+    """A protected HTTP write's first check, before its body is read: 403
+    with the reason. The commit checks again (_write_admission_refusal)."""
+    why = _writer_refusal(conn_key)
+    if why:
+        raise HTTPException(status_code=403, detail=why)
+
+
+def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
+                             ws_armed: Optional[bool] = None) -> Optional[str]:
+    """May a program / macro / tool-table write publish NOW? None = yes, else
+    the refusal — the commit-time half of sourceWrite / toolTableWrite
+    (button gates BG-14). Called at the commit itself, inside the
+    serialization a start registers under (_source_lock, or _cmd_lock for
+    the tool table), on a CURRENT read: the writer (an HTTP write's
+    connection, a WS command's own arm), no start claim open, no run from
+    line and no load / unload in progress, the interpreter idle by a poll that
+    succeeded now, and for the tool table no tool change asking for a tool
+    (a FRESH reader). E-Stop does not refuse: the files are not the machine."""
+    if ws_armed is not None:
+        why = None if ws_armed else NOT_ARMED
+    else:
+        why = _writer_refusal(conn_key)
+    if why:
+        return why
+    if _source_claims:
+        return "A program or macro is starting or running — wait"
+    why = _rfl_busy_reason()
+    if why:
+        return why
+    if _status_runtime.program_changing:
+        return "A program is loading — wait"
+    if STAT is not None:
+        try:
+            STAT.poll()
+        except Exception as e:  # noqa: BLE001 - no fresh read, no write
+            _trace.emit_exc("write.stat_poll_failed", e)
+            return "Machine status not read — try again"
+        interp = safe_get("interp_state", None)
+        if interp is None:
+            return STATE_UNKNOWN
+        if interp != linuxcnc.INTERP_IDLE:
+            return "A program or MDI runs — wait"
+    if tool_table:
+        pending = _reader_fresh_get("tool_change")
+        if pending is None:
+            return "Tool change request unknown — HAL reader stale"
+        if pending:
+            return "Tool change pending — finish it first"
+    return None
+
+
+def _write_tool_table_admitted(tbl_path: str, tools: list, armed: bool) -> None:
+    """A WS tool edit's write, admitted at the write itself, in its thread
+    (button gates BG-14); the handler holds _cmd_lock, which every start
+    needs. A refusal is a PermissionError — the bounded reply."""
+    why = _write_admission_refusal(ws_armed=armed, tool_table=True)
+    if why:
+        raise PermissionError(why)
+    write_tool_table(tbl_path, tools)
+
+
+def _settings_write_refusal(section: str, armed: bool) -> Optional[str]:
+    """settingsWrite(section) for a WS save (button gates BG-19): a display
+    section needs no arm, every other the writer's — no idle, no power."""
+    return NOT_ARMED if (section_needs_arm(section) and not armed) else None
+
+
+def _save_section_admitted(section: str, data, refusal) -> None:
+    """Save a settings section, its admission decided in the SAME executor
+    call right before the write; a refusal is a PermissionError."""
+    why = refusal()
+    if why:
+        raise PermissionError(why)
+    save_settings_section(section, data)
 
 
 # The tool-change request the gateway last confirmed (button gates BG-17):
@@ -4872,7 +4978,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not found:
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
 
-            await asyncio.to_thread(write_tool_table, tbl_path, tbl_tools)
+            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tbl_tools, armed)
             await _reload_tool_table_and_bump()
 
             # Update metadata
@@ -4907,7 +5013,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 "D": finite_float(msg.get("diameter", 0.0), lo=0),
                 "remark": str(msg.get("remark", "")),
             })
-            await asyncio.to_thread(write_tool_table, tbl_path, tbl_tools)
+            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tbl_tools, armed)
             await _reload_tool_table_and_bump()
 
             # Save metadata if provided
@@ -4943,7 +5049,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if len(new_tools) == len(tbl_tools):
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
 
-            await asyncio.to_thread(write_tool_table, tbl_path, new_tools)
+            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, new_tools, armed)
             await _reload_tool_table_and_bump()
 
             library = await asyncio.to_thread(load_tool_library)
@@ -4987,7 +5093,7 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             src["Z"] = finite_float(msg.get("z_offset", src.get("Z", 0.0)))
             src["D"] = finite_float(msg.get("diameter", src.get("D", 0.0)), lo=0)
             src["remark"] = str(msg.get("remark", src.get("remark", "")))
-            await asyncio.to_thread(write_tool_table, tbl_path, tbl_tools)
+            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tbl_tools, armed)
             await _reload_tool_table_and_bump()
 
             library = await asyncio.to_thread(load_tool_library)
@@ -7472,6 +7578,14 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                 await loop.run_in_executor(io_ex, f.close)
             def _commit():
                 nonlocal tmp
+                if gate is not None:
+                    # Admitted in the publish's own thread, under the
+                    # _source_lock held around it (button gates BG-14 — the
+                    # lesson of package A: after every wait, at the write).
+                    refusal = gate()
+                    if refusal:
+                        raise HTTPException(status_code=409, detail={"error": "refused", **(
+                            refusal if isinstance(refusal, dict) else {"reason": refusal})})
                 if replace:
                     os.replace(tmp, dest_path)
                     tmp = None  # published — don't unlink in finally
@@ -7489,10 +7603,6 @@ async def _atomic_stream_write(chunks, dest_path: str, max_bytes: int,
                 await loop.run_in_executor(io_ex, _commit)
             else:
                 async with _get_source_lock():
-                    refusal = gate()
-                    if refusal:
-                        raise HTTPException(status_code=409, detail={"error": "refused", **(
-                            refusal if isinstance(refusal, dict) else {"reason": refusal})})
                     await _thread_to_end(loop.run_in_executor(io_ex, _commit))
             return written
         finally:
@@ -7517,13 +7627,17 @@ async def _atomic_stream_upload(file: "UploadFile", dest_path: str,
 
 
 @app.post("/upload", dependencies=[Depends(require_token)])
-async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
+async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0),
+                       x_conn_key: Optional[str] = Header(None)):
     """Upload a G-code file to the NC files directory.
 
     ``overwrite=0`` (default) never replaces an existing program: a name clash
     answers 409 ``{"error": "exists", "filename"}`` and the client asks the
     operator (Cancel / Rename / Replace). ``overwrite=1`` replaces atomically.
     """
+    # A protected write (button gates BG-14): its connection must be armed;
+    # the publish is admitted again at the commit.
+    _require_writer(x_conn_key)
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
@@ -7543,7 +7657,7 @@ async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
     try:
         size = await _atomic_stream_upload(file, dest_path, MAX_UPLOAD_SIZE,
                                            replace=bool(overwrite),
-                                           gate=lambda: _program_name_refusal(dest_path))
+                                           gate=lambda: _program_write_refusal(dest_path, x_conn_key))
     except HTTPException:
         raise
     except Exception as e:
@@ -7553,7 +7667,8 @@ async def upload_gcode(file: UploadFile = File(...), overwrite: int = Query(0)):
 
 
 @app.put("/save", dependencies=[Depends(require_token)])
-async def save_gcode(request: Request, path: str = Query(...)):
+async def save_gcode(request: Request, path: str = Query(...),
+                     x_conn_key: Optional[str] = Header(None)):
     """Save edited G-code content back to an existing file.
 
     The body is the RAW UTF-8 text, not JSON (#35): a 50 MB `JSON.stringify` on the
@@ -7562,6 +7677,7 @@ async def save_gcode(request: Request, path: str = Query(...)):
     raw body is async network I/O (no loop block), and it arrives already UTF-8-encoded,
     so there's no on-loop encode either. Only the atomic write+fsync is offloaded.
     """
+    _require_writer(x_conn_key)   # a protected write (button gates BG-14)
     nc_dir = get_nc_files_dir()
     abs_path = os.path.abspath(path)
 
@@ -7584,7 +7700,7 @@ async def save_gcode(request: Request, path: str = Query(...)):
     # LinuxCNC never sees a half-written file.
     try:
         size = await _atomic_stream_write(request.stream(), abs_path, MAX_UPLOAD_SIZE,
-                                          gate=lambda: _program_name_refusal(abs_path))
+                                          gate=lambda: _program_write_refusal(abs_path, x_conn_key))
     except HTTPException:
         raise
     except Exception as e:
@@ -7806,7 +7922,7 @@ def _file_revision(state: Dict[str, Any], path: str) -> Optional[str]:
     return macro_files.revision_of(got[0]) if got else None
 
 
-def _macro_write_gate(state: Dict[str, Any], path: str, base: str):
+def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
     """The refusal check a macro write runs under _source_lock right before
     it publishes: no start open, the interpreter idle, the name's file
     inside the folder, the base revision still the file on disk (`new` =
@@ -7814,11 +7930,13 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str):
     would win the interpreter's lookup). A refusal is the 409 body's
     `kind` with its fields — scripts/test_fixtures/macro_refusals.json;
     `revision` is the file read HERE, under the same lock (Codex R70
-    VP-I31: Keep editing rebases on exactly it; null = the file is gone)."""
+    VP-I31: Keep editing rebases on exactly it; null = the file is gone).
+    `conn_key`: the writer's connection — armed at this moment, or the write
+    is refused like a busy folder (button gates BG-14)."""
     name = os.path.basename(path)[:-len(".ngc")]
 
     def gate():
-        why = _source_write_refusal()
+        why = _writer_refusal(conn_key) or _source_write_refusal()
         if why:
             return {"kind": "busy", "reason": why}
         try:
@@ -7837,6 +7955,13 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str):
             return {"kind": "taken", "reason": f"Name taken by a program in {state['prefix']}", "name": name}
         return None
     return gate
+
+
+def _program_write_refusal(dest_path: str, conn_key) -> Optional[str]:
+    """A program write's admission at its publish (button gates BG-14): the
+    sourceWrite rule with the writer's connection, then the macro-name
+    rule."""
+    return _write_admission_refusal(conn_key) or _program_name_refusal(dest_path)
 
 
 def _program_name_refusal(dest_path: str) -> Optional[str]:
@@ -7951,7 +8076,8 @@ def _unlink_renamed(path: str) -> None:
 
 @app.put("/macro", dependencies=[Depends(require_token)])
 async def put_macro(request: Request, name: str = Query(...), base: str = Query(...),
-                    rename_from: Optional[str] = Query(None), rename_base: Optional[str] = Query(None)):
+                    rename_from: Optional[str] = Query(None), rename_base: Optional[str] = Query(None),
+                    x_conn_key: Optional[str] = Header(None)):
     """Save a macro: `base` = the revision the editor started from (409 when
     the file is another one now), or `new` to create (409 when it exists).
     The header is checked AFTER the save — a file with header errors is the
@@ -7966,7 +8092,7 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
     state, path = await asyncio.to_thread(_macro_path, name)
     if base != "new" and not re.fullmatch(r"[0-9a-f]{64}", base or ""):
         raise HTTPException(status_code=400, detail="base: a revision or new")
-    gate = _macro_write_gate(state, path, base)
+    gate = _macro_write_gate(state, path, base, x_conn_key)
     after = None
     if rename_from is not None:
         if base != "new":
@@ -7976,7 +8102,7 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
         _, old_path = await asyncio.to_thread(_macro_path, rename_from)
         if old_path == path:
             raise HTTPException(status_code=400, detail="A rename needs another name")
-        new_gate, old_gate = gate, _macro_write_gate(state, old_path, rename_base)
+        new_gate, old_gate = gate, _macro_write_gate(state, old_path, rename_base, x_conn_key)
 
         def rename_gate():
             refusal = new_gate()
@@ -7999,7 +8125,8 @@ async def put_macro(request: Request, name: str = Query(...), base: str = Query(
 
 
 @app.post("/macro-upload", dependencies=[Depends(require_token)])
-async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Query(None)):
+async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Query(None),
+                       x_conn_key: Optional[str] = Header(None)):
     """Import a macro file. Without `replace` it only creates (409 with the
     current revision when the name exists); with `replace=<revision>` it
     replaces exactly the revision the operator confirmed (Codex VP69-03)."""
@@ -8017,23 +8144,29 @@ async def upload_macro(file: UploadFile = File(...), replace: Optional[str] = Qu
                 "error": "refused", "kind": "exists", "reason": "A macro of that name exists — reload",
                 "name": fname[:-4], "revision": current})
     await _atomic_stream_upload(file, path, MAX_MACRO_SIZE, replace=replace is not None,
-                                gate=_macro_write_gate(state, path, replace or "new"))
+                                gate=_macro_write_gate(state, path, replace or "new", x_conn_key))
     _trace.emit("macros.imported", name=fname[:-4], replaced=replace is not None)
     _macros_changed("imported")
     return {"ok": True, "macro": _macro_entry(state, fname[:-4], *await _macro_read_or_raise(state, path))}
 
 
 @app.delete("/macro", dependencies=[Depends(require_token)])
-async def delete_macro(name: str = Query(...), base: str = Query(...)):
+async def delete_macro(name: str = Query(...), base: str = Query(...),
+                       x_conn_key: Optional[str] = Header(None)):
     state, path = await asyncio.to_thread(_macro_path, name)
     if not re.fullmatch(r"[0-9a-f]{64}", base or ""):
         raise HTTPException(status_code=400, detail="base: a revision")
-    async with _get_source_lock():
-        refusal = _macro_write_gate(state, path, base)()
+    gate = _macro_write_gate(state, path, base, x_conn_key)
+
+    def _delete():
+        # admitted in the delete's own thread (button gates BG-14)
+        refusal = gate()
         if refusal and refusal["kind"] != "taken":
             raise HTTPException(status_code=409, detail={"error": "refused", **refusal})
+        os.unlink(path)
+    async with _get_source_lock():
         # to its END under the lock, through a cancel (Codex R70 VP-I29)
-        await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(os.unlink, path)))
+        await _thread_to_end(asyncio.ensure_future(asyncio.to_thread(_delete)))
     _trace.emit("macros.deleted", name=name)
     _macros_changed("deleted")
     return {"ok": True}
@@ -8090,12 +8223,17 @@ async def _plan_current_metadata_refresh(raw: bytes, parsed: list, skipped: list
     return plan
 
 
-async def _save_refreshed_metadata(plan: dict) -> None:
+async def _save_refreshed_metadata(plan: dict, conn_key=None) -> None:
     # A disconnected HTTP request must not release _cmd_lock while its executor
     # write is still running. Finish that write and publish its version first.
     async def persist():
         global _tool_table_version, _tool_meta_dirty
-        await asyncio.to_thread(save_tool_library, plan["library"], ini_key=plan["ini_key"])
+        def _save():
+            why = _write_admission_refusal(conn_key, tool_table=True)
+            if why:
+                raise HTTPException(status_code=409, detail=why)
+            save_tool_library(plan["library"], ini_key=plan["ini_key"])
+        await asyncio.to_thread(_save)
         _tool_table_version += 1
         _tool_meta_dirty = True
 
@@ -8163,8 +8301,11 @@ async def import_tool_library(file: UploadFile = File(...)):
 
 
 @app.post("/import-tool-library/refresh", dependencies=[Depends(require_token)])
-async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: str = Form(...)):
-    """Refresh reviewed metadata only. Never write/reload tool.tbl or send NML."""
+async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: str = Form(...),
+                                         x_conn_key: Optional[str] = Header(None)):
+    """Refresh reviewed metadata only. Never write/reload tool.tbl or send NML.
+    A protected write (button gates BG-14), admitted at its write."""
+    _require_writer(x_conn_key)
     raw = await file.read(MAX_TOOL_LIBRARY_SIZE + 1)
     if len(raw) > MAX_TOOL_LIBRARY_SIZE:
         raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
@@ -8180,7 +8321,7 @@ async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: 
                 raise HTTPException(status_code=409, detail="Tool data changed; preview the library again")
             if not plan["updated"]:
                 raise ValueError("No unambiguous existing tools to refresh")
-            await _save_refreshed_metadata(plan)
+            await _save_refreshed_metadata(plan, x_conn_key)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"ok": True, "updated": len(plan["updated"]), "skipped": len(plan["skipped"])}
@@ -8189,8 +8330,12 @@ async def refresh_tool_library_metadata(file: UploadFile = File(...), revision: 
 @app.post("/import-tool-library/apply", dependencies=[Depends(require_token)])
 async def apply_tool_library_import(
     file: UploadFile = File(...),
+    x_conn_key: Optional[str] = Header(None),
 ):
-    """Apply a CAM tool library import — replaces tool.tbl and tool_library.json."""
+    """Apply a CAM tool library import — replaces tool.tbl and tool_library.json.
+    A protected write (button gates BG-14): its connection must be armed, and
+    the replace is admitted at the write (_persist_imported_tools)."""
+    _require_writer(x_conn_key)
     raw = await file.read(MAX_TOOL_LIBRARY_SIZE + 1)
     if len(raw) > MAX_TOOL_LIBRARY_SIZE:
         raise HTTPException(status_code=413, detail="Tool library too large (max 16 MB)")
@@ -8237,7 +8382,7 @@ async def apply_tool_library_import(
 
     # Serialize the whole replacement under _cmd_lock + off the event loop, so
     # it can't race the WS tool handlers or call into NML unlocked (issue #24).
-    await _persist_imported_tools(tbl_path, tbl_tools, library)
+    await _persist_imported_tools(tbl_path, tbl_tools, library, x_conn_key)
 
     return {"ok": True, "added": len(parsed), "skipped": len(_skipped)}
 
@@ -9909,7 +10054,11 @@ async def ws_endpoint(ws: WebSocket):
                                     "session.resume_granted",
                                     client_id=client_id, session_id=_sid,
                                 )
-                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed})
+                # This connection's key for protected HTTP writes (button
+                # gates BG-14) — minted with the connection, the same for
+                # every hello on it.
+                await ws_send_json(ws, {"type": "reply", "ok": True, "armed": client.armed,
+                                        "conn_key": client.conn_key})
                 continue
 
             if msg.get("cmd") == "safety_trip_ack":
@@ -9943,7 +10092,15 @@ async def ws_endpoint(ws: WebSocket):
                     continue
                 _loop = asyncio.get_event_loop()
                 try:
-                    await _loop.run_in_executor(None, save_settings_section, section, msg.get("data"))
+                    # settingsWrite(section) (button gates BG-19): a display
+                    # section needs no arm, the others this client's — decided
+                    # in the save's own call, right before the write.
+                    await _loop.run_in_executor(
+                        None, _save_section_admitted, section, msg.get("data"),
+                        lambda: _settings_write_refusal(section, client.armed))
+                except PermissionError as _pe:
+                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": str(_pe), **_secho})
+                    continue
                 except Exception as _se:
                     await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"{type(_se).__name__}: {_se}", **_secho})
                     continue
@@ -10283,7 +10440,13 @@ async def get_settings():
 
 @app.put("/settings/{section}", dependencies=[Depends(require_token)])
 @app.post("/settings/{section}", dependencies=[Depends(require_token)])  # POST used by sendBeacon on page exit
-async def put_settings_section(section: str, request: Request):
+async def put_settings_section(section: str, request: Request,
+                               x_conn_key: Optional[str] = Header(None)):
+    """settingsWrite(section) (button gates BG-19): a display section needs
+    no arm; every other needs an armed writer — the connection in
+    X-Conn-Key, or for the page-hide beacon (which cannot set headers) in
+    the body's `conn_key`. A connection that ended writes nothing: no grace
+    (Codex R204)."""
     if section not in _VALID_SETTINGS_SECTIONS:
         return JSONResponse({"ok": False, "error": f"Unknown section: {section}"}, status_code=400)
     try:
@@ -10292,9 +10455,14 @@ async def put_settings_section(section: str, request: Request):
         return JSONResponse({"ok": False, "error": "Invalid JSON body"}, status_code=400)
     if not isinstance(body, dict) or "data" not in body:
         return JSONResponse({"ok": False, "error": "Missing 'data'"}, status_code=400)
+    key = x_conn_key if isinstance(x_conn_key, str) and x_conn_key else body.get("conn_key")
     loop = asyncio.get_event_loop()
     try:
-        await loop.run_in_executor(None, save_settings_section, section, body["data"])
+        await loop.run_in_executor(
+            None, _save_section_admitted, section, body["data"],
+            lambda: _writer_refusal(key) if section_needs_arm(section) else None)
+    except PermissionError as pe:
+        return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
     except Exception as e:
         # e.g. refuse-to-clobber when settings.json is corrupt — surface it.
         return JSONResponse({"ok": False, "error": f"{type(e).__name__}: {e}"}, status_code=409)
@@ -10302,9 +10470,19 @@ async def put_settings_section(section: str, request: Request):
 
 
 @app.delete("/settings", dependencies=[Depends(require_token)])
-async def delete_settings():
+async def delete_settings(x_conn_key: Optional[str] = Header(None)):
+    """The global reset — protected whatever sections it touches (button
+    gates BG-19): an armed writer, decided in the reset's own call."""
+    def _reset():
+        why = _writer_refusal(x_conn_key)
+        if why:
+            raise PermissionError(why)
+        reset_settings()
     loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, reset_settings)
+    try:
+        await loop.run_in_executor(None, _reset)
+    except PermissionError as pe:
+        return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
     return {"ok": True}
 
 

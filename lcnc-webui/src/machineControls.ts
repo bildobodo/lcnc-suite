@@ -96,13 +96,22 @@ export const BUTTON_TYPES = {
   // Download (Program, Tools, Macros): a read — it moves nothing, so it
   // works whatever the machine does (the outer Gate still needs armed)
   fileDownload:   { gate: 'always',   variant: 'default', size: 'md' },
-  // The editor's Discard throws the edit away: danger, under fileOp's gate
-  // (every Discard is danger — design wave D1, N31; live look 2026-10-01).
-  fileDiscard:    { gate: 'setup',    variant: 'danger',  size: 'md' },
-  fileSave:       { gate: 'setup',    variant: 'primary', size: 'md' },
+  // The editor's Discard throws the edit away: danger (every Discard is
+  // danger — design wave D1, N31; live look 2026-10-01). It writes nothing,
+  // so no machine state may trap an edit: never gated (button gates B — the
+  // Save beside it now stays open in E-Stop, where `setup` closed this).
+  fileDiscard:    { gate: 'always',   variant: 'danger',  size: 'md' },
+  // The writes (button gates BG-14): a program or macro file under
+  // `sourceWrite`, the tool table under `toolTableWrite` — the gateway
+  // checks the same rule again at the commit, for this connection.
+  fileSave:       { gate: 'sourceWrite',    variant: 'primary', size: 'md' },
+  sourceOp:       { gate: 'sourceWrite',    variant: 'default', size: 'md' },
+  sourceDanger:   { gate: 'sourceWrite',    variant: 'danger',  size: 'md' },
+  toolOp:         { gate: 'toolTableWrite', variant: 'default', size: 'md' },
+  toolSave:       { gate: 'toolTableWrite', variant: 'primary', size: 'md' },
+  toolDanger:     { gate: 'toolTableWrite', variant: 'danger',  size: 'md' },
 
-  // Settings / tool table management
-  manage:         { gate: 'setup',    variant: 'default', size: 'md' },
+  // Settings management
   reset:          { gate: 'setup',    variant: 'danger',  size: 'md' },
 
   // WCS selection
@@ -162,8 +171,8 @@ export const BUTTON_TYPES = {
   dialogReady:    { gate: 'ready',   variant: 'primary', size: 'md' },
   dialogReadyDanger: { gate: 'ready', variant: 'danger', size: 'md' },
   // A destructive dialog action under the action's own gate (N42): the look
-  // never replaces the gate — `dialogDanger` is `always`.
-  dialogDangerSetup: { gate: 'setup', variant: 'danger', size: 'md' },
+  // never replaces the gate — `dialogDanger` is `always` (the file and
+  // tool-table writes: sourceDanger / toolDanger).
 
   // ── UI buttons (gate: always — no permission, styling only) ──
   close:          { gate: 'always',  variant: 'default', size: 'md',  icon: true },
@@ -185,10 +194,11 @@ export const BUTTON_TYPES = {
   dialogConfirm:  { gate: 'always',  variant: 'primary', size: 'md' },
   dialogDanger:   { gate: 'always',  variant: 'danger',  size: 'md' },
   listAction:     { gate: 'always',  variant: 'default', size: 'md',  icon: true },
-  // A list row's pencil / Trash2 whose action needs the setup class (the
-  // tool table's edit and delete): the listAction look, the action's gate
-  // (design wave D4, UI-N67).
-  listActionSetup: { gate: 'setup',  variant: 'default', size: 'md',  icon: true },
+  // A list row's pencil / Trash2 whose action writes (the tool table's and
+  // the macros' edit and delete): the listAction look, the action's gate
+  // (design wave D4, UI-N67; button gates BG-14).
+  listActionTool:   { gate: 'toolTableWrite', variant: 'default', size: 'md',  icon: true },
+  listActionSource: { gate: 'sourceWrite',    variant: 'default', size: 'md',  icon: true },
   // Removing a gamepad profile: destructive, outside a dialog, and like
   // the rest of the gamepad configuration never gated (UI-N71).
   profileRemove:  { gate: 'always',  variant: 'danger',  size: 'md' },
@@ -307,11 +317,11 @@ export const INPUT_DEFS = {
   toolsetterParam: { gate: 'always',   mono: true, align: 'right' },
 
   // Program upload — the rename field in the name-conflict dialog (UI-09)
-  uploadName:      { gate: 'setup' },
+  uploadName:      { gate: 'sourceWrite' },
 
   // Tool table editing
-  toolEdit:        { gate: 'setup' },
-  toolEditNum:     { gate: 'setup',    mono: true, align: 'right' },
+  toolEdit:        { gate: 'toolTableWrite' },
+  toolEditNum:     { gate: 'toolTableWrite', mono: true, align: 'right' },
   toolSearch:      { gate: 'always' },
   // The narrow side pane's navigation selects (design wave D3): the area
   // (Program … Tools) and Probing's procedure — navigation, never gated.

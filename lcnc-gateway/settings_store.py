@@ -27,6 +27,21 @@ from gateway_util import atomic_write_bytes
 VALID_SECTIONS = {"macros", "machine", "viewer", "camera", "mdi", "gamepad",
                   "probe", "toolsetter", "keyboard", "display", "panels"}
 
+# Who may write a section (button gates Q2 / BG-19, operator 2026-10-25):
+# the display sections change only how the UI looks — any connected client
+# may save them; every other section configures how the machine is operated
+# (shortcuts, the pad, the toolsetter, the spindle feedback's scale and pin)
+# and needs the writer's arm. The ONE classification: every save path (WS,
+# HTTP, the page-hide beacon, the reset) asks section_needs_arm().
+FREE_SECTIONS = frozenset({"display", "viewer", "panels", "camera"})
+PROTECTED_SECTIONS = frozenset(VALID_SECTIONS - FREE_SECTIONS)
+
+
+def section_needs_arm(section: str) -> bool:
+    """Does a save of `section` need an armed writer? Unknown sections are
+    refused before this by the VALID_SECTIONS check; treated as protected."""
+    return section not in FREE_SECTIONS
+
 
 class SettingsStore:
     def __init__(self, path, ini_key: Callable[[], str],

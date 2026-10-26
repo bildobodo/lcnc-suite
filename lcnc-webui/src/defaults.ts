@@ -1,8 +1,9 @@
 import { ref } from "vue";
 import { TOOLSETTER_FALLBACK } from "./toolsetterSetup";
 import { withToken } from "./auth";
+import { connKey } from "./connKey";
 import { mergeViewerSection, ON_TOP_FALLBACK, type OnTopLayer } from "./viewerSection";
-import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed } from "./settingsSaveStatus";
+import { noteSavePending, noteSaveSent, noteSaveBlocked, noteSaveFailed, noteSaveBeaconed, sectionRev, sectionAcked, sectionFailed, stableJson } from "./settingsSaveStatus";
 import { resetServerSettings } from "./lcncApi";
 import type { GamepadProfile } from "./gamepadProfile";
 import { mergeMacrosSection } from "./macroParams";
@@ -92,6 +93,19 @@ export interface ViewerDefaults {
 
 const STORAGE_KEY = "lcnc-defaults";
 
+/** The display sections (button gates Q2 / BG-19, operator 2026-10-25): how
+ *  the UI looks — any client saves them and a change applies at once. Every
+ *  other section is PROTECTED: the gateway saves it only for an armed
+ *  writer, and what it configures (the key map, the pad, the tool-change
+ *  mode, the macro bar …) acts only once the SERVER holds it — this tab's
+ *  change is a DRAFT until then (loadSection vs loadSectionDraft). The
+ *  mirror of settings_store.FREE_SECTIONS (settingsSections.test.ts). */
+export const FREE_SECTIONS: ReadonlySet<string> = new Set(["display", "viewer", "panels", "camera"]);
+
+export function isProtectedSection(key: string): boolean {
+  return !FREE_SECTIONS.has(key);
+}
+
 interface SectionDef<T> {
   fallback: T;
   merge: (saved: any, fallback: T) => T;
@@ -113,8 +127,25 @@ export function registerSection<T>(key: string, fallback: T, merge: (saved: any,
  *  Components watch this to re-read their section when another client saves. */
 export const settingsVersion = ref(0);
 
-/** In-memory cache — localStorage is read at most once per page load. */
+/** In-memory cache — localStorage is read at most once per page load. What
+ *  this tab last wrote or received: the server's blob with this tab's
+ *  unconfirmed drafts over it (the forms show it). */
 let _cache: Record<string, any> | null = null;
+
+/** This tab's unconfirmed changes of PROTECTED sections (BG-19), tagged with
+ *  the ledger revision they were saved under and the server state they were
+ *  made on (`baseJson`). The form keeps showing a draft through every server
+ *  blob that does not hold it; the active configuration is the server's.
+ *  A draft ends when
+ *   - the server holds it (an equal section in a blob, or the reply for its
+ *     revision): it acts now;
+ *   - it FAILED (refused — not armed —, unsendable, a page-hide save not on
+ *     the server) and the server's section changed since: another writer's
+ *     newer state is what the form shows; the save status keeps the failure;
+ *   - the next change replaces it.
+ *  While it is on its way it rides along with the server's changes (a newer
+ *  base). Nothing resends it: a later Arm applies nothing (Codex R203/R204). */
+const _drafts = new Map<string, { data: any; json: string; rev: number; baseJson: string }>();
 
 /** True once server settings have been confirmed (REST fetch or WS delivery). */
 export const serverSettingsReady = ref(false);
@@ -150,6 +181,14 @@ export function initServerDefaults(data: Record<string, any>, fetchOk: boolean):
 export function updateServerCache(data: Record<string, any>): void {
   _cache = { ...data };
   _confirmed = { ...data };
+  for (const [key, d] of _drafts) {
+    const json = stableJson(data[key]);
+    if (json === d.json || sectionAcked(key, d.rev)) { _drafts.delete(key); continue; }
+    const failed = sectionFailed(key, d.rev);
+    if (failed && json !== d.baseJson) { _drafts.delete(key); continue; }
+    if (!failed) d.baseJson = json;
+    _cache[key] = d.data;     // still a draft: the form keeps it, nothing acts on it
+  }
   serverSettingsReady.value = true;
   settingsVersion.value++;
 }
@@ -182,9 +221,12 @@ function flushPendingSaves(): void {
   for (const [section, data] of _pendingSaves) {
     // sendBeacon can't set headers, so the token rides in the query string
     // (the require_token dependency accepts ?token= as well as the header).
+    // ...and the connection key in the body (button gates BG-19): a
+    // protected section is saved only while this connection is open and
+    // armed — a beacon after the close is refused, no grace (Codex R204).
     const handedOff = navigator.sendBeacon(
       withToken(`/settings/${section}`),
-      new Blob([JSON.stringify({ data })], { type: "application/json" }),
+      new Blob([JSON.stringify({ data, conn_key: connKey() })], { type: "application/json" }),
     );
     noteSaveBeaconed(section, data, handedOff);
   }
@@ -209,13 +251,33 @@ function readAll(): Record<string, any> {
   return _cache;
 }
 
-/** Load a section. Returns fully merged data (saved values + fallbacks). */
+/** Tests only: forget every section, draft and pending save. */
+export function resetSettingsForTests(): void {
+  for (const key of Object.keys(_saveTimers)) { clearTimeout(_saveTimers[key]); delete _saveTimers[key]; }
+  _pendingSaves.clear();
+  _drafts.clear();
+  _cache = null;
+  _confirmed = {};
+  serverSettingsReady.value = false;
+}
+
+/** Load a section AS IT ACTS: fully merged data (saved values + fallbacks).
+ *  A protected section is the server's — this tab's unconfirmed draft is not
+ *  in it (BG-19); a display section is this tab's latest. */
 export function loadSection<T>(key: string): T {
+  return mergeSection<T>(key, isProtectedSection(key) ? _confirmed[key] : readAll()[key]);
+}
+
+/** Load a section as this tab's FORM shows it: its latest change, confirmed
+ *  or not (for a display section the same as loadSection). The base of a
+ *  read-modify-write save, so a second change keeps the first. */
+export function loadSectionDraft<T>(key: string): T {
+  return mergeSection<T>(key, readAll()[key]);
+}
+
+function mergeSection<T>(key: string, saved: unknown): T {
   const def = sections.get(key);
   if (!def) throw new Error(`defaults: unknown section "${key}"`);
-
-  const all = readAll();
-  const saved = all[key];
   try {
     return def.merge(saved, def.fallback);
   } catch (e) {
@@ -241,6 +303,9 @@ export function saveSection(key: string, data: any): void {
   // Track pending save for sendBeacon flush on page exit
   _pendingSaves.set(key, data);
   noteSavePending(key);
+  if (isProtectedSection(key)) {
+    _drafts.set(key, { data, json: stableJson(data), rev: sectionRev(key), baseJson: stableJson(_confirmed[key]) });
+  }
   // Debounce server saves (camera sliders fire rapidly)
   clearTimeout(_saveTimers[key]);
   _saveTimers[key] = setTimeout(() => {
@@ -349,6 +414,11 @@ export function loadMachineDefaults(): MachineDefaults {
   return loadSection<MachineDefaults>("machine");
 }
 
+/** The machine section as the Settings form shows it (BG-19). */
+export function loadMachineDraft(): MachineDefaults {
+  return loadSectionDraft<MachineDefaults>("machine");
+}
+
 export function saveMachineDefaults(data: MachineDefaults): void {
   saveSection("machine", data);
 }
@@ -405,8 +475,9 @@ registerSection<MdiDefaults>("mdi", { history: [] }, (saved, fb) => {
   };
 });
 
+/** The history as this tab last wrote it (a list, not a configuration). */
 export function loadMdiHistory(): string[] {
-  return loadSection<MdiDefaults>("mdi").history;
+  return loadSectionDraft<MdiDefaults>("mdi").history;
 }
 
 export function saveMdiHistory(history: string[]): void {
@@ -468,6 +539,11 @@ registerSection<MacrosDefaults>("macros", MACROS_FALLBACK, mergeMacrosSection);
 
 export function loadMacrosDefaults(): MacrosDefaults {
   return loadSection<MacrosDefaults>("macros");
+}
+
+/** The macros section as the Macros tab shows it (BG-19). */
+export function loadMacrosDraft(): MacrosDefaults {
+  return loadSectionDraft<MacrosDefaults>("macros");
 }
 
 export function saveMacrosDefaults(data: MacrosDefaults): void {
@@ -658,6 +734,11 @@ export function loadGamepadDefaults(): GamepadDefaults {
   return loadSection<GamepadDefaults>("gamepad");
 }
 
+/** The pad's configuration as the Settings form shows it (BG-19). */
+export function loadGamepadDraft(): GamepadDefaults {
+  return loadSectionDraft<GamepadDefaults>("gamepad");
+}
+
 export function saveGamepadDefaults(data: GamepadDefaults): void {
   saveSection("gamepad", data);
 }
@@ -779,6 +860,11 @@ export function loadKeyboardDefaults(): KeyboardDefaults {
   return loadSection<KeyboardDefaults>("keyboard");
 }
 
+/** The key map as the Settings form shows it (BG-19). */
+export function loadKeyboardDraft(): KeyboardDefaults {
+  return loadSectionDraft<KeyboardDefaults>("keyboard");
+}
+
 export function saveKeyboardDefaults(data: KeyboardDefaults): void {
   saveSection("keyboard", data);
 }
@@ -836,6 +922,12 @@ registerSection<ProbeDefaults>("probe", PROBE_FALLBACK, (saved, fb) => {
 
 export function loadProbeDefaults(): ProbeDefaults {
   return loadSection<ProbeDefaults>("probe");
+}
+
+/** The probe parameters as the Probing form shows them — and sends them:
+ *  a probe runs with what its form shows, under its own gate (BG-19). */
+export function loadProbeDraft(): ProbeDefaults {
+  return loadSectionDraft<ProbeDefaults>("probe");
 }
 
 export function saveProbeDefaults(data: ProbeDefaults): void {
@@ -902,6 +994,7 @@ export function resetAllDefaults(): void {
   localStorage.removeItem("lcnc-toolsetter-params");
   localStorage.removeItem("lcnc-probe-params");
   _cache = null;
+  _drafts.clear();
   resetServerSettings().catch((e) =>
     console.error("[settings] server reset failed:", e),
   );

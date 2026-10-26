@@ -14,7 +14,7 @@ const MACHINE_READY: MachinePermissions = {
   // the spindle stop at idle; no tool change is pending
   spindleStop: true, toolChangeConfirm: false,
   probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true,
   armed: true, always: true,
 };
 
@@ -146,24 +146,52 @@ describe("run gate (program start)", () => {
   });
 });
 
-describe("run gate — backend without the class (mixed-version window)", () => {
-  it("reads run as ready when the backend ships no run key, and stays closed when it does", () => {
-    const { run: _r, ...legacy } = MACHINE_READY as any;
-    expect(applyClientOverlay(legacy, true, false).run).toBe(true);
-    expect(applyClientOverlay({ ...legacy, ready: false }, true, false).run).toBe(false);
-    expect(applyClientOverlay({ ...MACHINE_READY, run: false }, true, false).run).toBe(false);
+describe("a class the gateway does not ship (button gates BG-15)", () => {
+  // The old fallback read a missing run / machineFrame / goZero as `ready`:
+  // Cycle Start, the G53 routines and → Zero opened without their
+  // kinematics rule. A missing class is closed and says why.
+  it("is closed — never read from ready", () => {
+    const { run: _r, machineFrame: _m, goZero: _g, ...legacy } = MACHINE_READY as any;
+    const p = applyClientOverlay(legacy, true, false);
+    expect(p.run).toBe(false);
+    expect(p.machineFrame).toBe(false);
+    expect(p.goZero).toBe(false);
+    expect(p.ready).toBe(true);      // what the gateway ships stays as it is
+  });
+  it("names the restart as its reason, armed or not for a stop", () => {
+    const { run: _r, abort: _a, ...legacy } = MACHINE_READY as any;
+    const r = applyClientOverlayReasons({}, true, false, false, legacy);
+    expect(r.run).toBe(CLIENT_REASONS.unknownClass);
+    expect(r.abort).toBe(CLIENT_REASONS.unknownClass);
+    expect(r.ready).toBeUndefined();
+    // disarmed: arming is the first thing to do; a stop needs no arm
+    const d = applyClientOverlayReasons({}, false, false, false, legacy);
+    expect(d.run).toBe(CLIENT_REASONS.notArmed);
+    expect(d.abort).toBe(CLIENT_REASONS.unknownClass);
+    expect(CLIENT_REASONS.unknownClass.length).toBeLessThanOrEqual(REASON_MAX_CHARS);
+  });
+  it("before the first status nothing is compared — no restart reason", () => {
+    expect(applyClientOverlayReasons(null, true, false, false, null).run).toBeUndefined();
   });
 });
 
 describe("machineFrame / goZero gates", () => {
-  it("follow armed/busy like ready and read as ready on a pre-class backend", () => {
+  it("follow armed/busy like ready", () => {
     expect(applyClientOverlay(MACHINE_READY, true, false).machineFrame).toBe(true);
     expect(applyClientOverlay(MACHINE_READY, true, true).goZero).toBe(false);
-    const { machineFrame: _m, goZero: _g, ...legacy } = MACHINE_READY as any;
-    const p = applyClientOverlay(legacy, true, false);
-    expect(p.machineFrame).toBe(true);
-    expect(p.goZero).toBe(true);
     expect(applyClientOverlay({ ...MACHINE_READY, machineFrame: false }, true, false).machineFrame).toBe(false);
+  });
+});
+
+describe("the write gates (button gates BG-14)", () => {
+  it("need arm, settle with busy and stay open in simulation", () => {
+    for (const g of ["sourceWrite", "toolTableWrite"] as const) {
+      expect(applyClientOverlay(MACHINE_READY, true, false)[g]).toBe(true);
+      expect(applyClientOverlay(MACHINE_READY, false, false)[g]).toBe(false);
+      expect(applyClientOverlay(MACHINE_READY, true, true)[g]).toBe(false);
+      expect(applyClientOverlay(MACHINE_READY, true, false, true)[g]).toBe(true);
+      expect(applyClientOverlay({ ...MACHINE_READY, [g]: false }, true, false)[g]).toBe(false);
+    }
   });
 });
 

@@ -306,7 +306,7 @@ test("a confirmed Save G30 moves the tool-change pin without an idle edge (Codex
   await xyzacScene(page, context, () => { reads++; return { ok: true, values: { ...stored }, mtime_ms: 1, units: "mm" }; });
   const PERMS = { idle: true, jog: true, override: true, ready: true, run: true, pause: false, resume: false, step: true,
     abort: true, probe: true, zero: true, machineFrame: true, g30Capture: true, goZero: true, planeFrame: true,
-    touchoff: true, touchoffRotary: true, twpCapture: true, surfaceComp: true, safety: true, setup: true, armed: true, always: true };
+    touchoff: true, touchoffRotary: true, twpCapture: true, surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true };
   await ctl({ op: "status_delta", data: { permissions: PERMS, kins_type: 0 } });
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { toolsetter: SET_UP,
     viewer: { layers: { ...QUIET, toolChange: true } } } } });

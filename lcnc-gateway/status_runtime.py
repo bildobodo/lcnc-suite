@@ -782,6 +782,13 @@ class StatusRuntime:
     def end_program_change(self) -> None:
         self._changing = False
 
+    @property
+    def program_changing(self) -> bool:
+        """A load or unload is between its request and the interpreter's
+        answer — a program write must not publish meanwhile (button gates
+        BG-14)."""
+        return self._changing
+
     def resolve_var_file_path(self) -> Optional[str]:
         """Resolve absolute path to the LinuxCNC var file from the active INI.
 

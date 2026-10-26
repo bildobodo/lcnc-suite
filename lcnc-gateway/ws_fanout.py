@@ -22,6 +22,7 @@ stall forensics. This module never imports gateway.
 import asyncio
 import collections
 import os
+import secrets
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -112,6 +113,11 @@ class ClientState:
     send_pending: bool = False # status fan-out is in-flight to this client
     hidden: bool = False       # client tab is backgrounded (visibilityState)
     session_id: Optional[str] = None  # tab-scoped UUID; basis for armed-resume across brief reconnects
+    # This CONNECTION's key for protected HTTP writes (button gates BG-14,
+    # Codex R204): unguessable, minted when the connection is accepted (not
+    # per hello), reported in the hello reply, and gone with the connection —
+    # a reconnect gets a new one; the resume id never stands in for it.
+    conn_key: str = field(default_factory=lambda: secrets.token_urlsafe(16))
     # Former ws_endpoint closure vars (M3 de-closure): single source of truth
     # for per-connection fanout state shared between the receive path and the
     # status loop. `armed` was previously a closure var duplicated into this

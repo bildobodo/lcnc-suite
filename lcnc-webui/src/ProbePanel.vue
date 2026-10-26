@@ -8,7 +8,7 @@ import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import MachineRadio from "./MachineRadio.vue";
 import { usePermissions } from "./permissions";
-import { loadProbeDefaults, saveProbeDefaults, settingsVersion, serverSettingsReady, clearToolsetterDefaults } from "./defaults";
+import { loadProbeDraft, saveProbeDefaults, settingsVersion, serverSettingsReady, clearToolsetterDefaults } from "./defaults";
 import ToolsetterSettings from "./ToolsetterSettings.vue";
 import CornerGlyph from "./CornerGlyph.vue";
 import Gate from "./Gate.vue";
@@ -229,8 +229,10 @@ function buildVarMap(probeMode: number): Record<string, number> {
   };
 }
 
+// The probe parameters are a form: a probe runs with what it shows, under
+// its own gate — this tab's latest values, confirmed or not (BG-19).
 function loadParams() {
-  const saved = loadProbeDefaults();
+  const saved = loadProbeDraft();
   autoZero.value = saved.autoZero;
   const { autoZero: _, ...rest } = saved;
   Object.assign(params.value, rest);

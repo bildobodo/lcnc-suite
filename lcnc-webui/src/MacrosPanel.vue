@@ -451,8 +451,8 @@ async function confirmDelete() {
                     :reason="runBlock ?? undefined" @click="selected && emit('run', selected)">Run</MachineBtn>
         <MachineBtn type="abort" @click="fire({ cmd: 'abort' }, 'abort')" />
         <MoreMenu class="actionEnd" label="More macro actions">
-          <MachineBtn type="manage" @click="openNew">New</MachineBtn>
-          <MachineBtn type="fileOp" @click="pickImport">Upload</MachineBtn>
+          <MachineBtn type="sourceOp" @click="openNew">New</MachineBtn>
+          <MachineBtn type="sourceOp" @click="pickImport">Upload</MachineBtn>
           <MachineBtn type="fileDownload" :disabled="!selected" :reason="!selected ? 'No macro selected' : undefined"
                       @click="downloadSelected">Download</MachineBtn>
         </MoreMenu>
@@ -516,10 +516,10 @@ async function confirmDelete() {
                              @update:modelValue="setOnBar(f.name, !!$event)" />
             </td>
             <td class="colAction" @click.stop>
-              <MachineBtn type="listActionSetup" title="Edit macro" :aria-label="`Edit ${f.name}`" @click="openEdit(f)"><Pencil :size="14" /></MachineBtn>
+              <MachineBtn type="listActionSource" title="Edit macro" :aria-label="`Edit ${f.name}`" @click="openEdit(f)"><Pencil :size="14" /></MachineBtn>
             </td>
             <td class="colAction" @click.stop>
-              <MachineBtn type="listActionSetup" title="Delete macro" :aria-label="`Delete ${f.name}`" @click="deleteAsk = f"><Trash2 :size="14" /></MachineBtn>
+              <MachineBtn type="listActionSource" title="Delete macro" :aria-label="`Delete ${f.name}`" @click="deleteAsk = f"><Trash2 :size="14" /></MachineBtn>
             </td>
             <td class="colOrder" @click.stop>
               <!-- The slot is in EVERY row — off the bar it is empty space
@@ -606,7 +606,7 @@ async function confirmDelete() {
       <div class="dialogBody">{{ deleteAsk.name }}.ngc leaves the macro folder and the bar. This cannot be undone.</div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="deleteAsk = null">Cancel</MachineBtn>
-        <MachineBtn type="dialogDangerSetup" @click="confirmDelete">Delete</MachineBtn>
+        <MachineBtn type="sourceDanger" @click="confirmDelete">Delete</MachineBtn>
       </template>
     </DialogFrame>
 
@@ -614,7 +614,7 @@ async function confirmDelete() {
       <div class="dialogBody">The macro folder has a file of this name; the upload replaces it. This cannot be undone.</div>
       <template #actions>
         <MachineBtn type="dialogCancel" @click="replaceAsk = null">Cancel</MachineBtn>
-        <MachineBtn type="dialogDangerSetup" @click="confirmReplace">Replace</MachineBtn>
+        <MachineBtn type="sourceDanger" @click="confirmReplace">Replace</MachineBtn>
       </template>
     </DialogFrame>
   </div>

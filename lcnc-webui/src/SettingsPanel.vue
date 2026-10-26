@@ -13,14 +13,14 @@ import MachineColor from "./MachineColor.vue";
 import FormField from "./FormField.vue";
 import {
   loadViewerDefaults, saveViewerDefaults, viewerFallback,
-  loadMachineDefaults, saveMachineDefaults,
+  loadMachineDraft, saveMachineDefaults,
   loadDisplayDefaults, saveDisplayDefaults, settingsVersion, serverSettingsReady,
   loadCameraDefaults, saveCameraDefaults,
   ON_TOP_LAYERS, type OnTopLayer, type Layer, type ColorDefaults, type PaletteMode, type PaletteOrigin, type HudDefaults, type HudScale,
   type TrackMode, type Projection, type PreviewMode, type ToolChangeMode, type SpindleDir, type SpindleFeedbackUnit,
   type ThemeMode, type GamepadDefaults,
   GAMEPAD_FALLBACK,
-  loadKeyboardDefaults, type KeyboardDefaults, DEFAULT_KB_MAPPING,
+  loadKeyboardDraft, type KeyboardDefaults, DEFAULT_KB_MAPPING,
 } from "./defaults";
 import { resolveViewerPalette, userColorsOf, USER_ROLES, type UserRole, type ViewerRole } from "./viewer/viewerPalette";
 import { LAYER_COLUMNS, HUD_LAYER } from "./viewerLayerGroups";
@@ -72,7 +72,6 @@ const emit = defineEmits<{
   (e: "setProjection", proj: Projection): void;
   (e: "setTrackMode", mode: TrackMode): void;
   (e: "toggleLayer", layer: Layer, on: boolean): void;
-  (e: "setRunFromLine", on: boolean): void;
   (e: "setGamepadConfig", cfg: GamepadDefaults): void;
   (e: "setKeyboardConfig", cfg: KeyboardDefaults): void;
 }>();
@@ -116,7 +115,7 @@ function resetMachine() {
     spindleFeedbackUnit: "rps", spindleLoadPin: "",
     autoDisarmMin: 10,
   });
-  const md = loadMachineDefaults();
+  const md = loadMachineDraft();
   toolChangeMode.value = md.toolChangeMode;
   runFromLine.value = md.runFromLine;
   rflSpindleDir.value = md.rflSpindleDir;
@@ -124,7 +123,6 @@ function resetMachine() {
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
   autoDisarmMin.value = md.autoDisarmMin;
-  emit("setRunFromLine", md.runFromLine);
 }
 
 function saveStartFullscreen() {
@@ -271,7 +269,10 @@ function saveCamTracked() {
 }
 
 // ─── Machine defaults ──────────────────────
-const machSaved = loadMachineDefaults();
+// The form shows the DRAFT (button gates BG-19): a change acts — run from
+// line on, the tool-change mode, the auto-disarm time — only once the
+// server holds it; App and the panels read the confirmed section.
+const machSaved = loadMachineDraft();
 const toolChangeMode = ref<ToolChangeMode>(machSaved.toolChangeMode);
 const runFromLine = ref(machSaved.runFromLine);
 const rflSpindleDir = ref<SpindleDir>(machSaved.rflSpindleDir);
@@ -286,7 +287,7 @@ function saveMachine() {
     runFromLine: runFromLine.value,
     rflSpindleDir: rflSpindleDir.value,
     rflSpindleRpm: rflSpindleRpm.value,
-    rflSafeZ: loadMachineDefaults().rflSafeZ,  // managed from the RFL dialog, preserved here
+    rflSafeZ: loadMachineDraft().rflSafeZ,  // managed from the RFL dialog, preserved here
     spindleFeedbackUnit: spindleFeedbackUnit.value,
     spindleLoadPin: spindleLoadPin.value,
     autoDisarmMin: autoDisarmMin.value,
@@ -295,7 +296,7 @@ function saveMachine() {
 
 // Re-read when another client changes settings
 watch(settingsVersion, () => {
-  const md = loadMachineDefaults();
+  const md = loadMachineDraft();
   toolChangeMode.value = md.toolChangeMode;
   runFromLine.value = md.runFromLine;
   rflSpindleDir.value = md.rflSpindleDir;
@@ -303,7 +304,6 @@ watch(settingsVersion, () => {
   spindleFeedbackUnit.value = md.spindleFeedbackUnit;
   spindleLoadPin.value = md.spindleLoadPin;
   autoDisarmMin.value = md.autoDisarmMin;
-  emit("setRunFromLine", md.runFromLine);
   const vd = loadViewerDefaults();
   Object.assign(layers, vd.layers);
   paletteMode.value = vd.paletteMode;
@@ -336,7 +336,7 @@ watch(settingsVersion, () => {
 // ── Keyboard tab state ──
 // Fallback when the parent hasn't yet supplied a keyboardConfig prop.
 // Read once at setup; the live config is owned by KeyboardTab + parent.
-const defaultKbConfig = loadKeyboardDefaults();
+const defaultKbConfig = loadKeyboardDraft();
 
 function resetKeyboard() {
   // Server-synced reset: emit the defaults; the parent updates the
@@ -805,7 +805,7 @@ function resetMachineColor(id: string) {
           <div class="stack-controls">
             <div class="sub">Run from Line</div>
             <div class="settingDesc">Allow starting program execution from a selected line in the code viewer.</div>
-            <MachineToggle gate="displaySetting" v-model="runFromLine" @update:modelValue="emit('setRunFromLine', runFromLine); saveMachine()" label="Enable run from line (advanced — use with care)" />
+            <MachineToggle gate="displaySetting" v-model="runFromLine" @update:modelValue="saveMachine()" label="Enable run from line (advanced — use with care)" />
             <div v-if="runFromLine" class="statusNote warn" role="alert">
               <span>Run-from-line is inherently risky: LinuxCNC reconstructs program
               state by skimming, entry moves follow modal axis words, and skipped

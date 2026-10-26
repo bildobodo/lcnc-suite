@@ -9,6 +9,9 @@
 // but send `estop`. The regular shortcut map is a bubbling keydown/keyup
 // pair attached in onMounted. Cross-client sync (settingsVersion bumps)
 // re-reads from loadKeyboardDefaults so a save on another tab is reflected.
+// The map that ACTS is the server's (button gates BG-19): a change made
+// here is a draft (`keyboardDraft`, what Settings shows) until the server
+// holds it — a refused save (not armed) changes no key.
 //
 // stopAllJog is App.vue's responsibility (it also clears pointer + gamepad
 // jog state); this composable exposes clearJogState() so the global stop
@@ -16,7 +19,7 @@
 
 import { ref, reactive, computed, watch, onMounted, onUnmounted, type Ref, type ComputedRef } from "vue";
 import {
-  loadKeyboardDefaults, saveKeyboardDefaults, settingsVersion, normalizeKeyboardMapping,
+  loadKeyboardDefaults, loadKeyboardDraft, saveKeyboardDefaults, settingsVersion, normalizeKeyboardMapping,
   ESTOP_KEY, type KeyboardDefaults, type KeyboardAction,
 } from "./defaults";
 import type { Permissions } from "./permissions";
@@ -44,6 +47,7 @@ interface UseKeyboardShortcutsOptions {
 
 export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
   const keyboardConfig = ref<KeyboardDefaults>(loadKeyboardDefaults());
+  const keyboardDraft = ref<KeyboardDefaults>(loadKeyboardDraft());
 
   const reverseKeyMap = computed(() => {
     const map = new Map<string, KeyboardAction>();
@@ -173,9 +177,11 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     if (stop) opts.send(stop);
   }
 
+  /** A change from Settings: the draft now, the active map once the server
+   *  confirms it (the settingsVersion watch below). */
   function setKeyboardConfig(cfg: KeyboardDefaults) {
     const normalized = { ...cfg, mapping: normalizeKeyboardMapping(cfg.mapping) };
-    keyboardConfig.value = normalized;
+    keyboardDraft.value = normalized;
     saveKeyboardDefaults(normalized);
   }
 
@@ -187,9 +193,11 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
     for (const c of jogGestures.endAll()) opts.send(c);
   }
 
-  // Cross-client sync: another tab saved keyboard config → re-read.
+  // The server's settings changed (this tab's save confirmed, another
+  // client's, a reconnect) → re-read what acts and what the form shows.
   watch(settingsVersion, () => {
     keyboardConfig.value = loadKeyboardDefaults();
+    keyboardDraft.value = loadKeyboardDraft();
   });
 
   onMounted(() => {
@@ -205,6 +213,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
 
   return {
     keyboardConfig,
+    keyboardDraft,
     setKeyboardConfig,
     stopJogs,
     /** A keyboard jog is running (a jog key held down). */

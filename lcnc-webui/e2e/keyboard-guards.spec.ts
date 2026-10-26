@@ -20,7 +20,7 @@ const PERMS_ALL = {
   resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
 };
 
 const READ_ONLY_CMDS = ["hello", "heartbeat", "get_tool_table", "halshow_live", "timing_log",
@@ -675,6 +675,11 @@ test("a jog key released after a field opened mid-jog still sends jog_stop", asy
   // The overlay closes itself on a click outside the dialog (@click.self).
   await dialog.click({ position: { x: 4, y: 4 } });
   await expect(page.locator(".dialogOverlay")).toHaveCount(0);
+  // Keyboard jogging acts once the gateway holds the change (button gates
+  // BG-19): the save goes out after its debounce, the mock answers it and
+  // sends the blob like the gateway.
+  await expect.poll(recordedCmds).toContain("save_settings");
+  await settle(page);
   await focusBody(page);
   await ctl({ op: "clearCmds" });
   await page.keyboard.down("ArrowRight");
@@ -770,6 +775,7 @@ test("settings save status: Saving… on a change, Saved on the gateway's ok, th
   // UX-08: the header's "saved automatically" is a promise with a proof —
   // the status follows the correlated reply, never the send alone.
   await openReady(page);
+  await ctl({ op: "settingsEcho", on: false });   // this test answers the saves itself
   await page.getByTitle("Settings", { exact: true }).click();
   const dialog = page.locator(".dialogOverlay").first();
   const status = dialog.locator(".saveStatus");
@@ -805,6 +811,7 @@ test("settings save status (UI-I12): a failed section stays visible behind anoth
   // reply confirms only the revision it was sent for, and a failure stays
   // until that section's own retry succeeds.
   await openReady(page);
+  await ctl({ op: "settingsEcho", on: false });   // this test answers the saves itself
   await page.getByTitle("Settings", { exact: true }).click();
   const dialog = page.locator(".dialogOverlay").first();
   const status = dialog.locator(".saveStatus");
@@ -957,7 +964,10 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
   await expect(status).toHaveText("Sent on page hide — not yet confirmed (keyboard)");
   await ctl({ op: "raw", frame: { type: "settings_init", settings: {} } });
   await expect(status).toHaveText("Save failed — keyboard: page-hide save not on the server — change it again");
-  await expect(abortCell).toHaveText("⌫");            // the stored default is what the page shows now
+  // The draft stays what the form shows (button gates BG-19, Codex R203/R204:
+  // a failed save keeps the draft visible, the server's map acts) — the
+  // stored section did not change since the draft was made.
+  await expect(abortCell).toHaveText("F9");
   // The long failure wraps in the header; the hint keeps its lines and the
   // tabs stay where they were (a nowrap status once buried them).
   const head = await dialog.locator(".settingsHead").evaluate(el => {
@@ -972,6 +982,7 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
   expect(await wsKeyboardSaves(), "no WS save follows the cleared debounce").toBe(0);
 
   // (A) the beacon is refused (409); the blob carries the STORED F8, not the sent F9.
+  // First another writer stores F8: the failed draft ends, the form follows.
   mode = "refuse";
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: { jogEnabled: false, buttonsEnabled: true, mapping: { abort: "F8", cycle: " ", estop: "Escape" } } } } });
   await expect(abortCell).toHaveText("F8");
@@ -984,8 +995,58 @@ test("settings save status (UI-I12 round 7): a page-hide save that never landed 
   await expect(status).toHaveText("Sent on page hide — not yet confirmed (keyboard)");
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: false, buttonsEnabled: true, mapping: { abort: "F8", cycle: " ", estop: "Escape" } } } } });
   await expect(status).toHaveText("Save failed — keyboard: page-hide save not on the server — change it again");
-  await expect(abortCell).toHaveText("F8");
+  await expect(abortCell).toHaveText("F9");            // the draft (BG-19); F8 acts
   expect(await wsKeyboardSaves()).toBe(0);
+});
+
+test("a refused key-map change acts nowhere; the draft stays; the server holding it makes it act (button gates BG-19)", async ({ page }) => {
+  // Codex R203/R204: a protected section acts only once the SERVER holds
+  // it. The gateway refuses a protected save from a disarmed writer; the
+  // refusal must not leave the new key active on this page, and a later
+  // Arm or reconnect sends nothing on its own.
+  await openReady(page);
+  await ctl({ op: "settingsEcho", on: false });   // this test answers the saves itself
+  await page.getByTitle("Settings", { exact: true }).click();
+  const dialog = page.locator(".dialogOverlay").first();
+  const status = dialog.locator(".saveStatus");
+  await dialog.getByRole("tab", { name: "Keyboard", exact: true }).click();
+  const abortCell = dialog.locator("tr").filter({ hasText: "Abort" }).locator(".kbKeyCell");
+  await expect(abortCell).toHaveText("⌫");
+  const saveReq = async () => {
+    const sent = ((await ctl({ op: "lastCmds" })).cmds ?? []) as { cmd?: string; section?: string; req_id?: string; data?: any }[];
+    return sent.filter(c => c.cmd === "save_settings" && c.section === "keyboard").at(-1);
+  };
+  await ctl({ op: "clearCmds" });
+  await abortCell.click();
+  await page.keyboard.press("F9");
+  await expect(abortCell).toHaveText("F9");
+  await expect.poll(async () => (await saveReq())?.req_id).toMatch(/\S/);
+  const sent = (await saveReq())!;
+  await ctl({ op: "raw", frame: { type: "reply", cmd: "save_settings", ok: false, error: "Not armed — press Arm", req_id: sent.req_id } });
+  await expect(status).toHaveText("Save failed — keyboard: Not armed — press Arm");
+  await expect(abortCell, "the draft stays what the form shows").toHaveText("F9");
+  await dialog.getByRole("button", { name: "Close settings", exact: true }).click();
+  await expect(page.locator(".dialogOverlay")).toHaveCount(0);
+
+  const abortsAfter = async (key: string) => {
+    await ctl({ op: "clearCmds" });
+    await focusBody(page);
+    await page.keyboard.press(key);
+    await settle(page);
+    await page.waitForTimeout(250);   // past fire()'s 200 ms latch
+    return (await recordedCmds()).filter(c => c === "abort").length;
+  };
+  expect(await abortsAfter("F9"), "the refused key does nothing").toBe(0);
+  expect(await abortsAfter("Backspace"), "the stored key still aborts").toBe(1);
+  // a reconnect's blob with the stored map: still nothing new acts, nothing is resent
+  await ctl({ op: "raw", frame: { type: "settings_init", settings: {} } });
+  expect(await abortsAfter("F9")).toBe(0);
+  const resent = (((await ctl({ op: "lastCmds" })).cmds ?? []) as { cmd?: string }[]).filter(c => c.cmd === "save_settings");
+  expect(resent, "no save on its own").toHaveLength(0);
+  // the server holds it now (an armed save, here: its blob): F9 aborts, Backspace no longer
+  await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: sent.data } } });
+  expect(await abortsAfter("F9")).toBe(1);
+  expect(await abortsAfter("Backspace")).toBe(0);
 });
 
 test("a macro editor's draft is never lost without asking, by every way out (UI-K16, package 5)", async ({ page }) => {
@@ -1075,7 +1136,8 @@ test("keyboard tab: a capture edits a local copy, no page error, a server change
   await ctl({ op: "clearCmds" });
   await page.keyboard.press("F9");
   await expect(abortCell).toHaveText("F9");
-  // The edit went out as a save (the copy was emitted), not as a mutation of the store.
+  // The edit went out as a save (the copy was emitted), not as a mutation of
+  // the store; the gateway (the mock's settings echo) holds it now.
   await expect.poll(async () => ((await ctl({ op: "lastCmds" })).cmds ?? []).some((c: any) => c.cmd === "save_settings" && c.section === "keyboard")).toBe(true);
   // A server-side change (another tab) refreshes the copy.
   await ctl({ op: "raw", frame: { type: "settings_changed", settings: { keyboard: { jogEnabled: false, buttonsEnabled: true, mapping: { abort: "F10", cycle: " ", estop: "Escape" } } } } });

@@ -149,6 +149,9 @@ from fastapi import HTTPException, UploadFile  # noqa: E402
 
 class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
+        # the protected write's armed writer (button gates BG-14)
+        from writer_fixture import armed_writer
+        self.conn_key = armed_writer(self)
         self.tmp = TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.root = Path(self.tmp.name)
@@ -194,7 +197,7 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
         preview = await self.preview()
         self.assertEqual(preview["updated"], [1])
         self.assertEqual(self.table.read_bytes(), self.table_bytes)
-        result = await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"])
+        result = await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"], x_conn_key=self.conn_key)
         self.assertEqual(result, {"ok": True, "updated": 1, "skipped": 0})
         self.assertEqual(self.table.read_bytes(), self.table_bytes)
         meta = self.store.load()
@@ -212,7 +215,7 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
         changed = self.table_bytes.replace(b'-42.300000', b'-44.100000')
         self.table.write_bytes(changed)
         with self.assertRaises(HTTPException) as caught:
-            await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"])
+            await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"], x_conn_key=self.conn_key)
         self.assertEqual(caught.exception.status_code, 409)
         self.assertEqual(self.table.read_bytes(), changed)
         self.assertFalse(self.saved_under_lock)
@@ -223,14 +226,14 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
             if raw == self.raw:
                 self.store.save({"1": {"description": "edited elsewhere"}})
             with self.assertRaises(HTTPException) as caught:
-                await gateway.refresh_tool_library_metadata(self.upload(raw), preview["revision"])
+                await gateway.refresh_tool_library_metadata(self.upload(raw), preview["revision"], x_conn_key=self.conn_key)
             self.assertEqual(caught.exception.status_code, 409)
         self.assertFalse(self.saved_under_lock)
 
     async def test_unidentified_configuration_cannot_refresh_default_metadata(self):
         with patch.object(gateway, "_current_ini_path", lambda: "default"):
             with self.assertRaises(HTTPException) as caught:
-                await gateway.refresh_tool_library_metadata(self.upload(), "invalid")
+                await gateway.refresh_tool_library_metadata(self.upload(), "invalid", x_conn_key=self.conn_key)
             self.assertEqual(caught.exception.status_code, 400)
         self.assertFalse(self.saved_under_lock)
 
@@ -238,7 +241,7 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
         preview = await self.preview()
         with patch.object(gateway, "save_tool_library", side_effect=OSError("disk failure")):
             with self.assertRaises(OSError):
-                await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"])
+                await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"], x_conn_key=self.conn_key)
         self.assertEqual(self.table.read_bytes(), self.table_bytes)
         self.assertEqual(gateway._tool_table_version, 10)
 
@@ -249,7 +252,7 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
             async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
                 denied = await client.post("/import-tool-library/refresh", files={"file": ("tools.json", self.raw)})
                 self.assertEqual(denied.status_code, 401)
-                headers = {"X-Auth-Token": "unit-test-token"}
+                headers = {"X-Auth-Token": "unit-test-token", "X-Conn-Key": self.conn_key}
                 missing = await client.post("/import-tool-library/refresh", headers=headers,
                                             files={"file": ("tools.json", self.raw)})
                 self.assertEqual(missing.status_code, 422)
@@ -273,7 +276,7 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
             self.store.save(library, ini_key=ini_key)
 
         with patch.object(gateway, "save_tool_library", delayed_save):
-            task = asyncio.create_task(gateway.refresh_tool_library_metadata(self.upload(), preview["revision"]))
+            task = asyncio.create_task(gateway.refresh_tool_library_metadata(self.upload(), preview["revision"], x_conn_key=self.conn_key))
             try:
                 self.assertTrue(await asyncio.to_thread(started.wait, 2))
                 task.cancel()
@@ -292,7 +295,7 @@ class TestMetadataRefreshRoutes(unittest.IsolatedAsyncioTestCase):
         path = self.root / "library.json"
         path.write_bytes(b'{broken JSON')
         with self.assertRaises(HTTPException) as caught:
-            await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"])
+            await gateway.refresh_tool_library_metadata(self.upload(), preview["revision"], x_conn_key=self.conn_key)
         self.assertEqual(caught.exception.status_code, 400)
         self.assertEqual(path.read_bytes(), b'{broken JSON')
         self.assertEqual(gateway._tool_table_version, 10)

@@ -76,6 +76,22 @@ export function sectionSaveState(section: string): SectionSaveState | null {
   return s.sentRev === s.rev ? "saving" : "pending";
 }
 
+/** The section's latest revision (0 = never changed) — defaults.ts tags
+ *  a protected section's draft with it (button gates BG-19). */
+export function sectionRev(section: string): number {
+  return _sections.get(section)?.rev ?? 0;
+}
+
+/** Did the gateway confirm revision `rev` of the section, or a later one? */
+export function sectionAcked(section: string, rev: number): boolean {
+  return (_sections.get(section)?.ackedRev ?? 0) >= rev;
+}
+
+/** Was revision `rev` refused, unsendable or not found on the server? */
+export function sectionFailed(section: string, rev: number): boolean {
+  return (_sections.get(section)?.failedRev ?? 0) >= rev;
+}
+
 /** JSON with sorted object keys, so a blob the gateway re-serialised
  *  compares equal to the data this client sent. */
 export function stableJson(v: unknown): string {

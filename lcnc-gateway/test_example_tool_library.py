@@ -127,9 +127,10 @@ class TestExampleRoutes(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(data['total'], 36)
         self.assertEqual(self.table.read_bytes(), self.table_bytes)
         with patch.object(gateway, '_persist_imported_tools', new_callable=AsyncMock) as persist:
-            result = await gateway.apply_tool_library_import(self.upload(RAW))
+            result = await gateway.apply_tool_library_import(self.upload(RAW), x_conn_key=self.conn_key)
             self.assertEqual(result['added'], 36)
-            _, table, library = persist.call_args.args
+            _, table, library, key = persist.call_args.args
+            self.assertEqual(key, self.conn_key)   # the writer's connection (button gates BG-14)
             self.assertEqual([t['Z'] for t in table], [initial_z_offset(t) for t in data['tools']])
             self.assertTrue(all(t['Z'] > 0 for t in table))
             self.assertEqual(library['1001']['oal'], 76)
@@ -144,7 +145,7 @@ class TestExampleRoutes(unittest.IsolatedAsyncioTestCase):
         self.store.save({str(t['T']): t for t in tools if t['T'] in (1001, 2001)})
         preview = json.loads((await gateway.import_tool_library(self.upload(RAW))).body)['metadata_refresh']
         self.assertEqual(preview['updated'], [1001, 2001])
-        result = await gateway.refresh_tool_library_metadata(self.upload(RAW), preview['revision'])
+        result = await gateway.refresh_tool_library_metadata(self.upload(RAW), preview['revision'], x_conn_key=self.conn_key)
         self.assertEqual(result['updated'], 2)
         self.assertEqual(self.table.read_bytes(), self.table_bytes)
         self.assertTrue(self.store.load()['1001']['is_example'])

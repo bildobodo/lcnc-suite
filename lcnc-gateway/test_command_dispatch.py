@@ -35,8 +35,9 @@ def _payload(**over):
         interp_state=linuxcnc.INTERP_IDLE, paused=False, eoffset_enabled=False,
         rotary_at_zero=True,
         # The HAL reader is fresh: its values count as policy inputs (button
-        # gates BG-12 — a snapshot that does not say is stale).
-        reader_fresh=True,
+        # gates BG-12 — a snapshot that does not say is stale) — and iocontrol
+        # asks for no tool change.
+        reader_fresh=True, tool_change_requested=False,
     )
     base.update(over)
     return SimpleNamespace(**base)
@@ -1395,8 +1396,12 @@ class TestToolPersistenceLock(unittest.TestCase):
         # Spy: record whether _cmd_lock is held at the moment each file is written.
         gateway.write_tool_table = lambda p, t: seen.__setitem__("table", gateway._cmd_lock.locked())
         gateway.save_tool_library = lambda lib: seen.__setitem__("lib", gateway._cmd_lock.locked())
+        from writer_fixture import armed_writer   # the import's writer (button gates BG-14)
+        key = armed_writer(self)
+        gateway.STAT = linuxcnc.stat()
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         try:
-            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}))
+            _run(gateway._persist_imported_tools("/tmp/ignored.tbl", [], {}, key))
         finally:
             gateway.write_tool_table, gateway.save_tool_library = orig_w, orig_s
         self.assertTrue(seen.get("table"), "_cmd_lock not held during tool-table write")

@@ -105,6 +105,15 @@ export type Permissions = {
   safety: boolean;
   /** setup: armed + estop cleared + idle (admin ops, no enabled needed) */
   setup: boolean;
+  /** sourceWrite: a program or macro FILE write — armed, the interpreter
+   *  KNOWN idle (E-Stop allowed: maintenance), no start, run-from-line or
+   *  program change in progress. The gateway checks it again at the commit,
+   *  for the writer's own connection (button gates BG-14). */
+  sourceWrite: boolean;
+  /** toolTableWrite: sourceWrite + no M6 request pending (the tool table
+   *  is what a tool change reads). Every tool-table writer: the WS edits,
+   *  the library import, the metadata refresh (BG-14). */
+  toolTableWrite: boolean;
   /** armed: client is armed — outer content gate, allows nav during E-Stop */
   armed: boolean;
   /** always: unconditional — only for Arm and E-Stop */
@@ -116,7 +125,7 @@ export const GATE_NAMES = [
   "idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "pause", "resume", "step",
   "abort", "spindleStop", "toolChangeConfirm", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
   "surfaceComp",
-  "safety", "setup", "armed", "always",
+  "safety", "setup", "sourceWrite", "toolTableWrite", "armed", "always",
 ] as const;
 
 /**
@@ -128,7 +137,7 @@ export const GATE_NAMES = [
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
   "idle", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "probe", "zero", "touchoff", "touchoffRotary",
-  "twpCapture", "surfaceComp", "setup",
+  "twpCapture", "surfaceComp", "setup", "sourceWrite", "toolTableWrite",
 ]);
 
 /**
@@ -137,10 +146,14 @@ const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
  * every machine-action gate must be closed — the display is intentionally
  * wrong, so acting on it is the hazard. `always` keeps Arm/E-Stop, `armed`
  * keeps navigation, `setup` keeps file browsing (loading a file exits sim).
+ * The file and tool-table writes (sourceWrite, toolTableWrite) took over
+ * what `setup` gated there and stay open the same way: a write moves
+ * nothing, and the simulation is how a program is checked before it is
+ * saved (button gates B — a decision, not an accident).
  * `safety` is deliberately NOT here: Machine On requires exiting sim first.
  */
 const SIM_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "always", "armed", "setup",
+  "always", "armed", "setup", "sourceWrite", "toolTableWrite",
 ]);
 
 /**
@@ -162,9 +175,11 @@ export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
  * `always` is unconditional; a stop (STOP_GATES) is the backend's decision
  * alone; every other gate requires `armed`; busy-subset gates also require
  * `!busy`. Absent backend perms (before the first status)
- * yield all-false except `always` — the safe default.
+ * yield all-false except `always` — the safe default. A class the gateway
+ * does not ship is CLOSED, never read from another one (button gates
+ * BG-15: the old fallback opened Cycle Start, the machine-frame routines
+ * and → Zero on `ready` alone); its reason says to restart the gateway.
  */
-let _warnedNoRun = false;
 export function applyClientOverlay(
   machine: MachinePermissions | null | undefined,
   armed: boolean,
@@ -172,14 +187,6 @@ export function applyClientOverlay(
   sim: boolean = false,
 ): Permissions {
   const out = {} as Permissions;
-  // Mixed-version window (2026-09-03): a gateway that predates the `run`
-  // class ships no `run` key. Read it as `ready` (its old gate) and say so
-  // once, instead of dimming Cycle Start until the restart.
-  if (machine && machine.ready !== undefined
-      && (machine.run === undefined || machine.machineFrame === undefined || machine.goZero === undefined)) {
-    if (!_warnedNoRun) { _warnedNoRun = true; console.warn("[permissions] backend ships no 'run' / 'machineFrame' / 'goZero' class — using 'ready' until the gateway restarts"); }
-    machine = { run: machine.ready, machineFrame: machine.ready, goZero: machine.ready, ...machine };
-  }
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
     if (STOP_GATES.has(g)) { out[g] = !!machine?.[g]; continue; }
@@ -205,27 +212,35 @@ export const CLIENT_REASONS = {
   notArmed: "Not armed — press Arm",
   settling: "Busy — the last command is still running",
   sim: "Simulation mode — exit the simulation first",
+  /** A status that carries permissions but not this class: the gateway
+   *  predates it (BG-15). */
+  unknownClass: "Gateway lacks this permission — restart it",
 } as const;
 
 /** The reasons twin of applyClientOverlay: the client-local terms explain
  *  themselves (armed / busy / sim), else the backend's reason rides through.
- *  A gate closed by the backend without a shipped reason (an older gateway)
- *  stays unexplained — dimmed as before, never a made-up sentence. */
+ *  A gate closed by the backend without a shipped reason stays unexplained —
+ *  dimmed, never a made-up sentence. A class missing from a status that
+ *  carries permissions (`perms`, the boolean dict) is named as such (BG-15);
+ *  before the first status there is nothing to compare against. */
 export function applyClientOverlayReasons(
   machine: Partial<Record<string, string>> | null | undefined,
   armed: boolean,
   busy: boolean,
   sim: boolean = false,
+  perms?: MachinePermissions | null,
 ): PermissionReasons {
   const out: PermissionReasons = {};
   for (const g of GATE_NAMES) {
     if (g === "always") continue;
+    const unknown = perms != null && perms[g] === undefined;
     if (STOP_GATES.has(g)) {
-      const r = machine?.[g];
+      const r = unknown ? CLIENT_REASONS.unknownClass : machine?.[g];
       if (r) out[g] = r;
       continue;
     }
     if (!armed) { out[g] = CLIENT_REASONS.notArmed; continue; }
+    if (unknown) { out[g] = CLIENT_REASONS.unknownClass; continue; }
     if (sim && !SIM_GATES.has(g)) { out[g] = CLIENT_REASONS.sim; continue; }
     if (busy && BUSY_GATES.has(g)) { out[g] = CLIENT_REASONS.settling; continue; }
     const r = machine?.[g];

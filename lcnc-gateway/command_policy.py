@@ -172,6 +172,8 @@ _R_PAUSED = (lambda s: s.is_paused, "No program paused")
 # the spindle (button gates BG-18) — the dimmed stop names the stops that work.
 SPINDLE_OWNED = "Program owns the spindle — use Pause or Abort"
 _R_SPINDLE_FREE = (lambda s: s.is_idle, SPINDLE_OWNED)
+_R_NO_TOOL_CHANGE = (lambda s: s.tool_change_pending is False,
+                     "Tool change pending — finish it first")
 _R_TOOL_CHANGE_KNOWN = (lambda s: s.tool_change_pending is not None,
                         "Tool change request unknown — HAL reader stale")
 _R_TOOL_CHANGE_PENDING = (lambda s: s.tool_change_pending is True,
@@ -598,6 +600,14 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     # handler-side (require_no_rotary_tilt) and inside surface_scan.ngc, which
     # also covers an operator typing the MDI by hand.
     "surfaceComp": _BASE + _IDLE + (_R_HOMED,) + _NO_EOFFSET + (_R_ROTARY_ZERO,),
+    # Program / macro maintenance (button gates BG-14): armed and the
+    # interpreter KNOWN idle — no E-Stop or power term, the files are not the
+    # machine. The commit adds what the snapshot cannot see (gateway
+    # _write_admission_refusal): the writer's own connection, no start claim,
+    # no load / run-from-line transaction, a CURRENT idle read.
+    "sourceWrite": (_R_ARMED,) + _IDLE,
+    # The tool table: the same, and no tool change asking for a tool.
+    "toolTableWrite": (_R_ARMED,) + _IDLE + (_R_TOOL_CHANGE_KNOWN, _R_NO_TOOL_CHANGE),
     "safety":   (_R_ARMED, _R_NOT_ESTOP),            # no `enabled` — Machine On/Off
     "setup":    (_R_ARMED, _R_NOT_ESTOP) + _IDLE,    # no `enabled` — admin/idle ops
     "armed":    (_R_ARMED,),
@@ -736,11 +746,12 @@ COMMAND_GATES: Dict[str, str] = {
     "read_g30": "idle",
     "capture_g30": "g30Capture",
     "set_g30": "machineFrame",
-    # --- tool-table edits (no machine-enabled needed) ---
-    "save_tool": "setup",
-    "add_tool": "setup",
-    "delete_tool": "setup",
-    "renumber_tool": "setup",
+    # --- tool-table edits (button gates BG-14: E-Stop allowed, no pending
+    #     tool change; the handler re-checks at the write) ---
+    "save_tool": "toolTableWrite",
+    "add_tool": "toolTableWrite",
+    "delete_tool": "toolTableWrite",
+    "renumber_tool": "toolTableWrite",
     # --- file ops ---
     "load_file": "setup",
     "unload_file": "setup",

@@ -20,7 +20,7 @@ const PERMS_ALL = {
   resume: false, step: true, abort: true, spindleStop: true, probe: true, zero: true,
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
-  surfaceComp: true, safety: true, setup: true, armed: true, always: true,
+  surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
 };
 const MACHINE_CMDS = ["cycle_start", "cycle_pause", "cycle_resume", "abort", "jog_cont", "jog_incr",
   "go_to_zero", "touchoff", "set_kins_mode", "home_all", "machine_on", "estop", "mdi", "twp_capture", "save_settings",
