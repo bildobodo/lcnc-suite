@@ -3317,9 +3317,10 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     WRITE `cmd_fn(*args)` is never interrupted.
 
     `admit`: a program start's last check (button gates BG-09 / BG-12, Codex
-    R206) — run after every awaited preparation here (the run basis, the
-    start claim) and right before the write; a refusal raises _StartRefused
-    with nothing written.
+    R206/R207) — run INSIDE the write's own thread, right before
+    `cmd_fn(*args)`: after every awaited preparation here (the run basis, the
+    start claim) and after the executor queue the write waited in. A refusal
+    raises _StartRefused with nothing written.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
@@ -3347,16 +3348,15 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
         if run_basis is not None:
             run_basis["state"] = "unsent"   # cancelled before the write: no run
         raise
-    if admit is not None:
-        refused = admit()
-        if refused:
-            if claim is not None:
-                claim.state = "unsent"   # nothing reached the controller
-            if run_basis is not None:
-                run_basis["state"] = "unsent"
-            raise _StartRefused(refused)
-
     def _run():
+        if admit is not None:
+            refused = admit()
+            if refused:
+                if claim is not None:
+                    claim.state = "unsent"   # nothing reached the controller
+                if run_basis is not None:
+                    run_basis["state"] = "unsent"
+                raise _StartRefused(refused)
         try:
             cmd_fn(*args)
         except BaseException:

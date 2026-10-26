@@ -81,8 +81,9 @@ the server re-checks before the effect. Package A closed what made that false:
   CONTROLLER (`_program_start_refusal`: the fixture from a STAT poll, kins and
   plane from the reader now — the broadcast's `reader_fresh` was the freshness
   when it was built, R205), early in `_start_guard(program=True)` and again at
-  the write itself (`_cmd_blocking(..., admit=)`, after the mode switch, the
-  run basis and the start claim — R206; `_StartRefused`, nothing written), for
+  the write itself (`_cmd_blocking(..., admit=)`, inside the write's own thread
+  right before `cmd_fn` — after the mode switch, the run basis, the start claim
+  and the executor queue, R206/R207; `_StartRefused`, nothing written), for
   Cycle Start, Step from idle and both run-from-line paths (the sequence's
   AUTO_RUN minutes after its handler). Never for an MDI line, the way out of a
   stranded frame. Plane kins needs G59 KNOWN: an unread fixture refuses
@@ -106,7 +107,9 @@ the server re-checks before the effect. Package A closed what made that false:
   one, and a second confirmation of a request. The dialog's Confirm is rebuilt
   per request (`:key`) — a press begun on T7 confirms nothing after T9 replaced
   it. A request is booked as confirmed only when `watchdog_send` reports the
-  message DELIVERED (R206: True / False = nothing written / None = unclear); a
+  message DELIVERED (R206: True / False = nothing written / None = unclear; a
+  frame cut by a timeout is ended invalid with `#\n` before the next one, so the
+  watchdog drops it and never applies it late or joins it to the next — R207); a
   refused or unclear confirmation shows in the dialog and a deliberate press
   tries again, bound to the same request. Boundary: two requests for the SAME
   tool whose low phase falls between two polls stay one observed request.

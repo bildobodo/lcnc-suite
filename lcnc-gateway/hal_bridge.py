@@ -154,6 +154,11 @@ class HalBridge:
         )
         # Session-binding state (watchdog): idle | awaiting | admitted | legacy
         self._wd_state = "idle"
+        # A timeout part-way through a frame may have left its start in the
+        # stream (button gates BG-20, Codex R207): the next frame first ends
+        # that line INVALID, so the watchdog drops it — never joins it to the
+        # next message, never applies it late. A new connection is clean.
+        self._wd_frame_open = False
         self._wd_rx = b""
         self._wd_await_since = 0.0
         self._wd_backoff_until = 0.0
@@ -246,6 +251,7 @@ class HalBridge:
             self._wd_sock = sock
             self._wd_state = "awaiting"
             self._wd_rx = b""
+            self._wd_frame_open = False   # a new stream: no interrupted frame
             self._wd_await_since = now
             _prior_fails = self._wd_connect_fails.success()
             if _prior_fails:
@@ -267,6 +273,7 @@ class HalBridge:
             self._wd_sock = None
         self._wd_state = "idle"
         self._wd_rx = b""
+        self._wd_frame_open = False
 
     def _wd_peer_closed(self, detail: str) -> None:
         _trace.emit("hal.peer_closed", level="warn", detail=detail)
@@ -361,9 +368,16 @@ class HalBridge:
         if self._wd_sock is None:
             return False  # rejected / closed while draining the verdict
         _send_t0 = time.monotonic()
+        frame = (json.dumps(msg) + "\n").encode()
+        if self._wd_frame_open:
+            # "#" can never complete a JSON object: whatever part of the
+            # interrupted frame arrived is a malformed line the watchdog skips
+            # (wd.bad_msg) — then this frame starts on a clean line.
+            frame = b"#\n" + frame
         try:
-            self._wd_sock.sendall((json.dumps(msg) + "\n").encode())
+            self._wd_sock.sendall(frame)
         except _socket.timeout:
+            self._wd_frame_open = True
             # Kernel send buffer full — watchdog process is scheduling-
             # delayed (or hung). Drop this message and DON'T block the loop
             # waiting for buffer space. The heartbeat task continues firing;
@@ -388,6 +402,7 @@ class HalBridge:
                 _trace.emit("hal.send_disconnect", level="warn",
                             msg_keys=list(msg.keys()))
             return False
+        self._wd_frame_open = False
         _send_dt = (time.monotonic() - _send_t0) * 1000
         if _send_dt > 30:
             _trace.emit("hal.send_slow", level="warn",
