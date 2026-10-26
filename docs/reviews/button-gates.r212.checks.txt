@@ -1,0 +1,31 @@
+R212 / 2026-10-26 — implementation review, fake LinuxCNC only.
+Product: e2fb79f6; requested head including evidence: 632ee435.
+Product worktree /home/cnc/lcnc-suite-gates read only. Live review head bda3d51f.
+Own archive: /tmp/codex-r212-j7hhfq50/repo
+Archive inputs: lcnc-gateway scripts examples subroutines test-fixtures docs/architecture CLAUDE.md.
+No builds/tests/checkouts in either shared worktree. No live ports or machine commands.
+
+Backend suite:
+  Copy docs/reviews/button-gates.r211.backend.py UNCHANGED to archive lcnc-gateway/test_codex_r211.py.
+  cd <archive>/lcnc-gateway
+  timeout -k 3s 130s /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python -m pytest -q -o addopts= test_codex_r211.py test_button_gates_b_commit.py test_button_gates_b.py test_settings_store.py test_macros_gateway.py test_upload_conflict.py test_tool_refresh.py test_freecad_import.py test_command_dispatch.py test_ws_command_worker.py
+  302 PASS + 295 subtests PASS, 21.36 seconds; exit 0.
+  Includes all eleven unchanged R211 probes plus the nineteen adopted/extended R212 guards.
+  The count includes overlap between the original probes and the adopted guards.
+
+Additional independent probes:
+  Copy button-gates.r212.backend.py to archive lcnc-gateway/test_codex_r212.py.
+  timeout -k 3s 60s /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python -m pytest -vv -s -o addopts= test_codex_r212.py
+  10/10 PASS, 0.40 seconds; exit 0.
+  Five late-cancel cases: WS at reload, metadata read, metadata write; HTTP at reload and metadata write.
+  WS uses actual _preempt_inflight, twice; HTTP cancels its request task twice.
+  Real _reload_tool_table_and_bump and _cmd_blocking against fake CMD.
+  Another client's disarmed Abort waits, then reaches fake CMD after metadata completion.
+  Final order: table -> reload -> metadata -> abort.
+  Settings admission after preparation under the store lock: WS, HTTP, empty reset; display control free.
+  Metadata-only refresh: double cancel keeps lock until persisted and version bumped.
+  Explicit __lcnc_fake__ assertion; real temporary tool.tbl/settings.json files; no real controller.
+
+Frontend unchanged (fcc1b3d4..632ee435 -- lcnc-webui empty), therefore no repeated build/Vitest/browser.
+Claude's backend gate on e2fb79f6 and live write/browser evidence read; live procedures not repeated.
+All own processes finished. New evidence only; no original evidence overwritten and no product edits.

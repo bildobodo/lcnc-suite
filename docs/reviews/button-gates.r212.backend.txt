@@ -1,0 +1,39 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.5, pytest-9.0.3, pluggy-1.6.0 -- /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/codex-r212-j7hhfq50/repo/lcnc-gateway
+configfile: pyproject.toml
+plugins: anyio-4.13.0
+collecting ... [VINIT] session bound to linuxcncsvr pid=2694590 start=38599073
+[VINIT] try_connect_lcnc OK, pid=2694590
+[VINIT] Loaded machine config: 3-Axis Mill
+collected 10 items
+
+test_codex_r212.py::TestLatePreemption::test_http_cancel_in_metadata_write {"case": "test_http_cancel_in_metadata_write", "kind": "http", "stage": "metadata-write", "order": ["table", "reload", "metadata", "abort"], "stop_reply": {"type": "reply", "cmd": "abort", "req_id": "stop", "ok": true}}
+PASSED
+test_codex_r212.py::TestLatePreemption::test_http_cancel_in_reload {"case": "test_http_cancel_in_reload", "kind": "http", "stage": "reload", "order": ["table", "reload", "metadata", "abort"], "stop_reply": {"type": "reply", "cmd": "abort", "req_id": "stop", "ok": true}}
+PASSED
+test_codex_r212.py::TestLatePreemption::test_ws_cancel_in_metadata_read {"case": "test_ws_cancel_in_metadata_read", "kind": "ws", "stage": "metadata-read", "order": ["table", "reload", "metadata", "abort"], "stop_reply": {"type": "reply", "cmd": "abort", "req_id": "stop", "ok": true}}
+PASSED
+test_codex_r212.py::TestLatePreemption::test_ws_cancel_in_metadata_write {"case": "test_ws_cancel_in_metadata_write", "kind": "ws", "stage": "metadata-write", "order": ["table", "reload", "metadata", "abort"], "stop_reply": {"type": "reply", "cmd": "abort", "req_id": "stop", "ok": true}}
+PASSED
+test_codex_r212.py::TestLatePreemption::test_ws_cancel_in_reload {"case": "test_ws_cancel_in_reload", "kind": "ws", "stage": "reload", "order": ["table", "reload", "metadata", "abort"], "stop_reply": {"type": "reply", "cmd": "abort", "req_id": "stop", "ok": true}}
+PASSED
+test_codex_r212.py::TestSettingsPreparation::test_display_control_stays_free {"case": "test_display_control_stays_free", "mode": "ws", "free": true, "version": 1, "exists": true}
+PASSED
+test_codex_r212.py::TestSettingsPreparation::test_empty_reset_still_admits_and_never_bumps_on_refusal {"case": "test_empty_reset_still_admits_and_never_bumps_on_refusal", "mode": "reset", "free": false, "version": 0, "exists": false}
+PASSED
+test_codex_r212.py::TestSettingsPreparation::test_http_admission_after_store_preparation {"case": "test_http_admission_after_store_preparation", "mode": "http", "free": false, "version": 0, "exists": false}
+PASSED
+test_codex_r212.py::TestSettingsPreparation::test_ws_admission_after_store_preparation {"case": "test_ws_admission_after_store_preparation", "mode": "ws", "free": false, "version": 0, "exists": false}
+PASSED
+test_codex_r212.py::TestMetadataRefreshCancellation::test_two_cancels_keep_the_lock_and_publish_the_refresh_version {"case": "test_two_cancels_keep_the_lock_and_publish_the_refresh_version", "version": 301, "dirty": true, "cancelled": true}
+PASSED
+
+============================== 10 passed in 0.40s ==============================
+[GC] +316ms gen=2 duration=9.3ms collected=603 uncollectable=0
+[GC] +323ms gen=2 duration=7.3ms collected=0 uncollectable=0
+[GC] +330ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +337ms gen=2 duration=7.0ms collected=0 uncollectable=0
+[GC] +344ms gen=2 duration=6.5ms collected=0 uncollectable=0
+[GC] +350ms gen=2 duration=6.5ms collected=0 uncollectable=0

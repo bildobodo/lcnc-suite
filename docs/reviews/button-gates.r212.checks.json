@@ -1,0 +1,137 @@
+{
+  "round": "R212",
+  "base": "fcc1b3d4",
+  "head": "632ee435fc99fd5c01439ab8b2e9e19049438662",
+  "product": "e2fb79f6cec19eac3f213f85e32e0e26a50213ff",
+  "live_review_head": "bda3d51fe5efbbb11b56fcd114644c4fe86a330b",
+  "archive": "/tmp/codex-r212-j7hhfq50/repo",
+  "r211_probe_unchanged_sha256": "19e032a09e6cb244d151e38b7b08d6cd79600c27d305bce1bebfd468e58e2925",
+  "frontend_diff_empty": true,
+  "live_ports_used": [],
+  "source_sha256": {
+    "lcnc-gateway/gateway.py": "ed1c7f9355ad3a1dbe041e039e20555d72b721f5a8e79d1892c696c304086626",
+    "lcnc-gateway/settings_store.py": "d27d201df41a7e3f218c33d08ec071f3960e7338e80a5a5b30e2159b34b76e58",
+    "lcnc-gateway/test_button_gates_b_commit.py": "a66f21c092bef932a2b5264620a38eaea025f26a59b3c857671705c78ccf8380"
+  },
+  "probe_cases": [
+    {
+      "case": "test_http_cancel_in_metadata_write",
+      "kind": "http",
+      "stage": "metadata-write",
+      "order": [
+        "table",
+        "reload",
+        "metadata",
+        "abort"
+      ],
+      "stop_reply": {
+        "type": "reply",
+        "cmd": "abort",
+        "req_id": "stop",
+        "ok": true
+      }
+    },
+    {
+      "case": "test_http_cancel_in_reload",
+      "kind": "http",
+      "stage": "reload",
+      "order": [
+        "table",
+        "reload",
+        "metadata",
+        "abort"
+      ],
+      "stop_reply": {
+        "type": "reply",
+        "cmd": "abort",
+        "req_id": "stop",
+        "ok": true
+      }
+    },
+    {
+      "case": "test_ws_cancel_in_metadata_read",
+      "kind": "ws",
+      "stage": "metadata-read",
+      "order": [
+        "table",
+        "reload",
+        "metadata",
+        "abort"
+      ],
+      "stop_reply": {
+        "type": "reply",
+        "cmd": "abort",
+        "req_id": "stop",
+        "ok": true
+      }
+    },
+    {
+      "case": "test_ws_cancel_in_metadata_write",
+      "kind": "ws",
+      "stage": "metadata-write",
+      "order": [
+        "table",
+        "reload",
+        "metadata",
+        "abort"
+      ],
+      "stop_reply": {
+        "type": "reply",
+        "cmd": "abort",
+        "req_id": "stop",
+        "ok": true
+      }
+    },
+    {
+      "case": "test_ws_cancel_in_reload",
+      "kind": "ws",
+      "stage": "reload",
+      "order": [
+        "table",
+        "reload",
+        "metadata",
+        "abort"
+      ],
+      "stop_reply": {
+        "type": "reply",
+        "cmd": "abort",
+        "req_id": "stop",
+        "ok": true
+      }
+    },
+    {
+      "case": "test_display_control_stays_free",
+      "mode": "ws",
+      "free": true,
+      "version": 1,
+      "exists": true
+    },
+    {
+      "case": "test_empty_reset_still_admits_and_never_bumps_on_refusal",
+      "mode": "reset",
+      "free": false,
+      "version": 0,
+      "exists": false
+    },
+    {
+      "case": "test_http_admission_after_store_preparation",
+      "mode": "http",
+      "free": false,
+      "version": 0,
+      "exists": false
+    },
+    {
+      "case": "test_ws_admission_after_store_preparation",
+      "mode": "ws",
+      "free": false,
+      "version": 0,
+      "exists": false
+    },
+    {
+      "case": "test_two_cancels_keep_the_lock_and_publish_the_refresh_version",
+      "version": 301,
+      "dirty": true,
+      "cancelled": true
+    }
+  ]
+}
