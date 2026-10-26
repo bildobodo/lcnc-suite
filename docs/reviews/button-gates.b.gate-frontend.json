@@ -1,0 +1,34 @@
+{
+  "head": "1f817ab9",
+  "uncommitted": 0,
+  "note": "package B at HEAD, Playwright alone (run 2)",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 16
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 440,
+      "tests": "160 files, 2606 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "PASS",
+      "seconds": 2565,
+      "tests": "584 passed",
+      "note": "run alone"
+    }
+  ]
+}

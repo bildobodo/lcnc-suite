@@ -1,0 +1,35 @@
+# settingsDraft.test.ts against mutations of defaults.ts (each restored after its run)
+
+## M1 loadSection reads this tab's cache for a protected section (the old optimistic read)
+× a refused save changes no key; the form keeps the draft 4ms
+× a foreign blob keeps the draft and the server's map; nothing is resent later 1ms
+× the server holding the draft makes it act, and the draft ends 0ms
+× a draft on its way rides along with another writer's change 0ms
+× an older confirmation never activates a newer draft 0ms
+× a second change is saved onto the first (the draft is the base) 1ms
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a refused save changes no key; the form keeps the draft
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a foreign blob keeps the draft and the server's map; nothing is resent later
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > the server holding the draft makes it act, and the draft ends
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a draft on its way rides along with another writer's change
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > an older confirmation never activates a newer draft
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a second change is saved onto the first (the draft is the base)
+Tests  6 failed | 3 passed (9)
+
+## M2 a server blob replaces the drafts (the old full replace)
+× a foreign blob keeps the draft and the server's map; nothing is resent later 3ms
+× a draft on its way rides along with another writer's change 1ms
+× an older confirmation never activates a newer draft 0ms
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a foreign blob keeps the draft and the server's map; nothing is resent later
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a draft on its way rides along with another writer's change
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > an older confirmation never activates a newer draft
+Tests  3 failed | 6 passed (9)
+
+## M3 a failed draft outlives another writer's change
+× a refused draft ends when another writer changes the section: the form follows the server 3ms
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a refused draft ends when another writer changes the section: the form follows the server
+Tests  1 failed | 8 passed (9)
+
+## M4 a read-modify-write saves onto the active section
+× a second change is saved onto the first (the draft is the base) 3ms
+FAIL  src/settingsDraft.test.ts > a protected section acts only once the server holds it (BG-19) > a second change is saved onto the first (the draft is the base)
+Tests  1 failed | 8 passed (9)
