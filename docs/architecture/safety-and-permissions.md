@@ -109,7 +109,10 @@ the server re-checks before the effect. Package A closed what made that false:
   it. A request is booked as confirmed only when `watchdog_send` reports the
   message DELIVERED (R206: True / False = nothing written / None = unclear; a
   frame cut by a timeout is ended invalid with `#\n` before the next one, so the
-  watchdog drops it and never applies it late or joins it to the next — R207); a
+  watchdog drops it and never applies it late or joins it to the next — R207;
+  one writer owns the stream, `HalBridge._wd_lock` over send, connect and
+  disconnect: a send waits at most `_WD_SEND_WAIT` 60 ms for another in flight,
+  else returns False, nothing written — R208); a
   refused or unclear confirmation shows in the dialog and a deliberate press
   tries again, bound to the same request. Boundary: two requests for the SAME
   tool whose low phase falls between two polls stay one observed request.

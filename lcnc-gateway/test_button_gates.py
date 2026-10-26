@@ -952,6 +952,31 @@ class TestWatchdogSendSaysWhatHappened(unittest.TestCase):
     def test_a_helper_still_deciding_is_unclear(self):
         self.assertIsNone(self._bridge(SocketDouble(False), state="awaiting").watchdog_send({"x": 1}))
 
+    def test_a_busy_stream_is_refused_bounded_and_writes_nothing(self):
+        # Codex R208: one writer at a time; a second waits only briefly and
+        # reports "nothing written" — the heartbeat on the event loop stays
+        # bounded, nothing is queued for later.
+        sock = SocketDouble(False)
+        b = self._bridge(sock)
+        held, release = threading.Event(), threading.Event()
+
+        def hold():
+            with b._wd_lock:
+                held.set()
+                release.wait(2)
+        t = threading.Thread(target=hold)
+        t.start()
+        held.wait(2)
+        import time as _time
+        t0 = _time.monotonic()
+        r = b.watchdog_send({"heartbeat": True})
+        waited = _time.monotonic() - t0
+        release.set()
+        t.join(2)
+        self.assertIs(r, False)
+        self.assertLess(waited, 0.5)
+        self.assertEqual(sock.delivered, [])
+
     def test_a_broken_socket_wrote_nothing(self):
         class Broken:
             def sendall(self, _d):
