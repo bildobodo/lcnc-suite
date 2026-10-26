@@ -1322,12 +1322,14 @@ def _get_var_file_lock() -> asyncio.Lock:
 
 
 async def _thread_to_end(inner):
-    """Await a thread's future to its END. A cancel — a second one too —
-    waits for the thread before it propagates, so a lock the caller holds
-    is never released under an operation still running (the _cmd_blocking
-    principle: a thread cannot be cancelled). For the parameter file's
-    writers and the macro writers' publish under _source_lock (Codex R70
-    VP-I29: a cancelled PUT left the lock while its os.replace still ran)."""
+    """Await a thread's future — or an admitted write section's task — to its
+    END. A cancel — a second one too — waits for it before it propagates, so
+    a lock the caller holds is never released under an operation still
+    running (the _cmd_blocking principle: a thread cannot be cancelled). For
+    the parameter file's writers, the macro writers' publish under
+    _source_lock (Codex R70 VP-I29: a cancelled PUT left the lock while its
+    os.replace still ran) and the tool table's write + reload + metadata
+    under _cmd_lock (button gates BG-22, Codex R211)."""
     try:
         return await asyncio.shield(inner)
     except asyncio.CancelledError:
@@ -2815,9 +2817,10 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
     thread-safety contract requires that lock. The REST import previously
     bypassed `_cmd_lock`, so it could both race those handlers on tool.tbl /
     tool_library.json (lost update) AND call `_cmd_blocking` without the lock.
-    The blocking file writes run off the event loop via `run_in_executor`."""
-    loop = asyncio.get_event_loop()
-
+    The blocking file writes run off the event loop in threads.
+    The admitted section — table, reload, metadata — runs to its END under
+    the lock even when the request is cancelled (button gates BG-22, Codex
+    R211; like _persist_tool_edit)."""
     def _replace():
         # Admitted at the write itself (button gates BG-14): the writer's
         # connection, the toolTableWrite rule on a current read.
@@ -2825,10 +2828,13 @@ async def _persist_imported_tools(tbl_path: str, tbl_tools: list, library: dict,
         if why:
             raise HTTPException(status_code=409, detail=why)
         write_tool_table(tbl_path, tbl_tools)
-    async with _get_cmd_lock():
-        await loop.run_in_executor(None, _replace)
+
+    async def section():
+        await asyncio.to_thread(_replace)
         await _reload_tool_table_and_bump()
-        await loop.run_in_executor(None, save_tool_library, library)
+        await asyncio.to_thread(save_tool_library, library)
+    async with _get_cmd_lock():
+        await _thread_to_end(asyncio.ensure_future(section()))
 
 
 def _current_ini_path() -> str:
@@ -2892,12 +2898,13 @@ def load_settings() -> dict:
     return _settings_store.load()
 
 
-def save_settings_section(section: str, data):
-    _settings_store.save_section(section, data)
+def save_settings_section(section: str, data, admit=None):
+    """`admit` decides inside the store's lock (button gates BG-24)."""
+    _settings_store.save_section(section, data, admit)
 
 
-def reset_settings():
-    _settings_store.reset()
+def reset_settings(admit=None):
+    _settings_store.reset(admit)
 
 
 # _merge_tool_data now lives in tool_table.py (imported at top, #33).
@@ -3122,21 +3129,6 @@ def _release_start_claims(polled_at: Optional[float] = None) -> None:
         keep.append(c)
     _source_claims[:] = keep
 
-
-def _source_write_refusal() -> Optional[str]:
-    """Under _source_lock: why a macro write may not publish NOW, or None."""
-    if _source_claims:
-        return "A macro or program is starting or running — wait"
-    if STAT is None:
-        return None   # no controller connected: nothing reads the files
-    try:
-        STAT.poll()
-    except Exception as e:  # noqa: BLE001 - no fresh read, no write
-        _trace.emit_exc("source.write_poll_failed", e)
-        return "Machine status not read — try again"
-    if safe_get("interp_state", None) != getattr(linuxcnc, "INTERP_IDLE", 1):
-        return "A macro or program runs — wait"
-    return None
 
 
 # ---- The run basis (plan „Prüfung im Lauf“ 1a/1b, Codex R112–R115) ----
@@ -3720,21 +3712,20 @@ def _require_writer(conn_key) -> None:
         raise HTTPException(status_code=403, detail=why)
 
 
-def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
-                             ws_armed: Optional[bool] = None) -> Optional[str]:
+def _write_admission_refusal(conn_key=None, *, tool_table: bool = False) -> Optional[str]:
     """May a program / macro / tool-table write publish NOW? None = yes, else
     the refusal — the commit-time half of sourceWrite / toolTableWrite
     (button gates BG-14). Called at the commit itself, inside the
     serialization a start registers under (_source_lock, or _cmd_lock for
-    the tool table), on a CURRENT read: the writer (an HTTP write's
-    connection, a WS command's own arm), no start claim open, no run from
-    line and no load / unload in progress, the interpreter idle by a poll that
-    succeeded now, and for the tool table no tool change asking for a tool
-    (a FRESH reader). E-Stop does not refuse: the files are not the machine."""
-    if ws_armed is not None:
-        why = None if ws_armed else NOT_ARMED
-    else:
-        why = _writer_refusal(conn_key)
+    the tool table), on a CURRENT read: the writer's connection — an HTTP
+    write's X-Conn-Key, a WS command's own connection — registered and armed
+    NOW (Codex R211 BG-23: never the arm the dispatcher saw), no start claim
+    open, no run from line and no load / unload in progress, a controller
+    status (none is no known idle, BG-26), the interpreter idle by a poll
+    that succeeded now, and for the tool table no tool change asking for a
+    tool (a FRESH reader). E-Stop does not refuse: the files are not the
+    machine."""
+    why = _writer_refusal(conn_key)
     if why:
         return why
     if _source_claims:
@@ -3744,17 +3735,18 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
         return why
     if _status_runtime.program_changing:
         return "A program is loading — wait"
-    if STAT is not None:
-        try:
-            STAT.poll()
-        except Exception as e:  # noqa: BLE001 - no fresh read, no write
-            _trace.emit_exc("write.stat_poll_failed", e)
-            return "Machine status not read — try again"
-        interp = safe_get("interp_state", None)
-        if interp is None:
-            return STATE_UNKNOWN
-        if interp != linuxcnc.INTERP_IDLE:
-            return "A program or MDI runs — wait"
+    if STAT is None:
+        return STATE_UNKNOWN
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no fresh read, no write
+        _trace.emit_exc("write.stat_poll_failed", e)
+        return "Machine status not read — try again"
+    interp = safe_get("interp_state", None)
+    if interp is None:
+        return STATE_UNKNOWN
+    if interp != linuxcnc.INTERP_IDLE:
+        return "A program or MDI runs — wait"
     if tool_table:
         pending = _reader_fresh_get("tool_change")
         if pending is None:
@@ -3764,29 +3756,73 @@ def _write_admission_refusal(conn_key=None, *, tool_table: bool = False,
     return None
 
 
-def _write_tool_table_admitted(tbl_path: str, tools: list, armed: bool) -> None:
+def _write_tool_table_admitted(tbl_path: str, tools: list, conn_key) -> None:
     """A WS tool edit's write, admitted at the write itself, in its thread
-    (button gates BG-14); the handler holds _cmd_lock, which every start
-    needs. A refusal is a PermissionError — the bounded reply."""
-    why = _write_admission_refusal(ws_armed=armed, tool_table=True)
+    (button gates BG-14): its connection armed NOW (BG-23); the handler
+    holds _cmd_lock, which every start needs. A refusal is a PermissionError
+    — the bounded reply."""
+    why = _write_admission_refusal(conn_key, tool_table=True)
     if why:
         raise PermissionError(why)
     write_tool_table(tbl_path, tools)
 
 
-def _settings_write_refusal(section: str, armed: bool) -> Optional[str]:
-    """settingsWrite(section) for a WS save (button gates BG-19): a display
-    section needs no arm, every other the writer's — no idle, no power."""
-    return NOT_ARMED if (section_needs_arm(section) and not armed) else None
+async def _persist_tool_edit(tbl_path: str, tools: list, conn_key, update_library,
+                             *, meta_dirty: bool = False) -> None:
+    """A WS tool edit's persist as ONE section, to its END (button gates
+    BG-22, Codex R211): the table write (admitted in its thread), the reload
+    into LinuxCNC, then the metadata — `update_library(library)` changes the
+    loaded tool_library in place before it is saved. The caller holds
+    _cmd_lock (handle_command). An abort preempts WS handlers: a cancel — a
+    second one too — waits for the section before it propagates, so the
+    lock never passes to the next writer under a write still running, and an
+    admitted table never goes without its reload and its metadata. A refusal
+    raises before anything is written. The cost to the abort that waits for
+    the lock: one table write, one load_tool_table (no wait_complete), one
+    library read and write."""
+    async def section():
+        global _tool_meta_dirty
+        await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tools, conn_key)
+        await _reload_tool_table_and_bump()
+        library = await asyncio.to_thread(load_tool_library)
+        update_library(library)
+        await asyncio.to_thread(save_tool_library, library)
+        if meta_dirty:
+            _tool_meta_dirty = True
+    await _thread_to_end(asyncio.ensure_future(section()))
 
 
-def _save_section_admitted(section: str, data, refusal) -> None:
-    """Save a settings section, its admission decided in the SAME executor
-    call right before the write; a refusal is a PermissionError."""
-    why = refusal()
-    if why:
-        raise PermissionError(why)
-    save_settings_section(section, data)
+def _settings_admission(section: Optional[str], conn_key):
+    """settingsWrite(section) as the store's commit check (button gates
+    BG-19, BG-24): a display section needs no arm; every other — and the
+    global reset (`section` None) — the writer's connection, registered and
+    armed when the store's lock is held; no idle, no power. Raises a
+    PermissionError to refuse. ONE rule for WS, HTTP, the beacon, the reset."""
+    def admit():
+        why = _writer_refusal(conn_key) if section is None or section_needs_arm(section) else None
+        if why:
+            raise PermissionError(why)
+    return admit
+
+
+async def _ws_save_settings(client, msg: Dict[str, Any]) -> Dict[str, Any]:
+    """A WS `save_settings`: the reply (button gates BG-19/BG-24). Admitted
+    inside the store's lock for this client's connection, like the HTTP save.
+    The Settings header's save status matches THIS reply to the save it sent
+    by req_id (UX-08): every path echoes it, or the header reads "Saving…"
+    forever on a real gateway."""
+    echo = {"cmd": "save_settings", **_req_echo(msg)}
+    section = msg.get("section", "")
+    if section not in _VALID_SETTINGS_SECTIONS:
+        return {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}", **echo}
+    try:
+        await asyncio.to_thread(save_settings_section, section, msg.get("data"),
+                                _settings_admission(section, client.conn_key))
+    except PermissionError as pe:
+        return {"type": "reply", "ok": False, "error": str(pe), **echo}
+    except Exception as se:
+        return {"type": "reply", "ok": False, "error": f"{type(se).__name__}: {se}", **echo}
+    return {"type": "reply", "ok": True, **echo}
 
 
 # The tool-change request the gateway last confirmed (button gates BG-17):
@@ -4545,14 +4581,16 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
     return file_ok, mdi_ok
 
 
-async def handle_command(msg: Dict[str, Any], armed: bool):
+async def handle_command(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     # Acquire the CMD lock before dispatching. Every path that touches CMD.*
-    # must hold this lock; see _cmd_lock docstring.
+    # must hold this lock; see _cmd_lock docstring. `armed` is the client's
+    # arm at dispatch; `conn_key` its connection, which a protected write
+    # reads again at its commit (button gates BG-23, Codex R211).
     async with _get_cmd_lock():
-        return await _handle_command_impl(msg, armed)
+        return await _handle_command_impl(msg, armed, conn_key)
 
 
-async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
+async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optional[str] = None):
     global _estop_hold, _skip_flag_unknown
     cmd = msg.get("cmd")
     if not cmd:
@@ -4978,20 +5016,14 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if not found:
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
 
-            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tbl_tools, armed)
-            await _reload_tool_table_and_bump()
-
-            # Update metadata
-            library = await asyncio.to_thread(load_tool_library)
-            key = str(tool_num)
-            if key not in library:
-                library[key] = {}
-            for field in _TOOL_META_FIELDS:
-                if field in msg:
-                    library[key][field] = msg[field]
-            await asyncio.to_thread(save_tool_library, library)
-            global _tool_meta_dirty
-            _tool_meta_dirty = True
+            def update(library):
+                key = str(tool_num)
+                if key not in library:
+                    library[key] = {}
+                for field in _TOOL_META_FIELDS:
+                    if field in msg:
+                        library[key][field] = msg[field]
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update, meta_dirty=True)
             return {"ok": True}
 
         if cmd == "add_tool":
@@ -5013,17 +5045,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
                 "D": finite_float(msg.get("diameter", 0.0), lo=0),
                 "remark": str(msg.get("remark", "")),
             })
-            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tbl_tools, armed)
-            await _reload_tool_table_and_bump()
-
-            # Save metadata if provided
-            library = await asyncio.to_thread(load_tool_library)
-            key = str(tool_num)
-            library[key] = {}
-            for field in _TOOL_META_FIELDS:
-                if field in msg:
-                    library[key][field] = msg[field]
-            await asyncio.to_thread(save_tool_library, library)
+            def update(library):   # the metadata, if provided
+                key = str(tool_num)
+                library[key] = {}
+                for field in _TOOL_META_FIELDS:
+                    if field in msg:
+                        library[key][field] = msg[field]
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update)
             return {"ok": True}
 
         if cmd == "delete_tool":
@@ -5049,13 +5077,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             if len(new_tools) == len(tbl_tools):
                 return {"ok": False, "error": f"Tool T{tool_num} not found"}
 
-            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, new_tools, armed)
-            await _reload_tool_table_and_bump()
-
-            library = await asyncio.to_thread(load_tool_library)
-            library.pop(str(tool_num), None)
-            await asyncio.to_thread(save_tool_library, library)
-
+            await _persist_tool_edit(tbl_path, new_tools, conn_key,
+                                     lambda library: library.pop(str(tool_num), None))
             return {"ok": True}
 
         if cmd == "renumber_tool":
@@ -5093,16 +5116,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool):
             src["Z"] = finite_float(msg.get("z_offset", src.get("Z", 0.0)))
             src["D"] = finite_float(msg.get("diameter", src.get("D", 0.0)), lo=0)
             src["remark"] = str(msg.get("remark", src.get("remark", "")))
-            await asyncio.to_thread(_write_tool_table_admitted, tbl_path, tbl_tools, armed)
-            await _reload_tool_table_and_bump()
-
-            library = await asyncio.to_thread(load_tool_library)
-            meta = library.pop(str(old_num), {}) or {}
-            for field in _TOOL_META_FIELDS:
-                if field in msg:
-                    meta[field] = msg[field]
-            library[str(new_num)] = meta
-            await asyncio.to_thread(save_tool_library, library)
+            def update(library):
+                meta = library.pop(str(old_num), {}) or {}
+                for field in _TOOL_META_FIELDS:
+                    if field in msg:
+                        meta[field] = msg[field]
+                library[str(new_num)] = meta
+            await _persist_tool_edit(tbl_path, tbl_tools, conn_key, update)
             return {"ok": True, "tool_number": new_num}
 
         if cmd == "tool_change":
@@ -7924,8 +7944,10 @@ def _file_revision(state: Dict[str, Any], path: str) -> Optional[str]:
 
 def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
     """The refusal check a macro write runs under _source_lock right before
-    it publishes: no start open, the interpreter idle, the name's file
-    inside the folder, the base revision still the file on disk (`new` =
+    it publishes: the whole sourceWrite rule (_write_admission_refusal — an
+    armed writer, no start open, no run from line, no load in progress, a
+    known idle interpreter; Codex R211 BG-25), the name's file inside the
+    folder, the base revision still the file on disk (`new` =
     the name free), and no program of the same name in PROGRAM_PREFIX (it
     would win the interpreter's lookup). A refusal is the 409 body's
     `kind` with its fields — scripts/test_fixtures/macro_refusals.json;
@@ -7936,7 +7958,7 @@ def _macro_write_gate(state: Dict[str, Any], path: str, base: str, conn_key):
     name = os.path.basename(path)[:-len(".ngc")]
 
     def gate():
-        why = _writer_refusal(conn_key) or _source_write_refusal()
+        why = _write_admission_refusal(conn_key)
         if why:
             return {"kind": "busy", "reason": why}
         try:
@@ -8237,12 +8259,8 @@ async def _save_refreshed_metadata(plan: dict, conn_key=None) -> None:
         _tool_table_version += 1
         _tool_meta_dirty = True
 
-    task = asyncio.create_task(persist())
-    try:
-        await asyncio.shield(task)
-    except asyncio.CancelledError:
-        await task
-        raise
+    # to its end through a second cancel too (button gates BG-22)
+    await _thread_to_end(asyncio.ensure_future(persist()))
 
 
 @app.post("/import-tool-library", dependencies=[Depends(require_token)])
@@ -9193,7 +9211,7 @@ async def _execute_client_command(client_id: int, client, ws: WebSocket, msg: Di
 
     _set_phase(f"handle_command cmd={msg.get('cmd', '?')} client#{client_id}")
     try:
-        reply = await handle_command(msg, client.armed)
+        reply = await handle_command(msg, client.armed, client.conn_key)
     except (ValueError, TypeError, KeyError, PermissionError, OverflowError) as _val_e:
         # Malformed payload or failed precondition (bad numeric cast,
         # missing field, not-armed). Return a bounded structured error
@@ -10082,29 +10100,7 @@ async def ws_endpoint(ws: WebSocket):
                 continue
 
             if msg.get("cmd") == "save_settings":
-                # The Settings header's save status matches THIS reply to the
-                # save it sent by req_id (UX-08): every path echoes it, or the
-                # header reads "Saving…" forever on a real gateway.
-                _secho = {"cmd": "save_settings", **_req_echo(msg)}
-                section = msg.get("section", "")
-                if section not in _VALID_SETTINGS_SECTIONS:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"Unknown settings section: {section}", **_secho})
-                    continue
-                _loop = asyncio.get_event_loop()
-                try:
-                    # settingsWrite(section) (button gates BG-19): a display
-                    # section needs no arm, the others this client's — decided
-                    # in the save's own call, right before the write.
-                    await _loop.run_in_executor(
-                        None, _save_section_admitted, section, msg.get("data"),
-                        lambda: _settings_write_refusal(section, client.armed))
-                except PermissionError as _pe:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": str(_pe), **_secho})
-                    continue
-                except Exception as _se:
-                    await ws_send_json(ws, {"type": "reply", "ok": False, "error": f"{type(_se).__name__}: {_se}", **_secho})
-                    continue
-                await ws_send_json(ws, {"type": "reply", "ok": True, **_secho})
+                await ws_send_json(ws, await _ws_save_settings(client, msg))
                 continue
 
             if msg.get("cmd") == "client_diag":
@@ -10456,11 +10452,9 @@ async def put_settings_section(section: str, request: Request,
     if not isinstance(body, dict) or "data" not in body:
         return JSONResponse({"ok": False, "error": "Missing 'data'"}, status_code=400)
     key = x_conn_key if isinstance(x_conn_key, str) and x_conn_key else body.get("conn_key")
-    loop = asyncio.get_event_loop()
     try:
-        await loop.run_in_executor(
-            None, _save_section_admitted, section, body["data"],
-            lambda: _writer_refusal(key) if section_needs_arm(section) else None)
+        await asyncio.to_thread(save_settings_section, section, body["data"],
+                                _settings_admission(section, key))
     except PermissionError as pe:
         return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
     except Exception as e:
@@ -10472,15 +10466,9 @@ async def put_settings_section(section: str, request: Request,
 @app.delete("/settings", dependencies=[Depends(require_token)])
 async def delete_settings(x_conn_key: Optional[str] = Header(None)):
     """The global reset — protected whatever sections it touches (button
-    gates BG-19): an armed writer, decided in the reset's own call."""
-    def _reset():
-        why = _writer_refusal(x_conn_key)
-        if why:
-            raise PermissionError(why)
-        reset_settings()
-    loop = asyncio.get_event_loop()
+    gates BG-19): an armed writer, decided inside the store's lock (BG-24)."""
     try:
-        await loop.run_in_executor(None, _reset)
+        await asyncio.to_thread(reset_settings, _settings_admission(None, x_conn_key))
     except PermissionError as pe:
         return JSONResponse({"ok": False, "error": str(pe)}, status_code=403)
     return {"ok": True}

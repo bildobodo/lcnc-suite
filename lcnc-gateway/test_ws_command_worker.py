@@ -112,7 +112,7 @@ class TestSlowHandlerKeepsHeartbeats(unittest.TestCase):
         must not cost the client its armed state — pongs keep flowing from
         the reader while the worker waits, and the reply still arrives."""
         with _Harness() as h:
-            async def slow(msg, armed):
+            async def slow(msg, armed, conn_key=None):
                 await asyncio.sleep(4.0)
                 return {"ok": True, "slow": True}
             gateway.handle_command = slow
@@ -146,7 +146,7 @@ class TestOrderAndBackpressure(unittest.TestCase):
         with _Harness():
             rec = []
 
-            async def h(msg, armed):
+            async def h(msg, armed, conn_key=None):
                 rec.append((msg["text"], "start", time.monotonic()))
                 await asyncio.sleep(0.3)
                 rec.append((msg["text"], "end", time.monotonic()))
@@ -169,7 +169,7 @@ class TestOrderAndBackpressure(unittest.TestCase):
             with TestClient(gateway.app) as client:
                 ev = client.portal.call(asyncio.Event)
 
-                async def blocking(msg, armed):
+                async def blocking(msg, armed, conn_key=None):
                     await ev.wait()
                     return {"ok": True, "text": msg.get("text")}
                 gateway.handle_command = blocking
@@ -202,7 +202,7 @@ class TestDisconnectAndFailures(unittest.TestCase):
         with _Harness() as h:
             cancelled = []
 
-            async def h_slow(msg, armed):
+            async def h_slow(msg, armed, conn_key=None):
                 try:
                     await asyncio.sleep(10.0)
                 except asyncio.CancelledError:
@@ -232,7 +232,7 @@ class TestDisconnectAndFailures(unittest.TestCase):
 
     def test_worker_exception_replies_bounded_and_survives(self):
         with _Harness() as h:
-            async def boom(msg, armed):
+            async def boom(msg, armed, conn_key=None):
                 raise RuntimeError("boom")
             gateway.handle_command = boom
             with TestClient(gateway.app) as client:
@@ -309,7 +309,7 @@ class TestPreemption(unittest.TestCase):
 
     @staticmethod
     def _blocking_mdi(ev):
-        async def h(msg, armed):
+        async def h(msg, armed, conn_key=None):
             if msg.get("cmd") == "mdi":
                 await ev.wait()
             return {"ok": True, "text": msg.get("text")}
@@ -396,7 +396,7 @@ class TestPreemption(unittest.TestCase):
             with TestClient(gateway.app) as client:
                 ev = client.portal.call(asyncio.Event)
 
-                async def ok(msg, armed):
+                async def ok(msg, armed, conn_key=None):
                     return {"ok": True}
                 gateway.handle_command = ok
 
@@ -504,7 +504,7 @@ class TestReqIdEcho(unittest.TestCase):
 
     @staticmethod
     def _blocking_mdi(ev):
-        async def h(msg, armed):
+        async def h(msg, armed, conn_key=None):
             if msg.get("cmd") == "mdi":
                 await ev.wait()
             if msg.get("cmd") == "bad":
@@ -561,7 +561,9 @@ class TestReqIdEcho(unittest.TestCase):
         matches a save to its reply by id, read "Saving…" forever (UX-08)."""
         saved = []
 
-        def fake_save(section, data):
+        def fake_save(section, data, admit=None):
+            if admit is not None:
+                admit()   # viewer: a display section, no arm needed
             if data == "boom":
                 raise OSError(28, "No space left on device")
             saved.append((section, data))

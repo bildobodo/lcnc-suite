@@ -25,7 +25,7 @@ import settings_store  # noqa: E402
 from fastapi import HTTPException  # noqa: E402
 from command_policy import COMMAND_GATES, NOT_ARMED, evaluate_permissions, permission_reasons  # noqa: E402
 from ws_fanout import ClientState  # noqa: E402
-from test_button_gates import _Handlers, _run, state, running  # noqa: E402
+from test_button_gates import _Handlers, _payload, _run, state, running  # noqa: E402
 
 
 class _Pending:
@@ -317,12 +317,19 @@ class TestSettingsWrites(_Clients):
     def setUp(self):
         super().setUp()
         self.saved = []
-        p = mock.patch.object(gateway, "save_settings_section",
-                              lambda section, data: self.saved.append((section, data)))
+
+        def save(section, data, admit):   # the store calls admit under its lock
+            admit()
+            self.saved.append((section, data))
+        p = mock.patch.object(gateway, "save_settings_section", save)
         p.start()
         self.addCleanup(p.stop)
         self.resets = []
-        p = mock.patch.object(gateway, "reset_settings", lambda: self.resets.append(1))
+
+        def reset(admit):
+            admit()
+            self.resets.append(1)
+        p = mock.patch.object(gateway, "reset_settings", reset)
         p.start()
         self.addCleanup(p.stop)
 
@@ -359,9 +366,21 @@ class TestSettingsWrites(_Clients):
         self.assertEqual(self.resets, [1])
 
     def test_the_ws_save_rule(self):
-        self.assertIsNone(gateway._settings_write_refusal("panels", armed=False))
-        self.assertEqual(gateway._settings_write_refusal("gamepad", armed=False), NOT_ARMED)
-        self.assertIsNone(gateway._settings_write_refusal("gamepad", armed=True))
+        def refusal(section, key):
+            try:
+                gateway._settings_admission(section, key)()
+            except PermissionError as e:
+                return str(e)
+            return None
+        self.assertIsNone(refusal("panels", self.disarmed.conn_key))
+        self.assertEqual(refusal("gamepad", self.disarmed.conn_key), NOT_ARMED)
+        self.assertIsNone(refusal("gamepad", self.armed.conn_key))
+        self.assertEqual(refusal(None, self.disarmed.conn_key), NOT_ARMED, "the reset")
+        for cmd, section in (("ok", "gamepad"), ("refused", "gamepad"), ("free", "panels")):
+            client = self.armed if cmd == "ok" else self.disarmed
+            r = _run(gateway._ws_save_settings(client, {"cmd": "save_settings", "section": section,
+                                                         "data": {"x": 1}, "req_id": cmd}))
+            self.assertEqual((r["ok"], r["req_id"]), (cmd != "refused", cmd), r)
 
 
 class TestWsToolEditAdmittedAtTheWrite(_Admission):
@@ -380,8 +399,9 @@ class TestWsToolEditAdmittedAtTheWrite(_Admission):
         p.start()
         self.addCleanup(p.stop)
         gateway._reader_get = {"tool_change": True}.get   # fresh: a request now
-        r = self._send({"cmd": "save_tool", "tool_number": 1, "z_offset": 1.5},
-                       tool_change_requested=False)        # the snapshot did not know
+        gateway._shared_status = _payload(tool_change_requested=False)   # the snapshot did not know
+        r = _run(gateway.handle_command({"cmd": "save_tool", "tool_number": 1, "z_offset": 1.5},
+                                        True, self.writer.conn_key))     # the connection (BG-23)
         self.assertFalse(r["ok"], r)
         self.assertIn("tool change", r["error"].lower())
         self.assertEqual(writes, [])

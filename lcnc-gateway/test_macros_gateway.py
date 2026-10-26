@@ -173,7 +173,7 @@ class StartClaims(_Base):
                      dict(interp_state=linuxcnc.INTERP_READING)]:
             for _ in range(3):
                 self.assertEqual(self._poll(**{**done, **over}), 1, over)
-            self.assertIsNotNone(gateway._source_write_refusal(), over)
+            self.assertIsNotNone(gateway._write_admission_refusal(self.conn_key), over)
         self.assertEqual(self._poll(**done), 0)
 
     def test_a_refused_start_releases_only_on_its_own_proof(self):
@@ -209,12 +209,12 @@ class StartClaims(_Base):
         self.assertEqual(self._poll(**done), 0)
 
     def test_a_write_waits_for_every_claim_and_for_an_idle_interpreter(self):
-        self.assertIsNone(gateway._source_write_refusal())
+        self.assertIsNone(gateway._write_admission_refusal(self.conn_key))
         gateway._source_claims.append(gateway._StartClaim("mdi"))
-        self.assertIn("starting or running", gateway._source_write_refusal())
+        self.assertIn("starting or running", gateway._write_admission_refusal(self.conn_key))
         gateway._source_claims.clear()
         gateway.STAT.interp_state = linuxcnc.INTERP_READING
-        self.assertIn("runs", gateway._source_write_refusal())
+        self.assertIn("runs", gateway._write_admission_refusal(self.conn_key))
 
     def test_no_command_reaches_the_controller_around_the_start_hook(self):
         src = Path(gateway.__file__).read_text()

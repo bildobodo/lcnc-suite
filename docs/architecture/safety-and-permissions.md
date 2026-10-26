@@ -147,17 +147,34 @@ the server re-checks before the effect. Package A closed what made that false:
   (Codex R204: a protected save the server can no longer admit stays
   unconfirmed in the page's ledger).
 - *Admitted at the commit:* the receive, the decode, the temp file and the
-  import preview run outside every lock; the last check — the connection, then
-  `_write_admission_refusal` (no open start claim, no run from line starting,
-  no program change, the interpreter KNOWN idle on a fresh STAT poll, and for
-  the table a fresh reader with no M6 request) — runs in the write's own
-  thread right before the publish: the program publish inside
+  import preview run outside every lock; the last check —
+  `_write_admission_refusal`: the writer's connection registered and armed
+  NOW, no open start claim, no run from line starting, no program change, a
+  controller status (STAT None is no known idle: "Machine state unknown —
+  wait for status", Codex R211 BG-26), the interpreter KNOWN idle on a fresh
+  STAT poll, and for the table a fresh reader with no M6 request — runs in
+  the write's own thread right before the publish: the program publish inside
   `_atomic_stream_write`'s `_commit()` under `_source_lock` (where starts take
-  their claim), the macro writers in `_macro_write_gate` (plus
-  `_source_write_refusal`), the tool table in `_write_tool_table_admitted`
-  (the WS edits) and `_persist_imported_tools` / `_save_refreshed_metadata`
-  (import, refresh) — refusal = PermissionError → 403/409 or the WS reply,
-  nothing replaced. E-Stop is allowed: maintenance. The client gates are the
+  their claim), the macro writers in `_macro_write_gate` (the same rule, then
+  the name / revision / folder rules — BG-25: a load or a run from line
+  refuses a macro write as it refuses a program write), the tool table in
+  `_write_tool_table_admitted` (the WS edits) and `_persist_imported_tools` /
+  `_save_refreshed_metadata` (import, refresh) — refusal = PermissionError →
+  403/409 or the WS reply, nothing replaced. A WS command carries its
+  connection's key to the commit (`handle_command(msg, armed, conn_key)`,
+  BG-23): the arm the dispatcher saw is no commit permission. E-Stop is
+  allowed: maintenance.
+- *An admitted tool-table persist ends* (BG-22, Codex R211): the table write,
+  the reload into LinuxCNC and the metadata are ONE section
+  (`_persist_tool_edit` for the WS edits, the import's own) awaited through
+  `_thread_to_end` under `_cmd_lock` — a cancel (an abort preempts WS
+  handlers), a second one too, waits for the whole section before it
+  propagates, so the next writer never runs inside it and an admitted table
+  never goes without its reload and metadata. The abort waiting for the lock
+  pays one table write, one `load_tool_table` (no wait_complete) and one
+  library read and write; the preempted edit's reply still says "Preempted by
+  abort" while the table holds the edit (`tool_table_changed` carries it) —
+  the contract a sent MDI has under `_cmd_blocking`. The client gates are the
   same rules: `sourceWrite`, `toolTableWrite` (catalog `fileSave`, `sourceOp`,
   `sourceDanger`, `toolOp`, `toolSave`, `toolDanger`, `listActionTool`,
   `listActionSource`, `toolEdit*`, `uploadName`); both stay open in simulation
@@ -172,8 +189,10 @@ the server re-checks before the effect. Package A closed what made that false:
   section needs the writer's arm — no idle, power or homing term (the MDI
   history saves during a long MDI). WS `save_settings`, `PUT /settings/<s>`,
   the beacon and `DELETE /settings` (a protected global reset) ask
-  `section_needs_arm`, the save inside the store's write
-  (`_save_section_admitted`).
+  `section_needs_arm` through ONE admission (`_settings_admission`), called by
+  `SettingsStore.save_section` / `reset` INSIDE the store's lock right before
+  the write (BG-24, Codex R211: a check before the lock is stale once a
+  preceding writer lets go); a refusal writes and bumps nothing.
 - *Draft ≠ active* (BG-19): in the client a protected section acts only once
   the SERVER holds it. `defaults.loadSection` is what acts — the server's
   confirmed blob for a protected section, this tab's latest for a display

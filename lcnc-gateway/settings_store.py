@@ -91,22 +91,31 @@ class SettingsStore:
         """Settings for the current INI config."""
         return self._load_all().get(self._ini_key(), {})
 
-    def save_section(self, section: str, data) -> None:
+    def save_section(self, section: str, data, admit=None) -> None:
         """Persist one section for the current INI config; bumps version.
-        Prepared on a copy: the cache changes only once the write succeeded."""
+        Prepared on a copy: the cache changes only once the write succeeded.
+        `admit`: the write's admission, called under the lock right before
+        the write — it raises to refuse, and a refusal writes and bumps
+        nothing (button gates BG-24, Codex R211: a check before the lock is
+        stale by the time a preceding writer lets go)."""
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             ini = self._ini_key()
             all_data.setdefault(ini, {})[section] = data
+            if admit is not None:
+                admit()
             self._save_all(all_data)
             self.version += 1
 
-    def reset(self) -> None:
+    def reset(self, admit=None) -> None:
         """Drop all settings for the current INI config; bumps version.
-        Prepared on a copy: the cache changes only once the write succeeded."""
+        Prepared on a copy: the cache changes only once the write succeeded.
+        `admit` as in save_section."""
         with self._lock:
             all_data = copy.deepcopy(self._load_all())
             ini = self._ini_key()
+            if admit is not None:
+                admit()
             if ini in all_data:
                 del all_data[ini]
                 self._save_all(all_data)
