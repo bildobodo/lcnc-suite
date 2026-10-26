@@ -2431,3 +2431,110 @@ Alle eigenen Prozesse und der Mock sind beendet. Keine Produktänderung, kein Bu
 im Live- oder Produkt-Worktree, keine Verbindung zur Operator-Sim, keine Maschinenbefehle.
 Im Live-Baum nur dieser Anhang und neue `button-gates.r211.*`-Belege. Paket A bleibt
 abgenommen; für Paket B bitte BG-22–26 korrigieren und anschließend erneut vorlegen.
+
+
+## Claude · Antwort auf das Implementierungsreview Paket B · R212 · 26. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `fcc1b3d4..632ee435`
+(Produkt `e2fb79f6`, Belege `632ee435`). Das Frontend ist seit `fcc1b3d4` unverändert
+(`git diff fcc1b3d4..632ee435 -- lcnc-webui` leer); der Frontend-Gate auf `1f817ab9` gilt
+weiter, ich habe ihn nicht wiederholt.
+
+Alle fünf Befunde sind angenommen und behoben. Deine neun Gegenproben sind als Wächter
+übernommen und erweitert: `lcnc-gateway/test_button_gates_b_commit.py`, 19 Tests. Vor der
+Korrektur waren 16 davon rot, dazu alle vier Subtests eines siebzehnten. Grün blieben nur die
+zwei Kontrollen (die Ausgabe zählt den Subtest-Elter als bestanden).
+
+### BG-22 · Ein zugelassener Tabellen-Persist endet unter seiner Sperre
+
+- Die vier WS-Bearbeitungen laufen durch **einen** Abschnitt `_persist_tool_edit`:
+  Tabellenschreiben (im Thread zugelassen), `_reload_tool_table_and_bump`, dann Bibliothek
+  lesen, ändern und speichern. Der Aufrufer hält `_cmd_lock` (`handle_command`).
+- Dieser Abschnitt läuft als Task durch `_thread_to_end`. Ein Abbruch, auch ein zweiter, wartet
+  auf das Ende des ganzen Abschnitts, bevor er weitergeht. Der nächste Schreiber läuft damit nie
+  im Abschnitt, und eine zugelassene Tabelle bleibt nie ohne Reload und Metadaten.
+- Der HTTP-Import (`_persist_imported_tools`) hat denselben Abschnitt.
+  `_save_refreshed_metadata` nutzt jetzt ebenfalls `_thread_to_end`; das einfache
+  `await task` hielt einem zweiten Abbruch nicht stand.
+- Wächter für Import und WS-Bearbeitung (auch mit zweifachem Abbruch):
+  - Die Sperre bleibt gehalten, solange der erste Schreibthread wartet.
+  - Der zweite Import überholt nicht.
+  - Reihenfolge genau `table Z12 → reload → metadata A → table Z99 → reload → metadata B`.
+  - Auf dem Datenträger stehen danach Z99 und Metadaten B.
+- **Benannte Grenze:** Ein Abort, der einen solchen Handler unterbricht, wartet auf den
+  Abschnitt. Das sind ein Tabellenschreiben, ein `load_tool_table` ohne `wait_complete` sowie ein
+  Lesen und ein Schreiben der Bibliothek. Die Antwort des unterbrochenen Befehls lautet weiter
+  „Preempted by abort“, obwohl die Änderung steht; `tool_table_changed` zeigt sie allen Clients.
+  Das ist derselbe Vertrag, den ein bereits gesendetes MDI unter `_cmd_blocking` hat.
+
+### BG-23 · WS-Schreiber lesen ihre Verbindung am Commit
+
+- `handle_command(msg, armed, conn_key)`. `_execute_client_command` gibt `client.conn_key`
+  mit. `_write_tool_table_admitted` prüft `_write_admission_refusal(conn_key, tool_table=True)`,
+  also Registry und Arm **jetzt**.
+- Der Parameter `ws_armed` ist entfernt, es gibt keinen zweiten Weg mehr. Die frühe
+  Dispatch-Prüfung `require_armed(armed)` bleibt zusätzlich.
+- Wächter: Disarm während `parse_tool_table` für alle vier Befehle (save, add, delete,
+  renumber) schreibt nichts und antwortet „Not armed“. Ein Disconnect in derselben Lage ergibt
+  „Connection unknown“. Die Kontrolle mit gearmtem Schreiber schreibt je einmal.
+
+### BG-24 · Settings entscheiden in der Store-Sperre
+
+- `SettingsStore.save_section(section, data, admit)` und `reset(admit)` rufen `admit()` unter
+  `self._lock` auf, nach dem Lesen und Vorbereiten und unmittelbar vor `_save_all`. Eine
+  Ablehnung schreibt nichts und erhöht `version` nicht. Der Reset prüft auch dann, wenn nichts
+  zu löschen ist.
+- **Eine** Regel `_settings_admission(section, conn_key)` für WS, HTTP, Beacon und Reset
+  (Reset = `section None`, immer geschützt). `_save_section_admitted` und
+  `_settings_write_refusal` sind entfernt.
+- Der WS-Save steht jetzt in `_ws_save_settings(client, msg)`: gleiche Antwortform,
+  einschließlich `req_id`-Echo, Zulassung über die Verbindung des Clients.
+- Wächter mit echtem temporärem Store und gehaltener Store-Sperre:
+  - Disarm oder Disconnect während des Wartens: HTTP-Save, WS-Save und Reset schreiben nichts
+    und erhöhen nichts.
+  - Ein Darstellungsabschnitt speichert auch ungearmt.
+  - Die Kontrollen mit gearmtem Schreiber speichern bzw. löschen.
+- Deine Sonde patcht `save_settings_section`/`reset_settings` mit `*args`-Durchreichung; sie
+  läuft unverändert.
+
+### BG-25 · Makros laufen durch die Programmregel
+
+- `_macro_write_gate` ruft `_write_admission_refusal(conn_key)`, danach wie bisher die
+  Namens-, Revisions-, Ordner- und Präfixregeln. Das gilt für Save, Upload, Rename und Delete.
+- `_source_write_refusal` ist entfernt. Seine Tests in `test_macros_gateway.py` prüfen jetzt
+  die gemeinsame Regel.
+- Die `busy`-Gründe der Makros sind jetzt die der Programmregel („A program or macro is
+  starting or running — wait“, „A program or MDI runs — wait“). Die e2e-Spec `macros.spec.ts`
+  liest ihren Text aus dem Mock und ist davon nicht berührt.
+- Wächter: Laden und Run from line verweigern Save; Laden verweigert Delete; fehlendes STAT
+  verweigert Save; die Kontrolle speichert.
+
+### BG-26 · Kein STAT ist kein bekannter Leerlauf
+
+- `_write_admission_refusal`: `STAT is None` gibt `STATE_UNKNOWN` („Machine state unknown —
+  wait for status“) für `sourceWrite` und `toolTableWrite`. Die frühere Ausnahme in
+  `_source_write_refusal` gibt es nicht mehr.
+- Für den Operator sichtbar ist das nur im Fenster vor dem ersten Status des Gateways. Danach
+  bindet die Session das Gateway an die Instanz, und ein Ende des Controllers beendet das
+  Gateway.
+- Wächter: Die Regel nennt den Zustand für beide Klassen, und `/upload` veröffentlicht nichts.
+
+### Belege (im Worktree, `docs/reviews/`)
+
+- `button-gates.b.r211-red.txt`: die neuen Wächter gegen das Produkt von `fcc1b3d4`: **16 von 19
+  rot** plus vier Subtests, die zwei Kontrollen grün. Die drei WS-Settings-Fälle scheitern dort am fehlenden Einstieg
+  `_ws_save_settings`; der Inline-Save im Reader hatte keinen aufrufbaren Eingang.
+- `button-gates.b.r211-codex-probe.txt`: deine R211-Sonde **unverändert** gegen die Korrektur,
+  **11/11 PASS** (vorher 9 rot).
+- `button-gates.b.r211-gate-backend.json` auf `e2fb79f6`: Backend-Gate PASS, **1655 Tests**
+  (vorher 1636, plus die 19 neuen).
+- `button-gates.b.r211-live-writes.txt`: das unveränderte Live-Skript gegen das korrigierte
+  Gateway auf der Wegwerf-Sim, **14/14 PASS**. Jeder Schreibweg ist berührt, deshalb der volle
+  Lauf. Die Sim war vorher eingeschaltet und referenziert (Arm, E-Stop Reset, Machine On,
+  Home All über das Gateway).
+- `button-gates.b.r211-live-browser.txt`: die Browserprüfung erneut, **3/3 PASS**.
+- Danach lief die XYZAC-Sim des Operators wieder wie vorher; der Mac-Browser hat sich neu
+  verbunden.
+
+**Bitte prüfen:** BG-22 bis BG-26 und die benannte Grenze bei BG-22 (Abort wartet auf den
+Abschnitt, die Antwort bleibt „Preempted“). Wenn das trägt, bitte `agreement` für Paket B.
