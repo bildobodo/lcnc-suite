@@ -218,11 +218,11 @@ test("disarmed at idle: the spindle stop is reachable (BG-18 — inside the stri
   await open(page);
   await disarmedIn(page, "idle", { spindle_direction: 1, spindle_speed: 1000 });
   await ctl({ op: "clearCmds" });
-  const stop = page.locator('[data-strip="spindle"] [data-control="spindleStop"]');
+  const stop = page.locator('[data-strip="spindle"]').getByRole("button", { name: "Stop", exact: true });
   await expect(stop).toBeEnabled();
   await stop.click();
   await expect.poll(async () => (await sentNow()).map((c) => c.cmd)).toContain("spindle_stop");
-  await expect(page.locator('[data-strip="spindle"] [data-control="spindleFwd"]')).toBeDisabled();
+  await expect(page.locator('[data-strip="spindle"]').getByRole("button", { name: "Fwd", exact: true })).toBeDisabled();
 });
 
 test("disarmed: the program browser browses folders; a file row is closed with its reason (BG-02)", async ({ page }) => {
@@ -261,10 +261,12 @@ test("a dialog opened armed: after the disarm its action is closed with its reas
   await page.getByTitle("Shut Down LinuxCNC", { exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Shut Down LinuxCNC?", exact: true });
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('[data-control="shutdown"]')).toBeEnabled();
+  const shut = dialog.getByRole("button", { name: "Shut Down", exact: true });
+  await expect(shut).toBeEnabled();
   await disarmedIn(page, "idle");
-  await expect(dialog.locator('[data-control="shutdown"]')).toBeDisabled();
-  await expect(dialog.locator(".btnTip").filter({ has: page.locator('[data-control="shutdown"]') })).toHaveAttribute("title", /Not armed/);
+  await expect(shut).toBeDisabled();
+  await expect(dialog.locator(".btnTip").filter({ has: page.getByRole("button", { name: "Shut Down", exact: true }) }))
+    .toHaveAttribute("title", /Not armed/);
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
