@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { publishToolTable } from "./ctl";
+import { publishToolTable, expectArmed } from "./ctl";
 import WebSocket from "ws";
 
 const MOCK = process.env.TOOL_IMPORT_TEST_URL ?? "http://localhost:4174/";
@@ -28,7 +28,7 @@ const tool = { T: 300, P: 7, Z: -42.3, D: 10, type: "endmill", description: "Hol
 
 async function openTool(page: Page, row: typeof tool) {
   await page.goto(MOCK);
-  await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
+  await expectArmed(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect.poll(async () => {
     await publishToolTable([row], MOCK);

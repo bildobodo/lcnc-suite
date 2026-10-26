@@ -19,6 +19,11 @@ const props = defineProps<{
   reason?: string;
   /** Requested, not yet confirmed by the machine. */
   pending?: boolean;
+  /** The option's own title while it is open. A PROP, not a fallthrough
+   *  attribute: an attribute would override the reason below even when it
+   *  is undefined — every dimmed mode / WCS option lost its reason that way
+   *  (button gates package C, BG-16). */
+  title?: string;
 }>();
 const emit = defineEmits<{ (e: "choose", el: HTMLElement): void }>();
 
@@ -41,11 +46,11 @@ function activate(e: MouseEvent) {
 </script>
 
 <template>
-  <button type="button" class="choice" role="radio"
+  <button type="button" class="choice" role="radio" :data-control="gate"
           :aria-checked="checked ? 'true' : 'false'"
           :aria-disabled="isDisabled ? 'true' : undefined"
           :aria-busy="pending ? 'true' : undefined"
           :class="{ checked, pending, dimmed: isDisabled }"
-          :title="gateExplain.active.value ? gateExplain.reason.value : ($attrs.title as string | undefined)"
+          :title="gateExplain.active.value ? gateExplain.reason.value : title"
           @click="activate"><slot /></button>
 </template>

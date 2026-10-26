@@ -19,7 +19,6 @@
 // and Abort sits at its right end, OUTSIDE the scrolling row: the macros
 // scroll under the fade, Abort never leaves the bar.
 import { computed } from "vue";
-import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import { useFire, usePermissions, usePermissionReasons } from "./permissions";
 import { macroEditorBasis } from "./macroFiles";
@@ -42,7 +41,9 @@ const shown = computed(() => props.items.map(item => {
 </script>
 
 <template>
-  <Gate gate="armed" class="macroBar bordered-panel row-controls">
+  <!-- No Gate (button gates BG-01): each macro under its own gate, Abort a
+       stop reachable without arm (BG-08). -->
+  <div class="macroBar bordered-panel row-controls">
     <div class="macroScroll row-controls scroll-thin">
       <!-- Scroll-edge affordances (see .stripFade): both edges fade when
            content is hidden. -->
@@ -55,7 +56,7 @@ const shown = computed(() => props.items.map(item => {
       <div class="stripFade" aria-hidden="true"></div>
     </div>
     <MachineBtn type="abort" class="macroAbort" @click="fire({ cmd: 'abort' }, 'abort')" />
-  </Gate>
+  </div>
 </template>
 
 <style scoped>

@@ -60,7 +60,7 @@ One line per module: what it is and the rule that matters when you touch it. The
 - `SimPanel.vue` + `simPanelStore.ts` + `viewer/simRows.ts` + `viewer/simWindow.ts` — the Sim side tab: speed, the check's progress and its Check basis card, ONE always-present summary line (result · coverage · caveat, its form measured), ONE windowed list of the timeline's marks (≤ 400 rows, rendered in portions, follows the position), filter and ‹ ›; the panel owns its focus.
 - `SettingsPanel.vue` — sub-tabbed settings; ONE guarded close path; the save status per section; 3D Viewer sections one below the other.
 - `MacrosPanel.vue` + `CodeEditor.vue` + `MacroBar.vue` — the Macros tab (a table like Tools; the editor dialog bound to the file's revision; rename in one step), the ONE CodeMirror host, the macro bar (landscape over the strip, portrait under the viewer).
-- `Gate.vue`, `permissions.ts`, `machineControls.ts` — the fieldset gate, the permission evaluation (+ owner permissions without the busy latch), the controls catalog (see "Permission System").
+- `Gate.vue`, `permissions.ts`, `machineControls.ts`, `controlScan.ts` + `controlInventory.ts` — the fieldset gate (an INNER one — no outer armed fieldset since button gates package C; it tells its controls why it is closed), the permission evaluation (+ owner permissions without the busy latch), the controls catalog, the inventory of every control a disarmed client can operate (see "Permission System").
 - `MachineBtn.vue` (wraps `Btn.vue`), `MachineInput.vue`, `MachineToggle.vue`, `MachineSlider.vue`, `MachineSelect.vue`, `MachineRadio.vue`, `MachineColor.vue` — the catalog components, single-root. A close button carries a contextual `aria-label`; a hold reports every cancelled hold at the control; a radio's `name` is its group (a literal only in one component); `MachineInput` owns both input helpers, has ONE writer of its value and the field contract (`autocomplete="off"` …; no "code" in a text placeholder).
 - `lcncWs.ts` (+ `wsWorker.ts`, `ws/wsTransport.ts`) — the WebSocket client in a worker; reconnect only through `GET /ready`; `request()` / `awaitReply()` match the `req_id` and resolve `null` on a timeout (never a guessed success); a command that depends on another's outcome is ONE gateway command. The hello reply's `conn_key` goes to `connKey.ts` (cleared on close), which every protected HTTP write sends (BG-14).
 - `lcncApi.ts` + `browseFailure.ts` — REST helpers; a 400 is permanent (no Retry); listings only inside the program folder.
@@ -80,9 +80,9 @@ One line per module: what it is and the rule that matters when you touch it. The
 
 ### Bottom Action Strip
 
-Horizontally scrollable strip with six components (wrapped in `<Gate gate="armed">`):
+Horizontally scrollable strip with six components (no outer Gate — each control self-gates):
 
-1. **SafetyStrip** — Arm/Disarm, E-Stop, Machine On/Off, status display (in `#exempt` slot — always accessible)
+1. **SafetyStrip** — Arm/Disarm, E-Stop, Machine On/Off, status display (the strip's first child, sticky)
 2. **JogStrip** — Jog wheel, speed slider, step increments, world/joint mode
 3. **SetupStrip** — DRO display, axis touchoff, homing grid, WCS selector
 4. **OverridesStrip** — Feed/Spindle/Rapid override sliders
@@ -145,11 +145,11 @@ base = armed && !estop && enabled
 
 ```
 TIER 0 — Unconditional
-  always ─────────────── true                                         Arm, E-Stop, UI nav
+  always ─────────────── true                                         Arm, E-Stop, navigation, reading, preselections (jog step/speed, RPM, MDI line — BG-05), display settings, the jog pad's Stop
   abort ──────────────── true — a STOP: no arm, sim or busy term (button gates BG-08)   Abort
 
 TIER 1 — Client state (no machine state needed)
-  armed ──────────────── s.armed                                      Outer content gate
+  armed ──────────────── s.armed                                      Protected settings (keyboard, gamepad, machine, probe, toolsetter, macro bar, MDI history — operator 2026-10-26), their resets, Shut down, Sim Trip
 
 TIER 2 — Machine power (no enabled needed)
   safety ─────────────── armed + !estop                               Machine On/Off
@@ -213,7 +213,7 @@ Central catalog of every interactive element type — inspired by QtPyVCP's pred
 - **`BUTTON_TYPES`** — 55+ button types (start, abort, probe, close, tab, dialogConfirm, etc.)
 - **`INPUT_DEFS`** — 34+ input types (jogSpeed, mdiText, touchoff, feedOverride, etc.)
 
-Machine action types use permission gates (`ready`, `idle`, `probe`, etc.). UI-only types use `gate: 'always'` — they don't gate themselves but are still covered by the outer Gate fieldset.
+Machine action types use permission gates (`ready`, `idle`, `probe`, etc.). UI-only types use `gate: 'always'` — open to a DISARMED client too (no outer fieldset since button gates package C): every `always` control a disarmed client can operate is classified in `controlInventory.ts` (what it does, why it needs no arm); `controlInventory.test.ts` fails on an unclassified one. A protected effect is never `always`.
 
 ### Catalog Components (Machine*)
 
@@ -231,18 +231,18 @@ All interactive elements use catalog-aware wrapper components. **Never use `<Btn
 
 ### Gating Architecture — Default-Deny (IEC 62443 / ARINC 661)
 
-Four layers enforce permissions:
+Arm authorizes new machine effects, not navigation (button gates package C, Codex R202–R204): a disarmed client — the observer — navigates every tab and dialog, reads, preselects and stops; every control that would act is closed by its OWN gate and says why (BG-16: "Not armed — press Arm"; a control a closed inner Gate disables explains with that Gate's reason, `GATE_SCOPE_KEY`). Three layers:
 
-1. **Outer Gate** — `<Gate gate="armed">` wraps content area, macro bar, and bottom strip. When disarmed, everything is disabled by browser `<fieldset disabled>` cascade. Uses `armed` (not `safety`) so navigation works during E-Stop.
-2. **Inner Gates** — Section-level Gates with tighter permissions: `<Gate gate="override">` (OverridesStrip), `<Gate gate="ready">` (SpindleStrip), `<Gate gate="idle">` (OffsetPanel), `<Gate gate="setup">` (ToolTable/Gcode/Settings dialogs), `<Gate gate="safety">` (SafetyStrip Machine On/Off).
-3. **Catalog self-gating** — Each `MachineBtn`/`MachineInput` checks its own permission class for visual dimming + HTML disabled.
-4. **Backend `require_armed()`** — Every motion command in gateway.py checks armed before executing (defense-in-depth). Additionally, `fire()` in App.vue takes a gate parameter and re-checks permissions before sending.
+1. **Catalog self-gating** — Each `MachineBtn`/`MachineInput`/… checks its own permission class (dimming + `disabled`; a `ChoiceGroup` option `aria-disabled`, focusable). Every control a disarmed client can operate is in `controlInventory.ts`.
+2. **Inner Gates** — Section-level Gates where several controls share a tighter rule: `<Gate gate="override">` (OverridesStrip), `<Gate gate="probe">` (OffsetPanel's Clear), `<Gate gate="safety">` (Machine On/Off), `<Gate gate="sourceWrite">` / `"toolTableWrite"` / `"run"` (dialog confirms), the settings resets' per-section Gate. No outer `armed` fieldset (the content, the strip, the macro bar and every dialog used to sit in one: tabs, a dialog's X, the file browser and the stops inside the content were dead while disarmed).
+3. **Backend** — `require_armed()` and the policy gate on every command (shutdown included since package C), the commit-time admission of every protected write (`_write_admission_refusal`, `_settings_admission`). Additionally, `fire()` in App.vue takes a gate parameter and re-checks permissions before sending.
 
-**DOM layout**: Bottom strip's `#exempt` slot holds SafetyStrip (Arm/E-Stop always accessible even when disarmed).
+**DOM layout**: `.content#content-dialog-area` (the dialogs' Teleport target) and `.strip` are plain elements; SafetyStrip is the strip's first child.
 
 ### Usage — Gate.vue (primary pattern)
 ```vue
-<!-- Wrap a section; fieldset :disabled propagates to all children -->
+<!-- Wrap a section; fieldset :disabled propagates to all children, and
+     each control inside explains with the Gate's reason (GATE_SCOPE_KEY) -->
 <Gate gate="ready">
   <MachineBtn type="start" @click="run">Start</MachineBtn>
   <MachineInput gate="mdiText" v-model="mdi" />
@@ -268,7 +268,7 @@ Four layers enforce permissions:
 ## Layout Architecture
 
 - Content area: viewerPane (left, 3D viewer always visible) + sidePane (right, tabbed content panels)
-- Bottom action strip: horizontally scrollable row of strip components (SafetyStrip in `#exempt` slot)
+- Bottom action strip: horizontally scrollable row of strip components (SafetyStrip first, sticky)
 - Macro bar (`MacroBar.vue`): optional ROW of macro FILE buttons (the `bar` setting), a DENSE area like the strip and tables (`--control-h` = the compact 28 / 36 px; its `macro` buttons are md) — the macros scroll sideways in `.macroScroll` (both edges fade), its own Abort sits at the right end OUTSIDE the scroller and never scrolls away (operator 2026-10-02). App mounts it in ONE of two places by orientation (package 5 stage A, operator 2026-10-02): landscape under the content, over the strip; portrait in the viewer's column (`.viewerColumn` = viewer + bar, ONE flex item with the viewer floor) between the 3D viewer and the side pane — the side pane and the content keep exactly their place with or without macros, the viewer gives the row (it used to be a ~155 px vertical middle column). An orientation change mounts a NEW bar: a hold in progress ends with its button (nothing runs), App puts a focused macro's focus back on the same macro (`data-macro-id`) and re-points an open parameter dialog's opener to the new button (`modalRegistry.repointOpeners`); the scroll fades re-attach. `layout.spec` (portrait 100/150 %: one row under the viewer, full column width, side pane unmoved, every button whole and reachable; the strip-state frame now measures the side pane too) and `run-hold.spec` (mid-hold orientation change) pin it.
 - Each content panel independently selects tabs via TabPanel component
 - Shared state: coordMode, jogVel, mdiText, armed, busy
@@ -325,7 +325,7 @@ The rules in short. The full form of each pattern — measured values, the specs
 
 **Controls and layout**
 - **Catalog components** — every interactive element is a `Machine*` component; never `<Btn>` in a template. `MachineBtn` / `MachineInput` render exactly ONE root (a Teleport or a second root drops the parent's scoped-CSS id). A class on a `MachineBtn` PLACES it (flex, grid, width, margin), never styles its interior — a dimmed button is wrapped in `.btnTip`, which takes the class. Equal-share rows are grid tracks (`minmax(max-content, 1fr)`), not `flex: 1`.
-- **Gate.vue** — `<fieldset :disabled="!allow">` with `.fs-reset`; browser-enforced default-deny; the outer Gate (`armed`) wraps the main area; `#exempt` holds only the safety section.
+- **Gate.vue** — `<fieldset :disabled="!allow">` with `.fs-reset`; browser-enforced default-deny for a SECTION (no outer armed Gate since button gates package C — a disarmed client navigates, reads and stops); it provides its closed state so the controls inside explain with its reason (BG-16).
 - **Tab pattern** — every side-pane tab's head is `.panelHead`: `.panelObject`, then ONE `.actionGroup`: the machine actions with Abort beside them on the left and, where the tab has management, More (`MoreMenu.vue`) at the RIGHT end. Download (`fileDownload`, gate `always`) saves the file as it is.
 - **Starting motion is a hold** — Start, Step, Resume, the Run-from-line action and macros are holds (`holdKey` = path + published revision + displayed-text revision); Pause and Abort are taps; the Space shortcut stays instant. A macro's parameter dialog reads its file live by name.
 - **Forms** — a labelled field is a `FormField` in a `.formGrid` (two columns while each keeps `--form-col-min` 160 px); `.formLabel` is the one label class; a unit is never a placeholder; `.sectionColumns` splits a section by the same rule (`--section-col-min` 320 px).

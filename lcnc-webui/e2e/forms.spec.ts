@@ -233,13 +233,15 @@ test("a reset sits at the end of its section, right, and its confirm keeps its b
   await reset.click();
   const ask = page.getByRole("dialog", { name: "Reset Toolsetter settings?", exact: true });
   await expect(ask.getByRole("button", { name: "Reset", exact: true })).toBeEnabled();
-  await ctl({ op: "status_delta", data: { permissions: { ...PERMS_ALL, setup: false } } });
+  // The toolsetter settings are a protected section: their reset is armed
+  // (button gates package C, Q2 — no idle term); a disarm closes it.
+  await ctl({ op: "status_delta", armed: false, data: {} });
   await expect(ask.getByRole("button", { name: "Reset", exact: true })).toBeDisabled();
   await expect(ask.getByRole("button", { name: "Cancel", exact: true })).toBeEnabled();
   await ask.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(ask).toHaveCount(0);
 
-  await ctl({ op: "status_delta", data: { permissions: PERMS_ALL } });
+  await ctl({ op: "status_delta", armed: true, data: { permissions: PERMS_ALL } });
   await page.getByRole("tab", { name: "Calibrate", exact: true }).click();
   await page.getByRole("button", { name: "Reset Calibration", exact: true }).click();
   const cal = page.getByRole("dialog", { name: "Reset probe calibration?", exact: true });

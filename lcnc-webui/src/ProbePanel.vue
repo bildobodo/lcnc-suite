@@ -1300,7 +1300,7 @@ function fmtR(key: string): string {
       <!-- The action's own gate, the one its button has (N65): a confirm
            looser than its button (ready / safety) let a Reset through that
            the button would no longer offer. -->
-      <Gate :gate="resetTarget === 'cal' ? 'probe' : 'setup'" class="row-controls">
+      <Gate :gate="resetTarget === 'cal' ? 'probe' : 'armed'" class="row-controls">
         <MachineBtn type="dialogDanger" @click="confirmReset">Reset</MachineBtn>
       </Gate>
     </template>

@@ -419,7 +419,7 @@ watch(settingsVersion, () => { void pushWhenConfirmed(); });
 
     <!-- A reset sits at the end of its section, right (design wave D4, N65) -->
     <div class="resetRow wide">
-      <MachineBtn type="reset" @click="emit('resetSection', 'toolsetter')">Reset Toolsetter</MachineBtn>
+      <MachineBtn type="resetProtected" @click="emit('resetSection', 'toolsetter')">Reset Toolsetter</MachineBtn>
     </div>
   </div>
 </template>

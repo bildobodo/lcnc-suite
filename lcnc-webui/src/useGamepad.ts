@@ -102,7 +102,20 @@ export function useGamepad(deps: {
         lastSentVel[i] = 0;
       }
     }
+    for (const k of Object.keys(stickMaxVel)) delete stickMaxVel[Number(k)];
     for (const c of dpadJogs.endAll()) deps.send(c);
+  }
+
+  // A stick gesture keeps the maximum speed it started with (button gates
+  // BG-05): the jog speed is a free preselection for the NEXT jog, and a
+  // slider moved mid-gesture must not speed up a running one. Taken when the
+  // axis leaves the dead zone, held through a reversal, dropped back in the
+  // dead zone or on a stop.
+  const stickMaxVel: Record<number, number> = {};
+  function gestureMaxVel(axis: number, deflection: number): number {
+    if (deflection === 0) { delete stickMaxVel[axis]; return 0; }
+    stickMaxVel[axis] ??= deps.jogVel.value;
+    return stickMaxVel[axis];
   }
 
   function sendJog(axis: number, vel: number, now: number) {
@@ -139,7 +152,7 @@ export function useGamepad(deps: {
     // VELOCITY UPDATE: heavily throttled to avoid command queue buildup
     const dt = now - prevTime;
     const dv = Math.abs(vel - prev);
-    if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs(deps.jogVel.value * VEL_EPSILON)) {
+    if (dt < VEL_UPDATE_INTERVAL || dv < Math.abs((stickMaxVel[axis] ?? deps.jogVel.value) * VEL_EPSILON)) {
       return;
     }
 
@@ -309,10 +322,9 @@ export function useGamepad(deps: {
     const rz = applyDeadZone(logical.sticks.rz, cfg.deadZone) * (cfg.invertZ ? -1 : 1);
 
     if (canJogNow) {
-      const maxVel = deps.jogVel.value;
-      if (xi >= 0) sendJog(xi, lx * maxVel, now);
-      if (yi >= 0) sendJog(yi, ly * maxVel, now);
-      if (zi >= 0) sendJog(zi, rz * maxVel, now);
+      if (xi >= 0) sendJog(xi, lx * gestureMaxVel(xi, lx), now);
+      if (yi >= 0) sendJog(yi, ly * gestureMaxVel(yi, ly), now);
+      if (zi >= 0) sendJog(zi, rz * gestureMaxVel(zi, rz), now);
     } else if (!deadManOk || !canJog || !cfg.jogEnabled) {
       // Lost permission, dead man released, or jog disabled — stop everything
       stopAllJog();

@@ -891,7 +891,7 @@ async function saveEdit() {
             Unload
           </MachineBtn>
           <!-- ONE files toggle (N82): pressed while the browser shows -->
-          <MachineBtn type="fileOp" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
+          <MachineBtn type="fileBrowse" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
             :disabled="loading || editing" :reason="editing ? 'Finish or discard the edit first' : undefined">
             Files
           </MachineBtn>
@@ -941,7 +941,7 @@ async function saveEdit() {
 
     <!-- Shared file browser: same navigation and file rows as Tools. -->
     <FileBrowser v-if="showBrowser" v-model:subdir="currentSubdir" label="Server programs"
-      empty-text="No program files found" :active-file="activeFile"
+      empty-text="No program files found" :active-file="activeFile" file-gate="setup"
       :load-directory="browsePrograms" :select-file="selectFile" />
 
     <!-- Code area wrapper (drop overlay target) -->

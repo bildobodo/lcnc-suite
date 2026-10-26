@@ -3,6 +3,7 @@
 // One short-lived socket per op: send → first reply → close. The mock answers
 // every ctl message with a JSON {ok, ...} frame, so first-message == reply.
 import WebSocket from "ws";
+import { expect, type Page } from "@playwright/test";
 
 export const MOCK = "http://localhost:4174/";
 export const CTL = "ws://localhost:4174/ctl";
@@ -37,4 +38,15 @@ let toolTableVersion = 10_000;
 export async function publishToolTable(tools: unknown[], base: string = MOCK): Promise<void> {
   await ctlAt(base, { op: "replyFor", cmd: "get_tool_table", reply: { ok: true, tools } });
   await ctlAt(base, { op: "raw", frame: { type: "tool_table_changed", version: ++toolTableVersion } });
+}
+
+/** Connected, ARMED and the first status's permissions applied. The outer
+ *  armed fieldset used to say all three (`fieldset[data-gate="armed"]` not
+ *  disabled); button gates package C removed it: the ARMED pill says the
+ *  arm, the Overrides section's `override` Gate (machine on + armed) says
+ *  the permissions arrived. */
+export async function expectArmed(page: Page, timeout?: number): Promise<void> {
+  await expect(page.locator(".pill.armed")).toBeVisible(timeout ? { timeout } : undefined);
+  // the attribute: toBeDisabled ignores a <fieldset disabled> (native controls only)
+  await expect(page.locator('fieldset[data-gate="override"]').first()).not.toHaveAttribute("disabled", /.*/, timeout ? { timeout } : undefined);
 }

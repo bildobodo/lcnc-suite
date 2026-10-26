@@ -2,22 +2,29 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { fmtSize } from "./format";
 import type { FileEntry, DirectoryListing } from "./lcncApi";
-import { usePermissions } from "./permissions";
-import Gate from "./Gate.vue";
+import { usePermissions, usePermissionReasons, type Permissions } from "./permissions";
+import { explainAt } from "./gateExplain";
 import MachineBtn from "./MachineBtn.vue";
 import { browseFailure } from "./browseFailure";
 
 // Shared by Program and Tools. Parents only supply their listing/selection
 // operations; navigation, cancellation, file rows and layout stay identical.
-const props = defineProps<{
+// Browsing is reading (button gates BG-02): folders, `..` and Retry need
+// nothing but the connection; only a FILE row carries the parent's gate
+// (`fileGate` — Program: loading it; Tools: a library preview, a read).
+const props = withDefaults(defineProps<{
   label: string;
   emptyText: string;
   activeFile?: string | null;
   loadDirectory: (subdir: string, signal: AbortSignal) => Promise<DirectoryListing>;
   selectFile: (entry: FileEntry, signal: AbortSignal) => void | Promise<void>;
-}>();
+  fileGate?: keyof Permissions;
+}>(), { activeFile: null, fileGate: "always" });
 const subdir = defineModel<string>("subdir", { default: "" });
 const can = usePermissions();
+const reasons = usePermissionReasons();
+/** Why a file row may not be chosen now (its gate's reason), or undefined. */
+const fileBlock = computed(() => (can.value[props.fileGate] ? undefined : reasons.value[props.fileGate] ?? "Unavailable now"));
 const files = ref<FileEntry[]>([]);
 const directory = ref("");
 const browserPath = computed(() =>
@@ -51,8 +58,9 @@ async function browse(next = subdir.value) {
 }
 
 async function select(entry: FileEntry) {
-  if (busy.value || !can.value.setup) return;
+  if (busy.value) return;
   if (entry.type === "directory") return browse(entry.path);
+  if (fileBlock.value) return;
   busy.value = true;
   error.value = "";
   failedDirectory.value = null;
@@ -70,7 +78,7 @@ onMounted(() => browse());
 </script>
 
 <template>
-  <Gate gate="setup" class="fileBrowser" role="region" :aria-label="label" :aria-busy="busy">
+  <div class="fileBrowser" role="region" :aria-label="label" :aria-busy="busy">
     <div class="browserHeader">
       <MachineBtn v-if="subdir" type="inline" class="backBtn" aria-label="Parent folder" :disabled="busy"
         @click="browse(subdir.split('/').slice(0, -1).join('/'))">..</MachineBtn>
@@ -85,7 +93,9 @@ onMounted(() => browse());
     <div ref="listRef" class="fileList scroll-thin fade-scroll">
       <button v-for="entry in files" :key="entry.path" type="button" class="fileItem"
         :class="{ directory: entry.type === 'directory', activeItem: entry.type === 'file' && entry.path === activeFile }"
-        :disabled="busy" :aria-label="entry.name" :title="entry.name" @click="select(entry)">
+        :disabled="busy || (entry.type === 'file' && !!fileBlock)" :aria-label="entry.name"
+        :title="entry.type === 'file' && fileBlock ? `${entry.name} — ${fileBlock}` : entry.name"
+        @pointerdown="entry.type === 'file' && fileBlock && explainAt($event, fileBlock)" @click="select(entry)">
         <span class="fileIcon">{{ entry.type === 'directory' ? '/' : '' }}</span>
         <span class="fileEntryName">{{ entry.name }}</span>
         <span v-if="entry.size != null" class="fileSize">{{ formatSize(entry.size) }}</span>
@@ -93,7 +103,7 @@ onMounted(() => browse());
       <div v-if="busy" class="emptyState loading emptyBrowser" role="status">Loading…</div>
       <div v-else-if="!files.length && !error" class="emptyState emptyBrowser">{{ emptyText }}</div>
     </div>
-  </Gate>
+  </div>
 </template>
 
 <style scoped>

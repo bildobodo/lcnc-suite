@@ -966,7 +966,12 @@ test("the initial focus never hides the beginning of a dialog: Run from line foc
 
 // ── Implementation review round 2 (Codex, 2026-09-26) ──
 
-test("UI-DI04: after a disarm the focus fallback is a focusable target — the dialog container, never body", async ({ page }) => {
+test("UI-DI04: after a disarm the focus fallback is a focusable target — the dialog's own, never body", async ({ page }) => {
+  // Since button gates package C a disarm no longer disables a dialog: no
+  // outer armed fieldset — navigation, closing and reading stay open
+  // (BG-01 / BG-16). The focus return lands on the dialog's own target;
+  // only a field the disarm itself disables (a PROTECTED setting, armed)
+  // drops the focus — the registry then puts it on the container.
   await ready(page);
   const toolChange = page.getByRole("dialog", { name: "Load Tool into Spindle", exact: true });
   const settings = page.getByRole("dialog", { name: "Settings", exact: true });
@@ -979,16 +984,19 @@ test("UI-DI04: after a disarm the focus fallback is a focusable target — the d
     await ctl({ op: "status_delta", armed: true, data: { permissions: PERMS_ALL } });
     await expect(page.locator(".pill.disarmed")).toHaveCount(0);
   };
-  const expectHeld = async (d: Locator) => {
-    await expect(d, "focus on the dialog container").toBeFocused();
+  const expectHeld = async (d: Locator, on?: Locator) => {
+    await expect(on ?? d, on ? "focus on the dialog's own target" : "focus on the dialog container").toBeFocused();
     await page.waitForTimeout(600);
-    await expect(d, "still there after the return's frames").toBeFocused();
+    await expect(on ?? d, "still there after the return's frames").toBeFocused();
     await expectTabScope(page, d, 6);
     await d.focus();
   };
+  const settingsTab = settings.locator("button.selected").first();
+  const search = reference.getByRole("textbox", { name: "Search G-code reference", exact: true });
 
   // 1. Codex's sequence: Settings waits under a tool change, the client is
-  //    disarmed, the machine ends the tool change.
+  //    disarmed, the machine ends the tool change — focus returns to
+  //    Settings' selected tab (open while disarmed).
   await openTools(page);
   await page.locator("input.toolSearch").click();
   await ctl({ op: "status_delta", data: { ...M6_PENDING, tool_change_tool: 5 } });
@@ -998,30 +1006,44 @@ test("UI-DI04: after a disarm the focus fallback is a focusable target — the d
   await disarm();
   await ctl({ op: "status_delta", data: M6_DONE });
   await expect(toolChange).toHaveCount(0);
-  await expectHeld(settings);
+  await expectHeld(settings, settingsTab);
   await ctl({ op: "clearCmds" });
-  for (const key of ["Space", "Enter", "Backspace"]) await page.keyboard.press(key);
+  for (const key of ["Space", "Enter", "Backspace"]) {
+    await settings.focus();
+    await page.keyboard.press(key);
+  }
   await settle(page);
   expect(await cmds(), "Space / Enter / Backspace while disarmed").toEqual([]);
   await page.keyboard.press("Escape");
   await expect.poll(cmds).toEqual(["estop"]);
-  // Disarmed, the X is disabled with the content (default-deny); the
-  // backdrop still closes Settings.
-  await settings.locator("xpath=..").click({ position: { x: 3, y: 3 } });
-  await expect(settings).toHaveCount(0);
-
-  // 2. A dialog OPENED in the locked state: Settings from the header while
-  //    disarmed — its selected tab is disabled, the container takes focus.
-  await expect(settings).toHaveCount(0);
-  await page.getByTitle("Settings", { exact: true }).click();
-  await expect(settings).toBeVisible();
-  await expectHeld(settings);
-  await rearm();
+  // Disarmed, the X closes Settings (BG-16: a dialog always closes).
   await settings.getByRole("button", { name: "Close settings", exact: true }).click();
   await expect(settings).toHaveCount(0);
 
-  // 3. The G-code Reference (explicit initial selector: its search field)
-  //    under a tool change, disarmed, the tool change ends.
+  // 2. A dialog OPENED disarmed: Settings from the header — its selected
+  //    tab takes the focus, as armed.
+  await page.getByTitle("Settings", { exact: true }).click();
+  await expect(settings).toBeVisible();
+  await expectHeld(settings, settingsTab);
+
+  // 3. A field the disarm itself disables: a protected setting (Keyboard →
+  //    Enable keyboard jogging, armed since package C). Chromium moves the
+  //    focus to body (with a focusout) — the registry's recovery puts it on
+  //    the container.
+  await rearm();
+  await settings.getByRole("tab", { name: "Keyboard", exact: true }).click();
+  const jogToggle = settings.getByRole("checkbox", { name: "Enable keyboard jogging" });
+  await jogToggle.focus();
+  await expect(jogToggle).toBeFocused();
+  await disarm();
+  await expect(jogToggle).toBeDisabled();
+  await expectHeld(settings);
+  await settings.getByRole("button", { name: "Close settings", exact: true }).click();
+  await expect(settings).toHaveCount(0);
+
+  // 4. The G-code Reference (explicit initial selector: its search field)
+  //    under a tool change, disarmed, the tool change ends: back on search.
+  await rearm();
   await page.getByRole("tab", { name: "Program", exact: true }).click();
   await page.getByTitle("G-code Reference", { exact: true }).click();
   await expect(reference).toBeVisible();
@@ -1030,18 +1052,8 @@ test("UI-DI04: after a disarm the focus fallback is a focusable target — the d
   await disarm();
   await ctl({ op: "status_delta", data: M6_DONE });
   await expect(toolChange).toHaveCount(0);
-  await expectHeld(reference);
-
-  // 4. A lone dialog whose focused field is disabled by the disarm itself:
-  //    Chromium moves focus to body (with a focusout) — the registry's
-  //    recovery puts it on the container.
-  await rearm();
-  const search = reference.getByRole("textbox", { name: "Search G-code reference", exact: true });
-  await search.focus();
-  await disarm();
-  await expect(search).toBeDisabled();
-  await expectHeld(reference);
-  await rearm();
+  await expectHeld(reference, search);
+  await expect(search, "the reference's search is reading: open while disarmed").toBeEnabled();
   await reference.getByRole("button", { name: "Close reference", exact: true }).click();
   await expect(reference).toHaveCount(0);
   await expectRegistryMatchesDom(page);

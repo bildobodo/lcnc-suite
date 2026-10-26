@@ -9497,3 +9497,20 @@ settings save and the reset decide inside the store's lock; macros run the progr
 rule (`_source_write_refusal` is gone); and no controller status refuses every source
 and table write — the gateway before its first status cannot vouch for an idle
 interpreter (operator-visible only in that window).
+
+**Package C as built (2026-10-26, before its implementation review).** The outer
+armed fieldset is gone (BG-01): a disarmed client navigates every tab and dialog,
+reads, preselects and stops; every control that acts is closed by its own gate and
+says why (BG-16). One operator decision changed the plan: the PROTECTED settings
+(keyboard, gamepad, machine, probe and toolsetter parameters, the macro bar, the MDI
+history) are dimmed with "Not armed — press Arm" while disarmed instead of the plan's
+"drafts free" (operator 2026-10-26, asked when the inventory showed what "free"
+meant): a disarmed draft can never be saved — the gateway refuses it and arming
+resends nothing — and the probe form would carry a disarmed draft into the next probe.
+Reading them stays free, the display sections stay free. Two defects the inventory
+and the new browser guard turned up: `shutdown` had no arm check at the gateway
+(only the client's catalog gate), and a ChoiceGroup option's undefined `title`
+attribute overrode its reason (every dimmed mode / WCS option was mute, armed too).
+Package A's record said every dialog's Abort sat outside the fieldset — wrong: every
+dialog teleports into the content; corrected in the C answer. Loading, the mode
+choice, G30, the action map and the recovery order stay package D.

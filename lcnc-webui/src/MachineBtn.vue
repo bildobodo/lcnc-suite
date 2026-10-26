@@ -63,10 +63,9 @@ const useAbortDefault = computed(() => (props.type === 'abort' || props.type ===
 // nothing — the reason lived only in a denial the button could not send.
 // While disabled WITH a reason the button is wrapped in a .btnTip span
 // carrying the title (hover) and a tap handler (touch) that tells the reason
-// at the button and files it quietly in the message center (design wave D1,
-// UI-K18). Not while disarmed: the whole UI is dimmed then and
-// Arm is the one obvious next step — wrapping every control for that would
-// be noise, not help.
+// at the button (design wave D1, UI-K18) — disarmed too, and for a button a
+// closed enclosing Gate disables (button gates BG-16: with the outer armed
+// fieldset gone, every dimmed control is a real lock with its reason).
 // The rule lives in gateExplain.ts (UX-09) — the same one the input,
 // select, slider, toggle and radio controls use.
 const gateExplain = useGateExplain({
@@ -253,6 +252,7 @@ onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
     <Btn
       ref="btnRef"
       v-bind="passAttrs"
+      :data-control="type"
       :variant="resolvedVariant"
       :size="def.size"
       :icon="resolvedIcon"
@@ -277,6 +277,7 @@ onBeforeUnmount(() => { clearTimeout(holdTimer); disarmHoldGuards(); });
     v-else
     ref="btnRef"
     v-bind="passAttrs"
+    :data-control="type"
     :variant="resolvedVariant"
     :size="def.size"
     :icon="resolvedIcon"

@@ -49,7 +49,7 @@ function onChange(e: Event) {
         :tabindex="explainActive ? 0 : undefined" :role="explainActive ? 'button' : undefined"
         :aria-label="explainActive ? explainLabel : undefined" @click="explain" @keydown="explainKey">
     <label>
-      <input v-bind="$attrs" type="checkbox" class="toggle"
+      <input v-bind="$attrs" :data-control="gate" type="checkbox" class="toggle"
         :checked="modelValue ?? false"
         @change="onChange"
         :disabled="isDisabled">

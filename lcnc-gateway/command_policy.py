@@ -676,7 +676,7 @@ COMMAND_GATES: Dict[str, str] = {
     "arm": "always",
     "estop": "always",
     "estop_reset": "always",       # runs WHILE in estop; handler require_armed gates it
-    "shutdown": "always",          # confirmation dialog is the safety gate
+    "shutdown": "armed",           # ends LinuxCNC: the writer's arm + the confirmation (button gates C)
     "abort": "abort",
     "machine_on": "safety",
     "machine_off": "safety",

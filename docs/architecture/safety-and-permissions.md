@@ -209,3 +209,100 @@ the server re-checks before the effect. Package A closed what made that false:
   changes. Nothing resends it — a later Arm or a reconnect applies nothing. The
   e2e mock answers `save_settings` and sends the blob like the gateway
   (`settingsEcho`; the save-status specs turn it off and answer themselves).
+
+### Package C — navigation, preselections, the file browser, explanations (button gates BG-01, BG-02, BG-05, BG-16)
+
+**The principles** (Codex R202, agreed R204). Enabled means *admissible by the
+last confirmed state and meaningful for the concrete action* — no promise of
+success: the server checks again right before the effect. Unknown is never
+idle, homed or "compensation off".
+
+1. View, draft, commit and motion are different things. Tabs, search, help,
+   reading, copying, the viewer and local drafts need no arm. A draft is
+   never executed by arming, a reconnect or a focus change.
+2. Arm authorizes new machine effects, not navigation. Stops stay reachable;
+   resume, the M6 confirmation and the E-Stop reset are no stops.
+3. A gate belongs to the action with its target and parameters (MANUAL is
+   not AUTO; a step from idle is a start, from a pause a resume).
+4. One contract, several callers: the backend decides and explains; screen,
+   keyboard and gamepad use the same action map (package D completes it).
+5. A begun gesture owns its end: a jog keeps its target, frame, mode and
+   speed from its start (BG-06, BG-05).
+6. No hidden mode switch to unlock a view; a refused command never looks
+   successful.
+
+**The matrix** (`✓` = under the action's own conditions; columns other than
+"Observer" assume arm):
+
+| Action | Disconnected | Observer | E-Stop | Off | Unhomed | Idle | Running | Paused |
+|---|---|---|---|---|---|---|---|---|
+| Navigation, drafts, help, preselections | cached | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Reading / download from the gateway | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Display settings (display, viewer, panels, camera) | local | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Protected settings (read: free) | – | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| File / tool-table commit (sourceWrite / toolTableWrite) | – | – | ✓ idle | ✓ idle | ✓ idle | ✓ | – | – |
+| Abort, E-Stop, the needed jog stop | – | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Pause (AUTO or MDI) | – | ✓ running | – | – | – | – | ✓ | – |
+| Spindle stop (at idle) | – | ✓ | – | – | ✓ | ✓ | – | – |
+| Start, step from idle, MDI, macro, WCS, touch-off, world jog | – | – | – | – | – | ✓ | – | – |
+
+Loading, the mode choice, G30, the recovery order and Q1 follow in package D,
+joint jog before homing in E.
+
+**What package C changed.**
+
+- *No outer armed fieldset* (BG-01): the content (`.content#content-dialog-area`,
+  the dialogs' Teleport target), the strip and the macro bar are plain
+  elements. Before, a disarmed client could not change a tab, close a dialog,
+  browse the program folder or reach the Abort and Pause inside the content
+  (package A's "every dialog's Abort is outside the fieldset" was wrong: every
+  dialog teleports into the content — corrected in the C answer). Every
+  control a disarmed client can operate is in `controlInventory.ts` — what it
+  does and why that needs no arm; `controlScan.ts` finds them in the templates
+  (a control is live when its own gate and every `<Gate>` around it in its file
+  open without arm: `always` and the stops) and `controlInventory.test.ts`
+  fails on an unclassified one or a stale entry. A protected effect is never a
+  category: such a control takes an armed gate. The DEV "UNGATED" outline
+  (`main.ts`) leaned on the outer fieldset and is gone.
+- *Protected settings dimmed* (operator decision 2026-10-26, Q2 "the rest
+  armed"): the keyboard and gamepad configuration (`inputConfig`), the probe
+  and toolsetter parameters (`probeParam`, `scanParam`, `toolsetterParam`), the
+  machine section (`protectedSetting(Num)`), the macro bar's membership and
+  order, a key binding's removal and capture (the capture cell refuses and
+  says why), a gamepad profile (`profileRemove`, `dialogSettingConfirm` /
+  `dialogSettingDanger`), the MDI history's Clear (`settingInlineMd`) — `armed`,
+  dimmed with "Not armed — press Arm". Not the plan's "drafts free": a
+  disarmed draft could never be saved (the gateway refuses it, arming resends
+  nothing), and the probe form would carry it into the next probe. Resets:
+  `resetDisplay` (free) / `resetProtected` (armed); the confirm's Gate follows
+  `isProtectedSection(target)`.
+- *Preselections* (BG-05): the jog step, the jog speed and its reset, the RPM
+  and the MDI line are free in every state. The MDI line's send stays `ready`
+  (`useMdiHistory` `canSend`): a refused Enter keeps the text, writes no
+  history and says why at the line; its keyboard opens for every client. The
+  analog stick keeps the speed it started with (`gestureMaxVel`, taken when
+  the axis leaves the dead zone, held through a reversal, dropped in the dead
+  zone or on a stop). The jog pad's centre Stop is a stop (`jogStop`, always).
+- *The file browser* (BG-02): no `setup` Gate around it; folders, `..` and
+  Retry are reading; a FILE row carries the parent's `fileGate` (Program
+  `setup` — loading moves to `programLoad` in D; Tools: the library preview, a
+  read). A closed file row is disabled with its reason (title + a tap). The
+  Files toggles, the library Upload and Preview again are `fileBrowse`
+  (always): the preview reads, applying is `toolTableWrite`.
+- *Explanations* (BG-16): `gateExplain` offers the reason to every client,
+  the disarmed one too; a control a closed inner `<Gate>` disables explains
+  with that Gate's reason (Gate.vue provides `GATE_SCOPE_KEY`, the outermost
+  closed one). `MachineChoice` takes `title` as a prop — as a fallthrough
+  attribute an undefined title overrode the reason (every dimmed mode / WCS
+  option was mute). Catalog controls carry `data-control="<entry>"`.
+- *Backend:* `shutdown` is `armed` (policy + `require_armed`): the client's
+  catalog gate was its only check. `simTrip` is `armed` (dev builds).
+  `timing_log` stays free: a diagnostic file, no machine, file or settings
+  effect.
+- *Guards:* `controlInventory.test.ts`, `e2e/disarmed.spec.ts` (disarmed at
+  idle / unhomed / E-Stop / running: every tab and sub-tab, every visible
+  catalog control gated → closed WITH its reason, nothing forbidden sent; the
+  preselections; Pause, Abort, the jog Stop and the spindle stop act; the
+  browser browses; a dialog opened armed closes after the disarm),
+  `useGamepad.test.ts` (the stick's speed), `test_button_gates_c.py`
+  (shutdown).

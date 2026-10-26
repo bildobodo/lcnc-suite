@@ -37,13 +37,17 @@ const NO_GATE_NEEDED = new Set([
 
 /**
  * State-changing commands whose only CLIENT-side gate is the catalog control
- * (MachineBtn/MachineInput self-gate) inside the outer `<Gate>` fieldset, with
- * the real policy enforced by the backend (command_policy.COMMAND_GATES).
+ * (MachineBtn/MachineInput self-gate, or the inner `<Gate>` around it — the
+ * outer armed fieldset is gone since button gates package C), with the real
+ * policy enforced by the backend (command_policy.COMMAND_GATES): the
+ * overrides under `override` (OverridesStrip's Gate), `simulate_probe_trip`
+ * under `simTrip` (armed), `shutdown` under `shutdown` (armed; the gateway
+ * requires arm too since package C).
  *
  * They are raw on purpose, not by oversight: routing them through fire() would
- * add a third redundancy — an imperative re-check behind a DOM gate that
- * already disables the control and a backend gate that already refuses the
- * command — for no reachable failure. The asymmetry that DID matter (one
+ * add a third redundancy — an imperative re-check behind a gate that already
+ * disables the control and a backend gate that already refuses the command —
+ * for no reachable failure. The asymmetry that DID matter (one
  * command, two policies) is caught by the test above.
  *
  * This list is a RATCHET: a new raw-only command fails the suite until someone

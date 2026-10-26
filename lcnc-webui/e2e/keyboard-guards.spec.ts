@@ -397,22 +397,24 @@ test("tool editor: header X and footer Cancel close an unchanged form at once an
   expectNoMachineAction(await recordedCmds());
 });
 
-test("a dimmed control explains itself: the MDI line on a tap, a coolant toggle on Tab + Enter; Space on either never starts the program", async ({ page }) => {
+test("a dimmed control explains itself: a touch-off field on a tap, a coolant toggle on Tab + Enter; Space on either never starts the program", async ({ page }) => {
   // UX-09: the one explanation path (gateExplain.ts) for every control, not
   // only MachineBtn — input-rooted controls on pointerdown, label-rooted
   // ones on tap and Enter/Space; the reason is told at the control (design
   // wave D1), never in the message log.
   await openReady(page);
   await ctl({ op: "status_delta", data: {
-    permissions: { ...PERMS_ALL, ready: false, run: false, override: false },
-    permission_reasons: { ready: "Home all axes first", run: "Home all axes first", override: "Machine off" },
+    permissions: { ...PERMS_ALL, ready: false, run: false, override: false, touchoff: false },
+    permission_reasons: { ready: "Home all axes first", run: "Home all axes first", override: "Machine off",
+                          touchoff: "Home all axes first" },
   } });
-  await page.getByRole("tab", { name: "MDI", exact: true }).click();
-  const mdi = page.locator(".mdiInput");
-  await expect(mdi).toBeDisabled();
-  await expect(mdi).toHaveAttribute("title", "Home all axes first");
+  // The input example: the strip's touch-off field (the MDI line is a free
+  // draft since button gates package C, BG-05 — its SEND is gated).
+  const field = page.locator('[data-strip="setup"] input[data-control="touchoff"]').first();
+  await expect(field).toBeDisabled();
+  await expect(field).toHaveAttribute("title", "Home all axes first");
   await ctl({ op: "clearCmds" });
-  await mdi.click({ force: true });   // a real pointerdown on the disabled line
+  await field.click({ force: true });   // a real pointerdown on the disabled field
   const hint = page.locator("[data-btn-hint]");
   await expect(hint).toHaveText("Home all axes first");
   // The Flood toggle (its OWN gate, override, closed with a reason — the

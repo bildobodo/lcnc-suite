@@ -1,4 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
+import { expectArmed } from "./ctl";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -53,7 +54,7 @@ async function expectUncovered(dialog: Locator) {
 
 async function openTools(page: Page) {
   await page.goto(MOCK);
-  await expect(page.locator('fieldset[data-gate="armed"]').first()).not.toBeDisabled();
+  await expectArmed(page);
   await page.getByRole("tab", { name: "Tools", exact: true }).click();
   await expect(page.getByRole("button", { name: "Examples", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Import", exact: true })).toHaveCount(0);

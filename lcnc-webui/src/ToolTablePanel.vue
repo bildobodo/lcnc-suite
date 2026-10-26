@@ -918,9 +918,10 @@ defineExpose({ openAdd, toggleImportBrowser, uploadLibrary, downloadTable, showI
           </div>
           <template #actions>
             <MachineBtn type="dialogCancel" :disabled="importBusy" :title="importBusy ? 'Import in progress' : undefined" @click="cancelImport">Cancel</MachineBtn>
+            <!-- a preview reads: free (BG-14); applying is toolTableWrite -->
+            <MachineBtn v-if="importError && importFile" type="fileBrowse" :disabled="importBusy"
+              @click="previewImportFile(importFile)">Preview again</MachineBtn>
             <Gate gate="toolTableWrite" class="row-controls">
-              <MachineBtn v-if="importError && importFile" type="fileOp" :disabled="importBusy"
-                @click="previewImportFile(importFile)">Preview again</MachineBtn>
               <MachineBtn type="toolSave" @click="requestImport" :disabled="!canConfirmImport">
                 {{ importBusy ? 'Importing…' : importMode === 'metadata' ? 'Update metadata' : 'Replace table' }}
               </MachineBtn>

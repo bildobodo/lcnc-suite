@@ -144,13 +144,13 @@ const rawSummary = computed(() => {
           {{ gamepadMappingSource ? MAPPING_STATUS[gamepadMappingSource] : '' }}
         </div>
         <div class="row-controls">
-          <MachineBtn type="inlineMd" @click="showWizard = true">Map Buttons…</MachineBtn>
+          <MachineBtn type="settingInlineMd" @click="showWizard = true">Map Buttons…</MachineBtn>
           <MachineBtn v-if="hasProfile" type="profileRemove" @click="requestRemoveProfile">Remove Profile</MachineBtn>
           <DialogFrame v-if="removeConfirm" kind="confirm" title="Remove profile?" danger @close="removeConfirm = false">
             <div class="dialogBody">The button and stick mapping for <strong>{{ gamepadName }}</strong> will be deleted. This cannot be undone.</div>
             <template #actions>
               <MachineBtn type="dialogCancel" @click="removeConfirm = false">Cancel</MachineBtn>
-              <MachineBtn type="dialogDanger" @click="removeProfile">Remove</MachineBtn>
+              <MachineBtn type="dialogSettingDanger" @click="removeProfile">Remove</MachineBtn>
             </template>
           </DialogFrame>
         </div>

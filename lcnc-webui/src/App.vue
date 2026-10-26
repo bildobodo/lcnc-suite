@@ -33,7 +33,6 @@ import ProbePanel from "./ProbePanel.vue";
 import { PROBE_VIEWS, type ProbeView } from "./probeViews";
 import MachineSelect from "./MachineSelect.vue";
 import OffsetPanel from "./OffsetPanel.vue";
-import Gate from "./Gate.vue";
 import { toolOffsetState } from "./viewer/toolOffsetState";
 import { m600Events, m600StatsText, parseProbeNotes, parseProbeStops, probeStopWhy, type ProbeStop } from "./viewer/probeStop";
 import MachineBtn from "./MachineBtn.vue";
@@ -56,7 +55,8 @@ import GcodeReferenceDialog from "./GcodeReferenceDialog.vue";
 import NumberKeypadStrip from "./NumberKeypadStrip.vue";
 import FloatingOverlays from "./FloatingOverlays.vue";
 import { keypadState } from "./useNumberKeypad";
-import { activeKind, openTextSession, closeTextSessionIf, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
+import { activeKind, openTextSession, lockTextSessionIf, EDITOR_OWNER, MACRO_EDITOR_OWNER, type TextTarget, returnFocusTo } from "./inputSession";
+import { explainAt } from "./gateExplain";
 import { loadViewerDefaults, saveViewerDefaults, loadMachineDefaults, loadDisplayDefaults, saveDisplayDefaults, loadGamepadDefaults, loadGamepadDraft, saveGamepadDefaults, settingsVersion, type ThemeMode, type GamepadDefaults, type Layer, type OnTopLayer, type TrackMode, type Projection } from "./defaults";
 import { confirmedToolsetter, toolsetterVarMap, TOOLSETTER_MDI_KEY } from "./toolsetterVars";
 import { useGamepad } from "./useGamepad";
@@ -447,6 +447,10 @@ const {
   // `mdi` call site (issue #31 — it was raw here and gated at every other).
 } = useMdiHistory({
   fire: (c) => { fire(c, 'ready'); },
+  // The line is a draft for every client (button gates BG-05); sending is
+  // `ready` — refused, the text stays and the reason shows at the line.
+  canSend: () => !!permissions.value.ready,
+  refused: () => explainAt(_mdiInputEl(), permissionReasons.value.ready),
   // The send disables the line for the busy latch and drops its focus: the
   // guarded return keeps the shortcut map closed until the line holds focus
   // again (or the operator moved on) — the next keystroke is MDI, never a
@@ -529,8 +533,9 @@ function mdiTarget(): TextTarget {
     focusEl: _mdiInputEl,
   };
 }
+// The keyboard opens for every client: the line is a draft (BG-05); its
+// Enter is the gated send (handleMdiSend).
 function openMdiSession() {
-  if (!permissions.value.ready) return;
   openTextSession({ ownerId: MDI_OWNER, kind: "code", context: "MDI", target: mdiTarget(), enterLabel: "Apply" });
 }
 // Hidden-but-mounted owners (tab switch): the editor's and the MDI line's
@@ -750,9 +755,6 @@ provide(OWNER_PERMISSIONS_KEY, ownerPermissions);
 // MachineBtn shows "Busy — try again" at the control when this latch would
 // drop its click (fire()); read-only for children.
 provide("busy", busy);
-// Gate closes → the MDI session ends (its value could not be sent anyway).
-// (Declared after `permissions`: the watch getter runs at setup time.)
-watch(() => permissions.value.ready, (ok) => { if (!ok) closeTextSessionIf(MDI_OWNER, "MDI unavailable"); });
 // Why each closed gate is closed (U-06): the backend's reasons under the
 // client-local overlay's own — what a dimmed control shows on hover and
 // says on tap (MachineBtn), and what fire() reports when it drops a send.
@@ -2018,8 +2020,11 @@ watch(viewerGcode, (newGcode) => {
       </div>
     </div>
 
-    <!-- ══ Content area — outer Gate wraps tabs ══ -->
-    <Gate gate="armed" class="content" id="content-dialog-area">
+    <!-- ══ Content area — no outer Gate (button gates BG-01, package C):
+         navigation, views, reading and the dialogs' close are open to a
+         disarmed client; every action is gated by its own catalog gate or
+         an inner <Gate>. The id is the dialogs' Teleport target. ══ -->
+    <div class="content" id="content-dialog-area">
       <!-- ══ Left pane — 3D Viewer (always visible); in portrait the macro
            bar sits under it, in the same column (package 5, stage A) ══ -->
       <div class="viewerColumn stack-controls">
@@ -2154,7 +2159,7 @@ watch(viewerGcode, (newGcode) => {
               </div>
               <div class="mdiHistoryHeader">
                 <span class="sub">History</span>
-                <MachineBtn type="inlineMd" aria-label="Clear MDI history" title="Clear MDI history" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
+                <MachineBtn type="settingInlineMd" aria-label="Clear MDI history" title="Clear MDI history" @click="clearMdiHistory" :disabled="mdiHistory.length === 0">Clear</MachineBtn>
               </div>
               <div class="codeViewer mdiHistoryList scroll-thin fade-scroll">
                 <div v-for="(entry, i) in mdiHistory" :key="entry.id"
@@ -2214,9 +2219,9 @@ watch(viewerGcode, (newGcode) => {
                   <MoreMenu class="actionEnd" label="More tool actions">
                     <MachineBtn type="toolOp" @click="toolTableRef?.openAdd()">New</MachineBtn>
                     <!-- ONE files toggle (N82): pressed while the library browser shows -->
-                    <MachineBtn type="fileOp" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
+                    <MachineBtn type="fileBrowse" :selected="!!toolTableRef?.showImportBrowser" :aria-pressed="!!toolTableRef?.showImportBrowser"
                                 :disabled="toolTableRef?.importBusy" @click="toolTableRef?.toggleImportBrowser()">Files</MachineBtn>
-                    <MachineBtn type="fileOp" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
+                    <MachineBtn type="fileBrowse" :disabled="toolTableRef?.importBusy" @click="toolTableRef?.uploadLibrary()">Upload</MachineBtn>
                     <MachineBtn type="fileDownload" @click="toolTableRef?.downloadTable()">Download</MachineBtn>
                   </MoreMenu>
                 </div>
@@ -2480,15 +2485,15 @@ watch(viewerGcode, (newGcode) => {
             <MachineBtn type="dialogReady" @click="confirmCompToggle">{{ compConfirmPending ? 'Enable' : 'Disable' }}</MachineBtn>
           </template>
       </DialogFrame>
-    </Gate><!-- /content (outer gate) -->
+    </div><!-- /content -->
 
     <!-- ══ Macro Bar — landscape: a row under the content (portrait: in the
          viewer column above) ══ -->
     <MacroBar v-if="!isPortrait && macroBar.items.length" :items="macroBar.items" @run="runBarItem" />
 
-    <!-- ══ Bottom Action Strip — default-deny Gate, SafetyStrip exempt + sticky ══ -->
-    <Gate gate="armed" class="strip bordered-panel scroll-thin" tabindex="-1">
-      <template #exempt>
+    <!-- ══ Bottom Action Strip — SafetyStrip first and sticky; every control
+         gated by its own catalog gate (no outer Gate, BG-01) ══ -->
+    <div class="strip bordered-panel scroll-thin" tabindex="-1">
       <SafetyStrip
         :armed="armed"
         :busy="busy"
@@ -2514,7 +2519,6 @@ watch(viewerGcode, (newGcode) => {
         @machine-off="fire({ cmd: 'machine_off' }, 'safety')"
         @open-active-codes="openGcodeRef({ active: true })"
       />
-      </template>
 
       <JogStrip
         v-show="stripVis('jog')"
@@ -2652,7 +2656,7 @@ watch(viewerGcode, (newGcode) => {
            sections are scrolled out of view (strip-more class, JS-toggled).
            SafetyStrip pins the near edge, so only the far edge needs it. -->
       <div class="stripFade" aria-hidden="true"></div>
-    </Gate><!-- /strip -->
+    </div><!-- /strip -->
 
     <!-- The app-wide floating hint and keyboard glyph (single instances). -->
     <FloatingOverlays />
@@ -3053,11 +3057,12 @@ watch(viewerGcode, (newGcode) => {
        hiding sections (keypad open) never widens the inner column and
        re-flows every control in it (the root box stayed 280 px — only the
        INNER width moved, which a bounding-box compare cannot see, UI-08).
-       `overflow-y: scroll`, not `scrollbar-gutter: stable`: the strip is a
-       <fieldset> (Gate), whose scroll container is its anonymous inner box,
-       and Chromium does not reserve the gutter there — the sticky Safety
-       section measured 252 → 262 px when the overflow vanished (layout
-       gate, 2026-09-20). Same rule as landscape's `overflow-x: scroll`. */
+       `overflow-y: scroll`, not `scrollbar-gutter: stable`: chosen while
+       the strip was a <fieldset> (the outer Gate, gone since button gates
+       package C), whose anonymous inner scroll box Chromium reserved no
+       gutter in — the sticky Safety section measured 252 → 262 px when the
+       overflow vanished (layout gate, 2026-09-20). It holds on the div too;
+       same rule as landscape's `overflow-x: scroll`. */
     overflow-y: scroll;
     /* scroll axis is vertical here: top padding moves into the sticky
        SafetyStrip, left padding is restored (no horizontal scroll) */

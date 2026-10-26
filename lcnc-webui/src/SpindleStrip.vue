@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import Gate from "./Gate.vue";
 import MachineBtn from "./MachineBtn.vue";
 import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
@@ -33,9 +32,9 @@ const emit = defineEmits<{
 <template>
   <div class="stripSection">
     <div class="sub">Spindle</div>
-    <!-- The direction row self-gates per button: the stop at idle needs no
-         homing (button gates BG-18), so it lives outside the `ready` fieldset;
-         Rev / Fwd / ± keep `ready` from the catalog. -->
+    <!-- Every button self-gates from the catalog: the stop at idle needs no
+         homing and no arm (button gates BG-18), Rev / Fwd / ± keep `ready`;
+         the RPM is a preselection for the next Fwd / Rev (BG-05), free. -->
     <div class="spnBlock stack-controls">
       <div class="spDirRow row-controls">
         <MachineBtn type="spindleRev" :active="isReverse" @click="emit('spindleRev', rpmInput)">
@@ -50,7 +49,7 @@ const emit = defineEmits<{
         </MachineBtn>
       </div>
 
-      <Gate gate="ready" class="spRpmRow row-controls">
+      <div class="spRpmRow row-controls">
         <MachineBtn type="spindleDecrease" @click="emit('spindleDecrease')">
           <Minus :size="14" />
         </MachineBtn>
@@ -58,7 +57,7 @@ const emit = defineEmits<{
         <MachineBtn type="spindleIncrease" @click="emit('spindleIncrease')">
           <Plus :size="14" />
         </MachineBtn>
-      </Gate>
+      </div>
 
     </div>
 

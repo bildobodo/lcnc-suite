@@ -695,28 +695,6 @@ fieldset:disabled textarea {
   opacity: var(--opacity-disabled) !important;
   cursor: not-allowed;
 }
-/* Legend children are exempt from fieldset:disabled per HTML spec —
-   restore opacity so Arm and E-Stop look fully enabled while disarmed.
-   The intent is "always visible where you can act": Arm so you can arm,
-   E-Stop so you can stop. Buttons that are :disabled at the per-button
-   level (e.g. E-Stop "Reset" when canResetEstop=false because not armed)
-   intentionally stay dimmed via the standard `button:disabled` rule —
-   the operator should see that Reset isn't available until they arm.
-   Two anchor patterns share the same exemption:
-     1. fieldset:not([disabled]) — original <Gate gate="always"> wrappers.
-     2. div.btnGate — current SafetyStrip plain-div wrappers.
-   `div.btnGate` (not just `.btnGate`) excludes fieldset.btnGate —
-   Machine On/Off is inside <Gate gate="safety" class="btnGate"> which
-   produces a fieldset.btnGate; that one stays dimmed when disarmed via
-   the parent fieldset:disabled descendant rule. */
-fieldset:disabled > legend fieldset:not([disabled]) button:not(:disabled),
-fieldset:disabled > legend fieldset:not([disabled]) input:not(:disabled),
-fieldset:disabled > legend div.btnGate > button:not(:disabled),
-fieldset:disabled > legend div.btnGate > input:not(:disabled) {
-  opacity: 1 !important;
-  cursor: pointer;
-}
-
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;

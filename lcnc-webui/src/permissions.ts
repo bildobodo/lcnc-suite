@@ -259,10 +259,6 @@ export function usePermissionReasons(): ComputedRef<PermissionReasons> {
   return inject(PERMISSION_REASONS_KEY, _noReasons);
 }
 
-/** Valid gate names (excludes `always`) — used by main.ts data-gate guard. */
-export const VALID_GATES: ReadonlySet<string> =
-  new Set(GATE_NAMES.filter((k) => k !== "always"));
-
 /** Injection key for provide/inject */
 export const PERMISSIONS_KEY = Symbol("permissions") as InjectionKey<ComputedRef<Permissions>>;
 

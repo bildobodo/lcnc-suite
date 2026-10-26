@@ -85,14 +85,25 @@ export const BUTTON_TYPES = {
 
   // Jog
   jog:            { gate: 'jog',      variant: 'default', size: 'sm', mono: true },
+  // The jog pad's centre Stop: jog_stop for every axis — a stop, open to a
+  // disarmed client (button gates BG-08 / BG-01: a closed start never
+  // closes its stop; the gateway answers a stop it did not start as a no-op).
+  jogStop:        { gate: 'always',   variant: 'danger',  size: 'sm', mono: true },
 
   // Overrides
   overridePreset: { gate: 'override', variant: 'default', size: 'xs' },
   overrideReset:  { gate: 'override', variant: 'default', size: 'xs' },
-  jogSpeedReset:  { gate: 'jog',      variant: 'default', size: 'xs' },
+  // A preselection for the NEXT jog (button gates BG-05): free in every
+  // state — a running jog keeps the speed it started with.
+  jogSpeedReset:  { gate: 'always',   variant: 'default', size: 'xs' },
 
   // File operations
   fileOp:         { gate: 'setup',    variant: 'default', size: 'md' },
+  // Opening a file browser and a tool library's import PREVIEW (Files,
+  // Upload to preview, Preview again): reading, never a machine or file
+  // effect — free (button gates BG-02 / BG-14: reading, export and the
+  // import preview stay free; applying is toolTableWrite).
+  fileBrowse:     { gate: 'always',   variant: 'default', size: 'md' },
   // Download (Program, Tools, Macros): a read — it moves nothing, so it
   // works whatever the machine does (the outer Gate still needs armed)
   fileDownload:   { gate: 'always',   variant: 'default', size: 'md' },
@@ -111,8 +122,21 @@ export const BUTTON_TYPES = {
   toolSave:       { gate: 'toolTableWrite', variant: 'primary', size: 'md' },
   toolDanger:     { gate: 'toolTableWrite', variant: 'danger',  size: 'md' },
 
-  // Settings management
-  reset:          { gate: 'setup',    variant: 'danger',  size: 'md' },
+  // Settings resets (button gates BG-19, package C): a display section
+  // resets for any client; every other section needs the writer's arm —
+  // the same classification the gateway applies to the save (Q2).
+  resetDisplay:   { gate: 'always',   variant: 'danger',  size: 'md' },
+  resetProtected: { gate: 'armed',    variant: 'danger',  size: 'md' },
+  // Controls that change a PROTECTED settings section outside a form field
+  // (the MDI history's Clear, the macro bar's membership and order, a key
+  // binding's removal, a gamepad profile): dimmed with "Not armed" while
+  // disarmed (operator decision 2026-10-26, Q2 "the rest armed") — the
+  // looks of inline / inlineMd / listAction / dialogConfirm / dialogDanger.
+  settingInline:      { gate: 'armed', variant: 'default', size: 'sm' },
+  settingInlineMd:    { gate: 'armed', variant: 'default', size: 'md' },
+  listActionSetting:  { gate: 'armed', variant: 'default', size: 'md', icon: true },
+  dialogSettingConfirm: { gate: 'armed', variant: 'primary', size: 'md' },
+  dialogSettingDanger:  { gate: 'armed', variant: 'danger',  size: 'md' },
 
   // WCS selection
   wcs:            { gate: 'probe',    variant: 'default', size: 'sm' },
@@ -165,7 +189,10 @@ export const BUTTON_TYPES = {
 
   // Shutdown
   shutdown:       { gate: 'armed',    variant: 'danger',  size: 'md' },
-  simTrip:        { gate: 'always',   variant: 'default', size: 'md' },
+  // Dev builds: trips the simulated probe input (halcmd) — a machine-side
+  // effect, the gateway's `armed` class (package C: it relied on the outer
+  // fieldset).
+  simTrip:        { gate: 'armed',    variant: 'default', size: 'md' },
 
   // ── Gated dialog actions (confirm/danger that require machine state) ──
   dialogReady:    { gate: 'ready',   variant: 'primary', size: 'md' },
@@ -199,9 +226,9 @@ export const BUTTON_TYPES = {
   // (design wave D4, UI-N67; button gates BG-14).
   listActionTool:   { gate: 'toolTableWrite', variant: 'default', size: 'md',  icon: true },
   listActionSource: { gate: 'sourceWrite',    variant: 'default', size: 'md',  icon: true },
-  // Removing a gamepad profile: destructive, outside a dialog, and like
-  // the rest of the gamepad configuration never gated (UI-N71).
-  profileRemove:  { gate: 'always',  variant: 'danger',  size: 'md' },
+  // Removing a gamepad profile: destructive, outside a dialog; the gamepad
+  // configuration is a protected section — armed (package C, Q2).
+  profileRemove:  { gate: 'armed',   variant: 'danger',  size: 'md' },
   nav:            { gate: 'always',  variant: 'default', size: 'md' },
   inline:         { gate: 'always',  variant: 'default', size: 'sm' },
   // The "More" disclosure's trigger (MoreMenu.vue): opening it is no machine
@@ -275,12 +302,15 @@ export interface InputDef {
 }
 
 export const INPUT_DEFS = {
-  // Motion parameters
-  jogSpeed:        { gate: 'jog',      mono: true, align: 'right' },
-  jogIncrement:    { gate: 'jog',      mono: true, align: 'right' },
+  // Motion parameters. The speed, the step and the MDI line are
+  // PRESELECTIONS (button gates BG-05): free in every state — the jog that
+  // starts, the MDI that is sent, carry their own gates; a running jog keeps
+  // the values it started with.
+  jogSpeed:        { gate: 'always',   mono: true, align: 'right' },
+  jogIncrement:    { gate: 'always',   mono: true, align: 'right' },
   jogWheel:        { gate: 'jog' },
   jogAxis:         { gate: 'jog' },
-  mdiText:         { gate: 'ready' },
+  mdiText:         { gate: 'always' },
   touchoff:        { gate: 'touchoff', mono: true, align: 'right', density: 'compact' },
   touchoffRotary:  { gate: 'touchoffRotary', mono: true, align: 'right', density: 'compact' },
   // WCS selector radios: selecting a fixture is a plain modal (G54..), the
@@ -307,14 +337,16 @@ export const INPUT_DEFS = {
   spindleOverride: { gate: 'override' },
   rapidOverride:   { gate: 'override' },
 
-  // Probe parameters
-  probeParam:      { gate: 'always',   mono: true, align: 'right' },
-  scanParam:       { gate: 'always',   mono: true, align: 'right' },
+  // Probe parameters: the protected `probe` section, and what the next
+  // probe sends — armed (package C, operator decision 2026-10-26: no
+  // disarmed draft a later probe would carry).
+  probeParam:      { gate: 'armed',    mono: true, align: 'right' },
+  scanParam:       { gate: 'armed',    mono: true, align: 'right' },
   compToggle:      { gate: 'ready' },
   compMethod:      { gate: 'probe' },
 
-  // Toolsetter parameters
-  toolsetterParam: { gate: 'always',   mono: true, align: 'right' },
+  // Toolsetter parameters: the protected `toolsetter` section — armed.
+  toolsetterParam: { gate: 'armed',    mono: true, align: 'right' },
 
   // Program upload — the rename field in the name-conflict dialog (UI-09)
   uploadName:      { gate: 'sourceWrite' },
@@ -332,17 +364,21 @@ export const INPUT_DEFS = {
   viewerSettingNum:{ gate: 'always',   mono: true, align: 'right' },
   cameraSetting:   { gate: 'always' },
 
-  // Display settings
+  // Display settings (display / viewer / panels / camera): free (Q2)
   displaySetting:  { gate: 'always' },
   displaySettingNum:{ gate: 'always',  mono: true, align: 'right' },
+  // A field of a PROTECTED settings section (machine, macros' bar …):
+  // armed (package C, Q2 — dimmed with "Not armed" while disarmed)
+  protectedSetting:    { gate: 'armed' },
+  protectedSettingNum: { gate: 'armed', mono: true, align: 'right' },
 
   // Macro editing
   macroEdit:       { gate: 'always' },
   macroSearch:     { gate: 'always' },
   macroParam:      { gate: 'ready' },
 
-  // Keyboard/gamepad config
-  inputConfig:     { gate: 'always' },
+  // Keyboard/gamepad config: protected sections — armed (package C, Q2)
+  inputConfig:     { gate: 'armed' },
 
   // Program toggles
   optionalStop:    { gate: 'override' },

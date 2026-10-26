@@ -19,6 +19,8 @@ import { isRotaryAxis, DEFAULT_AXES } from "./useAxes";
 import MachineBtn from "./MachineBtn.vue";
 import { Trash2 } from "lucide-vue-next";
 import MachineToggle from "./MachineToggle.vue";
+import { usePermissions, usePermissionReasons } from "./permissions";
+import { explainAt } from "./gateExplain";
 
 const props = defineProps<{ kbConfig: KeyboardDefaults }>();
 const emit = defineEmits<{
@@ -67,8 +69,18 @@ const hasRotaryAxes = computed(() => ROTARY_JOG_ACTIONS.value.length > 0);
 // Modifier keys to reject
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta"]);
 
-function startCapture(action: KeyboardAction) {
+// A binding is the protected `keyboard` section: armed, like the toggles
+// and the unbind buttons beside it (button gates package C, Q2). The cell
+// is not a form control, so it refuses here and says why at the cell.
+const can = usePermissions();
+const reasons = usePermissionReasons();
+const bindReason = computed(() => (can.value.armed ? undefined : reasons.value.armed));
+// A capture under way ends with the arm: the next key must not rebind.
+watch(bindReason, (r) => { if (r) cancelCapture(); });
+
+function startCapture(action: KeyboardAction, e?: Event) {
   if (action === "estop") return;  // fixed to Escape — not re-bindable
+  if (bindReason.value) { explainAt(e, bindReason.value); return; }
   listeningAction.value = action;
   captureError.value = "";
   if (captureErrorTimer) clearTimeout(captureErrorTimer);
@@ -166,11 +178,12 @@ onUnmounted(() => {
               <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS[action] }}</td>
               <td class="kbKeyCell"
                   :class="{ listening: listeningAction === action }"
-                  @click="startCapture(action)">
+                  :aria-disabled="bindReason ? 'true' : undefined" :title="bindReason"
+                  @click="startCapture(action, $event)">
                 {{ listeningAction === action ? 'Press a key…' : formatKeyName(kbConfig.mapping[action]) }}
               </td>
               <td class="kbUnbind">
-                <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
+                <MachineBtn type="listActionSetting" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
               </td>
             </tr>
             <template v-if="hasRotaryAxes">
@@ -178,11 +191,12 @@ onUnmounted(() => {
                 <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS[action] }}</td>
                 <td class="kbKeyCell"
                     :class="{ listening: listeningAction === action }"
-                    @click="startCapture(action)">
+                    :aria-disabled="bindReason ? 'true' : undefined" :title="bindReason"
+                    @click="startCapture(action, $event)">
                   {{ listeningAction === action ? 'Press a key…' : formatKeyName(kbConfig.mapping[action]) }}
                 </td>
                 <td class="kbUnbind">
-                  <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
+                  <MachineBtn type="listActionSetting" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
                 </td>
               </tr>
             </template>
@@ -199,11 +213,12 @@ onUnmounted(() => {
               <td class="kbMapAction">{{ KEYBOARD_ACTION_LABELS[action] }}</td>
               <td class="kbKeyCell"
                   :class="{ listening: listeningAction === action }"
-                  @click="startCapture(action)">
+                  :aria-disabled="bindReason ? 'true' : undefined" :title="bindReason"
+                  @click="startCapture(action, $event)">
                 {{ listeningAction === action ? 'Press a key…' : formatKeyName(kbConfig.mapping[action]) }}
               </td>
               <td class="kbUnbind">
-                <MachineBtn type="listAction" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
+                <MachineBtn type="listActionSetting" v-if="kbConfig.mapping[action]" :aria-label="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" :title="`Remove binding for ${KEYBOARD_ACTION_LABELS[action]}`" @click.stop="unbindKey(action)"><Trash2 :size="14" /></MachineBtn>
               </td>
             </tr>
           </tbody>
@@ -236,6 +251,13 @@ onUnmounted(() => {
 
 .kbKeyCell.kbFixed {
   cursor: default;
+  color: var(--fg-muted);
+}
+
+/* Not armed: the binding cannot change (package C) — the disabled cursor
+   and the muted text role, like a disabled control's. */
+.kbKeyCell[aria-disabled="true"] {
+  cursor: not-allowed;
   color: var(--fg-muted);
 }
 

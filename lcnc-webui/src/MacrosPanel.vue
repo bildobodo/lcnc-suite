@@ -477,7 +477,7 @@ async function confirmDelete() {
     </div>
     <div v-for="n in missing" :key="n" class="statusNote warn" role="alert">
       <span>{{ n }}.ngc is on the bar but not in the macro folder</span>
-      <MachineBtn type="inline" @click="removeFromBar(n)">Remove from bar</MachineBtn>
+      <MachineBtn type="settingInline" @click="removeFromBar(n)">Remove from bar</MachineBtn>
     </div>
     <div v-if="note" class="statusNote" :class="note.kind" :role="note.kind === 'ok' ? 'status' : 'alert'">
       <span>{{ note.text }}</span>
@@ -512,7 +512,7 @@ async function confirmDelete() {
             </td>
             <td class="colDesc text-muted" :title="f.description.join(' ')"><span class="descText">{{ descriptionOf(f) }}</span></td>
             <td class="colBar" @click.stop>
-              <MachineToggle gate="macroEdit" :modelValue="barNames.includes(f.name)" :aria-label="`${f.title ?? f.name} on the bar`"
+              <MachineToggle gate="protectedSetting" :modelValue="barNames.includes(f.name)" :aria-label="`${f.title ?? f.name} on the bar`"
                              @update:modelValue="setOnBar(f.name, !!$event)" />
             </td>
             <td class="colAction" @click.stop>
@@ -526,10 +526,10 @@ async function confirmDelete() {
                    (hidden, not focusable), so On bar changes no row height
                    and no column width (operator 2026-10-02, live) -->
               <span class="orderSlot" :class="{ offBar: !barNames.includes(f.name) }">
-                <MachineBtn type="listAction" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === 0"
+                <MachineBtn type="listActionSetting" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === 0"
                             :aria-label="`Move ${f.name} up in the bar order`"
                             @click="moveOnBar(f.name, -1)"><ChevronUp :size="14" /></MachineBtn>
-                <MachineBtn type="listAction" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === barNames.length - 1"
+                <MachineBtn type="listActionSetting" :disabled="!barNames.includes(f.name) || barNames.indexOf(f.name) === barNames.length - 1"
                             :aria-label="`Move ${f.name} down in the bar order`" @click="moveOnBar(f.name, 1)"><ChevronDown :size="14" /></MachineBtn>
               </span>
             </td>

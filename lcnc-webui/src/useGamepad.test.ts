@@ -3,7 +3,7 @@
 // at the release, not "nothing" because the step selector moved, and a stick
 // at rest never stops a D-pad jog it did not start.
 import "./testGlobals";
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { computed, ref } from "vue";
 import { useGamepad } from "./useGamepad";
 import { GAMEPAD_FALLBACK, type GamepadDefaults } from "./defaults";
@@ -19,9 +19,11 @@ if (typeof g.window === "undefined") g.window = { addEventListener: () => {}, re
 
 // A W3C-standard pad: buttons 12–15 the D-pad, 4 the left bumper (Z modifier).
 const pressed = new Array<boolean>(16).fill(false);
+// Raw stick axes: 0 = left stick X (+ right), the stick jog's X.
+const stick = [0, 0, 0, 0];
 const pad = {
   index: 0, id: "test pad", mapping: "standard",
-  get axes() { return [0, 0, 0, 0]; },
+  get axes() { return [...stick]; },
   get buttons() { return pressed.map(p => ({ pressed: p })); },
 };
 Object.defineProperty(globalThis, "navigator", {
@@ -33,25 +35,48 @@ const DPAD_UP = 12, DPAD_RIGHT = 15, LB = 4;
 function setup(step: number) {
   const sent: WsCommand[] = [];
   const jogIncrement = ref(step);
+  const jogVel = ref(10);
   const config = ref<GamepadDefaults>({
     ...GAMEPAD_FALLBACK, jogEnabled: true,
     // no dead man in this pad's mapping: jogging needs no held button
     mapping: { ...GAMEPAD_FALLBACK.mapping, btn_rt: "none" },
   });
   const pad_ = useGamepad({
-    jogVel: ref(10), angularJogVel: ref(5), jogIncrement,
+    jogVel, angularJogVel: ref(5), jogIncrement,
     permissions: computed(() => ({ jog: true, idle: true, ready: true, abort: true, pause: false, resume: false, spindleStop: true })),
     send: (c) => { sent.push(c); }, fire: () => {},
     activeFile: computed(() => null), config,
     axes: computed(() => ["X", "Y", "Z"]), gated: ref(false),
   });
   pad_.start();
-  const tick = () => { const f = frame; frame = null; f?.(performance.now()); };
+  const tick = (t = performance.now()) => { const f = frame; frame = null; f?.(t); };
   tick();   // adopt the pad
-  return { sent, jogIncrement, tick, pad: pad_ };
+  return { sent, jogIncrement, jogVel, tick, pad: pad_ };
 }
 
-beforeEach(() => { pressed.fill(false); frame = null; });
+beforeEach(() => { pressed.fill(false); stick.fill(0); frame = null; });
+
+describe("useGamepad stick jog speed (button gates BG-05)", () => {
+  it("a stick gesture keeps the speed it started with; the next one takes the new speed", () => {
+    // pollLoop reads performance.now(): drive THAT clock past the 200 ms
+    // throttle, or both the old and the new code send nothing in between.
+    let clock = performance.now() + 1000;
+    const spy = vi.spyOn(performance, "now").mockImplementation(() => clock);
+    const { sent, jogVel, tick: frame, pad: p } = setup(0);
+    const tick = (t: number) => { clock = t; frame(t); };
+    const t0 = clock + 1000;
+    stick[0] = 1; tick(t0);
+    expect(sent).toEqual([{ cmd: "jog_cont", axis: 0, vel: 10 }]);
+    jogVel.value = 30;                       // the slider moves mid-gesture
+    tick(t0 + 500); tick(t0 + 1000);         // past the 200 ms throttle
+    expect(sent).toEqual([{ cmd: "jog_cont", axis: 0, vel: 10 }]);
+    stick[0] = 0; tick(t0 + 1500);           // back in the dead zone: the gesture ends
+    stick[0] = 1; tick(t0 + 1600);           // a new gesture: the new speed
+    expect(sent.slice(1)).toEqual([{ cmd: "jog_stop", axis: 0 }, { cmd: "jog_cont", axis: 0, vel: 30 }]);
+    p.stop();
+    spy.mockRestore();
+  });
+});
 
 describe("useGamepad D-pad jog lifecycle", () => {
   it("a continuous D-pad jog stops on release, the stick at rest does not stop it", () => {

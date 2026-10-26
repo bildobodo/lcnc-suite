@@ -4761,7 +4761,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             return {"ok": True}
 
         if cmd == "shutdown":
-            # No require_armed — confirmation dialog is the safety gate.
+            # Armed (button gates package C): it ends LinuxCNC, and with the
+            # outer armed fieldset gone the client's catalog gate was its
+            # only check — the confirmation dialog is the second.
+            require_armed(armed)
             # Signal the LAUNCHER (parent), not ourselves, so the UI
             # shutdown path goes through the same _term trap as Ctrl-C.
             # Self-signaling SIGTERM makes uvicorn run lifespan teardown
