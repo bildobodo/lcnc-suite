@@ -99,6 +99,10 @@ test("a partial section: the form names what is missing, shows unset fields empt
 test("a save the server never confirmed is no setup; its confirmation is", async ({ page }) => {
   const { spindleZeroHeight: _last, ...almost } = SET_UP;
   await open(page, { ...M600, toolsetter: almost });
+  // the mock answers no save here (button gates BG-19: by default it acts
+  // like the gateway and broadcasts the blob — this test needs a save the
+  // server never confirmed)
+  await ctl({ op: "settingsEcho", on: false });
   await page.getByRole("tab", { name: "Probing", exact: true }).click();
   await page.getByRole("tab", { name: "Toolsetter", exact: true }).click();
   await page.getByRole("textbox", { name: "Spindle Zero Height", exact: true }).click();
