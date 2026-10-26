@@ -9470,18 +9470,6 @@ closing the page before the save is confirmed may lose the last change. No
 offset write path around MDI (LinuxCNC requires homing for MDI; reading and
 drafting offsets is free). No global `NO_FORCE_HOMING`.
 
-**Package B after Codex R211 (2026-10-26).** Codex accepted BG-15, the M6 rule, the
-draft/active split and the three choices below, and found five commit boundaries still
-open (BG-22–26), each fixed with its probe adopted as a guard
-(`test_button_gates_b_commit.py`): an admitted tool-table persist ends under `_cmd_lock`
-through a cancel — the abort that preempts it waits for one table write, one reload and
-one library write, and the preempted reply still says "Preempted" while the edit landed
-(the `_cmd_blocking` contract); a WS write reads its connection's arm at the commit; a
-settings save and the reset decide inside the store's lock; macros run the program
-rule (`_source_write_refusal` is gone); and no controller status refuses every source
-and table write — the gateway before its first status cannot vouch for an idle
-interpreter (operator-visible only in that window).
-
 **Package B as built (2026-10-26, before its implementation review).** Three
 choices the plan left open: (1) a protected draft that FAILED ends when the
 server's section changes after it was made — another writer's newer state is
@@ -9497,3 +9485,15 @@ mock that never confirmed made every UI-saved protected setting look inactive.
 A visible consequence: a protected toggle (keyboard jogging, run from line,
 the macro bar) acts after its 300 ms debounce and the gateway's answer, not
 on the click.
+
+**Package B after Codex R211 (2026-10-26).** Codex accepted BG-15, the M6 rule, the
+draft/active split and the three choices above, and found five commit boundaries still
+open (BG-22–26), each fixed with its probe adopted as a guard
+(`test_button_gates_b_commit.py`): an admitted tool-table persist ends under `_cmd_lock`
+through a cancel — the abort that preempts it waits for one table write, one reload and
+one library write, and the preempted reply still says "Preempted" while the edit landed
+(the `_cmd_blocking` contract); a WS write reads its connection's arm at the commit; a
+settings save and the reset decide inside the store's lock; macros run the program
+rule (`_source_write_refusal` is gone); and no controller status refuses every source
+and table write — the gateway before its first status cannot vouch for an idle
+interpreter (operator-visible only in that window).

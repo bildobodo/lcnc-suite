@@ -1,0 +1,12 @@
+# Codex's R211 probe (docs/reviews/button-gates.r211.backend.py on feat/backlog-integration), UNCHANGED, against the fix (worktree, before commit)
+PASSED test_codex_r211.py::TestMacroAdmission::test_macro_during_program_load
+PASSED test_codex_r211.py::TestMacroAdmission::test_macro_during_rfl_transaction
+PASSED test_codex_r211.py::TestNoController::test_program_without_known_interpreter
+PASSED test_codex_r211.py::TestWsToolCurrentWriter::test_cancel_keeps_http_table_serialization
+PASSED test_codex_r211.py::TestWsToolCurrentWriter::test_cancel_keeps_ws_table_serialization
+PASSED test_codex_r211.py::TestWsToolCurrentWriter::test_disarm_during_table_read_is_seen_at_commit
+PASSED test_codex_r211.py::TestSettingsCommit::test_control_connected_armed_reset
+PASSED test_codex_r211.py::TestSettingsCommit::test_control_connected_armed_settings_save
+PASSED test_codex_r211.py::TestSettingsCommit::test_disarm_while_reset_waits_for_store_lock
+PASSED test_codex_r211.py::TestSettingsCommit::test_disarm_while_settings_wait_for_store_lock
+PASSED test_codex_r211.py::TestSettingsCommit::test_disconnect_while_settings_wait_for_store_lock

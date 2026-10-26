@@ -1,0 +1,23 @@
+# re-run after the R211 fix (e2fb79f6), unchanged script, gates sim
+  PASS  B1 armed: the page's upload carries X-Conn-Key, 200, the file on the disk
+  PASS  B2 disarmed: the same upload is refused 403 Not armed, nothing written
+  PASS  B3 after a reconnect the old key writes nothing: 403 Connection unknown
+{
+ "results": [
+  [
+   "B1 armed: the page's upload carries X-Conn-Key, 200, the file on the disk",
+   "PASS",
+   "key=NZKtR_RFrM_O1mFoYR5Oew status=200 body={\"ok\":true,\"path\":\"/home/cnc/linuxcnc/nc_files/bg_b_browser_103933.ngc\",\"filename\":\"bg_b_browser_103933.ngc\",\"size\":18}"
+  ],
+  [
+   "B2 disarmed: the same upload is refused 403 Not armed, nothing written",
+   "PASS",
+   "status=403 body={\"detail\":\"Not armed — press Arm\"} key=NZKtR_RFrM_O1mFoYR5Oew"
+  ],
+  [
+   "B3 after a reconnect the old key writes nothing: 403 Connection unknown",
+   "PASS",
+   "status=403 body={\"detail\":\"Connection unknown — reconnect\"}"
+  ]
+ ]
+}
