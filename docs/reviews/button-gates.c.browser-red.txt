@@ -1,0 +1,37 @@
+# e2e/disarmed.spec.ts (package C, final) against the frontend of 632ee435 (package B agreed) — spec, ctl.ts helper and the guard-project entry copied in; the base renders no data-control, so the per-control audit is vacuous there: the red comes from what the operator meets (tabs, the step, the stops, the browser, a dialog's reason)
+  1) [serial-guards] › e2e/disarmed.spec.ts:110:1 › disarmed at idle: every tab and sub-tab opens, nothing that acts is enabled, every closed control says why 
+    Error: Program: a tab is navigation
+    expect(locator).toBeEnabled() failed
+    Locator:  getByRole('tab', { name: 'Program', exact: true })
+           - unexpected value "disabled"
+    > 118 |     await expect(t, `${tab}: a tab is navigation`).toBeEnabled();
+    test-results/disarmed-disarmed-at-idle--95f04-ery-closed-control-says-why-serial-guards/test-failed-1.png
+  2) [serial-guards] › e2e/disarmed.spec.ts:154:1 › disarmed and unhomed, and in E-Stop: still navigable, still nothing that acts 
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    > 161 |       await page.getByRole("tab", { name: tab, exact: true }).click();
+    test-results/disarmed-disarmed-and-unho-da657-ble-still-nothing-that-acts-serial-guards/test-failed-1.png
+  3) [serial-guards] › e2e/disarmed.spec.ts:169:1 › disarmed: the preselections take no command — step, speed, RPM, the MDI line 
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    > 177 |   await last.click();
+    test-results/disarmed-disarmed-the-pres-2ce9e-step-speed-RPM-the-MDI-line-serial-guards/test-failed-1.png
+  4) [serial-guards] › e2e/disarmed.spec.ts:199:1 › disarmed while a program runs: Pause, Abort and the jog Stop are reachable and act 
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    > 202 |   await page.getByRole("tab", { name: "Program", exact: true }).click();
+    test-results/disarmed-disarmed-while-a--216d1--Stop-are-reachable-and-act-serial-guards/test-failed-1.png
+  5) [serial-guards] › e2e/disarmed.spec.ts:223:1 › disarmed at idle: the spindle stop is reachable (BG-18 — inside the strip's fieldset before package C) 
+    Error: expect(locator).toBeEnabled() failed
+    Locator:  locator('[data-strip="spindle"]').getByRole('button', { name: 'Stop', exact: true })
+           - unexpected value "disabled"
+    > 228 |   await expect(stop).toBeEnabled();
+    test-results/disarmed-disarmed-at-idle--48345--fieldset-before-package-C--serial-guards/test-failed-1.png
+  6) [serial-guards] › e2e/disarmed.spec.ts:234:1 › disarmed: the program browser browses folders; a file row is closed with its reason (BG-02) 
+    Error: locator.click: Test timeout of 30000ms exceeded.
+    > 246 |   await page.getByRole("tab", { name: "Program", exact: true }).click();
+    test-results/disarmed-disarmed-the-prog-ede0e-osed-with-its-reason-BG-02--serial-guards/test-failed-1.png
+  7) [serial-guards] › e2e/disarmed.spec.ts:263:1 › a dialog opened armed: after the disarm its action is closed with its reason, Cancel still closes 
+    Error: expect(locator).toHaveAttribute(expected) failed
+    Locator: getByRole('dialog', { name: 'Shut Down LinuxCNC?', exact: true }).locator('.btnTip').filter({ has: getByRole('button', { name: 'Shut Down', exact: true }) })
+    Error: element(s) not found
+    > 275 |     .toHaveAttribute("title", /Not armed/);
+    test-results/disarmed-a-dialog-opened-a-05b6a--reason-Cancel-still-closes-serial-guards/test-failed-1.png
+  7 failed

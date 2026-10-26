@@ -1,0 +1,6 @@
+# test_button_gates_c.py against the backend of 632ee435 (package B agreed) — before package C
+E   AssertionError: True is not false : {'ok': True}
+E   AssertionError: 'always' != 'armed'
+PASSED test_button_gates_c.py::TestShutdownNeedsArm::test_an_armed_client_shuts_down
+FAILED test_button_gates_c.py::TestShutdownNeedsArm::test_a_disarmed_client_cannot_shut_down
+FAILED test_button_gates_c.py::TestShutdownNeedsArm::test_the_policy_names_arm

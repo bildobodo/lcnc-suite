@@ -1,0 +1,34 @@
+{
+  "head": "0cb4c5fe",
+  "uncommitted": 0,
+  "note": "package C at 0cb4c5fe",
+  "gates": [
+    {
+      "name": "frontend-lint",
+      "command": "npm run lint",
+      "status": "PASS",
+      "seconds": 8
+    },
+    {
+      "name": "frontend-build",
+      "command": "npm run build",
+      "status": "PASS",
+      "seconds": 17
+    },
+    {
+      "name": "frontend-unit",
+      "command": "npm test",
+      "status": "PASS",
+      "seconds": 494,
+      "tests": "161 files, 2612 passed"
+    },
+    {
+      "name": "frontend-browser",
+      "command": "npx playwright test --trace off --reporter=line",
+      "status": "FAIL",
+      "seconds": 1717,
+      "tests": "428 passed",
+      "note": "run alone"
+    }
+  ]
+}
