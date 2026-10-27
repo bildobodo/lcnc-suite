@@ -9556,3 +9556,16 @@ its own class, closed only with the machine ON in AUTO (BG-13: `parameterRead`,
 `[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING = 1` (operator Q1; default off). Backend and
 permissions.ts now name the same classes, compared by a test.
 
+**Package D, implementation review R216 (2026-10-27).** Codex confirmed BG-03, BG-10,
+BG-11 and BG-13 and found the rest of BG-04 and BG-31: the mode choice and the manual
+spindle were judged only on the published snapshot (a poll old) and then switched the
+task mode themselves — a homing or a move since then met the switch, and Fwd / Rev / ±
+switched a just-started MDI to MANUAL (aborting it) and so created the MANUAL the Q1
+exception needs. Now every handler that switches the mode itself judges its class on
+a CURRENT controller read before the switch, and the manual ones once more after it
+(`_controller_gate_refusal`, `_switch_to_manual`); a field the poll lacks is unknown,
+never the snapshot's value; a failed poll refuses. Home / Unhome had the same shape and
+were fixed with it (beyond the two named findings). The display may still lag a poll —
+accepted by Codex for the dimming, never for the command. The interpreter, homed and
+homing derivations became one pure rule for the snapshot and the current read.
+

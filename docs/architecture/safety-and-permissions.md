@@ -341,8 +341,10 @@ joint jog before homing in E.
   (`STAT.kinematics_type`, never the switchkins frame) AND `[TRAJ]
   NO_FORCE_HOMING = 1` (`_coord_without_homing`; EMCMOT_COORD refuses an
   unhomed switch on any other kins type, command.c v2.9.4:581). The command
-  gate is `modeManual`; the handler re-checks `modeCoord` for MDI / AUTO
-  (`gate_refusal`). The checked option sends nothing (ChoiceGroup).
+  gate is `modeManual`; the handler judges the TARGET's class (`modeManual` /
+  `modeCoord`) again on a current controller read before the switch (see
+  "On the current read" below). The checked option sends nothing
+  (ChoiceGroup).
 - *One action map* (BG-10): `actionAdmission.ts` — the button, the shortcut
   and the gamepad admit Start (`run` + program context), Home All (`zero`)
   and the coolant (`override`) by the same rule. The shortcut and the pad
@@ -363,5 +365,30 @@ joint jog before homing in E.
   WEBUI_SPINDLE_BEFORE_HOMING = 1` — exactly "1" (anything else is off, an
   invalid value traced). `spindleManual` = base + idle + (homed OR the switch
   in MANUAL); Fwd / Rev / ± use it. Off by default: nothing changes on a
-  machine that does not set it.
+  machine that does not set it. The exception FINDS MANUAL, never makes it:
+  the handlers' own switch to MANUAL is admitted on the current read.
+- *On the current read* (Codex R216, BG-04 rest / BG-31): the dispatcher
+  judges a command on the PUBLISHED snapshot, up to a poll old. The handlers
+  that switch the task mode themselves — the mode choice, the manual spindle
+  (Fwd / Rev / ±) and Home / Unhome (the same class, found beside BG-31) —
+  judge their class again on a CURRENT controller read before the switch,
+  and the manual ones once more after the awaited switch, before their
+  command (`_controller_gate_refusal`, `_switch_to_manual`): a switch to
+  MANUAL from an MDI that started since the snapshot would abort it
+  (emcTaskSetMode → emcTaskAbort), and a homing or a move since then must
+  meet no switch. The display may still lag a poll (a moment too strict or
+  too open); the command never acts on it. Three controller reads, three
+  strictnesses:
+
+  | Helper | Used by | A field the poll lacks | Why |
+  |---|---|---|---|
+  | `_controller_gate_refusal` | `set_mode`, the manual spindle, Home / Unhome | unknown → the gate refuses; never the snapshot's | the gateway's own switch must not act on an old favourable value (R216) |
+  | `_controller_capture_state` | G30 Capture's take-over | interp: the snapshot's; frame and motion: unknown | agreed R25–R27 (OP-I02): the frame and the standstill decide what the numbers mean |
+  | `_controller_touchoff_state` | touch-off target | the snapshot's value | refreshes the fixture and frame where the controller offers them (R-02); a non-switchable machine has no frame pin |
+
+  Power is the stricter of the poll and the snapshot (which carries the HAL
+  safety chain); a failed poll refuses ("Machine status not read — try
+  again"). The interpreter, homed and homing derivations are ONE pure rule
+  for the snapshot and the current read (`status_runtime.interp_terms`,
+  `homed_of`, `homing_active_of`).
 

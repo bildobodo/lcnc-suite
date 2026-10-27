@@ -4764,13 +4764,15 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             mode = finite_int(msg.get("mode", 0))
             if mode not in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO, linuxcnc.MODE_MDI):
                 return {"ok": False, "error": f"Invalid mode: {mode}"}
-            # Per target (button gates BG-04): the dispatcher checked
-            # modeManual; MDI / AUTO also need COORD reachable — every joint
-            # homed, or identity kinematics with NO_FORCE_HOMING.
-            if mode != linuxcnc.MODE_MANUAL and _shared_status is not None:
-                why = gate_refusal("modeCoord", _live_policy_state(armed))
-                if why:
-                    return {"ok": False, "error": why}
+            # Per target (button gates BG-04): MANUAL needs modeManual, MDI /
+            # AUTO also COORD reachable — every joint homed, or identity
+            # kinematics with NO_FORCE_HOMING. Judged on the controller's
+            # current read (Codex R216): the dispatcher's snapshot is a poll
+            # old, and a homing or a move since then must meet no switch.
+            why = _controller_gate_refusal(
+                "modeManual" if mode == linuxcnc.MODE_MANUAL else "modeCoord", armed)
+            if why:
+                return {"ok": False, "error": why}
             await set_mode(mode)
             return {"ok": True}
 
@@ -5408,13 +5410,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "home_all":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("zero", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.home, -1, wait=None)  # -1 homes all axes
             return {"ok": True}
 
         if cmd == "unhome_all":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("zero", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
             await _cmd_blocking(CMD.unhome, -1, wait=None)  # -1 unhomes all axes
             return {"ok": True}
@@ -5422,14 +5428,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         if cmd == "home":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("zero", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.home, joint, wait=None)
             return {"ok": True}
 
         if cmd == "unhome":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("zero", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
             await _cmd_blocking(CMD.unhome, joint, wait=None)
             return {"ok": True}
@@ -5475,14 +5485,18 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         if cmd == "spindle_forward":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("spindleManual", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, speed, wait=None)
             return {"ok": True}
 
         if cmd == "spindle_reverse":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("spindleManual", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, speed, wait=None)
             return {"ok": True}
 
@@ -5500,13 +5514,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "spindle_increase":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("spindleManual", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_INCREASE, wait=None)
             return {"ok": True}
 
         if cmd == "spindle_decrease":
             require_armed(armed)
-            await set_mode(linuxcnc.MODE_MANUAL)
+            why = await _switch_to_manual("spindleManual", armed)
+            if why:
+                return {"ok": False, "error": why}
             await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_DECREASE, wait=None)
             return {"ok": True}
 
@@ -6960,6 +6978,68 @@ def _controller_capture_state(armed: bool):
         # the synch rule (button gates BG-13): the mode NOW
         task_mode=base.task_mode if task_mode is None else task_mode,
         motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))), None
+
+
+_STATUS_NOT_READ = "Machine status not read — try again"
+
+
+def _controller_gate_refusal(gate: str, armed: bool) -> Optional[str]:
+    """`gate` judged on a CURRENT controller read — its reason, or None
+    (button gates BG-04 / BG-31, Codex R216). The dispatcher judged the
+    command on the published snapshot, up to a poll old: a homing, a move or
+    an MDI started since then must not meet the gateway's own mode switch or
+    manual spindle command.
+
+    What the controller says about the machine comes from this poll — the
+    interpreter, the task mode, the motion, homing, homed — and a field it
+    does not offer is unknown, never the snapshot's value. Power is the
+    stricter of this poll and the snapshot (which carries the HAL safety
+    chain). A failed poll is no read. The rest — arm, the declaration facts,
+    the reader's pins — is the snapshot's. Stricter than
+    _controller_capture_state, whose agreed contract keeps the snapshot's
+    interpreter state when the poll lacks one (Codex R26/R27)."""
+    if _shared_status is None:
+        return _STATUS_NOT_READ
+    base = _live_policy_state(armed)
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no command
+        _trace.emit_exc("policy.controller_poll_failed", e, gate=gate)
+        return _STATUS_NOT_READ
+    joints = safe_get("joints", 0)
+    try:
+        homing = _status_runtime_mod.homing_active_of(safe_get("joint", None), joints)
+    except (TypeError, ValueError, AttributeError) as e:
+        _trace.emit_exc("policy.controller_homing_unreadable", e, gate=gate)
+        homing = None
+    now = _dc_replace(
+        base,
+        is_estop=base.is_estop or bool(safe_get("estop", True)),
+        is_enabled=base.is_enabled and bool(safe_get("enabled", False)),
+        is_homed=bool(_status_runtime_mod.homed_of(safe_get("homed", None), joints)),
+        task_mode=safe_get("task_mode", None),
+        motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None)),
+        homing_active=homing,
+        **_status_runtime_mod.interp_terms(safe_get("interp_state", None), safe_get("paused", None)))
+    why = gate_refusal(gate, now)
+    if why is not None and gate_refusal(gate, base) is None:
+        _trace.emit("policy.controller_refused", level="info", gate=gate, reason=why)
+    return why
+
+
+async def _switch_to_manual(gate: str, armed: bool) -> Optional[str]:
+    """The switch to MANUAL in front of a manual command — the spindle's Fwd /
+    Rev / ± (button gates BG-31, Codex R216), Home and Unhome — admitted by
+    the command's class on the controller's current read BEFORE the switch
+    (it would abort an MDI started since the snapshot: emcTaskSetMode →
+    emcTaskAbort; and the unhomed spindle exception, Q1, must FIND MANUAL,
+    never make it) and again after the awaited switch, before the command.
+    The refusal, or None. Caller holds `_cmd_lock`."""
+    why = _controller_gate_refusal(gate, armed)
+    if why:
+        return why
+    await set_mode(linuxcnc.MODE_MANUAL)
+    return _controller_gate_refusal(gate, armed)
 
 
 def _live_policy_state(armed: bool):

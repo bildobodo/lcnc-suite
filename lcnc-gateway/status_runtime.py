@@ -463,6 +463,43 @@ def eoffset_state(value, reader_fresh: bool, axis_mask) -> Optional[bool]:
     return None if has_z else False
 
 
+def interp_terms(interp, paused) -> Dict[str, bool]:
+    """The interpreter's policy terms from STAT.interp_state / STAT.paused —
+    one rule for the snapshot and the gateway's current read (Codex R216).
+    An unread interpreter state is UNKNOWN, not idle (BG-12): every idle /
+    running / paused gate closes and says so. INTERP_PAUSED counts as paused
+    even if the STAT.paused flag lags — matching update_program_timer;
+    otherwise both pause and resume close in that transient and the
+    operator can't resume a paused program (review #1). Pure."""
+    known = interp is not None
+    is_paused = known and (bool(paused) or interp == linuxcnc.INTERP_PAUSED)
+    return dict(interp_known=known,
+                is_idle=known and interp == linuxcnc.INTERP_IDLE,
+                is_running=(not is_paused) and interp in (linuxcnc.INTERP_READING, linuxcnc.INTERP_WAITING),
+                is_paused=is_paused)
+
+
+def homed_of(homed_val, joints) -> Optional[bool]:
+    """Every configured joint homed. STAT.homed is a fixed-length tuple of int
+    (one slot per possible joint, e.g. length 16); STAT.joints is the
+    configured count — sliced to it so unused slots don't drag homed False.
+    None when either is unread. Pure."""
+    if not homed_val or not joints:
+        return None
+    return all(bool(x) for x in homed_val[:joints])
+
+
+def homing_active_of(jinfo, joints) -> Optional[bool]:
+    """Homing under way on a configured joint (button gates BG-04): None when
+    STAT lists no joints or a joint lacks the flag — never "no". A malformed
+    list raises; the caller says so. Pure."""
+    if not jinfo:
+        return None
+    nj = int(joints or 0) or len(jinfo)
+    flags = [j.get("homing") if isinstance(j, dict) else None for j in jinfo[:nj]]
+    return None if any(f is None for f in flags) else any(bool(f) for f in flags)
+
+
 def policy_state_from_payload(p: "StatusPayload", armed: bool,
                               kins_switchable: bool = True,
                               twp_capable: bool = False,
@@ -507,24 +544,12 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         return getattr(p, name, None) if fresh else None
 
     emc = p.emc_enable_in
-    # An unread interpreter state is UNKNOWN, not idle (BG-12): every
-    # idle / running / paused gate closes and says so.
-    interp = p.interp_state
-    interp_known = interp is not None
-    # Treat INTERP_PAUSED as paused even if the STAT.paused flag lags — matching
-    # update_program_timer. Otherwise, in that transient both pause and resume
-    # gates close and the operator can't resume a paused program (review #1).
-    is_paused = interp_known and (bool(p.paused) or interp == linuxcnc.INTERP_PAUSED)
     return _PolicyMachineState(
         armed=armed,
         is_estop=bool(p.estop) or (emc is False),
         is_enabled=bool(p.enabled) and (emc is not False),
         is_homed=bool(p.homed),
-        is_idle=interp_known and (interp == linuxcnc.INTERP_IDLE),
-        is_running=(not is_paused)
-        and interp in (linuxcnc.INTERP_READING, linuxcnc.INTERP_WAITING),
-        is_paused=is_paused,
-        interp_known=interp_known,
+        **interp_terms(p.interp_state, p.paused),
         eoffset_enabled=eoffset_state(_reader("eoffset_enabled"), fresh,
                                       getattr(p, "axis_mask", None)),
         tool_change_pending=(None if (_tc := _reader("tool_change_requested")) is None
@@ -705,12 +730,7 @@ class StatusRuntime:
         """LinuxCNC homed confirmation. STAT.homed is a fixed-length tuple of int
         (one slot per possible joint, e.g. length 16); STAT.joints is the configured
         joint count. Slice to that count so unused slots don't drag homed False."""
-        if not homed_val:
-            return None
-        nj = self.safe_get("joints", 0)
-        if not nj:
-            return None
-        return all(bool(x) for x in homed_val[:nj])
+        return homed_of(homed_val, self.safe_get("joints", 0))
 
     def get_spindle_override(self) -> Optional[float]:
         val = self.safe_get("spindle_override", None)
@@ -1155,17 +1175,12 @@ class StatusRuntime:
             except (TypeError, ValueError, AttributeError) as exc:
                 _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
                 joint_limits = None
-        # Homing under way on a configured joint (button gates BG-04): None
-        # when STAT lists no joints or a joint lacks the flag — never "no".
-        homing_active = None
-        if jinfo:
-            try:
-                nj_h = int(safe_get("joints", 0) or 0) or len(jinfo)
-                flags = [j.get("homing") if isinstance(j, dict) else None for j in jinfo[:nj_h]]
-                homing_active = None if any(f is None for f in flags) else any(bool(f) for f in flags)
-            except (TypeError, ValueError, AttributeError) as exc:
-                _trace.emit("poller.homing_unreadable", level="warn", error=repr(exc))
-                homing_active = None
+        # Homing under way on a configured joint (button gates BG-04).
+        try:
+            homing_active = homing_active_of(jinfo, safe_get("joints", 0))
+        except (TypeError, ValueError, AttributeError) as exc:
+            _trace.emit("poller.homing_unreadable", level="warn", error=repr(exc))
+            homing_active = None
         if jpos is None:
             jpos = safe_get("joint_position", None)
         joint_pos = to_float_list(jpos)

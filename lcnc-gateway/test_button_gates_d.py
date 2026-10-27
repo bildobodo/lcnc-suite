@@ -19,7 +19,7 @@ linuxcnc = fake_linuxcnc.install()
 
 import gateway  # noqa: E402
 from command_policy import COMMAND_GATES  # noqa: E402
-from test_button_gates import _Handlers, _payload, _run  # noqa: E402
+from test_button_gates import _Handlers, _payload, _run, controller_reads  # noqa: E402
 from command_policy import (  # noqa: E402
     G30_NOT_IN_AUTO, GATE_REQUIREMENTS, NOT_ARMED, STATE_UNKNOWN, TASK_MODE_AUTO,
     TASK_MODE_MANUAL, TASK_MODE_MDI, TRIP_UNACKED, UNHOMED_SPINDLE_MANUAL, MachineState,
@@ -198,11 +198,40 @@ class _Writer(_Handlers):
         p = mock.patch.object(gateway, "_unacked_trip", None)
         p.start()
         self.addCleanup(p.stop)
+        self.controller()
 
-    def send(self, msg, **over):
-        gateway._shared_status = _payload(**over)
+    def controller(self, **now):
+        """What STAT reads NOW (see controller_reads)."""
+        controller_reads(gateway.STAT, **now)
+
+    _MIRRORED = ("estop", "enabled", "interp_state", "paused", "task_mode", "inpos", "current_vel", "homed")
+
+    def send(self, msg, controller=None, **over):
+        """`msg` under the snapshot `over`; the controller reads the same
+        unless `controller` says what it reads now. The snapshot stands
+        unless `over` says otherwise."""
+        gateway._shared_status = _payload(**{"inpos": True, "current_vel": 0.0, **over})
+        if controller is None:
+            controller = {k: over[k] for k in self._MIRRORED if k in over}
+            if "homing_active" in over:
+                controller["homing"] = over["homing_active"]
+        self.controller(**controller)
         gateway._cmd_lock = None
         return _run(gateway.handle_command(msg, True, self.writer.conn_key))
+
+    def takes_the_mode(self, then=None):
+        """Task takes a mode switch (the recording CMD only records it);
+        `then` changes the controller during the switch."""
+        def mode(target):
+            self.cmd.calls.append(("mode", (target,), {}))
+            gateway.STAT.task_mode = target
+            for k, v in (then or {}).items():
+                setattr(gateway.STAT, k, v)
+            return 0
+        self.cmd.mode = mode
+
+    def sent(self):
+        return [(n, a) for n, a, _k in self.cmd.calls if n in ("mode", "spindle")]
 
 
 class TestLoadWithoutAuto(_Writer):
@@ -321,6 +350,158 @@ class TestSpindleBeforeHomingHandler(_Writer):
         with mock.patch.object(gateway, "_spindle_before_homing", lambda: True):
             r = self.send({"cmd": "spindle_forward", "speed": 1000}, homed=False, task_mode=linuxcnc.MODE_MDI)
         self.assertEqual(r, {"ok": False, "error": UNHOMED_SPINDLE_MANUAL})
+
+
+class TestModeOnTheCurrentRead(_Writer):
+    """BG-04 rest (Codex R216): the target's class judged on the controller's
+    CURRENT read before the first mode command. The published snapshot here is
+    on, idle, MANUAL, standing, homed, not homing — one poll old; a current
+    read that says otherwise refuses, and an input the current read lacks is
+    unknown, never the published value."""
+
+    def setUp(self):
+        super().setUp()
+        self.takes_the_mode()
+
+    def refused(self, controller, mode=linuxcnc.MODE_MDI):
+        self.cmd.calls.clear()
+        r = self.send({"cmd": "set_mode", "mode": mode}, controller=controller)
+        self.assertEqual(self.sent(), [], controller)
+        return r["error"] if not r.get("ok") else r
+
+    def test_homing_now(self):
+        for mode in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
+            with self.subTest(mode=mode):
+                self.assertEqual(self.refused({"homing": True, "task_mode": linuxcnc.MODE_MDI}, mode),
+                                 "Homing in progress — wait until it ends")
+
+    def test_moving_now(self):
+        self.assertEqual(self.refused({"inpos": False, "current_vel": 5.0}),
+                         "Machine moving — wait until it stands")
+
+    def test_unhomed_now(self):
+        self.assertEqual(self.refused({"homed": False}), "Not homed — MDI and Auto need Home All")
+
+    def test_an_input_the_current_read_lacks_is_unknown(self):
+        for attr, why in (("joint", "Homing state unknown — wait for status"),
+                          ("inpos", "Motion state unknown — wait for status"),
+                          ("homed", "Not homed — MDI and Auto need Home All")):
+            with self.subTest(attr=attr):
+                self.cmd.calls.clear()
+                self.controller()
+                delattr(gateway.STAT, attr)
+                gateway._shared_status = _payload(inpos=True, current_vel=0.0)   # published: all known
+                gateway._cmd_lock = None
+                r = _run(gateway.handle_command({"cmd": "set_mode", "mode": linuxcnc.MODE_MDI},
+                                                True, self.writer.conn_key))
+                self.assertEqual(r, {"ok": False, "error": why})
+                self.assertEqual(self.sent(), [])
+
+    def test_the_current_read_admits(self):
+        r = self.send({"cmd": "set_mode", "mode": linuxcnc.MODE_MDI})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.sent(), [("mode", (linuxcnc.MODE_MDI,))])
+
+
+class TestManualSpindleOnTheCurrentRead(_Writer):
+    """BG-31 (Codex R216): Fwd / Rev / ± judge spindleManual on the current
+    read BEFORE their switch to MANUAL, and again after it before the spindle
+    command. The switch would otherwise abort an MDI that started since the
+    snapshot (emcTaskSetMode → abort), and the Q1 exception would make the
+    MANUAL it needs instead of finding it."""
+
+    CMDS = ({"cmd": "spindle_forward", "speed": 1000}, {"cmd": "spindle_reverse", "speed": 1000},
+            {"cmd": "spindle_increase"}, {"cmd": "spindle_decrease"})
+
+    def each(self, controller, **snapshot):
+        """Each command refused under `controller`: (cmd, what reached CMD)."""
+        out = []
+        for msg in self.CMDS:
+            self.cmd.calls.clear()
+            r = self.send(msg, controller=controller, **snapshot)
+            self.assertFalse(r.get("ok"), (msg["cmd"], r))
+            out.append((msg["cmd"], self.sent()))
+        return out
+
+    def test_an_mdi_started_since_the_snapshot(self):
+        self.takes_the_mode()
+        for homed in (True, False):
+            with self.subTest(homed=homed), mock.patch.object(gateway, "_spindle_before_homing", lambda: True):
+                for cmd, sent in self.each({"homed": homed, "task_mode": linuxcnc.MODE_MDI,
+                                            "interp_state": linuxcnc.INTERP_READING}, homed=homed):
+                    self.assertEqual(sent, [], cmd)
+
+    def test_the_exception_finds_manual_never_makes_it(self):
+        self.takes_the_mode()
+        with mock.patch.object(gateway, "_spindle_before_homing", lambda: True):
+            for cmd, sent in self.each({"homed": False, "task_mode": linuxcnc.MODE_MDI}, homed=False):
+                self.assertEqual(sent, [], cmd)
+            r = self.send(self.CMDS[0], controller={"homed": False, "task_mode": linuxcnc.MODE_MDI}, homed=False)
+        self.assertEqual(r, {"ok": False, "error": UNHOMED_SPINDLE_MANUAL})
+
+    def test_a_start_during_the_switch(self):
+        # homed, MDI idle: the switch to MANUAL is admitted — and a program
+        # another display starts while it is under way gets no spindle command
+        self.takes_the_mode(then={"interp_state": linuxcnc.INTERP_READING})
+        for cmd, sent in self.each({"task_mode": linuxcnc.MODE_MDI}):
+            self.assertEqual(sent, [("mode", (linuxcnc.MODE_MANUAL,))], cmd)
+
+    def test_no_read_no_command(self):
+        self.controller()
+        gateway.STAT.poll = mock.Mock(side_effect=OSError("nml"))
+        gateway._shared_status = _payload()
+        gateway._cmd_lock = None
+        r = _run(gateway.handle_command(self.CMDS[0], True, self.writer.conn_key))
+        self.assertEqual(r, {"ok": False, "error": "Machine status not read — try again"})
+        self.assertEqual(self.sent(), [])
+
+    def test_the_current_read_admits(self):
+        self.takes_the_mode()
+        r = self.send(self.CMDS[0], controller={"task_mode": linuxcnc.MODE_MDI})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.sent(), [("mode", (linuxcnc.MODE_MANUAL,)),
+                                       ("spindle", (linuxcnc.SPINDLE_FORWARD, 1000.0))])
+
+
+class TestHomeOnTheCurrentRead(_Writer):
+    """The same class as BG-31 (Codex R216's rule, answer 4): Home, Home All,
+    Unhome and Unhome All switch to MANUAL first — an MDI started since the
+    snapshot meets neither the switch (it would abort it) nor the homing."""
+
+    CMDS = ({"cmd": "home_all"}, {"cmd": "home", "joint": 0},
+            {"cmd": "unhome_all"}, {"cmd": "unhome", "joint": 0})
+    ISSUED = ("mode", "home", "unhome", "teleop_enable")
+
+    def issued(self):
+        return [n for n, _a, _k in self.cmd.calls if n in self.ISSUED]
+
+    def test_an_mdi_started_since_the_snapshot(self):
+        self.takes_the_mode()
+        for msg in self.CMDS:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI,
+                                               "interp_state": linuxcnc.INTERP_READING})
+                self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+                self.assertEqual(self.issued(), [])
+
+    def test_a_start_during_the_switch(self):
+        self.takes_the_mode(then={"interp_state": linuxcnc.INTERP_READING})
+        for msg in self.CMDS:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI})
+                self.assertFalse(r.get("ok"), r)
+                self.assertEqual(self.issued(), ["mode"])
+
+    def test_the_current_read_admits(self):
+        self.takes_the_mode()
+        for msg, then in zip(self.CMDS, (["home"], ["home"], ["teleop_enable", "unhome"], ["teleop_enable", "unhome"])):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI})
+                self.assertTrue(r["ok"], r)
+                self.assertEqual(self.issued(), ["mode"] + then)
 
 
 class _Ini:

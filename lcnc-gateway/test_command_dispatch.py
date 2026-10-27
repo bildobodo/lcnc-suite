@@ -19,6 +19,7 @@ import gateway  # noqa: E402  (import after the fake is installed)
 import fusion_import  # noqa: E402
 import bulk_pipeline  # noqa: E402
 from gateway_util import kins_mode_commands, read_load_record  # noqa: E402
+from test_button_gates import controller_reads  # noqa: E402
 
 
 def _run(coro):
@@ -223,6 +224,10 @@ class TestHandlerExecution(unittest.TestCase):
     def setUp(self):
         gateway.lcnc_connected = True
         gateway.STAT = linuxcnc.stat()
+        # The current read agrees with _payload() (Codex R216 re-check); the
+        # task mode stays UNREAD as before — set_mode then sends every switch
+        # and cannot verify it, which the tests below count on.
+        controller_reads(gateway.STAT, task_mode=None)
         # Payload bounds are cached per session (get_machine_limits); a test
         # that widens axis_mask must not meet an earlier test's XYZ counts
         # (the jog tests failed whenever another test of this class ran first).
@@ -1749,6 +1754,10 @@ class TestPayloadBoundsReachCmd(unittest.TestCase):
     def setUp(self):
         gateway.lcnc_connected = True
         gateway.STAT = linuxcnc.stat()
+        # The current read agrees with _payload() (Codex R216 re-check); the
+        # task mode stays UNREAD as before — set_mode then sends every switch
+        # and cannot verify it, which the tests below count on.
+        controller_reads(gateway.STAT, task_mode=None)
         self.cmd = _RecordingCmd()
         gateway.CMD = self.cmd
         self._saved_limits = gateway._machine_limits
