@@ -1,0 +1,129 @@
+
+Running 3 tests using 1 worker
+
+  ✘  1 [serial-guards] › e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) (11.3s)
+  ✘  2 [serial-guards] › e2e/disarmed.spec.ts:343:1 › the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28) (11.7s)
+  ✘  3 [serial-guards] › e2e/disarmed.spec.ts:371:1 › the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29) (11.5s)
+
+
+  1) [serial-guards] › e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) 
+
+    Error: running: free
+
+    expect(locator).toBeEnabled() failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: enabled
+    Received: disabled
+    Timeout:  10000ms
+
+    Call log:
+      - running: free with timeout 10000ms
+      - waiting for locator('.spRpmInput')
+        23 × locator resolved to <input min="0" readonly disabled step="10" lang="en" type="text" max="99999" value="1000" inputmode="none" name="stripInput" data-v-bc0e5cdb="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>
+           - unexpected value "disabled"
+
+
+      310 |   // a program runs, the spindle stands: the field prepares the next Fwd / Rev
+      311 |   await disarmedIn(page, "running");
+    > 312 |   await expect(rpm, "running: free").toBeEnabled();
+          |                                      ^
+      313 |   // idle, the spindle turns: the field shows the commanded speed while nothing is prepared
+      314 |   await disarmedIn(page, "idle", { spindle_direction: 1, spindle_speed: 1500 });
+      315 |   await expect(rpm, "turning: free").toBeEnabled();
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:312:38
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/disarmed-the-RPM-preselect-5d811--sends-it-BG-05-R213-BG-27--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [serial-guards] › e2e/disarmed.spec.ts:343:1 › the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28) 
+
+    Error: a free field keeps its session
+
+    expect(locator).toBeVisible() failed
+
+    Locator: locator('.nkStrip')
+    Expected: visible
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+      - a free field keeps its session with timeout 10000ms
+      - waiting for locator('.nkStrip')
+
+
+      351 |   await ctl({ op: "clearCmds" });
+      352 |   await disarmedIn(page, "idle");
+    > 353 |   await expect(pad, "a free field keeps its session").toBeVisible();
+          |                                                       ^
+      354 |   await expect(pad.locator(".nkExpr"), "and its entry").toHaveText("7");
+      355 |   await pad.getByRole("button", { name: "Discard", exact: true }).click();
+      356 |   await expect(pad).toBeHidden();
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:353:55
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/disarmed-the-disarm-keeps--0aed5-applies-nothing-R213-BG-28--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/disarmed-the-disarm-keeps--0aed5-applies-nothing-R213-BG-28--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/disarmed-the-disarm-keeps--0aed5-applies-nothing-R213-BG-28--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/disarmed-the-disarm-keeps--0aed5-applies-nothing-R213-BG-28--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [serial-guards] › e2e/disarmed.spec.ts:371:1 › the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29) 
+
+    Error: armed at idle: Enter
+
+    armed at idle: Enter
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 3
+    Received: 0
+
+    Call Log:
+    - Timeout 10000ms exceeded while waiting on the predicate
+
+      385 |       await ctl({ op: "clearCmds" });
+      386 |       await page.keyboard.press(key);
+    > 387 |       await expect.poll(stops, `${name}: ${key}`).toBe(3);
+          |                                                   ^
+      388 |       await page.waitForTimeout(300);
+      389 |       expect(await stops(), `${name}: ${key} stops once`).toBe(3);
+      390 |       expect(await jogs(), `${name}: ${key} starts no jog`).toEqual([]);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:387:51
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/disarmed-the-jog-pad-s-cen-34a8e--per-activation-R213-BG-29--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/disarmed-the-jog-pad-s-cen-34a8e--per-activation-R213-BG-29--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/disarmed-the-jog-pad-s-cen-34a8e--per-activation-R213-BG-29--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/disarmed-the-jog-pad-s-cen-34a8e--per-activation-R213-BG-29--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [serial-guards] › e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) 
+    [serial-guards] › e2e/disarmed.spec.ts:343:1 › the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28) 
+    [serial-guards] › e2e/disarmed.spec.ts:371:1 › the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29) 
