@@ -48,6 +48,7 @@ One line per module: what it is and the rule that matters when you touch it. The
 - `useNumberKeypad.ts` + `inputSession.ts` + `TextKeypadStrip.vue` + `textKeyboardPages.ts` — ONE on-screen input helper at a time, owned by one target: opening is a deliberate tap, never focus; leaving hides without confirming and the owner keeps its draft; keys act on click; the focus return after OK/Cancel is GUARDED (`focusReturn.pending` — an unfocused document is where Space is Cycle Start); X keeps the entry, Discard throws it away, the confirm key reads "Apply"; a session ends with its OWNER's gate, never with the arm as such (a free field keeps its entry through a disarm).
 - `btnHint.ts` + `FloatingOverlays.vue` — the ONE transient control hint and the ONE keyboard glyph; placed from the rendered size, closed by the next press, key or scroll. Never a Teleport inside `MachineBtn` / `MachineInput` (a second root drops the parent's scoped CSS).
 - `gateExplain.ts` — the ONE explanation path for a dimmed control: AT the control, never the status line or the message log.
+- `actionAdmission.ts` — ONE admission per action (Start, Home All, the coolant) for the button, the shortcut and the gamepad — only the gesture differs (button gates BG-10).
 - `FormField.vue` + `probeFields.ts` — the ONE labelled field (label above, wired `for`/`id`, the "?" a sibling of the label, unit and error as `aria-describedby`); probe and toolsetter fields as data.
 - `DetailsPopover.vue` — a labelled detail card behind one button (Connection details, the Sim tab's Check basis).
 - `HelpIcon.vue` + `helpPlacement.ts` — the ONE help pattern: a `span role="button"` with a native popover, text ≤ 120 chars, its own gap, placed from its laid-out size in the frame after `beforetoggle`; works in a disabled Gate.
@@ -137,7 +138,7 @@ Override examples: `LCNC_LOG_DIR=/tmp/altlogs lcnc-suite -ini foo.ini`, or `LOG_
 
 ### Permissions (`permissions.ts`)
 
-Single source of truth for all enable/disable logic. Components never compute their own disable conditions. 14 permission classes organized in 6 tiers:
+Single source of truth for all enable/disable logic. Components never compute their own disable conditions. The permission classes, organized in 6 tiers (backend `command_policy.GATE_REQUIREMENTS` and `permissions.ts` `GATE_NAMES` name the same set — `test_button_gates_d.py` compares them):
 
 ```
 base = armed && !estop && enabled
@@ -150,10 +151,16 @@ TIER 0 — Unconditional
 
 TIER 1 — Client state (no machine state needed)
   armed ──────────────── s.armed                                      Protected settings (keyboard, gamepad, machine, probe, toolsetter, macro bar, MDI history — operator 2026-10-26), their resets, Shut down, Sim Trip
+  armEnable ──────────── no safety trip waiting for its acknowledgement — judged by the backend alone, no client arm term (BG-11)   ARMING (disarming is always open)
+  estopReset ─────────── armed + the trip acknowledged (BG-11; the recovery order trip → acknowledge → Arm → Reset → On)   E-Stop Reset
 
 TIER 2 — Machine power (no enabled needed)
   safety ─────────────── armed + !estop                               Machine On/Off
-  setup ──────────────── armed + !estop + isIdle + !busy              Load/unload, file browser, settings reset
+  setup ──────────────── armed + !estop + isIdle + !busy              (no longer the load: programLoad)
+  programLoad ────────── armed + interp KNOWN idle — no E-Stop, power or homing term; no AUTO pre-step; the commit adds _write_admission_refusal (BG-03)   Load/unload/reload, a program file row
+  modeManual ─────────── armed + interp KNOWN idle + the machine STANDS + no homing under way — no power term (BG-04)   Mode Manual
+  modeCoord ──────────── modeManual + (homed OR identity kins with NO_FORCE_HOMING) — the handler re-checks it for MDI / AUTO   Mode MDI / Auto
+  parameterRead ──────── armed + interp KNOWN idle + not (machine ON in AUTO: no synch) (BG-13)   G30 Refresh (the confirmed read)
   sourceWrite ────────── armed + interp KNOWN idle, no start claim / run from line / program change; E-Stop allowed (BG-14)   Program + macro upload, save, edit, delete
   toolTableWrite ─────── sourceWrite + no M6 request (fresh reader) (BG-14)   Tool add/edit/delete/renumber, library import, metadata refresh
 
@@ -166,15 +173,17 @@ TIER 3 — Machine enabled (base = armed + !estop + enabled)
   toolChangeConfirm ──── armed + a FRESH pending tool-change request; closed in sim; the command names the request (`tool_change_seq`), booked once only when delivered (BG-17/BG-20)   M6 Confirm
 
 TIER 4 — Machine idle (requires base + isIdle)
-  idle ───────────────── base + isIdle + !busy                        Banner home, mode select
+  idle ───────────────── base + isIdle + !busy                        (the base of the idle classes)
   jog ────────────────── base + isIdle + isHomed                      Jog buttons, speed slider
   zero ───────────────── base + isIdle + !busy + !eoffset             Home, Unhome
 
 TIER 5 — Full ready (requires everything)
-  ready ──────────────── base + isIdle + !busy + isHomed              MDI, Spindle, Coolant
+  ready ──────────────── base + isIdle + !busy + isHomed              MDI
+  spindleManual ──────── base + isIdle + (homed OR [DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING = 1 in MANUAL) (operator Q1)   Spindle Fwd / Rev / ±
   run ────────────────── ready + kins runnable (Plane kins needs its plane + G59; unknown mode refuses)   Cycle Start, Run from line
   machineFrame ───────── ready + identity kins (G53 routines: → Home/G30, tool load/measure/unload, probe ops)
-  g30Capture ─────────── machineFrame + the machine STANDS (STAT.inpos, |current_vel| ≤ 0.001; unknown refuses)   G30 Use Current Position
+  g30Capture ─────────── machineFrame + the machine STANDS (STAT.inpos, |current_vel| ≤ 0.001; unknown refuses) + not ON in AUTO   G30 Use Current Position
+  g30Write ───────────── machineFrame + not ON in AUTO (BG-13)     Save G30
   goZero ─────────────── ready + a → Zero plan for the mode (Machine: subroutine — Z to machine zero only when below it, rotaries to the fixture's STAMP angle before X/Y; Plane: retract along the tool axis, X0 Y0 in the plane; TCP refuses). A retract NEVER lowers Z (`#<_abs_z>` guard in go_to_zero/home/g30.ngc + the RFL safe-Z step)
   probe ──────────────── base + isIdle + !busy + isHomed + !eoffset   Probe ops, tool change, WCS edit, macros (run_macro; a `FRAME machine` macro also machineFrame)
   touchoff ───────────── probe + kins-mode × fixture rule (linear)     DRO touch-off / Zero (linear letters)
@@ -187,6 +196,7 @@ TIER 5 — Full ready (requires everything)
 ```
 Disconnected      → always
 Armed             → + armed
+Armed + idle      → + programLoad, modeManual (standing), parameterRead (not ON in AUTO); armEnable / estopReset follow the trip
 E-Stop Cleared    → + safety, setup (if idle)
 Machine On        → + override, idle, zero, jog, spindleStop (TIER 3+4)
 Homed             → + ready, probe, step (TIER 5)
@@ -514,6 +524,7 @@ which lcnc-suite    # should print ~/.local/bin/lcnc-suite
 | `CAMERA_RESOLUTION` | `1280x720` | Capture resolution `WxH` (USB cameras only) |
 | `CAMERA_FPS` | `15` | MJPEG stream frame rate |
 | `WEBUI_MACRO_DIR` | *(none)* | The macro folder (package 5): `.ngc` macros run by `o<name> call`; must be on `[RS274NGC] SUBROUTINE_PATH` (the examples: last) and apart from PROGRAM_PREFIX. Unset = no macro files. See "Macro files". |
+| `WEBUI_SPINDLE_BEFORE_HOMING` | *(off)* | `1` = the manual spindle (Fwd / Rev / ±) runs before homing — machine ON, idle, MANUAL only (operator Q1, button gates D). Anything but exactly `1` is off; an invalid value is traced (`policy.spindle_before_homing_invalid`). |
 | `WEBUI_MACHINE_DIR` | *(gateway default)* | Machine viewer-model dir (`machine.json` + STLs) for the 3D machine model. Unset = `lcnc-gateway/machine/`. See "3D Machine Model". |
 
 Environment variables `LCNC_WEBUI_HOST`, `LCNC_WEBUI_PORT`, `LCNC_WEBUI_BROWSER`, `LCNC_WEBUI_DEV`, `LCNC_WEBUI_TOKEN`, `LCNC_WEBUI_ALLOWED_ORIGINS` override INI values. `LCNC_LOG_DIR` overrides `LOG_DIR`. Camera variables: `LCNC_CAMERA_SOURCE`, `LCNC_CAMERA_RESOLUTION`, `LCNC_CAMERA_FPS`.

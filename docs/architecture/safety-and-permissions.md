@@ -320,3 +320,48 @@ joint jog before homing in E.
   browser browses; a dialog opened armed closes after the disarm),
   `useGamepad.test.ts` (the stick's speed), `test_button_gates_c.py`
   (shutdown).
+
+### Package D — loading, the task mode, one action map, the recovery, G30, the spindle before homing (button gates BG-03, BG-04, BG-10, BG-11, BG-13, Q1)
+
+- *Loading* (BG-03): `programLoad` = armed + the interpreter KNOWN idle — no
+  E-Stop, power or homing term. The load no longer switches to AUTO first:
+  PLAN_OPEN needs no mode (LinuxCNC takes it in E-Stop, off and MANUAL,
+  emctaskmain.cc v2.9.4), and the switch failed off / unhomed, refusing a load
+  the gate had allowed. A start switches to AUTO itself; that switch closes the
+  plan (emcTaskAbort → emcTaskPlanClose) and PLAN_RUN re-opens `task.file`
+  (emctaskmain.cc:2302), from line 1 — STAT.file and the load record stay. The
+  load and the unload are admitted at the commit like a write
+  (`_write_admission_refusal`: this connection armed now, no start claim, no
+  run from line, no program change, the interpreter idle by a current poll).
+  A load changes the program, which ends a viewer simulation (ScrubBar).
+- *The task mode per target* (BG-04): `modeManual` = armed + idle + the
+  machine stands (`motion_still`) + no joint homing (`homing_active`); no
+  power term — MANUAL in E-Stop and unhomed. `modeCoord` adds "COORD
+  reachable": every joint homed, or motion's kinType is KINEMATICS_IDENTITY
+  (`STAT.kinematics_type`, never the switchkins frame) AND `[TRAJ]
+  NO_FORCE_HOMING = 1` (`_coord_without_homing`; EMCMOT_COORD refuses an
+  unhomed switch on any other kins type, command.c v2.9.4:581). The command
+  gate is `modeManual`; the handler re-checks `modeCoord` for MDI / AUTO
+  (`gate_refusal`). The checked option sends nothing (ChoiceGroup).
+- *One action map* (BG-10): `actionAdmission.ts` — the button, the shortcut
+  and the gamepad admit Start (`run` + program context), Home All (`zero`)
+  and the coolant (`override`) by the same rule. The shortcut and the pad
+  stay silent on a refusal (they have no control to explain at) — a named
+  boundary.
+- *The recovery order* (BG-11): the trip is a policy input (`trip_unacked`,
+  the gateway's `_unacked_trip`). `armEnable` (to ARM; judged by the backend
+  alone — a disarmed client arms) and `estopReset` (armed + acknowledged)
+  replace the client's own booleans; `estop_reset` is no longer `always`, so
+  it is refused before the first status like every non-stop command (BG-12).
+  Both stay open in viewer simulation (the Reset had no sim term before).
+- *G30* (BG-13): `parameterRead` = armed + idle + not (machine ON in AUTO) —
+  the confirming synch is refused there (`_synch_interp_params`, R118
+  unchanged); off, E-Stop and unhomed read. `g30Capture` and the new
+  `g30Write` (Save) carry the same condition; the capture's take-over re-check
+  reads the task mode from its current poll.
+- *The spindle before homing* (operator Q1): `[DISPLAY]
+  WEBUI_SPINDLE_BEFORE_HOMING = 1` — exactly "1" (anything else is off, an
+  invalid value traced). `spindleManual` = base + idle + (homed OR the switch
+  in MANUAL); Fwd / Rev / ± use it. Off by default: nothing changes on a
+  machine that does not set it.
+

@@ -9541,3 +9541,18 @@ ternary or a literal in the condition no longer counts as closed (BG-30); it fou
 dialog backdrop, the code editor's keyboard opener, the macro table's control cells and
 the More menu's frame, all classified. Its named limit: it guards the list of controls
 and their gates, not what a handler does.
+
+**Package D as built (2026-10-27, before its implementation review).** Loading needs
+no AUTO, power or homing (BG-03): `programLoad`, the load and unload admitted at the
+commit like a write; a start's own AUTO switch closes and PLAN_RUN re-opens the file
+(LinuxCNC source; the live check is in the package's evidence). The task mode is judged per target (BG-04): MANUAL
+wherever task takes it (E-Stop, off, unhomed; not while moving or homing), MDI / AUTO
+only where COORD is reachable (homed, or identity kinematics with NO_FORCE_HOMING —
+the motion kinType, never the switchkins frame). One admission per action for button,
+shortcut and gamepad (BG-10, `actionAdmission.ts`). The recovery order is a policy rule
+with the trip as its input (BG-11: `armEnable`, `estopReset`). The confirmed G30 read is
+its own class, closed only with the machine ON in AUTO (BG-13: `parameterRead`,
+`g30Write`). The manual spindle may run before homing in MANUAL where the machine sets
+`[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING = 1` (operator Q1; default off). Backend and
+permissions.ts now name the same classes, compared by a test.
+
