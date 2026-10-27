@@ -182,7 +182,7 @@ def _payload(**over):
         estop=False, enabled=True, emc_enable_in=True, homed=True,
         interp_state=linuxcnc.INTERP_IDLE, paused=False, eoffset_enabled=False,
         rotary_at_zero=True, reader_fresh=True, tool_change_requested=False,
-        axis_mask=0b111,
+        axis_mask=0b111, task_mode=linuxcnc.MODE_MANUAL, homing_active=False,
     )
     base.update(over)
     return SimpleNamespace(**base)

@@ -76,6 +76,10 @@ def build_module() -> types.ModuleType:
     # gateway's start claims tell a done command from a refused one by them
     lc.RCS_DONE, lc.RCS_EXEC, lc.RCS_ERROR = 1, 2, 3
     lc.EXEC_ERROR, lc.EXEC_DONE = 1, 2
+    # motion's kinematics type, the real binding's values (button gates D:
+    # COORD without homing needs KINEMATICS_IDENTITY)
+    lc.KINEMATICS_IDENTITY, lc.KINEMATICS_FORWARD_ONLY = 1, 2
+    lc.KINEMATICS_INVERSE_ONLY, lc.KINEMATICS_BOTH = 3, 4
     lc.__lcnc_fake__ = True
     return lc
 

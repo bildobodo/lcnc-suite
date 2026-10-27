@@ -38,6 +38,8 @@ def _payload(**over):
         # gates BG-12 — a snapshot that does not say is stale) — and iocontrol
         # asks for no tool change.
         reader_fresh=True, tool_change_requested=False,
+        # Button gates D: MANUAL, no joint homing.
+        task_mode=linuxcnc.MODE_MANUAL, homing_active=False,
     )
     base.update(over)
     return SimpleNamespace(**base)

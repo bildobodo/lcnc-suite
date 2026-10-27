@@ -110,11 +110,37 @@ class MachineState:
     #: iocontrol asks for a manual tool change (HAL tool-change, fresh reader
     #: only). None = unknown — the confirmation stays closed (BG-12 / BG-17).
     tool_change_pending: Optional[bool] = None
+    #: STAT.task_mode (TASK_MODE_MANUAL / _AUTO / _MDI); None = unread. The G30
+    #: read (no synch with the machine ON in AUTO) and the spindle-before-
+    #: homing exception (MANUAL only) read it (button gates D).
+    task_mode: Optional[int] = None
+    #: A joint is homing (STAT joint[i].homing). None = unread: the mode
+    #: gates refuse — a mode switch must not cut a homing sequence (BG-04).
+    homing_active: Optional[bool] = None
+    #: MDI / AUTO reachable WITHOUT homing (BG-04): motion's kinType is
+    #: KINEMATICS_IDENTITY — EMCMOT_COORD refuses an unhomed switch otherwise
+    #: (motion command.c v2.9.4:581) — AND [TRAJ] NO_FORCE_HOMING = 1, without
+    #: which task refuses every coordinated move anyway. A declaration fact
+    #: (gateway _coord_without_homing); unknown reads False (closed).
+    coord_without_homing: bool = False
+    #: A safety trip not yet acknowledged (gateway _unacked_trip): arming and
+    #: E-Stop Reset wait for the acknowledgement (BG-11). Closed default.
+    trip_unacked: bool = True
+    #: [DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING = 1 (operator Q1): the manual
+    #: spindle runs before homing — machine ON, idle, MANUAL only. Closed
+    #: default; the gateway reads anything but exactly "1" as off.
+    spindle_before_homing: bool = False
 
 
 #: Below this |current_vel| (machine units per second) the machine stands —
 #: the adaptive poll's idle threshold (status_runtime.is_active).
 STILL_VEL = 0.001
+
+#: LinuxCNC's task modes (linuxcnc.MODE_MANUAL / MODE_AUTO / MODE_MDI) — this
+#: module imports no binding; test_command_policy pins them to fake_linuxcnc.
+TASK_MODE_MANUAL = 1
+TASK_MODE_AUTO = 2
+TASK_MODE_MDI = 3
 
 
 def motion_still_of(inpos, current_vel) -> Optional[bool]:
@@ -178,6 +204,43 @@ _R_TOOL_CHANGE_KNOWN = (lambda s: s.tool_change_pending is not None,
                         "Tool change request unknown — HAL reader stale")
 _R_TOOL_CHANGE_PENDING = (lambda s: s.tool_change_pending is True,
                           "No tool change pending")
+# The task mode choice (button gates BG-04): task ignores a switch while a jog
+# is active, motion takes a new mode only in position, a homing sequence must
+# not be cut — and COORD (MDI / AUTO) needs every joint homed unless the
+# machine declares otherwise (coord_without_homing). Power and E-Stop are no
+# reason: LinuxCNC takes SET_MODE in E-Stop and off (emctaskmain.cc v2.9.4).
+_R_STANDS = (lambda s: s.motion_still is True, "Machine moving — wait until it stands")
+_R_HOMING_KNOWN = (lambda s: s.homing_active is not None, "Homing state unknown — wait for status")
+_R_NOT_HOMING = (lambda s: s.homing_active is False, "Homing in progress — wait until it ends")
+_R_COORD_REACHABLE = (lambda s: s.is_homed or s.coord_without_homing,
+                      "Not homed — MDI and Auto need Home All")
+# The confirmed G30 read synchs the interpreter, which LinuxCNC refuses with
+# the machine ON in AUTO (gateway _synch_interp_params, Codex R118): the
+# read, the capture and the save say so before the press (BG-13).
+_R_TASK_MODE_KNOWN = (lambda s: s.task_mode is not None, STATE_UNKNOWN)
+G30_NOT_IN_AUTO = "G30 not confirmed in AUTO — switch to MDI first"
+_R_SYNCH_POSSIBLE = (lambda s: not (s.is_enabled and s.task_mode == TASK_MODE_AUTO), G30_NOT_IN_AUTO)
+# The recovery order (BG-11): acknowledge a trip → Arm → E-Stop Reset → On.
+TRIP_UNACKED = "Acknowledge the safety trip first"
+_R_TRIP_ACKED = (lambda s: not s.trip_unacked, TRIP_UNACKED)
+# The manual spindle (Q1): homed, or the declared exception in MANUAL.
+UNHOMED_SPINDLE_MANUAL = "Unhomed spindle: Manual mode only"
+
+
+def spindle_manual_refusal(s: MachineState) -> Optional[str]:
+    """Why the manual spindle may not start NOW for lack of homing, None when
+    it may: homed, or the machine declares the spindle before homing
+    (WEBUI_SPINDLE_BEFORE_HOMING, operator Q1) and task is in MANUAL."""
+    if s.is_homed:
+        return None
+    if not s.spindle_before_homing:
+        return _R_HOMED[1]
+    if s.task_mode != TASK_MODE_MANUAL:
+        return UNHOMED_SPINDLE_MANUAL
+    return None
+
+
+_R_SPINDLE_HOMING = (lambda s: spindle_manual_refusal(s) is None, _R_HOMED[1])
 
 
 # ---------------------------------------------------------------------------
@@ -542,6 +605,8 @@ _BASE = (_R_ARMED, _R_NOT_ESTOP, _R_ENABLED)
 # rule by "the eoffset is known".
 _IDLE = (_R_INTERP_KNOWN, _R_IDLE)
 _NO_EOFFSET = (_R_EOFFSET_KNOWN, _R_NO_EOFFSET)
+_MODE_SWITCH = (_R_MOTION_KNOWN, _R_STANDS, _R_HOMING_KNOWN, _R_NOT_HOMING)
+_G30_SYNCH = (_R_TASK_MODE_KNOWN, _R_SYNCH_POSSIBLE)
 
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
 GATE_REQUIREMENTS: Dict[str, tuple] = {
@@ -558,7 +623,14 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     "machineFrame": _BASE + _IDLE + (_R_HOMED, _R_MACHINE_FRAME),
     # G30 Capture (operator P4): machineFrame AND the machine stands — the
     # current position is what gets taken over.
-    "g30Capture": _BASE + _IDLE + (_R_HOMED, _R_MACHINE_FRAME, _R_MOTION_KNOWN, _R_STILL),
+    "g30Capture": _BASE + _IDLE + (_R_HOMED, _R_MACHINE_FRAME, _R_MOTION_KNOWN, _R_STILL)
+                  + _G30_SYNCH,
+    # G30 Save (BG-13): machineFrame and a confirming synch is possible.
+    "g30Write": _BASE + _IDLE + (_R_HOMED, _R_MACHINE_FRAME) + _G30_SYNCH,
+    # The confirmed G30 READ (BG-13): it synchs the interpreter (no motion) —
+    # no power or homing term, closed only where the synch is refused (ON +
+    # AUTO) and named so.
+    "parameterRead": (_R_ARMED,) + _IDLE + _G30_SYNCH,
     # The → Zero button: Machine frame (subroutine) or Plane frame (retract
     # along the tool axis, then X0 Y0 in the plane); TCP refuses.
     "goZero":   _BASE + _IDLE + (_R_HOMED, _R_GOZERO),
@@ -608,6 +680,24 @@ GATE_REQUIREMENTS: Dict[str, tuple] = {
     "sourceWrite": (_R_ARMED,) + _IDLE,
     # The tool table: the same, and no tool change asking for a tool.
     "toolTableWrite": (_R_ARMED,) + _IDLE + (_R_TOOL_CHANGE_KNOWN, _R_NO_TOOL_CHANGE),
+    # Loading / unloading / re-parsing the program (BG-03): armed and the
+    # interpreter KNOWN idle — no E-Stop, power or homing term: PLAN_OPEN
+    # needs none (emctaskmain.cc v2.9.4), and the load no longer switches to
+    # AUTO first. The handler adds the commit-time admission.
+    "programLoad": (_R_ARMED,) + _IDLE,
+    # The task mode, per target (BG-04): MANUAL wherever task takes it, MDI
+    # and AUTO only where COORD is reachable. No E-Stop or power term.
+    "modeManual": (_R_ARMED,) + _IDLE + _MODE_SWITCH,
+    "modeCoord":  (_R_ARMED,) + _IDLE + _MODE_SWITCH + (_R_COORD_REACHABLE,),
+    # The manual spindle Fwd / Rev / ± (Q1): `ready`, homing replaced by the
+    # declared exception (MANUAL only).
+    "spindleManual": _BASE + _IDLE + (_R_SPINDLE_HOMING,),
+    # The recovery order (BG-11): ARMING waits for the trip acknowledgement
+    # (disarming never waits — the Arm button's other direction), E-Stop
+    # Reset needs arm and the acknowledgement. Gates of the UI's directed
+    # actions; the `arm` command stays `always` (its handler refuses arming).
+    "armEnable":  (_R_TRIP_ACKED,),
+    "estopReset": (_R_ARMED, _R_TRIP_ACKED),
     "safety":   (_R_ARMED, _R_NOT_ESTOP),            # no `enabled` — Machine On/Off
     "setup":    (_R_ARMED, _R_NOT_ESTOP) + _IDLE,    # no `enabled` — admin/idle ops
     "armed":    (_R_ARMED,),
@@ -648,6 +738,8 @@ def _gate_reason(gate: str, s: MachineState) -> Optional[str]:
                 return touchoff_route(s, ("X",))[1] or message
             if ok is _R_TOUCHOFF_ROTARY[0]:
                 return touchoff_route(s, ("A",))[1] or message
+            if ok is _R_SPINDLE_HOMING[0]:
+                return spindle_manual_refusal(s) or message
             return message
     return None
 

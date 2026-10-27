@@ -104,6 +104,8 @@ def state(**over) -> MachineState:
         # The interpreter state was read (button gates BG-12: unread is not
         # idle) and iocontrol asks for no tool change.
         interp_known=True, tool_change_pending=False,
+        # Button gates D: MANUAL, no homing under way, no safety trip waiting.
+        task_mode=1, homing_active=False, trip_unacked=False,
     )
     base.update(over)
     return MachineState(**base)

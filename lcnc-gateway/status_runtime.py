@@ -408,6 +408,9 @@ class StatusPayload:
     # last reading and the reader_stale banner says so (button gates BG-12).
     # False by default: a payload that does not say is stale.
     reader_fresh: bool = False
+    # A joint is homing (STAT joint[i].homing, the configured joints). None =
+    # unreadable — the task-mode gates refuse (button gates BG-04).
+    homing_active: Optional[bool] = None
 
 
 _CAPTURE_OFFSET_EPS = 1e-6  # matches the remap's rotary_offsets_nonzero
@@ -463,7 +466,10 @@ def eoffset_state(value, reader_fresh: bool, axis_mask) -> Optional[bool]:
 def policy_state_from_payload(p: "StatusPayload", armed: bool,
                               kins_switchable: bool = True,
                               twp_capable: bool = False,
-                              identity_first: bool = False) -> _PolicyMachineState:
+                              identity_first: bool = False,
+                              trip_unacked: bool = True,
+                              coord_without_homing: bool = False,
+                              spindle_before_homing: bool = False) -> _PolicyMachineState:
     """Build the command-policy MachineState from a status snapshot.
 
     `kins_switchable` is the machine's kins DECLARATION (gateway
@@ -477,6 +483,12 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
     G59–G59.3 and plane actions exist at all, and which raw switchkins type
     is identity on this kins family. Both default CLOSED (no TWP rules, the
     module's own identityfirst default) — see command_policy.MachineState.
+
+    `trip_unacked` (gateway _unacked_trip), `coord_without_homing` (motion's
+    kinType identity AND NO_FORCE_HOMING) and `spindle_before_homing` (the
+    WEBUI_SPINDLE_BEFORE_HOMING switch) are gateway facts for the recovery,
+    the task-mode and the manual-spindle gates (button gates D); each
+    defaults CLOSED.
 
     The estop/enabled HAL-merge lives here (issues #14 + #19): STAT.estop/enabled
     merged with the safety chain (emc_enable_in). poll_status broadcasts the
@@ -553,6 +565,14 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         g92_xyz_clean=capture_g92_xyz_clean(getattr(p, "g92_offset", None)),
         # Standstill for the G30 capture (Codex R25 OP-I02); unreadable = None.
         motion_still=motion_still_of(getattr(p, "inpos", None), getattr(p, "current_vel", None)),
+        # Button gates D: the task mode (G30 synch, the manual spindle's
+        # exception), homing under way (the mode switch), and the gateway's
+        # own facts — every one unread / unsaid reads CLOSED.
+        task_mode=getattr(p, "task_mode", None),
+        homing_active=getattr(p, "homing_active", None),
+        coord_without_homing=bool(coord_without_homing),
+        trip_unacked=bool(trip_unacked),
+        spindle_before_homing=bool(spindle_before_homing),
     )
 
 
@@ -569,6 +589,9 @@ class StatusRuntime:
         get_kins_switchable: Callable[[], bool] = lambda: True,
         get_twp_capable: Callable[[], bool] = lambda: False,
         get_identity_first: Callable[[], bool] = lambda: False,
+        get_trip_unacked: Callable[[], bool] = lambda: True,
+        get_coord_without_homing: Callable[[], bool] = lambda: False,
+        get_spindle_before_homing: Callable[[], bool] = lambda: False,
         get_reader_fresh: Callable[[], bool] = lambda: False,
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
         get_instance: Callable[[], Optional[tuple]] = lambda: None,
@@ -581,6 +604,11 @@ class StatusRuntime:
         self._get_kins_switchable = get_kins_switchable
         self._get_twp_capable = get_twp_capable
         self._get_identity_first = get_identity_first
+        # Button gates D: the unacknowledged trip, COORD without homing, the
+        # spindle-before-homing switch — CLOSED defaults (the gateway wires them).
+        self._get_trip_unacked = get_trip_unacked
+        self._get_coord_without_homing = get_coord_without_homing
+        self._get_spindle_before_homing = get_spindle_before_homing
         # The reader's freshness at build time — the policy inputs it feeds
         # count only while it is fresh (BG-12). Default stale = closed.
         self._get_reader_fresh = get_reader_fresh
@@ -1127,6 +1155,17 @@ class StatusRuntime:
             except (TypeError, ValueError, AttributeError) as exc:
                 _trace.emit("poller.joint_limits_unreadable", level="warn", error=repr(exc))
                 joint_limits = None
+        # Homing under way on a configured joint (button gates BG-04): None
+        # when STAT lists no joints or a joint lacks the flag — never "no".
+        homing_active = None
+        if jinfo:
+            try:
+                nj_h = int(safe_get("joints", 0) or 0) or len(jinfo)
+                flags = [j.get("homing") if isinstance(j, dict) else None for j in jinfo[:nj_h]]
+                homing_active = None if any(f is None for f in flags) else any(bool(f) for f in flags)
+            except (TypeError, ValueError, AttributeError) as exc:
+                _trace.emit("poller.homing_unreadable", level="warn", error=repr(exc))
+                homing_active = None
         if jpos is None:
             jpos = safe_get("joint_position", None)
         joint_pos = to_float_list(jpos)
@@ -1301,6 +1340,7 @@ class StatusRuntime:
                 to_float_list(safe_get("actual_position", None)), axis_mask),
         )
         payload.reader_fresh = bool(self._get_reader_fresh())
+        payload.homing_active = homing_active
         # Backend-authoritative permissions from this very snapshot (issue #19).
         # armed=True; the per-client armed/busy overlay happens client-side.
         # One safety-merge: build the policy state once, broadcast its merged
@@ -1309,7 +1349,10 @@ class StatusRuntime:
         _pstate = policy_state_from_payload(
             payload, armed=True, kins_switchable=self._get_kins_switchable(),
             twp_capable=self._get_twp_capable(),
-            identity_first=self._get_identity_first())
+            identity_first=self._get_identity_first(),
+            trip_unacked=self._get_trip_unacked(),
+            coord_without_homing=self._get_coord_without_homing(),
+            spindle_before_homing=self._get_spindle_before_homing())
         payload.is_estop = _pstate.is_estop
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)

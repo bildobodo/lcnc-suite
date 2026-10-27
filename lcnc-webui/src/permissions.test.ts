@@ -15,6 +15,8 @@ const MACHINE_READY: MachinePermissions = {
   spindleStop: true, toolChangeConfirm: false,
   probe: true, zero: true, touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true,
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true,
+  spindleManual: true, armEnable: true, estopReset: true,
   armed: true, always: true,
 };
 
@@ -192,6 +194,29 @@ describe("the write gates (button gates BG-14)", () => {
       expect(applyClientOverlay(MACHINE_READY, true, false, true)[g]).toBe(true);
       expect(applyClientOverlay({ ...MACHINE_READY, [g]: false }, true, false)[g]).toBe(false);
     }
+  });
+});
+
+describe("the recovery and the package D gates (button gates D)", () => {
+  it("arming is the backend's decision alone — a disarmed client may arm unless a trip waits", () => {
+    expect(applyClientOverlay(MACHINE_READY, false, false).armEnable).toBe(true);
+    expect(applyClientOverlay({ ...MACHINE_READY, armEnable: false }, false, false).armEnable).toBe(false);
+    const r = applyClientOverlayReasons({ armEnable: "Acknowledge the safety trip first" }, false, false, false,
+      { ...MACHINE_READY, armEnable: false });
+    expect(r.armEnable).toBe("Acknowledge the safety trip first");
+  });
+
+  it("E-Stop Reset, loading and the mode choice need this client's arm", () => {
+    const p = applyClientOverlay(MACHINE_READY, false, false);
+    for (const g of ["estopReset", "programLoad", "modeManual", "modeCoord", "parameterRead", "g30Write", "spindleManual"] as const) {
+      expect(p[g], g).toBe(false);
+    }
+  });
+
+  it("simulation keeps loading and the recovery, closes the mode choice, the G30 read and the spindle", () => {
+    const p = applyClientOverlay(MACHINE_READY, true, false, true);
+    for (const g of ["programLoad", "armEnable", "estopReset"] as const) expect(p[g], g).toBe(true);
+    for (const g of ["modeManual", "modeCoord", "parameterRead", "g30Write", "spindleManual"] as const) expect(p[g], g).toBe(false);
   });
 });
 

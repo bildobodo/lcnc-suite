@@ -2301,13 +2301,15 @@ def try_connect_lcnc() -> bool:
     DIFFERENT instance is refused (and ends the process) unless rebind is
     allowed — every caller (poller, WS endpoint, boot) inherits the rule."""
     global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
-    global _machine_limits, _bound_instance
+    global _machine_limits, _bound_instance, _coord_without_homing_cache, _spindle_before_homing_cache
     if _instance_ended:
         return False  # bound instance ended: never re-bind
     _nc_files_dir = None        # re-resolve on reconnect
     _ini_config = None          # re-read INI config on reconnect
     _machine_limits = None      # rebuild payload bounds on reconnect (#27)
     _kins_decl_cache = None     # re-parse kins declaration on reconnect
+    _coord_without_homing_cache = None   # button gates D: re-read on reconnect
+    _spindle_before_homing_cache = None
     _status_runtime.invalidate_var_file_path()  # re-resolve on reconnect (P2.1)
     if not _nml_connectable():
         return False
@@ -2402,6 +2404,11 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_kins_switchable=lambda: _kins_is_switchable(),
     get_twp_capable=lambda: _twp_capable(),
     get_identity_first=lambda: _identity_first(),
+    # Button gates D: the recovery order, COORD without homing, the spindle
+    # before homing (late-bound: defined below).
+    get_trip_unacked=lambda: _unacked_trip is not None,
+    get_coord_without_homing=lambda: _coord_without_homing(),
+    get_spindle_before_homing=lambda: _spindle_before_homing(),
     # The reader-derived policy inputs count only while it is fresh (BG-12).
     get_reader_fresh=lambda: not _hal_bridge.reader_is_stale(),
     # Raw W1 stamps (late-bound: _prov_cache is defined below). No
@@ -6756,6 +6763,58 @@ def _identity_first() -> bool:
         return False
 
 
+_coord_without_homing_cache: Optional[bool] = None
+_spindle_before_homing_cache: Optional[bool] = None
+
+
+def _coord_without_homing() -> bool:
+    """MDI / AUTO reachable without homing (button gates BG-04): motion's
+    kinType is KINEMATICS_IDENTITY — EMCMOT_COORD refuses an unhomed switch
+    otherwise (motion command.c v2.9.4:581), whatever the switchkins frame —
+    AND [TRAJ] NO_FORCE_HOMING = 1, without which task refuses every
+    coordinated move anyway. Both are fixed for the session; unreadable
+    (before the first NML connect, an INI that cannot be read) is False, the
+    closed reading, and is not cached."""
+    global _coord_without_homing_cache
+    if _coord_without_homing_cache is not None:
+        return _coord_without_homing_cache
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    kt = getattr(STAT, "kinematics_type", None) if STAT else None
+    if not ini_filename or kt is None:
+        return False
+    try:
+        nfh = (linuxcnc.ini(ini_filename).find("TRAJ", "NO_FORCE_HOMING") or "").strip()
+    except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
+        _trace.emit_exc("policy.no_force_homing_unreadable", e)
+        return False
+    _coord_without_homing_cache = (kt == getattr(linuxcnc, "KINEMATICS_IDENTITY", 1) and nfh == "1")
+    return _coord_without_homing_cache
+
+
+def _spindle_before_homing() -> bool:
+    """[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING (operator Q1, Codex R203): the
+    manual spindle may run before homing — machine ON, idle, MANUAL. Exactly
+    "1" switches it on; absent or "0" is off; any other value is off AND said
+    once in the trace (an invalid value must never switch the exception on).
+    Unreadable before the first NML connect: False, not cached."""
+    global _spindle_before_homing_cache
+    if _spindle_before_homing_cache is not None:
+        return _spindle_before_homing_cache
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    if not ini_filename:
+        return False
+    try:
+        raw = linuxcnc.ini(ini_filename).find("DISPLAY", "WEBUI_SPINDLE_BEFORE_HOMING")
+    except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
+        _trace.emit_exc("policy.spindle_before_homing_unreadable", e)
+        return False
+    value = (raw or "").strip()
+    if value not in ("", "0", "1"):
+        _trace.emit("policy.spindle_before_homing_invalid", level="warn", value=value[:40])
+    _spindle_before_homing_cache = value == "1"
+    return _spindle_before_homing_cache
+
+
 #: Operator wording for a semantic kinematics mode (R-01). The M-CODE is
 #: deliberately absent: it is a per-configuration fact resolved at run time.
 _KINS_MODE_NAMES = {0: "Machine (identity)", 1: "TCP (world)", 2: "Plane (TOOL)"}
@@ -6884,10 +6943,13 @@ def _controller_capture_state(armed: bool):
         return None, _G30_NO_STATUS
     kins = None if _reader_is_stale() else _reader_get("kins_type")
     interp = safe_get("interp_state", None)
+    task_mode = safe_get("task_mode", None)
     return _dc_replace(
         base,
         kins_type=None if kins is None else int(round(float(kins))),
         is_idle=base.is_idle if interp is None else interp == linuxcnc.INTERP_IDLE,
+        # the synch rule (button gates BG-13): the mode NOW
+        task_mode=base.task_mode if task_mode is None else task_mode,
         motion_still=motion_still_of(safe_get("inpos", None), safe_get("current_vel", None))), None
 
 
@@ -6897,7 +6959,10 @@ def _live_policy_state(armed: bool):
     supplied from one place, so no handler can forget one (TWP-08)."""
     return _policy_state_from_payload(
         _shared_status, armed, kins_switchable=_kins_is_switchable(),
-        twp_capable=_twp_capable(), identity_first=_identity_first())
+        twp_capable=_twp_capable(), identity_first=_identity_first(),
+        trip_unacked=_unacked_trip is not None,
+        coord_without_homing=_coord_without_homing(),
+        spindle_before_homing=_spindle_before_homing())
 
 
 # Cache for build_viewer_init() output. Keyed on every input that can

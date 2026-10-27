@@ -51,6 +51,28 @@ export type Permissions = {
    *  is no standstill (a manual jog keeps INTERP_IDLE), unknown refuses.
    *  Backend: command_policy motion_still_of (Codex R25 OP-I02). */
   g30Capture: boolean;
+  /** g30Write: machineFrame + a confirming synch is possible — not with the
+   *  machine ON in AUTO, where LinuxCNC refuses it (button gates BG-13). */
+  g30Write: boolean;
+  /** parameterRead: the confirmed G30 read — armed, idle, no power or homing
+   *  term; closed only with the machine ON in AUTO (no synch there, BG-13). */
+  parameterRead: boolean;
+  /** programLoad: load / unload / re-parse the program — armed and the
+   *  interpreter known idle; no E-Stop, power or homing term (BG-03). */
+  programLoad: boolean;
+  /** modeManual / modeCoord: the task mode per target (BG-04) — no jog,
+   *  motion or homing under way; MDI / AUTO also need COORD reachable
+   *  (homed, or identity kinematics with NO_FORCE_HOMING). No power term. */
+  modeManual: boolean;
+  modeCoord: boolean;
+  /** spindleManual: Fwd / Rev / ± — `ready`, or unhomed in MANUAL where the
+   *  machine declares WEBUI_SPINDLE_BEFORE_HOMING (operator Q1). */
+  spindleManual: boolean;
+  /** armEnable: ARMING (disarming is always open) — no safety trip waiting
+   *  for its acknowledgement (BG-11). */
+  armEnable: boolean;
+  /** estopReset: armed + the trip acknowledged — the recovery order (BG-11). */
+  estopReset: boolean;
   /** goZero: ready + a → Zero plan exists for the kinematics mode — Machine
    *  frame (subroutine) or Plane frame with its plane and G59 (retract along
    *  the tool axis, X0 Y0 in the plane); TCP refuses. Backend:
@@ -122,9 +144,10 @@ export type Permissions = {
 
 /** All gate names, in a stable order. */
 export const GATE_NAMES = [
-  "idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "pause", "resume", "step",
+  "idle", "jog", "override", "ready", "run", "machineFrame", "g30Capture", "g30Write", "parameterRead", "goZero", "planeFrame",
+  "pause", "resume", "step",
   "abort", "spindleStop", "toolChangeConfirm", "probe", "zero", "touchoff", "touchoffRotary", "twpCapture",
-  "surfaceComp",
+  "surfaceComp", "programLoad", "modeManual", "modeCoord", "spindleManual", "armEnable", "estopReset",
   "safety", "setup", "sourceWrite", "toolTableWrite", "armed", "always",
 ] as const;
 
@@ -136,8 +159,9 @@ export const GATE_NAMES = [
  * wrong. `jog` never had a busy term (hold-to-move).
  */
 const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "idle", "override", "ready", "run", "machineFrame", "g30Capture", "goZero", "planeFrame", "probe", "zero", "touchoff", "touchoffRotary",
-  "twpCapture", "surfaceComp", "setup", "sourceWrite", "toolTableWrite",
+  "idle", "override", "ready", "run", "machineFrame", "g30Capture", "g30Write", "parameterRead", "goZero", "planeFrame", "probe",
+  "zero", "touchoff", "touchoffRotary", "twpCapture", "surfaceComp", "setup", "sourceWrite", "toolTableWrite",
+  "programLoad", "modeManual", "modeCoord", "spindleManual",
 ]);
 
 /**
@@ -150,10 +174,14 @@ const BUSY_GATES: ReadonlySet<keyof Permissions> = new Set([
  * what `setup` gated there and stay open the same way: a write moves
  * nothing, and the simulation is how a program is checked before it is
  * saved (button gates B — a decision, not an accident).
- * `safety` is deliberately NOT here: Machine On requires exiting sim first.
+ * `programLoad` took over loading from `setup` and stays open the same way
+ * (a load changes the program, which ends the simulation — ScrubBar).
+ * `armEnable` / `estopReset` keep the recovery reachable (the Reset button
+ * had no sim term before button gates D either). `safety` is deliberately
+ * NOT here: Machine On requires exiting sim first.
  */
 const SIM_GATES: ReadonlySet<keyof Permissions> = new Set([
-  "always", "armed", "setup", "sourceWrite", "toolTableWrite",
+  "always", "armed", "setup", "sourceWrite", "toolTableWrite", "programLoad", "armEnable", "estopReset",
 ]);
 
 /**
@@ -167,13 +195,23 @@ const STOP_GATES: ReadonlySet<keyof Permissions> = new Set([
   "abort", "pause", "spindleStop",
 ]);
 
+/**
+ * Gates judged by the backend alone, like the stops: the stops, and ARMING
+ * (`armEnable`, button gates BG-11) — it is what a disarmed client does, so
+ * the client's own `armed` term can never be part of it; the backend closes
+ * it while a safety trip waits for its acknowledgement.
+ */
+const BACKEND_ONLY_GATES: ReadonlySet<keyof Permissions> = new Set([
+  ...STOP_GATES, "armEnable",
+]);
+
 /** The backend's machine-state permission dict (computed with `armed=true`). */
 export type MachinePermissions = Partial<Record<keyof Permissions, boolean>>;
 
 /**
  * Apply the client-local overlay to the backend-broadcast machine permissions.
- * `always` is unconditional; a stop (STOP_GATES) is the backend's decision
- * alone; every other gate requires `armed`; busy-subset gates also require
+ * `always` is unconditional; a stop or arming (BACKEND_ONLY_GATES) is the
+ * backend's decision alone; every other gate requires `armed`; busy-subset gates also require
  * `!busy`. Absent backend perms (before the first status)
  * yield all-false except `always` — the safe default. A class the gateway
  * does not ship is CLOSED, never read from another one (button gates
@@ -189,7 +227,7 @@ export function applyClientOverlay(
   const out = {} as Permissions;
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
-    if (STOP_GATES.has(g)) { out[g] = !!machine?.[g]; continue; }
+    if (BACKEND_ONLY_GATES.has(g)) { out[g] = !!machine?.[g]; continue; }
     out[g] = !!machine?.[g] && armed
       && (BUSY_GATES.has(g) ? !busy : true)
       && (sim ? SIM_GATES.has(g) : true);
@@ -234,7 +272,7 @@ export function applyClientOverlayReasons(
   for (const g of GATE_NAMES) {
     if (g === "always") continue;
     const unknown = perms != null && perms[g] === undefined;
-    if (STOP_GATES.has(g)) {
+    if (BACKEND_ONLY_GATES.has(g)) {
       const r = unknown ? CLIENT_REASONS.unknownClass : machine?.[g];
       if (r) out[g] = r;
       continue;

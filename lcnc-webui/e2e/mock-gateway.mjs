@@ -122,6 +122,10 @@ const state = {
       probe: true, zero: true,
       touchoff: true, touchoffRotary: true, twpCapture: true,
       surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true,
+      // button gates D: load, the task mode per target, the G30 read / save,
+      // the manual spindle, the recovery (no trip: arming and Reset open)
+      programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true,
+      spindleManual: true, armEnable: true, estopReset: true,
       armed: true, always: true,
     },
   },
