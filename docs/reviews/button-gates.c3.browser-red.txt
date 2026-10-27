@@ -1,0 +1,137 @@
+
+Running 4 tests using 1 worker
+
+  ✘  1 [serial-guards] › e2e/disarmed.spec.ts:423:1 › a late INI default never replaces a prepared RPM (R214 BG-27 rest) (12.1s)
+  ✘  2 [serial-guards] › e2e/disarmed.spec.ts:435:1 › a late INI default never replaces the mirrored commanded speed (R214 BG-27 rest) (11.7s)
+  ✘  3 [serial-guards] › e2e/disarmed.spec.ts:444:1 › a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest) (11.8s)
+  ✓  4 [serial-guards] › e2e/disarmed.spec.ts:456:1 › a late INI default fills an untouched RPM and jog speed (positive control, R214) (1.6s)
+
+
+  1) [serial-guards] › e2e/disarmed.spec.ts:423:1 › a late INI default never replaces a prepared RPM (R214 BG-27 rest) 
+
+    Error: the prepared value stays
+
+    expect(locator).toHaveValue(expected) failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: "800"
+    Received: "2400"
+    Timeout:  10000ms
+
+    Call log:
+      - the prepared value stays with timeout 10000ms
+      - waiting for locator('.spRpmInput')
+        24 × locator resolved to <input min="0" readonly step="10" lang="en" max="4800" type="text" value="2400" inputmode="none" name="stripInput" data-v-81fd583d="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>
+           - unexpected value "2400"
+
+
+      429 |   await ctl({ op: "clearCmds" });
+      430 |   await lateIni(page);
+    > 431 |   await expect(page.locator(".spRpmInput"), "the prepared value stays").toHaveValue("800");
+          |                                                                         ^
+      432 |   expect(await forbidden()).toEqual([]);
+      433 | });
+      434 |
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:431:73
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/disarmed-a-late-INI-defaul-70d37-epared-RPM-R214-BG-27-rest--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/disarmed-a-late-INI-defaul-70d37-epared-RPM-R214-BG-27-rest--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/disarmed-a-late-INI-defaul-70d37-epared-RPM-R214-BG-27-rest--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/disarmed-a-late-INI-defaul-70d37-epared-RPM-R214-BG-27-rest--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [serial-guards] › e2e/disarmed.spec.ts:435:1 › a late INI default never replaces the mirrored commanded speed (R214 BG-27 rest) 
+
+    Error: no draft: the field keeps the commanded speed
+
+    expect(locator).toHaveValue(expected) failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: "1500"
+    Received: "2400"
+    Timeout:  10000ms
+
+    Call log:
+      - no draft: the field keeps the commanded speed with timeout 10000ms
+      - waiting for locator('.spRpmInput')
+        24 × locator resolved to <input min="0" readonly step="10" lang="en" max="4800" type="text" value="2400" inputmode="none" name="stripInput" data-v-81fd583d="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>
+           - unexpected value "2400"
+
+
+      439 |   await lateIni(page);
+      440 |   await expect(page.locator('[data-strip="spindle"] .spNow')).toHaveText(/1500/);
+    > 441 |   await expect(page.locator(".spRpmInput"), "no draft: the field keeps the commanded speed").toHaveValue("1500");
+          |                                                                                              ^
+      442 | });
+      443 |
+      444 | test("a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest)", async ({ page }) => {
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:441:94
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/disarmed-a-late-INI-defaul-75640-nded-speed-R214-BG-27-rest--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/disarmed-a-late-INI-defaul-75640-nded-speed-R214-BG-27-rest--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/disarmed-a-late-INI-defaul-75640-nded-speed-R214-BG-27-rest--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/disarmed-a-late-INI-defaul-75640-nded-speed-R214-BG-27-rest--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [serial-guards] › e2e/disarmed.spec.ts:444:1 › a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest) 
+
+    Error: the operator's jog speed stays
+
+    expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('[data-strip="jog"]').getByRole('slider').first()
+    Expected: "606 mm/min"
+    Received: "1200 mm/min"
+    Timeout:  10000ms
+
+    Call log:
+      - the operator's jog speed stays with timeout 10000ms
+      - waiting for locator('[data-strip="jog"]').getByRole('slider').first()
+        24 × locator resolved to <input max="40" min="0.1" step="0.1" value="20" type="range" class="vSlider" data-v-808c7443="" aria-label="Jog speed" data-control="jogSpeed" aria-valuetext="1200 mm/min"/>
+           - unexpected value "1200 mm/min"
+
+
+      451 |   await expect(speed).toHaveAttribute("aria-valuetext", "606 mm/min");
+      452 |   await lateIni(page);
+    > 453 |   await expect(speed, "the operator's jog speed stays").toHaveAttribute("aria-valuetext", "606 mm/min");
+          |                                                         ^
+      454 | });
+      455 |
+      456 | test("a late INI default fills an untouched RPM and jog speed (positive control, R214)", async ({ page }) => {
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/disarmed.spec.ts:453:57
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/disarmed-a-late-INI-defaul-20caf-ame-writer-R214-BG-27-rest--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/disarmed-a-late-INI-defaul-20caf-ame-writer-R214-BG-27-rest--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/disarmed-a-late-INI-defaul-20caf-ame-writer-R214-BG-27-rest--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/disarmed-a-late-INI-defaul-20caf-ame-writer-R214-BG-27-rest--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    [serial-guards] › e2e/disarmed.spec.ts:423:1 › a late INI default never replaces a prepared RPM (R214 BG-27 rest) 
+    [serial-guards] › e2e/disarmed.spec.ts:435:1 › a late INI default never replaces the mirrored commanded speed (R214 BG-27 rest) 
+    [serial-guards] › e2e/disarmed.spec.ts:444:1 › a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest) 
+  1 passed (41.8s)

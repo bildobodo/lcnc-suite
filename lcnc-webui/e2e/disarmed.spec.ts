@@ -408,3 +408,55 @@ test("the jog pad's centre Stop answers Enter and Space like the pointer — one
     expect(await stops(), `${name}: the pointer's click adds no second stop`).toBe(3);
   }
 });
+
+// ── Codex R214: a late INI default fills only an untouched preselection ──
+
+/** A viewer_init with INI defaults arriving AFTER the status and a free
+ *  input (a slow configuration); waits until this very INI applied. */
+async function lateIni(page: Page) {
+  await ctl({ op: "setViewerInit", data: { units: "mm", axes: ["X", "Y", "Z"], parts: [], kinematics: [], stl_base_url: "/machine/",
+    ini_config: { default_spindle_speed: 2400, max_spindle_speed: 4800, default_jog_velocity: 20, max_jog_velocity: 40 } } });
+  await expect(page.locator(".spRpmInput")).toHaveAttribute("max", "4800");
+}
+const jogSpeed = (page: Page) => page.locator('[data-strip="jog"]').getByRole("slider").first();
+
+test("a late INI default never replaces a prepared RPM (R214 BG-27 rest)", async ({ page }) => {
+  await open(page);
+  await disarmedIn(page, "idle");
+  await page.locator(".spRpmInput").click();
+  await keyIn(page, "800");
+  await page.locator(".nkStrip").getByRole("button", { name: "Apply", exact: true }).click();
+  await ctl({ op: "clearCmds" });
+  await lateIni(page);
+  await expect(page.locator(".spRpmInput"), "the prepared value stays").toHaveValue("800");
+  expect(await forbidden()).toEqual([]);
+});
+
+test("a late INI default never replaces the mirrored commanded speed (R214 BG-27 rest)", async ({ page }) => {
+  await open(page);
+  await disarmedIn(page, "idle", { spindle_direction: 1, spindle_speed: 1500 });
+  await expect(page.locator(".spRpmInput")).toHaveValue("1500");
+  await lateIni(page);
+  await expect(page.locator('[data-strip="spindle"] .spNow')).toHaveText(/1500/);
+  await expect(page.locator(".spRpmInput"), "no draft: the field keeps the commanded speed").toHaveValue("1500");
+});
+
+test("a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest)", async ({ page }) => {
+  await open(page);
+  await disarmedIn(page, "idle");
+  const speed = jogSpeed(page);
+  await expect(speed).toHaveAttribute("aria-valuetext", "600 mm/min");
+  await speed.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(speed).toHaveAttribute("aria-valuetext", "606 mm/min");
+  await lateIni(page);
+  await expect(speed, "the operator's jog speed stays").toHaveAttribute("aria-valuetext", "606 mm/min");
+});
+
+test("a late INI default fills an untouched RPM and jog speed (positive control, R214)", async ({ page }) => {
+  await open(page);
+  await disarmedIn(page, "idle");
+  await lateIni(page);
+  await expect(page.locator(".spRpmInput")).toHaveValue("2400");
+  await expect(jogSpeed(page)).toHaveAttribute("aria-valuetext", "1200 mm/min");
+});
