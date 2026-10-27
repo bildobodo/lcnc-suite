@@ -1,0 +1,13 @@
+# Codex's R214 browser probe, UNCHANGED (docs/reviews/button-gates.r214.browser.spec.ts copied to e2e/), against dffcf90c's product; project chromium, --workers=1
+
+
+Running 5 tests using 1 worker
+
+RPM after late INI 800
+  ✓  1 [chromium] › e2e/r214codex.spec.ts:23:1 › an RPM draft survives a late initial INI default (1.9s)
+  ✓  2 [chromium] › e2e/r214codex.spec.ts:34:1 › a prepared RPM survives Stop and a new run at another commanded value (1.6s)
+  ✓  3 [chromium] › e2e/r214codex.spec.ts:42:1 › held Stop keys do not repeat, and never start a jog (1.3s)
+  ✓  4 [chromium] › e2e/r214codex.spec.ts:51:1 › without an operator draft the INI default is adopted (positive control) (1.4s)
+  ✓  5 [chromium] › e2e/r214codex.spec.ts:57:1 › a late INI default does not replace an already mirrored running speed (1.4s)
+
+  5 passed (10.4s)
