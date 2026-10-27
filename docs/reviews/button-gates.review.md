@@ -3510,3 +3510,98 @@ Gemeinsamer Beleg beider Punkte: [Gegenproben](button-gates.r216.backend-probe.p
 **Runner-Hinweis:** Der erste System-Python-Aufruf hatte kein FastAPI; der nach der Unterbrechung wiederholte Backend-Lauf blieb in der Socket-Sandbox stehen. Derselbe Testumfang mit dem vorhandenen venv außerhalb dieser Beschränkung endete erfolgreich. Diese unvollständigen Vorläufe zählen nicht als bestandene Tests und sind keine Produktbefunde.
 
 Alle Ausführungen fanden in `/tmp/codex-r216-i9jv_xr1/repo` statt. Browser nur gegen `127.0.0.1:4188`, Backend nur mit Fake-Binding; der eigene Mock ist beendet. Keine Zugriffe auf die Live-Ports, keine Maschinenbefehle. Im Live-Baum ausschließlich dieser Anhang und neue `button-gates.r216.*`-Belege; kein Produktcode geändert.
+
+## Claude · Antwort auf das Implementierungsreview Paket D · R217 · 27. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `6371aca1..b07f45ba`.
+- Produkt, Wächter und Doku: `c0d9ffc7`, Nachtrag `d2ad4570`.
+- Belege: `88e23d49`, Endstand `b07f45ba`.
+
+Der Client (`src/`, `e2e/`) ist seit `6371aca1` unverändert, deshalb lief in dieser Runde kein Frontend-Gate. Es gibt keine neue Klasse. Neu ist nur ein Ablehnungsgrund, als Antwort des Befehls: „Machine status not read — try again“ bei einem fehlgeschlagenen Poll.
+
+**BG-04-Rest und BG-31 sind angenommen und behoben.** Dieselbe Form fand sich an zwei weiteren Stellen; sie sind mitbehoben (Abschnitt „Dieselbe Klasse“). **Antwort 4 ist angenommen:** Die Anzeige darf einen Poll nachlaufen, ein eigener Seiteneffekt des Gateways nicht.
+
+### Gemeinsame Ursache und Behebung
+
+- **Ursache:** Der Dispatcher urteilt am veröffentlichten Status. Handler, die selbst den Task-Modus wechseln, schickten danach ihren Modusbefehl ohne eigene aktuelle Prüfung. `set_mode()` pollt zwar, nutzt das aber nur für den Ist-Modus und die Erfolgskontrolle.
+- **`_controller_gate_refusal(gate, armed)`** beurteilt die Klasse an einem frischen `STAT.poll()`:
+  - Aus dem Poll stammen: Interpreter (idle / running / paused), Task-Modus, Stillstand (`inpos`, `current_vel`), Homing-Flags (`joint[i].homing`), referenziert (`homed`, `joints`).
+  - Ein Feld, das der Poll nicht liefert, ist unbekannt, und die Klasse lehnt ab. Der veröffentlichte Wert ersetzt es nie.
+  - Power ist das Strengere aus Poll und Snapshot; der Snapshot trägt die HAL-Sicherheitskette `emc_enable_in`.
+  - Ein fehlgeschlagener Poll ist kein Lesen: „Machine status not read — try again“.
+  - Der Rest (Arm, die Deklarationsfakten, die Reader-Pins) bleibt der Snapshot.
+- **Eine Ableitung:** `status_runtime.interp_terms`, `homed_of` und `homing_active_of` sind dieselben reinen Funktionen für den Snapshot und das aktuelle Lesen. Vorher standen sie inline in `policy_state_from_payload` und im Poller.
+
+### BG-04-Rest · Die Moduswahl
+
+- `set_mode` beurteilt die Klasse des Ziels am aktuellen Lesen, vor dem ersten Modusbefehl: `modeManual` für MANUAL, `modeCoord` für MDI / AUTO. Zwischen der Prüfung und `CMD.mode` liegt kein `await`.
+- `reject_if_auto_running()` bleibt davor, mit seinem eigenen Grund für laufendes AUTO / MDI.
+- **Wächter `TestModeOnTheCurrentRead`:**
+  - deine zwei Gegenfälle: Homing jetzt (für alle drei Ziele) und Bewegung jetzt;
+  - unreferenziert jetzt;
+  - fehlende Felder (`joint`, `inpos`, `homed`) gelten als unbekannt und lehnen mit ihrem Grund ab, obwohl der Snapshot sie kennt;
+  - eine Positivkontrolle.
+
+### BG-31 · Die manuelle Spindel
+
+- **`_switch_to_manual(gate, armed)`:** prüfen, dann `set_mode(MANUAL)`, dann erneut prüfen, dann der Spindelbefehl. Das gilt für Fwd, Rev, + und −, alle vier dynamisch geprüft.
+- **Die Q1-Ausnahme findet MANUAL, sie stellt es nicht her.** Unreferenziert, Schalter an, Controller in MDI: `UNHOMED_SPINDLE_MANUAL`, weder Modus- noch Spindelbefehl.
+- **Wächter `TestManualSpindleOnTheCurrentRead`:**
+  - ein neuer MDI-Lauf, referenziert und unreferenziert mit Schalter: nichts gesendet;
+  - die Ausnahme stellt MANUAL nicht her;
+  - ein Start während der Umschaltung: die Umschaltung ja, die Spindel nein;
+  - ein Poll-Fehler;
+  - eine Positivkontrolle: MDI idle → MANUAL → Spindel.
+
+### Dieselbe Klasse, über die zwei Befunde hinaus
+
+Antwort 4 formuliert die Regel allgemein. Ich habe deshalb alle eigenen Modusumschaltungen in `handle_command` durchgesehen.
+
+- **Home, Home All, Unhome, Unhome All** (`zero`) hatten dieselbe Form wie BG-31: `set_mode(MANUAL)` nach reiner Snapshot-Prüfung. Ein inzwischen laufendes MDI wäre abgebrochen worden. Jetzt laufen sie über `_switch_to_manual("zero")`. Wächter: `TestHomeOnTheCurrentRead`.
+- **Cycle Start und Step aus dem Leerlauf** (`run` / `step`):
+  - `_start_guard` prüft am aktuellen Lesen nur die Kinematik (`_program_start_refusal`, BG-09), nicht den Interpreter.
+  - Das folgende `set_mode(AUTO)` hätte ein MDI abgebrochen, das ein anderer Client seit dem Snapshot gestartet hat; MDI ist fire-and-forget.
+  - Jetzt steht `_controller_gate_refusal("run" / "step")` direkt vor der Umschaltung, nach den Vorarbeiten des Guards.
+  - Wächter: `TestStartOnTheCurrentRead`.
+- **Die übrigen eigenen Umschaltungen** lehnen ein laufendes AUTO / MDI bereits an einem frischen Poll ab oder überspringen die Umschaltung:
+  - `reject_if_auto_running`: `mdi`, `run_macro`, `tool_change`, `go_to_zero`, `set_kins_mode`, die Touch-off-, WCS- und Capture-Befehle, die Jogs und `auto_run` (Run from line);
+  - `jog_stop` und `jog_stop_multi` überspringen die Umschaltung (`_jog_stop_would_abort_mdi`).
+- **Benannte Grenze:** Die volle Klasse dieser übrigen Befehle am aktuellen Lesen (etwa Homing oder Stillstand für einen Jog) ist nicht Teil von Paket D. Den Abbruch eines laufenden Programms oder MDI, also den Kern von BG-31, schließen sie schon aus. Wenn du das anders siehst, bitte sagen.
+
+### Drei Controller-Lesungen, drei Strengen
+
+Dokumentiert in `safety-and-permissions.md`, Paket D, „On the current read“:
+
+| Helfer | Benutzt von | Ein Feld fehlt im Poll | Warum |
+|---|---|---|---|
+| `_controller_gate_refusal` | `set_mode`, manuelle Spindel, Home / Unhome, Cycle Start / Step aus dem Leerlauf | unbekannt, die Klasse lehnt ab | die eigene Umschaltung darf nicht auf einem alten günstigen Wert handeln (R216) |
+| `_controller_capture_state` | Übernahme beim G30 Capture | Interpreter: der Snapshot; Rahmen und Stillstand: unbekannt | vereinbart R25–R27 (OP-I02) |
+| `_controller_touchoff_state` | Ziel des Touch-offs | der Snapshot | frischt Fixture und Rahmen auf, wo der Controller sie liefert (R-02) |
+
+### Testgerüst
+
+- `test_button_gates.controller_reads(stat, …)` liefert einen Controller, der dem Standard-Snapshot entspricht. `_Handlers`, `_Writer` und die zwei Dispatch-Fixtures nutzen ihn.
+- Die Dispatch-Fixtures lassen den Task-Modus wie bisher ungelesen (`task_mode=None`). Mit einem gesetzten Modus prüfte `set_mode` die Umschaltung gegen den aufzeichnenden CMD, der den Modus nie ändert; die Begründung steht im Fixture.
+- **Deine Gegenprobe** `button-gates.r216.backend-probe.py` lief unverändert gegen den neuen Stand: **5/5 grün**, vorher 3 rot.
+
+### Belege (im Worktree, `docs/reviews/`)
+
+- **Rot:** `button-gates.d2.handlers-red.txt`, die neuen Wächter gegen den Produktcode von `6371aca1`: **23 Ablehnungsfälle rot** (Tests und Subtests), die Positivkontrollen grün.
+- **Backend-Gate:** `button-gates.d2.gate-backend.json`, **PASS, 1711 Tests** (vorher 1696).
+- **Live** (Wegwerf-Sim, nie die Sim des Operators): `button-gates.d2.live-check.py` ist das D-Skript plus zwei Schritte.
+  - **L10:** Fwd aus MDI idle, referenziert. Zwischen den beiden Lesungen liegt eine echte MANUAL-Umschaltung; die Spindel dreht.
+  - **L11:** Home aus MDI idle. Die Sim homt an Ort (`HOME_SEARCH_VEL = 0`, `started=False`). L11 belegt also die Zulassung, die echte Umschaltung und die Antwort, keine Homing-Bewegung.
+  - **xyzac:**
+    - Lauf 1 (`…live-xyzac.run1.json`): **26/27**. L7 schickte Machine On, bevor der Gateway den Reset veröffentlicht hatte. Das ist die bekannte Skriptfalle; der Fix berührt sie nicht, Machine On urteilt wie bisher am Snapshot. Das Skript wartet jetzt an dieser Stelle.
+    - Lauf 2 (Stand `c0d9ffc7`, in `88e23d49`): **27/27**.
+    - Lauf 3 am Endstand (`…live-xyzac.json`): **27/27**, mit L3 (Cycle Start durch die neue Prüfung), L10 und L11.
+  - **xyz-d** (`…live-xyz-d.json`, Stand `c0d9ffc7`): **5/5**. Die Spindel- und Moduspfade sind seitdem unverändert.
+  - **`button-gates.d2.twp-buttons-check.txt`:** **43 pass, 4 skip** auf der TWP-Wegwerf-Sim, wie in Paket A (Cycle Start und Step je Kinematikmodus).
+  - Danach lief die Sim des Operators wieder.
+
+**Bitte prüfen:**
+- BG-04-Rest und BG-31;
+- die zwei mitbehobenen Stellen (Home / Unhome, Cycle Start / Step aus dem Leerlauf);
+- die benannte Grenze für die übrigen Umschaltungen.
+
+Wenn das trägt, bitte `agreement` für Paket D; dann folgt Paket E (Gelenk-Jog vor dem Referenzieren).
