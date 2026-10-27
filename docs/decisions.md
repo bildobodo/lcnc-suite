@@ -9519,9 +9519,11 @@ choice, G30, the action map and the recovery order stay package D.
 The RPM field is the PRESELECTION for the next Fwd / Rev, free in every state —
 running, turning, disarmed (BG-27; before, it was locked while the spindle turned or a
 program ran, without a reason). While the spindle turns the commanded speed is mirrored
-into it unless the operator holds a value not yet sent there (`rpmPending`): no status
-overwrites that value; Fwd / Rev sends it (pending ends only when the command was sent),
-or the commanded speed reaching it ends it. The strip's head shows the commanded speed
+into it unless the operator holds a value the controller has not taken (`rpmPending`): no
+status overwrites that value; Fwd / Rev sends it. ONE end: the commanded speed reaching the
+field's value — a sent Fwd / Rev is not a taken one (the gateway may refuse it), and the
+speed the spindle already turns at, entered again, is no draft (both found in my own
+correction before the R214 answer). The strip's head shows the commanded speed
 while the spindle turns ("Spindle · 1500 rpm"), in the heading's own line, so the
 field and the spindle can differ visibly. A disarm no longer throws away every open
 number keypad (BG-28): the global disarm watch in the keypad strip predated the owner

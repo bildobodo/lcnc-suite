@@ -333,11 +333,23 @@ test("the RPM preselection is free running and turning; an unsent value outlives
   await hold(page, spindle.getByRole("button", { name: "Fwd", exact: true }));
   await expect.poll(async () => (await sentNow()).filter((c) => c.cmd === "spindle_forward").map((c) => (c as { speed?: number }).speed))
     .toEqual([800]);
+  // SENT is not TAKEN: until the commanded speed reaches it, the value stays
+  // prepared — a Fwd the gateway refused must not let the next change overwrite it
+  await ctl({ op: "status_delta", data: { spindle_speed: 1700 } });
+  await expect(now).toHaveText(/1700/);
+  await expect(rpm, "sent but not taken: still prepared").toHaveValue("800");
   // the controller took it; from then on the field follows the commanded speed again
   await ctl({ op: "status_delta", data: { spindle_speed: 800 } });
   await expect(now).toHaveText(/800/);
   await ctl({ op: "status_delta", data: { spindle_speed: 950 } });
   await expect(rpm, "nothing prepared: the field shows the commanded speed").toHaveValue("950");
+  // entering the speed the spindle already turns at prepares nothing
+  await rpm.click();
+  await keyIn(page, "950");
+  await page.locator(".nkStrip").getByRole("button", { name: "Apply", exact: true }).click();
+  await ctl({ op: "status_delta", data: { spindle_speed: 1050 } });
+  await expect(now).toHaveText(/1050/);
+  await expect(rpm, "the commanded speed entered again is no draft").toHaveValue("1050");
 });
 
 test("the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28)", async ({ page }) => {

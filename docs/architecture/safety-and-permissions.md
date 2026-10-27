@@ -284,7 +284,8 @@ joint jog before homing in E.
   and the MDI line are free in every state. The RPM field is the preselection
   for the next Fwd / Rev — running and turning too (R213 BG-27): it mirrors the
   commanded speed while the spindle turns unless it holds a value not yet sent
-  (`rpmPending`, ended by a SENT Fwd / Rev or the commanded speed reaching it);
+  (`rpmPending`, ended only by the commanded speed reaching it — sent is not
+  taken; the commanded speed entered again is no draft);
   the head shows the commanded speed while turning. A number keypad ends with
   its OWNER's gate, never with the arm as such (R213 BG-28): a free field keeps
   its entry through a disarm, a protected one closes and applies nothing. The MDI line's send stays `ready`

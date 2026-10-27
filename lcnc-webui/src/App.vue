@@ -1483,14 +1483,16 @@ watch(defaultSpindleSpeed, (v) => { if (!_rpmInit && v !== 1000) { rpmInput.valu
 // free in every state. While the spindle turns, the commanded RPM is
 // mirrored into it — it follows SPINDLE_INCREASE/DECREASE and leaves the
 // last commanded value as the staging value after a Stop — UNLESS the
-// operator holds a value there not yet sent (rpmPending): no status
-// overwrites it (Codex R213 BG-27); the strip's head shows the commanded
-// speed meanwhile. Pending ends when Fwd / Rev sends the value, or when the
-// commanded speed reaches it.
+// operator holds a value there the controller has not taken (rpmPending):
+// no status overwrites it (Codex R213 BG-27); the strip's head shows the
+// commanded speed meanwhile. ONE end: the commanded speed reaches the
+// field's value — a SENT Fwd / Rev is not a taken one (the gateway may
+// refuse it), so sending ends nothing. The speed the spindle already turns
+// at, entered again, is no draft.
 const rpmPending = ref(false);
 function setRpmPreselect(v: number) {
   rpmInput.value = v;
-  rpmPending.value = true;
+  rpmPending.value = !(isSpinning.value && v === spindleSpeed.value);
 }
 watch([spindleSpeed, isSpinning], ([v, spinning]) => {
   if (!spinning || v == null || v <= 0) return;
@@ -1644,13 +1646,12 @@ function setRapidOverride(scale: number) {
   send({ cmd: "set_rapid_override", scale });
 }
 
-// A sent preselection is no longer pending; a refused one (gate, latch) is.
 function spindleForward(speed: number) {
-  if (fire({ cmd: "spindle_forward", speed }, 'ready') !== null) rpmPending.value = false;
+  fire({ cmd: "spindle_forward", speed }, 'ready');
 }
 
 function spindleReverse(speed: number) {
-  if (fire({ cmd: "spindle_reverse", speed }, 'ready') !== null) rpmPending.value = false;
+  fire({ cmd: "spindle_reverse", speed }, 'ready');
 }
 
 // The spindle stop at idle needs no arm and no homing (button gates BG-18).

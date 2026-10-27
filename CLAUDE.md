@@ -86,7 +86,7 @@ Horizontally scrollable strip with six components (no outer Gate — each contro
 2. **JogStrip** — Jog wheel, speed slider, step increments, world/joint mode
 3. **SetupStrip** — DRO display, axis touchoff, homing grid, WCS selector
 4. **OverridesStrip** — Feed/Spindle/Rapid override sliders
-5. **SpindleStrip** — FWD/REV/STOP, the RPM preselection (free; a value not yet sent survives the status), the commanded speed in the head while turning, coolant toggles
+5. **SpindleStrip** — FWD/REV/STOP, the RPM preselection (free; a value the controller has not taken survives the status), the commanded speed in the head while turning, coolant toggles
 6. **ToolStrip** — Read-only loaded-tool info + a Tool Table nav button (the change dialog and measure/unload actions are App-level, not here)
 
 ## Safety System — Three Layers
