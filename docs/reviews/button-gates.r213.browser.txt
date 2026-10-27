@@ -1,0 +1,194 @@
+
+Running 8 tests using 1 worker
+
+(node:3891773) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3891773) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RPM { interp_state: 2 } { disabled: true, title: null }
+RPM {
+  interp_state: 1,
+  spindle_enabled: true,
+  spindle_direction: 1,
+  spindle_speed: 1500
+} { disabled: true, title: null }
+  ✘  1 e2e/r213.codex.spec.ts:26:1 › RPM preselection remains editable during a run and a turning spindle (11.8s)
+(node:3892174) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3892174) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/r213.codex.spec.ts:34:1 › a protected reset opened armed explains the closed enclosing Gate after disarm; display reset stays free (2.3s)
+  ✓  3 e2e/r213.codex.spec.ts:52:1 › protected keypad closes at disarm without applying or writing (1.5s)
+  ✓  4 e2e/r213.codex.spec.ts:60:1 › keyboard capture ends with disarm and the next key cannot update the mapping (1.6s)
+  ✓  5 e2e/r213.codex.spec.ts:68:1 › MDI strip edits disarmed, Apply explains refusal and keeps draft without history writes (1.7s)
+  ✓  6 e2e/r213.codex.spec.ts:78:1 › file row and mode choice explain the block by a real pointer tap (1.6s)
+  ✘  7 e2e/r213.codex.spec.ts:86:1 › a free numeric draft survives disarm (RPM at idle) (11.8s)
+(node:3892758) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3892758) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  8 e2e/r213.codex.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer (1.6s)
+
+
+  1) e2e/r213.codex.spec.ts:26:1 › RPM preselection remains editable during a run and a turning spindle 
+
+    Error: BG-05: free preselection, actual spindle speed is separate
+
+    expect(locator).toBeEnabled() failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - BG-05: free preselection, actual spindle speed is separate with timeout 5000ms
+      - waiting for locator('.spRpmInput')
+        14 × locator resolved to <input min="0" readonly disabled step="10" lang="en" type="text" max="99999" value="1000" inputmode="none" name="stripInput" data-v-bc0e5cdb="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>
+           - unexpected value "disabled"
+
+
+      29 |   await state(page,false,data);
+      30 |   console.log('RPM',data,await page.locator('.spRpmInput').evaluate(e=>({disabled:(e as HTMLInputElement).disabled,title:e.getAttribute('title')})));
+    > 31 |   await expect.soft(page.locator('.spRpmInput'),'BG-05: free preselection, actual spindle speed is separate').toBeEnabled();
+         |                                                                                                               ^
+      32 |  }
+      33 | });
+      34 | test('a protected reset opened armed explains the closed enclosing Gate after disarm; display reset stays free',async({page})=>{
+        at /tmp/codex-r213-p0cy1mj3/repo/lcnc-webui/e2e/r213.codex.spec.ts:31:111
+
+    Error: BG-05: free preselection, actual spindle speed is separate
+
+    expect(locator).toBeEnabled() failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: enabled
+    Received: disabled
+    Timeout:  5000ms
+
+    Call log:
+      - BG-05: free preselection, actual spindle speed is separate with timeout 5000ms
+      - waiting for locator('.spRpmInput')
+        14 × locator resolved to <input min="0" readonly disabled step="10" lang="en" type="text" max="99999" value="1500" inputmode="none" name="stripInput" data-v-bc0e5cdb="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>
+           - unexpected value "disabled"
+
+
+      29 |   await state(page,false,data);
+      30 |   console.log('RPM',data,await page.locator('.spRpmInput').evaluate(e=>({disabled:(e as HTMLInputElement).disabled,title:e.getAttribute('title')})));
+    > 31 |   await expect.soft(page.locator('.spRpmInput'),'BG-05: free preselection, actual spindle speed is separate').toBeEnabled();
+         |                                                                                                               ^
+      32 |  }
+      33 | });
+      34 | test('a protected reset opened armed explains the closed enclosing Gate after disarm; display reset stays free',async({page})=>{
+        at /tmp/codex-r213-p0cy1mj3/repo/lcnc-webui/e2e/r213.codex.spec.ts:31:111
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r213.codex-RPM-preselectio-6e166-a-run-and-a-turning-spindle/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r213.codex-RPM-preselectio-6e166-a-run-and-a-turning-spindle/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r213.codex-RPM-preselectio-6e166-a-run-and-a-turning-spindle/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r213.codex-RPM-preselectio-6e166-a-run-and-a-turning-spindle/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r213.codex.spec.ts:86:1 › a free numeric draft survives disarm (RPM at idle) ──────────────
+
+    Error: a free field does not lose its editing session on disarm
+
+    expect(locator).toBeVisible() failed
+
+    Locator: locator('.nkStrip')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+      - a free field does not lose its editing session on disarm with timeout 5000ms
+      - waiting for locator('.nkStrip')
+
+
+      91 |  await ctl({op:'clearCmds'}); await state(page,false);
+      92 |  await expect(rpm).toBeEnabled();
+    > 93 |  await expect.soft(pad,'a free field does not lose its editing session on disarm').toBeVisible();
+         |                                                                                    ^
+      94 |  if(!(await pad.isVisible())) await rpm.click();
+      95 |  await expect.soft(pad.locator('.nkExpr'),'the unconfirmed 7 must not be discarded by a global arm watcher').toHaveText('7');
+      96 |  expect((await commands()).filter(c=>c.cmd==='mdi'||c.cmd.startsWith('spindle_'))).toEqual([]);
+        at /tmp/codex-r213-p0cy1mj3/repo/lcnc-webui/e2e/r213.codex.spec.ts:93:84
+
+    Error: the unconfirmed 7 must not be discarded by a global arm watcher
+
+    expect(locator).toHaveText(expected) failed
+
+    Locator:  locator('.nkStrip').locator('.nkExpr')
+    Expected: "7"
+    Received: "1000"
+    Timeout:  5000ms
+
+    Call log:
+      - the unconfirmed 7 must not be discarded by a global arm watcher with timeout 5000ms
+      - waiting for locator('.nkStrip').locator('.nkExpr')
+        14 × locator resolved to <span class="nkExpr" data-v-66e4823f="">1000</span>
+           - unexpected value "1000"
+
+
+      93 |  await expect.soft(pad,'a free field does not lose its editing session on disarm').toBeVisible();
+      94 |  if(!(await pad.isVisible())) await rpm.click();
+    > 95 |  await expect.soft(pad.locator('.nkExpr'),'the unconfirmed 7 must not be discarded by a global arm watcher').toHaveText('7');
+         |                                                                                                              ^
+      96 |  expect((await commands()).filter(c=>c.cmd==='mdi'||c.cmd.startsWith('spindle_'))).toEqual([]);
+      97 | });
+      98 | test('the jog centre Stop is operable with Enter, like the pointer',async({page})=>{
+        at /tmp/codex-r213-p0cy1mj3/repo/lcnc-webui/e2e/r213.codex.spec.ts:95:110
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r213.codex-a-free-numeric-draft-survives-disarm-RPM-at-idle-/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r213.codex-a-free-numeric-draft-survives-disarm-RPM-at-idle-/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r213.codex-a-free-numeric-draft-survives-disarm-RPM-at-idle-/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r213.codex-a-free-numeric-draft-survives-disarm-RPM-at-idle-/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) e2e/r213.codex.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer ────
+
+    TypeError: expect.soft.poll is not a function
+
+      100 |  await expect(stop).toBeEnabled(); await stop.focus(); await ctl({op:'clearCmds'});
+      101 |  await page.keyboard.press('Enter');
+    > 102 |  await expect.soft.poll(async()=>(await commands()).filter(c=>c.cmd==='jog_stop').length,{message:'Enter activation of the visible Stop',timeout:700}).toBeGreaterThan(0);
+          |                    ^
+      103 |  await ctl({op:'clearCmds'}); await page.keyboard.press('Space');
+      104 |  await expect.soft.poll(async()=>(await commands()).filter(c=>c.cmd==='jog_stop').length,{message:'Space activation of the visible Stop',timeout:700}).toBeGreaterThan(0);
+      105 |  await ctl({op:'clearCmds'}); await stop.click();
+        at /tmp/codex-r213-p0cy1mj3/repo/lcnc-webui/e2e/r213.codex.spec.ts:102:20
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r213.codex-the-jog-centre--17bbf-with-Enter-like-the-pointer/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r213.codex-the-jog-centre--17bbf-with-Enter-like-the-pointer/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r213.codex-the-jog-centre--17bbf-with-Enter-like-the-pointer/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r213.codex-the-jog-centre--17bbf-with-Enter-like-the-pointer/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3 failed
+    e2e/r213.codex.spec.ts:26:1 › RPM preselection remains editable during a run and a turning spindle 
+    e2e/r213.codex.spec.ts:86:1 › a free numeric draft survives disarm (RPM at idle) ───────────────
+    e2e/r213.codex.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer ─────
+  5 passed (35.8s)

@@ -1,0 +1,53 @@
+
+ RUN  v4.1.8 /tmp/codex-r213-p0cy1mj3/repo/lcnc-webui
+
+ ❯ src/r213.scan.test.ts (3 tests | 2 failed) 4ms
+   × counts a raw click with .self — used by DialogFrame.vue 2ms
+   × counts pointerdown with .prevent 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/r213.scan.test.ts > counts a raw click with .self — used by DialogFrame.vue
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/r213.scan.test.ts:8:98
+      6| });
+      7| it('counts a raw click with .self — used by DialogFrame.vue',()=>{
+      8|  expect(scanControls('Example.vue','<template>\n<div @click.self="act"…
+       |                                                                                                  ^
+      9| });
+     10| it('counts pointerdown with .prevent',()=>{
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/r213.scan.test.ts > counts pointerdown with .prevent
+AssertionError: expected [] to have a length of 1 but got +0
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ src/r213.scan.test.ts:11:107
+      9| });
+     10| it('counts pointerdown with .prevent',()=>{
+     11|  expect(scanControls('Example.vue','<template>\n<div @pointerdown.prev…
+       |                                                                                                           ^
+     12| });
+     13|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed | 1 passed (3)
+   Start at  07:09:41
+   Duration  108ms (transform 39ms, setup 0ms, import 45ms, tests 4ms, environment 0ms)
+

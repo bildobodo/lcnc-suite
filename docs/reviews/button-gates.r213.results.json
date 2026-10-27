@@ -1,0 +1,58 @@
+{
+  "review": "R213",
+  "product_commit": "e0cd65aef16f47796b48feee13eae7a062679acc",
+  "range": "632ee435..e0cd65ae",
+  "archive": "/tmp/codex-r213-p0cy1mj3/repo",
+  "mock": "127.0.0.1:4188",
+  "constraints": "No builds/tests/checkouts in either shared worktree. No requests to live :8000/:5173; no machine commands. Own mock stopped.",
+  "build": {
+    "command": "nice -n 10 npm run build",
+    "result": "PASS",
+    "note": "vue-tsc and Vite; existing large-chunk warning; output captured in tool transcript, no second build."
+  },
+  "backend": {
+    "command": "timeout -k 3s 90s /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python -m pytest -q test_button_gates_c.py test_button_gates.py test_command_policy.py",
+    "result": "PASS",
+    "exit_code": 0,
+    "log": "button-gates.r213.backend.txt",
+    "note": "conftest installs fake_linuxcnc; double -q suppresses final summary."
+  },
+  "unit": {
+    "result": "41 PASS",
+    "includes": "39 existing + 2 independent analog-stick probes"
+  },
+  "repository_browser": {
+    "result": "7/7 PASS",
+    "spec": "e2e/disarmed.spec.ts"
+  },
+  "own_browser": {
+    "result": "5 PASS / 3 FAIL",
+    "failures": [
+      "RPM preselection disabled at running/spinning",
+      "Disarm discards free numeric draft (7 becomes 1000 after reopening)",
+      "Jog Stop Enter and Space send no stop; pointer sends three axis stops"
+    ]
+  },
+  "scan_probes": {
+    "result": "1 PASS / 2 FAIL",
+    "positive": "unmodified raw click",
+    "negative": [
+      "@click.self",
+      "@pointerdown.prevent"
+    ]
+  },
+  "harness_corrections": "Exploratory runs fixed a checkbox-vs-number selector, .inputAction glyph selector, file response entries shape and pointer clicking of an aria-disabled choice (Playwright click waits for enabled). Only the verified final runs are retained; product was not changed.",
+  "reproduction": "Archive e0cd65ae to own copy; install/copy node_modules. Place browser.spec.ts under e2e/r213.codex.spec.ts, *.test.ts under src/r213.*.test.ts, config in UI root. In archive e2e/ctl.ts replace localhost:4174 with 127.0.0.1:4188. Build there; start MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs. Run npx playwright test -c <config> r213.codex.spec.ts and npx vitest run src/r213.*.test.ts. Never use live ports.",
+  "artifacts": {
+    "browser.spec.ts": "bb9cfeba1128c1dc4e28d98fde4ef0bcd251812f5036b80e43277deaff742ace",
+    "browser.txt": "9aff9ac4f1292f3af4b74766bab231c43b9a5075a57909191e947fe339d9f5ca",
+    "disarmed.txt": "9adf9aa1bc71fdefb02638532b83b7ffe3a7034aa254d6afef8e39ee6fb51444",
+    "gamepad.test.ts": "81ffbf4a463d9b907c42581d7027388b41bba9ef69fb5d735cab1ac1b122267b",
+    "scan.test.ts": "0ce31cee1b500e541fe7a7f74bfe709c19ef8daac66083a57907ff111fc1a812",
+    "scan.txt": "a8947f871c361cfa5074489f14a502f472e7bcdae03f1bf8c6872d768ce22eb9",
+    "unit.txt": "7cade7a3500ac1220a0cf4dcfcc7c42fa3c47af89d378eaa3767e0b5fe1f62b0",
+    "backend.txt": "f15fb58b88d20d08f89539924ee18efa6a7dfd8ba9648a3f0dd94e7535d2d2d2",
+    "playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "numeric-draft.png": "18ace7302611c2bd670896c1c334b7c99fd076a65e87b0b3ccf5e3e748eafd97"
+  }
+}

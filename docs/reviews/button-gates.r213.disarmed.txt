@@ -1,0 +1,16 @@
+
+Running 7 tests using 1 worker
+
+(node:3884033) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:3884033) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 e2e/disarmed.spec.ts:110:1 › disarmed at idle: every tab and sub-tab opens, nothing that acts is enabled, every closed control says why (3.5s)
+  ✓  2 e2e/disarmed.spec.ts:154:1 › disarmed and unhomed, and in E-Stop: still navigable, still nothing that acts (1.6s)
+  ✓  3 e2e/disarmed.spec.ts:169:1 › disarmed: the preselections take no command — step, speed, RPM, the MDI line (1.4s)
+  ✓  4 e2e/disarmed.spec.ts:199:1 › disarmed while a program runs: Pause, Abort and the jog Stop are reachable and act (1.5s)
+  ✓  5 e2e/disarmed.spec.ts:223:1 › disarmed at idle: the spindle stop is reachable (BG-18 — inside the strip's fieldset before package C) (1.2s)
+  ✓  6 e2e/disarmed.spec.ts:234:1 › disarmed: the program browser browses folders; a file row is closed with its reason (BG-02) (1.6s)
+  ✓  7 e2e/disarmed.spec.ts:263:1 › a dialog opened armed: after the disarm its action is closed with its reason, Cancel still closes (1.4s)
+
+  7 passed (12.9s)
