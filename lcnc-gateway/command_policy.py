@@ -183,7 +183,9 @@ _R_ENABLED = (lambda s: s.is_enabled, "Machine off — press Power on")
 # state is unknown rather than "busy".
 STATE_UNKNOWN = "Machine state unknown — wait for status"
 _R_INTERP_KNOWN = (lambda s: s.interp_known, STATE_UNKNOWN)
-_R_IDLE = (lambda s: s.is_idle, "Machine busy — wait until it is idle")
+#: A busy interpreter — the idle rule's reason, also the start guard's (BG-32).
+MACHINE_BUSY = "Machine busy — wait until it is idle"
+_R_IDLE = (lambda s: s.is_idle, MACHINE_BUSY)
 _R_HOMED = (lambda s: s.is_homed, "Not homed — press Home All")
 _R_EOFFSET_KNOWN = (lambda s: s.eoffset_enabled is not None,
                     "Surface compensation state unknown — HAL reader stale")

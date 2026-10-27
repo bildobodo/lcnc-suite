@@ -95,7 +95,7 @@ class TestStartClaimBookkeeping(base._Handlers):
              patch.object(gateway,'_begin_run_basis',begin), \
              patch.object(gateway,'_ts_program_writes',lambda:set()), \
              patch.object(gateway,'_ts_mark_assumed',lambda _:None):
-            with self.assertRaises(gateway._StartRefused):
+            with self.assertRaises(gateway._WriteRefused):
                 base._run(gateway._cmd_blocking(auto,linuxcnc.AUTO_RUN,0,
                                                wait=None,admit=lambda:'refused by probe'))
         self.assertEqual(writes,[])

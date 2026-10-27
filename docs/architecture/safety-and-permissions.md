@@ -343,7 +343,7 @@ joint jog before homing in E.
   unhomed switch on any other kins type, command.c v2.9.4:581). The command
   gate is `modeManual`; the handler judges the TARGET's class (`modeManual` /
   `modeCoord`) again on a current controller read before the switch (see
-  "On the current read" below). The checked option sends nothing
+  "At the write" below). The checked option sends nothing
   (ChoiceGroup).
 - *One action map* (BG-10): `actionAdmission.ts` — the button, the shortcut
   and the gamepad admit Start (`run` + program context), Home All (`zero`)
@@ -366,27 +366,43 @@ joint jog before homing in E.
   invalid value traced). `spindleManual` = base + idle + (homed OR the switch
   in MANUAL); Fwd / Rev / ± use it. Off by default: nothing changes on a
   machine that does not set it. The exception FINDS MANUAL, never makes it:
-  the handlers' own switch to MANUAL is admitted on the current read.
-- *On the current read* (Codex R216, BG-04 rest / BG-31): the dispatcher
-  judges a command on the PUBLISHED snapshot, up to a poll old. The handlers
-  that switch the task mode themselves — the mode choice, the manual spindle
-  (Fwd / Rev / ±), and, the same class found beside BG-31, Home / Unhome and
-  Cycle Start / Step from idle (their switch to AUTO; the start guard's own
-  current read judged only the kinematics) — judge their class again on a
-  CURRENT controller read before the switch,
-  and the manual ones once more after the awaited switch, before their
-  command (`_controller_gate_refusal`, `_switch_to_manual`): a switch to
-  MANUAL from an MDI that started since the snapshot would abort it
+  the handlers' own switch to MANUAL is admitted at its write.
+- *At the write* (Codex R216 / R217, BG-04 rest / BG-31 / BG-32): the
+  dispatcher judges a command on the PUBLISHED snapshot, up to a poll old,
+  and a write then waits in the executor queue. The handlers that switch the
+  task mode themselves — the mode choice, the manual spindle (Fwd / Rev /
+  ±), and, the same class found beside BG-31, Home / Unhome and Cycle Start
+  / Step from idle — judge their class on a CURRENT controller read before
+  the queue (the early reason) AND inside EVERY write's own thread, after
+  every wait of their own (`_cmd_blocking`'s `admit`, a STAT poll in the
+  thread): the switch and each command after it, for Unhome its teleop step
+  and the unhome (`set_mode(…, admit=)`, `_manual_command`, `_gate_admit`).
+  A start's admit is the kinematics (BG-09) AND the start's class
+  (`_start_admit`), at the switch to AUTO and at the start itself. A switch
+  to MANUAL from an MDI that started since the snapshot would abort it
   (emcTaskSetMode → emcTaskAbort), and a homing or a move since then must
-  meet no switch. The other handlers with their own switch already refuse
-  a running AUTO / MDI on a fresh poll (`reject_if_auto_running`; the jog
-  stops skip the switch, `_jog_stop_would_abort_mdi`). The display may still
-  lag a poll (a moment too strict or too open); the command never acts on it. Three controller reads, three
-  strictnesses:
+  meet no switch. The start guard's skip-flag clear is part of the start
+  (BG-32): a running interpreter by a current read refuses before its switch
+  to MDI, and its switch and its `#3116=0` MDI line are admitted at their
+  writes (`_interp_idle_refusal`, also on `_apply_probe_vars`' MDI half); a
+  refusal leaves the flag unknown. One gap named: the var-file half of the
+  clear precedes the switch — a start inside that wait leaves the file
+  written and the flag unknown (the file is read only at LinuxCNC's start).
+  The resume from a real pause is no start from idle and takes none of this.
+  **Boundary:** the other handlers with their own switch refuse a running
+  AUTO / MDI on a fresh poll before the queue (`reject_if_auto_running`; the
+  jog stops skip the switch, `_jog_stop_would_abort_mdi`); an MDI that
+  starts inside the executor window between that poll and their write is
+  not excluded there — outside package D (proposed for E: an idle admit on
+  every `set_mode` write, beside the native jog-stop check). The display may
+  still lag a poll (a moment too strict or too open); the commands above
+  never act on it. A write refused at its admit raises `_WriteRefused` (a
+  PermissionError: the dispatcher's reply says why). Three controller reads,
+  three strictnesses:
 
   | Helper | Used by | A field the poll lacks | Why |
   |---|---|---|---|
-  | `_controller_gate_refusal` | `set_mode`, the manual spindle, Home / Unhome, Cycle Start / Step from idle | unknown → the gate refuses; never the snapshot's | the gateway's own switch must not act on an old favourable value (R216) |
+  | `_controller_gate_refusal` | `set_mode`, the manual spindle, Home / Unhome, Cycle Start / Step from idle — before the queue and at each write | unknown → the gate refuses; never the snapshot's | the gateway's own switch must not act on an old favourable value (R216 / R217) |
   | `_controller_capture_state` | G30 Capture's take-over | interp: the snapshot's; frame and motion: unknown | agreed R25–R27 (OP-I02): the frame and the standstill decide what the numbers mean |
   | `_controller_touchoff_state` | touch-off target | the snapshot's value | refreshes the fixture and frame where the controller offers them (R-02); a non-switchable machine has no frame pin |
 

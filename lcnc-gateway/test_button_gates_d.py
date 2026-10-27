@@ -7,6 +7,7 @@ reachable (BG-04); the recovery order is a directed rule with the trip as an
 input (BG-11); the confirmed G30 read is its own class, closed where the synch
 is refused (BG-13); the manual spindle runs before homing only on a machine
 that declares it, in MANUAL (Q1)."""
+import asyncio
 import os
 import re
 import tempfile
@@ -232,6 +233,33 @@ class _Writer(_Handlers):
 
     def sent(self):
         return [(n, a) for n, a, _k in self.cmd.calls if n in ("mode", "spindle")]
+
+    def at_the_write(self, msg, change, at=1):
+        """`msg`, the controller changed once its `at`-th write is queued for
+        the executor and before that write's thread runs it (Codex R217's
+        boundary): every check before the queue passed."""
+        async def go():
+            loop = asyncio.get_running_loop()
+            original = loop.run_in_executor
+            queued = []
+
+            def enqueue(executor, fn, *args):
+                queued.append(fn)
+                if len(queued) != at:
+                    return original(executor, fn, *args)
+
+                def changed_then_run(*a):
+                    change()
+                    return fn(*a)
+                return original(executor, changed_then_run, *args)
+            with mock.patch.object(loop, "run_in_executor", enqueue):
+                r = await gateway.handle_command(msg, True, self.writer.conn_key)
+            self.assertGreaterEqual(len(queued), at, "the write was queued")
+            return r
+        gateway._shared_status = _payload(inpos=True, current_vel=0.0)
+        gateway._cmd_lock = None
+        return asyncio.run(go())
+
 
 
 class TestLoadWithoutAuto(_Writer):
@@ -536,6 +564,147 @@ class TestStartOnTheCurrentRead(_Writer):
                 r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI})
                 self.assertTrue(r["ok"], r)
                 self.assertEqual(self.issued(), [("mode", linuxcnc.MODE_AUTO), ("auto", auto)])
+
+
+class TestAtTheWrite(_Writer):
+    """Codex R217: the admission holds AT THE WRITE, inside its thread
+    (_cmd_blocking's `admit`), after every wait of the handler's own — the
+    executor queue, the switch, the teleop step. Here the controller changes
+    once the first write is queued for the executor and before its thread
+    runs it: every check the handler made before the queue passed."""
+
+    RUNNING_MDI = {"task_mode": linuxcnc.MODE_MDI, "interp_state": linuxcnc.INTERP_READING}
+
+    def setUp(self):
+        super().setUp()
+        self.takes_the_mode()
+        self.cmd.wait_complete = lambda *a: linuxcnc.RCS_DONE
+
+    def names(self):
+        return [n for n in self.cmd.names() if n != "wait_complete"]
+
+    def running(self):
+        for k, v in self.RUNNING_MDI.items():
+            setattr(gateway.STAT, k, v)
+
+    def test_the_mode_choice(self):
+        def homing():
+            gateway.STAT.joint = tuple({"homing": 1} for _ in range(16))
+        r = self.at_the_write({"cmd": "set_mode", "mode": linuxcnc.MODE_MDI}, homing)
+        self.assertEqual(r, {"ok": False, "error": "Homing in progress — wait until it ends"})
+        self.assertEqual(self.names(), [])
+
+    def test_the_spindle_already_in_manual(self):
+        r = self.at_the_write({"cmd": "spindle_forward", "speed": 1000}, self.running)
+        self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+        self.assertEqual(self.names(), [])
+
+    def test_home_all_already_in_manual(self):
+        r = self.at_the_write({"cmd": "home_all"}, self.running)
+        self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+        self.assertEqual(self.names(), [])
+
+    def test_unhome_after_its_teleop_step(self):
+        def teleop(*args):
+            self.cmd.calls.append(("teleop_enable", args, {}))
+            self.running()
+            return 0
+        self.cmd.teleop_enable = teleop
+        for msg in ({"cmd": "unhome_all"}, {"cmd": "unhome", "joint": 0}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                self.controller()
+                r = self.send(msg, controller={})
+                self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+                self.assertEqual(self.names(), ["teleop_enable"])
+
+    def test_an_unchanged_controller_passes_the_same_queue(self):
+        r = self.at_the_write({"cmd": "spindle_forward", "speed": 1000}, lambda: None)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.names(), ["spindle"])
+
+    def test_cycle_start_and_step(self):
+        busy = {"cycle_start": "Machine busy — wait until it is idle",
+                "auto_step": "Program running — pause first to step"}
+        for cmd in ("cycle_start", "auto_step"):
+            for mode in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO):
+                with self.subTest(cmd=cmd, mode=mode):
+                    # From MANUAL the first write is the switch to AUTO; in
+                    # AUTO already, the start itself.
+                    self.cmd.calls.clear()
+                    self.controller(task_mode=mode)
+                    r = self.at_the_write({"cmd": cmd}, self.running)
+                    self.assertEqual(r, {"ok": False, "error": busy[cmd]})
+                    self.assertEqual(self.names(), [])
+
+    def test_a_start_unchanged_through_the_queue(self):
+        for cmd, auto in (("cycle_start", linuxcnc.AUTO_RUN), ("auto_step", linuxcnc.AUTO_STEP)):
+            with self.subTest(cmd=cmd):
+                self.cmd.calls.clear()
+                self.controller()
+                r = self.at_the_write({"cmd": cmd}, lambda: None)
+                self.assertTrue(r["ok"], r)
+                self.assertEqual([(n, a[0]) for n, a, _k in self.cmd.calls if n in ("mode", "auto")],
+                                 [("mode", linuxcnc.MODE_AUTO), ("auto", auto)])
+
+
+class TestTheFlagClearIsPartOfTheStart(_Writer):
+    """BG-32 (Codex R217): with the skip flag unknown, the start guard clears
+    #3116 first — a switch to MDI and an MDI line. A program or MDI already
+    running by a current read meets neither; one starting during the clear
+    meets no further write; the flag stays unknown for a later start."""
+
+    def setUp(self):
+        super().setUp()
+        self.takes_the_mode()
+        self.cmd.wait_complete = lambda *a: linuxcnc.RCS_DONE
+        p = mock.patch.object(gateway, "_skip_flag_unknown", True)
+        p.start()
+        self.addCleanup(p.stop)
+        p = mock.patch.object(gateway, "_var_file_thread", mock.AsyncMock(return_value=None))
+        p.start()
+        self.addCleanup(p.stop)
+        gateway.STAT.ini_filename = None   # the var-file half is not this test's
+
+    def test_running_by_the_current_read(self):
+        for cmd in ("cycle_start", "auto_step", "mdi"):
+            with self.subTest(cmd=cmd):
+                self.cmd.calls.clear()
+                msg = {"cmd": cmd, "text": "G0 X1"} if cmd == "mdi" else {"cmd": cmd}
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_AUTO,
+                                               "interp_state": linuxcnc.INTERP_READING})
+                self.assertFalse(r["ok"], r)
+                self.assertEqual([n for n in self.cmd.names() if n in ("mode", "mdi", "auto")], [])
+                self.assertTrue(gateway._skip_flag_unknown, "the flag stays unknown")
+
+    def issued(self):
+        return [n for n in self.cmd.names() if n in ("mode", "mdi", "auto")]
+
+    def test_a_start_while_the_switch_is_queued(self):
+        def running():
+            gateway.STAT.task_mode, gateway.STAT.interp_state = linuxcnc.MODE_AUTO, linuxcnc.INTERP_READING
+        self.controller()
+        r = self.at_the_write({"cmd": "cycle_start"}, running, at=1)   # the switch to MDI
+        self.assertEqual(r, {"ok": False, "error": "Machine busy — wait until it is idle"})
+        self.assertEqual(self.issued(), [])
+        self.assertTrue(gateway._skip_flag_unknown)
+
+    def test_a_start_while_the_clear_is_queued(self):
+        def running():
+            gateway.STAT.interp_state = linuxcnc.INTERP_READING
+        self.controller()
+        r = self.at_the_write({"cmd": "cycle_start"}, running, at=2)   # the #3116=0 MDI line
+        self.assertEqual(r, {"ok": False, "error": "Skip flag #3116 not cleared — nothing started"})
+        self.assertEqual(self.issued(), ["mode"])
+        self.assertTrue(gateway._skip_flag_unknown)
+
+    def test_an_idle_controller_clears_and_starts(self):
+        r = self.send({"cmd": "cycle_start"})
+        self.assertTrue(r["ok"], r)
+        names = [n for n in self.cmd.names() if n in ("mode", "mdi", "auto")]
+        self.assertEqual(names, ["mode", "mdi", "mode", "auto"])
+        self.assertIn("#3116=0", self.cmd.args_of("mdi")[0])
+        self.assertFalse(gateway._skip_flag_unknown)
 
 
 class _Ini:

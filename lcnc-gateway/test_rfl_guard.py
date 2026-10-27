@@ -64,13 +64,13 @@ class _SeqHarness(unittest.IsolatedAsyncioTestCase):
             test.mdi_calls.append(text)
             return (True, "")
 
-        async def _fake_set_mode(mode):
+        async def _fake_set_mode(mode, **_kw):
             return None
 
         async def _fake_cmd_blocking(fn, *args, wait=None, admit=None):
             # the real one's last check before the write (button gates BG-09)
             if admit is not None and admit():
-                raise gateway._StartRefused(admit())
+                raise gateway._WriteRefused(admit())
             if args and args[0] == linuxcnc.AUTO_RUN:
                 test.auto_run_calls.append(args)
             return 0

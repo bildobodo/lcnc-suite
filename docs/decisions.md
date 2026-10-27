@@ -9571,3 +9571,16 @@ findings). The display may still lag a poll —
 accepted by Codex for the dimming, never for the command. The interpreter, homed and
 homing derivations became one pure rule for the snapshot and the current read.
 
+**Package D, re-review R217 (2026-10-27).** Codex: the check sat BEFORE the executor
+queue — the write itself still waited in it, as did the commands after a switch and
+Unhome after its teleop step; and the start guard's skip-flag clear switched to MDI
+before any check (BG-32). Now every write of those paths carries the admission INSIDE
+its thread (`_cmd_blocking`'s `admit`, already the program start's last check since
+BG-09): `set_mode(…, admit=)`, `_manual_command` (the switch and each command),
+`_start_admit` (the kinematics AND the start's class, at the switch to AUTO and the
+start). The flag clear refuses a running interpreter before its switch and admits its
+switch and MDI line at their writes; a refusal keeps the flag unknown. The other
+handlers' switches keep only their pre-queue poll — a named boundary; an idle admit on
+every `set_mode` write is proposed for package E beside the native jog-stop check
+(raising out of a stop path is a stop-semantics change of its own).
+

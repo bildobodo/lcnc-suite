@@ -105,7 +105,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MACHINE_BUSY, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -3297,9 +3297,10 @@ def _run_for_pin(file: Optional[str]) -> Optional[Dict[str, Any]]:
     return rb
 
 
-class _StartRefused(PermissionError):
-    """A program start refused at its last moment (button gates BG-09 /
-    BG-12): the reply says why, nothing was written."""
+class _WriteRefused(PermissionError):
+    """A write refused at its last moment by its `admit` (button gates BG-09 /
+    BG-12 for a program start, R217 for the gateway's own mode switches and
+    the manual commands): the reply says why, nothing was written."""
 
 
 async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None,
@@ -3325,11 +3326,13 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     loop breathe, and a cancel lands after the current slice. The command
     WRITE `cmd_fn(*args)` is never interrupted.
 
-    `admit`: a program start's last check (button gates BG-09 / BG-12, Codex
-    R206/R207) — run INSIDE the write's own thread, right before
-    `cmd_fn(*args)`: after every awaited preparation here (the run basis, the
-    start claim) and after the executor queue the write waited in. A refusal
-    raises _StartRefused with nothing written.
+    `admit`: the write's last check — a program start's (button gates BG-09 /
+    BG-12, Codex R206/R207), a mode switch's and a manual command's (R217) —
+    run INSIDE the write's own thread, right before `cmd_fn(*args)`: after
+    every awaited preparation here (the run basis, the start claim) and after
+    the executor queue the write waited in. It reads the controller itself
+    (a STAT poll in the thread), never a value from before the queue. A
+    refusal raises _WriteRefused with nothing written.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
@@ -3365,7 +3368,7 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
                     claim.state = "unsent"   # nothing reached the controller
                 if run_basis is not None:
                     run_basis["state"] = "unsent"
-                raise _StartRefused(refused)
+                raise _WriteRefused(refused)
         try:
             cmd_fn(*args)
         except BaseException:
@@ -3414,8 +3417,14 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
 _MODE_NAMES = {1: "MANUAL", 2: "AUTO", 3: "MDI"}
 
 
-async def set_mode(mode: int, force: bool = False):
+async def set_mode(mode: int, force: bool = False,
+                   admit: Optional[Callable[[], Optional[str]]] = None):
     """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
+
+    `admit` (Codex R217): the switch's last check, inside its write thread
+    (_cmd_blocking) — the caller's class on a read taken there. A refusal
+    raises _WriteRefused, nothing switched. No switch needed, nothing to
+    admit.
 
     `force` sends the switch even when task is already in `mode`: for MDI
     and AUTO, emcTaskSetMode then runs emcTaskAbort → Interp::reset — the
@@ -3432,7 +3441,7 @@ async def set_mode(mode: int, force: bool = False):
         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
         return
-    rc = await _cmd_blocking(CMD.mode, mode)
+    rc = await _cmd_blocking(CMD.mode, mode, admit=admit)
     if _cmd_rc_failed(rc):
         _trace.emit("task.mode_switch_refused", level="warn", mode=mode, rc=rc)
         raise ValueError(f"LinuxCNC refused the mode switch to {_MODE_NAMES.get(mode, mode)} (rc={rc})")
@@ -3966,9 +3975,17 @@ async def _start_guard(armed: bool, clears_flag: bool = False,
     if why:
         return {"ok": False, "error": why}
     if _skip_flag_unknown and not clears_flag:
+        # The clear is part of the start (button gates BG-32, Codex R217): a
+        # program or MDI running by a current read — another client's, since
+        # the snapshot — meets neither the switch to MDI nor the #3116 write;
+        # the flag stays unknown for a later start. Checked here, at the
+        # switch's write, and at each MDI write of the clear.
+        why = _interp_idle_refusal()
+        if why:
+            return {"ok": False, "error": why}
         # A refused switch (a jog held) says so itself — the MDI below would
         # swallow it into "not cleared".
-        await set_mode(linuxcnc.MODE_MDI)
+        await set_mode(linuxcnc.MODE_MDI, admit=_interp_idle_refusal)
         _file_ok, mdi_ok = await _apply_probe_vars({"3116": 0}, armed)
         if not mdi_ok:
             _trace.emit("rfl.flag_clear_failed", level="warn", by="start")
@@ -4308,7 +4325,7 @@ async def _rfl_sequence(start_line: int, pre_tool: int, safe_z: bool,
             try:
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, start_line, wait=None,
                                     admit=lambda: _program_start_refusal(True))
-            except _StartRefused as refused:
+            except _WriteRefused as refused:
                 _rfl_phase("failed", False, str(refused))
                 return
         # Consumed by the skim (o<450> self-clears #3116); _skip_flag_unknown
@@ -4561,11 +4578,13 @@ async def _apply_probe_vars(vars_to_set: Dict[str, Any], armed: bool):
                     booked[key] = val
             if current:
                 chunks.append((current, booked))
-            await set_mode(linuxcnc.MODE_MDI)
+            # Not running by a current read at each write, as by the poll
+            # above (Codex R217 — the executor queue lies between them).
+            await set_mode(linuxcnc.MODE_MDI, admit=_interp_idle_refusal)
             mdi_ok = True
             for chunk, booked in chunks:
                 inflight = booked
-                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5)
+                ret = await _cmd_blocking(CMD.mdi, chunk, wait=5, admit=_interp_idle_refusal)
                 inflight = None
                 if _cmd_rc_failed(ret):   # success is RCS_DONE (1), not 0
                     mdi_ok = False
@@ -4769,11 +4788,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # kinematics with NO_FORCE_HOMING. Judged on the controller's
             # current read (Codex R216): the dispatcher's snapshot is a poll
             # old, and a homing or a move since then must meet no switch.
-            why = _controller_gate_refusal(
-                "modeManual" if mode == linuxcnc.MODE_MANUAL else "modeCoord", armed)
+            admit = _gate_admit("modeManual" if mode == linuxcnc.MODE_MANUAL else "modeCoord", armed)
+            why = admit()   # early: the reason without a queued write
             if why:
                 return {"ok": False, "error": why}
-            await set_mode(mode)
+            await set_mode(mode, admit=admit)   # and at the write (R217)
             return {"ok": True}
 
         if cmd == "shutdown":
@@ -5189,12 +5208,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 refused = await _start_guard(armed, program=True)
                 if refused:
                     return refused
-                why = _controller_gate_refusal("step", armed)   # as Cycle Start
+                admit = _start_admit("step", armed)   # as Cycle Start
+                why = admit()
                 if why:
                     return {"ok": False, "error": why}
-                await set_mode(linuxcnc.MODE_AUTO)
+                await set_mode(linuxcnc.MODE_AUTO, admit=admit)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None,
-                                    admit=lambda: _program_start_refusal(armed))
+                                    admit=admit)
             return {"ok": True}
 
         if cmd == "auto_run":
@@ -5413,39 +5433,25 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "home_all":
             require_armed(armed)
-            why = await _switch_to_manual("zero", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.home, -1, wait=None)  # -1 homes all axes
-            return {"ok": True}
+            return await _manual_command("zero", armed, (CMD.home, (-1,), None))  # -1 homes all axes
 
         if cmd == "unhome_all":
             require_armed(armed)
-            why = await _switch_to_manual("zero", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
-            await _cmd_blocking(CMD.unhome, -1, wait=None)  # -1 unhomes all axes
-            return {"ok": True}
+            return await _manual_command("zero", armed,
+                                         (CMD.teleop_enable, (0,), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
+                                         (CMD.unhome, (-1,), None))  # -1 unhomes all axes
 
         if cmd == "home":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
-            why = await _switch_to_manual("zero", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.home, joint, wait=None)
-            return {"ok": True}
+            return await _manual_command("zero", armed, (CMD.home, (joint,), None))
 
         if cmd == "unhome":
             require_armed(armed)
             joint = finite_int(msg.get("joint", -1))
-            why = await _switch_to_manual("zero", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.teleop_enable, 0)  # unhome requires joint mode
-            await _cmd_blocking(CMD.unhome, joint, wait=None)
-            return {"ok": True}
+            return await _manual_command("zero", armed,
+                                         (CMD.teleop_enable, (0,), _CMD_WAIT_TIMEOUT),  # unhome requires joint mode
+                                         (CMD.unhome, (joint,), None))
 
         if cmd == "cycle_start":
             require_armed(armed)
@@ -5453,13 +5459,16 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if refused:
                 return refused
             # The switch to AUTO aborts an MDI started since the snapshot
-            # (Codex R216's rule): the class on a current read first.
-            why = _controller_gate_refusal("run", armed)
+            # (Codex R216's rule): the class on a current read first, then at
+            # the switch's write and at the start's, each with the kinematics
+            # (Codex R217).
+            admit = _start_admit("run", armed)
+            why = admit()
             if why:
                 return {"ok": False, "error": why}
-            await set_mode(linuxcnc.MODE_AUTO)
+            await set_mode(linuxcnc.MODE_AUTO, admit=admit)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None,  # Start from beginning
-                                admit=lambda: _program_start_refusal(armed))
+                                admit=admit)
             return {"ok": True}
 
         if cmd == "cycle_pause":
@@ -5493,20 +5502,12 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
         if cmd == "spindle_forward":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            why = await _switch_to_manual("spindleManual", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_FORWARD, speed, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_FORWARD, speed,), None))
 
         if cmd == "spindle_reverse":
             require_armed(armed)
             speed = finite_float(msg.get("speed", 0))
-            why = await _switch_to_manual("spindleManual", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_REVERSE, speed, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_REVERSE, speed,), None))
 
         if cmd == "spindle_stop":
             # The spindle stop at idle (button gates BG-18): no arm, no
@@ -5522,19 +5523,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "spindle_increase":
             require_armed(armed)
-            why = await _switch_to_manual("spindleManual", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_INCREASE, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_INCREASE,), None))
 
         if cmd == "spindle_decrease":
             require_armed(armed)
-            why = await _switch_to_manual("spindleManual", armed)
-            if why:
-                return {"ok": False, "error": why}
-            await _cmd_blocking(CMD.spindle, linuxcnc.SPINDLE_DECREASE, wait=None)
-            return {"ok": True}
+            return await _manual_command("spindleManual", armed, (CMD.spindle, (linuxcnc.SPINDLE_DECREASE,), None))
 
         if cmd == "flood_on":
             require_armed(armed)
@@ -6997,7 +6990,9 @@ def _controller_gate_refusal(gate: str, armed: bool) -> Optional[str]:
     command on the published snapshot, up to a poll old: a homing, a move or
     an MDI started since then must not meet the gateway's own mode switch —
     the mode choice, the manual spindle, Home / Unhome, and Cycle Start /
-    Step from idle before their switch to AUTO.
+    Step from idle before their switch to AUTO. Called before the queue (the
+    early reason) and as the write's `admit` inside its thread (Codex R217:
+    _gate_admit, _start_admit).
 
     What the controller says about the machine comes from this poll — the
     interpreter, the task mode, the motion, homing, homed — and a field it
@@ -7036,19 +7031,56 @@ def _controller_gate_refusal(gate: str, armed: bool) -> Optional[str]:
     return why
 
 
-async def _switch_to_manual(gate: str, armed: bool) -> Optional[str]:
-    """The switch to MANUAL in front of a manual command — the spindle's Fwd /
-    Rev / ± (button gates BG-31, Codex R216), Home and Unhome — admitted by
-    the command's class on the controller's current read BEFORE the switch
+def _gate_admit(gate: str, armed: bool) -> Callable[[], Optional[str]]:
+    """`gate` on a current controller read, as a write's `admit` (Codex
+    R217): called before the queue for the early reason and again INSIDE the
+    write's thread, where it polls STAT itself."""
+    return lambda: _controller_gate_refusal(gate, armed)
+
+
+def _start_admit(gate: str, armed: bool) -> Callable[[], Optional[str]]:
+    """A program start's admission at each of its writes (Codex R217): the
+    kinematics on a current read (_program_start_refusal, BG-09) AND the
+    start's class — the interpreter idle among it — on a current read."""
+    return lambda: _program_start_refusal(armed) or _controller_gate_refusal(gate, armed)
+
+
+def _interp_idle_refusal() -> Optional[str]:
+    """The interpreter KNOWN idle on a read taken now — None, or why not
+    (button gates BG-32): the start guard's flag clear and the MDI half of
+    _apply_probe_vars, before the queue and inside each write's thread."""
+    try:
+        STAT.poll()
+    except Exception as e:  # noqa: BLE001 - no poll, no write
+        _trace.emit_exc("policy.idle_poll_failed", e)
+        return _STATUS_NOT_READ
+    t = _status_runtime_mod.interp_terms(safe_get("interp_state", None), safe_get("paused", None))
+    if not t["interp_known"]:
+        return STATE_UNKNOWN
+    return None if t["is_idle"] else MACHINE_BUSY
+
+
+async def _manual_command(gate: str, armed: bool, *writes) -> Dict[str, Any]:
+    """A manual command behind its own switch to MANUAL — the spindle's Fwd /
+    Rev / ± (button gates BG-31), Home and Unhome — each write `(cmd_fn,
+    args, wait)`. The command's class on a current read first (the early
+    reason, nothing queued), then INSIDE every write's thread: the switch
     (it would abort an MDI started since the snapshot: emcTaskSetMode →
     emcTaskAbort; and the unhomed spindle exception, Q1, must FIND MANUAL,
-    never make it) and again after the awaited switch, before the command.
-    The refusal, or None. Caller holds `_cmd_lock`."""
-    why = _controller_gate_refusal(gate, armed)
+    never make it) and each write after it — for Unhome the teleop step and
+    the unhome (Codex R216 / R217). A refusal at a write leaves it and the
+    rest unsent; the reply says why. Caller holds `_cmd_lock`."""
+    admit = _gate_admit(gate, armed)
+    why = admit()
     if why:
-        return why
-    await set_mode(linuxcnc.MODE_MANUAL)
-    return _controller_gate_refusal(gate, armed)
+        return {"ok": False, "error": why}
+    try:
+        await set_mode(linuxcnc.MODE_MANUAL, admit=admit)
+        for cmd_fn, args, wait in writes:
+            await _cmd_blocking(cmd_fn, *args, wait=wait, admit=admit)
+    except _WriteRefused as refused:
+        return {"ok": False, "error": str(refused)}
+    return {"ok": True}
 
 
 def _live_policy_state(armed: bool):

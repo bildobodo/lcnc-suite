@@ -472,7 +472,9 @@ class TestStartChecksTheControllerNow(_Handlers):
         gateway._reader_get = {"kins_type": current_kins, "twp_active": False,
                                "twp_defined": False}.get
 
-        async def mode(value):
+        async def mode(value, force=False, admit=None):
+            if admit is not None and admit():   # the real one's write admission (R217)
+                raise gateway._WriteRefused(admit())
             self.cmd.calls.append(("mode", (value,), {}))
             gateway.STAT.task_mode = value
         old = dict(kins_type=0.0, twp_active=False, g5x_index=1, reader_fresh=True)

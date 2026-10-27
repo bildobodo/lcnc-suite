@@ -547,7 +547,7 @@ class TestHandlerExecution(unittest.TestCase):
         cmd = self._rcs()
         gateway._skip_flag_unknown = True
 
-        async def _refuse(mode):
+        async def _refuse(mode, **_kw):
             raise RuntimeError("Task refused the mode switch — release the jog")
         import unittest.mock
         with unittest.mock.patch.object(gateway, "set_mode", _refuse):
