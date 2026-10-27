@@ -1,4 +1,4 @@
-..F.FF.F.F...                                        [100%]
+..F.FF.F.F.....                                  [100%]
 =================================== FAILURES ===================================
 _ TestModeOnTheCurrentRead.test_an_input_the_current_read_lacks_is_unknown (attr='joint') _
 
@@ -21,7 +21,7 @@ E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Homing s
 E               - {'ok': True}
 E               + {'error': 'Homing state unknown — wait for status', 'ok': False}
 
-test_button_gates_d.py:405: AssertionError
+test_button_gates_d.py:397: AssertionError
 _ TestModeOnTheCurrentRead.test_an_input_the_current_read_lacks_is_unknown (attr='inpos') _
 
 self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_an_input_the_current_read_lacks_is_unknown>
@@ -43,7 +43,7 @@ E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Motion s
 E               - {'ok': True}
 E               + {'error': 'Motion state unknown — wait for status', 'ok': False}
 
-test_button_gates_d.py:405: AssertionError
+test_button_gates_d.py:397: AssertionError
 _ TestModeOnTheCurrentRead.test_an_input_the_current_read_lacks_is_unknown (attr='homed') _
 
 self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_an_input_the_current_read_lacks_is_unknown>
@@ -65,7 +65,7 @@ E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Not home
 E               - {'ok': True}
 E               + {'error': 'Not homed — MDI and Auto need Home All', 'ok': False}
 
-test_button_gates_d.py:405: AssertionError
+test_button_gates_d.py:397: AssertionError
 ______________ TestModeOnTheCurrentRead.test_homing_now (mode=1) _______________
 
 self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_homing_now>
@@ -77,9 +77,9 @@ self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_homing_now>
                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                                  "Homing in progress — wait until it ends")
 
-test_button_gates_d.py:383: 
+test_button_gates_d.py:375: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:377: in refused
+test_button_gates_d.py:369: in refused
     self.assertEqual(self.sent(), [], controller)
 E   AssertionError: Lists differ: [('mode', (1,))] != []
 E   
@@ -100,7 +100,7 @@ self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_homing_now>
                                  "Homing in progress — wait until it ends")
 E               AssertionError: {'ok': True} != 'Homing in progress — wait until it ends'
 
-test_button_gates_d.py:383: AssertionError
+test_button_gates_d.py:375: AssertionError
 ______________ TestModeOnTheCurrentRead.test_homing_now (mode=2) _______________
 
 self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_homing_now>
@@ -112,9 +112,9 @@ self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_homing_now>
                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                                  "Homing in progress — wait until it ends")
 
-test_button_gates_d.py:383: 
+test_button_gates_d.py:375: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:377: in refused
+test_button_gates_d.py:369: in refused
     self.assertEqual(self.sent(), [], controller)
 E   AssertionError: Lists differ: [('mode', (2,))] != []
 E   
@@ -133,9 +133,9 @@ self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_moving_now>
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
                          "Machine moving — wait until it stands")
 
-test_button_gates_d.py:387: 
+test_button_gates_d.py:379: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:377: in refused
+test_button_gates_d.py:369: in refused
     self.assertEqual(self.sent(), [], controller)
 E   AssertionError: Lists differ: [('mode', (3,))] != []
 E   
@@ -153,9 +153,9 @@ self = <test_button_gates_d.TestModeOnTheCurrentRead testMethod=test_unhomed_now
 >       self.assertEqual(self.refused({"homed": False}), "Not homed — MDI and Auto need Home All")
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-test_button_gates_d.py:391: 
+test_button_gates_d.py:383: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:377: in refused
+test_button_gates_d.py:369: in refused
     self.assertEqual(self.sent(), [], controller)
 E   AssertionError: Lists differ: [('mode', (3,))] != []
 E   
@@ -176,9 +176,9 @@ self = <test_button_gates_d.TestManualSpindleOnTheCurrentRead testMethod=test_a_
 >       for cmd, sent in self.each({"task_mode": linuxcnc.MODE_MDI}):
                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-test_button_gates_d.py:454: 
+test_button_gates_d.py:446: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:430: in each
+test_button_gates_d.py:422: in each
     self.assertFalse(r.get("ok"), (msg["cmd"], r))
 E   AssertionError: True is not false : ('spindle_forward', {'ok': True})
 _ TestManualSpindleOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (homed=True) _
@@ -192,9 +192,9 @@ self = <test_button_gates_d.TestManualSpindleOnTheCurrentRead testMethod=test_an
 >               for cmd, sent in self.each({"homed": homed, "task_mode": linuxcnc.MODE_MDI,
                                             "interp_state": linuxcnc.INTERP_READING}, homed=homed):
 
-test_button_gates_d.py:438: 
+test_button_gates_d.py:430: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:430: in each
+test_button_gates_d.py:422: in each
     self.assertFalse(r.get("ok"), (msg["cmd"], r))
 E   AssertionError: True is not false : ('spindle_forward', {'ok': True})
 _ TestManualSpindleOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (homed=False) _
@@ -208,9 +208,9 @@ self = <test_button_gates_d.TestManualSpindleOnTheCurrentRead testMethod=test_an
 >               for cmd, sent in self.each({"homed": homed, "task_mode": linuxcnc.MODE_MDI,
                                             "interp_state": linuxcnc.INTERP_READING}, homed=homed):
 
-test_button_gates_d.py:438: 
+test_button_gates_d.py:430: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:430: in each
+test_button_gates_d.py:422: in each
     self.assertFalse(r.get("ok"), (msg["cmd"], r))
 E   AssertionError: True is not false : ('spindle_forward', {'ok': True})
 __________ TestManualSpindleOnTheCurrentRead.test_no_read_no_command ___________
@@ -228,7 +228,7 @@ E       AssertionError: {'ok': False, 'error': 'OSError: nml'} != {'ok': False, 
 E       - {'error': 'OSError: nml', 'ok': False}
 E       + {'error': 'Machine status not read — try again', 'ok': False}
 
-test_button_gates_d.py:463: AssertionError
+test_button_gates_d.py:455: AssertionError
 _ TestManualSpindleOnTheCurrentRead.test_the_exception_finds_manual_never_makes_it _
 
 self = <test_button_gates_d.TestManualSpindleOnTheCurrentRead testMethod=test_the_exception_finds_manual_never_makes_it>
@@ -239,9 +239,9 @@ self = <test_button_gates_d.TestManualSpindleOnTheCurrentRead testMethod=test_th
 >           for cmd, sent in self.each({"homed": False, "task_mode": linuxcnc.MODE_MDI}, homed=False):
                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-test_button_gates_d.py:445: 
+test_button_gates_d.py:437: 
 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
-test_button_gates_d.py:430: in each
+test_button_gates_d.py:422: in each
     self.assertFalse(r.get("ok"), (msg["cmd"], r))
 E   AssertionError: True is not false : ('spindle_forward', {'ok': True})
 ___ TestHomeOnTheCurrentRead.test_a_start_during_the_switch (cmd='home_all') ___
@@ -257,7 +257,7 @@ self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_a_start_dur
 >               self.assertFalse(r.get("ok"), r)
 E               AssertionError: True is not false : {'ok': True}
 
-test_button_gates_d.py:502: AssertionError
+test_button_gates_d.py:494: AssertionError
 _____ TestHomeOnTheCurrentRead.test_a_start_during_the_switch (cmd='home') _____
 
 self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_a_start_during_the_switch>
@@ -271,7 +271,7 @@ self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_a_start_dur
 >               self.assertFalse(r.get("ok"), r)
 E               AssertionError: True is not false : {'ok': True}
 
-test_button_gates_d.py:502: AssertionError
+test_button_gates_d.py:494: AssertionError
 __ TestHomeOnTheCurrentRead.test_a_start_during_the_switch (cmd='unhome_all') __
 
 self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_a_start_during_the_switch>
@@ -285,7 +285,7 @@ self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_a_start_dur
 >               self.assertFalse(r.get("ok"), r)
 E               AssertionError: True is not false : {'ok': True}
 
-test_button_gates_d.py:502: AssertionError
+test_button_gates_d.py:494: AssertionError
 ____ TestHomeOnTheCurrentRead.test_a_start_during_the_switch (cmd='unhome') ____
 
 self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_a_start_during_the_switch>
@@ -299,7 +299,7 @@ self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_a_start_dur
 >               self.assertFalse(r.get("ok"), r)
 E               AssertionError: True is not false : {'ok': True}
 
-test_button_gates_d.py:502: AssertionError
+test_button_gates_d.py:494: AssertionError
 _ TestHomeOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (cmd='home_all') _
 
 self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_an_mdi_started_since_the_snapshot>
@@ -316,7 +316,7 @@ E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine 
 E               - {'ok': True}
 E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
 
-test_button_gates_d.py:493: AssertionError
+test_button_gates_d.py:485: AssertionError
 _ TestHomeOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (cmd='home') _
 
 self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_an_mdi_started_since_the_snapshot>
@@ -333,7 +333,7 @@ E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine 
 E               - {'ok': True}
 E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
 
-test_button_gates_d.py:493: AssertionError
+test_button_gates_d.py:485: AssertionError
 _ TestHomeOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (cmd='unhome_all') _
 
 self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_an_mdi_started_since_the_snapshot>
@@ -350,7 +350,7 @@ E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine 
 E               - {'ok': True}
 E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
 
-test_button_gates_d.py:493: AssertionError
+test_button_gates_d.py:485: AssertionError
 _ TestHomeOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (cmd='unhome') _
 
 self = <test_button_gates_d.TestHomeOnTheCurrentRead testMethod=test_an_mdi_started_since_the_snapshot>
@@ -367,7 +367,41 @@ E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine 
 E               - {'ok': True}
 E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
 
-test_button_gates_d.py:493: AssertionError
+test_button_gates_d.py:485: AssertionError
+_ TestStartOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (cmd='cycle_start') _
+
+self = <test_button_gates_d.TestStartOnTheCurrentRead testMethod=test_an_mdi_started_since_the_snapshot>
+
+    def test_an_mdi_started_since_the_snapshot(self):
+        self.takes_the_mode()
+        for msg, _auto in self.CMDS:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI,
+                                               "interp_state": linuxcnc.INTERP_READING})
+>               self.assertEqual(r, {"ok": False, "error": self.BUSY[msg["cmd"]]})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Machine busy — wait until it is idle'}
+E               - {'ok': True}
+E               + {'error': 'Machine busy — wait until it is idle', 'ok': False}
+
+test_button_gates_d.py:528: AssertionError
+_ TestStartOnTheCurrentRead.test_an_mdi_started_since_the_snapshot (cmd='auto_step') _
+
+self = <test_button_gates_d.TestStartOnTheCurrentRead testMethod=test_an_mdi_started_since_the_snapshot>
+
+    def test_an_mdi_started_since_the_snapshot(self):
+        self.takes_the_mode()
+        for msg, _auto in self.CMDS:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI,
+                                               "interp_state": linuxcnc.INTERP_READING})
+>               self.assertEqual(r, {"ok": False, "error": self.BUSY[msg["cmd"]]})
+E               AssertionError: {'ok': True} != {'ok': False, 'error': 'Program running — pause first to step'}
+E               - {'ok': True}
+E               + {'error': 'Program running — pause first to step', 'ok': False}
+
+test_button_gates_d.py:528: AssertionError
 =========================== short test summary info ============================
 SUBFAILED(attr='joint') test_button_gates_d.py::TestModeOnTheCurrentRead::test_an_input_the_current_read_lacks_is_unknown
 SUBFAILED(attr='inpos') test_button_gates_d.py::TestModeOnTheCurrentRead::test_an_input_the_current_read_lacks_is_unknown
@@ -390,3 +424,5 @@ SUBFAILED(cmd='home_all') test_button_gates_d.py::TestHomeOnTheCurrentRead::test
 SUBFAILED(cmd='home') test_button_gates_d.py::TestHomeOnTheCurrentRead::test_an_mdi_started_since_the_snapshot
 SUBFAILED(cmd='unhome_all') test_button_gates_d.py::TestHomeOnTheCurrentRead::test_an_mdi_started_since_the_snapshot
 SUBFAILED(cmd='unhome') test_button_gates_d.py::TestHomeOnTheCurrentRead::test_an_mdi_started_since_the_snapshot
+SUBFAILED(cmd='cycle_start') test_button_gates_d.py::TestStartOnTheCurrentRead::test_an_mdi_started_since_the_snapshot
+SUBFAILED(cmd='auto_step') test_button_gates_d.py::TestStartOnTheCurrentRead::test_an_mdi_started_since_the_snapshot

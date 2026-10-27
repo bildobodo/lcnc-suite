@@ -31,7 +31,7 @@
   {
    "check": "L1 load in E-Stop: ok, STAT.file, task mode unchanged (MANUAL)",
    "result": "PASS",
-   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc mode MANUAL->MANUAL record={'instance': [621896, 50105230], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'}"
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc mode MANUAL->MANUAL record={'instance': [631899, 50140721], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'}"
   },
   {
    "check": "L2 MANUAL in E-Stop",
@@ -41,7 +41,7 @@
   {
    "check": "L1 load in off: ok, STAT.file, task mode unchanged (MANUAL)",
    "result": "PASS",
-   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc mode MANUAL->MANUAL record={'instance': [621896, 50105230], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'}"
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc mode MANUAL->MANUAL record={'instance': [631899, 50140721], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'}"
   },
   {
    "check": "L4 G30 read with the machine off: confirmed",
@@ -51,7 +51,7 @@
   {
    "check": "L1 load in ON unhomed: ok, STAT.file, task mode unchanged (MANUAL)",
    "result": "PASS",
-   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc mode MANUAL->MANUAL record={'instance': [621896, 50105230], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'}"
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc mode MANUAL->MANUAL record={'instance': [631899, 50140721], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'}"
   },
   {
    "check": "L2 MDI unhomed refused with the reason (kins not identity)",
@@ -66,7 +66,7 @@
   {
    "check": "L1 load in partially homed: ok, STAT.file, task mode unchanged (MANUAL)",
    "result": "PASS",
-   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc mode MANUAL->MANUAL record={'instance': [621896, 50105230], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'}"
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc mode MANUAL->MANUAL record={'instance': [631899, 50140721], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'}"
   },
   {
    "check": "homing completes",
@@ -91,12 +91,12 @@
   {
    "check": "L1 load in ON homed MANUAL: ok, STAT.file, task mode unchanged (MANUAL)",
    "result": "PASS",
-   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc mode MANUAL->MANUAL record={'instance': [621896, 50105230], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'}"
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc mode MANUAL->MANUAL record={'instance': [631899, 50140721], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'}"
   },
   {
    "check": "L3 the program loaded in MANUAL runs from the start; STAT.file stays",
    "result": "PASS",
-   "detail": "{'type': 'reply', 'cmd': 'cycle_start', 'ok': True} ran=True done=True file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc mode=AUTO"
+   "detail": "{'type': 'reply', 'cmd': 'cycle_start', 'ok': True} ran=True done=True file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc mode=AUTO"
   },
   {
    "check": "L4 G30 read ON in AUTO: refused with the reason",
@@ -126,17 +126,17 @@
   {
    "check": "L1 load in off (homed before): ok, STAT.file, task mode unchanged (MDI)",
    "result": "PASS",
-   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc mode MDI->MDI record={'instance': [621896, 50105230], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'}"
+   "detail": "reply={'type': 'reply', 'cmd': 'load_file', 'ok': True, 'path': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'} file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc mode MDI->MDI record={'instance': [631899, 50140721], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'}"
   },
   {
    "check": "L6 a program loaded with the machine off survives Machine On",
    "result": "PASS",
-   "detail": "file=/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc record={'instance': [621896, 50105230], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210041.ngc'}"
+   "detail": "file=/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc record={'instance': [631899, 50140721], 'loaded': '/home/cnc/linuxcnc/nc_files/bg_d_live_210636.ngc'}"
   },
   {
    "check": "L7 gateway process found",
    "result": "PASS",
-   "detail": "622042"
+   "detail": "632039"
   },
   {
    "check": "L7 the trip latched E-Stop and the gateway's policy names it",
