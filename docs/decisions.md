@@ -9514,3 +9514,25 @@ attribute overrode its reason (every dimmed mode / WCS option was mute, armed to
 Package A's record said every dialog's Abort sat outside the fieldset — wrong: every
 dialog teleports into the content; corrected in the C answer. Loading, the mode
 choice, G30, the action map and the recovery order stay package D.
+
+**Package C after its implementation review (R213, 2026-10-27).** Four corrections.
+The RPM field is the PRESELECTION for the next Fwd / Rev, free in every state —
+running, turning, disarmed (BG-27; before, it was locked while the spindle turned or a
+program ran, without a reason). While the spindle turns the commanded speed is mirrored
+into it unless the operator holds a value not yet sent there (`rpmPending`): no status
+overwrites that value; Fwd / Rev sends it (pending ends only when the command was sent),
+or the commanded speed reaching it ends it. The strip's head shows the commanded speed
+while the spindle turns ("Spindle · 1500 rpm"), in the heading's own line, so the
+field and the spindle can differ visibly. A disarm no longer throws away every open
+number keypad (BG-28): the global disarm watch in the keypad strip predated the owner
+model; the OWNER ends its session when its own gate closes (the owner permissions carry
+the arm), so a free field keeps its entry and a protected one closes without applying;
+a field a closed enclosing Gate disables is vetoed at confirm (`:disabled`). The jog
+pad's centre Stop answers Enter and Space (BG-29: only the pointer stopped) — on
+keydown, default prevented, repeats ignored, never a second stop from the pointer's
+click. The inventory scan reads an event by its name (`@click.self`, `v-on:click.stop`)
+and a bound gate or entry by every value it can take — a variable branch, a nested
+ternary or a literal in the condition no longer counts as closed (BG-30); it found the
+dialog backdrop, the code editor's keyboard opener, the macro table's control cells and
+the More menu's frame, all classified. Its named limit: it guards the list of controls
+and their gates, not what a handler does.

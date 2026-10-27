@@ -1479,13 +1479,23 @@ watch(defaultAngularJogVel, (v) => { if (!_angJogVelInit && v !== 10) { angularJ
 let _rpmInit = false;
 watch(defaultSpindleSpeed, (v) => { if (!_rpmInit && v !== 1000) { rpmInput.value = v; _rpmInit = true; } });
 
-// While the spindle is running, mirror the live commanded RPM into rpmInput.
-// Keeps the displayed value in sync with SPINDLE_INCREASE/DECREASE and gives
-// the user the last commanded value as the staging value when they Stop.
-watch(spindleSpeed, (v) => {
-  if (isSpinning.value && v != null && v > 0 && v !== rpmInput.value) {
-    rpmInput.value = v;
-  }
+// rpmInput is the PRESELECTION for the next Fwd / Rev (button gates BG-05),
+// free in every state. While the spindle turns, the commanded RPM is
+// mirrored into it — it follows SPINDLE_INCREASE/DECREASE and leaves the
+// last commanded value as the staging value after a Stop — UNLESS the
+// operator holds a value there not yet sent (rpmPending): no status
+// overwrites it (Codex R213 BG-27); the strip's head shows the commanded
+// speed meanwhile. Pending ends when Fwd / Rev sends the value, or when the
+// commanded speed reaches it.
+const rpmPending = ref(false);
+function setRpmPreselect(v: number) {
+  rpmInput.value = v;
+  rpmPending.value = true;
+}
+watch([spindleSpeed, isSpinning], ([v, spinning]) => {
+  if (!spinning || v == null || v <= 0) return;
+  if (v === rpmInput.value) { rpmPending.value = false; return; }
+  if (!rpmPending.value) rpmInput.value = v;
 });
 
 /**
@@ -1634,12 +1644,13 @@ function setRapidOverride(scale: number) {
   send({ cmd: "set_rapid_override", scale });
 }
 
+// A sent preselection is no longer pending; a refused one (gate, latch) is.
 function spindleForward(speed: number) {
-  fire({ cmd: "spindle_forward", speed }, 'ready');
+  if (fire({ cmd: "spindle_forward", speed }, 'ready') !== null) rpmPending.value = false;
 }
 
 function spindleReverse(speed: number) {
-  fire({ cmd: "spindle_reverse", speed }, 'ready');
+  if (fire({ cmd: "spindle_reverse", speed }, 'ready') !== null) rpmPending.value = false;
 }
 
 // The spindle stop at idle needs no arm and no homing (button gates BG-18).
@@ -1652,7 +1663,7 @@ function spindleIncrease() {
     fire({ cmd: "spindle_increase" }, 'ready');
   } else {
     if (!permissions.value.ready) return;
-    rpmInput.value = Math.min(maxSpindleSpeed.value, rpmInput.value + spindleIncrement.value);
+    setRpmPreselect(Math.min(maxSpindleSpeed.value, rpmInput.value + spindleIncrement.value));
   }
 }
 
@@ -1661,7 +1672,7 @@ function spindleDecrease() {
     fire({ cmd: "spindle_decrease" }, 'ready');
   } else {
     if (!permissions.value.ready) return;
-    rpmInput.value = Math.max(minSpindleSpeed.value, rpmInput.value - spindleIncrement.value);
+    setRpmPreselect(Math.max(minSpindleSpeed.value, rpmInput.value - spindleIncrement.value));
   }
 }
 
@@ -2620,7 +2631,7 @@ watch(viewerGcode, (newGcode) => {
         :isForward="isForward"
         :isReverse="isReverse"
         :isSpinning="isSpinning"
-        :isRunning="isRunning"
+        :commandedRpm="spindleSpeed"
         :rpmInput="rpmInput"
         :minSpindleSpeed="minSpindleSpeed"
         :maxSpindleSpeed="maxSpindleSpeed"
@@ -2631,7 +2642,7 @@ watch(viewerGcode, (newGcode) => {
         @spindleStop="spindleStop"
         @spindleIncrease="spindleIncrease"
         @spindleDecrease="spindleDecrease"
-        @update:rpmInput="rpmInput = $event"
+        @update:rpmInput="setRpmPreselect"
         @toggleFlood="toggleFlood"
         @toggleMist="toggleMist"
       />

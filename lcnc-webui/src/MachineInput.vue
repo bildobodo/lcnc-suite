@@ -114,7 +114,10 @@ function openKeypadFromInput(e: Event) {
     context: props.context,
     ownerId,
     constraints: constraints.value,
-    canConfirm: () => !isDisabled.value && !!inputEl.value?.isConnected && inputEl.value.offsetParent !== null,
+    // `:disabled` also sees a closed enclosing <Gate> (the fieldset), which
+    // isDisabled cannot: such a field never receives a value (R213 BG-28).
+    canConfirm: () => !isDisabled.value && !!inputEl.value?.isConnected && inputEl.value.offsetParent !== null
+      && !inputEl.value.matches(':disabled'),
     trigger: e.currentTarget as HTMLElement,
     onConfirm: (v) => {
       model.value = v;
@@ -158,7 +161,8 @@ function textTarget(): TextTarget {
     enter() { const el = textEl.value; if (closeTextSessionIf(ownerId, 'done')) returnFocusTo(el); },
     clear() { const e = el(); if (!e) return; e.value = ''; fireInput(); },
     moveCursor(d) { const e = el(); if (!e) return; const p = Math.max(0, Math.min(e.value.length, (e.selectionStart ?? 0) + d)); e.setSelectionRange(p, p); },
-    canConfirm: () => !isDisabled.value && !!textEl.value?.isConnected && textEl.value.offsetParent !== null,
+    canConfirm: () => !isDisabled.value && !!textEl.value?.isConnected && textEl.value.offsetParent !== null
+      && !textEl.value.matches(':disabled'),
     // Hidden-but-mounted (tab switch) → the session locks (inputSession poll).
     isVisible: () => !!textEl.value && textEl.value.offsetParent !== null,
     focusEl: () => textEl.value,

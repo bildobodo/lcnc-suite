@@ -10,6 +10,14 @@
 // `.vue` sources through Vite's glob. A scan per FILE: a component's controls
 // are judged without the Gates of the parent that mounts it — after the
 // outer fieldset's removal that is exactly what a disarmed client meets.
+//
+// What it reads (Codex R213 BG-30): an event by its NAME — `@click.self`,
+// `v-on:click.stop` and `@click` are one event; a bound entry or Gate by
+// every value it can take — closed only when each is a literal whose gate
+// closes without arm, anything dynamic is listed. Its limit, named: it
+// guards the LIST of controls and the gate each names, not what a handler
+// does — a handler changed to write is caught only by its gate (fire(),
+// the backend's admission), never by this scan.
 import { BUTTON_TYPES, INPUT_DEFS } from "./machineControls";
 
 /** Gates open to a disarmed client: `always` and the stops (BG-08 / BG-18). */
@@ -21,7 +29,15 @@ const CATALOG_ATTR: Record<string, "type" | "gate"> = {
   MachineSlider: "gate", MachineRadio: "gate", MachineColor: "gate", MachineChoice: "gate",
 };
 const RAW_CONTROLS = new Set(["button", "input", "select", "textarea"]);
-const ACTION_EVENTS = ["@click", "@pointerdown", "v-on:click"];
+/** Events that make a raw element a control — matched on the event NAME:
+ *  `@click.self`, `v-on:click.stop` and `@click` are one event (R213 BG-30). */
+const ACTION_EVENTS = new Set(["click", "dblclick", "pointerdown", "pointerup", "mousedown", "mouseup", "touchstart", "touchend"]);
+
+/** The event an attribute listens to (`@click.self` / `v-on:click` → "click"), or null. */
+function eventOf(attr: string): string | null {
+  const m = /^(?:@|v-on:)([\w-]+)/.exec(attr);
+  return m ? m[1] ?? null : null;
+}
 
 export interface ControlUsage {
   /** `file|tag:entry|handlers` — the inventory key (no line numbers: they move). */
@@ -83,9 +99,26 @@ function* tags(text: string): Generator<Tag> {
 
 const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 
-/** Every catalog gate a bound expression can name (its quoted literals). */
-function literals(expr: string): string[] {
-  return [...expr.matchAll(/['"`]([A-Za-z][\w]*)['"`]/g)].map((m) => m[1] ?? "");
+/** A quoted name: group 1 the quote, group 2 the name. */
+const ONLY_LITERAL = /^(['"`])([A-Za-z]\w*)\1$/;
+/** `cond ? 'a' : 'b'`: group 1 the condition, 3 and 5 the branches. */
+const LITERAL_TERNARY = /^(.*?)\?\s*(['"`])([A-Za-z]\w*)\2\s*:\s*(['"`])([A-Za-z]\w*)\4$/s;
+
+/** Every value a bound expression can take — when each is a literal: a
+ *  literal, or `cond ? 'a' : 'b'` whose condition holds no other ternary.
+ *  Anything else (a variable, a nested branch) is DYNAMIC: null — never
+ *  judged by the literals it happens to contain (Codex R213: a literal in
+ *  the condition, or beside a variable branch, is no value it can take). */
+function resultLiterals(expr: string): string[] | null {
+  const e = expr.trim();
+  const only = ONLY_LITERAL.exec(e);
+  if (only) return [only[2] ?? ""];
+  const tern = LITERAL_TERNARY.exec(e);
+  if (!tern) return null;
+  // the condition: `?.` and `??` are no branch; any other `?` or `:` is
+  const cond = (tern[1] ?? "").replace(/(['"`]).*?\1/g, "").replace(/\?\.|\?\?/g, "");
+  if (/[?:]/.test(cond)) return null;
+  return [tern[3] ?? "", tern[5] ?? ""];
 }
 
 function gateOf(tag: string, entry: string): string | undefined {
@@ -93,10 +126,11 @@ function gateOf(tag: string, entry: string): string | undefined {
   return defs[entry]?.gate;
 }
 
-/** A Gate's gate(s): the literal, or every literal of a bound expression. */
+/** A Gate's gate(s): the literal, or every value of a bound expression —
+ *  [] (protects nothing) when the expression is dynamic. */
 function gateNames(attrs: Record<string, string>): string[] {
   if (attrs.gate !== undefined) return [attrs.gate];
-  if (attrs[":gate"] !== undefined) return literals(attrs[":gate"]);
+  if (attrs[":gate"] !== undefined) return resultLiterals(attrs[":gate"]) ?? [];
   return [];
 }
 
@@ -121,17 +155,19 @@ export function scanControls(file: string, sfc: string): ControlUsage[] {
     const attr = CATALOG_ATTR[t.name];
     if (attr) {
       const bound = t.attrs[`:${attr}`];
-      const entries = bound !== undefined ? literals(bound) : [t.attrs[attr] ?? ""];
-      const gates = entries.map((e) => gateOf(t.name, e)).filter((g): g is string => !!g);
-      // A bound entry without any catalog literal (MachineChoice's o.gate):
-      // its options live in a script — listed so the inventory names them.
-      if (gates.length && gates.every((g) => !LIVE_GATES.has(g))) continue;
+      const entries = bound !== undefined ? resultLiterals(bound) ?? [] : [t.attrs[attr] ?? ""];
+      const gates = entries.map((e) => gateOf(t.name, e));
+      // Skipped only when EVERY value it can take is a catalog entry whose
+      // gate closes without arm. A dynamic entry (MachineChoice's o.gate, a
+      // variable branch) is listed so the inventory names it.
+      if (gates.length && gates.every((g) => g !== undefined && !LIVE_GATES.has(g))) continue;
       const entry = bound !== undefined ? `{${norm(bound)}}` : entries[0] ?? "";
-      out.push({ key: `${file}|${t.name}:${entry}|${handlers}`, file, line: lineAt(t.start), tag: t.name, entry, gates: gates.length ? gates : ["dynamic"] });
+      const known = gates.filter((g): g is string => !!g);
+      out.push({ key: `${file}|${t.name}:${entry}|${handlers}`, file, line: lineAt(t.start), tag: t.name, entry, gates: known.length === gates.length && known.length ? known : ["dynamic"] });
       continue;
     }
     const isRaw = RAW_CONTROLS.has(t.name) || t.attrs.role === "button"
-      || (/^[a-z]/.test(t.name) && ACTION_EVENTS.some((e) => t.attrs[e] !== undefined));
+      || (/^[a-z]/.test(t.name) && Object.keys(t.attrs).some((a) => ACTION_EVENTS.has(eventOf(a) ?? "")));
     if (!isRaw) continue;
     const disabled = t.attrs[":disabled"] !== undefined ? ` :disabled=${norm(t.attrs[":disabled"])}` : "";
     out.push({ key: `${file}|${t.name}|${handlers}${disabled}`, file, line: lineAt(t.start), tag: t.name, entry: "", gates: ["raw"] });

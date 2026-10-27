@@ -3,7 +3,6 @@ import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { keypadState, closeKeypad } from './useNumberKeypad';
 import { evaluate, fmtEval, validateEntry } from './mathEval';
 import { saveDraft, takeDraft, dropDraft, returnFocusTo } from './inputSession';
-import { armed } from './lcncWs';
 import MachineBtn from './MachineBtn.vue';
 import { X, Delete } from 'lucide-vue-next';
 
@@ -15,8 +14,12 @@ const rootEl = ref<HTMLElement | null>(null);
 // as the left operand, letting the user continue a calculation from the current value.
 const replacing = ref(false);
 
-// Auto-close if the machine becomes disarmed while the keypad is open.
-watch(armed, (isArmed) => { if (!isArmed) cancel(); });
+// No rule of its own for the disarm (button gates, Codex R213 BG-28): the
+// session belongs to its OWNER, and the owner ends it when ITS gate closes
+// (MachineInput's ownerEnded, OffsetPanel's gateEnded — both read the owner
+// permissions, which carry the arm). A free field (the RPM preselection, a
+// display setting) keeps its session and its entry through a disarm; a
+// global disarm watch here threw both away.
 
 // Re-init on mount AND on every subsequent openKeypad() call. Watching
 // keypadState.seq (a monotonic counter) lets the strip refresh its expression

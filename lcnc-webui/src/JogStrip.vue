@@ -348,6 +348,17 @@ function stopFnFor(gesture: JogGesture): () => void {
   };
 }
 
+// The centre Stop by keyboard (Codex R213 BG-29): Enter / Space on the
+// focused Stop stop like the pointer. Handled on KEYDOWN, default prevented
+// — the browser's synthesized click never follows, and no click handler
+// exists that a pointer's click could double; a held key's repeats add
+// nothing. A direction button has no keyboard jog: the key does nothing there.
+function onJogKey(btn: JogDef, e: KeyboardEvent) {
+  if (btn.axis >= 0 || (e.key !== "Enter" && e.key !== " ")) return;
+  e.preventDefault();
+  if (!e.repeat) stopAllJog();
+}
+
 function startJog(btn: JogDef, e: PointerEvent) {
   // The centre Stop is a stop: before the jog gate (button gates BG-01 /
   // BG-08 — a closed start never closes its stop).
@@ -464,6 +475,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointercancel.prevent="stopJog(btn, $event)"
               @pointerleave.prevent="stopJog(btn, $event)"
               @pointermove="slideOffCheck"
+              @keydown="onJogKey(btn, $event)"
               @contextmenu.prevent
             ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
           </div>

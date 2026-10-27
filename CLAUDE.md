@@ -45,7 +45,7 @@ One line per module: what it is and the rule that matters when you touch it. The
 - `format.ts` — the shared formatters and `NO_VALUE` ("—"); words, units and state words per `docs/ui-glossary.md`.
 - `wcs.ts` — ONE source for fixture names (`G5X_LABELS`, `g5xLabel`, `RESERVED_WCS`).
 - `mathEval.ts` — the keypad's safe expressions and `validateEntry`, the ONE admissibility check (refused, never clamped).
-- `useNumberKeypad.ts` + `inputSession.ts` + `TextKeypadStrip.vue` + `textKeyboardPages.ts` — ONE on-screen input helper at a time, owned by one target: opening is a deliberate tap, never focus; leaving hides without confirming and the owner keeps its draft; keys act on click; the focus return after OK/Cancel is GUARDED (`focusReturn.pending` — an unfocused document is where Space is Cycle Start); X keeps the entry, Discard throws it away, the confirm key reads "Apply".
+- `useNumberKeypad.ts` + `inputSession.ts` + `TextKeypadStrip.vue` + `textKeyboardPages.ts` — ONE on-screen input helper at a time, owned by one target: opening is a deliberate tap, never focus; leaving hides without confirming and the owner keeps its draft; keys act on click; the focus return after OK/Cancel is GUARDED (`focusReturn.pending` — an unfocused document is where Space is Cycle Start); X keeps the entry, Discard throws it away, the confirm key reads "Apply"; a session ends with its OWNER's gate, never with the arm as such (a free field keeps its entry through a disarm).
 - `btnHint.ts` + `FloatingOverlays.vue` — the ONE transient control hint and the ONE keyboard glyph; placed from the rendered size, closed by the next press, key or scroll. Never a Teleport inside `MachineBtn` / `MachineInput` (a second root drops the parent's scoped CSS).
 - `gateExplain.ts` — the ONE explanation path for a dimmed control: AT the control, never the status line or the message log.
 - `FormField.vue` + `probeFields.ts` — the ONE labelled field (label above, wired `for`/`id`, the "?" a sibling of the label, unit and error as `aria-describedby`); probe and toolsetter fields as data.
@@ -68,7 +68,7 @@ One line per module: what it is and the rule that matters when you touch it. The
 - `defaults.ts` + `settingsSaveStatus.ts` — server-synced settings sections; a save is never silent: a ledger per section and revision, a page-hide beacon unconfirmed until the server's next full blob carries it. A PROTECTED section (all but `FREE_SECTIONS`) acts only once the server holds it: `loadSection` = what acts, `loadSectionDraft` = what a form shows and saves onto; a refused draft stays visible until the server's section changes (BG-19).
 - `useKeyboardShortcuts.ts` — the global shortcut map: Escape is the reserved E-Stop key (a capture listener, not re-bindable; Reset is button-only); behind a dialog nothing but E-Stop passes; a jog keyup is never filtered.
 - `main.ts`, `style.css` — the entry with the settings migration; global styles and tokens.
-- The strip: `SafetyStrip.vue` (buttons named for the NEXT action; the active codes one button), `JogStrip.vue` (rotary axes half a column in landscape; the step a direct choice; the block owns its focus), `SetupStrip.vue` (axis actions as symbols, named for the action; the WCS selector), `OverridesStrip.vue`, `SpindleStrip.vue`, `ToolStrip.vue` (read-only; says whether the spindle tool's own offset is in effect).
+- The strip: `SafetyStrip.vue` (buttons named for the NEXT action; the active codes one button), `JogStrip.vue` (rotary axes half a column in landscape; the step a direct choice; the block owns its focus), `SetupStrip.vue` (axis actions as symbols, named for the action; the WCS selector), `OverridesStrip.vue`, `SpindleStrip.vue` (the RPM field is the preselection, free in every state; the commanded speed in the head while turning), `ToolStrip.vue` (read-only; says whether the spindle tool's own offset is in effect).
 - `ToolsetterSettings.vue` + `g30Form.ts` — the toolsetter form and the G30 draft; a reply applies only to what its request was sent under.
 - `useAxes.ts` — the ONE axis set (from `viewer_init.axes`); never hardcode axis letters or positions.
 - Others: `GamepadLiveInput.vue`, `DebugTab.vue`, `gcodeReference.ts`, `interpolation.ts`, `toolsetterVars.ts`, `dragScroll.ts`, `edgeWorker.ts`, `touchDetect.ts` (touch flag; no context menu on a long press), `useGamepad.ts`, `useJogPointers.ts`, `ws/bulkData.ts` (wire types).
@@ -86,7 +86,7 @@ Horizontally scrollable strip with six components (no outer Gate — each contro
 2. **JogStrip** — Jog wheel, speed slider, step increments, world/joint mode
 3. **SetupStrip** — DRO display, axis touchoff, homing grid, WCS selector
 4. **OverridesStrip** — Feed/Spindle/Rapid override sliders
-5. **SpindleStrip** — FWD/REV/STOP, RPM input, actual speed, coolant toggles
+5. **SpindleStrip** — FWD/REV/STOP, the RPM preselection (free; a value not yet sent survives the status), the commanded speed in the head while turning, coolant toggles
 6. **ToolStrip** — Read-only loaded-tool info + a Tool Table nav button (the change dialog and measure/unload actions are App-level, not here)
 
 ## Safety System — Three Layers

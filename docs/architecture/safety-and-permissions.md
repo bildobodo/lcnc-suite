@@ -261,7 +261,11 @@ joint jog before homing in E.
   does and why that needs no arm; `controlScan.ts` finds them in the templates
   (a control is live when its own gate and every `<Gate>` around it in its file
   open without arm: `always` and the stops) and `controlInventory.test.ts`
-  fails on an unclassified one or a stale entry. A protected effect is never a
+  fails on an unclassified one or a stale entry. The scan reads an event by
+  its name (`@click.self` = `@click`) and a bound gate or entry by every value
+  it can take: only literal values that all close count as closed, anything
+  dynamic is listed (Codex R213 BG-30). It guards the LIST of controls and
+  their gates, not what a handler does. A protected effect is never a
   category: such a control takes an armed gate. The DEV "UNGATED" outline
   (`main.ts`) leaned on the outer fieldset and is gone.
 - *Protected settings dimmed* (operator decision 2026-10-26, Q2 "the rest
@@ -277,12 +281,19 @@ joint jog before homing in E.
   `resetDisplay` (free) / `resetProtected` (armed); the confirm's Gate follows
   `isProtectedSection(target)`.
 - *Preselections* (BG-05): the jog step, the jog speed and its reset, the RPM
-  and the MDI line are free in every state. The MDI line's send stays `ready`
+  and the MDI line are free in every state. The RPM field is the preselection
+  for the next Fwd / Rev — running and turning too (R213 BG-27): it mirrors the
+  commanded speed while the spindle turns unless it holds a value not yet sent
+  (`rpmPending`, ended by a SENT Fwd / Rev or the commanded speed reaching it);
+  the head shows the commanded speed while turning. A number keypad ends with
+  its OWNER's gate, never with the arm as such (R213 BG-28): a free field keeps
+  its entry through a disarm, a protected one closes and applies nothing. The MDI line's send stays `ready`
   (`useMdiHistory` `canSend`): a refused Enter keeps the text, writes no
   history and says why at the line; its keyboard opens for every client. The
   analog stick keeps the speed it started with (`gestureMaxVel`, taken when
   the axis leaves the dead zone, held through a reversal, dropped in the dead
-  zone or on a stop). The jog pad's centre Stop is a stop (`jogStop`, always).
+  zone or on a stop). The jog pad's centre Stop is a stop (`jogStop`, always)
+  by pointer and by Enter / Space (keydown, repeats ignored; R213 BG-29).
 - *The file browser* (BG-02): no `setup` Gate around it; folders, `..` and
   Retry are reading; a FILE row carries the parent's `fileGate` (Program
   `setup` — loading moves to `programLoad` in D; Tools: the library preview, a

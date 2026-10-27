@@ -116,12 +116,17 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["local", "clears the tab's own timing statistics"],
   "DebugTab.vue|MachineBtn:inline|@click=toggleTimingLog":
     ["diagnostic", "the gateway's timing log on/off: a diagnostic file in the log dir — no machine, file or settings effect"],
+  // ── CodeEditor.vue ──
+  "CodeEditor.vue|div|@pointerup=onPointerUp":
+    ["local", "opens the on-screen keyboard on the editor (an input helper, found by the scan since R213 BG-30); the text is the owner's draft, its save is gated"],
   // ── DetailsPopover.vue ──
   "DetailsPopover.vue|MachineBtn:{props.type}|@click=toggle @pointerdown=onPointerDown":
     ["nav", "opens a details card (detailsIcon / headerIcon): reading"],
   // ── DialogFrame.vue ──
   "DialogFrame.vue|MachineBtn:close|@click=requestClose('x')":
     ["nav", "a dialog's X: closing never needs arm (BG-16 — a dialog open at a disarm must close)"],
+  "DialogFrame.vue|div|@click.self=requestClose('backdrop')":
+    ["nav", "the backdrop: closes by the dialog kind's ONE close policy (a form ignores it) — a close, never an action (found since R213 BG-30)"],
   // ── FileBrowser.vue ──
   "FileBrowser.vue|MachineBtn:inline|@click=browse(subdir.split('/').slice(0, -1).join('/'))":
     ["read", "folder navigation / retry: reading (BG-02)"],
@@ -215,8 +220,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["local", "a preselection for the NEXT jog (BG-05): no command; a running jog keeps its start values"],
   "JogStrip.vue|MachineBtn:jogSpeedReset|@click=emit('resetJogVel')":
     ["local", "a preselection for the NEXT jog (BG-05): no command; a running jog keeps its start values"],
-  "JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@contextmenu.prevent= @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)":
-    ["stop", "the jog pad: the centre Stop is a stop (jogStop, no arm); every direction is `jog` (armed + homed)"],
+  "JogStrip.vue|MachineBtn:{btn.axis < 0 ? 'jogStop' : 'jog'}|@contextmenu.prevent= @keydown=onJogKey(btn, $event) @pointercancel.prevent=stopJog(btn, $event) @pointerdown.prevent=startJog(btn, $event) @pointerleave.prevent=stopJog(btn, $event) @pointermove=slideOffCheck @pointerup.prevent=stopJog(btn, $event)":
+    ["stop", "the jog pad: the centre Stop is a stop (jogStop, no arm) by pointer and by Enter / Space (R213 BG-29); every direction is `jog` (armed + homed), no keyboard jog"],
   "JogStrip.vue|MachineSelect:jogIncrement|@update:modelValue=(v: string | number | undefined) => { if (v != null) emit('update:jogIncrement', Number(v)) }":
     ["local", "a preselection for the NEXT jog (BG-05): no command; a running jog keeps its start values"],
   "JogStrip.vue|MachineSlider:jogSpeed|@update:modelValue=(v: number | undefined) => { if (v != null) emit('update:angularJogVel', v) }":
@@ -260,6 +265,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
   "MacroBar.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')":
     ["stop", "a stop: open without arm (BG-08 / BG-18); the backend's state decides"],
   // ── MacrosPanel.vue ──
+  "MacrosPanel.vue|td|@click.stop=":
+    ["local", "a row's control cell: stops the click from selecting the row — no action of its own; the controls in it carry their own gates (found since R213 BG-30)"],
   "MacrosPanel.vue|MachineBtn:abort|@click=fire({ cmd: 'abort' }, 'abort')":
     ["stop", "a stop: open without arm (BG-08 / BG-18); the backend's state decides"],
   "MacrosPanel.vue|MachineBtn:close|@click=note = null":
@@ -316,6 +323,8 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
   "MessagesDialog.vue|button|@click=toggleSort('type')":
     ["local", "sorts the message table"],
   // ── MoreMenu.vue ──
+  "MoreMenu.vue|div|@click.capture=onClick @focusout=onFocusOut @keydown=onKeydown":
+    ["nav", "the menu's own frame: an item's click closes the menu (capture phase), the arrows move between items, focus leaving closes it — the items carry their own gates (found since R213 BG-30)"],
   "MoreMenu.vue|MachineBtn:more|":
     ["nav", "opens the More menu; its items keep their own gates"],
   // ── NumberKeypadStrip.vue ──
