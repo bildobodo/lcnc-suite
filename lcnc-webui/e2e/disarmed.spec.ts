@@ -276,3 +276,123 @@ test("a dialog opened armed: after the disarm its action is closed with its reas
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).toHaveCount(0);
 });
+
+// ── Codex R213: the preselection, the keypad and the jog Stop ─────────────
+
+/** Armed at idle (the backend's permissions for the state). */
+async function armedIn(page: Page, extra: Record<string, unknown> = {}) {
+  await ctl({ op: "status_delta", armed: true, data: { permissions: perms("idle"), ...extra } });
+  await expect(page.locator(".pill.armed")).toHaveCount(1);
+}
+
+/** Enter digits on the open number keypad. */
+async function keyIn(page: Page, digits: string) {
+  const pad = page.locator(".nkStrip");
+  for (const d of digits) await pad.getByRole("button", { name: d, exact: true }).click();
+  await expect(pad.locator(".nkExpr")).toHaveText(digits);
+}
+
+/** Press a hold button long enough to fire (HOLD_FIRE_MS 500). */
+async function hold(page: Page, target: Locator) {
+  await target.scrollIntoViewIfNeeded();   // the strip scrolls sideways
+  const box = (await target.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(700);
+  await page.mouse.up();
+}
+
+test("the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27)", async ({ page }) => {
+  await open(page);
+  const spindle = page.locator('[data-strip="spindle"]');
+  const rpm = page.locator(".spRpmInput");
+  const now = spindle.locator(".spNow");
+  // a program runs, the spindle stands: the field prepares the next Fwd / Rev
+  await disarmedIn(page, "running");
+  await expect(rpm, "running: free").toBeEnabled();
+  // idle, the spindle turns: the field shows the commanded speed while nothing is prepared
+  await disarmedIn(page, "idle", { spindle_direction: 1, spindle_speed: 1500 });
+  await expect(rpm, "turning: free").toBeEnabled();
+  await expect(rpm).toHaveValue("1500");
+  await expect(now, "the commanded speed, apart from the field").toHaveText(/1500/);
+  // prepared while turning (disarmed: a preselection is no command)
+  await ctl({ op: "clearCmds" });
+  await rpm.click();
+  await keyIn(page, "800");
+  await page.locator(".nkStrip").getByRole("button", { name: "Apply", exact: true }).click();
+  await expect(rpm).toHaveValue("800");
+  // the commanded speed changes (±, an S word): the head follows, the prepared value stays
+  await ctl({ op: "status_delta", data: { spindle_speed: 1600 } });
+  await expect(now).toHaveText(/1600/);
+  await expect(rpm, "a status never overwrites a prepared value").toHaveValue("800");
+  expect(await forbidden(), "preparing sends nothing").toEqual([]);
+  // arm: still prepared; Fwd sends it
+  await armedIn(page);
+  await expect(rpm).toHaveValue("800");
+  await ctl({ op: "clearCmds" });
+  await hold(page, spindle.getByRole("button", { name: "Fwd", exact: true }));
+  await expect.poll(async () => (await sentNow()).filter((c) => c.cmd === "spindle_forward").map((c) => (c as { speed?: number }).speed))
+    .toEqual([800]);
+  // the controller took it; from then on the field follows the commanded speed again
+  await ctl({ op: "status_delta", data: { spindle_speed: 800 } });
+  await expect(now).toHaveText(/800/);
+  await ctl({ op: "status_delta", data: { spindle_speed: 950 } });
+  await expect(rpm, "nothing prepared: the field shows the commanded speed").toHaveValue("950");
+});
+
+test("the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28)", async ({ page }) => {
+  await open(page);
+  await armedIn(page);
+  const pad = page.locator(".nkStrip");
+  // free: the RPM preselection
+  await page.locator(".spRpmInput").click();
+  await expect(pad).toBeVisible();
+  await keyIn(page, "7");
+  await ctl({ op: "clearCmds" });
+  await disarmedIn(page, "idle");
+  await expect(pad, "a free field keeps its session").toBeVisible();
+  await expect(pad.locator(".nkExpr"), "and its entry").toHaveText("7");
+  await pad.getByRole("button", { name: "Discard", exact: true }).click();
+  await expect(pad).toBeHidden();
+  // protected: a probe parameter (armed)
+  await armedIn(page);
+  await page.getByRole("tab", { name: "Probing", exact: true }).click();
+  const field = page.locator('input.inputField[data-control="probeParam"]:visible').first();   // a number field, not a switch
+  await field.click();
+  await expect(pad).toBeVisible();
+  await keyIn(page, "7");
+  await ctl({ op: "clearCmds" });
+  await disarmedIn(page, "idle");
+  await expect(pad, "the protected field's session ends").toBeHidden();
+  await expect(field).toBeDisabled();
+  expect(await forbidden(), "nothing applied, nothing written").toEqual([]);
+});
+
+test("the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29)", async ({ page }) => {
+  await open(page);
+  const stop = page.locator('[data-strip="jog"] [data-control="jogStop"]');
+  const stops = async () => (await sentNow()).filter((c) => c.cmd === "jog_stop").length;
+  const jogs = async () => (await sentNow()).filter((c) => /^jog_(?!stop)/.test(c.cmd ?? "")).map((c) => c.cmd);
+  for (const [name, enter] of [
+    ["armed at idle", () => armedIn(page)],
+    ["disarmed at idle", () => disarmedIn(page, "idle")],
+    ["disarmed in E-Stop (the jog gate closed)", () => disarmedIn(page, "estop")],
+  ] as const) {
+    await enter();
+    await expect(stop, name).toBeEnabled();
+    for (const key of ["Enter", "Space"]) {
+      await stop.focus();
+      await ctl({ op: "clearCmds" });
+      await page.keyboard.press(key);
+      await expect.poll(stops, `${name}: ${key}`).toBe(3);
+      await page.waitForTimeout(300);
+      expect(await stops(), `${name}: ${key} stops once`).toBe(3);
+      expect(await jogs(), `${name}: ${key} starts no jog`).toEqual([]);
+    }
+    await ctl({ op: "clearCmds" });
+    await stop.click();
+    await expect.poll(stops, `${name}: pointer`).toBe(3);
+    await page.waitForTimeout(300);
+    expect(await stops(), `${name}: the pointer's click adds no second stop`).toBe(3);
+  }
+});
