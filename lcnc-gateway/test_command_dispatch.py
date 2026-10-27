@@ -238,10 +238,23 @@ class TestHandlerExecution(unittest.TestCase):
         # Known clear unless a test says otherwise (TestSkipFlag below).
         gateway._skip_flag_unknown = False
         gateway._rfl_task = gateway._rfl_flag_task = None
+        # The sending connection, registered and armed: a load / unload is
+        # admitted at its commit for THIS connection (button gates BG-03, the
+        # BG-14 rule).
+        clients = dict(gateway._clients)
+        self.addCleanup(lambda: (gateway._clients.clear(), gateway._clients.update(clients)))
+        writer = gateway.ClientState(ip="t", ws=None, armed=True)
+        gateway._clients[911] = writer
+        self.key = writer.conn_key
+        # No start claim left over from another test: the status poller that
+        # would release it does not run here (_release_start_claims).
+        claims = list(gateway._source_claims)
+        self.addCleanup(lambda: gateway._source_claims.__setitem__(slice(None), claims))
+        gateway._source_claims.clear()
 
     def _send(self, msg):
         gateway._shared_status = _payload()   # ready -> passes policy
-        return _run(gateway.handle_command(msg, True))
+        return _run(gateway.handle_command(msg, True, self.key))
 
     def test_tool_change_queues_offset_after_m6_without_waiting_for_operator(self):
         # M6's end-of-block synchronization waits for tool-changed; G43 in
@@ -1003,7 +1016,7 @@ class TestHandlerExecution(unittest.TestCase):
 
         async def scenario():
             gateway._shared_status = _payload()
-            task = asyncio.ensure_future(gateway.handle_command(msg, True))
+            task = asyncio.ensure_future(gateway.handle_command(msg, True, self.key))
             for _ in range(400):
                 if entered.is_set() or task.done():
                     break
@@ -1120,7 +1133,7 @@ class TestHandlerExecution(unittest.TestCase):
 
             async def scenario():
                 gateway._shared_status = _payload()
-                task = asyncio.ensure_future(gateway.handle_command({"cmd": "load_file", "path": a}, True))
+                task = asyncio.ensure_future(gateway.handle_command({"cmd": "load_file", "path": a}, True, self.key))
                 for _ in range(400):
                     if entered.is_set() or task.done():
                         break
@@ -1246,8 +1259,11 @@ class TestHandlerExecution(unittest.TestCase):
             gateway._preempt_inflight(by="abort", from_client=2)   # no await in between
             for _ in range(20):
                 await asyncio.sleep(0)
+            # The run's start claim ends when the poller sees the controller
+            # through with it (_release_start_claims); no poller runs here.
+            gateway._source_claims.clear()
             with unittest.mock.patch.object(gateway, "get_nc_files_dir", return_value=str(Path(self.prog).parent)):
-                load = await gateway.handle_command({"cmd": "load_file", "path": self.prog}, True)
+                load = await gateway.handle_command({"cmd": "load_file", "path": self.prog}, True, self.key)
             return r, load
         with unittest.mock.patch.object(gateway._bulk, "preview_version", 7), \
                 unittest.mock.patch.object(gateway._bulk, "published_source", gateway.program_source(self.prog)):

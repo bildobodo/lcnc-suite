@@ -744,6 +744,13 @@ def _gate_reason(gate: str, s: MachineState) -> Optional[str]:
     return None
 
 
+def gate_refusal(gate: str, s: MachineState) -> Optional[str]:
+    """Why `gate` is closed in `s` (None = open) — for a handler whose
+    payload picks a stricter gate than its command's (set_mode → modeCoord
+    for MDI / AUTO), from the same table as every other decision."""
+    return _gate_reason(gate, s)
+
+
 def permission_reasons(s: MachineState) -> Dict[str, str]:
     """Why each CLOSED gate is closed (U-06, review 2026-09-14): a dimmed
     control used to have no reachable explanation — the reason lived only in
@@ -767,13 +774,17 @@ COMMAND_GATES: Dict[str, str] = {
     # --- unconditional / safety handshake ---
     "arm": "always",
     "estop": "always",
-    "estop_reset": "always",       # runs WHILE in estop; handler require_armed gates it
+    # Runs WHILE in estop: armed and the safety trip acknowledged — the
+    # recovery order (button gates BG-11); refused before the first status
+    # like every non-stop command (BG-12).
+    "estop_reset": "estopReset",
     "shutdown": "armed",           # ends LinuxCNC: the writer's arm + the confirmation (button gates C)
     "abort": "abort",
     "machine_on": "safety",
     "machine_off": "safety",
-    # --- mode selection ---
-    "set_mode": "idle",
+    # --- mode selection (button gates BG-04: per target — the handler
+    #     re-checks modeCoord for MDI / AUTO; the gate cannot see the payload) ---
+    "set_mode": "modeManual",
     # --- jogging (stopping is always allowed) ---
     "jog_cont": "jog",
     "jog_incr": "jog",
@@ -798,11 +809,13 @@ COMMAND_GATES: Dict[str, str] = {
     # machineFrame in the handler (the gate a G53 move needs)
     "run_macro": "probe",
     # --- spindle / coolant ---
-    "spindle_forward": "ready",
-    "spindle_reverse": "ready",
+    # Fwd / Rev / ±: `ready`, or unhomed in MANUAL where the machine
+    # declares WEBUI_SPINDLE_BEFORE_HOMING (operator Q1).
+    "spindle_forward": "spindleManual",
+    "spindle_reverse": "spindleManual",
     "spindle_stop": "spindleStop",
-    "spindle_increase": "ready",
-    "spindle_decrease": "ready",
+    "spindle_increase": "spindleManual",
+    "spindle_decrease": "spindleManual",
     # --- coolant (override gate: usable during execution, like overrides;
     #     the program's own M7/M8/M9 still wins at its next coolant word) ---
     "flood_on": "override",
@@ -832,24 +845,27 @@ COMMAND_GATES: Dict[str, str] = {
     "twp_capture": "twpCapture",
     "set_probe_vars": "ready",
     # G30's stored tool-change position (operator P4, Codex R21–R24): a
-    # confirming read synchs the interpreter (no motion) — idle; taking the
-    # current position over and saving are MACHINE-frame only: our G30
-    # routines address #5181… with G53 moves under identity kins.
-    "read_g30": "idle",
+    # confirming read synchs the interpreter (no motion) — parameterRead, no
+    # power or homing term (button gates BG-13); taking the current position
+    # over and saving are MACHINE-frame only: our G30 routines address
+    # #5181… with G53 moves under identity kins. All three are closed where
+    # the synch is refused (machine ON in AUTO).
+    "read_g30": "parameterRead",
     "capture_g30": "g30Capture",
-    "set_g30": "machineFrame",
+    "set_g30": "g30Write",
     # --- tool-table edits (button gates BG-14: E-Stop allowed, no pending
     #     tool change; the handler re-checks at the write) ---
     "save_tool": "toolTableWrite",
     "add_tool": "toolTableWrite",
     "delete_tool": "toolTableWrite",
     "renumber_tool": "toolTableWrite",
-    # --- file ops ---
-    "load_file": "setup",
-    "unload_file": "setup",
+    # --- file ops (button gates BG-03: no AUTO pre-step, no power or homing
+    #     term; the handler adds the commit-time admission) ---
+    "load_file": "programLoad",
+    "unload_file": "programLoad",
     # Re-parse the loaded program against current offsets. Same class as
     # loading it: touches no machine state, but spawns the parse worker.
-    "reparse_preview": "setup",
+    "reparse_preview": "programLoad",
     # --- surface compensation + HAL handshakes (moved out of the pre-dispatch
     #     inline ladder, where they were `armed`-only and structurally invisible
     #     to the coverage test — see test_command_policy._inline_commands) ---

@@ -105,7 +105,7 @@ from gateway_util import (
     wcs_stamp_decision,
     PROV_STAMPED,
 )
-from command_policy import NOT_ARMED, STATE_UNKNOWN, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
+from command_policy import gate_refusal, NOT_ARMED, STATE_UNKNOWN, MOTION_UNKNOWN, MACHINE_MOVING, SPINDLE_OWNED, motion_still_of, check_command, COMMAND_GATES, STATELESS_GATES, kins_runnable, validate_payload, MachineLimits, touchoff_route, twp_capture_check, goto_zero_plan, plane_frame_check, touchoff_target_text, touchoff_expect_check, raw_kins_for_semantic, permission_reasons
 from tool_table import (
     parse_tool_table,
     write_tool_table,
@@ -4764,6 +4764,13 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             mode = finite_int(msg.get("mode", 0))
             if mode not in (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO, linuxcnc.MODE_MDI):
                 return {"ok": False, "error": f"Invalid mode: {mode}"}
+            # Per target (button gates BG-04): the dispatcher checked
+            # modeManual; MDI / AUTO also need COORD reachable — every joint
+            # homed, or identity kinematics with NO_FORCE_HOMING.
+            if mode != linuxcnc.MODE_MANUAL and _shared_status is not None:
+                why = gate_refusal("modeCoord", _live_policy_state(armed))
+                if why:
+                    return {"ok": False, "error": why}
             await set_mode(mode)
             return {"ok": True}
 
@@ -5567,20 +5574,23 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if not validate_extension(abs_path):
                 return {"ok": False, "error": "Invalid file extension"}
 
-            blocked = reject_if_auto_running()
-            if blocked:
-                return blocked
-            if _rfl_busy():
-                # The sequence is bound to the loaded program (XZ-07).
-                return {"ok": False, "error": _rfl_busy_reason()}
+            # The commit-time admission (button gates BG-03, the BG-14 rule):
+            # THIS connection armed now, no start claim, no run from line
+            # (bound to the loaded program, XZ-07), no load / unload in
+            # progress, the interpreter idle by a poll that succeeded now.
+            # Before begin_program_change: it refuses a change in progress.
+            why = _write_admission_refusal(conn_key)
+            if why:
+                return {"ok": False, "error": why}
 
-            # Phase markers (B8) subdivide load_file so the lag monitor pins which
-            # step holds the loop — the run named "handle_command cmd=load_file"
-            # at ~78 ms but couldn't say which part. set_mode/program_open already
-            # offload their NML work; if a marker dominates a future lag.window,
-            # that's the synchronous piece to move off-loop next.
-            _set_phase("load_file.set_mode")
-            await set_mode(linuxcnc.MODE_AUTO)
+            # No AUTO pre-step (button gates BG-03): PLAN_OPEN needs no mode
+            # — LinuxCNC takes it in E-Stop, off and MANUAL (emctaskmain.cc
+            # v2.9.4) — and the switch failed off / unhomed, refusing a load
+            # the gate had allowed. A start switches to AUTO itself; that
+            # switch closes the plan (emcTaskAbort → emcTaskPlanClose) and
+            # PLAN_RUN re-opens task.file (emctaskmain.cc:2302), from line 1.
+            # Phase markers (B8) subdivide load_file so the lag monitor pins
+            # which step holds the loop.
             # Fire-and-forget (no wait_complete). milltask opens the file in its
             # OWN process; our `wait=5` just polled it via CMD.wait_complete — and
             # the LinuxCNC C binding HOLDS THE GIL across that poll, so the
@@ -5631,11 +5641,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
 
         if cmd == "unload_file":
             require_armed(armed)
-            blocked = reject_if_auto_running()
-            if blocked:
-                return blocked
-            if _rfl_busy():
-                return {"ok": False, "error": _rfl_busy_reason()}
+            # The load's commit-time admission (button gates BG-03).
+            why = _write_admission_refusal(conn_key)
+            if why:
+                return {"ok": False, "error": why}
             if not _status_runtime.begin_program_change():
                 return {"ok": False, "error": "Load record not writable — nothing unloaded"}
             try:

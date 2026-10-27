@@ -7,10 +7,19 @@ reachable (BG-04); the recovery order is a directed rule with the trip as an
 input (BG-11); the confirmed G30 read is its own class, closed where the synch
 is refused (BG-13); the manual spindle runs before homing only on a machine
 that declares it, in MANUAL (Q1)."""
+import os
 import re
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
+import fake_linuxcnc
+linuxcnc = fake_linuxcnc.install()
+
+import gateway  # noqa: E402
+from command_policy import COMMAND_GATES  # noqa: E402
+from test_button_gates import _Handlers, _payload, _run  # noqa: E402
 from command_policy import (  # noqa: E402
     G30_NOT_IN_AUTO, GATE_REQUIREMENTS, NOT_ARMED, STATE_UNKNOWN, TASK_MODE_AUTO,
     TASK_MODE_MANUAL, TASK_MODE_MDI, TRIP_UNACKED, UNHOMED_SPINDLE_MANUAL, MachineState,
@@ -158,6 +167,221 @@ class TestFrontendGateNames(unittest.TestCase):
         self.assertIsNotNone(m, "GATE_NAMES not found in permissions.ts")
         names = set(re.findall(r'"(\w+)"', m.group(1)))
         self.assertEqual(names, set(GATE_REQUIREMENTS))
+
+
+class TestCommandGates(unittest.TestCase):
+    """Each command names its D class (the dispatcher's check)."""
+
+    def test_the_commands_name_their_classes(self):
+        for cmd, g in (("load_file", "programLoad"), ("unload_file", "programLoad"),
+                       ("reparse_preview", "programLoad"), ("set_mode", "modeManual"),
+                       ("estop_reset", "estopReset"), ("read_g30", "parameterRead"),
+                       ("capture_g30", "g30Capture"), ("set_g30", "g30Write"),
+                       ("spindle_forward", "spindleManual"), ("spindle_reverse", "spindleManual"),
+                       ("spindle_increase", "spindleManual"), ("spindle_decrease", "spindleManual")):
+            self.assertEqual(COMMAND_GATES[cmd], g, cmd)
+
+
+class _Writer(_Handlers):
+    """The handlers, with THIS connection registered and armed (a load is
+    admitted at its commit for the sending connection — the BG-14 rule)."""
+
+    def setUp(self):
+        super().setUp()
+        clients, claims = dict(gateway._clients), list(gateway._source_claims)
+        self.addCleanup(lambda: (gateway._clients.clear(), gateway._clients.update(clients),
+                                 gateway._source_claims.__setitem__(slice(None), claims)))
+        gateway._clients.clear()
+        gateway._source_claims.clear()
+        self.writer = gateway.ClientState(ip="d", ws=None, armed=True)
+        gateway._clients[921] = self.writer
+        p = mock.patch.object(gateway, "_unacked_trip", None)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def send(self, msg, **over):
+        gateway._shared_status = _payload(**over)
+        gateway._cmd_lock = None
+        return _run(gateway.handle_command(msg, True, self.writer.conn_key))
+
+
+class TestLoadWithoutAuto(_Writer):
+    """BG-03: the load opens the program in whatever mode task is in."""
+
+    def setUp(self):
+        super().setUp()
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.prog = os.path.join(self.tmp.name, "part.ngc")
+        Path(self.prog).write_text("G0 X1\nM2\n")
+        p = mock.patch.object(gateway, "get_nc_files_dir", return_value=self.tmp.name)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_no_mode_switch_before_the_open(self):
+        r = self.send({"cmd": "load_file", "path": self.prog})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.cmd.args_of("program_open"), (self.prog,))
+        self.assertNotIn("mode", self.cmd.names(), "PLAN_OPEN needs no AUTO")
+
+    def test_loads_in_estop_off_and_unhomed(self):
+        for over in ({"estop": True, "enabled": False}, {"enabled": False}, {"homed": False}):
+            with self.subTest(**over):
+                self.cmd.calls.clear()
+                gateway.STAT.enabled = over.get("enabled", True)
+                r = self.send({"cmd": "load_file", "path": self.prog}, **over)
+                self.assertTrue(r["ok"], r)
+                self.assertEqual(self.cmd.args_of("program_open"), (self.prog,))
+
+    def test_a_connection_disarmed_since_the_dispatch_loads_nothing(self):
+        self.writer.armed = False
+        r = self.send({"cmd": "load_file", "path": self.prog})
+        self.assertEqual(r, {"ok": False, "error": NOT_ARMED})
+        self.assertIsNone(self.cmd.args_of("program_open"))
+
+    def test_a_start_in_progress_refuses_load_and_unload(self):
+        gateway._source_claims.append(object())
+        for msg in ({"cmd": "load_file", "path": self.prog}, {"cmd": "unload_file"}):
+            r = self.send(msg)
+            self.assertFalse(r["ok"], r)
+            self.assertIn("starting or running", r["error"])
+        self.assertEqual([self.cmd.args_of(n) for n in ("program_open", "abort")], [None, None])
+
+
+class TestModePerTargetHandler(_Writer):
+    """BG-04 at the handler: the payload picks the target's class."""
+
+    def test_manual_in_estop_and_unhomed(self):
+        gateway.STAT.task_mode = linuxcnc.MODE_MDI
+        for over in ({"estop": True, "enabled": False}, {"homed": False}):
+            with self.subTest(**over):
+                self.cmd.calls.clear()
+                self.send({"cmd": "set_mode", "mode": linuxcnc.MODE_MANUAL}, task_mode=linuxcnc.MODE_MDI,
+                          inpos=True, current_vel=0.0, **over)
+                self.assertEqual(self.cmd.args_of("mode"), (linuxcnc.MODE_MANUAL,))
+
+    def test_mdi_unhomed_is_refused_with_its_reason(self):
+        r = self.send({"cmd": "set_mode", "mode": linuxcnc.MODE_MDI}, homed=False, inpos=True, current_vel=0.0)
+        self.assertEqual(r, {"ok": False, "error": "Not homed — MDI and Auto need Home All"})
+        self.assertNotIn("mode", self.cmd.names())
+
+    def test_mdi_unhomed_where_the_machine_declares_coord(self):
+        with mock.patch.object(gateway, "_coord_without_homing", lambda: True):
+            self.send({"cmd": "set_mode", "mode": linuxcnc.MODE_AUTO}, homed=False, inpos=True, current_vel=0.0)
+        self.assertEqual(self.cmd.args_of("mode"), (linuxcnc.MODE_AUTO,))
+
+    def test_no_switch_while_the_machine_moves(self):
+        r = self.send({"cmd": "set_mode", "mode": linuxcnc.MODE_MANUAL}, inpos=False, current_vel=5.0)
+        self.assertEqual(r, {"ok": False, "error": "Machine moving — wait until it stands"})
+
+
+class TestRecoveryHandler(_Writer):
+    """BG-11: E-Stop Reset waits for the acknowledgement — the policy says so."""
+
+    def test_reset_with_an_unacknowledged_trip(self):
+        with mock.patch.object(gateway, "_unacked_trip", {"reason": "hb"}):
+            r = self.send({"cmd": "estop_reset"}, estop=True, enabled=False)
+        self.assertEqual(r, {"ok": False, "error": TRIP_UNACKED})
+
+    def test_reset_before_the_first_status_is_refused(self):
+        gateway._shared_status = None
+        r = _run(gateway.handle_command({"cmd": "estop_reset"}, True, self.writer.conn_key))
+        self.assertFalse(r["ok"], r)
+
+
+class TestG30ReadGate(_Writer):
+    """BG-13: the read is its own class — off and unhomed open, ON + AUTO not."""
+
+    def test_on_in_auto_is_refused_before_the_synch(self):
+        r = self.send({"cmd": "read_g30"}, task_mode=linuxcnc.MODE_AUTO)
+        self.assertEqual(r, {"ok": False, "error": G30_NOT_IN_AUTO})
+
+    def test_off_and_unhomed_reach_the_handler(self):
+        for over in ({"enabled": False, "task_mode": linuxcnc.MODE_AUTO}, {"homed": False}):
+            with self.subTest(**over), mock.patch.object(gateway, "_g30_command",
+                                                         mock.AsyncMock(return_value={"ok": True, "seen": 1})):
+                r = self.send({"cmd": "read_g30"}, **over)
+                self.assertEqual(r, {"ok": True, "seen": 1})
+
+
+class TestSpindleBeforeHomingHandler(_Writer):
+    """Q1 at the handler and the INI switch's reading."""
+
+    def test_unhomed_without_the_switch_is_refused(self):
+        r = self.send({"cmd": "spindle_forward", "speed": 1000}, homed=False)
+        self.assertEqual(r, {"ok": False, "error": "Not homed — press Home All"})
+
+    def test_unhomed_with_the_switch_in_manual_runs(self):
+        with mock.patch.object(gateway, "_spindle_before_homing", lambda: True):
+            r = self.send({"cmd": "spindle_forward", "speed": 1000}, homed=False)
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.cmd.args_of("spindle"), (linuxcnc.SPINDLE_FORWARD, 1000.0))
+
+    def test_unhomed_with_the_switch_in_mdi_is_refused(self):
+        with mock.patch.object(gateway, "_spindle_before_homing", lambda: True):
+            r = self.send({"cmd": "spindle_forward", "speed": 1000}, homed=False, task_mode=linuxcnc.MODE_MDI)
+        self.assertEqual(r, {"ok": False, "error": UNHOMED_SPINDLE_MANUAL})
+
+
+class _Ini:
+    values = {}
+
+    def __init__(self, _path):
+        pass
+
+    def find(self, section, key):
+        return self.values.get((section, key))
+
+
+class TestIniFacts(unittest.TestCase):
+    """The two INI facts: exactly "1" switches on; anything else is off."""
+
+    def setUp(self):
+        saved = (gateway.STAT, gateway._spindle_before_homing_cache, gateway._coord_without_homing_cache)
+        self.addCleanup(lambda: (setattr(gateway, "STAT", saved[0]),
+                                 setattr(gateway, "_spindle_before_homing_cache", saved[1]),
+                                 setattr(gateway, "_coord_without_homing_cache", saved[2])))
+        gateway.STAT = linuxcnc.stat()
+        gateway.STAT.ini_filename = "/x/machine.ini"
+        p = mock.patch.object(gateway.linuxcnc, "ini", _Ini)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def _spindle(self, raw):
+        _Ini.values = {} if raw is None else {("DISPLAY", "WEBUI_SPINDLE_BEFORE_HOMING"): raw}
+        gateway._spindle_before_homing_cache = None
+        return gateway._spindle_before_homing()
+
+    def test_spindle_switch(self):
+        self.assertTrue(self._spindle("1"))
+        self.assertTrue(self._spindle(" 1 "))
+        for raw in (None, "", "0", "yes", "true", "2", "on"):
+            with self.subTest(raw=raw):
+                self.assertFalse(self._spindle(raw))
+
+    def test_an_invalid_value_is_said(self):
+        with mock.patch.object(gateway._trace, "emit") as emit:
+            self.assertFalse(self._spindle("yes"))
+        self.assertIn("policy.spindle_before_homing_invalid", [c.args[0] for c in emit.call_args_list])
+
+    def _coord(self, kins_type, nfh):
+        _Ini.values = {} if nfh is None else {("TRAJ", "NO_FORCE_HOMING"): nfh}
+        gateway.STAT.kinematics_type = kins_type
+        gateway._coord_without_homing_cache = None
+        return gateway._coord_without_homing()
+
+    def test_coord_without_homing(self):
+        self.assertTrue(self._coord(linuxcnc.KINEMATICS_IDENTITY, "1"))
+        self.assertFalse(self._coord(linuxcnc.KINEMATICS_IDENTITY, None))
+        self.assertFalse(self._coord(linuxcnc.KINEMATICS_IDENTITY, "0"))
+        self.assertFalse(self._coord(linuxcnc.KINEMATICS_BOTH, "1"), "COORD refuses unhomed non-identity kins")
+        self.assertFalse(self._coord(None, "1"), "unread kins type: closed")
+
+
+class TestTaskModeConstants(unittest.TestCase):
+    def test_the_policy_names_the_bindings_modes(self):
+        self.assertEqual((TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI),
+                         (linuxcnc.MODE_MANUAL, linuxcnc.MODE_AUTO, linuxcnc.MODE_MDI))
 
 
 if __name__ == "__main__":
