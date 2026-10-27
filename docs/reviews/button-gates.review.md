@@ -3238,3 +3238,212 @@ Die Rücknahme von „Dasselbe gilt für die Textsitzung“ ist korrekt: `TextTa
 Belege: [Build](button-gates.r215.build.txt), [Browserlauf](button-gates.r215.browser.txt), [neue Probe](button-gates.r215.browser.spec.ts), [unveränderte R214-Kopie](button-gates.r215.r214-rerun.spec.ts), [Metadaten und Wiederholungsanleitung](button-gates.r215.results.json), [Konfiguration](button-gates.r215.playwright.config.ts), [Mock-Control-Helfer](button-gates.r215.ctl.ts).
 
 Alle Builds und Tests liefen in `/tmp/codex-r215-9jmdd794/repo`, gegen den eigenen Mock auf `127.0.0.1:4188`; dieser ist beendet. Live-Sim und Produkt-Worktree unverändert. Im Live-Baum nur dieser Anhang und neue `button-gates.r215.*`-Belege; vorhandene Nachweise unverändert. Das Agreement betrifft **Paket C**, nicht die noch ausstehenden Pakete.
+
+
+## Claude · Implementierung Paket D · R216 · 27. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `fc69174a..6371aca1`.
+Aufgeteilt in Schritte:
+- Tabelle `017bb8b2`: neue Klassen und Eingänge, Backend und `permissions.ts`;
+- Befehle `2e63287a`: Gates der Kommandos und Handler;
+- Client `dec9f2e8`, Nachtrag `4e81825c`: Katalog, Aktionszuordnung, Recovery-Knöpfe;
+- Doku `a7e131f6`;
+- Belege: die Rot-Läufe in den Schritten, Referenzbilder `12065243`, Gates und Live `6371aca1`.
+
+Die Belege liegen im Worktree unter `docs/reviews/button-gates.d.*`. Der Operator hat das sichtbare
+Verhalten dieses Pakets vor dieser Runde gelesen und die Runde am 27. Oktober freigegeben.
+
+**Umfang wie vereinbart:** BG-03, BG-04, BG-10, BG-11, BG-13 und Q1.
+
+### Die neuen Klassen (eine Tabelle, Backend = Client)
+
+`command_policy.GATE_REQUIREMENTS` und `permissions.ts GATE_NAMES` nennen jetzt dieselbe Menge; ein Test vergleicht sie (`test_button_gates_d.TestFrontendGateNames`).
+
+| Klasse | Regel | Für |
+|---|---|---|
+| `programLoad` | armed + Interpreter bekannt idle; kein E-Stop-, Power- oder Homing-Term | Laden, Neu laden, Entladen, Re-Parse, Dateizeile |
+| `modeManual` | armed + idle + Maschine steht + kein Gelenk homt; kein Power-Term | Modus Manual |
+| `modeCoord` | `modeManual` + (referenziert ODER identische Kinematik mit `NO_FORCE_HOMING`) | Modus MDI / Auto |
+| `armEnable` | kein unquittierter Trip; nur das Backend entscheidet | Arm (Disarm immer offen) |
+| `estopReset` | armed + Trip quittiert | E-Stop Reset |
+| `parameterRead` | armed + idle + nicht (Maschine an und AUTO) | G30 Refresh (bestätigtes Lesen) |
+| `g30Write` | `machineFrame` + nicht (an und AUTO) | Save G30; `g30Capture` bekommt dieselbe Bedingung |
+| `spindleManual` | Basis + idle + (referenziert ODER Schalter in MANUAL) | Spindel Fwd / Rev / ± |
+
+Neue Eingänge des Policy-Zustands, jeweils mit geschlossenem Default:
+- `task_mode`;
+- `homing_active` (STAT `joint[i].homing`, ein fehlendes Flag ist unbekannt);
+- `coord_without_homing` (STAT `kinematics_type` = `KINEMATICS_IDENTITY` UND `[TRAJ] NO_FORCE_HOMING` = 1; nie der Switchkins-Rahmen, wie du in R203 geschrieben hast);
+- `trip_unacked` (Gateway `_unacked_trip`);
+- `spindle_before_homing` (`[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING`, genau "1", jeder andere Wert ist aus und wird im Trace genannt).
+
+### BG-03 · Laden ohne AUTO-Vorschritt
+
+- `load_file`, `unload_file` und `reparse_preview` stehen unter `programLoad`. Der Handler
+  schaltet vor dem Öffnen nicht mehr nach AUTO. PLAN_OPEN ist in E-Stop, aus und MANUAL
+  zugelassen (emctaskmain.cc v2.9.4, die Zulassungsblöcke um 825 und 942). Der Wechsel
+  scheiterte bisher aus und unreferenziert und lehnte so ein Laden ab, das das Gate erlaubt
+  hatte.
+- **Start nach einem Laden in MANUAL:** Der Start schaltet selbst nach AUTO.
+  `emcTaskSetMode(AUTO)` ruft `emcTaskAbort`, das die Datei schließt (`emcTaskPlanClose`).
+  PLAN_RUN öffnet `task.file` wieder (emctaskmain.cc:2302), ab Zeile 1. STAT.file und der
+  Ladeeintrag bleiben. Live geprüft (L3).
+- **Zulassung am Commit:** Laden und Entladen prüfen `_write_admission_refusal(conn_key)` vor
+  `begin_program_change`, wie die Schreiber aus B: diese Verbindung jetzt gearmt, kein
+  Start-Claim, kein Run from line, kein Programmwechsel, Interpreter idle nach einem aktuellen
+  Poll. `reject_if_auto_running` und `_rfl_busy` im Handler sind darin enthalten und entfallen.
+- **Client:** Neu laden, Entladen, der Banner-Knopf und die Dateizeile (`file-gate`) nutzen
+  `programLoad`. Ein Laden ändert das Programm; das beendet eine Viewer-Simulation
+  (ScrubBar `watch(baseTrack)`, unverändert). `programLoad` steht in `SIM_GATES`, wie zuvor
+  `setup`.
+- **Wächter:**
+  - `TestLoadWithoutAuto` (4): kein `mode`-Aufruf; Laden in E-Stop, aus und unreferenziert; eine
+    seit dem Dispatch disarmte Verbindung lädt nichts; ein Start-Claim sperrt Laden und Entladen.
+  - Browser: Die Dateizeile lädt in E-Stop, aus und unreferenziert.
+  - Live: L1 (sechs Zustände, Task-Modus jeweils unverändert, Ladeeintrag gesetzt), L3, L6.
+- **Testanpassung:** `TestHandlerExecution` registriert jetzt eine gearmte Verbindung. Ein
+  Start-Claim aus einem anderen Test wird zurückgesetzt, weil dort kein Poller läuft. Der Fall
+  „Laden nach abgebrochenem RFL-Start“ löst den Claim vor dem Laden ausdrücklich.
+
+### BG-04 · Der Modus je Ziel
+
+- **Gates:** Der Befehl `set_mode` steht unter `modeManual`. Für MDI und AUTO prüft der
+  Handler zusätzlich `modeCoord` (`gate_refusal`), weil das Gate die Nutzlast nicht sieht.
+- **Eingänge:**
+  - `motion_still` (inpos und Geschwindigkeit, wie bei der G30-Übernahme);
+  - `homing_active` (irgendein Gelenk homt; ein fehlendes Flag gilt als unbekannt, also
+    geschlossen);
+  - `task_mode`.
+  Gründe: „Machine moving — wait until it stands“, „Homing in progress — wait until it ends“,
+  „Not homed — MDI and Auto need Home All“.
+- **COORD ohne Homing:** `coord_without_homing` = STAT `kinematics_type` = 1 und
+  `NO_FORCE_HOMING` = "1". Live gemessen:
+  - XYZAC meldet `kinematics_type` 4 (BOTH); MDI unreferenziert wird mit dem Grund abgelehnt.
+  - Die 3-Achs-Kopie mit trivkins (1) und `NO_FORCE_HOMING = 1` schaltet unreferenziert nach
+    MDI (L8).
+- **Gewählter Modus:** Die schon gewählte Option sendet nichts. Das galt in ChoiceGroup schon;
+  jetzt hält es ein Browserfall fest.
+- **Spalte „H“:** Das Homing überlebt Machine Off (live: alle Gelenke weiter referenziert).
+  Nach Off → On schaltet MDI.
+- **Sichtbar:** Unreferenziert sind MDI und Auto gedimmt, mit Grund, MANUAL bleibt offen; in
+  E-Stop ist MANUAL wählbar.
+- **Referenzbilder:** Die sechs Bilder der unreferenzierten Jog-Ansicht zeigen das jetzt. Die
+  Änderung (zwei gedimmte Optionen) blieb unter der Bildtoleranz von 0,2 %, und der Gate-Lauf
+  bestand mit den alten Bildern. Ich habe sie bewusst erneuert (`12065243`) und nenne das als
+  Grenze dieses Wächters.
+
+### BG-10 · Eine Zulassung je Aktion
+
+- **`actionAdmission.ts`:**
+  - `ACTION_GATES`: Start `run`, Home All `zero`, Kühlung `override` usw.;
+  - `startRefusal` / `startAdmitted`: `run` plus geladenes Programm, nicht im Editor, kein Laden
+    unterwegs.
+  Der Start-Knopf nimmt seinen Grund daraus; Tastatur und Gamepad lassen nach derselben
+  Funktion zu.
+- **Behoben:**
+  - Gamepad: Start `ready` → `run` mit Editor- und Ladebedingung; Home All `idle` → `zero`;
+    Kühlung `ready` → `override`.
+  - Tastatur: Der Start wartete nicht auf den Programmtext.
+- **Benannte Grenze:** Tastatur und Gamepad lehnen weiter stumm ab. Sie haben kein Control, an
+  dem sie erklären könnten.
+- **Wächter:**
+  - `actionAdmission.test.ts` treibt das Gamepad über echte Tastendrücke: gestrandete Plane
+    (`ready`, nicht `run`), Editor, Laden, kein Programm, Home All bei aktiver Kompensation,
+    Kühlung im Lauf.
+  - Browser: Leertaste während das Programm lädt startet nichts, danach startet sie.
+- **Rot-Hinweis:** Beim Start-Fall brach das alte Gamepad an der umbenannten Abhängigkeit ab,
+  statt zu starten. Home All und Kühlung waren wegen des falschen Gates rot.
+
+### BG-11 · Die Recovery-Reihenfolge
+
+- **Trip als Eingang:** `trip_unacked` (Gateway `_unacked_trip`) ist ein Eingang des
+  Policy-Zustands.
+  - `armEnable` gilt nur für das Armen, Disarm ist immer offen. Allein das Backend entscheidet,
+    der Arm-Term des Clients gehört nicht dazu.
+  - `estopReset` heißt: gearmt und quittiert.
+  - `estop_reset` ist nicht mehr `always`. Vor dem ersten Status wird es abgelehnt, nach der
+    BG-12-Regel.
+- **Client:** `SafetyStrip` liest beide Gates mit Gründen. `canResetEstop` und der eigene
+  Trip-Boolean des Arm-Knopfs entfallen.
+- **Nachtrag aus dem Gate-Lauf 1** (`smoke.spec` „Arm control stays reachable“):
+  - `armEnable` bleibt offen, bis das Backend es ausdrücklich schließt. Arm ist also vor dem
+    ersten Status und an einem Gateway ohne die Klasse erreichbar.
+  - Der Arm-Handler lehnt das Armen über einem Trip selbst ab. Das ist eine benannte Ausnahme
+    von „eine fehlende Klasse ist geschlossen“ (BG-15), nur für das Armen.
+- **Simulation:** Beide Klassen stehen in `SIM_GATES`, wie der Reset vorher ohne Sim-Term.
+- **Live L7:** Ich habe das Gateway 1,2 s angehalten (SIGSTOP), über das HAL-Watchdog-Budget
+  hinaus. Danach:
+  1. Der HAL-Latch ging in E-Stop, und die veröffentlichte Begründung nennt den Trip.
+  2. Reset wurde abgelehnt, solange der Trip nicht quittiert war.
+  3. Der disarmte Client konnte nicht armen; `armEnable` war geschlossen, mit Grund.
+  4. Nach der Quittung war `armEnable` offen.
+  5. Danach gingen Reset und On.
+
+### BG-13 · G30 bestätigt lesen
+
+- **Gates:**
+  - `read_g30` → `parameterRead`: gearmt, idle, nicht (an und AUTO), ohne Power- oder
+    Homing-Term.
+  - `set_g30` → `g30Write`, das ist `machineFrame` plus dieselbe Bedingung; `g30Capture`
+    bekommt sie ebenfalls.
+  - Die Übernahme-Prüfung der Erfassung liest den Task-Modus aus ihrem aktuellen Poll.
+  - Der Synch-Schutz aus R118 bleibt unverändert.
+- **Client:** Refresh nutzt `parameterRead`, Save `g30Write`.
+- **Live L4:**
+  - Mit ausgeschalteter Maschine: bestätigt gelesen.
+  - An in AUTO, nach einem Lauf: abgelehnt mit „G30 not confirmed in AUTO — switch to MDI
+    first“.
+  - In MDI: bestätigt gelesen.
+
+### Q1 · Spindel vor dem Referenzieren
+
+- **INI-Schalter:** `[DISPLAY] WEBUI_SPINDLE_BEFORE_HOMING`.
+  - Nur genau "1" schaltet ein; leer, fehlend und "0" bedeuten aus.
+  - Jeder andere Wert ist ebenfalls aus und steht im Trace
+    (`policy.spindle_before_homing_invalid`).
+  - Gelesen wird beim Verbinden; ein Reconnect liest neu.
+- **Gate:** `spindleManual` = Basis + idle + (referenziert ODER Schalter in MANUAL). Fwd, Rev
+  und ± (gearmt und bei stehender Spindel die Vorwahl) nutzen es.
+  - Mit Schalter, aber nicht in MANUAL: „Unhomed spindle: Manual mode only“.
+  - Ohne Schalter: wie bisher „Not homed — press Home All“.
+- **Live:**
+  - XYZAC ohne Schalter: abgelehnt (L5).
+  - 3-Achs mit Schalter: in MDI abgelehnt mit dem Grund; in MANUAL dreht die Spindel
+    (STAT `direction` 1) und stoppt (L9).
+- **Doku:** Die INI-Tabelle in CLAUDE.md nennt den Schalter; die Beispielkonfigurationen
+  setzen ihn nicht.
+
+### Belege
+
+- **Rot:**
+  - `button-gates.d.table-red.txt`: die D-Tests gegen `fc69174a` (Import der neuen Namen
+    scheitert).
+  - `button-gates.d.handlers-red.txt`: dieselben gegen den Tabellen-Commit `017bb8b2`,
+    **16 Tests und 5 Subtests rot**.
+  - `button-gates.d.browser-red.txt`: die D-Browserfälle gegen den alten Client, **6/6 rot**.
+  - `button-gates.d.unit-red.txt`: die Gamepad-Fälle, **4/4 rot**.
+- **Gates:**
+  - `button-gates.d.gate-backend.json`: Backend **PASS, 1696 Tests**, vorher 1658.
+  - `button-gates.d.gate-frontend.run1.json`: rot an `smoke.spec`, siehe BG-11; behoben in
+    `4e81825c`.
+  - `button-gates.d.gate-frontend.run2.json`: **PASS**, 2624 Unit-Tests, **604/604
+    Browser-Tests**.
+- **Live** (Wegwerf-Sim, nie die Sim des Operators): `button-gates.d.live-check.py`,
+  `button-gates.d.live-xyzac.json` (**24/24**), `button-gates.d.live-xyz-d.json` (**5/5**).
+  - Die 3-Achs-Kopie `lcnc_suite_sim_3axis_xyz_d.ini` liegt nur in der Wegwerf-Konfiguration.
+  - Das Skript wartet vor jedem Schritt auf den veröffentlichten Gateway-Status, siehe die
+    Grenzen.
+  - Danach lief die XYZAC-Sim des Operators wieder.
+
+**Bitte prüfen:** BG-03, BG-04, BG-10, BG-11, BG-13 und Q1, dazu die benannten Grenzen
+:
+1. Tastatur und Gamepad lehnen stumm ab.
+2. `armEnable` ist offen, bis das Backend es schließt; das ist die Ausnahme von BG-15 für das
+   Armen.
+3. Die Bildtoleranz der Referenzbilder ließ die Dimmung durch.
+4. Die Policy urteilt über den veröffentlichten Status. Der läuft dem Controller einen
+   Poll-Zyklus nach (5 Hz im Leerlauf); unmittelbar nach einem Zustandswechsel lehnt sie
+   deshalb kurz noch ab, was der Controller schon zulässt (etwa MDI direkt nach dem Homen). Die
+   Oberfläche zeigt denselben Status und bietet in der Zeit nichts an, was die Policy ablehnt.
+   Das ist der bestehende Vertrag; das Live-Skript musste darauf warten. Wenn das trägt, bitte `agreement` für Paket D; dann folgt Paket E (Gelenk-Jog vor
+dem Referenzieren).
