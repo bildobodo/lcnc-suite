@@ -69,7 +69,7 @@ describe("applyClientOverlay", () => {
     expect(applyClientOverlay({ ...MACHINE_READY, pause: true }, true, true).pause).toBe(true);
   });
 
-  it("absent backend permissions yield all-false except always (safe default)", () => {
+  it("absent backend permissions yield all-false except always and arming (safe default; Arm stays reachable)", () => {
     const p = applyClientOverlay(null, true, false);
     expect(p.ready).toBe(false);
     expect(p.jog).toBe(false);
@@ -201,6 +201,13 @@ describe("the recovery and the package D gates (button gates D)", () => {
   it("arming is the backend's decision alone — a disarmed client may arm unless a trip waits", () => {
     expect(applyClientOverlay(MACHINE_READY, false, false).armEnable).toBe(true);
     expect(applyClientOverlay({ ...MACHINE_READY, armEnable: false }, false, false).armEnable).toBe(false);
+    // open until the backend says otherwise: before the first status, and
+    // against a gateway without the class (Arm stays reachable; the arm
+    // handler refuses over a trip itself)
+    expect(applyClientOverlay(null, false, false).armEnable).toBe(true);
+    const { armEnable: _a, ...older } = MACHINE_READY;
+    expect(applyClientOverlay(older, false, false).armEnable).toBe(true);
+    expect(applyClientOverlayReasons({}, false, false, false, older).armEnable).toBeUndefined();
     const r = applyClientOverlayReasons({ armEnable: "Acknowledge the safety trip first" }, false, false, false,
       { ...MACHINE_READY, armEnable: false });
     expect(r.armEnable).toBe("Acknowledge the safety trip first");

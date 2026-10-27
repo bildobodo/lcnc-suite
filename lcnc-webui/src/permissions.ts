@@ -199,7 +199,11 @@ const STOP_GATES: ReadonlySet<keyof Permissions> = new Set([
  * Gates judged by the backend alone, like the stops: the stops, and ARMING
  * (`armEnable`, button gates BG-11) — it is what a disarmed client does, so
  * the client's own `armed` term can never be part of it; the backend closes
- * it while a safety trip waits for its acknowledgement.
+ * it while a safety trip waits for its acknowledgement. Arming is the one
+ * class that stays OPEN until the backend says otherwise: the Arm button is
+ * reachable before the first status and against a gateway without the class
+ * (smoke.spec "Arm control stays reachable"), and the gateway's arm handler
+ * refuses arming over an unacknowledged trip itself.
  */
 const BACKEND_ONLY_GATES: ReadonlySet<keyof Permissions> = new Set([
   ...STOP_GATES, "armEnable",
@@ -227,6 +231,7 @@ export function applyClientOverlay(
   const out = {} as Permissions;
   for (const g of GATE_NAMES) {
     if (g === "always") { out[g] = true; continue; }
+    if (g === "armEnable") { out[g] = machine?.[g] !== false; continue; }
     if (BACKEND_ONLY_GATES.has(g)) { out[g] = !!machine?.[g]; continue; }
     out[g] = !!machine?.[g] && armed
       && (BUSY_GATES.has(g) ? !busy : true)
@@ -272,6 +277,11 @@ export function applyClientOverlayReasons(
   for (const g of GATE_NAMES) {
     if (g === "always") continue;
     const unknown = perms != null && perms[g] === undefined;
+    if (g === "armEnable") {   // open unless the backend closes it (above)
+      const r = perms?.[g] === false ? machine?.[g] : undefined;
+      if (r) out[g] = r;
+      continue;
+    }
     if (BACKEND_ONLY_GATES.has(g)) {
       const r = unknown ? CLIENT_REASONS.unknownClass : machine?.[g];
       if (r) out[g] = r;
