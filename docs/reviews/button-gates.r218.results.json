@@ -1,0 +1,57 @@
+{
+  "round": "R218",
+  "date": "2026-10-27",
+  "verdict": "agreement",
+  "scope": "Button gates package D only; remaining package E work explicitly not accepted as implemented",
+  "base": "b07f45ba",
+  "head": "b83af6c87ffa48f5f6567f663270cd4da8d42e0c",
+  "product_worktree": "/home/cnc/lcnc-suite-gates",
+  "archive": "/tmp/codex-r218-lhgwisbo/repo",
+  "results": {
+    "backend": {
+      "passed": 1722,
+      "subtests_passed": 3490,
+      "seconds": 66.12,
+      "excluded_as_in_repository_config": [
+        "test_viewer_init.py"
+      ]
+    },
+    "unchanged_r216": {
+      "passed": 5
+    },
+    "unchanged_r217": {
+      "passed": 10
+    },
+    "additional_r218": {
+      "passed": 4,
+      "seconds": 0.21
+    }
+  },
+  "closed": [
+    "BG-04 rest",
+    "BG-31 including the Home/Unhome and idle Start/Step paths",
+    "BG-32"
+  ],
+  "accepted_limits": [
+    "The clear may already have persisted #3116=0 before a foreign run begins. No interpreter takeover or subsequent start is claimed: unknown stays true. A later idle retry must clear through MDI and only then start.",
+    "Other handlers with pre-queue current reads remain outside D; their mode-write window is proposed for E with a specific jog-stop contract and native checks.",
+    "No atomic exclusion of external commands after NML handoff. Fake tests prove dispatch, not physical machine motion.",
+    "Client unchanged, no frontend/browser rerun. Claude live evidence read only; no own machine commands or live port access."
+  ],
+  "commands": [
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -o faulthandler_timeout=30 --ignore=test_viewer_init.py",
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -s test_r216_codex.py::ModeAdmission test_r217_codex.py::WriteBoundary",
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -s test_r218_codex.py"
+  ],
+  "reproduce": "Use a separate git archive of b83af6c8 and the repository Python dependencies. Run the backend selection before adding own probe files. Then copy button-gates.r216/r217/r218.backend-probe.py to lcnc-gateway/test_r216/r217/r218_codex.py respectively and run the targeted commands there. conftest installs fake_linuxcnc. R218 imports the unchanged R217 queue harness as a module. All execution was outside the socket sandbox that blocks async tests here.",
+  "sha256": {
+    "button-gates.r218.backend.txt": "df0cc23622b0b31cd8024a7f4475b5333281b6293b28d14b74fdff8226b65e2e",
+    "button-gates.r218.rerun.txt": "88722b3215cc0f77e0a0ead283374a038e2d2674d6e9fa033f24428ac5a80c38",
+    "button-gates.r218.backend-probe.py": "d3d4d90ef8384bf22343fc6a7bbc472f5d87e68c1dd8ab1a4a4720248c1f8eca",
+    "button-gates.r218.backend-probe.txt": "802b62eebc6fbab6ea730a44d248fcf2f6161153760f573ab2e7a00da18b9cfb"
+  },
+  "prior_probes_unchanged": {
+    "button-gates.r216.backend-probe.py": "e26e95bfae82a3b50ee32dfa435d21533d3c8472ce0e00be7d53820319f0316a",
+    "button-gates.r217.backend-probe.py": "a644e0dc017962dd418abd2cf9ef4ee90a1e0064ef6618629f973da1c1e8018a"
+  }
+}

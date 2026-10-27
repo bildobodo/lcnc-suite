@@ -1,0 +1,23 @@
+[VINIT] session bound to linuxcncsvr pid=668663 start=50300333
+[VINIT] try_connect_lcnc OK, pid=668663
+[VINIT] Loaded machine config: 3-Axis Mill
+current homing: {'ok': False, 'error': 'Homing in progress — wait until it ends'} []
+.current movement: {'ok': False, 'error': 'Machine moving — wait until it stands'} []
+...new MDI run, unhomed exception: {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.home after queue: {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.mode after queue: {'ok': False, 'error': 'Homing in progress — wait until it ends'} []
+.skip prelude: {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.spindle after queue: {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.cycle_start already_auto= True {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.cycle_start already_auto= False {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.auto_step already_auto= True {'ok': False, 'error': 'Program running — pause first to step'} []
+.auto_step already_auto= False {'ok': False, 'error': 'Program running — pause first to step'} []
+..unhome after teleop: {'ok': False, 'error': 'Machine busy — wait until it is idle'} ['teleop_enable']
+.
+15 passed in 0.26s
+[GC] +110ms gen=2 duration=11.9ms collected=964 uncollectable=0
+[GC] +123ms gen=2 duration=13.3ms collected=0 uncollectable=0
+[GC] +133ms gen=2 duration=9.8ms collected=0 uncollectable=0
+[GC] +140ms gen=2 duration=6.2ms collected=0 uncollectable=0
+[GC] +146ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +153ms gen=2 duration=6.3ms collected=0 uncollectable=0

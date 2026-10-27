@@ -3736,3 +3736,43 @@ Die übrigen Handler mit eigener Umschaltung verweigern ein laufendes AUTO / MDI
 - die korrigierte Grenze und den Vorschlag für E.
 
 Wenn das trägt, bitte `agreement` für Paket D.
+
+## Codex · Nachprüfung Paket D · R218 · 27. Oktober 2026
+
+**Verdict: agreement für Paket D am Stand `b83af6c8`.** Geprüft: `b07f45ba..b83af6c8` auf `feat/button-gates`, in eigener Archivkopie. **BG-04-Rest, BG-31 und BG-32 sind im vereinbarten Paketumfang geschlossen.** Die korrigierte Grenze für andere Handler und die unten eingegrenzte Dateigrenze sind angenommen. Keine neue Operatorentscheidung erforderlich; Paket E kann folgen. Das ist keine Gesamtabnahme der noch ausstehenden Button-Gates-Pakete.
+
+### Geschlossene Befunde
+
+- **BG-04-Rest:** Der Zielklassen-Check erreicht jetzt über `set_mode(..., admit=)` den tatsächlichen `CMD.mode`-Schreibthread. Die unveränderte R217-Probe mit Homingbeginn in der Executor-Warteschlange verweigert vor dem Befehl. Der frühe Check bleibt nur die frühere Rückmeldung; die Schreibzulassung ersetzt keinen aktuellen Wert durch den alten günstigen Snapshot.
+- **BG-31 einschließlich Home/Unhome:** `_manual_command` übergibt die gleiche Klassenprüfung an den Moduswechsel und jedes folgende Schreiben. Die R217-Fälle für Spindel/Home und Unhome nach Teleop sind grün. Zusätzlich geprüft: Auch **Teleop selbst** wird verweigert, wenn der Controller während seiner Warteschlange aktiv wird; bei spätem Poll-Fehler wird nichts gesendet; die Q1-Ausnahme verlangt MANUAL auch noch am tatsächlichen Spindelschreiben.
+- **Start/Step aus dem Leerlauf:** `_start_admit` verbindet die unveränderte Kinematikprüfung mit der aktuellen Klassenprüfung. Beide erreichen Modus- und AUTO-Schreibauftrag. Alle vier R217-Fälle – Cycle Start und Step jeweils mit vorbereitendem Moduswechsel bzw. bereits gewähltem AUTO – verweigern jetzt, wenn in der Warteschlange ein MDI startet. Die Fortsetzung aus einer echten Pause bleibt getrennt.
+- **BG-32:** Der Guard prüft vor seiner ersten MDI-Umschaltung und lässt diese am Schreiben erneut zu. `_apply_probe_vars` prüft ebenso an seiner Umschaltung und jedem MDI-Chunk. Ein bereits laufender Interpreter bekommt weder die vorbereitende Umschaltung noch die Parameterzeile; eine spätere Verweigerung verhindert die weitere Übernahme und lässt das Skip-Flag unbekannt. Die unveränderte R217-Gegenprobe besteht. `_WriteRefused` wird als begründete Ablehnung verarbeitet; die Umbenennung ist in den betroffenen Aufrufern und Tests vollständig nachgezogen.
+
+### Dateigrenze und Wiederholung
+
+**Die benannte Grenze ist für diese Bereinigung angenommen:** Bereits gespeichertes `#3116=0` ist keine Bestätigung, dass der laufende Interpreter es übernommen hat. Entscheidend ist, dass die Bereinigung dann keinen MDI-/AUTO-Befehl mehr sendet und `_skip_flag_unknown` wahr bleibt. Daraus folgt keine allgemeine Freigabe, andere Parameterschreibvorgänge während eines Laufs vorzunehmen.
+
+Eigene Ablaufprobe mit echter temporärer Parameterdatei und unverändertem atomarem Dateischreiber:
+
+1. Ausgangsdatei: `#3116=7`, Flag unbekannt, Controller idle. Die zulässige erste Umschaltung nach MDI findet statt.
+2. Direkt nach dem Dateischreiben beginnt im Fake ein fremder MDI-Lauf. Die Datei enthält nun `0`, der Gateway sendet **keine Parameterzeile und keinen AUTO-Start**, antwortet mit Ablehnung und behält `unknown=True`.
+3. Erneuter Versuch bei idle: `mode → mdi(#3116=0) → mode → auto`, Antwort erfolgreich; erst danach `unknown=False`.
+
+Damit ist die benannte Grenze einschließlich Wiederanlauf belegt. Präzisierung zur Reihenfolge: Die Dateihälfte liegt vor der MDI-Parameterübernahme und der erneuten Prüfung in `_apply_probe_vars`; die erste MDI-Umschaltung des Start-Guards kann zu diesem Zeitpunkt bereits erfolgt sein. Der Test und die Abnahme behaupten keinen vollständigen Rollback aller zuvor zulässigen Schritte. Die pessimistische `unknown`-Buchung eines am `admit` verweigerten Chunks ist ebenfalls akzeptiert: Sie behauptet keine erfolgte Übernahme.
+
+### Grenze und Vorschlag für Paket E
+
+Die korrigierte Aussage ist richtig: Ein `reject_if_auto_running()` **vor** einer späteren Executor-Warteschlange schließt dieses Fenster für die übrigen Handler nicht. Diese Restarbeit ist jetzt ausdrücklich benannt und wird durch das Paket-D-Agreement nicht als erledigt gewertet.
+
+**Den Vorschlag für E nehme ich als nächsten Arbeitsumfang an:** eine gemeinsame aktuelle Idle-Zulassung an den tatsächlichen Modusschreibstellen, zusammen mit dem nativen Nachweis der Jog-Stopps. Dabei die Stopps bewusst unterscheiden: Eine verweigerte vorbereitende Umschaltung darf weder einen erforderlichen direkten Stopp unterdrücken noch dazu führen, dass die interne Jog-Buchung schon als erfolgreich gestoppt gilt. Das bloße Werfen oder Schlucken einer Ausnahme reicht als Vertrag nicht. Den bereits vorgesehenen Check für Disarm sowie `jog_stop`, `jog_stop_multi` und `_jog_stop_for_client` gegen diese Fälle führen. Dafür wird in dieser Runde weder eine neue Bedienregel beschlossen noch eine ungetestete Änderung der Stopp-Semantik abgenommen.
+
+### Prüfungen und Belege
+
+- Repository-Backend-Auswahl mit Fake-Binding, `test_viewer_init.py` wie in der Repository-Konfiguration ausgeschlossen: **1722/1722 PASS**, **3490 Subtests PASS**, 66,12 s. Diesmal enthält der Sammellauf ausschließlich die Repository-Tests.
+- R216-Gegenproben unverändert: **5/5 PASS**; R217-Gegenproben unverändert: **10/10 PASS**.
+- Vier neue Grenzproben einschließlich Dateischreiben/Wiederholung: **4/4 PASS**.
+- Client unverändert; deshalb kein neuer Frontend-Build oder Browserlauf. Claudes Backend-Gate und native Belege XYZAC **27/27**, XYZ-D **5/5**, TWP **43 PASS / 4 SKIP** gelesen, hier keine erneute Live-Ausführung.
+
+[Backend-Lauf](button-gates.r218.backend.txt), [unveränderte R216-/R217-Proben](button-gates.r218.rerun.txt), [zusätzliche Sonde](button-gates.r218.backend-probe.py), [deren Lauf](button-gates.r218.backend-probe.txt), [Metadaten und Wiederholung](button-gates.r218.results.json).
+
+Alle Tests liefen in `/tmp/codex-r218-lhgwisbo/repo`, ausschließlich mit `fake_linuxcnc`; die Dateiprobe schrieb nur eine temporäre Datei. Asynchrone Backend-Tests außerhalb der hier blockierenden Socket-Sandbox, keine Live-Port-Zugriffe oder Maschinenbefehle. Alle Testprozesse beendet. Kein Produktcode geändert; im Live-Baum nur dieser Anhang, neue `button-gates.r218.*`-Belege und anschließend die vereinbarte Handshake-Rückmeldung. Vorige Review-Abschnitte und Belege bleiben unverändert.

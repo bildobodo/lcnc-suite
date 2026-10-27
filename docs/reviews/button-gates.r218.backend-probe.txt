@@ -1,0 +1,16 @@
+[VINIT] session bound to linuxcncsvr pid=668663 start=50300333
+[VINIT] try_connect_lcnc OK, pid=668663
+[VINIT] Loaded machine config: 3-Axis Mill
+late failed poll: {'ok': False, 'error': 'Machine status not read — try again'} []
+.late Q1 mode change: {'ok': False, 'error': 'Unhomed spindle: Manual mode only'} []
+.before teleop: {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.persisted, then foreign run: {'ok': False, 'error': 'Skip flag #3116 not cleared — nothing started'} ['mode'] file= 0.0 unknown= True
+idle retry: {'ok': True} ['mode', 'mdi', 'mode', 'auto'] unknown= False
+.
+4 passed in 0.21s
+[GC] +116ms gen=2 duration=13.0ms collected=1051 uncollectable=0
+[GC] +124ms gen=2 duration=7.5ms collected=0 uncollectable=0
+[GC] +134ms gen=2 duration=9.8ms collected=0 uncollectable=0
+[GC] +142ms gen=2 duration=7.8ms collected=0 uncollectable=0
+[GC] +149ms gen=2 duration=7.1ms collected=0 uncollectable=0
+[GC] +155ms gen=2 duration=6.7ms collected=0 uncollectable=0
