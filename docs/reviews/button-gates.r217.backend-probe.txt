@@ -1,0 +1,155 @@
+[VINIT] session bound to linuxcncsvr pid=634909 start=50154426
+[VINIT] try_connect_lcnc OK, pid=634909
+[VINIT] Loaded machine config: 3-Axis Mill
+home after queue: {'ok': True} ['home']
+Fmode after queue: {'ok': True} ['mode']
+Fskip prelude: {'ok': False, 'error': 'Skip flag #3116 not cleared — nothing started'} ['mode']
+Fspindle after queue: {'ok': True} ['spindle']
+Fcycle_start already_auto= True {'ok': True} ['auto']
+Fcycle_start already_auto= False {'ok': True} ['mode', 'auto']
+Fauto_step already_auto= True {'ok': True} ['auto']
+Fauto_step already_auto= False {'ok': True} ['mode', 'auto']
+F.unhome after teleop: {'ok': True} ['teleop_enable', 'unhome']
+Fcurrent homing: {'ok': False, 'error': 'Homing in progress — wait until it ends'} []
+.current movement: {'ok': False, 'error': 'Machine moving — wait until it stands'} []
+...new MDI run, unhomed exception: {'ok': False, 'error': 'Machine busy — wait until it is idle'} []
+.
+=================================== FAILURES ===================================
+_______ WriteBoundary.test_home_rechecks_after_its_final_executor_queue ________
+
+self = <test_r217_codex.WriteBoundary testMethod=test_home_rechecks_after_its_final_executor_queue>
+
+    def test_home_rechecks_after_its_final_executor_queue(self):
+        def changed():
+            gateway.STAT.task_mode=lc.MODE_MDI
+            gateway.STAT.interp_state=lc.INTERP_READING
+        r=_run(self.queued({'cmd':'home_all'},changed))
+        print('home after queue:',r,self.cmd.names())
+>       self.assertNotIn('home',self.cmd.names())
+E       AssertionError: 'home' unexpectedly found in ['home']
+
+test_r217_codex.py:70: AssertionError
+_______ WriteBoundary.test_mode_rechecks_homing_after_the_executor_queue _______
+
+self = <test_r217_codex.WriteBoundary testMethod=test_mode_rechecks_homing_after_the_executor_queue>
+
+    def test_mode_rechecks_homing_after_the_executor_queue(self):
+        def changed():gateway.STAT.joint=tuple({'homing':1} for _ in range(16))
+        r=_run(self.queued({'cmd':'set_mode','mode':lc.MODE_MDI},changed))
+        print('mode after queue:',r,self.cmd.names())
+>       self.assertNotIn('mode',self.cmd.names())
+E       AssertionError: 'mode' unexpectedly found in ['mode']
+
+test_r217_codex.py:54: AssertionError
+_____ WriteBoundary.test_skip_flag_prelude_refuses_before_its_mode_switch ______
+
+self = <test_r217_codex.WriteBoundary testMethod=test_skip_flag_prelude_refuses_before_its_mode_switch>
+
+    def test_skip_flag_prelude_refuses_before_its_mode_switch(self):
+        # Old published idle, but another GUI's AUTO run now owns the machine.
+        self.controller(task_mode=lc.MODE_AUTO,interp_state=lc.INTERP_READING)
+        # The flag writer itself is isolated: this test concerns the MODE
+        # command before it. Keep it pending, as it would be until confirmed.
+        with mock.patch.object(gateway,'_skip_flag_unknown',True), \
+             mock.patch.object(gateway,'_apply_probe_vars',mock.AsyncMock(return_value=(False,False))):
+            r=_run(gateway.handle_command({'cmd':'cycle_start'},True,self.writer.conn_key))
+        print('skip prelude:',r,self.cmd.names())
+>       self.assertNotIn('mode',self.cmd.names(),'the guard must refuse BEFORE its own MDI switch')
+E       AssertionError: 'mode' unexpectedly found in ['mode'] : the guard must refuse BEFORE its own MDI switch
+
+test_r217_codex.py:119: AssertionError
+______ WriteBoundary.test_spindle_rechecks_after_its_final_executor_queue ______
+
+self = <test_r217_codex.WriteBoundary testMethod=test_spindle_rechecks_after_its_final_executor_queue>
+
+    def test_spindle_rechecks_after_its_final_executor_queue(self):
+        def changed():
+            gateway.STAT.task_mode=lc.MODE_MDI
+            gateway.STAT.interp_state=lc.INTERP_READING
+        r=_run(self.queued({'cmd':'spindle_forward','speed':1000},changed))
+        print('spindle after queue:',r,self.cmd.names())
+>       self.assertNotIn('spindle',self.cmd.names())
+E       AssertionError: 'spindle' unexpectedly found in ['spindle']
+
+test_r217_codex.py:62: AssertionError
+_____________ WriteBoundary.test_start_rechecks_before_queued_auto _____________
+
+self = <test_r217_codex.WriteBoundary testMethod=test_start_rechecks_before_queued_auto>
+
+    def test_start_rechecks_before_queued_auto(self):
+>       self.start_queue('cycle_start',True)
+
+test_r217_codex.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r217_codex.py:96: in start_queue
+    self.assertNotIn('auto' if already_auto else 'mode',self.cmd.names())
+E   AssertionError: 'auto' unexpectedly found in ['auto']
+_____________ WriteBoundary.test_start_rechecks_before_queued_mode _____________
+
+self = <test_r217_codex.WriteBoundary testMethod=test_start_rechecks_before_queued_mode>
+
+    def test_start_rechecks_before_queued_mode(self):
+>       self.start_queue('cycle_start',False)
+
+test_r217_codex.py:99: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r217_codex.py:96: in start_queue
+    self.assertNotIn('auto' if already_auto else 'mode',self.cmd.names())
+E   AssertionError: 'mode' unexpectedly found in ['mode', 'auto']
+_____________ WriteBoundary.test_step_rechecks_before_queued_auto ______________
+
+self = <test_r217_codex.WriteBoundary testMethod=test_step_rechecks_before_queued_auto>
+
+    def test_step_rechecks_before_queued_auto(self):
+>       self.start_queue('auto_step',True)
+
+test_r217_codex.py:108: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r217_codex.py:96: in start_queue
+    self.assertNotIn('auto' if already_auto else 'mode',self.cmd.names())
+E   AssertionError: 'auto' unexpectedly found in ['auto']
+_____________ WriteBoundary.test_step_rechecks_before_queued_mode ______________
+
+self = <test_r217_codex.WriteBoundary testMethod=test_step_rechecks_before_queued_mode>
+
+    def test_step_rechecks_before_queued_mode(self):
+>       self.start_queue('auto_step',False)
+
+test_r217_codex.py:102: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+test_r217_codex.py:96: in start_queue
+    self.assertNotIn('auto' if already_auto else 'mode',self.cmd.names())
+E   AssertionError: 'mode' unexpectedly found in ['mode', 'auto']
+_____________ WriteBoundary.test_unhome_rechecks_after_teleop_wait _____________
+
+self = <test_r217_codex.WriteBoundary testMethod=test_unhome_rechecks_after_teleop_wait>
+
+    def test_unhome_rechecks_after_teleop_wait(self):
+        def teleop(*args):
+            self.cmd.calls.append(('teleop_enable',args,{}))
+            gateway.STAT.interp_state=lc.INTERP_READING
+            gateway.STAT.task_mode=lc.MODE_MDI
+        self.cmd.teleop_enable=teleop
+        r=_run(gateway.handle_command({'cmd':'unhome_all'},True,self.writer.conn_key))
+        print('unhome after teleop:',r,self.cmd.names())
+>       self.assertNotIn('unhome',self.cmd.names())
+E       AssertionError: 'unhome' unexpectedly found in ['teleop_enable', 'unhome']
+
+test_r217_codex.py:80: AssertionError
+=========================== short test summary info ============================
+FAILED test_r217_codex.py::WriteBoundary::test_home_rechecks_after_its_final_executor_queue
+FAILED test_r217_codex.py::WriteBoundary::test_mode_rechecks_homing_after_the_executor_queue
+FAILED test_r217_codex.py::WriteBoundary::test_skip_flag_prelude_refuses_before_its_mode_switch
+FAILED test_r217_codex.py::WriteBoundary::test_spindle_rechecks_after_its_final_executor_queue
+FAILED test_r217_codex.py::WriteBoundary::test_start_rechecks_before_queued_auto
+FAILED test_r217_codex.py::WriteBoundary::test_start_rechecks_before_queued_mode
+FAILED test_r217_codex.py::WriteBoundary::test_step_rechecks_before_queued_auto
+FAILED test_r217_codex.py::WriteBoundary::test_step_rechecks_before_queued_mode
+FAILED test_r217_codex.py::WriteBoundary::test_unhome_rechecks_after_teleop_wait
+9 failed, 6 passed in 0.23s
+[GC] +151ms gen=2 duration=9.0ms collected=988 uncollectable=0
+[GC] +157ms gen=2 duration=6.8ms collected=0 uncollectable=0
+[GC] +164ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +170ms gen=2 duration=6.0ms collected=0 uncollectable=0
+[GC] +176ms gen=2 duration=5.9ms collected=0 uncollectable=0
+[GC] +182ms gen=2 duration=5.8ms collected=0 uncollectable=0

@@ -1,0 +1,59 @@
+{
+  "round": "R217",
+  "date": "2026-10-27",
+  "verdict": "findings",
+  "base": "6371aca1",
+  "head": "b07f45ba301b8747179131fe1292e339d3d23b5e",
+  "product_worktree": "/home/cnc/lcnc-suite-gates",
+  "archive": "/tmp/codex-r217-w_3f7v3r/repo",
+  "results": {
+    "backend": {
+      "repository_tests_passed": 1711,
+      "collected_passed": 1720,
+      "subtests_passed": 3482,
+      "extra_r216_probes": 5,
+      "duplicate_load_tests_imported_by_r216": 4,
+      "seconds": 67.44,
+      "excluded_as_in_repository_config": [
+        "test_viewer_init.py"
+      ]
+    },
+    "unchanged_r216_probes": {
+      "passed": 5,
+      "failed": 0
+    },
+    "new_r217_probes": {
+      "passed": 1,
+      "failed": 9
+    },
+    "combined_targeted_run": {
+      "passed": 6,
+      "failed": 9,
+      "seconds": 0.23
+    },
+    "findings": [
+      "BG-04/BG-31 rest: current admission still precedes the executor queue, and Unhome has an additional teleop wait; idle Start/Step final admission checks only kinematics",
+      "BG-32: Cycle Start can switch to MDI in skip-flag preparation before the new current run gate"
+    ]
+  },
+  "commands": [
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -o faulthandler_timeout=30 --ignore=test_viewer_init.py",
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -s test_r217_codex.py test_r216_codex.py::ModeAdmission"
+  ],
+  "reproduce": "Create a separate archive of b07f45ba; copy button-gates.r217.backend-probe.py to lcnc-gateway/test_r217_codex.py and the unchanged button-gates.r216.backend-probe.py to test_r216_codex.py. Run the targeted command in lcnc-gateway with the repository Python dependencies and conftest fake binding. The full backend log was collected before adding test_r217_codex.py, with test_r216_codex.py present; do not include the new red probes when reproducing that baseline.",
+  "limits": [
+    "No product modifications. No build/test/checkout in either product worktree. Only review append and new R217 evidence in live tree, followed by authorized handshake done.",
+    "All backend execution used fake_linuxcnc. VINIT import output contains process metadata but no native CMD was sent. No live ports, machine commands or browser probes.",
+    "Queue tests use a real single-worker ThreadPoolExecutor and a controlled STAT change after submission; no wall-clock timing assertion. They prove dispatch before rechecking, not native physical motion.",
+    "BG-32 isolates only the parameter writer with a refused result; the earlier mode call is unchanged production flow.",
+    "No atomic guarantee against external commands after NML handoff is claimed. Findings are state changes before the write during the gateway own waits.",
+    "Async backend tests ran outside the socket sandbox, which stalls these tests; all runners finished.",
+    "Client unchanged; no frontend rerun. Claude live results read only."
+  ],
+  "sha256": {
+    "button-gates.r217.backend-probe.py": "a644e0dc017962dd418abd2cf9ef4ee90a1e0064ef6618629f973da1c1e8018a",
+    "button-gates.r217.backend-probe.txt": "c4925c3cd3f726fa1e051294edcfe3a665fc6aeb020fba728017f03dbb2bf4c5",
+    "button-gates.r217.backend.txt": "7e3c24bf0eb90596861dbee4595a07c623857aadde937145cfd362f371433b91"
+  },
+  "unchanged_r216_sha256": "e26e95bfae82a3b50ee32dfa435d21533d3c8472ce0e00be7d53820319f0316a"
+}
