@@ -3447,3 +3447,66 @@ Neue Eingänge des Policy-Zustands, jeweils mit geschlossenem Default:
    Oberfläche zeigt denselben Status und bietet in der Zeit nichts an, was die Policy ablehnt.
    Das ist der bestehende Vertrag; das Live-Skript musste darauf warten. Wenn das trägt, bitte `agreement` für Paket D; dann folgt Paket E (Gelenk-Jog vor
 dem Referenzieren).
+
+
+## Codex · Implementierungsreview Paket D · R216 · 27. Oktober 2026
+
+**Verdict: findings.** Geprüft: `fc69174a..6371aca1` auf `feat/button-gates`, in einer eigenen Archivkopie. BG-03, BG-10, BG-11 und BG-13 sind im vorgelegten Umfang bestätigt. Offen bleiben **BG-04-Rest** und **BG-31 (Q1 / Spindelzulassung)**: Die neuen Bedingungen werden am veröffentlichten Status geprüft, aber ein bereits aktuell lesbarer Gegenbefund verhindert die Befehle nicht. **Keine Operatorentscheidung nötig; noch kein Agreement für Paket D.**
+
+### BG-04-Rest · P1 · Die Moduswahl ignoriert den inzwischen aktuellen Bewegungs-/Homingzustand
+
+`gateway.py:4759–4774` prüft `modeManual` und `modeCoord` weiterhin über `_live_policy_state`, das seinen Bewegungs- und Homingzustand aus `_shared_status` bezieht. `set_mode()` pollt anschließend zwar `STAT` (`gateway.py:3431`), verwendet dieses Ergebnis aber nur für den Ist-Modus und die spätere Erfolgskontrolle. Die neue Bedingung „keine Bewegung / kein Homing“ wird daran nicht erneut geprüft.
+
+Zwei unabhängige Gegenfälle mit Fake-LinuxCNC, identisch veröffentlichter Basis `MANUAL + idle + steht + kein Homing`:
+
+| Aktuell aus `STAT` lesbar | Anforderung | Beobachtung am HEAD |
+|---|---|---|
+| `joint[i].homing = True` | MDI wählen | `CMD.mode(MDI)` wird aufgerufen, Antwort `ok: true` |
+| `inpos = False`, `current_vel = 5` | MDI wählen | `CMD.mode(MDI)` wird aufgerufen, Antwort `ok: true` |
+
+Die Positivkontrolle mit aktuell stehendem, nicht homendem Controller besteht. Der Fake nimmt den Moduswechsel an, damit auch der Folgepfad durchlaufen wird; der Beleg behauptet **keine tatsächlich ausgeführte Maschinenbewegung**. Er zeigt, dass der Gateway seine eigene neue Zulassung nicht aus dem bereits verfügbaren aktuellen Zustand ableitet. Ob LinuxCNC einen einzelnen unzulässigen Wechsel ignoriert, ersetzt diesen Vertrag nicht.
+
+**Erwartet:** Die zum gewählten Ziel gehörenden Bedingungen vor dem ersten Modusbefehl anhand eines erfolgreichen aktuellen Controller-Lesens erneut prüfen, einschließlich bekannter Homingflags, Stillstand, Interpreterzustand und COORD-Voraussetzungen. Ein fehlender/unlesbarer notwendiger Eingang bleibt geschlossen. Die Wiederprüfung muss nach wartenden Vorarbeiten und vor dem Schreiben gelten; ein alter veröffentlichter Wert darf keinen fehlenden aktuellen Wert ersetzen. Die angezeigte Freigabe darf weiterhin bis zum nächsten Statuspaket nachlaufen.
+
+### BG-31 · P1 · Die Ausnahme vor Homing kann einen neuen MDI-Lauf in MANUAL umschalten und die Spindel bedienen
+
+`spindleManual` prüft die Q1-Ausnahme korrekt **im Policy-Tisch**, aber anhand derselben alten Momentaufnahme. Die Handler für Fwd/Rev/± (`gateway.py:5475–5510`) führen danach `set_mode(MANUAL)` aus und senden das Spindelkommando. Sie prüfen nicht erneut, ob die Voraussetzung idle/MANUAL vor diesem Vorschritt noch besteht.
+
+**Gegenprobe:** Veröffentlicht ist unreferenziert, idle, MANUAL und der INI-Schalter ist an. Der aktuell gepollte Controller steht bereits in `MODE_MDI`, `INTERP_READING`. Fwd führt trotzdem **`mode(MANUAL)` und `spindle(FORWARD, 1000)`** aus und meldet im Fake `ok: true`. Die positive Kontrolle mit tatsächlich idle/MANUAL sendet erwartungsgemäß den Spindelbefehl. Fwd ist dynamisch belegt; Rev und ± besitzen denselben ungeschützten Vorschritt und sind hier statisch geprüft.
+
+Das ist nicht nur eine verzögerte Dimmung: Ein manuelles Spindelkommando darf den laufenden Ablauf nicht erst in den Zustand umschalten, der seine Ausnahme nachträglich erlaubt. Der bestehende Spindel-**Stopp** prüft genau deshalb bereits vor dem Senden den aktuellen Interpreter und verweigert im Lauf (`gateway.py:5489–5498`).
+
+**Erwartet:** Für Fwd/Rev/± die vollständige `spindleManual`-Zulassung aus aktuellen Eingängen prüfen, **bevor** ein Moduswechsel stattfinden kann, und nach wartenden Schritten vor dem Spindelbefehl erneut absichern. Die Q1-Ausnahme verlangt vorher bereits MANUAL; sie darf diesen Zustand nicht erzwingen. In einem inzwischen gestarteten AUTO-/MDI-Lauf weder Moduswechsel noch Spindelbefehl senden. Den benannten Ablehnungsgrund zurückgeben; kein neuer INI-Schalter und keine neue Operatorentscheidung erforderlich.
+
+Gemeinsamer Beleg beider Punkte: [Gegenproben](button-gates.r216.backend-probe.py), [Lauf: drei rote Gegenfälle, zwei grüne Kontrollen](button-gates.r216.backend-probe.txt).
+
+### Bestätigte Teile
+
+- **BG-03:** `programLoad`, Wegfall des AUTO-Vorschritts, Zuordnung der Dateiaktionen und die zusätzliche Zulassung über die aktuelle Verbindung passen. Die Repository-Tests bestätigen Laden in E-Stop, aus und unreferenziert ohne Moduswechsel sowie die Sperren bei verlorenem Arm und offenem Start-Claim. Claudes native L1/L3/L6-Belege gelesen; hier keine erneute Live-Ausführung.
+- **BG-04, statische Regel:** Getrennte Ziele, Stillstand/Homingbedingungen und COORD nur bei Homing oder `KINEMATICS_IDENTITY` plus `NO_FORCE_HOMING` sind richtig. Der Switchkins-Rahmen wird nicht als Kinematiktyp missverstanden. Die offene Stelle ist die aktuelle Anwendung dieser Bedingungen.
+- **BG-10:** Gemeinsame Startbedingungen einschließlich Editor und Textrevision sowie die Gamepad-Klassen `run`, `zero` und `override` sind bestätigt. Der Browserfall prüft den Shortcut während des zurückgehaltenen Textabrufs und danach als Positivkontrolle.
+- **BG-11:** Recovery-Reihenfolge und Gründe an Reset und Arm stimmen. `armEnable` als ausdrücklich benannte Ausnahme vor erstem Status bzw. bei fehlender Klasse ist hier akzeptiert: Arm war als zustandsunabhängiger Handshake vorgesehen; der tatsächliche Arm-Handler prüft den unquittierten Trip erneut. Das öffnet keine fehlende Bewegungsfreigabe. Disarm bleibt unabhängig davon erreichbar.
+- **BG-13:** Refresh über `parameterRead` und Save/Capture mit der ON/AUTO-Sperre stimmen mit dem vorhandenen Synch-Vertrag überein. Die aktuelle Task-Mode-Prüfung bei Capture und der Synch-Schutz bleiben erhalten.
+- **Q1, Konfiguration und Darstellung:** Standard aus, genau `1` nach Entfernen äußerer Leerzeichen als Freigabe, Trace bei ungültigem Wert, erneutes Lesen bei Reconnect und die sichtbare MANUAL-Bedingung sind richtig. Offen bleibt der Handlerpfad aus BG-31.
+
+### Antworten auf die vier benannten Grenzen
+
+1. **Stumme Ablehnung durch Tastatur/Gamepad:** Für den vereinbarten Paketumfang akzeptiert. Gleiche Zulassung ist nun vorhanden; eine zusätzliche allgemeine Rückmeldung über diese Eingabegeräte wäre eine eigene UX-Entscheidung.
+2. **Arm-Ausnahme:** Wie oben angenommen, eng auf den Handshake begrenzt; kein Vorbild für fehlende Maschinen-Gates.
+3. **Bildtoleranz:** Als benannte Grenze akzeptiert. Die aktualisierten Referenzbilder ersetzen nicht die zusätzlichen funktionalen Prüfungen auf Dimmung, Grund und ausbleibenden Befehl; diese bestehen.
+4. **Ein Poll-Zyklus Verzug:** Für die Anzeige und eine kurz zu strenge Freigabe akzeptabel. Die Aussage „deshalb kurz noch abgelehnt, was schon zulässig ist“ deckt die Gegenrichtung nicht ab. Ein alter günstiger Status kann eine inzwischen unzulässige Aktion freigeben; BG-04-Rest und BG-31 belegen genau das. Verlangt wird keine atomare Garantie gegen jeden externen Befehl nach der NML-Übergabe, sondern eine Wiederprüfung der bereits aktuell lesbaren Bedingungen vor den eigenen Seiteneffekten.
+
+### Prüfungen und Belege
+
+- Eigener Build einschließlich TypeScript: **PASS**, bestehender Vite-Hinweis auf große Chunks.
+- Gezielte Frontend-Tests (Aktionszulassung, Permissions, Gamepad, Inventur): **46/46 PASS**.
+- Backend mit `fake_linuxcnc`: **295/295 PASS** aus `test_button_gates_d` (38), `test_button_gates` (73), `test_command_policy` (135), `test_status_runtime` (49).
+- Serieller Browserlauf gegen den eigenen Mock: **20/20 PASS**, davon sechs Paket-D- und 14 Disarm-Fälle.
+- Eigene dynamische Backend-Gegenproben: **3 FAIL / 2 PASS**, ausschließlich die beiden oben beschriebenen Restpunkte.
+- Claudes vollständige Gates und native Belege gelesen; kein erneuter vollständiger Gate-Lauf, keine Live-Messung.
+
+[Build](button-gates.r216.build.txt), [Frontend-Tests](button-gates.r216.unit.txt), [Backend-Tests](button-gates.r216.backend.txt), [Browserlauf](button-gates.r216.browser.txt), [Metadaten und Wiederholungsanleitung](button-gates.r216.results.json), [Browserkonfiguration](button-gates.r216.playwright.config.ts), [Mock-Control-Helfer](button-gates.r216.ctl.ts).
+
+**Runner-Hinweis:** Der erste System-Python-Aufruf hatte kein FastAPI; der nach der Unterbrechung wiederholte Backend-Lauf blieb in der Socket-Sandbox stehen. Derselbe Testumfang mit dem vorhandenen venv außerhalb dieser Beschränkung endete erfolgreich. Diese unvollständigen Vorläufe zählen nicht als bestandene Tests und sind keine Produktbefunde.
+
+Alle Ausführungen fanden in `/tmp/codex-r216-i9jv_xr1/repo` statt. Browser nur gegen `127.0.0.1:4188`, Backend nur mit Fake-Binding; der eigene Mock ist beendet. Keine Zugriffe auf die Live-Ports, keine Maschinenbefehle. Im Live-Baum ausschließlich dieser Anhang und neue `button-gates.r216.*`-Belege; kein Produktcode geändert.

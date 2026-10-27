@@ -1,0 +1,71 @@
+{
+  "round": "R216",
+  "date": "2026-10-27",
+  "verdict": "findings",
+  "base": "fc69174a",
+  "head": "6371aca136266db74dda943e9763970376cc3267",
+  "archive": "/tmp/codex-r216-i9jv_xr1/repo",
+  "results": {
+    "build": "PASS",
+    "unit": {
+      "passed": 46,
+      "files": 4
+    },
+    "backend": {
+      "passed": 295,
+      "files": {
+        "test_button_gates_d.py": 38,
+        "test_button_gates.py": 73,
+        "test_command_policy.py": 135,
+        "test_status_runtime.py": 49
+      }
+    },
+    "browser": {
+      "passed": 20,
+      "disarmed": 14,
+      "setup_gates": 6
+    },
+    "independent_backend": {
+      "passed": 2,
+      "failed": 3,
+      "findings": [
+        "BG-04-Rest: current homing and movement ignored by mode admission based on published state",
+        "BG-31: unhomed spindle exception based on old MANUAL/idle snapshot forces MANUAL and sends spindle despite current MDI run"
+      ]
+    }
+  },
+  "commands": [
+    "nice -n 10 npm run build",
+    "nice -n 10 npx vitest run src/actionAdmission.test.ts src/permissions.test.ts src/useGamepad.test.ts src/controlInventory.test.ts",
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -o faulthandler_timeout=15 test_button_gates_d.py test_button_gates.py test_command_policy.py test_status_runtime.py",
+    "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 nice -n 10 node e2e/mock-gateway.mjs",
+    "nice -n 10 npx playwright test -c playwright.r216.config.ts setup-gates.spec.ts disarmed.spec.ts",
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -q -s test_r216_codex.py::ModeAdmission"
+  ],
+  "reproduce": "Use a separate archive of HEAD. Backend with repository dependencies, fake_linuxcnc and pytest conftest; copy backend-probe.py to lcnc-gateway/test_r216_codex.py and select ModeAdmission. For browser: build lcnc-webui, copy config to playwright.r216.config.ts and ctl.ts to e2e/ctl.ts; own mock on 127.0.0.1:4188, one worker.",
+  "runner_notes": [
+    "Initial system Python lacked fastapi; not a product failure.",
+    "The first venv run was interrupted; the sandboxed pytest rerun stalled after 21 tests. That process was stopped. Identical selection outside socket sandbox completed with exit 0. Incomplete logs are not counted as passes.",
+    "The final backend count is from pytest nodeids for the four selected files; double quiet from pyproject plus -q suppresses the textual count."
+  ],
+  "limits": [
+    "No live machine commands or requests to :8000/:5173. All execution in archive; own mock stopped.",
+    "Own probes prove gateway dispatch against a fresh contradictory fake STAT, not a real physical motion or native acceptance of each command. Fake CMD.mode sets the reported mode to exercise the successful downstream path.",
+    "UI poll cadence can lag; findings concern avoidable use of known-old admission despite current STAT reads, not a promise of atomic exclusion of external commands after NML submission."
+  ],
+  "prior_source_check": {
+    "file": "emctask.cc v2.9.4 from R202 local source archive",
+    "sha256": "178f3a00211c373607f035f7cf59487dbc8cdbb69741daddd7114eab4aec47d1",
+    "manifest": "button-gates.r202.sources.json"
+  },
+  "sha256": {
+    "button-gates.r216.build.txt": "c2b5ccbdcf7c5890225afc1ad8b286815d66022d4cbc735482cf87cc1e4d879c",
+    "button-gates.r216.unit.txt": "398f537beefa8428ac2f4b92c2d411b273f55e3e6e673320f193dfba5e3e70da",
+    "button-gates.r216.backend.txt": "022d7a1c11f30aadaf5dcc6ca6db9656be525ec034d4426a1df61f6877f0f984",
+    "button-gates.r216.browser.txt": "d51ea3073f93c41d9636c8985b00e99aa9aae8c738ad16820dd34b79b4ece013",
+    "button-gates.r216.backend-probe.py": "e26e95bfae82a3b50ee32dfa435d21533d3c8472ce0e00be7d53820319f0316a",
+    "button-gates.r216.backend-probe.txt": "abb94593319dfc0d6124f4c6bc9266374b4d85cd6e4ed16c0ee273ec114816e1",
+    "button-gates.r216.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "button-gates.r216.ctl.ts": "536bc627ddfbdf51c4b7f01b97cbb3f4f559a53ae91b62ad9ffa26097998e372"
+  }
+}

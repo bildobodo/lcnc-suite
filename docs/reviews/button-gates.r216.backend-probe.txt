@@ -1,0 +1,58 @@
+[VINIT] session bound to linuxcncsvr pid=158648 start=47394682
+[VINIT] try_connect_lcnc OK, pid=158648
+[VINIT] Loaded machine config: 3-Axis Mill
+current homing: {'ok': True} ['mode']
+Fcurrent movement: {'ok': True} ['mode']
+F..new MDI run, unhomed exception: {'ok': True} ['mode', 'spindle']
+F
+=================================== FAILURES ===================================
+____ ModeAdmission.test_mode_current_homing_refuses_despite_old_idle_status ____
+
+self = <test_r216_codex.ModeAdmission testMethod=test_mode_current_homing_refuses_despite_old_idle_status>
+
+    def test_mode_current_homing_refuses_despite_old_idle_status(self):
+        self.prepare(current_homing=True)
+        r = _run(gateway.handle_command({'cmd':'set_mode','mode':lc.MODE_MDI},True,self.writer.conn_key))
+        print('current homing:',r,self.cmd.names())
+>       self.assertNotIn('mode',self.cmd.names(),'fresh STAT already shows homing; do not send the mode change')
+E       AssertionError: 'mode' unexpectedly found in ['mode'] : fresh STAT already shows homing; do not send the mode change
+
+test_r216_codex.py:32: AssertionError
+__ ModeAdmission.test_mode_current_motion_refuses_despite_old_standing_status __
+
+self = <test_r216_codex.ModeAdmission testMethod=test_mode_current_motion_refuses_despite_old_standing_status>
+
+    def test_mode_current_motion_refuses_despite_old_standing_status(self):
+        self.prepare(current_moving=True)
+        r = _run(gateway.handle_command({'cmd':'set_mode','mode':lc.MODE_MDI},True,self.writer.conn_key))
+        print('current movement:',r,self.cmd.names())
+>       self.assertNotIn('mode',self.cmd.names(),'fresh STAT already shows movement; do not send the mode change')
+E       AssertionError: 'mode' unexpectedly found in ['mode'] : fresh STAT already shows movement; do not send the mode change
+
+test_r216_codex.py:38: AssertionError
+_ ModeAdmission.test_unhomed_spindle_exception_does_not_force_manual_from_new_mdi_run _
+
+self = <test_r216_codex.ModeAdmission testMethod=test_unhomed_spindle_exception_does_not_force_manual_from_new_mdi_run>
+
+    def test_unhomed_spindle_exception_does_not_force_manual_from_new_mdi_run(self):
+        self.prepare(current_interp=lc.INTERP_READING,current_mode=lc.MODE_MDI)
+        gateway.STAT.homed = [False]*3
+        gateway._shared_status = _payload(homed=False,inpos=True,current_vel=0.0,
+                                         homing_active=False,task_mode=lc.MODE_MANUAL)
+        with mock.patch.object(gateway,'_spindle_before_homing',lambda:True):
+            r = _run(gateway.handle_command({'cmd':'spindle_forward','speed':1000},True,self.writer.conn_key))
+        print('new MDI run, unhomed exception:',r,self.cmd.names())
+>       self.assertNotIn('mode',self.cmd.names(),'Q1 exception needs current idle/MANUAL; do not force MANUAL')
+E       AssertionError: 'mode' unexpectedly found in ['mode', 'spindle'] : Q1 exception needs current idle/MANUAL; do not force MANUAL
+
+test_r216_codex.py:54: AssertionError
+=========================== short test summary info ============================
+FAILED test_r216_codex.py::ModeAdmission::test_mode_current_homing_refuses_despite_old_idle_status
+FAILED test_r216_codex.py::ModeAdmission::test_mode_current_motion_refuses_despite_old_standing_status
+FAILED test_r216_codex.py::ModeAdmission::test_unhomed_spindle_exception_does_not_force_manual_from_new_mdi_run
+[GC] +146ms gen=2 duration=18.7ms collected=486 uncollectable=0
+[GC] +156ms gen=2 duration=10.4ms collected=0 uncollectable=0
+[GC] +166ms gen=2 duration=9.7ms collected=0 uncollectable=0
+[GC] +176ms gen=2 duration=9.9ms collected=0 uncollectable=0
+[GC] +184ms gen=2 duration=8.5ms collected=0 uncollectable=0
+[GC] +195ms gen=2 duration=10.8ms collected=0 uncollectable=0
