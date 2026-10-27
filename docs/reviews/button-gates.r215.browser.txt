@@ -1,0 +1,33 @@
+
+Running 23 tests using 1 worker
+
+(node:4170114) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4170114) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/disarmed.spec.ts:110:1 › disarmed at idle: every tab and sub-tab opens, nothing that acts is enabled, every closed control says why (3.4s)
+  ✓   2 e2e/disarmed.spec.ts:154:1 › disarmed and unhomed, and in E-Stop: still navigable, still nothing that acts (1.7s)
+  ✓   3 e2e/disarmed.spec.ts:169:1 › disarmed: the preselections take no command — step, speed, RPM, the MDI line (1.4s)
+  ✓   4 e2e/disarmed.spec.ts:199:1 › disarmed while a program runs: Pause, Abort and the jog Stop are reachable and act (1.5s)
+  ✓   5 e2e/disarmed.spec.ts:223:1 › disarmed at idle: the spindle stop is reachable (BG-18 — inside the strip's fieldset before package C) (1.3s)
+  ✓   6 e2e/disarmed.spec.ts:234:1 › disarmed: the program browser browses folders; a file row is closed with its reason (BG-02) (1.7s)
+  ✓   7 e2e/disarmed.spec.ts:263:1 › a dialog opened armed: after the disarm its action is closed with its reason, Cancel still closes (1.3s)
+  ✓   8 e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) (2.8s)
+  ✓   9 e2e/disarmed.spec.ts:355:1 › the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28) (1.8s)
+  ✓  10 e2e/disarmed.spec.ts:383:1 › the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29) (4.2s)
+  ✓  11 e2e/disarmed.spec.ts:423:1 › a late INI default never replaces a prepared RPM (R214 BG-27 rest) (1.9s)
+  ✓  12 e2e/disarmed.spec.ts:435:1 › a late INI default never replaces the mirrored commanded speed (R214 BG-27 rest) (1.6s)
+  ✓  13 e2e/disarmed.spec.ts:444:1 › a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest) (1.5s)
+  ✓  14 e2e/disarmed.spec.ts:456:1 › a late INI default fills an untouched RPM and jog speed (positive control, R214) (1.4s)
+RPM after late INI 800
+  ✓  15 e2e/r214-rerun.spec.ts:23:1 › an RPM draft survives a late initial INI default (1.7s)
+  ✓  16 e2e/r214-rerun.spec.ts:34:1 › a prepared RPM survives Stop and a new run at another commanded value (1.6s)
+  ✓  17 e2e/r214-rerun.spec.ts:42:1 › held Stop keys do not repeat, and never start a jog (1.3s)
+  ✓  18 e2e/r214-rerun.spec.ts:51:1 › without an operator draft the INI default is adopted (positive control) (1.4s)
+  ✓  19 e2e/r214-rerun.spec.ts:57:1 › a late INI default does not replace an already mirrored running speed (1.5s)
+  ✓  20 e2e/r215.codex.spec.ts:27:1 › a rotary edit is protected independently while untouched linear speed takes its default (1.7s)
+  ✓  21 e2e/r215.codex.spec.ts:35:1 › both resets count as a choice even when resetting to the existing fallback (1.9s)
+  ✓  22 e2e/r215.codex.spec.ts:47:1 › untouched defaults are adopted once for both jog types and RPM (2.0s)
+  ✓  23 e2e/r215.codex.spec.ts:57:1 › a mirrored RPM equal to the old fallback is still written after Stop (1.8s)
+
+  23 passed (43.2s)

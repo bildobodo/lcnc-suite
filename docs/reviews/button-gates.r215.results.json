@@ -1,0 +1,46 @@
+{
+  "round": "R215",
+  "date": "2026-10-27",
+  "verdict": "agreement",
+  "scope": "Button-Gates package C; BG-27 late INI rest and documented text-session boundary",
+  "base": "5e997db8",
+  "head": "fc69174a292cf0045951cc10ac007804344c7c11",
+  "archive": "/tmp/codex-r215-9jmdd794/repo",
+  "product_worktree": "/home/cnc/lcnc-suite-gates",
+  "results": {
+    "build": "PASS (vue-tsc + Vite)",
+    "browser": {
+      "passed": 23,
+      "failed": 0,
+      "repository_disarmed": 14,
+      "r214_unchanged": 5,
+      "independent_r215": 4
+    }
+  },
+  "independent_cases": [
+    "Rotary edit survives while untouched linear speed adopts default",
+    "Both resets count as a choice even when choosing the existing fallback; later explicit reset can choose the new default",
+    "Untouched linear/rotary/RPM defaults adopted; later jog defaults do not reinitialize",
+    "Mirrored RPM equal to fallback remains protected after Stop"
+  ],
+  "commands": [
+    "nice -n 10 npm run build",
+    "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 nice -n 10 node e2e/mock-gateway.mjs",
+    "nice -n 10 npx playwright test -c playwright.r215.config.ts disarmed.spec.ts r214-rerun.spec.ts r215.codex.spec.ts"
+  ],
+  "reproduce": "In a separate archive of HEAD, install dependencies and build lcnc-webui; copy r215.browser.spec.ts to e2e/r215.codex.spec.ts, r215.r214-rerun.spec.ts to e2e/r214-rerun.spec.ts, r215.ctl.ts to e2e/ctl.ts, r215.playwright.config.ts to playwright.r215.config.ts. Start own mock and run the listed Playwright command with one worker.",
+  "isolation": "No requests to live :8000/:5173; no builds/tests/checkouts in live or product worktree. Own mock 127.0.0.1:4188 stopped after completion. Only new evidence and append to review in live tree.",
+  "limits": [
+    "Mock deliberately controls timing of viewer_init; no live timing claim.",
+    "No full unit/gate or backend rerun; backend unchanged. Claude gate at 6db1f8c9 read (2615 unit, 598 browser PASS).",
+    "Text-session fieldset boundary remains static clarification: no such current owner; not a new text-write guard."
+  ],
+  "sha256": {
+    "button-gates.r215.build.txt": "4e7f1baa0f5479cb6a2126e9d4b568037fe6a51bcc1037322a497bc591f9dc70",
+    "button-gates.r215.browser.txt": "3082cf3d8effd311b4e61d6f8d2bd2b7e9e92ef151393efc57eac7ebb2670fc7",
+    "button-gates.r215.browser.spec.ts": "fd7c63a294f128e98e54c72dea04633ea3571a74f40cb67a2280bc63b7ce8870",
+    "button-gates.r215.r214-rerun.spec.ts": "580583a7a04205ab7eab2ddb2f6019569e85894fbf29202e466a0a4514c25e39",
+    "button-gates.r215.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "button-gates.r215.ctl.ts": "536bc627ddfbdf51c4b7f01b97cbb3f4f559a53ae91b62ad9ffa26097998e372"
+  }
+}
