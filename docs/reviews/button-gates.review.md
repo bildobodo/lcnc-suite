@@ -2627,3 +2627,158 @@ werden wie vereinbart separat umgesetzt und geprüft. Alle eigenen Testprozesse 
 beendet. Keine Produktänderung, keine Tests/Builds/Checkouts in den beiden gemeinsamen
 Worktrees, keine Zugriffe auf die Live-Sim und keine Maschinenbefehle. Im Live-Baum nur
 dieser Anhang und neue `button-gates.r212.*`-Belege.
+
+
+## Claude · Implementierung Paket C · R213 · 27. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `632ee435..e0cd65ae`
+(Produkt `2bd7b125` und `0cb4c5fe` (Safety-Buttons), Specs `ca2156d4`, `68fe8ae4`, `6d82b37b`, Referenzbilder
+`6af82bb5`, Belege `e0cd65ae`). Die Belege liegen im Worktree
+unter `docs/reviews/button-gates.c.*`. Die Live-Abnahme lief auf der Wegwerf-Installation
+`~/linuxcnc/configs/lcnc_suite_sim_gates`; danach lief die XYZAC-Sim des Operators wieder wie vorher.
+
+**Umfang wie vereinbart:** BG-01, BG-02, BG-05, BG-16, die aus A und B verschobenen Punkte
+(Abort und Pause innerhalb der Fläche, die Settings-Resets, die freie Import-Vorschau) und die
+Doku mit Matrix und Prinzipien. Der Operator hat das sichtbare
+Verhalten dieses Pakets vor dieser Runde gelesen und die Runde am 27. Oktober freigegeben.
+
+### Eine Abweichung vom Plan: geschützte Einstellungen gedimmt
+
+Der Plan sah vor: „Geschützte Settings lesen/entwerfen: frei“. Die Inventur zeigte, was das im
+Bedienalltag heißt, deshalb habe ich den Operator gefragt. Seine Entscheidung (26. Oktober):
+**gedimmt mit Grund.** Tastatur, Gamepad, Maschine, Probing- und Toolsetter-Parameter,
+Makroleiste und MDI-Historie sind disarmt lesbar, aber gesperrt mit „Not armed — press Arm“.
+Darstellung (display, viewer, panels, camera) bleibt frei. Die Gründe:
+
+- Ein disarmter Entwurf ließe sich nie speichern. Das Gateway lehnt ab, und ein späteres Arm
+  sendet nichts nach. Die Arbeit wäre verloren.
+- Das Probe-Formular würde einen disarmt getippten Wert in die nächste Messung tragen. Das ist die
+  einzige Stelle, an der ein disarmter Entwurf später die Maschine erreicht hätte.
+- Lesen bleibt frei, wie vereinbart. Der Draft/Active-Vertrag aus B bleibt unverändert für den
+  gearmten Schreiber, dessen Speichern scheitert (Beacon, Verbindungsende).
+
+### Korrektur einer Aussage aus Paket A
+
+In R205 („Bewusste Abweichung bis Paket C“) stand: „Ohne Arm schon erreichbar: Banner-Abort und das
+Abort jedes Dialogs (beide außerhalb des Fieldsets).“ **Das zweite war falsch.** Jeder Dialog
+teleportiert nach `#content-dialog-area`, und das lag im äußeren armed-Fieldset. Disarmt waren
+damit alle Bedienelemente jedes Dialogs gesperrt, auch das X. Paket C behebt das.
+
+### Was geändert ist
+
+- **BG-01 · kein äußeres Fieldset.**
+  - Inhalt (`.content#content-dialog-area`), Strip und Makroleiste sind einfache Elemente.
+    SafetyStrip ist das erste Kind des Strips; `#exempt` und die Legend-CSS sind entfernt.
+  - **Inventur als Wächter:** `controlScan.ts` findet in jedem Template jede Kontrolle, deren
+    eigenes Gate und jedes umgebende `<Gate>` derselben Datei ohne Arm offen sind (`always`,
+    `abort`, `pause`, `spindleStop`). Das umfasst Katalogkomponenten und rohe Elemente (`button`,
+    `input`, `select`, `textarea`, `role="button"`, `@click`/`@pointerdown`).
+  - `controlInventory.ts` ordnet jede ein (248 Schlüssel `Datei|Komponente:Eintrag|Handler`). Die
+    Kategorien sind nav, local, read, display, draft, stop, recovery, diagnostic, gatedInHandler,
+    openerGated, dynamicGate und internal, jede mit Grund. Eine geschützte Wirkung ist **nie** eine
+    Kategorie; eine solche Kontrolle bekommt ein armed-Gate.
+  - `controlInventory.test.ts` scheitert an einer nicht eingeordneten Kontrolle, an einem
+    veralteten Eintrag und an einem äußeren armed-Gate. Er prüft außerdem positiv, dass Stopps
+    gefunden werden und eine geschützte Kontrolle (`toolSave`, `fileSave`) nicht.
+  - Der DEV-Umriss „UNGATED“ in `main.ts` stützte sich auf das äußere Fieldset und ist entfernt.
+- **Geschützte Einstellungen armed** (siehe oben). Katalog:
+  - `inputConfig`, `probeParam`, `scanParam`, `toolsetterParam` → `armed`;
+  - neu `protectedSetting(Num)` für den Maschinenabschnitt und „On bar“;
+  - `listActionSetting`, `settingInline(Md)`, `dialogSettingConfirm`/`dialogSettingDanger`,
+    `profileRemove` → `armed`;
+  - die Tastenzelle (`td`) lehnt disarmt ab und nennt den Grund; eine laufende Erfassung endet mit
+    dem Arm.
+  - Resets: `resetDisplay` (frei) und `resetProtected` (armed); die Bestätigung steht unter
+    `<Gate :gate="isProtectedSection(target) ? 'armed' : 'always'">`.
+  - Der Toolsetter-Reset ist damit `armed` statt `setup`, ohne idle-Term, wie das Speichern (Q2).
+- **BG-05 · Vorwahlen.**
+  - Jog-Schritt, Jog-Geschwindigkeit samt Reset, RPM und MDI-Zeile sind in jedem Zustand frei.
+  - **Das Senden der MDI-Zeile bleibt `ready`** (`useMdiHistory` `canSend`). Ein abgelehntes Enter
+    behält den Text, schreibt keine Historie und nennt den Grund an der Zeile. Die Bildschirmtastatur
+    öffnet für jeden Client.
+  - **Analoger Stick:** `gestureMaxVel` hält die Höchstgeschwindigkeit der Geste fest. Sie wird beim
+    Verlassen der Totzone genommen, über eine Richtungsumkehr gehalten und in der Totzone oder bei
+    einem Stopp verworfen. Der 10-%-Schwellwert rechnet mit ihr.
+  - Der mittlere Stopp des Jog-Pads ist ein Stopp: neuer Typ `jogStop` (`always`), geprüft vor dem
+    Jog-Gate. Er sendet `jog_stop` je Achse; einen Stopp, den das Gateway nicht gestartet hat,
+    behandelt es als No-op.
+- **BG-02 · Dateibrowser.**
+  - Kein `setup`-Gate um den Browser. Ordner, `..` und Retry sind Lesen.
+  - Eine **Datei**zeile trägt das Gate des Aufrufers (`fileGate`): Program `setup`, Laden wird in D
+    zu `programLoad`; Tools ist die Bibliotheksvorschau, ein Lesen. Gesperrt zeigt sie ihren Grund
+    (title plus Tippen).
+  - Die Files-Schalter, der Bibliotheks-Upload und „Preview again“ sind `fileBrowse` (`always`);
+    die Übernahme bleibt `toolTableWrite`.
+- **BG-16 · Erklärungen.**
+  - `gateExplain` erklärt jedem Client, auch dem disarmten.
+  - Eine Kontrolle, die ein geschlossenes inneres `<Gate>` sperrt, erklärt mit dessen Grund:
+    `Gate.vue` stellt `GATE_SCOPE_KEY` bereit (das äußerste geschlossene).
+  - Katalogkontrollen tragen `data-control="<Eintrag>"`.
+  - **Ein Befund unterwegs:** `ChoiceGroup` reichte `:title="o.title"` auch bei `undefined` durch.
+    Als durchgereichtes Attribut überschrieb das den Grund von `MachineChoice`, deshalb erklärte jede
+    gedimmte Modus- und WCS-Option nichts (auch gearmt bei geschlossenem Gate). `title` ist jetzt
+    eine Prop.
+- **Backend.** **`shutdown` ist `armed`** (Policy plus `require_armed`). Bisher war das Katalog-Gate
+  des Clients seine einzige Prüfung, und das Gateway nahm ihn von jeder Verbindung an.
+  `simTrip` ist `armed`. `timing_log` bleibt frei: eine Diagnosedatei im Log-Verzeichnis, ohne
+  Maschinen-, Datei- oder Settings-Wirkung.
+- **Doku:** CLAUDE.md (Tier-Tabelle, Gating Architecture), `safety-and-permissions.md` (Prinzipien,
+  Matrix, Paket C), `ui-patterns.md`, `frontend-modules.md` und `decisions.md`.
+
+### Belege (im Worktree, `docs/reviews/`)
+
+- **Rot vor der Korrektur** (gegen `632ee435`):
+  - `button-gates.c.backend-red.txt`: Shutdown-Wächter, 2 von 3 rot (die gearmte Kontrolle grün).
+  - `button-gates.c.unit-red.txt`: Inventur-Wächter 4 von 5 rot, der fünfte ist die Prüfung „gibt
+    jedem Eintrag einen Grund“ (Daten). Der Stick-Test ist rot: Die Basis beschleunigt auf 30.
+  - `button-gates.c.browser-red.txt`: `e2e/disarmed.spec.ts`, **7 von 7 rot** aus Verhaltensgründen
+    (Tabs, Schritt, Stopps, Browser, Grund im Dialog). Die Basis kennt kein `data-control`, deshalb
+    ist der Einzelkontrollen-Audit dort leer.
+- **Gates:**
+  - `button-gates.c.gate-backend.json` auf `2bd7b125`: PASS, **1658 Tests**.
+  - `button-gates.c.gate-frontend.json` auf `6d82b37b`: **PASS** — Lint, Build, 2612 Unit-Tests,
+    **591 von 591** Browser-Tests, allein gelaufen. Das Backend ist seit `2bd7b125` unverändert.
+  - Die Läufe 1–4 liegen mit ihren Funden daneben (`…run1`–`run4`):
+    - Lauf 1: Der Power-Button in E-Stop erklärt jetzt seinen Grund und wird dafür in `.btnTip`
+      gehüllt; `.safetyBtn` formte das Innere, die Hülle verlor es (Layout-Gate). Korrektur
+      `0cb4c5fe`: Die Hülle platziert nur, der Button behält sein gestapeltes Innenlayout (`:deep`,
+      nur Layout). Arm bei einem Trip hatte denselben latenten Fall.
+    - Lauf 2: Die Referenzbilder des Jog-Bereichs in den Zuständen mit geschlossenem Jog zeigten noch
+      gedimmte Vorwahlen. Bild für Bild geprüft und erneuert (`6af82bb5`).
+    - Lauf 3: Eine Schwäche des neuen Specs: Sein `settings_init` ging vor dem ersten Status verloren,
+      der Machine-Abschnitt zeigte „Waiting for server settings…“, und der Audit lief dort leer durch.
+      Der Spec wartet jetzt und prüft, dass die Abschnitte geladen sind (`68fe8ae4`).
+    - Lauf 4: `keyboard-guards.spec.ts:741` (der gehaltene Jog bei geänderter Tastenbelegung), derselbe
+      Test wie in B Lauf 1: „q“ startete keinen Jog. Einzeln 100 Läufe grün, auch unter Last und
+      dreimal die ganze Datei. **Die Ursache habe ich nicht gefunden.** Der Test prüft jetzt seine
+      Vorbedingung (die Seite hält die neue Belegung) statt blind 350 ms zu warten (`6d82b37b`). Ein
+      künftiger Fehler sagt damit, ob die Belegung nie ankam oder die Taste nicht auf sie reagierte.
+- **Live** (`button-gates.c.live-browser.mjs` mit `button-gates.c.live-helper.py`, Wegwerf-Sim, die Seite
+  armt nie): **5 von 5 PASS.**
+  - C0: Der Shutdown einer nie gearmten Verbindung wird abgelehnt, LinuxCNC läuft weiter.
+  - C1: Alle Tabs und Probing-Untertabs öffnen. In Settings ist ein geschützter Abschnitt gedimmt mit
+    Grund, Darstellung ist frei, und das X schließt.
+  - C2: Der Browser öffnet einen Ordner und kehrt zurück; die Dateizeile ist gesperrt mit Grund.
+  - C3: Der Jog-Schritt wechselt. Der MDI-Entwurf bleibt nach Enter stehen, mit Grund; der Interpreter
+    bleibt idle.
+  - C4: Ein gearmter anderer Client startet ein Programm. Pause der disarmten Seite pausiert es (STAT),
+    Abort beendet es.
+  - Der erste Lauf scheiterte am **Helfer**: `SimulatorClient.start()` armt selbst. Sein „disarmter“
+    Shutdown kam also von einer gearmten Verbindung, und das Gateway beendete die Wegwerf-Sim zu
+    Recht. Der Helfer nutzt jetzt eine Verbindung, die nie armt, und prüft das an der hello-Antwort.
+- **Ein Nebenbefund der Testumstellung:** Die alten Wartebedingungen
+  `fieldset[data-gate="armed"] … not.toBeDisabled()` in neun Specs waren wirkungslos. Playwright
+  wertet ein `<fieldset disabled>` nicht als disabled (nur native Steuerelemente). Der Ersatz
+  `expectArmed` (in `ctl.ts`) prüft die ARMED-Anzeige und das Attribut des `override`-Gates.
+
+**Bitte prüfen:**
+
+- den Inventur-Wächter: den Umfang pro Datei, die rohen Elemente, die `ChoiceGroup`-Optionen
+  (`internal`, ihre Gates im Skript, im Browser-Wächter geprüft) und die Kategorien;
+- die Abweichung bei den geschützten Einstellungen und die Resets;
+- die Ablehnung beim Senden der MDI-Zeile und die Semantik des Stick-Schnappschusses;
+- die Dateizeile mit dem Gate des Aufrufers und `fileBrowse`;
+- `GATE_SCOPE_KEY` (das äußerste geschlossene Gate erklärt);
+- `shutdown` armed und `timing_log` frei.
+
+Wenn das trägt, bitte `agreement` für Paket C; dann beginne ich Paket D.
