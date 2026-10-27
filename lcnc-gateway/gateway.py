@@ -5189,6 +5189,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
                 refused = await _start_guard(armed, program=True)
                 if refused:
                     return refused
+                why = _controller_gate_refusal("step", armed)   # as Cycle Start
+                if why:
+                    return {"ok": False, "error": why}
                 await set_mode(linuxcnc.MODE_AUTO)
                 await _cmd_blocking(CMD.auto, linuxcnc.AUTO_STEP, wait=None,
                                     admit=lambda: _program_start_refusal(armed))
@@ -5449,6 +5452,11 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             refused = await _start_guard(armed, program=True)
             if refused:
                 return refused
+            # The switch to AUTO aborts an MDI started since the snapshot
+            # (Codex R216's rule): the class on a current read first.
+            why = _controller_gate_refusal("run", armed)
+            if why:
+                return {"ok": False, "error": why}
             await set_mode(linuxcnc.MODE_AUTO)
             await _cmd_blocking(CMD.auto, linuxcnc.AUTO_RUN, 0, wait=None,  # Start from beginning
                                 admit=lambda: _program_start_refusal(armed))
@@ -6987,8 +6995,9 @@ def _controller_gate_refusal(gate: str, armed: bool) -> Optional[str]:
     """`gate` judged on a CURRENT controller read — its reason, or None
     (button gates BG-04 / BG-31, Codex R216). The dispatcher judged the
     command on the published snapshot, up to a poll old: a homing, a move or
-    an MDI started since then must not meet the gateway's own mode switch or
-    manual spindle command.
+    an MDI started since then must not meet the gateway's own mode switch —
+    the mode choice, the manual spindle, Home / Unhome, and Cycle Start /
+    Step from idle before their switch to AUTO.
 
     What the controller says about the machine comes from this poll — the
     interpreter, the task mode, the motion, homing, homed — and a field it

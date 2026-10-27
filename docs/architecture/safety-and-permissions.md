@@ -370,19 +370,23 @@ joint jog before homing in E.
 - *On the current read* (Codex R216, BG-04 rest / BG-31): the dispatcher
   judges a command on the PUBLISHED snapshot, up to a poll old. The handlers
   that switch the task mode themselves — the mode choice, the manual spindle
-  (Fwd / Rev / ±) and Home / Unhome (the same class, found beside BG-31) —
-  judge their class again on a CURRENT controller read before the switch,
+  (Fwd / Rev / ±), and, the same class found beside BG-31, Home / Unhome and
+  Cycle Start / Step from idle (their switch to AUTO; the start guard's own
+  current read judged only the kinematics) — judge their class again on a
+  CURRENT controller read before the switch,
   and the manual ones once more after the awaited switch, before their
   command (`_controller_gate_refusal`, `_switch_to_manual`): a switch to
   MANUAL from an MDI that started since the snapshot would abort it
   (emcTaskSetMode → emcTaskAbort), and a homing or a move since then must
-  meet no switch. The display may still lag a poll (a moment too strict or
-  too open); the command never acts on it. Three controller reads, three
+  meet no switch. The other handlers with their own switch already refuse
+  a running AUTO / MDI on a fresh poll (`reject_if_auto_running`; the jog
+  stops skip the switch, `_jog_stop_would_abort_mdi`). The display may still
+  lag a poll (a moment too strict or too open); the command never acts on it. Three controller reads, three
   strictnesses:
 
   | Helper | Used by | A field the poll lacks | Why |
   |---|---|---|---|
-  | `_controller_gate_refusal` | `set_mode`, the manual spindle, Home / Unhome | unknown → the gate refuses; never the snapshot's | the gateway's own switch must not act on an old favourable value (R216) |
+  | `_controller_gate_refusal` | `set_mode`, the manual spindle, Home / Unhome, Cycle Start / Step from idle | unknown → the gate refuses; never the snapshot's | the gateway's own switch must not act on an old favourable value (R216) |
   | `_controller_capture_state` | G30 Capture's take-over | interp: the snapshot's; frame and motion: unknown | agreed R25–R27 (OP-I02): the frame and the standstill decide what the numbers mean |
   | `_controller_touchoff_state` | touch-off target | the snapshot's value | refreshes the fixture and frame where the controller offers them (R-02); a non-switchable machine has no frame pin |
 

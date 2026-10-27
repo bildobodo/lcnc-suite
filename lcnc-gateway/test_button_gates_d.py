@@ -504,6 +504,40 @@ class TestHomeOnTheCurrentRead(_Writer):
                 self.assertEqual(self.issued(), ["mode"] + then)
 
 
+class TestStartOnTheCurrentRead(_Writer):
+    """The same class at the program start (Codex R216's rule): Cycle Start
+    and Step from idle switch to AUTO after their start guard, whose current
+    read judged only the kinematics — an MDI started since the snapshot
+    (another client's, fire-and-forget) meets neither the switch (it aborts
+    the MDI) nor the start."""
+
+    CMDS = (({"cmd": "cycle_start"}, linuxcnc.AUTO_RUN), ({"cmd": "auto_step"}, linuxcnc.AUTO_STEP))
+    BUSY = {"cycle_start": "Machine busy — wait until it is idle",
+            "auto_step": "Program running — pause first to step"}
+
+    def issued(self):
+        return [(n, a[0]) for n, a, _k in self.cmd.calls if n in ("mode", "auto")]
+
+    def test_an_mdi_started_since_the_snapshot(self):
+        self.takes_the_mode()
+        for msg, _auto in self.CMDS:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI,
+                                               "interp_state": linuxcnc.INTERP_READING})
+                self.assertEqual(r, {"ok": False, "error": self.BUSY[msg["cmd"]]})
+                self.assertEqual(self.issued(), [])
+
+    def test_the_current_read_admits(self):
+        self.takes_the_mode()
+        for msg, auto in self.CMDS:
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.send(msg, controller={"task_mode": linuxcnc.MODE_MDI})
+                self.assertTrue(r["ok"], r)
+                self.assertEqual(self.issued(), [("mode", linuxcnc.MODE_AUTO), ("auto", auto)])
+
+
 class _Ini:
     values = {}
 

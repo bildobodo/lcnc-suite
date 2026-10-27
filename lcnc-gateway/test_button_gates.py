@@ -275,10 +275,7 @@ class _Handlers(unittest.TestCase):
     def setUp(self):
         gateway.lcnc_connected = True
         gateway.STAT = linuxcnc.stat()
-        gateway.STAT.enabled = True
-        gateway.STAT.task_mode = linuxcnc.MODE_MANUAL
-        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
-        gateway.STAT.paused = False
+        controller_reads(gateway.STAT)   # on, idle, MANUAL, standing, homed — as _payload()
         self.cmd = _RecordingCmd()
         gateway.CMD = self.cmd
         saved = dict(shared=gateway._shared_status, reader_get=gateway._reader_get,
