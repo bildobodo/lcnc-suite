@@ -1,0 +1,34 @@
+
+Running 18 tests using 1 worker
+
+(node:4078150) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4078150) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/disarmed.spec.ts:110:1 › disarmed at idle: every tab and sub-tab opens, nothing that acts is enabled, every closed control says why (3.4s)
+  ✓   2 e2e/disarmed.spec.ts:154:1 › disarmed and unhomed, and in E-Stop: still navigable, still nothing that acts (1.7s)
+  ✓   3 e2e/disarmed.spec.ts:169:1 › disarmed: the preselections take no command — step, speed, RPM, the MDI line (1.4s)
+  ✓   4 e2e/disarmed.spec.ts:199:1 › disarmed while a program runs: Pause, Abort and the jog Stop are reachable and act (1.6s)
+  ✓   5 e2e/disarmed.spec.ts:223:1 › disarmed at idle: the spindle stop is reachable (BG-18 — inside the strip's fieldset before package C) (1.4s)
+  ✓   6 e2e/disarmed.spec.ts:234:1 › disarmed: the program browser browses folders; a file row is closed with its reason (BG-02) (1.7s)
+  ✓   7 e2e/disarmed.spec.ts:263:1 › a dialog opened armed: after the disarm its action is closed with its reason, Cancel still closes (1.4s)
+  ✓   8 e2e/disarmed.spec.ts:305:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) (2.9s)
+  ✓   9 e2e/disarmed.spec.ts:355:1 › the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28) (1.8s)
+  ✓  10 e2e/disarmed.spec.ts:383:1 › the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29) (4.3s)
+RPM { interp_state: [33m2[39m } { disabled: [33mfalse[39m, title: [1mnull[22m }
+RPM {
+  interp_state: [33m1[39m,
+  spindle_enabled: [33mtrue[39m,
+  spindle_direction: [33m1[39m,
+  spindle_speed: [33m1500[39m
+} { disabled: [33mfalse[39m, title: [1mnull[22m }
+  ✓  11 e2e/r213-rerun.spec.ts:26:1 › RPM preselection remains editable during a run and a turning spindle (1.3s)
+  ✓  12 e2e/r213-rerun.spec.ts:34:1 › a protected reset opened armed explains the closed enclosing Gate after disarm; display reset stays free (2.3s)
+  ✓  13 e2e/r213-rerun.spec.ts:52:1 › protected keypad closes at disarm without applying or writing (1.6s)
+  ✓  14 e2e/r213-rerun.spec.ts:60:1 › keyboard capture ends with disarm and the next key cannot update the mapping (1.6s)
+  ✓  15 e2e/r213-rerun.spec.ts:68:1 › MDI strip edits disarmed, Apply explains refusal and keeps draft without history writes (1.6s)
+  ✓  16 e2e/r213-rerun.spec.ts:78:1 › file row and mode choice explain the block by a real pointer tap (1.6s)
+  ✓  17 e2e/r213-rerun.spec.ts:86:1 › a free numeric draft survives disarm (RPM at idle) (1.4s)
+  ✓  18 e2e/r213-rerun.spec.ts:98:1 › the jog centre Stop is operable with Enter, like the pointer (1.4s)
+
+  18 passed (34.8s)

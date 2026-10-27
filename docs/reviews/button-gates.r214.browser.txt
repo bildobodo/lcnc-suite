@@ -1,0 +1,104 @@
+
+Running 5 tests using 1 worker
+
+(node:4083842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4083842) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+RPM after late INI 2400
+  ✘  1 e2e/r214.codex.spec.ts:23:1 › an RPM draft survives a late initial INI default (7.1s)
+(node:4084096) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:4084096) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 e2e/r214.codex.spec.ts:34:1 › a prepared RPM survives Stop and a new run at another commanded value (1.7s)
+  ✓  3 e2e/r214.codex.spec.ts:42:1 › held Stop keys do not repeat, and never start a jog (1.3s)
+  ✓  4 e2e/r214.codex.spec.ts:51:1 › without an operator draft the INI default is adopted (positive control) (1.4s)
+  ✘  5 e2e/r214.codex.spec.ts:57:1 › a late INI default does not replace an already mirrored running speed (6.6s)
+
+
+  1) e2e/r214.codex.spec.ts:23:1 › an RPM draft survives a late initial INI default ────────────────
+
+    Error: an unrequested INI default must not replace the prepared 800
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveValue[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: [32m"[7m8[27m00"[39m
+    Received: [31m"[7m24[27m00"[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - an unrequested INI default must not replace the prepared 800 with timeout 5000ms[22m
+    [2m  - waiting for locator('.spRpmInput')[22m
+    [2m    14 × locator resolved to <input min="0" readonly step="10" lang="en" max="4800" type="text" value="2400" inputmode="none" name="stripInput" data-v-81fd583d="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>[22m
+    [2m       - unexpected value "2400"[22m
+
+
+      30 |  console.log('RPM after late INI',await page.locator('.spRpmInput').inputValue());
+      31 |  expect((await cmds()).filter(c=>c.cmd.startsWith('spindle_'))).toEqual([]);
+    > 32 |  await expect(page.locator('.spRpmInput'),'an unrequested INI default must not replace the prepared 800').toHaveValue('800');
+         |                                                                                                           ^
+      33 | });
+      34 | test('a prepared RPM survives Stop and a new run at another commanded value',async({page})=>{
+      35 |  await open(page);await arm(page,false,{spindle_direction:1,spindle_speed:1500});
+        at /tmp/codex-r214-rlpz9kmf/repo/lcnc-webui/e2e/r214.codex.spec.ts:32:107
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r214.codex-an-RPM-draft-survives-a-late-initial-INI-default/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r214.codex-an-RPM-draft-survives-a-late-initial-INI-default/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r214.codex-an-RPM-draft-survives-a-late-initial-INI-default/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r214.codex-an-RPM-draft-survives-a-late-initial-INI-default/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r214.codex.spec.ts:57:1 › a late INI default does not replace an already mirrored running speed 
+
+    Error: no prepared value: keep the live commanded speed, not the default
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveValue[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('.spRpmInput')
+    Expected: [32m"[7m15[27m00"[39m
+    Received: [31m"[7m24[27m00"[39m
+    Timeout:  5000ms
+
+    Call log:
+    [2m  - no prepared value: keep the live commanded speed, not the default with timeout 5000ms[22m
+    [2m  - waiting for locator('.spRpmInput')[22m
+    [2m    14 × locator resolved to <input min="0" readonly step="10" lang="en" max="4800" type="text" value="2400" inputmode="none" name="stripInput" data-v-81fd583d="" autocomplete="off" data-control="stripInput" aria-label="Spindle speed" data-input-area="input-14" class="spRpmInput inputField"/>[22m
+    [2m       - unexpected value "2400"[22m
+
+
+      61 |  await expect(page.locator('.spRpmInput')).toHaveAttribute('max','4800');
+      62 |  await expect(page.locator('.spNow')).toHaveText(/1500/);
+    > 63 |  await expect(page.locator('.spRpmInput'),'no prepared value: keep the live commanded speed, not the default').toHaveValue('1500');
+         |                                                                                                                ^
+      64 | });
+      65 |
+        at /tmp/codex-r214-rlpz9kmf/repo/lcnc-webui/e2e/r214.codex.spec.ts:63:112
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r214.codex-a-late-INI-defa-426c9-eady-mirrored-running-speed/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r214.codex-a-late-INI-defa-426c9-eady-mirrored-running-speed/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r214.codex-a-late-INI-defa-426c9-eady-mirrored-running-speed/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r214.codex-a-late-INI-defa-426c9-eady-mirrored-running-speed/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    e2e/r214.codex.spec.ts:23:1 › an RPM draft survives a late initial INI default ─────────────────
+    e2e/r214.codex.spec.ts:57:1 › a late INI default does not replace an already mirrored running speed 
+  3 passed (19.3s)

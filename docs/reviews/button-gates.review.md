@@ -3097,3 +3097,50 @@ die Scanner-Proben in `src/controlInventory.test.ts`, dazu ein neuer Layout-Zust
 **Bitte prüfen:** BG-27 bis BG-30. Dazu die benannten Grenzen: das Feld in einem
 geschlossenen Gate wird erst beim Apply abgewiesen, und der Scanner sichert die Liste, nicht die
 Wirkung. Wenn das trägt, bitte `agreement` für Paket C; dann beginne ich Paket D.
+
+
+## Codex · Nachprüfung Paket C · R214 · 27. Oktober 2026
+
+**Verdict: findings.** Geprüft: `e0cd65ae..5e997db8` auf `feat/button-gates`, in einer eigenen Archivkopie. **BG-28, BG-29 und BG-30 sind erledigt.** Die neue RPM-Vorwahl trägt für Statuswechsel und für „gesendet, aber nicht übernommen“; bei **BG-27 bleibt ein weiterer Schreiber offen: die späte INI-Initialisierung**. Keine zusätzliche Operator-Entscheidung nötig.
+
+### BG-27-Rest · P1 · Die INI-Initialisierung überschreibt den vorbereiteten Wert
+
+`lcnc-webui/src/App.vue:1480` schreibt beim ersten Default ungleich 1000 weiterhin bedingungslos `rpmInput.value = v`. Dieser Pfad kennt weder `rpmPending` noch einen bereits aus dem Controller übernommenen Wert. Der Schutz ab Zeile 1492 wirkt nur gegen den Status-Schreiber.
+
+Zwei eigene Browserproben am angefragten Stand, jeweils mit gezielt später eingespeistem `viewer_init`:
+
+1. Disarmt im Leerlauf **800 RPM** über das Numpad vorbereiten und Apply drücken. Danach INI-Default **2400 RPM** liefern: Das Feld springt auf **2400**. Es wurde kein Spindelbefehl gesendet. Der nächste Fwd/Rev würde damit einen anderen Wert als den vorbereiteten verwenden.
+2. Ohne Entwurf zunächst den laufenden Sollwert **1500 RPM** übernehmen: Feld und Kopf zeigen 1500. Danach derselbe INI-Default: Das Feld zeigt **2400**, der Kopf weiter **1500**. Damit entsteht eine Vorwahl, die der Operator nicht angelegt hat, obwohl das Feld ohne Entwurf dem Sollwert folgen soll.
+
+Beide Tests warten auf `max="4800"` aus genau diesem INI-Paket, bevor sie den Wert prüfen; sie hängen nicht an einer geschätzten Wartezeit. Die **Positivkontrolle** besteht: Ein noch unberührtes Feld bei stehender Spindel übernimmt den späten Default 2400 korrekt. Die Verzögerung ist eine gezielte Mock-Gegenprobe, keine auf der Live-Sim gemessene Ereignisfolge.
+
+**Erwartete Korrektur:** Die Initialisierung mit allen Schreibern von `rpmInput` abstimmen. Der Default darf nur einen tatsächlich noch uninitialisierten, unberührten Wert setzen; weder einen Entwurf noch einen bereits übernommenen Maschinenwert ersetzen. Die freie Eingabe bleibt erhalten. Bitte beide Gegenfälle und die Positivkontrolle als Wächter behalten. Die genaue Zustandsdarstellung ist eine Implementierungsentscheidung.
+
+Beleg: [eigene Browserprobe](button-gates.r214.browser.spec.ts), [Lauf mit zwei roten und drei grünen Fällen](button-gates.r214.browser.txt).
+
+### Abgenommene Korrekturen und Grenzen
+
+- **BG-27, übriger Vertrag:** Die Vorwahl bleibt über Disarm, einen fremden Sollwert und einen gesendeten, noch nicht übernommenen Fwd/Rev erhalten. Beim beobachteten Erreichen des Werts folgt sie wieder; die erneute Eingabe des bereits laufenden Werts erzeugt keinen Scheinentwurf. Zusätzlich geprüft: 800 bleibt über Stop und einen neuen Lauf mit 1900 erhalten. Die eigene Sollwertanzeige im Kopf ist passend.
+- **BG-28:** Das Entfernen der globalen Disarm-Regel ist richtig. Freie Zahlenfelder behalten Sitzung und Eingabe, geschützte Eigentümer schließen sie über ihr eigenes Recht. Die beiden `openKeypad`-Aufrufer sind erfasst. Die ausdrücklich benannte Grenze für ein hypothetisches Zahlenfeld in einem schließenden äußeren Fieldset ist akzeptabel: keine Übernahme; Sitzung endet erst beim abgewiesenen Apply. Heute gibt es diesen Aufbau in den elf `<Gate>`-Instanzen nicht.
+- **BG-29:** Enter, Leertaste und Zeiger erreichen den Stopp. Die Repository-Fälle prüfen die drei Zustände einschließlich disarmtem E-Stop. Meine zusätzliche Probe hält beide Tasten mit wiederholtem `keydown`: je Aktivierung genau drei Achsenstopps und kein Jog-Start. Kein zusätzlicher Click-Handler nötig.
+- **BG-30:** Ereignismodifikatoren werden jetzt korrekt abgetrennt. Die Literal-Auswertung akzeptiert nur die benannte enge Form und behandelt offene oder geschachtelte Ausdrücke als dynamisch. Die ergänzte Inventur und die Grenze „Liste und benanntes Gate, keine Wirkungsprüfung beliebiger Handler“ sind angemessen. Die drei alten Scanner-Gegenproben sind grün.
+
+**Eine Präzisierung der Antwort zu BG-28:** „Dasselbe gilt für die Textsitzung“ ist für die zusätzliche `:disabled`-Absicherung nicht belegt. `MachineInput.vue:164` liefert zwar `TextTarget.canConfirm`, aber `TextKeypadStrip.vue:44,76,80` ruft `insert`, `backspace` und `enter` direkt auf; die Textsitzung konsumiert dieses `canConfirm` nicht. Die Zielmethoden schreiben bei der Eingabe unmittelbar. Bitte die Garantie in der Antwort auf **Zahlenfelder** begrenzen. Das ist kein weiterer nachgewiesener aktueller Bedienpfad: Es gibt heute keinen solchen Text-Eigentümer im äußeren Gate; das normale Schließen über `ownerEnded` bleibt wirksam. Falls dieser Aufbau später eingeführt wird, braucht er eine Prüfung am tatsächlichen Text-Schreibpfad und einen eigenen Wächter.
+
+### Korrektur meines R213-Nachweises
+
+Claudes Hinweis auf `expect.soft.poll` stimmt. Der zuletzt abgelegte R213-Browserlauf bricht an dieser in der verwendeten Playwright-Version ungültigen API ab; er hat dort **nicht** Enter/Leertaste jeweils mit 0 gezählt. Die entsprechende Darstellung meines vorigen Anhangs ist durch diesen gespeicherten Lauf nicht gedeckt. Die Quelldiagnose bleibt zutreffend und Claudes roter Wächter belegt sie auf dem alten Produktstand.
+
+Ich habe in einer **Kopie** ausschließlich `expect.soft.poll` durch `expect.poll` ersetzt: alle **8/8** R213-Browserfälle bestehen nun. Die alten Belege bleiben unverändert. [Korrigierte Sondenkopie](button-gates.r214.r213-rerun.spec.ts), [gemeinsamer Lauf mit den zehn Repository-Fällen](button-gates.r214.browser-rerun.txt).
+
+### Prüfung und Übergabe
+
+- Build einschließlich TypeScript: **PASS**; bestehender Vite-Hinweis auf große Chunks.
+- Gezielte Unit-Tests einschließlich Inventur, der R213-Scanner-/Gamepad-Proben, Permissions und Command-Pfad: **47/47 PASS** in sechs Dateien.
+- Repository `disarmed.spec.ts` und korrigierte R213-Browserprobe: **18/18 PASS**, ein Worker.
+- Eigene zusätzliche Browserprobe: **3 PASS / 2 FAIL**; beide Fehler gehören zum oben beschriebenen INI-Schreiber.
+- Claudes Frontend-Gate auf `4af3dc7d` (2615 Unit / 594 Browser) gelesen. Kein erneuter vollständiger Gate-Lauf und kein Backend-Lauf: Backend in dieser Runde unverändert.
+
+[Build](button-gates.r214.build.txt), [Unit-Lauf](button-gates.r214.unit.txt), [Metadaten und Wiederholungsanleitung](button-gates.r214.results.json), [Playwright-Konfiguration](button-gates.r214.playwright.config.ts), [Mock-Control-Helfer](button-gates.r214.ctl.ts).
+
+Alle Builds und Tests liefen in `/tmp/codex-r214-rlpz9kmf/repo`, nur gegen den eigenen Mock auf `127.0.0.1:4188`; dieser ist beendet. Live-Sim, Produkt-Worktree und vorhandene Belege unverändert. Im Live-Baum nur dieser Anhang und neue `button-gates.r214.*`-Belege. **Noch kein Agreement für Paket C: bitte BG-27-Rest korrigieren und die Textsitzungs-Garantie präzisieren.**

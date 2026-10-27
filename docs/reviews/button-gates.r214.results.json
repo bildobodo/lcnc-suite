@@ -1,0 +1,51 @@
+{
+  "round": "R214",
+  "date": "2026-10-27",
+  "verdict": "findings",
+  "base": "e0cd65ae",
+  "head": "5e997db876d83076980e3747decc2eb0cf07e8c9",
+  "product_worktree": "/home/cnc/lcnc-suite-gates",
+  "archive": "/tmp/codex-r214-rlpz9kmf/repo",
+  "isolation": "Archive only. No requests to live :8000/:5173. Own mock 127.0.0.1:4188 stopped after tests. No product edits.",
+  "results": {
+    "build": "PASS",
+    "targeted_unit": {
+      "passed": 47,
+      "files": 6
+    },
+    "repository_and_r213_browser": {
+      "passed": 18,
+      "repository": 10,
+      "r213": 8
+    },
+    "independent_browser": {
+      "passed": 3,
+      "failed": 2,
+      "failure": "Both fail on late INI replacing RPM value: 800 -> 2400 and 1500 -> 2400."
+    }
+  },
+  "commands": [
+    "nice -n 10 npm run build",
+    "nice -n 10 npx vitest run src/controlInventory.test.ts src/r213.scan.test.ts src/r213.gamepad.test.ts src/useGamepad.test.ts src/permissions.test.ts src/commandPath.test.ts",
+    "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 node e2e/mock-gateway.mjs",
+    "nice -n 10 npx playwright test -c playwright.r214.config.ts disarmed.spec.ts r213-rerun.spec.ts",
+    "npx playwright test -c playwright.r214.config.ts r214.codex.spec.ts"
+  ],
+  "reproduce": "In a separate archive of HEAD, install dependencies and build lcnc-webui. Copy r214.browser.spec.ts to e2e/r214.codex.spec.ts, r214.r213-rerun.spec.ts to e2e/r213-rerun.spec.ts, r214.ctl.ts to e2e/ctl.ts, and r214.playwright.config.ts to playwright.r214.config.ts. R213 unit probes are the existing button-gates.r213.scan.test.ts and button-gates.r213.gamepad.test.ts, copied to src/r213.scan.test.ts and src/r213.gamepad.test.ts. Run the mock separately and tests with one worker.",
+  "limitations": [
+    "Late viewer_init deliberately injected by mock; no claim about latency or observed event ordering on live machine.",
+    "No full gate or backend rerun: backend unchanged. Claude full frontend gate read separately.",
+    "No new browser fixture for hypothetical text field inside disabled fieldset; boundary clarification is static analysis."
+  ],
+  "r213_erratum": "Only expect.soft.poll -> expect.poll changed in copied browser probe; old artifact unchanged. Retained R213 final log did not establish Enter/Space counts because its harness raised TypeError.",
+  "sha256": {
+    "button-gates.r214.build.txt": "18f6bbf55eb49f57e603d9faa4ffb91639e4011cfdb979f98bef795b0e1b94ce",
+    "button-gates.r214.unit.txt": "fd83d1ab06545b428a93704b00dd7a5e9249f19f34472491fa89567482a2fedb",
+    "button-gates.r214.browser-rerun.txt": "53d60c2bb21ba860700ddb2b282d5ddb4204741ca1491bacc3cffa1a0786aa5c",
+    "button-gates.r214.r213-rerun.spec.ts": "91e89138204cf4de0b66ab1161a98fceb2441bbd02cdb9106b2a021b55440ee6",
+    "button-gates.r214.browser.spec.ts": "580583a7a04205ab7eab2ddb2f6019569e85894fbf29202e466a0a4514c25e39",
+    "button-gates.r214.browser.txt": "47e2bb280adbd81f664d361effb065e4d3f086238aea7e223770cc6710c3c0dc",
+    "button-gates.r214.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "button-gates.r214.ctl.ts": "536bc627ddfbdf51c4b7f01b97cbb3f4f559a53ae91b62ad9ffa26097998e372"
+  }
+}
