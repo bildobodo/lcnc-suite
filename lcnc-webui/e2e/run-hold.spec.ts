@@ -25,6 +25,8 @@ const PERMS_ALL = {
   machineFrame: true, goZero: true, planeFrame: true,
   touchoff: true, touchoffRotary: true, twpCapture: true,
   surfaceComp: true, safety: true, setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true,
+  // button gates D
+  programLoad: true, modeManual: true, modeCoord: true, parameterRead: true, g30Write: true, spindleManual: true, armEnable: true, estopReset: true,
 };
 const PROGRAM = "(program A)\nG0 X0\nG1 X10 F100\nG1 Y10\nM2\n";
 /** The macro files on the bar: park (no parameters, a hold) and face_top

@@ -33,9 +33,12 @@ export async function setLayoutState(page: Page, profile: Profile, state: Layout
   permissions.resume = false;
   const disabled: (keyof Permissions)[] = [];
   if (state === 'unhomed') disabled.push('ready', 'run', 'jog', 'probe', 'touchoff', 'touchoffRotary',
-    'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp');
+    'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp', 'modeCoord', 'spindleManual', 'g30Write');
   if (['off', 'estop', 'running', 'paused'].includes(state)) disabled.push('idle', 'ready', 'run', 'jog', 'probe',
-    'zero', 'touchoff', 'touchoffRotary', 'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp');
+    'zero', 'touchoff', 'touchoffRotary', 'machineFrame', 'goZero', 'planeFrame', 'twpCapture', 'surfaceComp',
+    'modeCoord', 'spindleManual', 'g30Write');
+  // button gates D: a run or a pause closes the load, the mode choice and the G30 read
+  if (['running', 'paused'].includes(state)) disabled.push('programLoad', 'modeManual', 'parameterRead');
   if (state === 'estop') disabled.push('safety', 'setup', 'override');
   if (state === 'tcp') disabled.push('touchoffRotary', 'machineFrame', 'goZero');
   if (state.startsWith('plane')) disabled.push('touchoffRotary', 'machineFrame', 'twpCapture');

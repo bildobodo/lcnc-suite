@@ -32,6 +32,7 @@ import MachineInput from "./MachineInput.vue";
 import MachineToggle from "./MachineToggle.vue";
 import FileBrowser from "./FileBrowser.vue";
 import CodeEditor from "./CodeEditor.vue";
+import { START_REASONS, startRefusal } from "./actionAdmission";
 export interface GcodeStats {
   feedMoves: number;
   rapidMoves: number;
@@ -602,7 +603,7 @@ const programHoldKey = computed(() => `${props.activeFile ?? ""}|${props.program
 // on the text the operator sees, and the entry position Run from line
 // sends is read from it.
 const programLoading = computed(() => props.programRevision !== props.programTextRevision);
-const LOADING_REASON = "Loading program — wait";
+const LOADING_REASON = START_REASONS.loading;
 
 // The run options sit in the More panel (operator 2026-10-02): an option
 // that is ON stays named on More, open or closed — it changes how the
@@ -706,6 +707,9 @@ function confirmRunFromLine() {
 // renders only the viewport, so the main thread stays free regardless of file
 // size — the same virtualization principle as the read-only viewer above.
 const editing = ref(false);
+// Start's admission beyond its `run` gate — the shortcut and the gamepad
+// refuse by the same rule (button gates BG-10, actionAdmission.ts).
+const startBlock = computed(() => startRefusal({ activeFile: props.activeFile, editing: editing.value, loading: programLoading.value }));
 // Portrait edit mode folds the file ops, the run controls and the progress
 // row: none can act while a session is open (Start/Step/Browse/Upload say
 // "Finish or discard the edit first"), and the side pane is what the
@@ -858,9 +862,9 @@ async function saveEdit() {
       <div v-if="!compactEdit" class="ctrlRow actionGroup">
         <!-- A hold bound to the program (D6) — a tap when it only opens the
              Run-from-line dialog (no motion yet; the dialog's action holds) -->
-        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!activeFile || editing || programLoading"
+        <MachineBtn type="start" class="ctrlBtn" @click="onStartClick" :disabled="!!startBlock"
           :hold="!opensRunDialog" :hold-key="programHoldKey"
-          :reason="editing ? 'Finish or discard the edit first' : !activeFile ? 'No program loaded' : programLoading ? LOADING_REASON : undefined">
+          :reason="startBlock ?? undefined">
           <Play :size="14" class="ctrlIcon" /> {{ selectedLine && selectedLine > 1 ? `Start L${selectedLine}` : 'Start' }}
         </MachineBtn>
         <!-- Step and Pause / Resume are symbols in the narrow pane
@@ -941,7 +945,7 @@ async function saveEdit() {
 
     <!-- Shared file browser: same navigation and file rows as Tools. -->
     <FileBrowser v-if="showBrowser" v-model:subdir="currentSubdir" label="Server programs"
-      empty-text="No program files found" :active-file="activeFile" file-gate="setup"
+      empty-text="No program files found" :active-file="activeFile" file-gate="programLoad"
       :load-directory="browsePrograms" :select-file="selectFile" />
 
     <!-- Code area wrapper (drop overlay target) -->

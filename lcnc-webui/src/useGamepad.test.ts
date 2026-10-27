@@ -43,9 +43,9 @@ function setup(step: number) {
   });
   const pad_ = useGamepad({
     jogVel, angularJogVel: ref(5), jogIncrement,
-    permissions: computed(() => ({ jog: true, idle: true, ready: true, abort: true, pause: false, resume: false, spindleStop: true })),
+    permissions: computed(() => ({ jog: true, run: true, zero: true, override: true, abort: true, pause: false, resume: false, spindleStop: true })),
     send: (c) => { sent.push(c); }, fire: () => {},
-    activeFile: computed(() => null), config,
+    startContext: computed(() => ({ activeFile: null, editing: false, loading: false })), config,
     axes: computed(() => ["X", "Y", "Z"]), gated: ref(false),
   });
   pad_.start();

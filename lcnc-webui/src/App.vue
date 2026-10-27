@@ -68,10 +68,11 @@ import { useMacros } from "./useMacros";
 import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { modalOpen, repointOpeners } from "./modalRegistry";
 import { g5xLabel as fixtureLabel } from "./wcs";
+import { ACTION_GATES, type StartContext } from "./actionAdmission";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
-  TRAJ_MODE_FREE, TRAJ_MODE_TELEOP,
+  TRAJ_MODE_FREE, TRAJ_MODE_TELEOP, TASK_MODE_MANUAL,
   SPINDLE_FORWARD, SPINDLE_REVERSE,
   OPERATOR_DISPLAY,
   OPERATOR_ERROR,
@@ -722,7 +723,6 @@ const runSubName = computed<string | null>(() => runLineState.value?.subName ?? 
 
 /** ---------- permissions (arming + machine state) ---------- */
 const canEstop = computed(() => !isEstop.value);
-const canResetEstop = computed(() => armed.value && isEstop.value);
 
 
 /** Centralized permissions — single source of truth for all button enable/disable.
@@ -838,9 +838,11 @@ function setKinsMode(t: number): string | null {
   if (t !== 0 && t !== 1 && t !== 2) return null;
   return fire({ cmd: "set_kins_mode", mode: t }, t === 2 ? "planeFrame" : "ready");
 }
-// Task mode (the strip's Mode group): its req_id back to the group.
+// Task mode (the strip's Mode group): its req_id back to the group. The
+// gate per target (button gates BG-04): MANUAL modeManual, MDI / AUTO
+// modeCoord — the gateway re-checks the same rule.
 function setTaskMode(m: number): string | null {
-  return fire({ cmd: "set_mode", mode: m }, "idle");
+  return fire({ cmd: "set_mode", mode: m }, m === TASK_MODE_MANUAL ? "modeManual" : "modeCoord");
 }
 // TWP re-orient: re-solve the head at the CURRENT table pose. Unlike the
 // jog-frame switch above this MOVES the rotaries, hence the probe tier.
@@ -1080,10 +1082,10 @@ const isSpinning = computed(() => isForward.value || isReverse.value);
 const floodOn = computed(() => !!st.value.flood);
 const mistOn = computed(() => !!st.value.mist);
 function toggleFlood() {
-  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, 'override');
+  fire({ cmd: floodOn.value ? "flood_off" : "flood_on" }, ACTION_GATES.coolant);
 }
 function toggleMist() {
-  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, 'override');
+  fire({ cmd: mistOn.value ? "mist_off" : "mist_on" }, ACTION_GATES.coolant);
 }
 
 // Program switches
@@ -1570,7 +1572,7 @@ const { setAxis, setAll, setG5x } = useTouchoffMath({ axes, fire });
 
 // Homing is ZERO-tier on the backend (idle + !eoffset), not idle.
 function homeAll() {
-  fire({ cmd: "home_all" }, 'zero');
+  fire({ cmd: "home_all" }, ACTION_GATES.homeAll);
 }
 
 function unhomeAll() {
@@ -1601,7 +1603,7 @@ function unhomeAxis(joint: number) {
 
 
 function cycleStart() {
-  fire({ cmd: "cycle_start" }, 'run');
+  fire({ cmd: "cycle_start" }, ACTION_GATES.start);
 }
 
 function runFromLine(opts: import("./gcodeRfl").RflRunOptions) {
@@ -1662,11 +1664,11 @@ function setRapidOverride(scale: number) {
 }
 
 function spindleForward(speed: number) {
-  fire({ cmd: "spindle_forward", speed }, 'ready');
+  fire({ cmd: "spindle_forward", speed }, 'spindleManual');
 }
 
 function spindleReverse(speed: number) {
-  fire({ cmd: "spindle_reverse", speed }, 'ready');
+  fire({ cmd: "spindle_reverse", speed }, 'spindleManual');
 }
 
 // The spindle stop at idle needs no arm and no homing (button gates BG-18).
@@ -1676,29 +1678,38 @@ function spindleStop() {
 
 function spindleIncrease() {
   if (isSpinning.value) {
-    fire({ cmd: "spindle_increase" }, 'ready');
+    fire({ cmd: "spindle_increase" }, 'spindleManual');
   } else {
-    if (!permissions.value.ready) return;
+    if (!permissions.value.spindleManual) return;
     setRpmPreselect(Math.min(maxSpindleSpeed.value, rpmInput.value + spindleIncrement.value));
   }
 }
 
 function spindleDecrease() {
   if (isSpinning.value) {
-    fire({ cmd: "spindle_decrease" }, 'ready');
+    fire({ cmd: "spindle_decrease" }, 'spindleManual');
   } else {
-    if (!permissions.value.ready) return;
+    if (!permissions.value.spindleManual) return;
     setRpmPreselect(Math.max(minSpindleSpeed.value, rpmInput.value - spindleIncrement.value));
   }
 }
 
 function loadFile(path: string) {
-  fire({ cmd: "load_file", path }, 'setup');
+  fire({ cmd: "load_file", path }, 'programLoad');
 }
 
 function unloadFile() {
-  fire({ cmd: "unload_file" }, 'setup');
+  fire({ cmd: "unload_file" }, 'programLoad');
 }
+
+// Start's program context — the button, the shortcut and the gamepad read
+// the same one (button gates BG-10, actionAdmission.ts): nobody editing,
+// no load in flight (the displayed text not yet the published revision).
+const startContext = computed<StartContext>(() => ({
+  activeFile: activeFile.value,
+  editing: gcodeEditActive.value,
+  loading: gcodeRevision.value !== gcodeTextRevision.value,
+}));
 
 /** ---------- keyboard shortcuts ---------- */
 // See useKeyboardShortcuts.ts. Owns config, reverseKeyMap, jogActions,
@@ -1717,9 +1728,8 @@ const {
   axes,
   permissions,
   canEstop,
-  activeFile,
+  startContext,
   modalOpen,
-  editing: gcodeEditActive,
   send,
   fire,
 });
@@ -1744,7 +1754,7 @@ const gamepad = useGamepad({
   permissions,
   send,
   fire,
-  activeFile: computed(() => activeFile.value),
+  startContext,
   config: gamepadConfig,
   axes: computed(() => axes.value),
   gated: gamepadGated,
@@ -2524,12 +2534,10 @@ watch(viewerGcode, (newGcode) => {
       <SafetyStrip
         :armed="armed"
         :busy="busy"
-        :tripUnacked="safetyTrip !== null"
         :isEstop="isEstop"
         :isEnabled="isEnabled"
         :isHomed="isHomed"
         :canEstop="canEstop"
-        :canResetEstop="canResetEstop"
         :isTeleop="isTeleop"
         :taskMode="taskMode"
         :interpState="interpState"

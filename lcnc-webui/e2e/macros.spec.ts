@@ -522,7 +522,8 @@ test("a tap on a row selects it for Run; its name is one Tab stop whose keys sel
   // observed while the key is held
   await ctl({ op: "quiet", on: true });
   await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, run: true, machineFrame: true, goZero: true, idle: true, probe: true,
-    setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true } } });
+    setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true,
+    armEnable: true, estopReset: true, programLoad: true } } });
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [], bar: ["park"] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
     mapping: { "jog_x+": "ArrowRight", "jog_x-": "ArrowLeft", "jog_y+": "ArrowUp", "jog_y-": "ArrowDown", "jog_z+": "Home", "jog_z-": "End",
                estop: "Escape", cycle: " ", abort: "Backspace" } } } } });
@@ -669,7 +670,8 @@ test("one action row: Run and Abort left, More right; its panel, its keys, and a
   // observed while the key is held
   await ctl({ op: "quiet", on: true });
   await ctl({ op: "status_delta", data: { homed: [1, 1, 1], permissions: { jog: true, ready: true, run: true, machineFrame: true, goZero: true, idle: true, probe: true,
-    setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true } } });
+    setup: true, sourceWrite: true, toolTableWrite: true, armed: true, always: true, abort: true, safety: true, override: true, zero: true,
+    armEnable: true, estopReset: true, programLoad: true } } });
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { macros: { macros: [] }, keyboard: { jogEnabled: true, buttonsEnabled: true,
     mapping: { "jog_x+": "ArrowRight", "jog_x-": "ArrowLeft", "jog_y+": "ArrowUp", "jog_y-": "ArrowDown", "jog_z+": "Home", "jog_z-": "End",
                estop: "Escape", cycle: " ", abort: "Backspace" } } } } });

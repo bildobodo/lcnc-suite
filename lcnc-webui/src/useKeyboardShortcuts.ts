@@ -27,6 +27,7 @@ import type { WsCommand } from "./lcnc";
 
 import { isRotaryAxis } from "./useAxes";
 import { JogGestures, type JogGesture } from "./jogGesture";
+import { ACTION_GATES, startAdmitted, type StartContext } from "./actionAdmission";
 
 interface UseKeyboardShortcutsOptions {
   jogVel: Ref<number>;
@@ -35,12 +36,10 @@ interface UseKeyboardShortcutsOptions {
   axes: ComputedRef<string[]>;
   permissions: Ref<Permissions>;
   canEstop: ComputedRef<boolean>;
-  activeFile: Ref<string | null>;
+  /** Start's program context (actionAdmission.ts — the button's own rule). */
+  startContext: Ref<StartContext>;
   /** True while a dialog or the number keypad is open (modalRegistry). */
   modalOpen: ComputedRef<boolean>;
-  /** True while the G-code editor is open — Cycle Start never runs a
-   *  program whose buffer is being edited. */
-  editing: Ref<boolean>;
   send: (cmd: WsCommand) => void;
   fire: (payload: any, gate?: keyof Permissions, cooldownMs?: number) => void;
 }
@@ -157,7 +156,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
       e.preventDefault();
       if (opts.permissions.value.resume) opts.fire({ cmd: "cycle_resume" }, 'resume');
       else if (opts.permissions.value.pause) opts.fire({ cmd: "cycle_pause" }, 'pause');
-      else if (opts.permissions.value.run && !opts.editing.value && !!opts.activeFile.value) opts.fire({ cmd: "cycle_start" }, 'run');
+      else if (startAdmitted(opts.permissions.value, opts.startContext.value)) opts.fire({ cmd: "cycle_start" }, ACTION_GATES.start);
       return;
     }
 

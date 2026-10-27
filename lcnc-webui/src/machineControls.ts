@@ -72,12 +72,14 @@ export const BUTTON_TYPES = {
   toolUnload:     { gate: 'machineFrame',    variant: 'default', size: 'md', whileProbing: true },
 
   // Spindle
-  spindleFwd:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
-  spindleRev:      { gate: 'ready',    variant: 'default', size: 'md', hold: true },
+  // Fwd / Rev / ±: `ready`, or unhomed in MANUAL where the machine declares
+  // WEBUI_SPINDLE_BEFORE_HOMING (operator Q1, button gates D).
+  spindleFwd:      { gate: 'spindleManual', variant: 'default', size: 'md', hold: true },
+  spindleRev:      { gate: 'spindleManual', variant: 'default', size: 'md', hold: true },
   // The spindle stop at idle: no arm, no homing (button gates BG-18).
   spindleStop:     { gate: 'spindleStop', variant: 'danger',  size: 'md' },
-  spindleIncrease: { gate: 'ready',    variant: 'default', size: 'md' },
-  spindleDecrease: { gate: 'ready',    variant: 'default', size: 'md' },
+  spindleIncrease: { gate: 'spindleManual', variant: 'default', size: 'md' },
+  spindleDecrease: { gate: 'spindleManual', variant: 'default', size: 'md' },
 
   // Coolant (override gate: toggleable during program execution, like overrides)
   flood:          { gate: 'override', variant: 'default', size: 'md' },
@@ -98,7 +100,8 @@ export const BUTTON_TYPES = {
   jogSpeedReset:  { gate: 'always',   variant: 'default', size: 'xs' },
 
   // File operations
-  fileOp:         { gate: 'setup',    variant: 'default', size: 'md' },
+  // Reload / unload the program (BG-03): programLoad — no E-Stop, power or homing term.
+  fileOp:         { gate: 'programLoad', variant: 'default', size: 'md' },
   // Opening a file browser and a tool library's import PREVIEW (Files,
   // Upload to preview, Preview again): reading, never a machine or file
   // effect — free (button gates BG-02 / BG-14: reading, export and the
@@ -245,8 +248,8 @@ export const BUTTON_TYPES = {
   // the current position over and saving are machine-frame only (our G30
   // routines address it with G53 moves); a confirming read synchs — idle.
   g30Capture:     { gate: 'g30Capture', variant: 'default', size: 'md' },   // + standstill (Codex R25 OP-I02)
-  g30Save:        { gate: 'machineFrame', variant: 'primary', size: 'md' },
-  g30Read:        { gate: 'idle',         variant: 'default', size: 'md' },
+  g30Save:        { gate: 'g30Write',     variant: 'primary', size: 'md' },   // machineFrame + the synch (BG-13)
+  g30Read:        { gate: 'parameterRead', variant: 'default', size: 'md' },   // no synch ON + AUTO (BG-13)
   // Discard in an inline note is the same destructive choice as in a
   // dialog — danger wherever it appears (design wave D1, UI-N31).
   inlineDanger:   { gate: 'always',  variant: 'danger',  size: 'sm' },
@@ -260,7 +263,7 @@ export const BUTTON_TYPES = {
   // Banner buttons are ONE family (design wave D1, UI-N25): the trip
   // acknowledgement and the program reload are banner actions too.
   bannerAck:      { gate: 'always',  variant: 'primary', size: 'md' },
-  bannerReload:   { gate: 'setup',   variant: 'default', size: 'md' },
+  bannerReload:   { gate: 'programLoad', variant: 'default', size: 'md' },
   bannerAbort:    { gate: 'abort',   variant: 'danger',  size: 'md' },
   // Banner Home All: `home_all` is ZERO-tier on the backend (idle + !eoffset).
   bannerHome:     { gate: 'zero',    variant: 'default', size: 'md', hold: true },
@@ -324,7 +327,10 @@ export const INPUT_DEFS = {
   coolant:         { gate: 'override' },
 
   // Mode selection
-  modeSelect:      { gate: 'idle' },
+  // The task mode per target (BG-04): MANUAL wherever task takes it, MDI /
+  // AUTO where COORD is reachable — no power term, no jog / motion / homing.
+  modeManual:      { gate: 'modeManual' },
+  modeCoord:       { gate: 'modeCoord' },
   // Jog-frame selector (switchable-kins machines): switching runs an MDI
   // remap (M428/M430), so it carries the MDI tier, not modeSelect's.
   jogFrame:        { gate: 'ready' },

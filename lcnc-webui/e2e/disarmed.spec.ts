@@ -47,13 +47,19 @@ function perms(state: "idle" | "running" | "unhomed" | "estop"): Permissions {
   p.toolChangeConfirm = false;
   if (state === "running" || state === "estop") {
     for (const k of ["idle", "ready", "run", "jog", "probe", "zero", "touchoff", "touchoffRotary", "machineFrame",
-      "goZero", "planeFrame", "twpCapture", "surfaceComp", "step", "setup", "sourceWrite", "toolTableWrite", "g30Capture"] as const) p[k] = false;
+      "goZero", "planeFrame", "twpCapture", "surfaceComp", "step", "setup", "sourceWrite", "toolTableWrite", "g30Capture",
+      "g30Write", "spindleManual", "modeCoord"] as const) p[k] = false;
   }
-  if (state === "running") p.spindleStop = false;
+  if (state === "running") {
+    p.spindleStop = false;
+    for (const k of ["programLoad", "modeManual", "parameterRead"] as const) p[k] = false;
+  }
+  // E-Stop: loading, MANUAL and the G30 read stay open (button gates D);
+  // unhomed here, so no MDI / AUTO
   if (state === "estop") { p.safety = false; p.override = false; p.spindleStop = false; }
   if (state === "unhomed") {
     for (const k of ["ready", "run", "jog", "probe", "touchoff", "touchoffRotary", "machineFrame", "goZero",
-      "planeFrame", "twpCapture", "surfaceComp", "g30Capture"] as const) p[k] = false;
+      "planeFrame", "twpCapture", "surfaceComp", "g30Capture", "g30Write", "spindleManual", "modeCoord"] as const) p[k] = false;
   }
   return p;
 }

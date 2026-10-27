@@ -22,16 +22,12 @@ import {
 } from "./gamepadProfile";
 import { status } from "./lcncWs";
 import { JogGestures } from "./jogGesture";
+import { ACTION_GATES, startAdmitted, type StartContext } from "./actionAdmission";
+import type { Permissions as AllPermissions } from "./permissions";
 
-interface Permissions {
-  jog: boolean;
-  idle: boolean;
-  ready: boolean;
-  abort: boolean;
-  pause: boolean;
-  resume: boolean;
-  spindleStop: boolean;
-}
+/** The classes the pad reads: the jog, and each action's own gate
+ *  (actionAdmission.ts ACTION_GATES — the screen control's). */
+type Permissions = Pick<AllPermissions, "jog" | (typeof ACTION_GATES)[keyof typeof ACTION_GATES]>;
 
 type GateKey = keyof Permissions;
 
@@ -54,7 +50,8 @@ export function useGamepad(deps: {
   permissions: ComputedRef<Permissions>;
   send: (cmd: WsCommand) => void;
   fire: (cmd: WsCommand, gate?: GateKey) => void;
-  activeFile: ComputedRef<string | null>;
+  /** Start's program context (actionAdmission.ts — the button's own rule). */
+  startContext: ComputedRef<StartContext>;
   config: Ref<GamepadDefaults>;
   /** Machine axis letters (viewer_init.axes) — X/Y/Z resolved by letter. */
   axes: ComputedRef<string[]>;
@@ -165,9 +162,12 @@ export function useGamepad(deps: {
   function dispatchAction(action: GamepadAction) {
     const perms = deps.permissions.value;
     switch (action) {
+      // Every action admits as its screen control does (button gates BG-10,
+      // actionAdmission.ts): Start `run` + the program context, Home All
+      // `zero`, the coolant `override`.
       case "start":
-        if (perms.resume) deps.fire({ cmd: "cycle_resume" }, 'resume');
-        else if (perms.ready && deps.activeFile.value) deps.fire({ cmd: "cycle_start" }, 'ready');
+        if (perms.resume) deps.fire({ cmd: "cycle_resume" }, ACTION_GATES.resume);
+        else if (startAdmitted(perms, deps.startContext.value)) deps.fire({ cmd: "cycle_start" }, ACTION_GATES.start);
         break;
       case "pause":
         if (perms.pause) deps.fire({ cmd: "cycle_pause" }, 'pause');
@@ -186,19 +186,19 @@ export function useGamepad(deps: {
         if (perms.spindleStop) deps.fire({ cmd: "spindle_stop" }, 'spindleStop');
         break;
       case "flood_toggle": {
-        if (!perms.ready) break;
+        if (!perms[ACTION_GATES.coolant]) break;
         const floodOn = !!status.value?.data?.flood;
-        deps.fire({ cmd: floodOn ? "flood_off" : "flood_on" }, 'ready');
+        deps.fire({ cmd: floodOn ? "flood_off" : "flood_on" }, ACTION_GATES.coolant);
         break;
       }
       case "mist_toggle": {
-        if (!perms.ready) break;
+        if (!perms[ACTION_GATES.coolant]) break;
         const mistOn = !!status.value?.data?.mist;
-        deps.fire({ cmd: mistOn ? "mist_off" : "mist_on" }, 'ready');
+        deps.fire({ cmd: mistOn ? "mist_off" : "mist_on" }, ACTION_GATES.coolant);
         break;
       }
       case "home_all":
-        if (perms.idle) deps.fire({ cmd: "home_all" }, 'idle');
+        if (perms[ACTION_GATES.homeAll]) deps.fire({ cmd: "home_all" }, ACTION_GATES.homeAll);
         break;
       // z_mod, dead_man, none are not dispatchable actions
     }

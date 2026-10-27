@@ -1,0 +1,251 @@
+
+Running 6 tests using 1 worker
+
+  ✘  1 [serial-guards] › e2e/setup-gates.spec.ts:49:1 › a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03) (11.8s)
+  ✘  2 [serial-guards] › e2e/setup-gates.spec.ts:70:1 › the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04) (11.3s)
+  ✘  3 [serial-guards] › e2e/setup-gates.spec.ts:98:1 › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11) (11.3s)
+  ✘  4 [serial-guards] › e2e/setup-gates.spec.ts:118:1 › the G30 read: open with the machine off, closed ON in AUTO with the reason (BG-13) (12.0s)
+  ✘  5 [serial-guards] › e2e/setup-gates.spec.ts:132:1 › the manual spindle unhomed where the machine declares it, MANUAL only (Q1) (11.4s)
+  ✘  6 [serial-guards] › e2e/setup-gates.spec.ts:143:1 › Start by the shortcut waits for the program text like the button (one admission, BG-10) (2.5s)
+
+
+  1) [serial-guards] › e2e/setup-gates.spec.ts:49:1 › a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03) 
+
+    Error: E-Stop
+
+    expect(locator).toBeEnabled() failed
+
+    Locator:  locator('.sidePane .container').filter({ has: locator('.codeArea') }).getByRole('region', { name: 'Server programs' }).getByRole('button', { name: 'part.ngc', exact: true })
+    Expected: enabled
+    Received: disabled
+    Timeout:  10000ms
+
+    Call log:
+      - E-Stop with timeout 10000ms
+      - waiting for locator('.sidePane .container').filter({ has: locator('.codeArea') }).getByRole('region', { name: 'Server programs' }).getByRole('button', { name: 'part.ngc', exact: true })
+        24 × locator resolved to <button disabled type="button" class="fileItem" data-v-2fa09efa="" aria-label="part.ngc" title="part.ngc — Unavailable now">…</button>
+           - unexpected value "disabled"
+
+
+      61 |     if (!(await browser.isVisible())) await clickMore(panel.locator(".ctrlRow"), "Files");   // a load closes it
+      62 |     await ctl({ op: "clearCmds" });
+    > 63 |     await expect(file, name).toBeEnabled();
+         |                              ^
+      64 |     await file.click();
+      65 |     await expect.poll(async () => (await sent()).filter((c) => c.cmd === "load_file").map((c) => c.path), name)
+      66 |       .toEqual([`${ncDir}/part.ngc`]);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/setup-gates.spec.ts:63:30
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/setup-gates-a-program-load-dee18-d-no-power-or-homing-BG-03--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/setup-gates-a-program-load-dee18-d-no-power-or-homing-BG-03--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/setup-gates-a-program-load-dee18-d-no-power-or-homing-BG-03--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/setup-gates-a-program-load-dee18-d-no-power-or-homing-BG-03--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) [serial-guards] › e2e/setup-gates.spec.ts:70:1 › the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04) 
+
+    Error: expect(locator).toHaveAttribute(expected) failed
+
+    Locator:  locator('[data-strip="jog"]').getByRole('toolbar', { name: 'Task mode', exact: true }).getByRole('radio', { name: 'Auto', exact: true })
+    Expected: "true"
+    Received: ""
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toHaveAttribute" with timeout 10000ms
+      - waiting for locator('[data-strip="jog"]').getByRole('toolbar', { name: 'Task mode', exact: true }).getByRole('radio', { name: 'Auto', exact: true })
+        23 × locator resolved to <button role="radio" type="button" tabindex="-1" class="choice" aria-checked="false" data-control="modeSelect">Auto</button>
+           - unexpected value "null"
+
+
+      76 |   await machine(page, { ...UNHOMED, task_mode: 3 }, { modeCoord: false, idle: true }, { modeCoord: NOT_HOMED });
+      77 |   await expect(option("Manual")).not.toHaveAttribute("aria-disabled", "true");
+    > 78 |   await expect(option("Auto")).toHaveAttribute("aria-disabled", "true");
+         |                                ^
+      79 |   await expect(option("Auto")).toHaveAttribute("title", NOT_HOMED);
+      80 |   await ctl({ op: "clearCmds" });
+      81 |   const auto = (await option("Auto").boundingBox())!;   // a real tap on the dimmed option
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/setup-gates.spec.ts:78:32
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/setup-gates-the-task-mode--1dd6d-d-mode-sends-nothing-BG-04--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/setup-gates-the-task-mode--1dd6d-d-mode-sends-nothing-BG-04--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/setup-gates-the-task-mode--1dd6d-d-mode-sends-nothing-BG-04--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/setup-gates-the-task-mode--1dd6d-d-mode-sends-nothing-BG-04--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  3) [serial-guards] › e2e/setup-gates.spec.ts:98:1 › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11) 
+
+    Error: expect(locator).toBeDisabled() failed
+
+    Locator:  getByRole('button', { name: 'Reset E-Stop', exact: true })
+    Expected: disabled
+    Received: enabled
+    Timeout:  10000ms
+
+    Call log:
+      - Expect "toBeDisabled" with timeout 10000ms
+      - waiting for getByRole('button', { name: 'Reset E-Stop', exact: true })
+        23 × locator resolved to <button data-v-423535d9="" data-v-a817fd51="" data-control="estop" title="Reset E-Stop" aria-label="Reset E-Stop" class="b lg estop flashing block safetyBtn">…</button>
+           - unexpected value "enabled"
+
+
+      101 |   const reset = page.getByRole("button", { name: "Reset E-Stop", exact: true });
+      102 |   await machine(page, ESTOP, { estopReset: false }, { estopReset: TRIP });
+    > 103 |   await expect(reset).toBeDisabled();
+          |                       ^
+      104 |   await expect(reasonOf(page, "estop")).toHaveAttribute("title", TRIP);
+      105 |   await machine(page, ESTOP, { estopReset: true });
+      106 |   await expect(reset).toBeEnabled();
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/setup-gates.spec.ts:103:23
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/setup-gates-the-recovery-o-519ab-reason-at-the-button-BG-11--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/setup-gates-the-recovery-o-519ab-reason-at-the-button-BG-11--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/setup-gates-the-recovery-o-519ab-reason-at-the-button-BG-11--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/setup-gates-the-recovery-o-519ab-reason-at-the-button-BG-11--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  4) [serial-guards] › e2e/setup-gates.spec.ts:118:1 › the G30 read: open with the machine off, closed ON in AUTO with the reason (BG-13) 
+
+    Error: off: the confirming synch works
+
+    expect(locator).toBeEnabled() failed
+
+    Locator:  locator('[data-control="g30Read"]')
+    Expected: enabled
+    Received: disabled
+    Timeout:  10000ms
+
+    Call log:
+      - off: the confirming synch works with timeout 10000ms
+      - waiting for locator('[data-control="g30Read"]')
+        24 × locator resolved to <button disabled data-v-423535d9="" data-v-3a60c80b="" class="b md default" data-control="g30Read">Refresh</button>
+           - unexpected value "disabled"
+
+
+      122 |   const refresh = page.locator('[data-control="g30Read"]');
+      123 |   await machine(page, { enabled: false, is_enabled: false }, { idle: false, ready: false, machineFrame: false, parameterRead: true });
+    > 124 |   await expect(refresh, "off: the confirming synch works").toBeEnabled();
+          |                                                            ^
+      125 |   const AUTO = "G30 not confirmed in AUTO — switch to MDI first";
+      126 |   await machine(page, { enabled: true, is_enabled: true, task_mode: 2 }, { parameterRead: false, g30Write: false, g30Capture: false },
+      127 |     { parameterRead: AUTO, g30Write: AUTO, g30Capture: AUTO });
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/setup-gates.spec.ts:124:60
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/setup-gates-the-G30-read-o-d15df-AUTO-with-the-reason-BG-13--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/setup-gates-the-G30-read-o-d15df-AUTO-with-the-reason-BG-13--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/setup-gates-the-G30-read-o-d15df-AUTO-with-the-reason-BG-13--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/setup-gates-the-G30-read-o-d15df-AUTO-with-the-reason-BG-13--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  5) [serial-guards] › e2e/setup-gates.spec.ts:132:1 › the manual spindle unhomed where the machine declares it, MANUAL only (Q1) 
+
+    Error: declared, in MANUAL
+
+    expect(locator).toBeEnabled() failed
+
+    Locator:  locator('[data-strip="spindle"]').getByRole('button', { name: 'Fwd', exact: true })
+    Expected: enabled
+    Received: disabled
+    Timeout:  10000ms
+
+    Call log:
+      - declared, in MANUAL with timeout 10000ms
+      - waiting for locator('[data-strip="spindle"]').getByRole('button', { name: 'Fwd', exact: true })
+        23 × locator resolved to <button disabled data-v-423535d9="" data-v-81fd583d="" title="Hold to activate" data-control="spindleFwd" class="b md default no-drag-scroll holdable">…</button>
+           - unexpected value "disabled"
+
+
+      134 |   const fwd = page.locator('[data-strip="spindle"]').getByRole("button", { name: "Fwd", exact: true });
+      135 |   await machine(page, UNHOMED, { ready: false, run: false, spindleManual: true });
+    > 136 |   await expect(fwd, "declared, in MANUAL").toBeEnabled();
+          |                                            ^
+      137 |   const MANUAL_ONLY = "Unhomed spindle: Manual mode only";
+      138 |   await machine(page, { ...UNHOMED, task_mode: 3 }, { ready: false, spindleManual: false }, { spindleManual: MANUAL_ONLY });
+      139 |   await expect(fwd).toBeDisabled();
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/setup-gates.spec.ts:136:44
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/setup-gates-the-manual-spi-5943d-declares-it-MANUAL-only-Q1--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/setup-gates-the-manual-spi-5943d-declares-it-MANUAL-only-Q1--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/setup-gates-the-manual-spi-5943d-declares-it-MANUAL-only-Q1--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/setup-gates-the-manual-spi-5943d-declares-it-MANUAL-only-Q1--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6) [serial-guards] › e2e/setup-gates.spec.ts:143:1 › Start by the shortcut waits for the program text like the button (one admission, BG-10) 
+
+    Error: Space while loading starts nothing
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "cycle_start"
+    Received array:     ["cycle_start"]
+
+      156 |   await page.keyboard.press(" ");
+      157 |   await page.waitForTimeout(300);
+    > 158 |   expect(await sentCmds(), "Space while loading starts nothing").not.toContain("cycle_start");
+          |                                                                      ^
+      159 |   // the text arrives: the button and the shortcut start (positive control)
+      160 |   await held!.fulfill({ contentType: "text/plain", body: "(B)\nG0 X0\nM2\n" });
+      161 |   await expect(start).toBeEnabled();
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/setup-gates.spec.ts:158:70
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/setup-gates-Start-by-the-s-38bbc-button-one-admission-BG-10--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/setup-gates-Start-by-the-s-38bbc-button-one-admission-BG-10--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/setup-gates-Start-by-the-s-38bbc-button-one-admission-BG-10--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/setup-gates-Start-by-the-s-38bbc-button-one-admission-BG-10--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  6 failed
+    [serial-guards] › e2e/setup-gates.spec.ts:49:1 › a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03) 
+    [serial-guards] › e2e/setup-gates.spec.ts:70:1 › the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04) 
+    [serial-guards] › e2e/setup-gates.spec.ts:98:1 › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11) 
+    [serial-guards] › e2e/setup-gates.spec.ts:118:1 › the G30 read: open with the machine off, closed ON in AUTO with the reason (BG-13) 
+    [serial-guards] › e2e/setup-gates.spec.ts:132:1 › the manual spindle unhomed where the machine declares it, MANUAL only (Q1) 
+    [serial-guards] › e2e/setup-gates.spec.ts:143:1 › Start by the shortcut waits for the program text like the button (one admission, BG-10) 

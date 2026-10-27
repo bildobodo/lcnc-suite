@@ -99,9 +99,9 @@ const planeTitle = computed(() => {
 // toolbar, MANUAL activation, the checked option the confirmed state; the
 // step increment is local — a plain radio group (the arrows choose).
 const modeOptions: ChoiceOption<number>[] = [
-  { value: TASK_MODE_MANUAL, label: "Manual", gate: "modeSelect" },
-  { value: TASK_MODE_MDI, label: "MDI", gate: "modeSelect" },
-  { value: TASK_MODE_AUTO, label: "Auto", gate: "modeSelect" },
+  { value: TASK_MODE_MANUAL, label: "Manual", gate: "modeManual" },
+  { value: TASK_MODE_MDI, label: "MDI", gate: "modeCoord" },
+  { value: TASK_MODE_AUTO, label: "Auto", gate: "modeCoord" },
 ];
 const frameOptions = computed<ChoiceOption<number>[]>(() => [
   { value: 0, label: "Machine", gate: "jogFrame", title: "Identity kinematics — jog along machine axes" },
