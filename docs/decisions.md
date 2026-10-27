@@ -9523,7 +9523,10 @@ into it unless the operator holds a value the controller has not taken (`rpmPend
 status overwrites that value; Fwd / Rev sends it. ONE end: the commanded speed reaching the
 field's value — a sent Fwd / Rev is not a taken one (the gateway may refuse it), and the
 speed the spindle already turns at, entered again, is no draft (both found in my own
-correction before the R214 answer). The strip's head shows the commanded speed
+correction before the R214 answer). A late INI default fills only an UNTOUCHED preselection (R214):
+the one-shot default from `viewer_init` used to overwrite a prepared RPM, the mirrored
+commanded speed and a moved jog speed alike — each preselection now records whether the
+operator (or, for the RPM, the machine) has written it (`iniDefaultOnce`). The strip's head shows the commanded speed
 while the spindle turns ("Spindle · 1500 rpm"), in the heading's own line, so the
 field and the spindle can differ visibly. A disarm no longer throws away every open
 number keypad (BG-28): the global disarm watch in the keypad strip predated the owner

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, shallowRef, watch } from "vue";
+import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, provide, reactive, ref, shallowRef, watch, type ComputedRef, type Ref } from "vue";
 import type { CollisionLineQuery } from "./viewer/collisionMarks";
 import { applyClientOverlay, applyClientOverlayReasons, PERMISSIONS_KEY, OWNER_PERMISSIONS_KEY, PERMISSION_REASONS_KEY, FIRE_KEY, type Permissions, type PermissionReasons } from "./permissions";
 import { simMode } from "./simMode";
@@ -1471,13 +1471,25 @@ watch(axes, (a) => {
   }
 });
 
-// Initialize defaults from INI (once, when first non-fallback value arrives)
-let _jogVelInit = false;
-watch(defaultJogVel, (v) => { if (!_jogVelInit && v !== 10) { jogVel.value = v; _jogVelInit = true; } });
-let _angJogVelInit = false;
-watch(defaultAngularJogVel, (v) => { if (!_angJogVelInit && v !== 10) { angularJogVel.value = v; _angJogVelInit = true; } });
-let _rpmInit = false;
-watch(defaultSpindleSpeed, (v) => { if (!_rpmInit && v !== 1000) { rpmInput.value = v; _rpmInit = true; } });
+// A preselection takes its INI default ONCE, when the first non-fallback
+// value arrives — and only while nobody has written it (Codex R214, BG-27
+// rest): a viewer_init that arrives after the operator moved the jog speed,
+// prepared an RPM, or after the field took the machine's commanded speed
+// must not replace that value. `written` is each field's own record.
+const preselectWritten = { jogVel: false, angularJogVel: false, rpm: false };
+function iniDefaultOnce(def: ComputedRef<number>, fallback: number, target: Ref<number>, field: keyof typeof preselectWritten) {
+  let done = false;
+  watch(def, (v) => {
+    if (done || v === fallback) return;
+    done = true;
+    if (!preselectWritten[field]) target.value = v;
+  });
+}
+iniDefaultOnce(defaultJogVel, 10, jogVel, "jogVel");
+iniDefaultOnce(defaultAngularJogVel, 10, angularJogVel, "angularJogVel");
+iniDefaultOnce(defaultSpindleSpeed, 1000, rpmInput, "rpm");
+function setJogVel(v: number) { jogVel.value = v; preselectWritten.jogVel = true; }
+function setAngularJogVel(v: number) { angularJogVel.value = v; preselectWritten.angularJogVel = true; }
 
 // rpmInput is the PRESELECTION for the next Fwd / Rev (button gates BG-05),
 // free in every state. While the spindle turns, the commanded RPM is
@@ -1492,10 +1504,13 @@ watch(defaultSpindleSpeed, (v) => { if (!_rpmInit && v !== 1000) { rpmInput.valu
 const rpmPending = ref(false);
 function setRpmPreselect(v: number) {
   rpmInput.value = v;
+  preselectWritten.rpm = true;
   rpmPending.value = !(isSpinning.value && v === spindleSpeed.value);
 }
 watch([spindleSpeed, isSpinning], ([v, spinning]) => {
   if (!spinning || v == null || v <= 0) return;
+  // from here the field holds the operator's or the machine's value
+  preselectWritten.rpm = true;
   if (v === rpmInput.value) { rpmPending.value = false; return; }
   if (!rpmPending.value) rpmInput.value = v;
 });
@@ -2556,11 +2571,11 @@ watch(viewerGcode, (newGcode) => {
         :frameAct="setKinsMode"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
-        @update:jogVel="jogVel = $event"
-        @update:angularJogVel="angularJogVel = $event"
+        @update:jogVel="setJogVel"
+        @update:angularJogVel="setAngularJogVel"
         @update:jogIncrement="jogIncrement = $event"
-        @resetJogVel="jogVel = defaultJogVel"
-        @resetAngularJogVel="angularJogVel = defaultAngularJogVel"
+        @resetJogVel="setJogVel(defaultJogVel)"
+        @resetAngularJogVel="setAngularJogVel(defaultAngularJogVel)"
         :modeAct="setTaskMode"
       />
 
