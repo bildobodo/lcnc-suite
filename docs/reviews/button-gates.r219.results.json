@@ -1,0 +1,95 @@
+{
+  "round": "R219",
+  "date": "2026-10-28",
+  "verdict": "findings",
+  "base": "b83af6c8",
+  "head": "5f74a771",
+  "product_worktree": "/home/cnc/lcnc-suite-gates",
+  "archive": "/tmp/codex-r219-p0at3mwr/repo",
+  "results": {
+    "build": "PASS",
+    "backend": {
+      "passed": 1753,
+      "subtests_passed": 3524,
+      "seconds": 68.02,
+      "excluded_as_in_repository_config": [
+        "test_viewer_init.py"
+      ]
+    },
+    "unit": {
+      "passed": 42,
+      "files": 4
+    },
+    "browser": {
+      "passed": 23,
+      "seconds": 43.1
+    },
+    "own_probes": {
+      "failed": 5,
+      "passed": 1,
+      "seconds": 0.19
+    }
+  },
+  "findings": [
+    {
+      "id": "BG-33",
+      "priority": "P1",
+      "summary": "Late loss of homing keeps a previously prepared uncapped joint jog or bypasses the pre-home gantry refusal"
+    },
+    {
+      "id": "BG-34",
+      "priority": "P1",
+      "summary": "Cancel during queued jog write lets the shielded write finish but skips its post-await booking; disconnect cleanup sends no stop"
+    },
+    {
+      "id": "BG-35",
+      "priority": "P2",
+      "summary": "The jog gate and write admission do not reject active homing, although native motion rejects joint jogs there"
+    }
+  ],
+  "commands": [
+    "nice -n 10 npm run build",
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -o faulthandler_timeout=30 --ignore=test_viewer_init.py",
+    "nice -n 10 npx vitest run src/jointJog.test.ts src/useGamepad.test.ts src/actionAdmission.test.ts src/permissions.test.ts",
+    "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 nice -n 10 node e2e/mock-gateway.mjs",
+    "nice -n 10 npx playwright test -c playwright.r219.config.ts joint-jog.spec.ts disarmed.spec.ts setup-gates.spec.ts",
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -s test_r219_codex.py"
+  ],
+  "reproduce": "Create a separate archive of 5f74a771. Run the repository backend before adding own test files. Copy unchanged button-gates.r217.backend-probe.py as lcnc-gateway/test_r217_codex.py (used only as a queue-harness module); copy r219.backend-probe.py as test_r219_codex.py, then run the targeted command. conftest installs fake_linuxcnc. Frontend: own node_modules, build lcnc-webui; copy r219.playwright.config.ts there and r219.ctl.ts to e2e/ctl.ts. Use only an own mock on 127.0.0.1:4188.",
+  "limits": [
+    "No native motion/acceptance claimed by the fake CMD recorder. Current-state changes happen before command writing in a real single-worker ThreadPoolExecutor.",
+    "Cancellation case allows discarding an unsent jog or stopping one that was sent. No synthetic delay inside the CMD call.",
+    "Native code read locally, hashes equal the R202 manifest. No comparison of downstream Debian patches.",
+    "No live ports or machine commands. All test processes and own mock stopped. Review/evidence only in the live tree.",
+    "Operator withdrawal of joint names on buttons accepted; no new operator question."
+  ],
+  "harness_notes": [
+    "Initial probe used a FREE constant not exported by fake_linuxcnc; corrected to native numeric FREE=1.",
+    "Initial four-joint fixture retained only the helper default three homed flags; corrected to four true flags before the queued transition. Early harness failures not counted as product evidence.",
+    "Full backend collection preceded adding own probes. Dependencies copied from an own previous archive; neither product worktree used for builds/tests."
+  ],
+  "native_sources": [
+    {
+      "file": "motion-command.c",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/command.c",
+      "sha256": "5169c0fd2e7ea59cda233cf42e83facd56b578e95ec0771be49711f42ff6c15a"
+    },
+    {
+      "file": "emctaskmain.cc",
+      "url": "https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc",
+      "sha256": "1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e"
+    }
+  ],
+  "sha256": {
+    "button-gates.r219.build.txt": "6950a872853b815a38059480068c7a5e7daaf3c6c0958e6c8f33fb276245b937",
+    "button-gates.r219.backend.txt": "9d810f7d17ad158f982c7a888a90baa508e29151872c67b37b44829a64f64ccd",
+    "button-gates.r219.unit.txt": "d427994df4a39b19cb8e6dd7ee0bf86b16cf6e9edbebe55f4a19aaa82f1c3d1d",
+    "button-gates.r219.browser.txt": "e92fa19d34e4c23b61e25d7199cdadd32f1025130bb1e99829a57a3ad6ed084b",
+    "button-gates.r219.backend-probe.py": "af662bd3cf1c991423cef8874816adfe418703d2e9d9127ad243338bd4fafb72",
+    "button-gates.r219.backend-probe.txt": "6f8bf744ffdce1b46f097fa25d8ea1399954ff6786872d674d1a1070e181404d",
+    "button-gates.r219.native.txt": "ddabcbbeb91ed4bda5f313e7d508de8377ae22bd94ee088a8b3d264b695516b8",
+    "button-gates.r219.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "button-gates.r219.ctl.ts": "536bc627ddfbdf51c4b7f01b97cbb3f4f559a53ae91b62ad9ffa26097998e372"
+  },
+  "r217_harness_sha256": "a644e0dc017962dd418abd2cf9ef4ee90a1e0064ef6618629f973da1c1e8018a"
+}

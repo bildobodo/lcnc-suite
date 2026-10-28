@@ -1,0 +1,59 @@
+R219 native source checks; local source archive from R202, LinuxCNC v2.9.4.
+Debian downstream patches not compared; no native commands executed.
+
+
+motion-command.c
+https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/motion/command.c
+sha256 5169c0fd2e7ea59cda233cf42e83facd56b578e95ec0771be49711f42ff6c15a
+
+motion-command.c:785-789
+785: 	    if ( get_homing_is_active() ) {
+786: 		reportError(_("Can't jog any joints while homing."));
+787: 		SET_JOINT_ERROR_FLAG(joint, 1);
+788: 		break;
+789: 	    }
+
+motion-command.c:853-857
+853: 	    if ( get_homing_is_active() ) {
+854: 		reportError(_("Can't jog any joint while homing."));
+855: 		SET_JOINT_ERROR_FLAG(joint, 1);
+856: 		break;
+857: 	    }
+
+motion-command.c:543-550
+543: 	        /* tell joint planner to stop */
+544: 	        joint->free_tp.enable    = 0;
+545: 	        joint->kb_jjog_active    = 0;
+546: 	        joint->wheel_jjog_active = 0;
+547: 	        /* stop homing if in progress */
+548: 	        if ( !get_home_is_idle(joint_num) ) {
+549: 	            do_cancel_homing(joint_num);
+550: 	        }
+
+emctaskmain.cc
+https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/task/emctaskmain.cc
+sha256 1c0fad637343e7a86c8f0c1b6b8b38c61b12d10c67da365883d09a8f19dc468e
+
+emctaskmain.cc:741-754
+741: static bool allow_while_idle_type() {
+742:     // allow for EMC_TASK_MODE_AUTO, EMC_TASK_MODE_MDI
+743:     // expect immediate command
+744:     RCS_CMD_MSG *emcCommand;
+745:     emcCommand = emcCommandBuffer->get_address();
+746:     switch(emcCommand->type) {
+747:       case EMC_JOG_CONT_TYPE:
+748:       case EMC_JOG_INCR_TYPE:
+749:       case EMC_JOG_STOP_TYPE:
+750:       case EMC_JOG_ABS_TYPE:
+751:       case EMC_TRAJ_SET_TELEOP_ENABLE_TYPE:
+752:        return 1;
+753:        break;
+754:     }
+
+emctaskmain.cc:1453-1458
+1453: 	    default:
+1454: 	        //EMC_TASK_MODE_MDI(3) && EMC_TASK_INTERP_IDLE(1)
+1455:                 if ( allow_while_idle_type() ) {
+1456:                     retval = emcTaskIssueCommand(emcCommand);
+1457: 		    break;
+1458:                 }

@@ -1,0 +1,32 @@
+
+Running 23 tests using 1 worker
+
+(node:1969834) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1969834) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/disarmed.spec.ts:116:1 › disarmed at idle: every tab and sub-tab opens, nothing that acts is enabled, every closed control says why (3.4s)
+  ✓   2 e2e/disarmed.spec.ts:160:1 › disarmed and unhomed, and in E-Stop: still navigable, still nothing that acts (1.7s)
+  ✓   3 e2e/disarmed.spec.ts:175:1 › disarmed: the preselections take no command — step, speed, RPM, the MDI line (1.4s)
+  ✓   4 e2e/disarmed.spec.ts:205:1 › disarmed while a program runs: Pause, Abort and the jog Stop are reachable and act (1.5s)
+  ✓   5 e2e/disarmed.spec.ts:229:1 › disarmed at idle: the spindle stop is reachable (BG-18 — inside the strip's fieldset before package C) (1.3s)
+  ✓   6 e2e/disarmed.spec.ts:240:1 › disarmed: the program browser browses folders; a file row is closed with its reason (BG-02) (1.6s)
+  ✓   7 e2e/disarmed.spec.ts:269:1 › a dialog opened armed: after the disarm its action is closed with its reason, Cancel still closes (1.5s)
+  ✓   8 e2e/disarmed.spec.ts:311:1 › the RPM preselection is free running and turning; an unsent value outlives a speed change and the disarm, Fwd sends it (BG-05, R213 BG-27) (2.9s)
+  ✓   9 e2e/disarmed.spec.ts:361:1 › the disarm keeps a free field's keypad and its entry; a protected field's keypad closes and applies nothing (R213 BG-28) (1.8s)
+  ✓  10 e2e/disarmed.spec.ts:389:1 › the jog pad's centre Stop answers Enter and Space like the pointer — one stop per axis per activation (R213 BG-29) (4.0s)
+  ✓  11 e2e/disarmed.spec.ts:429:1 › a late INI default never replaces a prepared RPM (R214 BG-27 rest) (1.8s)
+  ✓  12 e2e/disarmed.spec.ts:441:1 › a late INI default never replaces the mirrored commanded speed (R214 BG-27 rest) (1.5s)
+  ✓  13 e2e/disarmed.spec.ts:450:1 › a late INI default never replaces a moved jog speed (the same writer, R214 BG-27 rest) (1.6s)
+  ✓  14 e2e/disarmed.spec.ts:462:1 › a late INI default fills an untouched RPM and jog speed (positive control, R214) (1.5s)
+  ✓  15 e2e/joint-jog.spec.ts:52:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07) (1.6s)
+  ✓  16 e2e/joint-jog.spec.ts:75:1 › before homing the keyboard refuses the closed axis like the button, and jogs an open one (1.7s)
+  ✓  17 e2e/joint-jog.spec.ts:88:1 › homed: the axis letters as before, no note, every axis open (1.5s)
+  ✓  18 e2e/setup-gates.spec.ts:49:1 › a program loads in E-Stop, off and unhomed: programLoad, no power or homing (BG-03) (2.0s)
+  ✓  19 e2e/setup-gates.spec.ts:70:1 › the task mode per target: MANUAL in E-Stop and unhomed, MDI / AUTO dimmed with the reason; the checked mode sends nothing (BG-04) (2.0s)
+  ✓  20 e2e/setup-gates.spec.ts:98:1 › the recovery order: E-Stop Reset and arming wait for the trip's acknowledgement — the reason at the button (BG-11) (1.4s)
+  ✓  21 e2e/setup-gates.spec.ts:118:1 › the G30 read: open with the machine off, closed ON in AUTO with the reason (BG-13) (1.5s)
+  ✓  22 e2e/setup-gates.spec.ts:132:1 › the manual spindle unhomed where the machine declares it, MANUAL only (Q1) (1.2s)
+  ✓  23 e2e/setup-gates.spec.ts:143:1 › Start by the shortcut waits for the program text like the button (one admission, BG-10) (1.9s)
+
+  23 passed (43.1s)

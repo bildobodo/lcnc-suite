@@ -3888,3 +3888,70 @@ Der Operator hat die drei Entscheidungen zu E am 28. Oktober getroffen und die G
 - die vier benannten Grenzen.
 
 Wenn das trägt, bitte `agreement` für Paket E. Damit wären alle Button-Gates-Pakete abgenommen.
+
+## Codex · Implementierungsreview Paket E · R219 · 28. Oktober 2026
+
+**Verdict: findings.** Geprüft: `b83af6c8..5f74a771` auf `feat/button-gates`, in eigener Archivkopie. Die gemeinsame Idle-Zulassung an den Modusschreibstellen, Stopps ohne vorbereitenden Moduswechsel und die reguläre Gelenkzuordnung sind bestätigt. **Offen: BG-33 (Tempo-/Achsenregel nach Referenzverlust), BG-34 (Jog-Buchung bei Cancel), BG-35 (Jog während Homing). Noch kein Agreement für Paket E; keine neue Operatorentscheidung erforderlich.** Die Operatorentscheidungen E1/E2 und die Rücknahme der Gelenknamen auf den Tasten sind Grundlage dieser Prüfung.
+
+### BG-33 · P1 · Die aktuelle Klassenprüfung erneuert weder Tempo-Cap noch Gantry-Sperre
+
+`gateway.py:3541–3561` entscheidet vor den wartenden Schritten, ob der Befehl als referenzierter Jog oder als begrenzter Gelenk-Jog behandelt wird. Auch Flag, Zielindex und Geschwindigkeit werden vor dem tatsächlichen Jog-Schreiben berechnet. Im Schreibthread wird nur erneut die allgemeine Klasse `jog` geprüft (`:3564–3566`). Sie ist bei eingeschaltetem Gelenk-Jog sowohl referenziert als auch unreferenziert offen. Damit kann sie einen inzwischen unpassenden vorbereiteten Befehl weiter zulassen.
+
+**Zwei eigene Gegenproben mit echter Executor-Warteschlange:** Zunächst referenziert, im unterstützten Gelenkmodus zum Freifahren jenseits der Softlimits. Der Schreibauftrag wird eingereiht, dann zeigt `STAT.homed` nicht mehr referenziert; erst danach darf der Thread schreiben.
+
+| Deklaration / Anforderung | Erforderlich nach Referenzverlust | Tatsächlich gesendet |
+|---|---|---|
+| XYZ, `MAX_VELOCITY=20`, Anteil 0,1, X mit Tempo 9 | verweigern oder höchstens 2 | `JOG_CONTINUOUS`, Flag 1, Gelenk 0, **Tempo 9**, `ok: true` |
+| XYYZ, Y-Jog mit Tempo 1 | Gantry-Achse verweigern | `JOG_CONTINUOUS`, Flag 1, **einzelnes Gelenk 1**, `ok: true` |
+
+Die zweite Probe beginnt mit **allen vier** Gelenken referenziert. Sie belegt nicht, dass natives Motion jede Gantry-Bewegung annimmt; sie belegt, dass die zugesagte Gateway-Sperre vor Homing umgangen wird. Beim Tempo fehlt entsprechend die zugesagte Begrenzung im gesendeten Befehl. Die normale Positivkontrolle, von Anfang an unreferenziert, begrenzt korrekt auf 2 und stoppt korrekt.
+
+**Erwartet:** Die vorbereitete Adressierung und Geschwindigkeit an den Zustand binden, unter dem sie zulässig sind. Ändert sich dieser vor dem Schreiben, entweder mit Grund verweigern oder Ziel, Gantry-Zulassung und Cap anhand des aktuellen Zustands neu bestimmen. Das muss für jeden Teil der vier Jog-Varianten gelten, auch nach einem wartenden Modus-/Teleop-Schritt oder zwischen zwei Achsen eines Multi-Jogs. Ein bloßes erneut offenes `jog`-Gate reicht dafür nicht. Bei abweichendem/unbekanntem Zustand keinen günstigen alten Homingstatus weiterverwenden.
+
+### BG-34 · P1 · Ein trotz Cancel geschriebener Jog fehlt der anschließenden Trennungsbereinigung
+
+Die neue Buchung `_active_jogs[axis] = (jf, arg)` liegt **nach** `await _cmd_blocking(...)` (`gateway.py:3567`). `_cmd_blocking` schützt den Schreibauftrag vor Cancel und wartet auf dessen Ende, wirft anschließend aber `CancelledError` weiter (`:3417–3423`). Dadurch entfällt die Buchung, obwohl `CMD.jog` tatsächlich aufgerufen wurde. Die Trennungsbereinigung findet dann keinen zu stoppenden Jog.
+
+**Eigene Gegenprobe:**
+
+1. Ein unreferenzierter, zulässiger X-Jog wartet hinter einem belegten Executor-Arbeiter.
+2. Der Handler wird abgebrochen, wie es `ws_endpoint` bei einer Trennung mit seinem Worker tut (`gateway.py:10625`).
+3. Der Arbeiter wird freigegeben. Der geschützte Auftrag schreibt `JOG_CONTINUOUS(1, 0, 1.0)` und beendet sich; der Handler endet mit Cancel.
+4. `_active_jogs == {}`. Der danach unter derselben Command-Sperre ausgeführte `_jog_stop_for_client()` sendet **keinen Stopp**.
+
+Die Probe benötigt keine künstliche Wartezeit innerhalb eines nativen CMD-Aufrufs: Cancel erfolgt in der echten Executor-Warteschlange, der aufzeichnende CMD kehrt unmittelbar zurück. Die produktive Trennungsreihenfolge – Worker abbrechen, anschließend unter `_cmd_lock` Jog stoppen – ist in `ws_endpoint` vorhanden (`:10625`, `:10655–10658`). Die HAL-Liveness-Kette ersetzt diesen fehlenden Stopp nicht, insbesondere wenn weitere gearmte Clients verbunden bleiben.
+
+**Erwartet:** Nach erfolgreicher Zustellung muss die Startbuchung auch bei Cancel erhalten bleiben und das tatsächlich gesendete Flag/Ziel nennen. Die Buchung mit dem abgeschlossenen Schreiben verbinden, bevor Cancel weitergegeben bzw. die Command-Sperre freigegeben wird. Alternativ darf ein sicher noch ungesendeter Auftrag verworfen werden. Ein bereits gesendeter Jog darf nicht aus der Bereinigung verschwinden; eine vor dem Schreiben verweigerte oder fehlgeschlagene Anforderung darf umgekehrt nicht als erfolgreich gestartet gelten. Mehrteilige Jogs entsprechend behandeln. Der Test lässt beide gültigen Varianten zu: nichts gesendet oder gesendet und anschließend gestoppt.
+
+### BG-35 · P2 · Neues Jog bleibt während des Referenzierens freigegeben
+
+Die neue Regel in `command_policy.py:624` enthält Basis, Interpreter idle und „referenziert oder Gelenk-Jog erlaubt“, jedoch keine Homing-Bedingung. Homing ist kein laufender G-Code-Interpreter. Daher bleibt das Gate bei `homing_active=True` offen, und `_controller_gate_refusal("jog")` verweigert auch direkt vor dem Schreiben nicht.
+
+**Zwei Gegenproben:** unreferenziert mit bereits aktivem Homing sowie Homingbeginn erst in der Executor-Warteschlange. Beide senden `JOG_CONTINUOUS` und antworten `ok: true`.
+
+Das widerspricht dem nativen Empfänger: LinuxCNC v2.9.4, `motion/command.c:785–789` und `:853–857`, verweigert kontinuierliche und inkrementelle Gelenk-Jogs bei `get_homing_is_active()`. Außerdem wird der abgelehnte Jog im Gateway trotzdem gebucht; ein späterer Release-/Trennungsstopp dieses Gelenks kann dessen Homing abbrechen (`EMCMOT_JOG_ABORT`, `:543–550`). Das ist nicht die benannte Grenze eines noch laufenden, zuvor tatsächlich gestarteten Jogs.
+
+**Erwartet:** Die neue Jog-Freigabe und die aktuelle Schreibprüfung schließen aktives Homing mit einem passenden Grund aus; ein erforderlicher, aber unbekannter Homingzustand darf die Freigabe nicht öffnen. Die vorhandenen Homing-Prädikate aus der Modusregel bieten sich dafür an. **Stopp bleibt unabhängig davon erreichbar.** Hier keine Stillstandsbedingung pauschal auf Jog legen: Das würde laufende Jog-Gesten bzw. Geschwindigkeitsänderungen betreffen und ist für diesen Befund nicht erforderlich.
+
+### Bestätigte Teile und Antworten auf die Grenzen
+
+- **Moduswechsel:** `set_mode` verbindet die spezifische Zulassung mit `_interp_idle_refusal` im Schreibthread, auch für bisherige Aufrufer ohne eigenes `admit`. Der frühe No-op schreibt nichts. Die Repository-Wächter einschließlich Fixture-Heal bestehen; keine weitere offene Stelle aus dem R218-Modusauftrag gefunden.
+- **Reguläre Stopps:** Kein vorbereitender Moduswechsel; Adresse aus der Startbuchung statt aus dem späteren Modus. Ein geworfener Schreibfehler lässt die Buchung stehen, die Mehrfach-/Trennungsbereinigung versucht die übrigen Achsen. Diese Punkte sind angenommen; BG-34 betrifft die vorherige Startbuchung bei Cancel.
+- **E1/E2:** Standard aus, deklarierte Reihenfolge statt geratener Zuordnung, Gantry-Sperre, Anteil und Vorzeichen im normalen Vor-Homing-Pfad passen. Gantry-Regel rein plus Handlerprüfungen belegt, keine native Gantry-Sim-Abnahme behauptet. Der offene Übergang steht in BG-33.
+- **Teilweise referenziert:** Die vorsichtigere Begrenzung aller Gelenke ist als benannte Grenze akzeptiert. Sie darf im Verlauf eines wartenden Befehls nicht verloren gehen.
+- **E3 / Gelenknamen:** Die Rücknahme durch den Operator wird übernommen; keine erneute Entscheidung nötig. Achsbuchstaben bleiben, Kopfzeile erklärt Gelenk-Jog und Cap. Die Funktionsprüfungen für gesperrte Achsen/Diagonalen und Tastatur bestehen.
+- **Homing-Abbruch durch Stopp:** Als natives Verhalten eines gezielten Stopps bestätigt, keine neue Modusumschaltung dafür. BG-35 verhindert, dass schon ein während Homing unzulässiger Startversuch unnötig eine solche Buchung erzeugt.
+- **Diagonalen ohne zugänglichen Namen:** Als bereits bestehender, ausdrücklich benannter Barrierefreiheitsmangel eingeordnet; kein neuer Paket-E-Blocker, aber auch kein Accessibility-Agreement. Ebenso bietet ein `title` allein auf Touch keine verlässliche Möglichkeit, einen gekürzten Hinweis vollständig zu lesen; eine fokussierbare Hilfe wäre eine sinnvolle spätere UI-Ergänzung.
+
+### Prüfungen und Belege
+
+- Eigener Build einschließlich TypeScript: **PASS**, nur bestehender Vite-Hinweis auf große Chunks.
+- Backend-Auswahl wie im Repository, mit Fake-Binding: **1753/1753 PASS**, **3524 Subtests PASS**, 68,02 s; `test_viewer_init.py` wie konfiguriert ausgeschlossen.
+- Gezielte Frontend-Tests (`jointJog`, Gamepad, Aktionszulassung, Permissions): **42/42 PASS**.
+- Serieller Browserlauf gegen den eigenen Mock: **23/23 PASS** (drei neue Joint-Jog-Fälle, 14 Disarm-, sechs Paket-D-Fälle).
+- Eigene Übergangsproben: **5 FAIL / 1 PASS**, ausschließlich die drei Befunde oben. Zwei anfängliche Fehler im Testgerüst – fehlende FREE-Konstante im Fake und nur drei statt vier gesetzte Homingflags im Gantry-Fixture – wurden korrigiert; sie zählen nicht als Produktbefunde. Der finale Lauf enthält nur die erwarteten Assertion-Fehler.
+- Claudes native Belege XYZ-E **8/8**, XYZAC-E **2/2** (darunter C), D **27/27** und TWP **43 PASS / 4 SKIP** gelesen; hier keine erneute Live-Ausführung. Der verwendete native Quelltext stimmt per SHA-256 mit dem bereits in R202 erfassten v2.9.4-Stand überein; die damalige Grenze zu Debian-Patches bleibt bestehen.
+
+[Build](button-gates.r219.build.txt), [Backend](button-gates.r219.backend.txt), [Frontend-Tests](button-gates.r219.unit.txt), [Browserlauf](button-gates.r219.browser.txt), [Gegenproben](button-gates.r219.backend-probe.py), [Gegenproben-Lauf](button-gates.r219.backend-probe.txt), [native Belegstellen](button-gates.r219.native.txt), [Metadaten und Wiederholung](button-gates.r219.results.json), [Browserkonfiguration](button-gates.r219.playwright.config.ts), [Mock-Control-Helfer](button-gates.r219.ctl.ts).
+
+Alle Ausführungen in `/tmp/codex-r219-p0at3mwr/repo`; Backend ausschließlich mit `fake_linuxcnc`, Browser nur gegen den eigenen Mock auf `127.0.0.1:4188`. Asynchrone Backend-/Browserprüfungen außerhalb der hier blockierenden Socket-Sandbox. Alle Testprozesse und der eigene Mock sind beendet. Keine Live-Port-Zugriffe, keine Maschinenbefehle und kein Produktcode geändert. Im Live-Baum ausschließlich dieser Anhang, neue `button-gates.r219.*`-Belege und die vereinbarte Handshake-Rückmeldung.

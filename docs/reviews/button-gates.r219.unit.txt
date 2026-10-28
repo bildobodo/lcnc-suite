@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r219-p0at3mwr/repo/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  42 passed (42)
+   Start at  19:07:52
+   Duration  282ms (transform 371ms, setup 0ms, import 587ms, tests 22ms, environment 0ms)
+
