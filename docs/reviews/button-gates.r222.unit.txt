@@ -1,0 +1,9 @@
+
+ RUN  v4.1.8 /tmp/codex-r222-gok448x4/repo/lcnc-webui
+
+
+ Test Files  4 passed (4)
+      Tests  44 passed (44)
+   Start at  22:50:06
+   Duration  424ms (transform 557ms, setup 0ms, import 939ms, tests 32ms, environment 0ms)
+

@@ -1,0 +1,45 @@
+- text: Jog · Joint jog — no soft limits · max 10 %
+- button "Why is this unavailable? Diagonal jog after Home All":
+  - button [disabled]
+- button "Y+"
+- button "Why is this unavailable? Diagonal jog after Home All":
+  - button [disabled]
+- button "X-"
+- button "Stop"
+- button "X+"
+- button "Why is this unavailable? Diagonal jog after Home All":
+  - button [disabled]
+- button "Y-"
+- button "Why is this unavailable? Diagonal jog after Home All":
+  - button [disabled]
+- button "Z+"
+- button "Z-"
+- button "A+"
+- button "A-"
+- button "C+"
+- button "C-"
+- text: Linear 600 mm/min
+- slider "Linear jog speed": "10"
+- button "Reset linear jog speed to 600 mm/min": "600"
+- text: Rotary 600 °/min
+- slider "Rotary jog speed": "10"
+- button "Reset rotary jog speed to 600 °/min": "600"
+- text: Step (mm / °)
+- radiogroup "Jog step":
+  - radio "Cont" [checked]
+  - radio ".001"
+  - radio ".01"
+  - radio ".1"
+  - radio "1"
+- text: Mode
+- toolbar "Task mode":
+  - radiogroup "Task mode":
+    - radio "Manual" [checked]
+    - radio "MDI" [disabled]
+    - radio "Auto" [disabled]
+- text: Kinematics Frame
+- 'button "Help: Kinematics Frame"': "?"
+- toolbar "Kinematics frame":
+  - radiogroup "Kinematics frame":
+    - radio "Machine" [checked] [disabled]
+    - radio "TCP" [disabled]

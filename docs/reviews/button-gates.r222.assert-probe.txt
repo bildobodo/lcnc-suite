@@ -1,0 +1,92 @@
+
+Running 2 tests using 1 worker
+
+(node:2259735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2259735) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+actual visible mark contrast {
+  fg: [ [33m153[39m, [33m159[39m, [33m165[39m, [33m255[39m ],
+  bg: [ [33m74[39m, [33m58[39m, [33m37[39m, [33m255[39m ],
+  ratio: [33m4.085598288098818[39m
+}
+  ✘  1 e2e/r222-assert.spec.ts:16:1 › R222 the visible joint number meets the text contrast target in dark (2.7s)
+(node:2259864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2259864) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Z+ accessible subtree - button "Z+"
+  ✘  2 e2e/r222-assert.spec.ts:36:1 › R222 the stable axis name has its new joint target as accessible description (7.7s)
+
+
+  1) e2e/r222-assert.spec.ts:16:1 › R222 the visible joint number meets the text contrast target in dark 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoBeGreaterThanOrEqual[2m([22m[32mexpected[39m[2m)[22m
+
+    Expected: >= [32m4.5[39m
+    Received:    [31m4.085598288098818[39m
+
+      31 |   console.log('actual visible mark contrast',contrast);
+      32 |   expect(contrast.fg[3]).toBe(255);expect(contrast.bg[3]).toBe(255);
+    > 33 |   expect(contrast.ratio).toBeGreaterThanOrEqual(4.5);
+         |                          ^
+      34 | });
+      35 |
+      36 | test('R222 the stable axis name has its new joint target as accessible description',async({page})=>{
+        at /tmp/codex-r222-gok448x4/repo/lcnc-webui/e2e/r222-assert.spec.ts:33:26
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r222-assert-R222-the-visib-1ded0-ext-contrast-target-in-dark/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r222-assert-R222-the-visib-1ded0-ext-contrast-target-in-dark/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r222-assert-R222-the-visib-1ded0-ext-contrast-target-in-dark/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r222-assert-R222-the-visib-1ded0-ext-contrast-target-in-dark/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2) e2e/r222-assert.spec.ts:36:1 › R222 the stable axis name has its new joint target as accessible description 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveAccessibleDescription[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('[data-strip="jog"]').getByRole('button', { name: 'Z+', exact: true })
+    Expected pattern: [32m/(?:joint|gelenk)\s*2|\bJ2\b/i[39m
+    Received string:  [31m""[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveAccessibleDescription" with timeout 5000ms[22m
+    [2m  - waiting for locator('[data-strip="jog"]').getByRole('button', { name: 'Z+', exact: true })[22m
+    [2m    14 × locator resolved to <button data-v-423535d9="" data-v-6f4382cf="" data-control="jog" class="b sm warn mono jogBtn">…</button>[22m
+    [2m       - unexpected value ""[22m
+
+
+      39 |   await expect(z).toBeEnabled();
+      40 |   console.log('Z+ accessible subtree',await z.ariaSnapshot());
+    > 41 |   await expect(z).toHaveAccessibleDescription(/(?:joint|gelenk)\s*2|\bJ2\b/i);
+         |                   ^
+      42 | });
+      43 |
+        at /tmp/codex-r222-gok448x4/repo/lcnc-webui/e2e/r222-assert.spec.ts:41:19
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/r222-assert-R222-the-stabl-2a90b-t-as-accessible-description/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/r222-assert-R222-the-stabl-2a90b-t-as-accessible-description/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/r222-assert-R222-the-stabl-2a90b-t-as-accessible-description/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/r222-assert-R222-the-stabl-2a90b-t-as-accessible-description/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  2 failed
+    e2e/r222-assert.spec.ts:16:1 › R222 the visible joint number meets the text contrast target in dark 
+    e2e/r222-assert.spec.ts:36:1 › R222 the stable axis name has its new joint target as accessible description 

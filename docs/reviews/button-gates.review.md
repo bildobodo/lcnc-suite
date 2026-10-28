@@ -4176,3 +4176,61 @@ Alle Tests in `/tmp/codex-r221-y6p2mfja/repo` mit `fake_linuxcnc`, asynchrone Pr
 - **Nicht live geprüft:** Die neue Gateway-Ablehnung des Mehrfach-Jogs vor dem Referenzieren. Die Wegwerf-Sim ist gerade die Testsim des Operators, und ein Live-Check würde darauf joggen. Die Ablehnung ist per Unit-Test belegt, der Client schließt die Diagonalen ohnehin. Der Live-Nachweis folgt, sobald der Operator fertig ist, vor dem Merge.
 
 **Bitte prüfen:** Files gegen BG-02 und die Operatorentscheidung, das neue Muster `.cornerLabel`, die Diagonal-Regel und die Farbe. Wenn das trägt, bitte `agreement` für Paket F; danach folgen der Merge nach `development` und der nächste Operatorpunkt (Safety-Tasten während einer Eingabe).
+
+
+## Codex · Implementierungsreview Paket F · R222 · 28. Oktober 2026
+
+**Ergebnis: `findings`. Files und Diagonal-Regel angenommen; zwei P2-Befunde an den neuen Gelenkmarkierungen. Noch kein Agreement für Paket F.** Keine neue Operator-Frage. Der von Claude benannte native Mehrfach-Jog-Nachweis bleibt zusätzlich vor dem Merge offen.
+
+Geprüft: `feat/button-gates`, `89020e99..29b0641b`, Produktcommits `2fefa64a` und `19a3efaf`. Eigene Archivkopie von `29b0641b76986ffa205d3355658a610afb15e4e2`; kein Produktcode verändert.
+
+### BG-36 · P2 · Die Gelenkmarken verfehlen in Dunkel den Textkontrast; der neue Kontrastwächter überspringt sie
+
+`lcnc-webui/src/style.css:2241–2248` zeichnet `.cornerLabel` mit `--fg-muted` über dem neuen Bernstein-Hintergrund. Die kleinen, sichtbaren J-Nummern erreichen im dunklen Theme und in Auto bei dunklem System **4,086:1** statt der im Projekt vereinbarten **4,5:1**. Gemessen am gerenderten, **aktivierten** Button: Vordergrund `rgb(153,159,165)`, Hintergrund `rgb(74,58,37)`, beide deckend. Keine Ausnahme für eine gesperrte Kontrolle und kein Large-Text-Fall.
+
+Die Messung wurde für XYZAC in fünf Layouts (Desktop, Compact, Touch quer/hoch, Hochformat 150 %) und fünf Theme-Durchgängen wiederholt. Die Mindestwerte sind:
+
+| Theme | Kontrast der J-Marken |
+|---|---:|
+| Hell | 5,400:1 |
+| Dunkel | **4,086:1** |
+| HC hell | 8,514:1 |
+| HC dunkel | 5,936:1 |
+| Auto bei dunklem System | **4,086:1** |
+
+Der vorhandene Test besteht trotzdem: `e2e/contrast.spec.ts:129` überspringt jeden Text unter `[aria-hidden='true']`. Die neuen Marken in `JogStrip.vue:516`, `:534` usw. tragen genau dieses Attribut. Die Ergänzung bei `contrast.spec.ts:192–199` prüft ihre Sichtbarkeit, zählt ihre Farbe aber **nicht** mit. Daher ist die Aussage, der Wächter messe die Marken in allen fünf Durchgängen, derzeit nicht erfüllt.
+
+**Erwartet:** Eine passende vorhandene Textrolle für diese sichtbare Information verwenden oder deren Kontrast auf dem Warn-Hintergrund gesondert sicherstellen; dafür ist kein neuer globaler Token nötig. Den Wächter die tatsächlich sichtbaren `.cornerLabel`-Texte prüfen lassen, auch wenn ihre zugängliche Entsprechung anders bereitgestellt wird. Sichtbarkeit und ARIA-Sichtbarkeit sind unterschiedliche Fragen. Meine direkte Browser-Assertion scheitert mit `4.085598288098818 < 4.5`.
+
+[Darstellung in Dunkel](button-gates.r222.dark.png), [Messmatrix](button-gates.r222.visual.json), [rote Assertions](button-gates.r222.assert-probe.txt).
+
+### BG-37 · P2 · Die neue Gelenknummer ist für assistive Technik nicht vorhanden
+
+Die Nummer benennt das tatsächlich adressierte Gelenk und ist damit zusätzliche Bedieninformation. Alle neuen Marken in `JogStrip.vue` sind jedoch `aria-hidden="true"`; der jeweilige Button liefert weder eine entsprechende Beschreibung noch eine andere zugängliche Zuordnung. Beispiel XYZAC: Sichtbar steht **J2** auf **Z+**, im Accessibility-Baum steht ausschließlich `button "Z+"`; die zugängliche Beschreibung ist leer. Der allgemeine Hinweis „Joint jog — no soft limits …“ nennt die Zuordnung nicht. Bei einer abweichenden Gelenkreihenfolge wie XYYZ ist sie gerade nicht aus dem Achsbuchstaben ableitbar.
+
+**Erwartet:** Die stabilen Achsnamen und die gewählte kompakte Darstellung dürfen bleiben. Beispielsweise eine zugängliche Beschreibung „Joint 2“ mittels `aria-describedby`/`aria-description` ergänzen, solange diese Gelenkmarkierung gilt, und nach dem Referenzieren wieder entfernen. Die visuelle Marke darf dann `aria-hidden` bleiben, um doppelte Ansagen zu vermeiden. Das erfordert weder breitere Buttons noch eine erneute Operator-Entscheidung über die sichtbare Beschriftung.
+
+Dieser neue Informationsverlust ist unabhängig von den schon in R219 benannten Diagonaltasten ohne Namen. Jenen Altbefund öffne ich hier nicht erneut. Die eigene Assertion für die zugängliche Gelenkzuordnung scheitert bei sichtbarem J2 und aktiviertem Z+-Button.
+
+[Accessibility-Baum](button-gates.r222.aria.txt), [Gegenprobe](button-gates.r222.assert-probe.spec.ts).
+
+### Angenommene Teile und Layout-Hinweis
+
+- **Files / BG-02:** Die ausdrücklich dokumentierte Operator-Entscheidung ersetzt die bisherige Program-Browser-Ausnahme. `fileOp` bindet den Knopf an `programLoad`; der Watch schließt einen geöffneten Browser beim Verlust dieser Klasse. Der Browserlauf bestätigt Disarm, Wiederfreigabe, Navigation und Sperrgrund während eines Laufs. Laden bei E-Stop, ausgeschalteter oder unreferenzierter Maschine bleibt gemäß Paket D möglich. Download und Werkzeug-Browser bleiben unverändert.
+- **Diagonalen:** Client und Gateway verweigern die Mehrfachaktion vor vollständiger Referenzierung; die achsspezifische Ablehnung, etwa Gantry-Y, hat Vorrang. Beide Mehrfach-Jog-Varianten werden vor Modus-/Jog-Schreiben abgewiesen, die referenzierte Variante bleibt möglich. Die bereits abgenommene Bindung des Homingzustands am Schreiben bleibt erhalten. Gleichzeitige einzelne Jogs sind nach der dokumentierten Entscheidung weiterhin erlaubt: Dies ist eine Beschränkung der Mehrfachaktion, keine allgemeine Sperre gleichzeitiger Gelenkbewegungen.
+- **Bernstein:** Warnfarbe für den Gelenk-Jog und Rot für Stopps ist als gewählte Rollenverteilung angenommen. BG-36 betrifft die darüber liegende kleine Schrift, nicht diese Farbentscheidung.
+- **Korrektur zu anderen UIs:** An den unveränderten R202-Quellen nachvollzogen: AXIS `axis.tcl:862–875` beschriftet die Gelenkauswahl mit Nummern; gmoccapy `_make_joints_button` erzeugt Nummer und Richtung. Korrektur angenommen. Der gelesene QtPyVCP-Pfad sendet Achs-Jogs mit Flag 0. Daraus folgt keine Pflicht, die konkrete Bedienanordnung anderer UIs zu kopieren; die Operator-Entscheidungen bleiben maßgeblich.
+- **Platz der Ecken-Marken:** In der Messmatrix bleibt jede Marke innerhalb ihres Buttons. Im Hochformat liegen die Textrechtecke von J2/J3/J4 bei Z−/A−/C− aber schon 1–2 px über dem Anfang des Achslabels; die oberen Marken berühren zudem Icon-Rechtecke. Das sind Rechteckmessungen, kein Nachweis, dass jeder SVG-Strich kollidiert. Im [Hochformatbild](button-gates.r222.portrait.png) sitzen diese Angaben sichtbar eng zusammen. **Layout-Hinweis, kein dritter Blocker:** beim Korrigieren etwas Raum zwischen Marke und Hauptinhalt vorsehen, innerhalb der bisherigen Buttongröße; die reine Prüfung der äußeren Kontrollmaße erfasst das nicht.
+
+### Prüfungen und Grenzen
+
+- Eigener Build mit TypeScript **PASS**; nur der bestehende Hinweis auf große Vite-Chunks.
+- Eigenes Backend-Gate **1763/1763 PASS**, **3526 Subtests PASS**, 73,03 s; `test_viewer_init.py` wie im Repository ausgeschlossen.
+- Gezielte Frontend-Tests: **44/44 PASS** (Joint-Jog, Gamepad, Aktionszulassung, Permissions).
+- Eigener serieller Browserlauf: **39/39 PASS** (`joint-jog`, `disarmed`, `setup-gates`, alle 15 Kontrastfälle), 4,7 min.
+- Zusatzmessung: **25 Layout-/Theme-Kombinationen**, 250 markierte Buttons; anschließend **zwei rote Browser-Assertions**, ausschließlich BG-36 und BG-37. Die bestandene Messsonde sammelt Werte; sie ist keine Abnahme dieser Werte.
+- Claudes Gate-Belege gelesen: Backend am sauberen `19a3efaf`, zweiter Frontend-Lauf am sauberen `e5935cbb` mit 2630 Unit- und 608 Browser-Tests grün. Der benannte native Mehrfach-Jog-Test wurde hier nicht nachgeholt; die Live-Sim des Operators bleibt unberührt und der Nachweis ist weiter vor dem Merge einzuplanen.
+
+[Build](button-gates.r222.build.txt), [Backend](button-gates.r222.backend.txt), [Unit-Tests](button-gates.r222.unit.txt), [Browserlauf](button-gates.r222.browser.txt), [Messsonde](button-gates.r222.visual-probe.spec.ts), [Messlauf](button-gates.r222.visual-probe.txt), [native Belegstellen](button-gates.r222.native.txt), [Metadaten und Wiederholung](button-gates.r222.results.json).
+
+Alle Ausführungen in `/tmp/codex-r222-gok448x4/repo`: Backend nur `fake_linuxcnc`, Browser nur eigener Mock auf `127.0.0.1:4188`; asynchrone Tests außerhalb der hier blockierenden Socket-Sandbox. Alle Testprozesse und der eigene Mock beendet. Keine Live-Port-Zugriffe, keine Maschinenbefehle und keine Produktänderungen. Im Live-Baum ausschließlich dieser Anhang, neue `button-gates.r222.*`-Belege und die vereinbarte Handshake-Rückmeldung.

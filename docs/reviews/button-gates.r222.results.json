@@ -1,0 +1,104 @@
+{
+  "round": "R222",
+  "date": "2026-10-28",
+  "verdict": "findings",
+  "base": "89020e99",
+  "head": "29b0641b76986ffa205d3355658a610afb15e4e2",
+  "branch": "feat/button-gates",
+  "archive": "/tmp/codex-r222-gok448x4/repo",
+  "checks": {
+    "backend": {
+      "passed": 1763,
+      "subtests_passed": 3526,
+      "seconds": 73.03,
+      "excluded": [
+        "test_viewer_init.py"
+      ]
+    },
+    "build": "PASS",
+    "unit": {
+      "files": 4,
+      "passed": 44
+    },
+    "browser": {
+      "passed": 39,
+      "duration": "4.7m"
+    },
+    "visual_measurement": {
+      "runs": 25,
+      "buttons": 250,
+      "probe_passed": 1,
+      "note": "Measurement only; two subsequent assertions establish the defects."
+    },
+    "own_assertions": {
+      "failed": 2,
+      "findings": [
+        "BG-36",
+        "BG-37"
+      ]
+    }
+  },
+  "contrast_by_theme": {
+    "light": 5.400175930007863,
+    "dark": 4.085598288098818,
+    "hc-light": 8.514127014891475,
+    "hc-dark": 5.936352234706486,
+    "auto-dark": 4.085598288098818
+  },
+  "commands": [
+    "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -o faulthandler_timeout=30 --ignore=test_viewer_init.py",
+    "nice -n 10 npm run build",
+    "nice -n 10 npx vitest run src/jointJog.test.ts src/useGamepad.test.ts src/actionAdmission.test.ts src/permissions.test.ts",
+    "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 nice -n 10 node e2e/mock-gateway.mjs",
+    "nice -n 10 npx playwright test -c playwright.r222.config.ts joint-jog.spec.ts disarmed.spec.ts setup-gates.spec.ts contrast.spec.ts",
+    "nice -n 10 npx playwright test -c playwright.r222.config.ts r222-codex.spec.ts",
+    "nice -n 10 npx playwright test -c playwright.r222.config.ts r222-assert.spec.ts"
+  ],
+  "reproduce": [
+    "Create an archive of 29b0641b; use a separate node_modules (lockfile unchanged from R219).",
+    "Build lcnc-webui in that archive; copy r222.playwright.config.ts there as playwright.r222.config.ts and r222.ctl.ts to e2e/ctl.ts (only the mock port differs from the repository helper).",
+    "Copy r222.visual-probe.spec.ts to e2e/r222-codex.spec.ts and r222.assert-probe.spec.ts to e2e/r222-assert.spec.ts; replace the OUT path with an existing evidence directory.",
+    "Start only an own mock at 127.0.0.1:4188; run the three browser commands sequentially against it."
+  ],
+  "claude_gate_read": {
+    "backend": "PASS at 19a3efaf, clean tree",
+    "frontend": "second run PASS at e5935cbb, clean tree:2630 unit/608 browser"
+  },
+  "findings": [
+    {
+      "id": "BG-36",
+      "priority": "P2",
+      "summary": "Visible joint marks are only 4.0856:1 in dark/auto-dark; contrast guard skips aria-hidden text."
+    },
+    {
+      "id": "BG-37",
+      "priority": "P2",
+      "summary": "New joint numbers are excluded from accessibility tree and lack equivalent accessible name/description."
+    }
+  ],
+  "advisory": "In portrait, corner-label rectangles meet/intersect the label/icon rectangles inside small Z/rotary controls; this is not treated as proof that every glyph stroke overlaps.",
+  "limits": [
+    "No native multi-jog refusal run: Claude explicitly schedules it after the operator test and before merge.",
+    "No live ports or machine commands; own mock stopped; no builds/tests/checkouts in live or product worktree.",
+    "Async backend and browser runs outside socket-blocking sandbox; backend fake_linuxcnc only.",
+    "Native label correction checked against unchanged R202 frozen sources; no new upstream/downstream comparison.",
+    "No full browser/frontend-unit rerun by Codex; targeted sets plus full own backend gate."
+  ],
+  "sha256": {
+    "button-gates.r222.backend.txt": "b59dd2f9569e688c99550e0c4d9090b9c341d2d19d07594f423119e32663e11f",
+    "button-gates.r222.build.txt": "36a4c70abe9681caaa0d0c2ca7b213483c553da3b7367c17d61b6c2e1f230efd",
+    "button-gates.r222.unit.txt": "7bc800a5c35161bcf4c7828bb49cb3a42f8bec015daf295bfd4dafb3e2d0cfd5",
+    "button-gates.r222.browser.txt": "38e496d480a4ec10f2f1d450f3295e33053fd6d1f1e7fd324bb4c93bbe4a5c23",
+    "button-gates.r222.visual-probe.spec.ts": "3f5314bba7b265f3f964975ee8edcb8eeb0a66aa7b22eaa762d1f79b5c9bac31",
+    "button-gates.r222.visual-probe.txt": "8083ea9e9c06edbdcfecd6b03b70cea2615da0e89b31d30a19f781ff02c86f2f",
+    "button-gates.r222.visual.json": "1286841fefe01d5e004d5abe8c070b65aec1a3fb3489bba038cade4c33beab3d",
+    "button-gates.r222.assert-probe.spec.ts": "98223dbee97d19a1869905884952a7404340009b317dd2337db8d1bd7ed306a8",
+    "button-gates.r222.assert-probe.txt": "856844d785a5b02f60a873e130a68ecad4f4d2b61b3a50baea2983cbd03d54e3",
+    "button-gates.r222.dark.png": "4b1270893dd3e699af4f41daca87caf1277c7e81d310f61694bca22d17c8bb60",
+    "button-gates.r222.portrait.png": "14085ff459a84d8395ccec27fa6331da4ba6a8b4b23f6d57293102f34d536af2",
+    "button-gates.r222.aria.txt": "e23d7181363b451242242efd0884e2fef4879b6420b59f4ea2c3eb7012ecabe5",
+    "button-gates.r222.native.txt": "380e9472bb3560cad14e1fa4a34486df2778512ef8291a7755e73ff42afeb3aa",
+    "button-gates.r222.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "button-gates.r222.ctl.ts": "536bc627ddfbdf51c4b7f01b97cbb3f4f559a53ae91b62ad9ffa26097998e372"
+  }
+}

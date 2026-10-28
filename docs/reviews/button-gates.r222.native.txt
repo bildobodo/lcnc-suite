@@ -1,0 +1,75 @@
+axis.tcl https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/share/axis/tcl/axis.tcl
+sha256=7fbe15c792735542f913a292233c4fd92af315588ade20e0f005cfcf43f29d19; same frozen source as R202
+862: frame $_tabs_manual.joints
+863: 
+864: # Joints select radiobuttons
+865: # These set the variable ja_rbutton to numeric values [0,MAX_JOINTS)
+866: for {set num 0} {$num < $::MAX_JOINTS} {incr num} {
+867:   radiobutton $_tabs_manual.joints.joint$num \
+868: 	-anchor w \
+869: 	-padx 0 \
+870: 	-value $num \
+871: 	-variable ja_rbutton \
+872: 	-width 2 \
+873:         -text $num \
+874:         -command axis_activated
+875: }
+
+gmoccapy.py https://github.com/LinuxCNC/linuxcnc/blob/v2.9.4/src/emc/usr_intf/gmoccapy/gmoccapy.py
+sha256=1d9b578f07f51d81ab380e24fe75fede2ed0bd06fe2b2239326dc22954a7d0ed; same frozen source as R202
+1271:     def _make_joints_button(self):
+1272:         LOG.debug("Entering make joints button")
+1273: 
+1274:         self.joints_button_dic = {}
+1275: 
+1276:         for joint in range(0, self.stat.joints):
+1277:             for direction in ["+","-"]:
+1278:                 name = "{0}{1}".format(str(joint), direction)
+1279:                 btn = Gtk.Button.new_with_label(name.upper())
+1280:                 btn.set_halign(Gtk.Align.CENTER)
+1281:                 btn.set_valign(Gtk.Align.CENTER)
+1282:                 btn.set_property("name", name)
+1283:                 btn.connect("pressed", self._on_btn_jog_pressed, name)
+1284:                 btn.connect("released", self._on_btn_jog_released, name)
+1285:                 btn.set_property("tooltip-text", _("Press to jog joint {0}".format(joint)))
+1286:                 btn.set_size_request(48,48)
+
+qtpyvcp-machine_actions.py https://github.com/kcjengr/qtpyvcp/blob/e328b8c42928f146ee41d84fa134909fae1955fe/src/qtpyvcp/actions/machine_actions.py
+sha256=75803cdcf406781acf9c543438aadaea4ffb8f3ec09c51b28edd033ab5f146de; same frozen source as R202
+1083:         # check if it even makes sense to try to jog
+1084:         if STAT.task_state != linuxcnc.STATE_ON or STAT.task_mode != linuxcnc.MODE_MANUAL:
+1085:             return
+1086: 
+1087:         if isinstance(direction, str):
+1088:             direction = {'neg': -1, 'pos': 1}.get(direction.lower(), 0)
+1089: 
+1090:         axis = getAxisNumber(axis)
+1091: 
+1092:         # must be in teleoperating mode to jog.
+1093:         if STAT.motion_mode != linuxcnc.TRAJ_MODE_TELEOP:
+1094:             CMD.teleop_enable(1)
+1095: 
+1096:         if speed == 0 or direction == 0:
+1097:             CMD.jog(linuxcnc.JOG_STOP, 0, axis)
+1098: 
+1099:         else:
+1100: 
+1101:             if speed is None:
+1102:                 if axis in (3, 4, 5):
+1103:                     speed = jog_angular_speed.value / 60.0
+1104:                 else:
+1105:                     speed = jog_linear_speed.value / 60.0
+1106: 
+1107:             if distance is None:
+1108:                 if jog_mode_incremental.value:
+1109:                     distance = jog_increment.value
+1110:                 else:
+1111:                     distance = 0
+1112: 
+1113:             velocity = float(speed) * direction
+1114: 
+1115:             if distance == 0:
+1116:                 CMD.jog(linuxcnc.JOG_CONTINUOUS, 0, axis, velocity)
+1117:             else:
+1118:                 CMD.jog(linuxcnc.JOG_INCREMENT, 0, axis, velocity, distance)
+
