@@ -3313,7 +3313,8 @@ class _WriteRefused(PermissionError):
 
 
 async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["_StartClaim"] = None,
-                        admit: Optional[Callable[[], Optional[str]]] = None) -> int:
+                        admit: Optional[Callable[[], Optional[str]]] = None,
+                        written: Optional[Callable[[], None]] = None) -> int:
     """Run a blocking CMD.* call + optional wait_complete() on a worker thread.
 
     Every `CMD.* + wait_complete()` pair must go through here. Returns
@@ -3342,6 +3343,12 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     the executor queue the write waited in. It reads the controller itself
     (a STAT poll in the thread), never a value from before the queue. A
     refusal raises _WriteRefused with nothing written.
+
+    `written`: called in the write's thread right after `cmd_fn(*args)`
+    returned — the caller's booking of what was SENT (a jog, for its stop),
+    which a cancel during the write therefore never loses (Codex R219 BG-34:
+    the shielded write completes, the cancel propagates after it); a refused
+    or failed write books nothing.
 
     Caller must hold `_cmd_lock` — NML command channel is not thread-safe.
     """
@@ -3386,6 +3393,8 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
             if run_basis is not None:
                 run_basis["state"] = "unsent"   # no run
             raise
+        if written is not None:
+            written()
         if run_basis is not None:
             run_basis["state"] = "sent"
         if claim is not None:
@@ -3514,6 +3523,11 @@ def _auto_running() -> bool:
             and safe_get("interp_state", None) != linuxcnc.INTERP_IDLE)
 
 
+#: A jog prepared homed met an unhomed machine at its write, or the reverse
+#: (Codex R219 BG-33): its target, gantry closure and cap no longer hold.
+JOG_HOMING_CHANGED = "Homing state changed — jog again"
+
+
 def _homed_now() -> Optional[bool]:
     """Every configured joint homed, on a read taken now; None unread."""
     STAT.poll()
@@ -3533,13 +3547,25 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
     the declared fraction of that joint's MAX_VELOCITY (the sign kept; traced
     `jog.capped`). The `jog` class on a current read before the queue and
     inside every write's thread — the switch to MANUAL and each jog (Codex
-    R217's standard). Each jog is booked with what was sent, for its stop."""
-    admit = _gate_admit("jog", armed)
-    why = admit()
+    R217's standard). Each write also holds the homing state the command was
+    PREPARED under — target, gantry closure and cap belong to it (Codex R219
+    BG-33): homed or not changed since, it refuses; an unread state is not
+    homed. Each jog is booked with what was sent in the write's own thread,
+    so a cancel during the write never loses it (BG-34)."""
+    gate = _gate_admit("jog", armed)
+    why = gate()
     if why:
         return {"ok": False, "error": why}
+    before_homing = _homed_now() is not True
+
+    def admit() -> Optional[str]:
+        why = gate()
+        if why:
+            return why
+        return JOG_HOMING_CHANGED if (_homed_now() is not True) != before_homing else None
+
     targets = None
-    if _homed_now() is not True:
+    if before_homing:
         facts = _joint_jog_facts()
         if not facts["enabled"]:
             return {"ok": False, "error": facts["reason"] or "Not homed — press Home All"}
@@ -3560,11 +3586,14 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
             jf = await _jog_mode_flag()
             targets = [(axis, jf, _jog_axis_arg(axis, jf), vel, dist) for axis, vel, dist in entries]
         for axis, jf, arg, vel, dist in targets:
+            def book(axis=axis, jf=jf, arg=arg):
+                _active_jogs[axis] = (jf, arg)
             if dist is None:
-                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel, wait=None, admit=admit)
+                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel, wait=None,
+                                         admit=admit, written=book)
             else:
-                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist, wait=None, admit=admit)
-            _active_jogs[axis] = (jf, arg)
+                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist, wait=None,
+                                         admit=admit, written=book)
             _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc)
     except _WriteRefused as refused:
         return {"ok": False, "error": str(refused)}

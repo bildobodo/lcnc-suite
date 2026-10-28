@@ -6,7 +6,10 @@ would have suppressed the stop — addressed as the jog was STARTED, and the
 jog counts as stopped only once its stop was written. Then the switch itself:
 every mode write is admitted only onto an interpreter KNOWN idle, read in the
 write's own thread."""
+import asyncio
+import threading
 import unittest
+from concurrent.futures import ThreadPoolExecutor
 from unittest import mock
 
 import fake_linuxcnc
@@ -424,6 +427,140 @@ class TestJoggingBeforeHoming(_Writer):
         r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 1.0}, running)
         self.assertFalse(r["ok"], r)
         self.assertEqual(self.jogs(), [])
+
+
+class TestTheJogHoldsAtItsWrite(_Writer):
+    """Codex R219: what a jog was prepared under holds at its write. BG-33 —
+    homing lost while the write waits (a homed beyond-limit joint jog,
+    uncapped; a homed gantry axis): refused, never the old favourable state.
+    BG-35 — no new jog while homing runs (native motion rejects it, and a
+    booked jog's later stop would cancel the homing). BG-34 — a jog whose
+    write happened stays booked through a cancel, so the disconnect stop
+    reaches it."""
+
+    LOST = "Homing state changed — jog again"
+
+    def setUp(self):
+        super().setUp()
+        self.takes_the_mode()
+        self.cmd.wait_complete = lambda *a: linuxcnc.RCS_DONE
+        gateway._active_jogs.clear()
+        self.order("XYZ")
+
+    def order(self, letters, joints=None):
+        rows, why = joint_jog_map(list(letters), len(letters), list("XYZ"), [20.0] * len(letters))
+        facts = {"enabled": True, "fraction": 0.1, "axes": rows, "reason": why}
+        p = mock.patch.object(gateway, "_joint_jog_facts", lambda: facts)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def jogs(self):
+        return [a for n, a, _k in self.cmd.calls if n == "jog"]
+
+    def lose_homing(self):
+        gateway.STAT.homed = (0,) * 16
+
+    def beyond_limit(self, axis_letter, joints=3):
+        # homed, one joint past its soft limit: the supported joint-mode jog
+        self.controller(joints=joints)
+        gateway.STAT.homed = (1,) * joints + (0,) * (16 - joints)
+        gateway.STAT.motion_mode = None          # joint (free) mode
+        gateway._shared_status = _payload(homed=True, inpos=True, current_vel=0.0,
+                                          joints_beyond_limit=[axis_letter])
+
+    def test_homing_lost_while_queued_keeps_no_uncapped_speed(self):
+        self.beyond_limit("X")
+        r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 9.0}, self.lose_homing,
+                              snapshot=gateway._shared_status)
+        self.assertEqual(r, {"ok": False, "error": self.LOST})
+        self.assertEqual(self.jogs(), [])
+
+    def test_homing_lost_while_queued_opens_no_gantry_joint(self):
+        self.order("XYYZ")
+        self.beyond_limit("Y", joints=4)
+        r = self.at_the_write({"cmd": "jog_cont", "axis": 1, "vel": 1.0}, self.lose_homing,
+                              snapshot=gateway._shared_status)
+        self.assertEqual(r, {"ok": False, "error": self.LOST})
+        self.assertEqual(self.jogs(), [])
+
+    def test_a_multi_jog_holds_between_its_axes(self):
+        # the second axis' write meets the lost homing
+        self.beyond_limit("X")
+        r = self.at_the_write({"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 9.0}, {"axis": 1, "vel": 9.0}]},
+                              self.lose_homing, at=2, snapshot=gateway._shared_status)
+        self.assertEqual(r, {"ok": False, "error": self.LOST})
+        self.assertEqual([a[2] for a in self.jogs()], [0], "only the first axis was written")
+        self.assertEqual(set(gateway._active_jogs), {0}, "and it is booked for its stop")
+
+    def test_no_new_jog_while_homing_runs(self):
+        self.controller(homed=False, homing=True)
+        r = self.send({"cmd": "jog_cont", "axis": 0, "vel": 1.0},
+                      controller={"homed": False, "homing": True}, homed=False, homing_active=True)
+        self.assertEqual(r, {"ok": False, "error": "Homing in progress — wait until it ends"})
+        self.assertEqual(self.jogs(), [])
+        self.assertEqual(gateway._active_jogs, {})
+
+    def test_no_jog_when_homing_starts_in_the_queue(self):
+        self.controller(homed=False)
+        gateway.STAT.homed = (0,) * 16
+
+        def homing():
+            gateway.STAT.joint = tuple({"homing": 1} for _ in range(16))
+        r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 1.0}, homing,
+                              snapshot=_payload(homed=False, inpos=True, current_vel=0.0))
+        self.assertEqual(r, {"ok": False, "error": "Homing in progress — wait until it ends"})
+        self.assertEqual(self.jogs(), [])
+
+    def test_unchanged_unhomed_is_capped_and_stops(self):
+        self.controller(homed=False)
+        gateway.STAT.homed = (0,) * 16
+        r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 9.0}, lambda: None,
+                              snapshot=_payload(homed=False, inpos=True, current_vel=0.0))
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 0, 2.0)])
+
+    def test_a_written_jog_survives_a_cancel(self):
+        self.controller(homed=False)
+        gateway.STAT.homed = (0,) * 16
+        gateway._shared_status = _payload(homed=False, inpos=True, current_vel=0.0)
+
+        async def go():
+            loop = asyncio.get_running_loop()
+            pool = ThreadPoolExecutor(max_workers=1)
+            loop.set_default_executor(pool)
+            release = threading.Event()
+            blocker = loop.run_in_executor(None, release.wait, 5)
+            submitted = asyncio.Event()
+            original = loop.run_in_executor
+
+            def enqueue(executor, fn, *args):
+                fut = original(executor, fn, *args)
+                submitted.set()
+                return fut
+            try:
+                with mock.patch.object(loop, "run_in_executor", enqueue):
+                    task = asyncio.create_task(gateway.handle_command(
+                        {"cmd": "jog_cont", "axis": 0, "vel": 1.0}, True, self.writer.conn_key))
+                    await asyncio.wait_for(submitted.wait(), 2)
+                    self.assertEqual(self.jogs(), [])
+                    task.cancel()             # the disconnect, while the write waits
+                    await asyncio.sleep(0)
+                    release.set()
+                    await blocker
+                    result = await asyncio.gather(task, return_exceptions=True)
+                self.assertIsInstance(result[0], asyncio.CancelledError)
+                booked = dict(gateway._active_jogs)
+                async with gateway._get_cmd_lock():
+                    await gateway._jog_stop_for_client()
+                return booked
+            finally:
+                release.set()
+                pool.shutdown(wait=False)
+        gateway._cmd_lock = None
+        booked = _run(go())
+        self.assertEqual(self.jogs()[0], (linuxcnc.JOG_CONTINUOUS, 1, 0, 1.0), "the write happened")
+        self.assertEqual(booked, {0: (1, 0)}, "booked as sent, through the cancel")
+        self.assertEqual(self.jogs()[-1], (linuxcnc.JOG_STOP, 1, 0), "and the disconnect stop reaches it")
 
 
 if __name__ == "__main__":

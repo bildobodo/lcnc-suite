@@ -234,10 +234,11 @@ class _Writer(_Handlers):
     def sent(self):
         return [(n, a) for n, a, _k in self.cmd.calls if n in ("mode", "spindle")]
 
-    def at_the_write(self, msg, change, at=1):
+    def at_the_write(self, msg, change, at=1, snapshot=None):
         """`msg`, the controller changed once its `at`-th write is queued for
         the executor and before that write's thread runs it (Codex R217's
-        boundary): every check before the queue passed."""
+        boundary): every check before the queue passed. `snapshot`: the
+        published status (default: the standing default one)."""
         async def go():
             loop = asyncio.get_running_loop()
             original = loop.run_in_executor
@@ -256,7 +257,7 @@ class _Writer(_Handlers):
                 r = await gateway.handle_command(msg, True, self.writer.conn_key)
             self.assertGreaterEqual(len(queued), at, "the write was queued")
             return r
-        gateway._shared_status = _payload(inpos=True, current_vel=0.0)
+        gateway._shared_status = snapshot if snapshot is not None else _payload(inpos=True, current_vel=0.0)
         gateway._cmd_lock = None
         return asyncio.run(go())
 

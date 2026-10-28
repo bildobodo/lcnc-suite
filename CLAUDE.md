@@ -175,7 +175,7 @@ TIER 3 — Machine enabled (base = armed + !estop + enabled)
 
 TIER 4 — Machine idle (requires base + isIdle)
   idle ───────────────── base + isIdle + !busy                        (the base of the idle classes)
-  jog ────────────────── base + isIdle + (isHomed OR joint jog before homing declared — WEBUI_JOINT_JOG_BEFORE_HOMING; per axis the declared joint, a gantry letter closed, the speed capped; package E)   Jog buttons
+  jog ────────────────── base + isIdle + no homing under way (known) + (isHomed OR joint jog before homing declared — WEBUI_JOINT_JOG_BEFORE_HOMING; per axis the declared joint, a gantry letter closed, the speed capped; each write holds the homing state it was prepared under; package E)   Jog buttons
   zero ───────────────── base + isIdle + !busy + !eoffset             Home, Unhome
 
 TIER 5 — Full ready (requires everything)

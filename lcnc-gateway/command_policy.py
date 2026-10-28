@@ -621,7 +621,10 @@ _G30_SYNCH = (_R_TASK_MODE_KNOWN, _R_SYNCH_POSSIBLE)
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
 GATE_REQUIREMENTS: Dict[str, tuple] = {
     "idle":     _BASE + _IDLE,
-    "jog":      _BASE + _IDLE + (_R_HOMED_OR_JOINT_JOG,),
+    # no NEW jog while homing runs (Codex R219 BG-35): motion rejects it
+    # (command.c v2.9.4:785/853), and a booked jog's stop would cancel the
+    # homing; an unread homing state opens nothing. The stops stay open.
+    "jog":      _BASE + _IDLE + (_R_HOMING_KNOWN, _R_NOT_HOMING, _R_HOMED_OR_JOINT_JOG),
     "override": _BASE,
     "ready":    _BASE + _IDLE + (_R_HOMED,),
     # Program start (Cycle Start / run-from-line): `ready` plus the

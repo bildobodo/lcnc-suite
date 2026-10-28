@@ -1852,6 +1852,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         gateway.STAT.estop, gateway.STAT.enabled = False, True
         gateway.STAT.joints, gateway.STAT.homed = 5, (1,) * 5 + (0,) * 4
+        gateway.STAT.joint = tuple({"homing": 0} for _ in range(9))   # no homing runs (R219 BG-35)
         # the payload bounds are cached per session (get_machine_limits): a
         # previous test's XYZ counts would refuse axis 3/4 ("above maximum 2")
         self._limits = gateway._machine_limits
