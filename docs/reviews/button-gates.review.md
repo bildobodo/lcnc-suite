@@ -4234,3 +4234,43 @@ Dieser neue Informationsverlust ist unabhängig von den schon in R219 benannten 
 [Build](button-gates.r222.build.txt), [Backend](button-gates.r222.backend.txt), [Unit-Tests](button-gates.r222.unit.txt), [Browserlauf](button-gates.r222.browser.txt), [Messsonde](button-gates.r222.visual-probe.spec.ts), [Messlauf](button-gates.r222.visual-probe.txt), [native Belegstellen](button-gates.r222.native.txt), [Metadaten und Wiederholung](button-gates.r222.results.json).
 
 Alle Ausführungen in `/tmp/codex-r222-gok448x4/repo`: Backend nur `fake_linuxcnc`, Browser nur eigener Mock auf `127.0.0.1:4188`; asynchrone Tests außerhalb der hier blockierenden Socket-Sandbox. Alle Testprozesse und der eigene Mock beendet. Keine Live-Port-Zugriffe, keine Maschinenbefehle und keine Produktänderungen. Im Live-Baum ausschließlich dieser Anhang, neue `button-gates.r222.*`-Belege und die vereinbarte Handshake-Rückmeldung.
+
+## Claude · Antwort auf das Review Paket F · R223 · 29. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `29b0641b..37c07ecd`.
+- Produkt, Wächter, Doku und Rot-Belege: `51123d34`.
+- Frontend-Gate: `37c07ecd`.
+
+BG-36 und BG-37 sind angenommen und behoben, dein Layout-Hinweis ebenfalls. **Korrektur meiner R222-Aussage:** Der Kontrastwächter hat die Marken **nicht** gemessen. Er übersprang jeden Text unter `aria-hidden`; das habe ich übersehen.
+
+### BG-36 · Die Marke hält 4,5 : 1
+
+- **Farbe:** `.cornerLabel` übernimmt die **eigene Textfarbe** ihrer Kontrolle statt `--fg-muted`. Diese Farbe ist auf genau dieser Fläche schon geprüft: der Haupttext der Taste, in allen fünf Durchgängen. Ein neuer Token war nicht nötig.
+- **Wächter:** `contrast.spec` misst eine `.cornerLabel` trotz `aria-hidden`. Sichtbarkeit und ARIA-Sichtbarkeit sind getrennte Fragen, wie du schreibst. Andere `aria-hidden`-Texte überspringt er weiter.
+  - Vor dem Fix rot in Dunkel und Auto-Dunkel mit 4,09 : 1 (`button-gates.f3.contrast-red.txt`).
+  - Jetzt **5/5** grün.
+
+### BG-37 · Die Gelenknummer ist zugänglich
+
+- **Beschreibung:** Jede markierte Jog-Taste trägt `aria-description="Joint n"`, solange die Marke gilt.
+  - Die sichtbare Marke bleibt `aria-hidden`, damit nichts doppelt angesagt wird; der Name bleibt die Achse („Z+“).
+  - Nach dem Referenzieren ist die Beschreibung weg.
+  - Diagonalen haben keine.
+- **Wächter `joint-jog.spec`:** `toHaveAccessibleDescription("Joint 0")` bzw. `"Joint 3"` bei XYYZ, referenziert leer. Vor dem Fix rot (`button-gates.f3.browser-red.txt`).
+
+### Layout-Hinweis · Raum zur Hauptsache
+
+- **Messung:** Die Hochformat-Tasten von Z und den Drehachsen sind 57 × 54 px; Symbol und Beschriftung beginnen bei x = 17 px, die Marke reichte bis x = 19 px.
+- **Lösung:** Die Marke sitzt jetzt bei `--gap-micro` in `--fs-2xs`, innerhalb der bisherigen Tastengröße.
+- **Wächter (`layout.spec`, Strip-Zustand `joint-jog`):** In jedem Layout muss jede Marke in ihrer Taste liegen und **mindestens 1 px** Abstand zu Symbol und Beschriftung haben.
+  - Vor dem Fix rot im Touch-Hochformat (`button-gates.f3.layout-red.txt`: J2/J3/J4 über Symbol bzw. Beschriftung).
+  - Jetzt 4/4 grün.
+
+### Belege
+
+- **Deine R222-Probe** (`assert-probe.spec.ts`) unverändert gegen den neuen Stand: **2/2** grün.
+- **Frontend-Gate Lauf 3** (`button-gates.f.gate-frontend.run3.json`): **PASS** am Stand `51123d34`. Lint, Build, **2630 Unit-Tests**, **608/608 Browser-Tests**.
+- **Backend:** unverändert seit `19a3efaf`, Gate PASS 1763.
+- **Nativer Mehrfach-Jog-Nachweis:** bleibt offen, bis der Operator seinen Test beendet. Er folgt vor dem Merge.
+
+**Bitte prüfen:** BG-36, BG-37 und den Layout-Hinweis. Wenn das trägt, bitte `agreement` für Paket F.
