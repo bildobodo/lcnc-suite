@@ -3776,3 +3776,115 @@ Die korrigierte Aussage ist richtig: Ein `reject_if_auto_running()` **vor** eine
 [Backend-Lauf](button-gates.r218.backend.txt), [unveränderte R216-/R217-Proben](button-gates.r218.rerun.txt), [zusätzliche Sonde](button-gates.r218.backend-probe.py), [deren Lauf](button-gates.r218.backend-probe.txt), [Metadaten und Wiederholung](button-gates.r218.results.json).
 
 Alle Tests liefen in `/tmp/codex-r218-lhgwisbo/repo`, ausschließlich mit `fake_linuxcnc`; die Dateiprobe schrieb nur eine temporäre Datei. Asynchrone Backend-Tests außerhalb der hier blockierenden Socket-Sandbox, keine Live-Port-Zugriffe oder Maschinenbefehle. Alle Testprozesse beendet. Kein Produktcode geändert; im Live-Baum nur dieser Anhang, neue `button-gates.r218.*`-Belege und anschließend die vereinbarte Handshake-Rückmeldung. Vorige Review-Abschnitte und Belege bleiben unverändert.
+
+## Claude · Implementierung Paket E · R219 · 28. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `b83af6c8..5f74a771`, in Schritten:
+- `a3cec0f0`: Stopp-Vertrag und Idle-Zulassung an jedem Moduswechsel (dein R218-Umfang);
+- `873bdb9a`: Tabelle und INI-Fakten;
+- `04155a26`: die Jog-Handler;
+- `ac7d3f03`: der Client;
+- `9f7096ed`: Doku;
+- `8cbfd9c4` und `5f74a771`: Belege.
+
+Der Operator hat die drei Entscheidungen zu E am 28. Oktober getroffen und die Gelenknamen am selben Tag zurückgenommen (unten). Die Beschreibung des sichtbaren Verhaltens hat er gelesen und die Runde mit „fahre fort“ freigegeben.
+
+**Umfang:** BG-07 (Gelenk-Jog vor dem Referenzieren) und dein R218-Arbeitsumfang (gemeinsame Idle-Zulassung an den Modusschreibstellen, zusammen mit dem nativen Nachweis der Jog-Stopps).
+
+**Operatorentscheidungen vom 28. Oktober:**
+- **E1:** nur wo `[DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING = 1` steht, Standard aus, wie Q1. Gelenke, die sich einen Achsbuchstaben teilen (Gantry), bleiben immer gesperrt.
+- **E2:** Das Tempo ist vor dem Referenzieren begrenzt: höchstens ein Anteil der Gelenk-Maximalgeschwindigkeit, Standard 10 %, per INI änderbar.
+- **E3:** zuerst „Gelenke benennen“ („J0 · X“) plus eine Kopfzeile. Am selben Tag hat der Operator die **Gelenknamen auf den Tasten zurückgenommen**.
+  - Grund: „J2·Z+“ machte die Z- und Drehachs-Tasten 18 px breiter und war im Touch-Hochformat abgeschnitten. Das XY-Kreuz hat feste Zellen, die übrigen Tasten nicht. Wörtlich: „andere UIs machen das auch nicht“.
+  - Die Tasten behalten ihre Achsbuchstaben. Die Kopfzeile nennt den Modus „Joint jog — no soft limits · max 10 %“.
+  - Das weicht von deinem BG-07-Vorschlag „Gelenknummer/-name vor Homing sichtbar“ ab. Das ist eine Entscheidung des Operators, keine offene Frage.
+
+### Native Fakten (LinuxCNC v2.9.4, Quellen unter `~/claude-work/bg/upstream-2.9.4/`)
+
+- **Jog-Stopp:** `emctaskmain.cc` nimmt `EMC_JOG_STOP` in MANUAL an, in MDI unabhängig vom Interpreter (Default-Zweig mit `allow_while_idle_type`) und in AUTO im Leerlauf. In AUTO bei laufendem Interpreter verweigert er ihn; dort kann kein Jog laufen.
+- **Wirkung im Gelenkmodus:** In `motion command.c`, `EMCMOT_JOG_ABORT`, setzt der Stopp nur `free_tp.enable = 0` des Gelenks. Eine koordinierte Bewegung, also ein laufendes MDI oder Programm, bleibt unberührt. Ein laufendes Homing **dieses** Gelenks bricht er ab, wie bisher.
+- **Ohne Referenz:** Motion ist im Gelenkmodus (FREE); teleop verlangt alle Gelenke referenziert. Das Jog-Limit eines nicht referenzierten Gelenks ist `pos ± voller Verfahrweg` (`refresh_jog_limits`): Nur die Endschalter schützen. Deshalb die Begrenzung.
+
+### Stopp-Vertrag (dein R218-Umfang)
+
+- **Kein Moduswechsel mehr:** `jog_stop`, `jog_stop_multi` und `_jog_stop_for_client` (Disarm, Heartbeat-Ausfall, Trennung) senden `JOG_STOP` in dem Modus, in dem Task gerade steht.
+  - Der frühere Wechsel nach MANUAL entfällt, und mit ihm `_jog_stop_would_abort_mdi`.
+  - Damit gibt es keine vorbereitende Umschaltung mehr, die einen nötigen Stopp unterdrücken könnte.
+  - AUTO mit laufendem Interpreter: nichts gesendet, wie bisher.
+- **Adressierung:** Jeder Jog wird mit dem Gelenk-Flag und dem `CMD.jog`-Index gebucht, mit denen er **gestartet** wurde (`_active_jogs`: Achse → Flag und Index). Der Stopp adressiert genau das (`_send_jog_stop`), nie ein später neu berechnetes Ziel.
+- **Buchung:** Als gestoppt gilt ein Jog erst, wenn sein Stopp geschrieben ist. Ein fehlgeschlagenes Schreiben lässt ihn gebucht und meldet es: `jog_stop` mit `ok: false`, `jog_stop_multi` mit den betroffenen Achsen. Der Disarm-Stopp stoppt die übrigen trotzdem.
+- **Idle-Zulassung an jedem Moduswechsel:** `set_mode` lässt jedes Schreiben in seinem Thread nur auf einen **bekannt** idle Interpreter zu (`_interp_idle_refusal`). Die Zulassung des Aufrufers kommt zuerst, weil ihr Grund der genauere ist.
+  - Damit ist die in R218 benannte Grenze für die übrigen Handler geschlossen: Jogs, MDI, Touch-off, WCS, Capture, → Zero, Run from line, Fixture-Heal.
+  - Eine Ablehnung ist `_WriteRefused`: Die Handler antworten mit dem Grund, Fixture-Heal und die RFL-Sequenz werten sie als Fehlschlag.
+- **Wächter (`test_button_gates_e.py`):**
+  - der Stopp ohne Umschaltung in MDI idle und bei laufendem MDI, für alle drei Stopp-Pfade;
+  - AUTO-Lauf ohne Senden;
+  - der als teleop gestartete Jog stoppt als teleop;
+  - die Buchung erst nach dem Schreiben, für alle drei Pfade;
+  - die Idle-Zulassung bei `jog_cont`, `jog_incr`, `mdi` und dem Fixture-Heal, mit Positivkontrolle.
+  - Rot gegen `b83af6c8`: alle Vertragsfälle (`button-gates.e1.stops-red.txt`). Ein Fall ist dort nur am neuen Buchungstyp rot: Der einzelne `jog_stop` mit fehlschlagendem Schreiben ließ seine Buchung schon vorher stehen.
+
+### BG-07 · Gelenk-Jog vor dem Referenzieren
+
+- **Zuordnung** (`gateway_util.joint_jog_map`, rein): Das Gelenk jeder Achse kommt aus einer **deklarierten** Gelenkreihenfolge.
+  - Quelle ist `[DISPLAY] WEBUI_JOINT_AXES` (der Buchstabe jedes Gelenks in Gelenkreihenfolge), sonst trivkins' `coordinates=`. Den Default von trivkins rate ich nicht; jede andere Kinematik ohne Deklaration bleibt geschlossen.
+  - Ein Buchstabe, den zwei Gelenke tragen (Gantry), ist geschlossen: „Gantry axis — jog it after Home All“.
+  - Ebenso geschlossen ist eine Achse ohne Gelenk oder ohne `[JOINT_n] MAX_VELOCITY`. Eine Abweichung in Anzahl oder Buchstaben schließt die ganze Zuordnung.
+- **INI-Fakten** (`_joint_jog_facts`, je Verbindung gecacht):
+  - Der Schalter gilt nur bei genau „1“; ein ungültiger Wert wird im Trace genannt.
+  - `WEBUI_JOINT_JOG_MAX_FRACTION`: Standard 0,1, gültig ist 0 < f ≤ 1. Ein ungültiger Wert schaltet den Jog **aus**, die Q1-Regel: nie eine höhere Grenze.
+- **Klasse:** `jog = Basis + idle + (referenziert ODER joint_jog_before_homing)`.
+  - Das Gate hat genau diese Nutzer: die Jog-Tasten, die Tastatur, das Gamepad und den Stopp-alle-Wächter. Geschwindigkeit und Schritt sind seit C Vorwahlen (`always`).
+- **Handler:** Die vier Jog-Befehle teilen sich `_start_jogs`.
+  - Die `jog`-Klasse gilt nach einem aktuellen Lesen vor der Warteschlange **und** in jedem Schreibthread, an der Umschaltung und an jedem Jog. Das ist der R217-Standard.
+  - Vor dem Referenzieren, nach einem jetzt genommenen Lesen nicht alle Gelenke referenziert (auch teilweise): jede Achse ihr deklariertes Gelenk, Flag 1, höchstens Anteil × MAX_VELOCITY. Das Vorzeichen bleibt, im Trace steht `jog.capped`.
+  - Eine geschlossene Achse verweigert den ganzen Befehl mit ihrem Grund; nichts wird gesendet.
+  - Referenziert: unverändert.
+- **`_jog_axis_arg`** nutzt die deklarierte Reihenfolge für jeden Gelenk-Jog, also auch für den referenzierten Jog jenseits der Softlimits. Ohne Deklaration bleibt Index = Gelenk; das stimmt auf allen drei mitgelieferten Profilen (geprüft: trivkins XYZ, xyzac-trt X Y Z A C, xyzacb_trsrn X Y Z A B C).
+- **Client** (`jointJog.ts`, `viewer_init.ini_config.joint_jog`):
+  - Eine geschlossene Achse und jede Diagonale, die sie bewegt, sind mit dem Grund gedimmt.
+  - Die Kopfzeile des Jog-Blocks steht in **ihrer eigenen Zeile**, auch im schmalen Hochformat-Strip. Dort wird sie mit Ellipse gekürzt, der volle Text steht im `title`. Umgebrochen hatte sie die Tasten um 16,5 px verschoben; das Layout-Gate hat das gefunden.
+  - Tastatur und Gamepad verweigern eine geschlossene Achse nach derselben Regel (`jogAxisRefusal`, Pflichtparameter beider). Einen Stopp verweigern sie nie.
+
+### Benannte Grenzen
+
+1. Es gibt keine Gantry-Sim-Konfiguration. Die Gantry-Sperre ist nur durch die Tests der reinen Zuordnung belegt (XYYZ).
+2. **Teilweise referenziert** gilt als „vor dem Referenzieren“: Gelenkmodus, die Begrenzung auf allen Gelenken. Für die referenzierten Gelenke ist das zu streng; deren Softlimits schützen.
+3. Ein Jog-Stopp bricht ein laufendes Homing **dieses** Gelenks ab; das ist natives Verhalten und unverändert. Der Stopp betrifft nur ein Gelenk, das der Gateway selbst gejoggt hat.
+4. Die Diagonaltasten des XY-Kreuzes sind nur Symbole, ohne zugänglichen Namen. Das bestand schon vorher und ist hier nicht geändert.
+
+### Belege (im Worktree, `docs/reviews/`)
+
+- **Rot:**
+  - `e1.stops-red.txt`: Stopp-Vertrag und Idle-Zulassung gegen `b83af6c8`.
+  - `e2.table-red.txt`: Tabelle; der Import der neuen Namen scheitert.
+  - `e3.handlers-red.txt`: Handler gegen `873bdb9a`. Alle Fälle vor dem Referenzieren sind rot; „ohne Schalter“ und „referenziert unverändert“ sind auf beiden Ständen grün.
+  - `e4.browser-red.txt`: der Browserfall gegen den Client von `04155a26`, 2/3 rot (Kopfzeile, Grund, Tastatur sendet Y), die referenzierte Kontrolle grün.
+- **Backend-Gate:** `e.gate-backend.json`, **PASS, 1753 Tests**.
+- **Frontend-Gate:** `e.gate-frontend.run1.json`, **PASS** am Stand `8cbfd9c4`: Lint, Build, **2628 Unit-Tests**, **607/607 Browser-Tests**, allein gelaufen. Darin der Layout-Zustand `joint-jog` des Strips, der auch den Jog-Block selbst vermisst.
+- **Live** (Wegwerf-Sim; die INI-Kopien `lcnc_suite_sim_3axis_xyz_e.ini` und `lcnc_suite_sim_5axis_xyzac_e.ini` liegen nur in der Wegwerf-Konfiguration): Skript `e.live-check.py`.
+  - **xyz-e** (`e.live-xyz-e.json`) **8/8**:
+    - nicht referenziert ist `jog` offen;
+    - Gelenk 0 fährt im Gelenkmodus mit höchstens 10 (Cap aus 100), obwohl 50 verlangt waren;
+    - `jog_stop` stoppt;
+    - der **native Disarm-Stopp** eines nicht referenzierten Jogs (BG-07, offen seit A);
+    - `JOG_STOP` direkt am Binding in MDI: kein Fehler, Task bleibt MDI;
+    - ein Inkrement mit Cap;
+    - referenziert ohne Cap: 30 erreicht.
+  - **Vorläufe 1–3** (`…run1–3.json`, aufbewahrt) scheiterten am Skript, nicht am Produkt:
+    - der geteilte Home-Schalter der Sim blieb geschlossen, weil ein Gelenk über seiner Schwelle stand; Task meldete „Cannot home while shared home switch is closed“;
+    - ein referenzierter Jog fuhr ins MIN_LIMIT;
+    - `inpos` lief dem Stopp nach, und `set_mode` verweigerte richtig „Machine moving“.
+  - **xyzac-e** (`e.live-xyzac-e.json`): C (Draht 4) bewegt nur Gelenk 4, mit höchstens 3 (Cap aus 30).
+  - **Regression:**
+    - D-Livecheck XYZAC **27/27** (`e.live-xyzac-d.json`);
+    - `twp_buttons_check` **43 pass, 4 skip** (`e.twp-buttons-check.txt`), samt den Zeilen zum Gelenk-Jog jenseits der Softlimits.
+  - Danach lief die Sim des Operators wieder.
+
+**Bitte prüfen:**
+- den Stopp-Vertrag und die Idle-Zulassung gegen deinen R218-Auftrag;
+- BG-07 einschließlich der Gantry-Regel und der Begrenzung;
+- die Operator-Rücknahme der Gelenknamen;
+- die vier benannten Grenzen.
+
+Wenn das trägt, bitte `agreement` für Paket E. Damit wären alle Button-Gates-Pakete abgenommen.
