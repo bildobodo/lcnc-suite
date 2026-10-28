@@ -11,7 +11,7 @@
 // (src/controlInventory.ts) names what each free control does.
 import { test, expect, type Page, type Locator } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
-import { clickMore } from "./more";
+import { moreItem } from "./more";
 import { BUTTON_TYPES, INPUT_DEFS } from "../src/machineControls";
 import { GATE_NAMES, type Permissions } from "../src/permissions";
 
@@ -237,7 +237,10 @@ test("disarmed at idle: the spindle stop is reachable (BG-18 — inside the stri
   await expect(page.locator('[data-strip="spindle"]').getByRole("button", { name: "Fwd", exact: true })).toBeDisabled();
 });
 
-test("disarmed: the program browser browses folders; a file row is closed with its reason (BG-02)", async ({ page }) => {
+test("Files follows the load: closed with its reason disarmed and while a program runs; armed it browses; losing the load closes it (package F, operator 2026-10-28)", async ({ page }) => {
+  // In the Program tab the browser exists to load: Files takes the load's
+  // class (`programLoad`, like Reload / Unload). It was free before (BG-02)
+  // and showed nothing but closed rows while disarmed.
   const ncDir = "/home/operator/linuxcnc/nc_files";
   await page.route("**/files*", (route) => {
     const subdir = new URL(route.request().url()).searchParams.get("subdir") ?? "";
@@ -248,22 +251,31 @@ test("disarmed: the program browser browses folders; a file row is closed with i
     } });
   });
   await open(page);
-  await disarmedIn(page, "idle");
   await page.getByRole("tab", { name: "Program", exact: true }).click();
-  await ctl({ op: "clearCmds" });
   const panel = page.locator(".sidePane .container").filter({ has: page.locator(".codeArea") });
-  await clickMore(panel.locator(".ctrlRow"), "Files");
+  const head = panel.locator(".ctrlRow");
+  const tip = () => page.locator(".btnTip").filter({ has: page.getByRole("button", { name: "Files", exact: true }) }).first();
+  await disarmedIn(page, "idle");
+  await expect(await moreItem(head, "Files"), "disarmed").toBeDisabled();
+  await expect(tip()).toHaveAttribute("title", /Not armed/);
+  // armed at idle: it opens and browses, a file row loads
+  await armedIn(page);
+  const files = await moreItem(head, "Files");
+  await expect(files).toBeEnabled();
+  await files.click();
   const browser = panel.getByRole("region", { name: "Server programs" });
-  await expect(browser.getByRole("button", { name: "twp", exact: true })).toBeEnabled();
   await browser.getByRole("button", { name: "twp", exact: true }).click();
-  await expect(browser.getByRole("button", { name: "tilted.ngc", exact: true })).toBeVisible();
-  const file = browser.getByRole("button", { name: "tilted.ngc", exact: true });
-  await expect(file, "loading needs `setup` (armed)").toBeDisabled();
-  await expect(file).toHaveAttribute("title", /Not armed/);
-  await expect(browser.getByRole("button", { name: "Parent folder", exact: true })).toBeEnabled();
-  await browser.getByRole("button", { name: "Parent folder", exact: true }).click();
-  await expect(browser.getByRole("button", { name: "twp", exact: true })).toBeVisible();
-  expect(await forbidden(), "browsing is no load").toEqual([]);
+  await expect(browser.getByRole("button", { name: "tilted.ngc", exact: true })).toBeEnabled();
+  // the disarm closes the open browser — its closed toggle could not
+  await disarmedIn(page, "idle");
+  await expect(browser).toHaveCount(0);
+  // armed while a program runs: closed with the load's reason
+  const RUNNING = "Program running — wait until it ends";
+  await ctl({ op: "status_delta", armed: true, data: { permissions: perms("running"),
+    permission_reasons: { programLoad: RUNNING }, task_mode: 2, interp_state: 2 } });
+  await expect(page.locator(".pill.armed")).toHaveCount(1);
+  await expect(await moreItem(head, "Files"), "running").toBeDisabled();
+  await expect(tip()).toHaveAttribute("title", RUNNING);
 });
 
 test("a dialog opened armed: after the disarm its action is closed with its reason, Cancel still closes", async ({ page }) => {

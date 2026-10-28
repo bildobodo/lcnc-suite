@@ -5,9 +5,12 @@
 // at most a share of that joint's top speed, and an axis two joints carry (a
 // gantry) closed. The gateway decides and enforces all of it (viewer_init
 // `ini_config.joint_jog`, the `jog` class, the handlers); this module only
-// says why an axis is closed and states the cap — for the strip, the
-// keyboard and the gamepad alike (one admission, BG-10). The buttons keep
-// their axis letters (operator 2026-10-28).
+// says why an axis is closed, names the joint an axis moves for the
+// button's corner mark, and states the cap — for the strip, the keyboard and
+// the gamepad alike (one admission, BG-10). The buttons keep their axis
+// letters; the joint is a corner mark that never changes a button's size
+// (operator 2026-10-28: "J2·Z+" in the label widened the Z and rotary
+// buttons).
 
 export interface JointJogAxis {
   letter: string;
@@ -37,6 +40,13 @@ export function jogAxisRefusal(jj: JointJog | null | undefined, homed: boolean, 
   const row = jj!.axes[axisIndex];
   if (!row || row.joint == null) return row?.reason ?? AXIS_NOT_DECLARED;
   return null;
+}
+
+/** The joint an axis moves while jogging joints (its button's corner
+ *  mark), or null: homed, not declared, or a closed axis. */
+export function jogAxisJoint(jj: JointJog | null | undefined, homed: boolean, axisIndex: number): number | null {
+  if (!jointJogActive(jj, homed)) return null;
+  return jj!.axes[axisIndex]?.joint ?? null;
 }
 
 /** The jog block's head line while jogging joints. */

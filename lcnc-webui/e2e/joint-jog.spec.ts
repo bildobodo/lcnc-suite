@@ -1,9 +1,10 @@
 // Button gates package E (BG-07; operator E1–E3, 2026-10-28): jogging before
 // homing where the machine declares it. The gateway decides which axis moves
 // which joint, how fast and which axis stays closed (test_button_gates_e.py);
-// the strip dims a closed axis with its reason and states the joint jog and
-// its cap in its head — the buttons keep their axis letters (operator
-// 2026-10-28) — and the keyboard refuses a closed axis like the button.
+// the strip dims a closed axis with its reason, states the joint jog and its
+// cap in its head, marks each button's joint in its corner — the buttons keep
+// their axis letters (operator 2026-10-28) — and the keyboard refuses a
+// closed axis like the button.
 import { test, expect, type Page } from "@playwright/test";
 import { ctl, MOCK } from "./ctl";
 import { GATE_NAMES, type Permissions } from "../src/permissions";
@@ -56,6 +57,14 @@ test("before homing: the gantry axis is dimmed with its reason, the head states 
   for (const name of ["X+", "X-", "Z+", "Z-"]) {
     await expect(strip.getByRole("button", { name, exact: true }), name).toBeEnabled();
   }
+  // each button marks the joint it moves in its corner (operator 2026-10-28):
+  // X is joint 0, Z joint 3 (XYYZ); the closed Y has none; the names stay
+  for (const [name, joint] of [["X+", "J0"], ["X-", "J0"], ["Z+", "J3"], ["Z-", "J3"]]) {
+    await expect(strip.getByRole("button", { name, exact: true }).locator(".cornerLabel"), name).toHaveText(joint);
+  }
+  for (const name of ["Y+", "Y-"]) {
+    await expect(strip.getByRole("button", { name, exact: true }).locator(".cornerLabel"), name).toHaveCount(0);
+  }
   for (const name of ["Y+", "Y-"]) {
     const btn = strip.getByRole("button", { name, exact: true });
     await expect(btn, name).toBeDisabled();
@@ -89,6 +98,7 @@ test("homed: the axis letters as before, no note, every axis open", async ({ pag
   await open(page, true);
   const strip = page.locator('[data-strip="jog"]');
   await expect(strip.locator(".jogNote")).toHaveCount(0);
+  await expect(strip.locator(".cornerLabel"), "homed: no joint marks").toHaveCount(0);
   for (const name of ["X+", "Y+", "Z+"]) {
     await expect(strip.getByRole("button", { name, exact: true }), name).toBeEnabled();
   }

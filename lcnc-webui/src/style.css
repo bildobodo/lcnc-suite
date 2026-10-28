@@ -2232,6 +2232,23 @@ label:has(input:disabled, select:disabled) {
 .text-danger { color: var(--danger-text); }
 .text-muted  { color: var(--fg-muted); }
 
+/* Corner label (button gates package F, operator 2026-10-28): a small mark
+   in a control's top-left corner that names what the control addresses —
+   the joint a jog moves before homing — without changing the control's size
+   (in the label, "J2·Z+" widened the Z and rotary buttons 18 px). The
+   control is its positioned box (Btn.vue's root is). Decoration for sight:
+   the control's name stays its own (aria-hidden on the mark). */
+.cornerLabel {
+  position: absolute;
+  top: var(--gap-micro);
+  left: var(--gap-tight);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  line-height: 1;
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+
 /* Radio button label row (jog increments, WCS selector) */
 .radio-label    { display: flex; align-items: center; gap: var(--gap-tight); font-size: var(--fs-base); cursor: pointer; white-space: nowrap; }
 

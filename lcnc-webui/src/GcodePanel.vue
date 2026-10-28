@@ -440,6 +440,10 @@ function violationText(v: LimitViolation): string {
 
 /** ---------- File browser ---------- */
 const showBrowser = ref(false);
+// The browser closes with the load's class (package F): its toggle is closed
+// then, so an open browser could not be closed any more — and it can load
+// nothing (a disarm, a program start).
+watch(() => can.value.programLoad, (open) => { if (!open) showBrowser.value = false; });
 const currentSubdir = ref("");
 const loading = ref(false);
 const uploadError = ref<string | null>(null);
@@ -894,8 +898,10 @@ async function saveEdit() {
             :reason="editing ? 'Finish or discard the edit first' : undefined">
             Unload
           </MachineBtn>
-          <!-- ONE files toggle (N82): pressed while the browser shows -->
-          <MachineBtn type="fileBrowse" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
+          <!-- ONE files toggle (N82): pressed while the browser shows. In
+               this tab the browser exists to load: the load's class
+               (`fileOp` = programLoad, package F, operator 2026-10-28). -->
+          <MachineBtn type="fileOp" class="actionBtn" :selected="showBrowser" :aria-pressed="showBrowser" @click="toggleBrowser"
             :disabled="loading || editing" :reason="editing ? 'Finish or discard the edit first' : undefined">
             Files
           </MachineBtn>

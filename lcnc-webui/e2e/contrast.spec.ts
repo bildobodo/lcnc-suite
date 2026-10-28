@@ -189,6 +189,17 @@ for (const pass of PASSES) {
     const delta = (data: Record<string, unknown>) => ctl({ op: "status_delta", data });
 
     await take("page", "header.hdr, .statusBanner, .strip, .sidePane, .viewerPane .overlay-card");
+    // Jogging before homing (button gates E / F): the jog head's warning line
+    // and the corner marks naming each button's joint.
+    await ctl({ op: "setJointJog", jointJog: { enabled: true, fraction: 0.1, reason: null,
+      axes: ["X", "Y", "Z"].map((letter, joint) => ({ letter, joint, reason: null })) } });
+    await delta({ homed: [0, 0, 0], homed_joints: [false, false, false] });
+    await expect(page.locator('[data-strip="jog"] .cornerLabel').first()).toBeVisible();
+    await expect(page.locator('[data-strip="jog"] .jogNote')).toBeVisible();
+    await take("Jog/before homing", '[data-strip="jog"]');
+    await ctl({ op: "setJointJog", jointJog: null });
+    await delta({ homed: [1, 1, 1], homed_joints: [true, true, true] });
+    await expect(page.locator('[data-strip="jog"] .cornerLabel')).toHaveCount(0);
     // Program: a selected line, then Run from line on it, the editor, the files.
     await page.locator(".codeLine").nth(2).click();
     await expect(page.locator(".codeLine.selected")).toHaveCount(1);

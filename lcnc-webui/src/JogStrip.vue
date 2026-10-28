@@ -14,7 +14,7 @@ import ChoiceGroup from "./ChoiceGroup.vue";
 import type { ChoiceOption } from "./choiceGroup";
 import HelpIcon from "./HelpIcon.vue";
 import { TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI } from "./lcnc";
-import { jointJogActive, jogAxisRefusal, jointJogNote, type JointJog } from "./jointJog";
+import { jointJogActive, jogAxisJoint, jogAxisRefusal, jointJogNote, type JointJog } from "./jointJog";
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight,
@@ -337,10 +337,14 @@ const xyBtns = computed<JogDef[]>(() => {
 });
 
 // Before homing (package E): an axis the machine closes (a gantry letter) is
-// dimmed with its reason; the buttons keep their axis letters (operator
-// 2026-10-28: "J2·Z+" widened the Z and rotary buttons — no other UI names
-// the joints there either).
+// dimmed with its reason; the buttons keep their axis letters and mark the
+// joint they move in their corner (package F, operator 2026-10-28 — in the
+// label, "J2·Z+" widened the Z and rotary buttons; AXIS and gmoccapy name
+// the joints by number too).
 const jointOn = computed(() => jointJogActive(props.jointJog, !!props.homed));
+function jointMark(index: number | undefined): number | null {
+  return index == null || index < 0 ? null : jogAxisJoint(props.jointJog, !!props.homed, index);
+}
 function axisRefusal(...indices: (number | undefined)[]): string | undefined {
   for (const i of indices) {
     if (i == null || i < 0) continue;
@@ -501,7 +505,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointermove="slideOffCheck"
               @keydown="onJogKey(btn, $event)"
               @contextmenu.prevent
-            ><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
+            ><span v-if="btn.axis2 == null && jointMark(btn.axis) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(btn.axis) }}</span><div :class="['jogInner', btn.dir_class]"><component :is="btn.icon" class="jogIcon" /><span v-if="btn.shortLabel" class="jogLabel">{{ btn.shortLabel }}</span></div></MachineBtn>
           </div>
         </div>
 
@@ -518,7 +522,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerleave.prevent="stopAxisJog(zAxis.index, 1, $event)"
             @pointermove="slideOffCheck"
             @contextmenu.prevent
-          ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
+          ><span v-if="jointMark(zAxis.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(zAxis.index) }}</span><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
             :disabled="!!axisRefusal(zAxis.index)"
@@ -531,7 +535,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             @pointerleave.prevent="stopAxisJog(zAxis.index, -1, $event)"
             @pointermove="slideOffCheck"
             @contextmenu.prevent
-          ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
+          ><span v-if="jointMark(zAxis.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(zAxis.index) }}</span><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">Z-</span></div></MachineBtn>
         </div>
 
         <!-- ABC axes (rotary — use angularJogVel), tight cluster -->
@@ -549,7 +553,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
@@ -562,7 +566,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
         </div>
 
@@ -581,7 +585,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, 1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
@@ -594,7 +598,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               @pointerleave.prevent="stopAxisJog(ra.index, -1, $event)"
               @pointermove="slideOffCheck"
               @contextmenu.prevent
-            ><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
+            ><span v-if="jointMark(ra.index) != null" class="cornerLabel" aria-hidden="true">J{{ jointMark(ra.index) }}</span><div class="jogInner jogZDown"><ArrowDown class="jogIcon" /><span class="jogLabel">{{ ra.letter }}-</span></div></MachineBtn>
           </div>
         </div>
       </div>

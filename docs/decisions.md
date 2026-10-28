@@ -9613,3 +9613,17 @@ write, so the command lock — and the disconnect stop — came before the write
 `_cmd_blocking` now awaits its write through every cancel (`_thread_to_end`, which already did
 this for the file and tool-table writers, with `on_cancel` ending the wait slices).
 
+**Package F — the operator's look at the full stand (2026-10-28).** Testing all five
+packages on a LAN copy of the gates sim, the operator asked three things. (1) Preselections
+(jog speed, step, RPM) free while disarmed: they live only in the browser tab until the next
+jog or spindle start — kept free. (2) The Program tab's Files was free and, disarmed, showed
+only closed rows: it now takes the load's class (`programLoad`, like Reload / Unload) and
+closes the browser when that class closes; Download stays free, the Tools tab's Files is
+unchanged. (3) Joint names: AXIS (joint-mode radio buttons 0, 1, 2 …) and gmoccapy (jog
+buttons "0+", "0−" …) DO name the joints before homing — R219 repeated the remark "no other
+UI does" without my checking it; the joint is now a corner mark ("J0", a new
+global `.cornerLabel`) that never changes a button's size. Neither AXIS nor gmoccapy caps the
+speed or has a switch: jogging joints before homing is native LinuxCNC (moving off a limit
+switch, out of a clamp, to a reference mark; world coordinates and soft limits are undefined
+before homing, so only joint jogs, each bounded to ± full travel from where it starts).
+

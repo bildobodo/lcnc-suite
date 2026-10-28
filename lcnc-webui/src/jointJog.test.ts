@@ -3,7 +3,7 @@
 // homed, or without a declaration, nothing changes.
 import "./testGlobals";
 import { describe, it, expect } from "vitest";
-import { AXIS_NOT_DECLARED, jogAxisRefusal, jointJogActive, jointJogNote, type JointJog } from "./jointJog";
+import { AXIS_NOT_DECLARED, jogAxisJoint, jogAxisRefusal, jointJogActive, jointJogNote, type JointJog } from "./jointJog";
 
 const GANTRY = "Gantry axis — jog it after Home All";
 const XYYZ: JointJog = {
@@ -18,6 +18,15 @@ describe("jogging before homing", () => {
     expect(jointJogActive(XYYZ, true)).toBe(false);
     expect(jointJogActive({ ...XYYZ, enabled: false }, false)).toBe(false);
     expect(jointJogActive(null, false)).toBe(false);
+  });
+
+  it("names the joint an axis moves for its corner mark, only while jogging joints", () => {
+    expect(jogAxisJoint(XYYZ, false, 0)).toBe(0);
+    expect(jogAxisJoint(XYYZ, false, 2)).toBe(3);
+    expect(jogAxisJoint(XYYZ, false, 1)).toBeNull();      // the gantry letter
+    expect(jogAxisJoint(XYYZ, true, 0)).toBeNull();       // homed
+    expect(jogAxisJoint({ ...XYYZ, enabled: false }, false, 0)).toBeNull();
+    expect(jogAxisJoint(XYYZ, false, -1)).toBeNull();
   });
 
   it("refuses a closed axis with its reason, never after homing", () => {

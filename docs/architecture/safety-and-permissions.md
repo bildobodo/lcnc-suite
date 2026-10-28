@@ -301,8 +301,14 @@ joint jog before homing in E.
   Retry are reading; a FILE row carries the parent's `fileGate` (Program
   `setup` — loading moves to `programLoad` in D; Tools: the library preview, a
   read). A closed file row is disabled with its reason (title + a tap). The
-  Files toggles, the library Upload and Preview again are `fileBrowse`
-  (always): the preview reads, applying is `toolTableWrite`.
+  library Upload and Preview again are `fileBrowse` (always): the preview
+  reads, applying is `toolTableWrite`. **Package F (operator 2026-10-28):**
+  the Program tab's Files toggle takes the load's class (`fileOp` =
+  `programLoad`, like Reload / Unload) — the browser there exists to load,
+  and disarmed it showed nothing but closed rows; it closes when that class
+  closes (a disarm, a program start), since its closed toggle could not.
+  Download stays free (the one real read); the Tools tab's Files is
+  unchanged.
 - *Explanations* (BG-16): `gateExplain` offers the reason to every client,
   the disarmed one too; a control a closed inner `<Gate>` disables explains
   with that Gate's reason (Gate.vue provides `GATE_SCOPE_KEY`, the outermost
@@ -478,6 +484,10 @@ joint jog before homing in E.
   buttons keep their axis letters — the operator dropped joint names on the
   buttons ("J2·Z+" widened the Z and rotary buttons; no other UI names them
   there). The keyboard and the gamepad refuse a closed axis by the same
-  rule (`jogAxisRefusal`); a stop is never refused.
+  rule (`jogAxisRefusal`); a stop is never refused. **Package F (operator
+  2026-10-28):** each jog button marks the joint it moves in its corner
+  ("J0", the global `.cornerLabel`, `jogAxisJoint`; aria-hidden — the name
+  stays the axis), never changing its size; AXIS and gmoccapy name the
+  joints by number before homing too.
 - *Named limits*: no gantry sim config exists — the gantry closure is
   proven by the pure map's tests only.

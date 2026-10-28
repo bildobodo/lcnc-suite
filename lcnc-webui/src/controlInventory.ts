@@ -164,8 +164,6 @@ export const CONTROL_INVENTORY: Record<string, readonly [ControlCategory, string
     ["nav", "closes, cancels, navigates or switches a view — no effect beyond the screen"],
   "GcodePanel.vue|MachineBtn:dialogDanger|@click=confirmDiscard":
     ["draft", "discards the program edit"],
-  "GcodePanel.vue|MachineBtn:fileBrowse|@click=toggleBrowser":
-    ["read", "reads: a download, a retry of a read, a library preview or opening the file browser (BG-02, BG-14)"],
   "GcodePanel.vue|MachineBtn:fileDiscard|@click=discardEdit":
     ["draft", "discards the local edit — never gated (package B: an edit must never be trapped)"],
   "GcodePanel.vue|MachineBtn:fileDownload|@click=downloadProgram":
