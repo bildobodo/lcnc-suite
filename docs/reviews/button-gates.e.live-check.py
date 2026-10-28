@@ -15,6 +15,7 @@ profile xyz-e  (trivkins coordinates=XYZ, NO_FORCE_HOMING = 1,
       JOG_STOP is taken — no error, task stays MDI (2.9.4 allow_while_idle)
   E6  an increment before homing moves joint 1 by the distance, capped
   E7  homed: the cap no longer applies (teleop jog at the asked speed)
+  E9  a jog while homing runs is refused with its reason (Codex R219 BG-35)
 profile xyzac-e (xyzac-trt-kins, WEBUI_JOINT_AXES = X Y Z A C)
   E8  a jog of C (wire 4) before homing moves joint 4 — only joint 4 — capped
 
@@ -177,6 +178,15 @@ try:
         info["parked"] = [round(poll().joint[j]["output"], 3) for j in range(3)]
         r = call(c, "home_all")
         info["home_all"] = r
+        # E9 (Codex R219 BG-35): no new jog while homing runs — the gateway
+        # refuses with the reason (motion would reject it, and a booked jog's
+        # stop would cancel the homing)
+        homing = wait(lambda st: any(j["homing"] for j in st.joint[:st.joints]), 5)
+        shown = seen(c, lambda st: st.get("homing_active") is True, 5)
+        r9 = call(c, "jog_cont", axis=0, vel=5.0)
+        check("E9 a jog while homing runs: refused with the reason",
+              homing and shown and r9.get("ok") is False and "Homing in progress" in r9.get("error", ""),
+              f"homing={homing} shown={shown} reply={r9}")
         homed = wait(lambda st: all(st.homed[:st.joints]) and st.inpos, 90)
         seen(c, lambda st: st.get("homed") is True, 10)
         gate_open(c, "jog")
