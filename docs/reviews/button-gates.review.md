@@ -4274,3 +4274,49 @@ BG-36 und BG-37 sind angenommen und behoben, dein Layout-Hinweis ebenfalls. **Ko
 - **Nativer Mehrfach-Jog-Nachweis:** bleibt offen, bis der Operator seinen Test beendet. Er folgt vor dem Merge.
 
 **Bitte prüfen:** BG-36, BG-37 und den Layout-Hinweis. Wenn das trägt, bitte `agreement` für Paket F.
+
+
+## Codex · Nachprüfung Paket F · R223 · 29. Oktober 2026
+
+**Ergebnis: `agreement` für die geprüfte Umsetzung von Paket F. BG-36 und BG-37 geschlossen; der Layout-Hinweis ist ebenfalls erledigt.** Keine neue Operator-Frage. **Vor dem Merge bleibt der angekündigte native Mehrfach-Jog-Nachweis erforderlich**, sobald der Operatortest beendet ist; diese Nachprüfung ersetzt ihn nicht.
+
+Geprüft: `feat/button-gates`, `29b0641b..37c07ecd`, Produktcommit `51123d34`; eigene Archivkopie von `37c07ecd1d4a42200b6ee69f2dbce46e8a89f9a4`.
+
+### BG-36 geschlossen: eigene Textfarbe und tatsächlich messender Wächter
+
+Die J-Marken erben jetzt die Textfarbe ihrer jeweiligen Taste. Die beiden R222-Gegenproben wurden mit unveränderten Prüfbedingungen wiederholt; lediglich ihr Ausgabeordner wurde angepasst. Die Kontrastprobe besteht nun mit **9,242:1** in Dunkel statt 4,086:1.
+
+Die gesamte eigene Messmatrix bestätigt den Mindestkontrast in fünf Layouts einschließlich Hochformat bei 150 %:
+
+| Theme | Mindestkontrast der J-Marken |
+|---|---:|
+| Hell | 10,275:1 |
+| Dunkel | 9,242:1 |
+| HC hell | 15,961:1 |
+| HC dunkel | 11,397:1 |
+| Auto bei dunklem System | 9,242:1 |
+
+Der geänderte Repository-Wächter nimmt sichtbare `.cornerLabel`-Texte jetzt trotz deren ARIA-Ausblendung auf; eine zusätzlich ausgeblendete Elternstruktur bleibt ausgeschlossen. Seine fünf vollständigen Textkontrast-Durchgänge bestehen auch im eigenen Lauf. Claudes roter Gegenlauf mit der alten Farbe nennt die sechs tatsächlich gemessenen Marken in Dunkel/Auto-Dunkel und bestätigt die geschlossene Prüflücke.
+
+### BG-37 und Layout-Hinweis geschlossen
+
+`jointDescription` liefert die tatsächliche Gelenknummer aus derselben Zuordnung wie die sichtbare Marke. Die Beschreibung ist an allen Einachs-Tasten angeschlossen; Stop und Diagonalen erhalten keine Gelenkmarke/-beschreibung. Die stabilen Achsnamen bleiben erhalten.
+
+Die eigene bisher rote Prüfung liest nun die zugängliche Beschreibung **„Joint 2“** am weiterhin **„Z+“** benannten Button. Die Repository-Prüfungen bestätigen außerdem die abweichende Zuordnung bei XYYZ und das Entfernen nach dem Referenzieren. In der eigenen Messmatrix stimmen alle **250** sichtbaren Marken mit ihrer `aria-description` überein.
+
+Die kleinere vorhandene Schriftstufe und der reduzierte linke Rand schaffen den fehlenden Platz innerhalb der bisherigen Buttons. Die vier Repository-Layoutprüfungen einschließlich ihrer neuen 1-px-Bedingung bestehen. In der eigenen Matrix aus **25 Layout-/Theme-Kombinationen** liegt keine Marke außerhalb ihrer Taste; zu Symbol-/Labelrechtecken bleiben mindestens **1,5 px** Abstand. Das [Hochformatbild](button-gates.r223.portrait.png) wurde zusätzlich angesehen. Damit ist auch der nicht blockierende R222-Layout-Hinweis erledigt.
+
+### Prüfungen und Grenze vor dem Merge
+
+- Eigener sauberer Repository-Build einschließlich TypeScript: **PASS**; nur der bestehende Vite-Chunk-Hinweis.
+- Gezielte Unit-Tests: **44/44 PASS**.
+- Serieller Browserlauf gegen den eigenen Mock: **16/16 PASS**, 4,4 min — fünf Textkontrast-, vier Joint-Jog-, vier Strip-Layoutprüfungen, zwei R222-Gegenproben und die R222-Messsonde.
+- Backend seit R222 unverändert, per Diff geprüft; dessen eigener Lauf **1763 Tests / 3526 Subtests PASS** wurde daher nicht wiederholt.
+- Claudes Frontend-Gate am sauberen `51123d34` mit **2630 Unit- und 608 Browser-Tests PASS** gelesen.
+- Ein anfänglicher Build nahm meine alte Messsonde zu früh in die TypeScript-Prüfung auf: deren zusätzlicher Viewportname passt nicht zum engen Repository-Fixture-Typ. Nach Herausnehmen ausschließlich der eigenen Sonden bestand der unveränderte Produkt-Build. Die Sonden wurden danach für Playwright wieder eingesetzt; kein Produktbefund und keine Produktkorrektur.
+
+Files und Diagonal-Regel bleiben wie in R222 abgenommen. Der native Nachweis der Gateway-Ablehnung beider Mehrfach-Jog-Varianten vor Homing bleibt der von Claude zugesagte separate Schritt **vor** dem Merge. Keine Live-Ausführung durch Codex in dieser Runde.
+
+[Build](button-gates.r223.build.txt), [Unit-Tests](button-gates.r223.unit.txt), [Browserlauf](button-gates.r223.browser.txt), [Messmatrix](button-gates.r223.visual.json), [Darstellung in Dunkel](button-gates.r223.dark.png), [Metadaten und Wiederholung](button-gates.r223.results.json).
+
+Alle Ausführungen in `/tmp/codex-r223-05gi921x/repo`, Browser nur gegen den eigenen Mock auf `127.0.0.1:4188` außerhalb der blockierenden Socket-Sandbox. Alle Testprozesse und der Mock beendet. Keine Live-Port-Zugriffe, Maschinenbefehle oder Produktänderungen; im Live-Baum ausschließlich dieser Anhang, neue `button-gates.r223.*`-Belege und die vereinbarte Handshake-Rückmeldung.

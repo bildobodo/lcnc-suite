@@ -1,0 +1,32 @@
+
+Running 16 tests using 1 worker
+
+(node:2346233) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:2346233) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 e2e/contrast.spec.ts:176:3 › light: every readable text meets 4.5 : 1 on what is rendered behind it (38.9s)
+  ✓   2 e2e/contrast.spec.ts:176:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it (38.7s)
+  ✓   3 e2e/contrast.spec.ts:176:3 › hc-light: every readable text meets 4.5 : 1 on what is rendered behind it (39.1s)
+  ✓   4 e2e/contrast.spec.ts:176:3 › hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it (39.1s)
+  ✓   5 e2e/contrast.spec.ts:176:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it (39.4s)
+  ✓   6 e2e/joint-jog.spec.ts:53:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07) (2.2s)
+  ✓   7 e2e/joint-jog.spec.ts:89:1 › before homing the keyboard refuses the closed axis like the button, and jogs an open one (2.2s)
+  ✓   8 e2e/joint-jog.spec.ts:102:1 › before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F) (2.2s)
+  ✓   9 e2e/joint-jog.spec.ts:122:1 › homed: the axis letters as before, no note, every axis open (2.0s)
+  ✓  10 e2e/layout.spec.ts:810:3 › desktop: strip states keep the frame and the pinned controls invariant (7.8s)
+  ✓  11 e2e/layout.spec.ts:810:3 › compact: strip states keep the frame and the pinned controls invariant (7.5s)
+  ✓  12 e2e/layout.spec.ts:810:3 › touch-landscape: strip states keep the frame and the pinned controls invariant (7.6s)
+  ✓  13 e2e/layout.spec.ts:810:3 › touch-portrait: strip states keep the frame and the pinned controls invariant (7.6s)
+actual visible mark contrast {
+  fg: [ [33m230[39m, [33m237[39m, [33m243[39m, [33m255[39m ],
+  bg: [ [33m74[39m, [33m58[39m, [33m37[39m, [33m255[39m ],
+  ratio: [33m9.241553658970583[39m
+}
+  ✓  14 e2e/r223-assert.spec.ts:16:1 › R222 the visible joint number meets the text contrast target in dark (3.0s)
+Z+ accessible subtree - button "Z+"
+  ✓  15 e2e/r223-assert.spec.ts:36:1 › R222 the stable axis name has its new joint target as accessible description (2.6s)
+MARK_RESULTS [{"viewport":"desktop","theme":"light","minContrast":10.275486485829505,"overlaps":[],"outside":[]},{"viewport":"desktop","theme":"dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"desktop","theme":"hc-light","minContrast":15.961438896768811,"overlaps":[],"outside":[]},{"viewport":"desktop","theme":"hc-dark","minContrast":11.396587704035108,"overlaps":[],"outside":[]},{"viewport":"desktop","theme":"auto-dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"compact","theme":"light","minContrast":10.275486485829505,"overlaps":[],"outside":[]},{"viewport":"compact","theme":"dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"compact","theme":"hc-light","minContrast":15.961438896768811,"overlaps":[],"outside":[]},{"viewport":"compact","theme":"hc-dark","minContrast":11.396587704035108,"overlaps":[],"outside":[]},{"viewport":"compact","theme":"auto-dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"touch-landscape","theme":"light","minContrast":10.275486485829505,"overlaps":[],"outside":[]},{"viewport":"touch-landscape","theme":"dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"touch-landscape","theme":"hc-light","minContrast":15.961438896768811,"overlaps":[],"outside":[]},{"viewport":"touch-landscape","theme":"hc-dark","minContrast":11.396587704035108,"overlaps":[],"outside":[]},{"viewport":"touch-landscape","theme":"auto-dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"touch-portrait","theme":"light","minContrast":10.275486485829505,"overlaps":[],"outside":[]},{"viewport":"touch-portrait","theme":"dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"touch-portrait","theme":"hc-light","minContrast":15.961438896768811,"overlaps":[],"outside":[]},{"viewport":"touch-portrait","theme":"hc-dark","minContrast":11.396587704035108,"overlaps":[],"outside":[]},{"viewport":"touch-portrait","theme":"auto-dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"touch-portrait-150","theme":"light","minContrast":10.275486485829505,"overlaps":[],"outside":[]},{"viewport":"touch-portrait-150","theme":"dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]},{"viewport":"touch-portrait-150","theme":"hc-light","minContrast":15.961438896768811,"overlaps":[],"outside":[]},{"viewport":"touch-portrait-150","theme":"hc-dark","minContrast":11.396587704035108,"overlaps":[],"outside":[]},{"viewport":"touch-portrait-150","theme":"auto-dark","minContrast":9.241553658970583,"overlaps":[],"outside":[]}]
+  ✓  16 e2e/r223-visual.spec.ts:8:1 › R222 joint marks: geometry, all themes and accessible description (21.0s)
+
+  16 passed (4.4m)

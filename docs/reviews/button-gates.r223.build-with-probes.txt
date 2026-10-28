@@ -1,0 +1,9 @@
+
+> lcnc-webui@0.0.0 build
+> vue-tsc -b && vite build
+
+e2e/r223-visual.spec.ts(14,35): error TS2345: Argument of type '{ zoom: number; name: "desktop"; width: 1600; height: 1000; touch: false; } | { zoom: number; name: "compact"; width: 1024; height: 768; touch: false; } | { zoom: number; name: "touch-landscape"; width: 1280; height: 800; touch: true; } | { ...; }' is not assignable to parameter of type '{ readonly name: "desktop"; readonly width: 1600; readonly height: 1000; readonly touch: false; } | { readonly name: "compact"; readonly width: 1024; readonly height: 768; readonly touch: false; } | { ...; } | { ...; }'.
+  Type '{ name: string; zoom: number; width: 900; height: 1200; touch: true; }' is not assignable to type '{ readonly name: "desktop"; readonly width: 1600; readonly height: 1000; readonly touch: false; } | { readonly name: "compact"; readonly width: 1024; readonly height: 768; readonly touch: false; } | { ...; } | { ...; }'.
+    Type '{ name: string; zoom: number; width: 900; height: 1200; touch: true; }' is not assignable to type '{ readonly name: "touch-portrait"; readonly width: 900; readonly height: 1200; readonly touch: true; }'.
+      Types of property 'name' are incompatible.
+        Type 'string' is not assignable to type '"touch-portrait"'.

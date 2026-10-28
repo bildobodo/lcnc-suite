@@ -1,0 +1,82 @@
+{
+  "round": "R223",
+  "date": "2026-10-29",
+  "verdict": "agreement",
+  "scope": "Reviewed package F implementation; native multi-jog proof still required before merge",
+  "branch": "feat/button-gates",
+  "base": "29b0641b",
+  "head": "37c07ecd1d4a42200b6ee69f2dbce46e8a89f9a4",
+  "product_commit": "51123d34",
+  "archive": "/tmp/codex-r223-05gi921x/repo",
+  "checks": {
+    "build": "PASS",
+    "unit": {
+      "files": 4,
+      "passed": 44
+    },
+    "browser": {
+      "passed": 16,
+      "duration": "4.4m",
+      "breakdown": {
+        "text_contrast": 5,
+        "joint_jog": 4,
+        "strip_layout": 4,
+        "R222_assertions": 2,
+        "R222_measurement": 1
+      }
+    },
+    "visual": {
+      "combinations": 25,
+      "buttons": 250,
+      "minimum_clearance_px": 1.5,
+      "out_of_button": 0,
+      "descriptions_all_match": true
+    }
+  },
+  "contrast_by_theme": {
+    "light": 10.275486485829505,
+    "dark": 9.241553658970583,
+    "hc-light": 15.961438896768811,
+    "hc-dark": 11.396587704035108,
+    "auto-dark": 9.241553658970583
+  },
+  "closed": [
+    "BG-36",
+    "BG-37",
+    "R222 layout advisory"
+  ],
+  "pre_merge_pending": "Native gateway refusal of multi-jog before homing; Claude schedules after operator test.",
+  "commands": [
+    "nice -n 10 npm run build",
+    "nice -n 10 npx vitest run src/jointJog.test.ts src/useGamepad.test.ts src/actionAdmission.test.ts src/permissions.test.ts",
+    "MOCK_HOST=127.0.0.1 MOCK_PORT=4188 nice -n 10 node e2e/mock-gateway.mjs",
+    "nice -n 10 npx playwright test -c playwright.r223.config.ts joint-jog.spec.ts r223-assert.spec.ts r223-visual.spec.ts contrast.spec.ts:176 layout.spec.ts:810"
+  ],
+  "reproduce": [
+    "Archive 37c07ecd, install/copy a separate node_modules with the unchanged lockfile, and build lcnc-webui before adding review probes.",
+    "Copy r223.playwright.config.ts into lcnc-webui as playwright.r223.config.ts; r223.ctl.ts as e2e/ctl.ts for the own mock port.",
+    "Copy r223.assert-probe.spec.ts as e2e/r223-assert.spec.ts and r223.visual-probe.spec.ts as e2e/r223-visual.spec.ts, adjusting OUT to an existing evidence directory.",
+    "Start only an own mock at 127.0.0.1:4188, then run the browser command."
+  ],
+  "probe_equivalence": "R222 assertions and measurement unchanged except output directory (verified by normalized byte comparison).",
+  "harness_note": "Initial build included the old own visual probe; its extended viewport name is wider than the repository LayoutViewport union. That caused a TypeScript error solely in e2e/r223-visual.spec.ts. Probes were moved outside the source tree, clean repository build passed, then probes restored for Playwright. No product change; initial log retained.",
+  "claude_evidence_read": "Run 3 at clean 51123d34: lint/build/2630 unit/608 browser PASS; red contrast/layout/accessibility witnesses read.",
+  "limits": [
+    "Backend unchanged (git diff checked), no repeated backend gate; R222 own 1763/3526 result still applicable.",
+    "No native live run, no live ports, no machine commands; mock and all tests ended.",
+    "No builds/tests/checkouts in live or product worktree; review artifacts only."
+  ],
+  "sha256": {
+    "button-gates.r223.build.txt": "209b92167f5fc65e34f3c08a7fc929fbf2c891e9a07b98f1c3b158e20b5f6198",
+    "button-gates.r223.build-with-probes.txt": "ff7f53600ce8b91916057a7a89abde49069d22c72369f752f3237e863c91e385",
+    "button-gates.r223.unit.txt": "7c200f1278d1f885e6e7ea92f6e297ef0ec5d6a74515c5512f918e39f53d9161",
+    "button-gates.r223.browser.txt": "44072f9b0ff0ff4c26abc93d0a1afcff5d4c8595a250ca385232a23a47fe915f",
+    "button-gates.r223.visual.json": "55664e3320122da80c113d6099213e964cdddc09bfe7043dfd0822d511bc9464",
+    "button-gates.r223.dark.png": "b4816e0f93c8481f820d14bf278ac671f615abf3cef2aa4211813339cff5b7b1",
+    "button-gates.r223.portrait.png": "5437ce84f50af5a5119c1162dcc6a45a0b2bed0cd5159ef3ffe2c13fe9c1b5dd",
+    "button-gates.r223.assert-probe.spec.ts": "cc2d99503d87559c502365a85b39915fb5b8dd73c7f64c45ddff1cea6f83d015",
+    "button-gates.r223.visual-probe.spec.ts": "ebbf48bc594c316bfe01267eeac2f3e1d5e00d38a2475e83cc6dae50acc03ff1",
+    "button-gates.r223.playwright.config.ts": "edc1ca3e76c891793764e0c20f850db9d4f0b0a4cfde248bc03050bafc904ede",
+    "button-gates.r223.ctl.ts": "536bc627ddfbdf51c4b7f01b97cbb3f4f559a53ae91b62ad9ffa26097998e372"
+  }
+}
