@@ -353,6 +353,12 @@ const jogVariant = computed(() => (jointOn.value ? "warn" as const : undefined))
 function jointMark(index: number | undefined): number | null {
   return index == null || index < 0 ? null : jogAxisJoint(props.jointJog, !!props.homed, index);
 }
+// The mark is for sight (aria-hidden); assistive technology hears the joint
+// as the button's description (Codex R222 BG-37) — the name stays the axis.
+function jointDescription(index: number | undefined, index2?: number): string | undefined {
+  const j = index2 == null ? jointMark(index) : null;
+  return j == null ? undefined : `Joint ${j}`;
+}
 function axisRefusal(...indices: (number | undefined)[]): string | undefined {
   for (const i of indices) {
     if (i == null || i < 0) continue;
@@ -503,6 +509,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               :type="btn.axis < 0 ? 'jogStop' : 'jog'"
               :disabled="!!padRefusal(btn)"
               :reason="padRefusal(btn)"
+              :aria-description="jointDescription(btn.axis, btn.axis2)"
               class="jogBtn"
               :variant="btn.axis < 0 ? 'danger' : jogVariant"
               :active="activeJogKeys.has(btn.label)"
@@ -522,6 +529,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             type="jog"
             :disabled="!!axisRefusal(zAxis.index)"
             :reason="axisRefusal(zAxis.index)"
+            :aria-description="jointDescription(zAxis.index)"
             :variant="jogVariant"
             class="jogBtn"
             :active="activeJogKeys.has('Z+')"
@@ -536,6 +544,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             type="jog"
             :disabled="!!axisRefusal(zAxis.index)"
             :reason="axisRefusal(zAxis.index)"
+            :aria-description="jointDescription(zAxis.index)"
             :variant="jogVariant"
             class="jogBtn"
             :active="activeJogKeys.has('Z-')"
@@ -555,6 +564,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
@@ -569,6 +579,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"
@@ -589,6 +600,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
@@ -603,6 +615,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :aria-description="jointDescription(ra.index)"
               :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"

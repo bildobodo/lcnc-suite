@@ -65,6 +65,11 @@ test("before homing: the gantry axis is dimmed with its reason, the head states 
   for (const name of ["Y+", "Y-"]) {
     await expect(strip.getByRole("button", { name, exact: true }).locator(".cornerLabel"), name).toHaveCount(0);
   }
+  // the mark is for sight; assistive technology hears the joint as the
+  // button's description (Codex R222 BG-37) — the name stays the axis
+  for (const [name, joint] of [["X+", "Joint 0"], ["Z-", "Joint 3"]]) {
+    await expect(strip.getByRole("button", { name, exact: true }), name).toHaveAccessibleDescription(joint);
+  }
   for (const name of ["Y+", "Y-"]) {
     const btn = strip.getByRole("button", { name, exact: true });
     await expect(btn, name).toBeDisabled();
@@ -119,6 +124,8 @@ test("homed: the axis letters as before, no note, every axis open", async ({ pag
   const strip = page.locator('[data-strip="jog"]');
   await expect(strip.locator(".jogNote")).toHaveCount(0);
   await expect(strip.locator(".cornerLabel"), "homed: no joint marks").toHaveCount(0);
+  await expect(strip.getByRole("button", { name: "X+", exact: true }), "homed: no joint description")
+    .toHaveAccessibleDescription("");
   for (const name of ["X+", "Y+", "Z+"]) {
     await expect(strip.getByRole("button", { name, exact: true }), name).toBeEnabled();
   }

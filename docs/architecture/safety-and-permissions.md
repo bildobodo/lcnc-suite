@@ -487,7 +487,8 @@ joint jog before homing in E.
   rule (`jogAxisRefusal`); a stop is never refused. **Package F (operator
   2026-10-28):** each jog button marks the joint it moves in its corner
   ("J0", the global `.cornerLabel`, `jogAxisJoint`; aria-hidden — the name
-  stays the axis), never changing its size; AXIS and gmoccapy name the
+  stays the axis, the button's description says "Joint 0" for assistive
+  technology, Codex R222 BG-37), never changing its size; AXIS and gmoccapy name the
   joints by number before homing too. Before homing every direction button
   jogs in amber (the `warn` variant; red stays the stops'), and the
   diagonals are closed: a multi-jog starts two joints at once — no single

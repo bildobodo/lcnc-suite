@@ -824,6 +824,25 @@ for (const viewport of VIEWPORTS) {
           const snap = await measureLayout(root, sel, refControls(sel, portrait));
           issues.push(...snap.issues, ...layoutChanges(refs0[sel]!, snap));
         }
+        if (state === 'joint-jog') {
+          // a corner mark stays inside its button and at least 1 px clear of
+          // the button's icon and label (Codex R222: 1–2 px over Z−/A−/C−'s
+          // label in portrait — "some room", not merely no overlap)
+          const crowded = await page.locator('[data-strip="jog"] .cornerLabel').evaluateAll(marks => marks.flatMap(m => {
+            const r = m.getBoundingClientRect();
+            const box = m.closest('button')!.getBoundingClientRect();
+            const out: string[] = [];
+            if (r.left < box.left || r.top < box.top || r.right > box.right || r.bottom > box.bottom) out.push(`${m.textContent}: outside its button`);
+            for (const c of m.closest('button')!.querySelectorAll('.jogIcon, .jogLabel')) {
+              const q = c.getBoundingClientRect();
+              if (r.left - 1 < q.right && q.left < r.right + 1 && r.top - 1 < q.bottom && q.top < r.bottom + 1) {
+                out.push(`${m.textContent}: over .${c.classList.contains('jogLabel') ? 'jogLabel' : 'jogIcon'} of ${m.closest('button')!.textContent?.trim()}`);
+              }
+            }
+            return out;
+          }));
+          for (const detail of crowded) issues.push({ kind: 'corner-mark', controls: [], detail });
+        }
         evidence.push({ state, frame: await measureFrame(page), issues });
         expect(issues, `${state}: ${issues.map(i => i.detail).join('\n')}`).toEqual([]);
         await leaveStripState(page, profile, state);

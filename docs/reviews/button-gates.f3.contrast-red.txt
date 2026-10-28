@@ -1,0 +1,110 @@
+
+Running 5 tests using 1 worker
+
+[1A[2K[1/5] [serial-guards] › e2e/contrast.spec.ts:176:3 › light: every readable text meets 4.5 : 1 on what is rendered behind it
+[1A[2K[2/5] [serial-guards] › e2e/contrast.spec.ts:176:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it
+[1A[2K  1) [serial-guards] › e2e/contrast.spec.ts:176:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+
+    Error: dark: 6 texts below 4.5 : 1
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J1"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J0"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J0"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J1"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  "J2"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  "J2"  rgb(153,159,165) on rgb(74,58,37)
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 8[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J1\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J0\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J0\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J1\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  \"J2\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  \"J2\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+ ][39m
+
+      297 |     const report = hits.map(h => `${h.ratio} < ${h.min}  ${h.where}  "${h.text}"  ${h.fg} on ${h.bg}`);
+      298 |     expect(checked, "the scan saw the surfaces it guards").toBeGreaterThan(300);
+    > 299 |     expect(report, `${pass}: ${report.length} texts below 4.5 : 1\n${report.join("\n")}`).toEqual([]);
+          |                                                                                           ^
+      300 |   });
+      301 | }
+      302 |
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/contrast.spec.ts:299:91
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/contrast-dark-every-readab-f5474--what-is-rendered-behind-it-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/contrast-dark-every-readab-f5474--what-is-rendered-behind-it-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/contrast-dark-every-readab-f5474--what-is-rendered-behind-it-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/contrast-dark-every-readab-f5474--what-is-rendered-behind-it-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[3/5] [serial-guards] › e2e/contrast.spec.ts:176:3 › hc-light: every readable text meets 4.5 : 1 on what is rendered behind it
+[1A[2K[4/5] [serial-guards] › e2e/contrast.spec.ts:176:3 › hc-dark: every readable text meets 4.5 : 1 on what is rendered behind it
+[1A[2K[5/5] [serial-guards] › e2e/contrast.spec.ts:176:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it
+[1A[2K  2) [serial-guards] › e2e/contrast.spec.ts:176:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+
+    Error: auto-dark: 6 texts below 4.5 : 1
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J1"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J0"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J0"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  "J1"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  "J2"  rgb(153,159,165) on rgb(74,58,37)
+    4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  "J2"  rgb(153,159,165) on rgb(74,58,37)
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  - 1[39m
+    [31m+ Received  + 8[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J1\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J0\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J0\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.xyGrid > button.b.sm > span.cornerLabel  \"J1\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  \"J2\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+   "4.09 < 4.5  Jog/before homing: div.axisCol.zCol > button.b.sm > span.cornerLabel  \"J2\"  rgb(153,159,165) on rgb(74,58,37)",[39m
+    [31m+ ][39m
+
+      297 |     const report = hits.map(h => `${h.ratio} < ${h.min}  ${h.where}  "${h.text}"  ${h.fg} on ${h.bg}`);
+      298 |     expect(checked, "the scan saw the surfaces it guards").toBeGreaterThan(300);
+    > 299 |     expect(report, `${pass}: ${report.length} texts below 4.5 : 1\n${report.join("\n")}`).toEqual([]);
+          |                                                                                           ^
+      300 |   });
+      301 | }
+      302 |
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/contrast.spec.ts:299:91
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/contrast-auto-dark-every-r-fd9f7--what-is-rendered-behind-it-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/contrast-auto-dark-every-r-fd9f7--what-is-rendered-behind-it-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/contrast-auto-dark-every-r-fd9f7--what-is-rendered-behind-it-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/contrast-auto-dark-every-r-fd9f7--what-is-rendered-behind-it-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  2 failed
+    [serial-guards] › e2e/contrast.spec.ts:176:3 › dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+    [serial-guards] › e2e/contrast.spec.ts:176:3 › auto-dark: every readable text meets 4.5 : 1 on what is rendered behind it 
+  3 passed (3.4m)

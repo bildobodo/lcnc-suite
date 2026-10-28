@@ -1,0 +1,52 @@
+
+Running 4 tests using 1 worker
+
+[1A[2K[1/4] [serial-guards] › e2e/joint-jog.spec.ts:53:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07)
+[1A[2K  1) [serial-guards] › e2e/joint-jog.spec.ts:53:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07) 
+
+    Error: X+
+
+    [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveAccessibleDescription[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  locator('[data-strip="jog"]').getByRole('button', { name: 'X+', exact: true })
+    Expected: [32m"Joint 0"[39m
+    Received: [31m""[39m
+    Timeout:  10000ms
+
+    Call log:
+    [2m  - X+ with timeout 10000ms[22m
+    [2m  - waiting for locator('[data-strip="jog"]').getByRole('button', { name: 'X+', exact: true })[22m
+    [2m    24 × locator resolved to <button data-v-423535d9="" data-v-6f4382cf="" data-control="jog" class="b sm warn mono jogBtn">…</button>[22m
+    [2m       - unexpected value ""[22m
+
+
+      69 |   // button's description (Codex R222 BG-37) — the name stays the axis
+      70 |   for (const [name, joint] of [["X+", "Joint 0"], ["Z-", "Joint 3"]]) {
+    > 71 |     await expect(strip.getByRole("button", { name, exact: true }), name).toHaveAccessibleDescription(joint);
+         |                                                                          ^
+      72 |   }
+      73 |   for (const name of ["Y+", "Y-"]) {
+      74 |     const btn = strip.getByRole("button", { name, exact: true });
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/joint-jog.spec.ts:71:74
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[2/4] [serial-guards] › e2e/joint-jog.spec.ts:89:1 › before homing the keyboard refuses the closed axis like the button, and jogs an open one
+[1A[2K[3/4] [serial-guards] › e2e/joint-jog.spec.ts:102:1 › before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)
+[1A[2K[4/4] [serial-guards] › e2e/joint-jog.spec.ts:122:1 › homed: the axis letters as before, no note, every axis open
+[1A[2K  1 failed
+    [serial-guards] › e2e/joint-jog.spec.ts:53:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07) 
+  3 passed (20.4s)

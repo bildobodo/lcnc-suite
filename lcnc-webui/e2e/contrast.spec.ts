@@ -126,7 +126,12 @@ function scan(args: { rootSel: string; floor: number }): { hits: Hit[]; checked:
       seen.add(el);
       const r = el.getBoundingClientRect();
       const cs = getComputedStyle(el);
-      if (!r.width || !r.height || cs.visibility === "hidden" || el.closest("[aria-hidden='true']") || inactive(el)) continue;
+      // aria-hidden is no visibility: a .cornerLabel is read by every sighted
+      // operator and hidden from assistive technology only because its
+      // control carries the same as a description (Codex R222 BG-36)
+      const hiddenFromAt = el.closest("[aria-hidden='true']");
+      const shown = hiddenFromAt?.classList.contains("cornerLabel") && !hiddenFromAt.parentElement?.closest("[aria-hidden='true']");
+      if (!r.width || !r.height || cs.visibility === "hidden" || (hiddenFromAt && !shown) || inactive(el)) continue;
       const fg0 = rgba(cs.color);
       if (isMark(fg0)) continue;
       checked++;

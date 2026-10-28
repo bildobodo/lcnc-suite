@@ -9633,5 +9633,9 @@ gmoccapy and Probe Basic (none of them blocks simultaneous jogs; none has diagon
 mode), each joint capped. (5) A warning colour: the direction buttons jog in amber before
 homing — the operator suggested red; red stays the stops' (the pad's Stop, Abort, E-Stop),
 or the Stop would look like its neighbours. The corner mark carries no sign: the button's
-"+" / "−" is the joint's direction.
+"+" / "−" is the joint's direction. Codex R222 accepted Files, the diagonal rule and the amber and found the
+marks at 4.09 : 1 in dark (muted text on the amber; the contrast guard skipped them as
+aria-hidden) and the joint missing for assistive technology: the mark now takes its button's
+own text colour, sits at `--gap-micro` in `--fs-2xs` (≥ 1 px clear of icon and label in the
+57 px portrait buttons, measured), and each marked button's description says "Joint n".
 

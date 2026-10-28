@@ -1,0 +1,82 @@
+
+Running 4 tests using 1 worker
+
+[1A[2K[1/4] [serial-layout] › e2e/layout.spec.ts:810:3 › desktop: strip states keep the frame and the pinned controls invariant
+[1A[2K[2/4] [serial-layout] › e2e/layout.spec.ts:810:3 › compact: strip states keep the frame and the pinned controls invariant
+[1A[2K[3/4] [serial-layout] › e2e/layout.spec.ts:810:3 › touch-landscape: strip states keep the frame and the pinned controls invariant
+[1A[2K[4/4] [serial-layout] › e2e/layout.spec.ts:810:3 › touch-portrait: strip states keep the frame and the pinned controls invariant
+[1A[2K  1) [serial-layout] › e2e/layout.spec.ts:810:3 › touch-portrait: strip states keep the frame and the pinned controls invariant 
+
+    Error: joint-jog: J2: over lucide jogIcon lucide-arrow-up-icon lucide-arrow-up jogIcon of J2Z+
+    J2: over jogLabel of J2Z-
+    J3: over lucide jogIcon lucide-arrow-up-icon lucide-arrow-up jogIcon of J3A+
+    J3: over jogLabel of J3A-
+    J4: over lucide jogIcon lucide-arrow-up-icon lucide-arrow-up jogIcon of J4C+
+    J4: over jogLabel of J4C-
+
+    [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  -  1[39m
+    [31m+ Received  + 32[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Object {[39m
+    [31m+     "controls": Array [],[39m
+    [31m+     "detail": "J2: over lucide jogIcon lucide-arrow-up-icon lucide-arrow-up jogIcon of J2Z+",[39m
+    [31m+     "kind": "corner-mark",[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "controls": Array [],[39m
+    [31m+     "detail": "J2: over jogLabel of J2Z-",[39m
+    [31m+     "kind": "corner-mark",[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "controls": Array [],[39m
+    [31m+     "detail": "J3: over lucide jogIcon lucide-arrow-up-icon lucide-arrow-up jogIcon of J3A+",[39m
+    [31m+     "kind": "corner-mark",[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "controls": Array [],[39m
+    [31m+     "detail": "J3: over jogLabel of J3A-",[39m
+    [31m+     "kind": "corner-mark",[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "controls": Array [],[39m
+    [31m+     "detail": "J4: over lucide jogIcon lucide-arrow-up-icon lucide-arrow-up jogIcon of J4C+",[39m
+    [31m+     "kind": "corner-mark",[39m
+    [31m+   },[39m
+    [31m+   Object {[39m
+    [31m+     "controls": Array [],[39m
+    [31m+     "detail": "J4: over jogLabel of J4C-",[39m
+    [31m+     "kind": "corner-mark",[39m
+    [31m+   },[39m
+    [31m+ ][39m
+
+      844 |         }
+      845 |         evidence.push({ state, frame: await measureFrame(page), issues });
+    > 846 |         expect(issues, `${state}: ${issues.map(i => i.detail).join('\n')}`).toEqual([]);
+          |                                                                             ^
+      847 |         await leaveStripState(page, profile, state);
+      848 |         const after = frameChanges(frame0, await measureFrame(page));
+      849 |         expect(after, `after ${state}: ${after.map(i => i.detail).join('\n')}`).toEqual([]);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/layout.spec.ts:846:77
+
+    attachment #2: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/layout-touch-portrait-stri-7f54d-e-pinned-controls-invariant-serial-layout/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/layout-touch-portrait-stri-7f54d-e-pinned-controls-invariant-serial-layout/error-context.md
+
+    attachment #4: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/layout-touch-portrait-stri-7f54d-e-pinned-controls-invariant-serial-layout/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/layout-touch-portrait-stri-7f54d-e-pinned-controls-invariant-serial-layout/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K  1 failed
+    [serial-layout] › e2e/layout.spec.ts:810:3 › touch-portrait: strip states keep the frame and the pinned controls invariant 
+  3 passed (28.5s)
