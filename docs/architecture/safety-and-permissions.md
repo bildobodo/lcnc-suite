@@ -389,12 +389,11 @@ joint jog before homing in E.
   clear precedes the switch — a start inside that wait leaves the file
   written and the flag unknown (the file is read only at LinuxCNC's start).
   The resume from a real pause is no start from idle and takes none of this.
-  **Boundary:** the other handlers with their own switch refuse a running
-  AUTO / MDI on a fresh poll before the queue (`reject_if_auto_running`; the
-  jog stops skip the switch, `_jog_stop_would_abort_mdi`); an MDI that
-  starts inside the executor window between that poll and their write is
-  not excluded there — outside package D (proposed for E: an idle admit on
-  every `set_mode` write, beside the native jog-stop check). The display may
+  **Boundary at D's agreement (R218), closed in package E:** the other
+  handlers with their own switch refused a running AUTO / MDI only on a
+  fresh poll before the queue; since E every `set_mode` write is admitted in
+  its thread only onto an interpreter KNOWN idle, and the jog stops send no
+  switch at all (see package E). The display may
   still lag a poll (a moment too strict or too open); the commands above
   never act on it. A write refused at its admit raises `_WriteRefused` (a
   PermissionError: the dispatcher's reply says why). Three controller reads,
@@ -412,3 +411,59 @@ joint jog before homing in E.
   for the snapshot and the current read (`status_runtime.interp_terms`,
   `homed_of`, `homing_active_of`).
 
+### Package E — jogging before homing, the jog-stop contract, every mode write onto an idle interpreter (button gates BG-07; Codex R218; operator E1–E3)
+
+- *The stop contract* (Codex R218): `jog_stop`, `jog_stop_multi` and the
+  disarm stop (`_jog_stop_for_client`) send `JOG_STOP` in whatever mode task
+  is in — no switch to MANUAL. Task 2.9.4 issues a jog stop in MANUAL, in
+  MDI whatever the interpreter does, and in AUTO idle (emctaskmain.cc,
+  `allow_while_idle_type`); in joint mode it stops only that joint's free
+  planner, never a coordinated move (motion command.c `EMCMOT_JOG_ABORT`; it
+  does cancel that joint's homing, as before). The old switch could abort a
+  fresh MDI, and refused it would have suppressed the stop. AUTO running:
+  nothing sent (task refuses a jog stop there; no jog can run). Each jog is
+  booked with the (joint flag, CMD.jog index) it was STARTED with
+  (`_active_jogs`), the stop addresses exactly that (`_send_jog_stop`), and
+  the jog counts as stopped only once its stop was written — a failed write
+  keeps it booked and the reply says so; the disarm stop still stops the
+  others.
+- *Every mode write onto an idle interpreter* (closes D's boundary):
+  `set_mode` admits each switch in its write thread after the caller's own
+  admit (whose reason is the more specific one) only onto an interpreter
+  KNOWN idle (`_interp_idle_refusal`) — a switch aborts a running MDI or
+  program, and every caller switches from idle. A refusal raises
+  `_WriteRefused`; the background fixture heal and the RFL sequence catch it
+  as a failure, the handlers reply with the reason.
+- *Jogging before homing* (BG-07; operator E1/E2, 2026-10-28):
+  `[DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING = 1` (exactly "1", default off,
+  an invalid value traced) opens `jog` before homing:
+  `jog = base + idle + (homed OR joint_jog_before_homing)`. Which joint an
+  axis moves comes from a DECLARED joint order — `[DISPLAY]
+  WEBUI_JOINT_AXES` (each joint's letter in joint order), else trivkins'
+  `coordinates=`; never the axis-list index guessed as a joint number
+  (`gateway_util.joint_jog_map`, pure). A letter two joints carry (a gantry)
+  is closed, as is an axis without a joint or a `[JOINT_n] MAX_VELOCITY`; a
+  count or letter mismatch closes the whole map. Unhomed jog limits are
+  `pos ± full travel` (motion `refresh_jog_limits`): only the limit switches
+  protect — so the speed is capped at `WEBUI_JOINT_JOG_MAX_FRACTION`
+  (default 0.1; 0 < f ≤ 1, an invalid value switches the jog OFF) × the
+  joint's MAX_VELOCITY, sign kept, traced `jog.capped`. Partially homed is
+  before homing (joint mode; the cap on every joint — over-strict for the
+  homed ones, which their soft limits protect). The four jog commands share
+  `_start_jogs`: the `jog` class on a current read before the queue and
+  inside every write's thread (the switch and each jog); a closed axis
+  refuses the whole command, nothing sent. `_jog_axis_arg` uses the
+  declared order for any joint jog (also the homed beyond-limit one);
+  without a declaration index = joint stays — true on every shipped
+  profile.
+- *The client* (operator E3 as revised 2026-10-28): `jointJog.ts` reads
+  `viewer_init.ini_config.joint_jog`; the strip dims a closed axis and every
+  diagonal that moves it with the gateway's reason, and its head says
+  "Joint jog — no soft limits · max 10 %" in its own line (cut with an
+  ellipsis in the narrow portrait strip, the whole in the title). The
+  buttons keep their axis letters — the operator dropped joint names on the
+  buttons ("J2·Z+" widened the Z and rotary buttons; no other UI names them
+  there). The keyboard and the gamepad refuse a closed axis by the same
+  rule (`jogAxisRefusal`); a stop is never refused.
+- *Named limits*: no gantry sim config exists — the gantry closure is
+  proven by the pure map's tests only.

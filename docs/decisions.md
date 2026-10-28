@@ -9584,3 +9584,17 @@ handlers' switches keep only their pre-queue poll — a named boundary; an idle 
 every `set_mode` write is proposed for package E beside the native jog-stop check
 (raising out of a stop path is a stop-semantics change of its own).
 
+**Package E as built (2026-10-28, before its implementation review).** Codex R218 took my
+proposal as E's first scope: a jog stop now needs no mode switch (2.9.4 task issues it in
+MANUAL, MDI and AUTO idle; it stops only the joint's free planner) — it addresses the jog
+as started and counts as stopped only once written — and every `set_mode` write lands only
+on an interpreter KNOWN idle, read in its thread. Jogging before homing (BG-07) where
+`[DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING = 1` (operator E1, default off): each axis moves
+its DECLARED joint (`WEBUI_JOINT_AXES`, else trivkins' `coordinates=`; a gantry letter
+closed), capped at `WEBUI_JOINT_JOG_MAX_FRACTION` (operator E2, default 0.1; invalid →
+off) of the joint's MAX_VELOCITY — unhomed jog limits are pos ± full travel, only the
+limit switches protect. The operator first chose joint names on the buttons (E3, "J0 · X")
+and dropped them the same day when "J2·Z+" widened the Z and rotary buttons ("other UIs do
+not do it either"); the strip's head states "Joint jog — no soft limits · max 10 %", a
+closed axis is dimmed with its reason, keyboard and gamepad refuse by the same rule.
+
