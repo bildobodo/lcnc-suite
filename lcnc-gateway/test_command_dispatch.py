@@ -1846,6 +1846,9 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # default XYZ made them pass only after an earlier test had widened
         # it (Codex R63: five failed when the class ran alone)
         gateway.STAT.axis_mask = 0b101111
+        # The interpreter idle: every mode switch is admitted at its write
+        # only onto a KNOWN idle interpreter (button gates package E).
+        gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
         # the payload bounds are cached per session (get_machine_limits): a
         # previous test's XYZ counts would refuse axis 3/4 ("above maximum 2")
         self._limits = gateway._machine_limits
@@ -2253,7 +2256,7 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         self._send({"cmd": "jog_cont", "axis": 3, "vel": 2.0})
         self.assertIn(3, gateway._active_jogs)
         self._send({"cmd": "mdi", "text": "G0 X1"})       # a switch to MDI means no jog is active
-        self.assertEqual(gateway._active_jogs, set())
+        self.assertEqual(gateway._active_jogs, {})
         self.cmd.calls.clear()
         r = self._send({"cmd": "jog_stop", "axis": 3})
         self.assertTrue(r["ok"])

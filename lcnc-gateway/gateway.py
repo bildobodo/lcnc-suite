@@ -1235,7 +1235,10 @@ _shared_status: Optional["StatusPayload"] = None
 # AUTO clears it: task refuses those while a jog is active, so success means
 # none is. Jogs started by other UIs (halui, axis) are not in here — the
 # gateway never stops what it did not start; the HAL chain owns motion safety.
-_active_jogs: set = set()
+# Each wire axis maps to the (joint_flag, CMD.jog index) its jog was STARTED
+# with (button gates package E): the stop addresses exactly that jog, never a
+# target recomputed from a motion mode or map read later.
+_active_jogs: Dict[int, Tuple[int, int]] = {}
 _shared_status_dict: Optional[dict] = None  # cached asdict(_shared_status)
 
 # ---- Program-elapsed timer (server-authoritative) ----
@@ -3422,9 +3425,12 @@ async def set_mode(mode: int, force: bool = False,
     """Switch LinuxCNC task mode. Caller must hold `_cmd_lock`.
 
     `admit` (Codex R217): the switch's last check, inside its write thread
-    (_cmd_blocking) — the caller's class on a read taken there. A refusal
-    raises _WriteRefused, nothing switched. No switch needed, nothing to
-    admit.
+    (_cmd_blocking) — the caller's class on a read taken there. Every switch
+    is admitted there in any case only onto an interpreter KNOWN idle
+    (button gates package E, Codex R218): a switch aborts a running MDI or
+    program (emcTaskSetMode → emcTaskAbort) and every caller switches from
+    idle — the jog stops send no switch at all. A refusal raises
+    _WriteRefused, nothing switched. No switch needed, nothing to admit.
 
     `force` sends the switch even when task is already in `mode`: for MDI
     and AUTO, emcTaskSetMode then runs emcTaskAbort → Interp::reset — the
@@ -3441,7 +3447,10 @@ async def set_mode(mode: int, force: bool = False,
         if mode in (linuxcnc.MODE_MDI, linuxcnc.MODE_AUTO):
             _active_jogs.clear()   # task cannot be in MDI/AUTO with a jog active
         return
-    rc = await _cmd_blocking(CMD.mode, mode, admit=admit)
+    def _admit_switch() -> Optional[str]:
+        # the caller's class first: its reason is the more specific one
+        return (admit() if admit is not None else None) or _interp_idle_refusal()
+    rc = await _cmd_blocking(CMD.mode, mode, admit=_admit_switch)
     if _cmd_rc_failed(rc):
         _trace.emit("task.mode_switch_refused", level="warn", mode=mode, rc=rc)
         raise ValueError(f"LinuxCNC refused the mode switch to {_MODE_NAMES.get(mode, mode)} (rc={rc})")
@@ -3474,16 +3483,30 @@ async def set_mode(mode: int, force: bool = False,
         _active_jogs.clear()   # the switch took (or is unverifiable): no jog is active
 
 
-def _jog_stop_would_abort_mdi(mode, interp, cmd: str) -> bool:
-    """A jog-stop arriving while an MDI EXECUTES: no jog can be in flight
-    (jogging requires MANUAL), and forcing MANUAL runs LinuxCNC's
-    mdi_execute_abort — the → Zero move stopped wherever it was when the
-    operator lifted the finger off the A jog (2026-09-04, "sometimes it
-    doesn't"). Skip the switch, say so in the trace, never silently."""
-    if mode == linuxcnc.MODE_MDI and interp != linuxcnc.INTERP_IDLE:
-        _trace.emit("jog.stop_skipped_mdi_busy", level="info", cmd=cmd, interp_state=interp)
-        return True
-    return False
+async def _send_jog_stop(axis: int) -> None:
+    """JOG_STOP for a jog the gateway started on wire `axis`, addressed as it
+    was started, in whatever mode task is in — no switch to MANUAL (button
+    gates package E, Codex R218): task 2.9.4 issues a jog stop in MANUAL, in
+    MDI whatever the interpreter does, and in AUTO idle (emctaskmain.cc,
+    allow_while_idle_type), and in joint mode it stops only that joint's free
+    planner, never a coordinated move (motion command.c EMCMOT_JOG_ABORT). The
+    switch it used to need could abort a fresh MDI, and a refused switch
+    would have suppressed the stop. Booked stopped only once the write
+    returned; a failed write raises and the jog stays booked. Caller holds
+    `_cmd_lock` and has ruled out AUTO running (task refuses a jog stop
+    there, and no jog can run)."""
+    jf, arg = _active_jogs[axis]
+    await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, arg, wait=None)
+    _active_jogs.pop(axis, None)
+
+
+def _auto_running() -> bool:
+    """AUTO with the interpreter not idle, on a read taken now: no jog can run
+    there, and task answers a jog stop with an operator error."""
+    STAT.poll()
+    return (safe_get("task_mode", None) == linuxcnc.MODE_AUTO
+            and safe_get("interp_state", None) != linuxcnc.INTERP_IDLE)
+
 
 def reject_if_auto_running() -> Optional[Dict[str, Any]]:
     STAT.poll()
@@ -3623,10 +3646,10 @@ async def _jog_stop_for_client() -> None:
     docs/plans, keep the "armed = authorization" and "HAL = safety" layers
     separate — this function only handles the in-flight-jog case.
 
-    Mode safety: if the machine is in MODE_AUTO with the interpreter
-    running, a jog cannot be in flight (jogging requires MANUAL/TELEOP).
-    Forcing a mode switch to MANUAL here would interrupt the program —
-    exactly what this cleanup is trying to avoid. So skip in that case.
+    Mode safety: no mode switch (button gates package E, _send_jog_stop) —
+    the stop goes out in whatever mode task is in. In MODE_AUTO with the
+    interpreter running a jog cannot be in flight (jogging requires
+    MANUAL/TELEOP) and task refuses a jog stop there: skipped.
 
     Multi-armed-client note: today we stop every joint, which can interfere
     with a parallel jog from another armed client. Per-client active-jog
@@ -3642,20 +3665,17 @@ async def _jog_stop_for_client() -> None:
         # (2026-09-03 follow-up, closed by construction).
         _trace.emit("jog.stop_for_client_noop", level="info")
         return
-    STAT.poll()
-    mode = safe_get("task_mode", None)
-    interp = safe_get("interp_state", None)
-    if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
-        return  # program running — no jog to stop, must not switch mode
+    if _auto_running():
+        return  # program running — no jog to stop
     # Homed or not: a jog the gateway started is stopped (button gates BG-07 —
-    # a joint jog before homing must stop on a disarm like any other).
-    if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_for_client"):
-        return  # an MDI is executing — no jog can be in flight; a mode switch would abort it
-    await set_mode(linuxcnc.MODE_MANUAL)
-    jf = _jog_joint_flag()
+    # a joint jog before homing must stop on a disarm like any other), each
+    # as it was started and without a mode switch (_send_jog_stop). A failed
+    # stop keeps its jog booked and says so; the others are still stopped.
     for ax in sorted(_active_jogs):
-        await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(ax, jf), wait=None)
-    _active_jogs.clear()
+        try:
+            await _send_jog_stop(ax)
+        except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest
+            _trace.emit_exc("jog.stop_for_client_failed", e, axis=ax)
 
 
 def require_armed(armed: bool):
@@ -5326,8 +5346,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             vel = finite_float(msg.get("vel", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = await _jog_mode_flag()
-            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(axis, jf), vel, wait=None)
-            _active_jogs.add(axis)
+            arg = _jog_axis_arg(axis, jf)
+            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel, wait=None)
+            _active_jogs[axis] = (jf, arg)
             _trace_jog("jog_cont", axis, jf, vel=vel, rc=rc)
             return {"ok": True}
 
@@ -5338,25 +5359,17 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             # gap: operator holds jog, disarms, releases → client's jog_stop
             # was accepted as no-op and the machine kept moving. Audit Phase
             # 2 / Issue E1. In AUTO+running a jog cannot be in flight
-            # (jogging requires MANUAL/TELEOP) and a forced mode switch
-            # would interrupt the program — skip that case explicitly.
+            # (jogging requires MANUAL/TELEOP) and task refuses a jog stop
+            # there — skip that case explicitly. No mode switch (package E).
             axis = finite_int(msg.get("axis"), lo=0)
             if axis not in _active_jogs:
                 # Nothing the gateway started is moving on this axis: a late
                 # release. No mode switch — that is what aborted a fresh MDI.
                 _trace.emit("jog.stop_without_jog", level="info", cmd="jog_stop", axis=axis)
                 return {"ok": True}
-            STAT.poll()   # fresh: the guard below must not read a 30 ms-old snapshot
-            mode = safe_get("task_mode", None)
-            interp = safe_get("interp_state", None)
-            if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+            if _auto_running():   # fresh: not a 30 ms-old snapshot
                 return {"ok": True}
-            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop"):
-                return {"ok": True}
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
-            await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(axis, jf), wait=None)
-            _active_jogs.discard(axis)
+            await _send_jog_stop(axis)   # no switch; a failed write raises, the jog stays booked
             return {"ok": True}
 
         if cmd == "jog_cont_multi":
@@ -5371,31 +5384,31 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             jf = await _jog_mode_flag()
             for entry in axes:
                 _ax = finite_int(entry["axis"], lo=0)
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, _jog_axis_arg(_ax, jf), finite_float(entry["vel"]), wait=None)
-                _active_jogs.add(_ax)
+                arg = _jog_axis_arg(_ax, jf)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, finite_float(entry["vel"]), wait=None)
+                _active_jogs[_ax] = (jf, arg)
             return {"ok": True}
 
         if cmd == "jog_stop_multi":
             # Stopping motion is always allowed — see jog_stop above for the
             # same audit rationale (Phase 2 / Issue E1). In AUTO+running we
-            # have no jog in flight and must not switch modes.
+            # have no jog in flight; no mode switch (package E).
             axes = [finite_int(a, lo=0) for a in msg.get("axes", [])]
             active = [a for a in axes if a in _active_jogs]
             if not active:
                 _trace.emit("jog.stop_without_jog", level="info", cmd="jog_stop_multi", axes=axes)
                 return {"ok": True}
-            STAT.poll()
-            mode = safe_get("task_mode", None)
-            interp = safe_get("interp_state", None)
-            if mode == linuxcnc.MODE_AUTO and interp != linuxcnc.INTERP_IDLE:
+            if _auto_running():
                 return {"ok": True}
-            if _jog_stop_would_abort_mdi(mode, interp, "jog_stop_multi"):
-                return {"ok": True}
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = _jog_joint_flag()
+            failed = []
             for a in active:
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_STOP, jf, _jog_axis_arg(a, jf), wait=None)
-                _active_jogs.discard(a)
+                try:
+                    await _send_jog_stop(a)
+                except Exception as e:  # noqa: BLE001 - one failed stop must not skip the rest
+                    _trace.emit_exc("jog.stop_failed", e, axis=a)
+                    failed.append(a)
+            if failed:
+                return {"ok": False, "error": f"Jog stop not sent for axes {failed} — press E-Stop if it still moves"}
             return {"ok": True}
 
         if cmd == "jog_incr":
@@ -5410,8 +5423,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             dist = finite_float(msg.get("distance", 0.0))
             await set_mode(linuxcnc.MODE_MANUAL)
             jf = await _jog_mode_flag()
-            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(axis, jf), vel, dist, wait=None)
-            _active_jogs.add(axis)
+            arg = _jog_axis_arg(axis, jf)
+            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist, wait=None)
+            _active_jogs[axis] = (jf, arg)
             _trace_jog("jog_incr", axis, jf, vel=vel, dist=dist, rc=rc)
             return {"ok": True}
 
@@ -5427,8 +5441,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             jf = await _jog_mode_flag()
             for entry in axes:
                 _ax = finite_int(entry["axis"], lo=0)
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, _jog_axis_arg(_ax, jf), abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
-                _active_jogs.add(_ax)
+                arg = _jog_axis_arg(_ax, jf)
+                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
+                _active_jogs[_ax] = (jf, arg)
             return {"ok": True}
 
         if cmd == "home_all":

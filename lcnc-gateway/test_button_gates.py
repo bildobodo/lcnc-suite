@@ -280,7 +280,7 @@ class _Handlers(unittest.TestCase):
         gateway.CMD = self.cmd
         saved = dict(shared=gateway._shared_status, reader_get=gateway._reader_get,
                      stale=gateway._reader_is_stale, switchable=gateway._kins_is_switchable,
-                     capable=gateway._twp_capable, jogs=set(gateway._active_jogs),
+                     capable=gateway._twp_capable, jogs=dict(gateway._active_jogs),
                      skip=gateway._skip_flag_unknown)
         gateway._kins_is_switchable = lambda: False
         gateway._skip_flag_unknown = False
@@ -524,7 +524,7 @@ class TestDisarmJogStopUnhomed(_Handlers):
         gateway.STAT.homed = [0, 0, 0]
         gateway.STAT.joints = 3
         gateway._active_jogs.clear()
-        gateway._active_jogs.add(1)
+        gateway._active_jogs[1] = (1, 1)   # a joint jog of joint 1, as started
 
         async def go():
             async with gateway._get_cmd_lock():
@@ -533,7 +533,7 @@ class TestDisarmJogStopUnhomed(_Handlers):
         args = self.cmd.args_of("jog")
         self.assertIsNotNone(args, "the jog was never stopped")
         self.assertEqual(args[0], linuxcnc.JOG_STOP)
-        self.assertEqual(gateway._active_jogs, set())
+        self.assertEqual(gateway._active_jogs, {})
 
 
 # ---- R206 (Codex): the start's last check at the command write; an unread
