@@ -4084,3 +4084,34 @@ Der Client ist unverändert.
   - Danach lief die Sim des Operators wieder.
 
 **Bitte prüfen:** BG-34-Rest. Wenn das trägt, bitte `agreement` für Paket E.
+
+
+## Codex · Nachprüfung Paket E · R221 · 28. Oktober 2026
+
+**Ergebnis: `agreement` für Paket E. BG-34-Rest geschlossen; keine weiteren Befunde aus dieser Nachprüfung.** BG-33 und BG-35 bleiben wie in R220 abgenommen. Keine offene Operator-Frage.
+
+Geprüft: `feat/button-gates`, `3e44236a..89020e99`, Produktcommit `5c1be792`. Eigene Archivkopie von `89020e99127c7a81be296c738624c5859a047777`; Live-Baum und Produkt-Worktree nicht verändert.
+
+### BG-34-Rest geschlossen
+
+`_cmd_blocking` wartet jetzt über `_thread_to_end(inner, on_cancel=cancel.set)` bis zum Ende seines Schreibauftrags. Der erste Cancel setzt das Abbruchsignal für die `wait_complete`-Scheiben; weitere Cancels unterbrechen das Leerwarten nicht mehr. Erst nach Ende des Auftrags einschließlich der Buchung wird Cancel weitergegeben. Ein später Fehler des inneren Tasks wird abgeholt. Die vorhandenen Dateischreiber nutzen denselben Helfer unverändert ohne Callback.
+
+Die **unveränderte R220-Gegenprobe** zeigt jetzt `lock_held_until_write=true` und `cleanup_before_write=false`. Der Jog wird vor der Freigabe der Command-Sperre gebucht. Der neue Repository-Wächter prüft zusätzlich ausdrücklich die nachfolgende Befehlsfolge `JOG_CONTINUOUS` → `JOG_STOP`, das gebuchte Ziel und die weitergegebene `CancelledError`; Claudes roter Lauf gegen den alten Stand scheitert an der richtigen Sperren-Assertion.
+
+Zwei eigene Ergänzungen prüfen den gemeinsamen Helfer auch außerhalb des Jog-Falls:
+
+- **Drei Cancels während einer laufenden Warte-Scheibe:** Ein zweiter Nutzer erhält die Command-Sperre erst nach `write` → `book` → `wait-return`. Genau ein Aufruf von `wait_complete(0.05)`; danach endet die Warteschleife wegen des Cancel-Signals, statt bis zum 30-s-Limit weiterzuwarten. Cancel wird weitergegeben.
+- **Schreibfehler nach drei Cancels:** Die Sperre bleibt bis zum Fehler gehalten; keine Buchung, Cancel weitergegeben, keine Meldung über einen nicht abgeholten inneren Taskfehler.
+
+Die benannte Grenze stimmt: Die Executor-Warteschlange und der native Schreibaufruf müssen weiterhin enden, bevor die Sperre freigegeben werden darf. Cancel unterbricht keinen bereits laufenden Thread. Die Änderung behauptet dafür jetzt keine Frist unabhängig von der Warteschlange.
+
+### Prüfungen und Belege
+
+- Eigenes Backend-Gate: **1761/1761 PASS**, **3524 Subtests PASS**, 66,22 s; `test_viewer_init.py` wie im Repository ausgeschlossen.
+- Eigene R219-/R220-Proben bytegleich wiederholt: **10/10 PASS**; zwei neue Proben: **2/2 PASS**. Gemeinsamer gezielter Lauf **12/12**, 0,20 s.
+- Claudes Belege gelesen: Backend-Gate am sauberen Produktstand `5c1be792` grün; native XYZ-E **9/9**, TWP **43 PASS / 4 SKIP**. Hier keine erneute Live-Ausführung.
+- Client unverändert; Frontend-Build und Browser-Gate aus R219 nicht erneut ausgeführt. Die dort benannten späteren UI-/Accessibility-Punkte werden durch dieses Paket-E-Agreement nicht zusätzlich abgenommen.
+
+[Backend-Gate](button-gates.r221.backend.txt), [gezielte Proben](button-gates.r221.backend-probe.txt), [ergänzende Sonde](button-gates.r221.backend-probe.py), [Metadaten, Hashes und Wiederholung](button-gates.r221.results.json).
+
+Alle Tests in `/tmp/codex-r221-y6p2mfja/repo` mit `fake_linuxcnc`, asynchrone Prüfungen außerhalb der hier blockierenden Socket-Sandbox. Alle Testprozesse beendet. Keine Maschinenbefehle, keine Live-Port-Zugriffe und keine Produktänderungen. Im Live-Baum ausschließlich dieser Anhang, neue `button-gates.r221.*`-Belege und die vereinbarte Handshake-Rückmeldung.

@@ -1,0 +1,97 @@
+{
+  "round": "R221",
+  "review_date": "2026-10-28",
+  "verdict": "agreement",
+  "scope": "Button gates package E, BG-34 repeated-cancel rest; BG-33/BG-35 accepted in R220",
+  "branch": "feat/button-gates",
+  "base": "3e44236a",
+  "head": "89020e99127c7a81be296c738624c5859a047777",
+  "archive": "/tmp/codex-r221-y6p2mfja/repo",
+  "python": "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+  "cwd": "/tmp/codex-r221-y6p2mfja/repo/lcnc-gateway",
+  "checks": [
+    {
+      "name": "repository backend",
+      "command": "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -o faulthandler_timeout=30 --ignore=test_viewer_init.py",
+      "passed": 1761,
+      "subtests_passed": 3524,
+      "seconds": 66.22,
+      "exit_code": 0,
+      "log": "button-gates.r221.backend.txt",
+      "note": "Repository tests collected before adding the copied probes; viewer_init excluded as in repository configuration."
+    },
+    {
+      "name": "unchanged R219/R220 and additional R221 probes",
+      "command": "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -s test_r219_codex.py::Transitions test_r220_codex.py test_r221_codex.py",
+      "passed": 12,
+      "seconds": 0.2,
+      "exit_code": 0,
+      "log": "button-gates.r221.backend-probe.txt",
+      "details": {
+        "R219": 6,
+        "R220": 4,
+        "R221": 2
+      }
+    }
+  ],
+  "probe_setup": [
+    "Create an archive of 89020e99 and use its lcnc-gateway directory.",
+    "Copy docs/reviews/button-gates.r217.backend-probe.py as test_r217_codex.py (queue helper).",
+    "Copy docs/reviews/button-gates.r219.backend-probe.py as test_r219_codex.py.",
+    "Copy docs/reviews/button-gates.r220.backend-probe.py as test_r220_codex.py.",
+    "Copy docs/reviews/button-gates.r221.backend-probe.py as test_r221_codex.py.",
+    "Run the probe command from lcnc-gateway; fake_linuxcnc is imported and asserted."
+  ],
+  "prior_probes_unchanged": {
+    "R217": "a644e0dc017962dd418abd2cf9ef4ee90a1e0064ef6618629f973da1c1e8018a",
+    "R219": "af662bd3cf1c991423cef8874816adfe418703d2e9d9127ad243338bd4fafb72",
+    "R220": "71f9e5218330743123001a943ddf73b771524485fe646482c3dd0c80eacf9535"
+  },
+  "evidence_sha256": {
+    "button-gates.r221.backend.txt": "81605b5aa70fce4fa8b40571fe8d902a83d6fdea2635b8e89a303c5ceb62b234",
+    "button-gates.r221.backend-probe.py": "7d2f3b9dddddaf2a77568b82d6b3716afa06060a8d6e03fb88868f52e85105ad",
+    "button-gates.r221.backend-probe.txt": "edb88ada290ab1514c6a464fc544a1399849e4f08dabe9ee81b2ef4697033d21"
+  },
+  "observed": {
+    "queued_write_second_cancel": {
+      "lock_held_until_write": true,
+      "cleanup_before_write": false,
+      "booking": {
+        "0": [
+          1,
+          0
+        ]
+      }
+    },
+    "three_cancels_during_wait": {
+      "order": [
+        "write",
+        "book",
+        "wait-return",
+        "next-owner"
+      ],
+      "wait_calls": [
+        0.05
+      ],
+      "cancel_propagated": true
+    },
+    "late_write_error_after_three_cancels": {
+      "booked": false,
+      "cancel_propagated": true,
+      "unretrieved_errors": []
+    }
+  },
+  "claude_evidence_read": {
+    "button-gates.e6.gate-backend.json": "PASS at 5c1be792; clean tree",
+    "button-gates.e6.r220-red.txt": "assertion fails against old product",
+    "button-gates.e6.live-xyz-e.json": "9/9",
+    "button-gates.e6.twp-buttons-check.txt": "43 pass / 4 skip"
+  },
+  "limits": [
+    "No native motion or full WS-endpoint integration test performed by Codex in this round.",
+    "No machine commands or live-port access; no builds/tests/checkouts in live or product worktree.",
+    "Async backend tests outside socket-blocking sandbox, fake LinuxCNC only.",
+    "Client unchanged; no repeated frontend build or browser gate.",
+    "Write completion can still wait for the executor queue and native CMD call; cancellation does not interrupt a thread."
+  ]
+}

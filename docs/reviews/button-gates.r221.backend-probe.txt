@@ -1,0 +1,23 @@
+[VINIT] session bound to linuxcncsvr pid=2015902 start=58104285
+[VINIT] try_connect_lcnc OK, pid=2015902
+[VINIT] Loaded machine config: 3-Axis Mill
+cancelled queued write then disconnect: {0: (1, 0)} [(10, 1, 0, 1.0), (8, 1, 0)]
+.homing started in queue: {'ok': False, 'error': 'Homing in progress — wait until it ends'} []
+.homing lost, cap: {'ok': False, 'error': 'Homing state changed — jog again'} []
+.homing lost, gantry: {'ok': False, 'error': 'Homing state changed — jog again'} []
+.homing active: {'ok': False, 'error': 'Homing in progress — wait until it ends'} [] Homing in progress — wait until it ends
+..failed write: {'ok': False, 'error': 'RuntimeError: failed before sending'} {}
+.inverse transition: {'ok': False, 'error': 'Homing state changed — jog again'} []
+.unknown homing: {'ok': False, 'error': 'Homing state unknown — wait for status'} []
+.second cancel: {'lock_held_until_write': True, 'cleanup_before_write': False, 'booked_after_late_write': {0: (1, 0)}, 'calls_before_later_cleanup': [('jog', (10, 1, 0, 1.0), {})]}
+.wait slice: CancelledError ['write', 'book', 'wait-return', 'next-owner'] [0.05]
+.[GC] +108ms gen=2 duration=11.3ms collected=1110 uncollectable=0
+late write error: CancelledError ['write-error'] []
+.
+12 passed in 0.20s
+[GC] +122ms gen=2 duration=13.4ms collected=0 uncollectable=0
+[GC] +130ms gen=2 duration=8.1ms collected=0 uncollectable=0
+[GC] +137ms gen=2 duration=6.7ms collected=0 uncollectable=0
+[GC] +143ms gen=2 duration=6.2ms collected=0 uncollectable=0
+[GC] +149ms gen=2 duration=6.5ms collected=0 uncollectable=0
+[GC] +156ms gen=2 duration=5.9ms collected=0 uncollectable=0
