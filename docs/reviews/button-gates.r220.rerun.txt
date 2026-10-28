@@ -1,0 +1,16 @@
+[VINIT] session bound to linuxcncsvr pid=1993697 start=58026488
+[VINIT] try_connect_lcnc OK, pid=1993697
+[VINIT] Loaded machine config: 3-Axis Mill
+cancelled queued write then disconnect: {0: (1, 0)} [(10, 1, 0, 1.0), (8, 1, 0)]
+.homing started in queue: {'ok': False, 'error': 'Homing in progress — wait until it ends'} []
+.homing lost, cap: {'ok': False, 'error': 'Homing state changed — jog again'} []
+.homing lost, gantry: {'ok': False, 'error': 'Homing state changed — jog again'} []
+.homing active: {'ok': False, 'error': 'Homing in progress — wait until it ends'} [] Homing in progress — wait until it ends
+..
+6 passed in 0.26s
+[GC] +116ms gen=2 duration=11.8ms collected=1095 uncollectable=0
+[GC] +129ms gen=2 duration=12.4ms collected=0 uncollectable=0
+[GC] +136ms gen=2 duration=7.7ms collected=0 uncollectable=0
+[GC] +143ms gen=2 duration=6.4ms collected=0 uncollectable=0
+[GC] +150ms gen=2 duration=7.3ms collected=0 uncollectable=0
+[GC] +157ms gen=2 duration=6.4ms collected=0 uncollectable=0

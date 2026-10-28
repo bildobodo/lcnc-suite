@@ -1,0 +1,82 @@
+[VINIT] session bound to linuxcncsvr pid=1993697 start=58026488
+[VINIT] try_connect_lcnc OK, pid=1993697
+[VINIT] Loaded machine config: 3-Axis Mill
+failed write: {'ok': False, 'error': 'RuntimeError: failed before sending'} {}
+.inverse transition: {'ok': False, 'error': 'Homing state changed — jog again'} []
+.unknown homing: {'ok': False, 'error': 'Homing state unknown — wait for status'} []
+.second cancel: {'lock_held_until_write': False, 'cleanup_before_write': True, 'booked_after_late_write': {0: (1, 0)}, 'calls_before_later_cleanup': [('jog', (10, 1, 0, 1.0), {})]}
+F
+=================================== FAILURES ===================================
+____ MoreBoundaries.test_second_cancel_keeps_the_command_lock_until_written ____
+
+self = <test_r220_codex.MoreBoundaries testMethod=test_second_cancel_keeps_the_command_lock_until_written>
+
+    def test_second_cancel_keeps_the_command_lock_until_written(self):
+        async def go():
+            loop=asyncio.get_running_loop()
+            loop.set_default_executor(ThreadPoolExecutor(max_workers=1))
+            release=threading.Event()
+            blocker=loop.run_in_executor(None,release.wait,5)
+            submitted=asyncio.Event()
+            original=loop.run_in_executor
+            jobs=[]
+            def enqueue(executor,fn,*args):
+                future=original(executor,fn,*args)
+                jobs.append(future)
+                submitted.set()
+                return future
+            task=None
+            try:
+                with mock.patch.object(loop,'run_in_executor',enqueue):
+                    task=asyncio.create_task(gateway.handle_command(
+                        {'cmd':'jog_cont','axis':0,'vel':1.0},True,self.writer.conn_key))
+                    await asyncio.wait_for(submitted.wait(),2)
+                    self.writer.cmd_inflight='jog_cont'
+                    self.writer.cmd_inflight_task=task
+                    # First cancel from the real preemption helper; a WS
+                    # disconnect can then cancel that same inflight task.
+                    self.assertEqual(gateway._preempt_inflight('abort',923),1)
+                    await asyncio.sleep(0)
+                    self.assertTrue(gateway._get_cmd_lock().locked())
+                    task.cancel()
+                    for _ in range(6):await asyncio.sleep(0)
+                    held=gateway._get_cmd_lock().locked()
+                    early_cleanup=False
+                    if not held:
+                        # The disconnect cleanup now gets the lock while
+                        # the shielded CMD write has not started yet.
+                        async with gateway._get_cmd_lock():
+                            await gateway._jog_stop_for_client()
+                        early_cleanup=True
+                    release.set()
+                    await blocker
+                    await asyncio.gather(task,return_exceptions=True)
+                    await asyncio.gather(*jobs,return_exceptions=True)
+                    for _ in range(3):await asyncio.sleep(0)
+                    after=dict(gateway._active_jogs)
+                    calls=list(self.cmd.calls)
+                    if not early_cleanup:
+                        async with gateway._get_cmd_lock():
+                            await gateway._jog_stop_for_client()
+                    return held,early_cleanup,after,calls
+            finally:
+                release.set()
+                if task and not task.done():
+                    task.cancel()
+                    await asyncio.gather(task,return_exceptions=True)
+        held,early,booked,calls=_run(go())
+        print('second cancel:',{'lock_held_until_write':held,'cleanup_before_write':early,
+                               'booked_after_late_write':booked,'calls_before_later_cleanup':calls})
+>       self.assertTrue(held,'the command lock must not escape under an unfinished write')
+E       AssertionError: False is not true : the command lock must not escape under an unfinished write
+
+test_r220_codex.py:111: AssertionError
+=========================== short test summary info ============================
+FAILED test_r220_codex.py::MoreBoundaries::test_second_cancel_keeps_the_command_lock_until_written
+1 failed, 3 passed in 0.19s
+[GC] +107ms gen=2 duration=13.2ms collected=427 uncollectable=0
+[GC] +114ms gen=2 duration=7.0ms collected=0 uncollectable=0
+[GC] +121ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +128ms gen=2 duration=6.9ms collected=0 uncollectable=0
+[GC] +134ms gen=2 duration=6.6ms collected=0 uncollectable=0
+[GC] +142ms gen=2 duration=7.5ms collected=0 uncollectable=0

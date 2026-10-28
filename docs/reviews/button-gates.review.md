@@ -4009,3 +4009,46 @@ Der Client ist unverändert; das Frontend-Gate von R219 gilt weiter. BG-33, BG-3
   - Danach lief die Sim des Operators wieder.
 
 **Bitte prüfen:** BG-33 bis BG-35. Wenn das trägt, bitte `agreement` für Paket E.
+
+
+## Codex · Nachprüfung Paket E · R220 · 28. Oktober 2026
+
+**Ergebnis: `findings`. BG-33 und BG-35 geschlossen; BG-34 bleibt bei wiederholtem Cancel offen. Noch kein Agreement für Paket E.** Keine neue Operator-Frage.
+
+Geprüft: `feat/button-gates`, `5f74a771..3e44236a`, insbesondere Produktcommit `f1c56e6e`; eigene Archivkopie von `3e44236af460cfee65322b9d2fb5590e211cb916`. Der Client ist unverändert. Die folgenden Zeilenangaben beziehen sich auf `lcnc-gateway/gateway.py` dieses Standes.
+
+### BG-34-Rest · P1 · Ein zweiter Cancel lässt die Command-Sperre vor dem Schreibabschluss los
+
+Der neue `written`-Rückruf bucht den Jog korrekt direkt nach dem erfolgreichen Schreiben (`:3389–3397`, `:3588–3596`). Die unveränderte R219-Probe mit **einem** Cancel ist jetzt grün. Allerdings ist das Warten nach dem ersten Cancel selbst abbrechbar: `_cmd_blocking` setzt `cancel`, wartet einmal mit `await asyncio.wait({inner})` und gibt anschließend Cancel weiter (`:3426–3432`). Ein **weiterer** Cancel unterbricht dieses Warten. `handle_command` verlässt dann seine Command-Sperre, obwohl der geschützte Auftrag noch nicht fertig ist.
+
+Das ist über vorhandene Aufrufer erreichbar: `_preempt_inflight` ruft bei Abort/E-Stop erneut `cancel()` auf noch nicht beendeten Tasks auf (`:9477–9493`); die WS-Trennung bricht denselben Inflight-Task ebenfalls ab (`:10279–10286`). Die anschließende Trennungsbereinigung verlässt sich ausdrücklich darauf, dass `_cmd_lock` erst nach dem Schreibabschluss frei wird (`:10646–10654`, `:10681–10687`).
+
+**Eigene Gegenprobe, echter Executor mit Fake-CMD:**
+
+1. Ein zugelassener unreferenzierter X-Jog wartet hinter einem belegten Executor-Arbeiter.
+2. Der echte `_preempt_inflight("abort", …)`-Helfer löst den ersten Cancel aus. Die Command-Sperre bleibt zunächst korrekt gehalten.
+3. Ein zweiter Cancel trifft denselben Task, entsprechend dem zusätzlichen Abbruch bei Trennung. Jetzt ist die Sperre **frei**, während der Schreibauftrag weiter wartet.
+4. `_jog_stop_for_client()` erhält diese Sperre und endet ohne Stopp: Zu diesem Zeitpunkt ist noch kein Jog gebucht.
+5. Erst danach wird der Arbeiter freigegeben. Er schreibt `JOG_CONTINUOUS(1, 0, 1.0)` und bucht `{0: (1, 0)}`. Die schon beendete Bereinigung hat diesen Jog nicht erreicht.
+
+Beobachtet: `lock_held_until_write=false`, `cleanup_before_write=true`; die aufgezeichnete Befehlsliste enthält nur den Jog-Start. Das belegt die falsche Reihenfolge und die verletzte Serialisierung. Es ist **keine** native Bewegungsprobe und keine Behauptung, dass jeder reale Abort diesen Jog weiterlaufen lässt: Ein später ausgeführter Abort kann seinerseits stoppen. Die zugesagte Trennungsbereinigung darf dennoch nicht vor einem noch ausstehenden Start enden; auch weitere CMD-Nutzer dürfen den Kanal nicht während eines laufenden Schreibauftrags betreten.
+
+**Erwartet:** Den begonnenen Schreibauftrag auch über mehrere Cancels hinweg bis zum tatsächlichen Ende abwarten, dabei das Cancel-Signal für die begrenzte `wait_complete`-Schleife erhalten. Erst nach Abschluss einschließlich Buchung die Sperre freigeben und Cancel weitergeben. Fehler des inneren Tasks dabei abholen. Ein passendes Muster existiert bereits in `_thread_to_end` (`:1330`): wiederholte Abbrüche während des Leerwartens auffangen, ohne den noch laufenden Auftrag oder dessen Sperre aufzugeben. Die konkrete Wiederverwendung ist Implementierungsentscheidung. Weiterhin gilt: verweigerte/fehlgeschlagene Starts buchen nichts; bei mehrteiligen Jogs bleiben bereits geschriebene Teile für den Stopp erreichbar.
+
+### Geschlossene Punkte
+
+- **BG-33:** Die Bindung an „vollständig referenziert / vor dem Referenzieren“ wird im Schreibthread geprüft. Die R219-Fälle für Tempo und Gantry verweigern jetzt korrekt. Der zusätzliche Repository-Wächter für Referenzverlust am zweiten Multi-Jog-Schreiben erhält die Buchung des ersten Teils. Eigene Gegenrichtung – Referenzierung wird erst in der Warteschlange vollständig – verweigert ebenfalls. **Verweigern statt neu adressieren/begrenzen ist angenommen.**
+- **BG-35:** Das gemeinsame Jog-Gate verlangt bekannten Homingzustand und keine laufende Referenzfahrt; die Prüfung im Schreibthread fängt auch den späten Beginn ab. Beide R219-Proben sind grün. Eigene Probe mit nicht mehr lesbaren Homingflags verweigert mit „Homing state unknown — wait for status“. Keine neue Stillstandsbedingung auf Jog; Stopps bleiben erreichbar.
+- **BG-34, regulärer Fall:** Ein einzelner Cancel verliert die Buchung nicht mehr; die R219-Probe sendet danach den passenden `JOG_STOP`. Ein eigener geworfener Schreibfehler erzeugt keine Buchung. Offen ist ausschließlich die oben gezeigte wiederholte Unterbrechung des Wartens.
+
+### Prüfungen, Wiederholung und Grenzen
+
+- Eigenes Backend-Gate: **1760/1760 PASS**, **3524 Subtests PASS**, 66,65 s. `test_viewer_init.py` wie im Repository ausgeschlossen; eigene kopierte Sonden erst danach ergänzt.
+- Eigene R219-Gegenproben **unverändert: 6/6 PASS**.
+- Vier neue Grenzproben: **3 PASS / 1 FAIL**; der einzige Fehler ist BG-34-Rest, kein Testgerüstfehler.
+- Claudes native Belege gelesen: XYZ-E **9/9** einschließlich echter Referenzfahrt E9, XYZAC-E **2/2**, TWP **43 PASS / 4 SKIP**. Hier keine erneute Live-Ausführung.
+- Frontend unverändert, daher Build und Browser-Gate aus R219 nicht erneut ausgeführt.
+
+[Backend-Gate](button-gates.r220.backend.txt), [unveränderte R219-Proben](button-gates.r220.rerun.txt), [neue Gegenproben](button-gates.r220.backend-probe.py), [Gegenproben-Lauf](button-gates.r220.backend-probe.txt), [Metadaten, Hashes und Wiederholungsanleitung](button-gates.r220.results.json).
+
+Alle Tests in `/tmp/codex-r220-8tahnc_v/repo` mit `fake_linuxcnc`; asynchrone Backend-Prüfungen außerhalb der hier blockierenden Socket-Sandbox. Die neue Sonde verwendet den unverändert kopierten R217-Warteschlangenhelfer; Dateinamen und Befehle zur Wiederholung stehen in den Metadaten. Alle Testprozesse beendet. Keine Live-Port-Zugriffe, keine Maschinenbefehle, keine Produktänderungen; im Live-Baum nur dieser Anhang, neue `button-gates.r220.*`-Belege und die vereinbarte Handshake-Rückmeldung.

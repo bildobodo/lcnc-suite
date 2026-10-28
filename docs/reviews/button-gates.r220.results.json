@@ -1,0 +1,76 @@
+{
+  "round": "R220",
+  "review_date": "2026-10-28",
+  "verdict": "findings",
+  "branch": "feat/button-gates",
+  "base": "5f74a771",
+  "head": "3e44236af460cfee65322b9d2fb5590e211cb916",
+  "archive": "/tmp/codex-r220-8tahnc_v/repo",
+  "python": "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3",
+  "cwd": "/tmp/codex-r220-8tahnc_v/repo/lcnc-gateway",
+  "checks": [
+    {
+      "name": "repository backend",
+      "command": "nice -n 10 /home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -o faulthandler_timeout=30 --ignore=test_viewer_init.py",
+      "passed": 1760,
+      "subtests_passed": 3524,
+      "seconds": 66.65,
+      "exit_code": 0,
+      "log": "button-gates.r220.backend.txt",
+      "note": "Before adding own copied probe modules; viewer_init excluded as in repository configuration."
+    },
+    {
+      "name": "unchanged R219 probes",
+      "command": "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -s test_r219_codex.py::Transitions",
+      "passed": 6,
+      "seconds": 0.26,
+      "exit_code": 0,
+      "log": "button-gates.r220.rerun.txt"
+    },
+    {
+      "name": "own R220 boundary probes",
+      "command": "/home/cnc/lcnc-suite-gates/lcnc-gateway/.venv/bin/python3 -B -m pytest -o addopts='' -q -s test_r220_codex.py",
+      "passed": 3,
+      "failed": 1,
+      "seconds": 0.19,
+      "exit_code": 1,
+      "log": "button-gates.r220.backend-probe.txt",
+      "finding": "BG-34 repeated cancellation releases _cmd_lock while shielded command is unfinished."
+    }
+  ],
+  "probe_setup": [
+    "In an archive of 3e44236a, copy docs/reviews/button-gates.r217.backend-probe.py to lcnc-gateway/test_r217_codex.py.",
+    "Copy docs/reviews/button-gates.r219.backend-probe.py to lcnc-gateway/test_r219_codex.py.",
+    "Copy docs/reviews/button-gates.r220.backend-probe.py to lcnc-gateway/test_r220_codex.py.",
+    "Run probe commands from lcnc-gateway; they import fake_linuxcnc and assert the fake binding."
+  ],
+  "prior_probes_unchanged": {
+    "R217": "a644e0dc017962dd418abd2cf9ef4ee90a1e0064ef6618629f973da1c1e8018a",
+    "R219": "af662bd3cf1c991423cef8874816adfe418703d2e9d9127ad243338bd4fafb72"
+  },
+  "evidence_sha256": {
+    "button-gates.r220.backend.txt": "081da7020113f234c477b31e8870f2c3ee05e3d4bd0e0d21f9810f71f2341f19",
+    "button-gates.r220.rerun.txt": "5a2d00d4334db5086f453111ebcd27cf43263795446435f6963f4e06b16c179f",
+    "button-gates.r220.backend-probe.py": "71f9e5218330743123001a943ddf73b771524485fe646482c3dd0c80eacf9535",
+    "button-gates.r220.backend-probe.txt": "55e719e87b91b88f9cca10e49560503ba58a33acd10e13cfe25133cd632523be"
+  },
+  "accepted": [
+    "BG-33 homing class bound at every write",
+    "BG-35 no new jog during homing",
+    "BG-34 single-cancel booking fix"
+  ],
+  "open": [
+    "BG-34 repeated-cancel drain must keep command lock until actual write and booking have finished"
+  ],
+  "claude_evidence_read": {
+    "button-gates.e5.live-xyz-e.json": "9/9",
+    "button-gates.e5.live-xyzac-e.json": "2/2",
+    "button-gates.e5.twp-buttons-check.txt": "43 pass / 4 skip"
+  },
+  "limits": [
+    "No native movement claimed from the repeated-cancel fake test; no full WS-endpoint integration test.",
+    "No machine commands or live port access, no builds/tests/checkouts in live or product worktree.",
+    "Python async tests run outside the socket-blocking sandbox with fake LinuxCNC, own executor only.",
+    "Frontend unchanged; no repeated frontend or browser gate this round."
+  ]
+}
