@@ -1,0 +1,4 @@
+collisions.viewer.spec.ts:670 "a parse made for the run is checked during it" — gate run 1 (19a3efaf) FAIL at :778 (telemetry spans not within 10 s; the operator test sim with its own Vite ran beside the gate). Alone, three times, same build:
+1 passed (13.2s)
+1 passed (17.1s)
+1 passed (17.2s)
