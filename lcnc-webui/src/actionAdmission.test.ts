@@ -68,7 +68,7 @@ describe("the gamepad admits as the screen does (BG-10)", () => {
       jogVel: ref(10), angularJogVel: ref(5), jogIncrement: ref(0),
       permissions: computed(() => perms.value as any),
       send: () => {}, fire: (c, gate) => { fired.push([c, gate]); },
-      startContext: computed(() => ctx.value), config,
+      startContext: computed(() => ctx.value), jogAxisRefusal: () => null, config,
       axes: computed(() => ["X", "Y", "Z"]), gated: ref(false),
     });
     p.start();

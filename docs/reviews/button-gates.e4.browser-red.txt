@@ -1,0 +1,91 @@
+
+Running 3 tests using 1 worker
+
+[1A[2K[1/3] [serial-guards] › e2e/joint-jog.spec.ts:52:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07)
+[1A[2K  1) [serial-guards] › e2e/joint-jog.spec.ts:52:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07) 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: locator('[data-strip="jog"]').locator('.jogNote')
+    Expected substring: [32m"Joint jog — no soft limits · max 10 %"[39m
+    Timeout: 10000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 10000ms[22m
+    [2m  - waiting for locator('[data-strip="jog"]').locator('.jogNote')[22m
+
+
+      53 |   await open(page, false);
+      54 |   const strip = page.locator('[data-strip="jog"]');
+    > 55 |   await expect(strip.locator(".jogNote")).toContainText("Joint jog — no soft limits · max 10 %");
+         |                                           ^
+      56 |   for (const name of ["X+", "X-", "Z+", "Z-"]) {
+      57 |     await expect(strip.getByRole("button", { name, exact: true }), name).toBeEnabled();
+      58 |   }
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/joint-jog.spec.ts:55:43
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/joint-jog-before-homing-th-9bbc1-oint-jog-and-its-cap-BG-07--serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[2/3] [serial-guards] › e2e/joint-jog.spec.ts:75:1 › before homing the keyboard refuses the closed axis like the button, and jogs an open one
+[1A[2K  2) [serial-guards] › e2e/joint-jog.spec.ts:75:1 › before homing the keyboard refuses the closed axis like the button, and jogs an open one 
+
+    Error: [2mexpect([22m[31mreceived[39m[2m).[22mtoEqual[2m([22m[32mexpected[39m[2m) // deep equality[22m
+
+    [32m- Expected  -  1[39m
+    [31m+ Received  + 10[39m
+
+    [32m- Array [][39m
+    [31m+ Array [[39m
+    [31m+   Array [[39m
+    [31m+     "jog_cont",[39m
+    [31m+     1,[39m
+    [31m+   ],[39m
+    [31m+   Array [[39m
+    [31m+     "jog_stop",[39m
+    [31m+     1,[39m
+    [31m+   ],[39m
+    [31m+ ][39m
+
+      80 |   await page.keyboard.up("ArrowUp");
+      81 |   await page.waitForTimeout(300);
+    > 82 |   expect(await jogs()).toEqual([]);
+         |                        ^
+      83 |   await page.keyboard.down("ArrowRight");   // X+
+      84 |   await page.keyboard.up("ArrowRight");
+      85 |   await expect.poll(jogs).toEqual([["jog_cont", 0], ["jog_stop", 0]]);
+        at /home/cnc/lcnc-suite-gates/lcnc-webui/e2e/joint-jog.spec.ts:82:24
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-th-8df62-button-and-jogs-an-open-one-serial-guards/test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: test-results/joint-jog-before-homing-th-8df62-button-and-jogs-an-open-one-serial-guards/error-context.md
+
+    attachment #3: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/joint-jog-before-homing-th-8df62-button-and-jogs-an-open-one-serial-guards/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/joint-jog-before-homing-th-8df62-button-and-jogs-an-open-one-serial-guards/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+
+[1A[2K[3/3] [serial-guards] › e2e/joint-jog.spec.ts:88:1 › homed: the axis letters as before, no note, every axis open
+[1A[2K  2 failed
+    [serial-guards] › e2e/joint-jog.spec.ts:52:1 › before homing: the gantry axis is dimmed with its reason, the head states the joint jog and its cap (BG-07) 
+    [serial-guards] › e2e/joint-jog.spec.ts:75:1 › before homing the keyboard refuses the closed axis like the button, and jogs an open one 
+  1 passed (18.7s)

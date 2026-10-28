@@ -813,7 +813,7 @@ for (const viewport of VIEWPORTS) {
     const frame0 = await measureFrame(page);
     const portrait = viewport.height > viewport.width;
     const refs0: Record<string, LayoutSnapshot> = {};
-    for (const sel of [PANELS.safety, PANELS.setup, SETUP_AXIS_ROWS, PANELS.spindle]) refs0[sel] = await measureLayout(page.locator(sel), sel, refControls(sel, portrait));
+    for (const sel of [PANELS.safety, PANELS.setup, SETUP_AXIS_ROWS, PANELS.spindle, PANELS.jog]) refs0[sel] = await measureLayout(page.locator(sel), sel, refControls(sel, portrait));
     const evidence: { state: string; frame: unknown; issues: unknown[] }[] = [];
     try {
       for (const state of STRIP_STATES) {

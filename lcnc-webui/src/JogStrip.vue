@@ -14,6 +14,7 @@ import ChoiceGroup from "./ChoiceGroup.vue";
 import type { ChoiceOption } from "./choiceGroup";
 import HelpIcon from "./HelpIcon.vue";
 import { TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI } from "./lcnc";
+import { jointJogActive, jogAxisRefusal, jointJogNote, type JointJog } from "./jointJog";
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight,
@@ -41,6 +42,11 @@ const props = defineProps<{
   iniIncrements: number[] | null;
   jogDisabled: boolean;
   taskMode: number;
+  /** Jogging before homing (package E, BG-07): viewer_init's declaration and
+   *  whether every joint is homed — before homing a closed axis is dimmed
+   *  with its reason and the head states the joint jog and its cap. */
+  jointJog?: JointJog | null;
+  homed?: boolean;
   // Jog-frame selector (switchable-kins machines only; industry convention
   // — Heidenhain 3D-ROT manual setting, Siemens WCS/MCS softkey — is an
   // EXPLICIT operator choice of jog frame, prominently indicated).
@@ -330,6 +336,19 @@ const xyBtns = computed<JogDef[]>(() => {
   ];
 });
 
+// Before homing (package E): an axis the machine closes (a gantry letter) is
+// dimmed with its reason; the buttons keep their axis letters (operator
+// 2026-10-28: "J2·Z+" widened the Z and rotary buttons — no other UI names
+// the joints there either).
+const jointOn = computed(() => jointJogActive(props.jointJog, !!props.homed));
+function axisRefusal(...indices: (number | undefined)[]): string | undefined {
+  for (const i of indices) {
+    if (i == null || i < 0) continue;
+    const why = jogAxisRefusal(props.jointJog, !!props.homed, i);
+    if (why) return why;
+  }
+  return undefined;
+}
 function stopAllJog() {
   forceStopAllJogs();
   // Belt-and-suspenders: stop all axes at backend level
@@ -458,7 +477,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
 <template>
   <div class="stripSection">
-    <div class="sub">Jog</div>
+    <!-- Before homing (package E) the head states the joint jog and its cap
+         in ITS OWN LINE: never a second one (it moved the buttons in the
+         narrow portrait strip) — cut with an ellipsis, the whole in the title. -->
+    <div class="sub row-tight jogHead">Jog<span v-if="jointOn" class="jogNote text-warn" :title="jointJogNote(jointJog)">· {{ jointJogNote(jointJog) }}</span></div>
     <div class="jogContent row-sections">
       <div ref="jogBtnsRef" class="jogBtns row-sections">
         <div v-if="hasXyPad" class="xyWrap" :style="xySize ? { width: xySize + 'px', height: xySize + 'px' } : undefined">
@@ -467,6 +489,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               v-for="btn in xyBtns"
               :key="btn.label"
               :type="btn.axis < 0 ? 'jogStop' : 'jog'"
+              :disabled="!!axisRefusal(btn.axis, btn.axis2)"
+              :reason="axisRefusal(btn.axis, btn.axis2)"
               class="jogBtn"
               :variant="btn.axis < 0 ? 'danger' : undefined"
               :active="activeJogKeys.has(btn.label)"
@@ -484,6 +508,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
         <div v-if="zAxis" class="axisCol zCol" :class="{ zTall: abcAxes.length > 0 && uvwAxes.length > 0, zOnly: abcAxes.length === 0 && uvwAxes.length === 0 }">
           <MachineBtn
             type="jog"
+            :disabled="!!axisRefusal(zAxis.index)"
+            :reason="axisRefusal(zAxis.index)"
             class="jogBtn"
             :active="activeJogKeys.has('Z+')"
             @pointerdown.prevent="startAxisJog(zAxis.index, 1, jogVel, $event)"
@@ -495,6 +521,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">Z+</span></div></MachineBtn>
           <MachineBtn
             type="jog"
+            :disabled="!!axisRefusal(zAxis.index)"
+            :reason="axisRefusal(zAxis.index)"
             class="jogBtn"
             :active="activeJogKeys.has('Z-')"
             @pointerdown.prevent="startAxisJog(zAxis.index, -1, jogVel, $event)"
@@ -511,6 +539,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           <div v-for="(ra, i) in abcAxes" :key="ra.letter" class="axisCol" :class="{ solo: soloAxis(abcAxes.length, i) }">
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, angularJogVel, $event)"
@@ -522,6 +552,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, angularJogVel, $event)"
@@ -539,6 +571,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
           <div v-for="(ra, i) in uvwAxes" :key="ra.letter" class="axisCol" :class="{ solo: soloAxis(uvwAxes.length, i) }">
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, jogVel, $event)"
@@ -550,6 +584,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             ><div class="jogInner jogZUp"><ArrowUp class="jogIcon" /><span class="jogLabel">{{ ra.letter }}+</span></div></MachineBtn>
             <MachineBtn
               type="jog"
+              :disabled="!!axisRefusal(ra.index)"
+              :reason="axisRefusal(ra.index)"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, jogVel, $event)"
@@ -633,6 +669,8 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
 
 <style scoped>
 .jogContent > * { flex-shrink: 0; }
+.jogHead { white-space: nowrap; min-width: 0; }
+.jogNote { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
 /* ── Left: XY grid + Z + extra axes ── */
 .jogBtns {

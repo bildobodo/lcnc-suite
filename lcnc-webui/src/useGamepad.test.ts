@@ -32,7 +32,7 @@ Object.defineProperty(globalThis, "navigator", {
 
 const DPAD_UP = 12, DPAD_RIGHT = 15, LB = 4;
 
-function setup(step: number) {
+function setup(step: number, closed: number[] = []) {
   const sent: WsCommand[] = [];
   const jogIncrement = ref(step);
   const jogVel = ref(10);
@@ -45,7 +45,7 @@ function setup(step: number) {
     jogVel, angularJogVel: ref(5), jogIncrement,
     permissions: computed(() => ({ jog: true, run: true, zero: true, override: true, abort: true, pause: false, resume: false, spindleStop: true })),
     send: (c) => { sent.push(c); }, fire: () => {},
-    startContext: computed(() => ({ activeFile: null, editing: false, loading: false })), config,
+    startContext: computed(() => ({ activeFile: null, editing: false, loading: false })), jogAxisRefusal: (a) => closed.includes(a) ? "Gantry axis — jog it after Home All" : null, config,
     axes: computed(() => ["X", "Y", "Z"]), gated: ref(false),
   });
   pad_.start();
@@ -127,3 +127,19 @@ describe("useGamepad D-pad jog lifecycle", () => {
     p.stop();
   });
 });
+
+describe("useGamepad before homing (button gates package E)", () => {
+  it("an axis closed before homing starts nothing from the D-pad or the stick; an open one jogs", () => {
+    const { sent, tick } = setup(0, [0]);   // X closed (a gantry letter)
+    pressed[DPAD_RIGHT] = true; tick();
+    pressed[DPAD_RIGHT] = false; tick();
+    stick[0] = 1; tick();
+    stick[0] = 0; tick();
+    expect(sent).toEqual([]);
+    pressed[DPAD_UP] = true; tick();
+    expect(sent).toEqual([{ cmd: "jog_cont", axis: 1, vel: 10 }]);
+    pressed[DPAD_UP] = false; tick();
+    expect(sent.slice(1)).toEqual([{ cmd: "jog_stop", axis: 1 }]);
+  });
+});
+

@@ -69,6 +69,7 @@ import { useKeyboardShortcuts } from "./useKeyboardShortcuts";
 import { modalOpen, repointOpeners } from "./modalRegistry";
 import { g5xLabel as fixtureLabel } from "./wcs";
 import { ACTION_GATES, type StartContext } from "./actionAdmission";
+import { jogAxisRefusal, type JointJog } from "./jointJog";
 import { forceStopAllJogs, initJogPointerSafety, destroyJogPointerSafety, activeJogKeys } from "./useJogPointers";
 import {
   INTERP_IDLE, INTERP_READING, INTERP_PAUSED, INTERP_WAITING,
@@ -645,6 +646,13 @@ const connectedClients = computed<{ip: string, armed: boolean}[]>(() => status.v
 
 // INI/static machine config — delivered once in viewer_init, not per-tick.
 const ini = computed<Record<string, any>>(() => viewerInit.value?.ini_config ?? {});
+// Jogging before homing (package E): the machine's declaration (jointJog.ts).
+const jointJog = computed<JointJog | null>(() => ini.value.joint_jog ?? null);
+// One per-axis admission for the strip, the keyboard and the gamepad (BG-10).
+// isHomed is read at call time (declared below).
+function axisJogRefusal(axis: number): string | null {
+  return jogAxisRefusal(jointJog.value, isHomed.value, axis);
+}
 
 // LinuxCNC config name from INI path (e.g. "/home/cnc/.../my-mill/my-mill.ini" → "my-mill")
 const configName = computed(() => {
@@ -1729,6 +1737,7 @@ const {
   permissions,
   canEstop,
   startContext,
+  jogAxisRefusal: axisJogRefusal,
   modalOpen,
   send,
   fire,
@@ -1755,6 +1764,7 @@ const gamepad = useGamepad({
   send,
   fire,
   startContext,
+  jogAxisRefusal: axisJogRefusal,
   config: gamepadConfig,
   axes: computed(() => axes.value),
   gated: gamepadGated,
@@ -2579,6 +2589,8 @@ watch(viewerGcode, (newGcode) => {
         :frameAct="setKinsMode"
         :jogDisabled="!permissions.jog"
         :taskMode="taskMode"
+        :jointJog="jointJog"
+        :homed="isHomed"
         @update:jogVel="setJogVel"
         @update:angularJogVel="setAngularJogVel"
         @update:jogIncrement="jogIncrement = $event"

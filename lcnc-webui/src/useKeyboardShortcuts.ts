@@ -38,6 +38,9 @@ interface UseKeyboardShortcutsOptions {
   canEstop: ComputedRef<boolean>;
   /** Start's program context (actionAdmission.ts — the button's own rule). */
   startContext: Ref<StartContext>;
+  /** Why this axis may not jog now beyond the `jog` class — before homing, an
+   *  axis the machine closes (package E, jointJog.ts); null when it may. */
+  jogAxisRefusal: (axis: number) => string | null;
   /** True while a dialog or the number keypad is open (modalRegistry). */
   modalOpen: ComputedRef<boolean>;
   send: (cmd: WsCommand) => void;
@@ -134,7 +137,7 @@ export function useKeyboardShortcuts(opts: UseKeyboardShortcutsOptions) {
       if (e.repeat || jogGestures.has(physicalKey(e))) return;
       if (!opts.permissions.value.jog) return;
       const jog = jogActionToAxis(action);
-      if (!jog) return;
+      if (!jog || opts.jogAxisRefusal(jog.axis)) return;
       const vel = (jog.isAngular ? opts.angularJogVel.value : opts.jogVel.value) * jog.dir;
       const step = opts.jogIncrement.value;
       if (step > 0) {

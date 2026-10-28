@@ -52,6 +52,10 @@ export function useGamepad(deps: {
   fire: (cmd: WsCommand, gate?: GateKey) => void;
   /** Start's program context (actionAdmission.ts — the button's own rule). */
   startContext: ComputedRef<StartContext>;
+  /** Why this axis may not jog now beyond the `jog` class — before homing, an
+   *  axis the machine closes (package E, jointJog.ts); null when it may. A
+   *  stop is never refused. */
+  jogAxisRefusal: (axis: number) => string | null;
   config: Ref<GamepadDefaults>;
   /** Machine axis letters (viewer_init.axes) — X/Y/Z resolved by letter. */
   axes: ComputedRef<string[]>;
@@ -128,6 +132,9 @@ export function useGamepad(deps: {
       lastSendTime[axis] = now;
       return;
     }
+
+    // An axis closed before homing starts nothing (its stop above is never refused)
+    if (deps.jogAxisRefusal(axis)) return;
 
     // DIRECTION CHANGE: stop first, then start in new direction
     if (prev !== 0 && Math.sign(vel) !== Math.sign(prev)) {
@@ -349,7 +356,7 @@ export function useGamepad(deps: {
         const vertical = btn === "dpad_up" || btn === "dpad_down";
         const dir = btn === "dpad_up" || btn === "dpad_right" ? 1 : -1;
         const axis = vertical ? (zModHeld ? zi : yi) : xi;
-        if (axis < 0) continue;
+        if (axis < 0 || deps.jogAxisRefusal(axis)) continue;
         const vel = deps.jogVel.value * dir;
         const step = deps.jogIncrement.value;
         if (step > 0) {
