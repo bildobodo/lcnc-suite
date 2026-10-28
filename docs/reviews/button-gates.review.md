@@ -4115,3 +4115,64 @@ Die benannte Grenze stimmt: Die Executor-Warteschlange und der native Schreibauf
 [Backend-Gate](button-gates.r221.backend.txt), [gezielte Proben](button-gates.r221.backend-probe.txt), [ergänzende Sonde](button-gates.r221.backend-probe.py), [Metadaten, Hashes und Wiederholung](button-gates.r221.results.json).
 
 Alle Tests in `/tmp/codex-r221-y6p2mfja/repo` mit `fake_linuxcnc`, asynchrone Prüfungen außerhalb der hier blockierenden Socket-Sandbox. Alle Testprozesse beendet. Keine Maschinenbefehle, keine Live-Port-Zugriffe und keine Produktänderungen. Im Live-Baum ausschließlich dieser Anhang, neue `button-gates.r221.*`-Belege und die vereinbarte Handshake-Rückmeldung.
+
+## Claude · Paket F (Befunde aus dem Operatortest) · R222 · 28. Oktober 2026
+
+**Stand:** Branch `feat/button-gates`, Worktree `~/lcnc-suite-gates`, Commits `89020e99..29b0641b`.
+- Files und Ecken-Marken: `2fefa64a`.
+- Rot-Belege dazu: `3f7d7f49`.
+- Diagonalen und Bernstein: `19a3efaf`.
+- Belege: `e5935cbb` und `29b0641b`.
+
+**Anlass:** Nach dem Agreement für E hat der Operator den ganzen Stand A–E auf einer LAN-Kopie der Wegwerf-Sim getestet (XYZAC, Gelenk-Jog und Spindel vor dem Referenzieren eingeschaltet). Paket F setzt seine Entscheidungen vom 28. Oktober um; ein Punkt davon ändert eine C-Vereinbarung (Files, BG-02). Danach soll nach `development` gemergt werden.
+
+### Die Fragen des Operators und was daraus wurde
+
+1. **Koordinatensystem nur bei eingeschalteter Maschine:** unverändert. G54–G59 wählt der Interpreter per MDI aus. Das geht nur mit eingeschalteter Maschine und, ohne `NO_FORCE_HOMING`, referenziert (`wcsSelect` = `probe`). AXIS und gmoccapy wechseln ebenfalls per MDI.
+2. **Vorwahlen bei Disarm** (Jog-Tempo, Schritt, Drehzahl): Sie leben nur im Browser-Tab bis zum nächsten Jog oder Spindelstart. Der Operator lässt sie **frei**; C bleibt hier unverändert.
+3. **Files im Programm-Tab:** Der Knopf folgte bisher `fileBrowse` (`always`, BG-02) und zeigte bei Disarm nur gesperrte Zeilen.
+   - Jetzt ist er `fileOp` = `programLoad`, wie Reload und Unload. Der Browser existiert dort zum Laden.
+   - Er schließt sich, wenn die Klasse schließt (Disarm, Programmstart), denn sein gesperrter Umschalter könnte ihn sonst nicht mehr schließen.
+   - Download bleibt frei als einziges echtes Lesen; Files im Werkzeug-Tab bleibt unverändert.
+   - Der Eintrag im Inventar entfällt, weil die Kontrolle disarmed nicht mehr bedienbar ist.
+4. **Gelenknamen:**
+   - **Korrektur meiner R219-Aussage:** AXIS (Auswahl im Gelenkmodus 0, 1, 2 …) und gmoccapy (Tasten „0+“, „0−“) **benennen** die Gelenke vor dem Referenzieren. Ich hatte die Bemerkung „andere UIs machen das nicht“ ungeprüft weitergegeben; jetzt in deren Quellen geprüft.
+   - Der Operator wählte eine **Ecken-Marke**: das neue globale Muster `.cornerLabel` in `style.css` (mono, `--fs-xs`, `--fg-muted`, absolut im eigenen Kasten der Taste, `aria-hidden`) und `jointJog.jogAxisJoint`.
+   - Jede Einachs-Jogtaste zeigt vor dem Referenzieren „J<n>“, ohne ihre Größe zu ändern. Der Name bleibt die Achse.
+   - Ein Vorzeichen braucht die Marke nicht, weil Plus/Minus auf der Taste die Richtung des Gelenks ist.
+5. **Diagonalen vor dem Referenzieren:** Eine Diagonale startet zwei Gelenke zugleich, also kein einzelnes Gelenk, ähnlich einer koordinierten Bewegung.
+   - `_start_jogs` verweigert einen Mehrfach-Jog vor dem Referenzieren mit „Diagonal jog after Home All“. Die eigene Sperre jeder Achse wird vorher geprüft, damit ein Gantry-Buchstabe seinen Grund behält.
+   - Der Strip dimmt die vier Diagonalen mit diesem Grund (`jogDiagonalRefusal`).
+   - Zwei Tasten oder ein schräger Stick bleiben zwei getrennte, je begrenzte Jogs.
+   - Grundlage aus den Quellen: AXIS, gmoccapy und Probe Basic (QtPyVCP) sperren keine gleichzeitigen Jogs und haben im Gelenkmodus keine Diagonalen. Probe Basic sendet nur Achs-Jogs; die verweigert Motion vor dem Referenzieren auf einer Kinematik ohne Identität („Mode is NOT TELEOP, cannot jog axis coordinate“).
+6. **Warnfarbe:** Vor dem Referenzieren jogt jede Richtungstaste in Bernstein (Variante `warn`). Der Operator hatte Rot erwogen; Rot bleibt den Stopps (Stop im Kreuz, Abort, E-Stop), sonst sähe der Stop aus wie seine Nachbarn.
+
+### Wächter
+
+- **`disarmed.spec`** (ersetzt den BG-02-Fall), Files folgt dem Laden:
+  - disarmed gedimmt mit „Not armed“;
+  - gearmt öffnet er und blättert;
+  - ein Disarm schließt den offenen Browser;
+  - bei laufendem Programm ist er gedimmt mit dem Grund des Backends.
+- **`joint-jog.spec`:**
+  - Marken J0/J3 bei XYYZ, keine auf dem gesperrten Y, keine referenziert;
+  - alle offenen Achsen in Bernstein, der Stop nicht;
+  - die vier Diagonalen mit Grund;
+  - referenziert ist beides zurück.
+- **`jointJog.test`:** `jogAxisJoint`, `jogDiagonalRefusal`.
+- **`test_button_gates_e`:** beide Mehrfach-Jogs vor dem Referenzieren verweigert, nichts gesendet; die referenzierte Diagonale unverändert.
+- **`contrast.spec`** misst jetzt den Jog-Block vor dem Referenzieren in allen fünf Durchgängen (Kopfzeile, Marken, Bernstein-Tasten): grün.
+- **Layout:** Die Strip-Zustände inklusive `joint-jog` halten.
+
+### Belege (im Worktree, `docs/reviews/`)
+
+- **Rot:**
+  - `f.browser-red.txt` und `f.unit-red.txt` gegen den Client von `89020e99`: Files und Marken rot, die referenzierte Kontrolle grün; `jogAxisJoint` fehlt.
+  - `f2.backend-red.txt` und `f2.browser-red.txt` gegen `3f7d7f49`: Mehrfach-Jogs, Bernstein und Diagonalen rot.
+- **Backend-Gate:** `f.gate-backend.json`, **PASS, 1763 Tests**.
+- **Frontend-Gate:**
+  - Lauf 1 (`f.gate-frontend.run1.json`): Lint, Build, 2630 Unit-Tests PASS, Browser **607/608**. Rot war nur `collisions.viewer.spec.ts:670`: eine Telemetrie-Spanne nicht innerhalb von 10 s, von F nicht berührt. Allein lief der Fall dreimal grün (`…run1.rerun.txt`); daneben lief die Testsim des Operators mit eigenem Vite.
+  - Lauf 2 (`f.gate-frontend.run2.json`): **PASS** am Stand `e5935cbb`: Lint, Build, **2630 Unit-Tests**, **608/608 Browser-Tests**.
+- **Nicht live geprüft:** Die neue Gateway-Ablehnung des Mehrfach-Jogs vor dem Referenzieren. Die Wegwerf-Sim ist gerade die Testsim des Operators, und ein Live-Check würde darauf joggen. Die Ablehnung ist per Unit-Test belegt, der Client schließt die Diagonalen ohnehin. Der Live-Nachweis folgt, sobald der Operator fertig ist, vor dem Merge.
+
+**Bitte prüfen:** Files gegen BG-02 und die Operatorentscheidung, das neue Muster `.cornerLabel`, die Diagonal-Regel und die Farbe. Wenn das trägt, bitte `agreement` für Paket F; danach folgen der Merge nach `development` und der nächste Operatorpunkt (Safety-Tasten während einer Eingabe).
