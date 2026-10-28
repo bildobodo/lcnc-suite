@@ -9625,5 +9625,13 @@ UI does" without my checking it; the joint is now a corner mark ("J0", a new
 global `.cornerLabel`) that never changes a button's size. Neither AXIS nor gmoccapy caps the
 speed or has a switch: jogging joints before homing is native LinuxCNC (moving off a limit
 switch, out of a clamp, to a reference mark; world coordinates and soft limits are undefined
-before homing, so only joint jogs, each bounded to ± full travel from where it starts).
+before homing, so only joint jogs, each bounded to ± full travel from where it starts). The operator then asked for
+(4) the diagonals: a diagonal starts two joints at once — no single joint, like a coordinated
+move — so before homing the four diagonals are closed (the gateway refuses a multi-jog there,
+"Diagonal jog after Home All"); simultaneous keys or a slanted stick stay allowed as in AXIS,
+gmoccapy and Probe Basic (none of them blocks simultaneous jogs; none has diagonals in joint
+mode), each joint capped. (5) A warning colour: the direction buttons jog in amber before
+homing — the operator suggested red; red stays the stops' (the pad's Stop, Abort, E-Stop),
+or the Stop would look like its neighbours. The corner mark carries no sign: the button's
+"+" / "−" is the joint's direction.
 

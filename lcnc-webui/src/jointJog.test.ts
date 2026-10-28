@@ -3,7 +3,7 @@
 // homed, or without a declaration, nothing changes.
 import "./testGlobals";
 import { describe, it, expect } from "vitest";
-import { AXIS_NOT_DECLARED, jogAxisJoint, jogAxisRefusal, jointJogActive, jointJogNote, type JointJog } from "./jointJog";
+import { AXIS_NOT_DECLARED, DIAGONAL_BEFORE_HOMING, jogAxisJoint, jogAxisRefusal, jogDiagonalRefusal, jointJogActive, jointJogNote, type JointJog } from "./jointJog";
 
 const GANTRY = "Gantry axis — jog it after Home All";
 const XYYZ: JointJog = {
@@ -35,6 +35,13 @@ describe("jogging before homing", () => {
     expect(jogAxisRefusal(XYYZ, false, 7)).toBe(AXIS_NOT_DECLARED);
     expect(jogAxisRefusal(XYYZ, true, 1)).toBeNull();
     expect(jogAxisRefusal({ ...XYYZ, enabled: false }, false, 1)).toBeNull();
+  });
+
+  it("closes the diagonals while jogging joints (two joints at once, package F)", () => {
+    expect(DIAGONAL_BEFORE_HOMING).toBe("Diagonal jog after Home All");
+    expect(jogDiagonalRefusal(XYYZ, false)).toBe(DIAGONAL_BEFORE_HOMING);
+    expect(jogDiagonalRefusal(XYYZ, true)).toBeNull();
+    expect(jogDiagonalRefusal({ ...XYYZ, enabled: false }, false)).toBeNull();
   });
 
   it("states the cap", () => {

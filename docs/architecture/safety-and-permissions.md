@@ -488,6 +488,14 @@ joint jog before homing in E.
   2026-10-28):** each jog button marks the joint it moves in its corner
   ("J0", the global `.cornerLabel`, `jogAxisJoint`; aria-hidden — the name
   stays the axis), never changing its size; AXIS and gmoccapy name the
-  joints by number before homing too.
+  joints by number before homing too. Before homing every direction button
+  jogs in amber (the `warn` variant; red stays the stops'), and the
+  diagonals are closed: a multi-jog starts two joints at once — no single
+  joint, like a coordinated move — so the gateway refuses it there
+  ("Diagonal jog after Home All", after each axis' own closure) and the
+  strip dims the four diagonals with that reason (`jogDiagonalRefusal`).
+  Two keys or a slanted stick still start two separate jogs, each capped —
+  as in AXIS and gmoccapy (neither has diagonals in joint mode, neither
+  blocks simultaneous jogs; Probe Basic sends axis jogs only).
 - *Named limits*: no gantry sim config exists — the gantry closure is
   proven by the pure map's tests only.

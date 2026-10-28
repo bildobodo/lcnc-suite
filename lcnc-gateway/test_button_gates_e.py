@@ -396,6 +396,25 @@ class TestJoggingBeforeHoming(_Writer):
                 self.assertEqual(r, {"ok": False, "error": "Gantry axis — jog it after Home All"})
                 self.assertEqual([n for n in self.cmd.names() if n in ("mode", "jog")], [])
 
+    def test_a_diagonal_is_refused_before_homing(self):
+        # package F (operator 2026-10-28): the diagonals' multi-jogs start two
+        # joints at once — no single joint, like a coordinated move; AXIS and
+        # gmoccapy have no diagonals in joint mode
+        for msg in ({"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 1.0}, {"axis": 1, "vel": 1.0}]},
+                    {"cmd": "jog_incr_multi", "axes": [{"axis": 0, "vel": 1.0, "distance": 1.0},
+                                                       {"axis": 1, "vel": 1.0, "distance": -1.0}]}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                r = self.unhomed(msg)
+                self.assertEqual(r, {"ok": False, "error": "Diagonal jog after Home All"})
+                self.assertEqual([n for n in self.cmd.names() if n in ("mode", "jog")], [])
+
+    def test_a_diagonal_homed_is_unchanged(self):
+        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        r = self.send({"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 1.0}, {"axis": 1, "vel": 1.0}]})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual([a[2] for a in self.jogs()], [0, 1])
+
     def test_partially_homed_is_before_homing(self):
         # joints 0 and 1 homed, 2 not: joint mode, the cap on every joint
         # (over-strict for the homed ones, which their soft limits protect)

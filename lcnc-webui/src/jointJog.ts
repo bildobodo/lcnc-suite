@@ -27,6 +27,10 @@ export interface JointJog {
 
 /** The fallback when the gateway names no reason for a closed axis. */
 export const AXIS_NOT_DECLARED = "No joint declared — jog it after Home All";
+/** A diagonal moves two joints at once — no single joint, like a coordinated
+ *  move: closed before homing (package F, operator 2026-10-28; the gateway
+ *  refuses a multi-jog there with the same words). */
+export const DIAGONAL_BEFORE_HOMING = "Diagonal jog after Home All";
 
 /** Is the strip jogging joints — before homing, where the machine declares it? */
 export function jointJogActive(jj: JointJog | null | undefined, homed: boolean): boolean {
@@ -40,6 +44,11 @@ export function jogAxisRefusal(jj: JointJog | null | undefined, homed: boolean, 
   const row = jj!.axes[axisIndex];
   if (!row || row.joint == null) return row?.reason ?? AXIS_NOT_DECLARED;
   return null;
+}
+
+/** Why a diagonal (two joints at once) may not jog now, or null. */
+export function jogDiagonalRefusal(jj: JointJog | null | undefined, homed: boolean): string | null {
+  return jointJogActive(jj, homed) ? DIAGONAL_BEFORE_HOMING : null;
 }
 
 /** The joint an axis moves while jogging joints (its button's corner

@@ -1,0 +1,2 @@
+SUBFAILED(cmd='jog_cont_multi') test_button_gates_e.py::TestJoggingBeforeHoming::test_a_diagonal_is_refused_before_homing
+SUBFAILED(cmd='jog_incr_multi') test_button_gates_e.py::TestJoggingBeforeHoming::test_a_diagonal_is_refused_before_homing

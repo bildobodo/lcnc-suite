@@ -14,7 +14,7 @@ import ChoiceGroup from "./ChoiceGroup.vue";
 import type { ChoiceOption } from "./choiceGroup";
 import HelpIcon from "./HelpIcon.vue";
 import { TASK_MODE_MANUAL, TASK_MODE_AUTO, TASK_MODE_MDI } from "./lcnc";
-import { jointJogActive, jogAxisJoint, jogAxisRefusal, jointJogNote, type JointJog } from "./jointJog";
+import { jointJogActive, jogAxisJoint, jogAxisRefusal, jogDiagonalRefusal, jointJogNote, type JointJog } from "./jointJog";
 import {
   ArrowUp, ArrowDown, ArrowLeft, ArrowRight,
   ArrowUpLeft, ArrowUpRight, ArrowDownLeft, ArrowDownRight,
@@ -342,6 +342,14 @@ const xyBtns = computed<JogDef[]>(() => {
 // label, "J2·Z+" widened the Z and rotary buttons; AXIS and gmoccapy name
 // the joints by number too).
 const jointOn = computed(() => jointJogActive(props.jointJog, !!props.homed));
+// A diagonal moves two joints at once — closed before homing (package F);
+// every direction button jogs in amber then (the warn variant — red stays
+// the stops').
+function padRefusal(btn: JogDef): string | undefined {
+  return axisRefusal(btn.axis, btn.axis2)
+    ?? (btn.axis2 != null ? jogDiagonalRefusal(props.jointJog, !!props.homed) ?? undefined : undefined);
+}
+const jogVariant = computed(() => (jointOn.value ? "warn" as const : undefined));
 function jointMark(index: number | undefined): number | null {
   return index == null || index < 0 ? null : jogAxisJoint(props.jointJog, !!props.homed, index);
 }
@@ -493,10 +501,10 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               v-for="btn in xyBtns"
               :key="btn.label"
               :type="btn.axis < 0 ? 'jogStop' : 'jog'"
-              :disabled="!!axisRefusal(btn.axis, btn.axis2)"
-              :reason="axisRefusal(btn.axis, btn.axis2)"
+              :disabled="!!padRefusal(btn)"
+              :reason="padRefusal(btn)"
               class="jogBtn"
-              :variant="btn.axis < 0 ? 'danger' : undefined"
+              :variant="btn.axis < 0 ? 'danger' : jogVariant"
               :active="activeJogKeys.has(btn.label)"
               @pointerdown.prevent="startJog(btn, $event)"
               @pointerup.prevent="stopJog(btn, $event)"
@@ -514,6 +522,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             type="jog"
             :disabled="!!axisRefusal(zAxis.index)"
             :reason="axisRefusal(zAxis.index)"
+            :variant="jogVariant"
             class="jogBtn"
             :active="activeJogKeys.has('Z+')"
             @pointerdown.prevent="startAxisJog(zAxis.index, 1, jogVel, $event)"
@@ -527,6 +536,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
             type="jog"
             :disabled="!!axisRefusal(zAxis.index)"
             :reason="axisRefusal(zAxis.index)"
+            :variant="jogVariant"
             class="jogBtn"
             :active="activeJogKeys.has('Z-')"
             @pointerdown.prevent="startAxisJog(zAxis.index, -1, jogVel, $event)"
@@ -545,6 +555,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, angularJogVel, $event)"
@@ -558,6 +569,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, angularJogVel, $event)"
@@ -577,6 +589,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '+')"
               @pointerdown.prevent="startAxisJog(ra.index, 1, jogVel, $event)"
@@ -590,6 +603,7 @@ function stopAxisJog(axisIndex: number, dir: 1 | -1, e: PointerEvent) {
               type="jog"
               :disabled="!!axisRefusal(ra.index)"
               :reason="axisRefusal(ra.index)"
+              :variant="jogVariant"
               class="jogBtn"
               :active="activeJogKeys.has(ra.letter + '-')"
               @pointerdown.prevent="startAxisJog(ra.index, -1, jogVel, $event)"

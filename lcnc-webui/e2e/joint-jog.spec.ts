@@ -29,13 +29,13 @@ type Sent = { cmd?: string; axis?: number };
 const sent = async (): Promise<Sent[]> => ((await ctl({ op: "lastCmds" })) as { cmds?: Sent[] }).cmds ?? [];
 const jogs = async () => (await sent()).filter((c) => c.cmd?.startsWith("jog_")).map((c) => [c.cmd, c.axis]);
 
-async function open(page: Page, homed: boolean) {
+async function open(page: Page, homed: boolean, jointJog: typeof JOINT_JOG = JOINT_JOG) {
   await ctl({ op: "reset" });
   await page.goto(MOCK);
   await expect(page.locator("input.setupInput").first()).toBeVisible();
   await ctl({ op: "quiet", on: true });
   await ctl({ op: "raw", frame: { type: "settings_init", settings: { keyboard: { jogEnabled: true, buttonsEnabled: true } } } });
-  await ctl({ op: "setJointJog", jointJog: JOINT_JOG });
+  await ctl({ op: "setJointJog", jointJog });
   // the gateway's classes: jog open before homing (it is declared), no ready / run
   await ctl({ op: "status_delta", armed: true, data: { ...(homed ? HOMED : UNHOMED),
     permissions: perms(homed ? {} : { ready: false, run: false }), permission_reasons: {} } });
@@ -92,6 +92,26 @@ test("before homing the keyboard refuses the closed axis like the button, and jo
   await page.keyboard.down("ArrowRight");   // X+
   await page.keyboard.up("ArrowRight");
   await expect.poll(jogs).toEqual([["jog_cont", 0], ["jog_stop", 0]]);
+});
+
+test("before homing every open axis jogs in amber, the diagonals are closed with their reason; homed both are back (package F)", async ({ page }) => {
+  // every axis its own joint (no gantry): the only closure left is the diagonal
+  await open(page, false, { ...JOINT_JOG, axes: ["X", "Y", "Z"].map((letter, joint) => ({ letter, joint, reason: null })) });
+  const strip = page.locator('[data-strip="jog"]');
+  for (const name of ["X+", "X-", "Y+", "Y-", "Z+", "Z-"]) {
+    const btn = strip.getByRole("button", { name, exact: true });
+    await expect(btn, name).toBeEnabled();
+    await expect(btn, `${name}: amber before homing`).toHaveClass(/\bwarn\b/);
+  }
+  await expect(strip.locator('[data-control="jogStop"]'), "the Stop stays red").not.toHaveClass(/\bwarn\b/);
+  for (const cell of [0, 2, 6, 8]) {   // the pad's four corners: the diagonals
+    const diagonal = strip.locator(".xyGrid > *").nth(cell);
+    await expect(diagonal).toHaveClass(/btnTip/);
+    await expect(diagonal).toHaveAttribute("title", "Diagonal jog after Home All");
+  }
+  await ctl({ op: "status_delta", data: { ...HOMED } });
+  await expect(strip.getByRole("button", { name: "X+", exact: true })).not.toHaveClass(/\bwarn\b/);
+  await expect(strip.locator(".xyGrid > *").nth(0)).not.toHaveClass(/btnTip/);
 });
 
 test("homed: the axis letters as before, no note, every axis open", async ({ page }) => {

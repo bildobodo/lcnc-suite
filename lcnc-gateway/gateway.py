@@ -3528,6 +3528,10 @@ def _auto_running() -> bool:
 #: A jog prepared homed met an unhomed machine at its write, or the reverse
 #: (Codex R219 BG-33): its target, gantry closure and cap no longer hold.
 JOG_HOMING_CHANGED = "Homing state changed — jog again"
+#: A multi-jog (the strip's diagonals) before homing starts two joints at once
+#: — no single joint, like a coordinated move (package F, operator
+#: 2026-10-28; AXIS and gmoccapy have no diagonals in joint mode).
+DIAGONAL_BEFORE_HOMING = "Diagonal jog after Home All"
 
 
 def _homed_now() -> Optional[bool]:
@@ -3582,6 +3586,9 @@ async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
                             asked=vel, cap=cap)
                 vel = math.copysign(cap, vel)
             targets.append((axis, 1, row["joint"], vel, dist))
+        # each axis' own closure first (the strip names it the same way)
+        if len(targets) > 1:
+            return {"ok": False, "error": DIAGONAL_BEFORE_HOMING}
     try:
         await set_mode(linuxcnc.MODE_MANUAL, admit=admit)
         if targets is None:
