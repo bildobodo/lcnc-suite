@@ -9607,3 +9607,9 @@ Now each jog write holds the homing state it was prepared under (else "Homing st
 jog again"), the booking happens in the write's thread (`_cmd_blocking(written=)`), and `jog`
 requires no homing under way (known).
 
+**Package E, re-review R220 (2026-10-28).** BG-33 and BG-35 closed; BG-34's rest: a SECOND
+cancel (the abort preemption, then the disconnect) broke `_cmd_blocking`'s one wait for its
+write, so the command lock — and the disconnect stop — came before the write and its booking.
+`_cmd_blocking` now awaits its write through every cancel (`_thread_to_end`, which already did
+this for the file and tool-table writers, with `on_cancel` ending the wait slices).
+

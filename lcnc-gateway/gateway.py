@@ -1327,18 +1327,22 @@ def _get_var_file_lock() -> asyncio.Lock:
     return _var_file_lock
 
 
-async def _thread_to_end(inner):
+async def _thread_to_end(inner, on_cancel: Optional[Callable[[], None]] = None):
     """Await a thread's future — or an admitted write section's task — to its
     END. A cancel — a second one too — waits for it before it propagates, so
     a lock the caller holds is never released under an operation still
     running (the _cmd_blocking principle: a thread cannot be cancelled). For
     the parameter file's writers, the macro writers' publish under
     _source_lock (Codex R70 VP-I29: a cancelled PUT left the lock while its
-    os.replace still ran) and the tool table's write + reload + metadata
-    under _cmd_lock (button gates BG-22, Codex R211)."""
+    os.replace still ran), the tool table's write + reload + metadata under
+    _cmd_lock (button gates BG-22, Codex R211) and every CMD write itself
+    (_cmd_blocking, Codex R220). `on_cancel` runs at the first cancel (the
+    write's wait loop ends its slices)."""
     try:
         return await asyncio.shield(inner)
     except asyncio.CancelledError:
+        if on_cancel is not None:
+            on_cancel()
         while not inner.done():
             try:
                 await asyncio.wait({inner})
@@ -3421,15 +3425,13 @@ async def _cmd_blocking(cmd_fn, *args, wait=_CMD_WAIT_TIMEOUT, claim: Optional["
     # NML concurrently — the corruption the lock exists to prevent. Handlers
     # are cancellable (disconnect, abort/estop preemption), so on cancel we
     # flag the slice loop, keep the lock until the thread actually returns
-    # (bounded by one slice + one NML call), then propagate. asyncio.wait
+    # (bounded by one slice + one NML call, plus the executor queue it may
+    # still wait in), then propagate — through a SECOND cancel too (the abort
+    # preemption, then the disconnect: Codex R220 BG-34; it released the
+    # lock before the write and its booking were done). _thread_to_end
     # retrieves the inner result so nothing is reported as never-retrieved.
     inner = asyncio.ensure_future(asyncio.to_thread(_run))
-    try:
-        return await asyncio.shield(inner)
-    except asyncio.CancelledError:
-        cancel.set()
-        await asyncio.wait({inner})
-        raise
+    return await _thread_to_end(inner, on_cancel=cancel.set)
 
 
 _MODE_NAMES = {1: "MANUAL", 2: "AUTO", 3: "MDI"}

@@ -1,0 +1,55 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+_ TestAWriteOutlastsEveryCancel.test_two_cancels_keep_the_lock_until_the_write_is_done _
+
+self = <test_button_gates_e.TestAWriteOutlastsEveryCancel testMethod=test_two_cancels_keep_the_lock_until_the_write_is_done>
+
+    def test_two_cancels_keep_the_lock_until_the_write_is_done(self):
+        async def go():
+            loop = asyncio.get_running_loop()
+            pool = ThreadPoolExecutor(max_workers=1)
+            loop.set_default_executor(pool)
+            release = threading.Event()
+            blocker = loop.run_in_executor(None, release.wait, 5)
+            submitted = asyncio.Event()
+            original = loop.run_in_executor
+    
+            def enqueue(executor, fn, *args):
+                fut = original(executor, fn, *args)
+                submitted.set()
+                return fut
+            task = None
+            try:
+                with mock.patch.object(loop, "run_in_executor", enqueue):
+                    task = asyncio.create_task(gateway.handle_command(
+                        {"cmd": "jog_cont", "axis": 0, "vel": 1.0}, True, self.writer.conn_key))
+                    await asyncio.wait_for(submitted.wait(), 2)
+                    self.writer.cmd_inflight = "jog_cont"
+                    self.writer.cmd_inflight_task = task
+                    self.assertEqual(gateway._preempt_inflight("abort", 923), 1)   # the first cancel
+                    await asyncio.sleep(0)
+                    task.cancel()                                                # the disconnect's
+                    for _ in range(6):
+                        await asyncio.sleep(0)
+                    held = gateway._get_cmd_lock().locked()
+                    release.set()
+                    await blocker
+                    result = await asyncio.gather(task, return_exceptions=True)
+                booked = dict(gateway._active_jogs)
+                async with gateway._get_cmd_lock():
+                    await gateway._jog_stop_for_client()
+                return held, result[0], booked
+            finally:
+                release.set()
+                if task and not task.done():
+                    task.cancel()
+                    await asyncio.gather(task, return_exceptions=True)
+                pool.shutdown(wait=False)
+        gateway._cmd_lock = None
+        held, result, booked = _run(go())
+>       self.assertTrue(held, "the command lock never escapes under an unfinished write")
+E       AssertionError: False is not true : the command lock never escapes under an unfinished write
+
+test_button_gates_e.py:632: AssertionError
+=========================== short test summary info ============================
+FAILED test_button_gates_e.py::TestAWriteOutlastsEveryCancel::test_two_cancels_keep_the_lock_until_the_write_is_done

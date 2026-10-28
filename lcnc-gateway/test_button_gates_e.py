@@ -563,5 +563,77 @@ class TestTheJogHoldsAtItsWrite(_Writer):
         self.assertEqual(self.jogs()[-1], (linuxcnc.JOG_STOP, 1, 0), "and the disconnect stop reaches it")
 
 
+class TestAWriteOutlastsEveryCancel(_Writer):
+    """Codex R220 (BG-34 rest): a SECOND cancel — the abort preemption, then
+    the disconnect — must not let the command lock go while a write still
+    waits or runs; the lock is released, and the cancel propagates, only once
+    the write and its booking are done, so the disconnect stop that takes the
+    lock next reaches the jog."""
+
+    def setUp(self):
+        super().setUp()
+        self.takes_the_mode()
+        gateway._active_jogs.clear()
+        rows, why = joint_jog_map(list("XYZ"), 3, list("XYZ"), [20.0] * 3)
+        facts = {"enabled": True, "fraction": 0.1, "axes": rows, "reason": why}
+        p = mock.patch.object(gateway, "_joint_jog_facts", lambda: facts)
+        p.start()
+        self.addCleanup(p.stop)
+        self.controller(homed=False)
+        gateway.STAT.homed = (0,) * 16
+        gateway._shared_status = _payload(homed=False, inpos=True, current_vel=0.0)
+
+    def jogs(self):
+        return [a for n, a, _k in self.cmd.calls if n == "jog"]
+
+    def test_two_cancels_keep_the_lock_until_the_write_is_done(self):
+        async def go():
+            loop = asyncio.get_running_loop()
+            pool = ThreadPoolExecutor(max_workers=1)
+            loop.set_default_executor(pool)
+            release = threading.Event()
+            blocker = loop.run_in_executor(None, release.wait, 5)
+            submitted = asyncio.Event()
+            original = loop.run_in_executor
+
+            def enqueue(executor, fn, *args):
+                fut = original(executor, fn, *args)
+                submitted.set()
+                return fut
+            task = None
+            try:
+                with mock.patch.object(loop, "run_in_executor", enqueue):
+                    task = asyncio.create_task(gateway.handle_command(
+                        {"cmd": "jog_cont", "axis": 0, "vel": 1.0}, True, self.writer.conn_key))
+                    await asyncio.wait_for(submitted.wait(), 2)
+                    self.writer.cmd_inflight = "jog_cont"
+                    self.writer.cmd_inflight_task = task
+                    self.assertEqual(gateway._preempt_inflight("abort", 923), 1)   # the first cancel
+                    await asyncio.sleep(0)
+                    task.cancel()                                                # the disconnect's
+                    for _ in range(6):
+                        await asyncio.sleep(0)
+                    held = gateway._get_cmd_lock().locked()
+                    release.set()
+                    await blocker
+                    result = await asyncio.gather(task, return_exceptions=True)
+                booked = dict(gateway._active_jogs)
+                async with gateway._get_cmd_lock():
+                    await gateway._jog_stop_for_client()
+                return held, result[0], booked
+            finally:
+                release.set()
+                if task and not task.done():
+                    task.cancel()
+                    await asyncio.gather(task, return_exceptions=True)
+                pool.shutdown(wait=False)
+        gateway._cmd_lock = None
+        held, result, booked = _run(go())
+        self.assertTrue(held, "the command lock never escapes under an unfinished write")
+        self.assertIsInstance(result, asyncio.CancelledError, "the cancel still propagates, after the write")
+        self.assertEqual(booked, {0: (1, 0)})
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 0, 1.0), (linuxcnc.JOG_STOP, 1, 0)])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -460,7 +460,10 @@ joint jog before homing in E.
   own thread right after `CMD.jog` returned (`_cmd_blocking`'s `written`),
   so a cancel during the write — a disconnect — never loses it and the
   disconnect stop reaches it (BG-34); a refused or failed write books
-  nothing. No NEW jog while homing runs: `jog` requires the homing state
+  nothing. `_cmd_blocking` waits for its write's END through every cancel,
+  a second one too (the abort preemption, then the disconnect — Codex
+  R220): the command lock, and with it the disconnect stop, comes only after
+  the write and its booking (`_thread_to_end(on_cancel=)`). No NEW jog while homing runs: `jog` requires the homing state
   known and no joint homing (BG-35; motion rejects a jog then, command.c
   v2.9.4:785/853, and a booked jog's stop would cancel the homing); the
   stops stay open. `_jog_axis_arg` uses the
