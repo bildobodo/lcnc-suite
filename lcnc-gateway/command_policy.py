@@ -130,6 +130,11 @@ class MachineState:
     #: spindle runs before homing — machine ON, idle, MANUAL only. Closed
     #: default; the gateway reads anything but exactly "1" as off.
     spindle_before_homing: bool = False
+    #: [DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING = 1 with a valid declared joint
+    #: order (operator E1, package E / BG-07): jogging opens before homing —
+    #: joint-wise, per axis only where one joint carries the letter, capped
+    #: (the gateway's _joint_jog_facts). Closed default.
+    joint_jog_before_homing: bool = False
 
 
 #: Below this |current_vel| (machine units per second) the machine stands —
@@ -187,6 +192,9 @@ _R_INTERP_KNOWN = (lambda s: s.interp_known, STATE_UNKNOWN)
 MACHINE_BUSY = "Machine busy — wait until it is idle"
 _R_IDLE = (lambda s: s.is_idle, MACHINE_BUSY)
 _R_HOMED = (lambda s: s.is_homed, "Not homed — press Home All")
+#: Jogging: homed, or joint-wise before homing where the machine declares it
+#: (package E) — which axes may move, and how fast, the handler decides.
+_R_HOMED_OR_JOINT_JOG = (lambda s: s.is_homed or s.joint_jog_before_homing, _R_HOMED[1])
 _R_EOFFSET_KNOWN = (lambda s: s.eoffset_enabled is not None,
                     "Surface compensation state unknown — HAL reader stale")
 _R_NO_EOFFSET = (lambda s: s.eoffset_enabled is False,
@@ -613,7 +621,7 @@ _G30_SYNCH = (_R_TASK_MODE_KNOWN, _R_SYNCH_POSSIBLE)
 # gate -> ordered requirements (armed/estop/enabled first → sensible messages).
 GATE_REQUIREMENTS: Dict[str, tuple] = {
     "idle":     _BASE + _IDLE,
-    "jog":      _BASE + _IDLE + (_R_HOMED,),
+    "jog":      _BASE + _IDLE + (_R_HOMED_OR_JOINT_JOG,),
     "override": _BASE,
     "ready":    _BASE + _IDLE + (_R_HOMED,),
     # Program start (Cycle Start / run-from-line): `ready` plus the

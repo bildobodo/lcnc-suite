@@ -946,6 +946,85 @@ def kins_type_flags(seqs, events):
     return out
 
 
+#: Why a jog before homing is closed (button gates package E, BG-07) —
+#: "why — what to do", at most 60 characters.
+JOINT_ORDER_UNDECLARED = "Joint order not declared — set WEBUI_JOINT_AXES"
+GANTRY_AXIS = "Gantry axis — jog it after Home All"
+NO_JOINT_FOR_AXIS = "No joint declared — jog it after Home All"
+NO_JOINT_MAX_VEL = "Joint has no MAX_VELOCITY — set it in the INI"
+_JOINT_LETTERS = "XYZABCUVW"
+
+
+def parse_joint_letters(value):
+    """[DISPLAY] WEBUI_JOINT_AXES → the axis letter of each joint in joint
+    order, or None when absent; ValueError on anything else. Accepts
+    "X Y Z A C", "X,Y,Z" and "XYZAC". Pure."""
+    if value is None or not str(value).strip():
+        return None
+    tokens = [t for t in str(value).replace(",", " ").split() if t]
+    if len(tokens) == 1 and len(tokens[0]) > 1:
+        tokens = list(tokens[0])
+    letters = [t.upper() for t in tokens]
+    bad = [t for t in letters if len(t) != 1 or t not in _JOINT_LETTERS]
+    if bad:
+        raise ValueError(f"not axis letters: {bad}")
+    return letters
+
+
+def trivkins_coordinates(kinematics_value):
+    """trivkins' own joint order — its `coordinates=` parameter, letters in
+    joint order (XYYZ: two joints carry Y) — or None: another module, or
+    trivkins without the parameter (its default is not guessed). Pure."""
+    tokens = str(kinematics_value or "").split()
+    if not tokens or tokens[0] != "trivkins":
+        return None
+    for t in tokens[1:]:
+        if t.lower().startswith("coordinates="):
+            letters = [c.upper() for c in t.split("=", 1)[1] if not c.isspace()]
+            return letters if letters and all(c in _JOINT_LETTERS for c in letters) else None
+    return None
+
+
+def joint_jog_map(joint_letters, joints, axes, max_vels):
+    """Which joint a jog BEFORE homing moves for each configured axis (button
+    gates package E, BG-07): from a DECLARED joint order, never the axis-list
+    index guessed as a joint number.
+
+    `joint_letters`: each joint's axis letter in joint order, or None;
+    `joints`: STAT.joints; `axes`: the configured axis letters in axis-list
+    order (the wire index); `max_vels`: [JOINT_n] MAX_VELOCITY per joint, None
+    when absent. Returns (rows, why): one row per axis {letter, joint,
+    max_vel, reason} — joint None and the reason where that axis cannot jog
+    joint-wise — and `why`, a reason for the whole map (every row closed
+    then). A letter two or more joints carry is a synchronised group (a
+    gantry): never jogged one joint at a time. Pure."""
+    def closed(reason):
+        return [{"letter": L, "joint": None, "max_vel": None, "reason": reason} for L in axes], reason
+    if joint_letters is None:
+        return closed(JOINT_ORDER_UNDECLARED)
+    if not isinstance(joints, int) or len(joint_letters) != joints:
+        return closed(f"Joint order names {len(joint_letters)} joints, machine has {joints}")
+    foreign = [L for L in joint_letters if L not in axes]
+    if foreign:
+        return closed(f"Joint order names {foreign[0]}, not a machine axis")
+    rows = []
+    for L in axes:
+        carriers = [j for j, jl in enumerate(joint_letters) if jl == L]
+        if len(carriers) > 1:
+            rows.append({"letter": L, "joint": None, "max_vel": None, "reason": GANTRY_AXIS})
+            continue
+        if not carriers:
+            rows.append({"letter": L, "joint": None, "max_vel": None, "reason": NO_JOINT_FOR_AXIS})
+            continue
+        j = carriers[0]
+        mv = max_vels[j] if j < len(max_vels) else None
+        if mv is None or not mv > 0:
+            rows.append({"letter": L, "joint": None, "max_vel": None, "reason": NO_JOINT_MAX_VEL})
+            continue
+        rows.append({"letter": L, "joint": j, "max_vel": float(mv), "reason": None})
+    return rows, None
+
+
 def kins_world_flags(seqs, events, identity_first):
     """Per-segment world-mode flags (trt families) from marker events.
 

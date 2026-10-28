@@ -506,7 +506,8 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
                               identity_first: bool = False,
                               trip_unacked: bool = True,
                               coord_without_homing: bool = False,
-                              spindle_before_homing: bool = False) -> _PolicyMachineState:
+                              spindle_before_homing: bool = False,
+                              joint_jog_before_homing: bool = False) -> _PolicyMachineState:
     """Build the command-policy MachineState from a status snapshot.
 
     `kins_switchable` is the machine's kins DECLARATION (gateway
@@ -524,8 +525,9 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
     `trip_unacked` (gateway _unacked_trip), `coord_without_homing` (motion's
     kinType identity AND NO_FORCE_HOMING) and `spindle_before_homing` (the
     WEBUI_SPINDLE_BEFORE_HOMING switch) are gateway facts for the recovery,
-    the task-mode and the manual-spindle gates (button gates D); each
-    defaults CLOSED.
+    the task-mode and the manual-spindle gates (button gates D);
+    `joint_jog_before_homing` (the WEBUI_JOINT_JOG_BEFORE_HOMING switch with
+    a valid joint order, package E) for the jog gate; each defaults CLOSED.
 
     The estop/enabled HAL-merge lives here (issues #14 + #19): STAT.estop/enabled
     merged with the safety chain (emc_enable_in). poll_status broadcasts the
@@ -598,6 +600,7 @@ def policy_state_from_payload(p: "StatusPayload", armed: bool,
         coord_without_homing=bool(coord_without_homing),
         trip_unacked=bool(trip_unacked),
         spindle_before_homing=bool(spindle_before_homing),
+        joint_jog_before_homing=bool(joint_jog_before_homing),
     )
 
 
@@ -617,6 +620,7 @@ class StatusRuntime:
         get_trip_unacked: Callable[[], bool] = lambda: True,
         get_coord_without_homing: Callable[[], bool] = lambda: False,
         get_spindle_before_homing: Callable[[], bool] = lambda: False,
+        get_joint_jog_before_homing: Callable[[], bool] = lambda: False,
         get_reader_fresh: Callable[[], bool] = lambda: False,
         get_prov_a: Callable[[], Optional[List[Optional[float]]]] = lambda: None,
         get_instance: Callable[[], Optional[tuple]] = lambda: None,
@@ -634,6 +638,7 @@ class StatusRuntime:
         self._get_trip_unacked = get_trip_unacked
         self._get_coord_without_homing = get_coord_without_homing
         self._get_spindle_before_homing = get_spindle_before_homing
+        self._get_joint_jog_before_homing = get_joint_jog_before_homing
         # The reader's freshness at build time — the policy inputs it feeds
         # count only while it is fresh (BG-12). Default stale = closed.
         self._get_reader_fresh = get_reader_fresh
@@ -1367,7 +1372,8 @@ class StatusRuntime:
             identity_first=self._get_identity_first(),
             trip_unacked=self._get_trip_unacked(),
             coord_without_homing=self._get_coord_without_homing(),
-            spindle_before_homing=self._get_spindle_before_homing())
+            spindle_before_homing=self._get_spindle_before_homing(),
+            joint_jog_before_homing=self._get_joint_jog_before_homing())
         payload.is_estop = _pstate.is_estop
         payload.is_enabled = _pstate.is_enabled
         payload.permissions = evaluate_permissions(_pstate)

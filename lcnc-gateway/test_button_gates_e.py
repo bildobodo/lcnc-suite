@@ -13,8 +13,11 @@ import fake_linuxcnc
 linuxcnc = fake_linuxcnc.install()
 
 import gateway  # noqa: E402
+from command_policy import evaluate_permissions, permission_reasons  # noqa: E402
+from gateway_util import (GANTRY_AXIS, JOINT_ORDER_UNDECLARED, NO_JOINT_FOR_AXIS,  # noqa: E402
+                          NO_JOINT_MAX_VEL, joint_jog_map, parse_joint_letters, trivkins_coordinates)
 from test_button_gates import _run  # noqa: E402
-from test_button_gates_d import _Writer  # noqa: E402
+from test_button_gates_d import _Ini, _Writer, state  # noqa: E402
 
 MDI_RUNNING = {"task_mode": linuxcnc.MODE_MDI, "interp_state": linuxcnc.INTERP_READING}
 
@@ -189,6 +192,145 @@ class TestNoSwitchOntoARunningInterpreter(_Writer):
         r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 1.0}, lambda: None)
         self.assertTrue(r["ok"], r)
         self.assertEqual([n for n in self.cmd.names() if n in ("mode", "jog")], ["mode", "jog"])
+
+
+class TestTheJointMap(unittest.TestCase):
+    """BG-07: the joint a jog before homing moves comes from a DECLARED joint
+    order — the shipped orders, and a gantry, whose letter two joints carry,
+    closed (the only gantry evidence: no gantry sim config exists)."""
+
+    def rows(self, letters, axes, joints=None, max_vels=None):
+        n = len(letters) if joints is None and letters is not None else joints
+        rows, why = joint_jog_map(letters, n, axes, max_vels if max_vels is not None else [10.0] * (n or 0))
+        return [(r["letter"], r["joint"], r["reason"]) for r in rows], why
+
+    def test_the_shipped_orders(self):
+        for letters in ("XYZ", "XYZAC", "XYZABC"):
+            with self.subTest(letters=letters):
+                rows, why = self.rows(list(letters), list(letters))
+                self.assertIsNone(why)
+                self.assertEqual(rows, [(L, j, None) for j, L in enumerate(letters)])
+
+    def test_a_joint_order_unlike_the_axis_list(self):
+        # joint 3 carries C, joint 4 A: the wire's axis index is no joint number
+        rows, _ = self.rows(list("XYZCA"), list("XYZAC"))
+        self.assertEqual([j for _L, j, _r in rows], [0, 1, 2, 4, 3])
+
+    def test_a_gantry_letter_is_closed(self):
+        rows, why = self.rows(list("XYYZ"), list("XYZ"))
+        self.assertIsNone(why)
+        self.assertEqual(rows, [("X", 0, None), ("Y", None, GANTRY_AXIS), ("Z", 3, None)])
+
+    def test_the_whole_map_closes(self):
+        self.assertEqual(self.rows(None, list("XYZ"), joints=3)[1], JOINT_ORDER_UNDECLARED)
+        self.assertEqual(self.rows(list("XYZ"), list("XYZ"), joints=4)[1],
+                         "Joint order names 3 joints, machine has 4")
+        self.assertEqual(self.rows(list("XYA"), list("XYZ"))[1], "Joint order names A, not a machine axis")
+        rows, why = self.rows(None, list("XY"), joints=2)
+        self.assertEqual([j for _L, j, _r in rows], [None, None])
+
+    def test_an_axis_without_a_joint_or_a_max_velocity(self):
+        rows, _ = self.rows(list("XY"), list("XYZ"), joints=2)
+        self.assertEqual(rows[2], ("Z", None, NO_JOINT_FOR_AXIS))
+        rows, _ = self.rows(list("XYZ"), list("XYZ"), max_vels=[10.0, None, 0.0])
+        self.assertEqual(rows, [("X", 0, None), ("Y", None, NO_JOINT_MAX_VEL), ("Z", None, NO_JOINT_MAX_VEL)])
+
+    def test_the_declaration_forms(self):
+        for raw in ("X Y Z A C", "X,Y,Z,A,C", "xyzac", " XYZAC "):
+            with self.subTest(raw=raw):
+                self.assertEqual(parse_joint_letters(raw), list("XYZAC"))
+        self.assertIsNone(parse_joint_letters(None))
+        self.assertIsNone(parse_joint_letters("  "))
+        for raw in ("X Y Q", "X1 Y", "XY-Z"):
+            with self.subTest(raw=raw), self.assertRaises(ValueError):
+                parse_joint_letters(raw)
+        self.assertEqual(trivkins_coordinates("trivkins coordinates=XYYZ"), list("XYYZ"))
+        self.assertEqual(trivkins_coordinates("trivkins coordinates=xyz kinstype=BOTH"), list("XYZ"))
+        self.assertIsNone(trivkins_coordinates("trivkins"), "the module's default is not guessed")
+        self.assertIsNone(trivkins_coordinates("xyzac-trt-kins coordinates=XYZAC"))
+
+
+class TestTheJogGate(unittest.TestCase):
+    """`jog` opens before homing only where the machine declares the joint jog."""
+
+    def test_unhomed(self):
+        s = state(is_homed=False)
+        self.assertFalse(evaluate_permissions(s)["jog"])
+        self.assertEqual(permission_reasons(s)["jog"], "Not homed — press Home All")
+        self.assertTrue(evaluate_permissions(state(is_homed=False, joint_jog_before_homing=True))["jog"])
+        self.assertTrue(evaluate_permissions(state(is_homed=True))["jog"])
+
+    def test_the_rest_still_applies(self):
+        for over in ({"armed": False}, {"is_estop": True}, {"is_enabled": False},
+                     {"is_idle": False, "is_running": True}):
+            with self.subTest(**over):
+                self.assertFalse(evaluate_permissions(state(is_homed=False, joint_jog_before_homing=True, **over))["jog"])
+
+
+class TestTheJointJogFacts(unittest.TestCase):
+    """The switch, the cap and the joint order from the INI (operator E1/E2)."""
+
+    def setUp(self):
+        saved = (gateway.STAT, gateway._joint_jog_cache)
+        self.addCleanup(lambda: (setattr(gateway, "STAT", saved[0]),
+                                 setattr(gateway, "_joint_jog_cache", saved[1])))
+        gateway.STAT = linuxcnc.stat()
+        gateway.STAT.ini_filename = "/x/machine.ini"
+        gateway.STAT.joints = 3
+        gateway.STAT.axis_mask = 0b111
+        p = mock.patch.object(gateway.linuxcnc, "ini", _Ini)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def facts(self, switch="1", fraction=None, axes=None, kins="trivkins coordinates=XYZ", joints=3):
+        v = {("KINS", "KINEMATICS"): kins}
+        v.update({(f"JOINT_{j}", "MAX_VELOCITY"): "20" for j in range(joints)})
+        for key, val in (("WEBUI_JOINT_JOG_BEFORE_HOMING", switch), ("WEBUI_JOINT_JOG_MAX_FRACTION", fraction),
+                         ("WEBUI_JOINT_AXES", axes)):
+            if val is not None:
+                v[("DISPLAY", key)] = val
+        _Ini.values = v
+        gateway.STAT.joints = joints
+        gateway._joint_jog_cache = None
+        return gateway._joint_jog_facts()
+
+    def test_the_switch(self):
+        self.assertTrue(self.facts("1")["enabled"])
+        self.assertTrue(self.facts(" 1 ")["enabled"])
+        for raw in (None, "", "0", "yes", "true", "2"):
+            with self.subTest(raw=raw):
+                self.assertFalse(self.facts(raw)["enabled"])
+        with mock.patch.object(gateway._trace, "emit") as emit:
+            self.facts("yes")
+        self.assertIn("policy.joint_jog_invalid", [c.args[0] for c in emit.call_args_list])
+
+    def test_the_cap(self):
+        self.assertEqual(self.facts()["fraction"], 0.1)
+        self.assertEqual(self.facts(fraction="0.25")["fraction"], 0.25)
+        self.assertEqual(self.facts(fraction="1")["fraction"], 1.0)
+        for raw in ("0", "-0.1", "1.5", "ten", "nan", "inf"):
+            with self.subTest(raw=raw):
+                f = self.facts(fraction=raw)
+                self.assertFalse(f["enabled"], "an invalid cap never opens the jog")
+                self.assertIn("WEBUI_JOINT_JOG_MAX_FRACTION", f["reason"])
+
+    def test_the_joint_order(self):
+        f = self.facts()
+        self.assertEqual([(r["letter"], r["joint"]) for r in f["axes"]], [("X", 0), ("Y", 1), ("Z", 2)])
+        self.assertEqual(self.facts(axes="X Y Z")["axes"][2]["joint"], 2)
+        f = self.facts(kins="xyzac-trt-kins")
+        self.assertFalse(f["enabled"])
+        self.assertEqual(f["reason"], JOINT_ORDER_UNDECLARED)
+        self.assertFalse(self.facts(axes="X Y Q")["enabled"])
+        f = self.facts(kins="trivkins coordinates=XYYZ", joints=4)
+        self.assertTrue(f["enabled"])
+        self.assertEqual([(r["letter"], r["joint"]) for r in f["axes"]], [("X", 0), ("Y", None), ("Z", 3)])
+
+    def test_unread_before_the_connect(self):
+        gateway.STAT.ini_filename = None
+        gateway._joint_jog_cache = None
+        self.assertFalse(gateway._joint_jog_facts()["enabled"])
+        self.assertIsNone(gateway._joint_jog_cache, "not cached")
 
 
 if __name__ == "__main__":

@@ -59,6 +59,9 @@ elif _launcher_bind.get("needs_poll"):
 # Pure, linuxcnc-free helpers (importable under pytest without the binding).
 from gateway_util import (
     mode_switch_ignored_message,
+    joint_jog_map,
+    parse_joint_letters,
+    trivkins_coordinates,
     ALLOWED_EXTENSIONS,
     AXIS_LETTERS,
     g30_param,
@@ -2305,6 +2308,7 @@ def try_connect_lcnc() -> bool:
     allowed — every caller (poller, WS endpoint, boot) inherits the rule."""
     global STAT, CMD, ERR, lcnc_connected, _lcnc_pid, _nc_files_dir, _ini_config, _ever_connected, _kins_decl_cache
     global _machine_limits, _bound_instance, _coord_without_homing_cache, _spindle_before_homing_cache
+    global _joint_jog_cache
     if _instance_ended:
         return False  # bound instance ended: never re-bind
     _nc_files_dir = None        # re-resolve on reconnect
@@ -2313,6 +2317,7 @@ def try_connect_lcnc() -> bool:
     _kins_decl_cache = None     # re-parse kins declaration on reconnect
     _coord_without_homing_cache = None   # button gates D: re-read on reconnect
     _spindle_before_homing_cache = None
+    _joint_jog_cache = None              # package E: re-read on reconnect
     _status_runtime.invalidate_var_file_path()  # re-resolve on reconnect (P2.1)
     if not _nml_connectable():
         return False
@@ -2412,6 +2417,7 @@ _status_runtime = _status_runtime_mod.StatusRuntime(
     get_trip_unacked=lambda: _unacked_trip is not None,
     get_coord_without_homing=lambda: _coord_without_homing(),
     get_spindle_before_homing=lambda: _spindle_before_homing(),
+    get_joint_jog_before_homing=lambda: _joint_jog_facts()["enabled"],
     # The reader-derived policy inputs count only while it is fresh (BG-12).
     get_reader_fresh=lambda: not _hal_bridge.reader_is_stale(),
     # Raw W1 stamps (late-bound: _prov_cache is defined below). No
@@ -6858,6 +6864,89 @@ def _spindle_before_homing() -> bool:
     return _spindle_before_homing_cache
 
 
+_joint_jog_cache: Optional[dict] = None
+_JOINT_JOG_OFF = {"enabled": False, "fraction": None, "axes": [], "reason": None}
+#: The cap before homing without a declaration (operator E2, 2026-10-28).
+_JOINT_JOG_DEFAULT_FRACTION = 0.1
+
+
+def _joint_jog_facts() -> dict:
+    """Jogging before homing (operator E1/E2, 2026-10-28; button gates package
+    E, BG-07): {enabled, fraction, axes, reason}, fixed for the session.
+
+    - `[DISPLAY] WEBUI_JOINT_JOG_BEFORE_HOMING`: exactly "1" switches it on;
+      absent or "0" is off; anything else is off AND said once in the trace.
+    - `[DISPLAY] WEBUI_JOINT_JOG_MAX_FRACTION`: the cap — a jog before homing
+      moves at most this share of its joint's [JOINT_n] MAX_VELOCITY.
+      Absent: 0.1. 0 < f ≤ 1, anything else switches the jog OFF and is
+      traced (an invalid value never raises the cap, the Q1 rule).
+    - the joint order: `[DISPLAY] WEBUI_JOINT_AXES` (each joint's letter in
+      joint order), else trivkins' `coordinates=`; else none — closed.
+      gateway_util.joint_jog_map turns it into one row per axis (a gantry
+      letter closed).
+    `enabled` = switch on, a valid cap, a valid map with at least one axis
+    that can jog. Unreadable before the first NML connect: off, not cached."""
+    global _joint_jog_cache
+    if _joint_jog_cache is not None:
+        return _joint_jog_cache
+    ini_filename = getattr(STAT, "ini_filename", None) if STAT else None
+    if not ini_filename:
+        return _JOINT_JOG_OFF
+    try:
+        ini = linuxcnc.ini(ini_filename)
+        raw = (ini.find("DISPLAY", "WEBUI_JOINT_JOG_BEFORE_HOMING") or "").strip()
+        if raw not in ("", "0", "1"):
+            _trace.emit("policy.joint_jog_invalid", level="warn", value=raw[:40])
+        if raw != "1":
+            _joint_jog_cache = dict(_JOINT_JOG_OFF)
+            return _joint_jog_cache
+        raw_f = (ini.find("DISPLAY", "WEBUI_JOINT_JOG_MAX_FRACTION") or "").strip()
+        fraction = _JOINT_JOG_DEFAULT_FRACTION
+        if raw_f:
+            try:
+                fraction = float(raw_f)
+            except ValueError:
+                fraction = float("nan")
+            if not 0.0 < fraction <= 1.0:
+                _trace.emit("policy.joint_jog_fraction_invalid", level="warn", value=raw_f[:40])
+                _joint_jog_cache = dict(_JOINT_JOG_OFF, reason="WEBUI_JOINT_JOG_MAX_FRACTION invalid — 0 < f ≤ 1")
+                return _joint_jog_cache
+        try:
+            letters = parse_joint_letters(ini.find("DISPLAY", "WEBUI_JOINT_AXES"))
+        except ValueError as e:
+            _trace.emit("policy.joint_axes_invalid", level="warn", error=str(e)[:80])
+            _joint_jog_cache = dict(_JOINT_JOG_OFF, reason="WEBUI_JOINT_AXES invalid — axis letters in joint order")
+            return _joint_jog_cache
+        if letters is None:
+            letters = trivkins_coordinates(ini.find("KINS", "KINEMATICS"))
+        joints = getattr(STAT, "joints", None)
+        max_vels = []
+        for j in range(joints if isinstance(joints, int) else 0):
+            try:
+                max_vels.append(float(ini.find(f"JOINT_{j}", "MAX_VELOCITY") or "nan"))
+            except ValueError:
+                max_vels.append(None)
+            if max_vels[-1] is not None and not max_vels[-1] > 0:
+                max_vels[-1] = None
+        axes = _axes_from_mask(int(getattr(STAT, "axis_mask", 0) or 0))
+    except Exception as e:  # noqa: BLE001 - unreadable is the closed reading
+        _trace.emit_exc("policy.joint_jog_unreadable", e)
+        return _JOINT_JOG_OFF
+    rows, why = joint_jog_map(letters, joints, list(axes), max_vels)
+    enabled = why is None and any(r["joint"] is not None for r in rows)
+    _joint_jog_cache = {"enabled": enabled, "fraction": fraction, "axes": rows, "reason": why}
+    _trace.emit("policy.joint_jog", level="info", enabled=enabled, fraction=fraction, reason=why,
+                axes=[(r["letter"], r["joint"]) for r in rows])
+    return _joint_jog_cache
+
+
+def _joint_jog_public() -> dict:
+    """viewer_init.joint_jog: what the strip names and dims before homing."""
+    f = _joint_jog_facts()
+    return {"enabled": f["enabled"], "fraction": f["fraction"], "reason": f["reason"],
+            "axes": [{"letter": r["letter"], "joint": r["joint"], "reason": r["reason"]} for r in f["axes"]]}
+
+
 #: Operator wording for a semantic kinematics mode (R-01). The M-CODE is
 #: deliberately absent: it is a per-configuration fact resolved at run time.
 _KINS_MODE_NAMES = {0: "Machine (identity)", 1: "TCP (world)", 2: "Plane (TOOL)"}
@@ -7107,7 +7196,8 @@ def _live_policy_state(armed: bool):
         twp_capable=_twp_capable(), identity_first=_identity_first(),
         trip_unacked=_unacked_trip is not None,
         coord_without_homing=_coord_without_homing(),
-        spindle_before_homing=_spindle_before_homing())
+        spindle_before_homing=_spindle_before_homing(),
+        joint_jog_before_homing=_joint_jog_facts()["enabled"])
 
 
 # Cache for build_viewer_init() output. Keyed on every input that can
@@ -7252,6 +7342,8 @@ def build_viewer_init(stl_base_url: str) -> Dict[str, Any]:
         "linear_units": ini_cfg.get("linear_units"),
         "max_velocity": safe_get("max_velocity", None),
         "max_jog_velocity": get_max_jog_velocity(),
+        # Jogging before homing (package E): what each axis moves and the cap
+        "joint_jog": _joint_jog_public(),
         "default_jog_velocity": ini_cfg.get("default_jog_velocity"),
         "min_jog_velocity": ini_cfg.get("min_jog_velocity"),
         "max_angular_jog_velocity": ini_cfg.get("max_angular_jog_velocity"),
