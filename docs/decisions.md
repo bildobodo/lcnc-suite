@@ -9598,3 +9598,12 @@ and dropped them the same day when "J2·Z+" widened the Z and rotary buttons ("o
 not do it either"); the strip's head states "Joint jog — no soft limits · max 10 %", a
 closed axis is dimmed with its reason, keyboard and gamepad refuse by the same rule.
 
+**Package E, implementation review R219 (2026-10-28).** Codex confirmed the R218 scope (stops
+without a switch, the idle admit at every mode write) and the regular joint map, and found
+three transitions: a jog prepared homed met an unhomed machine at its write and went out
+uncapped or as a single gantry joint (BG-33); a jog written during a cancel was never booked,
+so the disconnect stop missed it (BG-34); a new jog was admitted while homing ran (BG-35).
+Now each jog write holds the homing state it was prepared under (else "Homing state changed —
+jog again"), the booking happens in the write's thread (`_cmd_blocking(written=)`), and `jog`
+requires no homing under way (known).
+

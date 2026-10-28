@@ -452,7 +452,18 @@ joint jog before homing in E.
   homed ones, which their soft limits protect). The four jog commands share
   `_start_jogs`: the `jog` class on a current read before the queue and
   inside every write's thread (the switch and each jog); a closed axis
-  refuses the whole command, nothing sent. `_jog_axis_arg` uses the
+  refuses the whole command, nothing sent. Each write also holds the homing
+  state the command was PREPARED under — its target, gantry closure and cap
+  belong to it (Codex R219 BG-33): homed or not changed since (an unread
+  state counts as not homed), the write refuses "Homing state changed — jog
+  again", for every axis of a multi-jog too. A jog is booked in the write's
+  own thread right after `CMD.jog` returned (`_cmd_blocking`'s `written`),
+  so a cancel during the write — a disconnect — never loses it and the
+  disconnect stop reaches it (BG-34); a refused or failed write books
+  nothing. No NEW jog while homing runs: `jog` requires the homing state
+  known and no joint homing (BG-35; motion rejects a jog then, command.c
+  v2.9.4:785/853, and a booked jog's stop would cancel the homing); the
+  stops stay open. `_jog_axis_arg` uses the
   declared order for any joint jog (also the homed beyond-limit one);
   without a declaration index = joint stays — true on every shipped
   profile.
