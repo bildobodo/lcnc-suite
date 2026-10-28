@@ -1,0 +1,20 @@
+{
+ "info": {
+  "profile": "xyzac-e",
+  "joints": 5,
+  "kinematics_type": 4,
+  "cap": 3.0
+ },
+ "results": [
+  {
+   "check": "starts unhomed",
+   "result": "PASS",
+   "detail": "[0, 0, 0, 0, 0]"
+  },
+  {
+   "check": "E8 C (wire 4) before homing moves joint 4 only, at most the cap 3",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'jog_cont', 'ok': True} peak=3.000 travel=4.477 others=[0.0, 0.0, 0.0, 0.0]"
+  }
+ ]
+}

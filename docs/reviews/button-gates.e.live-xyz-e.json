@@ -1,0 +1,63 @@
+{
+ "info": {
+  "profile": "xyz-e",
+  "joints": 3,
+  "kinematics_type": 1,
+  "caps": [
+   10.0,
+   10.0
+  ],
+  "parked": [
+   0.0,
+   -2.0,
+   0.0
+  ],
+  "home_all": {
+   "type": "reply",
+   "cmd": "home_all",
+   "ok": true
+  }
+ },
+ "results": [
+  {
+   "check": "starts unhomed",
+   "result": "PASS",
+   "detail": "[0, 0, 0]"
+  },
+  {
+   "check": "E1 unhomed: the gateway opens jog (declared)",
+   "result": "PASS",
+   "detail": "True"
+  },
+  {
+   "check": "E2 jog before homing: joint 0 moves in joint mode, at most the cap 10",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'jog_cont', 'ok': True} peak=10.000 travel=14.899 motion_mode=1"
+  },
+  {
+   "check": "E3 jog_stop stops it",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'jog_stop', 'ok': True} stopped=True"
+  },
+  {
+   "check": "E4 the disarm stop stops an unhomed jog",
+   "result": "PASS",
+   "detail": "jog={'type': 'reply', 'cmd': 'jog_cont', 'ok': True} moving=True disarm={'type': 'reply', 'cmd': 'arm', 'ok': True, 'armed': False} stopped=True"
+  },
+  {
+   "check": "E5 a jog stop is taken in MDI: no error, task stays MDI",
+   "result": "PASS",
+   "detail": "set_mode={'type': 'reply', 'cmd': 'set_mode', 'ok': True} in_mdi=True errors=[] mode=3"
+  },
+  {
+   "check": "E6 an increment before homing: joint 1 by the distance, at most the cap 10",
+   "result": "PASS",
+   "detail": "{'type': 'reply', 'cmd': 'jog_incr', 'ok': True} moved=-2.0000 peak=10.000"
+  },
+  {
+   "check": "E7 homed: no cap (teleop at the asked speed)",
+   "result": "PASS",
+   "detail": "homed=True {'type': 'reply', 'cmd': 'jog_cont', 'ok': True} peak=30.000 asked=30"
+  }
+ ]
+}
