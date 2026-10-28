@@ -1847,8 +1847,11 @@ class TestGoToZeroAndJogStopDispatch(unittest.TestCase):
         # it (Codex R63: five failed when the class ran alone)
         gateway.STAT.axis_mask = 0b101111
         # The interpreter idle: every mode switch is admitted at its write
-        # only onto a KNOWN idle interpreter (button gates package E).
+        # only onto a KNOWN idle interpreter; a jog reads power and homing
+        # now (button gates package E).
         gateway.STAT.interp_state = linuxcnc.INTERP_IDLE
+        gateway.STAT.estop, gateway.STAT.enabled = False, True
+        gateway.STAT.joints, gateway.STAT.homed = 5, (1,) * 5 + (0,) * 4
         # the payload bounds are cached per session (get_machine_limits): a
         # previous test's XYZ counts would refuse axis 3/4 ("above maximum 2")
         self._limits = gateway._machine_limits

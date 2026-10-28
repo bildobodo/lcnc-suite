@@ -16,7 +16,7 @@ import gateway  # noqa: E402
 from command_policy import evaluate_permissions, permission_reasons  # noqa: E402
 from gateway_util import (GANTRY_AXIS, JOINT_ORDER_UNDECLARED, NO_JOINT_FOR_AXIS,  # noqa: E402
                           NO_JOINT_MAX_VEL, joint_jog_map, parse_joint_letters, trivkins_coordinates)
-from test_button_gates import _run  # noqa: E402
+from test_button_gates import _payload, _run  # noqa: E402
 from test_button_gates_d import _Ini, _Writer, state  # noqa: E402
 
 MDI_RUNNING = {"task_mode": linuxcnc.MODE_MDI, "interp_state": linuxcnc.INTERP_READING}
@@ -331,6 +331,99 @@ class TestTheJointJogFacts(unittest.TestCase):
         gateway._joint_jog_cache = None
         self.assertFalse(gateway._joint_jog_facts()["enabled"])
         self.assertIsNone(gateway._joint_jog_cache, "not cached")
+
+
+class TestJoggingBeforeHoming(_Writer):
+    """BG-07 at the handlers: before homing each axis moves its DECLARED
+    joint, at most the cap; a closed axis refuses the whole command, nothing
+    sent; the jog is booked as sent, and its stop addresses exactly that."""
+
+    def setUp(self):
+        super().setUp()
+        self.takes_the_mode()
+        self.cmd.wait_complete = lambda *a: linuxcnc.RCS_DONE
+        gateway._active_jogs.clear()
+        self.order(list("XYZ"))
+
+    def order(self, letters, axes="XYZ", fraction=0.1, max_vel=20.0, enabled=True):
+        rows, why = joint_jog_map(letters, len(letters), list(axes), [max_vel] * len(letters))
+        facts = {"enabled": enabled and why is None, "fraction": fraction, "axes": rows, "reason": why}
+        p = mock.patch.object(gateway, "_joint_jog_facts", lambda: facts)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def unhomed(self, msg, **controller):
+        return self.send(msg, controller={"homed": False, **controller}, homed=False)
+
+    def jogs(self):
+        return [a for n, a, _k in self.cmd.calls if n == "jog"]
+
+    def test_a_joint_jog_at_the_cap(self):
+        r = self.unhomed({"cmd": "jog_cont", "axis": 1, "vel": -5.0})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 1, -2.0)])   # 10 % of 20
+        self.assertEqual(gateway._active_jogs, {1: (1, 1)})
+        self.cmd.calls.clear()
+        self.unhomed({"cmd": "jog_cont", "axis": 0, "vel": 1.5})               # below the cap
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 0, 1.5)])
+
+    def test_an_increment(self):
+        r = self.unhomed({"cmd": "jog_incr", "axis": 2, "vel": 9.0, "distance": -1.0})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_INCREMENT, 1, 2, 2.0, -1.0)])
+
+    def test_the_declared_joint_not_the_index(self):
+        self.order(list("XZY"))       # joint 1 carries Z, joint 2 Y
+        self.unhomed({"cmd": "jog_cont", "axis": 1, "vel": 1.0})        # wire 1 = Y
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 2, 1.0)])
+        self.cmd.calls.clear()
+        self.send({"cmd": "jog_stop", "axis": 1}, controller={"homed": False}, homed=False)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_STOP, 1, 2)])
+
+    def test_a_gantry_axis_refuses_the_whole_command(self):
+        self.order(list("XYYZ"))
+        for msg in ({"cmd": "jog_cont", "axis": 1, "vel": 1.0},
+                    {"cmd": "jog_cont_multi", "axes": [{"axis": 0, "vel": 1.0}, {"axis": 1, "vel": 1.0}]},
+                    {"cmd": "jog_incr_multi", "axes": [{"axis": 2, "vel": 1.0, "distance": 1.0},
+                                                       {"axis": 1, "vel": 1.0, "distance": 1.0}]}):
+            with self.subTest(cmd=msg["cmd"]):
+                self.cmd.calls.clear()
+                gateway.STAT.joints = 4
+                r = self.send(msg, controller={"homed": False, "joints": 4}, homed=False)
+                self.assertEqual(r, {"ok": False, "error": "Gantry axis — jog it after Home All"})
+                self.assertEqual([n for n in self.cmd.names() if n in ("mode", "jog")], [])
+
+    def test_partially_homed_is_before_homing(self):
+        # joints 0 and 1 homed, 2 not: joint mode, the cap on every joint
+        # (over-strict for the homed ones, which their soft limits protect)
+        self.controller()
+        gateway.STAT.homed = (1, 1, 0) + (0,) * 13
+        gateway._shared_status = _payload(homed=False, inpos=True, current_vel=0.0)
+        gateway._cmd_lock = None
+        r = _run(gateway.handle_command({"cmd": "jog_cont", "axis": 0, "vel": 9.0}, True, self.writer.conn_key))
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 1, 0, 2.0)])
+
+    def test_without_the_switch_unhomed_is_refused(self):
+        self.order(list("XYZ"), enabled=False)
+        r = self.unhomed({"cmd": "jog_cont", "axis": 0, "vel": 1.0})
+        self.assertEqual(r, {"ok": False, "error": "Not homed — press Home All"})
+        self.assertEqual(self.jogs(), [])
+
+    def test_homed_is_unchanged(self):
+        gateway.STAT.motion_mode = linuxcnc.TRAJ_MODE_TELEOP
+        r = self.send({"cmd": "jog_cont", "axis": 1, "vel": 9.0})
+        self.assertTrue(r["ok"], r)
+        self.assertEqual(self.jogs(), [(linuxcnc.JOG_CONTINUOUS, 0, 1, 9.0)])   # teleop, no cap
+
+    def test_the_jog_is_admitted_at_its_write(self):
+        def running():
+            gateway.STAT.task_mode, gateway.STAT.interp_state = linuxcnc.MODE_MDI, linuxcnc.INTERP_READING
+        self.controller(homed=False)                 # MANUAL already: the first write is the jog
+        gateway.STAT.homed = (0,) * 16
+        r = self.at_the_write({"cmd": "jog_cont", "axis": 0, "vel": 1.0}, running)
+        self.assertFalse(r["ok"], r)
+        self.assertEqual(self.jogs(), [])
 
 
 if __name__ == "__main__":

@@ -3514,6 +3514,63 @@ def _auto_running() -> bool:
             and safe_get("interp_state", None) != linuxcnc.INTERP_IDLE)
 
 
+def _homed_now() -> Optional[bool]:
+    """Every configured joint homed, on a read taken now; None unread."""
+    STAT.poll()
+    return _status_runtime_mod.homed_of(safe_get("homed", None), safe_get("joints", 0))
+
+
+async def _start_jogs(cmd: str, armed: bool, entries) -> Dict[str, Any]:
+    """jog_cont / jog_incr and their multi forms: `entries` (wire axis, vel,
+    distance — None for a continuous jog). Caller holds `_cmd_lock` and has
+    checked arm and a running AUTO / MDI.
+
+    Homed: as before — teleop where motion is in it, the axis' canonical
+    number. Before homing (package E, BG-07; operator E1/E2 2026-10-28):
+    motion is in joint mode; each axis moves the joint the machine DECLARES
+    for it (_joint_jog_facts) — a closed axis (a gantry letter, no joint)
+    refuses the whole command with its reason, nothing sent — at most the cap,
+    the declared fraction of that joint's MAX_VELOCITY (the sign kept; traced
+    `jog.capped`). The `jog` class on a current read before the queue and
+    inside every write's thread — the switch to MANUAL and each jog (Codex
+    R217's standard). Each jog is booked with what was sent, for its stop."""
+    admit = _gate_admit("jog", armed)
+    why = admit()
+    if why:
+        return {"ok": False, "error": why}
+    targets = None
+    if _homed_now() is not True:
+        facts = _joint_jog_facts()
+        if not facts["enabled"]:
+            return {"ok": False, "error": facts["reason"] or "Not homed — press Home All"}
+        targets = []
+        for axis, vel, dist in entries:
+            row = facts["axes"][axis] if 0 <= axis < len(facts["axes"]) else None
+            if row is None or row["joint"] is None:
+                return {"ok": False, "error": (row or {}).get("reason") or f"No axis {axis}"}
+            cap = facts["fraction"] * row["max_vel"]
+            if abs(vel) > cap:
+                _trace.emit("jog.capped", level="info", cmd=cmd, axis=axis, joint=row["joint"],
+                            asked=vel, cap=cap)
+                vel = math.copysign(cap, vel)
+            targets.append((axis, 1, row["joint"], vel, dist))
+    try:
+        await set_mode(linuxcnc.MODE_MANUAL, admit=admit)
+        if targets is None:
+            jf = await _jog_mode_flag()
+            targets = [(axis, jf, _jog_axis_arg(axis, jf), vel, dist) for axis, vel, dist in entries]
+        for axis, jf, arg, vel, dist in targets:
+            if dist is None:
+                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel, wait=None, admit=admit)
+            else:
+                rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist, wait=None, admit=admit)
+            _active_jogs[axis] = (jf, arg)
+            _trace_jog(cmd, axis, jf, arg, vel=vel, dist=dist, rc=rc)
+    except _WriteRefused as refused:
+        return {"ok": False, "error": str(refused)}
+    return {"ok": True}
+
+
 def reject_if_auto_running() -> Optional[Dict[str, Any]]:
     STAT.poll()
     mode = safe_get("task_mode", None)
@@ -3574,14 +3631,13 @@ def _jog_joint_flag() -> int:
     return 1
 
 
-def _trace_jog(cmd: str, axis: int, jf: int, **extra) -> None:
+def _trace_jog(cmd: str, axis: int, jf: int, arg: int, **extra) -> None:
     """One `jog.cmd` event per NEW jog (never per stop): what was issued and
     what task/motion looked like at that instant. A jog that "did nothing"
     (matrix, 2026-09-05: jog_cont A, no disarm, no refusal, A never moved)
     is undiagnosable without it."""
     STAT.poll()
-    _trace.emit("jog.cmd", level="info", cmd=cmd, axis=axis, jf=jf,
-                arg=_jog_axis_arg(axis, jf),
+    _trace.emit("jog.cmd", level="info", cmd=cmd, axis=axis, jf=jf, arg=arg,
                 task_mode=safe_get("task_mode", None), motion_mode=safe_get("motion_mode", None),
                 interp=safe_get("interp_state", None), **extra)
 
@@ -3628,6 +3684,13 @@ def _jog_axis_arg(idx: int, jf: int) -> int:
     (WS-D 5-axis user smoke; the disarm jog-stop missed C the same way).
     Out-of-range indices pass through — CMD.jog rejects them itself."""
     if jf != 0:
+        # A declared joint order (package E, _joint_jog_facts) names the
+        # joint; without one the old assumption index = joint stays (the
+        # beyond-limit joint jog of a homed machine) — true on every shipped
+        # profile, a guess elsewhere.
+        rows = _joint_jog_facts()["axes"]
+        if 0 <= idx < len(rows) and rows[idx]["joint"] is not None:
+            return rows[idx]["joint"]
         return idx
     letters = _axes_from_mask(int(safe_get("axis_mask", 0) or 0))
     if 0 <= idx < len(letters):
@@ -5348,15 +5411,8 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if blocked:
                 return blocked
 
-            axis = finite_int(msg.get("axis"), lo=0)
-            vel = finite_float(msg.get("vel", 0.0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            arg = _jog_axis_arg(axis, jf)
-            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, vel, wait=None)
-            _active_jogs[axis] = (jf, arg)
-            _trace_jog("jog_cont", axis, jf, vel=vel, rc=rc)
-            return {"ok": True}
+            return await _start_jogs("jog_cont", armed,
+                                     [(finite_int(msg.get("axis"), lo=0), finite_float(msg.get("vel", 0.0)), None)])
 
         if cmd == "jog_stop":
             # Stopping motion is always allowed — gateway must NOT silently
@@ -5385,15 +5441,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if blocked:
                 return blocked
 
-            axes = msg.get("axes", [])
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            for entry in axes:
-                _ax = finite_int(entry["axis"], lo=0)
-                arg = _jog_axis_arg(_ax, jf)
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_CONTINUOUS, jf, arg, finite_float(entry["vel"]), wait=None)
-                _active_jogs[_ax] = (jf, arg)
-            return {"ok": True}
+            return await _start_jogs("jog_cont_multi", armed,
+                                     [(finite_int(e["axis"], lo=0), finite_float(e["vel"]), None)
+                                      for e in msg.get("axes", [])])
 
         if cmd == "jog_stop_multi":
             # Stopping motion is always allowed — see jog_stop above for the
@@ -5424,16 +5474,10 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if blocked:
                 return blocked
 
-            axis = finite_int(msg.get("axis"), lo=0)
-            vel = abs(finite_float(msg.get("vel", 0.0)))  # speed only; distance carries direction
-            dist = finite_float(msg.get("distance", 0.0))
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            arg = _jog_axis_arg(axis, jf)
-            rc = await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, vel, dist, wait=None)
-            _active_jogs[axis] = (jf, arg)
-            _trace_jog("jog_incr", axis, jf, vel=vel, dist=dist, rc=rc)
-            return {"ok": True}
+            # speed only; the distance carries the direction
+            return await _start_jogs("jog_incr", armed,
+                                     [(finite_int(msg.get("axis"), lo=0), abs(finite_float(msg.get("vel", 0.0))),
+                                       finite_float(msg.get("distance", 0.0)))])
 
         if cmd == "jog_incr_multi":
             require_armed(armed)
@@ -5442,15 +5486,9 @@ async def _handle_command_impl(msg: Dict[str, Any], armed: bool, conn_key: Optio
             if blocked:
                 return blocked
 
-            axes = msg.get("axes", [])
-            await set_mode(linuxcnc.MODE_MANUAL)
-            jf = await _jog_mode_flag()
-            for entry in axes:
-                _ax = finite_int(entry["axis"], lo=0)
-                arg = _jog_axis_arg(_ax, jf)
-                await _cmd_blocking(CMD.jog, linuxcnc.JOG_INCREMENT, jf, arg, abs(finite_float(entry["vel"])), finite_float(entry["distance"]), wait=None)
-                _active_jogs[_ax] = (jf, arg)
-            return {"ok": True}
+            return await _start_jogs("jog_incr_multi", armed,
+                                     [(finite_int(e["axis"], lo=0), abs(finite_float(e["vel"])),
+                                       finite_float(e["distance"])) for e in msg.get("axes", [])])
 
         if cmd == "home_all":
             require_armed(armed)
